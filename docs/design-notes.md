@@ -221,6 +221,46 @@ levers already noted (civic cost catch-up, authority penalties on runaway conque
 
 ---
 
+## Entry VI — Victory: the Bead Race (single unified win condition)
+
+**Decision (user, 2026-08-21):** no separate victory tracks. Rejected: world-conquest domination
+(tedious), spaceship-tail science (drags), tourism (nonsensical), Civ V diplo (a joke). ONE
+overarching condition: **glass beads** earned across four families — domination, culture,
+science, economic — tallied on the always-visible Abacus (Entry V).
+
+**Why unified fixes the rejected list structurally:** separate tracks make most systems
+irrelevant per player, hide the losing state, and force each track to carry an endgame alone
+(hence total conquest / spaceship tails). One currency: war out-earns instead of exterminating;
+science scores continuously instead of gating; everyone races one legible number.
+
+**Design commitments:**
+1. **Coarse grain.** ~30 beads in a finished game, not 400 points. Every bead is an announced
+   event (clacks onto the Abacus, attributed). Anti-point-salad: if everything scores, nothing
+   is a decision.
+2. **Three source types across the four families:**
+   - **Feats** — one-time firsts (first to an era, capital captured, first wonder of an age,
+     circumnavigation). Spiky, front-loaded → the early-victory fuel.
+   - **Age objectives** — 2–3 PUBLIC goals revealed at each age's opening (TI-style), scored at
+     its close. Each age = a self-contained act; new deals each act = comeback structure.
+   - **Age-close scoring** — small state-based award per age (cities, techs, government tier)
+     so steady builders stay on the board.
+3. **Two ways to win:** first to threshold N beads → immediate win (early victory through
+   excellence, scaled by player count/speed); otherwise most beads at final age close.
+4. **War prices itself:** conquest mints big beads but captured cities cost authority (Entry I)
+   — the domination path is throttled by an existing system, no warmonger rules needed.
+5. **Flag: economic beads are the weak sibling** (gold is a means, not an end, in every 4X).
+   Make them feat-shaped (treasury milestones, trade dominance, wonder buyouts); expect the most
+   iteration here.
+6. All sources/values in `data/beads.json` (future); awards happen in the sim (deterministic,
+   announced via the command/phase pipeline like everything else).
+
+**Risks:** leader legibility invites gang-ups (feature in MP, but AI must handle it too);
+objective RNG must respect the fairness rules of Entry II (public, same for all players);
+threshold N is THE pacing knob — harness assertion: bot games end by threshold or curtain within
+the target turn band.
+
+---
+
 ## Sequencing snapshot (2026-08-21)
 Vanilla mechanics first (user decision). M4 = vanilla science tech tree + culture. Then combat,
 AI, netcode. Drafting/governments/dice slot in after the vanilla loop proves out. Rivers mapgen
