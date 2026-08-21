@@ -1,4 +1,4 @@
-# magister_ludi (working name; also "WebCiv")
+# Magister Ludi (repo `magister_ludi`; formerly "WebCiv")
 
 Browser Civ V-style 4X. TypeScript + Vite. Deterministic simulation, procedural
 toon-shaded 3D renderer, data-driven balance. Design ledger: `docs/design-notes.md`.

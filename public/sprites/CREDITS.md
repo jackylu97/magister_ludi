@@ -9,7 +9,7 @@ Source packs:
 - **Hexagon Pack** — <https://kenney.nl/assets/hexagon-pack> (terrain hexes, standing objects)
 - **Boardgame Pack** — <https://kenney.nl/assets/boardgame-pack> (playing pieces)
 
-Only the files WebCiv actually draws are vendored here.
+Only the files Magister Ludi actually draws are vendored here.
 
 ## `terrain/` — 120 x 140 pointy-top hex faces
 
@@ -22,7 +22,7 @@ Only the files WebCiv actually draws are vendored here.
 | `snow.png` | `Tiles/Terrain/Stone/stone_07.png` | recoloured to `#e4eaec` |
 | `mountain.png` | `Tiles/Terrain/Stone/stone_07.png` | recoloured to `#8b9393` |
 
-The pack ships five terrain palettes (grass / sand / dirt / stone / mars) and WebCiv has
+The pack ships five terrain palettes (grass / sand / dirt / stone / mars) and the game has
 eight terrains, so three faces are per-pixel recolours of a plain source tile: every pixel is
 scaled by `target / dominantSourceColour`, which preserves the tile's speckle texture and its
 antialiased rim. `ocean` and `coast` have no sprite at all — the pack has no water hex, so the

@@ -251,7 +251,7 @@ function build3DPanel(renderer: Renderer3D): () => void {
     requestAnimationFrame(() => {
       const s = renderer.stats;
       console.log(
-        `[webciv 3d] ${s.tiles} tiles, ${s.instances} instances, ` +
+        `[magister-ludi 3d] ${s.tiles} tiles, ${s.instances} instances, ` +
           `${s.drawCalls} draw calls, board built in ${s.buildMs.toFixed(1)} ms`,
       );
       report();

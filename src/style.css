@@ -1,5 +1,5 @@
 /*
- * WebCiv's interface skin.
+ * Magister Ludi's interface skin.
  *
  * The design language is fixed by `docs/design-specimen.html`, and this file is
  * that specimen applied to a HUD: parchment surfaces, 3px ink borders, solid
@@ -212,17 +212,19 @@ body {
    the card's title rule. */
 .hud-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-bottom: 8px;
   padding-bottom: 7px;
   border-bottom: var(--border) solid var(--ink);
 }
 
+/* Level with the cap-height of the first line of the wordmark, not with the
+   middle of a two-line masthead. */
 .hud-tools {
   display: flex;
   gap: 4px;
-  margin-left: auto;
+  margin: 2px 0 0 auto;
 }
 
 /* A small square of parchment with an ink edge: loud enough to find, quiet
@@ -261,18 +263,35 @@ body {
   color: var(--parchment);
 }
 
-/* The wordmark line: display face, italic accent, mono era stamp. One line, so
-   the card spends a title's worth of drama on a title's worth of height. */
+/* The wordmark: display face, italic accent on the second word, mono era stamp.
+
+   A two-word Latin title will not set on one HUD line at a size worth setting
+   it at — "Magister Ludi" at 26px is wider than the card once the tool buttons
+   have their corner — so it stacks, masthead-fashion, and the era pill takes the
+   space beside the shorter second word rather than being pushed to a line of its
+   own. Placed explicitly on a 2×2 grid so the arrangement is the same whatever
+   the two words happen to measure. */
 .wordmark {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
   align-items: baseline;
-  gap: 7px;
+  column-gap: 9px;
   margin: 0;
   font-family: var(--face-display);
-  font-size: 25px;
+  font-size: 26px;
   font-weight: 400;
-  line-height: 0.95;
+  line-height: 0.94;
   letter-spacing: 0.005em;
+}
+
+/* Row one, spanning both columns: nothing sits beside the long word. */
+.wordmark > .wordmark-word:first-child {
+  grid-area: 1 / 1 / 2 / 3;
+}
+
+.wordmark > em.wordmark-word {
+  grid-area: 2 / 1 / 3 / 2;
 }
 
 .wordmark em {
@@ -281,8 +300,9 @@ body {
 }
 
 .wordmark-mark {
-  margin-left: auto;
+  grid-area: 2 / 2 / 3 / 3;
   align-self: center;
+  justify-self: start;
   padding: 2px 7px 1px;
   border: var(--border-thin) solid var(--ink);
   border-radius: 999px;

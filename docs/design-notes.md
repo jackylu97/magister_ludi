@@ -1,8 +1,8 @@
-# WebCiv Design Notes
+# Magister Ludi Design Notes
 
 Living design ledger — argue here before numbers land in `data/*.json`.
 (Supersedes the balance-ledger artifact as of 2026-08-21; the artifact is a frozen snapshot.)
-Working title candidates: **Magister Ludi** · **Theatrum Mundi**. Design language: `docs/design-specimen.html`.
+Title: **Magister Ludi** (decided; *Theatrum Mundi* was the other candidate). Design language: `docs/design-specimen.html`.
 
 ---
 

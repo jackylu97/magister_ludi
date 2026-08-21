@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebCiv — Milestone 3: Cities</title>
+    <title>Magister Ludi</title>
     <!-- The interface's three voices (see docs/design-specimen.html): Instrument
          Serif announces, Fraunces names, Instrument Sans works, IBM Plex Mono
          counts. Every stack in style.css has a real local fallback, so a blocked
@@ -63,8 +63,15 @@
       <!-- Always visible, and deliberately the smallest card on the page. -->
       <div id="hud-top" class="hud-card">
         <div class="hud-head">
-          <!-- The wordmark line: display face, italic accent, mono era stamp. -->
-          <h1 class="wordmark">Web<em>Civ</em><span class="wordmark-mark">cities</span></h1>
+          <!-- The wordmark: display face, italic accent on the second word,
+               mono era stamp. Two words rather than one compound, so it sets on
+               two lines at HUD width — "Magister Ludi" on one line at 25px
+               would either overrun the card or shrink the title to a label. -->
+          <h1 class="wordmark">
+            <span class="wordmark-word">Magister</span>
+            <em class="wordmark-word">Ludi</em>
+            <span class="wordmark-mark">cities</span>
+          </h1>
           <div class="hud-tools">
             <button
               id="menu-button"

@@ -1,7 +1,7 @@
 /**
  * Entry point for the 3D look-dev prototype.
  *
- * PROTOTYPE. This page exists to answer one question — "does WebCiv work as a
+ * PROTOTYPE. This page exists to answer one question — "does Magister Ludi work as a
  * low-poly toon diorama?" — and nothing else. It reads the real simulation
  * (`createGame` on a real generated map with real starting units) because a
  * look judged on fake data is not judged at all: the whole risk of this art

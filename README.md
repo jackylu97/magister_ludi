@@ -1,6 +1,7 @@
-# WebCiv
+# Magister Ludi
 
-A browser-based Civ V-style 4X game. The board is a tabletop diorama: low-poly
+*The Master of the Game.* A browser-based Civ V-style 4X. The board is a
+tabletop diorama: low-poly
 hex tiles under a warm sun, trees and rocks standing on them, units as turned
 wooden game pieces, everything outlined and lit in three flat bands.
 
@@ -25,18 +26,30 @@ npm run typecheck  # tsc --noEmit
 
 ## Controls
 
-- Drag to pan (the map wraps east–west forever).
-- Wheel to zoom toward the cursor.
-- Click a unit to select it, click a tile to send it there.
+Left selects, right orders. The full list is behind the `?` button in the corner
+of the status card, and it is the same list as this one.
+
+- Drag with either button to pan (the map wraps east–west forever); wheel or
+  pinch to zoom toward the cursor.
+- **Left click** one of your units to select it, again to cycle a stack. Left
+  click anywhere that is not one of your own pieces to put the selection down.
+- **Right click** a tile to send the selected unit there. With nothing selected,
+  right click does nothing at all.
+- `M` arms move mode, where the next *left* click issues the move instead — the
+  trackpad path, for anyone without a comfortable right click. The cursor turns
+  to a crosshair and the selected unit's ring brightens while it is armed.
 - Select a settler and press **Found City** or `B` to plant a city.
 - Click one of your cities — on the board or on its banner — to open its screen:
   yields, growth, and a production queue you can add to, reorder and trim. The
   dots on the map are the tiles its citizens are working.
-- `Esc` closes the city screen, then deselects; `Enter` ends the turn (`G`
-  toggles the hex grid in 2D).
-- Hover a tile to see its terrain, feature and coordinates in the panel.
-- Enter a seed (number or word) and a map size, then press **New Game**.
-- **Shadows** can be switched off if the frame rate hurts; it rebuilds the board.
+- `Esc` backs out one layer at a time: move mode, then an open popover, then the
+  city screen, then the selection. `Enter` ends the turn (`G` toggles the hex
+  grid in 2D).
+- Hover a tile to see its terrain, feature, yields and coordinates in the context
+  card, bottom-left. It is only on screen while it has something to say.
+- The `☰` button opens game setup: a seed (number or word), a map size, **New
+  Game**, and **Shadows**, which can be switched off if the frame rate hurts —
+  it rebuilds the board.
 - `?art=sprites` brings back the 2D isometric sprite renderer and `?art=flat` the
   flat-colour debug one — both exactly as they behaved before the 3D view landed.
 
@@ -55,9 +68,10 @@ npm run typecheck  # tsc --noEmit
   vertical squash and the elevation offsets live in `src/render/projection.ts`.
 - `src/proto3d/` + `proto3d.html` — the look-dev sandbox the 3D view grew out of.
   No interaction, no wrap; a page for judging a palette and a light rig.
-- `src/ui/` — pointer and keyboard handling, the city screen and the city
-  banners, and `mapView.ts`: the small interface both renderers implement, so
-  input logic knows about neither.
+- `src/ui/` — pointer and keyboard handling (`controls.ts` owns the whole input
+  contract above), the city screen, the city banners, the HUD popovers, and
+  `mapView.ts`: the small interface both renderers implement, so input logic
+  knows about neither.
 - `data/` — terrain, unit, building, rules and map-generation data as JSON, plus
   `view3d.json` (the 3D look: palette, tile heights, lights, overlays) and
   `view.json` (the same job for the frozen 2D renderer).
