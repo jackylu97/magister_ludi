@@ -302,8 +302,17 @@ magister's instruments for observing and playing that world. Only UI accents age
 4. Type: Instrument Serif survives (engraved cut). NO blackletter (costume). Optional extra
    voice: letterspaced small caps for inscriptions.
 
-**Next step when wanted:** specimen take three — aged pigments + one tarot card mock — before
-committing the palette shift to the live UI.
+**Take four (user direction, 2026-08-21): THE STUDY AT NIGHT — dark theme.** Ground goes
+near-black with faint candle-warm glow; parchment cards/sheets stay as physical objects floating
+on darkness (umbra shadows + hairline gilt rims); announcement surfaces (marquee, turn splash)
+are **red lacquer with gold double frames** — register proved by *Sultan's Game* (user-named
+reference: opulent, dark, card-centric). In-game thesis: **the diorama in the dark room** — the
+warm bright board is the lit object, all chrome recedes into darkness. Flourish set (capped):
+gold double-frame on announcements · wax-seal turn stamp · star-chart tech tree (ink ground,
+gilt stars) · manicule for notices · Roman numerals (ages, queue) · one corner star per panel ·
+card-back weave. Refused: parchment textures, candle flicker, dust, blackletter, board flourishes.
+Live-UI re-tint happens AFTER the UI queue drains (landing page last) — one pigment pass on a
+settled layout.
 
 ---
 
