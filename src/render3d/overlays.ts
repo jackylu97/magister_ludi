@@ -14,6 +14,19 @@
  * different tints depending on which way the tile faced the sun, and a selection
  * ring that fell into shadow would be a selection ring you could not see.
  *
+ * Nothing on the board may hide them
+ * ----------------------------------
+ * Every decal in this layer is added with `onTop`, which drops the depth test
+ * and draws it after all board geometry (see `MaterialLibrary.overlay` and the
+ * render orders in `instances.ts`). These are the game talking to the player,
+ * not scenery: a route dot behind a pine tree, a worked-tile chip inside a
+ * jungle or a selection ring cut in half by a mountain cone are all the same
+ * bug, and it is the one the depth test was quietly causing. The cost is that a
+ * decal can be drawn over a piece standing on a *neighbouring* tile, since a
+ * piece leans up-screen into the tile behind it; that is a fair trade for marks
+ * the player can always read, and it is why the territory tint — which is
+ * scenery — deliberately does not do this.
+ *
  * Rebuild policy
  * --------------
  * The whole layer is thrown away and rebuilt whenever the selection, the hover
@@ -45,6 +58,16 @@ export interface CellRef {
 export interface OverlayState {
   reachable: readonly CellRef[];
   path: readonly CellRef[];
+  /**
+   * The selected unit's *stored* order — the tiles end-of-turn resolution will
+   * walk it through (see `MapView.setCommittedPath`).
+   *
+   * Drawn as a dashed run of small, dim chips, deliberately unlike `path`: one
+   * is a proposal the cursor is making right now, the other is a decision the
+   * player already took, and both are on screen at once every time somebody
+   * hovers a new destination for a marching unit.
+   */
+  committed: readonly CellRef[];
   hover: CellRef | null;
   selection: CellRef | null;
   /**
@@ -111,9 +134,28 @@ export class OverlayLayer {
       const at = anchor(cell);
       if (!at) continue;
       collector.add(geometry.decal, [OVERLAY.reachableColor], new Matrix4().compose(at, identity, unit), {
-        overlay: true,
+        onTop: true,
         opacity: OVERLAY.reachableOpacity,
       });
+    }
+
+    // The committed route, under the preview: every `committedStride`-th
+    // waypoint only, so the run reads as a dashed line rather than as a second,
+    // fainter route. The final tile is always drawn — the destination is the
+    // whole point of showing the order at all — and it is not enlarged the way
+    // the preview's is, because this route is not the one being aimed.
+    for (let i = 0; i < state.committed.length; i++) {
+      const last = i === state.committed.length - 1;
+      if (!last && i % OVERLAY.committedStride !== 0) continue;
+      const at = anchor(state.committed[i]!);
+      if (!at) continue;
+      const s = OVERLAY.committedScale;
+      collector.add(
+        geometry.dot,
+        [OVERLAY.committedColor],
+        new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
+        { onTop: true, opacity: OVERLAY.committedOpacity },
+      );
     }
 
     for (let i = 0; i < state.path.length; i++) {
@@ -128,7 +170,7 @@ export class OverlayLayer {
         geometry.dot,
         [OVERLAY.pathColor],
         new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
-        { overlay: true, opacity: OVERLAY.pathOpacity },
+        { onTop: true, opacity: OVERLAY.pathOpacity },
       );
     }
 
@@ -146,7 +188,7 @@ export class OverlayLayer {
         geometry.dot,
         [lockedHere ? TERRITORY.lockedColor : TERRITORY.workedColor],
         new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
-        { overlay: true, opacity: TERRITORY.workedOpacity },
+        { onTop: true, opacity: TERRITORY.workedOpacity },
       );
       if (!lockedHere) continue;
       const ring = TERRITORY.lockedRingScale;
@@ -154,7 +196,7 @@ export class OverlayLayer {
         geometry.ring,
         [TERRITORY.lockedColor],
         new Matrix4().compose(at, identity, new Vector3(ring, 1, ring)),
-        { overlay: true, opacity: TERRITORY.lockedRingOpacity },
+        { onTop: true, opacity: TERRITORY.lockedRingOpacity },
       );
     }
 
@@ -170,7 +212,7 @@ export class OverlayLayer {
       if (!at) continue;
       const lit = state.moveMode === true && cell === state.selection;
       collector.add(geometry.ring, [color], new Matrix4().compose(at, identity, unit), {
-        overlay: true,
+        onTop: true,
         opacity: lit ? 1 : OVERLAY.ringOpacity,
       });
       if (!lit) continue;
@@ -179,7 +221,7 @@ export class OverlayLayer {
         geometry.ring,
         [color],
         new Matrix4().compose(at, identity, new Vector3(halo, 1, halo)),
-        { overlay: true, opacity: MOVE_MODE_HALO_OPACITY },
+        { onTop: true, opacity: MOVE_MODE_HALO_OPACITY },
       );
     }
 

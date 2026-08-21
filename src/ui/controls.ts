@@ -201,13 +201,24 @@ export interface GameControls {
 
   /**
    * The lens the player *chose* from the menu — not necessarily the one on the
-   * board, which an open city panel or a selected settler may be overriding.
-   * The menu shows this one, so its ticks say what will come back when the
-   * override goes away.
+   * board, which a selected settler may be overriding. The menu shows this one,
+   * so its ticks say what will come back when the override goes away.
    */
   lens(): LensMode;
-  /** Puts a lens up, or takes it down with `'none'`. The menu and the `Y` key. */
+  /** Puts a lens up, or takes it down with `'none'`. The menu's rows. */
   setLens(lens: LensMode): void;
+
+  /**
+   * Whether the player has the yield pips switched on.
+   *
+   * Their own switch, not the board's: an open city panel shows the pips for its
+   * work radius whatever this says, and closing it comes back to exactly this.
+   * The menu's checkbox shows this one, for the same reason the lens rows show
+   * the chosen lens.
+   */
+  yieldsShown(): boolean;
+  /** Turns the yield pips on or off. The menu's checkbox and the `Y` key. */
+  setYields(on: boolean): void;
 
   /**
    * Tells the UI which city the pointer is over, when the pointer is over
@@ -243,6 +254,15 @@ export interface GameControls {
    */
   setLocalPlayer(playerId: number): void;
 
+  /**
+   * Why the selected unit's standing order cannot be cancelled, or `null` when
+   * it can. `undefined` when there is no selected unit at all — the same shape,
+   * and for the same reason, as `foundCityBlocker`.
+   */
+  cancelOrderBlocker(): string | null | undefined;
+  /** Drops the selected unit's standing order. The unit sheet's button. */
+  cancelOrder(): void;
+
   /** The unit currently selected, re-read from the state, or `null`. */
   selectedUnit(): Unit | null;
   /** Whether move mode is armed — the next left click is an order, not a pick. */
@@ -273,11 +293,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   let moveMode = false;
   /**
    * The lens the player chose. The lens actually on the board is
-   * `effectiveLens`, which lets an open city panel or a selected settler
-   * override this without forgetting it — closing the panel puts the player's
-   * own choice back.
+   * `effectiveLens`, which lets a selected settler override this without
+   * forgetting it — dropping the settler puts the player's own choice back.
    */
   let manualLens: LensMode = 'none';
+  /**
+   * The yield pips, as the player left them. Not a lens (see `LensMode`): it is
+   * an independent switch that can be on under any of them, and an open city
+   * panel adds its own pips without disturbing it.
+   */
+  let yieldsOn = false;
   /** A city whose DOM banner the pointer is over. See `setHoveredCity`. */
   let hoveredCityId: number | null = null;
   /**
@@ -407,6 +432,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     );
     refreshSpotlight();
     refreshLens();
+    // A unit that is already marching shows the route it is marching on. Only
+    // the selected one: every stored order on the board at once would be a
+    // cat's cradle, and the question is always about the piece in hand.
+    renderer.setCommittedPath?.(unit?.path ?? []);
     refreshPathPreview();
   }
 
@@ -452,29 +481,38 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
-   * Which lens the board is wearing, and over what.
+   * What the board is showing: which lens, and whether the yield pips are up.
    *
-   * Two automatic overrides sit on top of the player's own choice, both because
-   * the question the lens answers is the question the player has just asked by
-   * doing something else:
+   * Two automatic rules sit on top of the player's own choices, both because the
+   * question they answer is the question the player has just asked by doing
+   * something else. They are now independent of each other, which is the point
+   * of splitting the pips off the lens list:
    *
-   *   · an open city panel ⇒ yields, over that city's work radius only. The
-   *     panel is a screen full of numbers; this is where they come from.
    *   · a selected settler ⇒ the settler lens. Picking one up *is* the question
    *     "where should this go".
+   *   · an open city panel ⇒ the pips, over that city's work radius. The panel
+   *     is a screen full of numbers; this is where they come from.
    *
-   * Neither touches `manualLens`, so closing the panel or dropping the settler
-   * restores exactly what the player had chosen.
+   * The city rule scopes the pips *only while the player has them off*. With the
+   * switch already on, the whole map is pipped and the radius is part of it, so
+   * narrowing to the radius would be the panel taking pips away — which is the
+   * opposite of what opening it asked for.
+   *
+   * Neither rule touches `manualLens` or `yieldsOn`, so dropping the settler and
+   * closing the panel restore exactly what the player had chosen.
    */
   function effectiveLens(): LensView {
     const playerId = localPlayerId;
-    const city = openCity();
-    if (city) return { mode: 'yields', cells: workRadiusCells(city), playerId };
     const unit = selectedUnit();
-    if (unit && unitDef(unit.type).foundsCity) {
-      return { mode: 'settler', cells: null, playerId };
-    }
-    return { mode: manualLens, cells: null, playerId };
+    const settler = unit !== null && unitDef(unit.type).foundsCity;
+    const city = openCity();
+    return {
+      mode: settler ? 'settler' : manualLens,
+      cells: null,
+      yields: yieldsOn || city !== null,
+      yieldCells: city && !yieldsOn ? workRadiusCells(city) : null,
+      playerId,
+    };
   }
 
   function refreshLens(): void {
@@ -595,6 +633,51 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     refreshOverlays();
     renderer.invalidate();
     onUpdate(null, renderer.getHover());
+  }
+
+  // --- standing orders -----------------------------------------------------
+
+  /**
+   * Why the selected unit's standing order cannot be dropped.
+   *
+   * The same division of labour as `foundCityBlocker`: this module answers the
+   * questions about the *seat* — is there a selection, may it still act — and
+   * everything about the order itself is the reducer's, asked by reading the
+   * unit. The two agree because there is only one rule for each question.
+   */
+  function cancelOrderBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    if (!unit.path || unit.path.length === 0) return 'This unit has no standing order';
+    return null;
+  }
+
+  /**
+   * Drops the selected unit's standing order, leaving it where it stands.
+   *
+   * The unit does not move and nothing else changes, so there is no animation to
+   * skip and no camera to move — but the board was drawing the committed route,
+   * and it must stop.
+   */
+  function cancelOrder(): void {
+    const unit = selectedUnit();
+    if (!unit || cancelOrderBlocker() !== null) return;
+
+    const command: Command = {
+      type: 'cancelOrder',
+      playerId: localPlayerId,
+      unitId: unit.id,
+    };
+    const result = dispatch(getGame(), command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
   }
 
   // --- citizens ------------------------------------------------------------
@@ -814,18 +897,81 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * (the `turn` counter moved), every seat reopened, and the local seat stays
    * where it is — the player who pressed the button keeps playing themselves.
    */
+  /**
+   * Where every unit under a standing order is standing, and what that order
+   * still is, captured immediately before a dispatch that might resolve the turn.
+   *
+   * This is the only moment the information exists. `resetMovement` walks those
+   * orders in place, so a heartbeat later the unit is at its new tile and the
+   * waypoints it crossed have been consumed from its `path` — there is nothing
+   * left to reconstruct the walk from. Only units that actually hold an order
+   * are captured, because they are the only ones resolution can move.
+   */
+  interface StandingOrder {
+    id: number;
+    col: number;
+    row: number;
+    route: CellRef[];
+  }
+
+  function standingOrders(): StandingOrder[] {
+    const orders: StandingOrder[] = [];
+    for (const unit of getGame().state.units) {
+      if (!unit.path || unit.path.length === 0) continue;
+      orders.push({
+        id: unit.id,
+        col: unit.col,
+        row: unit.row,
+        route: unit.path.map((cell) => ({ col: cell.col, row: cell.row })),
+      });
+    }
+    return orders;
+  }
+
+  /**
+   * Slides every piece that resolution just marched, from where it was to where
+   * it now is.
+   *
+   * Without this a turn change is a room full of teleports: the player presses
+   * End Turn, the pipeline walks a dozen stored orders, and the next frame draws
+   * every one of those units somewhere else with nothing in between. The
+   * simulation is already final by the time this runs — it is the same powerless
+   * cosmetic replay a fresh `moveUnit` gets (see `animation3d.ts`), fed from the
+   * routes captured a moment ago and cut to the tiles actually entered.
+   *
+   * Every player's units, not just the local seat's: turns are simultaneous, and
+   * an enemy column arriving is exactly the thing a player must not miss.
+   */
+  function animateResolvedMarches(orders: readonly StandingOrder[]): void {
+    if (orders.length === 0 || prefersReducedMotion()) return;
+    const { state } = getGame();
+    for (const order of orders) {
+      const unit = unitById(state, order.id);
+      if (!unit) continue;
+      if (unit.col === order.col && unit.row === order.row) continue;
+      // The route it was holding, cut at wherever it actually stopped — the
+      // walk may have run out of movement or been blocked half way.
+      const walked = walkedPrefix(order.route, { col: unit.col, row: unit.row });
+      if (walked.length === 0) continue;
+      renderer.animateMove(unit.id, { col: order.col, row: order.row }, walked);
+    }
+  }
+
   function endTurn(): void {
     const turnBefore = getGame().state.turn;
+    // Captured before the dispatch: if this is the command that resolves the
+    // turn, the walk is over by the time it returns.
+    const orders = standingOrders();
     const result = dispatch(getGame(), { type: 'endTurn', playerId: localPlayerId });
     if (!result.ok) return;
 
-    // Stored multi-turn orders advance during the turn change; those steps are
-    // not animated, so no piece should be mid-slide when they land.
+    // Whatever was still sliding belongs to the turn that just ended.
     renderer.skipAnimations();
     renderer.invalidate();
     clearSelection();
 
     if (getGame().state.turn !== turnBefore) {
+      animateResolvedMarches(orders);
       onTurnResolved?.(getGame().state.turn);
       return;
     }
@@ -981,10 +1127,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       return;
     }
     if (event.key === 'y' || event.key === 'Y') {
-      // Toggles the player's own choice, never the automatic override: pressing
-      // Y under an open city panel arms the lens that will be up when the panel
-      // closes, which is the only reading that does not lose a keystroke.
-      setLens(manualLens === 'yields' ? 'none' : 'yields');
+      // Toggles the player's own switch, never the automatic rule: pressing Y
+      // under an open city panel sets what will be up when the panel closes,
+      // which is the only reading that does not lose a keystroke.
+      setYields(!yieldsOn);
       return;
     }
     if (event.key === 'm' || event.key === 'M') {
@@ -1004,10 +1150,18 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     }
   });
 
-  /** Puts a lens up. The menu and the `Y` key; a no-op if it is already up. */
+  /** Puts a lens up. The menu's rows; a no-op if it is already up. */
   function setLens(next: LensMode): void {
     if (manualLens === next) return;
     manualLens = next;
+    refreshLens();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /** Turns the yield pips on or off. The menu's checkbox and the `Y` key. */
+  function setYields(on: boolean): void {
+    if (yieldsOn === on) return;
+    yieldsOn = on;
     refreshLens();
     onUpdate(selectedUnit(), renderer.getHover());
   }
@@ -1024,9 +1178,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setLocalPlayer,
     lens: () => manualLens,
     setLens,
+    yieldsShown: () => yieldsOn,
+    setYields,
     setHoveredCity,
     foundCity,
     foundCityBlocker,
+    cancelOrder,
+    cancelOrderBlocker,
     openCity,
     setOpenCity,
     setMoveMode,

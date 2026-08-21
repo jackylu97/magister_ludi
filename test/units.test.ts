@@ -455,3 +455,116 @@ describe('resetMovement', () => {
     expect(second.path).toEqual([{ col: 3, row: 4 }]);
   });
 });
+
+describe('cancelOrder', () => {
+  /** A cancel order. Most units in these tests belong to player 0. */
+  function cancel(unitId: number, playerId = 0): Command {
+    return { type: 'cancelOrder', playerId, unitId };
+  }
+
+  /** A warrior at (0, 3) already marching east, with three waypoints left. */
+  function marching(state: GameState): Unit {
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    expect(applyCommand(state, move(warrior.id, 5, 3))).toEqual({ ok: true });
+    expect(warrior.path).toHaveLength(3);
+    return warrior;
+  }
+
+  it('drops the standing order and leaves everything else alone', () => {
+    const state = flatState();
+    const warrior = marching(state);
+    const before = { ...warrior };
+
+    expect(applyCommand(state, cancel(warrior.id))).toEqual({ ok: true });
+    expect(warrior.col).toBe(before.col);
+    expect(warrior.row).toBe(before.row);
+    expect(warrior.movesLeft).toBe(before.movesLeft);
+    expect(warrior.hp).toBe(before.hp);
+  });
+
+  it('deletes the key rather than emptying it, so an idle unit serialises alike', () => {
+    const state = flatState();
+    const warrior = marching(state);
+    applyCommand(state, cancel(warrior.id));
+
+    // `movement.ts`'s convention: a unit that never had an order and a unit
+    // whose order was cancelled must be indistinguishable.
+    expect(warrior.path).toBeUndefined();
+    expect('path' in warrior).toBe(false);
+    const idle = createUnit(state, 0, 'warrior', 9, 3);
+    expect(Object.keys(warrior).sort()).toEqual(Object.keys(idle).sort());
+  });
+
+  it('stops the march: the unit stays put through the next turns', () => {
+    const state = flatState();
+    const warrior = marching(state);
+    applyCommand(state, cancel(warrior.id));
+
+    endRound(state);
+    expect([warrior.col, warrior.row]).toEqual([2, 3]);
+    endRound(state);
+    expect([warrior.col, warrior.row]).toEqual([2, 3]);
+    // Movement is refilled as usual — cancelling an order is not a penalty.
+    expect(warrior.movesLeft).toBe(unitDef('warrior').movement);
+  });
+
+  it('rejects every illegal cancellation without touching the state', () => {
+    const state = flatState();
+    const warrior = marching(state);
+    const idle = createUnit(state, 0, 'warrior', 9, 3);
+    const enemy = createUnit(state, 1, 'warrior', 12, 3);
+    expect(applyCommand(state, move(enemy.id, 12, 6, 1))).toEqual({ ok: true });
+    expect(enemy.path).toBeDefined();
+    const before = clone(state);
+
+    const rejected: Command[] = [
+      cancel(999), // no such unit
+      cancel(enemy.id), // not the acting player's unit
+      cancel(warrior.id, 9), // no such acting player
+      cancel(idle.id), // nothing to cancel
+      { type: 'cancelOrder', playerId: 0 } as unknown as Command, // no unit id
+      { type: 'cancelOrder', playerId: '0', unitId: warrior.id } as unknown as Command,
+    ];
+    for (const command of rejected) {
+      expect(applyCommand(state, command).ok).toBe(false);
+    }
+    expect(state).toEqual(before);
+  });
+
+  it('refuses a cancellation from a seat that has ended its turn', () => {
+    const state = flatState();
+    const warrior = marching(state);
+    expect(applyCommand(state, { type: 'endTurn', playerId: 0 })).toEqual({ ok: true });
+
+    // Turn-gated exactly like `moveUnit`, and deliberately: the order is about
+    // to be walked by a resolution this seat has already handed over to.
+    const before = clone(state);
+    expect(applyCommand(state, cancel(warrior.id))).toEqual({
+      ok: false,
+      error: 'Player 0 has ended turn 1 and cannot cancel orders',
+    });
+    expect(state).toEqual(before);
+  });
+
+  it('lets an open seat cancel while another seat has ended', () => {
+    const state = flatState();
+    const theirs = createUnit(state, 1, 'warrior', 8, 3);
+    expect(applyCommand(state, move(theirs.id, 13, 3, 1))).toEqual({ ok: true });
+    expect(applyCommand(state, { type: 'endTurn', playerId: 0 })).toEqual({ ok: true });
+
+    expect(applyCommand(state, cancel(theirs.id, 1))).toEqual({ ok: true });
+    expect(theirs.path).toBeUndefined();
+  });
+
+  it('cannot be cancelled twice: the second is a refusal, not a no-op', () => {
+    const state = flatState();
+    const warrior = marching(state);
+    expect(applyCommand(state, cancel(warrior.id))).toEqual({ ok: true });
+    const before = clone(state);
+    expect(applyCommand(state, cancel(warrior.id))).toEqual({
+      ok: false,
+      error: `Unit ${warrior.id} has no standing order`,
+    });
+    expect(state).toEqual(before);
+  });
+});

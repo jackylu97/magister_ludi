@@ -106,7 +106,9 @@ const helpOverlayEl = requireElement<HTMLElement>('help-overlay');
 const lensButton = requireElement<HTMLButtonElement>('lens-button');
 const lensPopoverEl = requireElement<HTMLElement>('lens-popover');
 const lensOptionsEl = requireElement<HTMLElement>('lens-options');
+const lensTogglesEl = requireElement<HTMLElement>('lens-toggles');
 const lensCurrentEl = requireElement<HTMLElement>('lens-current');
+const lensYieldsFlagEl = requireElement<HTMLElement>('lens-yields-flag');
 const contextEl = requireElement<HTMLElement>('hud-context');
 const contextNoticeEl = requireElement<HTMLElement>('context-notice');
 
@@ -680,18 +682,23 @@ async function boot(): Promise<void> {
   });
 
   /**
-   * The lens menu: three exclusive choices, built once and re-ticked whenever
-   * the panel updates.
+   * The lens menu: the exclusive lens choices, and — under them — the yield
+   * pips, which are not one.
    *
-   * The buttons set the player's *chosen* lens, which an open city panel or a
-   * selected settler may be overriding on the board (see `controls.ts`). The
-   * menu deliberately shows the choice rather than the override: it is the
-   * thing the player can change, and the thing that comes back.
+   * The rows set the player's *chosen* lens, which a selected settler may be
+   * overriding on the board (see `controls.ts`), and the checkbox sets their own
+   * pip switch, which an open city panel adds to without disturbing. The menu
+   * deliberately shows the choices rather than the overrides: they are the
+   * things the player can change, and the things that come back.
+   *
+   * The pips are a checkbox and not a fourth row precisely because they compose
+   * with everything above them. A tick in a list of exclusive rows would say the
+   * opposite — that turning yields on turns the settler lens off, which is
+   * exactly the behaviour this change removed.
    */
   const LENS_OPTIONS: [LensMode, string, string][] = [
     ['none', 'None', 'The board as it is'],
-    ['yields', 'Yields', 'What every tile makes (Y)'],
-    ['settler', 'Settler', 'Where a city may go, and how good the ground is'],
+    ['settler', 'Settler', 'Where a city may go: blue is coastal, green is fresh water'],
   ];
 
   const lensButtons = LENS_OPTIONS.map(([mode, label, hint]) => {
@@ -715,6 +722,30 @@ async function boot(): Promise<void> {
     return { mode, label, button };
   });
 
+  /**
+   * The yields switch, built under the lens rows as a real checkbox: it is an
+   * on/off setting, so it wears the control the platform already has for one,
+   * with its own label and its own keyboard behaviour.
+   */
+  const yieldsToggle = document.createElement('input');
+  yieldsToggle.type = 'checkbox';
+  yieldsToggle.id = 'lens-yields';
+  const yieldsRow = document.createElement('label');
+  yieldsRow.className = 'lens-toggle';
+  yieldsRow.htmlFor = yieldsToggle.id;
+  yieldsRow.title = 'Show every tile’s food, production and gold (Y)';
+  const yieldsName = document.createElement('span');
+  yieldsName.className = 'lens-option-name';
+  yieldsName.textContent = 'Yields';
+  const yieldsKey = document.createElement('kbd');
+  yieldsKey.className = 'lens-toggle-key';
+  yieldsKey.textContent = 'Y';
+  yieldsRow.append(yieldsToggle, yieldsName, yieldsKey);
+  lensTogglesEl.append(yieldsRow);
+  // The card stays open: unlike choosing a lens, this is a switch the player
+  // may well want to flip back while looking at the same board.
+  yieldsToggle.addEventListener('change', () => controls.setYields(yieldsToggle.checked));
+
   function updateLensMenu(): void {
     const current = controls.lens();
     for (const option of lensButtons) {
@@ -722,8 +753,16 @@ async function boot(): Promise<void> {
       option.button.classList.toggle('is-on', on);
       option.button.setAttribute('aria-pressed', String(on));
     }
+    const yields = controls.yieldsShown();
+    yieldsToggle.checked = yields;
+
+    // The bar button says both, because both are on the board: the lens by
+    // name, and the pips as a flag beside it. "off" is only honest when neither
+    // is up.
     const chosen = lensButtons.find((option) => option.mode === current);
-    lensCurrentEl.textContent = current === 'none' ? 'off' : (chosen?.label ?? 'off');
+    lensCurrentEl.textContent =
+      current === 'none' ? (yields ? '—' : 'off') : (chosen?.label ?? 'off');
+    lensYieldsFlagEl.hidden = !yields;
   }
 
   /**
@@ -778,6 +817,11 @@ async function boot(): Promise<void> {
     foundCityBlocker: () => controls.foundCityBlocker(),
     onFoundCity: () => {
       controls.foundCity();
+      updatePanel(null, renderer.getHover());
+    },
+    cancelOrderBlocker: () => controls.cancelOrderBlocker(),
+    onCancelOrder: () => {
+      controls.cancelOrder();
       updatePanel(null, renderer.getHover());
     },
     onClose: () => controls.clearSelection(),

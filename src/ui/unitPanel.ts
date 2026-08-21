@@ -26,9 +26,12 @@
  * the state is the truth and a selection is at most a few dozen elements.
  */
 
+import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
+import { tileMoveCost } from '../sim/pathfind';
 import type { Unit } from '../sim/state';
 import { unitDef } from '../sim/unitData';
+import { fullMovement } from '../sim/units';
 
 export interface UnitPanelOptions {
   /** The element the panel lives in. Emptied and rebuilt on every render. */
@@ -43,6 +46,13 @@ export interface UnitPanelOptions {
    */
   foundCityBlocker: () => string | null | undefined;
   onFoundCity: () => void;
+  /**
+   * Why the selected unit's standing order cannot be cancelled — the same
+   * three-valued shape as `foundCityBlocker`, answered by
+   * `controls.cancelOrderBlocker()`.
+   */
+  cancelOrderBlocker: () => string | null | undefined;
+  onCancelOrder: () => void;
   /** Drops the selection — the × button and, through `controls`, Escape. */
   onClose: () => void;
 }
@@ -75,7 +85,52 @@ function element<K extends keyof HTMLElementTagNameMap>(
 }
 
 export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
-  const { container, getGame, getUnit, foundCityBlocker, onFoundCity, onClose } = options;
+  const {
+    container,
+    getGame,
+    getUnit,
+    foundCityBlocker,
+    onFoundCity,
+    cancelOrderBlocker,
+    onCancelOrder,
+    onClose,
+  } = options;
+
+  /**
+   * How many more turns the unit's standing order will take, as an estimate the
+   * panel is honest about calling one (hence the `~`).
+   *
+   * It re-walks the stored waypoints against the movement rules — this turn's
+   * remaining points first, then a full allowance per turn, with the "entering
+   * always costs at least what you have left" floor that `movement.ts` applies —
+   * and counts the refills. It is an estimate rather than a promise because the
+   * board can change under the order: a unit may block a tile, terrain may stop
+   * the march, and the reducer will re-decide all of that at the time. Deriving
+   * it here rather than storing it on the unit is deliberate; a cached number
+   * would be one more thing that can be wrong.
+   */
+  function turnsRemaining(unit: Unit): number {
+    const { map } = getGame().state;
+    const allowance = fullMovement(unit);
+    let turns = 0;
+    let budget = Math.max(0, unit.movesLeft);
+    for (const cell of unit.path ?? []) {
+      if (budget <= 0) {
+        turns += 1;
+        budget = allowance;
+      }
+      const tile = getTileAt(map, cell.col, cell.row);
+      // An impassable waypoint means the order is going to be abandoned, not
+      // that it takes forever; stop counting rather than inventing a number.
+      const cost = tile ? tileMoveCost(tile) : null;
+      if (cost === null) break;
+      budget = Math.max(0, budget - cost);
+    }
+    // Anything still on the list is at least one more turn of marching, even if
+    // the arithmetic above spent nothing (a one-tile order with points left is
+    // still resolved at the turn change).
+    return Math.max(1, turns);
+  }
 
   /**
    * A statistic and its label: the value in the mono face because it is a
@@ -111,6 +166,18 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         blocked: blocker === undefined ? 'No unit selected' : blocker,
         hint: 'Found a city here',
         run: onFoundCity,
+      });
+    }
+    // Only offered while there is something to cancel: a permanently disabled
+    // "Cancel Order" on every unit that has never been given one would be a
+    // button that means nothing, exactly as Found City is on a warrior.
+    if (unit.path && unit.path.length > 0) {
+      const blocker = cancelOrderBlocker();
+      actions.push({
+        label: 'Cancel Order',
+        blocked: blocker === undefined ? 'No unit selected' : blocker,
+        hint: 'Stop here and forget the rest of the route',
+        run: onCancelOrder,
       });
     }
     return actions;
@@ -171,13 +238,13 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     );
     container.append(stats);
 
-    // A unit with stored orders is going somewhere by itself; say so, because
-    // the tiles it will walk are not drawn while it is not the unit being
-    // routed under the cursor.
-    const remaining = unit.path?.length ?? 0;
-    if (remaining > 0) {
+    // A unit with stored orders is going somewhere by itself. The board draws
+    // the route it will walk (dimmer than a hovered preview — see
+    // `MapView.setCommittedPath`); this says how long it will be busy, which the
+    // route cannot, and it is the line the Cancel Order button below answers.
+    if (unit.path && unit.path.length > 0) {
       container.append(
-        element('p', 'unit-note', `Marching · ${remaining} tile(s) to go`),
+        element('p', 'unit-note', `En route · ~${turnsRemaining(unit)} turns`),
       );
     }
 

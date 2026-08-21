@@ -184,12 +184,62 @@ export interface LensSpec {
   /** Tiles no city may be founded on are simply darkened. */
   siteInvalidColor: number;
   siteInvalidOpacity: number;
-  /** Valid sites are graded between these two by `startScore`. */
-  siteLowColor: number;
-  siteHighColor: number;
+  /**
+   * The two things that decide a city site, each with its own ink: a tile
+   * touching the sea, and a tile with fresh water. See `lens3d.ts`.
+   */
+  siteCoastColor: number;
+  siteFreshColor: number;
   siteOpacity: number;
-  /** How many grades the range is quantised into. One material bucket each. */
-  siteSteps: number;
+  /** An estuary is both: the two inks blended by `mix`, ringed, and stronger. */
+  siteEstuaryMix: number;
+  siteEstuaryOpacity: number;
+  siteEstuaryRingOpacity: number;
+}
+
+/**
+ * How the units are drawn.
+ *
+ * `style` is the whole of the art-direction switch: `pieces` is the procedural
+ * toon game piece the board was designed around, `sprites` swaps in painted
+ * billboards for the unit types that have artwork and falls back to the piece
+ * for the ones that do not. Both paths are maintained — see `pieces.ts` — so
+ * this is a one-word edit in `data/view3d.json` and nothing else.
+ */
+export interface UnitStyleSpec {
+  style: 'pieces' | 'sprites';
+  sprite: SpriteSpec;
+}
+
+/**
+ * The billboard sprites: how the source art is keyed, and how big it stands.
+ *
+ * The source images are opaque illustrations on a white ground with no alpha
+ * channel at all, so the transparency is *made* at load time by thresholding
+ * whiteness (see `sprites3d.ts`). Both ends of that threshold are here because
+ * they are the two numbers anybody re-tuning a new drop of art will reach for
+ * first, and neither of them is a fact about the code.
+ */
+export interface SpriteSpec {
+  /** Quad height as a multiple of a hex's width (twice the circumradius). */
+  heightInHexWidths: number;
+  /** How far above the tile face the billboard's base sits. */
+  lift: number;
+  /** Whiteness (0..1) at and above which a pixel becomes fully transparent. */
+  keyThreshold: number;
+  /** Width of the ramp below the threshold, over which alpha falls to 0. */
+  keyFeather: number;
+  /** Alpha below which a fragment is discarded outright. */
+  alphaTest: number;
+  /** The blob shadow that glues a billboard to its tile. */
+  shadowRadius: number;
+  shadowOpacity: number;
+  shadowColor: number;
+  /** The player-colour ring the sprite stands in, so ownership reads at zoom. */
+  ringOuter: number;
+  ringWidth: number;
+  ringOpacity: number;
+  ringLift: number;
 }
 
 /**
@@ -287,6 +337,18 @@ export interface OverlaySpec {
   /** Ring band width, as a fraction of the hex radius. */
   ringWidth: number;
   ringOpacity: number;
+  /**
+   * The selected unit's *stored* order, drawn under the hovered preview.
+   *
+   * Quieter than the preview on every axis — dimmer, smaller, and only every
+   * `committedStride`-th waypoint, which is what turns a line of chips into a
+   * dashed one. A committed route that looked like a proposal would be read as
+   * one.
+   */
+  committedColor: number;
+  committedOpacity: number;
+  committedScale: number;
+  committedStride: number;
 }
 
 export interface HpBarSpec {
@@ -328,6 +390,7 @@ export interface View3DData {
   hpBar: HpBarSpec;
   animation: AnimationSpec;
   lens: LensSpec;
+  units: UnitStyleSpec;
 }
 
 // --- parsing ---------------------------------------------------------------
@@ -366,6 +429,17 @@ function namedTable<K extends string>(
     out[key] = named(name, `${where}.${key}`);
   }
   return out as Record<K, number>;
+}
+
+/**
+ * The unit art switch, checked rather than cast: it is the one value in this
+ * file a person is expected to flip by hand while looking at the board, and a
+ * typo that silently fell back to procedural pieces would look exactly like a
+ * renderer that had not implemented sprites.
+ */
+function parseUnitStyle(value: string): 'pieces' | 'sprites' {
+  if (value === 'pieces' || value === 'sprites') return value;
+  throw new Error(`view3d.json: units.style must be "pieces" or "sprites", got ${value}`);
 }
 
 const rawPlayers = viewJson.players as {
@@ -439,6 +513,12 @@ export const VIEW3D: View3DData = {
     ringOuter: viewJson.overlay.ringOuter,
     ringWidth: viewJson.overlay.ringWidth,
     ringOpacity: viewJson.overlay.ringOpacity,
+    committedColor: parseColor(viewJson.overlay.committedColor, 'overlay.committedColor'),
+    committedOpacity: viewJson.overlay.committedOpacity,
+    committedScale: viewJson.overlay.committedScale,
+    // At least 1, or the modulo that dashes the run divides by zero and every
+    // waypoint disappears.
+    committedStride: Math.max(1, Math.round(viewJson.overlay.committedStride)),
   },
   hpBar: {
     width: viewJson.hpBar.width,
@@ -462,10 +542,29 @@ export const VIEW3D: View3DData = {
     goldColor: parseColor(viewJson.lens.goldColor, 'lens.goldColor'),
     siteInvalidColor: parseColor(viewJson.lens.siteInvalidColor, 'lens.siteInvalidColor'),
     siteInvalidOpacity: viewJson.lens.siteInvalidOpacity,
-    siteLowColor: parseColor(viewJson.lens.siteLowColor, 'lens.siteLowColor'),
-    siteHighColor: parseColor(viewJson.lens.siteHighColor, 'lens.siteHighColor'),
+    siteCoastColor: parseColor(viewJson.lens.siteCoastColor, 'lens.siteCoastColor'),
+    siteFreshColor: parseColor(viewJson.lens.siteFreshColor, 'lens.siteFreshColor'),
     siteOpacity: viewJson.lens.siteOpacity,
-    siteSteps: viewJson.lens.siteSteps,
+    siteEstuaryMix: viewJson.lens.siteEstuaryMix,
+    siteEstuaryOpacity: viewJson.lens.siteEstuaryOpacity,
+    siteEstuaryRingOpacity: viewJson.lens.siteEstuaryRingOpacity,
+  },
+  units: {
+    style: parseUnitStyle(viewJson.units.style),
+    sprite: {
+      heightInHexWidths: viewJson.units.sprite.heightInHexWidths,
+      lift: viewJson.units.sprite.lift,
+      keyThreshold: viewJson.units.sprite.keyThreshold,
+      keyFeather: viewJson.units.sprite.keyFeather,
+      alphaTest: viewJson.units.sprite.alphaTest,
+      shadowRadius: viewJson.units.sprite.shadowRadius,
+      shadowOpacity: viewJson.units.sprite.shadowOpacity,
+      shadowColor: parseColor(viewJson.units.sprite.shadowColor, 'units.sprite.shadowColor'),
+      ringOuter: viewJson.units.sprite.ringOuter,
+      ringWidth: viewJson.units.sprite.ringWidth,
+      ringOpacity: viewJson.units.sprite.ringOpacity,
+      ringLift: viewJson.units.sprite.ringLift,
+    },
   },
 };
 

@@ -115,6 +115,34 @@ export interface MoveUnitCommand extends PlayerCommand {
 }
 
 /**
+ * Cancels a unit's standing order, leaving it where it is.
+ *
+ * The other half of `moveUnit`: an order that spans turns is resumed by
+ * `resetMovement` without asking again, so there has to be a way to say "stop".
+ * It names the unit rather than carrying the route, because the route is
+ * whatever the unit is still holding — a command that restated it could disagree
+ * with the state it was meant to clear.
+ *
+ * It is *not* a movement command: nothing on the board moves, and the unit keeps
+ * every movement point it has. It is still turn-gated exactly like `moveUnit`,
+ * and that is a deliberate choice rather than an inherited one. A stored order is
+ * a decision the player made during their turn, and `resetMovement` will act on
+ * it in the resolution that a finished seat has already handed over to. Letting a
+ * seat that has declared itself finished reach back in and revoke that decision
+ * would make "I have ended my turn" mean less than it says — and under
+ * simultaneous turns it would be a second, quieter turn taken after everyone
+ * else's window closed.
+ *
+ * Refusing on a unit with no stored order is deliberate too: "cancel nothing"
+ * has no effect to log, and an accepted no-op would put a command in the log
+ * that a replay has to apply and that says nothing about what happened.
+ */
+export interface CancelOrderCommand extends PlayerCommand {
+  type: 'cancelOrder';
+  unitId: number;
+}
+
+/**
  * Puts a new unit on the board. Used by tests and debugging today, and by city
  * production once cities can build; keeping it a command means all three go
  * through the same validation instead of reaching into `state.units`.
@@ -196,6 +224,7 @@ export interface SetLockedTilesCommand extends PlayerCommand {
 export type Command =
   | EndTurnCommand
   | MoveUnitCommand
+  | CancelOrderCommand
   | SpawnUnitCommand
   | FoundCityCommand
   | SetCityProductionCommand
@@ -340,6 +369,38 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
   if (!path) return fail(`No path from (${unit.col}, ${unit.row}) to (${tile.col}, ${tile.row})`);
 
   advanceAlongPath(state, unit, path);
+  return ok();
+}
+
+/**
+ * Drops a unit's standing order. Nothing else about the unit changes.
+ *
+ * Fully validated before the single mutation, like every other handler: a
+ * refusal leaves the unit's `path` — and everything else — byte-identical. The
+ * key is *deleted* rather than emptied, which is `movement.ts`'s convention for
+ * an idle unit (see its docblock): a unit that never had an order and a unit
+ * whose order was cancelled must serialise the same way, or two states that are
+ * the same game would not compare equal.
+ */
+function applyCancelOrder(state: GameState, command: CancelOrderCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot cancel orders`);
+  }
+
+  const unit = unitById(state, command.unitId);
+  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
+  if (unit.ownerId !== actor.id) {
+    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
+  }
+  // `length === 0` is only reachable from a hand-edited save; either way there
+  // is no order to cancel and nothing worth logging.
+  if (!unit.path || unit.path.length === 0) {
+    return fail(`Unit ${unit.id} has no standing order`);
+  }
+
+  delete unit.path;
   return ok();
 }
 
@@ -606,6 +667,8 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       return applyEndTurn(state, command);
     case 'moveUnit':
       return applyMoveUnit(state, command);
+    case 'cancelOrder':
+      return applyCancelOrder(state, command);
     case 'spawnUnit':
       return applySpawnUnit(state, command);
     case 'foundCity':

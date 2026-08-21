@@ -125,9 +125,16 @@
       <div id="seats" class="seats"></div>
 
       <div class="topbar-tools">
-        <!-- The lens menu: one question asked of every tile at once. The button
-             names the lens that is up, so the bar always says what the board is
-             showing. -->
+        <!-- The lens menu: one question asked of every tile at once, plus the
+             yield pips, which are an independent switch. The button names both,
+             so the bar always says what the board is showing.
+
+             The three spans are wrapped in one line box on purpose: they sit on
+             a shared baseline despite being three different sizes, and that
+             baseline group is then centred in the pill as a unit. A flex button
+             with `align-items: baseline` centres nothing — it hangs the whole
+             group from the top edge, which is what used to leave this label
+             sitting high in its own outline. -->
         <button
           id="lens-button"
           class="topbar-btn"
@@ -137,7 +144,11 @@
           aria-controls="lens-popover"
           title="Map lens (Y toggles yields)"
         >
-          Lens: <span id="lens-current" class="topbar-btn-value">off</span>
+          <span class="topbar-btn-line">
+            <span class="topbar-btn-label">Lens</span>
+            <span id="lens-current" class="topbar-btn-value">off</span>
+            <span id="lens-yields-flag" class="topbar-btn-flag" hidden>Yields</span>
+          </span>
         </button>
         <button
           id="help-button"
@@ -171,8 +182,10 @@
          separately-pinned cards, and nothing sits below them, so an opening card
          can push nothing. -->
     <div id="hud-popovers">
-      <!-- The lens menu. Three exclusive choices, so they are radio buttons in
-           spirit — one row each, ticked, and `aria-pressed` says which is on. -->
+      <!-- The lens menu. The exclusive choices are radio buttons in spirit —
+           one row each, ticked, and `aria-pressed` says which is on — and under
+           them sit the switches that are *not* exclusive and compose with any
+           of them. Yields is the only one today. -->
       <div
         id="lens-popover"
         class="hud-card popover popover-narrow"
@@ -187,6 +200,7 @@
           </button>
         </div>
         <div id="lens-options" class="lens-options"></div>
+        <div id="lens-toggles" class="lens-toggles"></div>
         <p class="hint">
           A city screen shows its own yields; a selected settler shows city sites.
         </p>
@@ -266,7 +280,7 @@
           <li><kbd>M</kbd> then <b>left click</b> moves too — for trackpads</li>
           <li><b>Drag</b> with either button to pan · <b>wheel</b> or pinch to zoom</li>
           <li><kbd>B</kbd> founds a city with the selected settler</li>
-          <li><kbd>Y</kbd> shows every tile's yields · <b>Lens</b> in the bar for more</li>
+          <li><kbd>Y</kbd> toggles the yield pips · <b>Lens</b> in the bar for more</li>
           <li><b>Left click</b> a tile in an open city's ring to pin a citizen</li>
           <li><kbd>Enter</kbd> ends your turn</li>
           <li data-only="2d"><kbd>G</kbd> toggles the hex grid</li>

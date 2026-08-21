@@ -45,20 +45,46 @@ export interface ScreenPoint {
  * whole file exists: the UI decides what the board should be showing, and a
  * renderer either implements the contract or does not. `src/render3d/lens3d.ts`
  * owns what each mode *looks* like.
+ *
+ * Yields are deliberately *not* a member. A lens answers "which of these
+ * questions am I asking" and the modes are exclusive because a tile can only
+ * carry one wash; the yield pips sit on the tile face and compete with nothing,
+ * so making them a fourth exclusive mode meant a player could not ask "where can
+ * a city go" and "what does this ground make" at the same time — which is one
+ * question, asked twice. They are an independent switch on `LensView` instead.
  */
-export type LensMode = 'none' | 'yields' | 'settler';
+export type LensMode = 'none' | 'settler';
 
-/** Which lens, over which tiles, through whose eyes. */
+/** Which lens, over which tiles, through whose eyes — plus the yield pips. */
 export interface LensView {
   mode: LensMode;
   /**
-   * Restrict the lens to these cells, or `null` for the whole map.
+   * Restrict the mode's wash to these cells, or `null` for the whole map.
    *
-   * This is what makes the automatic city-panel lens possible: opening a city
+   * Only the wash: the pips have their own `yieldCells`, because the two are
+   * independent and an open city panel scopes one of them without touching the
+   * other.
+   */
+  cells: readonly CellRef[] | null;
+  /**
+   * Draw the yield pips. Independent of `mode` — pips may be up under any lens,
+   * including `none`.
+   *
+   * The UI decides this from two sources it does not distinguish here: the
+   * player's own toggle (the `Y` key and the switch in the lens menu), and the
+   * automatic rule that an open city panel always shows the pips for the tiles
+   * that city could work. The renderer is told only the answer.
+   */
+  yields: boolean;
+  /**
+   * Restrict the pips to these cells, or `null` for the whole map. Meaningless
+   * while `yields` is false.
+   *
+   * This is what makes the automatic city-panel rule possible: opening a city
    * shows yields for its work radius *only*, which reads as "here is what this
    * city could work" rather than as the whole board lighting up.
    */
-  cells: readonly CellRef[] | null;
+  yieldCells: readonly CellRef[] | null;
   /** Whose question it is. The settler lens judges ownership through it. */
   playerId: number;
 }
@@ -88,6 +114,23 @@ export interface MapView {
   setReachable(cells: readonly CellRef[]): void;
   /** The route drawn under the cursor, start tile excluded. */
   setPathPreview(cells: readonly CellRef[]): void;
+
+  /**
+   * Optional: the route the selected unit has already *committed* to — the
+   * waypoints of its stored order, which end-of-turn resolution will walk.
+   *
+   * A different thing from `setPathPreview` and it must not look like one: the
+   * preview is a proposal that follows the cursor and disappears when it moves,
+   * this is a decision already taken. Renderers draw it more quietly (see
+   * `overlays.ts`: dimmer, smaller, and broken into a dashed run) so that the
+   * two can be on screen together — which they are constantly, since hovering a
+   * new destination for a marching unit shows exactly that comparison.
+   *
+   * Optional for the usual reason: it is a 3D feature and the 2D pipelines are
+   * frozen. Under `?art=flat` a marching unit's route simply is not drawn, and
+   * the unit sheet still says where it is going.
+   */
+  setCommittedPath?(cells: readonly CellRef[]): void;
 
   /** Slides a piece along the tiles it just walked. Cosmetic; see `animation.ts`. */
   animateMove(unitId: number, from: CellRef, walked: readonly CellRef[]): void;

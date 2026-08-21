@@ -31,6 +31,7 @@ import {
   CylinderGeometry,
   IcosahedronGeometry,
   LatheGeometry,
+  PlaneGeometry,
   Vector2,
 } from 'three';
 
@@ -450,6 +451,25 @@ export function barQuad(): BufferGeometry {
     { x: 1, y: 0.5 },
     { x: 0, y: 0.5 },
   ]);
+}
+
+/**
+ * A unit quad in the xy plane standing on its own base: x runs −0.5..0.5, y runs
+ * 0..1, and the origin is the middle of the bottom edge.
+ *
+ * That anchor is the whole point. A billboard is placed by saying "the unit
+ * stands *here*", and a quad centred on its middle would have to be lifted by
+ * half its own height by every caller — which is exactly the kind of arithmetic
+ * that gets it wrong on hills.
+ *
+ * `PlaneGeometry` rather than this file's own `flatFanXY`, because a sprite
+ * needs real texture coordinates and `flatFanXY` writes zeroes: its shapes are
+ * flat colour and have never had a texture on them.
+ */
+export function spriteQuad(): BufferGeometry {
+  const geometry = new PlaneGeometry(1, 1);
+  geometry.translate(0, 0.5, 0);
+  return geometry;
 }
 
 /** `flatFan` for shapes that live in the xy plane and face +z. */

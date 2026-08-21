@@ -40,6 +40,8 @@ interface Bucket {
   outlined: boolean;
   /** Unlit overlay decals, drawn after everything and never shadowed. */
   overlay: boolean;
+  /** An overlay the board may not occlude. See `MaterialLibrary.overlay`. */
+  onTop: boolean;
   opacity: number;
   matrices: Matrix4[];
   mesh: InstancedMesh | null;
@@ -88,16 +90,23 @@ export class InstanceCollector {
   /**
    * Queues one instance — and with it one copy per wrap offset. `outlined` adds
    * an inverted-hull shell; `overlay` swaps the toon material for an unlit one
-   * and is mutually exclusive with it.
+   * and is mutually exclusive with it. `onTop` implies `overlay` and additionally
+   * lifts the decal above every piece of board geometry (see below).
    */
   add(
     geometry: BufferGeometry,
     colors: number[],
     matrix: Matrix4,
-    options: { outlined?: boolean; overlay?: boolean; opacity?: number } = {},
+    options: {
+      outlined?: boolean;
+      overlay?: boolean;
+      onTop?: boolean;
+      opacity?: number;
+    } = {},
   ): InstanceHandle {
     const outlined = options.outlined ?? true;
-    const overlay = options.overlay ?? false;
+    const onTop = options.onTop ?? false;
+    const overlay = onTop || (options.overlay ?? false);
     const opacity = options.opacity ?? 1;
 
     let id = this.geometryIds.get(geometry);
@@ -105,7 +114,9 @@ export class InstanceCollector {
       id = this.geometryIds.size;
       this.geometryIds.set(geometry, id);
     }
-    const key = `${id}|${colors.join(',')}|${outlined ? 1 : 0}|${overlay ? 1 : 0}|${opacity}`;
+    const key =
+      `${id}|${colors.join(',')}|${outlined ? 1 : 0}|` +
+      `${overlay ? 1 : 0}|${onTop ? 1 : 0}|${opacity}`;
     let bucket = this.buckets.get(key);
     if (!bucket) {
       bucket = {
@@ -113,6 +124,7 @@ export class InstanceCollector {
         colors,
         outlined: outlined && !overlay,
         overlay,
+        onTop,
         opacity,
         matrices: [],
         mesh: null,
@@ -138,7 +150,7 @@ export class InstanceCollector {
       if (count === 0) continue;
 
       const material = bucket.overlay
-        ? materials.overlay(bucket.colors[0]!, bucket.opacity)
+        ? materials.overlay(bucket.colors[0]!, bucket.opacity, bucket.onTop)
         : bucket.colors.length === 1
           ? materials.get(bucket.colors[0]!, { opacity: bucket.opacity })
           : bucket.colors.map((color) => materials.get(color, { opacity: bucket.opacity }));
@@ -147,8 +159,11 @@ export class InstanceCollector {
       mesh.castShadow = shadows && !bucket.overlay;
       mesh.receiveShadow = shadows && !bucket.overlay;
       // Overlays are unlit decals a hair above the board; drawing them last and
-      // without depth writes keeps them off the depth buffer entirely.
-      if (bucket.overlay) mesh.renderOrder = 10;
+      // without depth writes keeps them off the depth buffer entirely. The
+      // `onTop` kind is drawn after even those, because it is not depth-tested
+      // at all and its layering is decided purely by the order it is drawn in —
+      // see `MaterialLibrary.overlay` for which decals are which and why.
+      if (bucket.overlay) mesh.renderOrder = bucket.onTop ? 20 : 10;
       for (let i = 0; i < count; i++) mesh.setMatrixAt(i, bucket.matrices[i]!);
       mesh.instanceMatrix.needsUpdate = true;
       mesh.frustumCulled = false;

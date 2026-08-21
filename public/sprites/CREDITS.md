@@ -59,3 +59,24 @@ instead of a per-colour table. The six silhouettes vendored, by their *Red* inde
 `data/view.json` maps unit type to silhouette (`pieces.byUnitType`) and player colour to piece
 colour (`pieces.byPlayerColor`). Only the silhouettes listed above exist on disk — pointing
 `byUnitType` at a name that is not in the table is a hard load error, not a blank piece.
+
+## `units/<type>.png` — 1024 x 1024 illustrated unit billboards
+
+**Not Kenney, and not CC0.** These are the project owner's own Midjourney illustrations,
+dropped into `assets/units/` (the source folder, which ships nothing) and vendored here
+because Vite serves `public/` and only `public/`. `assets/` stays the drop folder: replacing
+a sprite means dropping a new PNG there and copying it across, so the original art is never
+edited in place by the build.
+
+They arrive as opaque illustrations on a **white ground with no alpha channel**. Nothing
+pre-processes them; the transparency is made at load time by keying near-white pixels out
+with a feathered edge — see `src/render3d/sprites3d.ts`, tuned by `units.sprite` in
+`data/view3d.json`.
+
+| File | Unit type |
+| --- | --- |
+| `warrior.png` | `warrior` |
+| `scout.png` | `scout` |
+
+A unit type with no file here falls back to its procedural game piece, which is why the
+settler still stands as a piece while these two are billboards.

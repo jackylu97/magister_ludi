@@ -22,23 +22,117 @@
  * `THREE.Sprite` would recompute the same fixed orientation per bar per frame
  * and cost a separate draw call each. They are drawn only for damaged units,
  * which keeps the common board — nobody hurt yet — completely free of them.
+ *
+ * Two art styles, one layer
+ * -------------------------
+ * `units.style` in `data/view3d.json` chooses between the procedural piece and a
+ * painted billboard (see `sprites3d.ts`). The switch is *per unit type*, not per
+ * board: sprite mode draws a billboard for every type that has artwork and the
+ * ordinary piece for every type that does not, so a settler standing beside a
+ * painted warrior is the expected picture rather than a bug.
+ *
+ * Everything around the unit is shared by both paths and none of it knows which
+ * is up: the selection ring is an overlay drawn by `overlays.ts` around the
+ * *tile*, the HP bar is built here from the unit's own height, and movement
+ * animation moves whatever visual the unit has (see `Renderer3D.spawnWalker`,
+ * which builds a walking sprite through the same `buildSpriteUnit` this layer
+ * uses). That is the whole point of keeping both paths alive — the experiment is
+ * only worth anything if flipping it changes the look and nothing else.
+ *
+ * Billboards are not instanced, and that is fine. Each one carries its own
+ * texture, so they could not share an `InstancedMesh` anyway, and a 4X has tens
+ * of units where the board has tens of thousands of prisms: three meshes per
+ * unit per wrap copy is a rounding error against a board that is already built.
  */
 
-import { Group, Matrix4, Quaternion, Vector3 } from 'three';
+import { Group, type Material, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
 
 import type { GameMap } from '../sim/map';
 import type { GameState, Unit } from '../sim/state';
-import { unitDef } from '../sim/unitData';
+import { type UnitTypeId, unitDef } from '../sim/unitData';
 
 import type { BoardGeometry } from './board3d';
 import { hashSigned } from './hash';
 import { type InstanceHandle, InstanceCollector, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, playerPieceColor } from './lookData';
+import type { UnitSprites } from './sprites3d';
 import type { MaterialLibrary } from './toon';
 
 const PIECE = VIEW3D.piece;
 const HP = VIEW3D.hpBar;
+const SPRITE = VIEW3D.units.sprite;
+
+/**
+ * How tall a billboard stands, in world units.
+ *
+ * Expressed in the data as a multiple of a hex's *width* — the distance across
+ * the flats, twice the circumradius — because that is the measure the eye
+ * actually judges a figure against when it is standing on one.
+ */
+export const SPRITE_HEIGHT = SPRITE.heightInHexWidths * VIEW3D.board.hexRadius * 2;
+
+/**
+ * How tall this unit's visual is, which is the only thing the HP bar needs to
+ * know about the art style.
+ */
+function unitVisualHeight(type: UnitTypeId, sprites: UnitSprites | null): number {
+  return sprites?.materialFor(type) ? SPRITE_HEIGHT : PIECE.height;
+}
+
+/**
+ * One painted unit: the billboard, the blob shadow that plants it, and the ring
+ * of its owner's colour that it stands in.
+ *
+ * Returned as a group whose origin is the unit's *feet*, so the caller places it
+ * exactly the way it places a piece — and so the walking version can simply be
+ * moved along a path.
+ *
+ * The ring and the blob are ordinary depth-tested decals, deliberately *not* the
+ * `onTop` kind the interface overlays use: they belong to the figure standing on
+ * the tile, so the figure has to be able to stand in front of them. That is what
+ * makes the ring read as something the unit is standing in rather than a decal
+ * painted over its boots.
+ *
+ * The ring is the identity treatment, chosen over tinting the art itself: these
+ * are painted illustrations with their own colour, and a player-colour multiply
+ * over one would muddy the paint and still be hard to read at zoom. A hard ring
+ * of flat colour on the ground under the figure survives being three pixels
+ * across, which is the actual test.
+ */
+export function buildSpriteUnit(
+  geometry: BoardGeometry,
+  materials: MaterialLibrary,
+  spriteMaterial: Material,
+  color: number,
+  faceCamera: Quaternion,
+): Group {
+  const group = new Group();
+
+  const blob = new Mesh(
+    geometry.blob,
+    materials.overlay(SPRITE.shadowColor, SPRITE.shadowOpacity),
+  );
+  blob.frustumCulled = false;
+  group.add(blob);
+
+  const ring = new Mesh(geometry.baseRing, materials.overlay(color, SPRITE.ringOpacity));
+  ring.position.y = SPRITE.ringLift;
+  ring.frustumCulled = false;
+  group.add(ring);
+
+  const billboard = new Mesh(geometry.billboard, spriteMaterial);
+  billboard.position.y = SPRITE.lift;
+  billboard.scale.set(SPRITE_HEIGHT, SPRITE_HEIGHT, 1);
+  // The camera is fixed at one azimuth and one elevation for the life of the
+  // game (see `camera3d.ts`), so facing it is a constant, applied once here.
+  // No per-frame billboarding, and no `THREE.Sprite`.
+  billboard.quaternion.copy(faceCamera);
+  billboard.frustumCulled = false;
+  group.add(billboard);
+
+  return group;
+}
 
 /** Where a piece stands, and how it is turned. Shared with the animation code. */
 export interface PiecePlacement {
@@ -83,6 +177,8 @@ export class UnitLayer {
   readonly group = new Group();
 
   private handles = new Map<number, InstanceHandle>();
+  /** Billboard units, which are meshes rather than instances. See the docblock. */
+  private spriteUnits = new Map<number, Group>();
   private hidden = new Set<number>();
   private drawCallCount = 0;
 
@@ -91,6 +187,10 @@ export class UnitLayer {
    * rebuild is reapplied afterwards, so an animation that spans a rebuild (a
    * move order landing while an earlier walk is still in flight) does not make
    * the piece it is animating pop back into existence at its destination.
+   *
+   * `sprites` is the loaded billboard set, or null in `pieces` style and while
+   * the art is still loading. A unit whose type has no artwork takes the
+   * procedural path whatever it is.
    */
   build(
     state: GameState,
@@ -98,6 +198,7 @@ export class UnitLayer {
     materials: MaterialLibrary,
     faceCamera: Quaternion,
     shadows: boolean,
+    sprites: UnitSprites | null = null,
   ): void {
     this.disposeGroup();
 
@@ -117,14 +218,40 @@ export class UnitLayer {
       stackIndex.set(key, index + 1);
 
       const placement = placePiece(map, unit, index);
-      const handle = collector.add(
-        geometry.pieces[unit.type],
-        [unitColor(state, unit)],
-        new Matrix4().compose(placement.position, placement.quaternion, scale),
-      );
-      this.handles.set(unit.id, handle);
+      const spriteMaterial = sprites?.materialFor(unit.type) ?? null;
+      if (spriteMaterial) {
+        const group = new Group();
+        for (const dx of [-period, 0, period]) {
+          const copy = buildSpriteUnit(
+            geometry,
+            materials,
+            spriteMaterial,
+            unitColor(state, unit),
+            faceCamera,
+          );
+          copy.position.x = dx;
+          group.add(copy);
+        }
+        group.position.copy(placement.position);
+        this.group.add(group);
+        this.spriteUnits.set(unit.id, group);
+      } else {
+        const handle = collector.add(
+          geometry.pieces[unit.type],
+          [unitColor(state, unit)],
+          new Matrix4().compose(placement.position, placement.quaternion, scale),
+        );
+        this.handles.set(unit.id, handle);
+      }
 
-      this.addHpBar(unit, placement, geometry, collector, faceCamera);
+      this.addHpBar(
+        unit,
+        placement,
+        unitVisualHeight(unit.type, sprites),
+        geometry,
+        collector,
+        faceCamera,
+      );
     }
 
     this.drawCallCount = collector.flush(this.group, materials, shadows);
@@ -141,6 +268,7 @@ export class UnitLayer {
   private addHpBar(
     unit: Unit,
     placement: PiecePlacement,
+    visualHeight: number,
     geometry: BoardGeometry,
     collector: InstanceCollector,
     faceCamera: Quaternion,
@@ -150,21 +278,26 @@ export class UnitLayer {
     if (fraction >= 1) return;
 
     // The quad's origin is its left edge, so the anchor is shifted half a bar
-    // width along the camera's right vector to centre it over the piece.
+    // width along the camera's right vector to centre it over the piece. The
+    // height it clears is the *visual's*, so the bar rides above a billboard
+    // exactly as it rides above a game piece.
     const right = new Vector3(1, 0, 0).applyQuaternion(faceCamera);
     const anchor = placement.position
       .clone()
-      .setY(placement.position.y + PIECE.height + HP.lift)
+      .setY(placement.position.y + visualHeight + HP.lift)
       .addScaledVector(right, -HP.width / 2);
 
     collector.add(
       geometry.bar,
       [HP.backColor],
       new Matrix4().compose(anchor, faceCamera, new Vector3(HP.width, HP.height, 1)),
-      { overlay: true, opacity: 1 },
+      // On top: a health bar behind a pine tree is a health bar nobody can read.
+      { onTop: true, opacity: 1 },
     );
-    // A hair nearer the eye than the backing, so the two never z-fight; the
-    // overlay materials do not write depth, but they do test it.
+    // A hair nearer the eye than the backing, so the two never z-fight. Neither
+    // writes depth and — being `onTop` — neither tests it either, so what puts
+    // the fill in front is three's back-to-front sort of the transparent pass,
+    // which this offset is what decides.
     const front = anchor.clone().addScaledVector(
       new Vector3(0, 0, 1).applyQuaternion(faceCamera),
       0.01,
@@ -173,7 +306,7 @@ export class UnitLayer {
       geometry.bar,
       [fraction > 0.5 ? HP.goodColor : HP.fillColor],
       new Matrix4().compose(front, faceCamera, new Vector3(HP.width * fraction, HP.height, 1)),
-      { overlay: true, opacity: 1 },
+      { onTop: true, opacity: 1 },
     );
   }
 
@@ -181,17 +314,23 @@ export class UnitLayer {
     return this.drawCallCount;
   }
 
-  /** Zero-scales a unit's resting instances. Idempotent. */
+  /**
+   * Takes a unit's resting visual off the board while something else draws it —
+   * a walk in flight. Idempotent, and style-agnostic: an instanced piece is
+   * zero-scaled, a billboard group is simply switched off.
+   */
   hide(unitId: number): void {
     this.hidden.add(unitId);
     this.applyHide(unitId);
   }
 
-  /** Puts a unit's resting instances back. Idempotent. */
+  /** Puts a unit's resting visual back. Idempotent. */
   restore(unitId: number): void {
     if (!this.hidden.delete(unitId)) return;
     const handle = this.handles.get(unitId);
     if (handle) InstanceCollector.restore(handle);
+    const sprite = this.spriteUnits.get(unitId);
+    if (sprite) sprite.visible = true;
   }
 
   /** Forgets every hide, without touching the instances. Used before a rebuild. */
@@ -202,11 +341,24 @@ export class UnitLayer {
   private applyHide(unitId: number): void {
     const handle = this.handles.get(unitId);
     if (handle) InstanceCollector.hide(handle);
+    const sprite = this.spriteUnits.get(unitId);
+    if (sprite) sprite.visible = false;
   }
 
+  /**
+   * Empties the layer.
+   *
+   * `disposeInstancedGroup` disposes the `InstancedMesh`es it made and clears
+   * the group, which takes the billboard groups with it. Their parts are not
+   * disposed here and must not be: the quad geometry belongs to `BoardGeometry`,
+   * the sprite materials to `UnitSprites`, and the blob and ring materials to
+   * the shared `MaterialLibrary` — every one of them outlives this layer and is
+   * reused by the very next rebuild.
+   */
   private disposeGroup(): void {
     disposeInstancedGroup(this.group);
     this.handles.clear();
+    this.spriteUnits.clear();
   }
 
   dispose(): void {

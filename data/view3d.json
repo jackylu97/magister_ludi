@@ -180,7 +180,11 @@
     "selectionColor": "#b35843",
     "ringOuter": 0.94,
     "ringWidth": 0.09,
-    "ringOpacity": 0.95
+    "ringOpacity": 0.95,
+    "committedColor": "#e8e6dc",
+    "committedOpacity": 0.4,
+    "committedScale": 0.55,
+    "committedStride": 2
   },
   "hpBar": {
     "width": 0.66,
@@ -215,9 +219,28 @@
     "goldColor": "#d6b053",
     "siteInvalidColor": "#2f2b32",
     "siteInvalidOpacity": 0.4,
-    "siteLowColor": "#cfc7ab",
-    "siteHighColor": "#7cb45c",
-    "siteOpacity": 0.46,
-    "siteSteps": 5
+    "siteCoastColor": "#4f9bc4",
+    "siteFreshColor": "#63b45c",
+    "siteOpacity": 0.44,
+    "siteEstuaryMix": 0.5,
+    "siteEstuaryOpacity": 0.62,
+    "siteEstuaryRingOpacity": 0.95
+  },
+  "units": {
+    "style": "sprites",
+    "sprite": {
+      "heightInHexWidths": 0.9,
+      "lift": 0.02,
+      "keyThreshold": 0.9,
+      "keyFeather": 0.12,
+      "alphaTest": 0.45,
+      "shadowRadius": 0.34,
+      "shadowOpacity": 0.3,
+      "shadowColor": "#2f2b32",
+      "ringOuter": 0.44,
+      "ringWidth": 0.1,
+      "ringOpacity": 0.95,
+      "ringLift": 0.01
+    }
   }
 }

@@ -208,14 +208,29 @@ export class MaterialLibrary {
   }
 
   /**
-   * An unlit material for an overlay decal.
+   * An unlit material for a decal.
    *
    * `depthWrite: false` with `depthTest: true` is the combination that lets a
-   * reachable tint float a hair above a tile top without either z-fighting it or
-   * punching a hole in the pieces standing on it.
+   * tint float a hair above a tile top without either z-fighting it or punching
+   * a hole in the pieces standing on it.
+   *
+   * `onTop` turns the depth test *off* as well, which is the difference between
+   * a decal that belongs to the board and one that belongs to the interface.
+   * A territory tint is scenery: it must be hidden by the trees and the pieces
+   * standing on the ground it colours, or every unit inside your borders would
+   * be washed in your own colour. A yield pip, a route dot or a selection ring
+   * is not scenery — it is the game *talking to the player*, and a pip a pine
+   * tree can stand in front of is a pip the player cannot count. Those are drawn
+   * with the test off and late (see `instances.ts` for the render orders), so
+   * nothing on the board can occlude them.
+   *
+   * Depth testing is the only difference. Both kinds stay out of the depth
+   * buffer, and both are sorted back-to-front by three's transparent pass, which
+   * is what keeps two of them on the same tile — an HP bar's backing and its
+   * fill, a pinned dot and its ring — layered the way they were built.
    */
-  overlay(color: number, opacity: number): MeshBasicMaterial {
-    const key = `${color}|${opacity}`;
+  overlay(color: number, opacity: number, onTop = false): MeshBasicMaterial {
+    const key = `${color}|${opacity}|${onTop ? 1 : 0}`;
     const existing = this.overlayCache.get(key);
     if (existing) return existing;
     const material = new MeshBasicMaterial({
@@ -223,6 +238,7 @@ export class MaterialLibrary {
       transparent: true,
       opacity,
       depthWrite: false,
+      depthTest: !onTop,
       // Decals are flat and the camera never goes below the board, but a
       // single-sided quad that ends up back-facing simply vanishes, and that
       // failure is much more expensive to debug than this is to enable.

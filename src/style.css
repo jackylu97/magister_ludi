@@ -376,12 +376,20 @@ body {
 }
 
 /* A labelled bar button — the lens menu. Wider than an icon button because it
-   carries a value the player reads at a glance ("Lens: Yields"), and quiet in
-   the same way: a parchment outline on ink, filled only when it is open. */
+   carries a value the player reads at a glance ("Lens Settler"), and quiet in
+   the same way: a parchment outline on ink, filled only when it is open.
+
+   Two nested boxes, and the nesting is the whole point. The pill centres one
+   line box; the line box aligns its three spans — a small mono eyebrow, a
+   larger naming face, a flag — on a shared *baseline*. Doing both jobs on one
+   element is impossible: a flex container with `align-items: baseline` hangs
+   the baseline group from the cross-start edge, so a fixed-height pill left the
+   label sitting high inside its own outline with all the slack below it. That
+   was the visible misalignment. */
 .topbar-btn {
   display: flex;
-  align-items: baseline;
-  gap: 5px;
+  align-items: center;
+  justify-content: center;
   height: 24px;
   padding: 0 9px;
   border: var(--border-thin) solid var(--on-ink-soft);
@@ -398,6 +406,17 @@ body {
   cursor: pointer;
 }
 
+.topbar-btn-line {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+/* The eyebrow: it names the control and never changes, so it stays quiet. */
+.topbar-btn-label {
+  color: var(--on-ink-soft);
+}
+
 /* The value is the part that changes, so it is the part that is not grey. */
 .topbar-btn-value {
   font-family: var(--face-ui);
@@ -406,6 +425,24 @@ body {
   letter-spacing: 0.02em;
   text-transform: none;
   color: var(--y-gold-lit);
+}
+
+/* The yields flag: a second, independent thing the board may be showing, so it
+   is a separate mark rather than part of the value — and it speaks in the food
+   voice, which is the colour those pips already use on the board. */
+.topbar-btn-flag {
+  padding: 1px 4px;
+  border: var(--border-thin) solid currentcolor;
+  border-radius: var(--radius-sm);
+  font-family: var(--face-num);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--y-food-lit);
+}
+
+.topbar-btn[aria-expanded='true'] .topbar-btn-label {
+  color: var(--ink-soft);
 }
 
 .topbar-btn:hover {
@@ -646,6 +683,56 @@ body {
 
 .lens-option.is-on .lens-option-tick {
   visibility: visible;
+}
+
+/* --- the lens switches ----------------------------------------------------
+   Under the exclusive rows, and deliberately not one of them: these compose
+   with whichever lens is up. A checkbox says that where a fourth ticked row
+   would have said the opposite. Same row metrics as a lens option so the two
+   groups read as one list, minus the accent edge that marks an exclusive
+   choice. */
+.lens-toggles {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding-top: 8px;
+  border-top: var(--border-thin) dashed rgba(29, 26, 32, 0.18);
+}
+
+.lens-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lens-toggle:hover {
+  background: #fffdf4;
+}
+
+.lens-toggle input {
+  margin: 0;
+  accent-color: var(--vermilion);
+  cursor: pointer;
+}
+
+/* The hotkey sits at the far end, where the tick sits on a lens row. */
+.lens-toggle-key {
+  margin-left: auto;
+  padding: 1px 5px;
+  border: var(--border-thin) solid rgba(29, 26, 32, 0.28);
+  border-radius: var(--radius-sm);
+  font-family: var(--face-num);
+  font-size: 10px;
+  color: var(--ink-soft);
 }
 
 .help-list {

@@ -166,6 +166,50 @@ describe('replay', () => {
     expect(snapshotState(rebuilt)).toBe(snapshotState(game.state));
   });
 
+  it('reproduces a game whose log contains a cancelled march', () => {
+    const game = createGame(config());
+
+    // A march long enough to still be running a turn later: several tiles away,
+    // and further than this unit's whole allowance.
+    const unit = game.state.units.find((u) => u.ownerId === 0)!;
+    const { map } = game.state;
+    const from = tileHex(map.tiles[tileIndex(map, unit.col, unit.row)]!);
+    const target = map.tiles.find((tile) => {
+      const distance = wrappedDistance(map, from, tileHex(tile));
+      if (distance < 4 || distance > 8) return false;
+      const path = findPath(game.state, unit, tile);
+      return path !== null && path.length > unit.movesLeft + 1;
+    });
+    if (!target) throw new Error('This seed has no room to march; pick another');
+
+    expect(
+      dispatch(game, {
+        type: 'moveUnit',
+        playerId: 0,
+        unitId: unit.id,
+        target: { col: target.col, row: target.row },
+      }).ok,
+    ).toBe(true);
+    endTurns(game, 1);
+    expect(unit.path).toBeDefined();
+
+    // Cancelling is a real command with a real effect, so it has to survive the
+    // round trip like any other: replaying without it would put the cancelled
+    // unit wherever its abandoned order had taken it.
+    expect(dispatch(game, { type: 'cancelOrder', playerId: 0, unitId: unit.id }).ok).toBe(true);
+    expect(unit.path).toBeUndefined();
+    // A refused cancellation must leave no trace in the log at all.
+    const logLength = game.log.length;
+    expect(dispatch(game, { type: 'cancelOrder', playerId: 0, unitId: 9999 }).ok).toBe(false);
+    expect(game.log).toHaveLength(logLength);
+    expect(game.log.some((command) => command.type === 'cancelOrder')).toBe(true);
+
+    endTurns(game, 5);
+    const rebuilt = replay(game.config, game.log);
+    expect(rebuilt).toEqual(game.state);
+    expect(snapshotState(rebuilt)).toBe(snapshotState(game.state));
+  });
+
   it('throws rather than silently skipping a command it cannot apply', () => {
     const bad = [endTurn(0), { type: 'timeTravel' }] as unknown as Command[];
     expect(() => replay(config(), bad)).toThrow(/Replay failed at command 1/);

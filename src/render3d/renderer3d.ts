@@ -66,8 +66,9 @@ import { LensLayer, NO_LENS, sameLens } from './lens3d';
 import { VIEW3D } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { OverlayLayer } from './overlays';
-import { UnitLayer, placePiece, unitColor } from './pieces';
+import { UnitLayer, buildSpriteUnit, placePiece, unitColor } from './pieces';
 import { pickTile } from './picking';
+import { UnitSprites } from './sprites3d';
 import { MaterialLibrary, computeHullNormals } from './toon';
 
 const DEG = Math.PI / 180;
@@ -109,6 +110,8 @@ export class Renderer3D implements MapView {
   private selectedUnitId: number | null = null;
   private reachable: readonly CellRef[] = [];
   private pathPreview: readonly CellRef[] = [];
+  /** The selected unit's stored order. See `MapView.setCommittedPath`. */
+  private committedPath: readonly CellRef[] = [];
   private workedTiles: readonly CellRef[] = [];
   private lockedTiles: readonly CellRef[] = [];
   /** Which lens the UI has up. See `setLens` and `lens3d.ts`. */
@@ -117,6 +120,12 @@ export class Renderer3D implements MapView {
   private moveMode = false;
 
   private shadows = LOOK.shadows;
+  /**
+   * The painted unit billboards, once they have loaded — null in `pieces` style
+   * and for the moments before the images arrive in `sprites` style. See
+   * `loadSprites` and `sprites3d.ts`.
+   */
+  private sprites: UnitSprites | null = null;
   /** Fingerprint of the units the layer was last built from. See `loop`. */
   private unitsSignature = 0;
   /** The same for the towns and for the borders. See `loop`. */
@@ -181,6 +190,34 @@ export class Renderer3D implements MapView {
     this.applyLight();
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);
+    this.loadSprites();
+  }
+
+  /**
+   * Fetches the painted unit art, in `sprites` style only.
+   *
+   * Deliberately *not* awaited by anything. The board is playable the instant it
+   * is built and the units are already on it as procedural pieces; when the
+   * images arrive the layer is rebuilt and they become billboards. A renderer
+   * that could not start until two megabytes of illustration had decoded would
+   * be a worse renderer for an experiment that might be reverted.
+   */
+  private loadSprites(): void {
+    if (VIEW3D.units.style !== 'sprites') return;
+    void UnitSprites.load().then((sprites) => {
+      // The renderer may have been disposed while the images were decoding.
+      if (!this.running) {
+        sprites.dispose();
+        return;
+      }
+      if (!sprites.any) return;
+      this.sprites = sprites;
+      // Anything mid-walk is holding a piece-shaped walker; the simplest honest
+      // thing is to end the walks and redraw everyone in the new style.
+      this.skipAnimations();
+      this.rebuildUnits();
+      this.invalidate();
+    });
   }
 
   // --- state ---------------------------------------------------------------
@@ -218,6 +255,7 @@ export class Renderer3D implements MapView {
     this.hover = null;
     this.reachable = [];
     this.pathPreview = [];
+    this.committedPath = [];
     this.workedTiles = [];
     this.lockedTiles = [];
     this.selectedUnitId = null;
@@ -287,6 +325,7 @@ export class Renderer3D implements MapView {
       // rotation, resolved here and baked into the HP bar instance matrices.
       this.view.camera.quaternion.clone(),
       this.shadows,
+      this.sprites,
     );
     // A walk in flight keeps its piece hidden across the rebuild; the sample
     // loop restores it when the animation ends.
@@ -323,6 +362,7 @@ export class Renderer3D implements MapView {
       {
         reachable: this.reachable,
         path: this.pathPreview,
+        committed: this.committedPath,
         hover: this.hover ? { col: this.hover.tile.col, row: this.hover.tile.row } : null,
         selection: selected ? { col: selected.col, row: selected.row } : null,
         worked: this.workedTiles,
@@ -376,6 +416,16 @@ export class Renderer3D implements MapView {
   setPathPreview(cells: readonly CellRef[]): void {
     if (sameCells(this.pathPreview, cells)) return;
     this.pathPreview = cells;
+    this.rebuildOverlays();
+  }
+
+  /**
+   * The route the selected unit has already committed to. Drawn quietly, under
+   * the hovered preview — see `OverlayState.committed`.
+   */
+  setCommittedPath(cells: readonly CellRef[]): void {
+    if (sameCells(this.committedPath, cells)) return;
+    this.committedPath = cells;
     this.rebuildOverlays();
   }
 
@@ -573,6 +623,11 @@ export class Renderer3D implements MapView {
    * Builds the temporary meshes for one walking piece: the body plus its
    * inverted-hull shell, cloned once per wrap copy so the walk is visible on
    * whichever side of the seam the camera happens to be on.
+   *
+   * In sprite style the walker is the same billboard-plus-shadow-plus-ring group
+   * the resting unit is built from (`buildSpriteUnit`), so a unit looks
+   * identical standing still and mid-stride. That shared builder is the whole
+   * reason animation needed no second implementation for the new art.
    */
   private spawnWalker(unitId: number): void {
     if (!this.state || !this.map) return;
@@ -580,6 +635,26 @@ export class Renderer3D implements MapView {
     if (!unit) return;
 
     this.removeWalker(unitId);
+    const spriteMaterial = this.sprites?.materialFor(unit.type) ?? null;
+    if (spriteMaterial) {
+      const group = new Group();
+      const period = wrapWidth(this.map);
+      for (const dx of [-period, 0, period]) {
+        const copy = buildSpriteUnit(
+          this.geometry,
+          this.materials,
+          spriteMaterial,
+          unitColor(this.state, unit),
+          this.view.camera.quaternion.clone(),
+        );
+        copy.position.x = dx;
+        group.add(copy);
+      }
+      this.scene.add(group);
+      this.walkers.set(unitId, group);
+      return;
+    }
+
     const shape = this.geometry.pieces[unit.type];
     computeHullNormals(shape);
     const material = this.materials.get(unitColor(this.state, unit));
@@ -764,6 +839,7 @@ export class Renderer3D implements MapView {
     this.running = false;
     this.frameListener = null;
     this.clearWalkers();
+    this.sprites?.dispose();
     this.units.dispose();
     this.cities.dispose();
     this.territory.dispose();

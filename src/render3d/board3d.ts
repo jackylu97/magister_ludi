@@ -62,6 +62,7 @@ import {
   roundTree,
   scoutPiece,
   settlerPiece,
+  spriteQuad,
   warriorPiece,
 } from './geometry';
 import { InstanceCollector, disposeInstancedGroup } from './instances';
@@ -87,6 +88,7 @@ const CITY = VIEW3D.city;
 const LENS = VIEW3D.lens;
 const TABLE = VIEW3D.table;
 const RIVERS = VIEW3D.rivers;
+const SPRITE = VIEW3D.units.sprite;
 
 /**
  * One geometry per shape, built once and shared by every board ever built.
@@ -115,6 +117,11 @@ export class BoardGeometry {
   readonly territory: BufferGeometry;
   /** A yield pip: the path dot's little sibling. See `lens3d.ts`. */
   readonly pip: BufferGeometry;
+  /** An upright unit quad standing on its base, for the sprite units. */
+  readonly billboard: BufferGeometry;
+  /** The blob shadow and the ownership ring a billboard stands in. */
+  readonly blob: BufferGeometry;
+  readonly baseRing: BufferGeometry;
   /** One river's worth of water, lying across one grout gap. */
   readonly river: BufferGeometry;
 
@@ -150,6 +157,15 @@ export class BoardGeometry {
     this.pip = pathDot(LENS.pipRadius, LENS.pipHeight);
     this.river = riverSegment();
     this.bar = barQuad();
+    // Sprite units. Built unconditionally rather than behind the style switch:
+    // three small shared geometries cost nothing, and a board that had to be
+    // rebuilt to flip an art-direction switch would not be trivially flippable.
+    this.billboard = spriteQuad();
+    this.blob = hexDecal(BOARD.hexRadius * SPRITE.shadowRadius);
+    this.baseRing = hexRing(
+      BOARD.hexRadius * SPRITE.ringOuter,
+      BOARD.hexRadius * SPRITE.ringWidth,
+    );
   }
 
   dispose(): void {
@@ -169,6 +185,9 @@ export class BoardGeometry {
     this.river.dispose();
     this.bar.dispose();
     this.territory.dispose();
+    this.billboard.dispose();
+    this.blob.dispose();
+    this.baseRing.dispose();
   }
 }
 
