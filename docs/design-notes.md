@@ -248,9 +248,14 @@ science scores continuously instead of gating; everyone races one legible number
    excellence, scaled by player count/speed); otherwise most beads at final age close.
 4. **War prices itself:** conquest mints big beads but captured cities cost authority (Entry I)
    — the domination path is throttled by an existing system, no warmonger rules needed.
-5. **Flag: economic beads are the weak sibling** (gold is a means, not an end, in every 4X).
-   Make them feat-shaped (treasury milestones, trade dominance, wonder buyouts); expect the most
-   iteration here.
+5. **Economic beads = economic/diplomatic hybrid (user, 2026-08-21), and PURE STAT CHECKS ARE
+   OUT OF SCOPE.** Principle: beads are *claims on the world*, never bank statements. No
+   "accumulate X gold"-style private milestones — every bead source must be visible and
+   contestable by other players. In scope for this family: founding the United Nations (or
+   era-equivalent congress), control of city-states (IF city-states get implemented — parked
+   system, not yet committed), control of X% of a world resource, trade-network dominance.
+   This also absorbs diplomacy properly: no separate diplo victory, just diplomatic *positions*
+   that mint beads.
 6. All sources/values in `data/beads.json` (future); awards happen in the sim (deterministic,
    announced via the command/phase pipeline like everything else).
 
