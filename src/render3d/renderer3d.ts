@@ -142,7 +142,10 @@ export class Renderer3D implements MapView {
     this.renderer.shadowMap.enabled = this.shadows;
     this.renderer.shadowMap.type = PCFSoftShadowMap;
 
-    this.scene.background = new Color(VIEW3D.palette.sky!);
+    // The table's own lit tone, so anything beyond the surface itself — the far
+    // corners at full zoom-out — is the same material rather than a sky the
+    // board is floating in. See `TableSpec` and `buildTable`.
+    this.scene.background = new Color(VIEW3D.table.color);
     // No fog. `Fog` measures distance from the camera, and an orthographic eye
     // sits an arbitrary 240 units back from the board, so any range tuned to
     // look right on the board also washed the whole scene out to the background

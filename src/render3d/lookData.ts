@@ -166,6 +166,35 @@ export interface LensSpec {
   siteSteps: number;
 }
 
+/**
+ * The chart-table: the surface the board is lying on.
+ *
+ * The board is a diorama and it has to be *somewhere*. A flat colour behind it
+ * reads as a void — the pieces float in nothing — so what surrounds the board is
+ * a table: aged vellum, lit toward the middle and falling off into the dark at
+ * the far edges of the room. It is deliberately a shade deeper than the HUD's
+ * parchment, so a panel laid over it still lifts off the page.
+ *
+ * This surface is where the fog of war will eventually live: unexplored ground
+ * is not black, it is *chart the magister has not drawn yet* — blank vellum with
+ * faint hex ghost-lines ruled on it. That is not built (see `docs/design-notes`
+ * Entry VII), but it is why this is its own block rather than two loose keys
+ * under `look`: the ghost-line colour, weight and opacity join it here when the
+ * time comes, and the unexplored-tile fill is `color` by definition.
+ */
+export interface TableSpec {
+  /** The lit table tone, and the colour the scene clears to. */
+  color: number;
+  /** What it falls off to at the far edge of the room. */
+  edgeColor: number;
+  /** World units, past the board's rim, over which it reaches `edgeColor`. */
+  edgeFalloff: number;
+  /** Hex radii of table left lit past the board's rim before the fall-off. */
+  edgePad: number;
+  /** How far past the board the surface extends, in world units. */
+  reach: number;
+}
+
 export interface LookSpec {
   lightAzimuth: number;
   lightElevation: number;
@@ -263,6 +292,7 @@ export interface View3DData {
   decor: DecorSpec;
   piece: PieceSpec;
   city: CitySpec;
+  table: TableSpec;
   territory: TerritorySpec;
   look: LookSpec;
   camera: CameraSpec;
@@ -331,6 +361,13 @@ export const VIEW3D: View3DData = {
   decor: viewJson.decor,
   piece: viewJson.piece,
   city: viewJson.city,
+  table: {
+    color: named(viewJson.table.color, 'table.color'),
+    edgeColor: named(viewJson.table.edgeColor, 'table.edgeColor'),
+    edgeFalloff: viewJson.table.edgeFalloff,
+    edgePad: viewJson.table.edgePad,
+    reach: viewJson.table.reach,
+  },
   territory: {
     tintScale: viewJson.territory.tintScale,
     tintOpacity: viewJson.territory.tintOpacity,

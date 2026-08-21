@@ -14,7 +14,9 @@
     "lagoon": "#5e8a90",
     "shoal": "#86aeae",
     "crimson": "#b35843",
-    "teal": "#477f7e"
+    "teal": "#477f7e",
+    "vellum": "#dbcfb0",
+    "vellumDeep": "#c2b18c"
   },
   "terrainColor": {
     "ocean": "lagoon",
@@ -183,6 +185,13 @@
     "msPerHex": 160,
     "maxMs": 1200,
     "hopHeight": 0.18
+  },
+  "table": {
+    "color": "vellum",
+    "edgeColor": "vellumDeep",
+    "edgeFalloff": 58,
+    "edgePad": 2.5,
+    "reach": 150
   },
   "lens": {
     "pipRadius": 0.085,

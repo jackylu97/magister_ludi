@@ -215,6 +215,13 @@ function closePopovers(): boolean {
 let startNewGame: (() => void) | null = null;
 
 function showLanding(): void {
+  // Nothing from the game may be left standing in front of the landing. The
+  // popovers sit below it in the stack, so this is not what makes them
+  // invisible — it is so that Start does not drop the player back into a game
+  // with a card open that they opened a game ago, and so that the landing is
+  // never competing with a second surface for the keyboard.
+  closePopovers();
+  setRestartConfirm(false);
   // `hidden` is the whole of the screen state — one flag, read by `inputBlocked`
   // as well as by the stylesheet, so "is the landing up?" has one answer.
   landingEl.hidden = false;
@@ -281,10 +288,9 @@ restartNoButton.addEventListener('click', () => {
   restartButton.focus();
 });
 restartYesButton.addEventListener('click', () => {
-  setRestartConfirm(false);
-  menu.close();
   // Back to the landing with this game's seed and size still in the fields —
   // they are the same two inputs that produced it, so "prefilled" costs nothing.
+  // `showLanding` closes the menu this button lives in, and resets this confirm.
   showLanding();
 });
 

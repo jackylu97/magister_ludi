@@ -29,6 +29,7 @@
 
 import {
   BoxGeometry,
+  BufferAttribute,
   type BufferGeometry,
   Color,
   DoubleSide,
@@ -36,6 +37,7 @@ import {
   Matrix4,
   Mesh,
   MeshBasicMaterial,
+  PlaneGeometry,
   Quaternion,
   Vector3,
 } from 'three';
@@ -79,6 +81,7 @@ const DECOR = VIEW3D.decor;
 const OVERLAY = VIEW3D.overlay;
 const CITY = VIEW3D.city;
 const LENS = VIEW3D.lens;
+const TABLE = VIEW3D.table;
 
 /**
  * One geometry per shape, built once and shared by every board ever built.
@@ -217,6 +220,73 @@ function buildSubstrate(bounds: Bounds, period: number): Mesh {
   return mesh;
 }
 
+/**
+ * The chart-table: the surface the whole board is lying on.
+ *
+ * One unlit plane under the substrate, wider than the three wrap copies and
+ * running far past the poles, shaded by *vertex colour* from the lit vellum in
+ * the middle to a deeper tone at the far edges. That is the whole vignette: no
+ * texture, no image, no shader, no second render pass — a strip of quads whose
+ * corners carry a colour, built once with the board and never touched again.
+ *
+ * Why a plane and not just a darker clear colour: a flat backdrop is a void, and
+ * the board floats in it. A surface that is *lighter under the board than at the
+ * edges of the room* reads as a lit table, and the diorama sits on it.
+ *
+ * The fall-off is measured in z only. Rows do not wrap but columns do — the
+ * board is a cylinder and the camera wraps with it — so darkening by distance
+ * in x would put a shadow on one side of a seam that has no sides. z is also
+ * where the void actually is: past the poles, which is the only direction you
+ * can look off the edge of the world.
+ *
+ * See `TableSpec` for what this surface becomes when fog of war arrives.
+ */
+function buildTable(bounds: Bounds, period: number): Mesh {
+  const pad = BOARD.hexRadius * BOARD.substratePad;
+  const width = bounds.maxX - bounds.minX + pad * 2 + period * 2;
+  const centerX = (bounds.minX + bounds.maxX) / 2;
+  const centerZ = (bounds.minZ + bounds.maxZ) / 2;
+  const halfDepth = (bounds.maxZ - bounds.minZ) / 2 + BOARD.hexRadius * TABLE.edgePad;
+  const depth = (halfDepth + TABLE.reach) * 2;
+
+  // One segment per two world units of depth: enough that the gradient is
+  // smooth under an orthographic camera, cheap enough to be a rounding error
+  // (a few hundred vertices against the board's tens of thousands).
+  const segments = Math.max(8, Math.round(depth / 2));
+  const geometry = new PlaneGeometry(width, depth, 1, segments);
+  // `PlaneGeometry` stands up in xy; lay it down, then move it under the board.
+  geometry.rotateX(-Math.PI / 2);
+  // Just below the substrate's own underside, so the slab keeps a visible edge
+  // sitting on the table rather than being coplanar with it.
+  geometry.translate(centerX, BOARD.floorY - 0.45, centerZ);
+
+  const lit = new Color(TABLE.color);
+  const dim = new Color(TABLE.edgeColor);
+  const position = geometry.getAttribute('position');
+  const colors = new Float32Array(position.count * 3);
+  const mixed = new Color();
+  for (let i = 0; i < position.count; i++) {
+    const over = Math.abs(position.getZ(i) - centerZ) - halfDepth;
+    const t = Math.max(0, Math.min(1, over / TABLE.edgeFalloff));
+    // Smoothstep: a linear ramp on a surface this large shows its own start and
+    // end as two faint bands, and the eye finds both.
+    mixed.copy(lit).lerp(dim, t * t * (3 - 2 * t));
+    colors[i * 3] = mixed.r;
+    colors[i * 3 + 1] = mixed.g;
+    colors[i * 3 + 2] = mixed.b;
+  }
+  geometry.setAttribute('color', new BufferAttribute(colors, 3));
+
+  // Unlit, like the substrate: the gradient *is* its shading, and running it
+  // through the toon ramp would band it into three flat steps.
+  const material = new MeshBasicMaterial({ vertexColors: true });
+  const mesh = new Mesh(geometry, material);
+  mesh.frustumCulled = false;
+  // Under everything: it must never take a pixel from the board it carries.
+  mesh.renderOrder = -1;
+  return mesh;
+}
+
 function addDecorations(
   tile: Tile,
   top: number,
@@ -352,6 +422,10 @@ export function buildBoard(
   group.add(substrate);
   drawCalls++;
 
+  const table = buildTable(bounds, period);
+  group.add(table);
+  drawCalls++;
+
   return {
     group,
     bounds,
@@ -361,9 +435,12 @@ export function buildBoard(
     drawCalls,
     dispose(): void {
       // Geometry and toon materials are shared and owned elsewhere; only the
-      // substrate's one-off pair and the instanced meshes themselves are ours.
+      // one-off pairs (the substrate and the table) and the instanced meshes
+      // themselves are ours.
       substrate.geometry.dispose();
       (substrate.material as MeshBasicMaterial).dispose();
+      table.geometry.dispose();
+      (table.material as MeshBasicMaterial).dispose();
       disposeInstancedGroup(group);
     },
   };

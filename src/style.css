@@ -265,8 +265,15 @@ body {
 }
 
 /* The setup card borrows the HUD card's recipe — and its row, label and field
-   rules — but is laid out by the stage rather than pinned to a corner. */
-.landing-card {
+   rules — but is laid out by the stage rather than pinned to a corner.
+
+   Both class names, deliberately: `.hud-card` pins itself with `position:
+   fixed`, and a single-class override loses to it on source order alone — this
+   block sits above the HUD section, so `.landing-card` on its own was silently
+   beaten and the card left the flow, landing on top of the marquee. Specificity
+   rather than order, so moving either block cannot bring the bug back. The same
+   trick `#hud-popovers > .hud-card` uses for the popover column. */
+.hud-card.landing-card {
   position: static;
   padding: 14px 16px 16px;
 }
