@@ -273,6 +273,40 @@ the target turn band.
 
 ---
 
+## Entry VII — Theme: the magister's study (hermetic, not spooky)
+
+**Direction (user, 2026-08-21):** lean harder into the "playing a somewhat magic/occult game"
+frame; card draws go tarot-ish; bright poster colors questioned.
+
+**The bridge is historically real:** tarot began as a 15th-c. Italian card GAME (Visconti-
+Sforza) before it was occult; Camillo's Memory Theatre was a Renaissance occult knowledge
+device; Hesse's order reads as mystic from outside. Unifying aesthetic: **the scholar-magus's
+study** — parchment, ink, woodcut engraving, astrological diagrams, gilt, candlelight.
+Register: hermetic / cabinet-of-curiosities. NEVER grimdark or edgelord (protects the quirky
+leader roster — Emperor Norton belongs in a wunderkammer).
+
+**Two-layer fiction (the load-bearing rule):** the WORLD stays innocent — the toon diorama
+board keeps its warm sage/wheat palette unchanged. The INTERFACE is the occult apparatus — the
+magister's instruments for observing and playing that world. Only UI accents age:
+- vermilion → **oxblood** · teal → **verdigris** · gilt gains prominence · ink stays.
+- Structure unchanged (ink borders, hard shadows, depress-on-press). Saturation lowered,
+  color-coding kept — yield voices and player colors become heraldic tinctures, still distinct.
+
+**Applications, by leverage:**
+1. **Civic cards = tarot-shaped**: tall ratio, engraved frame, Roman numeral, woodcut-style
+   emblem, epigram flavor line. The draft is a *spread*: three cards dealt face-down, flipped.
+2. **Lenses = the magus's instruments** (settler lens as augury).
+3. Dressing: ages as Roman numerals; hairline astro/geomantic ornament on panels; Magister's
+   Dice flavored as casting lots (astragali). Glass beads unchanged — already the mystical
+   object.
+4. Type: Instrument Serif survives (engraved cut). NO blackletter (costume). Optional extra
+   voice: letterspaced small caps for inscriptions.
+
+**Next step when wanted:** specimen take three — aged pigments + one tarot card mock — before
+committing the palette shift to the live UI.
+
+---
+
 ## Sequencing snapshot (2026-08-21)
 Vanilla mechanics first (user decision). M4 = vanilla science tech tree + culture. Then combat,
 AI, netcode. Drafting/governments/dice slot in after the vanilla loop proves out. Rivers mapgen
