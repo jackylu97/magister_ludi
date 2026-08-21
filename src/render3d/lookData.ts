@@ -70,14 +70,129 @@ export interface BoardSpec {
   substrateShade: number;
 }
 
+/**
+ * A tuft of grass or a bed of reeds: a ring of thin cones out of one root.
+ * `blades` is the count in the *shape*; how many tufts a tile gets is `max`.
+ */
+export interface TuftSpec {
+  coneR: number;
+  coneH: number;
+  blades: number;
+  cluster: number;
+}
+
+/** How much of a scatter a kind of clutter is: chance the tile has any, and a cap. */
+export interface ScatterSpec {
+  chance: number;
+  max: number;
+}
+
+/**
+ * Per-instance colour wobble, as fractions.
+ *
+ * The single cheapest diorama win there is. Ten thousand identical greens read
+ * as a tileset; ten thousand greens that disagree by five percent read as a
+ * painted model. It costs one float3 per instance and no extra draw call at all
+ * (see `Tint` in `instances.ts` for why it cannot be done by varying the ink).
+ */
+export interface VariationSpec {
+  /** ± fraction of value jitter on decorations. */
+  value: number;
+  /** ± fraction of opposed red/blue tilt — a hue drift, not a value change. */
+  hue: number;
+  /** The same two, weaker, for the terrain prisms themselves. */
+  terrainValue: number;
+  terrainHue: number;
+}
+
+/**
+ * The contact darkening baked into every prism's vertex colours.
+ *
+ * See `bakeContactShading` in `geometry.ts`: `aoBand` is how far below a tile's
+ * top face the shading reaches, in world units, and `aoStrength` how dark it
+ * gets at the bottom of that band.
+ */
+export interface GroundSpec {
+  aoBand: number;
+  aoStrength: number;
+}
+
+/** Snow on the mountains: the top `fraction` of both cones of the peak. */
+export interface SnowCapSpec {
+  fraction: number;
+  color: number;
+}
+
+/** The pale band on the top face of a land tile that touches the sea. */
+export interface ShoreSpec {
+  color: number;
+  opacity: number;
+  /** Outer radius and band width as fractions of the hex radius. */
+  outer: number;
+  width: number;
+  lift: number;
+}
+
+export interface ClutterSpec {
+  tuft: TuftSpec & ScatterSpec & { color: number; shade: number };
+  flower: {
+    stemR: number;
+    stemH: number;
+    headR: number;
+    /** One ink per flower, picked by hash. Three is a meadow; six is confetti. */
+    colors: number[];
+  } & ScatterSpec;
+  cactus: {
+    bodyR: number;
+    bodyH: number;
+    armR: number;
+    armH: number;
+    color: number;
+    shade: number;
+  } & ScatterSpec;
+  /** Pebbles reuse the boulder shape at `scale`, which costs no new geometry. */
+  pebble: { scale: number; color: number; shade: number } & ScatterSpec;
+}
+
+/**
+ * What grows where the land meets fresh water.
+ *
+ * Rivers arrived as blue bands in the grout and lakes as flat tiles, and both
+ * read as *drawn on* until something is standing in them. Reeds are placed
+ * toward the water rather than scattered over the tile — `edgeOffset` is how far
+ * from the tile centre, in hex radii, the clump sits along the direction of the
+ * river edge or the lake next door — which is the difference between a tile with
+ * reeds on it and a river bank.
+ */
+export interface ReedSpec extends TuftSpec, ScatterSpec {
+  color: number;
+  shade: number;
+  edgeOffset: number;
+  jitter: number;
+  bankPebbleChance: number;
+  bankPebbleMax: number;
+  bankPebbleScale: number;
+}
+
 export interface DecorSpec {
   pine: PineSpec;
+  /** A second conifer silhouette, so a forest is not one tree stamped twice. */
+  pineAlt: PineSpec;
   jungle: JungleSpec;
+  jungleAlt: JungleSpec;
   rock: { radius: number };
   /** How far from the tile centre decorations may scatter, in hex radii. */
   spread: number;
   /** ± fraction of size jitter per decoration. */
   sizeJitter: number;
+  /** Chance any one tree takes the alternate silhouette. */
+  altChance: number;
+  variation: VariationSpec;
+  ground: GroundSpec;
+  snowCap: SnowCapSpec;
+  shore: ShoreSpec;
+  clutter: ClutterSpec;
+  reeds: ReedSpec;
 }
 
 export interface PieceSpec {
@@ -221,7 +336,17 @@ export interface UnitStyleSpec {
  * first, and neither of them is a fact about the code.
  */
 export interface SpriteSpec {
-  /** Quad height as a multiple of a hex's width (twice the circumradius). */
+  /**
+   * Card height as a multiple of a hex's width (twice the circumradius).
+   *
+   * The one number that decides whether the art belongs on the board. A standee
+   * wants to be *slightly* larger than the carved piece it stands beside
+   * (`piece.height`, 0.92 world units) — a printed figure is a figure, not a
+   * monument — and the source art fills about 92% of its own frame, so the
+   * figure ends up a shade over one world unit tall against houses of about a
+   * half. Raising this past ~0.8 is what made the first pass tower over the town
+   * it was walking through.
+   */
   heightInHexWidths: number;
   /** How far above the tile face the billboard's base sits. */
   lift: number;
@@ -235,11 +360,45 @@ export interface SpriteSpec {
   shadowRadius: number;
   shadowOpacity: number;
   shadowColor: number;
-  /** The player-colour ring the sprite stands in, so ownership reads at zoom. */
-  ringOuter: number;
-  ringWidth: number;
-  ringOpacity: number;
-  ringLift: number;
+  standee: StandeeSpec;
+}
+
+/** The foot the card stands in. All lengths in hex radii. See `standeeBase`. */
+export interface StandeeBaseSpec {
+  radius: number;
+  thickness: number;
+  /** How much the ellipse is squashed across the card's plane. 1 is a circle. */
+  squash: number;
+  collarScale: number;
+  collarThickness: number;
+  tabWidth: number;
+  tabHeight: number;
+  tabThickness: number;
+  /** How far above the tile face the foot sits, clearing the blob shadow. */
+  lift: number;
+}
+
+/**
+ * The die cut: how a keyed illustration is turned into a printed standee.
+ *
+ * See the `sprites3d.ts` docblock for why the art is reframed as print at all.
+ * The pixel widths are authored at `referencePx` and scaled to whatever
+ * resolution the image actually arrives at, so re-exporting the art larger keeps
+ * the same border rather than halving it.
+ */
+export interface StandeeSpec {
+  referencePx: number;
+  /** Parchment margin dilated out of the figure's silhouette, in pixels. */
+  borderPx: number;
+  /** Ink line printed around the outside of that margin, in pixels. */
+  rimPx: number;
+  /** Ramp fading the ink line's outer edge, so `alphaTest` has a middle to cut. */
+  edgeFeatherPx: number;
+  /** Keyed alpha (0..255) at and above which a pixel counts as the figure. */
+  maskAlpha: number;
+  paperColor: number;
+  rimColor: number;
+  base: StandeeBaseSpec;
 }
 
 /**
@@ -459,7 +618,53 @@ export const VIEW3D: View3DData = {
   },
   sideDarken: viewJson.sideDarken,
   board: viewJson.board,
-  decor: viewJson.decor,
+  decor: {
+    pine: viewJson.decor.pine,
+    pineAlt: viewJson.decor.pineAlt,
+    jungle: viewJson.decor.jungle,
+    jungleAlt: viewJson.decor.jungleAlt,
+    rock: viewJson.decor.rock,
+    spread: viewJson.decor.spread,
+    sizeJitter: viewJson.decor.sizeJitter,
+    altChance: viewJson.decor.altChance,
+    variation: viewJson.decor.variation,
+    ground: viewJson.decor.ground,
+    snowCap: {
+      fraction: viewJson.decor.snowCap.fraction,
+      color: named(viewJson.decor.snowCap.color, 'decor.snowCap.color'),
+    },
+    shore: {
+      color: named(viewJson.decor.shore.color, 'decor.shore.color'),
+      opacity: viewJson.decor.shore.opacity,
+      outer: viewJson.decor.shore.outer,
+      width: viewJson.decor.shore.width,
+      lift: viewJson.decor.shore.lift,
+    },
+    clutter: {
+      tuft: {
+        ...viewJson.decor.clutter.tuft,
+        color: named(viewJson.decor.clutter.tuft.color, 'decor.clutter.tuft.color'),
+      },
+      flower: {
+        ...viewJson.decor.clutter.flower,
+        colors: viewJson.decor.clutter.flower.colors.map((name, i) =>
+          named(name, `decor.clutter.flower.colors[${i}]`),
+        ),
+      },
+      cactus: {
+        ...viewJson.decor.clutter.cactus,
+        color: named(viewJson.decor.clutter.cactus.color, 'decor.clutter.cactus.color'),
+      },
+      pebble: {
+        ...viewJson.decor.clutter.pebble,
+        color: named(viewJson.decor.clutter.pebble.color, 'decor.clutter.pebble.color'),
+      },
+    },
+    reeds: {
+      ...viewJson.decor.reeds,
+      color: named(viewJson.decor.reeds.color, 'decor.reeds.color'),
+    },
+  },
   piece: viewJson.piece,
   city: viewJson.city,
   table: {
@@ -560,10 +765,22 @@ export const VIEW3D: View3DData = {
       shadowRadius: viewJson.units.sprite.shadowRadius,
       shadowOpacity: viewJson.units.sprite.shadowOpacity,
       shadowColor: parseColor(viewJson.units.sprite.shadowColor, 'units.sprite.shadowColor'),
-      ringOuter: viewJson.units.sprite.ringOuter,
-      ringWidth: viewJson.units.sprite.ringWidth,
-      ringOpacity: viewJson.units.sprite.ringOpacity,
-      ringLift: viewJson.units.sprite.ringLift,
+      standee: {
+        referencePx: viewJson.units.sprite.standee.referencePx,
+        borderPx: viewJson.units.sprite.standee.borderPx,
+        rimPx: viewJson.units.sprite.standee.rimPx,
+        edgeFeatherPx: viewJson.units.sprite.standee.edgeFeatherPx,
+        maskAlpha: viewJson.units.sprite.standee.maskAlpha,
+        paperColor: parseColor(
+          viewJson.units.sprite.standee.paperColor,
+          'units.sprite.standee.paperColor',
+        ),
+        rimColor: parseColor(
+          viewJson.units.sprite.standee.rimColor,
+          'units.sprite.standee.rimColor',
+        ),
+        base: viewJson.units.sprite.standee.base,
+      },
     },
   },
 };

@@ -103,11 +103,62 @@ function merge(parts: BufferGeometry[]): BufferGeometry {
  * layout `hexToPixel` assumes — so no corrective rotation is needed and the
  * prisms tile with the sim's hex math for free. Every flat hex shape below is
  * built to the same corner phase.
+ *
+ * `ao` bakes the contact darkening described in `bakeContactShading` into the
+ * prism's vertex colours. Optional because only the board wants it: a prism
+ * built without it carries no colour attribute at all and can be drawn by a
+ * material that knows nothing about vertex colours.
  */
-export function hexPrism(radius: number, height: number): BufferGeometry {
+export function hexPrism(
+  radius: number,
+  height: number,
+  ao?: { band: number; strength: number },
+): BufferGeometry {
   const geometry = new CylinderGeometry(radius, radius, height, 6, 1, false);
   geometry.translate(0, height / 2, 0);
-  return flatten(geometry);
+  const flat = flatten(geometry);
+  if (ao) bakeContactShading(flat, height, ao.band, ao.strength);
+  return flat;
+}
+
+/**
+ * Writes a downward value ramp into a shape's vertex colours: white at the top
+ * face, falling to `1 - strength` `band` world units below it, flat thereafter.
+ *
+ * This is the whole of the grounding pass, and it is free — no extra instance,
+ * no extra draw, no second material. The prisms are drawn inset inside a hex of
+ * grout, so what the eye actually sees of a tile's side is the top fifth of it,
+ * where it meets its neighbours; darkening from the top edge downward puts a
+ * soft contact shadow exactly in that band and leaves the buried remainder (the
+ * other 80% of the prism, which nothing can ever see) uniformly dark.
+ *
+ * Measured from the *top* rather than from the base on purpose. A prism's base
+ * is at the shared floor plane and is never visible; its top is where it is
+ * seated against the world.
+ *
+ * The colour is a plain multiplier, so it composes with the per-instance tint
+ * (`instances.ts`) by multiplication in the shader and neither has to know about
+ * the other. The top cap lands at exactly `height` and so is left untouched,
+ * which is what keeps the tile's face the flat terrain colour it is supposed to
+ * be.
+ */
+function bakeContactShading(
+  geometry: BufferGeometry,
+  height: number,
+  band: number,
+  strength: number,
+): void {
+  const position = geometry.getAttribute('position');
+  const colors = new Float32Array(position.count * 3);
+  const span = Math.max(band, 1e-6);
+  for (let i = 0; i < position.count; i++) {
+    const depth = Math.max(0, Math.min(1, (height - position.getY(i)) / span));
+    const value = 1 - strength * depth;
+    colors[i * 3] = value;
+    colors[i * 3 + 1] = value;
+    colors[i * 3 + 2] = value;
+  }
+  geometry.setAttribute('color', new BufferAttribute(colors, 3));
 }
 
 /**
@@ -125,6 +176,49 @@ export function mountainPeak(radius: number, height: number): BufferGeometry {
   const shoulder = new ConeGeometry(radius * 0.72, height * 0.58, 5, 1);
   shoulder.rotateY(0.7);
   shoulder.translate(radius * 0.52, height * 0.29, radius * 0.3);
+
+  const merged = merge([main, shoulder]);
+  main.dispose();
+  shoulder.dispose();
+  return flatten(merged);
+}
+
+/**
+ * The snow on a `mountainPeak`: the same two cones, cut off near their tips.
+ *
+ * Built as a separate geometry drawn with the *same* instance matrix rather than
+ * as a second colour group on the peak, because the peak's matrix carries a
+ * hashed scale and yaw per tile and a cap that did not inherit both would slide
+ * off the summit. A cone's radius falls linearly to its tip, so the cap over the
+ * top `fraction` of a cone of radius `r` and height `h` is a cone of radius
+ * `r · fraction` and height `h · fraction` standing at `h · (1 − fraction)` —
+ * exact, with a hair of overscale so the two never show a seam.
+ *
+ * The shoulder gets its own cap. A massif with snow on one summit and bare rock
+ * on the other beside it reads as a bug, not as weather.
+ */
+export function mountainSnow(
+  radius: number,
+  height: number,
+  fraction: number,
+): BufferGeometry {
+  const f = Math.max(0.02, Math.min(0.9, fraction));
+  const over = 1.05;
+
+  const main = new ConeGeometry(radius * f * over, height * f * over, 5, 1);
+  main.translate(0, height * (1 - f) + (height * f * over) / 2, 0);
+
+  // The shoulder of `mountainPeak`, to the letter: 0.72r wide, 0.58h tall,
+  // turned 0.7 rad and nudged out to (0.52r, 0.3r).
+  const shoulderR = radius * 0.72;
+  const shoulderH = height * 0.58;
+  const shoulder = new ConeGeometry(shoulderR * f * over, shoulderH * f * over, 5, 1);
+  shoulder.rotateY(0.7);
+  shoulder.translate(
+    radius * 0.52,
+    shoulderH * (1 - f) + (shoulderH * f * over) / 2,
+    radius * 0.3,
+  );
 
   const merged = merge([main, shoulder]);
   main.dispose();
@@ -177,6 +271,129 @@ export function roundTree(spec: {
   const merged = merge([trunk, canopy]);
   trunk.dispose();
   canopy.dispose();
+  return flatten(merged);
+}
+
+// --- ground clutter --------------------------------------------------------
+
+/**
+ * A tuft of grass: a few thin cones leaning out of one point.
+ *
+ * The whole clutter family below exists for one reason — a diorama is sold by
+ * the stuff between the set pieces, not by the set pieces. Each of these is
+ * tens of triangles and each is *one* geometry however many parts it has, so a
+ * whole map's worth of them is one instanced draw and one outline draw.
+ *
+ * The blades are placed on a ring rather than hashed, because these are already
+ * scattered and jittered per instance by the board (`addDecorations`); hashing
+ * inside the shape as well would only make every tuft the same kind of mush.
+ * The lean is what stops the cluster reading as a sea urchin.
+ */
+export function grassTuft(spec: {
+  coneR: number;
+  coneH: number;
+  blades: number;
+  cluster: number;
+}): BufferGeometry {
+  const blades = Math.max(1, Math.round(spec.blades));
+  const parts: BufferGeometry[] = [];
+  for (let i = 0; i < blades; i++) {
+    const angle = (i / blades) * Math.PI * 2;
+    // Every second blade is shorter, which is the cheapest way to give a
+    // symmetric ring of cones an irregular silhouette.
+    const h = spec.coneH * (i % 2 === 0 ? 1 : 0.72);
+    const blade = new ConeGeometry(spec.coneR, h, 4, 1);
+    blade.translate(0, h / 2, 0);
+    blade.rotateZ(Math.cos(angle) * 0.34);
+    blade.rotateX(-Math.sin(angle) * 0.34);
+    blade.translate(Math.cos(angle) * spec.cluster, 0, Math.sin(angle) * spec.cluster);
+    parts.push(blade);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * A flower: a hair-thin stem with a bead on top.
+ *
+ * One geometry in one colour, stem included. At the size this is drawn the stem
+ * is under two pixels wide and its colour never resolves; splitting it out into
+ * a second draw call to paint it green would buy nothing anybody can see.
+ */
+export function flowerSpray(spec: {
+  stemR: number;
+  stemH: number;
+  headR: number;
+}): BufferGeometry {
+  const stem = new CylinderGeometry(spec.stemR, spec.stemR, spec.stemH, 4, 1);
+  stem.translate(0, spec.stemH / 2, 0);
+
+  const head = new IcosahedronGeometry(spec.headR, 0);
+  head.scale(1, 0.8, 1);
+  head.translate(0, spec.stemH + spec.headR * 0.6, 0);
+
+  const merged = merge([stem, head]);
+  stem.dispose();
+  head.dispose();
+  return flatten(merged);
+}
+
+/** A saguaro: a segmented trunk with two stub arms. Reads as desert at 6px. */
+export function cactus(spec: {
+  bodyR: number;
+  bodyH: number;
+  armR: number;
+  armH: number;
+}): BufferGeometry {
+  const body = new CylinderGeometry(spec.bodyR * 0.86, spec.bodyR, spec.bodyH, 6, 1);
+  body.translate(0, spec.bodyH / 2, 0);
+
+  // Arms as elbows — a horizontal stub out of the trunk and a vertical one on
+  // its end — because a cactus with straight-out arms is a signpost.
+  const parts: BufferGeometry[] = [body];
+  for (const side of [-1, 1]) {
+    const reach = spec.bodyR + spec.armH * 0.5;
+    const elbow = new CylinderGeometry(spec.armR, spec.armR, reach, 5, 1);
+    elbow.rotateZ(Math.PI / 2);
+    elbow.translate((side * reach) / 2, spec.bodyH * (side < 0 ? 0.52 : 0.66), 0);
+    const upper = new CylinderGeometry(spec.armR * 0.9, spec.armR, spec.armH, 5, 1);
+    upper.translate(side * reach, spec.bodyH * (side < 0 ? 0.52 : 0.66) + spec.armH / 2, 0);
+    parts.push(elbow, upper);
+  }
+
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * Reeds: tall thin cones out of one root, leaning further than grass does.
+ *
+ * The same construction as `grassTuft` at a different aspect ratio, kept as its
+ * own shape rather than a scaled tuft because a reed bed's whole read is that it
+ * is *tall and thin* — a uniformly scaled tuft is a bigger tuft.
+ */
+export function reedClump(spec: {
+  coneR: number;
+  coneH: number;
+  blades: number;
+  cluster: number;
+}): BufferGeometry {
+  const blades = Math.max(1, Math.round(spec.blades));
+  const parts: BufferGeometry[] = [];
+  for (let i = 0; i < blades; i++) {
+    const angle = (i / blades) * Math.PI * 2 + 0.4;
+    const h = spec.coneH * (0.66 + (i % 3) * 0.17);
+    const stalk = new ConeGeometry(spec.coneR, h, 4, 1);
+    stalk.translate(0, h / 2, 0);
+    stalk.rotateZ(Math.cos(angle) * 0.16);
+    stalk.rotateX(-Math.sin(angle) * 0.16);
+    stalk.translate(Math.cos(angle) * spec.cluster, 0, Math.sin(angle) * spec.cluster);
+    parts.push(stalk);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
   return flatten(merged);
 }
 
@@ -272,6 +489,60 @@ export function settlerPiece(height: number): BufferGeometry {
   body.dispose();
   roof.dispose();
   merged.scale(scale, scale, scale);
+  return flatten(merged);
+}
+
+/**
+ * The foot a paper standee stands in: a flattened disc, a narrower collar on
+ * top of it, and the little clip the card slots into.
+ *
+ * The billboard units are printed art, and printed art on a table has to be
+ * *stood up* by something. Without a foot a billboard is a decal hovering over a
+ * hex; with one it is a die-cut figure in a base, which is a thing that exists
+ * and that the eye already knows how to read. That is the entire cohesion
+ * argument for this shape, and it is why it replaced the flat player-colour ring
+ * that used to be here: a ring is a decal about a decal.
+ *
+ * Elliptical rather than round, squashed along z, because the card is a plane
+ * and its foot is a plane's foot — a circular base under a flat figure reads as
+ * a coin the figure is balancing on. The long axis is +x, which is the card's
+ * own left-to-right, and the caller yaws the whole thing to match (see
+ * `buildSpriteUnit`).
+ *
+ * Everything is merged into one geometry in one colour: the base is the
+ * player's ink and it needs to read as one object at four pixels across, which
+ * is the actual test a piece of ownership signalling has to pass.
+ */
+export function standeeBase(spec: {
+  radius: number;
+  thickness: number;
+  squash: number;
+  collarScale: number;
+  collarThickness: number;
+  tabWidth: number;
+  tabHeight: number;
+  tabThickness: number;
+}): BufferGeometry {
+  // Ten sides, not six: this sits on a hexagonal tile and a hexagonal foot on a
+  // hexagonal tile locks visually to the grid, which is the opposite of what a
+  // loose game piece should do.
+  const disc = new CylinderGeometry(spec.radius, spec.radius * 1.08, spec.thickness, 10, 1);
+  disc.translate(0, spec.thickness / 2, 0);
+  disc.scale(1, 1, spec.squash);
+
+  const collarR = spec.radius * spec.collarScale;
+  const collar = new CylinderGeometry(collarR, collarR * 1.05, spec.collarThickness, 10, 1);
+  collar.translate(0, spec.thickness + spec.collarThickness / 2, 0);
+  collar.scale(1, 1, spec.squash * 0.92);
+
+  const shelf = spec.thickness + spec.collarThickness;
+  const tab = new BoxGeometry(spec.tabWidth, spec.tabHeight, spec.tabThickness);
+  tab.translate(0, shelf + spec.tabHeight / 2, 0);
+
+  const merged = merge([disc, collar, tab]);
+  disc.dispose();
+  collar.dispose();
+  tab.dispose();
   return flatten(merged);
 }
 

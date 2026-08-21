@@ -79,16 +79,105 @@
       "coneR": 0.24,
       "coneH": 0.62
     },
+    "pineAlt": {
+      "trunkR": 0.045,
+      "trunkH": 0.22,
+      "coneR": 0.185,
+      "coneH": 0.78
+    },
     "jungle": {
       "trunkR": 0.06,
       "trunkH": 0.14,
       "ballR": 0.27
     },
+    "jungleAlt": {
+      "trunkR": 0.05,
+      "trunkH": 0.26,
+      "ballR": 0.2
+    },
     "rock": {
       "radius": 0.19
     },
     "spread": 0.44,
-    "sizeJitter": 0.22
+    "sizeJitter": 0.22,
+    "altChance": 0.42,
+    "variation": {
+      "value": 0.06,
+      "hue": 0.022,
+      "terrainValue": 0.032,
+      "terrainHue": 0.012
+    },
+    "ground": {
+      "aoBand": 0.33,
+      "aoStrength": 0.3
+    },
+    "snowCap": {
+      "fraction": 0.33,
+      "color": "bone"
+    },
+    "shore": {
+      "color": "sand",
+      "opacity": 0.42,
+      "outer": 0.94,
+      "width": 0.15,
+      "lift": 0.012
+    },
+    "clutter": {
+      "tuft": {
+        "coneR": 0.035,
+        "coneH": 0.14,
+        "blades": 4,
+        "cluster": 0.05,
+        "color": "sage",
+        "shade": -0.16,
+        "chance": 0.72,
+        "max": 3
+      },
+      "flower": {
+        "stemR": 0.012,
+        "stemH": 0.1,
+        "headR": 0.036,
+        "colors": [
+          "bone",
+          "crimson",
+          "wheat"
+        ],
+        "chance": 0.34,
+        "max": 2
+      },
+      "cactus": {
+        "bodyR": 0.05,
+        "bodyH": 0.28,
+        "armR": 0.032,
+        "armH": 0.14,
+        "color": "pine",
+        "shade": 0.06,
+        "chance": 0.42,
+        "max": 2
+      },
+      "pebble": {
+        "scale": 0.3,
+        "color": "slate",
+        "shade": 0.14,
+        "chance": 0.5,
+        "max": 3
+      }
+    },
+    "reeds": {
+      "coneR": 0.026,
+      "coneH": 0.44,
+      "blades": 4,
+      "cluster": 0.045,
+      "color": "frond",
+      "shade": 0.05,
+      "chance": 0.68,
+      "max": 3,
+      "edgeOffset": 0.6,
+      "jitter": 0.17,
+      "bankPebbleChance": 0.44,
+      "bankPebbleMax": 2,
+      "bankPebbleScale": 0.22
+    }
   },
   "piece": {
     "height": 0.92,
@@ -229,18 +318,34 @@
   "units": {
     "style": "sprites",
     "sprite": {
-      "heightInHexWidths": 0.9,
-      "lift": 0.02,
+      "heightInHexWidths": 0.58,
+      "lift": 0.055,
       "keyThreshold": 0.9,
       "keyFeather": 0.12,
       "alphaTest": 0.45,
       "shadowRadius": 0.34,
       "shadowOpacity": 0.3,
       "shadowColor": "#2f2b32",
-      "ringOuter": 0.44,
-      "ringWidth": 0.1,
-      "ringOpacity": 0.95,
-      "ringLift": 0.01
+      "standee": {
+        "referencePx": 1024,
+        "borderPx": 14,
+        "rimPx": 4,
+        "edgeFeatherPx": 1.4,
+        "maskAlpha": 128,
+        "paperColor": "#f1e7cd",
+        "rimColor": "#211c1e",
+        "base": {
+          "radius": 0.32,
+          "thickness": 0.05,
+          "squash": 0.62,
+          "collarScale": 0.6,
+          "collarThickness": 0.035,
+          "tabWidth": 0.3,
+          "tabHeight": 0.055,
+          "tabThickness": 0.028,
+          "lift": 0.008
+        }
+      }
     }
   }
 }

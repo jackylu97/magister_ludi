@@ -51,17 +51,18 @@ import type { GameMap } from '../sim/map';
 import type { GameState, Unit } from '../sim/state';
 import { type UnitTypeId, unitDef } from '../sim/unitData';
 
-import type { BoardGeometry } from './board3d';
+import { type BoardGeometry, pieceShapeFor } from './board3d';
 import { hashSigned } from './hash';
 import { type InstanceHandle, InstanceCollector, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, playerPieceColor } from './lookData';
 import type { UnitSprites } from './sprites3d';
-import type { MaterialLibrary } from './toon';
+import { type MaterialLibrary, computeHullNormals } from './toon';
 
 const PIECE = VIEW3D.piece;
 const HP = VIEW3D.hpBar;
 const SPRITE = VIEW3D.units.sprite;
+const STANDEE = SPRITE.standee;
 
 /**
  * How tall a billboard stands, in world units.
@@ -81,24 +82,49 @@ function unitVisualHeight(type: UnitTypeId, sprites: UnitSprites | null): number
 }
 
 /**
- * One painted unit: the billboard, the blob shadow that plants it, and the ring
- * of its owner's colour that it stands in.
+ * The yaw that turns a shape's local +x along the card's own left-to-right.
+ *
+ * The camera is fixed, so this is a constant for the life of the game, but it is
+ * derived from the camera rather than written down: a rotation about +y by θ
+ * sends (1, 0, 0) to (cos θ, 0, −sin θ), so matching the billboard's right
+ * vector projected onto the ground is one `atan2`. Hard-coding it would be a
+ * number that silently stopped being true the day somebody nudged
+ * `camera.azimuth` in `view3d.json`.
+ */
+function cardYaw(faceCamera: Quaternion): number {
+  const right = new Vector3(1, 0, 0).applyQuaternion(faceCamera);
+  return Math.atan2(-right.z, right.x);
+}
+
+/**
+ * One painted unit: the die-cut card, the foot it stands in, and the blob
+ * shadow that plants the pair on the tile.
  *
  * Returned as a group whose origin is the unit's *feet*, so the caller places it
  * exactly the way it places a piece — and so the walking version can simply be
  * moved along a path.
  *
- * The ring and the blob are ordinary depth-tested decals, deliberately *not* the
- * `onTop` kind the interface overlays use: they belong to the figure standing on
- * the tile, so the figure has to be able to stand in front of them. That is what
- * makes the ring read as something the unit is standing in rather than a decal
- * painted over its boots.
+ * A standee, not a decal
+ * ----------------------
+ * The first pass stood the keyed art on a flat ring of player colour, and the
+ * verdict on it was that it looked out of place and the perspective was wrong.
+ * Both halves are the same complaint: a painted figure floating over a hex is
+ * claiming to be a thing in the world, and it cannot honour that claim against a
+ * board seen from 57° above. So it stopped claiming. The art is now printed —
+ * die-cut with a parchment margin and an ink edge, in `sprites3d.ts` — and this
+ * builds the rest of the object: a small moulded foot with a clip, in the
+ * player's colour, toon-lit and outlined exactly like every carved piece on the
+ * board. What stands on the tile is a tabletop standee, which is a thing that is
+ * *allowed* to be flat, and which belongs beside toy houses.
  *
- * The ring is the identity treatment, chosen over tinting the art itself: these
- * are painted illustrations with their own colour, and a player-colour multiply
- * over one would muddy the paint and still be hard to read at zoom. A hard ring
- * of flat colour on the ground under the figure survives being three pixels
- * across, which is the actual test.
+ * The foot replaced the ring rather than joining it. A ring under a figure is
+ * one more decal; a base is an object, and it does the same identity job better
+ * — flat player colour that survives being four pixels across, which is the
+ * actual test — while also being the reason the card is standing up.
+ *
+ * The blob stays an ordinary depth-tested decal, deliberately *not* the `onTop`
+ * kind the interface overlays use: it belongs to the figure standing on the
+ * tile, so the figure and its foot have to be able to stand in front of it.
  */
 export function buildSpriteUnit(
   geometry: BoardGeometry,
@@ -116,10 +142,23 @@ export function buildSpriteUnit(
   blob.frustumCulled = false;
   group.add(blob);
 
-  const ring = new Mesh(geometry.baseRing, materials.overlay(color, SPRITE.ringOpacity));
-  ring.position.y = SPRITE.ringLift;
-  ring.frustumCulled = false;
-  group.add(ring);
+  computeHullNormals(geometry.standee);
+  const base = new Mesh(geometry.standee, materials.get(color));
+  // Lifted clear of the blob decal: the two are coplanar at y = 0 otherwise,
+  // and a depth-tested decal against a solid face is a z-fight.
+  base.position.y = STANDEE.base.lift;
+  base.quaternion.setFromAxisAngle(new Vector3(0, 1, 0), cardYaw(faceCamera));
+  base.frustumCulled = false;
+  // Never casts. The blob under it is the shadow, and a real one from a disc
+  // five hundredths of a hex thick would fight the decal for the same pixels.
+  base.castShadow = false;
+  base.receiveShadow = false;
+  const shell = new Mesh(geometry.standee, materials.outline);
+  shell.castShadow = false;
+  shell.receiveShadow = false;
+  shell.frustumCulled = false;
+  base.add(shell);
+  group.add(base);
 
   const billboard = new Mesh(geometry.billboard, spriteMaterial);
   billboard.position.y = SPRITE.lift;
@@ -237,7 +276,7 @@ export class UnitLayer {
         this.spriteUnits.set(unit.id, group);
       } else {
         const handle = collector.add(
-          geometry.pieces[unit.type],
+          geometry.pieces[pieceShapeFor(unit.type)],
           [unitColor(state, unit)],
           new Matrix4().compose(placement.position, placement.quaternion, scale),
         );
@@ -351,9 +390,9 @@ export class UnitLayer {
    * `disposeInstancedGroup` disposes the `InstancedMesh`es it made and clears
    * the group, which takes the billboard groups with it. Their parts are not
    * disposed here and must not be: the quad geometry belongs to `BoardGeometry`,
-   * the sprite materials to `UnitSprites`, and the blob and ring materials to
-   * the shared `MaterialLibrary` — every one of them outlives this layer and is
-   * reused by the very next rebuild.
+   * the sprite materials to `UnitSprites`, and the blob, base and outline
+   * materials to the shared `MaterialLibrary` — every one of them outlives this
+   * layer and is reused by the very next rebuild.
    */
   private disposeGroup(): void {
     disposeInstancedGroup(this.group);

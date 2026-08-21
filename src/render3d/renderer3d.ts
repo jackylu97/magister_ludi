@@ -50,10 +50,11 @@ import {
 
 import { type GameMap, getTileAt, offsetToAxial, tileIndex } from '../sim/map';
 import type { GameState } from '../sim/state';
+import { UNIT_TYPE_IDS, type UnitTypeId } from '../sim/unitData';
 import type { CellRef, HoverInfo, LensView, MapView, ScreenPoint } from '../ui/mapView';
 
 import { MoveAnimations3D } from './animation3d';
-import { type BuiltBoard, BoardGeometry, buildBoard } from './board3d';
+import { type BuiltBoard, BoardGeometry, buildBoard, pieceShapeFor } from './board3d';
 import { DioramaCamera } from './camera3d';
 import {
   CityLayer,
@@ -655,7 +656,7 @@ export class Renderer3D implements MapView {
       return;
     }
 
-    const shape = this.geometry.pieces[unit.type];
+    const shape = this.geometry.pieces[pieceShapeFor(unit.type)];
     computeHullNormals(shape);
     const material = this.materials.get(unitColor(this.state, unit));
 
@@ -854,8 +855,13 @@ export class Renderer3D implements MapView {
 
 /**
  * A cheap order-sensitive fingerprint of everything about the units that the
- * pieces layer draws: who they are, where they stand, and how hurt they are.
- * FNV-1a over integers, so it allocates nothing per frame.
+ * pieces layer draws: who they are, *what* they are, where they stand, and how
+ * hurt they are. FNV-1a over integers, so it allocates nothing per frame.
+ *
+ * The type is in here because a unit can change type without moving: research
+ * upgrades a warrior into a swordsman in place (see `upgradeUnits` in
+ * `tech.ts`), and every other field stays identical — a fingerprint without it
+ * would leave the old silhouette on the board until the unit next walked.
  */
 function signUnits(state: GameState): number {
   let h = 2166136261 ^ state.units.length;
@@ -865,9 +871,15 @@ function signUnits(state: GameState): number {
     h = Math.imul(h ^ unit.row, 16777619);
     h = Math.imul(h ^ unit.hp, 16777619);
     h = Math.imul(h ^ unit.ownerId, 16777619);
+    h = Math.imul(h ^ (UNIT_TYPE_INDEX.get(unit.type) ?? -1), 16777619);
   }
   return h >>> 0;
 }
+
+/** Unit types as small integers, so the fingerprint stays integer arithmetic. */
+const UNIT_TYPE_INDEX = new Map<UnitTypeId, number>(
+  UNIT_TYPE_IDS.map((id, index) => [id, index]),
+);
 
 /** Cheap equality for overlay cell lists, so a repaint is not a rebuild. */
 function sameCells(a: readonly CellRef[], b: readonly CellRef[]): boolean {

@@ -42,6 +42,7 @@ import {
 import { hexToPixel } from '../sim/hex';
 import { type GameMap, type Tile, offsetToAxial } from '../sim/map';
 import type { GameState } from '../sim/state';
+import { unitDef } from '../sim/unitData';
 
 import { hashDisc, hashSigned, hashUnit } from './hash';
 import {
@@ -398,7 +399,9 @@ export function buildBoard(
     quaternion.setFromAxisAngle(axis, -0.6 + hashSigned(unit.col, unit.row, 40) * 0.5);
     scale.set(1, 1, 1);
     collector.add(
-      geometry.pieces[unit.type],
+      // Keyed by silhouette, not by unit type: see `pieceShapeFor` in
+      // `src/render3d/board3d.ts` — three carved shapes serve every type.
+      geometry.pieces[unitDef(unit.type).piece],
       [playerColor(unit.ownerId)],
       new Matrix4().compose(position, quaternion, scale),
     );

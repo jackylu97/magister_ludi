@@ -31,6 +31,18 @@
  * being a staircase; combined with `alphaTest` on the material it decides where
  * the cut *lands* and gives the mipmaps something to average that is not a cliff.
  *
+ * From cutout to standee
+ * ----------------------
+ * Keying alone gets you a floating illustration, which is what the first pass
+ * shipped and what the verdict on it was. The second pass — `dieCutStandee`,
+ * below — takes the keyed mask and prints it: dilates it into a parchment
+ * margin, draws an ink line around that, and leaves everything beyond it
+ * transparent. What stands on the board afterwards is not a painting pretending
+ * to be a soldier, it is a die-cut card of a painting of a soldier, standing in
+ * a foot (`standeeBase` in `geometry.ts`). That reframing is the whole fix: a
+ * printed card is *allowed* to be flat, is allowed to be drawn at eye level
+ * while the table is seen from above, and belongs on a table next to toy houses.
+ *
  * Cutout, not blending
  * --------------------
  * The materials are `alphaTest`ed and **not** transparent, so a billboard is an
@@ -59,6 +71,7 @@ import type { UnitTypeId } from '../sim/unitData';
 import { VIEW3D } from './lookData';
 
 const SPRITE = VIEW3D.units.sprite;
+const STANDEE = SPRITE.standee;
 
 /**
  * Which unit types have artwork, and where it lives.
@@ -120,6 +133,154 @@ export function keyWhiteGround(
   }
 }
 
+/**
+ * How the die cut is specified. Pixel distances are in the buffer's own pixels;
+ * the caller scales them from the data's reference resolution.
+ */
+export interface StandeeCut {
+  /** Width of the parchment margin dilated out of the figure's silhouette. */
+  borderPx: number;
+  /** Width of the ink line printed around the outside of that margin. */
+  rimPx: number;
+  /** Width of the ramp that fades the ink line's outer edge to nothing. */
+  edgeFeatherPx: number;
+  /** Alpha (0..255) at and above which a keyed pixel counts as "the figure". */
+  maskAlpha: number;
+  paperColor: number;
+  rimColor: number;
+}
+
+/**
+ * The unsigned distance, in pixels, from every pixel to the nearest set pixel of
+ * a binary mask. Two-pass chamfer, which is O(width · height) whatever the
+ * radius — the dilation below is a threshold on this, so a fourteen-pixel border
+ * costs exactly what a one-pixel border costs.
+ *
+ * The 1 / √2 step weights are the plain 3×3 chamfer. Its worst-case error
+ * against true Euclidean distance is a few percent, which on a border whose
+ * whole job is to look hand-cut is not a number anybody can see — and unlike a
+ * box dilation it produces a *round* offset, so the margin turns corners in an
+ * arc instead of growing square ears off the figure's elbows.
+ */
+export function alphaDistanceField(
+  rgba: Uint8ClampedArray,
+  width: number,
+  height: number,
+  maskAlpha: number,
+): Float32Array {
+  const distance = new Float32Array(width * height);
+  const far = width + height;
+  const diagonal = Math.SQRT2;
+
+  for (let i = 0; i < distance.length; i++) {
+    distance[i] = rgba[i * 4 + 3]! >= maskAlpha ? 0 : far;
+  }
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      let d = distance[i]!;
+      if (d === 0) continue;
+      if (x > 0) d = Math.min(d, distance[i - 1]! + 1);
+      if (y > 0) {
+        d = Math.min(d, distance[i - width]! + 1);
+        if (x > 0) d = Math.min(d, distance[i - width - 1]! + diagonal);
+        if (x < width - 1) d = Math.min(d, distance[i - width + 1]! + diagonal);
+      }
+      distance[i] = d;
+    }
+  }
+
+  for (let y = height - 1; y >= 0; y--) {
+    for (let x = width - 1; x >= 0; x--) {
+      const i = y * width + x;
+      let d = distance[i]!;
+      if (d === 0) continue;
+      if (x < width - 1) d = Math.min(d, distance[i + 1]! + 1);
+      if (y < height - 1) {
+        d = Math.min(d, distance[i + width]! + 1);
+        if (x < width - 1) d = Math.min(d, distance[i + width + 1]! + diagonal);
+        if (x > 0) d = Math.min(d, distance[i + width - 1]! + diagonal);
+      }
+      distance[i] = d;
+    }
+  }
+
+  return distance;
+}
+
+/**
+ * Turns a keyed cutout into a printed paper standee, in place.
+ *
+ * The painted figures were never going to sit on a toon diorama as bare
+ * cutouts — the user's verdict on the first pass was "out of place, and the
+ * perspective is wrong", and both halves of that are the same problem: an
+ * illustration drawn at eye level cannot agree with a board seen from 57°
+ * above, so it must stop pretending to be a thing in the world and become a
+ * thing *on the table*. A die-cut standee is exactly that. Its perspective is
+ * allowed to disagree with the board's for the same reason the art on a Warhammer
+ * card is allowed to: it is printed, and printed things are flat.
+ *
+ * Three bands, all decided by one distance field:
+ *
+ *   d = 0            the figure. Kept, and forced fully opaque — the paper is
+ *                    behind it, so nothing inside the silhouette should ever be
+ *                    partly see-through, and forcing it kills the keying
+ *                    feather's fringe outright.
+ *   0 < d ≤ border   parchment. The die-cut margin.
+ *   ≤ border + rim   ink. The cut line itself.
+ *   beyond           nothing, over a short ramp so the outer edge has something
+ *                    for `alphaTest` to land in the middle of and for the
+ *                    mipmaps to average.
+ *
+ * Only the outer edge is feathered, which is why the material can stay an opaque
+ * alpha-tested cutout (see the module docblock) rather than becoming a blended
+ * quad with a sorting problem.
+ */
+export function dieCutStandee(
+  rgba: Uint8ClampedArray,
+  width: number,
+  height: number,
+  spec: StandeeCut,
+): void {
+  const border = Math.max(0, spec.borderPx);
+  const outer = border + Math.max(0, spec.rimPx);
+  const feather = Math.max(spec.edgeFeatherPx, 1e-6);
+  const distance = alphaDistanceField(rgba, width, height, spec.maskAlpha);
+
+  const paperR = (spec.paperColor >> 16) & 0xff;
+  const paperG = (spec.paperColor >> 8) & 0xff;
+  const paperB = spec.paperColor & 0xff;
+  const rimR = (spec.rimColor >> 16) & 0xff;
+  const rimG = (spec.rimColor >> 8) & 0xff;
+  const rimB = spec.rimColor & 0xff;
+
+  for (let i = 0; i < distance.length; i++) {
+    const d = distance[i]!;
+    const p = i * 4;
+    if (d === 0) {
+      rgba[p + 3] = 255;
+      continue;
+    }
+    if (d <= border) {
+      rgba[p] = paperR;
+      rgba[p + 1] = paperG;
+      rgba[p + 2] = paperB;
+      rgba[p + 3] = 255;
+      continue;
+    }
+    rgba[p] = rimR;
+    rgba[p + 1] = rimG;
+    rgba[p + 2] = rimB;
+    if (d <= outer) {
+      rgba[p + 3] = 255;
+      continue;
+    }
+    const fade = 1 - (d - outer) / feather;
+    rgba[p + 3] = fade <= 0 ? 0 : Math.round(fade * 255);
+  }
+}
+
 /** Draws an image into a canvas and keys it. Null if the pixels cannot be read. */
 function keyedTexture(image: HTMLImageElement): CanvasTexture | null {
   const canvas = document.createElement('canvas');
@@ -138,6 +299,18 @@ function keyedTexture(image: HTMLImageElement): CanvasTexture | null {
     return null;
   }
   keyWhiteGround(pixels.data, SPRITE.keyThreshold, SPRITE.keyFeather);
+  // The border widths are authored against one reference resolution and scaled
+  // to whatever actually arrived, so a re-export at 2048² keeps the same margin
+  // rather than halving it.
+  const scale = canvas.width / STANDEE.referencePx;
+  dieCutStandee(pixels.data, canvas.width, canvas.height, {
+    borderPx: STANDEE.borderPx * scale,
+    rimPx: STANDEE.rimPx * scale,
+    edgeFeatherPx: STANDEE.edgeFeatherPx * scale,
+    maskAlpha: STANDEE.maskAlpha,
+    paperColor: STANDEE.paperColor,
+    rimColor: STANDEE.rimColor,
+  });
   context.putImageData(pixels, 0, 0);
 
   const texture = new CanvasTexture(canvas);

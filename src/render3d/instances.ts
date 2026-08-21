@@ -21,12 +21,33 @@
  * is exact for any matrix built by `Matrix4.compose`, which is all of them.
  */
 
-import { type BufferGeometry, Group, InstancedMesh, Matrix4 } from 'three';
+import {
+  type BufferGeometry,
+  Group,
+  InstancedBufferAttribute,
+  InstancedMesh,
+  Matrix4,
+} from 'three';
 
 import { type MaterialLibrary, computeHullNormals } from './toon';
 
 /** A matrix that scales to nothing: the way an instance is hidden. */
 export const HIDDEN_MATRIX = new Matrix4().makeScale(0, 0, 0);
+
+/**
+ * A per-instance colour multiplier: `[r, g, b]`, 1 meaning "leave it alone".
+ *
+ * Not a colour. Three multiplies `instanceColor` into the fragment's diffuse, so
+ * writing tints as multipliers keeps them independent of whatever base ink the
+ * bucket happens to be painted in — the same ±5% value wobble does the right
+ * thing on a pine and on a dune — and keeps them composable with the vertex
+ * colours the prisms carry (`bakeContactShading`), which multiply in the same
+ * place.
+ */
+export type Tint = readonly [number, number, number];
+
+/** No wobble. Shared so an untinted instance costs no allocation. */
+const NO_TINT: Tint = [1, 1, 1];
 
 interface Bucket {
   geometry: BufferGeometry;
@@ -38,12 +59,18 @@ interface Bucket {
    */
   colors: number[];
   outlined: boolean;
+  /** Multiply the ink by the geometry's `color` attribute. See `ToonOptions`. */
+  vertexColors: boolean;
   /** Unlit overlay decals, drawn after everything and never shadowed. */
   overlay: boolean;
   /** An overlay the board may not occlude. See `MaterialLibrary.overlay`. */
   onTop: boolean;
   opacity: number;
   matrices: Matrix4[];
+  /** One tint per matrix, parallel. Left alone entirely unless `tinted`. */
+  tints: Tint[];
+  /** Whether any `add` on this bucket asked for a tint. */
+  tinted: boolean;
   mesh: InstancedMesh | null;
   shell: InstancedMesh | null;
 }
@@ -92,6 +119,12 @@ export class InstanceCollector {
    * an inverted-hull shell; `overlay` swaps the toon material for an unlit one
    * and is mutually exclusive with it. `onTop` implies `overlay` and additionally
    * lifts the decal above every piece of board geometry (see below).
+   *
+   * `tint` deliberately stays *out* of the bucket key. That is its entire
+   * reason for existing: colour is the instancing key, so giving ten thousand
+   * trees ten thousand slightly different greens by passing ten thousand
+   * colours would produce ten thousand draw calls. As a per-instance multiplier
+   * it is one extra float3 per instance and no extra draw at all.
    */
   add(
     geometry: BufferGeometry,
@@ -102,12 +135,15 @@ export class InstanceCollector {
       overlay?: boolean;
       onTop?: boolean;
       opacity?: number;
+      tint?: Tint;
+      vertexColors?: boolean;
     } = {},
   ): InstanceHandle {
     const outlined = options.outlined ?? true;
     const onTop = options.onTop ?? false;
     const overlay = onTop || (options.overlay ?? false);
     const opacity = options.opacity ?? 1;
+    const vertexColors = options.vertexColors ?? false;
 
     let id = this.geometryIds.get(geometry);
     if (id === undefined) {
@@ -116,28 +152,35 @@ export class InstanceCollector {
     }
     const key =
       `${id}|${colors.join(',')}|${outlined ? 1 : 0}|` +
-      `${overlay ? 1 : 0}|${onTop ? 1 : 0}|${opacity}`;
+      `${overlay ? 1 : 0}|${onTop ? 1 : 0}|${opacity}|${vertexColors ? 1 : 0}`;
     let bucket = this.buckets.get(key);
     if (!bucket) {
       bucket = {
         geometry,
         colors,
         outlined: outlined && !overlay,
+        vertexColors: vertexColors && !overlay,
         overlay,
         onTop,
         opacity,
         matrices: [],
+        tints: [],
+        tinted: false,
         mesh: null,
         shell: null,
       };
       this.buckets.set(key, bucket);
     }
 
+    const tint = options.tint ?? NO_TINT;
+    if (options.tint) bucket.tinted = true;
+
     const start = bucket.matrices.length;
     for (const dx of this.copyOffsets) {
       const copy = matrix.clone();
       copy.elements[12] += dx;
       bucket.matrices.push(copy);
+      bucket.tints.push(tint);
     }
     return { bucket, start, count: this.copyOffsets.length } as HandleImpl;
   }
@@ -149,11 +192,15 @@ export class InstanceCollector {
       const count = bucket.matrices.length;
       if (count === 0) continue;
 
+      const toonOptions = {
+        opacity: bucket.opacity,
+        vertexColors: bucket.vertexColors,
+      };
       const material = bucket.overlay
         ? materials.overlay(bucket.colors[0]!, bucket.opacity, bucket.onTop)
         : bucket.colors.length === 1
-          ? materials.get(bucket.colors[0]!, { opacity: bucket.opacity })
-          : bucket.colors.map((color) => materials.get(color, { opacity: bucket.opacity }));
+          ? materials.get(bucket.colors[0]!, toonOptions)
+          : bucket.colors.map((color) => materials.get(color, toonOptions));
 
       const mesh = new InstancedMesh(bucket.geometry, material, count);
       mesh.castShadow = shadows && !bucket.overlay;
@@ -166,6 +213,21 @@ export class InstanceCollector {
       if (bucket.overlay) mesh.renderOrder = bucket.onTop ? 20 : 10;
       for (let i = 0; i < count; i++) mesh.setMatrixAt(i, bucket.matrices[i]!);
       mesh.instanceMatrix.needsUpdate = true;
+      if (bucket.tinted) {
+        // Written straight into the attribute rather than through
+        // `setColorAt`, which routes a `THREE.Color` through colour management:
+        // these are multipliers, not colours, and converting them would apply a
+        // transfer function to a number that is not in any colour space.
+        const values = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+          const tint = bucket.tints[i]!;
+          values[i * 3] = tint[0];
+          values[i * 3 + 1] = tint[1];
+          values[i * 3 + 2] = tint[2];
+        }
+        mesh.instanceColor = new InstancedBufferAttribute(values, 3);
+        mesh.instanceColor.needsUpdate = true;
+      }
       mesh.frustumCulled = false;
       group.add(mesh);
       bucket.mesh = mesh;
@@ -187,6 +249,9 @@ export class InstanceCollector {
       }
 
       if (!this.keepMatrices) bucket.matrices.length = 0;
+      // Tints are baked into the attribute and never read again; a hide/restore
+      // only rewrites matrices.
+      bucket.tints.length = 0;
     }
     return draws;
   }

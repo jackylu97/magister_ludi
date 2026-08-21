@@ -43,29 +43,36 @@ import {
 } from 'three';
 
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
+import { type PieceShape, type UnitTypeId, unitDef } from '../sim/unitData';
 import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
 import { hashDisc, hashSigned, hashUnit } from './hash';
 import {
   bannerPole,
   barQuad,
+  cactus,
   cityHouseBody,
   cityHouseRoof,
+  flowerSpray,
+  grassTuft,
   hexDecal,
   hexPrism,
   hexRing,
   mountainPeak,
+  mountainSnow,
   pathDot,
   pineTree,
+  reedClump,
   riverSegment,
   rock,
   roundTree,
   scoutPiece,
   settlerPiece,
   spriteQuad,
+  standeeBase,
   warriorPiece,
 } from './geometry';
-import { InstanceCollector, disposeInstancedGroup } from './instances';
+import { type Tint, InstanceCollector, disposeInstancedGroup } from './instances';
 import { VIEW3D, shade } from './lookData';
 import {
   type HeightClass,
@@ -91,6 +98,18 @@ const RIVERS = VIEW3D.rivers;
 const SPRITE = VIEW3D.units.sprite;
 
 /**
+ * The carved piece a unit type stands on, read from `data/units.json`.
+ *
+ * One lookup rather than a switch on unit ids, for the same reason nothing in
+ * `src/sim/` compares a type against the string `"settler"`: a new unit type is
+ * a data edit, and a renderer that had to be taught each one would silently draw
+ * the wrong thing (or nothing) the day one arrived.
+ */
+export function pieceShapeFor(type: UnitTypeId): PieceShape {
+  return unitDef(type).piece;
+}
+
+/**
  * One geometry per shape, built once and shared by every board ever built.
  *
  * Prisms are pre-built per height class rather than being one unit prism scaled
@@ -100,10 +119,30 @@ const SPRITE = VIEW3D.units.sprite;
 export class BoardGeometry {
   readonly prisms: Record<HeightClass, BufferGeometry>;
   readonly peak: BufferGeometry;
+  /** The snow on a peak, drawn with the peak's own instance matrix. */
+  readonly snow: BufferGeometry;
+  /**
+   * Two silhouettes per forest kind. Which one a tree takes is hashed, so a
+   * stand of pines is a mix rather than one shape stamped three times — the
+   * cheapest possible variation, and one extra draw call per kind.
+   */
   readonly pine: BufferGeometry;
+  readonly pineAlt: BufferGeometry;
   readonly broadleaf: BufferGeometry;
+  readonly broadleafAlt: BufferGeometry;
   readonly boulder: BufferGeometry;
-  readonly pieces: { warrior: BufferGeometry; scout: BufferGeometry; settler: BufferGeometry };
+  /** Ground clutter: the small stuff that turns terrain into a set. */
+  readonly tuft: BufferGeometry;
+  readonly flower: BufferGeometry;
+  readonly cactus: BufferGeometry;
+  readonly reeds: BufferGeometry;
+  /**
+   * The carved pieces, keyed by *silhouette* rather than by unit type: there are
+   * three shapes and fifteen unit types, and which type stands on which shape is
+   * a fact about the art direction that lives in `data/units.json` (`piece`).
+   * Ask for one through `pieceFor`, never by unit id.
+   */
+  readonly pieces: Record<PieceShape, BufferGeometry>;
   /** City shapes: the houses of the town and the pole its banner flies from. */
   readonly houseBody: BufferGeometry;
   readonly houseRoof: BufferGeometry;
@@ -119,15 +158,23 @@ export class BoardGeometry {
   readonly pip: BufferGeometry;
   /** An upright unit quad standing on its base, for the sprite units. */
   readonly billboard: BufferGeometry;
-  /** The blob shadow and the ownership ring a billboard stands in. */
+  /** The blob shadow under a billboard, and the foot it stands in. */
   readonly blob: BufferGeometry;
-  readonly baseRing: BufferGeometry;
+  readonly standee: BufferGeometry;
+  /** The pale band on a land tile that touches the sea. */
+  readonly shoreRing: BufferGeometry;
   /** One river's worth of water, lying across one grout gap. */
   readonly river: BufferGeometry;
 
   constructor() {
     const radius = BOARD.hexRadius * (1 - BOARD.tileGap);
-    const prismFor = (topY: number): BufferGeometry => hexPrism(radius, topY - BOARD.floorY);
+    // Every prism carries the contact shading in its vertex colours; see
+    // `bakeContactShading`. It costs one attribute and no draw calls at all.
+    const prismFor = (topY: number): BufferGeometry =>
+      hexPrism(radius, topY - BOARD.floorY, {
+        band: DECOR.ground.aoBand,
+        strength: DECOR.ground.aoStrength,
+      });
     this.prisms = {
       ocean: prismFor(BOARD.height.ocean),
       coast: prismFor(BOARD.height.coast),
@@ -136,9 +183,16 @@ export class BoardGeometry {
       mountain: prismFor(BOARD.height.mountain),
     };
     this.peak = mountainPeak(BOARD.peak.radius, BOARD.peak.height);
+    this.snow = mountainSnow(BOARD.peak.radius, BOARD.peak.height, DECOR.snowCap.fraction);
     this.pine = pineTree(DECOR.pine);
+    this.pineAlt = pineTree(DECOR.pineAlt);
     this.broadleaf = roundTree(DECOR.jungle);
+    this.broadleafAlt = roundTree(DECOR.jungleAlt);
     this.boulder = rock(DECOR.rock.radius);
+    this.tuft = grassTuft(DECOR.clutter.tuft);
+    this.flower = flowerSpray(DECOR.clutter.flower);
+    this.cactus = cactus(DECOR.clutter.cactus);
+    this.reeds = reedClump(DECOR.reeds);
     this.pieces = {
       warrior: warriorPiece(VIEW3D.piece.height),
       scout: scoutPiece(VIEW3D.piece.height),
@@ -162,18 +216,36 @@ export class BoardGeometry {
     // rebuilt to flip an art-direction switch would not be trivially flippable.
     this.billboard = spriteQuad();
     this.blob = hexDecal(BOARD.hexRadius * SPRITE.shadowRadius);
-    this.baseRing = hexRing(
-      BOARD.hexRadius * SPRITE.ringOuter,
-      BOARD.hexRadius * SPRITE.ringWidth,
+    const base = SPRITE.standee.base;
+    this.standee = standeeBase({
+      radius: BOARD.hexRadius * base.radius,
+      thickness: base.thickness,
+      squash: base.squash,
+      collarScale: base.collarScale,
+      collarThickness: base.collarThickness,
+      tabWidth: BOARD.hexRadius * base.tabWidth,
+      tabHeight: base.tabHeight,
+      tabThickness: base.tabThickness,
+    });
+    this.shoreRing = hexRing(
+      BOARD.hexRadius * DECOR.shore.outer,
+      BOARD.hexRadius * DECOR.shore.width,
     );
   }
 
   dispose(): void {
     for (const prism of Object.values(this.prisms)) prism.dispose();
     this.peak.dispose();
+    this.snow.dispose();
     this.pine.dispose();
+    this.pineAlt.dispose();
     this.broadleaf.dispose();
+    this.broadleafAlt.dispose();
     this.boulder.dispose();
+    this.tuft.dispose();
+    this.flower.dispose();
+    this.cactus.dispose();
+    this.reeds.dispose();
     for (const piece of Object.values(this.pieces)) piece.dispose();
     this.houseBody.dispose();
     this.houseRoof.dispose();
@@ -187,7 +259,8 @@ export class BoardGeometry {
     this.territory.dispose();
     this.billboard.dispose();
     this.blob.dispose();
-    this.baseRing.dispose();
+    this.standee.dispose();
+    this.shoreRing.dispose();
   }
 }
 
@@ -374,7 +447,127 @@ function addRivers(
   }
 }
 
+/**
+ * The per-instance colour wobble.
+ *
+ * Value first — an even spread of light and dark is what makes a hundred trees
+ * look like a hundred trees rather than one tree instanced a hundred times — and
+ * then a *hue* drift on top of it, applied as opposed tilts on red and blue so
+ * the total value is unchanged and only the temperature moves. Warmer and
+ * cooler greens in one canopy is the thing that reads as painted; uniformly
+ * lighter and darker greens still reads as a gradient.
+ *
+ * Costs one float3 per instance and no draw calls. See `Tint` in `instances.ts`.
+ */
+function decorTint(
+  col: number,
+  row: number,
+  slot: number,
+  value: number,
+  hue: number,
+): Tint {
+  const v = 1 + hashSigned(col, row, slot) * value;
+  const drift = hashSigned(col, row, slot + 1) * hue;
+  return [v * (1 + drift), v, v * (1 - drift)];
+}
+
+/** The wobble a terrain prism gets: the same idea, dialled well down. */
+function terrainTint(tile: Tile): Tint {
+  return decorTint(
+    tile.col,
+    tile.row,
+    STREAM.terrainTint,
+    DECOR.variation.terrainValue,
+    DECOR.variation.terrainHue,
+  );
+}
+
+/**
+ * Hash streams, named.
+ *
+ * Every scatter draws from its own stream so that adding a kind of clutter can
+ * never reshuffle a kind that was already placed — the property the module
+ * docblock promises. Placement streams are multiplied by 64 and stepped by 8 per
+ * instance (position, size, yaw and tint together want six numbers), so they
+ * cannot collide with each other; the roll streams are single numbers and live
+ * in their own range above them.
+ */
+const STREAM = {
+  peakYaw: 13,
+  peakScale: 14,
+  forestCount: 20,
+  jungleCount: 21,
+  rockRoll: 30,
+  rockCount: 31,
+  terrainTint: 41,
+  tuftRoll: 50,
+  tuftCount: 51,
+  flowerRoll: 52,
+  flowerCount: 53,
+  cactusRoll: 54,
+  cactusCount: 55,
+  pebbleRoll: 56,
+  pebbleCount: 57,
+  reedRoll: 58,
+  reedCount: 59,
+  bankRoll: 60,
+  bankCount: 61,
+  flowerInk: 62,
+  treeVariant: 63,
+  // Placement streams (× 64). Kept above 1 so slot 0 is never a valid slot.
+  pinePlace: 2,
+  junglePlace: 3,
+  rockPlace: 4,
+  tuftPlace: 5,
+  flowerPlace: 6,
+  cactusPlace: 7,
+  pebblePlace: 8,
+  reedPlace: 9,
+  bankPlace: 10,
+} as const;
+
+/** `1 + floor(h · max)` capped at `max` — a count of 1..max, hashed. */
+function hashedCount(col: number, row: number, stream: number, max: number): number {
+  return 1 + Math.min(max - 1, Math.floor(hashUnit(col, row, stream) * max));
+}
+
+/**
+ * The unit-length world direction from a tile's centre toward its neighbour.
+ * Used to aim the water-edge dressing at the water rather than scattering it.
+ */
+function towardNeighbor(direction: number): { x: number; z: number } {
+  const delta = directionDelta(direction);
+  const length = Math.hypot(delta.x, delta.z) || 1;
+  return { x: delta.x / length, z: delta.z / length };
+}
+
+/**
+ * The direction this tile's fresh water lies in, or −1 if it has none.
+ *
+ * A river edge wins over a lake, and the first flagged edge wins over the rest:
+ * reeds are a hint, not a survey, and a tile with two rivers on it gets one reed
+ * bed on one of them rather than a bed on every bank, which would be a marsh.
+ */
+function freshwaterDirection(map: GameMap, tile: Tile): number {
+  for (let d = 0; d < 6; d++) if (hasRiverEdge(tile, d)) return d;
+  for (let d = 0; d < 6; d++) {
+    const neighbor = neighborInDirection(map, tile, d);
+    if (neighbor?.terrain === 'lake') return d;
+  }
+  return -1;
+}
+
+/** True when this land tile touches open sea, and so wants a sand band. */
+function touchesSea(map: GameMap, tile: Tile): boolean {
+  for (let d = 0; d < 6; d++) {
+    const neighbor = neighborInDirection(map, tile, d);
+    if (neighbor && (neighbor.terrain === 'ocean' || neighbor.terrain === 'coast')) return true;
+  }
+  return false;
+}
+
 function addDecorations(
+  map: GameMap,
   tile: Tile,
   top: number,
   center: { x: number; z: number },
@@ -385,45 +578,166 @@ function addDecorations(
   const quaternion = new Quaternion();
   const scale = new Vector3();
   const axis = new Vector3(0, 1, 0);
+  const CLUTTER = DECOR.clutter;
 
+  /**
+   * Scatters one thing on the tile. `origin` displaces the whole scatter disc,
+   * which is how the water-edge dressing is aimed at a bank instead of being
+   * sprinkled over the whole hex.
+   */
   const place = (
     shape: BufferGeometry,
     color: number,
     stream: number,
     index: number,
     baseScale: number,
+    options: { origin?: { x: number; z: number }; spread?: number } = {},
   ): void => {
-    const slot = stream * 64 + index * 4;
-    const offset = hashDisc(tile.col, tile.row, slot, DECOR.spread * BOARD.hexRadius);
+    const slot = stream * 64 + index * 8;
+    const spread = (options.spread ?? DECOR.spread) * BOARD.hexRadius;
+    const offset = hashDisc(tile.col, tile.row, slot, spread);
     const jitter = 1 + hashSigned(tile.col, tile.row, slot + 2) * DECOR.sizeJitter;
     const yaw = hashUnit(tile.col, tile.row, slot + 3) * Math.PI * 2;
-    position.set(center.x + offset.x, top, center.z + offset.z);
+    const origin = options.origin ?? { x: 0, z: 0 };
+    position.set(center.x + origin.x + offset.x, top, center.z + origin.z + offset.z);
     quaternion.setFromAxisAngle(axis, yaw);
     const s = baseScale * jitter;
     scale.set(s, s, s);
-    collector.add(shape, [color], new Matrix4().compose(position, quaternion, scale));
+    collector.add(shape, [color], new Matrix4().compose(position, quaternion, scale), {
+      tint: decorTint(
+        tile.col,
+        tile.row,
+        slot + 4,
+        DECOR.variation.value,
+        DECOR.variation.hue,
+      ),
+    });
   };
+
+  /** Which of the two silhouettes this tree takes. Hashed per tree, not per tile. */
+  const variant = (index: number): boolean =>
+    hashUnit(tile.col, tile.row, STREAM.treeVariant * 64 + index) < DECOR.altChance;
 
   if (tile.feature === 'forest') {
     // Two or three, hashed — an even count everywhere looks planted by a
     // machine, and the sim has no per-tile density to read.
-    const count = 2 + Math.floor(hashUnit(tile.col, tile.row, 20) * 2);
-    for (let i = 0; i < count; i++) place(geometry.pine, VIEW3D.featureColor.forest, 2, i, 1);
-  } else if (tile.feature === 'jungle') {
-    const count = 2 + Math.floor(hashUnit(tile.col, tile.row, 21) * 2);
+    const count = 2 + Math.floor(hashUnit(tile.col, tile.row, STREAM.forestCount) * 2);
     for (let i = 0; i < count; i++) {
-      place(geometry.broadleaf, VIEW3D.featureColor.jungle, 3, i, 1.1);
+      const shape = variant(i) ? geometry.pineAlt : geometry.pine;
+      place(shape, VIEW3D.featureColor.forest, STREAM.pinePlace, i, 1);
+    }
+  } else if (tile.feature === 'jungle') {
+    const count = 2 + Math.floor(hashUnit(tile.col, tile.row, STREAM.jungleCount) * 2);
+    for (let i = 0; i < count; i++) {
+      const shape = variant(i) ? geometry.broadleafAlt : geometry.broadleaf;
+      place(shape, VIEW3D.featureColor.jungle, STREAM.junglePlace, i, 1.1);
     }
   }
 
   // Rocks scatter on bare hills only: a forested hill already has silhouette,
   // and piling boulders under the trees just made mud.
   if (tile.hills && tile.feature === 'none' && tile.terrain !== 'mountain') {
-    if (hashUnit(tile.col, tile.row, 30) < 0.55) {
-      const count = 1 + Math.floor(hashUnit(tile.col, tile.row, 31) * 2);
-      for (let i = 0; i < count; i++) place(geometry.boulder, VIEW3D.palette.slate!, 4, i, 1);
+    if (hashUnit(tile.col, tile.row, STREAM.rockRoll) < 0.55) {
+      const count = hashedCount(tile.col, tile.row, STREAM.rockCount, 2);
+      for (let i = 0; i < count; i++) {
+        place(geometry.boulder, VIEW3D.palette.slate!, STREAM.rockPlace, i, 1);
+      }
     }
   }
+
+  addGroundClutter(tile, geometry, place);
+  addWaterEdge(map, tile, geometry, place);
+
+  /** Ground clutter and reeds share the scatter above; both are below. */
+  function addGroundClutter(
+    t: Tile,
+    g: BoardGeometry,
+    put: typeof place,
+  ): void {
+    // Never under a canopy: grass drawn inside a forest is invisible from 57°
+    // and costs an instance per tile of it.
+    if (t.feature !== 'none') return;
+
+    if (t.terrain === 'grassland' || t.terrain === 'plains') {
+      if (hashUnit(t.col, t.row, STREAM.tuftRoll) < CLUTTER.tuft.chance) {
+        const count = hashedCount(t.col, t.row, STREAM.tuftCount, CLUTTER.tuft.max);
+        const ink = shade(CLUTTER.tuft.color, CLUTTER.tuft.shade);
+        for (let i = 0; i < count; i++) put(g.tuft, ink, STREAM.tuftPlace, i, 1);
+      }
+    }
+    if (t.terrain === 'grassland') {
+      if (hashUnit(t.col, t.row, STREAM.flowerRoll) < CLUTTER.flower.chance) {
+        const count = hashedCount(t.col, t.row, STREAM.flowerCount, CLUTTER.flower.max);
+        // One ink per tile, not per flower: a single patch of one colour reads
+        // as a species, and three colours on one hex reads as confetti.
+        const inks = CLUTTER.flower.colors;
+        const ink =
+          inks[Math.floor(hashUnit(t.col, t.row, STREAM.flowerInk) * inks.length) % inks.length]!;
+        for (let i = 0; i < count; i++) put(g.flower, ink, STREAM.flowerPlace, i, 1);
+      }
+    }
+    if (t.terrain === 'desert') {
+      if (hashUnit(t.col, t.row, STREAM.cactusRoll) < CLUTTER.cactus.chance) {
+        const count = hashedCount(t.col, t.row, STREAM.cactusCount, CLUTTER.cactus.max);
+        const ink = shade(CLUTTER.cactus.color, CLUTTER.cactus.shade);
+        for (let i = 0; i < count; i++) put(g.cactus, ink, STREAM.cactusPlace, i, 1);
+      }
+    }
+    if (t.terrain === 'tundra' || t.terrain === 'snow') {
+      if (hashUnit(t.col, t.row, STREAM.pebbleRoll) < CLUTTER.pebble.chance) {
+        const count = hashedCount(t.col, t.row, STREAM.pebbleCount, CLUTTER.pebble.max);
+        const ink = shade(CLUTTER.pebble.color, CLUTTER.pebble.shade);
+        for (let i = 0; i < count; i++) {
+          put(g.boulder, ink, STREAM.pebblePlace, i, CLUTTER.pebble.scale);
+        }
+      }
+    }
+  }
+
+  /**
+   * Reeds and shingle where the land meets fresh water.
+   *
+   * Aimed at the water: the clump sits `edgeOffset` hex radii from the centre
+   * along the direction of the river edge or the lake next door, with only a
+   * small disc of jitter around that. Scattered over the whole tile instead,
+   * this would read as "this hex is marshy" rather than "this is a bank", and
+   * the rivers would go on looking painted on.
+   */
+  function addWaterEdge(m: GameMap, t: Tile, g: BoardGeometry, put: typeof place): void {
+    if (t.terrain === 'mountain' || isWater(t)) return;
+    const direction = freshwaterDirection(m, t);
+    if (direction < 0) return;
+
+    const REEDS = DECOR.reeds;
+    const unit = towardNeighbor(direction);
+    const origin = {
+      x: unit.x * REEDS.edgeOffset * BOARD.hexRadius,
+      z: unit.z * REEDS.edgeOffset * BOARD.hexRadius,
+    };
+
+    if (hashUnit(t.col, t.row, STREAM.reedRoll) < REEDS.chance) {
+      const count = hashedCount(t.col, t.row, STREAM.reedCount, REEDS.max);
+      const ink = shade(REEDS.color, REEDS.shade);
+      for (let i = 0; i < count; i++) {
+        put(g.reeds, ink, STREAM.reedPlace, i, 1, { origin, spread: REEDS.jitter });
+      }
+    }
+    if (hashUnit(t.col, t.row, STREAM.bankRoll) < REEDS.bankPebbleChance) {
+      const count = hashedCount(t.col, t.row, STREAM.bankCount, REEDS.bankPebbleMax);
+      const ink = shade(CLUTTER.pebble.color, CLUTTER.pebble.shade);
+      for (let i = 0; i < count; i++) {
+        put(g.boulder, ink, STREAM.bankPlace, i, REEDS.bankPebbleScale, {
+          origin,
+          spread: REEDS.jitter * 1.4,
+        });
+      }
+    }
+  }
+}
+
+/** Water terrains, which grow nothing and are never dressed. */
+function isWater(tile: Tile): boolean {
+  return tile.terrain === 'ocean' || tile.terrain === 'coast' || tile.terrain === 'lake';
 }
 
 /**
@@ -477,23 +791,54 @@ export function buildBoard(
       geometry.prisms[kind],
       [side, topColor, side],
       new Matrix4().compose(position, quaternion, scale),
-      { outlined: !water },
+      // `vertexColors` is what turns on the contact shading baked into the
+      // prism; the tint is the per-tile wobble on top of it. The two multiply
+      // in the shader and neither knows about the other.
+      { outlined: !water, vertexColors: true, tint: terrainTint(tile) },
     );
 
     const top = tileTopY(tile);
     if (tile.terrain === 'mountain') {
-      const peakYaw = hashUnit(tile.col, tile.row, 13) * Math.PI * 2;
-      const peakScale = 0.86 + hashUnit(tile.col, tile.row, 14) * 0.4;
+      const peakYaw = hashUnit(tile.col, tile.row, STREAM.peakYaw) * Math.PI * 2;
+      const peakScale = 0.86 + hashUnit(tile.col, tile.row, STREAM.peakScale) * 0.4;
       position.set(center.x, top - 0.05, center.z);
       quaternion.setFromAxisAngle(axis, peakYaw);
       scale.set(peakScale, peakScale, peakScale);
-      collector.add(
-        geometry.peak,
-        [shade(VIEW3D.palette.slate!, 0.08)],
-        new Matrix4().compose(position, quaternion, scale),
+      const peakMatrix = new Matrix4().compose(position, quaternion, scale);
+      const peakTint = decorTint(
+        tile.col,
+        tile.row,
+        STREAM.peakYaw * 64,
+        DECOR.variation.value,
+        DECOR.variation.hue,
       );
+      collector.add(geometry.peak, [shade(VIEW3D.palette.slate!, 0.08)], peakMatrix, {
+        tint: peakTint,
+      });
+      // The snow rides the peak's own matrix, so it cannot slide off a summit
+      // whose scale and yaw are hashed. Not outlined: an inverted hull around a
+      // cap this small closes over the white and leaves a dark pip.
+      collector.add(geometry.snow, [DECOR.snowCap.color], peakMatrix, { outlined: false });
     } else if (!cityCells.has(tileIndex(map, tile.col, tile.row))) {
-      addDecorations(tile, top, center, geometry, collector);
+      addDecorations(map, tile, top, center, geometry, collector);
+    }
+
+    // The sand band. A decal on the tile's own face rather than a wider prism
+    // top, because it has to follow the hex exactly and only exists where the
+    // land actually meets the sea.
+    if (!water && tile.terrain !== 'mountain' && touchesSea(map, tile)) {
+      position.set(center.x, top + DECOR.shore.lift, center.z);
+      // The tile's own yaw *and* scale, or the band drifts off the hex it
+      // belongs to: every prism is turned and scaled a few percent by its hash,
+      // and a decal that ignored either would hang over the grout on one side.
+      quaternion.setFromAxisAngle(axis, tileYaw(tile));
+      scale.set(s, s, s);
+      collector.add(
+        geometry.shoreRing,
+        [DECOR.shore.color],
+        new Matrix4().compose(position, quaternion, scale),
+        { overlay: true, opacity: DECOR.shore.opacity },
+      );
     }
   }
 

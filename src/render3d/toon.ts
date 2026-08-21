@@ -143,6 +143,16 @@ export function computeHullNormals(geometry: BufferGeometry): void {
 export interface ToonOptions {
   /** Transparency. Omitted means fully opaque. */
   opacity?: number;
+  /**
+   * Multiply the ink by the geometry's own `color` attribute.
+   *
+   * Only the prisms ask for this, and only for the contact shading baked into
+   * them by `bakeContactShading` (`geometry.ts`). It has to be a material flag
+   * rather than something the geometry can turn on by itself, so it joins the
+   * cache key: a material with vertex colours enabled and a geometry without
+   * the attribute renders black.
+   */
+  vertexColors?: boolean;
 }
 
 /**
@@ -189,13 +199,15 @@ export class MaterialLibrary {
   /** A toon material for this colour, created once and shared thereafter. */
   get(color: number, options: ToonOptions = {}): MeshToonMaterial {
     const opacity = options.opacity ?? 1;
-    const key = `${color}|${opacity}`;
+    const vertexColors = options.vertexColors ?? false;
+    const key = `${color}|${opacity}|${vertexColors ? 1 : 0}`;
     const existing = this.cache.get(key);
     if (existing) return existing;
 
     const material = new MeshToonMaterial({
       color: saturate(color, this.saturation),
       gradientMap: this.gradientMap,
+      vertexColors,
       // Faceting is baked into the geometry (see `flatten` in `geometry.ts`),
       // not requested here: `MeshToonMaterial` does not implement `flatShading`,
       // and setting it would be silently dropped.
