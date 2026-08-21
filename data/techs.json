@@ -3,6 +3,7 @@
     "agriculture": {
       "name": "Agriculture",
       "age": 1,
+      "row": 1,
       "cost": 10,
       "prereqs": [],
       "unlocks": { "units": ["settler", "warrior", "scout"] },
@@ -11,6 +12,7 @@
     "pottery": {
       "name": "Pottery",
       "age": 1,
+      "row": 3,
       "cost": 10,
       "prereqs": [],
       "unlocks": { "buildings": ["granary", "monument"] },
@@ -19,6 +21,7 @@
     "archery": {
       "name": "Archery",
       "age": 1,
+      "row": 1,
       "cost": 14,
       "prereqs": ["agriculture"],
       "unlocks": { "units": ["archer"] },
@@ -27,6 +30,7 @@
     "animalHusbandry": {
       "name": "Animal Husbandry",
       "age": 1,
+      "row": 0,
       "cost": 15,
       "prereqs": ["agriculture"],
       "unlocks": { "units": ["horseman"] },
@@ -35,6 +39,7 @@
     "bronzeWorking": {
       "name": "Bronze Working",
       "age": 1,
+      "row": 2,
       "cost": 16,
       "prereqs": ["pottery"],
       "unlocks": { "units": ["spearman"] },
@@ -43,6 +48,7 @@
     "masonry": {
       "name": "Masonry",
       "age": 1,
+      "row": 3,
       "cost": 17,
       "prereqs": ["pottery"],
       "unlocks": { "buildings": ["shrine"] },
@@ -51,6 +57,7 @@
     "writing": {
       "name": "Writing",
       "age": 1,
+      "row": 4,
       "cost": 18,
       "prereqs": ["pottery"],
       "unlocks": { "buildings": ["library"] },
@@ -59,6 +66,7 @@
     "theWheel": {
       "name": "The Wheel",
       "age": 1,
+      "row": 0,
       "cost": 20,
       "prereqs": ["animalHusbandry", "bronzeWorking"],
       "unlocks": { "units": ["chariot"] },
@@ -68,6 +76,7 @@
     "ironWorking": {
       "name": "Iron Working",
       "age": 2,
+      "row": 2,
       "cost": 26,
       "prereqs": ["bronzeWorking", "masonry"],
       "unlocks": { "units": ["swordsman"] },
@@ -76,6 +85,7 @@
     "mathematics": {
       "name": "Mathematics",
       "age": 2,
+      "row": 3,
       "cost": 30,
       "prereqs": ["writing", "theWheel"],
       "unlocks": { "units": ["catapult"] },
@@ -84,6 +94,7 @@
     "currency": {
       "name": "Currency",
       "age": 2,
+      "row": 3,
       "cost": 32,
       "prereqs": ["writing", "masonry"],
       "unlocks": { "buildings": ["market"] },
@@ -92,6 +103,7 @@
     "construction": {
       "name": "Construction",
       "age": 2,
+      "row": 1,
       "cost": 36,
       "prereqs": ["masonry", "archery"],
       "unlocks": { "units": ["compositeBowman"], "buildings": ["aqueduct"] },
@@ -100,6 +112,7 @@
     "philosophy": {
       "name": "Philosophy",
       "age": 2,
+      "row": 4,
       "cost": 38,
       "prereqs": ["writing", "masonry"],
       "unlocks": { "buildings": ["temple"] },
@@ -108,6 +121,7 @@
     "engineering": {
       "name": "Engineering",
       "age": 2,
+      "row": 3,
       "cost": 42,
       "prereqs": ["mathematics", "construction"],
       "unlocks": { "buildings": ["workshop", "watermill"] },
@@ -116,6 +130,7 @@
     "drama": {
       "name": "Drama and Poetry",
       "age": 2,
+      "row": 4,
       "cost": 46,
       "prereqs": ["philosophy", "currency"],
       "unlocks": { "buildings": ["amphitheater"] },
@@ -125,6 +140,7 @@
     "feudalism": {
       "name": "Feudalism",
       "age": 3,
+      "row": 2,
       "cost": 55,
       "prereqs": ["ironWorking", "currency"],
       "unlocks": { "units": ["pikeman"] },
@@ -133,6 +149,7 @@
     "machinery": {
       "name": "Machinery",
       "age": 3,
+      "row": 1,
       "cost": 60,
       "prereqs": ["engineering", "construction"],
       "unlocks": { "units": ["crossbowman"] },
@@ -141,6 +158,7 @@
     "theology": {
       "name": "Theology",
       "age": 3,
+      "row": 4,
       "cost": 66,
       "prereqs": ["philosophy", "drama"],
       "unlocks": { "buildings": ["monastery"] },
@@ -149,6 +167,7 @@
     "chivalry": {
       "name": "Chivalry",
       "age": 3,
+      "row": 0,
       "cost": 72,
       "prereqs": ["feudalism", "animalHusbandry"],
       "unlocks": { "units": ["knight"] },
@@ -157,6 +176,7 @@
     "steel": {
       "name": "Steel",
       "age": 3,
+      "row": 2,
       "cost": 80,
       "prereqs": ["ironWorking", "machinery"],
       "unlocks": { "units": ["longswordsman"] },
@@ -165,6 +185,7 @@
     "physics": {
       "name": "Physics",
       "age": 3,
+      "row": 3,
       "cost": 88,
       "prereqs": ["mathematics", "engineering"],
       "unlocks": { "units": ["trebuchet"] },
@@ -173,6 +194,7 @@
     "education": {
       "name": "Education",
       "age": 3,
+      "row": 4,
       "cost": 95,
       "prereqs": ["theology", "philosophy"],
       "unlocks": { "buildings": ["university"] },

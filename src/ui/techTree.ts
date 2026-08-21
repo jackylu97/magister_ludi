@@ -25,14 +25,33 @@
  * figures and the screen says so ("now"), because a delta that quietly assumed
  * future growth would be a promise the game never made.
  *
+ * A chart that travels sideways
+ * -----------------------------
+ * The screen is a dependency chart on a horizontally scrolling stage, not a
+ * list of ages: a node's column is `techDepth` — the longest chain of
+ * prerequisites behind it — and its row is the lane hand-authored in
+ * `data/techs.json`. So a chain reads as a chain, left to right, and the ages
+ * are demoted to what they always were: an annotation, painted as dim gilt
+ * numerals behind the columns they happen to own (`techAgeBands`).
+ *
+ * Travel is by drag, by wheel (a vertical wheel scrolls the chart sideways,
+ * because sideways is the only direction it goes), and by the arrow keys. On
+ * opening, the stage jumps — no tween; the player asked to see the chart, not
+ * to watch it arrive — to whatever they are researching, or to the leftmost
+ * thing they *could* research if they are researching nothing.
+ *
  * Why the lines are drawn after layout
  * ------------------------------------
- * The sight-lines are one SVG behind the cards, and they are measured from the
+ * The connectors are one SVG behind the cards, and they are measured from the
  * cards themselves rather than from a hand-maintained coordinate table: the
- * chart is a flex layout that reflows with the window, and a diagram that had
- * its own idea of where the nodes were would drift the first time somebody
- * resized. Measurement needs a laid-out DOM, so it happens on the frame after
- * the overlay is shown, and again on resize while it is open.
+ * chart is a grid that reflows with the window and with the length of a
+ * building's name, and a diagram that had its own idea of where the nodes were
+ * would drift the first time somebody resized. Measurement needs a laid-out
+ * DOM, so it happens on the frame after the overlay is shown, and again on
+ * resize while it is open. The SVG lives *inside* the scrolling field and is
+ * measured in field coordinates, so scrolling moves the lines with the cards
+ * for free — a diagram drawn in viewport coordinates would need repainting on
+ * every scroll event and would still lag by a frame.
  */
 
 import { buildingDef } from '../sim/buildingData';
@@ -45,7 +64,16 @@ import {
   researchError,
   turnsToTech,
 } from '../sim/tech';
-import { TECH_IDS, type TechAge, type TechId, techDef } from '../sim/techData';
+import {
+  TECH_IDS,
+  type TechAge,
+  type TechId,
+  techAgeBands,
+  techColumnCount,
+  techDef,
+  techDepth,
+  techRowCount,
+} from '../sim/techData';
 import { unitDef } from '../sim/unitData';
 
 /** ÆRA I / II / III — the ages, in the numerals the specimen sets them in. */
@@ -77,7 +105,10 @@ export interface TechTree {
 export interface TechTreeOptions {
   /** The full-screen overlay. Hidden with the `hidden` attribute while closed. */
   overlay: HTMLElement;
-  /** The element the columns are built into. Emptied and rebuilt per render. */
+  /**
+   * The scrolling stage. Emptied and rebuilt per render; the chart's field is
+   * built inside it, and this element is what pans.
+   */
   chart: HTMLElement;
   /** The overlay's own × button. */
   closeButton: HTMLElement;
@@ -240,27 +271,67 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
   // --- the chart -----------------------------------------------------------
 
+  /** The field the cards are placed on, kept so measurement has an origin. */
+  let field: HTMLElement | null = null;
+
   function renderChart(): void {
+    // A rebuild is not a journey: choosing a research redraws every card, and
+    // a chart that snapped back to column zero each time would make the player
+    // find their place again for nothing.
+    const wasAt = { left: chart.scrollLeft, top: chart.scrollTop };
+
     cards.clear();
-    chart.replaceChildren();
+    const columns = techColumnCount();
+    const rows = techRowCount();
+
+    const built = element('div', 'tech-field');
+    // The tracks are written from the data rather than from CSS: the chart is
+    // exactly as wide as the deepest chain and as deep as the lanes in use, and
+    // both are facts `techData` owns.
+    built.style.gridTemplateColumns = `repeat(${columns}, var(--tech-col-w))`;
+    // The first track is the age strip; the lanes follow it.
+    built.style.gridTemplateRows = `min-content repeat(${rows}, min-content)`;
+
+    // ÆRA I/II/III, painted behind whichever columns their techs settled in.
+    // Each age is two pieces: a region spanning every lane, which carries the
+    // watermark numeral and the hairline seam where the age changes, and a
+    // label in the strip along the top. The age no longer says where a tech
+    // goes — it says what to call the ground the tech ended up on.
+    for (const [index, band] of techAgeBands().entries()) {
+      const span = `${band.from + 1} / ${band.to + 2}`;
+
+      const region = element('div', 'tech-age');
+      region.classList.toggle('is-seam', index > 0);
+      region.style.gridColumn = span;
+      region.style.gridRow = '1 / -1';
+      region.setAttribute('aria-hidden', 'true');
+      region.append(element('span', 'tech-age-numeral', AGE_NUMERALS[band.age]));
+      built.append(region);
+
+      const label = element('div', 'tech-age-label');
+      label.style.gridColumn = span;
+      label.style.gridRow = '1';
+      label.append(element('span', 'tech-era', `ÆRA ${AGE_NUMERALS[band.age]}`));
+      label.append(element('span', 'tech-era-name', AGE_NAMES[band.age]));
+      built.append(label);
+    }
 
     const lines = document.createElementNS(SVG_NS, 'svg');
     lines.setAttribute('class', 'tech-lines');
     lines.setAttribute('aria-hidden', 'true');
-    chart.append(lines);
+    built.append(lines);
 
-    for (const age of [1, 2, 3] as TechAge[]) {
-      const column = element('section', 'tech-column');
-      const head = element('header', 'tech-column-head');
-      head.append(element('span', 'tech-era', `ÆRA ${AGE_NUMERALS[age]}`));
-      head.append(element('span', 'tech-era-name', AGE_NAMES[age]));
-      column.append(head);
-      for (const id of TECH_IDS) {
-        if (techDef(id).age !== age) continue;
-        column.append(renderNode(id));
-      }
-      chart.append(column);
+    for (const id of TECH_IDS) {
+      const card = renderNode(id);
+      card.style.gridColumn = String(techDepth(id) + 1);
+      card.style.gridRow = String(techDef(id).row + 2); // past the age strip
+      built.append(card);
     }
+
+    field = built;
+    chart.replaceChildren(built);
+    chart.scrollLeft = wasAt.left;
+    chart.scrollTop = wasAt.top;
 
     // Measured twice, and both are deliberate. Reading `offsetLeft` flushes
     // layout, so the first pass draws lines that are already correct for this
@@ -273,47 +344,215 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   }
 
   /**
-   * One hairline per prerequisite, from the middle of the earlier node to the
-   * middle of the later one. The SVG sits *behind* the cards, so each line
-   * disappears under the two it joins and reads as a sight-line between stars
-   * rather than as an arrow.
+   * One dotted connector per prerequisite, from the right edge of the earlier
+   * node to the left edge of the later one.
+   *
+   * The curve is a cubic with horizontal handles, so it leaves and arrives flat
+   * and a node on the same lane as its prerequisite gets a straight sight-line;
+   * the handles are capped, so a connector that spans four columns bends near
+   * its ends rather than sagging through the middle of the chart. Because
+   * `techDepth` puts every prerequisite in a strictly earlier column, `x2` is
+   * always to the right of `x1` and no connector ever doubles back.
+   *
+   * The SVG sits *behind* the cards, so a line disappears under the two nodes
+   * it joins and reads as a sight-line between stars rather than as an arrow.
    */
   function drawLines(svg: SVGSVGElement): void {
+    const origin = field;
+    if (!origin) return;
     while (svg.firstChild) svg.removeChild(svg.firstChild);
-    const width = chart.scrollWidth;
-    const height = chart.scrollHeight;
+    const width = origin.scrollWidth;
+    const height = origin.scrollHeight;
     svg.setAttribute('width', String(width));
     svg.setAttribute('height', String(height));
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-
-    const centre = (el: HTMLElement): { x: number; y: number } => ({
-      x: el.offsetLeft + el.offsetWidth / 2,
-      y: el.offsetTop + el.offsetHeight / 2,
-    });
 
     const { state } = getGame();
     const player = state.players[localPlayerId()];
     for (const id of TECH_IDS) {
       const to = cards.get(id);
       if (!to) continue;
+      const x2 = to.offsetLeft;
+      const y2 = to.offsetTop + to.offsetHeight / 2;
       for (const prereq of techDef(id).prereqs) {
         const from = cards.get(prereq);
         if (!from) continue;
-        const a = centre(from);
-        const b = centre(to);
-        const line = document.createElementNS(SVG_NS, 'line');
-        line.setAttribute('x1', String(a.x));
-        line.setAttribute('y1', String(a.y));
-        line.setAttribute('x2', String(b.x));
-        line.setAttribute('y2', String(b.y));
-        // A line into ground the player has already covered is lit; the rest is
-        // the faint chart under it.
+        const x1 = from.offsetLeft + from.offsetWidth;
+        const y1 = from.offsetTop + from.offsetHeight / 2;
+        const reach = Math.max(24, Math.min(90, (x2 - x1) * 0.45));
+        const path = document.createElementNS(SVG_NS, 'path');
+        path.setAttribute(
+          'd',
+          `M ${x1.toFixed(1)} ${y1.toFixed(1)} ` +
+            `C ${(x1 + reach).toFixed(1)} ${y1.toFixed(1)}, ` +
+            `${(x2 - reach).toFixed(1)} ${y2.toFixed(1)}, ` +
+            `${x2.toFixed(1)} ${y2.toFixed(1)}`,
+        );
+        // A line out of ground the player has already covered is lit; the rest
+        // is the faint chart under it.
         const held = player?.techsResearched.includes(prereq) ?? false;
-        line.setAttribute('class', held ? 'tech-line is-held' : 'tech-line');
-        svg.append(line);
+        path.setAttribute('class', held ? 'tech-line is-held' : 'tech-line');
+        svg.append(path);
       }
     }
   }
+
+  // --- travelling along it -------------------------------------------------
+
+  /**
+   * The node the chart should open on: what is being researched, or failing
+   * that the leftmost thing that could be. A chart that opened on column zero
+   * would open on ground the player covered an hour ago.
+   */
+  function anchorCard(): HTMLElement | null {
+    const player = getGame().state.players[localPlayerId()];
+    const current = player?.researching ?? null;
+    if (current !== null) {
+      const card = cards.get(current);
+      if (card) return card;
+    }
+    let best: HTMLElement | null = null;
+    let bestColumn = Number.POSITIVE_INFINITY;
+    for (const id of TECH_IDS) {
+      const card = cards.get(id);
+      if (!card || card.disabled) continue;
+      if (techDepth(id) >= bestColumn) continue;
+      best = card;
+      bestColumn = techDepth(id);
+    }
+    return best;
+  }
+
+  /**
+   * The choosable node nearest the anchor, which is where the keyboard starts.
+   *
+   * The anchor is often the current research, and the current research is not
+   * itself choosable — so the cursor goes to the nearest node that *is*, rather
+   * than to the first one in file order, which would be a focus ring parked
+   * three columns off the left edge of what the player is looking at.
+   */
+  function nearestChoosable(anchor: HTMLElement | null): HTMLButtonElement | null {
+    const wanted = anchor?.style.gridColumn ? Number(anchor.style.gridColumn) - 1 : 0;
+    let best: HTMLButtonElement | null = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const id of TECH_IDS) {
+      const card = cards.get(id);
+      if (!card || card.disabled) continue;
+      const distance = Math.abs(techDepth(id) - wanted);
+      if (distance >= bestDistance) continue;
+      best = card;
+      bestDistance = distance;
+    }
+    return best;
+  }
+
+  /** Puts an element in the middle of the stage, at once and without a tween. */
+  function centreOn(card: HTMLElement): void {
+    const seen = card.getBoundingClientRect();
+    const window_ = chart.getBoundingClientRect();
+    const drift = seen.left - window_.left - (chart.clientWidth - seen.width) / 2;
+    chart.scrollLeft += drift;
+  }
+
+  /** One column-ish, for the arrow keys and for a wheel notch. */
+  const NUDGE = 260;
+
+  function nudge(by: number): void {
+    chart.scrollLeft += by;
+  }
+
+  /**
+   * Drag to pan, as one would push a paper chart across a table.
+   *
+   * The click that ends a drag is swallowed: a player who dragged the chart by
+   * grabbing a node did not ask to research it. The threshold is what separates
+   * the two gestures, and pointer capture only starts once it is crossed, so a
+   * plain click on a card still reaches the card.
+   */
+  let panFrom: { id: number; x: number; y: number; left: number; top: number } | null = null;
+  let panned = false;
+  let swallowClick = false;
+
+  chart.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    swallowClick = false;
+    panned = false;
+    panFrom = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      left: chart.scrollLeft,
+      top: chart.scrollTop,
+    };
+  });
+
+  chart.addEventListener('pointermove', (event) => {
+    if (!panFrom || event.pointerId !== panFrom.id) return;
+    const dx = event.clientX - panFrom.x;
+    const dy = event.clientY - panFrom.y;
+    if (!panned) {
+      if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+      panned = true;
+      // Capture keeps a drag that wanders off the stage — or off the window —
+      // attached to it. A pointer that has already gone (a synthetic event, a
+      // device unplugged mid-drag) refuses to be captured, and that is not a
+      // reason to stop panning.
+      try {
+        chart.setPointerCapture(event.pointerId);
+      } catch {
+        /* the drag simply loses the pointer if it leaves the stage */
+      }
+      chart.classList.add('is-panning');
+    }
+    chart.scrollLeft = panFrom.left - dx;
+    chart.scrollTop = panFrom.top - dy;
+  });
+
+  function endPan(event: PointerEvent): void {
+    if (!panFrom || event.pointerId !== panFrom.id) return;
+    if (panned) {
+      if (chart.hasPointerCapture(event.pointerId)) chart.releasePointerCapture(event.pointerId);
+      chart.classList.remove('is-panning');
+      swallowClick = true;
+    }
+    panFrom = null;
+    panned = false;
+  }
+
+  chart.addEventListener('pointerup', endPan);
+  chart.addEventListener('pointercancel', endPan);
+
+  chart.addEventListener(
+    'click',
+    (event) => {
+      if (!swallowClick) return;
+      swallowClick = false;
+      event.stopPropagation();
+      event.preventDefault();
+    },
+    true,
+  );
+
+  /**
+   * The wheel travels sideways, because sideways is the only way this chart
+   * goes. A trackpad's horizontal gesture (and the shift-wheel most browsers
+   * turn into one) arrives as `deltaX` and is left to the browser; a plain
+   * vertical wheel is turned across. Zoom gestures — ctrl or meta held — are
+   * never ours to take.
+   */
+  chart.addEventListener(
+    'wheel',
+    (event) => {
+      if (event.ctrlKey || event.metaKey) return;
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      if (chart.scrollWidth <= chart.clientWidth) return;
+      const unit =
+        event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? chart.clientWidth : 1;
+      event.preventDefault();
+      chart.scrollLeft += event.deltaY * unit;
+    },
+    { passive: false },
+  );
 
   // --- the top bar's line --------------------------------------------------
 
@@ -363,12 +602,19 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     if (next) {
       const active = document.activeElement as HTMLElement | null;
       restoreTo = active && active !== document.body ? active : barButton;
+      // A fresh opening starts at the front of the player's own work rather
+      // than wherever the last visit was left, so the chart always opens on
+      // the decision that is actually in front of them.
+      chart.scrollLeft = 0;
+      chart.scrollTop = 0;
       renderChart();
       // The current research if there is one, otherwise the first node the
       // player could actually choose: a screen that opens with the cursor on
-      // "close" is a screen that opens with nothing to read.
-      const focusable = [...cards.values()].find((card) => !card.disabled);
-      (focusable ?? closeButton).focus();
+      // "close" is a screen that opens with nothing to read. The stage travels
+      // to the same node, so what has the keyboard is also what is on screen.
+      const anchor = anchorCard();
+      if (anchor) centreOn(anchor);
+      (nearestChoosable(anchor) ?? closeButton).focus({ preventScroll: true });
       return;
     }
     restoreTo?.focus();
@@ -389,10 +635,18 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       setOpen(false);
       return;
     }
+    const target = event.target as HTMLElement | null;
+    if (target?.tagName === 'INPUT' || target?.isContentEditable) return;
     if (event.key === 't' || event.key === 'T') {
-      const target = event.target as HTMLElement | null;
-      if (target?.tagName === 'INPUT' || target?.isContentEditable) return;
       setOpen(false);
+      return;
+    }
+    // The chart only goes sideways, so the sideways keys drive it. Tab still
+    // walks the nodes; these are for reading, not for choosing.
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      event.stopPropagation();
+      nudge(event.key === 'ArrowLeft' ? -NUDGE : NUDGE);
     }
   });
 

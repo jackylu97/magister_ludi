@@ -40,8 +40,12 @@ import {
   type TechId,
   UNIT_UNLOCK_TECH,
   isTechId,
+  techAgeBands,
+  techColumnCount,
   techDataProblems,
   techDef,
+  techDepth,
+  techRowCount,
 } from '../src/sim/techData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../src/sim/unitData';
 
@@ -199,6 +203,130 @@ describe('tech data integrity', () => {
     const state = newGame(config());
     expect(isUnlocked(state, 0, 'unit', 'zeppelin')).toBe(true);
     expect(isUnlocked(state, 0, 'building', 'pyramid')).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe('star chart layout', () => {
+  it('gives every tech a column one past its deepest prerequisite', () => {
+    for (const id of TECH_IDS) {
+      const def = techDef(id);
+      const deepest = def.prereqs.reduce((deep, prereq) => Math.max(deep, techDepth(prereq) + 1), 0);
+      expect(techDepth(id), id).toBe(deepest);
+    }
+  });
+
+  it('puts every prerequisite strictly to the left, so no connector doubles back', () => {
+    for (const id of TECH_IDS) {
+      for (const prereq of techDef(id).prereqs) {
+        expect(techDepth(prereq), `${prereq} → ${id}`).toBeLessThan(techDepth(id));
+      }
+    }
+  });
+
+  it('marches the named chains rightward', () => {
+    // The chains a player learns the shape of by using them. Depth is derived,
+    // so these are assertions about the *data*: a prerequisite added out of
+    // order would flatten one of them into a single column.
+    const chains: TechId[][] = [
+      ['pottery', 'bronzeWorking', 'ironWorking', 'feudalism', 'chivalry'],
+      ['bronzeWorking', 'ironWorking', 'steel'],
+      ['agriculture', 'archery', 'construction', 'engineering', 'machinery'],
+      ['pottery', 'writing', 'philosophy', 'drama', 'theology', 'education'],
+    ];
+    for (const chain of chains) {
+      const columns = chain.map((id) => techDepth(id));
+      for (let step = 1; step < columns.length; step++) {
+        expect(columns[step]!, `${chain[step - 1]} → ${chain[step]}`).toBeGreaterThan(
+          columns[step - 1]!,
+        );
+      }
+    }
+    // The whole chart, for scale: seven columns deep, five lanes tall.
+    expect(techColumnCount()).toBe(7);
+    expect(techRowCount()).toBe(5);
+  });
+
+  it('hands every tech a lane, and never two techs the same cell', () => {
+    const cells = new Set<string>();
+    for (const id of TECH_IDS) {
+      const { row } = techDef(id);
+      expect(Number.isInteger(row), id).toBe(true);
+      expect(row, id).toBeGreaterThanOrEqual(0);
+      const cell = `${techDepth(id)},${row}`;
+      expect(cells.has(cell), `${id} at ${cell}`).toBe(false);
+      cells.add(cell);
+    }
+    // No column and no lane is left empty: an empty one is a hole in the chart
+    // that the ages would then have to paint around.
+    const columns = new Set(TECH_IDS.map((id) => techDepth(id)));
+    const rows = new Set(TECH_IDS.map((id) => techDef(id).row));
+    expect(columns.size).toBe(techColumnCount());
+    expect(rows.size).toBe(techRowCount());
+  });
+
+  it('reports a tech with no lane', () => {
+    const def = techDef('pottery');
+    const authored = def.row;
+    try {
+      (def as { row: unknown }).row = undefined;
+      expect(techDataProblems()).toContain('tech "pottery" has row undefined, which is not a lane number');
+    } finally {
+      def.row = authored;
+    }
+    expect(techDataProblems()).toEqual([]);
+  });
+
+  it('reports two techs parked in one cell', () => {
+    // Archery and Animal Husbandry share a column (both hang off Agriculture),
+    // so moving one into the other's lane is the collision this guards.
+    const def = techDef('archery');
+    const authored = def.row;
+    try {
+      def.row = techDef('animalHusbandry').row;
+      expect(techDataProblems().some((problem) => problem.includes('both sit at chart cell'))).toBe(
+        true,
+      );
+    } finally {
+      def.row = authored;
+    }
+    expect(techDataProblems()).toEqual([]);
+  });
+
+  it('bands the ages into contiguous runs of columns, in order', () => {
+    const bands = techAgeBands();
+    expect(bands.length).toBeGreaterThan(0);
+    expect(bands[0]!.from).toBe(0);
+    expect(bands[bands.length - 1]!.to).toBe(techColumnCount() - 1);
+    for (const [index, band] of bands.entries()) {
+      expect(band.to).toBeGreaterThanOrEqual(band.from);
+      const before = bands[index - 1];
+      if (!before) continue;
+      // Contiguous, no gap, no overlap, and never running backwards in age.
+      expect(band.from).toBe(before.to + 1);
+      expect(band.age).toBeGreaterThan(before.age);
+    }
+    // Which is: ÆRA I over the first two columns, II over the next two, III
+    // over the rest — the ages annotate the chart, they no longer place it.
+    expect(bands).toEqual([
+      { age: 1, from: 0, to: 1 },
+      { age: 2, from: 2, to: 3 },
+      { age: 3, from: 4, to: 6 },
+    ]);
+  });
+
+  it('never lands a tech more than one band away from its own age', () => {
+    // A band is a majority vote of the column, so a tech can sit under a
+    // neighbouring age's numeral (The Wheel, ancient, under ÆRA II) — but two
+    // bands adrift would mean the ages had stopped describing the ground.
+    const bands = techAgeBands();
+    for (const id of TECH_IDS) {
+      const column = techDepth(id);
+      const band = bands.find((candidate) => column >= candidate.from && column <= candidate.to);
+      expect(band, id).toBeDefined();
+      expect(Math.abs(band!.age - techDef(id).age), id).toBeLessThanOrEqual(1);
+    }
   });
 });
 

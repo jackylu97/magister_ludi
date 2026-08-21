@@ -1965,6 +1965,14 @@ body.is-panel-open #hud-end-turn {
   inset: 0;
   z-index: 40;
   display: grid;
+  /* One track, and both of them explicitly the size of the window rather than
+     `auto`. The sheet holds a chart wider than any screen, and an auto track
+     sizes to its content — which would let the sheet grow past the window and
+     take the × button off the right-hand edge with it. `minmax(0, 1fr)` is
+     what makes the sheet's own `min(1500px, 100%)` and `max-height: 100%`
+     measure against the window they are supposed to fit inside. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   place-items: center;
   padding: 18px;
   background: rgba(18, 16, 21, 0.94);
@@ -1975,12 +1983,12 @@ body.is-panel-open #hud-end-turn {
   display: none;
 }
 
-/* The sheet inside it: a bounded stage so the columns have somewhere to end. */
+/* The sheet inside it: a bounded window onto a chart that is wider than it. */
 .tech-sheet {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: min(1180px, 100%);
+  width: min(1500px, 100%);
   max-height: 100%;
   padding: 16px 18px 18px;
   border: var(--border-thin) solid rgba(200, 144, 31, 0.5);
@@ -2016,6 +2024,25 @@ body.is-panel-open #hud-end-turn {
   color: var(--parchment);
 }
 
+/* How to move the chart, said once and quietly, in the head where a caption
+   goes. The keys are drawn in the light theme's kbd, inverted here. */
+.tech-hint {
+  flex: none;
+  align-self: center;
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(247, 242, 225, 0.45);
+}
+
+.tech-hint kbd {
+  margin: 0 1px;
+  border-color: rgba(247, 242, 225, 0.4);
+  background: transparent;
+  color: rgba(247, 242, 225, 0.7);
+}
+
 .tech-close {
   flex: none;
   width: 26px;
@@ -2034,28 +2061,122 @@ body.is-panel-open #hud-end-turn {
   color: var(--gilt);
 }
 
-/* The chart itself: three age columns, scrolling as one field. `position:
-   relative` is load-bearing — the sight-line SVG is measured against this
-   element's padding box (see `drawLines` in techTree.ts). */
+/* The stage: the window the chart is dragged past. The chart is wider than any
+   screen by design — a dependency chart runs as deep as its longest chain — so
+   this scrolls sideways, and `grab` says so before anything is read. */
 .tech-chart {
   position: relative;
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
-  padding: 4px 2px 8px;
+  overscroll-behavior: contain;
+  cursor: grab;
+  /* The bar is there for orientation, not for use: pointer, wheel and arrow
+     keys all move this chart, so the scrollbar is a hairline in the gilt. */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 144, 31, 0.32) transparent;
+}
+
+.tech-chart.is-panning {
+  cursor: grabbing;
+}
+
+.tech-chart::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.tech-chart::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tech-chart::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(200, 144, 31, 0.28);
+}
+
+.tech-chart::-webkit-scrollbar-thumb:hover {
+  background: rgba(200, 144, 31, 0.5);
+}
+
+/* The field the chart is drawn on, and the coordinate system everything else
+   in this screen is measured in. `position: relative` is load-bearing twice
+   over: the connector SVG is sized and placed against this element's padding
+   box, and every card's `offsetLeft` is read against it (see `drawLines` in
+   techTree.ts). `width: max-content` lets the tracks decide how wide the chart
+   is instead of the window — which is what makes it a chart you travel along.
+
+   Column = dependency depth, row = the lane authored in data/techs.json; the
+   track lists themselves are written by techTree.ts from that data. */
+.tech-field {
+  --tech-col-w: 234px;
+  position: relative;
+  display: grid;
+  width: max-content;
+  min-width: 100%;
+  align-items: start;
+  gap: 12px 30px;
+  /* The two-pixel band top and bottom is the age wash's bleed, and nothing
+     else: it keeps the region from being clipped at the scroll origin without
+     making the field taller than the lanes in it. */
+  padding: 2px 22px 2px 0;
+}
+
+/* An age, painted behind its columns: a wash, a seam where the age changes,
+   and the numeral itself set enormous and nearly out. */
+.tech-age {
+  z-index: 0;
+  position: relative;
+  align-self: stretch;
+  margin: -2px -15px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  background: rgba(247, 242, 225, 0.022);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.tech-age.is-seam {
+  border-left: 1px solid rgba(200, 144, 31, 0.22);
+}
+
+.tech-age-numeral {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--face-display);
+  font-size: 210px;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: rgba(200, 144, 31, 0.075);
+  user-select: none;
+}
+
+/* The strip along the top of the chart: which age this stretch of columns is.
+   It labels ground the player has already been placed on, so it is a caption
+   rather than a heading — no rule under it, nothing to click. */
+.tech-age-label {
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 0 5px 2px;
 }
 
 /* Behind the cards, always: a line runs *under* the two nodes it joins, which
-   is what makes it read as a sight-line rather than as an arrow. */
+   is what makes it read as a sight-line rather than as an arrow. It is a child
+   of the field, so it scrolls with the chart instead of being repainted. */
 .tech-lines {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: 0;
   pointer-events: none;
 }
 
 .tech-line {
+  fill: none;
   stroke: rgba(247, 242, 225, 0.18);
   stroke-width: 1;
   stroke-dasharray: 2 5;
@@ -2065,24 +2186,6 @@ body.is-panel-open #hud-end-turn {
 .tech-line.is-held {
   stroke: rgba(200, 144, 31, 0.55);
   stroke-dasharray: 2 4;
-}
-
-.tech-column {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex: 1 1 0;
-  min-width: 232px;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.tech-column-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding-bottom: 4px;
-  border-bottom: 1.5px solid rgba(247, 242, 225, 0.16);
 }
 
 /* ÆRA I — the age numerals, gilt, letterspaced like an inscription. */
@@ -2105,6 +2208,10 @@ body.is-panel-open #hud-end-turn {
 /* One node: a card of the same construction as everything else in the game,
    read in negative. */
 .tech-node {
+  /* Above the age wash and the connectors, always: a card is the thing that is
+     read and pressed, and both of those are painted to sit under it. */
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   padding: 8px 10px 9px;
