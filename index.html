@@ -36,9 +36,54 @@
     <div id="city-panel" hidden></div>
     <div id="unit-panel" hidden></div>
 
-    <!-- Removed by main.ts once the renderer is up (or put back carrying the
-         error, if a sprite 404s or WebGL is unavailable). -->
+    <!-- Removed by main.ts once the renderer is up. A failure is reported on the
+         landing screen, which is the only thing on the page until Start. -->
     <p id="boot">Loading…</p>
+
+    <!-- ================= the landing screen =======================
+         The first thing on the page, and the only thing until Start is pressed:
+         no game, no renderer and no board exist behind it on first load (see
+         the boot order in main.ts). It is plain markup rather than anything
+         built by script, so it is on screen with the first paint.
+
+         It comes back — over a running game — when Restart is confirmed in the
+         ☰ menu, which is why it is a screen state and not a page.
+         ============================================================ -->
+    <div id="landing">
+      <div class="landing-stage">
+        <!-- The specimen's marquee, verbatim in spirit: the display face, the
+             italic vermilion accent on the second word, an italic subtitle and
+             a mono stamp. The one place the game announces itself. -->
+        <div class="marquee">
+          <h1 class="marquee-title">Magister <em>Ludi</em></h1>
+          <p class="marquee-sub">a game of everything mankind has thought</p>
+          <span class="marquee-stamp">one seed · one world</span>
+        </div>
+
+        <!-- A form, so Enter submits from either field without a keystroke
+             handler of its own. -->
+        <form id="landing-setup" class="hud-card landing-card">
+          <div class="row">
+            <label for="seed">Seed</label>
+            <input id="seed" type="text" value="1" spellcheck="false" />
+          </div>
+
+          <div class="row">
+            <label for="size">Size</label>
+            <select id="size"></select>
+          </div>
+
+          <div class="row landing-actions">
+            <button id="start-game" class="btn btn-primary btn-start" type="submit">
+              Start Game
+            </button>
+            <button id="random-seed" class="btn btn-quiet" type="button">Random</button>
+          </div>
+
+          <p id="landing-error" class="landing-error" hidden></p>
+        </form>
+      </div>
+    </div>
 
     <!-- Turn announcements are appended here by src/ui/turnSplash.ts. It is a
          live region so the announcement reaches a screen reader too, and it
@@ -147,50 +192,54 @@
         </p>
       </div>
 
-      <!-- Game setup. Session-rare, so it costs no permanent screen space: the
-           menu button opens it, Esc or a click outside closes it, and focus is
-           trapped inside while it is open and restored to that button on close. -->
+      <!-- The game menu. Session-rare, so it costs no permanent screen space:
+           the menu button opens it, Esc or a click outside closes it, and focus
+           is trapped inside while it is open and restored to that button on
+           close.
+
+           It sets up nothing any more — seed and size belong to the landing
+           screen, where a game is chosen rather than changed under the player.
+           What is left is what this game *is*, what the renderer can do, and the
+           one way back to the landing. -->
       <div
         id="menu-popover"
         class="hud-card popover"
         role="dialog"
-        aria-label="Game setup"
+        aria-label="Game menu"
         hidden
       >
         <div class="popover-head">
-          <!-- The only place the game's own name is set. The title bar carries
-               it for the browser; the HUD has a board to show instead. -->
-          <h2 class="popover-title">Magister <em>Ludi</em> · setup</h2>
+          <h2 class="popover-title">This game</h2>
           <button id="menu-close" class="popover-close" type="button" aria-label="Close">
             ×
           </button>
         </div>
 
-        <div class="row">
-          <label for="seed">Seed</label>
-          <input id="seed" type="text" value="1" spellcheck="false" />
-        </div>
-
-        <div class="row">
-          <label for="size">Size</label>
-          <select id="size"></select>
-        </div>
-
-        <div class="row">
-          <button id="regenerate" class="btn btn-quiet">New Game</button>
-          <button id="random-seed" class="btn btn-quiet">Random</button>
-        </div>
-
-        <!-- The renderer's own switches (shadows) and its stats line are appended
-             here by main.ts, because only the 3D pipeline has any. -->
-        <div id="menu-extras"></div>
-
+        <!-- Read-only: the config the running game was created from. -->
         <dl class="info-list">
           <dt>Map</dt>
           <dd id="info-map">—</dd>
           <dt>Seed</dt>
           <dd id="info-seed">—</dd>
         </dl>
+
+        <!-- The renderer's own switches (shadows) and its stats line are appended
+             here by main.ts, because only the 3D pipeline has any. -->
+        <div id="menu-extras"></div>
+
+        <!-- Restart asks first, in place: a game is thirty turns of somebody's
+             afternoon, and the button that throws it away sits two clicks from
+             every other control on the screen. The confirm swaps into the same
+             row rather than opening a dialog, so nothing moves under the
+             pointer and Escape still closes the whole card. -->
+        <div class="row restart-row">
+          <button id="restart" class="btn btn-quiet" type="button">Restart Game</button>
+          <span id="restart-confirm" class="restart-confirm" hidden>
+            <span class="restart-ask">Restart?</span>
+            <button id="restart-yes" class="btn btn-primary" type="button">Yes</button>
+            <button id="restart-no" class="btn btn-quiet" type="button">No</button>
+          </span>
+        </div>
       </div>
 
       <!-- The whole control scheme, one keystroke away and never in the way.

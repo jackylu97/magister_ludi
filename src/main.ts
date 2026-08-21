@@ -1,11 +1,29 @@
 /**
- * Entry point: creates the game, builds a renderer for it, wires the DOM panel,
- * and hands every pointer and key event to `src/ui/controls.ts`.
+ * Entry point: shows the landing screen, and on Start creates the game, builds a
+ * renderer for it, wires the DOM panel, and hands every pointer and key event to
+ * `src/ui/controls.ts`.
  *
  * Deliberately thin — no game logic here, and no input logic either. This file
  * owns the page: which elements exist, which player colours a new game gets,
  * and what the info panel says. Everything else is a call into the simulation or
  * into a renderer.
+ *
+ * Boot order
+ * ----------
+ * Nothing exists until the player presses Start. The landing screen is plain
+ * markup in `index.html`, so it is on screen with the first paint and costs no
+ * script at all; `boot()` — which creates the first `Game`, builds the renderer
+ * and wires the whole HUD — runs on that first press and nowhere else. Two
+ * things fall out of that order and both are worth the shape:
+ *
+ *   · there is no game to flash behind the landing, because there is no game.
+ *     Nothing has to be hidden, dimmed or timed.
+ *   · the sprite pipeline's image load and the 3D board build happen *inside*
+ *     the Start press, where a disabled button already explains the wait.
+ *
+ * Every later Start — the landing comes back when Restart is confirmed — takes
+ * the ordinary new-game path instead, the same one the old "New Game" button
+ * used, so a restart resets exactly what a new game always did.
  *
  * Which renderer
  * --------------
@@ -57,9 +75,18 @@ function requireElement<T extends HTMLElement>(id: string): T {
 
 const seedInput = requireElement<HTMLInputElement>('seed');
 const sizeSelect = requireElement<HTMLSelectElement>('size');
-const regenerateButton = requireElement<HTMLButtonElement>('regenerate');
 const randomSeedButton = requireElement<HTMLButtonElement>('random-seed');
 const endTurnButton = requireElement<HTMLButtonElement>('end-turn');
+
+/** The landing screen. See the boot-order note in the module docblock. */
+const landingEl = requireElement<HTMLElement>('landing');
+const landingForm = requireElement<HTMLFormElement>('landing-setup');
+const landingErrorEl = requireElement<HTMLElement>('landing-error');
+const startButton = requireElement<HTMLButtonElement>('start-game');
+const restartButton = requireElement<HTMLButtonElement>('restart');
+const restartConfirmEl = requireElement<HTMLElement>('restart-confirm');
+const restartYesButton = requireElement<HTMLButtonElement>('restart-yes');
+const restartNoButton = requireElement<HTMLButtonElement>('restart-no');
 const statusEl = requireElement<HTMLElement>('status');
 const seatsEl = requireElement<HTMLElement>('seats');
 const civYieldsEl = requireElement<HTMLElement>('civ-yields');
@@ -124,6 +151,144 @@ const PLAYERS: PlayerSpec[] = [
   { name: 'Crimson', color: '#d4502e', isHuman: true },
   { name: 'Teal', color: '#1f8a85', isHuman: true },
 ];
+
+// --- the HUD's transient cards ---------------------------------------------
+
+/**
+ * The three transient cards. Only one is ever open — each closes the other two
+ * as it opens — and Escape reaches them through `controls`, which owns the key
+ * and the order it backs things out in.
+ *
+ * They are built here, before any game exists, because they are properties of
+ * the *page*: the help sheet reads the same with no game behind it, and the menu
+ * has to be able to send the player back to the landing screen.
+ */
+const menu = createPopover({
+  panel: menuPopoverEl,
+  trigger: menuButton,
+  closeButton: requireElement('menu-close'),
+  onOpen: () => {
+    help.close();
+    lens.close();
+    // A card that opens showing "Restart?" is a card that will eventually be
+    // answered by accident.
+    setRestartConfirm(false);
+  },
+});
+const help = createPopover({
+  panel: helpOverlayEl,
+  trigger: helpButton,
+  closeButton: requireElement('help-close'),
+  onOpen: () => {
+    menu.close();
+    lens.close();
+  },
+});
+const lens = createPopover({
+  panel: lensPopoverEl,
+  trigger: lensButton,
+  closeButton: requireElement('lens-close'),
+  onOpen: () => {
+    menu.close();
+    help.close();
+  },
+});
+
+function closePopovers(): boolean {
+  const wasOpen = menu.isOpen || help.isOpen || lens.isOpen;
+  menu.close();
+  help.close();
+  lens.close();
+  return wasOpen;
+}
+
+// --- the landing screen -----------------------------------------------------
+
+/**
+ * Starts a fresh game from the landing's fields, or `null` before the first one
+ * has ever started.
+ *
+ * It doubles as the record of whether `boot` has run: the whole page — renderer,
+ * controls, panels — is built once, on the first Start, and every Start after
+ * that is an ordinary new game.
+ */
+let startNewGame: (() => void) | null = null;
+
+function showLanding(): void {
+  // `hidden` is the whole of the screen state — one flag, read by `inputBlocked`
+  // as well as by the stylesheet, so "is the landing up?" has one answer.
+  landingEl.hidden = false;
+  landingErrorEl.hidden = true;
+  // The button, not the seed field: Start is what the player came here to press,
+  // and Shift+Tab reaches the two fields above it.
+  startButton.focus();
+}
+
+function hideLanding(): void {
+  landingEl.hidden = true;
+}
+
+/** Swaps the Restart button for its inline "Restart? Yes / No". */
+function setRestartConfirm(asking: boolean): void {
+  restartButton.hidden = asking;
+  restartConfirmEl.hidden = !asking;
+  if (asking) restartYesButton.focus();
+}
+
+/**
+ * The Start button, for both of its jobs: building the page the first time, and
+ * starting a new game every time after.
+ *
+ * The button is disabled for the duration because the first press is genuinely
+ * slow — a sprite set to fetch, or a board to bake — and a second press
+ * mid-build would run the whole boot twice.
+ */
+async function beginGame(): Promise<void> {
+  if (startButton.disabled) return;
+  startButton.disabled = true;
+  landingErrorEl.hidden = true;
+  try {
+    if (startNewGame) startNewGame();
+    else await boot();
+    hideLanding();
+  } catch (error) {
+    // A missing sprite or a dead WebGL context is a build problem, not a blank
+    // page: say so where the player is already looking.
+    landingErrorEl.textContent = error instanceof Error ? error.message : String(error);
+    landingErrorEl.hidden = false;
+    console.error(error);
+  } finally {
+    startButton.disabled = false;
+  }
+}
+
+landingForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  void beginGame();
+});
+
+// On the landing this only rolls a seed — it no longer starts a game behind the
+// player's back, because Start is right there and is the only thing that does.
+randomSeedButton.addEventListener('click', () => {
+  // UI-side only: the simulation itself never calls Math.random().
+  seedInput.value = String(Math.floor(Math.random() * 1_000_000));
+  seedInput.focus();
+});
+
+restartButton.addEventListener('click', () => setRestartConfirm(true));
+restartNoButton.addEventListener('click', () => {
+  setRestartConfirm(false);
+  restartButton.focus();
+});
+restartYesButton.addEventListener('click', () => {
+  setRestartConfirm(false);
+  menu.close();
+  // Back to the landing with this game's seed and size still in the fields —
+  // they are the same two inputs that produced it, so "prefilled" costs nothing.
+  showLanding();
+});
+
+showLanding();
 
 /** Accepts a number or any word (hashed) as a seed. */
 function parseSeed(raw: string): number {
@@ -318,7 +483,12 @@ async function createRenderer(
 
 // --- boot ------------------------------------------------------------------
 
-async function start(): Promise<void> {
+/**
+ * Builds the whole page around a first game: the renderer, the input layer, the
+ * HUD and every panel. Runs exactly once, inside the first Start press — see the
+ * boot-order note at the top of the file.
+ */
+async function boot(): Promise<void> {
   let game: Game = createGame(currentConfig());
   const { view: renderer, report } = await createRenderer(artMode(), game);
 
@@ -484,47 +654,6 @@ async function start(): Promise<void> {
    */
   const splash = createTurnSplash(turnSplashEl);
 
-  /**
-   * The two transient cards. Only one is ever open — each closes the other as
-   * it opens — and Escape reaches them through `controls`, which owns the key
-   * and the order it backs things out in.
-   */
-  const menu = createPopover({
-    panel: menuPopoverEl,
-    trigger: menuButton,
-    closeButton: requireElement('menu-close'),
-    onOpen: () => {
-      help.close();
-      lens.close();
-    },
-  });
-  const help = createPopover({
-    panel: helpOverlayEl,
-    trigger: helpButton,
-    closeButton: requireElement('help-close'),
-    onOpen: () => {
-      menu.close();
-      lens.close();
-    },
-  });
-  const lens = createPopover({
-    panel: lensPopoverEl,
-    trigger: lensButton,
-    closeButton: requireElement('lens-close'),
-    onOpen: () => {
-      menu.close();
-      help.close();
-    },
-  });
-
-  function closePopovers(): boolean {
-    const wasOpen = menu.isOpen || help.isOpen || lens.isOpen;
-    menu.close();
-    help.close();
-    lens.close();
-    return wasOpen;
-  }
-
   const controls = createGameControls({
     viewport: viewportEl,
     renderer,
@@ -532,6 +661,8 @@ async function start(): Promise<void> {
     onUpdate: updatePanel,
     onNotice: showNotice,
     closePopovers,
+    // The landing screen covers the board, so it owns the keyboard too.
+    inputBlocked: () => !landingEl.hidden,
     onTurnResolved: () => {
       const local = game.state.players[controls.localPlayerId()];
       if (local) splash.announceTurn(local.name);
@@ -658,19 +789,10 @@ async function start(): Promise<void> {
     report();
   }
 
-  regenerateButton.addEventListener('click', newGameFromControls);
-  sizeSelect.addEventListener('change', newGameFromControls);
-  seedInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-      event.stopPropagation();
-      newGameFromControls();
-    }
-  });
-  randomSeedButton.addEventListener('click', () => {
-    // UI-side only: the simulation itself never calls Math.random().
-    seedInput.value = String(Math.floor(Math.random() * 1_000_000));
-    newGameFromControls();
-  });
+  // Every Start after this one comes back through here rather than through
+  // `boot`: a restart is a new game, and this is the path a new game has always
+  // taken — one that resets the selection, the lens, the panels and the camera.
+  startNewGame = newGameFromControls;
 
   endTurnButton.addEventListener('click', () => {
     controls.endTurn();
@@ -687,12 +809,3 @@ async function start(): Promise<void> {
   // undo the opening view of the local player's units.
   controls.refresh();
 }
-
-start().catch((error: unknown) => {
-  // A missing sprite or a dead WebGL context is a build problem, not a blank
-  // page: say so where the player can see it.
-  bootEl.classList.add('error');
-  bootEl.textContent = error instanceof Error ? error.message : String(error);
-  document.body.append(bootEl);
-  throw error;
-});

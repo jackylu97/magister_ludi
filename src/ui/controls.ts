@@ -182,6 +182,17 @@ export interface GameControlsOptions {
    * same keystroke.
    */
   closePopovers?: () => boolean;
+
+  /**
+   * True while something on the page has taken over from the board — the
+   * landing screen, today.
+   *
+   * Only the *keyboard* needs asking. An overlay covering the viewport already
+   * swallows every pointer event by being in front of it, but a window-level
+   * key listener has no such geometry: without this, tabbing to Start and
+   * typing `y` would toggle a lens on a game nobody can see.
+   */
+  inputBlocked?: () => boolean;
 }
 
 export interface GameControls {
@@ -250,6 +261,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onSeatAdvanced,
     onNotice,
     closePopovers,
+    inputBlocked,
   } = options;
 
   /** The seat this client plays. Player ids are indices, so 0 is the first. */
@@ -931,6 +943,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   );
 
   window.addEventListener('keydown', (event) => {
+    // A screen in front of the board owns the keyboard while it is up, Escape
+    // included: there is nothing behind it for Escape to back out of.
+    if (inputBlocked?.()) return;
+
     const target = event.target as HTMLElement | null;
     const typing =
       target !== null &&
