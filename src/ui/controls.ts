@@ -98,6 +98,22 @@ export interface GameControlsOptions {
   getGame: () => Game;
   /** Called after anything the panel displays may have changed. */
   onUpdate: (selected: Unit | null, hover: HoverInfo | null) => void;
+
+  /**
+   * The turn resolved: every seat had ended, the counter moved, and the local
+   * seat is playing again. This is the moment the turn splash announces, and it
+   * is reported from here because `endTurn` is the only place that can tell the
+   * difference between "the turn advanced" and "I merely finished".
+   *
+   * Optional, like `onSeatAdvanced`: nothing about the rules depends on anyone
+   * listening, and the frozen 2D pages are wired by the same `main.ts`.
+   */
+  onTurnResolved?: (turn: number) => void;
+  /**
+   * The harness moved the local seat on, because seats were still open. Carries
+   * the seat now being played.
+   */
+  onSeatAdvanced?: (playerId: number) => void;
 }
 
 export interface GameControls {
@@ -133,7 +149,7 @@ export interface GameControls {
 }
 
 export function createGameControls(options: GameControlsOptions): GameControls {
-  const { viewport, renderer, getGame, onUpdate } = options;
+  const { viewport, renderer, getGame, onUpdate, onTurnResolved, onSeatAdvanced } = options;
 
   /** The seat this client plays. Player ids are indices, so 0 is the first. */
   let localPlayerId = 0;
@@ -409,9 +425,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renderer.invalidate();
     clearSelection();
 
-    if (getGame().state.turn !== turnBefore) return;
+    if (getGame().state.turn !== turnBefore) {
+      onTurnResolved?.(getGame().state.turn);
+      return;
+    }
     const next = nextOpenSeat(localPlayerId);
-    if (next !== null) setLocalPlayer(next);
+    if (next !== null) {
+      setLocalPlayer(next);
+      onSeatAdvanced?.(next);
+    }
   }
 
   // --- hover ---------------------------------------------------------------

@@ -48,8 +48,8 @@
       "settler": "house"
     },
     "byPlayerColor": {
-      "#e0484a": "red",
-      "#2fb0a8": "blue"
+      "#d4502e": "red",
+      "#1f8a85": "blue"
     },
     "fallbackOrder": ["red", "blue", "green", "yellow", "purple", "black", "white"]
   }

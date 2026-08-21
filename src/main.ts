@@ -32,9 +32,11 @@ import { Renderer } from './render/renderer';
 import { loadSprites } from './render/sprites';
 import { createFlatTileArtist, createTileArtist } from './render/tileVisuals';
 import { Renderer3D } from './render3d/renderer3d';
+import { tileYieldOf } from './sim/cities';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import { createGameControls } from './ui/controls';
+import { createTurnSplash } from './ui/turnSplash';
 import type { HoverInfo, MapView } from './ui/mapView';
 
 function requireElement<T extends HTMLElement>(id: string): T {
@@ -58,11 +60,13 @@ const infoEl = requireElement<HTMLElement>('info');
 const hintEl = requireElement<HTMLElement>('hint');
 const bannersEl = requireElement<HTMLElement>('banners');
 const cityPanelEl = requireElement<HTMLElement>('city-panel');
+const turnSplashEl = requireElement<HTMLElement>('turn-splash');
 
 const infoMap = requireElement<HTMLElement>('info-map');
 const infoSeed = requireElement<HTMLElement>('info-seed');
 const infoTerrain = requireElement<HTMLElement>('info-terrain');
 const infoFeature = requireElement<HTMLElement>('info-feature');
+const infoYields = requireElement<HTMLElement>('info-yields');
 const infoOffset = requireElement<HTMLElement>('info-offset');
 const infoUnit = requireElement<HTMLElement>('info-unit');
 
@@ -84,10 +88,19 @@ sizeSelect.value = MAP_SIZE_NAMES.includes('standard') ? 'standard' : MAP_SIZE_N
  * they live here rather than in `data/`. Each renderer maps them onto its own
  * inks — `data/view.json` for the sprite pieces, `data/view3d.json` for the
  * diorama ones.
+ *
+ * The two hexes are the interface palette's vermilion and teal (see
+ * `docs/design-specimen.html`), so a seat chip, a city banner roundel and the
+ * status line all speak in the same accents as the rest of the chrome. They are
+ * lookup keys as much as colours: both renderers map them to a named piece ink
+ * (`pieces.byPlayerColor` in `data/view.json`, `players.byColor` in
+ * `data/view3d.json`), and those tables were updated with them — the pieces on
+ * the board are the same crimson and teal they always were, matched explicitly
+ * rather than through either file's index fallback.
  */
 const PLAYERS: PlayerSpec[] = [
-  { name: 'Crimson', color: '#e0484a', isHuman: true },
-  { name: 'Teal', color: '#2fb0a8', isHuman: true },
+  { name: 'Crimson', color: '#d4502e', isHuman: true },
+  { name: 'Teal', color: '#1f8a85', isHuman: true },
 ];
 
 /** Accepts a number or any word (hashed) as a seed. */
@@ -122,6 +135,37 @@ function describeTile(tile: Tile): { terrain: string; feature: string; hills: bo
     feature: featureDef(tile.feature).name,
     hills: tile.hills,
   };
+}
+
+/**
+ * The hovered tile's yields, each figure in the colour that yield is always
+ * drawn in — food green, production orange, gold gilt — and in the mono face,
+ * because they are numbers. A tile that produces nothing says so once rather
+ * than printing three zeroes.
+ *
+ * `tileYieldOf` is the same function the citizens are assigned with, so what the
+ * panel promises is what a city working the tile would actually collect.
+ */
+function showTileYields(tile: Tile): void {
+  const value = tileYieldOf(tile);
+  const parts: [string, string, number][] = [
+    ['food', '🌾', value.food],
+    ['production', '⚙', value.production],
+    ['gold', '🪙', value.gold],
+  ];
+  const shown = parts.filter(([, , amount]) => amount > 0);
+  if (shown.length === 0) {
+    infoYields.textContent = '—';
+    return;
+  }
+  infoYields.replaceChildren(
+    ...shown.map(([key, glyph, amount]) => {
+      const span = document.createElement('span');
+      span.className = `tile-yield is-${key}`;
+      span.textContent = `${amount}${glyph}`;
+      return span;
+    }),
+  );
 }
 
 function describeUnit(unit: Unit): string {
@@ -262,17 +306,28 @@ async function start(): Promise<void> {
     const local = state.players[controls.localPlayerId()];
     if (!local) return;
 
-    if (!hasEndedTurn(state, local.id)) {
-      statusEl.textContent = `Turn ${state.turn} — ${local.name}`;
-      statusEl.style.color = local.color;
-      return;
+    // Two voices in one short line: the turn is a count, so it is mono, and the
+    // player is a name, so it is the naming face — in their own colour while
+    // they still have moves to make.
+    const turn = document.createElement('span');
+    turn.className = 'status-turn';
+    turn.textContent = `Turn ${state.turn}`;
+    const who = document.createElement('span');
+    who.className = 'status-name';
+
+    const playing = !hasEndedTurn(state, local.id);
+    statusEl.classList.toggle('is-waiting', !playing);
+    if (playing) {
+      who.textContent = local.name;
+      who.style.color = local.color;
+    } else {
+      const waiting = state.players.filter((player) => !hasEndedTurn(state, player.id));
+      who.textContent =
+        waiting.length > 0
+          ? `Waiting: ${waiting.map((p) => p.name).join(', ')}`
+          : 'resolving';
     }
-    const waiting = state.players.filter((player) => !hasEndedTurn(state, player.id));
-    statusEl.textContent =
-      waiting.length > 0
-        ? `Turn ${state.turn} — Waiting: ${waiting.map((p) => p.name).join(', ')}`
-        : `Turn ${state.turn} — resolving`;
-    statusEl.style.color = '#9fb0c2';
+    statusEl.replaceChildren(turn, who);
   }
 
   /**
@@ -341,10 +396,12 @@ async function start(): Promise<void> {
       infoTerrain.textContent = described.terrain + (described.hills ? ' (hills)' : '');
       infoFeature.textContent = described.feature;
       infoOffset.textContent = `col ${hover.tile.col}, row ${hover.tile.row}`;
+      showTileYields(hover.tile);
     } else {
       infoTerrain.textContent = '—';
       infoFeature.textContent = '—';
       infoOffset.textContent = '—';
+      infoYields.textContent = '—';
     }
 
     infoUnit.textContent = selected ? describeUnit(selected) : '—';
@@ -352,11 +409,26 @@ async function start(): Promise<void> {
 
   // --- lifecycle ------------------------------------------------------------
 
+  /**
+   * Turn announcements. Created before `controls` because `controls` reports
+   * into it: a resolved turn is announced to the seat that is about to play it,
+   * and a harness seat hop says whose chair you have just been moved to.
+   */
+  const splash = createTurnSplash(turnSplashEl);
+
   const controls = createGameControls({
     viewport: viewportEl,
     renderer,
     getGame: () => game,
     onUpdate: updatePanel,
+    onTurnResolved: () => {
+      const local = game.state.players[controls.localPlayerId()];
+      if (local) splash.announceTurn(local.name);
+    },
+    onSeatAdvanced: (playerId) => {
+      const player = game.state.players[playerId];
+      if (player) splash.announceSeat(player.name);
+    },
   });
 
   /**
@@ -385,6 +457,9 @@ async function start(): Promise<void> {
   });
 
   function newGameFromControls(): void {
+    // An announcement about the game that just ended has nothing to say about
+    // the one starting, so it goes with it.
+    splash.clear();
     game = createGame(currentConfig());
     renderer.setGameState(game.state);
     controls.refresh();

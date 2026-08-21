@@ -1,0 +1,242 @@
+<title>WebCiv Specimen</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Sans:ital,wght@0,400..700;1,400&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* Committed single look: the tabletop, second take — bolder ink, hotter accents. */
+  :root {
+    --table: #e9e2cf;
+    --parchment: #f7f2e1;
+    --ink: #1d1a20;
+    --ink-soft: #56505a;
+    --vermilion: #d4502e;
+    --teal: #1f8a85;
+    --cobalt: #2757b8;
+    --gilt: #c8901f;
+    --grape: #7b3fa8;
+    --y-food: #3f9636;
+    --y-prod: #c26a1d;
+    --y-gold: #c8901f;
+    --y-sci: #2757b8;
+    --y-cul: #7b3fa8;
+  }
+  body {
+    background: var(--table);
+    color: var(--ink);
+    font-family: "Instrument Sans", system-ui, sans-serif;
+    font-size: 1.04rem;
+    line-height: 1.6;
+    margin: 0;
+    padding: 3rem 1.25rem 5rem;
+  }
+  main { max-width: 47rem; margin: 0 auto; }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--vermilion); margin: 0 0 1rem;
+  }
+  h2 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 1.55rem; font-weight: 400; letter-spacing: 0.01em;
+    margin: 3rem 0 1rem; padding-top: 1.4rem;
+    border-top: 3px solid var(--ink);
+  }
+  h2 em { font-style: italic; color: var(--vermilion); }
+  p { margin: 0.6rem 0; }
+  p.note { color: var(--ink-soft); font-size: 0.95rem; }
+  code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.85em; }
+
+  /* ---- title treatments ---- */
+  .marquee {
+    background: var(--parchment);
+    border: 3px solid var(--ink);
+    border-radius: 10px;
+    box-shadow: 8px 8px 0 var(--ink);
+    padding: 2.6rem 1.5rem 2rem;
+    text-align: center;
+    margin: 1.3rem 0 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .marquee .opt {
+    position: absolute; top: 0.7rem; left: 0.9rem;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .title-instrument {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(2.6rem, 9vw, 4.3rem);
+    letter-spacing: 0.005em;
+    line-height: 1.02;
+    margin: 0;
+  }
+  .title-instrument em { font-style: italic; }
+  .title-fraunces {
+    font-family: Fraunces, Georgia, serif;
+    font-weight: 640;
+    font-variation-settings: "opsz" 144, "SOFT" 60;
+    font-size: clamp(2.4rem, 8.5vw, 4rem);
+    letter-spacing: -0.015em;
+    line-height: 1.02;
+    margin: 0;
+  }
+  .marquee .sub {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-style: italic;
+    color: var(--ink-soft);
+    margin: 0.6rem 0 0;
+    font-size: 1.15rem;
+  }
+  .marquee .stamp {
+    display: inline-block; margin-top: 1rem;
+    background: var(--vermilion); color: var(--parchment);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.66rem; letter-spacing: 0.18em; text-transform: uppercase;
+    padding: 0.3rem 0.9rem; border-radius: 999px;
+    border: 2px solid var(--ink);
+  }
+  .marquee.alt .stamp { background: var(--teal); }
+
+  /* ---- type ramp ---- */
+  .ramp { background: var(--parchment); border: 3px solid var(--ink); border-radius: 10px; padding: 1.1rem 1.3rem; box-shadow: 6px 6px 0 var(--ink); }
+  .ramp > div { padding: 0.6rem 0; border-bottom: 1.5px dashed rgba(29,26,32,0.3); }
+  .ramp > div:last-child { border-bottom: 0; }
+  .ramp .label { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.66rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-soft); display: block; margin-bottom: 0.15rem; }
+  .r-display { font-family: "Instrument Serif", Georgia, serif; font-size: 2rem; line-height: 1.1; }
+  .r-display em { font-style: italic; color: var(--vermilion); }
+  .r-city { font-family: Fraunces, Georgia, serif; font-weight: 600; font-variation-settings: "opsz" 90; font-size: 1.5rem; letter-spacing: -0.01em; }
+  .r-flavor { font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-size: 1.2rem; }
+  .r-ui { font-weight: 600; font-size: 1rem; }
+  .r-num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1.05rem; }
+
+  /* ---- palette ---- */
+  .chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.8rem, 1fr)); gap: 0.8rem; }
+  .chip { border: 2.5px solid var(--ink); border-radius: 8px; overflow: hidden; background: var(--parchment); box-shadow: 4px 4px 0 var(--ink); }
+  .chip b { display: block; height: 3.6rem; }
+  .chip span { display: block; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.66rem; letter-spacing: 0.05em; padding: 0.32rem 0.5rem; color: var(--ink); }
+
+  /* ---- components ---- */
+  .stage { background: var(--parchment); border: 3px solid var(--ink); border-radius: 10px; padding: 1.4rem; box-shadow: 6px 6px 0 var(--ink); display: flex; flex-direction: column; gap: 1.25rem; align-items: flex-start; }
+
+  .yieldbar { display: flex; gap: 1.2rem; background: var(--ink); color: var(--parchment); border-radius: 12px; padding: 0.6rem 1.2rem; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1.02rem; font-variant-numeric: tabular-nums; border: 2.5px solid var(--ink); box-shadow: 4px 4px 0 rgba(29,26,32,0.35); }
+  .yieldbar b { font-weight: 500; }
+
+  .turnsplash {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 2.1rem; line-height: 1;
+    background: var(--vermilion); color: var(--parchment);
+    border: 3px solid var(--ink); border-radius: 10px;
+    padding: 0.7rem 1.6rem 0.85rem;
+    box-shadow: 6px 6px 0 var(--ink);
+    transform: rotate(-1.2deg);
+  }
+  .turnsplash em { font-style: italic; }
+
+  .btnrow { display: flex; gap: 0.9rem; flex-wrap: wrap; }
+  .btn {
+    font-family: "Instrument Sans", system-ui, sans-serif; font-weight: 700; letter-spacing: 0.02em;
+    font-size: 1.02rem;
+    background: var(--vermilion); color: var(--parchment);
+    border: 2.5px solid var(--ink); border-radius: 8px;
+    padding: 0.55rem 1.5rem;
+    box-shadow: 4px 4px 0 var(--ink);
+    cursor: pointer;
+  }
+  .btn.teal { background: var(--teal); }
+  .btn.quiet { background: var(--parchment); color: var(--ink); }
+  .btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+
+  .card {
+    width: 15.5rem; background: var(--parchment);
+    border: 3px solid var(--ink); border-radius: 12px;
+    box-shadow: 7px 7px 0 var(--ink);
+    overflow: hidden;
+    transform: rotate(0.8deg);
+  }
+  .card header { background: var(--grape); color: var(--parchment); padding: 0.6rem 1rem 0.5rem; display: flex; justify-content: space-between; align-items: baseline; border-bottom: 3px solid var(--ink); }
+  .card header h4 { font-family: Fraunces, Georgia, serif; font-weight: 640; font-variation-settings: "opsz" 100; font-size: 1.25rem; letter-spacing: -0.01em; margin: 0; }
+  .card header small { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; }
+  .card .body { padding: 0.9rem 1rem 1.1rem; }
+  .card .effect { font-weight: 700; margin: 0 0 0.45rem; font-size: 1.02rem; }
+  .card .effect span { color: var(--y-food); }
+  .card .flavor { font-family: "Instrument Serif", Georgia, serif; font-style: italic; font-size: 1rem; color: var(--ink-soft); margin: 0; }
+
+  .banner {
+    display: inline-flex; align-items: center; gap: 0.65rem;
+    background: var(--ink); color: var(--parchment);
+    border-radius: 999px;
+    padding: 0.32rem 1rem 0.32rem 0.5rem;
+    box-shadow: 4px 4px 0 rgba(29,26,32,0.35);
+  }
+  .banner .pop { background: var(--teal); border-radius: 999px; width: 1.7rem; height: 1.7rem; display: grid; place-items: center; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.88rem; border: 2px solid var(--parchment); }
+  .banner .name { font-family: Fraunces, Georgia, serif; font-weight: 560; font-size: 1.1rem; letter-spacing: 0; }
+  .banner .prod { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.72rem; color: #d9c99a; }
+
+  .tip { background: var(--ink); color: var(--parchment); border-radius: 8px; padding: 0.6rem 0.9rem; font-size: 0.9rem; max-width: 17rem; box-shadow: 5px 5px 0 rgba(29,26,32,0.3); }
+  .tip b { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 1.05rem; display: block; margin-bottom: 0.15rem; }
+  .tip .y { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.82rem; }
+  .yf { color: #7fd06c; } .yp { color: #eda75f; } .yg { color: #ecc154; }
+</style>
+
+<main>
+  <p class="eyebrow">WebCiv · design-language specimen · take two: skinnier, hotter, harder ink</p>
+
+  <h2>Title treatments — <em>two modern voices</em></h2>
+  <div class="marquee">
+    <span class="opt">option a · instrument serif</span>
+    <p class="title-instrument">Magister <em>Ludi</em></p>
+    <p class="sub">a game of everything mankind has thought</p>
+    <span class="stamp">skinny · sharp · editorial</span>
+  </div>
+  <div class="marquee alt">
+    <span class="opt">option b · fraunces</span>
+    <p class="title-fraunces">Theatrum Mundi</p>
+    <p class="sub">all the world, staged small</p>
+    <span class="stamp">thick joins · soft ink · warm</span>
+  </div>
+  <p class="note">Instrument Serif is the skinny one — hairline-adjacent strokes, sharp modern cut, and its italic (the red <em>Ludi</em>) is the punchiest single move in the whole system. Fraunces is the thick-ligature energy — high optical size gives it heavy, soft-inked joins, like letterpress pushed too hard into paper. Swap either name into either face; they're set opposite here only for contrast.</p>
+
+  <h2>Type ramp</h2>
+  <div class="ramp">
+    <div><span class="label">display · Instrument Serif + italic accent</span><span class="r-display">The Classical <em>Era</em></span></div>
+    <div><span class="label">names · Fraunces 600 (cities, leaders, cards)</span><span class="r-city">Alexandria</span></div>
+    <div><span class="label">flavor · Instrument Serif italic</span><span class="r-flavor">"Good fences make good neighbours."</span></div>
+    <div><span class="label">interface · Instrument Sans 600 (dense UI)</span><span class="r-ui">Build queue · 4 items · granary next</span></div>
+    <div><span class="label">figures · IBM Plex Mono (all numbers, tabular)</span><span class="r-num">+12.4 ⚙ · 087/120 🔬 · turn 143</span></div>
+  </div>
+  <p class="note">Same three-voice rule as before — serifs speak, the sans works, the mono counts — but the whole ramp is now one family tree: Instrument Serif and Instrument Sans are siblings, Fraunces plays the heavyweight. No serif below ~15px, ever.</p>
+
+  <h2>Palette — same board, hotter blood</h2>
+  <div class="chips">
+    <div class="chip"><b style="background:#1d1a20"></b><span>ink 1D1A20</span></div>
+    <div class="chip"><b style="background:#f7f2e1"></b><span>parchment F7F2E1</span></div>
+    <div class="chip"><b style="background:#d4502e"></b><span>vermilion D4502E</span></div>
+    <div class="chip"><b style="background:#1f8a85"></b><span>teal 1F8A85</span></div>
+    <div class="chip"><b style="background:#2757b8"></b><span>cobalt 2757B8</span></div>
+    <div class="chip"><b style="background:#7b3fa8"></b><span>grape 7B3FA8</span></div>
+    <div class="chip"><b style="background:#c8901f"></b><span>gilt C8901F</span></div>
+  </div>
+  <p class="note">The board keeps its muted sage-and-wheat toon palette — that's scenery. The <em>interface</em> gets the saturated cuts: vermilion for the local player's actions, teal for the rival, cobalt/grape/gilt as the science/culture/gold voices. Bolder here means UI color is louder than terrain, never competing with it.</p>
+
+  <h2>Components — <em>harder shadows, bigger moves</em></h2>
+  <div class="stage">
+    <div class="turnsplash">Your <em>turn</em>, Magister</div>
+    <div class="yieldbar"><b class="yf">🌾 +14</b><b class="yp">⚙ +9</b><b class="yg">🪙 +6</b><b style="color:#82aef2">🔬 +11</b><b style="color:#cf9fee">🎭 +7</b></div>
+    <div class="btnrow">
+      <button class="btn">End Turn</button>
+      <button class="btn teal">Found City</button>
+      <button class="btn quiet">Tech Tree</button>
+    </div>
+    <div class="banner"><span class="pop">6</span><span class="name">Carthage</span><span class="prod">granary · 3t</span></div>
+    <div class="card">
+      <header><h4>Serfdom</h4><small>economic</small></header>
+      <div class="body">
+        <p class="effect"><span>+1 🌾</span> from every worked farm</p>
+        <p class="flavor">The land remembers who bent to it.</p>
+      </div>
+    </div>
+    <div class="tip"><b>Grassland Hills</b><span class="y"><span class="yf">2🌾</span> <span class="yp">2⚙</span> · move 2 · defense +25%</span></div>
+  </div>
+  <p class="note">What changed from take one: ink borders 2px → 3px and shadows now solid ink (not translucent grey) at 6–8px throw — the "sticker on cardboard" read. A degree of rotation on cards and splashes so they sit like played pieces, not laid-out divs. The turn splash is the new loudest element: big skinny serif on hot vermilion — announcements get the display face and a full color block, everything else stays quiet so it lands.</p>
+</main>

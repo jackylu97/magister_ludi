@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebCiv — Milestone 3: Cities</title>
+    <!-- The interface's three voices (see docs/design-specimen.html): Instrument
+         Serif announces, Fraunces names, Instrument Sans works, IBM Plex Mono
+         counts. Every stack in style.css has a real local fallback, so a blocked
+         font request costs polish and nothing else. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
   </head>
   <body>
     <div id="viewport">
@@ -26,8 +36,14 @@
          error, if a sprite 404s or WebGL is unavailable). -->
     <p id="boot">Loading…</p>
 
+    <!-- Turn announcements are appended here by src/ui/turnSplash.ts. It is a
+         live region so the announcement reaches a screen reader too, and it
+         never takes a pointer event: the board underneath stays draggable. -->
+    <div id="turn-splash" aria-live="polite"></div>
+
     <div id="panel">
-      <h1>WebCiv</h1>
+      <!-- The wordmark line: name in the display face, era stamp in mono. -->
+      <h1 class="wordmark">Web<em>Civ</em><span class="wordmark-mark">cities</span></h1>
 
       <div class="row">
         <label for="seed">Seed</label>
@@ -40,8 +56,8 @@
       </div>
 
       <div class="row">
-        <button id="regenerate">New Game</button>
-        <button id="random-seed">Random</button>
+        <button id="regenerate" class="btn btn-quiet">New Game</button>
+        <button id="random-seed" class="btn btn-quiet">Random</button>
       </div>
 
       <p id="status" class="status">—</p>
@@ -52,13 +68,13 @@
       <div id="seats" class="seats"></div>
 
       <div class="row">
-        <button id="end-turn">End Turn</button>
+        <button id="end-turn" class="btn btn-primary">End Turn</button>
       </div>
 
       <!-- Enabled only when the selected unit could actually found a city here;
            its title says why not when it is disabled. -->
       <div class="row">
-        <button id="found-city" disabled>Found City</button>
+        <button id="found-city" class="btn btn-second" disabled>Found City</button>
       </div>
 
       <dl id="info">
@@ -70,6 +86,8 @@
         <dd id="info-terrain">—</dd>
         <dt>Feature</dt>
         <dd id="info-feature">—</dd>
+        <dt>Yields</dt>
+        <dd id="info-yields">—</dd>
         <dt>Offset</dt>
         <dd id="info-offset">—</dd>
         <dt>Unit</dt>

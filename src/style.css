@@ -1,6 +1,71 @@
+/*
+ * WebCiv's interface skin.
+ *
+ * The design language is fixed by `docs/design-specimen.html`, and this file is
+ * that specimen applied to a HUD: parchment surfaces, 3px ink borders, solid
+ * (never blurred) ink shadows, small radii, and buttons that physically depress.
+ *
+ * Three voices, one rule each:
+ *   · Instrument Serif announces — the wordmark, the turn splash, era text.
+ *   · Fraunces names — cities, terrain, panel titles.
+ *   · Instrument Sans works — every dense label and button.
+ *   · IBM Plex Mono counts — every number, always tabular.
+ * No serif below ~15px; below that the sans and the mono do all the talking.
+ *
+ * Where this departs from the specimen it is for HUD density: the specimen sets
+ * body copy at ~1.04rem on a wide page, while the panels here are 240–290px
+ * columns over a live board. Type sizes are scaled down about a step, shadow
+ * throws are 4–5px rather than 6–8px, and the ±1° rotation is spent only on the
+ * splash — a control panel that sits crooked reads as broken, not as played.
+ */
+
 :root {
-  color-scheme: dark;
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+
+  /* --- ink and paper ---------------------------------------------------- */
+  --ink: #1d1a20;
+  --ink-soft: #56505a;
+  --ink-faint: rgba(29, 26, 32, 0.42);
+  --parchment: #f7f2e1;
+  --table: #e9e2cf;
+
+  /* --- accents ---------------------------------------------------------- */
+  --vermilion: #d4502e;
+  --teal: #1f8a85;
+  --cobalt: #2757b8;
+  --grape: #7b3fa8;
+  --gilt: #c8901f;
+
+  /* --- yield voices ----------------------------------------------------- */
+  --y-food: #3f9636;
+  --y-prod: #c26a1d;
+  --y-gold: #c8901f;
+  --y-sci: #2757b8;
+  --y-cul: #7b3fa8;
+
+  /* Yields drawn on ink instead of parchment need to be lifted to stay legible
+     — the banner and the tooltip are the only two dark surfaces in the set. */
+  --y-food-lit: #7fd06c;
+  --y-prod-lit: #eda75f;
+  --y-gold-lit: #ecc154;
+  --y-sci-lit: #82aef2;
+  --y-cul-lit: #cf9fee;
+
+  /* --- faces ------------------------------------------------------------ */
+  --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --face-name: Fraunces, Georgia, 'Iowan Old Style', serif;
+  --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --face-num: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* --- component recipe ------------------------------------------------- */
+  --border: 3px;
+  --border-thin: 2px;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 5px 5px 0 var(--ink);
+  --shadow-sm: 3px 3px 0 var(--ink);
+
+  font-family: var(--face-ui);
 }
 
 * {
@@ -12,8 +77,26 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #0d1b2a;
-  color: #e8eef5;
+  background: var(--table);
+  color: var(--ink);
+}
+
+/* Keyboard focus is one ink ring everywhere, offset so it reads against both
+   parchment and the coloured fills. Never removed, only restyled. */
+:focus-visible {
+  outline: 2.5px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* An eyebrow: the mono uppercase micro-label the specimen uses to title
+   sections. Applied through classes rather than used as one. */
+.eyebrow {
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 #viewport {
@@ -58,46 +141,82 @@ body {
   z-index: 20;
   inset: auto 0 0 0;
   margin: 0;
-  padding: 10px 14px;
-  background: rgba(10, 18, 28, 0.9);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  color: #9fb0c2;
-  font-size: 12px;
+  padding: 9px 14px;
+  background: var(--ink);
+  color: var(--parchment);
+  border-top: var(--border) solid var(--ink);
+  font-family: var(--face-num);
+  font-size: 11px;
+  letter-spacing: 0.04em;
   white-space: pre-wrap;
 }
 
 #boot.error {
-  color: #ff9d9d;
+  background: var(--vermilion);
+  color: var(--parchment);
 }
 
+/* --- the main panel -------------------------------------------------------
+   A parchment card pinned to the top-left: the game's own controls, the seat
+   chips, and whatever the pointer is hovering over. */
 #panel {
   position: fixed;
-  top: 12px;
-  left: 12px;
+  top: 14px;
+  left: 14px;
   z-index: 10;
-  width: 232px;
-  padding: 12px 14px 10px;
-  border-radius: 10px;
-  background: rgba(10, 18, 28, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(6px);
+  width: 244px;
+  padding: 11px 13px 11px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--parchment);
+  box-shadow: var(--shadow);
+  font-family: var(--face-ui);
   font-size: 12px;
   line-height: 1.45;
+  color: var(--ink);
 }
 
-#panel h1 {
-  margin: 0 0 10px;
-  font-size: 15px;
-  letter-spacing: 0.06em;
+/* The wordmark line: display face, italic accent, mono era stamp. One line, so
+   the panel spends a title's worth of drama on a title's worth of height. */
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0 0 9px;
+  padding-bottom: 8px;
+  border-bottom: var(--border) solid var(--ink);
+  font-family: var(--face-display);
+  font-size: 27px;
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: 0.005em;
+}
+
+.wordmark em {
+  font-style: italic;
+  color: var(--vermilion);
+}
+
+.wordmark-mark {
+  margin-left: auto;
+  align-self: center;
+  padding: 2px 7px 1px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--parchment);
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #ffd166;
 }
 
 #panel .row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 7px;
+  margin-bottom: 7px;
 }
 
 /* A checkbox row labels to the right of its box, not in the fixed label column. */
@@ -106,61 +225,153 @@ body {
   color: inherit;
 }
 
+/* Native box, hot accent: one property does what a hand-built checkbox would
+   need a dozen of, and it keeps the control's own keyboard behaviour. */
 #panel .row.check input {
   flex: 0 0 auto;
-}
-
-#stats {
-  margin: 0 0 8px;
-  color: #7f90a2;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  white-space: pre-wrap;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--vermilion);
 }
 
 #panel label {
-  width: 40px;
-  color: #9fb0c2;
+  width: 34px;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
-#panel input,
+/* Text fields only: the shadow checkbox stays a native control (see below), and
+   a native control that has been given a border and a background is a control
+   that renders differently in every browser. */
+#panel input:not([type='checkbox']),
 #panel select {
   flex: 1;
   min-width: 0;
-  padding: 4px 6px;
-  border-radius: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
-  color: inherit;
-  font: inherit;
+  padding: 4px 7px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: #fffdf4;
+  color: var(--ink);
+  font-family: var(--face-num);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
-#panel button {
+#panel select {
+  font-family: var(--face-ui);
+  font-weight: 600;
+}
+
+/* --- buttons --------------------------------------------------------------
+   Every button in the game is one of these: a bordered block that sits on a
+   hard ink shadow and drops onto the page when pressed. */
+.btn {
   flex: 1;
-  padding: 5px 8px;
-  border-radius: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 209, 102, 0.16);
-  color: #ffd166;
-  font: inherit;
+  padding: 6px 10px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
+  transition: transform 60ms ease-out, box-shadow 60ms ease-out;
 }
 
-#panel button:hover {
-  background: rgba(255, 209, 102, 0.28);
+.btn-primary {
+  background: var(--vermilion);
+  color: var(--parchment);
+  font-size: 13px;
+  padding: 7px 10px;
 }
+
+.btn-second {
+  background: var(--teal);
+  color: var(--parchment);
+}
+
+.btn-quiet {
+  background: var(--parchment);
+  color: var(--ink);
+}
+
+.btn:hover:not(:disabled) {
+  background-image: linear-gradient(rgba(29, 26, 32, 0.09), rgba(29, 26, 32, 0.09));
+}
+
+/* The whole point of the language: a press is a physical event. */
+.btn:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.btn:disabled {
+  background: var(--table);
+  color: var(--ink-faint);
+  border-color: var(--ink-faint);
+  box-shadow: 3px 3px 0 rgba(29, 26, 32, 0.18);
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+}
+
+/* --- status and seats ----------------------------------------------------- */
 
 .status {
-  margin: 10px 0 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 10px 0 7px;
   padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: var(--border-thin) dashed var(--ink-faint);
   font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
 }
 
-/* Seat chips: one per player, tinted with that player's colour. The live seat is
-   outlined, a seat that has ended its turn fades out and shows a tick. */
+/* "Turn 14" counts, so it is mono; the name is a name, so it is Fraunces. */
+.status-turn {
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.status-name {
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 90;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+/* Waiting on somebody else is a quiet state: the panel says so in the working
+   face, not in a colour that competes with your own turn. */
+.status.is-waiting .status-name {
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* Seat chips: one per player, filled with that player's colour. The live seat
+   carries a thicker ink outline and a lifted shadow; a seat that has ended its
+   turn goes to parchment and shows a tick. */
 .seats {
   display: flex;
   flex-wrap: wrap;
@@ -170,58 +381,236 @@ body {
 
 #panel button.seat {
   flex: 0 1 auto;
-  padding: 2px 7px;
-  border: 1px solid transparent;
+  padding: 2px 9px 3px;
+  border: var(--border-thin) solid var(--ink);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--seat-color) 26%, transparent);
-  color: var(--seat-color);
+  background: var(--seat-color);
+  color: var(--parchment);
+  font-family: var(--face-ui);
   font-size: 11px;
+  font-weight: 700;
   letter-spacing: 0.02em;
+  line-height: 1.4;
   white-space: nowrap;
+  box-shadow: 0 0 0 var(--ink);
+  cursor: pointer;
+  transition: transform 60ms ease-out, box-shadow 60ms ease-out;
 }
 
 #panel button.seat:hover {
-  background: color-mix(in srgb, var(--seat-color) 40%, transparent);
+  filter: brightness(1.08);
 }
 
+/* Your own seat is the one that is "out on the table". */
 #panel button.seat.is-local {
-  border-color: var(--seat-color);
+  box-shadow: var(--shadow-sm);
+  transform: translate(-1px, -1px);
 }
 
 #panel button.seat.is-done {
-  opacity: 0.45;
+  background: var(--parchment);
+  color: var(--ink-soft);
 }
+
+#panel button.seat:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #panel button.seat {
+    transition: none;
+  }
+}
+
+/* The 3D renderer's own stats line: numbers, therefore mono. */
+#stats {
+  margin: 0 0 8px;
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+}
+
+/* --- the info readout ----------------------------------------------------- */
 
 #info {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 2px 10px;
-  margin: 10px 0 8px;
+  gap: 3px 10px;
+  align-items: baseline;
+  margin: 9px 0 8px;
   padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: var(--border-thin) dashed var(--ink-faint);
 }
 
 #info dt {
-  color: #9fb0c2;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 #info dd {
   margin: 0;
+  font-family: var(--face-num);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
+}
+
+/* The terrain is the one name in this block, so it gets the naming face. The
+   selectors carry `#info` only to outrank the `#info dd` default above. */
+#info #info-terrain {
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 80;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+
+#info #info-feature,
+#info #info-unit {
+  font-family: var(--face-ui);
+  font-size: 11px;
+}
+
+/* Tile yields, each in its own voice. */
+.tile-yield {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.tile-yield + .tile-yield {
+  margin-left: 7px;
+}
+
+.tile-yield.is-food {
+  color: var(--y-food);
+}
+.tile-yield.is-production {
+  color: var(--y-prod);
+}
+.tile-yield.is-gold {
+  color: var(--y-gold);
 }
 
 .hint {
   margin: 0;
-  color: #7f90a2;
-  font-size: 11px;
+  font-family: var(--face-ui);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
 }
 
 kbd {
   padding: 0 4px;
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
-  font-family: inherit;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+/* --- the turn splash ------------------------------------------------------
+   The loudest element in the game and the only rotated one: big skinny serif on
+   hot vermilion, sitting over the middle of the board for a beat and a half. */
+#turn-splash {
+  position: fixed;
+  z-index: 30;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.turn-splash {
+  padding: 9px 26px 12px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--vermilion);
+  color: var(--parchment);
+  font-family: var(--face-display);
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1.05;
+  text-align: center;
+  box-shadow: 6px 6px 0 var(--ink);
+  transform: rotate(-1.2deg);
+  animation: splash-pop 260ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+.turn-splash em {
+  font-style: italic;
+}
+
+/* The seat hop is housekeeping, not an occasion: same treatment, half the
+   volume, and the rival's teal so it never reads as "your turn". */
+.turn-splash.is-seat {
+  padding: 5px 16px 7px;
+  font-size: 1.15rem;
+  background: var(--teal);
+  box-shadow: 4px 4px 0 var(--ink);
+  transform: rotate(-0.8deg);
+}
+
+.turn-splash.is-seat .turn-splash-name {
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 100;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.turn-splash.is-leaving {
+  animation: splash-out 180ms ease-in both;
+}
+
+@keyframes splash-pop {
+  from {
+    opacity: 0;
+    transform: rotate(-1.2deg) scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-1.2deg) scale(1);
+  }
+}
+
+@keyframes splash-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* No pop, no scale: it appears, it fades. */
+@media (prefers-reduced-motion: reduce) {
+  .turn-splash {
+    animation: splash-in-reduced 120ms linear both;
+  }
+  .turn-splash.is-seat {
+    animation: splash-in-reduced 120ms linear both;
+  }
+  .turn-splash.is-leaving {
+    animation: splash-out 120ms linear both;
+  }
+  @keyframes splash-in-reduced {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 /* --- city banners ---------------------------------------------------------
@@ -236,48 +625,59 @@ kbd {
   overflow: hidden;
 }
 
+/* An ink pill: population roundel in the owner's colour, name in the naming
+   face, and what it is building in small mono. */
 .city-banner {
   position: absolute;
   top: 0;
   left: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 8px 2px 3px;
+  gap: 7px;
+  padding: 3px 12px 3px 3px;
+  border: var(--border-thin) solid var(--ink);
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--banner-color) 60%, transparent);
-  background: rgba(10, 18, 28, 0.82);
-  color: #e8eef5;
-  font-size: 11px;
-  line-height: 1.5;
+  background: var(--ink);
+  color: var(--parchment);
+  line-height: 1.35;
   white-space: nowrap;
   /* The banner is anchored at the city's tile centre and floats above it; the
      margin is what lifts it clear of the banner pole in the 3D scene. */
   margin-top: -46px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  box-shadow: 3px 3px 0 rgba(29, 26, 32, 0.4);
 }
 
 .city-banner-pop {
   display: inline-grid;
   place-items: center;
-  min-width: 17px;
-  height: 17px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border: 2px solid var(--parchment);
   border-radius: 999px;
   background: var(--banner-color);
-  color: #0d1b2a;
-  font-weight: 700;
-  font-size: 10px;
+  color: var(--parchment);
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .city-banner-name {
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 90;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  font-size: 1.05rem;
+  letter-spacing: -0.005em;
 }
 
 .city-banner-production {
-  padding-left: 6px;
-  border-left: 1px solid rgba(255, 255, 255, 0.16);
-  color: #9fb0c2;
+  padding-left: 8px;
+  border-left: 2px solid rgba(247, 242, 225, 0.3);
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: #d9c99a;
 }
 
 /* Only your own cities are clickable; everyone else's is a label. */
@@ -287,26 +687,30 @@ kbd {
 }
 
 .city-banner.is-mine:hover {
-  background: rgba(18, 30, 44, 0.94);
   border-color: var(--banner-color);
+  box-shadow: 4px 4px 0 rgba(29, 26, 32, 0.5);
 }
 
-/* --- city panel ----------------------------------------------------------- */
+/* --- the city panel -------------------------------------------------------
+   The biggest surface in the game, and the one that carries the most numbers. */
 #city-panel {
   position: fixed;
-  top: 12px;
-  right: 12px;
-  bottom: 12px;
+  top: 14px;
+  right: 14px;
+  bottom: 14px;
   z-index: 12;
-  width: 268px;
-  padding: 12px 14px;
+  width: 286px;
+  padding: 11px 13px 13px;
   overflow-y: auto;
-  border-radius: 10px;
-  background: rgba(10, 18, 28, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(6px);
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--parchment);
+  box-shadow: var(--shadow);
+  font-family: var(--face-ui);
   font-size: 12px;
   line-height: 1.45;
+  color: var(--ink);
+  scrollbar-color: var(--ink) var(--table);
 }
 
 #city-panel[hidden] {
@@ -315,17 +719,23 @@ kbd {
 
 #city-panel h2 {
   margin: 0;
-  font-size: 15px;
-  letter-spacing: 0.04em;
-  color: #ffd166;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 110;
+  font-weight: 600;
+  font-size: 21px;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
 }
 
+/* Section labels: the specimen's mono uppercase eyebrow. */
 #city-panel h3 {
   margin: 14px 0 6px;
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #9fb0c2;
+  color: var(--vermilion);
 }
 
 .city-header {
@@ -333,131 +743,208 @@ kbd {
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 9px;
+  border-bottom: var(--border) solid var(--ink);
 }
 
 .city-size {
-  color: #9fb0c2;
+  display: inline-block;
+  margin-top: 2px;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 .city-close {
   flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   padding: 0;
-  border-radius: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
-  color: #9fb0c2;
-  font: inherit;
-  font-size: 14px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1;
+  box-shadow: 2px 2px 0 var(--ink);
   cursor: pointer;
 }
 
 .city-close:hover {
-  color: #e8eef5;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--vermilion);
+  color: var(--parchment);
 }
 
-/* One chip per yield, each in the colour that yield is always drawn in. */
+.city-close:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* One cell per yield, each in the colour that yield is always drawn in. */
 .city-yields {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 4px;
-  margin: 10px 0;
+  margin: 11px 0;
 }
 
 .city-yield {
   display: grid;
   justify-items: center;
-  padding: 4px 2px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.05);
+  gap: 1px;
+  padding: 5px 2px 4px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
 }
 
 .city-yield-value {
-  font-size: 14px;
-  font-weight: 700;
+  font-family: var(--face-num);
+  font-size: 15px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .city-yield-label {
-  font-size: 9px;
-  letter-spacing: 0.06em;
+  font-family: var(--face-num);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #7f90a2;
+  color: var(--ink-soft);
 }
 
 .city-yield.is-food .city-yield-value {
-  color: #7fc47f;
+  color: var(--y-food);
 }
 .city-yield.is-production .city-yield-value {
-  color: #d9a05b;
+  color: var(--y-prod);
 }
 .city-yield.is-gold .city-yield-value {
-  color: #e6c85a;
+  color: var(--y-gold);
 }
 .city-yield.is-science .city-yield-value {
-  color: #74b6e0;
+  color: var(--y-sci);
 }
 .city-yield.is-culture .city-yield-value {
-  color: #c08ad6;
+  color: var(--y-cul);
 }
 
+/* --- progress bars: chunky, ink-bordered, flat fills ---------------------- */
+
 .city-progress {
-  margin: 8px 0;
+  margin: 9px 0;
 }
 
 .city-progress-label {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  color: #9fb0c2;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.city-progress-rate {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--ink);
 }
 
 .city-progress-label .is-bad {
-  color: #e0574a;
+  color: var(--vermilion);
 }
 
 .city-progress-note {
-  color: #7f90a2;
-  font-size: 11px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--face-num);
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* The thing being built is a name, and the growth note has no name at all —
+   hence the flex row above holding one child or two equally well. */
+.city-progress-item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .city-bar {
-  height: 6px;
-  margin: 3px 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.09);
+  height: 12px;
+  margin: 4px 0 3px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 4px;
+  background: var(--table);
   overflow: hidden;
 }
 
 .city-bar-fill {
   height: 100%;
-  border-radius: 999px;
 }
 
 .city-bar-fill.is-food {
-  background: #7fc47f;
+  background: var(--y-food);
 }
 .city-bar-fill.is-production {
-  background: #d9a05b;
+  background: var(--y-prod);
 }
 
+/* --- the queue ------------------------------------------------------------ */
+
 .city-queue-list {
-  margin: 0;
-  padding-left: 18px;
   display: grid;
-  gap: 3px;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: queue;
 }
 
 .city-queue-list li {
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 4px 5px 4px 7px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  counter-increment: queue;
+}
+
+/* The item at the head of the queue is the one being built right now. */
+.city-queue-list li:first-child {
+  box-shadow: inset 4px 0 0 var(--y-prod);
+}
+
+.city-queue-list li::before {
+  content: counter(queue);
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--ink-soft);
 }
 
 .city-queue-name {
@@ -466,75 +953,119 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .city-queue-cost {
-  color: #7f90a2;
+  font-family: var(--face-num);
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
 }
 
 .city-icon-button {
   flex: 0 0 auto;
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
   padding: 0;
+  border: var(--border-thin) solid var(--ink);
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
-  color: #9fb0c2;
-  font: inherit;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
 }
 
 .city-icon-button:hover:not(:disabled) {
-  color: #e8eef5;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.city-icon-button:active:not(:disabled) {
+  transform: translate(1px, 1px);
 }
 
 .city-icon-button:disabled {
-  opacity: 0.3;
+  border-color: var(--ink-faint);
+  color: var(--ink-faint);
   cursor: default;
 }
+
+/* --- add to queue --------------------------------------------------------- */
 
 .city-buildable-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px;
+  gap: 5px;
 }
 
+/* The stripe down the left edge is what separates the two kinds: a city builds
+   many more units than buildings, so the buildings are the quieter colour. */
 .city-buildable {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 4px;
-  padding: 4px 7px;
-  border-radius: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 209, 102, 0.14);
-  color: #ffd166;
-  font: inherit;
+  gap: 5px;
+  padding: 5px 7px;
+  border: var(--border-thin) solid var(--ink);
+  border-left: 5px solid var(--y-prod);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
   font-size: 11px;
+  font-weight: 600;
+  box-shadow: 2px 2px 0 var(--ink);
   cursor: pointer;
 }
 
-/* Buildings are the quieter half of the list: a city builds many more units. */
 .city-buildable.is-building {
-  background: rgba(116, 182, 224, 0.14);
-  color: #9ecbe8;
+  border-left-color: var(--cobalt);
 }
 
 .city-buildable:hover:not(:disabled) {
-  filter: brightness(1.3);
+  background: #fffdf4;
+}
+
+.city-buildable:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
 }
 
 .city-buildable:disabled {
-  opacity: 0.35;
+  border-color: var(--ink-faint);
+  color: var(--ink-faint);
+  background: var(--table);
+  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
   cursor: default;
 }
 
+.city-buildable-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .city-buildable-cost {
-  color: inherit;
-  opacity: 0.7;
+  flex: 0 0 auto;
+  font-family: var(--face-num);
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.city-buildable:disabled .city-buildable-cost {
+  color: inherit;
+}
+
+/* The list of what the city has already built: prose, so it reads as prose. */
+.city-built .hint {
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--ink-soft);
 }

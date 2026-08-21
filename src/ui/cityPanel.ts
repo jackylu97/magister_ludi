@@ -127,10 +127,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const label = element('div', 'city-progress-label');
     label.append(element('span', undefined, 'Growth'));
     const sign = surplus > 0 ? '+' : '';
+    // The rate is a figure, so it carries the mono class; a shrinking city is
+    // the one state in this panel that gets the alarm colour.
     label.append(
       element(
         'span',
-        surplus < 0 ? 'is-bad' : undefined,
+        surplus < 0 ? 'city-progress-rate is-bad' : 'city-progress-rate',
         turns === null
           ? `${sign}${surplus} food · stalled`
           : `${sign}${surplus} food · ${turns}t`,
@@ -161,7 +163,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const label = element('div', 'city-progress-label');
     label.append(element('span', undefined, 'Production'));
     if (!item) {
-      label.append(element('span', 'is-bad', 'nothing queued'));
+      label.append(element('span', 'city-progress-rate is-bad', 'nothing queued'));
       box.append(label);
       return box;
     }
@@ -169,17 +171,22 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const cost = queueItemCost(item) ?? 0;
     const turns = turnsToFill(cost - city.hammerBasket, perTurn);
     label.append(
-      element('span', undefined, turns === null ? `+${perTurn} · stalled` : `+${perTurn} · ${turns}t`),
+      element(
+        'span',
+        'city-progress-rate',
+        turns === null ? `+${perTurn} · stalled` : `+${perTurn} · ${turns}t`,
+      ),
     );
     box.append(label);
     box.append(bar(city.hammerBasket, cost, 'is-production'));
-    box.append(
-      element(
-        'div',
-        'city-progress-note',
-        `${queueItemName(item)} — ${Math.floor(city.hammerBasket)} / ${cost}`,
-      ),
+    // What is being built is a name and what is banked is a number, so the note
+    // is two elements rather than one string: the faces differ.
+    const note = element('div', 'city-progress-note');
+    note.append(element('span', 'city-progress-item', queueItemName(item)));
+    note.append(
+      element('span', undefined, `${Math.floor(city.hammerBasket)} / ${cost}`),
     );
+    box.append(note);
     return box;
   }
 

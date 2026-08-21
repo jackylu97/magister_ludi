@@ -103,7 +103,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       const perTurn = cityYields(getGame().state, city).production;
       const turns =
         cost === null ? null : turnsToFill(cost - city.hammerBasket, perTurn);
-      const suffix = turns === null ? '' : ` ${turns}t`;
+      const suffix = turns === null ? '' : ` · ${turns}t`;
       label[2] = `${queueItemName(item)}${suffix}`;
     } else {
       label[2] = 'idle';
