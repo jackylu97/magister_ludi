@@ -1,0 +1,183 @@
+{
+  "palette": {
+    "ink": "#2f2b32",
+    "earth": "#6a5c4c",
+    "sky": "#d3ddd2",
+    "sage": "#93a877",
+    "wheat": "#bcb07c",
+    "sand": "#dcc9a1",
+    "lichen": "#9ea08e",
+    "bone": "#e8e6dc",
+    "slate": "#8c857a",
+    "pine": "#53694f",
+    "frond": "#3f5a48",
+    "lagoon": "#5e8a90",
+    "shoal": "#86aeae",
+    "crimson": "#b35843",
+    "teal": "#477f7e"
+  },
+  "terrainColor": {
+    "ocean": "lagoon",
+    "coast": "shoal",
+    "grassland": "sage",
+    "plains": "wheat",
+    "desert": "sand",
+    "tundra": "lichen",
+    "snow": "bone",
+    "mountain": "slate"
+  },
+  "featureColor": {
+    "none": "sage",
+    "forest": "pine",
+    "jungle": "frond"
+  },
+  "players": {
+    "byColor": {
+      "#e0484a": "crimson",
+      "#2fb0a8": "teal"
+    },
+    "fallbackOrder": [
+      "crimson",
+      "teal",
+      "pine",
+      "wheat",
+      "slate",
+      "bone"
+    ]
+  },
+  "sideDarken": -0.26,
+  "board": {
+    "hexRadius": 1,
+    "tileGap": 0.045,
+    "height": {
+      "ocean": -0.34,
+      "coast": -0.16,
+      "land": 0,
+      "hills": 0.4,
+      "mountain": 0.8
+    },
+    "floorY": -1.5,
+    "peak": {
+      "height": 1.15,
+      "radius": 0.62
+    },
+    "heightJitter": 0.035,
+    "yawJitter": 0.045,
+    "substratePad": 0.7,
+    "substrateDrop": 0.06,
+    "substrateShade": -0.32
+  },
+  "decor": {
+    "pine": {
+      "trunkR": 0.055,
+      "trunkH": 0.16,
+      "coneR": 0.24,
+      "coneH": 0.62
+    },
+    "jungle": {
+      "trunkR": 0.06,
+      "trunkH": 0.14,
+      "ballR": 0.27
+    },
+    "rock": {
+      "radius": 0.19
+    },
+    "spread": 0.44,
+    "sizeJitter": 0.22
+  },
+  "piece": {
+    "height": 0.92,
+    "radius": 0.2,
+    "stackSpread": 0.34
+  },
+  "city": {
+    "houseCap": 7,
+    "house": {
+      "width": 0.32,
+      "depth": 0.27,
+      "bodyH": 0.3,
+      "roofH": 0.16
+    },
+    "houseSpread": 0.52,
+    "houseJitter": 0.18,
+    "wallColor": "bone",
+    "roofColor": "slate",
+    "poleRadius": 0.035,
+    "poleHeight": 1.15,
+    "poleColor": "ink",
+    "flagWidth": 0.46,
+    "flagHeight": 0.26,
+    "flagDrop": 0.14
+  },
+  "territory": {
+    "tintScale": 0.99,
+    "tintOpacity": 0.16,
+    "borderOpacity": 0.62,
+    "workedColor": "bone",
+    "workedOpacity": 0.9,
+    "workedScale": 0.62
+  },
+  "look": {
+    "lightAzimuth": 187,
+    "lightElevation": 52,
+    "outline": 0.06,
+    "rampSteps": 3,
+    "rampFloor": 0.45,
+    "saturation": 1,
+    "shadows": true,
+    "shadowMapSize": 2048,
+    "shadowBias": -0.0006,
+    "shadowNormalBias": 0.035,
+    "lightDistance": 60,
+    "shadowExtent": 1.9
+  },
+  "camera": {
+    "elevation": 57,
+    "azimuth": 90,
+    "frustum": 14,
+    "minFrustum": 5,
+    "maxFrustum": 46,
+    "eyeDistance": 240,
+    "fitPadding": 1.06,
+    "panMs": 620,
+    "panSnapDistance": 0.4
+  },
+  "lights": {
+    "keyColor": "#ffe9c8",
+    "keyIntensity": 2.35,
+    "skyColor": "#cfe0e6",
+    "groundColor": "#8a7a63",
+    "hemiIntensity": 1.15,
+    "ambientColor": "#bcd0d6",
+    "ambientIntensity": 0.35
+  },
+  "overlay": {
+    "lift": 0.035,
+    "reachableColor": "#e8e6dc",
+    "reachableOpacity": 0.26,
+    "reachableScale": 0.82,
+    "pathColor": "#e8e6dc",
+    "pathOpacity": 0.85,
+    "pathDotRadius": 0.15,
+    "pathDotHeight": 0.05,
+    "destinationScale": 1.7,
+    "hoverColor": "#f2ead8",
+    "selectionColor": "#b35843",
+    "ringOuter": 0.94,
+    "ringWidth": 0.09,
+    "ringOpacity": 0.95
+  },
+  "hpBar": {
+    "width": 0.66,
+    "height": 0.1,
+    "lift": 0.28,
+    "backColor": "#2f2b32",
+    "fillColor": "#b35843",
+    "goodColor": "#93a877"
+  },
+  "animation": {
+    "msPerHex": 160,
+    "maxMs": 1200,
+    "hopHeight": 0.18
+  }
+}

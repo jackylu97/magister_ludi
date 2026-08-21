@@ -1,0 +1,457 @@
+import { describe, expect, it } from 'vitest';
+import { type Command, applyCommand } from '../src/sim/commands';
+import { type GameMap, type Tile, createMap, getTileAt } from '../src/sim/map';
+import { RULES } from '../src/sim/rulesData';
+import { type GameState, type Unit, createUnit, newGame } from '../src/sim/state';
+import { unitDef } from '../src/sim/unitData';
+import { unitsOnTile } from '../src/sim/units';
+
+/** A blank two-player state on a flat grassland rectangle. */
+function flatState(width = 16, height = 8): GameState {
+  const state = newGame({
+    seed: 1,
+    sizeName: 'duel',
+    players: [
+      { name: 'A', color: '#a00', isHuman: true },
+      { name: 'B', color: '#00a', isHuman: true },
+    ],
+  });
+  state.map = createMap({ width, height, terrain: 'grassland' });
+  state.units = [];
+  state.nextEntityId = 1;
+  return state;
+}
+
+function at(map: GameMap, col: number, row: number): Tile {
+  const tile = getTileAt(map, col, row);
+  if (!tile) throw new Error(`No tile at (${col}, ${row})`);
+  return tile;
+}
+
+function clone(state: GameState): GameState {
+  return JSON.parse(JSON.stringify(state)) as GameState;
+}
+
+/**
+ * Ends the turn for every seat, so the end-of-turn phases actually run. Turns
+ * are simultaneous: the pipeline fires on the *last* of these, not on each.
+ */
+function endRound(state: GameState, order?: readonly number[]): void {
+  const ids = order ?? state.players.map((player) => player.id);
+  for (const playerId of ids) {
+    expect(applyCommand(state, { type: 'endTurn', playerId })).toEqual({ ok: true });
+  }
+}
+
+/** A move order. Most units in these tests belong to player 0. */
+function move(unitId: number, col: number, row: number, playerId = 0): Command {
+  return { type: 'moveUnit', playerId, unitId, target: { col, row } };
+}
+
+/** A spawn. `playerId` (who asked) defaults to `ownerId` (whose unit it is). */
+function spawn(
+  ownerId: number,
+  unitType: string,
+  col: number,
+  row: number,
+  playerId = ownerId,
+): Command {
+  return { type: 'spawnUnit', playerId, ownerId, unitType, at: { col, row } } as Command;
+}
+
+describe('spawnUnit', () => {
+  it('puts a unit on the board at full health and movement', () => {
+    const state = flatState();
+    const result = applyCommand(state, spawn(1, 'scout', 3, 3));
+    expect(result).toEqual({ ok: true });
+    expect(state.units).toHaveLength(1);
+    const scout = state.units[0]!;
+    expect(scout).toEqual({
+      id: RULES.game.firstEntityId,
+      ownerId: 1,
+      type: 'scout',
+      col: 3,
+      row: 3,
+      hp: unitDef('scout').maxHp,
+      movesLeft: unitDef('scout').movement,
+    });
+  });
+
+  it('lets a military and a civilian unit share a tile', () => {
+    const state = flatState();
+    expect(applyCommand(state, spawn(0, 'warrior', 2, 2))).toEqual({ ok: true });
+    expect(applyCommand(state, spawn(0, 'settler', 2, 2))).toEqual({ ok: true });
+    expect(unitsOnTile(state, 2, 2)).toHaveLength(2);
+  });
+
+  it('refuses a second military unit on the same tile', () => {
+    const state = flatState();
+    applyCommand(state, spawn(0, 'warrior', 2, 2));
+    const before = clone(state);
+    expect(applyCommand(state, spawn(1, 'scout', 2, 2)).ok).toBe(false);
+    expect(state).toEqual(before);
+  });
+
+  it('spawns for another player: playerId asks, ownerId receives', () => {
+    const state = flatState();
+    // Player 0 acting on behalf of player 1 — a debug or production spawn.
+    expect(applyCommand(state, spawn(1, 'scout', 3, 3, 0))).toEqual({ ok: true });
+    expect(state.units[0]!.ownerId).toBe(1);
+  });
+
+  it('spawns even from a seat that has already ended its turn', () => {
+    const state = flatState();
+    applyCommand(state, { type: 'endTurn', playerId: 0 });
+    // Unlike `moveUnit`, spawning is not a move: production will run it for a
+    // player who finished long ago.
+    expect(applyCommand(state, spawn(0, 'warrior', 3, 3))).toEqual({ ok: true });
+  });
+
+  it('refuses impassable terrain, unknown types, owners and actors', () => {
+    const state = flatState();
+    at(state.map, 4, 4).terrain = 'mountain';
+    at(state.map, 5, 5).terrain = 'ocean';
+    const before = clone(state);
+
+    for (const bad of [
+      spawn(0, 'warrior', 4, 4), // mountain
+      spawn(0, 'warrior', 5, 5), // ocean
+      spawn(0, 'trebuchet', 1, 1), // no such unit type
+      spawn(9, 'warrior', 1, 1), // no such owner
+      spawn(0, 'warrior', 1, 1, 9), // no such acting player
+      spawn(0, 'warrior', 1, 99), // off the map
+      spawn(0, 'warrior', 1.5, 1), // not an integer cell
+    ]) {
+      expect(applyCommand(state, bad).ok).toBe(false);
+    }
+    expect(state).toEqual(before);
+  });
+
+  it('allocates ids from the shared entity counter', () => {
+    const state = flatState();
+    applyCommand(state, spawn(0, 'warrior', 1, 1));
+    applyCommand(state, spawn(0, 'warrior', 2, 1));
+    expect(state.units.map((u) => u.id)).toEqual([1, 2]);
+    expect(state.nextEntityId).toBe(3);
+  });
+});
+
+describe('moveUnit', () => {
+  it('walks the unit and charges its movement', () => {
+    const state = flatState();
+    const scout = createUnit(state, 0, 'scout', 1, 3); // 3 MP
+    expect(applyCommand(state, move(scout.id, 3, 3))).toEqual({ ok: true });
+    expect(scout.col).toBe(3);
+    expect(scout.row).toBe(3);
+    expect(scout.movesLeft).toBe(1);
+    expect(scout.path).toBeUndefined();
+  });
+
+  it('charges feature and hills costs', () => {
+    const state = flatState();
+    at(state.map, 2, 3).feature = 'forest';
+    at(state.map, 2, 3).hills = true; // costs 3
+    const scout = createUnit(state, 0, 'scout', 1, 3);
+    expect(applyCommand(state, move(scout.id, 2, 3))).toEqual({ ok: true });
+    expect(scout.movesLeft).toBe(0);
+  });
+
+  it('enters a tile it cannot afford as long as it has any movement left', () => {
+    const state = flatState();
+    at(state.map, 2, 3).feature = 'forest'; // costs 2
+    const warrior = createUnit(state, 0, 'warrior', 1, 3);
+    warrior.movesLeft = 1;
+    expect(applyCommand(state, move(warrior.id, 2, 3))).toEqual({ ok: true });
+    expect(warrior.col).toBe(2);
+    // Overspend is forgiven, never carried into debt.
+    expect(warrior.movesLeft).toBe(0);
+  });
+
+  it('stores the unwalked remainder as a standing order', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3); // 2 MP
+    expect(applyCommand(state, move(warrior.id, 5, 3))).toEqual({ ok: true });
+    expect(warrior.col).toBe(2);
+    expect(warrior.movesLeft).toBe(0);
+    expect(warrior.path).toEqual([
+      { col: 3, row: 3 },
+      { col: 4, row: 3 },
+      { col: 5, row: 3 },
+    ]);
+  });
+
+  it('continues a standing order on the following turns', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    applyCommand(state, move(warrior.id, 5, 3));
+
+    endRound(state);
+    expect(warrior.col).toBe(4);
+    expect(warrior.movesLeft).toBe(0);
+    expect(warrior.path).toEqual([{ col: 5, row: 3 }]);
+
+    endRound(state);
+    expect(warrior.col).toBe(5);
+    expect(warrior.movesLeft).toBe(1);
+    expect(warrior.path).toBeUndefined();
+
+    // Idle from here on.
+    endRound(state);
+    expect(warrior.col).toBe(5);
+    expect(warrior.movesLeft).toBe(2);
+  });
+
+  it('replaces a standing order when a new one is issued', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    applyCommand(state, move(warrior.id, 6, 3));
+    expect(warrior.path).toHaveLength(4);
+
+    // A friendly soldier blocks the far end, so next turn the march stops early
+    // and keeps a movement point — the one moment an order and spare movement
+    // coexist, and therefore the only way to re-order a marching unit.
+    createUnit(state, 0, 'warrior', 4, 3);
+    endRound(state);
+    expect(warrior.col).toBe(3);
+    expect(warrior.movesLeft).toBe(1);
+    expect(warrior.path).toHaveLength(3);
+
+    applyCommand(state, move(warrior.id, 3, 4));
+    expect(warrior.col).toBe(3);
+    expect(warrior.row).toBe(4);
+    expect(warrior.path).toBeUndefined();
+  });
+
+  it('does not alias the command’s target cells into the state', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    const command = move(warrior.id, 5, 3);
+    applyCommand(state, command);
+    expect(warrior.path![0]).not.toBe(command);
+    warrior.path![0]!.col = 99;
+    expect(command).toEqual(move(warrior.id, 5, 3));
+  });
+
+  it('abandons an order whose route has been walled off', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    applyCommand(state, move(warrior.id, 6, 3));
+    expect(warrior.path).toHaveLength(4);
+
+    // The world changes under the order: the next step becomes a mountain.
+    at(state.map, 3, 3).terrain = 'mountain';
+    endRound(state);
+    expect(warrior.col).toBe(2);
+    expect(warrior.path).toBeUndefined();
+  });
+
+  it('waits rather than resting on a tile its own category cannot share', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    applyCommand(state, move(warrior.id, 6, 3));
+    // A friendly soldier parks exactly where the march would come to rest.
+    createUnit(state, 0, 'warrior', 4, 3);
+
+    endRound(state);
+    expect(warrior.col).toBe(3);
+    // The order survives: this is traffic, not a wall.
+    expect(warrior.path).toEqual([
+      { col: 4, row: 3 },
+      { col: 5, row: 3 },
+      { col: 6, row: 3 },
+    ]);
+  });
+
+  it('rejects illegal orders without touching the state', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 2, 2);
+    const enemy = createUnit(state, 1, 'warrior', 6, 6);
+    at(state.map, 4, 2).terrain = 'mountain';
+    const spent = createUnit(state, 0, 'scout', 8, 2);
+    spent.movesLeft = 0;
+    const before = clone(state);
+
+    const rejected: Command[] = [
+      move(999, 3, 2), // no such unit
+      move(enemy.id, 6, 5), // not the acting player's unit
+      move(warrior.id, 3, 2, 9), // no such acting player
+      move(spent.id, 7, 2), // no movement left
+      move(warrior.id, 2, 2), // already there
+      move(warrior.id, 4, 2), // impassable target
+      move(warrior.id, 6, 6), // occupied by an enemy soldier
+      move(warrior.id, 2, 99), // off the map
+      { type: 'moveUnit', playerId: 0, unitId: warrior.id, target: { col: 1.5, row: 2 } },
+      { type: 'moveUnit', playerId: 0, unitId: warrior.id } as unknown as Command,
+    ];
+    for (const command of rejected) {
+      expect(applyCommand(state, command).ok).toBe(false);
+    }
+    expect(state).toEqual(before);
+  });
+
+  it('rejects a target that is unreachable, leaving the unit put', () => {
+    const state = flatState();
+    // Fence off a pocket around (6, 3).
+    for (const [col, row] of [
+      [5, 3],
+      [6, 2],
+      [7, 2],
+      [7, 3],
+      [6, 4],
+      [7, 4],
+    ] as const) {
+      at(state.map, col, row).terrain = 'mountain';
+    }
+    const warrior = createUnit(state, 0, 'warrior', 1, 3);
+    const before = clone(state);
+    expect(applyCommand(state, move(warrior.id, 6, 3)).ok).toBe(false);
+    expect(state).toEqual(before);
+  });
+
+  it('resolves a wrapped target column to the tile it names', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    // 16 wide, so column 17 is column 1.
+    expect(applyCommand(state, move(warrior.id, 17, 3))).toEqual({ ok: true });
+    expect(warrior.col).toBe(1);
+  });
+});
+
+describe('moveUnit under simultaneous turns', () => {
+  it('refuses an order from a seat that has ended its turn', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 2, 3);
+    expect(applyCommand(state, { type: 'endTurn', playerId: 0 })).toEqual({ ok: true });
+
+    const before = clone(state);
+    const result = applyCommand(state, move(warrior.id, 3, 3));
+    expect(result).toEqual({
+      ok: false,
+      error: 'Player 0 has ended turn 1 and cannot move',
+    });
+    expect(state).toEqual(before);
+  });
+
+  it('still lets an open seat move while another seat has ended', () => {
+    const state = flatState();
+    const mine = createUnit(state, 0, 'warrior', 2, 3);
+    const theirs = createUnit(state, 1, 'warrior', 8, 3);
+    // Player 0 is done; player 1 is still playing, in the same turn.
+    expect(applyCommand(state, { type: 'endTurn', playerId: 0 })).toEqual({ ok: true });
+
+    expect(applyCommand(state, move(theirs.id, 9, 3, 1))).toEqual({ ok: true });
+    expect(theirs.col).toBe(9);
+    expect(state.turn).toBe(1);
+    // And player 0's unit stayed exactly where the seat left it.
+    expect(mine.col).toBe(2);
+  });
+
+  it('gives a contended tile to whoever moved first in the log', () => {
+    const state = flatState();
+    // Two soldiers, different owners, one step either side of (3, 4).
+    const first = createUnit(state, 0, 'warrior', 2, 4);
+    const second = createUnit(state, 1, 'warrior', 4, 4);
+
+    expect(applyCommand(state, move(first.id, 3, 4, 0))).toEqual({ ok: true });
+    expect([first.col, first.row]).toEqual([3, 4]);
+
+    // Same turn, same tile, one command later: the loser is refused cleanly and
+    // keeps its position and its movement. Log order is the whole tie-break.
+    const before = clone(state);
+    const result = applyCommand(state, move(second.id, 3, 4, 1));
+    expect(result).toEqual({ ok: false, error: `Unit ${second.id} cannot stop on (3, 4)` });
+    expect(state).toEqual(before);
+    expect(second.col).toBe(4);
+    expect(second.movesLeft).toBe(unitDef('warrior').movement);
+  });
+
+  it('walks a standing order across a turn boundary whoever ends first', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    applyCommand(state, move(warrior.id, 5, 3));
+    expect(warrior.col).toBe(2);
+
+    // The seats finish in a different order each turn; a stored order is
+    // owner-agnostic and resolves with the turn, not with its owner's seat.
+    endRound(state, [1, 0]);
+    expect(warrior.col).toBe(4);
+    endRound(state, [0, 1]);
+    expect(warrior.col).toBe(5);
+    expect(warrior.path).toBeUndefined();
+  });
+});
+
+describe('healUnits', () => {
+  const rate = RULES.healing.perTurnIfRested;
+
+  it('heals a unit that never moved', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 3, 3);
+    warrior.hp = 40;
+    endRound(state);
+    expect(warrior.hp).toBe(40 + rate);
+  });
+
+  it('does not heal a unit that moved this turn', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 3, 3);
+    warrior.hp = 40;
+    applyCommand(state, move(warrior.id, 4, 3));
+    endRound(state);
+    expect(warrior.hp).toBe(40);
+  });
+
+  it('resumes healing the turn after the unit stops', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 3, 3);
+    warrior.hp = 40;
+    applyCommand(state, move(warrior.id, 4, 3));
+    endRound(state);
+    endRound(state);
+    expect(warrior.hp).toBe(40 + rate);
+  });
+
+  it('caps healing at the type’s maximum', () => {
+    const state = flatState();
+    const { maxHp } = unitDef('warrior');
+    const warrior = createUnit(state, 0, 'warrior', 3, 3);
+    warrior.hp = maxHp - 1;
+    endRound(state);
+    expect(warrior.hp).toBe(maxHp);
+    endRound(state);
+    expect(warrior.hp).toBe(maxHp);
+  });
+});
+
+describe('resetMovement', () => {
+  it('refills every unit’s allowance, whoever owns it', () => {
+    const state = flatState();
+    const mine = createUnit(state, 0, 'warrior', 1, 1);
+    const theirs = createUnit(state, 1, 'scout', 5, 5);
+    mine.movesLeft = 0;
+    theirs.movesLeft = 1;
+    endRound(state);
+    expect(mine.movesLeft).toBe(unitDef('warrior').movement);
+    expect(theirs.movesLeft).toBe(unitDef('scout').movement);
+  });
+
+  it('resolves contended standing orders in array order', () => {
+    const state = flatState();
+    // Two soldiers three tiles either side of the same destination.
+    const first = createUnit(state, 0, 'warrior', 0, 4);
+    const second = createUnit(state, 0, 'warrior', 6, 4);
+    applyCommand(state, move(first.id, 3, 4));
+    applyCommand(state, move(second.id, 3, 4));
+
+    // Each order walks two of its three steps immediately.
+    expect([first.col, second.col]).toEqual([2, 4]);
+
+    endRound(state); // the earlier unit in the array takes the tile
+    const winner: Unit = state.units[0]!;
+    expect(winner.id).toBe(first.id);
+    expect(first.col).toBe(3);
+    expect(first.row).toBe(4);
+    expect(second.col).toBe(4);
+    expect(second.path).toEqual([{ col: 3, row: 4 }]);
+  });
+});

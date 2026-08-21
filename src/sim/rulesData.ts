@@ -1,0 +1,127 @@
+/**
+ * Typed access to `data/rules.json`.
+ *
+ * The counterpart of `terrainData.ts` for gameplay rules: every balance or
+ * "starting value" number lives in the JSON, this file only types it. Modules
+ * import `RULES` rather than hard-coding numbers, so a designer can retune the
+ * game without touching the simulation code.
+ *
+ * Milestone 2 adds movement, stacking, healing and start placement; Milestone 3
+ * adds the whole `cities` block. Research tables join this file as later
+ * milestones land.
+ */
+
+import rulesJson from '../../data/rules.json';
+import type { TerrainId, TileYield } from './terrainData';
+import type { UnitTypeId } from './unitData';
+
+export interface GameRules {
+  /** Turn number a new game starts on. */
+  startingTurn: number;
+  /** First id handed out by the entity allocator; ids below it are reserved. */
+  firstEntityId: number;
+  minPlayers: number;
+  maxPlayers: number;
+}
+
+export interface MovementRules {
+  /**
+   * Floor applied to every computed step cost, so no terrain combination can
+   * ever be free (and therefore no zero-cost cycle can exist for the pathfinder).
+   */
+  minStepCost: number;
+}
+
+export interface StackingRules {
+  /**
+   * How many units of each `UnitCategory` may occupy one tile. At 1 this is the
+   * Civ V rule: one military *and* one civilian share a tile happily, two
+   * soldiers do not.
+   */
+  perCategoryPerTile: number;
+}
+
+export interface HealingRules {
+  /** Hit points restored to a unit that spent none of its movement. */
+  perTurnIfRested: number;
+}
+
+export interface StartPlacementRules {
+  /** Minimum hex distance between two players' start tiles. */
+  minSpacing: number;
+  /** Weight of each neighbour's terrain score in a candidate tile's score. */
+  neighborWeight: number;
+  /** Desirability of a terrain as (or next to) a starting tile. */
+  terrainScore: Record<TerrainId, number>;
+}
+
+/** Relative desirability of each yield when a citizen picks a tile to work. */
+export interface CitizenWeights {
+  food: number;
+  production: number;
+  gold: number;
+}
+
+export interface CityRules {
+  /** How far from its centre a city may assign citizens, in hexes. */
+  workRadius: number;
+  /** How far from its centre a city's borders may ever reach, in hexes. */
+  claimRadius: number;
+  /** Minimum hex distance between two city centres, anyone's. */
+  minCitySpacing: number;
+  /** Food one population point eats every turn. */
+  foodPerCitizen: number;
+  /**
+   * Growth curve. The food a city of population `n` must bank to reach `n + 1`
+   * is `growthBase + growthLinear · (n − 1) + (n − 1) ^ growthExponent`,
+   * floored — linear early, superlinear later, so a size-2 city grows in a
+   * handful of turns and a size-12 one takes an age.
+   */
+  growthBase: number;
+  growthLinear: number;
+  growthExponent: number;
+  /**
+   * Food basket at or below which the city loses a population point. At −1 that
+   * is "any deficit at all starves somebody", which is the Civ V feel; the
+   * basket is emptied either way and population never falls below 1.
+   */
+  starvationShrinksAt: number;
+  /**
+   * Floor on the city-centre tile's own yield. The centre is worked for free
+   * and is never a citizen slot, and a city on a snow tile still feeds itself,
+   * so the centre pays the *larger* of its terrain yield and this, per field.
+   */
+  baseCityYields: TileYield;
+  /** Science each population point produces, before buildings. */
+  sciencePerPop: number;
+  /** Culture every city produces just by existing, before buildings. */
+  baseCulturePerCity: number;
+  /**
+   * Border cost curve. The `t`-th tile a city claims beyond its initial ring
+   * costs `borderCostBase + borderCostLinear · (t − 1) ^ borderCostExponent`
+   * culture, floored. The initial claim at founding is free and is not counted.
+   */
+  borderCostBase: number;
+  borderCostLinear: number;
+  borderCostExponent: number;
+  /** Weights the citizen assigner and the border chooser both score tiles with. */
+  citizenWeights: CitizenWeights;
+  /**
+   * City names, handed out in order per player. A player who founds more cities
+   * than there are names falls back to `"<player name> <n>"`.
+   */
+  cityNames: string[];
+}
+
+export interface RulesConfig {
+  game: GameRules;
+  movement: MovementRules;
+  stacking: StackingRules;
+  healing: HealingRules;
+  cities: CityRules;
+  /** Unit types every player receives at their start position, in order. */
+  startingUnits: UnitTypeId[];
+  startPlacement: StartPlacementRules;
+}
+
+export const RULES: RulesConfig = rulesJson as RulesConfig;

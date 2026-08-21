@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebCiv — 3D Look Prototype</title>
+  </head>
+  <body>
+    <canvas id="gl"></canvas>
+
+    <div id="panel">
+      <h1>WebCiv 3D</h1>
+      <span class="tag">Prototype · look-dev only</span>
+
+      <div class="row">
+        <label for="seed">Seed</label>
+        <input id="seed" type="text" value="1" spellcheck="false" />
+      </div>
+
+      <div class="row">
+        <label for="size">Size</label>
+        <select id="size"></select>
+      </div>
+
+      <div class="row">
+        <button id="regenerate">Regenerate</button>
+        <button id="random-seed">Random</button>
+      </div>
+
+      <p class="section">Look</p>
+
+      <div class="row slider">
+        <label for="light-azimuth">Sun angle</label>
+        <input id="light-azimuth" type="range" min="0" max="360" step="1" />
+        <span class="value" id="light-azimuth-value">—</span>
+      </div>
+
+      <div class="row slider">
+        <label for="light-elevation">Sun height</label>
+        <input id="light-elevation" type="range" min="12" max="85" step="1" />
+        <span class="value" id="light-elevation-value">—</span>
+      </div>
+
+      <div class="row slider">
+        <label for="outline">Outline</label>
+        <input id="outline" type="range" min="0" max="150" step="2" />
+        <span class="value" id="outline-value">—</span>
+      </div>
+
+      <div class="row slider">
+        <label for="ramp">Ramp steps</label>
+        <input id="ramp" type="range" min="1" max="6" step="1" />
+        <span class="value" id="ramp-value">—</span>
+      </div>
+
+      <div class="row slider">
+        <label for="saturation">Saturation</label>
+        <input id="saturation" type="range" min="0" max="180" step="5" />
+        <span class="value" id="saturation-value">—</span>
+      </div>
+
+      <div class="row check">
+        <input id="shadows" type="checkbox" />
+        <label for="shadows">Shadows (rebuilds board)</label>
+      </div>
+
+      <p id="stats">—</p>
+
+      <p class="hint">
+        Drag to pan · wheel to zoom · fixed camera angle.<br />
+        <strong>Known gaps:</strong> the east–west map wrap is ignored (panning
+        is clamped to the board), and nothing here is selectable — this is a
+        look test, not a playable renderer.
+      </p>
+    </div>
+
+    <script type="module" src="/src/proto3d/main.ts"></script>
+  </body>
+</html>

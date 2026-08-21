@@ -1,0 +1,40 @@
+{
+  "units": {
+    "warrior": {
+      "name": "Warrior",
+      "category": "military",
+      "movement": 2,
+      "maxHp": 100,
+      "combatStrength": 8,
+      "cost": 40,
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "glyph": "W"
+    },
+    "scout": {
+      "name": "Scout",
+      "category": "military",
+      "movement": 3,
+      "maxHp": 100,
+      "combatStrength": 5,
+      "cost": 25,
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "glyph": "S"
+    },
+    "settler": {
+      "name": "Settler",
+      "category": "civilian",
+      "movement": 2,
+      "maxHp": 100,
+      "combatStrength": 0,
+      "cost": 106,
+      "foundsCity": true,
+      "haltsGrowth": true,
+      "minCityPop": 2,
+      "glyph": "T"
+    }
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "terrains": {
+    "ocean": {
+      "name": "Ocean",
+      "water": true,
+      "workable": true,
+      "moveCost": null,
+      "yield": { "food": 1, "production": 0, "gold": 1 },
+      "fillColor": "#1d3f6b",
+      "glyph": null,
+      "glyphColor": "#152f52"
+    },
+    "coast": {
+      "name": "Coast",
+      "water": true,
+      "workable": true,
+      "moveCost": null,
+      "yield": { "food": 1, "production": 0, "gold": 1 },
+      "fillColor": "#2f74a8",
+      "glyph": null,
+      "glyphColor": "#215579"
+    },
+    "grassland": {
+      "name": "Grassland",
+      "water": false,
+      "workable": true,
+      "moveCost": 1,
+      "yield": { "food": 2, "production": 0, "gold": 0 },
+      "fillColor": "#6f9a4a",
+      "glyph": null,
+      "glyphColor": "#4a6b31"
+    },
+    "plains": {
+      "name": "Plains",
+      "water": false,
+      "workable": true,
+      "moveCost": 1,
+      "yield": { "food": 1, "production": 1, "gold": 0 },
+      "fillColor": "#a8a054",
+      "glyph": null,
+      "glyphColor": "#77713a"
+    },
+    "desert": {
+      "name": "Desert",
+      "water": false,
+      "workable": true,
+      "moveCost": 1,
+      "yield": { "food": 0, "production": 0, "gold": 0 },
+      "fillColor": "#dbc98a",
+      "glyph": null,
+      "glyphColor": "#a8965c"
+    },
+    "tundra": {
+      "name": "Tundra",
+      "water": false,
+      "workable": true,
+      "moveCost": 1,
+      "yield": { "food": 1, "production": 0, "gold": 0 },
+      "fillColor": "#9aa090",
+      "glyph": null,
+      "glyphColor": "#6d7265"
+    },
+    "snow": {
+      "name": "Snow",
+      "water": false,
+      "workable": true,
+      "moveCost": 1,
+      "yield": { "food": 0, "production": 0, "gold": 0 },
+      "fillColor": "#e6ecef",
+      "glyph": null,
+      "glyphColor": "#a8b3b8"
+    },
+    "mountain": {
+      "name": "Mountain",
+      "water": false,
+      "workable": false,
+      "moveCost": null,
+      "yield": { "food": 0, "production": 0, "gold": 0 },
+      "fillColor": "#7d7568",
+      "glyph": "▲",
+      "glyphColor": "#4a443b"
+    }
+  },
+  "features": {
+    "none": {
+      "name": "None",
+      "moveCostOverride": null,
+      "yieldOverride": null,
+      "glyph": null,
+      "glyphColor": "#000000"
+    },
+    "forest": {
+      "name": "Forest",
+      "moveCostOverride": 2,
+      "yieldOverride": { "food": 1, "production": 1, "gold": 0 },
+      "glyph": "▲▲",
+      "glyphColor": "#2f4a24"
+    },
+    "jungle": {
+      "name": "Jungle",
+      "moveCostOverride": 2,
+      "yieldOverride": { "food": 2, "production": 0, "gold": 0 },
+      "glyph": "♣♣",
+      "glyphColor": "#1f4a1f"
+    }
+  },
+  "hills": {
+    "name": "Hills",
+    "moveCostExtra": 1,
+    "yieldOverride": { "food": 0, "production": 2, "gold": 0 },
+    "glyph": "︿︿",
+    "glyphColor": "#5c513c"
+  },
+  "ui": {
+    "background": "#0d1b2a",
+    "grid": "rgba(0, 0, 0, 0.22)",
+    "hover": "#ffd166",
+    "hoverShadow": "rgba(0, 0, 0, 0.55)"
+  },
+  "units": {
+    "rim": "#0b1119",
+    "glyph": "#f2f7fb",
+    "glyphShadow": "rgba(0, 0, 0, 0.55)",
+    "selection": "#ffd166",
+    "selectionShadow": "rgba(0, 0, 0, 0.6)",
+    "reachable": "rgba(255, 255, 255, 0.13)",
+    "reachableEdge": "rgba(255, 255, 255, 0.22)",
+    "path": "rgba(255, 209, 102, 0.85)",
+    "pathShadow": "rgba(0, 0, 0, 0.5)",
+    "hpBack": "rgba(0, 0, 0, 0.65)",
+    "hpFull": "#5ec26a",
+    "hpLow": "#e0574a"
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "sizes": {
+    "duel": {
+      "label": "Duel (40x25)",
+      "width": 40,
+      "height": 25
+    },
+    "standard": {
+      "label": "Standard (80x52)",
+      "width": 80,
+      "height": 52
+    },
+    "large": {
+      "label": "Large (104x64)",
+      "width": 104,
+      "height": 64
+    },
+    "huge": {
+      "label": "Huge (128x80)",
+      "width": 128,
+      "height": 80
+    },
+    "giant": {
+      "label": "Giant (180x112)",
+      "width": 180,
+      "height": 112
+    }
+  },
+  "noise": {
+    "elevation": {
+      "frequency": 2.6,
+      "octaves": 5,
+      "lacunarity": 2.0,
+      "persistence": 0.45
+    },
+    "moisture": {
+      "frequency": 4.4,
+      "octaves": 4,
+      "lacunarity": 2.0,
+      "persistence": 0.5
+    }
+  },
+  "elevation": {
+    "seaLevel": 0.62,
+    "hills": 0.86,
+    "mountains": 0.965,
+    "polarWaterLatitude": 0.94,
+    "polarWaterElevationBonus": 0.12
+  },
+  "latitude": {
+    "snow": 0.9,
+    "tundra": 0.76,
+    "desertMax": 0.55,
+    "jungleMax": 0.24,
+    "forestMin": 0.18,
+    "forestMax": 0.86
+  },
+  "moisture": {
+    "desertMax": 0.28,
+    "plainsMax": 0.55,
+    "forestMin": 0.58,
+    "jungleMin": 0.66
+  }
+}

@@ -1,0 +1,175 @@
+/*
+ * Page chrome for the 3D prototype.
+ *
+ * Deliberately a near-copy of the main page's dark panel rather than something
+ * designed to match the diorama: the panel is scaffolding for judging the
+ * scene, and a panel that shares the scene's palette would contaminate the
+ * judgement. Dark, out of the way, and obviously not part of the artwork.
+ */
+
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0d1b2a;
+  color: #e8eef5;
+}
+
+#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+}
+
+#gl:active {
+  cursor: grabbing;
+}
+
+#panel {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  width: 258px;
+  padding: 12px 14px 10px;
+  border-radius: 10px;
+  background: rgba(10, 18, 28, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+#panel h1 {
+  margin: 0 0 2px;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffd166;
+}
+
+.tag {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 209, 102, 0.16);
+  border: 1px solid rgba(255, 209, 102, 0.4);
+  color: #ffd166;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#panel .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+#panel label {
+  width: 44px;
+  flex: none;
+  color: #9fb0c2;
+}
+
+#panel input[type='text'],
+#panel select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+}
+
+#panel button {
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 209, 102, 0.16);
+  color: #ffd166;
+  font: inherit;
+  cursor: pointer;
+}
+
+#panel button:hover {
+  background: rgba(255, 209, 102, 0.28);
+}
+
+.section {
+  margin: 10px 0 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: #9fb0c2;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Sliders get a wider label column and a value readout, because a look-dev
+   control you cannot read a number off is a control you cannot report back. */
+.slider label {
+  width: 78px;
+}
+
+.slider input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  accent-color: #ffd166;
+}
+
+.slider .value {
+  width: 30px;
+  flex: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #e8eef5;
+}
+
+.check {
+  gap: 6px;
+}
+
+.check label {
+  width: auto;
+}
+
+#stats {
+  margin: 8px 0 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: #9fb0c2;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: pre-line;
+}
+
+.hint {
+  margin: 0;
+  color: #7b8a99;
+  font-size: 11px;
+}
+
+.hint strong {
+  color: #9fb0c2;
+  font-weight: 600;
+}

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebCiv — Milestone 3: Cities</title>
+  </head>
+  <body>
+    <div id="viewport">
+      <canvas id="layer-terrain"></canvas>
+      <canvas id="layer-overlay"></canvas>
+      <canvas id="layer-units"></canvas>
+      <!-- The 3D renderer's canvas. `main.ts` keeps whichever canvases the
+           chosen renderer draws into and removes the rest, so the two pipelines
+           never both hold a drawing context. -->
+      <canvas id="layer-3d"></canvas>
+      <!-- City banners: absolutely-positioned DOM over the board, projected
+           through the camera on every drawn frame. See src/ui/cityBanners.ts. -->
+      <div id="banners"></div>
+    </div>
+
+    <!-- The city screen. Hidden until a city of the local seat is opened. -->
+    <div id="city-panel" hidden></div>
+
+    <!-- Removed by main.ts once the renderer is up (or put back carrying the
+         error, if a sprite 404s or WebGL is unavailable). -->
+    <p id="boot">Loading…</p>
+
+    <div id="panel">
+      <h1>WebCiv</h1>
+
+      <div class="row">
+        <label for="seed">Seed</label>
+        <input id="seed" type="text" value="1" spellcheck="false" />
+      </div>
+
+      <div class="row">
+        <label for="size">Size</label>
+        <select id="size"></select>
+      </div>
+
+      <div class="row">
+        <button id="regenerate">New Game</button>
+        <button id="random-seed">Random</button>
+      </div>
+
+      <p id="status" class="status">—</p>
+
+      <!-- One chip per seat: who is playing, and who has already ended their
+           turn. Clicking one takes that seat — hot-seat play, kept as a
+           development harness now that turns are simultaneous. -->
+      <div id="seats" class="seats"></div>
+
+      <div class="row">
+        <button id="end-turn">End Turn</button>
+      </div>
+
+      <!-- Enabled only when the selected unit could actually found a city here;
+           its title says why not when it is disabled. -->
+      <div class="row">
+        <button id="found-city" disabled>Found City</button>
+      </div>
+
+      <dl id="info">
+        <dt>Map</dt>
+        <dd id="info-map">—</dd>
+        <dt>Seed</dt>
+        <dd id="info-seed">—</dd>
+        <dt>Terrain</dt>
+        <dd id="info-terrain">—</dd>
+        <dt>Feature</dt>
+        <dd id="info-feature">—</dd>
+        <dt>Offset</dt>
+        <dd id="info-offset">—</dd>
+        <dt>Unit</dt>
+        <dd id="info-unit">—</dd>
+      </dl>
+
+      <p id="hint" class="hint">
+        Click a unit to select · click a tile to move · <kbd>Esc</kbd> deselects ·
+        <kbd>Enter</kbd> ends the turn · <kbd>G</kbd> toggles the grid
+      </p>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

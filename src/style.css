@@ -1,0 +1,540 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0d1b2a;
+  color: #e8eef5;
+}
+
+#viewport {
+  position: fixed;
+  inset: 0;
+}
+
+#viewport canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#layer-terrain {
+  z-index: 1;
+}
+#layer-overlay {
+  z-index: 2;
+  pointer-events: none;
+}
+#layer-units {
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* The 3D renderer draws the whole board into this one canvas, so it sits at the
+   bottom of the stack and is the only layer that exists in 3D mode. */
+#layer-3d {
+  z-index: 1;
+  touch-action: none;
+}
+
+#viewport:active {
+  cursor: grabbing;
+}
+
+/* Shown while the sprite set loads, and reused for a load failure. */
+#boot {
+  position: fixed;
+  z-index: 20;
+  inset: auto 0 0 0;
+  margin: 0;
+  padding: 10px 14px;
+  background: rgba(10, 18, 28, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: #9fb0c2;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+#boot.error {
+  color: #ff9d9d;
+}
+
+#panel {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  width: 232px;
+  padding: 12px 14px 10px;
+  border-radius: 10px;
+  background: rgba(10, 18, 28, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+#panel h1 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffd166;
+}
+
+#panel .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* A checkbox row labels to the right of its box, not in the fixed label column. */
+#panel .row.check label {
+  width: auto;
+  color: inherit;
+}
+
+#panel .row.check input {
+  flex: 0 0 auto;
+}
+
+#stats {
+  margin: 0 0 8px;
+  color: #7f90a2;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: pre-wrap;
+}
+
+#panel label {
+  width: 40px;
+  color: #9fb0c2;
+}
+
+#panel input,
+#panel select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+}
+
+#panel button {
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 209, 102, 0.16);
+  color: #ffd166;
+  font: inherit;
+  cursor: pointer;
+}
+
+#panel button:hover {
+  background: rgba(255, 209, 102, 0.28);
+}
+
+.status {
+  margin: 10px 0 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Seat chips: one per player, tinted with that player's colour. The live seat is
+   outlined, a seat that has ended its turn fades out and shows a tick. */
+.seats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0 0 8px;
+}
+
+#panel button.seat {
+  flex: 0 1 auto;
+  padding: 2px 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--seat-color) 26%, transparent);
+  color: var(--seat-color);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+#panel button.seat:hover {
+  background: color-mix(in srgb, var(--seat-color) 40%, transparent);
+}
+
+#panel button.seat.is-local {
+  border-color: var(--seat-color);
+}
+
+#panel button.seat.is-done {
+  opacity: 0.45;
+}
+
+#info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 10px 0 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+#info dt {
+  color: #9fb0c2;
+}
+
+#info dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  margin: 0;
+  color: #7f90a2;
+  font-size: 11px;
+}
+
+kbd {
+  padding: 0 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  font-family: inherit;
+}
+
+/* --- city banners ---------------------------------------------------------
+   A transparent sheet over the board. It never takes a pointer event itself —
+   only the banners that are buttons do — so dragging the map through a banner
+   still pans. */
+#banners {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.city-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 3px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--banner-color) 60%, transparent);
+  background: rgba(10, 18, 28, 0.82);
+  color: #e8eef5;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
+  /* The banner is anchored at the city's tile centre and floats above it; the
+     margin is what lifts it clear of the banner pole in the 3D scene. */
+  margin-top: -46px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.city-banner-pop {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--banner-color);
+  color: #0d1b2a;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.city-banner-name {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.city-banner-production {
+  padding-left: 6px;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  color: #9fb0c2;
+}
+
+/* Only your own cities are clickable; everyone else's is a label. */
+.city-banner.is-mine {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.city-banner.is-mine:hover {
+  background: rgba(18, 30, 44, 0.94);
+  border-color: var(--banner-color);
+}
+
+/* --- city panel ----------------------------------------------------------- */
+#city-panel {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 12;
+  width: 268px;
+  padding: 12px 14px;
+  overflow-y: auto;
+  border-radius: 10px;
+  background: rgba(10, 18, 28, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+#city-panel[hidden] {
+  display: none;
+}
+
+#city-panel h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: #ffd166;
+}
+
+#city-panel h3 {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9fb0c2;
+}
+
+.city-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.city-size {
+  color: #9fb0c2;
+}
+
+.city-close {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #9fb0c2;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.city-close:hover {
+  color: #e8eef5;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* One chip per yield, each in the colour that yield is always drawn in. */
+.city-yields {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin: 10px 0;
+}
+
+.city-yield {
+  display: grid;
+  justify-items: center;
+  padding: 4px 2px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.city-yield-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.city-yield-label {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7f90a2;
+}
+
+.city-yield.is-food .city-yield-value {
+  color: #7fc47f;
+}
+.city-yield.is-production .city-yield-value {
+  color: #d9a05b;
+}
+.city-yield.is-gold .city-yield-value {
+  color: #e6c85a;
+}
+.city-yield.is-science .city-yield-value {
+  color: #74b6e0;
+}
+.city-yield.is-culture .city-yield-value {
+  color: #c08ad6;
+}
+
+.city-progress {
+  margin: 8px 0;
+}
+
+.city-progress-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #9fb0c2;
+}
+
+.city-progress-label .is-bad {
+  color: #e0574a;
+}
+
+.city-progress-note {
+  color: #7f90a2;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.city-bar {
+  height: 6px;
+  margin: 3px 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.city-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.city-bar-fill.is-food {
+  background: #7fc47f;
+}
+.city-bar-fill.is-production {
+  background: #d9a05b;
+}
+
+.city-queue-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 3px;
+}
+
+.city-queue-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.city-queue-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.city-queue-cost {
+  color: #7f90a2;
+  font-variant-numeric: tabular-nums;
+}
+
+.city-icon-button {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #9fb0c2;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.city-icon-button:hover:not(:disabled) {
+  color: #e8eef5;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.city-icon-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.city-buildable-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.city-buildable {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 209, 102, 0.14);
+  color: #ffd166;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* Buildings are the quieter half of the list: a city builds many more units. */
+.city-buildable.is-building {
+  background: rgba(116, 182, 224, 0.14);
+  color: #9ecbe8;
+}
+
+.city-buildable:hover:not(:disabled) {
+  filter: brightness(1.3);
+}
+
+.city-buildable:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.city-buildable-cost {
+  color: inherit;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}

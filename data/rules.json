@@ -1,0 +1,75 @@
+{
+  "game": {
+    "startingTurn": 1,
+    "firstEntityId": 1,
+    "minPlayers": 1,
+    "maxPlayers": 12
+  },
+  "movement": {
+    "minStepCost": 1
+  },
+  "stacking": {
+    "perCategoryPerTile": 1
+  },
+  "healing": {
+    "perTurnIfRested": 10
+  },
+  "cities": {
+    "workRadius": 3,
+    "claimRadius": 3,
+    "minCitySpacing": 3,
+    "foodPerCitizen": 2,
+    "growthBase": 15,
+    "growthLinear": 8,
+    "growthExponent": 1.5,
+    "starvationShrinksAt": -1,
+    "baseCityYields": { "food": 2, "production": 1, "gold": 0 },
+    "sciencePerPop": 1,
+    "baseCulturePerCity": 1,
+    "borderCostBase": 20,
+    "borderCostLinear": 10,
+    "borderCostExponent": 1.1,
+    "citizenWeights": { "food": 3, "production": 2, "gold": 1 },
+    "cityNames": [
+      "Aldermarch",
+      "Brightwater",
+      "Cinderhold",
+      "Dawnreach",
+      "Elmsgate",
+      "Fenwick",
+      "Greyharbour",
+      "Hollowmere",
+      "Ironford",
+      "Junipers Rest",
+      "Kestrel",
+      "Larkspur",
+      "Millbrook",
+      "Northwatch",
+      "Oakenshade",
+      "Pinehollow",
+      "Quarrytown",
+      "Ravensford",
+      "Stonebridge",
+      "Thornfield",
+      "Umberdale",
+      "Vaelport",
+      "Westmarch",
+      "Yarrowfell"
+    ]
+  },
+  "startingUnits": ["settler", "warrior"],
+  "startPlacement": {
+    "minSpacing": 8,
+    "neighborWeight": 1,
+    "terrainScore": {
+      "ocean": 0,
+      "coast": 1,
+      "grassland": 6,
+      "plains": 5,
+      "desert": 0,
+      "tundra": 1,
+      "snow": 0,
+      "mountain": 0
+    }
+  }
+}

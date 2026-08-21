@@ -1,0 +1,25 @@
+{
+  "buildings": {
+    "monument": {
+      "name": "Monument",
+      "cost": 60,
+      "food": 0,
+      "culture": 2,
+      "sciencePerPop": 0
+    },
+    "granary": {
+      "name": "Granary",
+      "cost": 60,
+      "food": 2,
+      "culture": 0,
+      "sciencePerPop": 0
+    },
+    "library": {
+      "name": "Library",
+      "cost": 75,
+      "food": 0,
+      "culture": 0,
+      "sciencePerPop": 0.5
+    }
+  }
+}

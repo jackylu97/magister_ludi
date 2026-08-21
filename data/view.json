@@ -1,0 +1,56 @@
+{
+  "iso": {
+    "squash": 0.58,
+    "hillRise": 5,
+    "mountainRise": 10,
+    "cliffDarken": 0.34,
+    "cliffRimDarken": 0.16
+  },
+  "board": {
+    "desiredBaseSize": 40,
+    "maxCacheDimension": 8192,
+    "faceOverdraw": 1.03,
+    "gridMinZoom": 0.35
+  },
+  "water": {
+    "ocean": "#20638f",
+    "coast": "#3a92c8",
+    "waveColor": "#ffffff",
+    "waveAlpha": 0.15,
+    "waveCount": 2,
+    "waveLength": 0.3,
+    "waveWidth": 0.05,
+    "shoreDarken": 0.12
+  },
+  "decor": {
+    "spread": 0.3,
+    "scaleJitter": 0.16,
+    "shadowAlpha": 0.14
+  },
+  "units": {
+    "pieceScale": 0.6,
+    "shadowAlpha": 0.3,
+    "shadowWidth": 0.46,
+    "shadowHeight": 0.26,
+    "selectionScale": 0.42,
+    "hpBarWidth": 0.66,
+    "minScreenSize": 4
+  },
+  "animation": {
+    "msPerHex": 120,
+    "maxMs": 900,
+    "hopHeight": 0.11
+  },
+  "pieces": {
+    "byUnitType": {
+      "warrior": "pawn",
+      "scout": "flag",
+      "settler": "house"
+    },
+    "byPlayerColor": {
+      "#e0484a": "red",
+      "#2fb0a8": "blue"
+    },
+    "fallbackOrder": ["red", "blue", "green", "yellow", "purple", "black", "white"]
+  }
+}

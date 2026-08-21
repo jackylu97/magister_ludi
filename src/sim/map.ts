@@ -1,0 +1,228 @@
+/**
+ * The board: a rectangular hex map stored as odd-r offset rows, wrapping
+ * east–west like a cylinder.
+ *
+ * Storage
+ * -------
+ * Tiles live in one flat array indexed `row * width + col`. Each tile keeps its
+ * offset coordinates (`col`, `row`); axial coordinates are derived on demand via
+ * `offsetToAxial` / `axialToOffset` (odd-r: odd rows are pushed half a hex east).
+ *
+ * Hills
+ * -----
+ * `feature` is only `none | forest | jungle`. Hills are a separate boolean flag
+ * on the tile rather than a feature value, because in Civ-like rules hills stack
+ * *with* a feature (forested hills are a real, common combination) and mountains
+ * are their own terrain. `elevation` keeps the raw normalised noise value that
+ * produced the flag.
+ *
+ * Wrapping
+ * --------
+ * Every coordinate access goes through `wrapCol` / `wrapHex`. Columns wrap
+ * modulo `width`; rows never wrap — anything above row 0 or below `height - 1`
+ * is off the map and resolves to `undefined`.
+ */
+
+import {
+  type Hex,
+  HEX_DIRECTIONS,
+  hexDistance,
+} from './hex';
+import type { FeatureId, TerrainId } from './terrainData';
+
+export interface Tile {
+  /** Offset column, always in `[0, width)`. */
+  col: number;
+  /** Offset row, always in `[0, height)`. */
+  row: number;
+  terrain: TerrainId;
+  feature: FeatureId;
+  /** Hills stack with terrain and features; see the module docblock. */
+  hills: boolean;
+  /** Normalised generator elevation, 0..1. */
+  elevation: number;
+  /** Normalised generator moisture, 0..1. */
+  moisture: number;
+}
+
+export interface GameMap {
+  width: number;
+  height: number;
+  /** Seed the map was generated from (informational; regeneration is by seed). */
+  seed: number;
+  /** Size key from `data/mapgen.json`. */
+  sizeName: string;
+  /** Flat tile array, indexed `row * width + col`. */
+  tiles: Tile[];
+}
+
+// --- offset <-> axial -------------------------------------------------------
+
+/** odd-r offset -> axial. Odd rows are shifted half a hex east. */
+export function offsetToAxial(col: number, row: number): Hex {
+  return { q: col - (row - (row & 1)) / 2, r: row };
+}
+
+/** axial -> odd-r offset. */
+export function axialToOffset(h: Hex): { col: number; row: number } {
+  return { col: h.q + (h.r - (h.r & 1)) / 2, row: h.r };
+}
+
+// --- wrapping ---------------------------------------------------------------
+
+/** Wraps an offset column into `[0, width)`. THE canonical east–west wrap. */
+export function wrapCol(map: GameMap, col: number): number {
+  const w = map.width;
+  return ((col % w) + w) % w;
+}
+
+/** True when a row is on the map (rows do not wrap). */
+export function inRows(map: GameMap, row: number): boolean {
+  return row >= 0 && row < map.height;
+}
+
+/**
+ * Wraps an axial `q` for the given row, returning the canonical `q`.
+ * Axial `q` depends on the row, so the row must be supplied.
+ */
+export function wrapQ(map: GameMap, q: number, r: number): number {
+  const { col } = axialToOffset({ q, r });
+  return offsetToAxial(wrapCol(map, col), r).q;
+}
+
+/** Canonical (wrapped) form of an axial hex. Rows are left untouched. */
+export function wrapHex(map: GameMap, h: Hex): Hex {
+  return { q: wrapQ(map, h.q, h.r), r: h.r };
+}
+
+// --- tile access ------------------------------------------------------------
+
+export function tileIndex(map: GameMap, col: number, row: number): number {
+  return row * map.width + col;
+}
+
+/** Tile at offset coordinates, wrapping the column. `undefined` off the poles. */
+export function getTileAt(map: GameMap, col: number, row: number): Tile | undefined {
+  if (!inRows(map, row)) return undefined;
+  return map.tiles[tileIndex(map, wrapCol(map, col), row)];
+}
+
+/** Tile at axial coordinates, wrapping the column. `undefined` off the poles. */
+export function getTile(map: GameMap, h: Hex): Tile | undefined {
+  const { col, row } = axialToOffset(h);
+  return getTileAt(map, col, row);
+}
+
+/** The axial coordinates of a tile. */
+export function tileHex(tile: Tile): Hex {
+  return offsetToAxial(tile.col, tile.row);
+}
+
+export function forEachTile(map: GameMap, fn: (tile: Tile) => void): void {
+  for (const tile of map.tiles) fn(tile);
+}
+
+// --- map-aware neighbourhood ------------------------------------------------
+
+/**
+ * The on-map neighbours of `h` as canonical (wrapped) axial hexes.
+ * Neighbours past the north/south edge are omitted, so the result has 3–6 entries.
+ */
+export function mapNeighbors(map: GameMap, h: Hex): Hex[] {
+  const result: Hex[] = [];
+  for (const d of HEX_DIRECTIONS) {
+    const r = h.r + d.r;
+    if (!inRows(map, r)) continue;
+    result.push({ q: wrapQ(map, h.q + d.q, r), r });
+  }
+  return result;
+}
+
+/** The on-map neighbour tiles of `h`. */
+export function neighborTiles(map: GameMap, h: Hex): Tile[] {
+  const result: Tile[] = [];
+  for (const n of mapNeighbors(map, h)) {
+    const tile = getTile(map, n);
+    if (tile) result.push(tile);
+  }
+  return result;
+}
+
+/** The on-map neighbour tiles of a tile. */
+export function tileNeighbors(map: GameMap, tile: Tile): Tile[] {
+  return neighborTiles(map, tileHex(tile));
+}
+
+/**
+ * Hex distance that may travel around the east–west seam, i.e. the shortest of
+ * going directly and going around the cylinder in either direction.
+ */
+export function wrappedDistance(map: GameMap, a: Hex, b: Hex): number {
+  const w = map.width;
+  // Shifting a hex by `k` whole map widths in *offset* space changes axial q by
+  // k * width (the row, and therefore the odd-r shear term, is unchanged).
+  let best = Infinity;
+  for (let k = -1; k <= 1; k++) {
+    const d = hexDistance(a, { q: b.q + k * w, r: b.r });
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+/** Every on-map tile within `radius` steps of `h`, wrap-aware, `h` included. */
+export function mapRange(map: GameMap, h: Hex, radius: number): Tile[] {
+  const result: Tile[] = [];
+  if (radius < 0) return result;
+  const seen = new Set<number>();
+  for (let dq = -radius; dq <= radius; dq++) {
+    const lo = Math.max(-radius, -dq - radius);
+    const hi = Math.min(radius, -dq + radius);
+    for (let dr = lo; dr <= hi; dr++) {
+      const tile = getTile(map, { q: h.q + dq, r: h.r + dr });
+      if (!tile) continue;
+      const idx = tileIndex(map, tile.col, tile.row);
+      // A small map can wrap onto itself; do not report the same tile twice.
+      if (seen.has(idx)) continue;
+      seen.add(idx);
+      result.push(tile);
+    }
+  }
+  return result;
+}
+
+// --- construction -----------------------------------------------------------
+
+export interface CreateMapOptions {
+  width: number;
+  height: number;
+  seed?: number;
+  sizeName?: string;
+  terrain?: TerrainId;
+}
+
+/** An empty map, every tile the same terrain. Generation fills it in. */
+export function createMap(options: CreateMapOptions): GameMap {
+  const { width, height } = options;
+  const terrain = options.terrain ?? 'ocean';
+  const tiles: Tile[] = new Array(width * height);
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      tiles[row * width + col] = {
+        col,
+        row,
+        terrain,
+        feature: 'none',
+        hills: false,
+        elevation: 0,
+        moisture: 0,
+      };
+    }
+  }
+  return {
+    width,
+    height,
+    seed: options.seed ?? 0,
+    sizeName: options.sizeName ?? 'custom',
+    tiles,
+  };
+}
