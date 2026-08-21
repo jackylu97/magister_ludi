@@ -420,13 +420,16 @@ export function hexRing(outerRadius: number, width: number): BufferGeometry {
  * buried inside the neighbouring prisms.
  */
 export function riverSegment(): BufferGeometry {
+  // Wound counter-clockwise as seen from above (+y): the lit toon material is
+  // FrontSide-only, so a clockwise quad here is backface-culled and the river
+  // silently vanishes — which is exactly the bug this comment is guarding.
   return flatFan([
     { x: -0.5, z: -0.5 },
+    { x: 0.5, z: 0.5 },
     { x: 0.5, z: -0.5 },
-    { x: 0.5, z: 0.5 },
     { x: -0.5, z: -0.5 },
-    { x: 0.5, z: 0.5 },
     { x: -0.5, z: 0.5 },
+    { x: 0.5, z: 0.5 },
   ]);
 }
 

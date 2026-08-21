@@ -116,9 +116,9 @@
   },
   "rivers": {
     "color": "brook",
-    "width": 0.3,
+    "width": 0.24,
     "overhang": 1.14,
-    "drop": 0.03
+    "drop": -0.02
   },
   "territory": {
     "tintScale": 0.99,
