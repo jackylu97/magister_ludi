@@ -136,12 +136,17 @@ describe('terrain distribution', () => {
     expect((counts['grassland'] ?? 0) + (counts['plains'] ?? 0)).toBeGreaterThan(0);
   });
 
-  it('marks water next to land as coast and open water as ocean', () => {
-    const map = generateMap(2468, 'duel');
-    for (const tile of map.tiles) {
-      if (!isWaterTerrain(tile.terrain)) continue;
-      const touchesLand = tileNeighbors(map, tile).some((n) => !isWaterTerrain(n.terrain));
-      expect(tile.terrain).toBe(touchesLand ? 'coast' : 'ocean');
+  it('marks marine water next to land as coast and open water as ocean', () => {
+    // Lakes are excluded: they are classified out of the sea *before* the coast
+    // pass and are deliberately not coast, however much land they touch. That a
+    // lake never mints a coastal tile is asserted in `water.test.ts`.
+    for (const seed of [2468, 1, 7, 31337]) {
+      const map = generateMap(seed, 'duel');
+      for (const tile of map.tiles) {
+        if (!isWaterTerrain(tile.terrain) || tile.terrain === 'lake') continue;
+        const touchesLand = tileNeighbors(map, tile).some((n) => !isWaterTerrain(n.terrain));
+        expect(tile.terrain).toBe(touchesLand ? 'coast' : 'ocean');
+      }
     }
   });
 

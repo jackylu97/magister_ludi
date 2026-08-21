@@ -1114,7 +1114,7 @@ describe('determinism with cities', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 4 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 5 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1122,7 +1122,9 @@ describe('determinism with cities', () => {
 
     const json = saveGame(game);
     expect((JSON.parse(json) as { schemaVersion: number }).schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(4);
+    // Bumped to 5 by fresh water: `Tile` grew `riverEdges` and `freshwater`,
+    // and `lake` joined the terrain list.
+    expect(SCHEMA_VERSION).toBe(5);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

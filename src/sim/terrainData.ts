@@ -51,6 +51,7 @@ import { RULES } from './rulesData';
 export type TerrainId =
   | 'ocean'
   | 'coast'
+  | 'lake'
   | 'grassland'
   | 'plains'
   | 'desert'
@@ -70,6 +71,13 @@ export interface TileYield {
 export interface TerrainDef {
   name: string;
   water: boolean;
+  /**
+   * True for water a land tile can drink from — lakes, and nothing else today.
+   * The ocean and its coast are salt. Read through `isFreshwaterTerrain`; the
+   * per-tile answer a city will eventually ask is `Tile.freshwater`, which this
+   * flag feeds via `computeFreshwater` in `water.ts`.
+   */
+  freshwater: boolean;
   /** False when no citizen may ever work the tile (mountains). See the docblock. */
   workable: boolean;
   /** Movement points to enter; `null` means impassable. See the docblock. */
@@ -145,9 +153,20 @@ export function featureDef(id: FeatureId): FeatureDef {
   return TERRAIN_DATA.features[id];
 }
 
-/** True when the terrain is a water tile (ocean or coast). */
+/** True when the terrain is a water tile (ocean, coast or lake). */
 export function isWaterTerrain(id: TerrainId): boolean {
   return TERRAIN_DATA.terrains[id].water;
+}
+
+/**
+ * True when the terrain is *fresh* water — a lake, today, and nothing else.
+ *
+ * Separate from `water` because the two questions have different answers for
+ * the ocean and its coast: both are water (nothing walks on them), neither is
+ * drinkable. See `TerrainDef.freshwater`.
+ */
+export function isFreshwaterTerrain(id: TerrainId): boolean {
+  return TERRAIN_DATA.terrains[id].freshwater;
 }
 
 // --- movement ---------------------------------------------------------------

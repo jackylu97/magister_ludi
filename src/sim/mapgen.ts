@@ -27,6 +27,13 @@ import {
 import { createNoise3D, fbm3, type FbmOptions, type Noise3D } from './noise';
 import { makeRng, nextUint32 } from './rng';
 import { isWaterTerrain, type FeatureId, type TerrainId } from './terrainData';
+import {
+  type RiverConfig,
+  type RiverTrace,
+  classifyLakes,
+  computeFreshwater,
+  traceRivers,
+} from './water';
 
 export interface NoiseConfig extends FbmOptions {
   /** Noise units around the full circumference of the world. */
@@ -63,6 +70,11 @@ export interface MapgenConfig {
     forestMin: number;
     jungleMin: number;
   };
+  lakes: {
+    /** Water bodies of at most this many tiles become lakes. See `water.ts`. */
+    maxSize: number;
+  };
+  rivers: RiverConfig;
 }
 
 export const MAPGEN_CONFIG: MapgenConfig = mapgenJson as MapgenConfig;
@@ -176,10 +188,33 @@ function pickFeature(
   return 'none';
 }
 
+/** A generated map together with the working data it does not keep. */
+export interface MapDetail {
+  map: GameMap;
+  /** Every river that survived tracing, as corner paths. See `water.ts`. */
+  rivers: RiverTrace[];
+  /** How many water bodies were reclassified as lakes. */
+  lakeCount: number;
+}
+
 /**
  * Generates a complete map. Fully deterministic in `(seed, sizeName)`.
  */
 export function generateMap(seed: number, sizeName: string): GameMap {
+  return generateMapDetail(seed, sizeName).map;
+}
+
+/**
+ * The same generation, handing back the intermediate river traces.
+ *
+ * The map stores rivers as per-tile edge masks, which is the right shape for
+ * every consumer but throws away the *paths* — and "did this river run downhill
+ * the whole way" is a question only a path can answer. Rather than store paths
+ * nobody plays with, generation offers them to whoever wants to look: the tests
+ * that assert monotonic descent, and the statistics dumps. `generateMap` is this
+ * function with the extras dropped, so there is exactly one generation path.
+ */
+export function generateMapDetail(seed: number, sizeName: string): MapDetail {
   const config = MAPGEN_CONFIG;
   const size = getMapSize(sizeName);
   const { width, height } = size;
@@ -243,7 +278,16 @@ export function generateMap(seed: number, sizeName: string): GameMap {
     }
   }
 
-  // Pass 2: water adjacent to land becomes coast. Wrap-aware via tileNeighbors.
+  // Pass 2: small inland water bodies become lakes. Before the coast pass, and
+  // that order is the whole point — see `classifyLakes` in `water.ts`.
+  const lakeCount = classifyLakes(map, config.lakes.maxSize);
+
+  // Pass 3: water adjacent to land becomes coast. Wrap-aware via tileNeighbors.
+  //
+  // The `!== 'ocean'` guard is load-bearing now that lakes exist: `coast` is a
+  // marine terrain and a lake must never mint one. A lake tile is skipped as a
+  // *source* (it is not ocean), and it cannot promote its neighbours either,
+  // because a lake is a maximal water body — no ocean tile is ever next to one.
   const coastal: Tile[] = [];
   for (const tile of map.tiles) {
     if (tile.terrain !== 'ocean') continue;
@@ -252,7 +296,15 @@ export function generateMap(seed: number, sizeName: string): GameMap {
   }
   for (const tile of coastal) tile.terrain = 'coast';
 
-  return map;
+  // Pass 4: rivers. The generator's only dice, and they are rolled *after* both
+  // noise fields have been drawn from `rng`, so every tile's terrain is exactly
+  // what it was before rivers existed.
+  const rivers = traceRivers(map, rng, config.rivers);
+
+  // Pass 5: who can drink. Derived from everything above, so it goes last.
+  computeFreshwater(map);
+
+  return { map, rivers, lakeCount };
 }
 
 /** Convenience for the UI: axial coordinates of a tile. */

@@ -69,8 +69,9 @@ import { type UnitTypeId, unitDef } from './unitData';
  *
  * 3: Milestone 3 — real cities, tile ownership, and the per-player yield pools.
  * 4: Citizen management — `City.lockedTiles` and the `setLockedTiles` command.
+ * 5: Fresh water — the `lake` terrain, `Tile.riverEdges` and `Tile.freshwater`.
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 // --- players ----------------------------------------------------------------
 

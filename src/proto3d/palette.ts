@@ -99,7 +99,10 @@ export function saturate(color: number, factor: number): number {
 /** Top-face colour for each terrain. Water entries are used by the sea plane. */
 export const TERRAIN_COLOR: Record<TerrainId, number> = {
   ocean: PALETTE.lagoon,
+  // The look-dev prototype predates lakes and never generates one; it maps to
+  // the coast blue so the `TerrainId` record stays total.
   coast: PALETTE.shoal,
+  lake: PALETTE.shoal,
   grassland: PALETTE.sage,
   plains: PALETTE.wheat,
   desert: PALETTE.sand,

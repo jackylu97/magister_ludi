@@ -404,6 +404,31 @@ export function hexRing(outerRadius: number, width: number): BufferGeometry {
   return flatFan(points);
 }
 
+/**
+ * A river segment: a flat unit quad in the xz plane, centred on the origin, one
+ * unit long in x and one wide in z.
+ *
+ * Built at unit size and stretched by the instance matrix rather than baked at
+ * the right proportions, because every segment wants the same length and width
+ * but a different *rotation* — one geometry, one instanced draw for every river
+ * on the board. Its long axis is x so the instance yaw is simply the angle of
+ * the edge it lies along.
+ *
+ * Lit, not an overlay: it is water sitting in a channel between two solid
+ * things, and the depth buffer is what hides the two thirds of it that are
+ * buried inside the neighbouring prisms.
+ */
+export function riverSegment(): BufferGeometry {
+  return flatFan([
+    { x: -0.5, z: -0.5 },
+    { x: 0.5, z: -0.5 },
+    { x: 0.5, z: 0.5 },
+    { x: -0.5, z: -0.5 },
+    { x: 0.5, z: 0.5 },
+    { x: -0.5, z: 0.5 },
+  ]);
+}
+
 /** A path-preview chip: a very low cylinder standing on its base. */
 export function pathDot(radius: number, height: number): BufferGeometry {
   const geometry = new CylinderGeometry(radius, radius, height, 12, 1);

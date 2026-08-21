@@ -13,6 +13,8 @@
     "frond": "#3f5a48",
     "lagoon": "#5e8a90",
     "shoal": "#86aeae",
+    "mere": "#6aa793",
+    "brook": "#8ac6bd",
     "crimson": "#b35843",
     "teal": "#477f7e",
     "vellum": "#dbcfb0",
@@ -21,6 +23,7 @@
   "terrainColor": {
     "ocean": "lagoon",
     "coast": "shoal",
+    "lake": "mere",
     "grassland": "sage",
     "plains": "wheat",
     "desert": "sand",
@@ -110,6 +113,12 @@
     "flagWidth": 0.46,
     "flagHeight": 0.26,
     "flagDrop": 0.14
+  },
+  "rivers": {
+    "color": "brook",
+    "width": 0.3,
+    "overhang": 1.14,
+    "drop": 0.03
   },
   "territory": {
     "tintScale": 0.99,

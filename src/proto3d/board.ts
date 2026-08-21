@@ -73,7 +73,7 @@ type HeightClass = keyof typeof BOARD.height;
 function heightClassOf(tile: Tile): HeightClass {
   if (tile.terrain === 'mountain') return 'mountain';
   if (tile.terrain === 'ocean') return 'ocean';
-  if (tile.terrain === 'coast') return 'coast';
+  if (tile.terrain === 'coast' || tile.terrain === 'lake') return 'coast';
   return tile.hills ? 'hills' : 'land';
 }
 

@@ -25,6 +25,8 @@ import {
   HEIGHT_CLASSES_TOP_DOWN,
   boardBounds,
   cellCenter,
+  directionDelta,
+  edgeYaw,
   heightClassOf,
   nominalTopY,
   tileTopY,
@@ -223,5 +225,48 @@ describe('3D picking internals', () => {
     expect(worldToCell(map, north.x, north.z - 1.5)).toBeNull();
     const south = cellCenter(4, map.height - 1);
     expect(worldToCell(map, south.x, south.z + 1.5)).toBeNull();
+  });
+});
+
+/**
+ * Where a river ribbon goes.
+ *
+ * `board3d.ts` places one flat quad per flagged edge at the midpoint of the step
+ * to the neighbour, rotated so its long axis lies *along* that edge. Both halves
+ * of that are pure math and both are easy to get 60° wrong, so they are pinned
+ * here rather than left to an eyeball at 57° elevation.
+ */
+describe('river ribbon placement', () => {
+  it('steps to a neighbour without ever consulting a wrapped column', () => {
+    const map = generateMap(4242, 'duel');
+    const period = wrapWidth(map);
+    for (let direction = 0; direction < 6; direction++) {
+      const delta = directionDelta(direction);
+      // One hex step is one hex step wherever you stand: the same displacement
+      // at the seam as in the middle of the board.
+      expect(Math.hypot(delta.x, delta.z)).toBeCloseTo(SQRT3, 12);
+      // ...and never a whole world away, which is what differencing two
+      // `cellCenter` calls across the seam would give.
+      expect(Math.abs(delta.x)).toBeLessThan(period / 2);
+    }
+  });
+
+  it('lays the ribbon across the step, not along it', () => {
+    for (let direction = 0; direction < 6; direction++) {
+      const delta = directionDelta(direction);
+      const yaw = edgeYaw(direction);
+      // The quad's local +x after a yaw rotation about +y.
+      const axis = { x: Math.cos(yaw), z: -Math.sin(yaw) };
+      expect(axis.x * delta.x + axis.z * delta.z).toBeCloseTo(0, 12);
+    }
+  });
+
+  it('gives opposite directions the same edge line', () => {
+    for (let direction = 0; direction < 3; direction++) {
+      const near = edgeYaw(direction);
+      const far = edgeYaw(direction + 3);
+      // Same line, half a turn apart: the edge does not care which tile named it.
+      expect(Math.abs(Math.sin(near - far))).toBeCloseTo(0, 12);
+    }
   });
 });

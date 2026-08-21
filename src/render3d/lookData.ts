@@ -114,6 +114,32 @@ export interface CitySpec {
   flagDrop: number;
 }
 
+/**
+ * Rivers: the water running in the grout between two prisms.
+ *
+ * A river here is not a tile, it is an *edge*, so it is drawn as a flat ribbon
+ * lying across the gap the tile inset already leaves between neighbours. The
+ * ribbon is much wider than that gap on purpose: its middle shows, and both ends
+ * are buried inside the two prisms it runs between, which is what lets it look
+ * like water in a channel rather than a blue stripe painted on the table.
+ *
+ * `drop` is the one number that has to be small. The gap is about 0.08 of a hex
+ * radius wide and the camera looks down at 57°, so anything more than a few
+ * hundredths below the tile face is hidden by the prism's own lip and the river
+ * simply disappears. Dropping to the substrate — where the grout shadow actually
+ * lives — would be invisible at every zoom.
+ */
+export interface RiverSpec {
+  /** Palette name of the water. */
+  color: number;
+  /** Ribbon width across the gap, in hex radii. Most of it is buried. */
+  width: number;
+  /** Ribbon length as a multiple of the edge; over 1 so corners close up. */
+  overhang: number;
+  /** How far below the lower of the two tiles' top faces the ribbon sits. */
+  drop: number;
+}
+
 /** Borders, and the dots marking which tiles a city's citizens work. */
 export interface TerritorySpec {
   /** Territory tint size as a fraction of the hex radius. */
@@ -293,6 +319,7 @@ export interface View3DData {
   piece: PieceSpec;
   city: CitySpec;
   table: TableSpec;
+  rivers: RiverSpec;
   territory: TerritorySpec;
   look: LookSpec;
   camera: CameraSpec;
@@ -367,6 +394,12 @@ export const VIEW3D: View3DData = {
     edgeFalloff: viewJson.table.edgeFalloff,
     edgePad: viewJson.table.edgePad,
     reach: viewJson.table.reach,
+  },
+  rivers: {
+    color: named(viewJson.rivers.color, 'rivers.color'),
+    width: viewJson.rivers.width,
+    overhang: viewJson.rivers.overhang,
+    drop: viewJson.rivers.drop,
   },
   territory: {
     tintScale: viewJson.territory.tintScale,

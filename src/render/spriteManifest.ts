@@ -78,6 +78,7 @@ export interface DecorTile {
 export const TERRAIN_ART: Record<TerrainId, TerrainArt> = {
   ocean: { file: null, faceColor: VIEW.water.ocean, water: true },
   coast: { file: null, faceColor: VIEW.water.coast, water: true },
+  lake: { file: null, faceColor: VIEW.water.lake, water: true },
   grassland: { file: 'terrain/grassland.png', faceColor: '#27ae60' },
   plains: { file: 'terrain/plains.png', faceColor: '#a89b52' },
   desert: { file: 'terrain/desert.png', faceColor: '#ecdcb8' },

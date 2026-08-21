@@ -15,6 +15,7 @@
   "water": {
     "ocean": "#20638f",
     "coast": "#3a92c8",
+    "lake": "#4fb0b6",
     "waveColor": "#ffffff",
     "waveAlpha": 0.15,
     "waveCount": 2,

@@ -34,7 +34,7 @@
  * definition of the seam.
  */
 
-import { SQRT3, hexToPixel, pixelToHex } from '../sim/hex';
+import { HEX_DIRECTIONS, SQRT3, hexToPixel, pixelToHex } from '../sim/hex';
 import { type GameMap, type Tile, axialToOffset, getTileAt, offsetToAxial } from '../sim/map';
 
 import { hashSigned } from './hash';
@@ -57,11 +57,18 @@ export const HEIGHT_CLASSES_TOP_DOWN: readonly HeightClass[] = (
   Object.keys(BOARD.height) as HeightClass[]
 ).sort((a, b) => BOARD.height[b] - BOARD.height[a]);
 
-/** Which prism height a tile gets. Mountain beats hills beats water beats flat. */
+/**
+ * Which prism height a tile gets. Mountain beats hills beats water beats flat.
+ *
+ * A lake shares the *coast* height rather than owning a sixth class: it is
+ * shallow water and it wants to sit exactly where a shore sits, and giving it
+ * its own plane would add a picking layer that can never occlude anything the
+ * coast plane does not already occlude. Only its colour differs.
+ */
 export function heightClassOf(tile: Tile): HeightClass {
   if (tile.terrain === 'mountain') return 'mountain';
   if (tile.terrain === 'ocean') return 'ocean';
-  if (tile.terrain === 'coast') return 'coast';
+  if (tile.terrain === 'coast' || tile.terrain === 'lake') return 'coast';
   return tile.hills ? 'hills' : 'land';
 }
 
@@ -108,6 +115,33 @@ export function tileTopY(tile: Tile): number {
 export function cellCenter(col: number, row: number): { x: number; z: number } {
   const point = hexToPixel(offsetToAxial(col, row), BOARD.hexRadius);
   return { x: point.x, z: point.y };
+}
+
+/**
+ * The world-space step from a tile's centre to its neighbour's, per direction.
+ *
+ * A *displacement*, not a position, which is what makes it wrap-proof: the
+ * neighbour across the seam has a canonical column half a world away, and
+ * differencing two `cellCenter` calls would put a river segment there. Because
+ * `hexToPixel` is linear in `(q, r)`, the offset of a direction is just that
+ * direction run through it, and it is the same everywhere on the board.
+ */
+export function directionDelta(direction: number): { x: number; z: number } {
+  const d = HEX_DIRECTIONS[((direction % 6) + 6) % 6]!;
+  const point = hexToPixel(d, BOARD.hexRadius);
+  return { x: point.x, z: point.y };
+}
+
+/**
+ * Yaw, in radians, that turns a shape's local +x axis along the shared edge
+ * between a tile and its neighbour in `direction` — i.e. perpendicular to
+ * `directionDelta`. What a river ribbon is rotated by.
+ */
+export function edgeYaw(direction: number): number {
+  const d = directionDelta(direction);
+  // Rotating +x by θ about +y gives (cos θ, 0, −sin θ); setting that equal to
+  // the perpendicular (−dz, 0, dx) gives θ = atan2(−dx, −dz).
+  return Math.atan2(-d.x, -d.z);
 }
 
 /** The horizontal wrap period of a map, in world units. */

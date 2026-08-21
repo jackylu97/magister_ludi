@@ -44,6 +44,8 @@ export interface BoardConfig {
 export interface WaterConfig {
   ocean: string;
   coast: string;
+  /** Inland fresh water. Drawn exactly like the sea, in a fresher blue. */
+  lake: string;
   waveColor: string;
   waveAlpha: number;
   /** Wave glyphs per water tile. 0 disables them. */

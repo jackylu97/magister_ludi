@@ -75,6 +75,7 @@
     "terrainScore": {
       "ocean": 0,
       "coast": 1,
+      "lake": 1,
       "grassland": 6,
       "plains": 5,
       "desert": 0,

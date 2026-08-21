@@ -43,6 +43,7 @@ import {
 } from 'three';
 
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
+import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
 import { hashDisc, hashSigned, hashUnit } from './hash';
 import {
@@ -56,6 +57,7 @@ import {
   mountainPeak,
   pathDot,
   pineTree,
+  riverSegment,
   rock,
   roundTree,
   scoutPiece,
@@ -68,6 +70,8 @@ import {
   type HeightClass,
   boardBounds,
   cellCenter,
+  directionDelta,
+  edgeYaw,
   heightClassOf,
   tileScale,
   tileTopY,
@@ -82,6 +86,7 @@ const OVERLAY = VIEW3D.overlay;
 const CITY = VIEW3D.city;
 const LENS = VIEW3D.lens;
 const TABLE = VIEW3D.table;
+const RIVERS = VIEW3D.rivers;
 
 /**
  * One geometry per shape, built once and shared by every board ever built.
@@ -110,6 +115,8 @@ export class BoardGeometry {
   readonly territory: BufferGeometry;
   /** A yield pip: the path dot's little sibling. See `lens3d.ts`. */
   readonly pip: BufferGeometry;
+  /** One river's worth of water, lying across one grout gap. */
+  readonly river: BufferGeometry;
 
   constructor() {
     const radius = BOARD.hexRadius * (1 - BOARD.tileGap);
@@ -141,6 +148,7 @@ export class BoardGeometry {
     );
     this.dot = pathDot(OVERLAY.pathDotRadius, OVERLAY.pathDotHeight);
     this.pip = pathDot(LENS.pipRadius, LENS.pipHeight);
+    this.river = riverSegment();
     this.bar = barQuad();
   }
 
@@ -158,6 +166,7 @@ export class BoardGeometry {
     this.ring.dispose();
     this.dot.dispose();
     this.pip.dispose();
+    this.river.dispose();
     this.bar.dispose();
     this.territory.dispose();
   }
@@ -287,6 +296,65 @@ function buildTable(bounds: Bounds, period: number): Mesh {
   return mesh;
 }
 
+/**
+ * Every river on the map, as one flat ribbon per flagged edge.
+ *
+ * Each edge is flagged on *both* the tiles that share it (see the `map.ts`
+ * docblock), so a naive sweep would draw every segment twice. Only directions
+ * 0–2 — east, south-east, south-west — are emitted; the other three are the same
+ * edges seen from the far side and are covered by their own tile's first half.
+ * That is exact rather than approximate, because `HEX_DIRECTIONS[d + 3]` is
+ * `-HEX_DIRECTIONS[d]`.
+ *
+ * The ribbon lies `rivers.drop` below the *lower* of the two tiles' top faces,
+ * which is what puts it in the grout instead of on it: everything outside the
+ * gap is inside one prism or the other and the depth buffer hides it. Taking the
+ * lower of the two matters where a river runs along the foot of a hill — anchored
+ * to the higher tile it would hang in mid-air over the lower one.
+ *
+ * Nothing is animated and nothing is hashed: the geometry is a pure function of
+ * the map, baked once with the board and replicated across the wrap like
+ * everything else.
+ */
+function addRivers(
+  map: GameMap,
+  geometry: BoardGeometry,
+  collector: InstanceCollector,
+): void {
+  const position = new Vector3();
+  const quaternion = new Quaternion();
+  const scale = new Vector3();
+  const axis = new Vector3(0, 1, 0);
+
+  // A hexagon's side equals its circumradius, so the shared edge is exactly one
+  // hex radius long before the overhang that closes the corners.
+  const length = BOARD.hexRadius * RIVERS.overhang;
+  const width = BOARD.hexRadius * RIVERS.width;
+
+  for (const tile of map.tiles) {
+    for (let direction = 0; direction < 3; direction++) {
+      if (!hasRiverEdge(tile, direction)) continue;
+      const neighbor = neighborInDirection(map, tile, direction);
+      if (!neighbor) continue;
+
+      const center = cellCenter(tile.col, tile.row);
+      const delta = directionDelta(direction);
+      const y = Math.min(tileTopY(tile), tileTopY(neighbor)) - RIVERS.drop;
+      position.set(center.x + delta.x / 2, y, center.z + delta.z / 2);
+      quaternion.setFromAxisAngle(axis, edgeYaw(direction));
+      scale.set(length, 1, width);
+      collector.add(
+        geometry.river,
+        [RIVERS.color],
+        new Matrix4().compose(position, quaternion, scale),
+        // No inverted hull: a dark rim around a line this thin would swallow it,
+        // and the grout it sits in is already the outline.
+        { outlined: false },
+      );
+    }
+  }
+}
+
 function addDecorations(
   tile: Tile,
   top: number,
@@ -409,6 +477,8 @@ export function buildBoard(
       addDecorations(tile, top, center, geometry, collector);
     }
   }
+
+  addRivers(map, geometry, collector);
 
   const bounds = boardBounds(map);
   let drawCalls = collector.flush(group, materials, shadows);

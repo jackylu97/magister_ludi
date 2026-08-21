@@ -60,5 +60,17 @@
     "plainsMax": 0.55,
     "forestMin": 0.58,
     "jungleMin": 0.66
+  },
+  "lakes": {
+    "maxSize": 8
+  },
+  "rivers": {
+    "countPer1000Tiles": 7,
+    "minCount": 3,
+    "minSpringElevation": 0.86,
+    "minSpringSpacing": 4,
+    "minLength": 3,
+    "maxLength": 80,
+    "maxAttempts": 600
   }
 }

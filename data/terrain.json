@@ -3,6 +3,7 @@
     "ocean": {
       "name": "Ocean",
       "water": true,
+      "freshwater": false,
       "workable": true,
       "moveCost": null,
       "yield": { "food": 1, "production": 0, "gold": 1 },
@@ -13,6 +14,7 @@
     "coast": {
       "name": "Coast",
       "water": true,
+      "freshwater": false,
       "workable": true,
       "moveCost": null,
       "yield": { "food": 1, "production": 0, "gold": 1 },
@@ -20,9 +22,21 @@
       "glyph": null,
       "glyphColor": "#215579"
     },
+    "lake": {
+      "name": "Lake",
+      "water": true,
+      "freshwater": true,
+      "workable": true,
+      "moveCost": null,
+      "yield": { "food": 2, "production": 0, "gold": 0 },
+      "fillColor": "#4f9fb0",
+      "glyph": null,
+      "glyphColor": "#367583"
+    },
     "grassland": {
       "name": "Grassland",
       "water": false,
+      "freshwater": false,
       "workable": true,
       "moveCost": 1,
       "yield": { "food": 2, "production": 0, "gold": 0 },
@@ -33,6 +47,7 @@
     "plains": {
       "name": "Plains",
       "water": false,
+      "freshwater": false,
       "workable": true,
       "moveCost": 1,
       "yield": { "food": 1, "production": 1, "gold": 0 },
@@ -43,6 +58,7 @@
     "desert": {
       "name": "Desert",
       "water": false,
+      "freshwater": false,
       "workable": true,
       "moveCost": 1,
       "yield": { "food": 0, "production": 0, "gold": 0 },
@@ -53,6 +69,7 @@
     "tundra": {
       "name": "Tundra",
       "water": false,
+      "freshwater": false,
       "workable": true,
       "moveCost": 1,
       "yield": { "food": 1, "production": 0, "gold": 0 },
@@ -63,6 +80,7 @@
     "snow": {
       "name": "Snow",
       "water": false,
+      "freshwater": false,
       "workable": true,
       "moveCost": 1,
       "yield": { "food": 0, "production": 0, "gold": 0 },
@@ -73,6 +91,7 @@
     "mountain": {
       "name": "Mountain",
       "water": false,
+      "freshwater": false,
       "workable": false,
       "moveCost": null,
       "yield": { "food": 0, "production": 0, "gold": 0 },

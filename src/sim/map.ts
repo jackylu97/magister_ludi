@@ -21,6 +21,24 @@
  * Every coordinate access goes through `wrapCol` / `wrapHex`. Columns wrap
  * modulo `width`; rows never wrap — anything above row 0 or below `height - 1`
  * is off the map and resolves to `undefined`.
+ *
+ * Rivers live on edges, not on tiles
+ * ----------------------------------
+ * A river in this game is a Civ-style *edge* river: it runs along the border
+ * between two hexes rather than through the middle of one, which is what lets a
+ * river be a boundary and a source of water without also being a tile you have
+ * to spend a turn walking around. `Tile.riverEdges` is a 6-bit mask indexed by
+ * `HEX_DIRECTIONS`, bit `d` meaning "a river runs along the edge I share with
+ * my neighbour in direction `d`".
+ *
+ * THE INVARIANT: an edge is flagged on *both* of the tiles that share it. Bit
+ * `d` of tile A implies bit `(d + 3) % 6` of A's neighbour in direction `d`,
+ * because `HEX_DIRECTIONS[d + 3]` is exactly `-HEX_DIRECTIONS[d]`. Every write
+ * goes through `setRiverEdge` in `water.ts`, which sets both halves, and
+ * `test/water.test.ts` asserts the mirror over whole generated maps. Reading one
+ * side is therefore always enough — `hasRiverEdge(tile, d)` never has to look up
+ * the neighbour — and that is the whole reason the flag is duplicated rather
+ * than stored once on a canonical owner.
  */
 
 import {
@@ -43,6 +61,17 @@ export interface Tile {
   elevation: number;
   /** Normalised generator moisture, 0..1. */
   moisture: number;
+  /**
+   * Which of this tile's six edges a river runs along, as a 6-bit mask indexed
+   * by `HEX_DIRECTIONS`. See the module docblock for the mirror invariant.
+   */
+  riverEdges: number;
+  /**
+   * True when this tile is land that can drink: it has a river on one of its
+   * own edges, or a lake next door. Computed once at the end of generation by
+   * `computeFreshwater` (`water.ts`); read through `hasFreshWater`.
+   */
+  freshwater: boolean;
 }
 
 export interface GameMap {
@@ -215,6 +244,8 @@ export function createMap(options: CreateMapOptions): GameMap {
         hills: false,
         elevation: 0,
         moisture: 0,
+        riverEdges: 0,
+        freshwater: false,
       };
     }
   }
