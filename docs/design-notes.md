@@ -311,8 +311,18 @@ warm bright board is the lit object, all chrome recedes into darkness. Flourish 
 gold double-frame on announcements · wax-seal turn stamp · star-chart tech tree (ink ground,
 gilt stars) · manicule for notices · Roman numerals (ages, queue) · one corner star per panel ·
 card-back weave. Refused: parchment textures, candle flicker, dust, blackletter, board flourishes.
-Live-UI re-tint happens AFTER the UI queue drains (landing page last) — one pigment pass on a
-settled layout.
+**RESOLVED (user, 2026-08-21, after a live composite test): LIGHT THEME WINS.** The dark
+nocturne (take five) was tested as a live token-injection over the real board — it works, but
+the light chrome "feels better." Dark takes stay archived in the specimen. THE FLOURISHES ARE
+KEPT and apply to the light theme: wax-seal turn stamp, star-chart tech tree (that one surface
+stays ink/dark by design), manicule notices, Roman numerals, corner stars, card-back weave,
+gold double-frames on announcement surfaces. Design nitpicks deferred.
+
+**3D scene background (user direction): do something better than the pale sky — and design it
+to become fog of war.** Concept: the board sits on the magister's CHART-TABLE — the backdrop
+reads as aged vellum/table surface. Eventually: unexplored tiles = blank chart (faint hex
+ghost-lines on vellum, the world literally drawn in as you explore); explored-but-unseen =
+desaturated/inked-down. Background and FOW become one visual system, light-theme native.
 
 ---
 
