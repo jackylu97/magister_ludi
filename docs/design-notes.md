@@ -52,6 +52,10 @@ headless tall-bot/wide-bot 150-turn seeded sims in Vitest.
   the happiness/authority milestone.
 - **Estuary (river + coast) gets both** — premium contested sites (London, Alexandria).
   Start permissive; watch for auto-win siting.
+- **The settler lens renders this system (user, 2026-08-21):** blue highlight = coast-adjacent
+  sites (authority discount), green = freshwater-adjacent (growth bonus). Coast-blue ships now;
+  freshwater-green is wired but inert until the rivers/lakes mapgen milestone. The lens shows
+  the player the exact decision the site-bonus design prices.
 
 **Sequencing:** happiness + authority build ~M5+ (need buildings, luxuries on map, ages defined).
 
