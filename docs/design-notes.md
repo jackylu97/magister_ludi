@@ -164,6 +164,13 @@ into earlier milestones.
    Big content lift — needs its own milestone and a writing pass. Deterministic like everything
    else: event draws from `state.rng`, choices are commands.
 
+3. **Map-placed constructibles (user, 2026-08-21).** Baseline stays Civ V: buildings live in the
+   city center, no districts. BUT selected constructibles — wonders, perhaps certain unique
+   buildings — may occupy a map tile (visible on the board, occupying a workable tile = real
+   cost, very diorama-friendly: wonders as showpieces on the table). Somewhere between Civ V
+   and Civ VI's districts without district sprawl. Open questions for later: does placement
+   consume the tile's yield; adjacency effects or none; can they be pillaged/captured.
+
 **Scope-creep guard:** the active roadmap stays vanilla-first (M4 science/culture → combat → AI →
 netcode). New mechanics land in THIS file first, get sequenced explicitly, and only then get
 built. The excitement is a feature; the parking lot is the discipline.
