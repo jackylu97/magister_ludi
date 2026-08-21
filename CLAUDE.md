@@ -52,7 +52,10 @@ would change every seeded outcome. No further rename passes.
   visual-affecting unit property must be added to the fingerprint.
 - `turnEnded` assumes player id === array index; revisit if players become removable.
 - City-panel yields are derived state refreshed in `collectYields`; mutations outside
-  the turn pipeline show stale numbers until end of turn.
+  the turn pipeline show stale numbers until end of turn. Narrowed since: the
+  `setLockedTiles` command re-runs `assignCitizens` for that city immediately (the
+  only place assignment runs outside `collectYields`), so pinning a citizen updates
+  the panel at once. Everything else still waits for the turn.
 
 ## Direction (see docs/design-notes.md for full ledger)
 - Vanilla Civ mechanics first; deckbuilding civics / happiness+authority / events

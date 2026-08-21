@@ -47,8 +47,8 @@
  */
 
 import { isBuildingId } from './buildingData';
-import { foundCityAt, foundingError } from './cities';
-import { getTileAt } from './map';
+import { assignCitizens, assignableTiles, foundCityAt, foundingError } from './cities';
+import { getTileAt, tileIndex } from './map';
 import { advanceAlongPath } from './movement';
 import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
 import { RULES } from './rulesData';
@@ -169,13 +169,37 @@ export interface SetCityProductionCommand extends PlayerCommand {
   queue: QueueItem[];
 }
 
+/**
+ * Pins this city's citizens to a set of tiles, replacing whatever was pinned
+ * before.
+ *
+ * Whole-list replacement for the same three reasons `setCityProduction` is (see
+ * above): the list is short, the command is a complete statement of intent, and
+ * one validation path covers every edit the panel can make.
+ *
+ * Every cell must be a tile this city could actually work — its own, workable,
+ * inside the work radius — and there may be no more of them than the city has
+ * citizens. Refusing at the gate is what keeps the panel honest: a pin that
+ * could never be honoured would be a dot the player put on the board and the
+ * simulation quietly ignored.
+ *
+ * Turn-gated like `moveUnit`: re-planning who works what is an act, and a seat
+ * that has declared itself finished has finished acting.
+ */
+export interface SetLockedTilesCommand extends PlayerCommand {
+  type: 'setLockedTiles';
+  cityId: number;
+  cells: Cell[];
+}
+
 /** Every legal mutation of the game, as serializable data. */
 export type Command =
   | EndTurnCommand
   | MoveUnitCommand
   | SpawnUnitCommand
   | FoundCityCommand
-  | SetCityProductionCommand;
+  | SetCityProductionCommand
+  | SetLockedTilesCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
@@ -478,6 +502,91 @@ function applySetCityProduction(
   return ok();
 }
 
+/**
+ * Validates a whole pin list against a city, returning the sanitised cells or
+ * an error message.
+ *
+ * Legality is asked of `assignableTiles` — the very function the assignment
+ * runs on — rather than re-derived here from ownership, terrain and distance.
+ * One rule, one implementation: a tile the panel can pin is exactly a tile a
+ * citizen can be sent to, and the two cannot drift apart.
+ */
+function validateLockedCells(
+  state: GameState,
+  city: City,
+  raw: unknown,
+): Cell[] | string {
+  if (!Array.isArray(raw)) return 'setLockedTiles needs a cells array';
+  if (raw.length > city.population) {
+    return (
+      `${city.name} has ${city.population} citizen(s) and cannot pin ` +
+      `${raw.length} tile(s)`
+    );
+  }
+
+  const legal = new Set<number>();
+  for (const tile of assignableTiles(state, city)) {
+    legal.add(tileIndex(state.map, tile.col, tile.row));
+  }
+
+  const cells: Cell[] = [];
+  const seen = new Set<number>();
+  for (let i = 0; i < raw.length; i++) {
+    const cell = readCell(raw[i]);
+    if (!cell) return `Locked tile ${i} is not an integer { col, row }`;
+    // `getTileAt` wraps the column, so a cell that came from the UI un-wrapped
+    // is canonicalised here rather than failing a lookup later.
+    const tile = getTileAt(state.map, cell.col, cell.row);
+    if (!tile) return `Locked tile ${i} (${cell.col}, ${cell.row}) is off the map`;
+    const index = tileIndex(state.map, tile.col, tile.row);
+    if (!legal.has(index)) {
+      return `${city.name} cannot work (${tile.col}, ${tile.row})`;
+    }
+    if (seen.has(index)) {
+      return `(${tile.col}, ${tile.row}) is pinned twice`;
+    }
+    seen.add(index);
+    cells.push({ col: tile.col, row: tile.row });
+  }
+  return cells;
+}
+
+/**
+ * Replaces a city's pinned tiles, then re-assigns its citizens on the spot.
+ *
+ * The immediate re-assignment is the one place `assignCitizens` runs outside
+ * `collectYields`, and it is deliberate: pinning a tile is a *direct*
+ * manipulation of who works what, and a panel that showed the old dots until
+ * the end of the turn would be showing the player that their click did nothing.
+ * It is safe because assignment is idempotent and derived — `collectYields`
+ * recomputes it from scratch anyway and reaches the same answer.
+ */
+function applySetLockedTiles(
+  state: GameState,
+  command: SetLockedTilesCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot assign citizens`);
+  }
+
+  const city = cityById(state, command.cityId);
+  if (!city) return fail(`No city with id ${String(command.cityId)}`);
+  if (city.ownerId !== actor.id) {
+    return fail(`City ${city.id} does not belong to player ${actor.id}`);
+  }
+
+  const cells = validateLockedCells(state, city, command.cells);
+  if (typeof cells === 'string') return fail(cells);
+
+  // Copy, for the same reason the queue is copied: the command becomes a log
+  // entry, and a caller that reused its array would be rewriting history.
+  city.lockedTiles = cells.map((cell) => ({ col: cell.col, row: cell.row }));
+  assignCitizens(state, city);
+  return ok();
+}
+
 // --- reducer ----------------------------------------------------------------
 
 /**
@@ -503,6 +612,8 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       return applyFoundCity(state, command);
     case 'setCityProduction':
       return applySetCityProduction(state, command);
+    case 'setLockedTiles':
+      return applySetLockedTiles(state, command);
     default:
       return unhandledCommand(kind, type);
   }

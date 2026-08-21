@@ -47,7 +47,7 @@ import { createPopover } from './ui/popover';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { createTurnSplash } from './ui/turnSplash';
 import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
-import type { HoverInfo, MapView } from './ui/mapView';
+import type { HoverInfo, LensMode, MapView } from './ui/mapView';
 
 function requireElement<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -76,6 +76,10 @@ const menuPopoverEl = requireElement<HTMLElement>('menu-popover');
 const menuExtrasEl = requireElement<HTMLElement>('menu-extras');
 const helpButton = requireElement<HTMLButtonElement>('help-button');
 const helpOverlayEl = requireElement<HTMLElement>('help-overlay');
+const lensButton = requireElement<HTMLButtonElement>('lens-button');
+const lensPopoverEl = requireElement<HTMLElement>('lens-popover');
+const lensOptionsEl = requireElement<HTMLElement>('lens-options');
+const lensCurrentEl = requireElement<HTMLElement>('lens-current');
 const contextEl = requireElement<HTMLElement>('hud-context');
 const contextNoticeEl = requireElement<HTMLElement>('context-notice');
 
@@ -453,6 +457,7 @@ async function start(): Promise<void> {
   function updatePanel(_selected: Unit | null, hover: HoverInfo | null): void {
     updateStatus();
     renderSeats();
+    updateLensMenu();
     // Cities change on almost everything — founding, growth, production, a seat
     // change — so every view of them is refreshed wherever the main panel is,
     // the empire's per-turn totals in the top bar included.
@@ -488,19 +493,35 @@ async function start(): Promise<void> {
     panel: menuPopoverEl,
     trigger: menuButton,
     closeButton: requireElement('menu-close'),
-    onOpen: () => help.close(),
+    onOpen: () => {
+      help.close();
+      lens.close();
+    },
   });
   const help = createPopover({
     panel: helpOverlayEl,
     trigger: helpButton,
     closeButton: requireElement('help-close'),
-    onOpen: () => menu.close(),
+    onOpen: () => {
+      menu.close();
+      lens.close();
+    },
+  });
+  const lens = createPopover({
+    panel: lensPopoverEl,
+    trigger: lensButton,
+    closeButton: requireElement('lens-close'),
+    onOpen: () => {
+      menu.close();
+      help.close();
+    },
   });
 
   function closePopovers(): boolean {
-    const wasOpen = menu.isOpen || help.isOpen;
+    const wasOpen = menu.isOpen || help.isOpen || lens.isOpen;
     menu.close();
     help.close();
+    lens.close();
     return wasOpen;
   }
 
@@ -520,6 +541,53 @@ async function start(): Promise<void> {
       if (player) splash.announceSeat(player.name);
     },
   });
+
+  /**
+   * The lens menu: three exclusive choices, built once and re-ticked whenever
+   * the panel updates.
+   *
+   * The buttons set the player's *chosen* lens, which an open city panel or a
+   * selected settler may be overriding on the board (see `controls.ts`). The
+   * menu deliberately shows the choice rather than the override: it is the
+   * thing the player can change, and the thing that comes back.
+   */
+  const LENS_OPTIONS: [LensMode, string, string][] = [
+    ['none', 'None', 'The board as it is'],
+    ['yields', 'Yields', 'What every tile makes (Y)'],
+    ['settler', 'Settler', 'Where a city may go, and how good the ground is'],
+  ];
+
+  const lensButtons = LENS_OPTIONS.map(([mode, label, hint]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'lens-option';
+    button.title = hint;
+    const name = document.createElement('span');
+    name.className = 'lens-option-name';
+    name.textContent = label;
+    const tick = document.createElement('span');
+    tick.className = 'lens-option-tick';
+    tick.textContent = '✓';
+    tick.setAttribute('aria-hidden', 'true');
+    button.append(name, tick);
+    button.addEventListener('click', () => {
+      controls.setLens(mode);
+      lens.close();
+    });
+    lensOptionsEl.append(button);
+    return { mode, label, button };
+  });
+
+  function updateLensMenu(): void {
+    const current = controls.lens();
+    for (const option of lensButtons) {
+      const on = option.mode === current;
+      option.button.classList.toggle('is-on', on);
+      option.button.setAttribute('aria-pressed', String(on));
+    }
+    const chosen = lensButtons.find((option) => option.mode === current);
+    lensCurrentEl.textContent = current === 'none' ? 'off' : (chosen?.label ?? 'off');
+  }
 
   /**
    * The empire's per-turn totals, at the left end of the top bar. A pure sum
@@ -542,6 +610,10 @@ async function start(): Promise<void> {
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
     onOpenCity: (cityId) => controls.setOpenCity(cityId),
+    // Hovering a banner lights that city's worked tiles, exactly as hovering
+    // its ground does — the label floats above the board, so the board's own
+    // hover picking never sees it.
+    onHoverCity: (cityId) => controls.setHoveredCity(cityId),
   });
 
   const cityPanel: CityPanel = createCityPanel({

@@ -38,6 +38,15 @@ export interface CityBannersOptions {
   localPlayerId: () => number;
   /** Called when the player clicks one of their own banners. */
   onOpenCity: (cityId: number) => void;
+  /**
+   * The pointer moved onto a banner, or off one (`null`).
+   *
+   * A banner is DOM floating *above* its city, so the board's own hover picking
+   * never sees it — the tile under the cursor is whatever is behind the label.
+   * This is how "hovering a city" still means the city when the pointer is on
+   * its name rather than on its ground.
+   */
+  onHoverCity?: (cityId: number | null) => void;
 }
 
 export interface CityBanners {
@@ -62,7 +71,7 @@ interface Banner {
 }
 
 export function createCityBanners(options: CityBannersOptions): CityBanners {
-  const { container, renderer, getGame, localPlayerId, onOpenCity } = options;
+  const { container, renderer, getGame, localPlayerId, onOpenCity, onHoverCity } = options;
   const banners = new Map<number, Banner>();
 
   function build(city: City): Banner {
@@ -84,6 +93,11 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     for (const event of ['pointerdown', 'pointerup'] as const) {
       root.addEventListener(event, (e) => e.stopPropagation());
     }
+    // Enter/leave rather than over/out: these do not fire for movement between
+    // the banner's own children, so hovering the name and then the production
+    // line is one hover, not four events.
+    root.addEventListener('pointerenter', () => onHoverCity?.(city.id));
+    root.addEventListener('pointerleave', () => onHoverCity?.(null));
     container.append(root);
     return { root, name, pop, production, signature: '', col: city.col, row: city.row };
   }

@@ -146,6 +146,31 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return box;
   }
 
+  /**
+   * The citizen line: how many are placed, and how many of those the player
+   * placed by hand.
+   *
+   * The pinned count is the number of pins currently *honoured*, not the length
+   * of `city.lockedTiles` — a pin on a tile the city has lost is kept in the
+   * state (see `assignCitizens`) but there is no citizen standing on it, and a
+   * panel that counted it would be counting a citizen that does not exist.
+   */
+  function renderCitizens(city: City): HTMLElement {
+    const pinned = city.lockedTiles.filter((cell) =>
+      city.workedTiles.some((tile) => tile.col === cell.col && tile.row === cell.row),
+    ).length;
+    const line = element('p', 'city-citizens');
+    line.append(element('span', undefined, 'Citizens'));
+    line.append(
+      element(
+        'span',
+        'city-citizens-count',
+        `${city.workedTiles.length}/${city.population} assigned · ${pinned} pinned`,
+      ),
+    );
+    return line;
+  }
+
   function bar(value: number, total: number, className: string): HTMLElement {
     const track = element('div', 'city-bar');
     const fill = element('div', `city-bar-fill ${className}`);
@@ -333,6 +358,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     container.append(header);
 
     container.append(renderYields(city));
+    container.append(renderCitizens(city));
     container.append(renderGrowth(city));
     container.append(renderProduction(city));
     container.append(renderQueue(city, locked));
@@ -346,7 +372,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       );
     }
     container.append(
-      element('p', 'hint', 'Dots on the map are the tiles this city works.'),
+      element(
+        'p',
+        'hint',
+        'Dots on the map are the tiles this city works. Click one to pin a ' +
+          'citizen there, or an empty tile in the ring to move one to it.',
+      ),
     );
   }
 

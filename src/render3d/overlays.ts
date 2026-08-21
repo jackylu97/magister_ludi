@@ -48,11 +48,22 @@ export interface OverlayState {
   hover: CellRef | null;
   selection: CellRef | null;
   /**
-   * Tiles the open city's citizens work, drawn as small chips. Empty whenever
-   * no city panel is open — it answers "where do these yields come from?", and
-   * that is only a question while somebody is looking at the yields.
+   * Tiles the city under the pointer (or in the open panel) works, drawn as
+   * small chips. Empty when no city is being looked at — it answers "where do
+   * these yields come from?", and that is only a question while somebody is
+   * asking it.
    */
   worked: readonly CellRef[];
+  /**
+   * The subset of `worked` the player has *pinned* (see `City.lockedTiles`):
+   * drawn as a bigger chip inside a ring, so a citizen the player placed by
+   * hand never looks like one the assignment happened to choose.
+   *
+   * Only honoured pins are passed in. A pin on a tile the city cannot currently
+   * work is real state, but drawing a marker on a tile with nobody on it would
+   * say the opposite of what is true.
+   */
+  locked: readonly CellRef[];
   /**
    * Move mode is armed (see `MapView.setMoveModeHighlight`): the selection ring
    * is drawn at full strength with a wider halo outside it, so the piece that is
@@ -122,16 +133,28 @@ export class OverlayLayer {
     }
 
     // Worked-tile chips: smaller than a path dot and in the same bone white, so
-    // they read as marks on the board rather than as a route.
+    // they read as marks on the board rather than as a route. A pinned tile
+    // takes the accent colour and a ring instead — same place, same meaning
+    // ("a citizen works here"), plus "and you said so".
+    const pinned = new Set(state.locked.map((cell) => `${cell.col},${cell.row}`));
     for (const cell of state.worked) {
       const at = anchor(cell);
       if (!at) continue;
-      const s = TERRITORY.workedScale;
+      const lockedHere = pinned.has(`${cell.col},${cell.row}`);
+      const s = lockedHere ? TERRITORY.lockedScale : TERRITORY.workedScale;
       collector.add(
         geometry.dot,
-        [TERRITORY.workedColor],
+        [lockedHere ? TERRITORY.lockedColor : TERRITORY.workedColor],
         new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
         { overlay: true, opacity: TERRITORY.workedOpacity },
+      );
+      if (!lockedHere) continue;
+      const ring = TERRITORY.lockedRingScale;
+      collector.add(
+        geometry.ring,
+        [TERRITORY.lockedColor],
+        new Matrix4().compose(at, identity, new Vector3(ring, 1, ring)),
+        { overlay: true, opacity: TERRITORY.lockedRingOpacity },
       );
     }
 

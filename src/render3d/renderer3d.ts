@@ -50,7 +50,7 @@ import {
 
 import { type GameMap, getTileAt, offsetToAxial, tileIndex } from '../sim/map';
 import type { GameState } from '../sim/state';
-import type { CellRef, HoverInfo, MapView, ScreenPoint } from '../ui/mapView';
+import type { CellRef, HoverInfo, LensView, MapView, ScreenPoint } from '../ui/mapView';
 
 import { MoveAnimations3D } from './animation3d';
 import { type BuiltBoard, BoardGeometry, buildBoard } from './board3d';
@@ -62,6 +62,7 @@ import {
   signCityCells,
   signTerritory,
 } from './cities3d';
+import { LensLayer, NO_LENS, sameLens } from './lens3d';
 import { VIEW3D } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { OverlayLayer } from './overlays';
@@ -96,6 +97,7 @@ export class Renderer3D implements MapView {
   private readonly cities = new CityLayer();
   private readonly territory = new TerritoryLayer();
   private readonly overlays = new OverlayLayer();
+  private readonly lens = new LensLayer();
   private readonly animations = new MoveAnimations3D();
   /** Temporary meshes for pieces mid-walk, one group of wrap copies per unit. */
   private readonly walkers = new Map<number, Group>();
@@ -108,6 +110,9 @@ export class Renderer3D implements MapView {
   private reachable: readonly CellRef[] = [];
   private pathPreview: readonly CellRef[] = [];
   private workedTiles: readonly CellRef[] = [];
+  private lockedTiles: readonly CellRef[] = [];
+  /** Which lens the UI has up. See `setLens` and `lens3d.ts`. */
+  private lensView: LensView = NO_LENS;
   /** Move mode armed in the UI: draw the selection ring live. See the setter. */
   private moveMode = false;
 
@@ -164,6 +169,9 @@ export class Renderer3D implements MapView {
     this.scene.add(this.units.group);
     this.scene.add(this.cities.group);
     this.scene.add(this.territory.group);
+    // Under the overlays: a lens is information about the ground, and the
+    // selection ring and route have to stay readable on top of it.
+    this.scene.add(this.lens.group);
     this.scene.add(this.overlays.group);
 
     this.resize();
@@ -195,6 +203,7 @@ export class Renderer3D implements MapView {
     this.rebuildCities();
     this.rebuildTerritory();
     this.rebuildOverlays();
+    this.rebuildLens();
     this.invalidate();
   }
 
@@ -207,6 +216,7 @@ export class Renderer3D implements MapView {
     this.reachable = [];
     this.pathPreview = [];
     this.workedTiles = [];
+    this.lockedTiles = [];
     this.selectedUnitId = null;
     this.moveMode = false;
     this.animations.clear();
@@ -313,11 +323,23 @@ export class Renderer3D implements MapView {
         hover: this.hover ? { col: this.hover.tile.col, row: this.hover.tile.row } : null,
         selection: selected ? { col: selected.col, row: selected.row } : null,
         worked: this.workedTiles,
+        locked: this.lockedTiles,
         moveMode: this.moveMode,
       },
       this.geometry,
       this.materials,
     );
+    this.invalidate();
+  }
+
+  /**
+   * Rebuilds the lens layer. Called when the lens changes, when the state is
+   * replaced, and — through the signatures in `loop` — when a border moves or a
+   * city appears under a lens that is showing one of those things. Never per
+   * frame; see the docblock in `lens3d.ts`.
+   */
+  private rebuildLens(): void {
+    this.lens.build(this.state, this.lensView, this.geometry, this.materials);
     this.invalidate();
   }
 
@@ -354,10 +376,25 @@ export class Renderer3D implements MapView {
     this.rebuildOverlays();
   }
 
-  setWorkedTiles(cells: readonly CellRef[]): void {
-    if (sameCells(this.workedTiles, cells)) return;
+  setWorkedTiles(cells: readonly CellRef[], locked: readonly CellRef[] = []): void {
+    if (sameCells(this.workedTiles, cells) && sameCells(this.lockedTiles, locked)) return;
     this.workedTiles = cells;
+    this.lockedTiles = locked;
     this.rebuildOverlays();
+  }
+
+  /**
+   * Puts a lens over the board, or takes it away.
+   *
+   * The renderer is told *what to show*, never *why*: which lens is up, whether
+   * it was chosen from the menu or turned on automatically by an open city
+   * panel, and which tiles it covers are all decisions `src/ui/controls.ts`
+   * makes. See `MapView.setLens`.
+   */
+  setLens(lens: LensView): void {
+    if (sameLens(this.lensView, lens)) return;
+    this.lensView = lens;
+    this.rebuildLens();
   }
 
   setHover(hover: HoverInfo | null): void {
@@ -700,10 +737,15 @@ export class Renderer3D implements MapView {
     // into the board — the one mid-game board rebuild besides toggling shadows.
     if (this.state && this.map && signCityCells(this.state) !== this.boardCitiesSignature) {
       this.rebuildBoard(this.map);
+      // A new city changes where the next one may go: the settler lens is
+      // showing exactly that rule and would otherwise keep the old answer.
+      if (this.lensView.mode === 'settler') this.rebuildLens();
     }
     if (this.state && signCities(this.state) !== this.citiesSignature) this.rebuildCities();
     if (this.state && signTerritory(this.state) !== this.territorySignature) {
       this.rebuildTerritory();
+      // Borders decide whose ground a settler may stand on, so the same applies.
+      if (this.lensView.mode === 'settler') this.rebuildLens();
     }
     // The light rig follows the pan target, so it must be recomputed on any
     // frame the camera could have moved — which is every frame we draw.
@@ -722,6 +764,7 @@ export class Renderer3D implements MapView {
     this.units.dispose();
     this.cities.dispose();
     this.territory.dispose();
+    this.lens.dispose();
     this.overlays.dispose();
     if (this.board) this.board.dispose();
     this.geometry.dispose();

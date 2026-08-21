@@ -68,8 +68,9 @@ import { type UnitTypeId, unitDef } from './unitData';
  * would silently misread.
  *
  * 3: Milestone 3 — real cities, tile ownership, and the per-player yield pools.
+ * 4: Citizen management — `City.lockedTiles` and the `setLockedTiles` command.
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 // --- players ----------------------------------------------------------------
 
@@ -162,6 +163,10 @@ export type QueueItem =
  * `workedTiles` is derived state — `assignCitizens` recomputes it from scratch
  * every `collectYields` — but it is stored anyway: the UI draws it, and a value
  * the player can see is a value that has to survive a save.
+ *
+ * `lockedTiles` is the opposite: pure player intent, never derived, and the one
+ * input `assignCitizens` cannot recompute. See `setLockedTiles` in `commands.ts`
+ * and the assignment rules in `cities.ts`.
  */
 export interface City {
   id: number;
@@ -184,6 +189,13 @@ export interface City {
   hammerBasket: number;
   /** Tiles the citizens work, excluding the free centre. Sorted by tile index. */
   workedTiles: { col: number; row: number }[];
+  /**
+   * Tiles the player has pinned a citizen to, in the order they pinned them.
+   * `assignCitizens` works these first and fills the rest by score. Player
+   * intent, not derived state: order is preserved exactly as sent, and an entry
+   * that is not currently workable is ignored rather than dropped.
+   */
+  lockedTiles: { col: number; row: number }[];
 }
 
 // --- state ------------------------------------------------------------------
@@ -405,6 +417,7 @@ export function createCity(
     queue: [],
     hammerBasket: 0,
     workedTiles: [],
+    lockedTiles: [],
   };
   state.cities.push(city);
   return city;

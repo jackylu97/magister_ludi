@@ -115,7 +115,11 @@
     "borderOpacity": 0.62,
     "workedColor": "bone",
     "workedOpacity": 0.9,
-    "workedScale": 0.62
+    "workedScale": 0.62,
+    "lockedColor": "crimson",
+    "lockedScale": 0.72,
+    "lockedRingScale": 0.44,
+    "lockedRingOpacity": 0.95
   },
   "look": {
     "lightAzimuth": 187,
@@ -179,5 +183,23 @@
     "msPerHex": 160,
     "maxMs": 1200,
     "hopHeight": 0.18
+  },
+  "lens": {
+    "pipRadius": 0.085,
+    "pipHeight": 0.04,
+    "pipSpacing": 0.21,
+    "rowSpacing": 0.24,
+    "pipCap": 4,
+    "pipMoreScale": 1.65,
+    "pipOpacity": 0.95,
+    "foodColor": "#6f9e4e",
+    "productionColor": "#c98a4b",
+    "goldColor": "#d6b053",
+    "siteInvalidColor": "#2f2b32",
+    "siteInvalidOpacity": 0.4,
+    "siteLowColor": "#cfc7ab",
+    "siteHighColor": "#7cb45c",
+    "siteOpacity": 0.46,
+    "siteSteps": 5
   }
 }

@@ -3,12 +3,15 @@ import { type Command, applyCommand } from '../src/sim/commands';
 import {
   advanceProduction,
   assignCitizens,
+  assignableTiles,
   bestExpansionTile,
   centreYield,
   cityYields,
   collectYields,
   expandBorders,
   foundCityAt,
+  foundingError,
+  foundingErrorAt,
   growCities,
   growthThreshold,
   nextBorderCost,
@@ -298,6 +301,54 @@ describe('foundCity command', () => {
   });
 });
 
+describe('foundingErrorAt', () => {
+  it('answers about the ground alone, and gives the settler rule its answer', () => {
+    const state = flatState();
+    const tile = at(state.map, 8, 5);
+    expect(foundingErrorAt(state, 0, tile)).toBeNull();
+
+    // A warrior standing there is refused for being a warrior — the *ground* is
+    // still fine, which is exactly the difference between the two functions.
+    const warrior = createUnit(state, 0, 'warrior', 8, 5);
+    expect(foundingError(state, warrior)).toBe('A Warrior cannot found a city');
+    expect(foundingErrorAt(state, 0, tile)).toBeNull();
+
+    // And where the ground is the problem, the two say the same words.
+    const settler = createUnit(state, 0, 'settler', 8, 5);
+    plant(state, 1, 8, 6);
+    expect(foundingError(state, settler)).toBe(foundingErrorAt(state, 0, tile));
+    expect(foundingError(state, settler)).not.toBeNull();
+  });
+
+  it('refuses impassable ground, a rival’s territory and a crowded neighbourhood', () => {
+    const state = flatState(20, 14);
+    expect(foundingErrorAt(state, 0, at(state.map, 3, 3))).toBeNull();
+    at(state.map, 3, 3).terrain = 'mountain';
+    expect(foundingErrorAt(state, 0, at(state.map, 3, 3))).toMatch(/cannot hold a city/);
+
+    plant(state, 1, 8, 6);
+    // Inside their ring: theirs, not yours.
+    expect(foundingErrorAt(state, 0, at(state.map, 8, 5))).toMatch(/belongs to player 1/);
+    // Their own owner may stand on it, but the spacing rule still refuses.
+    expect(foundingErrorAt(state, 1, at(state.map, 8, 5))).toMatch(/tile\(s\) from the nearest/);
+  });
+
+  it('judges every tile of a work radius without a unit anywhere near it', () => {
+    // What the settler lens does: ask the reducer's own rule, tile by tile.
+    const state = flatState(20, 14);
+    plant(state, 0, 8, 6);
+    const spacing = CITIES.minCitySpacing;
+    for (const tile of state.map.tiles) {
+      const distance = wrappedDistance(state.map, tileHex(tile), tileHex(at(state.map, 8, 6)));
+      if (distance >= spacing && tileOwnerCityId(state, tile.col, tile.row) === null) {
+        expect(foundingErrorAt(state, 0, tile)).toBeNull();
+      } else {
+        expect(foundingErrorAt(state, 0, tile)).not.toBeNull();
+      }
+    }
+  });
+});
+
 describe('citizen assignment', () => {
   it('works the best tile, not the nearest or the first', () => {
     const state = flatState();
@@ -382,6 +433,206 @@ describe('citizen assignment', () => {
 
     assignCitizens(state, mine);
     expect(worked(mine)).not.toContain('8,7');
+  });
+});
+
+describe('locked tiles', () => {
+  /**
+   * `col,row` keys for a list of cells, sorted — `workedTiles` comes back in
+   * tile-index order, which is not the order the pins were made in.
+   */
+  function keys(cells: readonly { col: number; row: number }[]): string[] {
+    return cells.map((cell) => `${cell.col},${cell.row}`).sort();
+  }
+
+  it('works a pinned tile ahead of a better one', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    // Left alone, the city takes this one (see the assignment tests above).
+    at(state.map, 9, 6).terrain = 'grassland';
+    city.lockedTiles = [{ col: 8, row: 4 }];
+
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['8,4']);
+
+    // Room for both: the pin is first, the auto-fill takes the best remaining.
+    city.population = 2;
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['8,4', '9,6']);
+  });
+
+  it('ignores a lock it cannot honour, keeps it, and honours it again later', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    const far = at(state.map, 8, 2);
+    const farIndex = tileIndex(state.map, far.col, far.row);
+    // Three hexes out: inside the work radius, but not this city's yet.
+    city.lockedTiles = [{ col: 8, row: 2 }];
+
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['8,4']);
+    expect(city.lockedTiles).toEqual([{ col: 8, row: 2 }]);
+
+    // The borders reach it: the same list now means something.
+    state.tileOwner[farIndex] = city.id;
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['8,2']);
+
+    // And a tile lost again is ignored again — without forgetting the pin.
+    state.tileOwner[farIndex] = 999;
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['8,4']);
+    expect(city.lockedTiles).toEqual([{ col: 8, row: 2 }]);
+  });
+
+  it('honours the first `population` pins when a city starves', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    const ring = assignableTiles(state, city);
+    expect(ring).toHaveLength(6);
+
+    city.population = 3;
+    city.lockedTiles = [ring[5]!, ring[3]!, ring[0]!].map((tile) => ({
+      col: tile.col,
+      row: tile.row,
+    }));
+    assignCitizens(state, city);
+    expect(worked(city).sort()).toEqual(keys([ring[0]!, ring[3]!, ring[5]!]));
+
+    // Starvation takes a citizen: the two pinned *first* keep their tiles.
+    city.population = 2;
+    assignCitizens(state, city);
+    expect(worked(city).sort()).toEqual(keys([ring[3]!, ring[5]!]));
+    // The third pin is still on the list, waiting for the city to regrow.
+    expect(city.lockedTiles).toHaveLength(3);
+  });
+
+  it('ignores a lock naming a tile that is not workable at all', () => {
+    const state = flatState();
+    at(state.map, 8, 4).terrain = 'mountain';
+    const city = plant(state, 0, 8, 5);
+    city.lockedTiles = [{ col: 8, row: 4 }];
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['9,4']);
+  });
+});
+
+describe('setLockedTiles', () => {
+  function lock(playerId: number, cityId: number, cells: { col: number; row: number }[]): Command {
+    return { type: 'setLockedTiles', playerId, cityId, cells };
+  }
+
+  /** A size-3 city with its whole ring, so there is room to pin things badly. */
+  function cityWithRing(state: GameState): City {
+    const city = plant(state, 0, 8, 5);
+    city.population = 3;
+    assignCitizens(state, city);
+    return city;
+  }
+
+  it('pins the tiles and re-assigns the citizens on the spot', () => {
+    const state = flatState();
+    const city = cityWithRing(state);
+    at(state.map, 9, 6).terrain = 'grassland';
+    assignCitizens(state, city);
+    expect(worked(city)).toContain('9,6');
+
+    expect(applyCommand(state, lock(0, city.id, [{ col: 8, row: 6 }]))).toEqual({ ok: true });
+    expect(city.lockedTiles).toEqual([{ col: 8, row: 6 }]);
+    // Immediately, not at the end of the turn: the panel must not lie.
+    expect(worked(city)).toContain('8,6');
+    expect(city.workedTiles).toHaveLength(3);
+  });
+
+  it('replaces the whole list, and an empty list unpins everything', () => {
+    const state = flatState();
+    const city = cityWithRing(state);
+    applyCommand(state, lock(0, city.id, [{ col: 8, row: 4 }, { col: 8, row: 6 }]));
+    expect(city.lockedTiles).toHaveLength(2);
+
+    expect(applyCommand(state, lock(0, city.id, [{ col: 9, row: 4 }]))).toEqual({ ok: true });
+    expect(city.lockedTiles).toEqual([{ col: 9, row: 4 }]);
+
+    expect(applyCommand(state, lock(0, city.id, []))).toEqual({ ok: true });
+    expect(city.lockedTiles).toEqual([]);
+  });
+
+  it('refuses everything it should, and changes nothing when it does', () => {
+    const state = flatState();
+    const city = cityWithRing(state);
+    // Another player's city, to check ownership rather than existence.
+    const theirs = plant(state, 1, 2, 2);
+    const before = clone(state);
+
+    const refusals: Command[] = [
+      lock(0, 9999, [{ col: 8, row: 4 }]),
+      lock(0, theirs.id, []),
+      lock(7, city.id, []),
+      // The free centre is not a citizen slot.
+      lock(0, city.id, [{ col: 8, row: 5 }]),
+      // Unowned, though it is inside the work radius.
+      lock(0, city.id, [{ col: 8, row: 2 }]),
+      // Owned by this city, but outside the map.
+      lock(0, city.id, [{ col: 8, row: 99 }]),
+      // The same tile twice.
+      lock(0, city.id, [{ col: 8, row: 4 }, { col: 8, row: 4 }]),
+      // Four pins for three citizens.
+      lock(0, city.id, [
+        { col: 8, row: 4 },
+        { col: 9, row: 4 },
+        { col: 8, row: 6 },
+        { col: 9, row: 6 },
+      ]),
+      { type: 'setLockedTiles', playerId: 0, cityId: city.id, cells: 'nope' } as unknown as Command,
+      {
+        type: 'setLockedTiles',
+        playerId: 0,
+        cityId: city.id,
+        cells: [{ col: 1.5, row: 2 }],
+      } as unknown as Command,
+    ];
+
+    for (const command of refusals) {
+      expect(applyCommand(state, command).ok).toBe(false);
+      expect(state).toEqual(before);
+    }
+  });
+
+  it('refuses an unworkable tile the city owns, and a seat that has ended', () => {
+    const state = flatState();
+    at(state.map, 8, 4).terrain = 'mountain';
+    const city = cityWithRing(state);
+    expect(tileOwnerCityId(state, 8, 4)).toBe(city.id);
+    expect(applyCommand(state, lock(0, city.id, [{ col: 8, row: 4 }])).ok).toBe(false);
+
+    applyCommand(state, { type: 'endTurn', playerId: 0 });
+    const before = clone(state);
+    expect(applyCommand(state, lock(0, city.id, [{ col: 9, row: 4 }]))).toEqual({
+      ok: false,
+      error: 'Player 0 has ended turn 1 and cannot assign citizens',
+    });
+    expect(state).toEqual(before);
+  });
+
+  it('does not alias the command’s array into the state', () => {
+    const state = flatState();
+    const city = cityWithRing(state);
+    const cells = [{ col: 8, row: 4 }];
+    applyCommand(state, lock(0, city.id, cells));
+    cells[0]!.col = 99;
+    expect(city.lockedTiles).toEqual([{ col: 8, row: 4 }]);
+  });
+
+  it('keeps a pin honoured through a whole turn of the real pipeline', () => {
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    city.population = 2;
+    // The lowest-index ring tile is what the auto-assignment would never drop;
+    // pin a different one and check the end of turn does not undo it.
+    applyCommand(state, lock(0, city.id, [{ col: 9, row: 6 }]));
+    expect(worked(city)).toContain('9,6');
+    endRound(state);
+    expect(worked(city)).toContain('9,6');
   });
 });
 
@@ -863,7 +1114,7 @@ describe('determinism with cities', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 3 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 4 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -871,7 +1122,7 @@ describe('determinism with cities', () => {
 
     const json = saveGame(game);
     expect((JSON.parse(json) as { schemaVersion: number }).schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe(3);
+    expect(SCHEMA_VERSION).toBe(4);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);
@@ -883,6 +1134,41 @@ describe('determinism with cities', () => {
       }
     }
     expect(snapshotState(loaded.state)).toBe(snapshotState(game.state));
+  });
+
+  it('replays a log with pinned citizens in it byte for byte', () => {
+    const game = twoCityGame();
+    // One pin per city, chosen from the tiles that city could actually work.
+    for (const city of game.state.cities) {
+      const choices = assignableTiles(game.state, city);
+      expect(choices.length).toBeGreaterThan(0);
+      const pick = choices[choices.length - 1]!;
+      expect(
+        dispatch(game, {
+          type: 'setLockedTiles',
+          playerId: city.ownerId,
+          cityId: city.id,
+          cells: [{ col: pick.col, row: pick.row }],
+        }).ok,
+      ).toBe(true);
+      expect(worked(city)).toContain(`${pick.col},${pick.row}`);
+    }
+
+    for (let turn = 0; turn < 20; turn++) {
+      for (const player of game.state.players) {
+        expect(dispatch(game, { type: 'endTurn', playerId: player.id }).ok).toBe(true);
+      }
+    }
+
+    // The pins survived twenty turns of growth, borders and production.
+    expect(game.state.cities.every((city) => city.lockedTiles.length === 1)).toBe(true);
+    expect(
+      game.state.cities.every((city) =>
+        worked(city).includes(`${city.lockedTiles[0]!.col},${city.lockedTiles[0]!.row}`),
+      ),
+    ).toBe(true);
+
+    expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
   it('reaches the same state whichever order the seats found their cities in', () => {

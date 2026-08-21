@@ -78,6 +78,7 @@ const BOARD = VIEW3D.board;
 const DECOR = VIEW3D.decor;
 const OVERLAY = VIEW3D.overlay;
 const CITY = VIEW3D.city;
+const LENS = VIEW3D.lens;
 
 /**
  * One geometry per shape, built once and shared by every board ever built.
@@ -102,8 +103,10 @@ export class BoardGeometry {
   readonly ring: BufferGeometry;
   readonly dot: BufferGeometry;
   readonly bar: BufferGeometry;
-  /** A fuller hexagon than `decal`, for the territory tint. */
+  /** A fuller hexagon than `decal`, for the territory tint and the lens wash. */
   readonly territory: BufferGeometry;
+  /** A yield pip: the path dot's little sibling. See `lens3d.ts`. */
+  readonly pip: BufferGeometry;
 
   constructor() {
     const radius = BOARD.hexRadius * (1 - BOARD.tileGap);
@@ -134,6 +137,7 @@ export class BoardGeometry {
       BOARD.hexRadius * OVERLAY.ringWidth,
     );
     this.dot = pathDot(OVERLAY.pathDotRadius, OVERLAY.pathDotHeight);
+    this.pip = pathDot(LENS.pipRadius, LENS.pipHeight);
     this.bar = barQuad();
   }
 
@@ -150,6 +154,7 @@ export class BoardGeometry {
     this.decal.dispose();
     this.ring.dispose();
     this.dot.dispose();
+    this.pip.dispose();
     this.bar.dispose();
     this.territory.dispose();
   }

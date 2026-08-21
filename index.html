@@ -80,6 +80,20 @@
       <div id="seats" class="seats"></div>
 
       <div class="topbar-tools">
+        <!-- The lens menu: one question asked of every tile at once. The button
+             names the lens that is up, so the bar always says what the board is
+             showing. -->
+        <button
+          id="lens-button"
+          class="topbar-btn"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="lens-popover"
+          title="Map lens (Y toggles yields)"
+        >
+          Lens: <span id="lens-current" class="topbar-btn-value">off</span>
+        </button>
         <button
           id="help-button"
           class="icon-btn"
@@ -112,6 +126,27 @@
          separately-pinned cards, and nothing sits below them, so an opening card
          can push nothing. -->
     <div id="hud-popovers">
+      <!-- The lens menu. Three exclusive choices, so they are radio buttons in
+           spirit — one row each, ticked, and `aria-pressed` says which is on. -->
+      <div
+        id="lens-popover"
+        class="hud-card popover popover-narrow"
+        role="dialog"
+        aria-label="Map lens"
+        hidden
+      >
+        <div class="popover-head">
+          <h2 class="popover-title">Map lens</h2>
+          <button id="lens-close" class="popover-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <div id="lens-options" class="lens-options"></div>
+        <p class="hint">
+          A city screen shows its own yields; a selected settler shows city sites.
+        </p>
+      </div>
+
       <!-- Game setup. Session-rare, so it costs no permanent screen space: the
            menu button opens it, Esc or a click outside closes it, and focus is
            trapped inside while it is open and restored to that button on close. -->
@@ -182,6 +217,8 @@
           <li><kbd>M</kbd> then <b>left click</b> moves too — for trackpads</li>
           <li><b>Drag</b> with either button to pan · <b>wheel</b> or pinch to zoom</li>
           <li><kbd>B</kbd> founds a city with the selected settler</li>
+          <li><kbd>Y</kbd> shows every tile's yields · <b>Lens</b> in the bar for more</li>
+          <li><b>Left click</b> a tile in an open city's ring to pin a citizen</li>
           <li><kbd>Enter</kbd> ends your turn</li>
           <li data-only="2d"><kbd>G</kbd> toggles the hex grid</li>
           <li><kbd>Esc</kbd> backs out: move mode, then this panel, then the selection</li>

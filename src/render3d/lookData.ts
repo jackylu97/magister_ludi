@@ -125,6 +125,45 @@ export interface TerritorySpec {
   workedOpacity: number;
   /** Worked-tile dot size, as a multiple of the path dot. */
   workedScale: number;
+  /** A pinned tile's dot: bigger, in the player's own accent, and ringed. */
+  lockedColor: number;
+  lockedScale: number;
+  lockedRingScale: number;
+  lockedRingOpacity: number;
+}
+
+/**
+ * The lenses: yield pips, and the settler site tint.
+ *
+ * The pip colours are written out as hex rather than referenced from the board
+ * palette on purpose. They are the *interface's* yield voices — the same green,
+ * orange and gilt the city panel and the top bar count in — muted a step for the
+ * diorama. A player who has learned that green means food in the HUD must not
+ * have to learn a second vocabulary on the board.
+ */
+export interface LensSpec {
+  /** Pip radius and thickness in world units. */
+  pipRadius: number;
+  pipHeight: number;
+  /** Gap between pips along a row, and between the rows themselves. */
+  pipSpacing: number;
+  rowSpacing: number;
+  /** Most pips ever drawn for one yield; beyond it the last pip grows. */
+  pipCap: number;
+  pipMoreScale: number;
+  pipOpacity: number;
+  foodColor: number;
+  productionColor: number;
+  goldColor: number;
+  /** Tiles no city may be founded on are simply darkened. */
+  siteInvalidColor: number;
+  siteInvalidOpacity: number;
+  /** Valid sites are graded between these two by `startScore`. */
+  siteLowColor: number;
+  siteHighColor: number;
+  siteOpacity: number;
+  /** How many grades the range is quantised into. One material bucket each. */
+  siteSteps: number;
 }
 
 export interface LookSpec {
@@ -231,6 +270,7 @@ export interface View3DData {
   overlay: OverlaySpec;
   hpBar: HpBarSpec;
   animation: AnimationSpec;
+  lens: LensSpec;
 }
 
 // --- parsing ---------------------------------------------------------------
@@ -298,6 +338,10 @@ export const VIEW3D: View3DData = {
     workedColor: named(viewJson.territory.workedColor, 'territory.workedColor'),
     workedOpacity: viewJson.territory.workedOpacity,
     workedScale: viewJson.territory.workedScale,
+    lockedColor: named(viewJson.territory.lockedColor, 'territory.lockedColor'),
+    lockedScale: viewJson.territory.lockedScale,
+    lockedRingScale: viewJson.territory.lockedRingScale,
+    lockedRingOpacity: viewJson.territory.lockedRingOpacity,
   },
   look: viewJson.look,
   camera: viewJson.camera,
@@ -335,6 +379,24 @@ export const VIEW3D: View3DData = {
     goodColor: parseColor(viewJson.hpBar.goodColor, 'hpBar.goodColor'),
   },
   animation: viewJson.animation,
+  lens: {
+    pipRadius: viewJson.lens.pipRadius,
+    pipHeight: viewJson.lens.pipHeight,
+    pipSpacing: viewJson.lens.pipSpacing,
+    rowSpacing: viewJson.lens.rowSpacing,
+    pipCap: viewJson.lens.pipCap,
+    pipMoreScale: viewJson.lens.pipMoreScale,
+    pipOpacity: viewJson.lens.pipOpacity,
+    foodColor: parseColor(viewJson.lens.foodColor, 'lens.foodColor'),
+    productionColor: parseColor(viewJson.lens.productionColor, 'lens.productionColor'),
+    goldColor: parseColor(viewJson.lens.goldColor, 'lens.goldColor'),
+    siteInvalidColor: parseColor(viewJson.lens.siteInvalidColor, 'lens.siteInvalidColor'),
+    siteInvalidOpacity: viewJson.lens.siteInvalidOpacity,
+    siteLowColor: parseColor(viewJson.lens.siteLowColor, 'lens.siteLowColor'),
+    siteHighColor: parseColor(viewJson.lens.siteHighColor, 'lens.siteHighColor'),
+    siteOpacity: viewJson.lens.siteOpacity,
+    siteSteps: viewJson.lens.siteSteps,
+  },
 };
 
 // --- colour maths ----------------------------------------------------------
@@ -353,6 +415,23 @@ export function shade(color: number, amount: number): number {
   const t = Math.abs(amount);
   const mix = (c: number): number => Math.round(c + (target - c) * t) & 0xff;
   return (mix(r) << 16) | (mix(g) << 8) | mix(b);
+}
+
+/**
+ * Blends two colours in plain sRGB. `t` 0 is `a`, 1 is `b`.
+ *
+ * The same crude, deliberately non-perceptual mix `shade` makes, for the same
+ * reason: the slight desaturation through the middle of a ramp is the chalky
+ * quality this palette wants, not an artefact to correct.
+ */
+export function mixColor(a: number, b: number, t: number): number {
+  const clamped = Math.max(0, Math.min(1, t));
+  const channel = (shift: number): number => {
+    const from = (a >> shift) & 0xff;
+    const to = (b >> shift) & 0xff;
+    return Math.round(from + (to - from) * clamped) & 0xff;
+  };
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
 }
 
 /** Pulls a colour toward its own grey. `amount` 0 = unchanged, 1 = grey. */

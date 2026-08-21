@@ -38,6 +38,31 @@ export interface ScreenPoint {
   onScreen: boolean;
 }
 
+/**
+ * Which board-wide lens the player has up. `none` is the plain board.
+ *
+ * Declared here rather than beside the layer that draws it, for the reason the
+ * whole file exists: the UI decides what the board should be showing, and a
+ * renderer either implements the contract or does not. `src/render3d/lens3d.ts`
+ * owns what each mode *looks* like.
+ */
+export type LensMode = 'none' | 'yields' | 'settler';
+
+/** Which lens, over which tiles, through whose eyes. */
+export interface LensView {
+  mode: LensMode;
+  /**
+   * Restrict the lens to these cells, or `null` for the whole map.
+   *
+   * This is what makes the automatic city-panel lens possible: opening a city
+   * shows yields for its work radius *only*, which reads as "here is what this
+   * city could work" rather than as the whole board lighting up.
+   */
+  cells: readonly CellRef[] | null;
+  /** Whose question it is. The settler lens judges ownership through it. */
+  playerId: number;
+}
+
 /** What is under the cursor. */
 export interface HoverInfo {
   tile: Tile;
@@ -98,13 +123,27 @@ export interface MapView {
   setMoveModeHighlight?(on: boolean): void;
 
   /**
-   * Optional: marks the tiles the open city's citizens work.
+   * Optional: marks the tiles a city's citizens work, and which of them the
+   * player pinned there.
+   *
+   * `locked` is the honoured subset of `cells` — a pin on a tile the city
+   * cannot currently work is not drawn, because there is no citizen on it to
+   * mark. Renderers may ignore it entirely and draw every worked tile alike.
    *
    * Optional for the same reason `panToCells` is — it is a 3D feature, and the
    * 2D pipelines are frozen. A city panel opened under `?art=flat` simply gets
    * no dots on the board.
    */
-  setWorkedTiles?(cells: readonly CellRef[]): void;
+  setWorkedTiles?(cells: readonly CellRef[], locked?: readonly CellRef[]): void;
+
+  /**
+   * Optional: puts a lens over the board — see `LensView` and `lens3d.ts`.
+   *
+   * The UI decides *which* lens and over *which tiles*; the renderer only draws
+   * it. Optional, like every other renderer-specific feature: under the frozen
+   * 2D pipelines the lens menu still switches, and simply shows nothing.
+   */
+  setLens?(lens: LensView): void;
 
   /**
    * Optional: projects a tile to a screen position, the inverse of `pick`.

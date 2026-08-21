@@ -228,8 +228,56 @@ body {
 /* The buttons take the far right; everything before them reads left to right. */
 .topbar-tools {
   display: flex;
+  align-items: center;
   gap: 6px;
   margin-left: auto;
+}
+
+/* A labelled bar button — the lens menu. Wider than an icon button because it
+   carries a value the player reads at a glance ("Lens: Yields"), and quiet in
+   the same way: a parchment outline on ink, filled only when it is open. */
+.topbar-btn {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  height: 24px;
+  padding: 0 9px;
+  border: var(--border-thin) solid var(--on-ink-soft);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--parchment);
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* The value is the part that changes, so it is the part that is not grey. */
+.topbar-btn-value {
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--y-gold-lit);
+}
+
+.topbar-btn:hover {
+  background: rgba(247, 242, 225, 0.14);
+}
+
+.topbar-btn[aria-expanded='true'] {
+  background: var(--parchment);
+  border-color: var(--parchment);
+  color: var(--ink-soft);
+}
+
+.topbar-btn[aria-expanded='true'] .topbar-btn-value {
+  color: var(--vermilion);
 }
 
 /* --- the empire's per-turn yields ----------------------------------------
@@ -401,6 +449,61 @@ body {
    binding that wraps mid-phrase is a binding you read twice. */
 #help-overlay {
   width: 288px;
+}
+
+/* Three short rows and a line of prose need less. */
+.popover-narrow {
+  width: 210px;
+}
+
+/* --- the lens menu --------------------------------------------------------
+   Exclusive choices, so they are radio buttons wearing a list's clothes: one
+   row each, and the one that is on carries the tick and the accent edge. */
+.lens-options {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.hud-card button.lens-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: var(--border-thin) solid var(--ink);
+  border-left: 5px solid var(--table);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hud-card button.lens-option:hover {
+  background: #fffdf4;
+}
+
+.hud-card button.lens-option.is-on {
+  border-left-color: var(--vermilion);
+}
+
+/* The tick occupies its row whether or not it is shown, so choosing a lens
+   never shuffles the list under the pointer. */
+.lens-option-tick {
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vermilion);
+  visibility: hidden;
+}
+
+.lens-option.is-on .lens-option-tick {
+  visibility: visible;
 }
 
 .help-list {
@@ -1228,6 +1331,29 @@ body.is-panel-open #hud-end-turn {
 }
 .city-yield.is-culture .city-yield-value {
   color: var(--y-cul);
+}
+
+/* The citizen line: a label and a count, on the rule under the yields. */
+.city-citizens {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.city-citizens-count {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
 }
 
 /* --- progress bars: chunky, ink-bordered, flat fills ---------------------- */

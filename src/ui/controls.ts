@@ -94,14 +94,17 @@
  * driven by an AI or a socket instead.
  */
 
-import { cityAt, foundingError } from '../sim/cities';
+import { assignableTiles, cityAt, cityTile, foundingError } from '../sim/cities';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
+import { type Tile, mapRange, tileHex } from '../sim/map';
 import { findPath, reachableTiles } from '../sim/pathfind';
+import { RULES } from '../sim/rulesData';
 import { type City, type Unit, cityById, hasEndedTurn, unitById } from '../sim/state';
+import { unitDef } from '../sim/unitData';
 import { unitsOnTile } from '../sim/units';
 import { walkedPrefix } from '../render/animation';
-import type { CellRef, HoverInfo, MapView } from './mapView';
+import type { CellRef, HoverInfo, LensMode, LensView, MapView } from './mapView';
 
 /** How far the pointer may travel between down and up and still be a click. */
 const CLICK_SLOP_PX = 4;
@@ -184,6 +187,23 @@ export interface GameControlsOptions {
 export interface GameControls {
   /** Drops the selection and its overlays. Called on turn change and new games. */
   clearSelection(): void;
+
+  /**
+   * The lens the player *chose* from the menu — not necessarily the one on the
+   * board, which an open city panel or a selected settler may be overriding.
+   * The menu shows this one, so its ticks say what will come back when the
+   * override goes away.
+   */
+  lens(): LensMode;
+  /** Puts a lens up, or takes it down with `'none'`. The menu and the `Y` key. */
+  setLens(lens: LensMode): void;
+
+  /**
+   * Tells the UI which city the pointer is over, when the pointer is over
+   * something the board itself cannot see — a DOM city banner. `null` on the
+   * way out. The board's own tiles are handled by hover picking.
+   */
+  setHoveredCity(cityId: number | null): void;
   /** Re-reads the game and repaints; call after replacing the game object. */
   refresh(): void;
   /** Ends the local player's turn, as the button and the Enter key both do. */
@@ -239,6 +259,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   let openCityId: number | null = null;
   /** Armed by `M`: the next left click on the board is an order, not a pick. */
   let moveMode = false;
+  /**
+   * The lens the player chose. The lens actually on the board is
+   * `effectiveLens`, which lets an open city panel or a selected settler
+   * override this without forgetting it — closing the panel puts the player's
+   * own choice back.
+   */
+  let manualLens: LensMode = 'none';
+  /** A city whose DOM banner the pointer is over. See `setHoveredCity`. */
+  let hoveredCityId: number | null = null;
   /**
    * Which button started the current drag, or `null` when nothing is pressed.
    * Left and right both pan; only the button that went down decides what the
@@ -337,6 +366,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // and move mode belongs to the selection.
     selectedId = null;
     openCityId = null;
+    hoveredCityId = null;
     setMoveMode(false);
     renderer.skipAnimations();
     refreshOverlays();
@@ -363,11 +393,90 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renderer.setReachable(
       unit && canOrder() ? reachableTiles(getGame().state, unit).map((r) => r.tile) : [],
     );
-    // Worked-tile dots belong to the open panel, so they appear and disappear
-    // with it rather than cluttering the board whenever a city exists.
-    const city = openCity();
-    renderer.setWorkedTiles?.(city ? city.workedTiles : []);
+    refreshSpotlight();
+    refreshLens();
     refreshPathPreview();
+  }
+
+  /**
+   * The city the board is currently talking about: the open panel's, or — with
+   * no panel open — whichever city the pointer is resting on, whether that is
+   * its tile or its banner.
+   *
+   * Hovering answering the same question the panel does is deliberate: "which
+   * tiles feed this city" is asked far more often than it is worth opening a
+   * screen for, and the dots are already drawn. Anybody's city answers, because
+   * there is no fog of war to make it a secret and a banner you can read but not
+   * interrogate would be a strange half-measure.
+   */
+  function spotlitCity(): City | null {
+    const open = openCity();
+    if (open) return open;
+    const { state } = getGame();
+    if (hoveredCityId !== null) {
+      const banner = cityById(state, hoveredCityId);
+      if (banner) return banner;
+    }
+    const hover = renderer.getHover();
+    if (!hover) return null;
+    return cityAt(state, hover.tile.col, hover.tile.row) ?? null;
+  }
+
+  /** The worked-tile dots, and which of them the player pinned by hand. */
+  function refreshSpotlight(): void {
+    const city = spotlitCity();
+    if (!city) {
+      renderer.setWorkedTiles?.([], []);
+      return;
+    }
+    // Only *honoured* pins are drawn: a lock on a tile the city cannot work
+    // right now is real intent (it is kept, see `assignCitizens`) but there is
+    // no citizen standing on it to mark.
+    const worked = city.workedTiles;
+    const locked = city.lockedTiles.filter((cell) =>
+      worked.some((tile) => tile.col === cell.col && tile.row === cell.row),
+    );
+    renderer.setWorkedTiles?.(worked, locked);
+  }
+
+  /**
+   * Which lens the board is wearing, and over what.
+   *
+   * Two automatic overrides sit on top of the player's own choice, both because
+   * the question the lens answers is the question the player has just asked by
+   * doing something else:
+   *
+   *   · an open city panel ⇒ yields, over that city's work radius only. The
+   *     panel is a screen full of numbers; this is where they come from.
+   *   · a selected settler ⇒ the settler lens. Picking one up *is* the question
+   *     "where should this go".
+   *
+   * Neither touches `manualLens`, so closing the panel or dropping the settler
+   * restores exactly what the player had chosen.
+   */
+  function effectiveLens(): LensView {
+    const playerId = localPlayerId;
+    const city = openCity();
+    if (city) return { mode: 'yields', cells: workRadiusCells(city), playerId };
+    const unit = selectedUnit();
+    if (unit && unitDef(unit.type).foundsCity) {
+      return { mode: 'settler', cells: null, playerId };
+    }
+    return { mode: manualLens, cells: null, playerId };
+  }
+
+  function refreshLens(): void {
+    renderer.setLens?.(effectiveLens());
+  }
+
+  /** Every cell within a city's work radius, its own centre included. */
+  function workRadiusCells(city: City): CellRef[] {
+    const { state } = getGame();
+    const centre = tileHex(cityTile(state.map, city));
+    return mapRange(state.map, centre, RULES.cities.workRadius).map((tile) => ({
+      col: tile.col,
+      row: tile.row,
+    }));
   }
 
   function refreshPathPreview(): void {
@@ -476,6 +585,65 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onUpdate(null, renderer.getHover());
   }
 
+  // --- citizens ------------------------------------------------------------
+
+  /**
+   * Pins or unpins the clicked tile for the open city, and reports whether it
+   * took the click.
+   *
+   * It only ever takes one while a city panel is open *and* the tile is one that
+   * city could actually work — that is the whole of the new gesture, and it is
+   * why a click on ocean, on another city's ground, or with no panel open still
+   * means what it has always meant. The city tile itself is not assignable
+   * either, so clicking the town under an open panel does not pin anything.
+   *
+   * Three cases, and they are one rule: the pin list is toggled and sent whole.
+   * Unpinning does not stop a tile being worked — the assignment may well pick
+   * it again on merit, which is the honest answer to "unpin" rather than a
+   * second, invisible kind of "never work this".
+   */
+  function toggleCitizen(hover: HoverInfo): boolean {
+    const city = openCity();
+    if (!city) return false;
+
+    const { state } = getGame();
+    const target = assignableTiles(state, city).find(
+      (tile: Tile) => tile.col === hover.tile.col && tile.row === hover.tile.row,
+    );
+    if (!target) return false;
+
+    if (!canOrder()) {
+      reject(`You have ended turn ${state.turn}`);
+      return true;
+    }
+
+    const cells = city.lockedTiles.map((cell) => ({ col: cell.col, row: cell.row }));
+    const at = cells.findIndex(
+      (cell) => cell.col === target.col && cell.row === target.row,
+    );
+    if (at >= 0) cells.splice(at, 1);
+    else cells.push({ col: target.col, row: target.row });
+
+    const command: Command = {
+      type: 'setLockedTiles',
+      playerId: localPlayerId,
+      cityId: city.id,
+      cells,
+    };
+    const result = dispatch(getGame(), command);
+    if (!result.ok) {
+      // The reducer's own words — "this city has 3 citizens and cannot pin 4"
+      // is exactly what the player needs to hear.
+      reject(result.error);
+      return true;
+    }
+
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), hover);
+    return true;
+  }
+
   // --- clicks --------------------------------------------------------------
 
   /**
@@ -506,6 +674,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       issueMove(hover);
       return;
     }
+
+    // While a city screen is open, its own work radius is a citizen board: a
+    // click on a tile that city could work pins or unpins it. It is scoped as
+    // tightly as it can be — this panel, these tiles — so that everywhere else
+    // on the map the selection contract is exactly what it always was.
+    if (toggleCitizen(hover)) return;
 
     const { col, row } = hover.tile;
     const mine = ownUnitsAt(col, row);
@@ -656,6 +830,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!pointer) return;
     const hover = renderer.pick(pointer.x, pointer.y);
     renderer.setHover(hover);
+    // The spotlight follows the pointer, so it is refreshed here rather than in
+    // `refreshOverlays` — which recomputes the reachable set and has no business
+    // running on every mouse move. Both renderer setters ignore an unchanged
+    // value, so resting the pointer on one tile costs nothing.
+    refreshSpotlight();
     refreshPathPreview();
     onUpdate(selectedUnit(), hover);
   }
@@ -732,6 +911,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     pointer = null;
     renderer.setHover(null);
     renderer.setPathPreview([]);
+    // The pointer took the spotlight with it. A banner keeps its own — moving
+    // onto one does not leave the viewport, since banners live inside it.
+    refreshSpotlight();
     onUpdate(selectedUnit(), null);
   });
 
@@ -782,6 +964,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       foundCity();
       return;
     }
+    if (event.key === 'y' || event.key === 'Y') {
+      // Toggles the player's own choice, never the automatic override: pressing
+      // Y under an open city panel arms the lens that will be up when the panel
+      // closes, which is the only reading that does not lose a keystroke.
+      setLens(manualLens === 'yields' ? 'none' : 'yields');
+      return;
+    }
     if (event.key === 'm' || event.key === 'M') {
       // The trackpad's right click. Silent when there is nothing to order:
       // `setMoveMode` refuses to arm without a unit that could move.
@@ -799,10 +988,27 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     }
   });
 
+  /** Puts a lens up. The menu and the `Y` key; a no-op if it is already up. */
+  function setLens(next: LensMode): void {
+    if (manualLens === next) return;
+    manualLens = next;
+    refreshLens();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  function setHoveredCity(cityId: number | null): void {
+    if (hoveredCityId === cityId) return;
+    hoveredCityId = cityId;
+    refreshSpotlight();
+  }
+
   return {
     clearSelection,
     endTurn,
     setLocalPlayer,
+    lens: () => manualLens,
+    setLens,
+    setHoveredCity,
     foundCity,
     foundCityBlocker,
     openCity,
@@ -819,6 +1025,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     refresh: () => {
       selectedId = null;
       openCityId = null;
+      // City ids do not survive a new game; the lens the player chose does.
+      hoveredCityId = null;
       localPlayerId = 0;
       setMoveMode(false);
       refreshOverlays();

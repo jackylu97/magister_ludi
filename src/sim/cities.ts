@@ -221,12 +221,57 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
 }
 
 /**
+ * Why a player of `ownerId` could not put a city on this *ground*, or `null`
+ * when they could.
+ *
+ * Everything here is a question about the tile: can a city physically stand on
+ * it, does somebody else own it, and is it far enough from every existing city.
+ * Nothing here is about a unit — no health, no type, no movement — and nothing
+ * is about the turn.
+ *
+ * That split is what lets two callers share one rule. `foundingError` adds the
+ * settler's own questions on top and is what the `foundCity` command validates
+ * with; the settler *lens* asks this directly, tile by tile, to paint the board
+ * with the answer before a settler has walked anywhere. A lens that disagreed
+ * with the command it is advertising would be worse than no lens.
+ */
+export function foundingErrorAt(
+  state: GameState,
+  ownerId: number,
+  tile: Tile,
+): string | null {
+  // Water and mountains are impassable, so a unit cannot be standing on one —
+  // but a hand-edited save can, and a city on the ocean floor is worse than a
+  // rejected command.
+  if (!isPassable(tile)) return `(${tile.col}, ${tile.row}) cannot hold a city`;
+
+  const tileOwner = tileOwnerPlayerId(state, tile.col, tile.row);
+  if (tileOwner !== null && tileOwner !== ownerId) {
+    return `(${tile.col}, ${tile.row}) belongs to player ${tileOwner}`;
+  }
+
+  const spacing = CITIES.minCitySpacing;
+  const nearest = distanceToNearestCity(state, tileHex(tile));
+  if (nearest < spacing) {
+    return (
+      `(${tile.col}, ${tile.row}) is ${nearest} tile(s) from the nearest city; ` +
+      `${spacing} required`
+    );
+  }
+  return null;
+}
+
+/**
  * Why this unit cannot found a city where it stands, or `null` when it can.
  *
  * Split out of the `foundCity` command so the UI and the reducer share one
  * answer: the "Found City" button is enabled by exactly the rule that decides
  * whether the command will be accepted, which is the only way a disabled button
  * and a rejected command cannot disagree.
+ *
+ * The unit's own questions are asked here and the ground's are delegated to
+ * `foundingErrorAt`, in that order: a warrior standing on a perfect city site
+ * should be told it is a warrior, not told about the site.
  *
  * It deliberately does *not* check who is asking or whether their turn has
  * ended. Those are questions about the actor, not about the ground, and they
@@ -240,25 +285,7 @@ export function foundingError(state: GameState, unit: Unit): string | null {
 
   const tile = getTileAt(state.map, unit.col, unit.row);
   if (!tile) return `Unit ${unit.id} is not on the map`;
-  // Water and mountains are impassable, so a unit cannot be standing on one —
-  // but a hand-edited save can, and a city on the ocean floor is worse than a
-  // rejected command.
-  if (!isPassable(tile)) return `(${tile.col}, ${tile.row}) cannot hold a city`;
-
-  const ownerId = tileOwnerPlayerId(state, tile.col, tile.row);
-  if (ownerId !== null && ownerId !== unit.ownerId) {
-    return `(${tile.col}, ${tile.row}) belongs to player ${ownerId}`;
-  }
-
-  const spacing = CITIES.minCitySpacing;
-  const nearest = distanceToNearestCity(state, tileHex(tile));
-  if (nearest < spacing) {
-    return (
-      `(${tile.col}, ${tile.row}) is ${nearest} tile(s) from the nearest city; ` +
-      `${spacing} required`
-    );
-  }
-  return null;
+  return foundingErrorAt(state, unit.ownerId, tile);
 }
 
 // --- citizens ---------------------------------------------------------------
@@ -287,8 +314,25 @@ export function assignableTiles(state: GameState, city: City): Tile[] {
 }
 
 /**
- * Recomputes `city.workedTiles` from scratch: the `population` best assignable
- * tiles, best first by weighted yield and ties by tile index.
+ * Recomputes `city.workedTiles` from scratch: every honoured lock first, then
+ * the best remaining assignable tiles by weighted yield, ties by tile index,
+ * until `population` citizens are placed.
+ *
+ * Locks
+ * -----
+ * A lock is honoured when the tile it names is currently assignable — this
+ * city's, workable, inside the work radius. A lock that is *not* is **ignored
+ * and kept**: the list is player intent, and a tile lost to a rival's culture
+ * or turned unworkable is a tile the player still wants back. Deleting the
+ * entry would silently forget a decision the moment the board moved, and
+ * re-pinning after every border shove is not a game mechanic anybody asked for.
+ * The cost is a list that can hold entries doing nothing, which is invisible
+ * (the panel counts honoured pins) and cheap.
+ *
+ * Locks are read in list order and stop at `population`, so a city that starves
+ * back to two citizens keeps the two tiles the player pinned *first* — the
+ * order the pins were made in is part of the intent, and it is the only
+ * tie-break that does not silently re-rank the player's own choices by score.
  *
  * The result is stored sorted by tile index rather than by score, so the state
  * serialises identically however the sort arrived at it, and so the UI can draw
@@ -298,16 +342,39 @@ export function assignCitizens(state: GameState, city: City): void {
   const { map } = state;
   const candidates = assignableTiles(state, city);
   const index = (tile: Tile): number => tileIndex(map, tile.col, tile.row);
+  const cap = Math.max(0, city.population);
+
+  const assignable = new Map<number, Tile>();
+  for (const tile of candidates) assignable.set(index(tile), tile);
+
+  const taken = new Set<number>();
+  const worked: Tile[] = [];
+  for (const cell of city.lockedTiles) {
+    if (worked.length >= cap) break;
+    const tile = getTileAt(map, cell.col, cell.row);
+    if (!tile) continue;
+    const at = index(tile);
+    // Not assignable (or named twice): ignored for this assignment, and left in
+    // the list for the next one.
+    if (!assignable.has(at) || taken.has(at)) continue;
+    taken.add(at);
+    worked.push(tile);
+  }
+
   const scores = new Map<number, number>();
   for (const tile of candidates) scores.set(index(tile), yieldScore(tileYieldOf(tile)));
-
   candidates.sort((a, b) => {
     const ia = index(a);
     const ib = index(b);
     return scores.get(ib)! - scores.get(ia)! || ia - ib;
   });
 
-  const worked = candidates.slice(0, Math.max(0, city.population));
+  for (const tile of candidates) {
+    if (worked.length >= cap) break;
+    if (taken.has(index(tile))) continue;
+    worked.push(tile);
+  }
+
   worked.sort((a, b) => index(a) - index(b));
   city.workedTiles = worked.map((tile) => ({ col: tile.col, row: tile.row }));
 }
