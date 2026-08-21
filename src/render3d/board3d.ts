@@ -48,29 +48,44 @@ import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
 import { hashDisc, hashSigned, hashUnit } from './hash';
 import {
+  type MiniClass,
+  type MiniFactory,
+  type UnitPiece,
+  archerMini,
   bannerPole,
   barQuad,
   cactus,
+  catapultMini,
+  chariotMini,
   cityHouseBody,
   cityHouseRoof,
+  compositeBowmanMini,
+  crossbowmanMini,
   flowerSpray,
   grassTuft,
   hexDecal,
   hexPrism,
   hexRing,
+  horsemanMini,
+  knightMini,
+  longswordsmanMini,
   mountainPeak,
   mountainSnow,
   pathDot,
+  pikemanMini,
   pineTree,
   reedClump,
   riverSegment,
   rock,
   roundTree,
-  scoutPiece,
-  settlerPiece,
+  scoutMini,
+  settlerMini,
+  spearmanMini,
   spriteQuad,
   standeeBase,
-  warriorPiece,
+  swordsmanMini,
+  trebuchetMini,
+  warriorMini,
 } from './geometry';
 import { type Tint, InstanceCollector, disposeInstancedGroup } from './instances';
 import { VIEW3D, shade } from './lookData';
@@ -95,10 +110,11 @@ const CITY = VIEW3D.city;
 const LENS = VIEW3D.lens;
 const TABLE = VIEW3D.table;
 const RIVERS = VIEW3D.rivers;
+const PIECES = VIEW3D.pieces;
 const SPRITE = VIEW3D.units.sprite;
 
 /**
- * The carved piece a unit type stands on, read from `data/units.json`.
+ * The sculpted miniature a unit type stands on, read from `data/units.json`.
  *
  * One lookup rather than a switch on unit ids, for the same reason nothing in
  * `src/sim/` compares a type against the string `"settler"`: a new unit type is
@@ -107,6 +123,62 @@ const SPRITE = VIEW3D.units.sprite;
  */
 export function pieceShapeFor(type: UnitTypeId): PieceShape {
   return unitDef(type).piece;
+}
+
+/**
+ * Every sculpt on the board, and the size class it is cut to.
+ *
+ * Typed `Record<PieceShape, …>` on purpose: this is the one place the art and
+ * the data are joined, and making it exhaustive means a `piece` name added to
+ * `units.json` that nobody sculpted is a *compile* error rather than a hole in
+ * the board. `test/pieces3d.test.ts` closes the other direction — a sculpt no
+ * unit stands on.
+ */
+export const MINI_SCULPTS: Record<PieceShape, { cls: MiniClass; build: MiniFactory }> = {
+  warrior: { cls: 'foot', build: warriorMini },
+  scout: { cls: 'foot', build: scoutMini },
+  settler: { cls: 'foot', build: settlerMini },
+  archer: { cls: 'foot', build: archerMini },
+  compositeBowman: { cls: 'foot', build: compositeBowmanMini },
+  crossbowman: { cls: 'foot', build: crossbowmanMini },
+  swordsman: { cls: 'foot', build: swordsmanMini },
+  longswordsman: { cls: 'foot', build: longswordsmanMini },
+  spearman: { cls: 'polearm', build: spearmanMini },
+  pikeman: { cls: 'polearm', build: pikemanMini },
+  horseman: { cls: 'mounted', build: horsemanMini },
+  knight: { cls: 'mounted', build: knightMini },
+  chariot: { cls: 'mounted', build: chariotMini },
+  catapult: { cls: 'siege', build: catapultMini },
+  trebuchet: { cls: 'engine', build: trebuchetMini },
+};
+
+/** Every sculpt id, in the order the registry lists them. */
+export const PIECE_SHAPE_IDS = Object.keys(MINI_SCULPTS) as PieceShape[];
+
+/**
+ * How tall a unit's miniature stands, in world units.
+ *
+ * The HP bar's only question about the art style, and the reason the class
+ * heights are data: a bar that rode at a fixed height would float over a
+ * catapult and sit inside a knight.
+ */
+export function pieceHeightFor(type: UnitTypeId): number {
+  return PIECES.heights[MINI_SCULPTS[pieceShapeFor(type)].cls];
+}
+
+/** Builds one of every sculpt, at the height its class asks for. */
+function buildUnitPieces(): Record<PieceShape, UnitPiece> {
+  const out: Partial<Record<PieceShape, UnitPiece>> = {};
+  for (const id of PIECE_SHAPE_IDS) {
+    const sculpt = MINI_SCULPTS[id];
+    out[id] = sculpt.build({
+      height: PIECES.heights[sculpt.cls],
+      baseRadius: BOARD.hexRadius * PIECES.base.radius,
+      baseThickness: PIECES.base.thickness,
+      tokenRadius: PIECES.tokenRadius,
+    });
+  }
+  return out as Record<PieceShape, UnitPiece>;
 }
 
 /**
@@ -137,12 +209,12 @@ export class BoardGeometry {
   readonly cactus: BufferGeometry;
   readonly reeds: BufferGeometry;
   /**
-   * The carved pieces, keyed by *silhouette* rather than by unit type: there are
-   * three shapes and fifteen unit types, and which type stands on which shape is
-   * a fact about the art direction that lives in `data/units.json` (`piece`).
-   * Ask for one through `pieceFor`, never by unit id.
+   * The sculpted miniatures, keyed by *sculpt* rather than by unit type: which
+   * type stands on which sculpt is a fact about the art direction that lives in
+   * `data/units.json` (`piece`). Ask for one through `pieceShapeFor`, never by
+   * unit id.
    */
-  readonly pieces: Record<PieceShape, BufferGeometry>;
+  readonly pieces: Record<PieceShape, UnitPiece>;
   /** City shapes: the houses of the town and the pole its banner flies from. */
   readonly houseBody: BufferGeometry;
   readonly houseRoof: BufferGeometry;
@@ -193,11 +265,7 @@ export class BoardGeometry {
     this.flower = flowerSpray(DECOR.clutter.flower);
     this.cactus = cactus(DECOR.clutter.cactus);
     this.reeds = reedClump(DECOR.reeds);
-    this.pieces = {
-      warrior: warriorPiece(VIEW3D.piece.height),
-      scout: scoutPiece(VIEW3D.piece.height),
-      settler: settlerPiece(VIEW3D.piece.height),
-    };
+    this.pieces = buildUnitPieces();
     this.houseBody = cityHouseBody(CITY.house);
     this.houseRoof = cityHouseRoof(CITY.house);
     this.pole = bannerPole(CITY.poleRadius, CITY.poleHeight);
@@ -246,7 +314,7 @@ export class BoardGeometry {
     this.flower.dispose();
     this.cactus.dispose();
     this.reeds.dispose();
-    for (const piece of Object.values(this.pieces)) piece.dispose();
+    for (const piece of Object.values(this.pieces)) piece.geometry.dispose();
     this.houseBody.dispose();
     this.houseRoof.dispose();
     this.pole.dispose();

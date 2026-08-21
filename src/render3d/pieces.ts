@@ -25,11 +25,27 @@
  *
  * Two art styles, one layer
  * -------------------------
- * `units.style` in `data/view3d.json` chooses between the procedural piece and a
- * painted billboard (see `sprites3d.ts`). The switch is *per unit type*, not per
- * board: sprite mode draws a billboard for every type that has artwork and the
- * ordinary piece for every type that does not, so a settler standing beside a
- * painted warrior is the expected picture rather than a bug.
+ * `units.style` in `data/view3d.json` chooses between the sculpted miniature and
+ * a painted billboard (see `sprites3d.ts`). The switch is *per unit type*, not
+ * per board: sprite mode draws a billboard for every type that has artwork and
+ * the ordinary piece for every type that does not, so a settler standing beside
+ * a painted warrior is the expected picture rather than a bug.
+ *
+ * The default is `pieces`. The standee experiment stays wired and stays tested,
+ * because printed figures will earn their keep elsewhere, but what stands on the
+ * board is a sculpt.
+ *
+ * Bases, not blobs
+ * ----------------
+ * Every miniature stands on a small disc in the player's colour, and that disc
+ * is a *lit, shadow-casting object* — the same toon material and inverted-hull
+ * outline as everything else on the board. So the pieces path deliberately does
+ * not draw the blob-shadow decal the standees use. The blob exists because a
+ * billboard is a plane with no underside and no shadow worth the name; a base
+ * disc already puts a real, correctly-angled contact shadow on the tile, and a
+ * painted ellipse under it would double up — two shadows from one light, one of
+ * them pointing the wrong way. `geometry.blob` therefore stays a sprite-path
+ * shape and nothing in `UnitLayer.build` reaches for it in pieces mode.
  *
  * Everything around the unit is shared by both paths and none of it knows which
  * is up: the selection ring is an overlay drawn by `overlays.ts` around the
@@ -51,7 +67,8 @@ import type { GameMap } from '../sim/map';
 import type { GameState, Unit } from '../sim/state';
 import { type UnitTypeId, unitDef } from '../sim/unitData';
 
-import { type BoardGeometry, pieceShapeFor } from './board3d';
+import { type BoardGeometry, pieceHeightFor, pieceShapeFor } from './board3d';
+import type { UnitPiece } from './geometry';
 import { hashSigned } from './hash';
 import { type InstanceHandle, InstanceCollector, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
@@ -59,10 +76,42 @@ import { VIEW3D, playerPieceColor } from './lookData';
 import type { UnitSprites } from './sprites3d';
 import { type MaterialLibrary, computeHullNormals } from './toon';
 
-const PIECE = VIEW3D.piece;
+const PIECES = VIEW3D.pieces;
 const HP = VIEW3D.hpBar;
 const SPRITE = VIEW3D.units.sprite;
 const STANDEE = SPRITE.standee;
+
+/**
+ * The ink each of a sculpt's geometry groups is painted in, in group order.
+ *
+ * The body role takes the owner's colour and everything else a fixed palette
+ * entry, which is the whole ownership-signalling argument in one line: a piece
+ * is *the player's* because its figure and its base are, and its spear is wood
+ * whoever is holding it. Returned as a plain array because that is exactly what
+ * the instancer wants — it keys buckets on the colour list, so two warriors of
+ * the same player share a bucket and two players' warriors do not.
+ */
+export function pieceColors(piece: UnitPiece, bodyColor: number): number[] {
+  return piece.parts.map((part) => (part === 'body' ? bodyColor : PIECES.colors[part]));
+}
+
+/**
+ * The material (or material array) a standalone mesh of a sculpt needs.
+ *
+ * Only the walking copies go through this — everything at rest is instanced —
+ * but they have to match the resting piece exactly or a unit would change colour
+ * the moment it started moving.
+ */
+export function pieceMaterials(
+  materials: MaterialLibrary,
+  piece: UnitPiece,
+  bodyColor: number,
+): Material | Material[] {
+  const colors = pieceColors(piece, bodyColor);
+  return colors.length === 1
+    ? materials.get(colors[0]!)
+    : colors.map((color) => materials.get(color));
+}
 
 /**
  * How tall a billboard stands, in world units.
@@ -78,7 +127,7 @@ export const SPRITE_HEIGHT = SPRITE.heightInHexWidths * VIEW3D.board.hexRadius *
  * know about the art style.
  */
 function unitVisualHeight(type: UnitTypeId, sprites: UnitSprites | null): number {
-  return sprites?.materialFor(type) ? SPRITE_HEIGHT : PIECE.height;
+  return sprites?.materialFor(type) ? SPRITE_HEIGHT : pieceHeightFor(type);
 }
 
 /**
@@ -192,7 +241,7 @@ export function placePiece(map: GameMap, unit: Unit, stackIndex: number): PieceP
   const tile = map.tiles[unit.row * map.width + unit.col];
   const center = cellCenter(unit.col, unit.row);
   const angle = stackIndex * 2.1;
-  const spread = stackIndex === 0 ? 0 : PIECE.stackSpread;
+  const spread = stackIndex === 0 ? 0 : PIECES.stackSpread;
   return {
     position: new Vector3(
       center.x + Math.cos(angle) * spread,
@@ -275,9 +324,10 @@ export class UnitLayer {
         this.group.add(group);
         this.spriteUnits.set(unit.id, group);
       } else {
+        const piece = geometry.pieces[pieceShapeFor(unit.type)];
         const handle = collector.add(
-          geometry.pieces[pieceShapeFor(unit.type)],
-          [unitColor(state, unit)],
+          piece.geometry,
+          pieceColors(piece, unitColor(state, unit)),
           new Matrix4().compose(placement.position, placement.quaternion, scale),
         );
         this.handles.set(unit.id, handle);

@@ -51,7 +51,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "compositeBowman",
-      "piece": "scout",
+      "piece": "archer",
       "glyph": "A"
     },
     "spearman": {
@@ -65,7 +65,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "pikeman",
-      "piece": "warrior",
+      "piece": "spearman",
       "glyph": "P"
     },
     "horseman": {
@@ -79,7 +79,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "knight",
-      "piece": "warrior",
+      "piece": "horseman",
       "glyph": "H"
     },
     "chariot": {
@@ -92,7 +92,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "warrior",
+      "piece": "chariot",
       "glyph": "C"
     },
     "swordsman": {
@@ -106,7 +106,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "longswordsman",
-      "piece": "warrior",
+      "piece": "swordsman",
       "glyph": "X"
     },
     "catapult": {
@@ -120,7 +120,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "trebuchet",
-      "piece": "settler",
+      "piece": "catapult",
       "glyph": "K"
     },
     "compositeBowman": {
@@ -134,7 +134,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "crossbowman",
-      "piece": "scout",
+      "piece": "compositeBowman",
       "glyph": "B"
     },
     "pikeman": {
@@ -147,7 +147,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "warrior",
+      "piece": "pikeman",
       "glyph": "I"
     },
     "crossbowman": {
@@ -160,7 +160,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "scout",
+      "piece": "crossbowman",
       "glyph": "R"
     },
     "knight": {
@@ -173,7 +173,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "warrior",
+      "piece": "knight",
       "glyph": "N"
     },
     "longswordsman": {
@@ -186,7 +186,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "warrior",
+      "piece": "longswordsman",
       "glyph": "L"
     },
     "trebuchet": {
@@ -199,7 +199,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "settler",
+      "piece": "trebuchet",
       "glyph": "E"
     }
   }

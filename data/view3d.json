@@ -18,7 +18,9 @@
     "crimson": "#b35843",
     "teal": "#477f7e",
     "vellum": "#dbcfb0",
-    "vellumDeep": "#c2b18c"
+    "vellumDeep": "#c2b18c",
+    "timber": "#8a6a45",
+    "steel": "#9aa3a8"
   },
   "terrainColor": {
     "ocean": "lagoon",
@@ -179,10 +181,25 @@
       "bankPebbleScale": 0.22
     }
   },
-  "piece": {
-    "height": 0.92,
-    "radius": 0.2,
-    "stackSpread": 0.34
+  "pieces": {
+    "stackSpread": 0.34,
+    "base": {
+      "radius": 0.27,
+      "thickness": 0.055
+    },
+    "tokenRadius": 0.115,
+    "heights": {
+      "foot": 0.94,
+      "polearm": 1.06,
+      "mounted": 1.12,
+      "siege": 0.78,
+      "engine": 1
+    },
+    "colors": {
+      "wood": "timber",
+      "metal": "steel",
+      "accent": "bone"
+    }
   },
   "city": {
     "houseCap": 7,
@@ -316,7 +333,7 @@
     "siteEstuaryRingOpacity": 0.95
   },
   "units": {
-    "style": "sprites",
+    "style": "pieces",
     "sprite": {
       "heightInHexWidths": 0.58,
       "lift": 0.055,

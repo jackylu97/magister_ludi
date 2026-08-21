@@ -51,15 +51,35 @@ export type UnitTypeId =
 export type UnitCategory = 'military' | 'civilian';
 
 /**
- * Which procedural piece the 3D board stands this unit on.
+ * Which sculpted miniature the 3D board stands this unit on.
  *
  * A visual field, like `glyph`, and here for the same reason: two lists of the
- * same units drift apart. There are three carved shapes and fifteen unit types,
- * so the mapping is a deliberate art-direction fact — a soldier is a soldier's
- * silhouette whatever century it fights in — rather than a promise that every
- * type gets its own model.
+ * same units drift apart. It stays a *mapping* rather than "the type id is the
+ * sculpt id" because it is an art-direction fact and not a promise — two unit
+ * types are allowed to share a silhouette the day the roster grows past what is
+ * worth sculpting, and that decision belongs in `data/units.json`, not in a
+ * renderer that would otherwise draw nothing for a type it had not been taught.
+ *
+ * Today every type has its own sculpt, so the mapping happens to be the
+ * identity. `src/render3d/board3d.ts` holds the registry that turns one of these
+ * into geometry and will not compile if a name here has no sculpt.
  */
-export type PieceShape = 'warrior' | 'scout' | 'settler';
+export type PieceShape =
+  | 'warrior'
+  | 'scout'
+  | 'settler'
+  | 'archer'
+  | 'spearman'
+  | 'horseman'
+  | 'chariot'
+  | 'swordsman'
+  | 'catapult'
+  | 'compositeBowman'
+  | 'pikeman'
+  | 'crossbowman'
+  | 'knight'
+  | 'longswordsman'
+  | 'trebuchet';
 
 export interface UnitDef {
   name: string;

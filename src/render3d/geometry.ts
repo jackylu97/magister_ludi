@@ -4,9 +4,14 @@
  * Adapted from the look-dev prototype's `src/proto3d/geometry.ts`, which proved
  * the point this file inherits: no asset here was drawn, downloaded or baked. A
  * tile is a `CylinderGeometry` with six sides, a pine is a cone on a stick, a
- * warrior is a lathe swept around a hand-written profile. The look survives
- * being made entirely of primitives, so the game needs no art pipeline, only a
- * palette.
+ * knight is a box horse under a lathed rider holding a cylinder. The look
+ * survives being made entirely of primitives, so the game needs no art
+ * pipeline, only a palette.
+ *
+ * The unit miniatures at the bottom of the file are the largest thing built out
+ * of that rule — fifteen distinguishable sculpts, none over a few hundred
+ * triangles, all standing on the same disc. See the "unit miniatures" section
+ * for the composition kit they are cut from.
  *
  * Origins are at the *base* of every shape, not the centre. Two reasons:
  * placement becomes "put it on the tile top" with no half-height correction,
@@ -32,6 +37,7 @@ import {
   IcosahedronGeometry,
   LatheGeometry,
   PlaneGeometry,
+  TorusGeometry,
   Vector2,
 } from 'three';
 
@@ -406,91 +412,740 @@ export function rock(radius: number): BufferGeometry {
   return flatten(geometry);
 }
 
-// --- unit pieces -----------------------------------------------------------
+// --- unit miniatures -------------------------------------------------------
 
 /**
  * Lathe a profile given as `[radius, height]` pairs, bottom first.
  *
- * Nine radial segments, deliberately odd: an even count puts a facet edge dead
+ * Seven radial segments, deliberately odd: an even count puts a facet edge dead
  * centre on both the lit and shadowed side and the piece reads as symmetrical
  * and machine-made. Odd counts break that and look turned on a lathe, which is
  * what a wooden game piece is.
  */
-function lathe(profile: readonly (readonly [number, number])[], segments = 9): BufferGeometry {
+function lathe(profile: readonly (readonly [number, number])[], segments = 7): BufferGeometry {
   const points = profile.map(([r, y]) => new Vector2(r, y));
   return new LatheGeometry(points, segments);
 }
 
 /**
- * The top of each piece profile, in profile units.
+ * The inks a miniature is painted in, as *roles* rather than colours.
  *
- * Every piece is scaled so its *tip* lands on the configured piece height, which
- * is what keeps a pawn, a scout and a house reading as the same size class. The
- * numbers are the last y of each profile below and change only when the profile
- * does, so they live beside them rather than in `view3d.json`.
+ * A sculpt says "this bit is wood", never "this bit is #8a6a45": the body role
+ * resolves to the owning player's colour and the other three to fixed palette
+ * entries (`pieces.colors` in `view3d.json`), so one geometry serves every
+ * player and the equipment never drifts into looking like ownership signalling.
  */
-const PIECE_PROFILE_TOP = { warrior: 0.63, scout: 0.76, settler: 0.52 } as const;
+export type MiniAccent = 'wood' | 'metal' | 'accent';
+export type MiniPart = 'body' | MiniAccent;
 
-/** Warrior: a chess pawn — wide foot, collar, ball head. */
-export function warriorPiece(height: number): BufferGeometry {
-  const scale = height / PIECE_PROFILE_TOP.warrior;
-  const geometry = lathe([
+/**
+ * The size class a sculpt is built to, which is the whole of the "do these read
+ * as one set" question. Infantry stand around a hex radius tall, polearms carry
+ * their point a little higher, riders sit higher still, and the siege engines
+ * are deliberately *short and wide* — a catapult that matched a pikeman's height
+ * would be a tower, not a machine. The numbers live in `view3d.json`.
+ */
+export type MiniClass = 'foot' | 'polearm' | 'mounted' | 'siege' | 'engine';
+
+/**
+ * One sculpted miniature: a single merged geometry, plus the ink each of its
+ * geometry groups wants.
+ *
+ * Groups rather than separate geometries because a miniature is *one* object —
+ * it is placed, turned, hidden, walked and outlined as a unit, and the instance
+ * machinery keys buckets on (geometry, colours), so a two-tone piece with two
+ * groups is one instanced draw with a two-material array rather than two draws
+ * that have to be kept in step. The inverted-hull shell ignores groups entirely
+ * (three only walks them when the material is an array), so the outline is one
+ * closed silhouette around the whole figure, which is exactly what it should be.
+ */
+export interface UnitPiece {
+  geometry: BufferGeometry;
+  /** Which ink each geometry group wants, in group order. */
+  parts: MiniPart[];
+}
+
+/** The kit numbers every sculpt is cut from. All lengths in world units. */
+export interface MiniSpec {
+  /** Total silhouette height, base disc included. */
+  height: number;
+  baseRadius: number;
+  baseThickness: number;
+  /** Shoulder radius of the humanoid token. */
+  tokenRadius: number;
+}
+
+export type MiniFactory = (spec: MiniSpec) => UnitPiece;
+
+/**
+ * Group order, fixed. A sculpt adds parts in whatever order suits the build; the
+ * assembly emits them in *this* order and skips the roles it never used, so two
+ * sculpts with the same set of roles produce the same colour array and the
+ * instancer can share a bucket per player colour.
+ */
+const MINI_PART_ORDER: readonly MiniPart[] = ['body', 'wood', 'metal', 'accent'];
+
+/**
+ * Collects primitives by ink role and welds them into one grouped geometry.
+ *
+ * The counting is done on de-indexed vertex counts because `merge` de-indexes,
+ * so a group's `count` is "how many vertices this role contributed" — which is
+ * the number three wants and the only bookkeeping in the whole file that would
+ * silently mis-colour a piece if it drifted.
+ */
+class Mini {
+  private readonly sections = new Map<MiniPart, BufferGeometry[]>();
+
+  add(part: MiniPart, ...geometries: BufferGeometry[]): this {
+    const list = this.sections.get(part);
+    if (list) list.push(...geometries);
+    else this.sections.set(part, geometries.slice());
+    return this;
+  }
+
+  build(): UnitPiece {
+    const parts = MINI_PART_ORDER.filter((part) => (this.sections.get(part)?.length ?? 0) > 0);
+    const ordered: BufferGeometry[] = [];
+    const counts: number[] = [];
+    for (const part of parts) {
+      let vertices = 0;
+      for (const geometry of this.sections.get(part)!) {
+        ordered.push(geometry);
+        const index = geometry.getIndex();
+        vertices += index ? index.count : geometry.getAttribute('position').count;
+      }
+      counts.push(vertices);
+    }
+    const merged = merge(ordered);
+    for (const geometry of ordered) geometry.dispose();
+    const flat = flatten(merged);
+    let start = 0;
+    for (let i = 0; i < parts.length; i++) {
+      flat.addGroup(start, counts[i]!, i);
+      start += counts[i]!;
+    }
+    return { geometry: flat, parts };
+  }
+}
+
+// --- the composition kit ---------------------------------------------------
+
+/**
+ * The disc every miniature stands on.
+ *
+ * This is the single element that makes fifteen wildly different silhouettes —
+ * a pikeman, a horse, a trebuchet — read as one *set* of board pieces rather
+ * than as fifteen models. Uniform radius and thickness across the whole roster,
+ * always in the player's colour, always visible: a tabletop base.
+ *
+ * Eight sides, slightly flared. Eight because six would lock the base's facets
+ * to the hexagon it stands on and glue the piece to the grid, and the flare is
+ * what stops it reading as a coin — a moulded base is wider where it meets the
+ * table.
+ */
+function miniBase(spec: MiniSpec): BufferGeometry {
+  const base = new CylinderGeometry(
+    spec.baseRadius,
+    spec.baseRadius * 1.07,
+    spec.baseThickness,
+    8,
+    1,
+  );
+  base.translate(0, spec.baseThickness / 2, 0);
+  return base;
+}
+
+/**
+ * The abstract figure: a turned body and a ball head, and nothing else.
+ *
+ * No face, no arms, no legs. The equipment is what tells a swordsman from an
+ * archer; the token is the *person*, and at forty pixels a person is a shape
+ * with shoulders. Every attempt to add detail here costs triangles that the
+ * silhouette — the only thing that survives the zoom — never spends.
+ *
+ * Returned as two geometries so the caller can hand both to the same ink role;
+ * they are already lifted to `y`, which is the top of the base disc.
+ */
+function miniToken(height: number, radius: number, y: number): BufferGeometry[] {
+  const headR = radius * 0.56;
+  const bodyH = height - headR * 1.65;
+  const body = lathe([
     [0, 0],
-    [0.2, 0],
-    [0.2, 0.05],
-    [0.145, 0.1],
-    [0.095, 0.19],
-    [0.085, 0.3],
-    [0.135, 0.35],
-    [0.095, 0.39],
-    [0.06, 0.43],
-    [0.105, 0.5],
-    [0.1, 0.56],
-    [0.055, 0.61],
-    [0, 0.63],
+    [radius * 0.88, 0],
+    [radius * 0.5, bodyH * 0.2],
+    [radius * 0.44, bodyH * 0.56],
+    [radius * 0.96, bodyH * 0.87],
+    [0, bodyH],
   ]);
-  geometry.scale(scale, scale, scale);
-  return flatten(geometry);
+  body.translate(0, y, 0);
+
+  const head = new IcosahedronGeometry(headR, 0);
+  head.scale(1, 1.06, 1);
+  head.translate(0, y + bodyH + headR * 0.62, 0);
+  return [body, head];
 }
 
-/** Scout: a tall thin piece with a pennant-shaped head. Reads as fast. */
-export function scoutPiece(height: number): BufferGeometry {
-  const scale = height / PIECE_PROFILE_TOP.scout;
-  const geometry = lathe([
-    [0, 0],
-    [0.185, 0],
-    [0.185, 0.04],
-    [0.11, 0.09],
-    [0.05, 0.16],
-    [0.045, 0.44],
-    [0.155, 0.5],
-    [0.115, 0.58],
-    [0.03, 0.74],
-    [0, 0.76],
-  ]);
-  geometry.scale(scale, scale, scale);
-  return flatten(geometry);
+/** A pole standing on its own base: spear shafts, staffs, frame legs. */
+function shaft(length: number, radius: number, sides = 5): BufferGeometry {
+  const pole = new CylinderGeometry(radius, radius * 1.12, length, sides, 1);
+  pole.translate(0, length / 2, 0);
+  return pole;
 }
 
-/** Settler: a house — box body, four-sided pyramid roof. Not lathed; a home. */
-export function settlerPiece(height: number): BufferGeometry {
-  const scale = height / PIECE_PROFILE_TOP.settler;
-  const bodyH = 0.28;
-  const body = new BoxGeometry(0.34, bodyH, 0.3);
-  body.translate(0, bodyH / 2, 0);
-
-  const roofH = 0.24;
-  // Four radial segments makes a pyramid; the quarter turn squares it to the box.
-  const roof = new ConeGeometry(0.3, roofH, 4, 1);
-  roof.rotateY(Math.PI / 4);
-  roof.translate(0, bodyH + roofH / 2, 0);
-
-  const merged = merge([body, roof]);
-  body.dispose();
-  roof.dispose();
-  merged.scale(scale, scale, scale);
-  return flatten(merged);
+/** A point standing on its own base: spear and lance tips, helmets. */
+function spike(radius: number, length: number, sides = 5): BufferGeometry {
+  const cone = new ConeGeometry(radius, length, sides, 1);
+  cone.translate(0, length / 2, 0);
+  return cone;
 }
+
+/** A coin, axis up, centred on the origin. Shields and wheels, once turned. */
+function disc(radius: number, thickness: number, sides = 7): BufferGeometry {
+  return new CylinderGeometry(radius, radius, thickness, sides, 1);
+}
+
+/** A shield hanging on the left arm: a disc turned to face outward along −x. */
+function shieldAt(
+  radius: number,
+  thickness: number,
+  sides: number,
+  tall: number,
+  x: number,
+  y: number,
+): BufferGeometry {
+  const shield = disc(radius, thickness, sides);
+  shield.rotateZ(Math.PI / 2);
+  shield.scale(1, tall, 0.86);
+  shield.translate(x, y, 0.02);
+  return shield;
+}
+
+/** A cartwheel: a disc turned so it rolls along x, at (x, y, z). */
+function wheelAt(
+  radius: number,
+  thickness: number,
+  x: number,
+  y: number,
+  z: number,
+): BufferGeometry {
+  const wheel = disc(radius, thickness, 7);
+  wheel.rotateX(Math.PI / 2);
+  wheel.translate(x, y, z);
+  return wheel;
+}
+
+/** A box centred on (x, y, z), optionally leaned by `roll` radians about z. */
+function slabAt(
+  width: number,
+  height: number,
+  depth: number,
+  x: number,
+  y: number,
+  z: number,
+  roll = 0,
+): BufferGeometry {
+  const box = new BoxGeometry(width, height, depth);
+  if (roll !== 0) box.rotateZ(roll);
+  box.translate(x, y, z);
+  return box;
+}
+
+/**
+ * A bow: a squashed torus arc, centred on the −x direction so the crescent
+ * bulges away from the figure holding it.
+ *
+ * Four segments around the tube, which at this radius is a triangular string of
+ * facets and reads as a carved stave rather than a wire. The arc is the whole
+ * signature — an archer at forty pixels is a token with a crescent beside it.
+ */
+function bowArc(
+  radius: number,
+  tube: number,
+  arc: number,
+  x: number,
+  y: number,
+  segments = 7,
+): BufferGeometry {
+  const bow = new TorusGeometry(radius, tube, 4, segments, arc);
+  bow.rotateZ(Math.PI - arc / 2);
+  bow.scale(0.78, 1, 1);
+  bow.translate(x, y, 0.02);
+  return bow;
+}
+
+/**
+ * A horse: box barrel, four stub legs, a cone neck and a box head.
+ *
+ * Painted in the accent ink rather than the player's, which is what lets the
+ * small rider on top carry the ownership colour — a fully player-coloured horse
+ * is a large blob of team colour with a smaller blob on it, and the rider stops
+ * registering as a rider.
+ *
+ * Returns the saddle height so the rider can be built to land exactly on the
+ * class's total height, however the horse's proportions are retuned.
+ */
+function miniHorse(
+  height: number,
+  baseTop: number,
+  forward: number,
+): { parts: BufferGeometry[]; saddleY: number; barrelLength: number } {
+  const legH = height * 0.3;
+  const barrelH = height * 0.17;
+  const barrelL = height * 0.31;
+  const barrelW = height * 0.135;
+  const barrelY = baseTop + legH + barrelH / 2;
+  const parts: BufferGeometry[] = [];
+
+  parts.push(slabAt(barrelL, barrelH, barrelW, forward, barrelY, 0));
+
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      // Four sides is the floor: a leg is two pixels wide and what it has to do
+      // is be dark on one side, which four facets already manage.
+      const leg = new CylinderGeometry(height * 0.022, height * 0.026, legH, 4, 1);
+      leg.translate(forward + sx * barrelL * 0.36, baseTop + legH / 2, sz * barrelW * 0.34);
+      parts.push(leg);
+    }
+  }
+
+  const neckLean = 0.42;
+  const neckH = height * 0.2;
+  const neck = spike(height * 0.058, neckH, 5);
+  neck.rotateZ(-neckLean);
+  const neckX = forward + barrelL * 0.4;
+  const neckY = barrelY + barrelH * 0.24;
+  neck.translate(neckX, neckY, 0);
+  parts.push(neck);
+
+  const headL = height * 0.125;
+  parts.push(
+    slabAt(
+      headL,
+      height * 0.062,
+      height * 0.058,
+      neckX + Math.sin(neckLean) * neckH + headL * 0.3,
+      neckY + Math.cos(neckLean) * neckH,
+      0,
+      -0.3,
+    ),
+  );
+
+  return { parts, saddleY: barrelY + barrelH * 0.42, barrelLength: barrelL };
+}
+
+// --- the roster ------------------------------------------------------------
+
+/** Warrior: token, round shield on the arm, short axe in the hand. */
+export const warriorMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius;
+  const lean = 0.18;
+  const haftH = h * 0.5;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h, r, t));
+
+  mini.add('wood', shieldAt(r * 1.15, 0.032, 7, 1, -r * 1.02, t + h * 0.5));
+
+  const haft = shaft(haftH, 0.021);
+  haft.rotateZ(-lean);
+  haft.translate(r * 0.92, t + h * 0.3, 0.03);
+  mini.add('wood', haft);
+  mini.add(
+    'metal',
+    slabAt(
+      0.085,
+      0.075,
+      0.026,
+      r * 0.92 + Math.sin(lean) * haftH,
+      t + h * 0.3 + Math.cos(lean) * haftH,
+      0.03,
+      -lean,
+    ),
+  );
+  return mini.build();
+};
+
+/** Scout: a slighter token with a walking staff and a bedroll across its back. */
+export const scoutMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius * 0.88;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h * 0.97, r, t));
+
+  const staff = shaft(h * 0.99, 0.017);
+  staff.rotateZ(-0.05);
+  staff.translate(r * 1.15, t, 0.04);
+  mini.add('wood', staff);
+
+  const roll = new CylinderGeometry(0.046, 0.046, 0.17, 6, 1);
+  roll.rotateZ(Math.PI / 2);
+  roll.translate(0, t + h * 0.66, -0.07);
+  mini.add('accent', roll);
+  return mini.build();
+};
+
+/** Settler: token, a two-wheeled handcart, and the bundle it is carrying. */
+export const settlerMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const cartX = -spec.baseRadius * 0.66;
+  const mini = new Mini().add(
+    'body',
+    miniBase(spec),
+    ...miniToken(h * 0.99, spec.tokenRadius, t),
+  );
+
+  mini.add(
+    'wood',
+    slabAt(0.19, 0.105, 0.15, cartX, t + 0.09, 0),
+    wheelAt(0.058, 0.024, cartX, t + 0.058, 0.085),
+    wheelAt(0.058, 0.024, cartX, t + 0.058, -0.085),
+  );
+  mini.add('accent', slabAt(0.14, 0.095, 0.115, cartX, t + 0.19, 0));
+  return mini.build();
+};
+
+/** Archer: token with a self bow held at the side and a quiver on the back. */
+export const archerMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius * 0.94;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h, r, t));
+
+  mini.add('wood', bowArc(h * 0.3, 0.016, Math.PI * 1.05, -r * 0.72, t + h * 0.55));
+  mini.add('accent', slabAt(0.05, 0.17, 0.05, r * 0.78, t + h * 0.62, -0.06, 0.3));
+  return mini.build();
+};
+
+/**
+ * Composite bowman: the archer's bow grown into a recurve — a wider arc with
+ * two tips flicked back the other way.
+ *
+ * The tips are the point of the sculpt. A composite bow is a bigger bow, and a
+ * bigger bow alone would read as "the archer, slightly wrong"; the reversed
+ * ends are a shape the archer does not have.
+ */
+export const compositeBowmanMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius * 0.94;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h, r, t));
+
+  const arc = Math.PI * 0.9;
+  const bowR = h * 0.34;
+  const centerX = -r * 0.66;
+  const centerY = t + h * 0.56;
+  mini.add('wood', bowArc(bowR, 0.018, arc, centerX, centerY, 6));
+
+  // The arc runs from (π − arc/2) to (π + arc/2) after `bowArc` turns it; the
+  // tips sit on those two ends, angled a little further round than the tangent.
+  for (const end of [-1, 1]) {
+    const angle = Math.PI + (end * arc) / 2;
+    const tip = spike(0.019, h * 0.13, 4);
+    tip.rotateZ(angle + (end > 0 ? 0.5 : Math.PI - 0.5));
+    tip.translate(centerX + Math.cos(angle) * bowR * 0.78, centerY + Math.sin(angle) * bowR, 0.02);
+    mini.add('wood', tip);
+  }
+  mini.add('accent', slabAt(0.05, 0.17, 0.05, r * 0.78, t + h * 0.62, -0.06, 0.3));
+  return mini.build();
+};
+
+/** Crossbowman: token with a small horizontal T — a prod across a stock. */
+export const crossbowmanMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius * 0.96;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h, r, t));
+
+  const armY = t + h * 0.6;
+  mini.add(
+    'wood',
+    slabAt(0.22, 0.022, 0.03, 0, armY, 0.085),
+    slabAt(0.038, 0.038, 0.18, 0, armY, -0.005),
+  );
+  mini.add('metal', slabAt(0.055, 0.032, 0.038, 0, armY - 0.012, -0.06));
+  return mini.build();
+};
+
+/** Spearman: token behind a tall spear, with an oval shield on the other arm. */
+export const spearmanMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h * 0.86, r, t));
+
+  const tipH = h * 0.14;
+  const shaftH = h - tipH;
+  const x = r * 0.98;
+  const spearShaft = shaft(shaftH, 0.019);
+  spearShaft.translate(x, t, 0.03);
+  mini.add('wood', spearShaft);
+
+  const tip = spike(0.032, tipH, 5);
+  tip.translate(x, t + shaftH, 0.03);
+  mini.add('metal', tip);
+
+  mini.add('wood', shieldAt(0.098, 0.03, 7, 1.4, -r * 1.0, t + h * 0.44));
+  return mini.build();
+};
+
+/**
+ * Pikeman: the spearman's line grown up — a longer pike raked back over the
+ * shoulder, a taller stance, a helmet, and no shield at all.
+ *
+ * Dropping the shield is deliberate. Two polearm silhouettes standing next to
+ * each other have to differ by more than length, and "one has a shield, one has
+ * both hands on the shaft" is a difference that survives forty pixels.
+ */
+export const pikemanMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius * 1.02;
+  const lean = 0.11;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h * 0.9, r, t));
+
+  const tipH = h * 0.15;
+  const shaftH = (h - tipH * Math.cos(lean)) / Math.cos(lean);
+  const x = r * 1.02;
+  const pike = shaft(shaftH, 0.019);
+  pike.rotateZ(lean);
+  pike.translate(x, t, 0.03);
+  mini.add('wood', pike);
+
+  const tip = spike(0.03, tipH, 5);
+  tip.rotateZ(lean);
+  tip.translate(x - Math.sin(lean) * shaftH, t + Math.cos(lean) * shaftH, 0.03);
+  mini.add('metal', tip);
+
+  const headR = r * 0.56;
+  mini.add('metal', spike(headR * 1.06, headR * 1.1, 6).translate(0, t + h * 0.9 - headR * 0.5, 0));
+  return mini.build();
+};
+
+/** Swordsman: token with an upright sword and a kite shield. */
+export const swordsmanMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius;
+  const x = r * 1.0;
+  const guardY = t + h * 0.5;
+  const bladeH = h * 0.34;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h, r, t));
+
+  mini.add(
+    'metal',
+    slabAt(0.05, bladeH, 0.022, x, guardY + bladeH / 2, 0.03),
+    slabAt(0.115, 0.028, 0.032, x, guardY, 0.03),
+  );
+  mini.add('wood', slabAt(0.034, 0.075, 0.034, x, guardY - 0.045, 0.03));
+  // Five sides, point down: a kite shield is a disc that lost an argument.
+  mini.add('wood', shieldAt(0.1, 0.028, 5, 1.3, -r * 1.0, t + h * 0.48));
+  return mini.build();
+};
+
+/** Longswordsman: a longer blade held in both hands, and no shield to hide it. */
+export const longswordsmanMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius * 1.04;
+  const guardY = t + h * 0.45;
+  const bladeH = h * 0.48;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h, r, t));
+
+  mini.add(
+    'metal',
+    slabAt(0.062, bladeH, 0.026, 0, guardY + bladeH / 2, 0.075),
+    slabAt(0.155, 0.032, 0.036, 0, guardY, 0.075),
+  );
+  const pommel = new IcosahedronGeometry(0.032, 0);
+  pommel.translate(0, guardY - 0.105, 0.075);
+  mini.add('metal', pommel);
+  mini.add('wood', slabAt(0.036, 0.1, 0.036, 0, guardY - 0.052, 0.075));
+  return mini.build();
+};
+
+/** Horseman: a bare horse with a small rider in the player's colour. */
+export const horsemanMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const horse = miniHorse(spec.height, t, -spec.height * 0.045);
+  const mini = new Mini()
+    .add('body', miniBase(spec))
+    .add('accent', ...horse.parts)
+    .add('body', ...miniToken(spec.height - horse.saddleY, spec.tokenRadius * 0.8, horse.saddleY));
+  return mini.build();
+};
+
+/** Knight: the horseman in barding, with a lance couched over the horse's neck. */
+export const knightMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const forward = -spec.height * 0.045;
+  const horse = miniHorse(spec.height, t, forward);
+  const mini = new Mini()
+    .add('body', miniBase(spec))
+    .add('accent', ...horse.parts)
+    .add('body', ...miniToken(spec.height - horse.saddleY, spec.tokenRadius * 0.82, horse.saddleY));
+
+  // The barding is a skirt, not a blanket: a cone hung around the barrel and
+  // stretched along it, which covers the gap between the legs — the one place a
+  // box-and-sticks horse looks most like a box and sticks.
+  const barding = spike(spec.height * 0.15, spec.height * 0.2, 6);
+  barding.scale(horse.barrelLength / (spec.height * 0.22), 1, 0.66);
+  barding.translate(forward, t + spec.height * 0.17, 0);
+  mini.add('metal', barding);
+
+  const lean = 0.7;
+  const lanceH = spec.height * 0.38;
+  const lanceX = forward + spec.height * 0.07;
+  const lanceY = horse.saddleY + spec.height * 0.08;
+  const lance = shaft(lanceH, 0.021);
+  lance.rotateZ(-lean);
+  lance.translate(lanceX, lanceY, 0.075);
+  mini.add('wood', lance);
+  const point = spike(0.026, spec.height * 0.12, 5);
+  point.rotateZ(-lean);
+  point.translate(
+    lanceX + Math.sin(lean) * lanceH,
+    lanceY + Math.cos(lean) * lanceH,
+    0.075,
+  );
+  mini.add('metal', point);
+  return mini.build();
+};
+
+/**
+ * War chariot: horse in front, a two-wheeled car behind, a driver standing in
+ * it, and a standard flying from the rail.
+ *
+ * The standard is doing structural work, not decoration. A driver tall enough to
+ * reach the mounted class's height would tower over his own horse; a short
+ * driver with a pennant above him reaches it and still reads as a man in a cart.
+ */
+export const chariotMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const forward = spec.height * 0.1;
+  const horse = miniHorse(spec.height * 0.92, t, forward);
+  const carX = -spec.baseRadius * 0.78;
+  const floorY = t + spec.height * 0.11;
+  const mini = new Mini().add('body', miniBase(spec)).add('accent', ...horse.parts);
+
+  mini.add(
+    'wood',
+    slabAt(0.17, 0.13, 0.2, carX, floorY - 0.03, 0),
+    wheelAt(0.088, 0.028, carX, t + 0.088, 0.115),
+    wheelAt(0.088, 0.028, carX, t + 0.088, -0.115),
+  );
+  mini.add('body', ...miniToken(spec.height * 0.6, spec.tokenRadius * 0.82, floorY));
+
+  const poleX = carX - 0.03;
+  const poleH = spec.height - floorY;
+  const pole = shaft(poleH, 0.016);
+  pole.translate(poleX, floorY, -0.05);
+  mini.add('wood', pole);
+  mini.add('accent', slabAt(0.12, 0.075, 0.014, poleX + 0.065, floorY + poleH * 0.86, -0.05));
+  return mini.build();
+};
+
+/**
+ * Catapult: a wheeled timber frame with an arm thrown forward.
+ *
+ * Built wide rather than tall, which is the whole reason the siege class exists.
+ * A machine on a board reads as a machine because it is *low and long* next to
+ * the figures — the moment it matches their height it becomes a building.
+ */
+export const catapultMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const H = spec.height;
+  const railY = t + H * 0.148;
+  const pivotY = t + H * 0.424;
+  const armLean = 0.44;
+  const armH = H * 0.54;
+  const pivotX = -H * 0.154;
+  // Longer than it is tall, and longer than its own base: a siege engine is a
+  // *vehicle*, and the one thing that stops it reading as a hut is that it
+  // overhangs the disc the infantry stand neatly inside.
+  const frame = H * 1.03;
+  const mini = new Mini().add('body', miniBase(spec));
+
+  mini.add(
+    'wood',
+    slabAt(frame, 0.045, 0.045, 0, railY, 0.115),
+    slabAt(frame, 0.045, 0.045, 0, railY, -0.115),
+    slabAt(0.05, 0.045, 0.235, frame / 2 - 0.05, railY, 0),
+    slabAt(0.05, 0.045, 0.235, -frame / 2 + 0.05, railY, 0),
+    slabAt(0.05, H * 0.276, 0.05, pivotX, (railY + pivotY) / 2, 0.105),
+    slabAt(0.05, H * 0.276, 0.05, pivotX, (railY + pivotY) / 2, -0.105),
+    wheelAt(H * 0.128, 0.032, H * 0.3, t + H * 0.128, 0.15),
+    wheelAt(H * 0.128, 0.032, H * 0.3, t + H * 0.128, -0.15),
+  );
+
+  const arm = new BoxGeometry(0.05, armH, 0.05);
+  arm.translate(0, armH / 2, 0);
+  arm.rotateZ(-armLean);
+  arm.translate(pivotX, pivotY, 0);
+  mini.add('wood', arm);
+  mini.add(
+    'metal',
+    slabAt(
+      0.08,
+      0.062,
+      0.08,
+      pivotX + Math.sin(armLean) * armH,
+      pivotY + Math.cos(armLean) * armH - 0.02,
+      0,
+    ),
+  );
+  return mini.build();
+};
+
+/**
+ * Trebuchet: an A-frame with a long arm over it and a counterweight hanging off
+ * the short end.
+ *
+ * Taller than the catapult on purpose — it is the same idea done bigger, and the
+ * upgrade has to be visible from across the board — but it earns the height with
+ * a raised arm rather than by growing the machine.
+ */
+export const trebuchetMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const H = spec.height;
+  const legH = H * 0.56;
+  const legLean = 0.2;
+  const pivotY = t + 0.05 + legH * Math.cos(legLean);
+  const armLean = Math.acos(Math.min(1, (H - pivotY) / (H * 0.46)));
+  const mini = new Mini().add('body', miniBase(spec));
+
+  mini.add('wood', slabAt(H * 0.52, 0.05, 0.2, 0, t + 0.025, 0));
+  for (const side of [-1, 1]) {
+    const leg = new BoxGeometry(0.05, legH, 0.05);
+    leg.translate(0, legH / 2, 0);
+    leg.rotateZ(side * legLean);
+    leg.translate(side * H * 0.115, t + 0.05, 0);
+    mini.add('wood', leg);
+  }
+  mini.add('wood', slabAt(0.06, 0.05, 0.24, 0, pivotY, 0));
+
+  // The arm is one box straddling the pivot: a long throwing end and a short
+  // butt, which is what makes a trebuchet a trebuchet rather than a see-saw.
+  const long = H * 0.46;
+  const short = H * 0.3;
+  const arm = new BoxGeometry(0.05, long + short, 0.05);
+  arm.translate(0, (long - short) / 2, 0);
+  arm.rotateZ(armLean);
+  arm.translate(0, pivotY, 0);
+  mini.add('wood', arm);
+  mini.add(
+    'metal',
+    slabAt(
+      0.11,
+      0.12,
+      0.11,
+      Math.sin(armLean) * short,
+      pivotY - Math.cos(armLean) * short - 0.06,
+      0,
+    ),
+  );
+  return mini.build();
+};
 
 /**
  * The foot a paper standee stands in: a flattened disc, a narrower collar on

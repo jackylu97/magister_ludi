@@ -67,7 +67,7 @@ import { LensLayer, NO_LENS, sameLens } from './lens3d';
 import { VIEW3D } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { OverlayLayer } from './overlays';
-import { UnitLayer, buildSpriteUnit, placePiece, unitColor } from './pieces';
+import { UnitLayer, buildSpriteUnit, pieceMaterials, placePiece, unitColor } from './pieces';
 import { pickTile } from './picking';
 import { UnitSprites } from './sprites3d';
 import { MaterialLibrary, computeHullNormals } from './toon';
@@ -656,9 +656,10 @@ export class Renderer3D implements MapView {
       return;
     }
 
-    const shape = this.geometry.pieces[pieceShapeFor(unit.type)];
+    const piece = this.geometry.pieces[pieceShapeFor(unit.type)];
+    const shape = piece.geometry;
     computeHullNormals(shape);
-    const material = this.materials.get(unitColor(this.state, unit));
+    const material = pieceMaterials(this.materials, piece, unitColor(this.state, unit));
 
     const group = new Group();
     const period = wrapWidth(this.map);

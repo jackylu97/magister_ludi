@@ -25,6 +25,8 @@ import viewJson from '../../data/view3d.json';
 
 import type { FeatureId, TerrainId } from '../sim/terrainData';
 
+import type { MiniAccent, MiniClass } from './geometry';
+
 // --- shapes ----------------------------------------------------------------
 
 export interface PineSpec {
@@ -195,11 +197,25 @@ export interface DecorSpec {
   reeds: ReedSpec;
 }
 
-export interface PieceSpec {
-  height: number;
-  radius: number;
+/**
+ * The unit miniatures: the kit every sculpt in `geometry.ts` is cut from.
+ *
+ * Four numbers and three inks decide the whole roster's family resemblance. The
+ * base disc is the load-bearing one — uniform radius and thickness across all
+ * fifteen sculpts is what makes a trebuchet and a pikeman read as two pieces
+ * from the same box rather than as two models — and the per-class heights are
+ * the other half: a set of toys is a set because the toys are the same size.
+ */
+export interface PiecesSpec {
   /** How far stacked pieces on one tile fan out from the centre. */
   stackSpread: number;
+  base: { radius: number; thickness: number };
+  /** Shoulder radius of the abstract humanoid token. */
+  tokenRadius: number;
+  /** Total silhouette height, base included, per size class. */
+  heights: Record<MiniClass, number>;
+  /** The fixed inks the equipment is painted in. The body is the player's. */
+  colors: Record<MiniAccent, number>;
 }
 
 export interface HouseSpec {
@@ -315,11 +331,12 @@ export interface LensSpec {
 /**
  * How the units are drawn.
  *
- * `style` is the whole of the art-direction switch: `pieces` is the procedural
- * toon game piece the board was designed around, `sprites` swaps in painted
- * billboards for the unit types that have artwork and falls back to the piece
- * for the ones that do not. Both paths are maintained — see `pieces.ts` — so
- * this is a one-word edit in `data/view3d.json` and nothing else.
+ * `style` is the whole of the art-direction switch: `pieces` is the sculpted
+ * toon miniature the board was designed around and the default, `sprites` swaps
+ * in painted billboards for the unit types that have artwork and falls back to
+ * the sculpt for the ones that do not. Both paths are maintained — see
+ * `pieces.ts` — so this is a one-word edit in `data/view3d.json` and nothing
+ * else. `pieces.html` shows both side by side.
  */
 export interface UnitStyleSpec {
   style: 'pieces' | 'sprites';
@@ -340,8 +357,8 @@ export interface SpriteSpec {
    * Card height as a multiple of a hex's width (twice the circumradius).
    *
    * The one number that decides whether the art belongs on the board. A standee
-   * wants to be *slightly* larger than the carved piece it stands beside
-   * (`piece.height`, 0.92 world units) — a printed figure is a figure, not a
+   * wants to be *slightly* larger than the sculpt it stands beside
+   * (`pieces.heights.foot`, 0.94 world units) — a printed figure is a figure, not a
    * monument — and the source art fills about 92% of its own frame, so the
    * figure ends up a shade over one world unit tall against houses of about a
    * half. Raising this past ~0.8 is what made the first pass tower over the town
@@ -537,7 +554,7 @@ export interface View3DData {
   sideDarken: number;
   board: BoardSpec;
   decor: DecorSpec;
-  piece: PieceSpec;
+  pieces: PiecesSpec;
   city: CitySpec;
   table: TableSpec;
   rivers: RiverSpec;
@@ -665,7 +682,13 @@ export const VIEW3D: View3DData = {
       color: named(viewJson.decor.reeds.color, 'decor.reeds.color'),
     },
   },
-  piece: viewJson.piece,
+  pieces: {
+    stackSpread: viewJson.pieces.stackSpread,
+    base: viewJson.pieces.base,
+    tokenRadius: viewJson.pieces.tokenRadius,
+    heights: viewJson.pieces.heights,
+    colors: namedTable<MiniAccent>(viewJson.pieces.colors, 'pieces.colors'),
+  },
   city: viewJson.city,
   table: {
     color: named(viewJson.table.color, 'table.color'),

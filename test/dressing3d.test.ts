@@ -340,8 +340,8 @@ describe('paper standees', () => {
     // The whole proportion argument in one assertion. A standee reads as a
     // figure among figures; at twice the piece it reads as a statue, which is
     // what the first pass looked like beside the toy houses.
-    expect(SPRITE_HEIGHT).toBeGreaterThan(VIEW3D.piece.height);
-    expect(SPRITE_HEIGHT).toBeLessThan(VIEW3D.piece.height * 1.6);
+    expect(SPRITE_HEIGHT).toBeGreaterThan(VIEW3D.pieces.heights.foot);
+    expect(SPRITE_HEIGHT).toBeLessThan(VIEW3D.pieces.heights.foot * 1.6);
     // And taller than the trees it walks past, but not by much.
     const pine = VIEW3D.decor.pine.trunkH + VIEW3D.decor.pine.coneH;
     expect(SPRITE_HEIGHT).toBeGreaterThan(pine);

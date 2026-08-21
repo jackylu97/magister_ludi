@@ -399,9 +399,12 @@ export function buildBoard(
     quaternion.setFromAxisAngle(axis, -0.6 + hashSigned(unit.col, unit.row, 40) * 0.5);
     scale.set(1, 1, 1);
     collector.add(
-      // Keyed by silhouette, not by unit type: see `pieceShapeFor` in
-      // `src/render3d/board3d.ts` — three carved shapes serve every type.
-      geometry.pieces[unitDef(unit.type).piece],
+      // The look-dev prototype only ever carved three shapes, and it is frozen
+      // at that. The shipping renderer has since grown one sculpt per unit type
+      // (`MINI_SCULPTS` in `src/render3d/board3d.ts`), so a `piece` name from
+      // `units.json` that the prototype never knew falls back to the pawn.
+      geometry.pieces[unitDef(unit.type).piece as keyof typeof geometry.pieces] ??
+        geometry.pieces.warrior,
       [playerColor(unit.ownerId)],
       new Matrix4().compose(position, quaternion, scale),
     );

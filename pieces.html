@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Magister Ludi — The Armory</title>
+
+    <!--
+      The same four faces as the game (see index.html): Instrument Serif
+      announces, Instrument Sans works, IBM Plex Mono counts. A look-dev page
+      judged in the wrong typeface is judged against the wrong product.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
+  </head>
+  <body>
+    <canvas id="gl"></canvas>
+
+    <header id="masthead">
+      <h1>The Armory</h1>
+      <p class="sub">Every sculpted piece in <code>data/units.json</code>, at board scale.</p>
+    </header>
+
+    <div id="labels" aria-hidden="true"></div>
+
+    <nav id="controls">
+      <div class="group" role="group" aria-label="Player colour">
+        <button type="button" data-color="crimson" class="swatch is-on">
+          <span class="chip chip-crimson"></span>Crimson
+        </button>
+        <button type="button" data-color="teal" class="swatch">
+          <span class="chip chip-teal"></span>Teal
+        </button>
+      </div>
+
+      <div class="group" role="group" aria-label="Art style">
+        <button type="button" data-style="pieces" class="is-on">Pieces</button>
+        <button type="button" data-style="sprites">Standees</button>
+      </div>
+
+      <div class="group">
+        <button type="button" id="spin" class="is-on">Turntable</button>
+      </div>
+
+      <p id="status">—</p>
+    </nav>
+
+    <p id="hint">Drag anywhere to turn the pieces · fixed board camera and light rig.</p>
+
+    <script type="module" src="/src/piecesGallery/main.ts"></script>
+  </body>
+</html>

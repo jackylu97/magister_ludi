@@ -1,0 +1,196 @@
+/*
+ * The Armory's chrome: a masthead, a row of toggles, and one DOM label under
+ * each piece.
+ *
+ * Deliberately its own stylesheet rather than a slice of `src/style.css`. That
+ * file is the game's interface and is owned by the interface work; this is a
+ * look-dev page whose only job is to get out of the way of fifteen miniatures.
+ * What it borrows is the *language* — ink on vellum, Instrument Serif to
+ * announce, Instrument Sans to work, mono for anything countable — not the
+ * cascade.
+ */
+
+:root {
+  --ink: #2f2b32;
+  --ink-soft: #6c6570;
+  --vellum: #dbcfb0;
+  --vellum-deep: #c2b18c;
+  --paper: #f1e7cd;
+  --crimson: #b35843;
+  --teal: #477f7e;
+
+  --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --face-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--vellum);
+  color: var(--ink);
+  font-family: var(--face-ui);
+}
+
+#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* The whole stage is a drag handle; the cursor has to say so. */
+  cursor: grab;
+  touch-action: none;
+}
+
+#gl.is-dragging {
+  cursor: grabbing;
+}
+
+#masthead {
+  position: fixed;
+  top: 26px;
+  left: 34px;
+  pointer-events: none;
+}
+
+#masthead h1 {
+  margin: 0;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 40px;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+#masthead .sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  max-width: 34ch;
+}
+
+#masthead code {
+  font-family: var(--face-mono);
+  font-size: 12px;
+}
+
+/*
+ * Labels are DOM, not sprites. They have to be crisp at any device pixel ratio
+ * and they have to be selectable text — a name you cannot copy out of a
+ * reference sheet is a name you will mistype into `units.json`.
+ */
+#labels {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+#labels .label {
+  position: absolute;
+  transform: translate(-50%, 0);
+  text-align: center;
+  white-space: nowrap;
+}
+
+#labels .name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+#labels .meta {
+  display: block;
+  margin-top: 1px;
+  font-family: var(--face-mono);
+  font-size: 10px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+#controls {
+  position: fixed;
+  top: 26px;
+  right: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+#controls .group {
+  display: flex;
+  gap: 6px;
+}
+
+#controls button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--paper) 74%, transparent);
+  border: 1px solid var(--vellum-deep);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+#controls button:hover {
+  background: var(--paper);
+}
+
+#controls button.is-on {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+#controls button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.chip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(47, 43, 50, 0.35);
+}
+
+.chip-crimson {
+  background: var(--crimson);
+}
+
+.chip-teal {
+  background: var(--teal);
+}
+
+#status {
+  margin: 2px 0 0;
+  font-family: var(--face-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: pre-line;
+}
+
+#hint {
+  position: fixed;
+  left: 34px;
+  bottom: 22px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
