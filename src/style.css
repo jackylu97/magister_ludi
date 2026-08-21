@@ -1950,3 +1950,400 @@ body.is-panel-open #hud-end-turn {
   border-color: var(--ink-faint);
   color: var(--ink-faint);
 }
+
+/* --- the star chart -------------------------------------------------------
+   The tech tree, and the one surface in this interface that is deliberately
+   dark (Entry VII: "star-chart tech tree — ink ground, gilt stars"). Everything
+   else in the game is parchment on a table; this is the table at night, so the
+   usual recipe inverts: ink ground, parchment text, hairline gilt rims instead
+   of hard ink borders, and gilt where the light theme would use vermilion.
+
+   It covers the whole window including the top bar, because it is a screen
+   rather than a card: while the chart is up there is nothing else to press. */
+.tech-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(18, 16, 21, 0.94);
+  animation: tech-in 160ms ease-out both;
+}
+
+.tech-overlay[hidden] {
+  display: none;
+}
+
+/* The sheet inside it: a bounded stage so the columns have somewhere to end. */
+.tech-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(1180px, 100%);
+  max-height: 100%;
+  padding: 16px 18px 18px;
+  border: var(--border-thin) solid rgba(200, 144, 31, 0.5);
+  border-radius: var(--radius);
+  background: #16141a;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+
+.tech-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid rgba(200, 144, 31, 0.35);
+}
+
+.tech-head-titles {
+  flex: 1;
+}
+
+.tech-eyebrow {
+  margin: 0 0 2px;
+  color: var(--gilt);
+}
+
+/* The display face, as every announcement in this game uses. */
+.tech-title {
+  margin: 0;
+  font-family: var(--face-display);
+  font-size: 1.7rem;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--parchment);
+}
+
+.tech-close {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: var(--border-thin) solid rgba(247, 242, 225, 0.45);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--parchment);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tech-close:hover {
+  border-color: var(--gilt);
+  color: var(--gilt);
+}
+
+/* The chart itself: three age columns, scrolling as one field. `position:
+   relative` is load-bearing — the sight-line SVG is measured against this
+   element's padding box (see `drawLines` in techTree.ts). */
+.tech-chart {
+  position: relative;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  overflow: auto;
+  padding: 4px 2px 8px;
+}
+
+/* Behind the cards, always: a line runs *under* the two nodes it joins, which
+   is what makes it read as a sight-line rather than as an arrow. */
+.tech-lines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.tech-line {
+  stroke: rgba(247, 242, 225, 0.18);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+}
+
+/* A line out of ground already covered is lit in gilt. */
+.tech-line.is-held {
+  stroke: rgba(200, 144, 31, 0.55);
+  stroke-dasharray: 2 4;
+}
+
+.tech-column {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 232px;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tech-column-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid rgba(247, 242, 225, 0.16);
+}
+
+/* ÆRA I — the age numerals, gilt, letterspaced like an inscription. */
+.tech-era {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gilt);
+}
+
+.tech-era-name {
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 13px;
+  color: rgba(247, 242, 225, 0.6);
+}
+
+/* One node: a card of the same construction as everything else in the game,
+   read in negative. */
+.tech-node {
+  display: block;
+  width: 100%;
+  padding: 8px 10px 9px;
+  border: 1.5px solid rgba(247, 242, 225, 0.28);
+  border-radius: var(--radius-sm);
+  background: #1e1b22;
+  color: var(--parchment);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tech-node:hover:not(:disabled) {
+  border-color: var(--gilt);
+  background: #262129;
+}
+
+.tech-node:active:not(:disabled) {
+  transform: translate(1px, 1px);
+}
+
+.tech-node:disabled {
+  cursor: default;
+}
+
+/* Researched: gilt-starred, and quiet — it is done. */
+.tech-node.is-researched {
+  border-color: rgba(200, 144, 31, 0.55);
+  background: #221d1a;
+}
+
+/* Being researched: the lapis bar and a rim to match. */
+.tech-node.is-current {
+  border-color: var(--y-sci-lit);
+  box-shadow: 0 0 0 1px rgba(130, 174, 242, 0.35);
+}
+
+/* Locked: still legible — a chart you cannot read is not a chart. */
+.tech-node.is-locked {
+  opacity: 0.42;
+}
+
+.tech-node-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+/* Names are the naming face, here as everywhere. */
+.tech-node-name {
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 90;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+.tech-node-star {
+  color: var(--gilt);
+  font-size: 13px;
+}
+
+/* Figures are mono, always. */
+.tech-node-figures {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+  font-family: var(--face-num);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.tech-node-cost {
+  color: var(--y-sci-lit);
+}
+
+.tech-node-turns {
+  color: rgba(247, 242, 225, 0.6);
+}
+
+.tech-bar {
+  height: 5px;
+  margin: 6px 0 3px;
+  border: 1px solid rgba(247, 242, 225, 0.3);
+  border-radius: 999px;
+  background: rgba(247, 242, 225, 0.08);
+  overflow: hidden;
+}
+
+.tech-bar-fill {
+  height: 100%;
+  background: var(--y-sci-lit);
+}
+
+.tech-node-progress {
+  font-family: var(--face-num);
+  font-size: 10px;
+  color: rgba(247, 242, 225, 0.7);
+}
+
+/* What the node hands over. Two lines at most in practice, so a list rather
+   than a grid: the marks line up because the mark box is fixed. */
+.tech-unlocks {
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 3px;
+}
+
+.tech-unlocks li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The small icon: a unit wears the glyph the board draws on its disc, a
+   building wears a filled block. Same box either way, so the names align. */
+.tech-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid rgba(247, 242, 225, 0.4);
+  border-radius: 3px;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.tech-mark.is-unit {
+  border-color: rgba(212, 80, 46, 0.75);
+  color: #f0a48f;
+}
+
+.tech-mark.is-building {
+  border-color: rgba(200, 144, 31, 0.7);
+  color: var(--y-gold-lit);
+}
+
+.tech-unlock-name {
+  flex: 1;
+  font-size: 11.5px;
+}
+
+.tech-unlock-note {
+  font-family: var(--face-num);
+  font-size: 10px;
+  color: rgba(247, 242, 225, 0.5);
+}
+
+/* The computed delta (Entry VIII) speaks in the food voice's brightness: it is
+   a real number about this empire, not a cost. */
+.tech-unlock-note.is-delta {
+  color: var(--y-food-lit);
+}
+
+.tech-node-flavor {
+  margin: 7px 0 0;
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 12px;
+  line-height: 1.3;
+  color: rgba(247, 242, 225, 0.55);
+}
+
+.tech-overlay :focus-visible {
+  outline: 2px solid var(--gilt);
+  outline-offset: 2px;
+}
+
+/* The bar button, while nothing is being researched: a slow gilt pulse. A nag,
+   not a modal — the game keeps playing. */
+.topbar-btn.is-prompting {
+  border-color: var(--gilt);
+  animation: tech-nudge 2.4s ease-in-out infinite;
+}
+
+.topbar-btn.is-prompting .topbar-btn-value {
+  color: var(--gilt);
+}
+
+@keyframes tech-nudge {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(200, 144, 31, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(200, 144, 31, 0.3);
+  }
+}
+
+@keyframes tech-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tech-overlay {
+    animation: none;
+  }
+  .topbar-btn.is-prompting {
+    animation: none;
+  }
+}
+
+/* The tech announcement: the turn splash's quieter cousin, in ink and gilt
+   rather than vermilion, because a discovery is an inscription and not a
+   shout. */
+.turn-splash.is-tech {
+  padding: 8px 22px 10px;
+  border-color: var(--gilt);
+  background: var(--ink);
+  color: var(--parchment);
+  font-size: 1.5rem;
+  transform: rotate(-0.6deg);
+}
+
+.turn-splash.is-tech .turn-splash-name {
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 100;
+  font-weight: 600;
+  color: var(--y-gold-lit);
+}
+
+/* What the discovery did to the army, under it, in the working voice. */
+.turn-splash-note {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--face-ui);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(247, 242, 225, 0.7);
+}

@@ -62,8 +62,16 @@ describe('newGame', () => {
 
   it('turns player specs into players with index ids and explicit humanity', () => {
     const state = newGame(config());
-    // Milestone 3 adds the three empty yield pools every player starts with.
-    const pools = { gold: 0, sciencePool: 0, culturePool: 0 };
+    // Milestone 3 adds the three empty yield pools every player starts with;
+    // Milestone 4 adds the research fields — nothing chosen, and the opening
+    // kit of technologies from `rules.research.startingTechs`.
+    const pools = {
+      gold: 0,
+      sciencePool: 0,
+      culturePool: 0,
+      researching: null,
+      techsResearched: RULES.research.startingTechs,
+    };
     expect(state.players).toEqual([
       { id: 0, name: 'Ada', color: '#e8503a', isHuman: true, ...pools },
       { id: 1, name: 'Bors', color: '#3a7fe8', isHuman: false, ...pools },

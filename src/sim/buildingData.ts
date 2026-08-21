@@ -8,7 +8,8 @@
  * Effects are flat modifier fields, not a scripting hook
  * -----------------------------------------------------
  * A building's effect is a handful of numbers a city adds up — `food`,
- * `culture`, `sciencePerPop` — rather than a named behaviour the simulation
+ * `production`, `gold`, `culture`, `sciencePerPop` — rather than a named
+ * behaviour the simulation
  * switches on. That is a deliberate ceiling: everything Milestone 3 needs is a
  * sum, and a sum can be read out of a data file, totalled in one place
  * (`cityYields` in `cities.ts`) and displayed in the city panel without any
@@ -22,11 +23,28 @@
  *
  * One of each per city. Nothing here says so — that is a city rule and it lives
  * in the `setCityProduction` validation and in `advanceProduction`.
+ *
+ * Nor does anything here say *when* a building becomes available: that is the
+ * tech tree's business (`data/techs.json`, read through `isUnlocked` in
+ * `tech.ts`), so a designer moves a building's era by editing one line of the
+ * tree rather than two files that could disagree.
  */
 
 import buildingsJson from '../../data/buildings.json';
 
-export type BuildingId = 'monument' | 'granary' | 'library';
+export type BuildingId =
+  | 'monument'
+  | 'granary'
+  | 'shrine'
+  | 'library'
+  | 'temple'
+  | 'market'
+  | 'aqueduct'
+  | 'workshop'
+  | 'watermill'
+  | 'amphitheater'
+  | 'monastery'
+  | 'university';
 
 export interface BuildingDef {
   name: string;
@@ -34,6 +52,10 @@ export interface BuildingDef {
   cost: number;
   /** Flat food added to the city's total every turn. */
   food: number;
+  /** Flat production added to the city's total every turn. */
+  production: number;
+  /** Flat gold added to the city's total every turn. */
+  gold: number;
   /** Flat culture added to the city's total every turn. */
   culture: number;
   /** Science per population point, floored when applied. See the docblock. */

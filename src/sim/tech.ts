@@ -1,0 +1,439 @@
+/**
+ * Research: what a player knows, what that lets them build, and what happens the
+ * moment a technology lands.
+ *
+ * Pure logic over `GameState`, exactly like `cities.ts`. The `advanceResearch`
+ * phase in `turn.ts` is one call into this module, the `chooseResearch` command
+ * validates with `researchError` and then writes one field, and the tech screen
+ * reads the same functions the reducer decides by — so a node the interface
+ * offers is a node the reducer will accept, and a "~7 turns" the screen promises
+ * is the arithmetic the turn pipeline will actually perform.
+ *
+ * The research model: progress *is* the pool
+ * ------------------------------------------
+ * `Player.sciencePool` accumulates every turn exactly as it did in Milestone 3.
+ * `Player.researching` names the tech that pool is aimed at, and nothing else
+ * about research is stored — there are no per-tech buckets. When the pool covers
+ * the current tech's cost, `advanceResearch` pays it, banks the tech, keeps the
+ * remainder as overflow and clears `researching` so the player chooses again.
+ *
+ * Two consequences, both deliberate:
+ *
+ *   · **Switching is free and lossless.** Changing your mind mid-research moves
+ *     the aim, not the beakers — the pool is untouched. Civ V charges you for
+ *     that (progress sits in the tech you abandoned); Civ IV's "beakers are
+ *     yours" is the friendlier reading and it is the one a *simultaneous-turn*
+ *     game wants, because the alternative punishes a player for reacting to
+ *     something another player did inside the same turn window.
+ *   · **Banking is real.** A player with no current research still accumulates,
+ *     so forgetting to choose costs a decision, not a turn's science. The
+ *     interface nags (see the tech screen); the simulation does not confiscate.
+ *
+ * One tech per player per turn, like production: a player who banks four hundred
+ * beakers does not empty an age in one resolution. The overflow pays for the
+ * next one the moment it is chosen.
+ *
+ * Unlocks and auto-upgrade
+ * ------------------------
+ * Gating is one question — `isUnlocked` — asked by the reducer's production
+ * validation and by the city panel's buildable list, so a button the panel
+ * offers is a queue the reducer takes. The auto-upgrade rule (Entry V) runs in
+ * the same breath as the unlock: when a tech completes, every existing unit
+ * whose `upgradesTo` chain has just become available becomes the better unit in
+ * place, keeping its id, its tile and its *fraction* of health — a warrior at
+ * half health is a half-health swordsman, not a fresh one, because upgrading
+ * must never be a way to heal.
+ *
+ * Pacing (v0, standard map, the science economy exactly as it stands)
+ * -------------------------------------------------------------------
+ * The ages cost 120 / 250 / 516 beakers; the two starting techs are free, so a
+ * whole game pays 866. Those figures are *measured*, not guessed: the science
+ * economy is pop-based and cities in the current build grow slowly (a settler is
+ * 106 hammers against two or three production a turn), so a scripted empire —
+ * `test/tech.test.ts`'s harness, which founds five cities and always builds what
+ * it can — banks roughly 130 beakers by turn 60, 430 by turn 120, 900 by turn
+ * 160. Against that curve the three ages close on turns 52, 111 and 159, inside
+ * the 120–170 band Entry V asks for.
+ *
+ * The whole table is therefore a *scale*: if growth, settler cost or science per
+ * pop are retuned, multiply `cost` across `data/techs.json` by the change in
+ * beakers-per-game and the shape survives untouched.
+ */
+
+import { type BuildingId, isBuildingId } from './buildingData';
+import { type CityYields, cityYields, turnsToFill } from './cities';
+import { RULES } from './rulesData';
+import {
+  type GameState,
+  type Player,
+  type Unit,
+  playerById,
+} from './state';
+import {
+  BUILDING_UNLOCK_TECH,
+  TECH_IDS,
+  type TechId,
+  UNIT_UNLOCK_TECH,
+  isTechId,
+  techDef,
+} from './techData';
+import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
+
+const RESEARCH = RULES.research;
+
+// --- what a player knows ----------------------------------------------------
+
+/** Has this player researched this technology? */
+export function hasTech(state: GameState, playerId: number, techId: TechId): boolean {
+  const player = playerById(state, playerId);
+  if (!player) return false;
+  return player.techsResearched.includes(techId);
+}
+
+/** Are every one of a technology's prerequisites already in hand? */
+export function prereqsMet(state: GameState, playerId: number, techId: TechId): boolean {
+  return techDef(techId).prereqs.every((prereq) => hasTech(state, playerId, prereq));
+}
+
+/** The prerequisites this player is still missing, in the tech's own order. */
+export function missingPrereqs(state: GameState, playerId: number, techId: TechId): TechId[] {
+  return techDef(techId).prereqs.filter((prereq) => !hasTech(state, playerId, prereq));
+}
+
+/**
+ * May this player build this unit type / building yet?
+ *
+ * The single source of truth for availability, in the spirit of
+ * `foundingErrorAt`: the `setCityProduction` validation and the city panel's
+ * buildable list both ask *this*, so a disabled button and a rejected command
+ * cannot drift apart. Content no tech names is available from turn one (see the
+ * `techData.ts` docblock), which is what makes the gate additive rather than a
+ * second place every new unit has to be registered.
+ */
+export function isUnlocked(
+  state: GameState,
+  playerId: number,
+  kind: 'unit' | 'building',
+  id: string,
+): boolean {
+  const gate =
+    kind === 'unit'
+      ? isUnitTypeId(id)
+        ? UNIT_UNLOCK_TECH.get(id)
+        : undefined
+      : isBuildingId(id)
+        ? BUILDING_UNLOCK_TECH.get(id)
+        : undefined;
+  if (gate === undefined) return true;
+  return hasTech(state, playerId, gate);
+}
+
+/** The technology that gates a queue item, or `null` when nothing does. */
+export function gatingTech(kind: 'unit' | 'building', id: string): TechId | null {
+  if (kind === 'unit') return (isUnitTypeId(id) && UNIT_UNLOCK_TECH.get(id)) || null;
+  return (isBuildingId(id) && BUILDING_UNLOCK_TECH.get(id)) || null;
+}
+
+// --- choosing ---------------------------------------------------------------
+
+/**
+ * Why this player cannot start researching this technology, or `null` when they
+ * can.
+ *
+ * The rule the `chooseResearch` command validates with and the tech screen
+ * enables its nodes by — one implementation, so a node the screen lets you click
+ * is a node the reducer accepts. It asks nothing about the *turn*: whether a
+ * seat has already finished is a question about the actor and belongs to the
+ * command, exactly as `foundingError` leaves it there.
+ *
+ * Switching mid-research is deliberately not an error (see the module docblock);
+ * re-choosing what is *already* being researched is, because it would be a
+ * command that changes nothing and a log entry that says nothing.
+ */
+export function researchError(
+  state: GameState,
+  playerId: number,
+  techId: unknown,
+): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  if (!isTechId(techId)) return `Unknown technology "${String(techId)}"`;
+
+  const def = techDef(techId);
+  if (player.techsResearched.includes(techId)) {
+    return `${player.name} has already researched ${def.name}`;
+  }
+  if (player.researching === techId) return `${def.name} is already being researched`;
+
+  const missing = missingPrereqs(state, playerId, techId);
+  if (missing.length > 0) {
+    return `${def.name} needs ${missing.map((id) => techDef(id).name).join(', ')}`;
+  }
+  return null;
+}
+
+/**
+ * Every technology this player could start on right now, in the tree's own
+ * order — so the screen's columns and this list can never disagree.
+ */
+export function availableTechs(state: GameState, playerId: number): TechId[] {
+  const player = playerById(state, playerId);
+  if (!player) return [];
+  return TECH_IDS.filter(
+    (id) => !player.techsResearched.includes(id) && prereqsMet(state, playerId, id),
+  );
+}
+
+// --- the turn phase ---------------------------------------------------------
+
+/**
+ * `advanceResearch`: spend each player's pool on the technology it is aimed at.
+ *
+ * Players are walked in `state.players` order and units in `state.units` order,
+ * so two empires completing the same tech in the same resolution always resolve
+ * identically — the phase is a pure function of the state, like every other one.
+ *
+ * A tech that cannot be paid for holds, keeping the pool: research is never
+ * lost, only postponed. A completed tech is pushed onto `techsResearched` in
+ * completion order (the array is the record of *when*, not just *what*), the
+ * remainder stays in the pool as overflow, and `researching` is cleared so the
+ * next choice is the player's.
+ */
+export function advanceResearch(state: GameState): void {
+  for (const player of state.players) {
+    const id = player.researching;
+    // A hand-edited save can name a tech that no longer exists; drop the aim
+    // rather than blocking the player's research forever.
+    if (id === null) continue;
+    if (!isTechId(id)) {
+      player.researching = null;
+      continue;
+    }
+    const def = techDef(id);
+    if (player.sciencePool < def.cost) continue;
+
+    player.sciencePool -= def.cost;
+    player.researching = null;
+    player.techsResearched.push(id);
+    upgradeUnits(state, player);
+  }
+}
+
+/**
+ * Marches every one of this player's units as far up its upgrade chain as their
+ * technologies now allow, in place.
+ *
+ * Called the instant a tech completes, so the army is never a turn behind the
+ * tree. Four things are preserved and each is a rule:
+ *
+ *   · the unit's **id**, so a selection, a standing order and an animation all
+ *     survive the upgrade — this is the same piece, better armed.
+ *   · its **tile**, because an upgrade is not a movement.
+ *   · its **fraction** of health, not its hit points: a warrior at 60% is a
+ *     swordsman at 60%. Upgrading is not a way to heal, and a unit whose type
+ *     gained maximum hit points does not arrive already wounded either.
+ *   · its **movement left**, clamped to the new type's allowance — a chariot
+ *     that becomes something slower cannot keep the difference.
+ *
+ * The chain is walked rather than stepped, so a unit that missed a generation
+ * (a hand-built state, a scenario, or a save from before its line existed)
+ * catches all the way up rather than one rung per tech.
+ *
+ * `retoolCost` is charged per unit from the owner's treasury, in `state.units`
+ * order; at the v0 setting of 0 nothing is charged. A player who runs out
+ * mid-sweep simply stops upgrading — the units that did not upgrade are not
+ * lost, and the next completed tech will try again.
+ */
+export function upgradeUnits(state: GameState, player: Player): void {
+  const cost = RESEARCH.retoolCost;
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id) continue;
+    const target = upgradeTargetFor(state, unit);
+    if (target === null) continue;
+    if (cost > 0) {
+      if (player.gold < cost) continue;
+      player.gold -= cost;
+    }
+    applyUpgrade(unit, target);
+  }
+}
+
+/**
+ * The best type a unit could become right now, or `null` when it is already
+ * there. Pure: the tech screen can ask what an upgrade *would* be.
+ */
+export function upgradeTargetFor(state: GameState, unit: Unit): UnitTypeId | null {
+  let current = unit.type;
+  for (;;) {
+    const next = unitDef(current).upgradesTo;
+    if (next === undefined) break;
+    if (!isUnlocked(state, unit.ownerId, 'unit', next)) break;
+    current = next;
+  }
+  return current === unit.type ? null : current;
+}
+
+/** Retypes a unit, keeping its health fraction and capping its movement. */
+function applyUpgrade(unit: Unit, target: UnitTypeId): void {
+  const before = unitDef(unit.type);
+  const after = unitDef(target);
+  const fraction = before.maxHp > 0 ? unit.hp / before.maxHp : 1;
+  unit.type = target;
+  // Rounded, floored at one hit point: a unit that survived its upgrade is
+  // alive, however unkind the arithmetic.
+  unit.hp = Math.max(1, Math.min(after.maxHp, Math.round(after.maxHp * fraction)));
+  unit.movesLeft = Math.min(unit.movesLeft, after.movement);
+}
+
+// --- glanceable numbers -----------------------------------------------------
+
+/**
+ * Beakers this player's cities make in a turn.
+ *
+ * The same `cityYields` the pipeline banks, summed — so the "~N turns" on the
+ * tech screen is the rate the next resolution will actually add.
+ */
+export function playerScience(state: GameState, playerId: number): number {
+  let total = 0;
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    total += cityYields(state, city).science;
+  }
+  return total;
+}
+
+/**
+ * Turns until this player could complete a technology at their current rate, or
+ * `null` when they never would (no science at all).
+ *
+ * Every tech is measured against the *pool*, not against a bucket of its own,
+ * because that is what the model is: the beakers already banked would pay for
+ * whichever node the player pointed them at. So the number a locked node shows
+ * is the honest answer to "and if I went for that one instead?".
+ */
+export function turnsToTech(
+  state: GameState,
+  playerId: number,
+  techId: TechId,
+): number | null {
+  const player = playerById(state, playerId);
+  if (!player) return null;
+  return turnsToFill(techDef(techId).cost - player.sciencePool, playerScience(state, playerId));
+}
+
+/**
+ * What building this thing everywhere it is legal would add to the empire's
+ * per-turn yields, right now.
+ *
+ * Entry VIII's glanceable delta, computed the only honest way: `cityYields` is
+ * asked twice per city — once as things stand, once with the candidate counted —
+ * and the difference is reported. It is the same function the simulation banks
+ * with, so the preview cannot promise a number the turn will not pay.
+ *
+ * "Right now" is the whole caveat and the screen labels it as such: the figure
+ * is present-state (a library is worth more to a bigger city, and this is what
+ * it would be worth today), and cities that already have the building
+ * contribute nothing.
+ */
+export function buildingYieldDelta(
+  state: GameState,
+  playerId: number,
+  id: BuildingId,
+): CityYields {
+  const total: CityYields = { food: 0, production: 0, gold: 0, science: 0, culture: 0 };
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    if (city.buildings.includes(id)) continue;
+    const now = cityYields(state, city);
+    const after = cityYields(state, city, [id]);
+    total.food += after.food - now.food;
+    total.production += after.production - now.production;
+    total.gold += after.gold - now.gold;
+    total.science += after.science - now.science;
+    total.culture += after.culture - now.culture;
+  }
+  return total;
+}
+
+// --- what a resolution did --------------------------------------------------
+
+/**
+ * A player's research state at one instant: what they knew, and what their army
+ * was made of.
+ *
+ * Captured before a turn resolves so the interface can say what changed — "Iron
+ * Working mastered · 3 warriors became swordsmen" — without the simulation
+ * having to keep a journal. It is plain data and a pure diff, which means the
+ * announcement is reproducible from a replay rather than a side effect of having
+ * been at the keyboard.
+ */
+export interface ResearchSnapshot {
+  techs: TechId[];
+  units: { id: number; type: UnitTypeId }[];
+}
+
+export interface UnitUpgradeTally {
+  from: UnitTypeId;
+  to: UnitTypeId;
+  count: number;
+}
+
+export interface ResearchReport {
+  /** Techs completed since the snapshot, in completion order. */
+  techs: TechId[];
+  /** Units that changed type, grouped by (from, to) in `state.units` order. */
+  upgrades: UnitUpgradeTally[];
+}
+
+export function researchSnapshot(state: GameState, playerId: number): ResearchSnapshot {
+  const player = playerById(state, playerId);
+  return {
+    techs: player ? [...player.techsResearched] : [],
+    units: state.units
+      .filter((unit) => unit.ownerId === playerId)
+      .map((unit) => ({ id: unit.id, type: unit.type })),
+  };
+}
+
+/** What happened to this player between a snapshot and now. */
+export function researchSince(
+  state: GameState,
+  playerId: number,
+  before: ResearchSnapshot,
+): ResearchReport {
+  const player = playerById(state, playerId);
+  const known = new Set(before.techs);
+  const techs = (player?.techsResearched ?? []).filter((id) => !known.has(id));
+
+  const wasType = new Map(before.units.map((unit) => [unit.id, unit.type]));
+  const upgrades: UnitUpgradeTally[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    const from = wasType.get(unit.id);
+    if (from === undefined || from === unit.type) continue;
+    const tally = upgrades.find((entry) => entry.from === from && entry.to === unit.type);
+    if (tally) tally.count += 1;
+    else upgrades.push({ from, to: unit.type, count: 1 });
+  }
+  return { techs, upgrades };
+}
+
+/**
+ * English plurals for unit names, which in this roster means one rule and a
+ * fallback: "-man" goes to "-men" (swordsman, pikeman, composite bowman) and
+ * everything else takes an "s". A `plural` field in `units.json` would be the
+ * honest fix the day a name breaks both rules; until then a data field nobody
+ * could get wrong is a data field nobody should have to fill in.
+ */
+function pluralUnitName(name: string, count: number): string {
+  if (count === 1) return name;
+  if (name.endsWith('man')) return `${name.slice(0, -3)}men`;
+  return `${name}s`;
+}
+
+/** "3 warriors became swordsmen" — one plain sentence per upgrade group. */
+export function describeUpgrade(tally: UnitUpgradeTally): string {
+  const from = pluralUnitName(unitDef(tally.from).name, tally.count).toLowerCase();
+  const to = pluralUnitName(unitDef(tally.to).name, tally.count).toLowerCase();
+  return `${tally.count} ${from} became ${to}`;
+}

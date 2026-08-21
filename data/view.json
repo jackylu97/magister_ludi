@@ -46,7 +46,19 @@
     "byUnitType": {
       "warrior": "pawn",
       "scout": "flag",
-      "settler": "house"
+      "settler": "house",
+      "archer": "flag",
+      "spearman": "pawn",
+      "horseman": "person",
+      "chariot": "person",
+      "swordsman": "pawn",
+      "catapult": "tower",
+      "compositeBowman": "flag",
+      "pikeman": "pawn",
+      "crossbowman": "flag",
+      "knight": "person",
+      "longswordsman": "pawn",
+      "trebuchet": "tower"
     },
     "byPlayerColor": {
       "#d4502e": "red",

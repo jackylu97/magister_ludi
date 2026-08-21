@@ -7,11 +7,14 @@
  * game without touching the simulation code.
  *
  * Milestone 2 adds movement, stacking, healing and start placement; Milestone 3
- * adds the whole `cities` block. Research tables join this file as later
- * milestones land.
+ * adds the whole `cities` block; Milestone 4 adds `research` — the opening kit
+ * of technologies and the auto-upgrade retooling lever. The tree itself is a
+ * data file of its own (`data/techs.json`), because it is a graph rather than a
+ * table of knobs.
  */
 
 import rulesJson from '../../data/rules.json';
+import type { TechId } from './techData';
 import type { TerrainId, TileYield } from './terrainData';
 import type { UnitTypeId } from './unitData';
 
@@ -113,12 +116,33 @@ export interface CityRules {
   cityNames: string[];
 }
 
+export interface ResearchRules {
+  /**
+   * Technologies every player begins the game already holding.
+   *
+   * The opening kit: without it a new city could build nothing at all, because
+   * every unit and building in `data/techs.json` is gated by some node. Kept
+   * here rather than as a flag in the tree so that "what you start with" is one
+   * short list a designer can read, and so that a scenario can hand out a
+   * different one without editing the tree.
+   */
+  startingTechs: TechId[];
+  /**
+   * Gold one unit pays, once, when it auto-upgrades (Entry V's "retooling"
+   * lever). At 0 upgrading is free, which is the v0 setting: the decision is
+   * meant to live in army composition and tech timing, not in an upkeep bill.
+   * A unit whose owner cannot afford it simply does not upgrade this turn.
+   */
+  retoolCost: number;
+}
+
 export interface RulesConfig {
   game: GameRules;
   movement: MovementRules;
   stacking: StackingRules;
   healing: HealingRules;
   cities: CityRules;
+  research: ResearchRules;
   /** Unit types every player receives at their start position, in order. */
   startingUnits: UnitTypeId[];
   startPlacement: StartPlacementRules;

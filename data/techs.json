@@ -1,0 +1,182 @@
+{
+  "techs": {
+    "agriculture": {
+      "name": "Agriculture",
+      "age": 1,
+      "cost": 10,
+      "prereqs": [],
+      "unlocks": { "units": ["settler", "warrior", "scout"] },
+      "flavor": "The first furrow is the first calendar."
+    },
+    "pottery": {
+      "name": "Pottery",
+      "age": 1,
+      "cost": 10,
+      "prereqs": [],
+      "unlocks": { "buildings": ["granary", "monument"] },
+      "flavor": "What the jar keeps, the year forgets."
+    },
+    "archery": {
+      "name": "Archery",
+      "age": 1,
+      "cost": 14,
+      "prereqs": ["agriculture"],
+      "unlocks": { "units": ["archer"] },
+      "flavor": "Distance is the oldest mercy."
+    },
+    "animalHusbandry": {
+      "name": "Animal Husbandry",
+      "age": 1,
+      "cost": 15,
+      "prereqs": ["agriculture"],
+      "unlocks": { "units": ["horseman"] },
+      "flavor": "A horse is a decision arrived at sooner."
+    },
+    "bronzeWorking": {
+      "name": "Bronze Working",
+      "age": 1,
+      "cost": 16,
+      "prereqs": ["pottery"],
+      "unlocks": { "units": ["spearman"] },
+      "flavor": "Two soft metals agree to become a hard one."
+    },
+    "masonry": {
+      "name": "Masonry",
+      "age": 1,
+      "cost": 17,
+      "prereqs": ["pottery"],
+      "unlocks": { "buildings": ["shrine"] },
+      "flavor": "Stone remembers longer than any of us."
+    },
+    "writing": {
+      "name": "Writing",
+      "age": 1,
+      "cost": 18,
+      "prereqs": ["pottery"],
+      "unlocks": { "buildings": ["library"] },
+      "flavor": "A thought that outlives the mouth it came from."
+    },
+    "theWheel": {
+      "name": "The Wheel",
+      "age": 1,
+      "cost": 20,
+      "prereqs": ["animalHusbandry", "bronzeWorking"],
+      "unlocks": { "units": ["chariot"] },
+      "flavor": "Nobody expected the circle to be useful."
+    },
+
+    "ironWorking": {
+      "name": "Iron Working",
+      "age": 2,
+      "cost": 26,
+      "prereqs": ["bronzeWorking", "masonry"],
+      "unlocks": { "units": ["swordsman"] },
+      "flavor": "Every age is named for what it kills with."
+    },
+    "mathematics": {
+      "name": "Mathematics",
+      "age": 2,
+      "cost": 30,
+      "prereqs": ["writing", "theWheel"],
+      "unlocks": { "units": ["catapult"] },
+      "flavor": "The siege begins as a diagram."
+    },
+    "currency": {
+      "name": "Currency",
+      "age": 2,
+      "cost": 32,
+      "prereqs": ["writing", "masonry"],
+      "unlocks": { "buildings": ["market"] },
+      "flavor": "A promise small enough to carry."
+    },
+    "construction": {
+      "name": "Construction",
+      "age": 2,
+      "cost": 36,
+      "prereqs": ["masonry", "archery"],
+      "unlocks": { "units": ["compositeBowman"], "buildings": ["aqueduct"] },
+      "flavor": "Water persuaded to climb."
+    },
+    "philosophy": {
+      "name": "Philosophy",
+      "age": 2,
+      "cost": 38,
+      "prereqs": ["writing", "masonry"],
+      "unlocks": { "buildings": ["temple"] },
+      "flavor": "First we ask what a thing is; the asking never stops."
+    },
+    "engineering": {
+      "name": "Engineering",
+      "age": 2,
+      "cost": 42,
+      "prereqs": ["mathematics", "construction"],
+      "unlocks": { "buildings": ["workshop", "watermill"] },
+      "flavor": "The river is put to work and does not complain."
+    },
+    "drama": {
+      "name": "Drama and Poetry",
+      "age": 2,
+      "cost": 46,
+      "prereqs": ["philosophy", "currency"],
+      "unlocks": { "buildings": ["amphitheater"] },
+      "flavor": "The city sits down to watch itself."
+    },
+
+    "feudalism": {
+      "name": "Feudalism",
+      "age": 3,
+      "cost": 55,
+      "prereqs": ["ironWorking", "currency"],
+      "unlocks": { "units": ["pikeman"] },
+      "flavor": "Everyone kneels to someone and calls it order."
+    },
+    "machinery": {
+      "name": "Machinery",
+      "age": 3,
+      "cost": 60,
+      "prereqs": ["engineering", "construction"],
+      "unlocks": { "units": ["crossbowman"] },
+      "flavor": "A crank is a servant that never sleeps."
+    },
+    "theology": {
+      "name": "Theology",
+      "age": 3,
+      "cost": 66,
+      "prereqs": ["philosophy", "drama"],
+      "unlocks": { "buildings": ["monastery"] },
+      "flavor": "The library, copied by candlelight, one page a day."
+    },
+    "chivalry": {
+      "name": "Chivalry",
+      "age": 3,
+      "cost": 72,
+      "prereqs": ["feudalism", "animalHusbandry"],
+      "unlocks": { "units": ["knight"] },
+      "flavor": "Armour, with manners."
+    },
+    "steel": {
+      "name": "Steel",
+      "age": 3,
+      "cost": 80,
+      "prereqs": ["ironWorking", "machinery"],
+      "unlocks": { "units": ["longswordsman"] },
+      "flavor": "Iron, taught patience by fire."
+    },
+    "physics": {
+      "name": "Physics",
+      "age": 3,
+      "cost": 88,
+      "prereqs": ["mathematics", "engineering"],
+      "unlocks": { "units": ["trebuchet"] },
+      "flavor": "Weight, argued into flight."
+    },
+    "education": {
+      "name": "Education",
+      "age": 3,
+      "cost": 95,
+      "prereqs": ["theology", "philosophy"],
+      "unlocks": { "buildings": ["university"] },
+      "flavor": "A school is a city's second memory."
+    }
+  }
+}

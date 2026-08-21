@@ -125,6 +125,24 @@
       <div id="seats" class="seats"></div>
 
       <div class="topbar-tools">
+        <!-- Research: what the empire is learning, and the way into the star
+             chart. It says the tech and how many turns are left, so the one
+             number a player checks every turn is on the bar rather than behind
+             a screen; with nothing chosen it pulses and asks. -->
+        <button
+          id="tech-button"
+          class="topbar-btn"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="tech-overlay"
+          title="Technologies (T)"
+        >
+          <span class="topbar-btn-line">
+            <span class="topbar-btn-label">Research</span>
+            <span id="tech-current" class="topbar-btn-value">—</span>
+          </span>
+        </button>
         <!-- The lens menu: one question asked of every tile at once, plus the
              yield pips, which are an independent switch. The button names both,
              so the bar always says what the board is showing.
@@ -281,11 +299,42 @@
           <li><b>Drag</b> with either button to pan · <b>wheel</b> or pinch to zoom</li>
           <li><kbd>B</kbd> founds a city with the selected settler</li>
           <li><kbd>Y</kbd> toggles the yield pips · <b>Lens</b> in the bar for more</li>
+          <li><kbd>T</kbd> opens the tech tree — click a star to research it</li>
           <li><b>Left click</b> a tile in an open city's ring to pin a citizen</li>
           <li><kbd>Enter</kbd> ends your turn</li>
           <li data-only="2d"><kbd>G</kbd> toggles the hex grid</li>
           <li><kbd>Esc</kbd> backs out: move mode, then this panel, then the selection</li>
         </ul>
+      </div>
+    </div>
+
+    <!-- ================= the star chart =========================
+         The tech tree, as a full-screen overlay over the whole board — and the
+         one deliberately dark surface in a light interface (Entry VII's
+         flourish set: ink ground, gilt stars, era numerals). Built by
+         src/ui/techTree.ts; opened from the bar button above or with T, closed
+         with Esc, the ×, or a click on the ink around the chart.
+         ============================================================ -->
+    <div
+      id="tech-overlay"
+      class="tech-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Technologies"
+      hidden
+    >
+      <div class="tech-sheet">
+        <header class="tech-head">
+          <div class="tech-head-titles">
+            <p class="eyebrow tech-eyebrow">the magister’s star chart</p>
+            <h2 class="tech-title">Technologies</h2>
+          </div>
+          <button id="tech-close" class="tech-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </header>
+        <!-- Three age columns and the sight-lines between them. -->
+        <div id="tech-chart" class="tech-chart"></div>
       </div>
     </div>
 

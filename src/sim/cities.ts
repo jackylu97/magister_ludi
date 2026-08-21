@@ -411,8 +411,19 @@ export function centreYield(state: GameState, city: City): TileYield {
  *
  * Reads `city.workedTiles` rather than re-assigning, so a caller can ask what a
  * city *currently* makes without changing it. The turn pipeline assigns first.
+ *
+ * `hypothetical` is the one-evaluator hook (Entry VIII): buildings the city does
+ * *not* have, counted as if it did. It exists so that "what would a library be
+ * worth here?" is answered by the function the turn pipeline banks — a preview
+ * computed by a second implementation is a preview that can lie. Callers hand it
+ * a candidate list and diff the two results; nothing is cloned and nothing is
+ * mutated. See `buildingYieldDelta` in `tech.ts`.
  */
-export function cityYields(state: GameState, city: City): CityYields {
+export function cityYields(
+  state: GameState,
+  city: City,
+  hypothetical: readonly BuildingId[] = [],
+): CityYields {
   const centre = centreYield(state, city);
   const total: CityYields = {
     food: centre.food,
@@ -431,14 +442,25 @@ export function cityYields(state: GameState, city: City): CityYields {
     total.gold += value.gold;
   }
 
-  for (const id of city.buildings) {
-    const def = buildingDef(id);
-    total.food += def.food;
-    total.culture += def.culture;
-    total.science += Math.floor(city.population * def.sciencePerPop);
+  for (const id of city.buildings) addBuilding(total, city, id);
+  for (const id of hypothetical) {
+    // A candidate the city already has adds nothing: it is already counted, and
+    // a preview that promised a second library would be a preview that lies.
+    if (city.buildings.includes(id)) continue;
+    addBuilding(total, city, id);
   }
 
   return total;
+}
+
+/** One building's flat contribution. See `cityYields` for the flooring rule. */
+function addBuilding(total: CityYields, city: City, id: BuildingId): void {
+  const def = buildingDef(id);
+  total.food += def.food;
+  total.production += def.production;
+  total.gold += def.gold;
+  total.culture += def.culture;
+  total.science += Math.floor(city.population * def.sciencePerPop);
 }
 
 /** What the citizens eat: `foodPerCitizen` each. */

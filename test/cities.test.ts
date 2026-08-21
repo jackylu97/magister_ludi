@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildingDef } from '../src/sim/buildingData';
 import { type Command, applyCommand } from '../src/sim/commands';
 import {
   advanceProduction,
@@ -785,7 +786,7 @@ describe('production', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     city.queue = [{ kind: 'building', id: 'library' }];
-    city.hammerBasket = 75;
+    city.hammerBasket = buildingDef('library').cost;
     advanceProduction(state);
     expect(city.buildings).toEqual(['library']);
     expect(city.queue).toEqual([]);
@@ -890,7 +891,7 @@ describe('setCityProduction', () => {
 
     for (const bad of [
       'not an array',
-      [{ kind: 'unit', id: 'trebuchet' }],
+      [{ kind: 'unit', id: 'zeppelin' }],
       [{ kind: 'building', id: 'pyramid' }],
       [{ kind: 'wonder', id: 'monument' }],
       [null],
@@ -1089,7 +1090,7 @@ describe('determinism with cities', () => {
           queue: [
             { kind: 'building', id: 'monument' },
             { kind: 'unit', id: 'warrior' },
-            { kind: 'building', id: 'library' },
+            { kind: 'building', id: 'granary' },
           ],
         }).ok,
       ).toBe(true);
@@ -1114,7 +1115,7 @@ describe('determinism with cities', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 5 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 6 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1124,7 +1125,7 @@ describe('determinism with cities', () => {
     expect((JSON.parse(json) as { schemaVersion: number }).schemaVersion).toBe(SCHEMA_VERSION);
     // Bumped to 5 by fresh water: `Tile` grew `riverEdges` and `freshwater`,
     // and `lake` joined the terrain list.
-    expect(SCHEMA_VERSION).toBe(5);
+    expect(SCHEMA_VERSION).toBe(6);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

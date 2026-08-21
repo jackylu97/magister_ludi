@@ -101,6 +101,7 @@ import { type Tile, mapRange, tileHex } from '../sim/map';
 import { findPath, reachableTiles } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import { type City, type Unit, cityById, hasEndedTurn, unitById } from '../sim/state';
+import { type ResearchReport, researchSince, researchSnapshot } from '../sim/tech';
 import { unitDef } from '../sim/unitData';
 import { unitsOnTile } from '../sim/units';
 import { walkedPrefix } from '../render/animation';
@@ -155,8 +156,14 @@ export interface GameControlsOptions {
    *
    * Optional, like `onSeatAdvanced`: nothing about the rules depends on anyone
    * listening, and the frozen 2D pages are wired by the same `main.ts`.
+   *
+   * It carries what the resolution did to the local seat's research, because
+   * this is the only place that can tell: the answer is a *difference*, and the
+   * "before" half stops existing the moment the turn resolves. The diff itself
+   * is the simulation's (`researchSince`), so what the splash announces is what
+   * a replay of the same log would announce.
    */
-  onTurnResolved?: (turn: number) => void;
+  onTurnResolved?: (turn: number, research: ResearchReport) => void;
   /**
    * The harness moved the local seat on, because seats were still open. Carries
    * the seat now being played.
@@ -193,6 +200,13 @@ export interface GameControlsOptions {
    * typing `y` would toggle a lens on a game nobody can see.
    */
   inputBlocked?: () => boolean;
+
+  /**
+   * Opens or closes the tech screen. `T`, and nothing else here — the screen
+   * owns its own Escape while it is up (it reports itself through
+   * `inputBlocked`, so this module never sees a key while it is open).
+   */
+  onToggleTechTree?: () => void;
 }
 
 export interface GameControls {
@@ -282,6 +296,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onNotice,
     closePopovers,
     inputBlocked,
+    onToggleTechTree,
   } = options;
 
   /** The seat this client plays. Player ids are indices, so 0 is the first. */
@@ -960,8 +975,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function endTurn(): void {
     const turnBefore = getGame().state.turn;
     // Captured before the dispatch: if this is the command that resolves the
-    // turn, the walk is over by the time it returns.
+    // turn, the walk is over by the time it returns — and so is the research
+    // that completed inside it, which is only visible as a difference.
     const orders = standingOrders();
+    const research = researchSnapshot(getGame().state, localPlayerId);
     const result = dispatch(getGame(), { type: 'endTurn', playerId: localPlayerId });
     if (!result.ok) return;
 
@@ -972,7 +989,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
     if (getGame().state.turn !== turnBefore) {
       animateResolvedMarches(orders);
-      onTurnResolved?.(getGame().state.turn);
+      onTurnResolved?.(
+        getGame().state.turn,
+        researchSince(getGame().state, localPlayerId, research),
+      );
       return;
     }
     const next = nextOpenSeat(localPlayerId);
@@ -1131,6 +1151,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // under an open city panel sets what will be up when the panel closes,
       // which is the only reading that does not lose a keystroke.
       setYields(!yieldsOn);
+      return;
+    }
+    if (event.key === 't' || event.key === 'T') {
+      // The tech screen. It takes the keyboard from here while it is up, so
+      // this is only ever the way in.
+      onToggleTechTree?.();
       return;
     }
     if (event.key === 'm' || event.key === 'M') {

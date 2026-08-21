@@ -36,6 +36,7 @@ import { BUILDING_IDS, buildingDef } from '../sim/buildingData';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { type City, type QueueItem, hasEndedTurn } from '../sim/state';
+import { isUnlocked } from '../sim/tech';
 import { UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
 
 export interface CityPanelOptions {
@@ -264,14 +265,23 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
-   * Everything the city could add: every unit type, and every building it has
-   * not built and has not already queued.
+   * Everything the city could add: every *unlocked* unit type, and every
+   * unlocked building it has not built and has not already queued.
    *
    * A unit the city is too small for is shown *disabled with its reason* rather
    * than hidden — "why can I not build a settler" is a question the interface
    * should answer, and an option that silently does not exist answers nothing.
+   *
+   * A unit the player has not researched is a different case and *is* hidden:
+   * it is not a thing this city cannot do yet, it is a thing that does not exist
+   * yet, and fifteen greyed-out rows would bury the four the player can press.
+   * The tech screen is where the rest of the roster is, with what it costs to
+   * get there. Availability is asked of `isUnlocked` — the same function the
+   * reducer validates the queue with — so this list can never offer a button
+   * `setCityProduction` would refuse.
    */
   function renderBuildables(city: City, locked: boolean): HTMLElement {
+    const { state } = getGame();
     const box = element('div', 'city-buildables');
     box.append(element('h3', undefined, 'Add to queue'));
     const grid = element('div', 'city-buildable-grid');
@@ -283,6 +293,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     };
 
     for (const id of UNIT_TYPE_IDS) {
+      if (!isUnlocked(state, city.ownerId, 'unit', id)) continue;
       const def = unitDef(id);
       const tooSmall = city.population < def.minCityPop;
       const button = element('button', 'city-buildable');
@@ -302,6 +313,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     );
     for (const id of BUILDING_IDS) {
       if (city.buildings.includes(id) || queued.has(id)) continue;
+      if (!isUnlocked(state, city.ownerId, 'building', id)) continue;
       const def = buildingDef(id);
       const button = element('button', 'city-buildable is-building');
       button.type = 'button';

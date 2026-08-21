@@ -116,7 +116,7 @@ describe('spawnUnit', () => {
     for (const bad of [
       spawn(0, 'warrior', 4, 4), // mountain
       spawn(0, 'warrior', 5, 5), // ocean
-      spawn(0, 'trebuchet', 1, 1), // no such unit type
+      spawn(0, 'zeppelin', 1, 1), // no such unit type
       spawn(9, 'warrior', 1, 1), // no such owner
       spawn(0, 'warrior', 1, 1, 9), // no such acting player
       spawn(0, 'warrior', 1, 99), // off the map

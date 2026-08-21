@@ -60,6 +60,7 @@ import { generateMap, getMapSize } from './mapgen';
 import { type Rng, hashSeed, makeRng } from './rng';
 import { RULES } from './rulesData';
 import { chooseStartPositions, planStartingUnits } from './startPositions';
+import type { TechId } from './techData';
 import { type UnitTypeId, unitDef } from './unitData';
 
 /**
@@ -70,8 +71,10 @@ import { type UnitTypeId, unitDef } from './unitData';
  * 3: Milestone 3 — real cities, tile ownership, and the per-player yield pools.
  * 4: Citizen management — `City.lockedTiles` and the `setLockedTiles` command.
  * 5: Fresh water — the `lake` terrain, `Tile.riverEdges` and `Tile.freshwater`.
+ * 6: Milestone 4 — the tech tree: `Player.researching` and
+ *    `Player.techsResearched`, and the `chooseResearch` command.
  */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 // --- players ----------------------------------------------------------------
 
@@ -93,12 +96,34 @@ export interface Player {
   /** Treasury. Every city's gold lands here; nothing spends it yet. */
   gold: number;
   /**
-   * Science banked toward the current technology. A pool rather than a
-   * per-turn rate because research is bought, not rented: Milestone 4 spends it.
+   * Science banked toward the current technology. A pool rather than a per-turn
+   * rate because research is bought, not rented — and, since Milestone 4, the
+   * pool *is* the progress: there are no per-tech buckets, so switching research
+   * moves the aim and loses nothing. See the model note in `tech.ts`.
    */
   sciencePool: number;
-  /** Culture banked toward the next social policy. Milestone 4 spends it. */
+  /** Culture banked toward the next social policy. A later milestone spends it. */
   culturePool: number;
+  /**
+   * The technology `sciencePool` is currently aimed at, or `null` when the
+   * player has not chosen one. Set by the `chooseResearch` command and cleared
+   * by `advanceResearch` the moment the tech completes.
+   */
+  researching: TechId | null;
+  /**
+   * Technologies this player holds, in the order they completed.
+   *
+   * On the player rather than in a parallel array on the state, unlike
+   * `turnEnded`: this is a fact *about a player* that outlives every turn, and
+   * an array indexed by id would be a second length invariant to keep in step
+   * (see the `turnEnded` trap in CLAUDE.md). An array rather than a `Set`
+   * because the state has to survive `JSON.stringify`, and because iteration
+   * order that is part of the state is iteration order a replay reproduces.
+   *
+   * Seeded from `rules.research.startingTechs`, so a new city can build
+   * something on turn one.
+   */
+  techsResearched: TechId[];
 }
 
 // --- entities ---------------------------------------------------------------
@@ -303,6 +328,11 @@ export function newGame(config: GameConfig): GameState {
       gold: 0,
       sciencePool: 0,
       culturePool: 0,
+      researching: null,
+      // Copied, never aliased: the rules are shared by every player and by every
+      // game in the process, and a player who researched something must not
+      // write it into the rule book.
+      techsResearched: [...RULES.research.startingTechs],
     })),
     turnEnded: normalized.players.map(() => false),
     map,

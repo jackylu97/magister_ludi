@@ -15,8 +15,9 @@
  *
  * Milestone 2 laid the skeleton and the two unit phases; Milestone 3 fills in
  * the four city phases, whose bodies live in `cities.ts` so that this file stays
- * a statement of *order* rather than a second home for city rules.
- * `advanceResearch` remains a stub for Milestone 4.
+ * a statement of *order* rather than a second home for city rules. Milestone 4
+ * fills in `advanceResearch`, whose body lives in `tech.ts` for the same reason,
+ * and leaves it in the position it was always reserved.
  *
  * Why this order
  * --------------
@@ -26,6 +27,13 @@
  * of the city phases, so a tile claimed this turn is worked *next* turn — a
  * border that expanded and was immediately harvested would pay twice for one
  * turn's culture.
+ *
+ * `advanceResearch` sits after production and before the units are touched, and
+ * both sides of that matter: this turn's science was banked by `collectYields`
+ * at the top, so a tech completes on the turn its beakers arrived rather than
+ * the turn after; and a unit that auto-upgrades here is retyped *before*
+ * `healUnits` and `resetMovement` read it, so it heals and refills as the unit
+ * it now is.
  *
  * One phase sweeps every city before the next phase begins. That is the whole
  * design of the pipeline: a rule is applied to the empire, not to a city, so no
@@ -39,6 +47,7 @@
 
 import { advanceProduction, collectYields, expandBorders, growCities } from './cities';
 import { advanceAlongPath } from './movement';
+import { advanceResearch } from './tech';
 import type { GameState } from './state';
 import { unitDef } from './unitData';
 import { fullMovement, isRested } from './units';
@@ -72,8 +81,9 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
   },
   {
     name: 'advanceResearch',
-    // Milestone 4: spend `Player.sciencePool` on the current tech.
-    run: (_state: GameState): void => {},
+    // Spends `Player.sciencePool` on the tech it is aimed at, and marches the
+    // army up its upgrade chains the moment one lands.
+    run: advanceResearch,
   },
   {
     name: 'expandBorders',

@@ -65,6 +65,13 @@
       "Yarrowfell"
     ]
   },
+  "research": {
+    "startingTechs": [
+      "agriculture",
+      "pottery"
+    ],
+    "retoolCost": 0
+  },
   "startingUnits": [
     "settler",
     "warrior"

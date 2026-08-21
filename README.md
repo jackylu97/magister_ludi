@@ -69,12 +69,13 @@ of the status card, and it is the same list as this one.
 - `src/proto3d/` + `proto3d.html` — the look-dev sandbox the 3D view grew out of.
   No interaction, no wrap; a page for judging a palette and a light rig.
 - `src/ui/` — pointer and keyboard handling (`controls.ts` owns the whole input
-  contract above), the city screen, the city banners, the HUD popovers, and
-  `mapView.ts`: the small interface both renderers implement, so input logic
-  knows about neither.
-- `data/` — terrain, unit, building, rules and map-generation data as JSON, plus
-  `view3d.json` (the 3D look: palette, tile heights, lights, overlays) and
-  `view.json` (the same job for the frozen 2D renderer).
+  contract above), the city screen, the tech screen (`techTree.ts`: the star
+  chart, the one deliberately dark surface in the interface), the city banners,
+  the HUD popovers, and `mapView.ts`: the small interface both renderers
+  implement, so input logic knows about neither.
+- `data/` — terrain, unit, building, technology, rules and map-generation data as
+  JSON, plus `view3d.json` (the 3D look: palette, tile heights, lights,
+  overlays) and `view.json` (the same job for the frozen 2D renderer).
 - `public/sprites/` — vendored Kenney art, CC0. See its `CREDITS.md`.
 - `test/` — Vitest tests for the simulation and for the pure parts of the
   renderers: the 3D picking round-trip (every tile of a map, projected through

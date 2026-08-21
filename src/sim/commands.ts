@@ -46,7 +46,7 @@
  * it replays.
  */
 
-import { isBuildingId } from './buildingData';
+import { buildingDef, isBuildingId } from './buildingData';
 import { assignCitizens, assignableTiles, foundCityAt, foundingError } from './cities';
 import { getTileAt, tileIndex } from './map';
 import { advanceAlongPath } from './movement';
@@ -66,6 +66,8 @@ import {
   removeUnit,
   unitById,
 } from './state';
+import { gatingTech, isUnlocked, researchError } from './tech';
+import { type TechId, techDef } from './techData';
 import { runEndOfTurn } from './turn';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
@@ -220,6 +222,28 @@ export interface SetLockedTilesCommand extends PlayerCommand {
   cells: Cell[];
 }
 
+/**
+ * Points this player's science at a technology.
+ *
+ * The only research command there is, because the model has only one decision in
+ * it: progress *is* `Player.sciencePool` (see `tech.ts`), so choosing is aiming
+ * rather than spending, and there is nothing to cancel, refund or bank
+ * separately. Switching mid-research is therefore legal and lossless — a player
+ * who reacts to something another seat did inside the same turn window keeps
+ * every beaker they had banked.
+ *
+ * Re-choosing the tech already being researched is refused: it would change
+ * nothing and put a log entry in the save that says nothing. So is a tech
+ * already held, and one whose prerequisites are not met.
+ *
+ * Turn-gated like `setCityProduction`: choosing what to learn is an act, and a
+ * seat that has declared itself finished has finished acting.
+ */
+export interface ChooseResearchCommand extends PlayerCommand {
+  type: 'chooseResearch';
+  techId: TechId;
+}
+
 /** Every legal mutation of the game, as serializable data. */
 export type Command =
   | EndTurnCommand
@@ -228,7 +252,8 @@ export type Command =
   | SpawnUnitCommand
   | FoundCityCommand
   | SetCityProductionCommand
-  | SetLockedTilesCommand;
+  | SetLockedTilesCommand
+  | ChooseResearchCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
@@ -503,8 +528,12 @@ function readQueueItem(value: unknown): QueueItem | undefined {
  *     almost always a misclick. (If the city later shrinks below it, production
  *     holds instead — see `advanceProduction`. Refusing at the gate and holding
  *     afterwards are the same rule read at the two moments it can be read.)
+ *   - the owner has the technology. Asked through `isUnlocked`, which is what
+ *     the city panel enables its buttons with, so an offered button and an
+ *     accepted queue are one rule. Techs are only ever gained, so an item that
+ *     passed this check can never become illegal while it sits in the queue.
  */
-function validateQueue(city: City, raw: unknown): QueueItem[] | string {
+function validateQueue(state: GameState, city: City, raw: unknown): QueueItem[] | string {
   if (!Array.isArray(raw)) return 'setCityProduction needs a queue array';
 
   const items: QueueItem[] = [];
@@ -512,6 +541,12 @@ function validateQueue(city: City, raw: unknown): QueueItem[] | string {
   for (let i = 0; i < raw.length; i++) {
     const item = readQueueItem(raw[i]);
     if (!item) return `Queue item ${i} is not a known unit or building`;
+
+    if (!isUnlocked(state, city.ownerId, item.kind, item.id)) {
+      const gate = gatingTech(item.kind, item.id);
+      const name = item.kind === 'unit' ? unitDef(item.id).name : buildingDef(item.id).name;
+      return `${name} needs ${gate ? techDef(gate).name : 'a technology you do not have'}`;
+    }
 
     if (item.kind === 'building') {
       if (city.buildings.includes(item.id)) {
@@ -550,7 +585,7 @@ function applySetCityProduction(
     return fail(`City ${city.id} does not belong to player ${actor.id}`);
   }
 
-  const queue = validateQueue(city, command.queue);
+  const queue = validateQueue(state, city, command.queue);
   if (typeof queue === 'string') return fail(queue);
 
   // Copy: the command (and the log entry it becomes) must not be aliased into
@@ -648,6 +683,34 @@ function applySetLockedTiles(
   return ok();
 }
 
+/**
+ * Aims this player's science at a technology. See `ChooseResearchCommand`.
+ *
+ * Two questions, asked in the order a player would think of them: may this seat
+ * still act, and is that a technology they could start. The second is delegated
+ * whole to `researchError` — the same function the tech screen enables its nodes
+ * with — so a node the interface offers is a node this accepts.
+ *
+ * The mutation is one field. Nothing is spent: the pool is the progress, and it
+ * stays exactly where it was even when the aim moves mid-research.
+ */
+function applyChooseResearch(
+  state: GameState,
+  command: ChooseResearchCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot choose research`);
+  }
+
+  const problem = researchError(state, actor.id, command.techId);
+  if (problem) return fail(problem);
+
+  actor.researching = command.techId;
+  return ok();
+}
+
 // --- reducer ----------------------------------------------------------------
 
 /**
@@ -677,6 +740,8 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       return applySetCityProduction(state, command);
     case 'setLockedTiles':
       return applySetLockedTiles(state, command);
+    case 'chooseResearch':
+      return applyChooseResearch(state, command);
     default:
       return unhandledCommand(kind, type);
   }

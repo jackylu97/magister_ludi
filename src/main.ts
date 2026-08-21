@@ -51,6 +51,8 @@ import {
 } from './sim/state';
 import type { Tile } from './sim/map';
 import { featureDef, terrainDef } from './sim/terrainData';
+import { describeUpgrade } from './sim/tech';
+import { techDef } from './sim/techData';
 import { unitDef } from './sim/unitData';
 import { Renderer } from './render/renderer';
 import { loadSprites } from './render/sprites';
@@ -62,6 +64,7 @@ import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import { createGameControls } from './ui/controls';
 import { createPopover } from './ui/popover';
+import { type TechTree, createTechTree } from './ui/techTree';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { createTurnSplash } from './ui/turnSplash';
 import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
@@ -109,6 +112,10 @@ const lensOptionsEl = requireElement<HTMLElement>('lens-options');
 const lensTogglesEl = requireElement<HTMLElement>('lens-toggles');
 const lensCurrentEl = requireElement<HTMLElement>('lens-current');
 const lensYieldsFlagEl = requireElement<HTMLElement>('lens-yields-flag');
+const techButton = requireElement<HTMLButtonElement>('tech-button');
+const techCurrentEl = requireElement<HTMLElement>('tech-current');
+const techOverlayEl = requireElement<HTMLElement>('tech-overlay');
+const techChartEl = requireElement<HTMLElement>('tech-chart');
 const contextEl = requireElement<HTMLElement>('hud-context');
 const contextNoticeEl = requireElement<HTMLElement>('context-notice');
 
@@ -196,11 +203,23 @@ const lens = createPopover({
   },
 });
 
+/**
+ * The tech screen, once `boot` has built it.
+ *
+ * A holder rather than a constant because it and `controls` each need the
+ * other: the screen sends commands for the seat `controls` is playing, and `T`
+ * arrives through `controls`. One of the two has to be reachable late, and a
+ * screen that does not exist yet is the harmless half — there is nothing to
+ * open before the game is up.
+ */
+let techTree: TechTree | null = null;
+
 function closePopovers(): boolean {
-  const wasOpen = menu.isOpen || help.isOpen || lens.isOpen;
+  const wasOpen = menu.isOpen || help.isOpen || lens.isOpen || (techTree?.isOpen ?? false);
   menu.close();
   help.close();
   lens.close();
+  techTree?.close();
   return wasOpen;
 }
 
@@ -640,6 +659,9 @@ async function boot(): Promise<void> {
     // change — so every view of them is refreshed wherever the main panel is,
     // the empire's per-turn totals in the top bar included.
     civYields.render();
+    // The research line changes with the seat, with the science rate and with
+    // every completed tech, so it refreshes wherever the rest of the HUD does.
+    techTree?.render();
     banners.refresh();
     cityPanel.render();
     unitPanel.render();
@@ -669,9 +691,20 @@ async function boot(): Promise<void> {
     onUpdate: updatePanel,
     onNotice: showNotice,
     closePopovers,
-    // The landing screen covers the board, so it owns the keyboard too.
-    inputBlocked: () => !landingEl.hidden,
-    onTurnResolved: () => {
+    // A screen in front of the board owns the keyboard: the landing, and the
+    // star chart, which handles its own Escape while it is up.
+    inputBlocked: () => !landingEl.hidden || (techTree?.isOpen ?? false),
+    onToggleTechTree: () => techTree?.toggle(),
+    onTurnResolved: (_turn, research) => {
+      // A discovery outranks the turn card: "your turn" happens every turn,
+      // and a technology lands twenty times in a game. The upgrade tally rides
+      // underneath it, because a warrior that quietly became a swordsman is
+      // exactly the change a player would otherwise miss.
+      const tech = research.techs[0];
+      if (tech) {
+        splash.announceTech(techDef(tech).name, research.upgrades.map(describeUpgrade));
+        return;
+      }
       const local = game.state.players[controls.localPlayerId()];
       if (local) splash.announceTurn(local.name);
     },
@@ -766,6 +799,24 @@ async function boot(): Promise<void> {
   }
 
   /**
+   * The star chart, and the research line in the top bar it is opened from.
+   *
+   * Declared after `controls` because it asks whose seat this is; reached by
+   * `controls` through the `techTree` holder above, which is what breaks the
+   * knot between the two.
+   */
+  techTree = createTechTree({
+    overlay: techOverlayEl,
+    chart: techChartEl,
+    closeButton: requireElement('tech-close'),
+    barButton: techButton,
+    barValue: techCurrentEl,
+    getGame: () => game,
+    localPlayerId: () => controls.localPlayerId(),
+    onChanged: () => updatePanel(null, renderer.getHover()),
+  });
+
+  /**
    * The empire's per-turn totals, at the left end of the top bar. A pure sum
    * over the local seat's cities, refreshed with everything else.
    */
@@ -831,6 +882,9 @@ async function boot(): Promise<void> {
     // An announcement about the game that just ended has nothing to say about
     // the one starting, so it goes with it.
     splash.clear();
+    // A star chart of the game that just ended has nothing to say about the
+    // one starting either.
+    techTree?.close();
     game = createGame(currentConfig());
     renderer.setGameState(game.state);
     controls.refresh();
