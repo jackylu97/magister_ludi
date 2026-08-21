@@ -150,6 +150,31 @@ was real. That discovery moment IS the flavor strategy.
 
 ---
 
+## Entry IX — Resources (designed 2026-08-21; milestone after combat)
+
+**Three kinds, three mechanical homes:**
+- **Bonus** (wheat, cattle, fish, stone, deer): tile-yield modifiers. Ship with the resources
+  milestone — pure data on the existing yield algebra.
+- **Strategic** (horses, iron; later coal/saltpeter): GATE unit production (horses→mounted line,
+  iron→swordsman line) via the existing `isUnlocked` hook — map-driven military asymmetry and
+  war reasons. Visibility can be tech-gated later (iron hidden until Bronze Working, Civ-style).
+- **Luxury** (silk, gems, wine, spices): the happiness system's fuel (Entry I: +2 empire /
+  +1-per-city partially-scaling). Placed by this milestone, mechanically live at the happiness
+  milestone. Also the trade good for future diplomacy, and §6b bead sources ("control X% of a
+  world resource").
+
+**Appearance (two layers, as ever):** world = procedural diorama props (wheat tufts, toy cattle,
+ore boulders, mini horse herd — primitives, hashed placement); apparatus = resource LENS + small
+roundel icons in the badge stroke language (hover or toggle — props alone are never fully
+legible). Yield-icon rework folds into the same milestone: pips → bespoke wheat/gear/coin glyphs
+on the badge-style atlas, repeated per point with cap+numeral.
+
+**Placement:** seeded biome-weighted scatter with spacing rules (rivers-milestone machinery
+generalizes); fairness pass — every start gets bonus food nearby, strategic access non-degenerate
+(harness-assertable). All in mapgen.json.
+
+---
+
 ## Entry IV — Parked ideas (deliberately later; do not build yet)
 
 Noted 2026-08-21 at the user's request, with explicit anti-scope-creep intent. These are GOOD
