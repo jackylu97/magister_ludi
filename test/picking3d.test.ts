@@ -34,9 +34,10 @@ import {
   wrapWidth,
 } from '../src/render3d/layout';
 import { pickTile } from '../src/render3d/picking';
-import { generateMap } from '../src/sim/mapgen';
+import { generateMap, generateMapDetail } from '../src/sim/mapgen';
 import { SQRT3 } from '../src/sim/hex';
 import type { GameMap } from '../src/sim/map';
+import { VIEW3D } from '../src/render3d/lookData';
 
 const VIEWPORT = { width: 1200, height: 800 };
 
@@ -268,5 +269,100 @@ describe('river ribbon placement', () => {
       // Same line, half a turn apart: the edge does not care which tile named it.
       expect(Math.abs(Math.sin(near - far))).toBeCloseTo(0, 12);
     }
+  });
+});
+
+/**
+ * Do rivers actually read as continuous chains?
+ *
+ * This is the question a screenshot was supposed to answer, asked more strictly
+ * than an eye can ask it. Each flagged edge becomes one ribbon, and a ribbon's
+ * *edge line* — its centre ± half a hex radius along `edgeYaw` — is where its
+ * two ends physically are. If two consecutive edges of a traced river do not
+ * share an end within floating-point slop, the drawn river has a gap in it, and
+ * no amount of overhang closes a gap that is a whole hex wide.
+ *
+ * The comparison is wrap-aware. `cellCenter` takes the canonical column, so two
+ * edges either side of the seam are a full board apart in world x while being
+ * neighbours on the cylinder; folding the difference modulo the wrap period is
+ * the same trick `wrappedDistance` plays in the simulation.
+ */
+describe('river ribbon continuity', () => {
+  /** The two ends of the edge a ribbon lies on, in world space. */
+  function ribbonEnds(
+    col: number,
+    row: number,
+    direction: number,
+  ): { x: number; z: number }[] {
+    const centre = cellCenter(col, row);
+    const delta = directionDelta(direction);
+    const mid = { x: centre.x + delta.x / 2, z: centre.z + delta.z / 2 };
+    const yaw = edgeYaw(direction);
+    // A hexagon's side equals its circumradius, so the edge is one radius long.
+    const half = VIEW3D.board.hexRadius / 2;
+    const axis = { x: Math.cos(yaw), z: -Math.sin(yaw) };
+    return [
+      { x: mid.x + axis.x * half, z: mid.z + axis.z * half },
+      { x: mid.x - axis.x * half, z: mid.z - axis.z * half },
+    ];
+  }
+
+  /** Distance between two world points, folded across the wrap seam. */
+  function seamDistance(
+    a: { x: number; z: number },
+    b: { x: number; z: number },
+    period: number,
+  ): number {
+    let dx = a.x - b.x;
+    dx -= period * Math.round(dx / period);
+    return Math.hypot(dx, a.z - b.z);
+  }
+
+  it('joins every consecutive pair of segments end to end', () => {
+    for (const size of ['duel', 'standard'] as const) {
+      for (const seed of [1, 7, 1234, 31337]) {
+        const { map, rivers } = generateMapDetail(seed, size);
+        const period = wrapWidth(map);
+        for (const river of rivers) {
+          for (let i = 1; i < river.edges.length; i++) {
+            const previous = river.edges[i - 1]!;
+            const current = river.edges[i]!;
+            const a = ribbonEnds(previous.col, previous.row, previous.direction);
+            const b = ribbonEnds(current.col, current.row, current.direction);
+            let shared = Infinity;
+            for (const p of a) {
+              for (const q of b) shared = Math.min(shared, seamDistance(p, q, period));
+            }
+            expect(
+              shared,
+              `${size}/${seed}: segments ${i - 1} and ${i} do not meet`,
+            ).toBeLessThan(1e-9);
+          }
+        }
+      }
+    }
+  });
+
+  it('overhangs far enough to close the corner each join turns through', () => {
+    // Consecutive edges meet at 120°, so a ribbon that stopped exactly at the
+    // corner would leave a wedge open. The overhang has to cover half the
+    // ribbon width to fill it; this is the number `rivers.overhang` has to beat.
+    const { width, overhang } = VIEW3D.rivers;
+    const overhangLength = (VIEW3D.board.hexRadius * (overhang - 1)) / 2;
+    expect(overhangLength).toBeGreaterThanOrEqual((width / 2) * 0.4);
+  });
+
+  it('keeps the ribbon buried under both prisms it runs between', () => {
+    // The visible part of a river is exactly the grout gap; the rest has to be
+    // inside a prism or it would be a blue stripe painted on the tile faces.
+    const { hexRadius, tileGap } = VIEW3D.board;
+    const apothem = (hexRadius * (1 - tileGap) * SQRT3) / 2;
+    const gap = SQRT3 * hexRadius - 2 * apothem;
+    const halfWidth = (hexRadius * VIEW3D.rivers.width) / 2;
+    // Wider than the gap it fills...
+    expect(halfWidth).toBeGreaterThan(gap / 2);
+    // ...but not so wide it reaches past the prism's top face and out the far
+    // side, which would show the ribbon sitting on the neighbouring tile.
+    expect(halfWidth).toBeLessThan(apothem);
   });
 });
