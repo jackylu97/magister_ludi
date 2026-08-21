@@ -53,7 +53,22 @@ export interface OverlayState {
    * that is only a question while somebody is looking at the yields.
    */
   worked: readonly CellRef[];
+  /**
+   * Move mode is armed (see `MapView.setMoveModeHighlight`): the selection ring
+   * is drawn at full strength with a wider halo outside it, so the piece that is
+   * about to take an order looks live.
+   *
+   * A brightening rather than an animated pulse, on purpose: this layer is
+   * rebuilt on change and never per frame, and a pulse would mean waking the
+   * render loop for as long as the player sat in move mode.
+   */
+  moveMode?: boolean;
 }
+
+/** How much wider than the selection ring the move-mode halo is drawn. */
+const MOVE_MODE_HALO_SCALE = 1.28;
+/** The halo's opacity. Under the ring's own, so it reads as a glow around it. */
+const MOVE_MODE_HALO_OPACITY = 0.5;
 
 export class OverlayLayer {
   readonly group = new Group();
@@ -130,10 +145,19 @@ export class OverlayLayer {
       if (!cell) continue;
       const at = anchor(cell);
       if (!at) continue;
+      const lit = state.moveMode === true && cell === state.selection;
       collector.add(geometry.ring, [color], new Matrix4().compose(at, identity, unit), {
         overlay: true,
-        opacity: OVERLAY.ringOpacity,
+        opacity: lit ? 1 : OVERLAY.ringOpacity,
       });
+      if (!lit) continue;
+      const halo = MOVE_MODE_HALO_SCALE;
+      collector.add(
+        geometry.ring,
+        [color],
+        new Matrix4().compose(at, identity, new Vector3(halo, 1, halo)),
+        { overlay: true, opacity: MOVE_MODE_HALO_OPACITY },
+      );
     }
 
     this.drawCallCount = collector.flush(this.group, materials, false);

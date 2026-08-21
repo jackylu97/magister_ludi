@@ -11,11 +11,42 @@
  * selection, route preview and hotkeys are already more code than `main.ts`
  * should carry, and none of it is about wiring up the page.
  *
+ * The input contract
+ * ------------------
+ * One rule decides the whole scheme: **left selects, right orders.** Left click
+ * used to do both, and on a board where every tile is a legal click target that
+ * meant a mis-aimed selection was a move order — expensive, and impossible to
+ * take back.
+ *
+ *   · Left click  — your unit selects it (again cycles the stack), your city
+ *                   opens its panel, and *anything else deselects*. Clicking
+ *                   away is how you put a unit down.
+ *   · Right click — with one of your units selected, orders it to the clicked
+ *                   tile. With nothing selected it does nothing at all. The
+ *                   browser context menu is suppressed over the board either
+ *                   way, because a right click there is a game input.
+ *   · M           — arms *move mode*: the next left click moves instead of
+ *                   selecting. This is the trackpad path, where a right click
+ *                   is a two-finger tap and not everybody has one. M again, Esc,
+ *                   or issuing the move disarms it.
+ *
+ * Escape backs out one layer at a time, outermost first: move mode, then an
+ * open popover, then the city panel, then the selection.
+ *
  * Click versus drag
  * -----------------
- * The same button pans and selects, so a press only counts as a click if the
- * pointer barely moved between down and up. Without the slop threshold every
- * pan would end in an accidental move order.
+ * Both buttons pan, and both also click, so a press only counts as a click if
+ * the pointer barely moved between down and up. Without the slop threshold every
+ * pan would end in an accidental order — and that matters more for the right
+ * button than it ever did for the left, because on many trackpads a two-finger
+ * drag arrives as a right-button drag.
+ *
+ * Refusals are never silent
+ * -------------------------
+ * An order the reducer will not take (a mountain, a tile out of reach, a seat
+ * that has already ended its turn) reports through `onNotice`, which the HUD
+ * shows in the context card for a beat. The selection survives: the player
+ * almost certainly wants to aim again.
  *
  * Two kinds of selection
  * ----------------------
@@ -73,6 +104,18 @@ import type { CellRef, HoverInfo, MapView } from './mapView';
 /** How far the pointer may travel between down and up and still be a click. */
 const CLICK_SLOP_PX = 4;
 
+/** How long a refused order stays on screen before the card goes quiet again. */
+const NOTICE_MS = 1800;
+
+/** What the context card says while move mode is armed. */
+const MOVE_MODE_NOTICE = 'Move mode — click a destination (Esc cancels)';
+
+/**
+ * A line for the context card: either the standing description of a mode the
+ * player has put themselves in, or a one-off refusal that fades.
+ */
+export type NoticeKind = 'mode' | 'reject';
+
 /**
  * Does this viewer want animation suppressed?
  *
@@ -114,6 +157,26 @@ export interface GameControlsOptions {
    * the seat now being played.
    */
   onSeatAdvanced?: (playerId: number) => void;
+
+  /**
+   * A line for the HUD's context card, or `null` to clear it.
+   *
+   * Two things speak through it: move mode, while it is armed, and a refused
+   * order, for a moment. It is a callback rather than an element because this
+   * module has no business knowing which card the HUD keeps its messages in —
+   * exactly like `onUpdate`.
+   */
+  onNotice?: (text: string | null, kind: NoticeKind) => void;
+
+  /**
+   * Closes any HUD popover that is open; returns whether there was one.
+   *
+   * Escape belongs to one listener, and it is this module's — see the docblock
+   * on the order it backs things out in. The popovers are `main.ts`'s, so this
+   * is how Escape reaches them without a second window listener racing for the
+   * same keystroke.
+   */
+  closePopovers?: () => boolean;
 }
 
 export interface GameControls {
@@ -146,22 +209,96 @@ export interface GameControls {
    * player's units. The development harness (see the module docblock).
    */
   setLocalPlayer(playerId: number): void;
+
+  /** The unit currently selected, re-read from the state, or `null`. */
+  selectedUnit(): Unit | null;
+  /** Whether move mode is armed — the next left click is an order, not a pick. */
+  isMoveMode(): boolean;
+  /** Arms or disarms move mode. The `M` key; a no-op with nothing selected. */
+  setMoveMode(on: boolean): void;
 }
 
 export function createGameControls(options: GameControlsOptions): GameControls {
-  const { viewport, renderer, getGame, onUpdate, onTurnResolved, onSeatAdvanced } = options;
+  const {
+    viewport,
+    renderer,
+    getGame,
+    onUpdate,
+    onTurnResolved,
+    onSeatAdvanced,
+    onNotice,
+    closePopovers,
+  } = options;
 
   /** The seat this client plays. Player ids are indices, so 0 is the first. */
   let localPlayerId = 0;
   let selectedId: number | null = null;
   /** The city whose panel is open. View state, exactly like the selection. */
   let openCityId: number | null = null;
-  let dragging = false;
+  /** Armed by `M`: the next left click on the board is an order, not a pick. */
+  let moveMode = false;
+  /**
+   * Which button started the current drag, or `null` when nothing is pressed.
+   * Left and right both pan; only the button that went down decides what the
+   * release means, so a chorded press cannot turn a pan into an order.
+   */
+  let dragButton: number | null = null;
   let pressX = 0;
   let pressY = 0;
   let travelled = 0;
   /** Last pointer position in viewport space, so hover survives pan and zoom. */
   let pointer: { x: number; y: number } | null = null;
+  /** A refusal currently on screen, and the timer that will take it away. */
+  let rejection: string | null = null;
+  let rejectionTimer = 0;
+
+  // --- the context card's message line -------------------------------------
+
+  /**
+   * Says whatever is currently truest: a refusal while one is fresh, otherwise
+   * move mode while it is armed, otherwise nothing. One funnel, so the two
+   * sources can never fight over the line.
+   */
+  function publishNotice(): void {
+    if (rejection !== null) onNotice?.(rejection, 'reject');
+    else onNotice?.(moveMode ? MOVE_MODE_NOTICE : null, 'mode');
+  }
+
+  /** Reports an order the game would not take, visibly and briefly. */
+  function reject(text: string): void {
+    rejection = text;
+    window.clearTimeout(rejectionTimer);
+    rejectionTimer = window.setTimeout(() => {
+      rejection = null;
+      publishNotice();
+    }, NOTICE_MS);
+    publishNotice();
+  }
+
+  // --- move mode -----------------------------------------------------------
+
+  /**
+   * Arms or disarms the keyboard route to a move order.
+   *
+   * Three things say so at once, because a mode the player cannot see is a mode
+   * they will be surprised by: the board takes a crosshair cursor (a class on
+   * the viewport, which owns the cursor), the selected unit's ring brightens
+   * (an optional renderer hook — the frozen 2D pipelines simply do not have
+   * one), and the context card explains itself in words.
+   *
+   * Arming requires a unit that could actually be ordered. Asking for move mode
+   * with nothing selected, or after ending your turn, does nothing rather than
+   * arming a mode whose next click would only be refused.
+   */
+  function setMoveMode(on: boolean): void {
+    const next = on && selectedUnit() !== null && canOrder();
+    if (next === moveMode) return;
+    moveMode = next;
+    viewport.classList.toggle('is-move-mode', moveMode);
+    renderer.setMoveModeHighlight?.(moveMode);
+    publishNotice();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
 
   // --- the local seat ------------------------------------------------------
 
@@ -194,9 +331,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function setLocalPlayer(playerId: number): void {
     if (playerId === localPlayerId) return;
     localPlayerId = playerId;
-    // A selection belongs to the seat that made it, and so does an open city.
+    // A selection belongs to the seat that made it, and so does an open city —
+    // and move mode belongs to the selection.
     selectedId = null;
     openCityId = null;
+    setMoveMode(false);
     renderer.skipAnimations();
     refreshOverlays();
     showLocalPlayer(true);
@@ -245,6 +384,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   function select(id: number | null): void {
     selectedId = id;
+    // Move mode is a property of *this* selection: dropping the unit, or
+    // picking a different one, disarms it rather than silently carrying an
+    // armed order over to a piece the player has only just clicked.
+    if (moveMode) setMoveMode(false);
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
   }
@@ -273,6 +416,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function setOpenCity(cityId: number | null): void {
     if (openCityId === cityId) return;
     openCityId = cityId;
+    // Opening a city is a change of subject. This is also the path a click on a
+    // city *banner* takes — banners are DOM over the board, so they never reach
+    // the board's own click handling — and an armed move order left hanging
+    // behind a city screen would go off on the next click for no visible reason.
+    if (cityId !== null) setMoveMode(false);
     refreshOverlays();
     renderer.invalidate();
     onUpdate(selectedUnit(), renderer.getHover());
@@ -309,6 +457,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // stays exactly where it is — the player is already looking at the tile.
     renderer.skipAnimations();
     selectedId = null;
+    setMoveMode(false);
     const founded = cityAt(getGame().state, unit.col, unit.row);
     openCityId = founded ? founded.id : null;
     refreshOverlays();
@@ -329,7 +478,24 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     return unitsOnTile(state, col, row).filter((unit) => unit.ownerId === localPlayerId);
   }
 
-  function handleClick(hover: HoverInfo): void {
+  /**
+   * The left button: pick things up and put them down.
+   *
+   * The order of the tests is the whole design. Your own units win over
+   * everything, because "select" is the safe reading of a click and a stack is
+   * cycled by clicking it again. Your own city comes next. Everything else —
+   * empty ground, an enemy, a mountain — *deselects*, which is the one thing
+   * the old scheme had no gesture for at all.
+   *
+   * Move mode short-circuits all of it: while it is armed the left button is
+   * standing in for the right one, and that is the only thing it does.
+   */
+  function handleLeftClick(hover: HoverInfo): void {
+    if (moveMode) {
+      issueMove(hover);
+      return;
+    }
+
     const { col, row } = hover.tile;
     const mine = ownUnitsAt(col, row);
 
@@ -341,8 +507,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     }
 
     // An empty tile of your own with a city on it opens that city. Units come
-    // first because a garrison is what you click a city tile to move; the panel
-    // is one click away on the banner when a unit is standing in the way.
+    // first because a garrison is what you click a city tile to select; the
+    // panel is one click away on the banner when a unit is standing in the way.
     const city = cityAt(getGame().state, col, row);
     if (city && city.ownerId === localPlayerId) {
       selectedId = null;
@@ -350,14 +516,49 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       return;
     }
 
+    // Clicking away. With nothing selected this still costs a repaint of the
+    // hover readout, which is what the player is looking at when they click an
+    // enemy or a stretch of ocean.
+    if (selectedId !== null) select(null);
+    else onUpdate(selectedUnit(), hover);
+  }
+
+  /**
+   * The right button: order the selected unit to the clicked tile.
+   *
+   * With nothing selected it is not an input at all — deliberately, so that a
+   * stray two-finger tap on a trackpad cannot do anything. It is also the exit
+   * from move mode, because a player who reached for the right button has
+   * already said which gesture they meant.
+   */
+  function handleRightClick(hover: HoverInfo): void {
+    if (!selectedUnit()) return;
+    issueMove(hover);
+  }
+
+  /**
+   * Sends the selected unit to the hovered tile, whichever gesture asked for it.
+   *
+   * Every refusal is spoken (see the module docblock) and none of them cost the
+   * selection: a player who clicked a mountain wants to aim again, not to start
+   * over. Success disarms move mode — one arming, one order.
+   */
+  function issueMove(hover: HoverInfo): void {
     const unit = selectedUnit();
-    if (!unit) {
-      select(null);
+    if (!unit) return;
+
+    const { col, row } = hover.tile;
+    if (!canOrder()) {
+      // This seat is done for the turn. Keep the selection so the card still
+      // describes the unit, but do not send an order the reducer would refuse.
+      reject(`You have ended turn ${getGame().state.turn}`);
+      onUpdate(unit, hover);
       return;
     }
-    if (!canOrder()) {
-      // This seat is done for the turn. Keep the selection so the panel still
-      // describes the unit, but do not send an order the reducer would refuse.
+    if (col === unit.col && row === unit.row) {
+      // Ordering a unit onto its own tile is not an error, it is a no-op; say
+      // nothing and leave the selection exactly as it was.
+      setMoveMode(false);
       onUpdate(unit, hover);
       return;
     }
@@ -375,11 +576,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     };
     const result = dispatch(getGame(), command);
     if (!result.ok) {
-      // An illegal order is not a reason to lose the selection — the player
-      // most likely clicked a mountain and wants to try again.
+      // The reducer's own words: it knows why better than this module does.
+      reject(result.error);
       onUpdate(unit, hover);
       return;
     }
+
+    setMoveMode(false);
 
     // `unit` is a live reference into the state, so it is already at its
     // destination here; the walked prefix is the route up to that tile.
@@ -448,9 +651,21 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   // --- wiring --------------------------------------------------------------
 
+  /**
+   * The browser's context menu never appears over the board.
+   *
+   * Right click is a game input here whether or not anything is selected, and a
+   * menu that popped up on the "nothing selected" half of that rule would be a
+   * menu the player learns to expect and then loses.
+   */
+  viewport.addEventListener('contextmenu', (event) => event.preventDefault());
+
   viewport.addEventListener('pointerdown', (event) => {
-    if (event.button !== 0) return;
-    dragging = true;
+    // Left and right only, and only one at a time: a second button pressed
+    // mid-drag is a slip, not a gesture.
+    if (event.button !== 0 && event.button !== 2) return;
+    if (dragButton !== null) return;
+    dragButton = event.button;
     travelled = 0;
     pressX = event.clientX;
     pressY = event.clientY;
@@ -458,7 +673,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   });
 
   viewport.addEventListener('pointermove', (event) => {
-    if (dragging) {
+    if (dragButton !== null) {
       const dx = event.clientX - pressX;
       const dy = event.clientY - pressY;
       travelled += Math.abs(dx) + Math.abs(dy);
@@ -472,21 +687,35 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     refreshHover();
   });
 
-  function endDrag(event: PointerEvent): void {
-    if (!dragging) return;
-    dragging = false;
+  /**
+   * Ends a press. `fire` is false for a cancelled pointer, and for a release
+   * that travelled far enough to have been a pan — the slop guard, which is
+   * what keeps a right-drag pan (how a two-finger trackpad drag often arrives)
+   * from ending in a move order the player never asked for.
+   */
+  function endDrag(event: PointerEvent, fire: boolean): void {
+    if (dragButton === null) return;
+    const button = dragButton;
+    dragButton = null;
     if (viewport.hasPointerCapture(event.pointerId)) {
       viewport.releasePointerCapture(event.pointerId);
     }
-    if (travelled > CLICK_SLOP_PX) return;
+    if (!fire || travelled > CLICK_SLOP_PX) return;
 
     const rect = viewport.getBoundingClientRect();
     const hover = renderer.pick(event.clientX - rect.left, event.clientY - rect.top);
-    if (hover) handleClick(hover);
+    if (!hover) return;
+    if (button === 0) handleLeftClick(hover);
+    else handleRightClick(hover);
   }
 
-  viewport.addEventListener('pointerup', endDrag);
-  viewport.addEventListener('pointercancel', endDrag);
+  viewport.addEventListener('pointerup', (event) => {
+    // Releasing a button other than the one that started the drag leaves the
+    // drag running; the gesture is not over until its own button comes up.
+    if (event.button !== dragButton) return;
+    endDrag(event, true);
+  });
+  viewport.addEventListener('pointercancel', (event) => endDrag(event, false));
 
   viewport.addEventListener('pointerleave', () => {
     pointer = null;
@@ -510,7 +739,28 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   window.addEventListener('keydown', (event) => {
     const target = event.target as HTMLElement | null;
-    if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT')) return;
+    const typing =
+      target !== null &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable);
+
+    // A letter typed into the seed box is a letter, not a hotkey — but Escape
+    // is always Escape, or a popover opened from the keyboard would be one you
+    // could not close from the keyboard.
+    if (typing && event.key !== 'Escape') return;
+
+    if (event.key === 'Escape') {
+      // One layer at a time, outermost first. Each of these is something the
+      // player put on the screen, and Escape takes back the most recent thing
+      // they did — not everything at once.
+      if (moveMode) setMoveMode(false);
+      else if (closePopovers?.()) return;
+      else if (openCity()) setOpenCity(null);
+      else clearSelection();
+      return;
+    }
     if (event.key === 'g' || event.key === 'G') {
       // Only the 2D renderer draws a grid to toggle; in 3D the grout lines
       // between the tiles already are one, and there is nothing to hide.
@@ -521,14 +771,18 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       foundCity();
       return;
     }
-    if (event.key === 'Escape') {
-      // One step back at a time: the panel first, the selection after. Escaping
-      // out of a city panel should not also lose the unit you had picked.
-      if (openCity()) setOpenCity(null);
-      else clearSelection();
+    if (event.key === 'm' || event.key === 'M') {
+      // The trackpad's right click. Silent when there is nothing to order:
+      // `setMoveMode` refuses to arm without a unit that could move.
+      setMoveMode(!moveMode);
       return;
     }
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' || event.key === ' ') {
+      // A focused button is already listening for these two keys. Ending the
+      // turn *and* pressing whatever the player had tabbed to is one keystroke
+      // doing two jobs, and the browser's own activation is the one to keep.
+      if (target?.tagName === 'BUTTON') return;
+      if (event.key !== 'Enter') return;
       event.preventDefault();
       endTurn();
     }
@@ -542,6 +796,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     foundCityBlocker,
     openCity,
     setOpenCity,
+    setMoveMode,
+    selectedUnit,
+    isMoveMode: () => moveMode,
     localPlayerId: () => localPlayerId,
     /**
      * Re-reads the game after it has been replaced. A new game is a new table:
@@ -552,6 +809,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       selectedId = null;
       openCityId = null;
       localPlayerId = 0;
+      setMoveMode(false);
       refreshOverlays();
       showLocalPlayer(false);
       onUpdate(null, renderer.getHover());

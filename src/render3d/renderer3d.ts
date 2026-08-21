@@ -108,6 +108,8 @@ export class Renderer3D implements MapView {
   private reachable: readonly CellRef[] = [];
   private pathPreview: readonly CellRef[] = [];
   private workedTiles: readonly CellRef[] = [];
+  /** Move mode armed in the UI: draw the selection ring live. See the setter. */
+  private moveMode = false;
 
   private shadows = LOOK.shadows;
   /** Fingerprint of the units the layer was last built from. See `loop`. */
@@ -206,6 +208,7 @@ export class Renderer3D implements MapView {
     this.pathPreview = [];
     this.workedTiles = [];
     this.selectedUnitId = null;
+    this.moveMode = false;
     this.animations.clear();
     this.clearWalkers();
 
@@ -310,6 +313,7 @@ export class Renderer3D implements MapView {
         hover: this.hover ? { col: this.hover.tile.col, row: this.hover.tile.row } : null,
         selection: selected ? { col: selected.col, row: selected.row } : null,
         worked: this.workedTiles,
+        moveMode: this.moveMode,
       },
       this.geometry,
       this.materials,
@@ -322,6 +326,19 @@ export class Renderer3D implements MapView {
   setSelectedUnitId(id: number | null): void {
     if (this.selectedUnitId === id) return;
     this.selectedUnitId = id;
+    this.rebuildOverlays();
+  }
+
+  /**
+   * Brightens the selection ring while the UI has move mode armed.
+   *
+   * The renderer is told a boolean and nothing else: what move mode *is* belongs
+   * to `src/ui/controls.ts`, and all the board has to know is that this ring
+   * should look live. See `MapView.setMoveModeHighlight`.
+   */
+  setMoveModeHighlight(on: boolean): void {
+    if (this.moveMode === on) return;
+    this.moveMode = on;
     this.rebuildOverlays();
   }
 

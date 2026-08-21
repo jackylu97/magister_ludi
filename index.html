@@ -41,63 +41,176 @@
          never takes a pointer event: the board underneath stays draggable. -->
     <div id="turn-splash" aria-live="polite"></div>
 
-    <div id="panel">
-      <!-- The wordmark line: name in the display face, era stamp in mono. -->
-      <h1 class="wordmark">Web<em>Civ</em><span class="wordmark-mark">cities</span></h1>
+    <!-- ================= the HUD =================================
+         One card per job, each pinned to a corner it never leaves, so nothing
+         the player reads or presses ever moves under them:
 
-      <div class="row">
-        <label for="seed">Seed</label>
-        <input id="seed" type="text" value="1" spellcheck="false" />
+           top-left     #hud-top        who you are and what turn it is
+           under it     #menu-popover   session-rare setup, from the ☰ button
+           under it     #help-overlay   the control scheme, from the ? button
+           bottom-left  #hud-context    what is under the cursor / selected
+           bottom-right #hud-end-turn   the one button pressed every single turn
+
+         The right edge above the End Turn button belongs to #city-panel, which
+         is why that button steps aside while a city screen is open.
+         ============================================================ -->
+
+    <!-- The left column. A flex stack rather than three separately-pinned
+         cards, so a popover always opens directly beneath the card whose button
+         opened it however tall that card grows (more seats, longer names).
+         Nothing sits below the popovers, so nothing can be pushed by one. -->
+    <div id="hud-left">
+      <!-- Always visible, and deliberately the smallest card on the page. -->
+      <div id="hud-top" class="hud-card">
+        <div class="hud-head">
+          <!-- The wordmark line: display face, italic accent, mono era stamp. -->
+          <h1 class="wordmark">Web<em>Civ</em><span class="wordmark-mark">cities</span></h1>
+          <div class="hud-tools">
+            <button
+              id="menu-button"
+              class="icon-btn"
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded="false"
+              aria-controls="menu-popover"
+              title="Game setup"
+              aria-label="Game setup"
+            >
+              ☰
+            </button>
+            <button
+              id="help-button"
+              class="icon-btn"
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded="false"
+              aria-controls="help-overlay"
+              title="Controls"
+              aria-label="Controls"
+            >
+              ?
+            </button>
+          </div>
+        </div>
+
+        <p id="status" class="status">—</p>
+
+        <!-- One chip per seat: who is playing, and who has already ended their
+             turn. Clicking one takes that seat — hot-seat play, kept as a
+             development harness now that turns are simultaneous. -->
+        <div id="seats" class="seats"></div>
       </div>
 
-      <div class="row">
-        <label for="size">Size</label>
-        <select id="size"></select>
+      <!-- Game setup. Session-rare, so it costs no permanent screen space: the
+           menu button opens it, Esc or a click outside closes it, and focus is
+           trapped inside while it is open and restored to that button on close. -->
+      <div
+        id="menu-popover"
+        class="hud-card popover"
+        role="dialog"
+        aria-label="Game setup"
+        hidden
+      >
+        <div class="popover-head">
+          <h2 class="popover-title">Game setup</h2>
+          <button id="menu-close" class="popover-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </div>
+
+        <div class="row">
+          <label for="seed">Seed</label>
+          <input id="seed" type="text" value="1" spellcheck="false" />
+        </div>
+
+        <div class="row">
+          <label for="size">Size</label>
+          <select id="size"></select>
+        </div>
+
+        <div class="row">
+          <button id="regenerate" class="btn btn-quiet">New Game</button>
+          <button id="random-seed" class="btn btn-quiet">Random</button>
+        </div>
+
+        <!-- The renderer's own switches (shadows) and its stats line are appended
+             here by main.ts, because only the 3D pipeline has any. -->
+        <div id="menu-extras"></div>
+
+        <dl class="info-list">
+          <dt>Map</dt>
+          <dd id="info-map">—</dd>
+          <dt>Seed</dt>
+          <dd id="info-seed">—</dd>
+        </dl>
       </div>
 
-      <div class="row">
-        <button id="regenerate" class="btn btn-quiet">New Game</button>
-        <button id="random-seed" class="btn btn-quiet">Random</button>
+      <!-- The whole control scheme, one keystroke away and never in the way.
+           Kept in sync with src/ui/controls.ts by hand; main.ts strips the lines
+           that do not apply to the renderer that is actually running. -->
+      <div
+        id="help-overlay"
+        class="hud-card popover"
+        role="dialog"
+        aria-label="Controls"
+        hidden
+      >
+        <div class="popover-head">
+          <h2 class="popover-title">Controls</h2>
+          <button id="help-close" class="popover-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <ul class="help-list">
+          <li><b>Left click</b> a unit to select it — again to cycle a stack</li>
+          <li><b>Left click</b> a city to open its panel</li>
+          <li><b>Left click</b> anywhere else to deselect</li>
+          <li><b>Right click</b> a tile to move the selected unit there</li>
+          <li><kbd>M</kbd> then <b>left click</b> moves too — for trackpads</li>
+          <li><b>Drag</b> with either button to pan · <b>wheel</b> or pinch to zoom</li>
+          <li><kbd>B</kbd> founds a city with the selected settler</li>
+          <li><kbd>Enter</kbd> ends your turn</li>
+          <li data-only="2d"><kbd>G</kbd> toggles the hex grid</li>
+          <li><kbd>Esc</kbd> backs out: move mode, then this panel, then the selection</li>
+        </ul>
       </div>
+    </div>
 
-      <p id="status" class="status">—</p>
+    <!-- Bottom-left: everything the pointer and the selection have to say.
+         Fixed where it is and faded in, so the card appearing never shifts a
+         single thing the player was already looking at. -->
+    <div id="hud-context" class="hud-card">
+      <p id="context-notice" class="context-notice" hidden></p>
 
-      <!-- One chip per seat: who is playing, and who has already ended their
-           turn. Clicking one takes that seat — hot-seat play, kept as a
-           development harness now that turns are simultaneous. -->
-      <div id="seats" class="seats"></div>
-
-      <div class="row">
-        <button id="end-turn" class="btn btn-primary">End Turn</button>
-      </div>
-
-      <!-- Enabled only when the selected unit could actually found a city here;
-           its title says why not when it is disabled. -->
-      <div class="row">
-        <button id="found-city" class="btn btn-second" disabled>Found City</button>
-      </div>
-
-      <dl id="info">
-        <dt>Map</dt>
-        <dd id="info-map">—</dd>
-        <dt>Seed</dt>
-        <dd id="info-seed">—</dd>
+      <dl id="info" class="info-list">
         <dt>Terrain</dt>
         <dd id="info-terrain">—</dd>
         <dt>Feature</dt>
         <dd id="info-feature">—</dd>
         <dt>Yields</dt>
         <dd id="info-yields">—</dd>
-        <dt>Offset</dt>
+        <!-- Both coordinate systems: offset is how the map is stored, axial is
+             how the pathfinder thinks. Two rows rather than one long line,
+             because either alone wraps in a 250px card. -->
+        <dt>Cell</dt>
         <dd id="info-offset">—</dd>
+        <dt>Hex</dt>
+        <dd id="info-axial">—</dd>
         <dt>Unit</dt>
         <dd id="info-unit">—</dd>
       </dl>
 
-      <p id="hint" class="hint">
-        Click a unit to select · click a tile to move · <kbd>Esc</kbd> deselects ·
-        <kbd>Enter</kbd> ends the turn · <kbd>G</kbd> toggles the grid
-      </p>
+      <!-- Enabled only when the selected unit could actually found a city here;
+           its title says why not when it is disabled. -->
+      <button id="found-city" class="btn btn-second" hidden disabled>Found City</button>
+    </div>
+
+    <!-- Bottom-right, alone, and the same size and place every turn of every
+         game: the most-pressed control in the game gets a muscle-memory home. -->
+    <div id="hud-end-turn">
+      <button id="end-turn" class="btn btn-primary btn-end" type="button">
+        End Turn <kbd class="btn-key">⏎</kbd>
+      </button>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

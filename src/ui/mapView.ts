@@ -84,6 +84,20 @@ export interface MapView {
   toggleGrid?(): void;
 
   /**
+   * Optional: brightens the selected unit's ring while move mode is armed.
+   *
+   * Move mode changes what the *next left click* will do, which is exactly the
+   * kind of state a player will otherwise forget they are in. The crosshair
+   * cursor and the context card both say so, and this is the third voice: the
+   * piece that is about to be ordered looks ready to be ordered.
+   *
+   * Optional because it is a 3D feature and the 2D pipelines are frozen. Under
+   * `?art=flat` move mode still works — it just shows in the cursor and the
+   * card rather than on the board.
+   */
+  setMoveModeHighlight?(on: boolean): void;
+
+  /**
    * Optional: marks the tiles the open city's citizens work.
    *
    * Optional for the same reason `panToCells` is — it is a 3D feature, and the

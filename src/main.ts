@@ -36,6 +36,7 @@ import { tileYieldOf } from './sim/cities';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import { createGameControls } from './ui/controls';
+import { createPopover } from './ui/popover';
 import { createTurnSplash } from './ui/turnSplash';
 import type { HoverInfo, MapView } from './ui/mapView';
 
@@ -55,12 +56,18 @@ const statusEl = requireElement<HTMLElement>('status');
 const seatsEl = requireElement<HTMLElement>('seats');
 const viewportEl = requireElement<HTMLDivElement>('viewport');
 const bootEl = requireElement<HTMLElement>('boot');
-const panelEl = requireElement<HTMLElement>('panel');
-const infoEl = requireElement<HTMLElement>('info');
-const hintEl = requireElement<HTMLElement>('hint');
 const bannersEl = requireElement<HTMLElement>('banners');
 const cityPanelEl = requireElement<HTMLElement>('city-panel');
 const turnSplashEl = requireElement<HTMLElement>('turn-splash');
+
+/** The HUD's four corners; see the layout comment in `index.html`. */
+const menuButton = requireElement<HTMLButtonElement>('menu-button');
+const menuPopoverEl = requireElement<HTMLElement>('menu-popover');
+const menuExtrasEl = requireElement<HTMLElement>('menu-extras');
+const helpButton = requireElement<HTMLButtonElement>('help-button');
+const helpOverlayEl = requireElement<HTMLElement>('help-overlay');
+const contextEl = requireElement<HTMLElement>('hud-context');
+const contextNoticeEl = requireElement<HTMLElement>('context-notice');
 
 const infoMap = requireElement<HTMLElement>('info-map');
 const infoSeed = requireElement<HTMLElement>('info-seed');
@@ -68,6 +75,7 @@ const infoTerrain = requireElement<HTMLElement>('info-terrain');
 const infoFeature = requireElement<HTMLElement>('info-feature');
 const infoYields = requireElement<HTMLElement>('info-yields');
 const infoOffset = requireElement<HTMLElement>('info-offset');
+const infoAxial = requireElement<HTMLElement>('info-axial');
 const infoUnit = requireElement<HTMLElement>('info-unit');
 
 for (const name of MAP_SIZE_NAMES) {
@@ -200,10 +208,11 @@ function keepCanvases(keep: 'toon3d' | 'canvas2d'): void {
 /**
  * The 3D-only controls: a shadow switch and a stats line.
  *
- * Built here rather than sitting in `index.html` because the 2D pages must keep
- * the panel they have. Shadows are exposed because they are the one setting that
- * can turn a smooth board into a slideshow on a weak GPU, and the player is the
- * only one who can tell whether they are worth it on their machine.
+ * They live in the setup popover, with the other session-rare knobs, and are
+ * built here rather than sitting in `index.html` because only one of the three
+ * renderers has them at all. Shadows are exposed because they are the one
+ * setting that can turn a smooth board into a slideshow on a weak GPU, and the
+ * player is the only one who can tell whether they are worth it on theirs.
  */
 function build3DPanel(renderer: Renderer3D): () => void {
   const row = document.createElement('div');
@@ -216,12 +225,11 @@ function build3DPanel(renderer: Renderer3D): () => void {
   label.htmlFor = 'shadows';
   label.textContent = 'Shadows';
   row.append(toggle, label);
-  panelEl.insertBefore(row, infoEl);
+  menuExtrasEl.append(row);
 
   const stats = document.createElement('p');
   stats.id = 'stats';
-  stats.className = 'hint';
-  panelEl.insertBefore(stats, hintEl);
+  menuExtrasEl.append(stats);
 
   toggle.addEventListener('change', () => {
     renderer.setShadows(toggle.checked);
@@ -258,10 +266,9 @@ async function createRenderer(
   if (mode === 'toon3d') {
     keepCanvases('toon3d');
     bootEl.remove();
-    hintEl.innerHTML =
-      'Click a unit to select · click a tile to move · click a city to open it · ' +
-      'drag to pan · wheel to zoom · <kbd>B</kbd> founds a city · ' +
-      '<kbd>Esc</kbd> closes · <kbd>Enter</kbd> ends the turn';
+    // The controls sheet is written for every renderer at once; the lines that
+    // only apply to the 2D pipelines go away when they are not the one running.
+    for (const el of helpOverlayEl.querySelectorAll('[data-only="2d"]')) el.remove();
     const renderer = new Renderer3D(requireElement<HTMLCanvasElement>('layer-3d'));
     const report = build3DPanel(renderer);
     renderer.setGameState(game.state);
@@ -369,17 +376,72 @@ async function start(): Promise<void> {
   }
 
   /**
-   * The Found City button. Enabled by exactly the rule the reducer applies (see
-   * `foundingError`), and titled with the reason it is not — a button that will
+   * The Found City button, which is only on the page at all while a unit of
+   * yours is selected — it is the selection's own verb, and an always-present
+   * disabled button in the corner of the screen is furniture, not an offer.
+   *
+   * When it is shown it is enabled by exactly the rule the reducer applies (see
+   * `foundingError`) and titled with the reason it is not: a button that will
    * not work should say why before it is pressed, not after.
    */
   function updateFoundCity(): void {
     const blocker = controls.foundCityBlocker();
     const noUnit = blocker === undefined;
+    foundCityButton.hidden = noUnit;
     foundCityButton.disabled = noUnit || blocker !== null;
-    foundCityButton.title = noUnit
-      ? 'Select a settler first'
-      : (blocker ?? 'Found a city here (B)');
+    foundCityButton.title = blocker ?? 'Found a city here (B)';
+  }
+
+  /**
+   * The bottom-left context card: what the pointer is over, what is selected,
+   * and what mode the player has put themselves in.
+   *
+   * It is *shown* rather than laid out — the card is pinned to its corner and
+   * only fades — so a card that appears mid-hover never shifts anything the
+   * player was reading. With nothing hovered, nothing selected and no message
+   * outstanding it fades away entirely rather than sitting there full of
+   * em dashes.
+   */
+  function updateContext(selected: Unit | null, hover: HoverInfo | null): void {
+    if (hover) {
+      const described = describeTile(hover.tile);
+      infoTerrain.textContent = described.terrain + (described.hills ? ' (hills)' : '');
+      infoFeature.textContent = described.feature;
+      infoOffset.textContent = `col ${hover.tile.col}, row ${hover.tile.row}`;
+      infoAxial.textContent = `q ${hover.axial.q}, r ${hover.axial.r}`;
+      showTileYields(hover.tile);
+    } else {
+      infoTerrain.textContent = '—';
+      infoFeature.textContent = '—';
+      infoOffset.textContent = '—';
+      infoAxial.textContent = '—';
+      infoYields.textContent = '—';
+    }
+
+    infoUnit.textContent = selected ? describeUnit(selected) : '—';
+    contextEl.classList.toggle(
+      'is-shown',
+      hover !== null || selected !== null || !contextNoticeEl.hidden,
+    );
+  }
+
+  /**
+   * The message line inside the context card: move mode while it is armed, or a
+   * refused order for a beat and a half. `kind` is the difference between a
+   * state the player chose and a "no" they did not — the refusal flashes.
+   */
+  function showNotice(text: string | null, kind: 'mode' | 'reject'): void {
+    contextNoticeEl.hidden = text === null;
+    contextNoticeEl.textContent = text ?? '';
+    contextNoticeEl.classList.toggle('is-reject', text !== null && kind === 'reject');
+    // Restart the flash even when the same refusal arrives twice in a row: two
+    // identical "no"s should look like two.
+    if (text !== null && kind === 'reject') {
+      contextNoticeEl.classList.remove('is-flashing');
+      void contextNoticeEl.offsetWidth;
+      contextNoticeEl.classList.add('is-flashing');
+    }
+    updateContext(controls.selectedUnit(), renderer.getHover());
   }
 
   function updatePanel(selected: Unit | null, hover: HoverInfo | null): void {
@@ -390,21 +452,11 @@ async function start(): Promise<void> {
     // change — so both city views are refreshed wherever the main panel is.
     banners.refresh();
     cityPanel.render();
+    // The End Turn button sits in the same corner the city screen occupies, so
+    // it steps aside for it rather than hiding underneath.
+    document.body.classList.toggle('is-city-open', !cityPanelEl.hidden);
 
-    if (hover) {
-      const described = describeTile(hover.tile);
-      infoTerrain.textContent = described.terrain + (described.hills ? ' (hills)' : '');
-      infoFeature.textContent = described.feature;
-      infoOffset.textContent = `col ${hover.tile.col}, row ${hover.tile.row}`;
-      showTileYields(hover.tile);
-    } else {
-      infoTerrain.textContent = '—';
-      infoFeature.textContent = '—';
-      infoOffset.textContent = '—';
-      infoYields.textContent = '—';
-    }
-
-    infoUnit.textContent = selected ? describeUnit(selected) : '—';
+    updateContext(selected, hover);
   }
 
   // --- lifecycle ------------------------------------------------------------
@@ -416,11 +468,38 @@ async function start(): Promise<void> {
    */
   const splash = createTurnSplash(turnSplashEl);
 
+  /**
+   * The two transient cards. Only one is ever open — each closes the other as
+   * it opens — and Escape reaches them through `controls`, which owns the key
+   * and the order it backs things out in.
+   */
+  const menu = createPopover({
+    panel: menuPopoverEl,
+    trigger: menuButton,
+    closeButton: requireElement('menu-close'),
+    onOpen: () => help.close(),
+  });
+  const help = createPopover({
+    panel: helpOverlayEl,
+    trigger: helpButton,
+    closeButton: requireElement('help-close'),
+    onOpen: () => menu.close(),
+  });
+
+  function closePopovers(): boolean {
+    const wasOpen = menu.isOpen || help.isOpen;
+    menu.close();
+    help.close();
+    return wasOpen;
+  }
+
   const controls = createGameControls({
     viewport: viewportEl,
     renderer,
     getGame: () => game,
     onUpdate: updatePanel,
+    onNotice: showNotice,
+    closePopovers,
     onTurnResolved: () => {
       const local = game.state.players[controls.localPlayerId()];
       if (local) splash.announceTurn(local.name);

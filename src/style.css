@@ -156,16 +156,16 @@ body {
   color: var(--parchment);
 }
 
-/* --- the main panel -------------------------------------------------------
-   A parchment card pinned to the top-left: the game's own controls, the seat
-   chips, and whatever the pointer is hovering over. */
-#panel {
+/* --- the HUD --------------------------------------------------------------
+   Four parchment surfaces, one per job, each pinned to a corner it never
+   leaves. See the layout comment in index.html.
+
+   `.hud-card` is the shared recipe — the card the old single panel used to be —
+   and everything below only places it and fills it. */
+.hud-card {
   position: fixed;
-  top: 14px;
-  left: 14px;
   z-index: 10;
-  width: 244px;
-  padding: 11px 13px 11px;
+  padding: 10px 12px;
   border: var(--border) solid var(--ink);
   border-radius: var(--radius);
   background: var(--parchment);
@@ -176,17 +176,100 @@ body {
   color: var(--ink);
 }
 
+/* The left column: the status card with whichever popover is open stacked
+   under it. Pinned once, so the popover is positioned *by the card above it*
+   and cannot drift out of alignment when that card grows a row of seats.
+
+   Transparent to the pointer, with the cards themselves opaque to it: the
+   column's own box spans the gap between the cards, and the board underneath
+   that gap has to stay draggable. */
+#hud-left {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: none;
+}
+
+#hud-left > .hud-card {
+  position: static;
+  pointer-events: auto;
+}
+
+/* Top-left: identity and state, and nothing that can be pressed by accident.
+   It is the only card that is always on the screen, so it is the smallest. */
+#hud-top {
+  top: 14px;
+  left: 14px;
+  width: 236px;
+}
+
+/* The wordmark and its two quiet tool buttons share one line, and that line is
+   the card's title rule. */
+.hud-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 7px;
+  border-bottom: var(--border) solid var(--ink);
+}
+
+.hud-tools {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+/* A small square of parchment with an ink edge: loud enough to find, quiet
+   enough that nothing in the corner competes with the board. */
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.icon-btn:active,
+.icon-btn[aria-expanded='true'] {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.icon-btn[aria-expanded='true'] {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
 /* The wordmark line: display face, italic accent, mono era stamp. One line, so
-   the panel spends a title's worth of drama on a title's worth of height. */
+   the card spends a title's worth of drama on a title's worth of height. */
 .wordmark {
   display: flex;
   align-items: baseline;
   gap: 7px;
-  margin: 0 0 9px;
-  padding-bottom: 8px;
-  border-bottom: var(--border) solid var(--ink);
+  margin: 0;
   font-family: var(--face-display);
-  font-size: 27px;
+  font-size: 25px;
   font-weight: 400;
   line-height: 0.95;
   letter-spacing: 0.005em;
@@ -212,7 +295,93 @@ body {
   text-transform: uppercase;
 }
 
-#panel .row {
+/* --- the setup and controls popovers --------------------------------------
+   Anchored under the top-left card, in its column, so that opening one reads as
+   that card unfolding rather than as a dialog arriving from nowhere. There is
+   no scrim: the game is still live behind it. */
+.popover {
+  width: 236px;
+}
+
+.popover[hidden] {
+  display: none;
+}
+
+.popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+  padding-bottom: 6px;
+  border-bottom: var(--border-thin) solid var(--ink);
+}
+
+.popover-title {
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--vermilion);
+}
+
+/* The same × the city screen wears, one size down. */
+.popover-close {
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 4px;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.popover-close:hover {
+  background: var(--vermilion);
+  color: var(--parchment);
+}
+
+.popover-close:active {
+  transform: translate(1px, 1px);
+}
+
+/* The controls sheet is prose, and it is wider than the setup card because a
+   binding that wraps mid-phrase is a binding you read twice. */
+#help-overlay {
+  width: 288px;
+}
+
+.help-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.help-list li + li {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: var(--border-thin) dashed rgba(29, 26, 32, 0.18);
+}
+
+.help-list b {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* --- shared card innards --------------------------------------------------- */
+
+.hud-card .row {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -220,14 +389,14 @@ body {
 }
 
 /* A checkbox row labels to the right of its box, not in the fixed label column. */
-#panel .row.check label {
+.hud-card .row.check label {
   width: auto;
   color: inherit;
 }
 
 /* Native box, hot accent: one property does what a hand-built checkbox would
    need a dozen of, and it keeps the control's own keyboard behaviour. */
-#panel .row.check input {
+.hud-card .row.check input {
   flex: 0 0 auto;
   width: 14px;
   height: 14px;
@@ -235,7 +404,7 @@ body {
   accent-color: var(--vermilion);
 }
 
-#panel label {
+.hud-card label {
   width: 34px;
   font-family: var(--face-num);
   font-size: 9px;
@@ -248,8 +417,8 @@ body {
 /* Text fields only: the shadow checkbox stays a native control (see below), and
    a native control that has been given a border and a background is a control
    that renders differently in every browser. */
-#panel input:not([type='checkbox']),
-#panel select {
+.hud-card input:not([type='checkbox']),
+.hud-card select {
   flex: 1;
   min-width: 0;
   padding: 4px 7px;
@@ -262,7 +431,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-#panel select {
+.hud-card select {
   font-family: var(--face-ui);
   font-weight: 600;
 }
@@ -330,13 +499,13 @@ body {
 
 /* --- status and seats ----------------------------------------------------- */
 
+/* The wordmark rule above it is already a divider; a second one under it would
+   turn a three-line card into a stack of boxes. */
 .status {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  margin: 10px 0 7px;
-  padding-top: 8px;
-  border-top: var(--border-thin) dashed var(--ink-faint);
+  margin: 0 0 7px;
   font-size: 13px;
 }
 
@@ -376,10 +545,10 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  margin: 0 0 8px;
+  margin: 0;
 }
 
-#panel button.seat {
+.hud-card button.seat {
   flex: 0 1 auto;
   padding: 2px 9px 3px;
   border: var(--border-thin) solid var(--ink);
@@ -397,55 +566,64 @@ body {
   transition: transform 60ms ease-out, box-shadow 60ms ease-out;
 }
 
-#panel button.seat:hover {
+.hud-card button.seat:hover {
   filter: brightness(1.08);
 }
 
 /* Your own seat is the one that is "out on the table". */
-#panel button.seat.is-local {
+.hud-card button.seat.is-local {
   box-shadow: var(--shadow-sm);
   transform: translate(-1px, -1px);
 }
 
-#panel button.seat.is-done {
+.hud-card button.seat.is-done {
   background: var(--parchment);
   color: var(--ink-soft);
 }
 
-#panel button.seat:active {
+.hud-card button.seat:active {
   transform: translate(2px, 2px);
   box-shadow: 0 0 0 var(--ink);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #panel button.seat {
+  .hud-card button.seat {
     transition: none;
   }
 }
 
 /* The 3D renderer's own stats line: numbers, therefore mono. */
 #stats {
-  margin: 0 0 8px;
+  margin: 4px 0 0;
   font-family: var(--face-num);
   font-size: 10px;
+  line-height: 1.5;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   white-space: pre-wrap;
 }
 
-/* --- the info readout ----------------------------------------------------- */
+/* --- the info readout -----------------------------------------------------
+   A term/value grid, used by the context card and by the setup popover's map
+   summary. */
 
-#info {
+.info-list {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 3px 10px;
   align-items: baseline;
-  margin: 9px 0 8px;
+  margin: 0;
+}
+
+/* In the popover it follows the setup rows, so it needs the rule the context
+   card's copy does not. */
+#menu-popover .info-list {
+  margin-top: 8px;
   padding-top: 8px;
   border-top: var(--border-thin) dashed var(--ink-faint);
 }
 
-#info dt {
+.info-list dt {
   font-family: var(--face-num);
   font-size: 9px;
   font-weight: 600;
@@ -454,7 +632,7 @@ body {
   color: var(--ink-soft);
 }
 
-#info dd {
+.info-list dd {
   margin: 0;
   font-family: var(--face-num);
   font-size: 11px;
@@ -462,7 +640,7 @@ body {
 }
 
 /* The terrain is the one name in this block, so it gets the naming face. The
-   selectors carry `#info` only to outrank the `#info dd` default above. */
+   selectors carry `#info` only to outrank the `.info-list dd` default above. */
 #info #info-terrain {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 80;
@@ -515,6 +693,171 @@ kbd {
   font-family: var(--face-num);
   font-size: 9.5px;
   font-weight: 600;
+}
+
+/* --- bottom-left: the context card ----------------------------------------
+   What the pointer is over, what is selected, and what mode you are in.
+
+   It only exists when it has something to say, and it must not announce itself
+   by moving the furniture — so it is pinned to its corner and *faded*, never
+   laid out. `visibility` rather than `display` because a faded-out card must
+   also be out of the tab order: the Found City button inside it is real. */
+#hud-context {
+  left: 14px;
+  bottom: 14px;
+  width: 252px;
+  /* Transparent to the pointer, like the banner sheet: the card sits over a
+     live board and it is *driven* by hovering that board. If it caught the
+     pointer, moving the mouse onto it would count as leaving the map, clear the
+     hover it is showing, and hide the card out from under the cursor. Only the
+     one real control inside it takes events. */
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 120ms ease-out, transform 120ms ease-out,
+    visibility 0s linear 120ms;
+}
+
+#hud-context.is-shown {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 120ms ease-out, transform 120ms ease-out,
+    visibility 0s linear 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #hud-context {
+    transform: none;
+    transition: opacity 80ms linear, visibility 0s linear 80ms;
+  }
+  #hud-context.is-shown {
+    transition: opacity 80ms linear, visibility 0s linear 0s;
+  }
+}
+
+/* The Found City button is the selection's own verb, so it sits under the
+   readout that describes the selection, full width, and is on the page only
+   while there is a unit to use it on. */
+#found-city {
+  display: block;
+  width: 100%;
+  margin-top: 9px;
+  pointer-events: auto;
+}
+
+#found-city[hidden] {
+  display: none;
+}
+
+/* The card's message line: move mode while it is armed, a refusal for a beat.
+   It sits above the readout because it is the newer news. */
+.context-notice {
+  margin: 0 0 8px;
+  padding: 5px 8px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--table);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.context-notice[hidden] {
+  display: none;
+}
+
+/* A "no" is vermilion and arrives with a flinch. Move mode's line is not: it is
+   a state the player asked for, not a refusal. */
+.context-notice.is-reject {
+  border-color: var(--vermilion);
+  background: var(--vermilion);
+  color: var(--parchment);
+}
+
+.context-notice.is-reject.is-flashing {
+  animation: notice-shake 240ms ease-out both;
+}
+
+@keyframes notice-shake {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-3px);
+  }
+  60% {
+    transform: translateX(3px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .context-notice.is-reject.is-flashing {
+    animation: none;
+  }
+}
+
+/* --- bottom-right: End Turn -----------------------------------------------
+   Alone in its corner, the biggest button in the game, and in exactly the same
+   place every turn of every game. It is the control the player presses more
+   than all the others put together, and muscle memory is the whole point. */
+#hud-end-turn {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 10;
+  transition: right 140ms ease-out;
+}
+
+/* The city screen owns the right edge while it is open, so the button steps
+   left rather than hiding underneath it. 286px of panel plus its own margin. */
+body.is-city-open #hud-end-turn {
+  right: 314px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #hud-end-turn {
+    transition: none;
+  }
+}
+
+.btn-end {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 20px 12px;
+  border-width: var(--border);
+  border-radius: var(--radius);
+  font-size: 16px;
+  letter-spacing: 0.01em;
+  box-shadow: var(--shadow);
+}
+
+.btn-end:active:not(:disabled) {
+  transform: translate(5px, 5px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* The key that does the same job, worn on the button that does it. */
+.btn-end .btn-key {
+  border-color: rgba(247, 242, 225, 0.75);
+  background: transparent;
+  color: var(--parchment);
+  font-size: 11px;
+}
+
+/* --- move mode -------------------------------------------------------------
+   Armed by M: the next left click is an order. The cursor is the fastest of the
+   three ways the interface says so (the others are the context card's line and
+   the selected unit's brightened ring). */
+#viewport.is-move-mode,
+#viewport.is-move-mode:active {
+  cursor: crosshair;
 }
 
 /* --- the turn splash ------------------------------------------------------
