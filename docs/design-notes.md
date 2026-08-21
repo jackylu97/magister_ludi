@@ -197,10 +197,27 @@ roguelike draft layer needs many runs to pay off — run identity starves in mar
    Default tuned to one evening; Epic preserves the long arc for those who want it. (The depth
    pressure-valve: we don't have to choose for everyone.)
 
-**Risks:** VP endgames can feel anticlimactic if points are opaque — score must be legible all
-game (a running scoreboard, "the theatre bill"); acceleration curves can make leads uncatchable
-— pair with the catch-up levers already noted (civic cost catch-up, authority penalties on
-runaway conquest).
+5. **Pace mechanics (user, 2026-08-21):**
+   - **Higher base unit movement** (e.g. warrior 3, scout 4) — kills transit dead-turns on the
+     smaller default maps. Pure `units.json`. Watch: faster units make 1UPT tactics swingier;
+     re-feel at the combat milestone.
+   - **AoE2-style auto-upgrade**: researching the enabling tech upgrades all units of the line
+     automatically (optional one-time per-type "retooling" gold cost as a data lever, tunable to
+     0). Kills Civ's per-unit upgrade micro; the decision stays in composition + tech timing.
+     Clean design space for military civics ("retooling is free").
+   - **Condensed tech/civic trees**: ~45–55 tech nodes total across all ages (vs Civ V's ~80),
+     each a *package* (2–3 unlocks, later + a pool boon choice per Entry II). No connective-
+     tissue filler techs. Fewer nodes, every one a decision.
+
+**Scoring flavor (DECIDED direction):** victory points are **glass beads** — the Magister Ludi
+reference made mechanical. Ages award beads at their close; wonders/feats add beads; the
+always-visible scoreboard is **the Abacus** (a bead string per player, tabletop-legible at a
+glance). This resolves the VP-legibility risk physically. (Retired: "theatre bill" — wrong
+name's metaphor.)
+
+**Risks:** VP endgames can feel anticlimactic if points are opaque — mitigated by the Abacus
+being visible all game; acceleration curves can make leads uncatchable — pair with the catch-up
+levers already noted (civic cost catch-up, authority penalties on runaway conquest).
 
 ---
 
