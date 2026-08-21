@@ -113,9 +113,10 @@ rulers. The archetype: characters history half-remembers. Poison kings, pirate q
 princesses, castle-mad kings, self-proclaimed emperors, wandering geniuses. Tone: affectionate,
 a little strange, never edgelord.
 
-**Named by the user:** Mithridates VI of Pontus (the Poison King) · "William the Lionhearted"
-(NB: likely **William the Lion**, King of Scots — origin of the Lion Rampant — rather than the
-famous Richard the Lionheart; confirm which) · Nikola Tesla (proof leaders needn't be rulers).
+**Named by the user:** Mithridates VI of Pontus (the Poison King) · **"William the Lionhearted"**
+(user-confirmed name 2026-08-21; historical anchor — William the Lion of Scots vs. Richard the
+Lionheart — to be settled at implementation) · Nikola Tesla (proof leaders needn't be rulers).
+Roster below user-approved as a holding list; revisit at the leaders milestone.
 
 **Candidate roster** (leader · hook · mechanical sketch, all data-driven modifiers):
 
@@ -142,6 +143,30 @@ modifier vocabulary (no bespoke engine per leader); leader quirks should *touch 
 systems* (authority, happiness, drafts, dice) so the roster advertises the game's identity;
 obscure ≠ unresearched — each gets a one-line true epithet the player can chase down and discover
 was real. That discovery moment IS the flavor strategy.
+
+---
+
+## Entry IV — Parked ideas (deliberately later; do not build yet)
+
+Noted 2026-08-21 at the user's request, with explicit anti-scope-creep intent. These are GOOD
+ideas whose time is after the vanilla loop + the systems above prove out. Nothing here may leak
+into earlier milestones.
+
+1. **Rolled & upgradeable leader/civ bonuses.** Leader + civ bonuses are (optionally) drafted or
+   rolled at game start — run identity from turn 0, roguelike-style — and can be *upgraded over
+   the course of the game* (tying into the maturation/upgrade vocabulary from Entry II).
+   Open questions for later: rolled vs. picked vs. draft-3; how upgrades are earned (eras?
+   milestones? dice?); MP fairness of asymmetric rolls.
+2. **Events system, Old World-style.** Narrative event cards that fire from game state and
+   *interact with your civ/leader selection* (a Poison King empire gets poison-flavored events).
+   Old World's system is the reference: choices with real mechanical stakes, character-driven.
+   Natural synergy: events as a source of Magister's Dice; events as delivery for card upgrades.
+   Big content lift — needs its own milestone and a writing pass. Deterministic like everything
+   else: event draws from `state.rng`, choices are commands.
+
+**Scope-creep guard:** the active roadmap stays vanilla-first (M4 science/culture → combat → AI →
+netcode). New mechanics land in THIS file first, get sequenced explicitly, and only then get
+built. The excitement is a feature; the parking lot is the discipline.
 
 ---
 
