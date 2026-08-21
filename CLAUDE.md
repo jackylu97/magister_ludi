@@ -5,6 +5,11 @@ toon-shaded 3D renderer, data-driven balance. Design ledger: `docs/design-notes.
 UI design language: `docs/design-specimen.html` (ink/parchment, Instrument Serif /
 Fraunces / Instrument Sans / IBM Plex Mono; every number tabular mono).
 
+Naming is settled: "Magister Ludi" is the product name, but internal code may keep
+"webciv" in identifiers and domain strings — the RNG separator
+`hashSeed('webciv:gameplay:…')` (`src/sim/state.ts`) must NEVER be renamed, as it
+would change every seeded outcome. No further rename passes.
+
 ## Commands
 - `npm run dev` · `npm run typecheck` · `npm run test` (Vitest) · `npm run build`
 - All three gates (typecheck, test, build) must be clean before any task is "done".

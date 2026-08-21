@@ -24,7 +24,13 @@ import './style.css';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES, getMapSize } from './sim/mapgen';
 import { hashSeed } from './sim/rng';
 import { type Game, createGame } from './sim/game';
-import { type GameConfig, type PlayerSpec, type Unit, hasEndedTurn } from './sim/state';
+import {
+  type GameConfig,
+  type GameState,
+  type PlayerSpec,
+  type Unit,
+  hasEndedTurn,
+} from './sim/state';
 import type { Tile } from './sim/map';
 import { featureDef, terrainDef } from './sim/terrainData';
 import { unitDef } from './sim/unitData';
@@ -33,11 +39,14 @@ import { loadSprites } from './render/sprites';
 import { createFlatTileArtist, createTileArtist } from './render/tileVisuals';
 import { Renderer3D } from './render3d/renderer3d';
 import { tileYieldOf } from './sim/cities';
+import { unitsOnTile } from './sim/units';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import { createGameControls } from './ui/controls';
 import { createPopover } from './ui/popover';
+import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { createTurnSplash } from './ui/turnSplash';
+import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
 import type { HoverInfo, MapView } from './ui/mapView';
 
 function requireElement<T extends HTMLElement>(id: string): T {
@@ -51,16 +60,17 @@ const sizeSelect = requireElement<HTMLSelectElement>('size');
 const regenerateButton = requireElement<HTMLButtonElement>('regenerate');
 const randomSeedButton = requireElement<HTMLButtonElement>('random-seed');
 const endTurnButton = requireElement<HTMLButtonElement>('end-turn');
-const foundCityButton = requireElement<HTMLButtonElement>('found-city');
 const statusEl = requireElement<HTMLElement>('status');
 const seatsEl = requireElement<HTMLElement>('seats');
+const civYieldsEl = requireElement<HTMLElement>('civ-yields');
 const viewportEl = requireElement<HTMLDivElement>('viewport');
 const bootEl = requireElement<HTMLElement>('boot');
 const bannersEl = requireElement<HTMLElement>('banners');
 const cityPanelEl = requireElement<HTMLElement>('city-panel');
+const unitPanelEl = requireElement<HTMLElement>('unit-panel');
 const turnSplashEl = requireElement<HTMLElement>('turn-splash');
 
-/** The HUD's four corners; see the layout comment in `index.html`. */
+/** The HUD's surfaces; see the layout comment in `index.html`. */
 const menuButton = requireElement<HTMLButtonElement>('menu-button');
 const menuPopoverEl = requireElement<HTMLElement>('menu-popover');
 const menuExtrasEl = requireElement<HTMLElement>('menu-extras');
@@ -176,13 +186,22 @@ function showTileYields(tile: Tile): void {
   );
 }
 
-function describeUnit(unit: Unit): string {
-  const def = unitDef(unit.type);
-  const marching = unit.path !== undefined && unit.path.length > 0 ? ' · marching' : '';
-  return (
-    `${def.name} · ${unit.hp}/${def.maxHp} hp · ` +
-    `${unit.movesLeft}/${def.movement} mp${marching}`
-  );
+/**
+ * What is standing on the tile under the pointer — anybody's piece, because
+ * looking is not commanding and there is no fog of war to hide it behind yet.
+ *
+ * The card describes the *ground and what is on it*; the selected unit has its
+ * own panel on the right, with its own numbers and its own verbs. A stack says
+ * how deep it is rather than listing itself into a scrollbar.
+ */
+function describeUnitsOn(state: GameState, tile: Tile): string {
+  const units = unitsOnTile(state, tile.col, tile.row);
+  const first = units[0];
+  if (!first) return '—';
+  const def = unitDef(first.type);
+  const owner = state.players[first.ownerId];
+  const more = units.length > 1 ? ` +${units.length - 1}` : '';
+  return `${def.name} · ${first.hp}/${def.maxHp} hp · ${owner?.name ?? '—'}${more}`;
 }
 
 // --- renderer selection ----------------------------------------------------
@@ -376,53 +395,34 @@ async function start(): Promise<void> {
   }
 
   /**
-   * The Found City button, which is only on the page at all while a unit of
-   * yours is selected — it is the selection's own verb, and an always-present
-   * disabled button in the corner of the screen is furniture, not an offer.
+   * The bottom-left context card: what the pointer is over, and what the game
+   * has to say about the last order.
    *
-   * When it is shown it is enabled by exactly the rule the reducer applies (see
-   * `foundingError`) and titled with the reason it is not: a button that will
-   * not work should say why before it is pressed, not after.
+   * It reads and never acts — the selection's verbs are on the unit sheet — and
+   * it is *shown* rather than laid out, since the card is pinned to its corner
+   * and only fades. A card that appears mid-hover never shifts anything the
+   * player was reading. With nothing hovered and no message outstanding it fades
+   * away entirely rather than sitting there full of em dashes.
    */
-  function updateFoundCity(): void {
-    const blocker = controls.foundCityBlocker();
-    const noUnit = blocker === undefined;
-    foundCityButton.hidden = noUnit;
-    foundCityButton.disabled = noUnit || blocker !== null;
-    foundCityButton.title = blocker ?? 'Found a city here (B)';
-  }
-
-  /**
-   * The bottom-left context card: what the pointer is over, what is selected,
-   * and what mode the player has put themselves in.
-   *
-   * It is *shown* rather than laid out — the card is pinned to its corner and
-   * only fades — so a card that appears mid-hover never shifts anything the
-   * player was reading. With nothing hovered, nothing selected and no message
-   * outstanding it fades away entirely rather than sitting there full of
-   * em dashes.
-   */
-  function updateContext(selected: Unit | null, hover: HoverInfo | null): void {
+  function updateContext(hover: HoverInfo | null): void {
     if (hover) {
       const described = describeTile(hover.tile);
       infoTerrain.textContent = described.terrain + (described.hills ? ' (hills)' : '');
       infoFeature.textContent = described.feature;
       infoOffset.textContent = `col ${hover.tile.col}, row ${hover.tile.row}`;
       infoAxial.textContent = `q ${hover.axial.q}, r ${hover.axial.r}`;
+      infoUnit.textContent = describeUnitsOn(game.state, hover.tile);
       showTileYields(hover.tile);
     } else {
       infoTerrain.textContent = '—';
       infoFeature.textContent = '—';
       infoOffset.textContent = '—';
       infoAxial.textContent = '—';
+      infoUnit.textContent = '—';
       infoYields.textContent = '—';
     }
 
-    infoUnit.textContent = selected ? describeUnit(selected) : '—';
-    contextEl.classList.toggle(
-      'is-shown',
-      hover !== null || selected !== null || !contextNoticeEl.hidden,
-    );
+    contextEl.classList.toggle('is-shown', hover !== null || !contextNoticeEl.hidden);
   }
 
   /**
@@ -441,22 +441,33 @@ async function start(): Promise<void> {
       void contextNoticeEl.offsetWidth;
       contextNoticeEl.classList.add('is-flashing');
     }
-    updateContext(controls.selectedUnit(), renderer.getHover());
+    updateContext(renderer.getHover());
   }
 
-  function updatePanel(selected: Unit | null, hover: HoverInfo | null): void {
+  /**
+   * Everything derived, after anything at all. `selected` is not read here —
+   * the unit sheet asks `controls` for the live selection itself, so a caller
+   * that has no unit to hand (the End Turn button, a city panel edit) cannot
+   * accidentally blank a panel that should still be up.
+   */
+  function updatePanel(_selected: Unit | null, hover: HoverInfo | null): void {
     updateStatus();
     renderSeats();
-    updateFoundCity();
     // Cities change on almost everything — founding, growth, production, a seat
-    // change — so both city views are refreshed wherever the main panel is.
+    // change — so every view of them is refreshed wherever the main panel is,
+    // the empire's per-turn totals in the top bar included.
+    civYields.render();
     banners.refresh();
     cityPanel.render();
-    // The End Turn button sits in the same corner the city screen occupies, so
-    // it steps aside for it rather than hiding underneath.
-    document.body.classList.toggle('is-city-open', !cityPanelEl.hidden);
+    unitPanel.render();
+    // The End Turn button sits in the corner the right-hand panels occupy, so it
+    // steps aside for whichever one is open rather than hiding underneath it.
+    document.body.classList.toggle(
+      'is-panel-open',
+      !cityPanelEl.hidden || !unitPanelEl.hidden,
+    );
 
-    updateContext(selected, hover);
+    updateContext(hover);
   }
 
   // --- lifecycle ------------------------------------------------------------
@@ -511,6 +522,16 @@ async function start(): Promise<void> {
   });
 
   /**
+   * The empire's per-turn totals, at the left end of the top bar. A pure sum
+   * over the local seat's cities, refreshed with everything else.
+   */
+  const civYields: CivYieldStrip = createCivYieldStrip({
+    container: civYieldsEl,
+    getGame: () => game,
+    localPlayerId: () => controls.localPlayerId(),
+  });
+
+  /**
    * The two city views. Both are pure readers of the simulation plus one
    * command (the panel's `setCityProduction`), and both are declared after
    * `controls` because they ask it whose seat this is and which city is open.
@@ -533,6 +554,24 @@ async function start(): Promise<void> {
       renderer.invalidate();
       updatePanel(null, renderer.getHover());
     },
+  });
+
+  /**
+   * The unit sheet, in the same slot as the city screen. It reads the selection
+   * from `controls` rather than from the argument `updatePanel` was handed, and
+   * founding is its action rather than the context card's — the blocker string
+   * is the same one the reducer decides by.
+   */
+  const unitPanel: UnitPanel = createUnitPanel({
+    container: unitPanelEl,
+    getGame: () => game,
+    getUnit: () => controls.selectedUnit(),
+    foundCityBlocker: () => controls.foundCityBlocker(),
+    onFoundCity: () => {
+      controls.foundCity();
+      updatePanel(null, renderer.getHover());
+    },
+    onClose: () => controls.clearSelection(),
   });
 
   function newGameFromControls(): void {
@@ -563,11 +602,6 @@ async function start(): Promise<void> {
 
   endTurnButton.addEventListener('click', () => {
     controls.endTurn();
-    updatePanel(null, renderer.getHover());
-  });
-
-  foundCityButton.addEventListener('click', () => {
-    controls.foundCity();
     updatePanel(null, renderer.getHover());
   });
 

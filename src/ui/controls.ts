@@ -51,11 +51,13 @@
  * Two kinds of selection
  * ----------------------
  * A selected *unit* and an open *city* are separate pieces of view state and
- * both live here. They are not exclusive — you can have a settler picked while a
- * city panel is open — but they answer to the same seat: change seats and both
- * are dropped, because neither belongs to the player who just sat down. Escape
- * closes them one at a time, panel first, so backing out of a city screen does
- * not also lose the unit you had chosen.
+ * both live here. They are exclusive, because the two panels that show them
+ * share one slot on the right of the screen: taking a selection closes an open
+ * city, and opening a city drops the selection. They also answer to the same
+ * seat — change seats and both are dropped, because neither belongs to the
+ * player who just sat down. Escape still backs out one at a time (a city screen
+ * first, then the selection), because *clearing* a selection is not taking one
+ * and leaves an open city where it was.
  *
  * Selection rules
  * ---------------
@@ -384,6 +386,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   function select(id: number | null): void {
     selectedId = id;
+    // The two right-hand panels share one slot, so they share one subject: a
+    // unit picked up while a city screen is open closes it, exactly as opening
+    // a city drops the selection. Only *taking* a selection does this —
+    // clearing one leaves an open city alone, so Escape still backs out one
+    // layer at a time.
+    if (id !== null && openCityId !== null) {
+      openCityId = null;
+      renderer.invalidate();
+    }
     // Move mode is a property of *this* selection: dropping the unit, or
     // picking a different one, disarms it rather than silently carrying an
     // armed order over to a piece the player has only just clicked.

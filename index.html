@@ -29,8 +29,12 @@
       <div id="banners"></div>
     </div>
 
-    <!-- The city screen. Hidden until a city of the local seat is opened. -->
+    <!-- The right-hand slot, one panel at a time. The city screen is opened by
+         a city; the unit sheet follows the selection. They are mutually
+         exclusive by construction — see src/ui/controls.ts, where selecting a
+         unit closes an open city and opening a city drops the selection. -->
     <div id="city-panel" hidden></div>
+    <div id="unit-panel" hidden></div>
 
     <!-- Removed by main.ts once the renderer is up (or put back carrying the
          error, if a sprite 404s or WebGL is unavailable). -->
@@ -42,72 +46,72 @@
     <div id="turn-splash" aria-live="polite"></div>
 
     <!-- ================= the HUD =================================
-         One card per job, each pinned to a corner it never leaves, so nothing
-         the player reads or presses ever moves under them:
+         One surface per job, each pinned where it never moves, so nothing the
+         player reads or presses ever shifts under them:
 
-           top-left     #hud-top        who you are and what turn it is
+           top          #topbar         the empire's per-turn totals, the turn,
+                                        the seats, and the two tool buttons
            under it     #menu-popover   session-rare setup, from the ☰ button
            under it     #help-overlay   the control scheme, from the ? button
-           bottom-left  #hud-context    what is under the cursor / selected
+           bottom-left  #hud-context    what is under the cursor, and notices
+           right        #city-panel / #unit-panel — one at a time
            bottom-right #hud-end-turn   the one button pressed every single turn
 
-         The right edge above the End Turn button belongs to #city-panel, which
-         is why that button steps aside while a city screen is open.
+         The right edge above the End Turn button belongs to whichever panel is
+         open, which is why that button steps aside while one is.
          ============================================================ -->
 
-    <!-- The left column. A flex stack rather than three separately-pinned
-         cards, so a popover always opens directly beneath the card whose button
-         opened it however tall that card grows (more seats, longer names).
-         Nothing sits below the popovers, so nothing can be pushed by one. -->
-    <div id="hud-left">
-      <!-- Always visible, and deliberately the smallest card on the page. -->
-      <div id="hud-top" class="hud-card">
-        <div class="hud-head">
-          <!-- The wordmark: display face, italic accent on the second word,
-               mono era stamp. Two words rather than one compound, so it sets on
-               two lines at HUD width — "Magister Ludi" on one line at 25px
-               would either overrun the card or shrink the title to a label. -->
-          <h1 class="wordmark">
-            <span class="wordmark-word">Magister</span>
-            <em class="wordmark-word">Ludi</em>
-            <span class="wordmark-mark">cities</span>
-          </h1>
-          <div class="hud-tools">
-            <button
-              id="menu-button"
-              class="icon-btn"
-              type="button"
-              aria-haspopup="dialog"
-              aria-expanded="false"
-              aria-controls="menu-popover"
-              title="Game setup"
-              aria-label="Game setup"
-            >
-              ☰
-            </button>
-            <button
-              id="help-button"
-              class="icon-btn"
-              type="button"
-              aria-haspopup="dialog"
-              aria-expanded="false"
-              aria-controls="help-overlay"
-              title="Controls"
-              aria-label="Controls"
-            >
-              ?
-            </button>
-          </div>
-        </div>
+    <!-- The top bar: a slim ink rule across the whole window, in reading order.
+         The board starts *below* it (see #viewport in style.css), so it covers
+         nothing and no click on it can fall through to a tile.
 
-        <p id="status" class="status">—</p>
+         Left to right: what the empire earns each turn, whose turn it is, who
+         is at the table, and the two buttons that open everything else. -->
+    <header id="topbar">
+      <!-- Filled by src/ui/topBar.ts: the five civ-wide totals, summed over the
+           local player's cities and refreshed wherever the rest of the HUD is. -->
+      <div id="civ-yields" class="civ-yields" aria-label="Empire yields per turn"></div>
 
-        <!-- One chip per seat: who is playing, and who has already ended their
-             turn. Clicking one takes that seat — hot-seat play, kept as a
-             development harness now that turns are simultaneous. -->
-        <div id="seats" class="seats"></div>
+      <p id="status" class="status">—</p>
+
+      <!-- One chip per seat: who is playing, and who has already ended their
+           turn. Clicking one takes that seat — hot-seat play, kept as a
+           development harness now that turns are simultaneous. -->
+      <div id="seats" class="seats"></div>
+
+      <div class="topbar-tools">
+        <button
+          id="help-button"
+          class="icon-btn"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="help-overlay"
+          title="Controls"
+          aria-label="Controls"
+        >
+          ?
+        </button>
+        <button
+          id="menu-button"
+          class="icon-btn"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="menu-popover"
+          title="Game setup"
+          aria-label="Game setup"
+        >
+          ☰
+        </button>
       </div>
+    </header>
 
+    <!-- The popover column, hung under the right end of the bar so a card opens
+         directly beneath the button that opened it. A flex stack rather than two
+         separately-pinned cards, and nothing sits below them, so an opening card
+         can push nothing. -->
+    <div id="hud-popovers">
       <!-- Game setup. Session-rare, so it costs no permanent screen space: the
            menu button opens it, Esc or a click outside closes it, and focus is
            trapped inside while it is open and restored to that button on close. -->
@@ -119,7 +123,9 @@
         hidden
       >
         <div class="popover-head">
-          <h2 class="popover-title">Game setup</h2>
+          <!-- The only place the game's own name is set. The title bar carries
+               it for the browser; the HUD has a board to show instead. -->
+          <h2 class="popover-title">Magister <em>Ludi</em> · setup</h2>
           <button id="menu-close" class="popover-close" type="button" aria-label="Close">
             ×
           </button>
@@ -183,9 +189,10 @@
       </div>
     </div>
 
-    <!-- Bottom-left: everything the pointer and the selection have to say.
-         Fixed where it is and faded in, so the card appearing never shifts a
-         single thing the player was already looking at. -->
+    <!-- Bottom-left: everything the pointer has to say, plus the game's answers
+         to orders it will not take. It reads, it never acts — the selection's
+         own verbs live on the unit sheet. Fixed where it is and faded in, so the
+         card appearing never shifts a single thing the player was looking at. -->
     <div id="hud-context" class="hud-card">
       <p id="context-notice" class="context-notice" hidden></p>
 
@@ -206,10 +213,6 @@
         <dt>Unit</dt>
         <dd id="info-unit">—</dd>
       </dl>
-
-      <!-- Enabled only when the selected unit could actually found a city here;
-           its title says why not when it is disabled. -->
-      <button id="found-city" class="btn btn-second" hidden disabled>Found City</button>
     </div>
 
     <!-- Bottom-right, alone, and the same size and place every turn of every
