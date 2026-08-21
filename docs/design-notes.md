@@ -330,6 +330,34 @@ desaturated/inked-down. Background and FOW become one visual system, light-theme
 
 ---
 
+## Entry VIII — Glanceable bonuses: the one-evaluator rule
+
+**Requirement (user, 2026-08-21):** every bonus must be glanceable — the game shows the actual
+computed delta BEFORE activation ("+4 🌾" when evaluating "farms with freshwater gain +1 food").
+Built natively, not bolted on.
+
+**The rule (load-bearing, applies from M4 onward):** all bonuses — buildings, techs, civic
+cards, leader passives, site bonuses — are DECLARATIVE DATA evaluated by ONE pure pipeline.
+Effect record shape (v0): `{target, if: <condition predicates over tile/city/player>, add:
+<yield/stat deltas>}`. No scattered imperative "when X add Y" code, ever.
+
+**Preview = hypothetical evaluation:** compute yields with the candidate effect included, diff
+against current. Pure read of live state, no cloning/simulation. Because the preview calls the
+SAME function the sim uses, it cannot lie.
+
+**Why load-bearing (three free payoffs):**
+1. AI valuation (M6): the bot drafts cards by the same delta function the player sees.
+2. Harness audits: "no card's turn-one delta exceeds its tier budget" is an assertion.
+3. Honest tooltips: headline delta expands to per-city breakdown (evaluator computes per-target).
+
+**Caveats:** deltas are PRESENT-STATE — label as "now" (a freshwater-farm card grows with every
+farm; show it as current value, arguably with a hint of scaling); non-yield effects preview in
+their own units (combat strength, authority capacity) where computable, static text only for
+genuinely situational effects. Existing buildings' flat fields (M3) migrate into the effect
+vocabulary when M4 builds the evaluator.
+
+---
+
 ## Sequencing snapshot (2026-08-21)
 Vanilla mechanics first (user decision). M4 = vanilla science tech tree + culture. Then combat,
 AI, netcode. Drafting/governments/dice slot in after the vanilla loop proves out. Rivers mapgen
