@@ -1,5 +1,5 @@
 /**
- * The Armory's stage: fifteen sculpted miniatures on plinths, under the game's
+ * The Armory's stage: every model class on a plinth, badged, under the game's
  * own light rig.
  *
  * A look-dev page, and the whole point of it is that it is *not* a mock-up. It
@@ -12,7 +12,19 @@
  * with the game — which is the only reason a reference sheet is worth having.
  *
  * What it deliberately does not have is a simulation. There is no map, no
- * state, no turn; a piece here is a `type` and an owner colour and nothing else.
+ * state, no turn; a piece here is a model class and an owner colour and nothing
+ * else.
+ *
+ * Classes, not types
+ * ------------------
+ * The page used to line up fifteen sculpts, one per unit type, and answering
+ * "do these read as fifteen different units?" honestly is what killed them: at
+ * board scale they did not. The roster is eight model classes now
+ * (`ModelClass`), each carrying the floating badge that names the specific unit,
+ * and the question this page answers has changed with it — "do eight classes
+ * read as eight different *kinds* of thing, and does the badge do the rest of
+ * the work?". Every cell therefore shows the class model with its own badge
+ * above it, and its label names the unit types it stands in for.
  *
  * The turntable
  * -------------
@@ -44,13 +56,19 @@ import {
   WebGLRenderer,
 } from 'three';
 
-import { BoardGeometry, MINI_SCULPTS, pieceShapeFor } from '../render3d/board3d';
+import { type UnitBadges, badgeTopY } from '../render3d/badges3d';
+import {
+  BoardGeometry,
+  MINI_SCULPTS,
+  MODEL_CLASS_IDS,
+  modelClassFor,
+} from '../render3d/board3d';
 import { hexPrism } from '../render3d/geometry';
 import { VIEW3D, shade } from '../render3d/lookData';
-import { buildSpriteUnit, pieceMaterials } from '../render3d/pieces';
+import { SPRITE_HEIGHT, buildBadge, buildSpriteUnit, pieceMaterials } from '../render3d/pieces';
 import type { UnitSprites } from '../render3d/sprites3d';
 import { MaterialLibrary, computeHullNormals } from '../render3d/toon';
-import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
+import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
 
 const LOOK = VIEW3D.look;
 const LIGHTS = VIEW3D.lights;
@@ -58,7 +76,7 @@ const CAMERA = VIEW3D.camera;
 const DEG = Math.PI / 180;
 
 /** Grid layout, in world units. Columns run along +x, rows along +z. */
-const COLUMNS = 5;
+const COLUMNS = 4;
 const COLUMN_GAP = 1.62;
 const ROW_GAP = 1.96;
 /** The chip each piece stands on: a board tile, shrunk to a display plinth. */
@@ -69,13 +87,31 @@ const SPIN_RATE = 0.3;
 
 export type GalleryStyle = 'pieces' | 'sprites';
 
+/**
+ * Every unit type drawn as a given model class, in roster order.
+ *
+ * The label's whole job on this page: a cell showing the melee model has to say
+ * which five units are standing behind it, or the consolidation looks like art
+ * that lost a fight rather than a decision.
+ */
+function typesInClass(modelClass: ModelClass): UnitTypeId[] {
+  return UNIT_TYPE_IDS.filter((type) => modelClassFor(type) === modelClass);
+}
+
 /** One cell of the grid: where it is, what stands there, and what to call it. */
 export interface GalleryEntry {
-  type: UnitTypeId;
+  modelClass: ModelClass;
+  /** The class name, title-cased for the label's first line. */
   name: string;
+  /** The unit types this model stands in for; empty for a reserved class. */
+  covers: string[];
+  /** A unit of this class, for the sprite path. Null when nothing maps to it. */
+  sample: UnitTypeId | null;
   /** The size class its sculpt is cut to, for the label's second line. */
   cls: string;
   triangles: number;
+  /** How tall the model stands, so the badge floats at the board's own height. */
+  height: number;
   /** World position of the top of its plinth — the piece's own feet. */
   anchor: Vector3;
 }
@@ -94,6 +130,8 @@ export class PiecesStage {
 
   /** One turning group per cell; the plinths are not in them. See the docblock. */
   private readonly turntables: Group[] = [];
+  /** The floating tags, which stand still while the models turn under them. */
+  private readonly badgeVisuals: Group[] = [];
   private readonly figures = new Group();
 
   private readonly bounds = new Box3();
@@ -111,6 +149,7 @@ export class PiecesStage {
   private style: GalleryStyle = 'pieces';
   private color = VIEW3D.palette.crimson!;
   private sprites: UnitSprites | null = null;
+  private badges: UnitBadges | null = null;
   private onLayout: (() => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -178,6 +217,12 @@ export class PiecesStage {
     if (this.style === 'sprites') this.rebuildFigures();
   }
 
+  /** Hands the stage the rasterised badge atlas. Both styles wear badges. */
+  setBadges(badges: UnitBadges | null): void {
+    this.badges = badges;
+    this.rebuildFigures();
+  }
+
   /** Pointer drag, in CSS pixels: a horizontal drag turns the whole roster. */
   drag(dx: number): void {
     this.yaw += (dx / Math.max(1, this.viewportHeight)) * Math.PI * 2;
@@ -209,7 +254,7 @@ export class PiecesStage {
    * their own group and the furniture does not.
    */
   private buildStage(): void {
-    const rows = Math.ceil(UNIT_TYPE_IDS.length / COLUMNS);
+    const rows = Math.ceil(MODEL_CLASS_IDS.length / COLUMNS);
     const originX = -((COLUMNS - 1) * COLUMN_GAP) / 2;
     const originZ = -((rows - 1) * ROW_GAP) / 2;
 
@@ -231,7 +276,7 @@ export class PiecesStage {
     table.receiveShadow = false;
     this.scene.add(table);
 
-    UNIT_TYPE_IDS.forEach((type, index) => {
+    MODEL_CLASS_IDS.forEach((modelClass, index) => {
       const col = index % COLUMNS;
       const row = Math.floor(index / COLUMNS);
       const x = originX + col * COLUMN_GAP;
@@ -244,12 +289,17 @@ export class PiecesStage {
       this.figures.add(turntable);
       this.turntables.push(turntable);
 
-      const sculpt = this.geometry.pieces[pieceShapeFor(type)];
+      const sculpt = this.geometry.pieces[modelClass];
+      const sculptClass = MINI_SCULPTS[modelClass].cls;
+      const types = typesInClass(modelClass);
       this.entries.push({
-        type,
-        name: unitDef(type).name,
-        cls: MINI_SCULPTS[pieceShapeFor(type)].cls,
+        modelClass,
+        name: modelClass.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()),
+        covers: types.map((type) => unitDef(type).name),
+        sample: types[0] ?? null,
+        cls: sculptClass,
         triangles: sculpt.geometry.getAttribute('position').count / 3,
+        height: VIEW3D.pieces.heights[sculptClass],
         anchor: new Vector3(x, PLINTH_HEIGHT, z),
       });
     });
@@ -287,13 +337,38 @@ export class PiecesStage {
     const faceCamera = this.camera.quaternion.clone();
     this.drawCalls = 0;
     this.triangles = 0;
+    for (const badge of this.badgeVisuals) this.figures.remove(badge);
+    this.badgeVisuals.length = 0;
 
     this.entries.forEach((entry, index) => {
       const turntable = this.turntables[index]!;
       turntable.clear();
 
       const spriteMaterial =
-        this.style === 'sprites' ? (this.sprites?.materialFor(entry.type) ?? null) : null;
+        this.style === 'sprites' && entry.sample
+          ? (this.sprites?.materialFor(entry.sample) ?? null)
+          : null;
+      // The badge hangs off the *cell*, not off the turntable: it faces the
+      // camera and must keep facing it while the model spins underneath. That
+      // is the same relationship it has on the board, where the piece carries a
+      // hashed yaw and the tag does not.
+      const height = spriteMaterial ? SPRITE_HEIGHT : entry.height;
+      if (this.badges) {
+        const badge = buildBadge(
+          this.geometry,
+          this.materials,
+          this.badges,
+          entry.modelClass,
+          this.color,
+          faceCamera,
+          height,
+        );
+        badge.position.copy(entry.anchor);
+        this.figures.add(badge);
+        this.badgeVisuals.push(badge);
+        this.drawCalls += 2;
+      }
+
       if (spriteMaterial) {
         // The standee path, verbatim — card, moulded foot and blob shadow. The
         // point of having both on one page is that neither gets a special case.
@@ -304,7 +379,7 @@ export class PiecesStage {
         return;
       }
 
-      const piece = this.geometry.pieces[pieceShapeFor(entry.type)];
+      const piece = this.geometry.pieces[entry.modelClass];
       const material = pieceMaterials(this.materials, piece, this.color);
       computeHullNormals(piece.geometry);
       const mesh = new Mesh(piece.geometry, material);
@@ -343,10 +418,13 @@ export class PiecesStage {
    * asked to keep true by hand.
    */
   private fit(): void {
-    const rows = Math.ceil(UNIT_TYPE_IDS.length / COLUMNS);
+    const rows = Math.ceil(MODEL_CLASS_IDS.length / COLUMNS);
     const halfX = ((COLUMNS - 1) * COLUMN_GAP) / 2 + PLINTH_RADIUS;
     const halfZ = ((rows - 1) * ROW_GAP) / 2 + PLINTH_RADIUS;
-    const tallest = Math.max(...Object.values(VIEW3D.pieces.heights)) + PLINTH_HEIGHT;
+    // Tall enough for the badge stacked over the tallest model, or the top row
+    // of tags is cropped off the viewport the page exists to show them in.
+    const tallest =
+      badgeTopY(Math.max(...Object.values(VIEW3D.pieces.heights))) + PLINTH_HEIGHT;
     this.bounds.set(
       new Vector3(-halfX, 0, -halfZ),
       // A little extra depth at the near edge: the labels live under the front

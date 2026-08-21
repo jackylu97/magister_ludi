@@ -1,8 +1,10 @@
 # Sprite credits
 
-All artwork in this directory is by **Kenney** (<https://kenney.nl>) and is released under
+Most artwork in this directory is by **Kenney** (<https://kenney.nl>) and is released under
 **CC0 1.0 Universal** (public domain dedication). No attribution is required; it is given
-anyway because the work deserves it.
+anyway because the work deserves it. The two exceptions are called out in their own sections
+below: `units/` (the project owner's illustrations) and `icons/` (original work for this
+project, also CC0).
 
 Source packs:
 
@@ -80,3 +82,39 @@ with a feathered edge — see `src/render3d/sprites3d.ts`, tuned by `units.sprit
 
 A unit type with no file here falls back to its procedural game piece, which is why the
 settler still stands as a piece while these two are billboards.
+
+## `icons/<class>.svg` — 8 model-class badge icons
+
+**Original work for this project**, dedicated to the public domain under **CC0 1.0** so it
+carries the same terms as everything around it. Drawn as part of the model-class pass (see
+`src/render3d/badges3d.ts`): the 3D board sculpts one model per `modelClass` in
+`data/units.json`, and these are the ink marks on the parchment roundel that says which unit
+is actually standing there.
+
+Kenney's **Board Game Icons** pack (<https://opengameart.org/content/board-game-icons>, 250
+icons, CC0, vectors included) was downloaded and inspected first, and it is the reason these
+are drawn rather than vendored. Four of the eight classes have a good match in it —
+`sword` (melee), `bow` (ranged), `chess_knight` (mounted), `flag_triangle` (settler) — and
+four have none at all: the pack has no hammer, no siege engine, no eye or spyglass, and
+certainly no horse-archer. A set that was half Kenney's chunky rounded fills and half
+hand-drawn would read as two sets, and a badge set has exactly one job, which is to be one
+family; so all eight are drawn here in one language instead. Kenney's optical weight was used
+as the reference for how heavy an icon has to be to survive being twenty pixels across.
+
+| File | Model class | Mark |
+| --- | --- | --- |
+| `settler.svg` | `settler` | pennant on a planted pole |
+| `worker.svg` | `worker` | mallet |
+| `melee.svg` | `melee` | upright sword |
+| `ranged.svg` | `ranged` | bow with a nocked arrow |
+| `mounted.svg` | `mounted` | horse head |
+| `mountedRanged.svg` | `mountedRanged` | horse head with an arrow |
+| `siege.svg` | `siege` | catapult, arm thrown, shot in the air |
+| `scout.svg` | `scout` | eye |
+
+All eight are authored on the same 64 × 64 grid inside a safe circle, in one ink at one
+stroke weight, with round caps and joins throughout — the consistency *is* the design. They
+declare an intrinsic size of 256 px so the browser rasterises them larger than any atlas cell
+asks for and the badge is downsampled rather than blown up. The fill colour in the files is
+the palette's ink, but nothing depends on it: the atlas builder recolours every icon to
+`badges.inkColor` from `data/view3d.json` at load, so the ink stays a data decision.

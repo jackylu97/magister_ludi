@@ -54,7 +54,8 @@ import { UNIT_TYPE_IDS, type UnitTypeId } from '../sim/unitData';
 import type { CellRef, HoverInfo, LensView, MapView, ScreenPoint } from '../ui/mapView';
 
 import { MoveAnimations3D } from './animation3d';
-import { type BuiltBoard, BoardGeometry, buildBoard, pieceShapeFor } from './board3d';
+import { UnitBadges } from './badges3d';
+import { type BuiltBoard, BoardGeometry, buildBoard, modelClassFor } from './board3d';
 import { DioramaCamera } from './camera3d';
 import {
   CityLayer,
@@ -67,7 +68,15 @@ import { LensLayer, NO_LENS, sameLens } from './lens3d';
 import { VIEW3D } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { OverlayLayer } from './overlays';
-import { UnitLayer, buildSpriteUnit, pieceMaterials, placePiece, unitColor } from './pieces';
+import {
+  UnitLayer,
+  buildBadge,
+  buildSpriteUnit,
+  unitVisualHeight,
+  pieceMaterials,
+  placePiece,
+  unitColor,
+} from './pieces';
 import { pickTile } from './picking';
 import { UnitSprites } from './sprites3d';
 import { MaterialLibrary, computeHullNormals } from './toon';
@@ -127,6 +136,13 @@ export class Renderer3D implements MapView {
    * `loadSprites` and `sprites3d.ts`.
    */
   private sprites: UnitSprites | null = null;
+  /**
+   * The floating unit badges, once the icon atlas has rasterised. Null for the
+   * moments before it does, and if it could not be built at all — in which case
+   * the units simply stand untagged rather than the board failing to draw. See
+   * `loadBadges` and `badges3d.ts`.
+   */
+  private badges: UnitBadges | null = null;
   /** Fingerprint of the units the layer was last built from. See `loop`. */
   private unitsSignature = 0;
   /** The same for the towns and for the borders. See `loop`. */
@@ -192,6 +208,29 @@ export class Renderer3D implements MapView {
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);
     this.loadSprites();
+    this.loadBadges();
+  }
+
+  /**
+   * Rasterises the badge icons into their atlas, in the background.
+   *
+   * Not awaited, for the same reason `loadSprites` is not: the board is playable
+   * the moment it is built, and eight small SVGs arriving a frame later add the
+   * tags to units that were already standing there. A failure is silent — see
+   * `UnitBadges.load` — and leaves a board of untagged pieces, which is exactly
+   * what the board was before badges existed.
+   */
+  private loadBadges(): void {
+    void UnitBadges.load().then((badges) => {
+      if (!badges) return;
+      if (!this.running) {
+        badges.dispose();
+        return;
+      }
+      this.badges = badges;
+      this.rebuildUnits();
+      this.invalidate();
+    });
   }
 
   /**
@@ -327,6 +366,8 @@ export class Renderer3D implements MapView {
       this.view.camera.quaternion.clone(),
       this.shadows,
       this.sprites,
+      this.badges,
+      this.selectedUnitId,
     );
     // A walk in flight keeps its piece hidden across the rebuild; the sample
     // loop restores it when the animation ends.
@@ -392,6 +433,13 @@ export class Renderer3D implements MapView {
   setSelectedUnitId(id: number | null): void {
     if (this.selectedUnitId === id) return;
     this.selectedUnitId = id;
+    // The selected unit's badge rim brightens with it, and the badges live in
+    // the units layer, so the selection has to reach it. Rebuilding the whole
+    // layer for one rim sounds extravagant and is not: it is a few dozen
+    // matrices, it happens on a click rather than on a frame, and the
+    // alternative — patching one instance's colour in place — would mean
+    // teaching the collector about mutable per-instance ink for one highlight.
+    this.rebuildUnits();
     this.rebuildOverlays();
   }
 
@@ -636,19 +684,45 @@ export class Renderer3D implements MapView {
     if (!unit) return;
 
     this.removeWalker(unitId);
+    const faceCamera = this.view.camera.quaternion.clone();
+    const color = unitColor(this.state, unit);
+    const period = wrapWidth(this.map);
+    const group = new Group();
+
+    /**
+     * The walker's own badge, or null while the atlas is still rasterising.
+     *
+     * Built fresh per wrap copy rather than cloned, because a badge is two
+     * meshes and three of them is six draws for the fraction of a second a unit
+     * is in flight — against the alternative of teaching the instanced badge
+     * buckets to move, which is the thing hiding-and-respawning exists to avoid.
+     */
+    const badgeFor = (): Group | null =>
+      this.badges
+        ? buildBadge(
+            this.geometry,
+            this.materials,
+            this.badges,
+            modelClassFor(unit.type),
+            color,
+            faceCamera,
+            unitVisualHeight(unit.type, this.sprites),
+          )
+        : null;
+
     const spriteMaterial = this.sprites?.materialFor(unit.type) ?? null;
     if (spriteMaterial) {
-      const group = new Group();
-      const period = wrapWidth(this.map);
       for (const dx of [-period, 0, period]) {
         const copy = buildSpriteUnit(
           this.geometry,
           this.materials,
           spriteMaterial,
-          unitColor(this.state, unit),
-          this.view.camera.quaternion.clone(),
+          color,
+          faceCamera,
         );
         copy.position.x = dx;
+        const badge = badgeFor();
+        if (badge) copy.add(badge);
         group.add(copy);
       }
       this.scene.add(group);
@@ -656,22 +730,24 @@ export class Renderer3D implements MapView {
       return;
     }
 
-    const piece = this.geometry.pieces[pieceShapeFor(unit.type)];
+    const piece = this.geometry.pieces[modelClassFor(unit.type)];
     const shape = piece.geometry;
     computeHullNormals(shape);
-    const material = pieceMaterials(this.materials, piece, unitColor(this.state, unit));
+    const material = pieceMaterials(this.materials, piece, color);
 
-    const group = new Group();
-    const period = wrapWidth(this.map);
     // The piece's own turn goes on each mesh, never on the group: the group
     // carries the wrap offsets, and a rotation above them would swing the two
     // outer copies out of the seam and onto the wrong part of the board.
     const facing = placePiece(this.map, unit, 0).quaternion;
     for (const dx of [-period, 0, period]) {
+      // One wrapper per copy, so the badge can be a *sibling* of the piece: as a
+      // child it would inherit the piece's hashed yaw and stop facing the
+      // camera, which is the one thing a tag must never do.
+      const copy = new Group();
+      copy.position.x = dx;
       const mesh = new Mesh(shape, material);
       mesh.castShadow = this.shadows;
       mesh.receiveShadow = this.shadows;
-      mesh.position.x = dx;
       mesh.quaternion.copy(facing);
       mesh.frustumCulled = false;
       const shell = new Mesh(shape, this.materials.outline);
@@ -679,7 +755,10 @@ export class Renderer3D implements MapView {
       shell.receiveShadow = false;
       shell.frustumCulled = false;
       mesh.add(shell);
-      group.add(mesh);
+      copy.add(mesh);
+      const badge = badgeFor();
+      if (badge) copy.add(badge);
+      group.add(copy);
     }
     // The whole group is moved each frame; the per-copy offset lives on the
     // children, so one position write drives all three.
@@ -842,6 +921,7 @@ export class Renderer3D implements MapView {
     this.frameListener = null;
     this.clearWalkers();
     this.sprites?.dispose();
+    this.badges?.dispose();
     this.units.dispose();
     this.cities.dispose();
     this.territory.dispose();

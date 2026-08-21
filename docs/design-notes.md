@@ -315,6 +315,17 @@ warm bright board is the lit object, all chrome recedes into darkness. Flourish 
 gold double-frame on announcements · wax-seal turn stamp · star-chart tech tree (ink ground,
 gilt stars) · manicule for notices · Roman numerals (ages, queue) · one corner star per panel ·
 card-back weave. Refused: parchment textures, candle flicker, dust, blackletter, board flourishes.
+**Unit representation (user, 2026-08-21, after Armory review): CLASS MODELS + FLOATING BADGES.**
+Per-type sculpts read too similar at game zoom. Units render as one sculpted miniature per
+MODEL CLASS (settler · worker[reserved] · melee · ranged · mounted · mountedRanged · siege ·
+scout), differentiated by a Civ-style floating badge: parchment roundel, bespoke single-stroke
+ink icon (all 8 drawn in-house — Kenney's CC0 pack only covered half and a badge set must be
+one family), player-color rim. Badges are world objects (depth-tested, hide behind mountains),
+ride walk animation, appear in both unit styles. Scales: new unit types are data rows (class +
+icon), never new sculpts. The 8 displaced per-type sculpts stay benched in geometry.ts.
+Standee/sprite path retained behind units.style for future use (portraits are the Midjourney
+art's real home). Draw cost flat in unit count (~classes+players).
+
 **RESOLVED (user, 2026-08-21, after a live composite test): LIGHT THEME WINS.** The dark
 nocturne (take five) was tested as a live token-injection over the real board — it works, but
 the light chrome "feels better." Dark takes stay archived in the specimen. THE FLOURISHES ARE

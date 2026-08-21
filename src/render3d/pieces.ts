@@ -23,6 +23,18 @@
  * and cost a separate draw call each. They are drawn only for damaged units,
  * which keeps the common board — nobody hurt yet — completely free of them.
  *
+ * Badges, and what they moved
+ * ---------------------------
+ * Every unit also carries a floating roundel naming its type (`badges3d.ts`),
+ * because the sculpts are per *class* now and a swordsman and a pikeman stand on
+ * the same model. Two instanced quads per unit, batched by class and by player,
+ * so the whole board's tags are a fixed handful of draws whatever the unit count.
+ *
+ * The HP bar moved up to make room. It rides above the badge rather than under
+ * it — see `hpBarY` for the argument — which means the one number that decides
+ * where a bar lands is still the unit's own visual height, and a bar is still
+ * never in front of the thing it is reporting on.
+ *
  * Two art styles, one layer
  * -------------------------
  * `units.style` in `data/view3d.json` chooses between the sculpted miniature and
@@ -65,19 +77,21 @@ import { Group, type Material, Matrix4, Mesh, Quaternion, Vector3 } from 'three'
 
 import type { GameMap } from '../sim/map';
 import type { GameState, Unit } from '../sim/state';
-import { type UnitTypeId, unitDef } from '../sim/unitData';
+import { type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
 
-import { type BoardGeometry, pieceHeightFor, pieceShapeFor } from './board3d';
+import { type UnitBadges, badgeCenterY, hpBarY } from './badges3d';
+import { type BoardGeometry, modelClassFor, pieceHeightFor } from './board3d';
 import type { UnitPiece } from './geometry';
 import { hashSigned } from './hash';
 import { type InstanceHandle, InstanceCollector, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
-import { VIEW3D, playerPieceColor } from './lookData';
+import { VIEW3D, playerPieceColor, shade } from './lookData';
 import type { UnitSprites } from './sprites3d';
 import { type MaterialLibrary, computeHullNormals } from './toon';
 
 const PIECES = VIEW3D.pieces;
 const HP = VIEW3D.hpBar;
+const BADGE = VIEW3D.badges;
 const SPRITE = VIEW3D.units.sprite;
 const STANDEE = SPRITE.standee;
 
@@ -123,10 +137,14 @@ export function pieceMaterials(
 export const SPRITE_HEIGHT = SPRITE.heightInHexWidths * VIEW3D.board.hexRadius * 2;
 
 /**
- * How tall this unit's visual is, which is the only thing the HP bar needs to
- * know about the art style.
+ * How tall this unit's visual is, which is the only thing the HP bar and the
+ * badge need to know about the art style.
+ *
+ * Exported because the walking copies have to stack their tag at exactly the
+ * height the resting instance does, and they are built by the renderer rather
+ * than by this layer.
  */
-function unitVisualHeight(type: UnitTypeId, sprites: UnitSprites | null): number {
+export function unitVisualHeight(type: UnitTypeId, sprites: UnitSprites | null): number {
   return sprites?.materialFor(type) ? SPRITE_HEIGHT : pieceHeightFor(type);
 }
 
@@ -222,6 +240,60 @@ export function buildSpriteUnit(
   return group;
 }
 
+/**
+ * How far toward the eye the rim sits in front of the parchment it circles.
+ *
+ * The two are coplanar by construction and the parchment reaches a little way
+ * under the rim on purpose (`badges.paperOverlap`), so without this the overlap
+ * band is a z-fight. A hundredth of a hex is far below anything the ortho camera
+ * can resolve as depth and far above the depth buffer's precision at this range.
+ */
+const RIM_NUDGE = 0.006;
+
+/**
+ * One unit badge as standalone meshes: the parchment disc and the ring of player
+ * colour around it, both already lifted to float over a unit of `visualHeight`.
+ *
+ * Returned as a group whose origin is the unit's *feet*, exactly like
+ * `buildSpriteUnit`, so the caller places it by saying where the unit stands.
+ * Only walking copies and the Armory go through this — everything at rest is
+ * instanced by `UnitLayer` — but they have to match the resting badge exactly,
+ * or a unit's tag would jump the moment it started moving.
+ */
+export function buildBadge(
+  geometry: BoardGeometry,
+  materials: MaterialLibrary,
+  badges: UnitBadges,
+  modelClass: ModelClass,
+  rimColor: number,
+  faceCamera: Quaternion,
+  visualHeight: number,
+): Group {
+  const group = new Group();
+  const forward = new Vector3(0, 0, 1).applyQuaternion(faceCamera);
+  const height = badgeCenterY(visualHeight);
+
+  const disc = new Mesh(geometry.badgeIcons[modelClass], badges.material);
+  disc.position.y = height;
+  disc.quaternion.copy(faceCamera);
+  disc.scale.set(BADGE.diameter, BADGE.diameter, 1);
+  disc.frustumCulled = false;
+  disc.castShadow = false;
+  disc.receiveShadow = false;
+  group.add(disc);
+
+  const rim = new Mesh(geometry.badgeRim, materials.overlay(rimColor, 1));
+  rim.position.set(0, height, 0).addScaledVector(forward, RIM_NUDGE);
+  rim.quaternion.copy(faceCamera);
+  rim.scale.set(BADGE.diameter, BADGE.diameter, 1);
+  rim.frustumCulled = false;
+  rim.castShadow = false;
+  rim.receiveShadow = false;
+  group.add(rim);
+
+  return group;
+}
+
 /** Where a piece stands, and how it is turned. Shared with the animation code. */
 export interface PiecePlacement {
   position: Vector3;
@@ -264,7 +336,13 @@ export function unitColor(state: GameState, unit: Unit): number {
 export class UnitLayer {
   readonly group = new Group();
 
-  private handles = new Map<number, InstanceHandle>();
+  /**
+   * Every instance slot a unit owns: its sculpt, and the two halves of its
+   * badge. A list rather than one handle because hiding a unit for a walk has
+   * to take its tag off the board with it — a badge left hovering over an empty
+   * tile while the piece slid away would be the most visible bug on the board.
+   */
+  private handles = new Map<number, InstanceHandle[]>();
   /** Billboard units, which are meshes rather than instances. See the docblock. */
   private spriteUnits = new Map<number, Group>();
   private hidden = new Set<number>();
@@ -279,6 +357,13 @@ export class UnitLayer {
    * `sprites` is the loaded billboard set, or null in `pieces` style and while
    * the art is still loading. A unit whose type has no artwork takes the
    * procedural path whatever it is.
+   *
+   * `badges` is the loaded roundel atlas, or null while it is still loading (or
+   * if it failed). Badges are drawn for every unit in both styles: the model
+   * class is what stands on the tile and the badge is what says which unit it
+   * is, so a board without them is a board of anonymous tokens. `selectedUnitId`
+   * only brightens one rim; it is part of the build rather than an overlay
+   * because a badge belongs to its unit, and the layer is cheap to rebuild.
    */
   build(
     state: GameState,
@@ -287,6 +372,8 @@ export class UnitLayer {
     faceCamera: Quaternion,
     shadows: boolean,
     sprites: UnitSprites | null = null,
+    badges: UnitBadges | null = null,
+    selectedUnitId: number | null = null,
   ): void {
     this.disposeGroup();
 
@@ -306,6 +393,8 @@ export class UnitLayer {
       stackIndex.set(key, index + 1);
 
       const placement = placePiece(map, unit, index);
+      const slots: InstanceHandle[] = [];
+      this.handles.set(unit.id, slots);
       const spriteMaterial = sprites?.materialFor(unit.type) ?? null;
       if (spriteMaterial) {
         const group = new Group();
@@ -324,27 +413,99 @@ export class UnitLayer {
         this.group.add(group);
         this.spriteUnits.set(unit.id, group);
       } else {
-        const piece = geometry.pieces[pieceShapeFor(unit.type)];
-        const handle = collector.add(
-          piece.geometry,
-          pieceColors(piece, unitColor(state, unit)),
-          new Matrix4().compose(placement.position, placement.quaternion, scale),
+        const piece = geometry.pieces[modelClassFor(unit.type)];
+        slots.push(
+          collector.add(
+            piece.geometry,
+            pieceColors(piece, unitColor(state, unit)),
+            new Matrix4().compose(placement.position, placement.quaternion, scale),
+          ),
         );
-        this.handles.set(unit.id, handle);
       }
 
-      this.addHpBar(
-        unit,
-        placement,
-        unitVisualHeight(unit.type, sprites),
-        geometry,
-        collector,
-        faceCamera,
-      );
+      const visualHeight = unitVisualHeight(unit.type, sprites);
+      if (badges) {
+        this.addBadge(
+          state,
+          unit,
+          placement,
+          visualHeight,
+          geometry,
+          collector,
+          faceCamera,
+          badges,
+          unit.id === selectedUnitId,
+          slots,
+        );
+      }
+      this.addHpBar(unit, placement, visualHeight, geometry, collector, faceCamera);
     }
 
     this.drawCallCount = collector.flush(this.group, materials, shadows);
     for (const unitId of this.hidden) this.applyHide(unitId);
+  }
+
+  /**
+   * The tag over a piece: an atlas-carrying parchment disc and the ring of
+   * player colour around it, both turned to face the fixed camera.
+   *
+   * Two instances rather than one because they batch differently and that is
+   * the whole reason badges cost nothing per unit — see the `badges3d.ts`
+   * docblock. The disc keys on the model class (one bucket per class, all eight
+   * sharing a texture and a material), the rim keys on the player's ink (one
+   * bucket per player). A board with fifty units and six classes draws the same
+   * eight badge meshes as a board with six.
+   *
+   * Not `onTop`. A badge is a thing standing in the diorama and has to be hidden
+   * by whatever hides its unit; the lift is what clears the sculpt's own head.
+   */
+  private addBadge(
+    state: GameState,
+    unit: Unit,
+    placement: PiecePlacement,
+    visualHeight: number,
+    geometry: BoardGeometry,
+    collector: InstanceCollector,
+    faceCamera: Quaternion,
+    badges: UnitBadges,
+    selected: boolean,
+    slots: InstanceHandle[],
+  ): void {
+    const anchor = placement.position
+      .clone()
+      .setY(placement.position.y + badgeCenterY(visualHeight));
+    const size = new Vector3(BADGE.diameter, BADGE.diameter, 1);
+
+    slots.push(
+      collector.add(
+        geometry.badgeIcons[modelClassFor(unit.type)],
+        // No ink of its own: the disc *is* the texture, and the material is the
+        // shared atlas one. The colour list still has to be something, and an
+        // empty one would collide in the bucket key with any other textured
+        // shape that ever arrives.
+        [BADGE.paperColor],
+        new Matrix4().compose(anchor, faceCamera, size),
+        { material: badges.material },
+      ),
+    );
+
+    // The selected unit's rim is lifted a step toward white. Cheap in the exact
+    // sense that matters: it is a different *colour*, so it lands in its own
+    // bucket and costs one extra draw for the one selected unit, and nothing at
+    // all on a board with no selection.
+    const ink = unitColor(state, unit);
+    const rimColor = selected ? shade(ink, BADGE.selectedRimShade) : ink;
+    const front = anchor
+      .clone()
+      .addScaledVector(new Vector3(0, 0, 1).applyQuaternion(faceCamera), RIM_NUDGE);
+    slots.push(
+      collector.add(
+        geometry.badgeRim,
+        [rimColor],
+        new Matrix4().compose(front, faceCamera, size),
+        { overlay: true, opacity: 1 },
+      ),
+    );
   }
 
   /**
@@ -368,12 +529,13 @@ export class UnitLayer {
 
     // The quad's origin is its left edge, so the anchor is shifted half a bar
     // width along the camera's right vector to centre it over the piece. The
-    // height it clears is the *visual's*, so the bar rides above a billboard
-    // exactly as it rides above a game piece.
+    // height it clears is the *visual's* plus the badge stacked on top of it
+    // (see `hpBarY`), so the bar rides above a billboard exactly as it rides
+    // above a game piece, and above the tag in both cases.
     const right = new Vector3(1, 0, 0).applyQuaternion(faceCamera);
     const anchor = placement.position
       .clone()
-      .setY(placement.position.y + visualHeight + HP.lift)
+      .setY(placement.position.y + hpBarY(visualHeight))
       .addScaledVector(right, -HP.width / 2);
 
     collector.add(
@@ -416,8 +578,7 @@ export class UnitLayer {
   /** Puts a unit's resting visual back. Idempotent. */
   restore(unitId: number): void {
     if (!this.hidden.delete(unitId)) return;
-    const handle = this.handles.get(unitId);
-    if (handle) InstanceCollector.restore(handle);
+    for (const handle of this.handles.get(unitId) ?? []) InstanceCollector.restore(handle);
     const sprite = this.spriteUnits.get(unitId);
     if (sprite) sprite.visible = true;
   }
@@ -428,8 +589,7 @@ export class UnitLayer {
   }
 
   private applyHide(unitId: number): void {
-    const handle = this.handles.get(unitId);
-    if (handle) InstanceCollector.hide(handle);
+    for (const handle of this.handles.get(unitId) ?? []) InstanceCollector.hide(handle);
     const sprite = this.spriteUnits.get(unitId);
     if (sprite) sprite.visible = false;
   }

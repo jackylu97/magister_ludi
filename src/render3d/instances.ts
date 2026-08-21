@@ -23,6 +23,7 @@
 
 import {
   type BufferGeometry,
+  type Material,
   Group,
   InstancedBufferAttribute,
   InstancedMesh,
@@ -59,6 +60,17 @@ interface Bucket {
    */
   colors: number[];
   outlined: boolean;
+  /**
+   * A caller-owned material used verbatim instead of one from the library.
+   *
+   * The escape hatch for the one kind of instance whose look is not a colour:
+   * the unit badges, whose disc is a cell of a shared texture atlas (see
+   * `badges3d.ts`). Everything else on the board is flat ink, and the library
+   * exists precisely so a colour is all a bucket needs; a textured instance has
+   * nothing to ask it for. A bucket with a material of its own is never
+   * outlined, never shadowed and never tinted — it is a printed thing.
+   */
+  material: Material | null;
   /** Multiply the ink by the geometry's `color` attribute. See `ToonOptions`. */
   vertexColors: boolean;
   /** Unlit overlay decals, drawn after everything and never shadowed. */
@@ -106,6 +118,8 @@ export interface CollectorOptions {
 export class InstanceCollector {
   private readonly buckets = new Map<string, Bucket>();
   private readonly geometryIds = new Map<BufferGeometry, number>();
+  /** Identity, not colour, keys a custom-material bucket. See `Bucket.material`. */
+  private readonly materialIds = new Map<Material, number>();
   private readonly copyOffsets: readonly number[];
   private readonly keepMatrices: boolean;
 
@@ -125,6 +139,10 @@ export class InstanceCollector {
    * trees ten thousand slightly different greens by passing ten thousand
    * colours would produce ten thousand draw calls. As a per-instance multiplier
    * it is one extra float3 per instance and no extra draw at all.
+   *
+   * `material` overrides the library entirely for callers whose look is not a
+   * colour — see `Bucket.material`. It joins the bucket key by *identity*, so
+   * one shared material batches and two do not.
    */
   add(
     geometry: BufferGeometry,
@@ -137,11 +155,13 @@ export class InstanceCollector {
       opacity?: number;
       tint?: Tint;
       vertexColors?: boolean;
+      material?: Material;
     } = {},
   ): InstanceHandle {
-    const outlined = options.outlined ?? true;
+    const custom = options.material ?? null;
+    const outlined = custom ? false : (options.outlined ?? true);
     const onTop = options.onTop ?? false;
-    const overlay = onTop || (options.overlay ?? false);
+    const overlay = !custom && (onTop || (options.overlay ?? false));
     const opacity = options.opacity ?? 1;
     const vertexColors = options.vertexColors ?? false;
 
@@ -150,15 +170,22 @@ export class InstanceCollector {
       id = this.geometryIds.size;
       this.geometryIds.set(geometry, id);
     }
+    let materialId = -1;
+    if (custom) {
+      const known = this.materialIds.get(custom);
+      materialId = known ?? this.materialIds.size;
+      if (known === undefined) this.materialIds.set(custom, materialId);
+    }
     const key =
       `${id}|${colors.join(',')}|${outlined ? 1 : 0}|` +
-      `${overlay ? 1 : 0}|${onTop ? 1 : 0}|${opacity}|${vertexColors ? 1 : 0}`;
+      `${overlay ? 1 : 0}|${onTop ? 1 : 0}|${opacity}|${vertexColors ? 1 : 0}|${materialId}`;
     let bucket = this.buckets.get(key);
     if (!bucket) {
       bucket = {
         geometry,
         colors,
         outlined: outlined && !overlay,
+        material: custom,
         vertexColors: vertexColors && !overlay,
         overlay,
         onTop,
@@ -196,15 +223,17 @@ export class InstanceCollector {
         opacity: bucket.opacity,
         vertexColors: bucket.vertexColors,
       };
-      const material = bucket.overlay
-        ? materials.overlay(bucket.colors[0]!, bucket.opacity, bucket.onTop)
-        : bucket.colors.length === 1
-          ? materials.get(bucket.colors[0]!, toonOptions)
-          : bucket.colors.map((color) => materials.get(color, toonOptions));
+      const material = bucket.material
+        ? bucket.material
+        : bucket.overlay
+          ? materials.overlay(bucket.colors[0]!, bucket.opacity, bucket.onTop)
+          : bucket.colors.length === 1
+            ? materials.get(bucket.colors[0]!, toonOptions)
+            : bucket.colors.map((color) => materials.get(color, toonOptions));
 
       const mesh = new InstancedMesh(bucket.geometry, material, count);
-      mesh.castShadow = shadows && !bucket.overlay;
-      mesh.receiveShadow = shadows && !bucket.overlay;
+      mesh.castShadow = shadows && !bucket.overlay && !bucket.material;
+      mesh.receiveShadow = shadows && !bucket.overlay && !bucket.material;
       // Overlays are unlit decals a hair above the board; drawing them last and
       // without depth writes keeps them off the depth buffer entirely. The
       // `onTop` kind is drawn after even those, because it is not depth-tested

@@ -400,10 +400,10 @@ export function buildBoard(
     scale.set(1, 1, 1);
     collector.add(
       // The look-dev prototype only ever carved three shapes, and it is frozen
-      // at that. The shipping renderer has since grown one sculpt per unit type
-      // (`MINI_SCULPTS` in `src/render3d/board3d.ts`), so a `piece` name from
-      // `units.json` that the prototype never knew falls back to the pawn.
-      geometry.pieces[unitDef(unit.type).piece as keyof typeof geometry.pieces] ??
+      // at that. The shipping renderer has since grown a sculpt per model class
+      // (`MINI_SCULPTS` in `src/render3d/board3d.ts`), so a `modelClass` name
+      // from `units.json` the prototype never knew falls back to the pawn.
+      geometry.pieces[unitDef(unit.type).modelClass as keyof typeof geometry.pieces] ??
         geometry.pieces.warrior,
       [playerColor(unit.ownerId)],
       new Matrix4().compose(position, quaternion, scale),

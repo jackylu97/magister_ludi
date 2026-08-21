@@ -43,15 +43,17 @@ import {
 } from 'three';
 
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
-import { type PieceShape, type UnitTypeId, unitDef } from '../sim/unitData';
+import { type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
 import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
+import { badgeCellRect, rimInnerFraction } from './badges3d';
 import { hashDisc, hashSigned, hashUnit } from './hash';
 import {
   type MiniClass,
   type MiniFactory,
   type UnitPiece,
   archerMini,
+  atlasQuad,
   bannerPole,
   barQuad,
   cactus,
@@ -59,20 +61,16 @@ import {
   chariotMini,
   cityHouseBody,
   cityHouseRoof,
-  compositeBowmanMini,
-  crossbowmanMini,
+  discRing,
   flowerSpray,
   grassTuft,
   hexDecal,
   hexPrism,
   hexRing,
   horsemanMini,
-  knightMini,
-  longswordsmanMini,
   mountainPeak,
   mountainSnow,
   pathDot,
-  pikemanMini,
   pineTree,
   reedClump,
   riverSegment,
@@ -80,12 +78,10 @@ import {
   roundTree,
   scoutMini,
   settlerMini,
-  spearmanMini,
   spriteQuad,
   standeeBase,
   swordsmanMini,
-  trebuchetMini,
-  warriorMini,
+  workerMini,
 } from './geometry';
 import { type Tint, InstanceCollector, disposeInstancedGroup } from './instances';
 import { VIEW3D, shade } from './lookData';
@@ -114,62 +110,65 @@ const PIECES = VIEW3D.pieces;
 const SPRITE = VIEW3D.units.sprite;
 
 /**
- * The sculpted miniature a unit type stands on, read from `data/units.json`.
+ * The model class a unit type is drawn as, read from `data/units.json`.
  *
  * One lookup rather than a switch on unit ids, for the same reason nothing in
  * `src/sim/` compares a type against the string `"settler"`: a new unit type is
  * a data edit, and a renderer that had to be taught each one would silently draw
  * the wrong thing (or nothing) the day one arrived.
+ *
+ * This used to answer with a per-type sculpt. It answers with a *class* now —
+ * see `ModelClass` for why fifteen silhouettes became eight — and which unit is
+ * which is carried by the badge floating over the piece (`badges3d.ts`).
  */
-export function pieceShapeFor(type: UnitTypeId): PieceShape {
-  return unitDef(type).piece;
+export function modelClassFor(type: UnitTypeId): ModelClass {
+  return unitDef(type).modelClass;
 }
 
 /**
  * Every sculpt on the board, and the size class it is cut to.
  *
- * Typed `Record<PieceShape, …>` on purpose: this is the one place the art and
- * the data are joined, and making it exhaustive means a `piece` name added to
- * `units.json` that nobody sculpted is a *compile* error rather than a hole in
- * the board. `test/pieces3d.test.ts` closes the other direction — a sculpt no
- * unit stands on.
+ * Typed `Record<ModelClass, …>` on purpose: this is the one place the art and
+ * the data are joined, and making it exhaustive means a `modelClass` name added
+ * to `units.json` that nobody sculpted is a *compile* error rather than a hole
+ * in the board. `test/pieces3d.test.ts` closes the other direction — a sculpt no
+ * unit stands on — with one deliberate exemption, `worker`, which is sculpted
+ * and iconed ahead of the unit that will stand on it.
+ *
+ * The eight builds are the best silhouette from the old per-type roster rather
+ * than eight new sculpts: the swordsman was always the clearest foot soldier,
+ * the archer the clearest bow, the horseman the clearest rider. The factories
+ * that lost their seat stay in `geometry.ts` — see the docblock there.
  */
-export const MINI_SCULPTS: Record<PieceShape, { cls: MiniClass; build: MiniFactory }> = {
-  warrior: { cls: 'foot', build: warriorMini },
-  scout: { cls: 'foot', build: scoutMini },
+export const MINI_SCULPTS: Record<ModelClass, { cls: MiniClass; build: MiniFactory }> = {
   settler: { cls: 'foot', build: settlerMini },
-  archer: { cls: 'foot', build: archerMini },
-  compositeBowman: { cls: 'foot', build: compositeBowmanMini },
-  crossbowman: { cls: 'foot', build: crossbowmanMini },
-  swordsman: { cls: 'foot', build: swordsmanMini },
-  longswordsman: { cls: 'foot', build: longswordsmanMini },
-  spearman: { cls: 'polearm', build: spearmanMini },
-  pikeman: { cls: 'polearm', build: pikemanMini },
-  horseman: { cls: 'mounted', build: horsemanMini },
-  knight: { cls: 'mounted', build: knightMini },
-  chariot: { cls: 'mounted', build: chariotMini },
-  catapult: { cls: 'siege', build: catapultMini },
-  trebuchet: { cls: 'engine', build: trebuchetMini },
+  worker: { cls: 'foot', build: workerMini },
+  melee: { cls: 'foot', build: swordsmanMini },
+  ranged: { cls: 'foot', build: archerMini },
+  scout: { cls: 'foot', build: scoutMini },
+  mounted: { cls: 'mounted', build: horsemanMini },
+  mountedRanged: { cls: 'mounted', build: chariotMini },
+  siege: { cls: 'siege', build: catapultMini },
 };
 
-/** Every sculpt id, in the order the registry lists them. */
-export const PIECE_SHAPE_IDS = Object.keys(MINI_SCULPTS) as PieceShape[];
+/** Every model class, in the order the registry lists them. */
+export const MODEL_CLASS_IDS = Object.keys(MINI_SCULPTS) as ModelClass[];
 
 /**
  * How tall a unit's miniature stands, in world units.
  *
- * The HP bar's only question about the art style, and the reason the class
- * heights are data: a bar that rode at a fixed height would float over a
+ * What the HP bar and the badge both ask about the art style, and the reason the
+ * class heights are data: a tag that rode at a fixed height would float over a
  * catapult and sit inside a knight.
  */
 export function pieceHeightFor(type: UnitTypeId): number {
-  return PIECES.heights[MINI_SCULPTS[pieceShapeFor(type)].cls];
+  return PIECES.heights[MINI_SCULPTS[modelClassFor(type)].cls];
 }
 
 /** Builds one of every sculpt, at the height its class asks for. */
-function buildUnitPieces(): Record<PieceShape, UnitPiece> {
-  const out: Partial<Record<PieceShape, UnitPiece>> = {};
-  for (const id of PIECE_SHAPE_IDS) {
+function buildUnitPieces(): Record<ModelClass, UnitPiece> {
+  const out: Partial<Record<ModelClass, UnitPiece>> = {};
+  for (const id of MODEL_CLASS_IDS) {
     const sculpt = MINI_SCULPTS[id];
     out[id] = sculpt.build({
       height: PIECES.heights[sculpt.cls],
@@ -178,7 +177,24 @@ function buildUnitPieces(): Record<PieceShape, UnitPiece> {
       tokenRadius: PIECES.tokenRadius,
     });
   }
-  return out as Record<PieceShape, UnitPiece>;
+  return out as Record<ModelClass, UnitPiece>;
+}
+
+/**
+ * One quad per model class, each carrying its own cell of the badge atlas.
+ *
+ * Baking the atlas rectangle into the geometry is what makes badges instanceable
+ * without a per-instance attribute: every badge of one class is the same quad
+ * with the same UVs, so the whole class is one `InstancedMesh`, and all eight
+ * classes share a single material and a single texture.
+ */
+function buildBadgeQuads(): Record<ModelClass, BufferGeometry> {
+  const out: Partial<Record<ModelClass, BufferGeometry>> = {};
+  for (const id of MODEL_CLASS_IDS) {
+    const rect = badgeCellRect(id);
+    out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
+  }
+  return out as Record<ModelClass, BufferGeometry>;
 }
 
 /**
@@ -209,12 +225,18 @@ export class BoardGeometry {
   readonly cactus: BufferGeometry;
   readonly reeds: BufferGeometry;
   /**
-   * The sculpted miniatures, keyed by *sculpt* rather than by unit type: which
-   * type stands on which sculpt is a fact about the art direction that lives in
-   * `data/units.json` (`piece`). Ask for one through `pieceShapeFor`, never by
-   * unit id.
+   * The sculpted miniatures, keyed by *model class* rather than by unit type:
+   * which type is drawn as which class is a fact about the art direction that
+   * lives in `data/units.json` (`modelClass`). Ask for one through
+   * `modelClassFor`, never by unit id.
    */
-  readonly pieces: Record<PieceShape, UnitPiece>;
+  readonly pieces: Record<ModelClass, UnitPiece>;
+  /**
+   * The floating unit badges: one atlas-carrying quad per class, and the flat
+   * ring of player colour that goes round every one of them. See `badges3d.ts`.
+   */
+  readonly badgeIcons: Record<ModelClass, BufferGeometry>;
+  readonly badgeRim: BufferGeometry;
   /** City shapes: the houses of the town and the pole its banner flies from. */
   readonly houseBody: BufferGeometry;
   readonly houseRoof: BufferGeometry;
@@ -266,6 +288,8 @@ export class BoardGeometry {
     this.cactus = cactus(DECOR.clutter.cactus);
     this.reeds = reedClump(DECOR.reeds);
     this.pieces = buildUnitPieces();
+    this.badgeIcons = buildBadgeQuads();
+    this.badgeRim = discRing(rimInnerFraction(), VIEW3D.badges.rimSegments);
     this.houseBody = cityHouseBody(CITY.house);
     this.houseRoof = cityHouseRoof(CITY.house);
     this.pole = bannerPole(CITY.poleRadius, CITY.poleHeight);
@@ -315,6 +339,8 @@ export class BoardGeometry {
     this.cactus.dispose();
     this.reeds.dispose();
     for (const piece of Object.values(this.pieces)) piece.geometry.dispose();
+    for (const quad of Object.values(this.badgeIcons)) quad.dispose();
+    this.badgeRim.dispose();
     this.houseBody.dispose();
     this.houseRoof.dispose();
     this.pole.dispose();

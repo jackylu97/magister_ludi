@@ -201,10 +201,15 @@ export interface DecorSpec {
  * The unit miniatures: the kit every sculpt in `geometry.ts` is cut from.
  *
  * Four numbers and three inks decide the whole roster's family resemblance. The
- * base disc is the load-bearing one — uniform radius and thickness across all
- * fifteen sculpts is what makes a trebuchet and a pikeman read as two pieces
- * from the same box rather than as two models — and the per-class heights are
- * the other half: a set of toys is a set because the toys are the same size.
+ * base disc is the load-bearing one — uniform radius and thickness across every
+ * sculpt is what makes a catapult and a settler read as two pieces from the
+ * same box rather than as two models — and the per-class heights are the other
+ * half: a set of toys is a set because the toys are the same size.
+ *
+ * `heights` is keyed by *size* class, which is not the model class the board
+ * draws by (`ModelClass`): several models share a size, and `polearm` and
+ * `engine` currently have no model at all — they belong to the bench sculpts in
+ * `geometry.ts`, and they stay because those sculpts are built to them.
  */
 export interface PiecesSpec {
   /** How far stacked pieces on one tile fan out from the centre. */
@@ -531,12 +536,65 @@ export interface HpBarSpec {
   /** Bar width in world units. */
   width: number;
   height: number;
-  /** Extra height above the top of the piece. */
+  /**
+   * How far the bar's centre floats above whatever is under it.
+   *
+   * That used to be the top of the piece and is now the top of the *badge* (see
+   * `BadgeSpec` and `hpBarY` in `badges3d.ts`), which is why the number shrank
+   * when the badges landed: the bar climbed a badge's worth on its own.
+   */
   lift: number;
   backColor: number;
   /** Fill colour when the unit is hurt, and when it is nearly whole. */
   fillColor: number;
   goodColor: number;
+}
+
+/**
+ * The floating unit badges: the parchment roundel over every piece.
+ *
+ * Fifteen sculpts became eight model classes (`ModelClass` in
+ * `src/sim/unitData.ts`) because the differences between a swordsman and a
+ * longswordsman were real and invisible. What tells them apart now is this: a
+ * small camera-facing disc above the unit, parchment with an ink class icon,
+ * rimmed in the owner's colour. It is the Civ convention and it works for the
+ * Civ reason — the silhouette says *what kind of thing*, the tag says *which
+ * one*, and only the tag has to be legible at a glance.
+ *
+ * Deliberately a thing in the world and not an interface overlay. Badges are
+ * depth-tested like the piece they name, so a unit behind a mountain has a badge
+ * behind a mountain; the alternative — the `onTop` treatment the HP bars and the
+ * route dots get — would leave a field of tags hovering over a ridge with
+ * nothing under them.
+ */
+export interface BadgeSpec {
+  /** Roundel diameter in world units. */
+  diameter: number;
+  /** Clearance between the top of the unit's visual and the disc's underside. */
+  lift: number;
+  /** Width of the player-coloured rim, in world units. */
+  rimWidth: number;
+  /** Segments around the rim ring. See `discRing`. */
+  rimSegments: number;
+  /**
+   * How far under the rim the parchment reaches, as a fraction of the rim's
+   * width. The rim is geometry and the parchment is texture, so this is what
+   * keeps the disc's antialiased edge hidden behind an opaque band instead of
+   * fringing against the board.
+   */
+  paperOverlap: number;
+  /** Palette names: the roundel's paper, and the ink the icon is drawn in. */
+  paperColor: number;
+  inkColor: number;
+  /** `shade` amount applied to the rim of the selected unit's badge. */
+  selectedRimShade: number;
+  /** Atlas cell size in pixels, and how many cells per row. */
+  atlasCell: number;
+  atlasColumns: number;
+  /** Icon box side, as a fraction of the cell. */
+  iconScale: number;
+  /** Alpha below which a badge fragment is discarded outright. */
+  alphaTest: number;
 }
 
 export interface AnimationSpec {
@@ -564,6 +622,7 @@ export interface View3DData {
   lights: LightSpec;
   overlay: OverlaySpec;
   hpBar: HpBarSpec;
+  badges: BadgeSpec;
   animation: AnimationSpec;
   lens: LensSpec;
   units: UnitStyleSpec;
@@ -755,6 +814,23 @@ export const VIEW3D: View3DData = {
     backColor: parseColor(viewJson.hpBar.backColor, 'hpBar.backColor'),
     fillColor: parseColor(viewJson.hpBar.fillColor, 'hpBar.fillColor'),
     goodColor: parseColor(viewJson.hpBar.goodColor, 'hpBar.goodColor'),
+  },
+  badges: {
+    diameter: viewJson.badges.diameter,
+    lift: viewJson.badges.lift,
+    rimWidth: viewJson.badges.rimWidth,
+    rimSegments: viewJson.badges.rimSegments,
+    paperOverlap: viewJson.badges.paperOverlap,
+    // Named from the palette, not written out: the roundel is parchment and ink
+    // like every other piece of paper in this game, and a badge that drifted off
+    // the twelve-colour discipline would be the one thing on the board that did.
+    paperColor: named(viewJson.badges.paperColor, 'badges.paperColor'),
+    inkColor: named(viewJson.badges.inkColor, 'badges.inkColor'),
+    selectedRimShade: viewJson.badges.selectedRimShade,
+    atlasCell: viewJson.badges.atlasCell,
+    atlasColumns: viewJson.badges.atlasColumns,
+    iconScale: viewJson.badges.iconScale,
+    alphaTest: viewJson.badges.alphaTest,
   },
   animation: viewJson.animation,
   lens: {

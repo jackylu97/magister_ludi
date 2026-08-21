@@ -2,10 +2,13 @@
  * Entry point for The Armory — the piece gallery.
  *
  * A second look-dev page beside `proto3d.html`, and the same bargain: it exists
- * to answer one question, and it reads the real thing to answer it. Here the
- * question is "do fifteen sculpted miniatures read as fifteen different units,
- * and do they read as one set?", and the only honest way to ask it is to line
- * the whole roster up at board scale, under the board's light, turning.
+ * to answer one question, and it reads the real thing to answer it. The question
+ * used to be "do fifteen sculpted miniatures read as fifteen different units?"
+ * and the answer at board scale was no, which is why there are eight model
+ * classes now and a badge over each of them. So the question is now "do eight
+ * classes read as eight different kinds of thing, and does the tag carry the
+ * rest?" — and the only honest way to ask it is still to line the whole roster
+ * up at board scale, under the board's light, turning.
  *
  * All the rendering lives in `stage.ts`. This file is the chrome: the labels,
  * the two toggles, and the reduced-motion decision.
@@ -13,6 +16,7 @@
 
 import './style.css';
 
+import { UnitBadges } from '../render3d/badges3d';
 import { VIEW3D } from '../render3d/lookData';
 import { UnitSprites } from '../render3d/sprites3d';
 
@@ -50,7 +54,13 @@ const labels = stage.entries.map((entry) => {
   const meta = document.createElement('span');
   meta.className = 'meta';
   meta.textContent = `${entry.cls} · ${entry.triangles} tri`;
-  element.append(name, meta);
+  // The whole point of the consolidation, spelled out under every cell: this
+  // one model is these units, and the badge above it is what tells them apart.
+  const covers = document.createElement('span');
+  covers.className = 'covers';
+  covers.textContent = entry.covers.length > 0 ? entry.covers.join(' · ') : 'no unit yet';
+  if (entry.covers.length === 0) covers.classList.add('is-reserved');
+  element.append(name, meta, covers);
   labelLayer.append(element);
   return element;
 });
@@ -67,7 +77,7 @@ function layoutLabels(): void {
 function refreshStatus(extra = ''): void {
   const stats = stage.stats;
   statusEl.textContent =
-    `${stage.entries.length} pieces · ${stats.triangles} tri · ${stats.draws} draws` +
+    `${stage.entries.length} classes · ${stats.triangles} tri · ${stats.draws} draws` +
     (extra ? `\n${extra}` : '');
 }
 
@@ -161,6 +171,17 @@ window.addEventListener('resize', () => {
  * `public/` simply gets a Standees button that says so rather than a broken
  * page — which is the same fallback the game itself makes.
  */
+/**
+ * The badge atlas, fetched once and in the background, exactly as the game does
+ * it. A checkout with no icons under `public/sprites/icons/` gets blank
+ * roundels rather than a broken page — see `UnitBadges.load`.
+ */
+void UnitBadges.load().then((badges) => {
+  stage.setBadges(badges);
+  layoutLabels();
+  refreshStatus(spriteNote);
+});
+
 let spriteNote = '';
 void UnitSprites.load().then((sprites) => {
   if (!sprites.any) {

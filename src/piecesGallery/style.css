@@ -4,7 +4,7 @@
  *
  * Deliberately its own stylesheet rather than a slice of `src/style.css`. That
  * file is the game's interface and is owned by the interface work; this is a
- * look-dev page whose only job is to get out of the way of fifteen miniatures.
+ * look-dev page whose only job is to get out of the way of eight miniatures.
  * What it borrows is the *language* — ink on vellum, Instrument Serif to
  * announce, Instrument Sans to work, mono for anything countable — not the
  * cascade.
@@ -113,6 +113,25 @@ body {
   font-size: 10px;
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The unit types a class model stands in for. Quieter than the class name and
+ * italic, because it is a *list of things that are not here* — five names in
+ * the same weight as the class would read as five pieces on one plinth.
+ */
+#labels .covers {
+  display: block;
+  margin: 2px auto 0;
+  font-size: 10px;
+  font-style: italic;
+  color: var(--ink-soft);
+  max-width: 22ch;
+  white-space: normal;
+}
+
+#labels .covers.is-reserved {
+  opacity: 0.6;
 }
 
 #controls {

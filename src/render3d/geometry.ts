@@ -9,9 +9,17 @@
  * pipeline, only a palette.
  *
  * The unit miniatures at the bottom of the file are the largest thing built out
- * of that rule — fifteen distinguishable sculpts, none over a few hundred
+ * of that rule — sixteen distinguishable sculpts, none over a few hundred
  * triangles, all standing on the same disc. See the "unit miniatures" section
  * for the composition kit they are cut from.
+ *
+ * Only eight of them stand on the board today: the roster is drawn by *model
+ * class* now (`ModelClass` in `src/sim/unitData.ts`) and the specific unit type
+ * is named by the floating badge above it. The other eight factories are kept
+ * whole and tested — they are a bench of finished silhouettes, and the day a
+ * class earns its own split (a polearm line that has to read differently from a
+ * sword line) the sculpt for it already exists and is already in the set's
+ * proportions. Deleting them would be throwing away the expensive half.
  *
  * Origins are at the *base* of every shape, not the centre. Two reasons:
  * placement becomes "put it on the tile top" with no half-height correction,
@@ -533,9 +541,9 @@ class Mini {
 /**
  * The disc every miniature stands on.
  *
- * This is the single element that makes fifteen wildly different silhouettes —
- * a pikeman, a horse, a trebuchet — read as one *set* of board pieces rather
- * than as fifteen models. Uniform radius and thickness across the whole roster,
+ * This is the single element that makes wildly different silhouettes — a
+ * settler, a horse, a catapult — read as one *set* of board pieces rather than
+ * as a pile of models. Uniform radius and thickness across the whole roster,
  * always in the player's colour, always visible: a tabletop base.
  *
  * Eight sides, slightly flared. Eight because six would lock the base's facets
@@ -802,6 +810,38 @@ export const settlerMini: MiniFactory = (spec) => {
     wheelAt(0.058, 0.024, cartX, t + 0.058, -0.085),
   );
   mini.add('accent', slabAt(0.14, 0.095, 0.115, cartX, t + 0.19, 0));
+  return mini.build();
+};
+
+/**
+ * Worker: the settler's token stripped of its cart, shouldering a mallet.
+ *
+ * Built from the kit and nothing new — the same token at the same height, the
+ * warrior's haft-and-head construction turned upright and squared off. That is
+ * deliberate: the worker class has no unit type standing on it yet (see
+ * `ModelClass`), so it must not cost a sculpting session to exist. What
+ * separates it from the settler beside it is that the settler is *carrying its
+ * home* and the worker is *carrying a tool*, which is one blocky head at the
+ * top of a stick and reads at forty pixels.
+ */
+export const workerMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h * 0.98, r, t));
+
+  // Upright over the shoulder rather than raked out at an angle: a mallet held
+  // level is a weapon, and this figure must never be mistaken for the melee
+  // class it stands next to.
+  const haftH = h * 0.62;
+  const x = r * 1.0;
+  const haft = shaft(haftH, 0.02);
+  haft.translate(x, t + h * 0.28, 0.035);
+  mini.add('wood', haft);
+  mini.add(
+    'metal',
+    slabAt(0.055, 0.075, 0.11, x, t + h * 0.28 + haftH, 0.035),
+  );
   return mini.build();
 };
 
@@ -1398,6 +1438,69 @@ export function barQuad(): BufferGeometry {
 export function spriteQuad(): BufferGeometry {
   const geometry = new PlaneGeometry(1, 1);
   geometry.translate(0, 0.5, 0);
+  return geometry;
+}
+
+// --- unit badges -----------------------------------------------------------
+
+/**
+ * The rim of a floating unit badge: a flat annulus in the xy plane, facing +z,
+ * centred on the origin, with an outer radius of exactly ½.
+ *
+ * Unit-sized so one geometry serves every badge on the board and the instance
+ * matrix carries the diameter — the same bargain `barQuad` and `spriteQuad`
+ * make. `innerFraction` is the inner radius as a fraction of the outer, so the
+ * band's width in world units is `(1 − innerFraction) · diameter / 2` and the
+ * data can speak in world units without this shape knowing about them.
+ *
+ * Geometry rather than a ring drawn into the badge texture, because the rim is
+ * the one part of the badge that is the *player's* colour: as geometry it is a
+ * per-instance ink and the whole board's rims batch into one draw per player,
+ * where a coloured ring in the atlas would need an atlas per player.
+ *
+ * Twenty-four segments. At the size a badge is drawn (a third of a hex) that is
+ * under two degrees of chord and the circle is clean; going further is spending
+ * triangles on a curve nobody can see, and going lower turns a token into a nut.
+ */
+export function discRing(innerFraction: number, segments = 24): BufferGeometry {
+  const n = Math.max(3, Math.round(segments));
+  const outer = 0.5;
+  const inner = outer * Math.max(0, Math.min(0.999, innerFraction));
+  const points: { x: number; y: number }[] = [];
+  for (let k = 0; k < n; k++) {
+    const a0 = (k / n) * Math.PI * 2;
+    const a1 = ((k + 1) / n) * Math.PI * 2;
+    const o0 = { x: Math.cos(a0) * outer, y: Math.sin(a0) * outer };
+    const o1 = { x: Math.cos(a1) * outer, y: Math.sin(a1) * outer };
+    const i0 = { x: Math.cos(a0) * inner, y: Math.sin(a0) * inner };
+    const i1 = { x: Math.cos(a1) * inner, y: Math.sin(a1) * inner };
+    points.push(i0, o0, o1, i0, o1, i1);
+  }
+  return flatFanXY(points);
+}
+
+/**
+ * A unit quad in the xy plane, centred on the origin, carrying one cell of a
+ * texture atlas.
+ *
+ * Centred rather than standing on its base (`spriteQuad`) because a badge is
+ * placed by its middle: it floats at a height above the piece and has no feet.
+ *
+ * The UV rect is baked into the geometry instead of being pushed per instance,
+ * which is what lets every badge of one class share an `InstancedMesh` while
+ * every class shares one atlas and one material. Eight classes therefore cost
+ * eight small geometries and one texture, and the whole board's badges cost one
+ * draw per class actually standing on it.
+ */
+export function atlasQuad(u0: number, v0: number, u1: number, v1: number): BufferGeometry {
+  const geometry = new PlaneGeometry(1, 1);
+  const uv = geometry.getAttribute('uv');
+  // `PlaneGeometry`'s corners run (0,1) (1,1) (0,0) (1,0) — top-left first —
+  // so each u/v is a plain lerp of the rect and no winding has to be guessed.
+  for (let i = 0; i < uv.count; i++) {
+    uv.setXY(i, u0 + uv.getX(i) * (u1 - u0), v0 + uv.getY(i) * (v1 - v0));
+  }
+  uv.needsUpdate = true;
   return geometry;
 }
 

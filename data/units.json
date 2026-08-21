@@ -11,7 +11,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "swordsman",
-      "piece": "warrior",
+      "modelClass": "melee",
       "glyph": "W"
     },
     "scout": {
@@ -24,7 +24,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "scout",
+      "modelClass": "scout",
       "glyph": "S"
     },
     "settler": {
@@ -37,7 +37,7 @@
       "foundsCity": true,
       "haltsGrowth": true,
       "minCityPop": 2,
-      "piece": "settler",
+      "modelClass": "settler",
       "glyph": "T"
     },
     "archer": {
@@ -51,7 +51,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "compositeBowman",
-      "piece": "archer",
+      "modelClass": "ranged",
       "glyph": "A"
     },
     "spearman": {
@@ -65,7 +65,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "pikeman",
-      "piece": "spearman",
+      "modelClass": "melee",
       "glyph": "P"
     },
     "horseman": {
@@ -79,7 +79,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "knight",
-      "piece": "horseman",
+      "modelClass": "mounted",
       "glyph": "H"
     },
     "chariot": {
@@ -92,7 +92,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "chariot",
+      "modelClass": "mountedRanged",
       "glyph": "C"
     },
     "swordsman": {
@@ -106,7 +106,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "longswordsman",
-      "piece": "swordsman",
+      "modelClass": "melee",
       "glyph": "X"
     },
     "catapult": {
@@ -120,7 +120,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "trebuchet",
-      "piece": "catapult",
+      "modelClass": "siege",
       "glyph": "K"
     },
     "compositeBowman": {
@@ -134,7 +134,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "upgradesTo": "crossbowman",
-      "piece": "compositeBowman",
+      "modelClass": "ranged",
       "glyph": "B"
     },
     "pikeman": {
@@ -147,7 +147,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "pikeman",
+      "modelClass": "melee",
       "glyph": "I"
     },
     "crossbowman": {
@@ -160,7 +160,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "crossbowman",
+      "modelClass": "ranged",
       "glyph": "R"
     },
     "knight": {
@@ -173,7 +173,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "knight",
+      "modelClass": "mounted",
       "glyph": "N"
     },
     "longswordsman": {
@@ -186,7 +186,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "longswordsman",
+      "modelClass": "melee",
       "glyph": "L"
     },
     "trebuchet": {
@@ -199,7 +199,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "piece": "trebuchet",
+      "modelClass": "siege",
       "glyph": "E"
     }
   }

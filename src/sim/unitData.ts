@@ -51,35 +51,37 @@ export type UnitTypeId =
 export type UnitCategory = 'military' | 'civilian';
 
 /**
- * Which sculpted miniature the 3D board stands this unit on.
+ * Which *class* of model the 3D board stands this unit on.
  *
  * A visual field, like `glyph`, and here for the same reason: two lists of the
- * same units drift apart. It stays a *mapping* rather than "the type id is the
- * sculpt id" because it is an art-direction fact and not a promise — two unit
- * types are allowed to share a silhouette the day the roster grows past what is
- * worth sculpting, and that decision belongs in `data/units.json`, not in a
- * renderer that would otherwise draw nothing for a type it had not been taught.
+ * same units drift apart. It replaced the old per-type `piece` field, and the
+ * replacement is the whole point rather than a tidy-up. Fifteen sculpts, one per
+ * unit type, read as fifteen slightly different tokens at game zoom and as one
+ * indistinguishable smudge at any zoom further out — the differences were real
+ * but they were spent on details the camera never resolves. So the roster now
+ * collapses onto eight silhouettes a player can name from across the table, and
+ * the *specific* unit is carried by the floating badge above it (see
+ * `src/render3d/badges3d.ts`), which is the Civ convention and works for the
+ * same reason: a shape says what kind of thing this is, a tag says which one.
  *
- * Today every type has its own sculpt, so the mapping happens to be the
- * identity. `src/render3d/board3d.ts` holds the registry that turns one of these
- * into geometry and will not compile if a name here has no sculpt.
+ * Two types sharing a class is therefore expected, not a shortcut. A catapult
+ * and a trebuchet are one machine with two badges.
+ *
+ * `worker` has no unit type yet. It is declared, sculpted and iconed anyway, so
+ * that the day the improvement system lands the renderer already knows what a
+ * worker looks like; `test/pieces3d.test.ts` allows exactly this one unmapped
+ * class and no other. `src/render3d/board3d.ts` holds the registry that turns
+ * one of these into geometry and will not compile if a name here has no sculpt.
  */
-export type PieceShape =
-  | 'warrior'
-  | 'scout'
+export type ModelClass =
   | 'settler'
-  | 'archer'
-  | 'spearman'
-  | 'horseman'
-  | 'chariot'
-  | 'swordsman'
-  | 'catapult'
-  | 'compositeBowman'
-  | 'pikeman'
-  | 'crossbowman'
-  | 'knight'
-  | 'longswordsman'
-  | 'trebuchet';
+  | 'worker'
+  | 'melee'
+  | 'ranged'
+  | 'mountedRanged'
+  | 'mounted'
+  | 'siege'
+  | 'scout';
 
 export interface UnitDef {
   name: string;
@@ -114,8 +116,8 @@ export interface UnitDef {
    * list contains the successor, so the tree stays the single source of gating.
    */
   upgradesTo?: UnitTypeId;
-  /** Which carved piece the 3D board draws this unit as. See `PieceShape`. */
-  piece: PieceShape;
+  /** Which carved model the 3D board draws this unit as. See `ModelClass`. */
+  modelClass: ModelClass;
   /** Single letter drawn on the unit disc. Visual only. */
   glyph: string;
 }

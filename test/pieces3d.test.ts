@@ -1,32 +1,50 @@
 import { describe, expect, it } from 'vitest';
 import { Box3, InstancedMesh, Matrix4, MeshToonMaterial, Quaternion, Vector3 } from 'three';
 
+import { BADGE_CELLS, BADGE_ICON_FILES } from '../src/render3d/badges3d';
 import {
   BoardGeometry,
   MINI_SCULPTS,
-  PIECE_SHAPE_IDS,
+  MODEL_CLASS_IDS,
+  modelClassFor,
   pieceHeightFor,
-  pieceShapeFor,
 } from '../src/render3d/board3d';
+import {
+  type MiniFactory,
+  type MiniSpec,
+  compositeBowmanMini,
+  crossbowmanMini,
+  knightMini,
+  longswordsmanMini,
+  pikemanMini,
+  spearmanMini,
+  trebuchetMini,
+  warriorMini,
+} from '../src/render3d/geometry';
 import { VIEW3D } from '../src/render3d/lookData';
 import { UnitLayer, pieceColors, pieceMaterials } from '../src/render3d/pieces';
 import { MaterialLibrary } from '../src/render3d/toon';
 import { createMap } from '../src/sim/map';
 import { type GameState, newGame } from '../src/sim/state';
-import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../src/sim/unitData';
+import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../src/sim/unitData';
 
 /**
- * The sculpted miniatures: one board piece per unit type, all standing on the
- * same round base.
+ * The sculpted miniatures: one board model per *class* of unit, all standing on
+ * the same round base.
  *
- * Three properties are worth a test and the rest is taste. Totality — every unit
- * type in `units.json` has a sculpt and no sculpt is orphaned — because the
- * failure mode of a missing one is an invisible unit rather than a crash.
- * Base-origin — `minY === 0` — because the whole placement convention in this
- * renderer is "put it on the tile top" and a sculpt whose origin drifted would
- * float or sink on every hill. And the height bands, because a set of toys is a
- * set only while the toys are the same size, and nothing else in the codebase
- * would notice a spear growing by half.
+ * The properties worth a test are the same ones as when there were fifteen
+ * sculpts, retargeted at the eight classes that replaced them. Totality — every
+ * unit type in `units.json` maps to a class that is sculpted, iconed, and
+ * claimed by somebody — because the failure mode of a missing one is an
+ * invisible unit rather than a crash. Base-origin — `minY === 0` — because the
+ * whole placement convention in this renderer is "put it on the tile top" and a
+ * sculpt whose origin drifted would float or sink on every hill. And the height
+ * bands, because a set of toys is a set only while the toys are the same size.
+ *
+ * One test is new rather than retargeted: the eight per-type factories that lost
+ * their seat in the registry are still built and measured here, because they are
+ * kept deliberately (see the `geometry.ts` docblock) and a bench of sculpts
+ * nothing exercises is a bench of sculpts that stops compiling in silence.
  */
 
 const PIECES = VIEW3D.pieces;
@@ -35,33 +53,65 @@ function geometry(): BoardGeometry {
   return new BoardGeometry();
 }
 
-function boundsOf(board: BoardGeometry, id: (typeof PIECE_SHAPE_IDS)[number]): Box3 {
+function boundsOf(board: BoardGeometry, id: ModelClass): Box3 {
   const piece = board.pieces[id];
   piece.geometry.computeBoundingBox();
   return piece.geometry.boundingBox!;
 }
 
-describe('the sculpt roster', () => {
-  it('gives every unit type in units.json a sculpt', () => {
+describe('the model-class roster', () => {
+  it('gives every unit type in units.json a class model', () => {
     const board = geometry();
     for (const type of UNIT_TYPE_IDS) {
-      const shape = pieceShapeFor(type);
-      expect(MINI_SCULPTS[shape], `no sculpt registered for ${type}`).toBeDefined();
-      expect(board.pieces[shape]?.geometry, `no geometry built for ${type}`).toBeDefined();
+      const modelClass = modelClassFor(type);
+      expect(MINI_SCULPTS[modelClass], `no sculpt registered for ${type}`).toBeDefined();
+      expect(board.pieces[modelClass]?.geometry, `no geometry built for ${type}`).toBeDefined();
     }
     board.dispose();
   });
 
-  it('leaves no sculpt without a unit standing on it', () => {
-    const claimed = new Set(UNIT_TYPE_IDS.map((type) => pieceShapeFor(type)));
-    for (const id of PIECE_SHAPE_IDS) {
+  it('gives every class an icon cell and every icon cell a class model', () => {
+    // The two lists are written out separately on purpose — the atlas order
+    // decides texture coordinates and must not follow a registry reorder — so
+    // this is the seam that has to be nailed down.
+    expect([...BADGE_CELLS].sort()).toEqual([...MODEL_CLASS_IDS].sort());
+    for (const id of MODEL_CLASS_IDS) {
+      expect(BADGE_ICON_FILES[id], `no icon file for ${id}`).toMatch(/^sprites\/icons\/.+\.svg$/);
+    }
+  });
+
+  it('leaves no class model without a unit standing on it, bar the reserve', () => {
+    const claimed = new Set(UNIT_TYPE_IDS.map((type) => modelClassFor(type)));
+    for (const id of MODEL_CLASS_IDS) {
+      if (id === 'worker') {
+        // Sculpted and iconed ahead of the improvement system. Exactly one
+        // class is allowed to be unclaimed, and this test names it.
+        expect(claimed.has(id)).toBe(false);
+        continue;
+      }
       expect(claimed.has(id), `${id} is sculpted but nothing stands on it`).toBe(true);
     }
   });
 
+  it('collapses the roster rather than merely renaming it', () => {
+    // The point of the consolidation, held still: several unit types share a
+    // model, and the badge over the piece is what separates them. A day when
+    // every type has its own class again is a day this whole design was undone
+    // without anybody saying so.
+    const classes = new Set(UNIT_TYPE_IDS.map((type) => modelClassFor(type)));
+    expect(classes.size).toBeLessThan(UNIT_TYPE_IDS.length);
+    expect(modelClassFor('catapult')).toBe(modelClassFor('trebuchet'));
+    expect(modelClassFor('warrior')).toBe(modelClassFor('swordsman'));
+    expect(modelClassFor('archer')).toBe(modelClassFor('crossbowman'));
+    expect(modelClassFor('horseman')).toBe(modelClassFor('knight'));
+    // …but not everything: a settler must never be a swordsman.
+    expect(modelClassFor('settler')).not.toBe(modelClassFor('warrior'));
+    expect(modelClassFor('chariot')).not.toBe(modelClassFor('horseman'));
+  });
+
   it('builds non-empty, de-indexed, flat-shaded geometry for each', () => {
     const board = geometry();
-    for (const id of PIECE_SHAPE_IDS) {
+    for (const id of MODEL_CLASS_IDS) {
       const piece = board.pieces[id];
       const position = piece.geometry.getAttribute('position');
       expect(position.count, id).toBeGreaterThan(0);
@@ -78,9 +128,9 @@ describe('the sculpt roster', () => {
     board.dispose();
   });
 
-  it('stands every sculpt on its own base, origin at the table', () => {
+  it('stands every class model on its own base, origin at the table', () => {
     const board = geometry();
-    for (const id of PIECE_SHAPE_IDS) {
+    for (const id of MODEL_CLASS_IDS) {
       const box = boundsOf(board, id);
       expect(box.min.y, `${id} does not sit on y = 0`).toBeCloseTo(0, 6);
       // The base disc is the widest thing down at the table, so the footprint
@@ -92,9 +142,9 @@ describe('the sculpt roster', () => {
     board.dispose();
   });
 
-  it('keeps every sculpt inside its size class', () => {
+  it('keeps every class model inside its size class', () => {
     const board = geometry();
-    for (const id of PIECE_SHAPE_IDS) {
+    for (const id of MODEL_CLASS_IDS) {
       const want = PIECES.heights[MINI_SCULPTS[id].cls];
       const top = boundsOf(board, id).max.y;
       expect(top / want, `${id} stands ${top.toFixed(3)} against a class of ${want}`).toBeGreaterThan(0.94);
@@ -114,23 +164,66 @@ describe('the sculpt roster', () => {
     expect(PIECES.heights.siege).toBeLessThan(PIECES.heights.foot);
 
     const board = geometry();
-    const catapult = boundsOf(board, 'catapult');
-    expect(catapult.max.x - catapult.min.x).toBeGreaterThan(catapult.max.y);
+    const siege = boundsOf(board, 'siege');
+    expect(siege.max.x - siege.min.x).toBeGreaterThan(siege.max.y);
     board.dispose();
   });
 
-  it('reads a visual height off the sculpt rather than off a constant', () => {
+  it('reads a visual height off the class model rather than off a constant', () => {
     for (const type of UNIT_TYPE_IDS) {
-      expect(pieceHeightFor(type)).toBe(PIECES.heights[MINI_SCULPTS[pieceShapeFor(type)].cls]);
+      expect(pieceHeightFor(type)).toBe(PIECES.heights[MINI_SCULPTS[modelClassFor(type)].cls]);
     }
     expect(pieceHeightFor('catapult')).toBeLessThan(pieceHeightFor('knight'));
+    // A trebuchet is a catapult now, and that is the design rather than a bug:
+    // the badge over it is what says which machine it is.
+    expect(pieceHeightFor('trebuchet')).toBe(pieceHeightFor('catapult'));
+  });
+});
+
+describe('the reserve sculpts', () => {
+  /**
+   * The per-type factories the class registry no longer calls.
+   *
+   * Kept whole because they are finished work in the set's proportions and the
+   * day a class earns a split they are the split. Built here at the same spec
+   * the board uses so they cannot quietly rot: an unbuildable sculpt in this
+   * list is a sculpt somebody would otherwise discover the hard way.
+   */
+  const RESERVE: [string, MiniFactory, keyof typeof PIECES.heights][] = [
+    ['warrior', warriorMini, 'foot'],
+    ['compositeBowman', compositeBowmanMini, 'foot'],
+    ['crossbowman', crossbowmanMini, 'foot'],
+    ['longswordsman', longswordsmanMini, 'foot'],
+    ['spearman', spearmanMini, 'polearm'],
+    ['pikeman', pikemanMini, 'polearm'],
+    ['knight', knightMini, 'mounted'],
+    ['trebuchet', trebuchetMini, 'engine'],
+  ];
+
+  it('still builds every bench sculpt, on the base and in its size class', () => {
+    for (const [name, build, cls] of RESERVE) {
+      const spec: MiniSpec = {
+        height: PIECES.heights[cls],
+        baseRadius: VIEW3D.board.hexRadius * PIECES.base.radius,
+        baseThickness: PIECES.base.thickness,
+        tokenRadius: PIECES.tokenRadius,
+      };
+      const piece = build(spec);
+      piece.geometry.computeBoundingBox();
+      const box = piece.geometry.boundingBox!;
+      expect(box.min.y, `${name} does not sit on y = 0`).toBeCloseTo(0, 6);
+      expect(box.max.y / spec.height, name).toBeGreaterThan(0.94);
+      expect(box.max.y / spec.height, name).toBeLessThan(1.06);
+      expect(piece.parts[0], name).toBe('body');
+      piece.geometry.dispose();
+    }
   });
 });
 
 describe('miniature inks', () => {
-  it('groups every sculpt so each part can take its own colour', () => {
+  it('groups every class model so each part can take its own colour', () => {
     const board = geometry();
-    for (const id of PIECE_SHAPE_IDS) {
+    for (const id of MODEL_CLASS_IDS) {
       const piece = board.pieces[id];
       expect(piece.parts.length, id).toBeGreaterThan(0);
       expect(piece.geometry.groups.length, id).toBe(piece.parts.length);
@@ -154,7 +247,7 @@ describe('miniature inks', () => {
   it('paints the body in the player colour and the rest from the palette', () => {
     const board = geometry();
     const crimson = 0xb35843;
-    for (const id of PIECE_SHAPE_IDS) {
+    for (const id of MODEL_CLASS_IDS) {
       const piece = board.pieces[id];
       const colors = pieceColors(piece, crimson);
       expect(colors).toHaveLength(piece.parts.length);
@@ -171,16 +264,16 @@ describe('miniature inks', () => {
   it('hands a walking copy the same material set as its resting instance', () => {
     const board = geometry();
     const library = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
-    const knight = board.pieces.knight;
-    const material = pieceMaterials(library, knight, 0x1f8a85);
+    const rider = board.pieces.mounted;
+    const material = pieceMaterials(library, rider, 0x1f8a85);
     expect(Array.isArray(material)).toBe(true);
     const list = material as MeshToonMaterial[];
-    expect(list).toHaveLength(knight.parts.length);
+    expect(list).toHaveLength(rider.parts.length);
     expect(list[0]!.color.getHex()).toBe(0x1f8a85);
 
     // A single-group sculpt would get a bare material, not an array of one —
     // three treats the two differently and only the array walks the groups.
-    const plain = pieceMaterials(library, { geometry: knight.geometry, parts: ['body'] }, 0x1f8a85);
+    const plain = pieceMaterials(library, { geometry: rider.geometry, parts: ['body'] }, 0x1f8a85);
     expect(Array.isArray(plain)).toBe(false);
     board.dispose();
   });
@@ -208,7 +301,7 @@ describe('the units layer in pieces style', () => {
     return game;
   }
 
-  it('instances one bucket per sculpt and outlines every one of them', () => {
+  it('instances one bucket per class model and outlines every one of them', () => {
     const board = geometry();
     const layer = new UnitLayer();
     const types: UnitTypeId[] = ['warrior', 'knight', 'trebuchet'];
@@ -217,12 +310,15 @@ describe('the units layer in pieces style', () => {
     const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
     const drawn = new Set(meshes.map((m) => m.geometry));
     for (const type of types) {
-      expect(drawn.has(board.pieces[pieceShapeFor(type)].geometry), type).toBe(true);
+      expect(drawn.has(board.pieces[modelClassFor(type)].geometry), type).toBe(true);
     }
-    // One lit mesh and one inverted-hull shell per sculpt, and nothing else on
-    // a board where nobody is hurt: no HP bars, and no blob shadow — the base
-    // disc casts a real one. See the `pieces.ts` docblock.
-    expect(meshes).toHaveLength(types.length * 2);
+    // One lit mesh and one inverted-hull shell per *class*, and nothing else on
+    // a board where nobody is hurt and no badge atlas has loaded: no HP bars,
+    // and no blob shadow — the base disc casts a real one. See the `pieces.ts`
+    // docblock. Three types, three classes here (melee, mounted, siege).
+    const classes = new Set(types.map((type) => modelClassFor(type)));
+    expect(classes.size).toBe(3);
+    expect(meshes).toHaveLength(classes.size * 2);
     expect(drawn.has(board.blob)).toBe(false);
     expect(drawn.has(board.standee)).toBe(false);
     for (const mesh of meshes) {
@@ -232,7 +328,29 @@ describe('the units layer in pieces style', () => {
     board.dispose();
   });
 
-  it('rides the HP bar over the sculpt that unit actually is', () => {
+  it('shares one bucket between two unit types of the same class', () => {
+    const board = geometry();
+    const layer = new UnitLayer();
+    // A catapult and a trebuchet are one model with two badges. Both stand in
+    // the same instanced mesh, which is the whole saving the consolidation buys.
+    layer.build(
+      state(['catapult', 'trebuchet']),
+      board,
+      new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
+      new Quaternion(),
+      false,
+      null,
+    );
+    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    expect(meshes).toHaveLength(2);
+    expect(meshes[0]!.geometry).toBe(board.pieces.siege.geometry);
+    // Three wrap copies apiece, in one buffer.
+    expect(meshes[0]!.count).toBe(6);
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('rides the HP bar over the model that unit actually is', () => {
     const board = geometry();
     const game = state(['catapult', 'knight']);
     // Both on one tile, so the only thing that can separate their bars is the
@@ -285,8 +403,8 @@ describe('the units layer in pieces style', () => {
     );
     const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
     expect(meshes.map((m) => m.geometry)).toEqual([
-      board.pieces.warrior.geometry,
-      board.pieces.warrior.geometry,
+      board.pieces.melee.geometry,
+      board.pieces.melee.geometry,
     ]);
     layer.dispose();
     board.dispose();
