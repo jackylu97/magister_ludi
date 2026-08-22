@@ -59,7 +59,16 @@ function colorsOf(group: { children: unknown[] }): number[] {
 }
 
 function lensView(overrides: Partial<LensView> = {}): LensView {
-  return { mode: 'none', cells: null, yields: false, yieldCells: null, playerId: 0, ...overrides };
+  return {
+    mode: 'none',
+    cells: null,
+    resources: false,
+    resourceCells: null,
+    yields: false,
+    yieldCells: null,
+    playerId: 0,
+    ...overrides,
+  };
 }
 
 /**

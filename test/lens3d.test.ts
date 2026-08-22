@@ -17,12 +17,17 @@ describe('sameLens', () => {
     expect(sameLens(NO_LENS, lens())).toBe(true);
   });
 
-  it('separates the lens mode from the yield pips', () => {
+  it('separates the lens mode from the two switches', () => {
     expect(sameLens(lens({ mode: 'none' }), lens({ mode: 'settler' }))).toBe(false);
     expect(sameLens(lens({ yields: false }), lens({ yields: true }))).toBe(false);
-    // The two are independent, so a lens with pips up is not the lens without.
+    expect(sameLens(lens({ resources: false }), lens({ resources: true }))).toBe(false);
+    // All three are independent, so a lens with a switch up is not the lens
+    // without it.
     expect(
       sameLens(lens({ mode: 'settler', yields: true }), lens({ mode: 'settler' })),
+    ).toBe(false);
+    expect(
+      sameLens(lens({ mode: 'settler', resources: true }), lens({ mode: 'settler' })),
     ).toBe(false);
   });
 
@@ -52,6 +57,15 @@ describe('sameLens', () => {
     // Nothing is drawn from it, so a change to it is not a change to look at.
     const off = lens({ yields: false, yieldCells: [{ col: 4, row: 4 }] });
     expect(sameLens(off, lens({ yields: false, yieldCells: null }))).toBe(true);
+  });
+
+  it('compares the roundel restriction the same way, and only while they are up', () => {
+    const a = lens({ resources: true, resourceCells: [{ col: 4, row: 4 }] });
+    expect(sameLens(a, lens({ resources: true, resourceCells: [{ col: 4, row: 4 }] }))).toBe(true);
+    expect(sameLens(a, lens({ resources: true, resourceCells: [{ col: 5, row: 4 }] }))).toBe(false);
+    expect(sameLens(a, lens({ resources: true, resourceCells: null }))).toBe(false);
+    const off = lens({ resources: false, resourceCells: [{ col: 4, row: 4 }] });
+    expect(sameLens(off, lens({ resources: false, resourceCells: null }))).toBe(true);
   });
 
   it('is symmetric', () => {

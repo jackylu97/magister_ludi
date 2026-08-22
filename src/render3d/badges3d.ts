@@ -80,7 +80,7 @@ import {
 import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
 import type { ModelClass } from '../sim/unitData';
 
-import { VIEW3D } from './lookData';
+import { VIEW3D, mixColor } from './lookData';
 
 const BADGE = VIEW3D.badges;
 const HP = VIEW3D.hpBar;
@@ -441,6 +441,7 @@ function drawDiscCell(
   paper: number,
   ink: number,
   iconScale: number,
+  radiusFraction = paperRadiusFraction(),
 ): void {
   const origin = badgeCellOrigin(index, layout);
   const cell = layout.cell;
@@ -449,7 +450,7 @@ function drawDiscCell(
   context.save();
   context.fillStyle = cssHex(paper);
   context.beginPath();
-  context.arc(center.x, center.y, paperRadiusFraction() * cell, 0, Math.PI * 2);
+  context.arc(center.x, center.y, radiusFraction * cell, 0, Math.PI * 2);
   context.fill();
   context.restore();
 
@@ -465,6 +466,87 @@ function drawDiscCell(
   pen.fillStyle = cssHex(ink);
   pen.fillRect(0, 0, size, size);
   context.drawImage(scratch, Math.round(center.x - size / 2), Math.round(center.y - size / 2));
+}
+
+/**
+ * Where a yield glyph's disc sits inside its atlas cell, and where its shadow
+ * falls: both as fractions of the cell, both from `data/view3d.json`.
+ *
+ * Pure arithmetic and exported so it can be checked without a canvas, because
+ * the invariant that matters is a *packing* one: `radius + offset` must stay
+ * inside the half-cell, or a glyph's shadow bleeds into the neighbouring cell of
+ * the atlas and prints on somebody else's mark. The cells are packed edge to
+ * edge with no gutter (see `badgeAtlasLayout`), so nothing else catches it.
+ *
+ * The offset is down and to the *left* — against the direction a stack is laid
+ * out in — so each disc's shadow falls on the disc it overlaps rather than into
+ * empty tile. That is what makes four coins of one colour countable: without it
+ * a stack of identical discs merges into one blob.
+ */
+export function yieldDiscLayout(): {
+  radius: number;
+  offsetX: number;
+  offsetY: number;
+} {
+  return {
+    radius: LENS.yieldDiscRadius,
+    offsetX: -LENS.yieldShadowOffset,
+    offsetY: LENS.yieldShadowOffset,
+  };
+}
+
+/** A yield voice's shadow ink: its own colour, shaded toward the board's ink. */
+export function yieldShadowColor(key: YieldKey): number {
+  return mixColor(YIELD_COLORS[key], ICONS.inkColor, LENS.yieldShadowShade);
+}
+
+/**
+ * Paints one yield glyph: its drop shadow, then the voice disc, then the mark.
+ *
+ * Three fills in one cell rather than a second instanced shape on the board, and
+ * that is the whole reason the shadow is baked: the tile atlas is one opaque,
+ * alpha-tested material drawn with the depth test off, so layering inside it is
+ * decided purely by *draw order* — and instances of one `InstancedMesh` draw in
+ * the order they were collected. A shadow that travelled as its own translucent
+ * decal would land in the transparent pass, which three.js draws after every
+ * opaque object, and every shadow on the board would print on top of the glyphs
+ * it belongs under. Baked, it costs no instance, no draw call and no ordering
+ * argument: a glyph and its shadow are one stamp.
+ */
+function drawYieldCell(
+  context: CanvasRenderingContext2D,
+  icon: CanvasImageSource | null,
+  index: number,
+  layout: AtlasLayout,
+  key: YieldKey,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const disc = yieldDiscLayout();
+
+  context.save();
+  context.fillStyle = cssHex(yieldShadowColor(key));
+  context.beginPath();
+  context.arc(
+    origin.x + cell / 2 + disc.offsetX * cell,
+    origin.y + cell / 2 + disc.offsetY * cell,
+    disc.radius * cell,
+    0,
+    Math.PI * 2,
+  );
+  context.fill();
+  context.restore();
+
+  drawDiscCell(
+    context,
+    icon,
+    index,
+    layout,
+    YIELD_COLORS[key],
+    ICONS.yieldInkColor,
+    ICONS.iconScale,
+    disc.radius,
+  );
 }
 
 /**
@@ -555,10 +637,21 @@ export class TileIcons {
         return;
       }
       // A resource is ink on parchment, like a unit badge. A yield is ink on its
-      // own voice's colour — see `YIELD_COLORS`.
-      const paper = cell.set === 'yield' ? YIELD_COLORS[cell.id] : ICONS.paperColor;
-      const ink = cell.set === 'yield' ? ICONS.yieldInkColor : ICONS.inkColor;
-      drawDiscCell(context, icons[index] ?? null, index, layout, paper, ink, ICONS.iconScale);
+      // own voice's colour, and carries the drop shadow that lets a stack of
+      // them be counted — see `drawYieldCell`.
+      if (cell.set === 'yield') {
+        drawYieldCell(context, icons[index] ?? null, index, layout, cell.id);
+        return;
+      }
+      drawDiscCell(
+        context,
+        icons[index] ?? null,
+        index,
+        layout,
+        ICONS.paperColor,
+        ICONS.inkColor,
+        ICONS.iconScale,
+      );
     });
 
     const texture = new CanvasTexture(canvas);

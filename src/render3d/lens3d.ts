@@ -5,17 +5,21 @@
  * Three things live here, and they are deliberately not the same kind of thing:
  *
  *   · the **yield glyphs** — what does this ground *make*? A sheaf, a hammer and
- *                   a coin in the interface's yield voices, repeated per point,
- *                   sat on the tile's own face. They are a *switch*, not a lens:
+ *                   a coin in the interface's yield voices, stacked per point
+ *                   like fanned coins, sat on the tile's own face. They are a
+ *                   *switch*, not a lens:
  *                   they sit on the face and compete with nothing, so they can
  *                   be up under any lens (see `LensView.yields`, and the
  *                   reasoning in `mapView.ts`). They replaced coloured pips,
  *                   which could say how many and never which — see `LensSpec`.
- *   · the **resource lens** — what is *on* this ground? A parchment roundel with
- *                   the resource's mark, on every tile carrying one the viewing
- *                   player may be told about. The diorama already grows wheat
- *                   and stands cattle on the board; the roundel is what makes it
- *                   nameable, which props alone never are.
+ *   · the **resource roundels** — what is *on* this ground? A parchment roundel
+ *                   with the resource's mark, on every tile carrying one the
+ *                   viewing player may be told about. The diorama already grows
+ *                   wheat and stands cattle on the board; the roundel is what
+ *                   makes it nameable, which props alone never are. A switch for
+ *                   the same reason the glyphs are one, and the switch starts on
+ *                   (`LENS_DEFAULTS`): naming the ground is not a question the
+ *                   player should have to go and ask.
  *   · the **settler lens** — where may a city go, and what kind of site is it?
  *                   Every tile the reducer would refuse is darkened. Every tile
  *                   it would accept is read for the two things that actually
@@ -85,6 +89,8 @@ const OVERLAY = VIEW3D.overlay;
 export const NO_LENS: LensView = {
   mode: 'none',
   cells: null,
+  resources: false,
+  resourceCells: null,
   yields: false,
   yieldCells: null,
   playerId: 0,
@@ -107,10 +113,12 @@ function sameCells(
 /** Are two lens views asking for the same picture? */
 export function sameLens(a: LensView, b: LensView): boolean {
   if (a.mode !== b.mode || a.playerId !== b.playerId) return false;
-  if (a.yields !== b.yields) return false;
-  // A glyph restriction only means anything while the glyphs are up; comparing
-  // it when they are down would rebuild the layer for a change nobody can see.
+  if (a.yields !== b.yields || a.resources !== b.resources) return false;
+  // A restriction only means anything while the half it scopes is up; comparing
+  // it when that half is down would rebuild the layer for a change nobody can
+  // see.
   if (a.yields && !sameCells(a.yieldCells, b.yieldCells)) return false;
+  if (a.resources && !sameCells(a.resourceCells, b.resourceCells)) return false;
   return sameCells(a.cells, b.cells);
 }
 
@@ -137,9 +145,9 @@ export class LensLayer {
     disposeInstancedGroup(this.group);
     this.drawCallCount = 0;
     if (!state) return;
-    // Both halves are independent and either may be off; with both off there is
-    // nothing to build and no collector worth allocating.
-    if (lens.mode === 'none' && !lens.yields) return;
+    // Every half is independent and any of them may be off; with all of them off
+    // there is nothing to build and no collector worth allocating.
+    if (lens.mode === 'none' && !lens.yields && !lens.resources) return;
 
     const { map } = state;
     const collector = new InstanceCollector({
@@ -152,11 +160,11 @@ export class LensLayer {
     if (lens.mode === 'settler') {
       this.addSiteWash(state, lens.playerId, resolveTiles(map, lens.cells), collector, geometry);
     }
-    if (lens.mode === 'resources' && icons) {
+    if (lens.resources && icons) {
       this.addResourceIcons(
         state,
         lens.playerId,
-        resolveTiles(map, lens.cells),
+        resolveTiles(map, lens.resourceCells),
         collector,
         geometry,
         icons,
@@ -174,16 +182,29 @@ export class LensLayer {
    * the rows centred as a group — so a 2/0/0 tile shows one row in the middle of
    * the hex rather than one row above an empty gap.
    *
-   * Up to `glyphCap` marks are repeated, and past it the row collapses to **one
-   * glyph and a numeral**. That is the whole of the pip rework's arithmetic and
-   * it is a deliberate break with what the pips did: they drew four dots and
-   * fattened the last one, which said "four or more" and nothing else. A city
-   * centre on a wheat hill makes six hammers, and six is a number the player is
-   * entitled to read.
+   * Up to `yieldStackMax` marks are stacked, and past it the row collapses to
+   * **one glyph and a numeral**. That is the whole of the pip rework's
+   * arithmetic and it is a deliberate break with what the pips did: they drew
+   * four dots and fattened the last one, which said "four or more" and nothing
+   * else. A city centre on a wheat hill makes six hammers, and six is a number
+   * the player is entitled to read.
+   *
+   * Stacked, not spaced
+   * -------------------
+   * The marks used to stand apart, one disc-and-a-gap per point, and four of
+   * them ate the width of the hex they were printed on — on a board that also
+   * has terrain, props, borders and a unit to show. They now overlap like a
+   * fanned stack of coins: each steps `yieldStackStep` of a disc's *diameter*
+   * along the row, so four points cost about half the width three gaps did, and
+   * a stack still reads as "four of these" rather than as a bar. What keeps them
+   * countable at that overlap is the drop shadow baked into each disc, offset
+   * against the direction of the stack, so every coin lands on a dark edge of
+   * the one before it (see `drawYieldCell` in `badges3d.ts`).
    *
    * Each mark is one cell of the shared tile atlas, so a whole board of yields
    * is *one* instanced draw per distinct cell — twelve at the very most (three
-   * voices plus the digits actually on screen) however large the map is.
+   * voices plus the digits actually on screen) however large the map is, and the
+   * shadows cost none of their own because they travel inside the same stamp.
    */
   private addYieldGlyphs(
     tiles: readonly Tile[],
@@ -203,49 +224,36 @@ export class LensLayer {
       const centre = cellCenter(tile.col, tile.row);
       const y = tileTopY(tile) + OVERLAY.lift + LENS.glyphLift;
       rows.forEach((key, rowIndex) => {
-        const amount = value[key];
         const z = centre.z + (rowIndex - (rows.length - 1) / 2) * LENS.rowSpacing;
+        const row = yieldRowLayout(value[key]);
         const shape = geometry.yieldGlyphs[key];
 
-        if (amount <= LENS.glyphCap) {
-          for (let i = 0; i < amount; i++) {
-            const x = centre.x + (i - (amount - 1) / 2) * LENS.glyphSpacing;
-            collector.add(
-              shape,
-              [],
-              new Matrix4().compose(new Vector3(x, y, z), identity, glyph),
-              { onTop: true, material: icons.material },
-            );
-          }
-          return;
-        }
-
-        // One glyph and a count, laid out as a pair about the tile's centre.
-        const digits = digitsOf(amount);
-        const width = LENS.glyphSize + LENS.numeralGap + digits.length * LENS.numeralSize;
-        let x = centre.x - width / 2 + LENS.glyphSize / 2;
-        collector.add(
-          shape,
-          [],
-          new Matrix4().compose(new Vector3(x, y, z), identity, glyph),
-          { onTop: true, material: icons.material },
-        );
-        x += LENS.glyphSize / 2 + LENS.numeralGap + LENS.numeralSize / 2;
-        for (const digit of digits) {
+        // The glyphs first and in order, left to right: the instances of one
+        // mesh draw in the order they are collected, so each coin of a stack is
+        // laid over the one to its left along with the shadow that separates
+        // them.
+        for (const offset of row.glyphs) {
           collector.add(
-            geometry.numerals[digit]!,
+            shape,
             [],
-            new Matrix4().compose(new Vector3(x, y, z), identity, numeral),
+            new Matrix4().compose(new Vector3(centre.x + offset, y, z), identity, glyph),
             { onTop: true, material: icons.material },
           );
-          x += LENS.numeralSize;
+        }
+        for (const mark of row.numerals) {
+          collector.add(
+            geometry.numerals[mark.digit]!,
+            [],
+            new Matrix4().compose(new Vector3(centre.x + mark.x, y, z), identity, numeral),
+            { onTop: true, material: icons.material },
+          );
         }
       });
     }
   }
 
   /**
-   * The resource lens: a roundel on every tile carrying a resource this player
+   * The resource switch: a roundel on every tile carrying a resource this player
    * may be told about.
    *
    * Visibility is asked of `visibleResourceAt` — the *simulation's* own answer,
@@ -370,6 +378,63 @@ export class LensLayer {
  */
 function isCoastal(map: GameMap, tile: Tile): boolean {
   return tileNeighbors(map, tile).some((neighbor) => neighbor.terrain === 'coast');
+}
+
+/** Where one row's marks sit along x, as offsets from the tile's centre. */
+export interface YieldRowLayout {
+  /** One centre per disc of the stack, left to right. A single entry when the
+   * row has collapsed to a glyph and a count. */
+  glyphs: number[];
+  /** The digits of the count, most significant first. Empty for a stack. */
+  numerals: { digit: number; x: number }[];
+}
+
+/** The printed diameter of one voice disc, in world units. See `yieldRowLayout`. */
+export function yieldDiscWidth(): number {
+  return LENS.glyphSize * LENS.yieldDiscRadius * 2;
+}
+
+/**
+ * One row of a tile's yield readout, laid out about x = 0.
+ *
+ * Pure arithmetic, and separated from the collecting for two reasons. It is the
+ * half that decides whether the readout is legible — how far four coins overlap,
+ * where the count sits beside its glyph — and it is the half a test can hold
+ * still and read off, where instance matrices for an amount no real tile reaches
+ * cannot be produced at all (nothing on this board makes five of one yield yet;
+ * the day something does, this is already the code that will draw it).
+ *
+ * Two shapes, and the threshold between them is `yieldStackMax`:
+ *
+ *   1…max   a stack. Each disc steps `yieldStackStep` of its own *printed*
+ *           diameter, so they overlap like fanned coins, and the run is centred
+ *           as a whole.
+ *   max+1…  one disc and the number, as a pair centred the same way. `digitsOf`
+ *           returns a list, so a two-figure count is two numerals and a wider
+ *           pair rather than a figure that will not fit in one.
+ */
+export function yieldRowLayout(amount: number): YieldRowLayout {
+  const disc = yieldDiscWidth();
+  const count = Math.max(0, Math.round(amount));
+  if (count === 0) return { glyphs: [], numerals: [] };
+
+  if (count <= LENS.yieldStackMax) {
+    const step = disc * LENS.yieldStackStep;
+    const glyphs: number[] = [];
+    for (let i = 0; i < count; i++) glyphs.push((i - (count - 1) / 2) * step);
+    return { glyphs, numerals: [] };
+  }
+
+  const digits = digitsOf(count);
+  const width = disc + LENS.numeralGap + digits.length * LENS.numeralSize;
+  const glyphX = -width / 2 + disc / 2;
+  let x = glyphX + disc / 2 + LENS.numeralGap + LENS.numeralSize / 2;
+  const numerals = digits.map((digit) => {
+    const mark = { digit, x };
+    x += LENS.numeralSize;
+    return mark;
+  });
+  return { glyphs: [glyphX], numerals };
 }
 
 /** A positive integer's decimal digits, most significant first. */

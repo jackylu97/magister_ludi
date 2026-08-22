@@ -200,10 +200,27 @@ a reason worth keeping:
    lands the board is per-seat anyway, and that is the milestone that should hide the boulder.
 
 The yield-icon rework shipped with it: the pips are gone, replaced by sheaf / hammer / coin glyphs
-rasterised into a second badge-language atlas (`TileIcons` in `badges3d.ts`), repeated per point to
-a cap of four and then collapsed to one glyph and a numeral. The voice colour survived as the
-*disc* under each glyph — a thin green stroke on green grass is not legible, and the colour as a
-mass is what made the pips readable in the first place.
+rasterised into a second badge-language atlas (`TileIcons` in `badges3d.ts`), one per point up to
+four and then collapsed to one glyph and a numeral. The voice colour survived as the *disc* under
+each glyph — a thin green stroke on green grass is not legible, and the colour as a mass is what
+made the pips readable in the first place.
+
+Two later corrections to that layer, both from play (2026-08-21):
+
+- **The roundels are a switch, not a lens, and they start on** — the Civ V default. Naming what is
+  on the ground is not a question a player should have to go to a menu and ask, and it composes
+  with the settler lens rather than replacing it: "where may a city go" and "what is on that hex"
+  are two questions, and the exclusive lens list made them one. `LensView.resources` (+ `R`), the
+  same shape the yield glyphs already had. The *lens* list is down to none / settler.
+- **The glyphs stack instead of spacing out.** Four separate discs with gaps between them took the
+  width of the hex they were printed on, which the terrain, the props and the unit standing there
+  all need more than the readout does. They now overlap like fanned coins at ~42% of a disc's
+  diameter, about 20% smaller, for roughly half the old row width. What keeps overlapping discs of
+  one colour countable is a drop shadow **baked into the atlas cell** — the tile atlas is one
+  opaque alpha-tested material with the depth test off, so a translucent shadow decal would land in
+  three.js's transparent pass and print *over* every glyph it belongs under. Baked, it costs no
+  instance, no draw call and no ordering argument; the price is that it is a shade of the voice
+  colour rather than a true alpha.
 
 ---
 

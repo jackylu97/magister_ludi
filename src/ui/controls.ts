@@ -113,7 +113,15 @@ import { type ResearchReport, researchSince, researchSnapshot } from '../sim/tec
 import { unitDef } from '../sim/unitData';
 import { unitsOnTile } from '../sim/units';
 import { walkedPrefix } from '../render/animation';
-import type { CellRef, FallenUnit, HoverInfo, LensMode, LensView, MapView } from './mapView';
+import {
+  type CellRef,
+  type FallenUnit,
+  type HoverInfo,
+  LENS_DEFAULTS,
+  type LensMode,
+  type LensView,
+  type MapView,
+} from './mapView';
 
 /** How far the pointer may travel between down and up and still be a click. */
 const CLICK_SLOP_PX = 4;
@@ -278,6 +286,15 @@ export interface GameControls {
   setYields(on: boolean): void;
 
   /**
+   * Whether the resource roundels are switched on. They start on, and nothing
+   * but the player ever moves them — there is no automatic rule to distinguish
+   * this answer from the board's.
+   */
+  resourcesShown(): boolean;
+  /** Turns the resource roundels on or off. The menu's checkbox and the `R` key. */
+  setResources(on: boolean): void;
+
+  /**
    * Tells the UI which city the pointer is over, when the pointer is over
    * something the board itself cannot see — a DOM city banner. `null` on the
    * way out. The board's own tiles are handled by hover picking.
@@ -382,7 +399,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * an independent switch that can be on under any of them, and an open city
    * panel adds its own glyphs without disturbing it.
    */
-  let yieldsOn = false;
+  let yieldsOn = LENS_DEFAULTS.yields;
+  /**
+   * The resource roundels, as the player left them. Not a lens either, and
+   * unlike the glyphs it starts *on* — see `LENS_DEFAULTS`. Nothing automatic
+   * ever touches it: it is one switch with one meaning.
+   */
+  let resourcesOn = LENS_DEFAULTS.resources;
   /** A city whose DOM banner the pointer is over. See `setHoveredCity`. */
   let hoveredCityId: number | null = null;
   /**
@@ -584,7 +607,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
-   * What the board is showing: which lens, and whether the yield glyphs are up.
+   * What the board is showing: which lens, and whether the yield glyphs and the
+   * resource roundels are up.
    *
    * Two automatic rules sit on top of the player's own choices, both because the
    * question they answer is the question the player has just asked by doing
@@ -602,7 +626,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * opposite of what opening it asked for.
    *
    * Neither rule touches `manualLens` or `yieldsOn`, so dropping the settler and
-   * closing the panel restore exactly what the player had chosen.
+   * closing the panel restore exactly what the player had chosen. `resourcesOn`
+   * has no rule at all: it is what the player set it to, whatever else is up.
    */
   function effectiveLens(): LensView {
     const playerId = localPlayerId;
@@ -612,6 +637,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     return {
       mode: settler ? 'settler' : manualLens,
       cells: null,
+      resources: resourcesOn,
+      resourceCells: null,
       yields: yieldsOn || city !== null,
       yieldCells: city && !yieldsOn ? workRadiusCells(city) : null,
       playerId,
@@ -1508,6 +1535,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       setYields(!yieldsOn);
       return;
     }
+    if (event.key === 'r' || event.key === 'R') {
+      // The roundels. One switch, no automatic rule to reconcile with — see
+      // `effectiveLens`.
+      setResources(!resourcesOn);
+      return;
+    }
     if (event.key === 't' || event.key === 'T') {
       // The tech screen. It takes the keyboard from here while it is up, so
       // this is only ever the way in.
@@ -1547,6 +1580,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onUpdate(selectedUnit(), renderer.getHover());
   }
 
+  /** Turns the resource roundels on or off. The menu's checkbox and the `R` key. */
+  function setResources(on: boolean): void {
+    if (resourcesOn === on) return;
+    resourcesOn = on;
+    refreshLens();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
   function setHoveredCity(cityId: number | null): void {
     if (hoveredCityId === cityId) return;
     hoveredCityId = cityId;
@@ -1561,6 +1602,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setLens,
     yieldsShown: () => yieldsOn,
     setYields,
+    resourcesShown: () => resourcesOn,
+    setResources,
     setHoveredCity,
     foundCity,
     foundCityBlocker,

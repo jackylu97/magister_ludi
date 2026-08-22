@@ -63,26 +63,58 @@ export interface ScreenPoint {
  * renderer either implements the contract or does not. `src/render3d/lens3d.ts`
  * owns what each mode *looks* like.
  *
- * Yields are deliberately *not* a member. A lens answers "which of these
- * questions am I asking" and the modes are exclusive because a tile can only
- * carry one wash; the yield glyphs sit on the tile face and compete with nothing,
- * so making them a fourth exclusive mode meant a player could not ask "where can
- * a city go" and "what does this ground make" at the same time — which is one
- * question, asked twice. They are an independent switch on `LensView` instead.
+ * Yields and resources are deliberately *not* members. A lens answers "which of
+ * these questions am I asking" and the modes are exclusive because a tile can
+ * only carry one wash; the yield glyphs and the resource roundels sit on the
+ * tile face and compete with nothing, so making either an exclusive mode meant a
+ * player could not ask "where can a city go" and "what is on this ground" at the
+ * same time — which is one question, asked twice. They are independent switches
+ * on `LensView` instead.
  */
-export type LensMode = 'none' | 'settler' | 'resources';
+export type LensMode = 'none' | 'settler';
 
-/** Which lens, over which tiles, through whose eyes — plus the yield glyphs. */
+/**
+ * What the switches start at, before the player has touched anything.
+ *
+ * The resource roundels are on from the first frame, as they are in Civ V: a
+ * board whose wheat and iron go unnamed until a menu is found is a board hiding
+ * the one fact most opening decisions turn on. The yield glyphs stay off,
+ * because they are a screenful of numerals over every hex, and that is something
+ * a player asks for when they want it.
+ */
+export const LENS_DEFAULTS: { readonly yields: boolean; readonly resources: boolean } = {
+  yields: false,
+  resources: true,
+};
+
+/**
+ * Which lens, over which tiles, through whose eyes — plus the two switches that
+ * are not lenses.
+ */
 export interface LensView {
   mode: LensMode;
   /**
    * Restrict the mode's wash to these cells, or `null` for the whole map.
    *
-   * Only the wash: the glyphs have their own `yieldCells`, because the two are
-   * independent and an open city panel scopes one of them without touching the
-   * other.
+   * Only the wash: the glyphs and the roundels carry their own `yieldCells` and
+   * `resourceCells`, because the three are independent and an open city panel
+   * scopes one of them without touching the others.
    */
   cells: readonly CellRef[] | null;
+  /**
+   * Draw the resource roundels. Independent of `mode` — they may be up under any
+   * lens, including `none`, and they start up (see `LENS_DEFAULTS`).
+   *
+   * *Which* resources get a roundel is not this flag's business: the renderer
+   * asks the simulation what this seat may be told about, through
+   * `visibleResourceAt`, so the board and the hover card cannot disagree.
+   */
+  resources: boolean;
+  /**
+   * Restrict the roundels to these cells, or `null` for the whole map.
+   * Meaningless while `resources` is false.
+   */
+  resourceCells: readonly CellRef[] | null;
   /**
    * Draw the yield glyphs. Independent of `mode` — they may be up under any lens,
    * including `none`.

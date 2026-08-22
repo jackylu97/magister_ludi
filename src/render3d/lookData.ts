@@ -311,19 +311,58 @@ export interface TerritorySpec {
  * *disc* under each glyph is what survived the rework: the voice colour as a
  * mass is what makes a row readable across a table, and a thin green stroke on
  * green grass is not.
+ *
+ * The discs are stacked rather than spaced, and smaller than they were. Four
+ * separate tokens with gaps between them took the width of the hex they were
+ * printed on, which is space the terrain, the props and the unit standing there
+ * all need more than the readout does; overlapped, four points cost about half
+ * that. `yieldStackStep` sets the overlap, `yieldShadow*` sets the shading that
+ * keeps overlapping discs of one colour countable.
  */
 export interface LensSpec {
   /** Side of one yield glyph's quad, in world units. */
   glyphSize: number;
-  /** Gap between glyphs along a row, and between the rows themselves. */
-  glyphSpacing: number;
+  /**
+   * How far along the row each glyph after the first steps, as a fraction of
+   * the *printed disc's* diameter — not of the quad, which carries transparent
+   * margin the eye never sees.
+   *
+   * Well under 1, so the discs overlap like a fanned stack of coins rather than
+   * standing apart as separate tokens. Four of them then cost about half the
+   * hex a spaced row used to, which is the whole point: the glyphs are a
+   * readout printed *on* a tile that also has terrain, props and a unit on it.
+   */
+  yieldStackStep: number;
+  /** Gap between the rows — one row per yield voice. */
   rowSpacing: number;
   /**
-   * Most glyphs ever repeated for one yield. Past it the row becomes one glyph
-   * and a numeral — five identical marks is a number nobody reads at a glance.
+   * Most glyphs ever stacked for one yield. Past it the row becomes one glyph
+   * and a numeral — five identical marks is a number nobody reads at a glance,
+   * and a stack that deep stops being countable at all.
    */
-  glyphCap: number;
-  /** The "and this many" numeral beside a capped glyph. */
+  yieldStackMax: number;
+  /**
+   * The voice disc's radius as a fraction of its atlas cell, and how far its
+   * drop shadow is offset from it (same units).
+   *
+   * Both live here rather than in `icons` because they are the same decision as
+   * `yieldStackStep`: how much of the quad is ink decides how far two quads must
+   * sit apart to overlap by the fraction asked for. The disc is smaller than a
+   * parchment roundel's (`paperRadiusFraction`) by about the offset, so the
+   * shadow has room inside the cell and cannot bleed into its neighbour.
+   */
+  yieldDiscRadius: number;
+  yieldShadowOffset: number;
+  /**
+   * How far the shadow is mixed toward ink from its own voice colour — a shade,
+   * not an alpha. The tile atlas is alpha-*tested* and opaque (see `TileIcons`),
+   * so a translucent shadow is not available to bake: anything under the cutoff
+   * disappears and anything over it prints at full strength. A darker shade of
+   * the disc's own colour is what this renderer says "underside" with anyway —
+   * it is `sideDarken` by another name.
+   */
+  yieldShadowShade: number;
+  /** The "and this many" numeral beside a stacked-out glyph. */
   numeralSize: number;
   numeralGap: number;
   /** How far the flat icons sit above the tile face, on top of `overlay.lift`. */
@@ -919,10 +958,13 @@ export const VIEW3D: View3DData = {
   animation: viewJson.animation,
   lens: {
     glyphSize: viewJson.lens.glyphSize,
-    glyphSpacing: viewJson.lens.glyphSpacing,
+    yieldStackStep: viewJson.lens.yieldStackStep,
     rowSpacing: viewJson.lens.rowSpacing,
     // At least one, or a row of glyphs is a row of nothing.
-    glyphCap: Math.max(1, Math.round(viewJson.lens.glyphCap)),
+    yieldStackMax: Math.max(1, Math.round(viewJson.lens.yieldStackMax)),
+    yieldDiscRadius: viewJson.lens.yieldDiscRadius,
+    yieldShadowOffset: viewJson.lens.yieldShadowOffset,
+    yieldShadowShade: viewJson.lens.yieldShadowShade,
     numeralSize: viewJson.lens.numeralSize,
     numeralGap: viewJson.lens.numeralGap,
     glyphLift: viewJson.lens.glyphLift,

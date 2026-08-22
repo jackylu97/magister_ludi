@@ -10,12 +10,15 @@ import {
   YIELD_ICON_FILES,
   YIELD_KEYS,
   badgeAtlasLayout,
+  paperRadiusFraction,
   tileAtlasSize,
   tileIconIndex,
   tileIconRect,
+  yieldDiscLayout,
+  yieldShadowColor,
 } from '../src/render3d/badges3d';
 import { BoardGeometry, RESOURCE_PROPS, buildBoard } from '../src/render3d/board3d';
-import { LensLayer } from '../src/render3d/lens3d';
+import { LensLayer, yieldDiscWidth, yieldRowLayout } from '../src/render3d/lens3d';
 import { VIEW3D } from '../src/render3d/lookData';
 import { MaterialLibrary } from '../src/render3d/toon';
 import { type GameState, newGame } from '../src/sim/state';
@@ -23,7 +26,7 @@ import { type Tile, createMap, getTileAt } from '../src/sim/map';
 import { RESOURCE_IDS, type ResourceId } from '../src/sim/resourceData';
 import { TECH_IDS } from '../src/sim/techData';
 import { computeFreshwater } from '../src/sim/water';
-import type { LensView } from '../src/ui/mapView';
+import { LENS_DEFAULTS, type LensView } from '../src/ui/mapView';
 
 /**
  * The board's half of the resources milestone: the diorama props, the flat
@@ -47,7 +50,16 @@ const fakeIcons = {
 } as unknown as TileIcons;
 
 function lensView(overrides: Partial<LensView> = {}): LensView {
-  return { mode: 'none', cells: null, yields: false, yieldCells: null, playerId: 0, ...overrides };
+  return {
+    mode: 'none',
+    cells: null,
+    resources: false,
+    resourceCells: null,
+    yields: false,
+    yieldCells: null,
+    playerId: 0,
+    ...overrides,
+  };
 }
 
 /** A blank grassland state with every seat holding every technology. */
@@ -274,12 +286,12 @@ describe('the tile-icon atlas', () => {
   });
 });
 
-// --- what the lens draws ----------------------------------------------------
+// --- what the switch draws --------------------------------------------------
 
-describe('the resource lens', () => {
+describe('the resource roundels', () => {
   const geometry = new BoardGeometry();
 
-  /** The geometries the lens drew over the whole map. */
+  /** The geometries the lens layer drew over the whole map. */
   function shapesFor(state: GameState, lens: Partial<LensView>): BufferGeometry[] {
     const layer = new LensLayer();
     layer.build(state, lensView(lens), geometry, materials(), fakeIcons);
@@ -294,12 +306,12 @@ describe('the resource lens', () => {
   it('puts a roundel on a tile that carries something', () => {
     const state = flatState();
     at(state, 4, 4).resource = 'wine';
-    const shapes = shapesFor(state, { mode: 'resources' });
+    const shapes = shapesFor(state, { resources: true });
     expect(shapes).toEqual([geometry.resourceIcons.wine]);
   });
 
   it('says nothing about a board with nothing on it', () => {
-    expect(shapesFor(flatState(), { mode: 'resources' })).toEqual([]);
+    expect(shapesFor(flatState(), { resources: true })).toEqual([]);
   });
 
   it('hides a resource the viewing player has no technology for', () => {
@@ -309,11 +321,11 @@ describe('the resource lens', () => {
     state.players[0]!.techsResearched = [];
 
     // Player 0 has never heard of iron; the horses are ungated and still shown.
-    expect(shapesFor(state, { mode: 'resources', playerId: 0 })).toEqual([
+    expect(shapesFor(state, { resources: true, playerId: 0 })).toEqual([
       geometry.resourceIcons.horses,
     ]);
     // Player 1 knows Bronze Working and sees both.
-    const seat1 = shapesFor(state, { mode: 'resources', playerId: 1 });
+    const seat1 = shapesFor(state, { resources: true, playerId: 1 });
     expect(seat1).toContain(geometry.resourceIcons.iron);
     expect(seat1).toContain(geometry.resourceIcons.horses);
   });
@@ -322,18 +334,51 @@ describe('the resource lens', () => {
     const state = flatState();
     at(state, 4, 4).resource = 'wine';
     const layer = new LensLayer();
-    layer.build(state, lensView({ mode: 'resources' }), geometry, materials(), null);
+    layer.build(state, lensView({ resources: true }), geometry, materials(), null);
     expect(layer.group.children).toHaveLength(0);
     layer.dispose();
   });
 
-  it('honours the cell restriction, like every other lens', () => {
+  it('honours its own cell restriction, like every other half of the layer', () => {
     const state = flatState();
     at(state, 4, 4).resource = 'wine';
     at(state, 7, 6).resource = 'salt';
-    expect(shapesFor(state, { mode: 'resources', cells: [{ col: 4, row: 4 }] })).toEqual([
+    expect(shapesFor(state, { resources: true, resourceCells: [{ col: 4, row: 4 }] })).toEqual([
       geometry.resourceIcons.wine,
     ]);
+  });
+
+  it('draws nothing while the switch is off', () => {
+    const state = flatState();
+    at(state, 4, 4).resource = 'wine';
+    expect(shapesFor(state, { resources: false })).toEqual([]);
+  });
+
+  /**
+   * The switch starts on, which is the whole point of it no longer being a lens:
+   * a player who has opened no menu is still told what is on the ground. The
+   * default is asserted through the layer, not merely read back, so the test
+   * fails if either the constant or its wiring stops meaning "roundels up".
+   */
+  it('is on by default, so an untouched board already names its ground', () => {
+    const state = flatState();
+    at(state, 4, 4).resource = 'wine';
+    expect(LENS_DEFAULTS.resources).toBe(true);
+    expect(shapesFor(state, { resources: LENS_DEFAULTS.resources })).toEqual([
+      geometry.resourceIcons.wine,
+    ]);
+  });
+
+  it('layers under the settler lens rather than replacing it', () => {
+    // The two used to be exclusive modes. A settler picked up over a wine hill
+    // must now show both the site wash and the roundel naming what is there.
+    const state = flatState();
+    at(state, 4, 4).resource = 'wine';
+    // One tile a city cannot go on, so the wash has something to say at all.
+    at(state, 0, 0).terrain = 'ocean';
+    const shapes = shapesFor(state, { mode: 'settler', resources: true });
+    expect(shapes).toContain(geometry.resourceIcons.wine);
+    expect(shapes).toContain(geometry.territory);
   });
 });
 
@@ -358,7 +403,7 @@ describe('the yield glyphs', () => {
     return out;
   }
 
-  it('repeats a glyph once per point, up to the cap', () => {
+  it('repeats a glyph once per point, up to the stack maximum', () => {
     const state = flatState();
     // Bare grassland is two food: two sheaves, three wrap copies each, and one
     // bucket because they share a cell of the atlas.
@@ -389,35 +434,121 @@ describe('the yield glyphs', () => {
     expect(shapes).not.toContain(geometry.yieldGlyphs.production);
   });
 
-  it('collapses past the cap to one glyph and a numeral', () => {
+  it('keeps a real tile\'s yields down to stacks, never numerals', () => {
     const state = flatState();
     const tile = at(state, 4, 4);
-    // A hill is two production; five more from a hand-set stack of resources is
-    // not a real tile, so the amount is forced by writing the yield the lens
-    // reads — the arithmetic under test is the layout, not the economy.
     tile.hills = true;
     tile.resource = 'wheat';
-    expect(VIEW3D.lens.glyphCap).toBe(4);
-
-    // 0/2/0 + 1/0/0 = one food and two production: still under the cap.
-    const under = marksOver(state, 4, 4);
-    expect(under.every((mesh) => mesh.geometry !== geometry.numerals[0])).toBe(true);
-
-    // Six of one voice: one glyph, one digit, three copies of each.
-    const many = flatState();
-    at(many, 4, 4).terrain = 'lake';
-    at(many, 4, 4).resource = 'fish';
-    const lake = marksOver(many, 4, 4);
-    expect(lake.map((mesh) => mesh.geometry)).toContain(geometry.yieldGlyphs.food);
+    // 0/2/0 + 1/0/0 = one food and two production: both well under the maximum,
+    // so nothing on the board today should be printing a count.
+    const marks = marksOver(state, 4, 4);
+    expect(marks.every((mesh) => !geometry.numerals.includes(mesh.geometry))).toBe(true);
   });
 
-  it('lays a two-digit count out as two numerals', () => {
-    // Ten of a voice is not reachable on a real tile today, so the layout is
-    // exercised through the digit table directly: `numerals` is indexed by
-    // value, which is what makes "12" two lookups rather than a string parse.
-    expect(geometry.numerals).toHaveLength(10);
-    expect(new Set(geometry.numerals).size).toBe(10);
-    expect(geometry.numerals[7]).toBe(geometry.numerals[7]);
+  /**
+   * The row arithmetic is checked through `yieldRowLayout` rather than through
+   * instance matrices, because the interesting cases are on either side of a
+   * threshold no real tile reaches: nothing in the data makes five of one yield
+   * yet. The layer draws exactly what this returns — see `addYieldGlyphs`.
+   */
+  describe('the row layout', () => {
+    it('stacks the discs at a fraction of their own diameter, in order', () => {
+      const row = yieldRowLayout(4);
+      expect(row.glyphs).toHaveLength(4);
+      expect(row.numerals).toEqual([]);
+
+      const steps = row.glyphs.slice(1).map((x, i) => x - row.glyphs[i]!);
+      // Monotone left to right, and every step the same one.
+      expect(steps.every((step) => step > 0)).toBe(true);
+      for (const step of steps) expect(step).toBeCloseTo(steps[0]!, 10);
+      // An overlap, not a row of separate tokens: a step shorter than a disc.
+      expect(steps[0]!).toBeCloseTo(yieldDiscWidth() * VIEW3D.lens.yieldStackStep, 10);
+      expect(steps[0]!).toBeLessThan(yieldDiscWidth());
+    });
+
+    it('centres the stack on the tile, whatever its depth', () => {
+      for (const amount of [1, 2, 3, 4]) {
+        const glyphs = yieldRowLayout(amount).glyphs;
+        const middle = (glyphs[0]! + glyphs[glyphs.length - 1]!) / 2;
+        expect(middle).toBeCloseTo(0, 10);
+      }
+      expect(yieldRowLayout(1).glyphs).toEqual([0]);
+    });
+
+    it('takes about half the width the spaced row used to', () => {
+      // The whole point of the rework. The old row stepped 0.32 world units per
+      // point at a glyph size of 0.36; four points spanned 1.32.
+      const glyphs = yieldRowLayout(4).glyphs;
+      const width = glyphs[3]! - glyphs[0]! + yieldDiscWidth();
+      expect(width).toBeLessThan(1.32 * 0.55);
+    });
+
+    it('collapses to one glyph and a count at the stack maximum plus one', () => {
+      expect(VIEW3D.lens.yieldStackMax).toBe(4);
+      // Four is the last stack…
+      expect(yieldRowLayout(4).numerals).toEqual([]);
+      expect(yieldRowLayout(4).glyphs).toHaveLength(4);
+      // …and five is the first count.
+      const five = yieldRowLayout(5);
+      expect(five.glyphs).toHaveLength(1);
+      expect(five.numerals.map((mark) => mark.digit)).toEqual([5]);
+    });
+
+    it('lays a two-figure count out as two numerals, left to right', () => {
+      const row = yieldRowLayout(12);
+      expect(row.glyphs).toHaveLength(1);
+      expect(row.numerals.map((mark) => mark.digit)).toEqual([1, 2]);
+      expect(row.numerals[1]!.x).toBeGreaterThan(row.numerals[0]!.x);
+      // The glyph leads, and the pair is centred like a stack is.
+      expect(row.glyphs[0]!).toBeLessThan(row.numerals[0]!.x);
+      const span = row.numerals[1]!.x + VIEW3D.lens.numeralSize / 2;
+      const start = row.glyphs[0]! - yieldDiscWidth() / 2;
+      expect((start + span) / 2).toBeCloseTo(0, 10);
+      // Every digit has a cell to be drawn from: ten of them, all distinct.
+      expect(geometry.numerals).toHaveLength(10);
+      expect(new Set(geometry.numerals).size).toBe(10);
+    });
+
+    it('says nothing at all about a yield of zero', () => {
+      expect(yieldRowLayout(0)).toEqual({ glyphs: [], numerals: [] });
+    });
+  });
+
+  /**
+   * The shadow is baked into the atlas cell rather than instanced under each
+   * disc — see `drawYieldCell`. What can be checked without a canvas is the
+   * packing invariant that makes baking safe, and it is the one that bites: the
+   * atlas cells are edge to edge with no gutter, so a shadow that reached past
+   * the half-cell would print on the neighbouring mark.
+   */
+  describe('the glyph drop shadow', () => {
+    it('is offset against the direction the stack runs in', () => {
+      const disc = yieldDiscLayout();
+      // Down and to the left, so each coin's shadow falls on the one before it.
+      expect(disc.offsetX).toBeLessThan(0);
+      expect(disc.offsetY).toBeGreaterThan(0);
+    });
+
+    it('stays inside its own atlas cell', () => {
+      const disc = yieldDiscLayout();
+      expect(disc.radius + Math.abs(disc.offsetX)).toBeLessThanOrEqual(0.5);
+      expect(disc.radius + Math.abs(disc.offsetY)).toBeLessThanOrEqual(0.5);
+      // And it leaves the voice disc smaller than a parchment roundel, which is
+      // where the room for it came from.
+      expect(disc.radius).toBeLessThan(paperRadiusFraction());
+    });
+
+    it('is the voice\'s own colour, shaded toward ink', () => {
+      for (const key of YIELD_KEYS) {
+        const shadow = yieldShadowColor(key);
+        const voice = YIELD_COLORS[key];
+        expect(shadow).not.toBe(voice);
+        // Darker in every channel: a shade of the disc, not a second hue.
+        for (const shift of [16, 8, 0]) {
+          expect((shadow >> shift) & 0xff).toBeLessThan((voice >> shift) & 0xff);
+        }
+      }
+    });
   });
 
   it('draws every mark over the board, never inside it', () => {

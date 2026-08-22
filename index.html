@@ -160,7 +160,7 @@
           aria-haspopup="dialog"
           aria-expanded="false"
           aria-controls="lens-popover"
-          title="Map lens (Y toggles yields)"
+          title="Map lens (Y toggles yields, R toggles resources)"
         >
           <span class="topbar-btn-line">
             <span class="topbar-btn-label">Lens</span>
@@ -203,7 +203,8 @@
       <!-- The lens menu. The exclusive choices are radio buttons in spirit —
            one row each, ticked, and `aria-pressed` says which is on — and under
            them sit the switches that are *not* exclusive and compose with any
-           of them. Yields is the only one today. -->
+           of them: the yield glyphs, and the resource roundels (which start
+           on). -->
       <div
         id="lens-popover"
         class="hud-card popover popover-narrow"
@@ -300,7 +301,10 @@
           <li><b>Drag</b> with either button to pan · <b>wheel</b> or pinch to zoom</li>
           <li><kbd>B</kbd> founds a city with the selected settler</li>
           <li><kbd>F</kbd> fortifies the selected unit — defence grows while it holds</li>
-          <li><kbd>Y</kbd> toggles the yield glyphs · <b>Lens</b> in the bar for more</li>
+          <li>
+            <kbd>Y</kbd> toggles the yield glyphs · <kbd>R</kbd> the resource icons ·
+            <b>Lens</b> in the bar for more
+          </li>
           <li><kbd>T</kbd> opens the tech tree — click a star to research it</li>
           <li><b>Left click</b> a tile in an open city's ring to pin a citizen</li>
           <li><kbd>Enter</kbd> ends your turn</li>

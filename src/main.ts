@@ -896,24 +896,24 @@ async function boot(): Promise<void> {
   });
 
   /**
-   * The lens menu: the exclusive lens choices, and — under them — the yield
-   * glyphs, which are not one.
+   * The lens menu: the exclusive lens choices, and — under them — the switches
+   * that are not lenses.
    *
    * The rows set the player's *chosen* lens, which a selected settler may be
-   * overriding on the board (see `controls.ts`), and the checkbox sets their own
-   * glyph switch, which an open city panel adds to without disturbing. The menu
+   * overriding on the board (see `controls.ts`), and each checkbox sets one of
+   * their own switches, which nothing else in the interface takes away. The menu
    * deliberately shows the choices rather than the overrides: they are the
    * things the player can change, and the things that come back.
    *
-   * The glyphs are a checkbox and not a fourth row precisely because they compose
-   * with everything above them. A tick in a list of exclusive rows would say the
-   * opposite — that turning yields on turns the settler lens off, which is
-   * exactly the behaviour this change removed.
+   * The switches are checkboxes and not further rows precisely because they
+   * compose with everything above them. A tick in a list of exclusive rows would
+   * say the opposite — that turning yields on turns the settler lens off, which
+   * is exactly the behaviour this shape removed, first for the glyphs and then
+   * for the resource roundels.
    */
   const LENS_OPTIONS: [LensMode, string, string][] = [
     ['none', 'None', 'The board as it is'],
     ['settler', 'Settler', 'Where a city may go: blue is coastal, green is fresh water'],
-    ['resources', 'Resources', 'What is on the ground: a roundel on every resource you know of'],
   ];
 
   const lensButtons = LENS_OPTIONS.map(([mode, label, hint]) => {
@@ -938,28 +938,54 @@ async function boot(): Promise<void> {
   });
 
   /**
-   * The yields switch, built under the lens rows as a real checkbox: it is an
-   * on/off setting, so it wears the control the platform already has for one,
-   * with its own label and its own keyboard behaviour.
+   * One switch under the lens rows, as a real checkbox: these are on/off
+   * settings, so they wear the control the platform already has for one, with
+   * its own label, its own hit area and its own keyboard behaviour.
+   *
+   * The card stays open when one is flipped — unlike choosing a lens, this is a
+   * switch the player may well want to flip back while looking at the same
+   * board.
    */
-  const yieldsToggle = document.createElement('input');
-  yieldsToggle.type = 'checkbox';
-  yieldsToggle.id = 'lens-yields';
-  const yieldsRow = document.createElement('label');
-  yieldsRow.className = 'lens-toggle';
-  yieldsRow.htmlFor = yieldsToggle.id;
-  yieldsRow.title = 'Show every tile’s food, production and gold (Y)';
-  const yieldsName = document.createElement('span');
-  yieldsName.className = 'lens-option-name';
-  yieldsName.textContent = 'Yields';
-  const yieldsKey = document.createElement('kbd');
-  yieldsKey.className = 'lens-toggle-key';
-  yieldsKey.textContent = 'Y';
-  yieldsRow.append(yieldsToggle, yieldsName, yieldsKey);
-  lensTogglesEl.append(yieldsRow);
-  // The card stays open: unlike choosing a lens, this is a switch the player
-  // may well want to flip back while looking at the same board.
-  yieldsToggle.addEventListener('change', () => controls.setYields(yieldsToggle.checked));
+  function addLensToggle(
+    id: string,
+    label: string,
+    key: string,
+    hint: string,
+    onChange: (on: boolean) => void,
+  ): HTMLInputElement {
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.id = id;
+    const row = document.createElement('label');
+    row.className = 'lens-toggle';
+    row.htmlFor = input.id;
+    row.title = hint;
+    const name = document.createElement('span');
+    name.className = 'lens-option-name';
+    name.textContent = label;
+    const kbd = document.createElement('kbd');
+    kbd.className = 'lens-toggle-key';
+    kbd.textContent = key;
+    row.append(input, name, kbd);
+    lensTogglesEl.append(row);
+    input.addEventListener('change', () => onChange(input.checked));
+    return input;
+  }
+
+  const yieldsToggle = addLensToggle(
+    'lens-yields',
+    'Yields',
+    'Y',
+    'Show every tile’s food, production and gold (Y)',
+    (on) => controls.setYields(on),
+  );
+  const resourcesToggle = addLensToggle(
+    'lens-resources',
+    'Resources',
+    'R',
+    'Name what is on the ground: a roundel on every resource you know of (R)',
+    (on) => controls.setResources(on),
+  );
 
   function updateLensMenu(): void {
     const current = controls.lens();
@@ -970,6 +996,7 @@ async function boot(): Promise<void> {
     }
     const yields = controls.yieldsShown();
     yieldsToggle.checked = yields;
+    resourcesToggle.checked = controls.resourcesShown();
 
     // The bar button says both, because both are on the board: the lens by
     // name, and the glyphs as a flag beside it. "off" is only honest when neither
