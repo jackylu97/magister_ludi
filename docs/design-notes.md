@@ -78,6 +78,24 @@ natural home for happiness/authority levers.
 - **Architecture:** draws happen IN THE SIM from `state.rng` at offer time (deterministic,
   replay/MP-safe). Pick = `chooseCivic` command. Never draw in the UI.
 
+**Draft access (revised 2026-08-22 — drafting is THE central loop, every run must feel
+different):** culture = the sustained metronome (draft RATE), but drafts are not
+culture-exclusive. **Draft moments** from other systems guarantee universal cadence:
+- **Age transitions: every player drafts** at each age's close — the floor everyone stands on,
+  and the ritual beat of the game.
+- **Breakthrough techs**: a marked handful of star-chart nodes grant a draft on completion
+  (scarce — landmarks, not confetti). Science's second way in beyond pool quality.
+- Wonders (some), and later events, as occasional bonus triggers.
+Committed culture runs draft most; nobody drafts rarely.
+
+**Power level (revised 2026-08-22 — user: bonuses should be powerful and game-defining):**
+tiers split by KIND, not just size. Common/uncommon = strong numeric modifiers. The top tier =
+**rules-benders** — leader-passive-grade rule changes ("cities work radius 4", "units heal in
+enemy territory", "settlers cost food not production", "roads yield gold"). Slot caps are what
+make this safe (2 slotted rules-benders = a build identity); the runaway-leader brakes are now a
+HARD requirement, not a watch item. The deterministic tech tree stays deterministic — techs are
+never drafted (the Spine commitment holds; drafts happen AROUND the chart, not inside it).
+
 **Rate × quality coupling:** culture = draft RATE, science = draft QUALITY. Techs carry
 player-chosen pool boons: "add X and Y" / "add all of type X" / **prune-replace** (removal is a
 powerful verb; dilution is real math — adding cards can lower hit-rate). Card types = Civ VI's
@@ -248,6 +266,12 @@ into earlier milestones.
    cost, very diorama-friendly: wonders as showpieces on the table). Somewhere between Civ V
    and Civ VI's districts without district sprawl. Open questions for later: does placement
    consume the tile's yield; adjacency effects or none; can they be pillaged/captured.
+
+4. **Religion as the CONTESTED draft track (parked 2026-08-22, shape reserved).** If religion
+   enters the game, its identity is competitive shared-pool drafting — Civ V's belief system
+   was secretly this: a finite pool where what your rival takes is GONE for you. Distinct
+   texture from the private civic drafts (snake-draft tension, deeply multiplayer). Do not
+   build a third private-pool system; this slot is reserved for the contested one.
 
 **Scope-creep guard:** the active roadmap stays vanilla-first (M4 science/culture → combat → AI →
 netcode). New mechanics land in THIS file first, get sequenced explicitly, and only then get
