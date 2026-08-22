@@ -540,6 +540,15 @@ Core loop complete through combat + resources (671 tests). Mechanics-before-AI s
 - **M7 Workers & improvements** — farms/mines/pastures/plantations/quarries/boats/roads,
   worker unit (class reserved), strategic/luxury access requires IMPROVEMENT (fixes the v1
   ownership shortcut), pillage-ready.
+  **Worker model (DECIDED 2026-08-22): Civ VI-style CHARGES, instant builds.** Base 3 charges,
+  charge count + per-improvement charge costs in data (synergy surface for future civic cards:
+  "+1 charge", refunds, discounts — charges ARE cards). Rationale: discrete previewable spends
+  (Entry VIII deltas per charge); kills the worker-stealing annuity incentive and the Civ V
+  upfront-cost agony (workers cheap per the pacing pass); and architecturally atomic — instant
+  builds mean NO partial-progress tile state, no contested half-built farms under simultaneous
+  turns; one validated command per spend. Captured workers keep remaining charges. Roads:
+  charge-costed in v1, EXPLICITLY PROVISIONAL — expected to be absorbed by the trade-route
+  design later (Civ VI precedent: traders build roads).
 - **M8 Fog of war & exploration** — tri-state per seat, chart-table unexplored render (the
   world drawn in), scout identity, per-player info honesty. (Embarkation folds in if needed.)
 - **M9 Gold loop** — unit/building maintenance + city purchasing.
