@@ -42,8 +42,12 @@ or after M9 (gold loop) / M10.
 
 **Growth curve:** threshold `15 + 8(n−1) + (n−1)^1.65` — exponent steepened from Civ V's 1.5
 (✅ applied to `rules.json` 2026-08-21). Head unchanged (pops 1–8), tall's tail pricier.
-Science per pop stays linear; authority gates it instead. Settler cost stays flat (authority
-already prices the city; escalating settlers would double-tax).
+Science per pop stays linear; authority gates it instead. **Settler scaling (REVISED 2026-08-22, user):** Civ VI-style escalation — effective cost =
+base + increment × settlers built (production only; starting/captured settlers don't count).
+Supersedes the earlier flat-cost rule BECAUSE authority doesn't exist until M10 and the
+Quick-speed pass left expansion brakeless (5 cities by t25). **RE-EXAMINE AT M10:** authority +
+steep settler scaling together would double-tax width — when authority lands, one of the two
+brakes softens (likely the settler increment). Scouts, not settlers, are the 3-turn unit.
 
 **v0 numbers:** unhappiness a=1, b=0.6, softPop=8, p=1.4 · palace happiness 9 · circus 50⚒/+3 ·
 luxury +2/+1-per-city(≤4) · authority/city 2 · palace 4 · age +2 · courthouse 90⚒/+2 ·
