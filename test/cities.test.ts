@@ -17,7 +17,9 @@ import {
   growthThreshold,
   nextBorderCost,
   nextCityName,
+  queueItemCost,
   tileOwnerCityId,
+  unitProductionCost,
   yieldScore,
 } from '../src/sim/cities';
 import {
@@ -41,7 +43,7 @@ import {
 } from '../src/sim/state';
 import { tileYield } from '../src/sim/terrainData';
 import { runEndOfTurn } from '../src/sim/turn';
-import { unitDef } from '../src/sim/unitData';
+import { UNIT_TYPE_IDS, unitDef } from '../src/sim/unitData';
 
 const CITIES = RULES.cities;
 
@@ -837,9 +839,189 @@ describe('production', () => {
 
     // Grown back, it finishes with the hammers it kept.
     city.population = unitDef('settler').minCityPop;
+    const price = unitProductionCost(state, 0, 'settler');
     advanceProduction(state);
     expect(state.units).toHaveLength(1);
-    expect(city.hammerBasket).toBe(500 - unitDef('settler').cost);
+    expect(city.hammerBasket).toBe(500 - price);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+describe('escalating settler cost', () => {
+  const BASE = unitDef('settler').cost;
+  const STEP = unitDef('settler').costIncrement!;
+
+  /** A city big enough to finish a settler, with hammers to spare. */
+  function settlerCity(state: GameState, ownerId: number, col: number, row: number): City {
+    const city = plant(state, ownerId, col, row);
+    city.population = unitDef('settler').minCityPop;
+    city.queue = [{ kind: 'unit', id: 'settler' }];
+    city.hammerBasket = 500;
+    return city;
+  }
+
+  it('adds one increment for every settler its owner has already built', () => {
+    const state = flatState();
+    expect(STEP).toBeGreaterThan(0);
+    expect(unitProductionCost(state, 0, 'settler')).toBe(BASE);
+
+    state.players[0]!.settlersBuilt = 3;
+    expect(unitProductionCost(state, 0, 'settler')).toBe(BASE + 3 * STEP);
+    // Every player climbs their own ladder: one empire's sprawl is not another's.
+    expect(unitProductionCost(state, 1, 'settler')).toBe(BASE);
+  });
+
+  it('leaves every type without an increment at its flat price', () => {
+    const state = flatState();
+    state.players[0]!.settlersBuilt = 5;
+    for (const id of UNIT_TYPE_IDS) {
+      const def = unitDef(id);
+      if (def.costIncrement !== undefined) continue;
+      expect(unitProductionCost(state, 0, id), id).toBe(def.cost);
+    }
+    // Exactly one type escalates today, and it is the one that founds cities.
+    const escalating = UNIT_TYPE_IDS.filter((id) => unitDef(id).costIncrement !== undefined);
+    expect(escalating).toEqual(['settler']);
+    expect(unitDef('settler').foundsCity).toBe(true);
+  });
+
+  it('charges the price it quotes, and quotes the next one dearer', () => {
+    const state = flatState();
+    const city = settlerCity(state, 0, 8, 5);
+
+    const first = queueItemCost(state, 0, city.queue[0]!)!;
+    expect(first).toBe(BASE);
+    advanceProduction(state);
+    expect(city.hammerBasket).toBe(500 - first);
+    expect(state.players[0]!.settlersBuilt).toBe(1);
+
+    city.queue = [{ kind: 'unit', id: 'settler' }];
+    const second = queueItemCost(state, 0, city.queue[0]!)!;
+    expect(second).toBe(BASE + STEP);
+    const banked = city.hammerBasket;
+    advanceProduction(state);
+    expect(city.hammerBasket).toBe(banked - second);
+    expect(state.players[0]!.settlersBuilt).toBe(2);
+    expect(unitProductionCost(state, 0, 'settler')).toBe(BASE + 2 * STEP);
+  });
+
+  it('re-prices a queued settler at every resolution, never at queue time', () => {
+    // Two cities of one empire, both mid-settler, both quoted the same price
+    // today. The first to finish makes the second dearer *while it is being
+    // built* — the price is asked at the resolution, so the second city holds
+    // its hammers and needs one more increment. See `advanceProduction`.
+    const state = flatState();
+    const first = settlerCity(state, 0, 5, 5);
+    const second = settlerCity(state, 0, 11, 5);
+    second.hammerBasket = BASE;
+    expect(queueItemCost(state, 0, second.queue[0]!)).toBe(BASE);
+
+    advanceProduction(state);
+    expect(state.units).toHaveLength(1);
+    expect(first.queue).toHaveLength(0);
+    // Not a failure and not a dropped item: the hammers are all still there.
+    expect(second.queue).toEqual([{ kind: 'unit', id: 'settler' }]);
+    expect(second.hammerBasket).toBe(BASE);
+    expect(queueItemCost(state, 0, second.queue[0]!)).toBe(BASE + STEP);
+
+    // And it finishes the moment the extra increment is banked.
+    second.hammerBasket = BASE + STEP;
+    advanceProduction(state);
+    expect(second.queue).toHaveLength(0);
+    expect(second.hammerBasket).toBe(0);
+    expect(state.players[0]!.settlersBuilt).toBe(2);
+  });
+
+  it('counts production only: not the settler a player starts with', () => {
+    const game = createGame({
+      seed: 31337,
+      sizeName: 'duel',
+      players: [
+        { name: 'Ada', color: '#e8503a', isHuman: true },
+        { name: 'Bors', color: '#3a7fe8' },
+      ],
+    });
+    expect(game.state.units.some((unit) => unitDef(unit.type).foundsCity)).toBe(true);
+    for (const player of game.state.players) expect(player.settlersBuilt).toBe(0);
+  });
+
+  it('counts production only: not a settler taken off somebody else', () => {
+    const state = flatState(16, 12, 'grassland');
+    const theirs = settlerCity(state, 1, 8, 5);
+    advanceProduction(state);
+    const settler = state.units.find((unit) => unitDef(unit.type).foundsCity)!;
+    expect(theirs.queue).toHaveLength(0);
+    expect(state.players[1]!.settlersBuilt).toBe(1);
+
+    // Walked out of its city, where it can be caught in the open.
+    expect(
+      applyCommand(state, {
+        type: 'moveUnit',
+        playerId: 1,
+        unitId: settler.id,
+        target: { col: 10, row: 5 },
+      } as Command),
+    ).toEqual({ ok: true });
+    expect(`${settler.col},${settler.row}`).not.toBe('8,5');
+
+    // Player 0 walks in and takes it. The unit changes hands; the bill does not.
+    const raider = createUnit(state, 0, 'warrior', settler.col + 1, settler.row);
+    expect(
+      applyCommand(state, {
+        type: 'attack',
+        playerId: 0,
+        unitId: raider.id,
+        target: { col: settler.col, row: settler.row },
+      } as Command),
+    ).toEqual({ ok: true });
+    expect(settler.ownerId).toBe(0);
+    expect(state.players[0]!.settlersBuilt).toBe(0);
+    expect(state.players[1]!.settlersBuilt).toBe(1);
+    expect(unitProductionCost(state, 0, 'settler')).toBe(BASE);
+  });
+
+  it('replays a run of escalating settlers byte for byte', () => {
+    const game = createGame({
+      seed: 4242,
+      sizeName: 'standard',
+      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
+    });
+    const founder = game.state.units.find((unit) => unitDef(unit.type).foundsCity)!;
+    expect(
+      dispatch(game, { type: 'foundCity', playerId: 0, settlerUnitId: founder.id }).ok,
+    ).toBe(true);
+    const capital = game.state.cities[0]!;
+
+    for (let turn = 0; turn < 40; turn++) {
+      if (capital.queue.length === 0 && capital.population >= unitDef('settler').minCityPop) {
+        dispatch(game, {
+          type: 'setCityProduction',
+          playerId: 0,
+          cityId: capital.id,
+          queue: [{ kind: 'unit', id: 'settler' }],
+        } as Command);
+      }
+      expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+    }
+
+    // The run was long enough for the ladder to matter.
+    expect(game.state.players[0]!.settlersBuilt).toBeGreaterThanOrEqual(3);
+    expect(unitProductionCost(game.state, 0, 'settler')).toBe(
+      BASE + STEP * game.state.players[0]!.settlersBuilt,
+    );
+    expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
+  });
+
+  it('carries the counter through a save and back', () => {
+    const state = flatState();
+    settlerCity(state, 0, 8, 5);
+    advanceProduction(state);
+    expect(state.players[0]!.settlersBuilt).toBe(1);
+
+    const restored = clone(state);
+    expect(restored.players[0]!.settlersBuilt).toBe(1);
+    expect(unitProductionCost(restored, 0, 'settler')).toBe(BASE + STEP);
   });
 });
 
@@ -1115,7 +1297,7 @@ describe('determinism with cities', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 8 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 9 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1123,10 +1305,10 @@ describe('determinism with cities', () => {
 
     const json = saveGame(game);
     expect((JSON.parse(json) as { schemaVersion: number }).schemaVersion).toBe(SCHEMA_VERSION);
-    // Bumped to 7 by combat: units grew `hasAttacked` and `fortifiedTurns`,
-    // cities grew `hp`, players grew `eliminated`, and the state grew
-    // `winnerId`.
-    expect(SCHEMA_VERSION).toBe(8);
+    // Bumped to 9 by escalating settlers: players grew `settlersBuilt`, the
+    // counter a settler's price is multiplied by. (7 was combat — `hasAttacked`,
+    // `fortifiedTurns`, `City.hp`, `eliminated`, `winnerId`; 8 was resources.)
+    expect(SCHEMA_VERSION).toBe(9);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

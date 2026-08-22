@@ -127,7 +127,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
 
     const item = city.queue[0];
     if (item) {
-      const cost = queueItemCost(item);
+      const cost = queueItemCost(getGame().state, city.ownerId, item);
       const perTurn = cityYields(getGame().state, city).production;
       const turns =
         cost === null ? null : turnsToFill(cost - city.hammerBasket, perTurn);

@@ -32,6 +32,7 @@ import {
   queueItemCost,
   queueItemName,
   turnsToFill,
+  unitProductionCost,
 } from '../sim/cities';
 import { BUILDING_IDS, buildingDef } from '../sim/buildingData';
 import type { Command } from '../sim/commands';
@@ -206,7 +207,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       return box;
     }
 
-    const cost = queueItemCost(item) ?? 0;
+    const cost = queueItemCost(getGame().state, city.ownerId, item) ?? 0;
     const turns = turnsToFill(cost - city.hammerBasket, perTurn);
     label.append(
       element(
@@ -245,7 +246,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     city.queue.forEach((item, index) => {
       const row = element('li');
       row.append(element('span', 'city-queue-name', queueItemName(item)));
-      row.append(element('span', 'city-queue-cost', `${queueItemCost(item) ?? '?'}${HAMMER}`));
+      row.append(
+        element(
+          'span',
+          'city-queue-cost',
+          `${queueItemCost(getGame().state, city.ownerId, item) ?? '?'}${HAMMER}`,
+        ),
+      );
 
       const up = element('button', 'city-icon-button', '↑');
       up.type = 'button';
@@ -307,6 +314,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     for (const id of UNIT_TYPE_IDS) {
       if (!isUnlocked(state, city.ownerId, 'unit', id)) continue;
       const def = unitDef(id);
+      // The live price, not the base one: a settler gets dearer with every
+      // settler this player has built, and the button quotes exactly what
+      // `advanceProduction` will charge (`unitProductionCost`).
+      const cost = unitProductionCost(state, city.ownerId, id);
       const tooSmall = city.population < def.minCityPop;
       // A strategic resource the player does not control is the same *kind* of
       // refusal as a city that is too small — the unit exists, this empire just
@@ -324,7 +335,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         ? `Needs ${resourceDef(missing).emoji} ${resourceDef(missing).name}`
         : tooSmall
           ? `Needs population ${def.minCityPop}`
-          : `${def.name} — ${def.cost} ${HAMMER} production`;
+          : `${def.name} — ${cost} ${HAMMER} production`;
       button.append(element('span', 'city-buildable-name', def.name));
       button.append(
         element(
@@ -332,7 +343,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
           'city-buildable-cost',
           needsResource
             ? `needs ${resourceDef(missing).emoji} ${resourceDef(missing).name}`
-            : `${def.cost}${HAMMER}`,
+            : `${cost}${HAMMER}`,
         ),
       );
       button.addEventListener('click', () => add({ kind: 'unit', id }));

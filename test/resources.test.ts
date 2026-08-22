@@ -543,8 +543,11 @@ describe('resources and the save file', () => {
     ],
   };
 
-  it('carries the schema version this milestone bumped to', () => {
-    expect(SCHEMA_VERSION).toBe(8);
+  it('carries a schema version at or past the one this milestone bumped to', () => {
+    // Resources bumped it to 8; escalating settlers took it to 9. The check is
+    // that a save from this build refuses an older reader, not that the number
+    // has stopped moving.
+    expect(SCHEMA_VERSION).toBeGreaterThanOrEqual(8);
   });
 
   it('round-trips a game and comes back with the same resources on the map', () => {

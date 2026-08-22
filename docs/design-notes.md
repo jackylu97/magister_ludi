@@ -48,6 +48,14 @@ Supersedes the earlier flat-cost rule BECAUSE authority doesn't exist until M10 
 Quick-speed pass left expansion brakeless (5 cities by t25). **RE-EXAMINE AT M10:** authority +
 steep settler scaling together would double-tax width — when authority lands, one of the two
 brakes softens (likely the settler increment). Scouts, not settlers, are the 3-turn unit.
+**SHIPPED 2026-08-22:** scout 3→9⚒ (exactly 3 turns at a fresh capital's 3⚒), warrior 5⚒ (2
+turns), settler 12→20⚒ base + `costIncrement` 8 per settler *built* — so 20/28/36/44, priced
+by the one evaluator `unitProductionCost(state, playerId, type)` and charged at every
+resolution rather than at queue time (a queued settler's price can rise under it; the panel
+quotes the same live number). The increment is a per-unit-type field in `units.json`, not a
+`settler` special case; `Player.settlersBuilt` (schema 9) is the counter. Cost: the scripted
+empire now founds cities 2–5 on t19/28/40/50 (was t17/20/24/28), and the tech table came down
+×0.50 / ×0.85 / ×0.95 by age to hold ages at t42 / t90 / t132.
 
 **v0 numbers:** unhappiness a=1, b=0.6, softPop=8, p=1.4 · palace happiness 9 · circus 50⚒/+3 ·
 luxury +2/+1-per-city(≤4) · authority/city 2 · palace 4 · age +2 · courthouse 90⚒/+2 ·
@@ -309,7 +317,8 @@ roguelike draft layer needs many runs to pay off — run identity starves in mar
 
 **Levers (in order of power):**
 1. **Defined end — the curtain falls.** Game ends when the final age completes — RETUNED
-   2026-08-22 (Quick-speed pacing pass): ages close ~t40 / t88 / t130 standard, measured and
+   2026-08-22 (Quick-speed pacing pass; re-measured after the settler retune): ages close
+   ~t42 / t90 / t132 standard, measured and
    band-asserted in the pacing test; the curtain target is now ~t130 with current content
    (3 ages; later ages extend it). Highest victory points wins. Knockout victories (conquest; maybe a
    science/culture coup) can end it earlier. Guarantees finishability by construction; very

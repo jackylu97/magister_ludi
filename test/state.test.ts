@@ -65,13 +65,16 @@ describe('newGame', () => {
     // Milestone 3 adds the three empty yield pools every player starts with;
     // Milestone 4 adds the research fields — nothing chosen, and the opening
     // kit of technologies from `rules.research.startingTechs`. Milestone 5 adds
-    // `eliminated`, which nobody is on turn one.
+    // `eliminated`, which nobody is on turn one, and escalating settlers add
+    // `settlersBuilt` — zero even though every player is holding a settler,
+    // because the one they start with was never paid for.
     const pools = {
       gold: 0,
       sciencePool: 0,
       culturePool: 0,
       researching: null,
       techsResearched: RULES.research.startingTechs,
+      settlersBuilt: 0,
       eliminated: false,
     };
     expect(state.players).toEqual([

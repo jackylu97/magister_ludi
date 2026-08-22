@@ -558,9 +558,51 @@ export function turnsToFill(remaining: number, perTurn: number): number | null {
   return Math.ceil(remaining / perTurn);
 }
 
-/** Hammers the item at the front of a queue costs, or `null` if it is unknown. */
-export function queueItemCost(item: QueueItem): number | null {
-  if (item.kind === 'unit') return isUnitTypeId(item.id) ? unitDef(item.id).cost : null;
+/**
+ * What one unit of this type costs *this player, right now*: its base cost plus
+ * `costIncrement` for every escalating unit they have already built.
+ *
+ * The one evaluator (Entry VIII). `advanceProduction` charges through it, the
+ * city panel prices its buildable rows and its queue rows through it, the
+ * banners and the panel estimate turns through it, and the tech screen quotes a
+ * not-yet-unlocked unit through it — so the number on the button is the number
+ * the city pays, and no second implementation can drift out from under the
+ * first. A type with no `costIncrement` passes straight through, which is every
+ * unit but the settler.
+ *
+ * An unknown player is priced at base rather than refused: this is a display and
+ * charging function, and the caller that could be handed a stale id is the UI.
+ */
+export function unitProductionCost(
+  state: GameState,
+  playerId: number,
+  type: UnitTypeId,
+): number {
+  const def = unitDef(type);
+  // Presence of the field is the marker, here and in `advanceProduction`: a
+  // designer who writes an increment of zero has declared an escalating type
+  // whose ladder is currently flat, not a flat type.
+  const increment = def.costIncrement;
+  if (increment === undefined) return def.cost;
+  const player = playerById(state, playerId);
+  return def.cost + increment * (player?.settlersBuilt ?? 0);
+}
+
+/**
+ * Hammers the item at the front of a queue costs *this player*, or `null` if it
+ * is unknown. Units are priced by `unitProductionCost`; buildings are flat.
+ *
+ * Takes the owner rather than reading it off a city, because a queue item is
+ * also priced before it belongs to one (the panel's buildable rows).
+ */
+export function queueItemCost(
+  state: GameState,
+  playerId: number,
+  item: QueueItem,
+): number | null {
+  if (item.kind === 'unit') {
+    return isUnitTypeId(item.id) ? unitProductionCost(state, playerId, item.id) : null;
+  }
   return isBuildingId(item.id) ? buildingDef(item.id).cost : null;
 }
 
@@ -660,6 +702,21 @@ function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | nu
  * The resource check is the mirror of the one `buildError` refuses a queue with
  * (`tech.ts`), read at the other moment it can be read: refusing at the gate and
  * holding afterwards are the same rule, exactly as `minCityPop` is.
+ *
+ * Escalating costs
+ * ----------------
+ * A unit's price is asked of `unitProductionCost` *at every resolution*, never
+ * captured when it was queued, and the counter it reads climbs the moment a
+ * settler completes. So two cities each three turns into a settler are both
+ * quoted the same price today, and the one that finishes first makes the other
+ * dearer: the loser's item does not fail, it simply needs more hammers than it
+ * did last turn, and its basket is untouched while it makes up the difference.
+ *
+ * That is the honest reading of "the empire's *n*-th settler costs *n* rungs",
+ * and it is the only one that cannot be gamed by queuing four settlers on turn
+ * one at the opening price. The panel quotes the same live number from the same
+ * function, so a queue whose price has risen shows the rise immediately rather
+ * than stalling against a figure the player was never shown.
  */
 export function advanceProduction(state: GameState): void {
   for (const city of state.cities) {
@@ -673,12 +730,19 @@ export function advanceProduction(state: GameState): void {
       if (def.requiresResource !== undefined && !hasResource(state, city.ownerId, def.requiresResource)) {
         continue;
       }
-      if (city.hammerBasket < def.cost) continue;
+      const cost = unitProductionCost(state, city.ownerId, item.id);
+      if (city.hammerBasket < cost) continue;
       const tile = spawnTileFor(state, city, item.id);
       if (!tile) continue;
-      city.hammerBasket -= def.cost;
+      city.hammerBasket -= cost;
       city.queue.shift();
       createUnit(state, city.ownerId, item.id, tile.col, tile.row);
+      // The ladder climbs at completion, so the next settler — anywhere in the
+      // empire — is dearer from the very next resolution. See the docblock.
+      if (def.costIncrement !== undefined) {
+        const player = playerById(state, city.ownerId);
+        if (player) player.settlersBuilt += 1;
+      }
       continue;
     }
 

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, buildingDef } from '../src/sim/buildingData';
-import { cityYields, foundCityAt, foundingErrorAt } from '../src/sim/cities';
+import {
+  cityYields,
+  foundCityAt,
+  foundingErrorAt,
+  unitProductionCost,
+} from '../src/sim/cities';
 import { type Command, applyCommand } from '../src/sim/commands';
 import {
   type Game,
@@ -162,10 +167,14 @@ describe('tech data integrity', () => {
     // above age II's ceiling on purpose — Entry V asks the endgame to
     // *accelerate*, so the last age's costs rise more slowly than the beakers
     // an empire of that size is making.
+    //
+    // Re-measured when settlers grew expensive and escalating: a slower
+    // expansion is a slower science economy, so the whole table came down
+    // (×0.50 / ×0.85 / ×0.95 by age) to hold the same three closing turns.
     const bands: Record<number, [number, number]> = {
-      1: [28, 60],
-      2: [150, 280],
-      3: [275, 480],
+      1: [12, 32],
+      2: [120, 250],
+      3: [255, 460],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);
@@ -817,8 +826,8 @@ describe('research in the log', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 8 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(8);
+  it('round-trips a schema 9 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(9);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -927,7 +936,15 @@ describe('pacing', () => {
           if (!isUnlocked(game.state, 0, 'building', id)) continue;
           queue.push({ kind: 'building', id });
         }
-        const settlersOut = game.state.units.filter((unit) => unitDef(unit.type).foundsCity).length;
+        // Settlers already *paid for* count toward the target as well as
+        // settlers already walking: a settler is five turns of production now,
+        // and without this every city in the empire would queue one before the
+        // first arrived, overshooting `CITY_TARGET` by two whole cities.
+        const settlersOut =
+          game.state.units.filter((unit) => unitDef(unit.type).foundsCity).length +
+          game.state.cities.filter((other) =>
+            other.queue.some((item) => item.kind === 'unit' && item.id === 'settler'),
+          ).length;
         if (
           game.state.cities.length + settlersOut < CITY_TARGET &&
           city.population >= unitDef('settler').minCityPop
@@ -959,11 +976,18 @@ describe('pacing', () => {
 
   it('closes its three ages on the Quick-speed schedule (Entry V)', () => {
     const { game, ageDone } = playEmpire(200);
-    // Measured on this seed after the Quick-speed retune: 43 / 86 / 128. Each
-    // assertion is a band around the measurement rather than the number itself
-    // — the map roll moves it by a handful of turns — but the band is tight
-    // enough on *both* sides to catch a regression in either direction, which
-    // an upper bound alone would not.
+    // Measured on this seed after settlers grew expensive and escalating:
+    // 42 / 90 / 132, against 43 / 86 / 128 before it. Each assertion is a band
+    // around the measurement rather than the number itself — the map roll moves
+    // it by a handful of turns — but the band is tight enough on *both* sides
+    // to catch a regression in either direction, which an upper bound alone
+    // would not.
+    //
+    // Holding those turns through the settler retune cost the tech table a
+    // proportional cut (see `tech.ts`): the empire now founds its five cities on
+    // turns 1 / 19 / 28 / 40 / 50 rather than 1 / 17 / 20 / 24 / 28, and five
+    // cities that arrive twenty turns later are twenty turns of citizens the
+    // science economy never had.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -971,32 +995,20 @@ describe('pacing', () => {
     expect(second, `age II: ${String(second)}`).toBeDefined();
     expect(third, `age III: ${String(third)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(35);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(51);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(76);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(98);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(116);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(142);
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(34);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(50);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(80);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(100);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(120);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(145);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 60_000);
 
   /**
-   * The opening, measured rather than asserted from taste.
-   *
-   * A capital founded on turn 1 makes three production a turn on the low end of
-   * the standard-map roll — the centre's own `baseCityYields` floor of two, plus
-   * whatever single tile one citizen is sent to (the assigner weights food, so
-   * it usually picks a tile worth a hammer). A settler is priced against that:
-   * twelve hammers is three turns of the four a size-2 capital makes, which is
-   * the whole point of the number.
-   *
-   * The one thing the target has to bend around is `minCityPop`: a settler
-   * cannot be *queued* in a size-1 city at all (`validateQueue` refuses it, and
-   * a size-1 city with a settler at the front of its queue could never grow to
-   * lift its own gate, because a settler halts growth). So "a fresh capital"
-   * here means the earliest turn the game will actually accept the order.
+   * A one-player standard map with its capital already planted on turn 1 — the
+   * board both opening measurements start from.
    */
-  it('turns a fresh capital into a settler in exactly three turns', () => {
+  function freshCapital(): Game {
     const game = createGame({
       seed: 4242,
       sizeName: 'standard',
@@ -1008,11 +1020,74 @@ describe('pacing', () => {
       playerId: 0,
       settlerUnitId: founder.id,
     }).ok).toBe(true);
+    expect(game.state.cities).toHaveLength(1);
+    return game;
+  }
+
+  /**
+   * The opening, measured rather than asserted from taste.
+   *
+   * A capital founded on turn 1 makes exactly three production a turn on this
+   * roll: the centre's own `baseCityYields` floor of two, plus the one tile its
+   * single citizen is sent to (the assigner weights food, so it picks a tile
+   * worth a hammer). The scout is priced straight off that number — nine
+   * hammers is three turns of three — because the scout is what the opening
+   * actually wants and three turns is what "immediately" feels like.
+   *
+   * A warrior at five is therefore two turns, and the settler is the other end
+   * of the same scale: see the test below.
+   */
+  it('turns a fresh capital into a scout in exactly three turns', () => {
+    const game = freshCapital();
     const capital = game.state.cities[0]!;
     expect(game.state.turn).toBe(1);
 
-    // What a brand-new capital makes, before anything is queued.
-    expect(cityYields(game.state, capital).production).toBeGreaterThanOrEqual(3);
+    // What a brand-new capital makes, before anything is queued. Asserted
+    // exactly, because the scout's price is nine *because* this is three.
+    expect(cityYields(game.state, capital).production).toBe(3);
+
+    expect(dispatch(game, {
+      type: 'setCityProduction',
+      playerId: 0,
+      cityId: capital.id,
+      queue: [{ kind: 'unit', id: 'scout' }],
+    } as Command).ok).toBe(true);
+
+    const built = (): boolean => game.state.units.some((unit) => unit.type === 'scout');
+    let turns = 0;
+    let rate = 0;
+    while (!built() && turns < 10) {
+      expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+      turns += 1;
+      if (turns === 1) rate = capital.hammerBasket;
+    }
+    // Exactly three, asserted from both sides: a scout that arrived in two
+    // turns is as much a pacing regression as one that took four.
+    expect(rate).toBe(3);
+    expect(turns, `${unitDef('scout').cost}⚙ at ${rate}⚙ a turn`).toBe(3);
+    expect(unitDef('scout').cost).toBe(9);
+    // The whole opening kit, priced against the same three hammers a turn.
+    expect(unitDef('warrior').cost).toBe(5);
+  }, 30_000);
+
+  /**
+   * The settler, measured the same way, and deliberately five times the rate
+   * rather than three: expansion is the strongest move in the game and it is
+   * meant to cost a real share of the opening.
+   *
+   * The one thing the target has to bend around is `minCityPop`: a settler
+   * cannot be *queued* in a size-1 city at all (`validateQueue` refuses it, and
+   * a size-1 city with a settler at the front of its queue could never grow to
+   * lift its own gate, because a settler halts growth). So "a fresh capital"
+   * here means the earliest turn the game will actually accept the order — a
+   * size-2 city, which makes four hammers a turn on this roll.
+   *
+   * Growth is halted while the settler is at the front, so that rate holds for
+   * the whole build: twenty hammers is five turns, exactly.
+   */
+  it('turns a size-2 capital into its first settler in exactly five turns', () => {
+    const game = freshCapital();
+    const capital = game.state.cities[0]!;
 
     // Grow to the smallest size that may build one. Nothing is queued while it
     // grows, so the hammers it banks in the meantime are cleared first: this
@@ -1028,28 +1103,34 @@ describe('pacing', () => {
     expect(game.state.turn, `size ${minimum} on turn ${game.state.turn}`).toBeLessThanOrEqual(12);
     capital.hammerBasket = 0;
 
-    expect(dispatch(game, {
-      type: 'setCityProduction',
-      playerId: 0,
-      cityId: capital.id,
-      queue: [{ kind: 'unit', id: 'settler' }],
-    } as Command).ok).toBe(true);
+    const turnsToBuild = (): number => {
+      expect(dispatch(game, {
+        type: 'setCityProduction',
+        playerId: 0,
+        cityId: capital.id,
+        queue: [{ kind: 'unit', id: 'settler' }],
+      } as Command).ok).toBe(true);
+      const before = game.state.players[0]!.settlersBuilt;
+      let turns = 0;
+      while (game.state.players[0]!.settlersBuilt === before && turns < 20) {
+        expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+        turns += 1;
+      }
+      return turns;
+    };
 
-    const built = (): boolean => game.state.units.some((unit) => unitDef(unit.type).foundsCity);
-    let turns = 0;
-    let rate = 0;
-    while (!built() && turns < 10) {
-      expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
-      turns += 1;
-      // The first resolution is the rate, banked and not yet spent: citizens
-      // are re-assigned at the top of `collectYields`, so the second citizen is
-      // only working from this turn on.
-      if (turns === 1) rate = capital.hammerBasket;
-    }
-    // Exactly three, asserted from both sides: a settler that arrived in two
-    // turns is as much a pacing regression as one that took four.
-    expect(rate).toBe(4);
-    expect(turns, `${unitDef('settler').cost}⚙ at ${rate}⚙ a turn`).toBe(3);
-    expect(unitDef('settler').cost).toBe(12);
+    const first = unitProductionCost(game.state, 0, 'settler');
+    expect(first).toBe(20);
+    expect(turnsToBuild(), `${first}⚙ at 4⚙ a turn`).toBe(5);
+    expect(game.state.players[0]!.settlersBuilt).toBe(1);
+
+    // And the second is a whole increment dearer — two more turns of the same
+    // four hammers, which is the brake the escalation is there to be.
+    const second = unitProductionCost(game.state, 0, 'settler');
+    expect(second).toBe(first + unitDef('settler').costIncrement!);
+    expect(turnsToBuild(), `${second}⚙ at 4⚙ a turn`).toBe(7);
+    expect(unitProductionCost(game.state, 0, 'settler')).toBe(
+      first + 2 * unitDef('settler').costIncrement!,
+    );
   }, 30_000);
 });

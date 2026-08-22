@@ -81,8 +81,12 @@ import { type UnitTypeId, unitDef } from './unitData';
  *    a save file carries no tiles — but a v7 save replayed against this build
  *    would grow resources its log never knew about, which is exactly the silent
  *    misreading the version exists to refuse.
+ * 9: Escalating settlers — `Player.settlersBuilt`, the counter the settler's
+ *    `costIncrement` multiplies. A v8 log replayed against this build would
+ *    price every settler after the first at the old flat cost, which is a
+ *    different game rather than an older one.
  */
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 // --- players ----------------------------------------------------------------
 
@@ -132,6 +136,22 @@ export interface Player {
    * something on turn one.
    */
   techsResearched: TechId[];
+  /**
+   * How many escalating units — settlers, today — this player has *completed
+   * from production*. The multiplier in `unitProductionCost` (`cities.ts`).
+   *
+   * "Built" is meant strictly, and the two exclusions are the rule rather than
+   * an oversight. The settler a player opens the game holding was never paid
+   * for, so it does not make the next one dearer; a settler taken off a rival
+   * on the battlefield was paid for by *them*, and capturing one is already its
+   * own kind of expensive. Only `advanceProduction` ever raises this, which is
+   * also the only place a player spends hammers on a unit.
+   *
+   * On the player rather than derived from the board because it can never be
+   * derived: settlers are *consumed* when they found, so counting the ones
+   * standing around would price the fourth city like the first.
+   */
+  settlersBuilt: number;
   /**
    * True once this player holds no units and no cities. They are out.
    *
@@ -404,6 +424,7 @@ export function newGame(config: GameConfig): GameState {
       // game in the process, and a player who researched something must not
       // write it into the rule book.
       techsResearched: [...RULES.research.startingTechs],
+      settlersBuilt: 0,
       eliminated: false,
     })),
     turnEnded: normalized.players.map(() => false),

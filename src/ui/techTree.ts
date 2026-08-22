@@ -55,6 +55,7 @@
  */
 
 import { buildingDef } from '../sim/buildingData';
+import { unitProductionCost } from '../sim/cities';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { hasEndedTurn } from '../sim/state';
@@ -170,7 +171,15 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       const row = element('li');
       row.append(element('span', 'tech-mark is-unit', def.glyph));
       row.append(element('span', 'tech-unlock-name', def.name));
-      row.append(element('span', 'tech-unlock-note', `${def.cost}${HAMMER}`));
+      // Priced for *this* player, through the simulation's own evaluator: a
+      // settler quoted here is quoted at what the next one would actually cost.
+      row.append(
+        element(
+          'span',
+          'tech-unlock-note',
+          `${unitProductionCost(state, playerId, unit)}${HAMMER}`,
+        ),
+      );
       list.append(row);
     }
 

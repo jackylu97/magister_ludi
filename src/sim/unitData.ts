@@ -21,8 +21,9 @@
  *
  * City-related fields
  * -------------------
- * `cost`, `foundsCity`, `haltsGrowth` and `minCityPop` are all here rather than
- * in `rules.json` because they describe *this unit type*, not the city system:
+ * `cost`, `costIncrement`, `foundsCity`, `haltsGrowth` and `minCityPop` are all
+ * here rather than in `rules.json` because they describe *this unit type*, not
+ * the city system:
  * a designer who adds a second settler-like unit adds one entry here and every
  * rule that mentions settlers follows it. In particular nothing in `src/sim/`
  * ever compares a unit type against the string `"settler"` — `foundsCity` is
@@ -117,8 +118,26 @@ export interface UnitDef {
   rangedStrength?: number;
   /** Hexes a shot may cross, defender included. Absent on melee-only types. */
   range?: number;
-  /** Hammers a city pays to build one. See the docblock. */
+  /**
+   * Hammers a city pays to build one — the *base* price, before escalation.
+   * See `costIncrement`, and `unitProductionCost` in `cities.ts`, which is the
+   * only function allowed to answer "what does this cost right now".
+   */
   cost: number;
+  /**
+   * Hammers this type gets dearer by for every escalating unit its owner has
+   * already built (`Player.settlersBuilt`), or absent when the price is flat.
+   *
+   * The Civ VI expansion brake, as data: a settler is `cost + costIncrement ×
+   * settlersBuilt`, so the fourth city costs three increments more than the
+   * first and an empire that sprawls pays for the sprawl. Presence of the field
+   * *is* the marker — nothing in `src/sim/` asks whether a type is `"settler"`,
+   * exactly as with `foundsCity` — and the counter it multiplies is shared, so
+   * a second escalating type would climb the same ladder rather than opening a
+   * second one. That is the intended reading: the ladder counts *expansions
+   * bought*, not settlers specifically.
+   */
+  costIncrement?: number;
   /** True when the unit can be spent to found a city. See the docblock. */
   foundsCity: boolean;
   /**
