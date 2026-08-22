@@ -498,7 +498,21 @@ height field and a visibility system, and half of one is a rule players learn an
 
 ---
 
-## Sequencing snapshot (2026-08-21)
-Vanilla mechanics first (user decision). M4 = vanilla science tech tree + culture. Then combat,
-AI, netcode. Drafting/governments/dice slot in after the vanilla loop proves out. Rivers mapgen
-milestone precedes river site bonuses. Everything visual is placeholder to be dialed later.
+## Sequencing snapshot (updated 2026-08-22)
+Core loop complete through combat + resources (671 tests). Mechanics-before-AI sequence
+(dependency-ordered, user-approved direction):
+- **M7 Workers & improvements** — farms/mines/pastures/plantations/quarries/boats/roads,
+  worker unit (class reserved), strategic/luxury access requires IMPROVEMENT (fixes the v1
+  ownership shortcut), pillage-ready.
+- **M8 Fog of war & exploration** — tri-state per seat, chart-table unexplored render (the
+  world drawn in), scout identity, per-player info honesty. (Embarkation folds in if needed.)
+- **M9 Gold loop** — unit/building maintenance + city purchasing.
+- **M10 Happiness & Authority + site bonuses** — Entry I in full; luxuries live via M7;
+  tall/wide harness assertions begin.
+- **M11 Wonders + formal Ages + Beads v1** — Entries V/VI: feats, age objectives, age-close
+  scoring, threshold + curtain, the Abacus. Victory gets its real shape.
+- **M12 Civic drafting + governments + Magister's Dice** — Entry II, last onto a proven base.
+- **M13 AI** (meets the finished ruleset once; one-evaluator functions are its brain) →
+  **M14 netcode**. Post-AI: promotions/ZOC, events, leader abilities, city-states decision.
+Everything visual remains placeholder-to-dial; vanilla-first honored (drafting is the one
+non-vanilla system and it lands after the vanilla loop is proven).
