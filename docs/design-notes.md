@@ -28,6 +28,18 @@ Title: **Magister Ludi** (decided; *Theatrum Mundi* was the other candidate). De
 3. Authority REPLACES every per-city % cost scaling. It is the only lawful width tax. Audit new
    mechanics against this.
 
+**Growth pacing rhythm (user, 2026-08-22): punctuated renewals, Civ V-style.** Cities grow
+fast, plateau, then TECH-DRIVEN RENEWALS reopen growth: improvement-upgrading techs (a Civil
+Service equivalent boosting freshwater farms — rivers matter again; later a Fertilizer
+equivalent) arrive as felt chapter-breaks. Implementation: techs carry improvement-yield
+upgrades (M7 improvements + existing tree; Entry VIII evaluator makes each renewal glanceable
+pre-research). Fast early growth is accepted/desired. **Trade routes = the circumvention valve
+(OPEN DESIGN QUESTION):** internal food routes à la Civ V, but FLAG — food caravans are
+historically a TALL subsidy (they fed 4-city capitals); the design needs a wide-friendly
+counterweight (routes scaling with city count? routes as wide's connective tissue?) or a
+deliberate acceptance against Entry I's wide lean. Design before building; likely lands with
+or after M9 (gold loop) / M10.
+
 **Growth curve:** threshold `15 + 8(n−1) + (n−1)^1.65` — exponent steepened from Civ V's 1.5
 (✅ applied to `rules.json` 2026-08-21). Head unchanged (pops 1–8), tall's tail pricier.
 Science per pop stays linear; authority gates it instead. Settler cost stays flat (authority
