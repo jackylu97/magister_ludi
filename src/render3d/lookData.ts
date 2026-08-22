@@ -775,6 +775,149 @@ export interface ResourceLookSpec {
   props: Record<ResourceId, ResourcePropSpec>;
 }
 
+/**
+ * The Abacus: the victory scoreboard as a counting frame standing on the table.
+ *
+ * Every proportion the object is cut from lives here rather than in
+ * `abacus3d.ts`, for the reason every other block in this file exists: the
+ * shape of a game object is a look decision, and a look decision is edited by
+ * somebody reading numbers, not by somebody reading TypeScript. The frame's
+ * heaviness in particular is the whole difference between a reckoning-frame and
+ * a toy xylophone, and it is exactly the sort of thing that wants two minutes of
+ * nudging with the page open.
+ *
+ * The bead sizes are *ratios*, not lengths: the object is built for N players by
+ * dividing the clear height by the rod count and cutting the beads to whatever
+ * pitch falls out, so two seats get fat beads on a wide pitch and six get
+ * smaller ones on a tight one without a second table of numbers.
+ */
+export interface AbacusSpec {
+  frame: AbacusFrameSpec;
+  rod: AbacusRodSpec;
+  bead: AbacusBeadSpec;
+  slide: AbacusSlideSpec;
+  motion: AbacusMotionSpec;
+  camera: AbacusCameraSpec;
+  label: AbacusLabelSpec;
+  /** The scoring families, in the order a cycling control walks them. */
+  families: readonly AbacusFamily[];
+}
+
+/** The frame, in world units — the units the board is in, one hex = 1. */
+export interface AbacusFrameSpec {
+  width: number;
+  /** The two end posts. Their inner faces are where the rods begin. */
+  stileWidth: number;
+  /** Shallower than the rails, so the rails stand proud and the posts read as in. */
+  stileDepth: number;
+  railHeight: number;
+  railDepth: number;
+  /** Clear height between the rails: the space the rods are strung across. */
+  innerHeight: number;
+  footWidth: number;
+  footHeight: number;
+  footDepth: number;
+  /** The 45° cut on every arris. */
+  chamfer: number;
+  timberColor: number;
+  /** How far the posts and feet are darkened off `sideDarken`, as a multiple. */
+  postShade: number;
+}
+
+export interface AbacusRodSpec {
+  radius: number;
+  /** How far each rod is buried in its stile, so no daylight shows at the joint. */
+  tenon: number;
+  finialSize: number;
+  finialSegments: number;
+  color: number;
+}
+
+export interface AbacusBeadSpec {
+  /** Beads per rod: the tally's denominator and the rod's capacity. */
+  perRod: number;
+  /** Lathe segments. Odd, like every turned thing here. */
+  segments: number;
+  /** A ceiling on the radius, for a table seating very few. */
+  maxRadius: number;
+  /** Bead radius as a fraction of the rod pitch. */
+  pitchFraction: number;
+  /** Half-thickness as a fraction of the radius. */
+  thicknessRatio: number;
+  /** World units of daylight between neighbours in a packed stack. */
+  clearance: number;
+  /** How much wider than the rod the bore is drilled. */
+  boreClearance: number;
+  /** Daylight left between the outermost bead and the finial it stops against. */
+  finialClearance: number;
+  /** An unearned bead is bare turned wood: bone, warmed toward the frame. */
+  waitingColor: number;
+  waitingWarmth: number;
+  waitingWarmthMix: number;
+}
+
+export interface AbacusSlideSpec {
+  /** How long a bead takes to run down the rod, in seconds. */
+  seconds: number;
+  /** The fraction of that spent arriving, as against settling. */
+  travel: number;
+  /** How far past the stack it knocks, as a fixed world distance. */
+  overshoot: number;
+}
+
+export interface AbacusMotionSpec {
+  /** Radians per second of turntable. */
+  spinRate: number;
+  swayRadians: number;
+  swaySeconds: number;
+}
+
+export interface AbacusCameraSpec {
+  /** Much lower than the board's: this is looked *at*, not looked into. */
+  elevation: number;
+  azimuth: number;
+  eyeDistance: number;
+  padding: number;
+  /** World units of empty table reserved each side for the DOM labels. */
+  labelGutter: number;
+}
+
+export interface AbacusLabelSpec {
+  /** How far past the stile a label's anchor point sits, in world units. */
+  reach: number;
+  /** Facing cosine at which the labels start to fade as the object turns. */
+  fadeFrom: number;
+  /** How much more facing it takes to reach full opacity. */
+  fadeSpan: number;
+}
+
+/**
+ * The four scoring families a victory bead can belong to.
+ *
+ * Two are the board's own player inks by name, because a conquest bead must be
+ * the same red the crimson player's pieces are; the other two are `lapis` and
+ * `gilt`, promoted into the palette when the Abacus came in-game. All four are
+ * palette *names*, so the object cannot open a second colour vocabulary beside
+ * the table it stands on.
+ */
+export interface AbacusFamily {
+  id: FamilyId;
+  /** What a control naming this family calls it. */
+  name: string;
+  color: number;
+}
+
+/** The scoring families. Beads are earned per family from M11 (Entry VI). */
+export type FamilyId = 'conquest' | 'culture' | 'philosophy' | 'commerce';
+
+/** The canonical set, which `data/view3d.json` must cover exactly. */
+export const FAMILY_IDS: readonly FamilyId[] = [
+  'conquest',
+  'culture',
+  'philosophy',
+  'commerce',
+];
+
 export interface View3DData {
   palette: Record<string, number>;
   terrainColor: Record<TerrainId, number>;
@@ -798,6 +941,7 @@ export interface View3DData {
   lens: LensSpec;
   icons: IconSpec;
   resources: ResourceLookSpec;
+  abacus: AbacusSpec;
   units: UnitStyleSpec;
 }
 
@@ -854,6 +998,40 @@ const rawPlayers = viewJson.players as {
   byColor: Record<string, string>;
   fallbackOrder: string[];
 };
+
+/**
+ * The scoring families, checked against `FAMILY_IDS` rather than trusted.
+ *
+ * The ids are a union in the type system and a list in a JSON file, and the two
+ * have to be the same set or a bead would be earned in a family nothing can
+ * paint. Both directions are checked — an id the code does not know, and an id
+ * the code knows that the data forgot — because either one is a silent black
+ * bead at the moment somebody scores.
+ */
+function parseFamilies(
+  raw: readonly { id: string; name: string; color: string }[],
+): readonly AbacusFamily[] {
+  const known = new Set<string>(FAMILY_IDS);
+  const seen = new Set<string>();
+  const families = raw.map((entry, index) => {
+    if (!known.has(entry.id)) {
+      throw new Error(`view3d.json: abacus.families[${index}] is not a scoring family: ${entry.id}`);
+    }
+    if (seen.has(entry.id)) {
+      throw new Error(`view3d.json: abacus.families lists ${entry.id} twice`);
+    }
+    seen.add(entry.id);
+    return {
+      id: entry.id as FamilyId,
+      name: entry.name,
+      color: named(entry.color, `abacus.families.${entry.id}.color`),
+    };
+  });
+  for (const id of FAMILY_IDS) {
+    if (!seen.has(id)) throw new Error(`view3d.json: abacus.families is missing ${id}`);
+  }
+  return families;
+}
 
 export const VIEW3D: View3DData = {
   palette,
@@ -1058,6 +1236,26 @@ export const VIEW3D: View3DData = {
         { ...spec, color: named(spec.color, `resources.props.${id}.color`) },
       ]),
     ) as Record<ResourceId, ResourcePropSpec>,
+  },
+  abacus: {
+    frame: {
+      ...viewJson.abacus.frame,
+      timberColor: named(viewJson.abacus.frame.timberColor, 'abacus.frame.timberColor'),
+    },
+    rod: {
+      ...viewJson.abacus.rod,
+      color: named(viewJson.abacus.rod.color, 'abacus.rod.color'),
+    },
+    bead: {
+      ...viewJson.abacus.bead,
+      waitingColor: named(viewJson.abacus.bead.waitingColor, 'abacus.bead.waitingColor'),
+      waitingWarmth: named(viewJson.abacus.bead.waitingWarmth, 'abacus.bead.waitingWarmth'),
+    },
+    slide: viewJson.abacus.slide,
+    motion: viewJson.abacus.motion,
+    camera: viewJson.abacus.camera,
+    label: viewJson.abacus.label,
+    families: parseFamilies(viewJson.abacus.families),
   },
   units: {
     style: parseUnitStyle(viewJson.units.style),

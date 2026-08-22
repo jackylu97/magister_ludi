@@ -45,6 +45,10 @@ of the status card, and it is the same list as this one.
 - Click one of your cities — on the board or on its banner — to open its screen:
   yields, growth, and a production queue you can add to, reorder and trim. The
   dots on the map are the tiles its citizens are working.
+- `T` — or the research card, top left — opens the star chart. `A` — or
+  **Abacus** in the bar — opens the Abacus: the score as a counting frame on the
+  table, one rod per player and one bead per point. No bead is earned yet;
+  scoring arrives with M11.
 - `Esc` backs out one layer at a time: move mode, then an open popover, then the
   city screen, then the selection. `Enter` ends the turn (`G` toggles the hex
   grid in 2D).

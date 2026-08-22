@@ -144,6 +144,15 @@ export interface TechTreeOptions {
   localPlayerId: () => number;
   /** Called after a command lands, so the rest of the page catches up. */
   onChanged: () => void;
+  /**
+   * Called as this screen opens, so whatever else was up can get out of the way.
+   *
+   * The same hook the HUD's popovers take, and it exists for the same reason:
+   * two full-screen surfaces at the same z-index are not a layering question,
+   * they are one of them being invisible. There is now a second one (the
+   * Abacus), so each closes the other on the way in.
+   */
+  onOpen?: () => void;
 }
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -171,6 +180,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     getGame,
     localPlayerId,
     onChanged,
+    onOpen,
   } = options;
 
   let open = false;
@@ -693,6 +703,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     statusCard.setAttribute('aria-expanded', String(next));
 
     if (next) {
+      onOpen?.();
       const active = document.activeElement as HTMLElement | null;
       restoreTo = active && active !== document.body ? active : statusCard;
       // A fresh opening starts at the front of the player's own work rather

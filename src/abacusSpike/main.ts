@@ -1,14 +1,21 @@
 /**
- * Entry point for The Abacus — the victory-scoreboard spike.
+ * Entry point for The Abacus — the victory-scoreboard look-dev page.
  *
  * The third look-dev page beside `proto3d.html` and `pieces.html`, and the same
- * bargain: one question, answered with the real renderer. The question here is
- * whether *scoring* can be a physical event. The board already knows how to be a
- * place; the score is still a number in a bar, and a number cannot be knocked
+ * bargain: one question, answered with the real renderer. The question here was
+ * whether *scoring* can be a physical event. The board already knew how to be a
+ * place; the score was still a number in a bar, and a number cannot be knocked
  * into a stack.
  *
- * All the rendering lives in `abacus.ts`. This file is the chrome: two demo
- * buttons, the family cycle, the DOM labels, and the reduced-motion decision.
+ * The answer came back yes, so the object itself moved into the renderer
+ * (`src/render3d/abacus3d.ts`) and into the game as a screen
+ * (`src/ui/abacusScreen.ts`). This page stayed, as the bench it is judged on:
+ * the same stage, driven by the demo buttons the *game* must not have. Earning a
+ * bead is something the simulation will do at M11 — a button that fakes it
+ * belongs here, where faking things is the job, and nowhere else.
+ *
+ * So this file is only chrome now: the earn buttons, the family cycle, the DOM
+ * labels, and the reduced-motion decision.
  *
  * The player names are Hesse's, which is not a joke — the abacus *is* the glass
  * bead game's scoreboard, and a spike that reads as belonging to the product is
@@ -17,11 +24,15 @@
 
 import './style.css';
 
+import {
+  AbacusStage,
+  type AbacusPlayer,
+  Clack,
+  FAMILIES,
+  type FamilyId,
+  cssHex,
+} from '../render3d/abacus3d';
 import { VIEW3D } from '../render3d/lookData';
-
-import { AbacusStage, type AbacusPlayer } from './abacus';
-import { Clack } from './clack';
-import { FAMILIES, type FamilyId, cssHex } from './families';
 
 function requireElement<T extends HTMLElement>(id: string): T {
   const element = document.getElementById(id);

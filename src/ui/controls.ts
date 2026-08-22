@@ -285,6 +285,13 @@ export interface GameControlsOptions {
   onOpenTechTree?: () => void;
 
   /**
+   * Opens or closes the Abacus, the score screen. `A`, on the same terms as
+   * `T`: the screen owns its own Escape while it is up and reports itself
+   * through `inputBlocked`, so this module never sees a key while it is open.
+   */
+  onToggleAbacus?: () => void;
+
+  /**
    * A blow landed: numbers to float over the board.
    *
    * Reported from here because this is the only place that can measure it — the
@@ -439,6 +446,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     closePopovers,
     inputBlocked,
     onToggleTechTree,
+    onToggleAbacus,
     onOpenTechTree,
     onDamage,
     onVictory,
@@ -1787,6 +1795,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // The tech screen. It takes the keyboard from here while it is up, so
       // this is only ever the way in.
       onToggleTechTree?.();
+      return;
+    }
+    if (event.key === 'a' || event.key === 'A') {
+      // The Abacus. Like the star chart, it takes the keyboard from here while
+      // it is up, so this is only ever the way in.
+      onToggleAbacus?.();
       return;
     }
     if (event.key === 'm' || event.key === 'M') {

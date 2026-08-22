@@ -21,7 +21,10 @@
     "vellumDeep": "#c2b18c",
     "timber": "#8a6a45",
     "steel": "#9aa3a8",
-    "grape": "#7c5f8c"
+    "grape": "#7c5f8c",
+    "lapis": "#3f639f",
+    "gilt": "#c08a2b",
+    "brass": "#c2a35c"
   },
   "terrainColor": {
     "ocean": "lagoon",
@@ -389,6 +392,70 @@
       "spices": { "color": "crimson", "shade": 0.08, "count": 3, "size": 0.22 },
       "salt": { "color": "bone", "shade": 0.12, "count": 1, "size": 0.3 }
     }
+  },
+  "abacus": {
+    "frame": {
+      "width": 6,
+      "stileWidth": 0.4,
+      "stileDepth": 0.32,
+      "railHeight": 0.36,
+      "railDepth": 0.42,
+      "innerHeight": 2.52,
+      "footWidth": 0.9,
+      "footHeight": 0.18,
+      "footDepth": 0.66,
+      "chamfer": 0.055,
+      "timberColor": "timber",
+      "postShade": 0.62
+    },
+    "rod": {
+      "radius": 0.05,
+      "tenon": 0.16,
+      "finialSize": 0.15,
+      "finialSegments": 9,
+      "color": "brass"
+    },
+    "bead": {
+      "perRod": 13,
+      "segments": 11,
+      "maxRadius": 0.3,
+      "pitchFraction": 0.36,
+      "thicknessRatio": 0.43,
+      "clearance": 0.014,
+      "boreClearance": 0.006,
+      "finialClearance": 0.05,
+      "waitingColor": "bone",
+      "waitingWarmth": "timber",
+      "waitingWarmthMix": 0.22
+    },
+    "slide": {
+      "seconds": 0.46,
+      "travel": 0.8,
+      "overshoot": 0.05
+    },
+    "motion": {
+      "spinRate": 0.36,
+      "swayRadians": 0.085,
+      "swaySeconds": 7.5
+    },
+    "camera": {
+      "elevation": 24,
+      "azimuth": 66,
+      "eyeDistance": 240,
+      "padding": 1.1,
+      "labelGutter": 1.3
+    },
+    "label": {
+      "reach": 0.18,
+      "fadeFrom": 0.55,
+      "fadeSpan": 0.3
+    },
+    "families": [
+      { "id": "conquest", "name": "Conquest", "color": "crimson" },
+      { "id": "culture", "name": "Culture", "color": "grape" },
+      { "id": "philosophy", "name": "Philosophy", "color": "lapis" },
+      { "id": "commerce", "name": "Commerce", "color": "gilt" }
+    ]
   },
   "units": {
     "style": "pieces",

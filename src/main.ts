@@ -58,9 +58,11 @@ import { unitDef } from './sim/unitData';
 import { Renderer } from './render/renderer';
 import { loadSprites } from './render/sprites';
 import { createFlatTileArtist, createTileArtist } from './render/tileVisuals';
+import { playerPieceColor } from './render3d/lookData';
 import { Renderer3D } from './render3d/renderer3d';
 import { tileYieldOf } from './sim/cities';
 import { unitsOnTile } from './sim/units';
+import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import { type GameControls, createGameControls } from './ui/controls';
@@ -124,6 +126,11 @@ const researchFillEl = requireElement<HTMLElement>('research-fill');
 const researchFiguresEl = requireElement<HTMLElement>('research-figures');
 const techOverlayEl = requireElement<HTMLElement>('tech-overlay');
 const techChartEl = requireElement<HTMLElement>('tech-chart');
+/* The Abacus: the bar button that opens it, and the screen it opens. Its canvas
+   is not here — `abacusScreen.ts` builds one into the stage on the first open. */
+const abacusButton = requireElement<HTMLButtonElement>('abacus-button');
+const abacusOverlayEl = requireElement<HTMLElement>('abacus-overlay');
+const abacusStageEl = requireElement<HTMLElement>('abacus-stage');
 const contextEl = requireElement<HTMLElement>('hud-context');
 const contextNoticeEl = requireElement<HTMLElement>('context-notice');
 const combatForecastEl = requireElement<HTMLElement>('combat-forecast');
@@ -224,12 +231,25 @@ const lens = createPopover({
  */
 let techTree: TechTree | null = null;
 
+/**
+ * The Abacus, once `boot` has built it. A holder for the same reason the star
+ * chart is one: `A` arrives through `controls`, and the screen reads the roster
+ * `controls` is seated at.
+ */
+let abacus: AbacusScreen | null = null;
+
 function closePopovers(): boolean {
-  const wasOpen = menu.isOpen || help.isOpen || lens.isOpen || (techTree?.isOpen ?? false);
+  const wasOpen =
+    menu.isOpen ||
+    help.isOpen ||
+    lens.isOpen ||
+    (techTree?.isOpen ?? false) ||
+    (abacus?.isOpen ?? false);
   menu.close();
   help.close();
   lens.close();
   techTree?.close();
+  abacus?.close();
   return wasOpen;
 }
 
@@ -253,6 +273,11 @@ function showLanding(): void {
   // never competing with a second surface for the keyboard.
   closePopovers();
   setRestartConfirm(false);
+  // The Abacus holds a WebGL context of its own, and the game it was counting
+  // is over. `closePopovers` above has already shut it; this gives the context
+  // and its five thousand triangles back, and the next game builds a fresh
+  // stage on the first press of `A`.
+  abacus?.dispose();
   // `hidden` is the whole of the screen state — one flag, read by `inputBlocked`
   // as well as by the stylesheet, so "is the landing up?" has one answer.
   landingEl.hidden = false;
@@ -906,10 +931,13 @@ async function boot(): Promise<void> {
     onUpdate: updatePanel,
     onNotice: showNotice,
     closePopovers,
-    // A screen in front of the board owns the keyboard: the landing, and the
-    // star chart, which handles its own Escape while it is up.
-    inputBlocked: () => !landingEl.hidden || (techTree?.isOpen ?? false),
+    // A screen in front of the board owns the keyboard: the landing, and the two
+    // full-screen surfaces — the star chart and the Abacus — each of which
+    // handles its own Escape while it is up.
+    inputBlocked: () =>
+      !landingEl.hidden || (techTree?.isOpen ?? false) || (abacus?.isOpen ?? false),
     onToggleTechTree: () => techTree?.toggle(),
+    onToggleAbacus: () => abacus?.toggle(),
     // End Turn's research blocker puts the chart up; it never takes it down.
     onOpenTechTree: () => techTree?.open(),
     onTurnResolved: (_turn, research) => {
@@ -1069,6 +1097,38 @@ async function boot(): Promise<void> {
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
     onChanged: () => updatePanel(null, renderer.getHover()),
+    // Two full-screen screens at one z-index is one of them being invisible.
+    onOpen: () => abacus?.close(),
+  });
+
+  /**
+   * The Abacus: the score, as an object on the table.
+   *
+   * One rod per seat, read off the live roster rather than off a snapshot, so a
+   * new game re-strings it. `beads` is empty for everybody and will stay empty
+   * until M11 gives the simulation a bead to earn — the screen says so itself,
+   * and this is the field that will carry the answer when there is one.
+   */
+  abacus = createAbacusScreen({
+    overlay: abacusOverlayEl,
+    stage: abacusStageEl,
+    closeButton: requireElement('abacus-close'),
+    trigger: abacusButton,
+    rows: (): AbacusRow[] =>
+      game.state.players.map((player) => ({
+        playerId: player.id,
+        name: player.name,
+        // The diorama ink, not the panel colour: the label swatch belongs to the
+        // same table the frame is standing on. Same call the pieces make.
+        color: playerPieceColor(player.color, player.id),
+        beads: [],
+      })),
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      techTree?.close();
+    },
   });
 
   /**
@@ -1166,6 +1226,11 @@ async function boot(): Promise<void> {
     // A star chart of the game that just ended has nothing to say about the
     // one starting either.
     techTree?.close();
+    // Nor does a scoreboard. The rods themselves are re-strung — the new table
+    // may seat different people — but not now: `refresh` only marks them stale,
+    // and the rebuild happens on the next open, if there ever is one.
+    abacus?.close();
+    abacus?.refresh();
     game = createGame(currentConfig());
     renderer.setGameState(game.state);
     controls.refresh();

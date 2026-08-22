@@ -103,9 +103,17 @@
            bottom-left  #hud-context    what is under the cursor, and notices
            right        #city-panel / #unit-panel — one at a time
            bottom-right #hud-end-turn   the one button pressed every single turn
+           whole window #tech-overlay   the star chart, from the research card
+                                        or T
+           whole window #abacus-overlay the score as an object, from the bar
+                                        button or A
 
          The right edge above the End Turn button belongs to whichever panel is
          open, which is why that button steps aside while one is.
+
+         The last two are *screens*, not cards: each covers the window including
+         the bar, owns the keyboard while it is up, and closes the other as it
+         opens — see `closePopovers` and the `onOpen` hooks in src/main.ts.
          ============================================================ -->
 
     <!-- The top bar: a slim ink rule across the whole window, in reading order.
@@ -129,6 +137,23 @@
       <div id="seats" class="seats"></div>
 
       <div class="topbar-tools">
+        <!-- The Abacus: the score, as an object on the table rather than a
+             number in this bar. It is a screen and not a popover — see
+             #abacus-overlay below — so it sits beside the lens button rather
+             than in the popover column under it. -->
+        <button
+          id="abacus-button"
+          class="topbar-btn"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="abacus-overlay"
+          title="The Abacus — the score (A)"
+        >
+          <span class="topbar-btn-line">
+            <span class="topbar-btn-label">Abacus</span>
+          </span>
+        </button>
         <!-- The lens menu: one question asked of every tile at once, plus the
              yield glyphs, which are an independent switch. The button names both,
              so the bar always says what the board is showing.
@@ -300,6 +325,10 @@
             click a star to research it
           </li>
           <li>
+            <kbd>A</kbd> — or <b>Abacus</b> in the bar — opens the score: one rod per
+            player, one bead per point. No bead is earned until the Æras close
+          </li>
+          <li>
             <b>Left click</b> any tile in an open city's ring to pin a citizen — a garrison
             does not block it; click its badge to select it instead
           </li>
@@ -378,6 +407,48 @@
              one column per dependency depth, one lane per authored row, and
              the ages painted behind the columns they turned out to own. -->
         <div id="tech-chart" class="tech-chart"></div>
+      </div>
+    </div>
+
+    <!-- ================= the Abacus ============================
+         The score, as a counting frame standing on the table: one rod per
+         player, thirteen beads on each, slid left as they are earned and
+         coloured by the family that earned them (Entry VI, the Bead Race).
+         Built by src/ui/abacusScreen.ts on the shared 3D stage in
+         src/render3d/abacus3d.ts; opened from the bar button or with A, closed
+         with Esc, the ×, or a click on the table around the sheet.
+
+         The canvas and the floating name/tally labels are created by that file
+         on the first open — the stage is not built at boot, and nothing in here
+         costs a WebGL context until somebody asks for the score.
+
+         Every bead is unearned today, which is the truth: scoring lands at M11.
+         The epigraph says so once, in the register, and there is deliberately no
+         control on this screen that would slide a bead — the look-dev page
+         (abacus.html) keeps those.
+         ============================================================ -->
+    <div
+      id="abacus-overlay"
+      class="abacus-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="The Abacus"
+      hidden
+    >
+      <div class="abacus-sheet">
+        <header class="abacus-head">
+          <div class="abacus-head-titles">
+            <p class="eyebrow abacus-eyebrow">the reckoning</p>
+            <h2 class="abacus-title">The Abacus</h2>
+          </div>
+          <button id="abacus-close" class="abacus-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </header>
+        <div id="abacus-stage" class="abacus-stage"></div>
+        <p class="abacus-epigraph">
+          Beads are earned as the Æras close. The first reckoning awaits.
+        </p>
       </div>
     </div>
 
