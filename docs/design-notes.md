@@ -266,6 +266,35 @@ Two later corrections to that layer, both from play (2026-08-21):
 
 ---
 
+## Entry X — The naming bible (RATIFIED 2026-08-22; terminology adopted, styling deferred)
+
+Register rule: systems keep grounded civilization-simulation names; period flavor only where it
+is function-forward or genuinely historical; ceremony copy carries the theme. Styling experiments
+(takes 6-9: Tyrian ceremony color, letterpress/chamfer/wax-seal treatments, textures, 3D abacus
+widget) are ARCHIVED for a later styling pass once the gameplay loop is settled — the specimen
+artifact preserves them.
+
+| surface | ships as |
+|---|---|
+| research screen | **Natural Philosophy** (screen title; top-bar button stays "Research" — verb, short; alt name "Scholarship" archived). Tech "Philosophy" renames to "Rhetoric" when applied. |
+| civic system (M12) | **Statecraft**; draft header "A matter of Statecraft"; cards keep tarot object-styling |
+| governments (M12) | **Orders**; slotted cards fill **offices** |
+| authority (M10) | **Authority** (plain) |
+| happiness (M10) | **Happiness** (plain) |
+| wonders (M11) | **Wonders** ("A Mirabile rises" allowed as splash flavor only) |
+| age objectives (M11) | plain mechanical label + prophetic epigraph above it (flavor never carries rules info) |
+| ages | **Æra I/II/III** numerals (already live) |
+| unexplored (M8) | **Terra Incognita** · "hic svnt dracones" marginalia |
+| reroll tokens (M11/12) | **Magister's Dice** · "Cast the Lots" |
+| score (M11) | glass **beads** on **the Abacus** |
+| events (parked) | **Auguries** |
+| religion (parked) | **the Mysteries** (contested draft, per Entry II note) |
+| turn splash | "Your turn, Magister" (kept) |
+Untouched forever: mechanical categories (food/production/science/etc.), resources, terrains,
+units, leaders. Future milestones name their features from this table at birth.
+
+---
+
 ## Entry IV — Parked ideas (deliberately later; do not build yet)
 
 Noted 2026-08-21 at the user's request, with explicit anti-scope-creep intent. These are GOOD
