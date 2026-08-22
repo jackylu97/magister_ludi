@@ -1,0 +1,205 @@
+/*
+ * The Abacus's chrome: a title, three buttons, and four labels on the object.
+ *
+ * Its own stylesheet rather than a slice of `src/style.css`, for the reason the
+ * Armory's is: that file is the game's interface and is owned by the interface
+ * work. What this borrows is the *language* — ink on vellum, Instrument Serif to
+ * announce, Fraunces to name, Instrument Sans to work, mono for anything
+ * countable — and the panel recipe (hard 2px rule, hard offset shadow, no
+ * blur), not the cascade.
+ *
+ * The background is the chart-table's own tone, so the page around the canvas
+ * and the table inside it are the same surface and the canvas has no visible
+ * edge at all.
+ */
+
+:root {
+  --ink: #1d1a20;
+  --ink-soft: #56505a;
+  --vellum: #dbcfb0;
+  --vellum-deep: #c2b18c;
+  --parchment: #f7f2e1;
+
+  --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --face-name: Fraunces, Georgia, 'Iowan Old Style', serif;
+  --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --face-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--vellum);
+  color: var(--ink);
+  font-family: var(--face-ui);
+}
+
+#gl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#masthead {
+  position: fixed;
+  top: 26px;
+  left: 34px;
+  pointer-events: none;
+}
+
+#masthead h1 {
+  margin: 0;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 38px;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+#masthead .sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  max-width: 36ch;
+}
+
+/*
+ * The labels on the object. Positioned every frame from a projected point on
+ * the frame itself (see `labelPlacement`), so they sway with it — the transform
+ * only ever centres them on that point.
+ */
+#labels {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+#labels .label {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+#labels .name {
+  transform: translate(-100%, -50%);
+  padding-right: 12px;
+  font-family: var(--face-name);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+}
+
+#labels .tally {
+  transform: translate(0, -50%);
+  padding-left: 12px;
+  font-family: var(--face-mono);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* The count is the number that changes; the capacity beside it is furniture. */
+#labels .tally .count {
+  font-weight: 600;
+}
+
+#labels .tally .total {
+  color: var(--ink-soft);
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid rgba(29, 26, 32, 0.4);
+}
+
+#controls {
+  position: fixed;
+  right: 30px;
+  top: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 9px;
+}
+
+#controls .group {
+  display: flex;
+  gap: 6px;
+}
+
+#controls button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  color: var(--ink);
+  background: var(--parchment);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer;
+}
+
+/* Pressed moves *into* its own shadow: the specimen's one motion idiom. */
+#controls button:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+#controls button.quiet {
+  font-weight: 500;
+  padding: 5px 10px;
+  border-width: 1px;
+  border-color: var(--vellum-deep);
+  background: color-mix(in srgb, var(--parchment) 72%, transparent);
+  box-shadow: none;
+}
+
+#controls button.quiet.is-on {
+  background: var(--ink);
+  color: var(--parchment);
+  border-color: var(--ink);
+}
+
+#controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+
+#status {
+  margin: 2px 0 0;
+  font-family: var(--face-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: pre-line;
+}
+
+#hint {
+  position: fixed;
+  left: 34px;
+  bottom: 22px;
+  margin: 0;
+  max-width: 52ch;
+  font-size: 11px;
+  color: var(--ink-soft);
+  pointer-events: none;
+}

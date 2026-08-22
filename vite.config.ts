@@ -8,8 +8,9 @@ export default defineConfig({
     rollupOptions: {
       // Dev serves any root HTML file, but the build only walks the entry
       // points it is told about. `proto3d.html` is the 3D look-dev prototype
-      // (see `src/proto3d/`) and `pieces.html` is the piece gallery (see
-      // `src/piecesGallery/`); listing them keeps `npm run build` producing
+      // (see `src/proto3d/`), `pieces.html` is the piece gallery (see
+      // `src/piecesGallery/`) and `abacus.html` is the victory-scoreboard spike
+      // (see `src/abacusSpike/`); listing them keeps `npm run build` producing
       // every page, and `index.html` has to be repeated because naming any
       // input at all replaces the default. Paths are relative to `root`, which
       // avoids pulling `node:path` into a config the tsconfig typechecks with
@@ -18,6 +19,7 @@ export default defineConfig({
         main: 'index.html',
         proto3d: 'proto3d.html',
         pieces: 'pieces.html',
+        abacus: 'abacus.html',
       },
     },
   },

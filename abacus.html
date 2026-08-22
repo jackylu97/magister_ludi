@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Magister Ludi — The Abacus</title>
+
+    <!--
+      The interface's four voices (see index.html): Instrument Serif announces,
+      Fraunces names, Instrument Sans works, IBM Plex Mono counts. A look-dev
+      page judged in the wrong typeface is judged against the wrong product.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
+  </head>
+  <body>
+    <canvas id="gl"></canvas>
+
+    <header id="masthead">
+      <h1>The Abacus — spike</h1>
+      <p class="sub">
+        The victory scoreboard as a thing on the table. One rod per player, one bead per
+        point, slid left as it is earned and coloured by the family that earned it.
+      </p>
+    </header>
+
+    <div id="labels" aria-hidden="true"></div>
+
+    <nav id="controls">
+      <!-- One "Earn a bead" button per player, built by main.ts from the roster. -->
+      <div class="group" id="earn" role="group" aria-label="Score a point"></div>
+
+      <div class="group">
+        <button type="button" id="family" aria-label="Scoring family of the next bead"></button>
+      </div>
+
+      <div class="group">
+        <button type="button" id="spin" class="quiet">Turntable</button>
+        <button type="button" id="sound" class="quiet is-on">Sound</button>
+      </div>
+
+      <p id="status">—</p>
+    </nav>
+
+    <p id="hint">
+      The object breathes on its own; <strong>Turntable</strong> spins it right round to check
+      the silhouette from behind. Under <code>prefers-reduced-motion</code> the sway is off and
+      the object stands still — the bead slide stays, because it answers a button you pressed.
+      The clack is synthesised on the spot (two oscillators through a bandpass); no audio file
+      ships with this page.
+    </p>
+
+    <script type="module" src="/src/abacusSpike/main.ts"></script>
+  </body>
+</html>
