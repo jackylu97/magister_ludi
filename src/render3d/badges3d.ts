@@ -248,6 +248,29 @@ export function badgeCenterY(visualHeight: number): number {
   return visualHeight + BADGE.lift + BADGE.diameter / 2;
 }
 
+/**
+ * The radius of the disc a *click* answers to, in world units.
+ *
+ * The drawn roundel, widened by `badges.hitboxScale`. A badge is a selection
+ * target now (see `MapView.pickUnitBadge`) and it is a small one — the ink is
+ * about forty pixels across at game zoom — so the target is deliberately a
+ * little larger than the artwork, the way every small control on every toolbar
+ * has always been.
+ *
+ * It is a *world* radius rather than a pixel one on purpose: the badge is a quad
+ * standing in the diorama, so its screen size is whatever the projection makes
+ * of it, and the hit test derives its pixel radius by projecting this offset
+ * (see `pickBadge` in `picking.ts`). A constant number of pixels would be right
+ * at exactly one zoom.
+ *
+ * Clamped at 1 from below: a scale under one would make the target narrower than
+ * the disc the player can see, which reads as a badge refusing clicks that
+ * plainly landed on it.
+ */
+export function badgeHitRadius(): number {
+  return (BADGE.diameter / 2) * Math.max(1, BADGE.hitboxScale);
+}
+
 /** The top of the badge disc, above the unit's feet. */
 export function badgeTopY(visualHeight: number): number {
   return visualHeight + BADGE.lift + BADGE.diameter;

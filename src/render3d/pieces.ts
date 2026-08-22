@@ -91,6 +91,7 @@ import {
 } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, playerPieceColor, shade } from './lookData';
+import type { BadgeAnchor } from './picking';
 import type { UnitSprites } from './sprites3d';
 import { type MaterialLibrary, computeHullNormals } from './toon';
 
@@ -337,6 +338,75 @@ export function placePiece(map: GameMap, unit: Unit, stackIndex: number): PieceP
   };
 }
 
+/**
+ * Which slot in its tile's stack each unit stands in, by unit id.
+ *
+ * The counting is trivial; sharing it is the point. `placePiece` fans a stack
+ * out around the tile centre by this index, so anything that wants to know where
+ * a piece — or the badge floating over it — actually *is* has to count the stack
+ * exactly as the layer that drew it did. Two copies of "iterate `state.units`,
+ * tally by cell" would agree right up until one of them was reordered, and the
+ * symptom would be a badge whose click target sits beside it.
+ *
+ * `state.units` order is the state's own, so the answer is deterministic and a
+ * rebuild puts every piece back where it was.
+ */
+export function unitStackIndices(state: GameState): Map<number, number> {
+  const counts = new Map<string, number>();
+  const indices = new Map<number, number>();
+  for (const unit of state.units) {
+    const key = `${unit.col},${unit.row}`;
+    const index = counts.get(key) ?? 0;
+    counts.set(key, index + 1);
+    indices.set(unit.id, index);
+  }
+  return indices;
+}
+
+/**
+ * Where one seat's badges float, in world space — every wrap copy of every one
+ * of that player's units, ready to be hit-tested by `pickBadge`.
+ *
+ * The inverse of drawing them, and built from exactly the same three parts the
+ * layer builds them from: the stack tally, `placePiece`, and `badgeCenterY` over
+ * the unit's own visual height. Nothing here re-derives a position, because a
+ * click target that agreed with the artwork *most* of the time would be worse
+ * than none at all.
+ *
+ * `visualHeight` is a lookup rather than a `UnitSprites` handle: what a piece's
+ * height depends on is which art style is up, that is the renderer's business,
+ * and taking the answer as a function keeps this a pure function of the state.
+ *
+ * Only `playerId`'s units are returned — see `MapView.pickUnitBadge` for why the
+ * ownership rule lives on this side of the boundary — and every unit contributes
+ * three anchors, one per copy of the cylinder, exactly as the layer emits three
+ * instances. A badge beside the seam is on screen in whichever copy the camera
+ * is looking at, and the pointer must find it there.
+ */
+export function badgeAnchors(
+  state: GameState,
+  playerId: number,
+  visualHeight: (type: UnitTypeId) => number,
+): BadgeAnchor[] {
+  const period = wrapWidth(state.map);
+  const stackIndex = unitStackIndices(state);
+  const anchors: BadgeAnchor[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    const placement = placePiece(state.map, unit, stackIndex.get(unit.id) ?? 0);
+    const y = placement.position.y + badgeCenterY(visualHeight(unit.type));
+    for (const dx of [-period, 0, period]) {
+      anchors.push({
+        unitId: unit.id,
+        x: placement.position.x + dx,
+        y,
+        z: placement.position.z,
+      });
+    }
+  }
+  return anchors;
+}
+
 /** The body colour a unit's piece is painted in. */
 export function unitColor(state: GameState, unit: Unit): number {
   const player = state.players[unit.ownerId];
@@ -394,15 +464,13 @@ export class UnitLayer {
       keepMatrices: true,
     });
 
-    const stackIndex = new Map<string, number>();
+    // The same tally the badge hit test counts with, so a click target can
+    // never drift off the piece it belongs to. See `unitStackIndices`.
+    const stackIndex = unitStackIndices(state);
     const scale = new Vector3(1, 1, 1);
 
     for (const unit of state.units) {
-      const key = `${unit.col},${unit.row}`;
-      const index = stackIndex.get(key) ?? 0;
-      stackIndex.set(key, index + 1);
-
-      const placement = placePiece(map, unit, index);
+      const placement = placePiece(map, unit, stackIndex.get(unit.id) ?? 0);
       const slots: InstanceHandle[] = [];
       this.handles.set(unit.id, slots);
       const spriteMaterial = sprites?.materialFor(unit.type) ?? null;

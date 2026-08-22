@@ -315,7 +315,8 @@
     "atlasCell": 128,
     "atlasColumns": 4,
     "iconScale": 0.66,
-    "alphaTest": 0.5
+    "alphaTest": 0.5,
+    "hitboxScale": 1.3
   },
   "animation": {
     "msPerHex": 160,

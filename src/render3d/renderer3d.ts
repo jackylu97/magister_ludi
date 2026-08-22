@@ -61,7 +61,7 @@ import type {
 } from '../ui/mapView';
 
 import { DeathAnimations3D, MoveAnimations3D } from './animation3d';
-import { TileIcons, UnitBadges } from './badges3d';
+import { TileIcons, UnitBadges, badgeHitRadius } from './badges3d';
 import { type BuiltBoard, BoardGeometry, buildBoard, modelClassFor } from './board3d';
 import { DioramaCamera } from './camera3d';
 import {
@@ -77,6 +77,7 @@ import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { OverlayLayer } from './overlays';
 import {
   UnitLayer,
+  badgeAnchors,
   buildBadge,
   buildSpriteUnit,
   unitVisualHeight,
@@ -84,7 +85,7 @@ import {
   placePiece,
   unitColor,
 } from './pieces';
-import { pickTile } from './picking';
+import { type WorldPoint, pickBadge, pickTile } from './picking';
 import { UnitSprites } from './sprites3d';
 import { MaterialLibrary, computeHullNormals } from './toon';
 
@@ -623,16 +624,95 @@ export class Renderer3D implements MapView {
     let delta = (((centre.x - reference) % period) + period) % period;
     if (delta > period / 2) delta -= period;
 
-    const point = new Vector3(reference + delta, tileTopY(tile), centre.z).project(
-      this.view.camera,
-    );
+    const point = this.projectPoint({ x: reference + delta, y: tileTopY(tile), z: centre.z });
+    return {
+      x: point.x,
+      y: point.y,
+      onScreen: Math.abs(point.ndcX) <= 1.25 && Math.abs(point.ndcY) <= 1.25,
+    };
+  }
+
+  /**
+   * A world point in viewport CSS pixels, with the normalised coordinates it
+   * came from kept so a caller can ask how far off screen it fell.
+   *
+   * The one place this renderer turns world into screen. `projectCell` and the
+   * badge hit test are the same arithmetic asked about different things, and a
+   * second copy of the NDC-to-pixel conversion is the kind of duplication that
+   * survives right up until somebody changes how the canvas is measured.
+   */
+  private projectPoint(point: WorldPoint): {
+    x: number;
+    y: number;
+    ndcX: number;
+    ndcY: number;
+  } {
+    const ndc = new Vector3(point.x, point.y, point.z).project(this.view.camera);
     const width = Math.max(1, this.canvas.clientWidth);
     const height = Math.max(1, this.canvas.clientHeight);
     return {
-      x: (point.x * 0.5 + 0.5) * width,
-      y: (-point.y * 0.5 + 0.5) * height,
-      onScreen: Math.abs(point.x) <= 1.25 && Math.abs(point.y) <= 1.25,
+      x: (ndc.x * 0.5 + 0.5) * width,
+      y: (-ndc.y * 0.5 + 0.5) * height,
+      ndcX: ndc.x,
+      ndcY: ndc.y,
     };
+  }
+
+  /**
+   * The unit whose badge is under a viewport position, or `null`.
+   *
+   * Only `playerId`'s own units are candidates, and the filtering is done here
+   * rather than in the caller because it is the whole of the rule: a badge is a
+   * way to *select*, and there is nothing to select on somebody else's piece. A
+   * click that lands on an enemy tag therefore falls through to the ordinary
+   * tile contract — hover, information, and no selection — exactly as a click on
+   * the enemy piece under it does. Filtering here also keeps the candidate list
+   * to one seat's units, which is what makes projecting every one of them per
+   * click cheap enough not to think about.
+   *
+   * Badges are placed off the *resting* position of a piece, which is the
+   * position the simulation agrees with: a unit mid-walk is already at its
+   * destination in the state (see `animation3d.ts`), and its badge is briefly
+   * drawn somewhere between the two. Clicking a sliding badge therefore misses
+   * for a few hundred milliseconds, and the tile contract answers instead — the
+   * same powerless-animation trade the rest of the renderer makes, and the
+   * alternative would be a click target that moves while it is being aimed at.
+   *
+   * See `pickBadge` in `picking.ts` for the screen-space arithmetic and for why
+   * the radius is projected rather than assumed.
+   */
+  pickUnitBadge(screenX: number, screenY: number, playerId: number): number | null {
+    // No atlas yet means no badges are drawn, and a target nobody can see is
+    // not a target: until the icons rasterise, a click is the tile contract.
+    if (!this.state || !this.badges) return null;
+
+    const anchors = badgeAnchors(this.state, playerId, (type) =>
+      unitVisualHeight(type, this.sprites),
+    );
+    return pickBadge(
+      anchors,
+      screenX,
+      screenY,
+      (point) => this.projectPoint(point),
+      this.badgeRimOffset(),
+    );
+  }
+
+  /**
+   * The world-space step from a badge's centre to the edge of its click target.
+   *
+   * Along the camera's own right vector, because that is the axis a
+   * camera-facing quad's width lies on — the badge is turned by the same fixed
+   * rotation every frame — and because a horizontal offset projects to a pure
+   * horizontal pixel offset, which is the cleanest thing to measure a radius
+   * from. Read off the live camera matrix rather than stored: the elevation and
+   * azimuth are data (`view3d.json`), and a hand-derived vector would be a
+   * number that quietly stopped being true the day one of them moved.
+   */
+  private badgeRimOffset(): WorldPoint {
+    const right = new Vector3().setFromMatrixColumn(this.view.camera.matrixWorld, 0).normalize();
+    const radius = badgeHitRadius();
+    return { x: right.x * radius, y: right.y * radius, z: right.z * radius };
   }
 
   /**

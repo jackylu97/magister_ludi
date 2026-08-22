@@ -23,8 +23,10 @@
  *                   away is how you put a unit down — and, with a city screen
  *                   open, clicking outside that city's work radius is how you
  *                   put the city down. Inside the radius the same button pins
- *                   citizens instead, on every tile but the ones your own units
- *                   are standing on. See `handleLeftClick` for the whole order.
+ *                   citizens instead, on every tile of it. The tag floating over
+ *                   a unit is always a way to select that unit, whatever the
+ *                   ground under it currently means. See `handleLeftClick` for
+ *                   the whole order.
  *   · Right click — with one of your units selected, orders it to the clicked
  *                   tile. With nothing selected it does nothing at all. The
  *                   browser context menu is suppressed over the board either
@@ -69,6 +71,13 @@
  * could legally stack there — "select" is the safe interpretation, and a move
  * onto a friendly tile is one keystroke away (click an empty tile first). A
  * repeated click on a tile holding several of your units cycles between them.
+ *
+ * There are two ways to say "that unit" and they answer the same: the ground it
+ * stands on, and the badge floating over it. The badge exists because it is the
+ * part of a piece that is legible at game zoom, and it is a target *globally*
+ * rather than only where the tile is busy — one gesture that always means
+ * select, learned once. Both paths run through `selectOnTile`, so a stack cycles
+ * the same way whichever of the two the player aimed at.
  *
  * Move animation
  * --------------
@@ -1086,10 +1095,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * what it has always meant. The city tile itself is not assignable either, so
    * clicking the town under an open panel does not pin anything.
    *
-   * Its caller asks it *after* the selection test and only inside the open
-   * city's radius (see `handleLeftClick`), so a unit standing on a worked tile
-   * is still selectable and a click well away from the city closes the panel
-   * rather than being swallowed here.
+   * Its caller asks it only inside the open city's radius, and only after the
+   * badge test (see `handleLeftClick`), so a click well away from the city
+   * closes the panel rather than being swallowed here. What it deliberately does
+   * *not* ask is whether anybody is standing on the tile: a garrison used to
+   * take this click, which left a worked tile under a unit with no way to pin it
+   * at all. The badge over that unit is how it is selected instead.
    *
    * Three cases, and they are one rule: the pin list is toggled and sent whole.
    * Unpinning does not stop a tile being worked — the assignment may well pick
@@ -1152,63 +1163,111 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * Selects on a tile the way a click on it always has: your topmost unit
+   * there, or the next one along if it is already selected.
+   *
+   * One function because there are two ways to aim at a unit — its ground and
+   * its badge — and they must not drift apart. A badge hit deliberately does
+   * *not* select the unit whose tag was struck: a stack fans its badges out
+   * around one tile centre, and "the badge I hit" would make a stack cycle in an
+   * order that depends on where the pointer landed rather than on the click
+   * before it. Cycling belongs to the tile.
+   */
+  function selectOnTile(col: number, row: number): boolean {
+    const mine = ownUnitsAt(col, row);
+    if (mine.length === 0) return false;
+    const at = mine.findIndex((unit) => unit.id === selectedId);
+    select(mine[(at + 1) % mine.length]!.id);
+    return true;
+  }
+
+  /**
+   * The unit whose badge the pointer is on, or `null`.
+   *
+   * Ownership is the renderer's filter (see `MapView.pickUnitBadge`), and it is
+   * re-checked here because the answer crosses a module boundary and this module
+   * is the one that owns the rule that only the local seat may be commanded.
+   */
+  function badgeUnitAt(screen: { x: number; y: number }): Unit | null {
+    const id = renderer.pickUnitBadge?.(screen.x, screen.y, localPlayerId) ?? null;
+    if (id === null) return null;
+    const unit = unitById(getGame().state, id);
+    if (!unit || unit.ownerId !== localPlayerId) return null;
+    return unit;
+  }
+
+  /**
    * The left button: pick things up and put them down.
    *
-   * The order of the tests is the whole design. Your own units win over
-   * everything — pinning included, see below — because "select" is the safe
-   * reading of a click and a stack is cycled by clicking it again. Your own city
-   * comes next. Everything else — empty ground, an enemy, a mountain —
-   * *deselects*, which is the one thing the old scheme had no gesture for at all.
+   * The authoritative order. Everything above a row wins over everything below
+   * it, and the first row that takes the click ends the gesture:
    *
-   * An open city panel changes what a click means only *inside its own work
-   * radius*, and only on a tile with none of your units on it:
+   *   1. move mode armed      move, or attack if something hostile is there.
+   *                           The left button is standing in for the right one
+   *                           and does nothing else — including when the click
+   *                           lands on a badge.
+   *   2. one of your badges   selects on that badge's tile (`selectOnTile`:
+   *                           topmost, cycling on repeat). Global, and ahead of
+   *                           the citizen board: the tag over a piece is the one
+   *                           gesture that always means "that unit", and it is
+   *                           how a garrison is reached while the ground it
+   *                           stands on has become a pin target. Selecting
+   *                           closes an open city panel, because the two share
+   *                           one slot. An *enemy* badge is not a target and
+   *                           falls through to the rows below.
+   *   3. city panel open,     pins or unpins a citizen, whatever is standing on
+   *      click in its work    the tile. Tile management is what a city screen is
+   *      radius               for, and it must work on every hex of the ring or
+   *                           a garrisoned tile becomes unmanageable. A tile in
+   *                           the ring that this city cannot work — its own
+   *                           centre, a rival's ground — takes nothing and falls
+   *                           through with the panel still open.
+   *   4. city panel open,     closes the panel and falls through, so this same
+   *      click outside it     click still means whatever it would have meant
+   *                           with no panel open. Clicking away from a city is
+   *                           how you leave it, exactly as clicking away from a
+   *                           unit is how you put it down.
+   *   5. your own unit(s)     selects, cycling on repeat — the same call row 2
+   *      on the tile          makes. This is the path for a click on the ground
+   *                           under a piece rather than on its tag.
+   *   6. your own city        opens its panel. Below the units, because a
+   *      on the tile          garrison is what you click a city tile to select
+   *                           and the banner is a click away when a piece is in
+   *                           the way.
+   *   7. anything else        deselects: empty ground, an enemy, a mountain.
+   *                           Clicking away is how you put a unit down.
    *
-   *   · a tile in the radius   pins or unpins a citizen. The panel is a screen
-   *                            about this ground, and this is the gesture for
-   *                            saying which of it gets worked.
-   *   · a tile outside it      closes the panel, and then means whatever it
-   *                            would have meant with no panel open. Clicking
-   *                            away from a city is how you leave it, exactly as
-   *                            clicking away from a unit is how you put it down;
-   *                            a screen that could only be dismissed with Escape
-   *                            was the one piece of this contract with no
-   *                            pointer gesture at all.
-   *   · your own unit          selects it, wherever it stands. A garrison inside
-   *                            the radius used to be unclickable while the panel
-   *                            was up, because the pin took the click first —
-   *                            which made a unit standing on a worked tile
-   *                            unreachable without closing the city by hand.
-   *                            `select` closes the panel itself (the two share
-   *                            one slot), so this is one gesture, not two.
-   *
-   * Move mode short-circuits all of it: while it is armed the left button is
-   * standing in for the right one, and that is the only thing it does.
+   * Rows 2 and 3 are the pair that has been argued twice, and this is the settled
+   * form. The previous pass let the ground under a unit select it, which made a
+   * worked tile with a garrison standing on it impossible to pin at all; the
+   * answer here is that inside an open city's ring the *ground* always pins and
+   * the *badge* always selects, so both jobs have a gesture of their own and
+   * neither has to be guessed from what happens to be standing where.
    */
-  function handleLeftClick(hover: HoverInfo): void {
+  function handleLeftClick(hover: HoverInfo | null, screen: { x: number; y: number }): void {
     if (moveMode) {
       // Move mode stands in for the right button, so it stands in for the whole
       // of it: aiming the armed click at an enemy attacks, exactly as a right
       // click would. The trackpad path must not be a lesser one.
+      if (!hover) return;
       if (!issueAttack(hover)) issueMove(hover);
       return;
     }
 
+    // Row 2. The badge's own tile, not the hovered one: a tag floats above the
+    // piece and the ground behind it is often the tile to the north — which is
+    // also why this is asked before the board is: a badge belonging to a unit on
+    // the top row can float clean off the map, where there is no tile at all.
+    const badged = badgeUnitAt(screen);
+    if (badged && selectOnTile(badged.col, badged.row)) return;
+
+    // Past the poles, on no badge: there is nothing here to mean anything.
+    if (!hover) return;
     const { col, row } = hover.tile;
-    const mine = ownUnitsAt(col, row);
 
-    if (mine.length > 0) {
-      // Selection always wins on your own tiles; a repeat click cycles. Ahead of
-      // the citizen board on purpose: a unit is the thing a player aimed at.
-      const at = mine.findIndex((unit) => unit.id === selectedId);
-      select(mine[(at + 1) % mine.length]!.id);
-      return;
-    }
-
-    // While a city screen is open, its own work radius is a citizen board: a
-    // click on a tile that city could work pins or unpins it. It is scoped as
-    // tightly as it can be — this panel, these tiles, no unit standing there —
-    // so that everywhere else on the map the selection contract is exactly what
-    // it always was.
+    // Rows 3 and 4. While a city screen is open its work radius is a citizen
+    // board, and now an unconditional one: the badges above are what keep a
+    // garrison selectable, so the pin no longer has to step around units.
     const open = openCity();
     if (open) {
       // The *radius*, not the assignable list: the city's own tile and any
@@ -1228,9 +1287,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       }
     }
 
-    // An empty tile of your own with a city on it opens that city. Units come
-    // first because a garrison is what you click a city tile to select; the
-    // panel is one click away on the banner when a unit is standing in the way.
+    // Row 5. Reached when no open panel claimed the click — there was none, it
+    // was closed by the row above, or the tile is one this city cannot work — so
+    // the ordinary board still selects by clicking the ground a piece stands on.
+    if (selectOnTile(col, row)) return;
+
+    // Row 6. An empty tile of your own with a city on it opens that city.
     const city = cityAt(getGame().state, col, row);
     if (city && city.ownerId === localPlayerId) {
       selectedId = null;
@@ -1238,9 +1300,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       return;
     }
 
-    // Clicking away. With nothing selected this still costs a repaint of the
-    // hover readout, which is what the player is looking at when they click an
-    // enemy or a stretch of ocean.
+    // Row 7. Clicking away. With nothing selected this still costs a repaint of
+    // the hover readout, which is what the player is looking at when they click
+    // an enemy or a stretch of ocean.
     if (selectedId !== null) select(null);
     else onUpdate(selectedUnit(), hover);
   }
@@ -1502,10 +1564,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!fire || travelled > CLICK_SLOP_PX) return;
 
     const rect = viewport.getBoundingClientRect();
-    const hover = renderer.pick(event.clientX - rect.left, event.clientY - rect.top);
-    if (!hover) return;
-    if (button === 0) handleLeftClick(hover);
-    else handleRightClick(hover);
+    const screen = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    const hover = renderer.pick(screen.x, screen.y);
+    // The left button asks a second picking question — which badge is under the
+    // pointer — so it needs the position itself, and it is worth asking even
+    // where the board answers nothing: a badge rides above its tile and one on
+    // the top row floats past the north pole. See `handleLeftClick`.
+    if (button === 0) handleLeftClick(hover, screen);
+    else if (hover) handleRightClick(hover);
   }
 
   viewport.addEventListener('pointerup', (event) => {

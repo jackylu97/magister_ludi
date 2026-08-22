@@ -702,6 +702,18 @@ export interface BadgeSpec {
   iconScale: number;
   /** Alpha below which a badge fragment is discarded outright. */
   alphaTest: number;
+  /**
+   * How much bigger the *click* target is than the drawn disc.
+   *
+   * A badge is a small thing floating over a piece — around forty pixels across
+   * at game zoom — and it is now a selection target (see `MapView.pickUnitBadge`
+   * and the precedence table in `src/ui/controls.ts`). A pointer that has to
+   * land inside the ink is a pointer that misses, so the disc a click answers to
+   * is a little wider than the disc an eye sees. Never *smaller*: `badgeHitRadius`
+   * clamps below 1, because a target narrower than the artwork would be a badge
+   * that visibly refuses clicks that landed on it.
+   */
+  hitboxScale: number;
 }
 
 export interface AnimationSpec {
@@ -994,6 +1006,7 @@ export const VIEW3D: View3DData = {
     atlasColumns: viewJson.badges.atlasColumns,
     iconScale: viewJson.badges.iconScale,
     alphaTest: viewJson.badges.alphaTest,
+    hitboxScale: viewJson.badges.hitboxScale,
   },
   animation: viewJson.animation,
   lens: {

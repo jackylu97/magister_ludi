@@ -20,6 +20,8 @@
 import { describe, expect, it } from 'vitest';
 import { Vector3 } from 'three';
 
+import { badgeCenterY, badgeHitRadius } from '../src/render3d/badges3d';
+import { pieceHeightFor } from '../src/render3d/board3d';
 import { DioramaCamera, rayPlaneHit } from '../src/render3d/camera3d';
 import {
   HEIGHT_CLASSES_TOP_DOWN,
@@ -33,7 +35,13 @@ import {
   worldToCell,
   wrapWidth,
 } from '../src/render3d/layout';
-import { pickTile } from '../src/render3d/picking';
+import {
+  type BadgeAnchor,
+  type ScreenProjection,
+  type WorldPoint,
+  pickBadge,
+  pickTile,
+} from '../src/render3d/picking';
 import { generateMap, generateMapDetail } from '../src/sim/mapgen';
 import { SQRT3 } from '../src/sim/hex';
 import type { GameMap } from '../src/sim/map';
@@ -364,5 +372,202 @@ describe('river ribbon continuity', () => {
     // ...but not so wide it reaches past the prism's top face and out the far
     // side, which would show the ribbon sitting on the neighbouring tile.
     expect(halfWidth).toBeLessThan(apothem);
+  });
+});
+
+/**
+ * The other picking question: which *badge* is under the cursor.
+ *
+ * Tiles are picked by casting a ray into the world; badges are picked by
+ * projecting each one out to the screen and measuring in pixels, because a badge
+ * is a camera-facing disc and on screen it is exactly a circle (see the docblock
+ * in `picking.ts`). What is worth holding still is the part that has no
+ * screenshot to check it against: the target's *size*, which is derived from the
+ * projection so that it is right at every zoom, and the wrap, without which a
+ * unit beside the seam has an unclickable tag.
+ *
+ * As with the tile round-trip, the forward direction is three's own `project`
+ * and only the answer is our code, so a mistake shared between our forward and
+ * inverse maths would still fail here.
+ */
+describe('badge hit testing', () => {
+  const map = generateMap(1, 'duel');
+  /** The badge floats over a warrior, which is a class height like any other. */
+  const LIFT = badgeCenterY(pieceHeightFor('warrior'));
+
+  /** The renderer's world→viewport projection, in the test's own arithmetic. */
+  function projectionOf(camera: DioramaCamera): ScreenProjection {
+    return (point: WorldPoint) => {
+      const ndc = new Vector3(point.x, point.y, point.z).project(camera.camera);
+      return {
+        x: ((ndc.x + 1) / 2) * VIEWPORT.width,
+        y: ((1 - ndc.y) / 2) * VIEWPORT.height,
+      };
+    };
+  }
+
+  /** Centre → rim, along the camera's right vector: what sets the radius. */
+  function rimOf(camera: DioramaCamera): WorldPoint {
+    const right = new Vector3().setFromMatrixColumn(camera.camera.matrixWorld, 0).normalize();
+    const radius = badgeHitRadius();
+    return { x: right.x * radius, y: right.y * radius, z: right.z * radius };
+  }
+
+  /** A badge floating over the tile at `col,row`, in the copy `copies` away. */
+  function anchorAt(col: number, row: number, unitId: number, copy = 0): BadgeAnchor {
+    const tile = map.tiles[row * map.width + col]!;
+    const centre = cellCenter(col, row);
+    return {
+      unitId,
+      x: centre.x + copy * wrapWidth(map),
+      y: tileTopY(tile) + LIFT,
+      z: centre.z,
+    };
+  }
+
+  /**
+   * How many pixels one world unit is worth at this zoom, computed from the
+   * camera's own frustum rather than from the projection — an independent second
+   * opinion, so a wrong radius cannot agree with itself.
+   */
+  function pixelsPerWorldUnit(camera: DioramaCamera): number {
+    return VIEWPORT.height / (2 * camera.radius);
+  }
+
+  function cameraOn(anchor: BadgeAnchor, zoom: number): DioramaCamera {
+    const camera = makeCamera(map);
+    camera.lookAtPoint(new Vector3(anchor.x, 0, anchor.z));
+    if (zoom !== 1) camera.zoomByFactor(zoom, VIEWPORT.width / 2, VIEWPORT.height / 2);
+    return camera;
+  }
+
+  it('takes a click inside the disc and refuses one just outside it, at every zoom', () => {
+    for (const zoom of [0.3, 1, 2.5]) {
+      const anchor = anchorAt(20, 12, 7);
+      const camera = cameraOn(anchor, zoom);
+      const project = projectionOf(camera);
+      const centre = project(anchor)!;
+      const radius = badgeHitRadius() * pixelsPerWorldUnit(camera);
+      const hit = (dx: number, dy: number): number | null =>
+        pickBadge([anchor], centre.x + dx, centre.y + dy, project, rimOf(camera));
+
+      expect(hit(0, 0), `zoom ${zoom}`).toBe(7);
+      expect(hit(radius * 0.95, 0), `zoom ${zoom}`).toBe(7);
+      expect(hit(0, -radius * 0.95), `zoom ${zoom}`).toBe(7);
+      // A disc, not a square: the corner of the bounding box is outside it.
+      expect(hit(radius * 0.75, radius * 0.75), `zoom ${zoom}`).toBeNull();
+      expect(hit(radius * 1.05, 0), `zoom ${zoom}`).toBeNull();
+    }
+  });
+
+  it('scales the target with the zoom rather than holding a pixel constant', () => {
+    // The whole reason the radius is projected. A badge is a thing in the world,
+    // so zooming in makes it a bigger target — and a hand-written pixel radius
+    // would be right at exactly one zoom and increasingly wrong either side.
+    const anchor = anchorAt(20, 12, 3);
+    const measured = [0.5, 1, 2].map((zoom) => {
+      const camera = cameraOn(anchor, zoom);
+      const project = projectionOf(camera);
+      const centre = project(anchor)!;
+      const edge = project({
+        x: anchor.x + rimOf(camera).x,
+        y: anchor.y + rimOf(camera).y,
+        z: anchor.z + rimOf(camera).z,
+      })!;
+      return {
+        camera,
+        radius: Math.hypot(edge.x - centre.x, edge.y - centre.y),
+      };
+    });
+
+    for (const { camera, radius } of measured) {
+      expect(radius).toBeCloseTo(badgeHitRadius() * pixelsPerWorldUnit(camera), 6);
+    }
+    // Twice the zoom, twice the target.
+    expect(measured[1]!.radius / measured[0]!.radius).toBeCloseTo(2, 6);
+    expect(measured[2]!.radius / measured[1]!.radius).toBeCloseTo(2, 6);
+  });
+
+  it('forgives a click by exactly the hitbox knob and no more', () => {
+    const anchor = anchorAt(20, 12, 5);
+    const camera = cameraOn(anchor, 1);
+    const project = projectionOf(camera);
+    const centre = project(anchor)!;
+    const scale = pixelsPerWorldUnit(camera);
+    const drawn = (VIEW3D.badges.diameter / 2) * scale;
+    const target = badgeHitRadius() * scale;
+
+    // Between the ink and the edge of the target: a click that missed the disc
+    // by a hair still selects, which is the whole point of the knob.
+    expect(target).toBeGreaterThan(drawn);
+    const between = (drawn + target) / 2;
+    expect(pickBadge([anchor], centre.x + between, centre.y, project, rimOf(camera))).toBe(5);
+    expect(pickBadge([anchor], centre.x + target * 1.02, centre.y, project, rimOf(camera))).toBeNull();
+  });
+
+  it('finds a badge through whichever copy of the cylinder is on screen', () => {
+    // A unit in column 0 with the camera looking at the *east* edge: its badge
+    // is on screen a whole map width east of its canonical position, which is
+    // the copy the renderer draws there and the copy the pointer is over.
+    const period = wrapWidth(map);
+    const camera = makeCamera(map);
+    camera.lookAtPoint(new Vector3(period - 1.5, 0, 12 * 1.5));
+    const project = projectionOf(camera);
+    const rim = rimOf(camera);
+
+    const copies = [-1, 0, 1].map((copy) => anchorAt(0, 12, 9, copy));
+    const visible = copies
+      .map((anchor) => ({ anchor, screen: toScreen(camera, new Vector3(anchor.x, anchor.y, anchor.z)) }))
+      .find((entry) => entry.screen !== null);
+    expect(visible, 'no copy of the badge was on screen at all').toBeDefined();
+    const point = visible!.screen!;
+
+    expect(pickBadge(copies, point.x, point.y, project, rim)).toBe(9);
+    // And the canonical copy alone would have missed it — which is what a
+    // wrap-blind hit test would have shipped.
+    expect(pickBadge([anchorAt(0, 12, 9)], point.x, point.y, project, rim)).toBeNull();
+  });
+
+  it('gives an overlapping pair to whichever badge the pointer is nearer', () => {
+    const camera = cameraOn(anchorAt(20, 12, 1), 1);
+    const project = projectionOf(camera);
+    const rim = rimOf(camera);
+    const a = anchorAt(20, 12, 1);
+    // Half a badge to the east: the two targets overlap, as a stack's do.
+    const b = { ...a, unitId: 2, x: a.x + badgeHitRadius() };
+
+    const centreA = project(a)!;
+    const centreB = project(b)!;
+    const mid = { x: (centreA.x + centreB.x) / 2, y: (centreA.y + centreB.y) / 2 };
+    expect(pickBadge([a, b], centreA.x, centreA.y, project, rim)).toBe(1);
+    expect(pickBadge([a, b], centreB.x, centreB.y, project, rim)).toBe(2);
+    expect(pickBadge([a, b], mid.x - 1, mid.y, project, rim)).toBe(1);
+    expect(pickBadge([a, b], mid.x + 1, mid.y, project, rim)).toBe(2);
+    // Two badges at exactly one point — the tie a stack of overlapping copies
+    // can genuinely produce — keep the first, so the answer is a function of
+    // `state.units` order rather than of which comparison happened to run last.
+    expect(
+      pickBadge([a, { ...a, unitId: 2 }], centreA.x, centreA.y, project, rim),
+    ).toBe(1);
+  });
+
+  it('answers nothing on ground with no badge over it, and nothing at all with no badges', () => {
+    const anchor = anchorAt(20, 12, 4);
+    const camera = cameraOn(anchor, 1);
+    const project = projectionOf(camera);
+    const centre = project(anchor)!;
+    expect(pickBadge([anchor], centre.x + 400, centre.y, project, rimOf(camera))).toBeNull();
+    expect(pickBadge([], centre.x, centre.y, project, rimOf(camera))).toBeNull();
+  });
+
+  it('skips a badge the projection cannot place', () => {
+    // The projection is allowed to say "nowhere". A hit test that read that as
+    // the origin would put a phantom target in the top-left corner of the board.
+    const anchor = anchorAt(20, 12, 6);
+    const camera = cameraOn(anchor, 1);
+    const project = projectionOf(camera);
+    const centre = project(anchor)!;
+    const blind: ScreenProjection = () => null;
+    expect(pickBadge([anchor], centre.x, centre.y, blind, rimOf(camera))).toBeNull();
   });
 });

@@ -10,6 +10,7 @@ import {
   badgeCellRect,
   badgeCenterY,
   badgeDiscFlags,
+  badgeHitRadius,
   badgeTopY,
   cssHex,
   hpBarY,
@@ -19,8 +20,9 @@ import {
 import { BoardGeometry, MODEL_CLASS_IDS, modelClassFor, pieceHeightFor } from '../src/render3d/board3d';
 import { atlasQuad, discRing } from '../src/render3d/geometry';
 import { RENDER_ORDER } from '../src/render3d/instances';
+import { wrapWidth } from '../src/render3d/layout';
 import { VIEW3D } from '../src/render3d/lookData';
-import { UnitLayer } from '../src/render3d/pieces';
+import { UnitLayer, badgeAnchors } from '../src/render3d/pieces';
 import { MaterialLibrary } from '../src/render3d/toon';
 import { createMap } from '../src/sim/map';
 import { type GameState, newGame } from '../src/sim/state';
@@ -448,5 +450,153 @@ describe('badges in the units layer', () => {
     for (const cls of MODEL_CLASS_IDS) expect(BADGE_CELLS).toContain(cls);
     expect(modelClassFor('trebuchet')).toBe('siege');
     expect(modelClassFor('chariot')).toBe('mountedRanged');
+  });
+
+  /**
+   * Where a badge can be *clicked*, which has to be where it was drawn.
+   *
+   * `badgeAnchors` is the inverse of `UnitLayer.addBadge` and there is no
+   * mechanism forcing the two to agree — they are two readings of the same three
+   * numbers (the stack tally, the placement, the lift). A drift between them is
+   * invisible on screen and shows up only as a badge that ignores clicks aimed
+   * at it, so the agreement is asserted directly: every anchor is a badge the
+   * layer actually put on the board, and there are exactly as many.
+   */
+  describe('the click targets', () => {
+    /** Every badge instance the layer drew, as world positions. */
+    function drawnBadges(board: BoardGeometry, meshes: InstancedMesh[]): Vector3[] {
+      const matrix = new Matrix4();
+      const positions: Vector3[] = [];
+      for (const mesh of meshes) {
+        if (!MODEL_CLASS_IDS.some((id) => board.badgeIcons[id] === mesh.geometry)) continue;
+        for (let i = 0; i < mesh.count; i++) {
+          mesh.getMatrixAt(i, matrix);
+          positions.push(new Vector3().setFromMatrixPosition(matrix));
+        }
+      }
+      return positions;
+    }
+
+    /**
+     * Asserts the two sets of points are the same set, pairing them off.
+     *
+     * Matched by distance rather than by equality: an instance matrix has been
+     * through a `Float32Array` and comes back a few parts in ten million off
+     * what went in. The tolerance is four decimal places — thousands of times
+     * finer than the badge radius the pairing has to distinguish, and thousands
+     * of times coarser than the noise.
+     */
+    function expectSamePoints(
+      anchors: readonly { x: number; y: number; z: number }[],
+      drawn: Vector3[],
+    ): void {
+      expect(anchors).toHaveLength(drawn.length);
+      const remaining = [...drawn];
+      for (const anchor of anchors) {
+        const at = remaining.findIndex(
+          (p) => Math.hypot(p.x - anchor.x, p.y - anchor.y, p.z - anchor.z) < 1e-4,
+        );
+        expect(at, `no badge was drawn at ${anchor.x}, ${anchor.y}, ${anchor.z}`).toBeGreaterThan(
+          -1,
+        );
+        remaining.splice(at, 1);
+      }
+      expect(remaining).toEqual([]);
+    }
+
+    /** The pieces-mode height lookup: no sprites, so every unit is a sculpt. */
+    const heights = (type: UnitTypeId): number => pieceHeightFor(type);
+
+    it('puts an anchor exactly where the layer drew each badge', () => {
+      const game = state(['warrior', 'catapult', 'settler']);
+      const board = new BoardGeometry();
+      const layer = new UnitLayer();
+      layer.build(
+        game,
+        board,
+        new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
+        new Quaternion(),
+        false,
+        null,
+        fakeBadges(),
+      );
+      const meshes = layer.group.children.filter(
+        (c): c is InstancedMesh => c instanceof InstancedMesh,
+      );
+
+      const anchors = badgeAnchors(game, 0, heights);
+      // Three units, three copies of the cylinder apiece.
+      expect(anchors).toHaveLength(9);
+      expectSamePoints(anchors, drawnBadges(board, meshes));
+      layer.dispose();
+      board.dispose();
+    });
+
+    it('fans a stack the way the pieces are fanned', () => {
+      // Two units on one tile: the layer spreads them around the centre, and the
+      // tags go with them. The anchors have to use the *same* stack index, which
+      // is the one number both sides could have counted differently.
+      const game = state(['warrior', 'archer']);
+      game.units[1]!.col = game.units[0]!.col;
+      game.units[1]!.row = game.units[0]!.row;
+
+      const board = new BoardGeometry();
+      const layer = new UnitLayer();
+      layer.build(
+        game,
+        board,
+        new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
+        new Quaternion(),
+        false,
+        null,
+        fakeBadges(),
+      );
+      const meshes = layer.group.children.filter(
+        (c): c is InstancedMesh => c instanceof InstancedMesh,
+      );
+
+      const anchors = badgeAnchors(game, 0, heights);
+      expectSamePoints(anchors, drawnBadges(board, meshes));
+      // And they really are two different targets: a stack whose badges landed
+      // on one point would be a stack with one clickable unit.
+      const first = anchors.filter((a) => a.unitId === 1);
+      const second = anchors.filter((a) => a.unitId === 2);
+      expect(Math.hypot(first[1]!.x - second[1]!.x, first[1]!.z - second[1]!.z)).toBeGreaterThan(
+        0,
+      );
+      layer.dispose();
+      board.dispose();
+    });
+
+    it('answers for one seat and never for another', () => {
+      // A badge is a way to *select*, and there is nothing to select on somebody
+      // else's piece: an enemy tag is not a candidate at all, which is what makes
+      // a click on one fall through to the ordinary tile contract.
+      const game = state(['warrior', 'archer']);
+      game.units[1]!.ownerId = 1;
+
+      expect(badgeAnchors(game, 0, heights).map((a) => a.unitId)).toEqual([1, 1, 1]);
+      expect(badgeAnchors(game, 1, heights).map((a) => a.unitId)).toEqual([2, 2, 2]);
+      expect(badgeAnchors(game, 2, heights)).toEqual([]);
+    });
+
+    it('offers each badge in all three copies of the cylinder', () => {
+      const game = state(['warrior']);
+      const period = wrapWidth(game.map);
+      const xs = badgeAnchors(game, 0, heights)
+        .map((a) => a.x)
+        .sort((a, b) => a - b);
+      expect(xs[1]! - xs[0]!).toBeCloseTo(period, 9);
+      expect(xs[2]! - xs[1]!).toBeCloseTo(period, 9);
+    });
+
+    it('widens the target past the drawn disc, and never narrows it', () => {
+      // The knob a mis-aimed click is forgiven by. It is a world radius, not a
+      // pixel one — see `badgeHitRadius` — so this is the whole of what the data
+      // decides; how many pixels that is at this zoom is the projection's answer.
+      expect(badgeHitRadius()).toBeCloseTo((BADGE.diameter / 2) * BADGE.hitboxScale, 12);
+      expect(badgeHitRadius()).toBeGreaterThanOrEqual(BADGE.diameter / 2);
+      expect(BADGE.hitboxScale).toBeGreaterThanOrEqual(1);
+    });
   });
 });

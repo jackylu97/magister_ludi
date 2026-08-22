@@ -157,6 +157,28 @@ export interface MapView {
   setHover(hover: HoverInfo | null): void;
   getHover(): HoverInfo | null;
 
+  /**
+   * Optional: the unit whose *badge* is under a screen position, or `null`.
+   *
+   * A second picking question, and a different one from `pick`. The tag floating
+   * over a piece is what a player aims at when they mean "that unit" — it is the
+   * part of a unit that is legible at game zoom, and it stands clear of the
+   * ground the piece is on. So it is a click target everywhere on the board, and
+   * it is the one gesture that still reaches a garrison while a city panel has
+   * turned that city's own ground into a citizen board. See the precedence table
+   * in `src/ui/controls.ts`.
+   *
+   * `playerId` is the seat asking, and only that seat's badges answer: a badge
+   * is a way to select, and there is nothing to select on somebody else's piece.
+   * A click on an enemy tag falls through to the ordinary tile contract, which
+   * is what a click on the enemy piece under it has always done.
+   *
+   * Optional for the usual reason: it is a 3D feature and the 2D pipelines are
+   * frozen, so `controls.ts` calls it as `renderer.pickUnitBadge?.(…)` and under
+   * `?art=flat` selection is exactly the tile contract it always was.
+   */
+  pickUnitBadge?(screenX: number, screenY: number, playerId: number): number | null;
+
   /** The unit drawn with a selection marker, or `null`. */
   setSelectedUnitId(id: number | null): void;
   /** Tiles marked "you can move here this turn". */

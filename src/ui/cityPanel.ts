@@ -430,7 +430,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         'p',
         'hint',
         'Dots on the map are the tiles this city works. Click one to pin a ' +
-          'citizen there, or an empty tile in the ring to move one to it.',
+          'citizen there, or any other tile in the ring to move one to it. ' +
+          'A unit standing in the ring is selected by clicking its badge.',
       ),
     );
   }

@@ -33,6 +33,9 @@ of the status card, and it is the same list as this one.
   pinch to zoom toward the cursor.
 - **Left click** one of your units to select it, again to cycle a stack. Left
   click anywhere that is not one of your own pieces to put the selection down.
+  The parchment **badge** floating over a unit always selects it too, whatever
+  the ground under it currently means — which is how a garrison is picked up
+  while its city's screen has turned that ring into a citizen board.
 - **Right click** a tile to send the selected unit there. With nothing selected,
   right click does nothing at all.
 - `M` arms move mode, where the next *left* click issues the move instead — the
