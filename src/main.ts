@@ -401,7 +401,7 @@ function describeResource(state: GameState, playerId: number, tile: Tile): strin
   const id = visibleResourceAt(state, playerId, tile);
   if (id === null) return '—';
   const def = resourceDef(id);
-  return `${def.name} (${def.kind})`;
+  return `${def.emoji} ${def.name} (${def.kind})`;
 }
 
 /**

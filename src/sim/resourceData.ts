@@ -87,6 +87,11 @@ export interface ResourceDef {
   hills?: boolean;
   /** Technology a player needs before they are *shown* this. Strategic only. */
   requiresTech?: TechId;
+  /**
+   * Display glyph for text surfaces (hover readout, panels). An emoji
+   * placeholder for now; the lens roundels use the drawn SVG icons instead.
+   */
+  emoji: string;
   /** Relative weight in the placement draw. Not a count. */
   frequency: number;
   /** Inclusive `[min, max]` tiles one find spreads over. Absent means 1. */

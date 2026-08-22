@@ -311,7 +311,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       button.type = 'button';
       button.disabled = locked || tooSmall || needsResource;
       button.title = needsResource
-        ? `Needs ${resourceDef(missing).name}`
+        ? `Needs ${resourceDef(missing).emoji} ${resourceDef(missing).name}`
         : tooSmall
           ? `Needs population ${def.minCityPop}`
           : `${def.name} — ${def.cost} hammers`;
@@ -320,7 +320,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         element(
           'span',
           'city-buildable-cost',
-          needsResource ? `needs ${resourceDef(missing).name}` : `${def.cost}h`,
+          needsResource
+            ? `needs ${resourceDef(missing).emoji} ${resourceDef(missing).name}`
+            : `${def.cost}h`,
         ),
       );
       button.addEventListener('click', () => add({ kind: 'unit', id }));
