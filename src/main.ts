@@ -71,6 +71,7 @@ import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { createTurnSplash } from './ui/turnSplash';
 import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
 import type { HoverInfo, LensMode, MapView } from './ui/mapView';
+import type { TurnBlocker } from './ui/turnBlockers';
 
 function requireElement<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -82,6 +83,7 @@ const seedInput = requireElement<HTMLInputElement>('seed');
 const sizeSelect = requireElement<HTMLSelectElement>('size');
 const randomSeedButton = requireElement<HTMLButtonElement>('random-seed');
 const endTurnButton = requireElement<HTMLButtonElement>('end-turn');
+const endTurnLabelEl = requireElement<HTMLElement>('end-turn-label');
 
 /** The landing screen. See the boot-order note in the module docblock. */
 const landingEl = requireElement<HTMLElement>('landing');
@@ -557,6 +559,38 @@ function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>)
   }
 }
 
+/**
+ * What the End Turn button says, and how loudly.
+ *
+ * The button is the one control pressed every single turn, so it is also the
+ * cheapest place to tell the player there is something outstanding — before they
+ * press it, rather than by bouncing them off it. Three things change together:
+ *
+ *   · the verb, which becomes the *job* rather than the outcome ("Choose
+ *     production" is an instruction; "End Turn" is a result);
+ *   · the style — vermilion primary only when the turn can actually end, and the
+ *     quiet parchment otherwise, so "not ready" reads at a glance and the one
+ *     loud button in the corner stays meaningful;
+ *   · the tooltip, which is where Shift ⏎ is written down.
+ *
+ * It is never *disabled*: a blocked press is not a refusal, it is the fastest
+ * way to get taken to the thing you forgot.
+ */
+const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
+  idleUnit: 'Unit needs orders',
+  cityProduction: 'Choose production',
+  research: 'Choose research',
+};
+
+function showEndTurnState(blocker: TurnBlocker | null): void {
+  endTurnLabelEl.textContent = blocker ? END_TURN_LABELS[blocker.kind] : 'End Turn';
+  endTurnButton.classList.toggle('btn-primary', blocker === null);
+  endTurnButton.classList.toggle('btn-quiet', blocker !== null);
+  endTurnButton.title = blocker
+    ? 'Something is still outstanding — press to go to it, or Shift-click to end the turn anyway'
+    : 'End your turn (Enter)';
+}
+
 // --- renderer selection ----------------------------------------------------
 
 type ArtMode = 'toon3d' | 'sprites' | 'flat';
@@ -844,6 +878,10 @@ async function boot(): Promise<void> {
       'is-panel-open',
       !cityPanelEl.hidden || !unitPanelEl.hidden,
     );
+    // Whether the turn may end is derived from the same state as everything
+    // else on this list — a unit that just moved, a queue that just filled, a
+    // technology just chosen — so it is recomputed in the same one place.
+    showEndTurnState(controls.endTurnBlocker());
 
     updateContext(hover);
   }
@@ -868,6 +906,8 @@ async function boot(): Promise<void> {
     // star chart, which handles its own Escape while it is up.
     inputBlocked: () => !landingEl.hidden || (techTree?.isOpen ?? false),
     onToggleTechTree: () => techTree?.toggle(),
+    // End Turn's research blocker puts the chart up; it never takes it down.
+    onOpenTechTree: () => techTree?.open(),
     onTurnResolved: (_turn, research) => {
       // A discovery outranks the turn card: "your turn" happens every turn,
       // and a technology lands twenty times in a game. The upgrade tally rides
@@ -1133,8 +1173,11 @@ async function boot(): Promise<void> {
   // taken — one that resets the selection, the lens, the panels and the camera.
   startNewGame = newGameFromControls;
 
-  endTurnButton.addEventListener('click', () => {
-    controls.endTurn();
+  // Shift is the override, on the button as well as on the key it wears: a
+  // keyboard activation of a focused button carries the modifier through to the
+  // click, so Shift ⏎ and Shift-click are genuinely one gesture.
+  endTurnButton.addEventListener('click', (event) => {
+    controls.endTurn(event.shiftKey);
     updatePanel(null, renderer.getHover());
   });
 

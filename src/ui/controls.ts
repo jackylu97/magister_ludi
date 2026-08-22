@@ -39,6 +39,19 @@
  * Escape backs out one layer at a time, outermost first: move mode, then an
  * open popover, then the city panel, then the selection.
  *
+ * End Turn, and what it refuses to do
+ * -----------------------------------
+ * The button and Enter do not end the turn while the seat still has unfinished
+ * business — an idle unit, a city building nothing, an unaimed science pool.
+ * They take the player *to* the first of those instead (see `turnBlockers.ts`
+ * for the contract and for why it is a pure function that lives outside this
+ * file). Shift ends the turn regardless, for the player who means it.
+ *
+ * This is gating and nothing more: `endTurn` is the same command it always was,
+ * the reducer is untouched, and a remote client or an AI can still send it
+ * whenever it likes. What the local player gets is a button that knows what
+ * they forgot.
+ *
  * Click versus drag
  * -----------------
  * Both buttons pan, and both also click, so a press only counts as a click if
@@ -141,6 +154,7 @@ import {
   type LensView,
   type MapView,
 } from './mapView';
+import { type TurnBlocker, firstBlocker } from './turnBlockers';
 
 /** How far the pointer may travel between down and up and still be a click. */
 const CLICK_SLOP_PX = 4;
@@ -260,6 +274,17 @@ export interface GameControlsOptions {
   onToggleTechTree?: () => void;
 
   /**
+   * Opens the tech screen — never closes it.
+   *
+   * Separate from `onToggleTechTree` because the caller is different in kind:
+   * `T` is the player asking for the chart and a second `T` is them asking for
+   * it to go away, while End Turn's research blocker is the *interface* putting
+   * the chart in front of them. A toggle there could answer "you have chosen no
+   * research" by closing the only screen that can fix it.
+   */
+  onOpenTechTree?: () => void;
+
+  /**
    * A blow landed: numbers to float over the board.
    *
    * Reported from here because this is the only place that can measure it — the
@@ -321,8 +346,26 @@ export interface GameControls {
   setHoveredCity(cityId: number | null): void;
   /** Re-reads the game and repaints; call after replacing the game object. */
   refresh(): void;
-  /** Ends the local player's turn, as the button and the Enter key both do. */
-  endTurn(): void;
+  /**
+   * Ends the local player's turn, as the button and the Enter key both do —
+   * unless the seat has unfinished business, in which case it takes the player
+   * to the first of it and the turn stands (see `turnBlockers.ts`).
+   *
+   * `force` is the Shift on that button and on that key: end the turn whatever
+   * is outstanding. A player who has decided a settler is staying put should not
+   * have to argue with the interface about it.
+   */
+  endTurn(force?: boolean): void;
+
+  /**
+   * What End Turn would stop on right now, or `null` when it would simply end
+   * the turn.
+   *
+   * The HUD asks it for the button's own label and quiet/primary styling, which
+   * is the honest version of a prompt: the player can see there is something
+   * outstanding *before* they press, rather than being bounced by it.
+   */
+  endTurnBlocker(): TurnBlocker | null;
   /** Whose seat this client is playing. */
   localPlayerId(): number;
 
@@ -396,6 +439,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     closePopovers,
     inputBlocked,
     onToggleTechTree,
+    onOpenTechTree,
     onDamage,
     onVictory,
   } = options;
@@ -1465,7 +1509,84 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     }
   }
 
-  function endTurn(): void {
+  // --- unfinished business -------------------------------------------------
+
+  /**
+   * What End Turn would stop on. A straight read of the pure helper for the
+   * seat this client is playing — the seat is the only thing this module adds.
+   */
+  function endTurnBlocker(): TurnBlocker | null {
+    return firstBlocker(getGame().state, localPlayerId);
+  }
+
+  /** Brings one cell into view, respecting the viewer's motion preference. */
+  function panToCell(cell: CellRef): void {
+    renderer.panToCells?.([cell], !prefersReducedMotion());
+  }
+
+  /**
+   * Takes the player to a piece of unfinished business, and says what it is.
+   *
+   * Every arm does the same three things in the same order — look at it, put it
+   * in hand, name it — because that is what "find the thing I forgot" means: the
+   * camera answers *where*, the selection or the open panel answers *which*, and
+   * the manicule line answers *what now*. The notice is `announce` rather than
+   * `reject`: this is guidance the player asked for by pressing the button, not
+   * a refusal, and it should not flinch at them.
+   */
+  function focusBlocker(blocker: TurnBlocker): void {
+    const { state } = getGame();
+    switch (blocker.kind) {
+      case 'idleUnit': {
+        const unit = unitById(state, blocker.unitId);
+        if (!unit) return;
+        panToCell({ col: unit.col, row: unit.row });
+        select(unit.id);
+        // A settler is the one idle piece whose job the interface can guess, so
+        // it gets its own line. Everything else is told, honestly, that it is
+        // waiting to be told.
+        announce(
+          unitDef(unit.type).foundsCity
+            ? '☞ Your settlers await a home.'
+            : '☞ A unit awaits your command.',
+        );
+        return;
+      }
+      case 'cityProduction': {
+        const city = cityById(state, blocker.cityId);
+        if (!city) return;
+        panToCell({ col: city.col, row: city.row });
+        // The two right-hand panels share a slot, and a city screen is what
+        // answers this blocker; drop the selection the way a click on a city
+        // tile does rather than leaving a unit sheet fighting it for the space.
+        selectedId = null;
+        setOpenCity(city.id);
+        announce(`☞ ${city.name} wants for work — choose a production.`);
+        return;
+      }
+      case 'research': {
+        announce('☞ Your scholars await direction.');
+        onOpenTechTree?.();
+        return;
+      }
+    }
+  }
+
+  /**
+   * Ends the local seat's turn, or stops on the first thing it still owes.
+   *
+   * `force` is Shift. The gate is entirely local — see the module docblock: the
+   * command is unchanged and nobody else at the table is held to this.
+   */
+  function endTurn(force = false): void {
+    if (!force) {
+      const blocker = endTurnBlocker();
+      if (blocker) {
+        focusBlocker(blocker);
+        return;
+      }
+    }
+
     const turnBefore = getGame().state.turn;
     // Captured before the dispatch: if this is the command that resolves the
     // turn, the walk is over by the time it returns — and so is the research
@@ -1681,7 +1802,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       if (target?.tagName === 'BUTTON') return;
       if (event.key !== 'Enter') return;
       event.preventDefault();
-      endTurn();
+      // Shift ⏎ is the same override the button carries: end the turn whatever
+      // is still outstanding.
+      endTurn(event.shiftKey);
     }
   });
 
@@ -1718,6 +1841,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   return {
     clearSelection,
     endTurn,
+    endTurnBlocker,
     setLocalPlayer,
     lens: () => manualLens,
     setLens,

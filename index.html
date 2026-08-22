@@ -314,7 +314,11 @@
             <b>Left click</b> any tile in an open city's ring to pin a citizen — a garrison
             does not block it; click its badge to select it instead
           </li>
-          <li><kbd>Enter</kbd> ends your turn</li>
+          <li>
+            <kbd>Enter</kbd> ends your turn — it stops first on anything left
+            undone: an idle unit, a city building nothing, no research chosen
+          </li>
+          <li><kbd>Shift</kbd><kbd>Enter</kbd> force-ends the turn, whatever is outstanding</li>
           <li data-only="2d"><kbd>G</kbd> toggles the hex grid</li>
           <li><kbd>Esc</kbd> backs out: move mode, then this panel, then the selection</li>
         </ul>
@@ -333,14 +337,14 @@
       class="tech-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Technologies"
+      aria-label="Natural Philosophy"
       hidden
     >
       <div class="tech-sheet">
         <header class="tech-head">
           <div class="tech-head-titles">
             <p class="eyebrow tech-eyebrow">the magister’s star chart</p>
-            <h2 class="tech-title">Technologies</h2>
+            <h2 class="tech-title">Natural Philosophy</h2>
           </div>
           <!-- The chart runs off both edges of any window, so the screen says
                once how to travel it rather than making it be discovered. -->
@@ -400,8 +404,12 @@
     <!-- Bottom-right, alone, and the same size and place every turn of every
          game: the most-pressed control in the game gets a muscle-memory home. -->
     <div id="hud-end-turn">
+      <!-- The label is its own element because the button says what it is *for*
+           right now: "End Turn" when the turn may end, and the name of the first
+           piece of unfinished business when it may not (see src/ui/turnBlockers.ts).
+           The ⏎ never changes — it is the key, not the verb. -->
       <button id="end-turn" class="btn btn-primary btn-end" type="button">
-        End Turn <kbd class="btn-key">⏎</kbd>
+        <span id="end-turn-label">End Turn</span> <kbd class="btn-key">⏎</kbd>
       </button>
     </div>
 

@@ -1247,6 +1247,17 @@ body.is-panel-open #hud-end-turn {
   font-size: 11px;
 }
 
+/* The button while the seat still has unfinished business (see
+   src/ui/turnBlockers.ts). It keeps its size, its place and its press — it is
+   still the button you hit, and hitting it takes you to what is outstanding —
+   but it gives up the vermilion, because the one loud control in the corner
+   should only be loud when the turn can actually end. The key rides on
+   parchment now, so it takes the ink treatment the other buttons' keys have. */
+.btn-end.btn-quiet .btn-key {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
 /* --- move mode -------------------------------------------------------------
    Armed by M: the next left click is an order. The cursor is the fastest of the
    three ways the interface says so (the others are the context card's line and
