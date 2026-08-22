@@ -626,6 +626,12 @@ Core loop complete through combat + resources (671 tests). Mechanics-before-AI s
   (the tall-subsidy flag in Entry I) but the road mechanism is settled.
 - **M8 Fog of war & exploration** — tri-state per seat, chart-table unexplored render (the
   world drawn in), scout identity, per-player info honesty. (Embarkation folds in if needed.)
+  **HARD PERF CONSTRAINT (approved 2026-08-22):** fog rendering must be INCREMENTAL —
+  per-instance tint/matrix writes for changed tiles only; NEVER a board rebuild on visibility
+  change. Ships WITH the stress harness: a seeded fixture (~300 units, 40 cities, standard map)
+  asserting bounded per-move visibility work (operation counts primary, generous wall-clock
+  secondary) so fog cost is pinned by CI from birth. **User pulled M8 ahead of M7 (2026-08-22)
+  — fog + harness first, workers after.**
 - **M9 Gold loop** — unit/building maintenance + city purchasing.
 - **M10 Happiness & Authority + site bonuses** — Entry I in full; luxuries live via M7;
   tall/wide harness assertions begin.
