@@ -42,8 +42,8 @@
  * Baskets and overflow
  * --------------------
  * Food, hammers and culture all accumulate into baskets and all keep their
- * remainder when they pay for something. A city that banks 63 hammers into a
- * 60-hammer monument starts the next item with 3, and a city that grows carries
+ * remainder when they pay for something. A city that banks 18 hammers into a
+ * 15-hammer monument starts the next item with 3, and a city that grows carries
  * its surplus food into the next population point. Nothing is ever rounded away
  * on the player's behalf; the one exception is starvation, which empties the
  * food basket outright because a negative basket that survived would starve the

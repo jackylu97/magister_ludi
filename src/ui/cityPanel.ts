@@ -41,6 +41,16 @@ import { type City, type QueueItem, hasEndedTurn } from '../sim/state';
 import { isUnlocked, requiredResource } from '../sim/tech';
 import { UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
 
+/**
+ * The production voice, spoken the way the rest of the interface speaks it.
+ *
+ * Costs used to read `40h`, which is a unit of measure this game names nowhere
+ * else: the top bar's yield strip and the tech screen's unlock lines both write
+ * production as `⚙` (`docs/design-specimen.html`). One glyph for one yield, so a
+ * cost on a button and a rate on the bar are visibly the same currency.
+ */
+const HAMMER = '⚙';
+
 export interface CityPanelOptions {
   /** The element the panel lives in. Emptied and rebuilt on every render. */
   container: HTMLElement;
@@ -235,7 +245,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     city.queue.forEach((item, index) => {
       const row = element('li');
       row.append(element('span', 'city-queue-name', queueItemName(item)));
-      row.append(element('span', 'city-queue-cost', `${queueItemCost(item) ?? '?'}h`));
+      row.append(element('span', 'city-queue-cost', `${queueItemCost(item) ?? '?'}${HAMMER}`));
 
       const up = element('button', 'city-icon-button', '↑');
       up.type = 'button';
@@ -314,7 +324,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         ? `Needs ${resourceDef(missing).emoji} ${resourceDef(missing).name}`
         : tooSmall
           ? `Needs population ${def.minCityPop}`
-          : `${def.name} — ${def.cost} hammers`;
+          : `${def.name} — ${def.cost} ${HAMMER} production`;
       button.append(element('span', 'city-buildable-name', def.name));
       button.append(
         element(
@@ -322,7 +332,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
           'city-buildable-cost',
           needsResource
             ? `needs ${resourceDef(missing).emoji} ${resourceDef(missing).name}`
-            : `${def.cost}h`,
+            : `${def.cost}${HAMMER}`,
         ),
       );
       button.addEventListener('click', () => add({ kind: 'unit', id }));
@@ -339,9 +349,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const button = element('button', 'city-buildable is-building');
       button.type = 'button';
       button.disabled = locked;
-      button.title = `${def.name} — ${def.cost} hammers`;
+      button.title = `${def.name} — ${def.cost} ${HAMMER} production`;
       button.append(element('span', 'city-buildable-name', def.name));
-      button.append(element('span', 'city-buildable-cost', `${def.cost}h`));
+      button.append(element('span', 'city-buildable-cost', `${def.cost}${HAMMER}`));
       button.addEventListener('click', () => add({ kind: 'building', id }));
       grid.append(button);
     }

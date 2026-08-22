@@ -84,10 +84,16 @@ const AGE_NAMES: Record<TechAge, string> = {
   3: 'Medieval',
 };
 
+/**
+ * The production voice, named once because it is also what a cost is quoted in:
+ * an unlock line reads `15⚙`, exactly as the city panel's buttons do.
+ */
+const HAMMER = '⚙';
+
 /** The yield voices, in the order the city panel lists them. */
 const YIELD_GLYPHS: [keyof ReturnType<typeof buildingYieldDelta>, string][] = [
   ['food', '🌾'],
-  ['production', '⚙'],
+  ['production', HAMMER],
   ['gold', '🪙'],
   ['science', '🔬'],
   ['culture', '🎭'],
@@ -164,7 +170,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       const row = element('li');
       row.append(element('span', 'tech-mark is-unit', def.glyph));
       row.append(element('span', 'tech-unlock-name', def.name));
-      row.append(element('span', 'tech-unlock-note', `${def.cost}h`));
+      row.append(element('span', 'tech-unlock-note', `${def.cost}${HAMMER}`));
       list.append(row);
     }
 
@@ -184,7 +190,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         element(
           'span',
           parts.length > 0 ? 'tech-unlock-note is-delta' : 'tech-unlock-note',
-          parts.length > 0 ? `${parts.join(' ')} now` : `${def.cost}h`,
+          parts.length > 0 ? `${parts.join(' ')} now` : `${def.cost}${HAMMER}`,
         ),
       );
       list.append(row);

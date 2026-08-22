@@ -304,15 +304,18 @@ Civ MP's #1 failure; one-evening (~2.5–3h live) or a-couple-async-weeks is the
 roguelike draft layer needs many runs to pay off — run identity starves in marathons.
 
 **Levers (in order of power):**
-1. **Defined end — the curtain falls.** Game ends when the final age completes (target ~turn
-   150–180 standard); highest victory points wins. Knockout victories (conquest; maybe a
+1. **Defined end — the curtain falls.** Game ends when the final age completes — RETUNED
+   2026-08-22 (Quick-speed pacing pass): ages close ~t40 / t88 / t130 standard, measured and
+   band-asserted in the pacing test; the curtain target is now ~t130 with current content
+   (3 ages; later ages extend it). Highest victory points wins. Knockout victories (conquest; maybe a
    science/culture coup) can end it earlier. Guarantees finishability by construction; very
    board-game, very Theatrum Mundi. VP composition TBD (ages advanced, wonders, cities at end,
    drafted-set bonuses?).
 2. **Invert Civ's cost-vs-yield divergence.** Civ V lags: costs grow ~exponentially, yields
    ~linearly → late slog. Ours: late-era costs grow SLOWER than yields, so the endgame
    accelerates into the finale instead of dragging. All exponents in `rules.json`.
-   Harness assertion: scripted bots reach the final age by turn ~170 ± band.
+   Harness assertion: scripted bots reach the final age inside the measured band (t116–142 as
+   of the 2026-08-22 retune; the pacing test IS this assertion now).
 3. **Map discipline:** duel/small as default MP sizes — less walking, earlier contact.
 4. **Speed profiles as data:** Blitz / Standard / Epic as multiplier sets over the cost tables.
    Default tuned to one evening; Epic preserves the long arc for those who want it. (The depth

@@ -4,7 +4,7 @@
       "name": "Agriculture",
       "age": 1,
       "row": 1,
-      "cost": 10,
+      "cost": 30,
       "prereqs": [],
       "unlocks": { "units": ["settler", "warrior", "scout"] },
       "flavor": "The first furrow is the first calendar."
@@ -13,7 +13,7 @@
       "name": "Pottery",
       "age": 1,
       "row": 3,
-      "cost": 10,
+      "cost": 30,
       "prereqs": [],
       "unlocks": { "buildings": ["granary", "monument"] },
       "flavor": "What the jar keeps, the year forgets."
@@ -22,7 +22,7 @@
       "name": "Archery",
       "age": 1,
       "row": 1,
-      "cost": 14,
+      "cost": 40,
       "prereqs": ["agriculture"],
       "unlocks": { "units": ["archer"] },
       "flavor": "Distance is the oldest mercy."
@@ -31,7 +31,7 @@
       "name": "Animal Husbandry",
       "age": 1,
       "row": 0,
-      "cost": 15,
+      "cost": 40,
       "prereqs": ["agriculture"],
       "unlocks": { "units": ["horseman"] },
       "flavor": "A horse is a decision arrived at sooner."
@@ -40,7 +40,7 @@
       "name": "Bronze Working",
       "age": 1,
       "row": 2,
-      "cost": 16,
+      "cost": 45,
       "prereqs": ["pottery"],
       "unlocks": { "units": ["spearman"] },
       "flavor": "Two soft metals agree to become a hard one."
@@ -49,7 +49,7 @@
       "name": "Masonry",
       "age": 1,
       "row": 3,
-      "cost": 17,
+      "cost": 45,
       "prereqs": ["pottery"],
       "unlocks": { "buildings": ["shrine"] },
       "flavor": "Stone remembers longer than any of us."
@@ -58,7 +58,7 @@
       "name": "Writing",
       "age": 1,
       "row": 4,
-      "cost": 18,
+      "cost": 50,
       "prereqs": ["pottery"],
       "unlocks": { "buildings": ["library"] },
       "flavor": "A thought that outlives the mouth it came from."
@@ -67,7 +67,7 @@
       "name": "The Wheel",
       "age": 1,
       "row": 0,
-      "cost": 20,
+      "cost": 55,
       "prereqs": ["animalHusbandry", "bronzeWorking"],
       "unlocks": { "units": ["chariot"] },
       "flavor": "Nobody expected the circle to be useful."
@@ -77,7 +77,7 @@
       "name": "Iron Working",
       "age": 2,
       "row": 2,
-      "cost": 26,
+      "cost": 155,
       "prereqs": ["bronzeWorking", "masonry"],
       "unlocks": { "units": ["swordsman"] },
       "flavor": "Every age is named for what it kills with."
@@ -86,7 +86,7 @@
       "name": "Mathematics",
       "age": 2,
       "row": 3,
-      "cost": 30,
+      "cost": 180,
       "prereqs": ["writing", "theWheel"],
       "unlocks": { "units": ["catapult"] },
       "flavor": "The siege begins as a diagram."
@@ -95,7 +95,7 @@
       "name": "Currency",
       "age": 2,
       "row": 3,
-      "cost": 32,
+      "cost": 190,
       "prereqs": ["writing", "masonry"],
       "unlocks": { "buildings": ["market"] },
       "flavor": "A promise small enough to carry."
@@ -104,7 +104,7 @@
       "name": "Construction",
       "age": 2,
       "row": 1,
-      "cost": 36,
+      "cost": 215,
       "prereqs": ["masonry", "archery"],
       "unlocks": { "units": ["compositeBowman"], "buildings": ["aqueduct"] },
       "flavor": "Water persuaded to climb."
@@ -113,7 +113,7 @@
       "name": "Philosophy",
       "age": 2,
       "row": 4,
-      "cost": 38,
+      "cost": 230,
       "prereqs": ["writing", "masonry"],
       "unlocks": { "buildings": ["temple"] },
       "flavor": "First we ask what a thing is; the asking never stops."
@@ -122,7 +122,7 @@
       "name": "Engineering",
       "age": 2,
       "row": 3,
-      "cost": 42,
+      "cost": 250,
       "prereqs": ["mathematics", "construction"],
       "unlocks": { "buildings": ["workshop", "watermill"] },
       "flavor": "The river is put to work and does not complain."
@@ -131,7 +131,7 @@
       "name": "Drama and Poetry",
       "age": 2,
       "row": 4,
-      "cost": 46,
+      "cost": 275,
       "prereqs": ["philosophy", "currency"],
       "unlocks": { "buildings": ["amphitheater"] },
       "flavor": "The city sits down to watch itself."
@@ -141,7 +141,7 @@
       "name": "Feudalism",
       "age": 3,
       "row": 2,
-      "cost": 55,
+      "cost": 280,
       "prereqs": ["ironWorking", "currency"],
       "unlocks": { "units": ["pikeman"] },
       "flavor": "Everyone kneels to someone and calls it order."
@@ -150,7 +150,7 @@
       "name": "Machinery",
       "age": 3,
       "row": 1,
-      "cost": 60,
+      "cost": 300,
       "prereqs": ["engineering", "construction"],
       "unlocks": { "units": ["crossbowman"] },
       "flavor": "A crank is a servant that never sleeps."
@@ -159,7 +159,7 @@
       "name": "Theology",
       "age": 3,
       "row": 4,
-      "cost": 66,
+      "cost": 330,
       "prereqs": ["philosophy", "drama"],
       "unlocks": { "buildings": ["monastery"] },
       "flavor": "The library, copied by candlelight, one page a day."
@@ -168,7 +168,7 @@
       "name": "Chivalry",
       "age": 3,
       "row": 0,
-      "cost": 72,
+      "cost": 360,
       "prereqs": ["feudalism", "animalHusbandry"],
       "unlocks": { "units": ["knight"] },
       "flavor": "Armour, with manners."
@@ -177,7 +177,7 @@
       "name": "Steel",
       "age": 3,
       "row": 2,
-      "cost": 80,
+      "cost": 400,
       "prereqs": ["ironWorking", "machinery"],
       "unlocks": { "units": ["longswordsman"] },
       "flavor": "Iron, taught patience by fire."
@@ -186,7 +186,7 @@
       "name": "Physics",
       "age": 3,
       "row": 3,
-      "cost": 88,
+      "cost": 440,
       "prereqs": ["mathematics", "engineering"],
       "unlocks": { "units": ["trebuchet"] },
       "flavor": "Weight, argued into flight."
@@ -195,7 +195,7 @@
       "name": "Education",
       "age": 3,
       "row": 4,
-      "cost": 95,
+      "cost": 475,
       "prereqs": ["theology", "philosophy"],
       "unlocks": { "buildings": ["university"] },
       "flavor": "A school is a city's second memory."

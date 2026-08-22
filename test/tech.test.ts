@@ -158,8 +158,15 @@ describe('tech data integrity', () => {
   it('bands its costs by age, and rises inside each band', () => {
     // The band the tree is tuned to (see the pacing note in `tech.ts`): a
     // scale, measured against the current pop-based science economy rather
-    // than copied from another game's numbers.
-    const bands: Record<number, [number, number]> = { 1: [8, 22], 2: [24, 50], 3: [52, 100] };
+    // than copied from another game's numbers. Age III's band starts barely
+    // above age II's ceiling on purpose — Entry V asks the endgame to
+    // *accelerate*, so the last age's costs rise more slowly than the beakers
+    // an empire of that size is making.
+    const bands: Record<number, [number, number]> = {
+      1: [28, 60],
+      2: [150, 280],
+      3: [275, 480],
+    };
     for (const id of TECH_IDS) {
       const def = techDef(id);
       const [low, high] = bands[def.age]!;
@@ -950,18 +957,99 @@ describe('pacing', () => {
     return { game, ageDone };
   }
 
-  it('closes the third age inside the turn 120–170 band (Entry V)', () => {
+  it('closes its three ages on the Quick-speed schedule (Entry V)', () => {
     const { game, ageDone } = playEmpire(200);
+    // Measured on this seed after the Quick-speed retune: 43 / 86 / 128. Each
+    // assertion is a band around the measurement rather than the number itself
+    // — the map roll moves it by a handful of turns — but the band is tight
+    // enough on *both* sides to catch a regression in either direction, which
+    // an upper bound alone would not.
+    const first = ageDone.get(1);
+    const second = ageDone.get(2);
     const third = ageDone.get(3);
-    // Reported by the milestone note; kept as a band, not a number, because the
-    // map roll moves it by a handful of turns either way.
-    expect(ageDone.get(1), `age I: ${String(ageDone.get(1))}`).toBeLessThanOrEqual(70);
-    expect(ageDone.get(2), `age II: ${String(ageDone.get(2))}`).toBeLessThanOrEqual(130);
+    expect(first, `age I: ${String(first)}`).toBeDefined();
+    expect(second, `age II: ${String(second)}`).toBeDefined();
     expect(third, `age III: ${String(third)}`).toBeDefined();
-    // A band, not a number: the map roll moves it either way, and the harness
-    // plays deliberately conservatively, so a real player should beat it.
-    expect(third!).toBeGreaterThanOrEqual(110);
-    expect(third!).toBeLessThanOrEqual(175);
+
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(35);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(51);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(76);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(98);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(116);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(142);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 60_000);
+
+  /**
+   * The opening, measured rather than asserted from taste.
+   *
+   * A capital founded on turn 1 makes three production a turn on the low end of
+   * the standard-map roll — the centre's own `baseCityYields` floor of two, plus
+   * whatever single tile one citizen is sent to (the assigner weights food, so
+   * it usually picks a tile worth a hammer). A settler is priced against that:
+   * twelve hammers is three turns of the four a size-2 capital makes, which is
+   * the whole point of the number.
+   *
+   * The one thing the target has to bend around is `minCityPop`: a settler
+   * cannot be *queued* in a size-1 city at all (`validateQueue` refuses it, and
+   * a size-1 city with a settler at the front of its queue could never grow to
+   * lift its own gate, because a settler halts growth). So "a fresh capital"
+   * here means the earliest turn the game will actually accept the order.
+   */
+  it('turns a fresh capital into a settler in exactly three turns', () => {
+    const game = createGame({
+      seed: 4242,
+      sizeName: 'standard',
+      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
+    });
+    const founder = game.state.units.find((unit) => unitDef(unit.type).foundsCity)!;
+    expect(dispatch(game, {
+      type: 'foundCity',
+      playerId: 0,
+      settlerUnitId: founder.id,
+    }).ok).toBe(true);
+    const capital = game.state.cities[0]!;
+    expect(game.state.turn).toBe(1);
+
+    // What a brand-new capital makes, before anything is queued.
+    expect(cityYields(game.state, capital).production).toBeGreaterThanOrEqual(3);
+
+    // Grow to the smallest size that may build one. Nothing is queued while it
+    // grows, so the hammers it banks in the meantime are cleared first: this
+    // test is about the settler's own build time, not about a head start.
+    const minimum = unitDef('settler').minCityPop;
+    let grew = 0;
+    while (capital.population < minimum && grew < 30) {
+      expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+      grew += 1;
+    }
+    expect(capital.population).toBe(minimum);
+    // Measured: turn 8 on this seed. A band, for the same reason as the ages.
+    expect(game.state.turn, `size ${minimum} on turn ${game.state.turn}`).toBeLessThanOrEqual(12);
+    capital.hammerBasket = 0;
+
+    expect(dispatch(game, {
+      type: 'setCityProduction',
+      playerId: 0,
+      cityId: capital.id,
+      queue: [{ kind: 'unit', id: 'settler' }],
+    } as Command).ok).toBe(true);
+
+    const built = (): boolean => game.state.units.some((unit) => unitDef(unit.type).foundsCity);
+    let turns = 0;
+    let rate = 0;
+    while (!built() && turns < 10) {
+      expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+      turns += 1;
+      // The first resolution is the rate, banked and not yet spent: citizens
+      // are re-assigned at the top of `collectYields`, so the second citizen is
+      // only working from this turn on.
+      if (turns === 1) rate = capital.hammerBasket;
+    }
+    // Exactly three, asserted from both sides: a settler that arrived in two
+    // turns is as much a pacing regression as one that took four.
+    expect(rate).toBe(4);
+    expect(turns, `${unitDef('settler').cost}⚙ at ${rate}⚙ a turn`).toBe(3);
+    expect(unitDef('settler').cost).toBe(12);
+  }, 30_000);
 });

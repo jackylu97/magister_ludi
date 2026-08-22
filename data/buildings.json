@@ -2,7 +2,7 @@
   "buildings": {
     "monument": {
       "name": "Monument",
-      "cost": 60,
+      "cost": 15,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -11,7 +11,7 @@
     },
     "granary": {
       "name": "Granary",
-      "cost": 60,
+      "cost": 15,
       "food": 2,
       "production": 0,
       "gold": 0,
@@ -20,7 +20,7 @@
     },
     "shrine": {
       "name": "Shrine",
-      "cost": 45,
+      "cost": 11,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -29,7 +29,7 @@
     },
     "library": {
       "name": "Library",
-      "cost": 80,
+      "cost": 20,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -38,7 +38,7 @@
     },
     "temple": {
       "name": "Temple",
-      "cost": 100,
+      "cost": 25,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -47,7 +47,7 @@
     },
     "market": {
       "name": "Market",
-      "cost": 110,
+      "cost": 28,
       "food": 0,
       "production": 0,
       "gold": 3,
@@ -56,7 +56,7 @@
     },
     "aqueduct": {
       "name": "Aqueduct",
-      "cost": 110,
+      "cost": 28,
       "food": 3,
       "production": 0,
       "gold": 0,
@@ -65,7 +65,7 @@
     },
     "workshop": {
       "name": "Workshop",
-      "cost": 130,
+      "cost": 33,
       "food": 0,
       "production": 2,
       "gold": 0,
@@ -74,7 +74,7 @@
     },
     "watermill": {
       "name": "Watermill",
-      "cost": 120,
+      "cost": 30,
       "food": 2,
       "production": 1,
       "gold": 0,
@@ -83,7 +83,7 @@
     },
     "amphitheater": {
       "name": "Amphitheater",
-      "cost": 140,
+      "cost": 35,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -92,7 +92,7 @@
     },
     "monastery": {
       "name": "Monastery",
-      "cost": 150,
+      "cost": 38,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -101,7 +101,7 @@
     },
     "university": {
       "name": "University",
-      "cost": 190,
+      "cost": 48,
       "food": 0,
       "production": 0,
       "gold": 0,

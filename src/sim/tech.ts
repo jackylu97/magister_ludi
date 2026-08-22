@@ -44,18 +44,25 @@
  * half health is a half-health swordsman, not a fresh one, because upgrading
  * must never be a way to heal.
  *
- * Pacing (v0, standard map, the science economy exactly as it stands)
- * -------------------------------------------------------------------
- * The ages cost 120 / 250 / 516 beakers; the two starting techs are free, so a
- * whole game pays 866. Those figures are *measured*, not guessed: the science
- * economy is pop-based and cities in the current build grow slowly (a settler is
- * 106 hammers against two or three production a turn), so a scripted empire —
- * `test/tech.test.ts`'s harness, which founds five cities and always builds what
- * it can — banks roughly 130 beakers by turn 60, 430 by turn 120, 900 by turn
- * 160. Against that curve the three ages close on turns 52, 111 and 159, inside
- * the 120–170 band Entry V asks for.
+ * Pacing (Quick speed, standard map, the science economy exactly as it stands)
+ * ---------------------------------------------------------------------------
+ * The ages cost 335 / 1495 / 2585 beakers; the two starting techs are free, so a
+ * whole game pays 4355. Those figures are *measured*, not guessed. The science
+ * economy is pop-based, and cities now grow briskly (`baseCityYields` is 3 food
+ * and 2 production, and a settler is 12 hammers against the four a size-2
+ * capital makes), so a scripted empire — `test/tech.test.ts`'s harness, which
+ * founds five cities and always builds what it can — banks roughly 230 beakers
+ * by turn 40, 2000 by turn 90 and 4700 by turn 130. Against that curve the three
+ * ages close on turns 43, 86 and 128.
  *
- * The whole table is therefore a *scale*: if growth, settler cost or science per
+ * The three ages are scaled *differently* on purpose (×2.75, ×6, ×5 over the
+ * pre-Quick table): early science is a single city of one or two citizens, so an
+ * age-I node priced off the late curve would stall the opening for twenty turns,
+ * while age III has to grow more slowly than the beakers a five-city empire is
+ * banking or the finale drags — Entry V's "the endgame accelerates", read off
+ * the measured curve rather than assumed.
+ *
+ * Within each age the table is a *scale*: if growth, settler cost or science per
  * pop are retuned, multiply `cost` across `data/techs.json` by the change in
  * beakers-per-game and the shape survives untouched.
  */

@@ -1032,8 +1032,8 @@ describe('the turn pipeline over a live empire', () => {
 
   it('grows a city, builds its queue and pushes its borders out over time', () => {
     const state = flatState(20, 14, 'grassland');
-    // A hill under the city: grassland alone is two food and one hammer a turn,
-    // and sixty turns of that would not finish a monument.
+    // A hill under the city, so the centre keeps a hill's production on top of
+    // the `baseCityYields` floor and the queue moves at a visible pace.
     at(state.map, 10, 7).hills = true;
     const city = plant(state, 0, 10, 7);
     city.queue = [
