@@ -82,6 +82,7 @@ import type { GameState } from './state';
 import { unitDef } from './unitData';
 import { fullMovement, isRested } from './units';
 import { RULES } from './rulesData';
+import { recomputeAllVisibility } from './visibility';
 
 export interface TurnPhase {
   /** Stable identifier, used by tests and (later) by the turn-log UI. */
@@ -146,6 +147,23 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // Refills every allowance, clears `hasAttacked`, then walks standing orders
     // with the new points.
     run: resetMovement,
+  },
+  {
+    name: 'refreshVisibility',
+    // Last, and unconditionally, for every seat.
+    //
+    // Every *individual* mutation already refreshes the empire it belongs to —
+    // a unit is created, killed, moved, a border grows — so this phase is not
+    // where fog is normally maintained. It is here because the resolution is the
+    // one moment several of those happen at once and one of them is a standing
+    // order resumed by the phase directly above: a unit that marched during
+    // `resetMovement` did so inside a phase, not inside a command, and the
+    // cheapest honest way to be sure nobody's map is a turn stale is to redraw
+    // all of them once the world has stopped moving.
+    //
+    // Its position is therefore not negotiable: it must be after every phase
+    // that can move a piece, claim a tile or retype a unit, which is all of them.
+    run: recomputeAllVisibility,
   },
 ];
 

@@ -21,6 +21,7 @@ import {
 } from '../src/sim/state';
 import { availableTechs } from '../src/sim/tech';
 import { TECH_IDS } from '../src/sim/techData';
+import { resetVisibility } from '../src/sim/visibility';
 import { firstBlocker, isIdleUnit } from '../src/ui/turnBlockers';
 
 /** A two-player state on a blank grassland rectangle, as `tech.test.ts` uses. */
@@ -34,6 +35,9 @@ function flatState(width = 16, height = 12): GameState {
     ],
   });
   state.map = createMap({ width, height, terrain: 'grassland' });
+  // The board was replaced under this state; the fog grids were sized for the
+  // old one. See `resetVisibility`.
+  resetVisibility(state);
   state.tileOwner = new Array<number | null>(width * height).fill(null);
   state.units = [];
   state.cities = [];

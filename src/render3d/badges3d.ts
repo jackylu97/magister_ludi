@@ -374,20 +374,44 @@ export type YieldKey = (typeof YIELD_KEYS)[number];
 /** The ten digits, in value order. `NUMERAL_CELLS[3]` is the glyph for 3. */
 export const NUMERAL_CELLS: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
+/**
+ * The marginalia: marks that are drawn on the *chart* rather than on the world.
+ *
+ * One member, and it is the only purely decorative mark in the project — the
+ * serpent that fog of war scatters over Terra Incognita (*hic svnt dracones*,
+ * design-notes Entry X). It rides in this atlas rather than in one of its own
+ * because it is the same object as every other mark here: an ink drawing on the
+ * badge grid, printed flat on a hex. A second canvas for one glyph would be a
+ * second texture, a second material and a second draw call for a garnish.
+ *
+ * Unlike every other set here it is drawn with **no disc under it**. A roundel
+ * is a token laid on the board; a serpent is drawn *into* the vellum, and a
+ * parchment disc behind it would turn it into a badge announcing something.
+ */
+export const MARGINALIA_CELLS = ['serpent'] as const;
+export type MarginaliaKey = (typeof MARGINALIA_CELLS)[number];
+
 /** A cell of the tile atlas: which set it belongs to, and which member. */
 export type TileIconCell =
   | { set: 'resource'; id: ResourceId }
   | { set: 'yield'; id: YieldKey }
-  | { set: 'numeral'; id: number };
+  | { set: 'numeral'; id: number }
+  | { set: 'marginalia'; id: MarginaliaKey };
 
 /**
  * Every cell of the tile atlas, in layout order: the resources, then the three
- * yield voices, then the digits.
+ * yield voices, then the digits, then the marginalia.
+ *
+ * Appended rather than inserted, and that is not politeness — this list decides
+ * texture coordinates, so putting the serpent anywhere but the end would shift
+ * every cell after it and silently re-point marks on the board at somebody
+ * else's picture. New sets go on the end, always.
  */
 export const TILE_ICON_CELLS: readonly TileIconCell[] = [
   ...RESOURCE_IDS.map((id) => ({ set: 'resource', id }) as TileIconCell),
   ...YIELD_KEYS.map((id) => ({ set: 'yield', id }) as TileIconCell),
   ...NUMERAL_CELLS.map((id) => ({ set: 'numeral', id }) as TileIconCell),
+  ...MARGINALIA_CELLS.map((id) => ({ set: 'marginalia', id }) as TileIconCell),
 ];
 
 /**
@@ -413,6 +437,10 @@ export const RESOURCE_ICON_FILES: Record<ResourceId, string> = {
   wine: 'sprites/icons/resources/wine.svg',
   spices: 'sprites/icons/resources/spices.svg',
   salt: 'sprites/icons/resources/salt.svg',
+};
+
+export const MARGINALIA_ICON_FILES: Record<MarginaliaKey, string> = {
+  serpent: 'sprites/icons/marginalia/serpent.svg',
 };
 
 export const YIELD_ICON_FILES: Record<YieldKey, string> = {
@@ -587,6 +615,42 @@ function drawYieldCell(
 }
 
 /**
+ * Paints one mark straight onto the atlas, with nothing behind it.
+ *
+ * `drawDiscCell` without the disc — the recolouring half only. The marginalia
+ * are the one set that wants this: an ink drawing on the chart, not a token laid
+ * on the board. Factored out rather than passed a transparent paper colour,
+ * because "fill a circle in nothing" is a fill that still costs a path and still
+ * reads, at a glance through the code, as though there were a disc there.
+ */
+function drawInkCell(
+  context: CanvasRenderingContext2D,
+  icon: CanvasImageSource | null,
+  index: number,
+  layout: AtlasLayout,
+  iconScale: number,
+): void {
+  if (!icon) return;
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const size = Math.max(1, Math.round(iconScale * cell));
+  const scratch = document.createElement('canvas');
+  scratch.width = size;
+  scratch.height = size;
+  const pen = scratch.getContext('2d');
+  if (!pen) return;
+  pen.drawImage(icon, 0, 0, size, size);
+  pen.globalCompositeOperation = 'source-in';
+  pen.fillStyle = cssHex(ICONS.marginaliaColor);
+  pen.fillRect(0, 0, size, size);
+  context.drawImage(
+    scratch,
+    Math.round(origin.x + cell / 2 - size / 2),
+    Math.round(origin.y + cell / 2 - size / 2),
+  );
+}
+
+/**
  * Paints one numeral: a parchment disc with a digit on it.
  *
  * Text rather than artwork, and drawn in the platform's own mono-ish stack. See
@@ -693,7 +757,9 @@ export class TileIcons {
         ? RESOURCE_ICON_FILES[cell.id]
         : cell.set === 'yield'
           ? YIELD_ICON_FILES[cell.id]
-          : null,
+          : cell.set === 'marginalia'
+            ? MARGINALIA_ICON_FILES[cell.id]
+            : null,
     );
     const icons = await Promise.all(files.map((url) => (url ? loadIcon(url) : null)));
 
@@ -707,6 +773,11 @@ export class TileIcons {
       // them be counted — see `drawYieldCell`.
       if (cell.set === 'yield') {
         drawYieldCell(context, icons[index] ?? null, index, layout, cell.id);
+        return;
+      }
+      // Bare ink, no disc: see `MARGINALIA_CELLS`.
+      if (cell.set === 'marginalia') {
+        drawInkCell(context, icons[index] ?? null, index, layout, ICONS.marginaliaScale);
         return;
       }
       drawDiscCell(

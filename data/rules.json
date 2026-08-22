@@ -11,6 +11,10 @@
   "stacking": {
     "perCategoryPerTile": 1
   },
+  "visibility": {
+    "hillsBonus": 1,
+    "citySight": 2
+  },
   "healing": {
     "perTurnIfRested": 10
   },

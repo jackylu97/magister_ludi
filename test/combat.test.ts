@@ -20,6 +20,7 @@ import { type GameState, createUnit, newGame } from '../src/sim/state';
 import { UNIT_TYPE_IDS, unitDef } from '../src/sim/unitData';
 import { fullMovement } from '../src/sim/units';
 import { setRiverEdge } from '../src/sim/water';
+import { resetVisibility } from '../src/sim/visibility';
 
 const COMBAT = RULES.combat;
 
@@ -34,6 +35,9 @@ function flatState(width = 16, height = 8): GameState {
     ],
   });
   state.map = createMap({ width, height, terrain: 'grassland' });
+  // The board was replaced under this state; the fog grids were sized for the
+  // old one. See `resetVisibility`.
+  resetVisibility(state);
   state.tileOwner = new Array<number | null>(width * height).fill(null);
   state.units = [];
   state.cities = [];

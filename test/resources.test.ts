@@ -29,6 +29,7 @@ import { buildError, isResourceVisible, requiredResource, visibleResourceAt } fr
 import { FEATURE_IDS, TERRAIN_IDS, isWaterTerrain, tileYield } from '../src/sim/terrainData';
 import { TECH_IDS } from '../src/sim/techData';
 import { UNIT_TYPE_IDS, unitDef } from '../src/sim/unitData';
+import { resetVisibility } from '../src/sim/visibility';
 
 const CONFIG = MAPGEN_CONFIG.resources;
 
@@ -350,6 +351,9 @@ function bareState(): GameState {
     ],
   });
   state.map = createMap({ width: 12, height: 10, terrain: 'grassland' });
+  // The board was replaced under this state; the fog grids were sized for the
+  // old one. See `resetVisibility`.
+  resetVisibility(state);
   state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
   state.units = [];
   state.cities = [];

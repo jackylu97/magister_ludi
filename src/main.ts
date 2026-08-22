@@ -53,6 +53,7 @@ import type { Tile } from './sim/map';
 import { resourceDef } from './sim/resourceData';
 import { featureDef, terrainDef } from './sim/terrainData';
 import { describeUpgrade, visibleResourceAt } from './sim/tech';
+import { isExploredBy, isVisibleTo } from './sim/visibility';
 import { techDef } from './sim/techData';
 import { unitDef } from './sim/unitData';
 import { Renderer } from './render/renderer';
@@ -438,14 +439,20 @@ function describeResource(state: GameState, playerId: number, tile: Tile): strin
 }
 
 /**
- * What is standing on the tile under the pointer — anybody's piece, because
- * looking is not commanding and there is no fog of war to hide it behind yet.
+ * What is standing on the tile under the pointer — anybody's piece the local
+ * seat can currently see.
+ *
+ * Looking is not commanding, so an enemy piece in sight is described in full.
+ * A piece on ground this seat merely *remembers* is not described at all, which
+ * is the same rule the board draws by (`pieces.ts`): terrain is static and can
+ * be reported from memory, an army is not.
  *
  * The card describes the *ground and what is on it*; the selected unit has its
  * own panel on the right, with its own numbers and its own verbs. A stack says
  * how deep it is rather than listing itself into a scrollbar.
  */
-function describeUnitsOn(state: GameState, tile: Tile): string {
+function describeUnitsOn(state: GameState, playerId: number, tile: Tile): string {
+  if (!isVisibleTo(state, playerId, tile.col, tile.row)) return '—';
   const units = unitsOnTile(state, tile.col, tile.row);
   const first = units[0];
   if (!first) return '—';
@@ -828,13 +835,42 @@ async function boot(): Promise<void> {
    * away entirely rather than sitting there full of em dashes.
    */
   function updateContext(hover: HoverInfo | null): void {
+    /**
+     * Terra Incognita: the one place the naming bible's register (design-notes
+     * Entry X) is allowed into the readout.
+     *
+     * A hidden tile answers with its name and nothing else — not its terrain,
+     * not its coordinates in the world's own words, not its yields. Picking
+     * still works normally (fog is a mask, not a hole in the board), so a player
+     * may hover, click and order a march into it; the card simply refuses to
+     * describe ground nobody has been to. Blanking every row and writing the
+     * phrase into the terrain slot is deliberate: the card's shape does not
+     * change, so hovering across a frontier reads as the world running out
+     * rather than as a panel breaking.
+     */
+    if (hover && !isExploredBy(game.state, controls.localPlayerId(), hover.tile.col, hover.tile.row)) {
+      infoTerrain.textContent = 'Terra Incognita';
+      infoFeature.textContent = '—';
+      infoOffset.textContent = '—';
+      infoAxial.textContent = '—';
+      infoUnit.textContent = '—';
+      infoYields.textContent = '—';
+      infoResource.textContent = '—';
+      showCombatForecast(controls.combatForecast());
+      contextEl.classList.add('is-shown');
+      return;
+    }
     if (hover) {
       const described = describeTile(hover.tile);
       infoTerrain.textContent = described.terrain + (described.hills ? ' (hills)' : '');
       infoFeature.textContent = described.feature;
       infoOffset.textContent = `col ${hover.tile.col}, row ${hover.tile.row}`;
       infoAxial.textContent = `q ${hover.axial.q}, r ${hover.axial.r}`;
-      infoUnit.textContent = describeUnitsOn(game.state, hover.tile);
+      infoUnit.textContent = describeUnitsOn(
+        game.state,
+        controls.localPlayerId(),
+        hover.tile,
+      );
       showTileYields(hover.tile);
       infoResource.textContent = describeResource(
         game.state,

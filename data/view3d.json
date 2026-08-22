@@ -24,7 +24,8 @@
     "grape": "#7c5f8c",
     "lapis": "#3f639f",
     "gilt": "#c08a2b",
-    "brass": "#c2a35c"
+    "brass": "#c2a35c",
+    "chartWash": "#b3ab99"
   },
   "terrainColor": {
     "ocean": "lagoon",
@@ -336,6 +337,23 @@
     "edgePad": 2.5,
     "reach": 150
   },
+  "fog": {
+    "exploredDim": 0.5,
+    "exploredWash": "chartWash",
+    "chartColor": "vellum",
+    "chartOpacity": 1.0,
+    "chartScale": 1.0,
+    "chartLift": 0.02,
+    "ghostColor": "vellumDeep",
+    "ghostOpacity": 0.55,
+    "ghostOuter": 0.97,
+    "ghostWidth": 0.035,
+    "ghostLift": 0.035,
+    "serpentChance": 0.028,
+    "serpentRegion": 2,
+    "serpentSize": 1.05,
+    "serpentLift": 0.05
+  },
   "lens": {
     "glyphSize": 0.3,
     "yieldStackStep": 0.42,
@@ -374,23 +392,85 @@
     "alphaTest": 0.4,
     "paperColor": "bone",
     "inkColor": "ink",
-    "yieldInkColor": "ink"
+    "yieldInkColor": "ink",
+    "marginaliaScale": 0.86,
+    "marginaliaColor": "vellumDeep"
   },
   "resources": {
     "spread": 0.3,
     "props": {
-      "wheat": { "color": "wheat", "shade": 0.1, "count": 3, "size": 0.3 },
-      "cattle": { "color": "bone", "shade": -0.08, "count": 2, "size": 0.26 },
-      "deer": { "color": "timber", "shade": 0.14, "count": 2, "size": 0.26 },
-      "fish": { "color": "brook", "shade": -0.12, "count": 3, "size": 0.22 },
-      "stone": { "color": "slate", "shade": 0.12, "count": 2, "size": 0.24 },
-      "horses": { "color": "bone", "shade": -0.06, "count": 2, "size": 0.5 },
-      "iron": { "color": "slate", "shade": -0.34, "count": 1, "size": 0.27 },
-      "gems": { "color": "grape", "shade": 0.05, "count": 1, "size": 0.23 },
-      "silk": { "color": "vellum", "shade": 0.06, "count": 1, "size": 0.42 },
-      "wine": { "color": "grape", "shade": -0.02, "count": 2, "size": 0.36 },
-      "spices": { "color": "crimson", "shade": 0.08, "count": 3, "size": 0.22 },
-      "salt": { "color": "bone", "shade": 0.12, "count": 1, "size": 0.3 }
+      "wheat": {
+        "color": "wheat",
+        "shade": 0.1,
+        "count": 3,
+        "size": 0.3
+      },
+      "cattle": {
+        "color": "bone",
+        "shade": -0.08,
+        "count": 2,
+        "size": 0.26
+      },
+      "deer": {
+        "color": "timber",
+        "shade": 0.14,
+        "count": 2,
+        "size": 0.26
+      },
+      "fish": {
+        "color": "brook",
+        "shade": -0.12,
+        "count": 3,
+        "size": 0.22
+      },
+      "stone": {
+        "color": "slate",
+        "shade": 0.12,
+        "count": 2,
+        "size": 0.24
+      },
+      "horses": {
+        "color": "bone",
+        "shade": -0.06,
+        "count": 2,
+        "size": 0.5
+      },
+      "iron": {
+        "color": "slate",
+        "shade": -0.34,
+        "count": 1,
+        "size": 0.27
+      },
+      "gems": {
+        "color": "grape",
+        "shade": 0.05,
+        "count": 1,
+        "size": 0.23
+      },
+      "silk": {
+        "color": "vellum",
+        "shade": 0.06,
+        "count": 1,
+        "size": 0.42
+      },
+      "wine": {
+        "color": "grape",
+        "shade": -0.02,
+        "count": 2,
+        "size": 0.36
+      },
+      "spices": {
+        "color": "crimson",
+        "shade": 0.08,
+        "count": 3,
+        "size": 0.22
+      },
+      "salt": {
+        "color": "bone",
+        "shade": 0.12,
+        "count": 1,
+        "size": 0.3
+      }
     }
   },
   "abacus": {
@@ -451,10 +531,26 @@
       "fadeSpan": 0.3
     },
     "families": [
-      { "id": "conquest", "name": "Conquest", "color": "crimson" },
-      { "id": "culture", "name": "Culture", "color": "grape" },
-      { "id": "philosophy", "name": "Philosophy", "color": "lapis" },
-      { "id": "commerce", "name": "Commerce", "color": "gilt" }
+      {
+        "id": "conquest",
+        "name": "Conquest",
+        "color": "crimson"
+      },
+      {
+        "id": "culture",
+        "name": "Culture",
+        "color": "grape"
+      },
+      {
+        "id": "philosophy",
+        "name": "Philosophy",
+        "color": "lapis"
+      },
+      {
+        "id": "commerce",
+        "name": "Commerce",
+        "color": "gilt"
+      }
     ]
   },
   "units": {

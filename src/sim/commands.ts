@@ -84,6 +84,7 @@ import type { TechId } from './techData';
 import { runEndOfTurn } from './turn';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
+import { recomputeVisibility } from './visibility';
 
 // --- command types ----------------------------------------------------------
 
@@ -463,10 +464,19 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
     return fail(`Unit ${unit.id} cannot stop on (${tile.col}, ${tile.row})`);
   }
 
+  // The route is found over the *true* map, not over what this seat has charted.
+  // That is the Civ rule and it is deliberate (see `visibility.ts`): fog is a
+  // mask the interface reads, not a second blinded copy of the world, so a
+  // player may order a march into Terra Incognita and find out what is there by
+  // walking into it.
   const path = findPath(state, unit, tile);
   if (!path) return fail(`No path from (${unit.col}, ${unit.row}) to (${tile.col}, ${tile.row})`);
 
   advanceAlongPath(state, unit, path);
+  // The unit moved, so what its owner can see moved with it. One recompute per
+  // order rather than one per step: `advanceAlongPath` may walk five tiles, and
+  // only where it stopped decides what is lit.
+  recomputeVisibility(state, actor.id);
   return ok();
 }
 

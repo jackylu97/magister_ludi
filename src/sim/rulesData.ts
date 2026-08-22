@@ -47,6 +47,25 @@ export interface StackingRules {
   perCategoryPerTile: number;
 }
 
+/**
+ * How far an empire can see. The whole tuning surface of fog of war; the
+ * per-unit half of it (`sight`) lives in `data/units.json`, because how far a
+ * scout can see is a fact about scouts.
+ *
+ * See `src/sim/visibility.ts` for the model these two numbers feed.
+ */
+export interface VisibilityRules {
+  /** Extra hexes of sight a unit gains for standing on high ground. */
+  hillsBonus: number;
+  /**
+   * How far a city sees from its own centre. Its *owned* tiles are visible
+   * regardless — a border is a thing you patrol — so this is only the reach past
+   * them, and it is deliberately a unit's worth rather than the claim radius: a
+   * town is not a watchtower.
+   */
+  citySight: number;
+}
+
 export interface HealingRules {
   /** Hit points restored to a unit that spent none of its movement. */
   perTurnIfRested: number;
@@ -184,6 +203,7 @@ export interface RulesConfig {
   game: GameRules;
   movement: MovementRules;
   stacking: StackingRules;
+  visibility: VisibilityRules;
   healing: HealingRules;
   combat: CombatRules;
   cities: CityRules;

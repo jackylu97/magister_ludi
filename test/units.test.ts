@@ -5,6 +5,7 @@ import { RULES } from '../src/sim/rulesData';
 import { type GameState, type Unit, createUnit, newGame } from '../src/sim/state';
 import { unitDef } from '../src/sim/unitData';
 import { unitsOnTile } from '../src/sim/units';
+import { resetVisibility } from '../src/sim/visibility';
 
 /** A blank two-player state on a flat grassland rectangle. */
 function flatState(width = 16, height = 8): GameState {
@@ -17,6 +18,9 @@ function flatState(width = 16, height = 8): GameState {
     ],
   });
   state.map = createMap({ width, height, terrain: 'grassland' });
+  // The board was replaced under this state; the fog grids were sized for the
+  // old one. See `resetVisibility`.
+  resetVisibility(state);
   state.units = [];
   state.nextEntityId = 1;
   return state;

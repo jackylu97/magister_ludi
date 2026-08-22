@@ -97,6 +97,18 @@ export interface UnitDef {
   category: UnitCategory;
   /** Movement points refilled at the start of every turn. */
   movement: number;
+  /**
+   * How many hexes this unit reveals around itself, before the high-ground
+   * bonus (`rules.visibility.hillsBonus`) is added.
+   *
+   * A field of its own rather than a multiple of `movement`, and that is the
+   * whole of the scout's identity: a horseman moves four and sees two, a scout
+   * moves three and sees three. Tying sight to speed would have made the mounted
+   * line the explorers by accident and left the scout with nothing that is only
+   * its own. Read by `sightOf` in `visibility.ts`, which is the only place it is
+   * interpreted.
+   */
+  sight: number;
   maxHp: number;
   /**
    * What the unit is worth in a stand-up fight, attacking or defending. 0 for

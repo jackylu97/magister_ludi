@@ -359,6 +359,7 @@ describe('end-of-turn pipeline', () => {
       'healUnits',
       'advanceFortify',
       'resetMovement',
+      'refreshVisibility',
     ]);
   });
 

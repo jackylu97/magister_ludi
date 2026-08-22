@@ -78,6 +78,7 @@ import {
 import { type TileYield, isWorkableTerrain, tileYield } from './terrainData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
+import { recomputeVisibility } from './visibility';
 
 const CITIES = RULES.cities;
 
@@ -271,6 +272,11 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // yields it reports are the ones it will actually collect. `collectYields`
   // recomputes this anyway, and gets the same answer.
   assignCitizens(state, city);
+  // And it is looking from the moment it exists. Refreshed *here* rather than
+  // inside `createCity`, because a city sees its own territory and the territory
+  // is claimed two lines above — a refresh in the constructor would light the
+  // centre and leave the opening ring dark until something else moved.
+  recomputeVisibility(state, ownerId);
   return city;
 }
 
@@ -847,6 +853,7 @@ export function bestExpansionTile(state: GameState, city: City): Tile | null {
  * race they could not have known about.
  */
 export function expandBorders(state: GameState): void {
+  const grew = new Set<number>();
   for (const city of state.cities) {
     const cost = nextBorderCost(city.tilesClaimed);
     if (city.culture < cost) continue;
@@ -855,5 +862,13 @@ export function expandBorders(state: GameState): void {
     if (!claimTile(state, city, tile)) continue;
     city.culture -= cost;
     city.tilesClaimed += 1;
+    grew.add(city.ownerId);
+  }
+  // A border is a thing you patrol: ground this empire now owns is ground it can
+  // see (see `visibility.ts`). Refreshed once per *player* at the end of the
+  // sweep rather than once per claim, because two of one empire's cities growing
+  // in the same turn is one change to that empire's map.
+  for (const player of state.players) {
+    if (grew.has(player.id)) recomputeVisibility(state, player.id);
   }
 }

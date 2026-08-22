@@ -55,6 +55,14 @@ would change every seeded outcome. No further rename passes.
 - Piece visuals rebuild off a fingerprint of `(id, col, row, hp, ownerId)` — any new
   visual-affecting unit property must be added to the fingerprint.
 - `turnEnded` assumes player id === array index; revisit if players become removable.
+  `visibility` and `citySightings` (M8) make the same assumption and revisit with it.
+- Fog of war patches the board **in place** (`src/render3d/fog3d.ts`): a visibility change is
+  per-instance matrix/tint writes for changed tiles only, never a board rebuild. Anything that
+  adds instances to `buildBoard` must pass `tile:` to `collector.add` or it will keep drawing
+  on hexes nobody has explored — `test/fog3d.test.ts` asserts the accounting.
+- Layers that filter by the local seat (units, cities, territory, lens, walk/death animations)
+  are rebuilt off `FogStats.tiles` in the render loop, not off their own fingerprints — a new
+  seat-filtered layer must be added there too.
 - City-panel yields are derived state refreshed in `collectYields`; mutations outside
   the turn pipeline show stale numbers until end of turn. Narrowed since: the
   `setLockedTiles` command re-runs `assignCitizens` for that city immediately (the

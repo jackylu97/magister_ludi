@@ -62,6 +62,12 @@ import { RULES } from './rulesData';
 import { chooseStartPositions, planStartingUnits } from './startPositions';
 import type { TechId } from './techData';
 import { type UnitTypeId, unitDef } from './unitData';
+import {
+  type CitySighting,
+  newVisibilityGrid,
+  recomputeAllVisibility,
+  recomputeVisibility,
+} from './visibility';
 
 /**
  * Bumped whenever the shape of `GameState`, `GameConfig` or the command log
@@ -85,8 +91,13 @@ import { type UnitTypeId, unitDef } from './unitData';
  *    `costIncrement` multiplies. A v8 log replayed against this build would
  *    price every settler after the first at the old flat cost, which is a
  *    different game rather than an older one.
+ * 10: Milestone 8 — fog of war: `GameState.visibility` and
+ *    `GameState.citySightings`, plus the one rule that follows from them (an
+ *    attack requires the target tile be visible to the attacker). A v9 log
+ *    replayed here can find an attack refused that the older build allowed, so
+ *    the log is not merely older, it is a different game.
  */
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 // --- players ----------------------------------------------------------------
 
@@ -340,6 +351,39 @@ export interface GameState {
    */
   tileOwner: (number | null)[];
   /**
+   * What each player can see, as one grid per player id — so
+   * `visibility[playerId][tileIndex(map, col, row)]` is 0 hidden, 1 explored,
+   * 2 visible. See `visibility.ts` for the model and `newVisibilityGrid` for
+   * the shape.
+   *
+   * Parallel arrays over `map.tiles`, exactly like `tileOwner`, and here for the
+   * same three reasons: the map is generation output that a save does not carry,
+   * this is read constantly and written rarely, and a flat array indexed the way
+   * every other tile lookup is indexed cannot fall out of step with the board.
+   *
+   * Indexed by player *id*, which is the player's index in `players` (see the
+   * `turnEnded` trap in CLAUDE.md) — the same assumption that array already
+   * makes, and it will be revisited in the same breath if players ever become
+   * removable.
+   *
+   * Plain integer arrays rather than a packed string or a bitfield. A standard
+   * map is 4,160 tiles, so four seats cost about 33 kB of JSON — measured, not
+   * guessed — and a packed representation would buy back a rounding error at the
+   * price of making every state dump unreadable by eye.
+   */
+  visibility: number[][];
+  /**
+   * What each player *remembers* of the cities they have seen, one list per
+   * player id, sorted by city id.
+   *
+   * The other half of `explored`: terrain is static, so a remembered tile can
+   * simply be drawn, but a city is a thing that was there — it has a name and a
+   * flag and both can change while nobody is watching. This is the minimum that
+   * lets an unwatched site keep a (dimmed) banner instead of a blank hex. See
+   * `CitySighting` in `visibility.ts` for why it is deliberately not richer.
+   */
+  citySightings: CitySighting[][];
+  /**
    * The last player standing, once there is one; `null` while the game is live.
    *
    * Conquest is the only victory v1 has, and it is decided by
@@ -434,9 +478,19 @@ export function newGame(config: GameConfig): GameState {
     // One slot per tile, all unclaimed. Sized once, here, so every later access
     // is a plain indexed read that cannot be out of range.
     tileOwner: new Array<number | null>(map.tiles.length).fill(null),
+    // One grid per seat, all blank. Sized here for the reason `tileOwner` is:
+    // every later access is a plain indexed read that cannot be out of range.
+    visibility: normalized.players.map(() => newVisibilityGrid(map.tiles.length)),
+    citySightings: normalized.players.map(() => []),
     winnerId: null,
   };
   placeStartingUnits(state);
+  // The opening scouting report. `createUnit` has already refreshed each seat as
+  // its pieces landed, but a seat whose roster is empty — a scenario, a future
+  // spectator — would otherwise start with no grid computed at all, and a state
+  // that is only correct when somebody owns something is a state waiting to be
+  // wrong.
+  recomputeAllVisibility(state);
   return state;
 }
 
@@ -492,6 +546,13 @@ export function createUnit(
     hasAttacked: false,
   };
   state.units.push(unit);
+  // A new pair of eyes opens here, whoever asked for them: the `spawnUnit`
+  // command, a city finishing production, a scenario seating an opening roster.
+  // Refreshing in the constructor rather than at each of those call sites is the
+  // same argument `breakFortify` makes from inside `advanceAlongPath` — there is
+  // exactly one place a unit comes into existence, so there is exactly one place
+  // that can forget.
+  recomputeVisibility(state, ownerId);
   return unit;
 }
 
@@ -506,7 +567,13 @@ export function createUnit(
 export function removeUnit(state: GameState, unitId: number): boolean {
   const index = state.units.findIndex((unit) => unit.id === unitId);
   if (index < 0) return false;
+  const ownerId = state.units[index]!.ownerId;
   state.units.splice(index, 1);
+  // The counterpart of the refresh in `createUnit`, and it has to be read off
+  // the unit *before* the splice: a piece that dies is a piece whose owner stops
+  // seeing the ground around it, and by the time this returns there is nothing
+  // left to ask whose it was.
+  recomputeVisibility(state, ownerId);
   return true;
 }
 

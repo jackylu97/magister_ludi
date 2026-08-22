@@ -27,6 +27,7 @@ import { MaterialLibrary } from '../src/render3d/toon';
 import { createMap } from '../src/sim/map';
 import { type GameState, newGame } from '../src/sim/state';
 import { type UnitTypeId, unitDef } from '../src/sim/unitData';
+import { resetVisibility } from '../src/sim/visibility';
 
 /**
  * The floating unit badges.
@@ -227,6 +228,9 @@ describe('badges in the units layer', () => {
       players: [{ name: 'A', color: '#d4502e', isHuman: true }],
     });
     game.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    // The board was replaced under this state; the fog grids were sized for the
+    // old one. See `resetVisibility`.
+    resetVisibility(game);
     game.tileOwner = new Array<number | null>(12 * 8).fill(null);
     game.cities = [];
     game.units = types.map((type, i) => ({

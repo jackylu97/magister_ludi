@@ -11,6 +11,7 @@ import {
 } from 'three';
 
 import {
+  MARGINALIA_CELLS,
   NUMERAL_CELLS,
   RESOURCE_ICON_FILES,
   TILE_ICON_CELLS,
@@ -39,6 +40,7 @@ import { type Tile, createMap, getTileAt } from '../src/sim/map';
 import { RESOURCE_IDS, type ResourceId } from '../src/sim/resourceData';
 import { TECH_IDS } from '../src/sim/techData';
 import { computeFreshwater } from '../src/sim/water';
+import { resetVisibility } from '../src/sim/visibility';
 import { LENS_DEFAULTS, type LensView } from '../src/ui/mapView';
 
 /**
@@ -99,6 +101,9 @@ function flatState(width = 10, height = 8): GameState {
     ],
   });
   state.map = createMap({ width, height, terrain: 'grassland' });
+  // The board was replaced under this state; the fog grids were sized for the
+  // old one. See `resetVisibility`.
+  resetVisibility(state);
   state.units = [];
   state.cities = [];
   state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
@@ -254,14 +259,30 @@ describe('resource props on the board', () => {
 // --- the tile atlas ---------------------------------------------------------
 
 describe('the tile-icon atlas', () => {
-  it('has a cell for every resource, every yield voice and every digit', () => {
+  it('has a cell for every resource, every yield voice, every digit and the marginalia', () => {
     const resources = TILE_ICON_CELLS.filter((cell) => cell.set === 'resource').map((c) => c.id);
     const yields = TILE_ICON_CELLS.filter((cell) => cell.set === 'yield').map((c) => c.id);
     const numerals = TILE_ICON_CELLS.filter((cell) => cell.set === 'numeral').map((c) => c.id);
+    const margins = TILE_ICON_CELLS.filter((cell) => cell.set === 'marginalia').map((c) => c.id);
     expect(resources).toEqual([...RESOURCE_IDS]);
     expect(yields).toEqual([...YIELD_KEYS]);
     expect(numerals).toEqual([...NUMERAL_CELLS]);
-    expect(TILE_ICON_CELLS).toHaveLength(RESOURCE_IDS.length + 3 + 10);
+    expect(margins).toEqual([...MARGINALIA_CELLS]);
+    expect(TILE_ICON_CELLS).toHaveLength(
+      RESOURCE_IDS.length + 3 + 10 + MARGINALIA_CELLS.length,
+    );
+  });
+
+  /**
+   * The marginalia went on the *end* of the cell list, and that is load-bearing
+   * rather than tidy: the list decides texture coordinates, so a set inserted
+   * anywhere else would shift every cell after it and silently re-point marks on
+   * the board at somebody else's picture. This pins the resources at index 0 and
+   * the serpent last.
+   */
+  it('appends new sets rather than inserting them', () => {
+    expect(tileIconIndex({ set: 'resource', id: RESOURCE_IDS[0]! })).toBe(0);
+    expect(tileIconIndex({ set: 'marginalia', id: 'serpent' })).toBe(TILE_ICON_CELLS.length - 1);
   });
 
   it('names an artwork file for every mark that has one', () => {

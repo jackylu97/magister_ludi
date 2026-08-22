@@ -19,6 +19,7 @@ import { foundCityAt } from '../src/sim/cities';
 import { createMap, getTileAt, type Tile } from '../src/sim/map';
 import { type GameState, newGame } from '../src/sim/state';
 import { computeFreshwater } from '../src/sim/water';
+import { resetVisibility } from '../src/sim/visibility';
 import type { LensView } from '../src/ui/mapView';
 
 /**
@@ -35,6 +36,9 @@ function flatState(width = 12, height = 8): GameState {
     ],
   });
   state.map = createMap({ width, height, terrain: 'grassland' });
+  // The board was replaced under this state; the fog grids were sized for the
+  // old one. See `resetVisibility`.
+  resetVisibility(state);
   state.units = [];
   state.cities = [];
   state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);

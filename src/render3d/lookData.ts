@@ -545,6 +545,74 @@ export interface TableSpec {
   reach: number;
 }
 
+/**
+ * Fog of war, drawn as the chart-table finishing what it started.
+ *
+ * Entry VII of the design ledger put the board on a magister's chart-table and
+ * said the backdrop would *become* the fog: unexplored ground is not black, it
+ * is chart nobody has drawn on yet. This block is that promise cashed. There are
+ * three states and each is a different kind of drawing decision:
+ *
+ *   hidden    the diorama is gone — every instance on the hex zero-scaled — and
+ *             what is left is a blank vellum patch with a faint hex ruled on it,
+ *             plus, very occasionally, a serpent (`serpentChance`).
+ *   explored  the diorama is there and *knocked back*: every instance's tint is
+ *             multiplied by `exploredTint`. Remembered, not watched.
+ *   visible   untouched.
+ *
+ * The knock-back is deliberately **loud**. A remembered region has to read as a
+ * different state of the world at a glance — the currently-watched ground is a
+ * lit bubble and everything else is chart — so `exploredDim` starts at a value
+ * nobody would call subtle and is meant to be tuned *down* from obvious rather
+ * than up from invisible. Half-strength desaturation is the kind of thing that
+ * looks careful in a screenshot and is invisible in play.
+ *
+ * It is a **wash**, not a dimming, and the difference is the whole look: every
+ * instance's ink is mixed toward `exploredWash` — a flat grey-vellum — so
+ * remembered ground loses its *colour* rather than its light. Dimming makes it
+ * darker, and darker ground reads as night; washing makes it paler and greyer,
+ * and that reads as a chart. The mechanism that gets there through a
+ * multiplier-only tint attribute is `InstanceCollector.setWash`.
+ */
+export interface FogSpec {
+  /**
+   * How far a remembered tile's ink is mixed toward `exploredWash`: 0 leaves it
+   * alone, 1 replaces it entirely. **The fog's one prominent tuning knob.**
+   */
+  exploredDim: number;
+  /** The flat tone remembered ground is washed toward. Grey vellum: chart. */
+  exploredWash: number;
+  /** The blank chart a hidden tile shows: colour, cover and how far it floats. */
+  chartColor: number;
+  chartOpacity: number;
+  /** Chart patch size as a fraction of the hex radius. */
+  chartScale: number;
+  chartLift: number;
+  /** The hex ruled on the blank chart. */
+  ghostColor: number;
+  ghostOpacity: number;
+  /** Ring outer radius and band width, as fractions of the hex radius. */
+  ghostOuter: number;
+  ghostWidth: number;
+  ghostLift: number;
+  /**
+   * Chance a hidden tile carries a serpent, hashed per tile — so it is a fixed
+   * property of the map rather than something that appears and disappears as the
+   * fog moves over it.
+   */
+  serpentChance: number;
+  /**
+   * How much unexplored elbow room a serpent needs: it is only drawn on a tile
+   * whose whole disc of this radius is also hidden, which is what makes the
+   * marginalia mass in the *empty quarters* of the chart instead of speckling
+   * the frontier a scout has half-opened.
+   */
+  serpentRegion: number;
+  /** Serpent decal size as a fraction of the hex radius, and its float. */
+  serpentSize: number;
+  serpentLift: number;
+}
+
 export interface LookSpec {
   lightAzimuth: number;
   lightElevation: number;
@@ -751,6 +819,13 @@ export interface IconSpec {
   inkColor: number;
   /** The ink a yield glyph is printed in, over its voice's own disc. */
   yieldInkColor: number;
+  /**
+   * The marginalia's size within its cell, and the ink it is drawn in. Larger
+   * and paler than a roundel's mark: it has no disc to sit inside (see
+   * `MARGINALIA_CELLS`), and it is a whisper on the chart rather than a label.
+   */
+  marginaliaScale: number;
+  marginaliaColor: number;
 }
 
 /**
@@ -929,6 +1004,7 @@ export interface View3DData {
   pieces: PiecesSpec;
   city: CitySpec;
   table: TableSpec;
+  fog: FogSpec;
   rivers: RiverSpec;
   territory: TerritorySpec;
   look: LookSpec;
@@ -1107,6 +1183,29 @@ export const VIEW3D: View3DData = {
     edgePad: viewJson.table.edgePad,
     reach: viewJson.table.reach,
   },
+  fog: {
+    // Clamped: a mix outside [0, 1] is a typo, and both failure modes — no fog
+    // at all, or remembered ground painted flat grey with the terrain gone —
+    // read as the renderer being broken rather than as a bad number.
+    exploredDim: Math.max(0, Math.min(1, viewJson.fog.exploredDim)),
+    exploredWash: named(viewJson.fog.exploredWash, 'fog.exploredWash'),
+    chartColor: named(viewJson.fog.chartColor, 'fog.chartColor'),
+    chartOpacity: viewJson.fog.chartOpacity,
+    chartScale: viewJson.fog.chartScale,
+    chartLift: viewJson.fog.chartLift,
+    ghostColor: named(viewJson.fog.ghostColor, 'fog.ghostColor'),
+    ghostOpacity: viewJson.fog.ghostOpacity,
+    ghostOuter: viewJson.fog.ghostOuter,
+    ghostWidth: viewJson.fog.ghostWidth,
+    ghostLift: viewJson.fog.ghostLift,
+    // Clamped: a chance outside [0, 1] is a typo, and the two failure modes are
+    // "no marginalia at all" and "a carpet of snakes" — both read as a bug in
+    // the fog rather than as a bad number.
+    serpentChance: Math.max(0, Math.min(1, viewJson.fog.serpentChance)),
+    serpentRegion: Math.max(0, Math.round(viewJson.fog.serpentRegion)),
+    serpentSize: viewJson.fog.serpentSize,
+    serpentLift: viewJson.fog.serpentLift,
+  },
   rivers: {
     color: named(viewJson.rivers.color, 'rivers.color'),
     width: viewJson.rivers.width,
@@ -1227,6 +1326,8 @@ export const VIEW3D: View3DData = {
     paperColor: named(viewJson.icons.paperColor, 'icons.paperColor'),
     inkColor: named(viewJson.icons.inkColor, 'icons.inkColor'),
     yieldInkColor: named(viewJson.icons.yieldInkColor, 'icons.yieldInkColor'),
+    marginaliaScale: viewJson.icons.marginaliaScale,
+    marginaliaColor: named(viewJson.icons.marginaliaColor, 'icons.marginaliaColor'),
   },
   resources: {
     spread: viewJson.resources.spread,

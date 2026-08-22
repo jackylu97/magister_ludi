@@ -41,8 +41,10 @@ import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
 import { getTileAt, neighborTiles, tileHex, tileIndex } from '../sim/map';
 import type { City, GameState } from '../sim/state';
+import { EXPLORED, HIDDEN } from '../sim/visibility';
 
 import type { BoardGeometry } from './board3d';
+import { type FogLevels, levelAt, seesCell } from './fog3d';
 import { hashSigned } from './hash';
 import { InstanceCollector, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
@@ -50,6 +52,18 @@ import { VIEW3D, playerPieceColor } from './lookData';
 import type { MaterialLibrary } from './toon';
 
 const CITY = VIEW3D.city;
+/**
+ * How far a remembered tile's territory tint and border ring are knocked back.
+ *
+ * The board's own instances are *washed toward grey vellum*
+ * (`InstanceCollector.setWash`), which is not available to a decal whose whole
+ * look is one flat colour at one opacity — washing a territory tint toward grey
+ * would print grey territory, which says nothing. Fading the opacity is the same
+ * statement in the only vocabulary this layer has, and it is derived from the
+ * fog's own strength rather than tuned separately, so the two can never drift
+ * into a board where the terrain is washed out and the borders on it are not.
+ */
+const TERRITORY_FADE = 1 - VIEW3D.fog.exploredDim;
 const BOARD = VIEW3D.board;
 const OVERLAY = VIEW3D.overlay;
 const TERRITORY = VIEW3D.territory;
@@ -87,6 +101,7 @@ export class CityLayer {
     materials: MaterialLibrary,
     faceCamera: Quaternion,
     shadows: boolean,
+    levels: FogLevels = null,
   ): void {
     disposeInstancedGroup(this.group);
 
@@ -99,6 +114,13 @@ export class CityLayer {
     const pole = VIEW3D.palette[CITY.poleColor] ?? 0x222222;
 
     for (const city of state.cities) {
+      // A town is drawn only where the seat is watching. A city on ground this
+      // player merely *remembers* keeps its (dimmed) DOM banner — see
+      // `citySightings` in `src/sim/visibility.ts` and `cityBanners.ts` — but no
+      // houses: a memory of a town is a name on a chart, not a model of it, and
+      // drawing the model would be the board reporting a population nobody has
+      // counted in twenty turns.
+      if (!seesCell(levels, map, city.col, city.row)) continue;
       const tile = getTileAt(map, city.col, city.row);
       if (!tile) continue;
       const centre = cellCenter(city.col, city.row);
@@ -240,6 +262,7 @@ export class TerritoryLayer {
     state: GameState,
     geometry: BoardGeometry,
     materials: MaterialLibrary,
+    levels: FogLevels = null,
   ): void {
     disposeInstancedGroup(this.group);
 
@@ -257,6 +280,19 @@ export class TerritoryLayer {
       if (playerId === undefined) continue;
       const tile = map.tiles[index];
       if (!tile) continue;
+      // A border is drawn on a chart like a coastline is, so it survives on
+      // ground the seat has merely explored — dimmed, along with everything else
+      // on a remembered tile. Nothing at all on ground nobody has seen.
+      //
+      // The deliberate simplification: what is drawn on an explored tile is the
+      // *current* owner rather than the remembered one, so a border that moved
+      // while nobody was watching updates itself. Remembering territory properly
+      // would mean a second per-player grid the size of `tileOwner`, to correct a
+      // leak the player learns nothing actionable from. City *identity* does get
+      // remembered honestly, because a banner names a thing (see `citySightings`).
+      const level = levelAt(levels, map, tile.col, tile.row);
+      if (level === HIDDEN) continue;
+      const faded = level === EXPLORED ? TERRITORY_FADE : 1;
 
       const color = playerColor(state, playerId);
       const centre = cellCenter(tile.col, tile.row);
@@ -264,7 +300,7 @@ export class TerritoryLayer {
 
       collector.add(geometry.territory, [color], new Matrix4().compose(at, identity, unit), {
         overlay: true,
-        opacity: TERRITORY.tintOpacity,
+        opacity: TERRITORY.tintOpacity * faded,
       });
 
       let edge = false;
@@ -282,7 +318,7 @@ export class TerritoryLayer {
       if (!edge) continue;
       collector.add(geometry.ring, [color], new Matrix4().compose(at, identity, unit), {
         overlay: true,
-        opacity: TERRITORY.borderOpacity,
+        opacity: TERRITORY.borderOpacity * faded,
       });
     }
 

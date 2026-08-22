@@ -105,7 +105,12 @@ import {
   wheatStand,
   workerMini,
 } from './geometry';
-import { type Tint, InstanceCollector, disposeInstancedGroup } from './instances';
+import {
+  type InstanceHandle,
+  type Tint,
+  InstanceCollector,
+  disposeInstancedGroup,
+} from './instances';
 import { VIEW3D, shade } from './lookData';
 import {
   type HeightClass,
@@ -387,6 +392,19 @@ export class BoardGeometry {
   /** The blob shadow under a billboard, and the foot it stands in. */
   readonly blob: BufferGeometry;
   readonly standee: BufferGeometry;
+  /**
+   * The blank chart under an unexplored hex: a patch of vellum, the faint hex
+   * ruled on it, and the serpent that occasionally swims across the empty
+   * quarters. Drawn by `fog3d.ts`, which switches them on exactly where the
+   * board's own instances have been switched off.
+   *
+   * They live in `BoardGeometry` rather than in the fog layer because every
+   * shared shape on this board does — one geometry per shape, built once,
+   * reused by every board ever built.
+   */
+  readonly chartPatch: BufferGeometry;
+  readonly ghostRing: BufferGeometry;
+  readonly serpentDecal: BufferGeometry;
   /** The pale band on a land tile that touches the sea. */
   readonly shoreRing: BufferGeometry;
   /** One river's worth of water, lying across one grout gap. */
@@ -460,6 +478,14 @@ export class BoardGeometry {
       BOARD.hexRadius * DECOR.shore.outer,
       BOARD.hexRadius * DECOR.shore.width,
     );
+    const FOG = VIEW3D.fog;
+    this.chartPatch = hexDecal(BOARD.hexRadius * FOG.chartScale);
+    this.ghostRing = hexRing(
+      BOARD.hexRadius * FOG.ghostOuter,
+      BOARD.hexRadius * FOG.ghostWidth,
+    );
+    const serpent = tileIconRect({ set: 'marginalia', id: 'serpent' });
+    this.serpentDecal = atlasDecal(serpent.u0, serpent.v0, serpent.u1, serpent.v1);
   }
 
   dispose(): void {
@@ -496,6 +522,9 @@ export class BoardGeometry {
     this.blob.dispose();
     this.standee.dispose();
     this.shoreRing.dispose();
+    this.chartPatch.dispose();
+    this.ghostRing.dispose();
+    this.serpentDecal.dispose();
   }
 }
 
@@ -506,8 +535,43 @@ export interface Bounds {
   maxZ: number;
 }
 
+/**
+ * One instance that two tiles have a say in: a river ribbon, which lies in the
+ * grout *between* `a` and `b` rather than on either of them.
+ *
+ * The one case the tile→instance map cannot express, and it needs its own shape
+ * rather than being filed under one of the two hexes, because the fog rule for
+ * an edge is a rule about the pair: a river is drawn while *either* bank is
+ * charted. Filed under one tile it would vanish the moment that bank went dark
+ * and leave a river running out of nowhere on the other side.
+ */
+export interface SharedEdge {
+  handle: InstanceHandle;
+  a: number;
+  b: number;
+}
+
+/**
+ * Which instances belong to which tile — the whole of the incremental-fog
+ * mechanism, handed out by the board build.
+ *
+ * `own` is keyed by `tileIndex` and holds every instance that lives *on* one
+ * hex: its prism, its peak and snow, its trees and boulders and clutter, its
+ * resource props, its sand band. `shared` is the rivers. Between them they
+ * account for every instance in the board's buffers, which is what lets a
+ * visibility change be a handful of attribute writes instead of a rebuild —
+ * `test/fog3d.test.ts` asserts the accounting, because a tile whose scatter went
+ * unregistered would be a hidden hex with three trees still growing on it.
+ */
+export interface TileInstances {
+  own: Map<number, InstanceHandle[]>;
+  shared: SharedEdge[];
+}
+
 export interface BuiltBoard {
   group: Group;
+  /** Which instance slots each tile owns. See `TileInstances`. */
+  tiles: TileInstances;
   /** World-space extent of one copy of the board, for framing and clamping. */
   bounds: Bounds;
   /** Horizontal wrap period in world units. */
@@ -647,7 +711,8 @@ function addRivers(
   map: GameMap,
   geometry: BoardGeometry,
   collector: InstanceCollector,
-): void {
+): SharedEdge[] {
+  const edges: SharedEdge[] = [];
   const position = new Vector3();
   const quaternion = new Quaternion();
   const scale = new Vector3();
@@ -670,16 +735,24 @@ function addRivers(
       position.set(center.x + delta.x / 2, y, center.z + delta.z / 2);
       quaternion.setFromAxisAngle(axis, edgeYaw(direction));
       scale.set(length, 1, width);
-      collector.add(
+      const handle = collector.add(
         geometry.river,
         [RIVERS.color],
         new Matrix4().compose(position, quaternion, scale),
         // No inverted hull: a dark rim around a line this thin would swallow it,
         // and the grout it sits in is already the outline.
+        // No `tile` either: a river belongs to *two* hexes, which is a thing the
+        // one-tile map cannot say. It is reported separately, below.
         { outlined: false },
       );
+      edges.push({
+        handle,
+        a: tileIndex(map, tile.col, tile.row),
+        b: tileIndex(map, neighbor.col, neighbor.row),
+      });
     }
   }
+  return edges;
 }
 
 /**
@@ -810,6 +883,8 @@ function addDecorations(
   center: { x: number; z: number },
   geometry: BoardGeometry,
   collector: InstanceCollector,
+  /** `tileIndex` of `tile`, so every scrap of scatter is fog-addressable. */
+  cell: number,
 ): void {
   const position = new Vector3();
   const quaternion = new Quaternion();
@@ -848,6 +923,7 @@ function addDecorations(
         DECOR.variation.value,
         DECOR.variation.hue,
       ),
+      tile: cell,
     });
   };
 
@@ -1030,7 +1106,16 @@ export function buildBoard(
 ): BuiltBoard {
   const group = new Group();
   const period = wrapWidth(map);
-  const collector = new InstanceCollector({ copyOffsets: [-period, 0, period] });
+  // `snapshot` and `forceTint` are what make the board *patchable*: fog of war
+  // hides a tile by zero-scaling its instances and knocks a remembered one back
+  // by multiplying its tints, and both operations have to be undoable on a
+  // buffer that is built once per map and never rebuilt (design-notes, the M8
+  // hard perf constraint). See `CollectorOptions`.
+  const collector = new InstanceCollector({
+    copyOffsets: [-period, 0, period],
+    snapshot: true,
+    forceTint: true,
+  });
 
   const position = new Vector3();
   const quaternion = new Quaternion();
@@ -1039,6 +1124,9 @@ export function buildBoard(
 
   for (const tile of map.tiles) {
     const center = cellCenter(tile.col, tile.row);
+    // Every instance this tile produces names it, so fog can find all of them
+    // again without a search. See `InstanceCollector.tileHandles`.
+    const cell = tileIndex(map, tile.col, tile.row);
 
     const kind = heightClassOf(tile);
     const s = tileScale(tile);
@@ -1060,7 +1148,7 @@ export function buildBoard(
       // `vertexColors` is what turns on the contact shading baked into the
       // prism; the tint is the per-tile wobble on top of it. The two multiply
       // in the shader and neither knows about the other.
-      { outlined: !water, vertexColors: true, tint: terrainTint(tile) },
+      { outlined: !water, vertexColors: true, tint: terrainTint(tile), tile: cell },
     );
 
     const top = tileTopY(tile);
@@ -1080,13 +1168,17 @@ export function buildBoard(
       );
       collector.add(geometry.peak, [shade(VIEW3D.palette.slate!, 0.08)], peakMatrix, {
         tint: peakTint,
+        tile: cell,
       });
       // The snow rides the peak's own matrix, so it cannot slide off a summit
       // whose scale and yaw are hashed. Not outlined: an inverted hull around a
       // cap this small closes over the white and leaves a dark pip.
-      collector.add(geometry.snow, [DECOR.snowCap.color], peakMatrix, { outlined: false });
-    } else if (!cityCells.has(tileIndex(map, tile.col, tile.row))) {
-      addDecorations(map, tile, top, center, geometry, collector);
+      collector.add(geometry.snow, [DECOR.snowCap.color], peakMatrix, {
+        outlined: false,
+        tile: cell,
+      });
+    } else if (!cityCells.has(cell)) {
+      addDecorations(map, tile, top, center, geometry, collector, cell);
     }
 
     // The sand band. A decal on the tile's own face rather than a wider prism
@@ -1103,12 +1195,12 @@ export function buildBoard(
         geometry.shoreRing,
         [DECOR.shore.color],
         new Matrix4().compose(position, quaternion, scale),
-        { overlay: true, opacity: DECOR.shore.opacity },
+        { overlay: true, opacity: DECOR.shore.opacity, tile: cell },
       );
     }
   }
 
-  addRivers(map, geometry, collector);
+  const rivers = addRivers(map, geometry, collector);
 
   const bounds = boardBounds(map);
   let drawCalls = collector.flush(group, materials, shadows);
@@ -1128,6 +1220,7 @@ export function buildBoard(
 
   return {
     group,
+    tiles: { own: collector.tileHandles(), shared: rivers },
     bounds,
     wrapWidth: period,
     tileCount: map.tiles.length,

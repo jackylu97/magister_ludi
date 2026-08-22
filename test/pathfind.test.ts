@@ -11,6 +11,7 @@ import {
 import { type GameState, type Unit, createUnit, newGame } from '../src/sim/state';
 import { moveCost } from '../src/sim/terrainData';
 import type { UnitTypeId } from '../src/sim/unitData';
+import { resetVisibility } from '../src/sim/visibility';
 
 /** A blank state whose map is a flat grassland rectangle, ready to be sculpted. */
 function flatState(width = 10, height = 8): GameState {
@@ -23,6 +24,9 @@ function flatState(width = 10, height = 8): GameState {
     ],
   });
   state.map = createMap({ width, height, terrain: 'grassland' });
+  // The board was replaced under this state; the fog grids were sized for the
+  // old one. See `resetVisibility`.
+  resetVisibility(state);
   state.units = [];
   state.nextEntityId = 1;
   return state;

@@ -297,6 +297,109 @@ units, leaders. Future milestones name their features from this table at birth.
 
 ---
 
+## Entry XI — Fog of war: the chart draws itself in (M8, **built** 2026-08-22)
+
+**The model.** Three states per player per tile, in one integer array per seat
+(`GameState.visibility`, schema 10): `0` hidden — **Terra Incognita** — `1`
+explored, `2` visible. `explored` is monotone and that is the whole reason one
+number carries both facts: "have I ever seen this" only ever climbs, "am I
+seeing it now" is recomputed from scratch, and storing them separately would be
+two arrays that could disagree. Sight is data (`units.json` `sight`: scout 3,
+everything else 2; `rules.json` `visibility.hillsBonus` 1, `citySight` 2) and a
+city additionally sees every tile it owns unconditionally — a border is a thing
+you patrol. Measured: 33 kB of JSON for four seats on a standard map, 4.2% of a
+full state dump. Plain arrays; packing would buy a rounding error and cost
+readability.
+
+**One evaluator for what a ridge hides.** `hasLineOfSight` moved out of
+`combat.ts` into `los.ts` and is now shared by ranged fire and by sight. That is
+not tidying: two implementations would drift into a board where a player can
+shoot what they cannot see, which is a rule learned and then broken. The
+mountain itself is seen, which falls out of the rule rather than being
+special-cased — `hexLine` excludes the endpoints, so a blocker cannot block
+itself.
+
+**The sim stays omniscient, with exactly one exception.** Commands validate
+against the truth, Civ-style: pathfinding runs on the real map and a unit may be
+marched into ground nobody has charted. Everything else — info panels, lenses,
+banners, the pieces themselves — is presentation gated by the *local* seat.
+The exception is `attack`, which now requires the target tile be visible to the
+attacker, checked inside `planCombat` so the attackable tint, the forecast card
+and the reducer refuse it in the same breath. It is asked *after* range and line
+of sight, so the sentence a player reads stays the most specific true one.
+
+**Recompute model.** `recomputeVisibility(state, playerId)` floods every source
+the player owns and reports a delta `{became: [{col,row,level}]}`. From scratch
+rather than incrementally, because an incremental "un-see the disc you left" has
+to be right about every overlapping source and its failure mode is a permanently
+lit tile nobody is standing near — fifty turns later and unattributable. Cost is
+`O(sources × r²)` plus one integer compare per tile to produce the delta;
+measured at 0.6 ms for a 75-unit empire on a standard map. Hooks: `createUnit`
+and `removeUnit` (the two low-level primitives every unit passes through, so no
+creation path can forget), `moveUnit`, `foundCityAt`, `expandBorders`,
+`applyCombat` (naming the seats that changed hands), and a final
+`refreshVisibility` turn phase that redraws every seat once the world has
+stopped moving.
+
+**City memory.** `GameState.citySightings` — last-seen `{cityId, col, row, name,
+ownerId}` per seat, so an explored-but-unwatched site keeps a *dimmed, dashed,
+un-clickable* banner instead of vanishing. Deliberately minimal: a memory is a
+name on a chart, not a population count. Territory is the documented exception
+and shows current truth on explored ground — remembering it properly would mean
+a second `tileOwner`-sized grid per seat to correct a leak nothing actionable
+comes out of.
+
+**The render, and the constraint.** The hard perf constraint held: a visibility
+change is per-instance writes for changed tiles only, never a board rebuild. The
+board build now emits a tile→instance map (`TileInstances`), the collector keeps
+flat `Float32Array` snapshots of what it uploaded (2.9 MB on a standard map —
+`Matrix4` objects would have cost tens), and `FogView.apply` diffs against its
+own record. **Measured on a standard map with 40,152 instances: one unit's move
+repaints 19 tiles for 246 matrix + 231 tint writes in 0.04 ms; a seat change is
+124 tiles and 2,721 writes in 0.1 ms; an idle frame is zero writes.** Rivers are
+`shared` between two tiles and drawn while *either* bank is charted, because a
+ribbon filed under one hex would run out of nowhere on the other side.
+
+**Terra Incognita as a picture, not an opacity.** A hidden tile's whole scatter
+is zero-scaled and a blank vellum patch with a faint ruled hex is switched on in
+its place, at the substrate's constant height — unexplored ground has no
+elevation to report, and a chart patch that followed the terrain would leak the
+thing the fog is hiding. Sparse hash-placed serpents (*hic svnt dracones*,
+Entry X) sit in regions whose whole neighbourhood is unexplored, so the
+marginalia mass in the empty quarters instead of speckling a half-opened
+frontier.
+
+**The knock-back is loud on purpose (user, 2026-08-22).** Explored ground is
+*washed*, not dimmed: every instance's ink is mixed toward a flat grey vellum
+(`fog.exploredWash` = `chartWash` `#b3ab99`) by **`fog.exploredDim`, v0 0.50** —
+the fog's one prominent knob, set high so it is tuned *down* from obvious rather
+than up from invisible. Dimming would have made remembered land darker, and
+darker reads as night; washing makes it paler and greyer, which reads as chart.
+Land, water, decor, rivers and the inverted-hull outlines all take it equally,
+so the wash is uniform and the watched region is an unmistakable lit bubble.
+Mechanically it is a multiplier per bucket — `((1−mix)·ink + mix·target) / ink` —
+because per-instance tints multiply rather than replace, which is exactly what
+keeps the hand-cut per-tile wobble and the baked contact shading alive
+underneath.
+
+**Presentation choices, written down.** Terrain-ish readouts survive on
+explored ground (yield glyphs, resource roundels, the settler wash, territory);
+unit-ish ones need current sight (pieces, badges, HP bars, walk and death
+animations, the hover card's unit line). The settler lens is the one deliberate
+leak — validity is computed from live truth, so a remembered hex a rival has
+since claimed reads as refused before this player could know why — kept because
+a lens that recommends sites the reducer will refuse is worse than one that is
+slightly too well informed.
+
+**The stress harness ships with it**, as the milestone required: 300 units and
+40 cities founded and spawned by ordinary accepted commands on a seeded standard
+map. **Measured: fixture 111 ms, one full turn resolution 3 ms, replay of 376
+commands to a byte-identical snapshot 85 ms, board build 18 ms, chart layer
+7 ms.** Operation counts are asserted tightly, wall clocks generously — a timing
+assertion tuned tight is a test that fails on somebody else's Tuesday.
+
+---
+
 ## Entry IV — Parked ideas (deliberately later; do not build yet)
 
 Noted 2026-08-21 at the user's request, with explicit anti-scope-creep intent. These are GOOD
@@ -624,14 +727,15 @@ Core loop complete through combat + resources (671 tests). Mechanics-before-AI s
   along the same player-chosen lines; pillaging a route hurts twice). Until then the game has
   no roads, which also keeps early movement honest. Trade-route design remains open on yields
   (the tall-subsidy flag in Entry I) but the road mechanism is settled.
-- **M8 Fog of war & exploration** — tri-state per seat, chart-table unexplored render (the
-  world drawn in), scout identity, per-player info honesty. (Embarkation folds in if needed.)
-  **HARD PERF CONSTRAINT (approved 2026-08-22):** fog rendering must be INCREMENTAL —
-  per-instance tint/matrix writes for changed tiles only; NEVER a board rebuild on visibility
-  change. Ships WITH the stress harness: a seeded fixture (~300 units, 40 cities, standard map)
-  asserting bounded per-move visibility work (operation counts primary, generous wall-clock
-  secondary) so fog cost is pinned by CI from birth. **User pulled M8 ahead of M7 (2026-08-22)
-  — fog + harness first, workers after.**
+- **M8 Fog of war & exploration — BUILT 2026-08-22 (see Entry XI).** Tri-state per seat,
+  chart-table unexplored render (the world drawn in), scout identity (sight is its own stat,
+  not a multiple of movement), per-player info honesty. Embarkation did *not* fold in and is
+  still deferred with the rest of naval. The HARD PERF CONSTRAINT held and is now asserted:
+  one move repaints 19 tiles / 477 instance writes against a 40,152-instance board, and the
+  board is never rebuilt. The stress harness shipped with it (`test/stress.test.ts`, 300 units
+  / 40 cities / standard map, operation counts primary and wall clocks generous) so fog cost is
+  pinned by CI from birth. **User pulled M8 ahead of M7 (2026-08-22) — fog + harness first,
+  workers after.** 839 tests.
 - **M9 Gold loop** — unit/building maintenance + city purchasing.
 - **M10 Happiness & Authority + site bonuses** — Entry I in full; luxuries live via M7;
   tall/wide harness assertions begin.

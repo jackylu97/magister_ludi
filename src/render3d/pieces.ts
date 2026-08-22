@@ -81,6 +81,7 @@ import { type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
 
 import { type UnitBadges, badgeCenterY, hpBarY } from './badges3d';
 import { type BoardGeometry, modelClassFor, pieceHeightFor } from './board3d';
+import { type FogLevels, seesCell } from './fog3d';
 import type { UnitPiece } from './geometry';
 import { hashSigned } from './hash';
 import {
@@ -444,6 +445,21 @@ export class UnitLayer {
    * is, so a board without them is a board of anonymous tokens. `selectedUnitId`
    * only brightens one rim; it is part of the build rather than an overlay
    * because a badge belongs to its unit, and the layer is cheap to rebuild.
+   *
+   * Fog
+   * ---
+   * `levels` is the local seat's visibility grid, or null for no fog. A unit is
+   * drawn only where that seat is *currently watching* — `visible`, never merely
+   * `explored`. That is the whole of "explored tiles remember terrain, not
+   * armies": the ground is static and can be drawn from memory, a warrior is
+   * not and cannot.
+   *
+   * Filtering here rather than patching instances is deliberate and is *not* the
+   * thing the M8 perf constraint forbids. This layer is already rebuilt from
+   * scratch every time any unit moves — far more often than fog changes — so a
+   * fog-aware rebuild costs nothing that was not already being spent. The
+   * constraint is about the **board**, which is thirty times larger and built
+   * once per map (see `fog3d.ts`).
    */
   build(
     state: GameState,
@@ -454,6 +470,7 @@ export class UnitLayer {
     sprites: UnitSprites | null = null,
     badges: UnitBadges | null = null,
     selectedUnitId: number | null = null,
+    levels: FogLevels = null,
   ): void {
     this.disposeGroup();
 
@@ -470,6 +487,10 @@ export class UnitLayer {
     const scale = new Vector3(1, 1, 1);
 
     for (const unit of state.units) {
+      // Out of sight. The stack tally above still counted it, and that is right:
+      // where a piece stands in its tile's fan is a fact about the tile, so a
+      // unit that steps out of the fog does not shuffle the ones beside it.
+      if (!seesCell(levels, map, unit.col, unit.row)) continue;
       const placement = placePiece(map, unit, stackIndex.get(unit.id) ?? 0);
       const slots: InstanceHandle[] = [];
       this.handles.set(unit.id, slots);

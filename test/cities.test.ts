@@ -45,6 +45,7 @@ import {
 import { tileYield } from '../src/sim/terrainData';
 import { runEndOfTurn } from '../src/sim/turn';
 import { UNIT_TYPE_IDS, unitDef } from '../src/sim/unitData';
+import { resetVisibility } from '../src/sim/visibility';
 
 const CITIES = RULES.cities;
 
@@ -65,6 +66,9 @@ function flatState(width = 16, height = 12, terrain: 'desert' | 'grassland' = 'd
     ],
   });
   state.map = createMap({ width, height, terrain });
+  // The board was replaced under this state; the fog grids were sized for the
+  // old one. See `resetVisibility`.
+  resetVisibility(state);
   state.tileOwner = new Array<number | null>(width * height).fill(null);
   state.units = [];
   state.nextEntityId = 1;
@@ -1357,7 +1361,7 @@ describe('determinism with cities', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 9 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 10 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1368,7 +1372,7 @@ describe('determinism with cities', () => {
     // Bumped to 9 by escalating settlers: players grew `settlersBuilt`, the
     // counter a settler's price is multiplied by. (7 was combat — `hasAttacked`,
     // `fortifiedTurns`, `City.hp`, `eliminated`, `winnerId`; 8 was resources.)
-    expect(SCHEMA_VERSION).toBe(9);
+    expect(SCHEMA_VERSION).toBe(10);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

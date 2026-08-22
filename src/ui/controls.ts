@@ -592,6 +592,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function setLocalPlayer(playerId: number): void {
     if (playerId === localPlayerId) return;
     localPlayerId = playerId;
+    // The board is masked by whoever is sitting at it. First, before the
+    // overlays refresh: a reachable-tile highlight or a worked-tile dot computed
+    // against the previous seat's fog would be drawn for one frame over ground
+    // the new seat has never seen.
+    renderer.setFogSeat?.(playerId);
     // A selection belongs to the seat that made it, and so does an open city —
     // and move mode belongs to the selection.
     selectedId = null;
@@ -1500,7 +1505,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * routes captured a moment ago and cut to the tiles actually entered.
    *
    * Every player's units, not just the local seat's: turns are simultaneous, and
-   * an enemy column arriving is exactly the thing a player must not miss.
+   * an enemy column arriving is exactly the thing a player must not miss. Which
+   * of those marches the seat is actually *entitled* to watch is the renderer's
+   * question and is answered there (`Renderer3D.animateMove` refuses one that
+   * ends out of sight), for the same reason the piece itself is filtered there:
+   * fog is a property of the board, and this module would only be able to
+   * re-derive it.
    */
   function animateResolvedMarches(orders: readonly StandingOrder[]): void {
     if (orders.length === 0 || prefersReducedMotion()) return;
@@ -1851,6 +1861,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     hoveredCityId = cityId;
     refreshSpotlight();
   }
+
+  // The board starts masked by the seat this client is playing. Sent once, here,
+  // rather than being an argument to the renderer's constructor: whose game this
+  // is belongs to the UI (CLAUDE.md, hard rule 3), and a renderer that had to be
+  // told at construction could not be handed a different seat later.
+  renderer.setFogSeat?.(localPlayerId);
 
   return {
     clearSelection,

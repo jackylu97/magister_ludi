@@ -117,11 +117,10 @@
  */
 
 import { assignCitizens, cityAt } from './cities';
-import { type Hex, hexDistance, hexLine } from './hex';
+import { blocksLineOfSight, hasLineOfSight } from './los';
 import {
   type GameMap,
   type Tile,
-  getTile,
   getTileAt,
   tileHex,
   wrappedDistance,
@@ -136,7 +135,8 @@ import {
   removeUnit,
   unitById,
 } from './state';
-import { defenseBonus, isWaterTerrain, moveCost } from './terrainData';
+import { defenseBonus } from './terrainData';
+import { isVisibleTo, recomputeVisibilityFor } from './visibility';
 import { type UnitDef, unitDef } from './unitData';
 import { unitsOnTile } from './units';
 import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
@@ -226,65 +226,19 @@ export function fortifyError(unit: Unit): string | null {
 // --- geometry ---------------------------------------------------------------
 
 /**
- * The copy of `to` nearest `from` across the east–west seam.
+ * Line of sight moved to `los.ts` when fog of war arrived, and the move is the
+ * point rather than a tidy-up: the fog system asks the *same* question about the
+ * same ridge, and two implementations of "what does a mountain hide" would drift
+ * into a board where a player can shoot something they cannot see. Re-exported
+ * here because this is where the rule has always been read from — callers that
+ * ask combat about combat's own geometry keep asking combat.
  *
- * Shifting a hex by whole map widths in *offset* space changes axial `q` by
- * `k · width` and leaves `r` alone, which is the same identity `wrappedDistance`
- * is built on. Line-of-sight needs the un-wrapped pair rather than a distance,
- * because `hexLine` is pure hex math and knows nothing about cylinders.
+ * The rule is unchanged: the straight hex line, endpoints excluded, blocked by
+ * land nothing can walk over. A forest does not block, a hill does not block,
+ * and standing on a hill buys an *archer* nothing (it buys a lookout a hex of
+ * sight — that is a fog rule, and it lives with the fog).
  */
-function nearestCopy(map: GameMap, from: Hex, to: Hex): Hex {
-  let best = to;
-  let bestDistance = Infinity;
-  for (let k = -1; k <= 1; k++) {
-    const candidate: Hex = { q: to.q + k * map.width, r: to.r };
-    const distance = hexDistance(from, candidate);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      best = candidate;
-    }
-  }
-  return best;
-}
-
-/**
- * Does this tile stop an arrow?
- *
- * Derived from the movement table rather than from the string `"mountain"`: a
- * blocker is land nothing can walk over, which today is exactly the mountains
- * and would automatically include any future impassable ridge a designer adds.
- * Water blocks nothing — an archer shoots across a strait.
- */
-export function blocksLineOfSight(tile: Tile): boolean {
-  if (isWaterTerrain(tile.terrain)) return false;
-  return moveCost(tile.terrain, tile.feature, tile.hills) === null;
-}
-
-/**
- * Can a shooter on `from` see `to`?
- *
- * Deliberately the crudest rule that is still a rule: the straight hex line
- * between the two tiles, endpoints excluded, and a mountain strictly between
- * them blocks the shot. No elevation model, no "hills see over forests", no
- * arc — a forest does not block, a hill does not block, and standing on a hill
- * buys nothing. That is a simplification and not a placeholder: the real Civ
- * rule needs a height field per tile and a visibility system to hang it on, and
- * inventing half of one here would be a rule players learn and then have taken
- * away. `hexLine`'s tie-break nudge makes the chosen line a pure function of the
- * two endpoints, so a shot that is blocked is blocked in every replay.
- */
-export function hasLineOfSight(map: GameMap, from: Tile, to: Tile): boolean {
-  const start = tileHex(from);
-  const goal = nearestCopy(map, start, tileHex(to));
-  const line = hexLine(start, goal);
-  for (let i = 1; i < line.length - 1; i++) {
-    const tile = getTile(map, line[i]!);
-    // Off the poles: not a wall, just not there.
-    if (!tile) continue;
-    if (blocksLineOfSight(tile)) return false;
-  }
-  return true;
-}
+export { blocksLineOfSight, hasLineOfSight };
 
 /**
  * Is there a river along the edge `from` and `to` share?
@@ -488,6 +442,30 @@ function planCombat(
     }
   }
 
+  /**
+   * The one place fog of war is a *rule* rather than a mask.
+   *
+   * Everything else about visibility is presentation — the reducer is omniscient
+   * and a unit may be marched into ground nobody has charted (see
+   * `visibility.ts`). Shooting is different, because an attack names a tile and
+   * the player has to have had a reason to name it: an archer that could loose
+   * at a hex its empire cannot see would be a player reading the game's own
+   * memory rather than the board.
+   *
+   * Asked *after* range and line of sight so the sentence a player reads is the
+   * most specific true one — "out of range" and "no line of sight" are both
+   * sharper answers than "you cannot see there", and a melee unit adjacent to
+   * something invisible is a case that cannot arise anyway (a unit lights its own
+   * neighbours). It is asked inside `planCombat`, so the attackable-tile tint,
+   * the forecast card and the reducer refuse it as one.
+   */
+  if (!isVisibleTo(state, attacker.ownerId, tile.col, tile.row)) {
+    return {
+      ok: false,
+      error: `${def.name} cannot see (${tile.col}, ${tile.row})`,
+    };
+  }
+
   // --- strengths ---------------------------------------------------------
 
   const terrainBonus = defenseBonus(tile.terrain, tile.feature, tile.hills);
@@ -679,6 +657,10 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
   const { forecast, attacker, target, tile, baseToDefender, baseToAttacker, defenderFloor } =
     planned.plan;
   const band = COMBAT.rollBand;
+  // Read before anything can change hands: a captured civilian and a captured
+  // city both end this function owned by the attacker, and the empire that just
+  // *lost* them is the one whose map most needs redrawing.
+  const defenderOwnerBefore = target.unit?.ownerId ?? target.city?.ownerId ?? null;
 
   const outcome: CombatOutcome = {
     kind: forecast.kind,
@@ -766,6 +748,19 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
   }
 
   updateElimination(state);
+  // 6 — everybody's map. A fight moves eyes in more ways than a march does: a
+  // piece died (its owner sees less), a civilian or a town changed hands (two
+  // owners at once), the attacker advanced. `removeUnit` and `createUnit` cover
+  // the deaths on their own; the changes of ownership do not go through either,
+  // so the seats involved are named here rather than left to the turn phase —
+  // the board must not show a captured town still watched by the empire that
+  // lost it for the rest of the window.
+  recomputeVisibilityFor(state, [
+    attacker.ownerId,
+    ...(target.unit ? [target.unit.ownerId] : []),
+    ...(target.city ? [target.city.ownerId] : []),
+    ...(defenderOwnerBefore === null ? [] : [defenderOwnerBefore]),
+  ]);
   return { ok: true, outcome };
 }
 

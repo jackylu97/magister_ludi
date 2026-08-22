@@ -53,6 +53,7 @@ import {
   techRowCount,
 } from '../src/sim/techData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../src/sim/unitData';
+import { resetVisibility } from '../src/sim/visibility';
 
 const RESEARCH = RULES.research;
 
@@ -67,6 +68,9 @@ function flatState(width = 16, height = 12, terrain: 'desert' | 'grassland' = 'g
     ],
   });
   state.map = createMap({ width, height, terrain });
+  // The board was replaced under this state; the fog grids were sized for the
+  // old one. See `resetVisibility`.
+  resetVisibility(state);
   state.tileOwner = new Array<number | null>(width * height).fill(null);
   state.units = [];
   state.nextEntityId = 1;
@@ -855,8 +859,8 @@ describe('research in the log', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 9 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(9);
+  it('round-trips a schema 10 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(10);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

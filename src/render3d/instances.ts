@@ -121,6 +121,49 @@ interface Bucket {
   tinted: boolean;
   mesh: InstancedMesh | null;
   shell: InstancedMesh | null;
+  /**
+   * Copies of the matrix and colour buffers exactly as they were uploaded, kept
+   * only when the collector was built with `snapshot`.
+   *
+   * The cheap half of "put it back". `keepMatrices` holds `Matrix4` *objects*,
+   * which is right for the unit layer — a few hundred instances that are also
+   * read as transforms — and wrong for the board, where a hundred thousand boxed
+   * matrices would cost tens of megabytes to support an operation that only ever
+   * copies sixteen floats back where they came from. A flat `Float32Array` slice
+   * of what was already uploaded costs 64 bytes an instance and answers the same
+   * question.
+   */
+  baseMatrix: Float32Array | null;
+  baseColor: Float32Array | null;
+  /**
+   * Per-wash-strength multipliers for this bucket's ink and for its outline's,
+   * worked out once and reused. See `setWash`: the factor depends only on the
+   * bucket's colour and the strength asked for, and a board being washed is
+   * asking for one of two strengths on tens of thousands of instances.
+   */
+  washes: Map<number, { mesh: Tint; shell: Tint }>;
+}
+
+/**
+ * Per-instance writes issued since the last reset, by kind.
+ *
+ * Instrumentation, and it exists for exactly one reason: the fog of war's
+ * headline promise is that a visibility change costs writes proportional to the
+ * tiles that *changed*, never a board rebuild (design-notes, M8 hard perf
+ * constraint). That is a claim about operation counts, and a claim about
+ * operation counts wants a test that counts operations rather than a wall clock
+ * that a loaded CI box makes a liar of. `test/stress.test.ts` reads it.
+ *
+ * A module-level tally rather than a field, because the writes are issued by
+ * static methods on behalf of whichever layer is patching — and because it is a
+ * counter, not state: nothing reads it to decide anything.
+ */
+export const INSTANCE_WRITES = { matrix: 0, tint: 0 };
+
+/** Zeroes the tally. Called by a test before the operation it is measuring. */
+export function resetInstanceWrites(): void {
+  INSTANCE_WRITES.matrix = 0;
+  INSTANCE_WRITES.tint = 0;
 }
 
 /**
@@ -143,6 +186,28 @@ export interface CollectorOptions {
   copyOffsets: readonly number[];
   /** Keep the source matrices after flushing, so hidden instances can return. */
   keepMatrices?: boolean;
+  /**
+   * Keep flat copies of the uploaded matrix and colour buffers, so any instance
+   * can be hidden, tinted and put back exactly as it was built.
+   *
+   * The board's version of `keepMatrices`, and cheaper by two orders of
+   * magnitude — see `Bucket.baseMatrix`. Fog of war is the only caller: it needs
+   * to zero-scale a tile's whole scatter and later restore it, and to multiply a
+   * tile's tints toward vellum and later un-multiply them, on a buffer that is
+   * built once per map and must never be rebuilt.
+   */
+  snapshot?: boolean;
+  /**
+   * Give every bucket a per-instance colour attribute, even the ones nothing
+   * asked to tint.
+   *
+   * Without it a bucket that was collected untinted has no `instanceColor` at
+   * all and cannot be knocked back later. The board turns it on because fog
+   * dims *everything* on a remembered tile — the prism, the trees, the river,
+   * the sand band — and a river that stayed bright on a greyed-out hex would be
+   * the one thing on the board that had not heard about the fog.
+   */
+  forceTint?: boolean;
 }
 
 /**
@@ -158,10 +223,34 @@ export class InstanceCollector {
   private readonly materialIds = new Map<Material, number>();
   private readonly copyOffsets: readonly number[];
   private readonly keepMatrices: boolean;
+  private readonly snapshot: boolean;
+  private readonly forceTint: boolean;
+  /**
+   * Which instance slots belong to which tile, for callers that said so.
+   *
+   * The whole of the incremental-fog mechanism, and the reason it is collected
+   * *here* rather than derived afterwards: only the collector knows which bucket
+   * and which slots one `add` produced, and reconstructing that from the outside
+   * would mean a second implementation of the bucket key. A tile that named
+   * itself gets its handles remembered; everything else costs nothing.
+   */
+  private readonly byTile = new Map<number, InstanceHandle[]>();
 
   constructor(options: CollectorOptions) {
     this.copyOffsets = options.copyOffsets;
     this.keepMatrices = options.keepMatrices ?? false;
+    this.snapshot = options.snapshot ?? false;
+    this.forceTint = options.forceTint ?? false;
+  }
+
+  /**
+   * The tile→instances map built by this collector, keyed by `tileIndex`.
+   *
+   * Read after the adds (before or after `flush`, either is fine — a handle
+   * names a bucket and a slot range, both of which survive the flush).
+   */
+  tileHandles(): Map<number, InstanceHandle[]> {
+    return this.byTile;
   }
 
   /**
@@ -198,6 +287,14 @@ export class InstanceCollector {
       tint?: Tint;
       vertexColors?: boolean;
       material?: Material;
+      /**
+       * The `tileIndex` this instance belongs to, for callers whose instances
+       * can be hidden or tinted a tile at a time — which is the board, and fog
+       * of war, and nothing else. Deliberately *not* part of the bucket key: a
+       * tile is a fact about who owns an instance, never about how it is drawn,
+       * and keying on it would give every hex on the map its own draw call.
+       */
+      tile?: number;
     } = {},
   ): InstanceHandle {
     const custom = options.material ?? null;
@@ -237,9 +334,12 @@ export class InstanceCollector {
         opacity,
         matrices: [],
         tints: [],
-        tinted: false,
+        tinted: this.forceTint,
         mesh: null,
         shell: null,
+        baseMatrix: null,
+        baseColor: null,
+        washes: new Map(),
       };
       this.buckets.set(key, bucket);
     }
@@ -254,7 +354,13 @@ export class InstanceCollector {
       bucket.matrices.push(copy);
       bucket.tints.push(tint);
     }
-    return { bucket, start, count: this.copyOffsets.length } as HandleImpl;
+    const handle = { bucket, start, count: this.copyOffsets.length } as HandleImpl;
+    if (options.tile !== undefined) {
+      const list = this.byTile.get(options.tile);
+      if (list) list.push(handle);
+      else this.byTile.set(options.tile, [handle]);
+    }
+    return handle;
   }
 
   /** Builds the meshes and adds them to `group`. Returns the draw-call count. */
@@ -329,9 +435,30 @@ export class InstanceCollector {
         shell.frustumCulled = false;
         for (let i = 0; i < count; i++) shell.setMatrixAt(i, bucket.matrices[i]!);
         shell.instanceMatrix.needsUpdate = true;
+        if (bucket.tinted) {
+          // The rim gets a colour attribute too, all ones — so it changes
+          // nothing until something asks. Without it a washed-out tile would
+          // keep a full-strength black outline, and remembered ground would read
+          // as high-contrast line art rather than as a faded chart. See
+          // `setWash`, which is the only thing that ever writes here.
+          const ones = new Float32Array(count * 3).fill(1);
+          shell.instanceColor = new InstancedBufferAttribute(ones, 3);
+          shell.instanceColor.needsUpdate = true;
+        }
         group.add(shell);
         bucket.shell = shell;
         draws++;
+      }
+
+      if (this.snapshot) {
+        // Slices of what was *actually uploaded*, taken after the writes above,
+        // so a restore puts back the bytes the GPU already has rather than a
+        // recomputed guess at them. Empty buffers are still sliced (and cost
+        // nothing) so the two fields are never half-present.
+        bucket.baseMatrix = (mesh.instanceMatrix.array as Float32Array).slice();
+        bucket.baseColor = mesh.instanceColor
+          ? (mesh.instanceColor.array as Float32Array).slice()
+          : null;
       }
 
       if (!this.keepMatrices) bucket.matrices.length = 0;
@@ -348,24 +475,159 @@ export class InstanceCollector {
     for (let i = 0; i < handle.count; i++) {
       bucket.mesh?.setMatrixAt(handle.start + i, HIDDEN_MATRIX);
       bucket.shell?.setMatrixAt(handle.start + i, HIDDEN_MATRIX);
+      INSTANCE_WRITES.matrix += 1;
     }
     markUpdated(bucket);
   }
 
   /**
-   * Puts an instance back where it was built. Requires the collector to have
-   * been created with `keepMatrices`, which only the unit layer needs.
+   * Puts an instance back where it was built.
+   *
+   * Two sources, checked in that order: the `keepMatrices` list of `Matrix4`
+   * objects the unit layer holds, and the flat `snapshot` slice the board holds.
+   * A collector that asked for neither cannot restore, and says nothing about
+   * it — the instance simply stays hidden, which is what the caller has already
+   * seen on screen.
    */
   static restore(handle: InstanceHandle): void {
     const bucket = (handle as HandleImpl).bucket;
     for (let i = 0; i < handle.count; i++) {
-      const matrix = bucket.matrices[handle.start + i];
-      if (!matrix) continue;
-      bucket.mesh?.setMatrixAt(handle.start + i, matrix);
-      bucket.shell?.setMatrixAt(handle.start + i, matrix);
+      const slot = handle.start + i;
+      const matrix = bucket.matrices[slot];
+      if (matrix) {
+        bucket.mesh?.setMatrixAt(slot, matrix);
+        bucket.shell?.setMatrixAt(slot, matrix);
+        INSTANCE_WRITES.matrix += 1;
+        continue;
+      }
+      const base = bucket.baseMatrix;
+      if (!base) continue;
+      copyMatrix(base, bucket.mesh, slot);
+      copyMatrix(base, bucket.shell, slot);
+      INSTANCE_WRITES.matrix += 1;
     }
     markUpdated(bucket);
   }
+
+  /**
+   * Washes an instance's ink toward `target`: `mix` of 0 leaves it exactly as
+   * built, 1 replaces it wholesale.
+   *
+   * The per-instance colour attribute is a *multiplier*, not a colour (see
+   * `Tint`), which is what keeps this composable with everything already in the
+   * buffer — the per-tile terrain wobble, the per-tree value-and-hue drift, the
+   * contact shading baked into the prisms. All of it survives underneath. So a
+   * wash toward a flat tone cannot be written directly; what is written is the
+   * multiplier that *takes this bucket's own ink to the washed colour*:
+   *
+   *     factor = ((1 − mix)·ink + mix·target) / ink
+   *
+   * That is a per-*bucket* number, because ink is the instancing key, so it is
+   * computed once per strength and cached. A dark bucket gets a factor above 1
+   * and is lifted toward the wash; a bright one is pulled down toward it. Both
+   * are what "washed" means and neither is what a plain dimming multiplier
+   * could have done — dimming makes remembered ground *darker*, and darker
+   * ground reads as night rather than as memory.
+   *
+   * The outline shell is washed too, from the outline material's own colour, so
+   * a faded tile does not keep a full-strength black rim.
+   *
+   * `mix` of 0 restores exactly, which is why there is no separate reset.
+   */
+  static setWash(handle: InstanceHandle, target: number, mix: number): void {
+    const bucket = (handle as HandleImpl).bucket;
+    let wash = bucket.washes.get(mix);
+    if (!wash) {
+      wash = {
+        mesh: washFactor(bucketInk(bucket), target, mix),
+        shell: washFactor(outlineInk(bucket), target, mix),
+      };
+      bucket.washes.set(mix, wash);
+    }
+    writeWash(bucket.mesh, bucket.baseColor, handle, wash.mesh);
+    // The shell's stored base is all ones (see `flush`), so the factor is
+    // written straight in rather than multiplied by anything.
+    writeWash(bucket.shell, null, handle, wash.shell);
+  }
+}
+
+/** `0xRRGGBB` split into three 0..1 channels. */
+function channels(color: number): [number, number, number] {
+  return [((color >> 16) & 255) / 255, ((color >> 8) & 255) / 255, (color & 255) / 255];
+}
+
+/**
+ * The multiplier that takes `ink` to `mix(ink, target, mix)`.
+ *
+ * Guarded at both ends. A channel at or near zero cannot be multiplied *up* to
+ * anything — 0 × anything is 0 — so it is floored before the division, which
+ * costs a little accuracy on a near-black ink and avoids an infinity. The factor
+ * is then capped, because a genuinely black bucket would otherwise ask for a
+ * multiplier in the hundreds and blow out to white the moment the wash is
+ * anything at all.
+ */
+function washFactor(ink: number | null, target: number, mix: number): Tint {
+  if (ink === null || mix <= 0) return NO_TINT;
+  const from = channels(ink);
+  const to = channels(target);
+  const out: [number, number, number] = [1, 1, 1];
+  for (let k = 0; k < 3; k++) {
+    const base = Math.max(from[k]!, 0.02);
+    const washed = from[k]! * (1 - mix) + to[k]! * mix;
+    out[k] = Math.max(0, Math.min(8, washed / base));
+  }
+  return out;
+}
+
+/**
+ * The colour that stands for a bucket, for washing purposes.
+ *
+ * The *second* entry when there is more than one, because a multi-colour bucket
+ * is a hex prism and its groups are side / top cap / bottom cap — the top cap is
+ * the face anybody is looking at. `null` for a bucket with no ink of its own,
+ * which is a textured one (a badge, a roundel, a serpent): those carry a picture
+ * rather than a colour and there is nothing to wash.
+ */
+function bucketInk(bucket: Bucket): number | null {
+  if (bucket.colors.length === 0) return null;
+  return bucket.colors.length > 1 ? bucket.colors[1]! : bucket.colors[0]!;
+}
+
+/** The outline material's own ink, or null when this bucket has no shell. */
+function outlineInk(bucket: Bucket): number | null {
+  const material = bucket.shell?.material as { color?: { getHex(): number } } | undefined;
+  return material?.color ? material.color.getHex() : null;
+}
+
+/** Writes one handle's slots of a colour attribute, counting the writes. */
+function writeWash(
+  mesh: InstancedMesh | null,
+  base: Float32Array | null,
+  handle: InstanceHandle,
+  factor: Tint,
+): void {
+  const color = mesh?.instanceColor;
+  if (!color) return;
+  const values = color.array as Float32Array;
+  for (let i = 0; i < handle.count; i++) {
+    const at = (handle.start + i) * 3;
+    const r = base ? base[at]! : 1;
+    const g = base ? base[at + 1]! : 1;
+    const b = base ? base[at + 2]! : 1;
+    values[at] = r * factor[0];
+    values[at + 1] = g * factor[1];
+    values[at + 2] = b * factor[2];
+    INSTANCE_WRITES.tint += 1;
+  }
+  color.needsUpdate = true;
+}
+
+/** Copies one instance's 16 floats out of a snapshot and into a live mesh. */
+function copyMatrix(base: Float32Array, mesh: InstancedMesh | null, slot: number): void {
+  if (!mesh) return;
+  const target = mesh.instanceMatrix.array as Float32Array;
+  const at = slot * 16;
+  for (let k = 0; k < 16; k++) target[at + k] = base[at + k]!;
 }
 
 function markUpdated(bucket: Bucket): void {

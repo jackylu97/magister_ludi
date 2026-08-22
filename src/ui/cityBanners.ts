@@ -24,15 +24,33 @@
  * Two kinds of banner
  * -------------------
  * Your own cities are buttons: clicking one opens its panel. Everybody else's
- * are labels — name and size only, no production, no click. There is no fog of
- * war yet, so an enemy banner is visible whether it should be or not; showing
- * *less* on it is the honest version of that, and it is the shape the code will
- * already be in when fog arrives.
+ * are labels — name and size only, no production, no click.
+ *
+ * Three states, since fog of war
+ * ------------------------------
+ * The shape that was predicted here before M8 turned out to be right, and it
+ * grew a third case rather than changing:
+ *
+ *   watched     a city on a tile the local seat can see. The banner it always
+ *               had, read live from the city itself.
+ *   remembered  a city on a tile the seat has *explored* and is not watching.
+ *               The banner is drawn from `state.citySightings` — the name and
+ *               the flag as they were when last seen — and marked stale, so a
+ *               town that has since changed hands or been renamed says what the
+ *               player actually knows rather than what is true. No size, and no
+ *               production even on your own: a besieged city you cannot see is
+ *               not a city you can report the queue of.
+ *   unseen      no banner at all.
+ *
+ * Your own cities are always watched (a city sees its own centre), so the button
+ * half of this is untouched by fog — which is the property that made it safe to
+ * add the third state without rewriting the first two.
  */
 
 import { cityYields, queueItemName, turnsToFill, queueItemCost } from '../sim/cities';
 import type { Game } from '../sim/game';
 import type { City } from '../sim/state';
+import { type CitySighting, isExploredBy, isVisibleTo } from '../sim/visibility';
 import type { MapView } from './mapView';
 
 export interface CityBannersOptions {
@@ -84,11 +102,33 @@ interface Banner {
   row: number;
 }
 
+/**
+ * What one banner should say, whoever it is about and however it is known.
+ *
+ * A single shape for the watched case and the remembered one, because the DOM
+ * element is the same element: a city that slips out of sight must *become*
+ * stale rather than being torn down and rebuilt somewhere else, or every banner
+ * on a contested frontier would flicker as the fog breathed.
+ */
+interface BannerFacts {
+  cityId: number;
+  col: number;
+  row: number;
+  name: string;
+  ownerId: number;
+  /** Empty on a remembered city: population is not something memory keeps. */
+  pop: string;
+  production: string;
+  mine: boolean;
+  /** Drawn from `citySightings` rather than from the city itself. */
+  stale: boolean;
+}
+
 export function createCityBanners(options: CityBannersOptions): CityBanners {
   const { container, renderer, getGame, localPlayerId, onOpenCity, onHoverCity } = options;
   const banners = new Map<number, Banner>();
 
-  function build(city: City): Banner {
+  function build(cityId: number): Banner {
     const root = document.createElement('div');
     root.className = 'city-banner';
 
@@ -110,20 +150,32 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     // Enter/leave rather than over/out: these do not fire for movement between
     // the banner's own children, so hovering the name and then the production
     // line is one hover, not four events.
-    root.addEventListener('pointerenter', () => onHoverCity?.(city.id));
+    root.addEventListener('pointerenter', () => onHoverCity?.(cityId));
     root.addEventListener('pointerleave', () => onHoverCity?.(null));
     container.append(root);
-    return { root, name, pop, production, signature: '', col: city.col, row: city.row };
+    return { root, name, pop, production, signature: '', col: 0, row: 0 };
   }
 
   /**
-   * What a banner says. Production and its turn estimate are computed from the
-   * same functions the city panel and the simulation use, so a banner can never
-   * promise a turn count the panel disagrees with.
+   * What a live, watched city's banner says.
+   *
+   * Production and its turn estimate are computed from the same functions the
+   * city panel and the simulation use, so a banner can never promise a turn
+   * count the panel disagrees with.
    */
-  function describe(city: City, mine: boolean): { text: string[]; signature: string } {
-    const label = [`${city.population}`, city.name, ''];
-    if (!mine) return { text: label, signature: label.join('|') };
+  function watched(city: City, mine: boolean): BannerFacts {
+    const facts: BannerFacts = {
+      cityId: city.id,
+      col: city.col,
+      row: city.row,
+      name: city.name,
+      ownerId: city.ownerId,
+      pop: `${city.population}`,
+      production: '',
+      mine,
+      stale: false,
+    };
+    if (!mine) return facts;
 
     const item = city.queue[0];
     if (item) {
@@ -132,11 +184,65 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       const turns =
         cost === null ? null : turnsToFill(cost - city.hammerBasket, perTurn);
       const suffix = turns === null ? '' : ` · ${turns}t`;
-      label[2] = `${queueItemName(item)}${suffix}`;
+      facts.production = `${queueItemName(item)}${suffix}`;
     } else {
-      label[2] = 'idle';
+      facts.production = 'idle';
     }
-    return { text: label, signature: label.join('|') };
+    return facts;
+  }
+
+  /**
+   * What a remembered city's banner says: its name and its flag as they were,
+   * and nothing else.
+   *
+   * No population and no production even on your own city, because neither is a
+   * thing a chart remembers — a size on a banner over ground nobody is watching
+   * would be the interface quoting a number twenty turns stale as though it were
+   * current. The name and the flag are exactly what a paper map keeps.
+   */
+  function remembered(sighting: CitySighting, mine: boolean): BannerFacts {
+    return {
+      cityId: sighting.cityId,
+      col: sighting.col,
+      row: sighting.row,
+      name: sighting.name,
+      ownerId: sighting.ownerId,
+      pop: '',
+      production: '',
+      mine,
+      stale: true,
+    };
+  }
+
+  /**
+   * Every banner that should be on screen, in `state.cities` order.
+   *
+   * The rule per city is one of three (see the module docblock), and it is asked
+   * of the simulation's own visibility rather than re-derived here: a banner that
+   * disagreed with the board about whether a town is in sight would be the one
+   * element on the page contradicting the diorama under it.
+   */
+  function visibleBanners(): BannerFacts[] {
+    const { state } = getGame();
+    const seat = localPlayerId();
+    const facts: BannerFacts[] = [];
+    const shown = new Set<number>();
+
+    for (const city of state.cities) {
+      if (!isVisibleTo(state, seat, city.col, city.row)) continue;
+      shown.add(city.id);
+      facts.push(watched(city, city.ownerId === seat));
+    }
+    for (const sighting of state.citySightings[seat] ?? []) {
+      if (shown.has(sighting.cityId)) continue;
+      // A memory of a site the seat has never explored is not reachable — the
+      // sighting was recorded by looking at it — but a hand-edited save could
+      // hold one, and a banner floating over Terra Incognita would be the fog
+      // leaking through the one surface that is meant to respect it.
+      if (!isExploredBy(state, seat, sighting.col, sighting.row)) continue;
+      facts.push(remembered(sighting, sighting.ownerId === seat));
+    }
+    return facts;
   }
 
   function refresh(): void {
@@ -148,33 +254,39 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     const { state } = getGame();
     const seen = new Set<number>();
 
-    for (const city of state.cities) {
-      seen.add(city.id);
-      let banner = banners.get(city.id);
+    for (const facts of visibleBanners()) {
+      seen.add(facts.cityId);
+      let banner = banners.get(facts.cityId);
       if (!banner) {
-        banner = build(city);
-        banners.set(city.id, banner);
+        banner = build(facts.cityId);
+        banners.set(facts.cityId, banner);
       }
-      banner.col = city.col;
-      banner.row = city.row;
+      banner.col = facts.col;
+      banner.row = facts.row;
 
-      const mine = city.ownerId === localPlayerId();
-      const player = state.players[city.ownerId];
-      banner.root.classList.toggle('is-mine', mine);
+      const player = state.players[facts.ownerId];
+      banner.root.classList.toggle('is-mine', facts.mine);
+      // The stale class is what dims it. A separate class rather than a second
+      // colour, so the styling of "remembered" is one rule in the stylesheet and
+      // applies to the name, the flag rim and the whole card at once.
+      banner.root.classList.toggle('is-stale', facts.stale);
       banner.root.style.setProperty('--banner-color', player?.color ?? '#9fb0c2');
 
-      const described = describe(city, mine);
-      if (described.signature !== banner.signature) {
-        banner.signature = described.signature;
-        banner.pop.textContent = described.text[0]!;
-        banner.name.textContent = described.text[1]!;
-        banner.production.textContent = described.text[2]!;
-        banner.production.hidden = described.text[2] === '';
+      const signature = `${facts.pop}|${facts.name}|${facts.production}|${facts.stale ? 1 : 0}`;
+      if (signature !== banner.signature) {
+        banner.signature = signature;
+        banner.pop.textContent = facts.pop;
+        banner.pop.hidden = facts.pop === '';
+        banner.name.textContent = facts.name;
+        banner.production.textContent = facts.production;
+        banner.production.hidden = facts.production === '';
       }
 
       // Rebound every refresh: the seat can change under a banner, and a label
-      // that used to be yours must stop being a button.
-      banner.root.onclick = mine ? () => onOpenCity(city.id) : null;
+      // that used to be yours must stop being a button. A remembered city is
+      // never a button either — there is no panel to open on a memory.
+      banner.root.onclick =
+        facts.mine && !facts.stale ? () => onOpenCity(facts.cityId) : null;
     }
 
     for (const [id, banner] of [...banners]) {

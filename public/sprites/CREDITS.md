@@ -161,3 +161,19 @@ declare an intrinsic size of 256 px so the browser rasterises them larger than a
 asks for and the badge is downsampled rather than blown up. The fill colour in the files is
 the palette's ink, but nothing depends on it: the atlas builder recolours every icon to
 `badges.inkColor` from `data/view3d.json` at load, so the ink stays a data decision.
+
+## Marginalia (`icons/marginalia/`)
+
+**Original work for this project**, CC0 1.0, same 64 × 64 grid and same round caps, drawn a
+stroke lighter than the badges. There is one file and it is a garnish, not a readout.
+
+| File | Where it appears |
+| --- | --- |
+| `serpent.svg` | scattered sparsely over large unexplored regions — *hic svnt dracones* |
+
+The serpent is the only mark in this project that is *decoration*. Everything else on the
+board answers a question a player asked; this one exists because the chart-table fiction
+(design-notes Entry VII, Entry X) says an unfinished chart has monsters drawn in the empty
+quarters, and because a blank vellum hex with nothing on it reads as a rendering failure while
+a blank vellum hex with a small ink serpent on it reads as *unexplored*. It is hash-placed and
+deliberately rare — see `fog.serpentChance` in `data/view3d.json`.

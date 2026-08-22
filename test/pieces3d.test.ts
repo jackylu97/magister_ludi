@@ -27,6 +27,7 @@ import { MaterialLibrary } from '../src/render3d/toon';
 import { createMap } from '../src/sim/map';
 import { type GameState, newGame } from '../src/sim/state';
 import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../src/sim/unitData';
+import { resetVisibility } from '../src/sim/visibility';
 
 /**
  * The sculpted miniatures: one board model per *class* of unit, all standing on
@@ -330,6 +331,9 @@ describe('the units layer in pieces style', () => {
       players: [{ name: 'A', color: '#d4502e', isHuman: true }],
     });
     game.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    // The board was replaced under this state; the fog grids were sized for the
+    // old one. See `resetVisibility`.
+    resetVisibility(game);
     game.tileOwner = new Array<number | null>(12 * 8).fill(null);
     game.cities = [];
     game.units = types.map((type, i) => ({

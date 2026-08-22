@@ -71,6 +71,7 @@ import {
   signCityCells,
   signTerritory,
 } from './cities3d';
+import { type FogLevels, type FogStats, FogView, seesCell } from './fog3d';
 import { LensLayer, NO_LENS, sameLens } from './lens3d';
 import { VIEW3D, playerPieceColor } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
@@ -130,6 +131,22 @@ export class Renderer3D implements MapView {
   private readonly fallers = new Map<number, Group>();
 
   private board: BuiltBoard | null = null;
+  /**
+   * The fog of war: the blank-chart layer, and the per-instance patching that
+   * hides and knocks back the board. Rebuilt with the board and never after —
+   * see `fog3d.ts` for the constraint that is about.
+   */
+  private fog: FogView | null = null;
+  /**
+   * Whose eyes the board is drawn through, or `null` for an omniscient view.
+   *
+   * A *view* concept and not a simulation one, exactly like `localPlayerId` in
+   * `controls.ts` (CLAUDE.md, hard rule 3): the reducer is omniscient, and this
+   * is the mask the interface reads. Null is the honest default — until the UI
+   * says whose seat this is, there is no seat, and a board that guessed player 0
+   * would show one player's fog to a spectator.
+   */
+  private fogSeat: number | null = null;
   private state: GameState | null = null;
   private map: GameMap | null = null;
   private hover: HoverInfo | null = null;
@@ -182,6 +199,8 @@ export class Renderer3D implements MapView {
   private running = true;
   private buildMs = 0;
   private lastDrawCalls = 0;
+  /** What the last fog repaint cost. See `FogStats`. */
+  private lastFogStats: FogStats | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -276,6 +295,11 @@ export class Renderer3D implements MapView {
       }
       this.icons = icons;
       this.rebuildLens();
+      // The blank chart's serpents are cells of this atlas, so the one layer
+      // that could not be finished without it is finished now. The single
+      // re-build of the chart layer in a session, and deliberately not a rebuild
+      // of the *board*: the fog's own instances are the only ones affected.
+      this.rebuildFog();
       this.invalidate();
     });
   }
@@ -331,6 +355,7 @@ export class Renderer3D implements MapView {
     this.rebuildTerritory();
     this.rebuildOverlays();
     this.rebuildLens();
+    this.applyFog();
     this.invalidate();
   }
 
@@ -380,6 +405,83 @@ export class Renderer3D implements MapView {
     return cells;
   }
 
+  /**
+   * Builds the fog view over whatever board is currently up, and paints it.
+   *
+   * Tied to the board's own lifetime because it holds that board's tile→instance
+   * map: a rebuilt board has new buffers and every handle the old fog was
+   * holding points at meshes that have been disposed. Called from exactly two
+   * places — after a board build, and when the icon atlas lands and the chart
+   * can finally grow its marginalia — and from nowhere per frame.
+   */
+  private rebuildFog(): void {
+    if (this.fog) {
+      this.scene.remove(this.fog.group);
+      this.fog.dispose();
+      this.fog = null;
+    }
+    if (!this.board || !this.map) return;
+    this.fog = new FogView(this.map, this.board.tiles);
+    this.fog.buildChart(this.geometry, this.materials, this.icons);
+    this.scene.add(this.fog.group);
+    this.applyFog();
+  }
+
+  /**
+   * The local seat's visibility grid, or null when there is no seat (or no
+   * state, or a seat id that names nobody).
+   */
+  private fogLevels(): FogLevels {
+    if (this.fogSeat === null || !this.state) return null;
+    return this.state.visibility[this.fogSeat] ?? null;
+  }
+
+  /**
+   * Repaints the board for the current seat's visibility, and returns what that
+   * cost. Per-instance writes only; see `fog3d.ts`.
+   */
+  private applyFog(): FogStats | null {
+    const levels = this.fogLevels();
+    if (!this.fog || !levels) return null;
+    return this.fog.apply(levels);
+  }
+
+  /**
+   * Draws the board through one player's eyes, or through nobody's.
+   *
+   * The seat-change gesture. It repaints the whole board — every tile's level
+   * differs from the one before it — which is a large per-instance sweep and
+   * still not a rebuild, and it is a dev-harness action rather than something
+   * the product does (CLAUDE.md: hot-seat is a harness). See `MapView.setFogSeat`.
+   */
+  setFogSeat(playerId: number | null): void {
+    if (this.fogSeat === playerId) return;
+    this.fogSeat = playerId;
+    this.applyFog();
+    // Everything that filters by the seat's own eyes has to follow it.
+    this.rebuildUnits();
+    this.rebuildCities();
+    this.rebuildTerritory();
+    this.rebuildLens();
+    this.invalidate();
+  }
+
+  /** What the last fog repaint cost, for the on-page stats line. */
+  get fogStats(): FogStats | null {
+    return this.lastFogStats;
+  }
+
+  /**
+   * Is the local seat watching this cell right now? True everywhere when there
+   * is no seat, which is the omniscient board the 2D pipelines and the galleries
+   * draw. The predicate the *animations* filter on — the layers use `seesCell`
+   * on the grid directly.
+   */
+  private canSeeCell(col: number, row: number): boolean {
+    if (!this.map) return true;
+    return seesCell(this.fogLevels(), this.map, col, row);
+  }
+
   private rebuildBoard(map: GameMap): void {
     if (this.board) {
       this.scene.remove(this.board.group);
@@ -391,6 +493,7 @@ export class Renderer3D implements MapView {
     this.buildMs = performance.now() - started;
     this.map = map;
     this.scene.add(this.board.group);
+    this.rebuildFog();
     this.view.setBoard(this.board.bounds, this.board.wrapWidth);
     this.invalidate();
   }
@@ -418,6 +521,7 @@ export class Renderer3D implements MapView {
       this.sprites,
       this.badges,
       this.selectedUnitId,
+      this.fogLevels(),
     );
     // A walk in flight keeps its piece hidden across the rebuild; the sample
     // loop restores it when the animation ends.
@@ -433,13 +537,14 @@ export class Renderer3D implements MapView {
       this.materials,
       this.view.camera.quaternion.clone(),
       this.shadows,
+      this.fogLevels(),
     );
     this.citiesSignature = signCities(this.state);
   }
 
   private rebuildTerritory(): void {
     if (!this.state) return;
-    this.territory.build(this.state, this.geometry, this.materials);
+    this.territory.build(this.state, this.geometry, this.materials, this.fogLevels());
     this.territorySignature = signTerritory(this.state);
   }
 
@@ -484,6 +589,7 @@ export class Renderer3D implements MapView {
       // The resource markers stand up and face the camera, which never moves:
       // one constant rotation, resolved here exactly as it is for the badges.
       this.view.camera.quaternion.clone(),
+      this.fogLevels(),
     );
     this.invalidate();
   }
@@ -802,6 +908,14 @@ export class Renderer3D implements MapView {
    */
   animateMove(unitId: number, from: CellRef, walked: readonly CellRef[]): void {
     if (!this.state) return;
+    // Fog refuses the animation outright rather than letting a walker slide
+    // across it. The resting piece is already filtered by the unit layer, so
+    // without this an enemy column marching out of sight would be the one thing
+    // on the board that ignored the fog — and a *standalone* mesh at that, which
+    // no per-instance patch could reach. Judged at the destination, which is
+    // where the simulation already has the unit.
+    const arrival = walked[walked.length - 1] ?? from;
+    if (!this.canSeeCell(arrival.col, arrival.row)) return;
     this.animations.start(unitId, from, walked, performance.now());
     if (this.animations.activeUnits().includes(unitId)) {
       this.units.hide(unitId);
@@ -822,6 +936,10 @@ export class Renderer3D implements MapView {
    */
   animateDeath(fallen: FallenUnit): void {
     if (!this.map || !this.state) return;
+    // The same rule as `animateMove`, for the same reason: a piece toppling on
+    // ground this seat is not watching would be a death it is not entitled to
+    // have seen.
+    if (!this.canSeeCell(fallen.col, fallen.row)) return;
     this.deaths.start(fallen.id, performance.now());
     if (!this.deaths.activeUnits().includes(fallen.id)) return;
     this.spawnFaller(fallen);
@@ -1159,7 +1277,22 @@ export class Renderer3D implements MapView {
     // already going to be drawn, and it cannot be forgotten. Moves, spawns,
     // damage, deaths and the stored orders that resolve during a turn change
     // are all caught by it.
-    if (this.state && signUnits(this.state) !== this.unitsSignature) {
+    // Fog first, because everything below filters by it.
+    //
+    // Repainted per drawn frame rather than off a fingerprint of its own, and
+    // the cost of that is a single integer compare per tile — `apply` writes
+    // only where a level actually moved (see `fog3d.ts`). A fingerprint would
+    // have to hash four thousand integers to answer the same question, and a
+    // *notification* would have to be plumbed through every command, every turn
+    // phase and every seat change without ever being forgotten. The frame the
+    // renderer was already going to draw is the honest place to ask.
+    const fogged = this.applyFog();
+    if (fogged) this.lastFogStats = fogged;
+    // Any tile that changed level can add or remove a piece, a town, a border
+    // or a mark, so the layers that filter by the seat's eyes are rebuilt with
+    // the same one call the ordinary fingerprints would have made.
+    const fogMoved = (fogged?.tiles ?? 0) > 0;
+    if (this.state && (fogMoved || signUnits(this.state) !== this.unitsSignature)) {
       this.rebuildUnits();
       this.rebuildOverlays();
     }
@@ -1175,11 +1308,20 @@ export class Renderer3D implements MapView {
       // showing exactly that rule and would otherwise keep the old answer.
       if (this.lensView.mode === 'settler') this.rebuildLens();
     }
-    if (this.state && signCities(this.state) !== this.citiesSignature) this.rebuildCities();
-    if (this.state && signTerritory(this.state) !== this.territorySignature) {
+    if (this.state && (fogMoved || signCities(this.state) !== this.citiesSignature)) {
+      this.rebuildCities();
+    }
+    if (this.state && (fogMoved || signTerritory(this.state) !== this.territorySignature)) {
       this.rebuildTerritory();
       // Borders decide whose ground a settler may stand on, so the same applies.
       if (this.lensView.mode === 'settler') this.rebuildLens();
+    }
+    // The lens draws nothing on Terra Incognita, so the ground it covers moved.
+    if (fogMoved && this.lensView.mode === 'none' && !this.lensView.yields) {
+      // Nothing is up but the roundels; they are scoped by fog too.
+      if (this.lensView.resources) this.rebuildLens();
+    } else if (fogMoved) {
+      this.rebuildLens();
     }
     // The light rig follows the pan target, so it must be recomputed on any
     // frame the camera could have moved — which is every frame we draw.
@@ -1204,6 +1346,7 @@ export class Renderer3D implements MapView {
     this.territory.dispose();
     this.lens.dispose();
     this.overlays.dispose();
+    this.fog?.dispose();
     if (this.board) this.board.dispose();
     this.geometry.dispose();
     this.materials.dispose();

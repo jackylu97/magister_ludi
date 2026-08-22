@@ -1661,6 +1661,23 @@ kbd {
   box-shadow: 4px 4px 0 rgba(29, 26, 32, 0.5);
 }
 
+/* A remembered city: last seen, not currently watched (see `cityBanners.ts`).
+   Faded and flattened — the drop shadow is what makes a banner sit *over* the
+   board, and a memory should not. `is-mine` never survives here: a memory has
+   no panel to open, so the rule also takes the pointer back. */
+.city-banner.is-stale {
+  opacity: 0.5;
+  background: rgba(47, 43, 50, 0.82);
+  border-style: dashed;
+  box-shadow: none;
+  pointer-events: none;
+  cursor: default;
+}
+
+.city-banner.is-stale .city-banner-name {
+  font-style: italic;
+}
+
 /* --- the right-hand slot --------------------------------------------------
    One panel at a time, in one place: the city screen when a city is open, the
    unit sheet when a unit is selected. They are exclusive in `controls.ts`, and

@@ -94,6 +94,7 @@ import type { CellRef, LensView } from '../ui/mapView';
 
 import { type TileIcons, YIELD_KEYS } from './badges3d';
 import type { BoardGeometry } from './board3d';
+import { type FogLevels, knowsCell } from './fog3d';
 import { InstanceCollector, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, mixColor } from './lookData';
@@ -164,6 +165,7 @@ export class LensLayer {
     materials: MaterialLibrary,
     icons: TileIcons | null,
     faceCamera: Quaternion,
+    levels: FogLevels = null,
   ): void {
     disposeInstancedGroup(this.group);
     this.drawCallCount = 0;
@@ -183,13 +185,19 @@ export class LensLayer {
     // resource markers are not in that argument at all any more; they stand up
     // and are sorted by the depth buffer like everything else in the diorama.
     if (lens.mode === 'settler') {
-      this.addSiteWash(state, lens.playerId, resolveTiles(map, lens.cells), collector, geometry);
+      this.addSiteWash(
+        state,
+        lens.playerId,
+        resolveTiles(map, lens.cells, levels),
+        collector,
+        geometry,
+      );
     }
     if (lens.resources && icons) {
       this.addResourceMarkers(
         state,
         lens.playerId,
-        resolveTiles(map, lens.resourceCells),
+        resolveTiles(map, lens.resourceCells, levels),
         collector,
         geometry,
         icons,
@@ -197,7 +205,12 @@ export class LensLayer {
       );
     }
     if (lens.yields && icons) {
-      this.addYieldGlyphs(resolveTiles(map, lens.yieldCells), collector, geometry, icons);
+      this.addYieldGlyphs(
+        resolveTiles(map, lens.yieldCells, levels),
+        collector,
+        geometry,
+        icons,
+      );
     }
 
     this.drawCallCount = collector.flush(this.group, materials, false);
@@ -526,13 +539,48 @@ function digitsOf(value: number): number[] {
   return digits.length > 0 ? digits : [0];
 }
 
-/** The tiles a lens covers: the named cells, or the whole map. */
-function resolveTiles(map: GameMap, cells: readonly CellRef[] | null): Tile[] {
-  if (!cells) return map.tiles;
+/**
+ * The tiles a lens covers: the named cells, or the whole map — minus anything
+ * the local seat has never seen.
+ *
+ * Fog cuts every half of this layer at `hidden`, and none of them at `explored`.
+ * That split is a decision per readout and it comes out the same way three
+ * times, because all three of these answer questions about the *ground*:
+ *
+ *   yield glyphs      what does this hex make. Terrain is static, so a
+ *                     remembered hex makes exactly what it made when it was
+ *                     last looked at. Nothing is leaked by saying so.
+ *   resource roundels the same argument: wheat does not walk away. (What a
+ *                     player may be *told* about a resource is still the
+ *                     technology question `visibleResourceAt` answers — two
+ *                     independent gates, and a tile has to pass both.)
+ *   the settler wash  where may a city go. This is the one with a leak in it,
+ *                     and it is deliberate: validity is computed from live
+ *                     truth, so a remembered hex that a rival has since claimed
+ *                     or built next to reads as refused before this player could
+ *                     know why. Civ does the same, the alternative is a lens
+ *                     that recommends sites the reducer will refuse, and a lens
+ *                     that disagrees with the command it advertises would be
+ *                     worse than no lens (see the module docblock).
+ *
+ * Terra Incognita gets nothing at all, which needs no argument: there is no
+ * ground there yet.
+ */
+function resolveTiles(
+  map: GameMap,
+  cells: readonly CellRef[] | null,
+  levels: FogLevels,
+): Tile[] {
   const tiles: Tile[] = [];
+  if (!cells) {
+    for (const tile of map.tiles) {
+      if (knowsCell(levels, map, tile.col, tile.row)) tiles.push(tile);
+    }
+    return tiles;
+  }
   for (const cell of cells) {
     const tile = getTileAt(map, cell.col, cell.row);
-    if (tile) tiles.push(tile);
+    if (tile && knowsCell(levels, map, tile.col, tile.row)) tiles.push(tile);
   }
   return tiles;
 }

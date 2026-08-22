@@ -281,6 +281,25 @@ export interface MapView {
   setWorkedTiles?(cells: readonly CellRef[], locked?: readonly CellRef[]): void;
 
   /**
+   * Optional: draws the board through one player's eyes — fog of war.
+   *
+   * `null` is an omniscient board, which is what the renderer starts at and what
+   * the frozen 2D pipelines do forever.
+   *
+   * Whose eyes is a *UI* decision, exactly like `localPlayerId` (CLAUDE.md, hard
+   * rule 3): the simulation is omniscient and keeps a visibility grid per player
+   * (`state.visibility`), and this says which of those grids the board should be
+   * masked by. So the renderer is told a seat and nothing else — not what is
+   * hidden, not what changed, not why — and it reads the grid the sim already
+   * maintains.
+   *
+   * Calling it is the seat-change gesture and it repaints the whole board. That
+   * is per-instance work, never a rebuild (see `render3d/fog3d.ts`), and it is a
+   * dev-harness action rather than something the product does.
+   */
+  setFogSeat?(playerId: number | null): void;
+
+  /**
    * Optional: puts a lens over the board — see `LensView` and `lens3d.ts`.
    *
    * The UI decides *which* lens and over *which tiles*; the renderer only draws
