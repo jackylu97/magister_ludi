@@ -20,7 +20,11 @@
  *
  *   · Left click  — your unit selects it (again cycles the stack), your city
  *                   opens its panel, and *anything else deselects*. Clicking
- *                   away is how you put a unit down.
+ *                   away is how you put a unit down — and, with a city screen
+ *                   open, clicking outside that city's work radius is how you
+ *                   put the city down. Inside the radius the same button pins
+ *                   citizens instead, on every tile but the ones your own units
+ *                   are standing on. See `handleLeftClick` for the whole order.
  *   · Right click — with one of your units selected, orders it to the clicked
  *                   tile. With nothing selected it does nothing at all. The
  *                   browser context menu is suppressed over the board either
@@ -94,7 +98,13 @@
  * driven by an AI or a socket instead.
  */
 
-import { assignableTiles, cityAt, cityTile, foundingError } from '../sim/cities';
+import {
+  assignableTiles,
+  cityAt,
+  cityTile,
+  foundingError,
+  withinWorkRadius,
+} from '../sim/cities';
 import {
   type CombatPreview,
   attackTargetAt,
@@ -1071,10 +1081,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * took the click.
    *
    * It only ever takes one while a city panel is open *and* the tile is one that
-   * city could actually work — that is the whole of the new gesture, and it is
-   * why a click on ocean, on another city's ground, or with no panel open still
-   * means what it has always meant. The city tile itself is not assignable
-   * either, so clicking the town under an open panel does not pin anything.
+   * city could actually work — that is the whole of the gesture, and it is why a
+   * click on ocean, on another city's ground, or with no panel open still means
+   * what it has always meant. The city tile itself is not assignable either, so
+   * clicking the town under an open panel does not pin anything.
+   *
+   * Its caller asks it *after* the selection test and only inside the open
+   * city's radius (see `handleLeftClick`), so a unit standing on a worked tile
+   * is still selectable and a click well away from the city closes the panel
+   * rather than being swallowed here.
    *
    * Three cases, and they are one rule: the pin list is toggled and sent whole.
    * Unpinning does not stop a tile being worked — the assignment may well pick
@@ -1140,10 +1155,31 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * The left button: pick things up and put them down.
    *
    * The order of the tests is the whole design. Your own units win over
-   * everything, because "select" is the safe reading of a click and a stack is
-   * cycled by clicking it again. Your own city comes next. Everything else —
-   * empty ground, an enemy, a mountain — *deselects*, which is the one thing
-   * the old scheme had no gesture for at all.
+   * everything — pinning included, see below — because "select" is the safe
+   * reading of a click and a stack is cycled by clicking it again. Your own city
+   * comes next. Everything else — empty ground, an enemy, a mountain —
+   * *deselects*, which is the one thing the old scheme had no gesture for at all.
+   *
+   * An open city panel changes what a click means only *inside its own work
+   * radius*, and only on a tile with none of your units on it:
+   *
+   *   · a tile in the radius   pins or unpins a citizen. The panel is a screen
+   *                            about this ground, and this is the gesture for
+   *                            saying which of it gets worked.
+   *   · a tile outside it      closes the panel, and then means whatever it
+   *                            would have meant with no panel open. Clicking
+   *                            away from a city is how you leave it, exactly as
+   *                            clicking away from a unit is how you put it down;
+   *                            a screen that could only be dismissed with Escape
+   *                            was the one piece of this contract with no
+   *                            pointer gesture at all.
+   *   · your own unit          selects it, wherever it stands. A garrison inside
+   *                            the radius used to be unclickable while the panel
+   *                            was up, because the pin took the click first —
+   *                            which made a unit standing on a worked tile
+   *                            unreachable without closing the city by hand.
+   *                            `select` closes the panel itself (the two share
+   *                            one slot), so this is one gesture, not two.
    *
    * Move mode short-circuits all of it: while it is armed the left button is
    * standing in for the right one, and that is the only thing it does.
@@ -1157,20 +1193,39 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       return;
     }
 
-    // While a city screen is open, its own work radius is a citizen board: a
-    // click on a tile that city could work pins or unpins it. It is scoped as
-    // tightly as it can be — this panel, these tiles — so that everywhere else
-    // on the map the selection contract is exactly what it always was.
-    if (toggleCitizen(hover)) return;
-
     const { col, row } = hover.tile;
     const mine = ownUnitsAt(col, row);
 
     if (mine.length > 0) {
-      // Selection always wins on your own tiles; a repeat click cycles.
+      // Selection always wins on your own tiles; a repeat click cycles. Ahead of
+      // the citizen board on purpose: a unit is the thing a player aimed at.
       const at = mine.findIndex((unit) => unit.id === selectedId);
       select(mine[(at + 1) % mine.length]!.id);
       return;
+    }
+
+    // While a city screen is open, its own work radius is a citizen board: a
+    // click on a tile that city could work pins or unpins it. It is scoped as
+    // tightly as it can be — this panel, these tiles, no unit standing there —
+    // so that everywhere else on the map the selection contract is exactly what
+    // it always was.
+    const open = openCity();
+    if (open) {
+      // The *radius*, not the assignable list: the city's own tile and any
+      // ground a rival owns inside the ring are still this panel's subject, so
+      // clicking them must not be read as walking away from it.
+      if (withinWorkRadius(getGame().state, open, col, row)) {
+        if (toggleCitizen(hover)) return;
+        // Inside the radius but not a tile this city may work — its own centre,
+        // or ground another city owns. The panel stays open and the click falls
+        // through to the ordinary contract, which on the city tile itself means
+        // re-opening the panel that is already open: a no-op, and the right one.
+      } else {
+        // Outside the radius: the player has looked away. Close the screen and
+        // let this same click mean what it always means, so leaving a city and
+        // selecting the unit you left it for is one gesture.
+        setOpenCity(null);
+      }
     }
 
     // An empty tile of your own with a city on it opens that city. Units come

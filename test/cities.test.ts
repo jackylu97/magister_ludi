@@ -20,6 +20,7 @@ import {
   queueItemCost,
   tileOwnerCityId,
   unitProductionCost,
+  withinWorkRadius,
   yieldScore,
 } from '../src/sim/cities';
 import {
@@ -349,6 +350,65 @@ describe('foundingErrorAt', () => {
         expect(foundingErrorAt(state, 0, tile)).not.toBeNull();
       }
     }
+  });
+});
+
+/**
+ * The ring a city panel is *about*, which the interface asks about on every
+ * click while a city screen is open: inside it a click pins a citizen, outside
+ * it the click closes the screen (see `handleLeftClick` in `ui/controls.ts`).
+ * The rule that matters is that it is *wider* than the assignable list — a
+ * question about ground, not about citizens.
+ */
+describe('the work radius', () => {
+  it('holds every tile within the radius, the city\u2019s own included', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    const centre = tileHex(at(state.map, 8, 5));
+
+    for (const tile of state.map.tiles) {
+      const inside = wrappedDistance(state.map, centre, tileHex(tile)) <= CITIES.workRadius;
+      expect(
+        `${tile.col},${tile.row}: ${withinWorkRadius(state, city, tile.col, tile.row)}`,
+      ).toBe(`${tile.col},${tile.row}: ${inside}`);
+    }
+    expect(withinWorkRadius(state, city, 8, 5)).toBe(true);
+  });
+
+  it('answers for ground no citizen could ever be sent to', () => {
+    // The centre, a mountain and a rival's tile are all inside the ring and
+    // none of them is assignable: a click on any of them is still a click about
+    // *this* city, so the panel must not read it as walking away.
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    at(state.map, 9, 5).terrain = 'mountain';
+    const rival = plant(state, 1, 10, 5);
+
+    const assignable = new Set(
+      assignableTiles(state, city).map((tile) => `${tile.col},${tile.row}`),
+    );
+    for (const cell of [
+      { col: 8, row: 5 },
+      { col: 9, row: 5 },
+      { col: 10, row: 5 },
+    ]) {
+      expect(assignable.has(`${cell.col},${cell.row}`)).toBe(false);
+      expect(withinWorkRadius(state, city, cell.col, cell.row)).toBe(true);
+    }
+    // And it is asked of a city, not of a player: the rival's own ring is its
+    // own, and the two overlap without either answering for the other.
+    expect(withinWorkRadius(state, rival, 8, 5)).toBe(true);
+    expect(withinWorkRadius(state, city, 4, 5)).toBe(false);
+  });
+
+  it('wraps the seam and refuses a cell off the map', () => {
+    const state = flatState();
+    // A city on column 0 owns the ring that runs off the west edge and back
+    // round the east one; the map is a cylinder, so that ring is not clipped.
+    const city = plant(state, 0, 0, 5);
+    expect(withinWorkRadius(state, city, state.map.width - 1, 5)).toBe(true);
+    expect(withinWorkRadius(state, city, 0, -1)).toBe(false);
+    expect(withinWorkRadius(state, city, 0, state.map.height)).toBe(false);
   });
 });
 

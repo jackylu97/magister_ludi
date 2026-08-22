@@ -10,6 +10,7 @@ import {
 import type { TileIcons } from '../src/render3d/badges3d';
 import { BoardGeometry } from '../src/render3d/board3d';
 import { TerritoryLayer } from '../src/render3d/cities3d';
+import { RENDER_ORDER } from '../src/render3d/instances';
 import { LensLayer } from '../src/render3d/lens3d';
 import { VIEW3D } from '../src/render3d/lookData';
 import { OverlayLayer } from '../src/render3d/overlays';
@@ -116,7 +117,10 @@ function expectDrawnOverTheBoard(group: { children: unknown[] }): void {
   for (const { mesh, material } of drawn) {
     expect(material.depthTest).toBe(false);
     expect(material.depthWrite).toBe(false);
-    expect(mesh.renderOrder).toBe(20);
+    // The interface's own layer, named rather than written out: the badges now
+    // sit one step above it (see `RENDER_ORDER`), and the two numbers only stay
+    // consistent while both tests read the same list.
+    expect(mesh.renderOrder).toBe(RENDER_ORDER.onTop);
   }
 }
 
@@ -252,7 +256,7 @@ describe('board overlays draw over the board', () => {
       // A tint that ignored depth would wash over every tree and every piece
       // standing inside your own borders.
       expect(material.depthTest).toBe(true);
-      expect(mesh.renderOrder).toBe(10);
+      expect(mesh.renderOrder).toBe(RENDER_ORDER.overlay);
     }
     layer.dispose();
   });

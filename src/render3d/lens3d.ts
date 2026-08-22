@@ -85,7 +85,7 @@
 
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
-import { foundingErrorAt, tileYieldOf } from '../sim/cities';
+import { cityAt, foundingErrorAt, tileYieldOf } from '../sim/cities';
 import { type GameMap, type Tile, getTileAt, tileNeighbors } from '../sim/map';
 import type { GameState } from '../sim/state';
 import { visibleResourceAt } from '../sim/tech';
@@ -297,11 +297,24 @@ export class LensLayer {
    *                floating nearby, and it is one instanced draw for the whole
    *                board however many resources are on it.
    *
-   * The anchor is nudged `resourceMarkerOffset` toward the hex's upper edge
-   * rather than sitting on its centre. That is not decoration: the yield stacks
-   * are still printed flat across the middle of the face, and a pin planted there
-   * would come up through them — which is the collision this whole shape change
-   * exists to end.
+   * The anchor is nudged toward the hex's upper-*left* corner rather than sitting
+   * on its centre — `resourceMarkerOffset` up-screen and `resourceMarkerOffsetX`
+   * across. That is not decoration, and it is now answering two collisions with
+   * one move. The yield stacks are printed flat across the middle of the face, so
+   * a pin planted there would come up through them; and a unit standing on the
+   * tile floats its class badge centre-top over its own head (`badgeCenterY`),
+   * which is exactly where a marker lifted straight up the middle would be. The
+   * lateral half is what separates those two, because the camera's tilt squashes
+   * z on screen and leaves x untouched: a nudge across the hex buys far more
+   * clearance per world unit than a nudge up it.
+   *
+   * A tile with a city on it draws no marker at all. The roundel says "this
+   * ground carries wheat", and a town standing on that ground is already the
+   * louder thing to look at — a pin through a city's own roofs reads as litter,
+   * and the wheat is not lost: the panel that grew out of that tile is made of
+   * it. The suppression is a *drawing* decision and lives here for exactly that
+   * reason; hovering the city still names the wheat, because that question is
+   * asked of the simulation (below) and not of this layer.
    *
    * Visibility is asked of `visibleResourceAt` — the *simulation's* own answer,
    * the one the hover readout reads — so the lens and the card can never
@@ -326,10 +339,14 @@ export class LensLayer {
     for (const tile of tiles) {
       const id = visibleResourceAt(state, playerId, tile);
       if (id === null) continue;
+      // A town on the tile wears no pin. See the docblock: the *readout* still
+      // answers, because that question is asked of the simulation and not of
+      // this layer.
+      if (cityAt(state, tile.col, tile.row)) continue;
       const centre = cellCenter(tile.col, tile.row);
-      // −z is up-screen under this camera (see `atlasDecal`), so subtracting is
-      // "toward the tile's upper edge".
-      const x = centre.x;
+      // −z is up-screen and −x is left under this camera (see `atlasDecal`), so
+      // subtracting both is "toward the tile's upper-left corner".
+      const x = centre.x - LENS.resourceMarkerOffsetX;
       const z = centre.z - LENS.resourceMarkerOffset;
       const ground = tileTopY(tile);
 

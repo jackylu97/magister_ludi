@@ -83,7 +83,12 @@ import { type UnitBadges, badgeCenterY, hpBarY } from './badges3d';
 import { type BoardGeometry, modelClassFor, pieceHeightFor } from './board3d';
 import type { UnitPiece } from './geometry';
 import { hashSigned } from './hash';
-import { type InstanceHandle, InstanceCollector, disposeInstancedGroup } from './instances';
+import {
+  type InstanceHandle,
+  InstanceCollector,
+  RENDER_ORDER,
+  disposeInstancedGroup,
+} from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, playerPieceColor, shade } from './lookData';
 import type { UnitSprites } from './sprites3d';
@@ -280,6 +285,10 @@ export function buildBadge(
   disc.frustumCulled = false;
   disc.castShadow = false;
   disc.receiveShadow = false;
+  // The same draw order the instanced badges claim (`RENDER_ORDER.badge`), for
+  // the same reason and so that a unit's tag does not fall behind the selection
+  // ring for exactly the length of a walk.
+  disc.renderOrder = RENDER_ORDER.badge;
   group.add(disc);
 
   const rim = new Mesh(geometry.badgeRim, materials.overlay(rimColor, 1));
@@ -289,6 +298,7 @@ export function buildBadge(
   rim.frustumCulled = false;
   rim.castShadow = false;
   rim.receiveShadow = false;
+  rim.renderOrder = RENDER_ORDER.badge;
   group.add(rim);
 
   return group;
@@ -458,6 +468,9 @@ export class UnitLayer {
    *
    * Not `onTop`. A badge is a thing standing in the diorama and has to be hidden
    * by whatever hides its unit; the lift is what clears the sculpt's own head.
+   * It does claim a draw order above the interface rings, which is a different
+   * question from the depth test and is answered in `RENDER_ORDER`: a selection
+   * ring drawn around a unit must not paint over the tag naming it.
    */
   private addBadge(
     state: GameState,
@@ -485,7 +498,7 @@ export class UnitLayer {
         // shape that ever arrives.
         [BADGE.paperColor],
         new Matrix4().compose(anchor, faceCamera, size),
-        { material: badges.material },
+        { material: badges.material, order: RENDER_ORDER.badge },
       ),
     );
 
@@ -503,7 +516,9 @@ export class UnitLayer {
         geometry.badgeRim,
         [rimColor],
         new Matrix4().compose(front, faceCamera, size),
-        { overlay: true, opacity: 1 },
+        // The rim travels with its disc: same draw order, so the two halves of
+        // one badge can never end up on opposite sides of a ring.
+        { overlay: true, opacity: 1, order: RENDER_ORDER.badge },
       ),
     );
   }
@@ -543,7 +558,9 @@ export class UnitLayer {
       [HP.backColor],
       new Matrix4().compose(anchor, faceCamera, new Vector3(HP.width, HP.height, 1)),
       // On top: a health bar behind a pine tree is a health bar nobody can read.
-      { onTop: true, opacity: 1 },
+      // And above the badge it is stacked on, which is where it sits in the
+      // world too — the bar may not be clipped by the disc under it.
+      { onTop: true, opacity: 1, order: RENDER_ORDER.hpBar },
     );
     // A hair nearer the eye than the backing, so the two never z-fight. Neither
     // writes depth and — being `onTop` — neither tests it either, so what puts
@@ -557,7 +574,7 @@ export class UnitLayer {
       geometry.bar,
       [fraction > 0.5 ? HP.goodColor : HP.fillColor],
       new Matrix4().compose(front, faceCamera, new Vector3(HP.width * fraction, HP.height, 1)),
-      { onTop: true, opacity: 1 },
+      { onTop: true, opacity: 1, order: RENDER_ORDER.hpBar },
     );
   }
 

@@ -28,10 +28,13 @@ import {
 } from '../src/render3d/badges3d';
 import { BoardGeometry, RESOURCE_PROPS, buildBoard } from '../src/render3d/board3d';
 import { cellCenter, tileTopY } from '../src/render3d/layout';
+import { RENDER_ORDER } from '../src/render3d/instances';
 import { LensLayer, yieldDiscWidth, yieldRowLayout } from '../src/render3d/lens3d';
 import { VIEW3D } from '../src/render3d/lookData';
 import { MaterialLibrary } from '../src/render3d/toon';
+import { foundCityAt } from '../src/sim/cities';
 import { type GameState, newGame } from '../src/sim/state';
+import { visibleResourceAt } from '../src/sim/tech';
 import { type Tile, createMap, getTileAt } from '../src/sim/map';
 import { RESOURCE_IDS, type ResourceId } from '../src/sim/resourceData';
 import { TECH_IDS } from '../src/sim/techData';
@@ -397,6 +400,45 @@ describe('the resource markers', () => {
     expect(seat1).toContain(geometry.resourceMarkers.horses);
   });
 
+  /**
+   * A city wears no pin, and the tile under it still answers for itself.
+   *
+   * Two halves of one rule, and the second is why the suppression lives in the
+   * lens rather than in `visibleResourceAt`. The board's job is to be legible —
+   * a roundel on a pin through a town's own roofs is litter, and the wheat under
+   * a city is already spoken for by the panel that grew out of it. The
+   * simulation's job is to answer questions, and "what is on this tile" is one
+   * the hover card asks about every tile on the board, city or not. Filtering in
+   * the *info* path would have made a city a hole in the map.
+   */
+  it('draws no marker on a tile a city stands on', () => {
+    const state = flatState();
+    at(state, 4, 4).resource = 'wheat';
+    at(state, 6, 4).resource = 'wheat';
+    foundCityAt(state, 0, at(state, 4, 4));
+
+    // The other wheat, two tiles over, still wears its pin: what went is the
+    // marker on the city, not the resource kind.
+    expect(markersFor(state, { resources: true })).toEqual([geometry.resourceMarkers.wheat]);
+    const meshes = meshesFor(state, { resources: true });
+    const roundel = meshes.find((mesh) => mesh.geometry === geometry.resourceMarkers.wheat)!;
+    const centre = cellCenter(6, 4);
+    expect(instance(roundel).position.x).toBeCloseTo(centre.x - LENS.resourceMarkerOffsetX, 5);
+    // One marker, so one pin — the city's pin went with its roundel.
+    expect(meshes.filter((mesh) => mesh.geometry === geometry.resourceStem)).toHaveLength(1);
+    expect(roundel.count).toBe(3);
+  });
+
+  it('still names the resource under a city when the pointer asks', () => {
+    // The hover readout's own source (`describeResource` in `main.ts`), asked
+    // exactly as it asks it. The marker is a drawing decision; this is not.
+    const state = flatState();
+    at(state, 4, 4).resource = 'wheat';
+    foundCityAt(state, 0, at(state, 4, 4));
+    expect(visibleResourceAt(state, 0, at(state, 4, 4))).toBe('wheat');
+    expect(markersFor(state, { resources: true })).toEqual([]);
+  });
+
   it('draws nothing at all before the atlas has rasterised', () => {
     const state = flatState();
     at(state, 4, 4).resource = 'wine';
@@ -529,13 +571,36 @@ describe('the resource markers', () => {
       const at3d = instance(roundel).position;
 
       expect(LENS.resourceMarkerOffset).toBeGreaterThan(0);
-      expect(at3d.x).toBeCloseTo(centre.x, 5);
-      // Toward the hex's upper edge: −z is up-screen under this camera.
+      expect(LENS.resourceMarkerOffsetX).toBeGreaterThan(0);
+      // Toward the hex's upper-left corner: −z is up-screen and −x is left
+      // under this camera.
+      expect(at3d.x).toBeCloseTo(centre.x - LENS.resourceMarkerOffsetX, 5);
       expect(at3d.z).toBeCloseTo(centre.z - LENS.resourceMarkerOffset, 5);
       // The pin comes up under the roundel, not somewhere else on the hex.
       const foot = instance(stem).position;
       expect(foot.x).toBeCloseTo(at3d.x, 5);
       expect(foot.z).toBeCloseTo(at3d.z, 5);
+    });
+
+    /**
+     * The collision the lateral half of the anchor exists for.
+     *
+     * A unit standing on the tile floats its class badge centre-top over its own
+     * head, so a marker lifted straight up the middle of the hex ends up behind
+     * it — and the badge is now drawn over the interface rings, which makes it
+     * the thing that wins. The two are separated *across* the hex rather than up
+     * it because the camera's tilt squashes z on screen and leaves x alone.
+     *
+     * Asked of the data, in the data's own units: the marker's near edge has to
+     * clear the badge's far edge with both of them at their tunable sizes, which
+     * is the invariant that would break the day somebody grows either one.
+     */
+    it('clears the badge a unit on the same tile floats over its head', () => {
+      const { roundel } = markerOver(4, 4);
+      const centre = cellCenter(4, 4);
+      const gap = Math.abs(instance(roundel).position.x - centre.x);
+      const halves = VIEW3D.badges.diameter / 2 + LENS.resourceIconSize / 2;
+      expect(gap).toBeGreaterThan(halves);
     });
 
     it('keeps the yield stacks flat, on the face, in the middle of the hex', () => {
@@ -770,7 +835,7 @@ describe('the yield glyphs', () => {
   it('draws every mark over the board, never inside it', () => {
     const state = flatState();
     for (const mesh of marksOver(state, 4, 4)) {
-      expect(mesh.renderOrder).toBe(20);
+      expect(mesh.renderOrder).toBe(RENDER_ORDER.onTop);
       const material = mesh.material as MeshBasicMaterial;
       expect(material.depthTest).toBe(false);
     }

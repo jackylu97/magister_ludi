@@ -27,6 +27,12 @@
  * the player can always read, and it is why the territory tint — which is
  * scenery — deliberately does not do this.
  *
+ * One thing does draw over them, and it is not scenery either: the unit badges
+ * claim a later draw order (`RENDER_ORDER.badge`). A ring is a mark on the
+ * ground *under* a piece, so a ring that painted over the tag naming that piece
+ * would be this rule taken one step too far — "nothing on the board may hide a
+ * ring" was never meant to include the interface's own labels.
+ *
  * Rebuild policy
  * --------------
  * The whole layer is thrown away and rebuilt whenever the selection, the hover

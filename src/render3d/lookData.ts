@@ -389,6 +389,19 @@ export interface LensSpec {
    * two readouts out of each other's way.
    */
   resourceMarkerOffset: number;
+  /**
+   * The other half of that nudge: how far the anchor moves *across* the hex
+   * (−x, which is left on screen), in world units.
+   *
+   * It exists because the collision that matters most is not with the ground at
+   * all — it is with the unit standing on the tile, whose class badge floats
+   * centre-top over its head. Raising the marker cannot win that argument, and
+   * z buys little on screen because the camera's tilt squashes it; x is
+   * unsquashed, so this is the number that actually separates a marker from a
+   * badge. Together with `resourceMarkerOffset` it plants the pin toward the
+   * hex's upper-left corner, well inside the tile it names.
+   */
+  resourceMarkerOffsetX: number;
   /** The pin under a marker: its radius at the top, and its taper toward the
    * ground as a fraction of that. Ink-coloured, one instanced draw for the lot. */
   resourceStemRadius: number;
@@ -657,7 +670,9 @@ export interface HpBarSpec {
  * depth-tested like the piece they name, so a unit behind a mountain has a badge
  * behind a mountain; the alternative — the `onTop` treatment the HP bars and the
  * route dots get — would leave a field of tags hovering over a ridge with
- * nothing under them.
+ * nothing under them. They are drawn *after* those overlays all the same, so a
+ * selection ring cannot paint over the tag it is drawn around; the two are
+ * different questions and `RENDER_ORDER` in `instances.ts` answers the second.
  */
 export interface BadgeSpec {
   /** Roundel diameter in world units. */
@@ -996,6 +1011,7 @@ export const VIEW3D: View3DData = {
     resourceIconSize: viewJson.lens.resourceIconSize,
     resourceMarkerLift: viewJson.lens.resourceMarkerLift,
     resourceMarkerOffset: viewJson.lens.resourceMarkerOffset,
+    resourceMarkerOffsetX: viewJson.lens.resourceMarkerOffsetX,
     resourceStemRadius: viewJson.lens.resourceStemRadius,
     resourceStemTaper: viewJson.lens.resourceStemTaper,
     resourceStemColor: named(viewJson.lens.resourceStemColor, 'lens.resourceStemColor'),

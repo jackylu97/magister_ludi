@@ -36,6 +36,36 @@ import { type MaterialLibrary, computeHullNormals } from './toon';
 export const HIDDEN_MATRIX = new Matrix4().makeScale(0, 0, 0);
 
 /**
+ * The draw order of everything that is not plain board geometry, in one place.
+ *
+ * Three sorts the transparent pass by `renderOrder` first and by depth second,
+ * so this list *is* the layering of the interface — and it only reads as a
+ * design decision while the numbers sit together:
+ *
+ *   `overlay`  a decal that belongs to the board (a territory tint). Depth
+ *              tested, so the trees standing on the ground it colours hide it.
+ *   `onTop`    a decal that belongs to the *interface*: the hover and selection
+ *              rings, the route dots, the worked-tile chips. Not depth tested at
+ *              all, so nothing on the board can swallow it.
+ *   `badge`    the unit badges. Above the rings, because a ring is a mark on the
+ *              ground *under* a piece and must not paint over the tag naming it
+ *              — but still depth tested, so a mountain in front of a unit hides
+ *              its badge along with it (see `badges3d.ts`).
+ *   `hpBar`    above the badge it is stacked on, matching where the two actually
+ *              sit in the world (`hpBarY`), so the bar cannot be cut in half by
+ *              the disc below it.
+ *
+ * They are code, not `view3d.json`: a render order is not a number anybody
+ * tunes to taste, it is the statement of which readout wins.
+ */
+export const RENDER_ORDER = {
+  overlay: 10,
+  onTop: 20,
+  badge: 21,
+  hpBar: 22,
+} as const;
+
+/**
  * A per-instance colour multiplier: `[r, g, b]`, 1 meaning "leave it alone".
  *
  * Not a colour. Three multiplies `instanceColor` into the fragment's diffuse, so
@@ -77,6 +107,12 @@ interface Bucket {
   overlay: boolean;
   /** An overlay the board may not occlude. See `MaterialLibrary.overlay`. */
   onTop: boolean;
+  /**
+   * A draw order claimed by the caller, overriding the one the decal kind would
+   * have been given. `null` means "whatever this kind is worth" — see
+   * `RENDER_ORDER` for who claims one and why.
+   */
+  order: number | null;
   opacity: number;
   matrices: Matrix4[];
   /** One tint per matrix, parallel. Left alone entirely unless `tinted`. */
@@ -143,6 +179,11 @@ export class InstanceCollector {
    * `material` overrides the library entirely for callers whose look is not a
    * colour — see `Bucket.material`. It joins the bucket key by *identity*, so
    * one shared material batches and two do not.
+   *
+   * `order` claims a draw order (see `RENDER_ORDER`) for callers whose layering
+   * is not the one their decal kind implies — the badges, which must sit over
+   * the interface rings without giving up their depth test. It joins the bucket
+   * key too: two draw orders cannot share one mesh.
    */
   add(
     geometry: BufferGeometry,
@@ -152,6 +193,7 @@ export class InstanceCollector {
       outlined?: boolean;
       overlay?: boolean;
       onTop?: boolean;
+      order?: number;
       opacity?: number;
       tint?: Tint;
       vertexColors?: boolean;
@@ -162,6 +204,7 @@ export class InstanceCollector {
     const outlined = custom ? false : (options.outlined ?? true);
     const onTop = options.onTop ?? false;
     const overlay = !custom && (onTop || (options.overlay ?? false));
+    const order = options.order ?? null;
     const opacity = options.opacity ?? 1;
     const vertexColors = options.vertexColors ?? false;
 
@@ -178,7 +221,8 @@ export class InstanceCollector {
     }
     const key =
       `${id}|${colors.join(',')}|${outlined ? 1 : 0}|` +
-      `${overlay ? 1 : 0}|${onTop ? 1 : 0}|${opacity}|${vertexColors ? 1 : 0}|${materialId}`;
+      `${overlay ? 1 : 0}|${onTop ? 1 : 0}|${order ?? 'auto'}|` +
+      `${opacity}|${vertexColors ? 1 : 0}|${materialId}`;
     let bucket = this.buckets.get(key);
     if (!bucket) {
       bucket = {
@@ -189,6 +233,7 @@ export class InstanceCollector {
         vertexColors: vertexColors && !overlay,
         overlay,
         onTop,
+        order,
         opacity,
         matrices: [],
         tints: [],
@@ -239,13 +284,19 @@ export class InstanceCollector {
       // `onTop` kind is drawn after even those, because it is not depth-tested
       // at all and its layering is decided purely by the order it is drawn in —
       // see `MaterialLibrary.overlay` for which decals are which and why.
-      if (bucket.overlay) mesh.renderOrder = bucket.onTop ? 20 : 10;
+      // A caller that named an order gets it, whatever kind of thing it is:
+      // that is how a badge sits above the interface rings while staying an
+      // ordinary depth-tested object (see `RENDER_ORDER`).
+      if (bucket.order !== null) mesh.renderOrder = bucket.order;
+      else if (bucket.overlay) {
+        mesh.renderOrder = bucket.onTop ? RENDER_ORDER.onTop : RENDER_ORDER.overlay;
+      }
       // A textured bucket brings its own material and so is never `overlay` —
       // but it may still be a *decal*, and the tile icons are (see `TileIcons`
       // in `badges3d.ts`). Their material turns the depth test off itself; what
       // they cannot do for themselves is claim a draw order, so `onTop` grants
       // them the same one the unlit decals get.
-      else if (bucket.material && bucket.onTop) mesh.renderOrder = 20;
+      else if (bucket.material && bucket.onTop) mesh.renderOrder = RENDER_ORDER.onTop;
       for (let i = 0; i < count; i++) mesh.setMatrixAt(i, bucket.matrices[i]!);
       mesh.instanceMatrix.needsUpdate = true;
       if (bucket.tinted) {

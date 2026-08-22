@@ -9,6 +9,7 @@ import {
   badgeCellOrigin,
   badgeCellRect,
   badgeCenterY,
+  badgeDiscFlags,
   badgeTopY,
   cssHex,
   hpBarY,
@@ -17,6 +18,7 @@ import {
 } from '../src/render3d/badges3d';
 import { BoardGeometry, MODEL_CLASS_IDS, modelClassFor, pieceHeightFor } from '../src/render3d/board3d';
 import { atlasQuad, discRing } from '../src/render3d/geometry';
+import { RENDER_ORDER } from '../src/render3d/instances';
 import { VIEW3D } from '../src/render3d/lookData';
 import { UnitLayer } from '../src/render3d/pieces';
 import { MaterialLibrary } from '../src/render3d/toon';
@@ -109,6 +111,29 @@ describe('the badge atlas layout', () => {
     expect(cssHex(0x2f2b32)).toBe('#2f2b32');
     expect(cssHex(0x000000)).toBe('#000000');
     expect(cssHex(0xffffff)).toBe('#ffffff');
+  });
+
+  /**
+   * The four flags on the disc material, which the atlas itself cannot be asked
+   * for off a browser.
+   *
+   * `transparent` is the one that looks wrong and is not: nothing about a badge
+   * blends, but a `renderOrder` only means anything in the pass three sorts by
+   * it, and a badge that cannot claim an order is a badge the selection ring
+   * paints over. The alpha test is what keeps that honest — every pixel that
+   * survives it is fully opaque — and the two depth flags are the whole of
+   * "a thing standing in the diorama", so a mountain still hides a badge.
+   */
+  it('puts the disc in the sorted pass without giving up the cutout or the depth', () => {
+    expect(badgeDiscFlags()).toEqual({
+      transparent: true,
+      alphaTest: BADGE.alphaTest,
+      depthTest: true,
+      depthWrite: true,
+    });
+    // A cutout, not a fade: a cutoff of zero would keep every antialiased pixel
+    // of the roundel's edge and put the sorting problem back.
+    expect(BADGE.alphaTest).toBeGreaterThan(0);
   });
 });
 
@@ -215,11 +240,15 @@ describe('badges in the units layer', () => {
     return game;
   }
 
-  function build(types: UnitTypeId[], selected: number | null = null) {
+  function build(types: UnitTypeId[], selected: number | null = null, hurt = false) {
     const board = new BoardGeometry();
     const layer = new UnitLayer();
+    const game = state(types);
+    // HP bars are only built for a damaged unit, and the layer stack is one of
+    // the things they take part in — see the draw-order test below.
+    if (hurt) for (const unit of game.units) unit.hp = 1;
     layer.build(
-      state(types),
+      game,
       board,
       new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
       new Quaternion(),
@@ -267,6 +296,52 @@ describe('badges in the units layer', () => {
     // A textured bucket is never given an inverted hull: exactly one mesh
     // carries the disc geometry, where an outlined shape would have two.
     expect(meshes.filter((m) => m.geometry === board.badgeIcons.melee)).toHaveLength(1);
+    layer.dispose();
+    board.dispose();
+  });
+
+  /**
+   * The layering the badges were losing.
+   *
+   * The hover and selection rings are depth-ignoring decals drawn after the
+   * board, so until the badges claimed a draw order of their own the ring around
+   * a unit painted straight over the tag naming it — most visibly on the one
+   * unit the player had just selected. The fix must not spend either of the
+   * properties that make a badge a thing in the diorama, so all three claims are
+   * held here together: the order is above the rings, the depth test is still on
+   * (a mountain in front of a unit hides its badge), and the HP bar stays above
+   * the badge it is stacked on.
+   */
+  it('draws the badge over the interface rings and under the HP bar', () => {
+    const { board, layer, meshes } = build(['warrior'], null, true);
+    const disc = meshes.find((m) => m.geometry === board.badgeIcons.melee)!;
+    const rim = meshes.find((m) => m.geometry === board.badgeRim)!;
+    const bars = meshes.filter((m) => m.geometry === board.bar);
+
+    expect(disc.renderOrder).toBe(RENDER_ORDER.badge);
+    // Both halves of one badge travel together, or a ring could land between
+    // the parchment and the ring of player colour around it.
+    expect(rim.renderOrder).toBe(RENDER_ORDER.badge);
+    // A backing and a fill, both over the disc they are stacked on.
+    expect(bars).toHaveLength(2);
+    for (const bar of bars) expect(bar.renderOrder).toBe(RENDER_ORDER.hpBar);
+
+    // The stack itself, in the order the interface reads bottom to top.
+    expect(RENDER_ORDER.overlay).toBeLessThan(RENDER_ORDER.onTop);
+    expect(RENDER_ORDER.onTop).toBeLessThan(RENDER_ORDER.badge);
+    expect(RENDER_ORDER.badge).toBeLessThan(RENDER_ORDER.hpBar);
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('keeps the rim depth-tested, so a mountain still hides a whole badge', () => {
+    const { board, layer, meshes } = build(['warrior']);
+    const rim = meshes.find((m) => m.geometry === board.badgeRim)!;
+    const material = rim.material as MeshBasicMaterial;
+    // The overlay material's depth-tested flavour, not the `onTop` one: a late
+    // draw order is not the same thing as ignoring the board.
+    expect(material.depthTest).toBe(true);
+    expect(material.transparent).toBe(true);
     layer.dispose();
     board.dispose();
   });

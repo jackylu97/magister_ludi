@@ -345,6 +345,36 @@ export function foundingError(state: GameState, unit: Unit): string | null {
 // --- citizens ---------------------------------------------------------------
 
 /**
+ * Is this cell inside a city's work radius — the ground the city is *about*?
+ *
+ * Deliberately wider than `assignableTiles`, and the two answer different
+ * questions. That list is "where may a citizen be sent", which excludes the free
+ * centre, unworkable ground and every tile a rival owns. This is "is this hex
+ * part of this city's business at all", which those tiles very much are: a
+ * mountain in the ring is ground the city could one day claim, and the town
+ * itself is the middle of it.
+ *
+ * It exists because the interface asks the second question on every click while
+ * a city panel is open (see `handleLeftClick` in `src/ui/controls.ts`, where it
+ * decides whether a click pins a citizen or closes the screen), and asking it as
+ * a distance rather than by building the ring is what keeps that free. The
+ * distance is the map's own wrapped one, so a city near the seam owns the tiles
+ * on the other side of it exactly as it does anywhere else.
+ */
+export function withinWorkRadius(
+  state: GameState,
+  city: City,
+  col: number,
+  row: number,
+): boolean {
+  const { map } = state;
+  const tile = getTileAt(map, col, row);
+  if (!tile) return false;
+  const centre = tileHex(cityTile(map, city));
+  return wrappedDistance(map, centre, tileHex(tile)) <= CITIES.workRadius;
+}
+
+/**
  * The tiles a citizen of this city could be sent to: owned by *this* city,
  * workable, inside the work radius, and not the free centre.
  *

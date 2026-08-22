@@ -23,8 +23,8 @@
  *              load by rasterising the SVGs in `public/sprites/icons/` into a
  *              canvas at twice the size a badge is ever drawn, so it is crisp on
  *              a retina panel and mipmaps cleanly when the board is zoomed out.
- *              Alpha-tested and opaque: a badge writes depth like the piece it
- *              names.
+ *              Alpha-tested: a badge writes depth like the piece it names, and
+ *              every pixel that survives the cutout is fully opaque.
  *   the rim    a flat annulus (`discRing` in `geometry.ts`) in the *player's*
  *              colour. Geometry rather than more texture, because it is the one
  *              part that changes per player: as geometry the whole board's rims
@@ -40,14 +40,24 @@
  * plus one per player colour for the rims. A hundred units and three units cost
  * the same.
  *
- * In the world, not on the glass
- * ------------------------------
+ * In the world, but not under the interface
+ * -----------------------------------------
  * Badges are depth-tested like everything else on the board, and deliberately
  * *not* given the `onTop` treatment the HP bars and route dots get. A tag is a
  * thing standing in the diorama: a unit hidden behind a mountain must have its
  * badge hidden behind the same mountain, or the board grows a field of markers
  * hovering over a ridge with nothing under them. Clearing the sculpt's own head
  * is done by lifting the badge (`badges.lift`), not by cheating the depth test.
+ *
+ * What they *are* given is a late draw order (`RENDER_ORDER.badge`), and the two
+ * are not the same thing. The hover and selection rings ignore depth entirely
+ * and are drawn after the board, which meant they painted straight over the tags
+ * of the units they were drawn around — the ring is a mark on the ground *under*
+ * a piece, so having it wipe out the piece's name was the wrong reading of
+ * "nothing may hide a ring". A badge now draws after the rings and still tests
+ * depth against the terrain, which is both properties at once; the flag that
+ * buys it is `transparent`, because a draw order only means anything in the pass
+ * three sorts by it (see `badgeDiscFlags`).
  *
  * The second atlas: what is printed on a tile
  * -------------------------------------------
@@ -710,13 +720,50 @@ function loadIcon(url: string): Promise<HTMLImageElement | null> {
 }
 
 /**
+ * The flags that put a badge disc in the *late* pass without giving up any of
+ * the properties that make it a thing in the diorama.
+ *
+ * Exported because it is the one part of the material a test can hold still —
+ * the material itself needs a canvas — and because every one of these four is
+ * load-bearing, in a way that is invisible the moment they drift apart:
+ *
+ *   `transparent`  puts the disc in the pass three sorts by `renderOrder`. That
+ *                  is the only place a `renderOrder` means anything, and it is
+ *                  what lets a badge be drawn *after* the hover and selection
+ *                  rings (see `RENDER_ORDER`), which are depth-ignoring decals
+ *                  and used to paint straight over the tags.
+ *   `alphaTest`    kept, and kept at the same cutoff: the cutout is what makes
+ *                  the roundel's edge crisp instead of a fringe, and it is why a
+ *                  blended disc still sorts sanely against its neighbours —
+ *                  every pixel that survives is fully opaque.
+ *   `depthTest`    on, unchanged. A unit hidden behind a mountain must have its
+ *                  badge hidden behind the same mountain, or the board grows a
+ *                  field of markers floating over a ridge with nothing under
+ *                  them. This is the property the `onTop` treatment would have
+ *                  cost, and the reason badges do not take it.
+ *   `depthWrite`   on, so two badges overlapping resolve by depth rather than by
+ *                  the order their buckets happened to be collected in.
+ */
+export function badgeDiscFlags(): {
+  transparent: boolean;
+  alphaTest: number;
+  depthTest: boolean;
+  depthWrite: boolean;
+} {
+  return { transparent: true, alphaTest: BADGE.alphaTest, depthTest: true, depthWrite: true };
+}
+
+/**
  * The built atlas: one texture, one material, shared by every badge on the
  * board whatever class or player it belongs to.
  *
- * Unlit and alpha-tested rather than transparent, for the same reason the unit
- * billboards are (see `sprites3d.ts`): a cutout is an ordinary opaque object
- * that writes depth and sorts with everything else, where a blended quad would
- * bring a sorting problem for every pair of units standing near each other.
+ * Unlit and alpha-tested rather than blended, for the same reason the unit
+ * billboards are (see `sprites3d.ts`): a cutout writes depth and sorts with
+ * everything else, where a genuinely translucent quad would bring a sorting
+ * problem for every pair of units standing near each other. It is flagged
+ * `transparent` all the same — not for blending, which the alpha test has
+ * already decided, but to reach the pass where a draw order exists at all. See
+ * `badgeDiscFlags`.
  */
 export class UnitBadges {
   private readonly texture: CanvasTexture;
@@ -726,8 +773,7 @@ export class UnitBadges {
     this.texture = texture;
     this.material = new MeshBasicMaterial({
       map: texture,
-      transparent: false,
-      alphaTest: BADGE.alphaTest,
+      ...badgeDiscFlags(),
       // The camera is fixed in front of every badge, but a quad that vanished
       // because it ended up back-facing is a costly bug for two pixels of save.
       side: DoubleSide,
