@@ -478,6 +478,15 @@ SAME function the sim uses, it cannot lie.
 2. Harness audits: "no card's turn-one delta exceeds its tier budget" is an assertion.
 3. Honest tooltips: headline delta expands to per-city breakdown (evaluator computes per-target).
 
+**Explainable yields (user, 2026-08-22 — architectural rule, implement from M7 onward):**
+tile-yield computation must produce an ORDERED CONTRIBUTION LIST (entries: source id + kind
+`base|override|add|multiplier` + per-yield amounts) with the total derived as the fold of the
+list — never a parallel calculation. UI (tile info tab, later tooltips) renders it as
+"Grassland 2🌾 · Forest 1🌾1⚙ (replaces) · +Wheat 1🌾 · +Farm 1🌾 · +Civil Service 1🌾".
+No cosmetic change yet; M7 (improvements) refactors `tileYieldOf` into this shape since it
+touches that code anyway, and every later yield source (renewal techs, civic cards) MUST land
+as a contribution entry, not an inline adjustment.
+
 **Caveats:** deltas are PRESENT-STATE — label as "now" (a freshwater-farm card grows with every
 farm; show it as current value, arguably with a hint of scaling); non-yield effects preview in
 their own units (combat strength, authority capacity) where computable, static text only for

@@ -43,7 +43,11 @@ would change every seeded outcome. No further rename passes.
    not a sim concept).
 4. Rendering must not touch sim randomness — visual jitter hashes tile coords
    (`hash3`/`hashUnit`).
-5. Docblock-style comments explaining *why*, matching existing files' voice.
+5. **Explainable yields**: any code adding a yield source (improvements, techs, cards) must
+   add it as a contribution entry in the yield-breakdown list (see design-notes Entry VIII,
+   "Explainable yields") — totals are the fold of the breakdown; never compute a total beside
+   the list. (Refactor of `tileYieldOf` into this shape lands with M7.)
+6. Docblock-style comments explaining *why*, matching existing files' voice.
 
 ## Known traps
 - `MeshToonMaterial` silently ignores `flatShading` — bake facets into geometry.
