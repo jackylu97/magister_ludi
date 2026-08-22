@@ -369,6 +369,31 @@ export interface LensSpec {
   glyphLift: number;
   /** Side of a resource roundel's quad, in world units. */
   resourceIconSize: number;
+  /**
+   * How high a resource marker's roundel floats above the tile face, measured to
+   * its *centre*, in world units.
+   *
+   * The number that decides whether the marker reads as planted or as litter: it
+   * has to clear the diorama props under it — the tallest of which is about half
+   * a hex — without floating so far that the eye stops connecting it to the
+   * ground it names. It is also the pin's length, because the pin runs from the
+   * face to the roundel's centre; one tunable, not two that can disagree.
+   */
+  resourceMarkerLift: number;
+  /**
+   * How far the marker's anchor is nudged toward the tile's upper edge (−z, which
+   * is up-screen under this camera), in world units.
+   *
+   * The yield glyphs still lie flat in the middle of the hex, so a pin planted
+   * dead centre would come up through them. This is the offset that keeps the
+   * two readouts out of each other's way.
+   */
+  resourceMarkerOffset: number;
+  /** The pin under a marker: its radius at the top, and its taper toward the
+   * ground as a fraction of that. Ink-coloured, one instanced draw for the lot. */
+  resourceStemRadius: number;
+  resourceStemTaper: number;
+  resourceStemColor: number;
   foodColor: number;
   productionColor: number;
   goldColor: number;
@@ -969,6 +994,11 @@ export const VIEW3D: View3DData = {
     numeralGap: viewJson.lens.numeralGap,
     glyphLift: viewJson.lens.glyphLift,
     resourceIconSize: viewJson.lens.resourceIconSize,
+    resourceMarkerLift: viewJson.lens.resourceMarkerLift,
+    resourceMarkerOffset: viewJson.lens.resourceMarkerOffset,
+    resourceStemRadius: viewJson.lens.resourceStemRadius,
+    resourceStemTaper: viewJson.lens.resourceStemTaper,
+    resourceStemColor: named(viewJson.lens.resourceStemColor, 'lens.resourceStemColor'),
     foodColor: parseColor(viewJson.lens.foodColor, 'lens.foodColor'),
     productionColor: parseColor(viewJson.lens.productionColor, 'lens.productionColor'),
     goldColor: parseColor(viewJson.lens.goldColor, 'lens.goldColor'),

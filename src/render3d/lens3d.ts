@@ -12,14 +12,14 @@
  *                   be up under any lens (see `LensView.yields`, and the
  *                   reasoning in `mapView.ts`). They replaced coloured pips,
  *                   which could say how many and never which — see `LensSpec`.
- *   · the **resource roundels** — what is *on* this ground? A parchment roundel
- *                   with the resource's mark, on every tile carrying one the
- *                   viewing player may be told about. The diorama already grows
- *                   wheat and stands cattle on the board; the roundel is what
- *                   makes it nameable, which props alone never are. A switch for
- *                   the same reason the glyphs are one, and the switch starts on
- *                   (`LENS_DEFAULTS`): naming the ground is not a question the
- *                   player should have to go and ask.
+ *   · the **resource markers** — what is *on* this ground? A parchment roundel
+ *                   with the resource's mark, **standing up** on a short pin over
+ *                   every tile carrying one the viewing player may be told about.
+ *                   The diorama already grows wheat and stands cattle on the
+ *                   board; the roundel is what makes it nameable, which props
+ *                   alone never are. A switch for the same reason the glyphs are
+ *                   one, and the switch starts on (`LENS_DEFAULTS`): naming the
+ *                   ground is not a question the player should have to go and ask.
  *   · the **settler lens** — where may a city go, and what kind of site is it?
  *                   Every tile the reducer would refuse is darkened. Every tile
  *                   it would accept is read for the two things that actually
@@ -60,10 +60,27 @@
  * or when the state under it changes in a way it is showing (borders, cities),
  * and never per frame.
  *
+ * Two planes, so the two readouts stop colliding
+ * ----------------------------------------------
+ * The roundels used to lie flat on the face at the same height and the same
+ * centre as the yield stacks, which meant a wheat hill printed a sheaf, two
+ * hammers and a roundel on top of each other and the player could read none of
+ * them. They are Civ 5 markers now: upright, camera-facing, floated
+ * `resourceMarkerLift` over the tile on an ink-coloured pin, and anchored
+ * `resourceMarkerOffset` toward the hex's upper edge so the pin is not planted in
+ * the middle of a stack of coins. The yield glyphs did not move and did not
+ * change; the collision was resolved by taking one of the two off the ground
+ * rather than by shuffling both around on it.
+ *
+ * A marker is also depth-tested where a flat readout is not, and that follows
+ * from the same decision: something standing in the diorama has to be hidden by
+ * the mountain in front of it, exactly as a unit badge is (see `badges3d.ts`),
+ * or the board grows a field of floating dots with nothing under them.
+ *
  * Instancing keeps the cost flat: every glyph of one atlas cell is one draw call
- * whether there are ten of them or ten thousand, and the site wash has exactly
- * four grades — refused, coastal, fresh, both — so it stays four buckets however
- * large the map is.
+ * whether there are ten of them or ten thousand, every pin on the whole board is
+ * one more, and the site wash has exactly four grades — refused, coastal, fresh,
+ * both — so it stays four buckets however large the map is.
  */
 
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
@@ -134,6 +151,11 @@ export class LensLayer {
    * rasterising — or forever, in a browser with no 2D context. Both halves that
    * need it simply draw nothing in that case, exactly as the units stand without
    * badges until theirs arrives.
+   *
+   * `faceCamera` is the camera's own rotation, resolved once by the caller and
+   * baked into every marker's instance matrix. The camera angle never changes in
+   * this renderer, so "face the camera" is a constant rather than a per-frame
+   * job — the same bargain the unit badges and the HP bars make.
    */
   build(
     state: GameState | null,
@@ -141,6 +163,7 @@ export class LensLayer {
     geometry: BoardGeometry,
     materials: MaterialLibrary,
     icons: TileIcons | null,
+    faceCamera: Quaternion,
   ): void {
     disposeInstancedGroup(this.group);
     this.drawCallCount = 0;
@@ -154,20 +177,23 @@ export class LensLayer {
       copyOffsets: [-wrapWidth(map), 0, wrapWidth(map)],
     });
 
-    // The wash first, so the marks are collected — and therefore drawn — after
-    // the ground tint they sit on. Both are `onTop` decals with the depth test
-    // off, so the order they are added in is the order they layer in.
+    // The wash first, so the flat marks are collected — and therefore drawn —
+    // after the ground tint they sit on: both are `onTop` decals with the depth
+    // test off, so the order they are added in is the order they layer in. The
+    // resource markers are not in that argument at all any more; they stand up
+    // and are sorted by the depth buffer like everything else in the diorama.
     if (lens.mode === 'settler') {
       this.addSiteWash(state, lens.playerId, resolveTiles(map, lens.cells), collector, geometry);
     }
     if (lens.resources && icons) {
-      this.addResourceIcons(
+      this.addResourceMarkers(
         state,
         lens.playerId,
         resolveTiles(map, lens.resourceCells),
         collector,
         geometry,
         icons,
+        faceCamera,
       );
     }
     if (lens.yields && icons) {
@@ -253,39 +279,79 @@ export class LensLayer {
   }
 
   /**
-   * The resource switch: a roundel on every tile carrying a resource this player
-   * may be told about.
+   * The resource switch: a standing marker over every tile carrying a resource
+   * this player may be told about.
+   *
+   * Two instances per marker and they are deliberately different kinds of thing:
+   *
+   *   the roundel  the same atlas cell the flat version printed, on an upright
+   *                quad turned to the fixed camera — the class-badge pattern
+   *                exactly (`badges3d.ts`), down to the constant orientation and
+   *                the depth test. It floats `resourceMarkerLift` over the tile
+   *                face, measured to its centre, which is enough to clear the
+   *                diorama props growing under it.
+   *   the pin      one tapered spike in board ink, from the face up to the
+   *                roundel's centre, where the roundel's own opaque paper hides
+   *                its top. It is what makes the roundel read as *planted in
+   *                this hex* rather than as an interface dot that happens to be
+   *                floating nearby, and it is one instanced draw for the whole
+   *                board however many resources are on it.
+   *
+   * The anchor is nudged `resourceMarkerOffset` toward the hex's upper edge
+   * rather than sitting on its centre. That is not decoration: the yield stacks
+   * are still printed flat across the middle of the face, and a pin planted there
+   * would come up through them — which is the collision this whole shape change
+   * exists to end.
    *
    * Visibility is asked of `visibleResourceAt` — the *simulation's* own answer,
    * the one the hover readout reads — so the lens and the card can never
    * disagree about whether a player has heard of iron yet. The diorama props
-   * under the roundel are another matter entirely and are drawn for everybody;
+   * under the marker are another matter entirely and are drawn for everybody;
    * see that function's docblock for the tradeoff and why it is the honest one
    * for a game with no fog of war.
    */
-  private addResourceIcons(
+  private addResourceMarkers(
     state: GameState,
     playerId: number,
     tiles: readonly Tile[],
     collector: InstanceCollector,
     geometry: BoardGeometry,
     icons: TileIcons,
+    faceCamera: Quaternion,
   ): void {
-    const identity = new Quaternion();
-    const scale = new Vector3(LENS.resourceIconSize, 1, LENS.resourceIconSize);
+    const upright = new Quaternion();
+    const disc = new Vector3(LENS.resourceIconSize, LENS.resourceIconSize, 1);
+    const lift = LENS.resourceMarkerLift;
+
     for (const tile of tiles) {
       const id = visibleResourceAt(state, playerId, tile);
       if (id === null) continue;
       const centre = cellCenter(tile.col, tile.row);
+      // −z is up-screen under this camera (see `atlasDecal`), so subtracting is
+      // "toward the tile's upper edge".
+      const x = centre.x;
+      const z = centre.z - LENS.resourceMarkerOffset;
+      const ground = tileTopY(tile);
+
+      // The pin first, so a marker's own paper is drawn over the top of it in
+      // the one bucket where draw order still decides anything.
       collector.add(
-        geometry.resourceIcons[id],
-        [],
+        geometry.resourceStem,
+        [LENS.resourceStemColor],
         new Matrix4().compose(
-          new Vector3(centre.x, tileTopY(tile) + OVERLAY.lift + LENS.glyphLift, centre.z),
-          identity,
-          scale,
+          new Vector3(x, ground + LENS.glyphLift, z),
+          upright,
+          new Vector3(LENS.resourceStemRadius, lift, LENS.resourceStemRadius),
         ),
-        { onTop: true, material: icons.material },
+        { outlined: false },
+      );
+      collector.add(
+        geometry.resourceMarkers[id],
+        // No ink of its own: the disc *is* the texture. The colour list still has
+        // to be something — see the same note on the unit badges.
+        [],
+        new Matrix4().compose(new Vector3(x, ground + lift, z), faceCamera, disc),
+        { material: icons.standingMaterial },
       );
     }
   }

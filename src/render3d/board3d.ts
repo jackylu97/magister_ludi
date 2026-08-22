@@ -79,6 +79,7 @@ import {
   hexPrism,
   hexRing,
   horsemanMini,
+  markerPin,
   mountainPeak,
   mountainSnow,
   oreBoulder,
@@ -262,11 +263,15 @@ function buildResourceProps(): Record<ResourceId, BufferGeometry> {
  *
  * The same bargain `buildBadgeQuads` makes, one plane down: the atlas rectangle
  * is baked into the geometry, so every mark of one kind on the whole board is a
- * single `InstancedMesh` and all twenty-five kinds share one texture and one
+ * single `InstancedMesh` and all thirteen kinds share one texture and one
  * material. See `atlasDecal` for why these lie in xz where a badge stands in xy.
+ *
+ * The resource cells are *not* here. They used to be — a flat roundel printed on
+ * the face beside the yield stacks — and they stood up (`buildResourceMarkers`),
+ * which left the decal form with no reader at all. A plane is baked into a
+ * geometry's vertices, so a mark that changed plane changed builder.
  */
 function buildIconDecals(): {
-  resources: Record<ResourceId, BufferGeometry>;
   yields: Record<YieldKey, BufferGeometry>;
   numerals: BufferGeometry[];
 } {
@@ -274,15 +279,35 @@ function buildIconDecals(): {
     const rect = tileIconRect(cell);
     return atlasDecal(rect.u0, rect.v0, rect.u1, rect.v1);
   };
-  const resources: Partial<Record<ResourceId, BufferGeometry>> = {};
-  for (const id of RESOURCE_IDS) resources[id] = decal({ set: 'resource', id });
   const yields: Partial<Record<YieldKey, BufferGeometry>> = {};
   for (const key of YIELD_KEYS) yields[key] = decal({ set: 'yield', id: key });
   return {
-    resources: resources as Record<ResourceId, BufferGeometry>,
     yields: yields as Record<YieldKey, BufferGeometry>,
     numerals: NUMERAL_CELLS.map((digit) => decal({ set: 'numeral', id: digit })),
   };
+}
+
+/**
+ * The same twelve resource cells again, *standing up*.
+ *
+ * A resource marker is a class badge one plane down: an upright quad turned to
+ * the fixed camera and floated over the hex on a pin, rather than a decal lying
+ * on the face. So it is built with `atlasQuad` — the badge's own builder —
+ * against the *tile* atlas's rectangles, which is the whole of the sharing: one
+ * texture, one atlas layout, two planes.
+ *
+ * The flat builder keeps the yield glyphs and the numerals, which still lie on
+ * the ground; only the roundels stood up, and they took their twelve geometries
+ * with them rather than growing twelve more. Reusing the decals was never
+ * available: a plane's orientation is baked into its vertices.
+ */
+function buildResourceMarkers(): Record<ResourceId, BufferGeometry> {
+  const out: Partial<Record<ResourceId, BufferGeometry>> = {};
+  for (const id of RESOURCE_IDS) {
+    const rect = tileIconRect({ set: 'resource', id });
+    out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
+  }
+  return out as Record<ResourceId, BufferGeometry>;
 }
 
 /**
@@ -344,13 +369,19 @@ export class BoardGeometry {
    */
   readonly resourceProps: Record<ResourceId, BufferGeometry>;
   /**
-   * The flat tile marks, one quad per cell of the tile atlas: a resource
-   * roundel, a yield glyph, a numeral. All three are drawn by `lens3d.ts` with
-   * the atlas's own material.
+   * The flat tile marks, one quad per cell of the tile atlas that still lies on
+   * the ground: a yield glyph and a numeral. Both are drawn by `lens3d.ts` with
+   * the atlas's own depth-test-free material.
    */
-  readonly resourceIcons: Record<ResourceId, BufferGeometry>;
   readonly yieldGlyphs: Record<YieldKey, BufferGeometry>;
   readonly numerals: BufferGeometry[];
+  /**
+   * The standing form of the same twelve roundels — an upright quad turned to
+   * the camera — and the one pin every marker is planted on. See
+   * `buildResourceMarkers` and `addResourceMarkers` in `lens3d.ts`.
+   */
+  readonly resourceMarkers: Record<ResourceId, BufferGeometry>;
+  readonly resourceStem: BufferGeometry;
   /** An upright unit quad standing on its base, for the sprite units. */
   readonly billboard: BufferGeometry;
   /** The blob shadow under a billboard, and the foot it stands in. */
@@ -403,9 +434,10 @@ export class BoardGeometry {
     this.dot = pathDot(OVERLAY.pathDotRadius, OVERLAY.pathDotHeight);
     this.resourceProps = buildResourceProps();
     const icons = buildIconDecals();
-    this.resourceIcons = icons.resources;
     this.yieldGlyphs = icons.yields;
     this.numerals = icons.numerals;
+    this.resourceMarkers = buildResourceMarkers();
+    this.resourceStem = markerPin(VIEW3D.lens.resourceStemTaper);
     this.river = riverSegment();
     this.bar = barQuad();
     // Sprite units. Built unconditionally rather than behind the style switch:
@@ -453,7 +485,8 @@ export class BoardGeometry {
     this.ring.dispose();
     this.dot.dispose();
     for (const prop of Object.values(this.resourceProps)) prop.dispose();
-    for (const quad of Object.values(this.resourceIcons)) quad.dispose();
+    for (const quad of Object.values(this.resourceMarkers)) quad.dispose();
+    this.resourceStem.dispose();
     for (const quad of Object.values(this.yieldGlyphs)) quad.dispose();
     for (const quad of this.numerals) quad.dispose();
     this.river.dispose();

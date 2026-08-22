@@ -59,10 +59,14 @@
  * layout — and splitting them would have meant two copies of the layout
  * arithmetic that decides texture coordinates.
  *
- * What differs is only what a mark is *for*: a badge names a piece and stands up
- * in the world with it, a tile icon names the ground and lies on it. So the tile
- * atlas turns the depth test off (a readout may not be swallowed by the hill it
- * is printed behind) where a badge keeps it on.
+ * What differs is only what a mark is *for*, and the tile atlas now serves both
+ * answers. A yield glyph names what the ground *makes*: it lies on the face like
+ * every other decal, with the depth test off, because a readout may not be
+ * swallowed by the hill it is printed behind. A resource roundel names what is
+ * *on* the ground, which is a thing rather than a number — so it stands up on a
+ * pin over its hex and is drawn exactly like a unit badge, depth test and all
+ * (see `TileIcons.standingMaterial` and `addResourceMarkers` in `lens3d.ts`).
+ * One texture, one cell layout, two materials.
  *
  * Everything except `UnitBadges`, `TileIcons` and the cell painters is pure
  * arithmetic on the data, which is what `test/badges3d.test.ts` checks; the
@@ -587,6 +591,24 @@ function drawNumeralCell(
 export class TileIcons {
   private readonly texture: CanvasTexture;
   readonly material: MeshBasicMaterial;
+  /**
+   * The same atlas for the marks that *stand up* rather than lying down: the
+   * resource markers, which are pinned above their tile and turned to the camera
+   * (see `addResourceMarkers` in `lens3d.ts`).
+   *
+   * A second material and not a second texture — one canvas still, one
+   * rasterisation, the same twelve cells — because the only thing that differs is
+   * the depth behaviour, and that is a material flag. A standing marker is an
+   * object in the diorama exactly as a unit badge is: it tests and writes depth,
+   * so a resource behind a mountain is hidden by the mountain instead of floating
+   * in front of it. Flat readouts keep the other treatment and the reasoning
+   * above.
+   *
+   * It costs one draw call per distinct resource on screen, which is what the
+   * flat roundels already cost — the split is between *materials*, and the marks
+   * that use each one were never in the same bucket anyway.
+   */
+  readonly standingMaterial: MeshBasicMaterial;
 
   private constructor(texture: CanvasTexture) {
     this.texture = texture;
@@ -599,10 +621,21 @@ export class TileIcons {
       depthTest: false,
       depthWrite: false,
     });
+    this.standingMaterial = new MeshBasicMaterial({
+      map: texture,
+      transparent: false,
+      alphaTest: ICONS.alphaTest,
+      // The camera is fixed in front of every marker, but a quad that vanished
+      // because it ended up back-facing is a costly bug — `UnitBadges` makes the
+      // same trade for the same reason.
+      side: DoubleSide,
+      toneMapped: false,
+    });
   }
 
   dispose(): void {
     this.material.dispose();
+    this.standingMaterial.dispose();
     this.texture.dispose();
   }
 

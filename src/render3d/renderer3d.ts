@@ -474,7 +474,16 @@ export class Renderer3D implements MapView {
    * frame; see the docblock in `lens3d.ts`.
    */
   private rebuildLens(): void {
-    this.lens.build(this.state, this.lensView, this.geometry, this.materials, this.icons);
+    this.lens.build(
+      this.state,
+      this.lensView,
+      this.geometry,
+      this.materials,
+      this.icons,
+      // The resource markers stand up and face the camera, which never moves:
+      // one constant rotation, resolved here exactly as it is for the badges.
+      this.view.camera.quaternion.clone(),
+    );
     this.invalidate();
   }
 

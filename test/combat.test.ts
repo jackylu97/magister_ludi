@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt } from '../src/sim/cities';
 import {
   advanceFortify,
+  applyCombat,
   attackTargetAt,
   fortifyBonus,
   hasLineOfSight,
@@ -285,6 +286,161 @@ describe('melee', () => {
     endRound(state);
     expect(a.hasAttacked).toBe(false);
     expect(a.movesLeft).toBe(fullMovement(a));
+  });
+});
+
+// --- no mutual death --------------------------------------------------------
+
+/**
+ * Civ V's rule, and the one asymmetry in a melee that is otherwise simultaneous:
+ * an exchange that would empty both bars kills the defender and leaves the
+ * attacker on exactly 1. See the module docblock in `combat.ts`.
+ *
+ * Two warriors are the whole fixture: strength 8 against strength 8 on flat
+ * ground is `30 · e^0 = 30` each way, so any pair of hit-point totals at or under
+ * `30 × 0.8 = 24` is a guaranteed double kill whatever the die does.
+ */
+describe('a melee exchange never kills both sides', () => {
+  it('kills the defender and leaves the attacker on exactly one hit point', () => {
+    const state = flatState();
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const d = createUnit(state, 1, 'warrior', 4, 3);
+    a.hp = 5;
+    d.hp = 5;
+
+    expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
+    expect(state.units.find((unit) => unit.id === d.id)).toBeUndefined();
+    expect(state.units.find((unit) => unit.id === a.id)).toBe(a);
+    expect(a.hp).toBe(1);
+  });
+
+  it('lets the survivor advance, at one hit point, into the tile it emptied', () => {
+    const state = flatState();
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const d = createUnit(state, 1, 'warrior', 4, 3);
+    a.hp = 5;
+    d.hp = 5;
+
+    expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
+    expect(state.units.find((unit) => unit.id === d.id)).toBeUndefined();
+    // The advance rule is untouched by the clamp: a unit on 1 hit point that
+    // emptied a tile still steps onto it.
+    expect({ col: a.col, row: a.row, hp: a.hp }).toEqual({ col: 4, row: 3, hp: 1 });
+  });
+
+  it('charges only the hit points the clamp actually took', () => {
+    const state = flatState();
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const d = createUnit(state, 1, 'warrior', 4, 3);
+    a.hp = 5;
+    d.hp = 5;
+
+    const result = applyCombat(state, a.id, { col: 4, row: 3 });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    // The counter rolled somewhere near 30 and landed for 4: what the outcome
+    // reports is what came off the bar, exactly as the defender's own figure is
+    // clamped to the hit points there were to take.
+    expect(result.outcome.damageToAttacker).toBe(4);
+    expect(result.outcome.attackerSurvived).toBe(true);
+    expect(result.outcome.killed.map((fallen) => fallen.id)).toEqual([d.id]);
+    expect(result.outcome.advanced).toBe(true);
+  });
+
+  it('still kills the attacker when the defender survives the exchange', () => {
+    const state = flatState();
+    const a = createUnit(state, 0, 'scout', 3, 3);
+    const d = createUnit(state, 1, 'knight', 4, 3);
+    a.hp = 3;
+
+    // The knight is at full health and cannot be emptied by one blow, so there
+    // is nothing for the rule to protect: the counter kills as it always did.
+    expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
+    expect(state.units.find((unit) => unit.id === a.id)).toBeUndefined();
+    expect(state.units.find((unit) => unit.id === d.id)).toBe(d);
+    expect(d.hp).toBeLessThan(unitDef('knight').maxHp);
+  });
+
+  it('does not protect an attacker whose blow merely wounded', () => {
+    const state = flatState();
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const d = createUnit(state, 1, 'warrior', 4, 3);
+    a.hp = 5;
+    // 36 is the top of the band, so the defender survives every roll and the
+    // attacker is on its own.
+    d.hp = 40;
+
+    expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
+    expect(state.units.find((unit) => unit.id === a.id)).toBeUndefined();
+    expect(d.hp).toBeGreaterThan(0);
+  });
+
+  /**
+   * The forecast side. The rule is conditional on an outcome and a preview has
+   * only a band, so the preview floors the attacker's remaining at 1 whenever
+   * the defender's remaining *can* reach 0 — see `previewCombat`'s docblock for
+   * why that direction is the honest one to round in.
+   */
+  describe('the preview', () => {
+    it('floors the attacker\'s remaining at one when the defender can die', () => {
+      const state = flatState();
+      const a = createUnit(state, 0, 'warrior', 3, 3);
+      const d = createUnit(state, 1, 'warrior', 4, 3);
+      a.hp = 5;
+      d.hp = 5;
+
+      const view = forecast(state, a.id, 4, 3);
+      expect(view.attackerHp).toBe(5);
+      for (const damage of [
+        view.damageToAttackerMin,
+        view.damageToAttacker,
+        view.damageToAttackerMax,
+      ]) {
+        expect(damage).toBe(4);
+        expect(view.attackerHp - damage).toBe(1);
+      }
+    });
+
+    it('floors on the band, not on the midpoint', () => {
+      const state = flatState();
+      const a = createUnit(state, 0, 'warrior', 3, 3);
+      const d = createUnit(state, 1, 'warrior', 4, 3);
+      a.hp = 10;
+      // The midpoint blow is 30 and would leave the defender standing; the top
+      // of the band is 36 and would not. "Can reach zero" is the band.
+      d.hp = 34;
+
+      const view = forecast(state, a.id, 4, 3);
+      expect(view.damageToDefender).toBeLessThan(view.defenderHp);
+      expect(view.damageToDefenderMax).toBe(34);
+      expect(view.damageToAttacker).toBe(9);
+    });
+
+    it('leaves the counter alone when the defender cannot be emptied at all', () => {
+      const state = flatState();
+      const a = createUnit(state, 0, 'warrior', 3, 3);
+      createUnit(state, 1, 'warrior', 4, 3);
+
+      // Both at full health: no kill is on the table, so the forecast is the
+      // plain curve and says so.
+      const view = forecast(state, a.id, 4, 3);
+      expect(view.damageToAttacker).toBe(COMBAT.baseDamage);
+      expect(view.damageToAttackerMin).toBe(24);
+      expect(view.damageToAttackerMax).toBe(36);
+    });
+
+    it('never forecasts more damage than the attacker has to give', () => {
+      const state = flatState();
+      const a = createUnit(state, 0, 'scout', 3, 3);
+      createUnit(state, 1, 'knight', 4, 3);
+      a.hp = 3;
+
+      // No floor here — the knight is untouchable — but a bar cannot lose more
+      // than it holds, and `main.ts` draws the loss from this number.
+      const view = forecast(state, a.id, 4, 3);
+      expect(view.damageToAttacker).toBe(3);
+      expect(view.attackerHp - view.damageToAttacker).toBe(0);
+    });
   });
 });
 
@@ -878,7 +1034,10 @@ describe('a war replays exactly', () => {
    * next to player 0's opening pair by `spawnUnit` commands, so the whole thing
    * is reproducible from the log alone.
    */
-  function warGame(): { game: Game; ids: { mine: number; theirs: number } } {
+  function warGame(
+    mineType: 'swordsman' | 'warrior' = 'swordsman',
+    theirsType: 'spearman' | 'warrior' = 'spearman',
+  ): { game: Game; ids: { mine: number; theirs: number } } {
     const game = createGame({
       seed: 4242,
       sizeName: 'duel',
@@ -909,7 +1068,7 @@ describe('a war replays exactly', () => {
         type: 'spawnUnit',
         playerId: 0,
         ownerId: 0,
-        unitType: 'swordsman',
+        unitType: mineType,
         at: spots[0]!,
       }).ok,
     ).toBe(true);
@@ -918,7 +1077,7 @@ describe('a war replays exactly', () => {
         type: 'spawnUnit',
         playerId: 0,
         ownerId: 1,
-        unitType: 'spearman',
+        unitType: theirsType,
         at: spots[1]!,
       }).ok,
     ).toBe(true);
@@ -972,6 +1131,57 @@ describe('a war replays exactly', () => {
     expect(snapshotState(replayed)).toBe(snapshotState(game.state));
     // The generator itself is in lockstep, which is the thing dice would break.
     expect(replayed.rng).toEqual(game.state.rng);
+  });
+
+  /**
+   * The same war, fought by two units of *equal* strength so that it grinds all
+   * the way down to an exchange both sides lose — the one place the reducer now
+   * clamps rather than removing, and therefore a step a replay could silently
+   * disagree about.
+   */
+  it('reproduces an exchange that killed both sides, from the log', () => {
+    const { game, ids } = warGame('warrior', 'warrior');
+
+    let mutualKill: { attacker: number; hp: number } | null = null;
+    const swing = (playerId: number, attackerId: number, defenderId: number): void => {
+      const attacker = game.state.units.find((u) => u.id === attackerId);
+      const defender = game.state.units.find((u) => u.id === defenderId);
+      if (!attacker || !defender) return;
+      const result = dispatch(game, {
+        type: 'attack',
+        playerId,
+        unitId: attacker.id,
+        target: { col: defender.col, row: defender.row },
+      });
+      if (!result.ok) return;
+      const defenderGone = !game.state.units.some((u) => u.id === defenderId);
+      const attackerLives = game.state.units.some((u) => u.id === attackerId);
+      // The signature of the rule biting: the target is off the board and its
+      // killer is standing on exactly one hit point.
+      if (defenderGone && attackerLives && attacker.hp === 1) {
+        mutualKill ??= { attacker: attackerId, hp: attacker.hp };
+      }
+    };
+
+    for (let turn = 0; turn < 8 && !mutualKill; turn++) {
+      swing(0, ids.mine, ids.theirs);
+      swing(1, ids.theirs, ids.mine);
+      for (const player of game.state.players) {
+        dispatch(game, { type: 'endTurn', playerId: player.id });
+      }
+    }
+
+    // The fixture has to have produced the thing under test, or the replay below
+    // is checking an ordinary war again.
+    expect(mutualKill).not.toBeNull();
+    expect(mutualKill!.hp).toBe(1);
+
+    const replayed = replay(game.config, game.log);
+    expect(snapshotState(replayed)).toBe(snapshotState(game.state));
+    expect(replayed.rng).toEqual(game.state.rng);
+    // And the survivor is still there, on the hit point the rule left it.
+    const survivor = replayed.units.find((u) => u.id === mutualKill!.attacker);
+    expect(survivor?.hp).toBe(1);
   });
 
   it('rolls the same numbers from the same seed and no numbers when it captures', () => {

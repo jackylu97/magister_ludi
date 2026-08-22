@@ -1668,6 +1668,29 @@ export function pathDot(radius: number, height: number): BufferGeometry {
 }
 
 /**
+ * The pin a standing marker is planted on: a tapered spike of unit radius and
+ * unit height, standing on its own base at the origin.
+ *
+ * Unit-sized so one geometry serves every marker on the board and the instance
+ * matrix carries both the thickness and the height — the same bargain
+ * `barQuad`, `spriteQuad` and `atlasQuad` make, and the reason a whole map's
+ * pins are a single instanced draw whatever is growing on it.
+ *
+ * Tapered rather than a plain cylinder, and the taper is toward the *ground*:
+ * wide where the roundel sits on it and narrow where it meets the tile face, so
+ * it reads as something pushed into the hex rather than as a post the marker is
+ * balanced on. Six sides, because at the width this is drawn (a couple of
+ * hundredths of a hex) the silhouette is a line and any more is triangles spent
+ * on a curve that is one pixel across.
+ */
+export function markerPin(taper: number, sides = 6): BufferGeometry {
+  const narrow = Math.max(0.01, Math.min(1, taper));
+  const geometry = new CylinderGeometry(1, narrow, 1, Math.max(3, Math.round(sides)), 1, true);
+  geometry.translate(0, 0.5, 0);
+  return flatten(geometry);
+}
+
+/**
  * A unit quad in the xy plane with its origin at the *left* edge, so scaling x
  * grows it rightward. That is what lets one HP bar geometry serve as both the
  * full-width background and the partial-width fill.

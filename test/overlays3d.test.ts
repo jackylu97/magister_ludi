@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { InstancedMesh, type BufferGeometry, type Material, MeshBasicMaterial } from 'three';
+import {
+  InstancedMesh,
+  type BufferGeometry,
+  type Material,
+  MeshBasicMaterial,
+  Quaternion,
+} from 'three';
 
 import type { TileIcons } from '../src/render3d/badges3d';
 import { BoardGeometry } from '../src/render3d/board3d';
@@ -84,7 +90,14 @@ function lensView(overrides: Partial<LensView> = {}): LensView {
  */
 const fakeIcons = {
   material: new MeshBasicMaterial({ depthTest: false, depthWrite: false }),
+  // The standing half of the same atlas: the resource markers, which are
+  // depth-tested world objects. See `test/resources3d.test.ts` for what is
+  // asserted about them; nothing in this file draws one.
+  standingMaterial: new MeshBasicMaterial(),
 } as unknown as TileIcons;
+
+/** The fixed camera's rotation, which every standing marker is turned by. */
+const faceCamera = new Quaternion();
 
 /** The geometries a layer drew, ignoring how many instances of each. */
 function shapesOf(group: { children: unknown[] }): BufferGeometry[] {
@@ -123,6 +136,7 @@ describe('board overlays draw over the board', () => {
       geometry,
       materials,
       fakeIcons,
+      faceCamera,
     );
 
     // Grassland forest yields 1 food and 1 production: one sheaf and one hammer,
@@ -147,6 +161,7 @@ describe('board overlays draw over the board', () => {
       geometry,
       materials,
       null,
+      faceCamera,
     );
     expect(decals(layer.group)).toHaveLength(0);
     layer.dispose();
@@ -257,6 +272,7 @@ describe('the settler lens reads a site rather than scoring it', () => {
       geometry,
       materials,
       fakeIcons,
+      faceCamera,
     );
     const colors = colorsOf(layer.group);
     layer.dispose();
@@ -322,6 +338,7 @@ describe('the settler lens reads a site rather than scoring it', () => {
       geometry,
       materials,
       fakeIcons,
+      faceCamera,
     );
     // The wash *and* the grassland's two food glyphs: the two are independent.
     expect(colorsOf(layer.group)).toContain(LENS.siteCoastColor);

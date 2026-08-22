@@ -66,6 +66,25 @@
  * counter-damage, no advance, and a city floors at 1 hit point, which is the Civ
  * rule that stops archers taking capitals on their own.
  *
+ * No mutual death
+ * ---------------
+ * A melee exchange that would empty *both* hit-point bars kills the **defender**
+ * and leaves the **attacker on exactly 1**. Civ V's rule, and it is a rule rather
+ * than a tuned number, so it lives here and not in `rules.json`: there is nothing
+ * to dial. The reasoning is that the blows are only *modelled* as simultaneous —
+ * the attacker is the one who chose the fight and landed the killing stroke, and
+ * a trade where the aggressor also dies makes every attack on a wounded equal a
+ * coin flip nobody would ever call. Mechanically it is the same clamp the
+ * defender already gets from `clampDamage`: a floor on the hit points a blow may
+ * take away, 1 instead of 0, applied to the counter-attack exactly when the
+ * attacker's own blow proved fatal.
+ *
+ * It changes nothing else. The counter still *lands* — a defender that dies still
+ * swings, and a full-strength attacker walks away scarred — and the advance rule
+ * then applies as normal, so an attacker clamped to 1 hit point may still step
+ * onto the tile it emptied. Attacker-only death is untouched: a counter that
+ * outlives its target kills as freely as it ever did.
+ *
  * Attacking ends the unit's turn (`movesLeft` to zero, `hasAttacked` set). Civ V
  * is subtler — some units may move after shooting — and v1 deliberately is not:
  * one attack per unit per turn, and the attack is the turn.
@@ -524,7 +543,21 @@ function planCombat(
   const band = COMBAT.rollBand;
   const dealt = (roll: number): number =>
     clampDamage(damageAtRoll(baseToDefender, roll), defenderHp, defenderFloor);
-  const taken = (roll: number): number => damageAtRoll(baseToAttacker, roll);
+
+  /**
+   * The no-mutual-death rule as a forecast (see the module docblock, and
+   * `previewCombat` for why the preview reads it at the *band* rather than at
+   * the midpoint): the moment the attacker's best roll can empty the defender,
+   * the counter-attack is previewed as leaving the attacker on at least 1.
+   *
+   * `dealt` is already clamped to the hit points there are to take, so "the
+   * defender's projected remaining can reach zero" is exactly "the top of the
+   * band takes all of them".
+   */
+  const defenderCanDie = dealt(1 + band) >= defenderHp - defenderFloor;
+  const attackerFloor = defenderCanDie ? 1 : 0;
+  const taken = (roll: number): number =>
+    clampDamage(damageAtRoll(baseToAttacker, roll), attacker.hp, attackerFloor);
 
   const damageToDefender = dealt(1);
 
@@ -568,6 +601,24 @@ function planCombat(
  * band with `…Min` / `…Max` beside them, so the card can show "34 ± 7" honestly:
  * the reducer will produce a number in exactly that closed interval, because it
  * is the same arithmetic with a die in it.
+ *
+ * The one place it deliberately rounds *toward* the player
+ * ---------------------------------------------------------
+ * The no-mutual-death rule (see the module docblock) is conditional on an
+ * outcome, and a forecast has no outcome yet — it has a band. So the preview
+ * takes the simplest honest presentation available: **whenever the defender's
+ * projected remaining hit points can reach zero, the attacker's projected
+ * remaining floors at 1**, which it does by clamping all three counter-damage
+ * figures to `attackerHp − 1`. `main.ts` prints "hp after" as
+ * `attackerHp − damageToAttacker`, so flooring the damage is flooring the bar.
+ *
+ * That is a real approximation and it is chosen with its direction open: on a
+ * roll where the attacker's blow does *not* in fact kill, the counter may take
+ * the attacker below what was shown, and it may kill it. What the preview will
+ * never do is the opposite — promise the death of an attacker whose own attack
+ * is landing the kill, which is the reading a player would act on and the rule
+ * would then refuse. A forecast that showed both bars emptying would be
+ * describing a state of the world this game does not have.
  */
 export function previewCombat(state: GameState, attackerId: number, cell: Cell): CombatPreview {
   const planned = planCombat(state, attackerId, cell);
@@ -613,6 +664,9 @@ export type CombatResult = { ok: true; outcome: CombatOutcome } | { ok: false; e
  *      pure function of the state, and it is.
  *   2. both sides take their damage, computed from the board *before* either
  *      blow landed. A melee is simultaneous; a defender that dies still swings.
+ *      The one asymmetry is the no-mutual-death clamp: the counter is charged
+ *      *after* the defender's fate is known, floored at leaving the attacker on
+ *      1 when the attacker's own blow was the fatal one.
  *   3. the dead are removed, defender first.
  *   4. the attacker's turn ends and its trench is abandoned.
  *   5. the advance, last, because it is the only step that needs the tile to be
@@ -652,12 +706,13 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       defenderFloor,
     );
     outcome.damageToDefender = dealt;
-    if (baseToAttacker > 0) {
-      outcome.damageToAttacker = damageAtRoll(
-        baseToAttacker,
-        nextRange(state.rng, 1 - band, 1 + band),
-      );
-    }
+    // Rolled here, applied below: the counter's *size* is decided by the board
+    // before either blow lands, but how much of it the attacker may actually be
+    // charged depends on whether the defender is still standing afterwards.
+    // Drawing it in place keeps the die sequence — blow, then counter — exactly
+    // what it has always been, which is what a replay reproduces.
+    const counter =
+      baseToAttacker > 0 ? damageAtRoll(baseToAttacker, nextRange(state.rng, 1 - band, 1 + band)) : 0;
 
     if (target.city) {
       target.city.hp -= dealt;
@@ -675,6 +730,13 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         defenderDied = true;
       }
     }
+
+    // No mutual death (module docblock). The attacker's floor is 1 exactly when
+    // its own blow killed the unit that swung back — the same `clampDamage` the
+    // defender is charged through, with 1 in place of 0. A defender that lived
+    // keeps every point of its counter, so an attacker can still die here.
+    const attackerFloor = defenderDied && target.unit !== null ? 1 : 0;
+    outcome.damageToAttacker = clampDamage(counter, attacker.hp, attackerFloor);
     attacker.hp -= outcome.damageToAttacker;
   }
 
