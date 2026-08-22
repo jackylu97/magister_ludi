@@ -73,8 +73,11 @@ import { type UnitTypeId, unitDef } from './unitData';
  * 5: Fresh water — the `lake` terrain, `Tile.riverEdges` and `Tile.freshwater`.
  * 6: Milestone 4 — the tech tree: `Player.researching` and
  *    `Player.techsResearched`, and the `chooseResearch` command.
+ * 7: Milestone 5 — combat: `Unit.hasAttacked` and `Unit.fortifiedTurns`,
+ *    `City.hp`, `Player.eliminated`, `GameState.winnerId`, and the `attack` and
+ *    `fortify` commands.
  */
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 // --- players ----------------------------------------------------------------
 
@@ -124,6 +127,22 @@ export interface Player {
    * something on turn one.
    */
   techsResearched: TechId[];
+  /**
+   * True once this player holds no units and no cities. They are out.
+   *
+   * A flag rather than a removal from `players`, and that is load-bearing: the
+   * `turnEnded` array is indexed by player id and player id *is* the index (see
+   * the trap in CLAUDE.md), so splicing a player out would renumber everybody
+   * after them and silently reattribute every command in the log. An eliminated
+   * seat therefore stays in the array, keeps its id, and is simply finished
+   * forever — `clearTurnEnded` re-raises its flag every turn, so it never blocks
+   * a resolution and never gets another window to act in.
+   *
+   * Set by `updateElimination` (`combat.ts`), which runs both inside the attack
+   * that caused it — so a turn cannot deadlock waiting for a player who was
+   * wiped out mid-window — and as a turn phase.
+   */
+  eliminated: boolean;
 }
 
 // --- entities ---------------------------------------------------------------
@@ -149,7 +168,30 @@ export interface Unit {
   hp: number;
   /** Movement points left this turn. Refilled by the `resetMovement` phase. */
   movesLeft: number;
+  /**
+   * True once this unit has attacked this turn. Cleared by `resetMovement`
+   * alongside the movement allowance, because they are the same allowance: one
+   * attack per unit per turn, exactly as Civ V has it.
+   *
+   * Always present rather than optional, unlike `path` and `fortifiedTurns`. It
+   * is a fact about every unit on every turn — a warrior that has not attacked
+   * has *not attacked*, which is a real state and not an absent one — and the
+   * healing rule reads it on every unit in the game every turn.
+   */
+  hasAttacked: boolean;
   path?: { col: number; row: number }[];
+  /**
+   * How many turns this unit has been fortified, or the key is absent when it is
+   * not fortified at all.
+   *
+   * Presence *is* the fortified state, which is `path`'s convention (see its
+   * docblock) and it is here for the same reason: a unit that has never dug in
+   * and a unit that has just been shaken out of a trench must serialise
+   * identically, or two states that are the same game would not compare equal.
+   * Zero is a real value and means "fortified this turn, no bonus yet" — the
+   * `advanceFortify` phase raises it, capped by `combat.fortifyMax`.
+   */
+  fortifiedTurns?: number;
 }
 
 /**
@@ -201,6 +243,17 @@ export interface City {
   col: number;
   row: number;
   population: number;
+  /**
+   * Hit points, out of `combat.cityBaseHp`. A city is a defender like any other
+   * piece: it is shot at, it is stormed, and it heals `combat.cityHealPerTurn`
+   * every turn in the `healCities` phase.
+   *
+   * A city is never destroyed by damage — ranged fire floors it at 1 (the Civ
+   * rule: bombardment softens, infantry takes) and a melee blow that would empty
+   * it captures it instead, restoring `combat.cityCaptureHpFraction` of the
+   * maximum under its new owner. So `hp` is always in `[1, cityBaseHp]`.
+   */
+  hp: number;
   /** Food banked toward the next population point. May go negative: starvation. */
   foodBasket: number;
   /** Culture banked toward the next border tile. See the docblock. */
@@ -261,6 +314,19 @@ export interface GameState {
    * for why this is here and not on the tile.
    */
   tileOwner: (number | null)[];
+  /**
+   * The last player standing, once there is one; `null` while the game is live.
+   *
+   * Conquest is the only victory v1 has, and it is decided by
+   * `updateElimination` (`combat.ts`) rather than by a phase of its own, because
+   * the moment it becomes true is the moment somebody's last unit died — which
+   * is inside a command, not at the end of a turn.
+   *
+   * It is a *record*, not a gate: the reducer keeps accepting commands after it
+   * is set, because refusing them would mean a replay of a finished game
+   * diverges from the game it replays. The interface is what stops.
+   */
+  winnerId: number | null;
 }
 
 // --- construction -----------------------------------------------------------
@@ -333,6 +399,7 @@ export function newGame(config: GameConfig): GameState {
       // game in the process, and a player who researched something must not
       // write it into the rule book.
       techsResearched: [...RULES.research.startingTechs],
+      eliminated: false,
     })),
     turnEnded: normalized.players.map(() => false),
     map,
@@ -341,6 +408,7 @@ export function newGame(config: GameConfig): GameState {
     // One slot per tile, all unclaimed. Sized once, here, so every later access
     // is a plain indexed read that cannot be out of range.
     tileOwner: new Array<number | null>(map.tiles.length).fill(null),
+    winnerId: null,
   };
   placeStartingUnits(state);
   return state;
@@ -395,6 +463,7 @@ export function createUnit(
     row,
     hp: def.maxHp,
     movesLeft: def.movement,
+    hasAttacked: false,
   };
   state.units.push(unit);
   return unit;
@@ -441,6 +510,7 @@ export function createCity(
     col,
     row,
     population: 1,
+    hp: RULES.combat.cityBaseHp,
     foodBasket: 0,
     culture: 0,
     tilesClaimed: 0,
@@ -483,9 +553,17 @@ export function allTurnsEnded(state: GameState): boolean {
   return true;
 }
 
-/** Clears every flag. Called once per turn, as the turn rolls over. */
+/**
+ * Reopens every seat. Called once per turn, as the turn rolls over.
+ *
+ * Every seat *that is still in the game*: an eliminated player's flag is raised
+ * again rather than cleared, so a wiped-out empire is permanently finished and
+ * `allTurnsEnded` never waits for it. That is the whole of the "their turnEnded
+ * is auto-true each turn" rule, written in the one place turn flags are reset —
+ * so there is nothing for a later phase to forget.
+ */
 export function clearTurnEnded(state: GameState): void {
-  for (const player of state.players) state.turnEnded[player.id] = false;
+  for (const player of state.players) state.turnEnded[player.id] = player.eliminated;
 }
 
 /** Linear scan by id; player counts are tiny and arrays keep order honest. */

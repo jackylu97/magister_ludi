@@ -30,8 +30,17 @@
  * A stored path is always the *remaining* waypoints, never the walked ones, and
  * the key is deleted rather than set to `[]` when the order finishes, so an idle
  * unit serialises identically however it came to be idle.
+ *
+ * Fortification breaks here
+ * -------------------------
+ * A unit that actually enters a tile stops being dug in, and this is the one
+ * place that can say so for both callers at once — a fresh `moveUnit` and a
+ * stored order resumed at the turn change are the same walk. See `breakFortify`
+ * in `combat.ts`; the other half of the rule (attacking breaks it too) is in
+ * `applyCombat`.
  */
 
+import { breakFortify } from './combat';
 import { getTileAt } from './map';
 import { type Cell, canStopOn, canTransit, tileMoveCost } from './pathfind';
 import type { GameState, Unit } from './state';
@@ -75,6 +84,12 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
     unit.col = tile.col;
     unit.row = tile.row;
     unit.movesLeft = after;
+    // A trench is a place, not a posture: the step out of it is the moment it
+    // stops counting. Written here rather than in the `moveUnit` handler so it
+    // also covers a stored order resumed by `resetMovement` — one implementation
+    // of "the unit moved", exactly as this function is one implementation of the
+    // walk itself.
+    breakFortify(unit);
     steps += 1;
     index += 1;
   }

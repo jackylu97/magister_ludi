@@ -112,6 +112,7 @@ describe('board overlays draw over the board', () => {
       state.map,
       {
         reachable: [{ col: 1, row: 1 }],
+        attackable: [{ col: 7, row: 1 }],
         path: [{ col: 2, row: 1 }],
         committed: [{ col: 3, row: 1 }],
         hover: { col: 4, row: 1 },
@@ -123,6 +124,57 @@ describe('board overlays draw over the board', () => {
       materials,
     );
     expectDrawnOverTheBoard(layer.group);
+    layer.dispose();
+  });
+
+  it('tints attackable tiles in their own colour, over the reachable wash', () => {
+    const state = flatState();
+    const layer = new OverlayLayer();
+    // A tile that is *both* walkable and defended: the two sets overlap all the
+    // time, and the fight has to be the thing that reads.
+    layer.build(
+      state.map,
+      {
+        reachable: [{ col: 2, row: 2 }],
+        attackable: [{ col: 2, row: 2 }],
+        path: [],
+        committed: [],
+        hover: null,
+        selection: null,
+        worked: [],
+        locked: [],
+      },
+      geometry,
+      materials,
+    );
+
+    const colors = colorsOf(layer.group);
+    expect(colors).toContain(VIEW3D.overlay.attackColor);
+    expect(colors).toContain(VIEW3D.overlay.reachableColor);
+    expectDrawnOverTheBoard(layer.group);
+    layer.dispose();
+  });
+
+  it('draws no attack tint when nothing is attackable', () => {
+    const state = flatState();
+    const layer = new OverlayLayer();
+    layer.build(
+      state.map,
+      {
+        reachable: [{ col: 2, row: 2 }],
+        path: [],
+        committed: [],
+        hover: null,
+        selection: null,
+        worked: [],
+        locked: [],
+      },
+      geometry,
+      materials,
+    );
+    // The field is optional, so a caller with nothing to say about combat says
+    // nothing and gets nothing.
+    expect(colorsOf(layer.group)).not.toContain(VIEW3D.overlay.attackColor);
     layer.dispose();
   });
 

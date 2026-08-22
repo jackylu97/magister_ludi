@@ -14,6 +14,21 @@
   "healing": {
     "perTurnIfRested": 10
   },
+  "combat": {
+    "baseDamage": 30,
+    "strengthExponent": 0.04,
+    "rollBand": 0.2,
+    "fortifyBonusPerTurn": 0.2,
+    "fortifyMax": 0.4,
+    "riverAttackPenalty": 0.2,
+    "flankingBonus": 0,
+    "cityBaseHp": 200,
+    "cityBaseStrength": 8,
+    "cityStrengthPerPop": 1,
+    "cityHealPerTurn": 20,
+    "cityCaptureHpFraction": 0.25,
+    "captureCivilians": true
+  },
   "cities": {
     "workRadius": 3,
     "claimRadius": 3,

@@ -43,9 +43,39 @@
  * accident of the array: "did this unit act?" is answered by its movement still
  * being untouched, so healing has to be read before the allowance is refilled.
  * Swapping the two would heal every unit on the board, every turn, forever.
+ * Milestone 5 gives `resetMovement` a second thing to clear — `hasAttacked` —
+ * and it is the same argument twice: a unit that fought is not resting, so the
+ * flag has to survive until healing has read it.
+ *
+ * Milestone 5's two additions sit where they do for reasons of their own.
+ * `healCities` is a sibling of `healUnits` rather than part of it, because a
+ * city heals unconditionally and a unit does not — one rule each, in one place
+ * each. `advanceFortify` follows the healing so that "has this unit been still
+ * all turn?" is asked once, of one board state, by both.
+ *
+ * There is deliberately no elimination phase
+ * ------------------------------------------
+ * A player is out when they hold no units and no cities, and in v1 the *only*
+ * thing that can bring that about is an attack: cities are never destroyed
+ * (starvation floors population at 1, and a captured city changes owner rather
+ * than vanishing), and the only other way a unit leaves the board is a settler
+ * spending itself on a city — which leaves its owner holding that city. So
+ * `updateElimination` is called from inside `applyCombat`, where the loss
+ * actually happens, and nowhere else.
+ *
+ * That is not only economy, it is the correct place. Under simultaneous turns a
+ * player wiped out mid-window has not ended their turn, and a verdict that
+ * waited for the end of the turn would leave the window waiting for a seat with
+ * nothing left to do. Deciding it inline closes the seat the instant it empties.
+ *
+ * The day something else can empty a player — razing a city, a plague, a
+ * scenario that disbands an army — that rule calls `updateElimination` too, or
+ * this array grows a phase. Adding one *now* would be a phase that could only
+ * ever fire on a hand-edited state, which is a phase no test can honestly cover.
  */
 
 import { advanceProduction, collectYields, expandBorders, growCities } from './cities';
+import { advanceFortify, healCities } from './combat';
 import { advanceAlongPath } from './movement';
 import { advanceResearch } from './tech';
 import type { GameState } from './state';
@@ -91,14 +121,30 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: expandBorders,
   },
   {
+    name: 'healCities',
+    // Towns recover unconditionally, unlike units: there is no "did it act?"
+    // question to ask of a city. Its body is in `combat.ts`, beside the rules
+    // that spend the hit points it restores.
+    run: healCities,
+  },
+  {
     name: 'healUnits',
-    // Units that spent nothing this turn recover; anyone who marched does not.
-    // Reads `movesLeft`, so it must run before `resetMovement` refills it.
+    // Units that spent nothing this turn recover; anyone who marched or fought
+    // does not. Reads `movesLeft` and `hasAttacked`, so it must run before
+    // `resetMovement` clears both.
     run: healUnits,
   },
   {
+    name: 'advanceFortify',
+    // Everybody still dug in digs a little deeper. After `healUnits`, because
+    // fortifying and resting are different questions and a unit that fortified
+    // this turn has still been standing still all of it.
+    run: advanceFortify,
+  },
+  {
     name: 'resetMovement',
-    // Refills every allowance, then walks standing orders with the new points.
+    // Refills every allowance, clears `hasAttacked`, then walks standing orders
+    // with the new points.
     run: resetMovement,
   },
 ];
@@ -127,7 +173,13 @@ function healUnits(state: GameState): void {
  * two units whose orders contend for the same tile always resolve the same way.
  */
 function resetMovement(state: GameState): void {
-  for (const unit of state.units) unit.movesLeft = fullMovement(unit);
+  for (const unit of state.units) {
+    unit.movesLeft = fullMovement(unit);
+    // The same allowance, refilled in the same breath: one attack per unit per
+    // turn, and this is the turn ending. It is cleared *after* `healUnits` has
+    // read it, which is the whole reason that phase comes first.
+    unit.hasAttacked = false;
+  }
   for (const unit of state.units) {
     const path = unit.path;
     if (!path) continue;

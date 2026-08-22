@@ -44,10 +44,23 @@
  * the second is rejected, exactly as if they had been sequential. Log order is
  * the whole of the tie-break, which is what keeps a replay identical to the game
  * it replays.
+ *
+ * Combat is not an exception to any of this
+ * -----------------------------------------
+ * An `attack` is a command like every other: it resolves immediately, in log
+ * order, and it rolls its dice from `state.rng` as a state mutation. There is no
+ * combat phase, no batching of a turn's attacks, and no window in which a
+ * declared attack waits for anything. That is the whole model, and the case
+ * everybody asks about needs no rule of its own: a unit killed by an earlier
+ * command in the same window is gone from `state.units`, so a later command *by*
+ * it fails at the id lookup and a later command *against* it finds nothing to
+ * attack — both refused cleanly, both leaving the state byte-identical. The
+ * validate-fully contract above is what buys that for free.
  */
 
 import { buildingDef, isBuildingId } from './buildingData';
 import { assignCitizens, assignableTiles, foundCityAt, foundingError } from './cities';
+import { applyCombat, fortifyError } from './combat';
 import { getTileAt, tileIndex } from './map';
 import { advanceAlongPath } from './movement';
 import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
@@ -244,6 +257,64 @@ export interface ChooseResearchCommand extends PlayerCommand {
   techId: TechId;
 }
 
+/**
+ * Attacks whatever of somebody else's is standing on `target`.
+ *
+ * A command of its own rather than an overload of `moveUnit`, and that is the
+ * important part of the design. Attacking and moving look similar from a mouse's
+ * point of view and are nothing alike underneath: one spends movement and can be
+ * half-completed across several turns, the other spends the whole turn, rolls
+ * dice, and may end with the actor dead. Folding them together would mean a
+ * mis-aimed move order could start a war, a path preview would have to mean two
+ * things, and the reducer would have to guess which the player meant. So the UI
+ * decides — right-click an enemy is an attack, right-click ground is a move —
+ * and the log records which was intended rather than what happened to be there.
+ *
+ * The tile is named, not the victim. What is actually hit is the targeting rule
+ * in `combat.ts` (military unit, then city, then civilian), asked at the moment
+ * the command applies — so a defender that died to an earlier command in the
+ * same turn window simply is not there, and the attack is refused or lands on
+ * whatever remains. The interface asks the same question through `previewCombat`
+ * and therefore always aims at the thing that will be hit.
+ *
+ * Melee or ranged is decided by the *unit*, never by the command: a type with
+ * `rangedStrength` shoots and a type without it closes. One command, because
+ * from the player's side it is one gesture.
+ *
+ * Turn-gated like `moveUnit`: fighting is an act, and a seat that has declared
+ * itself finished has finished acting.
+ */
+export interface AttackCommand extends PlayerCommand {
+  type: 'attack';
+  unitId: number;
+  target: Cell;
+}
+
+/**
+ * Digs a unit in where it stands.
+ *
+ * The cheapest possible order and the most valuable: it costs nothing, it can be
+ * given with no movement left, and it pays `combat.fortifyBonusPerTurn` of
+ * defence for every turn the unit then stays put, up to `combat.fortifyMax`. It
+ * breaks the moment the unit moves or attacks (see `breakFortify`), so it is a
+ * standing decision rather than a toggle to be micromanaged.
+ *
+ * It does *not* require movement, unlike founding a city. Fortifying is what a
+ * unit that has already marched does with the rest of its turn, and requiring
+ * movement would make the order useless in exactly the situation it exists for —
+ * a unit that just arrived somewhere it means to hold.
+ *
+ * Re-fortifying an already-fortified unit is refused, for the reason
+ * `chooseResearch` refuses re-choosing: it would change nothing and put a log
+ * entry in the save that says nothing. There is no "unfortify" command either —
+ * moving is how a unit stands up, and a second verb for it would be a second way
+ * to say the same thing.
+ */
+export interface FortifyCommand extends PlayerCommand {
+  type: 'fortify';
+  unitId: number;
+}
+
 /** Every legal mutation of the game, as serializable data. */
 export type Command =
   | EndTurnCommand
@@ -253,7 +324,9 @@ export type Command =
   | FoundCityCommand
   | SetCityProductionCommand
   | SetLockedTilesCommand
-  | ChooseResearchCommand;
+  | ChooseResearchCommand
+  | AttackCommand
+  | FortifyCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
@@ -711,6 +784,66 @@ function applyChooseResearch(
   return ok();
 }
 
+/**
+ * Resolves one attack. See `AttackCommand`, and `combat.ts` for the rules.
+ *
+ * Three questions belong to the reducer and are asked here — is this a real
+ * seat, may it still act, and is that its unit — and every question about the
+ * *fight* is delegated whole to `applyCombat`, which validates completely before
+ * it writes a single field. That split is what makes the "one evaluator" promise
+ * hold at the command boundary too: the interface's forecast comes from
+ * `previewCombat`, which is the same computation this resolves, so a forecast
+ * the player was shown is a fight the reducer will accept.
+ */
+function applyAttack(state: GameState, command: AttackCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot attack`);
+  }
+
+  const target = readCell(command.target);
+  if (!target) return fail('attack needs an integer target { col, row }');
+
+  const unit = unitById(state, command.unitId);
+  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
+  if (unit.ownerId !== actor.id) {
+    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
+  }
+
+  const result = applyCombat(state, unit.id, target);
+  if (!result.ok) return fail(result.error);
+  return ok();
+}
+
+/**
+ * Digs a unit in. See `FortifyCommand`.
+ *
+ * The seat's questions here, the unit's delegated to `fortifyError` — the same
+ * function the unit sheet enables its Fortify button with, so a live button and
+ * an accepted command are one rule. The mutation is a single field.
+ */
+function applyFortify(state: GameState, command: FortifyCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot fortify`);
+  }
+
+  const unit = unitById(state, command.unitId);
+  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
+  if (unit.ownerId !== actor.id) {
+    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
+  }
+  const problem = fortifyError(unit);
+  if (problem) return fail(problem);
+
+  // Zero, not one: the bonus is paid for turns *survived* dug in, and
+  // `advanceFortify` raises this at the end of every turn the unit stays put.
+  unit.fortifiedTurns = 0;
+  return ok();
+}
+
 // --- reducer ----------------------------------------------------------------
 
 /**
@@ -742,6 +875,10 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       return applySetLockedTiles(state, command);
     case 'chooseResearch':
       return applyChooseResearch(state, command);
+    case 'attack':
+      return applyAttack(state, command);
+    case 'fortify':
+      return applyFortify(state, command);
     default:
       return unhandledCommand(kind, type);
   }

@@ -64,13 +64,15 @@ describe('newGame', () => {
     const state = newGame(config());
     // Milestone 3 adds the three empty yield pools every player starts with;
     // Milestone 4 adds the research fields — nothing chosen, and the opening
-    // kit of technologies from `rules.research.startingTechs`.
+    // kit of technologies from `rules.research.startingTechs`. Milestone 5 adds
+    // `eliminated`, which nobody is on turn one.
     const pools = {
       gold: 0,
       sciencePool: 0,
       culturePool: 0,
       researching: null,
       techsResearched: RULES.research.startingTechs,
+      eliminated: false,
     };
     expect(state.players).toEqual([
       { id: 0, name: 'Ada', color: '#e8503a', isHuman: true, ...pools },
@@ -350,7 +352,9 @@ describe('end-of-turn pipeline', () => {
       'advanceProduction',
       'advanceResearch',
       'expandBorders',
+      'healCities',
       'healUnits',
+      'advanceFortify',
       'resetMovement',
     ]);
   });

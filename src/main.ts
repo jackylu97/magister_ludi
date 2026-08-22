@@ -62,7 +62,8 @@ import { tileYieldOf } from './sim/cities';
 import { unitsOnTile } from './sim/units';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
-import { createGameControls } from './ui/controls';
+import { type GameControls, createGameControls } from './ui/controls';
+import { type DamageNumbers, createDamageNumbers } from './ui/damageNumbers';
 import { createPopover } from './ui/popover';
 import { type TechTree, createTechTree } from './ui/techTree';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
@@ -118,6 +119,7 @@ const techOverlayEl = requireElement<HTMLElement>('tech-overlay');
 const techChartEl = requireElement<HTMLElement>('tech-chart');
 const contextEl = requireElement<HTMLElement>('hud-context');
 const contextNoticeEl = requireElement<HTMLElement>('context-notice');
+const combatForecastEl = requireElement<HTMLElement>('combat-forecast');
 
 const infoMap = requireElement<HTMLElement>('info-map');
 const infoSeed = requireElement<HTMLElement>('info-seed');
@@ -400,6 +402,141 @@ function describeUnitsOn(state: GameState, tile: Tile): string {
   return `${def.name} · ${first.hp}/${def.maxHp} hp · ${owner?.name ?? '—'}${more}`;
 }
 
+/**
+ * The combat forecast block: both damage figures with their bands, and the two
+ * hit-point bars they would leave behind.
+ *
+ * Every number comes from `previewCombat` and none is recomputed here, which is
+ * the whole point (Entry VIII, applied to violence): the card is a *view* of the
+ * evaluator the reducer runs, so it cannot promise a blow the fight will not
+ * deal. The ± is the roll band, printed rather than hidden, because a forecast
+ * that showed one number for a random outcome would be lying by omission.
+ *
+ * A refusal is shown as words instead. "You cannot attack that, and here is why"
+ * is exactly what a player aiming at something out of reach needs to read, and
+ * it is the reducer's own sentence.
+ */
+function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>): void {
+  combatForecastEl.replaceChildren();
+  combatForecastEl.hidden = preview === null;
+  if (preview === null) return;
+
+  if (!preview.ok) {
+    const why = document.createElement('p');
+    why.className = 'combat-blocked';
+    why.textContent = preview.error;
+    combatForecastEl.append(why);
+    return;
+  }
+
+  const head = document.createElement('p');
+  head.className = 'combat-head';
+  head.textContent =
+    preview.kind === 'ranged'
+      ? `Shoot ${preview.defenderName}`
+      : `Attack ${preview.defenderName}`;
+  combatForecastEl.append(head);
+
+  /** One side of the trade: a damage figure, its band, and the bar it leaves. */
+  function side(
+    label: string,
+    tone: 'dealt' | 'taken',
+    damage: number,
+    min: number,
+    max: number,
+    hp: number,
+    maxHp: number,
+  ): HTMLElement {
+    const row = document.createElement('div');
+    row.className = `combat-side is-${tone}`;
+
+    const name = document.createElement('span');
+    name.className = 'combat-side-label';
+    name.textContent = label;
+
+    const figure = document.createElement('span');
+    figure.className = 'combat-damage';
+    // The band as a ± when it is symmetric enough to read that way, which the
+    // roll band always is — it is a fixed fraction either side of the midpoint.
+    const spread = Math.max(damage - min, max - damage);
+    figure.textContent = spread > 0 ? `−${damage} ±${spread}` : `−${damage}`;
+
+    const bar = document.createElement('span');
+    bar.className = 'combat-bar';
+    const fill = document.createElement('span');
+    fill.className = 'combat-bar-fill';
+    const left = Math.max(0, hp - damage);
+    const share = (value: number): number =>
+      maxHp > 0 ? Math.round((value / maxHp) * 100) : 0;
+    fill.style.width = `${share(left)}%`;
+    // The share about to be lost, butted right up against the surviving share,
+    // so the bar reads left to right: kept, then going, then already gone.
+    const loss = document.createElement('span');
+    loss.className = 'combat-bar-loss';
+    loss.style.left = `${share(left)}%`;
+    loss.style.width = `${share(Math.min(damage, hp))}%`;
+    bar.append(fill, loss);
+
+    const after = document.createElement('span');
+    after.className = 'combat-after';
+    after.textContent = `${left}/${maxHp}`;
+
+    row.append(name, figure, bar, after);
+    return row;
+  }
+
+  if (preview.capturesUnit) {
+    const note = document.createElement('p');
+    note.className = 'combat-note';
+    note.textContent = 'Captured — no fight';
+    combatForecastEl.append(note);
+    return;
+  }
+
+  combatForecastEl.append(
+    side(
+      preview.defenderName,
+      'dealt',
+      preview.damageToDefender,
+      preview.damageToDefenderMin,
+      preview.damageToDefenderMax,
+      preview.defenderHp,
+      preview.defenderMaxHp,
+    ),
+  );
+  if (preview.damageToAttacker > 0) {
+    combatForecastEl.append(
+      side(
+        preview.attackerName,
+        'taken',
+        preview.damageToAttacker,
+        preview.damageToAttackerMin,
+        preview.damageToAttackerMax,
+        preview.attackerHp,
+        preview.attackerMaxHp,
+      ),
+    );
+  }
+
+  // What is making the defender hard to kill, and what is making the attacker
+  // weak — the itemisation behind the two strengths above.
+  const modifiers: string[] = [];
+  if (preview.terrainBonus > 0) {
+    modifiers.push(`terrain +${Math.round(preview.terrainBonus * 100)}%`);
+  }
+  if (preview.fortifyBonus > 0) {
+    modifiers.push(`fortified +${Math.round(preview.fortifyBonus * 100)}%`);
+  }
+  if (preview.acrossRiver) modifiers.push('across a river');
+  if (preview.capturesCity) modifiers.push('would take the city');
+  if (modifiers.length > 0) {
+    const note = document.createElement('p');
+    note.className = 'combat-note';
+    note.textContent = modifiers.join(' · ');
+    combatForecastEl.append(note);
+  }
+}
+
 // --- renderer selection ----------------------------------------------------
 
 type ArtMode = 'toon3d' | 'sprites' | 'flat';
@@ -623,18 +760,28 @@ async function boot(): Promise<void> {
       infoYields.textContent = '—';
     }
 
+    // Asked after the readout, because it is a question about the selection and
+    // the pointer together rather than about the ground.
+    showCombatForecast(controls.combatForecast());
+
     contextEl.classList.toggle('is-shown', hover !== null || !contextNoticeEl.hidden);
   }
 
   /**
-   * The message line inside the context card: move mode while it is armed, or a
-   * refused order for a beat and a half. `kind` is the difference between a
-   * state the player chose and a "no" they did not — the refusal flashes.
+   * The message line inside the context card: move mode while it is armed, a
+   * refused order for a beat and a half, or the result of a blow. `kind` is the
+   * difference between news and a "no" the player did not ask for — only the
+   * refusal flashes.
    */
   function showNotice(text: string | null, kind: 'mode' | 'reject'): void {
+    const flinches = text !== null && kind === 'reject';
     contextNoticeEl.hidden = text === null;
     contextNoticeEl.textContent = text ?? '';
-    contextNoticeEl.classList.toggle('is-reject', text !== null && kind === 'reject');
+    contextNoticeEl.classList.toggle('is-reject', flinches);
+    // Cleared here as well as re-armed below: the class used to survive its own
+    // animation, so a combat line arriving after a refusal inherited the
+    // refusal's flinch — visible now that this slot carries news as well as no.
+    if (!flinches) contextNoticeEl.classList.remove('is-flashing');
     // Restart the flash even when the same refusal arrives twice in a row: two
     // identical "no"s should look like two.
     if (text !== null && kind === 'reject') {
@@ -711,6 +858,14 @@ async function boot(): Promise<void> {
     onSeatAdvanced: (playerId) => {
       const player = game.state.players[playerId];
       if (player) splash.announceSeat(player.name);
+    },
+    // The board's own account of a fight. `controls` measures these as
+    // hit-point differences, so a figure that floats up is a figure the state
+    // actually moved.
+    onDamage: (events) => damageNumbers.show(events),
+    onVictory: (playerId) => {
+      const player = game.state.players[playerId];
+      if (player) splash.announceVictory(player.name);
     },
   });
 
@@ -831,6 +986,16 @@ async function boot(): Promise<void> {
    * command (the panel's `setCityProduction`), and both are declared after
    * `controls` because they ask it whose seat this is and which city is open.
    */
+  /**
+   * The figures that rise off the board when a blow lands. They share the
+   * banner sheet, because both are DOM floating over the same canvas and both
+   * must stay clear of the pointer.
+   */
+  const damageNumbers: DamageNumbers = createDamageNumbers({
+    container: bannersEl,
+    renderer,
+  });
+
   const banners: CityBanners = createCityBanners({
     container: bannersEl,
     renderer,
@@ -841,6 +1006,17 @@ async function boot(): Promise<void> {
     // its ground does — the label floats above the board, so the board's own
     // hover picking never sees it.
     onHoverCity: (cityId) => controls.setHoveredCity(cityId),
+  });
+
+  /**
+   * The renderer has one frame-listener slot and two things now want the beat,
+   * so the page holds it and hands the beat on. Keeping the fan-out here rather
+   * than growing a subscription list on `MapView` is deliberate: composition is
+   * this file's job, and the renderer stays a renderer with one callback.
+   */
+  renderer.setFrameListener?.(() => {
+    banners.reposition();
+    damageNumbers.reposition();
   });
 
   const cityPanel: CityPanel = createCityPanel({
@@ -873,6 +1049,11 @@ async function boot(): Promise<void> {
     cancelOrderBlocker: () => controls.cancelOrderBlocker(),
     onCancelOrder: () => {
       controls.cancelOrder();
+      updatePanel(null, renderer.getHover());
+    },
+    fortifyBlocker: () => controls.fortifyBlocker(),
+    onFortify: () => {
+      controls.fortify();
       updatePanel(null, renderer.getHover());
     },
     onClose: () => controls.clearSelection(),

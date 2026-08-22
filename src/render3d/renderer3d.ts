@@ -51,9 +51,16 @@ import {
 import { type GameMap, getTileAt, offsetToAxial, tileIndex } from '../sim/map';
 import type { GameState } from '../sim/state';
 import { UNIT_TYPE_IDS, type UnitTypeId } from '../sim/unitData';
-import type { CellRef, HoverInfo, LensView, MapView, ScreenPoint } from '../ui/mapView';
+import type {
+  CellRef,
+  FallenUnit,
+  HoverInfo,
+  LensView,
+  MapView,
+  ScreenPoint,
+} from '../ui/mapView';
 
-import { MoveAnimations3D } from './animation3d';
+import { DeathAnimations3D, MoveAnimations3D } from './animation3d';
 import { UnitBadges } from './badges3d';
 import { type BuiltBoard, BoardGeometry, buildBoard, modelClassFor } from './board3d';
 import { DioramaCamera } from './camera3d';
@@ -65,7 +72,7 @@ import {
   signTerritory,
 } from './cities3d';
 import { LensLayer, NO_LENS, sameLens } from './lens3d';
-import { VIEW3D } from './lookData';
+import { VIEW3D, playerPieceColor } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { OverlayLayer } from './overlays';
 import {
@@ -110,8 +117,16 @@ export class Renderer3D implements MapView {
   private readonly overlays = new OverlayLayer();
   private readonly lens = new LensLayer();
   private readonly animations = new MoveAnimations3D();
+  /**
+   * Pieces currently falling over. Separate from `animations` because a walker
+   * belongs to a unit that still exists and a faller does not — nothing about
+   * a corpse can be looked up in the state, so its visual is all there is.
+   */
+  private readonly deaths = new DeathAnimations3D();
   /** Temporary meshes for pieces mid-walk, one group of wrap copies per unit. */
   private readonly walkers = new Map<number, Group>();
+  /** The same, for pieces mid-topple. See `animateDeath`. */
+  private readonly fallers = new Map<number, Group>();
 
   private board: BuiltBoard | null = null;
   private state: GameState | null = null;
@@ -119,6 +134,8 @@ export class Renderer3D implements MapView {
   private hover: HoverInfo | null = null;
   private selectedUnitId: number | null = null;
   private reachable: readonly CellRef[] = [];
+  /** Tiles the selected unit could attack. See `setAttackable`. */
+  private attackable: readonly CellRef[] = [];
   private pathPreview: readonly CellRef[] = [];
   /** The selected unit's stored order. See `MapView.setCommittedPath`. */
   private committedPath: readonly CellRef[] = [];
@@ -294,6 +311,7 @@ export class Renderer3D implements MapView {
   private setMap(map: GameMap): void {
     this.hover = null;
     this.reachable = [];
+    this.attackable = [];
     this.pathPreview = [];
     this.committedPath = [];
     this.workedTiles = [];
@@ -301,7 +319,9 @@ export class Renderer3D implements MapView {
     this.selectedUnitId = null;
     this.moveMode = false;
     this.animations.clear();
+    this.deaths.clear();
     this.clearWalkers();
+    this.clearFallers();
 
     this.rebuildBoard(map);
     // Open on the whole map, exactly as the 2D game does. It is the only view
@@ -403,6 +423,7 @@ export class Renderer3D implements MapView {
       this.map,
       {
         reachable: this.reachable,
+        attackable: this.attackable,
         path: this.pathPreview,
         committed: this.committedPath,
         hover: this.hover ? { col: this.hover.tile.col, row: this.hover.tile.row } : null,
@@ -459,6 +480,17 @@ export class Renderer3D implements MapView {
   setReachable(cells: readonly CellRef[]): void {
     if (sameCells(this.reachable, cells)) return;
     this.reachable = cells;
+    this.rebuildOverlays();
+  }
+
+  /**
+   * Tiles the selected unit could attack. See `MapView.setAttackable` — which
+   * tiles those are is the UI's question, asked of `previewCombat`; the board
+   * only tints what it is told.
+   */
+  setAttackable(cells: readonly CellRef[]): void {
+    if (sameCells(this.attackable, cells)) return;
+    this.attackable = cells;
     this.rebuildOverlays();
   }
 
@@ -660,9 +692,29 @@ export class Renderer3D implements MapView {
     this.invalidate();
   }
 
+  /**
+   * Topples a piece that has just been killed.
+   *
+   * Everything about it arrives in the argument, because the unit is already
+   * gone from the state (see `MapView.animateDeath`). The mesh built here is
+   * the same sculpt the resting instance was, in the same colour, so the piece
+   * that falls over is visibly the piece that was standing there — but it is a
+   * standalone group with its own material, because it is about to be rotated
+   * and faded and neither is a thing an instanced bucket can do to one member.
+   */
+  animateDeath(fallen: FallenUnit): void {
+    if (!this.map || !this.state) return;
+    this.deaths.start(fallen.id, performance.now());
+    if (!this.deaths.activeUnits().includes(fallen.id)) return;
+    this.spawnFaller(fallen);
+    this.invalidate();
+  }
+
   skipAnimations(): void {
     this.animations.clear();
+    this.deaths.clear();
     this.clearWalkers();
+    this.clearFallers();
     this.units.clearHidden();
     if (this.state) this.rebuildUnits();
     this.invalidate();
@@ -764,6 +816,107 @@ export class Renderer3D implements MapView {
     // children, so one position write drives all three.
     this.scene.add(group);
     this.walkers.set(unitId, group);
+  }
+
+  /**
+   * Builds the meshes for one falling piece, one per wrap copy.
+   *
+   * Each copy is wrapped in a group whose origin is the *tile centre*, so the
+   * tilt applied to the child rotates the figure about its own feet rather than
+   * swinging it across the board — a piece that pivoted about the world origin
+   * would fly off the table instead of falling over on it.
+   *
+   * Its material is a private, transparent clone: the shared `MaterialLibrary`
+   * entry is used by every other piece of the same colour on the board, and
+   * fading it would fade the whole army. `disposeFaller` gives the clone back.
+   */
+  private spawnFaller(fallen: FallenUnit): void {
+    if (!this.map || !this.state) return;
+    this.removeFaller(fallen.id);
+
+    const piece = this.geometry.pieces[modelClassFor(fallen.type)];
+    computeHullNormals(piece.geometry);
+    const player = this.state.players[fallen.ownerId];
+    const color = playerPieceColor(player?.color ?? '', fallen.ownerId);
+
+    const tile = getTileAt(this.map, fallen.col, fallen.row);
+    const centre = cellCenter(fallen.col, fallen.row);
+    const height = tile ? tileTopY(tile) : 0;
+    const period = wrapWidth(this.map);
+    const group = new Group();
+
+    for (const dx of [-period, 0, period]) {
+      const anchor = new Group();
+      anchor.position.set(centre.x + dx, height, centre.z);
+      // Cloned per copy so the three wrap copies can share nothing mutable; the
+      // geometry is still the shared sculpt, which is the expensive half.
+      const materials = pieceMaterials(this.materials, piece, color);
+      const cloned = Array.isArray(materials)
+        ? materials.map((material) => material.clone())
+        : materials.clone();
+      for (const material of Array.isArray(cloned) ? cloned : [cloned]) {
+        material.transparent = true;
+        material.depthWrite = false;
+      }
+      const mesh = new Mesh(piece.geometry, cloned);
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      mesh.frustumCulled = false;
+      anchor.add(mesh);
+      group.add(anchor);
+    }
+
+    this.scene.add(group);
+    this.fallers.set(fallen.id, group);
+  }
+
+  /**
+   * Samples every fall in flight, laying each piece a little further over.
+   * Returns true while at least one is still going, exactly as `stepAnimations`
+   * does for the walks.
+   */
+  private stepDeaths(now: number): boolean {
+    let active = false;
+    for (const unitId of [...this.fallers.keys()]) {
+      const sample = this.deaths.sample(unitId, now);
+      if (!sample) {
+        this.removeFaller(unitId);
+        continue;
+      }
+      const group = this.fallers.get(unitId)!;
+      for (const anchor of group.children) {
+        // Rolled about the board's x axis: the camera looks down the z, so a
+        // roll about x is the one that reads as "toppling toward the viewer".
+        anchor.rotation.x = sample.tilt;
+        const mesh = anchor.children[0] as Mesh | undefined;
+        if (!mesh) continue;
+        mesh.position.y = -sample.sink;
+        for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+          material.opacity = sample.opacity;
+        }
+      }
+      active = true;
+    }
+    return active;
+  }
+
+  private removeFaller(unitId: number): void {
+    const group = this.fallers.get(unitId);
+    if (!group) return;
+    this.scene.remove(group);
+    // The cloned materials were made for this fall and nothing else holds them.
+    for (const anchor of group.children) {
+      const mesh = anchor.children[0] as Mesh | undefined;
+      if (!mesh) continue;
+      for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        material.dispose();
+      }
+    }
+    this.fallers.delete(unitId);
+  }
+
+  private clearFallers(): void {
+    for (const unitId of [...this.fallers.keys()]) this.removeFaller(unitId);
   }
 
   private removeWalker(unitId: number): void {
@@ -870,10 +1023,14 @@ export class Renderer3D implements MapView {
     // finished — the piece it removed has to be replaced by the instanced one.
     const hadWalkers = this.walkers.size > 0;
     if (hadWalkers) this.stepAnimations(now);
+    // Falls force frames exactly as walks do, and for the same reason: the
+    // frame that finished one has to draw the board without it.
+    const hadFallers = this.fallers.size > 0;
+    if (hadFallers) this.stepDeaths(now);
     // An animating camera forces frames the same way a walking piece does: it
     // moved the target, so the frame it moved it on has to be drawn.
     const panned = this.view.stepPan(now);
-    if (!this.dirty && !hadWalkers && !panned) return;
+    if (!this.dirty && !hadWalkers && !hadFallers && !panned) return;
 
     this.dirty = false;
     // The pieces are instanced, so unlike the 2D units layer they are not
@@ -920,6 +1077,7 @@ export class Renderer3D implements MapView {
     this.running = false;
     this.frameListener = null;
     this.clearWalkers();
+    this.clearFallers();
     this.sprites?.dispose();
     this.badges?.dispose();
     this.units.dispose();

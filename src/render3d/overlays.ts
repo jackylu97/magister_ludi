@@ -68,6 +68,19 @@ export interface OverlayState {
    * hovers a new destination for a marching unit.
    */
   committed: readonly CellRef[];
+  /**
+   * Tiles the selected unit could attack this turn — an enemy piece or town
+   * within reach of its sword or its bow.
+   *
+   * A separate set from `reachable` rather than a flavour of it, because they
+   * are answers to two different questions and a tile can be in both: an enemy
+   * standing on ground you could also have walked to. Drawn first and quietest,
+   * so that where the two overlap the fight is what the tint says.
+   *
+   * Optional, like `moveMode`: a caller that has nothing to say about combat
+   * (the existing overlay tests, a renderer harness) says nothing.
+   */
+  attackable?: readonly CellRef[];
   hover: CellRef | null;
   selection: CellRef | null;
   /**
@@ -136,6 +149,17 @@ export class OverlayLayer {
       collector.add(geometry.decal, [OVERLAY.reachableColor], new Matrix4().compose(at, identity, unit), {
         onTop: true,
         opacity: OVERLAY.reachableOpacity,
+      });
+    }
+
+    // The attack tint, over the reachable wash rather than under it: a tile that
+    // is both walkable and defended is a tile you should read as a fight.
+    for (const cell of state.attackable ?? []) {
+      const at = anchor(cell);
+      if (!at) continue;
+      collector.add(geometry.decal, [OVERLAY.attackColor], new Matrix4().compose(at, identity, unit), {
+        onTop: true,
+        opacity: OVERLAY.attackOpacity,
       });
     }
 

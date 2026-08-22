@@ -16,6 +16,11 @@
  * listener did not fire, and nothing here ran. A banner off the edge of the
  * viewport is hidden rather than left to stretch the page.
  *
+ * The listener itself is *not* claimed here. There is one slot on the renderer
+ * and, since the floating damage numbers arrived, more than one thing that
+ * needs the beat — so `reposition` is exported and `main.ts`, which owns the
+ * page, holds the slot and calls everybody who wants it.
+ *
  * Two kinds of banner
  * -------------------
  * Your own cities are buttons: clicking one opens its panel. Everybody else's
@@ -52,10 +57,19 @@ export interface CityBannersOptions {
 export interface CityBanners {
   /**
    * Re-reads the cities: adds and removes banners, and rewrites their text.
-   * Call after anything that could change a city; positioning looks after
-   * itself.
+   * Call after anything that could change a city; this repositions them too.
    */
   refresh(): void;
+  /**
+   * Moves every banner to where its city is on screen. Runs per drawn frame.
+   *
+   * Exposed rather than self-registered, because the renderer has exactly one
+   * frame-listener slot (see `MapView.setFrameListener`) and there is now more
+   * than one thing that wants the beat — the banners and the floating damage
+   * numbers. Composition belongs to whoever owns the page, so `main.ts` holds
+   * the slot and calls both. One listener, one owner, no subscription system.
+   */
+  reposition(): void;
   dispose(): void;
 }
 
@@ -189,13 +203,12 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     }
   }
 
-  renderer.setFrameListener?.(reposition);
   refresh();
 
   return {
     refresh,
+    reposition,
     dispose(): void {
-      renderer.setFrameListener?.(null);
       for (const banner of banners.values()) banner.root.remove();
       banners.clear();
     },

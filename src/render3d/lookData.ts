@@ -530,6 +530,18 @@ export interface OverlaySpec {
   committedOpacity: number;
   committedScale: number;
   committedStride: number;
+  /**
+   * Tiles the selected unit could attack this turn.
+   *
+   * The same decal the reachable set uses and deliberately so — it answers the
+   * same shape of question, "where can this piece act" — but in the selection's
+   * vermilion rather than bone, because the *kind* of act is the whole of the
+   * difference. It sits under the reachable wash at a lower opacity so that a
+   * tile which is both (an enemy standing somewhere you could also walk) still
+   * reads as a fight rather than as a stroll.
+   */
+  attackColor: number;
+  attackOpacity: number;
 }
 
 export interface HpBarSpec {
@@ -602,6 +614,12 @@ export interface AnimationSpec {
   maxMs: number;
   /** Peak of the per-hex hop, in world units. 0 disables it. */
   hopHeight: number;
+  /** How long a dying piece takes to fall over. See `DeathAnimations3D`. */
+  deathMs: number;
+  /** Radians it rolls through — a right angle lays a figure flat on the tile. */
+  deathTilt: number;
+  /** How far it sinks into the tile as it goes, in world units. */
+  deathSink: number;
 }
 
 export interface View3DData {
@@ -806,6 +824,8 @@ export const VIEW3D: View3DData = {
     // At least 1, or the modulo that dashes the run divides by zero and every
     // waypoint disappears.
     committedStride: Math.max(1, Math.round(viewJson.overlay.committedStride)),
+    attackColor: parseColor(viewJson.overlay.attackColor, 'overlay.attackColor'),
+    attackOpacity: viewJson.overlay.attackOpacity,
   },
   hpBar: {
     width: viewJson.hpBar.width,

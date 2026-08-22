@@ -62,6 +62,78 @@ function easeInOutQuad(t: number): number {
   return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
 }
 
+/** How a toppling piece is lying at some instant of its fall. */
+export interface DeathSample {
+  /** Radians of roll, 0 at the start and about a right angle at the end. */
+  tilt: number;
+  /** How far it has sunk into the tile, in world units. */
+  sink: number;
+  /** 1 at the start, 0 when it is gone. */
+  opacity: number;
+}
+
+/**
+ * The death of a piece: it falls over.
+ *
+ * The diorama's signature, and the reason it is worth animating at all. A unit
+ * that simply vanished would be indistinguishable from a rendering glitch, and a
+ * unit that faded would be a ghost; a toy soldier that topples is a toy soldier
+ * that *lost*, and the board is a table full of toys. It is the same powerless
+ * contract the walk has — see the module docblock — because by the time this
+ * runs the simulation has already removed the unit and nothing can be undone by
+ * dropping a frame.
+ *
+ * The piece is gone from `state.units` before the fall begins, so unlike a walk
+ * this animation cannot look anything up: whoever starts it hands over the
+ * placement and the visual, and this class only says how far through the fall
+ * we are. See `Renderer3D.animateDeath`.
+ */
+export class DeathAnimations3D {
+  private readonly byUnit = new Map<number, { startedAt: number; durationMs: number }>();
+
+  /** Begins a fall. A zero or negative duration is not an animation. */
+  start(unitId: number, now: number, durationMs = ANIM.deathMs): void {
+    if (durationMs <= 0) return;
+    this.byUnit.set(unitId, { startedAt: now, durationMs });
+  }
+
+  clear(): void {
+    this.byUnit.clear();
+  }
+
+  activeUnits(): number[] {
+    return [...this.byUnit.keys()];
+  }
+
+  /**
+   * How far through its fall a piece is, or `null` once it is over — at which
+   * point it is forgotten, exactly as a finished walk is, so the renderer's
+   * sweep is what eventually takes the mesh off the scene.
+   *
+   * The tilt eases *in* rather than out: a falling figure accelerates, and a
+   * topple that slowed as it hit the table would read as a controlled descent.
+   * The fade is held back until the second half so that the fall is legible
+   * before the piece starts leaving.
+   */
+  sample(unitId: number, now: number): DeathSample | null {
+    const fall = this.byUnit.get(unitId);
+    if (!fall) return null;
+
+    const elapsed = now - fall.startedAt;
+    if (elapsed >= fall.durationMs) {
+      this.byUnit.delete(unitId);
+      return null;
+    }
+
+    const t = Math.max(0, elapsed) / fall.durationMs;
+    return {
+      tilt: (t * t) * ANIM.deathTilt,
+      sink: t * ANIM.deathSink,
+      opacity: t < 0.5 ? 1 : 1 - (t - 0.5) * 2,
+    };
+  }
+}
+
 export class MoveAnimations3D {
   private readonly byUnit = new Map<number, MoveAnimation>();
 

@@ -10,8 +10,14 @@
  * It lives here rather than in a separate art file for the same reason terrain
  * colours live next to terrain rules: two lists of the same things drift apart.
  *
- * Combat strength is carried now and used later — combat lands in a subsequent
- * milestone — so the data file does not have to change shape when it does.
+ * Combat fields
+ * -------------
+ * `combatStrength` was carried from the first milestone and spent in the fifth;
+ * `rangedStrength` and `range` arrived with it and are *optional as a pair*,
+ * which is how a type declares itself ranged. Nothing in `src/sim/` compares a
+ * unit type against a string to decide whether it can shoot, exactly as nothing
+ * compares against `"settler"` to decide whether it can found — see `isRanged`
+ * in `combat.ts`.
  *
  * City-related fields
  * -------------------
@@ -89,8 +95,26 @@ export interface UnitDef {
   /** Movement points refilled at the start of every turn. */
   movement: number;
   maxHp: number;
-  /** 0 for civilians. Unused until the combat milestone. */
+  /**
+   * What the unit is worth in a stand-up fight, attacking or defending. 0 for
+   * civilians, and `combat.ts` reads that zero as "this is not a combatant"
+   * rather than as "very weak": a civilian never attacks, never counter-attacks,
+   * and is captured rather than killed.
+   */
   combatStrength: number;
+  /**
+   * What the unit is worth shooting, and how far. Both present or both absent:
+   * a type with these fields is a ranged unit and the `attack` command resolves
+   * as a shot; a type without them can only close and fight.
+   *
+   * They are optional rather than zero-valued so that "is this thing ranged?" is
+   * a question about the *shape* of the data — `rangedStrength === undefined` —
+   * and cannot be confused with a designer tuning a bow down to nothing. See
+   * `isRanged` in `combat.ts`, which is the only place the pair is interpreted.
+   */
+  rangedStrength?: number;
+  /** Hexes a shot may cross, defender included. Absent on melee-only types. */
+  range?: number;
   /** Hammers a city pays to build one. See the docblock. */
   cost: number;
   /** True when the unit can be spent to found a city. See the docblock. */

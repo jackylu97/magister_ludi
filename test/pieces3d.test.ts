@@ -277,6 +277,49 @@ describe('miniature inks', () => {
     expect(Array.isArray(plain)).toBe(false);
     board.dispose();
   });
+
+  /**
+   * A dying piece is drawn by `Renderer3D.spawnFaller`, which takes the same
+   * material set a walker gets and then *clones* it so the fade can be applied
+   * to one corpse rather than to every piece of that colour on the board. That
+   * clone-and-fade has to work for both shapes `pieceMaterials` returns — a bare
+   * material for a one-group sculpt, an array for a multi-group one — which is
+   * exactly the kind of thing a renderer test can pin down and a browser poke
+   * can only fail to notice.
+   */
+  it('lets a dying piece fade a private clone of any sculpt’s materials', () => {
+    const board = geometry();
+    const library = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+
+    for (const modelClass of Object.keys(board.pieces) as ModelClass[]) {
+      const piece = board.pieces[modelClass];
+      const shared = pieceMaterials(library, piece, 0xd4502e);
+      const cloned = Array.isArray(shared)
+        ? shared.map((material) => material.clone())
+        : shared.clone();
+
+      const list = (Array.isArray(cloned) ? cloned : [cloned]) as MeshToonMaterial[];
+      const sharedList = (Array.isArray(shared) ? shared : [shared]) as MeshToonMaterial[];
+      expect(list).toHaveLength(sharedList.length);
+
+      for (let i = 0; i < list.length; i++) {
+        const copy = list[i]!;
+        copy.transparent = true;
+        copy.depthWrite = false;
+        copy.opacity = 0.5;
+        // The clone carries the piece's ink, so the corpse is visibly the piece
+        // that was standing there…
+        expect(copy.color.getHex()).toBe(sharedList[i]!.color.getHex());
+        // …and fading it leaves the shared library entry untouched, which is the
+        // whole reason it is cloned: every other unit of this colour is drawn
+        // from that one.
+        expect(sharedList[i]!.opacity).toBe(1);
+        expect(copy).not.toBe(sharedList[i]);
+        copy.dispose();
+      }
+    }
+    board.dispose();
+  });
 });
 
 describe('the units layer in pieces style', () => {
@@ -297,6 +340,7 @@ describe('the units layer in pieces style', () => {
       row: 2,
       hp: unitDef(type).maxHp,
       movesLeft: 2,
+      hasAttacked: false,
     }));
     return game;
   }

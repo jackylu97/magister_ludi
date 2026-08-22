@@ -7,6 +7,7 @@
       "workable": true,
       "moveCost": null,
       "yield": { "food": 1, "production": 0, "gold": 1 },
+      "defenseBonus": 0,
       "fillColor": "#1d3f6b",
       "glyph": null,
       "glyphColor": "#152f52"
@@ -18,6 +19,7 @@
       "workable": true,
       "moveCost": null,
       "yield": { "food": 1, "production": 0, "gold": 1 },
+      "defenseBonus": 0,
       "fillColor": "#2f74a8",
       "glyph": null,
       "glyphColor": "#215579"
@@ -29,6 +31,7 @@
       "workable": true,
       "moveCost": null,
       "yield": { "food": 2, "production": 0, "gold": 0 },
+      "defenseBonus": 0,
       "fillColor": "#4f9fb0",
       "glyph": null,
       "glyphColor": "#367583"
@@ -40,6 +43,7 @@
       "workable": true,
       "moveCost": 1,
       "yield": { "food": 2, "production": 0, "gold": 0 },
+      "defenseBonus": 0,
       "fillColor": "#6f9a4a",
       "glyph": null,
       "glyphColor": "#4a6b31"
@@ -51,6 +55,7 @@
       "workable": true,
       "moveCost": 1,
       "yield": { "food": 1, "production": 1, "gold": 0 },
+      "defenseBonus": 0,
       "fillColor": "#a8a054",
       "glyph": null,
       "glyphColor": "#77713a"
@@ -62,6 +67,7 @@
       "workable": true,
       "moveCost": 1,
       "yield": { "food": 0, "production": 0, "gold": 0 },
+      "defenseBonus": 0,
       "fillColor": "#dbc98a",
       "glyph": null,
       "glyphColor": "#a8965c"
@@ -73,6 +79,7 @@
       "workable": true,
       "moveCost": 1,
       "yield": { "food": 1, "production": 0, "gold": 0 },
+      "defenseBonus": 0,
       "fillColor": "#9aa090",
       "glyph": null,
       "glyphColor": "#6d7265"
@@ -84,6 +91,7 @@
       "workable": true,
       "moveCost": 1,
       "yield": { "food": 0, "production": 0, "gold": 0 },
+      "defenseBonus": 0,
       "fillColor": "#e6ecef",
       "glyph": null,
       "glyphColor": "#a8b3b8"
@@ -95,6 +103,7 @@
       "workable": false,
       "moveCost": null,
       "yield": { "food": 0, "production": 0, "gold": 0 },
+      "defenseBonus": 0,
       "fillColor": "#7d7568",
       "glyph": "▲",
       "glyphColor": "#4a443b"
@@ -105,6 +114,7 @@
       "name": "None",
       "moveCostOverride": null,
       "yieldOverride": null,
+      "defenseBonus": 0,
       "glyph": null,
       "glyphColor": "#000000"
     },
@@ -112,6 +122,7 @@
       "name": "Forest",
       "moveCostOverride": 2,
       "yieldOverride": { "food": 1, "production": 1, "gold": 0 },
+      "defenseBonus": 0.25,
       "glyph": "▲▲",
       "glyphColor": "#2f4a24"
     },
@@ -119,6 +130,7 @@
       "name": "Jungle",
       "moveCostOverride": 2,
       "yieldOverride": { "food": 2, "production": 0, "gold": 0 },
+      "defenseBonus": 0.25,
       "glyph": "♣♣",
       "glyphColor": "#1f4a1f"
     }
@@ -127,6 +139,7 @@
     "name": "Hills",
     "moveCostExtra": 1,
     "yieldOverride": { "food": 0, "production": 2, "gold": 0 },
+    "defenseBonus": 0.25,
     "glyph": "︿︿",
     "glyphColor": "#5c513c"
   },

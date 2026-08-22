@@ -394,6 +394,61 @@ vocabulary when M4 builds the evaluator.
 
 ---
 
+## Entry IX — Combat: one evaluator, resolved in log order (M5, built)
+
+**The model.** An attack is a **command**, resolved immediately in log order, exactly like a
+move. No combat phase, no batching, no declare-then-resolve window. Under simultaneous turns
+that is the only model that keeps replay honest: contention between two players attacking in
+the same window is settled by position in the log, the same tie-break every other race uses.
+The awkward case needs no rule — a unit killed by an earlier command is simply gone, so a later
+command by or against it fails validation cleanly and leaves the state byte-identical.
+
+**One evaluator (Entry VIII, applied to violence).** `previewCombat` and `applyCombat` are the
+same computation (`planCombat`) read twice. The plan carries the *unrolled* damage; the preview
+reports it at the midpoint with the band beside it, the reducer multiplies it by a roll from
+`state.rng`. The forecast can be wrong about the die and about nothing else. The context card,
+the attackable-tile tint and the reducer therefore cannot disagree — the tint is literally
+"every cell `previewCombat` accepts".
+
+**The curve.** `damage = baseDamage · e^(exponent · (strA − strB)) · roll`, Civ V's model, chosen
+because it has no scale: a 4-point edge is worth the same multiplier at strength 8 as at 30, so
+later eras can be added without the early game becoming rounding error. Defender strength is
+`base · (1 + terrain + fortify)`; a melee attacker across a river pays `riverAttackPenalty`.
+Terrain defence *sums* across terrain, feature and hills (a forested hill is +50%) — the third
+algebra in `terrainData.ts`, and the only one that adds, because cover and height are different
+advantages and a defender gets both.
+
+**Cities.** A city is a defender with hit points, `cityBaseStrength + perPop × pop`, and **no**
+terrain bonus — the walls are the terrain. Ranged fire floors it at 1 hit point (bombardment
+softens, infantry takes); a melee blow that would empty it captures it instead. Targeting is
+military unit > city > civilian, so a garrison makes a siege rather than a race. A captured city
+keeps its buildings, population and food and loses the old owner's *intent* — queue, hammers,
+pinned citizens. Its territory follows for free, because `tileOwner` holds city ids.
+
+**Captured-city authority (for the future ledger).** When the happiness/authority system of
+Entry I lands, a captured city is where it will first bite: a conquered city should cost
+authority to hold, and that cost is what makes wide conquest a decision rather than a ratchet.
+Nothing is modelled now — no beads, no unrest, no population loss on capture — but the capture
+path is a single function (`captureCity`) and is the one place that rule will attach to.
+
+**Elimination and victory.** No units and no cities means out. Decided *inside* `applyCombat`
+rather than in a turn phase, and that is load-bearing: under simultaneous turns a player wiped
+out mid-window has not ended their turn, so a verdict that waited for the end of the turn would
+leave the window waiting for a seat with nothing left to do. In v1 combat is the only thing that
+can empty a player, so there is no elimination phase at all — a phase that could only ever fire
+on a hand-edited state is a phase no test can honestly cover. Victory is the last seat standing,
+recorded in `GameState.winnerId` and never used to gate the reducer (a finished game must still
+replay).
+
+**Deliberately deferred, each with its reason.** Zone of control (movement stays Milestone 2's);
+experience and promotions; city ranged strikes; diplomacy and war declaration (all players are
+mutually hostile in v1, so there is nothing to declare); embarkation; war weariness; and damage
+scaling with health, which keeps a fight a grind rather than an avalanche. Line of sight is
+blocked only by mountains strictly between shooter and target — a real elevation rule needs a
+height field and a visibility system, and half of one is a rule players learn and then lose.
+
+---
+
 ## Sequencing snapshot (2026-08-21)
 Vanilla mechanics first (user decision). M4 = vanilla science tech tree + culture. Then combat,
 AI, netcode. Drafting/governments/dice slot in after the vanilla loop proves out. Rivers mapgen

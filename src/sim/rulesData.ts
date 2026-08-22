@@ -10,7 +10,10 @@
  * adds the whole `cities` block; Milestone 4 adds `research` — the opening kit
  * of technologies and the auto-upgrade retooling lever. The tree itself is a
  * data file of its own (`data/techs.json`), because it is a graph rather than a
- * table of knobs.
+ * table of knobs. Milestone 5 adds `combat`, which is every number the fight is
+ * made of; the per-unit half of it (`combatStrength`, `rangedStrength`, `range`)
+ * lives in `data/units.json`, and the terrain half (`defenseBonus`) in
+ * `data/terrain.json`, because both describe a *thing* rather than the system.
  */
 
 import rulesJson from '../../data/rules.json';
@@ -47,6 +50,47 @@ export interface StackingRules {
 export interface HealingRules {
   /** Hit points restored to a unit that spent none of its movement. */
   perTurnIfRested: number;
+}
+
+/**
+ * Every number the fight is made of. See `src/sim/combat.ts` for the algebra;
+ * this block is the whole of the tuning surface.
+ *
+ * The damage curve is Civ V's: one exponential in the *difference* of two
+ * strengths, which is what makes strength a ratio-free scale — a 4-point edge is
+ * worth the same at strength 8 as at strength 30, so the roster can grow into
+ * later eras without the early game becoming a rounding error.
+ */
+export interface CombatRules {
+  /** Damage an evenly-matched attack deals at the midpoint roll. */
+  baseDamage: number;
+  /** Exponent on the strength difference: `e ^ (k · (strA − strB))`. */
+  strengthExponent: number;
+  /** Half-width of the random band: the roll is uniform in `[1 − b, 1 + b]`. */
+  rollBand: number;
+  /** Defence added per turn spent fortified. */
+  fortifyBonusPerTurn: number;
+  /** Cap on the fortify bonus, however long a unit sits still. */
+  fortifyMax: number;
+  /** Fraction of strength a melee attacker loses attacking across a river. */
+  riverAttackPenalty: number;
+  /** Reserved for the flanking rule; 0 in v1, and nothing reads it yet. */
+  flankingBonus: number;
+  /** Hit points a city has at full health, whatever its size. */
+  cityBaseHp: number;
+  /** A city's defence before its population is counted. */
+  cityBaseStrength: number;
+  /** Defence each population point adds to a city. */
+  cityStrengthPerPop: number;
+  /** Hit points a city recovers every turn, up to `cityBaseHp`. */
+  cityHealPerTurn: number;
+  /** Fraction of `cityBaseHp` a city is left holding the turn it is captured. */
+  cityCaptureHpFraction: number;
+  /**
+   * Civilians attacked in melee change hands instead of dying. False would kill
+   * them, which is a different game and a one-line change.
+   */
+  captureCivilians: boolean;
 }
 
 export interface StartPlacementRules {
@@ -141,6 +185,7 @@ export interface RulesConfig {
   movement: MovementRules;
   stacking: StackingRules;
   healing: HealingRules;
+  combat: CombatRules;
   cities: CityRules;
   research: ResearchRules;
   /** Unit types every player receives at their start position, in order. */

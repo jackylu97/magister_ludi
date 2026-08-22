@@ -14,8 +14,17 @@
  * Found City used to sit in the bottom-left context card, beside a readout of
  * the ground under the pointer. That card describes; it does not act. A unit's
  * orders belong to the unit, so they are here, as an *actions list* rather than
- * one hard-coded button — fortify, sleep, disband and the rest are the same
- * shape and will slot in beside it.
+ * one hard-coded button — sleep, disband and the rest are the same shape and
+ * will slot in beside it. Milestone 5 filled the first of those slots: Fortify
+ * arrived as one more entry in the list and the list learned nothing about it.
+ *
+ * Fortify differs from Found City in one deliberate way. Founding is only
+ * *listed* for units that could ever found, because a warrior will never grow
+ * the ability; fortifying is listed for everything that can fight and merely
+ * *disabled* when it cannot be done right now, because "already fortified" and
+ * "your turn is over" are temporary and the button will work again next turn.
+ * A permanently useless button and a momentarily unavailable one should not
+ * look the same.
  *
  * Every action is enabled by exactly the rule the reducer applies, and titled
  * with the reason when it is not: the caller hands over a blocker string (for
@@ -26,12 +35,18 @@
  * the state is the truth and a selection is at most a few dozen elements.
  */
 
+import { fortifyBonus, isCombatant, isFortified, isRanged } from '../sim/combat';
 import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
 import { tileMoveCost } from '../sim/pathfind';
 import type { Unit } from '../sim/state';
 import { unitDef } from '../sim/unitData';
 import { fullMovement } from '../sim/units';
+
+/** "+40%" — a defence fraction as the percentage a player reads it as. */
+function formatPercent(fraction: number): string {
+  return `+${Math.round(fraction * 100)}%`;
+}
 
 export interface UnitPanelOptions {
   /** The element the panel lives in. Emptied and rebuilt on every render. */
@@ -53,6 +68,12 @@ export interface UnitPanelOptions {
    */
   cancelOrderBlocker: () => string | null | undefined;
   onCancelOrder: () => void;
+  /**
+   * Why the selected unit cannot dig in — the same three-valued shape again,
+   * answered by `controls.fortifyBlocker()`.
+   */
+  fortifyBlocker: () => string | null | undefined;
+  onFortify: () => void;
   /** Drops the selection — the × button and, through `controls`, Escape. */
   onClose: () => void;
 }
@@ -93,6 +114,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onFoundCity,
     cancelOrderBlocker,
     onCancelOrder,
+    fortifyBlocker,
+    onFortify,
     onClose,
   } = options;
 
@@ -168,6 +191,20 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         run: onFoundCity,
       });
     }
+    // Offered to anything that can fight, whether or not it can fortify *now*:
+    // unlike Found City, this is a verb the unit will have again next turn, so a
+    // button that is merely disabled (and says why) is the honest version.
+    if (isCombatant(unitDef(unit.type))) {
+      const blocker = fortifyBlocker();
+      const dug = isFortified(unit);
+      actions.push({
+        label: dug ? `Fortified ${formatPercent(fortifyBonus(unit))}` : 'Fortify',
+        key: 'F',
+        blocked: blocker === undefined ? 'No unit selected' : blocker,
+        hint: 'Dig in: defence grows each turn the unit stays put',
+        run: onFortify,
+      });
+    }
     // Only offered while there is something to cancel: a permanently disabled
     // "Cancel Order" on every unit that has never been given one would be a
     // button that means nothing, exactly as Found City is on a warrior.
@@ -236,7 +273,25 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     stats.append(
       stat('Moves', `${unit.movesLeft}/${def.movement}`, unit.movesLeft <= 0),
     );
+    // The fighting numbers, and only for things that fight: a settler's sheet
+    // does not carry a strength of zero, which would read as a statistic rather
+    // than as "this is not a soldier".
+    if (isCombatant(def)) {
+      stats.append(stat('Strength', String(def.combatStrength), false));
+      if (isRanged(def)) {
+        stats.append(stat('Ranged', `${def.rangedStrength} · ${def.range}⌖`, false));
+      }
+    }
     container.append(stats);
+
+    // The two standing states a player has to know before ordering anything.
+    // Fortification first: it is the one they chose.
+    const notes: string[] = [];
+    if (isFortified(unit)) notes.push(`Fortified ${formatPercent(fortifyBonus(unit))}`);
+    if (unit.hasAttacked) notes.push('Has attacked');
+    if (notes.length > 0) {
+      container.append(element('p', 'unit-note', notes.join(' · ')));
+    }
 
     // A unit with stored orders is going somewhere by itself. The board draws
     // the route it will walk (dimmer than a hovered preview — see

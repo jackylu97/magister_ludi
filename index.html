@@ -295,9 +295,11 @@
           <li><b>Left click</b> a city to open its panel</li>
           <li><b>Left click</b> anywhere else to deselect</li>
           <li><b>Right click</b> a tile to move the selected unit there</li>
-          <li><kbd>M</kbd> then <b>left click</b> moves too — for trackpads</li>
+          <li><b>Right click</b> an enemy to attack it — hover first for the odds</li>
+          <li><kbd>M</kbd> then <b>left click</b> moves and attacks too — for trackpads</li>
           <li><b>Drag</b> with either button to pan · <b>wheel</b> or pinch to zoom</li>
           <li><kbd>B</kbd> founds a city with the selected settler</li>
+          <li><kbd>F</kbd> fortifies the selected unit — defence grows while it holds</li>
           <li><kbd>Y</kbd> toggles the yield pips · <b>Lens</b> in the bar for more</li>
           <li><kbd>T</kbd> opens the tech tree — click a star to research it</li>
           <li><b>Left click</b> a tile in an open city's ring to pin a citizen</li>
@@ -349,6 +351,15 @@
          card appearing never shifts a single thing the player was looking at. -->
     <div id="hud-context" class="hud-card">
       <p id="context-notice" class="context-notice" hidden></p>
+
+      <!-- The combat forecast: what would happen if the selected unit attacked
+           whatever the pointer is resting on. Filled by src/main.ts from
+           `previewCombat` — the same function the reducer resolves the fight
+           with, so the numbers here are the numbers that will be dealt (up to
+           the die, whose spread is printed beside them). Above the terrain
+           readout because it is the more urgent thing on the card, and hidden
+           entirely whenever nobody is aiming at anything. -->
+      <div id="combat-forecast" class="combat-forecast" hidden></div>
 
       <dl id="info" class="info-list">
         <dt>Terrain</dt>

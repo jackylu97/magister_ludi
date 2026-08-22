@@ -39,6 +39,21 @@
  * the one place the yield algebra differs from the movement algebra, which
  * *adds* the hills term instead.
  *
+ * Defence bonus
+ * -------------
+ * Three fields again, and this time every step is a *sum* — the third algebra in
+ * this file, and the one that reads most like the rule it models:
+ *
+ *     effective = terrains[terrain].defenseBonus
+ *               + features[feature].defenseBonus
+ *               + (hills ? hills.defenseBonus : 0)
+ *
+ * A forested hill is +0.25 (forest) + 0.25 (hills) = +50%, exactly as Civ V has
+ * it, and that is the whole reason this one adds where the yield algebra
+ * overrides: cover and height are different advantages and a defender gets both.
+ * Bare terrain contributes nothing today — the field is there so a designer can
+ * make marsh a liability without touching a line of code.
+ *
  * `workable` is separate from all of it. A mountain has a yield of 0/0/0 and a
  * citizen still may not stand on it, so the flag says so rather than leaving
  * "unworkable" to be inferred from three zeroes — a future 0/0/0 tile that is
@@ -84,6 +99,8 @@ export interface TerrainDef {
   moveCost: number | null;
   /** Yield of the bare terrain, before any feature or hills. See the docblock. */
   yield: TileYield;
+  /** Added to a defender's strength as a fraction. Summed; see the docblock. */
+  defenseBonus: number;
   fillColor: string;
   glyph: string | null;
   glyphColor: string;
@@ -95,6 +112,8 @@ export interface FeatureDef {
   moveCostOverride: number | null;
   /** Replaces the terrain's yield when present. See the docblock. */
   yieldOverride: TileYield | null;
+  /** Added to the terrain's defence bonus, never replacing it. See the docblock. */
+  defenseBonus: number;
   glyph: string | null;
   glyphColor: string;
 }
@@ -105,6 +124,8 @@ export interface OverlayDef {
   moveCostExtra: number;
   /** Replaces the terrain *and* the feature yield outright. See the docblock. */
   yieldOverride: TileYield;
+  /** Added to the terrain *and* feature defence bonus. See the docblock. */
+  defenseBonus: number;
   glyph: string;
   glyphColor: string;
 }
@@ -187,6 +208,25 @@ export function moveCost(terrain: TerrainId, feature: FeatureId, hills: boolean)
   const base = TERRAIN_DATA.features[feature].moveCostOverride ?? terrainCost;
   const withHills = base + (hills ? TERRAIN_DATA.hills.moveCostExtra : 0);
   return Math.max(RULES.movement.minStepCost, withHills);
+}
+
+// --- defence ----------------------------------------------------------------
+
+/**
+ * The fraction a defender standing on this terrain/feature/hills combination
+ * adds to its strength.
+ *
+ * Takes the three fields rather than a `Tile` for the same reason `moveCost` and
+ * `tileYield` do. Unlike either of them every term is *added* — see the module
+ * docblock for why cover and height stack when a hill's yield replaces a
+ * forest's.
+ */
+export function defenseBonus(terrain: TerrainId, feature: FeatureId, hills: boolean): number {
+  return (
+    TERRAIN_DATA.terrains[terrain].defenseBonus +
+    TERRAIN_DATA.features[feature].defenseBonus +
+    (hills ? TERRAIN_DATA.hills.defenseBonus : 0)
+  );
 }
 
 // --- yield ------------------------------------------------------------------

@@ -45,6 +45,16 @@ export interface TurnSplash {
    * discovery happens twenty times a game.
    */
   announceTech(techName: string, notes: readonly string[]): void;
+  /**
+   * "<Name> is victorious" — one player is left standing.
+   *
+   * The biggest variant of the card, and the only one that does not go away on
+   * its own: everything else here is news you are about to act on, and this is
+   * the end of the game. It still dismisses on any input, because a card that
+   * could not be got rid of would be a modal, and this is not one — the board
+   * behind it is still there to look over.
+   */
+  announceVictory(playerName: string): void;
   /** Takes down whatever is showing. Called on a new game. */
   clear(): void;
   dispose(): void;
@@ -138,6 +148,23 @@ export function createTurnSplash(container: HTMLElement): TurnSplash {
     show(card, TURN_MS);
   }
 
+  function announceVictory(playerName: string): void {
+    const card = document.createElement('div');
+    card.className = 'turn-splash is-victory';
+    const name = document.createElement('span');
+    name.className = 'turn-splash-name';
+    name.textContent = playerName;
+    card.append(name, document.createTextNode(' is '));
+    const accent = document.createElement('em');
+    accent.textContent = 'victorious';
+    card.append(accent);
+    // No timer: the game is over, and the card waits for the player rather than
+    // for the clock. `show`'s timer is what every other announcement uses.
+    clear();
+    current = card;
+    container.append(card);
+  }
+
   // Any input at all takes it down. Capturing listeners on the window, so a
   // click on a button dismisses the splash *and* still presses the button.
   const onInput = (): void => dismiss();
@@ -148,6 +175,7 @@ export function createTurnSplash(container: HTMLElement): TurnSplash {
     announceTurn,
     announceSeat,
     announceTech,
+    announceVictory,
     clear,
     dispose(): void {
       window.removeEventListener('pointerdown', onInput, true);

@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { MoveAnimations3D } from '../src/render3d/animation3d';
+import { DeathAnimations3D, MoveAnimations3D } from '../src/render3d/animation3d';
 import { cellCenter, tileTopY, wrapWidth } from '../src/render3d/layout';
 import { VIEW3D } from '../src/render3d/lookData';
 import { generateMap } from '../src/sim/mapgen';
@@ -108,6 +108,54 @@ describe('3D move animation', () => {
     animations.clear();
     expect(animations.activeUnits()).toEqual([]);
     expect(animations.sample(6, 1, map)).toBeNull();
+  });
+});
+
+describe('3D death animation', () => {
+  it('tilts further, sinks further and eventually gives up the piece', () => {
+    const deaths = new DeathAnimations3D();
+    deaths.start(1, 0);
+
+    const start = deaths.sample(1, 0)!;
+    expect(start.tilt).toBe(0);
+    expect(start.sink).toBe(0);
+    expect(start.opacity).toBe(1);
+
+    const middle = deaths.sample(1, ANIM.deathMs * 0.5)!;
+    const late = deaths.sample(1, ANIM.deathMs * 0.9)!;
+    expect(middle.tilt).toBeGreaterThan(start.tilt);
+    expect(late.tilt).toBeGreaterThan(middle.tilt);
+    expect(late.sink).toBeGreaterThan(middle.sink);
+    // Nearly flat by the end, but never past the tilt the data asks for.
+    expect(late.tilt).toBeLessThanOrEqual(ANIM.deathTilt);
+
+    // Past the end it is forgotten, which is what lets the renderer's sweep
+    // remove the mesh — the same contract a finished walk has.
+    expect(deaths.sample(1, ANIM.deathMs)).toBeNull();
+    expect(deaths.activeUnits()).toEqual([]);
+  });
+
+  it('holds full opacity for the first half, then fades out', () => {
+    const deaths = new DeathAnimations3D();
+    deaths.start(2, 0);
+    // The fall has to be legible before the piece starts leaving.
+    expect(deaths.sample(2, ANIM.deathMs * 0.25)!.opacity).toBe(1);
+    expect(deaths.sample(2, ANIM.deathMs * 0.5)!.opacity).toBeCloseTo(1, 5);
+    expect(deaths.sample(2, ANIM.deathMs * 0.75)!.opacity).toBeCloseTo(0.5, 5);
+    expect(deaths.sample(2, ANIM.deathMs * 0.99)!.opacity).toBeLessThan(0.05);
+  });
+
+  it('ignores a fall with no duration, and forgets everything on clear', () => {
+    const deaths = new DeathAnimations3D();
+    deaths.start(3, 0, 0);
+    expect(deaths.activeUnits()).toEqual([]);
+    expect(deaths.sample(3, 0)).toBeNull();
+
+    deaths.start(4, 0);
+    deaths.start(5, 0);
+    expect(deaths.activeUnits()).toHaveLength(2);
+    deaths.clear();
+    expect(deaths.activeUnits()).toEqual([]);
   });
 });
 

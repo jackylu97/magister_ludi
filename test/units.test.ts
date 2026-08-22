@@ -74,6 +74,10 @@ describe('spawnUnit', () => {
       row: 3,
       hp: unitDef('scout').maxHp,
       movesLeft: unitDef('scout').movement,
+      // Milestone 5: every unit carries "have I fought this turn?", and a fresh
+      // one has not. No `fortifiedTurns` key — a unit that has never dug in and
+      // a unit shaken out of a trench must serialise identically.
+      hasAttacked: false,
     });
   });
 

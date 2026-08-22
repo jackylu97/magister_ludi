@@ -108,7 +108,16 @@ export function fullMovement(unit: Unit): number {
   return unitDef(unit.type).movement;
 }
 
-/** True when the unit has not spent a single movement point this turn. */
+/**
+ * True when the unit did nothing at all this turn: it spent no movement *and*
+ * it did not attack.
+ *
+ * The attack half matters even though attacking zeroes the allowance, because
+ * the two facts are separately observable and a rule that read only one of them
+ * would be a rule waiting to be wrong — a unit that gained a free attack, or a
+ * zero-movement siege engine that shot without moving, would heal on the turn it
+ * fought. The name is the promise: rested means it rested.
+ */
 export function isRested(unit: Unit): boolean {
-  return unit.movesLeft === fullMovement(unit);
+  return unit.movesLeft === fullMovement(unit) && !unit.hasAttacked;
 }

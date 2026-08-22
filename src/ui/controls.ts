@@ -95,9 +95,17 @@
  */
 
 import { assignableTiles, cityAt, cityTile, foundingError } from '../sim/cities';
+import {
+  type CombatPreview,
+  attackTargetAt,
+  fortifyError,
+  isCombatant,
+  isRanged,
+  previewCombat,
+} from '../sim/combat';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
-import { type Tile, mapRange, tileHex } from '../sim/map';
+import { type Tile, getTileAt, mapRange, tileHex } from '../sim/map';
 import { findPath, reachableTiles } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import { type City, type Unit, cityById, hasEndedTurn, unitById } from '../sim/state';
@@ -105,7 +113,7 @@ import { type ResearchReport, researchSince, researchSnapshot } from '../sim/tec
 import { unitDef } from '../sim/unitData';
 import { unitsOnTile } from '../sim/units';
 import { walkedPrefix } from '../render/animation';
-import type { CellRef, HoverInfo, LensMode, LensView, MapView } from './mapView';
+import type { CellRef, FallenUnit, HoverInfo, LensMode, LensView, MapView } from './mapView';
 
 /** How far the pointer may travel between down and up and still be a click. */
 const CLICK_SLOP_PX = 4;
@@ -121,6 +129,22 @@ const MOVE_MODE_NOTICE = 'Move mode — click a destination (Esc cancels)';
  * player has put themselves in, or a one-off refusal that fades.
  */
 export type NoticeKind = 'mode' | 'reject';
+
+/**
+ * One number to float over the board after a blow lands.
+ *
+ * `dealt` is damage this client's piece inflicted, `taken` is damage it
+ * received; the two are drawn in the interface's two accents (vermilion and
+ * teal) so a trade reads as a trade at a glance. It carries a *cell* rather
+ * than a unit id because the unit it describes may already be dead — which is
+ * exactly the case the number is most needed for.
+ */
+export interface DamageEvent {
+  col: number;
+  row: number;
+  amount: number;
+  kind: 'dealt' | 'taken';
+}
 
 /**
  * Does this viewer want animation suppressed?
@@ -207,6 +231,25 @@ export interface GameControlsOptions {
    * `inputBlocked`, so this module never sees a key while it is open).
    */
   onToggleTechTree?: () => void;
+
+  /**
+   * A blow landed: numbers to float over the board.
+   *
+   * Reported from here because this is the only place that can measure it — the
+   * figures are hit-point *differences*, and the "before" half stops existing
+   * the moment the command applies. Same argument as `onTurnResolved`'s research
+   * report, and the same shape of answer.
+   */
+  onDamage?: (events: readonly DamageEvent[]) => void;
+
+  /**
+   * The game ended: one player is left standing.
+   *
+   * Fired once, on the command that decided it, and only when `winnerId` went
+   * from null to a player — a state that is already won does not re-announce
+   * itself on every later click.
+   */
+  onVictory?: (playerId: number) => void;
 }
 
 export interface GameControls {
@@ -277,6 +320,26 @@ export interface GameControls {
   /** Drops the selected unit's standing order. The unit sheet's button. */
   cancelOrder(): void;
 
+  /**
+   * Why the selected unit cannot fortify, or `null` when it can. `undefined`
+   * with nothing selected — the same three-valued shape as `foundCityBlocker`.
+   */
+  fortifyBlocker(): string | null | undefined;
+  /** Digs the selected unit in. The unit sheet's button and the `F` key. */
+  fortify(): void;
+
+  /**
+   * What would happen if the selected unit attacked the tile under the pointer,
+   * or `null` when that is not a question anybody is asking — nothing selected,
+   * nothing hovered, or nothing hostile on the hovered tile.
+   *
+   * A refusal comes back as the preview's own `{ ok: false, error }` rather than
+   * as `null`, because "you cannot attack that, and here is why" is exactly what
+   * the card should say. It is `previewCombat`'s answer verbatim: the forecast
+   * the player reads is the arithmetic the reducer will perform.
+   */
+  combatForecast(): CombatPreview | null;
+
   /** The unit currently selected, re-read from the state, or `null`. */
   selectedUnit(): Unit | null;
   /** Whether move mode is armed — the next left click is an order, not a pick. */
@@ -297,6 +360,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     closePopovers,
     inputBlocked,
     onToggleTechTree,
+    onDamage,
+    onVictory,
   } = options;
 
   /** The seat this client plays. Player ids are indices, so 0 is the first. */
@@ -331,8 +396,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   let travelled = 0;
   /** Last pointer position in viewport space, so hover survives pan and zoom. */
   let pointer: { x: number; y: number } | null = null;
-  /** A refusal currently on screen, and the timer that will take it away. */
+  /** A transient line currently on screen, and the timer that will take it away. */
   let rejection: string | null = null;
+  /**
+   * How that line should read. A refused order is a "no" and flinches; a combat
+   * result is news and does not — same slot, same timer, different voice.
+   */
+  let rejectionKind: NoticeKind = 'reject';
   let rejectionTimer = 0;
 
   // --- the context card's message line -------------------------------------
@@ -343,19 +413,33 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * sources can never fight over the line.
    */
   function publishNotice(): void {
-    if (rejection !== null) onNotice?.(rejection, 'reject');
+    if (rejection !== null) onNotice?.(rejection, rejectionKind);
     else onNotice?.(moveMode ? MOVE_MODE_NOTICE : null, 'mode');
   }
 
-  /** Reports an order the game would not take, visibly and briefly. */
-  function reject(text: string): void {
+  /** Puts a line on the card for a beat, in one of its two voices. */
+  function flash(text: string, kind: NoticeKind): void {
     rejection = text;
+    rejectionKind = kind;
     window.clearTimeout(rejectionTimer);
     rejectionTimer = window.setTimeout(() => {
       rejection = null;
       publishNotice();
     }, NOTICE_MS);
     publishNotice();
+  }
+
+  /** Reports an order the game would not take, visibly and briefly. */
+  function reject(text: string): void {
+    flash(text, 'reject');
+  }
+
+  /**
+   * Reports something that *happened* — a blow landed, a city taken. Same slot
+   * and same timer as a refusal, without the flinch: the player asked for this.
+   */
+  function announce(text: string): void {
+    flash(text, 'mode');
   }
 
   // --- move mode -----------------------------------------------------------
@@ -445,6 +529,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renderer.setReachable(
       unit && canOrder() ? reachableTiles(getGame().state, unit).map((r) => r.tile) : [],
     );
+    // What this piece could *fight*, which is a different set from what it could
+    // walk to — an archer reaches past its movement, a swordsman cannot step
+    // onto the tile it is attacking.
+    renderer.setAttackable?.(attackableCells());
     refreshSpotlight();
     refreshLens();
     // A unit that is already marching shows the route it is marching on. Only
@@ -695,6 +783,260 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onUpdate(selectedUnit(), renderer.getHover());
   }
 
+  // --- combat --------------------------------------------------------------
+
+  /**
+   * Every tile the selected unit could attack this turn.
+   *
+   * Candidates come from the unit's *reach* — six neighbours for a swordsman,
+   * everything inside `range` for an archer — and each one is then asked of
+   * `previewCombat`, which is the same function the reducer validates with. So
+   * the red tint marks exactly the attacks that will be accepted: line of
+   * sight, adjacency, "has this unit already fought" and "is there anything
+   * there at all" are all answered once, by the simulation, rather than being
+   * re-guessed here in a form that could drift.
+   *
+   * It is at most nineteen previews and it runs when the selection changes,
+   * not per frame.
+   */
+  function attackableCells(): CellRef[] {
+    const unit = selectedUnit();
+    if (!unit || !canOrder()) return [];
+    const def = unitDef(unit.type);
+    if (!isCombatant(def)) return [];
+
+    const { state } = getGame();
+    const origin = getTileAt(state.map, unit.col, unit.row);
+    if (!origin) return [];
+
+    const radius = isRanged(def) ? (def.range ?? 1) : 1;
+    const cells: CellRef[] = [];
+    for (const tile of mapRange(state.map, tileHex(origin), radius)) {
+      if (tile.col === unit.col && tile.row === unit.row) continue;
+      if (!previewCombat(state, unit.id, { col: tile.col, row: tile.row }).ok) continue;
+      cells.push({ col: tile.col, row: tile.row });
+    }
+    return cells;
+  }
+
+  /**
+   * The forecast for the hovered tile. See `GameControls.combatForecast`.
+   *
+   * It answers `null` — rather than a refusal — when there is simply nothing
+   * hostile under the pointer, because a card that explained why you cannot
+   * attack an empty meadow would be a card that never stopped talking.
+   */
+  function combatForecast(): CombatPreview | null {
+    const unit = selectedUnit();
+    const hover = renderer.getHover();
+    if (!unit || !hover) return null;
+    if (!isCombatant(unitDef(unit.type))) return null;
+
+    const { state } = getGame();
+    const { col, row } = hover.tile;
+    if (col === unit.col && row === unit.row) return null;
+    if (!attackTargetAt(state, col, row, localPlayerId)) return null;
+    return previewCombat(state, unit.id, { col, row });
+  }
+
+  /** Every unit on the board right now, by id, as it looks this instant. */
+  function unitSnapshot(): Map<number, FallenUnit & { hp: number }> {
+    const snapshot = new Map<number, FallenUnit & { hp: number }>();
+    for (const unit of getGame().state.units) {
+      snapshot.set(unit.id, {
+        id: unit.id,
+        type: unit.type,
+        ownerId: unit.ownerId,
+        col: unit.col,
+        row: unit.row,
+        hp: unit.hp,
+      });
+    }
+    return snapshot;
+  }
+
+  /**
+   * Attacks the hovered tile with the selected unit, and reports whether it took
+   * the click.
+   *
+   * Taking the click is decided *before* the command: if something hostile is
+   * standing there, this gesture was an attack, and a refusal is spoken rather
+   * than quietly falling through to a move order that would only be refused
+   * again for a worse reason ("a foreign unit is in the way").
+   *
+   * Everything the interface says afterwards is measured rather than reported by
+   * the reducer: the names come from the forecast taken beforehand, and the
+   * damage figures are hit-point differences across the dispatch. That is
+   * deliberate — `CommandResult` stays `{ ok }` and the UI stays a reader of the
+   * board, which means these numbers cannot disagree with what the board shows.
+   */
+  function issueAttack(hover: HoverInfo): boolean {
+    const unit = selectedUnit();
+    if (!unit) return false;
+
+    const { state } = getGame();
+    const { col, row } = hover.tile;
+    if (!attackTargetAt(state, col, row, localPlayerId)) return false;
+    if (!isCombatant(unitDef(unit.type))) return false;
+
+    if (!canOrder()) {
+      reject(`You have ended turn ${state.turn}`);
+      onUpdate(unit, hover);
+      return true;
+    }
+
+    const view = previewCombat(state, unit.id, { col, row });
+    if (!view.ok) {
+      reject(view.error);
+      onUpdate(unit, hover);
+      return true;
+    }
+
+    // Captured before the dispatch: afterwards the dead are gone and the
+    // "before" hit points they were at have stopped existing.
+    const before = unitSnapshot();
+    const cityBefore = cityAt(state, col, row);
+    const cityHpBefore = cityBefore?.hp ?? 0;
+    const attackerFrom = { col: unit.col, row: unit.row };
+    const wonBefore = state.winnerId;
+
+    renderer.skipAnimations();
+    const command: Command = {
+      type: 'attack',
+      playerId: localPlayerId,
+      unitId: unit.id,
+      target: { col, row },
+    };
+    const result = dispatch(getGame(), command);
+    if (!result.ok) {
+      reject(result.error);
+      onUpdate(unit, hover);
+      return true;
+    }
+
+    setMoveMode(false);
+    reportCombat(view, before, cityHpBefore, attackerFrom, { col, row });
+
+    if (getGame().state.winnerId !== null && wonBefore === null) {
+      onVictory?.(getGame().state.winnerId!);
+    }
+
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), hover);
+    return true;
+  }
+
+  /**
+   * Says what the blow did: the notice line, the floating numbers, and a topple
+   * for anybody who did not survive it.
+   *
+   * Damage is read off the board as a difference, so a number shown here is a
+   * number the state actually moved. A unit that is missing from the state
+   * afterwards lost *all* of its remaining hit points, which is both the honest
+   * figure and the one a player expects to see over a dying piece.
+   */
+  function reportCombat(
+    view: CombatPreview & { ok: true },
+    before: Map<number, FallenUnit & { hp: number }>,
+    cityHpBefore: number,
+    attackerFrom: CellRef,
+    target: CellRef,
+  ): void {
+    const { state } = getGame();
+    const events: DamageEvent[] = [];
+
+    /**
+     * How much a unit lost, and where to say so — its tile now if it survived
+     * (a melee winner may have advanced), or the tile it fell on if it did not.
+     */
+    const lost = (id: number | null): { amount: number; at: CellRef } | null => {
+      if (id === null) return null;
+      const was = before.get(id);
+      if (!was) return null;
+      const now = unitById(state, id);
+      const amount = now ? was.hp - now.hp : was.hp;
+      if (amount <= 0) return null;
+      return { amount, at: now ? { col: now.col, row: now.row } : { col: was.col, row: was.row } };
+    };
+
+    const dealt = view.defenderCityId !== null
+      ? { amount: cityHpBefore - (cityById(state, view.defenderCityId)?.hp ?? 0), at: target }
+      : lost(view.defenderUnitId);
+    if (dealt && dealt.amount > 0) {
+      events.push({ ...dealt.at, amount: dealt.amount, kind: 'dealt' });
+    }
+    // Counter-damage is announced where the attacker *stood when it was struck*,
+    // not where it ended up: a unit that killed its defender and advanced would
+    // otherwise carry the number it took onto the tile it just captured.
+    const taken = lost(view.attackerId);
+    if (taken) {
+      events.push({
+        col: attackerFrom.col,
+        row: attackerFrom.row,
+        amount: taken.amount,
+        kind: 'taken',
+      });
+    }
+    if (events.length > 0) onDamage?.(events);
+
+    // Anybody who was on the board before the blow and is not on it now fell.
+    for (const [id, was] of before) {
+      if (unitById(state, id)) continue;
+      renderer.animateDeath?.(was);
+    }
+
+    reportCombatNotice(view, dealt?.amount ?? 0, taken?.amount ?? 0);
+  }
+
+  /** "Warrior attacks Archer: 34 − 12", in the reducer's own vocabulary. */
+  function reportCombatNotice(
+    view: CombatPreview & { ok: true },
+    dealt: number,
+    taken: number,
+  ): void {
+    const { state } = getGame();
+    if (view.capturesUnit) {
+      announce(`${view.attackerName} captures ${view.defenderName}`);
+      return;
+    }
+    const verb = view.kind === 'ranged' ? 'shoots' : 'attacks';
+    const trade = taken > 0 ? `${dealt} − ${taken}` : `${dealt}`;
+    const city =
+      view.defenderCityId === null ? undefined : cityById(state, view.defenderCityId);
+    const tail = city && city.ownerId === localPlayerId ? ` · ${city.name} taken!` : '';
+    announce(`${view.attackerName} ${verb} ${view.defenderName}: ${trade}${tail}`);
+  }
+
+  // --- fortifying ----------------------------------------------------------
+
+  /**
+   * Why the selected unit cannot dig in. The seat's questions here, the unit's
+   * delegated to `fortifyError` — the same split as `foundCityBlocker`, and the
+   * same guarantee: this button is enabled by the rule the reducer applies.
+   */
+  function fortifyBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    return fortifyError(unit);
+  }
+
+  function fortify(): void {
+    const unit = selectedUnit();
+    if (!unit || fortifyBlocker() !== null) return;
+
+    const command: Command = { type: 'fortify', playerId: localPlayerId, unitId: unit.id };
+    const result = dispatch(getGame(), command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
   // --- citizens ------------------------------------------------------------
 
   /**
@@ -781,7 +1123,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function handleLeftClick(hover: HoverInfo): void {
     if (moveMode) {
-      issueMove(hover);
+      // Move mode stands in for the right button, so it stands in for the whole
+      // of it: aiming the armed click at an enemy attacks, exactly as a right
+      // click would. The trackpad path must not be a lesser one.
+      if (!issueAttack(hover)) issueMove(hover);
       return;
     }
 
@@ -828,6 +1173,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function handleRightClick(hover: HoverInfo): void {
     if (!selectedUnit()) return;
+    // "Act on this target" already covers both verbs: a tile with somebody
+    // else's piece or town on it is a fight, and everything else is a march.
+    // The player aims at a thing, not at a mode.
+    if (issueAttack(hover)) return;
     issueMove(hover);
   }
 
@@ -1146,6 +1495,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       foundCity();
       return;
     }
+    if (event.key === 'f' || event.key === 'F') {
+      // Silent with nothing selected, or on a unit that cannot dig in: the
+      // blocker decides, exactly as the button's disabled state does.
+      fortify();
+      return;
+    }
     if (event.key === 'y' || event.key === 'Y') {
       // Toggles the player's own switch, never the automatic rule: pressing Y
       // under an open city panel sets what will be up when the panel closes,
@@ -1211,6 +1566,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     foundCityBlocker,
     cancelOrder,
     cancelOrderBlocker,
+    fortify,
+    fortifyBlocker,
+    combatForecast,
     openCity,
     setOpenCity,
     setMoveMode,

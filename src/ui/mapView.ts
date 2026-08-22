@@ -23,9 +23,26 @@
 import type { Hex } from '../sim/hex';
 import type { Tile } from '../sim/map';
 import type { GameState } from '../sim/state';
+import type { UnitTypeId } from '../sim/unitData';
 
 /** An offset cell. Structurally what the simulation calls a path waypoint. */
 export interface CellRef {
+  col: number;
+  row: number;
+}
+
+/**
+ * A unit as it was the instant before it left the board.
+ *
+ * Everything the renderer needs to draw one more time — which piece, in whose
+ * colour, standing where. It exists because a death animation outlives its
+ * subject: by the time the topple starts, the unit is no longer in
+ * `state.units` and cannot be looked up by id.
+ */
+export interface FallenUnit {
+  id: number;
+  type: UnitTypeId;
+  ownerId: number;
   col: number;
   row: number;
 }
@@ -112,6 +129,20 @@ export interface MapView {
   setSelectedUnitId(id: number | null): void;
   /** Tiles marked "you can move here this turn". */
   setReachable(cells: readonly CellRef[]): void;
+
+  /**
+   * Optional: tiles marked "you can attack this, this turn".
+   *
+   * A separate call from `setReachable` because they are separate questions —
+   * a melee unit can attack a tile it could not walk to (something is standing
+   * on it) and an archer can attack tiles far outside its movement entirely.
+   * The UI decides which tiles by asking `previewCombat` per candidate, so the
+   * tint marks exactly the attacks the reducer would accept.
+   *
+   * Optional, like every renderer-specific feature: the frozen 2D pipelines do
+   * not draw it, and combat there still works from the cursor and the card.
+   */
+  setAttackable?(cells: readonly CellRef[]): void;
   /** The route drawn under the cursor, start tile excluded. */
   setPathPreview(cells: readonly CellRef[]): void;
 
@@ -134,6 +165,22 @@ export interface MapView {
 
   /** Slides a piece along the tiles it just walked. Cosmetic; see `animation.ts`. */
   animateMove(unitId: number, from: CellRef, walked: readonly CellRef[]): void;
+
+  /**
+   * Optional: topples a piece that has just been killed.
+   *
+   * It takes a *description* of the dead unit rather than an id, and that is
+   * forced by the architecture rather than chosen: the simulation removed the
+   * unit before this is called, so there is nothing left to look up. Whoever
+   * saw it die — `src/ui/controls.ts`, which captured the board before it
+   * dispatched the attack — hands over what the piece looked like and where it
+   * was standing.
+   *
+   * Cosmetic and powerless, exactly like `animateMove`: the state is already
+   * final, and a dropped frame loses an effect rather than a unit.
+   */
+  animateDeath?(fallen: FallenUnit): void;
+
   /** Snaps every in-flight piece to its real tile. Called before a new order. */
   skipAnimations(): void;
 

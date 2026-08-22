@@ -290,7 +290,9 @@
     "committedColor": "#e8e6dc",
     "committedOpacity": 0.4,
     "committedScale": 0.55,
-    "committedStride": 2
+    "committedStride": 2,
+    "attackColor": "#b35843",
+    "attackOpacity": 0.3
   },
   "hpBar": {
     "width": 0.66,
@@ -317,7 +319,10 @@
   "animation": {
     "msPerHex": 160,
     "maxMs": 1200,
-    "hopHeight": 0.18
+    "hopHeight": 0.18,
+    "deathMs": 420,
+    "deathTilt": 1.5708,
+    "deathSink": 0.12
   },
   "table": {
     "color": "vellum",

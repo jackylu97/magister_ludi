@@ -210,6 +210,7 @@ describe('badges in the units layer', () => {
       row: 2,
       hp: unitDef(type).maxHp,
       movesLeft: 2,
+      hasAttacked: false,
     }));
     return game;
   }
