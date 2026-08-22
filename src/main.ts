@@ -116,8 +116,12 @@ const lensOptionsEl = requireElement<HTMLElement>('lens-options');
 const lensTogglesEl = requireElement<HTMLElement>('lens-toggles');
 const lensCurrentEl = requireElement<HTMLElement>('lens-current');
 const lensYieldsFlagEl = requireElement<HTMLElement>('lens-yields-flag');
-const techButton = requireElement<HTMLButtonElement>('tech-button');
+/* The research card, top-left: the whole card is the button that opens the star
+   chart, so it is handed to `createTechTree` where the bar button used to be. */
+const researchCard = requireElement<HTMLButtonElement>('hud-research');
 const techCurrentEl = requireElement<HTMLElement>('tech-current');
+const researchFillEl = requireElement<HTMLElement>('research-fill');
+const researchFiguresEl = requireElement<HTMLElement>('research-figures');
 const techOverlayEl = requireElement<HTMLElement>('tech-overlay');
 const techChartEl = requireElement<HTMLElement>('tech-chart');
 const contextEl = requireElement<HTMLElement>('hud-context');
@@ -866,7 +870,7 @@ async function boot(): Promise<void> {
     // change — so every view of them is refreshed wherever the main panel is,
     // the empire's per-turn totals in the top bar included.
     civYields.render();
-    // The research line changes with the seat, with the science rate and with
+    // The research card changes with the seat, with the science rate and with
     // every completed tech, so it refreshes wherever the rest of the HUD does.
     techTree?.render();
     banners.refresh();
@@ -1048,7 +1052,7 @@ async function boot(): Promise<void> {
   }
 
   /**
-   * The star chart, and the research line in the top bar it is opened from.
+   * The star chart, and the HUD's research card it is opened from.
    *
    * Declared after `controls` because it asks whose seat this is; reached by
    * `controls` through the `techTree` holder above, which is what breaks the
@@ -1058,8 +1062,10 @@ async function boot(): Promise<void> {
     overlay: techOverlayEl,
     chart: techChartEl,
     closeButton: requireElement('tech-close'),
-    barButton: techButton,
-    barValue: techCurrentEl,
+    statusCard: researchCard,
+    statusName: techCurrentEl,
+    statusFill: researchFillEl,
+    statusFigures: researchFiguresEl,
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
     onChanged: () => updatePanel(null, renderer.getHover()),

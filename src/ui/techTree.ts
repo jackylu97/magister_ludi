@@ -1,11 +1,18 @@
 /**
  * The star chart: the technology tree as the magister's sky.
  *
- * A full-screen overlay opened from the top bar (or `T`), and the one
+ * A full-screen overlay opened from the HUD's research card (or `T`), and the one
  * deliberately dark surface in a light interface — ink ground, gilt stars,
  * hairline sight-lines between a node and the nodes it depends on (see the
  * flourish set in Entry VII of `docs/design-notes.md`). Everything else on the
  * screen is parchment on a table; this is the table at night.
+ *
+ * It also fills the HUD's research card, the fixed surface at the top-left that
+ * says what the empire is learning (`renderStatus`, at the foot of this file).
+ * The card is this screen's handle and its readout at once, and it lives here
+ * rather than in a module of its own for the same reason the bar line it
+ * replaced did: one file reads `researching`, so the card and the lit node in
+ * the chart cannot come to two different conclusions about it.
  *
  * It reads the simulation and sends exactly one command
  * -----------------------------------------------------
@@ -60,6 +67,7 @@ import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { hasEndedTurn } from '../sim/state';
 import {
+  availableTechs,
   buildingYieldDelta,
   playerScience,
   researchError,
@@ -76,6 +84,7 @@ import {
   techRowCount,
 } from '../sim/techData';
 import { unitDef } from '../sim/unitData';
+import { BEAKER, researchProgress } from './researchProgress';
 
 /** ÆRA I / II / III — the ages, in the numerals the specimen sets them in. */
 const AGE_NUMERALS: Record<TechAge, string> = { 1: 'I', 2: 'II', 3: 'III' };
@@ -105,7 +114,7 @@ export interface TechTree {
   open(): void;
   close(): void;
   toggle(): void;
-  /** Rebuilds the chart if it is open, and always refreshes the bar line. */
+  /** Rebuilds the chart if it is open, and always refreshes the research card. */
   render(): void;
 }
 
@@ -119,10 +128,18 @@ export interface TechTreeOptions {
   chart: HTMLElement;
   /** The overlay's own × button. */
   closeButton: HTMLElement;
-  /** The top bar's research button: opens this, and shows what is being learnt. */
-  barButton: HTMLButtonElement;
-  /** The line inside that button. */
-  barValue: HTMLElement;
+  /**
+   * The HUD's research card (top-left, under the bar). The whole card is a
+   * button: it opens this screen, and it is where what is being learnt is
+   * written between visits. See `renderStatus`.
+   */
+  statusCard: HTMLButtonElement;
+  /** The card's second line: the technology's name, or the prompt to pick one. */
+  statusName: HTMLElement;
+  /** The fill inside the card's progress track. */
+  statusFill: HTMLElement;
+  /** The card's mono figures line — banked over cost, and the turns left. */
+  statusFigures: HTMLElement;
   getGame: () => Game;
   localPlayerId: () => number;
   /** Called after a command lands, so the rest of the page catches up. */
@@ -143,8 +160,18 @@ function element<K extends keyof HTMLElementTagNameMap>(
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export function createTechTree(options: TechTreeOptions): TechTree {
-  const { overlay, chart, closeButton, barButton, barValue, getGame, localPlayerId, onChanged } =
-    options;
+  const {
+    overlay,
+    chart,
+    closeButton,
+    statusCard,
+    statusName,
+    statusFill,
+    statusFigures,
+    getGame,
+    localPlayerId,
+    onChanged,
+  } = options;
 
   let open = false;
   let restoreTo: HTMLElement | null = null;
@@ -254,14 +281,21 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     card.append(figures);
 
     if (current && player) {
+      // The same arithmetic the HUD's research card draws, from the same
+      // helper: the bar on this node and the bar at the top-left of the screen
+      // are one fact shown twice, and they must never round differently.
+      const progress = researchProgress(
+        player.sciencePool,
+        def.cost,
+        playerScience(state, playerId),
+      );
       const track = element('div', 'tech-bar');
       const fill = element('div', 'tech-bar-fill');
-      const fraction = Math.max(0, Math.min(1, player.sciencePool / def.cost));
-      fill.style.width = `${(fraction * 100).toFixed(1)}%`;
+      fill.style.width = `${(progress.fraction * 100).toFixed(1)}%`;
       track.append(fill);
       card.append(track);
       card.append(
-        element('div', 'tech-node-progress', `${Math.floor(player.sciencePool)} / ${def.cost}`),
+        element('div', 'tech-node-progress', `${progress.banked} / ${progress.cost}`),
       );
     }
 
@@ -569,40 +603,84 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     { passive: false },
   );
 
-  // --- the top bar's line --------------------------------------------------
+  // --- the HUD's research card ---------------------------------------------
 
   /**
-   * "Research · Bronze Working 4t", or a prompt to choose one.
+   * The card at the top-left: what this seat is learning, how far along it is,
+   * and the way in.
    *
-   * The nag is a pulse on the button rather than a modal: research is a decision
-   * the player should make, and a screen that demanded it before the game would
-   * continue would be a screen that interrupted the game to ask.
+   * Three states, and each is a different sentence rather than a blank field:
+   *
+   *   · **Learning something.** The name, a lapis bar, and "230/250 🔬 · 3t".
+   *   · **Nothing chosen, and there is still something to choose.** The prompt,
+   *     and the same slow gilt pulse the bar button used to wear. The nag is a
+   *     pulse rather than a modal: research is a decision the player should
+   *     make, and a screen that demanded it before the game would continue would
+   *     be a screen that interrupted the game to ask. (This is the same
+   *     condition End Turn's "Choose research" blocker is derived from — see
+   *     `firstBlocker` in `turnBlockers.ts`. Both read `researching` and
+   *     `availableTechs`, so neither can nag while the other says all is well.)
+   *   · **The tree is finished.** It says so, quietly, and stops asking. The
+   *     card still opens the chart, because a finished tree is still worth
+   *     reading.
+   *
+   * Always the local seat: this is what *you* are researching, and in a hot-seat
+   * session the card follows the chair the same way every other HUD surface
+   * does — `localPlayerId()` is asked afresh on every render.
    */
-  function renderBar(): void {
+  function renderStatus(): void {
     const { state } = getGame();
     const playerId = localPlayerId();
     const player = state.players[playerId];
     if (!player) return;
 
     const current = player.researching;
+    const rate = playerScience(state, playerId);
+
     if (current === null) {
-      barValue.textContent = 'Choose…';
-      barButton.classList.add('is-prompting');
-      barButton.title = 'Choose what to research (T)';
+      const remaining = availableTechs(state, playerId).length;
+      const prompting = remaining > 0;
+      statusCard.classList.toggle('is-prompting', prompting);
+      statusCard.classList.toggle('is-done', !prompting);
+      statusName.textContent = prompting ? 'Choose research…' : 'Philosophy complete';
+      statusFill.style.width = prompting ? '0%' : '100%';
+      // With no aim there is no denominator, so the figures line says what the
+      // pool *is* — banking is real (see the model in `src/sim/tech.ts`), and a
+      // player who has forgotten to choose should see the beakers piling up.
+      statusFigures.textContent = prompting
+        ? `${Math.floor(player.sciencePool)} ${BEAKER} banked · +${rate}/t`
+        : `${player.techsResearched.length}/${TECH_IDS.length} ✦`;
+      statusCard.title = prompting
+        ? 'Choose what to research (T)'
+        : 'Every technology is researched — the star chart is T';
+      statusCard.setAttribute(
+        'aria-label',
+        prompting
+          ? `Research: nothing chosen, ${Math.floor(player.sciencePool)} beakers banked. Opens the star chart.`
+          : 'Research: every technology is researched. Opens the star chart.',
+      );
       return;
     }
-    barButton.classList.remove('is-prompting');
+
+    statusCard.classList.remove('is-prompting', 'is-done');
     const def = techDef(current);
-    const turns = turnsToTech(state, playerId, current);
-    barValue.textContent = `${def.name} ${turns === null ? '—' : `${turns}t`}`;
-    const rate = playerScience(state, playerId);
-    barButton.title =
-      `${def.name}: ${Math.floor(player.sciencePool)} / ${def.cost} beakers ` +
-      `(+${rate} per turn) — the tech tree is T`;
+    const progress = researchProgress(player.sciencePool, def.cost, rate);
+    statusName.textContent = def.name;
+    statusFill.style.width = `${(progress.fraction * 100).toFixed(1)}%`;
+    statusFigures.textContent = progress.figures;
+    statusCard.title =
+      `${def.name}: ${progress.banked} / ${progress.cost} beakers ` +
+      `(+${rate} per turn) — the star chart is T`;
+    statusCard.setAttribute(
+      'aria-label',
+      `Research: ${def.name}, ${progress.banked} of ${progress.cost} beakers, ` +
+        `${progress.turns === null ? 'no science being made' : `${progress.turns} turns left`}. ` +
+        'Opens the star chart.',
+    );
   }
 
   function render(): void {
-    renderBar();
+    renderStatus();
     if (open) renderChart();
   }
 
@@ -612,11 +690,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     if (open === next) return;
     open = next;
     overlay.hidden = !next;
-    barButton.setAttribute('aria-expanded', String(next));
+    statusCard.setAttribute('aria-expanded', String(next));
 
     if (next) {
       const active = document.activeElement as HTMLElement | null;
-      restoreTo = active && active !== document.body ? active : barButton;
+      restoreTo = active && active !== document.body ? active : statusCard;
       // A fresh opening starts at the front of the player's own work rather
       // than wherever the last visit was left, so the chart always opens on
       // the decision that is actually in front of them.
@@ -634,11 +712,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     }
     restoreTo?.focus();
     restoreTo = null;
-    renderBar();
+    renderStatus();
   }
 
   closeButton.addEventListener('click', () => setOpen(false));
-  barButton.addEventListener('click', () => setOpen(!open));
+  statusCard.addEventListener('click', () => setOpen(!open));
 
   // Escape belongs to whatever is in front, and while this is up that is this.
   // `main.ts` reports the overlay as blocking, so `controls.ts` never sees the
@@ -653,6 +731,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     const target = event.target as HTMLElement | null;
     if (target?.tagName === 'INPUT' || target?.isContentEditable) return;
     if (event.key === 't' || event.key === 'T') {
+      // Like the Escape branch: stop here, or the window listener in
+      // controls.ts sees the same press with the overlay now closed and
+      // immediately reopens the chart it just shut.
+      event.stopPropagation();
       setOpen(false);
       return;
     }
@@ -676,7 +758,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     if (svg) drawLines(svg);
   });
 
-  renderBar();
+  renderStatus();
 
   return {
     get isOpen() {

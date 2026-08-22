@@ -1102,6 +1102,124 @@ kbd {
   font-weight: 600;
 }
 
+/* --- top-left: the research card ------------------------------------------
+   What the empire is learning, permanently, in the corner the eye lands on
+   first. It replaced a button in the top bar, and the trade is deliberate: a bar
+   button could afford a name and a turn count on one line, while a card affords
+   the bar and the beakers underneath them — the shape Civ has taught players to
+   read since 1991.
+
+   The whole card is a `<button>`, so the ordinary card recipe has to be told the
+   things a button does not inherit (font, colour, text alignment) and the
+   grid that lays its four lines out. It presses like every other button on the
+   page: 3px down, shadow collapsed, which on a fixed card reads as the card
+   itself being pushed into the table. */
+#hud-research {
+  top: calc(var(--topbar-h) + 12px);
+  left: 14px;
+  width: 230px;
+  display: grid;
+  gap: 2px;
+  padding: 7px 10px 8px;
+  font-family: var(--face-ui);
+  font-size: 12px;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 60ms ease-out, box-shadow 60ms ease-out;
+}
+
+#hud-research:hover {
+  background: #fdfaef;
+}
+
+#hud-research:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* The eyebrow names the screen the card opens, so the chart's title and this
+   line are the same words — "Natural Philosophy", not "Research". */
+.research-eyebrow {
+  line-height: 1.2;
+}
+
+/* The naming face, as everywhere a thing is named. */
+.research-name {
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 90;
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  /* A long tech name shortens rather than widening a card that is pinned to a
+     corner: the card's width is a promise that nothing under it ever moves. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The lapis bar, the same voice the chart draws progress in — on parchment
+   rather than on ink, so it is the unlit cobalt of the yield palette. */
+.research-track {
+  height: 5px;
+  margin: 4px 0 3px;
+  border: 1px solid var(--ink-faint);
+  border-radius: 999px;
+  background: rgba(29, 26, 32, 0.07);
+  overflow: hidden;
+}
+
+.research-fill {
+  display: block;
+  height: 100%;
+  background: var(--y-sci);
+  /* Progress only ever arrives on a turn resolution, so it may as well arrive
+     as a movement rather than as a jump cut. */
+  transition: width 220ms ease-out;
+}
+
+.research-figures {
+  font-family: var(--face-num);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+
+/* Nothing chosen, and something left to choose: the same slow gilt pulse the
+   bar button wore, and the name goes quiet because it is a prompt and not a
+   title. The card keeps its place and its size — a nag that resized the card
+   would move the board's top-left corner every time a tech landed. */
+#hud-research.is-prompting {
+  border-color: var(--gilt);
+  animation: tech-nudge 2.4s ease-in-out infinite;
+}
+
+#hud-research.is-prompting .research-name,
+#hud-research.is-done .research-name {
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+#hud-research.is-prompting .research-name {
+  color: var(--gilt);
+}
+
+/* The tree is finished: the card stops asking for anything. It still opens the
+   chart, which is now a record rather than a decision. */
+#hud-research.is-done .research-fill {
+  background: var(--ink-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #hud-research.is-prompting {
+    animation: none;
+  }
+  .research-fill {
+    transition: none;
+  }
+}
+
 /* --- bottom-left: the context card ----------------------------------------
    What the pointer is over, and what the game says about an order it refused.
 
@@ -2397,17 +2515,9 @@ body.is-panel-open #hud-end-turn {
   outline-offset: 2px;
 }
 
-/* The bar button, while nothing is being researched: a slow gilt pulse. A nag,
-   not a modal — the game keeps playing. */
-.topbar-btn.is-prompting {
-  border-color: var(--gilt);
-  animation: tech-nudge 2.4s ease-in-out infinite;
-}
-
-.topbar-btn.is-prompting .topbar-btn-value {
-  color: var(--gilt);
-}
-
+/* The nag worn by the research card while nothing is being researched: a slow
+   gilt pulse. Not a modal — the game keeps playing. Declared here, beside the
+   screen it belongs to, and used by `#hud-research` up in the HUD section. */
 @keyframes tech-nudge {
   0%,
   100% {
@@ -2429,9 +2539,6 @@ body.is-panel-open #hud-end-turn {
 
 @media (prefers-reduced-motion: reduce) {
   .tech-overlay {
-    animation: none;
-  }
-  .topbar-btn.is-prompting {
     animation: none;
   }
 }

@@ -95,9 +95,11 @@
          player reads or presses ever shifts under them:
 
            top          #topbar         the empire's per-turn totals, the turn,
-                                        the seats, and the two tool buttons
+                                        the seats, and the tool buttons
            under it     #menu-popover   session-rare setup, from the ☰ button
            under it     #help-overlay   the control scheme, from the ? button
+           top-left     #hud-research   what the empire is learning, and the way
+                                        into the star chart
            bottom-left  #hud-context    what is under the cursor, and notices
            right        #city-panel / #unit-panel — one at a time
            bottom-right #hud-end-turn   the one button pressed every single turn
@@ -111,7 +113,9 @@
          nothing and no click on it can fall through to a tile.
 
          Left to right: what the empire earns each turn, whose turn it is, who
-         is at the table, and the two buttons that open everything else. -->
+         is at the table, and the buttons that open everything else. Research is
+         *not* here: it is the one thing the player checks every single turn, so
+         it earns a card of its own under the bar (#hud-research below). -->
     <header id="topbar">
       <!-- Filled by src/ui/topBar.ts: the five civ-wide totals, summed over the
            local player's cities and refreshed wherever the rest of the HUD is. -->
@@ -125,24 +129,6 @@
       <div id="seats" class="seats"></div>
 
       <div class="topbar-tools">
-        <!-- Research: what the empire is learning, and the way into the star
-             chart. It says the tech and how many turns are left, so the one
-             number a player checks every turn is on the bar rather than behind
-             a screen; with nothing chosen it pulses and asks. -->
-        <button
-          id="tech-button"
-          class="topbar-btn"
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded="false"
-          aria-controls="tech-overlay"
-          title="Technologies (T)"
-        >
-          <span class="topbar-btn-line">
-            <span class="topbar-btn-label">Research</span>
-            <span id="tech-current" class="topbar-btn-value">—</span>
-          </span>
-        </button>
         <!-- The lens menu: one question asked of every tile at once, plus the
              yield glyphs, which are an independent switch. The button names both,
              so the bar always says what the board is showing.
@@ -309,7 +295,10 @@
             <kbd>Y</kbd> toggles the yield glyphs · <kbd>R</kbd> the resource icons ·
             <b>Lens</b> in the bar for more
           </li>
-          <li><kbd>T</kbd> opens the tech tree — click a star to research it</li>
+          <li>
+            <kbd>T</kbd> — or the <b>research card</b>, top left — opens the star chart;
+            click a star to research it
+          </li>
           <li>
             <b>Left click</b> any tile in an open city's ring to pin a citizen — a garrison
             does not block it; click its badge to select it instead
@@ -325,11 +314,43 @@
       </div>
     </div>
 
+    <!-- Top-left, under the bar: what the empire is learning.
+         Civ's oldest permanent readout, and the reason it is a fixed card
+         rather than a line in the bar: research is the one decision a player
+         checks every single turn, and a bar button that has to share a row with
+         the lens can only afford a name and a number. The card affords a name,
+         a bar and the beakers underneath it, in the place the eye already goes
+         first.
+
+         The whole card is the button — clicking anywhere on it opens the star
+         chart, exactly as T does — so `main.ts` hands it to src/ui/techTree.ts
+         in place of the bar button that used to live in #topbar. It is filled by
+         that file's `renderStatus`, from the local seat, wherever the rest of the
+         HUD is refreshed. -->
+    <button
+      id="hud-research"
+      class="hud-card research-card"
+      type="button"
+      aria-haspopup="dialog"
+      aria-expanded="false"
+      aria-controls="tech-overlay"
+      title="Natural Philosophy (T)"
+    >
+      <span class="eyebrow research-eyebrow">Natural Philosophy</span>
+      <!-- Keeps the id the top bar's value span had: the thing it names — what
+           this seat is researching — did not change, only where it is written. -->
+      <span id="tech-current" class="research-name">—</span>
+      <span class="research-track" aria-hidden="true">
+        <span id="research-fill" class="research-fill"></span>
+      </span>
+      <span id="research-figures" class="research-figures">—</span>
+    </button>
+
     <!-- ================= the star chart =========================
          The tech tree, as a full-screen overlay over the whole board — and the
          one deliberately dark surface in a light interface (Entry VII's
          flourish set: ink ground, gilt stars, era numerals). Built by
-         src/ui/techTree.ts; opened from the bar button above or with T, closed
+         src/ui/techTree.ts; opened from the research card above or with T, closed
          with Esc, the ×, or a click on the ink around the chart.
          ============================================================ -->
     <div
