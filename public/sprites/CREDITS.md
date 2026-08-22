@@ -112,7 +112,50 @@ as the reference for how heavy an icon has to be to survive being twenty pixels 
 | `siege.svg` | `siege` | catapult, arm thrown, shot in the air |
 | `scout.svg` | `scout` | eye |
 
-All eight are authored on the same 64 × 64 grid inside a safe circle, in one ink at one
+## `icons/resources/<resource>.svg` — 12 resource marks
+
+**Original work for this project**, CC0 1.0, drawn in the *same* language as the eight badge
+icons above and for the same reason: a set is a set. They are the ink on the parchment roundel
+the **Resources lens** puts on a tile that carries something (see `src/render3d/badges3d.ts`,
+`TileIcons`), and they are the only thing on the board that can actually *name* a resource —
+the diorama props next to them say "an animal, some ore, a vine", which is atmosphere rather
+than information.
+
+| File | Resource | Mark |
+| --- | --- | --- |
+| `wheat.svg` | `wheat` | a bound sheaf, three stalks and a tie |
+| `cattle.svg` | `cattle` | a cow's head, horns out |
+| `deer.svg` | `deer` | a branching pair of antlers |
+| `fish.svg` | `fish` | a fish, tail to the right |
+| `stone.svg` | `stone` | a cut block in three-quarter view |
+| `horses.svg` | `horses` | the badge set's horse head, reused verbatim |
+| `iron.svg` | `iron` | an anvil on its block |
+| `gems.svg` | `gems` | a cut gem, crown and pavilion |
+| `silk.svg` | `silk` | a banner hung from a rail |
+| `wine.svg` | `wine` | a bunch of grapes with a leaf |
+| `spices.svg` | `spices` | a pepper pod |
+| `salt.svg` | `salt` | a salt crystal, with two sparkles |
+
+`horses.svg` is the *same path* as `mounted.svg`, deliberately: the resource and the cavalry it
+buys should be one mark, and duplicating the file rather than sharing one keeps the two rosters
+independently editable (a future cavalry badge redraw must not silently redraw the pasture).
+
+## `icons/yields/<yield>.svg` — the three yield voices
+
+**Original work for this project**, CC0 1.0, same grid, drawn a full stroke-weight heavier than
+everything above. These replaced the coloured dots the board used to print on a tile: a dot can
+say *how many* and never *which*, so a player had to learn that the top row meant food. They
+are rasterised onto a disc of their own voice's colour — food green, production orange, gold
+gilt — because the colour as a mass is what survives being ten pixels across, and a thin green
+stroke on green grass does not.
+
+| File | Yield | Mark |
+| --- | --- | --- |
+| `food.svg` | food | an ear of wheat on a stalk |
+| `production.svg` | production | a hammer, head square on |
+| `gold.svg` | gold | a coin |
+
+All eight badge icons are authored on the same 64 × 64 grid inside a safe circle, in one ink at one
 stroke weight, with round caps and joins throughout — the consistency *is* the design. They
 declare an intrinsic size of 256 px so the browser rasterises them larger than any atlas cell
 asks for and the badge is downsampled rather than blown up. The fill colour in the files is

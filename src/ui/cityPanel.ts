@@ -28,6 +28,7 @@ import {
   cityYields,
   foodUpkeep,
   growthThreshold,
+  hasResource,
   queueItemCost,
   queueItemName,
   turnsToFill,
@@ -35,8 +36,9 @@ import {
 import { BUILDING_IDS, buildingDef } from '../sim/buildingData';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
+import { resourceDef } from '../sim/resourceData';
 import { type City, type QueueItem, hasEndedTurn } from '../sim/state';
-import { isUnlocked } from '../sim/tech';
+import { isUnlocked, requiredResource } from '../sim/tech';
 import { UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
 
 export interface CityPanelOptions {
@@ -296,14 +298,31 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       if (!isUnlocked(state, city.ownerId, 'unit', id)) continue;
       const def = unitDef(id);
       const tooSmall = city.population < def.minCityPop;
+      // A strategic resource the player does not control is the same *kind* of
+      // refusal as a city that is too small — the unit exists, this empire just
+      // cannot field it yet — so it is shown greyed with its reason rather than
+      // hidden, unlike an unresearched type. `buildError` is the reducer's own
+      // sentence; the technology half of it can never fire here, because a type
+      // that failed it was skipped by `isUnlocked` above.
+      const missing = requiredResource('unit', id);
+      const needsResource =
+        missing !== null && !hasResource(state, city.ownerId, missing);
       const button = element('button', 'city-buildable');
       button.type = 'button';
-      button.disabled = locked || tooSmall;
-      button.title = tooSmall
-        ? `Needs population ${def.minCityPop}`
-        : `${def.name} — ${def.cost} hammers`;
+      button.disabled = locked || tooSmall || needsResource;
+      button.title = needsResource
+        ? `Needs ${resourceDef(missing).name}`
+        : tooSmall
+          ? `Needs population ${def.minCityPop}`
+          : `${def.name} — ${def.cost} hammers`;
       button.append(element('span', 'city-buildable-name', def.name));
-      button.append(element('span', 'city-buildable-cost', `${def.cost}h`));
+      button.append(
+        element(
+          'span',
+          'city-buildable-cost',
+          needsResource ? `needs ${resourceDef(missing).name}` : `${def.cost}h`,
+        ),
+      );
       button.addEventListener('click', () => add({ kind: 'unit', id }));
       grid.append(button);
     }

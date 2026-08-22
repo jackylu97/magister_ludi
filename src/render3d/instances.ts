@@ -240,6 +240,12 @@ export class InstanceCollector {
       // at all and its layering is decided purely by the order it is drawn in —
       // see `MaterialLibrary.overlay` for which decals are which and why.
       if (bucket.overlay) mesh.renderOrder = bucket.onTop ? 20 : 10;
+      // A textured bucket brings its own material and so is never `overlay` —
+      // but it may still be a *decal*, and the tile icons are (see `TileIcons`
+      // in `badges3d.ts`). Their material turns the depth test off itself; what
+      // they cannot do for themselves is claim a draw order, so `onTop` grants
+      // them the same one the unlit decals get.
+      else if (bucket.material && bucket.onTop) mesh.renderOrder = 20;
       for (let i = 0; i < count; i++) mesh.setMatrixAt(i, bucket.matrices[i]!);
       mesh.instanceMatrix.needsUpdate = true;
       if (bucket.tinted) {

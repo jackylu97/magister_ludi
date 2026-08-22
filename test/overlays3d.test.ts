@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { InstancedMesh, type Material, type MeshBasicMaterial } from 'three';
+import { InstancedMesh, type BufferGeometry, type Material, MeshBasicMaterial } from 'three';
 
+import type { TileIcons } from '../src/render3d/badges3d';
 import { BoardGeometry } from '../src/render3d/board3d';
 import { TerritoryLayer } from '../src/render3d/cities3d';
 import { LensLayer } from '../src/render3d/lens3d';
@@ -62,6 +63,26 @@ function lensView(overrides: Partial<LensView> = {}): LensView {
 }
 
 /**
+ * A stand-in for the tile-icon atlas.
+ *
+ * The real one rasterises twenty-five SVGs into a canvas, which needs a DOM the
+ * simulation tests do not have — and the lens layer only ever asks it for one
+ * thing, the material every flat mark is drawn with. So the tests hand over a
+ * material with the two properties that *are* the feature (no depth test, no
+ * depth write) and assert the layer's arithmetic around it. Which mark is which
+ * is then a question about geometry, not about colour: every glyph shares one
+ * material and is told apart by its cell of the atlas.
+ */
+const fakeIcons = {
+  material: new MeshBasicMaterial({ depthTest: false, depthWrite: false }),
+} as unknown as TileIcons;
+
+/** The geometries a layer drew, ignoring how many instances of each. */
+function shapesOf(group: { children: unknown[] }): BufferGeometry[] {
+  return decals(group).map((entry) => entry.mesh.geometry);
+}
+
+/**
  * The whole point of the `onTop` decal kind: it is the interface talking, and
  * nothing on the board — a pine tree, a mountain cone, a piece — may occlude it.
  * That is expressed as `depthTest: false` on a mesh drawn after everything else,
@@ -81,9 +102,9 @@ describe('board overlays draw over the board', () => {
   const geometry = new BoardGeometry();
   const materials = new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
 
-  it('draws yield pips on a forested tile, above the trees standing on it', () => {
+  it('draws yield glyphs on a forested tile, above the trees standing on it', () => {
     const state = flatState();
-    // The reported bug: pips on a forest tile were behind its pine trees.
+    // The reported bug: the marks on a forest tile were behind its pine trees.
     at(state, 4, 4).feature = 'forest';
 
     const layer = new LensLayer();
@@ -92,16 +113,33 @@ describe('board overlays draw over the board', () => {
       lensView({ yields: true, yieldCells: [{ col: 4, row: 4 }] }),
       geometry,
       materials,
+      fakeIcons,
     );
 
-    // Grassland forest yields 1 food and 1 production: two pips, in the two
-    // yield voices, three wrap copies each.
-    const pips = decals(layer.group);
-    expect(colorsOf(layer.group).sort()).toEqual(
-      [VIEW3D.lens.foodColor, VIEW3D.lens.productionColor].sort(),
-    );
-    for (const { mesh } of pips) expect(mesh.count).toBe(3);
+    // Grassland forest yields 1 food and 1 production: one sheaf and one hammer,
+    // three wrap copies each.
+    const shapes = shapesOf(layer.group);
+    expect(shapes).toContain(geometry.yieldGlyphs.food);
+    expect(shapes).toContain(geometry.yieldGlyphs.production);
+    expect(shapes).not.toContain(geometry.yieldGlyphs.gold);
+    for (const { mesh } of decals(layer.group)) expect(mesh.count).toBe(3);
     expectDrawnOverTheBoard(layer.group);
+    layer.dispose();
+  });
+
+  it('draws nothing at all until the icon atlas has arrived', () => {
+    const state = flatState();
+    const layer = new LensLayer();
+    // The atlas rasterises in the background; a board asked for yields before it
+    // lands shows the plain board rather than a field of blanks.
+    layer.build(
+      state,
+      lensView({ yields: true, yieldCells: [{ col: 4, row: 4 }] }),
+      geometry,
+      materials,
+      null,
+    );
+    expect(decals(layer.group)).toHaveLength(0);
     layer.dispose();
   });
 
@@ -204,7 +242,13 @@ describe('the settler lens reads a site rather than scoring it', () => {
   /** The colours the lens paints over one named tile. */
   function washOver(state: GameState, col: number, row: number): number[] {
     const layer = new LensLayer();
-    layer.build(state, lensView({ mode: 'settler', cells: [{ col, row }] }), geometry, materials);
+    layer.build(
+      state,
+      lensView({ mode: 'settler', cells: [{ col, row }] }),
+      geometry,
+      materials,
+      fakeIcons,
+    );
     const colors = colorsOf(layer.group);
     layer.dispose();
     return colors;
@@ -252,7 +296,7 @@ describe('the settler lens reads a site rather than scoring it', () => {
     expect(washOver(state, 6, 4)).toEqual([LENS.siteInvalidColor]);
   });
 
-  it('shows the pips and the settler wash at the same time', () => {
+  it('shows the yield glyphs and the settler wash at the same time', () => {
     const state = flatState();
     at(state, 3, 3).terrain = 'coast';
     computeFreshwater(state.map);
@@ -268,11 +312,11 @@ describe('the settler lens reads a site rather than scoring it', () => {
       }),
       geometry,
       materials,
+      fakeIcons,
     );
-    const colors = colorsOf(layer.group);
-    // The wash *and* the grassland's two food pips: the two are independent now.
-    expect(colors).toContain(LENS.siteCoastColor);
-    expect(colors).toContain(LENS.foodColor);
+    // The wash *and* the grassland's two food glyphs: the two are independent.
+    expect(colorsOf(layer.group)).toContain(LENS.siteCoastColor);
+    expect(shapesOf(layer.group)).toContain(geometry.yieldGlyphs.food);
     layer.dispose();
   });
 });

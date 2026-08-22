@@ -63,6 +63,7 @@ import {
   wrappedDistance,
 } from './map';
 import { isPassable } from './pathfind';
+import { type ResourceId, resourceYield } from './resourceData';
 import { RULES } from './rulesData';
 import {
   type City,
@@ -91,9 +92,62 @@ export interface CityYields {
 
 // --- tiles ------------------------------------------------------------------
 
-/** Food/production/gold of a tile. See `terrainData.ts` for the algebra. */
+/**
+ * Food/production/gold of a tile, resource included.
+ *
+ * The whole yield chain, in the one order it is ever read:
+ *
+ *     base     = tileYield(terrain, feature, hills)   // overrides; hills win
+ *     effective = base + resourceYield(tile.resource) // sums
+ *
+ * The first half is `terrainData.ts`'s algebra and every step of it is an
+ * *override* — a hill is a hill whatever grows on it. The resource is the one
+ * term that **adds**, and it adds last, which is what makes wheat worth the same
+ * point of food wherever it lands: a bonus resource is a thing sitting *on* the
+ * ground rather than a different kind of ground. (Deer on a forest is therefore
+ * 1/1/0 + 1/0/0 = 2/1/0, and deer on a forested hill is the hill's 0/2/0 + 1/0/0.)
+ *
+ * Workability is a separate question and is not touched here: a mountain with a
+ * resource on it would still be unworkable, which is why `isWorkableTile` asks
+ * the terrain and not the yield. No resource in `data/resources.json` names a
+ * mountain, so the case is a guard rather than a rule anybody meets.
+ */
 export function tileYieldOf(tile: Tile): TileYield {
-  return tileYield(tile.terrain, tile.feature, tile.hills);
+  const base = tileYield(tile.terrain, tile.feature, tile.hills);
+  if (tile.resource === undefined) return base;
+  const extra = resourceYield(tile.resource);
+  return {
+    food: base.food + extra.food,
+    production: base.production + extra.production,
+    gold: base.gold + extra.gold,
+  };
+}
+
+/**
+ * Does this player own a tile carrying this resource?
+ *
+ * The v1 reading of "has a strategic resource", and it is deliberately the
+ * *simple* one: ownership, not improvement. Civ requires a worker to build a
+ * pasture or a mine before horses or iron count, and this game has no workers
+ * and no improvements yet — so requiring one would make every strategic unit
+ * permanently unbuildable, which is a rule nobody could play against. When
+ * improvements land this function is the single place that gains the "and it is
+ * improved" clause, and the reducer, the panel and the tests all follow it.
+ *
+ * Ownership is a *city's*, then the city's owner's, exactly as `tileOwner`
+ * stores it — so a captured city hands over its iron in the same breath as its
+ * territory, with no bookkeeping of its own.
+ */
+export function hasResource(
+  state: GameState,
+  playerId: number,
+  resourceId: ResourceId,
+): boolean {
+  for (const tile of state.map.tiles) {
+    if (tile.resource !== resourceId) continue;
+    if (tileOwnerPlayerId(state, tile.col, tile.row) === playerId) return true;
+  }
+  return false;
 }
 
 /** True when a citizen may be assigned to this tile at all. */
@@ -595,12 +649,17 @@ function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | nu
  * The remainder stays in the basket and pays for the next item, which is the
  * only kind of overflow this game has.
  *
- * Three things make production *hold* rather than fail, and all three keep the
+ * Four things make production *hold* rather than fail, and all four keep the
  * basket: too few hammers, a population below the item's `minCityPop` (a settler
- * queued at size 2 whose city then starved back to 1), and nowhere for a
- * finished unit to stand. Holding is right for all three because each is
- * temporary and none is the player's mistake — the alternative, silently
- * dropping the item, would throw away the hammers with it.
+ * queued at size 2 whose city then starved back to 1), a strategic resource the
+ * owner no longer controls (the iron hill was taken while the swordsman was
+ * being forged), and nowhere for a finished unit to stand. Holding is right for
+ * all four because each is temporary and none is the player's mistake — the
+ * alternative, silently dropping the item, would throw away the hammers with it.
+ *
+ * The resource check is the mirror of the one `buildError` refuses a queue with
+ * (`tech.ts`), read at the other moment it can be read: refusing at the gate and
+ * holding afterwards are the same rule, exactly as `minCityPop` is.
  */
 export function advanceProduction(state: GameState): void {
   for (const city of state.cities) {
@@ -611,6 +670,9 @@ export function advanceProduction(state: GameState): void {
       if (!isUnitTypeId(item.id)) continue;
       const def = unitDef(item.id);
       if (city.population < def.minCityPop) continue;
+      if (def.requiresResource !== undefined && !hasResource(state, city.ownerId, def.requiresResource)) {
+        continue;
+      }
       if (city.hammerBasket < def.cost) continue;
       const tile = spawnTileFor(state, city, item.id);
       if (!tile) continue;

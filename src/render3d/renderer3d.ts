@@ -61,7 +61,7 @@ import type {
 } from '../ui/mapView';
 
 import { DeathAnimations3D, MoveAnimations3D } from './animation3d';
-import { UnitBadges } from './badges3d';
+import { TileIcons, UnitBadges } from './badges3d';
 import { type BuiltBoard, BoardGeometry, buildBoard, modelClassFor } from './board3d';
 import { DioramaCamera } from './camera3d';
 import {
@@ -160,6 +160,12 @@ export class Renderer3D implements MapView {
    * `loadBadges` and `badges3d.ts`.
    */
   private badges: UnitBadges | null = null;
+  /**
+   * The tile-icon atlas — resource roundels, yield glyphs, numerals — once it
+   * has rasterised. Null until then, and forever in a browser with no 2D
+   * context; the lens layer draws neither half without it. See `loadIcons`.
+   */
+  private icons: TileIcons | null = null;
   /** Fingerprint of the units the layer was last built from. See `loop`. */
   private unitsSignature = 0;
   /** The same for the towns and for the borders. See `loop`. */
@@ -226,6 +232,7 @@ export class Renderer3D implements MapView {
     requestAnimationFrame(this.loop);
     this.loadSprites();
     this.loadBadges();
+    this.loadIcons();
   }
 
   /**
@@ -246,6 +253,28 @@ export class Renderer3D implements MapView {
       }
       this.badges = badges;
       this.rebuildUnits();
+      this.invalidate();
+    });
+  }
+
+  /**
+   * Rasterises the tile icons into their atlas, in the background.
+   *
+   * The sibling of `loadBadges`, and not awaited for the same reason: the board
+   * is playable the moment it is built, and the resource lens is a thing the
+   * player has to ask for. A failure is silent — the lens shows nothing and the
+   * yield switch shows nothing, which is what they showed before this atlas
+   * existed.
+   */
+  private loadIcons(): void {
+    void TileIcons.load().then((icons) => {
+      if (!icons) return;
+      if (!this.running) {
+        icons.dispose();
+        return;
+      }
+      this.icons = icons;
+      this.rebuildLens();
       this.invalidate();
     });
   }
@@ -445,7 +474,7 @@ export class Renderer3D implements MapView {
    * frame; see the docblock in `lens3d.ts`.
    */
   private rebuildLens(): void {
-    this.lens.build(this.state, this.lensView, this.geometry, this.materials);
+    this.lens.build(this.state, this.lensView, this.geometry, this.materials, this.icons);
     this.invalidate();
   }
 
@@ -1080,6 +1109,7 @@ export class Renderer3D implements MapView {
     this.clearFallers();
     this.sprites?.dispose();
     this.badges?.dispose();
+    this.icons?.dispose();
     this.units.dispose();
     this.cities.dispose();
     this.territory.dispose();

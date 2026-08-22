@@ -20,7 +20,8 @@
     "vellum": "#dbcfb0",
     "vellumDeep": "#c2b18c",
     "timber": "#8a6a45",
-    "steel": "#9aa3a8"
+    "steel": "#9aa3a8",
+    "grape": "#7c5f8c"
   },
   "terrainColor": {
     "ocean": "lagoon",
@@ -332,13 +333,14 @@
     "reach": 150
   },
   "lens": {
-    "pipRadius": 0.085,
-    "pipHeight": 0.04,
-    "pipSpacing": 0.21,
-    "rowSpacing": 0.24,
-    "pipCap": 4,
-    "pipMoreScale": 1.65,
-    "pipOpacity": 0.95,
+    "glyphSize": 0.36,
+    "glyphSpacing": 0.32,
+    "rowSpacing": 0.33,
+    "glyphCap": 4,
+    "numeralSize": 0.26,
+    "numeralGap": 0.02,
+    "glyphLift": 0.002,
+    "resourceIconSize": 0.52,
     "foodColor": "#6f9e4e",
     "productionColor": "#c98a4b",
     "goldColor": "#d6b053",
@@ -350,6 +352,33 @@
     "siteEstuaryMix": 0.5,
     "siteEstuaryOpacity": 0.62,
     "siteEstuaryRingOpacity": 0.95
+  },
+  "icons": {
+    "atlasCell": 128,
+    "atlasColumns": 5,
+    "iconScale": 0.74,
+    "numeralScale": 0.6,
+    "alphaTest": 0.4,
+    "paperColor": "bone",
+    "inkColor": "ink",
+    "yieldInkColor": "ink"
+  },
+  "resources": {
+    "spread": 0.3,
+    "props": {
+      "wheat": { "color": "wheat", "shade": 0.1, "count": 3, "size": 0.3 },
+      "cattle": { "color": "bone", "shade": -0.08, "count": 2, "size": 0.26 },
+      "deer": { "color": "timber", "shade": 0.14, "count": 2, "size": 0.26 },
+      "fish": { "color": "brook", "shade": -0.12, "count": 3, "size": 0.22 },
+      "stone": { "color": "slate", "shade": 0.12, "count": 2, "size": 0.24 },
+      "horses": { "color": "bone", "shade": -0.06, "count": 2, "size": 0.5 },
+      "iron": { "color": "slate", "shade": -0.34, "count": 1, "size": 0.27 },
+      "gems": { "color": "grape", "shade": 0.05, "count": 1, "size": 0.23 },
+      "silk": { "color": "vellum", "shade": 0.06, "count": 1, "size": 0.42 },
+      "wine": { "color": "grape", "shade": -0.02, "count": 2, "size": 0.36 },
+      "spices": { "color": "crimson", "shade": 0.08, "count": 3, "size": 0.22 },
+      "salt": { "color": "bone", "shade": 0.12, "count": 1, "size": 0.3 }
+    }
   },
   "units": {
     "style": "pieces",

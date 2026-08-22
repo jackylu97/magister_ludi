@@ -1115,7 +1115,7 @@ describe('determinism with cities', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 7 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 8 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1126,7 +1126,7 @@ describe('determinism with cities', () => {
     // Bumped to 7 by combat: units grew `hasAttacked` and `fortifiedTurns`,
     // cities grew `hp`, players grew `eliminated`, and the state grew
     // `winnerId`.
-    expect(SCHEMA_VERSION).toBe(7);
+    expect(SCHEMA_VERSION).toBe(8);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

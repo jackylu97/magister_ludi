@@ -32,6 +32,8 @@
 
 import unitsJson from '../../data/units.json';
 
+import type { ResourceId } from './resourceData';
+
 export type UnitTypeId =
   | 'warrior'
   | 'scout'
@@ -129,6 +131,22 @@ export interface UnitDef {
    * everything that has no such rule.
    */
   minCityPop: number;
+  /**
+   * The strategic resource a player must control to build this, or absent when
+   * the type needs none.
+   *
+   * The whole of the strategic-resource rule (design ledger, Entry IX), and it
+   * lives here rather than in `resources.json` for the reason `foundsCity` and
+   * `minCityPop` do: it is a fact about *this unit type*, so a designer who adds
+   * a second mounted line adds one field and every rule that mentions horses
+   * follows it. Nothing in `src/sim/` compares a unit type against `"horseman"`.
+   *
+   * "Controls" is `hasResource` in `cities.ts` — owning a tile that carries it.
+   * The gate itself is `buildError` in `tech.ts`, beside the technology gate, so
+   * the reducer's validation and the city panel's buildable list ask one
+   * question and cannot drift apart.
+   */
+  requiresResource?: ResourceId;
   /**
    * The type this one becomes when its successor's technology lands, or absent
    * when the line ends here.

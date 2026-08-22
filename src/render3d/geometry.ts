@@ -420,6 +420,267 @@ export function rock(radius: number): BufferGeometry {
   return flatten(geometry);
 }
 
+// --- resource props --------------------------------------------------------
+
+/**
+ * The twelve things a resource puts on its hex.
+ *
+ * Every one takes a single `size` in world units and builds its proportions
+ * from it, which is the whole convention of this section: *how big* a herd of
+ * horses is on the table is a look decision and lives in `data/view3d.json`
+ * (`resources.props`), while *what a cow is made of* is a fact about the model
+ * and lives here. That split is the same one the clutter family above makes.
+ *
+ * Each is one merged geometry in one ink and each is well under a hundred
+ * triangles, so a whole map's worth of any of them is one instanced draw and
+ * one outline draw — the same bargain the tufts and the pines make. A resource
+ * prop *replaces* the generic clutter on its tile (see `board3d.ts`), so the
+ * budget it is spending is one that was already being spent on grass.
+ *
+ * They are deliberately toys rather than illustrations. Two boxes and a cone
+ * read as "cattle" at forty pixels; a modelled cow reads as a smudge and costs
+ * ten times as much, and the resource *lens* is what says the word out loud.
+ */
+
+/** A wheat stand: a row of stalks, each an ear of grain on a stem. */
+export function wheatStand(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  for (let i = 0; i < 3; i++) {
+    const x = (i - 1) * size * 0.26;
+    const h = size * (i === 1 ? 1 : 0.84);
+    const stem = new CylinderGeometry(size * 0.026, size * 0.032, h, 4, 1);
+    stem.translate(x, h / 2, 0);
+    // The ear: a fat little spindle at the top, which is the whole read.
+    const ear = new ConeGeometry(size * 0.1, size * 0.38, 5, 1);
+    ear.translate(x, h + size * 0.12, 0);
+    parts.push(stem, ear);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * A four-legged toy: box barrel, two leg slabs, a head box on a short neck.
+ *
+ * The shared body of the cattle and the deer, because they *are* the same toy
+ * at two proportions — a heavier one with a low head, a slighter one with a
+ * raised head and antlers on it. Written once so the two cannot drift into
+ * looking like they came from different sets.
+ */
+function toyBeast(
+  size: number,
+  spec: { barrel: number; belly: number; legs: number; headUp: number },
+): { parts: BufferGeometry[]; headX: number; headY: number } {
+  const legH = size * spec.legs;
+  const barrelH = size * 0.3;
+  const barrelL = size * spec.barrel;
+  const barrelW = size * spec.belly;
+  const barrelY = legH + barrelH / 2;
+  const parts: BufferGeometry[] = [
+    slabAt(barrelL, barrelH, barrelW, 0, barrelY, 0),
+    // Two slabs rather than four posts: at this size the gap between a pair of
+    // legs is under a pixel, and a slab is half the triangles.
+    slabAt(size * 0.09, legH, barrelW * 0.9, -barrelL * 0.33, legH / 2, 0),
+    slabAt(size * 0.09, legH, barrelW * 0.9, barrelL * 0.33, legH / 2, 0),
+  ];
+  const headX = barrelL * 0.62;
+  const headY = barrelY + size * spec.headUp;
+  parts.push(slabAt(size * 0.26, size * 0.2, size * 0.18, headX, headY, 0));
+  return { parts, headX, headY };
+}
+
+/** Cattle: a heavy toy beast with its head down. */
+export function toyCow(size: number): BufferGeometry {
+  const beast = toyBeast(size, { barrel: 0.86, belly: 0.34, legs: 0.3, headUp: 0.02 });
+  const merged = merge(beast.parts);
+  for (const part of beast.parts) part.dispose();
+  return flatten(merged);
+}
+
+/** Deer: the slighter beast, head up, with a pair of antler cones on it. */
+export function toyDeer(size: number): BufferGeometry {
+  const beast = toyBeast(size, { barrel: 0.7, belly: 0.24, legs: 0.42, headUp: 0.22 });
+  const parts = beast.parts.slice();
+  for (const side of [-1, 1]) {
+    const antler = spike(size * 0.05, size * 0.32, 3);
+    antler.rotateZ(side * 0.5);
+    antler.translate(beast.headX, beast.headY + size * 0.08, side * size * 0.06);
+    parts.push(antler);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * A fin breaking the surface: one leaning triangle.
+ *
+ * Three sides, not four, and no body at all. A fish drawn under the water is a
+ * fish nobody sees; what says "there are fish here" from across the table is
+ * the shape *above* the waterline, so that is the only part that is built.
+ */
+export function fishFin(size: number): BufferGeometry {
+  const fin = new ConeGeometry(size * 0.34, size, 3, 1);
+  fin.scale(1, 1, 0.34);
+  fin.rotateZ(-0.34);
+  // Lifted past the lean, so the fin stands *on* the water rather than dipping a
+  // corner through the tile face it is placed on.
+  fin.translate(0, size * 0.54, 0);
+  return flatten(fin);
+}
+
+/** A cut block of stone: a squared boulder with a smaller one leaning on it. */
+export function stoneBlock(size: number): BufferGeometry {
+  const big = new BoxGeometry(size, size * 0.66, size * 0.8);
+  big.rotateY(0.3);
+  big.translate(0, size * 0.33, 0);
+  const chip = new BoxGeometry(size * 0.5, size * 0.4, size * 0.44);
+  chip.rotateY(-0.5);
+  chip.rotateZ(0.22);
+  chip.translate(size * 0.62, size * 0.2, size * 0.2);
+  const merged = merge([big, chip]);
+  big.dispose();
+  chip.dispose();
+  return flatten(merged);
+}
+
+/**
+ * An ore boulder with two cut faces on it.
+ *
+ * The boulder is `rock`'s shape at a different squash so an iron seam does not
+ * read as the same grey pebble the tundra is covered in, and the two slabs are
+ * the exposed metal — geometry rather than a second ink, because a prop is one
+ * instanced draw in one colour and a facet that catches the light differently
+ * says "cut" perfectly well on its own.
+ */
+export function oreBoulder(size: number): BufferGeometry {
+  const body = new IcosahedronGeometry(size * 0.6, 0);
+  body.scale(1.1, 0.82, 0.95);
+  body.rotateZ(0.3);
+  body.translate(0, size * 0.48, 0);
+  const parts: BufferGeometry[] = [body];
+  for (const side of [-1, 1]) {
+    const facet = new BoxGeometry(size * 0.34, size * 0.1, size * 0.3);
+    facet.rotateZ(side * 0.5);
+    facet.rotateY(side * 0.4);
+    facet.translate(side * size * 0.34, size * (side < 0 ? 0.62 : 0.4), size * 0.1);
+    parts.push(facet);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/** A gem seam: three crystal shards out of one point, tallest in the middle. */
+export function crystalCluster(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const shards: [number, number, number][] = [
+    [0, 1, 0],
+    [-0.36, 0.66, 0.18],
+    [0.32, 0.72, -0.2],
+  ];
+  for (const [dx, tall, dz] of shards) {
+    const shard = new IcosahedronGeometry(size * 0.3, 0);
+    shard.scale(0.6, tall * 1.9, 0.6);
+    shard.rotateZ(dx * 0.7);
+    shard.translate(dx * size, size * tall * 0.44, dz * size);
+    parts.push(shard);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/** Silk: two strips hanging from a crossbar on two posts. */
+export function silkFrame(size: number): BufferGeometry {
+  const postH = size;
+  const parts: BufferGeometry[] = [];
+  for (const side of [-1, 1]) {
+    parts.push(slabAt(size * 0.07, postH, size * 0.07, side * size * 0.4, postH / 2, 0));
+  }
+  parts.push(slabAt(size * 0.94, size * 0.07, size * 0.07, 0, postH, 0));
+  for (const side of [-1, 1]) {
+    parts.push(
+      slabAt(size * 0.26, size * 0.62, size * 0.03, side * size * 0.2, postH - size * 0.33, 0),
+    );
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/** A vine trellis: two posts, a rail, and two bunches hanging off it. */
+export function vineTrellis(size: number): BufferGeometry {
+  const postH = size * 0.8;
+  const parts: BufferGeometry[] = [];
+  for (const side of [-1, 1]) {
+    parts.push(slabAt(size * 0.07, postH, size * 0.07, side * size * 0.36, postH / 2, 0));
+  }
+  parts.push(slabAt(size * 0.86, size * 0.06, size * 0.06, 0, postH * 0.92, 0));
+  for (const side of [-1, 1]) {
+    const bunch = new IcosahedronGeometry(size * 0.2, 0);
+    bunch.scale(0.8, 1.1, 0.8);
+    bunch.translate(side * size * 0.2, postH * 0.62, 0);
+    parts.push(bunch);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/** A spice bush: three low round shrubs in a clump. */
+export function spiceBush(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const at: [number, number, number][] = [
+    [0, 1, 0],
+    [-0.5, 0.72, 0.3],
+    [0.46, 0.78, -0.26],
+  ];
+  for (const [dx, scale, dz] of at) {
+    const ball = new IcosahedronGeometry(size * 0.42 * scale, 0);
+    ball.scale(1, 0.8, 1);
+    ball.translate(dx * size, size * 0.34 * scale, dz * size);
+    parts.push(ball);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * A loose horse, at whatever size the data asks for.
+ *
+ * Literally the rider's mount — `miniHorse`, the same box barrel and stub legs
+ * a horseman is built on — standing on the ground with nobody on it. Reuse is
+ * the point rather than a saving: a herd on a hex and the cavalry that comes
+ * out of it should be visibly the same animal, and they are the same twelve
+ * lines of geometry.
+ */
+export function toyHorse(size: number): BufferGeometry {
+  const horse = miniHorse(size, 0, 0);
+  const merged = merge(horse.parts);
+  for (const part of horse.parts) part.dispose();
+  return flatten(merged);
+}
+
+/** A salt pan: a flat crust plate with two crystals standing in it. */
+export function saltCrust(size: number): BufferGeometry {
+  const plate = new CylinderGeometry(size * 0.6, size * 0.66, size * 0.08, 6, 1);
+  plate.translate(0, size * 0.04, 0);
+  const parts: BufferGeometry[] = [plate];
+  for (const side of [-1, 1]) {
+    const crystal = new BoxGeometry(size * 0.22, size * 0.22, size * 0.22);
+    crystal.rotateY(side * 0.6);
+    crystal.rotateZ(0.35);
+    crystal.translate(side * size * 0.22, size * 0.14, side * size * 0.12);
+    parts.push(crystal);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
 // --- unit miniatures -------------------------------------------------------
 
 /**
@@ -1501,6 +1762,27 @@ export function atlasQuad(u0: number, v0: number, u1: number, v1: number): Buffe
     uv.setXY(i, u0 + uv.getX(i) * (u1 - u0), v0 + uv.getY(i) * (v1 - v0));
   }
   uv.needsUpdate = true;
+  return geometry;
+}
+
+/**
+ * `atlasQuad` laid flat: a unit quad in the **xz** plane facing the sky, centred
+ * on the origin, carrying one cell of a texture atlas.
+ *
+ * The tile-icon sibling of `atlasQuad`, and it exists because the two live in
+ * different planes for different reasons. A badge stands up in the world facing
+ * the camera; a resource roundel and a yield glyph lie *on the tile*, like every
+ * other decal in `overlays.ts`, so they are placed with a tile centre and a top
+ * height and nothing else.
+ *
+ * `rotateX(-π/2)` is what does it, and the direction matters: it sends the
+ * plane's local +y to −z, which is up-screen under this camera, so an icon
+ * drawn the right way up in the atlas is drawn the right way up on the board.
+ * Rotating the other way would silently print every glyph upside down.
+ */
+export function atlasDecal(u0: number, v0: number, u1: number, v1: number): BufferGeometry {
+  const geometry = atlasQuad(u0, v0, u1, v1);
+  geometry.rotateX(-Math.PI / 2);
   return geometry;
 }
 

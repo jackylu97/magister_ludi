@@ -76,8 +76,13 @@ import { type UnitTypeId, unitDef } from './unitData';
  * 7: Milestone 5 — combat: `Unit.hasAttacked` and `Unit.fortifiedTurns`,
  *    `City.hp`, `Player.eliminated`, `GameState.winnerId`, and the `attack` and
  *    `fortify` commands.
+ * 8: Milestone 6 — resources: `Tile.resource`, the yields it adds, and the
+ *    `requiresResource` production gate. The map is generated from the seed, so
+ *    a save file carries no tiles — but a v7 save replayed against this build
+ *    would grow resources its log never knew about, which is exactly the silent
+ *    misreading the version exists to refuse.
  */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 // --- players ----------------------------------------------------------------
 

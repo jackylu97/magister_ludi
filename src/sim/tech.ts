@@ -60,8 +60,10 @@
  * beakers-per-game and the shape survives untouched.
  */
 
-import { type BuildingId, isBuildingId } from './buildingData';
-import { type CityYields, cityYields, turnsToFill } from './cities';
+import { type BuildingId, buildingDef, isBuildingId } from './buildingData';
+import { type CityYields, cityYields, hasResource, turnsToFill } from './cities';
+import type { Tile } from './map';
+import { type ResourceId, resourceDef } from './resourceData';
 import { RULES } from './rulesData';
 import {
   type GameState,
@@ -132,6 +134,112 @@ export function isUnlocked(
 export function gatingTech(kind: 'unit' | 'building', id: string): TechId | null {
   if (kind === 'unit') return (isUnitTypeId(id) && UNIT_UNLOCK_TECH.get(id)) || null;
   return (isBuildingId(id) && BUILDING_UNLOCK_TECH.get(id)) || null;
+}
+
+/** The display name of a unit or building id, or the raw id if it is unknown. */
+function itemName(kind: 'unit' | 'building', id: string): string {
+  if (kind === 'unit') return isUnitTypeId(id) ? unitDef(id).name : id;
+  return isBuildingId(id) ? buildingDef(id).name : id;
+}
+
+/**
+ * The strategic resource a queue item needs, or `null` when it needs none.
+ *
+ * Buildings never do today; the signature takes the kind anyway so the gate
+ * below can ask one question about either, and so the day a stable needs horses
+ * this is the only line that changes.
+ */
+export function requiredResource(kind: 'unit' | 'building', id: string): ResourceId | null {
+  if (kind !== 'unit' || !isUnitTypeId(id)) return null;
+  return unitDef(id).requiresResource ?? null;
+}
+
+/**
+ * Why this player cannot build this thing, or `null` when they can.
+ *
+ * **The** production gate: `validateQueue` in `commands.ts` refuses with this
+ * sentence and the city panel disables its button with it, so a row the panel
+ * offers is a queue the reducer takes and the *reason* the player reads is the
+ * reducer's own. It is `isUnlocked` grown a second clause rather than a second
+ * function beside it, for exactly the reason `foundingError` swallowed
+ * `foundingErrorAt`: two gates asked in two places is two gates that disagree.
+ *
+ * The order is technology first, then resource, and that is a message-quality
+ * decision. A player without Iron Working looking at a swordsman should be told
+ * about the technology — the resource is not their problem yet — and a player
+ * who *has* the technology should be told about the iron.
+ *
+ * It is deliberately not folded into `isUnlocked` itself. `isUnlocked` answers
+ * "does this exist for me yet", which is a fact about the tree that only ever
+ * improves, and `upgradeTargetFor` leans on exactly that when it marches a
+ * warrior up its chain. Controlling a resource can be *lost* — a captured city
+ * takes its iron with it — so a gate that could go backwards has no business
+ * deciding what a unit already on the board is.
+ */
+export function buildError(
+  state: GameState,
+  playerId: number,
+  kind: 'unit' | 'building',
+  id: string,
+): string | null {
+  if (!isUnlocked(state, playerId, kind, id)) {
+    const gate = gatingTech(kind, id);
+    const needs = gate ? techDef(gate).name : 'a technology you do not have';
+    return `${itemName(kind, id)} needs ${needs}`;
+  }
+  const resource = requiredResource(kind, id);
+  if (resource !== null && !hasResource(state, playerId, resource)) {
+    return `${itemName(kind, id)} needs ${resourceDef(resource).name}`;
+  }
+  return null;
+}
+
+// --- what a player can see --------------------------------------------------
+
+/**
+ * May this player be *told* about this resource?
+ *
+ * True for everything without a `requiresTech`, which is every bonus and every
+ * luxury and most strategics; iron waits for Bronze Working. Visibility is the
+ * only thing the technology gates — the iron is on the map from turn one, it
+ * pays its production to whoever works the tile, and it satisfies `hasResource`
+ * for a player who has not researched anything at all. Civ hides the yield too;
+ * hiding a number the citizens are already collecting would be a lie the city
+ * panel has to keep telling, so this game hides the *label* and nothing else.
+ */
+export function isResourceVisible(
+  state: GameState,
+  playerId: number,
+  resourceId: ResourceId,
+): boolean {
+  const gate = resourceDef(resourceId).requiresTech;
+  if (gate === undefined) return true;
+  return hasTech(state, playerId, gate);
+}
+
+/**
+ * The resource this player may see on this tile, or `null`.
+ *
+ * The single accessor every *information* surface reads: the hover readout, the
+ * resource lens, and anything later that wants to name what is on a hex. The
+ * board's diorama props do **not** read it, and that is the documented v1
+ * tradeoff: props are baked into the board's instance buffers, which are built
+ * from the map alone and shared by every seat, so culling them per player would
+ * fork the board cache per seat and rebuild the whole thing on a tech. For a
+ * friends-multiplayer game with no fog of war at all, a dark boulder somebody
+ * cannot yet *name* is a much smaller leak than the one the board already has —
+ * every unit and every city on the map is visible to everybody. When fog of war
+ * lands the board is already going to be per-seat, and that is the milestone
+ * that should hide the boulder.
+ */
+export function visibleResourceAt(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+): ResourceId | null {
+  const id = tile.resource;
+  if (id === undefined) return null;
+  return isResourceVisible(state, playerId, id) ? id : null;
 }
 
 // --- choosing ---------------------------------------------------------------

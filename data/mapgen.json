@@ -72,5 +72,11 @@
     "minLength": 3,
     "maxLength": 80,
     "maxAttempts": 600
+  },
+  "resources": {
+    "countPer1000LandTiles": 120,
+    "minSpacing": 2,
+    "startFoodRadius": 3,
+    "attemptsPerResource": 12
   }
 }

@@ -58,7 +58,7 @@
  * validate-fully contract above is what buys that for free.
  */
 
-import { buildingDef, isBuildingId } from './buildingData';
+import { isBuildingId } from './buildingData';
 import { assignCitizens, assignableTiles, foundCityAt, foundingError } from './cities';
 import { applyCombat, fortifyError } from './combat';
 import { getTileAt, tileIndex } from './map';
@@ -79,8 +79,8 @@ import {
   removeUnit,
   unitById,
 } from './state';
-import { gatingTech, isUnlocked, researchError } from './tech';
-import { type TechId, techDef } from './techData';
+import { buildError, researchError } from './tech';
+import type { TechId } from './techData';
 import { runEndOfTurn } from './turn';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
@@ -601,10 +601,14 @@ function readQueueItem(value: unknown): QueueItem | undefined {
  *     almost always a misclick. (If the city later shrinks below it, production
  *     holds instead — see `advanceProduction`. Refusing at the gate and holding
  *     afterwards are the same rule read at the two moments it can be read.)
- *   - the owner has the technology. Asked through `isUnlocked`, which is what
- *     the city panel enables its buttons with, so an offered button and an
- *     accepted queue are one rule. Techs are only ever gained, so an item that
- *     passed this check can never become illegal while it sits in the queue.
+ *   - the owner has the technology, and controls the strategic resource. Both
+ *     asked through `buildError` (`tech.ts`), which is what the city panel
+ *     disables its buttons with — so an offered button and an accepted queue are
+ *     one rule, and the sentence the player reads on a refusal is the reducer's
+ *     own. Techs are only ever gained, but a resource can be *lost* with the
+ *     city that held it, so an item that passed this check can become illegal
+ *     while it sits in the queue; `advanceProduction` holds it in that case
+ *     rather than dropping it, exactly as it does for `minCityPop`.
  */
 function validateQueue(state: GameState, city: City, raw: unknown): QueueItem[] | string {
   if (!Array.isArray(raw)) return 'setCityProduction needs a queue array';
@@ -615,11 +619,8 @@ function validateQueue(state: GameState, city: City, raw: unknown): QueueItem[] 
     const item = readQueueItem(raw[i]);
     if (!item) return `Queue item ${i} is not a known unit or building`;
 
-    if (!isUnlocked(state, city.ownerId, item.kind, item.id)) {
-      const gate = gatingTech(item.kind, item.id);
-      const name = item.kind === 'unit' ? unitDef(item.id).name : buildingDef(item.id).name;
-      return `${name} needs ${gate ? techDef(gate).name : 'a technology you do not have'}`;
-    }
+    const blocked = buildError(state, city.ownerId, item.kind, item.id);
+    if (blocked !== null) return blocked;
 
     if (item.kind === 'building') {
       if (city.buildings.includes(item.id)) {

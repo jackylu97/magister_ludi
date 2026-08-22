@@ -266,15 +266,15 @@ export interface GameControls {
   setLens(lens: LensMode): void;
 
   /**
-   * Whether the player has the yield pips switched on.
+   * Whether the player has the yield glyphs switched on.
    *
-   * Their own switch, not the board's: an open city panel shows the pips for its
+   * Their own switch, not the board's: an open city panel shows the glyphs for its
    * work radius whatever this says, and closing it comes back to exactly this.
    * The menu's checkbox shows this one, for the same reason the lens rows show
    * the chosen lens.
    */
   yieldsShown(): boolean;
-  /** Turns the yield pips on or off. The menu's checkbox and the `Y` key. */
+  /** Turns the yield glyphs on or off. The menu's checkbox and the `Y` key. */
   setYields(on: boolean): void;
 
   /**
@@ -378,9 +378,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   let manualLens: LensMode = 'none';
   /**
-   * The yield pips, as the player left them. Not a lens (see `LensMode`): it is
+   * The yield glyphs, as the player left them. Not a lens (see `LensMode`): it is
    * an independent switch that can be on under any of them, and an open city
-   * panel adds its own pips without disturbing it.
+   * panel adds its own glyphs without disturbing it.
    */
   let yieldsOn = false;
   /** A city whose DOM banner the pointer is over. See `setHoveredCity`. */
@@ -584,21 +584,21 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
-   * What the board is showing: which lens, and whether the yield pips are up.
+   * What the board is showing: which lens, and whether the yield glyphs are up.
    *
    * Two automatic rules sit on top of the player's own choices, both because the
    * question they answer is the question the player has just asked by doing
    * something else. They are now independent of each other, which is the point
-   * of splitting the pips off the lens list:
+   * of splitting the glyphs off the lens list:
    *
    *   · a selected settler ⇒ the settler lens. Picking one up *is* the question
    *     "where should this go".
-   *   · an open city panel ⇒ the pips, over that city's work radius. The panel
+   *   · an open city panel ⇒ the glyphs, over that city's work radius. The panel
    *     is a screen full of numbers; this is where they come from.
    *
-   * The city rule scopes the pips *only while the player has them off*. With the
-   * switch already on, the whole map is pipped and the radius is part of it, so
-   * narrowing to the radius would be the panel taking pips away — which is the
+   * The city rule scopes the glyphs *only while the player has them off*. With the
+   * switch already on, the whole map is marked and the radius is part of it, so
+   * narrowing to the radius would be the panel taking glyphs away — which is the
    * opposite of what opening it asked for.
    *
    * Neither rule touches `manualLens` or `yieldsOn`, so dropping the settler and
@@ -1539,7 +1539,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onUpdate(selectedUnit(), renderer.getHover());
   }
 
-  /** Turns the yield pips on or off. The menu's checkbox and the `Y` key. */
+  /** Turns the yield glyphs on or off. The menu's checkbox and the `Y` key. */
   function setYields(on: boolean): void {
     if (yieldsOn === on) return;
     yieldsOn = on;

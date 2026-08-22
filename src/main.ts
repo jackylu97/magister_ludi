@@ -50,8 +50,9 @@ import {
   hasEndedTurn,
 } from './sim/state';
 import type { Tile } from './sim/map';
+import { resourceDef } from './sim/resourceData';
 import { featureDef, terrainDef } from './sim/terrainData';
-import { describeUpgrade } from './sim/tech';
+import { describeUpgrade, visibleResourceAt } from './sim/tech';
 import { techDef } from './sim/techData';
 import { unitDef } from './sim/unitData';
 import { Renderer } from './render/renderer';
@@ -126,6 +127,7 @@ const infoSeed = requireElement<HTMLElement>('info-seed');
 const infoTerrain = requireElement<HTMLElement>('info-terrain');
 const infoFeature = requireElement<HTMLElement>('info-feature');
 const infoYields = requireElement<HTMLElement>('info-yields');
+const infoResource = requireElement<HTMLElement>('info-resource');
 const infoOffset = requireElement<HTMLElement>('info-offset');
 const infoAxial = requireElement<HTMLElement>('info-axial');
 const infoUnit = requireElement<HTMLElement>('info-unit');
@@ -382,6 +384,24 @@ function showTileYields(tile: Tile): void {
       return span;
     }),
   );
+}
+
+/**
+ * What is on the tile under the pointer, through the local seat's eyes.
+ *
+ * "Horses (strategic)" — the name and the kind, because the kind is what says
+ * whether the player should be reaching for a settler or a war plan. Asked of
+ * `visibleResourceAt`, which is the simulation's own answer and the same one the
+ * resource lens draws from, so the card and the board cannot disagree about
+ * whether this empire has heard of iron yet. A tile whose resource is hidden
+ * reads as an empty row, exactly like a tile with nothing on it: the honest
+ * report of "you do not know of anything here".
+ */
+function describeResource(state: GameState, playerId: number, tile: Tile): string {
+  const id = visibleResourceAt(state, playerId, tile);
+  if (id === null) return '—';
+  const def = resourceDef(id);
+  return `${def.name} (${def.kind})`;
 }
 
 /**
@@ -751,6 +771,11 @@ async function boot(): Promise<void> {
       infoAxial.textContent = `q ${hover.axial.q}, r ${hover.axial.r}`;
       infoUnit.textContent = describeUnitsOn(game.state, hover.tile);
       showTileYields(hover.tile);
+      infoResource.textContent = describeResource(
+        game.state,
+        controls.localPlayerId(),
+        hover.tile,
+      );
     } else {
       infoTerrain.textContent = '—';
       infoFeature.textContent = '—';
@@ -758,6 +783,7 @@ async function boot(): Promise<void> {
       infoAxial.textContent = '—';
       infoUnit.textContent = '—';
       infoYields.textContent = '—';
+      infoResource.textContent = '—';
     }
 
     // Asked after the readout, because it is a question about the selection and
@@ -871,15 +897,15 @@ async function boot(): Promise<void> {
 
   /**
    * The lens menu: the exclusive lens choices, and — under them — the yield
-   * pips, which are not one.
+   * glyphs, which are not one.
    *
    * The rows set the player's *chosen* lens, which a selected settler may be
    * overriding on the board (see `controls.ts`), and the checkbox sets their own
-   * pip switch, which an open city panel adds to without disturbing. The menu
+   * glyph switch, which an open city panel adds to without disturbing. The menu
    * deliberately shows the choices rather than the overrides: they are the
    * things the player can change, and the things that come back.
    *
-   * The pips are a checkbox and not a fourth row precisely because they compose
+   * The glyphs are a checkbox and not a fourth row precisely because they compose
    * with everything above them. A tick in a list of exclusive rows would say the
    * opposite — that turning yields on turns the settler lens off, which is
    * exactly the behaviour this change removed.
@@ -887,6 +913,7 @@ async function boot(): Promise<void> {
   const LENS_OPTIONS: [LensMode, string, string][] = [
     ['none', 'None', 'The board as it is'],
     ['settler', 'Settler', 'Where a city may go: blue is coastal, green is fresh water'],
+    ['resources', 'Resources', 'What is on the ground: a roundel on every resource you know of'],
   ];
 
   const lensButtons = LENS_OPTIONS.map(([mode, label, hint]) => {
@@ -945,7 +972,7 @@ async function boot(): Promise<void> {
     yieldsToggle.checked = yields;
 
     // The bar button says both, because both are on the board: the lens by
-    // name, and the pips as a flag beside it. "off" is only honest when neither
+    // name, and the glyphs as a flag beside it. "off" is only honest when neither
     // is up.
     const chosen = lensButtons.find((option) => option.mode === current);
     lensCurrentEl.textContent =

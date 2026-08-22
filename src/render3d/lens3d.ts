@@ -2,13 +2,20 @@
  * The lenses: a second decal layer that answers questions about every tile at
  * once.
  *
- * Two things live here, and they are deliberately not the same kind of thing:
+ * Three things live here, and they are deliberately not the same kind of thing:
  *
- *   · the **yield pips** — what does this ground *make*? Pips in the interface's
- *                   yield voices, one per point, sat on the tile's own face.
- *                   They are a *switch*, not a lens: they sit on the face and
- *                   compete with nothing, so they can be up under any lens (see
- *                   `LensView.yields`, and the reasoning in `mapView.ts`).
+ *   · the **yield glyphs** — what does this ground *make*? A sheaf, a hammer and
+ *                   a coin in the interface's yield voices, repeated per point,
+ *                   sat on the tile's own face. They are a *switch*, not a lens:
+ *                   they sit on the face and compete with nothing, so they can
+ *                   be up under any lens (see `LensView.yields`, and the
+ *                   reasoning in `mapView.ts`). They replaced coloured pips,
+ *                   which could say how many and never which — see `LensSpec`.
+ *   · the **resource lens** — what is *on* this ground? A parchment roundel with
+ *                   the resource's mark, on every tile carrying one the viewing
+ *                   player may be told about. The diorama already grows wheat
+ *                   and stands cattle on the board; the roundel is what makes it
+ *                   nameable, which props alone never are.
  *   · the **settler lens** — where may a city go, and what kind of site is it?
  *                   Every tile the reducer would refuse is darkened. Every tile
  *                   it would accept is read for the two things that actually
@@ -49,7 +56,7 @@
  * or when the state under it changes in a way it is showing (borders, cities),
  * and never per frame.
  *
- * Instancing keeps the cost flat: every pip of one colour is one draw call
+ * Instancing keeps the cost flat: every glyph of one atlas cell is one draw call
  * whether there are ten of them or ten thousand, and the site wash has exactly
  * four grades — refused, coastal, fresh, both — so it stays four buckets however
  * large the map is.
@@ -60,9 +67,11 @@ import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 import { foundingErrorAt, tileYieldOf } from '../sim/cities';
 import { type GameMap, type Tile, getTileAt, tileNeighbors } from '../sim/map';
 import type { GameState } from '../sim/state';
+import { visibleResourceAt } from '../sim/tech';
 import { hasFreshWater } from '../sim/water';
 import type { CellRef, LensView } from '../ui/mapView';
 
+import { type TileIcons, YIELD_KEYS } from './badges3d';
 import type { BoardGeometry } from './board3d';
 import { InstanceCollector, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
@@ -99,18 +108,11 @@ function sameCells(
 export function sameLens(a: LensView, b: LensView): boolean {
   if (a.mode !== b.mode || a.playerId !== b.playerId) return false;
   if (a.yields !== b.yields) return false;
-  // A pip restriction only means anything while the pips are up; comparing it
-  // when they are down would rebuild the layer for a change nobody can see.
+  // A glyph restriction only means anything while the glyphs are up; comparing
+  // it when they are down would rebuild the layer for a change nobody can see.
   if (a.yields && !sameCells(a.yieldCells, b.yieldCells)) return false;
   return sameCells(a.cells, b.cells);
 }
-
-/** The three tile yields, in the order their rows are stacked on a tile. */
-const YIELD_ROWS: readonly ['food' | 'production' | 'gold', number][] = [
-  ['food', LENS.foodColor],
-  ['production', LENS.productionColor],
-  ['gold', LENS.goldColor],
-];
 
 export class LensLayer {
   readonly group = new Group();
@@ -119,12 +121,18 @@ export class LensLayer {
   /**
    * Rebuilds the whole layer. Cheap to call and never called per frame — see the
    * module docblock for what does call it.
+   *
+   * `icons` is the tile atlas (`badges3d.ts`), or null while it is still
+   * rasterising — or forever, in a browser with no 2D context. Both halves that
+   * need it simply draw nothing in that case, exactly as the units stand without
+   * badges until theirs arrives.
    */
   build(
     state: GameState | null,
     lens: LensView,
     geometry: BoardGeometry,
     materials: MaterialLibrary,
+    icons: TileIcons | null,
   ): void {
     disposeInstancedGroup(this.group);
     this.drawCallCount = 0;
@@ -138,59 +146,139 @@ export class LensLayer {
       copyOffsets: [-wrapWidth(map), 0, wrapWidth(map)],
     });
 
-    // The wash first, so the pips are collected — and therefore drawn — after
+    // The wash first, so the marks are collected — and therefore drawn — after
     // the ground tint they sit on. Both are `onTop` decals with the depth test
     // off, so the order they are added in is the order they layer in.
     if (lens.mode === 'settler') {
       this.addSiteWash(state, lens.playerId, resolveTiles(map, lens.cells), collector, geometry);
     }
-    if (lens.yields) {
-      this.addYieldPips(resolveTiles(map, lens.yieldCells), collector, geometry);
+    if (lens.mode === 'resources' && icons) {
+      this.addResourceIcons(
+        state,
+        lens.playerId,
+        resolveTiles(map, lens.cells),
+        collector,
+        geometry,
+        icons,
+      );
+    }
+    if (lens.yields && icons) {
+      this.addYieldGlyphs(resolveTiles(map, lens.yieldCells), collector, geometry, icons);
     }
 
     this.drawCallCount = collector.flush(this.group, materials, false);
   }
 
   /**
-   * A tile's yields as rows of pips, one row per yield that is not zero and the
-   * rows centred as a group — so a 2/0/0 tile shows one row in the middle of the
-   * hex rather than one row above an empty gap.
+   * A tile's yields as rows of glyphs, one row per yield that is not zero and
+   * the rows centred as a group — so a 2/0/0 tile shows one row in the middle of
+   * the hex rather than one row above an empty gap.
    *
-   * Counting stops at `pipCap` and the last pip grows instead. Five identical
-   * dots is a number nobody reads at a glance; four and a fat one is "four or
-   * more", which is all the eye wanted.
+   * Up to `glyphCap` marks are repeated, and past it the row collapses to **one
+   * glyph and a numeral**. That is the whole of the pip rework's arithmetic and
+   * it is a deliberate break with what the pips did: they drew four dots and
+   * fattened the last one, which said "four or more" and nothing else. A city
+   * centre on a wheat hill makes six hammers, and six is a number the player is
+   * entitled to read.
+   *
+   * Each mark is one cell of the shared tile atlas, so a whole board of yields
+   * is *one* instanced draw per distinct cell — twelve at the very most (three
+   * voices plus the digits actually on screen) however large the map is.
    */
-  private addYieldPips(
+  private addYieldGlyphs(
     tiles: readonly Tile[],
     collector: InstanceCollector,
     geometry: BoardGeometry,
+    icons: TileIcons,
   ): void {
     const identity = new Quaternion();
-    const unit = new Vector3(1, 1, 1);
-    const more = new Vector3(LENS.pipMoreScale, 1, LENS.pipMoreScale);
+    const glyph = new Vector3(LENS.glyphSize, 1, LENS.glyphSize);
+    const numeral = new Vector3(LENS.numeralSize, 1, LENS.numeralSize);
 
     for (const tile of tiles) {
       const value = tileYieldOf(tile);
-      const rows = YIELD_ROWS.filter(([key]) => value[key] > 0);
+      const rows = YIELD_KEYS.filter((key) => value[key] > 0);
       if (rows.length === 0) continue;
 
       const centre = cellCenter(tile.col, tile.row);
-      const y = tileTopY(tile) + OVERLAY.lift;
-      rows.forEach(([key, color], rowIndex) => {
+      const y = tileTopY(tile) + OVERLAY.lift + LENS.glyphLift;
+      rows.forEach((key, rowIndex) => {
         const amount = value[key];
-        const shown = Math.min(amount, LENS.pipCap);
         const z = centre.z + (rowIndex - (rows.length - 1) / 2) * LENS.rowSpacing;
-        for (let i = 0; i < shown; i++) {
-          const x = centre.x + (i - (shown - 1) / 2) * LENS.pipSpacing;
-          const capped = amount > LENS.pipCap && i === shown - 1;
+        const shape = geometry.yieldGlyphs[key];
+
+        if (amount <= LENS.glyphCap) {
+          for (let i = 0; i < amount; i++) {
+            const x = centre.x + (i - (amount - 1) / 2) * LENS.glyphSpacing;
+            collector.add(
+              shape,
+              [],
+              new Matrix4().compose(new Vector3(x, y, z), identity, glyph),
+              { onTop: true, material: icons.material },
+            );
+          }
+          return;
+        }
+
+        // One glyph and a count, laid out as a pair about the tile's centre.
+        const digits = digitsOf(amount);
+        const width = LENS.glyphSize + LENS.numeralGap + digits.length * LENS.numeralSize;
+        let x = centre.x - width / 2 + LENS.glyphSize / 2;
+        collector.add(
+          shape,
+          [],
+          new Matrix4().compose(new Vector3(x, y, z), identity, glyph),
+          { onTop: true, material: icons.material },
+        );
+        x += LENS.glyphSize / 2 + LENS.numeralGap + LENS.numeralSize / 2;
+        for (const digit of digits) {
           collector.add(
-            geometry.pip,
-            [color],
-            new Matrix4().compose(new Vector3(x, y, z), identity, capped ? more : unit),
-            { onTop: true, opacity: LENS.pipOpacity },
+            geometry.numerals[digit]!,
+            [],
+            new Matrix4().compose(new Vector3(x, y, z), identity, numeral),
+            { onTop: true, material: icons.material },
           );
+          x += LENS.numeralSize;
         }
       });
+    }
+  }
+
+  /**
+   * The resource lens: a roundel on every tile carrying a resource this player
+   * may be told about.
+   *
+   * Visibility is asked of `visibleResourceAt` — the *simulation's* own answer,
+   * the one the hover readout reads — so the lens and the card can never
+   * disagree about whether a player has heard of iron yet. The diorama props
+   * under the roundel are another matter entirely and are drawn for everybody;
+   * see that function's docblock for the tradeoff and why it is the honest one
+   * for a game with no fog of war.
+   */
+  private addResourceIcons(
+    state: GameState,
+    playerId: number,
+    tiles: readonly Tile[],
+    collector: InstanceCollector,
+    geometry: BoardGeometry,
+    icons: TileIcons,
+  ): void {
+    const identity = new Quaternion();
+    const scale = new Vector3(LENS.resourceIconSize, 1, LENS.resourceIconSize);
+    for (const tile of tiles) {
+      const id = visibleResourceAt(state, playerId, tile);
+      if (id === null) continue;
+      const centre = cellCenter(tile.col, tile.row);
+      collector.add(
+        geometry.resourceIcons[id],
+        [],
+        new Matrix4().compose(
+          new Vector3(centre.x, tileTopY(tile) + OVERLAY.lift + LENS.glyphLift, centre.z),
+          identity,
+          scale,
+        ),
+        { onTop: true, material: icons.material },
+      );
     }
   }
 
@@ -282,6 +370,12 @@ export class LensLayer {
  */
 function isCoastal(map: GameMap, tile: Tile): boolean {
   return tileNeighbors(map, tile).some((neighbor) => neighbor.terrain === 'coast');
+}
+
+/** A positive integer's decimal digits, most significant first. */
+function digitsOf(value: number): number[] {
+  const digits = String(Math.max(0, Math.round(value))).split('').map(Number);
+  return digits.length > 0 ? digits : [0];
 }
 
 /** The tiles a lens covers: the named cells, or the whole map. */

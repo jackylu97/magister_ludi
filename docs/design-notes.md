@@ -150,7 +150,7 @@ was real. That discovery moment IS the flavor strategy.
 
 ---
 
-## Entry IX — Resources (designed 2026-08-21; milestone after combat)
+## Entry IX — Resources (designed 2026-08-21; **built** M6)
 
 **Three kinds, three mechanical homes:**
 - **Bonus** (wheat, cattle, fish, stone, deer): tile-yield modifiers. Ship with the resources
@@ -172,6 +172,38 @@ on the badge-style atlas, repeated per point with cap+numeral.
 **Placement:** seeded biome-weighted scatter with spacing rules (rivers-milestone machinery
 generalizes); fairness pass — every start gets bonus food nearby, strategic access non-degenerate
 (harness-assertable). All in mapgen.json.
+
+**As built (2026-08-21).** Twelve resources in `data/resources.json`; the placement pass is
+`src/sim/resources.ts`, called last by `generateMap` with the map `rng` drawn strictly *after*
+`traceRivers`, so terrain, hills, features and river edges are bit-identical to the pre-resource
+generator (fixtured in `test/resources.test.ts`). Density is ~120 tiles per 1000 land tiles and
+holds within a few percent from duel to giant. Four decisions narrowed the design above, each for
+a reason worth keeping:
+
+1. **The constraint shape is a plain AND** — terrain list, optional feature list, optional hills
+   flag. One rule per resource is a rule a designer can read off the row, so "deer: forest/tundra"
+   became *forest, on grassland/plains/tundra* (deer live in forests, taiga included) and
+   "iron: hills/plains" became *hills* (the ore is in the high ground).
+2. **Strategic = ownership, not improvement.** There are no workers yet, so requiring a pasture
+   would make every mounted unit permanently unbuildable. `hasResource` (`cities.ts`) asks whether
+   any tile the player owns carries it; the day improvements land, that function gains a clause
+   and nothing else moves.
+3. **Tech gating hides the label, never the yield.** Iron pays its production to whoever works it
+   from turn one and satisfies the production gate for a player with no technology at all; Bronze
+   Working only decides whether the interface will *name* it. Hiding a number the citizens are
+   already collecting would be a lie the city panel has to keep telling.
+4. **Props are global, roundels are per-seat.** The diorama props are baked into the board's
+   instance buffers, which are built from the map alone and shared by every seat — culling them
+   per player would fork the board cache per seat and rebuild it on a tech. So the world shows a
+   dark boulder to everybody and only the *information* layers (hover readout, resource lens)
+   respect the local player's technology. Acceptable while there is no fog of war at all; when fog
+   lands the board is per-seat anyway, and that is the milestone that should hide the boulder.
+
+The yield-icon rework shipped with it: the pips are gone, replaced by sheaf / hammer / coin glyphs
+rasterised into a second badge-language atlas (`TileIcons` in `badges3d.ts`), repeated per point to
+a cap of four and then collapsed to one glyph and a numeral. The voice colour survived as the
+*disc* under each glyph — a thin green stroke on green grass is not legible, and the colour as a
+mass is what made the pips readable in the first place.
 
 ---
 

@@ -80,6 +80,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
+      "requiresResource": "horses",
       "upgradesTo": "knight",
       "modelClass": "mounted",
       "glyph": "H"
@@ -96,6 +97,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
+      "requiresResource": "horses",
       "modelClass": "mountedRanged",
       "glyph": "C"
     },
@@ -109,6 +111,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
+      "requiresResource": "iron",
       "upgradesTo": "longswordsman",
       "modelClass": "melee",
       "glyph": "X"
@@ -183,6 +186,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
+      "requiresResource": "horses",
       "modelClass": "mounted",
       "glyph": "N"
     },
@@ -196,6 +200,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
+      "requiresResource": "iron",
       "modelClass": "melee",
       "glyph": "L"
     },

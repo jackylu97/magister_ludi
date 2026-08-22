@@ -429,7 +429,7 @@ body {
 
 /* The yields flag: a second, independent thing the board may be showing, so it
    is a separate mark rather than part of the value — and it speaks in the food
-   voice, which is the colour those pips already use on the board. */
+   voice, which is the colour those glyphs already use on the board. */
 .topbar-btn-flag {
   padding: 1px 4px;
   border: var(--border-thin) solid currentcolor;

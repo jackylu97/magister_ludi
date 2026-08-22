@@ -144,7 +144,7 @@
           </span>
         </button>
         <!-- The lens menu: one question asked of every tile at once, plus the
-             yield pips, which are an independent switch. The button names both,
+             yield glyphs, which are an independent switch. The button names both,
              so the bar always says what the board is showing.
 
              The three spans are wrapped in one line box on purpose: they sit on
@@ -300,7 +300,7 @@
           <li><b>Drag</b> with either button to pan · <b>wheel</b> or pinch to zoom</li>
           <li><kbd>B</kbd> founds a city with the selected settler</li>
           <li><kbd>F</kbd> fortifies the selected unit — defence grows while it holds</li>
-          <li><kbd>Y</kbd> toggles the yield pips · <b>Lens</b> in the bar for more</li>
+          <li><kbd>Y</kbd> toggles the yield glyphs · <b>Lens</b> in the bar for more</li>
           <li><kbd>T</kbd> opens the tech tree — click a star to research it</li>
           <li><b>Left click</b> a tile in an open city's ring to pin a citizen</li>
           <li><kbd>Enter</kbd> ends your turn</li>
@@ -368,6 +368,12 @@
         <dd id="info-feature">—</dd>
         <dt>Yields</dt>
         <dd id="info-yields">—</dd>
+        <!-- What is *on* the ground, as opposed to what the ground is. Named
+             only when the local seat has the technology to recognise it — see
+             `visibleResourceAt` — so this row is the one place the tech gate on
+             a strategic resource is actually visible to a player. -->
+        <dt>Resource</dt>
+        <dd id="info-resource">—</dd>
         <!-- Both coordinate systems: offset is how the map is stored, axial is
              how the pathfinder thinks. Two rows rather than one long line,
              because either alone wraps in a 250px card. -->

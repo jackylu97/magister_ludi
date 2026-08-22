@@ -43,16 +43,25 @@ import {
 } from 'three';
 
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
+import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
 import { type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
 import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
-import { badgeCellRect, rimInnerFraction } from './badges3d';
+import {
+  NUMERAL_CELLS,
+  YIELD_KEYS,
+  type YieldKey,
+  badgeCellRect,
+  rimInnerFraction,
+  tileIconRect,
+} from './badges3d';
 import { hashDisc, hashSigned, hashUnit } from './hash';
 import {
   type MiniClass,
   type MiniFactory,
   type UnitPiece,
   archerMini,
+  atlasDecal,
   atlasQuad,
   bannerPole,
   barQuad,
@@ -61,7 +70,9 @@ import {
   chariotMini,
   cityHouseBody,
   cityHouseRoof,
+  crystalCluster,
   discRing,
+  fishFin,
   flowerSpray,
   grassTuft,
   hexDecal,
@@ -70,17 +81,27 @@ import {
   horsemanMini,
   mountainPeak,
   mountainSnow,
+  oreBoulder,
   pathDot,
   pineTree,
   reedClump,
   riverSegment,
   rock,
   roundTree,
+  saltCrust,
   scoutMini,
   settlerMini,
+  silkFrame,
+  spiceBush,
   spriteQuad,
   standeeBase,
+  stoneBlock,
   swordsmanMini,
+  toyCow,
+  toyDeer,
+  toyHorse,
+  vineTrellis,
+  wheatStand,
   workerMini,
 } from './geometry';
 import { type Tint, InstanceCollector, disposeInstancedGroup } from './instances';
@@ -103,7 +124,7 @@ const BOARD = VIEW3D.board;
 const DECOR = VIEW3D.decor;
 const OVERLAY = VIEW3D.overlay;
 const CITY = VIEW3D.city;
-const LENS = VIEW3D.lens;
+const RESOURCES = VIEW3D.resources;
 const TABLE = VIEW3D.table;
 const RIVERS = VIEW3D.rivers;
 const PIECES = VIEW3D.pieces;
@@ -198,6 +219,73 @@ function buildBadgeQuads(): Record<ModelClass, BufferGeometry> {
 }
 
 /**
+ * Every resource's diorama prop, by resource id.
+ *
+ * Typed `Record<ResourceId, …>` for exactly the reason `MINI_SCULPTS` is: this
+ * is the one place the art and the data are joined, so a resource added to
+ * `data/resources.json` that nobody drew a prop for is a *compile* error rather
+ * than a hex with an invisible wheat field on it. `test/resources3d.test.ts`
+ * closes the other direction — a prop no resource asks for.
+ *
+ * The shapes are in `geometry.ts`; what is here is only which shape belongs to
+ * which id. Their size, ink and count per tile are data (`resources.props` in
+ * `view3d.json`), because those are the numbers somebody re-tunes while looking
+ * at the board.
+ */
+export const RESOURCE_PROPS: Record<ResourceId, (size: number) => BufferGeometry> = {
+  wheat: wheatStand,
+  cattle: toyCow,
+  deer: toyDeer,
+  fish: fishFin,
+  stone: stoneBlock,
+  horses: toyHorse,
+  iron: oreBoulder,
+  gems: crystalCluster,
+  silk: silkFrame,
+  wine: vineTrellis,
+  spices: spiceBush,
+  salt: saltCrust,
+};
+
+/** One prop per resource, each built at the size its data row asks for. */
+function buildResourceProps(): Record<ResourceId, BufferGeometry> {
+  const out: Partial<Record<ResourceId, BufferGeometry>> = {};
+  for (const id of RESOURCE_IDS) {
+    out[id] = RESOURCE_PROPS[id](BOARD.hexRadius * RESOURCES.props[id].size);
+  }
+  return out as Record<ResourceId, BufferGeometry>;
+}
+
+/**
+ * One flat quad per tile-atlas cell: the twelve resource roundels, the three
+ * yield glyphs and the ten numerals.
+ *
+ * The same bargain `buildBadgeQuads` makes, one plane down: the atlas rectangle
+ * is baked into the geometry, so every mark of one kind on the whole board is a
+ * single `InstancedMesh` and all twenty-five kinds share one texture and one
+ * material. See `atlasDecal` for why these lie in xz where a badge stands in xy.
+ */
+function buildIconDecals(): {
+  resources: Record<ResourceId, BufferGeometry>;
+  yields: Record<YieldKey, BufferGeometry>;
+  numerals: BufferGeometry[];
+} {
+  const decal = (cell: Parameters<typeof tileIconRect>[0]): BufferGeometry => {
+    const rect = tileIconRect(cell);
+    return atlasDecal(rect.u0, rect.v0, rect.u1, rect.v1);
+  };
+  const resources: Partial<Record<ResourceId, BufferGeometry>> = {};
+  for (const id of RESOURCE_IDS) resources[id] = decal({ set: 'resource', id });
+  const yields: Partial<Record<YieldKey, BufferGeometry>> = {};
+  for (const key of YIELD_KEYS) yields[key] = decal({ set: 'yield', id: key });
+  return {
+    resources: resources as Record<ResourceId, BufferGeometry>,
+    yields: yields as Record<YieldKey, BufferGeometry>,
+    numerals: NUMERAL_CELLS.map((digit) => decal({ set: 'numeral', id: digit })),
+  };
+}
+
+/**
  * One geometry per shape, built once and shared by every board ever built.
  *
  * Prisms are pre-built per height class rather than being one unit prism scaled
@@ -248,8 +336,21 @@ export class BoardGeometry {
   readonly bar: BufferGeometry;
   /** A fuller hexagon than `decal`, for the territory tint and the lens wash. */
   readonly territory: BufferGeometry;
-  /** A yield pip: the path dot's little sibling. See `lens3d.ts`. */
-  readonly pip: BufferGeometry;
+  /**
+   * The diorama props, keyed by resource id: the wheat, the cattle, the ore.
+   * Placed by `addResourceProps`, and drawn for every seat — see
+   * `visibleResourceAt` in `tech.ts` for why the *props* are not tech-gated
+   * where the roundels are.
+   */
+  readonly resourceProps: Record<ResourceId, BufferGeometry>;
+  /**
+   * The flat tile marks, one quad per cell of the tile atlas: a resource
+   * roundel, a yield glyph, a numeral. All three are drawn by `lens3d.ts` with
+   * the atlas's own material.
+   */
+  readonly resourceIcons: Record<ResourceId, BufferGeometry>;
+  readonly yieldGlyphs: Record<YieldKey, BufferGeometry>;
+  readonly numerals: BufferGeometry[];
   /** An upright unit quad standing on its base, for the sprite units. */
   readonly billboard: BufferGeometry;
   /** The blob shadow under a billboard, and the foot it stands in. */
@@ -300,7 +401,11 @@ export class BoardGeometry {
       BOARD.hexRadius * OVERLAY.ringWidth,
     );
     this.dot = pathDot(OVERLAY.pathDotRadius, OVERLAY.pathDotHeight);
-    this.pip = pathDot(LENS.pipRadius, LENS.pipHeight);
+    this.resourceProps = buildResourceProps();
+    const icons = buildIconDecals();
+    this.resourceIcons = icons.resources;
+    this.yieldGlyphs = icons.yields;
+    this.numerals = icons.numerals;
     this.river = riverSegment();
     this.bar = barQuad();
     // Sprite units. Built unconditionally rather than behind the style switch:
@@ -347,7 +452,10 @@ export class BoardGeometry {
     this.decal.dispose();
     this.ring.dispose();
     this.dot.dispose();
-    this.pip.dispose();
+    for (const prop of Object.values(this.resourceProps)) prop.dispose();
+    for (const quad of Object.values(this.resourceIcons)) quad.dispose();
+    for (const quad of Object.values(this.yieldGlyphs)) quad.dispose();
+    for (const quad of this.numerals) quad.dispose();
     this.river.dispose();
     this.bar.dispose();
     this.territory.dispose();
@@ -608,6 +716,7 @@ const STREAM = {
   bankCount: 61,
   flowerInk: 62,
   treeVariant: 63,
+  resourceCount: 70,
   // Placement streams (× 64). Kept above 1 so slot 0 is never a valid slot.
   pinePlace: 2,
   junglePlace: 3,
@@ -618,6 +727,7 @@ const STREAM = {
   pebblePlace: 8,
   reedPlace: 9,
   bankPlace: 10,
+  resourcePlace: 11,
 } as const;
 
 /** `1 + floor(h · max)` capped at `max` — a count of 1..max, hashed. */
@@ -728,9 +838,24 @@ function addDecorations(
     }
   }
 
+  /**
+   * The resource prop, and the clutter it displaces.
+   *
+   * A resource tile gets its own scatter *instead of* the generic grass,
+   * flowers, cacti, pebbles and hill boulders, not on top of them. Two reasons,
+   * and the second is the real one: a wheat field with tufts of grass growing
+   * through it is overlap soup at this zoom, and the prop is the tile's *news* —
+   * whatever else is on the hex is competing with the one thing the player is
+   * meant to notice. Trees are the exception and stay: the deer, the silk and
+   * the spices all live in a canopy, and a forest with the trees removed to make
+   * room for the deer would be a forest that stopped being one.
+   */
+  const resource = tile.resource;
+  const prop = resource === undefined ? null : RESOURCES.props[resource];
+
   // Rocks scatter on bare hills only: a forested hill already has silhouette,
   // and piling boulders under the trees just made mud.
-  if (tile.hills && tile.feature === 'none' && tile.terrain !== 'mountain') {
+  if (!prop && tile.hills && tile.feature === 'none' && tile.terrain !== 'mountain') {
     if (hashUnit(tile.col, tile.row, STREAM.rockRoll) < 0.55) {
       const count = hashedCount(tile.col, tile.row, STREAM.rockCount, 2);
       for (let i = 0; i < count; i++) {
@@ -739,7 +864,21 @@ function addDecorations(
     }
   }
 
-  addGroundClutter(tile, geometry, place);
+  if (prop && resource !== undefined) {
+    const count = hashedCount(tile.col, tile.row, STREAM.resourceCount, Math.max(1, prop.count));
+    for (let i = 0; i < count; i++) {
+      place(
+        geometry.resourceProps[resource],
+        shade(prop.color, prop.shade),
+        STREAM.resourcePlace,
+        i,
+        1,
+        { spread: RESOURCES.spread },
+      );
+    }
+  } else {
+    addGroundClutter(tile, geometry, place);
+  }
   addWaterEdge(map, tile, geometry, place);
 
   /** Ground clutter and reeds share the scatter above; both are below. */

@@ -25,6 +25,7 @@ import {
   tileNeighbors,
 } from './map';
 import { createNoise3D, fbm3, type FbmOptions, type Noise3D } from './noise';
+import { type ResourceConfig, placeResources } from './resources';
 import { makeRng, nextUint32 } from './rng';
 import { isWaterTerrain, type FeatureId, type TerrainId } from './terrainData';
 import {
@@ -75,6 +76,7 @@ export interface MapgenConfig {
     maxSize: number;
   };
   rivers: RiverConfig;
+  resources: ResourceConfig;
 }
 
 export const MAPGEN_CONFIG: MapgenConfig = mapgenJson as MapgenConfig;
@@ -301,8 +303,16 @@ export function generateMapDetail(seed: number, sizeName: string): MapDetail {
   // what it was before rivers existed.
   const rivers = traceRivers(map, rng, config.rivers);
 
-  // Pass 5: who can drink. Derived from everything above, so it goes last.
+  // Pass 5: who can drink. Derived from everything above, and rolls nothing.
   computeFreshwater(map);
+
+  // Pass 6: resources. The generator's *second* set of dice, and they are rolled
+  // after the rivers' for exactly the reason the rivers' were rolled after the
+  // noise: every draw made here is a draw nothing before it can see, so terrain,
+  // hills, features and river edges on a given seed are bit-identical to what
+  // they were before resources existed. Adding a pass must never move the
+  // ground. See `resources.ts`.
+  placeResources(map, rng, config.resources);
 
   return { map, rivers, lakeCount };
 }

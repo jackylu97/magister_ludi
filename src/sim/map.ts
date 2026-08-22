@@ -31,6 +31,14 @@
  * `HEX_DIRECTIONS`, bit `d` meaning "a river runs along the edge I share with
  * my neighbour in direction `d`".
  *
+ * Resources live on tiles, and are absent rather than empty
+ * ----------------------------------------------------------
+ * `Tile.resource` is the id of the wheat, iron or silk sitting on the hex, and
+ * the key is missing entirely on the ninety-odd percent of tiles that carry
+ * nothing. It is generation output like the terrain — placed by `resources.ts`
+ * as the last pass of `generateMap`, reproduced from the seed, and never
+ * written again during play.
+ *
  * THE INVARIANT: an edge is flagged on *both* of the tiles that share it. Bit
  * `d` of tile A implies bit `(d + 3) % 6` of A's neighbour in direction `d`,
  * because `HEX_DIRECTIONS[d + 3]` is exactly `-HEX_DIRECTIONS[d]`. Every write
@@ -46,6 +54,7 @@ import {
   HEX_DIRECTIONS,
   hexDistance,
 } from './hex';
+import type { ResourceId } from './resourceData';
 import type { FeatureId, TerrainId } from './terrainData';
 
 export interface Tile {
@@ -72,6 +81,18 @@ export interface Tile {
    * `computeFreshwater` (`water.ts`); read through `hasFreshWater`.
    */
   freshwater: boolean;
+  /**
+   * The resource sitting on this tile, or the key is **absent** when there is
+   * none. Placed once, at the end of generation, by `placeResources`
+   * (`resources.ts`); read through `tileYieldOf` for what it pays and through
+   * `visibleResourceAt` (`tech.ts`) for what a given player may be told about it.
+   *
+   * Absence rather than a `'none'` sentinel, which is `Unit.path`'s convention
+   * and is here for the same reason: two maps that are the same map must
+   * serialise identically, and a bare tile has never had a resource rather than
+   * having one called nothing.
+   */
+  resource?: ResourceId;
 }
 
 export interface GameMap {

@@ -49,9 +49,24 @@
  * hovering over a ridge with nothing under them. Clearing the sculpt's own head
  * is done by lifting the badge (`badges.lift`), not by cheating the depth test.
  *
- * Everything except `UnitBadges` and `drawBadgeCell` is pure arithmetic on the
- * data, which is what `test/badges3d.test.ts` checks; the two exceptions need a
- * canvas and are exercised by the browser.
+ * The second atlas: what is printed on a tile
+ * -------------------------------------------
+ * The same machinery, one plane down. `TileIcons` (below) rasterises the twelve
+ * resource marks, the three yield glyphs and ten numerals into a second atlas,
+ * and the lens layer prints them flat on the ground. They share this file with
+ * the badges rather than living in one of their own because they are the same
+ * *system* — a roundel, an ink mark, one grid, one stroke language, one cell
+ * layout — and splitting them would have meant two copies of the layout
+ * arithmetic that decides texture coordinates.
+ *
+ * What differs is only what a mark is *for*: a badge names a piece and stands up
+ * in the world with it, a tile icon names the ground and lies on it. So the tile
+ * atlas turns the depth test off (a readout may not be swallowed by the hill it
+ * is printed behind) where a badge keeps it on.
+ *
+ * Everything except `UnitBadges`, `TileIcons` and the cell painters is pure
+ * arithmetic on the data, which is what `test/badges3d.test.ts` checks; the
+ * exceptions need a canvas and are exercised by the browser.
  */
 
 import {
@@ -62,12 +77,15 @@ import {
   SRGBColorSpace,
 } from 'three';
 
+import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
 import type { ModelClass } from '../sim/unitData';
 
 import { VIEW3D } from './lookData';
 
 const BADGE = VIEW3D.badges;
 const HP = VIEW3D.hpBar;
+const ICONS = VIEW3D.icons;
+const LENS = VIEW3D.lens;
 
 /**
  * The atlas layout, in cell order, and the authority on which cell a class
@@ -288,6 +306,268 @@ export function drawBadgeCell(
   ink.fillStyle = cssHex(BADGE.inkColor);
   ink.fillRect(0, 0, size, size);
   context.drawImage(scratch, Math.round(center.x - size / 2), Math.round(center.y - size / 2));
+}
+
+// --- the tile icons --------------------------------------------------------
+
+/**
+ * The second atlas: everything that is printed flat *on a tile* rather than
+ * floating over a piece.
+ *
+ * Three sets share it, and sharing is the point — one canvas, one texture, one
+ * material, so a board showing resources and yields at once costs a handful of
+ * draws rather than one per kind of mark:
+ *
+ *   resources  a parchment roundel with the resource's ink mark on it, drawn
+ *              exactly like a unit badge. The resource *lens* puts these on the
+ *              tiles a player may be told about (see `visibleResourceAt`).
+ *   yields     one glyph per yield voice — sheaf, hammer, coin — inked on a
+ *              disc of that voice's own colour. See `drawYieldCell` for why the
+ *              disc survived the pips it replaced.
+ *   numerals   ten digits on parchment, for the "and more than four" case.
+ *
+ * The cell order below is the authority on which cell is which, exactly as
+ * `BADGE_CELLS` is for the badges, and for the same reason: it decides texture
+ * coordinates, so reordering it would silently re-point every mark on the board
+ * at somebody else's picture.
+ */
+export const YIELD_KEYS = ['food', 'production', 'gold'] as const;
+export type YieldKey = (typeof YIELD_KEYS)[number];
+
+/** The ten digits, in value order. `NUMERAL_CELLS[3]` is the glyph for 3. */
+export const NUMERAL_CELLS: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+/** A cell of the tile atlas: which set it belongs to, and which member. */
+export type TileIconCell =
+  | { set: 'resource'; id: ResourceId }
+  | { set: 'yield'; id: YieldKey }
+  | { set: 'numeral'; id: number };
+
+/**
+ * Every cell of the tile atlas, in layout order: the resources, then the three
+ * yield voices, then the digits.
+ */
+export const TILE_ICON_CELLS: readonly TileIconCell[] = [
+  ...RESOURCE_IDS.map((id) => ({ set: 'resource', id }) as TileIconCell),
+  ...YIELD_KEYS.map((id) => ({ set: 'yield', id }) as TileIconCell),
+  ...NUMERAL_CELLS.map((id) => ({ set: 'numeral', id }) as TileIconCell),
+];
+
+/**
+ * Where each mark's artwork lives, relative to the site root.
+ *
+ * SVG for the same reason the badge icons are: a vector rasterised into the
+ * atlas at load is sharp at whatever cell size the data asks for. The numerals
+ * have no files — they are drawn with the canvas's own text, which is the one
+ * place in this renderer that is honest about being cheaper: a digit is a digit
+ * in any face, and twelve hand-drawn numerals would be twelve files nobody
+ * could tell apart from `fillText`.
+ */
+export const RESOURCE_ICON_FILES: Record<ResourceId, string> = {
+  wheat: 'sprites/icons/resources/wheat.svg',
+  cattle: 'sprites/icons/resources/cattle.svg',
+  deer: 'sprites/icons/resources/deer.svg',
+  fish: 'sprites/icons/resources/fish.svg',
+  stone: 'sprites/icons/resources/stone.svg',
+  horses: 'sprites/icons/resources/horses.svg',
+  iron: 'sprites/icons/resources/iron.svg',
+  gems: 'sprites/icons/resources/gems.svg',
+  silk: 'sprites/icons/resources/silk.svg',
+  wine: 'sprites/icons/resources/wine.svg',
+  spices: 'sprites/icons/resources/spices.svg',
+  salt: 'sprites/icons/resources/salt.svg',
+};
+
+export const YIELD_ICON_FILES: Record<YieldKey, string> = {
+  food: 'sprites/icons/yields/food.svg',
+  production: 'sprites/icons/yields/production.svg',
+  gold: 'sprites/icons/yields/gold.svg',
+};
+
+/** The colour each yield voice is printed in. The interface's own three. */
+export const YIELD_COLORS: Record<YieldKey, number> = {
+  food: LENS.foodColor,
+  production: LENS.productionColor,
+  gold: LENS.goldColor,
+};
+
+/** The live layout of the tile atlas. */
+export function tileAtlasSize(): AtlasLayout {
+  return badgeAtlasLayout(TILE_ICON_CELLS.length, ICONS.atlasColumns, ICONS.atlasCell);
+}
+
+/** The index of one cell in the tile atlas, or −1 when it is not in it. */
+export function tileIconIndex(cell: TileIconCell): number {
+  return TILE_ICON_CELLS.findIndex(
+    (entry) => entry.set === cell.set && entry.id === cell.id,
+  );
+}
+
+/**
+ * The texture coordinates of one tile-atlas cell.
+ *
+ * The v flip is `badgeCellRect`'s, and it is here for the same reason and with
+ * the same failure mode: get it backwards and the board silently prints the
+ * wrong row of icons rather than failing.
+ */
+export function tileIconRect(cell: TileIconCell): AtlasRect {
+  const layout = tileAtlasSize();
+  const index = tileIconIndex(cell);
+  if (index < 0) throw new Error(`icons: ${cell.set} ${String(cell.id)} has no atlas cell`);
+  const col = index % layout.columns;
+  const row = Math.floor(index / layout.columns);
+  return {
+    u0: col / layout.columns,
+    u1: (col + 1) / layout.columns,
+    v0: 1 - (row + 1) / layout.rows,
+    v1: 1 - row / layout.rows,
+  };
+}
+
+/**
+ * Paints one icon onto a disc: the disc in `paper`, then the mark recoloured to
+ * `ink` on top of it.
+ *
+ * The generalisation of `drawBadgeCell` — the roundel is the same object in both
+ * atlases — with the two colours as arguments, because the tile atlas needs
+ * three different discs (parchment for a resource, and the three yield voices)
+ * out of one routine.
+ */
+function drawDiscCell(
+  context: CanvasRenderingContext2D,
+  icon: CanvasImageSource | null,
+  index: number,
+  layout: AtlasLayout,
+  paper: number,
+  ink: number,
+  iconScale: number,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+
+  context.save();
+  context.fillStyle = cssHex(paper);
+  context.beginPath();
+  context.arc(center.x, center.y, paperRadiusFraction() * cell, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
+  if (!icon) return;
+  const size = Math.max(1, Math.round(iconScale * cell));
+  const scratch = document.createElement('canvas');
+  scratch.width = size;
+  scratch.height = size;
+  const pen = scratch.getContext('2d');
+  if (!pen) return;
+  pen.drawImage(icon, 0, 0, size, size);
+  pen.globalCompositeOperation = 'source-in';
+  pen.fillStyle = cssHex(ink);
+  pen.fillRect(0, 0, size, size);
+  context.drawImage(scratch, Math.round(center.x - size / 2), Math.round(center.y - size / 2));
+}
+
+/**
+ * Paints one numeral: a parchment disc with a digit on it.
+ *
+ * Text rather than artwork, and drawn in the platform's own mono-ish stack. See
+ * `RESOURCE_ICON_FILES` for why that is the one concession.
+ */
+function drawNumeralCell(
+  context: CanvasRenderingContext2D,
+  digit: number,
+  index: number,
+  layout: AtlasLayout,
+): void {
+  drawDiscCell(context, null, index, layout, ICONS.paperColor, ICONS.inkColor, 1);
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  context.save();
+  context.fillStyle = cssHex(ICONS.inkColor);
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.font = `700 ${Math.round(cell * ICONS.numeralScale)}px "IBM Plex Mono", ui-monospace, monospace`;
+  context.fillText(String(digit), origin.x + cell / 2, origin.y + cell * 0.54);
+  context.restore();
+}
+
+/**
+ * The built tile atlas, and the material every flat icon on the board is drawn
+ * with.
+ *
+ * Not depth-tested. A resource roundel and a yield glyph are *readouts* — the
+ * same class of thing as the overlay decals, which the material library also
+ * lifts above the board — so they must not be swallowed by the hill they are
+ * printed on the far side of. `InstanceCollector` gives a custom-material
+ * bucket the overlay draw order when it is added with `onTop`, which is what
+ * puts them over the terrain and under nothing.
+ */
+export class TileIcons {
+  private readonly texture: CanvasTexture;
+  readonly material: MeshBasicMaterial;
+
+  private constructor(texture: CanvasTexture) {
+    this.texture = texture;
+    this.material = new MeshBasicMaterial({
+      map: texture,
+      transparent: false,
+      alphaTest: ICONS.alphaTest,
+      side: DoubleSide,
+      toneMapped: false,
+      depthTest: false,
+      depthWrite: false,
+    });
+  }
+
+  dispose(): void {
+    this.material.dispose();
+    this.texture.dispose();
+  }
+
+  /**
+   * Rasterises every resource mark, yield glyph and digit into one atlas.
+   *
+   * Never rejects, exactly like `UnitBadges.load`: a missing file leaves a blank
+   * disc — which still reads as "something is here" — and a browser with no 2D
+   * context at all resolves to null, in which case the resource lens and the
+   * yield switch simply draw nothing.
+   */
+  static async load(): Promise<TileIcons | null> {
+    const layout = tileAtlasSize();
+    const canvas = document.createElement('canvas');
+    canvas.width = layout.width;
+    canvas.height = layout.height;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+
+    const files = TILE_ICON_CELLS.map((cell) =>
+      cell.set === 'resource'
+        ? RESOURCE_ICON_FILES[cell.id]
+        : cell.set === 'yield'
+          ? YIELD_ICON_FILES[cell.id]
+          : null,
+    );
+    const icons = await Promise.all(files.map((url) => (url ? loadIcon(url) : null)));
+
+    TILE_ICON_CELLS.forEach((cell, index) => {
+      if (cell.set === 'numeral') {
+        drawNumeralCell(context, cell.id, index, layout);
+        return;
+      }
+      // A resource is ink on parchment, like a unit badge. A yield is ink on its
+      // own voice's colour — see `YIELD_COLORS`.
+      const paper = cell.set === 'yield' ? YIELD_COLORS[cell.id] : ICONS.paperColor;
+      const ink = cell.set === 'yield' ? ICONS.yieldInkColor : ICONS.inkColor;
+      drawDiscCell(context, icons[index] ?? null, index, layout, paper, ink, ICONS.iconScale);
+    });
+
+    const texture = new CanvasTexture(canvas);
+    texture.colorSpace = SRGBColorSpace;
+    texture.generateMipmaps = true;
+    texture.magFilter = LinearFilter;
+    texture.anisotropy = 4;
+    return new TileIcons(texture);
+  }
 }
 
 /** Loads one SVG, or resolves to null if it is missing or blocked. */

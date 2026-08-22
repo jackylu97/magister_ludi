@@ -23,6 +23,7 @@
 
 import viewJson from '../../data/view3d.json';
 
+import type { ResourceId } from '../sim/resourceData';
 import type { FeatureId, TerrainId } from '../sim/terrainData';
 
 import type { MiniAccent, MiniClass } from './geometry';
@@ -295,25 +296,40 @@ export interface TerritorySpec {
 }
 
 /**
- * The lenses: yield pips, and the settler site tint.
+ * The lenses: the yield glyphs, the resource roundels, and the settler site tint.
  *
- * The pip colours are written out as hex rather than referenced from the board
+ * The yield colours are written out as hex rather than referenced from the board
  * palette on purpose. They are the *interface's* yield voices — the same green,
  * orange and gilt the city panel and the top bar count in — muted a step for the
  * diorama. A player who has learned that green means food in the HUD must not
  * have to learn a second vocabulary on the board.
+ *
+ * The three yield numbers used to be pips: coloured dots, one per point. They
+ * are glyphs now — a sheaf, a hammer, a coin, drawn in the badge stroke language
+ * and rasterised into the tile atlas (`badges3d.ts`) — because a dot can only
+ * say *how many* and the player still had to remember which row was which. The
+ * *disc* under each glyph is what survived the rework: the voice colour as a
+ * mass is what makes a row readable across a table, and a thin green stroke on
+ * green grass is not.
  */
 export interface LensSpec {
-  /** Pip radius and thickness in world units. */
-  pipRadius: number;
-  pipHeight: number;
-  /** Gap between pips along a row, and between the rows themselves. */
-  pipSpacing: number;
+  /** Side of one yield glyph's quad, in world units. */
+  glyphSize: number;
+  /** Gap between glyphs along a row, and between the rows themselves. */
+  glyphSpacing: number;
   rowSpacing: number;
-  /** Most pips ever drawn for one yield; beyond it the last pip grows. */
-  pipCap: number;
-  pipMoreScale: number;
-  pipOpacity: number;
+  /**
+   * Most glyphs ever repeated for one yield. Past it the row becomes one glyph
+   * and a numeral — five identical marks is a number nobody reads at a glance.
+   */
+  glyphCap: number;
+  /** The "and this many" numeral beside a capped glyph. */
+  numeralSize: number;
+  numeralGap: number;
+  /** How far the flat icons sit above the tile face, on top of `overlay.lift`. */
+  glyphLift: number;
+  /** Side of a resource roundel's quad, in world units. */
+  resourceIconSize: number;
   foodColor: number;
   productionColor: number;
   goldColor: number;
@@ -622,6 +638,52 @@ export interface AnimationSpec {
   deathSink: number;
 }
 
+/**
+ * The tile-icon atlas: how the flat marks printed on a hex are rasterised.
+ *
+ * The sibling of `BadgeSpec` and deliberately separate from it. Badges float in
+ * the world over a piece and are ink on parchment, full stop; tile icons lie on
+ * the ground and come in three flavours (resource roundels, yield glyphs on
+ * their voice's colour, numerals), so they want their own cell size, their own
+ * grid and their own inks. See `TileIcons` in `badges3d.ts`.
+ */
+export interface IconSpec {
+  atlasCell: number;
+  atlasColumns: number;
+  /** The mark's size within its cell, as a fraction. */
+  iconScale: number;
+  /** A numeral's cap height within its cell, as a fraction. */
+  numeralScale: number;
+  alphaTest: number;
+  /** The roundel a resource mark and a numeral are printed on. */
+  paperColor: number;
+  inkColor: number;
+  /** The ink a yield glyph is printed in, over its voice's own disc. */
+  yieldInkColor: number;
+}
+
+/**
+ * One resource's diorama prop: what it is painted in, how many of it a tile
+ * gets, and how big it is built.
+ *
+ * `size` is the world-unit argument the shape factory in `geometry.ts` is cut
+ * from, and `count` the most instances one hex will scatter — the actual number
+ * is hashed per tile, like every other decoration. See `RESOURCE_PROPS` in
+ * `board3d.ts` for the registry that joins these numbers to their shapes.
+ */
+export interface ResourcePropSpec {
+  color: number;
+  shade: number;
+  count: number;
+  size: number;
+}
+
+export interface ResourceLookSpec {
+  /** How far from the tile centre a prop may scatter, in hex radii. */
+  spread: number;
+  props: Record<ResourceId, ResourcePropSpec>;
+}
+
 export interface View3DData {
   palette: Record<string, number>;
   terrainColor: Record<TerrainId, number>;
@@ -643,6 +705,8 @@ export interface View3DData {
   badges: BadgeSpec;
   animation: AnimationSpec;
   lens: LensSpec;
+  icons: IconSpec;
+  resources: ResourceLookSpec;
   units: UnitStyleSpec;
 }
 
@@ -854,13 +918,15 @@ export const VIEW3D: View3DData = {
   },
   animation: viewJson.animation,
   lens: {
-    pipRadius: viewJson.lens.pipRadius,
-    pipHeight: viewJson.lens.pipHeight,
-    pipSpacing: viewJson.lens.pipSpacing,
+    glyphSize: viewJson.lens.glyphSize,
+    glyphSpacing: viewJson.lens.glyphSpacing,
     rowSpacing: viewJson.lens.rowSpacing,
-    pipCap: viewJson.lens.pipCap,
-    pipMoreScale: viewJson.lens.pipMoreScale,
-    pipOpacity: viewJson.lens.pipOpacity,
+    // At least one, or a row of glyphs is a row of nothing.
+    glyphCap: Math.max(1, Math.round(viewJson.lens.glyphCap)),
+    numeralSize: viewJson.lens.numeralSize,
+    numeralGap: viewJson.lens.numeralGap,
+    glyphLift: viewJson.lens.glyphLift,
+    resourceIconSize: viewJson.lens.resourceIconSize,
     foodColor: parseColor(viewJson.lens.foodColor, 'lens.foodColor'),
     productionColor: parseColor(viewJson.lens.productionColor, 'lens.productionColor'),
     goldColor: parseColor(viewJson.lens.goldColor, 'lens.goldColor'),
@@ -872,6 +938,25 @@ export const VIEW3D: View3DData = {
     siteEstuaryMix: viewJson.lens.siteEstuaryMix,
     siteEstuaryOpacity: viewJson.lens.siteEstuaryOpacity,
     siteEstuaryRingOpacity: viewJson.lens.siteEstuaryRingOpacity,
+  },
+  icons: {
+    atlasCell: viewJson.icons.atlasCell,
+    atlasColumns: viewJson.icons.atlasColumns,
+    iconScale: viewJson.icons.iconScale,
+    numeralScale: viewJson.icons.numeralScale,
+    alphaTest: viewJson.icons.alphaTest,
+    paperColor: named(viewJson.icons.paperColor, 'icons.paperColor'),
+    inkColor: named(viewJson.icons.inkColor, 'icons.inkColor'),
+    yieldInkColor: named(viewJson.icons.yieldInkColor, 'icons.yieldInkColor'),
+  },
+  resources: {
+    spread: viewJson.resources.spread,
+    props: Object.fromEntries(
+      Object.entries(viewJson.resources.props).map(([id, spec]) => [
+        id,
+        { ...spec, color: named(spec.color, `resources.props.${id}.color`) },
+      ]),
+    ) as Record<ResourceId, ResourcePropSpec>,
   },
   units: {
     style: parseUnitStyle(viewJson.units.style),

@@ -65,36 +65,36 @@ export interface ScreenPoint {
  *
  * Yields are deliberately *not* a member. A lens answers "which of these
  * questions am I asking" and the modes are exclusive because a tile can only
- * carry one wash; the yield pips sit on the tile face and compete with nothing,
+ * carry one wash; the yield glyphs sit on the tile face and compete with nothing,
  * so making them a fourth exclusive mode meant a player could not ask "where can
  * a city go" and "what does this ground make" at the same time — which is one
  * question, asked twice. They are an independent switch on `LensView` instead.
  */
-export type LensMode = 'none' | 'settler';
+export type LensMode = 'none' | 'settler' | 'resources';
 
-/** Which lens, over which tiles, through whose eyes — plus the yield pips. */
+/** Which lens, over which tiles, through whose eyes — plus the yield glyphs. */
 export interface LensView {
   mode: LensMode;
   /**
    * Restrict the mode's wash to these cells, or `null` for the whole map.
    *
-   * Only the wash: the pips have their own `yieldCells`, because the two are
+   * Only the wash: the glyphs have their own `yieldCells`, because the two are
    * independent and an open city panel scopes one of them without touching the
    * other.
    */
   cells: readonly CellRef[] | null;
   /**
-   * Draw the yield pips. Independent of `mode` — pips may be up under any lens,
+   * Draw the yield glyphs. Independent of `mode` — they may be up under any lens,
    * including `none`.
    *
    * The UI decides this from two sources it does not distinguish here: the
    * player's own toggle (the `Y` key and the switch in the lens menu), and the
-   * automatic rule that an open city panel always shows the pips for the tiles
+   * automatic rule that an open city panel always shows the glyphs for the tiles
    * that city could work. The renderer is told only the answer.
    */
   yields: boolean;
   /**
-   * Restrict the pips to these cells, or `null` for the whole map. Meaningless
+   * Restrict the glyphs to these cells, or `null` for the whole map. Meaningless
    * while `yields` is false.
    *
    * This is what makes the automatic city-panel rule possible: opening a city

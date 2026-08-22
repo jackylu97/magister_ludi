@@ -105,8 +105,10 @@ describe('board dressing', () => {
     // One lit mesh per (geometry, colour set) — plus its outline shell, plus
     // the substrate and the table. The cap is deliberately generous; what it
     // catches is an accidental per-instance colour, which would run to
-    // thousands.
-    expect(stats.drawCalls).toBeLessThan(80);
+    // thousands. It rose with the resource props: twelve more shapes, each in
+    // one ink, is twelve more pairs and no more than that — which is the
+    // property this number is really guarding.
+    expect(stats.drawCalls).toBeLessThan(110);
     // Nothing is drawn one instance at a time.
     const lit = stats.meshes.filter((mesh) => mesh.count > 1);
     expect(lit.length).toBeGreaterThan(10);
