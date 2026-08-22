@@ -903,12 +903,6 @@ async function boot(): Promise<void> {
     banners.refresh();
     cityPanel.render();
     unitPanel.render();
-    // The End Turn button sits in the corner the right-hand panels occupy, so it
-    // steps aside for whichever one is open rather than hiding underneath it.
-    document.body.classList.toggle(
-      'is-panel-open',
-      !cityPanelEl.hidden || !unitPanelEl.hidden,
-    );
     // Whether the turn may end is derived from the same state as everything
     // else on this list — a unit that just moved, a queue that just filled, a
     // technology just chosen — so it is recomputed in the same one place.

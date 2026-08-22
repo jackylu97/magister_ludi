@@ -108,8 +108,11 @@
            whole window #abacus-overlay the score as an object, from the bar
                                         button or A
 
-         The right edge above the End Turn button belongs to whichever panel is
-         open, which is why that button steps aside while one is.
+         #hud-end-turn never moves — muscle memory owns that corner outright.
+         The right-hand panels are the ones that give way: whichever is open
+         stops its own box short of End Turn's corner instead (see
+         `--end-turn-clearance` in src/style.css) and scrolls internally if its
+         content runs past that line.
 
          The last two are *screens*, not cards: each covers the window including
          the bar, owns the keyboard while it is up, and closes the other as it

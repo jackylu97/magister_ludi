@@ -74,6 +74,20 @@
      panels — one number so nothing can drift out of alignment with it. */
   --topbar-h: 42px;
 
+  /* End Turn's own rendered height, built from exactly the numbers `.btn-end`
+     is: its padding, its border, and one line of 16px content at the `.btn`
+     line-height of 1.25. Named here rather than measured in JS so the corner
+     the right-hand panels stop above (`--end-turn-clearance` below) can never
+     silently drift out of sync with the button it is reserving space for. */
+  --end-turn-h: calc(11px + 12px + var(--border) * 2 + 16px * 1.25);
+
+  /* The whole bottom-right corner End Turn owns and the panels must clear:
+     a gap above the button the same size as every other corner margin in
+     this HUD, the button's own height, and the button's own offset from the
+     window edge. Read by #city-panel and #unit-panel's `max-height` — see
+     the right-hand slot below. */
+  --end-turn-clearance: calc(14px + var(--end-turn-h) + 14px);
+
   /* Ink is the ground under the bar, so the usual ink border and ink shadow
      vanish into it. Anything drawn on ink outlines itself in parchment instead. */
   --on-ink-line: rgba(247, 242, 225, 0.28);
@@ -1411,28 +1425,20 @@ kbd {
 
 /* --- bottom-right: End Turn -----------------------------------------------
    Alone in its corner, the biggest button in the game, and in exactly the same
-   place every turn of every game. It is the control the player presses more
-   than all the others put together, and muscle memory is the whole point. */
+   place every turn of every game, full stop — never nudged, never shared. It
+   is the control the player presses more than all the others put together,
+   and muscle memory is the whole point: a button that can move is a button
+   the hand has to look for.
+
+   The right-hand panels used to push it aside instead; now the geometry runs
+   the other way — they reserve this corner and stop short of it (see
+   `--end-turn-clearance` and the right-hand slot below), so this rule never
+   has to know whether one is open. */
 #hud-end-turn {
   position: fixed;
   right: 14px;
   bottom: 14px;
   z-index: 10;
-  transition: right 140ms ease-out;
-}
-
-/* Whichever right-hand panel is open — the city screen or the unit sheet — owns
-   the right edge while it is, so the button steps left rather than hiding
-   underneath it. 286px of panel plus its own margin. Both panels are the same
-   width, so one offset covers both. */
-body.is-panel-open #hud-end-turn {
-  right: 314px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #hud-end-turn {
-    transition: none;
-  }
 }
 
 .btn-end {
@@ -1659,13 +1665,29 @@ body.is-panel-open #hud-end-turn {
    One panel at a time, in one place: the city screen when a city is open, the
    unit sheet when a unit is selected. They are exclusive in `controls.ts`, and
    sharing the geometry here is what makes that promise visible — the same box
-   in the same corner, so the eye never has to find a second panel. */
+   in the same corner, so the eye never has to find a second panel.
+
+   Neither panel is ever tall enough to reach End Turn's corner: `bottom` is
+   `auto` and `max-height` stops the box the same distance above the button
+   that `#unit-panel` alone used to stop above the window edge — extended to
+   also clear `--end-turn-clearance`. A city panel long enough to hit that
+   ceiling scrolls internally (`overflow-y: auto`, already set below); the
+   unit sheet is short by nature and never approaches it, so it needs no rule
+   of its own any more — it simply inherits this slot's geometry.
+
+   The whole box is the scroll region, name and all — there is no sticky
+   header. That is the pre-existing behaviour (this rule had `overflow-y:
+   auto` before this corner reservation existed, for the rare city already
+   tall enough to need it), and the smaller cap only makes it fire sooner, so
+   keeping it a plain scroll rather than inventing a pinned header is the
+   change that actually stays the same size everywhere else. */
 #city-panel,
 #unit-panel {
   position: fixed;
   top: calc(var(--topbar-h) + 14px);
   right: 14px;
-  bottom: 14px;
+  bottom: auto;
+  max-height: calc(100dvh - var(--topbar-h) - 14px - var(--end-turn-clearance));
   z-index: 12;
   width: 286px;
   padding: 11px 13px 13px;
@@ -1678,14 +1700,33 @@ body.is-panel-open #hud-end-turn {
   font-size: 12px;
   line-height: 1.45;
   color: var(--ink);
-  scrollbar-color: var(--ink) var(--table);
+  /* The same thin-hairline treatment the star chart's stage wears, in the ink
+     voice rather than the chart's gilt — this box scrolls by wheel or drag on
+     its own content, not by a dedicated travel gesture, so the bar can afford
+     to be a little more present than the chart's. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-faint) transparent;
 }
 
-/* The unit sheet is short by nature; it stops where its content stops rather
-   than reserving the whole right edge for two numbers and a button. */
-#unit-panel {
-  bottom: auto;
-  max-height: calc(100dvh - var(--topbar-h) - 28px);
+#city-panel::-webkit-scrollbar,
+#unit-panel::-webkit-scrollbar {
+  width: 7px;
+}
+
+#city-panel::-webkit-scrollbar-track,
+#unit-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#city-panel::-webkit-scrollbar-thumb,
+#unit-panel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--ink-faint);
+}
+
+#city-panel::-webkit-scrollbar-thumb:hover,
+#unit-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-soft);
 }
 
 #city-panel[hidden],
