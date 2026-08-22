@@ -270,9 +270,10 @@ Two later corrections to that layer, both from play (2026-08-21):
 
 Register rule: systems keep grounded civilization-simulation names; period flavor only where it
 is function-forward or genuinely historical; ceremony copy carries the theme. Styling experiments
-(takes 6-9: Tyrian ceremony color, letterpress/chamfer/wax-seal treatments, textures, 3D abacus
-widget) are ARCHIVED for a later styling pass once the gameplay loop is settled — the specimen
-artifact preserves them.
+(takes 6-9: Tyrian ceremony color, letterpress/chamfer/wax-seal treatments, textures) are ARCHIVED
+for a later styling pass once the gameplay loop is settled — the specimen artifact preserves them.
+The 3D abacus was the one exception: it was built as a look-dev spike (`abacus.html`), approved,
+and is now the in-game score screen — the object is real, the beads are not yet.
 
 | surface | ships as |
 |---|---|
@@ -287,6 +288,7 @@ artifact preserves them.
 | unexplored (M8) | **Terra Incognita** · "hic svnt dracones" marginalia |
 | reroll tokens (M11/12) | **Magister's Dice** · "Cast the Lots" |
 | score (M11) | glass **beads** on **the Abacus** |
+| the score screen | **the Abacus** (3D, in-game since pre-M11; beads land at M11) |
 | events (parked) | **Auguries** |
 | religion (parked) | **the Mysteries** (contested draft, per Entry II note) |
 | turn splash | "Your turn, Magister" (kept) |
@@ -410,8 +412,24 @@ science scores continuously instead of gating; everyone races one legible number
      its close. Each age = a self-contained act; new deals each act = comeback structure.
    - **Age-close scoring** — small state-based award per age (cities, techs, government tier)
      so steady builders stay on the board.
-3. **Two ways to win:** first to threshold N beads → immediate win (early victory through
-   excellence, scaled by player count/speed); otherwise most beads at final age close.
+3. **Two ways to win:** first to threshold N beads → win; otherwise most beads at final age
+   close. **CLIMAX AMENDMENT (user, 2026-08-22): the threshold must not end with a whimper.**
+   Ordinary scoring carries a player to N−1 beads; **the final bead is the GOLDEN BEAD, and it
+   can only be earned by completing the Magnum Opus** — a declared, multi-turn capstone project
+   (the alchemists' Great Work; Entry X-compatible name). Properties that make it a climax:
+   - **Announced**: starting the Opus is a Tyrian ceremony moment every player sees ("Crimson
+     has begun the Magnum Opus") — the game's two-minute warning.
+   - **Visible & interruptible**: it builds in the capital over several turns (cost likely a
+     mixed sink — hammers + science + culture, TBD); capturing or razing-adjacent pressure on
+     that city halts it. The endgame becomes a defense/assault set-piece, not a mail delivery.
+   - **The golden bead is visualized**: the Abacus rod's final slot is distinct — gilt, larger —
+     and sits empty all game as the standing question.
+   - The curtain path (most-beads at final age close) needs no Opus — the final age's
+     objectives already give it shape — but a player MAY complete the Opus before the curtain
+     for the same golden bead, making the race dual-lane.
+   Open questions: Opus cost composition and scaling by speed/player count; whether N−1 must be
+   held (can you start the Opus early?  v0: requires N−1 beads to begin); what happens on
+   interruption (progress kept? halved?); AI valuation of Opus rushing/denial (M13).
 4. **War prices itself:** conquest mints big beads but captured cities cost authority (Entry I)
    — the domination path is throttled by an existing system, no warmonger rules needed.
 5. **Economic beads = economic/diplomatic hybrid (user, 2026-08-21), and PURE STAT CHECKS ARE
