@@ -12,11 +12,16 @@
  *             zero-scaled, and a blank vellum patch with a faint hex ruled on it
  *             is switched on in its place. Occasionally, in the empty quarters,
  *             a serpent (*hic svnt dracones*).
- *   explored  the diorama, **washed out**: every instance's ink mixed halfway
- *             toward a flat grey vellum (`fog.exploredDim` /
- *             `fog.exploredWash`). Remembered terrain, not watched terrain, and
- *             loudly so — the watched region has to read as a lit bubble from
- *             across the room.
+ *   explored  the diorama, **washed out and knocked back**: every instance's
+ *             ink mixed halfway toward a flat grey vellum (`fog.exploredDim` /
+ *             `fog.exploredWash`) and then taken down in value
+ *             (`fog.exploredShade`). Remembered terrain, not watched terrain,
+ *             and loudly so — the watched region has to read as a lit bubble
+ *             from across the room, and a bubble is only lit if there is
+ *             something darker around it. The shade is not decoration: without
+ *             it the mix alone moved a grassland face's luminance by four
+ *             percent, upward, and the two halves of the board came out the
+ *             same picture. See `InstanceCollector.setWash`.
  *   visible   untouched.
  *
  * THE CONSTRAINT, and how it is met
@@ -84,6 +89,18 @@ const FOG = VIEW3D.fog;
 
 /** No wash at all: what a currently-watched tile is painted at. */
 const CLEAR = 0;
+
+/**
+ * The two strengths a tile can be painted at, as `setWash` takes them.
+ *
+ * A pair rather than two loose numbers because they are one decision — how a
+ * remembered hex differs from a watched one — and because the first attempt
+ * shipped only the first half of it. See `FogSpec` in `lookData.ts`: the mix
+ * greys the ink toward the chart, and the shade is what makes the watched
+ * region read as *lit* rather than merely as more colourful.
+ */
+const REMEMBERED = { mix: FOG.exploredDim, shade: FOG.exploredShade };
+const WATCHED = { mix: CLEAR, shade: CLEAR };
 
 /**
  * One seat's view of the board, as the layers that filter by it see it:
@@ -368,10 +385,10 @@ export class FogView {
       if (level === HIDDEN) {
         for (const handle of own) InstanceCollector.hide(handle);
       } else {
-        const mix = level === EXPLORED ? FOG.exploredDim : CLEAR;
+        const wash = level === EXPLORED ? REMEMBERED : WATCHED;
         for (const handle of own) {
           InstanceCollector.restore(handle);
-          InstanceCollector.setWash(handle, FOG.exploredWash, mix);
+          InstanceCollector.setWash(handle, FOG.exploredWash, wash.mix, wash.shade);
         }
       }
     }
@@ -408,11 +425,8 @@ export class FogView {
     InstanceCollector.restore(edge.handle);
     // The water takes the wash exactly as the banks do; a bright river running
     // through washed-out ground would be the one thing that had not faded.
-    InstanceCollector.setWash(
-      edge.handle,
-      FOG.exploredWash,
-      best === VISIBLE ? CLEAR : FOG.exploredDim,
-    );
+    const wash = best === VISIBLE ? WATCHED : REMEMBERED;
+    InstanceCollector.setWash(edge.handle, FOG.exploredWash, wash.mix, wash.shade);
   }
 
   /** Switches one tile's serpent on or off, if it is not already right. */

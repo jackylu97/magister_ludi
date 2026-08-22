@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { InstancedMesh, Matrix4, MeshBasicMaterial, Quaternion } from 'three';
+import {
+  DataTexture,
+  Group,
+  InstancedMesh,
+  Matrix4,
+  MeshBasicMaterial,
+  Quaternion,
+} from 'three';
 
-import { type TileIcons, MARGINALIA_CELLS, tileIconIndex } from '../src/render3d/badges3d';
+import {
+  type TileIcons,
+  type UnitBadges,
+  MARGINALIA_CELLS,
+  tileIconIndex,
+} from '../src/render3d/badges3d';
 import { BoardGeometry, buildBoard } from '../src/render3d/board3d';
 import { CityLayer, TerritoryLayer } from '../src/render3d/cities3d';
 import {
@@ -11,8 +23,14 @@ import {
   levelAt,
   seesCell,
 } from '../src/render3d/fog3d';
-import { HIDDEN_MATRIX, INSTANCE_WRITES, resetInstanceWrites } from '../src/render3d/instances';
-import { LensLayer } from '../src/render3d/lens3d';
+import {
+  type InstanceHandle,
+  HIDDEN_MATRIX,
+  INSTANCE_WRITES,
+  InstanceCollector,
+  resetInstanceWrites,
+} from '../src/render3d/instances';
+import { LensLayer, NO_LENS } from '../src/render3d/lens3d';
 import { VIEW3D } from '../src/render3d/lookData';
 import { UnitLayer } from '../src/render3d/pieces';
 import { MaterialLibrary } from '../src/render3d/toon';
@@ -114,6 +132,9 @@ const fakeIcons = {
   material: new MeshBasicMaterial({ depthTest: false, depthWrite: false }),
   standingMaterial: new MeshBasicMaterial(),
 } as unknown as TileIcons;
+
+/** The same stand-in for the badge atlas; the layer only ever wants a material. */
+const fakeBadges = { material: new MeshBasicMaterial() } as unknown as UnitBadges;
 
 // --- the mapping ------------------------------------------------------------
 
@@ -514,6 +535,308 @@ describe('the serpent marginalia', () => {
     expect(chance).toBeGreaterThan(0);
     expect(chance).toBeLessThan(0.1);
     expect(VIEW3D.fog.serpentRegion).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// --- what the three levels actually look like -------------------------------
+
+/**
+ * Everything below asks about the *picture*, not about the buffer.
+ *
+ * The wash was written, tested and shipped as a claim about an instance-colour
+ * multiplier — "it moved, and it moved by more than a tenth" — and that claim
+ * was true the whole time the board was visibly broken. A multiplier is not a
+ * colour: what reaches the screen is the bucket's own ink *times* the
+ * multiplier, and the terrain palette is pitched deliberately in the same
+ * mid-luminance band as the chart grey the wash mixes toward. Mixed halfway to
+ * it, sage came out four percent **brighter** than it started and lagoon sixteen
+ * percent brighter, so a remembered coastline was the *lit* half of the board.
+ *
+ * So these read the composed colour and judge it the way an eye would — by
+ * luminance — and the thresholds are perceptual rather than arithmetic. A test
+ * that can pass while the two halves of the board look identical is not a test
+ * of fog of war.
+ */
+
+interface BucketPeek {
+  bucket: {
+    mesh: InstancedMesh | null;
+    colors: number[];
+    material: unknown;
+  };
+}
+
+/**
+ * The colour one instance is *rendered* in, as the fragment shader composes it:
+ * the bucket's ink multiplied by the per-instance tint attribute.
+ *
+ * The ink is the bucket's second colour when it has several, because a
+ * multi-colour bucket is a hex prism whose groups are side / top cap / bottom
+ * cap and the top cap is the face anybody is looking at — the same reading
+ * `InstanceCollector.setWash` takes when it works the multiplier out.
+ */
+function renderedInk(handle: InstanceHandle): [number, number, number] {
+  const { bucket } = handle as unknown as BucketPeek;
+  const ink = bucket.colors.length > 1 ? bucket.colors[1]! : (bucket.colors[0] ?? 0xffffff);
+  const base: [number, number, number] = [
+    ((ink >> 16) & 255) / 255,
+    ((ink >> 8) & 255) / 255,
+    (ink & 255) / 255,
+  ];
+  const color = bucket.mesh?.instanceColor;
+  if (!color) return base;
+  const values = color.array as Float32Array;
+  const at = handle.start * 3;
+  return [base[0] * values[at]!, base[1] * values[at + 1]!, base[2] * values[at + 2]!];
+}
+
+/** Relative luminance, which is what "darker" means to an eye. */
+function luminance(rgb: readonly [number, number, number]): number {
+  return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+}
+
+/** The brightest thing this tile draws, which is what the eye lands on. */
+function tileLuminance(board: ReturnType<typeof buildBoard>, index: number): number {
+  let best = 0;
+  for (const handle of board.tiles.own.get(index) ?? []) {
+    best = Math.max(best, luminance(renderedInk(handle)));
+  }
+  return best;
+}
+
+/** A real generated board — every terrain the game can draw, on one map. */
+function realRig(): Rig {
+  const state = newGame({
+    seed: 12345,
+    sizeName: 'duel',
+    players: [
+      { name: 'A', color: '#d4502e', isHuman: true },
+      { name: 'B', color: '#3d6ea5' },
+    ],
+  });
+  return rig(state);
+}
+
+describe('the wash, as a picture rather than as a multiplier', () => {
+  it('takes light out of remembered ground, not only colour', () => {
+    const state = flatState();
+    const { board, fog } = rig(state);
+    const warrior = createUnit(state, 0, 'warrior', 10, 5);
+    fog.apply(state.visibility[0]!);
+
+    const index = tileIndex(state.map, 10, 5);
+    const handle = board.tiles.own.get(index)![0]!;
+    const watched = luminance(renderedInk(handle));
+
+    warrior.col = 2;
+    warrior.row = 1;
+    recomputeVisibility(state, 0);
+    fog.apply(state.visibility[0]!);
+    expect(fog.paintedLevel(index)).toBe(EXPLORED);
+
+    // The number that matters. Under the wash-only maths this ratio was 1.04 —
+    // remembered ground was *brighter* than watched ground — and every existing
+    // assertion still passed, because the multiplier had indeed moved.
+    const remembered = luminance(renderedInk(handle));
+    expect(remembered).toBeLessThan(watched * 0.8);
+
+    // Walking back is still an exact restore, not an approximation of one: a
+    // hex that has been remembered once must be indistinguishable from one that
+    // never was.
+    warrior.col = 10;
+    warrior.row = 5;
+    recomputeVisibility(state, 0);
+    fog.apply(state.visibility[0]!);
+    expect(luminance(renderedInk(handle))).toBeCloseTo(watched, 6);
+  });
+
+  it('never brightens a hex, on any terrain a generated map can put down', () => {
+    // One real board, so this covers every terrain colour, every prop and every
+    // scrap of clutter at once — including the water and the rock, which are the
+    // two the old maths pushed the *wrong way* hardest.
+    const { state, board, fog } = realRig();
+    const count = state.map.tiles.length;
+    fog.apply(new Array<number>(count).fill(VISIBLE));
+
+    const watched: number[] = [];
+    for (let index = 0; index < count; index++) watched.push(tileLuminance(board, index));
+
+    fog.apply(new Array<number>(count).fill(EXPLORED));
+    let brightened = 0;
+    let worst = 0;
+    for (let index = 0; index < count; index++) {
+      const ratio = tileLuminance(board, index) / watched[index]!;
+      if (ratio > 1) brightened += 1;
+      worst = Math.max(worst, ratio);
+    }
+    expect(brightened).toBe(0);
+    // And not merely "not brighter": every hex on the map has to be knocked back
+    // far enough that the frontier is a line somebody can see across the room.
+    expect(worst).toBeLessThan(0.85);
+  });
+
+  it('paints all three levels as three different pictures, end to end', () => {
+    // The whole path a real game takes: a generated map, the sim's own tri-state
+    // grid for the local seat, and the fog pass reading it exactly as the
+    // renderer's frame does — no synthetic level array anywhere.
+    const { state, board, fog } = realRig();
+    const seat = 0;
+
+    // March everybody east so the ground they started on is remembered rather
+    // than watched, then let the simulation say what that seat can see.
+    for (const unit of state.units) {
+      if (unit.ownerId === seat) unit.col = (unit.col + 12) % state.map.width;
+    }
+    recomputeVisibility(state, seat);
+    fog.apply(state.visibility[seat]!);
+
+    const levels = state.visibility[seat]!;
+    const byLevel = { [HIDDEN]: 0, [EXPLORED]: 0, [VISIBLE]: 0 } as Record<number, number>;
+    for (const level of levels) byLevel[level] = (byLevel[level] ?? 0) + 1;
+    // A fixture that had no remembered ground in it would assert nothing at all.
+    expect(byLevel[EXPLORED]).toBeGreaterThan(0);
+    expect(byLevel[VISIBLE]).toBeGreaterThan(0);
+    expect(byLevel[HIDDEN]).toBeGreaterThan(0);
+
+    // Every hex is judged against *its own* watched appearance rather than
+    // against the other region's average: the two halves of a real board are not
+    // the same terrain, and a comparison that ignored that would be measuring
+    // where the scouts went rather than what the fog did.
+    const lit = new Array<number>(levels.length);
+    fog.apply(new Array<number>(levels.length).fill(VISIBLE));
+    for (let index = 0; index < levels.length; index++) lit[index] = tileLuminance(board, index);
+    fog.apply(levels);
+
+    for (let index = 0; index < levels.length; index++) {
+      const handles = board.tiles.own.get(index) ?? [];
+      if (levels[index] === HIDDEN) {
+        // Terra Incognita is the absence of a picture, not a dim one.
+        for (const handle of handles) {
+          const { bucket } = handle as unknown as BucketPeek;
+          expect(isHiddenMatrix(matrixOf(bucket.mesh!, handle.start))).toBe(true);
+        }
+        continue;
+      }
+      for (const handle of handles) {
+        const { bucket } = handle as unknown as BucketPeek;
+        expect(isHiddenMatrix(matrixOf(bucket.mesh!, handle.start))).toBe(false);
+      }
+      const light = tileLuminance(board, index);
+      if (levels[index] === VISIBLE) expect(light).toBeCloseTo(lit[index]!, 6);
+      else expect(light).toBeLessThan(lit[index]! * 0.85);
+    }
+  });
+});
+
+// --- what the wash may not touch --------------------------------------------
+
+describe('the printed buckets the fog must leave alone', () => {
+  /**
+   * A textured bucket — a unit badge, a resource roundel, a serpent — carries a
+   * *picture* where every other bucket carries an ink, and the per-instance
+   * colour attribute multiplies whatever the shader has. So a wash that reached
+   * one would not knock its ground back, it would knock the print itself back:
+   * the parchment would grey out and the thin strokes drawn on it would go with
+   * it, which is a roundel with nothing on it.
+   *
+   * Nothing on the board asks for that today — the board collector is the only
+   * one that forces tints and it draws no atlas — but the two are one careless
+   * option away from each other, and the failure is invisible in every count and
+   * every draw-call assertion this suite makes. So the contract is pinned from
+   * both ends: the collector must not *give* a printed bucket a colour
+   * attribute, and `setWash` must not write to one if it somehow has.
+   */
+  function printedBucket(): { handle: InstanceHandle; mesh: InstancedMesh; atlas: MeshBasicMaterial } {
+    const geometry = new BoardGeometry();
+    const mats = materials();
+    const atlas = new MeshBasicMaterial({ map: new DataTexture(new Uint8Array(4), 1, 1) });
+    const collector = new InstanceCollector({
+      copyOffsets: [0],
+      snapshot: true,
+      forceTint: true,
+    });
+    const handle = collector.add(
+      geometry.badgeIcons.melee,
+      [VIEW3D.badges.paperColor],
+      new Matrix4(),
+      { material: atlas, tint: [0.2, 0.2, 0.2], tile: 0 },
+    );
+    const group = new Group();
+    collector.flush(group, mats, false);
+    const mesh = group.children.find((c) => c instanceof InstancedMesh) as InstancedMesh;
+    return { handle, mesh, atlas };
+  }
+
+  it('are given no instance colour, even by a collector that forces them', () => {
+    const { mesh, atlas } = printedBucket();
+    expect(mesh.material).toBe(atlas);
+    expect((mesh.material as MeshBasicMaterial).map).not.toBeNull();
+    expect(mesh.instanceColor).toBeNull();
+  });
+
+  it('are skipped by the wash outright', () => {
+    const { handle, mesh } = printedBucket();
+    InstanceCollector.setWash(handle, VIEW3D.fog.exploredWash, VIEW3D.fog.exploredDim, 0.5);
+    expect(mesh.instanceColor).toBeNull();
+  });
+
+  it('leaves the badge and marker layers untouched when the board repaints', () => {
+    // The layers that carry the atlases are rebuilt off the seat, never patched
+    // by the fog — so a fog pass over the same board and the same materials has
+    // to be a no-op on every instance they own, in matrices and in colour alike.
+    const { state, fog } = realRig();
+    const geometry = new BoardGeometry();
+    const mats = materials();
+    const levels = state.visibility[0]!;
+
+    const units = new UnitLayer();
+    units.build(state, geometry, mats, new Quaternion(), false, null, fakeBadges, null, levels);
+    const lens = new LensLayer();
+    lens.build(
+      state,
+      { ...NO_LENS, resources: true, playerId: 0 } as LensView,
+      geometry,
+      mats,
+      fakeIcons,
+      new Quaternion(),
+      levels,
+    );
+
+    const printed = [...units.group.children, ...lens.group.children].filter(
+      (child): child is InstancedMesh =>
+        child instanceof InstancedMesh &&
+        (child.material === fakeBadges.material ||
+          child.material === fakeIcons.standingMaterial ||
+          child.material === fakeIcons.material),
+    );
+    // The fixture has to actually contain the things under test.
+    expect(printed.length).toBeGreaterThan(0);
+    expect(printed.some((mesh) => mesh.material === fakeBadges.material)).toBe(true);
+    expect(printed.some((mesh) => mesh.material === fakeIcons.standingMaterial)).toBe(true);
+
+    for (const mesh of printed) {
+      // Render-ready: the atlas material is intact, no tint stands between the
+      // texture and the screen, and nothing is zero-scaled.
+      expect(mesh.instanceColor).toBeNull();
+      expect(mesh.count).toBeGreaterThan(0);
+      for (let i = 0; i < mesh.count; i++) {
+        expect(isHiddenMatrix(matrixOf(mesh, i))).toBe(false);
+      }
+    }
+    const before = printed.map((mesh) => (mesh.instanceMatrix.array as Float32Array).slice());
+
+    // Now move the whole board's visibility and repaint.
+    fog.apply(new Array<number>(state.map.tiles.length).fill(EXPLORED));
+
+    printed.forEach((mesh, i) => {
+      expect(mesh.instanceColor).toBeNull();
+      expect(Array.from(mesh.instanceMatrix.array as Float32Array)).toEqual(
+        Array.from(before[i]!),
+      );
+    });
+    units.dispose();
+    lens.dispose();
+    geometry.dispose();
   });
 });
 

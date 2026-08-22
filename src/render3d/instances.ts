@@ -165,8 +165,11 @@ interface Bucket {
    * worked out once and reused. See `setWash`: the factor depends only on the
    * bucket's colour and the strength asked for, and a board being washed is
    * asking for one of two strengths on tens of thousands of instances.
+   *
+   * Keyed by `mix|shade`, because a wash is two numbers and caching on one of
+   * them would hand the second strength the first one's answer.
    */
-  washes: Map<number, { mesh: Tint; shell: Tint }>;
+  washes: Map<string, { mesh: Tint; shell: Tint }>;
 }
 
 /**
@@ -371,7 +374,14 @@ export class InstanceCollector {
         opacity,
         matrices: [],
         tints: [],
-        tinted: this.forceTint,
+        // Never a printed bucket, however loudly the collector was asked. A
+        // per-instance colour multiplies whatever the fragment shader has —
+        // which for a textured bucket is the *atlas*, not an ink — so a forced
+        // attribute here would put the board's fog machinery one careless write
+        // away from greying out every roundel on it. `setWash` refuses these
+        // buckets from the other end; this is the half that makes sure there is
+        // nothing there to write to. See `Bucket.material`.
+        tinted: this.forceTint && !custom,
         mesh: null,
         shell: null,
         ghost: null,
@@ -382,8 +392,10 @@ export class InstanceCollector {
       this.buckets.set(key, bucket);
     }
 
-    const tint = options.tint ?? NO_TINT;
-    if (options.tint) bucket.tinted = true;
+    // A printed bucket is never tinted — see `Bucket.material`, and `tinted`
+    // above. A caller that asks anyway gets the print, not a multiplied print.
+    const tint = (custom ? null : options.tint) ?? NO_TINT;
+    if (tint !== NO_TINT) bucket.tinted = true;
 
     const start = bucket.matrices.length;
     for (const dx of this.copyOffsets) {
@@ -580,8 +592,8 @@ export class InstanceCollector {
   }
 
   /**
-   * Washes an instance's ink toward `target`: `mix` of 0 leaves it exactly as
-   * built, 1 replaces it wholesale.
+   * Washes an instance's ink toward `target` and takes `shade` of the light out
+   * of the result. Both at 0 leaves it exactly as built.
    *
    * The per-instance colour attribute is a *multiplier*, not a colour (see
    * `Tint`), which is what keeps this composable with everything already in the
@@ -590,29 +602,50 @@ export class InstanceCollector {
    * wash toward a flat tone cannot be written directly; what is written is the
    * multiplier that *takes this bucket's own ink to the washed colour*:
    *
-   *     factor = ((1 − mix)·ink + mix·target) / ink
+   *     washed = ((1 − mix)·ink + mix·target) · (1 − shade)
+   *     factor = washed / ink
    *
    * That is a per-*bucket* number, because ink is the instancing key, so it is
-   * computed once per strength and cached. A dark bucket gets a factor above 1
-   * and is lifted toward the wash; a bright one is pulled down toward it. Both
-   * are what "washed" means and neither is what a plain dimming multiplier
-   * could have done — dimming makes remembered ground *darker*, and darker
-   * ground reads as night rather than as memory.
+   * computed once per strength pair and cached.
+   *
+   * Why the second term exists
+   * --------------------------
+   * The mix alone was the whole of this for one milestone, on the argument that
+   * dimming makes remembered ground *darker* and darker ground reads as night
+   * rather than as memory. The argument is right about the look and wrong about
+   * the arithmetic: a lerp toward a mid-luminance tone is a hue move, and the
+   * board's palette lives in that same mid band, so mixing halfway to the chart
+   * grey changed a grassland face's luminance by four percent — in the
+   * *brightening* direction — and lagoon's by sixteen. Remembered ground came
+   * out the same picture as watched ground, and on water it came out the lit
+   * one. `shade` is what makes "a lit bubble" a statement the pixels can
+   * support: the mix decides what remembered ground looks *like*, the shade
+   * decides that there is less light on it.
    *
    * The outline shell is washed too, from the outline material's own colour, so
    * a faded tile does not keep a full-strength black rim.
    *
-   * `mix` of 0 restores exactly, which is why there is no separate reset.
+   * A **printed** bucket — one that brought its own material, which is to say a
+   * texture atlas (see `Bucket.material`) — is skipped outright. Its "ink" is a
+   * picture, not a colour, and a multiplier over a texture would knock the print
+   * itself back: a parchment roundel would grey out and the thin strokes on it
+   * would go with it. That is the same contract `forceTint` keeps, from the
+   * other end.
+   *
+   * `mix` and `shade` of 0 restore exactly, which is why there is no separate
+   * reset.
    */
-  static setWash(handle: InstanceHandle, target: number, mix: number): void {
+  static setWash(handle: InstanceHandle, target: number, mix: number, shade = 0): void {
     const bucket = (handle as HandleImpl).bucket;
-    let wash = bucket.washes.get(mix);
+    if (bucket.material) return;
+    const key = `${mix}|${shade}`;
+    let wash = bucket.washes.get(key);
     if (!wash) {
       wash = {
-        mesh: washFactor(bucketInk(bucket), target, mix),
-        shell: washFactor(outlineInk(bucket), target, mix),
+        mesh: washFactor(bucketInk(bucket), target, mix, shade),
+        shell: washFactor(outlineInk(bucket), target, mix, shade),
       };
-      bucket.washes.set(mix, wash);
+      bucket.washes.set(key, wash);
     }
     writeWash(bucket.mesh, bucket.baseColor, handle, wash.mesh);
     // The shell's stored base is all ones (see `flush`), so the factor is
@@ -627,7 +660,7 @@ function channels(color: number): [number, number, number] {
 }
 
 /**
- * The multiplier that takes `ink` to `mix(ink, target, mix)`.
+ * The multiplier that takes `ink` to `mix(ink, target, mix) · (1 − shade)`.
  *
  * Guarded at both ends. A channel at or near zero cannot be multiplied *up* to
  * anything — 0 × anything is 0 — so it is floored before the division, which
@@ -635,15 +668,21 @@ function channels(color: number): [number, number, number] {
  * is then capped, because a genuinely black bucket would otherwise ask for a
  * multiplier in the hundreds and blow out to white the moment the wash is
  * anything at all.
+ *
+ * Both strengths at zero is the identity, and it has to be *exactly* the
+ * identity rather than approximately one: it is what a tile returning to sight
+ * is restored with, and a rounding error there would leave a ghost of the wash
+ * on every hex that had ever been remembered.
  */
-function washFactor(ink: number | null, target: number, mix: number): Tint {
-  if (ink === null || mix <= 0) return NO_TINT;
+function washFactor(ink: number | null, target: number, mix: number, shade: number): Tint {
+  if (ink === null || (mix <= 0 && shade <= 0)) return NO_TINT;
   const from = channels(ink);
   const to = channels(target);
+  const light = 1 - Math.max(0, Math.min(1, shade));
   const out: [number, number, number] = [1, 1, 1];
   for (let k = 0; k < 3; k++) {
     const base = Math.max(from[k]!, 0.02);
-    const washed = from[k]! * (1 - mix) + to[k]! * mix;
+    const washed = (from[k]! * (1 - mix) + to[k]! * mix) * light;
     out[k] = Math.max(0, Math.min(8, washed / base));
   }
   return out;

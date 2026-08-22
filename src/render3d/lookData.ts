@@ -578,12 +578,24 @@ export interface TableSpec {
  * than up from invisible. Half-strength desaturation is the kind of thing that
  * looks careful in a screenshot and is invisible in play.
  *
- * It is a **wash**, not a dimming, and the difference is the whole look: every
- * instance's ink is mixed toward `exploredWash` — a flat grey-vellum — so
- * remembered ground loses its *colour* rather than its light. Dimming makes it
- * darker, and darker ground reads as night; washing makes it paler and greyer,
- * and that reads as a chart. The mechanism that gets there through a
- * multiplier-only tint attribute is `InstanceCollector.setWash`.
+ * It is a **wash and a knock-back**, in that order, and it took a regression to
+ * learn that it has to be both. The wash is the look: every instance's ink is
+ * mixed toward `exploredWash` — a flat grey-vellum — so remembered ground loses
+ * its *colour* and reads as chart rather than as night. On its own it is also
+ * very nearly invisible, because a lerp toward a mid-luminance tan is a hue
+ * move and not a light one, and the terrain palette is *deliberately* pitched in
+ * that same mid band: mixed halfway to `chartWash`, sage lands 4% **brighter**
+ * than it started and lagoon 16% brighter. The board on either side of the
+ * frontier came out the same picture, and on the water the remembered half was
+ * the lit one.
+ *
+ * So the mix is followed by `exploredShade`, which takes the light out of the
+ * washed result. That is what makes the watched region a lit bubble — a bubble
+ * needs something darker around it, and no amount of greying is darker. The two
+ * numbers say different things and are tuned separately: `exploredDim` is *how
+ * much of the colour is gone*, `exploredShade` is *how much of the light is*.
+ * The mechanism that gets both through a multiplier-only tint attribute is
+ * `InstanceCollector.setWash`.
  */
 export interface FogSpec {
   /**
@@ -591,6 +603,16 @@ export interface FogSpec {
    * alone, 1 replaces it entirely. **The fog's one prominent tuning knob.**
    */
   exploredDim: number;
+  /**
+   * How much light is taken out of the washed result: 0 is the pure wash — which
+   * is what shipped with M8 and what nobody could see — and 1 is black.
+   *
+   * Separate from `exploredDim` because the two are separate perceptual claims
+   * and one of them cannot be made by the other (see the block docblock). This
+   * is the one that decides whether the frontier is legible from across the
+   * room; `exploredDim` decides what the far side of it looks *like*.
+   */
+  exploredShade: number;
   /** The flat tone remembered ground is washed toward. Grey vellum: chart. */
   exploredWash: number;
   /** The blank chart a hidden tile shows: colour, cover and how far it floats. */
@@ -1199,6 +1221,9 @@ export const VIEW3D: View3DData = {
     // at all, or remembered ground painted flat grey with the terrain gone —
     // read as the renderer being broken rather than as a bad number.
     exploredDim: Math.max(0, Math.min(1, viewJson.fog.exploredDim)),
+    // Clamped for the same reason and with the same two failure modes: 0 is the
+    // wash nobody could see, 1 is a black board.
+    exploredShade: Math.max(0, Math.min(1, viewJson.fog.exploredShade)),
     exploredWash: named(viewJson.fog.exploredWash, 'fog.exploredWash'),
     chartColor: named(viewJson.fog.chartColor, 'fog.chartColor'),
     chartOpacity: viewJson.fog.chartOpacity,
