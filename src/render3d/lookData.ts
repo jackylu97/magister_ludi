@@ -438,6 +438,17 @@ export interface LensSpec {
  */
 export interface UnitStyleSpec {
   style: 'pieces' | 'sprites';
+  /**
+   * How strongly a unit's x-ray ghost shows through whatever is standing in
+   * front of it — see `MaterialLibrary.silhouette`.
+   *
+   * The one number that decides whether the feature reads as "there is a piece
+   * behind that pine" or as "the pine has gone translucent". Low by design: a
+   * silhouette is a *hint about position*, not a second way to look at a unit,
+   * and everything a player needs to identify the piece is on the badge floating
+   * clear of the canopy anyway.
+   */
+  silhouetteAlpha: number;
   sprite: SpriteSpec;
 }
 
@@ -1360,6 +1371,11 @@ export const VIEW3D: View3DData = {
   },
   units: {
     style: parseUnitStyle(viewJson.units.style),
+    // Clamped: an alpha outside [0, 1] is a typo, and both failure modes — no
+    // ghost at all, or a solid player-coloured shape printed over the mountain
+    // in front of it — read as the renderer being broken rather than as a bad
+    // number.
+    silhouetteAlpha: Math.max(0, Math.min(1, viewJson.units.silhouetteAlpha)),
     sprite: {
       heightInHexWidths: viewJson.units.sprite.heightInHexWidths,
       lift: viewJson.units.sprite.lift,

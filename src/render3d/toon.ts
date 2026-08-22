@@ -40,9 +40,12 @@ import {
   Color,
   DataTexture,
   DoubleSide,
+  FrontSide,
+  GreaterDepth,
   type IUniform,
   MeshBasicMaterial,
   MeshToonMaterial,
+  type Texture,
   NearestFilter,
   RedFormat,
   UnsignedByteType,
@@ -169,6 +172,7 @@ export interface ToonOptions {
 export class MaterialLibrary {
   private readonly cache = new Map<string, MeshToonMaterial>();
   private readonly overlayCache = new Map<string, MeshBasicMaterial>();
+  private readonly silhouetteCache = new Map<string, MeshBasicMaterial>();
   /** Base colour per material, pre-saturation, so the slider is not cumulative. */
   private readonly baseColors = new Map<MeshToonMaterial, number>();
   private gradientMap: DataTexture;
@@ -260,6 +264,59 @@ export class MaterialLibrary {
     return material;
   }
 
+  /**
+   * The x-ray ghost of a unit: what shows through the pine tree standing in
+   * front of it.
+   *
+   * The whole trick is one flag. `depthFunc: GreaterDepth` inverts the depth
+   * test, so this material draws **only where something is already in front of
+   * it** — a fragment passes when its own depth is *greater* than what the depth
+   * buffer already holds. The unit's ordinary solid pass has already run and
+   * written its own depth, so on every pixel where the piece is plainly visible
+   * the ghost tests equal, not greater, and nothing is drawn at all. That is
+   * what keeps the pass free on an unoccluded board and, more importantly, what
+   * keeps the *solid* render honest: a mountain still occludes the real piece;
+   * all that changes is that a faint player-coloured shape appears where it did.
+   *
+   * `depthWrite: false` for the same reason every decal has it — a ghost must
+   * not punch its own occluder out of the depth buffer for whatever is drawn
+   * next. Two overlapping ghosts therefore blend rather than sorting, which at
+   * this alpha is not a picture anybody can tell apart from the right one.
+   *
+   * `map` is for the billboard art style: passing the sprite's own texture keeps
+   * `alphaTest` and so ghosts the *cut-out figure* rather than the whole card.
+   * Its colour comes through multiplied by the player's ink rather than replaced
+   * by it — a genuinely flat fill through a texture's alpha needs a shader of
+   * its own, and that is a lot of machinery for the art style that is not the
+   * default (`units.style` is `pieces`).
+   *
+   * Cached by colour and texture, exactly like every other material here, so a
+   * whole army of one player is one more `InstancedMesh` and not one per unit.
+   */
+  silhouette(color: number, map: Texture | null = null): MeshBasicMaterial {
+    const key = `${color}|${map ? map.uuid : 'flat'}`;
+    const existing = this.silhouetteCache.get(key);
+    if (existing) return existing;
+    const material = new MeshBasicMaterial({
+      color,
+      map,
+      transparent: true,
+      opacity: VIEW3D.units.silhouetteAlpha,
+      depthTest: true,
+      depthFunc: GreaterDepth,
+      depthWrite: false,
+      // A solid sculpt ghosts from its front faces only: drawing the back ones
+      // too would blend the shape over itself and double the alpha. A billboard
+      // is a single quad and, like the sprite material it is ghosting, is drawn
+      // double-sided so it cannot vanish by ending up back-facing.
+      side: map ? DoubleSide : FrontSide,
+      alphaTest: map ? VIEW3D.units.sprite.alphaTest : 0,
+      toneMapped: false,
+    });
+    this.silhouetteCache.set(key, material);
+    return material;
+  }
+
   setRampSteps(steps: number): void {
     const next = makeGradientMap(steps, this.rampFloor);
     for (const material of this.cache.values()) {
@@ -293,8 +350,10 @@ export class MaterialLibrary {
   dispose(): void {
     for (const material of this.cache.values()) material.dispose();
     for (const material of this.overlayCache.values()) material.dispose();
+    for (const material of this.silhouetteCache.values()) material.dispose();
     this.cache.clear();
     this.overlayCache.clear();
+    this.silhouetteCache.clear();
     this.baseColors.clear();
     this.outline.dispose();
     this.gradientMap.dispose();

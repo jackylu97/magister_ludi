@@ -72,6 +72,7 @@ import {
   signTerritory,
 } from './cities3d';
 import { type FogLevels, type FogStats, FogView, seesCell } from './fog3d';
+import { RENDER_ORDER } from './instances';
 import { LensLayer, NO_LENS, sameLens } from './lens3d';
 import { VIEW3D, playerPieceColor } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
@@ -1043,6 +1044,17 @@ export class Renderer3D implements MapView {
       shell.receiveShadow = false;
       shell.frustumCulled = false;
       mesh.add(shell);
+      // The walker's own x-ray ghost, so a piece does not stop showing through
+      // the canopy for exactly the length of its walk — which is the moment a
+      // player is most likely to be watching that particular hex. A child of the
+      // mesh, so it inherits the piece's turn and cannot come apart from it; the
+      // resting instance gets the same pass from the collector (see `pieces.ts`).
+      const ghost = new Mesh(shape, this.materials.silhouette(color));
+      ghost.castShadow = false;
+      ghost.receiveShadow = false;
+      ghost.frustumCulled = false;
+      ghost.renderOrder = RENDER_ORDER.silhouette;
+      mesh.add(ghost);
       copy.add(mesh);
       const badge = badgeFor();
       if (badge) copy.add(badge);

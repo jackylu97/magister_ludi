@@ -443,7 +443,8 @@ describe('badges in the units layer', () => {
       (c): c is InstancedMesh => c instanceof InstancedMesh,
     );
     expect(meshes.some((m) => m.geometry === board.badgeRim)).toBe(false);
-    expect(meshes).toHaveLength(2);
+    // The sculpt, its outline shell and its x-ray ghost — and no badge.
+    expect(meshes).toHaveLength(3);
     layer.dispose();
     board.dispose();
   });

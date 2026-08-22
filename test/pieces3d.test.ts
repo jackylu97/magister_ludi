@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { Box3, InstancedMesh, Matrix4, MeshToonMaterial, Quaternion, Vector3 } from 'three';
+import {
+  Box3,
+  type BufferGeometry,
+  DoubleSide,
+  FrontSide,
+  GreaterDepth,
+  InstancedMesh,
+  Matrix4,
+  MeshBasicMaterial,
+  MeshToonMaterial,
+  Quaternion,
+  Texture,
+  Vector3,
+} from 'three';
 
 import { BADGE_CELLS, BADGE_ICON_FILES } from '../src/render3d/badges3d';
 import {
@@ -21,10 +34,11 @@ import {
   trebuchetMini,
   warriorMini,
 } from '../src/render3d/geometry';
+import { RENDER_ORDER } from '../src/render3d/instances';
 import { VIEW3D } from '../src/render3d/lookData';
-import { UnitLayer, pieceColors, pieceMaterials } from '../src/render3d/pieces';
+import { UnitLayer, buildSpriteUnit, pieceColors, pieceMaterials } from '../src/render3d/pieces';
 import { MaterialLibrary } from '../src/render3d/toon';
-import { createMap } from '../src/sim/map';
+import { createMap, tileIndex } from '../src/sim/map';
 import { type GameState, newGame } from '../src/sim/state';
 import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../src/sim/unitData';
 import { resetVisibility } from '../src/sim/visibility';
@@ -59,6 +73,21 @@ function boundsOf(board: BoardGeometry, id: ModelClass): Box3 {
   piece.geometry.computeBoundingBox();
   return piece.geometry.boundingBox!;
 }
+
+/**
+ * How many `InstancedMesh`es one *piece* bucket puts on the board.
+ *
+ * Three passes over one geometry and one instance buffer, and naming the number
+ * is the point: it is the draw-call price of a unit class, and the tests that
+ * count meshes should fail loudly the day a fourth pass is added rather than
+ * quietly absorbing it.
+ *
+ *   1. the lit sculpt          — `MeshToonMaterial`, the honest render.
+ *   2. the inverted-hull shell — the ink outline.
+ *   3. the x-ray ghost        — `MaterialLibrary.silhouette`, drawn only where
+ *                               world geometry is in front of the piece.
+ */
+const MESHES_PER_PIECE_BUCKET = 3;
 
 describe('the model-class roster', () => {
   it('gives every unit type in units.json a class model', () => {
@@ -360,13 +389,14 @@ describe('the units layer in pieces style', () => {
     for (const type of types) {
       expect(drawn.has(board.pieces[modelClassFor(type)].geometry), type).toBe(true);
     }
-    // One lit mesh and one inverted-hull shell per *class*, and nothing else on
-    // a board where nobody is hurt and no badge atlas has loaded: no HP bars,
-    // and no blob shadow — the base disc casts a real one. See the `pieces.ts`
-    // docblock. Three types, three classes here (melee, mounted, siege).
+    // One lit mesh, one inverted-hull shell and one x-ray ghost per *class*, and
+    // nothing else on a board where nobody is hurt and no badge atlas has
+    // loaded: no HP bars, and no blob shadow — the base disc casts a real one.
+    // See the `pieces.ts` docblock. Three types, three classes here (melee,
+    // mounted, siege).
     const classes = new Set(types.map((type) => modelClassFor(type)));
     expect(classes.size).toBe(3);
-    expect(meshes).toHaveLength(classes.size * 2);
+    expect(meshes).toHaveLength(classes.size * MESHES_PER_PIECE_BUCKET);
     expect(drawn.has(board.blob)).toBe(false);
     expect(drawn.has(board.standee)).toBe(false);
     for (const mesh of meshes) {
@@ -390,7 +420,7 @@ describe('the units layer in pieces style', () => {
       null,
     );
     const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
-    expect(meshes).toHaveLength(2);
+    expect(meshes).toHaveLength(MESHES_PER_PIECE_BUCKET);
     expect(meshes[0]!.geometry).toBe(board.pieces.siege.geometry);
     // Three wrap copies apiece, in one buffer.
     expect(meshes[0]!.count).toBe(6);
@@ -450,11 +480,267 @@ describe('the units layer in pieces style', () => {
       { materialFor: () => null, any: false } as never,
     );
     const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
-    expect(meshes.map((m) => m.geometry)).toEqual([
-      board.pieces.melee.geometry,
-      board.pieces.melee.geometry,
-    ]);
+    // The sculpt, its outline shell and its x-ray ghost: one geometry, three
+    // passes. See `MESHES_PER_PIECE_BUCKET`.
+    expect(meshes.map((m) => m.geometry)).toEqual(
+      new Array<BufferGeometry>(MESHES_PER_PIECE_BUCKET).fill(board.pieces.melee.geometry),
+    );
     layer.dispose();
     board.dispose();
+  });
+});
+
+// --- the x-ray silhouette ---------------------------------------------------
+
+/**
+ * The occlusion ghost: what shows through the pine tree standing in front of a
+ * unit.
+ *
+ * Everything worth asserting here is a *material flag* or a *mesh count*, and
+ * that is not a limitation of testing in node — it is where the feature
+ * actually lives. The visible result is one line of GPU state: an inverted depth
+ * test. So the tests below pin the flags that produce it, the draw-call price of
+ * producing it, and the two things it must not break — fog filtering and the
+ * walk-hide — and the appearance itself is a browser-only check.
+ */
+describe('the x-ray silhouette', () => {
+  function seatedState(types: UnitTypeId[]): GameState {
+    const game = newGame({
+      seed: 11,
+      sizeName: 'duel',
+      players: [
+        { name: 'A', color: '#d4502e', isHuman: true },
+        { name: 'B', color: '#3f639f' },
+      ],
+    });
+    game.map = createMap({ width: 14, height: 10, terrain: 'grassland' });
+    game.tileOwner = new Array<number | null>(14 * 10).fill(null);
+    game.cities = [];
+    game.units = types.map((type, i) => ({
+      id: i + 1,
+      type,
+      ownerId: 0,
+      col: 2 + i * 2,
+      row: 3,
+      hp: unitDef(type).maxHp,
+      movesLeft: 2,
+      hasAttacked: false,
+    }));
+    // The board was replaced under this state; the fog grids were sized for the
+    // old one. See `resetVisibility` — and run it *after* the units, so the seat
+    // is actually looking at them.
+    resetVisibility(game);
+    return game;
+  }
+
+  function build(game: GameState, levels: readonly number[] | null = null) {
+    const board = geometry();
+    const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    const layer = new UnitLayer();
+    layer.build(game, board, materials, new Quaternion(), false, null, null, null, levels);
+    const meshes = layer.group.children.filter(
+      (c): c is InstancedMesh => c instanceof InstancedMesh,
+    );
+    return { board, materials, layer, meshes };
+  }
+
+  /** The ghost meshes: the ones drawn with a silhouette material. */
+  function ghosts(meshes: InstancedMesh[]): InstancedMesh[] {
+    return meshes.filter(
+      (mesh) =>
+        mesh.material instanceof MeshBasicMaterial && mesh.material.depthFunc === GreaterDepth,
+    );
+  }
+
+  it('inverts the depth test, and writes no depth of its own', () => {
+    const { layer, meshes, board } = build(seatedState(['warrior']));
+    const ghost = ghosts(meshes)[0]!;
+    const material = ghost.material as MeshBasicMaterial;
+
+    // THE flag. `GreaterDepth` means a fragment survives only where the depth
+    // buffer already holds something *nearer* — i.e. only where the piece is
+    // occluded. The unit's own solid pass is opaque and has already written its
+    // depth, so on every pixel where the piece is plainly visible this tests
+    // equal rather than greater and draws nothing at all. That is why a unit
+    // standing in the open costs this pass nothing, and why the solid render
+    // stays honest: a mountain still hides the real piece.
+    expect(material.depthFunc).toBe(GreaterDepth);
+    expect(material.depthTest).toBe(true);
+    // No depth write, for the reason every decal has none: a ghost must not
+    // punch its own occluder out of the buffer for whatever is drawn next.
+    expect(material.depthWrite).toBe(false);
+    expect(material.transparent).toBe(true);
+    expect(material.opacity).toBe(VIEW3D.units.silhouetteAlpha);
+    expect(VIEW3D.units.silhouetteAlpha).toBeGreaterThan(0);
+    expect(VIEW3D.units.silhouetteAlpha).toBeLessThan(1);
+    // Flat player ink, not the sculpt's toon shading: a ghost is a position, not
+    // a second view of the model.
+    expect(material.map).toBeNull();
+    expect(ghost.castShadow).toBe(false);
+    expect(ghost.receiveShadow).toBe(false);
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('sits above the board decals and below everything the interface says', () => {
+    const { layer, meshes, board } = build(seatedState(['warrior']));
+    expect(ghosts(meshes)[0]!.renderOrder).toBe(RENDER_ORDER.silhouette);
+    // The slot is the statement: a ghost is information about a *piece*, so it
+    // beats a territory tint, which is scenery — and it loses to everything from
+    // `onTop` up, because a selection ring or a route dot must never be tinted
+    // by a ghost lying under it.
+    expect(RENDER_ORDER.silhouette).toBeGreaterThan(RENDER_ORDER.overlay);
+    expect(RENDER_ORDER.silhouette).toBeLessThan(RENDER_ORDER.onTop);
+    expect(RENDER_ORDER.silhouette).toBeLessThan(RENDER_ORDER.badge);
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('costs one draw per existing piece bucket, not one per unit', () => {
+    // Six units, two classes. The ghost is a second pass over the *same*
+    // instance buffer, so the price is per bucket and a sixth warrior is free.
+    const types: UnitTypeId[] = ['warrior', 'warrior', 'warrior', 'catapult', 'catapult', 'catapult'];
+    const { layer, meshes, board } = build(seatedState(types));
+    const classes = new Set(types.map((type) => modelClassFor(type)));
+    expect(classes.size).toBe(2);
+
+    expect(meshes).toHaveLength(classes.size * MESHES_PER_PIECE_BUCKET);
+    const ghosted = ghosts(meshes);
+    expect(ghosted).toHaveLength(classes.size);
+    // The delta against a board with no silhouette at all: exactly +1 mesh per
+    // piece bucket, and nothing else moved.
+    expect(meshes.length - ghosted.length).toBe(classes.size * (MESHES_PER_PIECE_BUCKET - 1));
+
+    for (const ghost of ghosted) {
+      // All three passes over one geometry share one instance buffer, so they
+      // share its length: three wrap copies of three units.
+      const passes = meshes.filter((mesh) => mesh.geometry === ghost.geometry);
+      expect(passes).toHaveLength(MESHES_PER_PIECE_BUCKET);
+      for (const pass of passes) expect(pass.count).toBe(9);
+    }
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('shares one ghost material per player colour', () => {
+    const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    const a = materials.silhouette(0x112233);
+    const b = materials.silhouette(0x112233);
+    const c = materials.silhouette(0x445566);
+    // Cached like every other material here, which is what keeps a whole army in
+    // one bucket: two units of one player share a ghost, two players do not.
+    expect(a).toBe(b);
+    expect(c).not.toBe(a);
+    materials.dispose();
+  });
+
+  it('is not given to badges, rims or HP bars', () => {
+    const game = seatedState(['warrior']);
+    game.units[0]!.hp = 40;
+    const { layer, meshes, board } = build(game);
+    // Only the sculpt ghosts. A badge is already drawn clear of the canopy, an
+    // HP bar already ignores depth entirely, and a rim is player colour on a
+    // disc — ghosting any of them would be a second copy of a readout that was
+    // never occluded in the first place.
+    expect(ghosts(meshes)).toHaveLength(1);
+    expect(ghosts(meshes)[0]!.geometry).toBe(board.pieces.melee.geometry);
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('is filtered by the seat exactly as the solid piece is', () => {
+    const game = seatedState(['warrior']);
+    // A second player's unit, far away and unwatched.
+    game.units.push({
+      id: 99,
+      type: 'warrior',
+      ownerId: 1,
+      col: 12,
+      row: 8,
+      hp: 100,
+      movesLeft: 2,
+      hasAttacked: false,
+    });
+    const levels = game.visibility[0]!;
+    expect(levels[tileIndex(game.map, 12, 8)]).toBe(0);
+
+    const fogged = build(game, levels);
+    // One class, one player drawn: the far warrior contributes neither a solid
+    // pass nor a ghost. The ghost needs no fog rule of its own — it is created
+    // by the same `add` the piece is, so a unit that was never added has no
+    // silhouette to leak.
+    expect(ghosts(fogged.meshes)).toHaveLength(1);
+    fogged.layer.dispose();
+    fogged.board.dispose();
+
+    const omniscient = build(game, null);
+    // Without fog both players are drawn, and each colour is its own bucket.
+    expect(ghosts(omniscient.meshes)).toHaveLength(2);
+    omniscient.layer.dispose();
+    omniscient.board.dispose();
+  });
+
+  it('travels with the piece when a walk hides it', () => {
+    const game = seatedState(['warrior']);
+    const { layer, meshes, board } = build(game);
+    const ghost = ghosts(meshes)[0]!;
+    const before = new Matrix4();
+    ghost.getMatrixAt(0, before);
+
+    layer.hide(game.units[0]!.id);
+    const hidden = new Matrix4();
+    ghost.getMatrixAt(0, hidden);
+    // A silhouette left hovering over an empty tile while its unit slid away
+    // would be the most visible bug on the board, so hide moves all three passes
+    // together (see `InstanceCollector.hide`).
+    expect(hidden.elements.every((value) => value === 0 || value === 1)).toBe(true);
+    expect(hidden.equals(before)).toBe(false);
+
+    layer.restore(game.units[0]!.id);
+    const restored = new Matrix4();
+    ghost.getMatrixAt(0, restored);
+    expect(restored.equals(before)).toBe(true);
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('ghosts a billboard through its own cut-out, not as a rectangle', () => {
+    const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    const map = new Texture();
+    const ghost = materials.silhouette(0x112233, map);
+    // The sprite path keeps the texture so `alphaTest` still cuts the figure
+    // out — what shows through a pine is the shape of the soldier. Double-sided
+    // like the sprite material it is ghosting, so it cannot vanish by ending up
+    // back-facing.
+    expect(ghost.map).toBe(map);
+    expect(ghost.alphaTest).toBe(VIEW3D.units.sprite.alphaTest);
+    expect(ghost.side).toBe(DoubleSide);
+    expect(ghost.depthFunc).toBe(GreaterDepth);
+    // The flat one is single-sided: drawing a solid sculpt's back faces too
+    // would blend the shape over itself and double the alpha.
+    expect(materials.silhouette(0x112233).side).toBe(FrontSide);
+    materials.dispose();
+  });
+
+  it('gives a walking billboard the same ghost its resting one has', () => {
+    const board = geometry();
+    const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    const sprite = new MeshBasicMaterial({ map: new Texture(), alphaTest: 0.4 });
+    const group = buildSpriteUnit(board, materials, sprite, 0x112233, new Quaternion());
+
+    const found: InstancedMesh[] = [];
+    group.traverse((child) => {
+      const material = (child as { material?: unknown }).material;
+      if (material instanceof MeshBasicMaterial && material.depthFunc === GreaterDepth) {
+        found.push(child as unknown as InstancedMesh);
+      }
+    });
+    // `buildSpriteUnit` is shared by the resting layer and by the walker
+    // (`Renderer3D.spawnWalker`), so this one assertion covers both: a unit
+    // looks identical standing still and mid-stride, ghost included.
+    expect(found).toHaveLength(1);
+    expect(found[0]!.renderOrder).toBe(RENDER_ORDER.silhouette);
+    board.dispose();
+    materials.dispose();
   });
 });

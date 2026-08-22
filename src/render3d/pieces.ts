@@ -47,6 +47,24 @@
  * because printed figures will earn their keep elsewhere, but what stands on the
  * board is a sculpt.
  *
+ * The x-ray ghost
+ * ---------------
+ * Every unit is drawn twice: the honest solid piece, and — over the identical
+ * instance matrices, one bucket later — a flat player-coloured silhouette with
+ * an *inverted* depth test (`MaterialLibrary.silhouette`). The second pass draws
+ * only where world geometry is already in front of the piece, so a warrior in a
+ * forest shows a faint shape through the canopy and a warrior in the open costs
+ * nothing at all: on every pixel where the solid render won, the ghost tests
+ * equal rather than greater and is discarded.
+ *
+ * It is a *pass*, not a layer, and that is what keeps it cheap and in sync. The
+ * collector builds it as one more `InstancedMesh` over the same buffers (the
+ * outline shell's twin — see `Bucket.ghostMaterial`), so it costs one draw call
+ * per existing piece bucket rather than one per unit, it cannot drift out of
+ * position from the thing it is ghosting, and hiding a unit for a walk takes its
+ * ghost with it. Fog needs no special case either: a unit the local seat cannot
+ * see is never added, so its ghost never exists.
+ *
  * Bases, not blobs
  * ----------------
  * Every miniature stands on a small disc in the player's colour, and that disc
@@ -73,7 +91,7 @@
  * unit per wrap copy is a rounding error against a board that is already built.
  */
 
-import { Group, type Material, Matrix4, Mesh, Quaternion, Vector3 } from 'three';
+import { Group, type Material, Matrix4, Mesh, Quaternion, type Texture, Vector3 } from 'three';
 
 import type { GameMap } from '../sim/map';
 import type { GameState, Unit } from '../sim/state';
@@ -243,6 +261,20 @@ export function buildSpriteUnit(
   billboard.quaternion.copy(faceCamera);
   billboard.frustumCulled = false;
   group.add(billboard);
+
+  // The same card again, with the inverted depth test — the sprite path's half
+  // of the x-ray ghost (module docblock). It carries the sprite's own texture so
+  // `alphaTest` still cuts the figure out: what shows through a pine is the
+  // *shape of the soldier*, not a rectangle. A child of the billboard, so it
+  // inherits the position, the scale and the camera-facing turn and cannot come
+  // apart from the card it is ghosting.
+  const ghostMap = (spriteMaterial as { map?: Texture | null }).map ?? null;
+  const ghost = new Mesh(geometry.billboard, materials.silhouette(color, ghostMap));
+  ghost.frustumCulled = false;
+  ghost.castShadow = false;
+  ghost.receiveShadow = false;
+  ghost.renderOrder = RENDER_ORDER.silhouette;
+  billboard.add(ghost);
 
   return group;
 }
@@ -513,11 +545,16 @@ export class UnitLayer {
         this.spriteUnits.set(unit.id, group);
       } else {
         const piece = geometry.pieces[modelClassFor(unit.type)];
+        const ink = unitColor(state, unit);
         slots.push(
           collector.add(
             piece.geometry,
-            pieceColors(piece, unitColor(state, unit)),
+            pieceColors(piece, ink),
             new Matrix4().compose(placement.position, placement.quaternion, scale),
+            // The x-ray ghost, over these very matrices. Keyed on the player's
+            // own ink, which is already part of the bucket key, so it batches
+            // exactly as the piece does. See the module docblock.
+            { ghost: materials.silhouette(ink) },
           ),
         );
       }

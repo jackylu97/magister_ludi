@@ -63,6 +63,9 @@ would change every seeded outcome. No further rename passes.
 - Layers that filter by the local seat (units, cities, territory, lens, walk/death animations)
   are rebuilt off `FogStats.tiles` in the render loop, not off their own fingerprints — a new
   seat-filtered layer must be added there too.
+- A unit piece is **three** `InstancedMesh`es over one buffer: sculpt, outline shell, and the
+  `depthFunc: GreaterDepth` x-ray ghost. Tests that count meshes use
+  `MESHES_PER_PIECE_BUCKET`; hide/restore must move all three or a silhouette is left behind.
 - City-panel yields are derived state refreshed in `collectYields`; mutations outside
   the turn pipeline show stale numbers until end of turn. Narrowed since: the
   `setLockedTiles` command re-runs `assignCitizens` for that city immediately (the

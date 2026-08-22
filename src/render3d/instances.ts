@@ -44,6 +44,16 @@ export const HIDDEN_MATRIX = new Matrix4().makeScale(0, 0, 0);
  *
  *   `overlay`  a decal that belongs to the board (a territory tint). Depth
  *              tested, so the trees standing on the ground it colours hide it.
+ *   `silhouette` the x-ray ghost of a unit, drawn only where world geometry is
+ *              in front of it (see `MaterialLibrary.silhouette`). It sits
+ *              *above* the board's decals, because a ghost showing through a
+ *              pine is information about a piece and a territory tint is
+ *              scenery — and *below* `onTop`, because everything from there up
+ *              is the interface talking, and a ring or a route dot must never be
+ *              tinted by a ghost lying under it. Its own layer rather than
+ *              sharing `overlay`: the two are drawn against opposite depth
+ *              tests, and a number that says which is drawn first is the only
+ *              place that distinction is visible.
  *   `onTop`    a decal that belongs to the *interface*: the hover and selection
  *              rings, the route dots, the worked-tile chips. Not depth tested at
  *              all, so nothing on the board can swallow it.
@@ -60,6 +70,7 @@ export const HIDDEN_MATRIX = new Matrix4().makeScale(0, 0, 0);
  */
 export const RENDER_ORDER = {
   overlay: 10,
+  silhouette: 15,
   onTop: 20,
   badge: 21,
   hpBar: 22,
@@ -91,6 +102,19 @@ interface Bucket {
   colors: number[];
   outlined: boolean;
   /**
+   * A second, caller-owned material to draw the *same instances* with, in a
+   * second pass. `null` for every bucket that does not want one.
+   *
+   * The x-ray silhouette (see `MaterialLibrary.silhouette`), and structurally it
+   * is the outline shell's twin: one more `InstancedMesh` over the identical
+   * matrices, so it costs one draw call per bucket and not one per unit, and so
+   * it cannot drift out of position from the thing it is ghosting. Hiding and
+   * restoring an instance moves all three meshes together for the same reason.
+   */
+  ghostMaterial: Material | null;
+  /** The draw order that second pass claims. See `RENDER_ORDER.silhouette`. */
+  ghostOrder: number | null;
+  /**
    * A caller-owned material used verbatim instead of one from the library.
    *
    * The escape hatch for the one kind of instance whose look is not a colour:
@@ -121,6 +145,7 @@ interface Bucket {
   tinted: boolean;
   mesh: InstancedMesh | null;
   shell: InstancedMesh | null;
+  ghost: InstancedMesh | null;
   /**
    * Copies of the matrix and colour buffers exactly as they were uploaded, kept
    * only when the collector was built with `snapshot`.
@@ -288,6 +313,20 @@ export class InstanceCollector {
       vertexColors?: boolean;
       material?: Material;
       /**
+       * Draw these instances a second time with this material, over the same
+       * matrices — the x-ray silhouette pass. See `Bucket.ghostMaterial`.
+       *
+       * It joins the bucket key by *identity*, exactly as `material` does. In
+       * practice it is derived from the bucket's own colour and is therefore
+       * already implied by the key, but relying on that would mean two callers
+       * passing different ghosts for one colour would silently share the first
+       * one's — a bug that would show up as somebody else's player colour
+       * bleeding through a mountain.
+       */
+      ghost?: Material;
+      /** Draw order for the ghost pass; defaults to `RENDER_ORDER.silhouette`. */
+      ghostOrder?: number;
+      /**
        * The `tileIndex` this instance belongs to, for callers whose instances
        * can be hidden or tinted a tile at a time — which is the board, and fog
        * of war, and nothing else. Deliberately *not* part of the bucket key: a
@@ -310,16 +349,12 @@ export class InstanceCollector {
       id = this.geometryIds.size;
       this.geometryIds.set(geometry, id);
     }
-    let materialId = -1;
-    if (custom) {
-      const known = this.materialIds.get(custom);
-      materialId = known ?? this.materialIds.size;
-      if (known === undefined) this.materialIds.set(custom, materialId);
-    }
+    const materialId = this.materialKey(custom);
+    const ghostId = this.materialKey(options.ghost ?? null);
     const key =
       `${id}|${colors.join(',')}|${outlined ? 1 : 0}|` +
       `${overlay ? 1 : 0}|${onTop ? 1 : 0}|${order ?? 'auto'}|` +
-      `${opacity}|${vertexColors ? 1 : 0}|${materialId}`;
+      `${opacity}|${vertexColors ? 1 : 0}|${materialId}|${ghostId}`;
     let bucket = this.buckets.get(key);
     if (!bucket) {
       bucket = {
@@ -327,6 +362,8 @@ export class InstanceCollector {
         colors,
         outlined: outlined && !overlay,
         material: custom,
+        ghostMaterial: options.ghost ?? null,
+        ghostOrder: options.ghostOrder ?? null,
         vertexColors: vertexColors && !overlay,
         overlay,
         onTop,
@@ -337,6 +374,7 @@ export class InstanceCollector {
         tinted: this.forceTint,
         mesh: null,
         shell: null,
+        ghost: null,
         baseMatrix: null,
         baseColor: null,
         washes: new Map(),
@@ -361,6 +399,16 @@ export class InstanceCollector {
       else this.byTile.set(options.tile, [handle]);
     }
     return handle;
+  }
+
+  /** A stable small integer per material identity, for the bucket key. */
+  private materialKey(material: Material | null): number {
+    if (!material) return -1;
+    const known = this.materialIds.get(material);
+    if (known !== undefined) return known;
+    const id = this.materialIds.size;
+    this.materialIds.set(material, id);
+    return id;
   }
 
   /** Builds the meshes and adds them to `group`. Returns the draw-call count. */
@@ -450,6 +498,23 @@ export class InstanceCollector {
         draws++;
       }
 
+      if (bucket.ghostMaterial) {
+        // The same geometry, the same matrices, one more material. Built after
+        // the shell so a ghost is drawn over its own outline rather than under
+        // it — both fail the depth test in the same places, and the ghost is the
+        // one carrying the information.
+        const ghost = new InstancedMesh(bucket.geometry, bucket.ghostMaterial, count);
+        ghost.castShadow = false;
+        ghost.receiveShadow = false;
+        ghost.frustumCulled = false;
+        ghost.renderOrder = bucket.ghostOrder ?? RENDER_ORDER.silhouette;
+        for (let i = 0; i < count; i++) ghost.setMatrixAt(i, bucket.matrices[i]!);
+        ghost.instanceMatrix.needsUpdate = true;
+        group.add(ghost);
+        bucket.ghost = ghost;
+        draws++;
+      }
+
       if (this.snapshot) {
         // Slices of what was *actually uploaded*, taken after the writes above,
         // so a restore puts back the bytes the GPU already has rather than a
@@ -475,6 +540,9 @@ export class InstanceCollector {
     for (let i = 0; i < handle.count; i++) {
       bucket.mesh?.setMatrixAt(handle.start + i, HIDDEN_MATRIX);
       bucket.shell?.setMatrixAt(handle.start + i, HIDDEN_MATRIX);
+      // The ghost travels with the piece it ghosts: a silhouette left behind
+      // while its unit slid away would be the most visible bug on the board.
+      bucket.ghost?.setMatrixAt(handle.start + i, HIDDEN_MATRIX);
       INSTANCE_WRITES.matrix += 1;
     }
     markUpdated(bucket);
@@ -497,6 +565,7 @@ export class InstanceCollector {
       if (matrix) {
         bucket.mesh?.setMatrixAt(slot, matrix);
         bucket.shell?.setMatrixAt(slot, matrix);
+        bucket.ghost?.setMatrixAt(slot, matrix);
         INSTANCE_WRITES.matrix += 1;
         continue;
       }
@@ -504,6 +573,7 @@ export class InstanceCollector {
       if (!base) continue;
       copyMatrix(base, bucket.mesh, slot);
       copyMatrix(base, bucket.shell, slot);
+      copyMatrix(base, bucket.ghost, slot);
       INSTANCE_WRITES.matrix += 1;
     }
     markUpdated(bucket);
@@ -633,6 +703,7 @@ function copyMatrix(base: Float32Array, mesh: InstancedMesh | null, slot: number
 function markUpdated(bucket: Bucket): void {
   if (bucket.mesh) bucket.mesh.instanceMatrix.needsUpdate = true;
   if (bucket.shell) bucket.shell.instanceMatrix.needsUpdate = true;
+  if (bucket.ghost) bucket.ghost.instanceMatrix.needsUpdate = true;
 }
 
 /** Disposes every `InstancedMesh` under a group and empties it. */

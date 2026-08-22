@@ -391,6 +391,28 @@ since claimed reads as refused before this player could know why — kept becaus
 a lens that recommends sites the reducer will refuse is worse than one that is
 slightly too well informed.
 
+**Unit occlusion silhouettes (user, 2026-08-22, follow-up).** Units were being
+lost behind trees and mountain cones. Fixed *without* softening the depth
+honesty: every unit is now drawn twice — the honest solid piece, then a flat
+player-coloured ghost over the identical instance matrices with
+`depthFunc: GreaterDepth`, `depthWrite: false` and
+`units.silhouetteAlpha` (v0 **0.35**). The inverted test is the whole trick: a
+fragment survives only where the depth buffer already holds something nearer, so
+a piece in the open costs the pass *nothing* (it tests equal, not greater) and a
+mountain still occludes the real thing — all that changes is that a faint shape
+appears where it did. Structurally the ghost is the outline shell's twin, a third
+`InstancedMesh` over the same buffer built by the collector
+(`Bucket.ghostMaterial`), so hiding a unit for a walk takes its ghost with it and
+fog needs no special case at all — a unit the seat cannot see is never added, so
+its silhouette never exists. Sprites ghost through their own `alphaTest` cut-out;
+walkers get the same second mesh, so a piece looks identical standing and
+mid-stride. **New draw order `RENDER_ORDER.silhouette` = 15**, deliberately
+between `overlay` (10) and `onTop` (20): a ghost beats a territory tint, which is
+scenery, and loses to every ring, dot and badge, which are the interface talking.
+**Draw impact measured: +1 call per (model class × player) actually on screen —
+300 units across 4 players and all 15 types is 28 extra calls, 86 total against a
+78-call board.**
+
 **The stress harness ships with it**, as the milestone required: 300 units and
 40 cities founded and spawned by ordinary accepted commands on a seeded standard
 map. **Measured: fixture 111 ms, one full turn resolution 3 ms, replay of 376

@@ -555,6 +555,7 @@
   },
   "units": {
     "style": "pieces",
+    "silhouetteAlpha": 0.35,
     "sprite": {
       "heightInHexWidths": 0.58,
       "lift": 0.055,
