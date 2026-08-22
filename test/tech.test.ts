@@ -160,6 +160,35 @@ describe('tech data integrity', () => {
     }
   });
 
+  it('gives every node a glyph the research dial and the chart can light up', () => {
+    for (const id of TECH_IDS) {
+      const glyph = techDef(id).glyph;
+      expect(typeof glyph, id).toBe('string');
+      expect(glyph.length, id).toBeGreaterThan(0);
+    }
+  });
+
+  // Soft check, not a rule `techDataProblems` enforces: today's table happens
+  // to hand every tech its own glyph, and this pins that choice so a future
+  // add doesn't silently reuse one. A deliberate repeat is a fine reason to
+  // delete this test, not to make it pass by working around it.
+  it('gives every node a distinct glyph', () => {
+    const glyphs = TECH_IDS.map((id) => techDef(id).glyph);
+    expect(new Set(glyphs).size).toBe(glyphs.length);
+  });
+
+  it('reports a tech with no glyph', () => {
+    const def = techDef('pottery');
+    const authored = def.glyph;
+    try {
+      (def as { glyph: unknown }).glyph = '';
+      expect(techDataProblems()).toContain('tech "pottery" has no glyph');
+    } finally {
+      def.glyph = authored;
+    }
+    expect(techDataProblems()).toEqual([]);
+  });
+
   it('bands its costs by age, and rises inside each band', () => {
     // The band the tree is tuned to (see the pacing note in `tech.ts`): a
     // scale, measured against the current pop-based science economy rather

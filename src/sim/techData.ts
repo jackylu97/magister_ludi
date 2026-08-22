@@ -100,6 +100,13 @@ export interface TechUnlocks {
 
 export interface TechDef {
   name: string;
+  /**
+   * The single character the star chart's dial and node cards centre a tech
+   * on — the same role a unit's `glyph` plays on its disc (see
+   * `renderUnlocks` in `techTree.ts`). Required and hand-chosen per tech
+   * rather than derived, because there is no rule that could pick one.
+   */
+  glyph: string;
   age: TechAge;
   /**
    * The lane this tech sits in on the star chart, hand-authored: 0 is the top
@@ -288,6 +295,11 @@ export function techDataProblems(): string[] {
       problems.push(`tech "${id}" has age ${String(def.age)}, which is not 1, 2 or 3`);
     }
     if (!(def.cost > 0)) problems.push(`tech "${id}" costs ${String(def.cost)} beakers`);
+    // The dial and the node card both centre on this character; a tech
+    // without one would draw an empty circle where the glyph belongs.
+    if (typeof def.glyph !== 'string' || def.glyph.length === 0) {
+      problems.push(`tech "${id}" has no glyph`);
+    }
     // The chart cannot place a tech without a lane, and two techs in one cell
     // would draw one on top of the other — both are silent on screen, so they
     // are loud here.

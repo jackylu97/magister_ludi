@@ -277,7 +277,7 @@ and is now the in-game score screen — the object is real, the beads are not ye
 
 | surface | ships as |
 |---|---|
-| research screen | **Natural Philosophy** (screen title; top-bar button stays "Research" — verb, short; alt name "Scholarship" archived). Tech "Philosophy" renames to "Rhetoric" when applied. |
+| research screen | **Natural Philosophy** (screen title; top-bar button stays "Research" — verb, short; alt name "Scholarship" archived). Tech "Philosophy" renames to "Rhetoric" when applied. HUD research card: a parchment lozenge with the sky-lens progress dial at its left end — a conic-gradient ring for progress, a night-sky inner disc lit with the tech's own glyph. |
 | civic system (M12) | **Statecraft**; draft header "A matter of Statecraft"; cards keep tarot object-styling |
 | governments (M12) | **Orders**; slotted cards fill **offices** |
 | authority (M10) | **Authority** (plain) |

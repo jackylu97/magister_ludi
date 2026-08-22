@@ -347,9 +347,11 @@
          Civ's oldest permanent readout, and the reason it is a fixed card
          rather than a line in the bar: research is the one decision a player
          checks every single turn, and a bar button that has to share a row with
-         the lens can only afford a name and a number. The card affords a name,
-         a bar and the beakers underneath it, in the place the eye already goes
-         first.
+         the lens can only afford a name and a number. The card is a parchment
+         lozenge with a dial at its left end — the sky-lens progress dial: the
+         dial's rim is the progress, drawn by a conic-gradient sized from
+         `--progress`, and its inner disc is a scrap of the star chart's own
+         night sky with the tech's glyph lit at the centre.
 
          The whole card is the button — clicking anywhere on it opens the star
          chart, exactly as T does — so `main.ts` hands it to src/ui/techTree.ts
@@ -365,14 +367,22 @@
       aria-controls="tech-overlay"
       title="Natural Philosophy (T)"
     >
-      <span class="eyebrow research-eyebrow">Natural Philosophy</span>
-      <!-- Keeps the id the top bar's value span had: the thing it names — what
-           this seat is researching — did not change, only where it is written. -->
-      <span id="tech-current" class="research-name">—</span>
-      <span class="research-track" aria-hidden="true">
-        <span id="research-fill" class="research-fill"></span>
+      <span id="research-dial" class="research-dial" aria-hidden="true">
+        <span class="research-dial-sky">
+          <span class="research-dial-star" style="--sx: 20%; --sy: 24%"></span>
+          <span class="research-dial-star" style="--sx: 70%; --sy: 18%"></span>
+          <span class="research-dial-star" style="--sx: 42%; --sy: 72%"></span>
+          <span id="research-glyph" class="research-dial-glyph"></span>
+        </span>
+        <span id="research-turns" class="research-dial-boss"></span>
       </span>
-      <span id="research-figures" class="research-figures">—</span>
+      <span class="research-text">
+        <span class="eyebrow research-eyebrow">Natural Philosophy</span>
+        <!-- Keeps the id the top bar's value span had: the thing it names — what
+             this seat is researching — did not change, only where it is written. -->
+        <span id="tech-current" class="research-name">—</span>
+        <span id="research-figures" class="research-figures">—</span>
+      </span>
     </button>
 
     <!-- ================= the star chart =========================

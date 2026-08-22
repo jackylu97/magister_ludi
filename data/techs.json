@@ -2,6 +2,7 @@
   "techs": {
     "agriculture": {
       "name": "Agriculture",
+      "glyph": "🌾",
       "age": 1,
       "row": 1,
       "cost": 15,
@@ -11,6 +12,7 @@
     },
     "pottery": {
       "name": "Pottery",
+      "glyph": "⚱",
       "age": 1,
       "row": 3,
       "cost": 15,
@@ -20,6 +22,7 @@
     },
     "archery": {
       "name": "Archery",
+      "glyph": "🏹",
       "age": 1,
       "row": 1,
       "cost": 20,
@@ -29,6 +32,7 @@
     },
     "animalHusbandry": {
       "name": "Animal Husbandry",
+      "glyph": "🐄",
       "age": 1,
       "row": 0,
       "cost": 20,
@@ -38,6 +42,7 @@
     },
     "bronzeWorking": {
       "name": "Bronze Working",
+      "glyph": "⚔",
       "age": 1,
       "row": 2,
       "cost": 22,
@@ -47,6 +52,7 @@
     },
     "masonry": {
       "name": "Masonry",
+      "glyph": "🧱",
       "age": 1,
       "row": 3,
       "cost": 22,
@@ -56,6 +62,7 @@
     },
     "writing": {
       "name": "Writing",
+      "glyph": "📜",
       "age": 1,
       "row": 4,
       "cost": 25,
@@ -65,6 +72,7 @@
     },
     "theWheel": {
       "name": "The Wheel",
+      "glyph": "☸",
       "age": 1,
       "row": 0,
       "cost": 28,
@@ -75,6 +83,7 @@
 
     "ironWorking": {
       "name": "Iron Working",
+      "glyph": "⚒",
       "age": 2,
       "row": 2,
       "cost": 132,
@@ -84,6 +93,7 @@
     },
     "mathematics": {
       "name": "Mathematics",
+      "glyph": "📐",
       "age": 2,
       "row": 3,
       "cost": 153,
@@ -93,6 +103,7 @@
     },
     "currency": {
       "name": "Currency",
+      "glyph": "🪙",
       "age": 2,
       "row": 3,
       "cost": 162,
@@ -102,6 +113,7 @@
     },
     "construction": {
       "name": "Construction",
+      "glyph": "🏗",
       "age": 2,
       "row": 1,
       "cost": 183,
@@ -111,6 +123,7 @@
     },
     "philosophy": {
       "name": "Philosophy",
+      "glyph": "🦉",
       "age": 2,
       "row": 4,
       "cost": 196,
@@ -120,6 +133,7 @@
     },
     "engineering": {
       "name": "Engineering",
+      "glyph": "⚙",
       "age": 2,
       "row": 3,
       "cost": 212,
@@ -129,6 +143,7 @@
     },
     "drama": {
       "name": "Drama and Poetry",
+      "glyph": "🎭",
       "age": 2,
       "row": 4,
       "cost": 234,
@@ -139,6 +154,7 @@
 
     "feudalism": {
       "name": "Feudalism",
+      "glyph": "🏰",
       "age": 3,
       "row": 2,
       "cost": 266,
@@ -148,6 +164,7 @@
     },
     "machinery": {
       "name": "Machinery",
+      "glyph": "🔧",
       "age": 3,
       "row": 1,
       "cost": 285,
@@ -157,6 +174,7 @@
     },
     "theology": {
       "name": "Theology",
+      "glyph": "⛪",
       "age": 3,
       "row": 4,
       "cost": 314,
@@ -166,6 +184,7 @@
     },
     "chivalry": {
       "name": "Chivalry",
+      "glyph": "🐴",
       "age": 3,
       "row": 0,
       "cost": 342,
@@ -175,6 +194,7 @@
     },
     "steel": {
       "name": "Steel",
+      "glyph": "🗡",
       "age": 3,
       "row": 2,
       "cost": 380,
@@ -184,6 +204,7 @@
     },
     "physics": {
       "name": "Physics",
+      "glyph": "☄",
       "age": 3,
       "row": 3,
       "cost": 418,
@@ -193,6 +214,7 @@
     },
     "education": {
       "name": "Education",
+      "glyph": "🎓",
       "age": 3,
       "row": 4,
       "cost": 451,

@@ -35,6 +35,10 @@
   --cobalt: #2757b8;
   --grape: #7b3fa8;
   --gilt: #c8901f;
+  /* The research dial's ring: the same lapis the star chart draws Philosophy
+     in (`data/view3d.json`'s palette), so a node's colour on the 3D disc and
+     the HUD's progress ring are one fact, not two. */
+  --lapis: #3f639f;
 
   /* --- yield voices ----------------------------------------------------- */
   --y-food: #3f9636;
@@ -1104,23 +1108,29 @@ kbd {
 
 /* --- top-left: the research card ------------------------------------------
    What the empire is learning, permanently, in the corner the eye lands on
-   first. It replaced a button in the top bar, and the trade is deliberate: a bar
-   button could afford a name and a turn count on one line, while a card affords
-   the bar and the beakers underneath them — the shape Civ has taught players to
-   read since 1991.
+   first: a parchment lozenge with a round dial at its left end — the "sky-lens
+   progress dial". The dial's outer rim is the progress (a conic-gradient ring,
+   set by `--progress` from `renderStatus`) and its inner disc is a scrap of
+   the star chart's own night sky, with the tech's glyph lit at the centre. No
+   bar, no canvas, no SVG: the ring is one CSS custom property.
 
-   The whole card is a `<button>`, so the ordinary card recipe has to be told the
-   things a button does not inherit (font, colour, text alignment) and the
-   grid that lays its four lines out. It presses like every other button on the
-   page: 3px down, shadow collapsed, which on a fixed card reads as the card
-   itself being pushed into the table. */
+   The whole card is a `<button>`, so the ordinary card recipe has to be told
+   the things a button does not inherit (font, colour, text alignment) and the
+   flex row that seats the dial beside the text. It presses like every other
+   button on the page: 3px down, shadow collapsed, which on a fixed card reads
+   as the card itself being pushed into the table. The left end is rounded
+   full to hug the dial's circle; the right end keeps the ordinary card
+   radius. */
 #hud-research {
   top: calc(var(--topbar-h) + 12px);
   left: 14px;
   width: 230px;
-  display: grid;
-  gap: 2px;
-  padding: 7px 10px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px 8px 8px;
+  border-width: 2.5px;
+  border-radius: 999px var(--radius-sm) var(--radius-sm) 999px;
   font-family: var(--face-ui);
   font-size: 12px;
   color: var(--ink);
@@ -1138,6 +1148,106 @@ kbd {
   box-shadow: 0 0 0 var(--ink);
 }
 
+/* --- the dial --------------------------------------------------------------
+   ~62px across. Three stacked layers: the ring (this element's own
+   background), the sky (an inset disc on top of it) and the boss (a small
+   parchment pill overlapping the sky's lower-right edge). */
+.research-dial {
+  --progress: 0%;
+  --ring-color: var(--lapis);
+  position: relative;
+  flex: none;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  /* A conic-gradient starts at 12 o'clock and runs clockwise by default —
+     exactly the sweep a progress ring wants, with no rotation to fake it. */
+  background: conic-gradient(
+    var(--ring-color) 0% var(--progress),
+    rgba(29, 26, 32, 0.16) var(--progress) 100%
+  );
+}
+
+/* The sky: near-black, like the star chart's own ground, inset far enough to
+   leave the ring an even rim. A 1.5px ink seam is the only thing that admits
+   the rim and the sky are two different surfaces. */
+.research-dial-sky {
+  position: absolute;
+  inset: 7px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #241f2c 0%, #17121a 65%, #100d13 100%);
+}
+
+/* Ambient stars: fixed specks, not a fact about the game — just texture, so
+   they are placed with a custom property per span rather than earning ids. */
+.research-dial-star {
+  position: absolute;
+  left: var(--sx);
+  top: var(--sy);
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(247, 242, 225, 0.55);
+  box-shadow: 0 0 2px rgba(247, 242, 225, 0.45);
+}
+
+/* The tech's own glyph, gilt and glowing — the one thing in the sky that is a
+   fact rather than texture. `.is-dim` is the unlit ✧ the choose-state wears in
+   its place. */
+.research-dial-glyph {
+  position: relative;
+  z-index: 1;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--gilt);
+  text-shadow: 0 0 6px rgba(200, 144, 31, 0.7), 0 0 12px rgba(200, 144, 31, 0.35);
+}
+
+.research-dial-glyph.is-dim {
+  font-size: 15px;
+  color: rgba(247, 242, 225, 0.32);
+  text-shadow: none;
+}
+
+/* The boss: turns left, worn like a badge pinned to the dial's rim. Empty
+   (the choose and complete states have no turn count to show) collapses it
+   away entirely rather than leaving a hollow pill. */
+.research-dial-boss {
+  position: absolute;
+  right: -6px;
+  bottom: -3px;
+  min-width: 18px;
+  padding: 1px 5px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.research-dial-boss:empty {
+  display: none;
+}
+
+/* --- the text stack ---------------------------------------------------- */
+
+.research-text {
+  display: grid;
+  gap: 2px;
+  /* Lets the name's ellipsis actually bite inside a flex row — a flex item's
+     default min-width is its content's, which would push the card wider
+     rather than truncate. */
+  min-width: 0;
+}
+
 /* The eyebrow names the screen the card opens, so the chart's title and this
    line are the same words — "Natural Philosophy", not "Research". */
 .research-eyebrow {
@@ -1149,7 +1259,7 @@ kbd {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 90;
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   line-height: 1.15;
   letter-spacing: -0.01em;
   /* A long tech name shortens rather than widening a card that is pinned to a
@@ -1157,26 +1267,6 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* The lapis bar, the same voice the chart draws progress in — on parchment
-   rather than on ink, so it is the unlit cobalt of the yield palette. */
-.research-track {
-  height: 5px;
-  margin: 4px 0 3px;
-  border: 1px solid var(--ink-faint);
-  border-radius: 999px;
-  background: rgba(29, 26, 32, 0.07);
-  overflow: hidden;
-}
-
-.research-fill {
-  display: block;
-  height: 100%;
-  background: var(--y-sci);
-  /* Progress only ever arrives on a turn resolution, so it may as well arrive
-     as a movement rather than as a jump cut. */
-  transition: width 220ms ease-out;
 }
 
 .research-figures {
@@ -1205,18 +1295,23 @@ kbd {
   color: var(--gilt);
 }
 
-/* The tree is finished: the card stops asking for anything. It still opens the
-   chart, which is now a record rather than a decision. */
-#hud-research.is-done .research-fill {
-  background: var(--ink-faint);
+/* The sky goes empty while nothing is chosen — the ambient specks are texture
+   for a tech actually being read, not for a prompt. */
+#hud-research.is-prompting .research-dial-star {
+  opacity: 0;
+}
+
+/* The tree is finished: the ring goes fully gilt rather than fully lapis — a
+   ring "complete" in the same voice the chart uses for a researched star —
+   and the card stops asking for anything. It still opens the chart, which is
+   now a record rather than a decision. */
+#hud-research.is-done .research-dial {
+  --ring-color: var(--gilt);
 }
 
 @media (prefers-reduced-motion: reduce) {
   #hud-research.is-prompting {
     animation: none;
-  }
-  .research-fill {
-    transition: none;
   }
 }
 
@@ -2389,6 +2484,21 @@ body.is-panel-open #hud-end-turn {
   align-items: baseline;
   justify-content: space-between;
   gap: 6px;
+}
+
+.tech-node-title {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* The same glyph the research dial lights up, small and quiet here — a node
+   card is read in a chart of twenty-two, not centred alone like the dial. */
+.tech-node-glyph {
+  flex: none;
+  font-size: 12px;
+  color: var(--gilt);
 }
 
 /* Names are the naming face, here as everywhere. */

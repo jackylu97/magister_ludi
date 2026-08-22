@@ -122,7 +122,9 @@ const lensYieldsFlagEl = requireElement<HTMLElement>('lens-yields-flag');
    chart, so it is handed to `createTechTree` where the bar button used to be. */
 const researchCard = requireElement<HTMLButtonElement>('hud-research');
 const techCurrentEl = requireElement<HTMLElement>('tech-current');
-const researchFillEl = requireElement<HTMLElement>('research-fill');
+const researchDialEl = requireElement<HTMLElement>('research-dial');
+const researchGlyphEl = requireElement<HTMLElement>('research-glyph');
+const researchTurnsEl = requireElement<HTMLElement>('research-turns');
 const researchFiguresEl = requireElement<HTMLElement>('research-figures');
 const techOverlayEl = requireElement<HTMLElement>('tech-overlay');
 const techChartEl = requireElement<HTMLElement>('tech-chart');
@@ -1092,7 +1094,9 @@ async function boot(): Promise<void> {
     closeButton: requireElement('tech-close'),
     statusCard: researchCard,
     statusName: techCurrentEl,
-    statusFill: researchFillEl,
+    statusDial: researchDialEl,
+    statusGlyph: researchGlyphEl,
+    statusBoss: researchTurnsEl,
     statusFigures: researchFiguresEl,
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),

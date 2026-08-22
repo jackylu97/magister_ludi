@@ -136,9 +136,13 @@ export interface TechTreeOptions {
   statusCard: HTMLButtonElement;
   /** The card's second line: the technology's name, or the prompt to pick one. */
   statusName: HTMLElement;
-  /** The fill inside the card's progress track. */
-  statusFill: HTMLElement;
-  /** The card's mono figures line — banked over cost, and the turns left. */
+  /** The dial: its `--progress` custom property is the ring's whole story. */
+  statusDial: HTMLElement;
+  /** The glyph lit at the centre of the dial's sky. */
+  statusGlyph: HTMLElement;
+  /** The small parchment boss overlapping the dial's edge — turns left. */
+  statusBoss: HTMLElement;
+  /** The card's mono figures line — banked over cost. */
   statusFigures: HTMLElement;
   getGame: () => Game;
   localPlayerId: () => number;
@@ -175,7 +179,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     closeButton,
     statusCard,
     statusName,
-    statusFill,
+    statusDial,
+    statusGlyph,
+    statusBoss,
     statusFigures,
     getGame,
     localPlayerId,
@@ -270,7 +276,13 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     else card.title = `Research ${def.name}`;
 
     const head = element('div', 'tech-node-head');
-    head.append(element('span', 'tech-node-name', def.name));
+    // Glyph and name are one group, so `space-between` still puts only the
+    // star (when there is one) at the far end rather than fanning three
+    // children evenly across the row.
+    const title = element('span', 'tech-node-title');
+    title.append(element('span', 'tech-node-glyph', def.glyph));
+    title.append(element('span', 'tech-node-name', def.name));
+    head.append(title);
     if (researched) {
       const star = element('span', 'tech-node-star', '✦');
       star.setAttribute('aria-hidden', 'true');
@@ -619,20 +631,27 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * The card at the top-left: what this seat is learning, how far along it is,
    * and the way in.
    *
-   * Three states, and each is a different sentence rather than a blank field:
+   * Three states, and each is a different sentence rather than a blank field.
+   * All three share one dial: its rim is a conic-gradient ring sized by the
+   * `--progress` custom property (0–100%, no canvas or SVG), and its sky holds
+   * either the tech's own glyph or a stand-in star.
    *
-   *   · **Learning something.** The name, a lapis bar, and "230/250 🔬 · 3t".
+   *   · **Learning something.** The name, the ring at the real fraction, the
+   *     tech's glyph lit gilt in the sky, "3t" on the dial's boss, and
+   *     "230/250 🔬" below the name.
    *   · **Nothing chosen, and there is still something to choose.** The prompt,
-   *     and the same slow gilt pulse the bar button used to wear. The nag is a
-   *     pulse rather than a modal: research is a decision the player should
-   *     make, and a screen that demanded it before the game would continue would
-   *     be a screen that interrupted the game to ask. (This is the same
-   *     condition End Turn's "Choose research" blocker is derived from — see
-   *     `firstBlocker` in `turnBlockers.ts`. Both read `researching` and
-   *     `availableTechs`, so neither can nag while the other says all is well.)
-   *   · **The tree is finished.** It says so, quietly, and stops asking. The
-   *     card still opens the chart, because a finished tree is still worth
-   *     reading.
+   *     the ring faint and stopped, the sky empty but for one dim ✧, and the
+   *     same slow gilt pulse the bar button used to wear — now worn by the
+   *     card's border. The nag is a pulse rather than a modal: research is a
+   *     decision the player should make, and a screen that demanded it before
+   *     the game would continue would be a screen that interrupted the game to
+   *     ask. (This is the same condition End Turn's "Choose research" blocker
+   *     is derived from — see `firstBlocker` in `turnBlockers.ts`. Both read
+   *     `researching` and `availableTechs`, so neither can nag while the other
+   *     says all is well.)
+   *   · **The tree is finished.** The ring goes fully gilt, the sky keeps a lit
+   *     ✦, and the name says so, quietly, and stops asking. The card still
+   *     opens the chart, because a finished tree is still worth reading.
    *
    * Always the local seat: this is what *you* are researching, and in a hot-seat
    * session the card follows the chair the same way every other HUD surface
@@ -653,7 +672,18 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       statusCard.classList.toggle('is-prompting', prompting);
       statusCard.classList.toggle('is-done', !prompting);
       statusName.textContent = prompting ? 'Choose research…' : 'Philosophy complete';
-      statusFill.style.width = prompting ? '0%' : '100%';
+      // A stopped ring either way: prompting has no fraction to show, and the
+      // finished tree's ring is drawn full by the `.is-done` CSS override on
+      // `--ring-color` rather than by a fraction here.
+      statusDial.style.setProperty('--progress', prompting ? '0%' : '100%');
+      // The sky holds a dim stand-in star while nothing is chosen, and a lit
+      // one once the tree is finished — the tech's own glyph belongs to
+      // neither state, there being no current tech to draw it for.
+      statusGlyph.textContent = prompting ? '✧' : '✦';
+      statusGlyph.classList.toggle('is-dim', prompting);
+      // Neither state has a turn count: prompting has no denominator to count
+      // down, and a finished tree has nothing left to finish.
+      statusBoss.textContent = '';
       // With no aim there is no denominator, so the figures line says what the
       // pool *is* — banking is real (see the model in `src/sim/tech.ts`), and a
       // player who has forgotten to choose should see the beakers piling up.
@@ -676,8 +706,13 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     const def = techDef(current);
     const progress = researchProgress(player.sciencePool, def.cost, rate);
     statusName.textContent = def.name;
-    statusFill.style.width = `${(progress.fraction * 100).toFixed(1)}%`;
-    statusFigures.textContent = progress.figures;
+    statusDial.style.setProperty('--progress', `${(progress.fraction * 100).toFixed(1)}%`);
+    statusGlyph.textContent = def.glyph;
+    statusGlyph.classList.remove('is-dim');
+    statusBoss.textContent = progress.turns === null ? '' : `${progress.turns}t`;
+    // The figures line drops the turn count `progress.figures` carries — the
+    // dial's boss says it instead, so the two would otherwise repeat a fact.
+    statusFigures.textContent = `${progress.banked}/${progress.cost} ${BEAKER}`;
     statusCard.title =
       `${def.name}: ${progress.banked} / ${progress.cost} beakers ` +
       `(+${rate} per turn) — the star chart is T`;
