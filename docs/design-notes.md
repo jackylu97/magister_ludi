@@ -547,8 +547,11 @@ Core loop complete through combat + resources (671 tests). Mechanics-before-AI s
   upfront-cost agony (workers cheap per the pacing pass); and architecturally atomic — instant
   builds mean NO partial-progress tile state, no contested half-built farms under simultaneous
   turns; one validated command per spend. Captured workers keep remaining charges. Roads:
-  charge-costed in v1, EXPLICITLY PROVISIONAL — expected to be absorbed by the trade-route
-  design later (Civ VI precedent: traders build roads).
+  **OUT of M7 entirely (user, 2026-08-22): traders build roads** — roads arrive with the
+  trade-route system, laid along the trader's chosen path (movement network and economy grow
+  along the same player-chosen lines; pillaging a route hurts twice). Until then the game has
+  no roads, which also keeps early movement honest. Trade-route design remains open on yields
+  (the tall-subsidy flag in Entry I) but the road mechanism is settled.
 - **M8 Fog of war & exploration** — tri-state per seat, chart-table unexplored render (the
   world drawn in), scout identity, per-player info honesty. (Embarkation folds in if needed.)
 - **M9 Gold loop** — unit/building maintenance + city purchasing.
