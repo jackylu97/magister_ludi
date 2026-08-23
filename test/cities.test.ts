@@ -10,6 +10,7 @@ import {
   cityYields,
   collectYields,
   expandBorders,
+  explainCityBuildings,
   foundCityAt,
   foundingError,
   foundingErrorAt,
@@ -17,6 +18,7 @@ import {
   growthThreshold,
   nextBorderCost,
   nextCityName,
+  productionModifiers,
   queueItemCost,
   tileOwnerCityId,
   turnsToBuild,
@@ -35,6 +37,7 @@ import {
   snapshotState,
 } from '../src/sim/game';
 import { type GameMap, type Tile, createMap, getTileAt, tileHex, tileIndex, wrappedDistance } from '../src/sim/map';
+import { meterEffects, yieldFactor } from '../src/sim/meters';
 import { RULES } from '../src/sim/rulesData';
 import {
   type City,
@@ -45,6 +48,7 @@ import {
   createUnit,
   newGame,
 } from '../src/sim/state';
+import { techDef } from '../src/sim/techData';
 import { tileYield } from '../src/sim/terrainData';
 import { runEndOfTurn } from '../src/sim/turn';
 import { UNIT_TYPE_IDS, unitDef } from '../src/sim/unitData';
@@ -741,18 +745,100 @@ describe('city yields', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     city.buildings = ['monument', 'granary', 'library'];
+    const granary = buildingDef('granary');
+    const library = buildingDef('library');
 
     city.population = 1;
     assignCitizens(state, city);
     const small = cityYields(state, city);
     expect(small.culture).toBe(CITIES.baseCulturePerCity + 2);
-    expect(small.food).toBe(CITIES.baseCityYields.food + 2);
-    // A library at size 1 is half a point, and half a point is none.
-    expect(small.science).toBe(1);
+    expect(small.food).toBe(CITIES.baseCityYields.food + granary.food);
+    // The population's own beaker, plus both of the library's terms — the flat
+    // one and the per-citizen one, floored on its own.
+    expect(small.science).toBe(1 + library.science + Math.floor(1 * library.sciencePerPop));
 
     city.population = 4;
     assignCitizens(state, city);
-    expect(cityYields(state, city).science).toBe(4 + 2);
+    // Through the happiness multiplier, which bites at this size: the two
+    // rules compose in the documented order — every source floored on its own,
+    // then the empire's percentage applied once to the sum.
+    const factor = yieldFactor(meterEffects(state, city.ownerId), 'science');
+    expect(cityYields(state, city).science).toBe(
+      Math.floor((4 + library.science + Math.floor(4 * library.sciencePerPop)) * factor),
+    );
+  });
+
+  /**
+   * A building renewal, which is `improvements.json`'s `upgrades[].tech` said of
+   * a building: The Wheel gives every granary an extra point of food.
+   *
+   * Asserted through the breakdown *and* the total, because rule 5 is that the
+   * one is the fold of the other — a renewal that showed up in the number but
+   * not in the list would be exactly the total-computed-beside-its-list the rule
+   * forbids, and the city panel prints that list.
+   */
+  it('renews a building when its owner earns the technology, as its own line', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.buildings = ['granary'];
+    const granary = buildingDef('granary');
+    const renewal = granary.upgrades![0]!;
+
+    const before = cityYields(state, city).food;
+    expect(explainCityBuildings(state, city)).toHaveLength(1);
+
+    state.players[0]!.techsResearched.push(renewal.tech);
+    const entries = explainCityBuildings(state, city);
+    expect(entries.map((entry) => entry.source)).toEqual([
+      granary.name,
+      techDef(renewal.tech).name,
+    ]);
+    expect(entries[1]!.building).toBe('granary');
+    expect(cityYields(state, city).food).toBe(before + (renewal.add.food ?? 0));
+
+    // And it reaches only the empire that earned it: the other seat's own
+    // granary is untouched, which is the same rule `explainTileYield` keeps.
+    const theirs = plant(state, 1, 12, 5);
+    theirs.buildings = ['granary'];
+    expect(explainCityBuildings(state, theirs)).toHaveLength(1);
+  });
+
+  /**
+   * The barracks: a share of the hammers, but only behind a *unit*.
+   *
+   * The claim under test is not the ten percent, it is that there is exactly one
+   * evaluator for it — the panel's rate, the estimate and the hammers the basket
+   * actually receives are three readings of `cityYields`, so they cannot drift.
+   */
+  it('puts a building\'s production bonus behind a unit and nothing else', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.population = 6;
+    assignCitizens(state, city);
+    const bonus = buildingDef('barracks').unitProductionBonus!;
+
+    const unit = { kind: 'unit', id: 'warrior' } as QueueItem;
+    const building = { kind: 'building', id: 'granary' } as QueueItem;
+    const plain = cityYields(state, city).production;
+    expect(productionModifiers(city, unit)).toEqual([]);
+
+    city.buildings = ['barracks'];
+    // A unit gets the bonus, floored once at the end; a building never does,
+    // and neither does a city asked about itself rather than about a build.
+    expect(cityYields(state, city, [], unit).production).toBe(Math.floor(plain * (1 + bonus)));
+    expect(cityYields(state, city, [], building).production).toBe(plain);
+    expect(cityYields(state, city).production).toBe(plain);
+    expect(productionModifiers(city, unit)).toEqual([
+      { source: 'Barracks', building: 'barracks', percent: bonus * 100 },
+    ]);
+    expect(productionModifiers(city, building)).toEqual([]);
+
+    // And the basket really does fill at the modified rate: what the estimate
+    // divided by is what the turn banks.
+    city.queue = [unit];
+    city.hammerBasket = 0;
+    collectYields(state);
+    expect(city.hammerBasket).toBe(Math.floor(plain * (1 + bonus)));
   });
 });
 
@@ -1202,6 +1288,9 @@ describe('setCityProduction', () => {
   it('replaces the whole queue, in the order given', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
+    // Monuments moved to Stonecraft in the Age I rework, and this test is about
+    // the queue rather than about the tree, so the seat is simply given it.
+    state.players[0]!.techsResearched.push('husbandry', 'earthenware', 'stonecraft');
     const queue = [
       { kind: 'building', id: 'monument' },
       { kind: 'unit', id: 'warrior' },
@@ -1438,10 +1527,16 @@ describe('determinism with cities', () => {
           type: 'setCityProduction',
           playerId: city.ownerId,
           cityId: city.id,
+          // Units only. Every building is behind a technology since the Age I
+          // rework, and this game is driven *entirely by commands* so that its
+          // log is a save file — a tech granted by reaching into the state
+          // would not survive the replay these three tests exist to assert.
+          // What is being measured is thirty turns of growth and production,
+          // and a queue of units measures it exactly as well.
           queue: [
-            { kind: 'building', id: 'monument' },
             { kind: 'unit', id: 'warrior' },
-            { kind: 'building', id: 'granary' },
+            { kind: 'unit', id: 'worker' },
+            { kind: 'unit', id: 'scout' },
           ],
         }).ok,
       ).toBe(true);
@@ -1460,7 +1555,10 @@ describe('determinism with cities', () => {
     // The game actually did something worth replaying.
     expect(game.state.turn).toBe(33);
     expect(game.state.cities.every((city) => city.population > 1)).toBe(true);
-    expect(game.state.cities.some((city) => city.buildings.length > 0)).toBe(true);
+    // Units rather than buildings, for the reason the queue names: every
+    // building is behind a technology now, and this log may not reach past the
+    // reducer to grant one.
+    expect(game.state.units.some((unit) => unit.type === 'worker')).toBe(true);
     expect(game.state.tileOwner.some((owner) => owner !== null)).toBe(true);
 
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));

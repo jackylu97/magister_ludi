@@ -454,7 +454,7 @@ describe('badges in the units layer', () => {
     // fell out of the table would draw somebody else's icon.
     for (const cls of MODEL_CLASS_IDS) expect(BADGE_CELLS).toContain(cls);
     expect(modelClassFor('trebuchet')).toBe('siege');
-    expect(modelClassFor('chariot')).toBe('mountedRanged');
+    expect(modelClassFor('chariotArcher')).toBe('mountedRanged');
   });
 
   /**

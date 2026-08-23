@@ -52,6 +52,8 @@ import {
 import { type Tile, getTileAt, tileIndex } from './map';
 import { RULES } from './rulesData';
 import { type GameState, type Unit, playerById, removeUnit, unitById } from './state';
+import { hasTech } from './tech';
+import { techDef } from './techData';
 import type { TileYield } from './terrainData';
 import { unitDef } from './unitData';
 
@@ -133,7 +135,37 @@ export function improvementErrorAt(
       return `A ${def.name.toLowerCase()} needs a resource it can work`;
     }
   }
-  return null;
+  // The technology **last**, after every question about the ground, which is the
+  // opposite of `buildError`'s order and is the whole of what makes the worker
+  // sheet readable. That sheet lists the improvements a hex could take and greys
+  // only the ones the *tree* is holding back (see `improvementOptions` in
+  // `controls.ts`); if the gate were asked first, a worker standing on flat
+  // grassland would be told "a mine needs Mining" about a hill it is not on, and
+  // the sheet would advertise six things this hex will never accept. Asked here,
+  // "the only thing refusing this is the technology" is exactly
+  // `improvementErrorAt(…) === improvementTechError(…)`.
+  return improvementTechError(state, ownerId, improvementId);
+}
+
+/**
+ * Why the *tree* refuses this improvement to this player, or `null` when it does
+ * not — the one place the sentence is written.
+ *
+ * Split out because two callers need it separately from the ground: the last
+ * clause of `improvementErrorAt` above, and the worker sheet, which asks it of
+ * an improvement it is about to grey rather than hide. An improvement with no
+ * `requiresTech` is never refused, which is the same escape hatch `isUnlocked`
+ * keeps for a unit nothing gates.
+ */
+export function improvementTechError(
+  state: GameState,
+  ownerId: number,
+  improvementId: ImprovementId,
+): string | null {
+  const def = improvementDef(improvementId);
+  const gate = def.requiresTech;
+  if (gate === undefined || hasTech(state, ownerId, gate)) return null;
+  return `A ${def.name.toLowerCase()} needs ${techDef(gate).name}`;
 }
 
 /**

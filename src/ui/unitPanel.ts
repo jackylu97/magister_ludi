@@ -280,23 +280,24 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         run: onFortify,
       });
     }
-    // The builder's verbs, one per improvement that is legal *here*.
+    // The builder's verbs, one per improvement this hex could take.
     //
-    // Listed rather than greyed, which is the opposite of Fortify's choice and
-    // is the city panel's precedent: a fortify refusal is one temporary "not
-    // this turn", while these are six mostly-permanent facts about the hex, and
-    // six greyed rows saying "a mine needs hills" on a grassland would spend the
-    // whole panel on no. What the player sees instead is the shape of the ground
-    // they are standing on.
+    // Which rows are here and which are greyed is `improvementOptions`'s rule,
+    // not this panel's: a hex the ground refuses is absent, and a hex the *tree*
+    // refuses is present and greyed with the technology named. So the list is
+    // the shape of the ground the worker is standing on, plus the things a
+    // research choice away from being possible on it.
     //
     // The label carries the delta, from the same evaluator the city banks with,
-    // so a charge is spent against a number rather than against a hope.
+    // so a charge is spent against a number rather than against a hope — and a
+    // greyed row carries it too, because "the mine here would be worth 2⚙" is
+    // precisely the argument for going and researching Mining.
     if (isBuilder(unit)) {
       for (const option of improvementOptions()) {
         const delta = formatYieldDelta(option.delta);
         actions.push({
           label: delta ? `${option.name} ${delta}` : option.name,
-          blocked: null,
+          blocked: option.blocked,
           hint: `Spend a charge: ${option.name.toLowerCase()} on this tile`,
           run: () => onBuildImprovement(option.id),
         });

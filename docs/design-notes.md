@@ -296,6 +296,11 @@ and may kill the actor, the other does not, and a mis-aimed order must not burn 
 uses is what makes it *generic* (farm, mine — buildable on bare ground, and they clear the tile's
 clutter) or a *resource-improvement* (pasture, camp, quarry, plantation — pinned to their
 resources, and they compose with the props already there: the fence goes around the cattle).
+A fifth filter joined them with the Age I rework (2026-08-23) and is the only one that is not
+about the hex: **`requiresTech`**, the improvement's own gate, asked *last* so that a worker on
+flat ground is told "a mine needs hills" and one on a hill is told "a mine needs Mining" — which
+is what lets the worker sheet hide the first and grey the second. Every row carries one now, so
+the worker's menu opens over a game instead of arriving whole on turn one.
 `improvesResource` is a second, separate field because the mine is buildable on any hill and is
 *also* what opens an iron seam. Two deliberate deviations, both documented in the data accessor:
 **fish has no improvement** (the work boat is naval, deferred; fish stays visible and simply
@@ -668,6 +673,10 @@ Magister's writ run?"
    (happiness), palace + ages (authority capacity). More authority sources acknowledged as
    missing — designed later, likely with the tech-tree revision (monument +1 authority is
    already pencilled there) and civic cards.
+   · **Landed with the Age I rework (2026-08-23):** the monument's +1, and generically — a
+     building supplies capacity iff its row declares an `authorityCapacity`, counted per type in
+     `explainAuthority` ("Monuments ×3 +3"). There is no monument case anywhere in `meters.ts`,
+     so the courthouse is a data row when it arrives.
 
 ### E. What v1 actually shipped (2026-08-23)
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { buildingDef } from '../src/sim/buildingData';
 import { applyCommand } from '../src/sim/commands';
 import {
   assignCitizens,
@@ -354,6 +355,44 @@ describe('authority: what a city costs', () => {
     const entries = explainAuthority(state, 0);
     expect(lineFor(entries, 'Æra II')).toBe(WRIT.perAge);
     expect(meterStanding(entries).gain).toBe(WRIT.palaceCapacity + WRIT.perAge);
+  });
+
+  /**
+   * Capacity an empire *built*, which is the Age I rework's addition to the
+   * writ: a monument raises it by one.
+   *
+   * What is under test is the data-drivenness rather than the number. Nothing in
+   * `meters.ts` names the monument — the line is grown from whichever buildings
+   * declare an `authorityCapacity` — so the assertions are written off
+   * `buildingDef` and a second such building would need no code at all.
+   */
+  it('counts the capacity its buildings supply, one line per type', () => {
+    const state = flatState();
+    const first = foundCityAt(state, 0, at(state.map, 4, 4));
+    const second = foundCityAt(state, 0, at(state.map, 10, 4));
+    const monument = buildingDef('monument');
+    const capacity = monument.authorityCapacity!;
+    const bare = meterStanding(explainAuthority(state, 0)).gain;
+
+    // A type nobody has built is not a line: an empty row would be a list of
+    // everything the player has not done.
+    expect(lineFor(explainAuthority(state, 0), monument.name)).toBeUndefined();
+
+    first.buildings.push('monument');
+    expect(lineFor(explainAuthority(state, 0), monument.name)).toBe(capacity);
+    expect(meterStanding(explainAuthority(state, 0)).gain).toBe(bare + capacity);
+
+    // Two of them are one line that counts them, not two lines.
+    second.buildings.push('monument');
+    const entries = explainAuthority(state, 0);
+    const named = entries.filter((entry) => entry.source.includes(monument.name));
+    expect(named).toHaveLength(1);
+    expect(named[0]!.source).toBe(`Monuments ×2`);
+    expect(named[0]!.value).toBe(2 * capacity);
+    expect(meterStanding(entries).gain).toBe(bare + 2 * capacity);
+
+    // And it is the *owner's* writ it raises: the other seat's is untouched.
+    expect(lineFor(explainAuthority(state, 1), monument.name)).toBeUndefined();
   });
 
   it('prices a city that does not exist yet, discount included', () => {

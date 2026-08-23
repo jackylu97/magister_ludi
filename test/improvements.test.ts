@@ -33,6 +33,7 @@ import {
   chargesLeft,
   improvementError,
   improvementErrorAt,
+  improvementTechError,
   improvementYieldDelta,
   isBuilder,
   pillageError,
@@ -55,7 +56,7 @@ import {
   type TerrainId,
   tileYield,
 } from '../src/sim/terrainData';
-import { TECH_IDS } from '../src/sim/techData';
+import { TECH_IDS, techDef } from '../src/sim/techData';
 import { unitDef } from '../src/sim/unitData';
 import { computeFreshwater } from '../src/sim/water';
 import { resetVisibility } from '../src/sim/visibility';
@@ -391,6 +392,72 @@ describe('buildImprovement', () => {
       expect(improvementErrorAt(state, 0, tile, 'farm')).toBeNull();
       expect(improvementErrorAt(state, 0, tile, 'mine')).toBe('A mine needs hills');
       expect(improvementErrorAt(state, 1, tile, 'farm')).toBe('(5, 4) belongs to player 0');
+    });
+  });
+
+  /**
+   * The technology gate, which is the Age I rework's addition: every improvement
+   * carries a `requiresTech` now, so the worker's menu opens over the course of
+   * a game instead of arriving whole on turn one.
+   */
+  describe('the technology gate', () => {
+    it('refuses an ungated build by name, and takes it the moment the tech lands', () => {
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      tile.hills = true;
+      const gate = improvementDef('mine').requiresTech!;
+      state.players[0]!.techsResearched = ['agriculture'];
+
+      expect(improvementError(state, worker.id, 'mine')).toBe(
+        `A mine needs ${techDef(gate).name}`,
+      );
+      // And the reducer refuses with the same sentence, byte-identically —
+      // a rejected command changes nothing at all.
+      const before = snapshotState(state);
+      expect(applyCommand(state, build(0, worker.id, 'mine'))).toEqual({
+        ok: false,
+        error: `A mine needs ${techDef(gate).name}`,
+      });
+      expect(snapshotState(state)).toBe(before);
+
+      state.players[0]!.techsResearched.push(gate);
+      expect(improvementError(state, worker.id, 'mine')).toBeNull();
+      expect(applyCommand(state, build(0, worker.id, 'mine'))).toEqual({ ok: true });
+      expect(tile.improvement).toBe('mine');
+    });
+
+    it('asks the tree last, so the ground always gets to speak first', () => {
+      // The ordering the worker sheet is built on (see `improvementOptions` in
+      // `controls.ts`): a hex that could never take a mine says so, whatever the
+      // player has researched, and only a hex that *could* is told about Mining.
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      state.players[0]!.techsResearched = ['agriculture'];
+
+      expect(tile.hills).toBe(false);
+      expect(improvementError(state, worker.id, 'mine')).toBe('A mine needs hills');
+      tile.hills = true;
+      expect(improvementError(state, worker.id, 'mine')).toBe('A mine needs Mining');
+    });
+
+    it('answers the gate on its own, with no hex in the question', () => {
+      const state = bareState();
+      state.players[0]!.techsResearched = ['agriculture'];
+      // Ground-independent, which is what lets the sheet grey a row rather than
+      // hide it, and it is the *same sentence* the full gate refuses with.
+      expect(improvementTechError(state, 0, 'farm')).toBeNull();
+      expect(improvementTechError(state, 0, 'quarry')).toBe('A quarry needs Stonecraft');
+      expect(improvementTechError(state, 1, 'quarry')).toBeNull();
+    });
+
+    it('gates every improvement in the table on a technology that exists', () => {
+      // The rework's other half: the worker's menu is a curve now, not a wall of
+      // six buttons on turn one. A row with no gate would be a hole in it.
+      for (const id of IMPROVEMENT_IDS) {
+        const gate = improvementDef(id).requiresTech;
+        expect(gate, id).toBeDefined();
+        expect(TECH_IDS, id).toContain(gate!);
+      }
     });
   });
 
@@ -754,7 +821,22 @@ describe('improvements and the city', () => {
 // --- the save file ----------------------------------------------------------
 
 describe('improvements in the log', () => {
-  /** A real game with a worker and a raider, driven entirely by commands. */
+  /**
+   * A real game with a worker and a raider, driven entirely by commands.
+   *
+   * It also *researches* Fletching, by ordinary `chooseResearch` and end-turn
+   * commands, and that is the Age I rework's doing: every improvement is behind
+   * a technology now, and this seat starts with Agriculture alone. Granting the
+   * tech by reaching into the state would be the one thing these three tests
+   * exist to forbid — the log has to be the whole story — so the empire earns
+   * it the way a player would. The wait is bounded and short; the assertion is
+   * that it happened at all.
+   *
+   * Fletching specifically, because of what this seed deals: the capital's ring
+   * on seed 4242 is forest and jungle hills all the way round, and the one hex
+   * in it that any improvement can touch is a deer tile — which wants a camp.
+   * That was the site this test always used; it simply used to be free.
+   */
   function improvingGame(): Game {
     const game = createGame({
       seed: 4242,
@@ -773,6 +855,14 @@ describe('improvements in the log', () => {
       if (settler) {
         dispatch(game, { type: 'foundCity', playerId: player.id, settlerUnitId: settler.id });
       }
+      dispatch(game, { type: 'chooseResearch', playerId: player.id, techId: 'fletching' });
+    }
+    for (let turn = 0; turn < 40; turn++) {
+      if (state.players.every((player) => player.techsResearched.includes('fletching'))) break;
+      for (const player of state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
+    }
+    for (const player of state.players) {
+      expect(player.techsResearched, player.name).toContain('fletching');
     }
     return game;
   }

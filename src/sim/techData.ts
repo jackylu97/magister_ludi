@@ -29,6 +29,17 @@
  * up is a unit nobody will notice is broken. `techDataProblems` reports which
  * ids are in that state so a test can decide whether it is intentional.
  *
+ * `unlocks` is no longer the whole of what a node gives
+ * ----------------------------------------------------
+ * It was, until the Age I rework. Three other tables now name technologies from
+ * their own side — a resource's `requiresTech`, an improvement's `requiresTech`
+ * and its `upgrades[].tech`, a building's `upgrades[].tech` — so a node like
+ * Mining hands over a real gift (the mine) while its `unlocks` block is empty.
+ * Entry V's "every node is a package, no connective tissue" is therefore checked
+ * against the *whole* gift list by `unlockDataProblems` (`techUnlocks.ts`),
+ * which is the module that can see all four tables. This file no longer has an
+ * opinion about it, because from here an empty `unlocks` is unreadable.
+ *
  * Ages
  * ----
  * `age` is 1, 2 or 3 today (Ancient, Classical, Medieval — the tech screen sets
@@ -49,10 +60,11 @@
  *     reads as a chain — bronze working, iron working, steel march rightward
  *     because each one is strictly deeper than the last, and an edge can never
  *     point backwards.
- *   - `row` is hand-authored in `data/techs.json`, one lane per theme (the
- *     mounted line, the missile line, the metal line, stone and coin, word and
- *     faith), tuned by eye so related nodes stay on one line and prerequisite
- *     edges cross as little as possible. There is deliberately no automatic
+ *   - `row` is hand-authored in `data/techs.json`, one lane per theme — six of
+ *     them since the Age I rework: the mounted line (0), the missile line (1),
+ *     the metal line (2), stone and coin (3), word and number (4), faith and
+ *     the schools (5) — tuned by eye so related nodes stay on one line and
+ *     prerequisite edges cross as little as possible. There is no automatic
  *     row-assignment algorithm: a sugiyama-style solver would re-shuffle the
  *     lanes every time a tech was added, and a tree whose shape a player has
  *     learnt is worth more than a tree with two fewer line crossings.
@@ -67,17 +79,20 @@ import { type UnitTypeId, isUnitTypeId } from './unitData';
 
 export type TechId =
   | 'agriculture'
-  | 'pottery'
-  | 'archery'
-  | 'animalHusbandry'
+  | 'husbandry'
+  | 'fletching'
+  | 'mining'
+  | 'earthenware'
   | 'bronzeWorking'
-  | 'masonry'
-  | 'writing'
+  | 'stonecraft'
+  | 'calendar'
+  | 'divination'
   | 'theWheel'
+  | 'letters'
   | 'ironWorking'
+  | 'construction'
   | 'mathematics'
   | 'currency'
-  | 'construction'
   | 'philosophy'
   | 'engineering'
   | 'drama'
@@ -346,11 +361,11 @@ export function techDataProblems(): string[] {
       }
     }
 
+    // Whether a node hands over *anything* is `unlockDataProblems`'s question
+    // now: three other tables gate on a technology and none of them is visible
+    // from here. See the docblock.
     const units = def.unlocks.units ?? [];
     const buildings = def.unlocks.buildings ?? [];
-    if (units.length + buildings.length === 0) {
-      problems.push(`tech "${id}" unlocks nothing (every node is a package — see Entry V)`);
-    }
     for (const unit of units) {
       if (!isUnitTypeId(unit)) problems.push(`tech "${id}" unlocks unit "${unit}", which does not exist`);
       else if (UNIT_UNLOCK_TECH.get(unit) !== id) {

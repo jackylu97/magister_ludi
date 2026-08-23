@@ -25,10 +25,13 @@
  */
 
 import {
+  type BuildingYieldContribution,
   cityYields,
+  explainCityBuildings,
   growthSurplus,
   growthThreshold,
   hasResource,
+  productionModifiers,
   queueItemCost,
   queueItemName,
   turnsToBuild,
@@ -42,10 +45,18 @@ import { type Game, dispatch } from '../sim/game';
 import { meterEffects } from '../sim/meters';
 import { resourceDef } from '../sim/resourceData';
 import { type City, type QueueItem, hasEndedTurn } from '../sim/state';
+import { techDef } from '../sim/techData';
 import { isUnlocked, requiredResource } from '../sim/tech';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
 import { cityDisplayName } from './cityDisplay';
-import { HAMMER, YIELD_GLYPH, effectFigure, signedFigure, turnsLabel } from './figures';
+import {
+  HAMMER,
+  YIELD_GLYPH,
+  effectFigure,
+  percentFigure,
+  signedFigure,
+  turnsLabel,
+} from './figures';
 import { createInfoCard } from './infoCard';
 
 export interface CityPanelOptions {
@@ -230,6 +241,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       [YIELD_GLYPH.food, def.food],
       [YIELD_GLYPH.production, def.production],
       [YIELD_GLYPH.gold, def.gold],
+      [YIELD_GLYPH.science, def.science],
       [YIELD_GLYPH.culture, def.culture],
     ];
     for (const [glyph, value] of flat) {
@@ -239,6 +251,34 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // it is quoted per citizen rather than as a total this card cannot know.
     if (def.sciencePerPop !== 0) {
       notes.append(note(`+${def.sciencePerPop}${YIELD_GLYPH.science} per citizen`));
+    }
+    // The three fields that name a behaviour rather than a yield. Written off
+    // the presence of the field, exactly as the unit card is: the second
+    // building that raises the writ describes itself here without being taught.
+    if (def.authorityCapacity !== undefined && def.authorityCapacity !== 0) {
+      notes.append(note(`+${def.authorityCapacity} authority capacity`));
+    }
+    if (def.unitProductionBonus !== undefined && def.unitProductionBonus !== 0) {
+      notes.append(
+        note(`${percentFigure(def.unitProductionBonus * 100)}${HAMMER} toward units here`),
+      );
+    }
+    // Every renewal this building will ever get, whether or not its owner has
+    // earned it yet. One already held is folded into what the building pays and
+    // gets its own line in the panel's breakdown; one still ahead is a promise,
+    // and naming the technology is the whole of what makes it worth reading.
+    for (const upgrade of def.upgrades ?? []) {
+      const figures = buildingFigures({
+        source: def.name,
+        building: id,
+        food: upgrade.add.food ?? 0,
+        production: upgrade.add.production ?? 0,
+        gold: upgrade.add.gold ?? 0,
+        science: upgrade.add.science ?? 0,
+        culture: upgrade.add.culture ?? 0,
+        sciencePerPop: upgrade.add.sciencePerPop ?? 0,
+      });
+      notes.append(note(`${figures} with ${techDef(upgrade.tech).name}`));
     }
     if (notes.childElementCount === 0) notes.append(note('No yields of its own'));
     box.append(notes);
@@ -258,19 +298,58 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   // --- sections ------------------------------------------------------------
 
   /**
-   * The five figures, and — under them — every empire modifier that is currently
-   * inside them.
+   * What one line of a building's breakdown pays, in the yields' own glyphs:
+   * `+3🌾`, `+1🔬/pop`. Empty for a line that pays nothing at all — a barracks
+   * has no yields of its own and is listed below as the modifier it is, not
+   * here as a row of five zeroes.
+   */
+  function buildingFigures(entry: BuildingYieldContribution): string {
+    const parts: string[] = [];
+    const voices: [number, string][] = [
+      [entry.food, YIELD_GLYPH.food],
+      [entry.production, YIELD_GLYPH.production],
+      [entry.gold, YIELD_GLYPH.gold],
+      [entry.science, YIELD_GLYPH.science],
+      [entry.culture, YIELD_GLYPH.culture],
+    ];
+    for (const [value, glyph] of voices) {
+      if (value === 0) continue;
+      parts.push(`${value > 0 ? '+' : ''}${value}${glyph}`);
+    }
+    if (entry.sciencePerPop !== 0) {
+      const sign = entry.sciencePerPop > 0 ? '+' : '';
+      parts.push(`${sign}${entry.sciencePerPop}${YIELD_GLYPH.science}/pop`);
+    }
+    return parts.join(' ');
+  }
+
+  /**
+   * The five figures, and — under them — the list they are the fold of.
    *
-   * The chips are `cityYields`, which since Milestone 10 has the happiness and
-   * authority multipliers already folded in. A multiplied number shown without
-   * the reason beside it is a total computed beside its list, which is exactly
-   * what CLAUDE.md's rule 5 forbids, so each active effect gets a line naming
-   * the meter, its value and what it is doing. Nothing is listed when nothing is
-   * biting, which is most of a game.
+   * The chips are `cityYields`, which has the happiness and authority
+   * multipliers already folded in and, since the Age I rework, the share of the
+   * hammers a barracks puts behind whatever is at the front of the queue. A
+   * multiplied number shown without the reason beside it is a total computed
+   * beside its list, which is exactly what CLAUDE.md's rule 5 forbids, so the
+   * whole of what is inside the chips gets said underneath them, in the order it
+   * is applied:
+   *
+   *   · every line the city's buildings pay (`explainCityBuildings`) — one per
+   *     building, and one more per *renewal* a technology has switched on, so
+   *     "Granary +3🌾" and "The Wheel +1🌾" are two facts a player can find.
+   *   · every building putting extra hammers behind the current build.
+   *   · every empire modifier that is currently biting.
+   *
+   * A line worth nothing is never printed, at any of the three levels: a
+   * modifier that does nothing is not a modifier, and a granary in a city whose
+   * queue is empty is not a hammer bonus.
    */
   function renderYields(city: City): HTMLElement {
     const { state } = getGame();
-    const yields = cityYields(state, city);
+    // The rate for what is actually being built — the same call `collectYields`
+    // banks with, so the ⚙ chip is the number the basket will receive.
+    const front = city.queue[0];
+    const yields = cityYields(state, city, [], front);
     const box = element('div', 'city-yields-box');
     const row = element('div', 'city-yields');
     const entries: [string, string, number][] = [
@@ -288,18 +367,26 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     box.append(row);
 
-    const effects = meterEffects(state, city.ownerId);
-    if (effects.length > 0) {
-      const list = element('ul', 'city-modifiers');
-      for (const effect of effects) {
-        const line = element('li', effect.percent < 0 ? 'city-modifier is-bad' : 'city-modifier');
-        const meter = effect.meter === 'happiness' ? 'Happiness' : 'Authority';
-        line.append(element('span', undefined, `${meter} ${signedFigure(effect.value)}`));
-        line.append(element('span', 'city-modifier-effect', effectFigure(effect)));
-        list.append(line);
-      }
-      box.append(list);
+    const list = element('ul', 'city-modifiers');
+    const line = (label: string, figures: string, bad = false): void => {
+      const item = element('li', bad ? 'city-modifier is-bad' : 'city-modifier');
+      item.append(element('span', undefined, label));
+      item.append(element('span', 'city-modifier-effect', figures));
+      list.append(item);
+    };
+
+    for (const entry of explainCityBuildings(state, city)) {
+      const figures = buildingFigures(entry);
+      if (figures) line(entry.source, figures);
     }
+    for (const modifier of productionModifiers(city, front)) {
+      line(modifier.source, `${HAMMER} ${percentFigure(modifier.percent)}`);
+    }
+    for (const effect of meterEffects(state, city.ownerId)) {
+      const meter = effect.meter === 'happiness' ? 'Happiness' : 'Authority';
+      line(`${meter} ${signedFigure(effect.value)}`, effectFigure(effect), effect.percent < 0);
+    }
+    if (list.childElementCount > 0) box.append(list);
     return box;
   }
 

@@ -18,6 +18,12 @@
  *     requiresHills    the tile's `hills` flag must equal this      (optional)
  *     requiresResource the tile must carry one of these resources   (optional)
  *
+ * `requiresTech` sits beside them and is the one filter that is *not* about the
+ * ground: it asks the worker's owner rather than the hex, which is why it is
+ * documented on the field and not in this shape. Every improvement carries one
+ * since the Age I rework, so the worker's menu now opens over the course of a
+ * game instead of arriving whole on turn one.
+ *
  * An absent filter means "don't care", and the two kinds fall out of which
  * filters a row uses rather than out of a `kind` field nobody could get wrong:
  *
@@ -106,6 +112,22 @@ export interface ImprovementDef {
   emoji: string;
   /** Charges one build spends. The per-improvement half of the charge model. */
   chargeCost: number;
+  /**
+   * The technology a worker's owner must hold before this may be built at all,
+   * or absent for "from turn one".
+   *
+   * The improvement half of the gate `unlocks.units` is for a unit, written from
+   * *this* side rather than in `techs.json` for the reason `resourceData`'s
+   * `requiresTech` is: an improvement is a row a designer tunes as a whole, and
+   * a gate written two files away is a gate that drifts from the thing it gates.
+   * `techGifts` inverts it so the tech screen can still say what a node hands
+   * over, exactly as it does for a reveal.
+   *
+   * It gates the *build*, not the yield: an improvement already on the ground
+   * when its tech is somehow absent (a captured tile, a hand-edited save) keeps
+   * paying. `improvementErrorAt` is the only reader.
+   */
+  requiresTech?: TechId;
   /** Added to the tile's terrain/feature/hills/resource yield. Never replaces. */
   yields: TileYield;
   /** Terrains this may be built on, or absent for "any". See the docblock. */
@@ -223,6 +245,9 @@ function validateTable(): void {
     // ocean floor, which is not a rule anybody meant to write.
     if (def.validTerrain === undefined && def.requiresResource === undefined) {
       throw new Error(`${where} constrains nothing: it needs validTerrain or requiresResource`);
+    }
+    if (def.requiresTech !== undefined && !TECH_IDS.includes(def.requiresTech)) {
+      throw new Error(`${where} needs unknown technology "${def.requiresTech}"`);
     }
     for (const upgrade of def.upgrades ?? []) {
       if (!TECH_IDS.includes(upgrade.tech)) {

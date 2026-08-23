@@ -44,6 +44,7 @@ export type UnitTypeId =
   | 'spearman'
   | 'horseman'
   | 'chariot'
+  | 'chariotArcher'
   | 'swordsman'
   | 'catapult'
   | 'compositeBowman'

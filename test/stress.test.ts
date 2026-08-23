@@ -574,8 +574,27 @@ describe('a full turn at scale', () => {
     // A few resolutions first, so the forty cities have pushed their borders out
     // and there is enough owned ground for forty workers to stand on. Ordinary
     // end-turns through the reducer, so the log stays a save file.
-    for (let turn = 0; turn < 8; turn++) {
+    //
+    // And they research, because since the Age I rework every improvement is
+    // behind a technology and every seat starts holding Agriculture alone —
+    // which gates the farm and nothing else. Mining is the one that opens the
+    // most ground on a generated map (any hill), it is the cheapest node after
+    // the roots, and forty cities pay for it in a turn or two. Ordinary
+    // commands, so the log stays a save file and the replay assertion above
+    // still holds over it.
+    for (const player of state.players) {
+      dispatch(game, { type: 'chooseResearch', playerId: player.id, techId: 'mining' });
+    }
+    // Long enough for it to land, and no longer: forty size-one cities under a
+    // badly overstretched writ round their single beaker down to nothing (the
+    // −20% is applied per city, and `floor(1 × 0.8)` is 0), so this empire has
+    // to *grow* before it can think. That is the meters working, not a stall.
+    for (let turn = 0; turn < 40; turn++) {
+      if (state.players.every((player) => player.techsResearched.includes('mining'))) break;
       for (const player of state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
+    }
+    for (const player of state.players) {
+      expect(player.techsResearched, player.name).toContain('mining');
     }
 
     // Sites across every seat, because a worker may only build inside its *own*

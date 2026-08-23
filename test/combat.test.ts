@@ -1025,7 +1025,17 @@ describe('the unit roster carries the combat data the rules need', () => {
   it('makes exactly the intended types ranged', () => {
     const ranged = UNIT_TYPE_IDS.filter((id) => isRanged(unitDef(id)));
     expect(ranged.sort()).toEqual(
-      ['archer', 'catapult', 'chariot', 'compositeBowman', 'crossbowman', 'trebuchet'].sort(),
+      // The war chariot left this list in the Age I rework: it became the
+      // mounted shock unit ("stronger than a horseman") and the chariot archer
+      // took over the bow, which is the split the tech's two gifts describe.
+      [
+        'archer',
+        'catapult',
+        'chariotArcher',
+        'compositeBowman',
+        'crossbowman',
+        'trebuchet',
+      ].sort(),
     );
   });
 });

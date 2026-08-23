@@ -6,17 +6,26 @@
       "food": 0,
       "production": 0,
       "gold": 0,
+      "science": 0,
       "culture": 2,
-      "sciencePerPop": 0
+      "sciencePerPop": 0,
+      "authorityCapacity": 1
     },
     "granary": {
       "name": "Granary",
       "cost": 15,
-      "food": 2,
+      "food": 3,
       "production": 0,
       "gold": 0,
+      "science": 0,
       "culture": 0,
-      "sciencePerPop": 0
+      "sciencePerPop": 0,
+      "upgrades": [
+        {
+          "tech": "theWheel",
+          "add": { "food": 1 }
+        }
+      ]
     },
     "shrine": {
       "name": "Shrine",
@@ -24,17 +33,30 @@
       "food": 0,
       "production": 0,
       "gold": 0,
+      "science": 1,
       "culture": 1,
       "sciencePerPop": 0
+    },
+    "barracks": {
+      "name": "Barracks",
+      "cost": 18,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unitProductionBonus": 0.1
     },
     "library": {
       "name": "Library",
       "cost": 20,
       "food": 0,
       "production": 0,
-      "gold": 0,
+      "gold": 2,
+      "science": 2,
       "culture": 0,
-      "sciencePerPop": 0.5
+      "sciencePerPop": 1
     },
     "temple": {
       "name": "Temple",
@@ -42,6 +64,7 @@
       "food": 0,
       "production": 0,
       "gold": 0,
+      "science": 0,
       "culture": 2,
       "sciencePerPop": 0
     },
@@ -51,6 +74,7 @@
       "food": 0,
       "production": 0,
       "gold": 3,
+      "science": 0,
       "culture": 0,
       "sciencePerPop": 0
     },
@@ -60,6 +84,7 @@
       "food": 3,
       "production": 0,
       "gold": 0,
+      "science": 0,
       "culture": 0,
       "sciencePerPop": 0
     },
@@ -69,6 +94,7 @@
       "food": 0,
       "production": 2,
       "gold": 0,
+      "science": 0,
       "culture": 0,
       "sciencePerPop": 0
     },
@@ -78,6 +104,7 @@
       "food": 2,
       "production": 1,
       "gold": 0,
+      "science": 0,
       "culture": 0,
       "sciencePerPop": 0
     },
@@ -87,6 +114,7 @@
       "food": 0,
       "production": 0,
       "gold": 0,
+      "science": 0,
       "culture": 3,
       "sciencePerPop": 0
     },
@@ -96,6 +124,7 @@
       "food": 0,
       "production": 0,
       "gold": 0,
+      "science": 0,
       "culture": 2,
       "sciencePerPop": 0.25
     },
@@ -105,6 +134,7 @@
       "food": 0,
       "production": 0,
       "gold": 0,
+      "science": 0,
       "culture": 0,
       "sciencePerPop": 0.75
     }

@@ -126,6 +126,7 @@
         "none"
       ],
       "hills": false,
+      "requiresTech": "husbandry",
       "frequency": 8,
       "clusterSize": [
         2,

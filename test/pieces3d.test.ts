@@ -133,9 +133,14 @@ describe('the model-class roster', () => {
     expect(modelClassFor('warrior')).toBe(modelClassFor('swordsman'));
     expect(modelClassFor('archer')).toBe(modelClassFor('crossbowman'));
     expect(modelClassFor('horseman')).toBe(modelClassFor('knight'));
+    // The war chariot joined them when the Age I rework made it a melee shock
+    // unit: it is a thing on wheels behind horses, and so is a knight at this
+    // silhouette size. The *chariot archer* keeps the mountedRanged sculpt —
+    // the one carrying a bow — which is the whole of how the two read apart.
+    expect(modelClassFor('chariot')).toBe(modelClassFor('horseman'));
     // …but not everything: a settler must never be a swordsman.
     expect(modelClassFor('settler')).not.toBe(modelClassFor('warrior'));
-    expect(modelClassFor('chariot')).not.toBe(modelClassFor('horseman'));
+    expect(modelClassFor('chariotArcher')).not.toBe(modelClassFor('horseman'));
   });
 
   it('builds non-empty, de-indexed, flat-shaded geometry for each', () => {

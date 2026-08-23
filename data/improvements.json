@@ -4,6 +4,7 @@
       "name": "Farm",
       "emoji": "🌱",
       "chargeCost": 1,
+      "requiresTech": "agriculture",
       "yields": {
         "food": 1,
         "production": 0,
@@ -37,6 +38,7 @@
       "name": "Mine",
       "emoji": "⛏️",
       "chargeCost": 1,
+      "requiresTech": "mining",
       "yields": {
         "food": 0,
         "production": 1,
@@ -63,6 +65,7 @@
       "name": "Pasture",
       "emoji": "🐑",
       "chargeCost": 1,
+      "requiresTech": "husbandry",
       "yields": {
         "food": 0,
         "production": 1,
@@ -82,6 +85,7 @@
       "name": "Camp",
       "emoji": "⛺",
       "chargeCost": 1,
+      "requiresTech": "fletching",
       "yields": {
         "food": 1,
         "production": 0,
@@ -99,6 +103,7 @@
       "name": "Quarry",
       "emoji": "🧱",
       "chargeCost": 1,
+      "requiresTech": "stonecraft",
       "yields": {
         "food": 0,
         "production": 1,
@@ -118,10 +123,11 @@
       "name": "Plantation",
       "emoji": "🌿",
       "chargeCost": 1,
+      "requiresTech": "calendar",
       "yields": {
-        "food": 0,
+        "food": 1,
         "production": 0,
-        "gold": 1
+        "gold": 0
       },
       "requiresResource": [
         "silk",
@@ -133,7 +139,17 @@
         "wine",
         "spices"
       ],
-      "clearsClutter": false
+      "clearsClutter": false,
+      "upgrades": [
+        {
+          "tech": "calendar",
+          "add": {
+            "food": 0,
+            "production": 0,
+            "gold": 1
+          }
+        }
+      ]
     }
   }
 }

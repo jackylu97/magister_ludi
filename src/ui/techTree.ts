@@ -65,6 +65,7 @@ import { buildingDef } from '../sim/buildingData';
 import { unitProductionCost } from '../sim/cities';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
+import { improvementDef } from '../sim/improvementData';
 import { hasEndedTurn } from '../sim/state';
 import {
   availableTechs,
@@ -114,16 +115,20 @@ const YIELD_GLYPHS: [keyof ReturnType<typeof buildingYieldDelta>, string][] = [
 const GIFT_MARK: Record<TechGift['kind'], string> = {
   unit: 'is-unit',
   building: 'is-building',
+  improvement: 'is-improvement',
   reveal: 'is-reveal',
   renewal: 'is-renewal',
+  buildingRenewal: 'is-renewal',
 };
 
 /** The sentence each kind of gift is introduced by, in the card's list. */
 const GIFT_HEADING: Record<TechGift['kind'], string> = {
   unit: 'Units',
   building: 'Buildings',
+  improvement: 'Workers may build',
   reveal: 'Reveals on the map',
   renewal: 'Improvements renewed',
+  buildingRenewal: 'Buildings renewed',
 };
 
 export interface TechTree {
@@ -293,6 +298,32 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   }
 
   /**
+   * The same sentence for a building renewal, which pays in five voices rather
+   * than three — a building can hand a city beakers and culture, and an
+   * improvement never can. Written off the delta's *present* fields, so a
+   * renewal that says only `{food: 1}` reads as `+1🌾` and not as four zeroes.
+   */
+  function buildingRenewalNote(gift: TechGift & { kind: 'buildingRenewal' }): string {
+    const add = gift.add;
+    const parts: string[] = [];
+    const voices: [number | undefined, string][] = [
+      [add.food, YIELD_GLYPH.food],
+      [add.production, HAMMER],
+      [add.gold, YIELD_GLYPH.gold],
+      [add.science, YIELD_GLYPH.science],
+      [add.culture, YIELD_GLYPH.culture],
+    ];
+    for (const [value, glyph] of voices) {
+      if (value === undefined || value === 0) continue;
+      parts.push(`${value > 0 ? '+' : ''}${value}${glyph}`);
+    }
+    if (add.sciencePerPop) {
+      parts.push(`${add.sciencePerPop > 0 ? '+' : ''}${add.sciencePerPop}${YIELD_GLYPH.science}/pop`);
+    }
+    return parts.join(' ');
+  }
+
+  /**
    * The whole of what a node hands over, which is more than a node card holds.
    *
    * The card in the chart lists the units and buildings, because those are what
@@ -371,16 +402,21 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       row.append(element('span', `info-card-mark ${GIFT_MARK[gift.kind]}`, gift.glyph));
       row.append(element('span', 'info-card-gift-name', gift.name));
       // Units are priced through the simulation's own evaluator; buildings
-      // quote their flat cost; a reveal and a renewal cost nothing at all, so
-      // the renewal says what it *pays* instead and the reveal says nothing.
+      // quote their flat cost; an improvement quotes the charges it spends;
+      // a reveal and the two renewals cost nothing at all, so the renewals say
+      // what they *pay* instead and the reveal says nothing.
       const note =
         gift.kind === 'unit'
           ? `${unitProductionCost(state, playerId, gift.id)}${HAMMER}`
           : gift.kind === 'building'
             ? `${buildingDef(gift.id).cost}${HAMMER}`
-            : gift.kind === 'renewal'
-              ? renewalNote(gift)
-              : '';
+            : gift.kind === 'improvement'
+              ? `${improvementDef(gift.id).chargeCost} charge`
+              : gift.kind === 'renewal'
+                ? renewalNote(gift)
+                : gift.kind === 'buildingRenewal'
+                  ? buildingRenewalNote(gift)
+                  : '';
       if (note) row.append(element('span', 'info-card-gift-note', note));
       list?.append(row);
     }

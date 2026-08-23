@@ -72,12 +72,17 @@ import { type Popover, createPopover } from './popover';
  *
  * A player with no cities makes nothing, which is the honest answer for the
  * first few turns of a game rather than a row of em dashes.
+ *
+ * Each city is asked *toward whatever it is building*, which is the same call
+ * `collectYields` banks with: since the Age I rework a barracks puts a share of
+ * its city's hammers behind a unit, and a strip that quoted the unmodified rate
+ * would be a headline the turn resolution disagrees with.
  */
 export function civYields(state: GameState, playerId: number): CityYields {
   const total: CityYields = { food: 0, production: 0, gold: 0, science: 0, culture: 0 };
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    const yields = cityYields(state, city);
+    const yields = cityYields(state, city, [], city.queue[0]);
     total.food += yields.food;
     total.production += yields.production;
     total.gold += yields.gold;
@@ -202,7 +207,13 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     const lines = element('ul', 'meter-lines');
     for (const city of state.cities) {
       if (city.ownerId !== playerId) continue;
-      lines.append(meterLine(cityDisplayName(state, city), cityYields(state, city)[key], false));
+      lines.append(
+        meterLine(
+          cityDisplayName(state, city),
+          cityYields(state, city, [], city.queue[0])[key],
+          false,
+        ),
+      );
     }
     if (lines.childElementCount === 0) {
       box.append(element('p', 'hint', 'No cities yet.'));

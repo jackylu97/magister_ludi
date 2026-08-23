@@ -119,8 +119,7 @@
   },
   "research": {
     "startingTechs": [
-      "agriculture",
-      "pottery"
+      "agriculture"
     ],
     "retoolCost": 0
   },

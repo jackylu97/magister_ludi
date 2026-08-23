@@ -96,9 +96,12 @@ describe('the resource table', () => {
 
   it('tech-gates exactly the strategics that are meant to be hidden', () => {
     expect(resourceDef('iron').requiresTech).toBe('bronzeWorking');
-    // Horses are deliberately ungated in v1 — a mounted line the player cannot
-    // see the reason for is worse than one they can plan around.
-    expect(resourceDef('horses').requiresTech).toBeUndefined();
+    // Horses joined it in the Age I rework: Husbandry is the tech that unlocks
+    // the horseman and the pasture, so it is also the tech that says where the
+    // horses are, and the reveal now reads as part of one package rather than
+    // as a fact the map hands out for free. Both are visibility only — an
+    // unrevealed seam still pays its yield (see `isResourceVisible`).
+    expect(resourceDef('horses').requiresTech).toBe('husbandry');
     for (const id of RESOURCE_IDS) {
       if (resourceDef(id).kind === 'strategic') continue;
       expect(resourceDef(id).requiresTech).toBeUndefined();

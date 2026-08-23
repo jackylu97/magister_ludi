@@ -468,8 +468,13 @@ export function buildingYieldDelta(
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     if (city.buildings.includes(id)) continue;
-    const now = cityYields(state, city);
-    const after = cityYields(state, city, [id]);
+    // Both readings are taken *toward whatever the city is building now*, so a
+    // barracks is priced against the unit at the front of the queue rather than
+    // reported as worth nothing. The pair is what makes it a delta: the same
+    // question asked twice, with the candidate counted the second time.
+    const toward = city.queue[0];
+    const now = cityYields(state, city, [], toward);
+    const after = cityYields(state, city, [id], toward);
     total.food += after.food - now.food;
     total.production += after.production - now.production;
     total.gold += after.gold - now.gold;

@@ -143,7 +143,13 @@ import {
   type ImprovementId,
   improvementDef,
 } from '../sim/improvementData';
-import { improvementError, improvementYieldDelta, isBuilder, pillageError } from '../sim/improvements';
+import {
+  improvementError,
+  improvementTechError,
+  improvementYieldDelta,
+  isBuilder,
+  pillageError,
+} from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex } from '../sim/map';
 import { authorityOf, happinessOf } from '../sim/meters';
 import { findPath, reachableTiles } from '../sim/pathfind';
@@ -212,6 +218,14 @@ export interface ImprovementOption {
   name: string;
   /** What building it would add to this tile's yield, right now. */
   delta: TileYield;
+  /**
+   * The reducer's own sentence about why this row is greyed rather than
+   * pressable, or `null` when it is pressable.
+   *
+   * Only ever a technology (`improvementTechError`). A row the *ground* refuses
+   * is not on the list at all — see `improvementOptions`.
+   */
+  blocked: string | null;
 }
 
 /**
@@ -445,12 +459,21 @@ export interface GameControls {
    * Every improvement the selected unit could build where it stands, with what
    * each would add to the tile — the rows the unit sheet turns into buttons.
    *
-   * Only the legal ones. That is the *opposite* of the choice Fortify makes and
-   * it is the city panel's precedent rather than an inconsistency: a fortify
-   * button is one button whose refusal is temporary and worth explaining, while
-   * this is a list of six whose refusals are almost all permanent facts about the
-   * hex ("a mine needs hills"). Six greyed rows on a hex where one thing is legal
-   * would spend the whole panel saying no.
+   * Two refusals, shown two ways, and the split is the city panel's precedent
+   * rather than an inconsistency:
+   *
+   *   · **The ground says no** — "a mine needs hills", "that is not your land".
+   *     Absent from the list entirely. These are permanent facts about the hex,
+   *     and six greyed rows on a hex where one thing is legal would spend the
+   *     whole panel saying no. What the player sees instead is the shape of the
+   *     ground they are standing on.
+   *   · **The tree says no** — "a mine needs Mining". Present, greyed, with the
+   *     technology named (`ImprovementOption.blocked`). That is not a fact about
+   *     the hex, it is a thing this empire has not learnt yet, and it is exactly
+   *     the case a player wants told: the hill is good, go and research it.
+   *
+   * Fortify greys for a third reason again — a refusal that is over tomorrow —
+   * which is why it is a button and not a list.
    *
    * Empty when there is no selection, when the selection is not a builder, or
    * when the seat has ended its turn — the panel then shows the charges line and
@@ -1205,15 +1228,23 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   // --- improvements --------------------------------------------------------
 
   /**
-   * Every improvement the selected unit could build here. See
-   * `GameControls.improvementOptions` for why invalid ones are absent rather
-   * than greyed.
+   * Every improvement this hex could take, whether or not the player has
+   * researched it yet. See `GameControls.improvementOptions` for the two
+   * refusals and why they are shown differently.
    *
    * The list is filtered by `improvementError` — the reducer's own gate — so a
-   * row that appears is a command that will be accepted, and the delta beside it
-   * comes from the same evaluator the yields are banked with. Walked in
-   * `IMPROVEMENT_IDS` order, which is the table's order, so the buttons do not
-   * reshuffle themselves between renders.
+   * row that appears *pressable* is a command that will be accepted, and the
+   * delta beside it comes from the same evaluator the yields are banked with.
+   * Walked in `IMPROVEMENT_IDS` order, which is the table's order, so the
+   * buttons do not reshuffle themselves between renders.
+   *
+   * The one refusal that greys instead of hiding is the technology, and the
+   * comparison is what keeps that honest: `improvementErrorAt` asks the tree
+   * *last* (see its docblock), so an error equal to `improvementTechError`'s
+   * sentence means every question about the ground already said yes. A mine on
+   * grassland is still absent; a mine on a hill this empire has not learnt to
+   * dig is present, greyed, and says which technology would open it — the same
+   * bargain the city panel's build rows keep.
    */
   function improvementOptions(): ImprovementOption[] {
     const unit = selectedUnit();
@@ -1225,11 +1256,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const ctx = yieldContextFor(state, unit.ownerId);
     const options: ImprovementOption[] = [];
     for (const id of IMPROVEMENT_IDS) {
-      if (improvementError(state, unit.id, id) !== null) continue;
+      const blocked = improvementTechError(state, unit.ownerId, id);
+      const problem = improvementError(state, unit.id, id);
+      if (problem !== null && problem !== blocked) continue;
       options.push({
         id,
         name: improvementDef(id).name,
         delta: improvementYieldDelta(tile, id, ctx),
+        blocked,
       });
     }
     return options;

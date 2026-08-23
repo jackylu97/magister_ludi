@@ -3,32 +3,65 @@
 Everything a tech grants today, straight from `data/*.json`. For the honing pass:
 edit freely under **Revisions** at the bottom; nothing here is code.
 
+**Age I was reworked to the Revisions section below** (2026-08-23). What ships is
+written out here; what was deliberately left for later is under *Implementation
+status*. The Revisions section itself is untouched — it is the design, and this is
+the report against it.
+
 ## Unlock types the engine supports today
 
 - **Units** — tech gates production (`unlocks.units`); some also need a strategic resource.
 - **Buildings** — tech gates production (`unlocks.buildings`).
-- **Auto-upgrade** — when a tech lands, existing units on an upgrade chain retype for free (AoE2-style): warrior→swordsman, spearman→pikeman, archer→compositeBowman→crossbowman, horseman→knight, swordsman→longswordsman, catapult→trebuchet.
-- **Improvement renewals** — a tech adds yield to an *existing* improvement (`upgrades[].tech`). Only one exists: Feudalism, +1🌾 on freshwater farms.
-- **Resource reveal** — tech makes a strategic resource *visible* (it works regardless). Only one exists: Bronze Working reveals iron.
+- **Improvements** — tech gates what a worker may build (`requiresTech` in `improvements.json`). The worker sheet greys a locked row and names the tech; a hex that could never take the improvement is still absent rather than greyed.
+- **Auto-upgrade** — when a tech lands, existing units on an upgrade chain retype for free (AoE2-style): warrior→swordsman, spearman→pikeman, archer→compositeBowman→crossbowman, horseman→knight, swordsman→longswordsman, catapult→trebuchet. Untouched by the rework.
+- **Improvement renewals** — a tech adds yield to an *existing* improvement (`upgrades[].tech`). Two now: Calendar +1🪙 on plantations, Feudalism +1🌾 on freshwater farms.
+- **Building renewals** — the same idea for a building (`upgrades[].tech` in `buildings.json`). One: The Wheel, +1🌾 on every granary. Each lands as its own labelled line in the city panel's yield breakdown.
+- **Building authority capacity** — a building raises the empire's writ (`authorityCapacity`). One: the monument, +1. The authority breakdown counts them per type ("Monuments ×3 +3"); nothing in the meter names the monument.
+- **Per-category production modifier** — a building puts a share of its city's hammers behind one *kind* of item (`unitProductionBonus`). One: the barracks, +10% toward units. It flows through `cityYields`, so the estimate, the panel and the hammers the basket receives are one number.
+- **Resource reveal** — tech makes a strategic resource *visible* (it works regardless). Two now: Husbandry reveals horses, Bronzeworking reveals iron.
 
 ## Age I
 
-- **Agriculture** (15🔬, no prereq): units — settler, warrior, scout, worker *(the starting kit; every game opens by researching this or Pottery)*
-- **Pottery** (15🔬, no prereq): buildings — granary (+2🌾), monument (+2🎵)
-- **Archery** (20🔬 ← Agriculture): unit — archer (ranged 7)
-- **Animal Husbandry** (20🔬 ← Agriculture): unit — horseman (needs 🐎)
-- **Bronze Working** (22🔬 ← Pottery): unit — spearman · reveals **iron**
-- **Masonry** (22🔬 ← Pottery): building — shrine (+1🎵)
-- **Writing** (25🔬 ← Pottery): building — library (+0.5🔬/pop)
-- **The Wheel** (28🔬 ← Animal Husbandry + Bronze Working): unit — chariot (ranged, needs 🐎)
+Eleven nodes, one root. **Agriculture is the only starting technology and the only
+tech with no prerequisite**, so every game opens on a real choice between four
+second-tier nodes rather than on "Agriculture or Pottery".
+
+- **Agriculture** (15🔬, *free at game start*): units — settler, warrior, scout, worker · improvement — **farm** (+1🌾)
+- **Husbandry** (18🔬 ← Agriculture): unit — horseman · improvement — **pasture** · reveals **horses**
+- **Fletching** (18🔬 ← Agriculture): unit — archer (ranged 7) · improvement — **camp**
+- **Mining** (16🔬 ← Agriculture): improvement — **mine** (+1⚙ on hills)
+- **Earthenware** (16🔬 ← Agriculture): building — granary (+3🌾)
+- **Bronzeworking** (23🔬 ← Mining + Earthenware): unit — spearman · building — **barracks** (+10%⚙ toward units built here) · reveals **iron**
+- **Stonecraft** (23🔬 ← Husbandry + Earthenware): improvement — **quarry** · building — monument (+2🎵, **+1 authority capacity**)
+- **Calendar** (21🔬 ← Earthenware): improvement — **plantation** (+1🌾) · **renewal: plantations +1🪙**
+- **Divination** (21🔬 ← Husbandry): building — shrine (+1🔬 +1🎵)
+- **The Wheel** (29🔬 ← Husbandry + Bronzeworking): units — **war chariot**, **chariot archer** · **renewal: granaries +1🌾**
+- **Letters** (27🔬 ← Earthenware + Divination): building — library (+2🔬, +1🔬/pop, +2🪙)
+
+Age I is 227🔬 in total, 212 of it payable. The chart is eight columns by six
+lanes; ÆRA I paints columns 0–3, II 4–5, III 6–7.
+
+**The two chariots.** The Wheel's pair is the doc's "chariot (stronger than a
+horseman)" and "chariot archer (stronger than an archer, no indirect fire)", read
+as a melee/missile split: the **war chariot** is melee (14⚔, 4 moves, 11⚙, needs
+🐎) and the **chariot archer** is ranged (9⚔/9🏹 at range 2, 3 moves, 9⚙, needs
+🐎). The war chariot therefore leaves the ranged roster, which is the change that
+makes The Wheel a *pair* rather than two spellings of one unit. Visually they take
+the two mounted silhouette classes — the archer keeps `mountedRanged`, whose badge
+is the mounted bow, and the war chariot joins `mounted` with the horseman and the
+knight. No new sculpt and no new badge cell: a ninth model class would need a
+hand-made icon, which the art rules forbid.
 
 ## Age II
 
-- **Iron Working** (132🔬 ← Bronze Working + Masonry): unit — swordsman (needs ⛓; auto-upgrades warriors)
-- **Mathematics** (153🔬 ← Writing + The Wheel): unit — catapult (siege)
-- **Currency** (162🔬 ← Writing + Masonry): building — market (+3🪙)
-- **Construction** (183🔬 ← Masonry + Archery): unit — composite bowman (auto-upgrades archers) · building — aqueduct (+3🌾)
-- **Philosophy** (196🔬 ← Writing + Masonry): building — temple (+2🎵)
+Content untouched by the rework; prerequisites re-pointed at the new Age I ids,
+and costs deliberately left alone (see *Implementation status*).
+
+- **Iron Working** (132🔬 ← Bronzeworking + Stonecraft): unit — swordsman (needs ⛓; auto-upgrades warriors)
+- **Mathematics** (153🔬 ← Letters + The Wheel): unit — catapult (siege)
+- **Currency** (162🔬 ← Letters + Stonecraft): building — market (+3🪙)
+- **Construction** (183🔬 ← Stonecraft + Fletching): unit — composite bowman (auto-upgrades archers) · building — aqueduct (+3🌾)
+- **Philosophy** (196🔬 ← Letters + Divination): building — temple (+2🎵)
 - **Engineering** (212🔬 ← Mathematics + Construction): buildings — workshop (+2⚙), watermill (+2🌾+1⚙)
 - **Drama and Poetry** (234🔬 ← Philosophy + Currency): building — amphitheater (+3🎵)
 
@@ -37,29 +70,67 @@ edit freely under **Revisions** at the bottom; nothing here is code.
 - **Feudalism** (266🔬 ← Iron Working + Currency): unit — pikeman (auto-upgrades spearmen) · **renewal: farms on freshwater +1🌾**
 - **Machinery** (285🔬 ← Engineering + Construction): unit — crossbowman (auto-upgrades composite bowmen)
 - **Theology** (314🔬 ← Philosophy + Drama): building — monastery (+2🎵, +0.25🔬/pop)
-- **Chivalry** (342🔬 ← Feudalism + Animal Husbandry): unit — knight (needs 🐎; auto-upgrades horsemen)
+- **Chivalry** (342🔬 ← Feudalism + Husbandry): unit — knight (needs 🐎; auto-upgrades horsemen)
 - **Steel** (380🔬 ← Iron Working + Machinery): unit — longswordsman (needs ⛓; auto-upgrades swordsmen)
 - **Physics** (418🔬 ← Mathematics + Engineering): unit — trebuchet (auto-upgrades catapults)
 - **Education** (451🔬 ← Theology + Philosophy): building — university (+0.75🔬/pop)
 
 ## Improvements — what workers can build (for cross-reference)
 
-All six cost 1 worker charge. **None is tech-gated today** — every one is buildable from turn 1.
+All six cost 1 worker charge. **Every one is now tech-gated**, which is what turns
+the worker's menu from a wall of six buttons on turn one into a curve.
 
-- **Farm** +1🌾 — flat grassland/plains, clears clutter · improves wheat · Feudalism renewal (+1🌾 freshwater)
-- **Mine** +1⚙ — any hills, clears clutter · improves iron, gems
-- **Pasture** +1⚙ — on cattle/horses only
-- **Camp** +1🌾+1🪙 — on deer only
-- **Quarry** +1⚙ — on stone/salt only
-- **Plantation** +1🪙 — on silk/wine/spices only
+- **Farm** +1🌾 — *Agriculture* · flat grassland/plains, clears clutter · improves wheat · Feudalism renewal (+1🌾 freshwater)
+- **Mine** +1⚙ — *Mining* · any hills, clears clutter · improves iron, gems
+- **Pasture** +1⚙ — *Husbandry* · on cattle/horses only
+- **Camp** +1🌾+1🪙 — *Fletching* · on deer only
+- **Quarry** +1⚙ — *Stonecraft* · on stone/salt only
+- **Plantation** +1🌾 — *Calendar* · on silk/wine/spices only · Calendar renewal (+1🪙)
+
+The plantation's gate and its renewal are the same tech, which reads oddly and is
+deliberate: the design asks for "plantations (+1 food +1 gold)" *and* for the gold
+to be Calendar's gift, so the base row pays the crop and the renewal pays the
+trade. It is a degenerate renewal today — you cannot own a plantation without
+Calendar — and it separates the moment a second tech touches plantations, or the
+gate moves.
 
 Resource-improvements also flip `hasResource` on (strategic resources feed unit production only once improved).
 
+## Implementation status — what the rework shipped, and what it deferred
+
+Shipped, using existing systems plus four small generic mechanisms
+(`requiresTech` on improvements, building renewals, `authorityCapacity`,
+`unitProductionBonus`): the whole Age I graph above, both chariots, and the
+re-pointed Age II/III prerequisites.
+
+**Deferred — designed, not built. Nothing below exists in the code.**
+
+- **Faith.** There is no faith yield, so the shrine's "+2 faith" is not in the game; it pays +1🔬 +1🎵 instead. Divination is still the religion root, and the science half is the design's own ask ("religion should include bonuses to science and culture").
+- **XP and promotions.** The barracks' "+15 XP for units trained here" needs a promotion system; only the +10%⚙ half shipped.
+- **Indirect fire.** Archers and chariot archers use the one ranged rule the combat model has. The archer's indirect fire and the chariot archer's *lack* of it are the same deferred distinction.
+- **Chop / Assarting.** Mining's forest chop (20⚙, +5 per teched resource, +5 per slotted civic) needs a clear-feature mechanic that does not exist. Mining ships as the mine's gate alone.
+- **Priest / monk.** Unspecified in the design and unbuilt.
+- **Trade menu.** Letters' "unlock trade menu" is unbuilt; the library's +2🪙 shipped.
+- **The unlock-roll system** ("mastery of the hearth", "mastery of the seasons", …). Not built, and every "food unlock?" / "military unlock?" note in the design is parked with it. Wonders stay deliberately absent as the design says.
+- **Sailing, entirely.** Embarkation, fishing boats and water-conditional yields ("water tiles +1🌾 in cities with a granary") each need new machinery — a movement rule for civilians on water, a water improvement, and a yield that reads a *building* from a *tile*. It headlines a future water milestone rather than being smuggled into Age I, so Sailing is not in the tree at all.
+
+**Pacing.** The scripted empire in `test/tech.test.ts` now closes the three ages on
+turns **40 / 68 / 107**, against 42 / 100 / 167 before. Age I got dearer (212
+payable beakers against 137) and still closes two turns sooner, because the three
+buildings that empire actually builds all got stronger: granary 2🌾→3🌾 (+1 more
+with The Wheel), shrine gained a beaker, library went from ½🔬/pop to 2🔬 +1🔬/pop.
+Ages II and III kept their costs to the beaker, so the compounding lands on them
+and the endgame arrives sixty turns sooner. That is left standing rather than
+rescaled: the ledger asks for a condensed game with impactful unlocks, and a
+rescale would hide the effect of these restats from the playtest that has to judge
+them. Multiplying ages II and III by ~1.5 puts the finale back on turn 165 if the
+old length is wanted.
+
 ## Gaps worth knowing while revising
 
-- **No improvement is tech-gated** — likely candidates for spreading across the tree.
+- **Every improvement is tech-gated now**; the spread is the one above.
 - **No chop/clear-feature mechanic exists** (forest chop for ⚙ is designed in the ledger, not built).
-- **Only one renewal** (Feudalism farms) and **one resource reveal** (iron) — both mechanisms are generic and cheap to add to any tech.
+- Renewals are cheap and generic on both improvements and buildings; reveals are cheap and generic on resources. Any tech can take another of any of them with one data line.
 - Fish and work boats are deferred; no improvement touches water.
 - Techs are the only unlock source — no civics/cards yet (M12).
 

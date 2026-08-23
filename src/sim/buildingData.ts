@@ -8,8 +8,8 @@
  * Effects are flat modifier fields, not a scripting hook
  * -----------------------------------------------------
  * A building's effect is a handful of numbers a city adds up — `food`,
- * `production`, `gold`, `culture`, `sciencePerPop` — rather than a named
- * behaviour the simulation
+ * `production`, `gold`, `science`, `culture`, `sciencePerPop` — rather than a
+ * named behaviour the simulation
  * switches on. That is a deliberate ceiling: everything Milestone 3 needs is a
  * sum, and a sum can be read out of a data file, totalled in one place
  * (`cityYields` in `cities.ts`) and displayed in the city panel without any
@@ -17,9 +17,24 @@
  * a behaviour rather than a number, it gets a field naming that behaviour — not
  * a callback in the JSON, which would stop being data.
  *
- * `sciencePerPop` is fractional (a library is "+1 per 2 pop", stored as 0.5)
+ * `sciencePerPop` is fractional (a monastery is "+1 per 4 pop", stored as 0.25)
  * and is floored at the point it is applied, per building, so two half-science
  * buildings do not round into a free point. See `cityYields`.
+ *
+ * The three fields that name a behaviour
+ * --------------------------------------
+ * Three of them exist now, and each is a *number the caller interprets* rather
+ * than a switch anybody has to grow a case in. All three arrived with the Age I
+ * rework and all three are read in exactly one place:
+ *
+ *   · `authorityCapacity` — writ this building supplies, counted per building
+ *     type by `explainAuthority` (`meters.ts`). There is no monument special
+ *     case anywhere; a second building that raises the writ is a data row.
+ *   · `unitProductionBonus` — the share of extra hammers a city puts behind a
+ *     *unit* it is building. Applied inside `cityYields`, the one production
+ *     evaluator, so the estimate, the panel and the bank cannot disagree.
+ *   · `upgrades` — the building half of the punctuated-renewal hook that
+ *     `improvements.json` has had since M7. See `BuildingUpgrade`.
  *
  * One of each per city. Nothing here says so — that is a city rule and it lives
  * in the `setCityProduction` validation and in `advanceProduction`.
@@ -31,11 +46,19 @@
  */
 
 import buildingsJson from '../../data/buildings.json';
+// Type-only, and it must stay that way: `techData.ts` imports `BuildingId` from
+// here, so a *value* import of the tech table would close a load-time cycle and
+// leave whichever module evaluated second reading an uninitialised binding.
+// Nothing checks that these ids are real technologies here for that reason —
+// `unlockDataProblems` in `techUnlocks.ts` does it, from a module that already
+// sees both tables.
+import type { TechId } from './techData';
 
 export type BuildingId =
   | 'monument'
   | 'granary'
   | 'shrine'
+  | 'barracks'
   | 'library'
   | 'temple'
   | 'market'
@@ -45,6 +68,48 @@ export type BuildingId =
   | 'amphitheater'
   | 'monastery'
   | 'university';
+
+/**
+ * What a building pays a city every turn.
+ *
+ * Every field is optional here and required on `BuildingDef`, which is the
+ * difference between a *delta* and a *definition*: a renewal that says only
+ * `{ "food": 1 }` is saying the one thing it does, while a building row that
+ * left a field out would be a row a designer has to remember the default of.
+ */
+export interface BuildingYield {
+  food?: number;
+  production?: number;
+  gold?: number;
+  /** Flat beakers, as opposed to the per-citizen term. */
+  science?: number;
+  culture?: number;
+  /** Science per population point, floored when applied. See the docblock. */
+  sciencePerPop?: number;
+}
+
+/**
+ * One tech-driven renewal of a building's yield — the mirror of
+ * `ImprovementUpgrade` (`improvementData.ts`), deliberately the same shape so
+ * that "a technology quietly makes something you already own pay more" is one
+ * idea with one spelling rather than two.
+ *
+ * `add` is a delta and never a replacement, for `ImprovementUpgrade`'s reason:
+ * an entry that replaced would have to know what it was replacing, which is
+ * exactly the inline adjustment hard rule 5 exists to forbid. Each renewal
+ * becomes its own line in `explainBuildingYield` (`cities.ts`) and its own gift
+ * on the tech screen (`techGifts`).
+ *
+ * There is no `requiresFreshwater` twin: an improvement stands on a tile and can
+ * be asked about the ground under it, and a building stands in a city, which has
+ * no such question to answer yet.
+ */
+export interface BuildingUpgrade {
+  /** The technology that switches this on for its owner. */
+  tech: TechId;
+  /** Added to what the building already pays, once the owner holds `tech`. */
+  add: BuildingYield;
+}
 
 export interface BuildingDef {
   name: string;
@@ -56,10 +121,28 @@ export interface BuildingDef {
   production: number;
   /** Flat gold added to the city's total every turn. */
   gold: number;
+  /** Flat science added to the city's total every turn, before `sciencePerPop`. */
+  science: number;
   /** Flat culture added to the city's total every turn. */
   culture: number;
   /** Science per population point, floored when applied. See the docblock. */
   sciencePerPop: number;
+  /**
+   * Authority capacity this building supplies its owner, or absent for none.
+   * Counted per building type by `explainAuthority`; see the docblock.
+   */
+  authorityCapacity?: number;
+  /**
+   * Extra share of the city's hammers when the thing being built is a *unit* —
+   * `0.1` is the barracks' ten percent. Absent means none.
+   *
+   * A fraction rather than whole percent because it is a multiplier and never a
+   * displayed figure: the surfaces that print it do the ×100 themselves, the
+   * same way `sciencePerPop` is stored as the fraction it is.
+   */
+  unitProductionBonus?: number;
+  /** Tech-driven renewals. See `BuildingUpgrade` and the module docblock. */
+  upgrades?: BuildingUpgrade[];
 }
 
 export interface BuildingData {
@@ -83,4 +166,20 @@ export function isBuildingId(value: unknown): value is BuildingId {
     typeof value === 'string' &&
     Object.prototype.hasOwnProperty.call(BUILDING_DATA.buildings, value)
   );
+}
+
+/**
+ * "Monument" or "Monuments", for a line that counts them ("Monuments ×3").
+ *
+ * The sibling of `pluralUnitName` in `tech.ts` and the same bargain: a `plural`
+ * field in the JSON would be the honest fix the day a name breaks the rules, and
+ * until then a data field nobody could get wrong is a data field nobody should
+ * have to fill in. Three rules cover this roster and the next one — a sibilant
+ * takes "-es", a consonant plus "y" becomes "-ies", everything else takes "-s".
+ */
+export function buildingPlural(name: string, count: number): string {
+  if (count === 1) return name;
+  if (/(s|x|z|ch|sh)$/i.test(name)) return `${name}es`;
+  if (/[^aeiou]y$/i.test(name)) return `${name.slice(0, -1)}ies`;
+  return `${name}s`;
 }

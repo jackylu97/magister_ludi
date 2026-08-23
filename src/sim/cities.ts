@@ -50,7 +50,12 @@
  * city again next turn for the same debt.
  */
 
-import { type BuildingId, buildingDef, isBuildingId } from './buildingData';
+import {
+  BUILDING_IDS,
+  type BuildingId,
+  buildingDef,
+  isBuildingId,
+} from './buildingData';
 import type { Hex } from './hex';
 import {
   type GameMap,
@@ -805,6 +810,157 @@ export function centreYield(state: GameState, city: City): TileYield {
   };
 }
 
+// --- what a building pays ---------------------------------------------------
+
+/**
+ * One line of what a city's buildings pay it, and *why* — `explainTileYield`'s
+ * shape one grade up the ladder, and rule 5 applied to the second yield source
+ * that can be renewed by a technology.
+ *
+ * There is only one algebra here, unlike the tile chain: every entry **sums**. A
+ * building is a thing standing in a town alongside the other things standing in
+ * it, and nothing a technology does replaces what a granary was already worth.
+ */
+export interface BuildingYieldContribution {
+  /** Display label: the building's name, or the technology that renewed it. */
+  source: string;
+  /** The building the line belongs to, so a caller may group by it. */
+  building: BuildingId;
+  food: number;
+  production: number;
+  gold: number;
+  science: number;
+  culture: number;
+  sciencePerPop: number;
+}
+
+/**
+ * The ordered breakdown of one building's yield: what the table says it pays,
+ * then one entry per renewal its owner has earned.
+ *
+ * Walked in the table's own order so two renewals on one building always read in
+ * the same order, exactly as `explainTileYield` walks an improvement's (design
+ * ledger, Entry I). A context is the *owner's* technologies and nothing else —
+ * see `TileYieldContext`, which this deliberately reuses rather than growing a
+ * near-identical twin: the question a renewal asks is the same question at both
+ * scales.
+ */
+export function explainBuildingYield(
+  id: BuildingId,
+  ctx?: TileYieldContext,
+): BuildingYieldContribution[] {
+  const def = buildingDef(id);
+  const list: BuildingYieldContribution[] = [
+    {
+      source: def.name,
+      building: id,
+      food: def.food,
+      production: def.production,
+      gold: def.gold,
+      science: def.science,
+      culture: def.culture,
+      sciencePerPop: def.sciencePerPop,
+    },
+  ];
+  for (const upgrade of def.upgrades ?? []) {
+    if (!ctx || !ctx.techs.includes(upgrade.tech)) continue;
+    const { add } = upgrade;
+    list.push({
+      source: techDef(upgrade.tech).name,
+      building: id,
+      food: add.food ?? 0,
+      production: add.production ?? 0,
+      gold: add.gold ?? 0,
+      science: add.science ?? 0,
+      culture: add.culture ?? 0,
+      sciencePerPop: add.sciencePerPop ?? 0,
+    });
+  }
+  return list;
+}
+
+/**
+ * Every line every building in this city pays, in `city.buildings` order —
+ * which is the order they were *built*, so the list a player reads this turn is
+ * the list they read last turn with one more group on it.
+ *
+ * `hypothetical` is `cityYields`'s preview hook, carried through so that "what
+ * would a library be worth here" is explained by the same list it is totalled
+ * from. A candidate the city already has is skipped, exactly as it is there.
+ */
+export function explainCityBuildings(
+  state: GameState,
+  city: City,
+  hypothetical: readonly BuildingId[] = [],
+): BuildingYieldContribution[] {
+  const ctx = cityContext(state, city);
+  const list: BuildingYieldContribution[] = [];
+  for (const id of city.buildings) list.push(...explainBuildingYield(id, ctx));
+  for (const id of hypothetical) {
+    if (city.buildings.includes(id)) continue;
+    list.push(...explainBuildingYield(id, ctx));
+  }
+  return list;
+}
+
+// --- what the empire multiplies ---------------------------------------------
+
+/**
+ * One percentage a building puts behind a *particular* thing a city is building.
+ *
+ * The building-scale sibling of `MeterEffect` (`meters.ts`) and the same shape
+ * for the same reason: rule 5 applies to modifiers too, so the city panel prints
+ * one line per entry and the multiplier below is the fold of the same list. An
+ * effect worth zero percent is never in it.
+ */
+export interface ProductionModifier {
+  /** Display label: the building's name. */
+  source: string;
+  building: BuildingId;
+  /** Signed percent, as a figure a surface prints rather than a fraction. */
+  percent: number;
+}
+
+/**
+ * The buildings currently putting extra hammers behind `toward`, in
+ * `BUILDING_IDS` order.
+ *
+ * Empty for a building item and for an empty queue, because the only category
+ * anything modifies today is units (`unitProductionBonus`). It is a *list* over
+ * the table rather than a lookup of the barracks, so the second such building is
+ * a data row and not a second branch — there is no barracks special case
+ * anywhere in the simulation.
+ *
+ * `hypothetical` mirrors `cityYields`'s: a barracks the city does not have yet
+ * has to be priced by the same function, or the tech screen's "what would this
+ * be worth" would quietly answer zero.
+ *
+ * It takes no `GameState`, alone among the evaluators here, because it needs
+ * none: what a city has built is on the city.
+ */
+export function productionModifiers(
+  city: City,
+  toward?: QueueItem | null,
+  hypothetical: readonly BuildingId[] = [],
+): ProductionModifier[] {
+  if (!toward || toward.kind !== 'unit') return [];
+  const list: ProductionModifier[] = [];
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id) && !hypothetical.includes(id)) continue;
+    const bonus = buildingDef(id).unitProductionBonus;
+    if (bonus === undefined || bonus === 0) continue;
+    list.push({ source: buildingDef(id).name, building: id, percent: bonus * 100 });
+  }
+  return list;
+}
+
+/** What the modifiers multiply production by: summed, then applied once. */
+function modifierFactor(list: readonly ProductionModifier[]): number {
+  let percent = 0;
+  for (const entry of list) percent += entry.percent;
+  return percent / 100;
+}
+
 /**
  * Everything a city produces this turn: the centre, plus every worked tile, plus
  * the flat effects of its buildings.
@@ -825,14 +981,29 @@ export function centreYield(state: GameState, city: City): TileYield {
  * a candidate list and diff the two results; nothing is cloned and nothing is
  * mutated. See `buildingYieldDelta` in `tech.ts`.
  *
+ * `toward` is what the city is putting its hammers behind, and the *only* thing
+ * it changes is production. A barracks pays a share of the city's hammers toward
+ * a unit and nothing toward a monument (`unitProductionBonus`), so the honest
+ * production rate is a fact about the pair rather than about the city — and it
+ * is answered here, inside the one evaluator, rather than by a second
+ * multiplication somewhere downstream. `collectYields` banks at the rate for
+ * whatever is at the *front* of the queue, `turnsToBuild` divides by the rate for
+ * the item it is asked about, and the panel prints that same number with the
+ * modifier named beside it (`productionModifiers`). Omitting it is the reading
+ * for anything asking about the city rather than about a build — science, gold,
+ * the top bar's totals — and costs nothing, because a city with no such building
+ * has one rate either way.
+ *
  * The empire's thumb on the scale
  * ------------------------------
  * Happiness and authority land *here*, at the very end, and that is the whole of
  * how they touch the economy (design ledger, Entry XIV). Production, science and
  * culture are each multiplied once by the sum of whatever percentages the two
- * meters currently apply to them, then floored — the same "floor once, at the
- * end" the science-per-pop terms above already keep, so a +10% on 7 beakers is 7
- * and not a rounding gift.
+ * meters currently apply to them — plus, for production, whatever the buildings
+ * put behind this particular item — and then floored. That is the same "floor
+ * once, at the end" the science-per-pop terms above already keep, so a +10% on 7
+ * hammers is 7 and not a rounding gift, and a barracks in an overstretched
+ * empire is one multiplication and not two roundings.
  *
  * Applying it inside this function rather than in the turn phase is the point:
  * `turnsToBuild`, the city panel, the top bar's totals, the tech screen's rate
@@ -846,6 +1017,7 @@ export function cityYields(
   state: GameState,
   city: City,
   hypothetical: readonly BuildingId[] = [],
+  toward?: QueueItem | null,
 ): CityYields {
   const centre = centreYield(state, city);
   const total: CityYields = {
@@ -866,32 +1038,32 @@ export function cityYields(
     total.gold += value.gold;
   }
 
-  for (const id of city.buildings) addBuilding(total, city, id);
-  for (const id of hypothetical) {
-    // A candidate the city already has adds nothing: it is already counted, and
-    // a preview that promised a second library would be a preview that lies.
-    if (city.buildings.includes(id)) continue;
-    addBuilding(total, city, id);
+  // The fold of `explainCityBuildings`, and the only place a building's worth is
+  // summed — a candidate the city already has is skipped in there, because a
+  // preview that promised a second library would be a preview that lies.
+  for (const entry of explainCityBuildings(state, city, hypothetical)) {
+    total.food += entry.food;
+    total.production += entry.production;
+    total.gold += entry.gold;
+    total.culture += entry.culture;
+    total.science += entry.science;
+    // Floored per *entry* rather than per building, which is the same rule the
+    // old per-building floor was: two half-science sources must pay for two
+    // halves rather than round into a free point.
+    total.science += Math.floor(city.population * entry.sciencePerPop);
   }
 
   const effects = meterEffects(state, city.ownerId);
-  if (effects.length > 0) {
-    total.production = Math.floor(total.production * yieldFactor(effects, 'production'));
+  const hammers = modifierFactor(productionModifiers(city, toward, hypothetical));
+  if (effects.length > 0 || hammers !== 0) {
+    total.production = Math.floor(
+      total.production * (yieldFactor(effects, 'production') + hammers),
+    );
     total.science = Math.floor(total.science * yieldFactor(effects, 'science'));
     total.culture = Math.floor(total.culture * yieldFactor(effects, 'culture'));
   }
 
   return total;
-}
-
-/** One building's flat contribution. See `cityYields` for the flooring rule. */
-function addBuilding(total: CityYields, city: City, id: BuildingId): void {
-  const def = buildingDef(id);
-  total.food += def.food;
-  total.production += def.production;
-  total.gold += def.gold;
-  total.culture += def.culture;
-  total.science += Math.floor(city.population * def.sciencePerPop);
 }
 
 /** What the citizens eat: `foodPerCitizen` each. */
@@ -1059,7 +1231,11 @@ export function turnsToBuild(
   const cost = queueItemCost(state, city.ownerId, item);
   if (cost === null) return null;
   const banked = index === 0 ? city.hammerBasket : 0;
-  return turnsToFill(cost - banked, cityYields(state, city).production);
+  // The rate *for this item*: a barracks city fills its basket faster while a
+  // unit is at the front and at the plain rate otherwise, so an estimate that
+  // divided by the city's unmodified production would promise a schedule the
+  // basket beats. See `cityYields`'s `toward`.
+  return turnsToFill(cost - banked, cityYields(state, city, [], item).production);
 }
 
 // --- turn phases ------------------------------------------------------------
@@ -1072,11 +1248,19 @@ export function turnsToBuild(
  * cities before the next phase begins, so no city can grow off yields a later
  * city has not collected yet, and the whole turn is one pass per rule rather
  * than one pass per city.
+ *
+ * The hammers are banked at the rate for whatever is at the **front** of the
+ * queue, which is where a per-category modifier lands: a barracks pays its ten
+ * percent into the basket on the turns the city is actually building a unit, and
+ * nothing on the turns it is building a granary. That is the Civ reading, it is
+ * the only one a single basket can express, and it is the rate `turnsToBuild`
+ * quoted — one call to one evaluator, so the estimate and the bank agree by
+ * construction rather than by inspection.
  */
 export function collectYields(state: GameState): void {
   for (const city of state.cities) {
     assignCitizens(state, city);
-    const yields = cityYields(state, city);
+    const yields = cityYields(state, city, [], city.queue[0]);
 
     // Upkeep, the settler halt and the happiness stifle, all in one function so
     // that what the panel promised is what the basket receives.
@@ -1150,6 +1334,11 @@ function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | nu
  * The resource check is the mirror of the one `buildError` refuses a queue with
  * (`tech.ts`), read at the other moment it can be read: refusing at the gate and
  * holding afterwards are the same rule, exactly as `minCityPop` is.
+ *
+ * Nothing here knows about a production modifier, and that is the point: a
+ * barracks changed the *rate the basket filled at* (`collectYields`), not the
+ * price of what it is paying for. This phase only ever asks whether the basket
+ * covers the cost.
  *
  * Escalating costs
  * ----------------

@@ -52,6 +52,7 @@ import {
   techDepth,
   techRowCount,
 } from '../src/sim/techData';
+import { techGifts, unlockDataProblems } from '../src/sim/techUnlocks';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../src/sim/unitData';
 import { resetVisibility } from '../src/sim/visibility';
 
@@ -157,11 +158,16 @@ describe('tech data integrity', () => {
     for (const id of BUILDING_IDS) expect(BUILDING_UNLOCK_TECH.has(id), id).toBe(true);
   });
 
-  it('gives every node at least one unlock — no connective tissue (Entry V)', () => {
+  it('gives every node at least one gift — no connective tissue (Entry V)', () => {
+    // Asked of `techGifts` rather than of `unlocks`, and that is the Age I
+    // rework's doing: Mining's whole package is the mine improvement, which is
+    // declared in `improvements.json` and is invisible from `techs.json`. The
+    // rule is unchanged — every node is a package — but the list it is checked
+    // against is now the one a player actually reads off the node card.
     for (const id of TECH_IDS) {
-      const { units = [], buildings = [] } = techDef(id).unlocks;
-      expect(units.length + buildings.length, id).toBeGreaterThan(0);
+      expect(techGifts(id).length, id).toBeGreaterThan(0);
     }
+    expect(unlockDataProblems()).toEqual([]);
   });
 
   it('gives every node a glyph the research dial and the chart can light up', () => {
@@ -182,11 +188,11 @@ describe('tech data integrity', () => {
   });
 
   it('reports a tech with no glyph', () => {
-    const def = techDef('pottery');
+    const def = techDef('earthenware');
     const authored = def.glyph;
     try {
       (def as { glyph: unknown }).glyph = '';
-      expect(techDataProblems()).toContain('tech "pottery" has no glyph');
+      expect(techDataProblems()).toContain('tech "earthenware" has no glyph');
     } finally {
       def.glyph = authored;
     }
@@ -234,15 +240,20 @@ describe('tech data integrity', () => {
     }
   });
 
-  it('lets the opening kit build a settler, a warrior, a scout and a monument', () => {
+  it('lets the opening kit build the four starting units and no buildings at all', () => {
+    // Agriculture is the sole starting technology since the Age I rework, and
+    // it is the sole *root*: every game now opens on a real choice between four
+    // second-tier nodes instead of on "Agriculture or Pottery". The kit it
+    // hands over is the four units and nothing else — the granary waits for
+    // Earthenware and the monument for Stonecraft, so a first city's first
+    // build is a decision rather than a formality.
     const state = newGame(config());
-    for (const unit of ['settler', 'warrior', 'scout'] as UnitTypeId[]) {
+    for (const unit of ['settler', 'warrior', 'scout', 'worker'] as UnitTypeId[]) {
       expect(isUnlocked(state, 0, 'unit', unit), unit).toBe(true);
     }
-    expect(isUnlocked(state, 0, 'building', 'monument')).toBe(true);
-    expect(isUnlocked(state, 0, 'building', 'granary')).toBe(true);
-    // And nothing beyond it.
-    expect(isUnlocked(state, 0, 'building', 'library')).toBe(false);
+    for (const id of BUILDING_IDS) {
+      expect(isUnlocked(state, 0, 'building', id), id).toBe(false);
+    }
     expect(isUnlocked(state, 0, 'unit', 'swordsman')).toBe(false);
   });
 
@@ -279,10 +290,10 @@ describe('star chart layout', () => {
     // so these are assertions about the *data*: a prerequisite added out of
     // order would flatten one of them into a single column.
     const chains: TechId[][] = [
-      ['pottery', 'bronzeWorking', 'ironWorking', 'feudalism', 'chivalry'],
+      ['earthenware', 'bronzeWorking', 'ironWorking', 'feudalism', 'chivalry'],
       ['bronzeWorking', 'ironWorking', 'steel'],
-      ['agriculture', 'archery', 'construction', 'engineering', 'machinery'],
-      ['pottery', 'writing', 'philosophy', 'drama', 'theology', 'education'],
+      ['agriculture', 'fletching', 'construction', 'engineering', 'machinery'],
+      ['earthenware', 'letters', 'philosophy', 'drama', 'theology', 'education'],
     ];
     for (const chain of chains) {
       const columns = chain.map((id) => techDepth(id));
@@ -292,9 +303,11 @@ describe('star chart layout', () => {
         );
       }
     }
-    // The whole chart, for scale: seven columns deep, five lanes tall.
-    expect(techColumnCount()).toBe(7);
-    expect(techRowCount()).toBe(5);
+    // The whole chart, for scale: eight columns deep, six lanes tall. Age I
+    // gained three nodes and a third rank in the rework, which is where both
+    // numbers came from.
+    expect(techColumnCount()).toBe(8);
+    expect(techRowCount()).toBe(6);
   });
 
   it('hands every tech a lane, and never two techs the same cell', () => {
@@ -316,11 +329,11 @@ describe('star chart layout', () => {
   });
 
   it('reports a tech with no lane', () => {
-    const def = techDef('pottery');
+    const def = techDef('earthenware');
     const authored = def.row;
     try {
       (def as { row: unknown }).row = undefined;
-      expect(techDataProblems()).toContain('tech "pottery" has row undefined, which is not a lane number');
+      expect(techDataProblems()).toContain('tech "earthenware" has row undefined, which is not a lane number');
     } finally {
       def.row = authored;
     }
@@ -330,10 +343,10 @@ describe('star chart layout', () => {
   it('reports two techs parked in one cell', () => {
     // Archery and Animal Husbandry share a column (both hang off Agriculture),
     // so moving one into the other's lane is the collision this guards.
-    const def = techDef('archery');
+    const def = techDef('fletching');
     const authored = def.row;
     try {
-      def.row = techDef('animalHusbandry').row;
+      def.row = techDef('husbandry').row;
       expect(techDataProblems().some((problem) => problem.includes('both sit at chart cell'))).toBe(
         true,
       );
@@ -356,12 +369,14 @@ describe('star chart layout', () => {
       expect(band.from).toBe(before.to + 1);
       expect(band.age).toBeGreaterThan(before.age);
     }
-    // Which is: ÆRA I over the first two columns, II over the next two, III
-    // over the rest — the ages annotate the chart, they no longer place it.
+    // Which is: ÆRA I over the first four columns, II over the next two, III
+    // over the last two — the ages annotate the chart, they no longer place it.
+    // Column 3 is an even split (Letters and The Wheel against Iron Working and
+    // Construction) and the tie goes to the earlier age, which is the rule.
     expect(bands).toEqual([
-      { age: 1, from: 0, to: 1 },
-      { age: 2, from: 2, to: 3 },
-      { age: 3, from: 4, to: 6 },
+      { age: 1, from: 0, to: 3 },
+      { age: 2, from: 4, to: 5 },
+      { age: 3, from: 6, to: 7 },
     ]);
   });
 
@@ -396,8 +411,8 @@ function config(overrides: Partial<GameConfig> = {}): GameConfig {
 describe('chooseResearch', () => {
   it('aims the pool at a technology whose prerequisites are met', () => {
     const state = flatState();
-    expect(applyCommand(state, choose(0, 'archery'))).toEqual({ ok: true });
-    expect(state.players[0]!.researching).toBe('archery');
+    expect(applyCommand(state, choose(0, 'fletching'))).toEqual({ ok: true });
+    expect(state.players[0]!.researching).toBe('fletching');
     // Nothing was spent: the pool is the progress.
     expect(state.players[0]!.sciencePool).toBe(0);
     expect(state.players[1]!.researching).toBe(null);
@@ -406,7 +421,7 @@ describe('chooseResearch', () => {
   it('refuses byte-identically: unknown, held, prerequisite-short, repeated, finished seat', () => {
     const state = flatState();
     state.players[0]!.sciencePool = 40;
-    applyCommand(state, choose(0, 'archery'));
+    applyCommand(state, choose(0, 'fletching'));
     const before = snapshotState(state);
 
     for (const bad of [
@@ -414,8 +429,8 @@ describe('chooseResearch', () => {
       choose(0, 42 as unknown as string),
       choose(0, 'agriculture'), // already researched — it is in the opening kit
       choose(0, 'ironWorking'), // prerequisites not met
-      choose(0, 'archery'), // already the current choice
-      choose(9, 'writing'), // no such player
+      choose(0, 'fletching'), // already the current choice
+      choose(9, 'letters'), // no such player
     ]) {
       const result = applyCommand(state, bad);
       expect(result.ok, JSON.stringify(bad)).toBe(false);
@@ -424,7 +439,7 @@ describe('chooseResearch', () => {
 
     applyCommand(state, { type: 'endTurn', playerId: 0 });
     const afterEnd = snapshotState(state);
-    expect(applyCommand(state, choose(0, 'writing')).ok).toBe(false);
+    expect(applyCommand(state, choose(0, 'letters')).ok).toBe(false);
     expect(snapshotState(state)).toBe(afterEnd);
   });
 
@@ -432,23 +447,23 @@ describe('chooseResearch', () => {
     const state = flatState();
     const result = applyCommand(state, choose(0, 'ironWorking'));
     expect(result.ok).toBe(false);
-    expect(result.ok === false && result.error).toContain('Bronze Working');
-    expect(result.ok === false && result.error).toContain('Masonry');
+    expect(result.ok === false && result.error).toContain('Bronzeworking');
+    expect(result.ok === false && result.error).toContain('Stonecraft');
   });
 
   it('switches mid-research without losing a single beaker', () => {
     const state = flatState();
-    applyCommand(state, choose(0, 'writing'));
+    applyCommand(state, choose(0, 'earthenware'));
     state.players[0]!.sciencePool = 50;
 
-    expect(applyCommand(state, choose(0, 'masonry'))).toEqual({ ok: true });
-    expect(state.players[0]!.researching).toBe('masonry');
+    expect(applyCommand(state, choose(0, 'mining'))).toEqual({ ok: true });
+    expect(state.players[0]!.researching).toBe('mining');
     expect(state.players[0]!.sciencePool).toBe(50);
 
     // And the banked pool finishes the new choice immediately.
     advanceResearch(state);
-    expect(state.players[0]!.techsResearched).toContain('masonry');
-    expect(state.players[0]!.sciencePool).toBe(50 - techDef('masonry').cost);
+    expect(state.players[0]!.techsResearched).toContain('mining');
+    expect(state.players[0]!.sciencePool).toBe(50 - techDef('mining').cost);
   });
 
   it('refuses through the same evaluator the tech screen enables its nodes with', () => {
@@ -470,16 +485,17 @@ describe('chooseResearch', () => {
 
   it('offers exactly the techs whose prerequisites are met', () => {
     const state = flatState();
+    // The four second-tier nodes, in the tree's own order — the whole of a
+    // player's opening choice now that Agriculture is the only root.
     expect(availableTechs(state, 0)).toEqual([
-      'archery',
-      'animalHusbandry',
-      'bronzeWorking',
-      'masonry',
-      'writing',
+      'husbandry',
+      'fletching',
+      'mining',
+      'earthenware',
     ]);
-    grant(state, 0, 'animalHusbandry', 'bronzeWorking');
+    grant(state, 0, 'husbandry', 'bronzeWorking');
     expect(availableTechs(state, 0)).toContain('theWheel');
-    expect(availableTechs(state, 0)).not.toContain('animalHusbandry');
+    expect(availableTechs(state, 0)).not.toContain('husbandry');
   });
 });
 
@@ -488,30 +504,30 @@ describe('chooseResearch', () => {
 describe('advanceResearch', () => {
   it('completes at resolution, keeps the overflow and asks for a new choice', () => {
     const state = flatState();
-    applyCommand(state, choose(0, 'masonry'));
-    state.players[0]!.sciencePool = techDef('masonry').cost + 7;
+    applyCommand(state, choose(0, 'mining'));
+    state.players[0]!.sciencePool = techDef('mining').cost + 7;
 
     advanceResearch(state);
     const player = state.players[0]!;
-    expect(player.techsResearched).toEqual([...RESEARCH.startingTechs, 'masonry']);
+    expect(player.techsResearched).toEqual([...RESEARCH.startingTechs, 'mining']);
     expect(player.sciencePool).toBe(7);
     expect(player.researching).toBe(null);
   });
 
   it('holds — losing nothing — when the pool will not cover the cost', () => {
     const state = flatState();
-    applyCommand(state, choose(0, 'writing'));
-    state.players[0]!.sciencePool = techDef('writing').cost - 1;
+    applyCommand(state, choose(0, 'earthenware'));
+    state.players[0]!.sciencePool = techDef('earthenware').cost - 1;
 
     advanceResearch(state);
-    expect(state.players[0]!.researching).toBe('writing');
-    expect(state.players[0]!.sciencePool).toBe(techDef('writing').cost - 1);
+    expect(state.players[0]!.researching).toBe('earthenware');
+    expect(state.players[0]!.sciencePool).toBe(techDef('earthenware').cost - 1);
     expect(state.players[0]!.techsResearched).toEqual(RESEARCH.startingTechs);
   });
 
   it('completes at most one technology per player per turn', () => {
     const state = flatState();
-    applyCommand(state, choose(0, 'archery'));
+    applyCommand(state, choose(0, 'fletching'));
     state.players[0]!.sciencePool = 10_000;
 
     advanceResearch(state);
@@ -542,11 +558,11 @@ describe('advanceResearch', () => {
   it('runs inside the turn pipeline, on the science banked that same turn', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
-    city.population = techDef('archery').cost + 5; // a great many scientists
-    applyCommand(state, choose(0, 'archery'));
+    city.population = techDef('fletching').cost + 5; // a great many scientists
+    applyCommand(state, choose(0, 'fletching'));
 
     endRound(state);
-    expect(state.players[0]!.techsResearched).toContain('archery');
+    expect(state.players[0]!.techsResearched).toContain('fletching');
   });
 });
 
@@ -566,10 +582,10 @@ describe('production gating', () => {
       queue,
     } as Command);
     expect(refusal.ok).toBe(false);
-    expect(refusal.ok === false && refusal.error).toContain('Writing');
+    expect(refusal.ok === false && refusal.error).toContain('Letters');
     expect(snapshotState(state)).toBe(before);
 
-    grant(state, 0, 'writing');
+    grant(state, 0, 'letters');
     expect(
       applyCommand(state, {
         type: 'setCityProduction',
@@ -600,7 +616,7 @@ describe('production gating', () => {
   it('gates by the city owner, not by whoever is asking', () => {
     const state = flatState();
     const city = plant(state, 1, 8, 5);
-    grant(state, 0, 'writing'); // the *other* player learns to write
+    grant(state, 0, 'letters'); // the *other* player learns to write
     const result = applyCommand(state, {
       type: 'setCityProduction',
       playerId: 1,
@@ -618,7 +634,7 @@ describe('auto-upgrade', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 8, 5);
     unit.hp = 60;
-    grant(state, 0, 'bronzeWorking', 'masonry');
+    grant(state, 0, 'bronzeWorking', 'stonecraft');
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
 
@@ -637,8 +653,8 @@ describe('auto-upgrade', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'swordsman', 8, 5);
     unit.hp = 50; // half of 100
-    grant(state, 0, 'bronzeWorking', 'masonry', 'ironWorking', 'writing', 'theWheel');
-    grant(state, 0, 'animalHusbandry', 'mathematics', 'archery', 'construction', 'engineering');
+    grant(state, 0, 'bronzeWorking', 'stonecraft', 'ironWorking', 'letters', 'theWheel');
+    grant(state, 0, 'husbandry', 'mathematics', 'fletching', 'construction', 'engineering');
     grant(state, 0, 'machinery');
     applyCommand(state, choose(0, 'steel'));
     state.players[0]!.sciencePool = techDef('steel').cost;
@@ -655,7 +671,7 @@ describe('auto-upgrade', () => {
     for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 8, 5 + i);
     createUnit(state, 0, 'scout', 4, 4);
     createUnit(state, 1, 'warrior', 2, 2); // another player's
-    grant(state, 0, 'bronzeWorking', 'masonry');
+    grant(state, 0, 'bronzeWorking', 'stonecraft');
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
 
@@ -678,11 +694,11 @@ describe('auto-upgrade', () => {
       state,
       0,
       'bronzeWorking',
-      'masonry',
+      'stonecraft',
       'ironWorking',
-      'writing',
-      'archery',
-      'animalHusbandry',
+      'letters',
+      'fletching',
+      'husbandry',
       'theWheel',
       'mathematics',
       'construction',
@@ -701,7 +717,7 @@ describe('auto-upgrade', () => {
   it('charges retooling gold when the rules ask for it, and stops when it runs out', () => {
     const state = flatState();
     for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 8, 5 + i);
-    grant(state, 0, 'bronzeWorking', 'masonry');
+    grant(state, 0, 'bronzeWorking', 'stonecraft');
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
     state.players[0]!.gold = 25;
@@ -727,7 +743,7 @@ describe('auto-upgrade', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 8, 5);
     unit.movesLeft = 2;
-    grant(state, 0, 'bronzeWorking', 'masonry');
+    grant(state, 0, 'bronzeWorking', 'stonecraft');
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
     advanceResearch(state);
@@ -737,7 +753,7 @@ describe('auto-upgrade', () => {
   it('reports what changed, in words', () => {
     const state = flatState();
     for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 8, 5 + i);
-    grant(state, 0, 'bronzeWorking', 'masonry');
+    grant(state, 0, 'bronzeWorking', 'stonecraft');
     const before = researchSnapshot(state, 0);
 
     applyCommand(state, choose(0, 'ironWorking'));
@@ -765,18 +781,18 @@ describe('glanceable numbers', () => {
     expect(rate).toBe(cityYields(state, city).science);
     expect(rate).toBeGreaterThan(0);
 
-    const cost = techDef('writing').cost;
-    expect(turnsToTech(state, 0, 'writing')).toBe(Math.ceil(cost / rate));
+    const cost = techDef('letters').cost;
+    expect(turnsToTech(state, 0, 'letters')).toBe(Math.ceil(cost / rate));
 
     // Banked beakers count toward whichever tech is asked about.
     state.players[0]!.sciencePool = cost;
-    expect(turnsToTech(state, 0, 'writing')).toBe(0);
+    expect(turnsToTech(state, 0, 'letters')).toBe(0);
   });
 
   it('says "never" for an empire that makes no science at all', () => {
     const state = flatState();
     expect(playerScience(state, 0)).toBe(0);
-    expect(turnsToTech(state, 0, 'writing')).toBe(null);
+    expect(turnsToTech(state, 0, 'letters')).toBe(null);
   });
 
   it('previews a building with the same function the turn pipeline banks', () => {
@@ -788,8 +804,12 @@ describe('glanceable numbers', () => {
     second.buildings.push('library');
 
     const delta = buildingYieldDelta(state, 0, 'library');
-    // Only the city without one contributes: floor(4 × 0.5) = 2.
-    expect(delta.science).toBe(Math.floor(4 * buildingDef('library').sciencePerPop));
+    // Only the city without one contributes, and it contributes both of the
+    // library's science terms — the flat one it gained in the Age I rework and
+    // the per-citizen one, floored on its own.
+    const def = buildingDef('library');
+    expect(delta.science).toBe(def.science + Math.floor(4 * def.sciencePerPop));
+    expect(delta.gold).toBe(def.gold);
     expect(delta.food).toBe(0);
 
     // And the promise is kept: building it really does add that much.
@@ -832,7 +852,7 @@ describe('research in the log', () => {
         playerId: player.id,
         settlerUnitId: settler.id,
       }).ok).toBe(true);
-      expect(dispatch(game, choose(player.id, 'bronzeWorking')).ok).toBe(true);
+      expect(dispatch(game, choose(player.id, 'earthenware')).ok).toBe(true);
     }
     return game;
   }
@@ -874,7 +894,7 @@ describe('research in the log', () => {
 
     // Both keep playing in lockstep, research included.
     for (const side of [loaded, game]) {
-      dispatch(side, choose(0, 'masonry'));
+      dispatch(side, choose(0, 'stonecraft'));
       for (let turn = 0; turn < 6; turn++) {
         for (const player of side.state.players) {
           dispatch(side, { type: 'endTurn', playerId: player.id });
@@ -887,7 +907,7 @@ describe('research in the log', () => {
   it('refuses a replay whose research command has gone stale', () => {
     const game = researchingGame();
     // A log that asks for the same tech twice cannot be a log this game produced.
-    const forged = [...game.log, choose(0, 'bronzeWorking')];
+    const forged = [...game.log, choose(0, 'earthenware')];
     expect(() => replay(game.config, forged)).toThrow(/already being researched/);
   });
 });
@@ -935,6 +955,11 @@ describe('pacing', () => {
       players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
     });
     const ageDone = new Map<number, number>();
+    // Every building with a yield, in rough order of usefulness. The barracks
+    // is deliberately absent: it pays nothing but a share of the hammers behind
+    // a *unit*, and this empire builds settlers and then nothing but buildings,
+    // so queuing one would be eighteen hammers spent on a bonus it would almost
+    // never collect. `test/cities.test.ts` is where the barracks is measured.
     const wanted: string[] = ['granary', 'monument', 'shrine', 'library', 'temple', 'market',
       'aqueduct', 'workshop', 'watermill', 'amphitheater', 'monastery', 'university'];
 
@@ -1009,27 +1034,38 @@ describe('pacing', () => {
 
   it('closes its three ages on the Quick-speed schedule (Entry V)', () => {
     const { game, ageDone } = playEmpire(200);
-    // Measured on this seed with the M10 meters live: 42 / 100 / 167, against
-    // 42 / 90 / 132 before them and 43 / 86 / 128 before the settler retune.
-    // Each assertion is a band around the measurement rather than the number
-    // itself — the map roll moves it by a handful of turns — but the band is
-    // tight enough on *both* sides to catch a regression in either direction,
-    // which an upper bound alone would not.
+    // Measured on this seed after the Age I rework: **40 / 68 / 107**, against
+    // 42 / 100 / 167 with the M10 meters, 42 / 90 / 132 before them and
+    // 43 / 86 / 128 before the settler retune. Each assertion is a band around
+    // the measurement rather than the number itself — the map roll moves it by
+    // a handful of turns — but the band is tight enough on *both* sides to
+    // catch a regression in either direction, which an upper bound alone would
+    // not.
     //
-    // Why the endgame slipped thirty-five turns, and why that is the system
-    // working rather than a regression: this empire improves nothing. It builds
-    // buildings and settlers and never digs up a luxury, so its whole happiness
-    // supply is the palace's 9 against a citizen apiece — and it comes to rest
-    // at 6/6/6/6/5, exactly 29 citizens, which is exactly the −20 happiness at
-    // which the growth ladder's last rung takes 100% of the surplus (design
-    // ledger, Entry XIV.D.4). The five cities are not slower; they are *full*,
-    // and a science economy that is linear in population stops climbing with
-    // them. Improving five luxuries would buy this empire twenty more citizens.
+    // Why it moved, and why the direction is a surprise worth writing down.
+    // Age I got *dearer*: it went from eight nodes costing 167 with two of them
+    // free to eleven costing 227 with one free, which is 212 beakers to sweep
+    // against 137. It still closes two turns earlier, and the whole of the
+    // difference is on the other side of the ledger — the rework restated the
+    // three buildings this scripted empire actually builds:
     //
-    // That is a balance question for playtesting, and the numbers to move are
-    // the meter's (`rules.meters`), not this band — the band records what the
-    // rules as they stand actually do. It also means this test is now a live
-    // guard on the happiness curve as much as on the tech table.
+    //   · the granary pays 3🌾 instead of 2, and +1 more once The Wheel lands,
+    //     so every city grows faster and a citizen is a beaker;
+    //   · the shrine pays 1🔬 as well as its culture (religion buys thought in
+    //     this game — the user's revision, and the reason Divination sits where
+    //     it does);
+    //   · the library pays 2🔬 flat and a beaker per *citizen* rather than per
+    //     two, which roughly doubles what a grown city's library is worth.
+    //
+    // Ages II and III kept their costs to the beaker, so the compounding lands
+    // squarely on them: the endgame arrives sixty turns sooner. That is a
+    // deliberate un-taken decision rather than an oversight. `tech.ts`'s pacing
+    // note says a retuned economy is answered by scaling the *whole* table, and
+    // scaling ages II and III by about 1.5 would put the finale back on turn
+    // 165 — but the ledger asks for a condensed game with impactful unlocks,
+    // these restats are exactly that, and a rescale would hide the effect of
+    // the change from the playtest that has to judge it. So the band records
+    // what the rules as they stand actually do, and the tuning is the user's.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -1037,12 +1073,12 @@ describe('pacing', () => {
     expect(second, `age II: ${String(second)}`).toBeDefined();
     expect(third, `age III: ${String(third)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(34);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(50);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(90);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(112);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(150);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(185);
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(33);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(48);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(58);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(80);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(92);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(125);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 60_000);
 

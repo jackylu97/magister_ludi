@@ -47,7 +47,7 @@
  * add the third state without rewriting the first two.
  */
 
-import { cityYields, queueItemName, turnsToFill, queueItemCost } from '../sim/cities';
+import { queueItemName, turnsToBuild } from '../sim/cities';
 import type { Game } from '../sim/game';
 import type { City } from '../sim/state';
 import { type CitySighting, isExploredBy, isVisibleTo } from '../sim/visibility';
@@ -180,10 +180,11 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
 
     const item = city.queue[0];
     if (item) {
-      const cost = queueItemCost(getGame().state, city.ownerId, item);
-      const perTurn = cityYields(getGame().state, city).production;
-      const turns =
-        cost === null ? null : turnsToFill(cost - city.hammerBasket, perTurn);
+      // `turnsToBuild` at the front of the queue rather than the subtraction
+      // spelled out here: it is the same arithmetic every other estimate in the
+      // interface reads, and since the Age I rework it also knows that a
+      // barracks fills the basket faster while a unit is at the front.
+      const turns = turnsToBuild(getGame().state, city, item, 0);
       const suffix = turns === null ? '' : ` · ${turns}t`;
       facts.production = `${queueItemName(item)}${suffix}`;
     } else {

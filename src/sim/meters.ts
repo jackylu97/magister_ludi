@@ -30,7 +30,9 @@
  *
  * Authority = capacity − used
  * ---------------------------
- *   capacity the palace, plus a grant per age *advance*
+ *   capacity the palace, plus a grant per age *advance*, plus whatever the
+ *            empire has *built* — one line per building type that declares an
+ *            `authorityCapacity` (the monument's 1, today)
  *   used     the capital free, a founded city 2, a coastal one 1, a captured
  *            one 3 — and captured outranks coastal, which is the one precedence
  *            rule in the block: a seized harbour is a thing you seized, not a
@@ -56,6 +58,7 @@
  * Nothing in this file may grow a top-level call into `cities.ts`.
  */
 
+import { BUILDING_IDS, buildingDef, buildingPlural } from './buildingData';
 import {
   capitalCityOf,
   controlledResources,
@@ -248,8 +251,44 @@ function cityAuthorityCost(
 }
 
 /**
- * Authority, as the ordered list it is the fold of: capacity first, then every
- * city that spends it.
+ * Every line the empire's *buildings* add to its writ, one per building type, in
+ * `BUILDING_IDS` order.
+ *
+ * Data-driven and grouped, and both halves matter. There is no monument case
+ * anywhere in this module: a building supplies capacity iff its row declares an
+ * `authorityCapacity`, so the second such building is a line in `buildings.json`
+ * and nothing else. And the line counts a *type* rather than naming each town —
+ * "Monuments ×3 +3" is what a player wants to know about their monuments, while
+ * three lines saying "Ur · monument +1" would bury the four lines below them
+ * that say where the writ is actually going.
+ *
+ * A type nobody has built is not in the list. A capacity of zero is not a gain,
+ * and the empty rows would be a list of everything the player has not done.
+ */
+function buildingCapacity(state: GameState, playerId: number): MeterContribution[] {
+  const list: MeterContribution[] = [];
+  for (const id of BUILDING_IDS) {
+    const capacity = buildingDef(id).authorityCapacity;
+    if (capacity === undefined || capacity === 0) continue;
+    let count = 0;
+    for (const city of state.cities) {
+      if (city.ownerId !== playerId) continue;
+      if (city.buildings.includes(id)) count += 1;
+    }
+    if (count === 0) continue;
+    const name = buildingDef(id).name;
+    list.push({
+      source: count === 1 ? name : `${buildingPlural(name, count)} ×${count}`,
+      part: 'gain',
+      value: capacity * count,
+    });
+  }
+  return list;
+}
+
+/**
+ * Authority, as the ordered list it is the fold of: capacity first — the palace,
+ * the ages, then what the empire has built — and then every city that spends it.
  *
  * `prospect` prices a city that has not been founded yet — see
  * `AuthorityProspect`. It is appended last, exactly where a new city would land
@@ -273,6 +312,9 @@ export function explainAuthority(
   for (let age = 2; age <= agesAdvanced(state, playerId) + 1; age++) {
     list.push({ source: `Æra ${'I'.repeat(age)}`, part: 'gain', value: rules.perAge });
   }
+  // The writ an empire has *built*, after the writ it was born with and before
+  // anything spends it: gains together, in the order they were earned.
+  list.push(...buildingCapacity(state, playerId));
 
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;

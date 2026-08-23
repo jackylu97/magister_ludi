@@ -408,17 +408,20 @@ describe('the resource markers', () => {
   it('hides a resource the viewing player has no technology for', () => {
     const state = flatState();
     at(state, 4, 4).resource = 'iron';
-    at(state, 6, 4).resource = 'horses';
+    at(state, 6, 4).resource = 'wine';
     state.players[0]!.techsResearched = [];
 
-    // Player 0 has never heard of iron; the horses are ungated and still shown.
+    // Player 0 has never heard of iron; the wine is a luxury, ungated, and
+    // still shown. (Horses were the ungated strategic until the Age I rework
+    // put them behind Husbandry — every strategic is gated now, so the "and
+    // this one is still visible" half of the rule needs a luxury to make it.)
     expect(markersFor(state, { resources: true, playerId: 0 })).toEqual([
-      geometry.resourceMarkers.horses,
+      geometry.resourceMarkers.wine,
     ]);
-    // Player 1 knows Bronze Working and sees both.
+    // Player 1 knows Bronzeworking and sees both.
     const seat1 = markersFor(state, { resources: true, playerId: 1 });
     expect(seat1).toContain(geometry.resourceMarkers.iron);
-    expect(seat1).toContain(geometry.resourceMarkers.horses);
+    expect(seat1).toContain(geometry.resourceMarkers.wine);
   });
 
   /**
