@@ -19,6 +19,53 @@
  * A copy is a pure x translation, applied by adding to element 12 of the
  * instance matrix — the world-space x component of the translation column. That
  * is exact for any matrix built by `Matrix4.compose`, which is all of them.
+ *
+ * WHY AN INSTANCE IS OFF: the two-bit state machine
+ * -------------------------------------------------
+ * There are two entirely separate reasons a board instance is not drawn, they
+ * are owned by two different layers, and they can hold at the same time:
+ *
+ *   **fog-hidden** — `hide` / `restore`, owned by `FogView` (`fog3d.ts`). "This
+ *   seat has never charted the hex." It comes and goes as scouts walk, and it is
+ *   re-decided from `state.visibility` every frame.
+ *
+ *   **suppressed** — `suppress` / `unsuppress`, owned by whatever has been
+ *   *built* on the hex (`board3d.ts`, driven from `renderer3d.ts`). "A town
+ *   stands here, so the pines it was founded in are gone"; "this is a ploughed
+ *   field, so the meadow it was cut out of is gone." It is a fact about the
+ *   world, identical for every seat, and — Civ-wise — it never comes back.
+ *
+ * The composition rule is one line: **an instance renders iff it is neither
+ * fog-hidden nor suppressed.** So the two bits live side by side on the handle
+ * and the matrix follows their *or*:
+ *
+ *      fog  sup │ matrix
+ *      ─────────┼─────────────────────────
+ *       0    0  │ as built  (the snapshot)
+ *       0    1  │ HIDDEN_MATRIX
+ *       1    0  │ HIDDEN_MATRIX
+ *       1    1  │ HIDDEN_MATRIX
+ *
+ * and a transition writes only when that *or* actually flips. That is what
+ * makes the two operations commute, which is the whole point: suppressing a
+ * tile the seat cannot see costs nothing now and is still respected when the
+ * fog lifts (`restore` puts the instance back to `suppressed ? HIDDEN : built`,
+ * not to "built"); and a tile going dark and coming back does not resurrect the
+ * meadow a farm was ploughed over. Naive per-instance clearing that wrote
+ * matrices directly had exactly that bug — a fog restore resurrected suppressed
+ * clutter — which is why this was deferred out of M7 and is now here instead.
+ *
+ * The wash (`setWash`) is deliberately *orthogonal* to both bits. A tint on a
+ * zero-scaled instance is a colour nobody can see, so suppression never touches
+ * colour and fog never asks whether something is suppressed before tinting it.
+ * Keeping them independent is what stops the restore path needing to know which
+ * of four states it is putting an instance back into.
+ *
+ * Both bits are per **handle** (one `add` call, one instance, its wrap copies),
+ * and both are meaningless before `flush` — the flags are written against live
+ * meshes, so a caller that suppressed something before the buffers existed would
+ * set a bit nothing had acted on. Everything in this renderer patches after the
+ * flush; nothing needs to do otherwise.
  */
 
 import {
@@ -195,6 +242,43 @@ export function resetInstanceWrites(): void {
 }
 
 /**
+ * How thoroughly a tile's dressing yields to what has been built on it.
+ *
+ * An ordered scale rather than a set of independent flags, because the two
+ * things that clear a hex are *nested*: a farm takes the meadow, and a town
+ * takes the meadow and everything standing in it. So `suppressTile(cell, scope)`
+ * switches off every handle whose own grade is at or below the scope asked for,
+ * and the containment is expressed by the numbers rather than by a table.
+ *
+ * The grades exist to match, exactly, what the board used to decide at *bake*
+ * time — see `addDecorations`, which is where each one is claimed:
+ *
+ *   `CLUTTER` the ground's own scatter: tufts, flowers, cacti, the pebbles on
+ *             tundra and the loose boulders on a bare hill. What a farm or a
+ *             mine (`clearsClutter` in `data/improvements.json`) ploughs under.
+ *   `DECOR`   all of the above *plus* the things that stand on the hex: the
+ *             trees, the resource props, the reeds and shingle on a bank. What a
+ *             town clears the ground of.
+ *
+ * The prism itself, a mountain's peak and snow, and the sand band are on no
+ * grade at all: a settlement does not remove the hill it is built on.
+ */
+export const SUPPRESS = {
+  /** Never suppressed by anything. The default for `add`. */
+  never: 0,
+  clutter: 1,
+  decor: 2,
+} as const;
+
+/** One of `SUPPRESS`. A grade on a handle, or a scope on a `suppressTile`. */
+export type SuppressScope = (typeof SUPPRESS)[keyof typeof SUPPRESS];
+
+/** An instance is hidden because the seat has not charted the hex. */
+const FOG_BIT = 1;
+/** An instance is hidden because something was built over it. */
+const SUPPRESS_BIT = 2;
+
+/**
  * A claim on the instance slots one `add` call produced — one per wrap copy.
  * Handed back so a caller that needs to move or hide a thing later (only units
  * do) can write to exactly its own slots without rebuilding the buffer.
@@ -207,6 +291,10 @@ export interface InstanceHandle {
 
 interface HandleImpl extends InstanceHandle {
   readonly bucket: Bucket;
+  /** The scope at which this instance yields. See `SUPPRESS`. */
+  readonly suppressible: SuppressScope;
+  /** `FOG_BIT | SUPPRESS_BIT`: why this instance is off, if it is. */
+  flags: number;
 }
 
 export interface CollectorOptions {
@@ -337,6 +425,16 @@ export class InstanceCollector {
        * and keying on it would give every hex on the map its own draw call.
        */
       tile?: number;
+      /**
+       * The grade at which this instance yields to what gets built on its tile.
+       * See `SUPPRESS`, and the two-bit state machine in the module docblock.
+       *
+       * Recorded on the handle, never on the bucket: it is a fact about one
+       * scrap of scatter — this pine, this tuft — and two scraps of the same
+       * shape on the same tile can hold different grades. Like `tile`, it is
+       * deliberately out of the bucket key.
+       */
+      suppressible?: SuppressScope;
     } = {},
   ): InstanceHandle {
     const custom = options.material ?? null;
@@ -404,7 +502,13 @@ export class InstanceCollector {
       bucket.matrices.push(copy);
       bucket.tints.push(tint);
     }
-    const handle = { bucket, start, count: this.copyOffsets.length } as HandleImpl;
+    const handle: HandleImpl = {
+      bucket,
+      start,
+      count: this.copyOffsets.length,
+      suppressible: options.suppressible ?? SUPPRESS.never,
+      flags: 0,
+    };
     if (options.tile !== undefined) {
       const list = this.byTile.get(options.tile);
       if (list) list.push(handle);
@@ -546,49 +650,73 @@ export class InstanceCollector {
     return draws;
   }
 
-  /** Zero-scales an instance's slots, in the mesh and its outline shell alike. */
+  /**
+   * Zero-scales an instance's slots, in the mesh and its outline shell alike,
+   * because the seat cannot see the hex. Fog's half of the two bits.
+   */
   static hide(handle: InstanceHandle): void {
-    const bucket = (handle as HandleImpl).bucket;
-    for (let i = 0; i < handle.count; i++) {
-      bucket.mesh?.setMatrixAt(handle.start + i, HIDDEN_MATRIX);
-      bucket.shell?.setMatrixAt(handle.start + i, HIDDEN_MATRIX);
-      // The ghost travels with the piece it ghosts: a silhouette left behind
-      // while its unit slid away would be the most visible bug on the board.
-      bucket.ghost?.setMatrixAt(handle.start + i, HIDDEN_MATRIX);
-      INSTANCE_WRITES.matrix += 1;
-    }
-    markUpdated(bucket);
+    setFlags(handle as HandleImpl, (handle as HandleImpl).flags | FOG_BIT);
   }
 
   /**
-   * Puts an instance back where it was built.
+   * Puts an instance back *to the state the other bit leaves it in* — which is
+   * where it was built if nothing has been raised over it, and zero-scaled if
+   * something has. See the two-bit state machine in the module docblock: this is
+   * the half of it that stops a scout walking past a farm and regrowing the
+   * meadow it was ploughed out of.
    *
-   * Two sources, checked in that order: the `keepMatrices` list of `Matrix4`
-   * objects the unit layer holds, and the flat `snapshot` slice the board holds.
-   * A collector that asked for neither cannot restore, and says nothing about
-   * it — the instance simply stays hidden, which is what the caller has already
-   * seen on screen.
+   * Where "as built" comes from: two sources, checked in that order — the
+   * `keepMatrices` list of `Matrix4` objects the unit layer holds, and the flat
+   * `snapshot` slice the board holds. A collector that asked for neither cannot
+   * restore, and says nothing about it — the instance simply stays hidden, which
+   * is what the caller has already seen on screen.
    */
   static restore(handle: InstanceHandle): void {
-    const bucket = (handle as HandleImpl).bucket;
-    for (let i = 0; i < handle.count; i++) {
-      const slot = handle.start + i;
-      const matrix = bucket.matrices[slot];
-      if (matrix) {
-        bucket.mesh?.setMatrixAt(slot, matrix);
-        bucket.shell?.setMatrixAt(slot, matrix);
-        bucket.ghost?.setMatrixAt(slot, matrix);
-        INSTANCE_WRITES.matrix += 1;
-        continue;
-      }
-      const base = bucket.baseMatrix;
-      if (!base) continue;
-      copyMatrix(base, bucket.mesh, slot);
-      copyMatrix(base, bucket.shell, slot);
-      copyMatrix(base, bucket.ghost, slot);
-      INSTANCE_WRITES.matrix += 1;
+    setFlags(handle as HandleImpl, (handle as HandleImpl).flags & ~FOG_BIT);
+  }
+
+  /**
+   * Switches an instance off because something has been built on its tile, if
+   * this instance is one of the kinds that yields at `scope`.
+   *
+   * Idempotent, and safe on a fog-hidden instance: it sets the bit and writes
+   * nothing, and the fog's own later `restore` reads the bit and leaves the
+   * instance down. See `SUPPRESS` for the grades and the module docblock for the
+   * composition rule.
+   */
+  static suppress(handle: InstanceHandle, scope: SuppressScope): void {
+    const impl = handle as HandleImpl;
+    if (impl.suppressible === SUPPRESS.never || impl.suppressible > scope) return;
+    setFlags(impl, impl.flags | SUPPRESS_BIT);
+  }
+
+  /**
+   * Undoes a `suppress`, putting the instance back unless fog still has it down.
+   *
+   * Nothing in the game calls this: a town is never un-founded and a field is
+   * never un-ploughed — pillaging destroys the *improvement*, and the cleared
+   * ground stays cleared, which is both the Civ rule and what actually happens
+   * to a meadow. It exists because a bit that can only ever be set is a bit
+   * whose composition with fog was never really tested, and because the editor
+   * and the tests need to be able to put a board back.
+   */
+  static unsuppress(handle: InstanceHandle): void {
+    setFlags(handle as HandleImpl, (handle as HandleImpl).flags & ~SUPPRESS_BIT);
+  }
+
+  /**
+   * Switches off everything one tile owns that yields at `scope`. The board's
+   * entry point; see `BuiltBoard.suppressTile`.
+   */
+  suppressTile(tile: number, scope: SuppressScope): void {
+    for (const handle of this.byTile.get(tile) ?? []) {
+      InstanceCollector.suppress(handle, scope);
     }
-    markUpdated(bucket);
+  }
+
+  /** The inverse, for completeness. See `InstanceCollector.unsuppress`. */
+  unsuppressTile(tile: number): void {
+    for (const handle of this.byTile.get(tile) ?? []) InstanceCollector.unsuppress(handle);
   }
 
   /**
@@ -729,6 +857,65 @@ function writeWash(
     INSTANCE_WRITES.tint += 1;
   }
   color.needsUpdate = true;
+}
+
+/**
+ * Moves a handle to a new pair of bits, and writes matrices only if that
+ * changed whether it is drawn.
+ *
+ * The whole two-bit machine is here, and it is four lines because the rule is
+ * an `or`: what reaches the buffer depends on *whether any* bit is set, never on
+ * which. So three of the four transitions between "off for one reason" and "off
+ * for two" cost nothing at all — which is exactly the case the milestone cares
+ * about, a save with thirty farms on ground the seat has not charted yet.
+ *
+ * The elision is also why a redundant call is free rather than merely harmless:
+ * the unit layer's `hide` is documented idempotent, fog re-hides a chart patch
+ * on every level change, and neither now pays for saying so twice.
+ */
+function setFlags(handle: HandleImpl, next: number): void {
+  const drawn = handle.flags === 0;
+  handle.flags = next;
+  if (drawn === (next === 0)) return;
+  if (next !== 0) writeHidden(handle);
+  else writeBuilt(handle);
+}
+
+/** Zero-scales a handle's slots in the mesh, the outline shell and the ghost. */
+function writeHidden(handle: HandleImpl): void {
+  const bucket = handle.bucket;
+  for (let i = 0; i < handle.count; i++) {
+    bucket.mesh?.setMatrixAt(handle.start + i, HIDDEN_MATRIX);
+    bucket.shell?.setMatrixAt(handle.start + i, HIDDEN_MATRIX);
+    // The ghost travels with the piece it ghosts: a silhouette left behind
+    // while its unit slid away would be the most visible bug on the board.
+    bucket.ghost?.setMatrixAt(handle.start + i, HIDDEN_MATRIX);
+    INSTANCE_WRITES.matrix += 1;
+  }
+  markUpdated(bucket);
+}
+
+/** Puts a handle's slots back to the transforms it was collected with. */
+function writeBuilt(handle: HandleImpl): void {
+  const bucket = handle.bucket;
+  for (let i = 0; i < handle.count; i++) {
+    const slot = handle.start + i;
+    const matrix = bucket.matrices[slot];
+    if (matrix) {
+      bucket.mesh?.setMatrixAt(slot, matrix);
+      bucket.shell?.setMatrixAt(slot, matrix);
+      bucket.ghost?.setMatrixAt(slot, matrix);
+      INSTANCE_WRITES.matrix += 1;
+      continue;
+    }
+    const base = bucket.baseMatrix;
+    if (!base) continue;
+    copyMatrix(base, bucket.mesh, slot);
+    copyMatrix(base, bucket.shell, slot);
+    copyMatrix(base, bucket.ghost, slot);
+    INSTANCE_WRITES.matrix += 1;
+  }
+  markUpdated(bucket);
 }
 
 /** Copies one instance's 16 floats out of a snapshot and into a live mesh. */

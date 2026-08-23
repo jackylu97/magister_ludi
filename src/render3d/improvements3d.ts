@@ -91,6 +91,17 @@ const CLEARS_CLUTTER = new Set<ImprovementId>(
   IMPROVEMENT_IDS.filter((id) => improvementDef(id).clearsClutter),
 );
 
+/**
+ * Does building this take the tile's meadow with it?
+ *
+ * The board's one question about an improvement, exported so the renderer can
+ * ask it without a second reading of `data/improvements.json`. It answers *which
+ * tiles to suppress*, not *whether to rebuild*: see `signImprovedCells`.
+ */
+export function clearsClutter(id: ImprovementId): boolean {
+  return CLEARS_CLUTTER.has(id);
+}
+
 export class ImprovementLayer {
   readonly group = new Group();
   private drawCallCount = 0;
@@ -236,13 +247,20 @@ export function signImprovements(state: GameState): number {
 /**
  * The same, restricted to the improvements that *clear a tile's clutter*.
  *
- * Separate from `signImprovements` because it is the input to a much more
- * expensive rebuild — the board itself, which suppresses a farmed tile's grass
- * the way it suppresses a city tile's trees (`signCityCells` is the exact
- * precedent, and `addDecorations` is the shared mechanism). A pasture, a camp, a
- * quarry and a plantation compose with what is already on their hex and change
- * nothing about the board, so building one must not re-bake ninety thousand
- * instances; only a farm or a mine does, and only once each.
+ * Separate from `signImprovements` because it answers a different question. This
+ * one drives the board's per-tile **suppression** (`BuiltBoard.suppressTile`):
+ * when it moves, a farm or a mine has landed somewhere and that tile's meadow
+ * has to be switched off. A pasture, a camp, a quarry and a plantation compose
+ * with what is already on their hex — the fence goes round the cattle — so they
+ * leave this number alone and cost the board nothing at all.
+ *
+ * It no longer drives a *rebuild*. It used to: the clearing was baked, so a
+ * finished farm re-baked ninety thousand instances, and the same was true of a
+ * founded city (`signCityCells`). Both are now a dozen matrix writes on the tile
+ * that changed, and this hash is only how the renderer notices there is a delta
+ * to walk. Note the asymmetry that leaves: the *suppression* is monotonic, so a
+ * pillaged farm moves this fingerprint back without the ground regrowing. That
+ * is deliberate — see `BuiltBoard.unsuppressTile`.
  */
 export function signImprovedCells(state: GameState): number {
   let h = 2166136261 ^ state.map.tiles.length;

@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { InstancedMesh } from 'three';
+import { InstancedMesh, Matrix4 } from 'three';
 
 import { BoardGeometry, buildBoard } from '../src/render3d/board3d';
 import { FogView, accountedInstances } from '../src/render3d/fog3d';
-import { ImprovementLayer } from '../src/render3d/improvements3d';
-import { INSTANCE_WRITES, resetInstanceWrites } from '../src/render3d/instances';
+import { ImprovementLayer, clearsClutter } from '../src/render3d/improvements3d';
+import {
+  type SuppressScope,
+  INSTANCE_WRITES,
+  SUPPRESS,
+  resetInstanceWrites,
+} from '../src/render3d/instances';
 import { VIEW3D } from '../src/render3d/lookData';
 import { MaterialLibrary } from '../src/render3d/toon';
 import { foundingErrorAt } from '../src/sim/cities';
@@ -19,7 +24,15 @@ import {
   restoreState,
   snapshotState,
 } from '../src/sim/game';
-import { type Tile, getTileAt, tileHex, tileIndex, wrappedDistance } from '../src/sim/map';
+import { generateMap } from '../src/sim/mapgen';
+import {
+  type GameMap,
+  type Tile,
+  getTileAt,
+  tileHex,
+  tileIndex,
+  wrappedDistance,
+} from '../src/sim/map';
 import { isPassable } from '../src/sim/pathfind';
 import { RULES } from '../src/sim/rulesData';
 import type { GameState } from '../src/sim/state';
@@ -669,5 +682,183 @@ describe('a full turn at scale', () => {
       const def = unitDef(id);
       expect(def.requiresResource).toBeUndefined();
     }
+  });
+});
+
+// --- building on the ground -------------------------------------------------
+
+/**
+ * What founding a town or finishing a farm costs the *board*.
+ *
+ * Until this milestone: a full re-bake. The board decided at bake time whether a
+ * hex showed its meadow (`clearsClutter`) and whether it showed the wood a town
+ * was founded in, so the first farm of the game threw away every instance buffer
+ * on the map and built them again — and took the blank-chart layer and a
+ * full-board fog repaint with it, because both hang off the board's lifetime.
+ * That is the `boardMs` measured in the block above, once per event, at every
+ * map size, forever.
+ *
+ * Now: a per-instance bit on the tile that changed. The numbers logged below are
+ * the two sides of that trade, measured on the same machine in the same run, so
+ * the comparison is not against a remembered figure. The assertions are on
+ * *operation counts* rather than on the clock, for the reason the file docblock
+ * gives — but the clock is printed, because the whole point of the milestone is
+ * a number a person can feel.
+ */
+describe('what building on a tile costs the board', () => {
+  const geometry = new BoardGeometry();
+  const materials = new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
+
+  /** The instances one tile is currently drawing, of the ones it owns. */
+  function shown(board: ReturnType<typeof buildBoard>, cell: number): number {
+    let count = 0;
+    const matrix = new Matrix4();
+    for (const handle of board.tiles.own.get(cell) ?? []) {
+      const mesh = (handle as unknown as { bucket: { mesh: InstancedMesh | null } }).bucket.mesh!;
+      for (let i = 0; i < handle.count; i++) {
+        mesh.getMatrixAt(handle.start + i, matrix);
+        if (matrix.elements[0] !== 0) count += 1;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * The most heavily dressed tile that actually yields at `scope`.
+   *
+   * The *worst* case rather than the first hex that qualifies: the bound being
+   * asserted is "a tile's own instances and no more", so the honest number to
+   * print beside it is the richest hex the generator made. It is found by trying
+   * it — a suppress, a look, an unsuppress — because which grade a scrap of
+   * scatter carries is a fact about `addDecorations` and not about the tile, and
+   * a test that re-derived it here would be asserting its own copy of the rule.
+   */
+  function richestYielding(
+    board: ReturnType<typeof buildBoard>,
+    map: GameMap,
+    scope: SuppressScope,
+    besides = -1,
+  ): number {
+    const ranked = map.tiles
+      .map((tile) => tileIndex(map, tile.col, tile.row))
+      .sort((a, b) => (board.tiles.own.get(b)?.length ?? 0) - (board.tiles.own.get(a)?.length ?? 0));
+    for (const cell of ranked) {
+      if (cell === besides) continue;
+      const before = shown(board, cell);
+      board.suppressTile(cell, scope);
+      const after = shown(board, cell);
+      board.unsuppressTile(cell);
+      if (after < before) return cell;
+    }
+    throw new Error(`stress: nothing on this map yields at scope ${scope}`);
+  }
+
+  for (const sizeName of ['standard', 'huge'] as const) {
+    it(`replaces a ${sizeName}-map rebuild with a handful of writes`, () => {
+      const map = generateMap(99_101, sizeName);
+
+      // THE "BEFORE" NUMBER: what founding a city or finishing a farm used to
+      // cost, because it is exactly the work the old fingerprint triggered.
+      const rebuildStarted = performance.now();
+      const board = buildBoard(map, geometry, materials, false);
+      const rebuildMs = performance.now() - rebuildStarted;
+
+      const meshes = board.group.children.slice();
+      // Two different hexes: a farm and a founding never land on the same one.
+      const cell = richestYielding(board, map, SUPPRESS.clutter);
+      const townCell = richestYielding(board, map, SUPPRESS.decor, cell);
+      const owned = (board.tiles.own.get(cell) ?? []).reduce((sum, h) => sum + h.count, 0);
+      const townOwned = (board.tiles.own.get(townCell) ?? []).reduce(
+        (sum, h) => sum + h.count,
+        0,
+      );
+
+      // --- a farm, or a mine: the meadow goes ---------------------------------
+      resetInstanceWrites();
+      const farmStarted = performance.now();
+      board.suppressTile(cell, SUPPRESS.clutter);
+      const farmMs = performance.now() - farmStarted;
+      const farmWrites = INSTANCE_WRITES.matrix;
+
+      // --- a town: the wood goes too ------------------------------------------
+      resetInstanceWrites();
+      const townStarted = performance.now();
+      board.suppressTile(townCell, SUPPRESS.decor);
+      const townMs = performance.now() - townStarted;
+      const townWrites = INSTANCE_WRITES.matrix;
+
+      console.log(
+        `[stress] ${sizeName} (${map.tiles.length} tiles, ${board.instanceCount} instances): ` +
+          `board rebuild ${rebuildMs.toFixed(0)}ms — which is what a farm or a founding ` +
+          `used to cost. Now: farm ${farmWrites} writes in ${farmMs.toFixed(3)}ms, ` +
+          `founding ${townWrites} writes in ${townMs.toFixed(3)}ms ` +
+          `(the tile owns ${owned} instances).`,
+      );
+
+      // The claim, as operations. Every write is on the named tile's own
+      // instances and there are no others — never mind the board's size.
+      expect(farmWrites).toBeGreaterThan(0);
+      expect(townWrites).toBeGreaterThan(0);
+      expect(farmWrites).toBeLessThanOrEqual(owned);
+      expect(townWrites).toBeLessThanOrEqual(townOwned);
+      expect(INSTANCE_WRITES.tint).toBe(0);
+      // K, stated as a constant rather than as a fraction: a hex's whole
+      // dressing is a dozen scraps and three wrap copies of each.
+      expect(farmWrites + townWrites).toBeLessThanOrEqual(64);
+      // A rounding error against the board that was NOT rebuilt.
+      expect(farmWrites + townWrites).toBeLessThan(board.instanceCount / 100);
+
+      // And the buffers are the buffers from the build. This is the whole
+      // milestone in one assertion: the board is built once per game.
+      expect(board.group.children).toEqual(meshes);
+      for (let i = 0; i < meshes.length; i++) expect(board.group.children[i]).toBe(meshes[i]);
+      expect(shown(board, cell)).toBeLessThan(owned);
+      expect(shown(board, townCell)).toBeLessThan(townOwned);
+
+      board.dispose();
+    });
+  }
+
+  it('applies a whole loaded empire in one bounded sweep', () => {
+    // The save-load case: a game resumed with forty towns and a wave of farms
+    // already on the map has to arrive at the same picture, and it may not do so
+    // by re-baking. The sweep is one pass over the state, and the writes it
+    // issues are bounded by the built-on tiles' own instances.
+    const state = game.state;
+    const board = buildBoard(state.map, geometry, materials, false);
+    const improved = state.map.tiles
+      .map((tile, cell) => ({ tile, cell }))
+      .filter(({ tile }) => tile.improvement !== undefined && clearsClutter(tile.improvement));
+    expect(state.cities.length).toBeGreaterThan(0);
+    expect(improved.length).toBeGreaterThan(0);
+
+    let owned = 0;
+    for (const city of state.cities) {
+      const cell = tileIndex(state.map, city.col, city.row);
+      for (const handle of board.tiles.own.get(cell) ?? []) owned += handle.count;
+    }
+    for (const { cell } of improved) {
+      for (const handle of board.tiles.own.get(cell) ?? []) owned += handle.count;
+    }
+
+    const meshes = board.group.children.slice();
+    resetInstanceWrites();
+    const started = performance.now();
+    for (const city of state.cities) {
+      board.suppressTile(tileIndex(state.map, city.col, city.row), SUPPRESS.decor);
+    }
+    for (const { cell } of improved) board.suppressTile(cell, SUPPRESS.clutter);
+    const ms = performance.now() - started;
+
+    console.log(
+      `[stress] save-load: ${state.cities.length} towns + ${improved.length} works ` +
+        `applied in ${INSTANCE_WRITES.matrix} writes / ${ms.toFixed(2)}ms ` +
+        `(those tiles own ${owned} instances of the board's ${board.instanceCount})`,
+    );
+    expect(INSTANCE_WRITES.matrix).toBeLessThanOrEqual(owned);
+    expect(INSTANCE_WRITES.matrix).toBeLessThan(board.instanceCount / 20);
+    expect(board.group.children).toEqual(meshes);
+    expect(ms).toBeLessThan(200);
+    board.dispose();
   });
 });

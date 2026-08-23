@@ -60,12 +60,33 @@ would change every seeded outcome. No further rename passes.
 - `Tile.improvement` is the one field on a tile that changes during play. The map is still
   reproducible from `{config, log}` (every improvement is a logged command), but it is no longer
   a pure function of the seed after turn one — nothing may regenerate it mid-game.
+- `clearsClutter` (a farm or a mine takes the tile's meadow) is the one thing the *board* knows
+  about an improvement, and founding a city is the same question one grade wider. Neither is
+  baked any more: `buildBoard` always emits the full dressing, and `Renderer3D.clearGround`
+  sweeps `(cities → SUPPRESS.decor, clearsClutter tiles → SUPPRESS.clutter)` whenever
+  `signCityCells`/`signImprovedCells` move. Those two fingerprints drive **suppression**, never
+  a rebuild. The sweep is **monotone** — nothing is ever unsuppressed — so a *pillaged* farm
+  keeps its bare ground: the prop disappears (its own layer) and the meadow stays gone, which
+  is the Civ rule and what happens to a ploughed field.
 - `turnEnded` assumes player id === array index; revisit if players become removable.
   `visibility` and `citySightings` (M8) make the same assumption and revisit with it.
 - Fog of war patches the board **in place** (`src/render3d/fog3d.ts`): a visibility change is
   per-instance matrix/tint writes for changed tiles only, never a board rebuild. Anything that
   adds instances to `buildBoard` must pass `tile:` to `collector.add` or it will keep drawing
   on hexes nobody has explored — `test/fog3d.test.ts` asserts the accounting.
+- **The board is built once per game.** Only a new map and toggling shadows rebuild it.
+  An instance is off for one of *two independent reasons* and both bits live on the handle
+  (`instances.ts`, the two-bit state machine): **fog-hidden** (`hide`/`restore`, owned by
+  `FogView`) and **suppressed** (`suppress`/`unsuppress`, owned by what has been *built* on
+  the hex). Drawn iff neither. `restore` therefore returns an instance to
+  `suppressed ? HIDDEN : as-built` — get that wrong and a scout walking past regrows the
+  meadow a farm was ploughed over, which is exactly why this was deferred out of M7.
+  Suppressing a fog-hidden instance writes no matrix at all and still holds when the fog
+  lifts. The wash is orthogonal to both: a zero-scaled instance's tint means nothing.
+- New board dressing must declare `suppressible:` on `collector.add` (`SUPPRESS.clutter` for
+  ground scatter a farm ploughs under, `SUPPRESS.decor` for anything a town clears away).
+  `addDecorations`'s `place` defaults to `decor`, so forgetting is safe there and nowhere else
+  — an ungraded scrap is a pine growing through a market square.
 - Layers that filter by the local seat (units, cities, territory, improvements, lens,
   walk/death animations) are rebuilt off `FogStats.tiles` in the render loop, not off their own
   fingerprints — a new seat-filtered layer must be added there too. A layer rebuilt *outside*

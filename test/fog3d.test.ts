@@ -28,6 +28,7 @@ import {
   HIDDEN_MATRIX,
   INSTANCE_WRITES,
   InstanceCollector,
+  SUPPRESS,
   resetInstanceWrites,
 } from '../src/render3d/instances';
 import { LensLayer, NO_LENS } from '../src/render3d/lens3d';
@@ -410,6 +411,227 @@ describe('the cost of a repaint', () => {
     expect(swap.tiles).toBeGreaterThan(0);
     expect(board.group.children).toEqual(meshes);
     expect(INSTANCE_WRITES.matrix).toBeGreaterThan(0);
+  });
+});
+
+// --- suppression, composed with the fog -------------------------------------
+
+/**
+ * The other reason an instance is off, and the whole of this milestone.
+ *
+ * Founding a city or finishing a farm changes which dressing a hex shows, and
+ * that used to be baked — so it cost a full board rebuild, a chart rebuild and a
+ * full fog repaint, mid-game, every time. It is now a second per-instance bit
+ * (`InstanceCollector.suppress`), and the reason it was *deferred* out of M7 is
+ * exactly what is under test here: an implementation that wrote matrices
+ * directly fights the fog, because `restore` puts an instance back where it was
+ * built and would therefore regrow a meadow a farm was ploughed over the moment
+ * a scout walked past it. The composition rule — drawn iff neither bit is set —
+ * is stated in `instances.ts` and asserted below in all four states.
+ */
+describe('suppression, and how it composes with the fog', () => {
+  /** Is this handle's first slot on the board? */
+  function drawn(handle: InstanceHandle): boolean {
+    const { bucket } = handle as unknown as BucketPeek;
+    return !isHiddenMatrix(matrixOf(bucket.mesh!, handle.start));
+  }
+
+  /** Every tile watched, so these tests are about suppression and not about fog. */
+  function litRig(state: GameState): Rig {
+    const built = rig(state);
+    built.fog.apply(new Array<number>(state.map.tiles.length).fill(VISIBLE));
+    return built;
+  }
+
+  /**
+   * A tile with something suppressible on it, its clutter handles, and its prism.
+   *
+   * Found rather than named: which hexes roll a tuft is a hash of the
+   * coordinates, so a hard-coded pair would be a fixture that silently stopped
+   * testing anything the day somebody nudged `clutter.tuft.chance`. The board
+   * must be lit when this is called.
+   */
+  function clutteredCell(
+    board: Rig['board'],
+    map: GameState['map'],
+  ): { cell: number; clutter: InstanceHandle[]; ground: InstanceHandle } {
+    for (const tile of map.tiles) {
+      const cell = tileIndex(map, tile.col, tile.row);
+      const handles = board.tiles.own.get(cell) ?? [];
+      if (handles.length < 2 || !handles.every(drawn)) continue;
+      board.suppressTile(cell, SUPPRESS.clutter);
+      const clutter = handles.filter((handle) => !drawn(handle));
+      board.unsuppressTile(cell);
+      if (clutter.length > 0 && clutter.length < handles.length) {
+        return { cell, clutter, ground: handles[0]! };
+      }
+    }
+    throw new Error('fog3d: no tile on this fixture grows anything to suppress');
+  }
+
+  it('takes the ploughed meadow down and leaves the ground standing', () => {
+    const state = flatState();
+    const { board } = litRig(state);
+    const { cell, clutter, ground } = clutteredCell(board, state.map);
+
+    expect(clutter.every(drawn)).toBe(true);
+    board.suppressTile(cell, SUPPRESS.clutter);
+    expect(clutter.some(drawn)).toBe(false);
+    // The prism is on no grade at all: a farm does not plough the hill away.
+    expect(drawn(ground)).toBe(true);
+  });
+
+  it('is NOT undone by a fog restore — the bug that deferred this out of M7', () => {
+    const state = flatState();
+    const { board, fog } = litRig(state);
+    const { cell, clutter } = clutteredCell(board, state.map);
+    const tile = state.map.tiles[cell]!;
+
+    // Light the hex, plough it, then walk away and come back.
+    const scout = createUnit(state, 0, 'scout', tile.col, tile.row);
+    recomputeVisibility(state, 0);
+    fog.apply(state.visibility[0]!);
+    expect(fog.paintedLevel(cell)).toBe(VISIBLE);
+    board.suppressTile(cell, SUPPRESS.clutter);
+    expect(clutter.some(drawn)).toBe(false);
+
+    scout.col = (tile.col + 6) % state.map.width;
+    recomputeVisibility(state, 0);
+    fog.apply(state.visibility[0]!);
+    expect(fog.paintedLevel(cell)).toBe(EXPLORED);
+    expect(clutter.some(drawn)).toBe(false);
+
+    scout.col = tile.col;
+    recomputeVisibility(state, 0);
+    fog.apply(state.visibility[0]!);
+    expect(fog.paintedLevel(cell)).toBe(VISIBLE);
+    // The meadow does not grow back because somebody looked at it again.
+    expect(clutter.some(drawn)).toBe(false);
+  });
+
+  it('costs nothing on a tile the seat has never charted, and still holds', () => {
+    // The save-load case, and the AI's: a wave of farms lands on ground this
+    // seat cannot see. Setting a bit on an already-hidden instance must write no
+    // matrix at all, and must survive the day the fog lifts off it.
+    const state = flatState();
+    const lit = litRig(state);
+    const { cell, clutter } = clutteredCell(lit.board, state.map);
+    const { board, fog } = lit;
+    const tile = state.map.tiles[cell]!;
+    fog.apply(state.visibility[0]!);
+    expect(fog.paintedLevel(cell)).toBe(HIDDEN);
+
+    resetInstanceWrites();
+    board.suppressTile(cell, SUPPRESS.clutter);
+    expect(INSTANCE_WRITES.matrix).toBe(0);
+
+    createUnit(state, 0, 'scout', tile.col, tile.row);
+    recomputeVisibility(state, 0);
+    fog.apply(state.visibility[0]!);
+    expect(fog.paintedLevel(cell)).toBe(VISIBLE);
+    expect(clutter.some(drawn)).toBe(false);
+    // And the rest of the hex did come up, or this would be passing because
+    // nothing at all had been restored.
+    expect((board.tiles.own.get(cell) ?? []).some(drawn)).toBe(true);
+  });
+
+  it('puts the four states of the two bits exactly where they belong', () => {
+    const state = flatState();
+    const { board, fog } = litRig(state);
+    const { cell, clutter } = clutteredCell(board, state.map);
+    const handle = clutter[0]!;
+    const count = state.map.tiles.length;
+    const dark = new Array<number>(count).fill(HIDDEN);
+    const lit = new Array<number>(count).fill(VISIBLE);
+
+    // fog 0, suppressed 0
+    expect(drawn(handle)).toBe(true);
+
+    board.suppressTile(cell, SUPPRESS.clutter);
+    // fog 0, suppressed 1
+    expect(drawn(handle)).toBe(false);
+
+    fog.apply(dark);
+    // fog 1, suppressed 1
+    expect(drawn(handle)).toBe(false);
+
+    board.unsuppressTile(cell);
+    // fog 1, suppressed 0 — still down, because the fog still has it.
+    expect(drawn(handle)).toBe(false);
+
+    fog.apply(lit);
+    // fog 0, suppressed 0 again, and the meadow is back.
+    expect(drawn(handle)).toBe(true);
+
+    // And the order the two arrive in does not matter: suppress *under* the fog,
+    // then lift it, and the instance stays down.
+    fog.apply(dark);
+    board.suppressTile(cell, SUPPRESS.clutter);
+    fog.apply(lit);
+    expect(drawn(handle)).toBe(false);
+  });
+
+  it('is orthogonal to the wash: a built-on hex still fades and un-fades exactly', () => {
+    // Suppression writes matrices, the wash writes colours, and neither asks the
+    // other anything. That independence is what keeps `restore` from having to
+    // know which of four states it is putting an instance back into, so it is
+    // pinned rather than assumed.
+    const state = flatState();
+    const { board, fog } = litRig(state);
+    const { cell, ground } = clutteredCell(board, state.map);
+    const tile = state.map.tiles[cell]!;
+    const scout = createUnit(state, 0, 'scout', tile.col, tile.row);
+    recomputeVisibility(state, 0);
+    fog.apply(state.visibility[0]!);
+
+    const litInk = luminance(renderedInk(ground));
+    board.suppressTile(cell, SUPPRESS.decor);
+
+    scout.col = (tile.col + 6) % state.map.width;
+    recomputeVisibility(state, 0);
+    fog.apply(state.visibility[0]!);
+    expect(luminance(renderedInk(ground))).toBeLessThan(litInk * 0.85);
+
+    scout.col = tile.col;
+    recomputeVisibility(state, 0);
+    fog.apply(state.visibility[0]!);
+    // Byte-exact, exactly as it is for a hex nothing was ever built on.
+    expect(luminance(renderedInk(ground))).toBeCloseTo(litInk, 6);
+  });
+
+  it('never rebuilds: founding a town is the meshes from the build, patched', () => {
+    const state = flatState();
+    const { board, fog } = litRig(state);
+    const before = board.group.children.slice();
+    const { cell } = clutteredCell(board, state.map);
+    const levels = new Array<number>(state.map.tiles.length).fill(VISIBLE);
+
+    resetInstanceWrites();
+    board.suppressTile(cell, SUPPRESS.decor);
+    // The fog does not hear about this at all: nothing it tracks has moved.
+    expect(fog.apply(levels).tiles).toBe(0);
+
+    expect(board.group.children).toEqual(before);
+    for (let i = 0; i < before.length; i++) expect(board.group.children[i]).toBe(before[i]);
+    // Bounded by that one tile's own instances, not by the board's.
+    let owned = 0;
+    for (const handle of board.tiles.own.get(cell) ?? []) owned += handle.count;
+    expect(INSTANCE_WRITES.matrix).toBeGreaterThan(0);
+    expect(INSTANCE_WRITES.matrix).toBeLessThanOrEqual(owned);
+    expect(INSTANCE_WRITES.matrix).toBeLessThan(board.instanceCount / 100);
+    expect(INSTANCE_WRITES.tint).toBe(0);
+  });
+
+  it("leaves the accounting intact: a suppressed instance is still the tile's", () => {
+    // Suppression hides instances, it does not un-file them — so the check that
+    // catches an unregistered scrap of scatter goes on saying the same thing.
+    const state = flatState();
+    const { board } = litRig(state);
+    const before = accountedInstances(board.tiles);
+    for (const tile of state.map.tiles) {
+      board.suppressTile(tileIndex(state.map, tile.col, tile.row), SUPPRESS.decor);
+    }
+    expect(accountedInstances(board.tiles)).toBe(before);
   });
 });
 

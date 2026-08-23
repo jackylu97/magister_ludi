@@ -42,11 +42,7 @@ import {
   Vector3,
 } from 'three';
 
-import {
-  IMPROVEMENT_IDS,
-  type ImprovementId,
-  improvementDef,
-} from '../sim/improvementData';
+import { IMPROVEMENT_IDS, type ImprovementId } from '../sim/improvementData';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
 import { type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
@@ -118,8 +114,10 @@ import {
 } from './geometry';
 import {
   type InstanceHandle,
+  type SuppressScope,
   type Tint,
   InstanceCollector,
+  SUPPRESS,
   disposeInstancedGroup,
 } from './instances';
 import { VIEW3D, shade } from './lookData';
@@ -633,6 +631,23 @@ export interface BuiltBoard {
   /** Instances actually uploaded, wrap copies included. For the stats readout. */
   instanceCount: number;
   drawCalls: number;
+  /**
+   * Switches off the dressing one tile yields to what has been built on it: the
+   * meadow a farm ploughs under (`SUPPRESS.clutter`), or everything a town
+   * clears the ground of (`SUPPRESS.decor`).
+   *
+   * The whole reason the board is built once per game. It writes matrices on the
+   * named tile's own instances and nothing else — a dozen or so — and it
+   * composes with fog rather than racing it: see the two-bit state machine in
+   * `instances.ts`. Idempotent, and free on a tile the seat cannot see.
+   */
+  suppressTile(cell: number, scope: SuppressScope): void;
+  /**
+   * The inverse. Nothing in the game calls it — a town is never un-founded, and
+   * pillaging a farm destroys the *improvement* while the ground it cleared
+   * stays cleared, which is the Civ rule and also what happens to a meadow.
+   */
+  unsuppressTile(cell: number): void;
   dispose(): void;
 }
 
@@ -949,6 +964,13 @@ function addDecorations(
    * Scatters one thing on the tile. `origin` displaces the whole scatter disc,
    * which is how the water-edge dressing is aimed at a bank instead of being
    * sprinkled over the whole hex.
+   *
+   * `suppress` is the grade at which this scrap yields to what gets built on the
+   * hex (see `SUPPRESS` in `instances.ts`). It defaults to `decor`, because a
+   * town clears *everything* this function emits and forgetting to say so on a
+   * new kind of dressing would leave a pine growing through a market square.
+   * The ground scatter says `clutter` explicitly, which is the narrower claim: a
+   * farm takes the meadow and leaves the deer in the trees.
    */
   const place = (
     shape: BufferGeometry,
@@ -956,7 +978,11 @@ function addDecorations(
     stream: number,
     index: number,
     baseScale: number,
-    options: { origin?: { x: number; z: number }; spread?: number } = {},
+    options: {
+      origin?: { x: number; z: number };
+      spread?: number;
+      suppress?: SuppressScope;
+    } = {},
   ): void => {
     const slot = stream * 64 + index * 8;
     const spread = (options.spread ?? DECOR.spread) * BOARD.hexRadius;
@@ -977,6 +1003,7 @@ function addDecorations(
         DECOR.variation.hue,
       ),
       tile: cell,
+      suppressible: options.suppress ?? SUPPRESS.decor,
     });
   };
 
@@ -1024,22 +1051,24 @@ function addDecorations(
    * resource-improvements, which are built round something the tile already
    * shows and compose with it (the fence goes around the cattle).
    *
-   * This is the one thing about an improvement the *board* knows, and it is
-   * therefore the one thing that costs a board rebuild when it changes — the
-   * exact precedent a founded city already sets with `cityCells`, fingerprinted
-   * by `signImprovedCells` (`improvements3d.ts`). The props themselves never
-   * touch these buffers; they are their own layer.
+   * It used to be a *bake-time* decision, read off `Tile.improvement` here, and
+   * that made building one farm re-bake ninety thousand instances. It is now a
+   * per-instance bit instead: the board always emits the full dressing, marks it
+   * with the grade at which it yields (`SUPPRESS`), and the renderer switches the
+   * grade off when the improvement lands (`BuiltBoard.suppressTile`). Same
+   * picture, no rebuild, and it composes with fog rather than fighting it — see
+   * the two-bit state machine in `instances.ts`.
    */
-  const cleared =
-    tile.improvement !== undefined && improvementDef(tile.improvement).clearsClutter;
 
   // Rocks scatter on bare hills only: a forested hill already has silhouette,
   // and piling boulders under the trees just made mud.
-  if (!prop && !cleared && tile.hills && tile.feature === 'none' && tile.terrain !== 'mountain') {
+  if (!prop && tile.hills && tile.feature === 'none' && tile.terrain !== 'mountain') {
     if (hashUnit(tile.col, tile.row, STREAM.rockRoll) < 0.55) {
       const count = hashedCount(tile.col, tile.row, STREAM.rockCount, 2);
       for (let i = 0; i < count; i++) {
-        place(geometry.boulder, VIEW3D.palette.slate!, STREAM.rockPlace, i, 1);
+        place(geometry.boulder, VIEW3D.palette.slate!, STREAM.rockPlace, i, 1, {
+          suppress: SUPPRESS.clutter,
+        });
       }
     }
   }
@@ -1056,14 +1085,20 @@ function addDecorations(
         { spread: RESOURCES.spread },
       );
     }
-  } else if (!cleared) {
+  } else {
     addGroundClutter(tile, geometry, place);
   }
   // The bank dressing stays either way: reeds are a fact about where the water
   // is, not about what is growing on the field beside it.
   addWaterEdge(map, tile, geometry, place);
 
-  /** Ground clutter and reeds share the scatter above; both are below. */
+  /**
+   * Ground clutter and reeds share the scatter above; both are below.
+   *
+   * Everything here is `clutter` grade — the meadow a farm ploughs under. The
+   * reeds below are not: a bank is a fact about where the water is, and a town
+   * on the shore still has a shore.
+   */
   function addGroundClutter(
     t: Tile,
     g: BoardGeometry,
@@ -1072,12 +1107,13 @@ function addDecorations(
     // Never under a canopy: grass drawn inside a forest is invisible from 57°
     // and costs an instance per tile of it.
     if (t.feature !== 'none') return;
+    const grade = { suppress: SUPPRESS.clutter };
 
     if (t.terrain === 'grassland' || t.terrain === 'plains') {
       if (hashUnit(t.col, t.row, STREAM.tuftRoll) < CLUTTER.tuft.chance) {
         const count = hashedCount(t.col, t.row, STREAM.tuftCount, CLUTTER.tuft.max);
         const ink = shade(CLUTTER.tuft.color, CLUTTER.tuft.shade);
-        for (let i = 0; i < count; i++) put(g.tuft, ink, STREAM.tuftPlace, i, 1);
+        for (let i = 0; i < count; i++) put(g.tuft, ink, STREAM.tuftPlace, i, 1, grade);
       }
     }
     if (t.terrain === 'grassland') {
@@ -1088,14 +1124,14 @@ function addDecorations(
         const inks = CLUTTER.flower.colors;
         const ink =
           inks[Math.floor(hashUnit(t.col, t.row, STREAM.flowerInk) * inks.length) % inks.length]!;
-        for (let i = 0; i < count; i++) put(g.flower, ink, STREAM.flowerPlace, i, 1);
+        for (let i = 0; i < count; i++) put(g.flower, ink, STREAM.flowerPlace, i, 1, grade);
       }
     }
     if (t.terrain === 'desert') {
       if (hashUnit(t.col, t.row, STREAM.cactusRoll) < CLUTTER.cactus.chance) {
         const count = hashedCount(t.col, t.row, STREAM.cactusCount, CLUTTER.cactus.max);
         const ink = shade(CLUTTER.cactus.color, CLUTTER.cactus.shade);
-        for (let i = 0; i < count; i++) put(g.cactus, ink, STREAM.cactusPlace, i, 1);
+        for (let i = 0; i < count; i++) put(g.cactus, ink, STREAM.cactusPlace, i, 1, grade);
       }
     }
     if (t.terrain === 'tundra' || t.terrain === 'snow') {
@@ -1103,7 +1139,7 @@ function addDecorations(
         const count = hashedCount(t.col, t.row, STREAM.pebbleCount, CLUTTER.pebble.max);
         const ink = shade(CLUTTER.pebble.color, CLUTTER.pebble.shade);
         for (let i = 0; i < count; i++) {
-          put(g.boulder, ink, STREAM.pebblePlace, i, CLUTTER.pebble.scale);
+          put(g.boulder, ink, STREAM.pebblePlace, i, CLUTTER.pebble.scale, grade);
         }
       }
     }
@@ -1158,24 +1194,19 @@ function isWater(tile: Tile): boolean {
 /**
  * Bakes a map into instance buffers.
  *
- * `cityCells` is the set of tile indices that hold a city, and the only thing
- * it does is suppress that tile's trees and boulders — a settlement clears the
- * ground it stands on. Without it the forest a city was founded in grows
- * straight through the town, and since the houses are the size of the
- * population, that would hide the one thing on the board that shows a city
- * growing.
- *
- * It is a parameter rather than a lookup into the state because the board is
- * built from the *map*, and the map is generation output that knows nothing
- * about who lives on it. The renderer fingerprints the set and rebuilds when it
- * changes, which is rare — founding a city, and nothing else.
+ * It takes the **map** and nothing else about the game, and that is now literal:
+ * it used to take the set of tiles holding a city so it could skip their
+ * dressing, which meant founding a town re-baked the whole board. Every tile
+ * gets its full dressing here, graded by how readily it yields (see `SUPPRESS`),
+ * and who has built what on it is applied afterwards through `suppressTile` — a
+ * handful of matrix writes on the tile that changed. The board is built once per
+ * map, for the whole game.
  */
 export function buildBoard(
   map: GameMap,
   geometry: BoardGeometry,
   materials: MaterialLibrary,
   shadows: boolean,
-  cityCells: ReadonlySet<number> = new Set(),
 ): BuiltBoard {
   const group = new Group();
   const period = wrapWidth(map);
@@ -1250,7 +1281,7 @@ export function buildBoard(
         outlined: false,
         tile: cell,
       });
-    } else if (!cityCells.has(cell)) {
+    } else {
       addDecorations(map, tile, top, center, geometry, collector, cell);
     }
 
@@ -1299,6 +1330,12 @@ export function buildBoard(
     tileCount: map.tiles.length,
     instanceCount,
     drawCalls,
+    suppressTile(cell: number, scope: SuppressScope): void {
+      collector.suppressTile(cell, scope);
+    },
+    unsuppressTile(cell: number): void {
+      collector.unsuppressTile(cell);
+    },
     dispose(): void {
       // Geometry and toon materials are shared and owned elsewhere; only the
       // one-off pairs (the substrate and the table) and the instanced meshes

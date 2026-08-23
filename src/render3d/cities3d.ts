@@ -362,10 +362,14 @@ export function signCities(state: GameState): number {
 }
 
 /**
- * Which *tiles* hold cities, hashed. Separate from `signCities` because it is
- * the input to a much more expensive rebuild — the board itself, which
- * suppresses a city tile's trees — and that must not happen every time a city
- * grows by a population point.
+ * Which *tiles* hold cities, hashed. Separate from `signCities` because it
+ * drives the board's per-tile **suppression** — a town clears the ground it
+ * stands on (`BuiltBoard.suppressTile`) — and that must not be re-examined every
+ * time a city grows by a population point.
+ *
+ * It used to drive a board *rebuild*, which is what founding a city cost until
+ * the dressing became a per-instance bit. See `signImprovedCells` for the same
+ * note from the improvements' side.
  */
 export function signCityCells(state: GameState): number {
   let h = 2166136261 ^ state.cities.length;

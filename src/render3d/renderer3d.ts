@@ -74,10 +74,11 @@ import {
 import { type FogLevels, type FogStats, FogView, seesCell } from './fog3d';
 import {
   ImprovementLayer,
+  clearsClutter,
   signImprovedCells,
   signImprovements,
 } from './improvements3d';
-import { RENDER_ORDER } from './instances';
+import { type SuppressScope, RENDER_ORDER, SUPPRESS } from './instances';
 import { LensLayer, NO_LENS, sameLens } from './lens3d';
 import { VIEW3D, playerPieceColor } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
@@ -198,10 +199,18 @@ export class Renderer3D implements MapView {
   private territorySignature = 0;
   /** The same for the works on the ground. See `signImprovements`. */
   private improvementsSignature = 0;
-  /** Which tiles' clutter the *board* was last baked around. See `cityCells`. */
-  private boardImprovementsSignature = 0;
-  /** Which tiles held a city when the *board* was last baked. See `cityCells`. */
-  private boardCitiesSignature = 0;
+  /** The works whose cleared ground has already been applied. See `clearGround`. */
+  private clearedImprovementsSignature = 0;
+  /** The towns whose cleared ground has already been applied. See `clearGround`. */
+  private clearedCitiesSignature = 0;
+  /**
+   * The scope each tile's dressing has already been suppressed at, so a sweep
+   * costs writes only on the tiles that have newly been built on.
+   *
+   * Board-lifetime state: cleared with the board, because the handles it is
+   * talking about are the board's. See `clearGround`.
+   */
+  private cleared = new Map<number, SuppressScope>();
   /** Called after every frame that was actually drawn. See `setFrameListener`. */
   private frameListener: (() => void) | null = null;
   /** Set when a board is framed against a viewport that was not laid out yet. */
@@ -360,10 +369,10 @@ export class Renderer3D implements MapView {
     if (state.map !== this.map) {
       this.setMap(state.map);
     } else if (
-      signCityCells(state) !== this.boardCitiesSignature ||
-      signImprovedCells(state) !== this.boardImprovementsSignature
+      signCityCells(state) !== this.clearedCitiesSignature ||
+      signImprovedCells(state) !== this.clearedImprovementsSignature
     ) {
-      this.rebuildBoard(state.map);
+      this.clearGround();
     }
     this.rebuildUnits();
     this.rebuildCities();
@@ -404,21 +413,59 @@ export class Renderer3D implements MapView {
   }
 
   /**
-   * Rebuilds the terrain instance buffers for a map, leaving the camera and
-   * every scrap of interaction state alone. Called for a new map, and again
-   * whenever shadows are toggled — `castShadow` is baked into an
-   * `InstancedMesh` when it is built, so that flag is a rebuild.
+   * Switches off the dressing on every tile something has been built on, and
+   * costs writes only where that is *news*.
+   *
+   * The whole of the "the board builds once per game" claim. A town clears the
+   * ground it stands on — otherwise the forest it was founded in grows straight
+   * through it, and since the houses are the size of the population that would
+   * hide the one thing on the board showing a city grow — and a farm or a mine
+   * ploughs the meadow under, for the reason `addDecorations` gives. Both used
+   * to be baked, so both cost a full re-bake of ninety thousand instances plus a
+   * chart rebuild plus a full fog repaint, every time one landed. They are now a
+   * dozen matrix writes on the tile that changed (`BuiltBoard.suppressTile`), and
+   * they compose with fog rather than racing it (`instances.ts`, the two-bit
+   * state machine).
+   *
+   * Monotonic on purpose, and `this.cleared` is what makes it so: a tile is only
+   * ever moved *up* the scale, so a sweep over a board of forty farms after the
+   * forty-first is built writes on one tile. Nothing walks it back. A town is
+   * never un-founded; pillaging destroys the *improvement* — which is the
+   * improvements layer's business, and it does disappear — while the ground it
+   * cleared stays cleared, which is the Civ rule and also what a ploughed meadow
+   * actually does.
+   *
+   * Called after a board build (where `cleared` is empty, so it applies the lot —
+   * a save with thirty farms in it) and whenever either fingerprint moves.
    */
-  /**
-   * The tiles that hold a city. The board suppresses their decorations, so a
-   * town is never hidden inside the forest it was founded in.
-   */
-  private cityCells(map: GameMap): Set<number> {
-    const cells = new Set<number>();
-    for (const city of this.state?.cities ?? []) {
-      cells.add(tileIndex(map, city.col, city.row));
+  private clearGround(): void {
+    const state = this.state;
+    const board = this.board;
+    if (!state || !board) return;
+    const map = state.map;
+
+    // Towns first, and at the wider scope: a farm can never be built on a city
+    // tile, but the two loops are independent and a tile that took `decor` must
+    // not be talked back down to `clutter` by an ordering accident.
+    for (const city of state.cities) {
+      this.clearCell(tileIndex(map, city.col, city.row), SUPPRESS.decor);
     }
-    return cells;
+    for (let cell = 0; cell < map.tiles.length; cell++) {
+      const id = map.tiles[cell]!.improvement;
+      if (id === undefined || !clearsClutter(id)) continue;
+      this.clearCell(cell, SUPPRESS.clutter);
+    }
+
+    this.clearedCitiesSignature = signCityCells(state);
+    this.clearedImprovementsSignature = signImprovedCells(state);
+    this.invalidate();
+  }
+
+  /** One tile, moved up the suppression scale but never down. */
+  private clearCell(cell: number, scope: SuppressScope): void {
+    if ((this.cleared.get(cell) ?? SUPPRESS.never) >= scope) return;
+    this.cleared.set(cell, scope);
+    this.board?.suppressTile(cell, scope);
   }
 
   /**
@@ -499,19 +546,29 @@ export class Renderer3D implements MapView {
     return seesCell(this.fogLevels(), this.map, col, row);
   }
 
+  /**
+   * Rebuilds the terrain instance buffers for a map, leaving the camera and
+   * every scrap of interaction state alone.
+   *
+   * Called for a new map, and again whenever shadows are toggled — `castShadow`
+   * is baked into an `InstancedMesh` when it is built, so that flag is a
+   * rebuild. That is now the *whole* list: founding a city and finishing a farm
+   * used to be on it too, and are a per-tile patch instead (`clearGround`). The
+   * board is built once per game.
+   */
   private rebuildBoard(map: GameMap): void {
     if (this.board) {
       this.scene.remove(this.board.group);
       this.board.dispose();
     }
     const started = performance.now();
-    this.board = buildBoard(map, this.geometry, this.materials, this.shadows, this.cityCells(map));
-    this.boardCitiesSignature = this.state ? signCityCells(this.state) : 0;
-    // The board reads `Tile.improvement` itself, for the one thing it knows
-    // about an improvement: whether the tile's own clutter yields to it. See
-    // `addDecorations`, and `signImprovedCells` for why only farms and mines
-    // ever move this number.
-    this.boardImprovementsSignature = this.state ? signImprovedCells(this.state) : 0;
+    this.board = buildBoard(map, this.geometry, this.materials, this.shadows);
+    // A fresh board carries the full dressing on every hex, so everything
+    // already built on this map has to be applied to it once. See `clearGround`.
+    this.cleared.clear();
+    this.clearedCitiesSignature = 0;
+    this.clearedImprovementsSignature = 0;
+    this.clearGround();
     this.buildMs = performance.now() - started;
     this.map = map;
     this.scene.add(this.board.group);
@@ -1353,22 +1410,24 @@ export class Renderer3D implements MapView {
     // each other, because they change on completely different events: a city
     // growing must not rebuild every border on the map, and a border moving
     // must not rebuild every town.
-    // A city founded since the last frame also clears its tile, which is baked
-    // into the board — the one mid-game board rebuild besides toggling shadows.
-    // A farm or a mine finished since the last frame also clears its tile's
-    // grass, which — like a founded city — is baked into the board. Only those
-    // two improvements move this fingerprint (`signImprovedCells`), so a worker
-    // fencing a herd or pitching a camp never re-bakes anything.
+    // A city founded since the last frame clears the ground it stands on, and a
+    // farm or a mine finished since the last frame ploughs its tile's meadow
+    // under. Both used to re-bake the board here — the only mid-game rebuild
+    // besides toggling shadows — and both are now a handful of per-instance
+    // writes on the tile that changed. See `clearGround`. Only farms and mines
+    // move the improvement fingerprint (`signImprovedCells`), so a worker
+    // fencing a herd or pitching a camp still costs the board nothing.
+    const foundings = this.state ? signCityCells(this.state) : 0;
     if (
       this.state &&
-      this.map &&
-      (signCityCells(this.state) !== this.boardCitiesSignature ||
-        signImprovedCells(this.state) !== this.boardImprovementsSignature)
+      (foundings !== this.clearedCitiesSignature ||
+        signImprovedCells(this.state) !== this.clearedImprovementsSignature)
     ) {
-      this.rebuildBoard(this.map);
+      const founded = foundings !== this.clearedCitiesSignature;
+      this.clearGround();
       // A new city changes where the next one may go: the settler lens is
       // showing exactly that rule and would otherwise keep the old answer.
-      if (this.lensView.mode === 'settler') this.rebuildLens();
+      if (founded && this.lensView.mode === 'settler') this.rebuildLens();
     }
     if (this.state && (fogMoved || signCities(this.state) !== this.citiesSignature)) {
       this.rebuildCities();

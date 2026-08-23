@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { type BufferGeometry, InstancedMesh } from 'three';
+import { type BufferGeometry, InstancedMesh, Matrix4 } from 'three';
 
 import { BoardGeometry, IMPROVEMENT_PROPS, buildBoard } from '../src/render3d/board3d';
 import {
   ImprovementLayer,
+  clearsClutter,
   signImprovedCells,
   signImprovements,
 } from '../src/render3d/improvements3d';
+import {
+  INSTANCE_WRITES,
+  SUPPRESS,
+  resetInstanceWrites,
+} from '../src/render3d/instances';
 import { VIEW3D } from '../src/render3d/lookData';
 import { MaterialLibrary } from '../src/render3d/toon';
 import { cellCenter, tileTopY } from '../src/render3d/layout';
@@ -340,42 +346,167 @@ describe('the improvement fingerprints', () => {
 
 // --- the board's own half ---------------------------------------------------
 
+/**
+ * The clearing is a *bit*, not a bake.
+ *
+ * Until this milestone the board read `Tile.improvement` while it was baking and
+ * simply did not emit a farmed tile's grass — which meant the first farm of the
+ * game re-baked every instance on the map. It now emits the whole meadow always,
+ * grades each scrap by how readily it yields (`SUPPRESS`), and the renderer
+ * switches the grade off on the one tile that changed. So the assertions below
+ * moved from "the *buffer* is smaller" to "the *picture* is the same" — which is
+ * the claim that was ever actually worth making, and the one that survives the
+ * board being built once per game.
+ */
 describe('improvements and the board scatter', () => {
   const geometry = new BoardGeometry();
 
-  function instanceCount(state: GameState): number {
-    const board = buildBoard(state.map, geometry, materials(), false);
-    const count = board.instanceCount;
-    board.dispose();
+  function boardFor(state: GameState): ReturnType<typeof buildBoard> {
+    return buildBoard(state.map, geometry, materials(), false);
+  }
+
+  /** How many of a tile's instances are on the board right now, and of what. */
+  function shown(board: ReturnType<typeof buildBoard>, cell: number): number {
+    let count = 0;
+    const matrix = new Matrix4();
+    for (const handle of board.tiles.own.get(cell) ?? []) {
+      const mesh = (handle as unknown as { bucket: { mesh: InstancedMesh | null } }).bucket.mesh!;
+      for (let i = 0; i < handle.count; i++) {
+        mesh.getMatrixAt(handle.start + i, matrix);
+        if (matrix.elements[0] !== 0) count += 1;
+      }
+    }
     return count;
+  }
+
+  /** The geometries a tile is currently drawing. */
+  function shapes(board: ReturnType<typeof buildBoard>, cell: number): Set<BufferGeometry> {
+    const out = new Set<BufferGeometry>();
+    const matrix = new Matrix4();
+    for (const handle of board.tiles.own.get(cell) ?? []) {
+      const mesh = (handle as unknown as { bucket: { mesh: InstancedMesh | null } }).bucket.mesh!;
+      mesh.getMatrixAt(handle.start, matrix);
+      if (matrix.elements[0] !== 0) out.add(mesh.geometry);
+    }
+    return out;
   }
 
   it('clears a tile\'s clutter for a farm, exactly as a resource prop does', () => {
     const state = flatState();
-    // A grassland tile with tufts and flowers on it; the farm takes them.
-    const before = instanceCount(state);
-    at(state, 4, 4).improvement = 'farm';
-    const after = instanceCount(state);
-    expect(after).toBeLessThan(before);
+    const board = boardFor(state);
+    const cell = tileIndex(state.map, 4, 4);
+    const before = shown(board, cell);
+    expect(shapes(board, cell).has(geometry.tuft)).toBe(true);
+
+    board.suppressTile(cell, SUPPRESS.clutter);
+    expect(shown(board, cell)).toBeLessThan(before);
+    expect(shapes(board, cell).has(geometry.tuft)).toBe(false);
+    // The hex itself is not clutter: a farm ploughs the meadow, not the ground.
+    expect(shapes(board, cell).has(geometry.prisms.land)).toBe(true);
+    board.dispose();
   });
 
-  it('leaves a resource\'s own props alone under a pasture', () => {
-    // Compose, do not replace: the fence goes *around* the cattle, so the board
-    // must be byte-identical with and without the pasture on it.
+  it('costs no rebuild and no writes off the tile it names', () => {
+    // The milestone's headline, stated as an identity rather than a stopwatch:
+    // the meshes after a farm lands are the meshes from the build.
     const state = flatState();
-    at(state, 4, 4).resource = 'cattle';
-    const before = instanceCount(state);
-    at(state, 4, 4).improvement = 'pasture';
-    expect(instanceCount(state)).toBe(before);
+    const board = boardFor(state);
+    const meshes = board.group.children.slice();
+    const other = tileIndex(state.map, 7, 6);
+    const otherBefore = shown(board, other);
+
+    resetInstanceWrites();
+    board.suppressTile(tileIndex(state.map, 4, 4), SUPPRESS.clutter);
+
+    expect(board.group.children).toEqual(meshes);
+    for (let i = 0; i < meshes.length; i++) expect(board.group.children[i]).toBe(meshes[i]);
+    expect(shown(board, other)).toBe(otherBefore);
+    // A tuft or two, times the three wrap copies. Never the board.
+    expect(INSTANCE_WRITES.matrix).toBeGreaterThan(0);
+    expect(INSTANCE_WRITES.matrix).toBeLessThan(30);
+    expect(INSTANCE_WRITES.tint).toBe(0);
+    board.dispose();
+  });
+
+  it('leaves a resource\'s own props alone under a farm or a mine', () => {
+    // Compose, do not replace. A wheat field keeps its wheat: the prop is the
+    // tile's news, and the clutter grade is deliberately narrower than it.
+    const state = flatState();
+    at(state, 4, 4).resource = 'wheat';
+    const board = boardFor(state);
+    const cell = tileIndex(state.map, 4, 4);
+    const before = shown(board, cell);
+    board.suppressTile(cell, SUPPRESS.clutter);
+    // A resource tile grows no clutter to begin with (the prop displaced it at
+    // bake time), so a farm on one changes nothing at all.
+    expect(shown(board, cell)).toBe(before);
+    expect(shapes(board, cell).has(geometry.resourceProps.wheat)).toBe(true);
+    board.dispose();
+  });
+
+  it('leaves everything alone for the improvements that clear nothing', () => {
+    // The pasture, camp, quarry and plantation are built round what the hex
+    // already shows, so nothing ever asks the board about them. `clearsClutter`
+    // is where that is decided, and it is data.
+    expect(clearsClutter('pasture')).toBe(false);
+    for (const id of ['camp', 'quarry', 'plantation'] as const) {
+      expect(clearsClutter(id), id).toBe(false);
+    }
+    for (const id of ['farm', 'mine'] as const) expect(clearsClutter(id), id).toBe(true);
   });
 
   it('suppresses the hill boulders under a mine', () => {
     const state = flatState();
     for (const tile of state.map.tiles) tile.hills = true;
-    const before = instanceCount(state);
+    const board = boardFor(state);
     // Every hill in the map, so the difference cannot be a hashed coin flip.
-    for (const tile of state.map.tiles) tile.improvement = 'mine';
-    expect(instanceCount(state)).toBeLessThan(before);
+    let before = 0;
+    let after = 0;
+    for (const tile of state.map.tiles) {
+      const cell = tileIndex(state.map, tile.col, tile.row);
+      before += shown(board, cell);
+      board.suppressTile(cell, SUPPRESS.clutter);
+      after += shown(board, cell);
+    }
+    expect(after).toBeLessThan(before);
+    board.dispose();
+  });
+
+  it('takes the trees and the props too, but only for a town', () => {
+    // The two grades, and the whole reason there are two: a farm leaves the deer
+    // standing in the wood, a settlement does not.
+    const state = flatState();
+    at(state, 4, 4).feature = 'forest';
+    at(state, 4, 4).resource = 'deer';
+    const board = boardFor(state);
+    const cell = tileIndex(state.map, 4, 4);
+
+    board.suppressTile(cell, SUPPRESS.clutter);
+    expect(shapes(board, cell).has(geometry.pine)).toBe(true);
+    expect(shapes(board, cell).has(geometry.resourceProps.deer)).toBe(true);
+
+    board.suppressTile(cell, SUPPRESS.decor);
+    expect(shapes(board, cell).has(geometry.pine)).toBe(false);
+    expect(shapes(board, cell).has(geometry.resourceProps.deer)).toBe(false);
+    // A town still stands on a hill, and still has a coastline.
+    expect(shapes(board, cell).has(geometry.prisms.land)).toBe(true);
+    board.dispose();
+  });
+
+  it('never regrows what it cleared, however often it is told again', () => {
+    // Monotone and idempotent: `clearGround` sweeps the whole state, so this is
+    // called with the same answer on every frame that anything at all changed.
+    const state = flatState();
+    const board = boardFor(state);
+    const cell = tileIndex(state.map, 4, 4);
+    board.suppressTile(cell, SUPPRESS.clutter);
+    const after = shown(board, cell);
+
+    resetInstanceWrites();
+    for (let i = 0; i < 5; i++) board.suppressTile(cell, SUPPRESS.clutter);
+    expect(shown(board, cell)).toBe(after);
+    expect(INSTANCE_WRITES.matrix).toBe(0);
+    board.dispose();
   });
 
   it('registers no improvement instances in the board\'s own tile map', () => {
@@ -394,6 +525,65 @@ describe('improvements and the board scatter', () => {
         (mesh) => mesh.geometry === geometry.improvementProps.pasture,
       ),
     ).toBe(false);
+    board.dispose();
+  });
+
+  /**
+   * The sweep `Renderer3D.clearGround` runs, reproduced.
+   *
+   * The renderer itself needs a WebGL context and so is not constructible in
+   * node — nothing in this suite builds one. What *is* testable is the rule it
+   * applies, which is two loops over the state, and it is worth pinning here
+   * because the whole milestone rests on the two grades being handed out the
+   * right way round.
+   */
+  function clearGround(state: GameState, board: ReturnType<typeof buildBoard>): void {
+    for (const city of state.cities) {
+      board.suppressTile(tileIndex(state.map, city.col, city.row), SUPPRESS.decor);
+    }
+    for (let cell = 0; cell < state.map.tiles.length; cell++) {
+      const id = state.map.tiles[cell]!.improvement;
+      if (id !== undefined && clearsClutter(id)) board.suppressTile(cell, SUPPRESS.clutter);
+    }
+  }
+
+  it('clears the wood a town was founded in, and only that tile', () => {
+    const state = flatState();
+    for (const tile of state.map.tiles) tile.feature = 'forest';
+    const board = boardFor(state);
+    const site = at(state, 5, 5);
+    const cell = tileIndex(state.map, 5, 5);
+    const neighbour = tileIndex(state.map, 6, 5);
+    expect(shapes(board, cell).has(geometry.pine)).toBe(true);
+
+    foundCityAt(state, 0, site);
+    clearGround(state, board);
+
+    // Without this the forest grows straight through the town, and since the
+    // houses are the size of the population it hides a city growing.
+    expect(shapes(board, cell).has(geometry.pine)).toBe(false);
+    expect(shapes(board, cell).has(geometry.prisms.land)).toBe(true);
+    expect(shapes(board, neighbour).has(geometry.pine)).toBe(true);
+    board.dispose();
+  });
+
+  it('leaves a pillaged farm\'s ground bare, which is the Civ rule', () => {
+    // Pillaging destroys the *improvement* — the prop goes, and that is the
+    // improvements layer's business — while the meadow it was ploughed out of
+    // stays gone. Nothing walks the suppression back, deliberately: a field is
+    // not un-ploughed by a raid, and regrowing the grass would be the board
+    // claiming the tile had never been worked.
+    const state = flatState();
+    const board = boardFor(state);
+    const cell = tileIndex(state.map, 4, 4);
+    at(state, 4, 4).improvement = 'farm';
+    clearGround(state, board);
+    const ploughed = shapes(board, cell).has(geometry.tuft);
+    expect(ploughed).toBe(false);
+
+    delete at(state, 4, 4).improvement;
+    clearGround(state, board);
+    expect(shapes(board, cell).has(geometry.tuft)).toBe(false);
     board.dispose();
   });
 

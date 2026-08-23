@@ -350,9 +350,9 @@ That is the one thing a rebuilt layer gets wrong (it would come up lit on rememb
 it is asserted rather than assumed.
 The **one** thing the board itself knows about an improvement is `clearsClutter` — a farm or a
 mine takes the tile's grass with it, through the same mechanism a resource prop uses — and that
-costs a board rebuild when it changes, fingerprinted by `signImprovedCells`. It is exactly the
-precedent a founded city already sets (`signCityCells`), and only farms and mines ever move it:
-the four resource-improvements never re-bake anything.
+originally cost a board rebuild when it changed, fingerprinted by `signImprovedCells`, exactly
+as a founded city already did (`signCityCells`). **Superseded (2026-08-23): the board is now
+built once per game.** See the entry below.
 
 **Roads are still OUT** (traders build them, with the trade-route system). Nothing here assumes
 they exist.
@@ -512,6 +512,64 @@ map. **Measured: fixture 111 ms, one full turn resolution 3 ms, replay of 376
 commands to a byte-identical snapshot 85 ms, board build 18 ms, chart layer
 7 ms.** Operation counts are asserted tightly, wall clocks generously — a timing
 assertion tuned tight is a test that fails on somebody else's Tuesday.
+
+---
+
+## Entry XIII — The board is built once per game (perf, **built** 2026-08-23)
+
+**The problem.** Two gameplay events re-baked the whole board. Founding a city suppressed that
+tile's dressing so the town was not hidden inside the forest it was founded in; finishing a farm
+or a mine suppressed the tile's meadow (`clearsClutter`). Both decisions were made *while
+baking*, so both were fingerprinted (`signCityCells`, `signImprovedCells`) and both threw the
+instance buffers away and built them again — **26 ms on a standard map, 41 ms on a huge one** —
+and took the blank-chart layer and a full-board fog repaint with them, because those hang off the
+board's lifetime. Every founding, every farm, all game.
+
+**Why it was deferred out of M7.** The obvious fix — clear the instances by hand instead of
+baking — fights fog of war. `FogView` hides a tile by zero-scaling it and later *restores* it to
+the transforms it was built with, so the first scout to walk past a farm regrew the meadow it was
+ploughed over. The clearing and the fog were two owners of one matrix.
+
+**The fix: two bits, one `or`.** An instance is now off for either of two independent, per-handle
+reasons — **fog-hidden** (`hide`/`restore`, owned by `FogView`) and **suppressed**
+(`suppress`/`unsuppress`, owned by what has been built on the hex) — and it is drawn iff neither
+is set. `restore` returns an instance to `suppressed ? HIDDEN : as-built`, which is the whole
+composition rule; a transition writes matrices only when the `or` actually flips, so suppressing a
+tile the seat has never charted costs **zero writes** and still holds the day the fog lifts. The
+wash stays deliberately orthogonal: a zero-scaled instance's tint is a colour nobody can see, so
+neither operation asks the other anything. Table and rationale in the `instances.ts` docblock.
+
+**Two grades, because the two clearings are nested.** `SUPPRESS.clutter` is the ground's own
+scatter — tufts, flowers, cacti, tundra pebbles, loose hill boulders — which is what a farm or a
+mine ploughs under. `SUPPRESS.decor` is that *plus* the things standing on the hex — trees,
+resource props, reeds and shingle — which is what a town clears. The prism, a mountain's peak and
+snow, and the sand band are on no grade at all. That is a faithful reading of what the bake used
+to do, and it was golden-compared tile by tile: on a generated duel map (1,220 tiles × 3 wrap
+copies) the visible instance set after suppression is **byte-identical** — geometry, ink and all
+sixteen matrix floats — to the set the old bake produced, for bare, farmed, pastured and
+city-founded boards alike. A farm keeps its wheat and keeps the deer in the trees; only a town
+takes those.
+
+**Measured, same machine, same run.** Standard map (4,160 tiles, 39,168 instances): rebuild
+**26 ms** → a farm is **15 matrix writes in 0.006 ms**, a founding **27 writes in 0.003 ms**.
+Huge map (10,240 tiles, 97,530 instances): rebuild **41 ms** → **12 writes** and **30 writes**,
+both under 0.005 ms. Resuming a save with 40 towns and 32 works applies in **402 writes /
+0.07 ms** against a board of 40,152 instances. Zero tint writes in every case. `test/stress.test.ts`
+asserts the operation counts and prints the clock; `test/fog3d.test.ts` asserts all four states of
+the two bits, including the M7 bug (a fog restore must not resurrect suppressed clutter) and the
+byte-exact un-wash on a built-on hex.
+
+**What the fingerprints do now.** `signCityCells` and `signImprovedCells` survive, but they drive
+the *suppression sweep* (`Renderer3D.clearGround`) rather than a rebuild — one pass over the
+state, writing only where a tile is newly built on. The sweep is **monotone**: nothing is ever
+unsuppressed. So a **pillaged farm keeps its bare ground** — the prop disappears, because it is
+its own layer, and the meadow stays gone. That is the Civ rule and it is also what happens to a
+ploughed field; regrowing the grass would be the board claiming the tile had never been worked.
+`unsuppressTile` exists for the tests and the editor, and for the honest reason that a bit which
+can only ever be set is a bit whose composition with fog was never really tested.
+
+**The rebuild list is now complete and short: a new map, and toggling shadows.** Nothing a player
+does during a turn re-bakes the board.
 
 ---
 
@@ -831,6 +889,11 @@ Core loop complete through combat + resources (671 tests). Mechanics-before-AI s
   fold in (fish is documented as unreachable until naval), roads stayed out as decided, and the
   explainable-yields refactor CLAUDE.md rule 5 reserved for this milestone landed with it. The
   original scope note follows.
+- **Perf follow-up — BUILT 2026-08-23 (see Entry XIII).** 944 tests. The last two mid-game board
+  rebuilds (founding a city, finishing a farm) are gone: the clearing is a per-instance bit that
+  composes with fog's own, and the board is built once per game. The M7 report deferred exactly
+  this, and the deferral's reason — a naive clearing fights `FogView.restore` — is what the
+  two-bit machine in `instances.ts` answers.
 - **M7 Workers & improvements** — farms/mines/pastures/plantations/quarries/boats/roads,
   worker unit (class reserved), strategic/luxury access requires IMPROVEMENT (fixes the v1
   ownership shortcut), pillage-ready.
