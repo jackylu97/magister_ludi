@@ -41,10 +41,24 @@ import {
   tierPercent,
   yieldFactor,
 } from '../src/sim/meters';
+import { resourceDef } from '../src/sim/resourceData';
 import { makeRng } from '../src/sim/rng';
 import { RULES } from '../src/sim/rulesData';
 import { type City, type GameState, SCHEMA_VERSION, createUnit, newGame } from '../src/sim/state';
 import { resetVisibility } from '../src/sim/visibility';
+
+/**
+ * Wine's signature, read off the table rather than written down here.
+ *
+ * The vocabulary is data (`resourceData.ts`), so a test that hard-coded "+2"
+ * would be asserting the *tuning* rather than the mechanism — and the mechanism
+ * is the claim: an `extraHappiness` row pays on top of the flat per-unique
+ * figure, on a line of its own.
+ */
+function wineSignature(): number {
+  const effect = resourceDef('wine').effect;
+  return effect?.kind === 'extraHappiness' ? effect.amount : 0;
+}
 
 /** Terrain nothing can stand on, for the fixtures that go looking for ground. */
 const WATER: string[] = ['ocean', 'coast', 'lake', 'mountain'];
@@ -243,10 +257,17 @@ describe('happiness supply', () => {
     expect(happinessOf(state, 0)).toBe(bare + HAPPY.perUniqueLuxury);
     expect(explainHappiness(state, 0).filter((entry) => entry.source === 'Silk')).toHaveLength(1);
 
-    // A different one is.
+    // A different one is — and wine's *signature* is extra happiness on top of
+    // the flat figure, which is a second line rather than a bigger one. Read off
+    // the table, because the whole point of the vocabulary is that the number
+    // lives in `resources.json` (see `resourceEffects.ts`).
     plant(state, city, 4, 3, 'wine');
     expect(controlledResources(state, 0, 'luxury')).toEqual(['silk', 'wine']);
-    expect(happinessOf(state, 0)).toBe(bare + 2 * HAPPY.perUniqueLuxury);
+    expect(happinessOf(state, 0)).toBe(bare + 2 * HAPPY.perUniqueLuxury + wineSignature());
+    expect(explainHappiness(state, 0).filter((e) => e.source === 'Wine')).toHaveLength(1);
+    expect(
+      explainHappiness(state, 0).filter((e) => e.source === 'Wine · signature'),
+    ).toHaveLength(1);
   });
 
   it('ignores a luxury nobody has improved, and a rival’s', () => {
@@ -265,7 +286,9 @@ describe('happiness supply', () => {
     tile.improvement = 'plantation';
     expect(state.tileOwner[4 * state.map.width + 11]).toBe(theirs.id);
     expect(happinessOf(state, 0)).toBe(bare);
-    expect(happinessOf(state, 1)).toBe(HAPPY.palace + HAPPY.perUniqueLuxury - mine.population * 0 - 1);
+    expect(happinessOf(state, 1)).toBe(
+      HAPPY.palace + HAPPY.perUniqueLuxury + wineSignature() - mine.population * 0 - 1,
+    );
   });
 });
 

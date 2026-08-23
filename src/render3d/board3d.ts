@@ -67,6 +67,7 @@ import {
   bannerPole,
   barQuad,
   cactus,
+  cairnStack,
   campTent,
   catapultMini,
   chariotMini,
@@ -74,15 +75,20 @@ import {
   cityHouseRoof,
   crystalCluster,
   discRing,
+  dyeVats,
   fenceRing,
   fishFin,
   flowerSpray,
+  furRack,
   furrowRows,
   grassTuft,
   hexDecal,
   hexPrism,
   hexRing,
   horsemanMini,
+  incenseBurner,
+  jadeSlab,
+  marbleColumn,
   markerPin,
   mineHead,
   mountainPeak,
@@ -120,7 +126,7 @@ import {
   SUPPRESS,
   disposeInstancedGroup,
 } from './instances';
-import { VIEW3D, shade } from './lookData';
+import { VIEW3D, resourcePropSpec, shade } from './lookData';
 import {
   type HeightClass,
   boardBounds,
@@ -237,18 +243,21 @@ function buildBadgeQuads(): Record<ModelClass, BufferGeometry> {
 /**
  * Every resource's diorama prop, by resource id.
  *
- * Typed `Record<ResourceId, …>` for exactly the reason `MINI_SCULPTS` is: this
- * is the one place the art and the data are joined, so a resource added to
- * `data/resources.json` that nobody drew a prop for is a *compile* error rather
- * than a hex with an invisible wheat field on it. `test/resources3d.test.ts`
- * closes the other direction — a prop no resource asks for.
+ * A **partial** map with a documented fallback, which is a change of policy from
+ * the exhaustive `Record<ResourceId, …>` this used to be, and worth the sentence
+ * it costs. Exhaustiveness bought a compile error for an unsculpted resource;
+ * what it cost was that adding a row to `data/resources.json` — the thing the
+ * table exists to make cheap — was not a data edit at all, because it broke this
+ * file and `badges3d.ts` until somebody drew art. A find nobody has sculpted now
+ * shows `cairnStack`, a marker cairn, and its roundel still names it: legible,
+ * honest and obviously provisional. `test/resources3d.test.ts` closes the other
+ * direction — a prop no resource asks for — and asserts the fallback.
  *
  * The shapes are in `geometry.ts`; what is here is only which shape belongs to
  * which id. Their size, ink and count per tile are data (`resources.props` in
- * `view3d.json`), because those are the numbers somebody re-tunes while looking
- * at the board.
+ * `view3d.json`), which falls back the same way (`resourcePropSpec`).
  */
-export const RESOURCE_PROPS: Record<ResourceId, (size: number) => BufferGeometry> = {
+export const RESOURCE_PROPS: Partial<Record<ResourceId, (size: number) => BufferGeometry>> = {
   wheat: wheatStand,
   cattle: toyCow,
   deer: toyDeer,
@@ -261,13 +270,23 @@ export const RESOURCE_PROPS: Record<ResourceId, (size: number) => BufferGeometry
   wine: vineTrellis,
   spices: spiceBush,
   salt: saltCrust,
+  incense: incenseBurner,
+  jade: jadeSlab,
+  marble: marbleColumn,
+  furs: furRack,
+  dyes: dyeVats,
 };
+
+/** The sculpt a resource is drawn with, or the cairn when nobody drew one. */
+export function resourcePropFactory(id: ResourceId): (size: number) => BufferGeometry {
+  return RESOURCE_PROPS[id] ?? cairnStack;
+}
 
 /** One prop per resource, each built at the size its data row asks for. */
 function buildResourceProps(): Record<ResourceId, BufferGeometry> {
   const out: Partial<Record<ResourceId, BufferGeometry>> = {};
   for (const id of RESOURCE_IDS) {
-    out[id] = RESOURCE_PROPS[id](BOARD.hexRadius * RESOURCES.props[id].size);
+    out[id] = resourcePropFactory(id)(BOARD.hexRadius * resourcePropSpec(id).size);
   }
   return out as Record<ResourceId, BufferGeometry>;
 }
@@ -1040,7 +1059,7 @@ function addDecorations(
    * room for the deer would be a forest that stopped being one.
    */
   const resource = tile.resource;
-  const prop = resource === undefined ? null : RESOURCES.props[resource];
+  const prop = resource === undefined ? null : resourcePropSpec(resource);
 
   /**
    * A farm or a mine displaces the same clutter a resource prop does, through

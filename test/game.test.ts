@@ -361,3 +361,60 @@ describe('determinism guard', () => {
     expect(snapshotState(a.state)).not.toBe(snapshotState(b.state));
   });
 });
+
+/**
+ * A one-seat game, which is what a new game is by default now.
+ *
+ * There is no AI yet (`docs/playable.md` punts it until every major system
+ * exists), so a second seat is a second empire nobody is driving and every turn
+ * waits for a human to end it twice. The turn model does not change: turns are
+ * simultaneous, `turnEnded` is simply an array of one, and resolution happens
+ * the moment the only player ends their turn. The sandbox roster stays
+ * selectable on the landing screen.
+ */
+describe('a solo game', () => {
+  function solo(): GameConfig {
+    return {
+      seed: 4242,
+      sizeName: 'duel',
+      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
+    };
+  }
+
+  it('seats one player and one set of per-seat arrays', () => {
+    const game = createGame(solo());
+    expect(game.state.players).toHaveLength(1);
+    expect(game.state.turnEnded).toEqual([false]);
+    expect(game.state.visibility).toHaveLength(1);
+    expect(game.state.citySightings).toHaveLength(1);
+    // The starting roster is seated exactly as it is for two.
+    expect(game.state.units.length).toBeGreaterThan(0);
+    for (const unit of game.state.units) expect(unit.ownerId).toBe(0);
+  });
+
+  it('resolves the turn the moment its only player ends it', () => {
+    const game = createGame(solo());
+    expect(game.state.turn).toBe(1);
+    expect(dispatch(game, { type: 'endTurn', playerId: 0 } as Command).ok).toBe(true);
+    // Resolution happened and the flag was cleared for the new turn — no second
+    // seat had to be waited for.
+    expect(game.state.turn).toBe(2);
+    expect(game.state.turnEnded).toEqual([false]);
+  });
+
+  it('runs a stretch of turns and replays them byte for byte', () => {
+    const config = solo();
+    const game = createGame(config);
+    for (let turn = 0; turn < 20; turn++) {
+      expect(dispatch(game, { type: 'endTurn', playerId: 0 } as Command).ok).toBe(true);
+    }
+    expect(game.state.turn).toBe(21);
+    expect(snapshotState(replay(config, game.log))).toBe(snapshotState(game.state));
+  });
+
+  it('refuses a command from a seat that does not exist', () => {
+    const game = createGame(solo());
+    expect(dispatch(game, { type: 'endTurn', playerId: 1 } as Command).ok).toBe(false);
+    expect(game.state.turn).toBe(1);
+  });
+});

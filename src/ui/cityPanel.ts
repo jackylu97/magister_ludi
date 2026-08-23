@@ -44,6 +44,7 @@ import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { meterEffects } from '../sim/meters';
 import { resourceDef } from '../sim/resourceData';
+import { type ResourceYieldLine, cityResourceYields } from '../sim/resourceEffects';
 import { type City, type QueueItem, hasEndedTurn } from '../sim/state';
 import { techDef } from '../sim/techData';
 import { isUnlocked, requiredResource } from '../sim/tech';
@@ -258,10 +259,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     if (def.authorityCapacity !== undefined && def.authorityCapacity !== 0) {
       notes.append(note(`+${def.authorityCapacity} authority capacity`));
     }
-    if (def.unitProductionBonus !== undefined && def.unitProductionBonus !== 0) {
-      notes.append(
-        note(`${percentFigure(def.unitProductionBonus * 100)}${HAMMER} toward units here`),
-      );
+    if (def.productionBonus !== undefined && def.productionBonus.percent !== 0) {
+      const { category, percent } = def.productionBonus;
+      const toward = category === 'unit' ? 'units' : 'buildings';
+      notes.append(note(`${percentFigure(percent)}${HAMMER} toward ${toward} here`));
     }
     // Every renewal this building will ever get, whether or not its owner has
     // earned it yet. One already held is folded into what the building pays and
@@ -323,6 +324,23 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return parts.join(' ');
   }
 
+  /** The same five voices, for a luxury's signature line. */
+  function resourceFigures(entry: ResourceYieldLine): string {
+    const parts: string[] = [];
+    const voices: [number, string][] = [
+      [entry.food, YIELD_GLYPH.food],
+      [entry.production, YIELD_GLYPH.production],
+      [entry.gold, YIELD_GLYPH.gold],
+      [entry.science, YIELD_GLYPH.science],
+      [entry.culture, YIELD_GLYPH.culture],
+    ];
+    for (const [value, glyph] of voices) {
+      if (value === 0) continue;
+      parts.push(`${value > 0 ? '+' : ''}${value}${glyph}`);
+    }
+    return parts.join(' ');
+  }
+
   /**
    * The five figures, and — under them — the list they are the fold of.
    *
@@ -375,11 +393,20 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       list.append(item);
     };
 
+    // What the city's own improved luxuries pay it, before the buildings — the
+    // list `cityYields` folds, printed line by line, which is rule 5's whole
+    // bargain: the multiplied number is never shown without its reason beside
+    // it. An empire-scale signature is not here on purpose; it belongs to no
+    // town, and the top bar's totals carry it.
+    for (const entry of cityResourceYields(state, city)) {
+      const figures = resourceFigures(entry);
+      if (figures) line(entry.source, figures);
+    }
     for (const entry of explainCityBuildings(state, city)) {
       const figures = buildingFigures(entry);
       if (figures) line(entry.source, figures);
     }
-    for (const modifier of productionModifiers(city, front)) {
+    for (const modifier of productionModifiers(state, city, front)) {
       line(modifier.source, `${HAMMER} ${percentFigure(modifier.percent)}`);
     }
     for (const effect of meterEffects(state, city.ownerId)) {

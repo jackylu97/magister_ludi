@@ -27,11 +27,17 @@ import {
   yieldDiscLayout,
   yieldShadowColor,
 } from '../src/render3d/badges3d';
-import { BoardGeometry, RESOURCE_PROPS, buildBoard } from '../src/render3d/board3d';
+import {
+  BoardGeometry,
+  RESOURCE_PROPS,
+  buildBoard,
+  resourcePropFactory,
+} from '../src/render3d/board3d';
+import { cairnStack } from '../src/render3d/geometry';
 import { cellCenter, tileTopY } from '../src/render3d/layout';
 import { RENDER_ORDER } from '../src/render3d/instances';
 import { LensLayer, yieldDiscWidth, yieldRowLayout } from '../src/render3d/lens3d';
-import { VIEW3D } from '../src/render3d/lookData';
+import { VIEW3D, resourcePropSpec } from '../src/render3d/lookData';
 import { MaterialLibrary } from '../src/render3d/toon';
 import { foundCityAt } from '../src/sim/cities';
 import { type GameState, newGame } from '../src/sim/state';
@@ -176,10 +182,35 @@ describe('the resource prop registry', () => {
 
   it('paints every prop from a colour the palette actually has', () => {
     for (const id of RESOURCE_IDS) {
-      const spec = VIEW3D.resources.props[id];
+      const spec = resourcePropSpec(id);
       expect(typeof spec.color).toBe('number');
       expect(spec.count).toBeGreaterThanOrEqual(1);
       expect(spec.size).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * The fallbacks, which are what make a new row in `data/resources.json` a data
+   * edit all the way to the board.
+   *
+   * Both halves are asserted with an id the table has never heard of, because
+   * that is exactly the case they exist for: a resource somebody added and
+   * nobody drew. A cairn and a tuned default row is a legible, obviously
+   * provisional placeholder; `undefined` reaching three.js is a `NaN` matrix.
+   */
+  it('falls back to a cairn and a default tuning for a resource nobody drew', () => {
+    const unknown = 'amber' as ResourceId;
+    expect(RESOURCE_PROPS[unknown]).toBeUndefined();
+    expect(resourcePropFactory(unknown)).toBe(cairnStack);
+    const spec = resourcePropSpec(unknown);
+    expect(spec).toBe(VIEW3D.resources.props.default);
+    expect(spec.size).toBeGreaterThan(0);
+    expect(spec.count).toBeGreaterThanOrEqual(1);
+
+    // And every resource that *is* drawn keeps its own sculpt, so the fallback
+    // is a safety net rather than a shortcut somebody has started leaning on.
+    for (const id of RESOURCE_IDS) {
+      expect(resourcePropFactory(id)).not.toBe(cairnStack);
     }
   });
 });

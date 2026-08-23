@@ -105,16 +105,37 @@
       "capturedCity": 3
     },
     "tiers": [
-      { "whenAtOrAbove": 5, "percent": 10 },
-      { "whenAtOrAbove": 10, "percent": 20 },
-      { "whenAtOrBelow": -5, "percent": -10 },
-      { "whenAtOrBelow": -10, "percent": -20 }
+      {
+        "whenAtOrAbove": 5,
+        "percent": 10
+      },
+      {
+        "whenAtOrAbove": 10,
+        "percent": 20
+      },
+      {
+        "whenAtOrBelow": -5,
+        "percent": -10
+      },
+      {
+        "whenAtOrBelow": -10,
+        "percent": -20
+      }
     ],
     "tierClamp": 20,
     "growthStifle": [
-      { "whenBelow": 0, "percent": -50 },
-      { "whenAtOrBelow": -10, "percent": -80 },
-      { "whenAtOrBelow": -20, "percent": -100 }
+      {
+        "whenBelow": 0,
+        "percent": -50
+      },
+      {
+        "whenAtOrBelow": -10,
+        "percent": -80
+      },
+      {
+        "whenAtOrBelow": -20,
+        "percent": -100
+      }
     ]
   },
   "research": {
@@ -126,20 +147,5 @@
   "startingUnits": [
     "settler",
     "warrior"
-  ],
-  "startPlacement": {
-    "minSpacing": 8,
-    "neighborWeight": 1,
-    "terrainScore": {
-      "ocean": 0,
-      "coast": 1,
-      "lake": 1,
-      "grassland": 6,
-      "plains": 5,
-      "desert": 0,
-      "tundra": 1,
-      "snow": 0,
-      "mountain": 0
-    }
-  }
+  ]
 }

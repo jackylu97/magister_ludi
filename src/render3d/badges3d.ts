@@ -91,7 +91,7 @@ import {
   SRGBColorSpace,
 } from 'three';
 
-import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
+import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 import type { ModelClass } from '../sim/unitData';
 
 import { VIEW3D, mixColor } from './lookData';
@@ -424,20 +424,9 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
  * in any face, and twelve hand-drawn numerals would be twelve files nobody
  * could tell apart from `fillText`.
  */
-export const RESOURCE_ICON_FILES: Record<ResourceId, string> = {
-  wheat: 'sprites/icons/resources/wheat.svg',
-  cattle: 'sprites/icons/resources/cattle.svg',
-  deer: 'sprites/icons/resources/deer.svg',
-  fish: 'sprites/icons/resources/fish.svg',
-  stone: 'sprites/icons/resources/stone.svg',
-  horses: 'sprites/icons/resources/horses.svg',
-  iron: 'sprites/icons/resources/iron.svg',
-  gems: 'sprites/icons/resources/gems.svg',
-  silk: 'sprites/icons/resources/silk.svg',
-  wine: 'sprites/icons/resources/wine.svg',
-  spices: 'sprites/icons/resources/spices.svg',
-  salt: 'sprites/icons/resources/salt.svg',
-};
+export const RESOURCE_ICON_FILES: Record<ResourceId, string> = Object.fromEntries(
+  RESOURCE_IDS.map((id) => [id, `sprites/icons/resources/${id}.svg`]),
+) as Record<ResourceId, string>;
 
 export const MARGINALIA_ICON_FILES: Record<MarginaliaKey, string> = {
   serpent: 'sprites/icons/marginalia/serpent.svg',
@@ -507,6 +496,7 @@ function drawDiscCell(
   ink: number,
   iconScale: number,
   radiusFraction = paperRadiusFraction(),
+  fallbackGlyph?: string,
 ): void {
   const origin = badgeCellOrigin(index, layout);
   const cell = layout.cell;
@@ -519,6 +509,20 @@ function drawDiscCell(
   context.fill();
   context.restore();
 
+  // No drawn artwork: print the row's own glyph on the disc instead of leaving
+  // it blank. This is what makes a resource added to `data/resources.json` and
+  // nowhere else legible on the board — the roundel still *names* the find,
+  // provisionally and obviously, until somebody draws it an icon.
+  if (!icon && fallbackGlyph) {
+    context.save();
+    context.fillStyle = cssHex(ink);
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.font = `${Math.round(cell * iconScale)}px "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+    context.fillText(fallbackGlyph, center.x, center.y);
+    context.restore();
+    return;
+  }
   if (!icon) return;
   const size = Math.max(1, Math.round(iconScale * cell));
   const scratch = document.createElement('canvas');
@@ -788,6 +792,8 @@ export class TileIcons {
         ICONS.paperColor,
         ICONS.inkColor,
         ICONS.iconScale,
+        paperRadiusFraction(),
+        cell.set === 'resource' ? resourceDef(cell.id).emoji : undefined,
       );
     });
 

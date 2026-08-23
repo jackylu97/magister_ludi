@@ -67,6 +67,7 @@ import {
 } from './cities';
 import type { Tile } from './map';
 import { resourceDef } from './resourceData';
+import { resourceHappiness } from './resourceEffects';
 import { type MeterStep, RULES } from './rulesData';
 import { type GameState, playerById } from './state';
 import { highestAge } from './techData';
@@ -173,6 +174,14 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // Unique, and in the resource table's order: see `controlledResources`.
   for (const id of controlledResources(state, playerId, 'luxury')) {
     list.push({ source: resourceDef(id).name, part: 'gain', value: rules.perUniqueLuxury });
+  }
+  // A luxury whose signature is *more happiness* says so on a line of its own
+  // rather than swelling the flat line above it — "Wine +4" is what a luxury is
+  // worth and "Wine · vintage +2" is what this one is, and a player choosing
+  // which seam to improve first needs to see the two apart. One evaluator reads
+  // the vocabulary (`resourceEffects.ts`); this only folds what it returns.
+  for (const line of resourceHappiness(state, playerId)) {
+    list.push({ source: `${line.source} · signature`, part: 'gain', value: line.amount });
   }
 
   for (const city of state.cities) {

@@ -53,6 +53,7 @@ import {
   meterEffects,
   meterStanding,
 } from '../sim/meters';
+import { empireResourceYields, foldResourceYields } from '../sim/resourceEffects';
 import type { GameState } from '../sim/state';
 import { cityDisplayName, starCapitalSource } from './cityDisplay';
 import {
@@ -89,6 +90,14 @@ export function civYields(state: GameState, playerId: number): CityYields {
     total.science += yields.science;
     total.culture += yields.culture;
   }
+  // The empire-scale luxury signatures, which belong to no city and are banked
+  // once per turn by `collectYields`. Added here for the same reason they are
+  // added there: a headline that left them out would be a headline the turn
+  // resolution disagrees with.
+  const empire = foldResourceYields(empireResourceYields(state, playerId));
+  total.gold += empire.gold;
+  total.science += empire.science;
+  total.culture += empire.culture;
   return total;
 }
 
@@ -214,6 +223,13 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
           false,
         ),
       );
+    }
+    // One line per empire-scale luxury signature, after the cities, because
+    // that is where it is banked and because "Silk +2" belongs to no town.
+    for (const line of empireResourceYields(state, playerId)) {
+      const value = line[key];
+      if (value === 0) continue;
+      lines.append(meterLine(`${line.source} · empire`, value, false));
     }
     if (lines.childElementCount === 0) {
       box.append(element('p', 'hint', 'No cities yet.'));

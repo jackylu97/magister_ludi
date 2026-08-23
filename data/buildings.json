@@ -23,7 +23,9 @@
       "upgrades": [
         {
           "tech": "theWheel",
-          "add": { "food": 1 }
+          "add": {
+            "food": 1
+          }
         }
       ]
     },
@@ -46,7 +48,10 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "unitProductionBonus": 0.1
+      "productionBonus": {
+        "category": "unit",
+        "percent": 10
+      }
     },
     "library": {
       "name": "Library",

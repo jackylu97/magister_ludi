@@ -30,9 +30,14 @@
  *   · `authorityCapacity` — writ this building supplies, counted per building
  *     type by `explainAuthority` (`meters.ts`). There is no monument special
  *     case anywhere; a second building that raises the writ is a data row.
- *   · `unitProductionBonus` — the share of extra hammers a city puts behind a
- *     *unit* it is building. Applied inside `cityYields`, the one production
- *     evaluator, so the estimate, the panel and the bank cannot disagree.
+ *   · `productionBonus` — extra hammers a city puts behind one *category* of
+ *     thing it is building, as `{ category, percent }`. Applied inside
+ *     `cityYields`, the one production evaluator, so the estimate, the panel and
+ *     the bank cannot disagree. It was `unitProductionBonus` — a fraction that
+ *     could only ever mean "units" — until luxuries needed the same mechanism
+ *     for buildings; generalising the field was strictly cheaper than growing a
+ *     sibling special case beside it, and `productionModifiers` (`cities.ts`)
+ *     now reads buildings and resources through one shape.
  *   · `upgrades` — the building half of the punctuated-renewal hook that
  *     `improvements.json` has had since M7. See `BuildingUpgrade`.
  *
@@ -53,6 +58,25 @@ import buildingsJson from '../../data/buildings.json';
 // `unlockDataProblems` in `techUnlocks.ts` does it, from a module that already
 // sees both tables.
 import type { TechId } from './techData';
+
+/**
+ * The kinds of thing a city can be building, and therefore the kinds a
+ * production bonus can name.
+ *
+ * Structurally `QueueItem['kind']` (`state.ts`) and deliberately declared here
+ * instead: `state.ts` is the game's *state*, and both tables that hand out a
+ * category bonus — buildings and resources — are read by modules that must not
+ * depend on it. `cities.ts` is where the two meet, and it is the one place that
+ * checks a queue item's kind against this type.
+ */
+export type ProductionCategory = 'unit' | 'building';
+
+/** A percentage of a city's hammers, behind one category. See `BuildingDef`. */
+export interface ProductionBonus {
+  category: ProductionCategory;
+  /** Signed whole percent. `10` is the barracks' ten percent toward units. */
+  percent: number;
+}
 
 export type BuildingId =
   | 'monument'
@@ -133,14 +157,15 @@ export interface BuildingDef {
    */
   authorityCapacity?: number;
   /**
-   * Extra share of the city's hammers when the thing being built is a *unit* —
-   * `0.1` is the barracks' ten percent. Absent means none.
+   * Extra hammers this building puts behind one category of thing the city may
+   * be building — the barracks' ten percent toward units. Absent means none.
    *
-   * A fraction rather than whole percent because it is a multiplier and never a
-   * displayed figure: the surfaces that print it do the ×100 themselves, the
-   * same way `sciencePerPop` is stored as the fraction it is.
+   * A signed **whole percent**, unlike the fraction the unit-only field it
+   * replaced stored: the number is printed as a percentage everywhere it is
+   * shown, and one representation shared with `ResourceEffect`'s
+   * `productionBonus` is one fewer ×100 for a surface to forget.
    */
-  unitProductionBonus?: number;
+  productionBonus?: ProductionBonus;
   /** Tech-driven renewals. See `BuildingUpgrade` and the module docblock. */
   upgrades?: BuildingUpgrade[];
 }

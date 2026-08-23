@@ -881,10 +881,23 @@ export interface ResourcePropSpec {
   size: number;
 }
 
+/**
+ * The prop table, keyed by resource id, plus the `default` row every resource
+ * nobody has tuned falls back to.
+ *
+ * Partial and defaulted rather than exhaustive, for the reason written out over
+ * `RESOURCE_PROPS` in `board3d.ts`: a new row in `data/resources.json` has to be
+ * a *data* edit all the way to the board, and an exhaustive record made it a
+ * compile error instead. Read it through `resourcePropSpec`, never directly.
+ */
+export type ResourcePropTable = Partial<Record<ResourceId, ResourcePropSpec>> & {
+  default: ResourcePropSpec;
+};
+
 export interface ResourceLookSpec {
   /** How far from the tile centre a prop may scatter, in hex radii. */
   spread: number;
-  props: Record<ResourceId, ResourcePropSpec>;
+  props: ResourcePropTable;
 }
 
 /**
@@ -1401,7 +1414,7 @@ export const VIEW3D: View3DData = {
         id,
         { ...spec, color: named(spec.color, `resources.props.${id}.color`) },
       ]),
-    ) as Record<ResourceId, ResourcePropSpec>,
+    ) as ResourcePropTable,
   },
   improvements: {
     lift: viewJson.improvements.lift,
@@ -1532,4 +1545,16 @@ export function playerPieceColor(playerColor: string, playerIndex: number): numb
   if (explicit !== undefined) return explicit;
   const order = VIEW3D.players.fallbackOrder;
   return order[((playerIndex % order.length) + order.length) % order.length]!;
+}
+
+/**
+ * The prop tuning for a resource, falling back to the `default` row.
+ *
+ * The one door into `VIEW3D.resources.props`, so that a resource added to
+ * `data/resources.json` and nowhere else still gets a size, an ink and a count
+ * rather than an `undefined` that reaches three.js as `NaN`. See
+ * `ResourcePropTable`.
+ */
+export function resourcePropSpec(id: ResourceId): ResourcePropSpec {
+  return VIEW3D.resources.props[id] ?? VIEW3D.resources.props.default;
 }

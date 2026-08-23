@@ -510,6 +510,42 @@
         "shade": 0.12,
         "count": 1,
         "size": 0.3
+      },
+      "incense": {
+        "color": "bone",
+        "shade": -0.05,
+        "count": 1,
+        "size": 0.3
+      },
+      "jade": {
+        "color": "brook",
+        "shade": 0.1,
+        "count": 1,
+        "size": 0.26
+      },
+      "marble": {
+        "color": "vellum",
+        "shade": 0.1,
+        "count": 1,
+        "size": 0.34
+      },
+      "furs": {
+        "color": "timber",
+        "shade": -0.05,
+        "count": 2,
+        "size": 0.32
+      },
+      "dyes": {
+        "color": "crimson",
+        "shade": -0.05,
+        "count": 2,
+        "size": 0.26
+      },
+      "default": {
+        "color": "slate",
+        "shade": 0.05,
+        "count": 2,
+        "size": 0.26
       }
     }
   },

@@ -681,6 +681,140 @@ export function saltCrust(size: number): BufferGeometry {
   return flatten(merged);
 }
 
+/**
+ * An incense brazier: a footed bowl with two curls of smoke leaving it.
+ *
+ * The smoke is geometry rather than an ink, for the same reason the ore
+ * boulder's cut faces are: a prop is one instanced draw in one colour, and two
+ * small boxes climbing away from a bowl read as smoke from across the table
+ * while costing nothing but triangles.
+ */
+export function incenseBurner(size: number): BufferGeometry {
+  const foot = new CylinderGeometry(size * 0.12, size * 0.2, size * 0.18, 6, 1);
+  foot.translate(0, size * 0.09, 0);
+  const bowl = new CylinderGeometry(size * 0.34, size * 0.16, size * 0.22, 6, 1);
+  bowl.translate(0, size * 0.29, 0);
+  const parts: BufferGeometry[] = [foot, bowl];
+  for (const side of [-1, 1]) {
+    const curl = new BoxGeometry(size * 0.09, size * 0.3, size * 0.09);
+    curl.rotateZ(side * 0.42);
+    curl.translate(side * size * 0.11, size * 0.56, 0);
+    parts.push(curl);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/** Jade: two polished plates set on edge, one leaning against the other. */
+export function jadeSlab(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const tall = new BoxGeometry(size * 0.46, size * 0.62, size * 0.12);
+  tall.rotateY(0.3);
+  tall.rotateZ(-0.12);
+  tall.translate(-size * 0.08, size * 0.32, 0);
+  parts.push(tall);
+  const lean = new BoxGeometry(size * 0.34, size * 0.44, size * 0.1);
+  lean.rotateY(-0.5);
+  lean.rotateZ(0.5);
+  lean.translate(size * 0.26, size * 0.2, size * 0.12);
+  parts.push(lean);
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/** Marble: two stacked column drums with a third lying beside them. */
+export function marbleColumn(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const lower = new CylinderGeometry(size * 0.24, size * 0.26, size * 0.36, 6, 1);
+  lower.translate(0, size * 0.18, 0);
+  const upper = new CylinderGeometry(size * 0.21, size * 0.23, size * 0.32, 6, 1);
+  upper.rotateY(0.4);
+  upper.translate(0, size * 0.52, 0);
+  parts.push(lower, upper);
+  const fallen = new CylinderGeometry(size * 0.2, size * 0.2, size * 0.38, 6, 1);
+  fallen.rotateZ(Math.PI / 2);
+  fallen.rotateY(0.5);
+  fallen.translate(size * 0.46, size * 0.2, size * 0.16);
+  parts.push(fallen);
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * Furs: a pelt stretched on an A-frame.
+ *
+ * Deliberately *not* the silk frame's two posts and a crossbar — two props that
+ * are both "a rectangle hanging between uprights" are two props nobody can tell
+ * apart at this camera. The lean of the frame is the whole silhouette.
+ */
+export function furRack(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  for (const side of [-1, 1]) {
+    const leg = new BoxGeometry(size * 0.08, size * 0.92, size * 0.08);
+    leg.rotateZ(side * 0.34);
+    leg.translate(side * size * 0.24, size * 0.44, 0);
+    parts.push(leg);
+  }
+  const pelt = new BoxGeometry(size * 0.62, size * 0.5, size * 0.05);
+  pelt.translate(0, size * 0.42, size * 0.05);
+  parts.push(pelt);
+  const head = new BoxGeometry(size * 0.22, size * 0.16, size * 0.05);
+  head.translate(0, size * 0.74, size * 0.05);
+  parts.push(head);
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/** Dyes: three open vats of different sizes, one tipped toward the viewer. */
+export function dyeVats(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const at: [number, number, number][] = [
+    [0, 1, 0],
+    [-0.52, 0.74, 0.26],
+    [0.48, 0.66, -0.24],
+  ];
+  for (const [dx, scale, dz] of at) {
+    const vat = new CylinderGeometry(size * 0.26 * scale, size * 0.22 * scale, size * 0.3 * scale, 6, 1);
+    vat.translate(dx * size, size * 0.15 * scale, dz * size);
+    parts.push(vat);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * The prop a resource nobody has sculpted yet is drawn with: a marker cairn of
+ * three stacked stones.
+ *
+ * It exists so that adding a row to `data/resources.json` is a *data* edit all
+ * the way to the board. An unsculpted find shows a cairn and its roundel names
+ * it, which is legible, honest and obviously provisional — the three things a
+ * placeholder has to be. See `RESOURCE_PROPS` in `board3d.ts`.
+ */
+export function cairnStack(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const stones: [number, number, number][] = [
+    [0.34, 0.16, 0],
+    [0.26, 0.42, 0.35],
+    [0.17, 0.62, -0.6],
+  ];
+  for (const [radius, y, spin] of stones) {
+    const stone = new IcosahedronGeometry(size * radius, 0);
+    stone.scale(1, 0.72, 1);
+    stone.rotateY(spin);
+    stone.translate(0, size * y, 0);
+    parts.push(stone);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
 // --- improvement props -----------------------------------------------------
 
 /**

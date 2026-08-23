@@ -41,6 +41,7 @@
 import './style.css';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES, getMapSize } from './sim/mapgen';
 import { hashSeed } from './sim/rng';
+import { RULES } from './sim/rulesData';
 import { type Game, createGame } from './sim/game';
 import {
   type GameConfig,
@@ -52,6 +53,7 @@ import {
 import type { Tile } from './sim/map';
 import { improvementDef } from './sim/improvementData';
 import { resourceDef } from './sim/resourceData';
+import { describeResourceEffect } from './sim/resourceEffects';
 import { featureDef, terrainDef } from './sim/terrainData';
 import { describeUpgrade, visibleResourceAt } from './sim/tech';
 import { isExploredBy, isVisibleTo } from './sim/visibility';
@@ -85,6 +87,7 @@ function requireElement<T extends HTMLElement>(id: string): T {
 
 const seedInput = requireElement<HTMLInputElement>('seed');
 const sizeSelect = requireElement<HTMLSelectElement>('size');
+const seatsSelect = requireElement<HTMLSelectElement>('seats');
 const randomSeedButton = requireElement<HTMLButtonElement>('random-seed');
 const endTurnButton = requireElement<HTMLButtonElement>('end-turn');
 const endTurnLabelEl = requireElement<HTMLElement>('end-turn-label');
@@ -189,6 +192,31 @@ const PLAYERS: PlayerSpec[] = [
   { name: 'Crimson', color: '#d4502e', isHuman: true },
   { name: 'Teal', color: '#1f8a85', isHuman: true },
 ];
+
+/**
+ * How many of that roster a new game seats, and why the default is one.
+ *
+ * A game is *playtested* solo — there is no AI yet (it is punted until every
+ * major system exists, see `docs/playable.md`), so a second seat is a second
+ * empire nobody is driving, and every end of turn waits for a human to press
+ * the button for it. One seat is therefore the honest default: the turn model
+ * is simultaneous, `turnEnded` is an array of one, and resolution happens the
+ * moment the only player ends their turn.
+ *
+ * The multi-seat sandbox stays exactly as it was, one option down the select —
+ * it is the dev harness for driving both sides from the seat chips, and it is
+ * the shape remote multiplayer will arrive in.
+ */
+const DEFAULT_SEATS = 1;
+
+for (let seats = RULES.game.minPlayers; seats <= PLAYERS.length; seats++) {
+  const option = document.createElement('option');
+  option.value = String(seats);
+  option.textContent =
+    seats === 1 ? 'Solo (1 player)' : `Sandbox (${seats} players, one tester)`;
+  seatsSelect.append(option);
+}
+seatsSelect.value = String(Math.min(DEFAULT_SEATS, PLAYERS.length));
 
 // --- the HUD's transient cards ---------------------------------------------
 
@@ -388,7 +416,9 @@ function currentConfig(): GameConfig {
   return {
     seed: parseSeed(seedInput.value),
     sizeName: sizeSelect.value,
-    players: PLAYERS,
+    // The first N of the roster, so seat 0 is always Crimson and a solo game is
+    // the two-seat game with the second chair empty rather than a different one.
+    players: PLAYERS.slice(0, Number(seatsSelect.value) || DEFAULT_SEATS),
   };
 }
 
@@ -477,7 +507,13 @@ function describeResource(state: GameState, playerId: number, tile: Tile): strin
   const id = visibleResourceAt(state, playerId, tile);
   if (id === null) return '—';
   const def = resourceDef(id);
-  return `${def.emoji} ${def.name} (${def.kind})`;
+  // A luxury's *signature* is the reason to want this seam rather than the
+  // next one, so the readout names it — through `describeResourceEffect`, the
+  // one place the vocabulary is turned into words, so the hover card, the lens
+  // roundel and the city panel cannot describe the same luxury three ways.
+  const signature = describeResourceEffect(id);
+  const kind = signature === null ? def.kind : `${def.kind} · ${signature}`;
+  return `${def.emoji} ${def.name} (${kind})`;
 }
 
 /**

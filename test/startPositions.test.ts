@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { generateMap, MAP_SIZE_NAMES } from '../src/sim/mapgen';
+import { generateMap, MAPGEN_CONFIG, MAP_SIZE_NAMES } from '../src/sim/mapgen';
 import { tileHex, tileIndex, wrappedDistance } from '../src/sim/map';
-import { chooseStartPositions, planStartingUnits, startScore } from '../src/sim/startPositions';
+import {
+  chooseStartPositions,
+  planStartingUnits,
+  scoreStartSite,
+  startScore,
+  startSpacing,
+} from '../src/sim/startPositions';
 import { RULES } from '../src/sim/rulesData';
 import { type GameConfig, newGame } from '../src/sim/state';
 import { moveCost } from '../src/sim/terrainData';
@@ -42,7 +48,7 @@ describe('chooseStartPositions', () => {
     for (let i = 0; i < starts.length; i++) {
       for (let j = i + 1; j < starts.length; j++) {
         const distance = wrappedDistance(map, tileHex(starts[i]!), tileHex(starts[j]!));
-        expect(distance).toBeGreaterThanOrEqual(RULES.startPlacement.minSpacing);
+        expect(distance).toBeGreaterThanOrEqual(startSpacing(map));
       }
     }
   });
@@ -163,5 +169,132 @@ describe('newGame start placement', () => {
     expect(a.units.map((u) => `${u.col},${u.row}`)).not.toEqual(
       b.units.map((u) => `${u.col},${u.row}`),
     );
+  });
+});
+
+/**
+ * The site score (playable-loop item 1): what a start is chosen *for*.
+ *
+ * Properties across many seeds and every map size rather than fixtures on one
+ * roll, because the claim is about the algorithm and not about seed 4242. Every
+ * threshold is read from `mapgen.starts`, so a designer who retunes a weight
+ * retunes this suite with it.
+ */
+describe('start-site scoring', () => {
+  const STARTS = MAPGEN_CONFIG.starts;
+  const SEEDS = [1, 7, 99, 1234, 4242, 31337];
+
+  it('folds its own ledger, and names the site bonuses it gives', () => {
+    const map = generateMap(4242, 'standard');
+    for (const tile of chooseStartPositions(map, 4)) {
+      const score = scoreStartSite(map, tile);
+      const fold = score.entries.reduce((sum, entry) => sum + entry.value, 0);
+      expect(score.total).toBeCloseTo(fold, 9);
+      expect(score.entries.map((entry) => entry.source)).toContain('Site');
+      // The two site bonuses the settler lens already paints (Entry I.b) are
+      // lines, not a silent addition: fresh water and coast.
+      if (tile.freshwater) {
+        expect(score.entries.find((entry) => entry.source === 'Fresh water')?.value).toBe(
+          STARTS.freshwaterBonus,
+        );
+      }
+    }
+  });
+
+  it('never seats anybody on cold or arid ground when the map has better', () => {
+    for (const size of MAP_SIZE_NAMES) {
+      for (const seed of SEEDS.slice(0, 3)) {
+        const map = generateMap(seed, size);
+        for (const start of chooseStartPositions(map, 4)) {
+          // The hard rejection is on the *site*, so a start on snow, tundra or
+          // desert can only mean the accepted pool was exhausted — which is a
+          // different failure, and the maps in this suite are not that poor.
+          expect(`${size}/${seed}: ${start.terrain}`).toBe(`${size}/${seed}: ${start.terrain}`);
+          expect(STARTS.hostileTerrain).not.toContain(start.terrain);
+        }
+      }
+    }
+  });
+
+  it('clears the food and production floors on every start it accepts', () => {
+    for (const seed of SEEDS) {
+      const map = generateMap(seed, 'standard');
+      for (const start of chooseStartPositions(map, 6)) {
+        const score = scoreStartSite(map, start);
+        expect(score.reject).toBeNull();
+        expect(`${seed} food ${score.ringFood}`).toBe(
+          `${seed} food ${Math.max(score.ringFood, STARTS.minRingFood)}`,
+        );
+        expect(`${seed} prod ${score.ringProduction}`).toBe(
+          `${seed} prod ${Math.max(score.ringProduction, STARTS.minRingProduction)}`,
+        );
+      }
+    }
+  });
+
+  it('keeps every pair of starts at the map’s own spacing', () => {
+    // Every size except the duel map, which is the one board where four players
+    // genuinely do not fit at full spacing — the greedy sweep relaxes there by
+    // design rather than seating three of them (see the test above). The floor
+    // the clamp guarantees is asserted for it separately, below.
+    for (const size of MAP_SIZE_NAMES.filter((name) => name !== 'duel')) {
+      for (const seed of SEEDS.slice(0, 3)) {
+        const map = generateMap(seed, size);
+        const spacing = startSpacing(map);
+        const starts = chooseStartPositions(map, 4);
+        for (let i = 0; i < starts.length; i++) {
+          for (let j = i + 1; j < starts.length; j++) {
+            const distance = wrappedDistance(map, tileHex(starts[i]!), tileHex(starts[j]!));
+            expect(`${size}/${seed}: ${distance}`).toBe(
+              `${size}/${seed}: ${Math.max(distance, spacing)}`,
+            );
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps a duel map’s starts apart even when it has to relax', () => {
+    for (const seed of SEEDS) {
+      const map = generateMap(seed, 'duel');
+      const starts = chooseStartPositions(map, 4);
+      for (let i = 0; i < starts.length; i++) {
+        for (let j = i + 1; j < starts.length; j++) {
+          const distance = wrappedDistance(map, tileHex(starts[i]!), tileHex(starts[j]!));
+          expect(`${seed}: ${distance}`).toBe(
+            `${seed}: ${Math.max(distance, MAPGEN_CONFIG.starts.minDistance)}`,
+          );
+        }
+      }
+    }
+  });
+
+  it('scales that spacing to the map and not to the roster', () => {
+    const small = generateMap(4242, 'duel');
+    const large = generateMap(4242, 'giant');
+    expect(startSpacing(large)).toBeGreaterThan(startSpacing(small));
+    expect(startSpacing(small)).toBeGreaterThanOrEqual(STARTS.minDistance);
+    expect(startSpacing(large)).toBeLessThanOrEqual(STARTS.maxDistance);
+    // Independent of how many players ask, which is the property the resource
+    // fairness passes lean on: they seat the maximum roster once and cover every
+    // real game because a short roster's starts are an exact *prefix*.
+    const few = chooseStartPositions(large, 2).map((t) => tileIndex(large, t.col, t.row));
+    const many = chooseStartPositions(large, RULES.game.maxPlayers).map((t) =>
+      tileIndex(large, t.col, t.row),
+    );
+    expect(many.slice(0, few.length)).toEqual(few);
+  });
+
+  it('chooses the ground, so a resource landing next door cannot move a start', () => {
+    // The whole reason a site is scored on a *ground view* of each tile: the
+    // fairness passes plant food and luxuries at the starts, and a guarantee
+    // that moved the start it was made to would chase itself around the map.
+    const map = generateMap(99, 'standard');
+    const before = chooseStartPositions(map, 6).map((t) => tileIndex(map, t.col, t.row));
+    for (const tile of map.tiles) {
+      if (tile.terrain === 'grassland' && tile.resource === undefined) tile.resource = 'wheat';
+    }
+    const after = chooseStartPositions(map, 6).map((t) => tileIndex(map, t.col, t.row));
+    expect(after).toEqual(before);
   });
 });

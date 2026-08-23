@@ -40,16 +40,42 @@
  * — finishes rather than spinning. Falling short is not an error; it is what a
  * poor map is.
  *
- * The fairness pass
- * -----------------
+ * Regional character
+ * ------------------
+ * A world where every luxury is equally likely on every hex is a world where
+ * ten luxuries read as one grey average. So before the scatter runs, the map's
+ * **land regions** — connected components of land, which is to say continents
+ * and islands — are each dealt a hand of `luxuryKindsPerRegion` luxury kinds
+ * from the same `rng`, and a luxury find is refused on ground whose region was
+ * not dealt it. Bonus and strategic resources are untouched: iron and wheat are
+ * facts about geology and soil, and the design's argument for luxuries is
+ * exactly that they are *not* evenly spread — that is what will make trading for
+ * them mean something.
+ *
+ * The rejection reuses the scatter's own idiom rather than reweighting the draw:
+ * a find that lands somewhere it may not go is thrown away, so placement stays a
+ * pure function of the draw sequence.
+ *
+ * The fairness passes
+ * -------------------
  * The scatter is fair on average and nobody plays an average. So after it, every
  * *possible* start position — `chooseStartPositions` for the maximum player
- * count, which is a superset of any real game's starts, and is a pure function
- * of the map — is checked for a bonus food resource within `startFoodRadius`,
- * and given one if the scatter missed. It rolls **no dice**: the tile chosen is
- * the nearest legal one, ties by tile index. Two reasons that matters. It keeps
- * the pass reproducible without consuming from the stream, and it means the
- * guarantee does not shift when the scatter above it is retuned.
+ * count — is checked twice: for a bonus food resource within `startFoodRadius`,
+ * and for `startLuxuryKinds` distinct luxuries within `startLuxuryRadius`. Each
+ * gap is filled.
+ *
+ * That the maximum roster's starts are a superset of any real game's is a
+ * promise `startPositions.ts` keeps deliberately: start spacing is scaled to the
+ * *map* and never to the player count, so a two-player game's starts are an
+ * exact prefix of a twelve-player game's. Nothing here would notice if that
+ * changed, which is why it is written down in both places.
+ *
+ * Both passes roll **no dice**: the tile chosen is the nearest legal one, ties by
+ * tile index, and the luxury chosen prefers the region's own hand so a guarantee
+ * does not flatten the regional character the scatter just built. Two reasons
+ * that matters. It keeps the passes reproducible without consuming from the
+ * stream, and it means the guarantees do not shift when the scatter above them
+ * is retuned.
  *
  * Strategic fairness — "every player can reach iron or horses" — is deliberately
  * *not* attempted here. It is a much stronger claim (it is about distance
@@ -67,11 +93,78 @@ import {
   type ResourceId,
   isBonusFood,
   resourceDef,
+  resourcesOfKind,
 } from './resourceData';
 import { type Rng, nextFloat, nextInt } from './rng';
 import { RULES } from './rulesData';
 import { chooseStartPositions } from './startPositions';
 import { isWaterTerrain } from './terrainData';
+
+/**
+ * Which land region every tile belongs to, indexed by tile index; `-1` for
+ * water.
+ *
+ * Connected components of land over the hex neighbourhood, wrap-aware, seeded
+ * in tile-index order so a region's *id* is a fact about the map rather than
+ * about the traversal. Rolls nothing.
+ */
+export function landRegions(map: GameMap): Int32Array {
+  const regions = new Int32Array(map.tiles.length).fill(-1);
+  let next = 0;
+  for (const seed of map.tiles) {
+    if (isWaterTerrain(seed.terrain)) continue;
+    const seedIndex = tileIndex(map, seed.col, seed.row);
+    if (regions[seedIndex] !== -1) continue;
+    const id = next++;
+    regions[seedIndex] = id;
+    const frontier: Tile[] = [seed];
+    while (frontier.length > 0) {
+      const from = frontier.pop()!;
+      for (const near of tileNeighbors(map, from)) {
+        if (isWaterTerrain(near.terrain)) continue;
+        const index = tileIndex(map, near.col, near.row);
+        if (regions[index] !== -1) continue;
+        regions[index] = id;
+        frontier.push(near);
+      }
+    }
+  }
+  return regions;
+}
+
+/**
+ * The luxury kinds each region may grow, region id first — the hand dealt in
+ * the module docblock's "Regional character".
+ *
+ * A partial Fisher–Yates over the luxury list, one region at a time in region-id
+ * order, so the draws land in a fixed order however the map is shaped. A region
+ * is dealt at most as many kinds as the table has, which is the whole of what
+ * happens on a table with three luxuries in it.
+ */
+export function drawRegionLuxuries(
+  rng: Rng,
+  regionCount: number,
+  perRegion: number,
+): ResourceId[][] {
+  const luxuries = resourcesOfKind('luxury');
+  const hands: ResourceId[][] = [];
+  const size = Math.max(0, Math.min(Math.round(perRegion), luxuries.length));
+  for (let region = 0; region < regionCount; region++) {
+    const pool = luxuries.slice();
+    const hand: ResourceId[] = [];
+    for (let pick = 0; pick < size; pick++) {
+      const at = nextInt(rng, pick, pool.length);
+      const swap = pool[at]!;
+      pool[at] = pool[pick]!;
+      pool[pick] = swap;
+      hand.push(swap);
+    }
+    // Back into table order: a hand is a *set*, and the order it was drawn in
+    // would otherwise leak into which luxury a fairness pass reaches for first.
+    hands.push(RESOURCE_IDS.filter((id) => hand.includes(id)));
+  }
+  return hands;
+}
 
 /** The `resources` block of `data/mapgen.json`. */
 export interface ResourceConfig {
@@ -83,6 +176,12 @@ export interface ResourceConfig {
   startFoodRadius: number;
   /** Draws allowed per budgeted tile before the scatter gives up. */
   attemptsPerResource: number;
+  /** How far from a start its guaranteed luxuries may be. */
+  startLuxuryRadius: number;
+  /** How many *distinct* luxury kinds every start is guaranteed. */
+  startLuxuryKinds: number;
+  /** How many luxury kinds one land region may grow. See the docblock. */
+  luxuryKindsPerRegion: number;
 }
 
 /** Does this tile satisfy a resource's terrain / feature / hills filters? */
@@ -189,6 +288,19 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
   );
   const spacing = Math.max(1, Math.round(config.minSpacing));
 
+  // The regional hands, drawn *before* the scatter and from the same stream.
+  const regions = landRegions(map);
+  let regionCount = 0;
+  for (const region of regions) if (region + 1 > regionCount) regionCount = region + 1;
+  const hands = drawRegionLuxuries(rng, regionCount, config.luxuryKindsPerRegion);
+  /** May this luxury grow on this tile's continent? Non-luxuries: always. */
+  const suitsRegion = (tile: Tile, id: ResourceId): boolean => {
+    if (resourceDef(id).kind !== 'luxury') return true;
+    const region = regions[tileIndex(map, tile.col, tile.row)]!;
+    const hand = region >= 0 ? hands[region] : undefined;
+    return hand === undefined || hand.length === 0 || hand.includes(id);
+  };
+
   // Candidate lists, built once. In tile-index order, so the uniform draw over
   // one of them is a draw over a list whose order is part of the map.
   const candidates = new Map<ResourceId, Tile[]>();
@@ -211,6 +323,7 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
       const list = candidates.get(id)!;
       const tile = list[nextInt(rng, 0, list.length)]!;
       if (tile.resource !== undefined) continue;
+      if (!suitsRegion(tile, id)) continue;
       if (hasResourceNear(map, tile, spacing - 1, new Set())) continue;
 
       const def = resourceDef(id);
@@ -220,20 +333,30 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
     }
   }
 
-  ensureStartFood(map, config);
+  // The two guarantees, over one set of possible starts. Choosing them is the
+  // expensive part of this module and the answer cannot change between the two
+  // passes — a start is chosen on *ground* (see `startPositions.ts`), and
+  // neither pass touches any.
+  const starts = chooseStartPositions(map, RULES.game.maxPlayers);
+  ensureStartFood(map, starts, config);
+  ensureStartLuxuries(map, starts, regions, hands, config);
 }
 
 /**
  * The fairness pass: a bonus food within `startFoodRadius` of every possible
  * start. No dice — see the module docblock.
  */
-function ensureStartFood(map: GameMap, config: ResourceConfig): void {
+function ensureStartFood(
+  map: GameMap,
+  starts: readonly Tile[],
+  config: ResourceConfig,
+): void {
   const radius = Math.max(0, Math.round(config.startFoodRadius));
   const spacing = Math.max(1, Math.round(config.minSpacing));
   const foods = RESOURCE_IDS.filter(isBonusFood);
   if (foods.length === 0) return;
 
-  for (const start of chooseStartPositions(map, RULES.game.maxPlayers)) {
+  for (const start of starts) {
     const near = mapRange(map, tileHex(start), radius);
     if (near.some((tile) => tile.resource !== undefined && isBonusFood(tile.resource))) continue;
 
@@ -264,5 +387,97 @@ function ensureStartFood(map: GameMap, config: ResourceConfig): void {
     // hemmed in by other finds gets its wheat anyway.
     const chosen = pick(true) ?? pick(false);
     if (chosen) chosen.tile.resource = chosen.id;
+  }
+}
+
+/**
+ * The second fairness pass: `startLuxuryKinds` *distinct* luxuries within
+ * `startLuxuryRadius` of every possible start. No dice — see the module
+ * docblock.
+ *
+ * Distinct is the whole point, and it is the same word the happiness meter uses:
+ * a luxury is worth its flat happiness and its signature **once**, however many
+ * seams of it an empire owns, so three wine tiles and no second kind is one
+ * luxury's worth of opening. Guaranteeing kinds rather than tiles is therefore
+ * guaranteeing the thing the player actually receives.
+ *
+ * The kind planted prefers the region's own hand, and that ordering is the
+ * whole of how the guarantee stays out of the regional design's way: a start on
+ * a jade-and-furs continent is topped up with jade and furs, not with whatever
+ * the table happens to list first. It falls through to the rest of the table
+ * only when the region's hand will not grow on any tile in reach — an incense
+ * hand on ground with no desert — because a guarantee that quietly does nothing
+ * is worse than one that bends.
+ */
+function ensureStartLuxuries(
+  map: GameMap,
+  starts: readonly Tile[],
+  regions: Int32Array,
+  hands: readonly ResourceId[][],
+  config: ResourceConfig,
+): void {
+  const radius = Math.max(0, Math.round(config.startLuxuryRadius));
+  const spacing = Math.max(1, Math.round(config.minSpacing));
+  const wanted = Math.max(0, Math.round(config.startLuxuryKinds));
+  const luxuries = RESOURCE_IDS.filter((id) => resourceDef(id).kind === 'luxury');
+  if (wanted === 0 || luxuries.length === 0) return;
+
+  for (const start of starts) {
+    const from = tileHex(start);
+    const near = mapRange(map, from, radius);
+
+    const held = new Set<ResourceId>();
+    for (const tile of near) {
+      if (tile.resource !== undefined && resourceDef(tile.resource).kind === 'luxury') {
+        held.add(tile.resource);
+      }
+    }
+    if (held.size >= wanted) continue;
+
+    // The region's hand first, then the rest of the table, both in table order.
+    const region = regions[tileIndex(map, start.col, start.row)]!;
+    const hand = region >= 0 ? (hands[region] ?? []) : [];
+    const preferred = [...luxuries.filter((id) => hand.includes(id)),
+                       ...luxuries.filter((id) => !hand.includes(id))];
+
+    // Nearest first, ties by tile index, exactly as the food pass orders its
+    // candidates: the guarantee lands on a tile the city would plausibly work.
+    const ordered = near
+      .filter((tile) => tile.resource === undefined)
+      .map((tile) => ({
+        tile,
+        distance: wrappedDistance(map, from, tileHex(tile)),
+        index: tileIndex(map, tile.col, tile.row),
+      }))
+      .sort((a, b) => a.distance - b.distance || a.index - b.index);
+
+    /** The first (luxury, tile) pair that fits, preferring the spacing rule. */
+    const pick = (respectSpacing: boolean): { tile: Tile; id: ResourceId } | null => {
+      for (const id of preferred) {
+        if (held.has(id)) continue;
+        const def = resourceDef(id);
+        for (const entry of ordered) {
+          if (entry.tile.resource !== undefined) continue;
+          if (!tileSuitsResource(entry.tile, def)) continue;
+          if (respectSpacing && hasResourceNear(map, entry.tile, spacing - 1, new Set())) continue;
+          return { tile: entry.tile, id };
+        }
+      }
+      return null;
+    };
+
+    // Spacing is an aesthetic rule and the second luxury is a guarantee, so a
+    // start hemmed in by other finds gets its seam anyway — the same bargain
+    // the food pass strikes one guarantee earlier, and the reason both passes
+    // are named as the *documented exception* to the scatter's spacing rule.
+    // What neither pass will do is invent ground: a start ringed by flat
+    // featureless grassland can host exactly one luxury in the whole table, and
+    // one is what it gets.
+    while (held.size < wanted) {
+      const chosen = pick(true) ?? pick(false);
+      if (!chosen) break;
+      chosen.tile.resource = chosen.id;
+      held.add(chosen.id);
+    }
   }
 }

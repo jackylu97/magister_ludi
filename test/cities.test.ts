@@ -815,12 +815,12 @@ describe('city yields', () => {
     const city = plant(state, 0, 8, 5);
     city.population = 6;
     assignCitizens(state, city);
-    const bonus = buildingDef('barracks').unitProductionBonus!;
+    const bonus = buildingDef('barracks').productionBonus!.percent / 100;
 
     const unit = { kind: 'unit', id: 'warrior' } as QueueItem;
     const building = { kind: 'building', id: 'granary' } as QueueItem;
     const plain = cityYields(state, city).production;
-    expect(productionModifiers(city, unit)).toEqual([]);
+    expect(productionModifiers(state, city, unit)).toEqual([]);
 
     city.buildings = ['barracks'];
     // A unit gets the bonus, floored once at the end; a building never does,
@@ -828,10 +828,10 @@ describe('city yields', () => {
     expect(cityYields(state, city, [], unit).production).toBe(Math.floor(plain * (1 + bonus)));
     expect(cityYields(state, city, [], building).production).toBe(plain);
     expect(cityYields(state, city).production).toBe(plain);
-    expect(productionModifiers(city, unit)).toEqual([
+    expect(productionModifiers(state, city, unit)).toEqual([
       { source: 'Barracks', building: 'barracks', percent: bonus * 100 },
     ]);
-    expect(productionModifiers(city, building)).toEqual([]);
+    expect(productionModifiers(state, city, building)).toEqual([]);
 
     // And the basket really does fill at the modified rate: what the estimate
     // divided by is what the turn banks.

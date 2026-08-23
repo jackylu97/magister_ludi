@@ -20,7 +20,7 @@ the report against it.
 - **Improvement renewals** — a tech adds yield to an *existing* improvement (`upgrades[].tech`). Two now: Calendar +1🪙 on plantations, Feudalism +1🌾 on freshwater farms.
 - **Building renewals** — the same idea for a building (`upgrades[].tech` in `buildings.json`). One: The Wheel, +1🌾 on every granary. Each lands as its own labelled line in the city panel's yield breakdown.
 - **Building authority capacity** — a building raises the empire's writ (`authorityCapacity`). One: the monument, +1. The authority breakdown counts them per type ("Monuments ×3 +3"); nothing in the meter names the monument.
-- **Per-category production modifier** — a building puts a share of its city's hammers behind one *kind* of item (`unitProductionBonus`). One: the barracks, +10% toward units. It flows through `cityYields`, so the estimate, the panel and the hammers the basket receives are one number.
+- **Per-category production modifier** — a building puts a share of its city's hammers behind one *kind* of item (`productionBonus: { category, percent }`). One: the barracks, +10% toward units. Luxuries declare the same shape (marble, +15% toward buildings), and `productionModifiers` is one list over both tables. It flows through `cityYields`, so the estimate, the panel and the hammers the basket receives are one number.
 - **Resource reveal** — tech makes a strategic resource *visible* (it works regardless). Two now: Husbandry reveals horses, Bronzeworking reveals iron.
 
 ## Age I
@@ -103,7 +103,7 @@ Resource-improvements also flip `hasResource` on (strategic resources feed unit 
 
 Shipped, using existing systems plus four small generic mechanisms
 (`requiresTech` on improvements, building renewals, `authorityCapacity`,
-`unitProductionBonus`): the whole Age I graph above, both chariots, and the
+`productionBonus`): the whole Age I graph above, both chariots, and the
 re-pointed Age II/III prerequisites.
 
 **Deferred — designed, not built. Nothing below exists in the code.**

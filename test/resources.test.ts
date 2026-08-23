@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildingDef } from '../src/sim/buildingData';
-import { advanceProduction, foundCityAt, hasResource, tileYieldOf } from '../src/sim/cities';
+import {
+  advanceProduction,
+  explainTileYield,
+  foldTileYield,
+  foundCityAt,
+  hasResource,
+  tileYieldOf,
+} from '../src/sim/cities';
 import { applyCommand } from '../src/sim/commands';
 import { createGame, dispatch, loadGame, replay, saveGame, snapshotState } from '../src/sim/game';
 import { improvementForResource } from '../src/sim/improvementData';
@@ -16,8 +23,16 @@ import {
   resourceDef,
   resourceYield,
   resourcesOfKind,
+  withExtraResources,
 } from '../src/sim/resourceData';
-import { landTileCount, tileSuitsResource } from '../src/sim/resources';
+import {
+  drawRegionLuxuries,
+  landRegions,
+  landTileCount,
+  tileSuitsResource,
+} from '../src/sim/resources';
+import { describeResourceEffect } from '../src/sim/resourceEffects';
+import { makeRng } from '../src/sim/rng';
 import { RULES } from '../src/sim/rulesData';
 import { chooseStartPositions } from '../src/sim/startPositions';
 import {
@@ -51,11 +66,16 @@ function resourceTiles(map: GameMap): Tile[] {
 // --- the table --------------------------------------------------------------
 
 describe('the resource table', () => {
-  it('names twelve resources across the three kinds', () => {
-    expect(RESOURCE_IDS).toHaveLength(12);
+  it('names seventeen resources across the three kinds', () => {
+    expect(RESOURCE_IDS).toHaveLength(17);
     expect(resourcesOfKind('bonus')).toEqual(['wheat', 'cattle', 'deer', 'fish', 'stone']);
     expect(resourcesOfKind('strategic')).toEqual(['horses', 'iron']);
-    expect(resourcesOfKind('luxury')).toEqual(['gems', 'silk', 'wine', 'spices', 'salt']);
+    // Ten luxuries since the playable-loop pass: the original five plus incense,
+    // jade, marble, furs and dyes. Table order is iteration order and therefore
+    // part of every seeded outcome, so it is asserted rather than sorted.
+    expect(resourcesOfKind('luxury')).toEqual([
+      'gems', 'silk', 'wine', 'spices', 'salt', 'incense', 'jade', 'marble', 'furs', 'dyes',
+    ]);
   });
 
   it('only ever names terrains, features and technologies that exist', () => {
@@ -94,7 +114,7 @@ describe('the resource table', () => {
     expect(resourceYield('wheat').food).toBe(RESOURCE_DATA.resources.wheat.yields.food);
   });
 
-  it('tech-gates exactly the strategics that are meant to be hidden', () => {
+  it('tech-gates exactly the resources that are meant to be hidden', () => {
     expect(resourceDef('iron').requiresTech).toBe('bronzeWorking');
     // Horses joined it in the Age I rework: Husbandry is the tech that unlocks
     // the horseman and the pasture, so it is also the tech that says where the
@@ -102,10 +122,13 @@ describe('the resource table', () => {
     // as a fact the map hands out for free. Both are visibility only — an
     // unrevealed seam still pays its yield (see `isResourceVisible`).
     expect(resourceDef('horses').requiresTech).toBe('husbandry');
-    for (const id of RESOURCE_IDS) {
-      if (resourceDef(id).kind === 'strategic') continue;
-      expect(resourceDef(id).requiresTech).toBeUndefined();
-    }
+    // Incense is the first *luxury* to use the gate, and it needed no new
+    // mechanism at all — which is the argument for having built the reveal as a
+    // property of the row rather than of the strategic kind. Divination is the
+    // tech that finds it, and `techGifts` picks the reveal up for free.
+    expect(resourceDef('incense').requiresTech).toBe('divination');
+    const gated = RESOURCE_IDS.filter((id) => resourceDef(id).requiresTech !== undefined);
+    expect(gated).toEqual(['horses', 'iron', 'incense']);
   });
 
   it('recognises its own ids and nothing else', () => {
@@ -136,13 +159,30 @@ describe('placement', () => {
     // Two tiles of *different* resources closer than `minSpacing` would mean the
     // rejection sampling leaked; two of the same are a cluster and are allowed
     // to touch, which is the whole reason the rule is stated this way.
+    //
+    // The two fairness passes are the documented exception and this test is
+    // where that is pinned down rather than waved at: a guarantee outranks an
+    // aesthetic, so a start hemmed in by other finds gets its wheat and its
+    // second luxury anyway. Every violation must therefore be **within reach of
+    // a possible start** — which is a real constraint, not an escape hatch: a
+    // leak in the scatter would show up in open country and fail here.
     for (const [seed, size] of SAMPLES) {
       const map = generateMap(seed, size);
-      const tiles = resourceTiles(map);
-      for (const tile of tiles) {
+      const starts = chooseStartPositions(map, RULES.game.maxPlayers).map((tile) => tileHex(tile));
+      const reach = Math.max(CONFIG.startFoodRadius, CONFIG.startLuxuryRadius);
+      for (const tile of resourceTiles(map)) {
         for (const near of mapRange(map, tileHex(tile), CONFIG.minSpacing - 1)) {
           if (near === tile || near.resource === undefined) continue;
-          expect(near.resource).toBe(tile.resource);
+          if (near.resource === tile.resource) continue;
+          const guaranteed = [tile, near].every((crowded) =>
+            starts.some((start) => wrappedDistance(map, start, tileHex(crowded)) <= reach),
+          );
+          expect(`${seed}/${size} (${tile.col},${tile.row}) ${tile.resource} vs ${near.resource}`)
+            .toBe(
+              guaranteed
+                ? `${seed}/${size} (${tile.col},${tile.row}) ${tile.resource} vs ${near.resource}`
+                : 'a crowded pair in open country',
+            );
         }
       }
     }
@@ -167,11 +207,19 @@ describe('placement', () => {
       for (const seed of [1, 4242]) {
         const map = generateMap(seed, size);
         const per1000 = (resourceTiles(map).length / landTileCount(map)) * 1000;
-        // The budget is the floor; the fairness pass and a cluster that ran a
-        // tile over the target are what push it above. A band rather than an
-        // equality, because both of those are deliberate.
+        // The budget is the floor; the two fairness passes and a cluster that
+        // ran a tile over the target are what push it above. A band rather than
+        // an equality, because all of those are deliberate.
+        //
+        // The ceiling is 1.45× because of the *duel* map specifically, and the
+        // reason is worth writing down: the guarantees are made to every one of
+        // the twelve possible starts, and twelve starts on four hundred land
+        // tiles is the densest that promise ever gets. It falls monotonically
+        // with map size — 1.4× duel, 1.1× standard, 1.02× giant — so this is a
+        // bound on the smallest board rather than a loosening of the density
+        // rule the scatter itself keeps.
         expect(per1000).toBeGreaterThanOrEqual(CONFIG.countPer1000LandTiles * 0.9);
-        expect(per1000).toBeLessThanOrEqual(CONFIG.countPer1000LandTiles * 1.35);
+        expect(per1000).toBeLessThanOrEqual(CONFIG.countPer1000LandTiles * 1.45);
       }
     }
   });
@@ -681,5 +729,241 @@ describe('the placement helpers', () => {
     const east = getTileAt(map, map.width - 1, 5)!;
     expect(wrappedDistance(map, tileHex(west), tileHex(east))).toBe(1);
     expect(tileIndex(map, east.col, east.row)).toBeGreaterThan(tileIndex(map, west.col, west.row));
+  });
+});
+
+/**
+ * Luxury variety (playable-loop item 1): ten kinds, regional character, and the
+ * guarantee that every start can open two of them.
+ *
+ * The claims here are about *distribution* rather than about any one seed, so
+ * everything sweeps several maps. What is deliberately not asserted is which
+ * luxury lands where: that is the scatter's dice doing their job, and pinning it
+ * would be pinning the seed.
+ */
+describe('luxury placement', () => {
+  const SEEDS = [1, 7, 99, 1234, 4242];
+
+  it('puts every luxury only on ground its own row allows', () => {
+    for (const seed of SEEDS) {
+      const map = generateMap(seed, 'standard');
+      for (const tile of map.tiles) {
+        const id = tile.resource;
+        if (id === undefined || resourceDef(id).kind !== 'luxury') continue;
+        expect(`${id} on ${tile.terrain}`).toBe(
+          `${id} on ${tileSuitsResource(tile, resourceDef(id)) ? tile.terrain : 'illegal ground'}`,
+        );
+      }
+    }
+  });
+
+  it('gives every luxury somewhere to live and actually places most of them', () => {
+    // A luxury the generator never places is a luxury the table is lying about.
+    // "Most" rather than "all" because a single standard map need not carry all
+    // ten — the regional hands are the point — so the sweep is over sizes.
+    const seen = new Set<ResourceId>();
+    for (const size of ['standard', 'large', 'huge']) {
+      for (const seed of SEEDS) {
+        for (const tile of generateMap(seed, size).tiles) {
+          if (tile.resource !== undefined) seen.add(tile.resource);
+        }
+      }
+    }
+    for (const id of resourcesOfKind('luxury')) {
+      expect(`${id}: ${seen.has(id) ? 'placed' : 'never placed'}`).toBe(`${id}: placed`);
+    }
+  });
+
+  it('gives each continent its own hand of kinds', () => {
+    // The regional design: a land region is dealt a *hand* of luxury kinds and
+    // grows those, so a continent has a character rather than an average. What
+    // is asserted is the consequence rather than the hand itself — the hand is
+    // drawn mid-stream from the map rng and is not reproducible from outside —
+    // and the consequence is that no single continent carries the whole table
+    // while the world between them does.
+    for (const seed of SEEDS) {
+      const map = generateMap(seed, 'large');
+      const regions = landRegions(map);
+      const kinds = new Map<number, Set<ResourceId>>();
+      const sizes = new Map<number, number>();
+      for (const tile of map.tiles) {
+        const region = regions[tileIndex(map, tile.col, tile.row)]!;
+        if (region < 0) continue;
+        sizes.set(region, (sizes.get(region) ?? 0) + 1);
+        const id = tile.resource;
+        if (id === undefined || resourceDef(id).kind !== 'luxury') continue;
+        let set = kinds.get(region);
+        if (!set) {
+          set = new Set();
+          kinds.set(region, set);
+        }
+        set.add(id);
+      }
+
+      const luxuries = resourcesOfKind('luxury').length;
+      const everywhere = new Set<ResourceId>();
+      let biggest = 0;
+      for (const [region, set] of kinds) {
+        if ((sizes.get(region) ?? 0) < 200) continue;
+        // A continent large enough to hold anything still holds only some of it.
+        expect(`region ${region}: ${set.size} of ${luxuries}`).toBe(
+          `region ${region}: ${Math.min(set.size, luxuries - 1)} of ${luxuries}`,
+        );
+        biggest = Math.max(biggest, set.size);
+        for (const id of set) everywhere.add(id);
+      }
+      // …and the world is more varied than its most varied continent, which is
+      // exactly what "variety is geographic" buys.
+      expect(everywhere.size).toBeGreaterThanOrEqual(biggest);
+    }
+  });
+
+  it('deals a region its hand deterministically, in table order', () => {
+    // The draw itself, asked directly: `drawRegionLuxuries` is what makes a
+    // continent lean, and it must be a pure function of the stream.
+    const perRegion = CONFIG.luxuryKindsPerRegion;
+    const first = drawRegionLuxuries(makeRng(99), 8, perRegion);
+    const second = drawRegionLuxuries(makeRng(99), 8, perRegion);
+    expect(second).toEqual(first);
+    expect(first).toHaveLength(8);
+
+    const luxuries = resourcesOfKind('luxury');
+    for (const hand of first) {
+      expect(hand).toHaveLength(Math.min(perRegion, luxuries.length));
+      expect(new Set(hand).size).toBe(hand.length);
+      for (const id of hand) expect(luxuries).toContain(id);
+      // Table order, not draw order: a hand is a set, and the order it happened
+      // to be drawn in must not leak into which luxury a fairness pass reaches
+      // for first.
+      expect(hand).toEqual(luxuries.filter((id) => hand.includes(id)));
+    }
+    // Eight regions do not all lean the same way.
+    expect(new Set(first.map((hand) => hand.join(','))).size).toBeGreaterThan(1);
+  });
+
+  it('guarantees every possible start every luxury its ground can hold, up to two', () => {
+    // The guarantee is `startLuxuryKinds` distinct kinds within
+    // `startLuxuryRadius` — and it is bounded by the ground, which is the
+    // honest reading rather than a weaker test: a start ringed by flat
+    // featureless grassland can host exactly one luxury in the whole table, and
+    // no fairness pass may invent a jungle to put spices in.
+    for (const size of ['duel', 'standard', 'large']) {
+      for (const seed of SEEDS) {
+        const map = generateMap(seed, size);
+        for (const start of chooseStartPositions(map, RULES.game.maxPlayers)) {
+          const near = mapRange(map, tileHex(start), CONFIG.startLuxuryRadius);
+          const kinds = new Set<ResourceId>();
+          for (const tile of near) {
+            const id = tile.resource;
+            if (id !== undefined && resourceDef(id).kind === 'luxury') kinds.add(id);
+          }
+          const possible = resourcesOfKind('luxury').filter((id) =>
+            near.some((tile) => tileSuitsResource(tile, resourceDef(id))),
+          ).length;
+          const owed = Math.min(CONFIG.startLuxuryKinds, possible);
+          const where = `${size}/${seed} (${start.col},${start.row})`;
+          expect(`${where}: ${kinds.size} of ${owed}`).toBe(
+            `${where}: ${Math.max(kinds.size, owed)} of ${owed}`,
+          );
+        }
+      }
+    }
+  });
+
+  it('still guarantees every possible start a bonus food', () => {
+    // The pass that was here before this one, unchanged and still holding: the
+    // luxury guarantee was added beside it, not on top of it.
+    for (const seed of SEEDS) {
+      const map = generateMap(seed, 'standard');
+      for (const start of chooseStartPositions(map, RULES.game.maxPlayers)) {
+        const fed = mapRange(map, tileHex(start), CONFIG.startFoodRadius).some(
+          (tile) => tile.resource !== undefined && isBonusFood(tile.resource),
+        );
+        expect(`(${start.col},${start.row}): ${fed ? 'fed' : 'hungry'}`).toBe(
+          `(${start.col},${start.row}): fed`,
+        );
+      }
+    }
+  });
+});
+
+/**
+ * The proof that a resource is *entirely* data.
+ *
+ * A row the table has never seen is installed at runtime and the simulation is
+ * asked to place it, pay it and explain it, with no TypeScript written for it —
+ * which is the acceptance criterion this milestone was given, and the one thing
+ * a suite of fixtures could never demonstrate. `withExtraResources` puts the
+ * table back afterwards; nothing in `src/` calls it.
+ */
+describe('a resource nobody wrote code for', () => {
+  const AMBER = {
+    name: 'Amber',
+    kind: 'luxury',
+    yields: { food: 0, production: 0, gold: 2 },
+    validTerrain: ['grassland', 'plains'],
+    validFeatures: ['forest'],
+    frequency: 400,
+    clusterSize: [1, 2],
+    effect: { kind: 'cityYields', gold: 2, culture: 1 },
+    emoji: '🟠',
+  } as const;
+
+  it('places, pays and explains without a line of code of its own', () => {
+    withExtraResources({ amber: AMBER as never }, () => {
+      const id = 'amber' as ResourceId;
+      expect(RESOURCE_IDS).toContain(id);
+      expect(resourcesOfKind('luxury')).toContain(id);
+
+      // Placed: the scatter reads only the constraint fields, so a huge
+      // frequency is enough to make the seeded draw find it.
+      const map = generateMap(4242, 'standard');
+      const tiles = map.tiles.filter((tile) => tile.resource === id);
+      expect(tiles.length).toBeGreaterThan(0);
+      for (const tile of tiles) expect(tileSuitsResource(tile, resourceDef(id))).toBe(true);
+
+      // Pays: the yield algebra adds it like any other resource…
+      const tile = tiles[0]!;
+      const bare = tileYield(tile.terrain, tile.feature, tile.hills);
+      expect(tileYieldOf(tile).gold).toBe(bare.gold + AMBER.yields.gold);
+
+      // …and explains: a labelled line in the breakdown the panel prints, with
+      // the fold of the list equal to the total.
+      const lines = explainTileYield(tile);
+      expect(lines.map((line) => line.source)).toContain(AMBER.name);
+      expect(foldTileYield(lines)).toEqual(tileYieldOf(tile));
+
+      // And its signature is read by the one evaluator, in words too.
+      expect(describeResourceEffect(id)).toContain('gold');
+    });
+  });
+
+  it('puts the table back afterwards, whatever happens inside', () => {
+    const before = [...RESOURCE_IDS];
+    expect(() =>
+      withExtraResources({ amber: AMBER as never }, () => {
+        throw new Error('boom');
+      }),
+    ).toThrow('boom');
+    expect([...RESOURCE_IDS]).toEqual(before);
+    expect(isResourceId('amber')).toBe(false);
+  });
+
+  it('refuses a row the vocabulary cannot read, loudly and at load', () => {
+    // The other half of "data-driven": an effect the evaluator cannot interpret
+    // is an effect that silently pays nothing, which is the one bug this design
+    // could hide indefinitely. So the table validates on installation.
+    expect(() =>
+      withExtraResources(
+        { bogus: { ...AMBER, effect: { kind: 'teleport' } } as never },
+        () => undefined,
+      ),
+    ).toThrow(/effect kind/);
+    expect(() =>
+      withExtraResources(
+        { bogus: { ...AMBER, effect: { kind: 'empireYields', food: 2 } } as never },
+        () => undefined,
+      ),
+    ).toThrow(/basket/);
   });
 });

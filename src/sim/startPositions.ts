@@ -6,21 +6,83 @@
  *
  * Scoring
  * -------
- * A candidate is any passable land tile. Its score is its own terrain score plus
- * `neighborWeight` times the sum of its neighbours' — a one-ring smell test that
- * costs nothing and is enough to prefer a grassland pocket over a lone green
- * tile in a desert. Every number comes from `rules.startPlacement.terrainScore`,
- * so "no tundra starts" is a data edit, not a code change.
+ * A candidate is any passable land tile, and it is scored as a **site** rather
+ * than as a tile: what a city planted here would have to work. The score is the
+ * site's own ground yield plus the best `workedTiles` of the workable tiles in
+ * rings 1 and 2 — each weighted by the ring it stands in — plus the two site
+ * bonuses the settler lens already paints on the board: fresh water (the growth
+ * bonus) and coast (the authority discount), design ledger Entry I.b.
+ *
+ * The *best six* rather than all eighteen, and that is the one number here worth
+ * arguing about. A city works its best tiles first and grows into the rest over
+ * an age, so a sum over the whole neighbourhood rewards a hex ringed by eleven
+ * mediocre hills over one with six excellent tiles — which is not the site a
+ * player would pick, and, measurably, not the site the citizen assigner then
+ * makes anything of. Scoring what will be worked put the opening capital's
+ * production back where the pacing tests had measured it.
+ *
+ * Five hard rejections back the score up, because a weighted sum will always
+ * find a way to like somewhere unliveable: the site's own terrain, the share of
+ * its rings that is cold or arid, the share that is water, and floors on the
+ * food and production its rings carry *in total* (all of them, not the scored
+ * six — a floor read off a set the score itself ordered would be a floor
+ * measuring the weights it exists to backstop).
+ *
+ * Every weight, both bonuses and all five rejections come from `mapgen.starts`,
+ * so "no tundra starts" and "how much is a hill worth" are data edits.
+ *
+ * The yield is `tileYieldOf` — the *real* evaluator every citizen, every border
+ * expansion and every hover card reads — and not a second table of terrain
+ * desirabilities beside it. That is rule 5's argument applied one step further
+ * out: a start chooser with its own opinion of what grassland is worth is a
+ * chooser that can disagree with the game about which start was better.
+ *
+ * The ground, not the map
+ * ----------------------
+ * It asks that evaluator about a **ground view** of each tile — the same tile
+ * with its resource and its improvement stripped off. Two reasons, and both are
+ * load-bearing rather than tidy:
+ *
+ *   1. The resource fairness passes (`resources.ts`) plant food and luxuries
+ *      *at* the starts, so they have to know the starts before they run. If a
+ *      wheat could change which tile scores highest, the pass would guarantee
+ *      its wheat to a site that then stops being a start — the guarantee would
+ *      chase itself around the map.
+ *   2. `Tile.improvement` changes during play (see CLAUDE.md's traps). A start
+ *      chooser that read improvements would answer differently on turn 40 than
+ *      it did on turn 1, and `chooseStartPositions` is called by tools and
+ *      tests that assume it does not.
+ *
+ * So the map generator picks the ground, and the fairness passes then furnish
+ * it. Resources are guaranteed *to* a start, never the reason for one.
  *
  * Spreading
  * ---------
- * Picks are greedy: take the best remaining tile, then the best tile at least
- * `minSpacing` hexes (wrap-aware) from every tile already taken. When no tile
- * satisfies the spacing the requirement drops by one and the sweep repeats,
- * down to a floor of 1. A duel map with twelve players therefore still seats
- * everyone — badly, but everyone — instead of throwing.
+ * Picks are greedy: take the best remaining site, then the best site at least
+ * `spacing` hexes (wrap-aware) from every site already taken. `spacing` is
+ * `spacingFactor · sqrt(land tiles)`, clamped — **a property of the map and
+ * never of the player count**. That is what makes a two-player game's starts an
+ * exact prefix of a twelve-player game's, which is in turn what lets the
+ * resource fairness passes seat the maximum roster once and cover every real
+ * game (see `ensureStartFood`).
+ *
+ * When no site satisfies the spacing the requirement drops by one and the sweep
+ * repeats, down to a floor of 1; when the *accepted* sites run out entirely the
+ * refused ones are swept the same way, best first. A duel map with twelve
+ * players therefore still seats everyone — badly, but everyone — instead of
+ * throwing, and a map made entirely of tundra seats them on tundra rather than
+ * nowhere.
  *
  * Ties are broken by tile index, so the result is a pure function of the map.
+ *
+ * The import of `cities.ts`, and why it is safe
+ * ---------------------------------------------
+ * `resources.ts` imports this module and `mapgen.ts` imports that, so a *value*
+ * read from `cities.ts` at this module's top level could close a load-time
+ * cycle. Nothing here reads one: `tileYieldOf` is a hoisted function
+ * declaration, called only from inside the functions below, by which time every
+ * module is evaluated. Nothing in this file may grow a top-level call into
+ * `cities.ts`.
  *
  * Placement
  * ---------
@@ -30,11 +92,16 @@
  * relaxed spacing can put two starts within a hex of each other.
  */
 
+import { tileYieldOf } from './cities';
 import type { GameMap, Tile } from './map';
-import { getTile, mapNeighbors, tileHex, tileIndex, wrappedDistance } from './map';
+import { getTile, mapNeighbors, mapRange, tileHex, tileIndex, wrappedDistance } from './map';
+import { MAPGEN_CONFIG } from './mapgenData';
 import { RULES } from './rulesData';
-import { moveCost } from './terrainData';
+import { isWaterTerrain, isWorkableTerrain, moveCost, type TileYield } from './terrainData';
 import { type UnitCategory, type UnitTypeId, unitDef } from './unitData';
+import { isCoastal } from './water';
+
+const STARTS = MAPGEN_CONFIG.starts;
 
 export interface StartPlacement {
   /** Index into `GameState.players`, in player order. */
@@ -44,15 +111,149 @@ export interface StartPlacement {
   row: number;
 }
 
-/** Desirability of a tile as a start: its terrain plus its ring's. */
-export function startScore(map: GameMap, tile: Tile): number {
-  const { terrainScore, neighborWeight } = RULES.startPlacement;
-  let score = terrainScore[tile.terrain];
-  for (const hex of mapNeighbors(map, tileHex(tile))) {
-    const neighbor = getTile(map, hex);
-    if (neighbor) score += neighborWeight * terrainScore[neighbor.terrain];
+/**
+ * One line of why a site scores what it does — the breakdown discipline applied
+ * to a decision rather than to a yield.
+ *
+ * It is not a `TileYieldContribution` and does not pretend to be: these are
+ * weighted, dimensionless desirabilities, not food. What they share is the rule
+ * that matters — the total is the fold of the list, and there is no second
+ * arithmetic anywhere.
+ */
+export interface StartScoreContribution {
+  source: string;
+  value: number;
+}
+
+/** A scored site: the ledger, its fold, and whether it is allowed at all. */
+export interface StartSiteScore {
+  entries: StartScoreContribution[];
+  total: number;
+  /** Why this site is refused outright, or `null` when it is acceptable. */
+  reject: string | null;
+  /** Workable food in the scored rings. The floor's subject. */
+  ringFood: number;
+  /** Workable production in the scored rings. The floor's other subject. */
+  ringProduction: number;
+}
+
+/**
+ * A tile as bare ground: no resource, no improvement. See the module docblock
+ * for why a start is scored on this rather than on the tile itself.
+ *
+ * A shallow copy rather than a mutation, because `chooseStartPositions` runs on
+ * a live map and a generator that scored by temporarily clearing a wheat would
+ * be one interrupted call away from losing it.
+ */
+function groundOf(tile: Tile): Tile {
+  return { ...tile, resource: undefined, improvement: undefined };
+}
+
+/** The ground yield of every tile on the map, indexed by tile index. */
+function groundYields(map: GameMap): TileYield[] {
+  return map.tiles.map((tile) => tileYieldOf(groundOf(tile)));
+}
+
+/** What one tile's ground is worth to a site, under the start weights. */
+function siteYieldScore(value: TileYield): number {
+  return (
+    value.food * STARTS.foodWeight +
+    value.production * STARTS.productionWeight +
+    value.gold * STARTS.goldWeight
+  );
+}
+
+/** True when a citizen from a city here could ever be sent to this tile. */
+function isWorkableSiteTile(tile: Tile): boolean {
+  return isWorkableTerrain(tile.terrain);
+}
+
+/**
+ * Scores one site and decides whether it is allowed.
+ *
+ * `ground` is the precomputed table when the caller has one (every real caller
+ * does — it scores the whole map), and is built for this one tile otherwise, so
+ * a tool or a test can ask about a single site without paying for the map.
+ */
+export function scoreStartSite(
+  map: GameMap,
+  tile: Tile,
+  ground?: readonly TileYield[],
+): StartSiteScore {
+  const yieldAt = (target: Tile): TileYield =>
+    ground ? ground[tileIndex(map, target.col, target.row)]! : tileYieldOf(groundOf(target));
+
+  const entries: StartScoreContribution[] = [];
+  entries.push({ source: 'Site', value: siteYieldScore(yieldAt(tile)) * STARTS.centreWeight });
+
+  const from = tileHex(tile);
+  let ringTiles = 0;
+  let hostile = 0;
+  let water = 0;
+  let ringFood = 0;
+  let ringProduction = 0;
+
+  // One walk of the whole neighbourhood. Every workable tile is remembered with
+  // the weight of the ring it stands in; how many rings there are is the length
+  // of the weight list, so a third ring is a number in `mapgen.json`.
+  const hostileTerrain = STARTS.hostileTerrain;
+  const rings = STARTS.ringWeights.length;
+  const workable: { value: number; index: number }[] = [];
+  for (const near of mapRange(map, from, rings)) {
+    const ring = wrappedDistance(map, from, tileHex(near));
+    if (ring < 1 || ring > rings) continue;
+    ringTiles += 1;
+    if (isWaterTerrain(near.terrain)) water += 1;
+    else if (hostileTerrain.includes(near.terrain)) hostile += 1;
+    if (!isWorkableSiteTile(near)) continue;
+    const value = yieldAt(near);
+    // The floors are read off **every** workable tile in the rings, not off the
+    // scored six: they are a promise about what the neighbourhood *can* feed and
+    // build over a whole game, and reading them off a set the score itself
+    // ordered would make them a function of the weights they exist to backstop.
+    ringFood += value.food;
+    ringProduction += value.production;
+    workable.push({
+      value: siteYieldScore(value) * STARTS.ringWeights[ring - 1]!,
+      index: tileIndex(map, near.col, near.row),
+    });
   }
-  return score;
+
+  // The **best `workedTiles` of them**, not all eighteen, and that is the whole
+  // difference between a good site and a big one. A city works its best tiles
+  // first and grows into the rest over an age; a score that summed the whole
+  // neighbourhood rewarded a hex ringed by eleven mediocre hills over one with
+  // six excellent tiles, which is not the site a player would pick and — the
+  // measurable half — not the site the citizen assigner then makes anything of.
+  workable.sort((a, b) => b.value - a.value || a.index - b.index);
+  const worked = workable.slice(0, Math.max(1, Math.round(STARTS.workedTiles)));
+  let ringScore = 0;
+  for (const tile of worked) ringScore += tile.value;
+  entries.push({ source: `Best ${worked.length} tiles`, value: ringScore });
+
+  if (tile.freshwater) entries.push({ source: 'Fresh water', value: STARTS.freshwaterBonus });
+  if (isCoastal(map, tile)) entries.push({ source: 'Coast', value: STARTS.coastBonus });
+
+  let total = 0;
+  for (const entry of entries) total += entry.value;
+
+  // The four hard rejections, in the order a player would say them: where the
+  // city stands, then what surrounds it, then whether it can feed and build.
+  let reject: string | null = null;
+  if (hostileTerrain.includes(tile.terrain)) reject = `site is ${tile.terrain}`;
+  else if (ringTiles > 0 && hostile / ringTiles > STARTS.maxHostileRingShare) {
+    reject = 'rings are cold or arid';
+  } else if (ringTiles > 0 && water / ringTiles > STARTS.maxWaterRingShare) {
+    reject = 'rings are mostly water';
+  } else if (ringFood < STARTS.minRingFood) reject = 'not enough food';
+  else if (ringProduction < STARTS.minRingProduction) reject = 'not enough production';
+
+  return { entries, total, reject, ringFood, ringProduction };
+}
+
+/** Desirability of a tile as a start. The fold of `scoreStartSite`'s list. */
+export function startScore(map: GameMap, tile: Tile, ground?: readonly TileYield[]): number {
+  return scoreStartSite(map, tile, ground).total;
 }
 
 function isStartCandidate(tile: Tile): boolean {
@@ -60,30 +261,30 @@ function isStartCandidate(tile: Tile): boolean {
 }
 
 /**
- * One start tile per player, in player order. Fewer than `count` tiles come back
- * only when the map has fewer passable land tiles than players.
+ * How far apart starts must be on this map: a multiple of the square root of
+ * its land, clamped. A pure function of the map — see the module docblock for
+ * why it must not know the player count.
  */
-export function chooseStartPositions(map: GameMap, count: number): Tile[] {
-  const chosen: Tile[] = [];
-  if (count <= 0) return chosen;
+export function startSpacing(map: GameMap): number {
+  let land = 0;
+  for (const tile of map.tiles) if (!isWaterTerrain(tile.terrain)) land++;
+  const raw = Math.round(STARTS.spacingFactor * Math.sqrt(land));
+  return Math.max(STARTS.minDistance, Math.min(STARTS.maxDistance, raw));
+}
 
-  // Best first, ties by tile index — the whole ranking is computed once.
-  const candidates = map.tiles.filter(isStartCandidate);
-  const scores = new Map<number, number>();
-  for (const tile of candidates) {
-    scores.set(tileIndex(map, tile.col, tile.row), startScore(map, tile));
-  }
-  candidates.sort((a, b) => {
-    const ia = tileIndex(map, a.col, a.row);
-    const ib = tileIndex(map, b.col, b.row);
-    return scores.get(ib)! - scores.get(ia)! || ia - ib;
-  });
-
-  const taken = new Set<number>();
-  let spacing = RULES.startPlacement.minSpacing;
-  while (chosen.length < count && candidates.length > 0) {
+/** Greedy sweep: best first, ties by tile index, relaxing spacing when stuck. */
+function seat(
+  map: GameMap,
+  ordered: readonly Tile[],
+  chosen: Tile[],
+  taken: Set<number>,
+  count: number,
+  fromSpacing: number,
+): void {
+  let spacing = fromSpacing;
+  while (chosen.length < count && ordered.length > 0) {
     let placedThisSweep = false;
-    for (const tile of candidates) {
+    for (const tile of ordered) {
       if (chosen.length >= count) break;
       const index = tileIndex(map, tile.col, tile.row);
       if (taken.has(index)) continue;
@@ -94,11 +295,51 @@ export function chooseStartPositions(map: GameMap, count: number): Tile[] {
       taken.add(index);
       placedThisSweep = true;
     }
-    // Nothing fits at this spacing (or the map simply ran out of tiles).
+    // Nothing fits at this spacing (or the list simply ran out).
     if (!placedThisSweep) {
-      if (spacing <= 1) break;
+      if (spacing <= 1) return;
       spacing -= 1;
     }
+  }
+}
+
+/**
+ * One start tile per player, in player order. Fewer than `count` tiles come back
+ * only when the map has fewer passable land tiles than players.
+ */
+export function chooseStartPositions(map: GameMap, count: number): Tile[] {
+  const chosen: Tile[] = [];
+  if (count <= 0) return chosen;
+
+  // The whole ranking is computed once, off one pass of ground yields.
+  const ground = groundYields(map);
+  const scores = new Map<number, StartSiteScore>();
+  const candidates = map.tiles.filter(isStartCandidate);
+  for (const tile of candidates) {
+    scores.set(tileIndex(map, tile.col, tile.row), scoreStartSite(map, tile, ground));
+  }
+  const byScore = (a: Tile, b: Tile): number => {
+    const ia = tileIndex(map, a.col, a.row);
+    const ib = tileIndex(map, b.col, b.row);
+    return scores.get(ib)!.total - scores.get(ia)!.total || ia - ib;
+  };
+
+  const accepted = candidates.filter((t) => scores.get(tileIndex(map, t.col, t.row))!.reject === null);
+  accepted.sort(byScore);
+
+  const spacing = startSpacing(map);
+  const taken = new Set<number>();
+  seat(map, accepted, chosen, taken, count, spacing);
+
+  // Still short: the map cannot honour its own standards, so the refused sites
+  // are swept too, best first. A start on snow is a bad start; no start is a
+  // crash.
+  if (chosen.length < count) {
+    const refused = candidates.filter(
+      (t) => scores.get(tileIndex(map, t.col, t.row))!.reject !== null,
+    );
+    refused.sort(byScore);
+    seat(map, refused, chosen, taken, count, spacing);
   }
   return chosen;
 }

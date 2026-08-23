@@ -5,17 +5,25 @@ all major systems exist (it is its own campaign); win conditions wait (conquest'
 exists silently); netcode after AI. Tackled one at a time, in order — each step leaves the
 game more playtestable than the last.
 
-## 1. Mapgen, starts & luxury variety — IN FLIGHT
-- Start-location scoring: guaranteed workable food + production in rings 1–2, freshwater or
-  coast bias (site-bonus design, Entry I.b), no tundra/desert starts, minimum capital
-  distance scaled to map size. Deterministic from the map seed.
-- Luxury variety: new luxuries (incense, jade, marble, furs, dyes) joining gems/silk/wine/
-  spices/salt; base +4 happiness per unique stays; each luxury adds a SIGNATURE effect —
-  empire-wide or powerfully local — from a small data-driven vocabulary (local city yields,
-  empire yields, extra happiness, per-category production bonus). All through the breakdown
-  machinery (rule 5). Incense revealed by Divination (the user's own revision note).
-- Fairness: every start near 2+ luxury kinds; kinds clustered regionally so trade matters
-  later.
+## 1. Mapgen, starts & luxury variety — **BUILT** (2026-08-23; ledger Entry IX.b)
+- Start-location scoring: a site is its ground plus the **best six** workable tiles in rings
+  1–2, freshwater and coast bonuses (Entry I.b), five hard rejections (no desert/tundra/snow
+  site, cold/arid rings, water-majority rings, food and production floors), spacing scaled to
+  the **map** so a short roster's starts are a prefix of a full one's. Deterministic from the
+  map seed; scored on a *ground view* so the fairness passes cannot move the starts they serve.
+- Luxury variety: ten luxuries — incense, jade, marble, furs, dyes joining gems/silk/wine/
+  spices/salt. Base +4 per unique stays; each adds a SIGNATURE from a four-shape vocabulary
+  (`cityYields`, `empireYields`, `extraHappiness`, `productionBonus`) read by ONE evaluator,
+  `src/sim/resourceEffects.ts`, and surfaced as labelled lines everywhere it lands. Incense is
+  revealed by Divination. The barracks' unit-only bonus was generalised into the same
+  `{ category, percent }` shape rather than given a sibling.
+- Fairness: every possible start gets a bonus food and 2 distinct luxury kinds in reach (bounded
+  only by what its ground can physically host); kinds are dealt per land region, so variety is
+  geographic and trade will matter.
+- A resource row is now **entirely data**: `ResourceId` derives from the JSON, props and icons
+  fall back for anything undrawn, and a runtime-invented luxury places, pays and explains with
+  no TypeScript. The fuller resource list can land as data only.
+- Also: new games default to a **single seat**; the multi-seat sandbox stays selectable.
 
 ## 2. Territory & gold (M9 folded in)
 - Doctrine: happiness owns the vertical (population), authority owns the horizontal (land).

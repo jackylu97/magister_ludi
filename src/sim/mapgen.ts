@@ -15,7 +15,6 @@
  * versus column spacing (√3·size) so features are not vertically stretched.
  */
 
-import mapgenJson from '../../data/mapgen.json';
 import { SQRT3 } from './hex';
 import {
   type GameMap,
@@ -24,74 +23,40 @@ import {
   offsetToAxial,
   tileNeighbors,
 } from './map';
-import { createNoise3D, fbm3, type FbmOptions, type Noise3D } from './noise';
-import { type ResourceConfig, placeResources } from './resources';
+import {
+  MAPGEN_CONFIG,
+  MAP_SIZE_NAMES,
+  type MapgenConfig,
+  type MapSizeConfig,
+  type NoiseConfig,
+  type StartsConfig,
+  getMapSize,
+} from './mapgenData';
+import { createNoise3D, fbm3, type Noise3D } from './noise';
+import { placeResources } from './resources';
 import { makeRng, nextUint32 } from './rng';
 import { isWaterTerrain, type FeatureId, type TerrainId } from './terrainData';
 import {
-  type RiverConfig,
   type RiverTrace,
   classifyLakes,
   computeFreshwater,
   traceRivers,
 } from './water';
 
-export interface NoiseConfig extends FbmOptions {
-  /** Noise units around the full circumference of the world. */
-  frequency: number;
-}
-
-export interface MapSizeConfig {
-  label: string;
-  width: number;
-  height: number;
-}
-
-export interface MapgenConfig {
-  sizes: Record<string, MapSizeConfig>;
-  noise: { elevation: NoiseConfig; moisture: NoiseConfig };
-  elevation: {
-    seaLevel: number;
-    hills: number;
-    mountains: number;
-    polarWaterLatitude: number;
-    polarWaterElevationBonus: number;
-  };
-  latitude: {
-    snow: number;
-    tundra: number;
-    desertMax: number;
-    jungleMax: number;
-    forestMin: number;
-    forestMax: number;
-  };
-  moisture: {
-    desertMax: number;
-    plainsMax: number;
-    forestMin: number;
-    jungleMin: number;
-  };
-  lakes: {
-    /** Water bodies of at most this many tiles become lakes. See `water.ts`. */
-    maxSize: number;
-  };
-  rivers: RiverConfig;
-  resources: ResourceConfig;
-}
-
-export const MAPGEN_CONFIG: MapgenConfig = mapgenJson as MapgenConfig;
-
-export const MAP_SIZE_NAMES = Object.keys(MAPGEN_CONFIG.sizes);
-
-export function getMapSize(sizeName: string): MapSizeConfig {
-  const size = MAPGEN_CONFIG.sizes[sizeName];
-  if (!size) {
-    throw new Error(
-      `Unknown map size "${sizeName}". Known sizes: ${MAP_SIZE_NAMES.join(', ')}`,
-    );
-  }
-  return size;
-}
+/**
+ * The tunables, re-exported from `mapgenData.ts` so that every call site that
+ * ever asked *this* module for them still can. They moved out to break a
+ * load-time cycle and nothing else — see that file's docblock.
+ */
+export {
+  MAPGEN_CONFIG,
+  MAP_SIZE_NAMES,
+  type MapgenConfig,
+  type MapSizeConfig,
+  type NoiseConfig,
+  type StartsConfig,
+  getMapSize,
+};
 
 /**
  * Samples a fractal noise field on the cylinder for offset cell (col, row).

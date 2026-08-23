@@ -53,6 +53,7 @@
 import {
   BUILDING_IDS,
   type BuildingId,
+  type ProductionCategory,
   buildingDef,
   isBuildingId,
 } from './buildingData';
@@ -104,6 +105,12 @@ import { hasStackingRoom } from './units';
 import { recomputeVisibility } from './visibility';
 import { isCoastal } from './water';
 import { growthFactor, meterEffects, yieldFactor } from './meters';
+import {
+  cityResourceYields,
+  empireResourceYields,
+  foldResourceYields,
+  resourceProduction,
+} from './resourceEffects';
 
 const CITIES = RULES.cities;
 
@@ -419,6 +426,34 @@ export function controlledResources(
     const id = openedResource(tile);
     if (id === null || resourceDef(id).kind !== kind) continue;
     if (tileOwnerPlayerId(state, tile.col, tile.row) === playerId) held.add(id);
+  }
+  return RESOURCE_IDS.filter((id) => held.has(id));
+}
+
+/**
+ * The same question one scale down: every resource of a kind that **this city**
+ * controls, once each, in the resource table's own order.
+ *
+ * The city scale exists because half the luxury vocabulary is local — a
+ * signature that pays "in the city that owns the improved tile" needs to know
+ * which city that is (`resourceEffects.ts`). It asks `openedResource`, the same
+ * one rule `controlledResources` asks, so a pillaged plantation stops paying
+ * both at once and neither has any bookkeeping of its own.
+ *
+ * Uniqueness is per city and that is the design, not a shortcut: two jade seams
+ * in one city are one jade's signature, and jade in a second city is a second
+ * signature. See the uniqueness note in `resourceEffects.ts`.
+ */
+export function cityResources(
+  state: GameState,
+  city: City,
+  kind: ResourceKind,
+): ResourceId[] {
+  const held = new Set<ResourceId>();
+  for (const tile of ownedTiles(state, city)) {
+    const id = openedResource(tile);
+    if (id === null || resourceDef(id).kind !== kind) continue;
+    held.add(id);
   }
   return RESOURCE_IDS.filter((id) => held.has(id));
 }
@@ -914,42 +949,54 @@ export function explainCityBuildings(
  * effect worth zero percent is never in it.
  */
 export interface ProductionModifier {
-  /** Display label: the building's name. */
+  /** Display label: the building's or the resource's name. */
   source: string;
-  building: BuildingId;
+  /** The building this line belongs to, or absent for a resource's line. */
+  building?: BuildingId;
+  /** The resource this line belongs to, or absent for a building's line. */
+  resource?: ResourceId;
   /** Signed percent, as a figure a surface prints rather than a fraction. */
   percent: number;
 }
 
 /**
- * The buildings currently putting extra hammers behind `toward`, in
- * `BUILDING_IDS` order.
+ * Everything currently putting extra hammers behind `toward` — the buildings in
+ * `BUILDING_IDS` order, then the city's own improved luxuries in resource-table
+ * order.
  *
- * Empty for a building item and for an empty queue, because the only category
- * anything modifies today is units (`unitProductionBonus`). It is a *list* over
- * the table rather than a lookup of the barracks, so the second such building is
- * a data row and not a second branch — there is no barracks special case
- * anywhere in the simulation.
+ * Empty for an empty queue, and otherwise a *list over two tables* rather than a
+ * lookup of the barracks: both declare the same `{ category, percent }` shape,
+ * so the second such building and the first such luxury are data rows and not
+ * second branches. There is no barracks case and no marble case anywhere in the
+ * simulation. That generalisation is the whole reason the old unit-only
+ * `unitProductionBonus` was widened rather than given a sibling — see
+ * `buildingData.ts`.
  *
  * `hypothetical` mirrors `cityYields`'s: a barracks the city does not have yet
  * has to be priced by the same function, or the tech screen's "what would this
- * be worth" would quietly answer zero.
- *
- * It takes no `GameState`, alone among the evaluators here, because it needs
- * none: what a city has built is on the city.
+ * be worth" would quietly answer zero. There is no hypothetical resource,
+ * because nothing previews owning one.
  */
 export function productionModifiers(
+  state: GameState,
   city: City,
   toward?: QueueItem | null,
   hypothetical: readonly BuildingId[] = [],
 ): ProductionModifier[] {
-  if (!toward || toward.kind !== 'unit') return [];
+  if (!toward) return [];
+  // The one place a queue item's kind is read as a bonus *category*; the two
+  // types are structurally identical and this line is what keeps them so.
+  const category: ProductionCategory = toward.kind;
   const list: ProductionModifier[] = [];
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id) && !hypothetical.includes(id)) continue;
-    const bonus = buildingDef(id).unitProductionBonus;
-    if (bonus === undefined || bonus === 0) continue;
-    list.push({ source: buildingDef(id).name, building: id, percent: bonus * 100 });
+    const bonus = buildingDef(id).productionBonus;
+    if (bonus === undefined || bonus.percent === 0 || bonus.category !== category) continue;
+    list.push({ source: buildingDef(id).name, building: id, percent: bonus.percent });
+  }
+  for (const line of resourceProduction(state, city, category)) {
+    if (line.percent === 0) continue;
+    list.push({ source: line.source, resource: line.resource, percent: line.percent });
   }
   return list;
 }
@@ -983,7 +1030,7 @@ function modifierFactor(list: readonly ProductionModifier[]): number {
  *
  * `toward` is what the city is putting its hammers behind, and the *only* thing
  * it changes is production. A barracks pays a share of the city's hammers toward
- * a unit and nothing toward a monument (`unitProductionBonus`), so the honest
+ * a unit and nothing toward a monument (`productionBonus`), so the honest
  * production rate is a fact about the pair rather than about the city — and it
  * is answered here, inside the one evaluator, rather than by a second
  * multiplication somewhere downstream. `collectYields` banks at the rate for
@@ -1038,6 +1085,18 @@ export function cityYields(
     total.gold += value.gold;
   }
 
+  // What the city's own improved luxuries pay it, the fold of the list the panel
+  // prints line by line (`resourceEffects.ts`). Before the buildings only
+  // because a seam in the ground is older than a market built over it; the sum
+  // is the same either way.
+  for (const line of cityResourceYields(state, city)) {
+    total.food += line.food;
+    total.production += line.production;
+    total.gold += line.gold;
+    total.science += line.science;
+    total.culture += line.culture;
+  }
+
   // The fold of `explainCityBuildings`, and the only place a building's worth is
   // summed — a candidate the city already has is skipped in there, because a
   // preview that promised a second library would be a preview that lies.
@@ -1054,7 +1113,7 @@ export function cityYields(
   }
 
   const effects = meterEffects(state, city.ownerId);
-  const hammers = modifierFactor(productionModifiers(city, toward, hypothetical));
+  const hammers = modifierFactor(productionModifiers(state, city, toward, hypothetical));
   if (effects.length > 0 || hammers !== 0) {
     total.production = Math.floor(
       total.production * (yieldFactor(effects, 'production') + hammers),
@@ -1273,6 +1332,18 @@ export function collectYields(state: GameState): void {
     player.gold += yields.gold;
     player.sciencePool += yields.science;
     player.culturePool += yields.culture;
+  }
+
+  // The empire-scale half of the luxury vocabulary, banked **once per player**
+  // after every city has collected — which is the whole difference between an
+  // `empireYields` signature and a `cityYields` one. Walked in `state.players`
+  // order, and the fold of the same list the top bar's totals quote, so a silk
+  // road's two gold is one number wherever it is read.
+  for (const player of state.players) {
+    const empire = foldResourceYields(empireResourceYields(state, player.id));
+    player.gold += empire.gold;
+    player.sciencePool += empire.science;
+    player.culturePool += empire.culture;
   }
 }
 

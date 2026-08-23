@@ -77,6 +77,34 @@
     "countPer1000LandTiles": 120,
     "minSpacing": 2,
     "startFoodRadius": 3,
-    "attemptsPerResource": 12
+    "attemptsPerResource": 12,
+    "startLuxuryRadius": 4,
+    "startLuxuryKinds": 2,
+    "luxuryKindsPerRegion": 4
+  },
+  "starts": {
+    "spacingFactor": 0.55,
+    "minDistance": 5,
+    "maxDistance": 16,
+    "ringWeights": [
+      1.0,
+      0.55
+    ],
+    "workedTiles": 6,
+    "centreWeight": 2.0,
+    "foodWeight": 1.0,
+    "productionWeight": 1.5,
+    "goldWeight": 0.3,
+    "freshwaterBonus": 7,
+    "coastBonus": 4,
+    "minRingFood": 16,
+    "minRingProduction": 10,
+    "hostileTerrain": [
+      "desert",
+      "tundra",
+      "snow"
+    ],
+    "maxHostileRingShare": 0.45,
+    "maxWaterRingShare": 0.5
   }
 }

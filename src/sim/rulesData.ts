@@ -20,7 +20,7 @@
 
 import rulesJson from '../../data/rules.json';
 import type { TechId } from './techData';
-import type { TerrainId, TileYield } from './terrainData';
+import type { TileYield } from './terrainData';
 import type { UnitTypeId } from './unitData';
 
 export interface GameRules {
@@ -130,15 +130,6 @@ export interface ImprovementRules {
    * than for a farm would quietly make luxuries the thing armies go for.
    */
   pillageGold: number;
-}
-
-export interface StartPlacementRules {
-  /** Minimum hex distance between two players' start tiles. */
-  minSpacing: number;
-  /** Weight of each neighbour's terrain score in a candidate tile's score. */
-  neighborWeight: number;
-  /** Desirability of a terrain as (or next to) a starting tile. */
-  terrainScore: Record<TerrainId, number>;
 }
 
 /** Relative desirability of each yield when a citizen picks a tile to work. */
@@ -318,7 +309,6 @@ export interface RulesConfig {
   research: ResearchRules;
   /** Unit types every player receives at their start position, in order. */
   startingUnits: UnitTypeId[];
-  startPlacement: StartPlacementRules;
 }
 
 export const RULES: RulesConfig = rulesJson as RulesConfig;

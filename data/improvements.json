@@ -2,7 +2,7 @@
   "improvements": {
     "farm": {
       "name": "Farm",
-      "emoji": "🌱",
+      "emoji": "\ud83c\udf31",
       "chargeCost": 1,
       "requiresTech": "agriculture",
       "yields": {
@@ -36,7 +36,7 @@
     },
     "mine": {
       "name": "Mine",
-      "emoji": "⛏️",
+      "emoji": "\u26cf\ufe0f",
       "chargeCost": 1,
       "requiresTech": "mining",
       "yields": {
@@ -57,13 +57,14 @@
       "requiresHills": true,
       "improvesResource": [
         "iron",
-        "gems"
+        "gems",
+        "jade"
       ],
       "clearsClutter": true
     },
     "pasture": {
       "name": "Pasture",
-      "emoji": "🐑",
+      "emoji": "\ud83d\udc11",
       "chargeCost": 1,
       "requiresTech": "husbandry",
       "yields": {
@@ -83,7 +84,7 @@
     },
     "camp": {
       "name": "Camp",
-      "emoji": "⛺",
+      "emoji": "\u26fa",
       "chargeCost": 1,
       "requiresTech": "fletching",
       "yields": {
@@ -92,16 +93,18 @@
         "gold": 1
       },
       "requiresResource": [
-        "deer"
+        "deer",
+        "furs"
       ],
       "improvesResource": [
-        "deer"
+        "deer",
+        "furs"
       ],
       "clearsClutter": false
     },
     "quarry": {
       "name": "Quarry",
-      "emoji": "🧱",
+      "emoji": "\ud83e\uddf1",
       "chargeCost": 1,
       "requiresTech": "stonecraft",
       "yields": {
@@ -111,17 +114,19 @@
       },
       "requiresResource": [
         "stone",
-        "salt"
+        "salt",
+        "marble"
       ],
       "improvesResource": [
         "stone",
-        "salt"
+        "salt",
+        "marble"
       ],
       "clearsClutter": false
     },
     "plantation": {
       "name": "Plantation",
-      "emoji": "🌿",
+      "emoji": "\ud83c\udf3f",
       "chargeCost": 1,
       "requiresTech": "calendar",
       "yields": {
@@ -132,12 +137,16 @@
       "requiresResource": [
         "silk",
         "wine",
-        "spices"
+        "spices",
+        "incense",
+        "dyes"
       ],
       "improvesResource": [
         "silk",
         "wine",
-        "spices"
+        "spices",
+        "incense",
+        "dyes"
       ],
       "clearsClutter": false,
       "upgrades": [

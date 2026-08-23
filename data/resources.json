@@ -177,11 +177,15 @@
         "none"
       ],
       "hills": true,
-      "frequency": 5,
+      "frequency": 3,
       "clusterSize": [
         1,
         1
       ],
+      "effect": {
+        "kind": "cityYields",
+        "gold": 3
+      },
       "emoji": "\ud83d\udc8e"
     },
     "silk": {
@@ -199,11 +203,15 @@
       "validFeatures": [
         "forest"
       ],
-      "frequency": 5,
+      "frequency": 3,
       "clusterSize": [
         1,
         1
       ],
+      "effect": {
+        "kind": "empireYields",
+        "gold": 2
+      },
       "emoji": "\ud83e\uddf5"
     },
     "wine": {
@@ -221,11 +229,15 @@
       "validFeatures": [
         "none"
       ],
-      "frequency": 6,
+      "frequency": 4,
       "clusterSize": [
         1,
         2
       ],
+      "effect": {
+        "kind": "extraHappiness",
+        "amount": 2
+      },
       "emoji": "\ud83c\udf47"
     },
     "spices": {
@@ -243,11 +255,15 @@
       "validFeatures": [
         "jungle"
       ],
-      "frequency": 5,
+      "frequency": 3,
       "clusterSize": [
         1,
         2
       ],
+      "effect": {
+        "kind": "cityYields",
+        "food": 2
+      },
       "emoji": "\ud83c\udf36\ufe0f"
     },
     "salt": {
@@ -264,12 +280,154 @@
       "validFeatures": [
         "none"
       ],
-      "frequency": 5,
+      "frequency": 3,
       "clusterSize": [
         1,
         2
       ],
+      "effect": {
+        "kind": "cityYields",
+        "food": 1,
+        "gold": 1
+      },
       "emoji": "\ud83e\uddc2"
+    },
+    "incense": {
+      "name": "Incense",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 2
+      },
+      "validTerrain": [
+        "desert"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": false,
+      "requiresTech": "divination",
+      "frequency": 3,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effect": {
+        "kind": "empireYields",
+        "culture": 2
+      },
+      "emoji": "\ud83e\ude94"
+    },
+    "jade": {
+      "name": "Jade",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 2
+      },
+      "validTerrain": [
+        "grassland"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": true,
+      "frequency": 5,
+      "clusterSize": [
+        1,
+        1
+      ],
+      "effect": {
+        "kind": "cityYields",
+        "culture": 2
+      },
+      "emoji": "\ud83d\udca0"
+    },
+    "marble": {
+      "name": "Marble",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 1,
+        "gold": 1
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "tundra"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": true,
+      "frequency": 4,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effect": {
+        "kind": "productionBonus",
+        "category": "building",
+        "percent": 15
+      },
+      "emoji": "\ud83c\udfdb\ufe0f"
+    },
+    "furs": {
+      "name": "Furs",
+      "kind": "luxury",
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 1
+      },
+      "validTerrain": [
+        "tundra",
+        "plains"
+      ],
+      "validFeatures": [
+        "forest"
+      ],
+      "frequency": 3,
+      "clusterSize": [
+        1,
+        3
+      ],
+      "effect": {
+        "kind": "cityYields",
+        "food": 1,
+        "gold": 2
+      },
+      "emoji": "\ud83e\uddab"
+    },
+    "dyes": {
+      "name": "Dyes",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 2
+      },
+      "validTerrain": [
+        "grassland",
+        "plains"
+      ],
+      "validFeatures": [
+        "jungle",
+        "forest"
+      ],
+      "frequency": 3,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effect": {
+        "kind": "cityYields",
+        "gold": 1,
+        "culture": 1
+      },
+      "emoji": "\ud83c\udfa8"
     }
   }
 }

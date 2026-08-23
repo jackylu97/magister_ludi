@@ -264,6 +264,89 @@ Two later corrections to that layer, both from play (2026-08-21):
   instance, no draw call and no ordering argument; the price is that it is a shade of the voice
   colour rather than a true alpha.
 
+### Entry IX.b — Start scoring & luxury signatures (playable-loop item 1, **built** 2026-08-23)
+
+The map argues with the player before the first turn: which ground is worth starting on, and
+which luxuries are worth going to get. Two halves, both entirely in data.
+
+**Start scoring** (`src/sim/startPositions.ts`, tunables in `mapgen.starts`). A candidate is
+scored as a *site* — the ground it stands on plus the **best six** workable tiles in rings 1–2,
+each weighted by its ring — with flat bonuses for fresh water and coast, the two site bonuses the
+settler lens has painted since Entry I.b. Five hard rejections back it: the site's own terrain
+(no desert/tundra/snow starts), the share of its rings that is cold or arid, the share that is
+water, and floors on the food and production the rings carry.
+
+Four decisions are worth keeping:
+
+1. **Best six, not all eighteen.** A sum over the whole neighbourhood rewards quantity, and the
+   first version duly seated capitals on jungle ringed by eleven hills — good on paper, two
+   hammers a turn in practice, because the citizen assigner works the *best* tiles and there were
+   only two. Scoring what a young city will actually work put the opening capital back at the
+   three production `test/tech.test.ts` had measured the scout's price against.
+2. **The real yield evaluator, on a ground view.** `tileYieldOf` — the same function every
+   citizen, border and hover card reads — asked about each tile with its resource and improvement
+   *stripped*. Two things fall out. The resource fairness passes plant food and luxuries at the
+   starts, so a start that moved when a wheat landed beside it would send the guarantee chasing
+   itself around the map; and `Tile.improvement` changes during play, so a chooser that read it
+   would answer differently on turn 40.
+3. **Spacing is a property of the map, never of the roster** — `spacingFactor · sqrt(land)`,
+   clamped. That is what makes a two-player game's starts an exact *prefix* of a twelve-player
+   game's, which is in turn what lets the fairness passes seat the maximum roster once and cover
+   every real game. Relaxation (down to 1, then a sweep of the refused sites) still seats twelve
+   players on a duel map rather than throwing.
+4. **The score is a ledger.** `scoreStartSite` returns the signed lines and the total is their
+   fold — rule 5 applied to a decision rather than to a yield.
+
+**Luxury variety.** Ten luxuries now: gems, silk, wine, spices, salt joined by **incense, jade,
+marble, furs, dyes**. All ten keep the flat `perUniqueLuxury` happiness, and each adds a
+**signature effect** from a vocabulary of exactly four shapes, read by one evaluator
+(`src/sim/resourceEffects.ts`) and by nothing else:
+
+| shape | reading | who has it |
+|---|---|---|
+| `cityYields` | flat yields in the city that owns the improved tile | gems (+3🪙), spices (+2🌾), salt (+1🌾+1🪙), jade (+2🎵), furs (+1🌾+2🪙), dyes (+1🪙+1🎵) |
+| `empireYields` | flat yields to the empire, once per unique kind | silk (+2🪙), incense (+2🎵) |
+| `extraHappiness` | on top of the flat figure, its own ledger line | wine (+2) |
+| `productionBonus` | a share of the owning city's hammers, by category | marble (+15% toward buildings) |
+
+Three notes on the shape of it. **Uniqueness reads by scale**: an empire effect counts once per
+kind however many seams feed it; a local effect counts once per kind *per city*, which is what
+makes the second jade worth settling for rather than a shrug. **`productionBonus` is the old
+barracks field generalised**, not a sibling beside it — `unitProductionBonus: 0.1` became
+`productionBonus: { category, percent }`, buildings and resources declare the same shape, and
+`productionModifiers` is a list over the two tables with no barracks case and no marble case
+anywhere. And **`empireYields` may not name food or production**: the empire has no basket for
+either, and the table refuses such a row at load rather than paying nothing quietly.
+
+Incense is the first *luxury* behind a `requiresTech` reveal (Divination, the user's own revision
+note), and it needed no new mechanism at all — which is the argument for having built the reveal
+as a property of the row rather than of the strategic kind.
+
+**Fairness and regional character.** Before the scatter, every land region — connected components
+of land, which is to say continents — is dealt a hand of `luxuryKindsPerRegion` kinds from the
+map rng, and a luxury find on ground whose region was not dealt it is thrown away (the scatter's
+own rejection idiom, so placement stays a pure function of the draw sequence). After the scatter,
+every *possible* start is guaranteed a bonus food and **two distinct luxury kinds** in reach,
+both passes rolling no dice, both preferring the region's own hand so a guarantee does not flatten
+the character the scatter just built. Neither pass invents ground: a start ringed by flat
+featureless grassland can host exactly one luxury in the whole table, and one is what it gets.
+Both are the documented exception to the scatter's spacing rule — a guarantee outranks an
+aesthetic — and `test/resources.test.ts` pins that down by requiring every crowded pair to be
+within reach of a possible start.
+
+**A resource is now entirely data.** `ResourceId` is derived from the JSON's own keys, the two
+exhaustive `Record<ResourceId, …>` tables in the renderer became lookups with documented
+fallbacks (an unsculpted find draws a marker cairn; an undrawn icon prints the row's emoji on its
+roundel), and the placement pass reads only the constraint fields. Adding a row to
+`data/resources.json` therefore costs no TypeScript, which `test/resources.test.ts` proves by
+inventing one at runtime and asserting it places, pays and explains.
+
+**Also landed:** a new game defaults to a **single seat**. There is no AI, so a second seat is a
+second empire nobody is driving; the sandbox roster stays one option down the landing screen's
+new Seats select, and the turn model is untouched (`turnEnded` is simply an array of one).
+
+---
+
 ---
 
 ## Entry XII — Workers, improvements and explainable yields (M7, **built** 2026-08-23)
