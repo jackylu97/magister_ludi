@@ -34,6 +34,39 @@ using the building-renewal mechanism, so the narrative spine is also a mechanica
   **The Paper Lantern That Lifted** (aerostats).
 - **The Water thread**: river farms → aqueduct → watermill → The Grand Canal.
 
+## Canon myth — the shared spine (Age I–II core content, user direction 2026-08-23)
+
+The tree reads like the *memory* of the ancient world, not its archaeology — the past as its
+poets recorded it. Principle: the larger-than-life feel comes from mechanics that
+**mythologize the player's own run** — the game retells your events as legend.
+
+- **Epic Poetry** (the Iliad, Gilgamesh) — tech: *your unit deaths generate culture* — "the
+  fallen become verse." The game's actual battles become its epics; loss feeds legacy. Cheap
+  to build, profound to feel. Unlocks the hall-of-deeds building (culture+happiness).
+- **The King List** (Sumerian kings reigning 28,800 years) — tech/palace effect: capital
+  yields or authority capacity scale with the *age of your line* (turns since founding) —
+  "the longer the line, the greater the mandate."
+- **The Walls of Uruk** ("climb the walls of Uruk and walk them") — the city-defense
+  building line's canonical name; city HP/defense.
+- **The Stele of Laws** (Hammurabi) — the ANCIENT authority-capacity building (fills the
+  authority-sources gap in Age I–II the way the Examination Hall does for Age III): law
+  carved in stone, +authority.
+- **The Oracle** (Delphi, oracle bones) — the building where **Magister's Dice come from**:
+  earns a die per age (deterministic, per the dice-economy commitments). Divination theme
+  and reroll economy wired together in one canon place.
+- **Funeral Games** (games held for fallen heroes → the Olympiad) — the happiness building's
+  real home (the "circus" of the v0 meter numbers): games as grief transmuted.
+- **Standing Stones** (Göbekli Tepe — the temple BEFORE the field; Stonehenge) — early
+  worker-built *culture improvement*: monoliths on open ground; the first thing a people
+  builds that isn't food.
+- **The Ancestor Mound** (barrows, ziggurats) — monument's upgrade tier: culture+authority;
+  ancestors as infrastructure.
+- **The Deluge Remembered** (every culture's flood) — river infrastructure: levees/granary
+  renewal on freshwater; the flood myth as food security.
+- **The Mysteries** (Eleusis) — temple renewal: initiation rites, +happiness.
+- **The Heroic Age** — candidate Æra name (Hesiod's ages of man are canon for naming the
+  Æra ladder itself).
+
 ## Age I — myth that was real (mostly flavor-dress on the shipped tree)
 
 - **Divination**: flavor = oracle bones and entrails; its prereq on Husbandry (herds to
@@ -54,10 +87,10 @@ using the building-renewal mechanism, so the narrative spine is also a mechanica
   Science+culture hybrid; amphitheater/temple renewal.
 - **The First Distillation** — alchemy begins (Alexandria + Chinese jindan). Market/gold
   renewal; the explicit opening of the ascent that ends at the Great Work.
-- **The Body's Rivers** — meridians/acupuncture: units heal faster in friendly territory.
-- **The Silk Mystery** — silk as guarded state secret (smuggled eggs, Justinian's monks):
-  plantation renewal +gold.
-- **Greek Fire** — the lost incendiary formula (Age II/III military, naval when water exists).
+- *(Demoted to the mastery-roll pools, user 2026-08-23 — too specific for the shared tree:)*
+  **The Body's Rivers** (healing buff) · **The Silk Mystery** (plantation gold) ·
+  **Greek Fire** (military roll) · likewise future one-off oddities: the roll pools are
+  where bespoke history lives; the tree carries what everyone's ancients dreamed.
 
 ## Age III — the eastern truth arrives
 
