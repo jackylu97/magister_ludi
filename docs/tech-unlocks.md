@@ -65,7 +65,92 @@ Resource-improvements also flip `hasResource` on (strategic resources feed unit 
 
 ## Revisions
 
-*(yours — edit away)*
+Things i've been considering: each unlock gives a 'roll' that allows you to improve a class of buildings aka unlocking the granary can unlock potential upgrades like:
+- mastery the hearth: food buildings give +1 faith
+- mastery of the seasons: food buildings give +1 food to tiles adjacent to the city
+- mastery of the fields: food buildings give resource tiles +1 food
+- centralize authority: food buildings give +3 food to the capital
+(the naming could use more work, these are just some examples.)
+
+Another note: going to purposely leave out wonders, which should balance the power of unlocks in terms of player priority of techs. Unlock system isn't built yet, so we can ignore those for now, just a note for the future.
+
+Would love your thoughts: Each science unlock should be fairly impactful, given we're condensing the game. I also want unlocks to bring a level of power/unpredictability so that there is no optimal tech path, but depends on game, hence early unlocks that lead to more predictable bonuses in the second tier.
+
+Also, playing along with the themes in the game, i want religion to include both bonuses to science and culture, instead of civ's emphasis on religion being more tied to culture. Religion should be an upfront investment that pays off in the late game.
+
+Agriculture (dont use tillage)
+- this should be the only starting tech
+- settler warrior scout worker, keep as is
+- unlocks farms (+1 food)
+
+Earthenware (prev pottery)
+- granary: +3 food in city.
+- prereq: agriculture
+- food unlock?
+
+Mining
+- unlocks building mines on hill tiles (+1 prod)
+- prereq: agriculture
+- unlocks chopping forests (20 prod +5 for each tech resourced +5 for each civic slotted in the government, to implement later)
+
+Calendar
+- unlocks plantations (+1 food +1 gold)
+- +1 gold in cities with a plantation resource
+- prereq: pottery
+
+Sailing
+- civilian units can now enter water tiles
+- unlocks fishing boats (+1 food and +1 gold) on water resources
+- water tiles +1 food in cities with a granary
+- prereq: agriculture
+
+Divination
+- prereq: husbandry
+- shrine (+2 faith, +1 science)
+- religious unlock?
+- unlocks priest/monk? (to be designed)
+
+Husbandry (prev animal husbandry)
+- prereq: agriculture
+- horseman unlock
+- unlock pasture improvement
+- reveals horses
+
+Fletching (prev archery)
+- prereq: agriculture
+- unlocks archer (indirect fire)
+- unlock camp improvement (deer)
+- military unlock
+
+Stonecraft
+- prereq: husbandry, pottery
+- unlock quarry improvement
+- unlock monument (+2 culture, +1 authority)
+
+Letters (prev writing)
+- prereq: pottery, divination
+- unlock library (+2 science, +1 science for each population in this city)
+- +2 gold in all cities with a library
+- science unlock
+- unlock trade menu? (to implement later)
+
+bronzeworking:
+- prereq: mining, pottery
+- unlocks: spearmen
+- reveals iron
+- military unlock
+- unlocks: barracks (+10% production towards units, +15XP for new units trained in this city)
+
+The Wheel:
+- unlocks: chariot, chariot archer
+- chariot (more movement, stronger than a horseman)
+- chariot archer (more movement, stronger than archer, no indirect fire)
+- military unlock
+- +1 food in all cities with a granary
+
+
+I like the renaming of the ages!
+
 
 ### Suggestions (Claude) — renaming the tree away from Civ
 

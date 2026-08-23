@@ -657,11 +657,13 @@ Magister's writ run?"
    now a stated commitment). Settler increment stays 8 for now; halving is a playtest lever.
 3. **Luxuries: flat +4 happiness per unique improved luxury.** The partial per-city scaling is
    dropped.
-4. **Effects, tiered at ±5/±10 → ±10%/±20%** (data-driven, clamped at ±20% for now):
-   · Happiness ≥ +5 → science & culture bonus · Happiness < 0 → empire-wide growth stifle
-   · Authority ≥ +5 → production bonus · Authority < 0 → production, science & culture stifle
-   Percentages from the two meters SUM per yield, then apply once (legible; a +10% and a −10%
-   read as 0). Growth stifle multiplies food surplus toward growth only.
+4. **Effects** (data-driven):
+   · Bonus tiers at +5/+10 → +10%/+20%: Happiness → science & culture · Authority → production.
+   · Authority < 0 stifles production, science & culture at −5/−10 → −10%/−20%.
+   · **Happiness growth stifle is its own steeper ladder (user, 2026-08-23 — "actually
+     impactful"): H < 0 → −50% food surplus · H ≤ −10 → −80% · H ≤ −20 → −100%.** Surplus
+     only, never base food — growth stalls, cities never starve from the meter alone.
+   Percentages on the same yield SUM, then apply once (a +10% and a −10% read as 0).
 5. **No new buildings yet** (no circus/courthouse); sources v1 = palace + ages + luxuries
    (happiness), palace + ages (authority capacity). More authority sources acknowledged as
    missing — designed later, likely with the tech-tree revision (monument +1 authority is
