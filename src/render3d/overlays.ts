@@ -19,7 +19,7 @@
  * Every decal in this layer is added with `onTop`, which drops the depth test
  * and draws it after all board geometry (see `MaterialLibrary.overlay` and the
  * render orders in `instances.ts`). These are the game talking to the player,
- * not scenery: a route dot behind a pine tree, a worked-tile chip inside a
+ * not scenery: a route dot behind a pine tree, a worked-tile ring inside a
  * jungle or a selection ring cut in half by a mountain cone are all the same
  * bug, and it is the one the depth test was quietly causing. The cost is that a
  * decal can be drawn over a piece standing on a *neighbouring* tile, since a
@@ -98,14 +98,21 @@ export interface OverlayState {
   worked: readonly CellRef[];
   /**
    * The subset of `worked` the player has *pinned* (see `City.lockedTiles`):
-   * drawn as a bigger chip inside a ring, so a citizen the player placed by
-   * hand never looks like one the assignment happened to choose.
+   * its ring takes the player's colour instead of bone white, so a citizen the
+   * player placed by hand never looks like one the assignment happened to
+   * choose.
    *
    * Only honoured pins are passed in. A pin on a tile the city cannot currently
    * work is real state, but drawing a marker on a tile with nobody on it would
    * say the opposite of what is true.
    */
   locked: readonly CellRef[];
+  /**
+   * The local seat's piece colour, for the pinned rings. Optional because the
+   * callers that have no seat (the overlay tests, gallery harnesses) have no
+   * player to take a colour from; the data-file accent stands in.
+   */
+  lockedColor?: number;
   /**
    * Move mode is armed (see `MapView.setMoveModeHighlight`): the selection ring
    * is drawn at full strength with a wider halo outside it, so the piece that is
@@ -204,29 +211,24 @@ export class OverlayLayer {
       );
     }
 
-    // Worked-tile chips: smaller than a path dot and in the same bone white, so
-    // they read as marks on the board rather than as a route. A pinned tile
-    // takes the accent colour and a ring instead — same place, same meaning
-    // ("a citizen works here"), plus "and you said so".
+    // Worked-tile marks: one small hex ring per worked tile, no filled dot. The
+    // ring says "a citizen works here" and its colour says who decided — bone
+    // white for the assignment's own choice, the seat's piece colour for a tile
+    // the player pinned by hand. An outline rather than a dot on purpose: the
+    // yield glyphs sit at the same anchor, and a chip under them was a smudge
+    // behind the numbers, where a ring frames them instead.
     const pinned = new Set(state.locked.map((cell) => `${cell.col},${cell.row}`));
+    const lockedTint = state.lockedColor ?? TERRITORY.lockedColor;
     for (const cell of state.worked) {
       const at = anchor(cell);
       if (!at) continue;
       const lockedHere = pinned.has(`${cell.col},${cell.row}`);
-      const s = lockedHere ? TERRITORY.lockedScale : TERRITORY.workedScale;
-      collector.add(
-        geometry.dot,
-        [lockedHere ? TERRITORY.lockedColor : TERRITORY.workedColor],
-        new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
-        { onTop: true, opacity: TERRITORY.workedOpacity },
-      );
-      if (!lockedHere) continue;
-      const ring = TERRITORY.lockedRingScale;
+      const s = TERRITORY.ringScale;
       collector.add(
         geometry.ring,
-        [TERRITORY.lockedColor],
-        new Matrix4().compose(at, identity, new Vector3(ring, 1, ring)),
-        { onTop: true, opacity: TERRITORY.lockedRingOpacity },
+        [lockedHere ? lockedTint : TERRITORY.workedColor],
+        new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
+        { onTop: true, opacity: lockedHere ? TERRITORY.lockedRingOpacity : TERRITORY.workedOpacity },
       );
     }
 

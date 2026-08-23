@@ -278,21 +278,24 @@ export interface RiverSpec {
   drop: number;
 }
 
-/** Borders, and the dots marking which tiles a city's citizens work. */
+/** Borders, and the hex rings marking which tiles a city's citizens work. */
 export interface TerritorySpec {
   /** Territory tint size as a fraction of the hex radius. */
   tintScale: number;
   tintOpacity: number;
   /** Opacity of the ring drawn on tiles at the edge of an empire. */
   borderOpacity: number;
+  /** An auto-assigned citizen's ring: bone white, the board's quiet voice. */
   workedColor: number;
   workedOpacity: number;
-  /** Worked-tile dot size, as a multiple of the path dot. */
-  workedScale: number;
-  /** A pinned tile's dot: bigger, in the player's own accent, and ringed. */
+  /**
+   * A pinned tile's ring colour — a *fallback* only: the overlay is handed the
+   * local seat's own piece colour and uses this when no seat is set (galleries,
+   * the omniscient dev board).
+   */
   lockedColor: number;
-  lockedScale: number;
-  lockedRingScale: number;
+  /** Both rings' size, as a fraction of the full tile hex ring. */
+  ringScale: number;
   lockedRingOpacity: number;
 }
 
@@ -1282,10 +1285,8 @@ export const VIEW3D: View3DData = {
     borderOpacity: viewJson.territory.borderOpacity,
     workedColor: named(viewJson.territory.workedColor, 'territory.workedColor'),
     workedOpacity: viewJson.territory.workedOpacity,
-    workedScale: viewJson.territory.workedScale,
     lockedColor: named(viewJson.territory.lockedColor, 'territory.lockedColor'),
-    lockedScale: viewJson.territory.lockedScale,
-    lockedRingScale: viewJson.territory.lockedRingScale,
+    ringScale: viewJson.territory.ringScale,
     lockedRingOpacity: viewJson.territory.lockedRingOpacity,
   },
   look: viewJson.look,

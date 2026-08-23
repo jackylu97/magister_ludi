@@ -849,7 +849,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // city *banner* takes — banners are DOM over the board, so they never reach
     // the board's own click handling — and an armed move order left hanging
     // behind a city screen would go off on the next click for no visible reason.
-    if (cityId !== null) setMoveMode(false);
+    // The same subject-change drops a held unit: the two right-hand panels
+    // share one slot (see `select`, which closes a city the mirror way), so a
+    // unit panel left under a city screen would just be a stale second voice.
+    if (cityId !== null) {
+      setMoveMode(false);
+      selectedId = null;
+    }
     refreshOverlays();
     renderer.invalidate();
     onUpdate(selectedUnit(), renderer.getHover());

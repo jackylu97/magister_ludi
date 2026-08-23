@@ -664,6 +664,17 @@ export class Renderer3D implements MapView {
         selection: selected ? { col: selected.col, row: selected.row } : null,
         worked: this.workedTiles,
         locked: this.lockedTiles,
+        // The pinned rings wear the seat's own piece colour — worked tiles are
+        // only ever shown for the local seat's cities, so the seat is the one
+        // player whose colour can be right here. No seat, no colour: the
+        // overlay falls back to the data-file accent.
+        lockedColor:
+          this.fogSeat === null
+            ? undefined
+            : playerPieceColor(
+                this.state?.players[this.fogSeat]?.color ?? '',
+                this.fogSeat,
+              ),
         moveMode: this.moveMode,
       },
       this.geometry,

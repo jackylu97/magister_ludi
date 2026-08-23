@@ -237,10 +237,8 @@
     "borderOpacity": 0.62,
     "workedColor": "bone",
     "workedOpacity": 0.9,
-    "workedScale": 0.62,
     "lockedColor": "crimson",
-    "lockedScale": 0.72,
-    "lockedRingScale": 0.44,
+    "ringScale": 0.44,
     "lockedRingOpacity": 0.95
   },
   "look": {
