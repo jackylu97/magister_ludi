@@ -51,6 +51,7 @@ import { cityYields, queueItemName, turnsToFill, queueItemCost } from '../sim/ci
 import type { Game } from '../sim/game';
 import type { City } from '../sim/state';
 import { type CitySighting, isExploredBy, isVisibleTo } from '../sim/visibility';
+import { cityDisplayName } from './cityDisplay';
 import type { MapView } from './mapView';
 
 export interface CityBannersOptions {
@@ -168,7 +169,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       cityId: city.id,
       col: city.col,
       row: city.row,
-      name: city.name,
+      name: cityDisplayName(getGame().state, city),
       ownerId: city.ownerId,
       pop: `${city.population}`,
       production: '',
@@ -205,7 +206,14 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       cityId: sighting.cityId,
       col: sighting.col,
       row: sighting.row,
-      name: sighting.name,
+      // Checked against the *current* capital (see `cityDisplayName`), not the
+      // sighting's own stale facts: the palace is live state, so a remembered
+      // town still gets a true star, never a stale one.
+      name: cityDisplayName(getGame().state, {
+        id: sighting.cityId,
+        ownerId: sighting.ownerId,
+        name: sighting.name,
+      }),
       ownerId: sighting.ownerId,
       pop: '',
       production: '',

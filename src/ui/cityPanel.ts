@@ -44,6 +44,7 @@ import { resourceDef } from '../sim/resourceData';
 import { type City, type QueueItem, hasEndedTurn } from '../sim/state';
 import { isUnlocked, requiredResource } from '../sim/tech';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
+import { cityDisplayName } from './cityDisplay';
 import { HAMMER, YIELD_GLYPH, effectFigure, signedFigure, turnsLabel } from './figures';
 import { createInfoCard } from './infoCard';
 
@@ -631,7 +632,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
     const header = element('div', 'city-header');
     const title = element('div', 'city-title');
-    title.append(element('h2', undefined, city.name));
+    title.append(element('h2', undefined, cityDisplayName(state, city)));
     title.append(element('span', 'city-size', `Size ${city.population}`));
     header.append(title);
 

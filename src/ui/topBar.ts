@@ -54,6 +54,7 @@ import {
   meterStanding,
 } from '../sim/meters';
 import type { GameState } from '../sim/state';
+import { cityDisplayName, starCapitalSource } from './cityDisplay';
 import {
   type YieldKey,
   YIELD_GLYPH,
@@ -201,7 +202,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     const lines = element('ul', 'meter-lines');
     for (const city of state.cities) {
       if (city.ownerId !== playerId) continue;
-      lines.append(meterLine(city.name, cityYields(state, city)[key], false));
+      lines.append(meterLine(cityDisplayName(state, city), cityYields(state, city)[key], false));
     }
     if (lines.childElementCount === 0) {
       box.append(element('p', 'hint', 'No cities yet.'));
@@ -257,8 +258,12 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   /** The signed ledger, as the click-through card shows it. */
   function renderLedger(body: HTMLElement, entries: MeterContribution[], standing: MeterStanding): void {
     body.replaceChildren();
+    const { state } = getGame();
+    const playerId = localPlayerId();
     const lines = element('ul', 'meter-lines');
-    for (const entry of entries) lines.append(meterLine(entry.source, entry.value, true));
+    for (const entry of entries) {
+      lines.append(meterLine(starCapitalSource(state, playerId, entry.source), entry.value, true));
+    }
     if (entries.length === 0) {
       body.append(element('p', 'hint', 'Nothing on either side of the ledger yet.'));
       return;

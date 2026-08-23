@@ -154,6 +154,7 @@ import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
 import { unitsOnTile } from '../sim/units';
 import { walkedPrefix } from '../render/animation';
+import { cityDisplayName } from './cityDisplay';
 import {
   type CellRef,
   type FallenUnit,
@@ -1167,7 +1168,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const trade = taken > 0 ? `${dealt} − ${taken}` : `${dealt}`;
     const city =
       view.defenderCityId === null ? undefined : cityById(state, view.defenderCityId);
-    const tail = city && city.ownerId === localPlayerId ? ` · ${city.name} taken!` : '';
+    const tail =
+      city && city.ownerId === localPlayerId ? ` · ${cityDisplayName(state, city)} taken!` : '';
     announce(`${view.attackerName} ${verb} ${view.defenderName}: ${trade}${tail}`);
   }
 
@@ -1734,7 +1736,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // tile does rather than leaving a unit sheet fighting it for the space.
         selectedId = null;
         setOpenCity(city.id);
-        announce(`☞ ${city.name} wants for work — choose a production.`);
+        announce(`☞ ${cityDisplayName(state, city)} wants for work — choose a production.`);
         return;
       }
       case 'research': {
