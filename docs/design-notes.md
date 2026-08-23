@@ -1068,3 +1068,60 @@ Core loop complete through combat + resources (671 tests). Mechanics-before-AI s
   **M14 netcode**. Post-AI: promotions/ZOC, events, leader abilities, city-states decision.
 Everything visual remains placeholder-to-dial; vanilla-first honored (drafting is the one
 non-vanilla system and it lands after the vanilla loop is proven).
+
+---
+
+## Entry XV — Statecraft: the full M12 draft spec (RATIFIED 2026-08-23; supersedes Entry II where they differ)
+
+Converged over one design session; playtest tunes numbers, not shapes.
+
+**The meter and the ladder**
+- Culture fills an escalating meter; each fill = one draft. **Tier = draft count** — one
+  number, one ladder. Cost escalates by draft count ONLY, never by city count (Entry I
+  commitment 3: authority is the only lawful width tax).
+- Target cadence ~5 turns per draft early (load-bearing playtest number).
+
+**The offer: 3 new + 1 upgrade**
+- Every draft offers **3 new cards + 1 upgrade** (user: enough choices to fight variance and
+  find synergies). New cards draw WITHOUT replacement from the live pool; the upgrade slot
+  names one *rolled* card the player already owns and deepens it (level on the card; v1
+  upgraded faces are generic ~1.5–2×, bespoke texts later).
+- This rehabilitates Entry II's rejected duplicate-merge in clean form: merge's benefit with
+  no duplicates. Every draft is the deckbuilder question — widen or deepen.
+- Live pool = current government's cards + unpicked leftovers from the previous government;
+  older cards retire (they live on via the upgrade slot).
+
+**Governments**
+- Offered at **tiers 3 / 7 / 15** (widening gaps + escalating costs ≈ even turn-time between
+  governments; culture-heavy play races them — that is culture's payoff).
+- Each offer is a **fixed triple** (deterministic spine per Entry II), pick 1; adoption is
+  **bankable** — take it when ready.
+- **Adoption = seal amnesty**: new slot spread, every card returns to the collection
+  unsealed, re-slot fresh. Civ VI's free-swap window, derived rather than ruled.
+- Start: Tier-0 "Chiefdom", 1–2 slots. Slots typed (military/economic/diplomatic/wildcard),
+  counts grow by government. **Pool power steps per GOVERNMENT, not per tier** — 4 authorable
+  pools (~10–12 cards each), power jumps land on adoption day with the slot jumps.
+
+**Seals (swap friction)**
+- Slotting a card **seals** it for X turns (flat, data-driven, v0 ~5): entry-lock, so posture
+  changes are anticipated, not reactive — which simultaneous turns need. Unslotting after the
+  seal expires is free. UI: wax-seal glyph + mono turn count ("sealed for 3").
+
+**Magister's Dice — the one flexibility currency** (cap 3 held, earned deterministically):
+reroll a mastery roll · reroll a card offer · reroll the upgrade target · break a seal.
+
+**The two-stream doctrine** (why neither Civ V policy trees nor a Civ VI civic tree):
+- **Science** → ages, capabilities, and PASSIVE PERMANENT masteries (tech rolls — relics;
+  learned knowledge is never unslotted). Masteries modify *things*: buildings, tiles,
+  improvements.
+- **Culture** → government tiers and SLOTTABLE Orders (the deck; law is rewritable). Cards
+  modify *behaviors*: rates, actions, meter levers.
+- One draft machinery serves both (offer gen from state.rng, pick/reroll as commands), two
+  dressings (star-chart night for masteries, Statecraft parchment for Orders). Supersedes
+  Entry II's science-buys-civic-pool-quality coupling: each stream now owns its own quality
+  ladder (ages/masteries vs. governments/pools).
+- Build order: tech masteries first (drafting at its simplest — no slots), then civics add
+  slots/governments/seals on the proven plumbing.
+
+**Open tuning:** seal length · cadence · band spillover · whether a government pick can ever
+be revisited within a tier (v1: no).
