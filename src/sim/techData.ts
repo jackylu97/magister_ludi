@@ -226,6 +226,35 @@ export function techRowCount(): number {
   return TECH_IDS.reduce((deepest, id) => Math.max(deepest, techDef(id).row + 1), 0);
 }
 
+/**
+ * The age an empire holding these technologies has *reached*: the highest age
+ * any of them belongs to.
+ *
+ * **The** age derivation, and there is deliberately only one. An age was pure
+ * chart furniture until Milestone 10 — `techAgeBands` paints numerals behind
+ * columns — and authority capacity needs the same fact about a *player*, so it
+ * is written here, over the list of technologies, rather than a second time
+ * beside the meter. Its one caller is `agesAdvanced` (`meters.ts`), which counts
+ * *advances* (`age − 1`) because Entry I prices the advance and not the age
+ * every game begins standing in; anything else that ever needs a player's age
+ * asks this, with `Player.techsResearched`.
+ *
+ * The highest rather than the deepest: a player who has skipped ahead into a
+ * Classical node has reached the Classical age whatever else they left behind,
+ * which is the reading a player would give it looking at their own tree. Ages
+ * therefore only ever climb — `techsResearched` is append-only, and the tech
+ * table forbids a prerequisite from a later age than its dependent.
+ */
+export function highestAge(techs: readonly TechId[]): TechAge {
+  let highest: TechAge = 1;
+  for (const id of techs) {
+    if (!isTechId(id)) continue;
+    const { age } = techDef(id);
+    if (age > highest) highest = age;
+  }
+  return highest;
+}
+
 /** A run of columns painted with one age's numeral. `to` is inclusive. */
 export interface TechAgeBand {
   age: TechAge;

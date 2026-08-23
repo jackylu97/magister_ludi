@@ -14,6 +14,8 @@
  * made of; the per-unit half of it (`combatStrength`, `rangedStrength`, `range`)
  * lives in `data/units.json`, and the terrain half (`defenseBonus`) in
  * `data/terrain.json`, because both describe a *thing* rather than the system.
+ * Milestone 10 adds `meters`, the whole tuning surface of happiness and
+ * authority — supply, demand, and the two percentage ladders they act through.
  */
 
 import rulesJson from '../../data/rules.json';
@@ -197,6 +199,92 @@ export interface CityRules {
   cityNames: string[];
 }
 
+/**
+ * The two empire meters (design ledger, Entries I and XIV). Every number the
+ * happiness/authority system is made of; the algebra is `src/sim/meters.ts`.
+ *
+ * Supply and demand are split into their own sub-blocks rather than being one
+ * flat list, because a designer retunes one side of a meter at a time: "the
+ * palace is too generous" and "cities are too cheap" are different edits.
+ */
+export interface HappinessRules {
+  /** Happiness the capital supplies just by being the capital. */
+  palace: number;
+  /**
+   * Happiness each *unique* improved luxury the empire has access to supplies.
+   * Unique, so two improved silk seams are one silk (design ledger XIV.D.3).
+   */
+  perUniqueLuxury: number;
+  /** Demand each population point makes. */
+  demandPerPop: number;
+  /**
+   * Crowding: a city of population `n` demands
+   * `demandPerPop · n + crowdingWeight · max(0, n − crowdingFrom) ^ crowdingExponent`.
+   * Superlinear *within* a city and never in empire-total pop — Entry I's second
+   * commitment, which is what keeps happiness a vertical limiter.
+   */
+  crowdingWeight: number;
+  crowdingFrom: number;
+  crowdingExponent: number;
+}
+
+export interface AuthorityRules {
+  /** Capacity the capital supplies. */
+  palaceCapacity: number;
+  /** Capacity each age *advance* supplies. See `agesAdvanced` in `meters.ts`. */
+  perAge: number;
+  /** What the capital costs. Free in v1, and a number so it can stop being. */
+  capital: number;
+  /** What an ordinary city the player founded costs. */
+  foundedCity: number;
+  /** What a coastal city costs instead — a discount, never an exemption. */
+  coastalCity: number;
+  /**
+   * What a city taken by force costs. Dearer than either, and it outranks the
+   * coastal discount: a seized harbour is a thing you seized (Entry XIV.D.2).
+   */
+  capturedCity: number;
+}
+
+/**
+ * One rung of a percentage ladder, and the comparison that admits it.
+ *
+ * Three optional comparators rather than one, because the two ladders this game
+ * has do not agree on their boundaries: the bonus/malus tiers are inclusive
+ * (`≥ +5`, `≤ −5`) while the growth stifle's first rung is "any deficit at all",
+ * which is `< 0` and is *not* `≤ 0` — a happiness of exactly zero is a balanced
+ * empire, not a starving one. A rung applies when any comparator it declares is
+ * satisfied; `stepPercent` takes the deepest rung that applies.
+ */
+export interface MeterStep {
+  whenAtOrAbove?: number;
+  whenAtOrBelow?: number;
+  whenBelow?: number;
+  /** Signed whole percent this rung is worth. */
+  percent: number;
+}
+
+export interface MeterRules {
+  happiness: HappinessRules;
+  authority: AuthorityRules;
+  /**
+   * The bonus/malus ladder both meters read: `≥ +5 → +10%`, `≥ +10 → +20%`, and
+   * the mirror image below zero. *Which* yields each side of each meter moves is
+   * a design rule and lives in `meters.ts`; this is only how far.
+   */
+  tiers: MeterStep[];
+  /** Magnitude cap on a tier, however deep the table grows. */
+  tierClamp: number;
+  /**
+   * The growth stifle's own, steeper ladder (design ledger XIV.D.4, user
+   * 2026-08-23: "actually impactful"). It deliberately does not share `tiers` —
+   * a happiness deficit is meant to stop a wide empire growing rather than to
+   * shave a percent off it. Multiplies food *surplus* only, never base food, so
+   * the worst rung stalls growth and still cannot starve a citizen.
+   */
+  growthStifle: MeterStep[];
+}
+
 export interface ResearchRules {
   /**
    * Technologies every player begins the game already holding.
@@ -226,6 +314,7 @@ export interface RulesConfig {
   combat: CombatRules;
   improvements: ImprovementRules;
   cities: CityRules;
+  meters: MeterRules;
   research: ResearchRules;
   /** Unit types every player receives at their start position, in order. */
   startingUnits: UnitTypeId[];

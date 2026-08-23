@@ -1,11 +1,18 @@
 /**
  * The hover card: a note laid beside whatever the pointer is resting on.
  *
- * One shape, two surfaces. The city screen's build list uses it to say what a
+ * One shape, three surfaces. The city screen's build list uses it to say what a
  * unit *is* before you spend forty hammers finding out; the star chart uses it
  * to say what a technology actually hands over, which is more than the four
- * lines a node card has room for. Both wanted the same object, so it is written
- * once here and dressed by a class name.
+ * lines a node card has room for; and the top bar uses it to break a total into
+ * the lines it is the fold of — which yields came from which city, what the two
+ * empire meters are currently doing to the economy. All three wanted the same
+ * object, so it is written once here and dressed by a class name.
+ *
+ * The third one arrived with one difference and it is the only reason
+ * `placement` exists: a card *beside* a chip in a horizontal strip covers the
+ * chips it is being compared against, so the bar's cards fall underneath their
+ * anchor instead. See `placeCardBelow`.
  *
  * It is a note and not a control
  * ------------------------------
@@ -94,6 +101,37 @@ export function placeCard(
   };
 }
 
+/**
+ * Where to put a card *under* an anchor rather than beside it.
+ *
+ * The top bar's readouts need this and the panels do not, and the difference is
+ * the shape of the thing being hovered: a build row is one line in a tall
+ * column, so a card beside it covers nothing, while a chip in a horizontal strip
+ * has its own neighbours to its left and right — a card laid beside a yield
+ * total would cover the four totals it is being compared against.
+ *
+ * Left edges line up, so the card reads as belonging to the chip it dropped out
+ * of, and both axes are clamped exactly as `placeCard` clamps them: floor at
+ * `gap`, so a card too large for the window spills off the bottom rather than
+ * off the top.
+ */
+export function placeCardBelow(
+  anchor: AnchorBox,
+  card: CardBox,
+  view: CardBox,
+  gap: number,
+): { left: number; top: number } {
+  const rightmost = Math.max(gap, view.width - card.width - gap);
+  const lowest = Math.max(gap, view.height - card.height - gap);
+  return {
+    left: Math.max(gap, Math.min(anchor.left, rightmost)),
+    top: Math.max(gap, Math.min(anchor.bottom + gap, lowest)),
+  };
+}
+
+/** Which side of its anchor a card falls on. See the two `place*` functions. */
+export type CardPlacement = 'beside' | 'below';
+
 export interface InfoCard {
   /**
    * Wires an anchor to the card it should raise. `build` is called on each
@@ -115,12 +153,14 @@ export interface InfoCardOptions {
   className: string;
   /** How far the card sits from its anchor, and from the viewport's edges. */
   gap?: number;
+  /** Beside the anchor (the default) or under it. See `placeCardBelow`. */
+  placement?: CardPlacement;
 }
 
 const DEFAULT_GAP = 10;
 
 export function createInfoCard(options: InfoCardOptions): InfoCard {
-  const { className, gap = DEFAULT_GAP } = options;
+  const { className, gap = DEFAULT_GAP, placement = 'beside' } = options;
 
   const card = document.createElement('div');
   card.className = className;
@@ -151,7 +191,8 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
     card.style.top = '0px';
     card.hidden = false;
     const box = card.getBoundingClientRect();
-    const at = placeCard(
+    const place = placement === 'below' ? placeCardBelow : placeCard;
+    const at = place(
       anchor.getBoundingClientRect(),
       { width: box.width, height: box.height },
       { width: window.innerWidth, height: window.innerHeight },

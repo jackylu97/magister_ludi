@@ -1474,11 +1474,12 @@ describe('determinism with cities', () => {
 
     const json = saveGame(game);
     expect((JSON.parse(json) as { schemaVersion: number }).schemaVersion).toBe(SCHEMA_VERSION);
-    // Bumped to 11 by workers and improvements: units grew `chargesLeft` and
-    // tiles grew `improvement`. (7 was combat — `hasAttacked`, `fortifiedTurns`,
-    // `City.hp`, `eliminated`, `winnerId`; 8 was resources; 9 was escalating
-    // settlers and `settlersBuilt`; 10 was fog of war.)
-    expect(SCHEMA_VERSION).toBe(11);
+    // Bumped to 12 by the M10 meters: cities grew `captured`, the one fact
+    // happiness and authority cannot recompute from the board. (7 was combat —
+    // `hasAttacked`, `fortifiedTurns`, `City.hp`, `eliminated`, `winnerId`;
+    // 8 was resources; 9 was escalating settlers and `settlersBuilt`; 10 was
+    // fog of war; 11 was workers and improvements.)
+    expect(SCHEMA_VERSION).toBe(12);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

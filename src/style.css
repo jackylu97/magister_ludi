@@ -31,6 +31,10 @@
 
   /* --- accents ---------------------------------------------------------- */
   --vermilion: #d4502e;
+  /* Vermilion is a parchment ink and goes muddy on the bar's dark ground; this
+     is the same alarm lifted the way the yield voices are (see below), for the
+     one thing on ink that has to shout — a meter in deficit. */
+  --vermilion-lit: #f28563;
   --teal: #1f8a85;
   --cobalt: #2757b8;
   --grape: #7b3fa8;
@@ -519,6 +523,137 @@ body {
 }
 .civ-yield.is-culture .civ-yield-value {
   color: var(--y-cul-lit);
+}
+
+/* --- the two empire meters -----------------------------------------------
+   Happiness and authority, at the right-hand end of the yield strip and behind
+   their own hairline: they are not yields, they are what the empire *feels*
+   about them. Each chip is a button — click for the whole signed ledger — and
+   each carries its own consequence in text when it is biting, so the common
+   case needs no gesture at all (design ledger, Entry XIV.C). */
+.civ-meters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: var(--border-thin) solid var(--on-ink-line);
+}
+
+.civ-meter {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 5px 3px;
+  border: var(--border-thin) solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--parchment);
+  font-family: var(--face-num);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.civ-meter:hover {
+  background: rgba(247, 242, 225, 0.14);
+}
+
+.civ-meter[aria-expanded='true'] {
+  border-color: var(--parchment);
+}
+
+.civ-meter-icon {
+  font-size: 11px;
+  filter: saturate(0.9);
+}
+
+/* A meter in surplus that is actually paying for something speaks in the food
+   voice — the one green already on this bar. */
+.civ-meter.is-good .civ-meter-value {
+  color: var(--y-food-lit);
+}
+
+/* Deficit: the alarm, and only for a deficit. A bonus is a modifier too, and
+   colouring it vermilion would teach the player to flinch at good news. */
+.civ-meter.is-alarm .civ-meter-value {
+  color: var(--vermilion-lit);
+}
+
+/* The meters' breakdown cards, hung under the LEFT end of the bar — the mirror
+   of #hud-popovers, and the same trick: a fixed column whose cards lay
+   themselves out statically inside it. */
+#hud-meters {
+  position: fixed;
+  top: calc(var(--topbar-h) + 10px);
+  left: 14px;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: none;
+}
+
+#hud-meters > .hud-card {
+  position: static;
+  pointer-events: auto;
+}
+
+/* A ledger: one line per source, the label in the interface face and the figure
+   in mono, and a ruled total that is the fold of the lines above it. Used by
+   both meter cards and by the strip's hover cards, so the two never disagree
+   about how a signed number is set. */
+.meter-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meter-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 1px 0;
+  font-size: 11px;
+  color: var(--ink);
+}
+
+.meter-line-source {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meter-line-value {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.meter-line-value.is-cost {
+  color: var(--ink-soft);
+}
+
+.meter-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: var(--border-thin) solid var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.meter-total .meter-line-value {
+  font-weight: 700;
 }
 
 /* A small square with a parchment edge: loud enough to find, quiet enough that
@@ -1823,11 +1958,44 @@ kbd {
 }
 
 /* One cell per yield, each in the colour that yield is always drawn in. */
+/* The chip row and, under it, the empire modifiers currently folded into those
+   chips — rule 5 at empire scale: a multiplied figure is never shown without
+   the reason beside it. */
+.city-yields-box {
+  margin: 11px 0;
+}
+
+.city-modifiers {
+  margin: -4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.city-modifier {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 1px 0;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.city-modifier.is-bad {
+  color: var(--vermilion);
+}
+
+.city-modifier-effect {
+  flex: none;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
 .city-yields {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 4px;
-  margin: 11px 0;
 }
 
 .city-yield {

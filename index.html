@@ -209,6 +209,49 @@
       </div>
     </header>
 
+    <!-- The meters' breakdown cards, hung under the *left* end of the bar for
+         the same reason the column below hangs under the right: a card opens
+         directly beneath the chip that opened it. Only one is ever up — each
+         closes the other, and both close when anything else in the HUD opens.
+
+         Each is filled by src/ui/topBar.ts on open: a signed line per source,
+         folding to the headline figure on the chip (CLAUDE.md rule 5). -->
+    <div id="hud-meters">
+      <div
+        id="happiness-popover"
+        class="hud-card popover popover-narrow"
+        role="dialog"
+        aria-label="Happiness"
+        hidden
+      >
+        <div class="popover-head">
+          <h2 class="popover-title">Happiness</h2>
+          <button id="happiness-close" class="popover-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <div id="happiness-body" class="meter-body"></div>
+        <p class="hint">Supply, then what your cities ask of it.</p>
+      </div>
+
+      <div
+        id="authority-popover"
+        class="hud-card popover popover-narrow"
+        role="dialog"
+        aria-label="Authority"
+        hidden
+      >
+        <div class="popover-head">
+          <h2 class="popover-title">Authority</h2>
+          <button id="authority-close" class="popover-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <div id="authority-body" class="meter-body"></div>
+        <p class="hint">Capacity, then what your writ is spent on.</p>
+      </div>
+    </div>
+
     <!-- The popover column, hung under the right end of the bar so a card opens
          directly beneath the button that opened it. A flex stack rather than two
          separately-pinned cards, and nothing sits below them, so an opening card

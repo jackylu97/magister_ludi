@@ -8,10 +8,14 @@
  * guards against is not a wobble — it is a card three hundred pixels below the
  * fold, which for a surface that only exists while the pointer is still is a
  * card that never appeared.
+ *
+ * `placeCardBelow` is the same question for the top bar's strip, where "beside"
+ * is the wrong answer: the neighbours of a chip in a horizontal row are the very
+ * things it is being compared against, so its card drops underneath instead.
  */
 
 import { describe, expect, it } from 'vitest';
-import { placeCard } from '../src/ui/infoCard';
+import { placeCard, placeCardBelow } from '../src/ui/infoCard';
 
 const VIEW = { width: 1200, height: 800 };
 const CARD = { width: 260, height: 180 };
@@ -84,5 +88,39 @@ describe('placeCard', () => {
       const clear = at.left >= box.right || at.left + CARD.width <= box.left;
       expect(clear).toBe(true);
     }
+  });
+});
+
+describe('placeCardBelow', () => {
+  it('drops under the anchor with their left edges lined up', () => {
+    const box = anchor(200, 8);
+    const at = placeCardBelow(box, CARD, VIEW, GAP);
+    expect(at.left).toBe(box.left);
+    expect(at.top).toBe(box.bottom + GAP);
+  });
+
+  it('never lets the card leave the right edge', () => {
+    // The last chip in the strip, hard against a narrow window.
+    const at = placeCardBelow(anchor(1150, 8), CARD, { width: 1200, height: 800 }, GAP);
+    expect(at.left).toBe(1200 - CARD.width - GAP);
+    expect(at.left + CARD.width).toBeLessThanOrEqual(1200 - GAP);
+  });
+
+  it('never lets the card fall below the fold', () => {
+    const at = placeCardBelow(anchor(200, 700), CARD, VIEW, GAP);
+    expect(at.top + CARD.height).toBeLessThanOrEqual(VIEW.height - GAP);
+  });
+
+  it('pins a card larger than the window to the top-left rather than off it', () => {
+    const huge = { width: 2000, height: 2000 };
+    const at = placeCardBelow(anchor(200, 8), huge, VIEW, GAP);
+    expect(at.left).toBe(GAP);
+    expect(at.top).toBe(GAP);
+  });
+
+  it('never overlaps the anchor it is describing', () => {
+    const box = anchor(200, 8);
+    const at = placeCardBelow(box, CARD, VIEW, GAP);
+    expect(at.top).toBeGreaterThanOrEqual(box.bottom);
   });
 });

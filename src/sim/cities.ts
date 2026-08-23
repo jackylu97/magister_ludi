@@ -68,7 +68,13 @@ import {
   improvementYield,
 } from './improvementData';
 import { isPassable } from './pathfind';
-import { type ResourceId, resourceDef, resourceYield } from './resourceData';
+import {
+  RESOURCE_IDS,
+  type ResourceId,
+  type ResourceKind,
+  resourceDef,
+  resourceYield,
+} from './resourceData';
 import { RULES } from './rulesData';
 import {
   type City,
@@ -91,6 +97,8 @@ import { type TechId, techDef } from './techData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
 import { recomputeVisibility } from './visibility';
+import { isCoastal } from './water';
+import { growthFactor, meterEffects, yieldFactor } from './meters';
 
 const CITIES = RULES.cities;
 
@@ -330,6 +338,24 @@ export function tileYieldOf(tile: Tile, ctx?: TileYieldContext): TileYield {
 }
 
 /**
+ * The resource a tile puts in its owner's hands, or `null` when it puts none
+ * there — either because there is nothing on it, or because nobody has built
+ * the improvement that opens what is.
+ *
+ * The rule itself, factored out so that the two questions asked of it cannot
+ * drift: `hasResource` asks it of one named resource, `controlledResources`
+ * asks it of a whole kind at once. Which improvement opens which resource is
+ * `improvesResource` in `data/improvements.json`, inverted once at load.
+ */
+function openedResource(tile: Tile): ResourceId | null {
+  const id = tile.resource;
+  if (id === undefined) return null;
+  const needed = improvementForResource(id);
+  if (needed === null || tile.improvement !== needed) return null;
+  return id;
+}
+
+/**
  * Does this player *control* this resource — own a tile carrying it, with the
  * improvement that opens it built?
  *
@@ -356,14 +382,40 @@ export function hasResource(
   playerId: number,
   resourceId: ResourceId,
 ): boolean {
-  const needed = improvementForResource(resourceId);
-  if (needed === null) return false;
   for (const tile of state.map.tiles) {
-    if (tile.resource !== resourceId) continue;
-    if (tile.improvement !== needed) continue;
+    if (openedResource(tile) !== resourceId) continue;
     if (tileOwnerPlayerId(state, tile.col, tile.row) === playerId) return true;
   }
   return false;
+}
+
+/**
+ * Every resource of one kind this player controls, **once each**, in the
+ * resource table's own order.
+ *
+ * `hasResource` asked of a whole kind, in one pass rather than one pass per
+ * resource — and uniqueness is not a rule this has to enforce, it is what the
+ * question *is*: two improved silk seams are one silk in the player's hands.
+ * That is precisely what the happiness meter buys (design ledger XIV.D.3, "+4
+ * per unique improved luxury"), and pricing it off this list rather than off a
+ * count of tiles is what stops a plantation belt paying twice.
+ *
+ * The table's order rather than discovery order, so the breakdown a player reads
+ * lists their luxuries the same way twice running — iteration order that is part
+ * of the answer is iteration order a replay has to reproduce.
+ */
+export function controlledResources(
+  state: GameState,
+  playerId: number,
+  kind: ResourceKind,
+): ResourceId[] {
+  const held = new Set<ResourceId>();
+  for (const tile of state.map.tiles) {
+    const id = openedResource(tile);
+    if (id === null || resourceDef(id).kind !== kind) continue;
+    if (tileOwnerPlayerId(state, tile.col, tile.row) === playerId) held.add(id);
+  }
+  return RESOURCE_IDS.filter((id) => held.has(id));
 }
 
 /** True when a citizen may be assigned to this tile at all. */
@@ -413,6 +465,52 @@ export function distanceToNearestCity(state: GameState, hex: Hex): number {
     if (distance < best) best = distance;
   }
   return best;
+}
+
+/**
+ * Which of a player's cities is the capital: the oldest one they *founded*, or —
+ * for an empire that owns nothing but conquest — the oldest one they hold.
+ *
+ * There was no capital in this game before Milestone 10, so this is the rule
+ * being written rather than one being read, and it is written here so that
+ * everything that ever asks (the palace's happiness, the palace's authority
+ * capacity, the one city that costs no authority) asks the same function.
+ *
+ * Oldest is `state.cities` order, which is founding order, which is id order:
+ * ids are minted by a counter (see `state.ts`), so "the first city in the array"
+ * is a fact about the state and not about the wall clock. Nothing is stored,
+ * because nothing has to be — the answer is a pure function of the board, and a
+ * stored `isCapital` would be a second thing to keep in step the day a city
+ * changes hands.
+ *
+ * The founded-first rule is what makes a conquered palace mean something: take
+ * an empire's first city and its capital moves to the oldest town it built for
+ * itself, which is Civ's rule and the intuitive one. `captured` is sticky (see
+ * its docblock), so a capital lost and won back does not resume the palace — the
+ * empire has a new seat of government, and the old one is a prize.
+ *
+ * `undefined` for a player with no cities at all, which is every player on turn
+ * one: a palace nobody has built supplies nothing, and the meters say so.
+ */
+export function capitalCityOf(state: GameState, playerId: number): City | undefined {
+  let fallback: City | undefined;
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    if (!city.captured) return city;
+    fallback ??= city;
+  }
+  return fallback;
+}
+
+/**
+ * Is this city on the coast — the site bonus the settler lens paints blue?
+ *
+ * One evaluator (design ledger, Entry I.b): `isCoastal` is the same test the
+ * lens colours a candidate site with, asked of the tile the city ended up on. A
+ * city that was promised a discount by a blue hex gets the discount.
+ */
+export function isCoastalCity(state: GameState, city: City): boolean {
+  return isCoastal(state.map, cityTile(state.map, city));
 }
 
 /** The tile a city stands on. Cities are only ever founded on real tiles. */
@@ -726,6 +824,23 @@ export function centreYield(state: GameState, city: City): TileYield {
  * computed by a second implementation is a preview that can lie. Callers hand it
  * a candidate list and diff the two results; nothing is cloned and nothing is
  * mutated. See `buildingYieldDelta` in `tech.ts`.
+ *
+ * The empire's thumb on the scale
+ * ------------------------------
+ * Happiness and authority land *here*, at the very end, and that is the whole of
+ * how they touch the economy (design ledger, Entry XIV). Production, science and
+ * culture are each multiplied once by the sum of whatever percentages the two
+ * meters currently apply to them, then floored — the same "floor once, at the
+ * end" the science-per-pop terms above already keep, so a +10% on 7 beakers is 7
+ * and not a rounding gift.
+ *
+ * Applying it inside this function rather than in the turn phase is the point:
+ * `turnsToBuild`, the city panel, the top bar's totals, the tech screen's rate
+ * and the pipeline that banks the numbers all read one evaluator, so an empire
+ * whose writ is overstretched sees the slower build estimate *before* it ends
+ * the turn. The city panel prints the active modifiers as their own lines, which
+ * is rule 5 read at empire scale: the multiplied number is never shown without
+ * the reason beside it.
  */
 export function cityYields(
   state: GameState,
@@ -759,6 +874,13 @@ export function cityYields(
     addBuilding(total, city, id);
   }
 
+  const effects = meterEffects(state, city.ownerId);
+  if (effects.length > 0) {
+    total.production = Math.floor(total.production * yieldFactor(effects, 'production'));
+    total.science = Math.floor(total.science * yieldFactor(effects, 'science'));
+    total.culture = Math.floor(total.culture * yieldFactor(effects, 'culture'));
+  }
+
   return total;
 }
 
@@ -775,6 +897,43 @@ function addBuilding(total: CityYields, city: City, id: BuildingId): void {
 /** What the citizens eat: `foodPerCitizen` each. */
 export function foodUpkeep(city: City): number {
   return city.population * CITIES.foodPerCitizen;
+}
+
+/**
+ * What a city actually banks toward its next citizen this turn.
+ *
+ * The one evaluator for the growth rate: `collectYields` adds this to the
+ * basket, and the city panel's Growth line quotes it. Three things happen to the
+ * harvest on the way, in this order, and each is a different rule:
+ *
+ *   1. the citizens eat (`foodUpkeep`), which is what makes this a *surplus*;
+ *   2. a settler at the front of the queue eats the growth (`growthIsHalted`) —
+ *      the city banks nothing positive, and a deficit still bites;
+ *   3. a happiness deficit throttles what is left.
+ *
+ * The stifle multiplies the **surplus and only the surplus**, never the food
+ * yield itself (design ledger, Entry XIV.D.4). That is the difference between an
+ * unhappy empire that stops growing and an unhappy empire that starves, and only
+ * the first is a legal gambit: at the ladder's worst rung the surplus goes to
+ * zero and the city sits exactly where it is, while a city already in deficit is
+ * untouched by the meter — its debt is its own.
+ *
+ * `yields` may be passed in by a caller that has already computed them, which
+ * the turn phase has; the default is the same call it would make.
+ */
+export function growthSurplus(
+  state: GameState,
+  city: City,
+  yields: CityYields = cityYields(state, city),
+): number {
+  let surplus = yields.food - foodUpkeep(city);
+  if (growthIsHalted(city)) surplus = Math.min(0, surplus);
+  if (surplus <= 0) return surplus;
+  const factor = growthFactor(meterEffects(state, city.ownerId));
+  // Floored, so the basket stays whole: the panel prints it, the threshold is a
+  // whole number, and a fraction of a bushel banked forever is a fraction that
+  // eventually decides a growth turn nobody can account for.
+  return factor >= 1 ? surplus : Math.floor(surplus * factor);
 }
 
 /**
@@ -919,11 +1078,9 @@ export function collectYields(state: GameState): void {
     assignCitizens(state, city);
     const yields = cityYields(state, city);
 
-    let surplus = yields.food - foodUpkeep(city);
-    // A settler eats the growth, not the harvest: the city banks nothing
-    // positive while one is at the front, but a deficit still bites.
-    if (growthIsHalted(city)) surplus = Math.min(0, surplus);
-    city.foodBasket += surplus;
+    // Upkeep, the settler halt and the happiness stifle, all in one function so
+    // that what the panel promised is what the basket receives.
+    city.foodBasket += growthSurplus(state, city, yields);
     city.hammerBasket += yields.production;
     city.culture += yields.culture;
 

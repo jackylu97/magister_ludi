@@ -87,6 +87,36 @@
       "Yarrowfell"
     ]
   },
+  "meters": {
+    "happiness": {
+      "palace": 9,
+      "perUniqueLuxury": 4,
+      "demandPerPop": 1,
+      "crowdingWeight": 0.6,
+      "crowdingFrom": 8,
+      "crowdingExponent": 1.4
+    },
+    "authority": {
+      "palaceCapacity": 4,
+      "perAge": 2,
+      "capital": 0,
+      "foundedCity": 2,
+      "coastalCity": 1,
+      "capturedCity": 3
+    },
+    "tiers": [
+      { "whenAtOrAbove": 5, "percent": 10 },
+      { "whenAtOrAbove": 10, "percent": 20 },
+      { "whenAtOrBelow": -5, "percent": -10 },
+      { "whenAtOrBelow": -10, "percent": -20 }
+    ],
+    "tierClamp": 20,
+    "growthStifle": [
+      { "whenBelow": 0, "percent": -50 },
+      { "whenAtOrBelow": -10, "percent": -80 },
+      { "whenAtOrBelow": -20, "percent": -100 }
+    ]
+  },
   "research": {
     "startingTechs": [
       "agriculture",

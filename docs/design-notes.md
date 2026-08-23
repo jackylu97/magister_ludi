@@ -573,7 +573,7 @@ does during a turn re-bakes the board.
 
 ---
 
-## Entry XIV — Happiness & Authority: runtime behavior and presentation (brainstorm 2026-08-23, M10; NOT ratified)
+## Entry XIV — Happiness & Authority: runtime behavior and presentation (M10, **built** 2026-08-23)
 
 Entry I fixed the skeleton (vertical vs. horizontal limiter, three commitments, v0 numbers).
 This entry is the layer below and above it: what the meters *do* each turn, and how a player
@@ -668,6 +668,44 @@ Magister's writ run?"
    (happiness), palace + ages (authority capacity). More authority sources acknowledged as
    missing — designed later, likely with the tech-tree revision (monument +1 authority is
    already pencilled there) and civic cards.
+
+### E. What v1 actually shipped (2026-08-23)
+
+Section D, built, with nothing added and nothing left out. `src/sim/meters.ts` is the whole
+simulation: `explainHappiness` / `explainAuthority` return ordered signed lists, the totals are
+`foldMeter` of them, and `meterEffects` turns the two totals into the list of modifiers the rest
+of the game multiplies by. Neither meter is stored anywhere.
+
+- **The one new field.** `City.captured` (schema 11 → 12), raised by `captureCity` and never
+  lowered. Everything else the meters need is already on the board.
+- **The capital.** There was no capital in this game before now. The rule chosen and written once
+  (`capitalCityOf` in `cities.ts`): the oldest city the player *founded*, falling back to the
+  oldest they hold. So a conquered palace moves the seat of government to the oldest town the
+  empire still built for itself, and a capital lost and won back does not resume the palace.
+- **Precedence.** Captured (3) outranks coastal (1): a seized harbour is a thing you seized.
+- **One evaluator each, reused rather than re-derived.** Coast-adjacency moved out of
+  `render3d/lens3d.ts` into `water.ts` as `isCoastal`, so the discount is decided by the same
+  test that paints the site blue. Improved-luxury access is `controlledResources`, factored out
+  of `hasResource` so both read one per-tile rule. Ages come from `highestAge` in `techData.ts`,
+  the only age derivation there has ever been.
+- **Where the effects land.** Inside `cityYields`, at the end, floored once — so `turnsToBuild`,
+  the city panel, the top bar and the turn pipeline all read one number. The growth stifle lands
+  in `growthSurplus`, which `collectYields` banks and the panel's Growth line quotes.
+- **Presentation.** Two chips in the top bar carrying their own consequence (`☺ −3 · 🌾 −50%`),
+  hover for what the number is *doing*, click for the whole signed ledger; the same hover
+  treatment given to the five yield totals beside them (one line per city, folding to the
+  headline). The settler's sheet and the Found City button quote `Authority 8/10 → 10/10` from
+  the same evaluator, coastal discount included. One `announce` line the turn a meter first goes
+  under, and End Turn never gates on either.
+
+**The first measured consequence, for playtesting.** `test/tech.test.ts`'s scripted empire —
+five cities, builds everything, improves *nothing* — now closes its three ages on turns
+42 / 100 / 167 against 42 / 90 / 132 before. It comes to rest at 6/6/6/6/5 citizens, which is
+exactly −20 happiness, which is exactly the ladder's last rung: growth stops dead. A luxury-less
+empire is capped near 29 citizens until it digs something up (five unique luxuries would buy it
+twenty more). That is the ladder doing what it was asked to do, and it is the number to argue
+about first: the levers are `rules.meters`, and the obvious candidates are the palace's 9, the
+−100% rung, and Entry I's parked settler-increment halving.
 
 ---
 
@@ -1017,8 +1055,12 @@ Core loop complete through combat + resources (671 tests). Mechanics-before-AI s
   pinned by CI from birth. **User pulled M8 ahead of M7 (2026-08-22) — fog + harness first,
   workers after.** 839 tests.
 - **M9 Gold loop** — unit/building maintenance + city purchasing.
-- **M10 Happiness & Authority + site bonuses** — Entry I in full; luxuries live via M7;
-  tall/wide harness assertions begin.
+- **M10 Happiness & Authority — BUILT 2026-08-23 (see Entry XIV.E).** 1011 tests. Two derived
+  global meters, each a breakdown folded to a total; the coastal site bonus ships with them
+  (the freshwater one still waits on rivers). Luxuries finally earn their keep. No new
+  buildings, per XIV.D.5, so v1's only supplies are palace + ages + luxuries. The tall/wide
+  harness assertions have *not* begun — the one measurement taken (the tech-pacing empire, now
+  42/100/167) is the argument for taking them next.
 - **M11 Wonders + formal Ages + Beads v1** — Entries V/VI: feats, age objectives, age-close
   scoring, threshold + curtain, the Abacus. Victory gets its real shape.
 - **M12 Civic drafting + governments + Magister's Dice** — Entry II, last onto a proven base.

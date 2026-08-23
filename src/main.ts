@@ -101,6 +101,13 @@ const restartNoButton = requireElement<HTMLButtonElement>('restart-no');
 const statusEl = requireElement<HTMLElement>('status');
 const seatsEl = requireElement<HTMLElement>('seats');
 const civYieldsEl = requireElement<HTMLElement>('civ-yields');
+/* The two meter cards, hung under the left end of the bar. The chips that open
+   them are built by `topBar.ts` inside #civ-yields, so the triggers are its to
+   make and the panels are the page's. */
+const happinessPopoverEl = requireElement<HTMLElement>('happiness-popover');
+const happinessBodyEl = requireElement<HTMLElement>('happiness-body');
+const authorityPopoverEl = requireElement<HTMLElement>('authority-popover');
+const authorityBodyEl = requireElement<HTMLElement>('authority-body');
 const viewportEl = requireElement<HTMLDivElement>('viewport');
 const bootEl = requireElement<HTMLElement>('boot');
 const bannersEl = requireElement<HTMLElement>('banners');
@@ -201,6 +208,7 @@ const menu = createPopover({
   onOpen: () => {
     help.close();
     lens.close();
+    meterCards?.close();
     // A card that opens showing "Restart?" is a card that will eventually be
     // answered by accident.
     setRestartConfirm(false);
@@ -213,6 +221,7 @@ const help = createPopover({
   onOpen: () => {
     menu.close();
     lens.close();
+    meterCards?.close();
   },
 });
 const lens = createPopover({
@@ -222,6 +231,7 @@ const lens = createPopover({
   onOpen: () => {
     menu.close();
     help.close();
+    meterCards?.close();
   },
 });
 
@@ -243,16 +253,25 @@ let techTree: TechTree | null = null;
  */
 let abacus: AbacusScreen | null = null;
 
+/**
+ * The top bar's meter chips, once `boot` has built them. A holder for the same
+ * reason the star chart is one: the cards belong to a strip that needs a game to
+ * read, and `closePopovers` is declared before there is one.
+ */
+let meterCards: CivYieldStrip | null = null;
+
 function closePopovers(): boolean {
   const wasOpen =
     menu.isOpen ||
     help.isOpen ||
     lens.isOpen ||
+    (meterCards?.isOpen ?? false) ||
     (techTree?.isOpen ?? false) ||
     (abacus?.isOpen ?? false);
   menu.close();
   help.close();
   lens.close();
+  meterCards?.close();
   techTree?.close();
   abacus?.close();
   return wasOpen;
@@ -1199,7 +1218,29 @@ async function boot(): Promise<void> {
     container: civYieldsEl,
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
+    happiness: {
+      panel: happinessPopoverEl,
+      closeButton: requireElement('happiness-close'),
+      body: happinessBodyEl,
+    },
+    authority: {
+      panel: authorityPopoverEl,
+      closeButton: requireElement('authority-close'),
+      body: authorityBodyEl,
+    },
+    // The strip's cards join the HUD's one-card-at-a-time rule: opening one
+    // shuts the menu, the help sheet and the lens menu, exactly as those three
+    // shut each other.
+    onOpenPopover: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      techTree?.close();
+    },
   });
+  // Escape and the landing screen reach these through `closePopovers`, which is
+  // declared before any game exists — so it finds them through this holder.
+  meterCards = civYields;
 
   /**
    * The two city views. Both are pure readers of the simulation plus one

@@ -92,10 +92,10 @@ import {
   tileYieldOf,
   yieldContextFor,
 } from '../sim/cities';
-import { type GameMap, type Tile, getTileAt, tileNeighbors } from '../sim/map';
+import { type GameMap, type Tile, getTileAt } from '../sim/map';
 import type { GameState } from '../sim/state';
 import { visibleResourceAt } from '../sim/tech';
-import { hasFreshWater } from '../sim/water';
+import { hasFreshWater, isCoastal } from '../sim/water';
 import type { CellRef, LensView } from '../ui/mapView';
 
 import { type TileIcons, YIELD_KEYS } from './badges3d';
@@ -473,18 +473,6 @@ export class LensLayer {
   dispose(): void {
     disposeInstancedGroup(this.group);
   }
-}
-
-/**
- * Does this tile touch the sea?
- *
- * `coast` specifically, not "any water": a lake is water a city cannot sail out
- * of, and it already speaks through fresh water. The test is on the neighbours
- * rather than on the tile itself because a city stands on land — the question is
- * whether it can put a harbour on the hex next door.
- */
-function isCoastal(map: GameMap, tile: Tile): boolean {
-  return tileNeighbors(map, tile).some((neighbor) => neighbor.terrain === 'coast');
 }
 
 /** Where one row's marks sit along x, as offsets from the tile's centre. */

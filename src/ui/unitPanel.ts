@@ -40,6 +40,7 @@ import type { ImprovementId } from '../sim/improvementData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
 import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
+import { explainAuthority, meterStanding } from '../sim/meters';
 import { tileMoveCost } from '../sim/pathfind';
 import type { Unit } from '../sim/state';
 import type { TileYield } from '../sim/terrainData';
@@ -201,6 +202,32 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
   }
 
   /**
+   * "Authority 8/10 → 10/10" — what founding *here* would cost, before it is
+   * spent.
+   *
+   * Entry VIII's pre-decision delta, and the one-evaluator rule doing the work:
+   * both halves are `explainAuthority`, once as things stand and once with this
+   * very tile handed to it as a prospect, so the projection cannot promise a
+   * price the reducer will not charge. The coastal discount comes along for
+   * free — it is the same `isCoastal` the settler lens has already painted this
+   * hex blue for.
+   *
+   * Only shown when founding here is actually legal, which is exactly when the
+   * Found City button is enabled: a projection for a site the reducer would
+   * refuse is a number about a city that will never exist.
+   */
+  function authorityDelta(unit: Unit): string | null {
+    if (!unitDef(unit.type).foundsCity) return null;
+    if (foundCityBlocker() !== null) return null;
+    const { state } = getGame();
+    const tile = getTileAt(state.map, unit.col, unit.row);
+    if (!tile) return null;
+    const now = meterStanding(explainAuthority(state, unit.ownerId));
+    const after = meterStanding(explainAuthority(state, unit.ownerId, { site: tile }));
+    return `Authority ${now.cost}/${now.gain} → ${after.cost}/${after.gain}`;
+  }
+
+  /**
    * A statistic and its label: the value in the mono face because it is a
    * number, the label in the specimen's mono eyebrow. Hit points go vermilion
    * once the unit is hurt, because a wounded unit is the one fact on this panel
@@ -228,11 +255,14 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       // blocker"), and collapsing the two would disable the button for exactly
       // the case it should be enabled in.
       const blocker = foundCityBlocker();
+      // The price rides on the button as well as on the sheet: the found-city
+      // flow is where the authority is actually spent.
+      const price = authorityDelta(unit);
       actions.push({
         label: 'Found City',
         key: 'B',
         blocked: blocker === undefined ? 'No unit selected' : blocker,
-        hint: 'Found a city here',
+        hint: price ? `Found a city here · ${price}` : 'Found a city here',
         run: onFoundCity,
       });
     }
@@ -380,6 +410,11 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     const notes: string[] = [];
     if (isFortified(unit)) notes.push(`Fortified ${formatPercent(fortifyBonus(unit))}`);
     if (unit.hasAttacked) notes.push('Has attacked');
+    // What this settler's city would cost the empire's writ, quoted before the
+    // spade goes in. Nothing at all for anything that cannot found, or standing
+    // anywhere the reducer would refuse.
+    const price = authorityDelta(unit);
+    if (price) notes.push(price);
     if (notes.length > 0) {
       container.append(element('p', 'unit-note', notes.join(' · ')));
     }

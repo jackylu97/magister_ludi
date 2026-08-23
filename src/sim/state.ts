@@ -103,8 +103,13 @@ import {
  *    correction), so a swordsman that empire used to be able to build is now
  *    refused until somebody mines the iron — a different game rather than an
  *    older one, which is exactly what this number exists to refuse.
+ * 12: Milestone 10 — happiness and authority: `City.captured`, the one fact the
+ *    two derived meters cannot recompute from the board (see the field's own
+ *    docblock). A v11 log replayed here is not merely older either: every yield
+ *    in it was banked before the meters multiplied production, science and
+ *    culture, and before a happiness deficit throttled growth.
  */
-export const SCHEMA_VERSION = 11;
+export const SCHEMA_VERSION = 12;
 
 // --- players ----------------------------------------------------------------
 
@@ -325,6 +330,25 @@ export interface City {
   tilesClaimed: number;
   /** Completed buildings, in the order they finished. At most one of each. */
   buildings: BuildingId[];
+  /**
+   * True once this city has been taken by force, ever.
+   *
+   * The one thing about a city that cannot be recomputed from the board, which
+   * is why it is stored rather than derived: a captured town keeps its
+   * buildings, its people and its ground, and by the turn after the fight there
+   * is nothing left to distinguish it from one somebody built. The authority
+   * meter needs exactly that distinction — a seized city costs 3 where a founded
+   * one costs 2 (design ledger, Entry XIV.D.2) — so `captureCity` in `combat.ts`
+   * raises this and nothing ever lowers it.
+   *
+   * *Ever*, and that is the design: a city that has changed hands is a seized
+   * city thereafter, including for the empire that founded it and won it back.
+   * Conquest is meant to self-throttle, and a war of reconquest is still a war.
+   * It also means a captured capital is no longer anybody's capital — see
+   * `capitalCityOf` in `cities.ts`, which seats the palace in the oldest city
+   * its owner actually founded.
+   */
+  captured: boolean;
   /** Production queue, front first. Replaced wholesale by `setCityProduction`. */
   queue: QueueItem[];
   /** Production banked toward the front of the queue. */
@@ -639,6 +663,9 @@ export function createCity(
     culture: 0,
     tilesClaimed: 0,
     buildings: [],
+    // Founded, by definition: this is the only way a city comes into existence,
+    // and the only thing that raises the flag is a fight (see `captureCity`).
+    captured: false,
     queue: [],
     hammerBasket: 0,
     workedTiles: [],

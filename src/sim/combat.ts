@@ -801,9 +801,17 @@ function capture(unit: Unit, ownerId: number): void {
  * Population loss on capture is deliberately not modelled in v1; there is no
  * data knob for it, and halving a city is a balance decision rather than a
  * mechanic the rest of the system needs.
+ *
+ * `captured` is raised here and nowhere else, because this is the only path by
+ * which a city changes hands. It is what makes the authority meter charge 3 for
+ * a town somebody else grew (design ledger, Entry XIV.D.2), and it is
+ * deliberately *not* paired with a bump to `Player.settlersBuilt`: taking a city
+ * is not building a settler, so a conqueror's next settler is priced exactly as
+ * it was before the walls fell.
  */
 function captureCity(state: GameState, city: City, ownerId: number): void {
   city.ownerId = ownerId;
+  city.captured = true;
   city.hp = Math.max(1, Math.round(COMBAT.cityBaseHp * COMBAT.cityCaptureHpFraction));
   city.queue = [];
   city.hammerBasket = 0;

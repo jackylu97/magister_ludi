@@ -145,6 +145,7 @@ import {
 } from '../sim/improvementData';
 import { improvementError, improvementYieldDelta, isBuilder, pillageError } from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex } from '../sim/map';
+import { authorityOf, happinessOf } from '../sim/meters';
 import { findPath, reachableTiles } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import { type City, type Unit, cityById, hasEndedTurn, unitById } from '../sim/state';
@@ -1745,6 +1746,41 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * Both empire meters for the local seat, as one reading.
+   *
+   * Taken before a turn is dispatched and again after it resolved, so the
+   * interface can say *the turn a meter crosses into deficit* and never again —
+   * which is the only moment worth a line, since the chip in the bar carries the
+   * standing state from then on (design ledger, Entry XIV.C).
+   */
+  function meterReading(): { happiness: number; authority: number } {
+    const { state } = getGame();
+    return {
+      happiness: happinessOf(state, localPlayerId),
+      authority: authorityOf(state, localPlayerId),
+    };
+  }
+
+  /**
+   * The one line a meter gets when it goes under, and it never gates anything.
+   *
+   * Deficits are legal gambits (Entry I's first commitment): End Turn does not
+   * stop on one, the reducer does not know about one, and this is the whole of
+   * the interface's response — a sentence, in the same slot a captured city
+   * announces itself in. A crossing back up says nothing, because the chip going
+   * quiet has already said it.
+   */
+  function announceDeficits(before: { happiness: number; authority: number }): void {
+    const after = meterReading();
+    const lines: string[] = [];
+    if (before.happiness >= 0 && after.happiness < 0) lines.push('Your people murmur.');
+    if (before.authority >= 0 && after.authority < 0) {
+      lines.push("The Magister's writ grows thin.");
+    }
+    if (lines.length > 0) announce(lines.join(' '));
+  }
+
+  /**
    * Ends the local seat's turn, or stops on the first thing it still owes.
    *
    * `force` is Shift. The gate is entirely local — see the module docblock: the
@@ -1765,6 +1801,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // that completed inside it, which is only visible as a difference.
     const orders = standingOrders();
     const research = researchSnapshot(getGame().state, localPlayerId);
+    const meters = meterReading();
     const result = dispatch(getGame(), { type: 'endTurn', playerId: localPlayerId });
     if (!result.ok) return;
 
@@ -1789,6 +1826,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // to a waiting piece is it pointing.
       const idle = endTurnBlocker();
       if (idle?.kind === 'idleUnit') focusBlocker(idle);
+      // Last, so it wins the notice line: a meter going under is rarer than a
+      // waiting unit and outranks it, and the camera glide the blocker just
+      // performed is the useful half of that prompt anyway.
+      announceDeficits(meters);
       return;
     }
     const next = nextOpenSeat(localPlayerId);

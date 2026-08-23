@@ -26,7 +26,7 @@
 
 import {
   cityYields,
-  foodUpkeep,
+  growthSurplus,
   growthThreshold,
   hasResource,
   queueItemCost,
@@ -39,11 +39,12 @@ import { type BuildingId, BUILDING_IDS, buildingDef } from '../sim/buildingData'
 import { isCombatant, isRanged } from '../sim/combat';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
+import { meterEffects } from '../sim/meters';
 import { resourceDef } from '../sim/resourceData';
 import { type City, type QueueItem, hasEndedTurn } from '../sim/state';
 import { isUnlocked, requiredResource } from '../sim/tech';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
-import { HAMMER, YIELD_GLYPH, turnsLabel } from './figures';
+import { HAMMER, YIELD_GLYPH, effectFigure, signedFigure, turnsLabel } from './figures';
 import { createInfoCard } from './infoCard';
 
 export interface CityPanelOptions {
@@ -255,8 +256,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
   // --- sections ------------------------------------------------------------
 
+  /**
+   * The five figures, and — under them — every empire modifier that is currently
+   * inside them.
+   *
+   * The chips are `cityYields`, which since Milestone 10 has the happiness and
+   * authority multipliers already folded in. A multiplied number shown without
+   * the reason beside it is a total computed beside its list, which is exactly
+   * what CLAUDE.md's rule 5 forbids, so each active effect gets a line naming
+   * the meter, its value and what it is doing. Nothing is listed when nothing is
+   * biting, which is most of a game.
+   */
   function renderYields(city: City): HTMLElement {
-    const yields = cityYields(getGame().state, city);
+    const { state } = getGame();
+    const yields = cityYields(state, city);
+    const box = element('div', 'city-yields-box');
     const row = element('div', 'city-yields');
     const entries: [string, string, number][] = [
       ['food', 'Food', yields.food],
@@ -271,7 +285,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       chip.append(element('span', 'city-yield-label', label));
       row.append(chip);
     }
-    return row;
+    box.append(row);
+
+    const effects = meterEffects(state, city.ownerId);
+    if (effects.length > 0) {
+      const list = element('ul', 'city-modifiers');
+      for (const effect of effects) {
+        const line = element('li', effect.percent < 0 ? 'city-modifier is-bad' : 'city-modifier');
+        const meter = effect.meter === 'happiness' ? 'Happiness' : 'Authority';
+        line.append(element('span', undefined, `${meter} ${signedFigure(effect.value)}`));
+        line.append(element('span', 'city-modifier-effect', effectFigure(effect)));
+        list.append(line);
+      }
+      box.append(list);
+    }
+    return box;
   }
 
   /**
@@ -282,8 +310,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * a starving city look healthy.
    */
   function renderGrowth(city: City): HTMLElement {
-    const yields = cityYields(getGame().state, city);
-    const surplus = yields.food - foodUpkeep(city);
+    // `growthSurplus`, not the subtraction: since M10 what a city banks is the
+    // harvest less upkeep, less a settler at the front of the queue, less
+    // whatever a happiness deficit takes — and the panel must quote the number
+    // the basket will actually receive.
+    const surplus = growthSurplus(getGame().state, city);
     const threshold = growthThreshold(city.population);
     const turns = turnsToFill(threshold - city.foodBasket, surplus);
 
