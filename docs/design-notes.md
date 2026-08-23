@@ -573,6 +573,91 @@ does during a turn re-bakes the board.
 
 ---
 
+## Entry XIV — Happiness & Authority: runtime behavior and presentation (brainstorm 2026-08-23, M10; NOT ratified)
+
+Entry I fixed the skeleton (vertical vs. horizontal limiter, three commitments, v0 numbers).
+This entry is the layer below and above it: what the meters *do* each turn, and how a player
+reads them. First pass for discussion — nothing here is settled.
+
+### A. The shape question: one meter or many?
+
+Three candidate shapes for happiness (authority is unambiguously empire-wide):
+
+1. **Empire meter (Civ V).** One number: Σ supply − Σ per-city unhappiness. Deficit applies
+   empire-wide effects. Most legible at a glance; risk: a single bloated capital sours every
+   village, cause and effect live in different cities.
+2. **Per-city meters (Civ VI amenities).** Each city nets its own. Cause and effect co-located
+   ("Nineveh riots because Nineveh is 12 pop"); risk: N meters to read, luxury allocation
+   rules get fiddly, empire-level supplies (palace, cards) need a distribution rule.
+3. **Hybrid — empire meter, per-city *pressure* (recommended).** ONE empire number for the
+   verdict, but the deficit's bite lands *where the sin lives*: each city's share of total
+   unhappiness weights its growth penalty. The 12-pop capital slows hard, the 4-pop village
+   barely notices, yet the player still reads one number. The breakdown list (Entry VIII) is
+   the bridge: the meter's popover IS the per-city ledger, so shape 3 costs nothing extra to
+   explain.
+
+### B. Runtime behavior (v0 proposal, all numbers to `rules.json`)
+
+**Happiness** (recomputed in `collectYields`, a derived value like city yields — never stored):
+- Supply: palace 9 · circus +3 · each unique *improved* luxury +2 empire +1/city (≤4 cities)
+  · later: cards, wonders, site bonuses. (Luxuries finally earn their keep — today they're gold.)
+- Demand: per city, `pop + 0.6·max(0, pop−8)^1.4` (Entry I).
+- **Deficit gradient, no cliffs** (commitment): at H < 0, growth surplus multiplier
+  `max(0, 1 + H/10)` distributed by each city's unhappiness share (shape 3); at H ≤ −6 add
+  −10% production; at H ≤ −10 add −20% combat strength. No hard settler ban (Civ V's cliff);
+  the growth choke is the ban, priced smoothly.
+- Never linear in empire pop (commitment 2): the per-city superlinear term is the only
+  superlinearity; summing per-city terms is lawful.
+
+**Authority** (also derived, also a breakdown):
+- Used: 2/founded city, capital free, coastal 1 (Entry I.b), captured city 3 (conquest
+  self-throttles harder than settling — you didn't grow them, you seized them).
+- Capacity: palace 4 · +2/age reached · courthouse-family building +2 · later cards/wonders.
+- Over: −8% science AND culture per point over, floor −60% (Entry I). Applied as a multiplier
+  in `advanceResearch`/culture accrual — visible as a labeled line in those breakdowns too.
+- **M10 double-tax resolution (Entry I flagged it):** when authority ships, settler
+  `costIncrement` halves (8 → 4). Authority becomes the primary width brake; escalation stays
+  as tempo friction only. Playtest before touching further.
+
+**New content needed:** circus + courthouse buildings (homes needed in the revised tree — flag
+for the tech-revision pass: a "Games"/festival tech and Vassalage are natural hosts), luxury
+happiness activation, age-capacity hook. All existing mechanisms; no new sim machinery beyond
+two derived breakdowns and three phase multipliers.
+
+### C. Presentation (the part that makes or breaks it)
+
+Naming bible: both stay plain "Happiness"/"Authority". Iconography leans the study, not the
+smiley: **happiness = the comedy mask ☺→ drawn as theater masks** (Theatrum thread), or a
+festival garland; **authority = the wax seal** — a signet stamp that reads "how far does the
+Magister's writ run?"
+
+- **Two HUD chips** beside the yield row: `☺ +6` and `⚜ 6/8`. Green-ink when fine; the chip
+  itself turns vermilion *and shows its consequence* when binding — `☺ −3 · growth −30%`,
+  `⚜ 9/8 · 🔬🎵 −8%` — the number and its meaning in one glance, no tooltip required.
+- **Breakdown popovers on click, Entry VIII discipline**: every source a signed line
+  ("Palace +9 · Circus at Ur +3 · Silk +2 · 19 citizens −19 · Ur crowding −2.4"), total =
+  fold of the list, one evaluator shared by HUD, city panel and any future AI.
+- **Pre-decision deltas (Entry VIII again):** the settler's unit card and the founding
+  confirmation quote the authority line *after* this city — "founds Ur: Authority 8/8"; the
+  settler lens already colors the coast discount. Same for captured cities in the combat
+  preview eventually.
+- **City panel**: one happiness line per city (its demand, its share of the squeeze), so the
+  empire chip and the city sheet tell the same story at two zooms.
+- **Never a turn blocker.** Deficits are legal gambits (Entry I). The interface points
+  (announce line the first turn a meter crosses zero — "Your people murmur in Ur." /
+  "The Magister's writ grows thin.") but never gates End Turn on it.
+- **Turn splash** may carry the age-advance authority gift ("Æra II: your writ extends").
+
+### D. Open questions for the pass
+
+1. Shape 3 accepted, or prefer pure Civ V empire-wide effects (simpler, blunter)?
+2. Captured-city authority 3 vs. 2 — is asymmetric conquest pricing wanted?
+3. Luxury cap "+1/city up to 4 cities" — keep, or replace with flat +2 (simpler to read)?
+4. Do deficits touch gold? (Currently no — gold is M9's loop; keeping it clean.)
+5. Circus/courthouse names — period alternatives: "Arena"? "Bailiff's Court"? "Assize"?
+
+---
+
 ## Entry IV — Parked ideas (deliberately later; do not build yet)
 
 Noted 2026-08-21 at the user's request, with explicit anti-scope-creep intent. These are GOOD
