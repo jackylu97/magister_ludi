@@ -102,8 +102,10 @@ describe('the visibility grid', () => {
 
   it('is carried by the schema version', () => {
     // Bumped for M8: a v9 log replayed here can find an attack refused that the
-    // older build allowed. See the ledger in `state.ts`.
-    expect(SCHEMA_VERSION).toBe(10);
+    // older build allowed. See the ledger in `state.ts`. M7's workers moved it
+    // on again to 11 — the fog fields are still carried by whatever the current
+    // number is, which is what this assertion is really pinning.
+    expect(SCHEMA_VERSION).toBe(11);
   });
 
   it('survives a JSON round trip as plain data', () => {

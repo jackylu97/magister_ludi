@@ -49,6 +49,17 @@
  *     sentry keeps its full movement, so without this clause every garrison in
  *     the empire would block every turn forever.
  *
+ * **Workers need no fourth clause, and that is a result rather than an
+ * oversight.** M7's builders are exactly the unit this prompt exists for — a
+ * worker parked on a hex it could be farming is a wasted turn — and the three
+ * clauses already surface one: it keeps its full movement while it stands
+ * around, so `movesLeft > 0` catches it; building spends *all* of that allowance
+ * (see `improvements.ts`), so it stops blocking the instant it has done the
+ * turn's work; and a worker whose last charge went into a farm is removed from
+ * the board entirely, so "has movement but nothing left to spend" is a state
+ * that cannot exist. A clause reading `chargesLeft` would therefore have been a
+ * clause that never changed an answer.
+ *
  * The other two blockers are simple facts: a city of yours with an empty
  * production queue, and a research pool aimed at nothing while there is still
  * something to aim it at.

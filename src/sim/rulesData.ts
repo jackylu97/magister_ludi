@@ -112,6 +112,24 @@ export interface CombatRules {
   captureCivilians: boolean;
 }
 
+/**
+ * The system half of tile improvements. The per-improvement half (yields,
+ * constraints, charge cost, tech renewals) lives in `data/improvements.json`,
+ * because those describe *an improvement* rather than the system — the same
+ * split `combat` makes with `data/units.json`.
+ */
+export interface ImprovementRules {
+  /**
+   * Gold the pillaging player's treasury gains for tearing one improvement out
+   * of somebody else's ground.
+   *
+   * A flat figure rather than a fraction of what the improvement was worth: the
+   * raid is priced by the *act*, and a scale that paid more for a plantation
+   * than for a farm would quietly make luxuries the thing armies go for.
+   */
+  pillageGold: number;
+}
+
 export interface StartPlacementRules {
   /** Minimum hex distance between two players' start tiles. */
   minSpacing: number;
@@ -206,6 +224,7 @@ export interface RulesConfig {
   visibility: VisibilityRules;
   healing: HealingRules;
   combat: CombatRules;
+  improvements: ImprovementRules;
   cities: CityRules;
   research: ResearchRules;
   /** Unit types every player receives at their start position, in order. */

@@ -61,6 +61,8 @@
 import { isBuildingId } from './buildingData';
 import { assignCitizens, assignableTiles, foundCityAt, foundingError } from './cities';
 import { applyCombat, fortifyError } from './combat';
+import type { ImprovementId } from './improvementData';
+import { buildImprovementAt, improvementError, pillageAt, pillageError } from './improvements';
 import { getTileAt, tileIndex } from './map';
 import { advanceAlongPath } from './movement';
 import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
@@ -316,6 +318,51 @@ export interface FortifyCommand extends PlayerCommand {
   unitId: number;
 }
 
+/**
+ * Spends one of a worker's charges to lay an improvement on the tile it stands
+ * on.
+ *
+ * It names the unit and the improvement, never the tile — the worker is what
+ * authorises the work and the tile is wherever that worker happens to be, which
+ * is `foundCity`'s argument exactly. A command that carried a target would
+ * invite an interface that let a player farm a hex on the other side of the map.
+ *
+ * **Instant.** There is no progress, no partial state and no "worker is busy"
+ * flag: the improvement is on the ground the moment the command is accepted.
+ * That is the whole architectural reason the charge model was chosen (design
+ * ledger, M7) — under simultaneous turns a half-built farm is a thing two seats
+ * can contend over, and this game has no such thing.
+ *
+ * It spends *all* the unit's remaining movement, unlike `pillage`, which spends
+ * one point. Building is the turn's work.
+ *
+ * Turn-gated like `moveUnit`: building is an act, and a seat that has declared
+ * itself finished has finished acting.
+ */
+export interface BuildImprovementCommand extends PlayerCommand {
+  type: 'buildImprovement';
+  unitId: number;
+  improvement: ImprovementId;
+}
+
+/**
+ * Tears an improvement out of ground that is not yours, and pockets the salvage.
+ *
+ * A command of its own rather than a mode of `attack`, for `attack`'s own
+ * reason: the two look similar from a mouse's point of view and are nothing
+ * alike underneath. An attack rolls dice, may kill the actor and spends the
+ * whole turn; a raid is deterministic, costs a single movement point and leaves
+ * the column riding on. Folding them together would mean a mis-aimed order
+ * burned a farm instead of starting a fight.
+ *
+ * Like `attack` and `foundCity` it names no tile: the tile is where the unit is.
+ * Turn-gated like every other act.
+ */
+export interface PillageCommand extends PlayerCommand {
+  type: 'pillage';
+  unitId: number;
+}
+
 /** Every legal mutation of the game, as serializable data. */
 export type Command =
   | EndTurnCommand
@@ -327,7 +374,9 @@ export type Command =
   | SetLockedTilesCommand
   | ChooseResearchCommand
   | AttackCommand
-  | FortifyCommand;
+  | FortifyCommand
+  | BuildImprovementCommand
+  | PillageCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
@@ -855,6 +904,68 @@ function applyFortify(state: GameState, command: FortifyCommand): CommandResult 
   return ok();
 }
 
+/**
+ * Lays an improvement. See `BuildImprovementCommand`, and `improvements.ts` for
+ * the rules.
+ *
+ * The same three questions every handler asks first — is this a real seat, may
+ * it still act, is that its unit — and every question about the *work* delegated
+ * whole to `improvementError`, which is what the unit sheet builds its list of
+ * offered improvements from. So a row the panel shows is a command this accepts.
+ */
+function applyBuildImprovement(
+  state: GameState,
+  command: BuildImprovementCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot build`);
+  }
+
+  const unit = unitById(state, command.unitId);
+  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
+  if (unit.ownerId !== actor.id) {
+    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
+  }
+
+  const problem = improvementError(state, unit.id, command.improvement);
+  if (problem) return fail(problem);
+
+  // Validation is done — `improvementError` has already established that the
+  // unit is on the map and that the improvement id is real.
+  const tile = getTileAt(state.map, unit.col, unit.row)!;
+  buildImprovementAt(state, unit, tile, command.improvement);
+  return ok();
+}
+
+/**
+ * Burns somebody else's works. See `PillageCommand`.
+ *
+ * The seat's questions here, the raid's delegated to `pillageError` — the same
+ * split `applyFortify` makes, and the same guarantee.
+ */
+function applyPillage(state: GameState, command: PillageCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot pillage`);
+  }
+
+  const unit = unitById(state, command.unitId);
+  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
+  if (unit.ownerId !== actor.id) {
+    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
+  }
+
+  const problem = pillageError(state, unit.id);
+  if (problem) return fail(problem);
+
+  const tile = getTileAt(state.map, unit.col, unit.row)!;
+  pillageAt(state, unit, tile);
+  return ok();
+}
+
 // --- reducer ----------------------------------------------------------------
 
 /**
@@ -890,6 +1001,10 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       return applyAttack(state, command);
     case 'fortify':
       return applyFortify(state, command);
+    case 'buildImprovement':
+      return applyBuildImprovement(state, command);
+    case 'pillage':
+      return applyPillage(state, command);
     default:
       return unhandledCommand(kind, type);
   }

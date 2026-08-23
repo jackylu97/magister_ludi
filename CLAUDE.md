@@ -46,7 +46,10 @@ would change every seeded outcome. No further rename passes.
 5. **Explainable yields**: any code adding a yield source (improvements, techs, cards) must
    add it as a contribution entry in the yield-breakdown list (see design-notes Entry VIII,
    "Explainable yields") — totals are the fold of the breakdown; never compute a total beside
-   the list. (Refactor of `tileYieldOf` into this shape lands with M7.)
+   the list. **Landed with M7**: `explainTileYield(tile, ctx?)` in `src/sim/cities.ts`
+   returns the ordered list and `tileYieldOf` is `foldTileYield` of it — one implementation,
+   golden-tested against the pre-refactor arithmetic. `ctx` carries the owning player's techs
+   (renewals only); who passes one is the register in the `yieldContextFor` docblock.
 6. Docblock-style comments explaining *why*, matching existing files' voice.
 
 ## Known traps
@@ -54,15 +57,21 @@ would change every seeded outcome. No further rename passes.
 - Fog is unusable with the ortho camera.
 - Piece visuals rebuild off a fingerprint of `(id, col, row, hp, ownerId)` — any new
   visual-affecting unit property must be added to the fingerprint.
+- `Tile.improvement` is the one field on a tile that changes during play. The map is still
+  reproducible from `{config, log}` (every improvement is a logged command), but it is no longer
+  a pure function of the seed after turn one — nothing may regenerate it mid-game.
 - `turnEnded` assumes player id === array index; revisit if players become removable.
   `visibility` and `citySightings` (M8) make the same assumption and revisit with it.
 - Fog of war patches the board **in place** (`src/render3d/fog3d.ts`): a visibility change is
   per-instance matrix/tint writes for changed tiles only, never a board rebuild. Anything that
   adds instances to `buildBoard` must pass `tile:` to `collector.add` or it will keep drawing
   on hexes nobody has explored — `test/fog3d.test.ts` asserts the accounting.
-- Layers that filter by the local seat (units, cities, territory, lens, walk/death animations)
-  are rebuilt off `FogStats.tiles` in the render loop, not off their own fingerprints — a new
-  seat-filtered layer must be added there too.
+- Layers that filter by the local seat (units, cities, territory, improvements, lens,
+  walk/death animations) are rebuilt off `FogStats.tiles` in the render loop, not off their own
+  fingerprints — a new seat-filtered layer must be added there too. A layer rebuilt *outside*
+  `FogView` must also re-apply the wash itself, or it comes up lit on remembered ground; see
+  `ImprovementLayer.paintFog` for the pattern (`tile:` on every instance, then `setWash` from
+  the collector's own tile→handle map).
 - A unit piece is **three** `InstancedMesh`es over one buffer: sculpt, outline shell, and the
   `depthFunc: GreaterDepth` x-ray ghost. Tests that count meshes use
   `MESHES_PER_PIECE_BUCKET`; hide/restore must move all three or a silhouette is left behind.

@@ -42,6 +42,11 @@ import {
   Vector3,
 } from 'three';
 
+import {
+  IMPROVEMENT_IDS,
+  type ImprovementId,
+  improvementDef,
+} from '../sim/improvementData';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
 import { type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
@@ -66,25 +71,30 @@ import {
   bannerPole,
   barQuad,
   cactus,
+  campTent,
   catapultMini,
   chariotMini,
   cityHouseBody,
   cityHouseRoof,
   crystalCluster,
   discRing,
+  fenceRing,
   fishFin,
   flowerSpray,
+  furrowRows,
   grassTuft,
   hexDecal,
   hexPrism,
   hexRing,
   horsemanMini,
   markerPin,
+  mineHead,
   mountainPeak,
   mountainSnow,
   oreBoulder,
   pathDot,
   pineTree,
+  quarrySteps,
   reedClump,
   riverSegment,
   rock,
@@ -101,6 +111,7 @@ import {
   toyCow,
   toyDeer,
   toyHorse,
+  trellisRows,
   vineTrellis,
   wheatStand,
   workerMini,
@@ -131,6 +142,7 @@ const DECOR = VIEW3D.decor;
 const OVERLAY = VIEW3D.overlay;
 const CITY = VIEW3D.city;
 const RESOURCES = VIEW3D.resources;
+const IMPROVEMENTS = VIEW3D.improvements;
 const TABLE = VIEW3D.table;
 const RIVERS = VIEW3D.rivers;
 const PIECES = VIEW3D.pieces;
@@ -159,8 +171,8 @@ export function modelClassFor(type: UnitTypeId): ModelClass {
  * the data are joined, and making it exhaustive means a `modelClass` name added
  * to `units.json` that nobody sculpted is a *compile* error rather than a hole
  * in the board. `test/pieces3d.test.ts` closes the other direction — a sculpt no
- * unit stands on — with one deliberate exemption, `worker`, which is sculpted
- * and iconed ahead of the unit that will stand on it.
+ * unit stands on — and as of M7 there is no exemption left: `worker` was
+ * sculpted and iconed a milestone ahead of its unit, and the unit has landed.
  *
  * The eight builds are the best silhouette from the old per-type roster rather
  * than eight new sculpts: the swordsman was always the clearest foot soldier,
@@ -260,6 +272,38 @@ function buildResourceProps(): Record<ResourceId, BufferGeometry> {
     out[id] = RESOURCE_PROPS[id](BOARD.hexRadius * RESOURCES.props[id].size);
   }
   return out as Record<ResourceId, BufferGeometry>;
+}
+
+/**
+ * Every improvement's diorama prop, by improvement id.
+ *
+ * Typed `Record<ImprovementId, …>` for exactly the reason `RESOURCE_PROPS` is:
+ * this is the one place the art and the data are joined, so an improvement added
+ * to `data/improvements.json` that nobody drew a prop for is a *compile* error
+ * rather than a hex with an invisible farm on it. `test/improvements3d.test.ts`
+ * closes the other direction — a prop no improvement asks for.
+ *
+ * They are built here, with the board's other shared shapes, and *drawn* by
+ * `improvements3d.ts`, which is a layer of its own because improvements change
+ * during play and the board does not. One geometry per shape, built once, reused
+ * by every board ever built — the same rule as everything else in this file.
+ */
+export const IMPROVEMENT_PROPS: Record<ImprovementId, (size: number) => BufferGeometry> = {
+  farm: furrowRows,
+  mine: mineHead,
+  pasture: fenceRing,
+  camp: campTent,
+  quarry: quarrySteps,
+  plantation: trellisRows,
+};
+
+/** One prop per improvement, each built at the size its data row asks for. */
+function buildImprovementProps(): Record<ImprovementId, BufferGeometry> {
+  const out: Partial<Record<ImprovementId, BufferGeometry>> = {};
+  for (const id of IMPROVEMENT_IDS) {
+    out[id] = IMPROVEMENT_PROPS[id](BOARD.hexRadius * IMPROVEMENTS.props[id].size);
+  }
+  return out as Record<ImprovementId, BufferGeometry>;
 }
 
 /**
@@ -374,6 +418,13 @@ export class BoardGeometry {
    */
   readonly resourceProps: Record<ResourceId, BufferGeometry>;
   /**
+   * The improvement props, keyed by improvement id: the furrows, the mine head,
+   * the fence. Built here with every other shared shape and *placed* by
+   * `improvements3d.ts`, which is a layer of its own because a farm can appear
+   * mid-game and the board's buffers may not be rebuilt for that.
+   */
+  readonly improvementProps: Record<ImprovementId, BufferGeometry>;
+  /**
    * The flat tile marks, one quad per cell of the tile atlas that still lies on
    * the ground: a yield glyph and a numeral. Both are drawn by `lens3d.ts` with
    * the atlas's own depth-test-free material.
@@ -451,6 +502,7 @@ export class BoardGeometry {
     );
     this.dot = pathDot(OVERLAY.pathDotRadius, OVERLAY.pathDotHeight);
     this.resourceProps = buildResourceProps();
+    this.improvementProps = buildImprovementProps();
     const icons = buildIconDecals();
     this.yieldGlyphs = icons.yields;
     this.numerals = icons.numerals;
@@ -511,6 +563,7 @@ export class BoardGeometry {
     this.ring.dispose();
     this.dot.dispose();
     for (const prop of Object.values(this.resourceProps)) prop.dispose();
+    for (const prop of Object.values(this.improvementProps)) prop.dispose();
     for (const quad of Object.values(this.resourceMarkers)) quad.dispose();
     this.resourceStem.dispose();
     for (const quad of Object.values(this.yieldGlyphs)) quad.dispose();
@@ -962,9 +1015,27 @@ function addDecorations(
   const resource = tile.resource;
   const prop = resource === undefined ? null : RESOURCES.props[resource];
 
+  /**
+   * A farm or a mine displaces the same clutter a resource prop does, through
+   * the same mechanism and for the same reason: worked ground is not grassy
+   * ground, and furrows drawn through a meadow are overlap soup at this zoom.
+   * It is `clearsClutter` in `data/improvements.json`, so which improvements do
+   * it is a data question — and it is deliberately *false* for the four
+   * resource-improvements, which are built round something the tile already
+   * shows and compose with it (the fence goes around the cattle).
+   *
+   * This is the one thing about an improvement the *board* knows, and it is
+   * therefore the one thing that costs a board rebuild when it changes — the
+   * exact precedent a founded city already sets with `cityCells`, fingerprinted
+   * by `signImprovedCells` (`improvements3d.ts`). The props themselves never
+   * touch these buffers; they are their own layer.
+   */
+  const cleared =
+    tile.improvement !== undefined && improvementDef(tile.improvement).clearsClutter;
+
   // Rocks scatter on bare hills only: a forested hill already has silhouette,
   // and piling boulders under the trees just made mud.
-  if (!prop && tile.hills && tile.feature === 'none' && tile.terrain !== 'mountain') {
+  if (!prop && !cleared && tile.hills && tile.feature === 'none' && tile.terrain !== 'mountain') {
     if (hashUnit(tile.col, tile.row, STREAM.rockRoll) < 0.55) {
       const count = hashedCount(tile.col, tile.row, STREAM.rockCount, 2);
       for (let i = 0; i < count; i++) {
@@ -985,9 +1056,11 @@ function addDecorations(
         { spread: RESOURCES.spread },
       );
     }
-  } else {
+  } else if (!cleared) {
     addGroundClutter(tile, geometry, place);
   }
+  // The bank dressing stays either way: reeds are a fact about where the water
+  // is, not about what is growing on the field beside it.
   addWaterEdge(map, tile, geometry, place);
 
   /** Ground clutter and reeds share the scatter above; both are below. */

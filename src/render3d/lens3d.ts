@@ -85,7 +85,13 @@
 
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
-import { cityAt, foundingErrorAt, tileYieldOf } from '../sim/cities';
+import {
+  type TileYieldContext,
+  cityAt,
+  foundingErrorAt,
+  tileYieldOf,
+  yieldContextFor,
+} from '../sim/cities';
 import { type GameMap, type Tile, getTileAt, tileNeighbors } from '../sim/map';
 import type { GameState } from '../sim/state';
 import { visibleResourceAt } from '../sim/tech';
@@ -210,6 +216,10 @@ export class LensLayer {
         collector,
         geometry,
         icons,
+        // The seat the lens is drawn for. Its technologies decide whether a
+        // renewal is counted (see `explainTileYield`), so the glyphs on the
+        // board and the figures on the hover card are the same arithmetic.
+        yieldContextFor(state, lens.playerId),
       );
     }
 
@@ -250,13 +260,14 @@ export class LensLayer {
     collector: InstanceCollector,
     geometry: BoardGeometry,
     icons: TileIcons,
+    ctx: TileYieldContext | undefined,
   ): void {
     const identity = new Quaternion();
     const glyph = new Vector3(LENS.glyphSize, 1, LENS.glyphSize);
     const numeral = new Vector3(LENS.numeralSize, 1, LENS.numeralSize);
 
     for (const tile of tiles) {
-      const value = tileYieldOf(tile);
+      const value = tileYieldOf(tile, ctx);
       const rows = YIELD_KEYS.filter((key) => value[key] > 0);
       if (rows.length === 0) continue;
 

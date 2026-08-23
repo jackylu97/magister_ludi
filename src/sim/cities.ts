@@ -62,8 +62,13 @@ import {
   tileIndex,
   wrappedDistance,
 } from './map';
+import {
+  improvementDef,
+  improvementForResource,
+  improvementYield,
+} from './improvementData';
 import { isPassable } from './pathfind';
-import { type ResourceId, resourceYield } from './resourceData';
+import { type ResourceId, resourceDef, resourceYield } from './resourceData';
 import { RULES } from './rulesData';
 import {
   type City,
@@ -75,7 +80,14 @@ import {
   createUnit,
   playerById,
 } from './state';
-import { type TileYield, isWorkableTerrain, tileYield } from './terrainData';
+import {
+  TERRAIN_DATA,
+  type TileYield,
+  featureDef,
+  isWorkableTerrain,
+  terrainDef,
+} from './terrainData';
+import { type TechId, techDef } from './techData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
 import { recomputeVisibility } from './visibility';
@@ -94,58 +106,261 @@ export interface CityYields {
 // --- tiles ------------------------------------------------------------------
 
 /**
- * Food/production/gold of a tile, resource included.
+ * What a tile pays, and *why* — CLAUDE.md's hard rule 5 made a function.
  *
- * The whole yield chain, in the one order it is ever read:
+ * `explainTileYield` returns an ordered list of contributions and `tileYieldOf`
+ * is the fold of that list. There is deliberately no second implementation: a
+ * total computed beside the breakdown is a total that can disagree with the
+ * explanation the interface prints, and the whole of Entry VIII is that a
+ * preview cannot be allowed to lie.
  *
- *     base     = tileYield(terrain, feature, hills)   // overrides; hills win
- *     effective = base + resourceYield(tile.resource) // sums
+ * The order is the order the rules resolve in, and it is the one order this
+ * chain is ever read in:
  *
- * The first half is `terrainData.ts`'s algebra and every step of it is an
- * *override* — a hill is a hill whatever grows on it. The resource is the one
- * term that **adds**, and it adds last, which is what makes wheat worth the same
- * point of food wherever it lands: a bonus resource is a thing sitting *on* the
- * ground rather than a different kind of ground. (Deer on a forest is therefore
- * 1/1/0 + 1/0/0 = 2/1/0, and deer on a forested hill is the hill's 0/2/0 + 1/0/0.)
+ *     terrain base  →  feature override  →  hills override
+ *                   →  resource add  →  improvement add  →  renewal adds
+ *
+ * Two kinds of entry and the fold treats them differently, which is what lets
+ * one list carry two different algebras (see `terrainData.ts`, which has three):
+ *
+ *   `base` / `override`  **replace** the running total. That is Civ's rule for
+ *                        the ground itself — a hill is a hill whatever grows on
+ *                        it — and writing the feature down *even when a hill
+ *                        overrides it* is the point: "Forest 1🌾1⚙, replaced by
+ *                        Hills 0🌾2⚙" is the sentence a player needs, and the
+ *                        fold reaches the same number either way.
+ *   `add`                **sums**. A resource, an improvement and a renewal are
+ *                        all things sitting *on* the ground rather than a
+ *                        different kind of ground, which is what makes wheat
+ *                        worth the same point of food wherever it lands.
  *
  * Workability is a separate question and is not touched here: a mountain with a
  * resource on it would still be unworkable, which is why `isWorkableTile` asks
- * the terrain and not the yield. No resource in `data/resources.json` names a
- * mountain, so the case is a guard rather than a rule anybody meets.
+ * the terrain and not the yield.
+ *
+ * The context, and who passes one
+ * -------------------------------
+ * Everything above the renewals is a fact about the *tile*. A renewal is a fact
+ * about the tile **and its owner** — Feudalism gives freshwater farms a second
+ * food, and only to the empire that researched it — so it needs a player, and a
+ * function that took a whole `GameState` would drag this module into an import
+ * cycle with `tech.ts` (which already depends on it). `TileYieldContext` is
+ * therefore the minimum the evaluation actually needs: the technologies held.
+ *
+ * `explainTileYield(tile)` with no context is exactly the pre-M7 answer plus the
+ * improvement's own flat add, and it is the right call for anything asking about
+ * *ground* rather than about an empire. Who passes what is written down in the
+ * `yieldContextFor` docblock, because a call site that quietly stopped passing
+ * one would under-report a renewal and nothing would fail.
  */
-export function tileYieldOf(tile: Tile): TileYield {
-  const base = tileYield(tile.terrain, tile.feature, tile.hills);
-  if (tile.resource === undefined) return base;
-  const extra = resourceYield(tile.resource);
-  return {
-    food: base.food + extra.food,
-    production: base.production + extra.production,
-    gold: base.gold + extra.gold,
-  };
+export type TileYieldKind = 'base' | 'override' | 'add';
+
+export interface TileYieldContribution {
+  /** Display label: the terrain, the feature, the resource, the tech. */
+  source: string;
+  kind: TileYieldKind;
+  food: number;
+  production: number;
+  gold: number;
 }
 
 /**
- * Does this player own a tile carrying this resource?
+ * What an evaluation needs to know about the player whose tile this is.
  *
- * The v1 reading of "has a strategic resource", and it is deliberately the
- * *simple* one: ownership, not improvement. Civ requires a worker to build a
- * pasture or a mine before horses or iron count, and this game has no workers
- * and no improvements yet — so requiring one would make every strategic unit
- * permanently unbuildable, which is a rule nobody could play against. When
- * improvements land this function is the single place that gains the "and it is
- * improved" clause, and the reducer, the panel and the tests all follow it.
+ * Deliberately not a `Player` and not a `GameState`: the only player-dependent
+ * term in the whole chain is "does this empire hold the technology", so that is
+ * the only thing the context carries. Anything richer would be a second reason
+ * for this module to know about research.
+ */
+export interface TileYieldContext {
+  /** Technologies the owning player holds. `Player.techsResearched`. */
+  techs: readonly TechId[];
+}
+
+/**
+ * The context for a player, or `undefined` when there is no such player.
+ *
+ * **The call-site register**, kept here because a list of who passes a context
+ * is only useful where somebody will read it:
+ *
+ *   · `assignCitizens`, `centreYield`, `cityYields`, `bestExpansionTile` — all
+ *     pass the *city owner's* context. Those four are the simulation banking and
+ *     spending real yields, and a citizen that ignored a renewal would be sent
+ *     to the wrong tile the turn Feudalism landed.
+ *   · the hover readout (`showTileYields` in `main.ts`) passes the **local
+ *     seat's** context, because the question it answers is "what would a city of
+ *     mine collect here".
+ *   · the yield glyphs (`lens3d.ts`) pass `LensView.playerId`, the seat the lens
+ *     is drawn for, so the board and the hover card agree.
+ *   · the citizen *score* used by the border chooser and the assigner is the
+ *     fold of the same contextual list, so "grow toward land you would work"
+ *     survives a renewal.
+ *   · nobody else passes one, and the two that deliberately do not are the
+ *     improvement preview (`improvementYieldDelta`, which quotes the flat add a
+ *     charge buys *now*) and any test asking about bare ground.
+ */
+export function yieldContextFor(
+  state: GameState,
+  playerId: number,
+): TileYieldContext | undefined {
+  const player = playerById(state, playerId);
+  return player ? { techs: player.techsResearched } : undefined;
+}
+
+/** The context of the player who owns a city. Never undefined in practice. */
+function cityContext(state: GameState, city: City): TileYieldContext | undefined {
+  return yieldContextFor(state, city.ownerId);
+}
+
+/**
+ * The ordered breakdown of one tile's yield. See the docblock above for the
+ * order and for what each `kind` means to the fold.
+ */
+export function explainTileYield(
+  tile: Tile,
+  ctx?: TileYieldContext,
+): TileYieldContribution[] {
+  const list: TileYieldContribution[] = [];
+
+  const terrain = terrainDef(tile.terrain);
+  const base = terrain.yield;
+  list.push({
+    source: terrain.name,
+    kind: 'base',
+    food: base.food,
+    production: base.production,
+    gold: base.gold,
+  });
+
+  // Written down even on a hill, where it is about to be overridden: the fold
+  // reaches the same number, and the *list* is the explanation.
+  const feature = featureDef(tile.feature);
+  const override = feature.yieldOverride;
+  if (override !== null) {
+    list.push({
+      source: feature.name,
+      kind: 'override',
+      food: override.food,
+      production: override.production,
+      gold: override.gold,
+    });
+  }
+
+  if (tile.hills) {
+    const hills = TERRAIN_DATA.hills;
+    list.push({
+      source: hills.name,
+      kind: 'override',
+      food: hills.yieldOverride.food,
+      production: hills.yieldOverride.production,
+      gold: hills.yieldOverride.gold,
+    });
+  }
+
+  if (tile.resource !== undefined) {
+    const extra = resourceYield(tile.resource);
+    list.push({
+      source: resourceDef(tile.resource).name,
+      kind: 'add',
+      food: extra.food,
+      production: extra.production,
+      gold: extra.gold,
+    });
+  }
+
+  const improvement = tile.improvement;
+  if (improvement !== undefined) {
+    const def = improvementDef(improvement);
+    const extra = improvementYield(improvement);
+    list.push({
+      source: def.name,
+      kind: 'add',
+      food: extra.food,
+      production: extra.production,
+      gold: extra.gold,
+    });
+    // The renewals, each its own entry, and only for an empire that has earned
+    // them. Walked in the table's own order so two renewals on one improvement
+    // always read in the same order (design ledger, Entry I).
+    for (const upgrade of def.upgrades ?? []) {
+      if (!ctx || !ctx.techs.includes(upgrade.tech)) continue;
+      if (upgrade.requiresFreshwater && !tile.freshwater) continue;
+      list.push({
+        source: techDef(upgrade.tech).name,
+        kind: 'add',
+        food: upgrade.add.food,
+        production: upgrade.add.production,
+        gold: upgrade.add.gold,
+      });
+    }
+  }
+
+  return list;
+}
+
+/**
+ * The fold: `base` and `override` replace, `add` sums. The only place a tile's
+ * total is ever computed.
+ */
+export function foldTileYield(list: readonly TileYieldContribution[]): TileYield {
+  const total: TileYield = { food: 0, production: 0, gold: 0 };
+  for (const entry of list) {
+    if (entry.kind === 'add') {
+      total.food += entry.food;
+      total.production += entry.production;
+      total.gold += entry.gold;
+    } else {
+      total.food = entry.food;
+      total.production = entry.production;
+      total.gold = entry.gold;
+    }
+  }
+  return total;
+}
+
+/**
+ * Food/production/gold of a tile — resource, improvement and renewals included.
+ *
+ * One line, and that is the point: it is the fold of `explainTileYield` and
+ * nothing else, so the number and the explanation cannot drift apart. See the
+ * docblock above `TileYieldKind` for the chain and for who passes a context.
+ */
+export function tileYieldOf(tile: Tile, ctx?: TileYieldContext): TileYield {
+  return foldTileYield(explainTileYield(tile, ctx));
+}
+
+/**
+ * Does this player *control* this resource — own a tile carrying it, with the
+ * improvement that opens it built?
+ *
+ * The Entry IX correction, landed. The v1 reading was ownership alone, and the
+ * note beside it said exactly why: there were no workers, so requiring a pasture
+ * would have made every mounted unit permanently unbuildable. Workers exist now,
+ * so the clause the note promised is here, and it is the *only* thing that
+ * changed — the reducer, the city panel and the production gate all still ask
+ * this one function.
+ *
+ * Which improvement opens which resource is `improvesResource` in
+ * `data/improvements.json`, inverted once at load (`improvementForResource`).
+ * A resource nothing improves — fish, whose work boat is deferred with the rest
+ * of naval — is therefore never controlled by anybody, which is the honest
+ * answer rather than a special case: nothing in the game is gated on it yet.
  *
  * Ownership is a *city's*, then the city's owner's, exactly as `tileOwner`
- * stores it — so a captured city hands over its iron in the same breath as its
- * territory, with no bookkeeping of its own.
+ * stores it — so a captured city hands over its mined iron in the same breath as
+ * its territory, with no bookkeeping of its own. Pillaging that mine takes the
+ * iron away again, from the other end, and needs no rule of its own either.
  */
 export function hasResource(
   state: GameState,
   playerId: number,
   resourceId: ResourceId,
 ): boolean {
+  const needed = improvementForResource(resourceId);
+  if (needed === null) return false;
   for (const tile of state.map.tiles) {
     if (tile.resource !== resourceId) continue;
+    if (tile.improvement !== needed) continue;
     if (tileOwnerPlayerId(state, tile.col, tile.row) === playerId) return true;
   }
   return false;
@@ -451,8 +666,11 @@ export function assignCitizens(state: GameState, city: City): void {
     worked.push(tile);
   }
 
+  // The owner's context, so a citizen is sent to the tile a renewal has made
+  // the best one — the turn the renewal lands, not the turn after.
+  const ctx = cityContext(state, city);
   const scores = new Map<number, number>();
-  for (const tile of candidates) scores.set(index(tile), yieldScore(tileYieldOf(tile)));
+  for (const tile of candidates) scores.set(index(tile), yieldScore(tileYieldOf(tile, ctx)));
   candidates.sort((a, b) => {
     const ia = index(a);
     const ib = index(b);
@@ -480,7 +698,7 @@ export function assignCitizens(state: GameState, city: City): void {
  * than replacing outright is what gives both.
  */
 export function centreYield(state: GameState, city: City): TileYield {
-  const own = tileYieldOf(cityTile(state.map, city));
+  const own = tileYieldOf(cityTile(state.map, city), cityContext(state, city));
   const base = CITIES.baseCityYields;
   return {
     food: Math.max(own.food, base.food),
@@ -523,10 +741,11 @@ export function cityYields(
     culture: CITIES.baseCulturePerCity,
   };
 
+  const ctx = cityContext(state, city);
   for (const cell of city.workedTiles) {
     const tile = getTileAt(state.map, cell.col, cell.row);
     if (!tile) continue;
-    const value = tileYieldOf(tile);
+    const value = tileYieldOf(tile, ctx);
     total.food += value.food;
     total.production += value.production;
     total.gold += value.gold;
@@ -810,6 +1029,9 @@ export function advanceProduction(state: GameState): void {
 export function bestExpansionTile(state: GameState, city: City): Tile | null {
   const { map } = state;
   const centre = cityTile(map, city);
+  // The same context the citizens are assigned with: a city should grow toward
+  // land it would actually work, renewals included.
+  const ctx = cityContext(state, city);
   let best: Tile | null = null;
   let bestScore = -Infinity;
   let bestIndex = Infinity;
@@ -827,7 +1049,7 @@ export function bestExpansionTile(state: GameState, city: City): Tile | null {
     }
     if (!touches) continue;
 
-    const score = yieldScore(tileYieldOf(tile));
+    const score = yieldScore(tileYieldOf(tile, ctx));
     if (score > bestScore || (score === bestScore && index < bestIndex)) {
       best = tile;
       bestScore = score;

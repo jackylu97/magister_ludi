@@ -131,6 +131,26 @@ describe('isIdleUnit', () => {
     unit.path = [];
     expect(isIdleUnit(unit)).toBe(true);
   });
+
+  it('calls a worker with charges, movement and no orders idle', () => {
+    // The unit this prompt exists for: a worker parked on farmable ground is a
+    // wasted turn, and it falls out of the three clauses without a fourth. See
+    // the module docblock in `turnBlockers.ts`.
+    const state = flatState();
+    const worker = createUnit(state, 0, 'worker', 3, 3);
+    expect(worker.chargesLeft).toBe(3);
+    expect(isIdleUnit(worker)).toBe(true);
+  });
+
+  it('stops calling a worker idle once it has spent its turn building', () => {
+    // Building spends the *whole* allowance (see `buildImprovementAt`), which is
+    // exactly what makes the `movesLeft` clause enough on its own.
+    const state = flatState();
+    const worker = createUnit(state, 0, 'worker', 3, 3);
+    worker.chargesLeft = 2;
+    worker.movesLeft = 0;
+    expect(isIdleUnit(worker)).toBe(false);
+  });
 });
 
 describe('firstBlocker · idle units', () => {

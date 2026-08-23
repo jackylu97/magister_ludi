@@ -36,16 +36,40 @@
  */
 
 import { fortifyBonus, isCombatant, isFortified, isRanged } from '../sim/combat';
+import type { ImprovementId } from '../sim/improvementData';
+import { chargesLeft, isBuilder } from '../sim/improvements';
 import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
 import { tileMoveCost } from '../sim/pathfind';
 import type { Unit } from '../sim/state';
+import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
 import { fullMovement } from '../sim/units';
+import type { ImprovementOption } from './controls';
 
 /** "+40%" — a defence fraction as the percentage a player reads it as. */
 function formatPercent(fraction: number): string {
   return `+${Math.round(fraction * 100)}%`;
+}
+
+/**
+ * "+1🌾 +1🪙" — a yield delta in the three voices, zeroes left out.
+ *
+ * The glyphs are the ones every other yield readout on this interface uses (the
+ * context card, the city panel), because a player should not have to learn that
+ * a sheaf on one panel is the same thing as a sheaf on another. An empty delta
+ * comes back as an empty string, and the caller decides what to do about it —
+ * which is nothing, since an improvement worth no yield is still worth building
+ * for the resource it opens.
+ */
+function formatYieldDelta(delta: TileYield): string {
+  const parts: string[] = [];
+  if (delta.food !== 0) parts.push(`${delta.food > 0 ? '+' : ''}${delta.food}🌾`);
+  if (delta.production !== 0) {
+    parts.push(`${delta.production > 0 ? '+' : ''}${delta.production}⚙`);
+  }
+  if (delta.gold !== 0) parts.push(`${delta.gold > 0 ? '+' : ''}${delta.gold}🪙`);
+  return parts.join(' ');
 }
 
 export interface UnitPanelOptions {
@@ -74,6 +98,23 @@ export interface UnitPanelOptions {
    */
   fortifyBlocker: () => string | null | undefined;
   onFortify: () => void;
+  /**
+   * The improvements the selected unit could build where it stands, already
+   * filtered to the legal ones and carrying their yield deltas —
+   * `controls.improvementOptions()`.
+   *
+   * A list rather than a blocker, because this verb is six verbs. See
+   * `GameControls.improvementOptions` for why the illegal ones are absent
+   * instead of greyed out.
+   */
+  improvementOptions: () => ImprovementOption[];
+  onBuildImprovement: (id: ImprovementId) => void;
+  /**
+   * Why the selected unit cannot pillage — the same three-valued shape as
+   * `foundCityBlocker`, answered by `controls.pillageBlocker()`.
+   */
+  pillageBlocker: () => string | null | undefined;
+  onPillage: () => void;
   /** Drops the selection — the × button and, through `controls`, Escape. */
   onClose: () => void;
 }
@@ -116,6 +157,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onCancelOrder,
     fortifyBlocker,
     onFortify,
+    improvementOptions,
+    onBuildImprovement,
+    pillageBlocker,
+    onPillage,
     onClose,
   } = options;
 
@@ -205,6 +250,42 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         run: onFortify,
       });
     }
+    // The builder's verbs, one per improvement that is legal *here*.
+    //
+    // Listed rather than greyed, which is the opposite of Fortify's choice and
+    // is the city panel's precedent: a fortify refusal is one temporary "not
+    // this turn", while these are six mostly-permanent facts about the hex, and
+    // six greyed rows saying "a mine needs hills" on a grassland would spend the
+    // whole panel on no. What the player sees instead is the shape of the ground
+    // they are standing on.
+    //
+    // The label carries the delta, from the same evaluator the city banks with,
+    // so a charge is spent against a number rather than against a hope.
+    if (isBuilder(unit)) {
+      for (const option of improvementOptions()) {
+        const delta = formatYieldDelta(option.delta);
+        actions.push({
+          label: delta ? `${option.name} ${delta}` : option.name,
+          blocked: null,
+          hint: `Spend a charge: ${option.name.toLowerCase()} on this tile`,
+          run: () => onBuildImprovement(option.id),
+        });
+      }
+    }
+    // Pillage is offered to anything that can fight, and merely *disabled* when
+    // there is nothing here to burn — Fortify's reading rather than the
+    // improvements' one, because "there is nothing to pillage" is a fact about
+    // this hex this turn, and a soldier will meet the verb again tomorrow.
+    // No hotkey in v1: the actions panel is the whole of it.
+    if (unitDef(unit.type).category === 'military') {
+      const blocker = pillageBlocker();
+      actions.push({
+        label: 'Pillage',
+        blocked: blocker === undefined ? 'No unit selected' : blocker,
+        hint: 'Burn the improvement here and take the salvage',
+        run: onPillage,
+      });
+    }
     // Only offered while there is something to cancel: a permanently disabled
     // "Cancel Order" on every unit that has never been given one would be a
     // button that means nothing, exactly as Found City is on a warrior.
@@ -273,6 +354,16 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     stats.append(
       stat('Moves', `${unit.movesLeft}/${def.movement}`, unit.movesLeft <= 0),
     );
+    // Charges, and only for things that have them — the same rule the fighting
+    // numbers below follow, and for the same reason: a warrior's sheet must not
+    // carry a "0 charges" that reads as a statistic rather than as "this is not
+    // a builder". It is the *scarcest* thing about a worker (three of them, and
+    // then the piece is gone), so it sits with health and movement rather than
+    // being left to be inferred from how many buttons the actions list has.
+    if (isBuilder(unit)) {
+      const left = chargesLeft(unit);
+      stats.append(stat('Charges', `⚒ ${left}/${def.charges ?? left}`, left <= 1));
+    }
     // The fighting numbers, and only for things that fight: a settler's sheet
     // does not carry a strength of zero, which would read as a statistic rather
     // than as "this is not a soldier".

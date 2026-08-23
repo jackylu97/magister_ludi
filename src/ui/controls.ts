@@ -137,11 +137,19 @@ import {
 } from '../sim/combat';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
+import { yieldContextFor } from '../sim/cities';
+import {
+  IMPROVEMENT_IDS,
+  type ImprovementId,
+  improvementDef,
+} from '../sim/improvementData';
+import { improvementError, improvementYieldDelta, isBuilder, pillageError } from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex } from '../sim/map';
 import { findPath, reachableTiles } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import { type City, type Unit, cityById, hasEndedTurn, unitById } from '../sim/state';
 import { type ResearchReport, researchSince, researchSnapshot } from '../sim/tech';
+import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
 import { unitsOnTile } from '../sim/units';
 import { walkedPrefix } from '../render/animation';
@@ -185,6 +193,23 @@ export interface DamageEvent {
   row: number;
   amount: number;
   kind: 'dealt' | 'taken';
+}
+
+/**
+ * One improvement the selected worker could build here, and what it would buy.
+ *
+ * The delta comes from `improvementYieldDelta`, which asks the *same* evaluator
+ * the turn pipeline banks with (see `improvements.ts`), so "Farm +1🌾" on the
+ * button is the food the city will actually collect. Carrying the delta rather
+ * than the improvement's flat `yields` is the difference between a preview and a
+ * guess: the day an improvement replaces a feature, or a renewal changes the sum,
+ * the button follows without anybody remembering to make it.
+ */
+export interface ImprovementOption {
+  id: ImprovementId;
+  name: string;
+  /** What building it would add to this tile's yield, right now. */
+  delta: TileYield;
 }
 
 /**
@@ -413,6 +438,34 @@ export interface GameControls {
   fortifyBlocker(): string | null | undefined;
   /** Digs the selected unit in. The unit sheet's button and the `F` key. */
   fortify(): void;
+
+  /**
+   * Every improvement the selected unit could build where it stands, with what
+   * each would add to the tile — the rows the unit sheet turns into buttons.
+   *
+   * Only the legal ones. That is the *opposite* of the choice Fortify makes and
+   * it is the city panel's precedent rather than an inconsistency: a fortify
+   * button is one button whose refusal is temporary and worth explaining, while
+   * this is a list of six whose refusals are almost all permanent facts about the
+   * hex ("a mine needs hills"). Six greyed rows on a hex where one thing is legal
+   * would spend the whole panel saying no.
+   *
+   * Empty when there is no selection, when the selection is not a builder, or
+   * when the seat has ended its turn — the panel then shows the charges line and
+   * no verbs, which is the honest picture of a worker with nothing to do here.
+   */
+  improvementOptions(): ImprovementOption[];
+  /** Spends a charge. The unit sheet's per-improvement buttons. */
+  buildImprovement(id: ImprovementId): void;
+
+  /**
+   * Why the selected unit cannot pillage where it stands, or `null` when it can.
+   * `undefined` with nothing selected — the same three-valued shape as
+   * `foundCityBlocker`.
+   */
+  pillageBlocker(): string | null | undefined;
+  /** Burns the improvement under the selected unit. The unit sheet's button. */
+  pillage(): void;
 
   /**
    * What would happen if the selected unit attacked the tile under the pointer,
@@ -1135,6 +1188,101 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reject(result.error);
       return;
     }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  // --- improvements --------------------------------------------------------
+
+  /**
+   * Every improvement the selected unit could build here. See
+   * `GameControls.improvementOptions` for why invalid ones are absent rather
+   * than greyed.
+   *
+   * The list is filtered by `improvementError` — the reducer's own gate — so a
+   * row that appears is a command that will be accepted, and the delta beside it
+   * comes from the same evaluator the yields are banked with. Walked in
+   * `IMPROVEMENT_IDS` order, which is the table's order, so the buttons do not
+   * reshuffle themselves between renders.
+   */
+  function improvementOptions(): ImprovementOption[] {
+    const unit = selectedUnit();
+    if (!unit || !canOrder()) return [];
+    const { state } = getGame();
+    if (!isBuilder(unit)) return [];
+    const tile = getTileAt(state.map, unit.col, unit.row);
+    if (!tile) return [];
+    const ctx = yieldContextFor(state, unit.ownerId);
+    const options: ImprovementOption[] = [];
+    for (const id of IMPROVEMENT_IDS) {
+      if (improvementError(state, unit.id, id) !== null) continue;
+      options.push({
+        id,
+        name: improvementDef(id).name,
+        delta: improvementYieldDelta(tile, id, ctx),
+      });
+    }
+    return options;
+  }
+
+  /**
+   * Spends a charge on an improvement, and lets go of the worker if that was its
+   * last one.
+   *
+   * The selection has to be dropped by hand here, unlike a fortify: a worker
+   * that spends its third charge is *removed from the board* (see
+   * `buildImprovementAt`), so holding its id would leave the sheet describing a
+   * piece that no longer exists. Asked of the state after the dispatch rather
+   * than predicted before it, so the interface believes the simulation.
+   */
+  function buildImprovement(id: ImprovementId): void {
+    const unit = selectedUnit();
+    if (!unit) return;
+
+    const command: Command = {
+      type: 'buildImprovement',
+      playerId: localPlayerId,
+      unitId: unit.id,
+      improvement: id,
+    };
+    const result = dispatch(getGame(), command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+
+    if (!unitById(getGame().state, unit.id)) {
+      selectedId = null;
+      setMoveMode(false);
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
+   * Why the selected unit cannot pillage. The seat's questions here, the raid's
+   * delegated to `pillageError` — the same split as `foundCityBlocker`.
+   */
+  function pillageBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    return pillageError(getGame().state, unit.id);
+  }
+
+  function pillage(): void {
+    const unit = selectedUnit();
+    if (!unit || pillageBlocker() !== null) return;
+
+    const command: Command = { type: 'pillage', playerId: localPlayerId, unitId: unit.id };
+    const result = dispatch(getGame(), command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    announce(`${unitDef(unit.type).name} pillaged (+${RULES.improvements.pillageGold} gold)`);
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
@@ -1886,6 +2034,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     cancelOrderBlocker,
     fortify,
     fortifyBlocker,
+    improvementOptions,
+    buildImprovement,
+    pillage,
+    pillageBlocker,
     combatForecast,
     openCity,
     setOpenCity,

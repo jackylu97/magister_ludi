@@ -200,7 +200,12 @@ export function buildError(
   }
   const resource = requiredResource(kind, id);
   if (resource !== null && !hasResource(state, playerId, resource)) {
-    return `${itemName(kind, id)} needs ${resourceDef(resource).name}`;
+    // "improved", since M7. Owning the seam stopped being enough the day workers
+    // landed (`hasResource`, design ledger Entry IX's correction), and a
+    // refusal that said only "needs Iron" to a player whose borders already
+    // contain an unmined iron hill would be sending them to war over something
+    // they have. One word, in the one place the sentence is written.
+    return `${itemName(kind, id)} needs improved ${resourceDef(resource).name}`;
   }
   return null;
 }

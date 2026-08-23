@@ -23,6 +23,7 @@
 
 import viewJson from '../../data/view3d.json';
 
+import type { ImprovementId } from '../sim/improvementData';
 import type { ResourceId } from '../sim/resourceData';
 import type { FeatureId, TerrainId } from '../sim/terrainData';
 
@@ -884,6 +885,32 @@ export interface ResourceLookSpec {
 }
 
 /**
+ * One improvement's prop on the board.
+ *
+ * The sibling of `ResourcePropSpec`, with `count` traded for `jitter`, and both
+ * halves of that trade are the design. There is exactly **one** instance per
+ * improved tile — a farm is a field, not three fields — so a count would only
+ * ever be 1; and where a resource prop wants a scatter, an improvement wants a
+ * *placement*: a pasture's fence has to sit dead centre so it rings the herd
+ * (`jitter` 0), while a camp wants to be nudged off the middle so it does not
+ * stand on the deer it was built for.
+ */
+export interface ImprovementPropSpec {
+  color: number;
+  shade: number;
+  /** Prop size in hex radii. */
+  size: number;
+  /** Radius of the hashed offset from the tile centre, in hex radii. */
+  jitter: number;
+}
+
+export interface ImprovementLookSpec {
+  /** Lift above the tile's top face, in world units. */
+  lift: number;
+  props: Record<ImprovementId, ImprovementPropSpec>;
+}
+
+/**
  * The Abacus: the victory scoreboard as a counting frame standing on the table.
  *
  * Every proportion the object is cut from lives here rather than in
@@ -1050,6 +1077,7 @@ export interface View3DData {
   lens: LensSpec;
   icons: IconSpec;
   resources: ResourceLookSpec;
+  improvements: ImprovementLookSpec;
   abacus: AbacusSpec;
   units: UnitStyleSpec;
 }
@@ -1373,6 +1401,15 @@ export const VIEW3D: View3DData = {
         { ...spec, color: named(spec.color, `resources.props.${id}.color`) },
       ]),
     ) as Record<ResourceId, ResourcePropSpec>,
+  },
+  improvements: {
+    lift: viewJson.improvements.lift,
+    props: Object.fromEntries(
+      Object.entries(viewJson.improvements.props).map(([id, spec]) => [
+        id,
+        { ...spec, color: named(spec.color, `improvements.props.${id}.color`) },
+      ]),
+    ) as Record<ImprovementId, ImprovementPropSpec>,
   },
   abacus: {
     frame: {

@@ -72,6 +72,11 @@ import {
   signTerritory,
 } from './cities3d';
 import { type FogLevels, type FogStats, FogView, seesCell } from './fog3d';
+import {
+  ImprovementLayer,
+  signImprovedCells,
+  signImprovements,
+} from './improvements3d';
 import { RENDER_ORDER } from './instances';
 import { LensLayer, NO_LENS, sameLens } from './lens3d';
 import { VIEW3D, playerPieceColor } from './lookData';
@@ -117,6 +122,7 @@ export class Renderer3D implements MapView {
   private readonly units = new UnitLayer();
   private readonly cities = new CityLayer();
   private readonly territory = new TerritoryLayer();
+  private readonly improvements = new ImprovementLayer();
   private readonly overlays = new OverlayLayer();
   private readonly lens = new LensLayer();
   private readonly animations = new MoveAnimations3D();
@@ -190,6 +196,10 @@ export class Renderer3D implements MapView {
   /** The same for the towns and for the borders. See `loop`. */
   private citiesSignature = 0;
   private territorySignature = 0;
+  /** The same for the works on the ground. See `signImprovements`. */
+  private improvementsSignature = 0;
+  /** Which tiles' clutter the *board* was last baked around. See `cityCells`. */
+  private boardImprovementsSignature = 0;
   /** Which tiles held a city when the *board* was last baked. See `cityCells`. */
   private boardCitiesSignature = 0;
   /** Called after every frame that was actually drawn. See `setFrameListener`. */
@@ -242,6 +252,7 @@ export class Renderer3D implements MapView {
     this.scene.add(this.units.group);
     this.scene.add(this.cities.group);
     this.scene.add(this.territory.group);
+    this.scene.add(this.improvements.group);
     // Under the overlays: a lens is information about the ground, and the
     // selection ring and route have to stay readable on top of it.
     this.scene.add(this.lens.group);
@@ -348,12 +359,16 @@ export class Renderer3D implements MapView {
     }
     if (state.map !== this.map) {
       this.setMap(state.map);
-    } else if (signCityCells(state) !== this.boardCitiesSignature) {
+    } else if (
+      signCityCells(state) !== this.boardCitiesSignature ||
+      signImprovedCells(state) !== this.boardImprovementsSignature
+    ) {
       this.rebuildBoard(state.map);
     }
     this.rebuildUnits();
     this.rebuildCities();
     this.rebuildTerritory();
+    this.rebuildImprovements();
     this.rebuildOverlays();
     this.rebuildLens();
     this.applyFog();
@@ -463,6 +478,7 @@ export class Renderer3D implements MapView {
     this.rebuildUnits();
     this.rebuildCities();
     this.rebuildTerritory();
+    this.rebuildImprovements();
     this.rebuildLens();
     this.invalidate();
   }
@@ -491,6 +507,11 @@ export class Renderer3D implements MapView {
     const started = performance.now();
     this.board = buildBoard(map, this.geometry, this.materials, this.shadows, this.cityCells(map));
     this.boardCitiesSignature = this.state ? signCityCells(this.state) : 0;
+    // The board reads `Tile.improvement` itself, for the one thing it knows
+    // about an improvement: whether the tile's own clutter yields to it. See
+    // `addDecorations`, and `signImprovedCells` for why only farms and mines
+    // ever move this number.
+    this.boardImprovementsSignature = this.state ? signImprovedCells(this.state) : 0;
     this.buildMs = performance.now() - started;
     this.map = map;
     this.scene.add(this.board.group);
@@ -547,6 +568,26 @@ export class Renderer3D implements MapView {
     if (!this.state) return;
     this.territory.build(this.state, this.geometry, this.materials, this.fogLevels());
     this.territorySignature = signTerritory(this.state);
+  }
+
+  /**
+   * Rebuilds the improvement props. One instance per improved tile, so this is
+   * cheap enough to run on a worker's every action — which is the whole reason
+   * improvements are a layer and not part of the board (see `improvements3d.ts`).
+   *
+   * The layer paints its own fog on the way out, so a rebuild on remembered
+   * ground comes up washed rather than lit.
+   */
+  private rebuildImprovements(): void {
+    if (!this.state) return;
+    this.improvements.build(
+      this.state,
+      this.geometry,
+      this.materials,
+      this.shadows,
+      this.fogLevels(),
+    );
+    this.improvementsSignature = signImprovements(this.state);
   }
 
   private rebuildOverlays(): void {
@@ -1314,7 +1355,16 @@ export class Renderer3D implements MapView {
     // must not rebuild every town.
     // A city founded since the last frame also clears its tile, which is baked
     // into the board — the one mid-game board rebuild besides toggling shadows.
-    if (this.state && this.map && signCityCells(this.state) !== this.boardCitiesSignature) {
+    // A farm or a mine finished since the last frame also clears its tile's
+    // grass, which — like a founded city — is baked into the board. Only those
+    // two improvements move this fingerprint (`signImprovedCells`), so a worker
+    // fencing a herd or pitching a camp never re-bakes anything.
+    if (
+      this.state &&
+      this.map &&
+      (signCityCells(this.state) !== this.boardCitiesSignature ||
+        signImprovedCells(this.state) !== this.boardImprovementsSignature)
+    ) {
       this.rebuildBoard(this.map);
       // A new city changes where the next one may go: the settler lens is
       // showing exactly that rule and would otherwise keep the old answer.
@@ -1322,6 +1372,12 @@ export class Renderer3D implements MapView {
     }
     if (this.state && (fogMoved || signCities(this.state) !== this.citiesSignature)) {
       this.rebuildCities();
+    }
+    // Improvements are terrain-ish, so they follow the fog on explored ground
+    // rather than disappearing with it — which means a fog move has to reach
+    // this layer too, exactly as it reaches the towns and the borders.
+    if (this.state && (fogMoved || signImprovements(this.state) !== this.improvementsSignature)) {
+      this.rebuildImprovements();
     }
     if (this.state && (fogMoved || signTerritory(this.state) !== this.territorySignature)) {
       this.rebuildTerritory();
@@ -1356,6 +1412,7 @@ export class Renderer3D implements MapView {
     this.units.dispose();
     this.cities.dispose();
     this.territory.dispose();
+    this.improvements.dispose();
     this.lens.dispose();
     this.overlays.dispose();
     this.fog?.dispose();

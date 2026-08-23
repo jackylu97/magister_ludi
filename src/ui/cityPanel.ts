@@ -331,8 +331,15 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const button = element('button', 'city-buildable');
       button.type = 'button';
       button.disabled = locked || tooSmall || needsResource;
+      // "needs improved ⛏️ Iron", not "needs ⛏️ Iron". Since M7 owning the seam
+      // is not enough — a worker has to mine it (`hasResource`, design ledger
+      // Entry IX's correction) — and a button that said only "needs Iron" to a
+      // player who is *standing on* their own iron hill would be a button
+      // telling them to go to war over something they already have.
+      const needs =
+        missing === null ? '' : `improved ${resourceDef(missing).emoji} ${resourceDef(missing).name}`;
       button.title = needsResource
-        ? `Needs ${resourceDef(missing).emoji} ${resourceDef(missing).name}`
+        ? `Needs ${needs}`
         : tooSmall
           ? `Needs population ${def.minCityPop}`
           : `${def.name} — ${cost} ${HAMMER} production`;
@@ -341,9 +348,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         element(
           'span',
           'city-buildable-cost',
-          needsResource
-            ? `needs ${resourceDef(missing).emoji} ${resourceDef(missing).name}`
-            : `${cost}${HAMMER}`,
+          needsResource ? `needs ${needs}` : `${cost}${HAMMER}`,
         ),
       );
       button.addEventListener('click', () => add({ kind: 'unit', id }));

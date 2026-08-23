@@ -39,6 +39,7 @@ export type UnitTypeId =
   | 'warrior'
   | 'scout'
   | 'settler'
+  | 'worker'
   | 'archer'
   | 'spearman'
   | 'horseman'
@@ -150,6 +151,24 @@ export interface UnitDef {
    * bought*, not settlers specifically.
    */
   costIncrement?: number;
+  /**
+   * How many improvements one of these can build before it is used up, or the
+   * field is **absent** for a type that builds none.
+   *
+   * The whole of the Civ VI-style charge model (design ledger, M7): a worker is
+   * three instant builds in a box rather than a permanent servant with a
+   * multi-turn task queue. Presence of the field *is* the marker — nothing in
+   * `src/sim/` asks whether a type is `"worker"`, exactly as with `foundsCity`
+   * and `costIncrement` — so a future engineer with five charges is one data row
+   * and every rule that mentions charges follows it.
+   *
+   * Absent rather than zero-valued for the reason `rangedStrength` is: "does
+   * this thing build" is a question about the *shape* of the data and must not
+   * be confusable with a designer tuning a builder's charges down to nothing.
+   * `Unit.chargesLeft` (`state.ts`) is initialised from here and is likewise
+   * absent on everything else.
+   */
+  charges?: number;
   /** True when the unit can be spent to found a city. See the docblock. */
   foundsCity: boolean;
   /**

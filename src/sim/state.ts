@@ -96,8 +96,15 @@ import {
  *    attack requires the target tile be visible to the attacker). A v9 log
  *    replayed here can find an attack refused that the older build allowed, so
  *    the log is not merely older, it is a different game.
+ * 11: Milestone 7 — workers and tile improvements: `Unit.chargesLeft`,
+ *    `Tile.improvement`, and the two commands that write them
+ *    (`buildImprovement`, `pillage`). A v10 log replayed here would also find
+ *    `hasResource` grown its improvement clause (design ledger, Entry IX's
+ *    correction), so a swordsman that empire used to be able to build is now
+ *    refused until somebody mines the iron — a different game rather than an
+ *    older one, which is exactly what this number exists to refuse.
  */
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 // --- players ----------------------------------------------------------------
 
@@ -228,6 +235,26 @@ export interface Unit {
    * `advanceFortify` phase raises it, capped by `combat.fortifyMax`.
    */
   fortifiedTurns?: number;
+  /**
+   * Improvement charges this unit has left, or the key is **absent** on
+   * everything that never had any.
+   *
+   * Presence *is* "this is a builder", which is `path`'s and `fortifiedTurns`'
+   * convention and is here for the third time for the same reason: a warrior
+   * and a worker must serialise differently in kind rather than by a zero, or a
+   * state that gave every soldier `chargesLeft: 0` would be a state claiming
+   * fifteen unit types are builders whose tools happen to be worn out.
+   *
+   * Initialised from `UnitDef.charges` by `createUnit`, so there is exactly one
+   * place a charge count comes into existence and no creation path can forget.
+   * Spent by the `buildImprovement` command, one improvement's `chargeCost` at a
+   * time; a unit that reaches zero is *removed* rather than left standing empty,
+   * so the value is always at least one while the unit is on the board.
+   *
+   * A captured worker keeps whatever is left of it (design ledger, M7): capture
+   * changes `ownerId` and touches nothing else, so this needs no rule of its own.
+   */
+  chargesLeft?: number;
 }
 
 /**
@@ -545,6 +572,10 @@ export function createUnit(
     movesLeft: def.movement,
     hasAttacked: false,
   };
+  // Written after the literal and only when the type declares charges, so a
+  // soldier's serialised shape is byte-for-byte what it was before builders
+  // existed. See `Unit.chargesLeft` for why presence is the marker.
+  if (def.charges !== undefined) unit.chargesLeft = def.charges;
   state.units.push(unit);
   // A new pair of eyes opens here, whoever asked for them: the `spawnUnit`
   // command, a city finishing production, a scenario seating an opening roster.

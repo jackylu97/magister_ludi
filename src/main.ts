@@ -50,6 +50,7 @@ import {
   hasEndedTurn,
 } from './sim/state';
 import type { Tile } from './sim/map';
+import { improvementDef } from './sim/improvementData';
 import { resourceDef } from './sim/resourceData';
 import { featureDef, terrainDef } from './sim/terrainData';
 import { describeUpgrade, visibleResourceAt } from './sim/tech';
@@ -61,7 +62,7 @@ import { loadSprites } from './render/sprites';
 import { createFlatTileArtist, createTileArtist } from './render/tileVisuals';
 import { playerPieceColor } from './render3d/lookData';
 import { Renderer3D } from './render3d/renderer3d';
-import { tileYieldOf } from './sim/cities';
+import { tileYieldOf, yieldContextFor } from './sim/cities';
 import { unitsOnTile } from './sim/units';
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
@@ -144,6 +145,7 @@ const infoTerrain = requireElement<HTMLElement>('info-terrain');
 const infoFeature = requireElement<HTMLElement>('info-feature');
 const infoYields = requireElement<HTMLElement>('info-yields');
 const infoResource = requireElement<HTMLElement>('info-resource');
+const infoImprovement = requireElement<HTMLElement>('info-improvement');
 const infoOffset = requireElement<HTMLElement>('info-offset');
 const infoAxial = requireElement<HTMLElement>('info-axial');
 const infoUnit = requireElement<HTMLElement>('info-unit');
@@ -396,10 +398,13 @@ function describeTile(tile: Tile): { terrain: string; feature: string; hills: bo
  * than printing three zeroes.
  *
  * `tileYieldOf` is the same function the citizens are assigned with, so what the
- * panel promises is what a city working the tile would actually collect.
+ * panel promises is what a city working the tile would actually collect — and it
+ * is asked through the **local seat's** yield context, so a renewal this empire
+ * has researched (a Feudalism farm on fresh water) is in the figure. The tile
+ * itself is the same tile for everybody; what it is worth is not.
  */
-function showTileYields(tile: Tile): void {
-  const value = tileYieldOf(tile);
+function showTileYields(state: GameState, playerId: number, tile: Tile): void {
+  const value = tileYieldOf(tile, yieldContextFor(state, playerId));
   const parts: [string, string, number][] = [
     ['food', '🌾', value.food],
     ['production', '⚙', value.production],
@@ -431,6 +436,24 @@ function showTileYields(tile: Tile): void {
  * reads as an empty row, exactly like a tile with nothing on it: the honest
  * report of "you do not know of anything here".
  */
+/**
+ * What has been *built* on the tile under the pointer.
+ *
+ * No technology gate and no seat: an improvement is a thing somebody put on the
+ * ground, and unlike a strategic resource there is nothing about it to
+ * recognise. It is terrain-ish in the fog sense too — the caller only reaches
+ * this on ground the local seat has explored (see `updateContext`), and on
+ * explored-but-unwatched ground it still answers, exactly as the terrain, the
+ * yields and the territory tint do. A chart records the works of an empire the
+ * way it records a coastline.
+ */
+function describeImprovement(tile: Tile): string {
+  const id = tile.improvement;
+  if (id === undefined) return '—';
+  const def = improvementDef(id);
+  return `${def.emoji} ${def.name}`;
+}
+
 function describeResource(state: GameState, playerId: number, tile: Tile): string {
   const id = visibleResourceAt(state, playerId, tile);
   if (id === null) return '—';
@@ -856,6 +879,7 @@ async function boot(): Promise<void> {
       infoUnit.textContent = '—';
       infoYields.textContent = '—';
       infoResource.textContent = '—';
+      infoImprovement.textContent = '—';
       showCombatForecast(controls.combatForecast());
       contextEl.classList.add('is-shown');
       return;
@@ -871,12 +895,13 @@ async function boot(): Promise<void> {
         controls.localPlayerId(),
         hover.tile,
       );
-      showTileYields(hover.tile);
+      showTileYields(game.state, controls.localPlayerId(), hover.tile);
       infoResource.textContent = describeResource(
         game.state,
         controls.localPlayerId(),
         hover.tile,
       );
+      infoImprovement.textContent = describeImprovement(hover.tile);
     } else {
       infoTerrain.textContent = '—';
       infoFeature.textContent = '—';
@@ -885,6 +910,7 @@ async function boot(): Promise<void> {
       infoUnit.textContent = '—';
       infoYields.textContent = '—';
       infoResource.textContent = '—';
+      infoImprovement.textContent = '—';
     }
 
     // Asked after the readout, because it is a question about the selection and
@@ -1248,6 +1274,16 @@ async function boot(): Promise<void> {
     fortifyBlocker: () => controls.fortifyBlocker(),
     onFortify: () => {
       controls.fortify();
+      updatePanel(null, renderer.getHover());
+    },
+    improvementOptions: () => controls.improvementOptions(),
+    onBuildImprovement: (id) => {
+      controls.buildImprovement(id);
+      updatePanel(null, renderer.getHover());
+    },
+    pillageBlocker: () => controls.pillageBlocker(),
+    onPillage: () => {
+      controls.pillage();
       updatePanel(null, renderer.getHover());
     },
     onClose: () => controls.clearSelection(),

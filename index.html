@@ -319,6 +319,21 @@
           <li><b>Drag</b> with either button to pan · <b>wheel</b> or pinch to zoom</li>
           <li><kbd>B</kbd> founds a city with the selected settler</li>
           <li><kbd>F</kbd> fortifies the selected unit — defence grows while it holds</li>
+          <!-- No hotkey for either of these in v1, deliberately: which
+               improvement a worker builds is a choice among several, and
+               pillaging is rare enough that a key would be a key to press by
+               accident. Both live on the unit sheet's actions list. -->
+          <li>
+            A <b>worker</b> spends one of its three charges to build a farm, mine
+            or pasture — pick one from its <b>Actions</b> list, on the sheet at
+            the right. Strategic resources need the right improvement before an
+            empire may use them.
+          </li>
+          <li>
+            A soldier standing on somebody else's improvement can <b>Pillage</b>
+            it from the same list: the works burn, you take the salvage in gold,
+            and it costs a single point of movement
+          </li>
           <li>
             <kbd>Y</kbd> toggles the yield glyphs · <kbd>R</kbd> the resource icons ·
             <b>Lens</b> in the bar for more
@@ -494,6 +509,12 @@
              a strategic resource is actually visible to a player. -->
         <dt>Resource</dt>
         <dd id="info-resource">—</dd>
+        <!-- What has been *built* on the ground, as opposed to what was found
+             there. No tech gate: an improvement is somebody's works, and there
+             is nothing about a farm to recognise. Shown on explored ground like
+             the terrain rows above it — see `describeImprovement`. -->
+        <dt>Built</dt>
+        <dd id="info-improvement">—</dd>
         <!-- Both coordinate systems: offset is how the map is stored, axial is
              how the pathfinder thinks. Two rows rather than one long line,
              because either alone wraps in a 250px card. -->

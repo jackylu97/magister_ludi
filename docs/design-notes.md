@@ -266,6 +266,99 @@ Two later corrections to that layer, both from play (2026-08-21):
 
 ---
 
+## Entry XII — Workers, improvements and explainable yields (M7, **built** 2026-08-23)
+
+**The worker is three instant builds in a box.** `units.json` `charges: 3`, `Unit.chargesLeft`
+(schema 11), 8⚙, movement 2, sight 2, unlocked by agriculture so it is buildable from turn one.
+`buildImprovement {playerId, unitId, improvement}` is validated fully and resolves *instantly*:
+the tile gains the improvement, the worker spends the improvement's `chargeCost`, and it spends
+**all** remaining movement (building is the turn's work). A worker at zero charges is removed
+through `removeUnit`, so the piece leaves the board by the one path every disappearance takes.
+The three payoffs the ledger predicted all held: no partial-progress tile state for simultaneous
+turns to argue over, a spend that is previewable ("Farm +1🌾" comes from the same evaluator the
+city banks with), and no worker-stealing annuity — a captured worker is worth its remaining
+charges and needs no capture rule of its own.
+
+**Own territory only, v1.** A worker may build inside its own empire's borders and nowhere else.
+Civ V's looser reading (unclaimed ground is fair game) needs a rule for what happens when that
+ground is later claimed, and "your cities' land" is one lookup — the same one `hasResource`
+makes — which also guarantees every improvement has an owner who can lose it.
+
+**`pillage {playerId, unitId}`** is a military verb, deterministic, and costs **one** movement
+point rather than the whole allowance: a column burns a farm riding past. It pays
+`rules.improvements.pillageGold` (25) and removes the improvement. No smoke, no ruin state, no
+repair verb — a pillaged tile is an unimproved tile, so "how do I fix it" has the same answer as
+"how did I build it". It is *not* a mode of `attack`, for `attack`'s own reason: one rolls dice
+and may kill the actor, the other does not, and a mis-aimed order must not burn a farm.
+
+**Six improvements, two kinds, one constraint shape.** `data/improvements.json`, an AND of
+`validTerrain` / `validFeatures` / `requiresHills` / `requiresResource`, and which filters a row
+uses is what makes it *generic* (farm, mine — buildable on bare ground, and they clear the tile's
+clutter) or a *resource-improvement* (pasture, camp, quarry, plantation — pinned to their
+resources, and they compose with the props already there: the fence goes around the cattle).
+`improvesResource` is a second, separate field because the mine is buildable on any hill and is
+*also* what opens an iron seam. Two deliberate deviations, both documented in the data accessor:
+**fish has no improvement** (the work boat is naval, deferred; fish stays visible and simply
+cannot be accessed, and nothing is gated on it), and **salt is quarried rather than mined**,
+because salt is placed on desert with no hills constraint and filing it under the mine would have
+made every flat salt pan permanently unimprovable — the exact "rule nobody could play against"
+Entry IX refused for strategics.
+
+**The Entry IX correction landed.** `hasResource` now requires an owned tile carrying the
+resource *and* the improvement that opens it. One function gained one clause, as its own docblock
+promised in M6, and the reducer, the city panel and the production hold-rule all followed. The
+sentence changed with it: "Swordsman needs **improved** Iron", and the panel's row reads "needs
+improved ⛏️ Iron" — a refusal that said only "needs Iron" to a player standing on their own
+unmined hill would be sending them to war over something they already have.
+
+**Explainable yields, as the hard rule requires.** `explainTileYield(tile, ctx?)` returns an
+ordered `{source, kind: base|override|add, food, production, gold}` list; `tileYieldOf` is
+`foldTileYield` of it and there is no second implementation. `base`/`override` replace, `add`
+sums, so one list carries both algebras — and the feature is written down *even when a hill
+overrides it*, because "Forest 1🌾1⚙, replaced by Hills 0🌾2⚙" is the sentence a player needs and
+the fold reaches the same number either way. The refactor is *proved* to be a refactor by a
+golden test over every terrain × feature × hills combination and every resource, against the
+pre-M7 arithmetic written out from the same tables.
+`ctx` carries only `techs`, because the technologies held are the only player-dependent term —
+anything richer would be a second reason for `cities.ts` to know about research, and it already
+cannot import `tech.ts` (that dependency runs the other way). **Who passes one:** the four
+simulation call sites (`assignCitizens`, `centreYield`, `cityYields`, `bestExpansionTile`) pass
+the city owner's; the hover readout passes the local seat's; the yield glyphs pass
+`LensView.playerId`. Nobody else does, and the two that deliberately do not are the improvement
+preview (which quotes what a charge buys *now*) and tests asking about bare ground.
+
+**One renewal is wired (Entry I's punctuated growth).** `improvements.json` carries
+`upgrades: [{tech, add, requiresFreshwater?}]` and Feudalism gives freshwater farms +1🌾 — the
+Civil Service stand-in. Each renewal is *its own contribution entry*, named for the technology,
+so it is glanceable rather than folded silently into the farm's number. **The tech screen's
+delta preview does not yet include it**: `buildingYieldDelta` diffs `cityYields` with a
+hypothetical *building*, and a hypothetical *tech* would need the same hook one level down
+(a `TileYieldContext` with the candidate tech appended, threaded through `cityYields`). That is
+perhaps twenty lines and it is deliberately content-pass work — the renewals want naming and
+expanding first, and a preview built for one example would be built twice.
+
+**Render: improvements are their own instanced layer.** `src/render3d/improvements3d.ts`, one
+instance per improved tile, rebuilt off `signImprovements` — because a farm can appear mid-game
+and the board's buffers may not be re-baked for a gameplay event (the M8 constraint). Measured on
+the stress fixture: **32 improvements = 32 instances, 2 draw calls, 0.86 ms, against a board of
+40,152 instances and 79 ms.** Placement is `hash(col, row, stream)` like every other scatter;
+`jitter` is 0 for the pasture so its fence rings the herd, and non-zero for the camp, quarry and
+trellis so they sit off the resource's own props. Fog is applied *by the layer itself* — every
+instance names its `tile`, and the build finishes by walking the collector's tile→handle map and
+`setWash`-ing the remembered ones with the fog's own `exploredWash`/`exploredDim`/`exploredShade`.
+That is the one thing a rebuilt layer gets wrong (it would come up lit on remembered ground), so
+it is asserted rather than assumed.
+The **one** thing the board itself knows about an improvement is `clearsClutter` — a farm or a
+mine takes the tile's grass with it, through the same mechanism a resource prop uses — and that
+costs a board rebuild when it changes, fingerprinted by `signImprovedCells`. It is exactly the
+precedent a founded city already sets (`signCityCells`), and only farms and mines ever move it:
+the four resource-improvements never re-bake anything.
+
+**Roads are still OUT** (traders build them, with the trade-route system). Nothing here assumes
+they exist.
+
+---
+
 ## Entry X — The naming bible (RATIFIED 2026-08-22; terminology adopted, styling deferred)
 
 Register rule: systems keep grounded civilization-simulation names; period flavor only where it
@@ -734,6 +827,10 @@ height field and a visibility system, and half of one is a rule players learn an
 ## Sequencing snapshot (updated 2026-08-22)
 Core loop complete through combat + resources (671 tests). Mechanics-before-AI sequence
 (dependency-ordered, user-approved direction):
+- **M7 Workers & improvements — BUILT 2026-08-23 (see Entry XII).** 930 tests. Boats did *not*
+  fold in (fish is documented as unreachable until naval), roads stayed out as decided, and the
+  explainable-yields refactor CLAUDE.md rule 5 reserved for this milestone landed with it. The
+  original scope note follows.
 - **M7 Workers & improvements** — farms/mines/pastures/plantations/quarries/boats/roads,
   worker unit (class reserved), strategic/luxury access requires IMPROVEMENT (fixes the v1
   ownership shortcut), pillage-ready.

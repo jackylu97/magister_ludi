@@ -44,6 +44,21 @@
       "modelClass": "settler",
       "glyph": "T"
     },
+    "worker": {
+      "name": "Worker",
+      "category": "civilian",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 0,
+      "cost": 8,
+      "charges": 3,
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "worker",
+      "glyph": "D"
+    },
     "archer": {
       "name": "Archer",
       "category": "military",

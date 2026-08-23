@@ -3,10 +3,13 @@ import { InstancedMesh } from 'three';
 
 import { BoardGeometry, buildBoard } from '../src/render3d/board3d';
 import { FogView, accountedInstances } from '../src/render3d/fog3d';
+import { ImprovementLayer } from '../src/render3d/improvements3d';
 import { INSTANCE_WRITES, resetInstanceWrites } from '../src/render3d/instances';
 import { VIEW3D } from '../src/render3d/lookData';
 import { MaterialLibrary } from '../src/render3d/toon';
 import { foundingErrorAt } from '../src/sim/cities';
+import { IMPROVEMENT_IDS } from '../src/sim/improvementData';
+import { improvementError, improvementErrorAt } from '../src/sim/improvements';
 import type { Command } from '../src/sim/commands';
 import {
   type Game,
@@ -61,6 +64,8 @@ import {
 const TARGET_CITIES = 40;
 const TARGET_UNITS = 300;
 const SEATS = 4;
+/** How many workers the M7 wave puts to work in a single turn window. */
+const WORKER_WAVE = 40;
 
 /** The unit types the fixture garrisons with, cycled. Cheap, legal, no gates. */
 const ROSTER: readonly UnitTypeId[] = ['warrior', 'scout', 'archer', 'spearman', 'settler'];
@@ -539,6 +544,121 @@ describe('a full turn at scale', () => {
     console.log(`[stress] replay of ${game.log.length} commands: ${ms.toFixed(0)}ms`);
     expect(snapshotState(replayed)).toBe(snapshotState(game.state));
     expect(ms).toBeLessThan(20_000);
+  });
+
+  it('takes a wave of forty workers building in one window', () => {
+    // M7's own stress claim, and it is deliberately measured on the *live*
+    // fixture rather than on the probe: every build here is an accepted command,
+    // so the log this appends to is still a save file and the replay assertion
+    // above (which runs before this test, in declaration order) has already had
+    // its say about the state without them.
+    //
+    // What is being bounded is the reducer, not the renderer: forty validated
+    // commands, each of which scans the actor's territory and the improvement
+    // table. The render-side claim — that this does not re-bake the board — is
+    // `signImprovedCells` and lives in `test/improvements3d.test.ts`.
+    const state = game.state;
+    // A few resolutions first, so the forty cities have pushed their borders out
+    // and there is enough owned ground for forty workers to stand on. Ordinary
+    // end-turns through the reducer, so the log stays a save file.
+    for (let turn = 0; turn < 8; turn++) {
+      for (const player of state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
+    }
+
+    // Sites across every seat, because a worker may only build inside its *own*
+    // empire's borders (the own-territory rule) and one seat's ten cities are
+    // not forty tiles of legal ground.
+    const sites: { tile: Tile; seat: number; id: (typeof IMPROVEMENT_IDS)[number] }[] = [];
+    for (const tile of state.map.tiles) {
+      if (sites.length >= WORKER_WAVE) break;
+      for (const player of state.players) {
+        let chosen: (typeof IMPROVEMENT_IDS)[number] | null = null;
+        for (const id of IMPROVEMENT_IDS) {
+          if (improvementErrorAt(state, player.id, tile, id) === null) {
+            chosen = id;
+            break;
+          }
+        }
+        if (chosen === null) continue;
+        sites.push({ tile, seat: player.id, id: chosen });
+        break;
+      }
+    }
+    console.log(`[stress] ${sites.length} improvable sites found across ${SEATS} seats`);
+    expect(sites.length).toBeGreaterThanOrEqual(WORKER_WAVE);
+
+    const started = performance.now();
+    let built = 0;
+    for (const site of sites) {
+      const spawn: Command = {
+        type: 'spawnUnit',
+        playerId: site.seat,
+        ownerId: site.seat,
+        unitType: 'worker',
+        at: { col: site.tile.col, row: site.tile.row },
+      };
+      // A civilian may already be standing there; stacking refuses, and the next
+      // site takes it. A refusal is not logged and costs nothing.
+      if (!dispatch(game, spawn).ok) continue;
+      const worker = state.units[state.units.length - 1]!;
+      for (const id of IMPROVEMENT_IDS) {
+        if (improvementError(state, worker.id, id) !== null) continue;
+        const order: Command = {
+          type: 'buildImprovement',
+          playerId: site.seat,
+          unitId: worker.id,
+          improvement: id,
+        };
+        if (dispatch(game, order).ok) built += 1;
+        break;
+      }
+    }
+    const ms = performance.now() - started;
+    console.log(
+      `[stress] ${built} improvements built by ${built} workers in ${ms.toFixed(0)}ms ` +
+        `(${(ms / Math.max(1, built)).toFixed(2)}ms each)`,
+    );
+    // Not every site takes a worker — a civilian already standing there is
+    // refused by stacking, which is the rule doing its job — but most do.
+    expect(built).toBeGreaterThanOrEqual(WORKER_WAVE / 2);
+    // Generous by roughly two orders of magnitude, like every other wall clock in
+    // this file: this catches "somebody made validation quadratic in the map".
+    expect(ms).toBeLessThan(4000);
+
+    // Every one of them is on the board, and every worker that spent its single
+    // build still holds two charges.
+    const improved = state.map.tiles.filter((tile) => tile.improvement !== undefined);
+    expect(improved.length).toBe(built);
+    for (const unit of state.units) {
+      if (unit.type !== 'worker') continue;
+      expect(unit.chargesLeft).toBe(2);
+      expect(unit.movesLeft).toBe(0);
+    }
+
+    // The render-side half, at the same scale: rebuilding the improvements layer
+    // over a board that now carries a wave of works costs one instance per
+    // improved tile and a millisecond or two — which is the whole argument for
+    // it being a layer rather than part of the board. (The board, by contrast, is
+    // 40,152 instances and 38 ms; see the block above.)
+    const geometry = new BoardGeometry();
+    const materials = new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
+    const layer = new ImprovementLayer();
+    const layerStarted = performance.now();
+    layer.build(state, geometry, materials, false, state.visibility[0]!);
+    const layerMs = performance.now() - layerStarted;
+    console.log(
+      `[stress] improvements layer: ${layer.instances} instances, ` +
+        `${layer.drawCalls} draws, built in ${layerMs.toFixed(2)}ms`,
+    );
+    // One per improved tile the seat can see, and never more.
+    expect(layer.instances).toBeLessThanOrEqual(improved.length);
+    expect(layerMs).toBeLessThan(500);
+    layer.dispose();
+    geometry.dispose();
+
+    // And the whole thing still replays: a wave of builds is an ordinary log.
+    const replayed = replay(game.config, game.log);
+    expect(snapshotState(replayed)).toBe(snapshotState(game.state));
   });
 
   it('prices the roster it was built from', () => {

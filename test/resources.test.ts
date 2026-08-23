@@ -4,6 +4,7 @@ import { buildingDef } from '../src/sim/buildingData';
 import { advanceProduction, foundCityAt, hasResource, tileYieldOf } from '../src/sim/cities';
 import { applyCommand } from '../src/sim/commands';
 import { createGame, dispatch, loadGame, replay, saveGame, snapshotState } from '../src/sim/game';
+import { improvementForResource } from '../src/sim/improvementData';
 import { type GameMap, type Tile, createMap, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../src/sim/map';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES, generateMap, generateMapDetail } from '../src/sim/mapgen';
 import {
@@ -389,24 +390,53 @@ describe('strategic resources gate production', () => {
     }
   });
 
-  it('counts a resource as held when a tile the player owns carries it', () => {
+  it('counts a resource as held when the player owns it AND has improved it', () => {
+    // THE Entry IX correction, and the reason this test changed rather than
+    // being replaced: ownership used to be the whole rule, because there were no
+    // workers. Now a pasture has to stand on the horses.
     const state = bareState();
     const city = foundCityAt(state, 0, at(state, 5, 5));
     expect(hasResource(state, 0, 'horses')).toBe(false);
 
     // Inside the city's own ring, so `foundCityAt` already claimed it.
     at(state, 5, 4).resource = 'horses';
+    expect(hasResource(state, 0, 'horses')).toBe(false);
+    at(state, 5, 4).improvement = 'pasture';
     expect(hasResource(state, 0, 'horses')).toBe(true);
     // The other player owns nothing, so the same tile does nothing for them.
     expect(hasResource(state, 1, 'horses')).toBe(false);
     expect(city.ownerId).toBe(0);
   });
 
-  it('does not count a resource on unclaimed ground', () => {
+  it('refuses the wrong improvement on the right resource', () => {
+    // Which improvement opens which resource is data (`improvesResource`), and
+    // a farm on a horse pasture is not a pasture.
+    const state = bareState();
+    foundCityAt(state, 0, at(state, 5, 5));
+    at(state, 5, 4).resource = 'horses';
+    at(state, 5, 4).improvement = 'farm';
+    expect(hasResource(state, 0, 'horses')).toBe(false);
+    expect(improvementForResource('horses')).toBe('pasture');
+    expect(improvementForResource('iron')).toBe('mine');
+  });
+
+  it('leaves fish permanently unreachable, and says so in the data', () => {
+    // The one documented hole: the water improvement is a work boat and naval is
+    // deferred. Asserted rather than left implicit, so the day somebody adds the
+    // row this test is what tells them to delete it.
+    const state = bareState();
+    foundCityAt(state, 0, at(state, 5, 5));
+    at(state, 5, 4).resource = 'fish';
+    expect(improvementForResource('fish')).toBeNull();
+    expect(hasResource(state, 0, 'fish')).toBe(false);
+  });
+
+  it('does not count a resource on unclaimed ground, improved or not', () => {
     const state = bareState();
     foundCityAt(state, 0, at(state, 5, 5));
     // Far outside the opening ring: seen, wanted, not owned.
     at(state, 11, 9).resource = 'iron';
+    at(state, 11, 9).improvement = 'mine';
     expect(hasResource(state, 0, 'iron')).toBe(false);
   });
 
@@ -414,12 +444,26 @@ describe('strategic resources gate production', () => {
     const state = bareState();
     const city = foundCityAt(state, 0, at(state, 5, 5));
     at(state, 5, 4).resource = 'iron';
+    at(state, 5, 4).improvement = 'mine';
     expect(hasResource(state, 0, 'iron')).toBe(true);
     expect(hasResource(state, 1, 'iron')).toBe(false);
     // Capture is exactly this: the city changes hands and its territory follows.
     city.ownerId = 1;
     expect(hasResource(state, 0, 'iron')).toBe(false);
     expect(hasResource(state, 1, 'iron')).toBe(true);
+  });
+
+  it('takes the resource away again when the mine is pillaged', () => {
+    // The other end of the same rule, and it needs no bookkeeping of its own:
+    // pillaging deletes `Tile.improvement`, and `hasResource` simply stops
+    // finding one.
+    const state = bareState();
+    foundCityAt(state, 0, at(state, 5, 5));
+    at(state, 5, 4).resource = 'iron';
+    at(state, 5, 4).improvement = 'mine';
+    expect(hasResource(state, 0, 'iron')).toBe(true);
+    delete at(state, 5, 4).improvement;
+    expect(hasResource(state, 0, 'iron')).toBe(false);
   });
 
   it('refuses a queue for a unit whose resource the player lacks', () => {
@@ -432,15 +476,16 @@ describe('strategic resources gate production', () => {
       queue: [{ kind: 'unit', id: 'swordsman' }],
     });
     expect(result.ok).toBe(false);
-    expect(result.ok ? '' : result.error).toBe('Swordsman needs Iron');
+    expect(result.ok ? '' : result.error).toBe('Swordsman needs improved Iron');
     // Validate-fully: a refused command leaves the queue exactly as it was.
     expect(city.queue).toEqual([]);
   });
 
-  it('accepts the same queue the moment the player owns the tile', () => {
+  it('accepts the same queue the moment the player has mined the tile', () => {
     const state = bareState();
     const city = foundCityAt(state, 0, at(state, 5, 5));
     at(state, 5, 4).resource = 'iron';
+    at(state, 5, 4).improvement = 'mine';
     const result = applyCommand(state, {
       type: 'setCityProduction',
       playerId: 0,
@@ -456,7 +501,8 @@ describe('strategic resources gate production', () => {
     foundCityAt(state, 0, at(state, 5, 5));
     // What the city panel disables a button with, and what the reducer refuses
     // with, are the same call. A divergence here is a button that lies.
-    expect(buildError(state, 0, 'unit', 'horseman')).toBe('Horseman needs Horses');
+    // "improved", since M7: owning the tile stopped being enough.
+    expect(buildError(state, 0, 'unit', 'horseman')).toBe('Horseman needs improved Horses');
     expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
     expect(buildError(state, 0, 'building', 'library')).toBeNull();
     expect(buildingDef('library').name).toBe('Library');
@@ -475,18 +521,21 @@ describe('strategic resources gate production', () => {
     const state = bareState();
     const city = foundCityAt(state, 0, at(state, 5, 5));
     at(state, 5, 4).resource = 'iron';
+    at(state, 5, 4).improvement = 'mine';
     city.queue = [{ kind: 'unit', id: 'swordsman' }];
     city.hammerBasket = 1000;
 
-    // The iron hill changes hands mid-build. The hammers stay in the basket and
-    // the item stays at the front — the same rule `minCityPop` gets.
-    delete at(state, 5, 4).resource;
+    // The mine is pillaged mid-build. The hammers stay in the basket and the
+    // item stays at the front — the same rule `minCityPop` gets. (Losing the
+    // *improvement* is now a second way to lose the resource, and it is by far
+    // the likelier one: a raid takes a turn, a city takes a war.)
+    delete at(state, 5, 4).improvement;
     advanceProduction(state);
     expect(city.queue).toEqual([{ kind: 'unit', id: 'swordsman' }]);
     expect(city.hammerBasket).toBe(1000);
     expect(state.units).toHaveLength(0);
 
-    at(state, 5, 4).resource = 'iron';
+    at(state, 5, 4).improvement = 'mine';
     advanceProduction(state);
     expect(city.queue).toEqual([]);
     expect(state.units.map((unit) => unit.type)).toEqual(['swordsman']);

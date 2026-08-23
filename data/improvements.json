@@ -1,0 +1,139 @@
+{
+  "improvements": {
+    "farm": {
+      "name": "Farm",
+      "emoji": "🌱",
+      "chargeCost": 1,
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "requiresHills": false,
+      "improvesResource": [
+        "wheat"
+      ],
+      "clearsClutter": true,
+      "upgrades": [
+        {
+          "tech": "feudalism",
+          "requiresFreshwater": true,
+          "add": {
+            "food": 1,
+            "production": 0,
+            "gold": 0
+          }
+        }
+      ]
+    },
+    "mine": {
+      "name": "Mine",
+      "emoji": "⛏️",
+      "chargeCost": 1,
+      "yields": {
+        "food": 0,
+        "production": 1,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "requiresHills": true,
+      "improvesResource": [
+        "iron",
+        "gems"
+      ],
+      "clearsClutter": true
+    },
+    "pasture": {
+      "name": "Pasture",
+      "emoji": "🐑",
+      "chargeCost": 1,
+      "yields": {
+        "food": 0,
+        "production": 1,
+        "gold": 0
+      },
+      "requiresResource": [
+        "cattle",
+        "horses"
+      ],
+      "improvesResource": [
+        "cattle",
+        "horses"
+      ],
+      "clearsClutter": false
+    },
+    "camp": {
+      "name": "Camp",
+      "emoji": "⛺",
+      "chargeCost": 1,
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 1
+      },
+      "requiresResource": [
+        "deer"
+      ],
+      "improvesResource": [
+        "deer"
+      ],
+      "clearsClutter": false
+    },
+    "quarry": {
+      "name": "Quarry",
+      "emoji": "🧱",
+      "chargeCost": 1,
+      "yields": {
+        "food": 0,
+        "production": 1,
+        "gold": 0
+      },
+      "requiresResource": [
+        "stone",
+        "salt"
+      ],
+      "improvesResource": [
+        "stone",
+        "salt"
+      ],
+      "clearsClutter": false
+    },
+    "plantation": {
+      "name": "Plantation",
+      "emoji": "🌿",
+      "chargeCost": 1,
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 1
+      },
+      "requiresResource": [
+        "silk",
+        "wine",
+        "spices"
+      ],
+      "improvesResource": [
+        "silk",
+        "wine",
+        "spices"
+      ],
+      "clearsClutter": false
+    }
+  }
+}

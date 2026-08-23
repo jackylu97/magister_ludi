@@ -39,6 +39,12 @@
  * as the last pass of `generateMap`, reproduced from the seed, and never
  * written again during play.
  *
+ * Improvements live on tiles too, and are the one thing here that plays
+ * ---------------------------------------------------------------------
+ * `Tile.improvement` is the farm or the mine a worker built, and it is the only
+ * field on a tile that changes during a game. See its docblock for why that is
+ * compatible with a save file that carries a seed rather than a board.
+ *
  * THE INVARIANT: an edge is flagged on *both* of the tiles that share it. Bit
  * `d` of tile A implies bit `(d + 3) % 6` of A's neighbour in direction `d`,
  * because `HEX_DIRECTIONS[d + 3]` is exactly `-HEX_DIRECTIONS[d]`. Every write
@@ -54,6 +60,7 @@ import {
   HEX_DIRECTIONS,
   hexDistance,
 } from './hex';
+import type { ImprovementId } from './improvementData';
 import type { ResourceId } from './resourceData';
 import type { FeatureId, TerrainId } from './terrainData';
 
@@ -93,6 +100,22 @@ export interface Tile {
    * having one called nothing.
    */
   resource?: ResourceId;
+  /**
+   * The farm, mine or pasture standing on this tile, or the key is **absent**
+   * when there is none. Absence rather than a `'none'` sentinel, for the reason
+   * `resource` gives above.
+   *
+   * The one field on a tile that is **not** generation output: it is written
+   * during play by the `buildImprovement` command and cleared by `pillage`
+   * (`commands.ts`), and by nothing else. That does not break the "a save file
+   * carries a seed, not four thousand tiles" promise in `state.ts` — a save is
+   * `{config, log}` and every improvement on the board is in that log, so a
+   * replay lays them down again in the order they were built. What it does mean
+   * is that the map object is no longer a pure function of the seed *after* turn
+   * one, and anything that regenerates it mid-game (nothing does) would wipe the
+   * empire's works.
+   */
+  improvement?: ImprovementId;
 }
 
 export interface GameMap {

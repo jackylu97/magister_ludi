@@ -110,15 +110,14 @@ describe('the model-class roster', () => {
     }
   });
 
-  it('leaves no class model without a unit standing on it, bar the reserve', () => {
+  it('leaves no class model without a unit standing on it', () => {
+    // The reserve is gone. `worker` was sculpted and iconed a milestone ahead of
+    // the unit that would stand on it, and this test named it as the single
+    // permitted exemption; M7 shipped the worker, so the exemption is spent and
+    // the registry is now exhaustive in both directions.
     const claimed = new Set(UNIT_TYPE_IDS.map((type) => modelClassFor(type)));
+    expect(modelClassFor('worker')).toBe('worker');
     for (const id of MODEL_CLASS_IDS) {
-      if (id === 'worker') {
-        // Sculpted and iconed ahead of the improvement system. Exactly one
-        // class is allowed to be unclaimed, and this test names it.
-        expect(claimed.has(id)).toBe(false);
-        continue;
-      }
       expect(claimed.has(id), `${id} is sculpted but nothing stands on it`).toBe(true);
     }
   });

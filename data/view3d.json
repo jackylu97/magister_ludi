@@ -339,7 +339,7 @@
   },
   "fog": {
     "exploredDim": 0.5,
-    "exploredShade": 0.55,
+    "exploredShade": 0.7,
     "exploredWash": "chartWash",
     "chartColor": "vellum",
     "chartOpacity": 1.0,
@@ -396,6 +396,47 @@
     "yieldInkColor": "ink",
     "marginaliaScale": 0.86,
     "marginaliaColor": "vellumDeep"
+  },
+  "improvements": {
+    "lift": 0.0,
+    "props": {
+      "farm": {
+        "color": "timber",
+        "shade": 0.16,
+        "size": 0.58,
+        "jitter": 0.05
+      },
+      "mine": {
+        "color": "timber",
+        "shade": -0.06,
+        "size": 0.4,
+        "jitter": 0.08
+      },
+      "pasture": {
+        "color": "bone",
+        "shade": -0.2,
+        "size": 0.92,
+        "jitter": 0.0
+      },
+      "camp": {
+        "color": "vellum",
+        "shade": -0.04,
+        "size": 0.3,
+        "jitter": 0.16
+      },
+      "quarry": {
+        "color": "slate",
+        "shade": 0.18,
+        "size": 0.36,
+        "jitter": 0.12
+      },
+      "plantation": {
+        "color": "timber",
+        "shade": 0.1,
+        "size": 0.52,
+        "jitter": 0.06
+      }
+    }
   },
   "resources": {
     "spread": 0.3,

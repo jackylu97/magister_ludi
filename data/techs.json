@@ -7,7 +7,7 @@
       "row": 1,
       "cost": 15,
       "prereqs": [],
-      "unlocks": { "units": ["settler", "warrior", "scout"] },
+      "unlocks": { "units": ["settler", "warrior", "scout", "worker"] },
       "flavor": "The first furrow is the first calendar."
     },
     "pottery": {

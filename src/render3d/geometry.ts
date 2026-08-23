@@ -681,6 +681,198 @@ export function saltCrust(size: number): BufferGeometry {
   return flatten(merged);
 }
 
+// --- improvement props -----------------------------------------------------
+
+/**
+ * The six things a worker leaves on a hex.
+ *
+ * Same convention as the resource props above — one `size` in world units, one
+ * merged geometry in one ink, well under a hundred triangles — and the same
+ * bargain: a whole map's worth of farms is one instanced draw and one outline
+ * draw. What differs is the *composition* rule, and it is the whole reason these
+ * are a separate layer rather than more entries in the resource table:
+ *
+ *   · A **farm** and a **mine** work the ground itself, so the tile's generic
+ *     clutter yields to them exactly as it yields to a resource prop (see
+ *     `addDecorations`). They are placed near the middle of the hex.
+ *   · A **pasture**, a **camp**, a **quarry** and a **plantation** are built
+ *     *around* something the tile already shows — the cattle, the deer, the
+ *     seam, the vines — and those props stay. So the fence is a ring that goes
+ *     round the herd rather than a thing standing where the herd was, and the
+ *     tent, the steps and the trellis sit off-centre where the resource's own
+ *     scatter is not.
+ *
+ * Each is drawn in one plane and one ink, like everything else on this board: a
+ * farm is not brown furrows on green grass, it is a shape whose *silhouette*
+ * says "worked". At forty pixels that is the only thing that survives anyway.
+ */
+
+/**
+ * A ploughed field: parallel furrow ridges between two headland banks.
+ *
+ * Ridges rather than furrows — a groove cut *into* a hex face is invisible from
+ * 57° and would have to be geometry below the tile top, which the prism does not
+ * have. A row of low ridges catches the key light on one flank each and reads as
+ * corduroy, which is what a field looks like from the air.
+ */
+export function furrowRows(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const rows = 4;
+  const ridge = size * 0.09;
+  for (let i = 0; i < rows; i++) {
+    const z = (i - (rows - 1) / 2) * size * 0.24;
+    // Alternating lengths, so the block of rows has a worked edge rather than a
+    // stamped rectangular one.
+    const length = size * (i % 2 === 0 ? 0.92 : 0.78);
+    parts.push(slabAt(length, ridge, ridge, 0, ridge / 2, z));
+  }
+  // The headlands: the strip at each end where the plough turned round.
+  for (const side of [-1, 1]) {
+    parts.push(
+      slabAt(size * 0.14, ridge * 0.8, size * 0.86, side * size * 0.5, ridge * 0.4, 0),
+    );
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * A mine head: an A-frame of timber over the shaft, with the spoil beside it.
+ *
+ * The frame is the read. A hole in the ground is not a shape, so what says
+ * "mine" from across the table is the headgear standing over it — two leaning
+ * legs and a cross-brace — and the heap of cut rock the shaft threw out.
+ */
+export function mineHead(size: number): BufferGeometry {
+  const height = size;
+  const parts: BufferGeometry[] = [];
+  for (const side of [-1, 1]) {
+    // Leaned inward, so the two legs meet at the top: the A.
+    parts.push(
+      slabAt(size * 0.1, height, size * 0.1, side * size * 0.24, height / 2, 0, side * 0.26),
+    );
+  }
+  parts.push(slabAt(size * 0.56, size * 0.09, size * 0.12, 0, height * 0.62, 0));
+  // The shaft collar: a low kerb round the mouth, so the frame stands on
+  // something rather than out of bare grass.
+  const collar = new CylinderGeometry(size * 0.24, size * 0.28, size * 0.1, 6, 1);
+  collar.translate(0, size * 0.05, 0);
+  parts.push(collar);
+  // The spoil, off to one side and deliberately lumpy.
+  const spoil = new IcosahedronGeometry(size * 0.26, 0);
+  spoil.scale(1.1, 0.5, 0.9);
+  spoil.translate(size * 0.52, size * 0.11, size * 0.2);
+  parts.push(spoil);
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * A fence: posts on a ring, with a rail spanning each gap.
+ *
+ * Built as *one* geometry centred on the origin rather than as a post placed
+ * eight times, because the ring is the thing being drawn — a scatter of posts is
+ * a scatter of posts, and an enclosure has to close. One instance per pasture
+ * therefore costs one instance, and the herd it is drawn round is the resource
+ * layer's own props, untouched.
+ */
+export function fenceRing(size: number): BufferGeometry {
+  const posts = 8;
+  const radius = size * 0.5;
+  const height = size * 0.2;
+  const parts: BufferGeometry[] = [];
+  for (let i = 0; i < posts; i++) {
+    const angle = (i / posts) * Math.PI * 2;
+    parts.push(
+      slabAt(
+        size * 0.05,
+        height,
+        size * 0.05,
+        Math.cos(angle) * radius,
+        height / 2,
+        Math.sin(angle) * radius,
+      ),
+    );
+    // The rail to the next post: a thin bar laid along the chord, turned to
+    // follow it. A gap of one post-pitch is left where the gate would be.
+    if (i === posts - 1) continue;
+    const next = ((i + 1) / posts) * Math.PI * 2;
+    const mid = (angle + next) / 2;
+    const chord = 2 * radius * Math.sin(Math.PI / posts);
+    const rail = new BoxGeometry(chord, size * 0.035, size * 0.035);
+    rail.rotateY(-(mid + Math.PI / 2));
+    rail.translate(Math.cos(mid) * radius, height * 0.72, Math.sin(mid) * radius);
+    parts.push(rail);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/** A camp: one ridge tent with a guy pole, and a fire ring beside it. */
+export function campTent(size: number): BufferGeometry {
+  // A four-sided cone is a pyramid, which at this scale is a tent: two lit
+  // faces, two shadowed, and a hard ridge between them.
+  const tent = new ConeGeometry(size * 0.5, size * 0.8, 4, 1);
+  tent.rotateY(Math.PI / 4);
+  tent.translate(0, size * 0.4, 0);
+  const pole = shaft(size * 1.05, size * 0.03, 4);
+  const parts: BufferGeometry[] = [tent, pole];
+  const fire = new CylinderGeometry(size * 0.16, size * 0.18, size * 0.06, 6, 1);
+  fire.translate(size * 0.62, size * 0.03, size * 0.12);
+  parts.push(fire);
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/** A quarry: three cut steps down into the rock, and one block left loose. */
+export function quarrySteps(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const steps = 3;
+  for (let i = 0; i < steps; i++) {
+    const height = size * (0.34 - i * 0.1);
+    const width = size * (0.9 - i * 0.16);
+    parts.push(slabAt(width, height, size * 0.26, 0, height / 2, (i - 1) * size * 0.26));
+  }
+  // The block that was cut and not carried, turned off the axis of the bench so
+  // the whole prop does not read as one stepped wedge.
+  const block = new BoxGeometry(size * 0.28, size * 0.24, size * 0.26);
+  block.rotateY(0.5);
+  block.translate(size * 0.58, size * 0.12, -size * 0.2);
+  parts.push(block);
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * A plantation: two trellis rows, posts and a top rail each.
+ *
+ * The vine, the mulberry and the pepper are the resource layer's props and stay
+ * where they are; this is the frame somebody built around them, which is exactly
+ * what a plantation is on a hex that already shows what it grows.
+ */
+export function trellisRows(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const height = size * 0.44;
+  for (const row of [-1, 1]) {
+    const z = row * size * 0.26;
+    for (const post of [-1, 0, 1]) {
+      parts.push(
+        slabAt(size * 0.05, height, size * 0.05, post * size * 0.34, height / 2, z),
+      );
+    }
+    parts.push(slabAt(size * 0.8, size * 0.04, size * 0.04, 0, height * 0.94, z));
+    parts.push(slabAt(size * 0.8, size * 0.035, size * 0.035, 0, height * 0.58, z));
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
 // --- unit miniatures -------------------------------------------------------
 
 /**

@@ -33,6 +33,9 @@
     "cityCaptureHpFraction": 0.25,
     "captureCivilians": true
   },
+  "improvements": {
+    "pillageGold": 25
+  },
   "cities": {
     "workRadius": 3,
     "claimRadius": 3,
