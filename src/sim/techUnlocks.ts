@@ -39,7 +39,7 @@ import {
   improvementDef,
 } from './improvementData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from './resourceData';
-import type { TileYield } from './terrainData';
+import { type TileYield, readTileYield } from './terrainData';
 import { TECH_IDS, type TechId, isTechId, techDef } from './techData';
 import { type UnitTypeId, unitDef } from './unitData';
 
@@ -154,7 +154,7 @@ export function techGifts(id: TechId): TechGift[] {
         // Copied rather than handed over: the table is shared module state and
         // a caller that summed into it would retune the game, exactly as
         // `improvementYield` guards against.
-        add: { ...upgrade.add },
+        add: readTileYield(upgrade.add),
         requiresFreshwater: upgrade.requiresFreshwater,
       });
     }

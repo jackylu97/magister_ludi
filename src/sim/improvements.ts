@@ -54,7 +54,7 @@ import { RULES } from './rulesData';
 import { type GameState, type Unit, playerById, removeUnit, unitById } from './state';
 import { hasTech } from './tech';
 import { techDef } from './techData';
-import type { TileYield } from './terrainData';
+import { TILE_YIELD_KEYS, type TileYield, emptyTileYield } from './terrainData';
 import { unitDef } from './unitData';
 
 const IMPROVEMENTS = RULES.improvements;
@@ -264,11 +264,9 @@ export function improvementYieldDelta(
 ): TileYield {
   const now = tileYieldOf(tile, ctx);
   const after = tileYieldOf({ ...tile, improvement: improvementId }, ctx);
-  return {
-    food: after.food - now.food,
-    production: after.production - now.production,
-    gold: after.gold - now.gold,
-  };
+  const delta = emptyTileYield();
+  for (const key of TILE_YIELD_KEYS) delta[key] = after[key] - now[key];
+  return delta;
 }
 
 // --- pillaging --------------------------------------------------------------

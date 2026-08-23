@@ -80,7 +80,7 @@
     "attemptsPerResource": 12,
     "startLuxuryRadius": 4,
     "startLuxuryKinds": 2,
-    "luxuryKindsPerRegion": 4
+    "luxuryKindsPerRegion": 6
   },
   "starts": {
     "spacingFactor": 0.55,

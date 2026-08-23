@@ -108,8 +108,16 @@ import {
  *    docblock). A v11 log replayed here is not merely older either: every yield
  *    in it was banked before the meters multiplied production, science and
  *    culture, and before a happiness deficit throttled growth.
+ * 13: The ratified luxury table — `Player.faithPool`, the fourth per-player
+ *    bank, filled by the faith a tile or a signature pays and spent by nothing
+ *    yet (see the field). A v12 log replayed here is a different game rather
+ *    than an older one for three further reasons that carry no state of their
+ *    own: tile yields gained three voices, a city standing on a seam now draws
+ *    supply from it once its owner holds the improving technology, and *access*
+ *    is gated on the resource's reveal — so a v12 empire that mined iron before
+ *    Bronze Working held iron and a v13 one does not.
  */
-export const SCHEMA_VERSION = 12;
+export const SCHEMA_VERSION = 13;
 
 // --- players ----------------------------------------------------------------
 
@@ -139,6 +147,25 @@ export interface Player {
   sciencePool: number;
   /** Culture banked toward the next social policy. A later milestone spends it. */
   culturePool: number;
+  /**
+   * Faith banked by every temple hill, incense grove and jade seam the empire
+   * works. **Nothing spends it yet.**
+   *
+   * A deliberate half-system, and the reason it is shipped rather than waited
+   * for: faith is a *tile* yield in the ratified luxury table — incense pays it
+   * where it grows, jade pays it out of the rock — so either the algebra carries
+   * it now or four rows ship with their signature quietly deleted. Carrying it
+   * costs one field and one line in `collectYields`; deleting the rows would
+   * cost the design.
+   *
+   * So the pool fills, the top bar shows it, and the hover says out loud that
+   * the faithful are gathering and their purpose comes later. That is an honest
+   * empty room; a number that silently did nothing would not be.
+   *
+   * A pool rather than a rate, exactly as `sciencePool` and `culturePool` are:
+   * whatever eventually spends it will spend a bank, not an income.
+   */
+  faithPool: number;
   /**
    * The technology `sciencePool` is currently aimed at, or `null` when the
    * player has not chosen one. Set by the `chooseResearch` command and cleared
@@ -514,6 +541,7 @@ export function newGame(config: GameConfig): GameState {
       gold: 0,
       sciencePool: 0,
       culturePool: 0,
+      faithPool: 0,
       researching: null,
       // Copied, never aliased: the rules are shared by every player and by every
       // game in the process, and a player who researched something must not

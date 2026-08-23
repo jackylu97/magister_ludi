@@ -22,13 +22,21 @@
  *
  * Three kinds, three mechanical homes (design ledger, Entry IX)
  * -------------------------------------------------------------
- *   · **bonus** — wheat, cattle, deer, fish, stone. Pure tile-yield modifiers.
+ *   · **bonus** — fourteen of them. Pure tile-yield modifiers.
  *   · **strategic** — horses, iron. They *gate unit production* through
  *     `requiresResource` in `data/units.json`; see `buildError` in `tech.ts`.
- *   · **luxury** — ten of them now. Each pays its tile's gold, each is worth a
- *     flat `meters.happiness.perUniqueLuxury` to the empire that has improved
- *     one, and each carries a **signature effect** on top of that — see
- *     `ResourceEffect` below and `resourceEffects.ts`, the one evaluator.
+ *   · **luxury** — twenty-five now, twenty-one on land and four in the sea. Each
+ *     pays whatever its row puts on its tile, each is worth a flat
+ *     `meters.happiness.perUniqueLuxury` to the empire that holds one, and most
+ *     carry a **list of signature effects** on top of that — a base tier and,
+ *     usually, a second one at Æra III. See `ResourceEffect` below and
+ *     `resourceEffects.ts`, the one evaluator. `docs/luxuries.md` is the
+ *     as-ratified reference, including what each row's *deferred* half waits for.
+ *
+ * The four sea luxuries are placed, fully specified and **inert**: no
+ * improvement can be built on water yet, so nobody can hold one and none of
+ * their signatures can fire. Their tile yields still pay whoever works the coast.
+ * See `improvementData.ts`, which documents the same hole from the other side.
  *
  * The placement constraint shape
  * ------------------------------
@@ -54,13 +62,21 @@
  * mountain, and a citizen still could not be sent there — `workable` is a
  * separate question, see `terrainData.ts`.)
  *
- * `requiresTech` is a **visibility** gate and nothing else: iron is on the map
- * from turn one, works for whoever owns it, and is simply not *shown* to a
- * player without Bronze Working. See `visibleResourceAt` in `tech.ts` for the
- * whole of that rule and the tradeoff it makes with the diorama props. Incense
- * is the first *luxury* to use it — Divination reveals it — and it needed no
- * new mechanism, which is the whole argument for having built it as a property
- * of the row rather than a property of the strategic kind.
+ * `requiresTech` is a **reveal** gate: iron is on the map from turn one, pays
+ * its yield to whoever works it, and is simply not *shown* to a player without
+ * Bronze Working. See `visibleResourceAt` in `tech.ts` for the whole of that
+ * rule and the tradeoff it makes with the diorama props. Incense is the first
+ * *luxury* to use it — Divination reveals it — and it needed no new mechanism,
+ * which is the whole argument for having built it as a property of the row
+ * rather than a property of the strategic kind.
+ *
+ * It stopped being *only* a display rule with the ratified pass: **access is
+ * gated on the reveal too** (`openedResource` in `cities.ts`). An empire cannot
+ * draw supply from a thing nobody in it has a word for, so a mine dug on a hill
+ * for its hammers no longer hands over iron before Bronze Working. The yield is
+ * still paid — hiding a number the citizens are already collecting would be a
+ * lie the city panel has to keep telling — and `resourceIsVisibleTo` is the one
+ * implementation both readings ask.
  *
  * `frequency` is a relative weight in the scatter's draw, not a count, and
  * `clusterSize` is the inclusive `[min, max]` a single find spreads over — so
@@ -71,8 +87,16 @@
 import resourcesJson from '../../data/resources.json';
 
 import type { ProductionCategory } from './buildingData';
-import { FEATURE_IDS, type FeatureId, TERRAIN_IDS, type TerrainId, type TileYield } from './terrainData';
-import { TECH_IDS, type TechId } from './techData';
+import {
+  FEATURE_IDS,
+  type FeatureId,
+  TERRAIN_IDS,
+  type TerrainId,
+  type TileYield,
+  type TileYieldSpec,
+  readTileYield,
+} from './terrainData';
+import { TECH_AGES, TECH_IDS, type TechAge, type TechId } from './techData';
 
 /**
  * Every resource the table names — read off the JSON's keys, so a new row is a
@@ -86,10 +110,9 @@ export type ResourceKind = 'bonus' | 'strategic' | 'luxury';
 /**
  * A bag of yields an effect pays, every field optional and absent meaning zero.
  *
- * Five voices rather than the tile chain's three, because an effect can pay
- * science or culture — a luxury's signature is a fact about a *city* or an
- * *empire*, not about a hex, and those are the scales at which the other two
- * yields exist at all.
+ * Six voices, the same six a `TileYield` carries since the luxuries pass — a
+ * luxury's signature is a fact about a *city* or an *empire* rather than about a
+ * hex, and faith, science and culture all exist at those scales.
  */
 export interface ResourceYieldBag {
   food?: number;
@@ -97,45 +120,153 @@ export interface ResourceYieldBag {
   gold?: number;
   science?: number;
   culture?: number;
+  faith?: number;
 }
 
+/** A yield a percentage may be taken of. Every voice a city banks. */
+export type CityYieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith';
+
 /**
- * The whole signature-effect vocabulary: four shapes and no more.
+ * Which of an empire's cities an effect lands in. Absent means every one.
  *
- * Kept deliberately, aggressively small. A luxury table where every row could
- * name an arbitrary effect is a table where every row is a special case in the
- * simulation, and the point of the four shapes is that ONE evaluator
- * (`resourceEffects.ts`) reads all of them — a new luxury with a familiar
- * signature is a JSON row and nothing else, and a new *shape* is a deliberate
- * design decision with a place to be argued about.
+ * One word rather than one shape per scope, because "in every coastal city" is
+ * the *same* effect as "in every city" asked of a smaller set — and pearls,
+ * coral and whales all want the smaller set for the same reason (they are dug
+ * out of the sea and the sea is what a harbour town is next to).
  *
- *   · `cityYields`     flat yields in the city that owns the improved tile.
- *                      The powerful-local shape: it lands where the seam is.
- *   · `empireYields`   flat yields to the whole empire, once per unique kind.
- *                      Food and production are rejected at load — the empire
- *                      has no basket for either, and an effect that silently
- *                      does nothing is worse than one that fails to load.
- *   · `extraHappiness` on top of the flat `perUniqueLuxury` every luxury pays.
- *   · `productionBonus` a percentage of the owning city's hammers, behind one
- *                      *category* of thing it may be building.
+ * `'owner'` is the smallest set of all: the city that actually holds the seam.
+ * It was its own shape (`cityYields`) before the ratified table landed, and it
+ * became a scope when that table turned out to be **wide everywhere** — no row
+ * declares it today. Folding it in rather than deleting it keeps a real reading
+ * available at the cost of one word, and it is exercised by a row invented at
+ * runtime in `test/resourceEffects.test.ts`, which is the same proof the table's
+ * data-drivenness rests on.
+ */
+export type ResourceCityScope = 'all' | 'coastal' | 'owner';
+
+/** A rule of the simulation a signature may put a signed percentage on. */
+export type ResourceRule = 'happinessDemand' | 'borderCost' | 'growthCarryover';
+
+/**
+ * The two *modifiers* every shape below may carry.
+ *
+ * They are on the wrapper rather than on individual kinds because they are
+ * orthogonal to what an effect does: any effect can belong to a later age, and
+ * any effect can be told to scale with copies. Writing them once is what stops
+ * `fromAge` meaning one thing on a yield shape and another on a happiness one.
+ */
+export interface ResourceEffectModifiers {
+  /**
+   * The age this tier switches on, gated on the holder's `highestAge`. Absent
+   * means "from the first turn".
+   *
+   * The ratified table gives every luxury a **second tier** at Æra III, so a row
+   * carries a list of effects and the late ones carry this. A tier that has not
+   * arrived is still *shown* — the hover names it and labels it locked — because
+   * a payoff a player cannot see is a payoff they cannot plan for.
+   */
+  fromAge?: TechAge;
+  /**
+   * Scale this effect by how many *tiles* of the resource the player controls,
+   * rather than counting the kind once.
+   *
+   * **The deliberate exception to "uniqueness is the rule".** Silver and gold are
+   * the only two rows that use it, and only in their Æra III tier: their whole
+   * design is that a vein is worth finding a second one of, which is the exact
+   * opposite of what every other luxury says. Marked here, in the data, and in
+   * `docs/luxuries.md`, because a reader who has learnt the uniqueness rule will
+   * otherwise be certain this is a bug.
+   */
+  perCopy?: boolean;
+}
+
+type Signature<T> = T & ResourceEffectModifiers;
+
+/**
+ * The whole signature-effect vocabulary: nine shapes, and each one earns its
+ * place by being the smallest generic thing several ratified rows need.
+ *
+ * Kept deliberately small — a luxury table where every row could name an
+ * arbitrary effect is a table where every row is a special case in the
+ * simulation. The point is that ONE evaluator (`resourceEffects.ts`) reads all
+ * of them: a new luxury with a familiar signature is a JSON row and nothing
+ * else, and a new *shape* is a deliberate design decision with a place to be
+ * argued about. Rows whose ratified effect would need a one-off hack are
+ * **deferred and annotated** in `docs/luxuries.md` rather than bent into a shape
+ * that nearly fits.
+ *
+ *   · `perCityYields`   flat yields in **every** city the empire holds — or in
+ *                       every coastal one, or only in the city that owns the
+ *                       seam (`scope`). The wide shape, and the one the ratified
+ *                       table is built out of: "+2 gold per city" is a payoff
+ *                       for breadth that happiness and authority then tax.
+ *   · `perPopulationYields`  the same, multiplied by each city's population and
+ *                       floored per city — olives' half a coin a head.
+ *   · `empireYields`    flat yields to the whole empire, once per unique kind.
+ *                       Food and production are rejected at load — the empire
+ *                       has no basket for either, and an effect that silently
+ *                       does nothing is worse than one that fails to load.
+ *   · `extraHappiness`  on top of the flat `perUniqueLuxury` every luxury pays,
+ *                       optionally *per city* or *per coastal city*.
+ *   · `authoritySupply` flat authority capacity, optionally per city. The meter
+ *                       prints it as its own line, beside the palace's.
+ *   · `productionBonus` a percentage of hammers behind one *category* of thing a
+ *                       city may be building, in the owning city or empire-wide.
+ *   · `percentYields`   a percentage of one yield, empire-wide or in each
+ *                       coastal city. Joins the meters' sum-then-apply-once
+ *                       pipeline; percentages never compound.
+ *   · `rulePercent`     a signed percentage on a named rule of the simulation —
+ *                       what a citizen demands in happiness, what a border tile
+ *                       costs, how much food a city keeps when it grows.
+ *   · `happinessTierBoost`  raises the *positive* happiness tiers by so many
+ *                       percentage points. Amber, and nothing else.
  *
  * Uniqueness is not part of the shape because it is part of the *reading*: an
- * empire effect counts once per kind however many seams feed it, and a local
- * effect counts once per kind **per city**. Two jades in one city are one jade's
- * signature; two jades in two cities are two, because the effect is the city's.
+ * empire effect counts once per kind however many seams feed it, and an
+ * owner-scoped effect counts once per kind **per city**. Two jades in one city
+ * are one jade's signature; two jades in two cities are two, because the effect
+ * is the city's. `perCopy` is the one, marked, exception.
  */
 export type ResourceEffect =
-  | ({ kind: 'cityYields' } & ResourceYieldBag)
-  | ({ kind: 'empireYields' } & ResourceYieldBag)
-  | { kind: 'extraHappiness'; amount: number }
-  | { kind: 'productionBonus'; category: ProductionCategory; percent: number };
+  | Signature<{ kind: 'perCityYields'; scope?: ResourceCityScope } & ResourceYieldBag>
+  | Signature<{ kind: 'perPopulationYields'; scope?: ResourceCityScope } & ResourceYieldBag>
+  | Signature<{ kind: 'empireYields' } & ResourceYieldBag>
+  | Signature<{ kind: 'extraHappiness'; amount: number; per?: 'city' | 'coastalCity' }>
+  | Signature<{ kind: 'authoritySupply'; amount: number; per?: 'city' }>
+  | Signature<{
+      kind: 'productionBonus';
+      category: ProductionCategory;
+      percent: number;
+      /** `'city'` (the default) is the owning city; `'empire'` is every city. */
+      scope?: 'city' | 'empire';
+    }>
+  | Signature<{
+      kind: 'percentYields';
+      yield: CityYieldKey;
+      percent: number;
+      scope?: ResourceCityScope;
+    }>
+  | Signature<{ kind: 'rulePercent'; rule: ResourceRule; percent: number }>
+  | Signature<{ kind: 'happinessTierBoost'; points: number }>;
 
 /** Every effect shape's tag, for the loader's validation and for tests. */
 export const RESOURCE_EFFECT_KINDS: readonly ResourceEffect['kind'][] = [
-  'cityYields',
+  'perCityYields',
+  'perPopulationYields',
   'empireYields',
   'extraHappiness',
+  'authoritySupply',
   'productionBonus',
+  'percentYields',
+  'rulePercent',
+  'happinessTierBoost',
+];
+
+/** Every rule a `rulePercent` may name. Validation, and the evaluator's switch. */
+export const RESOURCE_RULES: readonly ResourceRule[] = [
+  'happinessDemand',
+  'borderCost',
+  'growthCarryover',
 ];
 
 /** The yield names an effect bag may carry, in the order surfaces print them. */
@@ -145,13 +276,14 @@ export const RESOURCE_EFFECT_YIELDS: readonly (keyof ResourceYieldBag)[] = [
   'gold',
   'science',
   'culture',
+  'faith',
 ];
 
 export interface ResourceDef {
   name: string;
   kind: ResourceKind;
   /** Added to the tile's terrain/feature/hills yield. See `tileYieldOf`. */
-  yields: TileYield;
+  yields: TileYieldSpec;
   /** Terrains this may sit on. See the constraint shape in the docblock. */
   validTerrain: TerrainId[];
   /** Features it may sit on, or absent for "any". */
@@ -161,12 +293,20 @@ export interface ResourceDef {
   /** Technology a player needs before they are *shown* this. */
   requiresTech?: TechId;
   /**
-   * The signature this luxury pays on top of the flat happiness. Absent for
-   * every bonus and strategic row, and absent is lawful for a luxury too — a
-   * luxury with no signature is simply happiness and gold, which is what all
-   * ten were before this milestone.
+   * The signatures this luxury pays on top of the flat happiness, **in order**.
+   *
+   * A *list* since the ratified table landed, and that is the whole shape of the
+   * design it encodes: a luxury is a base tier plus, at Æra III, a second one
+   * (`fromAge`), and several rows pay two different things at the base tier
+   * (gold pays into every city *and* raises the empire's happiness). Order is
+   * the order every surface prints them in, so a row a designer reads top to
+   * bottom is a hover a player reads top to bottom.
+   *
+   * Absent for every bonus and strategic row, and absent is lawful for a luxury
+   * too — ivory ships that way, because its ratified effect is a unique unit and
+   * unique units are a system this game does not have yet.
    */
-  effect?: ResourceEffect;
+  effects?: ResourceEffect[];
   /**
    * Display glyph for text surfaces (hover readout, panels). An emoji
    * placeholder for now; the lens roundels use the drawn SVG icons instead —
@@ -257,8 +397,22 @@ export function isResourceId(value: unknown): value is ResourceId {
  * shared module state and a caller that summed into it would retune the game.
  */
 export function resourceYield(id: ResourceId): TileYield {
-  const source = resourceDef(id).yields;
-  return { food: source.food, production: source.production, gold: source.gold };
+  return readTileYield(resourceDef(id).yields);
+}
+
+/**
+ * May this player be *told* this resource is here?
+ *
+ * The one implementation of the reveal gate, written as a pure function of the
+ * technologies held so that it can live down here beside the table it reads.
+ * `isResourceVisible` in `tech.ts` is a one-line delegate for the surfaces that
+ * have a `GameState` in hand, and `openedResource` in `cities.ts` calls this
+ * directly — because *access* is gated on the reveal too, and two copies of that
+ * rule is exactly what rule 5 forbids.
+ */
+export function resourceIsVisibleTo(id: ResourceId, techs: readonly TechId[]): boolean {
+  const gate = resourceDef(id).requiresTech;
+  return gate === undefined || techs.includes(gate);
 }
 
 /** Every resource of a kind, in table order. */
@@ -266,9 +420,31 @@ export function resourcesOfKind(kind: ResourceKind): ResourceId[] {
   return RESOURCE_IDS.filter((id) => resourceDef(id).kind === kind);
 }
 
-/** The signature effect of a resource, or `null` when the row declares none. */
-export function resourceEffect(id: ResourceId): ResourceEffect | null {
-  return resourceDef(id).effect ?? null;
+/**
+ * The signatures of a resource, in table order, or an empty list.
+ *
+ * The one accessor: nothing outside `resourceEffects.ts` switches on a `kind`,
+ * and nothing anywhere reads `def.effects` directly.
+ */
+export function resourceEffects(id: ResourceId): readonly ResourceEffect[] {
+  return resourceDef(id).effects ?? [];
+}
+
+/**
+ * Is this tier live for an empire standing in `age`?
+ *
+ * The whole of the `fromAge` gate, in one place, so the evaluator, the hover
+ * that labels a locked tier and any test asking about the boundary all agree
+ * about what "at Æra III" means: **at or past**, so an empire whose highest
+ * technology is Age 3 has it, and one still in Age 2 does not.
+ */
+export function effectIsLive(effect: ResourceEffect, age: TechAge): boolean {
+  return effect.fromAge === undefined || age >= effect.fromAge;
+}
+
+/** "Æra III" — how the interface names the age a locked tier is waiting for. */
+export function ageLabel(age: TechAge): string {
+  return `Æra ${'I'.repeat(age)}`;
 }
 
 /**
@@ -300,8 +476,21 @@ function validateEffect(where: string, effect: ResourceEffect): void {
   if (!RESOURCE_EFFECT_KINDS.includes(effect.kind)) {
     throw new Error(`${where} has unknown effect kind "${(effect as { kind: string }).kind}"`);
   }
-  if (effect.kind === 'extraHappiness') {
+  // The two modifiers, checked once for every shape because they belong to every
+  // shape. An age outside the tree's own range is a tier that can never arrive,
+  // which is the quiet-nothing this validator exists to refuse.
+  const { fromAge } = effect;
+  if (fromAge !== undefined) {
+    if (!TECH_AGES.includes(fromAge)) {
+      throw new Error(`${where} is gated on age ${fromAge}, which no technology has`);
+    }
+  }
+  if (effect.kind === 'extraHappiness' || effect.kind === 'authoritySupply') {
     if (!Number.isFinite(effect.amount)) throw new Error(`${where} has a non-numeric amount`);
+    return;
+  }
+  if (effect.kind === 'happinessTierBoost') {
+    if (!Number.isFinite(effect.points)) throw new Error(`${where} has non-numeric points`);
     return;
   }
   if (effect.kind === 'productionBonus') {
@@ -311,8 +500,28 @@ function validateEffect(where: string, effect: ResourceEffect): void {
     if (!Number.isFinite(effect.percent)) throw new Error(`${where} has a non-numeric percent`);
     return;
   }
-  // Both yield shapes, and the one asymmetry between them: the empire banks
-  // gold, science and culture and has nowhere to put food or hammers.
+  if (effect.kind === 'percentYields') {
+    if (!RESOURCE_EFFECT_YIELDS.includes(effect.yield)) {
+      throw new Error(`${where} takes a percentage of unknown yield "${effect.yield}"`);
+    }
+    if (!Number.isFinite(effect.percent) || effect.percent === 0) {
+      throw new Error(`${where} has a zero or non-numeric percent`);
+    }
+    return;
+  }
+  if (effect.kind === 'rulePercent') {
+    if (!RESOURCE_RULES.includes(effect.rule)) {
+      throw new Error(`${where} names unknown rule "${effect.rule}"`);
+    }
+    if (!Number.isFinite(effect.percent) || effect.percent === 0) {
+      throw new Error(`${where} has a zero or non-numeric percent`);
+    }
+    return;
+  }
+  // Every yield shape, and the one asymmetry among them: the empire banks gold,
+  // science, culture and faith and has nowhere to put food or hammers. The
+  // per-city shapes *do* have somewhere to put them — a city is exactly the
+  // thing with a food basket — which is half of why they are a separate kind.
   let named = 0;
   for (const key of RESOURCE_EFFECT_YIELDS) {
     const value = effect[key];
@@ -347,7 +556,9 @@ function validateTable(): void {
     if (cluster && (cluster[0] < 1 || cluster[1] < cluster[0])) {
       throw new Error(`${where} has a nonsensical clusterSize [${cluster[0]}, ${cluster[1]}]`);
     }
-    if (def.effect) validateEffect(`${where} effect`, def.effect);
+    for (const [index, effect] of (def.effects ?? []).entries()) {
+      validateEffect(`${where} effect ${index}`, effect);
+    }
   }
 }
 

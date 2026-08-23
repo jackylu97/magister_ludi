@@ -103,10 +103,10 @@ describe('the visibility grid', () => {
   it('is carried by the schema version', () => {
     // Bumped for M8: a v9 log replayed here can find an attack refused that the
     // older build allowed. See the ledger in `state.ts`. M7's workers moved it
-    // on to 11 and M10's meters to 12 — the fog fields are still carried by
-    // whatever the current number is, which is what this assertion is really
-    // pinning.
-    expect(SCHEMA_VERSION).toBe(12);
+    // on to 11, M10's meters to 12 and the luxuries pass to 13 — the fog fields
+    // are still carried by whatever the current number is, which is what this
+    // assertion is really pinning.
+    expect(SCHEMA_VERSION).toBe(13);
   });
 
   it('survives a JSON round trip as plain data', () => {

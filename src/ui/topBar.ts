@@ -42,7 +42,7 @@
  * a card always quotes the state as it is now.
  */
 
-import { type CityYields, cityYields } from '../sim/cities';
+import { type CityYields, cityYields, emptyCityYields } from '../sim/cities';
 import type { Game } from '../sim/game';
 import {
   type MeterContribution,
@@ -60,6 +60,7 @@ import {
   type YieldKey,
   YIELD_GLYPH,
   YIELD_NAME,
+  YIELD_NOTE,
   effectFigure,
   figure,
   percentFigure,
@@ -80,7 +81,7 @@ import { type Popover, createPopover } from './popover';
  * would be a headline the turn resolution disagrees with.
  */
 export function civYields(state: GameState, playerId: number): CityYields {
-  const total: CityYields = { food: 0, production: 0, gold: 0, science: 0, culture: 0 };
+  const total: CityYields = emptyCityYields();
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     const yields = cityYields(state, city, [], city.queue[0]);
@@ -89,6 +90,7 @@ export function civYields(state: GameState, playerId: number): CityYields {
     total.gold += yields.gold;
     total.science += yields.science;
     total.culture += yields.culture;
+    total.faith += yields.faith;
   }
   // The empire-scale luxury signatures, which belong to no city and are banked
   // once per turn by `collectYields`. Added here for the same reason they are
@@ -98,15 +100,20 @@ export function civYields(state: GameState, playerId: number): CityYields {
   total.gold += empire.gold;
   total.science += empire.science;
   total.culture += empire.culture;
+  total.faith += empire.faith;
   return total;
 }
 
 /**
- * The five yields, in the order the city panel's chip row lists them. The
+ * The six yields, in the order the city panel's chip row lists them. The
  * glyphs and the names come from `figures.ts`, which is the one table — a
  * second copy in this file is exactly the drift that module exists to stop.
+ *
+ * Faith is on the strip from the pass that introduced it even though nothing
+ * spends it: it is banked every turn and a bank the player cannot see is a bank
+ * they cannot plan around. Its card says as much (`YIELD_NOTE`).
  */
-const YIELDS: readonly YieldKey[] = ['food', 'production', 'gold', 'science', 'culture'];
+const YIELDS: readonly YieldKey[] = ['food', 'production', 'gold', 'science', 'culture', 'faith'];
 
 /**
  * The two meters, as the interface says them. Placeholder glyphs by project
@@ -231,11 +238,14 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       if (value === 0) continue;
       lines.append(meterLine(`${line.source} · empire`, value, false));
     }
+    const note = YIELD_NOTE[key];
     if (lines.childElementCount === 0) {
       box.append(element('p', 'hint', 'No cities yet.'));
+      if (note) box.append(element('p', 'hint', note));
       return box;
     }
     box.append(lines);
+    if (note) box.append(element('p', 'hint', note));
     return box;
   }
 

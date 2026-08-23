@@ -37,8 +37,8 @@
 
 import type { MeterEffect } from '../sim/meters';
 
-/** The five yields, in the order the city panel's chip row lists them. */
-export type YieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture';
+/** The six yields, in the order the city panel's chip row lists them. */
+export type YieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith';
 
 export const YIELD_GLYPH: Record<YieldKey, string> = {
   food: '🌾',
@@ -46,6 +46,11 @@ export const YIELD_GLYPH: Record<YieldKey, string> = {
   gold: '🪙',
   science: '🔬',
   culture: '🎭',
+  // A votive candle, and a placeholder like every other glyph in this table
+  // (project policy: the drawn art comes later). Chosen because it reads at one
+  // line-height and is not a building — faith in this game is a thing a *tile*
+  // can pay, so its mark had better not look like a temple.
+  faith: '🕯',
 };
 
 /**
@@ -60,6 +65,20 @@ export const YIELD_NAME: Record<YieldKey, string> = {
   gold: 'gold',
   science: 'science',
   culture: 'culture',
+  faith: 'faith',
+};
+
+/**
+ * A sentence a yield's hover card ends with, for the one yield that needs an
+ * explanation rather than a breakdown.
+ *
+ * Faith accumulates and **nothing spends it yet** (see `Player.faithPool`). A
+ * pool that silently did nothing would be a lie of omission on a bar whose whole
+ * job is to say how the empire is doing, so the card says so out loud. The day
+ * something spends it, this entry goes away rather than being reworded.
+ */
+export const YIELD_NOTE: Partial<Record<YieldKey, string>> = {
+  faith: 'The faithful gather. Their purpose comes later.',
 };
 
 /** Production, the one a cost is quoted in — named for how often it is read. */

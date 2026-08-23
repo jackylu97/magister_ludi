@@ -15,7 +15,7 @@
       "validFeatures": [
         "none"
       ],
-      "frequency": 12,
+      "frequency": 7,
       "clusterSize": [
         1,
         3
@@ -36,7 +36,7 @@
       "validFeatures": [
         "none"
       ],
-      "frequency": 10,
+      "frequency": 6,
       "clusterSize": [
         1,
         3
@@ -59,7 +59,7 @@
       "validFeatures": [
         "forest"
       ],
-      "frequency": 9,
+      "frequency": 6,
       "clusterSize": [
         1,
         2
@@ -70,7 +70,7 @@
       "name": "Fish",
       "kind": "bonus",
       "yields": {
-        "food": 1,
+        "food": 2,
         "production": 0,
         "gold": 0
       },
@@ -80,7 +80,7 @@
       "validFeatures": [
         "none"
       ],
-      "frequency": 12,
+      "frequency": 7,
       "clusterSize": [
         1,
         3
@@ -103,12 +103,217 @@
       "validFeatures": [
         "none"
       ],
-      "frequency": 8,
+      "frequency": 5,
       "clusterSize": [
         1,
         2
       ],
       "emoji": "\ud83e\udea8"
+    },
+    "rice": {
+      "name": "Rice",
+      "kind": "bonus",
+      "yields": {
+        "food": 2,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": false,
+      "frequency": 5,
+      "clusterSize": [
+        1,
+        3
+      ],
+      "emoji": "\ud83c\udf5a"
+    },
+    "maize": {
+      "name": "Maize",
+      "kind": "bonus",
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "plains"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": false,
+      "frequency": 5,
+      "clusterSize": [
+        1,
+        3
+      ],
+      "emoji": "\ud83c\udf3d"
+    },
+    "bananas": {
+      "name": "Bananas",
+      "kind": "bonus",
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains"
+      ],
+      "validFeatures": [
+        "jungle"
+      ],
+      "frequency": 4,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "emoji": "\ud83c\udf4c"
+    },
+    "copper": {
+      "name": "Copper",
+      "kind": "bonus",
+      "yields": {
+        "food": 0,
+        "production": 1,
+        "gold": 1
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": true,
+      "frequency": 5,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "emoji": "\ud83e\uded6"
+    },
+    "tin": {
+      "name": "Tin",
+      "kind": "bonus",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 2
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "tundra"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": true,
+      "frequency": 4,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "emoji": "\ud83e\udd6b"
+    },
+    "clay": {
+      "name": "Clay",
+      "kind": "bonus",
+      "yields": {
+        "food": 1,
+        "production": 1,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": false,
+      "frequency": 4,
+      "clusterSize": [
+        1,
+        3
+      ],
+      "emoji": "\ud83c\udffa"
+    },
+    "reeds": {
+      "name": "Reeds",
+      "kind": "bonus",
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 0,
+        "science": 1
+      },
+      "validTerrain": [
+        "grassland",
+        "plains"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": false,
+      "frequency": 4,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "emoji": "\ud83c\udf8b"
+    },
+    "crabs": {
+      "name": "Crabs",
+      "kind": "bonus",
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 1
+      },
+      "validTerrain": [
+        "coast"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "frequency": 4,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "emoji": "\ud83e\udd80"
+    },
+    "bison": {
+      "name": "Bison",
+      "kind": "bonus",
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "plains"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": false,
+      "frequency": 4,
+      "clusterSize": [
+        1,
+        3
+      ],
+      "emoji": "\ud83e\uddac"
     },
     "horses": {
       "name": "Horses",
@@ -127,7 +332,7 @@
       ],
       "hills": false,
       "requiresTech": "husbandry",
-      "frequency": 8,
+      "frequency": 11,
       "clusterSize": [
         2,
         3
@@ -153,7 +358,7 @@
       ],
       "hills": true,
       "requiresTech": "bronzeWorking",
-      "frequency": 8,
+      "frequency": 11,
       "clusterSize": [
         1,
         2
@@ -177,15 +382,23 @@
         "none"
       ],
       "hills": true,
-      "frequency": 3,
+      "frequency": 2,
       "clusterSize": [
         1,
         1
       ],
-      "effect": {
-        "kind": "cityYields",
-        "gold": 3
-      },
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "gold": 2
+        },
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 10,
+          "fromAge": 3
+        }
+      ],
       "emoji": "\ud83d\udc8e"
     },
     "silk": {
@@ -194,7 +407,8 @@
       "yields": {
         "food": 0,
         "production": 0,
-        "gold": 2
+        "gold": 0,
+        "culture": 1
       },
       "validTerrain": [
         "grassland",
@@ -203,15 +417,23 @@
       "validFeatures": [
         "forest"
       ],
-      "frequency": 3,
+      "frequency": 2,
       "clusterSize": [
         1,
         1
       ],
-      "effect": {
-        "kind": "empireYields",
-        "gold": 2
-      },
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "culture": 1
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 5,
+          "fromAge": 3
+        }
+      ],
       "emoji": "\ud83e\uddf5"
     },
     "wine": {
@@ -229,15 +451,17 @@
       "validFeatures": [
         "none"
       ],
-      "frequency": 4,
+      "frequency": 2,
       "clusterSize": [
         1,
         2
       ],
-      "effect": {
-        "kind": "extraHappiness",
-        "amount": 2
-      },
+      "effects": [
+        {
+          "kind": "extraHappiness",
+          "amount": 2
+        }
+      ],
       "emoji": "\ud83c\udf47"
     },
     "spices": {
@@ -255,15 +479,17 @@
       "validFeatures": [
         "jungle"
       ],
-      "frequency": 3,
+      "frequency": 2,
       "clusterSize": [
         1,
         2
       ],
-      "effect": {
-        "kind": "cityYields",
-        "food": 2
-      },
+      "effects": [
+        {
+          "kind": "authoritySupply",
+          "amount": 2
+        }
+      ],
       "emoji": "\ud83c\udf36\ufe0f"
     },
     "salt": {
@@ -271,8 +497,8 @@
       "kind": "luxury",
       "yields": {
         "food": 1,
-        "production": 0,
-        "gold": 1
+        "production": 1,
+        "gold": 0
       },
       "validTerrain": [
         "desert"
@@ -280,16 +506,25 @@
       "validFeatures": [
         "none"
       ],
-      "frequency": 3,
+      "frequency": 2,
       "clusterSize": [
         1,
         2
       ],
-      "effect": {
-        "kind": "cityYields",
-        "food": 1,
-        "gold": 1
-      },
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 10,
+          "scope": "empire"
+        },
+        {
+          "kind": "percentYields",
+          "yield": "food",
+          "percent": 5,
+          "fromAge": 3
+        }
+      ],
       "emoji": "\ud83e\uddc2"
     },
     "incense": {
@@ -298,25 +533,28 @@
       "yields": {
         "food": 0,
         "production": 0,
-        "gold": 2
+        "gold": 2,
+        "faith": 1
       },
       "validTerrain": [
-        "desert"
+        "desert",
+        "plains"
       ],
       "validFeatures": [
         "none"
       ],
-      "hills": false,
       "requiresTech": "divination",
-      "frequency": 3,
+      "frequency": 2,
       "clusterSize": [
         1,
         2
       ],
-      "effect": {
-        "kind": "empireYields",
-        "culture": 2
-      },
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "faith": 1
+        }
+      ],
       "emoji": "\ud83e\ude94"
     },
     "jade": {
@@ -324,8 +562,9 @@
       "kind": "luxury",
       "yields": {
         "food": 0,
-        "production": 0,
-        "gold": 2
+        "production": 1,
+        "gold": 0,
+        "faith": 1
       },
       "validTerrain": [
         "grassland"
@@ -333,16 +572,11 @@
       "validFeatures": [
         "none"
       ],
-      "hills": true,
-      "frequency": 5,
+      "frequency": 2,
       "clusterSize": [
         1,
         1
       ],
-      "effect": {
-        "kind": "cityYields",
-        "culture": 2
-      },
       "emoji": "\ud83d\udca0"
     },
     "marble": {
@@ -351,7 +585,7 @@
       "yields": {
         "food": 0,
         "production": 1,
-        "gold": 1
+        "gold": 2
       },
       "validTerrain": [
         "grassland",
@@ -362,47 +596,178 @@
         "none"
       ],
       "hills": true,
-      "frequency": 4,
+      "frequency": 2,
       "clusterSize": [
         1,
         2
       ],
-      "effect": {
-        "kind": "productionBonus",
-        "category": "building",
-        "percent": 15
-      },
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 15,
+          "scope": "empire"
+        }
+      ],
       "emoji": "\ud83c\udfdb\ufe0f"
     },
     "furs": {
       "name": "Furs",
       "kind": "luxury",
       "yields": {
-        "food": 1,
-        "production": 0,
-        "gold": 1
+        "food": 0,
+        "production": 1,
+        "gold": 2
       },
       "validTerrain": [
         "tundra",
-        "plains"
+        "plains",
+        "grassland"
       ],
       "validFeatures": [
         "forest"
       ],
-      "frequency": 3,
+      "frequency": 2,
       "clusterSize": [
         1,
         3
       ],
-      "effect": {
-        "kind": "cityYields",
-        "food": 1,
-        "gold": 2
-      },
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "borderCost",
+          "percent": -10
+        }
+      ],
       "emoji": "\ud83e\uddab"
     },
     "dyes": {
       "name": "Dyes",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 2,
+        "culture": 1
+      },
+      "validTerrain": [
+        "grassland",
+        "plains"
+      ],
+      "validFeatures": [
+        "jungle",
+        "forest"
+      ],
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "culture": 1
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 5,
+          "fromAge": 3
+        }
+      ],
+      "emoji": "\ud83c\udfa8"
+    },
+    "ivory": {
+      "name": "Ivory",
+      "kind": "luxury",
+      "yields": {
+        "food": 1,
+        "production": 1,
+        "gold": 0
+      },
+      "validTerrain": [
+        "plains"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "emoji": "\ud83d\udc18"
+    },
+    "amber": {
+      "name": "Amber",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 1
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "tundra"
+      ],
+      "validFeatures": [
+        "forest"
+      ],
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effects": [
+        {
+          "kind": "extraHappiness",
+          "amount": 1
+        },
+        {
+          "kind": "extraHappiness",
+          "amount": 1,
+          "per": "city"
+        },
+        {
+          "kind": "happinessTierBoost",
+          "points": 5,
+          "fromAge": 3
+        }
+      ],
+      "emoji": "\ud83d\udd38"
+    },
+    "tea": {
+      "name": "Tea",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 2,
+        "science": 1
+      },
+      "validTerrain": [
+        "grassland"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": true,
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "science": 1
+        }
+      ],
+      "emoji": "\ud83c\udf75"
+    },
+    "coffee": {
+      "name": "Coffee",
       "kind": "luxury",
       "yields": {
         "food": 0,
@@ -414,20 +779,408 @@
         "plains"
       ],
       "validFeatures": [
-        "jungle",
-        "forest"
+        "jungle"
       ],
-      "frequency": 3,
+      "hills": true,
+      "frequency": 2,
       "clusterSize": [
         1,
         2
       ],
-      "effect": {
-        "kind": "cityYields",
-        "gold": 1,
-        "culture": 1
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "production": 1
+        }
+      ],
+      "emoji": "\u2615"
+    },
+    "cotton": {
+      "name": "Cotton",
+      "kind": "luxury",
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 2
       },
-      "emoji": "\ud83c\udfa8"
+      "validTerrain": [
+        "grassland"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": false,
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthCarryover",
+          "percent": 10
+        }
+      ],
+      "emoji": "\ud83e\uddf6"
+    },
+    "sugar": {
+      "name": "Sugar",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 2
+      },
+      "validTerrain": [
+        "grassland",
+        "plains"
+      ],
+      "validFeatures": [
+        "jungle"
+      ],
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effects": [
+        {
+          "kind": "extraHappiness",
+          "amount": 1
+        },
+        {
+          "kind": "extraHappiness",
+          "amount": 1,
+          "per": "city"
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "happinessDemand",
+          "percent": -10,
+          "fromAge": 3
+        }
+      ],
+      "emoji": "\ud83c\udf6c"
+    },
+    "olives": {
+      "name": "Olives",
+      "kind": "luxury",
+      "yields": {
+        "food": 2,
+        "production": 0,
+        "gold": 1
+      },
+      "validTerrain": [
+        "grassland"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": true,
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "food": 2
+        },
+        {
+          "kind": "perPopulationYields",
+          "gold": 0.5,
+          "fromAge": 3
+        }
+      ],
+      "emoji": "\ud83e\uded2"
+    },
+    "lapis": {
+      "name": "Lapis Lazuli",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 3
+      },
+      "validTerrain": [
+        "desert"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": true,
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        1
+      ],
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "culture": 1
+        }
+      ],
+      "emoji": "\ud83d\udd37"
+    },
+    "silver": {
+      "name": "Silver",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 3
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "tundra",
+        "desert"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": true,
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        1
+      ],
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "gold": 1
+        },
+        {
+          "kind": "authoritySupply",
+          "amount": 1,
+          "per": "city"
+        },
+        {
+          "kind": "authoritySupply",
+          "amount": 2,
+          "perCopy": true,
+          "fromAge": 3
+        }
+      ],
+      "emoji": "\ud83e\udd48"
+    },
+    "gold": {
+      "name": "Gold",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 3
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "tundra",
+        "desert"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": true,
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        1
+      ],
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "food": 1,
+          "gold": 1
+        },
+        {
+          "kind": "extraHappiness",
+          "amount": 1,
+          "per": "city"
+        },
+        {
+          "kind": "extraHappiness",
+          "amount": 2,
+          "perCopy": true,
+          "fromAge": 3
+        },
+        {
+          "kind": "perCityYields",
+          "food": 2,
+          "perCopy": true,
+          "fromAge": 3
+        }
+      ],
+      "emoji": "\ud83e\udd47"
+    },
+    "honey": {
+      "name": "Honey",
+      "kind": "luxury",
+      "yields": {
+        "food": 2,
+        "production": 0,
+        "gold": 1
+      },
+      "validTerrain": [
+        "grassland"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": false,
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effects": [
+        {
+          "kind": "extraHappiness",
+          "amount": 1,
+          "per": "city"
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "happinessDemand",
+          "percent": -10,
+          "fromAge": 3
+        }
+      ],
+      "emoji": "\ud83c\udf6f"
+    },
+    "pearls": {
+      "name": "Pearls",
+      "kind": "luxury",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 3
+      },
+      "validTerrain": [
+        "coast"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effects": [
+        {
+          "kind": "extraHappiness",
+          "amount": 1,
+          "per": "city"
+        },
+        {
+          "kind": "perCityYields",
+          "gold": 3,
+          "scope": "coastal",
+          "fromAge": 3
+        },
+        {
+          "kind": "extraHappiness",
+          "amount": 3,
+          "per": "coastalCity",
+          "fromAge": 3
+        }
+      ],
+      "emoji": "\ud83e\uddaa"
+    },
+    "coral": {
+      "name": "Coral",
+      "kind": "luxury",
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 0,
+        "science": 1
+      },
+      "validTerrain": [
+        "coast"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "science": 2,
+          "scope": "coastal"
+        },
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 20,
+          "scope": "coastal",
+          "fromAge": 3
+        }
+      ],
+      "emoji": "\ud83e\udeb8"
+    },
+    "whales": {
+      "name": "Whales",
+      "kind": "luxury",
+      "yields": {
+        "food": 2,
+        "production": 0,
+        "gold": 1
+      },
+      "validTerrain": [
+        "coast"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "production": 2,
+          "scope": "coastal"
+        },
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 5,
+          "scope": "coastal",
+          "fromAge": 3
+        }
+      ],
+      "emoji": "\ud83d\udc0b"
+    },
+    "tyrian": {
+      "name": "Tyrian Murex",
+      "kind": "luxury",
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 3
+      },
+      "validTerrain": [
+        "coast"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "frequency": 2,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "emoji": "\ud83d\udc1a"
     }
   }
 }

@@ -39,6 +39,10 @@
  * the one place the yield algebra differs from the movement algebra, which
  * *adds* the hills term instead.
  *
+ * The ground still only ever pays those three; the other three voices a
+ * `TileYield` now carries (science, culture, faith) come from what sits *on* it,
+ * which is the `add` half of the chain in `explainTileYield`. See `TileYield`.
+ *
  * Defence bonus
  * -------------
  * Three fields again, and this time every step is a *sum* — the third algebra in
@@ -76,12 +80,84 @@ export type TerrainId =
 
 export type FeatureId = 'none' | 'forest' | 'jungle';
 
-/** What one tile pays a city that works it, per turn. */
+/**
+ * What one tile pays a city that works it, per turn — **six voices** since the
+ * luxuries pass, and the widening is worth writing down.
+ *
+ * It carried three for ten milestones because the ground only ever paid three:
+ * science and culture came from citizens and buildings, and there was nothing a
+ * hex could do about either. The ratified luxury table breaks that in three
+ * places at once — silk pays culture where it grows, tea and reeds pay science,
+ * and incense and jade pay **faith**, a yield that did not exist at all — so the
+ * honest fix is one wider algebra rather than three side channels bolted onto
+ * the chain that `explainTileYield` folds.
+ *
+ * Faith is *accumulate-only* in this pass: tiles and signatures pay it, cities
+ * collect it into `Player.faithPool`, and nothing spends it yet. See the pool's
+ * own docblock in `state.ts` for why that is a deliberate half-system.
+ */
 export interface TileYield {
   food: number;
   production: number;
   gold: number;
+  science: number;
+  culture: number;
+  faith: number;
 }
+
+/**
+ * A tile yield as a **data row declares one**: the three old voices required,
+ * the three new ones optional and absent meaning zero.
+ *
+ * Two types rather than one, and the split is the same one `ResourceYieldBag`
+ * already makes against `ResourceYieldLine`: a *declaration* omits what it does
+ * not pay (a grassland row saying `"faith": 0` three times over is noise a
+ * designer has to read past), while a *computed* yield carries every field so
+ * that a consumer folds one shape instead of six optional ones. `readTileYield`
+ * is the one door between them, and every table accessor goes through it.
+ */
+export interface TileYieldSpec {
+  food: number;
+  production: number;
+  gold: number;
+  science?: number;
+  culture?: number;
+  faith?: number;
+}
+
+/**
+ * A declared yield read into a full one. The only place the "absent means zero"
+ * convention is applied, so a table that grows a seventh voice grows it here.
+ *
+ * A fresh object every call, for the reason `tileYield` returns one: the tables
+ * are shared module state and a caller that summed into one would retune the
+ * game.
+ */
+export function readTileYield(spec: TileYieldSpec): TileYield {
+  return {
+    food: spec.food,
+    production: spec.production,
+    gold: spec.gold,
+    science: spec.science ?? 0,
+    culture: spec.culture ?? 0,
+    faith: spec.faith ?? 0,
+  };
+}
+
+/** A yield of nothing at all — the identity of the `add` half of the fold. */
+export function emptyTileYield(): TileYield {
+  return { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
+}
+
+/** The names a tile yield carries, in the order every surface prints them. */
+export const TILE_YIELD_KEYS: readonly (keyof TileYield)[] = [
+  'food',
+  'production',
+  'gold',
+  'science',
+  'culture',
+  'faith',
+];
 
 export interface TerrainDef {
   name: string;
@@ -98,7 +174,7 @@ export interface TerrainDef {
   /** Movement points to enter; `null` means impassable. See the docblock. */
   moveCost: number | null;
   /** Yield of the bare terrain, before any feature or hills. See the docblock. */
-  yield: TileYield;
+  yield: TileYieldSpec;
   /** Added to a defender's strength as a fraction. Summed; see the docblock. */
   defenseBonus: number;
   fillColor: string;
@@ -111,7 +187,7 @@ export interface FeatureDef {
   /** Replaces the terrain's cost when present. See the docblock. */
   moveCostOverride: number | null;
   /** Replaces the terrain's yield when present. See the docblock. */
-  yieldOverride: TileYield | null;
+  yieldOverride: TileYieldSpec | null;
   /** Added to the terrain's defence bonus, never replacing it. See the docblock. */
   defenseBonus: number;
   glyph: string | null;
@@ -123,7 +199,7 @@ export interface OverlayDef {
   /** Added on top of the terrain/feature cost. See the docblock. */
   moveCostExtra: number;
   /** Replaces the terrain *and* the feature yield outright. See the docblock. */
-  yieldOverride: TileYield;
+  yieldOverride: TileYieldSpec;
   /** Added to the terrain *and* feature defence bonus. See the docblock. */
   defenseBonus: number;
   glyph: string;
@@ -244,12 +320,12 @@ export function isWorkableTerrain(id: TerrainId): boolean {
  * on. See the module docblock for how the three tables combine — every step is
  * an override, and hills win outright.
  *
- * Returns a fresh object every call. The tables are shared module state and a
- * caller that summed into one of them would retune the game.
+ * Returns a fresh object every call (`readTileYield` builds one). The tables are
+ * shared module state and a caller that summed into one would retune the game.
  */
 export function tileYield(terrain: TerrainId, feature: FeatureId, hills: boolean): TileYield {
   const source = hills
     ? TERRAIN_DATA.hills.yieldOverride
     : (TERRAIN_DATA.features[feature].yieldOverride ?? TERRAIN_DATA.terrains[terrain].yield);
-  return { food: source.food, production: source.production, gold: source.gold };
+  return readTileYield(source);
 }

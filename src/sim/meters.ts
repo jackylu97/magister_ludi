@@ -59,15 +59,22 @@
  */
 
 import { BUILDING_IDS, buildingDef, buildingPlural } from './buildingData';
+import { improvementDef, improvementForResource } from './improvementData';
 import {
   capitalCityOf,
-  controlledResources,
+  controlledHoldings,
   isCoastalCity,
   nextCityName,
 } from './cities';
 import type { Tile } from './map';
-import { resourceDef } from './resourceData';
-import { resourceHappiness } from './resourceEffects';
+import { type ResourceRule, resourceDef } from './resourceData';
+import {
+  foldRulePercent,
+  resourceAuthority,
+  resourceHappiness,
+  resourceRulePercent,
+  resourceTierBoost,
+} from './resourceEffects';
 import { type MeterStep, RULES } from './rulesData';
 import { type GameState, playerById } from './state';
 import { highestAge } from './techData';
@@ -148,6 +155,21 @@ function crowdingDemand(population: number): number {
 }
 
 /**
+ * What this empire's luxuries multiply a rule by — one, plus their summed
+ * percentage.
+ *
+ * Two of the three rules a `rulePercent` may name are scalings of an existing
+ * base and both are read through this: sugar and honey take a tenth off what a
+ * citizen demands, and furs take a tenth off a border tile (that one lands in
+ * `cities.ts`, where border costs live). Summed and applied once, exactly as the
+ * yield percentages are, so two such luxuries read as −20% rather than as
+ * 0.9 × 0.9.
+ */
+function ruleFactor(state: GameState, playerId: number, rule: ResourceRule): number {
+  return 1 + foldRulePercent(resourceRulePercent(state, playerId, rule)) / 100;
+}
+
+/**
  * Happiness, as the ordered list it is the fold of.
  *
  * Supply first and demand after, because that is the order the sentence is read
@@ -171,9 +193,17 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
     list.push({ source: 'Palace', part: 'gain', value: rules.palace });
   }
 
-  // Unique, and in the resource table's order: see `controlledResources`.
-  for (const id of controlledResources(state, playerId, 'luxury')) {
-    list.push({ source: resourceDef(id).name, part: 'gain', value: rules.perUniqueLuxury });
+  // Unique, and in the resource table's order: see `controlledHoldings`. The
+  // line says *how* the empire holds it — "Gems · mine" against "Gems · city" —
+  // because the two are worth the same and are lost in completely different
+  // ways, and a player deciding whether to defend a hill or a town needs to know
+  // which one is paying for their contentment.
+  for (const holding of controlledHoldings(state, playerId, 'luxury')) {
+    list.push({
+      source: `${resourceDef(holding.id).name} · ${viaWord(holding.id, holding.via)}`,
+      part: 'gain',
+      value: rules.perUniqueLuxury,
+    });
   }
   // A luxury whose signature is *more happiness* says so on a line of its own
   // rather than swelling the flat line above it — "Wine +4" is what a luxury is
@@ -181,23 +211,42 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // which seam to improve first needs to see the two apart. One evaluator reads
   // the vocabulary (`resourceEffects.ts`); this only folds what it returns.
   for (const line of resourceHappiness(state, playerId)) {
-    list.push({ source: `${line.source} · signature`, part: 'gain', value: line.amount });
+    list.push({ source: line.source, part: 'gain', value: line.amount });
+  }
+  // Amber does not pay happiness; it makes contentment *worth more*. Its line
+  // is here so the ledger accounts for it, worth zero on the meter itself —
+  // `MeterContribution` carries `part` precisely so a line can be worth nothing
+  // and still be worth saying (see its docblock), and a player whose bonus
+  // jumped five points is entitled to find the reason in this list.
+  for (const line of resourceTierBoost(state, playerId).lines) {
+    list.push({ source: `${line.source} · +${line.amount}% when content`, part: 'gain', value: 0 });
   }
 
+  // What a citizen costs, less whatever sugar and honey take off it. The factor
+  // multiplies *both* demand lines, because "the happiness cost for population"
+  // is the whole of what a town asks for and not only its linear half.
+  const demand = ruleFactor(state, playerId, 'happinessDemand');
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     list.push({
       source: `${city.name} · ${city.population} citizens`,
       part: 'cost',
-      value: -rules.demandPerPop * city.population,
+      value: -rules.demandPerPop * city.population * demand,
     });
-    const crowding = crowdingDemand(city.population);
+    const crowding = crowdingDemand(city.population) * demand;
     if (crowding > 0) {
       list.push({ source: `${city.name} crowding`, part: 'cost', value: -crowding });
     }
   }
 
   return list;
+}
+
+/** "mine", "city" — how a holding reads on a ledger line. */
+function viaWord(id: Parameters<typeof resourceDef>[0], via: 'improvement' | 'city'): string {
+  if (via === 'city') return 'city';
+  const improvement = improvementForResource(id);
+  return improvement === null ? 'worked' : improvementDef(improvement).name.toLowerCase();
 }
 
 /** The empire's happiness. The fold of `explainHappiness`, and nothing else. */
@@ -324,6 +373,12 @@ export function explainAuthority(
   // The writ an empire has *built*, after the writ it was born with and before
   // anything spends it: gains together, in the order they were earned.
   list.push(...buildingCapacity(state, playerId));
+  // And the writ it has *dug up*. A luxury that supplies authority is capacity
+  // like any other and reads as its own line, never as a discount on what a city
+  // costs — see `resourceAuthority`.
+  for (const line of resourceAuthority(state, playerId)) {
+    list.push({ source: line.source, part: 'gain', value: line.amount });
+  }
 
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
@@ -389,9 +444,20 @@ export function stepPercent(
   return Math.sign(percent) * Math.min(Math.abs(percent), clamp);
 }
 
-/** The bonus/malus tier a meter total earns: ±5 → ±10%, ±10 → ±20%. */
-export function tierPercent(value: number): number {
-  return stepPercent(METERS.tiers, value, METERS.tierClamp);
+/**
+ * The bonus/malus tier a meter total earns: ±5 → ±10%, ±10 → ±20%.
+ *
+ * `boost` raises a **positive** rung by so many percentage points and is applied
+ * *after* the clamp, which is the whole of amber's signature and the reason it
+ * is a parameter rather than another entry in the ladder. Applied before the
+ * clamp it would do nothing at all at the top rung — `tierClamp` is exactly the
+ * top rung's magnitude — and applied to the malus rungs it would make an unhappy
+ * empire *more* punished for owning amber, which is nobody's reading of "an
+ * additional bonus for happy cities".
+ */
+export function tierPercent(value: number, boost = 0): number {
+  const percent = stepPercent(METERS.tiers, value, METERS.tierClamp);
+  return percent > 0 ? percent + boost : percent;
 }
 
 /**
@@ -451,7 +517,7 @@ export function meterEffects(state: GameState, playerId: number): MeterEffect[] 
   const effects: MeterEffect[] = [];
 
   const happiness = happinessOf(state, playerId);
-  const bonus = tierPercent(happiness);
+  const bonus = tierPercent(happiness, resourceTierBoost(state, playerId).points);
   if (bonus > 0) {
     effects.push({
       meter: 'happiness',
@@ -503,12 +569,22 @@ export function meterEffects(state: GameState, playerId: number): MeterEffect[] 
  * explicitly — a +10% and a −10% have to read as nothing at all, which they do
  * not if they are multiplied one after the other.
  */
-export function yieldFactor(effects: readonly MeterEffect[], yieldId: ModifiedYield): number {
+export function yieldPercent(effects: readonly MeterEffect[], yieldId: ModifiedYield): number {
   let percent = 0;
   for (const effect of effects) {
     if (!effect.growth && effect.yields.includes(yieldId)) percent += effect.percent;
   }
-  return 1 + percent / 100;
+  return percent;
+}
+
+/**
+ * The same figure as a multiplier. Since the luxuries pass the meters are no
+ * longer the only source of a percentage on a yield, so `cityYields` folds
+ * `cityYieldPercents` instead of calling this — it survives for callers asking
+ * only what the *meters* are doing.
+ */
+export function yieldFactor(effects: readonly MeterEffect[], yieldId: ModifiedYield): number {
+  return 1 + yieldPercent(effects, yieldId) / 100;
 }
 
 /**

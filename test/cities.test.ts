@@ -49,7 +49,7 @@ import {
   newGame,
 } from '../src/sim/state';
 import { techDef } from '../src/sim/techData';
-import { tileYield } from '../src/sim/terrainData';
+import { readTileYield, tileYield } from '../src/sim/terrainData';
 import { runEndOfTurn } from '../src/sim/turn';
 import { UNIT_TYPE_IDS, unitDef } from '../src/sim/unitData';
 import { resetVisibility } from '../src/sim/visibility';
@@ -111,21 +111,21 @@ function endRound(state: GameState): void {
 
 describe('tile yield algebra', () => {
   it('reads the bare terrain when there is no feature and no hill', () => {
-    expect(tileYield('grassland', 'none', false)).toEqual({ food: 2, production: 0, gold: 0 });
-    expect(tileYield('plains', 'none', false)).toEqual({ food: 1, production: 1, gold: 0 });
-    expect(tileYield('desert', 'none', false)).toEqual({ food: 0, production: 0, gold: 0 });
-    expect(tileYield('coast', 'none', false)).toEqual({ food: 1, production: 0, gold: 1 });
+    expect(tileYield('grassland', 'none', false)).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(tileYield('plains', 'none', false)).toEqual({ food: 1, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(tileYield('desert', 'none', false)).toEqual({ food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(tileYield('coast', 'none', false)).toEqual({ food: 1, production: 0, gold: 1, science: 0, culture: 0, faith: 0 });
   });
 
   it('lets a feature replace the terrain, not add to it', () => {
     // Forest is "1/1/0", never "grassland plus a forest".
     expect(tileYield('grassland', 'forest', false)).toEqual(tileYield('tundra', 'forest', false));
-    expect(tileYield('grassland', 'forest', false)).toEqual({ food: 1, production: 1, gold: 0 });
-    expect(tileYield('desert', 'jungle', false)).toEqual({ food: 2, production: 0, gold: 0 });
+    expect(tileYield('grassland', 'forest', false)).toEqual({ food: 1, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(tileYield('desert', 'jungle', false)).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('lets hills win over both the terrain and the feature', () => {
-    const hill = { food: 0, production: 2, gold: 0 };
+    const hill = readTileYield({ food: 0, production: 2, gold: 0 });
     expect(tileYield('grassland', 'none', true)).toEqual(hill);
     expect(tileYield('grassland', 'forest', true)).toEqual(hill);
     expect(tileYield('desert', 'jungle', true)).toEqual(hill);
@@ -139,8 +139,10 @@ describe('tile yield algebra', () => {
 
   it('scores a tile with the rules weights', () => {
     const w = CITIES.citizenWeights;
-    expect(yieldScore({ food: 2, production: 0, gold: 0 })).toBe(2 * w.food);
-    expect(yieldScore({ food: 1, production: 1, gold: 1 })).toBe(w.food + w.production + w.gold);
+    expect(yieldScore(readTileYield({ food: 2, production: 0, gold: 0 }))).toBe(2 * w.food);
+    expect(yieldScore(readTileYield({ food: 1, production: 1, gold: 1 }))).toBe(
+      w.food + w.production + w.gold,
+    );
   });
 });
 
@@ -715,15 +717,13 @@ describe('city yields', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     // Desert centre: nothing of its own, so the floor is the whole of it.
-    expect(centreYield(state, city)).toEqual(CITIES.baseCityYields);
+    expect(centreYield(state, city)).toEqual(readTileYield(CITIES.baseCityYields));
 
     // A hill centre keeps its own production and still gets the food floor.
     at(state.map, 8, 5).hills = true;
-    expect(centreYield(state, city)).toEqual({
-      food: CITIES.baseCityYields.food,
-      production: 2,
-      gold: 0,
-    });
+    expect(centreYield(state, city)).toEqual(
+      readTileYield({ food: CITIES.baseCityYields.food, production: 2, gold: 0 }),
+    );
   });
 
   it('adds the centre, the worked tiles, population science and base culture', () => {
@@ -738,6 +738,7 @@ describe('city yields', () => {
       gold: CITIES.baseCityYields.gold,
       science: CITIES.sciencePerPop,
       culture: CITIES.baseCulturePerCity,
+      faith: 0,
     });
   });
 
@@ -1564,7 +1565,7 @@ describe('determinism with cities', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 11 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 13 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1577,7 +1578,7 @@ describe('determinism with cities', () => {
     // `hasAttacked`, `fortifiedTurns`, `City.hp`, `eliminated`, `winnerId`;
     // 8 was resources; 9 was escalating settlers and `settlersBuilt`; 10 was
     // fog of war; 11 was workers and improvements.)
-    expect(SCHEMA_VERSION).toBe(12);
+    expect(SCHEMA_VERSION).toBe(13);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

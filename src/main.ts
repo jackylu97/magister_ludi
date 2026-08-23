@@ -65,6 +65,8 @@ import { createFlatTileArtist, createTileArtist } from './render/tileVisuals';
 import { playerPieceColor } from './render3d/lookData';
 import { Renderer3D } from './render3d/renderer3d';
 import { tileYieldOf, yieldContextFor } from './sim/cities';
+import { TILE_YIELD_KEYS } from './sim/terrainData';
+import { YIELD_GLYPH } from './ui/figures';
 import { unitsOnTile } from './sim/units';
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
@@ -454,11 +456,14 @@ function describeTile(tile: Tile): { terrain: string; feature: string; hills: bo
  */
 function showTileYields(state: GameState, playerId: number, tile: Tile): void {
   const value = tileYieldOf(tile, yieldContextFor(state, playerId));
-  const parts: [string, string, number][] = [
-    ['food', '🌾', value.food],
-    ['production', '⚙', value.production],
-    ['gold', '🪙', value.gold],
-  ];
+  // All six voices since the luxuries pass. The glyph table is `figures.ts`'s,
+  // which is the one place a yield's mark is written down — a second copy here
+  // is exactly the drift that module exists to stop.
+  const parts: [string, string, number][] = TILE_YIELD_KEYS.map((key) => [
+    key,
+    YIELD_GLYPH[key],
+    value[key],
+  ]);
   const shown = parts.filter(([, , amount]) => amount > 0);
   if (shown.length === 0) {
     infoYields.textContent = '—';

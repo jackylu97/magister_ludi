@@ -20,7 +20,7 @@
 
 import rulesJson from '../../data/rules.json';
 import type { TechId } from './techData';
-import type { TileYield } from './terrainData';
+import type { TileYieldSpec } from './terrainData';
 import type { UnitTypeId } from './unitData';
 
 export interface GameRules {
@@ -168,7 +168,7 @@ export interface CityRules {
    * and is never a citizen slot, and a city on a snow tile still feeds itself,
    * so the centre pays the *larger* of its terrain yield and this, per field.
    */
-  baseCityYields: TileYield;
+  baseCityYields: TileYieldSpec;
   /** Science each population point produces, before buildings. */
   sciencePerPop: number;
   /** Culture every city produces just by existing, before buildings. */

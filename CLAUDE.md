@@ -96,6 +96,23 @@ would change every seeded outcome. No further rename passes.
 - A unit piece is **three** `InstancedMesh`es over one buffer: sculpt, outline shell, and the
   `depthFunc: GreaterDepth` x-ray ghost. Tests that count meshes use
   `MESHES_PER_PIECE_BUCKET`; hide/restore must move all three or a silhouette is left behind.
+- A luxury's signature is a **list** of effects on its row, read by one evaluator
+  (`resourceEffects.ts`). Nothing else in the game switches on `effect.kind`. Any effect
+  may carry `fromAge` (gated on `highestAge`) or `perCopy` (silver/gold only — the marked
+  exception to "a luxury counts once per kind"). Adding a *shape* is a design decision;
+  adding a luxury is a JSON row. `docs/luxuries.md` is the as-ratified reference and lists
+  every deferred effect with what it waits for.
+- **Percentages never compound.** Meter percentages and a luxury's `percentYields` land in
+  one list per city (`cityYieldPercents`), summed per yield and applied **once**. Anything
+  that adds a new percentage source must join that list, never multiply afterwards.
+- **Faith is accumulate-only.** Tiles and signatures pay it, `collectYields` banks it into
+  `Player.faithPool`, and nothing spends it. The top bar's card says so; delete that note
+  rather than reword it when something does.
+- Resource **access** is one rule, `openedResource` in `cities.ts`, with three clauses in
+  precedence: the reveal tech (binds *both* other clauses — a mine on a hill does not hand
+  over iron before Bronze Working), the improvement on the tile, then a city standing on
+  the seam whose owner holds that improvement's tech. All derived, no flags. Ledgers label
+  which ("Gems · mine" vs "Gems · city"); holding both ways is still one holding.
 - City-panel yields are derived state refreshed in `collectYields`; mutations outside
   the turn pipeline show stale numbers until end of turn. Narrowed since: the
   `setLockedTiles` command re-runs `assignCitizens` for that city immediately (the

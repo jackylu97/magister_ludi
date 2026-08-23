@@ -42,7 +42,14 @@ import {
   newGame,
 } from '../src/sim/state';
 import { buildError, isResourceVisible, requiredResource, visibleResourceAt } from '../src/sim/tech';
-import { FEATURE_IDS, TERRAIN_IDS, isWaterTerrain, tileYield } from '../src/sim/terrainData';
+import {
+  FEATURE_IDS,
+  TERRAIN_IDS,
+  TILE_YIELD_KEYS,
+  isWaterTerrain,
+  readTileYield,
+  tileYield,
+} from '../src/sim/terrainData';
 import { TECH_IDS } from '../src/sim/techData';
 import { UNIT_TYPE_IDS, unitDef } from '../src/sim/unitData';
 import { resetVisibility } from '../src/sim/visibility';
@@ -66,15 +73,22 @@ function resourceTiles(map: GameMap): Tile[] {
 // --- the table --------------------------------------------------------------
 
 describe('the resource table', () => {
-  it('names seventeen resources across the three kinds', () => {
-    expect(RESOURCE_IDS).toHaveLength(17);
-    expect(resourcesOfKind('bonus')).toEqual(['wheat', 'cattle', 'deer', 'fish', 'stone']);
+  it('names forty-one resources across the three kinds', () => {
+    expect(RESOURCE_IDS).toHaveLength(41);
+    // Table order is iteration order and therefore part of every seeded outcome,
+    // so each kind is asserted in order rather than sorted.
+    expect(resourcesOfKind('bonus')).toEqual([
+      'wheat', 'cattle', 'deer', 'fish', 'stone', 'rice', 'maize', 'bananas',
+      'copper', 'tin', 'clay', 'reeds', 'crabs', 'bison',
+    ]);
     expect(resourcesOfKind('strategic')).toEqual(['horses', 'iron']);
-    // Ten luxuries since the playable-loop pass: the original five plus incense,
-    // jade, marble, furs and dyes. Table order is iteration order and therefore
-    // part of every seeded outcome, so it is asserted rather than sorted.
+    // Twenty-five luxuries since the ratified table: twenty-one on land and the
+    // four that sit in the sea, which are placed and fully specified and cannot
+    // be *held* by anybody until work boats exist (see `docs/luxuries.md`).
     expect(resourcesOfKind('luxury')).toEqual([
       'gems', 'silk', 'wine', 'spices', 'salt', 'incense', 'jade', 'marble', 'furs', 'dyes',
+      'ivory', 'amber', 'tea', 'coffee', 'cotton', 'sugar', 'olives', 'lapis', 'silver',
+      'gold', 'honey', 'pearls', 'coral', 'whales', 'tyrian',
     ]);
   });
 
@@ -99,12 +113,16 @@ describe('the resource table', () => {
   });
 
   it('pays something for every resource, and never a negative', () => {
+    // All six voices since the ratified table: silk pays culture where it grows
+    // and jade pays faith, so a three-voice reading would call both of them free.
     for (const id of RESOURCE_IDS) {
       const value = resourceYield(id);
-      expect(value.food + value.production + value.gold).toBeGreaterThan(0);
-      for (const amount of [value.food, value.production, value.gold]) {
-        expect(amount).toBeGreaterThanOrEqual(0);
+      let total = 0;
+      for (const key of TILE_YIELD_KEYS) {
+        expect(`${id}.${key} >= 0`).toBe(`${id}.${key} ${value[key] >= 0 ? '>=' : '<'} 0`);
+        total += value[key];
       }
+      expect(`${id} pays ${total > 0 ? 'something' : 'nothing'}`).toBe(`${id} pays something`);
     }
   });
 
@@ -138,7 +156,18 @@ describe('the resource table', () => {
   });
 
   it('knows which resources the fairness pass may plant', () => {
-    expect(RESOURCE_IDS.filter(isBonusFood)).toEqual(['wheat', 'cattle', 'deer', 'fish']);
+    // Asked of the data rather than pinned as a list of names, which is the
+    // property `isBonusFood` exists for: the ratified table added five more
+    // bonus foods and the guarantee picked them up with no edit here.
+    expect(RESOURCE_IDS.filter(isBonusFood)).toEqual([
+      'wheat', 'cattle', 'deer', 'fish', 'rice', 'maize', 'bananas', 'clay', 'reeds',
+      'crabs', 'bison',
+    ]);
+    for (const id of RESOURCE_IDS) {
+      const def = resourceDef(id);
+      const expected = def.kind === 'bonus' && def.yields.food > 0;
+      expect(`${id}: ${isBonusFood(id)}`).toBe(`${id}: ${expected}`);
+    }
   });
 });
 
@@ -358,26 +387,44 @@ describe('resource yields', () => {
   }
 
   it('adds to the terrain yield rather than replacing it', () => {
-    expect(tileYieldOf(tileWith(undefined))).toEqual({ food: 2, production: 0, gold: 0 });
-    expect(tileYieldOf(tileWith('wheat'))).toEqual({ food: 3, production: 0, gold: 0 });
+    expect(tileYieldOf(tileWith(undefined))).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(tileYieldOf(tileWith('wheat'))).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('adds *after* the feature override, not before it', () => {
     // A forest replaces grassland's 2/0/0 with 1/1/0; the deer then adds a food
     // to what the forest left, which is 2/1/0 and not 3/1/0.
     const forest = tileWith('deer', { feature: 'forest' });
-    expect(tileYield('grassland', 'forest', false)).toEqual({ food: 1, production: 1, gold: 0 });
-    expect(tileYieldOf(forest)).toEqual({ food: 2, production: 1, gold: 0 });
+    expect(tileYield('grassland', 'forest', false)).toEqual({ food: 1, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(tileYieldOf(forest)).toEqual({ food: 2, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('adds *after* the hills override, which wins over everything else', () => {
     const hill = tileWith('gems', { hills: true });
-    expect(tileYieldOf(hill)).toEqual({ food: 0, production: 2, gold: 2 });
+    expect(tileYieldOf(hill)).toEqual({ food: 0, production: 2, gold: 2, science: 0, culture: 0, faith: 0 });
   });
 
   it('pays more than one voice when the table says so', () => {
     const salt = tileWith('salt', { terrain: 'desert' });
-    expect(tileYieldOf(salt)).toEqual({ food: 1, production: 0, gold: 1 });
+    expect(tileYieldOf(salt)).toEqual(readTileYield({ food: 1, production: 1, gold: 0 }));
+  });
+
+  it('pays the three voices the ground itself never could', () => {
+    // The widening the ratified table forced: silk pays culture, tea and reeds
+    // pay science, incense and jade pay faith. A tile could do none of that
+    // before, and the whole chain — resource row, contribution entry, fold —
+    // carries them exactly as it carries a coin.
+    const silk = tileWith('silk', { feature: 'forest' });
+    expect(tileYieldOf(silk).culture).toBe(resourceYield('silk').culture);
+    expect(tileYieldOf(silk).culture).toBeGreaterThan(0);
+
+    const reeds = tileWith('reeds');
+    expect(tileYieldOf(reeds).science).toBe(resourceYield('reeds').science);
+    expect(tileYieldOf(reeds).science).toBeGreaterThan(0);
+
+    const incense = tileWith('incense', { terrain: 'desert' });
+    expect(tileYieldOf(incense).faith).toBe(resourceYield('incense').faith);
+    expect(tileYieldOf(incense).faith).toBeGreaterThan(0);
   });
 
   it('leaves a mountain unworkable however rich it is', () => {
@@ -385,7 +432,7 @@ describe('resource yields', () => {
     // workability is asked of the terrain, never of the yield, and that is worth
     // holding still.
     const peak = tileWith('iron', { terrain: 'mountain' });
-    expect(tileYieldOf(peak)).toEqual({ food: 0, production: 1, gold: 0 });
+    expect(tileYieldOf(peak)).toEqual(readTileYield({ food: 0, production: 1, gold: 0 }));
     expect(TERRAIN_IDS.includes('mountain')).toBe(true);
   });
 });
@@ -625,7 +672,7 @@ describe('what a player may be told', () => {
     const tile = at(state, 3, 3);
     tile.resource = 'iron';
     expect(visibleResourceAt(state, 0, tile)).toBeNull();
-    expect(tileYieldOf(tile)).toEqual({ food: 2, production: 1, gold: 0 });
+    expect(tileYieldOf(tile)).toEqual({ food: 2, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
     expect(hasResource(state, 0, 'iron')).toBe(false);
   });
 
@@ -897,21 +944,27 @@ describe('luxury placement', () => {
  * table back afterwards; nothing in `src/` calls it.
  */
 describe('a resource nobody wrote code for', () => {
-  const AMBER = {
-    name: 'Amber',
+  /**
+   * A row the table has never heard of — the name matters, and it is checked
+   * below: `amber` used to play this part and is now a real luxury, which made
+   * the "puts the table back" assertion silently true for the wrong reason.
+   */
+  const UNOBTANIUM = {
+    name: 'Unobtanium',
     kind: 'luxury',
     yields: { food: 0, production: 0, gold: 2 },
     validTerrain: ['grassland', 'plains'],
     validFeatures: ['forest'],
     frequency: 400,
     clusterSize: [1, 2],
-    effect: { kind: 'cityYields', gold: 2, culture: 1 },
+    effects: [{ kind: 'perCityYields', gold: 2, culture: 1 }],
     emoji: '🟠',
   } as const;
 
   it('places, pays and explains without a line of code of its own', () => {
-    withExtraResources({ amber: AMBER as never }, () => {
-      const id = 'amber' as ResourceId;
+    expect(isResourceId('unobtanium')).toBe(false);
+    withExtraResources({ unobtanium: UNOBTANIUM as never }, () => {
+      const id = 'unobtanium' as ResourceId;
       expect(RESOURCE_IDS).toContain(id);
       expect(resourcesOfKind('luxury')).toContain(id);
 
@@ -925,12 +978,12 @@ describe('a resource nobody wrote code for', () => {
       // Pays: the yield algebra adds it like any other resource…
       const tile = tiles[0]!;
       const bare = tileYield(tile.terrain, tile.feature, tile.hills);
-      expect(tileYieldOf(tile).gold).toBe(bare.gold + AMBER.yields.gold);
+      expect(tileYieldOf(tile).gold).toBe(bare.gold + UNOBTANIUM.yields.gold);
 
       // …and explains: a labelled line in the breakdown the panel prints, with
       // the fold of the list equal to the total.
       const lines = explainTileYield(tile);
-      expect(lines.map((line) => line.source)).toContain(AMBER.name);
+      expect(lines.map((line) => line.source)).toContain(UNOBTANIUM.name);
       expect(foldTileYield(lines)).toEqual(tileYieldOf(tile));
 
       // And its signature is read by the one evaluator, in words too.
@@ -941,12 +994,12 @@ describe('a resource nobody wrote code for', () => {
   it('puts the table back afterwards, whatever happens inside', () => {
     const before = [...RESOURCE_IDS];
     expect(() =>
-      withExtraResources({ amber: AMBER as never }, () => {
+      withExtraResources({ unobtanium: UNOBTANIUM as never }, () => {
         throw new Error('boom');
       }),
     ).toThrow('boom');
     expect([...RESOURCE_IDS]).toEqual(before);
-    expect(isResourceId('amber')).toBe(false);
+    expect(isResourceId('unobtanium')).toBe(false);
   });
 
   it('refuses a row the vocabulary cannot read, loudly and at load', () => {
@@ -955,15 +1008,23 @@ describe('a resource nobody wrote code for', () => {
     // could hide indefinitely. So the table validates on installation.
     expect(() =>
       withExtraResources(
-        { bogus: { ...AMBER, effect: { kind: 'teleport' } } as never },
+        { bogus: { ...UNOBTANIUM, effects: [{ kind: 'teleport' }] } as never },
         () => undefined,
       ),
     ).toThrow(/effect kind/);
     expect(() =>
       withExtraResources(
-        { bogus: { ...AMBER, effect: { kind: 'empireYields', food: 2 } } as never },
+        { bogus: { ...UNOBTANIUM, effects: [{ kind: 'empireYields', food: 2 }] } as never },
         () => undefined,
       ),
     ).toThrow(/basket/);
+    // A tier gated on an age no technology has is a payoff that can never
+    // arrive, which would fail as silence rather than as an error.
+    expect(() =>
+      withExtraResources(
+        { bogus: { ...UNOBTANIUM, effects: [{ kind: 'empireYields', gold: 1, fromAge: 9 }] } as never },
+        () => undefined,
+      ),
+    ).toThrow(/age 9/);
   });
 });

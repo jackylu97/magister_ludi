@@ -19,7 +19,9 @@
       ],
       "requiresHills": false,
       "improvesResource": [
-        "wheat"
+        "wheat",
+        "rice",
+        "maize"
       ],
       "clearsClutter": true,
       "upgrades": [
@@ -58,7 +60,12 @@
       "improvesResource": [
         "iron",
         "gems",
-        "jade"
+        "marble",
+        "copper",
+        "tin",
+        "silver",
+        "gold",
+        "lapis"
       ],
       "clearsClutter": true
     },
@@ -74,11 +81,13 @@
       },
       "requiresResource": [
         "cattle",
-        "horses"
+        "horses",
+        "bison"
       ],
       "improvesResource": [
         "cattle",
-        "horses"
+        "horses",
+        "bison"
       ],
       "clearsClutter": false
     },
@@ -94,11 +103,15 @@
       },
       "requiresResource": [
         "deer",
-        "furs"
+        "furs",
+        "ivory",
+        "amber"
       ],
       "improvesResource": [
         "deer",
-        "furs"
+        "furs",
+        "ivory",
+        "amber"
       ],
       "clearsClutter": false
     },
@@ -115,12 +128,14 @@
       "requiresResource": [
         "stone",
         "salt",
-        "marble"
+        "jade",
+        "clay"
       ],
       "improvesResource": [
         "stone",
         "salt",
-        "marble"
+        "jade",
+        "clay"
       ],
       "clearsClutter": false
     },
@@ -139,14 +154,30 @@
         "wine",
         "spices",
         "incense",
-        "dyes"
+        "dyes",
+        "tea",
+        "coffee",
+        "cotton",
+        "sugar",
+        "olives",
+        "honey",
+        "bananas",
+        "reeds"
       ],
       "improvesResource": [
         "silk",
         "wine",
         "spices",
         "incense",
-        "dyes"
+        "dyes",
+        "tea",
+        "coffee",
+        "cotton",
+        "sugar",
+        "olives",
+        "honey",
+        "bananas",
+        "reeds"
       ],
       "clearsClutter": false,
       "upgrades": [

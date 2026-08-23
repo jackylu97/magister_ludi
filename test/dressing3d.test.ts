@@ -105,10 +105,11 @@ describe('board dressing', () => {
     // One lit mesh per (geometry, colour set) — plus its outline shell, plus
     // the substrate and the table. The cap is deliberately generous; what it
     // catches is an accidental per-instance colour, which would run to
-    // thousands. It rose with the resource props: twelve more shapes, each in
-    // one ink, is twelve more pairs and no more than that — which is the
-    // property this number is really guarding.
-    expect(stats.drawCalls).toBeLessThan(110);
+    // thousands. It rises with the resource table: every kind on the map is one
+    // more shape in one more ink, so the ratified luxury pass (seventeen rows to
+    // forty-one, most of them sharing the marker cairn) moved it again. A pair
+    // per kind is the property this number is really guarding.
+    expect(stats.drawCalls).toBeLessThan(160);
     // Nothing is drawn one instance at a time.
     const lit = stats.meshes.filter((mesh) => mesh.count > 1);
     expect(lit.length).toBeGreaterThan(10);

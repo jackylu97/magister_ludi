@@ -31,6 +31,7 @@ import {
   growthSurplus,
   growthThreshold,
   hasResource,
+  cityYieldPercents,
   productionModifiers,
   queueItemCost,
   queueItemName,
@@ -324,7 +325,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return parts.join(' ');
   }
 
-  /** The same five voices, for a luxury's signature line. */
+  /** The same six voices, for a luxury's signature line. */
   function resourceFigures(entry: ResourceYieldLine): string {
     const parts: string[] = [];
     const voices: [number, string][] = [
@@ -333,6 +334,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       [entry.gold, YIELD_GLYPH.gold],
       [entry.science, YIELD_GLYPH.science],
       [entry.culture, YIELD_GLYPH.culture],
+      [entry.faith, YIELD_GLYPH.faith],
     ];
     for (const [value, glyph] of voices) {
       if (value === 0) continue;
@@ -376,6 +378,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       ['gold', 'Gold', yields.gold],
       ['science', 'Sci', yields.science],
       ['culture', 'Cult', yields.culture],
+      ['faith', 'Faith', yields.faith],
     ];
     for (const [key, label, value] of entries) {
       const chip = element('div', `city-yield is-${key}`);
@@ -412,6 +415,17 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     for (const effect of meterEffects(state, city.ownerId)) {
       const meter = effect.meter === 'happiness' ? 'Happiness' : 'Authority';
       line(`${meter} ${signedFigure(effect.value)}`, effectFigure(effect), effect.percent < 0);
+    }
+    // A luxury's percentage lands in the *same* sum the meters' does
+    // (`cityYieldPercents`), so it is printed in the same list and in the same
+    // voice — a player adding the lines up by eye reaches the number on the chip.
+    for (const percent of cityYieldPercents(state, city)) {
+      if (percent.resource === undefined) continue;
+      line(
+        percent.source,
+        `${YIELD_GLYPH[percent.yield]} ${percentFigure(percent.percent)}`,
+        percent.percent < 0,
+      );
     }
     if (list.childElementCount > 0) box.append(list);
     return box;

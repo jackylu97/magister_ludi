@@ -135,10 +135,20 @@ function triangles(geometry: BufferGeometry): number {
 describe('the resource prop registry', () => {
   const geometry = new BoardGeometry();
 
-  it('has a prop for every resource, and a resource for every prop', () => {
-    // The forward direction is a compile error (`Record<ResourceId, …>`); this is
-    // the other one, which the type system cannot see: a prop nobody asks for.
-    expect(Object.keys(RESOURCE_PROPS).sort()).toEqual([...RESOURCE_IDS].sort());
+  it('has a resource for every prop, and a geometry for every resource', () => {
+    // Two directions, and since the ratified luxury table they are no longer the
+    // same claim. `RESOURCE_PROPS` is deliberately *partial*: twenty-odd rows
+    // landed as data in one pass and nobody has sculpted them, so they show the
+    // marker cairn and their roundel still names them (see `board3d.ts`). What
+    // must never happen is the other direction — a prop nobody asks for, which
+    // the type system cannot see — and every row must still resolve to *some*
+    // geometry, because `undefined` reaching three.js is a `NaN` matrix.
+    for (const id of Object.keys(RESOURCE_PROPS)) {
+      expect(`${id} is a resource`).toBe(`${RESOURCE_IDS.includes(id as ResourceId) ? id : 'orphan'} is a resource`);
+    }
+    for (const id of RESOURCE_IDS) {
+      expect(typeof resourcePropFactory(id)).toBe('function');
+    }
   });
 
   it('builds one shared geometry per resource, all of them distinct', () => {
@@ -199,7 +209,7 @@ describe('the resource prop registry', () => {
    * provisional placeholder; `undefined` reaching three.js is a `NaN` matrix.
    */
   it('falls back to a cairn and a default tuning for a resource nobody drew', () => {
-    const unknown = 'amber' as ResourceId;
+    const unknown = 'unobtanium' as ResourceId;
     expect(RESOURCE_PROPS[unknown]).toBeUndefined();
     expect(resourcePropFactory(unknown)).toBe(cairnStack);
     const spec = resourcePropSpec(unknown);
@@ -207,10 +217,12 @@ describe('the resource prop registry', () => {
     expect(spec.size).toBeGreaterThan(0);
     expect(spec.count).toBeGreaterThanOrEqual(1);
 
-    // And every resource that *is* drawn keeps its own sculpt, so the fallback
-    // is a safety net rather than a shortcut somebody has started leaning on.
-    for (const id of RESOURCE_IDS) {
-      expect(resourcePropFactory(id)).not.toBe(cairnStack);
+    // And every resource somebody *has* drawn keeps its own sculpt, so the
+    // fallback stays a safety net rather than a shortcut the registry has begun
+    // to lean on for rows it already covers.
+    for (const id of Object.keys(RESOURCE_PROPS) as ResourceId[]) {
+      expect(`${id}: ${resourcePropFactory(id) === cairnStack ? 'cairn' : 'sculpted'}`)
+        .toBe(`${id}: sculpted`);
     }
   });
 });
@@ -761,13 +773,16 @@ describe('the yield glyphs', () => {
   it('gives a mixed tile one row per voice', () => {
     const state = flatState();
     const tile = at(state, 4, 4);
-    tile.resource = 'salt';
+    tile.resource = 'copper';
     tile.terrain = 'desert';
-    // Desert is 0/0/0; salt is 1 food and 1 gold, so two rows and no hammer.
+    tile.hills = true;
+    // A desert hill is 0/2/0; copper adds a hammer and a coin, so two rows and
+    // nothing green. (The lens draws the three *ground* voices; science, culture
+    // and faith have no glyph on the board yet — see `YIELD_KEYS`.)
     const shapes = marksOver(state, 4, 4).map((mesh) => mesh.geometry);
-    expect(shapes).toContain(geometry.yieldGlyphs.food);
+    expect(shapes).toContain(geometry.yieldGlyphs.production);
     expect(shapes).toContain(geometry.yieldGlyphs.gold);
-    expect(shapes).not.toContain(geometry.yieldGlyphs.production);
+    expect(shapes).not.toContain(geometry.yieldGlyphs.food);
   });
 
   it('keeps a real tile\'s yields down to stacks, never numerals', () => {

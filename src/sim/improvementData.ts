@@ -45,20 +45,29 @@
  *
  * Deliberate holes, both documented rather than papered over
  * ----------------------------------------------------------
- * **Fish has no improvement.** The water improvement is a work boat, which needs
- * naval units and embarkation — deferred with the rest of naval. So fish stays
- * on the map, stays visible, keeps paying its food to a citizen working the
- * tile, and simply cannot be *accessed* in the `hasResource` sense. Nothing is
- * gated on fish today, so the hole costs a player nothing; the day a building
- * wants it, the row to add is here.
+ * **Nothing wet has an improvement.** The water improvement is a work boat,
+ * which needs naval units and embarkation — deferred with the rest of naval. So
+ * fish and crabs, and the four sea luxuries the ratified table added (pearls,
+ * coral, whales and tyrian murex), all stay on the map, stay visible, keep
+ * paying a citizen who works the tile, and simply cannot be *accessed* in the
+ * `hasResource` sense. For the bonus rows that costs a player nothing. For the
+ * four luxuries it costs them everything they were specified to do — their
+ * happiness, their per-city yields and both tiers of their signatures are
+ * written, tested and **inert** until the work boat lands. That is deliberate
+ * and is annotated in `docs/luxuries.md`: the design is ratified and the data is
+ * the honest place to hold it, and `test/improvements.test.ts` asserts the hole
+ * as "water iff unimproved" so the day the row is added it fails in both
+ * directions at once.
  *
- * **Salt is quarried, not mined**, which is where this table narrows the design
- * note (which said the mine's list carried salt). Salt is placed on desert with
- * no `hills` constraint, so roughly half of it sits on flat ground — and a mine
- * requires high ground. Filing salt under the mine would have made every flat
- * salt pan permanently unimprovable, which is the same "rule nobody could play
- * against" the ledger refused for strategic resources in Entry IX. The quarry
- * has no terrain constraint of its own, so it reaches both.
+ * **Salt and jade are quarried, not mined**, which is where this table narrows
+ * the design note (which said the mine's list carried salt). Both are placed
+ * with no `hills` constraint, so roughly half of each sits on flat ground — and
+ * a mine requires high ground. Filing them under the mine would have made every
+ * flat salt pan and lowland jade seam permanently unimprovable, which is the
+ * same "rule nobody could play against" the ledger refused for strategic
+ * resources in Entry IX. The quarry has no terrain constraint of its own, so it
+ * reaches both. Marble went the other way for the same reason read forwards: it
+ * is hills-only, so the mine reaches all of it.
  *
  * Growth renewals are upgrades, not new rows (Entry I)
  * ---------------------------------------------------
@@ -81,6 +90,8 @@ import {
   TERRAIN_IDS,
   type TerrainId,
   type TileYield,
+  type TileYieldSpec,
+  readTileYield,
 } from './terrainData';
 import { TECH_IDS, type TechId } from './techData';
 
@@ -98,7 +109,7 @@ export interface ImprovementUpgrade {
   /** The technology that switches this on for its owner. */
   tech: TechId;
   /** Added to the tile's yield once the owner holds `tech`. */
-  add: TileYield;
+  add: TileYieldSpec;
   /**
    * When true the tile must also be able to drink (`Tile.freshwater`). Absent
    * means the renewal applies wherever the improvement stands.
@@ -129,7 +140,7 @@ export interface ImprovementDef {
    */
   requiresTech?: TechId;
   /** Added to the tile's terrain/feature/hills/resource yield. Never replaces. */
-  yields: TileYield;
+  yields: TileYieldSpec;
   /** Terrains this may be built on, or absent for "any". See the docblock. */
   validTerrain?: TerrainId[];
   /** Features it may be built on, or absent for "any". */
@@ -187,8 +198,7 @@ export function isImprovementId(value: unknown): value is ImprovementId {
  * retune the game.
  */
 export function improvementYield(id: ImprovementId): TileYield {
-  const source = improvementDef(id).yields;
-  return { food: source.food, production: source.production, gold: source.gold };
+  return readTileYield(improvementDef(id).yields);
 }
 
 /**

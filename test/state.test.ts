@@ -72,6 +72,7 @@ describe('newGame', () => {
       gold: 0,
       sciencePool: 0,
       culturePool: 0,
+      faithPool: 0,
       researching: null,
       techsResearched: RULES.research.startingTechs,
       settlersBuilt: 0,

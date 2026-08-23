@@ -72,9 +72,9 @@
  */
 
 import { type BuildingId, buildingDef, isBuildingId } from './buildingData';
-import { type CityYields, cityYields, hasResource, turnsToFill } from './cities';
+import { type CityYields, cityYields, emptyCityYields, hasResource, turnsToFill } from './cities';
 import type { Tile } from './map';
-import { type ResourceId, resourceDef } from './resourceData';
+import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
 import {
   type GameState,
@@ -228,9 +228,13 @@ export function isResourceVisible(
   playerId: number,
   resourceId: ResourceId,
 ): boolean {
-  const gate = resourceDef(resourceId).requiresTech;
-  if (gate === undefined) return true;
-  return hasTech(state, playerId, gate);
+  const player = playerById(state, playerId);
+  // Delegated rather than reimplemented: `openedResource` in `cities.ts` asks
+  // the *same* question — access is gated on the reveal, since the ratified
+  // luxury pass — and this module cannot be imported from there without a
+  // top-level cycle. So the rule lives beside the table it reads
+  // (`resourceIsVisibleTo`) and both callers ask it.
+  return player ? resourceIsVisibleTo(resourceId, player.techsResearched) : false;
 }
 
 /**
@@ -464,7 +468,7 @@ export function buildingYieldDelta(
   playerId: number,
   id: BuildingId,
 ): CityYields {
-  const total: CityYields = { food: 0, production: 0, gold: 0, science: 0, culture: 0 };
+  const total: CityYields = emptyCityYields();
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     if (city.buildings.includes(id)) continue;

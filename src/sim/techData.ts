@@ -107,6 +107,14 @@ export type TechId =
 /** Ancient, Classical, Medieval. Later ages arrive with later content. */
 export type TechAge = 1 | 2 | 3;
 
+/**
+ * Every age, in order. Written down beside the type because a *value* is what a
+ * validator needs: `resourceData.ts` refuses a luxury tier gated on an age no
+ * technology has, which would otherwise be a payoff that can never arrive and
+ * would fail as silence rather than as an error.
+ */
+export const TECH_AGES: readonly TechAge[] = [1, 2, 3];
+
 /** What a technology hands over. Both lists are optional; at least one is not. */
 export interface TechUnlocks {
   units?: UnitTypeId[];

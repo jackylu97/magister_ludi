@@ -39,7 +39,7 @@ import {
   pillageError,
 } from '../src/sim/improvements';
 import { type Tile, createMap, getTileAt } from '../src/sim/map';
-import { RESOURCE_IDS, resourceYield } from '../src/sim/resourceData';
+import { RESOURCE_IDS, resourceDef, resourceYield } from '../src/sim/resourceData';
 import { RULES } from '../src/sim/rulesData';
 import {
   type GameState,
@@ -53,7 +53,12 @@ import {
   FEATURE_IDS,
   type FeatureId,
   TERRAIN_IDS,
+  TILE_YIELD_KEYS,
   type TerrainId,
+  type TileYield,
+  emptyTileYield,
+  isWaterTerrain,
+  readTileYield,
   tileYield,
 } from '../src/sim/terrainData';
 import { TECH_IDS, techDef } from '../src/sim/techData';
@@ -165,11 +170,20 @@ describe('the improvement table', () => {
     }
   });
 
-  it('gives every resource but fish exactly one improvement', () => {
+  it('leaves exactly the water resources unimproved, and nothing on land', () => {
     // The forward table is written per improvement; this is the inversion, and
-    // the only hole in it is the documented one.
-    const covered = RESOURCE_IDS.filter((id) => improvementForResource(id) !== null);
-    expect(covered.sort()).toEqual(RESOURCE_IDS.filter((id) => id !== 'fish').sort());
+    // the only holes in it are the documented ones — every resource that sits on
+    // *water*. The improvement they all want is the same one (a work boat), and
+    // it is deferred with the rest of naval, so they stay on the map, keep
+    // paying whoever works the tile, and are in nobody's hands in the
+    // `hasResource` sense. Asserted as "water iff unimproved" rather than as a
+    // list of names, so the day the work boat lands this test fails in both
+    // directions at once and tells whoever added it what else to wire up.
+    for (const id of RESOURCE_IDS) {
+      const wet = resourceDef(id).validTerrain.every(isWaterTerrain);
+      const improved = improvementForResource(id) !== null;
+      expect(`${id}: ${improved ? 'improved' : 'bare'}`).toBe(`${id}: ${wet ? 'bare' : 'improved'}`);
+    }
     expect(improvementForResource('fish')).toBeNull();
   });
 
@@ -251,9 +265,9 @@ describe('buildImprovement', () => {
   it('changes the tile yield in the same breath, with no phase to wait for', () => {
     const { state, worker } = workerState();
     const tile = at(state, 5, 4);
-    expect(tileYieldOf(tile)).toEqual({ food: 2, production: 0, gold: 0 });
+    expect(tileYieldOf(tile)).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
     applyCommand(state, build(0, worker.id, 'farm'));
-    expect(tileYieldOf(tile)).toEqual({ food: 3, production: 0, gold: 0 });
+    expect(tileYieldOf(tile)).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('removes the worker when its last charge goes', () => {
@@ -597,15 +611,17 @@ describe('explainTileYield', () => {
    * writing it here rather than importing it is that it cannot be quietly
    * changed by an edit to the thing it is checking.
    */
-  function legacyYield(tile: Tile): { food: number; production: number; gold: number } {
+  function legacyYield(tile: Tile): TileYield {
     const base = tileYield(tile.terrain, tile.feature, tile.hills);
     if (tile.resource === undefined) return base;
     const extra = resourceYield(tile.resource);
-    return {
-      food: base.food + extra.food,
-      production: base.production + extra.production,
-      gold: base.gold + extra.gold,
-    };
+    const total = emptyTileYield();
+    // Every voice, so the golden test still covers the whole algebra now that a
+    // tile can pay six of them: a resource that quietly stopped paying its
+    // culture would otherwise slip through the one test built to catch exactly
+    // that. Extended, never weakened.
+    for (const key of TILE_YIELD_KEYS) total[key] = base[key] + extra[key];
+    return total;
   }
 
   function bareTile(patch: Partial<Tile> = {}): Tile {
@@ -653,15 +669,15 @@ describe('explainTileYield', () => {
     ]);
     // The forest is written down even though the hill overrides it — that is the
     // *explanation*, and the fold reaches the hill's number either way.
-    expect(foldTileYield(list)).toEqual({ food: 1, production: 2, gold: 0 });
+    expect(foldTileYield(list)).toEqual({ food: 1, production: 2, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('adds the improvement last, after the resource', () => {
     const tile = bareTile({ resource: 'wheat', improvement: 'farm' });
     const list = explainTileYield(tile);
     expect(list.map((entry) => entry.source)).toEqual(['Grassland', 'Wheat', 'Farm']);
-    expect(list[2]).toEqual({ source: 'Farm', kind: 'add', food: 1, production: 0, gold: 0 });
-    expect(foldTileYield(list)).toEqual({ food: 4, production: 0, gold: 0 });
+    expect(list[2]).toEqual({ source: 'Farm', kind: 'add', food: 1, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTileYield(list)).toEqual({ food: 4, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('carries every kind of entry', () => {
@@ -694,20 +710,20 @@ describe('growth renewals', () => {
     const tile = map.tiles[4]!;
     tile.improvement = 'farm';
     tile.freshwater = true;
-    expect(tileYieldOf(tile)).toEqual({ food: 3, production: 0, gold: 0 });
-    expect(tileYieldOf(tile, { techs: [] })).toEqual({ food: 3, production: 0, gold: 0 });
+    expect(tileYieldOf(tile)).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(tileYieldOf(tile, { techs: [] })).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('pays with the technology, but only on fresh water', () => {
     const map = createMap({ width: 3, height: 3, terrain: 'grassland' });
     const dry = map.tiles[4]!;
     dry.improvement = 'farm';
-    expect(tileYieldOf(dry, withTech)).toEqual({ food: 3, production: 0, gold: 0 });
+    expect(tileYieldOf(dry, withTech)).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
 
     const wet = map.tiles[5]!;
     wet.improvement = 'farm';
     wet.freshwater = true;
-    expect(tileYieldOf(wet, withTech)).toEqual({ food: 4, production: 0, gold: 0 });
+    expect(tileYieldOf(wet, withTech)).toEqual({ food: 4, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('appears as its own contribution entry, named for the technology', () => {
@@ -720,9 +736,7 @@ describe('growth renewals', () => {
     expect(list[2]).toEqual({
       source: 'Feudalism',
       kind: 'add',
-      food: 1,
-      production: 0,
-      gold: 0,
+      ...readTileYield({ food: 1, production: 0, gold: 0 }),
     });
   });
 
@@ -730,7 +744,7 @@ describe('growth renewals', () => {
     const map = createMap({ width: 3, height: 3, terrain: 'grassland' });
     const tile = map.tiles[4]!;
     tile.freshwater = true;
-    expect(tileYieldOf(tile, withTech)).toEqual({ food: 2, production: 0, gold: 0 });
+    expect(tileYieldOf(tile, withTech)).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('reaches the city that owns the tile, through the owner\'s context', () => {
@@ -749,11 +763,9 @@ describe('growth renewals', () => {
     // No phase, no rebuild: the same call, one technology later.
     expect(cityYields(state, city).food).toBe(before + 1);
     // And the rival, who has not researched it, sees the old number.
-    expect(tileYieldOf(tile, yieldContextFor(state, 1))).toEqual({
-      food: 3,
-      production: 0,
-      gold: 0,
-    });
+    expect(tileYieldOf(tile, yieldContextFor(state, 1))).toEqual(
+      readTileYield({ food: 3, production: 0, gold: 0 }),
+    );
   });
 });
 
@@ -780,7 +792,7 @@ describe('improvements and the city', () => {
   it('quotes the delta a charge would buy, from the same evaluator', () => {
     const state = bareState();
     const tile = at(state, 5, 4);
-    expect(improvementYieldDelta(tile, 'farm')).toEqual({ food: 1, production: 0, gold: 0 });
+    expect(improvementYieldDelta(tile, 'farm')).toEqual({ food: 1, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
 
     // The preview is a diff of the real evaluator, so a renewal the player holds
     // is inside it — which a reading of `improvementDef(id).yields` would miss.
@@ -789,6 +801,9 @@ describe('improvements and the city', () => {
       food: 2,
       production: 0,
       gold: 0,
+      science: 0,
+      culture: 0,
+      faith: 0,
     });
     // And nothing was mutated on the way past.
     expect(tile.improvement).toBeUndefined();
@@ -925,8 +940,8 @@ describe('improvements in the log', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 12 save with improvements on the board', () => {
-    expect(SCHEMA_VERSION).toBe(12);
+  it('round-trips a schema 13 save with improvements on the board', () => {
+    expect(SCHEMA_VERSION).toBe(13);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

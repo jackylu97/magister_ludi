@@ -20,6 +20,7 @@ import { BUILDING_IDS, buildingDef } from '../src/sim/buildingData';
 import { IMPROVEMENT_IDS, improvementDef } from '../src/sim/improvementData';
 import { RESOURCE_IDS, resourceDef } from '../src/sim/resourceData';
 import { TECH_IDS, techDef } from '../src/sim/techData';
+import { readTileYield } from '../src/sim/terrainData';
 import { techGifts, unlockDataProblems } from '../src/sim/techUnlocks';
 import { unitDef } from '../src/sim/unitData';
 
@@ -90,7 +91,7 @@ describe('techGifts', () => {
     if (farm.kind !== 'renewal') throw new Error('expected a renewal');
     expect(farm.name).toBe(improvementDef('farm').name);
     expect(farm.requiresFreshwater).toBe(true);
-    expect(farm.add).toEqual(improvementDef('farm').upgrades?.[0]?.add);
+    expect(farm.add).toEqual(readTileYield(improvementDef('farm').upgrades![0]!.add));
   });
 
   it('hands over a copy of a renewal\'s yield, not the shared table', () => {

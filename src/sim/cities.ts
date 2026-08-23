@@ -76,9 +76,11 @@ import {
 import { isPassable } from './pathfind';
 import {
   RESOURCE_IDS,
+  type CityYieldKey,
   type ResourceId,
   type ResourceKind,
   resourceDef,
+  resourceIsVisibleTo,
   resourceYield,
 } from './resourceData';
 import { RULES } from './rulesData';
@@ -94,9 +96,12 @@ import {
 } from './state';
 import {
   TERRAIN_DATA,
+  TILE_YIELD_KEYS,
   type TileYield,
+  emptyTileYield,
   featureDef,
   isWorkableTerrain,
+  readTileYield,
   terrainDef,
 } from './terrainData';
 import { type TechId, techDef } from './techData';
@@ -104,23 +109,38 @@ import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
 import { recomputeVisibility } from './visibility';
 import { isCoastal } from './water';
-import { growthFactor, meterEffects, yieldFactor } from './meters';
+import { type MeterId, growthFactor, meterEffects } from './meters';
 import {
   cityResourceYields,
   empireResourceYields,
   foldResourceYields,
+  foldRulePercent,
+  resourcePercentYields,
   resourceProduction,
+  resourceRulePercent,
 } from './resourceEffects';
 
 const CITIES = RULES.cities;
 
-/** Everything a city produces in one turn. */
+/**
+ * Everything a city produces in one turn.
+ *
+ * Six voices since the luxuries pass. `faith` is **accumulate-only**: cities
+ * bank it into `Player.faithPool` and nothing in the game spends it yet — see
+ * that field's docblock for why a half-system is the honest thing to ship.
+ */
 export interface CityYields {
   food: number;
   production: number;
   gold: number;
   science: number;
   culture: number;
+  faith: number;
+}
+
+/** A city yield of nothing at all. The identity every sum here starts from. */
+export function emptyCityYields(): CityYields {
+  return { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
 }
 
 // --- tiles ------------------------------------------------------------------
@@ -175,13 +195,10 @@ export interface CityYields {
  */
 export type TileYieldKind = 'base' | 'override' | 'add';
 
-export interface TileYieldContribution {
+export interface TileYieldContribution extends TileYield {
   /** Display label: the terrain, the feature, the resource, the tech. */
   source: string;
   kind: TileYieldKind;
-  food: number;
-  production: number;
-  gold: number;
 }
 
 /**
@@ -243,62 +260,33 @@ export function explainTileYield(
   const list: TileYieldContribution[] = [];
 
   const terrain = terrainDef(tile.terrain);
-  const base = terrain.yield;
-  list.push({
-    source: terrain.name,
-    kind: 'base',
-    food: base.food,
-    production: base.production,
-    gold: base.gold,
-  });
+  list.push({ source: terrain.name, kind: 'base', ...readTileYield(terrain.yield) });
 
   // Written down even on a hill, where it is about to be overridden: the fold
   // reaches the same number, and the *list* is the explanation.
   const feature = featureDef(tile.feature);
   const override = feature.yieldOverride;
   if (override !== null) {
-    list.push({
-      source: feature.name,
-      kind: 'override',
-      food: override.food,
-      production: override.production,
-      gold: override.gold,
-    });
+    list.push({ source: feature.name, kind: 'override', ...readTileYield(override) });
   }
 
   if (tile.hills) {
     const hills = TERRAIN_DATA.hills;
-    list.push({
-      source: hills.name,
-      kind: 'override',
-      food: hills.yieldOverride.food,
-      production: hills.yieldOverride.production,
-      gold: hills.yieldOverride.gold,
-    });
+    list.push({ source: hills.name, kind: 'override', ...readTileYield(hills.yieldOverride) });
   }
 
   if (tile.resource !== undefined) {
-    const extra = resourceYield(tile.resource);
     list.push({
       source: resourceDef(tile.resource).name,
       kind: 'add',
-      food: extra.food,
-      production: extra.production,
-      gold: extra.gold,
+      ...resourceYield(tile.resource),
     });
   }
 
   const improvement = tile.improvement;
   if (improvement !== undefined) {
     const def = improvementDef(improvement);
-    const extra = improvementYield(improvement);
-    list.push({
-      source: def.name,
-      kind: 'add',
-      food: extra.food,
-      production: extra.production,
-      gold: extra.gold,
-    });
+    list.push({ source: def.name, kind: 'add', ...improvementYield(improvement) });
     // The renewals, each its own entry, and only for an empire that has earned
     // them. Walked in the table's own order so two renewals on one improvement
     // always read in the same order (design ledger, Entry I).
@@ -308,9 +296,7 @@ export function explainTileYield(
       list.push({
         source: techDef(upgrade.tech).name,
         kind: 'add',
-        food: upgrade.add.food,
-        production: upgrade.add.production,
-        gold: upgrade.add.gold,
+        ...readTileYield(upgrade.add),
       });
     }
   }
@@ -323,16 +309,11 @@ export function explainTileYield(
  * total is ever computed.
  */
 export function foldTileYield(list: readonly TileYieldContribution[]): TileYield {
-  const total: TileYield = { food: 0, production: 0, gold: 0 };
+  const total = emptyTileYield();
   for (const entry of list) {
-    if (entry.kind === 'add') {
-      total.food += entry.food;
-      total.production += entry.production;
-      total.gold += entry.gold;
-    } else {
-      total.food = entry.food;
-      total.production = entry.production;
-      total.gold = entry.gold;
+    for (const key of TILE_YIELD_KEYS) {
+      if (entry.kind === 'add') total[key] += entry[key];
+      else total[key] = entry[key];
     }
   }
   return total;
@@ -350,39 +331,89 @@ export function tileYieldOf(tile: Tile, ctx?: TileYieldContext): TileYield {
 }
 
 /**
- * The resource a tile puts in its owner's hands, or `null` when it puts none
- * there — either because there is nothing on it, or because nobody has built
- * the improvement that opens what is.
+ * How a resource came into a player's hands.
  *
- * The rule itself, factored out so that the two questions asked of it cannot
- * drift: `hasResource` asks it of one named resource, `controlledResources`
- * asks it of a whole kind at once. Which improvement opens which resource is
- * `improvesResource` in `data/improvements.json`, inverted once at load.
+ *   · `improvement` — the improvement that opens it stands on the tile.
+ *   · `city` — the player's **city stands on the seam**, and its owner knows
+ *     how to work it. A town quarries the marble it was built on.
  */
-function openedResource(tile: Tile): ResourceId | null {
-  const id = tile.resource;
-  if (id === undefined) return null;
-  const needed = improvementForResource(id);
-  if (needed === null || tile.improvement !== needed) return null;
-  return id;
+export type ResourceVia = 'improvement' | 'city';
+
+/** A resource in somebody's hands, and the reason it is there. */
+export interface ResourceHolding {
+  id: ResourceId;
+  via: ResourceVia;
 }
 
 /**
- * Does this player *control* this resource — own a tile carrying it, with the
- * improvement that opens it built?
+ * The resource a tile puts in **this player's** hands, or `null` when it puts
+ * none there.
  *
- * The Entry IX correction, landed. The v1 reading was ownership alone, and the
- * note beside it said exactly why: there were no workers, so requiring a pasture
- * would have made every mounted unit permanently unbuildable. Workers exist now,
- * so the clause the note promised is here, and it is the *only* thing that
- * changed — the reducer, the city panel and the production gate all still ask
- * this one function.
+ * The one rule, factored out so that the four questions asked of it cannot
+ * drift: `hasResource` asks it of one named resource, `controlledResources` of a
+ * whole kind at once, `cityResources` of one city's ground, and `resourceCopies`
+ * counts the tiles that answer. There is deliberately no second path anywhere in
+ * the simulation — every "do I have iron?" in the game goes through here.
  *
- * Which improvement opens which resource is `improvesResource` in
- * `data/improvements.json`, inverted once at load (`improvementForResource`).
- * A resource nothing improves — fish, whose work boat is deferred with the rest
- * of naval — is therefore never controlled by anybody, which is the honest
- * answer rather than a special case: nothing in the game is gated on it yet.
+ * Three clauses, in this precedence:
+ *
+ *   1. **Reveal.** A player who cannot be *told* the seam is there draws nothing
+ *      from it, however it is worked. That is `requiresTech` on the resource row
+ *      (`resourceIsVisibleTo`), and it is checked first because it is the only
+ *      clause about knowledge rather than about ground: you cannot supply an
+ *      army from a thing nobody in your empire has a word for. It binds the
+ *      settled path *and* the improved one — a mine dug on a hill for its
+ *      hammers does not hand its owner iron before Bronze Working, which is the
+ *      hole this precedence closes.
+ *   2. **Improvement.** The improvement `improvesResource` names is standing on
+ *      the tile. This is the original rule and it asks nothing about technology:
+ *      an improvement already built keeps paying (see `ImprovementDef.requiresTech`,
+ *      which gates the *build*), so a captured pasture works from the turn it
+ *      changes hands.
+ *   3. **The city itself.** A city standing on the seam works it as the
+ *      improvement would — but only once its owner holds the technology that
+ *      improvement needs. A capital founded on gems is worth nothing until
+ *      Mining; the turn Mining lands, the gems appear. Nothing is stored and no
+ *      flag is set: it is derived every time it is asked, so researching a
+ *      technology *is* the event, with no schema and no bookkeeping of its own.
+ *
+ * A resource nothing improves — fish, and the four sea luxuries, whose work boat
+ * is deferred with the rest of naval — is therefore never in anybody's hands by
+ * either path, which is the honest answer rather than a special case: a city
+ * cannot be founded on water either.
+ */
+function openedResource(
+  state: GameState,
+  tile: Tile,
+  playerId: number,
+): ResourceHolding | null {
+  const id = tile.resource;
+  if (id === undefined) return null;
+
+  const player = playerById(state, playerId);
+  if (!player) return null;
+  if (!resourceIsVisibleTo(id, player.techsResearched)) return null;
+
+  const needed = improvementForResource(id);
+  if (needed === null) return null;
+  if (tile.improvement === needed) return { id, via: 'improvement' };
+
+  if (cityAt(state, tile.col, tile.row) === undefined) return null;
+  const tech = improvementDef(needed).requiresTech;
+  if (tech !== undefined && !player.techsResearched.includes(tech)) return null;
+  return { id, via: 'city' };
+}
+
+/**
+ * Does this player *control* this resource — hold a tile carrying it, worked by
+ * the improvement that opens it or by a city standing on top of it?
+ *
+ * The Entry IX correction, landed, and then widened once. The v1 reading was
+ * ownership alone, because there were no workers; the M7 reading required the
+ * improvement; this one adds the town that was founded on the seam, for the
+ * reason a settler ever picks such a tile — a city is the most thorough
+ * improvement there is, and refusing it the marble under its own forum was a
+ * rule nobody could play against. See `openedResource` for the whole of it.
  *
  * Ownership is a *city's*, then the city's owner's, exactly as `tileOwner`
  * stores it — so a captured city hands over its mined iron in the same breath as
@@ -395,15 +426,38 @@ export function hasResource(
   resourceId: ResourceId,
 ): boolean {
   for (const tile of state.map.tiles) {
-    if (openedResource(tile) !== resourceId) continue;
-    if (tileOwnerPlayerId(state, tile.col, tile.row) === playerId) return true;
+    if (tile.resource !== resourceId) continue;
+    if (tileOwnerPlayerId(state, tile.col, tile.row) !== playerId) continue;
+    if (openedResource(state, tile, playerId) !== null) return true;
   }
   return false;
 }
 
 /**
- * Every resource of one kind this player controls, **once each**, in the
- * resource table's own order.
+ * How many **tiles** of one resource this player controls.
+ *
+ * The count `perCopy` scales by, and the one place in the game that asks the
+ * question the uniqueness rule usually refuses to ask. It walks the same
+ * `openedResource` rule everything else does, so a pillaged silver mine stops
+ * being a copy at exactly the moment it stops being a holding.
+ */
+export function resourceCopies(
+  state: GameState,
+  playerId: number,
+  resourceId: ResourceId,
+): number {
+  let copies = 0;
+  for (const tile of state.map.tiles) {
+    if (tile.resource !== resourceId) continue;
+    if (tileOwnerPlayerId(state, tile.col, tile.row) !== playerId) continue;
+    if (openedResource(state, tile, playerId) !== null) copies += 1;
+  }
+  return copies;
+}
+
+/**
+ * Every resource of one kind this player controls, **once each and with the
+ * reason**, in the resource table's own order.
  *
  * `hasResource` asked of a whole kind, in one pass rather than one pass per
  * resource — and uniqueness is not a rule this has to enforce, it is what the
@@ -412,33 +466,52 @@ export function hasResource(
  * per unique improved luxury"), and pricing it off this list rather than off a
  * count of tiles is what stops a plantation belt paying twice.
  *
+ * `via` is carried so a ledger can say *why* — "Gems · mine" against "Gems ·
+ * city" — because a player who cannot see which of their towns is holding a
+ * luxury cannot see what they would lose by losing it. When the same kind is
+ * held both ways it is still **one** holding, and the improved reading wins:
+ * a seam somebody dug is the more specific fact, and it is the one that a
+ * pillage can take away.
+ *
  * The table's order rather than discovery order, so the breakdown a player reads
  * lists their luxuries the same way twice running — iteration order that is part
  * of the answer is iteration order a replay has to reproduce.
  */
+export function controlledHoldings(
+  state: GameState,
+  playerId: number,
+  kind: ResourceKind,
+): ResourceHolding[] {
+  const held = new Map<ResourceId, ResourceVia>();
+  for (const tile of state.map.tiles) {
+    if (tileOwnerPlayerId(state, tile.col, tile.row) !== playerId) continue;
+    const holding = openedResource(state, tile, playerId);
+    if (holding === null || resourceDef(holding.id).kind !== kind) continue;
+    if (held.get(holding.id) === 'improvement') continue;
+    held.set(holding.id, holding.via);
+  }
+  return RESOURCE_IDS.filter((id) => held.has(id)).map((id) => ({ id, via: held.get(id)! }));
+}
+
+/** The same list as ids alone — what most callers want. */
 export function controlledResources(
   state: GameState,
   playerId: number,
   kind: ResourceKind,
 ): ResourceId[] {
-  const held = new Set<ResourceId>();
-  for (const tile of state.map.tiles) {
-    const id = openedResource(tile);
-    if (id === null || resourceDef(id).kind !== kind) continue;
-    if (tileOwnerPlayerId(state, tile.col, tile.row) === playerId) held.add(id);
-  }
-  return RESOURCE_IDS.filter((id) => held.has(id));
+  return controlledHoldings(state, playerId, kind).map((holding) => holding.id);
 }
 
 /**
  * The same question one scale down: every resource of a kind that **this city**
  * controls, once each, in the resource table's own order.
  *
- * The city scale exists because half the luxury vocabulary is local — a
+ * The city scale exists because part of the luxury vocabulary is local — a
  * signature that pays "in the city that owns the improved tile" needs to know
  * which city that is (`resourceEffects.ts`). It asks `openedResource`, the same
  * one rule `controlledResources` asks, so a pillaged plantation stops paying
- * both at once and neither has any bookkeeping of its own.
+ * both at once and neither has any bookkeeping of its own. A city standing on a
+ * seam counts for itself, which is the settled reading read at city scale.
  *
  * Uniqueness is per city and that is the design, not a shortcut: two jade seams
  * in one city are one jade's signature, and jade in a second city is a second
@@ -451,9 +524,9 @@ export function cityResources(
 ): ResourceId[] {
   const held = new Set<ResourceId>();
   for (const tile of ownedTiles(state, city)) {
-    const id = openedResource(tile);
-    if (id === null || resourceDef(id).kind !== kind) continue;
-    held.add(id);
+    const holding = openedResource(state, tile, city.ownerId);
+    if (holding === null || resourceDef(holding.id).kind !== kind) continue;
+    held.add(holding.id);
   }
   return RESOURCE_IDS.filter((id) => held.has(id));
 }
@@ -837,12 +910,10 @@ export function assignCitizens(state: GameState, city: City): void {
  */
 export function centreYield(state: GameState, city: City): TileYield {
   const own = tileYieldOf(cityTile(state.map, city), cityContext(state, city));
-  const base = CITIES.baseCityYields;
-  return {
-    food: Math.max(own.food, base.food),
-    production: Math.max(own.production, base.production),
-    gold: Math.max(own.gold, base.gold),
-  };
+  const base = readTileYield(CITIES.baseCityYields);
+  const out = emptyTileYield();
+  for (const key of TILE_YIELD_KEYS) out[key] = Math.max(own[key], base[key]);
+  return out;
 }
 
 // --- what a building pays ---------------------------------------------------
@@ -1009,6 +1080,75 @@ function modifierFactor(list: readonly ProductionModifier[]): number {
 }
 
 /**
+ * One percentage standing on one of a city's yields, whatever put it there.
+ *
+ * `ProductionModifier` is the same idea for the *thing being built*; this is the
+ * idea for the yield itself, and it exists because since the luxuries pass there
+ * are two families of source — the two empire meters and a luxury's
+ * `percentYields` — and they must land in **one sum applied once**. A gems
+ * empire at +10% gold and a contented one at +10% science are two lines of one
+ * list, not two multiplications, exactly as the ledger already required of the
+ * meters alone (see `yieldFactor` in `meters.ts`).
+ */
+export interface CityYieldPercent {
+  /** Display label: "Happiness +7", "Gems", "Coral · coastal city". */
+  source: string;
+  yield: CityYieldKey;
+  /** Signed whole percent. */
+  percent: number;
+  /** The meter this line came from, or absent for a resource's line. */
+  meter?: MeterId;
+  /** The resource this line came from, or absent for a meter's line. */
+  resource?: ResourceId;
+}
+
+/**
+ * Everything currently multiplying this city's yields: the two meters first, in
+ * `meterEffects` order, then the empire's luxuries in resource-table order.
+ *
+ * The growth stifle is deliberately **not** here. It multiplies food *surplus*
+ * toward growth rather than a yield (design ledger, Entry XIV.D.4), which is a
+ * different rule with a different consumer — `growthSurplus`, which reads it
+ * from `meterEffects` directly.
+ */
+export function cityYieldPercents(state: GameState, city: City): CityYieldPercent[] {
+  const list: CityYieldPercent[] = [];
+  for (const effect of meterEffects(state, city.ownerId)) {
+    if (effect.growth) continue;
+    for (const id of effect.yields) {
+      list.push({
+        source: effect.meter === 'happiness' ? 'Happiness' : 'Authority',
+        yield: id,
+        percent: effect.percent,
+        meter: effect.meter,
+      });
+    }
+  }
+  for (const line of resourcePercentYields(state, city)) {
+    if (line.percent === 0) continue;
+    list.push({
+      source: line.source,
+      yield: line.yield,
+      percent: line.percent,
+      resource: line.resource,
+    });
+  }
+  return list;
+}
+
+/** The percentages on one yield, summed. The only sum of them. */
+export function percentFor(
+  list: readonly CityYieldPercent[],
+  yieldId: CityYieldKey,
+): number {
+  let percent = 0;
+  for (const entry of list) {
+    if (entry.yield === yieldId) percent += entry.percent;
+  }
+  return percent;
+}
+
+/**
  * Everything a city produces this turn: the centre, plus every worked tile, plus
  * the flat effects of its buildings.
  *
@@ -1071,8 +1211,11 @@ export function cityYields(
     food: centre.food,
     production: centre.production,
     gold: centre.gold,
-    science: Math.floor(city.population * CITIES.sciencePerPop),
-    culture: CITIES.baseCulturePerCity,
+    // The centre's own science and culture ride on top of what a city makes just
+    // by being one: a town founded on a tea hill keeps the beaker.
+    science: Math.floor(city.population * CITIES.sciencePerPop) + centre.science,
+    culture: CITIES.baseCulturePerCity + centre.culture,
+    faith: centre.faith,
   };
 
   const ctx = cityContext(state, city);
@@ -1080,9 +1223,7 @@ export function cityYields(
     const tile = getTileAt(state.map, cell.col, cell.row);
     if (!tile) continue;
     const value = tileYieldOf(tile, ctx);
-    total.food += value.food;
-    total.production += value.production;
-    total.gold += value.gold;
+    for (const key of TILE_YIELD_KEYS) total[key] += value[key];
   }
 
   // What the city's own improved luxuries pay it, the fold of the list the panel
@@ -1095,6 +1236,7 @@ export function cityYields(
     total.gold += line.gold;
     total.science += line.science;
     total.culture += line.culture;
+    total.faith += line.faith;
   }
 
   // The fold of `explainCityBuildings`, and the only place a building's worth is
@@ -1112,14 +1254,16 @@ export function cityYields(
     total.science += Math.floor(city.population * entry.sciencePerPop);
   }
 
-  const effects = meterEffects(state, city.ownerId);
+  const percents = cityYieldPercents(state, city);
   const hammers = modifierFactor(productionModifiers(state, city, toward, hypothetical));
-  if (effects.length > 0 || hammers !== 0) {
-    total.production = Math.floor(
-      total.production * (yieldFactor(effects, 'production') + hammers),
-    );
-    total.science = Math.floor(total.science * yieldFactor(effects, 'science'));
-    total.culture = Math.floor(total.culture * yieldFactor(effects, 'culture'));
+  if (percents.length > 0 || hammers !== 0) {
+    const factor = (key: CityYieldKey): number => 1 + percentFor(percents, key) / 100;
+    total.food = Math.floor(total.food * factor('food'));
+    total.production = Math.floor(total.production * (factor('production') + hammers));
+    total.gold = Math.floor(total.gold * factor('gold'));
+    total.science = Math.floor(total.science * factor('science'));
+    total.culture = Math.floor(total.culture * factor('culture'));
+    total.faith = Math.floor(total.faith * factor('faith'));
   }
 
   return total;
@@ -1190,6 +1334,23 @@ export function growthThreshold(population: number): number {
 export function nextBorderCost(tilesClaimed: number): number {
   const steps = Math.max(0, tilesClaimed);
   return Math.floor(CITIES.borderCostBase + CITIES.borderCostLinear * steps ** CITIES.borderCostExponent);
+}
+
+/**
+ * What the next border tile actually costs **this** city: the curve, less
+ * whatever its empire's luxuries take off it.
+ *
+ * The one evaluator, so the culture `expandBorders` spends and any figure a
+ * surface quotes are the same number. `nextBorderCost` stays the pure curve
+ * beside it — it is a fact about the *n*-th tile and nothing else — and this is
+ * the fact about the n-th tile of a particular empire. Floored at one, because a
+ * border tile that costs nothing would let a city claim one every turn forever.
+ */
+export function borderCostFor(state: GameState, city: City): number {
+  const base = nextBorderCost(city.tilesClaimed);
+  const percent = foldRulePercent(resourceRulePercent(state, city.ownerId, 'borderCost'));
+  if (percent === 0) return base;
+  return Math.max(1, Math.floor(base * (1 + percent / 100)));
 }
 
 /**
@@ -1332,6 +1493,8 @@ export function collectYields(state: GameState): void {
     player.gold += yields.gold;
     player.sciencePool += yields.science;
     player.culturePool += yields.culture;
+    // The faithful gather. Nothing spends this yet — see `Player.faithPool`.
+    player.faithPool += yields.faith;
   }
 
   // The empire-scale half of the luxury vocabulary, banked **once per player**
@@ -1344,7 +1507,29 @@ export function collectYields(state: GameState): void {
     player.gold += empire.gold;
     player.sciencePool += empire.science;
     player.culturePool += empire.culture;
+    player.faithPool += empire.faith;
   }
+}
+
+/**
+ * Food a city keeps out of the basket it just spent on a citizen — cotton's
+ * signature, and zero for every empire without it.
+ *
+ * A share of the *threshold*, not of the overflow: "cities keep 10% of food upon
+ * growing" is a rebate on what growing cost, so a city that grew at exactly the
+ * threshold still keeps something and a city that overshot keeps the overshoot
+ * *as well*. Floored, because the basket is whole numbers all the way down.
+ *
+ * `rulePercent` reads the `growthCarryover` rule as the percentage **itself**
+ * rather than as a multiplier on a base, which is the one place the shape's two
+ * readings differ: there is no base rate to scale — an empire without cotton
+ * keeps nothing — so the number in the table is the rate. Said here because the
+ * other two rules (`happinessDemand`, `borderCost`) do scale a base.
+ */
+export function growthCarryover(state: GameState, city: City, threshold: number): number {
+  const percent = foldRulePercent(resourceRulePercent(state, city.ownerId, 'growthCarryover'));
+  if (percent <= 0) return 0;
+  return Math.floor((threshold * percent) / 100);
 }
 
 /**
@@ -1359,7 +1544,7 @@ export function growCities(state: GameState): void {
   for (const city of state.cities) {
     const threshold = growthThreshold(city.population);
     if (city.foodBasket >= threshold) {
-      city.foodBasket -= threshold;
+      city.foodBasket -= threshold - growthCarryover(state, city, threshold);
       city.population += 1;
       continue;
     }
@@ -1530,7 +1715,7 @@ export function bestExpansionTile(state: GameState, city: City): Tile | null {
 export function expandBorders(state: GameState): void {
   const grew = new Set<number>();
   for (const city of state.cities) {
-    const cost = nextBorderCost(city.tilesClaimed);
+    const cost = borderCostFor(state, city);
     if (city.culture < cost) continue;
     const tile = bestExpansionTile(state, city);
     if (!tile) continue;
