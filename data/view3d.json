@@ -339,7 +339,7 @@
   },
   "fog": {
     "exploredDim": 0.5,
-    "exploredShade": 0.35,
+    "exploredShade": 0.55,
     "exploredWash": "chartWash",
     "chartColor": "vellum",
     "chartOpacity": 1.0,
