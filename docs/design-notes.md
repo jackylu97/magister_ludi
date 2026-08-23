@@ -648,13 +648,24 @@ Magister's writ run?"
   "The Magister's writ grows thin.") but never gates End Turn on it.
 - **Turn splash** may carry the age-advance authority gift ("Æra II: your writ extends").
 
-### D. Open questions for the pass
+### D. Open questions — ANSWERED (user, 2026-08-23; v1 RATIFIED, numbers still to playtest)
 
-1. Shape 3 accepted, or prefer pure Civ V empire-wide effects (simpler, blunter)?
-2. Captured-city authority 3 vs. 2 — is asymmetric conquest pricing wanted?
-3. Luxury cap "+1/city up to 4 cities" — keep, or replace with flat +2 (simpler to read)?
-4. Do deficits touch gold? (Currently no — gold is M9's loop; keeping it clean.)
-5. Circus/courthouse names — period alternatives: "Arena"? "Bailiff's Court"? "Assize"?
+1. **Simplest shape: pure global meters.** One empire happiness, one empire authority. The
+   per-city-pressure hybrid is shelved (may return after playtesting).
+2. **Captured cities cost 3 authority** (founded 2, capital free, coastal 1). Captured cities
+   do NOT feed settler cost escalation (already true — `settlersBuilt` counts production only —
+   now a stated commitment). Settler increment stays 8 for now; halving is a playtest lever.
+3. **Luxuries: flat +4 happiness per unique improved luxury.** The partial per-city scaling is
+   dropped.
+4. **Effects, tiered at ±5/±10 → ±10%/±20%** (data-driven, clamped at ±20% for now):
+   · Happiness ≥ +5 → science & culture bonus · Happiness < 0 → empire-wide growth stifle
+   · Authority ≥ +5 → production bonus · Authority < 0 → production, science & culture stifle
+   Percentages from the two meters SUM per yield, then apply once (legible; a +10% and a −10%
+   read as 0). Growth stifle multiplies food surplus toward growth only.
+5. **No new buildings yet** (no circus/courthouse); sources v1 = palace + ages + luxuries
+   (happiness), palace + ages (authority capacity). More authority sources acknowledged as
+   missing — designed later, likely with the tech-tree revision (monument +1 authority is
+   already pencilled there) and civic cards.
 
 ---
 
