@@ -1779,6 +1779,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         getGame().state.turn,
         researchSince(getGame().state, localPlayerId, research),
       );
+      // The Civ gesture: the same click that marched the standing orders hands
+      // the new turn over *on* the first piece still awaiting one — a unit
+      // whose walk finished with movement to spare would otherwise stand
+      // unnoticed until the next End Turn press tripped over it. Units only:
+      // the blocker gate still catches production and research on the next
+      // press, but auto-opening a city screen or the star chart at every turn
+      // open would be the interface grabbing the wheel, where a camera glide
+      // to a waiting piece is it pointing.
+      const idle = endTurnBlocker();
+      if (idle?.kind === 'idleUnit') focusBlocker(idle);
       return;
     }
     const next = nextOpenSeat(localPlayerId);
