@@ -1,5 +1,8 @@
 # Tech Unlocks — working doc
 
+> **DEPRECATED (2026-08-23):** superseded by `docs/ages.md` (the five-age ladder).
+> Kept as the record of the Age I rework and its implementation-status notes.
+
 Everything a tech grants today, straight from `data/*.json`. For the honing pass:
 edit freely under **Revisions** at the bottom; nothing here is code.
 
