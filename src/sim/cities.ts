@@ -867,6 +867,42 @@ export function queueItemName(item: QueueItem): string {
   return isBuildingId(item.id) ? buildingDef(item.id).name : item.id;
 }
 
+/**
+ * Turns this city needs to finish `item` if it stood at `index` in the queue, or
+ * `null` when it never would — the city makes no hammers, or the item is not a
+ * thing this game knows how to price.
+ *
+ * The one evaluator every "…t" in the city screen reads (Entry VIII, and the
+ * same discipline `unitProductionCost` keeps for the price itself): the progress
+ * bar's estimate, each queue row's estimate, and the "if I added this" estimate
+ * on a buildable button are three readings of one function, so they cannot round
+ * differently or disagree about what the basket is paying for.
+ *
+ * `index` is what the basket turns on, and it is the whole of the arithmetic's
+ * honesty. A city banks hammers toward whatever is *at the front* of its queue
+ * (`advanceProduction` only ever looks at `queue[0]`), so only the front item
+ * may count what is already banked; anything behind it is quoted at full price.
+ * A row the player is about to *append* is therefore asked at `city.queue.length`
+ * — which is 0 exactly when the queue is empty, and an empty city's basket is
+ * indeed what the next thing queued will be paid for.
+ *
+ * Estimates are per-item, not cumulative: this is "how long does this take to
+ * build", not "how long until the queue reaches it". A cumulative figure would
+ * have to assume nothing ahead of it changes price, and a settler ahead of it in
+ * an empire mid-expansion does exactly that (see `advanceProduction`).
+ */
+export function turnsToBuild(
+  state: GameState,
+  city: City,
+  item: QueueItem,
+  index: number,
+): number | null {
+  const cost = queueItemCost(state, city.ownerId, item);
+  if (cost === null) return null;
+  const banked = index === 0 ? city.hammerBasket : 0;
+  return turnsToFill(cost - banked, cityYields(state, city).production);
+}
+
 // --- turn phases ------------------------------------------------------------
 
 /**

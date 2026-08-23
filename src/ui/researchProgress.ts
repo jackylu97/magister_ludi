@@ -23,9 +23,10 @@
  */
 
 import { turnsToFill } from '../sim/cities';
+import { YIELD_GLYPH, turnsLabel } from './figures';
 
 /** The science voice, in the glyph every other surface counts beakers in. */
-export const BEAKER = '🔬';
+export const BEAKER = YIELD_GLYPH.science;
 
 export interface ResearchProgress {
   /** Pool over cost, clamped to 0…1 — overflow from a banked pool reads full. */
@@ -57,6 +58,6 @@ export function researchProgress(pool: number, cost: number, rate: number): Rese
     turns,
     banked,
     cost,
-    figures: `${banked}/${cost} ${BEAKER} · ${turns === null ? '—' : `${turns}t`}`,
+    figures: `${banked}/${cost} ${BEAKER} · ${turnsLabel(turns)}`,
   };
 }

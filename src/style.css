@@ -3148,3 +3148,360 @@ kbd {
   font-variation-settings: 'opsz' 100;
   font-weight: 600;
 }
+
+/* --- hover cards -----------------------------------------------------------
+   The note laid beside whatever the pointer is resting on: what a unit is
+   before you spend forty hammers finding out, what a technology actually hands
+   over. One construction, two dresses — parchment over the city screen and ink
+   over the star chart, which is the one deliberately dark surface in this
+   interface and would be undone by a bright card glaring across it.
+
+   `pointer-events: none` is the load-bearing line. The card is a note and not a
+   control (see `src/ui/infoCard.ts`): it can never swallow the click headed for
+   the button underneath it, and there is therefore no "move onto the card"
+   gesture to support and no dismissal to arrange. Its position is written by
+   `placeCard` in viewport coordinates, which is what `fixed` is for; z-index
+   sits above both overlays (40) and below the landing screen (50), because a
+   hover card over the setup form would be a card raised by a screen that has no
+   board behind it yet. */
+.info-card {
+  position: fixed;
+  z-index: 45;
+  max-width: 274px;
+  padding: 9px 11px 10px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.info-card[hidden] {
+  display: none;
+}
+
+/* The head: what it is called, and what kind of thing it is. Baseline-aligned
+   so the naming face and the small mono label sit on one line however tall the
+   name is set. */
+.info-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.info-card-name {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 90;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+/* A technology's own glyph, the one its dial lights up — small here, because a
+   card is read beside a chart of twenty-two and not centred alone. */
+.info-card-glyph {
+  flex: none;
+  font-size: 12px;
+  color: var(--y-gold);
+}
+
+/* The category line: "military · ranged", "building", the age. Lower-cased by
+   the stylesheet rather than in the data, so the words stay the words the
+   tables use. */
+.info-card-kind {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* Cost, schedule, rate. Every one of them a figure, so every one of them mono
+   and tabular — the house rule (`docs/design-specimen.html`). */
+.info-card-figures {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 3px;
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.info-card-cost {
+  font-weight: 600;
+  color: var(--y-prod);
+}
+
+.info-card-turns {
+  color: var(--ink-soft);
+}
+
+.info-card-rate {
+  margin-left: auto;
+  font-size: 9.5px;
+  color: var(--ink-faint);
+}
+
+/* The figure chips, exactly the construction the unit sheet uses: the number
+   large, its name small and quiet beneath it. */
+.info-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-top: 7px;
+}
+
+.info-card-stat {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 4px 2px 3px;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+}
+
+.info-card-stat-value {
+  font-family: var(--face-num);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.info-card-stat-label {
+  font-family: var(--face-num);
+  font-size: 7.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* What the thing does that is not a number: founds a city, spends its charges,
+   halts growth. Prose, so the prose face. */
+.info-card-notes {
+  margin: 7px 0 0;
+  padding: 0 0 0 11px;
+  display: grid;
+  gap: 2px;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.info-card-notes li::marker {
+  color: var(--ink-faint);
+}
+
+/* Done, in hand, or the reducer's own sentence about why not. */
+.info-card-state {
+  margin: 6px 0 0;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.info-card-state.is-blocked {
+  color: var(--vermilion);
+}
+
+/* The gift list: units, buildings, reveals, renewals, each under its own small
+   heading — the same list the node card carries, grown the two kinds it has no
+   room for. */
+.info-card-heading {
+  margin: 8px 0 3px;
+  font-family: var(--face-num);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.info-card-gifts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 3px;
+}
+
+.info-card-gifts li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* One box for every mark, so the names line up whatever is in it — a unit's
+   disc letter, a building's filled block, a resource's emoji. */
+.info-card-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid var(--ink-faint);
+  border-radius: 3px;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.info-card-mark.is-unit {
+  border-color: rgba(212, 80, 46, 0.7);
+  color: var(--vermilion);
+}
+
+.info-card-mark.is-building {
+  border-color: rgba(200, 144, 31, 0.7);
+  color: var(--y-gold);
+}
+
+.info-card-mark.is-reveal {
+  border-color: rgba(31, 138, 133, 0.7);
+}
+
+.info-card-mark.is-renewal {
+  border-color: rgba(63, 150, 54, 0.7);
+}
+
+.info-card-gift-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.info-card-gift-note {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* The epigram, in the display face it is set in everywhere else. */
+.info-card-flavor {
+  margin: 8px 0 0;
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+/* --- the same card, read in negative over the star chart ------------------- */
+.info-card.is-night {
+  border-color: rgba(200, 144, 31, 0.5);
+  background: #1e1b22;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55);
+  color: var(--parchment);
+}
+
+.info-card.is-night .info-card-glyph {
+  color: var(--gilt);
+}
+
+.info-card.is-night .info-card-kind,
+.info-card.is-night .info-card-turns,
+.info-card.is-night .info-card-notes,
+.info-card.is-night .info-card-state,
+.info-card.is-night .info-card-gift-note,
+.info-card.is-night .info-card-flavor {
+  color: rgba(247, 242, 225, 0.6);
+}
+
+.info-card.is-night .info-card-heading,
+.info-card.is-night .info-card-rate {
+  color: rgba(247, 242, 225, 0.42);
+}
+
+.info-card.is-night .info-card-cost {
+  color: var(--y-sci-lit);
+}
+
+.info-card.is-night .info-card-state.is-blocked {
+  color: #f0a48f;
+}
+
+.info-card.is-night .info-card-mark {
+  border-color: rgba(247, 242, 225, 0.4);
+}
+
+.info-card.is-night .info-card-mark.is-unit {
+  border-color: rgba(212, 80, 46, 0.75);
+  color: #f0a48f;
+}
+
+.info-card.is-night .info-card-mark.is-building {
+  border-color: rgba(200, 144, 31, 0.7);
+  color: var(--y-gold-lit);
+}
+
+.info-card.is-night .info-card-mark.is-reveal {
+  border-color: rgba(130, 210, 205, 0.6);
+}
+
+.info-card.is-night .info-card-mark.is-renewal {
+  border-color: rgba(127, 208, 108, 0.6);
+}
+
+/* A locked node is disabled, and a disabled button raises no pointer events at
+   all in some browsers — which would make the one card a player most wants
+   (what *is* behind this star?) the one card they cannot raise. The node is
+   still `cursor: default` and still refuses its click; only the hover is
+   handed back. */
+.tech-node:disabled {
+  pointer-events: auto;
+}
+
+/* The queue row's schedule, beside its price: both figures, both mono. */
+.city-queue-turns {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+/* Read, never seen. The one thing a hover card cannot carry is a sentence for
+   somebody who is not using a pointer, so a refusal a node used to hold in its
+   `title` is carried here instead — a `title` would now arrive a second after
+   the card and on top of it, saying less. Clipped rather than hidden, because
+   `display: none` and `visibility: hidden` both take it out of the accessible
+   name as well as out of the picture. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* A greyed build row is exactly the row a player most wants to ask about —
+   "why can I not build a settler" is the question the panel exists to answer.
+   A disabled button raises no pointer events at all in some engines, which
+   would make that the one card they could not raise; the click still refuses
+   itself, only the hover is handed back. */
+.city-buildable:disabled {
+  pointer-events: auto;
+}

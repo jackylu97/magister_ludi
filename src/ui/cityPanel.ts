@@ -31,26 +31,20 @@ import {
   hasResource,
   queueItemCost,
   queueItemName,
+  turnsToBuild,
   turnsToFill,
   unitProductionCost,
 } from '../sim/cities';
-import { BUILDING_IDS, buildingDef } from '../sim/buildingData';
+import { type BuildingId, BUILDING_IDS, buildingDef } from '../sim/buildingData';
+import { isCombatant, isRanged } from '../sim/combat';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { resourceDef } from '../sim/resourceData';
 import { type City, type QueueItem, hasEndedTurn } from '../sim/state';
 import { isUnlocked, requiredResource } from '../sim/tech';
-import { UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
-
-/**
- * The production voice, spoken the way the rest of the interface speaks it.
- *
- * Costs used to read `40h`, which is a unit of measure this game names nowhere
- * else: the top bar's yield strip and the tech screen's unlock lines both write
- * production as `⚙` (`docs/design-specimen.html`). One glyph for one yield, so a
- * cost on a button and a rate on the bar are visibly the same currency.
- */
-const HAMMER = '⚙';
+import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
+import { HAMMER, YIELD_GLYPH, turnsLabel } from './figures';
+import { createInfoCard } from './infoCard';
 
 export interface CityPanelOptions {
   /** The element the panel lives in. Emptied and rebuilt on every render. */
@@ -101,6 +95,162 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         ? { kind: 'unit', id: item.id }
         : { kind: 'building', id: item.id },
     );
+  }
+
+  // --- the hover card ------------------------------------------------------
+
+  /**
+   * The note that comes up beside a build row. One card for the whole panel —
+   * see `infoCard.ts` for why it is a note and not a control.
+   *
+   * The panel rebuilds its whole DOM on every render, which takes the anchor out
+   * from under an open card without a `pointerleave` ever firing, so `render`
+   * puts it away first thing.
+   */
+  const info = createInfoCard({ className: 'info-card' });
+
+  /** A figure chip: the number large, its name small and quiet beneath it. */
+  function stat(label: string, value: string): HTMLElement {
+    const box = element('div', 'info-card-stat');
+    box.append(element('span', 'info-card-stat-value', value));
+    box.append(element('span', 'info-card-stat-label', label));
+    return box;
+  }
+
+  function note(text: string): HTMLElement {
+    return element('li', undefined, text);
+  }
+
+  /**
+   * What a unit *is*, entirely out of `data/units.json`.
+   *
+   * Every line here is the presence of a field rather than a comparison against
+   * an id — `foundsCity`, `charges`, `requiresResource`, the `rangedStrength`
+   * pair — which is the discipline `unitData.ts` asks for in so many words: a
+   * designer who adds a second settler-like unit adds one data row and this card
+   * describes it correctly without being touched. Nothing here computes: the
+   * price is `unitProductionCost`'s answer and the estimate is `turnsToBuild`'s.
+   *
+   * `modelClass` is doing double duty as the unit's *role*, and that is honest
+   * rather than a shortcut. It is the roster's silhouette class (see the field's
+   * docblock) — melee, ranged, siege, mounted, scout — which is exactly the
+   * shorthand a player uses for what a unit is for, and it is the only such
+   * grouping the data declares.
+   */
+  function unitCard(city: City, id: UnitTypeId, index: number): Node {
+    const { state } = getGame();
+    const def = unitDef(id);
+    const box = element('div');
+
+    const head = element('div', 'info-card-head');
+    head.append(element('span', 'info-card-name', def.name));
+    head.append(element('span', 'info-card-kind', `${def.category} · ${def.modelClass}`));
+    box.append(head);
+
+    const figures = element('div', 'info-card-figures');
+    figures.append(
+      element(
+        'span',
+        'info-card-cost',
+        `${unitProductionCost(state, city.ownerId, id)}${HAMMER}`,
+      ),
+    );
+    figures.append(
+      element(
+        'span',
+        'info-card-turns',
+        turnsLabel(turnsToBuild(state, city, { kind: 'unit', id }, index)),
+      ),
+    );
+    box.append(figures);
+
+    const stats = element('div', 'info-card-stats');
+    // Fighting numbers only for things that fight, exactly as the unit panel's
+    // sheet does it: a settler carrying a strength of 0 reads as a statistic
+    // rather than as "this is not a soldier".
+    if (isCombatant(def)) stats.append(stat('Strength', String(def.combatStrength)));
+    if (isRanged(def)) stats.append(stat('Ranged', `${def.rangedStrength} · ${def.range}⌖`));
+    stats.append(stat('Moves', String(def.movement)));
+    stats.append(stat('Sight', String(def.sight)));
+    box.append(stats);
+
+    const notes = element('ul', 'info-card-notes');
+    if (def.foundsCity) notes.append(note('Founds a city, and is spent doing it'));
+    if (def.charges !== undefined) {
+      notes.append(note(`Builds ${def.charges} improvements, then is spent`));
+    }
+    if (def.haltsGrowth) notes.append(note('The city banks no food while this is at the front'));
+    if (def.minCityPop > 0) notes.append(note(`Needs a city of ${def.minCityPop}`));
+    if (def.requiresResource !== undefined) {
+      const resource = resourceDef(def.requiresResource);
+      notes.append(note(`Needs improved ${resource.emoji} ${resource.name}`));
+    }
+    if (def.upgradesTo !== undefined) {
+      notes.append(note(`Becomes a ${unitDef(def.upgradesTo).name} in time`));
+    }
+    if (notes.childElementCount > 0) box.append(notes);
+    return box;
+  }
+
+  /**
+   * What a building does, out of `data/buildings.json` and nothing else.
+   *
+   * A building's effect is a handful of flat numbers by design (see
+   * `buildingData.ts`), so the card is those numbers with their voices on. The
+   * *empire-wide* worth of one — what it would add to the cities this player has
+   * today — is `buildingYieldDelta`'s answer and the star chart's to show; this
+   * card is the smaller, plainer statement of what the building itself is.
+   */
+  function buildingCard(city: City, id: BuildingId, index: number): Node {
+    const def = buildingDef(id);
+    const box = element('div');
+
+    const head = element('div', 'info-card-head');
+    head.append(element('span', 'info-card-name', def.name));
+    head.append(element('span', 'info-card-kind', 'building'));
+    box.append(head);
+
+    const figures = element('div', 'info-card-figures');
+    figures.append(element('span', 'info-card-cost', `${def.cost}${HAMMER}`));
+    figures.append(
+      element(
+        'span',
+        'info-card-turns',
+        turnsLabel(turnsToBuild(getGame().state, city, { kind: 'building', id }, index)),
+      ),
+    );
+    box.append(figures);
+
+    const notes = element('ul', 'info-card-notes');
+    // Only what it actually pays: a row of four zeroes would say a monument does
+    // three things badly rather than one thing well.
+    const flat: [string, number][] = [
+      [YIELD_GLYPH.food, def.food],
+      [YIELD_GLYPH.production, def.production],
+      [YIELD_GLYPH.gold, def.gold],
+      [YIELD_GLYPH.culture, def.culture],
+    ];
+    for (const [glyph, value] of flat) {
+      if (value !== 0) notes.append(note(`${value > 0 ? '+' : ''}${value}${glyph} every turn`));
+    }
+    // Fractional and floored per building when it is applied (`cityYields`), so
+    // it is quoted per citizen rather than as a total this card cannot know.
+    if (def.sciencePerPop !== 0) {
+      notes.append(note(`+${def.sciencePerPop}${YIELD_GLYPH.science} per citizen`));
+    }
+    if (notes.childElementCount === 0) notes.append(note('No yields of its own'));
+    box.append(notes);
+    return box;
+  }
+
+  /**
+   * The card for whatever a row stands for, at the queue position it occupies —
+   * or, for a row in the "add to queue" grid, the position it would land in.
+   */
+  function itemCard(city: City, item: QueueItem, index: number): Node {
+    return item.kind === 'unit'
+      ? unitCard(city, item.id, index)
+      : buildingCard(city, item.id, index);
   }
 
   // --- sections ------------------------------------------------------------
@@ -208,7 +358,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
 
     const cost = queueItemCost(getGame().state, city.ownerId, item) ?? 0;
-    const turns = turnsToFill(cost - city.hammerBasket, perTurn);
+    // The front of the queue is index 0, which is the one position the banked
+    // hammers belong to — the same call every other estimate in this panel
+    // makes, so the bar and the rows can never round differently.
+    const turns = turnsToBuild(getGame().state, city, item, 0);
     label.append(
       element(
         'span',
@@ -245,7 +398,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const list = element('ol', 'city-queue-list');
     city.queue.forEach((item, index) => {
       const row = element('li');
-      row.append(element('span', 'city-queue-name', queueItemName(item)));
+      const name = element('span', 'city-queue-name', queueItemName(item));
+      row.append(name);
       row.append(
         element(
           'span',
@@ -253,6 +407,20 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
           `${queueItemCost(getGame().state, city.ownerId, item) ?? '?'}${HAMMER}`,
         ),
       );
+      // The estimate is for *this* item at the position it is standing in, so
+      // only the front row counts the basket — see `turnsToBuild`. Row two is
+      // therefore "and then this long", not "and by then it will be turn nine".
+      row.append(
+        element(
+          'span',
+          'city-queue-turns',
+          turnsLabel(turnsToBuild(getGame().state, city, item, index)),
+        ),
+      );
+      // The name is the anchor rather than the whole row: the row's last two
+      // children are buttons, and a card raised by hovering "remove" would be
+      // describing the thing you are about to delete.
+      info.bind(name, () => itemCard(city, item, index));
 
       const up = element('button', 'city-icon-button', '↑');
       up.type = 'button';
@@ -338,19 +506,36 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // telling them to go to war over something they already have.
       const needs =
         missing === null ? '' : `improved ${resourceDef(missing).emoji} ${resourceDef(missing).name}`;
-      button.title = needsResource
-        ? `Needs ${needs}`
-        : tooSmall
-          ? `Needs population ${def.minCityPop}`
-          : `${def.name} — ${cost} ${HAMMER} production`;
+      // A label rather than a `title`, and that is the hover card's doing: a
+      // native tooltip would arrive a second *after* the card, on top of it,
+      // saying less. The sentence is kept — it is the only place a screen
+      // reader is told why a greyed row is greyed — it has simply stopped
+      // being a second thing that draws.
+      button.setAttribute(
+        'aria-label',
+        needsResource
+          ? `${def.name} — needs ${needs}`
+          : tooSmall
+            ? `${def.name} — needs population ${def.minCityPop}`
+            : `${def.name} — ${cost} production`,
+      );
       button.append(element('span', 'city-buildable-name', def.name));
+      // An unbuildable row keeps its reason where the price goes: a "needs
+      // improved Iron" that had to share the line with "9⚙ · 4t" would be
+      // quoting a schedule for something that is not going to start.
       button.append(
         element(
           'span',
           'city-buildable-cost',
-          needsResource ? `needs ${needs}` : `${cost}${HAMMER}`,
+          needsResource
+            ? `needs ${needs}`
+            : `${cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'unit', id }, city.queue.length))}`,
         ),
       );
+      // Priced at the back of the queue, because that is where pressing this
+      // would put it — `city.queue.length` is 0 exactly when the queue is
+      // empty, which is the one case the banked hammers are already its own.
+      info.bind(button, () => itemCard(city, { kind: 'unit', id }, city.queue.length));
       button.addEventListener('click', () => add({ kind: 'unit', id }));
       grid.append(button);
     }
@@ -365,9 +550,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const button = element('button', 'city-buildable is-building');
       button.type = 'button';
       button.disabled = locked;
-      button.title = `${def.name} — ${def.cost} ${HAMMER} production`;
+      button.setAttribute('aria-label', `${def.name} — ${def.cost} production`);
       button.append(element('span', 'city-buildable-name', def.name));
-      button.append(element('span', 'city-buildable-cost', `${def.cost}${HAMMER}`));
+      button.append(
+        element(
+          'span',
+          'city-buildable-cost',
+          `${def.cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length))}`,
+        ),
+      );
+      info.bind(button, () => itemCard(city, { kind: 'building', id }, city.queue.length));
       button.addEventListener('click', () => add({ kind: 'building', id }));
       grid.append(button);
     }
@@ -394,6 +586,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
   function render(): void {
     const city = getCity();
+    // Every anchor in this panel is about to stop existing, and an open card
+    // would be left pointing at a row that has gone. See `infoCard.ts`.
+    info.hide();
     container.replaceChildren();
     container.hidden = city === null;
     if (!city) return;

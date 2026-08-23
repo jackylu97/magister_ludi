@@ -83,7 +83,10 @@ import {
   techDepth,
   techRowCount,
 } from '../sim/techData';
+import { type TechGift, techGifts } from '../sim/techUnlocks';
 import { unitDef } from '../sim/unitData';
+import { HAMMER, YIELD_GLYPH, turnsLabel } from './figures';
+import { createInfoCard } from './infoCard';
 import { BEAKER, researchProgress } from './researchProgress';
 
 /** ÆRA I / II / III — the ages, in the numerals the specimen sets them in. */
@@ -95,19 +98,33 @@ const AGE_NAMES: Record<TechAge, string> = {
 };
 
 /**
- * The production voice, named once because it is also what a cost is quoted in:
- * an unlock line reads `15⚙`, exactly as the city panel's buttons do.
+ * The yield voices, in the order the city panel lists them. The glyphs are the
+ * shared set (`figures.ts`) — an unlock line reads `15⚙`, exactly as the city
+ * panel's buttons do, because it is literally the same glyph.
  */
-const HAMMER = '⚙';
-
-/** The yield voices, in the order the city panel lists them. */
 const YIELD_GLYPHS: [keyof ReturnType<typeof buildingYieldDelta>, string][] = [
-  ['food', '🌾'],
-  ['production', HAMMER],
-  ['gold', '🪙'],
-  ['science', '🔬'],
-  ['culture', '🎭'],
+  ['food', YIELD_GLYPH.food],
+  ['production', YIELD_GLYPH.production],
+  ['gold', YIELD_GLYPH.gold],
+  ['science', YIELD_GLYPH.science],
+  ['culture', YIELD_GLYPH.culture],
 ];
+
+/** How a gift's mark is drawn: which class the small box beside it wears. */
+const GIFT_MARK: Record<TechGift['kind'], string> = {
+  unit: 'is-unit',
+  building: 'is-building',
+  reveal: 'is-reveal',
+  renewal: 'is-renewal',
+};
+
+/** The sentence each kind of gift is introduced by, in the card's list. */
+const GIFT_HEADING: Record<TechGift['kind'], string> = {
+  unit: 'Units',
+  building: 'Buildings',
+  reveal: 'Reveals on the map',
+  renewal: 'Improvements renewed',
+};
 
 export interface TechTree {
   readonly isOpen: boolean;
@@ -250,6 +267,128 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     return list;
   }
 
+  /**
+   * The note that comes up beside a node. `is-night` is the whole difference
+   * from the city screen's card: this screen is the one deliberately dark
+   * surface in a light interface, and a parchment card glaring over the sky
+   * would undo the reason it is dark.
+   */
+  const info = createInfoCard({ className: 'info-card is-night' });
+
+  /**
+   * What a renewal is worth, written as the delta it is: `+1🌾`, and the
+   * condition when it has one. Improvements pay in the three tile yields only,
+   * so the row is those three and never the five.
+   */
+  function renewalNote(gift: TechGift & { kind: 'renewal' }): string {
+    const add = gift.add;
+    const parts: string[] = [];
+    if (add.food !== 0) parts.push(`${add.food > 0 ? '+' : ''}${add.food}${YIELD_GLYPH.food}`);
+    if (add.production !== 0) {
+      parts.push(`${add.production > 0 ? '+' : ''}${add.production}${HAMMER}`);
+    }
+    if (add.gold !== 0) parts.push(`${add.gold > 0 ? '+' : ''}${add.gold}${YIELD_GLYPH.gold}`);
+    const delta = parts.join(' ');
+    return gift.requiresFreshwater ? `${delta} on fresh water` : delta;
+  }
+
+  /**
+   * The whole of what a node hands over, which is more than a node card holds.
+   *
+   * The card in the chart lists the units and buildings, because those are what
+   * a player is usually shopping for. This says the rest: the resources the
+   * technology lets the map *name* (`isResourceVisible` — the ore was always
+   * there and always paid), and the improvements already on the ground that
+   * quietly start paying more. Both are gifts nobody would otherwise find out
+   * about except by noticing a number had changed.
+   *
+   * Every figure in it comes from an evaluator that already exists —
+   * `techGifts` for what, `unitProductionCost` for what a unit costs *this*
+   * player, `turnsToTech` for the schedule — so this card cannot promise a
+   * number some other surface disagrees with.
+   */
+  function techCard(id: TechId): Node {
+    const { state } = getGame();
+    const playerId = localPlayerId();
+    const player = state.players[playerId];
+    const def = techDef(id);
+    const researched = player?.techsResearched.includes(id) ?? false;
+    const box = element('div');
+
+    const head = element('div', 'info-card-head');
+    const name = element('span', 'info-card-name');
+    name.append(element('span', 'info-card-glyph', def.glyph));
+    name.append(document.createTextNode(def.name));
+    head.append(name);
+    head.append(
+      element('span', 'info-card-kind', `ÆRA ${AGE_NUMERALS[def.age]} · ${AGE_NAMES[def.age]}`),
+    );
+    box.append(head);
+
+    const rate = playerScience(state, playerId);
+    const figures = element('div', 'info-card-figures');
+    figures.append(element('span', 'info-card-cost', `${def.cost}${BEAKER}`));
+    // A researched node has no schedule left to quote; everything else is
+    // measured against the pool, which is what makes the estimate on a node
+    // three columns away an honest answer to "and if I went for that instead?".
+    if (!researched) {
+      figures.append(
+        element('span', 'info-card-turns', turnsLabel(turnsToTech(state, playerId, id))),
+      );
+      figures.append(element('span', 'info-card-rate', `+${rate}${BEAKER}/t`));
+    }
+    box.append(figures);
+
+    // The state of the node in one line: done, in hand, or the reducer's own
+    // sentence about why not. `researchError` is the same function the node's
+    // `disabled` is derived from, so the card and the card's button agree.
+    const problem = researchError(state, playerId, id);
+    if (researched) {
+      box.append(element('p', 'info-card-state', 'Researched'));
+    } else if (player?.researching === id) {
+      const progress = researchProgress(player.sciencePool, def.cost, rate);
+      box.append(
+        element('p', 'info-card-state', `Being researched · ${progress.banked}/${progress.cost}`),
+      );
+    } else if (problem) {
+      box.append(element('p', 'info-card-state is-blocked', problem));
+    }
+
+    const gifts = techGifts(id);
+    if (gifts.length === 0) {
+      box.append(element('p', 'info-card-state', 'Hands over nothing on its own'));
+    }
+    let heading: TechGift['kind'] | null = null;
+    let list: HTMLElement | null = null;
+    for (const gift of gifts) {
+      if (gift.kind !== heading) {
+        heading = gift.kind;
+        box.append(element('p', 'info-card-heading', GIFT_HEADING[gift.kind]));
+        list = element('ul', 'info-card-gifts');
+        box.append(list);
+      }
+      const row = element('li');
+      row.append(element('span', `info-card-mark ${GIFT_MARK[gift.kind]}`, gift.glyph));
+      row.append(element('span', 'info-card-gift-name', gift.name));
+      // Units are priced through the simulation's own evaluator; buildings
+      // quote their flat cost; a reveal and a renewal cost nothing at all, so
+      // the renewal says what it *pays* instead and the reveal says nothing.
+      const note =
+        gift.kind === 'unit'
+          ? `${unitProductionCost(state, playerId, gift.id)}${HAMMER}`
+          : gift.kind === 'building'
+            ? `${buildingDef(gift.id).cost}${HAMMER}`
+            : gift.kind === 'renewal'
+              ? renewalNote(gift)
+              : '';
+      if (note) row.append(element('span', 'info-card-gift-note', note));
+      list?.append(row);
+    }
+
+    if (def.flavor) box.append(element('p', 'info-card-flavor', def.flavor));
+    return box;
+  }
+
   function renderNode(id: TechId): HTMLElement {
     const { state } = getGame();
     const playerId = localPlayerId();
@@ -271,9 +410,14 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     card.disabled = !choosable;
     // Every disabled node says why, in the reducer's own words where there are
     // any: a star you cannot press and cannot ask about is a dead end.
-    if (problem) card.title = problem;
-    else if (!choosable) card.title = `You have ended turn ${state.turn}`;
-    else card.title = `Research ${def.name}`;
+    //
+    // It stopped being a `title` when the hover card landed. The card says the
+    // same sentence instantly and in this screen's own voice, and a native
+    // tooltip would have arrived a second later, on top of it, saying less. So
+    // the sentence is carried by a line only a screen reader reads — appended
+    // to the card's own content rather than replacing it with an `aria-label`,
+    // because a node's cost and its unlocks are worth hearing too.
+    const refusal = problem ?? (choosable ? null : `You have ended turn ${state.turn}`);
 
     const head = element('div', 'tech-node-head');
     // Glyph and name are one group, so `space-between` still puts only the
@@ -294,7 +438,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // it is aimed at, so "~N turns" is honest for a node that is not current.
     const turns = turnsToTech(state, playerId, id);
     const figures = element('div', 'tech-node-figures');
-    figures.append(element('span', 'tech-node-cost', `${def.cost}🔬`));
+    figures.append(element('span', 'tech-node-cost', `${def.cost}${BEAKER}`));
     if (!researched) {
       figures.append(
         element('span', 'tech-node-turns', turns === null ? '—' : `~${turns}t`),
@@ -323,6 +467,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
     card.append(renderUnlocks(id));
     if (def.flavor) card.append(element('p', 'tech-node-flavor', def.flavor));
+    // Last, so it is heard after the node has been read out rather than before
+    // it has been named. See `refusal` above for why it is not a `title`.
+    if (refusal) card.append(element('span', 'sr-only', refusal));
 
     card.addEventListener('click', () => {
       if (!choosable) return;
@@ -335,6 +482,13 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       cards.get(id)?.focus();
       onChanged();
     });
+
+    // Hover, on a node that may well be disabled. A disabled button raises no
+    // pointer events in some browsers, so the card is bound and the reading it
+    // gives is the whole point of a locked node: a chart you cannot read is not
+    // a chart, and `pointer-events: auto` on `.tech-node:disabled` is what lets
+    // this fire. It never traps the pointer — see `infoCard.ts`.
+    info.bind(card, () => techCard(id));
 
     cards.set(id, card);
     return card;
@@ -351,6 +505,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // find their place again for nothing.
     const wasAt = { left: chart.scrollLeft, top: chart.scrollTop };
 
+    // Every node is about to be replaced, so an open card would be left
+    // pointing at a star that no longer exists. Same reason the city panel
+    // does it — see `infoCard.ts`.
+    info.hide();
     cards.clear();
     const columns = techColumnCount();
     const rows = techRowCount();
@@ -756,6 +914,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       (nearestChoosable(anchor) ?? closeButton).focus({ preventScroll: true });
       return;
     }
+    // A card raised over the chart lives on `document.body`, not inside the
+    // overlay, so hiding the overlay would not take it with it.
+    info.hide();
     restoreTo?.focus();
     restoreTo = null;
     renderStatus();

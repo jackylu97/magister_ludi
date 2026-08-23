@@ -19,6 +19,8 @@ import {
   nextCityName,
   queueItemCost,
   tileOwnerCityId,
+  turnsToBuild,
+  turnsToFill,
   unitProductionCost,
   withinWorkRadius,
   yieldScore,
@@ -38,6 +40,7 @@ import {
   type City,
   type GameConfig,
   type GameState,
+  type QueueItem,
   SCHEMA_VERSION,
   createUnit,
   newGame,
@@ -907,6 +910,108 @@ describe('production', () => {
     advanceProduction(state);
     expect(state.units).toHaveLength(1);
     expect(city.hammerBasket).toBe(500 - price);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * The estimate the whole city screen quotes: the progress bar, every queue row,
+ * and every "add to queue" button are three readings of `turnsToBuild`, so what
+ * is covered here is what would otherwise drift between them — which position
+ * the banked hammers belong to, and what happens at the edges of the arithmetic.
+ */
+describe('turnsToBuild', () => {
+  it('is the shared filler over the shared price, and not a fourth opinion', () => {
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    assignCitizens(state, city);
+    city.queue = [{ kind: 'unit', id: 'warrior' }];
+    city.hammerBasket = 3;
+
+    const rate = cityYields(state, city).production;
+    const cost = queueItemCost(state, 0, city.queue[0]!)!;
+    expect(turnsToBuild(state, city, city.queue[0]!, 0)).toBe(turnsToFill(cost - 3, rate));
+  });
+
+  it('counts the basket for the front of the queue and for nothing behind it', () => {
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    assignCitizens(state, city);
+    const item: QueueItem = { kind: 'building', id: 'library' };
+    city.queue = [item, item];
+    // A basket one hammer short of the whole cost: the front row is nearly
+    // done and the row behind it has not started, which is exactly the pair of
+    // numbers a single estimate would get wrong.
+    city.hammerBasket = buildingDef('library').cost - 1;
+
+    const rate = cityYields(state, city).production;
+    expect(turnsToBuild(state, city, item, 0)).toBe(turnsToFill(1, rate));
+    expect(turnsToBuild(state, city, item, 1)).toBe(
+      turnsToFill(buildingDef('library').cost, rate),
+    );
+    expect(turnsToBuild(state, city, item, 1)).toBeGreaterThan(
+      turnsToBuild(state, city, item, 0)!,
+    );
+  });
+
+  it('prices a row about to be appended at the queue length, which is 0 when empty', () => {
+    // The "add to queue" grid asks at `city.queue.length`, so an empty city's
+    // banked hammers are counted — they are indeed what the next thing queued
+    // will be paid for — and a busy city's are not.
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    assignCitizens(state, city);
+    const item: QueueItem = { kind: 'unit', id: 'warrior' };
+    city.hammerBasket = unitDef('warrior').cost;
+
+    city.queue = [];
+    expect(turnsToBuild(state, city, item, city.queue.length)).toBe(0);
+    city.queue = [{ kind: 'building', id: 'monument' }];
+    expect(turnsToBuild(state, city, item, city.queue.length)).toBeGreaterThan(0);
+  });
+
+  it('quotes a unit at the escalating price, never at the base one', () => {
+    // The panel's estimate has to climb with `unitProductionCost` or it would
+    // promise a settler on the strength of a price the empire stopped paying
+    // three cities ago.
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    assignCitizens(state, city);
+    const item: QueueItem = { kind: 'unit', id: 'settler' };
+    const first = turnsToBuild(state, city, item, 0);
+
+    state.players[0]!.settlersBuilt = 4;
+    expect(unitProductionCost(state, 0, 'settler')).toBeGreaterThan(unitDef('settler').cost);
+    expect(turnsToBuild(state, city, item, 0)).toBeGreaterThan(first!);
+  });
+
+  it('is zero when the hammers are already banked, however much they overflow', () => {
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    assignCitizens(state, city);
+    city.hammerBasket = 5000;
+    expect(turnsToBuild(state, city, { kind: 'building', id: 'university' }, 0)).toBe(0);
+  });
+
+  it('answers null — never a number — for an item it cannot price', () => {
+    // A hand-edited save can name a building that no longer exists. `null` is
+    // what the surfaces draw as an em dash; a `NaN` would draw as a plausible
+    // schedule for something that will never be built.
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    assignCitizens(state, city);
+    const nonsense = { kind: 'building', id: 'zeppelin' } as unknown as QueueItem;
+    expect(queueItemCost(state, 0, nonsense)).toBeNull();
+    expect(turnsToBuild(state, city, nonsense, 0)).toBeNull();
+  });
+
+  it('answers null when the city makes no hammers at all', () => {
+    // Not reachable from a real city today — `baseCityYields` floors a centre
+    // at some production — so the branch is asked of the filler it delegates
+    // to, which is the one place the rule is written.
+    expect(turnsToFill(10, 0)).toBeNull();
+    expect(turnsToFill(10, -1)).toBeNull();
   });
 });
 
