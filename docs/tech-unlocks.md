@@ -66,3 +66,46 @@ Resource-improvements also flip `hasResource` on (strategic resources feed unit 
 ## Revisions
 
 *(yours — edit away)*
+
+### Suggestions (Claude) — renaming the tree away from Civ
+
+Principle per the naming bible: period words that still say what they do. Each is
+"name — unlocks — why". Mix and match; none is load-bearing.
+
+**Age I — crafts and omens** (a village learning its hands)
+
+- **Tillage** (now Agriculture) — settler/warrior/scout/worker — the act, not the industry; pairs with a later farm renewal ("three-field rotation")
+- **The Kiln** (now Pottery) — granary, monument — the object over the material; "Pottery" is the most Civ word in the tree
+- **Divination** (new, or absorbs Masonry's shrine) — shrine, maybe reveals a luxury (reading the land's omens) — your example; religion should not fall out of *bricklaying*, which is what Masonry unlocking the shrine says today
+- **Stonecraft** (now Masonry) — quarry improvement (gate it here), aqueduct later — masonry becomes about *stone*, its actual subject
+- **Letters** (now Writing) — library — "a man of letters"; warmer than "Writing"
+- **The Bridle** (now Animal Husbandry) — horseman, pasture improvement (gate it here) — the invention that turns an animal into transport
+- **Fletching** (now Archery) — archer — the craft name; also quietly says "we make many arrows"
+- **The Forge** (now Bronze Working) — spearman, reveals iron — one forge tech instead of Civ's bronze→iron→steel metallurgy ladder (see Age III)
+- **The Cartwright** (now The Wheel) — chariot — nobody "researches" a wheel; they learn to build carts
+
+**Age II — the learned arts** (the tree earns its "Natural Philosophy" title)
+
+- **Geometry** (now Mathematics) — catapult — period-true (siegecraft *was* applied geometry)
+- **Coinage** (now Currency) — market, plantation improvement (gate it here) — the mint, not the abstraction
+- **The Arch** (now Construction) — aqueduct, composite bowman — one structural idea carrying the whole tech
+- **Rhetoric** (now Philosophy) — temple — already pencilled in; the art of moving crowds fits temples and stages better than "philosophy"
+- **The Watermill** (now Engineering) — watermill, workshop, mine renewal (+1⚙?) — name the machine that made the medieval economy
+- **Theatrum** (now Drama and Poetry) — amphitheater — a nod to Theatrum Mundi, the runner-up name, finally getting its stage
+
+**Age III — powers and institutions** (knowledge becomes leverage)
+
+- **Vassalage** (now Feudalism) — pikeman, freshwater-farm renewal — the *relationship*, sharper than the textbook -ism
+- **Clockwork** (now Machinery) — crossbowman — the most Magister-Ludi word available; precision as a worldview
+- **The Cloister** (now Theology) — monastery — the place where the copying happens (the flavor text already says so)
+- **Heraldry** (now Chivalry) — knight — the social technology of the mounted class; "Chivalry" is fine too
+- **Tempering** (now Steel) — longswordsman — the craft secret, not the material ("Iron, taught patience by fire" is already the flavor)
+- **Ballistics** (now Physics) — trebuchet — honest about what the tech is *for*
+- **The Studium** (now Education) — university — the medieval word for one; or plain **Scholarship**
+
+**Structural spice while renaming** (cheap, uses existing mechanisms)
+
+- Gate improvements as noted above (Bridle→pasture, Stonecraft→quarry, Coinage→plantation, camp→Fletching?) so worker choices open over time
+- Add 2–3 more renewals so old improvements age well: Tillage-line rotation (+1🌾 farms), Watermill mine renewal, a Coinage plantation renewal (+1🪙)
+- Add 1–2 reveals: Divination reveals a luxury; gems could hide until Coinage ("worthless until someone will pay")
+- A chop tech: **Assarting** — the actual medieval word for clearing forest for farmland — unlocking the chop-for-⚙ mechanic when it's built
