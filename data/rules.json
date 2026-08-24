@@ -36,6 +36,25 @@
   "improvements": {
     "pillageGold": 25
   },
+  "barbarians": {
+    "firstCampTurn": 8,
+    "campEveryTurns": 5,
+    "campsPerSpawn": 1,
+    "maxCamps": 8,
+    "minCampDistanceFromCity": 4,
+    "minCampDistanceFromStart": 6,
+    "minCampDistanceApart": 6,
+    "unitEveryTurns": 4,
+    "maxUnitsPerCamp": 2,
+    "campUnitRadius": 4,
+    "aggressionRadius": 6,
+    "wanderRadius": 3,
+    "horsesRadius": 3,
+    "horsemanFromTurn": 30,
+    "combatBonus": 2,
+    "campClearGold": 25,
+    "campClearFood": 25
+  },
   "cities": {
     "workRadius": 3,
     "claimRadius": 3,

@@ -72,7 +72,14 @@
  */
 
 import { type BuildingId, buildingDef, isBuildingId } from './buildingData';
-import { type CityYields, cityYields, emptyCityYields, hasResource, turnsToFill } from './cities';
+import {
+  type CityYields,
+  cityYields,
+  emptyCityYields,
+  hasResource,
+  refreshCityDerived,
+  turnsToFill,
+} from './cities';
 import type { Tile } from './map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
@@ -334,22 +341,135 @@ export function availableTechs(state: GameState, playerId: number): TechId[] {
  */
 export function advanceResearch(state: GameState): void {
   for (const player of state.players) {
-    const id = player.researching;
-    // A hand-edited save can name a tech that no longer exists; drop the aim
-    // rather than blocking the player's research forever.
-    if (id === null) continue;
-    if (!isTechId(id)) {
-      player.researching = null;
-      continue;
-    }
-    const def = techDef(id);
-    if (player.sciencePool < def.cost) continue;
-
-    player.sciencePool -= def.cost;
-    player.researching = null;
-    player.techsResearched.push(id);
-    upgradeUnits(state, player);
+    // The wild does not learn. It has no science, no aim and no tree of its own
+    // — what it can field is read off the *real* empires every time it musters
+    // (`barbarianTier` in `barbarians.ts`), so a barbarian seat in this sweep
+    // would be a no-op that invited somebody to give it a starting kit.
+    if (player.barbarian) continue;
+    settleResearch(state, player);
   }
+}
+
+/**
+ * What spending this player's pool would complete, given a pool of `science`.
+ *
+ * The pure half of "would the current technology land", and the first of Entry
+ * XVIII's three shapes one bucket over from production (plan · settle · windfall
+ * wrapper). `science` defaults to the real pool; a caller weighing a boon that
+ * has not landed yet — star tablets in a ruin — passes what the pool *would*
+ * hold, which is what lets a choice card promise a completion before it is taken.
+ *
+ * `null` when there is nothing aimed at, when the aim names a technology this
+ * build does not have, or when the beakers do not cover it.
+ */
+export interface ResearchPlan {
+  techId: TechId;
+  /** Beakers the pool must give up. What is left is the overflow. */
+  cost: number;
+}
+
+export function planResearch(
+  player: Player,
+  science: number = player.sciencePool,
+): ResearchPlan | null {
+  const id = player.researching;
+  if (id === null || !isTechId(id)) return null;
+  const { cost } = techDef(id);
+  if (science < cost) return null;
+  return { techId: id, cost };
+}
+
+/** What a research settlement did, for the caller that has to say so out loud. */
+export interface ResearchCompletion {
+  player: Player;
+  techId: TechId;
+  /** The display name of what landed — "Bronzeworking". */
+  name: string;
+  /** Beakers taken out of the pool. What is left is the overflow. */
+  cost: number;
+}
+
+/**
+ * Completes **at most one** technology for this player, if the pool covers it.
+ * The one research-completion routine in the game.
+ *
+ * Entry XVIII's deliberately-unbuilt seam, built (Entry XX) on the day a windfall
+ * existed to serve it: a ruin's star tablets pay a flat 15🔬, and a boon that
+ * covers the current technology has to finish it *that instant* by exactly the
+ * code the phase finishes one with — or the two paths drift about the overflow,
+ * about the auto-upgrade sweep, or about whether `researching` is cleared.
+ *
+ * Everything the phase used to do inline happens here and in this order, and each
+ * line is a rule: the pool pays (**keeping the remainder** as overflow, which is
+ * what makes a windfall behave like a very good turn's science), the aim is
+ * cleared so the *next* choice is the player's — which is what the End Turn
+ * research blocker then asks for — the technology is pushed onto
+ * `techsResearched` in completion order, and the army marches up its upgrade
+ * chains so it is never a turn behind the tree.
+ *
+ * A hand-edited save can name a technology that no longer exists; the aim is
+ * dropped rather than blocking the player's research forever.
+ */
+export function settleResearch(state: GameState, player: Player): ResearchCompletion | null {
+  const id = player.researching;
+  if (id === null) return null;
+  if (!isTechId(id)) {
+    player.researching = null;
+    return null;
+  }
+  const plan = planResearch(player);
+  if (!plan) return null;
+
+  player.sciencePool -= plan.cost;
+  player.researching = null;
+  player.techsResearched.push(plan.techId);
+  upgradeUnits(state, player);
+  return { player, techId: plan.techId, name: techDef(plan.techId).name, cost: plan.cost };
+}
+
+/**
+ * The mid-turn entry point: settle, then refresh what the open panels read.
+ *
+ * `settleProductionWindfall`'s twin two buckets over, and the **widest** of the
+ * three: a technology is an empire-wide fact about what ground is worth. A
+ * completed node can add a renewal to every farm on a river and can reveal a
+ * resource that was paying nothing an hour ago (Entry XIX.A — the reveal gate
+ * binds the label, the access *and* the yield), and the citizen who should move
+ * is in whichever town happens to stand on the seam. So every one of this
+ * player's cities is re-seated rather than one, through the one helper the
+ * register in `refreshCityDerived` is the docblock of.
+ *
+ * It is still one call per city with no allocation, and it is still safe for the
+ * reason every entry in that register is safe: assignment is idempotent and
+ * derived, and `collectYields` reaches the same answer next turn.
+ *
+ * Every future windfall that pays beakers calls **this**, never `settleResearch`
+ * directly.
+ */
+export function settleResearchWindfall(
+  state: GameState,
+  player: Player,
+): ResearchCompletion | null {
+  const done = settleResearch(state, player);
+  if (!done) return null;
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id) continue;
+    refreshCityDerived(state, city);
+  }
+  return done;
+}
+
+/**
+ * A one-time boon of `grant` beakers would complete *this* — or `null`.
+ *
+ * `productionSettledBy`'s sibling, and the reason a choice card does no
+ * arithmetic of its own: "+15🔬 · completes Mining!" asks `planResearch` with the
+ * pool the boon would leave, so the promise on the button is made by the function
+ * that will keep it.
+ */
+export function researchSettledBy(player: Player, grant: number): string | null {
+  const plan = planResearch(player, player.sciencePool + grant);
+  return plan === null ? null : techDef(plan.techId).name;
 }
 
 /**

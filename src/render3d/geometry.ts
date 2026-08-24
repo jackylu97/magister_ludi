@@ -1033,6 +1033,158 @@ export function campTent(size: number): BufferGeometry {
   return flatten(merged);
 }
 
+/**
+ * An ancient ruin: two broken columns and the rubble of a third.
+ *
+ * Deliberately shaped *against* `marbleColumn`, which is the closest thing on the
+ * board and must stay tellable apart at this camera. The marble seam is two
+ * standing drums and one fallen alongside — a quarry that is still working. This
+ * is the opposite reading: nothing here is whole. Both uprights are snapped at
+ * different heights, the taller one leans, and what would have been the third is
+ * a low scatter of blocks. The silhouette a player learns is *a broken vertical*,
+ * where the village next door is a cluster of small solids.
+ *
+ * No plinth and no floor plan: a ruin drawn as a building is a building, and this
+ * has to read as something the ground took back.
+ */
+export function brokenColumns(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+
+  // The tall stump, snapped high and out of true.
+  const tall = new CylinderGeometry(size * 0.17, size * 0.2, size * 0.72, 6, 1);
+  tall.rotateZ(0.09);
+  tall.translate(-size * 0.2, size * 0.36, -size * 0.06);
+  parts.push(tall);
+
+  // The short stump, snapped low and square — two identical breaks would read as
+  // a colonnade rather than as a wreck.
+  const short = new CylinderGeometry(size * 0.16, size * 0.19, size * 0.34, 6, 1);
+  short.rotateY(0.7);
+  short.translate(size * 0.24, size * 0.17, size * 0.2);
+  parts.push(short);
+
+  // A drum off the top of one of them, lying where it fell.
+  const drum = new CylinderGeometry(size * 0.16, size * 0.16, size * 0.2, 6, 1);
+  drum.rotateZ(Math.PI / 2);
+  drum.rotateY(0.9);
+  drum.translate(size * 0.06, size * 0.09, -size * 0.34);
+  parts.push(drum);
+
+  // Rubble: three blocks at three sizes, low and unaligned.
+  const rubble: [number, number, number, number][] = [
+    [0.2, size * 0.44, size * 0.06, size * 0.02],
+    [0.14, -size * 0.44, size * 0.05, size * 0.28],
+    [0.11, -size * 0.02, size * 0.04, size * 0.42],
+  ];
+  for (const [scale, x, y, z] of rubble) {
+    const block = new BoxGeometry(size * scale, size * scale * 0.7, size * scale);
+    block.rotateY(scale * 9);
+    block.translate(x, y, z);
+    parts.push(block);
+  }
+
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * A tribal village: three round huts with conical roofs, and a cook fire.
+ *
+ * The counterpart to `brokenColumns`, and the pair is designed as a pair: the
+ * ruin is one broken vertical, this is a *cluster of small solids* — nothing
+ * here is taller than a third of the hex and there are several of them. At the
+ * ortho camera that difference survives the fog wash, which two props of similar
+ * mass would not.
+ *
+ * Distinct from `campTent` (the hunting-camp improvement) in the same way and on
+ * purpose: that is one four-sided pyramid on a pole, this is three round drums
+ * under cones. A player must never have to check the tooltip to tell a village
+ * they can walk into from a camp they built.
+ */
+export function hutCluster(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  /** Where each hut stands, and how big it is. Hand-placed, never rolled. */
+  const huts: [number, number, number][] = [
+    [-size * 0.3, -size * 0.16, 1],
+    [size * 0.28, -size * 0.02, 0.86],
+    [-size * 0.02, size * 0.34, 0.74],
+  ];
+  for (const [x, z, scale] of huts) {
+    const wall = new CylinderGeometry(size * 0.19 * scale, size * 0.21 * scale, size * 0.22 * scale, 6, 1);
+    wall.translate(x, size * 0.11 * scale, z);
+    parts.push(wall);
+    const roof = new ConeGeometry(size * 0.27 * scale, size * 0.24 * scale, 6, 1);
+    // Each roof turned a little differently, so three copies of one shape do not
+    // read as one object repeated.
+    roof.rotateY(scale * 1.7);
+    roof.translate(x, size * 0.34 * scale, z);
+    parts.push(roof);
+  }
+  // The fire the huts are arranged around: a low ring, which is what says
+  // "people live here" rather than "somebody left three shapes on a hex".
+  const hearth = new CylinderGeometry(size * 0.13, size * 0.15, size * 0.05, 6, 1);
+  hearth.translate(size * 0.02, size * 0.025, size * 0.02);
+  parts.push(hearth);
+
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * A barbarian camp: a ring of stakes round a fire, with a banner over it.
+ *
+ * The third of the three "something is on this hex" sculpts and the one that has
+ * to read as *hostile* at a glance, because it is the only one a player must
+ * decide whether to attack. So it is the only one with a vertical marker on it —
+ * a leaning pole with a rag — and the only one whose silhouette is a *palisade*:
+ * six stakes on a ring, angled outward, which is a shape nothing else on this
+ * board makes.
+ *
+ * It is emphatically not `campTent` recoloured. A hunting camp is a tent; this
+ * is a position somebody is holding, and the difference has to survive the fog
+ * wash and the raven ink both.
+ */
+export function raiderCamp(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+
+  // The palisade: six stakes on a ring, each leaning outward from the centre.
+  const stakes = 6;
+  for (let i = 0; i < stakes; i++) {
+    const angle = (i / stakes) * Math.PI * 2 + 0.3;
+    const radius = size * 0.42;
+    const stake = new CylinderGeometry(size * 0.035, size * 0.055, size * 0.46, 4, 1);
+    // Leaned away from the middle, so the ring reads as a defence rather than as
+    // a circle of fence posts.
+    stake.rotateX(0.22);
+    stake.rotateY(-angle);
+    stake.translate(Math.cos(angle) * radius, size * 0.22, Math.sin(angle) * radius);
+    parts.push(stake);
+  }
+
+  // The fire in the middle, banked up higher than the village's hearth: this one
+  // is meant to be seen from off the hex.
+  const fire = new ConeGeometry(size * 0.17, size * 0.2, 5, 1);
+  fire.translate(0, size * 0.1, 0);
+  parts.push(fire);
+
+  // The standard: a leaning pole and a rag, and the whole reason the prop has a
+  // vertical at all.
+  const pole = shaft(size * 0.9, size * 0.035, 4);
+  pole.rotateZ(-0.16);
+  pole.translate(size * 0.1, 0, -size * 0.12);
+  parts.push(pole);
+  const rag = new BoxGeometry(size * 0.26, size * 0.16, size * 0.03);
+  rag.rotateZ(-0.16);
+  rag.translate(size * 0.26, size * 0.74, -size * 0.12);
+  parts.push(rag);
+
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
 /** A quarry: three cut steps down into the rock, and one block left loose. */
 export function quarrySteps(size: number): BufferGeometry {
   const parts: BufferGeometry[] = [];

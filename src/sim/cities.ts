@@ -624,6 +624,49 @@ export function cityAt(state: GameState, col: number, row: number): City | undef
   return undefined;
 }
 
+/**
+ * The city of `playerId`'s nearest to a cell, or `null` when they hold none.
+ *
+ * **The one "nearest owned city" rule**, and it is shared on purpose: a grain
+ * cache found in a ruin and the food bounty for burning out a barbarian camp are
+ * the same sentence — *this lands in the town closest to where you are standing*
+ * — and two implementations of it would be two answers on a tie. Ties go to the
+ * lower city id, which is founding order, which is a fact about the state rather
+ * than about which town happened to be scanned first.
+ *
+ * `null` is a real answer and every caller has to have a policy for it: an empire
+ * with no cities at all has nowhere to put a lump of food, and the boon is
+ * forfeited with the interface saying so (see `settleCampBounty` in
+ * `barbarians.ts`). Silently banking it into a city that does not exist is the
+ * only wrong answer.
+ *
+ * Distance is the map's own wrapped one, so a town on the other side of the seam
+ * is as near as the hexes say it is.
+ */
+export function nearestOwnedCity(
+  state: GameState,
+  playerId: number,
+  cell: Cell,
+): City | null {
+  const { map } = state;
+  const from = getTileAt(map, cell.col, cell.row);
+  if (!from) return null;
+  const hex = tileHex(from);
+  let best: City | null = null;
+  let bestDistance = Infinity;
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    const distance = wrappedDistance(map, hex, tileHex(cityTile(map, city)));
+    // Strictly nearer, so the first city in `state.cities` order — the oldest —
+    // keeps a tie. See the docblock.
+    if (distance < bestDistance) {
+      best = city;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
 /** Hex distance from a cell to the nearest city centre, or `Infinity`. */
 export function distanceToNearestCity(state: GameState, hex: Hex): number {
   let best = Infinity;
@@ -979,6 +1022,14 @@ export function assignCitizens(state: GameState, city: City): void {
  *   7. `foundCityAt` — the odd one out, and included on purpose: it *creates*
  *      the derived state rather than correcting it, and routing it through here
  *      anyway is what makes the claim below exactly true.
+ *   8. `settleGrowthWindfall` — a grain cache or a camp's provisions that fills
+ *      the basket (Entry XX). It owes strictly more than the production windfall
+ *      does: a city that just gained a citizen has a citizen to *place*.
+ *   9. `settleResearchWindfall` (`tech.ts`) — the odd one at the other end: it
+ *      refreshes **every** city of one empire rather than one city, because a
+ *      technology is an empire-wide fact about what ground is worth (a renewal, a
+ *      resource reveal) and the citizen who should move is in whichever town
+ *      happens to stand on the seam.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -1806,21 +1857,123 @@ export function growthCarryover(state: GameState, city: City, threshold: number)
 }
 
 /**
+ * What spending this city's basket would do, given a basket of `food`.
+ *
+ * `planProduction`'s sibling one bucket over (Entry XVIII.1's three shapes: plan ·
+ * settle · windfall wrapper), and the pure half of "would this city grow". `food`
+ * defaults to the real basket; a caller weighing a grant that has not landed yet
+ * — a grain cache in a ruin, a camp's provisions — passes what the basket *would*
+ * hold, which is what lets a choice card promise a growth before it is taken.
+ *
+ * `null` when the basket does not cover the threshold. Starvation is deliberately
+ * **not** here: it is not a settlement, it is the absence of one, and a windfall
+ * can never cause it. See `growCities`, which owns that half.
+ */
+export interface GrowthPlan {
+  /** Food the basket must give up: the threshold, less any carryover rebate. */
+  cost: number;
+  /** What the city's population becomes. */
+  population: number;
+}
+
+export function planGrowth(
+  state: GameState,
+  city: City,
+  food: number = city.foodBasket,
+): GrowthPlan | null {
+  const threshold = growthThreshold(city.population);
+  if (food < threshold) return null;
+  return {
+    cost: threshold - growthCarryover(state, city, threshold),
+    population: city.population + 1,
+  };
+}
+
+/** What a growth settlement did, for the caller that has to say so out loud. */
+export interface GrowthCompletion {
+  city: City;
+  /** The population it grew to. */
+  population: number;
+}
+
+/**
+ * Grows this city by one if its basket covers the threshold. The one
+ * growth-completion routine in the game.
+ *
+ * Extracted from `growCities` for `settleProduction`'s reason and on the day the
+ * second bucket acquired a windfall to serve (Entry XVIII's seam, closed by Entry
+ * XX): a grain cache pays food, and "the basket was full so the city grew" must
+ * be one implementation or the phase and the boon will disagree about the
+ * carryover rebate within a month.
+ *
+ * Overflow is "whatever the basket keeps", exactly as production's is: the cost
+ * is subtracted and nothing is zeroed, so a windfall behaves like a very good
+ * harvest. **At most one point per call**, which is the phase's own rule — a city
+ * handed sixty food grows once and starts the next citizen with the rest.
+ */
+export function settleGrowth(state: GameState, city: City): GrowthCompletion | null {
+  const plan = planGrowth(state, city);
+  if (!plan) return null;
+  city.foodBasket -= plan.cost;
+  city.population = plan.population;
+  return { city, population: plan.population };
+}
+
+/**
+ * The mid-turn entry point: grow, then refresh what the open panel reads.
+ *
+ * `settleProductionWindfall`'s twin, and it owes the interface strictly more than
+ * that one does: a city that has just gained a citizen has a citizen to *place*,
+ * and a panel showing the old dots would be showing a town with fewer people
+ * working than it has. Through the one helper every mid-turn mutation goes
+ * through (`refreshCityDerived`, whose docblock is the register).
+ *
+ * Every future windfall that pays food calls **this**, never `settleGrowth`
+ * directly.
+ */
+export function settleGrowthWindfall(
+  state: GameState,
+  city: City,
+): GrowthCompletion | null {
+  const done = settleGrowth(state, city);
+  if (done) refreshCityDerived(state, city);
+  return done;
+}
+
+/**
+ * A one-time grant of `grant` food would grow *this* city — or `null`.
+ *
+ * `productionSettledBy`'s sibling, and the reason a choice card does no
+ * arithmetic of its own: "+20🌾 → Uruk · grows to 4!" asks `planGrowth` with the
+ * basket the grant would leave, so the promise on the button is made by the
+ * function that will keep it.
+ */
+export function growthSettledBy(
+  state: GameState,
+  city: City,
+  grant: number,
+): number | null {
+  const plan = planGrowth(state, city, city.foodBasket + grant);
+  return plan === null ? null : plan.population;
+}
+
+/**
  * `growCities`: spend a full basket on a population point, or starve.
  *
  * Growth keeps the overflow and starvation does not: a city that grows carries
  * its surplus toward the next point, while a city that starves has its debt
  * written off along with the citizen who paid it. A negative basket that
  * survived would charge the same debt again next turn.
+ *
+ * The growth half is `settleGrowth` and is deliberately no longer inlined here —
+ * a windfall grows the same city by the same rules mid-turn (Entry XVIII). This
+ * phase is the sweep plus the one rule a windfall can never trigger: a city that
+ * did not grow may instead be starving, and that is the absence of a settlement
+ * rather than a settlement of its own.
  */
 export function growCities(state: GameState): void {
   for (const city of state.cities) {
-    const threshold = growthThreshold(city.population);
-    if (city.foodBasket >= threshold) {
-      city.foodBasket -= threshold - growthCarryover(state, city, threshold);
-      city.population += 1;
-      continue;
-    }
+    if (settleGrowth(state, city) !== null) continue;
     if (city.foodBasket <= CITIES.starvationShrinksAt) {
       city.population = Math.max(1, city.population - 1);
       city.foodBasket = 0;

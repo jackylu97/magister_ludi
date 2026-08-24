@@ -116,6 +116,7 @@
  * of five.
  */
 
+import { type ArrivalReport, arriveOnTile } from './arrival';
 import { assignCitizens, cityAt } from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
 import {
@@ -132,6 +133,8 @@ import {
   type City,
   type GameState,
   type Unit,
+  isBarbarian,
+  realPlayers,
   removeUnit,
   unitById,
 } from './state';
@@ -297,6 +300,32 @@ export function attackTargetAt(
 
 export type CombatKind = 'melee' | 'ranged';
 
+/**
+ * One flat strength bonus standing on one side of a fight, with the reason.
+ *
+ * Rule 5 applied to violence, and the shape the *next* such bonus joins rather
+ * than a barbarian special case: a promotion, a great general, a war-weariness
+ * malus all say "so many points, to this side, because of that" and all belong in
+ * this list. There is exactly one entry in it today.
+ *
+ * Flat points rather than a fraction, and added **after** the multipliers, which
+ * is a rules decision and not a rounding one. Terrain and fortification multiply
+ * a unit's own strength because they are facts about the ground it is standing on
+ * and the trench it dug; fighting the wild is a fact about *who is opposite*, and
+ * a percentage of the defender's own strength would have made a longswordsman's
+ * advantage over barbarians bigger than a warrior's. It is also why the damage
+ * curve makes this scale-free — the curve is exponential in the difference of two
+ * strengths, so +2 is worth the same multiplier in every era (see the module
+ * docblock, and `BarbarianRules.combatBonus`).
+ */
+export interface CombatBonusLine {
+  /** Display label — "vs barbarians". */
+  source: string;
+  side: 'attacker' | 'defender';
+  /** Strength points added. Always positive today; the shape allows a malus. */
+  amount: number;
+}
+
 /** Everything a forecast says, and everything the notice line needs. */
 export interface CombatForecast {
   kind: CombatKind;
@@ -314,6 +343,11 @@ export interface CombatForecast {
   terrainBonus: number;
   /** Its fortification share. Always 0 for a city. */
   fortifyBonus: number;
+  /**
+   * Every flat bonus already counted into the two strengths above, in the order
+   * a card should print them. Empty for an ordinary fight between two empires.
+   */
+  bonuses: CombatBonusLine[];
   /** True when a melee attack would cross a river and pay for it. */
   acrossRiver: boolean;
   /** Damage at the midpoint roll — what the reducer deals on an average die. */
@@ -471,8 +505,37 @@ function planCombat(
   const terrainBonus = defenseBonus(tile.terrain, tile.feature, tile.hills);
   const acrossRiver = kind === 'melee' && crossesRiver(state.map, from, tile);
 
+  /**
+   * The wild's tax, from whichever side is paying it.
+   *
+   * One rule read twice: an empire fighting barbarians is `combatBonus` stronger
+   * **attacking or defending**, so the question is only ever "is the other side
+   * the wild, and am I not". The barbarian never gets it — against another
+   * empire's raider there is nothing to be steadier than.
+   */
+  const defenderOwnerId = target.city ? target.city.ownerId : target.unit!.ownerId;
+  const bonuses: CombatBonusLine[] = [];
+  const wildBonus = RULES.barbarians.combatBonus;
+  if (wildBonus !== 0) {
+    if (!isBarbarian(state, attacker.ownerId) && isBarbarian(state, defenderOwnerId)) {
+      bonuses.push({ source: 'vs barbarians', side: 'attacker', amount: wildBonus });
+    } else if (isBarbarian(state, attacker.ownerId) && !isBarbarian(state, defenderOwnerId)) {
+      bonuses.push({ source: 'vs barbarians', side: 'defender', amount: wildBonus });
+    }
+  }
+  const bonusFor = (side: 'attacker' | 'defender'): number => {
+    let total = 0;
+    for (const line of bonuses) {
+      if (line.side === side) total += line.amount;
+    }
+    return total;
+  };
+
   const attackerBase = kind === 'ranged' ? def.rangedStrength! : def.combatStrength;
-  const attackerStrength = attackerBase * (acrossRiver ? 1 - COMBAT.riverAttackPenalty : 1);
+  // Flat, and **after** the river multiplier — see `CombatBonusLine` for why a
+  // fact about the opponent must not scale with the ground.
+  const attackerStrength =
+    attackerBase * (acrossRiver ? 1 - COMBAT.riverAttackPenalty : 1) + bonusFor('attacker');
 
   let defenderStrength: number;
   let defenderFortify = 0;
@@ -482,7 +545,10 @@ function planCombat(
 
   if (target.city) {
     // A city's walls *are* its terrain: no ground bonus on top of them.
-    defenderStrength = COMBAT.cityBaseStrength + COMBAT.cityStrengthPerPop * target.city.population;
+    defenderStrength =
+      COMBAT.cityBaseStrength +
+      COMBAT.cityStrengthPerPop * target.city.population +
+      bonusFor('defender');
     defenderName = target.city.name;
     defenderHp = target.city.hp;
     defenderMaxHp = COMBAT.cityBaseHp;
@@ -490,7 +556,8 @@ function planCombat(
     const defenderUnit = target.unit!;
     const defenderDef = unitDef(defenderUnit.type);
     defenderFortify = fortifyBonus(defenderUnit);
-    defenderStrength = defenderDef.combatStrength * (1 + terrainBonus + defenderFortify);
+    defenderStrength =
+      defenderDef.combatStrength * (1 + terrainBonus + defenderFortify) + bonusFor('defender');
     defenderName = defenderDef.name;
     defenderHp = defenderUnit.hp;
     defenderMaxHp = defenderDef.maxHp;
@@ -550,6 +617,7 @@ function planCombat(
     defenderStrength,
     terrainBonus: target.city ? 0 : terrainBonus,
     fortifyBonus: defenderFortify,
+    bonuses,
     acrossRiver,
     damageToDefender,
     damageToAttacker: taken(1),
@@ -622,6 +690,12 @@ export interface CombatOutcome {
   capturedCityId: number | null;
   /** True when the melee attacker moved into the tile it emptied. */
   advanced: boolean;
+  /**
+   * What the attacker found on the tile it advanced into, or `null` when it did
+   * not advance or the hex held nothing. A camp stormed and a ruin ridden into
+   * are both arrivals; see `arrival.ts`.
+   */
+  arrival: ArrivalReport | null;
   /** False when the counter-attack killed the attacker. */
   attackerSurvived: boolean;
 }
@@ -673,6 +747,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     capturedUnitId: null,
     capturedCityId: null,
     advanced: false,
+    arrival: null,
     attackerSurvived: true,
   };
 
@@ -744,6 +819,17 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       attacker.col = tile.col;
       attacker.row = tile.row;
       outcome.advanced = true;
+      // The second of the two ways a unit's position changes, and therefore the
+      // second caller of the one "it arrived somewhere" rule: storming a camp
+      // clears it, and riding into a ruin claims it, whether the last hex was
+      // walked or won. See `arrival.ts`.
+      //
+      // Kept `null` when the hex held nothing, which is almost every advance:
+      // an outcome carrying an empty report would make every ordinary attack
+      // serialise differently from one taken before sites existed, and the
+      // reducer would hand a `CommandResult` an arrivals array to say so.
+      const found = arriveOnTile(state, attacker, tile);
+      if (found.discovery !== null || found.camp !== null) outcome.arrival = found;
     }
   }
 
@@ -853,7 +939,17 @@ export function describeCombat(outcome: CombatOutcome): string {
  * default is not a result.
  */
 export function updateElimination(state: GameState): void {
-  for (const player of state.players) {
+  // **The wild is not in this at all**, on either side of it, and both halves of
+  // that matter. It is never *eliminated*: it holds nothing between camps and a
+  // sweep that marked it out would be marking out a seat that is about to muster
+  // again next resolution. And it is never *counted*: a solo game against
+  // barbarians has two seats in `state.players`, so a rule that read the array
+  // directly would declare the human victorious the moment the last raider fell —
+  // and, worse, would refuse to declare anything in a two-empire game while a
+  // single barbarian warrior was still standing somewhere in the fog. Both
+  // questions are asked of `realPlayers`, the one register for "who counts".
+  const roster = realPlayers(state);
+  for (const player of roster) {
     if (player.eliminated) continue;
     if (state.units.some((unit) => unit.ownerId === player.id)) continue;
     if (state.cities.some((city) => city.ownerId === player.id)) continue;
@@ -861,8 +957,8 @@ export function updateElimination(state: GameState): void {
     state.turnEnded[player.id] = true;
   }
 
-  const alive = state.players.filter((player) => !player.eliminated);
-  state.winnerId = state.players.length > 1 && alive.length === 1 ? alive[0]!.id : null;
+  const alive = roster.filter((player) => !player.eliminated);
+  state.winnerId = roster.length > 1 && alive.length === 1 ? alive[0]!.id : null;
 }
 
 // --- turn phases ------------------------------------------------------------

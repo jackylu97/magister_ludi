@@ -53,6 +53,12 @@
  * each. `advanceFortify` follows the healing so that "has this unit been still
  * all turn?" is asked once, of one board state, by both.
  *
+ * Entry XX adds one phase, `barbarians`, between `healCities` and `healUnits`,
+ * and its position is that same argument read once more: the wild acts *after*
+ * the towns have had their turn, so a raid meets the world this turn produced,
+ * and *before* the healing, so a raider that marched or fought is not resting —
+ * exactly like every other unit on the board. See `barbarianTurn`.
+ *
  * There is deliberately no elimination phase
  * ------------------------------------------
  * A player is out when they hold no units and no cities, and in v1 the *only*
@@ -74,6 +80,7 @@
  * ever fire on a hand-edited state, which is a phase no test can honestly cover.
  */
 
+import { barbarianTurn } from './barbarians';
 import { advanceProduction, collectYields, expandBorders, growCities } from './cities';
 import { advanceFortify, healCities } from './combat';
 import { advanceAlongPath } from './movement';
@@ -129,10 +136,20 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: healCities,
   },
   {
+    name: 'barbarians',
+    // The wild founds camps, musters bands and raids — after the towns have had
+    // their turn, so a raid is resolved against the world this turn produced, and
+    // *before* `healUnits`, so a raider that marched or fought is not resting.
+    // The full argument for the position is in `barbarianTurn`'s docblock; it is
+    // a rules decision, exactly like every other entry in this array.
+    run: barbarianTurn,
+  },
+  {
     name: 'healUnits',
     // Units that spent nothing this turn recover; anyone who marched or fought
     // does not. Reads `movesLeft` and `hasAttacked`, so it must run before
-    // `resetMovement` clears both.
+    // `resetMovement` clears both — and after `barbarians`, so the question is
+    // asked of the raiders too.
     run: healUnits,
   },
   {

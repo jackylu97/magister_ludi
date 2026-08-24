@@ -58,6 +58,7 @@
  * validate-fully contract above is what buys that for free.
  */
 
+import type { ArrivalReport } from './arrival';
 import { isBuildingId } from './buildingData';
 import {
   assignableTiles,
@@ -69,6 +70,7 @@ import {
   tilePurchaseError,
 } from './cities';
 import { applyCombat, fortifyError } from './combat';
+import { discoveryChoiceError, settleDiscovery } from './discoveries';
 import type { ImprovementId } from './improvementData';
 import {
   buildImprovementAt,
@@ -428,6 +430,38 @@ export interface PurchaseTileCommand extends PlayerCommand {
   row: number;
 }
 
+/**
+ * Takes one of the three boons a claimed ruin or village is offering.
+ *
+ * **The first draft pick this game has** (design ledger, Entry XV — offers from
+ * `state.rng`, the pick as a command), and the shape Statecraft inherits rather
+ * than re-inventing. Three things about it are the doctrine rather than this
+ * feature:
+ *
+ * It names an **index, never an id**. An index can only ever refer to something
+ * the player was actually dealt, so a client cannot ask for a card it was not
+ * offered — the reducer does not have to re-derive the legal set to find out, it
+ * simply looks at the offer it stored. An id would make every pick a question
+ * about the whole pool.
+ *
+ * There is **no reroll and no decline**. The offer is the decision; a pick that
+ * could be refused would be an offer that can sit in the state forever, and the
+ * End Turn blocker exists precisely to stop that. (Entry XV's Magister's Dice
+ * will add a reroll *as its own command*, which is the right shape for it — a
+ * reroll is a thing you spend something on, not a mode of this.)
+ *
+ * Turn-gated like every other act: choosing what the ruins gave you is an act,
+ * and a seat that has declared itself finished has finished acting. That is not
+ * a trap — the blocker will not let a seat end its turn while an offer is
+ * outstanding, so the only way to reach the gate is to answer the prompt and
+ * then hand the turn over anyway.
+ */
+export interface ChooseDiscoveryCommand extends PlayerCommand {
+  type: 'chooseDiscovery';
+  /** Which of the offered options, by position in `Player.pendingDiscovery`. */
+  optionIndex: number;
+}
+
 /** Every legal mutation of the game, as serializable data. */
 export type Command =
   | EndTurnCommand
@@ -443,14 +477,41 @@ export type Command =
   | BuildImprovementCommand
   | ChopFeatureCommand
   | PillageCommand
-  | PurchaseTileCommand;
+  | PurchaseTileCommand
+  | ChooseDiscoveryCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
 
-export type CommandResult = { ok: true } | { ok: false; error: string };
+/**
+ * What a command did, from the reducer's side.
+ *
+ * `arrivals` is the one thing a successful command reports beyond "it worked",
+ * and it is present only when there is something to report — a ruin claimed, a
+ * camp burnt out (see `arrival.ts`). Two commands can produce one: `moveUnit`,
+ * whose march may cross several such hexes, and `attack`, whose melee winner may
+ * advance onto one.
+ *
+ * It is here rather than derived by the interface because it is a *difference*
+ * that stops existing the instant the command returns — the camp is gone, its
+ * bounty is already in the treasury, and asking the board afterwards which town
+ * received the provisions would be a second implementation of `nearestOwnedCity`
+ * standing beside the one that actually paid. That is the same argument
+ * `onDamage` and `researchSince` make in `controls.ts`, answered one layer lower
+ * because this is the layer that knows.
+ *
+ * Absent on every other command and on every ordinary march, so a caller that
+ * has never heard of it — a test asserting `{ ok: true }`, a replay, a network
+ * peer — is unaffected.
+ */
+export type CommandResult =
+  | { ok: true; arrivals?: ArrivalReport[] }
+  | { ok: false; error: string };
 
-function ok(): CommandResult {
+function ok(arrivals?: readonly ArrivalReport[]): CommandResult {
+  // Written only when there is something in it, so the overwhelmingly common
+  // result is byte-identical to the `{ ok: true }` this used to be.
+  if (arrivals !== undefined && arrivals.length > 0) return { ok: true, arrivals: [...arrivals] };
   return { ok: true };
 }
 
@@ -588,12 +649,13 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
   const path = findPath(state, unit, tile);
   if (!path) return fail(`No path from (${unit.col}, ${unit.row}) to (${tile.col}, ${tile.row})`);
 
-  advanceAlongPath(state, unit, path);
+  const walk = advanceAlongPath(state, unit, path);
   // The unit moved, so what its owner can see moved with it. One recompute per
   // order rather than one per step: `advanceAlongPath` may walk five tiles, and
   // only where it stopped decides what is lit.
   recomputeVisibility(state, actor.id);
-  return ok();
+  // What the march crossed, if it crossed anything — see `CommandResult`.
+  return ok(walk.arrivals);
 }
 
 /**
@@ -941,7 +1003,9 @@ function applyAttack(state: GameState, command: AttackCommand): CommandResult {
 
   const result = applyCombat(state, unit.id, target);
   if (!result.ok) return fail(result.error);
-  return ok();
+  // A melee winner that advanced may have stormed a camp or ridden into a ruin.
+  const arrival = result.outcome.arrival;
+  return ok(arrival === null ? undefined : [arrival]);
 }
 
 /**
@@ -1125,6 +1189,35 @@ function applyPurchaseTile(state: GameState, command: PurchaseTileCommand): Comm
   return ok();
 }
 
+/**
+ * Takes a boon. See `ChooseDiscoveryCommand`, and `discoveries.ts` for the rules.
+ *
+ * The seat's two questions here, everything about the *offer* delegated whole to
+ * `discoveryChoiceError` — `applyFortify`'s split, and the same guarantee: a
+ * refusal leaves the state byte-identical, because not one line below the
+ * validation runs until every question has been answered.
+ *
+ * `settleDiscovery` then pays it through the bucket's own windfall routine
+ * (Entry XVIII), which is the same code the end-of-turn phase completes a
+ * granary, a citizen or a technology with. Nothing about a boon is settled here.
+ */
+function applyChooseDiscovery(
+  state: GameState,
+  command: ChooseDiscoveryCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot choose a discovery`);
+  }
+
+  const problem = discoveryChoiceError(state, actor.id, command.optionIndex);
+  if (problem) return fail(problem);
+
+  settleDiscovery(state, actor, command.optionIndex);
+  return ok();
+}
+
 // --- reducer ----------------------------------------------------------------
 
 /**
@@ -1168,6 +1261,8 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       return applyPillage(state, command);
     case 'purchaseTile':
       return applyPurchaseTile(state, command);
+    case 'chooseDiscovery':
+      return applyChooseDiscovery(state, command);
     default:
       return unhandledCommand(kind, type);
   }

@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 import viewJson from '../../data/view3d.json';
 import { RULES } from '../../src/sim/rulesData';
 import { playerPieceColor } from '../../src/render3d/lookData';
+import { newGame } from '../../src/sim/state';
 
 const PLAYERS = viewJson.players as {
   byColor: Record<string, string>;
@@ -64,6 +65,30 @@ describe('player inks', () => {
       inks.add(playerPieceColor('', seat));
     }
     expect(inks.size).toBe(RULES.game.maxPlayers);
+  });
+
+  it('gives the wild an ink of its own, distinct from every seat', () => {
+    // The barbarians are a *player* (ledger Entry XX), so they are painted by
+    // the same function every empire is — and the one thing that must be true of
+    // their ink is that nobody mistakes a raider for a rival's warrior. It is in
+    // `byColor` and deliberately **not** in `fallbackOrder`: the fallback seats
+    // real empires, and a wild that could be dealt a seat's colour by index is
+    // exactly the confusion this checks for.
+    const wild = newGame({
+      seed: 1,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#d4502e', isHuman: true }],
+      barbarians: true,
+    }).players.find((player) => player.barbarian)!;
+
+    const raven = playerPieceColor(wild.color, wild.id);
+    expect(PLAYERS.byColor[wild.color.toLowerCase()]).toBe('raven');
+    expect(PLAYERS.fallbackOrder).not.toContain('raven');
+    for (let seat = 0; seat < RULES.game.maxPlayers; seat++) {
+      expect(`seat ${seat}`).toBe(playerPieceColor('', seat) === raven ? 'clashes' : `seat ${seat}`);
+    }
+    // And it is not a ground ink either, for the reason every other flag is not.
+    expect(GROUND_INKS.has('raven')).toBe(false);
   });
 
   it('prefers the explicit table over the fallback, and wraps rather than throwing', () => {

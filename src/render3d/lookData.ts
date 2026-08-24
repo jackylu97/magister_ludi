@@ -23,6 +23,7 @@
 
 import viewJson from '../../data/view3d.json';
 
+import type { DiscoveryKind } from '../sim/discoveryData';
 import type { ImprovementId } from '../sim/improvementData';
 import type { ResourceId, ResourceKind } from '../sim/resourceData';
 import type { FeatureId, TerrainId } from '../sim/terrainData';
@@ -1028,6 +1029,29 @@ export interface ImprovementLookSpec {
 }
 
 /**
+ * The three things that stand on a hex without anybody having built them: an
+ * ancient ruin, a tribal village, and a barbarian camp.
+ *
+ * One block rather than three, and it reuses `ImprovementPropSpec` rather than
+ * declaring a near-identical twin, because they are the same *kind* of object on
+ * the board: one instance per tile, a size, an ink and a hashed nudge off centre.
+ * The camp's jitter is 0 for the pasture's reason — a camp is a position, and a
+ * position that wandered would not read as one.
+ *
+ * They are grouped away from `improvements` because the two answer different
+ * questions about a hex ("somebody worked this" against "somebody is *there*"),
+ * they are drawn by different layers, and only one of them is a thing a player
+ * can build. See `sites3d.ts`.
+ */
+export type SiteKind = DiscoveryKind | 'camp';
+
+export interface SiteLookSpec {
+  /** Lift above the tile's top face, in world units. */
+  lift: number;
+  props: Record<SiteKind, ImprovementPropSpec>;
+}
+
+/**
  * The Abacus: the victory scoreboard as a counting frame standing on the table.
  *
  * Every proportion the object is cut from lives here rather than in
@@ -1195,6 +1219,7 @@ export interface View3DData {
   icons: IconSpec;
   resources: ResourceLookSpec;
   improvements: ImprovementLookSpec;
+  sites: SiteLookSpec;
   abacus: AbacusSpec;
   units: UnitStyleSpec;
 }
@@ -1599,6 +1624,15 @@ export const VIEW3D: View3DData = {
         { ...spec, color: named(spec.color, `improvements.props.${id}.color`) },
       ]),
     ) as Record<ImprovementId, ImprovementPropSpec>,
+  },
+  sites: {
+    lift: viewJson.sites.lift,
+    props: Object.fromEntries(
+      Object.entries(viewJson.sites.props).map(([id, spec]) => [
+        id,
+        { ...spec, color: named(spec.color, `sites.props.${id}.color`) },
+      ]),
+    ) as Record<SiteKind, ImprovementPropSpec>,
   },
   abacus: {
     frame: {

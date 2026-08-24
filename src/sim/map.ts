@@ -39,11 +39,15 @@
  * as the last pass of `generateMap`, reproduced from the seed, and never
  * written again during play.
  *
- * Improvements live on tiles too, and are the one thing here that plays
- * ---------------------------------------------------------------------
- * `Tile.improvement` is the farm or the mine a worker built, and it is the only
- * field on a tile that changes during a game. See its docblock for why that is
- * compatible with a save file that carries a seed rather than a board.
+ * Improvements live on tiles too, and are not the only thing here that plays
+ * ---------------------------------------------------------------------------
+ * `Tile.improvement` is the farm or the mine a worker built; `Tile.feature` is
+ * what a chop takes away; `Tile.discovery` is the ruin or village a scout
+ * consumes by walking into it. Those three are the fields that change during a
+ * game, and each docblock says why that is compatible with a save file carrying a
+ * seed rather than a board. The discovery is the mildest of the three — it can
+ * only ever be *removed* — and it forbids exactly what the other two do: nothing
+ * regenerates the map mid-game.
  *
  * THE INVARIANT: an edge is flagged on *both* of the tiles that share it. Bit
  * `d` of tile A implies bit `(d + 3) % 6` of A's neighbour in direction `d`,
@@ -60,6 +64,7 @@ import {
   HEX_DIRECTIONS,
   hexDistance,
 } from './hex';
+import type { DiscoveryKind } from './discoveryData';
 import type { ImprovementId } from './improvementData';
 import type { MapgenOverrides } from './mapgenData';
 import type { ResourceId } from './resourceData';
@@ -117,6 +122,24 @@ export interface Tile {
    * empire's works.
    */
   improvement?: ImprovementId;
+  /**
+   * The ancient ruin or tribal village standing on this tile, or the key is
+   * **absent** — which it is on all but a handful of hexes. Absence rather than a
+   * `'none'` sentinel, for the reason `resource` gives above.
+   *
+   * Generation output that is **consumed by play**, which makes it the third
+   * field on a tile that changes during a game and the only one that can only
+   * ever be *removed*: `placeDiscoveries` (`discoveries.ts`, run as the last pass
+   * of `generateMap`) scatters them from the seed, and the first unit to step
+   * onto one claims it — `claimDiscoveryAt` deletes the key and hands that unit's
+   * owner a choice. Nothing ever writes one during play.
+   *
+   * The save-file promise survives exactly as it does for `improvement`: a claim
+   * is caused by a *movement*, every movement is in the log, and a replay walks
+   * the same unit onto the same hex and consumes the same site. What it means, as
+   * with the other two, is that nothing may regenerate the map mid-game.
+   */
+  discovery?: DiscoveryKind;
 }
 
 export interface GameMap {

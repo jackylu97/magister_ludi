@@ -68,6 +68,7 @@ import {
   barQuad,
   cactus,
   cairnStack,
+  brokenColumns,
   campTent,
   catapultMini,
   chariotMini,
@@ -98,7 +99,9 @@ import {
   pathDot,
   pineTree,
   poolDisc,
+  hutCluster,
   quarrySteps,
+  raiderCamp,
   reedClump,
   riverSegment,
   rock,
@@ -128,7 +131,7 @@ import {
   SUPPRESS,
   disposeInstancedGroup,
 } from './instances';
-import { VIEW3D, resourcePropSpec, shade } from './lookData';
+import { type SiteKind, VIEW3D, resourcePropSpec, shade } from './lookData';
 import {
   type HeightClass,
   boardBounds,
@@ -149,6 +152,7 @@ const OVERLAY = VIEW3D.overlay;
 const CITY = VIEW3D.city;
 const RESOURCES = VIEW3D.resources;
 const IMPROVEMENTS = VIEW3D.improvements;
+const SITES = VIEW3D.sites;
 const TABLE = VIEW3D.table;
 const RIVERS = VIEW3D.rivers;
 const PIECES = VIEW3D.pieces;
@@ -326,6 +330,34 @@ function buildImprovementProps(): Record<ImprovementId, BufferGeometry> {
 }
 
 /**
+ * The three site sculpts, by kind.
+ *
+ * Typed `Record<SiteKind, …>` for `IMPROVEMENT_PROPS`' reason: this is the one
+ * place the art and the data are joined, so a fourth kind of site is a compile
+ * error here rather than an invisible thing standing on a hex. They are designed
+ * as a *set* — one broken vertical, one cluster of small solids, one palisade —
+ * because the only question that matters is whether a player can tell them apart
+ * at the ortho camera under the fog wash. See their docblocks in `geometry.ts`.
+ */
+export const SITE_PROPS: Record<SiteKind, (size: number) => BufferGeometry> = {
+  ruins: brokenColumns,
+  village: hutCluster,
+  camp: raiderCamp,
+};
+
+/** The site kinds, in the order everything that walks them walks them. */
+export const SITE_KINDS: readonly SiteKind[] = ['ruins', 'village', 'camp'];
+
+/** One prop per site kind, each built at the size its data row asks for. */
+function buildSiteProps(): Record<SiteKind, BufferGeometry> {
+  const out: Partial<Record<SiteKind, BufferGeometry>> = {};
+  for (const kind of SITE_KINDS) {
+    out[kind] = SITE_PROPS[kind](BOARD.hexRadius * SITES.props[kind].size);
+  }
+  return out as Record<SiteKind, BufferGeometry>;
+}
+
+/**
  * One flat quad per tile-atlas cell: the twelve resource roundels, the six
  * yield glyphs and the ten numerals.
  *
@@ -470,6 +502,14 @@ export class BoardGeometry {
    */
   readonly improvementProps: Record<ImprovementId, BufferGeometry>;
   /**
+   * The three *site* props — the ruin, the village, the barbarian camp — keyed
+   * by site kind. Built here with every other shared shape and placed by
+   * `sites3d.ts`, a layer of its own for `improvements3d.ts`'s exact reason: all
+   * three appear and disappear during play, and the board's buffers may not be
+   * rebuilt for a gameplay event.
+   */
+  readonly siteProps: Record<SiteKind, BufferGeometry>;
+  /**
    * The flat tile marks, one quad per cell of the tile atlas that still lies on
    * the ground: a yield glyph and a numeral. Both are drawn by `lens3d.ts` with
    * the atlas's own depth-test-free material.
@@ -556,6 +596,7 @@ export class BoardGeometry {
     this.dot = pathDot(OVERLAY.pathDotRadius, OVERLAY.pathDotHeight);
     this.resourceProps = buildResourceProps();
     this.improvementProps = buildImprovementProps();
+    this.siteProps = buildSiteProps();
     const icons = buildIconDecals();
     this.yieldGlyphs = icons.yields;
     this.numerals = icons.numerals;
@@ -621,6 +662,7 @@ export class BoardGeometry {
     this.dot.dispose();
     for (const prop of Object.values(this.resourceProps)) prop.dispose();
     for (const prop of Object.values(this.improvementProps)) prop.dispose();
+    for (const prop of Object.values(this.siteProps)) prop.dispose();
     for (const quad of Object.values(this.resourceMarkers)) quad.dispose();
     this.resourceStem.dispose();
     for (const quad of this.numeralMarkers) quad.dispose();

@@ -79,6 +79,10 @@ describe('newGame', () => {
       settlersBuilt: 0,
       tilesPurchased: 0,
       eliminated: false,
+      // Every seat carries the flag and every *real* seat carries it false; the
+      // wild is appended separately and only when the config asks for it (see
+      // the barbarian suite).
+      barbarian: false,
     };
     expect(state.players).toEqual([
       { id: 0, name: 'Ada', color: '#e8503a', isHuman: true, ...pools },
@@ -359,6 +363,9 @@ describe('end-of-turn pipeline', () => {
       'advanceResearch',
       'expandBorders',
       'healCities',
+      // The wild acts after the towns and before the healing, so a raider that
+      // marched or fought is not resting. See `barbarianTurn`.
+      'barbarians',
       'healUnits',
       'advanceFortify',
       'resetMovement',

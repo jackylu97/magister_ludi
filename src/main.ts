@@ -42,13 +42,14 @@ import './style.css';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES, getMapSize } from './sim/mapgen';
 import { hashSeed } from './sim/rng';
 import { RULES } from './sim/rulesData';
-import { type Game, createGame } from './sim/game';
+import { type Game, createGame, dispatch } from './sim/game';
 import {
   type GameConfig,
   type GameState,
   type PlayerSpec,
   type Unit,
   hasEndedTurn,
+  playerById,
 } from './sim/state';
 import type { Tile } from './sim/map';
 import { describeUpgrade } from './sim/tech';
@@ -66,6 +67,7 @@ import {
   resourceRowNode,
   tileYieldNodes,
 } from './ui/tileReadout';
+import { explainDiscoveryOffer } from './sim/discoveries';
 import { unitsOnTile } from './sim/units';
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
@@ -76,8 +78,10 @@ import { createPopover } from './ui/popover';
 import { type TechTree, createTechTree } from './ui/techTree';
 import { type TilePriceTags, createTilePriceTags } from './ui/tilePriceTags';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
+import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { createTurnSplash } from './ui/turnSplash';
 import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
+import { YIELD_GLYPH } from './ui/figures';
 import type { HoverInfo, LensMode, MapView } from './ui/mapView';
 import type { TurnBlocker } from './ui/turnBlockers';
 
@@ -119,6 +123,9 @@ const bannersEl = requireElement<HTMLElement>('banners');
 const cityPanelEl = requireElement<HTMLElement>('city-panel');
 const unitPanelEl = requireElement<HTMLElement>('unit-panel');
 const turnSplashEl = requireElement<HTMLElement>('turn-splash');
+/* The offer card's shell. Its contents are built by `ui/offerCard.ts` on each
+   show — see that file for why this is the one blocking surface here. */
+const offerOverlayEl = requireElement<HTMLElement>('offer-overlay');
 
 /** The HUD's surfaces; see the layout comment in `index.html`. */
 const menuButton = requireElement<HTMLButtonElement>('menu-button');
@@ -421,6 +428,11 @@ function currentConfig(): GameConfig {
     // The first N of the roster, so seat 0 is always Crimson and a solo game is
     // the two-seat game with the second chair empty rather than a different one.
     players: PLAYERS.slice(0, Number(seatsSelect.value) || DEFAULT_SEATS),
+    // **The game asks for the wild.** `GameConfig.barbarians` defaults to off so
+    // that a fixture, an inspection page or a pacing measurement gets the quiet
+    // world it always had (see that field); a real game played by a person is
+    // the caller that wants camps in the fog, and this is where it says so.
+    barbarians: true,
   };
 }
 
@@ -594,6 +606,13 @@ function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>)
     modifiers.push(`fortified +${Math.round(preview.fortifyBonus * 100)}%`);
   }
   if (preview.acrossRiver) modifiers.push('across a river');
+  // The flat lines, from the same plan the strengths above were folded from
+  // (`CombatBonusLine`) — "vs barbarians +2" today, a promotion tomorrow. Printed
+  // as points rather than as a percentage because that is what they are, and
+  // because a bonus shown in the wrong unit is a bonus a player mis-plans around.
+  for (const line of preview.bonuses) {
+    modifiers.push(`${line.source} +${line.amount}`);
+  }
   if (preview.capturesCity) modifiers.push('would take the city');
   if (modifiers.length > 0) {
     const note = document.createElement('p');
@@ -624,6 +643,7 @@ const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
   idleUnit: 'Unit needs orders',
   cityProduction: 'Choose production',
   research: 'Choose research',
+  discovery: 'A discovery awaits',
 };
 
 function showEndTurnState(blocker: TurnBlocker | null): void {
@@ -966,6 +986,66 @@ async function boot(): Promise<void> {
    */
   const splash = createTurnSplash(turnSplashEl);
 
+  /**
+   * The discovery card. Created before `controls` for `splash`'s reason: the
+   * controls report into it, both when a march claims a site and when End Turn
+   * finds the offer still unanswered.
+   */
+  const offerCard = createOfferCard(offerOverlayEl);
+
+  /**
+   * Puts the local seat's pending offer on screen, if it has one.
+   *
+   * The offer is read off the *state* rather than passed in, so the card can
+   * never show a hand one command out of date, and every figure on it comes from
+   * `explainDiscoveryOption` — the same `plan…` functions that will settle it.
+   * What this function adds is the one thing the simulation deliberately does not
+   * say: the glyph. `YIELD_GLYPH` is the interface's table (`ui/figures.ts`), so
+   * "+20⚙ to Uruk" is composed here and the sim keeps saying *which voice and
+   * how much*.
+   */
+  function showDiscoveryOffer(): void {
+    const seat = controls.localPlayerId();
+    const player = playerById(game.state, seat);
+    const offer = player?.pendingDiscovery;
+    if (!offer) return;
+
+    const options = explainDiscoveryOffer(game.state, seat, offer).map((payoff) => {
+      const parts: string[] = [];
+      if (payoff.yield !== null) {
+        parts.push(`+${payoff.amount}${YIELD_GLYPH[payoff.yield]}`);
+        if (payoff.cityName !== null) parts.push(`to ${payoff.cityName}`);
+      }
+      if (payoff.unitName !== null) parts.push(`A free ${payoff.unitName}`);
+      const option: OfferOption = {
+        title: payoff.name,
+        payoff: parts.join(' '),
+        flavor: payoff.flavor,
+      };
+      // "completes Granary" / "grows to 4" / "completes Mining" — the whole
+      // point of a windfall settling instantly, said before the choice.
+      if (payoff.completes !== null) {
+        option.note = payoff.completes.startsWith('size ')
+          ? `grows to ${payoff.completes.slice('size '.length)}`
+          : `completes ${payoff.completes}`;
+      }
+      if (payoff.warning !== null) option.warning = payoff.warning;
+      return option;
+    });
+
+    offerCard.show(
+      {
+        eyebrow: offer.kind === 'ruins' ? 'an ancient ruin' : 'a tribal village',
+        title: offer.kind === 'ruins' ? 'The stones remember' : 'They come to meet you',
+        options,
+      },
+      (index) => {
+        dispatch(game, { type: 'chooseDiscovery', playerId: seat, optionIndex: index });
+        controls.refresh();
+      },
+    );
+  }
+
   const controls = createGameControls({
     viewport: viewportEl,
     renderer,
@@ -977,11 +1057,18 @@ async function boot(): Promise<void> {
     // full-screen surfaces — the star chart and the Abacus — each of which
     // handles its own Escape while it is up.
     inputBlocked: () =>
-      !landingEl.hidden || (techTree?.isOpen ?? false) || (abacus?.isOpen ?? false),
+      !landingEl.hidden ||
+      (techTree?.isOpen ?? false) ||
+      (abacus?.isOpen ?? false) ||
+      // The offer card is the one genuinely blocking surface here: it owns the
+      // keyboard while it is up, and there is nothing to escape to (see
+      // `offerCard.ts`).
+      offerCard.isOpen,
     onToggleTechTree: () => techTree?.toggle(),
     onToggleAbacus: () => abacus?.toggle(),
     // End Turn's research blocker puts the chart up; it never takes it down.
     onOpenTechTree: () => techTree?.open(),
+    onOfferDiscovery: showDiscoveryOffer,
     onTurnResolved: (_turn, research) => {
       // A discovery outranks the turn card: "your turn" happens every turn,
       // and a technology lands twenty times in a game. The upgrade tally rides

@@ -55,6 +55,7 @@
  */
 
 import type { BuildingId } from './buildingData';
+import type { DiscoveryId, DiscoveryKind } from './discoveryData';
 import type { GameMap } from './map';
 import { generateMap, getMapSize } from './mapgen';
 import { type MapgenOverrides, resolveMapgenConfig } from './mapgenData';
@@ -123,8 +124,17 @@ import {
  *    the field: the border-cost curve was retuned to Civ 6's numbers, so every
  *    city claims its ground on a different schedule; and border-culture accrual
  *    now answers to the writ, freezing outright while authority is in deficit.
+ * 15: Barbarians and discoveries (playable.md item 3, ledger Entry XX) — four
+ *     fields and one command, folded into a single bump because they are one
+ *     pass: `Tile.discovery` (the ruin or village a unit consumes by walking
+ *     into it), `Player.barbarian` (the appended seat that is the wild),
+ *     `Player.pendingDiscovery` (a claim awaiting its 1-of-3 pick, resolved by
+ *     the new `chooseDiscovery` command), and `GameState.camps`. A v14 log
+ *     replayed here is a different game rather than an older one for a reason
+ *     beyond the fields: a scout that walked over a hex on turn six now claims
+ *     something there, and every empire fights the wild at +2.
  */
-export const SCHEMA_VERSION = 14;
+export const SCHEMA_VERSION = 15;
 
 // --- players ----------------------------------------------------------------
 
@@ -238,6 +248,99 @@ export interface Player {
    * wiped out mid-window — and as a turn phase.
    */
   eliminated: boolean;
+  /**
+   * True for **the wild** — the one appended seat that owns every camp and every
+   * raider, and is nobody's opponent in the sense the rest of this file means.
+   *
+   * A seat rather than an ownerless unit, and that is the whole design (ledger
+   * Entry XX). Every rule in this simulation is written in terms of a `Player`:
+   * combat asks whose unit it is, stacking asks whose category is on the hex,
+   * visibility keeps a grid per player id, `attackTargetAt` reads `ownerId !==
+   * ownerId`. Ownerless barbarians would have meant a second answer to each of
+   * those, which is the thing rule 5 forbids one grade up. So the wild is a
+   * player, and the *exclusions* are written down once instead.
+   *
+   * It is **appended last**, after the opening rosters are seated, so player id
+   * is still the player's index (the trap in CLAUDE.md) and every real seat keeps
+   * the id it would have had in a game with no barbarians at all. Its flag is
+   * always present, like `eliminated` and unlike `pendingDiscovery`, because
+   * "is this seat the wild" is a fact about every player rather than a state some
+   * of them are in.
+   *
+   * What it is excluded from, and where each exclusion is written:
+   *   · the turn — `clearTurnEnded` re-raises its flag every turn, exactly as it
+   *     does for an eliminated seat, so nothing ever waits for the wild;
+   *   · victory and elimination — `updateElimination` skips it, so a solo game
+   *     against barbarians is not won the moment their last camp falls;
+   *   · research — `advanceResearch` skips it: the wild does not learn, it
+   *     inherits (see `barbarianTier` in `barbarians.ts`);
+   *   · the meters, the seat cycle and the End Turn blockers — all interface, all
+   *     asked of `realPlayers`.
+   * What it is emphatically *not* excluded from is combat, movement, stacking and
+   * fog. Those are the rules it exists to be inside.
+   */
+  barbarian: boolean;
+  /**
+   * A claimed ruin or village whose boon has not been chosen yet, or the key is
+   * **absent** — which it is for every player almost all of the time.
+   *
+   * Presence *is* "this empire owes the game a decision", which is `Unit.path`'s
+   * convention and is here for the same reason: a player who has never found a
+   * ruin and one who has just spent its offer must serialise identically.
+   *
+   * Written by `claimDiscoveryAt` the moment a unit steps onto a site, and
+   * cleared by the `chooseDiscovery` command. The offer is stored rather than
+   * re-rolled on demand because it is a **draw**: rolling it when the card opens
+   * would make the options a function of when somebody looked at a screen, and
+   * under simultaneous turns two seats look at different times. Both halves are
+   * in the log — the movement that claimed it and the pick that spent it — so a
+   * replay deals the same three cards and takes the same one.
+   */
+  pendingDiscovery?: DiscoveryOffer;
+}
+
+/**
+ * Three boons drawn from the pool, and where they were found.
+ *
+ * The **first** of Entry XV's draft shape to exist in the game: offers generated
+ * from `state.rng` and stored, a pick that is an ordinary command, and a refusal
+ * that leaves the state byte-identical. Statecraft's card draft inherits this
+ * shape rather than inventing a second one — which is why the offer carries an
+ * ordered list of ids and an index is what spends it, and not, say, the id itself
+ * (an id would let a client name a card it was never dealt).
+ *
+ * The site is carried because two of the three effect shapes need it: a free unit
+ * stands *here*, and the nearest owned city is nearest *to here*. Reading it off
+ * the claiming unit instead would have been wrong the moment that unit moved on,
+ * or died, before the player chose.
+ */
+export interface DiscoveryOffer {
+  /** Which kind of site this was. Flavour on the card; the draw's weights read it. */
+  kind: DiscoveryKind;
+  /** Where it stood. See the docblock for why this is on the offer. */
+  col: number;
+  row: number;
+  /** The options, in draw order. `chooseDiscovery` names one by index. */
+  options: DiscoveryId[];
+}
+
+/**
+ * A barbarian camp: a hex the wild musters out of.
+ *
+ * State, not board. Camps are the one thing in this pass that is *not* a tile
+ * field, and the split is deliberate: `Tile.discovery` is generation output that
+ * play consumes, so it belongs to the map the seed produced, while a camp is
+ * founded mid-game by a turn phase and has a history (when it appeared, which is
+ * what its muster cadence counts from). Putting it on the tile would have made
+ * the map carry state the seed never produced; putting it here keeps
+ * `GameState.camps` an ordinary array that iterates in a fixed order like every
+ * other outcome-bearing list in this state.
+ */
+export interface BarbarianCamp {
+  col: number;
+  row: number;
+  /** The turn it was founded. Its muster cadence counts from this. */
+  foundedTurn: number;
 }
 
 // --- entities ---------------------------------------------------------------
@@ -435,6 +538,24 @@ export interface GameConfig {
    * panel; the game itself never sets one.
    */
   mapgenOverrides?: MapgenOverrides;
+  /**
+   * Whether this world has barbarians in it. **Absent means no.**
+   *
+   * A world option, in the config, for `mapgenOverrides`' exact reason: the
+   * config *is* every input the world was made from, and a save is `{config,
+   * log}`. A flag anywhere else — a module constant, a runtime toggle — would
+   * mean two games with the same config replaying to different states, which is
+   * the one promise this whole architecture rests on.
+   *
+   * Off unless asked, and the game asks (`main.ts` sets it on every new game).
+   * The default is the quiet world rather than the loud one because the loud one
+   * cannot be opted out of by anything that never heard of it: a fixture, an
+   * inspection page, a pacing measurement or a test written before Entry XX
+   * would otherwise silently acquire a raider in turn thirty of a run it was
+   * counting hammers in. A player who wants the wild gets it from the new-game
+   * screen; everything else gets the world it always had.
+   */
+  barbarians?: boolean;
 }
 
 export interface GameState {
@@ -498,6 +619,16 @@ export interface GameState {
    */
   citySightings: CitySighting[][];
   /**
+   * Every barbarian camp standing on the board, in founding order.
+   *
+   * An array on the state rather than a flag on a tile — see `BarbarianCamp` for
+   * why — and in founding order rather than map order, because that is the order
+   * they *muster* in and an outcome that depends on iteration order must depend
+   * on an order the state itself carries. Empty in a world with no barbarians in
+   * it, which is every world whose config did not ask for them.
+   */
+  camps: BarbarianCamp[];
+  /**
    * The last player standing, once there is one; `null` while the game is live.
    *
    * Conquest is the only victory v1 has, and it is decided by
@@ -542,6 +673,11 @@ export function normalizeConfig(config: GameConfig): GameConfig {
     const copied = JSON.parse(JSON.stringify(config.mapgenOverrides)) as MapgenOverrides;
     if (Object.keys(copied).length > 0) normalized.mapgenOverrides = copied;
   }
+  // Written only when it is on, exactly as the override sheet is: a quiet world
+  // normalises to *no* key at all and is byte-identical to a config from before
+  // the wild existed. `false` and absent are the same world and must serialise
+  // the same way.
+  if (config.barbarians === true) normalized.barbarians = true;
   return normalized;
 }
 
@@ -600,6 +736,7 @@ export function newGame(config: GameConfig): GameState {
       settlersBuilt: 0,
       tilesPurchased: 0,
       eliminated: false,
+      barbarian: false,
     })),
     turnEnded: normalized.players.map(() => false),
     map,
@@ -612,9 +749,17 @@ export function newGame(config: GameConfig): GameState {
     // every later access is a plain indexed read that cannot be out of range.
     visibility: normalized.players.map(() => newVisibilityGrid(map.tiles.length)),
     citySightings: normalized.players.map(() => []),
+    camps: [],
     winnerId: null,
   };
   placeStartingUnits(state);
+  // The wild is seated **after** the opening rosters, and that ordering is the
+  // whole of why player id is still the player's index: `placeStartingUnits`
+  // asks `chooseStartPositions` for `state.players.length` sites, so a seat
+  // appended before it would have claimed a start of its own and shifted
+  // nobody's — but seated *nothing*, leaving an ownerIndex the roster never
+  // filled. Appended here it costs the real seats nothing at all.
+  if (normalized.barbarians === true) seatBarbarians(state);
   // The opening scouting report. `createUnit` has already refreshed each seat as
   // its pieces landed, but a seat whose roster is empty — a scenario, a future
   // spectator — would otherwise start with no grid computed at all, and a state
@@ -636,6 +781,52 @@ function placeStartingUnits(state: GameState): void {
     if (!player) continue;
     createUnit(state, player.id, placement.unitType, placement.col, placement.row);
   }
+}
+
+/**
+ * Appends the wild, with everything a seat needs and nothing a nation does.
+ *
+ * Every parallel-array-over-players in the state is extended in the same breath,
+ * which is the point of doing it in one function: `turnEnded`, `visibility` and
+ * `citySightings` are all indexed by player id (see their docblocks and the trap
+ * in CLAUDE.md), so a seat added without all three would be a seat whose fog grid
+ * is `undefined` the first time anything asks what it can see.
+ *
+ * Its flag goes up **already finished**. A seat that never ends its turn would
+ * deadlock every resolution, and `clearTurnEnded` re-raises it every turn
+ * thereafter — the same one line that keeps an eliminated empire finished, which
+ * is exactly the right precedent: both are seats the turn must never wait for.
+ *
+ * It is named rather than numbered because the name reaches the player: a combat
+ * forecast says who is being fought.
+ */
+function seatBarbarians(state: GameState): void {
+  const player: Player = {
+    id: state.players.length,
+    name: 'Barbarians',
+    // The simulation never interprets a colour (see `PlayerSpec`); the diorama
+    // maps this one onto the raven ink in `data/view3d.json`.
+    color: '#3a3a42',
+    isHuman: false,
+    gold: 0,
+    sciencePool: 0,
+    culturePool: 0,
+    faithPool: 0,
+    researching: null,
+    // **Empty**, and not the opening kit. The wild does not research and does not
+    // begin holding anything; what it can field is read off the *real* empires
+    // every time it musters (`barbarianTier`), so a starting-tech list here would
+    // be a second, stale answer to the same question.
+    techsResearched: [],
+    settlersBuilt: 0,
+    tilesPurchased: 0,
+    eliminated: false,
+    barbarian: true,
+  };
+  state.players.push(player);
+  state.turnEnded.push(true);
+  state.visibility.push(newVisibilityGrid(state.map.tiles.length));
+  state.citySightings.push([]);
 }
 
 // --- accessors --------------------------------------------------------------
@@ -793,7 +984,44 @@ export function allTurnsEnded(state: GameState): boolean {
  * so there is nothing for a later phase to forget.
  */
 export function clearTurnEnded(state: GameState): void {
-  for (const player of state.players) state.turnEnded[player.id] = player.eliminated;
+  // The wild joins the eliminated on the right-hand side of this line, and that
+  // is the whole of "barbarians are auto-ended every turn": both are seats that
+  // will never send an `endTurn`, so both are re-raised here rather than given a
+  // rule of their own somewhere a later phase could forget it.
+  for (const player of state.players) {
+    state.turnEnded[player.id] = player.eliminated || player.barbarian;
+  }
+}
+
+/**
+ * Every seat that is somebody's empire — the roster with the wild left out.
+ *
+ * **The** register for "who counts": victory, the meters, the seat cycle, the
+ * blockers, the median-tech tier the wild itself musters against, and every
+ * report that says how the game is going all ask this rather than filtering
+ * `state.players` themselves. One implementation, because the failure mode of a
+ * second one is silent — a solo game that declares victory the moment the last
+ * camp falls, or a happiness ledger with a line for the raiders.
+ *
+ * In `state.players` order, which is the order everything else walks players in,
+ * and it is a plain filter rather than a cached list because the roster is tiny
+ * and a cache would be one more thing that can disagree with the array.
+ */
+export function realPlayers(state: GameState): Player[] {
+  return state.players.filter((player) => !player.barbarian);
+}
+
+/** The wild's seat, or `undefined` in a world that has none. */
+export function barbarianPlayer(state: GameState): Player | undefined {
+  for (const player of state.players) {
+    if (player.barbarian) return player;
+  }
+  return undefined;
+}
+
+/** Is this id the wild's? False for an id that names nobody. */
+export function isBarbarian(state: GameState, playerId: number): boolean {
+  return playerById(state, playerId)?.barbarian === true;
 }
 
 /** Linear scan by id; player counts are tiny and arrays keep order honest. */

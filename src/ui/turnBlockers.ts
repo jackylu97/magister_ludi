@@ -60,9 +60,18 @@
  * that cannot exist. A clause reading `chargesLeft` would therefore have been a
  * clause that never changed an answer.
  *
- * The other two blockers are simple facts: a city of yours with an empty
- * production queue, and a research pool aimed at nothing while there is still
- * something to aim it at.
+ * The other three blockers are simple facts: an unanswered discovery offer, a
+ * city of yours with an empty production queue, and a research pool aimed at
+ * nothing while there is still something to aim it at.
+ *
+ * The discovery blocker goes **first**, ahead of the idle unit. The order here is
+ * the cost of forgetting, and forgetting a ruin is the dearest of the four: an
+ * idle unit costs a turn of movement and an empty queue a turn of hammers, both
+ * recoverable, while an unspent offer is a boon the player crossed the map for
+ * and cannot be given by anything else. It is also the only one that *bars* rather
+ * than nags — the reducer refuses a `chooseDiscovery` from a seat that has ended
+ * its turn, so a player who pressed past this would have to wait a whole
+ * resolution to answer a card that is already on screen.
  *
  * Skipped units
  * -------------
@@ -91,7 +100,8 @@ import { type GameState, type Unit, hasEndedTurn, playerById } from '../sim/stat
 export type TurnBlocker =
   | { kind: 'idleUnit'; unitId: number }
   | { kind: 'cityProduction'; cityId: number }
-  | { kind: 'research' };
+  | { kind: 'research' }
+  | { kind: 'discovery' };
 
 /**
  * Is this unit awaiting orders? See the module docblock for why these three
@@ -144,7 +154,20 @@ export function firstBlocker(
 ): TurnBlocker | null {
   const player = playerById(state, playerId);
   if (!player || player.eliminated) return null;
+  // The wild has no screen to be prompted on and never sends an `endTurn`; a
+  // blocker computed for it would be a question nobody can answer.
+  if (player.barbarian) return null;
   if (hasEndedTurn(state, playerId)) return null;
+
+  // **First**, ahead of everything, and that is the cost-of-forgetting order read
+  // one notch further: an idle unit costs a turn of movement and an empty queue a
+  // turn of hammers, but an unanswered discovery costs *the discovery* — the
+  // offer sits on the player until it is spent, no other seat can take it, and a
+  // player who ends the turn without seeing it has simply not been shown the
+  // thing they walked across the map for. It is also the only blocker whose
+  // subject is a decision the reducer is holding open rather than a thing on the
+  // board, which is why it names no id: the empire is the subject.
+  if (player.pendingDiscovery !== undefined) return { kind: 'discovery' };
 
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;

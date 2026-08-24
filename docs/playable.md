@@ -55,9 +55,52 @@ game more playtestable than the last.
   parked, markets are late, so tile purchase is currently unaffordable on a poor start. This is
   the first thing to argue about when item 2 is played.
 
-## 3. Barbarians
-- Roaming hostiles from fog camps; Age-of-Omens military pressure. Deterministic spawns
-  from state.rng; camps as fog-of-war content.
+## 3. Barbarians & discoveries — **BUILT** (2026-08-24; ledger Entry XX)
+Two features in one pass, because they are the same one read twice: the map has things on
+it that are not yours, and a scout is how you find out.
+
+- **The wild is a seat.** A `Player` appended last with `barbarian: true`, so every rule
+  about the *board* — combat, stacking, movement, fog — applies to it unchanged, and the
+  exclusions are written down once instead of special-cased into a dozen rules:
+  `realPlayers` is the register for "who counts" (victory, meters, blockers, seat cycling,
+  the median tier), `clearTurnEnded` keeps it permanently finished, and `advanceResearch`
+  walks past it. Appended *after* the opening rosters, so player id === index still holds
+  and every real seat keeps the id it would have had.
+- **A world option, off by default.** `GameConfig.barbarians` — in the config, because a
+  save is `{config, log}`; off unless asked, so fixtures and pacing measurements get the
+  quiet world; `main.ts` turns it on for every real game.
+- **Camps** appear on a cadence with a cap (no probabilities) in hexes **no real empire can
+  currently see and nobody owns** — remembered ground counts, which is the whole feeling:
+  the country you stopped patrolling is the country that turns. Camps muster on their own
+  cadence and keep mustering while their band is away, so a camp left standing is a faucet.
+- **What comes out is the middle of the pack**: the median real seat's own technologies,
+  mapped through the unit table to the strongest footman. It ignores resource gating (it is
+  not an empire and has no supply) and respects the tier. Horse country musters horsemen
+  from turn 30 — the turn gate *is* that unit's tier check.
+- **+2 for every real empire** attacking or defending against the wild, as a labelled line
+  in `planCombat` that the forecast card prints. Flat, not a percentage, so it is worth the
+  same in every era.
+- **Discoveries**: ruins and villages scattered as the *last* generation pass (so no wheat
+  field moved), claimed by any unit walking onto one, paying a **1-of-3 offer** drawn from
+  `state.rng` at the moment of the claim and resolved by the `chooseDiscovery` command.
+  This is the **first consumer of Entry XV's draft shape** and Statecraft inherits it — the
+  offer card component (`ui/offerCard.ts`) is deliberately an offer-of-N picker.
+- **Every boon is an Entry XVIII windfall**, modifier-immune and settled instantly, which
+  closed two of that entry's open buckets: `settleResearch` (the seam it left explicitly
+  unbuilt — a boon covering the current tech finishes it now and the existing research
+  blocker asks what is next) and `settleGrowth`. Culture and faith bank only, and that is a
+  stated absence: nothing spends either pool yet.
+- **Clearing a camp** pays +25🪙 to the treasury *and* +25🌾 to the clearer's nearest owned
+  city, through the one shared `nearestOwnedCity` rule. An empire with no cities takes the
+  gold and forfeits the food, and the announce line says so.
+- **Deferred on purpose**: barbarians do not capture cities in v1 (a town they beat down
+  stays and heals), and the raider AI is a v1 jitter rather than a patrol.
+
+### Still open from here
+- **The gold faucet, again.** This pass minted two new gold sources (Traders' hoard, the
+  camp bounty) and both are one-time and geographic — the wrong shape for an economy's
+  baseline even if the right shape for an adventure. Flagged in Entry XX.G for the user's
+  review; roads, trade routes and markets are still the real answer.
 
 ## 4. Save / load UI
 - Saves are already `{config, log}` replays; expose them in the interface (save slot,

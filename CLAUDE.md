@@ -65,7 +65,12 @@ would change every seeded outcome. No further rename passes.
 - Fog is unusable with the ortho camera.
 - Piece visuals rebuild off a fingerprint of `(id, col, row, hp, ownerId)` — any new
   visual-affecting unit property must be added to the fingerprint.
-- `Tile.improvement` and `Tile.feature` are the **two** fields on a tile that change during play
+- `Tile.improvement`, `Tile.feature` and `Tile.discovery` are the **three** fields on a tile
+  that change during play. `discovery` is the mildest — it can only ever be *removed*, by a
+  unit walking onto a ruin (`claimDiscoveryAt`) — and it forbids exactly what the other two
+  do. Barbarian camps are deliberately **not** a fourth: they are founded mid-game and carry
+  a history, so they live in `GameState.camps` rather than on the map the seed produced.
+  The other two are what a *verb* writes
   (`buildImprovement`/`pillage`, and `chopFeature`). The map is still reproducible from
   `{config, log}` — both are logged commands — but it is no longer a pure function of the seed
   after turn one, so **nothing may regenerate a tile mid-game**. Features and resources are placed
@@ -88,6 +93,25 @@ would change every seeded outcome. No further rename passes.
   needs its own such record.
 - `turnEnded` assumes player id === array index; revisit if players become removable.
   `visibility` and `citySightings` (M8) make the same assumption and revisit with it.
+  **The barbarian seat is appended *last*, after the opening rosters are seated** (Entry
+  XX), precisely so that assumption survives: every real seat keeps the id it would have
+  had in a quiet world. `seatBarbarians` extends all three parallel arrays in one function
+  — a seat added without all three is a seat whose fog grid is `undefined`.
+- **`realPlayers(state)` is the register for "who counts".** The wild is a `Player` so that
+  combat, stacking, movement and fog need no second implementation; everything that is
+  about being a *nation* asks `realPlayers` instead of filtering `state.players` by hand —
+  victory and elimination, the meters, the End Turn blockers, seat cycling, and the median
+  tier the wild itself musters against. A hand-rolled filter is how a solo game starts
+  declaring victory over an empty steppe. The full loop-by-loop audit is Entry XX.A.
+- **`arriveOnTile` (`arrival.ts`) is the one "a unit came to rest here" seam.** Two things
+  happen because a piece *arrived* rather than because anybody issued a verb — a ruin is
+  claimed, a camp is burnt out — and there are exactly two places a position changes:
+  `advanceAlongPath` (every march, fresh or resumed) and the melee winner's advance in
+  `applyCombat`. Both call it, per *step*, beside `breakFortify` and for its reason. A
+  third way to move a unit must call it too. It reports rather than announces; the reducer
+  passes the report out through `CommandResult.arrivals`, because a cleared camp's bounty
+  is already banked by the time the command returns and re-deriving which town received it
+  would be a second implementation of `nearestOwnedCity`.
 - Fog of war patches the board **in place** (`src/render3d/fog3d.ts`): a visibility change is
   per-instance matrix/tint writes for changed tiles only, never a board rebuild. Anything that
   adds instances to `buildBoard` must pass `tile:` to `collector.add` or it will keep drawing
@@ -107,9 +131,13 @@ would change every seeded outcome. No further rename passes.
   ground scatter a farm ploughs under, `SUPPRESS.decor` for anything a town clears away).
   `addDecorations`'s `place` defaults to `decor`, so forgetting is safe there and nowhere else
   — an ungraded scrap is a pine growing through a market square.
-- Layers that filter by the local seat (units, cities, territory, improvements, lens,
-  walk/death animations) are rebuilt off `FogStats.tiles` in the render loop, not off their own
-  fingerprints — a new seat-filtered layer must be added there too. A layer rebuilt *outside*
+- Layers that filter by the local seat (units, cities, territory, improvements, **sites**,
+  lens, walk/death animations) are rebuilt off `FogStats.tiles` in the render loop, not off
+  their own fingerprints — a new seat-filtered layer must be added there too. `sites3d.ts`
+  is the one layer with **two** fog rules and they are not interchangeable: a ruin or a
+  village is *ground* and survives on remembered hexes (the improvement rule), while a camp
+  is an *occupation* and is drawn only where the seat can see right now (the unit rule) —
+  a remembered camp would be a banner a player sends a warrior at. A layer rebuilt *outside*
   `FogView` must also re-apply the wash itself, or it comes up lit on remembered ground; see
   `ImprovementLayer.paintFog` for the pattern (`tile:` on every instance, then `setWash` from
   the collector's own tile→handle map). A per-seat fact about *the board's own* instances is
@@ -167,6 +195,13 @@ would change every seeded outcome. No further rename passes.
      anything.
   7. `foundCityAt` — the odd one out: it *creates* the derived state, and goes through
      the helper anyway so the claim below is exactly true.
+  8. **`settleGrowthWindfall`** (Entry XX) — a grain cache or a camp's provisions that
+     fills the basket. It owes more than the production windfall does: a city that just
+     gained a citizen has a citizen to *place*.
+  9. **`settleResearchWindfall`** (`tech.ts`, Entry XX) — the odd one at the other end. It
+     refreshes **every** city of one empire rather than one, because a technology is an
+     empire-wide fact about what ground is worth (a renewal, a resource reveal) and the
+     citizen who should move is in whichever town stands on the seam.
   **A new mid-turn yield mutation calls `refreshCityDerived` and adds itself to this
   list.** `assignCitizens` therefore has exactly two callers in the sim — `collectYields`
   (the phase) and the helper — and `test/sim/cities.test.ts` asserts that by reading the

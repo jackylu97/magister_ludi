@@ -28,6 +28,16 @@ describe('module load order', () => {
     '../../src/sim/resourceEffects',
     '../../src/sim/startPositions',
     '../../src/sim/resources',
+    // Entry XX's five: the two halves of the discoveries (`discoveryPlacement`
+    // is imported by `mapgen`, `discoveries` by the reducer), the camp registry,
+    // the one "a unit arrived" seam, and the wild itself — which imports
+    // `combat` and is imported by `turn`, so it closes a loop through the entire
+    // simulation if anything in it is hoisted.
+    '../../src/sim/discoveryPlacement',
+    '../../src/sim/discoveries',
+    '../../src/sim/camps',
+    '../../src/sim/arrival',
+    '../../src/sim/barbarians',
     '../../src/sim/mapgen',
     '../../src/sim/state',
     '../../src/sim/game',
@@ -43,10 +53,13 @@ describe('module load order', () => {
       // start scorer and both fairness passes, and a turn runs every evaluator
       // that sits on one of the cycles.
       const { createGame, dispatch } = await import('../../src/sim/game');
+      // With the wild in it, so the barbarian phase runs inside the resolution
+      // below and every module on that side of the graph is exercised too.
       const game = createGame({
         seed: 4242,
         sizeName: 'duel',
         players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
+        barbarians: true,
       });
       expect(game.state.map.tiles.length).toBeGreaterThan(0);
       expect(game.state.units.length).toBeGreaterThan(0);

@@ -85,6 +85,7 @@ import {
   mapgenFor,
   resolveMapgenConfig,
 } from './mapgenData';
+import { placeDiscoveries } from './discoveryPlacement';
 import { createNoise3D, fbm3, ridged3, type Noise3D } from './noise';
 import { placeResources } from './resources';
 import { makeRng, nextUint32 } from './rng';
@@ -862,6 +863,12 @@ export function generateMapDetail(
   // they were before resources existed. Adding a pass must never move the
   // ground. See `resources.ts`.
   placeResources(map, rng, config.resources);
+
+  // Pass 7: the ruins and the villages, and they are **last** for the third time
+  // for the same reason — every draw made here is a draw nothing before it can
+  // see, so terrain, water and resources on a given seed are bit-identical to
+  // what they were before discoveries existed. See `discoveryPlacement.ts`.
+  placeDiscoveries(map, rng);
 
   return { map, rivers, lakeCount, floodplainCount };
 }

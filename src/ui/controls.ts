@@ -144,7 +144,7 @@ import {
   isRanged,
   previewCombat,
 } from '../sim/combat';
-import type { Command } from '../sim/commands';
+import type { Command, CommandResult } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { yieldContextFor } from '../sim/cities';
 import {
@@ -168,7 +168,14 @@ import { type Tile, getTileAt, mapRange, tileHex } from '../sim/map';
 import { authorityOf, happinessOf } from '../sim/meters';
 import { findPath, reachableTiles } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
-import { type City, type Unit, cityById, hasEndedTurn, unitById } from '../sim/state';
+import {
+  type City,
+  type Unit,
+  cityById,
+  hasEndedTurn,
+  playerById,
+  unitById,
+} from '../sim/state';
 import { type ResearchReport, researchSince, researchSnapshot } from '../sim/tech';
 import { techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
@@ -176,6 +183,7 @@ import { unitDef } from '../sim/unitData';
 import { unitsOnTile } from '../sim/units';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
+import { YIELD_GLYPH } from './figures';
 import {
   type CellRef,
   type FallenUnit,
@@ -353,6 +361,18 @@ export interface GameControlsOptions {
    * research" by closing the only screen that can fix it.
    */
   onOpenTechTree?: () => void;
+
+  /**
+   * Puts the local seat's pending discovery card in front of the player.
+   *
+   * It carries nothing, deliberately: the offer is *on the player*
+   * (`Player.pendingDiscovery`), so the screen reads it from the state rather
+   * than being handed a copy that could be one command out of date. Called from
+   * exactly two places, and they are the same two `onOpenTechTree` has — the
+   * moment a march claims a site, and the End Turn blocker when the player has
+   * wandered off without answering.
+   */
+  onOfferDiscovery?: () => void;
 
   /**
    * Opens or closes the Abacus, the score screen. `A`, on the same terms as
@@ -645,6 +665,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onToggleTechTree,
     onToggleAbacus,
     onOpenTechTree,
+    onOfferDiscovery,
     onDamage,
     onVictory,
   } = options;
@@ -1276,8 +1297,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * Everything the interface says afterwards is measured rather than reported by
    * the reducer: the names come from the forecast taken beforehand, and the
    * damage figures are hit-point differences across the dispatch. That is
-   * deliberate — `CommandResult` stays `{ ok }` and the UI stays a reader of the
-   * board, which means these numbers cannot disagree with what the board shows.
+   * deliberate — the UI stays a reader of the board, which means these numbers
+   * cannot disagree with what the board shows.
+   *
+   * The one thing it does *not* measure is what the advance found on the tile it
+   * took: a cleared camp's bounty is already banked by the time this returns and
+   * the camp is gone, so that half is reported by the command rather than read
+   * off the board (`CommandResult.arrivals`, and `reportArrivals` below).
    */
   function issueAttack(hover: HoverInfo): boolean {
     const unit = selectedUnit();
@@ -1325,6 +1351,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
     setMoveMode(false);
     reportCombat(view, before, cityHpBefore, attackerFrom, { col, row });
+    // A melee winner that advanced may have stormed a camp or ridden into a
+    // ruin. Said after the blow, because that is the order it happened in.
+    reportArrivals(result);
 
     if (getGame().state.winnerId !== null && wonBefore === null) {
       onVictory?.(getGame().state.winnerId!);
@@ -2065,9 +2094,45 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const walked = walkedPrefix(route, { col: unit.col, row: unit.row });
     if (walked.length > 0) renderer.animateMove(unit.id, from, walked);
 
+    reportArrivals(result);
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), hover);
+  }
+
+  /**
+   * Says what a march or a charge turned up, and puts a claimed offer on screen.
+   *
+   * Reads the reducer's own report (`CommandResult.arrivals`) rather than
+   * re-deriving anything from the board: the camp is gone by the time this runs
+   * and its bounty is already banked, so "which town received the provisions" is
+   * a question only the command that paid them can answer. See `arrival.ts`.
+   *
+   * The bounty gets a notice line and the discovery does not, and that is the
+   * split it should be: a camp cleared is *news*, over in a sentence, while an
+   * offer is a **decision** and the card is how it announces itself. Saying both
+   * would put a line in the bar that the modal on top of it immediately hides.
+   */
+  function reportArrivals(result: CommandResult): void {
+    if (!result.ok || !result.arrivals) return;
+    for (const arrival of result.arrivals) {
+      const { camp } = arrival;
+      if (camp) {
+        const parts = [`+${camp.gold}${YIELD_GLYPH.gold}`];
+        if (camp.cityName !== null) {
+          const grew = camp.grownTo === null ? '' : ` · grows to ${camp.grownTo}`;
+          parts.push(`+${camp.food}${YIELD_GLYPH.food} → ${camp.cityName}${grew}`);
+        } else if (camp.warning !== null) {
+          // The forfeited half, said out loud. An empire with no towns has
+          // nowhere to put provisions, and a boon that vanished silently is the
+          // interface keeping a secret.
+          parts.push(camp.warning);
+        }
+        announce(`⚔ Camp cleared: ${parts.join(', ')}`);
+      }
+      // The card is the announcement for a discovery — see the docblock.
+      if (arrival.discovery) onOfferDiscovery?.();
+    }
   }
 
   /**
@@ -2079,7 +2144,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const count = state.players.length;
     for (let step = 1; step <= count; step++) {
       const player = state.players[(from + step) % count];
-      if (player && !hasEndedTurn(state, player.id)) return player.id;
+      // The wild is never a seat this harness hops to. Its `turnEnded` flag is
+      // raised every turn (`clearTurnEnded`), so the second clause already
+      // covers it — the first is here because "which seats can a human sit in"
+      // is a question that should be answered by the fact, not by a side effect
+      // of the turn flags.
+      if (player && !player.barbarian && !hasEndedTurn(state, player.id)) return player.id;
     }
     return null;
   }
@@ -2217,6 +2287,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       case 'research': {
         announce('☞ Your scholars await direction.');
         onOpenTechTree?.();
+        return;
+      }
+      case 'discovery': {
+        const offer = playerById(state, localPlayerId)?.pendingDiscovery;
+        if (offer) panToCell({ col: offer.col, row: offer.row });
+        announce('☞ A discovery awaits your judgment.');
+        onOfferDiscovery?.();
         return;
       }
     }

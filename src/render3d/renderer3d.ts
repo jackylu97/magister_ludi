@@ -88,6 +88,7 @@ import { LensLayer, NO_LENS, sameLens } from './lens3d';
 import { VIEW3D, playerPieceColor } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { OverlayLayer } from './overlays';
+import { SiteLayer, signSites } from './sites3d';
 import {
   UnitLayer,
   badgeAnchors,
@@ -140,6 +141,7 @@ export class Renderer3D implements MapView {
   private readonly tints = new TintLayer();
   private tintList: readonly TileTint[] = [];
   private readonly improvements = new ImprovementLayer();
+  private readonly sites = new SiteLayer();
   private readonly overlays = new OverlayLayer();
   private readonly lens = new LensLayer();
   private readonly animations = new MoveAnimations3D();
@@ -224,6 +226,8 @@ export class Renderer3D implements MapView {
   private territorySignature = 0;
   /** The same for the works on the ground. See `signImprovements`. */
   private improvementsSignature = 0;
+  /** The same for the ruins, the villages and the camps. See `signSites`. */
+  private sitesSignature = 0;
   /** The works whose cleared ground has already been applied. See `clearGround`. */
   private clearedImprovementsSignature = 0;
   /** The towns whose cleared ground has already been applied. See `clearGround`. */
@@ -290,6 +294,7 @@ export class Renderer3D implements MapView {
     this.scene.add(this.tints.group);
     this.scene.add(this.territory.group);
     this.scene.add(this.improvements.group);
+    this.scene.add(this.sites.group);
     // Under the overlays: a lens is information about the ground, and the
     // selection ring and route have to stay readable on top of it.
     this.scene.add(this.lens.group);
@@ -414,6 +419,7 @@ export class Renderer3D implements MapView {
     this.rebuildCities();
     this.rebuildTerritory();
     this.rebuildImprovements();
+    this.rebuildSites();
     this.rebuildOverlays();
     this.rebuildLens();
     this.applyFog();
@@ -618,6 +624,7 @@ export class Renderer3D implements MapView {
     this.rebuildCities();
     this.rebuildTerritory();
     this.rebuildImprovements();
+    this.rebuildSites();
     this.rebuildLens();
     this.invalidate();
   }
@@ -747,6 +754,18 @@ export class Renderer3D implements MapView {
       this.fogLevels(),
     );
     this.improvementsSignature = signImprovements(this.state);
+  }
+
+  private rebuildSites(): void {
+    if (!this.state) return;
+    this.sites.build(
+      this.state,
+      this.geometry,
+      this.materials,
+      this.shadows,
+      this.fogLevels(),
+    );
+    this.sitesSignature = signSites(this.state);
   }
 
   private rebuildOverlays(): void {
@@ -1597,6 +1616,12 @@ export class Renderer3D implements MapView {
     if (this.state && (fogMoved || signImprovements(this.state) !== this.improvementsSignature)) {
       this.rebuildImprovements();
     }
+    // Sites are seat-filtered twice over — a ruin fades on remembered ground and
+    // a camp is not drawn at all off it — so a fog move reaches this layer for
+    // both of its tenants. See `sites3d.ts`.
+    if (this.state && (fogMoved || signSites(this.state) !== this.sitesSignature)) {
+      this.rebuildSites();
+    }
     if (this.state && (fogMoved || signTerritory(this.state) !== this.territorySignature)) {
       this.rebuildTerritory();
       // Borders decide whose ground a settler may stand on, so the same applies.
@@ -1632,6 +1657,7 @@ export class Renderer3D implements MapView {
     this.territory.dispose();
     this.tints.dispose();
     this.improvements.dispose();
+    this.sites.dispose();
     this.lens.dispose();
     this.overlays.dispose();
     this.fog?.dispose();

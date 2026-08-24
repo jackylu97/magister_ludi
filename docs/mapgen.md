@@ -29,6 +29,7 @@ types and the override seam), `docs/luxuries.md` (the resource table itself),
 7. [The luxury deal](#the-luxury-deal)
 8. [The density budgets and the settle pass](#the-density-budgets-and-the-settle-pass)
 9. [Starts: scoring and the fairness guarantees](#starts-scoring-and-the-fairness-guarantees)
+9b. [Discoveries: the last pass](#discoveries-the-last-pass)
 10. [The experimental loop](#the-experimental-loop)
 11. [Every tunable](#every-tunable)
 
@@ -946,3 +947,47 @@ about a city. Parked, not planned.
 | `hostileTerrain` | desert, tundra, snow | terrain nobody should start on or be surrounded by |
 | `maxHostileRingShare` | 0.45 | share of the rings that may be hostile before refusal |
 | `maxWaterRingShare` | 0.5 | share of the rings that may be water before refusal |
+
+---
+
+## Discoveries: the last pass
+
+Ancient ruins and tribal villages (`placeDiscoveries`, `src/sim/discoveryPlacement.ts`;
+design ledger Entry XX). **The only generation pass whose tunables are not in
+`data/mapgen.json`** — they live in `data/discoveries.json`, beside the pool of boons a
+site hands over, because "how many ruins are there" and "what does a ruin give you" are one
+designer's decision made in one sitting. Halve the payoffs and you will want more of them.
+
+It is also the only pass that is not a *geography*: it reads neither field, it dresses
+ground the two fields have already decided.
+
+**It runs last, after `placeResources`**, and that ordering is load-bearing in exactly the
+way the rivers' and the resources' are: every draw it makes is a draw nothing before it can
+see, so terrain, hills, features, river edges and every resource on a given seed are
+bit-identical to what they were before discoveries existed. A pass inserted anywhere
+earlier would have moved every wheat field on every map in the game.
+
+**The ground a site may take**: passable land (so no mountains and no sea — a ruin nothing
+can walk to is a decoration), carrying **no resource** (a hex already drawing a wheat sheaf
+and a reveal marker does not also want broken columns on it), `minDistanceFromStart` from
+every start in the **maximum roster's** seating — the same list the resource guarantees use,
+because a short roster's starts are a prefix of a full one's — and `minDistanceApart` from
+every site already placed, *across both kinds*, since two ruins four hexes apart and a ruin
+four hexes from a village are the same crowding on the board.
+
+One shuffle decides which legal hexes are considered first; two greedy sweeps then take
+what still satisfies the spacing, ruins before villages. The counts are a **ceiling, not a
+promise** — a map with room seats all of them, a cramped one seats what it has room for,
+which is `oasisShare`'s bargain exactly.
+
+### data/discoveries.json → placement
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `ruinsPerThousandLand` | 5 | ruins budget per 1000 land tiles, before spacing thins it |
+| `villagesPerThousandLand` | 4 | the same for villages |
+| `minDistanceFromStart` | 6 | how far a site must stand from every possible start |
+| `minDistanceApart` | 4 | how far a site must stand from every site already placed |
+
+`offerSize` (3) and the `rows` table in the same file are gameplay rather than generation —
+what a claim deals and what each row pays. See design ledger Entry XX.E–F.

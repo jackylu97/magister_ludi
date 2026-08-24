@@ -106,7 +106,7 @@ describe('the visibility grid', () => {
     // on to 11, M10's meters to 12 and the luxuries pass to 13 — the fog fields
     // are still carried by whatever the current number is, which is what this
     // assertion is really pinning.
-    expect(SCHEMA_VERSION).toBe(14);
+    expect(SCHEMA_VERSION).toBe(15);
   });
 
   it('survives a JSON round trip as plain data', () => {

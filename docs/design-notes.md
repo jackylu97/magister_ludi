@@ -1659,3 +1659,220 @@ and the helper — and `test/sim/cities.test.ts` asserts that **by reading the s
 source-level assertion is a weak thing to defend a doctrine with and it is there anyway,
 for the one failure the behavioural tests cannot see: a seventh mutation hand-rolling its
 own refresh, which would work, pass everything, and quietly end the claim.
+
+## Entry XX — Barbarians and discoveries (playable.md item 3, **built** 2026-08-24)
+
+Two features in one pass because they are the same feature read twice: *the map has
+things on it that are not yours*. One of them rewards walking into it and one of them
+punishes not watching it, and both are the reason a scout is worth building.
+
+### A. The wild is a seat
+
+**Barbarians are a `Player`, appended last, flagged `barbarian: true.`** Every rule in
+this simulation is written in terms of a player — combat asks whose unit it is, stacking
+asks whose category is on the hex, visibility keeps a grid per player id,
+`attackTargetAt` compares owner ids. Ownerless barbarians would have meant a second
+answer to each of those, which is what rule 5 forbids one grade up. So the wild is a
+player and the **exclusions are written down once** instead of a special case being
+written into a dozen rules.
+
+Appended *after* the opening rosters are seated, so `player id === index` still holds
+(the CLAUDE.md trap) and every real seat keeps the id it would have had in a game with
+no barbarians at all — asserted, unit for unit, in `test/sim/barbarians.test.ts`.
+
+The audit of every `for (player of players)` loop, which is the actual deliverable here:
+
+| loop | wild in? | why |
+| --- | --- | --- |
+| `allTurnsEnded` | yes | its flag is raised, so nothing ever waits for it |
+| `clearTurnEnded` | yes, with a clause | `eliminated \|\| barbarian` — it joins the eliminated on the right-hand side of the one line that owns turn flags |
+| `updateElimination` | **no**, both ways | never marked out (it holds nothing between camps), never counted (a solo game would otherwise be won the moment the last raider fell) |
+| `advanceResearch` | **no** | the wild does not learn; it inherits (`barbarianTier`) |
+| `collectYields`, `expandBorders` | yes, no-op | it owns no cities, so both are empty sweeps rather than exceptions |
+| meters, blockers, seat cycling | **no** | all interface, all asked of `realPlayers` |
+| combat, movement, stacking, fog | **yes** | these are the rules it exists to be inside |
+
+`realPlayers(state)` is the one register for "who counts". A second filter written by
+hand somewhere is how a solo game starts declaring victory over an empty steppe.
+
+**It is a world option, off by default.** `GameConfig.barbarians` lives in the config
+because the config *is* every input the world was made from and a save is `{config, log}`.
+It defaults off so that a fixture, an inspection page or a pacing measurement gets the
+world it always had; `main.ts` sets it on every real game. A flag anywhere else would
+mean two games with the same config replaying to different states.
+
+### B. Camps, and where they may stand
+
+Camps are **state, not board** (`GameState.camps`), which is the one place this pass
+parts company with the discoveries: a `Tile.discovery` is generation output that play
+consumes, while a camp is founded mid-game and has a history (when it appeared, which is
+what its muster cadence counts from). Putting it on the tile would have made the map
+carry state the seed never produced.
+
+The ratified reading of "out of sight" is **not currently visible to any real empire, and
+outside all territory** — not "never explored". Terra Incognita alone would have stopped
+camps appearing once the map had been walked, which is precisely when the pressure is
+supposed to start. Currently-visible is Civ's rule and it is the whole feeling: *the
+country you stopped patrolling is the country that turns.* Plus three distances (city,
+start, other camps) and the plain impossibilities — a hex nothing can walk to, one
+somebody is standing on, one with a town, a camp or a ruin already on it.
+
+Nothing here is a probability. Camps arrive on a **cadence** with a cap beside it, so a
+run of bad luck cannot bury an empire; the one die is *which* legal hex, drawn uniformly
+from a list built in tile-index order.
+
+### C. What comes out: the median rule, as implemented
+
+> Sort the real seats that are still in the game by `(techsResearched.length, id)`
+> ascending, take index `floor((n − 1) / 2)` — the **lower** middle on an even roster —
+> and field the strongest `modelClass: 'melee'` unit that seat's **own technologies**
+> unlock.
+
+Step four is the part worth being explicit about: a median *count* says how many nodes the
+middle empire holds and nothing about which, and "the strongest unit unlocked by six
+unspecified technologies" is not a question the tech table can answer. Taking the median
+seat's actual tree makes the rule one sentence — *the wild fights like the middle of the
+pack* — and a pure function of the state. The lower median is the same instinct: the wild
+follows the pack, it does not lead it. A runaway empire therefore does not arm its own
+enemies.
+
+**The wild ignores resource gating and respects the tech tier.** It fields swordsmen with
+no iron, because it is not an empire and has no supply — it is what is already out there.
+That is the one asymmetry in the whole feature and it is written down in three places
+because it looks like a bug in six months.
+
+**The horse exception**: a camp within `horsesRadius` of a herd musters horsemen from
+`horsemanFromTurn` (30). The turn gate **is** the tier check for that one type — the wild
+never researches Husbandry, and a herd on the steppe is not waiting for anybody's
+permission. What the gate is really for is the opening: without it, whether an empire
+meets cavalry on turn ten is decided by where a camp happened to land, which is a coin
+flip rather than a difficulty.
+
+### D. Where the phase sits, and why
+
+`barbarians` goes into `END_OF_TURN_PHASES` between `healCities` and `healUnits`.
+
+- *After the cities' phases*, so a raid is resolved against the world the turn produced —
+  a town that grew this turn defends at its new size.
+- *Before `healUnits`*, and this is the load-bearing half. That phase asks one question of
+  every unit — did it spend anything this turn? — and a raider that marched or fought must
+  answer no, exactly as a player's unit does. Put it after `resetMovement` instead and the
+  raid would spend an allowance that had just been refilled, making a barbarian's movement
+  free and its wounds permanent.
+- *Before `refreshVisibility`*, necessarily: raiders moved.
+
+Inside the phase: found, snapshot, muster, raid. The snapshot is why a band mustered this
+turn does not also march in it.
+
+Behaviour is v1 and knows it: march at the nearest thing within `aggressionRadius` that
+the wild can **actually see** (its own fog grid, not omniscience), attack through
+`applyCombat` when adjacent, wander near the nearest camp otherwise. The wander re-draws
+each turn, so an idle band jitters rather than patrolling — deterministic, and enough to
+move the piece until the wild is worth designing properly.
+
+**+2 for everybody else.** Every real empire is `combatBonus` stronger attacking *or*
+defending against the wild, as a labelled line in `planCombat` (`CombatBonusLine`) that
+the forecast card prints — one evaluator, so the preview a player read is the fight the
+raider gets. Flat points rather than a percentage, and added *after* the multipliers,
+because the damage curve is exponential in the *difference* of two strengths: +2 is worth
+the same multiplier against a warrior as against a longswordsman, which is exactly what
+"barbarians are a nuisance, not a scaling threat" wants.
+
+**v1 barbarians do not capture cities.** They pillage by standing on things and they beat
+a town down to 1 hit point, where it stays and heals. What a barbarian *does* with a city
+is a real design decision and it is deferred rather than guessed at.
+
+### E. Discoveries, and the first draft
+
+Ruins and villages are scattered as the **last** pass of generation, after the resources'
+dice, so adding them moved not one wheat field on any map in the game. Off every possible
+start by `minDistanceFromStart`, spaced from each other, on walkable land with no resource
+on it. The counts are a *ceiling*, not a promise — spacing thins them, which is
+`assignOases`' bargain.
+
+**Any unit claims one by walking onto it**, through `arriveOnTile` — the one
+implementation of "a unit came to rest on a hex, and the hex had something on it", called
+from the two places a position changes (the march, and a melee winner's advance). Gating
+the claim on scouts would have made it a rule to remember rather than a thing to discover.
+
+**This is the first consumer of Entry XV's draft shape**, and Statecraft inherits it
+rather than inventing a second one:
+
+1. **The offer is a draw, taken once**, from `state.rng`, at the instant of the claim, and
+   stored on the player. Not rolled when a card opens: under simultaneous turns two seats
+   open screens at different moments, and an offer generated on sight would make the deal
+   a function of when somebody looked at a monitor.
+2. **The pick is a command naming an index**, never an id — an index can only ever refer to
+   something the player was actually dealt.
+3. **Both halves are in the log**, so a replay deals the same three cards and takes the
+   same one.
+4. **One at a time.** A player already holding an unanswered offer does not claim a second,
+   and the site is *left standing* rather than consumed — overwriting would silently
+   destroy a boon already promised.
+5. There is no reroll and no decline. Magister's Dice will add a reroll as *its own*
+   command, which is the right shape for a thing you spend something on.
+
+An unanswered offer is the **first** End Turn blocker there is, ahead of the idle unit.
+The order in that file is the cost of forgetting, and forgetting a ruin is the dearest of
+the four: a turn of movement and a turn of hammers are recoverable, a boon nobody can give
+you again is not.
+
+### F. Every boon is a windfall, and the research seam is closed
+
+The pool is eight rows, flavour-split by a **weight per kind** rather than two disjoint
+tables — ruins lean relics and knowledge, villages lean people and provisions, and no row
+is exclusive to one site.
+
+| row | pays | leans |
+| --- | --- | --- |
+| Grain cache | +20🌾 to the nearest owned city | village |
+| Masons' hoard | +20⚙ to the nearest owned city | ruins |
+| Star tablets | +15🔬 | ruins |
+| Forgotten hymns | +15🎭 | ruins |
+| Relics of the old faith | +15🕯 | ruins |
+| A guide offers service | a free Scout, on the site | village |
+| Laborers join you | a free Worker, on the site | village |
+| Traders' hoard | +25🪙 | either |
+
+Every one is an **Entry XVIII windfall**: the printed number, paid exactly,
+**modifier-immune** (no city percentages, no meter tiers, no XVII staging — XVIII.5,
+extended to the ruins and pinned), settled the instant it lands through the bucket's own
+`settle…Windfall`.
+
+Which closed **two** of Entry XVIII's open buckets, both because a windfall finally
+existed to serve them:
+
+- **`settleResearch` / `settleResearchWindfall`** (`tech.ts`), the seam XVIII explicitly
+  left unbuilt. `advanceResearch` is now a sweep of it, in the same three shapes
+  production has (plan · settle · windfall wrapper). Star tablets that cover the current
+  technology finish it *that instant*, keep the overflow, clear the aim — and the existing
+  research blocker then asks what to learn next, which is the whole of "announce +
+  choose-next" with no new prompt invented. The windfall wrapper is the **widest** of the
+  three: a technology is an empire-wide fact about what ground is worth (a renewal, a
+  resource reveal — Entry XIX.A), so it re-seats every city of that empire rather than one.
+- **`settleGrowth` / `settleGrowthWindfall`** (`cities.ts`). A grain cache that fills the
+  basket grows the town *now*. `growCities` keeps only the half a windfall can never
+  cause: starvation is the absence of a settlement, not a settlement.
+
+Culture and faith are banked and nothing else, and that is a **stated absence** rather
+than a gap: nothing in the game spends either pool yet, and a completion routine with
+nothing to complete is exactly the guess XVIII refused to make about research. When the
+Statecraft meter lands, the forgotten hymns become its first windfall.
+
+**The camp bounty is two windfalls** (user, 2026-08-24): `campClearGold` to the treasury
+and `campClearFood` to the clearer's **nearest owned city** — the same
+`nearestOwnedCity` the grain cache lands by, asked once and shared, because they are the
+same sentence and two implementations of it would be two answers on a tie. An empire with
+**no cities at all** collects the gold and forfeits the food, with the interface saying so
+in the announce line; inventing a destination would be worse than saying there is none.
+
+### G. Open flags for review
+
+- **The gold faucet.** Two rows in this pass mint gold — Traders' hoard (+25🪙) and the
+  camp bounty (+25🪙) — and they are the first new sources since playable.md item 2 flagged
+  that there is barely a faucet at all. They are *deliberately* on the list to argue about:
+  a ruin and a camp are both one-time, unrepeatable and geographic, which is the wrong
+  shape for an economy's baseline even if it is the right shape for an adventure. Roads,
+  trade routes and markets remain the real answer.
+- Barbarian city capture, above.
+- The wander behaviour, above.

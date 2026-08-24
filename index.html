@@ -99,6 +99,20 @@
          never takes a pointer event: the board underneath stays draggable. -->
     <div id="turn-splash" aria-live="polite"></div>
 
+    <!-- The offer card: pick one of N, built by src/ui/offerCard.ts. It is the
+         one genuinely blocking screen in this interface — a claimed ruin's boon
+         cannot be come back to by any other route, so there is no close button
+         and Esc does nothing. The End Turn blocker is what stops a player
+         wandering off before they answer it. Its bones are Statecraft's. -->
+    <div
+      id="offer-overlay"
+      class="offer-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="A discovery"
+      hidden
+    ></div>
+
     <!-- ================= the HUD =================================
          One surface per job, each pinned where it never moves, so nothing the
          player reads or presses ever shifts under them:

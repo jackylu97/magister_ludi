@@ -132,6 +132,86 @@ export interface ImprovementRules {
   pillageGold: number;
 }
 
+/**
+ * The wild: how often camps appear, where they may stand, what comes out of
+ * them, and what clearing one is worth (design ledger, Entry XX).
+ *
+ * Every number the barbarian system is made of. The *algebra* is
+ * `src/sim/barbarians.ts`; the per-unit half of it is `data/units.json` as it is
+ * for every other army, because the wild fields the same roster everybody else
+ * does — it simply does not have to pay for it.
+ *
+ * Nothing here is a probability. Camps and their bands arrive on **cadences**
+ * (`campEveryTurns`, `unitEveryTurns`) with hard caps beside them, so a run of
+ * bad luck cannot bury an empire and a run of good luck cannot make the wild a
+ * decoration. The one die the system rolls is *which* legal tile a camp lands on,
+ * and it is drawn from `state.rng` like every other roll in the game.
+ */
+export interface BarbarianRules {
+  /** First turn a camp may appear at all. The opening is meant to be quiet. */
+  firstCampTurn: number;
+  /** A camp-founding sweep runs every this many turns, from `firstCampTurn`. */
+  campEveryTurns: number;
+  /** How many camps one sweep may found. */
+  campsPerSpawn: number;
+  /** Hard ceiling on live camps, however long the game runs. */
+  maxCamps: number;
+  /** How far a new camp must stand from every city, anyone's. */
+  minCampDistanceFromCity: number;
+  /**
+   * How far a new camp must stand from every start position.
+   *
+   * Distinct from the city rule and not redundant with it: a player who has not
+   * founded yet still owns the ground they opened on, and a camp planted on a
+   * capital's doorstep before the settler stops walking is a coin flip rather
+   * than a difficulty.
+   */
+  minCampDistanceFromStart: number;
+  /** How far a new camp must stand from every camp already standing. */
+  minCampDistanceApart: number;
+  /** A camp musters a unit every this many turns after it was founded. */
+  unitEveryTurns: number;
+  /** How many live units one camp may have in the field at once. */
+  maxUnitsPerCamp: number;
+  /**
+   * How far from its camp a unit still counts against `maxUnitsPerCamp`.
+   *
+   * A band that has marched off to besiege a town is no longer the camp's
+   * garrison, so the camp may muster again — which is what makes a camp left
+   * standing a *faucet* rather than a one-off.
+   */
+  campUnitRadius: number;
+  /** How far a barbarian unit will look for something to attack. */
+  aggressionRadius: number;
+  /** How far from its camp a unit with nothing to attack will drift. */
+  wanderRadius: number;
+  /** How far from a horses tile a camp counts as horse country. */
+  horsesRadius: number;
+  /**
+   * First turn horse country musters horsemen rather than footmen.
+   *
+   * The turn gate **is** the horseman's tier check, deliberately: the wild does
+   * not research Husbandry, so a date on the calendar stands in for it. Without
+   * it a camp beside a herd would be fielding cavalry against warriors on turn
+   * ten, which is not difficulty, it is a coin flip about where a camp landed.
+   */
+  horsemanFromTurn: number;
+  /**
+   * Flat combat strength every *real* empire adds when it fights the wild,
+   * attacking or defending.
+   *
+   * Flat rather than a percentage because the damage curve is exponential in the
+   * *difference* of two strengths (see `combat.ts`): a flat +2 is worth the same
+   * multiplier against a warrior as against a longswordsman, which is exactly the
+   * property "barbarians are a nuisance, not a scaling threat" wants.
+   */
+  combatBonus: number;
+  /** Gold the clearing empire's treasury gains for taking a camp. */
+  campClearGold: number;
+  /** Food the clearing empire's nearest owned city banks for taking a camp. */
+  campClearFood: number;
+}
+
 /** Relative desirability of each yield when a citizen picks a tile to work. */
 export interface CitizenWeights {
   food: number;
@@ -365,6 +445,7 @@ export interface RulesConfig {
   healing: HealingRules;
   combat: CombatRules;
   improvements: ImprovementRules;
+  barbarians: BarbarianRules;
   cities: CityRules;
   meters: MeterRules;
   research: ResearchRules;

@@ -887,8 +887,8 @@ describe('research in the log', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 14 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(14);
+  it('round-trips a schema 15 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(15);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

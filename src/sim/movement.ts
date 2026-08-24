@@ -40,6 +40,7 @@
  * `applyCombat`.
  */
 
+import { type ArrivalReport, arriveOnTile } from './arrival';
 import { breakFortify } from './combat';
 import { getTileAt } from './map';
 import { type Cell, canStopOn, canTransit, tileMoveCost } from './pathfind';
@@ -50,6 +51,16 @@ export interface AdvanceResult {
   steps: number;
   /** True when the remaining order was abandoned because the route is gone. */
   cleared: boolean;
+  /**
+   * What the walk turned up, in the order it was walked: a ruin claimed, a camp
+   * burnt out. Only the steps that found something are in it, so an ordinary
+   * march reports an empty array.
+   *
+   * A list rather than one report, because a march is many arrivals — a column
+   * that rides through a camp and stops on a village did both, and an interface
+   * that could only say one of them would be dropping news the player earned.
+   */
+  arrivals: ArrivalReport[];
 }
 
 /**
@@ -63,6 +74,7 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
   let steps = 0;
   let cleared = false;
   let index = 0;
+  const arrivals: ArrivalReport[] = [];
 
   while (index < path.length && unit.movesLeft > 0) {
     const step = path[index]!;
@@ -90,6 +102,13 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
     // of "the unit moved", exactly as this function is one implementation of the
     // walk itself.
     breakFortify(unit);
+    // And the other half of "the unit entered a tile": whatever was standing on
+    // it. Beside `breakFortify` for exactly its reason — one place a position
+    // changes, one place that can forget — and per *step* rather than at the end
+    // of the walk, because a ruin is found by riding over it and not only by
+    // stopping on it. See `arrival.ts`.
+    const found = arriveOnTile(state, unit, tile);
+    if (found.discovery !== null || found.camp !== null) arrivals.push(found);
     steps += 1;
     index += 1;
   }
@@ -103,5 +122,5 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
     delete unit.path;
   }
 
-  return { steps, cleared };
+  return { steps, cleared, arrivals };
 }
