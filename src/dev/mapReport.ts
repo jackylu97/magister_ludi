@@ -35,7 +35,7 @@
 
 import type { GameMap, Tile } from '../sim/map';
 import { mapRange, tileHex, tileIndex } from '../sim/map';
-import { MAPGEN_CONFIG } from '../sim/mapgenData';
+import { mapgenFor } from '../sim/mapgenData';
 import {
   RESOURCE_IDS,
   type ResourceId,
@@ -48,7 +48,17 @@ import type { GameState } from '../sim/state';
 import { isWaterTerrain } from '../sim/terrainData';
 import { hasFreshWater, isCoastal } from '../sim/water';
 
-const RESOURCES = MAPGEN_CONFIG.resources;
+/**
+ * The resource tunables **for the map being read**, rather than for the
+ * process. A map may carry an override sheet (see `GameMap.mapgenOverrides`),
+ * and a report that carved its continents at the JSON's `continentTargetTiles`
+ * while the generator used the sheet's would be auditing a different world from
+ * the one on screen — which is precisely the failure `mapgenFor` exists to make
+ * impossible.
+ */
+function resourcesOf(map: GameMap) {
+  return mapgenFor(map).resources;
+}
 
 /** The three kinds, in the order the sidebar groups them. */
 export const RESOURCE_KINDS: readonly ResourceKind[] = ['bonus', 'strategic', 'luxury'];
@@ -162,7 +172,7 @@ export interface ContinentReport {
  */
 export function continentReport(state: GameState): ContinentReport {
   const { map } = state;
-  const continents = carveContinents(map, RESOURCES);
+  const continents = carveContinents(map, resourcesOf(map));
   const rows: ContinentRow[] = [];
   for (let id = 0; id < continents.count; id++) {
     rows.push({ id, landTiles: 0, tiles: 0, luxuries: [] });
@@ -244,7 +254,7 @@ export interface StartReport {
  */
 export function startReport(state: GameState): StartReport {
   const { map } = state;
-  const radius = Math.max(0, Math.round(RESOURCES.startLuxuryRadius));
+  const radius = Math.max(0, Math.round(resourcesOf(map).startLuxuryRadius));
   const starts = chooseStartPositions(map, state.players.length);
 
   const rows = starts.map((tile, seat) => {
@@ -300,7 +310,7 @@ export interface MapReport {
  */
 export function mapReport(state: GameState): MapReport {
   const { map } = state;
-  const continents = carveContinents(map, RESOURCES);
+  const continents = carveContinents(map, resourcesOf(map));
   const report = continentReport(state);
   return {
     width: map.width,

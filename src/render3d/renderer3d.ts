@@ -1062,6 +1062,21 @@ export class Renderer3D implements MapView {
     this.invalidate();
   }
 
+  /**
+   * Back to the diorama's default zoom, leaving the pan target alone.
+   *
+   * `panToCells` deliberately answers "where" and not "how close" — yanking the
+   * zoom around under a player who has settled on one is how a camera starts to
+   * feel possessed. But a *tool* that jumps between named places wants the
+   * complement: after `fitToViewport` has zoomed all the way out to frame a
+   * whole map, "go to this capital" means nothing at that scale. So the two
+   * verbs stay separate and a caller that wants both says both.
+   */
+  resetZoom(): void {
+    this.view.resetZoom();
+    this.invalidate();
+  }
+
   /** Re-frames the whole board, as a fresh map does. */
   fitToViewport(): void {
     if (!this.board) return;

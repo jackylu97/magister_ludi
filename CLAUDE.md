@@ -30,7 +30,8 @@ would change every seeded outcome. No further rename passes.
 - `src/ui/` — DOM UI. `controls.ts` drives renderers only through the `MapView`
   interface in `mapView.ts` (optional methods for renderer-specific features).
 - `data/*.json` — every balance number, cost, curve, color mapping. Code contains
-  algorithms, never tuned constants.
+  algorithms, never tuned constants. `docs/mapgen.md` is the designer's reference
+  for `data/mapgen.json`: every pass end to end and every tunable with its default.
 - `test/` — sim + pure-render-math tests, split into `sim/`, `mapgen/`, `render/`,
   `ui/`, `stress/` by concern. Never drop coverage; reworked tests replace.
 

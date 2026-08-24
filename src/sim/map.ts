@@ -61,6 +61,7 @@ import {
   hexDistance,
 } from './hex';
 import type { ImprovementId } from './improvementData';
+import type { MapgenOverrides } from './mapgenData';
 import type { ResourceId } from './resourceData';
 import type { FeatureId, TerrainId } from './terrainData';
 
@@ -125,6 +126,21 @@ export interface GameMap {
   seed: number;
   /** Size key from `data/mapgen.json`. */
   sizeName: string;
+  /**
+   * The mapgen override sheet this map was generated with, when it had one.
+   *
+   * The third of the triple that regenerates this world — `(seed, sizeName,
+   * mapgenOverrides)` — and it is here rather than passed around because
+   * *everything downstream of generation already takes the map*: the start
+   * chooser, the resource fairness passes, the inspection report. A consumer
+   * that holds the map can ask `mapgenFor(map)` and cannot get the wrong
+   * answer; a consumer that had to be handed the sheet separately eventually
+   * is not.
+   *
+   * Absent on every ordinary map, which is why it is optional rather than a
+   * resolved config: an unmodified map serialises exactly as it always did.
+   */
+  mapgenOverrides?: MapgenOverrides;
   /** Flat tile array, indexed `row * width + col`. */
   tiles: Tile[];
 }
@@ -271,6 +287,8 @@ export interface CreateMapOptions {
   seed?: number;
   sizeName?: string;
   terrain?: TerrainId;
+  /** Carried onto the map verbatim. See `GameMap.mapgenOverrides`. */
+  mapgenOverrides?: MapgenOverrides;
 }
 
 /** An empty map, every tile the same terrain. Generation fills it in. */
@@ -293,11 +311,15 @@ export function createMap(options: CreateMapOptions): GameMap {
       };
     }
   }
-  return {
+  const map: GameMap = {
     width,
     height,
     seed: options.seed ?? 0,
     sizeName: options.sizeName ?? 'custom',
     tiles,
   };
+  // Set only when there is one, so an unmodified map has no such key at all and
+  // serialises byte-for-byte the way it did before overrides existed.
+  if (options.mapgenOverrides) map.mapgenOverrides = options.mapgenOverrides;
+  return map;
 }

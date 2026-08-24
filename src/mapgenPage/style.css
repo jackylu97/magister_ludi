@@ -580,3 +580,202 @@ tr.total .kind {
   color: var(--crimson);
   font-weight: 600;
 }
+
+/* --- the capital walk ----------------------------------------------------- */
+
+/*
+ * The caption between the two arrows: a plain "whole map" until somebody starts
+ * walking the seats, and then the seat's own ink — the colour its flag is drawn
+ * in on the board, handed over as `--seat-ink` by the page rather than picked
+ * here, because there is exactly one source for a seat's colour and it is
+ * `playerPieceColor`.
+ */
+#capital-caption {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--face-name);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+#capital-caption.is-seat {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* The dot of ink that says which seat, sized to sit on the type's baseline. */
+#capital-caption.is-seat::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--seat-ink, var(--crimson));
+  vertical-align: baseline;
+}
+
+/* --- the tuning panel ----------------------------------------------------- */
+
+/*
+ * A dense two-column ledger, because that is what it is: a parameter name on the
+ * left, the value being tried in the middle, the JSON's own number in the right
+ * margin. The default column is the whole point of the layout — a tuning session
+ * is a comparison, and a number you have to remember is a number you will get
+ * wrong.
+ */
+#tuning code {
+  font-family: var(--face-mono);
+  font-size: 10.5px;
+  padding: 0 2px;
+  background: rgba(29, 26, 32, 0.06);
+  border-radius: 2px;
+}
+
+.tune-group {
+  margin-bottom: 10px;
+}
+
+.tune-group h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 0 0 3px;
+  padding-bottom: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--rule);
+}
+
+.tune-under {
+  font-family: var(--face-mono);
+  font-size: 9.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-faint);
+}
+
+.tune {
+  display: grid;
+  grid-template-columns: 1fr 74px 46px;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0 2px 5px;
+  /* The dirty marker's gutter, held open on every row so a highlighted row does
+     not shift its neighbours sideways. */
+  border-left: 3px solid transparent;
+}
+
+.tune-name {
+  font-family: var(--face-mono);
+  font-size: 11px;
+  color: var(--ink);
+  cursor: help;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tune input[type='number'] {
+  font: inherit;
+  font-family: var(--face-mono);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  width: 100%;
+  padding: 3px 5px;
+  text-align: right;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--vellum-deep);
+  border-radius: 3px;
+}
+
+.tune input[type='checkbox'] {
+  justify-self: end;
+  margin: 0 26px 0 0;
+  accent-color: var(--crimson);
+}
+
+/* The JSON's value, in the margin, quiet — it is a reference and not a figure
+   to be read down a column against other rows. */
+.tune-default {
+  font-family: var(--face-mono);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink-faint);
+}
+
+/* Dirty: a rule in the gutter and the value in crimson. Loud enough to find at
+   a glance in twenty rows, quiet enough that four of them are not a fire. */
+.tune.is-dirty {
+  border-left-color: var(--crimson);
+  background: rgba(212, 80, 46, 0.05);
+}
+
+.tune.is-dirty .tune-name {
+  font-weight: 600;
+}
+
+.tune.is-dirty input {
+  border-color: var(--crimson);
+  color: var(--crimson);
+}
+
+/* Unparseable: the field is saying nothing, so the generator is being handed
+   the default. The row says which. */
+.tune.is-bad input {
+  border-color: var(--crimson);
+  background: rgba(212, 80, 46, 0.12);
+}
+
+.tuning-actions {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+}
+
+.tuning-actions button {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  color: var(--ink);
+  background: var(--parchment);
+  border: 1px solid var(--vellum-deep);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.tuning-actions button:active:not(:disabled) {
+  transform: translate(1px, 1px);
+}
+
+.tuning-actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+#tuning-status {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-family: var(--face-mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+
+/* The tuning section is a control surface, not a reading — it lives inside the
+   scrolling ledger but wants the controls' own row rhythm. */
+#tuning .row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

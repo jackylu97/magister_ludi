@@ -74,11 +74,14 @@ import {
   MAPGEN_CONFIG,
   MAP_SIZE_NAMES,
   type MapgenConfig,
+  type MapgenOverrides,
   type MapSizeConfig,
   type NoiseConfig,
   type RidgedNoiseConfig,
   type StartsConfig,
   getMapSize,
+  mapgenFor,
+  resolveMapgenConfig,
 } from './mapgenData';
 import { createNoise3D, fbm3, ridged3, type Noise3D } from './noise';
 import { placeResources } from './resources';
@@ -101,11 +104,14 @@ export {
   MAPGEN_CONFIG,
   MAP_SIZE_NAMES,
   type MapgenConfig,
+  type MapgenOverrides,
   type MapSizeConfig,
   type NoiseConfig,
   type RidgedNoiseConfig,
   type StartsConfig,
   getMapSize,
+  mapgenFor,
+  resolveMapgenConfig,
 };
 
 /**
@@ -647,10 +653,21 @@ export interface MapDetail {
 }
 
 /**
- * Generates a complete map. Fully deterministic in `(seed, sizeName)`.
+ * Generates a complete map. Fully deterministic in
+ * `(seed, sizeName, overrides)`.
+ *
+ * `overrides` is the sparse edit of `data/mapgen.json` a tuning session is
+ * trying (see `resolveMapgenConfig`). It is a *third input*, not a mode: the
+ * sheet is carried on the map and in the game config, so a map generated with
+ * one regenerates identically from the same config. Absent on every ordinary
+ * game.
  */
-export function generateMap(seed: number, sizeName: string): GameMap {
-  return generateMapDetail(seed, sizeName).map;
+export function generateMap(
+  seed: number,
+  sizeName: string,
+  overrides?: MapgenOverrides,
+): GameMap {
+  return generateMapDetail(seed, sizeName, overrides).map;
 }
 
 /**
@@ -663,12 +680,28 @@ export function generateMap(seed: number, sizeName: string): GameMap {
  * that assert monotonic descent, and the statistics dumps. `generateMap` is this
  * function with the extras dropped, so there is exactly one generation path.
  */
-export function generateMapDetail(seed: number, sizeName: string): MapDetail {
-  const config = MAPGEN_CONFIG;
+export function generateMapDetail(
+  seed: number,
+  sizeName: string,
+  overrides?: MapgenOverrides,
+): MapDetail {
+  // Resolved once, here, and handed down — every pass below reads *this*
+  // config and never the module table, which is what lets an override sheet
+  // exist without anything being written to `MAPGEN_CONFIG`.
+  const config = resolveMapgenConfig(overrides);
   const size = getMapSize(sizeName);
   const { width, height } = size;
 
-  const map = createMap({ width, height, seed, sizeName });
+  // A sheet that says nothing is not a sheet. `resolveMapgenConfig` hands the
+  // module table back *by identity* when there was nothing to merge, so this is
+  // the one test that matters: a map generated with `{}` must serialise exactly
+  // like one generated without the argument at all.
+  const sheet = config === MAPGEN_CONFIG ? undefined : overrides;
+
+  // The sheet rides on the map, because the passes that run *after* generation
+  // — the start chooser, the resource guarantees, the inspection report — are
+  // handed a map and nothing else. See `GameMap.mapgenOverrides`.
+  const map = createMap({ width, height, seed, sizeName, mapgenOverrides: sheet });
 
   // Four noise layers, all derived from the one seed, each separated from the
   // last by a discarded draw so the permutation tables are decorrelated. The

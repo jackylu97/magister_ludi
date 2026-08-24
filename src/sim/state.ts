@@ -57,6 +57,7 @@
 import type { BuildingId } from './buildingData';
 import type { GameMap } from './map';
 import { generateMap, getMapSize } from './mapgen';
+import { type MapgenOverrides, resolveMapgenConfig } from './mapgenData';
 import { type Rng, hashSeed, makeRng } from './rng';
 import { RULES } from './rulesData';
 import { chooseStartPositions, planStartingUnits } from './startPositions';
@@ -418,6 +419,22 @@ export interface GameConfig {
   /** Size key from `data/mapgen.json`. */
   sizeName: string;
   players: PlayerSpec[];
+  /**
+   * A sparse edit of `data/mapgen.json` for this game's map, or absent — which
+   * it is for every ordinary game.
+   *
+   * It lives **here**, in the config, and that is the whole design. The
+   * generator reads module-level data, so the only other way to try a different
+   * `mountainShare` would be to write into `MAPGEN_CONFIG` — and a mutated
+   * module table breaks the one promise the save format rests on, that
+   * `{config, log}` replays to the same world. With the sheet in the config it
+   * still does: the config *is* every number the map was made from.
+   *
+   * Validated by `resolveMapgenConfig`, which throws on an unknown key rather
+   * than ignoring it. Written today only by the mapgen inspection page's tuning
+   * panel; the game itself never sets one.
+   */
+  mapgenOverrides?: MapgenOverrides;
 }
 
 export interface GameState {
@@ -506,7 +523,7 @@ export interface GameState {
  * value the simulation would have reinterpreted.
  */
 export function normalizeConfig(config: GameConfig): GameConfig {
-  return {
+  const normalized: GameConfig = {
     seed: config.seed | 0,
     sizeName: config.sizeName,
     players: config.players.map((spec) => ({
@@ -515,6 +532,17 @@ export function normalizeConfig(config: GameConfig): GameConfig {
       isHuman: spec.isHuman ?? false,
     })),
   };
+  // The override sheet is copied through JSON for the same reason the player
+  // specs are copied at all — the config is the save file and a caller that
+  // keeps editing the object it handed in must not be able to rewrite a game's
+  // map. The round trip also drops any `undefined` a partial was spread from,
+  // so an empty sheet normalises to *no* sheet and the game is byte-identical
+  // to one that never had the field.
+  if (config.mapgenOverrides && Object.keys(config.mapgenOverrides).length > 0) {
+    const copied = JSON.parse(JSON.stringify(config.mapgenOverrides)) as MapgenOverrides;
+    if (Object.keys(copied).length > 0) normalized.mapgenOverrides = copied;
+  }
+  return normalized;
 }
 
 /**
@@ -536,6 +564,9 @@ function validateConfig(config: GameConfig): void {
   }
   // Throws with the list of known sizes if the key is bad.
   getMapSize(config.sizeName);
+  // Throws on an unknown key or a mistyped value, *before* a tile is drawn — a
+  // bad sheet is a bad config, not a map that quietly ignored half of it.
+  resolveMapgenConfig(config.mapgenOverrides);
 }
 
 /**
@@ -546,7 +577,7 @@ export function newGame(config: GameConfig): GameState {
   const normalized = normalizeConfig(config);
   validateConfig(normalized);
 
-  const map = generateMap(normalized.seed, normalized.sizeName);
+  const map = generateMap(normalized.seed, normalized.sizeName, normalized.mapgenOverrides);
   const state: GameState = {
     schemaVersion: SCHEMA_VERSION,
     turn: RULES.game.startingTurn,

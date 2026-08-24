@@ -18,6 +18,11 @@
  *
  * `mapgen.ts` re-exports everything here, so nothing that already imported
  * `MAPGEN_CONFIG` or `getMapSize` from it had to change.
+ *
+ * It also owns the one sanctioned way to generate a map with *different*
+ * numbers: `resolveMapgenConfig` merges an override sheet carried in the game
+ * config over the JSON. See its docblock — the rule is that overrides live in
+ * the config and the module table is never written to.
  */
 
 import mapgenJson from '../../data/mapgen.json';
@@ -212,4 +217,140 @@ export function getMapSize(sizeName: string): MapSizeConfig {
     );
   }
   return size;
+}
+
+// --- overrides ---------------------------------------------------------------
+
+/**
+ * A sparse edit of the table above: any subtree of `MapgenConfig`, with every
+ * branch optional.
+ *
+ * Arrays and primitives are leaves — an overridden `ringWeights` *replaces* the
+ * default list rather than merging into it, because a list whose length is its
+ * meaning (it is how many rings are scored) cannot be half-said.
+ */
+export type MapgenOverrides = DeepPartial<MapgenConfig>;
+
+type DeepPartial<T> = T extends readonly unknown[]
+  ? T
+  : T extends object
+    ? { [K in keyof T]?: DeepPartial<T[K]> }
+    : T;
+
+/**
+ * The tunables a *particular map* was generated with: the JSON, with an
+ * override sheet merged over it.
+ *
+ * Why this exists at all
+ * ----------------------
+ * The generator reads module-level data, which is exactly right for a game and
+ * exactly wrong for a tuning loop — a page that wanted to try `mountainShare:
+ * 0.09` could only get there by writing into `MAPGEN_CONFIG`, and a mutated
+ * module table is a map that no longer replays: same `{config, log}`, different
+ * world, depending on what somebody had typed into a panel first.
+ *
+ * So an override sheet is **carried in the game config** (`GameConfig.
+ * mapgenOverrides`) and resolved here, and the module table is never written to.
+ * A map generated with overrides is a legitimate deterministic
+ * `{config, log}` — reload the same config and you get the same world, because
+ * every number that made it is in the config.
+ *
+ * Loud about typos, deliberately
+ * ------------------------------
+ * An unknown key is a thrown error rather than a silently ignored one. The
+ * failure mode this replaces is the worst kind: a designer types
+ * `mountainshare`, sees no mountains change, and concludes the tunable does
+ * nothing. Type mismatches throw for the same reason.
+ *
+ * Absent overrides return `MAPGEN_CONFIG` **by identity**, so a game without a
+ * sheet is not merely equal to one that never had the feature — it is the same
+ * object, and costs nothing.
+ */
+export function resolveMapgenConfig(overrides?: MapgenOverrides | null): MapgenConfig {
+  if (!overrides || Object.keys(overrides).length === 0) return MAPGEN_CONFIG;
+  const cached = RESOLVED.get(overrides);
+  if (cached) return cached;
+  const merged = mergeInto(MAPGEN_CONFIG, overrides, '') as MapgenConfig;
+  RESOLVED.set(overrides, merged);
+  return merged;
+}
+
+/**
+ * A memo, not state. Keyed by the identity of the override object, whose value
+ * is treated as frozen config data — `normalizeConfig` deep-copies a sheet on
+ * the way into a game, so the object a map holds is nobody else's to edit.
+ * Same input, same output; the cache only decides how often the merge runs, and
+ * the merge is pure.
+ */
+const RESOLVED = new WeakMap<object, MapgenConfig>();
+
+/** The tunables this map was generated with. Every consumer that holds a map. */
+export function mapgenFor(map: { mapgenOverrides?: MapgenOverrides }): MapgenConfig {
+  return resolveMapgenConfig(map.mapgenOverrides);
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * One level of the merge, with the default subtree as the schema.
+ *
+ * The default is the only description of the shape there is — JSON has no
+ * schema and the TypeScript types are gone by runtime — so every check below is
+ * "does the override look like what is already there".
+ */
+function mergeInto(base: unknown, patch: Record<string, unknown>, path: string): unknown {
+  if (!isPlainObject(base)) {
+    throw new Error(`Mapgen override "${path}" is not an object in data/mapgen.json`);
+  }
+  const out: Record<string, unknown> = { ...base };
+  for (const key of Object.keys(patch)) {
+    const value = patch[key];
+    const where = path ? `${path}.${key}` : key;
+    // `undefined` is TypeScript's own spelling of "not overridden" on an
+    // optional property, so a sheet built by spreading partials is allowed to
+    // carry it. A *typo* still throws, because the key check below runs first.
+    if (!(key in base)) {
+      throw new Error(
+        `Unknown mapgen override key "${where}". ` +
+          `Known keys here: ${Object.keys(base).join(', ')}`,
+      );
+    }
+    if (value === undefined) continue;
+    out[key] = mergeValue(base[key], value, where);
+  }
+  return out;
+}
+
+function mergeValue(base: unknown, value: unknown, where: string): unknown {
+  if (Array.isArray(base)) {
+    if (!Array.isArray(value)) {
+      throw new Error(`Mapgen override "${where}" must be an array`);
+    }
+    const sample = base[0];
+    if (sample !== undefined) {
+      for (let i = 0; i < value.length; i++) {
+        if (typeof value[i] !== typeof sample) {
+          throw new Error(
+            `Mapgen override "${where}[${i}]" must be a ${typeof sample}`,
+          );
+        }
+      }
+    }
+    return [...value];
+  }
+  if (isPlainObject(base)) {
+    if (!isPlainObject(value)) {
+      throw new Error(`Mapgen override "${where}" must be an object`);
+    }
+    return mergeInto(base, value, where);
+  }
+  if (typeof value !== typeof base) {
+    throw new Error(`Mapgen override "${where}" must be a ${typeof base}`);
+  }
+  if (typeof value === 'number' && !Number.isFinite(value)) {
+    throw new Error(`Mapgen override "${where}" must be a finite number`);
+  }
+  return value;
 }

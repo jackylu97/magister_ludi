@@ -32,6 +32,7 @@
 
     <p id="hint">
       Drag to pan · scroll to zoom · <strong>F</strong> frames the whole map ·
+      <strong>[</strong> / <strong>]</strong> walks the capitals ·
       <strong>←</strong> / <strong>→</strong> steps the seed · <strong>R</strong> randomises ·
       <strong>C</strong> continents · <strong>Y</strong> yields. Hover any hex to read it. The
       board is drawn with no seat, so nothing is fogged and every resource wears its roundel
@@ -74,6 +75,19 @@
           </label>
           <button type="button" id="regenerate">Generate</button>
         </div>
+        <!--
+          The capital walk. A generated map is judged seat by seat, and the
+          slowest part of doing that by hand was finding the seats: four flags
+          on an eighty-column board, at the zoom that shows all of it. These
+          buttons and `[` / `]` fly the camera to each capital in turn and name
+          the chair it belongs to.
+        -->
+        <div class="row">
+          <button type="button" id="capital-prev" class="quiet" title="Previous capital ([)">◀</button>
+          <button type="button" id="capital-next" class="quiet" title="Next capital (])">▶</button>
+          <span id="capital-caption">whole map</span>
+          <button type="button" id="capital-fit" class="quiet" title="Fit the whole map (F)">Fit</button>
+        </div>
         <div class="row switches">
           <label class="switch"><input type="checkbox" id="continents-toggle" /><span>Continents</span></label>
           <label class="switch"><input type="checkbox" id="yields-toggle" /><span>Yields</span></label>
@@ -81,6 +95,29 @@
         </div>
         <p id="timing">—</p>
       </div>
+
+      <!--
+        The tuning panel, built in `src/mapgenPage/main.ts` from a spec rather
+        than written out here: every default it shows is read from
+        `data/mapgen.json` at runtime, so a retuned number cannot go stale in
+        this file. What the panel emits is an override *sheet* carried in the
+        game config — see `resolveMapgenConfig` — never a write to the
+        generator's table.
+      -->
+      <section id="tuning">
+        <h2>Tuning</h2>
+        <p class="note">
+          Overrides for this map only, merged over <code>data/mapgen.json</code> and carried in
+          the game config, so the map they make still replays from its seed. Generate to apply;
+          the ledger below recomputes with it.
+        </p>
+        <div id="tuning-groups"></div>
+        <div class="row tuning-actions">
+          <button type="button" id="tuning-reset" class="quiet">Reset to defaults</button>
+          <button type="button" id="tuning-copy" class="quiet">Copy as JSON</button>
+          <span id="tuning-status"></span>
+        </div>
+      </section>
 
       <div id="sections"></div>
     </aside>

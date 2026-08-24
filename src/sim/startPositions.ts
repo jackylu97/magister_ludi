@@ -95,13 +95,26 @@
 import { tileYieldOf } from './cities';
 import type { GameMap, Tile } from './map';
 import { getTile, mapNeighbors, mapRange, tileHex, tileIndex, wrappedDistance } from './map';
-import { MAPGEN_CONFIG } from './mapgenData';
+import { type StartsConfig, mapgenFor } from './mapgenData';
 import { RULES } from './rulesData';
 import { isWaterTerrain, isWorkableTerrain, moveCost, type TileYield } from './terrainData';
 import { type UnitCategory, type UnitTypeId, unitDef } from './unitData';
 import { isCoastal } from './water';
 
-const STARTS = MAPGEN_CONFIG.starts;
+/**
+ * The start tunables **for this map**, not for the process.
+ *
+ * This was a module-level `const STARTS = MAPGEN_CONFIG.starts` until maps
+ * could be generated with an override sheet, and the constant was the exact
+ * shape of the bug that seam exists to prevent: a map carved with
+ * `minRingFood: 24` would then have had its seats chosen against the JSON's 16,
+ * so the world and the starts on it would have disagreed about which numbers
+ * made them. The map remembers what generated it; every entry point below asks
+ * it once and passes the answer down.
+ */
+function startsFor(map: GameMap): StartsConfig {
+  return mapgenFor(map).starts;
+}
 
 export interface StartPlacement {
   /** Index into `GameState.players`, in player order. */
@@ -155,7 +168,7 @@ function groundYields(map: GameMap): TileYield[] {
 }
 
 /** What one tile's ground is worth to a site, under the start weights. */
-function siteYieldScore(value: TileYield): number {
+function siteYieldScore(STARTS: StartsConfig, value: TileYield): number {
   return (
     value.food * STARTS.foodWeight +
     value.production * STARTS.productionWeight +
@@ -180,11 +193,30 @@ export function scoreStartSite(
   tile: Tile,
   ground?: readonly TileYield[],
 ): StartSiteScore {
+  return scoreSite(map, startsFor(map), tile, ground);
+}
+
+/**
+ * The scorer proper, with the tunables already resolved.
+ *
+ * Split from the exported name for one reason: `chooseStartPositions` calls it
+ * once per land tile, and resolving an override sheet four thousand times to
+ * get the same object back would be a merge per hex.
+ */
+function scoreSite(
+  map: GameMap,
+  STARTS: StartsConfig,
+  tile: Tile,
+  ground?: readonly TileYield[],
+): StartSiteScore {
   const yieldAt = (target: Tile): TileYield =>
     ground ? ground[tileIndex(map, target.col, target.row)]! : tileYieldOf(groundOf(target));
 
   const entries: StartScoreContribution[] = [];
-  entries.push({ source: 'Site', value: siteYieldScore(yieldAt(tile)) * STARTS.centreWeight });
+  entries.push({
+    source: 'Site',
+    value: siteYieldScore(STARTS, yieldAt(tile)) * STARTS.centreWeight,
+  });
 
   const from = tileHex(tile);
   let ringTiles = 0;
@@ -214,7 +246,7 @@ export function scoreStartSite(
     ringFood += value.food;
     ringProduction += value.production;
     workable.push({
-      value: siteYieldScore(value) * STARTS.ringWeights[ring - 1]!,
+      value: siteYieldScore(STARTS, value) * STARTS.ringWeights[ring - 1]!,
       index: tileIndex(map, near.col, near.row),
     });
   }
@@ -265,11 +297,11 @@ function isStartCandidate(tile: Tile): boolean {
  * its land, clamped. A pure function of the map — see the module docblock for
  * why it must not know the player count.
  */
-export function startSpacing(map: GameMap): number {
+export function startSpacing(map: GameMap, starts: StartsConfig = startsFor(map)): number {
   let land = 0;
   for (const tile of map.tiles) if (!isWaterTerrain(tile.terrain)) land++;
-  const raw = Math.round(STARTS.spacingFactor * Math.sqrt(land));
-  return Math.max(STARTS.minDistance, Math.min(STARTS.maxDistance, raw));
+  const raw = Math.round(starts.spacingFactor * Math.sqrt(land));
+  return Math.max(starts.minDistance, Math.min(starts.maxDistance, raw));
 }
 
 /**
@@ -320,12 +352,14 @@ export function chooseStartPositions(map: GameMap, count: number): Tile[] {
   const chosen: Tile[] = [];
   if (count <= 0) return chosen;
 
+  const STARTS = startsFor(map);
+
   // The whole ranking is computed once, off one pass of ground yields.
   const ground = groundYields(map);
   const scores = new Map<number, StartSiteScore>();
   const candidates = map.tiles.filter(isStartCandidate);
   for (const tile of candidates) {
-    scores.set(tileIndex(map, tile.col, tile.row), scoreStartSite(map, tile, ground));
+    scores.set(tileIndex(map, tile.col, tile.row), scoreSite(map, STARTS, tile, ground));
   }
   const byScore = (a: Tile, b: Tile): number => {
     const ia = tileIndex(map, a.col, a.row);
@@ -336,7 +370,7 @@ export function chooseStartPositions(map: GameMap, count: number): Tile[] {
   const accepted = candidates.filter((t) => scores.get(tileIndex(map, t.col, t.row))!.reject === null);
   accepted.sort(byScore);
 
-  const spacing = startSpacing(map);
+  const spacing = startSpacing(map, STARTS);
   const taken = new Set<number>();
   seat(map, accepted, chosen, taken, count, spacing, STARTS.minDistance);
 
