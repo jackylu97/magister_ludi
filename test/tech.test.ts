@@ -210,8 +210,16 @@ describe('tech data integrity', () => {
     // Re-measured when settlers grew expensive and escalating: a slower
     // expansion is a slower science economy, so the whole table came down
     // (×0.50 / ×0.85 / ×0.95 by age) to hold the same three closing turns.
+    //
+    // Age I's floor came down again for the Civ 6-style 1:2:3 ramp: the tier-1
+    // techs (husbandry, fletching, mining, earthenware) now cost 8, cheaper
+    // than the old floor of 12, so the first tech lands around turn 5–6
+    // instead of eating 6–8% of the game before anything unlocks. The ceiling
+    // is untouched — the Wheel's 26 and Letters' 24 both still clear it — and
+    // ages II/III are unchanged, per the rework's own note that only Age I was
+    // in scope.
     const bands: Record<number, [number, number]> = {
-      1: [12, 32],
+      1: [8, 32],
       2: [120, 250],
       3: [255, 460],
     };
@@ -1034,38 +1042,32 @@ describe('pacing', () => {
 
   it('closes its three ages on the Quick-speed schedule (Entry V)', () => {
     const { game, ageDone } = playEmpire(200);
-    // Measured on this seed after the Age I rework: **40 / 68 / 107**, against
-    // 42 / 100 / 167 with the M10 meters, 42 / 90 / 132 before them and
-    // 43 / 86 / 128 before the settler retune. Each assertion is a band around
-    // the measurement rather than the number itself — the map roll moves it by
-    // a handful of turns — but the band is tight enough on *both* sides to
-    // catch a regression in either direction, which an upper bound alone would
-    // not.
+    // Measured on this seed after the Civ 6-style Age I ramp: **37 / 74 / 111**,
+    // against 40 / 68 / 107 with the flat 16–29 Age I costs, 42 / 100 / 167 with
+    // the M10 meters, 42 / 90 / 132 before them and 43 / 86 / 128 before the
+    // settler retune. Each assertion is a band around the measurement rather
+    // than the number itself — the map roll moves it by a handful of turns —
+    // but the band is tight enough on *both* sides to catch a regression in
+    // either direction, which an upper bound alone would not.
     //
-    // Why it moved, and why the direction is a surprise worth writing down.
-    // Age I got *dearer*: it went from eight nodes costing 167 with two of them
-    // free to eleven costing 227 with one free, which is 212 beakers to sweep
-    // against 137. It still closes two turns earlier, and the whole of the
-    // difference is on the other side of the ledger — the rework restated the
-    // three buildings this scripted empire actually builds:
-    //
-    //   · the granary pays 3🌾 instead of 2, and +1 more once The Wheel lands,
-    //     so every city grows faster and a citizen is a beaker;
-    //   · the shrine pays 1🔬 as well as its culture (religion buys thought in
-    //     this game — the user's revision, and the reason Divination sits where
-    //     it does);
-    //   · the library pays 2🔬 flat and a beaker per *citizen* rather than per
-    //     two, which roughly doubles what a grown city's library is worth.
-    //
-    // Ages II and III kept their costs to the beaker, so the compounding lands
-    // squarely on them: the endgame arrives sixty turns sooner. That is a
-    // deliberate un-taken decision rather than an oversight. `tech.ts`'s pacing
-    // note says a retuned economy is answered by scaling the *whole* table, and
-    // scaling ages II and III by about 1.5 would put the finale back on turn
-    // 165 — but the ledger asks for a condensed game with impactful unlocks,
-    // these restats are exactly that, and a rescale would hide the effect of
-    // the change from the playtest that has to judge it. So the band records
-    // what the rules as they stand actually do, and the tuning is the user's.
+    // The ramp, and why Age I moved. Civ 6's ancient-era techs sit in three
+    // tiers roughly 25/50/80 beakers — a 1:2:3.2 ratio — with the cheapest
+    // tech costing about 3% of a full game. Age I's old flat 16–29 spread put
+    // the first tech at 6–8% of this game's ~160-turn length: nearly a full
+    // opening's worth of hammers spent staring at the tree before anything
+    // unlocked. The eleven Age I techs (agriculture free-ish at 15, unchanged)
+    // are now three tiers on the same 1:2:3 shape — 8 / 16 / 26–24 — which
+    // puts the first tech around turn 5–6 and drops the sweepable Age I total
+    // (everything but agriculture, which is never actually paid for) from 212
+    // to 146 beakers, a third cheaper. Measured close moved from 40 to 37: only
+    // three turns, smaller than the beaker cut alone would suggest, because
+    // this scripted empire is production- not science-bound early — the
+    // opening is capped by the granary/monument/shrine build queue and by
+    // when settlers free up citizens to work science tiles, not by the tree's
+    // price tag. Ages II and III are untouched, so their closes (74, 111) move
+    // only as a downstream echo of Age I finishing sooner and freeing science
+    // buildings one city-turn earlier; that shift is well inside the noise the
+    // existing bands already tolerated.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -1073,12 +1075,12 @@ describe('pacing', () => {
     expect(second, `age II: ${String(second)}`).toBeDefined();
     expect(third, `age III: ${String(third)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(33);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(48);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(58);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(80);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(92);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(125);
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(30);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(44);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(62);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(86);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(96);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(128);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 60_000);
 

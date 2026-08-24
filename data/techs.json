@@ -15,7 +15,7 @@
       "glyph": "🐄",
       "age": 1,
       "row": 0,
-      "cost": 18,
+      "cost": 8,
       "prereqs": ["agriculture"],
       "unlocks": { "units": ["horseman"] },
       "flavor": "A horse is a decision arrived at sooner."
@@ -25,7 +25,7 @@
       "glyph": "🏹",
       "age": 1,
       "row": 1,
-      "cost": 18,
+      "cost": 8,
       "prereqs": ["agriculture"],
       "unlocks": { "units": ["archer"] },
       "flavor": "Distance is the oldest mercy."
@@ -35,7 +35,7 @@
       "glyph": "⛏",
       "age": 1,
       "row": 2,
-      "cost": 16,
+      "cost": 8,
       "prereqs": ["agriculture"],
       "unlocks": {},
       "flavor": "The hill is asked what it is made of."
@@ -45,7 +45,7 @@
       "glyph": "⚱",
       "age": 1,
       "row": 3,
-      "cost": 16,
+      "cost": 8,
       "prereqs": ["agriculture"],
       "unlocks": { "buildings": ["granary"] },
       "flavor": "What the jar keeps, the year forgets."
@@ -55,7 +55,7 @@
       "glyph": "⚔",
       "age": 1,
       "row": 2,
-      "cost": 23,
+      "cost": 16,
       "prereqs": ["mining", "earthenware"],
       "unlocks": { "units": ["spearman"], "buildings": ["barracks"] },
       "flavor": "Two soft metals agree to become a hard one."
@@ -65,7 +65,7 @@
       "glyph": "🧱",
       "age": 1,
       "row": 3,
-      "cost": 23,
+      "cost": 16,
       "prereqs": ["husbandry", "earthenware"],
       "unlocks": { "buildings": ["monument"] },
       "flavor": "Stone remembers longer than any of us."
@@ -75,7 +75,7 @@
       "glyph": "🌙",
       "age": 1,
       "row": 4,
-      "cost": 21,
+      "cost": 16,
       "prereqs": ["earthenware"],
       "unlocks": {},
       "flavor": "The year, cut into pieces small enough to plan."
@@ -85,7 +85,7 @@
       "glyph": "🔮",
       "age": 1,
       "row": 5,
-      "cost": 21,
+      "cost": 16,
       "prereqs": ["husbandry"],
       "unlocks": { "buildings": ["shrine"] },
       "flavor": "We question the sky, and learn the habit of questions."
@@ -95,7 +95,7 @@
       "glyph": "☸",
       "age": 1,
       "row": 0,
-      "cost": 29,
+      "cost": 26,
       "prereqs": ["husbandry", "bronzeWorking"],
       "unlocks": { "units": ["chariot", "chariotArcher"] },
       "flavor": "Nobody expected the circle to be useful."
@@ -105,7 +105,7 @@
       "glyph": "📜",
       "age": 1,
       "row": 4,
-      "cost": 27,
+      "cost": 24,
       "prereqs": ["earthenware", "divination"],
       "unlocks": { "buildings": ["library"] },
       "flavor": "A thought that outlives the mouth it came from."
