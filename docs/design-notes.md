@@ -320,7 +320,9 @@ either, and the table refuses such a row at load rather than paying nothing quie
 
 Incense is the first *luxury* behind a `requiresTech` reveal (Divination, the user's own revision
 note), and it needed no new mechanism at all — which is the argument for having built the reveal
-as a property of the row rather than of the strategic kind.
+as a property of the row rather than of the strategic kind. *(Superseded 2026-08-24: incense's
+`requiresTech` was removed — it is visible from turn one like every other luxury. The mechanism
+argument stands; it is simply unused by any luxury for now.)*
 
 **Fairness and regional character.** *(The regional half of this paragraph is superseded by
 Entry XVI: "region" now means a carved fixed-size continent, the hand is dealt per continent and

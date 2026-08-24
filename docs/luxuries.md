@@ -192,7 +192,7 @@ growth *and* the citizens).
 **Deferred:** "−10% upkeep on units" — waits on **unit upkeep**, which this game
 does not have.
 
-### Incense — desert or plains, hills either · revealed by Divination
+### Incense — desert or plains, hills either
 `+2🪙 +1🕯` on tile · **+1🕯 in every city**.
 **Deferred:** Æra III ("−10% cost to purchase units with faith") — waits on
 **faith spending**, which this pass deliberately does not build.

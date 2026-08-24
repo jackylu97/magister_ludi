@@ -140,13 +140,13 @@ describe('the resource table', () => {
     // as a fact the map hands out for free. Both are visibility only — an
     // unrevealed seam still pays its yield (see `isResourceVisible`).
     expect(resourceDef('horses').requiresTech).toBe('husbandry');
-    // Incense is the first *luxury* to use the gate, and it needed no new
-    // mechanism at all — which is the argument for having built the reveal as a
-    // property of the row rather than of the strategic kind. Divination is the
-    // tech that finds it, and `techGifts` picks the reveal up for free.
-    expect(resourceDef('incense').requiresTech).toBe('divination');
+    // Incense briefly used the gate too (Divination revealed it, mirroring the
+    // strategics), but that made the only faith-luxury invisible before players
+    // had any faith mechanic to react to it with, so the gate was dropped —
+    // incense is visible from turn one like every other luxury.
+    expect(resourceDef('incense').requiresTech).toBeUndefined();
     const gated = RESOURCE_IDS.filter((id) => resourceDef(id).requiresTech !== undefined);
-    expect(gated).toEqual(['horses', 'iron', 'incense']);
+    expect(gated).toEqual(['horses', 'iron']);
   });
 
   it('recognises its own ids and nothing else', () => {

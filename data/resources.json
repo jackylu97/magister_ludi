@@ -543,7 +543,6 @@
       "validFeatures": [
         "none"
       ],
-      "requiresTech": "divination",
       "frequency": 2,
       "clusterSize": [
         1,

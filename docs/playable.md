@@ -14,8 +14,8 @@ game more playtestable than the last.
 - Luxury variety: ten luxuries — incense, jade, marble, furs, dyes joining gems/silk/wine/
   spices/salt. Base +4 per unique stays; each adds a SIGNATURE from a four-shape vocabulary
   (`cityYields`, `empireYields`, `extraHappiness`, `productionBonus`) read by ONE evaluator,
-  `src/sim/resourceEffects.ts`, and surfaced as labelled lines everywhere it lands. Incense is
-  revealed by Divination. The barracks' unit-only bonus was generalised into the same
+  `src/sim/resourceEffects.ts`, and surfaced as labelled lines everywhere it lands. The barracks'
+  unit-only bonus was generalised into the same
   `{ category, percent }` shape rather than given a sibling.
 - Fairness: every possible start gets a bonus food and 2 distinct luxury kinds in reach (bounded
   only by what its ground can physically host); kinds are dealt per land region, so variety is
