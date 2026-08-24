@@ -37,7 +37,8 @@
  *                   or issuing the move disarms it.
  *
  * Escape backs out one layer at a time, outermost first: move mode, then an
- * open popover, then the city panel, then the selection.
+ * open popover, then the city screen's buy mode, then the city panel itself,
+ * then the selection.
  *
  * End Turn, and what it refuses to do
  * -----------------------------------
@@ -184,6 +185,9 @@ const NOTICE_MS = 1800;
 
 /** What the context card says while move mode is armed. */
 const MOVE_MODE_NOTICE = 'Move mode — click a destination (Esc cancels)';
+
+/** And while the city screen's Buy Tiles mode is up. */
+const BUY_MODE_NOTICE = 'Buy tiles — click a priced hex to purchase it (Esc cancels)';
 
 /**
  * A line for the context card: either the standing description of a mode the
@@ -539,6 +543,26 @@ export interface GameControls {
   isMoveMode(): boolean;
   /** Arms or disarms move mode. The `M` key; a no-op with nothing selected. */
   setMoveMode(on: boolean): void;
+  /**
+   * Whether the city screen's Buy Tiles mode is up — the next click inside the
+   * open city's ring spends gold. The city panel's button reads it; the price-tag
+   * overlay decides whether to draw anything at all by it.
+   */
+  isBuyMode(): boolean;
+  /**
+   * Arms or disarms buy mode. A no-op without an open city of the local seat's,
+   * or after that seat has ended its turn.
+   */
+  setBuyMode(on: boolean): void;
+  /**
+   * Buys one hex for the open city, or flashes the reducer's refusal.
+   *
+   * The price tags call it, because a tag is DOM floating above the board and
+   * the board's own click handling never sees it — the same reason a city
+   * banner has to reach `setOpenCity` directly. Returns whether the click was
+   * claimed, not whether the gold moved.
+   */
+  purchaseTileAt(col: number, row: number): boolean;
 }
 
 export function createGameControls(options: GameControlsOptions): GameControls {
@@ -566,6 +590,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   let openCityId: number | null = null;
   /** Armed by `M`: the next left click on the board is an order, not a pick. */
   let moveMode = false;
+  /**
+   * Whether the city screen's Buy Tiles mode is up — the next click inside the
+   * open city's ring spends gold instead of pinning a citizen.
+   *
+   * A sibling of `moveMode` and shaped exactly like it: one boolean, one setter
+   * that refuses to arm a mode whose clicks would only be refused, and three
+   * voices saying so (the cursor, the price tags on the board, the context
+   * card). It belongs to the *open city* rather than to the board, so
+   * `setOpenCity` puts it down — see there.
+   */
+  let buyMode = false;
   /**
    * The lens the player chose. The lens actually on the board is
    * `effectiveLens`, which lets a selected settler override this without
@@ -615,7 +650,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function publishNotice(): void {
     if (rejection !== null) onNotice?.(rejection, rejectionKind);
-    else onNotice?.(moveMode ? MOVE_MODE_NOTICE : null, 'mode');
+    else if (moveMode) onNotice?.(MOVE_MODE_NOTICE, 'mode');
+    // Below move mode, because the two cannot be armed together — opening a city
+    // disarms a move order (see `setOpenCity`) and buy mode lives inside an open
+    // city — but the order is stated rather than assumed, so the line stays
+    // right if that ever stops being true.
+    else onNotice?.(buyMode ? BUY_MODE_NOTICE : null, 'mode');
   }
 
   /** Puts a line on the card for a beat, in one of its two voices. */
@@ -666,6 +706,74 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renderer.setMoveModeHighlight?.(moveMode);
     publishNotice();
     onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  // --- buy mode ------------------------------------------------------------
+
+  /**
+   * Arms or disarms the city screen's Buy Tiles mode.
+   *
+   * `setMoveMode`'s twin, and deliberately so: a mode is a boolean, a setter
+   * that will not arm what could only be refused, and enough voices that nobody
+   * is surprised by the state they are in. Here those voices are the crosshair
+   * on the viewport, the price tags the overlay paints on every frontier hex,
+   * and the context card.
+   *
+   * It refuses to arm without an open city of the local seat's, and after that
+   * seat has ended its turn — the reducer would refuse every click, and a mode
+   * whose whole content is refusals is a mode not worth entering. It does *not*
+   * refuse on an empty treasury: a player with no gold is exactly the player who
+   * wants to see what the ground costs, and the tags grey themselves with the
+   * reason (`purchasableTiles`).
+   */
+  function setBuyMode(on: boolean): void {
+    const next = on && openCity() !== null && canOrder();
+    if (next === buyMode) return;
+    buyMode = next;
+    viewport.classList.toggle('is-buy-mode', buyMode);
+    publishNotice();
+    refreshOverlays();
+    renderer.invalidate();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
+   * Spends gold on the hovered hex, or says why not.
+   *
+   * Returns whether the click was *claimed*, not whether the purchase went
+   * through: a refusal inside the ring is still this mode's click, and letting
+   * it fall through to the citizen board would mean an unaffordable tag pinned
+   * a citizen instead. The sentence a player reads is the reducer's own, which
+   * is the same sentence the greyed tag is already carrying.
+   */
+  function purchaseTile(col: number, row: number): boolean {
+    const city = openCity();
+    if (!city) return false;
+    if (!withinWorkRadius(getGame().state, city, col, row)) return false;
+
+    if (!canOrder()) {
+      reject(`You have ended turn ${getGame().state.turn}`);
+      return true;
+    }
+
+    const command: Command = {
+      type: 'purchaseTile',
+      playerId: localPlayerId,
+      cityId: city.id,
+      col,
+      row,
+    };
+    const result = dispatch(getGame(), command);
+    if (!result.ok) {
+      reject(result.error);
+      return true;
+    }
+
+    announce(`Bought a tile for ${city.name}`);
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+    return true;
   }
 
   // --- the local seat ------------------------------------------------------
@@ -910,6 +1018,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       setMoveMode(false);
       selectedId = null;
     }
+    // Buy mode belongs to the city that was open, whichever way the panel is
+    // leaving — closed, or swapped for another town. Carrying it across would
+    // arm a purchase against a city the player is no longer looking at.
+    setBuyMode(false);
     refreshOverlays();
     renderer.invalidate();
     onUpdate(selectedUnit(), renderer.getHover());
@@ -1560,6 +1672,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    *                           closes an open city panel, because the two share
    *                           one slot. An *enemy* badge is not a target and
    *                           falls through to the rows below.
+   *  3a. city panel open,     buys the hex, or says why it cannot be bought.
+   *      buy mode armed,      Above the citizen board because an armed mode is
+   *      click in the ring    what the ring *means* while it is up, and the tag
+   *                           on the hex has already quoted the price.
    *   3. city panel open,     pins or unpins a citizen, whatever is standing on
    *      click in its work    the tile. Tile management is what a city screen is
    *      radius               for, and it must work on every hex of the ring or
@@ -1619,6 +1735,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // ground a rival owns inside the ring are still this panel's subject, so
       // clicking them must not be read as walking away from it.
       if (withinWorkRadius(getGame().state, open, col, row)) {
+        // Row 3a. Buy mode outranks the citizen board for the same reason move
+        // mode outranks everything: while it is armed it is what the ring
+        // *means*, and a click that pinned a citizen instead of spending the
+        // gold the tag just quoted would be the mode lying about itself.
+        if (buyMode && purchaseTile(col, row)) return;
         if (toggleCitizen(hover)) return;
         // Inside the radius but not a tile this city may work — its own centre,
         // or ground another city owns. The panel stays open and the click falls
@@ -2106,6 +2227,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // they did — not everything at once.
       if (moveMode) setMoveMode(false);
       else if (closePopovers?.()) return;
+      // Buy mode is a layer *inside* the city screen, so it comes off before
+      // the screen it lives on: one Escape stops buying, a second closes the
+      // panel. Backing out of both at once would lose the city a player only
+      // meant to stop shopping in.
+      else if (buyMode) setBuyMode(false);
       else if (openCity()) setOpenCity(null);
       else clearSelection();
       return;
@@ -2235,8 +2361,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     openCity,
     setOpenCity,
     setMoveMode,
+    setBuyMode,
+    purchaseTileAt: purchaseTile,
     selectedUnit,
     isMoveMode: () => moveMode,
+    isBuyMode: () => buyMode,
     localPlayerId: () => localPlayerId,
     /**
      * Re-reads the game after it has been replaced. A new game is a new table:

@@ -116,8 +116,14 @@ import {
  *    supply from it once its owner holds the improving technology, and *access*
  *    is gated on the resource's reveal — so a v12 empire that mined iron before
  *    Bronze Working held iron and a v13 one does not.
+ * 14: Territory and gold (playable.md item 2) — `Player.tilesPurchased`, the
+ *    escalation ladder behind the `purchaseTile` command, and the command
+ *    itself. A v13 log replayed here is a different game for two reasons beyond
+ *    the field: the border-cost curve was retuned to Civ 6's numbers, so every
+ *    city claims its ground on a different schedule; and border-culture accrual
+ *    now answers to the writ, freezing outright while authority is in deficit.
  */
-export const SCHEMA_VERSION = 13;
+export const SCHEMA_VERSION = 14;
 
 // --- players ----------------------------------------------------------------
 
@@ -202,6 +208,19 @@ export interface Player {
    * standing around would price the fourth city like the first.
    */
   settlersBuilt: number;
+  /**
+   * How many tiles this player has ever bought with gold (`purchaseTile`).
+   *
+   * The escalation ladder in `explainTilePurchase` (`cities.ts`), and per
+   * *player* rather than per city because that is what it is meant to price: Civ
+   * 6 escalates a habit of buying land, and a habit belongs to an empire. Kept
+   * on the player for `settlersBuilt`'s reason — it can never be derived from
+   * the board, because a bought tile is indistinguishable from a tile culture
+   * claimed the moment the gold has left the treasury.
+   *
+   * Nothing lowers it. Losing the ground does not refund the habit.
+   */
+  tilesPurchased: number;
   /**
    * True once this player holds no units and no cities. They are out.
    *
@@ -548,6 +567,7 @@ export function newGame(config: GameConfig): GameState {
       // write it into the rule book.
       techsResearched: [...RULES.research.startingTechs],
       settlersBuilt: 0,
+      tilesPurchased: 0,
       eliminated: false,
     })),
     turnEnded: normalized.players.map(() => false),

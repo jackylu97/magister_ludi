@@ -1369,8 +1369,14 @@ describe('borders', () => {
         Math.floor(c.borderCostBase + c.borderCostLinear * claimed ** c.borderCostExponent),
       );
     }
-    expect(nextBorderCost(0)).toBe(20);
-    expect(nextBorderCost(1)).toBe(30);
+    // Civ 6's own numbers (10 · 6 · 1.3): the first tile beyond the founding
+    // ring is 10 culture, the second 16, the third 24, the fourth 35 — the
+    // schedule the monument band below is measured against.
+    expect(nextBorderCost(0)).toBe(10);
+    expect(nextBorderCost(1)).toBe(16);
+    expect(nextBorderCost(2)).toBe(24);
+    expect(nextBorderCost(3)).toBe(35);
+    expect(nextBorderCost(4)).toBe(46);
     // Each tile costs more than the last.
     for (let claimed = 0; claimed < 12; claimed++) {
       expect(nextBorderCost(claimed + 1)).toBeGreaterThan(nextBorderCost(claimed));
@@ -1570,7 +1576,7 @@ describe('determinism with cities', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 13 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 14 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1583,7 +1589,7 @@ describe('determinism with cities', () => {
     // `hasAttacked`, `fortifiedTurns`, `City.hp`, `eliminated`, `winnerId`;
     // 8 was resources; 9 was escalating settlers and `settlersBuilt`; 10 was
     // fog of war; 11 was workers and improvements.)
-    expect(SCHEMA_VERSION).toBe(13);
+    expect(SCHEMA_VERSION).toBe(14);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

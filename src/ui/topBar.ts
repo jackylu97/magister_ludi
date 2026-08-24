@@ -134,10 +134,25 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
-/** "science +10%, culture +10%" — an effect in words, for the hover card. */
+/**
+ * "science +10%, culture +10%" — an effect in words, for the hover card.
+ *
+ * The border freeze is the one effect that reads as a *consequence* rather than
+ * as a percentage, and it is written out in full: "borders frozen · purchases
+ * barred" is what an overdrawn writ actually does to a player's turn, and
+ * "borders −100%" would be arithmetic they then have to translate. Recognised by
+ * its own channel and its own magnitude, never by the meter's total — the rung
+ * lives in `rules.json` (`meters.borderFreeze`), and a softer table would
+ * correctly stop producing this sentence.
+ */
 function effectWords(effect: MeterEffect): string {
+  if (effect.borders && effect.percent <= -100) return 'borders frozen · purchases barred';
   const names = effect.growth ? ['growth'] : effect.yields;
-  return names.map((name) => `${name} ${percentFigure(effect.percent)}`).join(', ');
+  const words = names.map((name) => `${name} ${percentFigure(effect.percent)}`);
+  // A writ that runs speeds the borders as well as the forges, and it says both
+  // on the one line, because it is one fact about the empire.
+  if (effect.borders) words.push(`borders ${percentFigure(effect.percent)}`);
+  return words.join(', ');
 }
 
 export interface CivYieldStrip {

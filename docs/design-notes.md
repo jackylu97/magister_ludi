@@ -738,7 +738,8 @@ does during a turn re-bakes the board.
 
 ---
 
-## Entry XIV — Happiness & Authority: runtime behavior and presentation (M10, **built** 2026-08-23)
+## Entry XIV — Happiness & Authority: runtime behavior and presentation (M10, **built** 2026-08-23;
+the horizontal half in section F, **built** 2026-08-23)
 
 Entry I fixed the skeleton (vertical vs. horizontal limiter, three commitments, v0 numbers).
 This entry is the layer below and above it: what the meters *do* each turn, and how a player
@@ -875,6 +876,54 @@ empire is capped near 29 citizens until it digs something up (five unique luxuri
 twenty more). That is the ladder doing what it was asked to do, and it is the number to argue
 about first: the levers are `rules.meters`, and the obvious candidates are the palace's 9, the
 −100% rung, and Entry I's parked settler-increment halving.
+
+### F. The horizontal half — territory & gold (playable-loop item 2, **built** 2026-08-23)
+
+Entry XIV promised a doctrine and section E only built half of it: happiness owned the vertical
+and authority owned production. This is the other half. **Authority owns land**, and it owns it
+in both of the ways land is acquired.
+
+- **Border growth is Civ 6's pacing.** The machinery was already right — a per-city culture
+  basket against a threshold — so the curve was *refitted*, not rebuilt:
+  `base + mult · n ^ exp` with Civ 6's own 10 · 6 · 1.3 in `rules.json` (was 20 · 10 · 1.1). The
+  best-tile chooser and the claim radius are untouched; only the schedule moved.
+- **The writ multiplies the accrual.** `MeterEffect` gained a third channel beside `yields` and
+  `growth` — `borders` — because border culture is not a yield: the same culture is banked twice,
+  into `City.culture` (which buys ground) and into `Player.culturePool` (which will buy civics),
+  and only the first answers to the meter. A solvent writ rides on the *same effect* as its
+  production bonus, because it is one fact about the empire.
+- **The freeze.** At any authority deficit at all, borders stop: no accrual, no expansion out of
+  a basket filled last turn, and no buying. Its own ladder in `rules.json`
+  (`meters.borderFreeze`, `< 0 → −100%`), exactly as the growth stifle has its own — it bites
+  four points before the first malus rung, and it means something different. It is a *state*
+  (`BorderGrowth.frozen`), never a rate of zero, so the panel says "frozen" and the authority
+  chip's hover says "borders frozen · purchases barred".
+- **Gold buys tiles** — the first gold sink. `purchaseTile { playerId, cityId, col, row }`, valid
+  on unowned land inside the city's work radius that touches the *player's* territory, with the
+  writ solvent and the price covered. Price is Civ 6 shaped and entirely in `rules.json`: a base
+  by ring (50 / 50 / 50 / 75), times `1 + progressFactor · gameProgress` rounded to 5, plus a
+  flat +5 per tile this player has ever bought. `Player.tilesPurchased` (schema 13 → 14) is the
+  ladder, per player because Civ 6 prices a *habit* and a habit belongs to an empire.
+- **The two ladders are separate.** A bought tile does not raise `City.tilesClaimed`, so gold
+  never makes a city's culture-earned tiles dearer. Folding them would have turned the sink into
+  a tax on border growth.
+- **Rule 5 at the till.** `explainTilePurchase` returns the ordered list — ring, era, prior
+  purchases, furs' −10% — and `tilePurchasePrice` is its fold. The tag the overlay paints is the
+  charge the reducer makes. Furs' `rulePercent: borderCost` now discounts both ladders.
+
+**The measured tuning.** A capital with a monument makes 3 culture a turn, and against
+10 / 16 / 24 / 35 that claims its tiles on turns 4 / 9 / 17 / 29 — four by turn 29. A capital
+that has to *build* the monument first slides about five turns later and lands three inside the
+window. Both readings sit in the 3–4-by-turn-25–30 band the user asked for, and both are asserted
+in `test/territory.test.ts` rather than argued here. The +10% a solvent writ puts on the accrual
+is worth nothing at 3 culture a turn — floored once, exactly as a barracks' hammers are — which
+is deliberate: a monument town is not meant to sprint, and the tier is felt by cities that
+actually make culture.
+
+**The gap this exposed, for playtesting.** There is no early gold faucet. A capital on a map with
+no gold-paying luxury in its rings earns *nothing* for forty turns, so the sink has nothing to
+drink. The replay test had to pick a seed whose capital works a luxury. Unit/building purchase
+and unit upkeep are still open (M9 remainder), and so is the faucet question.
 
 ---
 

@@ -26,6 +26,7 @@
 
 import {
   type BuildingYieldContribution,
+  borderGrowth,
   cityYields,
   explainCityBuildings,
   growthSurplus,
@@ -71,6 +72,16 @@ export interface CityPanelOptions {
   onClose: () => void;
   /** Called after a command lands, so the rest of the page can catch up. */
   onChanged: () => void;
+  /**
+   * Whether the board's Buy Tiles mode is up, and how to flip it.
+   *
+   * The mode itself lives in `controls.ts`, beside the click precedence it
+   * changes; this panel only owns the button that arms it, exactly as the lens
+   * menu owns rows for a lens the board draws. Optional so that a panel built
+   * without a board — the tests do this — is still a panel.
+   */
+  isBuyMode?: () => boolean;
+  setBuyMode?: (on: boolean) => void;
 }
 
 export interface CityPanel {
@@ -90,6 +101,8 @@ function element<K extends keyof HTMLElementTagNameMap>(
 
 export function createCityPanel(options: CityPanelOptions): CityPanel {
   const { container, getGame, localPlayerId, getCity, onClose, onChanged } = options;
+  const isBuyMode = options.isBuyMode ?? ((): boolean => false);
+  const setBuyMode = options.setBuyMode ?? ((): void => {});
 
   /** Sends a queue and repaints. A refused command changes nothing at all. */
   function commit(city: City, queue: QueueItem[]): void {
@@ -471,6 +484,84 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
+   * Borders: what the next tile costs, how fast the culture is arriving, and
+   * whether the writ has stopped it arriving at all.
+   *
+   * The growth line's sibling one field over, and built from the one evaluator
+   * for the same reason: `borderGrowth` is what `collectYields` banks and what
+   * `expandBorders` spends, so the rate quoted here is the rate the turn will
+   * act on. Three states, and the third is why the evaluator carries `frozen`
+   * as a flag rather than leaving the panel to infer it from a zero:
+   *
+   *   growing   "+3 culture · 5t", a bar, and the basket against the cost.
+   *   stalled   a city with nowhere left to expand, or no culture at all.
+   *   frozen    the writ is overdrawn. The rate is struck out and the reason is
+   *             named, because a border that has stopped for a *policy* reason
+   *             must not look like one that has merely run out of poets.
+   *
+   * The Buy Tiles button sits under it rather than in the header, because it is
+   * the other half of the same sentence: this is how ground is acquired, and
+   * gold is the way to hurry it. It is disabled with the reason on it while the
+   * writ bars purchases, which is the same freeze the line above just reported.
+   */
+  function renderBorders(city: City, locked: boolean): HTMLElement {
+    const growth = borderGrowth(getGame().state, city);
+
+    const box = element('div', 'city-progress');
+    const label = element('div', 'city-progress-label');
+    label.append(element('span', undefined, 'Borders'));
+    const rate = element(
+      'span',
+      growth.frozen ? 'city-progress-rate is-bad' : 'city-progress-rate',
+      growth.frozen
+        ? `${growth.base} culture · frozen`
+        : growth.turns === null
+          ? `+${growth.perTurn} culture · stalled`
+          : `+${growth.perTurn} culture · ${growth.turns}t`,
+    );
+    label.append(rate);
+    box.append(label);
+    box.append(bar(growth.banked, growth.cost, 'is-culture'));
+
+    const note = element('div', 'city-progress-note');
+    note.append(
+      element('span', 'city-progress-item', growth.frozen ? 'Authority overdrawn' : 'Next tile'),
+    );
+    note.append(element('span', undefined, `${Math.floor(growth.banked)} / ${growth.cost}`));
+    box.append(note);
+
+    // The writ's own percentage on the accrual, named rather than folded into
+    // the rate — rule 5 one grade smaller: a player whose borders sped up is
+    // entitled to find the reason on the line that sped up.
+    if (!growth.frozen && growth.percent !== 0) {
+      const modifier = element('div', 'city-progress-note');
+      modifier.append(element('span', 'city-progress-item', 'Authority'));
+      modifier.append(element('span', undefined, percentFigure(growth.percent)));
+      box.append(modifier);
+    }
+
+    const buy = element('button', 'city-buy-tiles');
+    buy.type = 'button';
+    const active = isBuyMode();
+    buy.textContent = active ? 'Stop buying' : 'Buy tiles';
+    buy.classList.toggle('is-active', active);
+    const blocker = locked
+      ? `You have ended turn ${getGame().state.turn}`
+      : growth.frozen
+        ? 'Borders frozen — authority is overdrawn'
+        : null;
+    buy.disabled = blocker !== null;
+    buy.title = blocker ?? 'Show what the ground around this city costs in gold';
+    buy.addEventListener('click', () => {
+      setBuyMode(!isBuyMode());
+      onChanged();
+    });
+    box.append(buy);
+
+    return box;
+  }
+
+  /**
    * The citizen line: how many are placed, and how many of those the player
    * placed by hand.
    *
@@ -775,6 +866,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     container.append(renderCitizens(city));
     container.append(renderGrowth(city));
     container.append(renderProduction(city));
+    // After production, because the two food/hammer baskets are what a player
+    // reads first and territory is the slower clock underneath them.
+    container.append(renderBorders(city, locked));
     container.append(renderQueue(city, locked));
     const built = renderBuilt(city);
     if (built) container.append(built);
@@ -789,9 +883,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       element(
         'p',
         'hint',
-        'Dots on the map are the tiles this city works. Click one to pin a ' +
-          'citizen there, or any other tile in the ring to move one to it. ' +
-          'A unit standing in the ring is selected by clicking its badge.',
+        isBuyMode()
+          ? 'Buy tiles: every price on the board is what that hex costs right ' +
+            'now. Click one to buy it; a greyed tag says why it cannot be had. ' +
+            'Escape stops buying and leaves the city open.'
+          : 'Dots on the map are the tiles this city works. Click one to pin a ' +
+            'citizen there, or any other tile in the ring to move one to it. ' +
+            'A unit standing in the ring is selected by clicking its badge.',
       ),
     );
   }

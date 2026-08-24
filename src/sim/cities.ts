@@ -73,7 +73,7 @@ import {
   improvementForResource,
   improvementYield,
 } from './improvementData';
-import { isPassable } from './pathfind';
+import { type Cell, isPassable } from './pathfind';
 import {
   RESOURCE_IDS,
   type CityYieldKey,
@@ -104,12 +104,19 @@ import {
   readTileYield,
   terrainDef,
 } from './terrainData';
-import { type TechId, techDef } from './techData';
+import { TECH_IDS, type TechId, techDef } from './techData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
 import { recomputeVisibility } from './visibility';
 import { isCoastal } from './water';
-import { type MeterId, growthFactor, meterEffects } from './meters';
+import {
+  type MeterId,
+  borderFactor,
+  borderPercent,
+  bordersFrozen,
+  growthFactor,
+  meterEffects,
+} from './meters';
 import {
   cityResourceYields,
   empireResourceYields,
@@ -1365,6 +1372,80 @@ export function turnsToFill(remaining: number, perTurn: number): number | null {
 }
 
 /**
+ * Where a city's borders stand and how fast they are moving — the one evaluator
+ * for border growth, folded by the turn phase and printed by the city panel.
+ *
+ * Entry XIV's horizontal half made concrete: **authority owns land**. The
+ * culture a city makes is banked twice, into two different accounts — all of it
+ * into `Player.culturePool`, which civics will eventually spend, and only
+ * `perTurn` of it into `City.culture`, which buys ground. The writ is the
+ * difference between the two figures.
+ *
+ * Three things happen to the harvest on the way, in this order:
+ *
+ *   1. the city makes its culture (`cityYields`, which has already had the
+ *      happiness bonus and any authority malus applied to the *yield*);
+ *   2. the writ's border factor multiplies it (`borderFactor`) — the same
+ *      ±10/20% tier the meters already compute, summed-then-applied like every
+ *      other percentage in this game;
+ *   3. a writ in deficit freezes it outright, at any deficit at all.
+ *
+ * The result is floored, and a +10% on 3 culture is therefore 3 rather than a
+ * rounding gift — the same rule `cityYields` keeps for a barracks' hammers, and
+ * for the same reason. The writ's bonus is felt by cities that actually make
+ * culture, which is the tuning intent: a monument town is not meant to sprint.
+ *
+ * `frozen` is a *state*, not a rate of zero, and it is carried separately from
+ * `perTurn` so no surface has to infer it. A frozen city still banks its culture
+ * into the empire's pool and still keeps whatever it had already banked toward
+ * the next tile — the freeze stops the border moving, it does not confiscate.
+ *
+ * `yields` may be passed in by a caller that has already computed them, which
+ * the turn phase has; the default is the same call it would make.
+ */
+export interface BorderGrowth {
+  /** Culture the city makes this turn, before the writ touches it. */
+  base: number;
+  /** Signed whole percent the meters put on the accrual. */
+  percent: number;
+  /** True when the empire's writ is in deficit: no accrual, and no purchases. */
+  frozen: boolean;
+  /** What actually banks toward the next tile this turn. */
+  perTurn: number;
+  /** What is already banked. */
+  banked: number;
+  /** What the next tile costs this city, luxuries included (`borderCostFor`). */
+  cost: number;
+  /**
+   * Turns until the next tile at the current rate, `null` when it will never
+   * arrive — a frozen empire, or a city with no culture at all.
+   */
+  turns: number | null;
+}
+
+export function borderGrowth(
+  state: GameState,
+  city: City,
+  yields: CityYields = cityYields(state, city),
+): BorderGrowth {
+  const effects = meterEffects(state, city.ownerId);
+  const frozen = bordersFrozen(effects);
+  const factor = borderFactor(effects);
+  const base = yields.culture;
+  const perTurn = Math.floor(base * factor);
+  const cost = borderCostFor(state, city);
+  return {
+    base,
+    percent: borderPercent(effects),
+    frozen,
+    perTurn,
+    banked: city.culture,
+    cost,
+    turns: turnsToFill(cost - city.culture, perTurn),
+  };
+}
+
+/**
  * What one unit of this type costs *this player, right now*: its base cost plus
  * `costIncrement` for every escalating unit they have already built.
  *
@@ -1486,7 +1567,10 @@ export function collectYields(state: GameState): void {
     // that what the panel promised is what the basket receives.
     city.foodBasket += growthSurplus(state, city, yields);
     city.hammerBasket += yields.production;
-    city.culture += yields.culture;
+    // Only the border basket answers to the writ — see `borderGrowth`. The
+    // empire's culture pool below is banked at the full rate, because authority
+    // owns land and has no opinion about civics.
+    city.culture += borderGrowth(state, city, yields).perTurn;
 
     const player = playerById(state, city.ownerId);
     if (!player) continue;
@@ -1711,10 +1795,22 @@ export function bestExpansionTile(state: GameState, city: City): Tile | null {
  * earlier one just took and spends its culture on its own second choice instead.
  * Nobody pays for a tile they did not get, and nobody waits a turn for losing a
  * race they could not have known about.
+ *
+ * A frozen empire claims nothing, even from a basket that was already full when
+ * the writ went into deficit. The freeze is checked *here* as well as in the
+ * accrual because the two are different guarantees: the accrual stops the basket
+ * filling, and this stops a basket filled last turn from being spent this one.
+ * Checked once per player, before the sweep, because it is a fact about the
+ * empire and `authorityOf` walks every city to answer it.
  */
 export function expandBorders(state: GameState): void {
   const grew = new Set<number>();
+  const frozen = new Map<number, boolean>();
+  for (const player of state.players) {
+    frozen.set(player.id, bordersFrozen(meterEffects(state, player.id)));
+  }
   for (const city of state.cities) {
+    if (frozen.get(city.ownerId) === true) continue;
     const cost = borderCostFor(state, city);
     if (city.culture < cost) continue;
     const tile = bestExpansionTile(state, city);
@@ -1731,4 +1827,298 @@ export function expandBorders(state: GameState): void {
   for (const player of state.players) {
     if (grew.has(player.id)) recomputeVisibility(state, player.id);
   }
+}
+
+// --- buying ground ----------------------------------------------------------
+
+/**
+ * How far through the game the world is, as a fraction in `[0, 1]`: the share of
+ * the technology tree this player has researched.
+ *
+ * The tile price's era term, and it is *this player's* progress rather than the
+ * world's on purpose. A runaway empire pays runaway prices for land while the
+ * empire it left behind can still afford a hex, which is the only reading of a
+ * gold sink that does not punish the player who is losing. It is also the only
+ * reading that is cheap to compute deterministically — a world-wide figure would
+ * make one player's research change another player's prices mid-turn.
+ *
+ * Counted off `TECH_IDS`, so a tech added to `data/techs.json` re-scales the
+ * curve rather than breaking it, and the starting techs count: an empire that
+ * opens holding agriculture has already come a little way.
+ */
+export function gameProgress(state: GameState, playerId: number): number {
+  const player = playerById(state, playerId);
+  if (!player || TECH_IDS.length === 0) return 0;
+  return Math.min(1, player.techsResearched.length / TECH_IDS.length);
+}
+
+/** Hex distance from a city's centre to a cell — the ring a tile stands in. */
+export function ringOf(state: GameState, city: City, cell: Cell): number {
+  const { map } = state;
+  const tile = getTileAt(map, cell.col, cell.row);
+  if (!tile) return Infinity;
+  return wrappedDistance(map, tileHex(cityTile(map, city)), tileHex(tile));
+}
+
+/**
+ * Does this tile touch ground this *player* already holds?
+ *
+ * The frontier test. Deliberately the player's territory rather than one city's,
+ * which is where this parts company with `bestExpansionTile`: culture creeps
+ * outward from the town that made it, but a treasury is an empire's, and a hex
+ * wedged between two of your towns is frontier by any honest reading of the map.
+ */
+function touchesTerritory(state: GameState, playerId: number, tile: Tile): boolean {
+  const { map } = state;
+  for (const neighbour of neighborTiles(map, tileHex(tile))) {
+    const owner = state.tileOwner[tileIndex(map, neighbour.col, neighbour.row)];
+    if (owner === null) continue;
+    if (cityById(state, owner)?.ownerId === playerId) return true;
+  }
+  return false;
+}
+
+/** One line of a tile's asking price, signed: charges positive, discounts not. */
+export interface TilePriceLine {
+  source: string;
+  amount: number;
+}
+
+/**
+ * What a tile costs in gold, as the ordered list the total is the fold of.
+ *
+ * Rule 5 at the till: the price tag the Buy Tiles overlay paints on a hex is
+ * this list summed, the reducer charges this list summed, and there is no second
+ * implementation of the arithmetic anywhere. A player who wonders why the hex
+ * across the river costs 95 gets four lines that add up to 95.
+ *
+ * The lines, in the order they are read:
+ *
+ *   1. **Ring** — `ringBase` for how far out the tile is: the near rings are one
+ *      price and the outer one dearer, which is Civ 6's shape (a tile you can
+ *      almost reach is cheaper than a tile at the edge of what a town can ever
+ *      hold).
+ *   2. **Era** — what the world's progress adds to that base. Folded into the
+ *      *rounded* figure rather than being rounded on its own, so the two lines
+ *      always sum to a tidy multiple of `roundTo` and the tag never reads 97.
+ *   3. **Prior purchases** — `perPriorPurchase` per tile this player has ever
+ *      bought. Added *after* the rounding, deliberately: the escalation is a
+ *      flat surcharge on a habit, not part of the price of the ground, and
+ *      rounding it in would make the first purchase silently free.
+ *   4. **Luxuries** — furs' `borderCost` discount, the same −10% it takes off a
+ *      culture border tile, on a line that names the reason. Land is land: an
+ *      empire whose trappers know the country gets it cheaper both ways.
+ *
+ * A cell outside the city, or one this function is asked about before the city
+ * exists, still gets a price — this evaluator prices ground and refuses nothing.
+ * Whether the sale is *legal* is `tilePurchaseError`'s question, which is the
+ * same split `improvementError` makes against `improvementYield`.
+ */
+export function explainTilePurchase(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  cell: Cell,
+): TilePriceLine[] {
+  const rules = CITIES.tilePurchase;
+  const city = cityById(state, cityId);
+  const ring = city ? ringOf(state, city, cell) : CITIES.claimRadius;
+  const table = rules.ringBase;
+  const index = Math.max(0, Math.min(table.length - 1, Math.round(ring)));
+  const base = table[index] ?? 0;
+
+  // Rounded once, over base *and* era together — see the docblock.
+  const scaled = base * (1 + rules.progressFactor * gameProgress(state, playerId));
+  const step = rules.roundTo > 0 ? rules.roundTo : 1;
+  const rounded = Math.round(scaled / step) * step;
+
+  const lines: TilePriceLine[] = [{ source: `Ring ${index}`, amount: base }];
+  if (rounded !== base) lines.push({ source: 'Era', amount: rounded - base });
+
+  const player = playerById(state, playerId);
+  const prior = player?.tilesPurchased ?? 0;
+  if (prior > 0 && rules.perPriorPurchase !== 0) {
+    lines.push({
+      source: `Bought ${prior} before`,
+      amount: rules.perPriorPurchase * prior,
+    });
+  }
+
+  const subtotal = lines.reduce((sum, line) => sum + line.amount, 0);
+  for (const line of resourceRulePercent(state, playerId, 'borderCost')) {
+    // Per luxury rather than on the folded percentage, so the tag can name the
+    // furs. Floored on the *subtotal* each time it is applied, which for the one
+    // such luxury this game has is exactly the summed reading `borderCostFor`
+    // uses; a second one would want the fold, and this is where that edit goes.
+    const discount = subtotal - Math.max(1, Math.floor(subtotal * (1 + line.percent / 100)));
+    if (discount === 0) continue;
+    lines.push({ source: `${line.source} · ${line.percent}%`, amount: -discount });
+  }
+
+  return lines;
+}
+
+/** The total: the fold of `explainTilePurchase`, and the only place it is summed. */
+export function foldTilePrice(lines: readonly TilePriceLine[]): number {
+  let total = 0;
+  for (const line of lines) total += line.amount;
+  return total;
+}
+
+/**
+ * What this tile costs this player, right now. The number the overlay prints and
+ * the number the reducer charges, because it is one call to one evaluator.
+ */
+export function tilePurchasePrice(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  cell: Cell,
+): number {
+  return Math.max(1, foldTilePrice(explainTilePurchase(state, playerId, cityId, cell)));
+}
+
+/**
+ * Why this player may not buy this tile for this city, or `null` when they may.
+ *
+ * The whole of the rule, in one pure function, so that the command and the
+ * interface cannot disagree: the overlay greys a tag with the sentence this
+ * returns, and the reducer refuses with the same sentence. That is
+ * `improvementError`'s contract and `buildError`'s, one grade over.
+ *
+ * The seven questions, in the order a player would ask them:
+ *
+ *   1. is there such a player, and such a city, and is the city theirs;
+ *   2. is the cell on the map, and is it land — the sea is nobody's to sell;
+ *   3. is it unowned — a rival's ground is taken by war, not by cheque, and
+ *      your *own* ground is already yours;
+ *   4. is it inside the city's work radius — you buy ground a town can use;
+ *   5. does it touch this empire's territory — land is bought at the frontier,
+ *      never as an island across the map;
+ *   6. is the writ solvent — the freeze bars purchases as well as growth
+ *      (`bordersFrozen`), because a freeze money could step around would be a
+ *      freeze on the poor only;
+ *   7. is there gold enough.
+ *
+ * Adjacency is to the *player's* territory rather than to this city's, and that
+ * is deliberate where `bestExpansionTile` is not: culture creeps outward from
+ * the town that made it, but a treasury is an empire's, and a hex wedged between
+ * two of your towns is frontier by any honest reading of the map.
+ */
+export function tilePurchaseError(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  cell: Cell,
+): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  const city = cityById(state, cityId);
+  if (!city) return `No city with id ${String(cityId)}`;
+  if (city.ownerId !== playerId) return `${city.name} does not belong to player ${playerId}`;
+
+  const { map } = state;
+  const tile = getTileAt(map, cell.col, cell.row);
+  if (!tile) return `No tile at (${String(cell.col)}, ${String(cell.row)})`;
+  if (terrainDef(tile.terrain).water) return 'The sea is not for sale';
+
+  const index = tileIndex(map, tile.col, tile.row);
+  const owner = state.tileOwner[index];
+  if (owner !== null) {
+    return owner === city.id ? `${city.name} already owns this tile` : 'This tile is already owned';
+  }
+
+  if (!withinWorkRadius(state, city, tile.col, tile.row)) {
+    return `Too far from ${city.name} to buy`;
+  }
+
+  if (!touchesTerritory(state, playerId, tile)) return 'Not next to your territory';
+
+  if (bordersFrozen(meterEffects(state, playerId))) {
+    return 'Borders frozen — authority is overdrawn';
+  }
+
+  const price = tilePurchasePrice(state, playerId, cityId, cell);
+  if (player.gold < price) return `Costs ${price} gold; you have ${player.gold}`;
+
+  return null;
+}
+
+/**
+ * Every cell the Buy Tiles overlay has something to say about: each unowned land
+ * hex in the city's work radius that touches the empire, priced, with the reason
+ * it cannot be had when it cannot.
+ *
+ * Built once per overlay rather than by asking the two evaluators per hex in a
+ * render loop, and returned in tile-index order so the overlay is a pure
+ * function of the board. A tile that is merely unaffordable is *in* the list with
+ * its price and its reason — a grey tag that says why is the whole point of the
+ * mode; a tile that is not frontier at all is not, because there is nothing to
+ * say about it.
+ */
+export interface TileOffer {
+  col: number;
+  row: number;
+  price: number;
+  /** `null` when the player may buy it right now. */
+  error: string | null;
+}
+
+export function purchasableTiles(state: GameState, city: City): TileOffer[] {
+  const { map } = state;
+  const owner = city.ownerId;
+  const offers: TileOffer[] = [];
+  // `mapRange` at the work radius answers the "too far" question by
+  // construction, and the three below are what "there is nothing here to offer"
+  // means: owned ground, sea, and hexes off the frontier. They are asked
+  // directly rather than by matching `tilePurchaseError`'s sentences — an error
+  // string is for a player to read, never for code to branch on.
+  for (const tile of mapRange(map, tileHex(cityTile(map, city)), CITIES.workRadius)) {
+    if (state.tileOwner[tileIndex(map, tile.col, tile.row)] !== null) continue;
+    if (terrainDef(tile.terrain).water) continue;
+    if (!touchesTerritory(state, owner, tile)) continue;
+    const cell: Cell = { col: tile.col, row: tile.row };
+    offers.push({
+      col: tile.col,
+      row: tile.row,
+      price: tilePurchasePrice(state, owner, city.id, cell),
+      // Everything left is a real offer, so whatever this says is a reason the
+      // *player* cannot take it today — an empty purse, or a frozen writ.
+      error: tilePurchaseError(state, owner, city.id, cell),
+    });
+  }
+  offers.sort((a, b) => tileIndex(map, a.col, a.row) - tileIndex(map, b.col, b.row));
+  return offers;
+}
+
+/**
+ * Buys the tile: charges the treasury, claims the ground, climbs the escalation
+ * ladder and re-seats the citizens.
+ *
+ * Validates nothing — `tilePurchaseError` is the rule and the command asks it
+ * first. This is the mechanism, exactly as `foundCityAt` is.
+ *
+ * `city.tilesClaimed` is deliberately **not** raised. That counter is the input
+ * to the *culture* curve, and a tile bought with gold must not make the next
+ * tile a city's own culture earns any dearer — the two ladders are separate in
+ * Civ 6 and separate here, and folding them together would turn the gold sink
+ * into a tax on border growth. The purchase has its own ladder,
+ * `Player.tilesPurchased`, which is what `explainTilePurchase` climbs.
+ *
+ * The citizens are re-assigned on the spot, which is the narrow exception
+ * `setLockedTiles` already established (see the trap in CLAUDE.md): a player who
+ * has just spent 95 gold on a wheat field should see the wheat in the panel
+ * before the turn ends, not after it. `collectYields` re-assigns anyway and gets
+ * the same answer.
+ */
+export function purchaseTileAt(state: GameState, city: City, tile: Tile): void {
+  const player = playerById(state, city.ownerId);
+  if (!player) return;
+  const price = tilePurchasePrice(state, player.id, city.id, { col: tile.col, row: tile.row });
+  claimTile(state, city, tile);
+  player.gold -= price;
+  player.tilesPurchased += 1;
+  assignCitizens(state, city);
+  // Bought ground is ground you can see, the same rule `expandBorders` keeps.
+  recomputeVisibility(state, player.id);
 }

@@ -139,6 +139,44 @@ export interface CitizenWeights {
   gold: number;
 }
 
+/**
+ * The tile-purchase price, which is Civ 6's shape with this game's numbers in
+ * it: a base that depends only on how far out the tile is, a premium that rises
+ * with how far the *world* has come, and a flat escalation per tile this player
+ * has already bought.
+ *
+ * Three terms rather than one curve because each answers a different question a
+ * player asks — "how far away is it", "how late is it", "how greedy have I
+ * been" — and rule 5 means the price is *shown* as those three lines
+ * (`explainTilePrice` in `cities.ts`). A single opaque formula could not be
+ * printed honestly.
+ */
+export interface TilePurchaseRules {
+  /**
+   * Base price by ring, indexed by hex distance from the city centre; anything
+   * beyond the last entry pays the last entry. Ring 0 is the centre, which is
+   * never for sale, so its entry never gets read — it is in the table to keep
+   * the index and the ring the same number.
+   */
+  ringBase: number[];
+  /**
+   * How much the base grows across a whole game: the multiplier is
+   * `1 + progressFactor · gameProgress`, where progress is the fraction of the
+   * tech tree this player has researched. At 2 a tile at the end of the tree
+   * costs three times its opening price, which is what stops a late empire
+   * buying a province out of pocket change.
+   */
+  progressFactor: number;
+  /** The scaled base is rounded to a multiple of this. Civ's tidy price tags. */
+  roundTo: number;
+  /**
+   * Added per tile this player has *ever* bought, anywhere. Per player and not
+   * per city, exactly as Civ 6 has it: the escalation is meant to price a
+   * strategy of buying land, and a strategy is an empire's, not a town's.
+   */
+  perPriorPurchase: number;
+}
+
 export interface CityRules {
   /** How far from its centre a city may assign citizens, in hexes. */
   workRadius: number;
@@ -177,10 +215,20 @@ export interface CityRules {
    * Border cost curve. The `t`-th tile a city claims beyond its initial ring
    * costs `borderCostBase + borderCostLinear · (t − 1) ^ borderCostExponent`
    * culture, floored. The initial claim at founding is free and is not counted.
+   *
+   * Civ 6's own numbers (10 · 6 · 1.3) rather than invented ones, because they
+   * are the numbers a decade of play has already sanded down and because the
+   * pacing they give here is the pacing the design asked for: a capital with a
+   * monument takes its third tile around turn 20 and its fourth around turn 32
+   * (`test/cities.test.ts`, "a monument buys three or four tiles by the early
+   * game"). Only the *pacing* is Civ 6's; which tile is taken is still this
+   * game's best-yield chooser.
    */
   borderCostBase: number;
   borderCostLinear: number;
   borderCostExponent: number;
+  /** What gold asks for a tile culture has not reached yet. */
+  tilePurchase: TilePurchaseRules;
   /** Weights the citizen assigner and the border chooser both score tiles with. */
   citizenWeights: CitizenWeights;
   /**
@@ -274,6 +322,19 @@ export interface MeterRules {
    * the worst rung stalls growth and still cannot starve a citizen.
    */
   growthStifle: MeterStep[];
+  /**
+   * The border freeze: what authority does to a city's border-culture accrual
+   * when the writ is in deficit (design ledger XIV, playable.md item 2 — "borders
+   * FREEZE at negative authority").
+   *
+   * A ladder of its own for `growthStifle`'s reason, and with `growthStifle`'s
+   * boundary: `< 0`, so an empire in exact balance still claims ground. One rung
+   * today, at −100%, because a freeze is not a slowdown — an empire that has
+   * over-reached stops taking land at all, and buying it is barred with it
+   * (`bordersFrozen`). It is a table rather than a constant so that a softer
+   * first rung ("−50% below zero, frozen below −5") is a data edit.
+   */
+  borderFreeze: MeterStep[];
 }
 
 export interface ResearchRules {

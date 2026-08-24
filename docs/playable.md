@@ -25,11 +25,35 @@ game more playtestable than the last.
   no TypeScript. The fuller resource list can land as data only.
 - Also: new games default to a **single seat**; the multi-seat sandbox stays selectable.
 
-## 2. Territory & gold (M9 folded in)
-- Doctrine: happiness owns the vertical (population), authority owns the horizontal (land).
-- Border expansion rate = culture × authority factor; borders FREEZE at negative authority.
-- Tile purchase with gold, only at positive authority — the flagship gold sink. Possibly
-  unit/building purchase and light unit upkeep with it.
+## 2. Territory & gold — **BUILT** (2026-08-23; ledger Entry XIV.F)
+- Doctrine delivered: happiness owns the vertical (population), authority owns the horizontal
+  (land), and it owns *both* ways land is acquired.
+- Border growth refitted to Civ 6's pacing — the per-city culture basket was already the right
+  machinery, so only the curve moved: `base + mult · n ^ exp` at 10 · 6 · 1.3 in `rules.json`.
+  The best-tile chooser and the radius are untouched.
+- Authority factor rides the standard percent pipeline through a third `MeterEffect` channel
+  (`borders`), because border culture is not a yield — the same culture also fills the empire's
+  pool, and only the half that buys ground answers to the writ. At *any* authority deficit
+  borders FREEZE: no accrual, no expansion from a full basket, no purchases. Its own ladder
+  (`meters.borderFreeze`), a labelled state everywhere it shows.
+- `purchaseTile` is the first gold sink: unowned land, inside the work radius, touching the
+  player's territory, writ solvent, price covered. Price = ring base × era scaling (rounded to
+  5) + 5 per prior purchase, less furs' −10%, all from `rules.json`, all through one evaluator
+  the overlay and the reducer share. `Player.tilesPurchased` is the per-player ladder (schema 14).
+- Tuning, measured in `test/territory.test.ts`: a monument capital takes tiles on turns
+  4 / 9 / 17 / 29; building the monument first slides that ~5 turns later. Both land 3–4 tiles
+  inside turns 25–30.
+- Buy Tiles mode on the city screen paints a price tag on every frontier hex; barred ones are
+  struck through with the reducer's own reason.
+
+### Still open from here (M9 remainder)
+- **Unit and building gold purchase** — deliberately out of scope for item 2. The price
+  machinery (`explainTilePurchase` / one-evaluator + labelled lines) is the shape to copy.
+- **Unit upkeep** — still unbuilt. Nothing spends gold per turn.
+- **The faucet.** Building the sink showed there is barely a source: a capital with no
+  gold-paying luxury in its rings earns *zero* gold for forty turns. Roads and trade routes are
+  parked, markets are late, so tile purchase is currently unaffordable on a poor start. This is
+  the first thing to argue about when item 2 is played.
 
 ## 3. Barbarians
 - Roaming hostiles from fog camps; Age-of-Omens military pressure. Deterministic spawns

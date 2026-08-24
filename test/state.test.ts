@@ -67,7 +67,8 @@ describe('newGame', () => {
     // kit of technologies from `rules.research.startingTechs`. Milestone 5 adds
     // `eliminated`, which nobody is on turn one, and escalating settlers add
     // `settlersBuilt` — zero even though every player is holding a settler,
-    // because the one they start with was never paid for.
+    // because the one they start with was never paid for. Territory & gold adds
+    // `tilesPurchased`, the same shape of lifetime counter for bought ground.
     const pools = {
       gold: 0,
       sciencePool: 0,
@@ -76,6 +77,7 @@ describe('newGame', () => {
       researching: null,
       techsResearched: RULES.research.startingTechs,
       settlersBuilt: 0,
+      tilesPurchased: 0,
       eliminated: false,
     };
     expect(state.players).toEqual([

@@ -551,13 +551,21 @@ describe('what the meters do to the economy', () => {
     // A hand-built pair, because the point is the arithmetic and not the board:
     // +10% and −10% on the same yield have to read as nothing at all.
     const effects: MeterEffect[] = [
-      { meter: 'happiness', value: 6, percent: 10, yields: ['science', 'culture'], growth: false },
+      {
+        meter: 'happiness',
+        value: 6,
+        percent: 10,
+        yields: ['science', 'culture'],
+        growth: false,
+        borders: false,
+      },
       {
         meter: 'authority',
         value: -6,
         percent: -10,
         yields: ['production', 'science', 'culture'],
         growth: false,
+        borders: false,
       },
     ];
     expect(yieldFactor(effects, 'science')).toBeCloseTo(1, 10);
@@ -701,8 +709,8 @@ describe('a captured city, end to end', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 13 save with a captured city in it', () => {
-    expect(SCHEMA_VERSION).toBe(13);
+  it('round-trips a schema 14 save with a captured city in it', () => {
+    expect(SCHEMA_VERSION).toBe(14);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

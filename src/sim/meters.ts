@@ -472,6 +472,23 @@ export function growthStiflePercent(value: number): number {
   return stepPercent(METERS.growthStifle, value);
 }
 
+/**
+ * What an authority total does to border-culture accrual on its own ladder:
+ * any deficit at all freezes borders outright (−100%).
+ *
+ * The horizontal half of Entry XIV's doctrine, and `growthStiflePercent`'s exact
+ * mirror image one meter over — happiness owns the vertical and stops a wide
+ * empire *growing*; authority owns the horizontal and stops an over-reached one
+ * *spreading*. Same `< 0` boundary for the same reason: balance is balance.
+ *
+ * Separate from `tierPercent` because the two answer different questions. The
+ * tier asks how well the writ runs (±10/20% from ±5); this asks whether it runs
+ * at all, and it bites four points earlier than the first malus rung does.
+ */
+export function borderFreezePercent(value: number): number {
+  return stepPercent(METERS.borderFreeze, value);
+}
+
 /** The yields a meter can multiply. Food is not among them — see `growth`. */
 export type ModifiedYield = 'production' | 'science' | 'culture';
 
@@ -495,6 +512,22 @@ export interface MeterEffect {
   yields: ModifiedYield[];
   /** True when it multiplies food surplus toward growth instead of a yield. */
   growth: boolean;
+  /**
+   * True when it multiplies the culture a city banks toward its next border
+   * tile (`borderGrowth` in `cities.ts`).
+   *
+   * A third channel beside `yields` and `growth` rather than a fourth
+   * `ModifiedYield`, because border culture is not a yield: the same culture is
+   * banked twice — once into `City.culture`, which buys ground, and once into
+   * `Player.culturePool`, which will buy civics — and only the first of the two
+   * answers to the writ. A yield entry would move both.
+   *
+   * It rides on the *same effect* as the writ's production bonus rather than on
+   * a line of its own, because it is the same fact about the empire: a writ that
+   * runs is a writ that builds and claims. The freeze is its own effect, because
+   * that is a different fact.
+   */
+  borders: boolean;
 }
 
 /**
@@ -507,11 +540,19 @@ export interface MeterEffect {
  *   happiness < 0    growth, on its own steep ladder, and *nothing else*: an
  *                    unhappy empire stops growing rather than getting worse at
  *                    everything.
- *   authority ≥ +5   production — a writ that runs is a writ that builds.
- *   authority < 0    production, science and culture together: over-extension
+ *   authority ≥ +5   production *and border growth* — a writ that runs is a writ
+ *                    that builds and claims.
+ *   authority < 0    borders freeze outright, four points before any malus rung
+ *                    is reached: land follows the writ (playable.md item 2), and
+ *                    the same test bars buying land with gold.
+ *   authority ≤ −5   production, science and culture together: over-extension
  *                    is the one thing in this game that taxes the whole economy,
  *                    because it is the only lawful width tax (Entry I's third
  *                    commitment).
+ *
+ * The two authority deficits are two separate entries and not one, because they
+ * begin at different totals and mean different things — an empire at −2 is still
+ * building and thinking at full rate, it has simply stopped growing outward.
  */
 export function meterEffects(state: GameState, playerId: number): MeterEffect[] {
   const effects: MeterEffect[] = [];
@@ -525,6 +566,7 @@ export function meterEffects(state: GameState, playerId: number): MeterEffect[] 
       percent: bonus,
       yields: ['science', 'culture'],
       growth: false,
+      borders: false,
     });
   }
   const stifle = growthStiflePercent(happiness);
@@ -535,6 +577,7 @@ export function meterEffects(state: GameState, playerId: number): MeterEffect[] 
       percent: stifle,
       yields: [],
       growth: true,
+      borders: false,
     });
   }
 
@@ -547,6 +590,7 @@ export function meterEffects(state: GameState, playerId: number): MeterEffect[] 
       percent: writ,
       yields: ['production'],
       growth: false,
+      borders: true,
     });
   } else if (writ < 0) {
     effects.push({
@@ -555,6 +599,22 @@ export function meterEffects(state: GameState, playerId: number): MeterEffect[] 
       percent: writ,
       yields: ['production', 'science', 'culture'],
       growth: false,
+      borders: false,
+    });
+  }
+  // The freeze, after the tier and on its own line, because it is its own rule:
+  // it begins at any deficit at all rather than at −5, and it is the reason the
+  // panel can say "borders frozen" instead of printing a rate of zero and
+  // leaving the player to guess. See `borderFreezePercent`.
+  const freeze = borderFreezePercent(authority);
+  if (freeze !== 0) {
+    effects.push({
+      meter: 'authority',
+      value: authority,
+      percent: freeze,
+      yields: [],
+      growth: false,
+      borders: true,
     });
   }
 
@@ -597,4 +657,41 @@ export function growthFactor(effects: readonly MeterEffect[]): number {
     if (effect.growth) percent += effect.percent;
   }
   return Math.max(0, 1 + percent / 100);
+}
+
+/**
+ * The percentage the meters put on border-culture accrual: summed, not
+ * compounded, exactly like every other channel here.
+ */
+export function borderPercent(effects: readonly MeterEffect[]): number {
+  let percent = 0;
+  for (const effect of effects) {
+    if (effect.borders) percent += effect.percent;
+  }
+  return percent;
+}
+
+/**
+ * What a city's border-culture accrual is multiplied by. Floored at zero, like
+ * `growthFactor`: the worst the writ can do is stop a border, never march it
+ * backwards — territory is never taken away by a meter.
+ */
+export function borderFactor(effects: readonly MeterEffect[]): number {
+  return Math.max(0, 1 + borderPercent(effects) / 100);
+}
+
+/**
+ * Is this empire's writ so overdrawn that its borders have stopped moving?
+ *
+ * The one test, asked in three places: the accrual (`borderGrowth`), the
+ * `purchaseTile` command, and the authority chip's hover. Land follows the writ,
+ * so an empire that cannot grow into ground cannot buy it either — otherwise the
+ * freeze would be a tax on the poor and nothing at all on the rich.
+ *
+ * Phrased as "the factor has reached zero" rather than "authority is negative"
+ * so that the freeze stays a fact about `borderFreeze` in `rules.json`: soften
+ * that table to −50% and this correctly stops reporting a freeze.
+ */
+export function bordersFrozen(effects: readonly MeterEffect[]): boolean {
+  return borderFactor(effects) <= 0;
 }

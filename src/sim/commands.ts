@@ -59,7 +59,14 @@
  */
 
 import { isBuildingId } from './buildingData';
-import { assignCitizens, assignableTiles, foundCityAt, foundingError } from './cities';
+import {
+  assignCitizens,
+  assignableTiles,
+  foundCityAt,
+  foundingError,
+  purchaseTileAt,
+  tilePurchaseError,
+} from './cities';
 import { applyCombat, fortifyError } from './combat';
 import type { ImprovementId } from './improvementData';
 import {
@@ -395,6 +402,30 @@ export interface PillageCommand extends PlayerCommand {
   unitId: number;
 }
 
+/**
+ * Buys one unowned tile for one of this player's cities, with gold.
+ *
+ * The first gold sink the game has (playable.md item 2). It names the city as
+ * well as the hex, and both are load-bearing: the hex is the ground, and the
+ * city is who will own and work it — a tile in the overlap of two towns is a
+ * different purchase depending on which one is buying, and the price is quoted
+ * against the buyer's rings.
+ *
+ * Instant and complete, like `buildImprovement`: there is no part-paid tile. The
+ * whole of the rule is `tilePurchaseError` (`cities.ts`), which the overlay also
+ * greys its tags with — so a tag a player can click is a command this accepts,
+ * and the sentence they read on a refusal is this reducer's own.
+ *
+ * Turn-gated like every other act. A seat that has declared itself finished has
+ * finished spending.
+ */
+export interface PurchaseTileCommand extends PlayerCommand {
+  type: 'purchaseTile';
+  cityId: number;
+  col: number;
+  row: number;
+}
+
 /** Every legal mutation of the game, as serializable data. */
 export type Command =
   | EndTurnCommand
@@ -409,7 +440,8 @@ export type Command =
   | FortifyCommand
   | BuildImprovementCommand
   | ChopFeatureCommand
-  | PillageCommand;
+  | PillageCommand
+  | PurchaseTileCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
@@ -1031,6 +1063,33 @@ function applyPillage(state: GameState, command: PillageCommand): CommandResult 
   return ok();
 }
 
+/**
+ * Buys ground. See `PurchaseTileCommand`, and `cities.ts` for the rules.
+ *
+ * The seat's three questions here, everything about the *sale* delegated whole
+ * to `tilePurchaseError` — `applyBuildImprovement`'s split, and the same
+ * guarantee: a refusal leaves the state byte-identical, because not one line
+ * below the validation runs until every question has been answered.
+ */
+function applyPurchaseTile(state: GameState, command: PurchaseTileCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot buy land`);
+  }
+
+  const cell: Cell = { col: command.col, row: command.row };
+  const problem = tilePurchaseError(state, actor.id, command.cityId, cell);
+  if (problem) return fail(problem);
+
+  // Validation is done — `tilePurchaseError` has already established that the
+  // city is this player's and that the tile is real, land and free.
+  const city = cityById(state, command.cityId)!;
+  const tile = getTileAt(state.map, cell.col, cell.row)!;
+  purchaseTileAt(state, city, tile);
+  return ok();
+}
+
 // --- reducer ----------------------------------------------------------------
 
 /**
@@ -1072,6 +1131,8 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       return applyChopFeature(state, command);
     case 'pillage':
       return applyPillage(state, command);
+    case 'purchaseTile':
+      return applyPurchaseTile(state, command);
     default:
       return unhandledCommand(kind, type);
   }

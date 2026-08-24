@@ -75,6 +75,7 @@ import { type GameControls, createGameControls } from './ui/controls';
 import { type DamageNumbers, createDamageNumbers } from './ui/damageNumbers';
 import { createPopover } from './ui/popover';
 import { type TechTree, createTechTree } from './ui/techTree';
+import { type TilePriceTags, createTilePriceTags } from './ui/tilePriceTags';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { createTurnSplash } from './ui/turnSplash';
 import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
@@ -1023,6 +1024,9 @@ async function boot(): Promise<void> {
     // every completed tech, so it refreshes wherever the rest of the HUD does.
     techTree?.render();
     banners.refresh();
+    // The tags are about the open city and the treasury, both of which this
+    // pass has just re-read; they draw nothing at all unless buy mode is up.
+    priceTags.refresh();
     cityPanel.render();
     unitPanel.render();
     // Whether the turn may end is derived from the same state as everything
@@ -1316,9 +1320,27 @@ async function boot(): Promise<void> {
    * than growing a subscription list on `MapView` is deliberate: composition is
    * this file's job, and the renderer stays a renderer with one callback.
    */
+  /**
+   * The gold price over every hex the open city could buy, while the city
+   * screen's Buy Tiles mode is up. Same sheet as the banners and the damage
+   * figures: all three are DOM floating over the one canvas.
+   */
+  const priceTags: TilePriceTags = createTilePriceTags({
+    container: bannersEl,
+    renderer,
+    getGame: () => game,
+    getCity: () => controls.openCity(),
+    isActive: () => controls.isBuyMode(),
+    onBuy: (cell) => {
+      controls.purchaseTileAt(cell.col, cell.row);
+      updatePanel(null, renderer.getHover());
+    },
+  });
+
   renderer.setFrameListener?.(() => {
     banners.reposition();
     damageNumbers.reposition();
+    priceTags.reposition();
   });
 
   const cityPanel: CityPanel = createCityPanel({
@@ -1327,6 +1349,8 @@ async function boot(): Promise<void> {
     localPlayerId: () => controls.localPlayerId(),
     getCity: () => controls.openCity(),
     onClose: () => controls.setOpenCity(null),
+    isBuyMode: () => controls.isBuyMode(),
+    setBuyMode: (on) => controls.setBuyMode(on),
     onChanged: () => {
       renderer.invalidate();
       updatePanel(null, renderer.getHover());

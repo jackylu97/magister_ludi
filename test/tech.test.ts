@@ -879,8 +879,8 @@ describe('research in the log', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 13 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(13);
+  it('round-trips a schema 14 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(14);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1204,11 +1204,19 @@ describe('pacing', () => {
    * here means the earliest turn the game will actually accept the order — a
    * size-2 city.
    *
-   * Growth is halted while the settler is at the front, so the city's rate holds
-   * for the whole build and the build time is exactly `cost / rate`, rounded up.
-   * That relation is what is asserted, for the reason the scout test above gives
-   * at length: an exact turn count is a fixture of the map generator, and the
-   * design claim underneath it is the price, not the roll.
+   * What is asserted is that the settler costs **exactly its price in hammers**
+   * and not one turn more — the build ends on the first turn the city's own
+   * banked income covers the cost. That is the design claim; an exact turn count
+   * would be a fixture of the map generator, for the reason the scout test above
+   * gives at length.
+   *
+   * It is phrased against the *accumulated* income rather than against a single
+   * measured rate, and that is the correction Territory & gold forced. The rate
+   * used to hold for the whole build because a queued settler halts growth, so
+   * nothing could move the citizens; borders on Civ 6's curve now reach a new
+   * tile inside a settler's build, the assigner re-seats a citizen onto it the
+   * next turn, and the rate legitimately steps. A test that divided by the first
+   * turn's rate would be asserting that borders are slow.
    */
   it('turns a size-2 capital into its first settler at exactly its own rate', () => {
     const game = freshCapital();
@@ -1233,54 +1241,69 @@ describe('pacing', () => {
     capital.hammerBasket = 0;
 
     /**
-     * Queues a settler and runs until it is out, reporting both the turns it
-     * took and the rate it was built at.
+     * Queues a settler and runs until it is out, reporting the turns it took and
+     * the hammers the city actually banked on each of them.
      *
-     * The rate is read off the *basket* after the first turn rather than off
-     * `cityYields` before queueing, and that is the trap this test walked into
-     * once already: a queued settler halts growth, the citizen assigner is
-     * re-run at the turn boundary, and the panel figure taken a moment earlier
-     * is a figure for a city that was still growing. The bank is what actually
-     * paid for the unit, so the bank is what the build time is measured against.
+     * The income is read off the *basket*, as the difference it moved by across
+     * the resolution plus whatever the finished settler took out of it — never
+     * off `cityYields` before the turn. That is the trap this test walked into
+     * once already, twice over: a queued settler halts growth, and the citizen
+     * assigner runs at the *top* of the resolution, so a figure taken a moment
+     * earlier is a figure for the city as it was assigned last turn. The bank is
+     * what actually paid for the unit, so the bank is what is measured.
      */
-    const buildSettler = (): { turns: number; rate: number } => {
+    const buildSettler = (cost: number): { turns: number; income: number[] } => {
       expect(dispatch(game, {
         type: 'setCityProduction',
         playerId: 0,
         cityId: capital.id,
         queue: [{ kind: 'unit', id: 'settler' }],
       } as Command).ok).toBe(true);
-      const before = game.state.players[0]!.settlersBuilt;
-      let turns = 0;
-      let rate = 0;
-      while (game.state.players[0]!.settlersBuilt === before && turns < 30) {
+      const built = game.state.players[0]!.settlersBuilt;
+      const income: number[] = [];
+      while (game.state.players[0]!.settlersBuilt === built && income.length < 30) {
+        const banked = capital.hammerBasket;
         expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
-        turns += 1;
-        if (turns === 1) rate = capital.hammerBasket;
+        const paid = game.state.players[0]!.settlersBuilt === built ? 0 : cost;
+        income.push(capital.hammerBasket - banked + paid);
       }
-      return { turns, rate };
+      return { turns: income.length, income };
+    };
+
+    /** The first turn on which the banked income covers the price. */
+    const turnsFor = (cost: number, income: number[]): number => {
+      let banked = 0;
+      for (let turn = 1; turn <= income.length; turn++) {
+        banked += income[turn - 1]!;
+        if (banked >= cost) return turn;
+      }
+      return Infinity;
     };
 
     const first = unitProductionCost(game.state, 0, 'settler');
     expect(first).toBe(20);
-    const firstBuild = buildSettler();
-    expect(firstBuild.rate).toBeGreaterThan(0);
-    expect(firstBuild.turns, `${first}⚙ at ${firstBuild.rate}⚙ a turn`).toBe(
-      Math.ceil(first / firstBuild.rate),
+    const firstBuild = buildSettler(first);
+    expect(firstBuild.income.every((rate) => rate > 0)).toBe(true);
+    expect(firstBuild.turns, `${first}⚙ off ${firstBuild.income.join('+')}`).toBe(
+      turnsFor(first, firstBuild.income),
     );
     expect(game.state.players[0]!.settlersBuilt).toBe(1);
 
     // And the second is a whole increment dearer — the brake the escalation is
-    // there to be, and it costs its extra turns at the same rate.
+    // there to be, and it pays for that increment in hammers too.
     const second = unitProductionCost(game.state, 0, 'settler');
     expect(second).toBe(first + unitDef('settler').costIncrement!);
-    const secondBuild = buildSettler();
-    expect(secondBuild.turns, `${second}⚙ at ${secondBuild.rate}⚙ a turn`).toBe(
-      Math.ceil(second / secondBuild.rate),
+    const secondBuild = buildSettler(second);
+    expect(secondBuild.turns, `${second}⚙ off ${secondBuild.income.join('+')}`).toBe(
+      turnsFor(second, secondBuild.income),
     );
     // The escalation is a real brake: the second settler costs strictly more
-    // turns than the first, at whatever rate the capital is running.
-    expect(secondBuild.turns).toBeGreaterThan(firstBuild.turns);
+    // hammers than the first, and at an unchanged rate that is strictly more
+    // turns — so the comparison is made at a rate held fixed, the first build's.
+    expect(second).toBeGreaterThan(first);
+    expect(turnsFor(second, firstBuild.income.concat(firstBuild.income))).toBeGreaterThan(
+      firstBuild.turns,
+    );
     expect(unitProductionCost(game.state, 0, 'settler')).toBe(
       first + 2 * unitDef('settler').costIncrement!,
     );
