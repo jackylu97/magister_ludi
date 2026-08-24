@@ -13,6 +13,10 @@ would change every seeded outcome. No further rename passes.
 ## Commands
 - `npm run dev` · `npm run typecheck` · `npm run test` (Vitest) · `npm run build`
 - All three gates (typecheck, test, build) must be clean before any task is "done".
+- `test/` is split by concern (`test/sim`, `test/mapgen`, `test/render`, `test/ui`,
+  `test/stress`); `npm run test:sim` / `test:mapgen` / `test:render` / `test:ui` /
+  `test:stress` run just one directory for fast iteration, but the full `npm run test`
+  is the done-gate — module runs never substitute for it.
 - Subagents: never commit or push; the orchestrating session handles git.
 - Kill only processes you started, by PID. Never `pkill -f vite`.
 
@@ -27,7 +31,8 @@ would change every seeded outcome. No further rename passes.
   interface in `mapView.ts` (optional methods for renderer-specific features).
 - `data/*.json` — every balance number, cost, curve, color mapping. Code contains
   algorithms, never tuned constants.
-- `test/` — sim + pure-render-math tests. Never drop coverage; reworked tests replace.
+- `test/` — sim + pure-render-math tests, split into `sim/`, `mapgen/`, `render/`,
+  `ui/`, `stress/` by concern. Never drop coverage; reworked tests replace.
 
 ## Hard rules
 1. Every game mutation flows through `applyCommand` (`src/sim/commands.ts`) or the
@@ -83,7 +88,7 @@ would change every seeded outcome. No further rename passes.
 - Fog of war patches the board **in place** (`src/render3d/fog3d.ts`): a visibility change is
   per-instance matrix/tint writes for changed tiles only, never a board rebuild. Anything that
   adds instances to `buildBoard` must pass `tile:` to `collector.add` or it will keep drawing
-  on hexes nobody has explored — `test/fog3d.test.ts` asserts the accounting.
+  on hexes nobody has explored — `test/render/fog3d.test.ts` asserts the accounting.
 - **The board is built once per game.** Only a new map and toggling shadows rebuild it.
   An instance is off for one of *two independent reasons* and both bits live on the handle
   (`instances.ts`, the two-bit state machine): **fog-hidden** (`hide`/`restore`, owned by
@@ -123,7 +128,7 @@ would change every seeded outcome. No further rename passes.
   list with a stage, never multiply afterwards. Growth surplus and border accrual are **separate
   channels** with their own folds (`growthPercent`, `borderPercent`) and are not in this
   pipeline. One-time grants (the chop) are modifier-immune — Entry XVIII.5, pinned in
-  `test/modifiers.test.ts`.
+  `test/sim/modifiers.test.ts`.
 - **Faith is accumulate-only.** Tiles and signatures pay it, `collectYields` banks it into
   `Player.faithPool`, and nothing spends it. The top bar's card says so; delete that note
   rather than reword it when something does.

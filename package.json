@@ -8,6 +8,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:sim": "vitest run test/sim",
+    "test:mapgen": "vitest run test/mapgen",
+    "test:render": "vitest run test/render",
+    "test:ui": "vitest run test/ui",
+    "test:stress": "vitest run test/stress",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
