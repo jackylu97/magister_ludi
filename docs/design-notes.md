@@ -1448,3 +1448,30 @@ Entry I's commitments are audited.
 
 Status: ratified ahead of implementation — the shipped pipeline sums both scopes into one
 pool (net +20% where this doctrine says +21%). Alignment pass queued.
+
+---
+
+## Entry XVIII — Windfall settlement (RATIFIED 2026-08-24)
+
+**Any one-time flat grant settles its bucket the moment it lands.** A chop that covers the
+front of the build queue completes it that instant; a flat science boon that covers the
+researching tech finishes it that instant; a future culture windfall that crosses the draft
+threshold triggers the draft. In every case: overflow carries by exactly the phase's own
+rule, and the player is prompted to re-aim (choose the next production / research / card).
+
+The commitments:
+1. **One completion routine per bucket**, used by both the end-of-turn phase and windfall
+   settlement — extracted, never duplicated. Spawn conventions, overflow, announcement:
+   one implementation or the two paths will drift.
+2. **Recurring per-turn income still settles in phases.** The turn pipeline remains the
+   game's rhythm; windfalls are the sanctioned exception because the player is present and
+   acting — the moment of the gift is the moment of the payoff. Anything that pays every
+   turn is not a windfall.
+3. Each windfall path registers as a **sanctioned mid-turn mutation** in the CLAUDE.md
+   stale-yields trap (`setLockedTiles` was the first; chop completion is the second;
+   future boons join the list, never bypass it).
+4. Prompting is by announce line + the existing End Turn blockers; a screen auto-opens
+   only if it is already the open subject.
+
+Few one-time grants exist today (chop). Cards, events, ruins, and Great People will mint
+many — they all inherit this behavior by calling the settlement helper, not by reimplementing it.
