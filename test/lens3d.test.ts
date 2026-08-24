@@ -68,6 +68,21 @@ describe('sameLens', () => {
     expect(sameLens(off, lens({ resources: false, resourceCells: null }))).toBe(true);
   });
 
+  it('notices the reveal, and only while the roundels are up', () => {
+    // The mapgen page's spectator switch (`LensView.revealResources`): it changes
+    // which markers are drawn, so it is a rebuild — but with the roundels down
+    // there are no markers for it to change.
+    const on = lens({ resources: true, revealResources: true });
+    expect(sameLens(on, lens({ resources: true, revealResources: false }))).toBe(false);
+    expect(sameLens(on, lens({ resources: true, revealResources: true }))).toBe(true);
+    // Absent means off, so an omitted flag must not read as a different lens.
+    const bare: LensView = { ...NO_LENS, resources: true };
+    delete bare.revealResources;
+    expect(sameLens(bare, lens({ resources: true, revealResources: false }))).toBe(true);
+    const off = lens({ resources: false, revealResources: true });
+    expect(sameLens(off, lens({ resources: false, revealResources: false }))).toBe(true);
+  });
+
   it('is symmetric', () => {
     const a = lens({ mode: 'settler', yields: true, yieldCells: [{ col: 1, row: 1 }] });
     const b = lens({ mode: 'settler', yields: true, yieldCells: null });

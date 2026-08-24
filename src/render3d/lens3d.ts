@@ -118,6 +118,7 @@ export const NO_LENS: LensView = {
   yields: false,
   yieldCells: null,
   playerId: 0,
+  revealResources: false,
 };
 
 /** Are two cell restrictions the same? Identity first, then value. */
@@ -142,7 +143,12 @@ export function sameLens(a: LensView, b: LensView): boolean {
   // it when that half is down would rebuild the layer for a change nobody can
   // see.
   if (a.yields && !sameCells(a.yieldCells, b.yieldCells)) return false;
-  if (a.resources && !sameCells(a.resourceCells, b.resourceCells)) return false;
+  if (a.resources) {
+    // Same reason the cell restrictions are only compared while their half is
+    // up: flipping the reveal with the roundels down changes nothing drawn.
+    if ((a.revealResources ?? false) !== (b.revealResources ?? false)) return false;
+    if (!sameCells(a.resourceCells, b.resourceCells)) return false;
+  }
   return sameCells(a.cells, b.cells);
 }
 
@@ -208,6 +214,7 @@ export class LensLayer {
         geometry,
         icons,
         faceCamera,
+        lens.revealResources ?? false,
       );
     }
     if (lens.yields && icons) {
@@ -346,6 +353,11 @@ export class LensLayer {
    * under the marker are another matter entirely and are drawn for everybody;
    * see that function's docblock for the tradeoff and why it is the honest one
    * for a game with no fog of war.
+   *
+   * `reveal` is the one way past that gate and it is a *view* switch, not a rule
+   * change: it makes the layer read `tile.resource` directly instead of asking
+   * the simulation, for a viewer who is nobody's seat (`mapgen.html`). Nothing a
+   * player looks through ever sets it — see `LensView.revealResources`.
    */
   private addResourceMarkers(
     state: GameState,
@@ -355,13 +367,17 @@ export class LensLayer {
     geometry: BoardGeometry,
     icons: TileIcons,
     faceCamera: Quaternion,
+    reveal: boolean,
   ): void {
     const upright = new Quaternion();
     const disc = new Vector3(LENS.resourceIconSize, LENS.resourceIconSize, 1);
     const lift = LENS.resourceMarkerLift;
 
     for (const tile of tiles) {
-      const id = visibleResourceAt(state, playerId, tile);
+      // `reveal` does not answer the question differently — it declines to ask
+      // it. See `LensView.revealResources`: the tech gate is still the game's
+      // rule, and the only viewer allowed past it is one that is not a seat.
+      const id = reveal ? (tile.resource ?? null) : visibleResourceAt(state, playerId, tile);
       if (id === null) continue;
       // A town on the tile wears no pin. See the docblock: the *readout* still
       // answers, because that question is asked of the simulation and not of

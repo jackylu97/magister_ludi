@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Magister Ludi — Mapgen</title>
+
+    <!--
+      The interface's four voices (see index.html): Instrument Serif announces,
+      Fraunces names, Instrument Sans works, IBM Plex Mono counts. A generator
+      judged in the wrong typeface is judged against the wrong product — and
+      this page is nearly all numbers, so the mono face is doing most of the
+      talking.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
+  </head>
+  <body>
+    <canvas id="gl"></canvas>
+
+    <header id="masthead">
+      <h1>Mapgen</h1>
+      <p class="sub">
+        A whole game at a glance: every capital founded, every resource shown, and what
+        the deal actually was.
+      </p>
+    </header>
+
+    <p id="hint">
+      Drag to pan · scroll to zoom · <strong>F</strong> frames the whole map ·
+      <strong>←</strong> / <strong>→</strong> steps the seed · <strong>R</strong> randomises ·
+      <strong>C</strong> continents · <strong>Y</strong> yields. The board is drawn with no
+      seat, so nothing is fogged and every resource wears its roundel whatever anybody has
+      researched.
+    </p>
+
+    <aside id="report">
+      <div id="controls">
+        <div class="row">
+          <label class="field">
+            <span class="field-label">Seed</span>
+            <input type="number" id="seed" value="1" step="1" />
+          </label>
+          <button type="button" id="seed-prev" class="quiet" title="Seed − 1">◀</button>
+          <button type="button" id="seed-next" class="quiet" title="Seed + 1">▶</button>
+          <button type="button" id="seed-random" class="quiet">Randomise</button>
+        </div>
+        <div class="row">
+          <label class="field">
+            <span class="field-label">Seats</span>
+            <select id="seats"></select>
+          </label>
+          <button type="button" id="regenerate">Generate</button>
+        </div>
+        <div class="row switches">
+          <label class="switch"><input type="checkbox" id="continents-toggle" /><span>Continents</span></label>
+          <label class="switch"><input type="checkbox" id="yields-toggle" /><span>Yields</span></label>
+          <label class="switch"><input type="checkbox" id="resources-toggle" checked /><span>Resources</span></label>
+        </div>
+        <p id="timing">—</p>
+      </div>
+
+      <div id="sections"></div>
+    </aside>
+
+    <script type="module" src="/src/mapgenPage/main.ts"></script>
+  </body>
+</html>

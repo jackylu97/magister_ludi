@@ -1,0 +1,435 @@
+/*
+ * The mapgen page's chrome: a board on the left, a ledger on the right.
+ *
+ * Its own stylesheet rather than a slice of `src/style.css`, for the reason The
+ * Abacus's is: that file is the game's interface and is owned by the interface
+ * work. What this borrows is the *language* — ink on vellum, Instrument Serif to
+ * announce, Fraunces to name, Instrument Sans to work, mono for anything
+ * countable — and the panel recipe (hard 2px rule, hard offset shadow, no blur),
+ * not the cascade.
+ *
+ * The one rule this page adds to that language: **every figure is tabular mono
+ * and right-aligned in its column**. The whole point of the sidebar is comparing
+ * one map against the next, and a column of counts that jitters as digits change
+ * width cannot be read down.
+ */
+
+:root {
+  --ink: #1d1a20;
+  --ink-soft: #56505a;
+  --ink-faint: #8b8490;
+  --vellum: #dbcfb0;
+  --vellum-deep: #c2b18c;
+  --parchment: #f7f2e1;
+  --rule: rgba(29, 26, 32, 0.14);
+
+  --crimson: #d4502e;
+  --teal: #1f8a85;
+
+  --sidebar: 396px;
+
+  --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --face-name: Fraunces, Georgia, 'Iowan Old Style', serif;
+  --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --face-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--vellum);
+  color: var(--ink);
+  font-family: var(--face-ui);
+}
+
+/*
+ * The canvas stops at the sidebar rather than sliding under it: the renderer
+ * frames the whole map to the size of its own element, and a board framed to a
+ * width four hundred pixels of ledger is sitting on top of is a board whose
+ * eastern seaboard nobody can see.
+ */
+/*
+ * The canvas stops at the sidebar, and its size is stated rather than inferred.
+ *
+ * A canvas is a *replaced* element, so `width: auto` between a left and a right
+ * inset does not resolve from the insets the way it would for a div — it takes
+ * the element's intrinsic size, which is the drawing buffer. `Renderer3D.resize`
+ * writes that buffer from `clientWidth` and deliberately does not touch the
+ * style (see its comment), so `auto` closes a feedback loop and the canvas
+ * doubles on every resize until the board is framed for a viewport eight times
+ * the screen. Stating the size in `calc` breaks it: layout no longer depends on
+ * the buffer, and the renderer stays the only thing writing the buffer.
+ */
+#gl {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: calc(100vw - var(--sidebar));
+  height: 100vh;
+  display: block;
+}
+
+/*
+ * The masthead and the key sit on parchment plates rather than straight on the
+ * board.
+ *
+ * The Abacus can float its title over the canvas because its canvas is mostly
+ * empty table; this one is a map, edge to edge, in every colour the terrain
+ * palette has. Ink on grassland is not readable, so both take the specimen's
+ * panel recipe — parchment, a hard 2px rule, a hard offset shadow, no blur —
+ * which is the same object the HUD's cards are and costs nothing to read
+ * against.
+ */
+#masthead,
+#hint {
+  background: color-mix(in srgb, var(--parchment) 94%, transparent);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 4px 4px 0 var(--ink);
+  padding: 10px 14px 11px;
+}
+
+#masthead {
+  position: fixed;
+  top: 22px;
+  left: 30px;
+  pointer-events: none;
+}
+
+#masthead h1 {
+  margin: 0;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 36px;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+#masthead .sub {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  max-width: 40ch;
+}
+
+#hint {
+  position: fixed;
+  left: 30px;
+  bottom: 18px;
+  margin: 0;
+  max-width: 56ch;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+#hint strong {
+  font-family: var(--face-mono);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* --- the ledger ---------------------------------------------------------- */
+
+#report {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--sidebar);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--parchment);
+  border-left: 2px solid var(--ink);
+  padding: 0 0 40px;
+}
+
+#controls {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 16px 18px 12px;
+  background: var(--parchment);
+  border-bottom: 2px solid var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#controls .row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+#controls input[type='number'],
+#controls select {
+  font: inherit;
+  font-family: var(--face-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--vellum-deep);
+  border-radius: 3px;
+}
+
+#controls button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 11px;
+  color: var(--ink);
+  background: var(--parchment);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer;
+}
+
+/* Pressed moves *into* its own shadow: the specimen's one motion idiom. */
+#controls button:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+#controls button.quiet {
+  font-weight: 500;
+  padding: 5px 9px;
+  border-width: 1px;
+  border-color: var(--vellum-deep);
+  box-shadow: none;
+}
+
+#controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+
+#controls .switches {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.switch input {
+  margin: 0;
+  accent-color: var(--crimson);
+}
+
+#timing {
+  margin: 2px 0 0;
+  font-family: var(--face-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  white-space: pre-line;
+}
+
+/* --- sections ------------------------------------------------------------ */
+
+section {
+  padding: 14px 18px 4px;
+  border-bottom: 1px solid var(--rule);
+}
+
+section > h2 {
+  margin: 0 0 2px;
+  font-family: var(--face-name);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+
+section > .note {
+  margin: 0 0 9px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 3px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+td {
+  padding: 3px 0;
+  vertical-align: baseline;
+}
+
+/*
+ * Columns are separated by padding rather than by rules — the ledger already has
+ * enough lines in it — and the first column never wraps, so a swatch and the id
+ * beside it stay on one line however narrow the column gets squeezed.
+ */
+th + th,
+td + td {
+  padding-left: 10px;
+}
+
+th:first-child,
+td:first-child {
+  white-space: nowrap;
+}
+
+/* A column that should be exactly as wide as its contents and no wider. */
+th.tight,
+td.tight {
+  width: 1%;
+}
+
+/* An opt-out of the first-cell nowrap, for a cell that is prose. */
+td.wrap {
+  white-space: normal;
+}
+
+/* Every number in the product is mono and tabular. This page is mostly numbers. */
+.num,
+th.num {
+  font-family: var(--face-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+  padding-left: 8px;
+}
+
+/* A count of zero is information — a luxury nobody was dealt — but it is quiet. */
+.is-zero {
+  color: var(--ink-faint);
+}
+
+/* The group total line: a rule above it and the weight of a sum. */
+tr.total td {
+  border-top: 1px solid var(--rule);
+  padding-top: 5px;
+  font-weight: 600;
+}
+
+tr.total .kind {
+  font-family: var(--face-ui);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.density {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+/*
+ * The continent swatch, in the same ink the board is tinted with — the table and
+ * the overlay have to be readable against each other, which is the whole point
+ * of having both on screen at once.
+ */
+.swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 2px;
+  border: 1px solid rgba(29, 26, 32, 0.35);
+  vertical-align: baseline;
+}
+
+.seat-swatch {
+  border-radius: 50%;
+}
+
+/* A luxury hand: kinds with their copy counts, wrapped rather than truncated. */
+.hand {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.hand .copies {
+  font-family: var(--face-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.hand .none {
+  font-style: italic;
+}
+
+/* The two site flags, worn as small words rather than as ticks in a column. */
+.flags {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.flags .on {
+  color: var(--teal);
+  font-weight: 600;
+}
+
+/* A start the scorer would have refused is the loudest thing this page can say. */
+.reject {
+  display: block;
+  font-size: 10px;
+  color: var(--crimson);
+  font-weight: 600;
+}
+
+.start-name {
+  font-family: var(--face-name);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.coords {
+  font-family: var(--face-mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+}

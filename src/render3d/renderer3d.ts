@@ -101,6 +101,7 @@ import {
 } from './pieces';
 import { type WorldPoint, pickBadge, pickTile } from './picking';
 import { UnitSprites } from './sprites3d';
+import { type TileTint, TintLayer } from './tint3d';
 import { MaterialLibrary, computeHullNormals } from './toon';
 
 const DEG = Math.PI / 180;
@@ -129,6 +130,14 @@ export class Renderer3D implements MapView {
   private readonly units = new UnitLayer();
   private readonly cities = new CityLayer();
   private readonly territory = new TerritoryLayer();
+  /**
+   * A free-form per-tile wash, empty in the game (see `setTileTints`). Held
+   * beside the territory layer because it is the same kind of thing — scenery
+   * that keeps the depth test — and drawn just under it, so a country's border
+   * still reads over whatever partition somebody is inspecting.
+   */
+  private readonly tints = new TintLayer();
+  private tintList: readonly TileTint[] = [];
   private readonly improvements = new ImprovementLayer();
   private readonly overlays = new OverlayLayer();
   private readonly lens = new LensLayer();
@@ -268,6 +277,7 @@ export class Renderer3D implements MapView {
 
     this.scene.add(this.units.group);
     this.scene.add(this.cities.group);
+    this.scene.add(this.tints.group);
     this.scene.add(this.territory.group);
     this.scene.add(this.improvements.group);
     // Under the overlays: a lens is information about the ground, and the
@@ -414,6 +424,10 @@ export class Renderer3D implements MapView {
     this.lockedTiles = [];
     this.selectedUnitId = null;
     this.moveMode = false;
+    // The tints named cells on the map being replaced; a caller that wants a
+    // wash on the new one says so again once it has computed it.
+    this.tintList = [];
+    this.tints.dispose();
     this.animations.clear();
     this.deaths.clear();
     this.clearWalkers();
@@ -824,6 +838,29 @@ export class Renderer3D implements MapView {
     if (sameLens(this.lensView, lens)) return;
     this.lensView = lens;
     this.rebuildLens();
+  }
+
+  /**
+   * Washes named tiles in named inks, or clears the wash with `null`.
+   *
+   * Not a lens and deliberately not part of `LensView`: a lens is a question the
+   * *game* asks about the board (where may a settler go, what may this seat be
+   * told about), and this is a caller handing over a partition it computed
+   * itself. The renderer draws the list and knows nothing about what it means —
+   * see `tint3d.ts` for the drawing and why it keeps the depth test.
+   *
+   * Its only consumer today is the mapgen inspection page's continent overlay.
+   * The list is cleared by a new map, because the cells in it named the old one.
+   */
+  setTileTints(tints: readonly TileTint[] | null): void {
+    this.tintList = tints ?? [];
+    this.rebuildTints();
+  }
+
+  private rebuildTints(): void {
+    if (!this.map) return;
+    this.tints.build(this.map, this.tintList, this.geometry, this.materials);
+    this.invalidate();
   }
 
   setHover(hover: HoverInfo | null): void {
@@ -1525,6 +1562,7 @@ export class Renderer3D implements MapView {
     this.units.dispose();
     this.cities.dispose();
     this.territory.dispose();
+    this.tints.dispose();
     this.improvements.dispose();
     this.lens.dispose();
     this.overlays.dispose();

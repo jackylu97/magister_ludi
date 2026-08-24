@@ -136,6 +136,23 @@ export interface LensView {
   yieldCells: readonly CellRef[] | null;
   /** Whose question it is. The settler lens judges ownership through it. */
   playerId: number;
+  /**
+   * Roundel **every** resource on the board, whatever `playerId` has researched.
+   *
+   * A view-level reveal and nothing more: the simulation is not asked a different
+   * question and no player learns anything — `visibleResourceAt` still decides
+   * what the *game* shows, and this flag simply says "do not ask it". The board
+   * has always drawn the diorama props for every resource to everybody (see that
+   * function's docblock); this extends the same honesty to the roundels for a
+   * viewer who is not a seat at all.
+   *
+   * Off everywhere in the game, and it must stay off: the flag exists for the
+   * mapgen inspection page (`mapgen.html`), which is an omniscient spectator
+   * judging what the generator dealt and has no business being told that the
+   * iron it placed is a secret. Any surface a *player* looks through leaves this
+   * alone and lets the tech gate answer.
+   */
+  revealResources?: boolean;
 }
 
 /** What is under the cursor. */
