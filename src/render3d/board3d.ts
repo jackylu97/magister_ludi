@@ -455,9 +455,11 @@ export class BoardGeometry {
   readonly territory: BufferGeometry;
   /**
    * The diorama props, keyed by resource id: the wheat, the cattle, the ore.
-   * Placed by `addResourceProps`, and drawn for every seat — see
-   * `visibleResourceAt` in `tech.ts` for why the *props* are not tech-gated
-   * where the roundels are.
+   * Baked lit for every seat, exactly as everything else on the board is, and
+   * then taken down per seat by the reveal pass where the resource has a
+   * `requiresTech` — see `BuiltBoard.resourceCells` and `reveal3d.ts`. The
+   * roundels reach the same answer from the other side (`visibleResourceAt`),
+   * which is why marker and prop can never disagree.
    */
   readonly resourceProps: Record<ResourceId, BufferGeometry>;
   /**
@@ -677,6 +679,28 @@ export interface TileInstances {
   shared: SharedEdge[];
 }
 
+/**
+ * One tile's resource props, and which resource they are drawing.
+ *
+ * The board's memory of what it baked, in the same spirit as `treedCells` and
+ * for a related reason: the *reveal* pass has to be able to take the ore off a
+ * hex for one seat without touching the boulders beside it, and "which of this
+ * tile's instances are the wheat" is a question only the bake can answer. Sifted
+ * out here rather than re-derived from geometry identity later, because two
+ * resources can share a sculpt (the cairn fallback) and identity would then hide
+ * the wrong hex's props.
+ *
+ * Every resource tile is recorded, not only the tech-gated ones: the bake should
+ * report what it did, and it is the reveal pass's business — not the board's —
+ * that most rows have no gate to check. See `RevealView` in `reveal3d.ts`.
+ */
+export interface ResourcePropCell {
+  /** `tileIndex` of the hex these props stand on. */
+  cell: number;
+  resource: ResourceId;
+  handles: InstanceHandle[];
+}
+
 export interface BuiltBoard {
   group: Group;
   /** Which instance slots each tile owns. See `TileInstances`. */
@@ -696,6 +720,11 @@ export interface BuiltBoard {
    * depended on history would make two identical boards behave differently.
    */
   treedCells: readonly number[];
+  /**
+   * Every resource prop this bake planted, by tile, in map order. The reveal
+   * pass's input; see `ResourcePropCell`.
+   */
+  resourceCells: readonly ResourcePropCell[];
   /** World-space extent of one copy of the board, for framing and clamping. */
   bounds: Bounds;
   /** Horizontal wrap period in world units. */
@@ -1020,15 +1049,19 @@ function touchesSea(map: GameMap, tile: Tile): boolean {
 }
 
 /**
- * Dresses one hex, and reports whether it planted a **canopy** on it.
+ * Dresses one hex, and reports what it planted there: whether it laid a
+ * **canopy**, and which instances are the tile's **resource props**.
  *
- * The return value is the board's memory of what it baked, and it exists for one
- * reason: a forest can be *chopped* mid-game (`chopFeature`), and the board is
- * built once per game and may never be re-baked for a gameplay event. So the
+ * Both halves are the board's memory of what it baked, and both exist because
+ * the board is built once per game and may never be re-baked for a gameplay
+ * event. The canopy: a forest can be *chopped* mid-game (`chopFeature`), so the
  * renderer's sweep has to be able to ask "did I draw trees there?" of a tile
  * whose feature now says `none` — a question the *state* can no longer answer,
  * because the state is the board after the axe and the buffers are the board
- * before it. See `BuiltBoard.treedCells` and `Renderer3D.clearGround`.
+ * before it. The props: a seat that has not researched Bronze Working must not
+ * be shown the ore, and hiding it means writing on exactly those instances and
+ * not on the rest of the hex. See `BuiltBoard.treedCells`,
+ * `BuiltBoard.resourceCells`, `Renderer3D.clearGround` and `reveal3d.ts`.
  */
 function addDecorations(
   map: GameMap,
@@ -1039,7 +1072,7 @@ function addDecorations(
   collector: InstanceCollector,
   /** `tileIndex` of `tile`, so every scrap of scatter is fog-addressable. */
   cell: number,
-): boolean {
+): { treed: boolean; props: InstanceHandle[] } {
   const position = new Vector3();
   const quaternion = new Quaternion();
   const scale = new Vector3();
@@ -1057,6 +1090,10 @@ function addDecorations(
    * new kind of dressing would leave a pine growing through a market square.
    * The ground scatter says `clutter` explicitly, which is the narrower claim: a
    * farm takes the meadow and leaves the deer in the trees.
+   *
+   * Hands back the handle it collected. Only the resource props keep theirs —
+   * they are the one kind of dressing a *seat* can be refused (see
+   * `BuiltBoard.resourceCells`) — and every other caller ignores it.
    */
   const place = (
     shape: BufferGeometry,
@@ -1069,7 +1106,7 @@ function addDecorations(
       spread?: number;
       suppress?: SuppressScope;
     } = {},
-  ): void => {
+  ): InstanceHandle => {
     const slot = stream * 64 + index * 8;
     const spread = (options.spread ?? DECOR.spread) * BOARD.hexRadius;
     const offset = hashDisc(tile.col, tile.row, slot, spread);
@@ -1080,7 +1117,7 @@ function addDecorations(
     quaternion.setFromAxisAngle(axis, yaw);
     const s = baseScale * jitter;
     scale.set(s, s, s);
-    collector.add(shape, [color], new Matrix4().compose(position, quaternion, scale), {
+    return collector.add(shape, [color], new Matrix4().compose(position, quaternion, scale), {
       tint: decorTint(
         tile.col,
         tile.row,
@@ -1098,6 +1135,8 @@ function addDecorations(
     hashUnit(tile.col, tile.row, STREAM.treeVariant * 64 + index) < DECOR.altChance;
 
   let treed = false;
+  /** The tile's resource props, for the reveal pass. See the docblock above. */
+  const props: InstanceHandle[] = [];
   if (tile.feature === 'forest') {
     // Two or three, hashed — an even count everywhere looks planted by a
     // machine, and the sim has no per-tile density to read.
@@ -1206,13 +1245,15 @@ function addDecorations(
   if (prop && resource !== undefined) {
     const count = hashedCount(tile.col, tile.row, STREAM.resourceCount, Math.max(1, prop.count));
     for (let i = 0; i < count; i++) {
-      place(
-        geometry.resourceProps[resource],
-        shade(prop.color, prop.shade),
-        STREAM.resourcePlace,
-        i,
-        1,
-        { spread: RESOURCES.spread },
+      props.push(
+        place(
+          geometry.resourceProps[resource],
+          shade(prop.color, prop.shade),
+          STREAM.resourcePlace,
+          i,
+          1,
+          { spread: RESOURCES.spread },
+        ),
       );
     }
   } else {
@@ -1222,7 +1263,7 @@ function addDecorations(
   // is, not about what is growing on the field beside it.
   addWaterEdge(map, tile, geometry, place);
 
-  return treed;
+  return { treed, props };
 
   /**
    * Ground clutter and reeds share the scatter above; both are below.
@@ -1397,6 +1438,8 @@ export function buildBoard(
   const axis = new Vector3(0, 1, 0);
   /** Every hex this bake put a canopy on. See `BuiltBoard.treedCells`. */
   const treedCells: number[] = [];
+  /** Every prop it stood on a seam. See `BuiltBoard.resourceCells`. */
+  const resourceCells: ResourcePropCell[] = [];
 
   for (const tile of map.tiles) {
     const center = cellCenter(tile.col, tile.row);
@@ -1453,8 +1496,15 @@ export function buildBoard(
         outlined: false,
         tile: cell,
       });
-    } else if (addDecorations(map, tile, top, center, geometry, collector, cell)) {
-      treedCells.push(cell);
+    } else {
+      const dressing = addDecorations(map, tile, top, center, geometry, collector, cell);
+      if (dressing.treed) treedCells.push(cell);
+      // A mountain is the one hex that never gets here, and it never carries a
+      // resource either (no `validTerrain` names one) — so the props recorded
+      // below really are every prop on the board.
+      if (dressing.props.length > 0 && tile.resource !== undefined) {
+        resourceCells.push({ cell, resource: tile.resource, handles: dressing.props });
+      }
     }
 
     // The floodplain wash: the green ribbon a river cuts through a desert.
@@ -1521,6 +1571,7 @@ export function buildBoard(
     group,
     tiles: { own: collector.tileHandles(), shared: rivers },
     treedCells,
+    resourceCells,
     bounds,
     wrapWidth: period,
     tileCount: map.tiles.length,

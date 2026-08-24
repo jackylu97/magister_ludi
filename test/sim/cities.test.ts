@@ -22,13 +22,17 @@ import {
   productionModifiers,
   productionSettledBy,
   queueItemCost,
+  refreshCityDerived,
+  refreshTileDerived,
   settleProduction,
   settleProductionWindfall,
   tileOwnerCityId,
+  tileYieldOf,
   turnsToBuild,
   turnsToFill,
   unitProductionCost,
   withinWorkRadius,
+  yieldContextFor,
   yieldScore,
 } from '../../src/sim/cities';
 import {
@@ -56,7 +60,8 @@ import {
 import { chopYield } from '../../src/sim/improvementData';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { techDef } from '../../src/sim/techData';
-import { readTileYield, tileYield } from '../../src/sim/terrainData';
+import { resourceYield } from '../../src/sim/resourceData';
+import { TILE_YIELD_KEYS, readTileYield, tileYield } from '../../src/sim/terrainData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -1178,16 +1183,25 @@ describe('windfall settlement (Entry XVIII)', () => {
     expect(worked(city)).toEqual(seated);
   });
 
-  it('leaves the seats alone when nothing completed', () => {
-    // The other side of the same rule: a chop that only banks hammers is not a
-    // mid-turn mutation of anything the panel derives, so it does no work.
+  it('re-seats them even when nothing completed, because the ground changed', () => {
+    // The other side of the same rule, and it moved: a chop that banks hammers
+    // without finishing anything still *took a forest off a tile*, which is a
+    // mid-turn mutation of exactly what the panel derives. The settlement
+    // refreshes for the completion's sake (`settleProductionWindfall`) and
+    // `chopFeatureAt` refreshes for the ground's, so both paths leave the seats
+    // fresh — see the register in `refreshCityDerived`.
     const { state, city, worker } = chopper();
     city.population = 2;
     city.workedTiles = [];
     city.queue = [{ kind: 'building', id: 'university' }];
 
     expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
-    expect(city.workedTiles).toEqual([]);
+    expect(city.workedTiles).toHaveLength(city.population);
+    // Idempotent, as every entry in the register has to be: the phase recomputes
+    // it from scratch next turn and reaches the same seats.
+    const seated = worked(city);
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(seated);
   });
 
   describe('the shared routine', () => {
@@ -1916,5 +1930,187 @@ describe('determinism with cities', () => {
     const places = (game: Game): string[] =>
       game.state.cities.map((city) => `${city.ownerId}@${city.col},${city.row}`).sort();
     expect(places(backwards)).toEqual(places(forwards));
+  });
+});
+
+// --- the reveal gate --------------------------------------------------------
+
+describe('the reveal gate, in a city', () => {
+  /**
+   * A one-citizen city pinned onto an iron seam, for an empire that has
+   * researched nothing. The pin is what makes the *yield* the variable: without
+   * it the citizen would move when the seam became worth something, and the
+   * comparison would be measuring two different tiles.
+   */
+  function seamCity(): { state: GameState; city: City; seam: Tile } {
+    const state = flatState();
+    state.players[0]!.techsResearched = [];
+    const city = plant(state, 0, 8, 6);
+    const seam = at(state.map, 8, 5);
+    seam.resource = 'iron';
+    city.population = 1;
+    city.lockedTiles = [{ col: seam.col, row: seam.row }];
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['8,5']);
+    return { state, city, seam };
+  }
+
+  it('pays the city nothing for ore nobody has a word for', () => {
+    const { state, city, seam } = seamCity();
+    // The same city working the same tile, with the seam taken off the ground:
+    // the two readings are identical, which is what "contributes no yield"
+    // means — not a smaller number, the same number.
+    const withSeam = cityYields(state, city);
+    delete seam.resource;
+    expect(cityYields(state, city)).toEqual(withSeam);
+  });
+
+  it('pays it the instant the technology lands, to the line', () => {
+    // The reveal *moment*, which is the whole of the rule: the delta across the
+    // discovery is exactly the resource's own row, and it arrives without any
+    // command being issued or any turn being ended.
+    const { state, city } = seamCity();
+    const before = cityYields(state, city);
+    state.players[0]!.techsResearched = ['bronzeWorking'];
+    const after = cityYields(state, city);
+
+    const line = resourceYield('iron');
+    for (const key of TILE_YIELD_KEYS) {
+      expect(`${key} +${after[key] - before[key]}`).toBe(`${key} +${line[key]}`);
+    }
+    expect(after.production).toBeGreaterThan(before.production);
+  });
+
+  it('sends the citizen to the seam only once the seam is worth going to', () => {
+    // The assignment reads the same evaluator, so "grow toward land you would
+    // work" cannot chase a hill this empire has no reason to want yet.
+    const { state, city, seam } = seamCity();
+    city.lockedTiles = [];
+    assignCitizens(state, city);
+    const blind = worked(city);
+    state.players[0]!.techsResearched = ['bronzeWorking'];
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual([`${seam.col},${seam.row}`]);
+    expect(blind).not.toEqual(worked(city));
+  });
+
+  it('answers two empires differently about one tile, and stores neither', () => {
+    // The gate is asked of the *owner's* context, not of the board: two players
+    // looking at one seam get two different answers, and neither is stored.
+    const { state, seam } = seamCity();
+    state.players[1]!.techsResearched = ['bronzeWorking'];
+    expect(tileYieldOf(seam, yieldContextFor(state, 0))).not.toEqual(
+      tileYieldOf(seam, yieldContextFor(state, 1)),
+    );
+  });
+});
+
+// --- the mid-turn register --------------------------------------------------
+
+/**
+ * The register itself, asserted rather than trusted.
+ *
+ * Two of these are ordinary behavioural tests — the derived state a panel reads
+ * is fresh after each registered command — and the third is honestly a **grep**:
+ * it reads the three source files and checks that every mutation on the register
+ * mentions the helper. A source assertion is a weak thing to defend a doctrine
+ * with, and it is here anyway, for the one failure mode the behavioural tests
+ * cannot see: somebody adding a *seventh* mid-turn mutation and hand-rolling the
+ * refresh next to it, which works, passes everything, and quietly ends the
+ * "there is one helper" claim that CLAUDE.md now makes. This fails the moment
+ * one of the six stops calling it, and the list below is the register — adding a
+ * mutation means adding a line here.
+ */
+describe('the mid-turn refresh register', () => {
+  /**
+   * The simulation's own text. Read through Vite's raw glob rather than through
+   * `node:fs`, because this project has no node typings and a source assertion
+   * is not worth a dependency.
+   */
+  const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>;
+
+  function source(file: string): string {
+    const key = Object.keys(SIM_SOURCE).find((path) => path.endsWith(`/${file}`));
+    expect(`${file} readable`).toBe(key === undefined ? `${file} missing` : `${file} readable`);
+    return SIM_SOURCE[key!]!;
+  }
+
+  /** One function's body, from its declaration to the next top-level brace. */
+  function bodyOf(file: string, name: string): string {
+    const text = source(file);
+    const start = text.indexOf(`export function ${name}(`);
+    const from = start === -1 ? text.indexOf(`function ${name}(`) : start;
+    expect(`${file}:${name} found`).toBe(from === -1 ? `${file}:${name} missing` : `${file}:${name} found`);
+    const end = text.indexOf('\n}', from);
+    return text.slice(from, end === -1 ? undefined : end);
+  }
+
+  /** The register. A new mid-turn yield mutation adds itself here. */
+  const REGISTER: { file: string; fn: string }[] = [
+    { file: 'commands.ts', fn: 'applySetLockedTiles' },
+    { file: 'cities.ts', fn: 'purchaseTileAt' },
+    { file: 'cities.ts', fn: 'settleProductionWindfall' },
+    { file: 'improvements.ts', fn: 'buildImprovementAt' },
+    { file: 'improvements.ts', fn: 'pillageAt' },
+    { file: 'improvements.ts', fn: 'chopFeatureAt' },
+    { file: 'cities.ts', fn: 'foundCityAt' },
+  ];
+
+  it('routes every registered mutation through the one helper', () => {
+    for (const { file, fn } of REGISTER) {
+      const body = bodyOf(file, fn);
+      const calls = /refresh(City|Tile)Derived\(/.test(body);
+      expect(`${fn} refreshes`).toBe(calls ? `${fn} refreshes` : `${fn} does not refresh`);
+    }
+  });
+
+  it('keeps the helper the only place assignment runs outside the phase', () => {
+    // In the whole simulation `assignCitizens` is *called* by exactly two
+    // things: the turn phase that owns it, and the helper. Anything else is the
+    // register being routed around, which is the failure this file exists for.
+    const callers: string[] = [];
+    for (const file of ['cities.ts', 'commands.ts', 'improvements.ts', 'turn.ts']) {
+      for (const line of source(file).split('\n')) {
+        if (!/(?<![\w.])assignCitizens\(/.test(line)) continue;
+        if (/function assignCitizens/.test(line)) continue;
+        callers.push(`${file}: ${line.trim()}`);
+      }
+    }
+    expect(callers).toEqual([
+      'cities.ts: assignCitizens(state, city);',
+      'cities.ts: assignCitizens(state, city);',
+    ]);
+    // And by name, so that two calls in the wrong two places cannot pass:
+    expect(bodyOf('cities.ts', 'collectYields')).toMatch(/assignCitizens\(/);
+    expect(bodyOf('cities.ts', 'refreshCityDerived')).toMatch(/assignCitizens\(/);
+  });
+
+  it('exports a helper that is one call and idempotent', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 6);
+    city.population = 2;
+    city.workedTiles = [];
+    refreshCityDerived(state, city);
+    const seated = worked(city);
+    expect(seated).toHaveLength(2);
+    refreshCityDerived(state, city);
+    expect(worked(city)).toEqual(seated);
+  });
+
+  it('refreshes the city that owns a tile, and nothing when nobody does', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 6);
+    city.population = 2;
+    city.workedTiles = [];
+    // Unowned ground: no panel is quoting it, so this is a no-op rather than an
+    // error — which is what lets `pillageAt` call it without asking first.
+    refreshTileDerived(state, at(state.map, 1, 1));
+    expect(city.workedTiles).toEqual([]);
+    refreshTileDerived(state, at(state.map, 8, 5));
+    expect(city.workedTiles).toHaveLength(2);
   });
 });

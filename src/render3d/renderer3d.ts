@@ -100,6 +100,7 @@ import {
   unitColor,
 } from './pieces';
 import { type WorldPoint, pickBadge, pickTile } from './picking';
+import { type RevealStats, RevealView } from './reveal3d';
 import { UnitSprites } from './sprites3d';
 import { type TileTint, TintLayer } from './tint3d';
 import { MaterialLibrary, computeHullNormals } from './toon';
@@ -160,6 +161,15 @@ export class Renderer3D implements MapView {
    * see `fog3d.ts` for the constraint that is about.
    */
   private fog: FogView | null = null;
+  /**
+   * The reveal pass: the per-seat veil over the props for resources this seat
+   * cannot yet name. Fog's sibling in every way — board-lifetime, per-instance,
+   * re-applied on the frame — and see `reveal3d.ts` for why it is a bit of its
+   * own rather than more fog or more suppression.
+   */
+  private reveal: RevealView | null = null;
+  /** What the last reveal pass cost, for the on-page stats line. */
+  private lastRevealStats: RevealStats | null = null;
   /**
    * Whose eyes the board is drawn through, or `null` for an omniscient view.
    *
@@ -407,6 +417,11 @@ export class Renderer3D implements MapView {
     this.rebuildOverlays();
     this.rebuildLens();
     this.applyFog();
+    // A state swapped under the board — a load, a replay — can be a different
+    // empire holding different technologies on the same map, and nothing about
+    // the handles this layer holds would say so. See `RevealView.reset`.
+    this.reveal?.reset();
+    this.applyReveal();
     this.invalidate();
   }
 
@@ -541,6 +556,30 @@ export class Renderer3D implements MapView {
   }
 
   /**
+   * Rebuilds the reveal pass over whatever board is up, and paints it.
+   *
+   * Board-lifetime for `rebuildFog`'s reason and no other: it holds handles into
+   * the board's buffers. It adds nothing to the scene — the props it veils are
+   * the board's own instances — so unlike the fog there is no group to swap.
+   */
+  private rebuildReveal(): void {
+    this.reveal?.dispose();
+    this.reveal = this.board ? new RevealView(this.board.resourceCells) : null;
+    this.applyReveal();
+  }
+
+  /**
+   * Veils the props this seat cannot name, and returns what that cost.
+   * Per-instance writes only; see `reveal3d.ts`.
+   */
+  private applyReveal(): RevealStats | null {
+    if (!this.reveal) return null;
+    const stats = this.reveal.apply(this.state, this.fogSeat);
+    this.lastRevealStats = stats;
+    return stats;
+  }
+
+  /**
    * The local seat's visibility grid, or null when there is no seat (or no
    * state, or a seat id that names nobody).
    */
@@ -571,6 +610,9 @@ export class Renderer3D implements MapView {
     if (this.fogSeat === playerId) return;
     this.fogSeat = playerId;
     this.applyFog();
+    // The seat's *knowledge* moves with its eyes: the new player may not have
+    // the technology to be shown the ore the old one could see.
+    this.applyReveal();
     // Everything that filters by the seat's own eyes has to follow it.
     this.rebuildUnits();
     this.rebuildCities();
@@ -583,6 +625,11 @@ export class Renderer3D implements MapView {
   /** What the last fog repaint cost, for the on-page stats line. */
   get fogStats(): FogStats | null {
     return this.lastFogStats;
+  }
+
+  /** What the last reveal pass cost. The stats line's other half. */
+  get revealStats(): RevealStats | null {
+    return this.lastRevealStats;
   }
 
   /**
@@ -623,6 +670,7 @@ export class Renderer3D implements MapView {
     this.buildMs = performance.now() - started;
     this.map = map;
     this.scene.add(this.board.group);
+    this.rebuildReveal();
     this.rebuildFog();
     this.view.setBoard(this.board.bounds, this.board.wrapWidth);
     this.invalidate();
@@ -1501,6 +1549,11 @@ export class Renderer3D implements MapView {
     // renderer was already going to draw is the honest place to ask.
     const fogged = this.applyFog();
     if (fogged) this.lastFogStats = fogged;
+    // And the seat's *knowledge*, on the same frame and for the same reason: a
+    // technology finished this turn reveals ore that was drawn on the board all
+    // along, and a walk over the gated props is a few dozen compares. See
+    // `reveal3d.ts` for why this is asked on the frame rather than notified.
+    this.applyReveal();
     // Any tile that changed level can add or remove a piece, a town, a border
     // or a mark, so the layers that filter by the seat's eyes are rebuilt with
     // the same one call the ordinary fingerprints would have made.
@@ -1582,6 +1635,7 @@ export class Renderer3D implements MapView {
     this.lens.dispose();
     this.overlays.dispose();
     this.fog?.dispose();
+    this.reveal?.dispose();
     if (this.board) this.board.dispose();
     this.geometry.dispose();
     this.materials.dispose();

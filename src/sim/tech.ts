@@ -216,12 +216,16 @@ export function buildError(
  * May this player be *told* about this resource?
  *
  * True for everything without a `requiresTech`, which is every bonus and every
- * luxury and most strategics; iron waits for Bronze Working. Visibility is the
- * only thing the technology gates — the iron is on the map from turn one, it
- * pays its production to whoever works the tile, and it satisfies `hasResource`
- * for a player who has not researched anything at all. Civ hides the yield too;
- * hiding a number the citizens are already collecting would be a lie the city
- * panel has to keep telling, so this game hides the *label* and nothing else.
+ * luxury and most strategics; iron waits for Bronze Working.
+ *
+ * The gate is no longer only about the label. An unrevealed seam is invisible
+ * (here), unusable (`openedResource` in `cities.ts`) and **worth nothing** — its
+ * line is left out of `explainTileYield` for an owner who cannot name it, which
+ * is Civ's own reading and the one the design ratified. So a technology that
+ * reveals a resource is a technology that makes ground better, all at once and
+ * with no bookkeeping: the label, the prop, the citizen's score and the city
+ * panel's total all move on the turn it lands, because all four are derived from
+ * this one question.
  */
 export function isResourceVisible(
   state: GameState,
@@ -241,16 +245,17 @@ export function isResourceVisible(
  * The resource this player may see on this tile, or `null`.
  *
  * The single accessor every *information* surface reads: the hover readout, the
- * resource lens, and anything later that wants to name what is on a hex. The
- * board's diorama props do **not** read it, and that is the documented v1
- * tradeoff: props are baked into the board's instance buffers, which are built
- * from the map alone and shared by every seat, so culling them per player would
- * fork the board cache per seat and rebuild the whole thing on a tech. For a
- * friends-multiplayer game with no fog of war at all, a dark boulder somebody
- * cannot yet *name* is a much smaller leak than the one the board already has —
- * every unit and every city on the map is visible to everybody. When fog of war
- * lands the board is already going to be per-seat, and that is the milestone
- * that should hide the boulder.
+ * resource lens, and anything later that wants to name what is on a hex.
+ *
+ * The board's diorama props read it too, as of the per-seat reveal pass
+ * (`reveal3d.ts`) — which closes the v1 tradeoff this docblock used to record.
+ * The props are baked into the board's instance buffers, which are built once
+ * per game and shared by every seat, so culling them at bake time would have
+ * forked the board per seat and re-baked it on a technology. It is instead the
+ * same trick fog already plays: the props are baked lit, and a per-instance bit
+ * takes the unrevealed ones down for the seat being drawn. Marker, prop and
+ * yield therefore appear together, on the turn the tech lands, from this one
+ * question.
  */
 export function visibleResourceAt(
   state: GameState,

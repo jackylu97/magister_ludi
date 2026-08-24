@@ -142,9 +142,9 @@ export interface LensView {
    * A view-level reveal and nothing more: the simulation is not asked a different
    * question and no player learns anything — `visibleResourceAt` still decides
    * what the *game* shows, and this flag simply says "do not ask it". The board
-   * has always drawn the diorama props for every resource to everybody (see that
-   * function's docblock); this extends the same honesty to the roundels for a
-   * viewer who is not a seat at all.
+   * draws every prop for a viewer who is not a seat at all (`reveal3d.ts` veils
+   * nothing when there is no seat); this is the roundels' half of the same
+   * omniscience, for the same viewer.
    *
    * Off everywhere in the game, and it must stay off: the flag exists for the
    * mapgen inspection page (`mapgen.html`), which is an omniscient spectator

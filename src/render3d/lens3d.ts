@@ -349,10 +349,9 @@ export class LensLayer {
    *
    * Visibility is asked of `visibleResourceAt` — the *simulation's* own answer,
    * the one the hover readout reads — so the lens and the card can never
-   * disagree about whether a player has heard of iron yet. The diorama props
-   * under the marker are another matter entirely and are drawn for everybody;
-   * see that function's docblock for the tradeoff and why it is the honest one
-   * for a game with no fog of war.
+   * disagree about whether a player has heard of iron yet. The diorama prop
+   * under the marker asks the same question from the board's side
+   * (`reveal3d.ts`), so marker, prop and yield arrive on one turn.
    *
    * `reveal` is the one way past that gate and it is a *view* switch, not a rule
    * change: it makes the layer read `tile.resource` directly instead of asking

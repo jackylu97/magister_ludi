@@ -57,7 +57,13 @@
  * the resource-protection decision included.
  */
 
-import { tileOwnerCityId, tileOwnerPlayerId, tileYieldOf, type TileYieldContext } from './cities';
+import {
+  type TileYieldContext,
+  refreshTileDerived,
+  tileOwnerCityId,
+  tileOwnerPlayerId,
+  tileYieldOf,
+} from './cities';
 import {
   type ImprovementId,
   chopDef,
@@ -256,6 +262,16 @@ export function improvementError(
  *     work; a worker that could lay a farm and then walk three hexes would be a
  *     worker that improves an empire in an afternoon.
  *
+ * **The farm pays this instant.** The owning city's derived state is refreshed
+ * on the spot through `refreshTileDerived` (`cities.ts`), which is the register
+ * `setLockedTiles` opened: a player who has just spent a worker's charge on a
+ * wheat field should see the food in the panel and in the top bar now, not after
+ * they end their turn. It is done in the *mechanism* rather than in the reducer
+ * so that everything which lays an improvement — the command today, an AI
+ * tomorrow — gets it without having to remember, and it is asked of the ground's
+ * owner rather than of the worker's, because those are not always the same
+ * player and the panel that is lying belongs to the first one.
+ *
  * Returns whether the worker survived, which is what the interface needs to know
  * to decide whether it still has something selected.
  */
@@ -266,6 +282,7 @@ export function buildImprovementAt(
   improvementId: ImprovementId,
 ): boolean {
   tile.improvement = improvementId;
+  refreshTileDerived(state, tile);
   unit.movesLeft = 0;
   const left = chargesLeft(unit) - improvementDef(improvementId).chargeCost;
   if (left <= 0) {
@@ -472,7 +489,12 @@ export function chopError(state: GameState, unitId: number): string | null {
  *   · the feature goes, **instantly**, making `Tile.feature` the second field on
  *     a tile that changes during play. Yield, movement cost and defence all
  *     follow through the evaluators that already read the feature, so nothing
- *     here knows they exist.
+ *     here knows they exist — but the *stored* derived state does have to be
+ *     told, so the owning city goes through `refreshTileDerived` like every
+ *     other mid-turn yield mutation. A felled forest is a tile worth a different
+ *     amount to a citizen standing on it, whether or not the timber it paid
+ *     happens to finish something (`settleProductionWindfall`, which refreshes
+ *     for its own reason and only when an item completes).
  *   · the owning city banks the production, once, into `hammerBasket` — the same
  *     pool `collectYields` pays into, so a chop simply arrives as a very good
  *     turn's work rather than as a second kind of production.
@@ -491,6 +513,7 @@ export function chopFeatureAt(state: GameState, unit: Unit, tile: Tile): boolean
   if (city) city.hammerBasket += paid.production;
 
   tile.feature = 'none';
+  refreshTileDerived(state, tile);
   unit.movesLeft = 0;
   const left = chargesLeft(unit) - cost;
   if (left <= 0) {
@@ -549,9 +572,15 @@ export function pillageError(state: GameState, unitId: number): string | null {
  * No smoke, no ruin state, no repair verb in v1. A pillaged tile is simply an
  * unimproved tile, which means the answer to "how do I fix it?" is the answer to
  * "how did I build it?" and there is one mechanism instead of two.
+ *
+ * The refresh is `buildImprovementAt`'s, read from the other end and owed to the
+ * other player: the raid takes the farm's food away *now*, and the panel it has
+ * to stop lying to is the **victim's**. Asking the ground who to tell
+ * (`refreshTileDerived`) is what gets that right without a rule of its own.
  */
 export function pillageAt(state: GameState, unit: Unit, tile: Tile): void {
   delete tile.improvement;
+  refreshTileDerived(state, tile);
   unit.movesLeft = Math.max(0, unit.movesLeft - 1);
   const player = playerById(state, unit.ownerId);
   if (player) player.gold += IMPROVEMENTS.pillageGold;

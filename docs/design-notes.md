@@ -1587,3 +1587,75 @@ The seam for the next bucket is deliberate and unbuilt: a science boon wants
 `settleResearch` / `settleResearchWindfall` around `advanceResearch`, in the same three
 shapes (plan · settle · windfall wrapper). Not written today, because a settlement routine
 with no windfall to serve is a guess about what the windfall will need.
+
+## Entry XIX — Mid-turn yield coherence (RATIFIED 2026-08-24, **built** 2026-08-24)
+
+One doctrine, arrived at from three directions, all of them the same complaint: *the game
+told me a number that was not true yet.*
+
+### A. An unrevealed resource pays nothing
+
+`requiresTech` on a resource row used to be a display rule. The argument for that was
+recorded in `isResourceVisible`: hiding a yield the citizens were already collecting would
+be a lie the city panel has to keep telling. **The ratified reading is that the number was
+the lie.** A player who cannot see why a hill is worth three hammers cannot plan around it,
+and "the tile got better the moment you learnt what was on it" is the sentence a discovery
+is supposed to earn — it is also what Civ does.
+
+So the gate now binds three readings through one implementation (`resourceIsVisibleTo`):
+the **label** (`visibleResourceAt`), **access** (`openedResource`, gated since the luxury
+pass), and the **yield** — `explainTileYield` simply omits the resource line for a context
+whose techs lack the gate. Nothing is stored, no flag is set, no event fires: the reveal is
+derived every time the yield is asked, so the turn Bronze Working lands the hammer appears
+in the breakdown, in the citizen's score, in the city panel and in the top bar together.
+
+The exemption is deliberate and narrow: a **context-less** evaluation stays omniscient —
+"what could this ground ever pay", which is what mapgen's start scorer wants during
+generation, when no player exists to have a technology. The rule for every other call site
+is one line, and it is written into the `yieldContextFor` register: **an owned tile is
+always evaluated with its owner's context.**
+
+Two resources are gated today (horses · Husbandry, iron · Bronze Working), so the blast
+radius is small — which is exactly why this was the right moment to fix the doctrine rather
+than the rule for iron.
+
+**The props follow.** A diorama prop the seat cannot name is the same leak one plane down,
+and it used to be a documented v1 tradeoff (culling per seat would fork the board cache and
+re-bake it on a technology). It is now `RevealView` (`src/render3d/reveal3d.ts`), fog's
+sibling: the board bakes every prop lit, hands over which instances they are
+(`BuiltBoard.resourceCells`), and a per-frame pass writes only where the answer flipped —
+per-instance writes, never a rebuild, which is Entry XI's constraint held one bit further.
+That bit is its own (`veil`/`unveil`, `instances.ts`), because a veil is per seat and lifts
+while suppression is universal and permanent; folding them together would have meant
+researching Bronze Working un-ploughed every farm in the empire. Marker, prop and yield
+therefore appear on one turn, from one question.
+
+### B. Improvements pay instantly
+
+A farm changed the tile's yield the instant it was built and the *derived* state a panel
+reads — which citizen sits where — waited for the end of the turn, so the food arrived one
+End Turn after the work did. Pillage had the mirror of it, owed to the victim. Both now
+refresh on the spot, in the **mechanism** rather than in the reducer, so an AI laying an
+improvement gets it without having to remember.
+
+### C. The register became a helper
+
+Entry XVIII's commitment 3 said each mid-turn path "registers as a sanctioned mutation".
+Three hand-rolled copies later, that is a list of places somebody will forget. There is now
+**one helper**, `refreshCityDerived(state, city)` (with `refreshTileDerived(state, tile)`
+for the mutations whose subject is a hex — asking the *ground* who to tell is what makes a
+pillage refresh the victim rather than the raider), and the register is its docblock:
+`setLockedTiles`, `purchaseTileAt`, `settleProductionWindfall`, `buildImprovementAt`,
+`pillageAt`, `chopFeatureAt`, `foundCityAt`. A new mid-turn yield mutation calls the helper
+and adds itself to the list.
+
+The helper is deliberately *not* a "recompute everything": yields are computed on read, and
+the one piece of derived state that is stored is the citizen assignment. So it is one call,
+one city, no allocation — and safe for the same reason every hand-rolled version was safe,
+that assignment is idempotent and derived and the phase reaches the same answer next turn.
+
+`assignCitizens` consequently has exactly two callers in the simulation — `collectYields`
+and the helper — and `test/sim/cities.test.ts` asserts that **by reading the source**. A
+source-level assertion is a weak thing to defend a doctrine with and it is there anyway,
+for the one failure the behavioural tests cannot see: a seventh mutation hand-rolling its
+own refresh, which would work, pass everything, and quietly end the claim.

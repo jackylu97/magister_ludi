@@ -60,11 +60,11 @@
 
 import { isBuildingId } from './buildingData';
 import {
-  assignCitizens,
   assignableTiles,
   foundCityAt,
   foundingError,
   purchaseTileAt,
+  refreshCityDerived,
   settleProductionWindfall,
   tilePurchaseError,
 } from './cities';
@@ -850,12 +850,13 @@ function validateLockedCells(
 /**
  * Replaces a city's pinned tiles, then re-assigns its citizens on the spot.
  *
- * The immediate re-assignment is the one place `assignCitizens` runs outside
- * `collectYields`, and it is deliberate: pinning a tile is a *direct*
- * manipulation of who works what, and a panel that showed the old dots until
- * the end of the turn would be showing the player that their click did nothing.
- * It is safe because assignment is idempotent and derived — `collectYields`
- * recomputes it from scratch anyway and reaches the same answer.
+ * The immediate re-assignment is deliberate, and it is the *first* entry in the
+ * mid-turn register (see `refreshCityDerived` in `cities.ts`, which is now the
+ * one implementation of it): pinning a tile is a *direct* manipulation of who
+ * works what, and a panel that showed the old dots until the end of the turn
+ * would be showing the player that their click did nothing. It is safe because
+ * assignment is idempotent and derived — `collectYields` recomputes it from
+ * scratch anyway and reaches the same answer.
  */
 function applySetLockedTiles(
   state: GameState,
@@ -879,7 +880,7 @@ function applySetLockedTiles(
   // Copy, for the same reason the queue is copied: the command becomes a log
   // entry, and a caller that reused its array would be rewriting history.
   city.lockedTiles = cells.map((cell) => ({ col: cell.col, row: cell.row }));
-  assignCitizens(state, city);
+  refreshCityDerived(state, city);
   return ok();
 }
 
@@ -979,6 +980,14 @@ function applyFortify(state: GameState, command: FortifyCommand): CommandResult 
  * it still act, is that its unit — and every question about the *work* delegated
  * whole to `improvementError`, which is what the unit sheet builds its list of
  * offered improvements from. So a row the panel shows is a command this accepts.
+ *
+ * **The improvement pays this instant**: `buildImprovementAt` refreshes the
+ * owning city's derived state itself (`refreshTileDerived` → the register in
+ * `refreshCityDerived`), so the panel and the top bar carry the new food before
+ * the turn ends rather than after it. It is done down in the mechanism rather
+ * than here for the reason the chop's completion is done *here* — a windfall is
+ * a decision about a queue and belongs to the reducer, while "the ground is
+ * worth something else now" is a fact about the mutation itself.
  */
 function applyBuildImprovement(
   state: GameState,
@@ -1062,6 +1071,11 @@ function applyChopFeature(state: GameState, command: ChopFeatureCommand): Comman
  *
  * The seat's questions here, the raid's delegated to `pillageError` — the same
  * split `applyFortify` makes, and the same guarantee.
+ *
+ * `pillageAt` refreshes the *victim's* city on the spot, exactly as
+ * `buildImprovementAt` refreshes the builder's: the ground stops paying the
+ * moment the farm burns, and the panel that has to be told is the one that owns
+ * it. See `refreshCityDerived`.
  */
 function applyPillage(state: GameState, command: PillageCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);

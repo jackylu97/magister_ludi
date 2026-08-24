@@ -195,18 +195,40 @@ export function emptyCityYields(): CityYields {
  *
  * The context, and who passes one
  * -------------------------------
- * Everything above the renewals is a fact about the *tile*. A renewal is a fact
- * about the tile **and its owner** — Feudalism gives freshwater farms a second
- * food, and only to the empire that researched it — so it needs a player, and a
- * function that took a whole `GameState` would drag this module into an import
- * cycle with `tech.ts` (which already depends on it). `TileYieldContext` is
- * therefore the minimum the evaluation actually needs: the technologies held.
+ * Everything above the resource is a fact about the *tile*. The resource line
+ * and the renewals are facts about the tile **and its owner** — Feudalism gives
+ * freshwater farms a second food, and only to the empire that researched it —
+ * so they need a player, and a function that took a whole `GameState` would drag
+ * this module into an import cycle with `tech.ts` (which already depends on it).
+ * `TileYieldContext` is therefore the minimum the evaluation actually needs: the
+ * technologies held.
  *
- * `explainTileYield(tile)` with no context is exactly the pre-M7 answer plus the
- * improvement's own flat add, and it is the right call for anything asking about
- * *ground* rather than about an empire. Who passes what is written down in the
- * `yieldContextFor` docblock, because a call site that quietly stopped passing
- * one would under-report a renewal and nothing would fail.
+ * `explainTileYield(tile)` with no context is the **omniscient** answer: every
+ * line the ground could ever pay, to nobody in particular. That is the right
+ * call for anything asking about *ground* rather than about an empire — the
+ * mapgen page's start scorer, a report over a board with no players on it — and
+ * it is emphatically the wrong call for a tile somebody owns. Who passes what is
+ * written down in the `yieldContextFor` docblock, because a call site that
+ * quietly stopped passing one would over-report a hidden seam and under-report a
+ * renewal, and nothing would fail.
+ *
+ * The reveal gate
+ * ---------------
+ * A resource pays **only an empire that can be told it is there**
+ * (`resourceIsVisibleTo`, the same rule `isResourceVisible` and `openedResource`
+ * ask). Iron in the ground is worth nothing to a people with no word for iron;
+ * the turn Bronze Working lands, the hammer appears — in the breakdown, in the
+ * citizen's score, in the city panel and on the tile's own props, all together,
+ * because all four derive from this one line rather than from a flag anybody has
+ * to remember to set.
+ *
+ * This reverses the v1 reading, which paid the yield and hid only the *label* on
+ * the grounds that a hidden number would be a lie the panel has to keep telling.
+ * The ratified reading is that the number was the lie: a player who cannot see
+ * why a hill is worth three hammers cannot plan around it, and "the tile got
+ * better the moment you learnt what was on it" is the sentence a discovery is
+ * supposed to earn. Nothing is stored and no flag is set — the reveal is derived
+ * every time the yield is asked, exactly as `openedResource`'s first clause is.
  */
 export type TileYieldKind = 'base' | 'override' | 'add';
 
@@ -233,23 +255,36 @@ export interface TileYieldContext {
  * The context for a player, or `undefined` when there is no such player.
  *
  * **The call-site register**, kept here because a list of who passes a context
- * is only useful where somebody will read it:
+ * is only useful where somebody will read it. Two technologies now ride on it —
+ * the renewals and the reveal gate (see `explainTileYield`) — so the rule for
+ * new call sites is one line: **an owned tile is always evaluated with its
+ * owner's context.** A tile nobody owns, and no seat is asking on behalf of, is
+ * the only thing that may go without.
  *
  *   · `assignCitizens`, `centreYield`, `cityYields`, `bestExpansionTile` — all
- *     pass the *city owner's* context. Those four are the simulation banking and
- *     spending real yields, and a citizen that ignored a renewal would be sent
- *     to the wrong tile the turn Feudalism landed.
- *   · the hover readout (`showTileYields` in `main.ts`) passes the **local
- *     seat's** context, because the question it answers is "what would a city of
- *     mine collect here".
+ *     pass the *city owner's* context, through `cityContext`. Those four are the
+ *     simulation banking and spending real yields: a citizen that ignored a
+ *     renewal would be sent to the wrong tile the turn Feudalism landed, and one
+ *     that counted an unrevealed seam would be sent to a hill that pays nothing.
+ *   · the hover readout (`tileReadout.ts`) passes the **local seat's** context,
+ *     because the question it answers is "what would a city of mine collect
+ *     here" — and a hover card that priced ore the seat cannot name would be
+ *     giving away the one thing the reveal gate hides.
  *   · the yield glyphs (`lens3d.ts`) pass `LensView.playerId`, the seat the lens
  *     is drawn for, so the board and the hover card agree.
+ *   · the improvement preview (`improvementYieldDelta`) takes an optional one
+ *     and the unit sheet (`controls.ts`) passes the **builder's owner**, so the
+ *     "+1⚙" on a Mine row is what that empire would actually get. It is the
+ *     same evaluator twice with and without the candidate, so the gate cancels
+ *     out of the *delta* — which is the honest answer either way, and the reason
+ *     the argument is still optional.
  *   · the citizen *score* used by the border chooser and the assigner is the
  *     fold of the same contextual list, so "grow toward land you would work"
- *     survives a renewal.
- *   · nobody else passes one, and the two that deliberately do not are the
- *     improvement preview (`improvementYieldDelta`, which quotes the flat add a
- *     charge buys *now*) and any test asking about bare ground.
+ *     survives a renewal and does not chase a seam nobody has heard of.
+ *   · **Deliberately context-less**, and the whole of that list: the start-site
+ *     scorer (`startPositions.ts`), which runs during generation before any
+ *     player has a technology or a tile, and tests asking about bare ground.
+ *     Both are the omniscient reading, which is what "no context" means.
  */
 export function yieldContextFor(
   state: GameState,
@@ -290,7 +325,11 @@ export function explainTileYield(
     list.push({ source: hills.name, kind: 'override', ...readTileYield(hills.yieldOverride) });
   }
 
-  if (tile.resource !== undefined) {
+  // The resource, and only for an empire that has a word for it. A seam this
+  // player cannot be *told* about pays nothing — see "The reveal gate" above —
+  // and a context-less evaluation is the omniscient one, which is why the test
+  // is on `ctx` rather than on a player id that might be missing.
+  if (tile.resource !== undefined && (!ctx || resourceIsVisibleTo(tile.resource, ctx.techs))) {
     list.push({
       source: resourceDef(tile.resource).name,
       kind: 'add',
@@ -711,8 +750,10 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // A new city is working from the moment it exists, not from the end of the
   // turn: the panel opens on a city that is already doing something, and the
   // yields it reports are the ones it will actually collect. `collectYields`
-  // recomputes this anyway, and gets the same answer.
-  assignCitizens(state, city);
+  // recomputes this anyway, and gets the same answer. Through the same helper
+  // every mid-turn mutation uses — founding is the one that *creates* the
+  // derived state rather than correcting it, and it is still the same call.
+  refreshCityDerived(state, city);
   // And it is looking from the moment it exists. Refreshed *here* rather than
   // inside `createCity`, because a city sees its own territory and the territory
   // is claimed two lines above — a refresh in the constructor would light the
@@ -911,6 +952,70 @@ export function assignCitizens(state: GameState, city: City): void {
 
   worked.sort((a, b) => index(a) - index(b));
   city.workedTiles = worked.map((tile) => ({ col: tile.col, row: tile.row }));
+}
+
+/**
+ * **The mid-turn refresh.** Every mutation that changes what a city's ground is
+ * worth, outside the turn pipeline, calls this and then joins the register.
+ *
+ * The problem it closes is the oldest trap in CLAUDE.md: city-panel yields are
+ * *derived* state, recomputed by `collectYields` at the end of the turn, so a
+ * command that improved a tile at 10:00 left the panel quoting the 09:59 numbers
+ * until the player ended their turn. That was fixed once per mutation, by hand,
+ * three times running — `setLockedTiles`, then `purchaseTileAt`, then the chop's
+ * windfall — and a fourth hand-rolled copy is how a register becomes a list of
+ * places somebody forgot.
+ *
+ * So there is one helper and a register of its callers, rather than a register
+ * of exceptions:
+ *
+ *   1. `setLockedTiles` (`commands.ts`) — pinning a citizen. The precedent.
+ *   2. `purchaseTileAt` — bought ground is worked ground before the turn ends.
+ *   3. `settleProductionWindfall` — a one-time grant that completes an item.
+ *   4. `buildImprovementAt` (`improvements.ts`) — the farm pays this instant.
+ *   5. `pillageAt` (`improvements.ts`) — and so does its absence, to its victim.
+ *   6. `chopFeatureAt` (`improvements.ts`) — the felled wood changes the ground
+ *      under the citizen whether or not the timber finished anything.
+ *   7. `foundCityAt` — the odd one out, and included on purpose: it *creates*
+ *      the derived state rather than correcting it, and routing it through here
+ *      anyway is what makes the claim below exactly true.
+ *
+ * `assignCitizens` therefore has exactly two callers in the simulation: this,
+ * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
+ * asserts that, because it is the one property a new mutation can break while
+ * every behavioural test still passes.
+ *
+ * **A new mid-turn yield mutation calls this and adds itself to the list.**
+ *
+ * What makes it safe is what made every one of those safe: assignment is
+ * idempotent and derived. `collectYields` re-runs it from scratch at the top of
+ * the very next turn and reaches the same answer, so this can never *be* the
+ * thing that decides anything — it only stops the interface lying in the gap.
+ * It is deliberately not a "recompute everything": the yields the panel prints
+ * are computed on read (`cityYields`), and the one piece of derived state that
+ * is *stored* is the citizen assignment. One call, one city, no allocation.
+ */
+export function refreshCityDerived(state: GameState, city: City): void {
+  assignCitizens(state, city);
+}
+
+/**
+ * `refreshCityDerived` for a mutation that names a **tile** rather than a city:
+ * refreshes the city that owns the ground, if any owns it.
+ *
+ * The adapter exists because the improvement verbs are the first mid-turn
+ * mutations whose subject is a hex — a worker builds on a tile, a raider burns
+ * one — and the city that has to be told is the one whose borders the tile is
+ * inside, which is `tileOwner`'s answer and not the actor's. That is what gets
+ * a *pillage* right: the refresh is owed to the victim's panel, not the
+ * raider's, and asking the ground rather than the unit is the only reading that
+ * says so. Unclaimed ground is a no-op, because no panel is quoting it.
+ */
+export function refreshTileDerived(state: GameState, tile: Tile): void {
+  const cityId = tileOwnerCityId(state, tile.col, tile.row);
+  if (cityId === null) return;
+  const city = cityById(state, cityId);
+  if (city) refreshCityDerived(state, city);
 }
 
 // --- yields -----------------------------------------------------------------
@@ -1895,11 +2000,10 @@ export function settleProductionWindfall(
   city: City,
 ): ProductionCompletion | null {
   const done = settleProduction(state, city);
-  // Assignment is idempotent and derived, which is what makes running it outside
-  // `collectYields` safe: the phase recomputes it from scratch and reaches the
-  // same answer. A completed building can change what a citizen is worth on a
-  // tile, so the dots are re-seated before the panel next reads them.
-  if (done) assignCitizens(state, city);
+  // A completed building can change what a citizen is worth on a tile, so the
+  // dots are re-seated before the panel next reads them — through the one
+  // helper every mid-turn mutation goes through. See `refreshCityDerived`.
+  if (done) refreshCityDerived(state, city);
   return done;
 }
 
@@ -2341,8 +2445,8 @@ export function purchasableTiles(state: GameState, city: City): TileOffer[] {
  * into a tax on border growth. The purchase has its own ladder,
  * `Player.tilesPurchased`, which is what `explainTilePurchase` climbs.
  *
- * The citizens are re-assigned on the spot, which is the narrow exception
- * `setLockedTiles` already established (see the trap in CLAUDE.md): a player who
+ * The citizens are re-assigned on the spot, through `refreshCityDerived` — the
+ * register `setLockedTiles` opened and the trap in CLAUDE.md names: a player who
  * has just spent 95 gold on a wheat field should see the wheat in the panel
  * before the turn ends, not after it. `collectYields` re-assigns anyway and gets
  * the same answer.
@@ -2354,7 +2458,7 @@ export function purchaseTileAt(state: GameState, city: City, tile: Tile): void {
   claimTile(state, city, tile);
   player.gold -= price;
   player.tilesPurchased += 1;
-  assignCitizens(state, city);
+  refreshCityDerived(state, city);
   // Bought ground is ground you can see, the same rule `expandBorders` keeps.
   recomputeVisibility(state, player.id);
 }

@@ -62,21 +62,28 @@
  * mountain, and a citizen still could not be sent there — `workable` is a
  * separate question, see `terrainData.ts`.)
  *
- * `requiresTech` is a **reveal** gate: iron is on the map from turn one, pays
- * its yield to whoever works it, and is simply not *shown* to a player without
- * Bronze Working. See `visibleResourceAt` in `tech.ts` for the whole of that
- * rule and the tradeoff it makes with the diorama props. Incense is the first
- * *luxury* to use it — Divination reveals it — and it needed no new mechanism,
- * which is the whole argument for having built it as a property of the row
- * rather than a property of the strategic kind.
+ * `requiresTech` is the **reveal** gate: iron is on the map from turn one and is
+ * simply not there, in any sense a player can act on, until Bronze Working.
+ * Incense is the first *luxury* to use it — Divination reveals it — and it
+ * needed no new mechanism, which is the whole argument for having built it as a
+ * property of the row rather than a property of the strategic kind.
  *
- * It stopped being *only* a display rule with the ratified pass: **access is
- * gated on the reveal too** (`openedResource` in `cities.ts`). An empire cannot
- * draw supply from a thing nobody in it has a word for, so a mine dug on a hill
- * for its hammers no longer hands over iron before Bronze Working. The yield is
- * still paid — hiding a number the citizens are already collecting would be a
- * lie the city panel has to keep telling — and `resourceIsVisibleTo` is the one
- * implementation both readings ask.
+ * It started as a display rule and is now the whole of what a resource *is* to
+ * an empire, in three readings and one implementation (`resourceIsVisibleTo`):
+ *
+ *   · **shown** — the label, the hover card and the lens roundel, and since the
+ *     per-seat reveal pass the diorama prop as well (`reveal3d.ts`).
+ *   · **access** — `openedResource` in `cities.ts`: an empire cannot draw supply
+ *     from a thing nobody in it has a word for, so a mine dug on a hill for its
+ *     hammers does not hand over iron before Bronze Working.
+ *   · **yield** — `explainTileYield` in `cities.ts`: an unrevealed seam pays
+ *     nothing at all to the empire that owns it, and pays it the instant the
+ *     tech lands. The earlier reading paid the yield and hid only the name, on
+ *     the grounds that a hidden number would be a lie the panel keeps telling;
+ *     the ratified reading is that the *number* was the lie.
+ *
+ * Three questions, one rule, no flags: all of it derived from the row and the
+ * technologies held.
  *
  * `frequency` is a relative weight in the scatter's draw, not a count, and
  * `clusterSize` is the inclusive `[min, max]` a single find spreads over — so
@@ -418,9 +425,9 @@ export function resourceYield(id: ResourceId): TileYield {
  * The one implementation of the reveal gate, written as a pure function of the
  * technologies held so that it can live down here beside the table it reads.
  * `isResourceVisible` in `tech.ts` is a one-line delegate for the surfaces that
- * have a `GameState` in hand, and `openedResource` in `cities.ts` calls this
- * directly — because *access* is gated on the reveal too, and two copies of that
- * rule is exactly what rule 5 forbids.
+ * have a `GameState` in hand; `openedResource` and `explainTileYield` in
+ * `cities.ts` call this directly — because *access* and the *yield* are gated on
+ * the reveal too, and three copies of that rule is exactly what rule 5 forbids.
  */
 export function resourceIsVisibleTo(id: ResourceId, techs: readonly TechId[]): boolean {
   const gate = resourceDef(id).requiresTech;

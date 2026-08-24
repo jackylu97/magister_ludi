@@ -1533,3 +1533,84 @@ describe('improvements in the log', () => {
     expect(snapshotState(loaded.state)).toBe(snapshotState(game.state));
   });
 });
+
+// --- the mid-turn refresh ---------------------------------------------------
+
+/**
+ * The improvement verbs joining the mid-turn register (`refreshCityDerived` in
+ * `cities.ts`, and the trap in CLAUDE.md).
+ *
+ * The claim is narrow and it is the one players actually feel: the moment a
+ * worker finishes a farm, the city panel and the top bar are already telling the
+ * truth about it. Before this, the tile's yield changed instantly and the
+ * *derived* state a panel reads — which citizen sits where — waited for the end
+ * of the turn, so the food arrived one End Turn after the farm did.
+ */
+describe('the works pay instantly', () => {
+  /** A one-citizen city with its seats deliberately left stale. */
+  function stale(city: City): void {
+    city.population = 1;
+    city.workedTiles = [];
+  }
+
+  it('seats a citizen on the farm the turn it is built', () => {
+    const { state, worker } = workerState(5, 4);
+    const city = state.cities[0]!;
+    city.population = 1;
+    assignCitizens(state, city);
+    const before = cityYields(state, city).food;
+
+    expect(applyCommand(state, build(0, worker.id, 'farm'))).toEqual({ ok: true });
+    // Not merely refreshed — refreshed to the *right* answer: a farmed
+    // grassland tile outscores every bare one around it, so the citizen is
+    // standing on the new works before the player has ended anything, and the
+    // food the panel prints has already moved.
+    expect(city.workedTiles).toEqual([{ col: 5, row: 4 }]);
+    expect(cityYields(state, city).food).toBeGreaterThan(before);
+  });
+
+  it('is idempotent, so the end-of-turn phase agrees with it', () => {
+    const { state, worker } = workerState(5, 4);
+    const city = state.cities[0]!;
+    stale(city);
+    expect(applyCommand(state, build(0, worker.id, 'farm'))).toEqual({ ok: true });
+    const seated = JSON.stringify(city.workedTiles);
+    assignCitizens(state, city);
+    expect(JSON.stringify(city.workedTiles)).toBe(seated);
+  });
+
+  it('refreshes the victim of a pillage, not the raider', () => {
+    // The refresh is owed to whoever owns the ground: the farm that stopped
+    // paying is in *their* panel. Asked of the tile, so it needs no rule of its
+    // own — see `refreshTileDerived`.
+    const state = bareState();
+    const victim = foundCityAt(state, 1, at(state, 2, 2));
+    at(state, 2, 1).improvement = 'farm';
+    const raider = createUnit(state, 0, 'warrior', 2, 1);
+    raider.movesLeft = 2;
+    victim.population = 1;
+    victim.workedTiles = [{ col: 2, row: 1 }];
+
+    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id })).toEqual({
+      ok: true,
+    });
+    // The burnt tile is no better than its neighbours now, so the citizen is
+    // re-seated by the tie-break rather than left standing on a promise.
+    expect(victim.workedTiles).toHaveLength(1);
+    const seated = JSON.stringify(victim.workedTiles);
+    assignCitizens(state, victim);
+    expect(JSON.stringify(victim.workedTiles)).toBe(seated);
+  });
+
+  it('costs a pillage on unclaimed ground nothing at all', () => {
+    // Nobody owns the tile, so nobody is owed a refresh. It must not throw.
+    const state = bareState();
+    at(state, 8, 8).improvement = 'farm';
+    const raider = createUnit(state, 0, 'warrior', 8, 8);
+    raider.movesLeft = 2;
+    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id })).toEqual({
+      ok: true,
+    });
+    expect(at(state, 8, 8).improvement).toBeUndefined();
+  });
+});

@@ -346,10 +346,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    *
    * The card in the chart lists the units and buildings, because those are what
    * a player is usually shopping for. This says the rest: the resources the
-   * technology lets the map *name* (`isResourceVisible` — the ore was always
-   * there and always paid), and the improvements already on the ground that
-   * quietly start paying more. Both are gifts nobody would otherwise find out
-   * about except by noticing a number had changed.
+   * technology reveals (`isResourceVisible` — the ore was always in the ground,
+   * and from the moment it is named it is also worth something, on the board and
+   * in the panel), and the improvements already on the ground that quietly start
+   * paying more. Both are gifts nobody would otherwise find out about except by
+   * noticing a number had changed.
    *
    * Every figure in it comes from an evaluator that already exists —
    * `techGifts` for what, `unitProductionCost` for what a unit costs *this*

@@ -55,7 +55,9 @@ would change every seeded outcome. No further rename passes.
    the list. **Landed with M7**: `explainTileYield(tile, ctx?)` in `src/sim/cities.ts`
    returns the ordered list and `tileYieldOf` is `foldTileYield` of it — one implementation,
    golden-tested against the pre-refactor arithmetic. `ctx` carries the owning player's techs
-   (renewals only); who passes one is the register in the `yieldContextFor` docblock.
+   and now gates **two** lines — the renewals and the resource reveal (see the trap below);
+   who passes one is the register in the `yieldContextFor` docblock, and an owned tile is
+   always evaluated with its owner's ctx.
 6. Docblock-style comments explaining *why*, matching existing files' voice.
 
 ## Known traps
@@ -91,14 +93,16 @@ would change every seeded outcome. No further rename passes.
   adds instances to `buildBoard` must pass `tile:` to `collector.add` or it will keep drawing
   on hexes nobody has explored — `test/render/fog3d.test.ts` asserts the accounting.
 - **The board is built once per game.** Only a new map and toggling shadows rebuild it.
-  An instance is off for one of *two independent reasons* and both bits live on the handle
-  (`instances.ts`, the two-bit state machine): **fog-hidden** (`hide`/`restore`, owned by
-  `FogView`) and **suppressed** (`suppress`/`unsuppress`, owned by what has been *built* on
-  the hex). Drawn iff neither. `restore` therefore returns an instance to
-  `suppressed ? HIDDEN : as-built` — get that wrong and a scout walking past regrows the
-  meadow a farm was ploughed over, which is exactly why this was deferred out of M7.
-  Suppressing a fog-hidden instance writes no matrix at all and still holds when the fog
-  lifts. The wash is orthogonal to both: a zero-scaled instance's tint means nothing.
+  An instance is off for one of *three independent reasons* and all three bits live on the
+  handle (`instances.ts`, the three-bit state machine): **fog-hidden** (`hide`/`restore`,
+  owned by `FogView`), **suppressed** (`suppress`/`unsuppress`, owned by what has been
+  *built* on the hex), and **veiled** (`veil`/`unveil`, owned by `RevealView` — "this seat
+  has no word for what that is"). Drawn iff none is set. `restore` therefore returns an
+  instance to *what the other bits say*, not to as-built — get that wrong and a scout
+  walking past regrows the meadow a farm was ploughed over, or un-hides ore the seat still
+  cannot name. Suppressing or veiling a fog-hidden instance writes no matrix at all and
+  still holds when the fog lifts. The wash is orthogonal to all three: a zero-scaled
+  instance's tint means nothing.
 - New board dressing must declare `suppressible:` on `collector.add` (`SUPPRESS.clutter` for
   ground scatter a farm ploughs under, `SUPPRESS.decor` for anything a town clears away).
   `addDecorations`'s `place` defaults to `decor`, so forgetting is safe there and nowhere else
@@ -108,7 +112,9 @@ would change every seeded outcome. No further rename passes.
   fingerprints — a new seat-filtered layer must be added there too. A layer rebuilt *outside*
   `FogView` must also re-apply the wash itself, or it comes up lit on remembered ground; see
   `ImprovementLayer.paintFog` for the pattern (`tile:` on every instance, then `setWash` from
-  the collector's own tile→handle map).
+  the collector's own tile→handle map). A per-seat fact about *the board's own* instances is
+  the other shape: it is a patching pass over recorded handles (`reveal3d.ts`), never a
+  rebuild and never a bake-time decision.
 - A unit piece is **three** `InstancedMesh`es over one buffer: sculpt, outline shell, and the
   `depthFunc: GreaterDepth` x-ray ghost. Tests that count meshes use
   `MESHES_PER_PIECE_BUCKET`; hide/restore must move all three or a silhouette is left behind.
@@ -135,23 +141,51 @@ would change every seeded outcome. No further rename passes.
   rather than reword it when something does.
 - Resource **access** is one rule, `openedResource` in `cities.ts`, with three clauses in
   precedence: the reveal tech (binds *both* other clauses — a mine on a hill does not hand
-  over iron before Bronze Working), the improvement on the tile, then a city standing on
-  the seam whose owner holds that improvement's tech. All derived, no flags. Ledgers label
-  which ("Gems · mine" vs "Gems · city"); holding both ways is still one holding.
-- City-panel yields are derived state refreshed in `collectYields`; mutations outside
-  the turn pipeline show stale numbers until end of turn. The exceptions are a **closed
-  register of sanctioned mid-turn mutations**, each of which re-runs `assignCitizens` for
-  the one city it touched (assignment is idempotent and derived, so the phase recomputes
-  it and agrees):
+  over iron before Bronze Working, and see the reveal trap below: it binds the *yield*
+  too), the improvement on the tile, then a city standing on the seam whose owner holds
+  that improvement's tech. All derived, no flags. Ledgers label which ("Gems · mine" vs
+  "Gems · city"); holding both ways is still one holding.
+- City-panel yields are derived state refreshed in `collectYields`; a mutation outside the
+  turn pipeline would show stale numbers until end of turn. This used to be a closed
+  register of hand-rolled exceptions. It is now **the register *and* THE helper**:
+  `refreshCityDerived(state, city)` in `cities.ts` (and `refreshTileDerived(state, tile)`,
+  which resolves the ground's owning city — that is what makes a *pillage* refresh the
+  victim). Assignment is idempotent and derived, so the phase recomputes it and agrees.
+  The register, which is also the docblock on the helper:
   1. `setLockedTiles` — pinning a citizen (the first, and the precedent).
   2. `purchaseTileAt` — bought ground is worked ground before the turn ends.
   3. **Windfall settlement** (`chopFeature`, Entry XVIII) — a one-time grant that covers
      the front of a queue completes it *that instant*, through
      `settleProductionWindfall` (`cities.ts`), which is `advanceProduction`'s own
-     completion routine (`settleProduction`) plus the re-assignment. Future windfalls
-     (science boons, cards, ruins) join this list by calling a `settle…Windfall`, never
-     by reimplementing a completion or by bypassing the refresh.
-  Everything else still waits for the turn.
+     completion routine (`settleProduction`) plus the refresh. Future windfalls
+     (science boons, cards, ruins) join by calling a `settle…Windfall`, never by
+     reimplementing a completion or bypassing the refresh.
+  4. `buildImprovementAt` — the farm pays this instant, in the *mechanism* so an AI gets
+     it too.
+  5. `pillageAt` — and its absence, to the victim's panel.
+  6. `chopFeatureAt` — the felled wood changed the ground whether or not it finished
+     anything.
+  7. `foundCityAt` — the odd one out: it *creates* the derived state, and goes through
+     the helper anyway so the claim below is exactly true.
+  **A new mid-turn yield mutation calls `refreshCityDerived` and adds itself to this
+  list.** `assignCitizens` therefore has exactly two callers in the sim — `collectYields`
+  (the phase) and the helper — and `test/sim/cities.test.ts` asserts that by reading the
+  source, because it is the one property a seventh hand-rolled refresh would break while
+  every behavioural test still passed.
+- **A resource pays only an empire that can name it.** `requiresTech` gates three things
+  through one rule (`resourceIsVisibleTo`): the *label* (`visibleResourceAt`), *access*
+  (`openedResource`), and the **yield** — `explainTileYield` omits the resource line for a
+  ctx whose techs lack the gate. So the reveal moment adds the hammer to the tile, the
+  citizen's score, the city panel and the top bar at once. A **context-less**
+  `explainTileYield(tile)` is the *omniscient* reading and keeps the full yield: that is
+  mapgen's start scorer and tests about bare ground, and it is the only exemption. Rule:
+  **an owned tile is always evaluated with its owner's context** — the register of who
+  passes one is the `yieldContextFor` docblock.
+- The **props** for a gated resource are veiled per seat by `RevealView` (`reveal3d.ts`),
+  fog's sibling: the board bakes every prop lit, `BuiltBoard.resourceCells` says which
+  instances they are, and the pass writes only where the answer flipped (seat change and
+  tech completion both re-evaluate, on the frame, like fog). Marker, prop and yield appear
+  together on the reveal — `test/render/reveal3d.test.ts` pins all three.
 
 ## Direction (see docs/design-notes.md for full ledger)
 - Vanilla Civ mechanics first; deckbuilding civics / happiness+authority / events

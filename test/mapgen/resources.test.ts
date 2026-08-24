@@ -8,6 +8,7 @@ import {
   foundCityAt,
   hasResource,
   tileYieldOf,
+  yieldContextFor,
 } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { createGame, dispatch, loadGame, replay, saveGame, snapshotState } from '../../src/sim/game';
@@ -139,8 +140,9 @@ describe('the resource table', () => {
     // Horses joined it in the Age I rework: Husbandry is the tech that unlocks
     // the horseman and the pasture, so it is also the tech that says where the
     // horses are, and the reveal now reads as part of one package rather than
-    // as a fact the map hands out for free. Both are visibility only — an
-    // unrevealed seam still pays its yield (see `isResourceVisible`).
+    // as a fact the map hands out for free. The gate is no longer visibility
+    // only: an unrevealed seam is unusable *and* pays its owner nothing (see
+    // `isResourceVisible` and `explainTileYield`).
     expect(resourceDef('horses').requiresTech).toBe('husbandry');
     // Incense briefly used the gate too (Divination revealed it, mirroring the
     // strategics), but that made the only faith-luxury invisible before players
@@ -751,16 +753,73 @@ describe('what a player may be told', () => {
     expect(visibleResourceAt(state, 1, tile)).toBe('iron');
   });
 
-  it('hides the label and never the yield', () => {
-    // The citizens are already collecting the production; a panel that hid the
-    // number would be a lie the city has to keep telling every turn.
+  it('hides the label, the access and the yield together', () => {
+    // The ratified reading, and the reversal of this test's first version: iron
+    // an empire has no word for is not a production point it collects while
+    // being told nothing — it is simply not there yet. All three questions are
+    // one rule (`resourceIsVisibleTo`), so they cannot come apart.
     const state = bareState();
     state.players[0]!.techsResearched = [];
     const tile = at(state, 3, 3);
     tile.resource = 'iron';
+    const ctx = yieldContextFor(state, 0)!;
+
     expect(visibleResourceAt(state, 0, tile)).toBeNull();
-    expect(tileYieldOf(tile)).toEqual({ food: 2, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
     expect(hasResource(state, 0, 'iron')).toBe(false);
+    // Bare grassland, exactly as if the seam were not there.
+    expect(tileYieldOf(tile, ctx)).toEqual(tileYieldOf({ ...tile, resource: undefined }, ctx));
+    // Not a subtraction afterwards: the line is simply absent from the
+    // breakdown, which is rule 5's whole point (`explainTileYield`).
+    expect(explainTileYield(tile, ctx).map((line) => line.source)).not.toContain(
+      resourceDef('iron').name,
+    );
+  });
+
+  it('pays it the instant the technology lands, to the line', () => {
+    // The reveal *moment*, asked of the tile: the delta across the discovery is
+    // exactly the resource's own row and nothing else.
+    const state = bareState();
+    const player = state.players[0]!;
+    player.techsResearched = [];
+    const tile = at(state, 3, 3);
+    tile.resource = 'iron';
+
+    const before = tileYieldOf(tile, yieldContextFor(state, 0));
+    player.techsResearched = ['bronzeWorking'];
+    const after = tileYieldOf(tile, yieldContextFor(state, 0));
+
+    const line = resourceYield('iron');
+    for (const key of TILE_YIELD_KEYS) expect(after[key] - before[key]).toBe(line[key]);
+    expect(explainTileYield(tile, yieldContextFor(state, 0)).map((l) => l.source)).toContain(
+      resourceDef('iron').name,
+    );
+  });
+
+  it('pays an ungated resource to an empire that has researched nothing', () => {
+    // The other half, and the reason the gate is read off the row rather than
+    // off the *kind*: wheat is wheat to anybody.
+    const state = bareState();
+    state.players[0]!.techsResearched = [];
+    const tile = at(state, 3, 3);
+    tile.resource = 'wheat';
+    const ctx = yieldContextFor(state, 0)!;
+    const bare = tileYield('grassland', 'none', false);
+    expect(tileYieldOf(tile, ctx).food).toBe(bare.food + resourceYield('wheat').food);
+  });
+
+  it('stays omniscient when nobody is asking — the mapgen reading', () => {
+    // A context-less evaluation is "what could this ground ever pay", which is
+    // what the start-site scorer wants during generation, when there is no
+    // player to have a technology. Documented in `explainTileYield`, and the one
+    // place the gate does not apply.
+    const state = bareState();
+    state.players[0]!.techsResearched = [];
+    const tile = at(state, 3, 3);
+    tile.resource = 'iron';
+    expect(tileYieldOf(tile).production).toBe(
+      tileYield('grassland', 'none', false).production + resourceYield('iron').production,
+    );
+    expect(explainTileYield(tile).map((line) => line.source)).toContain(resourceDef('iron').name);
   });
 
   it('answers null for a tile with nothing on it', () => {

@@ -20,10 +20,10 @@
  * instance matrix — the world-space x component of the translation column. That
  * is exact for any matrix built by `Matrix4.compose`, which is all of them.
  *
- * WHY AN INSTANCE IS OFF: the two-bit state machine
- * -------------------------------------------------
- * There are two entirely separate reasons a board instance is not drawn, they
- * are owned by two different layers, and they can hold at the same time:
+ * WHY AN INSTANCE IS OFF: the three-bit state machine
+ * ---------------------------------------------------
+ * There are three entirely separate reasons a board instance is not drawn, they
+ * are owned by three different layers, and any of them can hold at once:
  *
  *   **fog-hidden** — `hide` / `restore`, owned by `FogView` (`fog3d.ts`). "This
  *   seat has never charted the hex." It comes and goes as scouts walk, and it is
@@ -35,34 +35,41 @@
  *   field, so the meadow it was cut out of is gone." It is a fact about the
  *   world, identical for every seat, and — Civ-wise — it never comes back.
  *
- * The composition rule is one line: **an instance renders iff it is neither
- * fog-hidden nor suppressed.** So the two bits live side by side on the handle
- * and the matrix follows their *or*:
+ *   **veiled** — `veil` / `unveil`, owned by `RevealView` (`reveal3d.ts`). "This
+ *   seat has no word for what is on the hex": the ore is drawn on the board and
+ *   this player has not researched Bronze Working. Like fog it is per seat and
+ *   re-decided every frame; unlike fog it is a fact about *knowledge* rather
+ *   than about sight, so it is the one bit that comes off for good — a
+ *   technology is never unlearnt — while a scout can walk away from a hex.
  *
- *      fog  sup │ matrix
- *      ─────────┼─────────────────────────
- *       0    0  │ as built  (the snapshot)
- *       0    1  │ HIDDEN_MATRIX
- *       1    0  │ HIDDEN_MATRIX
- *       1    1  │ HIDDEN_MATRIX
+ * The composition rule is one line: **an instance renders iff none of the three
+ * bits is set.** So the bits live side by side on the handle and the matrix
+ * follows their *or*:
+ *
+ *      fog  sup  veil │ matrix
+ *      ───────────────┼─────────────────────────
+ *       0    0    0   │ as built  (the snapshot)
+ *       anything else │ HIDDEN_MATRIX
  *
  * and a transition writes only when that *or* actually flips. That is what
- * makes the two operations commute, which is the whole point: suppressing a
+ * makes the operations commute, which is the whole point: suppressing a
  * tile the seat cannot see costs nothing now and is still respected when the
- * fog lifts (`restore` puts the instance back to `suppressed ? HIDDEN : built`,
+ * fog lifts (`restore` puts the instance back to *whatever the other bits say*,
  * not to "built"); and a tile going dark and coming back does not resurrect the
- * meadow a farm was ploughed over. Naive per-instance clearing that wrote
- * matrices directly had exactly that bug — a fog restore resurrected suppressed
- * clutter — which is why this was deferred out of M7 and is now here instead.
+ * meadow a farm was ploughed over, nor un-veil ore the seat still cannot name.
+ * Naive per-instance clearing that wrote matrices directly had exactly that bug
+ * — a fog restore resurrected suppressed clutter — which is why this was
+ * deferred out of M7 and is now here instead. Every operation is a `setFlags`
+ * over the whole word, so a fourth reason costs a constant and two methods.
  *
- * The wash (`setWash`) is deliberately *orthogonal* to both bits. A tint on a
- * zero-scaled instance is a colour nobody can see, so suppression never touches
- * colour and fog never asks whether something is suppressed before tinting it.
- * Keeping them independent is what stops the restore path needing to know which
- * of four states it is putting an instance back into.
+ * The wash (`setWash`) is deliberately *orthogonal* to all three bits. A tint on
+ * a zero-scaled instance is a colour nobody can see, so suppression never
+ * touches colour and fog never asks whether something is suppressed before
+ * tinting it. Keeping them independent is what stops the restore path needing to
+ * know which of eight states it is putting an instance back into.
  *
- * Both bits are per **handle** (one `add` call, one instance, its wrap copies),
- * and both are meaningless before `flush` — the flags are written against live
+ * The bits are per **handle** (one `add` call, one instance, its wrap copies),
+ * and all are meaningless before `flush` — the flags are written against live
  * meshes, so a caller that suppressed something before the buffers existed would
  * set a bit nothing had acted on. Everything in this renderer patches after the
  * flush; nothing needs to do otherwise.
@@ -277,6 +284,8 @@ export type SuppressScope = (typeof SUPPRESS)[keyof typeof SUPPRESS];
 const FOG_BIT = 1;
 /** An instance is hidden because something was built over it. */
 const SUPPRESS_BIT = 2;
+/** An instance is hidden because the seat cannot yet *name* what it draws. */
+const VEIL_BIT = 4;
 
 /**
  * A claim on the instance slots one `add` call produced — one per wrap copy.
@@ -702,6 +711,30 @@ export class InstanceCollector {
    */
   static unsuppress(handle: InstanceHandle): void {
     setFlags(handle as HandleImpl, (handle as HandleImpl).flags & ~SUPPRESS_BIT);
+  }
+
+  /**
+   * Switches an instance off because the seat has no word for what it draws.
+   * The reveal gate's half of the three bits; see `RevealView` in `reveal3d.ts`.
+   *
+   * Deliberately *not* a `suppress` with a third grade: suppression is a fact
+   * about the world that every seat sees the same way and that never comes back,
+   * and a veil is the opposite of both — it is per seat, and it lifts. Folding
+   * them together would mean a player researching Bronze Working un-ploughed
+   * every farm in their empire.
+   *
+   * Idempotent, and it composes with the other two exactly as they compose with
+   * each other: the instance is drawn only when nothing at all is against it.
+   */
+  static veil(handle: InstanceHandle): void {
+    const impl = handle as HandleImpl;
+    setFlags(impl, impl.flags | VEIL_BIT);
+  }
+
+  /** Lifts a `veil`, putting the instance back unless fog or a town has it. */
+  static unveil(handle: InstanceHandle): void {
+    const impl = handle as HandleImpl;
+    setFlags(impl, impl.flags & ~VEIL_BIT);
   }
 
   /**
