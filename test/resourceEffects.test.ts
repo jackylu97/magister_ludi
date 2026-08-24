@@ -17,7 +17,7 @@ import {
   growthThreshold,
   hasResource,
   nextBorderCost,
-  percentFor,
+  stageSumsFor,
   productionModifiers,
   resourceCopies,
 } from '../src/sim/cities';
@@ -605,10 +605,14 @@ describe('productionBonus: one shape over two tables', () => {
     expect(resourceProduction(state, city, other.kind).map((line) => line.resource)).not.toContain(id);
 
     const behind = productionModifiers(state, city, matching as never);
+    // City stage whatever the row's scope says: a category bonus is a share of
+    // the hammers *this town* puts behind *this build*, which is what Entry
+    // XVII.4 stages on — where the effect applies, not where it is held.
     expect(behind).toContainEqual({
       source: resourceDef(id).name,
       resource: id,
       percent: effect.percent,
+      stage: 'city',
     });
   });
 
@@ -659,8 +663,8 @@ describe('productionBonus: one shape over two tables', () => {
   });
 });
 
-describe('percentYields: one sum, applied once', () => {
-  it('joins the meters in a single per-yield sum rather than compounding', () => {
+describe('percentYields: two sums, each applied once', () => {
+  it('joins the meters in a single per-yield stage sum rather than compounding', () => {
     const percent = plantableWith('percentYields', (effect) => effect.scope === undefined);
     expect(percent).toBeDefined();
     const { id, effect } = percent!;
@@ -676,14 +680,24 @@ describe('percentYields: one sum, applied once', () => {
     expect(mine).toHaveLength(1);
     expect(mine[0]!.yield).toBe(effect.yield);
 
-    // The fold is the *sum* of every line on that yield — the meters' and the
-    // luxuries' — which is the whole reason both families land in one list. Two
-    // sources at +10% must read as +20%, never as 1.1 × 1.1.
-    const summed = lines
-      .filter((line) => line.yield === effect.yield)
-      .reduce((total, line) => total + line.percent, 0);
-    expect(percentFor(lines, effect.yield)).toBe(summed);
-    expect(summed).toBeGreaterThanOrEqual(effect.percent);
+    // Every luxury percentage is **city-stage**, however far its scope reaches:
+    // "+10% gold in every city" applies in a city, so it sums with that city's
+    // buildings and the meters multiply what the two come to (Entry XVII.4, read
+    // strictly). Additive within the stage is the rest of the doctrine — two
+    // sources at +10% read as +20%, never as 1.1 × 1.1.
+    expect(mine[0]!.stage).toBe('city');
+    const sums = stageSumsFor(lines, effect.yield);
+    for (const stage of ['city', 'empire'] as const) {
+      expect(sums[stage]).toBe(
+        lines
+          .filter((line) => line.yield === effect.yield && line.stage === stage)
+          .reduce((total, line) => total + line.percent, 0),
+      );
+    }
+    // The global stage is the meters and nothing else, so no luxury is in it.
+    expect(lines.filter((line) => line.stage === 'empire').every((line) => line.meter !== undefined))
+      .toBe(true);
+    expect(sums.city).toBeGreaterThanOrEqual(effect.percent);
   });
 
   it('is not applied at all before its age, and is after it', () => {

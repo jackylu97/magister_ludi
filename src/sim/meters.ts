@@ -162,8 +162,9 @@ function crowdingDemand(population: number): number {
  * base and both are read through this: sugar and honey take a tenth off what a
  * citizen demands, and furs take a tenth off a border tile (that one lands in
  * `cities.ts`, where border costs live). Summed and applied once, exactly as the
- * yield percentages are, so two such luxuries read as −20% rather than as
- * 0.9 × 0.9.
+ * yield percentages are inside a stage, so two such luxuries read as −20% rather
+ * than as 0.9 × 0.9. A rule has one stage and always will: there is nothing for a
+ * second multiplication to be *about*.
  */
 function ruleFactor(state: GameState, playerId: number, rule: ResourceRule): number {
   return 1 + foldRulePercent(resourceRulePercent(state, playerId, rule)) / 100;
@@ -622,12 +623,15 @@ export function meterEffects(state: GameState, playerId: number): MeterEffect[] 
 }
 
 /**
- * What one yield is multiplied by: the percentages that touch it, summed, then
- * applied once.
+ * What the **meters** put on one yield: the percentages that touch it, summed.
  *
  * Summed and not compounded, and that is a legibility decision the ledger makes
  * explicitly — a +10% and a −10% have to read as nothing at all, which they do
- * not if they are multiplied one after the other.
+ * not if they are multiplied one after the other. Every line here is Entry
+ * XVII's *global* stage: a tier is the empire leaning on all its cities at once,
+ * which is what the global stage exists for. The city stage — buildings, category
+ * bonuses, a luxury scoped to the towns that hold it — is summed separately and
+ * applied first (`cityStageSums` in `cities.ts`).
  */
 export function yieldPercent(effects: readonly MeterEffect[], yieldId: ModifiedYield): number {
   let percent = 0;
@@ -638,13 +642,35 @@ export function yieldPercent(effects: readonly MeterEffect[], yieldId: ModifiedY
 }
 
 /**
- * The same figure as a multiplier. Since the luxuries pass the meters are no
- * longer the only source of a percentage on a yield, so `cityYields` folds
- * `cityYieldPercents` instead of calling this — it survives for callers asking
- * only what the *meters* are doing.
+ * The same figure as a multiplier — **the global stage's factor alone**, which
+ * is the whole of what a city's yield is multiplied by only when nothing local
+ * is also modifying it. Since the luxuries pass the meters are no longer the
+ * only source of a percentage on a yield, and since Entry XVII they are not even
+ * the only *stage*, so `cityYields` folds `cityStageSums` instead of calling
+ * this — it survives for callers asking only what the meters are doing.
  */
 export function yieldFactor(effects: readonly MeterEffect[], yieldId: ModifiedYield): number {
   return 1 + yieldPercent(effects, yieldId) / 100;
+}
+
+/**
+ * The percentage the meters put on food *surplus* toward growth: summed, not
+ * compounded, exactly like the border channel below.
+ *
+ * Its own channel, and deliberately not part of Entry XVII's two-stage pipeline:
+ * the stifle multiplies the surplus a city banks rather than the food yield it
+ * harvests (Entry XIV.D.4), so it is neither a city-stage nor a global-stage
+ * percentage on a yield — it is a different rule with a different consumer
+ * (`growthSurplus`). The city panel names it on the Growth line for the same
+ * reason it names the writ on the Borders line: a modifier belongs to the number
+ * it modifies.
+ */
+export function growthPercent(effects: readonly MeterEffect[]): number {
+  let percent = 0;
+  for (const effect of effects) {
+    if (effect.growth) percent += effect.percent;
+  }
+  return percent;
 }
 
 /**
@@ -652,11 +678,7 @@ export function yieldFactor(effects: readonly MeterEffect[], yieldId: ModifiedYi
  * the meter can do is stall a city, never eat it.
  */
 export function growthFactor(effects: readonly MeterEffect[]): number {
-  let percent = 0;
-  for (const effect of effects) {
-    if (effect.growth) percent += effect.percent;
-  }
-  return Math.max(0, 1 + percent / 100);
+  return Math.max(0, 1 + growthPercent(effects) / 100);
 }
 
 /**

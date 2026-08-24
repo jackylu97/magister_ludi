@@ -829,7 +829,10 @@ Magister's writ run?"
    · **Happiness growth stifle is its own steeper ladder (user, 2026-08-23 — "actually
      impactful"): H < 0 → −50% food surplus · H ≤ −10 → −80% · H ≤ −20 → −100%.** Surplus
      only, never base food — growth stalls, cities never starve from the meter alone.
-   Percentages on the same yield SUM, then apply once (a +10% and a −10% read as 0).
+   Percentages on the same yield SUM **within their stage**, then that stage applies once (a
+   +10% and a −10% of the same stage read as 0). Since Entry XVII the meters are the *global*
+   stage: they multiply what the city's own bonuses already came to —
+   `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, floored once at the very end.
 5. **No new buildings yet** (no circus/courthouse); sources v1 = palace + ages + luxuries
    (happiness), palace + ages (authority capacity). More authority sources acknowledged as
    missing — designed later, likely with the tech-tree revision (monument +1 authority is
@@ -1449,8 +1452,27 @@ Entry I's commitments are audited.
 6. Every stage's sum is a labelled line in the breakdown it modifies (rule 5): the reader
    sees flats, the city multiplier, the global multiplier, in that order.
 
-Status: ratified ahead of implementation — the shipped pipeline sums both scopes into one
-pool (net +20% where this doctrine says +21%). Alignment pass queued.
+**The table as classified (rule 4, with the 2026-08-24 clarification applied).** City stage:
+the barracks' +10% toward units, marble's +15% toward buildings and salt's +10% toward units
+(a `productionBonus` is city-stage at either scope — it is a share of *this town's* hammers
+behind *this* build), and every `percentYields` row — gems' gold, salt's food, silk's and dyes'
+culture, coral's science and whales' production. Global stage: the happiness tier (science,
+culture), the authority tier (production; production + science + culture in deficit) — and
+nothing else in the game today.
+
+Status: **BUILT (2026-08-24).** `src/sim/modifiers.ts` is the whole of the arithmetic —
+`foldStages` / `withStage` / `applyStages` — and `cityStageSums` (`cities.ts`) is the one
+evaluator that classifies a city's modifiers into the two figures; `cityYields` multiplies by
+them and nothing else in the simulation multiplies a yield by a percentage. Applied in whole
+percentage points with a single division (`base × (100+c) × (100+e) / 10000`) so that
+"floored once at the very end" is exact rather than nearly so: the float form
+`base × (1 + p/100)` floors 100 hammers at +15% to 114. The city panel prints the two stages
+as their own lines with their sums, in the order they apply. Measured drift against the
+scripted pacing empire: **nil** — ages close 34 / 66 / 106 before and after, with every city,
+building, pool and claimed tile identical, because the two stages differ only where both are
+non-empty and the global stage is thin before Æra III. Boundary and channel separation are
+pinned in `test/modifiers.test.ts`, alongside Entry XVIII.5's immunity — the two doctrines are
+asserted against each other in one file.
 
 ---
 

@@ -62,10 +62,16 @@ on `effect.kind`.
 
 Every shape may carry `fromAge` and `perCopy`.
 
-**Percentages never compound.** A `percentYields` line joins the happiness and
-authority meters in one sum per yield, applied once (`cityYieldPercents` in
-`cities.ts`). Three sources at +10% read as +30%, not as 1.1³ — the same
-legibility rule the ledger already made for the meters alone.
+**Percentages never compound inside a stage.** Every luxury percentage — a
+`percentYields` at any scope, a `productionBonus` at either — is a **city-stage**
+modifier (Entry XVII, and the user's 2026-08-24 classification: "in every city"
+still *applies* in a city). They sum with each other and with the buildings' into
+one per-yield figure, and the happiness and authority tiers — the whole of the
+*global* stage today — multiply what that comes to:
+`(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, floored once at the very end
+(`cityStageSums` in `cities.ts`, `applyStages` in `modifiers.ts`). Three luxuries
+at +10% read as +30%, not as 1.1³; a +10% tier over them is worth 13 points of
+base, not 10.
 
 `empireYields` and the `"owner"` scope are the two readings the ratified table
 does not currently declare: it is **wide everywhere**. Both are kept — they are

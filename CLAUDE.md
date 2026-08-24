@@ -112,9 +112,18 @@ would change every seeded outcome. No further rename passes.
   exception to "a luxury counts once per kind"). Adding a *shape* is a design decision;
   adding a luxury is a JSON row. `docs/luxuries.md` is the as-ratified reference and lists
   every deferred effect with what it waits for.
-- **Percentages never compound.** Meter percentages and a luxury's `percentYields` land in
-  one list per city (`cityYieldPercents`), summed per yield and applied **once**. Anything
-  that adds a new percentage source must join that list, never multiply afterwards.
+- **Percentages compound across two stages and never inside one** (design-notes Entry XVII,
+  built 2026-08-24). Every percentage on a yield lands in one list per city
+  (`cityYieldPercents`), each line carrying a `stage`: **city** (buildings' category bonuses,
+  every luxury `percentYields` and `productionBonus` — "in every city" still applies *in a
+  city*) or **empire** (the two meter tiers, and nothing else today). `cityStageSums` folds the
+  list into the two sums per yield and `applyStages` (`modifiers.ts`) does the arithmetic —
+  `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, floored **once** at the very end, in whole
+  percentage points so the floor is exact. Anything that adds a percentage source must join that
+  list with a stage, never multiply afterwards. Growth surplus and border accrual are **separate
+  channels** with their own folds (`growthPercent`, `borderPercent`) and are not in this
+  pipeline. One-time grants (the chop) are modifier-immune — Entry XVIII.5, pinned in
+  `test/modifiers.test.ts`.
 - **Faith is accumulate-only.** Tiles and signatures pay it, `collectYields` banks it into
   `Player.faithPool`, and nothing spends it. The top bar's card says so; delete that note
   rather than reword it when something does.

@@ -830,7 +830,7 @@ describe('city yields', () => {
     expect(cityYields(state, city, [], building).production).toBe(plain);
     expect(cityYields(state, city).production).toBe(plain);
     expect(productionModifiers(state, city, unit)).toEqual([
-      { source: 'Barracks', building: 'barracks', percent: bonus * 100 },
+      { source: 'Barracks', building: 'barracks', percent: bonus * 100, stage: 'city' },
     ]);
     expect(productionModifiers(state, city, building)).toEqual([]);
 

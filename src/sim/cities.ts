@@ -73,8 +73,16 @@ import {
   improvementForResource,
   improvementYield,
 } from './improvementData';
+import {
+  type ModifierStage,
+  type StageSums,
+  applyStages,
+  foldStages,
+  withStage,
+} from './modifiers';
 import { type Cell, isPassable } from './pathfind';
 import {
+  CITY_YIELD_KEYS,
   RESOURCE_IDS,
   type CityYieldKey,
   type ResourceId,
@@ -1035,6 +1043,17 @@ export interface ProductionModifier {
   resource?: ResourceId;
   /** Signed percent, as a figure a surface prints rather than a fraction. */
   percent: number;
+  /**
+   * Always `'city'` — Entry XVII's city stage. Carried rather than assumed so
+   * that the panel folds one shape for every percentage it prints, and so the
+   * classification is written down where a reader will look for it: a category
+   * bonus is a share of the hammers **this town** puts behind **this build**, so
+   * it multiplies with the town's other bonuses even when the row that grants it
+   * is empire-scoped. Marble is the case that makes the point — "+15% toward
+   * buildings in every city" is still a fact about each city's build, exactly as
+   * a barracks is, and Entry XVII.4 stages an effect by where it applies.
+   */
+  stage: ModifierStage;
 }
 
 /**
@@ -1070,20 +1089,34 @@ export function productionModifiers(
     if (!city.buildings.includes(id) && !hypothetical.includes(id)) continue;
     const bonus = buildingDef(id).productionBonus;
     if (bonus === undefined || bonus.percent === 0 || bonus.category !== category) continue;
-    list.push({ source: buildingDef(id).name, building: id, percent: bonus.percent });
+    list.push({
+      source: buildingDef(id).name,
+      building: id,
+      percent: bonus.percent,
+      stage: 'city',
+    });
   }
   for (const line of resourceProduction(state, city, category)) {
     if (line.percent === 0) continue;
-    list.push({ source: line.source, resource: line.resource, percent: line.percent });
+    list.push({
+      source: line.source,
+      resource: line.resource,
+      percent: line.percent,
+      stage: 'city',
+    });
   }
   return list;
 }
 
-/** What the modifiers multiply production by: summed, then applied once. */
-function modifierFactor(list: readonly ProductionModifier[]): number {
+/**
+ * The percentage points these modifiers add to the city stage: summed, never
+ * multiplied. The fold of the list above, handed to `withStage` so that the
+ * hammers behind a build and the percentages on the yield meet in one place.
+ */
+export function modifierPercent(list: readonly ProductionModifier[]): number {
   let percent = 0;
   for (const entry of list) percent += entry.percent;
-  return percent / 100;
+  return percent;
 }
 
 /**
@@ -1092,10 +1125,10 @@ function modifierFactor(list: readonly ProductionModifier[]): number {
  * `ProductionModifier` is the same idea for the *thing being built*; this is the
  * idea for the yield itself, and it exists because since the luxuries pass there
  * are two families of source — the two empire meters and a luxury's
- * `percentYields` — and they must land in **one sum applied once**. A gems
- * empire at +10% gold and a contented one at +10% science are two lines of one
- * list, not two multiplications, exactly as the ledger already required of the
- * meters alone (see `yieldFactor` in `meters.ts`).
+ * `percentYields` — which must land in **two sums, each applied once** (Entry
+ * XVII, the modifier doctrine). A gems empire at +10% gold and a contented one
+ * at +10% science are lines of one list rather than two multiplications; the
+ * stage they carry decides which of the two sums each joins.
  */
 export interface CityYieldPercent {
   /** Display label: "Happiness +7", "Gems", "Coral · coastal city". */
@@ -1103,6 +1136,12 @@ export interface CityYieldPercent {
   yield: CityYieldKey;
   /** Signed whole percent. */
   percent: number;
+  /**
+   * Which multiplication this line joins. A meter tier is always `'empire'` —
+   * it is the empire's mood, not the town's — and a luxury's is whatever its
+   * scope says (`scopeStage` in `resourceEffects.ts`).
+   */
+  stage: ModifierStage;
   /** The meter this line came from, or absent for a resource's line. */
   meter?: MeterId;
   /** The resource this line came from, or absent for a meter's line. */
@@ -1112,6 +1151,11 @@ export interface CityYieldPercent {
 /**
  * Everything currently multiplying this city's yields: the two meters first, in
  * `meterEffects` order, then the empire's luxuries in resource-table order.
+ *
+ * Order is presentation, not arithmetic — a line's `stage` decides when it
+ * applies, and `stageSumsFor` is what folds the list into the two figures
+ * `cityYields` uses. The meters are first because they are the loudest, not
+ * because they are first to bite; they are in fact last.
  *
  * The growth stifle is deliberately **not** here. It multiplies food *surplus*
  * toward growth rather than a yield (design ledger, Entry XIV.D.4), which is a
@@ -1127,6 +1171,10 @@ export function cityYieldPercents(state: GameState, city: City): CityYieldPercen
         source: effect.meter === 'happiness' ? 'Happiness' : 'Authority',
         yield: id,
         percent: effect.percent,
+        // A tier is the empire leaning on every city at once: the global stage,
+        // whichever meter it came from (Entry XVII.4, and XVII.5's whole point —
+        // the meters are what the global stage is *for*).
+        stage: 'empire',
         meter: effect.meter,
       });
     }
@@ -1137,22 +1185,56 @@ export function cityYieldPercents(state: GameState, city: City): CityYieldPercen
       source: line.source,
       yield: line.yield,
       percent: line.percent,
+      stage: line.stage,
       resource: line.resource,
     });
   }
   return list;
 }
 
-/** The percentages on one yield, summed. The only sum of them. */
-export function percentFor(
+/**
+ * The percentages on one yield, as Entry XVII's two sums. The only sum of them,
+ * and the only shape anything downstream is given: there is deliberately no
+ * function returning "the total percentage on gold", because since the doctrine
+ * that number does not exist — +10% city and +10% empire is ×1.21, and a caller
+ * handed 20 would be a caller quietly reinstating the old single pool.
+ */
+export function stageSumsFor(
   list: readonly CityYieldPercent[],
   yieldId: CityYieldKey,
-): number {
-  let percent = 0;
-  for (const entry of list) {
-    if (entry.yield === yieldId) percent += entry.percent;
+): StageSums {
+  return foldStages(list, (entry) => entry.yield === yieldId);
+}
+
+/**
+ * Every multiplication standing on this city right now, folded per yield into
+ * Entry XVII's two stages — the figures `cityYields` multiplies by and the
+ * figures the panel prints as its two stage lines.
+ *
+ * One evaluator for both, which is the doctrine's rule 6 taken seriously: a
+ * panel that summed the stages itself would be a second implementation of the
+ * staging, and the first thing a second implementation does is disagree about
+ * the hammers. `toward` is why it could: the city stage on **production**
+ * carries whatever the buildings and seams put behind *this particular build*
+ * (`productionModifiers`), so the stage sums are a fact about the pair (city,
+ * item) exactly as `cityYields` is.
+ */
+export function cityStageSums(
+  state: GameState,
+  city: City,
+  toward?: QueueItem | null,
+  hypothetical: readonly BuildingId[] = [],
+): Record<CityYieldKey, StageSums> {
+  const percents = cityYieldPercents(state, city);
+  const hammers = modifierPercent(productionModifiers(state, city, toward, hypothetical));
+  const sums = {} as Record<CityYieldKey, StageSums>;
+  for (const key of CITY_YIELD_KEYS) {
+    const staged = stageSumsFor(percents, key);
+    // The hammers join the city stage rather than standing beside it: a barracks
+    // is a fact about the town in exactly the way marble and a market are.
+    sums[key] = key === 'production' ? withStage(staged, 'city', hammers) : staged;
   }
-  return percent;
+  return sums;
 }
 
 /**
@@ -1191,13 +1273,20 @@ export function percentFor(
  * The empire's thumb on the scale
  * ------------------------------
  * Happiness and authority land *here*, at the very end, and that is the whole of
- * how they touch the economy (design ledger, Entry XIV). Production, science and
- * culture are each multiplied once by the sum of whatever percentages the two
- * meters currently apply to them — plus, for production, whatever the buildings
- * put behind this particular item — and then floored. That is the same "floor
- * once, at the end" the science-per-pop terms above already keep, so a +10% on 7
- * hammers is 7 and not a rounding gift, and a barracks in an overstretched
- * empire is one multiplication and not two roundings.
+ * how they touch the economy (design ledger, Entry XIV). Since Entry XVII they
+ * land in the *second* of two multiplications: everything the town did for
+ * itself — its buildings' category bonuses, a seam it holds, a coastal
+ * signature — is summed and applied first, and then the empire's mood multiplies
+ * the result, `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, floored once
+ * at the very end (`applyStages` in `modifiers.ts`).
+ *
+ * Additive within a stage and multiplicative across the pair, which is the whole
+ * doctrine: two city bonuses of +10% and +15% are +25% and never ×1.10 × 1.15,
+ * while a +10% writ on top of that +25% is worth 37.5 points of base rather than
+ * 35 — a global modifier scales with how well-built the cities under it are.
+ * Floor-once is the same rule the science-per-pop terms above keep, so a +10% on
+ * 7 hammers is 7 and not a rounding gift, and a barracks in an overstretched
+ * empire is two multiplications and still one rounding.
  *
  * Applying it inside this function rather than in the turn phase is the point:
  * `turnsToBuild`, the city panel, the top bar's totals, the tech screen's rate
@@ -1261,17 +1350,12 @@ export function cityYields(
     total.science += Math.floor(city.population * entry.sciencePerPop);
   }
 
-  const percents = cityYieldPercents(state, city);
-  const hammers = modifierFactor(productionModifiers(state, city, toward, hypothetical));
-  if (percents.length > 0 || hammers !== 0) {
-    const factor = (key: CityYieldKey): number => 1 + percentFor(percents, key) / 100;
-    total.food = Math.floor(total.food * factor('food'));
-    total.production = Math.floor(total.production * (factor('production') + hammers));
-    total.gold = Math.floor(total.gold * factor('gold'));
-    total.science = Math.floor(total.science * factor('science'));
-    total.culture = Math.floor(total.culture * factor('culture'));
-    total.faith = Math.floor(total.faith * factor('faith'));
-  }
+  // Entry XVII, and the only place in the simulation a yield meets a percentage.
+  // The hammers behind *this build* join the city stage rather than standing
+  // beside it, because a barracks is a fact about the town in exactly the way
+  // marble and a market are; the meters wait for the second multiplication.
+  const sums = cityStageSums(state, city, toward, hypothetical);
+  for (const key of CITY_YIELD_KEYS) total[key] = applyStages(total[key], sums[key]);
 
   return total;
 }

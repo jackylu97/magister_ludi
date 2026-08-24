@@ -2077,6 +2077,19 @@ kbd {
   color: var(--vermilion);
 }
 
+/*
+ * A stage's own line (Entry XVII): the figure the chips were multiplied by, with
+ * the lines it is the sum of underneath. Louder ink and a hairline above it, so
+ * the list reads as two groups rather than one long column.
+ */
+.city-modifier.is-stage {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid var(--ink-faint);
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
 .city-modifier-effect {
   flex: none;
   font-family: var(--face-num);

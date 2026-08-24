@@ -27,6 +27,7 @@
 import {
   type BuildingYieldContribution,
   borderGrowth,
+  cityStageSums,
   cityYields,
   explainCityBuildings,
   growthSurplus,
@@ -44,8 +45,14 @@ import { type BuildingId, BUILDING_IDS, buildingDef } from '../sim/buildingData'
 import { isCombatant, isRanged } from '../sim/combat';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
-import { meterEffects } from '../sim/meters';
-import { resourceDef } from '../sim/resourceData';
+import { growthPercent, meterEffects } from '../sim/meters';
+import {
+  type ModifierStage,
+  type StageSums,
+  MODIFIER_STAGES,
+  STAGE_LABEL,
+} from '../sim/modifiers';
+import { CITY_YIELD_KEYS, type CityYieldKey, resourceDef } from '../sim/resourceData';
 import { type ResourceYieldLine, cityResourceYields } from '../sim/resourceEffects';
 import { resourceLabelNodes } from './resourceMark';
 import { type City, type QueueItem, hasEndedTurn } from '../sim/state';
@@ -414,6 +421,15 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       item.append(element('span', 'city-modifier-effect', figures));
       list.append(item);
     };
+    // A stage's own line: the same shape, set in the panel's louder ink, because
+    // it is the figure the chips were actually multiplied by and the lines under
+    // it are its parts.
+    const stageLine = (label: string, figures: string): void => {
+      const item = element('li', 'city-modifier is-stage');
+      item.append(element('span', undefined, label));
+      item.append(element('span', 'city-modifier-effect', figures));
+      list.append(item);
+    };
 
     // What the city's own improved luxuries pay it, before the buildings — the
     // list `cityYields` folds, printed line by line, which is rule 5's whole
@@ -428,26 +444,85 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const figures = buildingFigures(entry);
       if (figures) line(entry.source, figures);
     }
-    for (const modifier of productionModifiers(state, city, front)) {
-      line(modifier.source, `${HAMMER} ${percentFigure(modifier.percent)}`);
-    }
-    for (const effect of meterEffects(state, city.ownerId)) {
-      const meter = effect.meter === 'happiness' ? 'Happiness' : 'Authority';
-      line(`${meter} ${signedFigure(effect.value)}`, effectFigure(effect), effect.percent < 0);
-    }
-    // A luxury's percentage lands in the *same* sum the meters' does
-    // (`cityYieldPercents`), so it is printed in the same list and in the same
-    // voice — a player adding the lines up by eye reaches the number on the chip.
-    for (const percent of cityYieldPercents(state, city)) {
-      if (percent.resource === undefined) continue;
-      line(
-        percent.source,
-        `${YIELD_GLYPH[percent.yield]} ${percentFigure(percent.percent)}`,
-        percent.percent < 0,
-      );
+    // Then the two multiplications, in the order they happen (Entry XVII): what
+    // the town did for itself, then what the empire does to the result. Each is
+    // a heading carrying that stage's summed percentages and, under it, the lines
+    // it is the sum of — so a player reading downward sees flats, "City bonuses
+    // ⚙ +25%", its sources, "Empire 🔬 +10%", its sources, and can reach the
+    // number on the chip by hand.
+    const sums = cityStageSums(state, city, front);
+    const percents = cityYieldPercents(state, city);
+    const hammers = productionModifiers(state, city, front);
+    for (const stage of MODIFIER_STAGES) {
+      const sources: [string, string, boolean][] = [];
+      if (stage === 'city') {
+        // The hammers are city-stage and are named first, because they are the
+        // modifier a player is most often looking for: what is behind *this*
+        // build.
+        for (const modifier of hammers) {
+          sources.push([modifier.source, `${HAMMER} ${percentFigure(modifier.percent)}`, false]);
+        }
+      } else {
+        for (const effect of meterEffects(state, city.ownerId)) {
+          // The growth stifle and the writ's border tier are *other channels*
+          // (Entry XIV.D.4): they multiply the food surplus and the culture
+          // accrual, not a yield, so they belong to the Growth and Borders lines
+          // that quote them, and they would not add up under this heading.
+          if (effect.growth || effect.yields.length === 0) continue;
+          const meter = effect.meter === 'happiness' ? 'Happiness' : 'Authority';
+          sources.push([
+            `${meter} ${signedFigure(effect.value)}`,
+            effectFigure(effect),
+            effect.percent < 0,
+          ]);
+        }
+      }
+      // A luxury's percentage is printed in the same voice as the meters', under
+      // the stage its signature put it in — which is the city stage for every row
+      // in today's table: "+20% science in each coastal city" is a fact about the
+      // coastal city, and multiplies with what that city built.
+      for (const percent of percents) {
+        if (percent.resource === undefined || percent.stage !== stage) continue;
+        sources.push([
+          percent.source,
+          `${YIELD_GLYPH[percent.yield]} ${percentFigure(percent.percent)}`,
+          percent.percent < 0,
+        ]);
+      }
+      // A stage nothing joined is not printed at all. One whose lines cancel to
+      // nothing *is*: "Empire · nothing net" over a +10% and a −10% is the whole
+      // point of summing rather than compounding, and hiding it would leave a
+      // player who can see two modifiers unable to find where they went.
+      const figures = stageFigures(sums, stage);
+      if (figures === null && sources.length === 0) continue;
+      stageLine(STAGE_LABEL[stage], figures ?? 'no net change');
+      for (const [label, effect, bad] of sources) line(label, effect, bad);
     }
     if (list.childElementCount > 0) box.append(list);
     return box;
+  }
+
+  /**
+   * One stage's summed percentages as figures — `🔬 +20% ⚙ +25%` — or `null`
+   * when that stage is doing nothing to any yield.
+   *
+   * The fold of `cityStageSums`, which is the same fold `cityYields` multiplies
+   * by, so the heading and the chip cannot disagree. Production carries the
+   * hammers behind the current build, which is why the ⚙ figure here can be
+   * larger than the percentages listed under it: those are yields, the hammers
+   * are named on their own lines below.
+   */
+  function stageFigures(
+    sums: Record<CityYieldKey, StageSums>,
+    stage: ModifierStage,
+  ): string | null {
+    const parts: string[] = [];
+    for (const key of CITY_YIELD_KEYS) {
+      const percent = sums[key][stage];
+      if (percent === 0) continue;
+      parts.push(`${YIELD_GLYPH[key]} ${percentFigure(percent)}`);
+    }
+    return parts.length === 0 ? null : parts.join('  ');
   }
 
   /**
@@ -486,6 +561,19 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     box.append(
       element('div', 'city-progress-note', `${Math.floor(city.foodBasket)} / ${threshold}`),
     );
+
+    // The stifle, named on the line it throttles rather than up among the yield
+    // percentages — it is its own channel (Entry XIV.D.4: it multiplies the
+    // *surplus*, never the harvest), and since Entry XVII the modifier list
+    // above says only what the two yield stages did. The Borders line has said
+    // the same thing about the writ since M10; this is its twin.
+    const stifle = growthPercent(meterEffects(getGame().state, city.ownerId));
+    if (stifle !== 0 && surplus > 0) {
+      const modifier = element('div', 'city-progress-note');
+      modifier.append(element('span', 'city-progress-item', 'Happiness'));
+      modifier.append(element('span', undefined, percentFigure(stifle)));
+      box.append(modifier);
+    }
     return box;
   }
 

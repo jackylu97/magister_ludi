@@ -63,6 +63,7 @@
  */
 
 import type { ProductionCategory } from './buildingData';
+import type { ModifierStage } from './modifiers';
 import {
   cityResources,
   controlledResources,
@@ -127,12 +128,23 @@ export interface ResourceProductionLine {
   percent: number;
 }
 
-/** One line of percentage on a named yield, as a signed whole percent. */
+/**
+ * One line of percentage on a named yield, as a signed whole percent, and which
+ * of Entry XVII's two multiplications it joins.
+ *
+ * Carried on the line rather than assumed by the consumer, because the stage is
+ * the doctrine's decision and not the consumer's. Every shape in this table is
+ * city-stage today — "in each coastal city" and "in every city" both *apply* in
+ * a city, whatever the scope's reach (see `scopeStage`) — and the field exists so
+ * that the day a genuinely empire-total signature is minted, it says so on its
+ * own line instead of being sorted by a branch somewhere downstream.
+ */
 export interface ResourcePercentLine {
   resource: ResourceId;
   source: string;
   yield: CityYieldKey;
   percent: number;
+  stage: ModifierStage;
 }
 
 /** One line of percentage on a named *rule*, as a signed whole percent. */
@@ -186,6 +198,32 @@ function scopeAdmits(
   if (scope === 'coastal') return isCoastalCity(state, city);
   if (scope === 'owner') return local.includes(id);
   return true;
+}
+
+/**
+ * Which of Entry XVII's two multiplications a luxury's percentage joins.
+ *
+ * **Every one of them is city-stage**, whatever the scope says (user, ratified
+ * 2026-08-24), and the scope is passed in so that the rule is stated where a
+ * reader will look for it rather than left to be inferred from a constant.
+ *
+ * Entry XVII.4 read strictly is the whole argument: the stage is where the
+ * effect *applies*, and every shape in this table applies **in a city**. "+20%
+ * science in each coastal city" and "+10% gold in every city" differ only in how
+ * many cities qualify — both land on one town's yield, multiply with that town's
+ * buildings, and are worth more in a town that has built more. Neither is an
+ * empire *total*. The global stage is reserved for modifiers that are facts
+ * about the empire itself rather than about any city in it — the two meter
+ * tiers today, and whatever genuinely empire-total effect a later age mints —
+ * which is also Entry XVII.5's "used sparingly" made literal: with today's
+ * content, the global stage contains **only** the meters.
+ *
+ * The same reading covers `productionBonus` for the same reason: a share of the
+ * hammers this town puts behind this build, city-stage at either scope. See
+ * `productionModifiers` in `cities.ts`.
+ */
+function scopeStage(_scope: ResourceCityScope | undefined): ModifierStage {
+  return 'city';
 }
 
 /** What a scoped line says about where it landed. */
@@ -463,14 +501,20 @@ export function resourceProduction(
 }
 
 /**
- * The percentages this city's empire puts on its yields, in table order.
+ * The percentages this city's empire puts on its yields, in table order, each
+ * carrying the stage it belongs to.
  *
- * These join the meters' percentages in one sum that is applied **once** per
- * yield (`cityYieldPercents` in `cities.ts`). Never compounded, and that is the
- * legibility decision the ledger already made for the meters: a +10% and a −10%
- * have to read as nothing at all, which they do not if they are multiplied one
- * after the other. A luxury that is the third source of a percentage on gold is
- * therefore a third line in one sum, not a third multiplication.
+ * These join the meters' percentages in `cityYieldPercents` (`cities.ts`), which
+ * sums them **per stage** and applies the two sums once (Entry XVII). Additive
+ * inside a stage, and that is the legibility decision the ledger already made
+ * for the meters: a +10% and a −10% of the same stage have to read as nothing at
+ * all, which they do not if they are multiplied one after the other. A luxury
+ * that is the third source of a percentage on gold is therefore a third line in
+ * one of two sums, not a third multiplication.
+ *
+ * Which sum is `scopeStage`'s answer, not this function's — and today it answers
+ * the city stage for every row in the table, so a luxury's percentage sums with
+ * the buildings' and the meters multiply what that comes to.
  */
 export function resourcePercentYields(state: GameState, city: City): ResourcePercentLine[] {
   const owner = city.ownerId;
@@ -484,6 +528,7 @@ export function resourcePercentYields(state: GameState, city: City): ResourcePer
       source: label(id, effect.scope === undefined ? null : scopeNote(effect.scope), copies),
       yield: effect.yield,
       percent: effect.percent * copies,
+      stage: scopeStage(effect.scope),
     });
   }
   return list;

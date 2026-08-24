@@ -213,8 +213,10 @@ type Signature<T> = T & ResourceEffectModifiers;
  *   · `productionBonus` a percentage of hammers behind one *category* of thing a
  *                       city may be building, in the owning city or empire-wide.
  *   · `percentYields`   a percentage of one yield, empire-wide or in each
- *                       coastal city. Joins the meters' sum-then-apply-once
- *                       pipeline; percentages never compound.
+ *                       coastal city. Joins the **city stage** of Entry XVII's
+ *                       two-stage pipeline whatever its scope — it applies in a
+ *                       city — so it sums with the buildings' percentages and
+ *                       the meter tiers multiply what the two come to.
  *   · `rulePercent`     a signed percentage on a named rule of the simulation —
  *                       what a citizen demands in happiness, what a border tile
  *                       costs, how much food a city keeps when it grows.
@@ -269,8 +271,12 @@ export const RESOURCE_RULES: readonly ResourceRule[] = [
   'growthCarryover',
 ];
 
-/** The yield names an effect bag may carry, in the order surfaces print them. */
-export const RESOURCE_EFFECT_YIELDS: readonly (keyof ResourceYieldBag)[] = [
+/**
+ * Every yield a city banks, in the order surfaces print them — and the order
+ * `cityYields` applies Entry XVII's two stages in, so a reader comparing the
+ * panel's chips to the code walks them the same way round.
+ */
+export const CITY_YIELD_KEYS: readonly CityYieldKey[] = [
   'food',
   'production',
   'gold',
@@ -278,6 +284,12 @@ export const RESOURCE_EFFECT_YIELDS: readonly (keyof ResourceYieldBag)[] = [
   'culture',
   'faith',
 ];
+
+/**
+ * The yield names an effect bag may carry. The same six, because a bag pays what
+ * a city banks — one list, so a seventh voice cannot arrive in only one of them.
+ */
+export const RESOURCE_EFFECT_YIELDS: readonly (keyof ResourceYieldBag)[] = CITY_YIELD_KEYS;
 
 export interface ResourceDef {
   name: string;
