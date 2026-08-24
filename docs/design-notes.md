@@ -1473,5 +1473,11 @@ The commitments:
 4. Prompting is by announce line + the existing End Turn blockers; a screen auto-opens
    only if it is already the open subject.
 
+5. **Windfalls are modifier-immune (for now, user 2026-08-24).** A one-time grant pays its
+   printed number exactly — no city percents, no meter tiers, no Entry XVII staging. The
+   20⚙ chop is 20⚙ in every city of every empire. (Revisit only as a deliberate ledger
+   amendment; if some future windfall should scale, that is a property of that windfall,
+   never a default.)
+
 Few one-time grants exist today (chop). Cards, events, ruins, and Great People will mint
 many — they all inherit this behavior by calling the settlement helper, not by reimplementing it.
