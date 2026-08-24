@@ -73,6 +73,23 @@ function formatYieldDelta(delta: TileYield): string {
   return parts.join(' ');
 }
 
+/**
+ * "Requires Mining\nA mine needs Mining" — a greyed-for-tech row's hover card,
+ * unlock first.
+ *
+ * `techName` is `null` for every row that is not tech-blocked at all (a
+ * pressable row, or one the ground itself is refusing), in which case this
+ * hands back `undefined` and the button falls through to its usual
+ * `blocked ?? hint`. The two lines are never a substitute for one another:
+ * the headline is what a player scanning the sheet wants first, and the
+ * reducer's own sentence stays underneath it for the player who wants the
+ * exact reason — the same one the command would refuse with.
+ */
+function techHoverTitle(techName: string | null, blocked: string | null): string | undefined {
+  if (techName === null) return undefined;
+  return `Requires ${techName}\n${blocked}`;
+}
+
 export interface UnitPanelOptions {
   /** The element the panel lives in. Emptied and rebuilt on every render. */
   container: HTMLElement;
@@ -100,6 +117,14 @@ export interface UnitPanelOptions {
   fortifyBlocker: () => string | null | undefined;
   onFortify: () => void;
   /**
+   * Why the selected unit cannot be waved off this turn — the same
+   * three-valued shape again, answered by `controls.skipBlocker()`.
+   */
+  skipBlocker: () => string | null | undefined;
+  onSkip: () => void;
+  /** Whether the selected unit has already been skipped this turn. */
+  isUnitSkipped: () => boolean;
+  /**
    * The improvements the selected unit could build where it stands, already
    * filtered to the legal ones and carrying their yield deltas —
    * `controls.improvementOptions()`.
@@ -121,6 +146,13 @@ export interface UnitPanelOptions {
   chopBlocker: () => string | null | undefined;
   /** What clearing would pay and where — `controls.chopPreview()`. */
   chopPreview: () => { production: number; cityName: string } | null;
+  /**
+   * The technology a greyed Chop row is waiting on, or `null` —
+   * `controls.chopTechName()`. See `ImprovementOption.requiredTechName` for
+   * why this is a name read off the same data the reducer's refusal reads,
+   * never parsed out of `chopBlocker`'s sentence.
+   */
+  chopTechName: () => string | null;
   onChop: () => void;
   /**
    * Why the selected unit cannot pillage — the same three-valued shape as
@@ -145,6 +177,15 @@ interface UnitAction {
   blocked: string | null;
   /** What it is for, shown when nothing is blocking it. */
   hint: string;
+  /**
+   * Overrides the hover text `blocked ?? hint` would otherwise show.
+   *
+   * Only the greyed-for-tech rows set this: their card leads with the unlock
+   * ("Requires Mining") ahead of the reducer's own sentence, which is one
+   * fact more than `blocked` alone says. `undefined` everywhere else, which
+   * keeps `blocked ?? hint`'s usual meaning intact.
+   */
+  title?: string;
   run: () => void;
 }
 
@@ -170,10 +211,14 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onCancelOrder,
     fortifyBlocker,
     onFortify,
+    skipBlocker,
+    onSkip,
+    isUnitSkipped,
     improvementOptions,
     onBuildImprovement,
     chopBlocker,
     chopPreview,
+    chopTechName,
     onChop,
     pillageBlocker,
     onPillage,
@@ -295,6 +340,23 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         run: onFortify,
       });
     }
+    // Offered to every unit, not only combatants or builders: any piece with
+    // moves left can be told to sit this turn out. Not Fortify's cousin —
+    // fortifying is a standing order the reducer grants a bonus for, skipping
+    // is silence the interface keeps to itself (`controls.ts`'s `skipUnit`
+    // docblock) — so both are always separate rows rather than one verb
+    // wearing two labels.
+    {
+      const blocker = skipBlocker();
+      const skipped = isUnitSkipped();
+      actions.push({
+        label: skipped ? 'Waiting This Turn' : 'Skip Turn',
+        key: 'Space',
+        blocked: blocker === undefined ? 'No unit selected' : blocker,
+        hint: 'Do nothing this turn — stops asking to be ordered',
+        run: onSkip,
+      });
+    }
     // The builder's verbs, one per improvement this hex could take.
     //
     // Which rows are here and which are greyed is `improvementOptions`'s rule,
@@ -314,6 +376,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
           label: delta ? `${option.name} ${delta}` : option.name,
           blocked: option.blocked,
           hint: `Spend a charge: ${option.name.toLowerCase()} on this tile`,
+          title: techHoverTitle(option.requiredTechName, option.blocked),
           run: () => onBuildImprovement(option.id),
         });
       }
@@ -336,6 +399,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         hint: chop
           ? `Spend a charge: clear this tile · +${chop.production}⚙ → ${chop.cityName}`
           : 'Spend a charge: clear the feature on this tile',
+        title: techHoverTitle(chopTechName(), chopBlocked ?? null),
         run: onChop,
       });
     }
@@ -381,7 +445,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       const button = element('button', 'btn btn-second unit-action');
       button.type = 'button';
       button.disabled = action.blocked !== null;
-      button.title = action.blocked ?? action.hint;
+      button.title = action.title ?? action.blocked ?? action.hint;
       button.append(element('span', 'unit-action-label', action.label));
       if (action.key) button.append(element('kbd', 'unit-action-key', action.key));
       button.addEventListener('click', action.run);
@@ -442,10 +506,13 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     }
     container.append(stats);
 
-    // The two standing states a player has to know before ordering anything.
+    // The standing states a player has to know before ordering anything.
     // Fortification first: it is the one they chose.
     const notes: string[] = [];
     if (isFortified(unit)) notes.push(`Fortified ${formatPercent(fortifyBonus(unit))}`);
+    // A view-only note for a view-only state: the sim has no idea this unit
+    // was skipped (see `controls.ts`), so this is the one place it is said.
+    if (isUnitSkipped()) notes.push('Waiting this turn');
     if (unit.hasAttacked) notes.push('Has attacked');
     // What this settler's city would cost the empire's writ, quoted before the
     // spade goes in. Nothing at all for anything that cannot found, or standing

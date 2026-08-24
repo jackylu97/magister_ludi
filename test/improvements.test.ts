@@ -482,6 +482,22 @@ describe('buildImprovement', () => {
         expect(TECH_IDS, id).toContain(gate!);
       }
     });
+
+    it("names the same technology the worker sheet's hover card leads with", () => {
+      // The sheet builds its "Requires Mining" headline from
+      // `improvementDef(id).requiresTech` by way of `techDef` — the exact field
+      // this sentence reads — rather than parsing the name back out of the
+      // sentence below. This is the parity that keeps the two honest: whatever
+      // `improvementTechError` says, the tech it says is the tech named here.
+      const state = bareState();
+      // `bareState` hands every player the whole tree so its worker can build
+      // anything; empty it back out so every gate in the table is live to ask.
+      state.players[0]!.techsResearched = [];
+      for (const id of IMPROVEMENT_IDS) {
+        const gate = improvementDef(id).requiresTech!;
+        expect(improvementTechError(state, 0, id)).toContain(techDef(gate).name);
+      }
+    });
   });
 
   it('is turn-gated, and refuses somebody else\'s worker', () => {
@@ -705,6 +721,21 @@ describe('chopFeature', () => {
       expect(chopTechError(state, 1, 'forest')).toBeNull();
       // A feature nothing can clear is never "one technology away".
       expect(chopTechError(state, 1, 'jungle')).toBe('Jungle cannot be cleared');
+    });
+
+    it("names the same technology the worker sheet's Chop hover leads with", () => {
+      // `chopTechError`'s parity twin to the improvement table's version above:
+      // the sheet's "Requires Mining" headline on a greyed Chop row is read off
+      // `chopDef(feature).tech` by way of `techDef`, never parsed from this
+      // sentence, and this is what keeps the two from being able to disagree.
+      const state = bareState();
+      // Same reset as the improvement table's version above — `bareState`
+      // starts every player with the whole tree.
+      state.players[0]!.techsResearched = [];
+      for (const feature of CHOPPABLE_FEATURES) {
+        const gate = chopDef(feature)!.tech;
+        expect(chopTechError(state, 0, feature)).toContain(techDef(gate).name);
+      }
     });
 
     it('is turn-gated, and refuses somebody else\'s worker', () => {

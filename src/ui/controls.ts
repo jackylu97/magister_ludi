@@ -35,6 +35,10 @@
  *                   selecting. This is the trackpad path, where a right click
  *                   is a two-finger tap and not everybody has one. M again, Esc,
  *                   or issuing the move disarms it.
+ *   · Space        — waves the selected unit off: it stops asking to be
+ *                   ordered this turn (see `skipUnit`). Not a sim order and
+ *                   not fortify — see the closure comment above
+ *                   `skippedUnitIds` for the whole of the distinction.
  *
  * Escape backs out one layer at a time, outermost first: move mode, then an
  * open popover, then the city screen's buy mode, then the city panel itself,
@@ -46,7 +50,9 @@
  * business — an idle unit, a city building nothing, an unaimed science pool.
  * They take the player *to* the first of those instead (see `turnBlockers.ts`
  * for the contract and for why it is a pure function that lives outside this
- * file). Shift ends the turn regardless, for the player who means it.
+ * file). Shift ends the turn regardless, for the player who means it. A unit
+ * the player has skipped with Space no longer counts as unfinished business
+ * either, for the rest of this turn.
  *
  * This is gating and nothing more: `endTurn` is the same command it always was,
  * the reducer is untouched, and a remote client or an AI can still send it
@@ -149,6 +155,7 @@ import {
 import {
   chopCity,
   chopError,
+  chopTechError,
   improvementError,
   improvementTechError,
   improvementYieldDelta,
@@ -161,6 +168,7 @@ import { findPath, reachableTiles } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import { type City, type Unit, cityById, hasEndedTurn, unitById } from '../sim/state';
 import { type ResearchReport, researchSince, researchSnapshot } from '../sim/tech';
+import { techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
 import { unitsOnTile } from '../sim/units';
@@ -234,6 +242,17 @@ export interface ImprovementOption {
    * is not on the list at all — see `improvementOptions`.
    */
   blocked: string | null;
+  /**
+   * The display name of the technology `blocked` is naming, or `null` exactly
+   * when `blocked` is `null`.
+   *
+   * Read straight off `improvementDef(id).requiresTech` — the same field
+   * `improvementTechError` reads to write `blocked`'s sentence — rather than
+   * parsed back out of that sentence, so the sheet's "Requires Mining" hover
+   * headline (see `unitPanel.ts`) cannot name a different technology than the
+   * one actually gating the row.
+   */
+  requiredTechName: string | null;
 }
 
 /**
@@ -464,6 +483,33 @@ export interface GameControls {
   fortify(): void;
 
   /**
+   * Why the selected unit cannot be told to skip its turn, or `null` when it
+   * can — the same three-valued shape as `foundCityBlocker`.
+   *
+   * Not a sim question, unlike every other blocker on this interface: there is
+   * no reducer command behind it (see `skipUnit`), so this is the only place
+   * the answer is decided.
+   */
+  skipBlocker(): string | null | undefined;
+  /**
+   * Waves the selected unit off for this turn only — it stops counting as
+   * idle for End Turn and the post-resolution auto-focus, and nothing else
+   * about it changes. The unit sheet's button and the `Space` key.
+   *
+   * Not `fortify`'s cousin: fortifying is a standing order the reducer knows
+   * about and grants a bonus for; skipping is this client choosing not to be
+   * asked again, and the simulation never hears of it. See the skip-set
+   * comment on the closure state above.
+   */
+  skipUnit(): void;
+  /**
+   * Whether the selected unit has already been waved off this turn — the unit
+   * sheet's "Waiting this turn" note when it is reselected. `false` with
+   * nothing selected, since there is nothing to have skipped.
+   */
+  isUnitSkipped(): boolean;
+
+  /**
    * Every improvement the selected unit could build where it stands, with what
    * each would add to the tile — the rows the unit sheet turns into buttons.
    *
@@ -515,6 +561,19 @@ export interface GameControls {
    * nothing to say, so the panel prints no number rather than a false one.
    */
   chopPreview(): { production: number; cityName: string } | null;
+  /**
+   * The technology Chop is waiting on, or `null` — either because it is not
+   * blocked at all, or because whatever is blocking it is not the tree (the
+   * ground, the borders, a protected resource keep their own sentences, per
+   * `chopBlocker`'s docblock).
+   *
+   * Read the same way `improvementOptions` tells a tech refusal apart from a
+   * ground one — by comparing `chopBlocker`'s sentence against
+   * `chopTechError`'s for this hex, the equality `chopErrorAt`'s docblock
+   * already leans on — and then naming it off the same
+   * `chopDef(feature).tech` field that sentence was built from.
+   */
+  chopTechName(): string | null;
   chop(): void;
   /**
    * Why the selected unit cannot pillage where it stands, or `null` when it can.
@@ -590,6 +649,18 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   let openCityId: number | null = null;
   /** Armed by `M`: the next left click on the board is an order, not a pick. */
   let moveMode = false;
+  /**
+   * Units the player has waved off for this turn only: Skip Turn's whole
+   * effect. Not a command and not `GameState` — the reducer never hears about
+   * it, and a remote client or a replay would not agree it exists. It is view
+   * state exactly like `selectedId`, and it is disposed of on the same two
+   * occasions a selection would be dropped for reasons that are not "the
+   * player asked": the turn resolving (a fresh turn owes nothing to the one
+   * that just ended) and a seat change (the set is silence from *a* player,
+   * and the new seat has said nothing yet). See `turnBlockers.ts`'s
+   * `BlockerExclusions` for why this lives here and not there.
+   */
+  const skippedUnitIds = new Set<number>();
   /**
    * Whether the city screen's Buy Tiles mode is up — the next click inside the
    * open city's ring spends gold instead of pinning a citizen.
@@ -813,10 +884,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // the new seat has never seen.
     renderer.setFogSeat?.(playerId);
     // A selection belongs to the seat that made it, and so does an open city —
-    // and move mode belongs to the selection.
+    // and move mode belongs to the selection. The skip set is the same kind of
+    // thing: it is one seat's silence, and the seat sitting down now has said
+    // nothing yet.
     selectedId = null;
     openCityId = null;
     hoveredCityId = null;
+    skippedUnitIds.clear();
     setMoveMode(false);
     renderer.skipAnimations();
     refreshOverlays();
@@ -1366,6 +1440,60 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onUpdate(selectedUnit(), renderer.getHover());
   }
 
+  // --- skipping --------------------------------------------------------------
+
+  /**
+   * Why the selected unit cannot be waved off for the turn, or `null` when it
+   * can — the same three-valued shape as `foundCityBlocker`.
+   *
+   * Deliberately **not** `fortifyError`'s twin: skip is not a sim order at all
+   * (see `skipUnit`), so there is no reducer sentence to delegate to and this
+   * function is the only place either answer is decided. A unit with nothing
+   * left to spend has nothing to wave off — it was never going to block End
+   * Turn — and a unit already skipped is offered the same refusal so the
+   * button reads as spent rather than as broken.
+   */
+  function skipBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    if (skippedUnitIds.has(unit.id)) return 'Already waiting this turn';
+    if (unit.movesLeft <= 0) return 'This unit has nothing left to spend this turn';
+    return null;
+  }
+
+  /** Whether the selected unit is one this seat has already waved off. */
+  function isUnitSkipped(): boolean {
+    const unit = selectedUnit();
+    return unit !== null && skippedUnitIds.has(unit.id);
+  }
+
+  /**
+   * Marks the selected unit skipped for this turn only, and moves on.
+   *
+   * "This turn only" is enforced by where the set is cleared (`endTurn`,
+   * `setLocalPlayer`), not by anything here — this function only ever adds.
+   * The unit keeps every point of movement it had; the only thing that
+   * changes is whether `firstBlocker` is still willing to call it idle.
+   *
+   * The advance afterwards is deliberately the narrow half of `endTurn`'s own
+   * post-resolution courtesy: jump to the next idle unit and put it in hand,
+   * exactly as a resolved turn hands the camera to the first piece still
+   * awaiting one, but never open a city screen or the tech tree the way
+   * pressing End Turn itself is allowed to — a player skipping down a column
+   * of units did not ask for either of those. With nothing else idle, drop
+   * the selection, which is the same "clicking away" every other verb here
+   * ends on.
+   */
+  function skipUnit(): void {
+    const unit = selectedUnit();
+    if (!unit || skipBlocker() !== null) return;
+    skippedUnitIds.add(unit.id);
+    const next = endTurnBlocker();
+    if (next?.kind === 'idleUnit') focusBlocker(next);
+    else clearSelection();
+  }
+
   // --- improvements --------------------------------------------------------
 
   /**
@@ -1400,11 +1528,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const blocked = improvementTechError(state, unit.ownerId, id);
       const problem = improvementError(state, unit.id, id);
       if (problem !== null && problem !== blocked) continue;
+      const gate = improvementDef(id).requiresTech;
       options.push({
         id,
         name: improvementDef(id).name,
         delta: improvementYieldDelta(tile, id, ctx),
         blocked,
+        requiredTechName: blocked !== null && gate !== undefined ? techDef(gate).name : null,
       });
     }
     return options;
@@ -1477,6 +1607,28 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const city = chopCity(state, tile);
     if (!city || city.ownerId !== unit.ownerId) return null;
     return { production: chopYield(tile.feature).production, cityName: city.name };
+  }
+
+  /**
+   * See `GameControls.chopTechName`.
+   *
+   * `chopBlocker` is asked rather than `chopError` a second time, so this
+   * agrees with whatever the panel is actually showing (`canOrder`'s seat
+   * question included) rather than re-deriving a slightly different answer.
+   */
+  function chopTechName(): string | null {
+    const unit = selectedUnit();
+    if (!unit) return null;
+    const blocked = chopBlocker();
+    if (!blocked) return null;
+    const { state } = getGame();
+    const tile = getTileAt(state.map, unit.col, unit.row);
+    if (!tile) return null;
+    // Equal to `blocked` iff the technology is the *only* thing refusing this
+    // hex — `chopErrorAt`'s own reading of the comparison.
+    if (chopTechError(state, unit.ownerId, tile.feature) !== blocked) return null;
+    const gate = chopDef(tile.feature)?.tech;
+    return gate ? techDef(gate).name : null;
   }
 
   /**
@@ -1940,10 +2092,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   /**
    * What End Turn would stop on. A straight read of the pure helper for the
-   * seat this client is playing — the seat is the only thing this module adds.
+   * seat this client is playing, past whatever units this seat has skipped —
+   * the seat and the skip set are the only two things this module adds.
    */
   function endTurnBlocker(): TurnBlocker | null {
-    return firstBlocker(getGame().state, localPlayerId);
+    return firstBlocker(getGame().state, localPlayerId, { skippedUnitIds });
   }
 
   /** Brings one cell into view, respecting the viewer's motion preference. */
@@ -2065,6 +2218,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     clearSelection();
 
     if (getGame().state.turn !== turnBefore) {
+      // A fresh turn owes nothing to the one that just ended: every unit gets
+      // its idle question asked again in earnest, skipped or not.
+      skippedUnitIds.clear();
       animateResolvedMarches(orders);
       onTurnResolved?.(
         getGame().state.turn,
@@ -2285,14 +2441,22 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     }
     if (event.key === 'Enter' || event.key === ' ') {
       // A focused button is already listening for these two keys. Ending the
-      // turn *and* pressing whatever the player had tabbed to is one keystroke
-      // doing two jobs, and the browser's own activation is the one to keep.
+      // turn, skipping a unit, and pressing whatever the player had tabbed to
+      // are three keystrokes doing one job each, and the browser's own
+      // activation is the one to keep.
       if (target?.tagName === 'BUTTON') return;
-      if (event.key !== 'Enter') return;
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        // Shift ⏎ is the same override the button carries: end the turn
+        // whatever is still outstanding.
+        endTurn(event.shiftKey);
+        return;
+      }
+      // Space is the Civ convention for "do nothing this turn". Silent with
+      // nothing selected, or on a unit with nothing left to skip: `skipUnit`
+      // decides, exactly as every other hotkey here defers to its blocker.
       event.preventDefault();
-      // Shift ⏎ is the same override the button carries: end the turn whatever
-      // is still outstanding.
-      endTurn(event.shiftKey);
+      skipUnit();
     }
   });
 
@@ -2350,10 +2514,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     cancelOrderBlocker,
     fortify,
     fortifyBlocker,
+    skipUnit,
+    skipBlocker,
+    isUnitSkipped,
     improvementOptions,
     buildImprovement,
     chopBlocker,
     chopPreview,
+    chopTechName,
     chop,
     pillage,
     pillageBlocker,
@@ -2377,6 +2545,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       openCityId = null;
       // City ids do not survive a new game; the lens the player chose does.
       hoveredCityId = null;
+      // Nor do unit ids — a stale skip could otherwise silence a fresh unit
+      // that only happens to reuse a low id.
+      skippedUnitIds.clear();
       localPlayerId = 0;
       setMoveMode(false);
       refreshOverlays();

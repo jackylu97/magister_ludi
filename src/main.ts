@@ -1392,6 +1392,12 @@ async function boot(): Promise<void> {
       controls.fortify();
       updatePanel(null, renderer.getHover());
     },
+    skipBlocker: () => controls.skipBlocker(),
+    onSkip: () => {
+      controls.skipUnit();
+      updatePanel(null, renderer.getHover());
+    },
+    isUnitSkipped: () => controls.isUnitSkipped(),
     improvementOptions: () => controls.improvementOptions(),
     onBuildImprovement: (id) => {
       controls.buildImprovement(id);
@@ -1399,6 +1405,7 @@ async function boot(): Promise<void> {
     },
     chopBlocker: () => controls.chopBlocker(),
     chopPreview: () => controls.chopPreview(),
+    chopTechName: () => controls.chopTechName(),
     onChop: () => {
       controls.chop();
       updatePanel(null, renderer.getHover());

@@ -244,6 +244,53 @@ describe('firstBlocker · research', () => {
   });
 });
 
+describe('firstBlocker · skipped units', () => {
+  // The exclusion is the testable half of Skip Turn: `controls.ts` owns the
+  // set and when it is cleared, but the fold that skips past it is this pure
+  // function's, and it is covered exactly like every other clause here.
+  it('does not report a skipped idle unit', () => {
+    const state = settled();
+    const unit = createUnit(state, 0, 'warrior', 3, 3);
+    expect(firstBlocker(state, 0, { skippedUnitIds: new Set([unit.id]) })).toBeNull();
+  });
+
+  it('reports the next idle unit past a skipped one, in state order', () => {
+    const state = settled();
+    const skipped = createUnit(state, 0, 'warrior', 3, 3);
+    const next = createUnit(state, 0, 'warrior', 4, 3);
+    expect(firstBlocker(state, 0, { skippedUnitIds: new Set([skipped.id]) })).toEqual({
+      kind: 'idleUnit',
+      unitId: next.id,
+    });
+  });
+
+  it('falls through to production once every idle unit is skipped', () => {
+    const state = settled();
+    const unit = createUnit(state, 0, 'warrior', 3, 3);
+    const city = plant(state, 0, 5, 5);
+    expect(firstBlocker(state, 0, { skippedUnitIds: new Set([unit.id]) })).toEqual({
+      kind: 'cityProduction',
+      cityId: city.id,
+    });
+  });
+
+  it('does not excuse a unit the exclusion does not name', () => {
+    const state = settled();
+    const skipped = createUnit(state, 0, 'warrior', 3, 3);
+    const other = createUnit(state, 0, 'warrior', 4, 3);
+    expect(firstBlocker(state, 0, { skippedUnitIds: new Set([skipped.id, 999]) })).toEqual({
+      kind: 'idleUnit',
+      unitId: other.id,
+    });
+  });
+
+  it('behaves exactly as the unexcluded call with no exclusions object at all', () => {
+    const state = settled();
+    const unit = createUnit(state, 0, 'warrior', 3, 3);
+    expect(firstBlocker(state, 0, {})).toEqual({ kind: 'idleUnit', unitId: unit.id });
+  });
+});
+
 describe('firstBlocker · priority', () => {
   it('answers unit, then production, then research, in that order', () => {
     const state = settled();

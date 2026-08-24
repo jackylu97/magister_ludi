@@ -273,6 +273,42 @@ describe('placement', () => {
     }
   });
 
+  it('sits a good margin below the density this table used to scatter', () => {
+    // A tripwire, not a design spec: `OLD_*_PER_1000` are what `bonus` and
+    // `strategic` read before a balance pass cut overall scatter density by
+    // roughly a sixth (`bonusPer1000LandTiles` 100→85, `strategicPer1000LandTiles`
+    // 26→22, `luxuryCopiesPerKind` {min:4,max:6}→{min:3,max:6}), read off the same seed/size
+    // sweep the band test above runs. Duel is left out on purpose — its
+    // density is set almost entirely by the near-start fairness guarantees
+    // (see that test's comment), which the pass was explicitly told to leave
+    // alone, so a small map barely moves and is not the signal this test is
+    // for. The point is only that a future edit cannot silently walk the
+    // budgets back toward the old numbers without this failing.
+    const OLD_BONUS_PER_1000 = 100;
+    const OLD_STRATEGIC_PER_1000 = 26;
+    let checked = 0;
+    for (const size of MAP_SIZE_NAMES) {
+      if (size === 'duel') continue;
+      for (const seed of [1, 4242]) {
+        const map = generateMap(seed, size);
+        const land = landTileCount(map);
+        const per1000 = (kind: string): number =>
+          (resourceTiles(map).filter((tile) => resourceDef(tile.resource!).kind === kind).length /
+            land) *
+          1000;
+        const where = `${size}/${seed}`;
+        expect(`${where} bonus ${per1000('bonus') < OLD_BONUS_PER_1000 * 0.9}`).toBe(
+          `${where} bonus true`,
+        );
+        expect(
+          `${where} strategic ${per1000('strategic') < OLD_STRATEGIC_PER_1000 * 0.9}`,
+        ).toBe(`${where} strategic true`);
+        checked += 1;
+      }
+    }
+    expect(checked).toBe((MAP_SIZE_NAMES.length - 1) * 2);
+  });
+
   it('places every kind, not just the cheap ones', () => {
     const map = generateMap(1, 'large');
     const kinds = new Set(resourceTiles(map).map((tile) => resourceDef(tile.resource!).kind));

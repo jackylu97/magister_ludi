@@ -63,6 +63,18 @@
  * The other two blockers are simple facts: a city of yours with an empty
  * production queue, and a research pool aimed at nothing while there is still
  * something to aim it at.
+ *
+ * Skipped units
+ * -------------
+ * A player can wave a specific idle unit off with Skip Turn (`controls.ts`),
+ * and that unit must then stop blocking End Turn for the rest of *this* turn.
+ * Skip is not a fourth clause on `isIdleUnit`, deliberately: it is not a fact
+ * about the unit (a replay or an AI reading the same state has no idea one
+ * seat's interface waved it off, and must not need to), it is a fact about
+ * what one client's player has already been asked and answered. So it lives
+ * as an optional exclusion `firstBlocker` is handed, rather than as state this
+ * module would otherwise have to invent a place to keep. The set is owned and
+ * cleared by `controls.ts` — this module only ever reads it for one call.
  */
 
 import { availableTechs } from '../sim/tech';
@@ -96,6 +108,12 @@ export function isIdleUnit(unit: Unit): boolean {
   return true;
 }
 
+/** What `firstBlocker` may be asked to look past. See "Skipped units" above. */
+export interface BlockerExclusions {
+  /** Idle units to treat as though they were not idle, for this call only. */
+  skippedUnitIds?: ReadonlySet<number>;
+}
+
 /**
  * The first thing this seat still owes the turn, or `null` when it owes
  * nothing and End Turn may simply end the turn.
@@ -113,14 +131,24 @@ export function isIdleUnit(unit: Unit): boolean {
  * hostage forever by an unchosen technology), and one who has already ended
  * this turn — that seat's End Turn is a no-op the reducer refuses, and steering
  * their camera to a unit they cannot move would be a worse answer than nothing.
+ *
+ * `exclusions.skippedUnitIds` is the one thing a caller may ask this otherwise
+ * stateless question to look past — see "Skipped units" in the module
+ * docblock. It touches only the idle-unit arm; a skip does not excuse a city
+ * or the research pool, which were never what Skip Turn was for.
  */
-export function firstBlocker(state: GameState, playerId: number): TurnBlocker | null {
+export function firstBlocker(
+  state: GameState,
+  playerId: number,
+  exclusions?: BlockerExclusions,
+): TurnBlocker | null {
   const player = playerById(state, playerId);
   if (!player || player.eliminated) return null;
   if (hasEndedTurn(state, playerId)) return null;
 
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
+    if (exclusions?.skippedUnitIds?.has(unit.id)) continue;
     if (isIdleUnit(unit)) return { kind: 'idleUnit', unitId: unit.id };
   }
 

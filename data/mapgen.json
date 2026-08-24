@@ -119,11 +119,11 @@
     "luxuryKindsPerContinent": 4,
     "maxContinentsPerLuxury": 2,
     "luxuryCopiesPerKind": {
-      "min": 4,
+      "min": 3,
       "max": 6
     },
-    "bonusPer1000LandTiles": 100,
-    "strategicPer1000LandTiles": 26,
+    "bonusPer1000LandTiles": 85,
+    "strategicPer1000LandTiles": 22,
     "minSpacing": 2,
     "attemptsPerResource": 12,
     "startFoodRadius": 3,
