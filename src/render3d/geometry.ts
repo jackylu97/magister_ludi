@@ -411,6 +411,77 @@ export function reedClump(spec: {
   return flatten(merged);
 }
 
+/**
+ * A palm: a leaning trunk with a crown of fronds bent over the top of it.
+ *
+ * The oasis's own tree, and it is a third silhouette rather than a recoloured
+ * pine or a scaled `roundTree` for the reason `reedClump` is not a scaled tuft:
+ * what makes a palm read as a palm at 57° is the *lean* and the drooping crown,
+ * and neither survives a uniform scale of a cone or a ball.
+ *
+ * The fronds are cones laid almost flat and pushed out from the trunk's head, so
+ * the crown is a splayed star seen from above and a shallow dome seen from the
+ * side. Every second one is shorter, which is `grassTuft`'s trick and the
+ * cheapest way to keep a symmetric ring from reading as a parasol.
+ */
+export function palmTree(spec: {
+  trunkR: number;
+  trunkH: number;
+  frondR: number;
+  frondL: number;
+  fronds: number;
+  lean: number;
+}): BufferGeometry {
+  const count = Math.max(3, Math.round(spec.fronds));
+  const trunk = new CylinderGeometry(spec.trunkR * 0.72, spec.trunkR * 1.3, spec.trunkH, 5, 1);
+  trunk.translate(0, spec.trunkH / 2, 0);
+
+  const parts: BufferGeometry[] = [trunk];
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    const length = spec.frondL * (i % 2 === 0 ? 1 : 0.76);
+    const frond = new ConeGeometry(spec.frondR, length, 4, 1);
+    // Laid on its side, tip outward: a cone built up the y axis becomes a leaf
+    // lying along +x once it is rotated a quarter turn about z.
+    frond.translate(0, length / 2, 0);
+    frond.rotateZ(-Math.PI / 2 + 0.42);
+    frond.translate(Math.cos(angle) * spec.trunkR, spec.trunkH, Math.sin(angle) * spec.trunkR);
+    frond.rotateY(-angle);
+    parts.push(frond);
+  }
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  // The whole tree leans, trunk and crown together, so the crown stays on top of
+  // the trunk instead of sliding off a bent stick.
+  merged.rotateZ(spec.lean);
+  return flatten(merged);
+}
+
+/**
+ * A flat disc lying in the xz plane, centred on the origin — the oasis's water.
+ *
+ * `hexDecal`'s round sibling, and round is the point: every other flat mark on
+ * this board is a hexagon because it *marks a hex*, while a pool is a thing
+ * standing on one and has no reason to share its corners. Built at radius 1 and
+ * scaled by the instance matrix, like the other unit-sized shapes here.
+ */
+export function poolDisc(segments = 18): BufferGeometry {
+  const n = Math.max(3, Math.round(segments));
+  const points: { x: number; z: number }[] = [];
+  for (let k = 0; k < n; k++) {
+    const a0 = (k / n) * Math.PI * 2;
+    const a1 = ((k + 1) / n) * Math.PI * 2;
+    // Counter-clockwise seen from +y, for `riverSegment`'s reason: the lit
+    // material is FrontSide-only and a clockwise fan is culled into nothing.
+    points.push(
+      { x: 0, z: 0 },
+      { x: Math.sin(a1), z: Math.cos(a1) },
+      { x: Math.sin(a0), z: Math.cos(a0) },
+    );
+  }
+  return flatFan(points);
+}
+
 /** A boulder: a d20 squashed and sheared so no two rotations look alike. */
 export function rock(radius: number): BufferGeometry {
   const geometry = new IcosahedronGeometry(radius, 0);

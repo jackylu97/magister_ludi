@@ -225,6 +225,64 @@ describe('board dressing', () => {
     geometry.dispose();
   });
 
+  it('stands a pool and palms on every oasis, and nothing on bare desert', () => {
+    const geometry = new BoardGeometry();
+
+    const bare = createMap({ width: 8, height: 6, terrain: 'desert' });
+    const dry = statsFor(bare, geometry);
+    expect(dry.byGeometry.get(geometry.pool) ?? 0).toBe(0);
+    expect(dry.byGeometry.get(geometry.palm) ?? 0).toBe(0);
+    // Bare desert keeps the cactus it always had.
+    expect(dry.byGeometry.get(geometry.cactus) ?? 0).toBeGreaterThan(0);
+
+    const oasis = createMap({ width: 8, height: 6, terrain: 'desert' });
+    const wells = [
+      getTileAt(oasis, 2, 2)!,
+      getTileAt(oasis, 5, 4)!,
+    ];
+    for (const tile of wells) tile.feature = 'oasis';
+    const wet = statsFor(oasis, geometry);
+    // Exactly one pool per oasis, per wrap copy — a pool sits on the tile centre
+    // and is the one piece of dressing here that is never a hashed count.
+    expect(wet.byGeometry.get(geometry.pool) ?? 0).toBe(wells.length * 3);
+    expect(wet.byGeometry.get(geometry.palm) ?? 0).toBeGreaterThanOrEqual(wells.length * 3);
+    // The pool displaces the desert's own clutter rather than joining it —
+    // asserted on a board that is *nothing but* oases, because on a board with
+    // two of them the two hexes might not have been dealt a cactus anyway and
+    // the count would prove nothing.
+    const allWells = createMap({ width: 8, height: 6, terrain: 'desert' });
+    for (const tile of allWells.tiles) tile.feature = 'oasis';
+    const drowned = statsFor(allWells, geometry);
+    expect(drowned.byGeometry.get(geometry.cactus) ?? 0).toBe(0);
+    expect(drowned.byGeometry.get(geometry.pool) ?? 0).toBe(allWells.tiles.length * 3);
+    geometry.dispose();
+  });
+
+  it('washes every floodplain and leaves the cactus to the bare sand', () => {
+    const geometry = new BoardGeometry();
+
+    const bare = createMap({ width: 8, height: 6, terrain: 'desert' });
+    expect(statsFor(bare, geometry).byGeometry.get(geometry.floodWash) ?? 0).toBe(0);
+
+    const silt = createMap({ width: 8, height: 6, terrain: 'desert' });
+    let count = 0;
+    for (const tile of silt.tiles) {
+      if (tile.row !== 3) continue;
+      tile.feature = 'floodplain';
+      count += 1;
+    }
+    const stats = statsFor(silt, geometry);
+    // One wash per floodplain hex, per wrap copy. It is placed beside the sand
+    // band rather than through the scatter, so it is never a hashed count.
+    expect(stats.byGeometry.get(geometry.floodWash) ?? 0).toBe(count * 3);
+    // Silt wears the meadow's tufts, and no cactus grows through the wash.
+    expect(stats.byGeometry.get(geometry.tuft) ?? 0).toBeGreaterThan(0);
+    const cactusMap = new Map<number, boolean>();
+    for (const tile of silt.tiles) cactusMap.set(tile.row, tile.feature === 'none');
+    expect(cactusMap.get(3)).toBe(false);
+    geometry.dispose();
+  });
+
   it('bands the shore only where the land meets the sea', () => {
     const geometry = new BoardGeometry();
     const inland = createMap({ width: 8, height: 6, terrain: 'grassland' });

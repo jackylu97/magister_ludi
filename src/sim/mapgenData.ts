@@ -181,6 +181,18 @@ export interface MapgenConfig {
     forestShare: number;
     /** The same, over the equatorial band's eligible ground. */
     jungleShare: number;
+    /**
+     * Share of the flat, featureless **desert** that gets an oasis — a ceiling
+     * rather than a promise, because `oasisSpacing` thins the sweep. Read off
+     * the *local* moisture layer alone; see `assignOases`.
+     */
+    oasisShare: number;
+    /**
+     * Hexes (wrap-aware) between two oases. What keeps a share of the wettest
+     * tiles of a noise layer — which are contiguous — from arriving as one
+     * clump instead of a chain of watering holes.
+     */
+    oasisSpacing: number;
     /** Exponent on the regional layer. Above the local one, regions dominate. */
     regionalWeight: number;
     /** Exponent on the local patch layer. Below 1 it only breaks the regions up. */

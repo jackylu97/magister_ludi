@@ -24,6 +24,7 @@ types and the override seam), `docs/luxuries.md` (the resource table itself),
 3. [Terrain, hills and mountains as shares](#terrain-hills-and-mountains-as-shares)
 4. [Features: forest and jungle](#features-forest-and-jungle)
 5. [Lakes, coast and rivers](#lakes-coast-and-rivers)
+5b. [The arid features: oasis and floodplain](#the-arid-features-oasis-and-floodplain)
 6. [The continent carve](#the-continent-carve)
 7. [The luxury deal](#the-luxury-deal)
 8. [The density budgets and the settle pass](#the-density-budgets-and-the-settle-pass)
@@ -56,12 +57,18 @@ Passes, in order, all in `generateMapDetail`:
 |---|------|-------|
 | 0 | four noise layers from the seed | `mapgen.ts` |
 | 1 | fields → terrain, hills | `buildTerrainFields`, `pickLandTerrain` |
-| 1b | forest and jungle | `assignFeatures` |
+| 1b | forest and jungle, then oases | `assignFeatures`, `assignOases` |
 | 2 | small water bodies → lakes | `classifyLakes` (`water.ts`) |
 | 3 | ocean touching land → coast | `mapgen.ts` |
 | 4 | rivers (**first dice**) | `traceRivers` (`water.ts`) |
+| 4b | watered flat desert → floodplain | `deriveFloodplains` (`water.ts`) |
 | 5 | who can drink | `computeFreshwater` (`water.ts`) |
 | 6 | resources (**second dice**) | `placeResources` (`resources.ts`) |
+
+Only two passes roll dice, and both new passes are in the other camp: the oases
+are dealt off a noise layer and the floodplains are read off the finished water,
+so neither touches `rng` and resources on a given seed are drawn from exactly the
+stream they were drawn from before either existed.
 
 Start positions are *not* a generation pass. They are derived from the finished
 map by `chooseStartPositions` (`startPositions.ts`), which rolls nothing — so
@@ -228,6 +235,11 @@ how much wood the world has; the field fixes where it is.
 Jungle is dealt first and takes its tiles out of forest's eligible set, so the
 tropics read as jungle-then-clearing rather than two features fighting over a hex.
 
+The **oasis** is dealt in this same pass, immediately after the trees, but on a
+different field and with a spacing rule of its own — see
+[The arid features](#the-arid-features-oasis-and-floodplain). The floodplain is
+not dealt at all; it is derived after the rivers.
+
 > Note the denominator. `forestShare` is a share of *eligible* ground, which is
 > about two thirds of the land — so it reads roughly two thirds as large in a
 > terrain census. A `forestShare` of 0.32 is not 32% of the map.
@@ -276,6 +288,148 @@ tributaries, which is what a mountain range should shed.
 
 Rivers are the generator's **first dice**, rolled after every noise field, so
 terrain on a given seed is exactly what it was before rivers existed.
+
+### Backtracking, and why the quota used to be a lie
+
+`rivers.backtrackSteps` is how many times one trace may **unsay a step** — pop
+back to the fork it came from and take the next way down there — before it is
+abandoned. At 0 it is the plain greedy walk this began as, and the difference
+between 0 and the shipped 64 is the largest single thing about how much fresh
+water a map has.
+
+The measurement that found it, over ten standard seeds: **989 corners cleared
+`minSpringElevation`, every one of them was tried, and 55% of the traces died in
+a local pit.** The quota could therefore be raised as high as anybody liked and
+the map still came back with twenty-nine rivers — the tunable that was supposed
+to control river count had been saturated for as long as it had existed, and the
+real constraint was the search. A pit is not a statement about the geography
+either; it is an artefact of reading a valley off the mean of three ranked hexes,
+and the valley usually continues one fork back.
+
+Nothing about descent is relaxed to buy that. Every step of a surviving path is
+still to a corner no higher than the one before it — the backtrack only ever
+removes a step and takes the next-lowest alternative at the same fork — and a
+corner is unmarked on the way back out, so the path stays simple and loops stay
+impossible. `traceRiver` defaults the budget to 0, so the knob is opt-in rather
+than a behaviour change hiding in a signature.
+
+### What the water pass moved (2026-08-24)
+
+Ten standard seeds, before and after `countPer1000Tiles` 7 → 14, `minLength`
+3 → 4, `minSpringElevation` 0.86 → 0.84 and `backtrackSteps` 0 → 64:
+
+| | before | after |
+|---|---|---|
+| rivers per map | 29.0 | **58.0** |
+| mean length (edges) | 6.2 | **6.6** |
+| longest river | 18 | **21** |
+| land that can drink | 12.3% | **25.5%** |
+| possible starts on fresh water or coast | 80.0% | **91.7%** |
+
+`minLength` is the one number that went the *unheroic* way, and it is worth
+saying why: at 5 the mean length reached 7.2 and the sweep looked better, but a
+**giant** map could no longer seat its own river quota (789 of 846) because the
+longer floor rejected more traces than its spring pool could replace. Meeting the
+quota on every size is the harder promise and the one `water.test.ts` already
+held, so length gave way. The extra rivers are worth more than the extra edges.
+
+---
+
+## The arid features: oasis and floodplain
+
+Two features on the desert, added together because they are two halves of one
+idea — where the water is, the desert is not desert — and built as opposites of
+each other. Neither rolls a die.
+
+### Oasis — placed
+
+`assignOases` (`mapgen.ts`). A **share of eligible ground** exactly as the trees
+are: `moisture.oasisShare` of the flat, featureless desert gets a pool. Yield is
+3🌾 1⚙ (`terrain.json`), move cost is the desert's own 1 — an oasis is walkable
+and workable, which is the Civ convention — and it is **fresh water**, for itself
+and for its six neighbours.
+
+Two things separate it from the way forest and jungle are dealt, and both are
+what make a scatter read as a scatter:
+
+- **It is ranked on the *local* moisture layer alone**, not the combined field.
+  An oasis is a local high water table inside regionally arid country, and the
+  combined field cannot say that: moisture is `regional × local`, so the wettest
+  tiles of any desert are the ones whose *regional* value came closest to not
+  being desert at all — a rim around the edge of every sand sea, which is
+  precisely where an oasis is not. `TerrainFields.localMoisture` exists for this.
+- **There is a spacing rule.** The wettest tiles of a noise layer are contiguous,
+  so a share taken straight off the ranking deals three or four pools in one
+  clump and none for forty hexes — a lake with palm trees, not a chain of
+  watering holes. Candidates are swept wettest first (ties by tile index) and one
+  is taken only if it stands `moisture.oasisSpacing` hexes from every oasis
+  already placed.
+
+The share is counted against the eligible set *before* spacing thins it, so
+`oasisShare` is a ceiling rather than a promise: dense desert seats all of it, a
+thin ribbon seats what it has room for. That is the honest behaviour — the
+alternative is a pass that keeps searching until it hits a quota and packs the
+last few in at the spacing floor. On a standard map it comes out at about **6.6
+oases**.
+
+### Floodplain — derived
+
+`deriveFloodplains` (`water.ts`), run after the rivers and after the oases.
+**There is no frequency and no share.** A floodplain is not a thing the generator
+decides to put somewhere; it is what desert *is* when a river runs through it, so
+the rule is read off the finished water and a map with more rivers grows more of
+it for free. Yield is 2🌾. On a standard map, about **44 tiles**.
+
+Four conditions, each refusing a hex that would read wrong:
+
+| Condition | Why |
+|---|---|
+| terrain is `desert` | this is the arid-land feature; a river through grassland is a river through grassland |
+| not hills | a hill's yield wins outright over any feature's, so a floodplain on a hill would be a name with no number behind it — and a terraced hillside is not a flood plain |
+| feature is `none` | so the pass steps around an oasis rather than paving over it |
+| a river runs on one of its own edges, **or** a neighbour is an oasis | the sentence itself |
+
+It runs **at generation only**. `Tile.feature` is one of the two fields that
+change during play (the chop's), and a pass that re-derived features mid-game
+would be the map regenerating itself under a save.
+
+### Fresh water, and the one clause that is missing
+
+`computeFreshwater` gained two clauses and deliberately not three. A tile can
+drink when a river runs on its own edges, when **it is itself an oasis**, when a
+neighbour is a lake, or when **a neighbour is an oasis**. Watering *itself* is
+the thing no other source here does, and it is the whole difference between a
+pool standing on a land hex and a body of water occupying one.
+
+A **floodplain is not named at all**, and its absence is the point: it is only
+ever derived onto ground that already touches a river or an oasis, so it is fresh
+by construction. A clause for it would be a second rule that could one day
+disagree with the first. `water.test.ts` asserts the derivation instead.
+
+### Neither is choppable
+
+There is no row for either in the chop table (`data/improvements.json`), and
+unlike the jungle's absence that one is a decision rather than a hole waiting for
+a design: there is nothing to fell. An oasis is water and a floodplain is ground,
+so a chop row would have to be a rule about draining or levelling the map.
+`improvements.test.ts` asserts the absence at the table *and* through the
+command, so the worker's sheet cannot start offering it.
+
+### What grows on them
+
+Sugar regains the home the ledger always gave it — `validFeatures:
+["jungle", "floodplain"]`, with `desert` joining its terrain list so the
+floodplain half can match (the constraint is a plain AND of terrain and feature,
+so the two halves are two rows' worth of ground written as one). Incense is
+widened to `["none", "floodplain"]`: its ratified home is "desert, desert hills,
+plains, plains hills", and a floodplain is still desert, so leaving it out would
+have been a silent narrowing of the kind `docs/luxuries.md`'s Approximations
+table exists to prevent.
+
+Salt, lapis, silver and gold stay on bare desert, deliberately. Salt is an
+evaporite pan and a river running through it is the thing that stops one forming;
+the other three are mined, and a mine needs hills, which a floodplain never has.
+See `docs/luxuries.md` for the row-by-row reasoning.
 
 ---
 
@@ -328,8 +482,21 @@ the map rather than about how many merges happened first.
 into `round(x)` pieces of at most `x/round(x) · target` each; that ratio is worst
 at a half (`x = 1.5⁻` gives 1.5), and `minContinentTiles` is the floor under `x`.
 So every carved continent lands in `[minContinentTiles, 1.5 × continentTargetTiles]`
-— arithmetic, not a hope about the coastline. With the shipped 102/170 that band
-is 0.6×–1.5×.
+— arithmetic, not a hope about the coastline. With the shipped 155/200 that band
+is 0.775×–1.5×.
+
+**The floor is now above the cut's own worst ratio, and that has a consequence.**
+`x/round(x)` bottoms out at **0.75** (at `x = 1.5`), and 155 is above
+`0.75 × 200 = 150`. So a component of almost exactly one and a half targets cuts
+into two cells that are *both* under the floor, and `mergeSmallContinents` folds
+them straight back into the one continent they came from. It is allowed to — the
+result is 1.5 targets, exactly the band's ceiling — and the band still holds; what
+is lost is the cut. A **duel** map's ~390 land tiles land in that window on most
+seeds, so three of five sampled duel seeds now come back as a *single* continent
+and are dealt one hand of luxuries for the world. Standard and up have enough land
+that the window is one component among many and never the whole map, so they are
+unaffected. Setting `minContinentTiles` at or below `0.75 × continentTargetTiles`
+closes it.
 
 **The documented remainder**, three cases that are correct rather than bugs:
 
@@ -528,6 +695,28 @@ not flatten the character the deal just built. That keeps them reproducible
 without consuming from the stream, and means they do not shift when the scatter
 above them is retuned.
 
+### Water at a start: a soft preference, not a guarantee
+
+The complaint this pass began with was a start with **neither coast nor river**,
+and the honest state of it is that fresh water and coast are *strongly preferred*
+by the scorer and guaranteed by nothing.
+
+Measured over the maximum roster (twelve possible starts) on fifteen standard
+seeds, the share of sites with fresh water **or** coast went **80.0% → 91.7%**:
+about two thirds of that came from the water pass itself (twice the rivers, and
+oases watering their own neighbourhoods put a quarter of the land within reach of
+a drink rather than an eighth) and the rest from raising `freshwaterBonus` 7 → 10
+and `coastBonus` 4 → 6.
+
+Those two numbers were swept, and they **plateau**: 10/6 measured best, and 12/7,
+14/8, 16/10 and 20/12 all bought nothing further while distorting the rest of the
+score. That is the shape of the remaining ~10%, and it says the residue is not a
+weighting problem. A start is seated by a greedy sweep at `startSpacing`, so the
+last few seats are choosing among whatever is left at that distance; where no
+watered site is available, no amount of preferring one conjures it. Closing the
+gap properly means a *guarantee* pass — the shape the three resource guarantees
+already have — and that is deliberately not built here.
+
 Strategic fairness — "every player can reach iron" — is deliberately **not**
 attempted. It is a much stronger claim (about distance through terrain, contested
 ground and expansion, not one ring of tiles) and the honest way to hold it is the
@@ -544,7 +733,12 @@ the census, the continent table and the start table beside it. `src/dev/mapRepor
 computes all of it from the simulation's own evaluators; the page counts nothing.
 
 Its **Tuning panel** carries the parameters in this document that are visible in
-those two surfaces. Each row shows the JSON's own value in the margin, highlights
+those two surfaces — five groups: Terrain (the two relief shares, the three
+feature shares, oasis spacing, the rain shadow), **Water** (the river quota,
+`minLength`, `minSpringElevation`, `backtrackSteps` and `lakes.maxSize`),
+Continents, Resources and Starts. Floodplains have no row of their own on
+purpose: they are derived from the rivers and the oases, so the Water group and
+the two oasis rows above it are already the whole of their tuning. Each row shows the JSON's own value in the margin, highlights
 itself when you change it, and Generate rebuilds the map with the change applied.
 `[` and `]` then fly the camera to each seat's capital in turn so you can look at
 what the numbers did; `F` frames the whole map again.
@@ -580,6 +774,40 @@ inspection report — are handed a map and nothing else; they ask `mapgenFor(map
 The invariant, which is the whole point: **a tuned map is still a legitimate
 deterministic `{config, log}`.** Same config and seed, same world, on reload and
 on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
+
+---
+
+## Considered: other ways to take the variance out of a settle location
+
+*A design note, not a commitment.* Rivers and oases moved the share of possible
+starts with fresh water or coast from 80% to about 92%, and the sweep above says
+the last stretch is not a weighting problem — it is that some neighbourhoods have
+no water in them at all. Four ways out, in rough order of how much they change:
+
+**Lakes**, which already exist, are the cheapest dial in the file: `lakes.maxSize`
+decides how much of the small inland water becomes fresh rather than sea, and
+raising it waters more ground at the cost of turning genuine bays into ponds.
+**Oases** are the same lever aimed at the driest ground specifically, and
+`moisture.oasisShare` can go up — though an oasis is a strong tile (3🌾 1⚙) and
+dealing them freely to fix a water problem would be paying for water in food.
+Both are tuning, and both have the same ceiling: they can only water ground that
+already has the terrain for them.
+
+**Springs at the foot of a mountain** would be new geography and the most
+in-keeping of the four — every mountain range would shed a little fresh water
+onto its own foothills, derived exactly as floodplains are derived, with no new
+tunable beyond a radius. It would put water where the map is currently driest for
+structural reasons (the interior high ground, which is also where the rain shadow
+lands) and it costs one pass and no dice. It is the option this note would pick.
+
+**A well or qanat building** is the one that changes the *game* rather than the
+map: a cheap, early, tech-gated building granting freshwater-equivalent to its own
+city, in the aqueduct family. It is the most powerful answer because it makes a
+dry start a *choice* — you pay hammers for the water somebody else got free — and
+for exactly that reason it is the one that needs the most design: it interacts
+with the growth site bonus (Entry I.b), with the aqueduct it would sit next to,
+and with whether "fresh water" should stay a fact about a hex or become a fact
+about a city. Parked, not planned.
 
 ---
 
@@ -619,8 +847,8 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 | `seaLevel` | 0.62 | quantile of the continental field below which is sea — so ~62% water |
 | `polarWaterLatitude` | 0.94 | latitude above which the ice-cap bonus applies |
 | `polarWaterElevationBonus` | 0.12 | how much the poles are lifted, before the sea test |
-| `mountainShare` | 0.05 | **share of land** that is mountain |
-| `hillShare` | 0.28 | share of land that is hills — the band below the mountain cut |
+| `mountainShare` | 0.10 | **share of land** that is mountain |
+| `hillShare` | 0.38 | share of land that is hills — the band below the mountain cut |
 | `ridgeWeight` | 1.0 | weight of the ridged crest field in the relief mix |
 | `continentWeight` | 0.25 | weight of the continental field — pulls high ground inland |
 | `gradientWeight` | 0.12 | weight of continental steepness — hills on escarpments |
@@ -647,7 +875,9 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 | `desertMax` | 0.28 | moisture rank below which (and inside `latitude.desertMax`) land is desert |
 | `plainsMax` | 0.55 | below which land is plains; above, grassland |
 | `forestShare` | 0.32 | share of **eligible** ground that gets forest |
-| `jungleShare` | 0.15 | the same over the equatorial band's eligible ground |
+| `jungleShare` | 0.20 | the same over the equatorial band's eligible ground |
+| `oasisShare` | 0.06 | share of flat, featureless desert that gets an oasis — a ceiling, thinned by the spacing below |
+| `oasisSpacing` | 3 | hexes between two oases |
 | `regionalWeight` | 1.0 | exponent on the regional layer |
 | `localWeight` | 0.55 | exponent on the local layer — below 1, it only breaks regions up |
 | `rainShadow.enabled` | true | false skips the pass whole |
@@ -665,20 +895,21 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `countPer1000Tiles` | 7 | river quota, scaled by map area |
+| `countPer1000Tiles` | 14 | river quota, scaled by map area |
 | `minCount` | 3 | floor on that quota — a duel map is never riverless |
-| `minSpringElevation` | 0.86 | lowest corner altitude a spring may sit at (range ground) |
+| `minSpringElevation` | 0.84 | lowest corner altitude a spring may sit at (range ground) |
 | `minSpringSpacing` | 1 | hexes between springs; 1 means "not the same hex" |
-| `minLength` | 3 | traces shorter than this many edges are discarded |
+| `minLength` | 4 | traces shorter than this many edges are discarded |
 | `maxLength` | 80 | hard cap on one trace |
+| `backtrackSteps` | 64 | forks one trace may retry before it is abandoned; 0 is the plain greedy walk |
 | `attemptsPerRiver` | 120 | springs examined per river asked for |
 
 ### resources
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `continentTargetTiles` | 170 | land tiles one carved continent aims for |
-| `minContinentTiles` | 102 | land a component needs to be carved rather than attached; also the band's floor |
+| `continentTargetTiles` | 200 | land tiles one carved continent aims for |
+| `minContinentTiles` | 155 | land a component needs to be carved rather than attached; also the band's floor. **Above `0.75 × target` — see the carve's remainder** |
 | `luxuryKindsPerContinent` | 4 | kinds in one continent's hand |
 | `maxContinentsPerLuxury` | 2 | continents one kind may appear on (relaxes upward if the arithmetic demands) |
 | `luxuryCopiesPerKind.min` / `.max` | 3 / 6 | tiles of a dealt kind placed on its continent |
@@ -708,8 +939,8 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 | `foodWeight` | 1.0 | relative worth of food when scoring ground |
 | `productionWeight` | 2.5 | …of production |
 | `goldWeight` | 0.3 | …of gold |
-| `freshwaterBonus` | 7 | flat bonus for a site on fresh water |
-| `coastBonus` | 4 | flat bonus for a coastal site |
+| `freshwaterBonus` | 10 | flat bonus for a site on fresh water |
+| `coastBonus` | 6 | flat bonus for a coastal site |
 | `minRingFood` | 16 | food the workable ring tiles must carry, or the site is refused |
 | `minRingProduction` | 11 | production they must carry |
 | `hostileTerrain` | desert, tundra, snow | terrain nobody should start on or be surrounded by |

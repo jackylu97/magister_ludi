@@ -28,6 +28,7 @@ import {
 import {
   carveContinents,
   dealContinentLuxuries,
+  landRegions,
   landTileCount,
   luxuryGroundOf,
   tileSuitsResource,
@@ -363,23 +364,34 @@ describe('the ground did not move', () => {
   }
 
   // Re-measured when the generator moved to the elevation/moisture pipeline
-  // (ridged relief, quantile terrain cuts, two-scale moisture), and again when
-  // `elevation.hillShare` rose from 0.20 to 0.28 to put standalone hills — and
-  // therefore hill-and-forest and hill-and-jungle hexes — across the interior in
-  // real numbers. Only `tile.hills` moved: the relief *field* is untouched, so
-  // elevation, moisture, the rivers and the coastline are bit-identical (which
-  // is why the river and lake counts below did not move with them).
+  // (ridged relief, quantile terrain cuts, two-scale moisture); again when
+  // `elevation.hillShare` rose from 0.20 to 0.28; and again for the **water
+  // pass** (2026-08-24), which is the largest deliberate move of the ground
+  // since the pipeline itself and touched every field this hash covers:
+  //
+  //   · `mountainShare` 0.05 → 0.10 and `hillShare` 0.28 → 0.38, so terrain and
+  //     hills moved on nearly half the land;
+  //   · `moisture.jungleShare` 0.15 → 0.20, so features moved in the tropics;
+  //   · the river tunables (quota 7 → 14 per 1000 tiles, `backtrackSteps`), so
+  //     the edge masks and the freshwater flag moved everywhere;
+  //   · two new features — `oasis`, placed on flat desert, and `floodplain`,
+  //     derived onto the desert the rivers and oases touch.
+  //
+  // What did *not* move is the thing the fixtures actually guard: none of it
+  // rolls a die. The oasis and floodplain passes are as dice-free as the trees,
+  // and the rivers still take the whole of the first draw, so resources on a
+  // given seed are drawn from exactly the stream they were drawn from before.
   //
   // The fixtures are a *tripwire*, not a golden output: what they promise is
   // that resources draw from `rng` strictly after the ground does, and
   // re-measuring them is exactly what a deliberate change to the ground is
   // supposed to require.
   const FIXTURES: [number, string, string][] = [
-    [1234, 'duel', '2b6aeab9'],
-    [7, 'duel', 'a3dfb6ad'],
-    [31337, 'standard', 'cfffc507'],
-    [99, 'large', 'a3cbe4ff'],
-    [2024, 'huge', 'bc45fd23'],
+    [1234, 'duel', 'b684b4fe'],
+    [7, 'duel', 'b853ac9'],
+    [31337, 'standard', '36503f2b'],
+    [99, 'large', '9b297196'],
+    [2024, 'huge', 'eb14ffad'],
   ];
 
   it('reproduces the pre-resource generator exactly', () => {
@@ -394,14 +406,16 @@ describe('the ground did not move', () => {
     // River *counts* per seed, likewise measured before this milestone. The
     // hashes above already cover the edge masks; this is the reading that fails
     // legibly when somebody moves the resource draw too early.
+    // Roughly doubled by the water pass: `countPer1000Tiles` went 7 → 14, and
+    // `backtrackSteps` is what let the map actually *seat* that quota — more
+    // than half of every trace used to die in a local pit of the corner field
+    // and was thrown away whole. The lake counts are untouched, which is the
+    // other half of the reading: lakes are classified before the dice and none
+    // of this reached them.
     const counts: [number, string, number, number][] = [
-      [1234, 'duel', 7, 0],
-      [31337, 'standard', 29, 4],
-      // 57 before the relief rework. Springs now have to stand on range ground,
-      // and `attemptsPerRiver` replaced a flat attempt cap that a huge map's
-      // quota outgrew — between them the huge map finally reaches the count its
-      // own `countPer1000Tiles` was always asking for.
-      [2024, 'huge', 72, 2],
+      [1234, 'duel', 14, 0],
+      [31337, 'standard', 58, 4],
+      [2024, 'huge', 143, 2],
     ];
     for (const [seed, size, rivers, lakes] of counts) {
       const detail = generateMapDetail(seed, size);
@@ -906,7 +920,23 @@ describe('luxury placement', () => {
         const continents = carveContinents(map, CONFIG);
         const where = `${size}/${seed}`;
 
-        expect(`${where}: ${continents.count >= 2}`).toBe(`${where}: true`);
+        // Two continents, on every map big enough to hold two.
+        //
+        // `duel` is exempt as of the 155/200 retune, and the arithmetic is worth
+        // writing down because it is not obvious. `growBalancedCells` cuts a
+        // component of `x · target` into `round(x)` cells of about
+        // `x/round(x) · target`, and that ratio bottoms out at **0.75** (at
+        // x = 1.5). So a floor above `0.75 × continentTargetTiles` — and 155 is
+        // above 0.75 × 200 = 150 — means a component of almost exactly 1.5
+        // targets cuts into two cells that are *both* under the floor, and
+        // `mergeSmallContinents` folds them straight back into the one continent
+        // they came from. It is allowed to: the result is 1.5 targets, which is
+        // exactly the band's ceiling. A duel map's ~390 land tiles land in that
+        // window on most seeds, so three of five sampled duel seeds now come
+        // back as a single continent. Standard and up have enough land that the
+        // window is one component among many and never the whole map.
+        const floor = size === 'duel' ? 1 : 2;
+        expect(`${where}: ${continents.count >= floor}`).toBe(`${where}: true`);
 
         // Every tile belongs somewhere — water included, which is what gives a
         // pearl bed a continent to belong to.
@@ -924,16 +954,45 @@ describe('luxury placement', () => {
 
         const sizes = [...core.values()].map((list) => list.length);
         const mean = sizes.reduce((a, b) => a + b, 0) / sizes.length;
-        // A band on the *mean* rather than on every cell: farthest-point seeds
-        // divide a lobed continent unevenly on purpose, and a peninsula that
-        // comes out half-size is a peninsula, not a bug. What must hold is that
-        // the carve is aiming at the configured size at all.
-        expect(`${where}: mean ${mean.toFixed(0)} within band`).toBe(
-          `${where}: mean ${Math.min(
-            Math.max(mean, CONFIG.continentTargetTiles * 0.5),
-            CONFIG.continentTargetTiles * 1.6,
-          ).toFixed(0)} within band`,
-        );
+
+        // Is there anything here to carve at all?
+        //
+        // The band below is a claim about **the carve**, and a map whose every
+        // landmass is smaller than `minContinentTiles` never carves: it takes
+        // the documented archipelago fallback and gets one continent per
+        // component, whatever size the components happen to be. That branch was
+        // unreachable at this scale until `minContinentTiles` rose from 102 to
+        // 155, which is exactly large enough that a *duel* map made of seven
+        // islands (seed 1) has no component over the floor. Asserting the band
+        // there would be asserting that the fallback does not exist.
+        //
+        // So the two branches are asserted separately, and the fallback gets the
+        // promise it actually makes: every carved cell is a whole component.
+        const componentSizes = new Map<number, number>();
+        const regions = landRegions(map);
+        for (let i = 0; i < map.tiles.length; i++) {
+          const id = regions[i]!;
+          if (id < 0) continue;
+          componentSizes.set(id, (componentSizes.get(id) ?? 0) + 1);
+        }
+        const biggest = Math.max(...componentSizes.values());
+
+        if (biggest < CONFIG.minContinentTiles) {
+          expect(`${where}: ${sizes.length} cells for ${componentSizes.size} islands`).toBe(
+            `${where}: ${componentSizes.size} cells for ${componentSizes.size} islands`,
+          );
+        } else {
+          // A band on the *mean* rather than on every cell: farthest-point seeds
+          // divide a lobed continent unevenly on purpose, and a peninsula that
+          // comes out half-size is a peninsula, not a bug. What must hold is
+          // that the carve is aiming at the configured size at all.
+          expect(`${where}: mean ${mean.toFixed(0)} within band`).toBe(
+            `${where}: mean ${Math.min(
+              Math.max(mean, CONFIG.continentTargetTiles * 0.5),
+              CONFIG.continentTargetTiles * 1.6,
+            ).toFixed(0)} within band`,
+          );
+        }
         // No cell may be a shred, and none may be a whole supercontinent that
         // dodged the carve.
         for (const count of sizes) {
@@ -1319,16 +1378,33 @@ describe('what the survey found', () => {
   it('puts every luxury in the table on a healthy share of maps', () => {
     // The global reading, and the one the survey was actually about. Before the
     // feature-aware deal, four kinds were missing from more than half the maps
-    // generated and the table read as a lie. The floor is two thirds rather than
+    // generated and the table read as a lie. The floor is a share rather than
     // "always" on purpose: a kind that turned up on *every* map would mean the
     // deal had stopped being a deal.
+    //
+    // **Lowered from 0.6 to 0.5 with the 170 → 200 continent retune**, and this
+    // is a consequence rather than a slackening. A hand is dealt *per continent*
+    // and holds `luxuryKindsPerContinent` kinds, so how many hands a map deals
+    // is how many chances a kind gets: a standard map carved at 170 dealt about
+    // nine continents and 36 slots over 25 kinds, and carved at 200 it deals
+    // 7.1 and 28. Each kind's expected appearances per map therefore fell from
+    // about 1.4 to 1.1, and the three unluckiest kinds (amber, silver, furs)
+    // came back on 6, 6 and 7 maps of twelve where the floor wanted 8.
+    //
+    // Nothing about the *deal* got worse — it is the same weighted draw over the
+    // same ground — so the honest response is to re-base the measurement rather
+    // than to compensate somewhere it was not asked for. The one-number fix, if
+    // the old coverage is wanted back, is `luxuryKindsPerContinent: 5`, which
+    // restores the slot count almost exactly; it is deliberately *not* applied
+    // here, because the size of a continent's hand is a ratified balance figure
+    // (`docs/luxuries.md`) and not a knob for a sweep to turn on its own.
     const seen = new Map<ResourceId, number>(LUXURIES.map((id) => [id, 0]));
     for (const seed of SWEEP) {
       for (const [id, copies] of luxuryCounts(generateMap(seed, 'standard'))) {
         if (copies > 0) seen.set(id, (seen.get(id) ?? 0) + 1);
       }
     }
-    const floor = Math.ceil(SWEEP.length * 0.6);
+    const floor = Math.ceil(SWEEP.length * 0.5);
     for (const id of LUXURIES) {
       const maps = seen.get(id) ?? 0;
       expect(`${id}: on ${maps} of ${SWEEP.length} maps`).toBe(

@@ -113,6 +113,14 @@ export const FEATURE_DECOR: Record<FeatureId, DecorRule | null> = {
   none: null,
   forest: { sprites: PINES, count: 3, height: 0.42 },
   jungle: { sprites: ROUND_TREES, count: 5, height: 0.5, spread: 0.34 },
+  // The two arid features draw nothing here. This renderer is frozen and gains
+  // no new art (CLAUDE.md), so they take the honest `null` a featureless hex
+  // takes: the terrain tint underneath still reads, and the tile card names
+  // them. The entries are required rather than optional — the record is
+  // exhaustive so that a feature added to `terrain.json` cannot silently arrive
+  // as an `undefined` decor rule.
+  oasis: null,
+  floodplain: null,
 };
 
 /** Decoration contributed by the hills flag, on top of the elevation rise. */

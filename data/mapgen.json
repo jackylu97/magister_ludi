@@ -68,8 +68,8 @@
     "seaLevel": 0.62,
     "polarWaterLatitude": 0.94,
     "polarWaterElevationBonus": 0.12,
-    "mountainShare": 0.05,
-    "hillShare": 0.28,
+    "mountainShare": 0.1,
+    "hillShare": 0.38,
     "ridgeWeight": 1.0,
     "continentWeight": 0.25,
     "gradientWeight": 0.12,
@@ -91,7 +91,9 @@
     "desertMax": 0.28,
     "plainsMax": 0.55,
     "forestShare": 0.32,
-    "jungleShare": 0.15,
+    "jungleShare": 0.2,
+    "oasisShare": 0.06,
+    "oasisSpacing": 3,
     "regionalWeight": 1.0,
     "localWeight": 0.55,
     "rainShadow": {
@@ -105,17 +107,18 @@
     "maxSize": 8
   },
   "rivers": {
-    "countPer1000Tiles": 7,
+    "countPer1000Tiles": 14,
     "minCount": 3,
-    "minSpringElevation": 0.86,
+    "minSpringElevation": 0.84,
     "minSpringSpacing": 1,
-    "minLength": 3,
+    "minLength": 4,
     "maxLength": 80,
+    "backtrackSteps": 64,
     "attemptsPerRiver": 120
   },
   "resources": {
-    "continentTargetTiles": 170,
-    "minContinentTiles": 102,
+    "continentTargetTiles": 200,
+    "minContinentTiles": 155,
     "luxuryKindsPerContinent": 4,
     "maxContinentsPerLuxury": 2,
     "luxuryCopiesPerKind": {
@@ -148,8 +151,8 @@
     "foodWeight": 1.0,
     "productionWeight": 2.5,
     "goldWeight": 0.3,
-    "freshwaterBonus": 7,
-    "coastBonus": 4,
+    "freshwaterBonus": 10,
+    "coastBonus": 6,
     "minRingFood": 16,
     "minRingProduction": 11,
     "hostileTerrain": [

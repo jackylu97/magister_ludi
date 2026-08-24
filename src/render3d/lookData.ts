@@ -127,6 +127,56 @@ export interface SnowCapSpec {
   color: number;
 }
 
+/**
+ * The oasis: a pool of water on the desert with palms standing round it.
+ *
+ * Two shapes rather than one prop, because the two halves are read at different
+ * distances. The pool is what says *water* from across the board — a round mark
+ * in a field of sand, and the only round flat mark on the whole table — and the
+ * palms are what say *oasis* once you are close enough to see a silhouette.
+ */
+export interface OasisSpec {
+  palm: {
+    trunkR: number;
+    trunkH: number;
+    frondR: number;
+    frondL: number;
+    fronds: number;
+    lean: number;
+  };
+  palmColor: number;
+  palmShade: number;
+  /** Most palms on one hex; the actual count is hashed, as every scatter is. */
+  palms: number;
+  /** How far the palms scatter from the tile centre, in hex radii. */
+  palmSpread: number;
+  poolColor: number;
+  /** Pool radius as a fraction of the hex radius. */
+  poolRadius: number;
+  poolOpacity: number;
+  poolLift: number;
+}
+
+/**
+ * The floodplain: a wash of green on the face of a desert tile.
+ *
+ * A tint and not a prop, deliberately. A floodplain is the *ground being
+ * different*, not a thing standing on it, and every alternative tried on the
+ * board is worse at saying so: a scatter of crops reads as an improvement the
+ * player did not build, and recolouring the prism outright loses the desert the
+ * strip is cut out of. A translucent hexagon on the tile's own face keeps the
+ * sand underneath legible — which is the read, a green ribbon through a desert —
+ * and it survives the fog wash for free, because it is one of the board's own
+ * instances and is dimmed with the hex like everything else on it.
+ */
+export interface FloodplainSpec {
+  color: number;
+  opacity: number;
+  /** Radius as a fraction of the hex radius; below 1 it sits inside the grout. */
+  scale: number;
+  lift: number;
+}
+
 /** The pale band on the top face of a land tile that touches the sea. */
 export interface ShoreSpec {
   color: number;
@@ -194,6 +244,8 @@ export interface DecorSpec {
   variation: VariationSpec;
   ground: GroundSpec;
   snowCap: SnowCapSpec;
+  oasis: OasisSpec;
+  floodplain: FloodplainSpec;
   shore: ShoreSpec;
   clutter: ClutterSpec;
   reeds: ReedSpec;
@@ -1310,6 +1362,23 @@ export const VIEW3D: View3DData = {
     snowCap: {
       fraction: viewJson.decor.snowCap.fraction,
       color: named(viewJson.decor.snowCap.color, 'decor.snowCap.color'),
+    },
+    oasis: {
+      palm: viewJson.decor.oasis.palm,
+      palmColor: named(viewJson.decor.oasis.palmColor, 'decor.oasis.palmColor'),
+      palmShade: viewJson.decor.oasis.palmShade,
+      palms: viewJson.decor.oasis.palms,
+      palmSpread: viewJson.decor.oasis.palmSpread,
+      poolColor: named(viewJson.decor.oasis.poolColor, 'decor.oasis.poolColor'),
+      poolRadius: viewJson.decor.oasis.poolRadius,
+      poolOpacity: viewJson.decor.oasis.poolOpacity,
+      poolLift: viewJson.decor.oasis.poolLift,
+    },
+    floodplain: {
+      color: named(viewJson.decor.floodplain.color, 'decor.floodplain.color'),
+      opacity: viewJson.decor.floodplain.opacity,
+      scale: viewJson.decor.floodplain.scale,
+      lift: viewJson.decor.floodplain.lift,
     },
     shore: {
       color: named(viewJson.decor.shore.color, 'decor.shore.color'),

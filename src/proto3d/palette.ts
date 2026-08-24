@@ -111,11 +111,20 @@ export const TERRAIN_COLOR: Record<TerrainId, number> = {
   mountain: PALETTE.slate,
 };
 
-/** Canopy colour per feature. `none` is unused but keeps the record total. */
+/**
+ * Canopy colour per feature. `none` is unused but keeps the record total.
+ *
+ * `oasis` and `floodplain` are here for the same reason `none` is: this is the
+ * look-dev prototype, frozen with the 2D renderers, and it draws neither. The
+ * entries keep the record exhaustive so a feature added to `terrain.json` is a
+ * compile error here rather than an `undefined` colour at run time.
+ */
 export const FEATURE_COLOR: Record<FeatureId, number> = {
   none: PALETTE.sage,
   forest: PALETTE.pine,
   jungle: PALETTE.frond,
+  oasis: PALETTE.frond,
+  floodplain: PALETTE.sage,
 };
 
 /**

@@ -62,13 +62,15 @@
  * — ranges that must stay one or two tiles wide, copses that must stay copses.
  */
 
-import { SQRT3 } from './hex';
+import { SQRT3, type Hex } from './hex';
 import {
   type GameMap,
   type Tile,
   createMap,
   offsetToAxial,
+  tileHex,
   tileNeighbors,
+  wrappedDistance,
 } from './map';
 import {
   MAPGEN_CONFIG,
@@ -91,6 +93,7 @@ import {
   type RiverTrace,
   classifyLakes,
   computeFreshwater,
+  deriveFloodplains,
   neighborInDirection,
   traceRivers,
 } from './water';
@@ -360,6 +363,19 @@ export interface TerrainFields {
   hills: Uint8Array;
   /** Final tile moisture, rank-normalised over the whole map. */
   moisture: Float64Array;
+  /**
+   * The **local** moisture layer alone, ranked, before it was multiplied into
+   * the regional one. Copses and clearings with the climate taken back out.
+   *
+   * Kept because the oasis needs exactly this and nothing else can supply it.
+   * An oasis is a *local* high water table inside *regionally* arid country, and
+   * the combined field cannot express that: it is `regional × local`, so the
+   * wettest tiles of any desert are the ones whose **regional** value was
+   * nearly high enough to stop being desert at all — a rim around the edge of
+   * every sand sea, which is precisely where an oasis is not. Ranked on the
+   * local layer instead, the wettest desert is the patch in the middle of it.
+   */
+  localMoisture: Float64Array;
 }
 
 /** The four noise layers, drawn once from the seed. */
@@ -561,7 +577,7 @@ export function buildTerrainFields(
   }
   rankNormalizeInPlace(moisture);
 
-  return { base, land, elevation, relief, mountain, hills, moisture };
+  return { base, land, elevation, relief, mountain, hills, moisture, localMoisture: local };
 }
 
 function pickLandTerrain(
@@ -641,6 +657,59 @@ function assignFeatures(map: GameMap, config: MapgenConfig, fields: TerrainField
 
   deal((tile, latitude) => jungleEligible(tile, latitude, config), config.moisture.jungleShare, 'jungle');
   deal((tile, latitude) => forestEligible(tile, latitude, config), config.moisture.forestShare, 'forest');
+  assignOases(map, config, fields);
+}
+
+/**
+ * Scatters oases over the flat desert. Rolls nothing.
+ *
+ * The same "share of eligible ground" bargain the trees make — `oasisShare` of
+ * the flat, featureless desert gets a pool — with two differences, and both are
+ * what makes a scatter read as a scatter rather than as a patch.
+ *
+ * **The field is the local moisture layer**, not the combined one. See
+ * `TerrainFields.localMoisture`: an oasis is a local high water table inside
+ * regionally arid country, and asking the combined field for "the wettest
+ * desert" hands back the *margin* of every desert, which is the one place an
+ * oasis has no reason to be.
+ *
+ * **And there is a spacing rule.** The wettest tiles of a noise layer are
+ * contiguous, so a share taken straight off the ranking would deal three or four
+ * oases in one clump and none for forty hexes — a lake with palm trees, not a
+ * chain of watering holes. Candidates are therefore swept wettest first and one
+ * is taken only if it stands `oasisSpacing` hexes from every oasis already
+ * placed, which is the same rejection-sampling discipline the resource scatter
+ * uses (`resources.ts`) and is deterministic for the same reason: the sweep
+ * order is total (rank, then tile index) and nothing is nudged.
+ *
+ * The share is counted against the *eligible* set before spacing thins it, so
+ * `oasisShare` is a ceiling rather than a promise — dense desert seats all of
+ * it, a thin ribbon of desert seats what it has room for. That is the honest
+ * behaviour: the alternative is a pass that keeps searching until it hits a
+ * quota and packs the last few in at the spacing floor.
+ */
+function assignOases(map: GameMap, config: MapgenConfig, fields: TerrainFields): void {
+  const candidates: number[] = [];
+  for (let i = 0; i < map.tiles.length; i++) {
+    const tile = map.tiles[i]!;
+    if (tile.terrain !== 'desert' || tile.hills || tile.feature !== 'none') continue;
+    candidates.push(i);
+  }
+  // Wettest local patch first, ties by index. The tie-break cannot fire on a
+  // rank, but it says so rather than trusting the sort.
+  candidates.sort((a, b) => fields.localMoisture[b]! - fields.localMoisture[a]! || a - b);
+
+  const take = Math.round(candidates.length * config.moisture.oasisShare);
+  const spacing = config.moisture.oasisSpacing;
+  const placed: Hex[] = [];
+  for (const index of candidates) {
+    if (placed.length >= take) break;
+    const tile = map.tiles[index]!;
+    const hex = tileHex(tile);
+    if (placed.some((other) => wrappedDistance(map, hex, other) < spacing)) continue;
+    tile.feature = 'oasis';
+    placed.push(hex);
+  }
 }
 
 /** A generated map together with the working data it does not keep. */
@@ -650,6 +719,8 @@ export interface MapDetail {
   rivers: RiverTrace[];
   /** How many water bodies were reclassified as lakes. */
   lakeCount: number;
+  /** How many desert tiles the rivers and oases turned into floodplain. */
+  floodplainCount: number;
 }
 
 /**
@@ -775,6 +846,12 @@ export function generateMapDetail(
   // what it was before rivers existed.
   const rivers = traceRivers(map, rng, config.rivers);
 
+  // Pass 4b: floodplains, read off the rivers pass 4 just wrote and the oases
+  // pass 1b placed. It has to be here — after the water and before anything
+  // asks what is growing on a hex — and it rolls nothing, so it costs the dice
+  // stream nothing and resources on a given seed are unmoved by its existence.
+  const floodplainCount = deriveFloodplains(map);
+
   // Pass 5: who can drink. Derived from everything above, and rolls nothing.
   computeFreshwater(map);
 
@@ -786,7 +863,7 @@ export function generateMapDetail(
   // ground. See `resources.ts`.
   placeResources(map, rng, config.resources);
 
-  return { map, rivers, lakeCount };
+  return { map, rivers, lakeCount, floodplainCount };
 }
 
 /** Convenience for the UI: axial coordinates of a tile. */

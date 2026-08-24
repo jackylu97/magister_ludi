@@ -94,8 +94,10 @@ import {
   mountainPeak,
   mountainSnow,
   oreBoulder,
+  palmTree,
   pathDot,
   pineTree,
+  poolDisc,
   quarrySteps,
   reedClump,
   riverSegment,
@@ -419,6 +421,15 @@ export class BoardGeometry {
   readonly cactus: BufferGeometry;
   readonly reeds: BufferGeometry;
   /**
+   * The oasis: a round disc of water lying on the tile face and the palms that
+   * stand round it. The pool is built at unit radius and scaled by its instance,
+   * like every other flat mark here.
+   */
+  readonly palm: BufferGeometry;
+  readonly pool: BufferGeometry;
+  /** The green wash on a floodplain's face. A filled hexagon, not a band. */
+  readonly floodWash: BufferGeometry;
+  /**
    * The sculpted miniatures, keyed by *model class* rather than by unit type:
    * which type is drawn as which class is a fact about the art direction that
    * lives in `data/units.json` (`modelClass`). Ask for one through
@@ -525,6 +536,9 @@ export class BoardGeometry {
     this.flower = flowerSpray(DECOR.clutter.flower);
     this.cactus = cactus(DECOR.clutter.cactus);
     this.reeds = reedClump(DECOR.reeds);
+    this.palm = palmTree(DECOR.oasis.palm);
+    this.pool = poolDisc();
+    this.floodWash = hexDecal(BOARD.hexRadius * DECOR.floodplain.scale);
     this.pieces = buildUnitPieces();
     this.badgeIcons = buildBadgeQuads();
     this.badgeRim = discRing(rimInnerFraction(), VIEW3D.badges.rimSegments);
@@ -591,6 +605,9 @@ export class BoardGeometry {
     this.flower.dispose();
     this.cactus.dispose();
     this.reeds.dispose();
+    this.palm.dispose();
+    this.pool.dispose();
+    this.floodWash.dispose();
     for (const piece of Object.values(this.pieces)) piece.geometry.dispose();
     for (const quad of Object.values(this.badgeIcons)) quad.dispose();
     this.badgeRim.dispose();
@@ -942,6 +959,7 @@ const STREAM = {
   pebbleCount: 57,
   reedRoll: 58,
   reedCount: 59,
+  palmCount: 64,
   bankRoll: 60,
   bankCount: 61,
   flowerInk: 62,
@@ -958,6 +976,7 @@ const STREAM = {
   reedPlace: 9,
   bankPlace: 10,
   resourcePlace: 11,
+  palmPlace: 12,
 } as const;
 
 /** `1 + floor(h · max)` capped at `max` — a count of 1..max, hashed. */
@@ -1095,6 +1114,47 @@ function addDecorations(
       place(shape, VIEW3D.featureColor.jungle, STREAM.junglePlace, i, 1.1);
     }
     treed = true;
+  } else if (tile.feature === 'oasis') {
+    /**
+     * The pool first, then the palms standing round it.
+     *
+     * The pool is placed by hand rather than through `place`, because `place`
+     * scatters and a pool is not scatter: it sits on the tile centre, flat on
+     * the face, and is the one thing here that must not wander. It takes the
+     * tile's own yaw and the same `overlay` treatment the sand band does, so it
+     * lies *on* the prism instead of z-fighting with it.
+     *
+     * Both halves are `decor` grade — the default of `place`, and stated
+     * explicitly on the pool because it does not go through `place`. A town
+     * founded on an oasis is a town built around the well, and it clears the
+     * palms and paves the pool exactly as it clears a wood.
+     */
+    const OASIS = DECOR.oasis;
+    const poolPosition = new Vector3(center.x, top + OASIS.poolLift, center.z);
+    const poolQuaternion = new Quaternion().setFromAxisAngle(axis, tileYaw(tile));
+    const poolRadius = BOARD.hexRadius * OASIS.poolRadius;
+    const poolScale = new Vector3(poolRadius, 1, poolRadius);
+    collector.add(
+      geometry.pool,
+      [OASIS.poolColor],
+      new Matrix4().compose(poolPosition, poolQuaternion, poolScale),
+      {
+        overlay: true,
+        opacity: OASIS.poolOpacity,
+        tile: cell,
+        suppressible: SUPPRESS.decor,
+      },
+    );
+    const count = hashedCount(tile.col, tile.row, STREAM.palmCount, Math.max(1, OASIS.palms));
+    for (let i = 0; i < count; i++) {
+      place(geometry.palm, shade(OASIS.palmColor, OASIS.palmShade), STREAM.palmPlace, i, 1, {
+        spread: OASIS.palmSpread,
+      });
+    }
+    // Deliberately **not** `treed`. `treedCells` is the board's memory of what
+    // the chop will have to clear (see `BuiltBoard.treedCells`), and neither
+    // arid feature has a row in the chop table — nothing can ever take an oasis
+    // away, so recording one would be a promise the sweep never has to keep.
   }
 
   /**
@@ -1176,12 +1236,18 @@ function addDecorations(
     g: BoardGeometry,
     put: typeof place,
   ): void {
-    // Never under a canopy: grass drawn inside a forest is invisible from 57°
-    // and costs an instance per tile of it.
-    if (t.feature !== 'none') return;
+    // Never under a canopy or in a pool: grass drawn inside a forest is
+    // invisible from 57° and costs an instance per tile of it, and clutter on an
+    // oasis fights the one prop the hex exists to show. A **floodplain** is the
+    // exception among the features — it is ground rather than a thing standing
+    // on the ground, so it keeps its dressing, and gets the meadow's rather than
+    // the desert's below.
+    if (t.feature !== 'none' && t.feature !== 'floodplain') return;
     const grade = { suppress: SUPPRESS.clutter };
 
-    if (t.terrain === 'grassland' || t.terrain === 'plains') {
+    // Silt, not sand: a floodplain is the fertile strip, so it wears the tufts
+    // the meadow terrains wear even though the terrain under it is still desert.
+    if (t.terrain === 'grassland' || t.terrain === 'plains' || t.feature === 'floodplain') {
       if (hashUnit(t.col, t.row, STREAM.tuftRoll) < CLUTTER.tuft.chance) {
         const count = hashedCount(t.col, t.row, STREAM.tuftCount, CLUTTER.tuft.max);
         const ink = shade(CLUTTER.tuft.color, CLUTTER.tuft.shade);
@@ -1199,7 +1265,10 @@ function addDecorations(
         for (let i = 0; i < count; i++) put(g.flower, ink, STREAM.flowerPlace, i, 1, grade);
       }
     }
-    if (t.terrain === 'desert') {
+    // Bare desert only. The terrain under a floodplain is still `desert`, and a
+    // cactus growing out of a green river strip is the one place this rule can
+    // read the wrong tile — so it asks about the feature as well.
+    if (t.terrain === 'desert' && t.feature === 'none') {
       if (hashUnit(t.col, t.row, STREAM.cactusRoll) < CLUTTER.cactus.chance) {
         const count = hashedCount(t.col, t.row, STREAM.cactusCount, CLUTTER.cactus.max);
         const ink = shade(CLUTTER.cactus.color, CLUTTER.cactus.shade);
@@ -1386,6 +1455,29 @@ export function buildBoard(
       });
     } else if (addDecorations(map, tile, top, center, geometry, collector, cell)) {
       treedCells.push(cell);
+    }
+
+    // The floodplain wash: the green ribbon a river cuts through a desert.
+    //
+    // Placed here beside the sand band rather than in `addDecorations` because
+    // it is the same *kind* of thing — a mark on the tile's own face, taking the
+    // tile's own yaw and scale so it cannot drift off the hex it belongs to —
+    // and emphatically not scatter. It is left at the default `never`
+    // suppression grade, which is the whole claim the feature makes: a farm
+    // ploughs the meadow and a town clears the trees, but neither of them stops
+    // the ground being flood plain. (`place` in `addDecorations` defaults to
+    // `decor` instead, which is why this could not go through it.)
+    if (tile.feature === 'floodplain') {
+      const FLOOD = DECOR.floodplain;
+      position.set(center.x, top + FLOOD.lift, center.z);
+      quaternion.setFromAxisAngle(axis, tileYaw(tile));
+      scale.set(s, s, s);
+      collector.add(
+        geometry.floodWash,
+        [FLOOD.color],
+        new Matrix4().compose(position, quaternion, scale),
+        { overlay: true, opacity: FLOOD.opacity, tile: cell },
+      );
     }
 
     // The sand band. A decal on the tile's own face rather than a wider prism

@@ -78,7 +78,7 @@ export type TerrainId =
   | 'snow'
   | 'mountain';
 
-export type FeatureId = 'none' | 'forest' | 'jungle';
+export type FeatureId = 'none' | 'forest' | 'jungle' | 'oasis' | 'floodplain';
 
 /**
  * What one tile pays a city that works it, per turn — **six voices** since the
@@ -188,6 +188,22 @@ export interface FeatureDef {
   moveCostOverride: number | null;
   /** Replaces the terrain's yield when present. See the docblock. */
   yieldOverride: TileYieldSpec | null;
+  /**
+   * True for a feature that *is* fresh water — an oasis, and nothing else today.
+   *
+   * `TerrainDef.freshwater`'s sibling one table over, and it exists because the
+   * question "can this hex drink" turned out to have two kinds of answer. A lake
+   * is a water tile next door; an oasis is a pool standing *on* a land tile, so
+   * it waters both the hex it is on and the six around it. Read through
+   * `isFreshwaterFeature`, and folded into `Tile.freshwater` by
+   * `computeFreshwater` in `water.ts` exactly as the terrain flag is.
+   *
+   * A **floodplain is deliberately false**. It is fresh by construction — it is
+   * only ever derived onto ground that already touches a river or an oasis — and
+   * saying so twice would be two rules that could disagree. `water.test.ts`
+   * asserts the derivation instead.
+   */
+  freshwater: boolean;
   /** Added to the terrain's defence bonus, never replacing it. See the docblock. */
   defenseBonus: number;
   glyph: string | null;
@@ -264,6 +280,19 @@ export function isWaterTerrain(id: TerrainId): boolean {
  */
 export function isFreshwaterTerrain(id: TerrainId): boolean {
   return TERRAIN_DATA.terrains[id].freshwater;
+}
+
+/**
+ * True when the *feature* is itself fresh water — an oasis, today, and nothing
+ * else.
+ *
+ * The other half of `isFreshwaterTerrain`, and the split is real rather than
+ * cosmetic: a lake is a water *tile* whose neighbours may drink from it, while
+ * an oasis is a pool on a land tile, so it waters the hex it stands on as well
+ * as the six around it. See `FeatureDef.freshwater`.
+ */
+export function isFreshwaterFeature(id: FeatureId): boolean {
+  return TERRAIN_DATA.features[id].freshwater;
 }
 
 // --- movement ---------------------------------------------------------------

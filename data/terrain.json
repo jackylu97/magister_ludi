@@ -114,6 +114,7 @@
       "name": "None",
       "moveCostOverride": null,
       "yieldOverride": null,
+      "freshwater": false,
       "defenseBonus": 0,
       "glyph": null,
       "glyphColor": "#000000"
@@ -122,6 +123,7 @@
       "name": "Forest",
       "moveCostOverride": 2,
       "yieldOverride": { "food": 1, "production": 1, "gold": 0 },
+      "freshwater": false,
       "defenseBonus": 0.25,
       "glyph": "▲▲",
       "glyphColor": "#2f4a24"
@@ -130,9 +132,28 @@
       "name": "Jungle",
       "moveCostOverride": 2,
       "yieldOverride": { "food": 2, "production": 0, "gold": 0 },
+      "freshwater": false,
       "defenseBonus": 0.25,
       "glyph": "♣♣",
       "glyphColor": "#1f4a1f"
+    },
+    "oasis": {
+      "name": "Oasis",
+      "moveCostOverride": null,
+      "yieldOverride": { "food": 3, "production": 1, "gold": 0 },
+      "freshwater": true,
+      "defenseBonus": 0,
+      "glyph": "❁",
+      "glyphColor": "#3f7a63"
+    },
+    "floodplain": {
+      "name": "Floodplain",
+      "moveCostOverride": null,
+      "yieldOverride": { "food": 2, "production": 0, "gold": 0 },
+      "freshwater": false,
+      "defenseBonus": 0,
+      "glyph": "≈",
+      "glyphColor": "#7a8a4a"
     }
   },
   "hills": {

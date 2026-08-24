@@ -541,7 +541,8 @@
         "plains"
       ],
       "validFeatures": [
-        "none"
+        "none",
+        "floodplain"
       ],
       "frequency": 2,
       "clusterSize": [
@@ -832,10 +833,12 @@
       },
       "validTerrain": [
         "grassland",
-        "plains"
+        "plains",
+        "desert"
       ],
       "validFeatures": [
-        "jungle"
+        "jungle",
+        "floodplain"
       ],
       "frequency": 2,
       "clusterSize": [

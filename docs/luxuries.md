@@ -120,8 +120,8 @@ it is the more specific fact and the one a pillage can take away.
 
 ## Approximations
 
-The map has no marsh, no floodplain, and no way to express "riverside" or
-"adjacent to X" as a placement rule — the constraint shape is a plain **AND** over
+The map has no marsh, and no way to express "riverside" or "adjacent to X" as a
+placement rule — the constraint shape is a plain **AND** over
 `validTerrain` / `validFeatures` / `hills` (see `resourceData.ts`, and the `deer`
 precedent it already documents). Every ratified home that named ground this game
 does not have was approximated, and each one is listed here rather than silently
@@ -131,11 +131,12 @@ narrowed.
 |---|---|---|
 | Jade: "grassland, grassland hills, riverside" | grassland, hills either | No riverside filter. Both halves of the ground it named are covered. |
 | Cotton: "flat grassland, riverside" | flat grassland | No riverside filter; the flat half is the whole rule. |
-| Sugar: "jungle, marsh, desert floodplain" | jungle (grassland/plains) | No marsh, no floodplain — and the constraint is one AND rule, so "jungle **or** desert" cannot be written as one row at all. The jungle half is the one with the most ground. |
+| Sugar: "jungle, marsh, desert floodplain" | jungle (grassland/plains) **or** floodplain (desert) | **Half restored 2026-08-24.** The map grew a real `floodplain` feature, so the desert half of the ratified home is expressed exactly: `validTerrain` gained `desert` and `validFeatures` is now `["jungle", "floodplain"]`. The AND is still an AND — jungle never grows on desert and a floodplain is only ever desert, so the two cross terms are vacuous and the row reads as the OR it was always meant to be. Only the marsh is still missing. |
 | Coffee: "jungle hills" | jungle (grassland/plains) | **Widened 2026-08-24.** The two halves are near-independent on this generator — jungle is a share of a thirteen-row equatorial band, hills are a quantile of relief — so their intersection was about a dozen hexes on a standard map, spread over nine or ten continents. Coffee could not reach a seam of two anywhere and was absent from eleven maps in fifteen. The jungle half is the half that carries the flavour; the hills half was the half that made it a ghost. |
 | Olives: "coast-adjacent grassland hills" | grassland hills | No adjacency filter. |
 | Amber: "coastal forest, coastal" | forest on grassland/plains/tundra | No adjacency filter; forest is the half that survives. |
-| Incense: "desert, desert hills, plains, plains hills" | desert or plains, hills either | Expressed exactly. |
+| Incense: "desert, desert hills, plains, plains hills" | desert or plains, hills either, bare ground or floodplain | Expressed exactly — and **kept** exact on 2026-08-24. The floodplain feature would otherwise have narrowed this row by accident: a `validFeatures` of `["none"]` silently stops meaning "any desert" the moment some desert wears a feature, so incense would have lost about a fifth of its desert without anybody deciding that. `["none", "floodplain"]` is the row saying the same thing it always said. |
+| Salt, lapis, silver, gold: desert | bare desert only | **Deliberately narrowed 2026-08-24**, unlike incense above. Salt is an evaporite pan and a river running through it is precisely what stops one forming, so the floodplain is the one part of the desert salt should not be in. The other three are mined and a mine needs hills, which a floodplain never has — so a copy seated there would be permanently unimprovable, which is the thing the improvement-home pass exists to prevent. |
 | Whales: "deep-coast edge" | coast | No "coast adjacent to ocean" filter. |
 | Tyrian: "coast, tile adjacent to coast" | coast | Same. |
 | Clay, reeds: "riverside flats" | flat grassland/plains | No riverside filter. |
@@ -221,7 +222,7 @@ growth *and* the citizens).
 **Deferred:** "−10% upkeep on units" — waits on **unit upkeep**, which this game
 does not have.
 
-### Incense — desert or plains, hills either
+### Incense — desert or plains, hills either, bare or floodplain
 `+2🪙 +1🕯` on tile · **+1🕯 in every city**.
 **Deferred:** Æra III ("−10% cost to purchase units with faith") — waits on
 **faith spending**, which this pass deliberately does not build.
@@ -295,7 +296,7 @@ so there is no base to scale.
 **Deferred:** Æra III ("production buildings give +2 food in each city") —
 **building classification**.
 
-### Sugar — jungle on grassland/plains
+### Sugar — jungle on grassland/plains, or desert floodplain
 `+2🪙` on tile · **+1 happiness** (empire) and **+1 happiness per city** ·
 Æra III: **−10% happiness demanded per citizen**, which multiplies both the
 linear demand and the crowding term.

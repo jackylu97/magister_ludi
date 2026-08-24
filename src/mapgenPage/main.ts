@@ -217,7 +217,28 @@ const TUNING: TuneGroup[] = [
       { path: ['elevation', 'hillShare'], places: 3, hint: 'the flank band below it' },
       { path: ['moisture', 'forestShare'], places: 3, hint: 'share of *eligible* ground wooded' },
       { path: ['moisture', 'jungleShare'], places: 3, hint: 'the same inside the tropics' },
+      { path: ['moisture', 'oasisShare'], places: 3, hint: 'share of flat desert with a pool' },
+      { path: ['moisture', 'oasisSpacing'], places: 0, hint: 'hexes between two oases' },
       { path: ['moisture', 'rainShadow', 'enabled'], hint: 'dry the lee side of ranges' },
+    ],
+  },
+  {
+    /**
+     * The water group, and the reason it earns a panel row where noise octaves
+     * do not: fresh water is the single thing a start is most often missing, so
+     * "more rivers" is the change somebody actually comes to this page to try.
+     * Floodplains have no knob of their own on purpose — they are derived from
+     * the rivers and the oases (`deriveFloodplains`), so the two rows above and
+     * the four here are already the whole of their tuning.
+     */
+    title: 'Water',
+    under: 'rivers · lakes',
+    fields: [
+      { path: ['rivers', 'countPer1000Tiles'], places: 0, hint: 'river quota, scaled by area' },
+      { path: ['rivers', 'minLength'], places: 0, hint: 'shorter traces are discarded' },
+      { path: ['rivers', 'minSpringElevation'], places: 2, hint: 'how high a spring must sit' },
+      { path: ['rivers', 'backtrackSteps'], places: 0, hint: 'forks a trace may retry' },
+      { path: ['lakes', 'maxSize'], places: 0, hint: 'water bodies up to this are lakes' },
     ],
   },
   {

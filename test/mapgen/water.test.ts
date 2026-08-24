@@ -507,6 +507,12 @@ describe('fresh water', () => {
   });
 
   it('matches its definition exactly on generated maps', () => {
+    // The definition restated rather than imported, which is the whole value of
+    // this test: it is the one place the rule is written down twice, so a clause
+    // added to `computeFreshwater` and not to the design has to be typed out
+    // here before it can pass. The **oasis** clauses are the second entry in
+    // that ledger — a pool waters the hex it stands on as well as its six
+    // neighbours, which no other source here does.
     for (const size of ['duel', 'standard'] as const) {
       for (const seed of [1, 7, 1234, 31337]) {
         const map = generateMap(seed, size);
@@ -515,7 +521,10 @@ describe('fresh water', () => {
           const expected =
             !isWaterTerrain(tile.terrain) &&
             (tile.riverEdges !== 0 ||
-              tileNeighbors(map, tile).some((n) => isFreshwaterTerrain(n.terrain)));
+              tile.feature === 'oasis' ||
+              tileNeighbors(map, tile).some(
+                (n) => isFreshwaterTerrain(n.terrain) || n.feature === 'oasis',
+              ));
           expect(hasFreshWater(tile)).toBe(expected);
           if (expected) fresh++;
         }
@@ -524,6 +533,57 @@ describe('fresh water', () => {
         expect(fresh).toBeGreaterThan(0);
       }
     }
+  });
+
+  it('waters every oasis and every hex around one', () => {
+    // The oasis's own clause, asserted on real maps rather than on a fixture,
+    // because the interesting half is that the *placement* pass and the
+    // *derivation* pass agree — an oasis dealt after `computeFreshwater` ran
+    // would be a dry pool and nothing here would be able to tell.
+    let oases = 0;
+    for (const seed of [1, 7, 1234, 31337]) {
+      const map = generateMap(seed, 'standard');
+      for (const tile of map.tiles) {
+        if (tile.feature !== 'oasis') continue;
+        oases += 1;
+        expect(tile.terrain).toBe('desert');
+        expect(tile.hills).toBe(false);
+        expect(hasFreshWater(tile)).toBe(true);
+        for (const neighbor of tileNeighbors(map, tile)) {
+          if (isWaterTerrain(neighbor.terrain)) continue;
+          expect(hasFreshWater(neighbor)).toBe(true);
+        }
+      }
+    }
+    expect(oases).toBeGreaterThan(0);
+  });
+
+  it('derives every floodplain onto watered flat desert, and never anywhere else', () => {
+    // Both directions of `deriveFloodplains`, because half of the rule is what
+    // it *refuses*: the pass is what makes a floodplain fresh by construction,
+    // so a floodplain that turned up on a hill or away from water would be a
+    // tile the freshwater rule has no clause for.
+    let floodplains = 0;
+    for (const seed of [1, 7, 1234, 31337]) {
+      const map = generateMap(seed, 'standard');
+      for (const tile of map.tiles) {
+        const touchesWater =
+          tile.riverEdges !== 0 ||
+          tileNeighbors(map, tile).some((n) => n.feature === 'oasis');
+        const eligible = tile.terrain === 'desert' && !tile.hills && touchesWater;
+        if (tile.feature === 'floodplain') {
+          floodplains += 1;
+          expect(eligible).toBe(true);
+          // Fresh by construction, never by a clause of its own.
+          expect(hasFreshWater(tile)).toBe(true);
+        } else if (eligible) {
+          // The only thing that may stand on eligible ground instead is an
+          // oasis, which the pass steps around rather than paving over.
+          expect(tile.feature).toBe('oasis');
+        }
+      }
+    }
+    expect(floodplains).toBeGreaterThan(0);
   });
 
   it('survives a JSON round-trip with the rest of the map', () => {

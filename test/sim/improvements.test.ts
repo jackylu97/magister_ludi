@@ -586,6 +586,21 @@ describe('the chop table', () => {
     expect(CHOPPABLE_FEATURES).toEqual(['forest']);
   });
 
+  it('leaves the oasis and the floodplain out, and that one is permanent', () => {
+    // The two arid features are not choppable, and unlike the jungle their
+    // absence is a *design decision* rather than a hole waiting for a design.
+    // There is nothing to fell on either: an oasis is water and a floodplain is
+    // ground, so a chop row for one would have to be a rule about draining or
+    // levelling the map, which this game does not have and is not going to grow
+    // by somebody adding a JSON object. Asserted at the table so a row added by
+    // accident fails here rather than turning up on a worker's sheet.
+    expect(chopDef('oasis')).toBeNull();
+    expect(chopDef('floodplain')).toBeNull();
+    // And the whole list, so the assertion cannot be satisfied by two absences
+    // while a third feature quietly gains a row.
+    expect(CHOPPABLE_FEATURES).toEqual(['forest']);
+  });
+
   it('pays in production only, because nothing else has a one-time bank', () => {
     // `City.hammerBasket` is the only pool a lump can land in. A chop that
     // promised food would be a number the sheet printed and the city never got,
@@ -667,6 +682,25 @@ describe('chopFeature', () => {
       refuses(state, chop(0, worker.id), 'There is nothing to clear on (5, 4)');
       tile.feature = 'jungle';
       refuses(state, chop(0, worker.id), 'Jungle cannot be cleared');
+    });
+
+    it('never offers a chop on an oasis or a floodplain', () => {
+      // The other half of the "no row in the chop table" assertion, read through
+      // the command rather than through the data: a worker standing in its own
+      // territory on either arid feature is refused with the ground's own
+      // sentence, never with a technology — which is what greys the sheet's
+      // Chop row out entirely instead of promising it after a research.
+      const { state, worker, tile } = woodedWorker();
+      for (const [feature, said] of [
+        ['oasis', 'Oasis cannot be cleared'],
+        ['floodplain', 'Floodplain cannot be cleared'],
+      ] as const) {
+        tile.feature = feature;
+        // The worker holds every technology in `bareState`, so nothing but the
+        // ground can be doing the refusing here.
+        refuses(state, chop(0, worker.id), said);
+        expect(chopTechError(state, 0, feature)).toBe(said);
+      }
     });
 
     it('refuses ground that is not yours, and ground that is nobody\'s', () => {

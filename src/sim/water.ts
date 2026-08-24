@@ -30,6 +30,17 @@
  * to an ocean tile that could promote it. Lake-adjacent land stays whatever it
  * was; what it gains is `freshwater`, which is the real thing being modelled.
  *
+ * Oases and floodplains
+ * ---------------------
+ * The two arid-land features are the third and fourth things this module knows
+ * about water, and they sit on opposite sides of the same seam. An **oasis** is
+ * a *source*: a pool standing on a desert hex, placed with the other features in
+ * `mapgen.ts`, which waters itself and its six neighbours. A **floodplain** is a
+ * *consequence*: `deriveFloodplains` reads the finished rivers and the placed
+ * oases and turns the flat desert they touch into fertile ground, so a map with
+ * more rivers grows more of it without anybody tuning a number. Neither rolls a
+ * die, and only the oasis appears in `computeFreshwater` — see both docblocks.
+ *
  * Rivers run on edges, not on tiles
  * ---------------------------------
  * See the `map.ts` docblock for the storage convention and the mirror
@@ -85,7 +96,7 @@ import {
   wrappedDistance,
 } from './map';
 import { type Rng, shuffle } from './rng';
-import { isFreshwaterTerrain, isWaterTerrain } from './terrainData';
+import { isFreshwaterFeature, isFreshwaterTerrain, isWaterTerrain } from './terrainData';
 
 /** How many directions a hex has. The width of a `riverEdges` mask. */
 export const DIRECTION_COUNT = HEX_DIRECTIONS.length;
@@ -146,8 +157,14 @@ export function neighborInDirection(
  *
  * THE accessor. Nothing outside this module should read `Tile.freshwater`
  * directly: the flag is derived state with an exact definition (see
- * `computeFreshwater`) and the day it grows a second source — an oasis, a
- * marsh — every caller should follow along for free.
+ * `computeFreshwater`) and the day it grows a second source every caller should
+ * follow along for free.
+ *
+ * That day was the **oasis**, and the discipline paid: a pool on a desert hex
+ * became a source of fresh water by one clause in `computeFreshwater`, and the
+ * farm's Feudalism renewal, the settler lens's blue wash and the start scorer's
+ * `freshwaterBonus` all learned about it without a line being written in any of
+ * them.
  */
 export function hasFreshWater(tile: Tile): boolean {
   return tile.freshwater;
@@ -175,8 +192,9 @@ export function isCoastal(map: GameMap, tile: Tile): boolean {
 /**
  * Recomputes `Tile.freshwater` for the whole map. Idempotent.
  *
- * A tile has fresh water when it is **land** and either a river runs along one
- * of its own six edges, or one of its six neighbours is a lake. Both halves are
+ * A tile has fresh water when it is **land** and any of four things is true: a
+ * river runs along one of its own six edges, it is itself an oasis, one of its
+ * six neighbours is a lake, or one of them is an oasis. Every clause is
  * deliberate:
  *
  *   · *its own* edges, not a neighbour's — a river two tiles away is somebody
@@ -184,6 +202,15 @@ export function isCoastal(map: GameMap, tile: Tile): boolean {
  *     along my border" is already the correct reading of a non-zero mask.
  *   · *lake* neighbours, not water neighbours — the ocean and its coast are
  *     salt. `isFreshwaterTerrain` is the one place that distinction is written.
+ *   · an **oasis waters itself**, which no other source here does, and that is
+ *     the whole difference between a pool standing on a land hex and a body of
+ *     water occupying one. `isFreshwaterFeature` is where that is written down.
+ *
+ * A **floodplain is not named at all**, and its absence is the point: a
+ * floodplain is only ever derived onto ground that already touches a river or an
+ * oasis (see `deriveFloodplains`), so it is fresh by construction. Adding a
+ * clause for it would be a second rule that could one day disagree with the
+ * first — `water.test.ts` asserts the derivation instead.
  *
  * Water tiles are never marked, lakes included. "Which land can drink" is the
  * question; a lake does not drink from itself.
@@ -194,12 +221,55 @@ export function computeFreshwater(map: GameMap): void {
       tile.freshwater = false;
       continue;
     }
-    if (tile.riverEdges !== 0) {
+    if (tile.riverEdges !== 0 || isFreshwaterFeature(tile.feature)) {
       tile.freshwater = true;
       continue;
     }
-    tile.freshwater = tileNeighbors(map, tile).some((n) => isFreshwaterTerrain(n.terrain));
+    tile.freshwater = tileNeighbors(map, tile).some(
+      (n) => isFreshwaterTerrain(n.terrain) || isFreshwaterFeature(n.feature),
+    );
   }
+}
+
+/**
+ * Turns flat desert that touches water into floodplain. Returns how many tiles
+ * changed. Idempotent.
+ *
+ * **Derived, never scattered**, and that is the whole design of the feature: a
+ * floodplain is not a thing the generator decides to put somewhere, it is what
+ * desert *is* when a river runs through it. So there is no frequency, no share
+ * and no dice — the rule is read off the finished water, and a map with more
+ * rivers has more floodplain for free.
+ *
+ * Four conditions, and each one is refusing a hex that would read wrong:
+ *
+ *   · **desert**, because this is the arid-land feature. A river through
+ *     grassland is a river through grassland.
+ *   · **flat**, because the yield algebra gives a hill's yield outright over any
+ *     feature's (`terrainData.ts`), so a floodplain on a hill would be a name
+ *     with no number behind it — and a terraced hillside is not a flood plain.
+ *   · **featureless**, so an oasis is never paved over by the pass that reads
+ *     it. Nothing else can be standing on desert today; the clause is there for
+ *     the day something is.
+ *   · **touching a river edge or an oasis**, which is the sentence itself.
+ *
+ * Runs at **generation only**, after rivers and after the oases, and it must
+ * stay that way: `Tile.feature` is one of the two fields that change during play
+ * (the chop's), and a pass that re-derived features mid-game would be the map
+ * regenerating itself under a save — see CLAUDE.md's traps.
+ */
+export function deriveFloodplains(map: GameMap): number {
+  let count = 0;
+  for (const tile of map.tiles) {
+    if (tile.terrain !== 'desert' || tile.hills || tile.feature !== 'none') continue;
+    const watered =
+      tile.riverEdges !== 0 ||
+      tileNeighbors(map, tile).some((n) => n.feature === 'oasis');
+    if (!watered) continue;
+    tile.feature = 'floodplain';
+    count++;
+  }
+  return count;
 }
 
 // --- lakes ------------------------------------------------------------------
@@ -430,6 +500,31 @@ export interface RiverConfig {
   /** Hard cap on a single trace; a walk that hits it is discarded. */
   maxLength: number;
   /**
+   * How many times one trace may back up to its last fork and take the next way
+   * down before it is abandoned. **Trace persistence.**
+   *
+   * 0 is the plain greedy walk this began as — always the lowest step, and the
+   * first corner with no way down kills the river — and it is still the default
+   * of `traceRiver`, so the knob is opt-in rather than a behaviour change hiding
+   * in a signature.
+   *
+   * It is worth a number of its own because the greedy walk *was the binding
+   * constraint on how many rivers a map has*. Measured over ten standard seeds:
+   * 989 spring corners clear `minSpringElevation`, every one of them was tried,
+   * and 55% of the traces died in a local pit of the corner field — so the quota
+   * could be raised as high as anybody liked and the map still came back with
+   * twenty-nine rivers. A pit is not a statement about the geography; it is an
+   * artefact of reading a valley off the mean of three ranked hexes, and the
+   * valley usually continues one fork back.
+   *
+   * Nothing about descent is relaxed to buy that. Every step of the surviving
+   * path is still to a corner no higher than the one before it — backtracking
+   * only ever *unsays* a step and takes the next-lowest alternative at that same
+   * fork, so the invariant is a property of the path rather than a promise the
+   * search makes.
+   */
+  backtrackSteps: number;
+  /**
    * Springs examined per river the map asks for.
    *
    * Per river rather than a flat cap, because the budget has to grow with the
@@ -459,6 +554,44 @@ export function riverCountFor(config: RiverConfig, width: number, height: number
 }
 
 /**
+ * The ways down out of one corner, lowest first, ties by `vertexKey`.
+ *
+ * Split out of the walk because the walk now needs the *list* rather than the
+ * best of it: a trace that has to back up wants the next way down at the fork it
+ * came from, and "next" is only a word if the order was written somewhere. The
+ * order is the same one the greedy walk implied — see the module docblock for
+ * why the tie-break on the key is load-bearing rather than tidy.
+ *
+ * Steps that run uphill are not in the list at all. Equal altitude is, so a
+ * river can cross a flat shelf; the caller's visited set is what stops it
+ * circling on one.
+ */
+function waysDown(
+  map: GameMap,
+  from: RiverVertex,
+  altitude: number,
+): { step: CornerStep; altitude: number; key: number }[] {
+  const options: { step: CornerStep; altitude: number; key: number }[] = [];
+  for (const candidate of cornerSteps(map, from)) {
+    const candidateAltitude = vertexAltitude(map, candidate.to);
+    if (candidateAltitude === null) continue;
+    if (candidateAltitude > altitude) continue;
+    options.push({ step: candidate, altitude: candidateAltitude, key: vertexKey(map, candidate.to) });
+  }
+  options.sort((a, b) => a.altitude - b.altitude || a.key - b.key);
+  return options;
+}
+
+/** One corner on the walk's current path, and how far through its forks it is. */
+interface TraceFrame {
+  vertex: RiverVertex;
+  altitude: number;
+  options: { step: CornerStep; altitude: number; key: number }[];
+  /** Index of the next fork to try. Equal to `options.length` when spent. */
+  next: number;
+}
+
+/**
  * Walks one river down from a spring corner, without writing anything.
  *
  * Returns `null` when the walk ran out of downhill before reaching water or
@@ -469,11 +602,33 @@ export function riverCountFor(config: RiverConfig, width: number, height: number
  * Every step goes to the lowest neighbouring corner whose altitude is no greater
  * than the current corner's, ties broken by `vertexKey`. See the module docblock
  * for why the tie-break is load-bearing.
+ *
+ * Backtracking
+ * ------------
+ * `backtracks` is how many times the walk may **unsay a step** — pop back to the
+ * fork it came from and take the next way down there — before it gives up. At
+ * **0**, the default, this is exactly the greedy walk it has always been: the
+ * first corner with nothing below it kills the river. See
+ * `RiverConfig.backtrackSteps` for why the number exists and what it bought.
+ *
+ * The search is a depth-first walk of the corner graph with that pop budget, and
+ * the two things worth saying about it are both about what it does *not* relax:
+ *
+ *   · every corner on the emitted path is strictly no higher than the one before
+ *     it, because `waysDown` never returns an uphill fork. Backtracking removes
+ *     steps; it never adds one the greedy walk would have refused.
+ *   · a corner is marked visited on the way in and **unmarked on the way back
+ *     out**, so the path is always simple while a branch that failed leaves
+ *     nothing behind for the branch that replaces it. Loops remain impossible.
+ *
+ * Deterministic: the fork order is total (altitude, then key) and the budget is
+ * a count, so the same spring on the same board walks the same way every time.
  */
 export function traceRiver(
   map: GameMap,
   spring: RiverVertex,
   maxLength: number,
+  backtracks = 0,
 ): RiverTrace | null {
   const startAltitude = vertexAltitude(map, spring);
   if (startAltitude === null) return null;
@@ -481,46 +636,50 @@ export function traceRiver(
   const vertices: RiverVertex[] = [spring];
   const edges: RiverTrace['edges'] = [];
   const visited = new Set<number>([vertexKey(map, spring)]);
+  const stack: TraceFrame[] = [
+    { vertex: spring, altitude: startAltitude, options: waysDown(map, spring, startAltitude), next: 0 },
+  ];
+  let budget = Math.max(0, Math.round(backtracks));
 
-  let current = spring;
-  let altitude = startAltitude;
-
-  for (let step = 0; step < maxLength; step++) {
-    let best: { step: CornerStep; altitude: number; key: number } | null = null;
-    for (const candidate of cornerSteps(map, current)) {
-      const key = vertexKey(map, candidate.to);
-      if (visited.has(key)) continue;
-      const candidateAltitude = vertexAltitude(map, candidate.to);
-      if (candidateAltitude === null) continue;
-      // Never uphill. Equal is allowed so a river can cross a flat shelf; the
-      // visited set is what stops it circling on one.
-      if (candidateAltitude > altitude) continue;
-      if (
-        best === null ||
-        candidateAltitude < best.altitude ||
-        (candidateAltitude === best.altitude && key < best.key)
-      ) {
-        best = { step: candidate, altitude: candidateAltitude, key };
-      }
+  while (stack.length > 0) {
+    const frame = stack[stack.length - 1]!;
+    // Spent forks, or a branch that has run past the cap without finding the
+    // sea — almost certainly a walk creeping along a plateau. Either way this
+    // corner has nothing left to offer, so back out of it if the budget allows.
+    if (frame.next >= frame.options.length || edges.length >= maxLength) {
+      if (budget === 0 || stack.length === 1) return null;
+      budget -= 1;
+      visited.delete(vertexKey(map, frame.vertex));
+      stack.pop();
+      vertices.pop();
+      edges.pop();
+      continue;
     }
-    if (!best) return null;
 
-    const { tile, direction } = best.step.edge;
-    const mergedHere = hasRiverEdge(tile, direction) || vertexTouchesRiver(map, best.step.to);
+    const option = frame.options[frame.next]!;
+    frame.next += 1;
+    if (visited.has(option.key)) continue;
+
+    const { tile, direction } = option.step.edge;
+    const mergedHere = hasRiverEdge(tile, direction) || vertexTouchesRiver(map, option.step.to);
     edges.push({ col: tile.col, row: tile.row, direction });
-    vertices.push(best.step.to);
-    visited.add(best.key);
-    current = best.step.to;
-    altitude = best.altitude;
+    vertices.push(option.step.to);
+    visited.add(option.key);
 
     if (mergedHere) return { vertices, edges, ending: 'river' };
-    // `current` came through `vertexAltitude`, so its three hexes all exist.
-    if ((vertexTiles(map, current) ?? []).some((t) => isWaterTerrain(t.terrain))) {
+    // `option.step.to` came through `vertexAltitude`, so its three hexes exist.
+    if ((vertexTiles(map, option.step.to) ?? []).some((t) => isWaterTerrain(t.terrain))) {
       return { vertices, edges, ending: 'water' };
     }
+    stack.push({
+      vertex: option.step.to,
+      altitude: option.altitude,
+      options: waysDown(map, option.step.to, option.altitude),
+      next: 0,
+    });
   }
-  // Ran past the cap without finding the sea. Almost certainly a walk creeping
-  // along a plateau; drop it rather than draw it.
+  // Unreachable: the loop returns rather than emptying the stack, because the
+  // spring frame refuses to be popped. Said out loud so the exit is total.
   return null;
 }
 
@@ -568,7 +727,7 @@ export function traceRivers(map: GameMap, rng: Rng, config: RiverConfig): RiverT
     }
     // A spring standing on an older river would just redraw it from halfway up.
     if (vertexTouchesRiver(map, spring)) continue;
-    const trace = traceRiver(map, spring, config.maxLength);
+    const trace = traceRiver(map, spring, config.maxLength, config.backtrackSteps);
     if (!trace || trace.edges.length < config.minLength) continue;
 
     for (const edge of trace.edges) {

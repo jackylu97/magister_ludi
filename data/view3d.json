@@ -41,7 +41,9 @@
   "featureColor": {
     "none": "sage",
     "forest": "pine",
-    "jungle": "frond"
+    "jungle": "frond",
+    "oasis": "frond",
+    "floodplain": "sage"
   },
   "players": {
     "byColor": {
@@ -127,6 +129,30 @@
     "snowCap": {
       "fraction": 0.33,
       "color": "bone"
+    },
+    "oasis": {
+      "palm": {
+        "trunkR": 0.028,
+        "trunkH": 0.34,
+        "frondR": 0.05,
+        "frondL": 0.22,
+        "fronds": 6,
+        "lean": 0.16
+      },
+      "palmColor": "frond",
+      "palmShade": 0.1,
+      "palms": 3,
+      "palmSpread": 0.3,
+      "poolColor": "brook",
+      "poolRadius": 0.3,
+      "poolOpacity": 0.92,
+      "poolLift": 0.014
+    },
+    "floodplain": {
+      "color": "sage",
+      "opacity": 0.5,
+      "scale": 0.9,
+      "lift": 0.01
     },
     "shore": {
       "color": "sand",
