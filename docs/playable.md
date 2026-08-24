@@ -72,6 +72,11 @@ game more playtestable than the last.
   Designed after Statecraft proves the plumbing.
 
 ## Punted (explicitly)
+- **Non-standard map-size mapgen tuning** (user, 2026-08-24): the game balances around
+  STANDARD for now. Known deferred items: duel maps collapse to a single continent under
+  `minContinentTiles: 155` (fix: ≤150), and `continentTargetTiles: 200` leaves 28 hand
+  slots for 25 luxury kinds (~7 continents × 4; amber/silver/furs miss ~half of maps —
+  candidate fix: `luxuryKindsPerContinent: 5`). Revisit when small/large sizes matter.
 - **AI** — after every major system above exists.
 - **Win conditions / beads (M11)** — conquest suffices for playtests.
 - Netcode, promotions/XP, indirect fire, chop, Sailing/water, trade routes, wonders &
