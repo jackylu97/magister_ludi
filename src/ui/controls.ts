@@ -2117,6 +2117,22 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!result.ok || !result.arrivals) return;
     for (const arrival of result.arrivals) {
       const { camp } = arrival;
+      /**
+       * Who came with the ground (`arrival.ts`). Split by where they came from,
+       * because the two readings are different news even though the mechanic is
+       * one mechanic: a laborer the wild stole is **freed**, and anybody else's
+       * worker is taken. The wild parks its cargo *on* its camp, so the rescue
+       * is nearly always the same step that burnt the camp out — hence one line
+       * with the bounty rather than a second flash that would replace it.
+       */
+      const freed = arrival.captured.filter((taken) => taken.fromWild);
+      const spoils = [
+        ...(freed.length > 0 ? ['Your laborers are freed!'] : []),
+        ...arrival.captured
+          .filter((taken) => !taken.fromWild)
+          .map((taken) => `${unitDef(taken.type).name} captured`),
+      ];
+      const tail = spoils.length > 0 ? ` · ${spoils.join(', ')}` : '';
       if (camp) {
         const parts = [`+${camp.gold}${YIELD_GLYPH.gold}`];
         if (camp.cityName !== null) {
@@ -2128,7 +2144,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
           // interface keeping a secret.
           parts.push(camp.warning);
         }
-        announce(`⚔ Camp cleared: ${parts.join(', ')}`);
+        announce(`⚔ Camp cleared: ${parts.join(', ')}${tail}`);
+      } else if (spoils.length > 0) {
+        announce(`⚔ ${spoils.join(', ')}`);
       }
       // The card is the announcement for a discovery — see the docblock.
       if (arrival.discovery) onOfferDiscovery?.();

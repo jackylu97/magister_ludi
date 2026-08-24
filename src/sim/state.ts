@@ -69,6 +69,7 @@ import {
   newVisibilityGrid,
   recomputeAllVisibility,
   recomputeVisibility,
+  recomputeVisibilityFor,
 } from './visibility';
 
 /**
@@ -900,6 +901,70 @@ export function removeUnit(state: GameState, unitId: number): boolean {
   // left to ask whose it was.
   recomputeVisibility(state, ownerId);
   return true;
+}
+
+/**
+ * Shakes a unit out of its trench. Returns whether it was in one.
+ *
+ * The key is *deleted* rather than zeroed, because presence is the state (see
+ * `Unit.fortifiedTurns`) and a unit that never fortified must serialise
+ * identically to one that just stopped.
+ *
+ * It lives here, beside the other three one-line facts about a unit's existence,
+ * rather than in `combat.ts` where it was written, because `captureUnit` below
+ * needs it and `captureUnit` has to sit under every module that can transfer a
+ * piece — `arrival.ts` among them, which `combat.ts` imports. `combat.ts`
+ * re-exports it, so every caller that has always asked combat about its own
+ * posture rule goes on asking combat; the rule itself is unchanged and still has
+ * exactly the callers it had (`movement.ts` when a unit's position changes,
+ * `applyCombat` when it attacks, and now a change of owner).
+ */
+export function breakFortify(unit: Unit): boolean {
+  if (unit.fortifiedTurns === undefined) return false;
+  delete unit.fortifiedTurns;
+  return true;
+}
+
+/**
+ * A unit changes hands: the **one** implementation of capture.
+ *
+ * The third low-level fact about a piece's existence, beside `createUnit` and
+ * `removeUnit`, and here for their reason: there is exactly one way a unit comes
+ * into the world, one way it leaves it, and — as of the wild's raiding — more
+ * than one *occasion* on which it changes owner, so there had better be one
+ * place that knows what changing owner means.
+ *
+ * The three occasions, all of them this function:
+ *
+ *   1. a melee attack on a lone civilian (`applyCombat` — the rule players have
+ *      always had, and the rule a barbarian thief steals by, unchanged);
+ *   2. the ground under a civilian being taken — a melee winner advancing onto
+ *      the hex its kill emptied (`arriveOnTile`);
+ *   3. that same advance onto a **barbarian camp**, which frees the laborers the
+ *      wild had walked back to it (`arriveOnTile` again, and the reason the two
+ *      are one call site rather than two rules).
+ *
+ * What it does, and why each line: the new owner, obviously; **no movement left
+ * this turn**, because a piece that has just been dragged across a hex line has
+ * not been marching for its new owner; **no orders**, because the waypoints were
+ * the *previous* owner's plan and a captured settler walking back to its old
+ * capital would be absurd; and out of any trench, because the trench was dug by
+ * somebody else's army. Everything else it keeps — hit points, and a worker's
+ * `chargesLeft` above all (design ledger, M7): capture changes hands and nothing
+ * else about what the piece *is*.
+ *
+ * Both empires' maps are redrawn, which is what makes the two new occasions cost
+ * their callers nothing: a piece that changes hands is a pair of eyes closing on
+ * one side and opening on the other, and this is the only place that knows both
+ * ids at once.
+ */
+export function captureUnit(state: GameState, unit: Unit, ownerId: number): void {
+  const before = unit.ownerId;
+  unit.ownerId = ownerId;
+  unit.movesLeft = 0;
+  delete unit.path;
+  breakFortify(unit);
+  if (before !== ownerId) recomputeVisibilityFor(state, [before, ownerId]);
 }
 
 /**

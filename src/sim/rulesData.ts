@@ -183,6 +183,26 @@ export interface BarbarianRules {
   campUnitRadius: number;
   /** How far a barbarian unit will look for something to attack. */
   aggressionRadius: number;
+  /**
+   * How far a raider will look for an **unguarded civilian to steal**.
+   *
+   * Its own number rather than a share of `aggressionRadius`, and deliberately
+   * the shorter of the two: a band goes out of its way for a worker it can
+   * nearly touch, not across a province. Raise it above `aggressionRadius` and
+   * the wild becomes a kidnapping engine that walks past armies; drop it to 0
+   * and thieving is switched off entirely, leaving v1's raiding behind.
+   */
+  theftRadius: number;
+  /**
+   * How far from its cargo a raider still counts as that cargo's escort.
+   *
+   * One hex looser than the station it actually keeps (adjacent, or the cargo's
+   * own hex), because a worker walks two hexes a turn and a guard that fell a
+   * step behind must not be *reassigned* — the role is derived fresh every turn
+   * from where everybody is standing (see `barbarianRoles`), so the leash is the
+   * only thing keeping an escort escorting.
+   */
+  escortRadius: number;
   /** How far from its camp a unit with nothing to attack will drift. */
   wanderRadius: number;
   /** How far from a horses tile a camp counts as horse country. */

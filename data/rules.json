@@ -48,6 +48,8 @@
     "maxUnitsPerCamp": 2,
     "campUnitRadius": 4,
     "aggressionRadius": 6,
+    "theftRadius": 5,
+    "escortRadius": 2,
     "wanderRadius": 3,
     "horsesRadius": 3,
     "horsemanFromTurn": 30,

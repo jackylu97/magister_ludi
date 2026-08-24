@@ -235,17 +235,38 @@ describe('melee', () => {
     expect({ col: a.col, row: a.row }).toEqual({ col: 4, row: 3 });
   });
 
-  it('stays put when a surviving enemy civilian still holds the tile', () => {
+  it('takes the civilians sheltering behind the defender it killed', () => {
     const state = flatState();
     const a = createUnit(state, 0, 'swordsman', 3, 3);
     const d = createUnit(state, 1, 'warrior', 4, 3);
     const settler = createUnit(state, 1, 'settler', 4, 3);
     d.hp = 4;
 
-    expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
+    const result = applyCommand(state, attack(a.id, 4, 3));
+    expect(result.ok).toBe(true);
     expect(state.units.find((unit) => unit.id === d.id)).toBeUndefined();
-    // The settler is still theirs and still standing there, so the tile is not
-    // empty and the swordsman does not walk onto it.
+    // The ground and the people on it change hands together (Entry XX.H): the
+    // escort died, so the swordsman walks on and the settler is his. Reported
+    // through `arriveOnTile`, which is the one place a hex's contents change
+    // hands — the same rule that hands a stolen laborer back when its camp is
+    // stormed.
+    expect({ col: a.col, row: a.row }).toEqual({ col: 4, row: 3 });
+    expect(settler.ownerId).toBe(0);
+    expect(settler.movesLeft).toBe(0);
+    expect(result.ok && result.arrivals?.[0]?.captured).toEqual([
+      { id: settler.id, type: 'settler', fromOwnerId: 1, fromWild: false },
+    ]);
+  });
+
+  it('leaves a civilian alone when the defender it attacked survived', () => {
+    const state = flatState();
+    const a = createUnit(state, 0, 'swordsman', 3, 3);
+    createUnit(state, 1, 'spearman', 4, 3);
+    const settler = createUnit(state, 1, 'settler', 4, 3);
+
+    expect(applyCommand(state, attack(a.id, 4, 3)).ok).toBe(true);
+    // Nothing was emptied, so nothing was taken: the widened advance rule turns
+    // on the *kill*, not on the presence of a civilian.
     expect(settler.ownerId).toBe(1);
     expect({ col: a.col, row: a.row }).toEqual({ col: 3, row: 3 });
   });

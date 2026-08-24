@@ -40,7 +40,7 @@
  * `applyCombat`.
  */
 
-import { type ArrivalReport, arriveOnTile } from './arrival';
+import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { breakFortify } from './combat';
 import { getTileAt } from './map';
 import { type Cell, canStopOn, canTransit, tileMoveCost } from './pathfind';
@@ -108,7 +108,7 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
     // of the walk, because a ruin is found by riding over it and not only by
     // stopping on it. See `arrival.ts`.
     const found = arriveOnTile(state, unit, tile);
-    if (found.discovery !== null || found.camp !== null) arrivals.push(found);
+    if (!isEmptyArrival(found)) arrivals.push(found);
     steps += 1;
     index += 1;
   }

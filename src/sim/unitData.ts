@@ -228,6 +228,35 @@ export function unitDef(id: UnitTypeId): UnitDef {
 }
 
 /**
+ * Does this type shoot?
+ *
+ * THE test, asked of the data rather than of a name: `rangedStrength` and
+ * `range` are declared as an optional pair (above), so a unit is ranged exactly
+ * when a designer gave it a bow. Nothing here compares a type against the string
+ * `"archer"`, for the same reason nothing compares against `"settler"` to decide
+ * who may found a city.
+ *
+ * These three read the unit *table* and nothing else — no state, no board, no
+ * fight — so they live here, at the bottom, where every layer can ask them.
+ * `combat.ts` wrote them and re-exports them, because "can it attack" is a
+ * question callers have always asked combat; `arrival.ts` needs the third one to
+ * know what may be taken with a hex, and cannot import combat (which imports it).
+ */
+export function isRanged(def: UnitDef): boolean {
+  return def.rangedStrength !== undefined && def.range !== undefined;
+}
+
+/** True when the unit can attack at all: a soldier or a shooter, not a settler. */
+export function isCombatant(def: UnitDef): boolean {
+  return def.combatStrength > 0 || isRanged(def);
+}
+
+/** True when the unit is a civilian in combat terms — capturable, never a threat. */
+export function isCivilian(def: UnitDef): boolean {
+  return !isCombatant(def);
+}
+
+/**
  * Runtime guard. Commands arrive from save files and (eventually) sockets, so a
  * `unitType` that is typed `UnitTypeId` may be any string at all.
  */

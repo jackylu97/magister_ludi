@@ -655,6 +655,7 @@ describe('arrival', () => {
     expect(arriveOnTile(state, scout, at(state, 4, 4))).toEqual({
       discovery: null,
       camp: null,
+      captured: [],
     });
   });
 });

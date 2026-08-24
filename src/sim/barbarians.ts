@@ -31,22 +31,49 @@
  * for the *technology* gate and never asks `hasResource`. Said out loud here
  * because it is the kind of asymmetry that looks like a bug in six months.
  *
- * v1 is deliberately small
+ * Three roles, and none of them stored
+ * ------------------------------------
+ * A band does one of three things: it **steals** an unguarded civilian, it
+ * **escorts** one home, or it **raids**. Which of the three a given unit is
+ * doing is *derived from the board every turn* (`barbarianRoles`) and never
+ * written down — see that type's docblock for why stored intent would be a
+ * serialisation problem, a staleness problem and a replay problem at once, and
+ * how the two facts a memory would have carried (which camp is home, which
+ * raider is the captor) fall out of geometry instead.
+ *
+ * The priority is **escort > theft > raid**, expressed as the order the three
+ * derivation passes run in. A soldier walking a prisoner home ignores a scout
+ * that wanders past: a band that dropped its cargo for every fresh target would
+ * never get one home, which is the whole behaviour.
+ *
+ * Theft is not a mechanism of its own
+ * -----------------------------------
+ * A thief walks to the doorstep and attacks through `applyCombat`, exactly as a
+ * raider does. The tile-targeting priority already published there (military,
+ * then city, then civilian) does the rest: a lone civilian is *captured* by a
+ * melee blow, and one with a soldier on its hex is not — the blow hits the
+ * soldier. So "barbarians steal workers" and "a warrior captures a settler" are
+ * one rule with one implementation (`captureUnit`), and a guarded civilian is
+ * safe from the wild for precisely the reason it is safe from an empire.
+ *
+ * Still deliberately small
  * ------------------------
- * Barbarians in this version pillage improvements only by standing on them —
- * there is no razing, and **they do not capture cities**. A city they beat down
- * to 1 hit point simply stays where it is and heals (`healCities`), which is the
- * ranged-fire rule read one step further out. Capture is a real design decision
- * (what does a barbarian *do* with a town?) and it is deferred rather than
- * guessed at; the day it is made, `applyCombat`'s capture path is where it lands
- * and this paragraph is what it replaces.
+ * Barbarians pillage improvements only by standing on them — there is no razing,
+ * and **they do not capture cities**. A city they beat down to 1 hit point simply
+ * stays where it is and heals (`healCities`), which is the ranged-fire rule read
+ * one step further out. Capture is a real design decision (what does a barbarian
+ * *do* with a town?) and it is deferred rather than guessed at; the day it is
+ * made, `applyCombat`'s capture path is where it lands and this paragraph is what
+ * it replaces. A stolen **settler** is the same decision seen from the other
+ * side and needs no rule at all: it is a unit in barbarian hands like any other,
+ * it will never found, and it is cargo.
  */
 
 import { campAt, hasCampAt } from './camps';
 import { applyCombat, isCombatant } from './combat';
 import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from './map';
 import { advanceAlongPath } from './movement';
-import { canStopOn, findPath, isPassable } from './pathfind';
+import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
 import { nextInt } from './rng';
 import { RULES } from './rulesData';
 import { chooseStartPositions } from './startPositions';
@@ -63,7 +90,7 @@ import {
 import type { TechId } from './techData';
 import { UNIT_UNLOCK_TECH } from './techData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from './unitData';
-import { hasStackingRoom } from './units';
+import { hasStackingRoom, unitsOnTile } from './units';
 import { VISIBLE, isVisibleTo, visibilityAt } from './visibility';
 
 const BARB = RULES.barbarians;
@@ -326,7 +353,14 @@ export function foundCamps(state: GameState): void {
 
 // --- mustering --------------------------------------------------------------
 
-/** Barbarian units close enough to this camp to still count as its garrison. */
+/**
+ * Barbarian *soldiers* close enough to this camp to still count as its garrison.
+ *
+ * Civilians are excluded, and the exclusion is a rule: a stolen worker sitting
+ * on the camp is **loot, not a band**, and counting it would let an empire
+ * suppress a camp's musters by leaving it a worker to keep. The wild's cargo is
+ * a thing to be taken back, never a thing that fights.
+ */
 function bandOf(state: GameState, camp: BarbarianCamp, wild: Player): number {
   const { map } = state;
   const centre = getTileAt(map, camp.col, camp.row);
@@ -335,6 +369,7 @@ function bandOf(state: GameState, camp: BarbarianCamp, wild: Player): number {
   let count = 0;
   for (const unit of state.units) {
     if (unit.ownerId !== wild.id) continue;
+    if (!isCombatant(unitDef(unit.type))) continue;
     const at = getTileAt(map, unit.col, unit.row);
     if (!at) continue;
     if (wrappedDistance(map, hex, tileHex(at)) <= BARB.campUnitRadius) count += 1;
@@ -486,6 +521,236 @@ function approachTile(state: GameState, unit: Unit, goal: Tile): Tile | null {
   return best;
 }
 
+// --- roles ------------------------------------------------------------------
+
+/**
+ * What one barbarian unit is doing this turn.
+ *
+ * **Derived, never stored**, and that is the load-bearing decision of this whole
+ * feature rather than a style preference. A `role` field on `Unit` would be
+ * *intent*, and intent is state: it would have to be serialised (so every save
+ * grows a field), kept in step with a world that moves under it (a thief whose
+ * prey died, an escort whose cargo was rescued, a raider whose camp burnt out),
+ * and — worst — it would have to be **written by the phase**, which means a
+ * replay reproduces it only for as long as every write is reproduced in the same
+ * order. Derived intent has none of those problems by construction: the roles
+ * are a pure function of the board, so a replay recomputes them rather than
+ * trusting them, and a hand-edited save cannot carry an opinion the world does
+ * not support.
+ *
+ * It also means the wild has no memory, and the two places that would obviously
+ * want one are answered by geometry instead:
+ *
+ *   · *"the camp that spawned its captor"* is not recoverable without storing a
+ *     home on the unit, so a cargo walks to the **nearest camp** — which, on the
+ *     turn after a theft, is the camp its captor came out of in every ordinary
+ *     case, and is the *better* answer in the case where it is not (the raiders'
+ *     own camp burnt out behind them).
+ *   · *"the raider that took it"* is likewise not stored: a cargo's escort is
+ *     whichever wild soldier is standing **nearest** to it, which on the turn
+ *     after a theft is exactly the thief that took it, because that thief is
+ *     standing next to it and nobody else is.
+ */
+export type BarbarianRole =
+  /** A stolen civilian walking itself home, or already sitting on the camp. */
+  | { kind: 'cargo'; home: Cell | null }
+  /** A soldier shadowing that civilian, and doing nothing else at all. */
+  | { kind: 'escort'; cargoId: number }
+  /** A soldier going for an unguarded civilian it can see. */
+  | { kind: 'thief'; preyId: number }
+  /** Everybody else: v1's raider. */
+  | { kind: 'raider' };
+
+/** The camp nearest this cell, by `(distance, tile index)`, or `null`. */
+function nearestCamp(state: GameState, from: Tile): Tile | null {
+  const { map } = state;
+  const hex = tileHex(from);
+  let best: Tile | null = null;
+  let bestDistance = Infinity;
+  let bestIndex = Infinity;
+  for (const camp of state.camps) {
+    const tile = getTileAt(map, camp.col, camp.row);
+    if (!tile) continue;
+    const distance = wrappedDistance(map, hex, tileHex(tile));
+    const index = tileIndex(map, tile.col, tile.row);
+    if (distance < bestDistance || (distance === bestDistance && index < bestIndex)) {
+      best = tile;
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  }
+  return best;
+}
+
+/** Is this unit standing on a camp? Cargo that is home, and stays there. */
+function isAtCamp(state: GameState, unit: Unit): boolean {
+  return hasCampAt(state, unit.col, unit.row);
+}
+
+/**
+ * The nearest of `pool` to `tile`, by `(distance, tile index, unit id)`, within
+ * `radius` and passing `accept`. A total order over distinct units, so two
+ * raiders equidistant from the same worker always resolve the same way.
+ */
+function nearestUnit(
+  state: GameState,
+  pool: readonly Unit[],
+  tile: Tile,
+  radius: number,
+  accept: (unit: Unit) => boolean,
+): Unit | null {
+  const { map } = state;
+  const hex = tileHex(tile);
+  let best: Unit | null = null;
+  let bestDistance = Infinity;
+  let bestIndex = Infinity;
+  for (const unit of pool) {
+    const at = getTileAt(map, unit.col, unit.row);
+    if (!at) continue;
+    const distance = wrappedDistance(map, hex, tileHex(at));
+    if (distance > radius) continue;
+    if (!accept(unit)) continue;
+    // Tile index, then id. The id is not redundant even though two soldiers
+    // cannot share a hex under a stacking cap of 1: the cap is a data knob, and
+    // a designer who raises it must not also make this answer depend on array
+    // luck.
+    const index = tileIndex(map, at.col, at.row);
+    const closer =
+      distance < bestDistance ||
+      (distance === bestDistance &&
+        (index < bestIndex || (index === bestIndex && best !== null && unit.id < best.id)));
+    if (closer) {
+      best = unit;
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  }
+  return best;
+}
+
+/**
+ * Is this civilian stealable *by walking up to it* — that is, is anything
+ * standing over it?
+ *
+ * Asked of the tile rather than of the neighbourhood, because the stacking rule
+ * is what decides it: a guard shares its charge's hex (one military and one
+ * civilian per tile, `stacking.perCategoryPerTile`), and `attackTargetAt` hits
+ * the **military unit first**. So a raider that walks up to a guarded worker
+ * gets a fight, not a prisoner — the civilian is safe without a line of code
+ * saying so, and this function only decides whether the wild bothers to *try*.
+ *
+ * A soldier standing one hex away is not a guard by this rule and is not meant
+ * to be: that is a rescue attempt, not protection, and the raider is entitled to
+ * get there first.
+ */
+function isUnguarded(state: GameState, civilian: Unit): boolean {
+  for (const unit of unitsOnTile(state, civilian.col, civilian.row)) {
+    if (unit.id === civilian.id) continue;
+    if (isCombatant(unitDef(unit.type))) return false;
+  }
+  return true;
+}
+
+/**
+ * Every job in the wild, derived from one board state.
+ *
+ * Computed **once**, at the top of the sweep, from the board the turn produced —
+ * before a single barbarian has moved. That is deliberate and it is the same
+ * argument the `veterans` snapshot makes: a unit acting late in the array must
+ * not have a different job because a friend of its acted early. It also makes
+ * the two exclusivity rules expressible at all, since both are about who *else*
+ * is available:
+ *
+ *   · **one escort per cargo** — the nearest soldier within `escortRadius`, and
+ *     that soldier is then spoken for;
+ *   · **one thief per prey** — the nearest *unspoken-for* soldier within
+ *     `theftRadius`, so a camp does not send four raiders after one worker.
+ *
+ * The priority is **escort > theft > raid**, and it is expressed as the order
+ * these three passes run in rather than as a rule anybody has to remember. A
+ * soldier walking a prisoner home therefore ignores a scout that wanders past —
+ * *the cargo is worth more than the fight*, and a band that dropped its
+ * prisoner every time something shinier appeared would never get one home, which
+ * is the entire behaviour this entry exists to produce.
+ *
+ * `ids` is the snapshot the sweep will walk, so a band mustered this turn is
+ * neither given a job nor counted as somebody else's escort.
+ */
+export function barbarianRoles(
+  state: GameState,
+  wild: Player,
+  ids: readonly number[],
+): Map<number, BarbarianRole> {
+  const roles = new Map<number, BarbarianRole>();
+  const band: Unit[] = [];
+  const cargo: Unit[] = [];
+  for (const id of ids) {
+    const unit = unitById(state, id);
+    if (!unit || unit.ownerId !== wild.id) continue;
+    if (isCombatant(unitDef(unit.type))) band.push(unit);
+    else cargo.push(unit);
+  }
+
+  // 1 — the cargo, and its walk home.
+  for (const unit of cargo) {
+    const from = getTileAt(state.map, unit.col, unit.row);
+    const home = from ? nearestCamp(state, from) : null;
+    roles.set(unit.id, { kind: 'cargo', home: home ? { col: home.col, row: home.row } : null });
+  }
+
+  // 2 — escorts. A cargo already sitting on its camp needs none: it has arrived,
+  // and its guard goes back to raiding, which is the rule read as an absence
+  // rather than as a second clause somewhere.
+  const spokenFor = new Set<number>();
+  for (const prisoner of cargo) {
+    if (isAtCamp(state, prisoner)) continue;
+    const at = getTileAt(state.map, prisoner.col, prisoner.row);
+    if (!at) continue;
+    const escort = nearestUnit(
+      state,
+      band,
+      at,
+      BARB.escortRadius,
+      (unit) => !spokenFor.has(unit.id),
+    );
+    if (!escort) continue;
+    spokenFor.add(escort.id);
+    roles.set(escort.id, { kind: 'escort', cargoId: prisoner.id });
+  }
+
+  // 3 — thieves. Walked over the *prey* rather than over the band, because the
+  // rule is "the nearest raider takes it" and that sentence is about a worker.
+  // Prey is anybody else's civilian, unguarded, inside `theftRadius`, on a hex
+  // the wild can actually see (below), with a hex beside it the raider could
+  // stand on — the same doorstep test raiding uses.
+  for (const prey of state.units) {
+    if (prey.ownerId === wild.id) continue;
+    if (isCombatant(unitDef(prey.type))) continue;
+    if (!isVisibleTo(state, wild.id, prey.col, prey.row)) continue;
+    if (!isUnguarded(state, prey)) continue;
+    const at = getTileAt(state.map, prey.col, prey.row);
+    if (!at) continue;
+    const thief = nearestUnit(
+      state,
+      band,
+      at,
+      BARB.theftRadius,
+      (unit) =>
+        !spokenFor.has(unit.id) &&
+        (isAdjacentTo(state, unit, at) || approachTile(state, unit, at) !== null),
+    );
+    if (!thief) continue;
+    spokenFor.add(thief.id);
+    roles.set(thief.id, { kind: 'thief', preyId: prey.id });
+  }
+
+  // 4 — everybody left is v1's raider.
+  for (const unit of band) {
+    if (!roles.has(unit.id)) roles.set(unit.id, { kind: 'raider' });
+  }
+  return roles;
+}
+
 /**
  * A raider with nothing to fight drifts around its camp.
  *
@@ -542,59 +807,158 @@ function isAdjacentTo(state: GameState, unit: Unit, tile: Tile): boolean {
   return wrappedDistance(state.map, tileHex(from), tileHex(tile)) === 1;
 }
 
+/** Walks a unit to a hex it can stand on, if a route exists. */
+function marchTo(state: GameState, unit: Unit, goal: Tile): void {
+  const path = findPath(state, unit, goal);
+  if (path) advanceAlongPath(state, unit, path);
+}
+
 /**
- * Marches and fights, one raider at a time, in the order the state carries.
+ * Closes on a tile and strikes it if the march arrived in reach.
+ *
+ * The one thing both a raider and a thief do, and the reason theft needed no
+ * capture mechanism of its own: the blow goes through `applyCombat`, which
+ * targets the tile by the *published* priority (military, then city, then
+ * civilian) and turns a melee blow on a lone civilian into a change of hands.
+ * A thief is therefore a raider that has chosen a worker; the *rule* that hands
+ * the worker over is the rule a player's warrior has always captured by.
+ */
+function closeAndStrike(state: GameState, unit: Unit, goal: Tile): void {
+  if (!isAdjacentTo(state, unit, goal)) {
+    const approach = approachTile(state, unit, goal);
+    if (approach) marchTo(state, unit, approach);
+  }
+  // Re-read: the march may have brought this unit into reach. `applyCombat`
+  // validates everything else — range, line of sight, movement, visibility,
+  // whether the target is still there — and refuses cleanly, leaving the state
+  // byte-identical.
+  const after = unitById(state, unit.id);
+  if (!after || after.hasAttacked || after.movesLeft <= 0) return;
+  if (!isAdjacentTo(state, after, goal)) return;
+  applyCombat(state, after.id, { col: goal.col, row: goal.row });
+}
+
+/**
+ * A stolen civilian walks itself home and then sits there.
+ *
+ * At civilian speed, by the ordinary pathfinder, over ground the ordinary rules
+ * allow — the wild's prisoners are units like any other and get no dispensation.
+ * It **does not clear the camp it walks onto**: `arriveOnTile` refuses the wild
+ * its own bounty, which is the rule that was already there.
+ *
+ * A cargo standing on a camp does nothing at all, ever, and that idleness is the
+ * design: a stolen settler will never found (barbarians do not found), a stolen
+ * worker will never build. It is cargo — a thing an empire has *lost* and can
+ * ride out and take back — and the camp is where it waits to be taken back.
+ *
+ * With no camps left in the world it sits where it stands: there is nowhere to
+ * be walked to, and inventing a destination would be inventing a rule.
+ */
+function haulHome(state: GameState, unit: Unit, home: Cell | null): void {
+  if (home === null) return;
+  if (unit.col === home.col && unit.row === home.row) return;
+  const tile = getTileAt(state.map, home.col, home.row);
+  if (!tile) return;
+  marchTo(state, unit, tile);
+}
+
+/**
+ * A raider shadowing its cargo: it keeps station and it does not fight.
+ *
+ * Station is *the cargo's own hex* when it can be shared, and adjacency when it
+ * cannot — and the preference is a rule rather than a tidiness: a soldier
+ * standing on the prisoner's tile is exactly what makes that prisoner
+ * unstealable back, by the same `attackTargetAt` priority that protects a
+ * player's escorted worker from being stolen in the first place. The wild
+ * guards its loot by the rule empires guard theirs by.
+ *
+ * Already within one hex, it holds — no wandering, no opportunistic attack on
+ * the town it happens to be passing. See `barbarianRoles` for why escort duty
+ * outranks everything.
+ */
+function shadow(state: GameState, unit: Unit, cargoId: number): void {
+  const cargo = unitById(state, cargoId);
+  if (!cargo) return;
+  const at = getTileAt(state.map, cargo.col, cargo.row);
+  const from = getTileAt(state.map, unit.col, unit.row);
+  if (!at || !from) return;
+  // Already keeping station: hold. Zero counts — a guard on the cargo's own hex
+  // is the strongest place it can be.
+  if (wrappedDistance(state.map, tileHex(at), tileHex(from)) <= 1) return;
+  const station = canStopOn(state, unit, at) ? at : approachTile(state, unit, at);
+  if (station) marchTo(state, unit, station);
+}
+
+/**
+ * Marches and fights, one unit at a time, in the order the state carries.
  *
  * `veterans` is a snapshot taken before this turn's camps mustered, so a band
  * born this resolution does not also march in it — the same reading a city's new
  * unit gets, which is that it is born with a full allowance and spends it when
  * its owner next acts.
  *
- * Each raider, in order: find the nearest thing it can see; attack if it is
- * already adjacent; otherwise walk to the doorstep and attack if it arrived. A
- * raider with nothing in reach wanders. Every attack goes through `applyCombat`,
- * so a raid rolls the same dice, obeys the same targeting priority, takes the
- * same counter-attack and triggers the same elimination check a player's attack
- * does — and the +2 every empire gets against the wild is inside the same plan
- * (`planCombat`), which is why the forecast a player was shown is the fight the
- * raider gets.
+ * Every job is looked up in the table `barbarianRoles` derived from the board
+ * before anybody moved; the sweep itself only *executes*. Each unit, in order:
+ *
+ *   · **cargo** walks toward the nearest camp, or sits on it;
+ *   · **escort** closes to within a hex of its cargo, and does nothing else;
+ *   · **thief** closes on its chosen civilian and strikes, which captures it;
+ *   · **raider** does what v1 did — nearest visible thing inside
+ *     `aggressionRadius`, attack when adjacent, wander near camp otherwise.
+ *
+ * Every blow goes through `applyCombat`, so a raid rolls the same dice, obeys
+ * the same targeting priority, takes the same counter-attack and triggers the
+ * same elimination check a player's attack does — and the +2 every empire gets
+ * against the wild is inside the same plan (`planCombat`), which is why the
+ * forecast a player was shown is the fight the raider gets.
  *
  * A unit that died earlier in this very sweep — killed by the counter-attack of
  * the raider before it — is looked up by id and skipped, which is the ordinary
- * command contract read inside a phase.
+ * command contract read inside a phase. A unit whose *job* died with it (a thief
+ * whose prey was taken by the raider before it) is refused by `applyCombat` and
+ * simply loses the turn, which is the same contract one layer up.
+ *
+ * **The wild carries no standing orders.** Every walk in this sweep ends with
+ * the unit's `path` deleted, and that is the same decision the roles are: a
+ * stored route is stored intent, `resetMovement` would resume it a few phases
+ * later — handing every barbarian a free second march on a refilled allowance —
+ * and it would be an opinion formed on a board two turns stale. The wild decides
+ * again, from scratch, every turn.
  */
 export function raid(state: GameState, veterans: readonly number[]): void {
   const wild = barbarianPlayer(state);
   if (!wild) return;
+  const roles = barbarianRoles(state, wild, veterans);
 
   for (const id of veterans) {
     const unit = unitById(state, id);
     if (!unit || unit.ownerId !== wild.id) continue;
-    if (!isCombatant(unitDef(unit.type))) continue;
-    if (unit.movesLeft <= 0) continue;
-
-    const target = nearestTarget(state, wild, unit);
-    if (!target) {
-      wander(state, unit);
-      continue;
-    }
-
-    if (!isAdjacentTo(state, unit, target.tile)) {
-      const approach = approachTile(state, unit, target.tile);
-      if (approach) {
-        const path = findPath(state, unit, approach);
-        if (path) advanceAlongPath(state, unit, path);
+    const role = roles.get(id);
+    if (!role) continue;
+    if (unit.movesLeft > 0) {
+      switch (role.kind) {
+        case 'cargo':
+          haulHome(state, unit, role.home);
+          break;
+        case 'escort':
+          shadow(state, unit, role.cargoId);
+          break;
+        case 'thief': {
+          const prey = unitById(state, role.preyId);
+          const at = prey === undefined ? null : getTileAt(state.map, prey.col, prey.row);
+          if (at) closeAndStrike(state, unit, at);
+          break;
+        }
+        case 'raider': {
+          const target = nearestTarget(state, wild, unit);
+          if (target) closeAndStrike(state, unit, target.tile);
+          else wander(state, unit);
+          break;
+        }
       }
     }
-
-    // Re-read: the march may have killed this unit (it cannot) or, far more
-    // usefully, may have brought it into reach. `applyCombat` validates
-    // everything else — range, line of sight, movement, whether the target is
-    // still there — and refuses cleanly, leaving the state byte-identical.
-    const after = unitById(state, unit.id);
-    if (!after || after.hasAttacked || after.movesLeft <= 0) continue;
-    if (!isAdjacentTo(state, after, target.tile)) continue;
-    applyCombat(state, after.id, { col: target.tile.col, row: target.tile.row });
+    const after = unitById(state, id);
+    if (after) delete after.path;
   }
 }
 
@@ -605,7 +969,15 @@ export function raid(state: GameState, veterans: readonly number[]): void {
  *
  * Three steps in a fixed order — found, muster, raid — and the snapshot between
  * the first two and the last is what keeps a band from marching on the turn it
- * was mustered.
+ * was mustered. The roles are derived inside `raid`, off the board as it stands
+ * once the camps have mustered, and the sweep then only executes them.
+ *
+ * **The position in `END_OF_TURN_PHASES` is unchanged by the raiding rework**,
+ * and the check is worth stating rather than assuming: the three new behaviours
+ * spend movement and land blows exactly as v1's raiding did — a cargo *walks*,
+ * an escort *walks*, a thief *attacks* — so every argument below is about the
+ * same two facts (an allowance that must not have been refilled, a board that
+ * must be the one the turn produced) and none of them changed.
  *
  * **Where this sits in `END_OF_TURN_PHASES`, and why** (the position is a rules
  * decision, like every other entry in that array): after `healCities` and

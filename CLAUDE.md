@@ -173,6 +173,13 @@ would change every seeded outcome. No further rename passes.
   too), the improvement on the tile, then a city standing on the seam whose owner holds
   that improvement's tech. All derived, no flags. Ledgers label which ("Gems · mine" vs
   "Gems · city"); holding both ways is still one holding.
+- A unit changes hands in exactly one place: `captureUnit` (`state.ts`, beside `createUnit`
+  and `removeUnit`). Two occasions reach it — a melee blow on a lone civilian, and
+  `arriveOnTile`, which now hands over **every foreign civilian on a hex somebody comes to
+  rest on** (a melee winner may advance onto a tile whose survivors are all civilians). Any
+  new way to put a unit on a hex inherits that, and must not write `ownerId` itself.
+  Barbarian *intent* is the mirror rule: roles are derived from the board every turn
+  (`barbarianRoles`) and never stored — do not add a `role` field to `Unit`.
 - City-panel yields are derived state refreshed in `collectYields`; a mutation outside the
   turn pipeline would show stale numbers until end of turn. This used to be a closed
   register of hand-rolled exceptions. It is now **the register *and* THE helper**:

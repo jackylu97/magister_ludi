@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  type BarbarianRole,
   barbarianMeleeType,
+  barbarianRoles,
   barbarianTier,
   barbarianTurn,
   barbarianUnitType,
@@ -15,7 +17,16 @@ import { foundCityAt, growthThreshold } from '../../src/sim/cities';
 import { previewCombat, updateElimination } from '../../src/sim/combat';
 import { applyCommand } from '../../src/sim/commands';
 import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
-import { createMap, getTileAt, tileHex, tileIndex, wrappedDistance, type Tile } from '../../src/sim/map';
+import {
+  createMap,
+  getTileAt,
+  mapRange,
+  tileHex,
+  tileIndex,
+  wrappedDistance,
+  type Tile,
+} from '../../src/sim/map';
+import { isPassable } from '../../src/sim/pathfind';
 import { RULES } from '../../src/sim/rulesData';
 import {
   type GameState,
@@ -32,7 +43,14 @@ import { advanceResearch } from '../../src/sim/tech';
 import { TECH_IDS, type TechId } from '../../src/sim/techData';
 import { END_OF_TURN_PHASES } from '../../src/sim/turn';
 import { unitDef } from '../../src/sim/unitData';
-import { VISIBLE, recomputeAllVisibility, resetVisibility, visibilityAt } from '../../src/sim/visibility';
+import { fullMovement, hasStackingRoom } from '../../src/sim/units';
+import {
+  VISIBLE,
+  isVisibleTo,
+  recomputeAllVisibility,
+  resetVisibility,
+  visibilityAt,
+} from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 
@@ -670,6 +688,359 @@ describe('clearing a camp', () => {
   });
 });
 
+/**
+ * The three roles (ledger Entry XX.H).
+ *
+ * Every claim here is about *derived* intent: nothing in `GameState` says what a
+ * barbarian is doing, so each test builds a board and asks what that board
+ * implies. A regression in this block looks like a raider that forgot its
+ * prisoner or a camp that kept one it should have handed back.
+ */
+
+/** A quiet turn number: no camp founding sweep, no muster from a camp founded on 1. */
+const QUIET_TURN = 20;
+
+/**
+ * What `resetMovement` does, for a test that drives `barbarianTurn` directly:
+ * without it every unit on the board spends its allowance once and stands still
+ * for the rest of the loop.
+ */
+function refill(state: GameState): void {
+  for (const unit of state.units) {
+    unit.movesLeft = fullMovement(unit);
+    unit.hasAttacked = false;
+  }
+}
+
+/** The wild's roles on this board, over every unit it holds right now. */
+function rolesOf(state: GameState): Map<number, BarbarianRole> {
+  const wild = barbarianPlayer(state)!;
+  return barbarianRoles(
+    state,
+    wild,
+    state.units.filter((unit) => unit.ownerId === wild.id).map((unit) => unit.id),
+  );
+}
+
+function distance(state: GameState, a: { col: number; row: number }, b: { col: number; row: number }): number {
+  return wrappedDistance(state.map, tileHex(at(state, a.col, a.row)), tileHex(at(state, b.col, b.row)));
+}
+
+describe('role derivation', () => {
+  it('prefers theft to raiding when an unguarded civilian is in reach', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    // Something to raid *and* something to steal, the raider between them.
+    foundCityAt(state, 0, at(state, 5, 8));
+    const prey = createUnit(state, 0, 'worker', 9, 8);
+    const raider = createUnit(state, wild, 'warrior', 10, 8);
+    recomputeAllVisibility(state);
+
+    expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'thief', preyId: prey.id });
+  });
+
+  it('leaves a guarded civilian alone: the stacking rule decides, not a clause', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    createUnit(state, 0, 'worker', 9, 8);
+    createUnit(state, 0, 'warrior', 9, 8);
+    const raider = createUnit(state, wild, 'warrior', 10, 8);
+    recomputeAllVisibility(state);
+
+    // Not prey at all — so the raider is a raider, and what it walks up to is a
+    // fight with the guard rather than a theft.
+    expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'raider' });
+  });
+
+  it('does not see a civilian its own fog has never lifted', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    const raider = createUnit(state, wild, 'warrior', 4, 8);
+    // Well outside the raider's sight (2) but inside `theftRadius` (5).
+    const prey = createUnit(state, 0, 'worker', 9, 8);
+    recomputeAllVisibility(state);
+
+    expect(isVisibleTo(state, wild, prey.col, prey.row)).toBe(false);
+    expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'raider' });
+    // And it stays where it is rather than drifting toward a hex it cannot see.
+    state.turn = QUIET_TURN;
+    barbarianTurn(state);
+    expect(state.units.find((unit) => unit.id === prey.id)!.ownerId).toBe(0);
+  });
+
+  it('sends exactly one raider after one worker', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    createUnit(state, 0, 'worker', 9, 8);
+    const near = createUnit(state, wild, 'warrior', 10, 8);
+    const far = createUnit(state, wild, 'warrior', 11, 8);
+    recomputeAllVisibility(state);
+
+    const roles = rolesOf(state);
+    expect(roles.get(near.id)!.kind).toBe('thief');
+    expect(roles.get(far.id)).toEqual({ kind: 'raider' });
+  });
+
+  it('outranks theft with escort duty, and the cargo knows its camp', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    const cargo = createUnit(state, wild, 'worker', 12, 8);
+    const captor = createUnit(state, wild, 'warrior', 12, 9);
+    // A fresh worker to steal, right beside the escort. It is ignored.
+    createUnit(state, 0, 'worker', 13, 9);
+    recomputeAllVisibility(state);
+
+    const roles = rolesOf(state);
+    expect(roles.get(captor.id)).toEqual({ kind: 'escort', cargoId: cargo.id });
+    expect(roles.get(cargo.id)).toEqual({ kind: 'cargo', home: { col: 8, row: 8 } });
+  });
+
+  it('releases the escort once the cargo is sitting on the camp', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    createUnit(state, wild, 'worker', 8, 8);
+    const captor = createUnit(state, wild, 'warrior', 8, 9);
+
+    expect(rolesOf(state).get(captor.id)).toEqual({ kind: 'raider' });
+  });
+
+  it('walks a cargo nowhere at all in a world with no camps left', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    const cargo = createUnit(state, wild, 'worker', 8, 8);
+    expect(rolesOf(state).get(cargo.id)).toEqual({ kind: 'cargo', home: null });
+
+    state.turn = QUIET_TURN;
+    barbarianTurn(state);
+    expect({ col: cargo.col, row: cargo.row }).toEqual({ col: 8, row: 8 });
+  });
+});
+
+describe('stealing', () => {
+  it('takes an unguarded worker by the rule a player captures with', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    const prey = createUnit(state, 0, 'worker', 9, 8);
+    createUnit(state, wild, 'warrior', 10, 8);
+    recomputeAllVisibility(state);
+
+    state.turn = QUIET_TURN;
+    barbarianTurn(state);
+
+    const taken = state.units.find((unit) => unit.id === prey.id)!;
+    // Melee onto a lone civilian is a change of hands, whoever swings: the
+    // worker is the wild's, unhurt, standing where it stood, and spent.
+    expect(taken.ownerId).toBe(wild);
+    expect(taken.hp).toBe(unitDef('worker').maxHp);
+    expect({ col: taken.col, row: taken.row }).toEqual({ col: 9, row: 8 });
+    expect(taken.movesLeft).toBe(0);
+    // And it keeps what it is: a captured worker is still a worker with its
+    // charges (M7), not a fresh one.
+    expect(taken.chargesLeft).toBe(unitDef('worker').charges);
+  });
+
+  it('gets a fight instead when a soldier is standing over the worker', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    const prey = createUnit(state, 0, 'worker', 9, 8);
+    const guard = createUnit(state, 0, 'warrior', 9, 8);
+    createUnit(state, wild, 'warrior', 10, 8);
+    recomputeAllVisibility(state);
+
+    state.turn = QUIET_TURN;
+    barbarianTurn(state);
+
+    // The blow landed on the guard — `attackTargetAt` hits the military unit
+    // first — so the worker is untouched and still its owner's.
+    expect(state.units.find((unit) => unit.id === prey.id)!.ownerId).toBe(0);
+    const stillGuarding = state.units.find((unit) => unit.id === guard.id);
+    expect(stillGuarding === undefined || stillGuarding.hp < unitDef('warrior').maxHp).toBe(true);
+  });
+});
+
+describe('escorting', () => {
+  it('walks the cargo home while the raider keeps station beside it', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    const cargo = createUnit(state, wild, 'worker', 13, 8);
+    const escort = createUnit(state, wild, 'warrior', 14, 8);
+    state.turn = QUIET_TURN;
+
+    let closest = distance(state, cargo, { col: 8, row: 8 });
+    for (let step = 0; step < 6; step++) {
+      refill(state);
+      barbarianTurn(state);
+      const now = distance(state, cargo, { col: 8, row: 8 });
+      expect(now).toBeLessThanOrEqual(closest);
+      closest = now;
+      // The guard shadows every step of the walk, never more than a hex behind
+      // — until the walk is over, at which point it is released and drifts (the
+      // release is pinned in `role derivation` above).
+      if (now > 0) expect(distance(state, escort, cargo)).toBeLessThanOrEqual(1);
+    }
+    expect({ col: cargo.col, row: cargo.row }).toEqual({ col: 8, row: 8 });
+  });
+
+  it('ignores a fresh target while it is walking a prisoner home', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    const cargo = createUnit(state, wild, 'worker', 12, 8);
+    createUnit(state, wild, 'warrior', 12, 9);
+    // A scout walks right past the escort. Escort duty outranks the fight.
+    const scout = createUnit(state, 0, 'scout', 13, 9);
+    recomputeAllVisibility(state);
+
+    state.turn = QUIET_TURN;
+    barbarianTurn(state);
+
+    const untouched = state.units.find((unit) => unit.id === scout.id)!;
+    expect(untouched.hp).toBe(unitDef('scout').maxHp);
+    expect(distance(state, cargo, { col: 8, row: 8 })).toBeLessThan(4);
+  });
+
+  it('sits on the camp once it arrives, and never founds anything', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    const cargo = createUnit(state, wild, 'settler', 8, 8);
+    state.turn = QUIET_TURN;
+
+    for (let step = 0; step < 5; step++) {
+      refill(state);
+      barbarianTurn(state);
+    }
+
+    expect({ col: cargo.col, row: cargo.row }).toEqual({ col: 8, row: 8 });
+    // A stolen settler is cargo: the wild founds nothing, ever.
+    expect(state.cities).toHaveLength(0);
+    expect(hasCampAt(state, 8, 8)).toBe(true);
+  });
+
+  it('does not count as the camp’s garrison', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    // A full band of prisoners parked on the camp must not suppress its musters:
+    // cargo is loot, not soldiers.
+    createUnit(state, wild, 'worker', 8, 8);
+    createUnit(state, wild, 'settler', 8, 7);
+    state.turn = 1 + BARB.unitEveryTurns;
+
+    musterCamps(state);
+    const soldiers = state.units.filter(
+      (unit) => unit.ownerId === wild && unitDef(unit.type).category === 'military',
+    );
+    expect(soldiers).toHaveLength(1);
+  });
+
+  it('leaves no standing orders behind for `resetMovement` to walk', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    createUnit(state, wild, 'worker', 13, 8);
+    createUnit(state, wild, 'warrior', 14, 8);
+    state.turn = QUIET_TURN;
+    barbarianTurn(state);
+
+    for (const unit of state.units) {
+      if (unit.ownerId !== wild) continue;
+      expect(Object.prototype.hasOwnProperty.call(unit, 'path')).toBe(false);
+    }
+  });
+});
+
+describe('rescue', () => {
+  it('takes the prisoner back by the same capture rule', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    state.camps.push({ col: 9, row: 5, foundedTurn: 1 });
+    const cargo = createUnit(state, wild, 'worker', 9, 5);
+    const rescuer = createUnit(state, 0, 'warrior', 8, 5);
+    recomputeAllVisibility(state);
+
+    const result = applyCommand(state, {
+      type: 'attack',
+      playerId: 0,
+      unitId: rescuer.id,
+      target: { col: 9, row: 5 },
+    });
+    expect(result.ok).toBe(true);
+    expect(state.units.find((unit) => unit.id === cargo.id)!.ownerId).toBe(0);
+    // Nothing was emptied, so nobody advanced and the camp still stands: the
+    // rescue and the bounty are two separate acts.
+    expect(hasCampAt(state, 9, 5)).toBe(true);
+  });
+
+  it('frees the laborers on a camp that is stormed, and says so', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    foundCityAt(state, 0, at(state, 5, 5));
+    state.camps.push({ col: 9, row: 5, foundedTurn: 1 });
+    const cargo = createUnit(state, wild, 'worker', 9, 5);
+    const guard = createUnit(state, wild, 'warrior', 9, 5);
+    guard.hp = 1;
+    const rescuer = createUnit(state, 0, 'swordsman', 8, 5);
+    recomputeAllVisibility(state);
+    const goldBefore = playerById(state, 0)!.gold;
+
+    const result = applyCommand(state, {
+      type: 'attack',
+      playerId: 0,
+      unitId: rescuer.id,
+      target: { col: 9, row: 5 },
+    });
+    expect(result.ok).toBe(true);
+    // The guard died, so the ground was takeable even with a civilian on it —
+    // and taking the ground took the prisoner with it.
+    expect(state.units.find((unit) => unit.id === guard.id)).toBeUndefined();
+    expect({ col: rescuer.col, row: rescuer.row }).toEqual({ col: 9, row: 5 });
+    expect(hasCampAt(state, 9, 5)).toBe(false);
+    expect(playerById(state, 0)!.gold).toBe(goldBefore + BARB.campClearGold);
+
+    const arrival = result.ok ? result.arrivals?.[0] : undefined;
+    expect(arrival?.camp?.gold).toBe(BARB.campClearGold);
+    expect(arrival?.captured).toEqual([
+      { id: cargo.id, type: 'worker', fromOwnerId: wild, fromWild: true },
+    ]);
+    expect(state.units.find((unit) => unit.id === cargo.id)!.ownerId).toBe(0);
+  });
+});
+
+describe('determinism', () => {
+  it('resolves a theft, an escort and a rescue the same way twice', () => {
+    const build = (): GameState => {
+      const state = wildState();
+      const wild = wildId(state);
+      state.camps.push({ col: 6, row: 8, foundedTurn: 1 });
+      createUnit(state, wild, 'warrior', 10, 8);
+      createUnit(state, wild, 'warrior', 10, 9);
+      createUnit(state, 0, 'worker', 9, 8);
+      createUnit(state, 0, 'worker', 11, 9);
+      createUnit(state, 0, 'warrior', 12, 8);
+      recomputeAllVisibility(state);
+      state.turn = QUIET_TURN;
+      return state;
+    };
+
+    const a = build();
+    const b = build();
+    for (let step = 0; step < 8; step++) {
+      refill(a);
+      refill(b);
+      barbarianTurn(a);
+      barbarianTurn(b);
+    }
+    // A theft happened at all — otherwise this asserts that two empty sweeps
+    // agree, which is not the claim.
+    expect(a.units.some((unit) => unit.ownerId === wildId(a) && unitDef(unit.type).category === 'civilian')).toBe(true);
+    expect(snapshotState(b)).toBe(snapshotState(a));
+  });
+});
+
 describe('replay', () => {
   it('reproduces a game with camps and raiders in it, byte for byte', () => {
     const game = createGame({
@@ -686,6 +1057,79 @@ describe('replay', () => {
     }
     expect(game.state.camps.length).toBeGreaterThan(0);
     expect(game.state.units.some((unit) => unit.ownerId === 1)).toBe(true);
+
+    const replayed = replay(game.config, game.log);
+    expect(snapshotState(replayed)).toBe(snapshotState(game.state));
+  });
+
+  it('reproduces a theft, an escort and a rescue byte for byte', () => {
+    const game = createGame({
+      seed: 4242,
+      sizeName: 'duel',
+      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
+      barbarians: true,
+    });
+    const wild = wildId(game.state);
+    const play = (turns: number): void => {
+      for (let turn = 0; turn < turns; turn++) {
+        if (playerById(game.state, 0)?.pendingDiscovery) {
+          dispatch(game, { type: 'chooseDiscovery', playerId: 0, optionIndex: 0 });
+        }
+        dispatch(game, { type: 'endTurn', playerId: 0 });
+      }
+    };
+    /** A hex beside `cell` this category could stand on, on real generated ground. */
+    const beside = (cell: { col: number; row: number }, category: 'military' | 'civilian') => {
+      for (const tile of mapRange(game.state.map, tileHex(at(game.state, cell.col, cell.row)), 1)) {
+        if (tile.col === cell.col && tile.row === cell.row) continue;
+        if (!isPassable(tile)) continue;
+        if (!hasStackingRoom(game.state, tile.col, tile.row, category)) continue;
+        return { col: tile.col, row: tile.row };
+      }
+      throw new Error('nowhere to stand');
+    };
+
+    // Far enough in that camps exist, then a worker and a raider set beside each
+    // other on real ground: the theft happens inside the resolution, in the log.
+    play(12);
+    const home = game.state.units.find((unit) => unit.ownerId === 0)!;
+    const worker = beside({ col: home.col, row: home.row }, 'civilian');
+    dispatch(game, { type: 'spawnUnit', playerId: 0, ownerId: 0, unitType: 'worker', at: worker });
+    dispatch(game, {
+      type: 'spawnUnit',
+      playerId: 0,
+      ownerId: wild,
+      unitType: 'warrior',
+      at: beside(worker, 'military'),
+    });
+    play(1);
+
+    const cargo = game.state.units.find(
+      (unit) => unit.ownerId === wild && unitDef(unit.type).category === 'civilian',
+    );
+    expect(cargo).toBeDefined();
+
+    // Two more turns of the walk home, then a rescuer set down beside whatever
+    // hex the cargo has reached, and the recapture — all three in the log.
+    play(2);
+    const rescuer = beside({ col: cargo!.col, row: cargo!.row }, 'military');
+    dispatch(game, {
+      type: 'spawnUnit',
+      playerId: 0,
+      ownerId: 0,
+      unitType: 'swordsman',
+      at: rescuer,
+    });
+    const blade = game.state.units.find(
+      (unit) => unit.ownerId === 0 && unit.col === rescuer.col && unit.row === rescuer.row,
+    )!;
+    dispatch(game, {
+      type: 'attack',
+      playerId: 0,
+      unitId: blade.id,
+      target: { col: cargo!.col, row: cargo!.row },
+    });
+    play(2);
 
     const replayed = replay(game.config, game.log);
     expect(snapshotState(replayed)).toBe(snapshotState(game.state));

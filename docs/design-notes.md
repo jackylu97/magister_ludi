@@ -1875,4 +1875,86 @@ in the announce line; inventing a destination would be worse than saying there i
   shape for an economy's baseline even if it is the right shape for an adventure. Roads,
   trade routes and markets remain the real answer.
 - Barbarian city capture, above.
-- The wander behaviour, above.
+- ~~The wander behaviour~~ — closed by H below, which replaced it with three roles.
+
+### H. Raiding: hunt, steal, escort home (user, 2026-08-24)
+
+The wander was on the open-flags list from the day it landed. What replaced it is **three
+roles and no memory**.
+
+**A unit's role is derived from the world every turn, never stored.** That is the load-bearing
+decision, and it is a determinism argument before it is a tidiness one. A `role` field on
+`Unit` would be *intent*: it would have to be serialised (every save grows a field), kept in
+step with a world that moves under it (a thief whose prey died, an escort whose cargo was
+rescued), and — fatally — **written by a phase**, so a replay would reproduce it only for as
+long as every write was reproduced in the same order. Derived intent has none of those
+problems by construction: `barbarianRoles` is a pure function of the board, a replay
+recomputes rather than trusts, and a hand-edited save cannot carry an opinion the world does
+not support. The two facts a memory would have carried are answered by geometry instead —
+*home* is the **nearest camp** (which on the turn after a theft is the captor's own camp, and
+is the better answer when it is not, because that camp may have burnt out), and *the captor*
+is **whichever soldier is standing nearest the cargo** (which on the turn after a theft is
+exactly the thief, because it is standing next to it and nobody else is).
+
+| role | what it does | when |
+| --- | --- | --- |
+| **cargo** | walks itself to the nearest camp at civilian speed, then sits on it | any barbarian-held civilian |
+| **escort** | keeps station on or beside its cargo, and does not fight at all | nearest soldier within `escortRadius` of a cargo not yet home |
+| **thief** | closes on one unguarded civilian and strikes it | nearest unspoken-for soldier within `theftRadius` of visible prey |
+| **raider** | v1: nearest visible thing in `aggressionRadius`, attack adjacent, else wander | everybody else |
+
+Priority is **escort > theft > raid**, expressed as the order the three derivation passes run
+in rather than as a rule anybody has to remember. A soldier walking a prisoner home ignores a
+scout that wanders past: a band that dropped its cargo every time something shinier appeared
+would never get one home, which is the entire behaviour. Both exclusivity rules — *one escort
+per cargo, one thief per prey* — fall out of deriving the whole table **once**, off the board
+before anybody has moved, which is the same argument the `veterans` snapshot makes.
+
+**Theft is not a mechanism.** A thief walks to the doorstep and attacks through `applyCombat`
+like any raider; the published tile-targeting priority (military, then city, then civilian)
+does the rest. So "barbarians steal workers" and "a warrior captures a settler" are one rule,
+and **a guarded civilian is safe from the wild for precisely the reason it is safe from an
+empire**: the blow hits the guard. Nothing was added to make that true. The wild guards its
+own loot the same way, by standing *on* the cargo's hex when it can.
+
+**One implementation of a change of hands**, `captureUnit` in `state.ts`, beside `createUnit`
+and `removeUnit` because it is the third fact of that kind. New owner, no movement left, no
+orders (they were the previous owner's plan), out of any trench; everything else kept,
+`chargesLeft` above all. It redraws both empires' fog, so its callers cost nothing.
+
+Two things were **extended** rather than invented, and both were forced by the same hole: a
+prisoner parked on a camp used to make that camp unclearable, because the hex that has to be
+arrived on could not be arrived on.
+
+1. **A melee winner may advance onto a tile still holding enemy civilians** (`canAdvanceOnto`
+   — `canStopOn` with "no foreign unit" weakened to "nothing left that can fight"). Civ V's
+   rule. It also makes "kill the escort, take the worker" one act instead of two turns of
+   hitting an empty hex.
+2. **The ground and the people on it change hands together**, in `arriveOnTile` — the one
+   implementation of "a unit came to rest on a hex and the hex had something on it", which
+   now resolves *camp, then prisoners, then the site*: the fight, the freeing, the search.
+   Being a rule about the **hex** rather than about the fight is what makes the two rescue
+   paths one mechanic: attack a lone cargo and it is captured; storm the camp it sits on and
+   it is freed with the bounty, announced as **"Your laborers are freed!"**.
+
+**A stolen settler needs no rule.** It is a unit in barbarian hands like any other, it will
+never found (barbarians do not found), and it is cargo — the other side of the "barbarians do
+not capture cities" decision above, which still stands. Cargo also does not count toward
+`maxUnitsPerCamp`: loot is not a garrison, or an empire could suppress a camp's musters by
+leaving it a worker to keep.
+
+**The wild carries no standing orders.** Every walk in the sweep ends with the unit's `path`
+deleted — stored routes are stored intent, `resetMovement` would resume them a few phases
+later (a free second march on a refilled allowance), and they would be an opinion formed on a
+board two turns stale.
+
+**The phase does not move.** Checked rather than assumed: cargo walks, escorts walk, thieves
+attack, so every argument in D is about the same two facts (an allowance that must not have
+been refilled, a board that must be the one the turn produced) and none of them changed.
+
+New tunables, both in `rules.barbarians`: `theftRadius` (5 — deliberately shorter than
+`aggressionRadius`; a band goes out of its way for a worker it can nearly touch, not across a
+province, and 0 switches thieving off) and `escortRadius` (2 — one hex looser than the station
+the escort actually keeps, so a guard that fell a step behind a two-move worker is not
+reassigned). Targeting still asks the wild's **own** fog through `isVisibleTo`: a civilian in
+country the wild has never seen is safe, and that is pinned.

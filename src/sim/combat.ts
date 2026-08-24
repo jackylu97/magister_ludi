@@ -62,7 +62,10 @@
  * One command, two resolutions, and the unit's data decides which: a type with
  * `rangedStrength` shoots, a type without it closes. Melee trades damage — the
  * defender hits back with its own strength, unless it is a civilian or a city —
- * and the survivor advances into a tile it emptied. Ranged is one-way: no
+ * and the survivor advances into a tile it emptied, **taking any civilians still
+ * standing on it** (`canAdvanceOnto`, and `arriveOnTile` for the transfer): the
+ * ground and the people on it change hands together, which is Civ V's rule and
+ * is what makes "kill the escort, take the worker" one act. Ranged is one-way: no
  * counter-damage, no advance, and a city floors at 1 hit point, which is the Civ
  * rule that stops archers taking capitals on their own.
  *
@@ -116,7 +119,7 @@
  * of five.
  */
 
-import { type ArrivalReport, arriveOnTile } from './arrival';
+import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { assignCitizens, cityAt } from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
 import {
@@ -126,13 +129,15 @@ import {
   tileHex,
   wrappedDistance,
 } from './map';
-import { type Cell, canStopOn } from './pathfind';
+import { type Cell, isPassable } from './pathfind';
 import { nextRange } from './rng';
 import { RULES } from './rulesData';
 import {
   type City,
   type GameState,
   type Unit,
+  breakFortify,
+  captureUnit,
   isBarbarian,
   realPlayers,
   removeUnit,
@@ -140,8 +145,8 @@ import {
 } from './state';
 import { defenseBonus } from './terrainData';
 import { isVisibleTo, recomputeVisibilityFor } from './visibility';
-import { type UnitDef, unitDef } from './unitData';
-import { unitsOnTile } from './units';
+import { isCivilian, isCombatant, isRanged, unitDef } from './unitData';
+import { hasStackingRoom, unitsOnTile } from './units';
 import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
 
 const COMBAT = RULES.combat;
@@ -149,27 +154,17 @@ const COMBAT = RULES.combat;
 // --- unit questions ---------------------------------------------------------
 
 /**
- * Does this type shoot?
+ * The three "what kind of piece is this" questions, re-exported from the unit
+ * table where they now live.
  *
- * THE test, asked of the data rather than of a name: `rangedStrength` and
- * `range` are declared as an optional pair (see `unitData.ts`), so a unit is
- * ranged exactly when a designer gave it a bow. Nothing here compares a type
- * against the string `"archer"`, for the same reason nothing compares against
- * `"settler"` to decide who may found a city.
+ * They were written here and they are still *asked* here — every rule in this
+ * file turns on one of them — but they read `UnitDef` and nothing else, and
+ * `arrival.ts` came to need `isCivilian` to know what a unit takes with a hex.
+ * `arrival.ts` cannot import this module (this module imports it), so the three
+ * moved down to `unitData.ts`, which every layer may ask. Same rule, same
+ * answers, one implementation; see the docblock there.
  */
-export function isRanged(def: UnitDef): boolean {
-  return def.rangedStrength !== undefined && def.range !== undefined;
-}
-
-/** True when the unit can attack at all: a soldier or a shooter, not a settler. */
-export function isCombatant(def: UnitDef): boolean {
-  return def.combatStrength > 0 || isRanged(def);
-}
-
-/** True when the unit is a civilian in combat terms — capturable, never a threat. */
-export function isCivilian(def: UnitDef): boolean {
-  return !isCombatant(def);
-}
+export { isCivilian, isCombatant, isRanged };
 
 // --- fortifying -------------------------------------------------------------
 
@@ -199,17 +194,14 @@ export function fortifyBonus(unit: Unit): number {
 /**
  * Shakes a unit out of its trench. Returns whether it was in one.
  *
- * The key is *deleted* rather than zeroed, because presence is the state (see
- * `Unit.fortifiedTurns`) and a unit that never fortified must serialise
- * identically to one that just stopped. Called from exactly two places, which
- * between them are the definition of the rule: `movement.ts`, when a unit's
- * position changes, and `applyCombat`, when it attacks.
+ * Re-exported rather than defined here, for `isCivilian`'s reason: `captureUnit`
+ * needs it and has to sit below `arrival.ts`, so the one line moved down to
+ * `state.ts` beside the other facts about a piece's existence. The rule is
+ * unchanged and its callers are what they always were — `movement.ts` when a
+ * unit's position changes, `applyCombat` when it attacks — plus the third moment
+ * a trench stops being yours, which is the unit no longer being yours.
  */
-export function breakFortify(unit: Unit): boolean {
-  if (unit.fortifiedTurns === undefined) return false;
-  delete unit.fortifiedTurns;
-  return true;
-}
+export { breakFortify };
 
 /**
  * Why this unit cannot fortify, or `null` when it can.
@@ -294,6 +286,40 @@ export function attackTargetAt(
   const civilian = foreign[0];
   if (civilian) return { unit: civilian, city: null };
   return null;
+}
+
+/**
+ * May a melee winner step onto the hex it just emptied?
+ *
+ * `canStopOn` with exactly one clause changed, and the change is the rule: an
+ * ordinary march may not end on a tile holding *any* foreign unit, while an
+ * attack that has killed the last thing able to swing back may end on a tile
+ * still holding the enemy's **civilians**. Taking the ground takes the people
+ * standing on it (`arriveOnTile`, which is where the transfer itself happens).
+ *
+ * This is Civ V's rule and it is here for two reasons beyond fidelity. It makes
+ * "kill the escort, take the worker" one act rather than two turns of hitting an
+ * empty hex — a stack of settler-plus-guard was otherwise a thing you could
+ * defeat repeatedly without ever getting anything. And it is what makes a
+ * barbarian camp with a stolen laborer parked on it *stormable at all*: under
+ * the old clause the prisoner blocked the advance, so the hex that had to be
+ * arrived on to clear the camp could not be arrived on. See ledger Entry XX.H.
+ *
+ * The foreign-combatant clause is kept rather than assumed away. With
+ * `stacking.perCategoryPerTile` at 1 no second soldier can be standing there
+ * once the defender is dead, but the *rule* is "nothing that can fight is left",
+ * not "the cap is one", and a designer raising the cap must not silently gain a
+ * unit that walks through armies.
+ */
+function canAdvanceOnto(state: GameState, attacker: Unit, tile: Tile): boolean {
+  if (!isPassable(tile)) return false;
+  const { category } = unitDef(attacker.type);
+  if (!hasStackingRoom(state, tile.col, tile.row, category, attacker.id)) return false;
+  for (const unit of unitsOnTile(state, tile.col, tile.row)) {
+    if (unit.ownerId === attacker.ownerId) continue;
+    if (isCombatant(unitDef(unit.type))) return false;
+  }
+  return true;
 }
 
 // --- the evaluator ----------------------------------------------------------
@@ -754,7 +780,10 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
   // 1 & 2 — the dice, and the damage they decide.
   let defenderDied = false;
   if (forecast.capturesUnit) {
-    capture(target.unit!, attacker.ownerId);
+    // The one implementation of a change of hands (`state.ts`), which the wild's
+    // thieves steal by and a rescuing empire takes back by — the same three
+    // lines, whoever is holding the spear. See `captureUnit`.
+    captureUnit(state, target.unit!, attacker.ownerId);
     outcome.capturedUnitId = target.unit!.id;
   } else {
     const dealt = clampDamage(
@@ -812,10 +841,9 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     delete attacker.path;
 
     // 5 — the advance. Only melee, only into a tile this attack emptied, and
-    // only when the unit could legally have stopped there anyway: a surviving
-    // enemy civilian, or a friendly unit already filling the stack, keeps the
-    // attacker where it is rather than teleporting anybody.
-    if (forecast.kind === 'melee' && defenderDied && canStopOn(state, attacker, tile)) {
+    // only when the ground is actually takeable — see `canAdvanceOnto`, which is
+    // `canStopOn` with the one clause a victory changes.
+    if (forecast.kind === 'melee' && defenderDied && canAdvanceOnto(state, attacker, tile)) {
       attacker.col = tile.col;
       attacker.row = tile.row;
       outcome.advanced = true;
@@ -829,7 +857,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       // serialise differently from one taken before sites existed, and the
       // reducer would hand a `CommandResult` an arrivals array to say so.
       const found = arriveOnTile(state, attacker, tile);
-      if (found.discovery !== null || found.camp !== null) outcome.arrival = found;
+      if (!isEmptyArrival(found)) outcome.arrival = found;
     }
   }
 
@@ -853,21 +881,6 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
 /** What a piece looked like the instant before it left the board. */
 function snapshotFallen(unit: Unit): CombatOutcome['killed'][number] {
   return { id: unit.id, type: unit.type, ownerId: unit.ownerId, col: unit.col, row: unit.row };
-}
-
-/**
- * A civilian changes hands: new owner, no movement left this turn, no orders.
- *
- * The orders are cleared because they were the *previous* owner's plan and a
- * captured settler marching back to its old capital would be absurd. It does not
- * move, and neither does its captor — advancing is tied to a tile being emptied,
- * and a captured civilian is still standing on this one.
- */
-function capture(unit: Unit, ownerId: number): void {
-  unit.ownerId = ownerId;
-  unit.movesLeft = 0;
-  delete unit.path;
-  breakFortify(unit);
 }
 
 /**
