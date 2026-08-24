@@ -1441,6 +1441,9 @@ Entry I's commitments are audited.
 4. **The stage is defined by where the effect APPLIES, not where it is held.** Coral's
    "+20% science in each coastal city" is city-stage even though the seam is one tile;
    a happiness tier's "+10% science" is global-stage even though it lands on every city.
+   **Clarified (user, 2026-08-24): every luxury percent phrased "+X% in cities" — whether
+   all-cities or coastal-scoped — is CITY-stage.** With today's content the global stage
+   contains only the meter tiers; it grows only by deliberate, sparing addition (rule 5).
 5. **Global percents are used SPARINGLY** — meters, and a handful of late, run-defining
    effects. City percents are the default shape for content.
 6. Every stage's sum is a labelled line in the breakdown it modifies (rule 5): the reader
