@@ -441,8 +441,28 @@ export interface GameControls {
    * way out. The board's own tiles are handled by hover picking.
    */
   setHoveredCity(cityId: number | null): void;
-  /** Re-reads the game and repaints; call after replacing the game object. */
-  refresh(): void;
+  /**
+   * Re-reads the game and repaints; call after replacing the game object.
+   *
+   * `seatId` is which chair the client sits down in, and it defaults to the
+   * first — a new game is a new table and seat 0 is where a new table starts.
+   * A *loaded* game is the exception and the reason the argument exists: the
+   * save says nothing about who was looking at it (`localPlayerId` is an
+   * interface fact, hard rule 3), so the caller derives the seat and passes it
+   * (`resumeSeat` in `saves.ts`).
+   */
+  refresh(seatId?: number): void;
+
+  /**
+   * Puts a line in the context card's message slot, in the "this happened"
+   * voice — the same slot and the same beat a captured city announces itself
+   * in, without the flinch a refusal carries.
+   *
+   * Exposed for the page's own news, which is news about the *session* rather
+   * than about an order: a game resumed from a file, today. Everything the board
+   * itself has to say already goes through here from the inside.
+   */
+  announce(text: string): void;
   /**
    * Ends the local player's turn, as the button and the Enter key both do —
    * unless the seat has unfinished business, in which case it takes the player
@@ -2700,12 +2720,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     isMoveMode: () => moveMode,
     isBuyMode: () => buyMode,
     localPlayerId: () => localPlayerId,
+    announce,
     /**
      * Re-reads the game after it has been replaced. A new game is a new table:
-     * the local seat goes back to the first player and the camera opens on their
-     * units, instantly — there is no previous view to travel from.
+     * the local seat goes to the seat asked for — the first, for a new game, and
+     * whichever seat a loaded save implies for a resumed one — and the camera
+     * opens on their units, instantly, because there is no previous view to
+     * travel from.
      */
-    refresh: () => {
+    refresh: (seatId = 0) => {
       selectedId = null;
       openCityId = null;
       // City ids do not survive a new game; the lens the player chose does.
@@ -2713,7 +2736,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // Nor do unit ids — a stale skip could otherwise silence a fresh unit
       // that only happens to reuse a low id.
       skippedUnitIds.clear();
-      localPlayerId = 0;
+      localPlayerId = seatId;
+      // The board is masked by whoever is sitting at it, and this seat may not
+      // be the one the last game left behind — the same first move
+      // `setLocalPlayer` makes, and for the same reason: an overlay computed
+      // against the previous seat's fog would be drawn over ground this one has
+      // never seen.
+      renderer.setFogSeat?.(localPlayerId);
       setMoveMode(false);
       refreshOverlays();
       showLocalPlayer(false);

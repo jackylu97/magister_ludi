@@ -89,8 +89,73 @@
             <button id="random-seed" class="btn btn-quiet" type="button">Random</button>
           </div>
 
+          <!-- Picking up where you left off. Continue is the newest save of any
+               kind — autosave or a named one, whichever is later — and it hides
+               itself when there is nothing to resume, so a first-ever visit sees
+               exactly the form it always saw. Load… stays whatever the shelf
+               holds, because an empty shelf is where Import is needed most. -->
+          <div class="row landing-resume">
+            <button id="continue-game" class="btn btn-second" type="button" hidden>
+              <span>Continue</span>
+              <span id="continue-label" class="btn-sub"></span>
+            </button>
+            <button id="landing-load" class="btn btn-quiet" type="button">Load…</button>
+          </div>
+
           <p id="landing-error" class="landing-error" hidden></p>
         </form>
+      </div>
+    </div>
+
+    <!-- ================= the load list ============================
+         The save shelf, built by src/ui/savesPanel.ts. A screen rather than a
+         card because it opens from two places that could not share one: the
+         landing, which is the whole page while it is up, and the ☰ menu, which
+         is a popover with no room for a scrolling list. It therefore sits above
+         the landing in the stack — it is the only surface that does.
+
+         Nothing here decides anything: every check a save has to pass is in
+         src/ui/saves.ts, and this markup is the rows and the two ways in.
+         ============================================================ -->
+    <div
+      id="saves-overlay"
+      class="saves-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Load game"
+      hidden
+    >
+      <div class="hud-card saves-sheet">
+        <div class="popover-head">
+          <h2 class="popover-title">Load <em>game</em></h2>
+          <button id="saves-close" class="popover-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </div>
+
+        <div id="saves-list" class="saves-list"></div>
+        <p id="saves-empty" class="hint" hidden>
+          No saves yet. A game autosaves at the end of every turn.
+        </p>
+        <p id="saves-error" class="landing-error" hidden></p>
+
+        <div class="row saves-foot">
+          <button id="saves-import" class="btn btn-quiet" type="button">Import a file…</button>
+          <!-- The picker itself, never seen: Import clicks it. Off the tab
+               order, because the button above it is the control — but a real
+               focusable input all the same, since `display: none` is the one
+               way to hide it that also stops `click()` opening anything. -->
+          <input
+            id="saves-file"
+            class="visually-hidden"
+            type="file"
+            accept="application/json,.json"
+            tabindex="-1"
+          />
+        </div>
+        <p class="hint">
+          Saves are this browser's. Export a file to keep one, or to move it.
+        </p>
       </div>
     </div>
 
@@ -160,7 +225,11 @@
       <!-- One chip per seat: who is playing, and who has already ended their
            turn. Clicking one takes that seat — hot-seat play, kept as a
            development harness now that turns are simultaneous. -->
-      <div id="seats" class="seats"></div>
+      <!-- `seat-strip`, not `seats`: the landing's seat-count <select> already
+           owns that id, and `getElementById` answered with *it* — so the chips
+           were being written into the dropdown, which both emptied the landing's
+           Seats control after the first game and left this strip blank. -->
+      <div id="seat-strip" class="seats"></div>
 
       <div class="topbar-tools">
         <!-- The Abacus: the score, as an object on the table rather than a
@@ -339,6 +408,41 @@
         <!-- The renderer's own switches (shadows) and its stats line are appended
              here by main.ts, because only the 3D pipeline has any. -->
         <div id="menu-extras"></div>
+
+        <!-- Saving. Four verbs, in the order they are reached for: Save
+             overwrites one quick slot without asking anything, Save As names a
+             slot, Load opens the shelf, and Export hands the file to the player.
+             None of them is destructive on its own — Load asks in the list, and
+             an overwrite asks in the row below. -->
+        <div class="row save-row-menu">
+          <button id="menu-save" class="btn btn-quiet" type="button" title="Quick-save">
+            Save
+          </button>
+          <button id="menu-save-as" class="btn btn-quiet" type="button">Save As…</button>
+          <button id="menu-load" class="btn btn-quiet" type="button">Load…</button>
+          <button id="menu-export" class="btn btn-quiet" type="button" title="Download this game as a file">
+            Export
+          </button>
+        </div>
+
+        <!-- Save As, asked in place: the name field swaps into the row rather
+             than opening a dialog, exactly as the Restart confirm below does.
+             A form, so Enter submits it. -->
+        <form id="save-as" class="row save-as" hidden>
+          <input
+            id="save-as-name"
+            type="text"
+            placeholder="Name this save"
+            spellcheck="false"
+            maxlength="48"
+          />
+          <button id="save-as-go" class="btn btn-primary" type="submit">Save</button>
+          <button id="save-as-cancel" class="btn btn-quiet" type="button">Cancel</button>
+        </form>
+
+        <!-- What the last save press did, or why it could not. One line, cleared
+             whenever the menu opens. -->
+        <p id="menu-save-note" class="hint save-note" hidden></p>
 
         <!-- Restart asks first, in place: a game is thirty turns of somebody's
              afternoon, and the button that throws it away sits two clicks from

@@ -69,6 +69,24 @@ import {
 } from './ui/tileReadout';
 import { explainDiscoveryOffer } from './sim/discoveries';
 import { unitsOnTile } from './sim/units';
+import {
+  QUICKSAVE_SLOT,
+  createAutosaver,
+  exportFilename,
+  loadSlot,
+  makeSavePayload,
+  namedSlotId,
+  newestSlot,
+  readSlot,
+  resumeSeat,
+  writeSave,
+} from './ui/saves';
+import {
+  createSavesPanel,
+  downloadJson,
+  openSaveStorage,
+  savedAtLabel,
+} from './ui/savesPanel';
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
@@ -108,7 +126,10 @@ const restartConfirmEl = requireElement<HTMLElement>('restart-confirm');
 const restartYesButton = requireElement<HTMLButtonElement>('restart-yes');
 const restartNoButton = requireElement<HTMLButtonElement>('restart-no');
 const statusEl = requireElement<HTMLElement>('status');
-const seatsEl = requireElement<HTMLElement>('seats');
+/* The HUD's seat chips. Distinct from `seatsSelect` above, which is the
+   landing's seat-count dropdown — they shared an id until 2026-08-24, and
+   `getElementById` gave both of these the dropdown. */
+const seatsEl = requireElement<HTMLElement>('seat-strip');
 const civYieldsEl = requireElement<HTMLElement>('civ-yields');
 /* The two meter cards, hung under the left end of the bar. The chips that open
    them are built by `topBar.ts` inside #civ-yields, so the triggers are its to
@@ -154,6 +175,24 @@ const techChartEl = requireElement<HTMLElement>('tech-chart');
 const abacusButton = requireElement<HTMLButtonElement>('abacus-button');
 const abacusOverlayEl = requireElement<HTMLElement>('abacus-overlay');
 const abacusStageEl = requireElement<HTMLElement>('abacus-stage');
+/**
+ * Saving and loading: the landing's resume row, the ☰ menu's four verbs, and the
+ * load list that both of them open. See `src/ui/saves.ts` for what a save *is*
+ * and `src/ui/savesPanel.ts` for the list; what is here is the wiring.
+ */
+const continueButton = requireElement<HTMLButtonElement>('continue-game');
+const continueLabelEl = requireElement<HTMLElement>('continue-label');
+const landingLoadButton = requireElement<HTMLButtonElement>('landing-load');
+const menuSaveButton = requireElement<HTMLButtonElement>('menu-save');
+const menuSaveAsButton = requireElement<HTMLButtonElement>('menu-save-as');
+const menuLoadButton = requireElement<HTMLButtonElement>('menu-load');
+const menuExportButton = requireElement<HTMLButtonElement>('menu-export');
+const saveAsForm = requireElement<HTMLFormElement>('save-as');
+const saveAsNameInput = requireElement<HTMLInputElement>('save-as-name');
+const saveAsGoButton = requireElement<HTMLButtonElement>('save-as-go');
+const saveAsCancelButton = requireElement<HTMLButtonElement>('save-as-cancel');
+const menuSaveNoteEl = requireElement<HTMLElement>('menu-save-note');
+
 const contextEl = requireElement<HTMLElement>('hud-context');
 const contextNoticeEl = requireElement<HTMLElement>('context-notice');
 const combatForecastEl = requireElement<HTMLElement>('combat-forecast');
@@ -247,8 +286,10 @@ const menu = createPopover({
     lens.close();
     meterCards?.close();
     // A card that opens showing "Restart?" is a card that will eventually be
-    // answered by accident.
+    // answered by accident. The save row is reset for the same reason, plus one
+    // of its own: its message line reports a moment, and the moment has passed.
     setRestartConfirm(false);
+    resetSaveMenu();
   },
 });
 const help = createPopover({
@@ -270,6 +311,69 @@ const lens = createPopover({
     help.close();
     meterCards?.close();
   },
+});
+
+// --- saving and loading -----------------------------------------------------
+
+/**
+ * The save shelf, opened once for the life of the page. See `openSaveStorage`:
+ * a browser that will not persist anything gets a shelf that lasts for the tab
+ * rather than a feature that is missing.
+ */
+const saveStorage = openSaveStorage();
+
+/**
+ * Hides the ☰ menu's Save As field and its last message.
+ *
+ * Called whenever the menu opens, for the reason the Restart confirm is reset
+ * there: a card that opens showing a half-typed name, or "Saved at turn 12" from
+ * ten minutes ago, is a card saying something that is no longer true.
+ */
+function resetSaveMenu(): void {
+  saveAsForm.hidden = true;
+  menuSaveNoteEl.hidden = true;
+  menuSaveNoteEl.textContent = '';
+  menuSaveNoteEl.classList.remove('is-error');
+  saveAsGoButton.textContent = 'Save';
+  pendingOverwrite = null;
+}
+
+/**
+ * The slot a second press of Save As would overwrite, or `null`.
+ *
+ * The overwrite confirm, without a second surface to put it on: the first
+ * submit for a name already on the shelf says so and arms this, and the next
+ * submit of the *same* name goes through. Any other name disarms it, so the
+ * confirm can never be spent on a save the player did not mean.
+ */
+let pendingOverwrite: string | null = null;
+
+/**
+ * The name the next quick save and the next export wear. It follows whatever
+ * the player last called this game, so exporting after a Save As gets the file
+ * they just named rather than a house default.
+ */
+let currentSaveName = 'Magister Ludi';
+
+/**
+ * The load list. Built at module scope, with the other cards, because the
+ * landing needs it before any game exists — Load is one of the two things a
+ * player can do on a cold page.
+ */
+const savesPanel = createSavesPanel({
+  overlay: requireElement('saves-overlay'),
+  list: requireElement('saves-list'),
+  closeButton: requireElement('saves-close'),
+  importButton: requireElement('saves-import'),
+  fileInput: requireElement<HTMLInputElement>('saves-file'),
+  emptyNote: requireElement('saves-empty'),
+  errorEl: requireElement('saves-error'),
+  storage: saveStorage,
+  // Only once a game is up *and* on screen: with the landing showing, the game
+  // behind it has already been walked away from (Restart), so there is nothing
+  // left to ask about.
+  abandonsGame: () => takeOverGame !== null && landingEl.hidden,
+  onLoad: (loaded) => void beginGame(loaded),
 });
 
 /**
@@ -304,27 +408,47 @@ function closePopovers(): boolean {
     lens.isOpen ||
     (meterCards?.isOpen ?? false) ||
     (techTree?.isOpen ?? false) ||
-    (abacus?.isOpen ?? false);
+    (abacus?.isOpen ?? false) ||
+    savesPanel.isOpen;
   menu.close();
   help.close();
   lens.close();
   meterCards?.close();
   techTree?.close();
   abacus?.close();
+  savesPanel.close();
   return wasOpen;
 }
 
 // --- the landing screen -----------------------------------------------------
 
 /**
- * Starts a fresh game from the landing's fields, or `null` before the first one
- * has ever started.
+ * Puts a game on the built page — a loaded one, or `null` for a fresh game from
+ * the landing's fields. `null` *itself* before `boot` has ever run.
  *
  * It doubles as the record of whether `boot` has run: the whole page — renderer,
- * controls, panels — is built once, on the first Start, and every Start after
- * that is an ordinary new game.
+ * controls, panels — is built once, on the first Start, and every start after
+ * that goes through here instead. Loading is the same journey with a game that
+ * already exists, which is why one holder carries both.
  */
-let startNewGame: (() => void) | null = null;
+let takeOverGame: ((next: Game | null) => void) | null = null;
+
+/**
+ * The landing's Continue button: what it says, and whether it is there at all.
+ *
+ * The newest save of any kind — the rolling autosave and a named slot compete on
+ * one clock, because "where I was" is a question about time and not about which
+ * button wrote it. Nothing to resume hides the button rather than disabling it:
+ * a first-ever visit should see the form it always saw, not a dead control
+ * explaining an absence.
+ */
+function refreshResumeRow(): void {
+  const slot = newestSlot(saveStorage);
+  continueButton.hidden = slot === null;
+  continueLabelEl.textContent =
+    slot === null ? '' : `Turn ${slot.turn} · ${savedAtLabel(slot.savedAt)}`;
+  continueButton.title = slot === null ? '' : `Resume “${slot.name}”`;
+}
 
 function showLanding(): void {
   // Nothing from the game may be left standing in front of the landing. The
@@ -343,6 +467,9 @@ function showLanding(): void {
   // as well as by the stylesheet, so "is the landing up?" has one answer.
   landingEl.hidden = false;
   landingErrorEl.hidden = true;
+  // The shelf may have grown since the last time this screen was up — the game
+  // that just ended autosaved every turn of it.
+  refreshResumeRow();
   // The button, not the seed field: Start is what the player came here to press,
   // and Shift+Tab reaches the two fields above it.
   startButton.focus();
@@ -360,20 +487,26 @@ function setRestartConfirm(asking: boolean): void {
 }
 
 /**
- * The Start button, for both of its jobs: building the page the first time, and
- * starting a new game every time after.
+ * The way into a game, for all three of its jobs: building the page the first
+ * time, starting a new game every time after, and resuming a loaded one.
+ *
+ * `loaded` is a game that has already been fully replayed (see `saves.ts` — a
+ * `Game` never exists here unless every command in its log was accepted), so
+ * from this point down a resumed game and a fresh one are the same object and
+ * take the same path. That is the whole of "the game boots exactly as a fresh
+ * game does": there is one boot, and one hand-over.
  *
  * The button is disabled for the duration because the first press is genuinely
  * slow — a sprite set to fetch, or a board to bake — and a second press
  * mid-build would run the whole boot twice.
  */
-async function beginGame(): Promise<void> {
+async function beginGame(loaded: Game | null = null): Promise<void> {
   if (startButton.disabled) return;
   startButton.disabled = true;
   landingErrorEl.hidden = true;
   try {
-    if (startNewGame) startNewGame();
-    else await boot();
+    if (takeOverGame) takeOverGame(loaded);
+    else await boot(loaded);
     hideLanding();
   } catch (error) {
     // A missing sprite or a dead WebGL context is a build problem, not a blank
@@ -398,6 +531,32 @@ randomSeedButton.addEventListener('click', () => {
   seedInput.value = String(Math.floor(Math.random() * 1_000_000));
   seedInput.focus();
 });
+
+/**
+ * Continue: the newest save, loaded straight, with no list in between.
+ *
+ * The refusal lands on the landing's own error line rather than in the list,
+ * because the player never opened a list — they pressed one button and it did
+ * not work, and the sentence belongs where they are looking. A save too broken
+ * to load is also a save that should stop being offered, so the row is rebuilt.
+ */
+continueButton.addEventListener('click', () => {
+  const slot = newestSlot(saveStorage);
+  const result = slot === null ? null : loadSlot(saveStorage, slot.id);
+  if (result === null || !result.ok) {
+    landingErrorEl.textContent =
+      result === null ? 'That save is no longer there.' : result.error;
+    landingErrorEl.hidden = false;
+    if (result !== null && !result.ok && result.detail !== undefined) {
+      console.error(`[magister-ludi save] ${result.detail}`);
+    }
+    refreshResumeRow();
+    return;
+  }
+  void beginGame(result.game);
+});
+
+landingLoadButton.addEventListener('click', () => savesPanel.open());
 
 restartButton.addEventListener('click', () => setRestartConfirm(true));
 restartNoButton.addEventListener('click', () => {
@@ -769,9 +928,15 @@ async function createRenderer(
  * Builds the whole page around a first game: the renderer, the input layer, the
  * HUD and every panel. Runs exactly once, inside the first Start press — see the
  * boot-order note at the top of the file.
+ *
+ * `initial` is a game loaded from a save, when the first press was Continue or a
+ * row in the load list rather than Start. It is the *only* difference a resumed
+ * game makes to this function: everything below builds around whatever `game`
+ * turns out to be, and the two paths rejoin at the bottom where the seat is
+ * chosen.
  */
-async function boot(): Promise<void> {
-  let game: Game = createGame(currentConfig());
+async function boot(initial: Game | null): Promise<void> {
+  let game: Game = initial ?? createGame(currentConfig());
   const { view: renderer, report } = await createRenderer(artMode(), game);
 
   /**
@@ -1046,6 +1211,25 @@ async function boot(): Promise<void> {
     );
   }
 
+  /**
+   * The rolling autosave, written after every turn resolution.
+   *
+   * Declared before `controls` because the hook it hangs off is one of that
+   * object's callbacks; it reaches back into `controls` for its one warning,
+   * which is safe because a callback cannot fire before the thing that owns it
+   * exists.
+   */
+  const autosave = createAutosaver({
+    storage: saveStorage,
+    onWarn: (message) => {
+      // Once per session, by construction (see `createAutosaver`) — so this is
+      // allowed to use the loud slot rather than only the console.
+      console.warn(`[magister-ludi] ${message}`);
+      controls.announce(message);
+      refreshResumeRow();
+    },
+  });
+
   const controls = createGameControls({
     viewport: viewportEl,
     renderer,
@@ -1060,6 +1244,9 @@ async function boot(): Promise<void> {
       !landingEl.hidden ||
       (techTree?.isOpen ?? false) ||
       (abacus?.isOpen ?? false) ||
+      // The load list is the third such screen, and the only one that can be up
+      // while the landing is: it handles its own Escape (see `savesPanel.ts`).
+      savesPanel.isOpen ||
       // The offer card is the one genuinely blocking surface here: it owns the
       // keyboard while it is up, and there is nothing to escape to (see
       // `offerCard.ts`).
@@ -1070,6 +1257,10 @@ async function boot(): Promise<void> {
     onOpenTechTree: () => techTree?.open(),
     onOfferDiscovery: showDiscoveryOffer,
     onTurnResolved: (_turn, research) => {
+      // The turn is over and the next one has not been touched, which is the one
+      // moment in a game where the log is a clean place to come back to. Before
+      // the announcements, so a save is taken even if a splash throws.
+      autosave.save(game, Date.now());
       // A discovery outranks the turn card: "your turn" happens every turn,
       // and a technology lands twenty times in a game. The upgrade tally rides
       // underneath it, because a warrior that quietly became a swordsman is
@@ -1415,7 +1606,16 @@ async function boot(): Promise<void> {
     onClose: () => controls.clearSelection(),
   });
 
-  function newGameFromControls(): void {
+  /**
+   * Puts a game on the built page: a fresh one from the landing's fields when
+   * `next` is `null`, or a loaded one when it is not.
+   *
+   * The two are deliberately one function. "After a load the game boots exactly
+   * as a fresh game does" is not a thing to remember to do — it is what happens
+   * because there is no second path to get it wrong in. The only branch is the
+   * seat, and the sentence at the end.
+   */
+  function adoptGame(next: Game | null): void {
     // An announcement about the game that just ended has nothing to say about
     // the one starting, so it goes with it.
     splash.clear();
@@ -1427,18 +1627,117 @@ async function boot(): Promise<void> {
     // and the rebuild happens on the next open, if there ever is one.
     abacus?.close();
     abacus?.refresh();
-    game = createGame(currentConfig());
+    game = next ?? createGame(currentConfig());
+    // The turn guard is about *this* game's turns. A resumed game is very often
+    // at a turn number the last one also reached, and without this its first
+    // autosave would be swallowed as a duplicate.
+    autosave.reset();
     renderer.setGameState(game.state);
-    controls.refresh();
+    controls.refresh(next === null ? 0 : resumeSeat(game.state));
     updateMapInfo();
     updatePanel(null, null);
     report();
+    // The name follows the game, so an export straight after a load offers the
+    // file the player recognises rather than the house default.
+    if (next !== null) {
+      controls.announce(`Resumed at turn ${game.state.turn}.`);
+    }
   }
 
-  // Every Start after this one comes back through here rather than through
-  // `boot`: a restart is a new game, and this is the path a new game has always
-  // taken — one that resets the selection, the lens, the panels and the camera.
-  startNewGame = newGameFromControls;
+  // Every start after this one comes back through here rather than through
+  // `boot`: a restart is a new game and a load is a game that already exists,
+  // and this is the path both take — one that resets the selection, the lens,
+  // the panels and the camera.
+  takeOverGame = adoptGame;
+
+  // --- the menu's save verbs ------------------------------------------------
+
+  /** The ☰ menu's one message line: what the last press did, or why it did not. */
+  function saveNote(text: string, isError: boolean): void {
+    menuSaveNoteEl.textContent = text;
+    menuSaveNoteEl.hidden = false;
+    menuSaveNoteEl.classList.toggle('is-error', isError);
+  }
+
+  /**
+   * Writes a slot and says so. The one place a save is taken from the menu, so
+   * the shelf-dependent surfaces are refreshed in exactly one place too.
+   */
+  function saveTo(slotId: string, name: string): void {
+    const result = writeSave(saveStorage, slotId, makeSavePayload(game, name, Date.now()));
+    if (!result.ok) {
+      saveNote(result.error, true);
+      return;
+    }
+    currentSaveName = name;
+    saveNote(`Saved “${name}” at turn ${game.state.turn}.`, false);
+    savesPanel.refresh();
+    refreshResumeRow();
+  }
+
+  menuSaveButton.addEventListener('click', () => {
+    resetSaveMenu();
+    saveTo(QUICKSAVE_SLOT, 'Quick Save');
+  });
+
+  menuSaveAsButton.addEventListener('click', () => {
+    resetSaveMenu();
+    saveAsForm.hidden = false;
+    saveAsNameInput.value = currentSaveName === 'Magister Ludi' ? '' : currentSaveName;
+    saveAsNameInput.focus();
+    saveAsNameInput.select();
+  });
+
+  saveAsCancelButton.addEventListener('click', () => {
+    resetSaveMenu();
+    menuSaveAsButton.focus();
+  });
+
+  /**
+   * Save As, with the overwrite confirm folded into the button rather than into
+   * a second surface: the first submit of a name already on the shelf says so
+   * and arms the confirm, and submitting *that same name* again goes through.
+   * Typing a different name disarms it, so the confirm cannot be spent on a save
+   * the player did not mean to answer for.
+   */
+  saveAsForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const name = saveAsNameInput.value.trim();
+    if (name === '') {
+      saveNote('Give the save a name.', true);
+      saveAsNameInput.focus();
+      return;
+    }
+    const slotId = namedSlotId(name);
+    if (pendingOverwrite !== slotId && readSlot(saveStorage, slotId) !== null) {
+      pendingOverwrite = slotId;
+      saveAsGoButton.textContent = 'Overwrite';
+      saveNote(`A save called “${name}” already exists.`, true);
+      return;
+    }
+    pendingOverwrite = null;
+    saveAsForm.hidden = true;
+    saveAsGoButton.textContent = 'Save';
+    saveTo(slotId, name);
+  });
+
+  menuLoadButton.addEventListener('click', () => {
+    resetSaveMenu();
+    // The menu goes: the list is a screen, and a card left open underneath it
+    // would be a card the player comes back to having abandoned its game.
+    menu.close();
+    savesPanel.open();
+  });
+
+  menuExportButton.addEventListener('click', () => {
+    resetSaveMenu();
+    // Straight off the live game rather than out of a slot: Export is "give me
+    // *this*", and asking the player to save first would be an extra step whose
+    // only purpose is to make the file exist somewhere else first.
+    const payload = makeSavePayload(game, currentSaveName, Date.now());
+    downloadJson(exportFilename(payload), JSON.stringify(payload));
+    saveNote(`Exported ${exportFilename(payload)}.`, false);
+  });
 
   // Shift is the override, on the button as well as on the key it wears: a
   // keyboard activation of a focused button carries the modifier through to the
@@ -1456,5 +1755,10 @@ async function boot(): Promise<void> {
   // After the first resize, never before: a 3D board framed against a viewport
   // that had not been laid out yet re-frames itself in `resize`, which would
   // undo the opening view of the local player's units.
-  controls.refresh();
+  //
+  // The seat is the one thing the first press can differ about: a fresh game
+  // opens at seat 0, and a resumed one at whichever seat its flags imply (see
+  // `resumeSeat`). Everything above this line was built the same way either way.
+  controls.refresh(initial === null ? 0 : resumeSeat(game.state));
+  if (initial !== null) controls.announce(`Resumed at turn ${game.state.turn}.`);
 }

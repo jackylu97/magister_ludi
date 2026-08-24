@@ -9,6 +9,7 @@ import {
   restoreState,
   saveGame,
   snapshotState,
+  tryReplay,
 } from '../../src/sim/game';
 import { tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { type Cell, findPath, reachableTiles } from '../../src/sim/pathfind';
@@ -101,6 +102,43 @@ describe('replay', () => {
   it('reproduces an untouched game too', () => {
     const game = createGame(config());
     expect(replay(game.config, game.log)).toEqual(game.state);
+  });
+
+  it('throws on a command the rules will not take, naming where it stopped', () => {
+    const game = createGame(config());
+    endTurns(game, 2);
+    const broken: Command[] = [...game.log];
+    broken.splice(1, 0, { type: 'moveUnit', playerId: 0, unitId: 9999, target: { col: 1, row: 1 } });
+    expect(() => replay(game.config, broken)).toThrow(/command 1 \(moveUnit\)/);
+  });
+
+  it('tryReplay reports that refusal instead of throwing, and replay is its façade', () => {
+    // The split exists for the loader (`src/ui/saves.ts`): a file the player
+    // chose needs an index and a sentence, not an exception to read a message
+    // out of. Same walk, so the two must agree about where it stopped.
+    const game = createGame(config());
+    endTurns(game, 2);
+    const broken: Command[] = [...game.log];
+    broken.splice(1, 0, { type: 'moveUnit', playerId: 0, unitId: 9999, target: { col: 1, row: 1 } });
+
+    const result = tryReplay(game.config, broken);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.failure.index).toBe(1);
+    expect(result.failure.type).toBe('moveUnit');
+    expect(result.failure.error).not.toBe('');
+
+    const good = tryReplay(game.config, game.log);
+    expect(good.ok).toBe(true);
+    if (!good.ok) return;
+    expect(snapshotState(good.state)).toBe(snapshotState(game.state));
+  });
+
+  it('tryReplay still throws on a config the simulation cannot build', () => {
+    // A bad config is not a command the log got wrong — it is a game that
+    // cannot exist — so it stays an exception, and the loader catches it
+    // separately to print the sim's own sentence.
+    expect(() => tryReplay(config({ sizeName: 'gargantuan' }), [])).toThrow(/gargantuan/);
   });
 
   it('reproduces a game of moves, spawns and turns exactly', () => {

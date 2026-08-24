@@ -78,20 +78,62 @@ export function dispatch(game: Game, command: Command): CommandResult {
   return result;
 }
 
+/** Which command a replay stopped on, and what the reducer said about it. */
+export interface ReplayFailure {
+  /** Index into the log. The one number a corrupt-save report is worth having. */
+  index: number;
+  /** The command's `type`, as read off the log — untrusted, for the console only. */
+  type: string;
+  /** The reducer's own refusal. */
+  error: string;
+}
+
+export type ReplayResult =
+  | { ok: true; state: GameState }
+  | { ok: false; failure: ReplayFailure };
+
+/**
+ * Rebuilds a state from scratch, reporting a rejected command rather than
+ * throwing on it.
+ *
+ * This is the loop; `replay` is its throwing façade. The split exists because a
+ * *file* the player chose is a different thing from a log the program produced:
+ * a save picked off a disk may be from another build, hand-edited, or truncated,
+ * and the loader owes the player a sentence and the console an index rather than
+ * an exception it would have to read a message out of. Same walk either way, so
+ * there is one implementation of "apply the log in order and stop at the first
+ * refusal".
+ *
+ * A bad *config* still throws — from `newGame`, which validates it — because
+ * that is not a command the log got wrong, it is a game that cannot be built.
+ */
+export function tryReplay(config: GameConfig, log: readonly Command[]): ReplayResult {
+  const state = newGame(config);
+  for (let i = 0; i < log.length; i++) {
+    const command = log[i]!;
+    const result = applyCommand(state, command);
+    if (!result.ok) {
+      return {
+        ok: false,
+        failure: { index: i, type: String(command.type), error: result.error },
+      };
+    }
+  }
+  return { ok: true, state };
+}
+
 /**
  * Rebuilds a state from scratch. Throws if a logged command is rejected, which
  * can only mean the log and the rules have drifted apart — silently skipping it
  * would produce a state that looks fine and is wrong.
  */
 export function replay(config: GameConfig, log: readonly Command[]): GameState {
-  const state = newGame(config);
-  for (let i = 0; i < log.length; i++) {
-    const result = applyCommand(state, log[i]!);
-    if (!result.ok) {
-      throw new Error(`Replay failed at command ${i} (${log[i]!.type}): ${result.error}`);
-    }
+  const result = tryReplay(config, log);
+  if (!result.ok) {
+    const { index, type, error } = result.failure;
+    throw new Error(`Replay failed at command ${index} (${type}): ${error}`);
   }
-  return state;
+  return result.state;
 }
 
 // --- saving -----------------------------------------------------------------

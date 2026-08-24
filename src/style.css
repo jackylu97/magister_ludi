@@ -4035,3 +4035,285 @@ kbd {
     transform: none;
   }
 }
+
+/* --- saving and loading ---------------------------------------------------
+   Three surfaces: the landing's resume row, the ☰ menu's four save verbs, and
+   the load list — which is the only screen in this interface that opens over
+   the landing, because it opens *from* it.
+
+   All of it is the ordinary card recipe. A save shelf is a list of things the
+   player made, so it wants no voice of its own beyond the one the rest of the
+   chrome already speaks: ink rules, parchment rows, mono for every number. */
+
+/* Sent off screen rather than `display: none`: the file picker has to be a real
+   focusable input for `click()` to open anything at all. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- the landing's resume row --- */
+
+.landing-resume {
+  margin: 9px 0 0;
+  gap: 9px;
+}
+
+#continue-game {
+  flex: 2;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 7px;
+}
+
+/* Carries the id, because the rule above does: an attribute selector on its own
+   loses to it, and the button would stay laid out with nothing to resume. */
+#continue-game[hidden] {
+  display: none;
+}
+
+/* "Turn 12 · 16:42", riding on the Continue button. Mono, because both halves
+   of it are numbers and this interface writes numbers in one face. */
+.btn-sub {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  opacity: 0.82;
+}
+
+/* --- the menu's save verbs --- */
+
+/* Two by two rather than four across: the card is one column wide and "Save
+   As…" wraps to two lines in a quarter of it, which makes a row of buttons of
+   two different heights. Specificity matched to `.hud-card .row`, which sets the
+   flex this replaces. */
+.hud-card .save-row-menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 10px 0 0;
+  gap: 6px;
+}
+
+.save-row-menu .btn {
+  font-size: 11px;
+  padding: 5px 6px;
+  white-space: nowrap;
+}
+
+.save-as {
+  margin: 7px 0 0;
+  gap: 6px;
+}
+
+.save-as[hidden] {
+  display: none;
+}
+
+.save-as input {
+  flex: 2;
+  min-width: 0;
+}
+
+.save-note {
+  margin: 7px 0 0;
+}
+
+.save-note[hidden] {
+  display: none;
+}
+
+/* The one line that is a refusal rather than a report. */
+.save-note.is-error {
+  color: var(--vermilion);
+  font-weight: 600;
+}
+
+/* --- the load list --- */
+
+/* Above the landing (z 50), and the only thing that is: it is opened from the
+   landing, so a surface underneath it would be a surface nobody could reach. */
+.saves-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  padding: 22px;
+  overflow-y: auto;
+  background: rgba(29, 26, 32, 0.55);
+}
+
+.saves-overlay[hidden] {
+  display: none;
+}
+
+/* `position: static` for the reason the landing card needs it: `.hud-card` is
+   fixed by default and this one is placed by the grid above it. */
+.hud-card.saves-sheet {
+  position: static;
+  width: min(520px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 14px 16px 16px;
+}
+
+.saves-list {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+}
+
+.saves-list:empty {
+  margin: 0;
+}
+
+.save-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+/* The row is the button. One target, and it does the thing the row is for. */
+.save-pick {
+  flex: 1;
+  display: grid;
+  gap: 3px;
+  padding: 7px 9px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 60ms ease-out, box-shadow 60ms ease-out;
+}
+
+.save-pick:hover {
+  background-image: linear-gradient(rgba(29, 26, 32, 0.09), rgba(29, 26, 32, 0.09));
+}
+
+.save-pick:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.save-head {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.save-name {
+  font-family: var(--face-ui);
+  font-size: 12.5px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Only the two automatic slots wear one; a named save is already named. */
+.save-badge {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--ink);
+  color: var(--parchment);
+  font-family: var(--face-num);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.save-badge[hidden] {
+  display: none;
+}
+
+.save-when {
+  margin-left: auto;
+  font-family: var(--face-num);
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+.save-meta {
+  font-family: var(--face-num);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+
+.save-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.save-action {
+  width: 26px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.save-action:hover {
+  background-image: linear-gradient(rgba(29, 26, 32, 0.09), rgba(29, 26, 32, 0.09));
+}
+
+.save-action.is-danger:hover {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+  color: var(--parchment);
+}
+
+/* A row mid-question. Same shape as the ☰ menu's Restart confirm: the question
+   takes the row it is about, so nothing moves under the pointer. */
+.save-row.is-asking {
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  border: var(--border-thin) dashed var(--vermilion);
+  border-radius: var(--radius-sm);
+}
+
+.save-ask {
+  flex: 1;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--vermilion);
+}
+
+.save-row.is-asking .btn {
+  flex: 0 0 auto;
+  font-size: 11px;
+  padding: 4px 9px;
+}
+
+.saves-foot {
+  margin: 12px 0 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .save-pick {
+    transition: none;
+  }
+
+  .save-pick:active {
+    transform: none;
+  }
+}
