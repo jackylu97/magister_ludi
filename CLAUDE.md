@@ -57,17 +57,27 @@ would change every seeded outcome. No further rename passes.
 - Fog is unusable with the ortho camera.
 - Piece visuals rebuild off a fingerprint of `(id, col, row, hp, ownerId)` — any new
   visual-affecting unit property must be added to the fingerprint.
-- `Tile.improvement` is the one field on a tile that changes during play. The map is still
-  reproducible from `{config, log}` (every improvement is a logged command), but it is no longer
-  a pure function of the seed after turn one — nothing may regenerate it mid-game.
+- `Tile.improvement` and `Tile.feature` are the **two** fields on a tile that change during play
+  (`buildImprovement`/`pillage`, and `chopFeature`). The map is still reproducible from
+  `{config, log}` — both are logged commands — but it is no longer a pure function of the seed
+  after turn one, so **nothing may regenerate a tile mid-game**. Features and resources are placed
+  only by `generateMap` (`mapgen.ts` pass 1, then `placeResources`), which runs once in
+  `newGame`; keep it that way. A chopped forest also puts a tile in a state mapgen could not have
+  produced (a canopy resource on bare ground), which is why `chopErrorAt` refuses to strip a
+  *revealed, unimproved* resource of the ground it was placed on.
 - `clearsClutter` (a farm or a mine takes the tile's meadow) is the one thing the *board* knows
   about an improvement, and founding a city is the same question one grade wider. Neither is
   baked any more: `buildBoard` always emits the full dressing, and `Renderer3D.clearGround`
-  sweeps `(cities → SUPPRESS.decor, clearsClutter tiles → SUPPRESS.clutter)` whenever
-  `signCityCells`/`signImprovedCells` move. Those two fingerprints drive **suppression**, never
-  a rebuild. The sweep is **monotone** — nothing is ever unsuppressed — so a *pillaged* farm
-  keeps its bare ground: the prop disappears (its own layer) and the meadow stays gone, which
-  is the Civ rule and what happens to a ploughed field.
+  sweeps **three** sources — `cities → SUPPRESS.decor`, `clearsClutter tiles → SUPPRESS.clutter`,
+  and `board.treedCells whose feature is now 'none' → SUPPRESS.decor` (the chop) — whenever
+  `signCityCells`/`signImprovedCells`/`signFeatureCells` move. Those fingerprints drive
+  **suppression**, never a rebuild. The sweep is **monotone** — nothing is ever unsuppressed —
+  so a *pillaged* farm keeps its bare ground: the prop disappears (its own layer) and the meadow
+  stays gone, which is the Civ rule and what happens to a ploughed field.
+  The chop's source is the odd one out and must stay that way: it is asked of the **board's**
+  memory of what it baked (`BuiltBoard.treedCells`), not of the state, because after a chop the
+  state says `none` and the buffers still hold pines. Anything else that removes baked dressing
+  needs its own such record.
 - `turnEnded` assumes player id === array index; revisit if players become removable.
   `visibility` and `citySightings` (M8) make the same assumption and revisit with it.
 - Fog of war patches the board **in place** (`src/render3d/fog3d.ts`): a visibility change is

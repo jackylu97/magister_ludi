@@ -62,7 +62,13 @@ import type {
 
 import { DeathAnimations3D, MoveAnimations3D } from './animation3d';
 import { TileIcons, UnitBadges, badgeHitRadius } from './badges3d';
-import { type BuiltBoard, BoardGeometry, buildBoard, modelClassFor } from './board3d';
+import {
+  type BuiltBoard,
+  BoardGeometry,
+  buildBoard,
+  modelClassFor,
+  signFeatureCells,
+} from './board3d';
 import { DioramaCamera } from './camera3d';
 import {
   CityLayer,
@@ -203,6 +209,8 @@ export class Renderer3D implements MapView {
   private clearedImprovementsSignature = 0;
   /** The towns whose cleared ground has already been applied. See `clearGround`. */
   private clearedCitiesSignature = 0;
+  /** The standing features the sweep has already accounted for. See `clearGround`. */
+  private clearedFeaturesSignature = 0;
   /**
    * The scope each tile's dressing has already been suppressed at, so a sweep
    * costs writes only on the tiles that have newly been built on.
@@ -370,7 +378,8 @@ export class Renderer3D implements MapView {
       this.setMap(state.map);
     } else if (
       signCityCells(state) !== this.clearedCitiesSignature ||
-      signImprovedCells(state) !== this.clearedImprovementsSignature
+      signImprovedCells(state) !== this.clearedImprovementsSignature ||
+      signFeatureCells(state.map) !== this.clearedFeaturesSignature
     ) {
       this.clearGround();
     }
@@ -427,6 +436,11 @@ export class Renderer3D implements MapView {
    * they compose with fog rather than racing it (`instances.ts`, the two-bit
    * state machine).
    *
+   * **Three** sources now, the third arriving with the chop (2026-08-23): a hex
+   * whose feature is gone but whose bake planted a canopy on it. It is the one
+   * source that cannot be read off the state alone — see the loop — and it is
+   * swept at `decor`, so a chopped tile reads as cleared ground.
+   *
    * Monotonic on purpose, and `this.cleared` is what makes it so: a tile is only
    * ever moved *up* the scale, so a sweep over a board of forty farms after the
    * forty-first is built writes on one tile. Nothing walks it back. A town is
@@ -455,9 +469,24 @@ export class Renderer3D implements MapView {
       if (id === undefined || !clearsClutter(id)) continue;
       this.clearCell(cell, SUPPRESS.clutter);
     }
+    // The chopped woods, at the town's scope rather than the farm's — because
+    // what has to go is a *canopy*, and the canopy is `decor`. The tile then
+    // reads exactly like ground a settlement cleared: the trees go, and so does
+    // anything that was standing among them, which is the honest picture of a
+    // felled wood and is why the protection rule in `chopErrorAt` keeps a
+    // revealed, unimproved resource off the axe in the first place.
+    //
+    // Asked of the *board's* memory (`treedCells`) and not of the state, and
+    // that is the crux: after the chop the state says `none` and the buffers
+    // still hold pines, so only the bake can say which hexes are owed a sweep.
+    for (const cell of board.treedCells) {
+      if (map.tiles[cell]!.feature !== 'none') continue;
+      this.clearCell(cell, SUPPRESS.decor);
+    }
 
     this.clearedCitiesSignature = signCityCells(state);
     this.clearedImprovementsSignature = signImprovedCells(state);
+    this.clearedFeaturesSignature = signFeatureCells(map);
     this.invalidate();
   }
 
@@ -568,6 +597,7 @@ export class Renderer3D implements MapView {
     this.cleared.clear();
     this.clearedCitiesSignature = 0;
     this.clearedImprovementsSignature = 0;
+    this.clearedFeaturesSignature = 0;
     this.clearGround();
     this.buildMs = performance.now() - started;
     this.map = map;
@@ -1427,12 +1457,15 @@ export class Renderer3D implements MapView {
     // besides toggling shadows — and both are now a handful of per-instance
     // writes on the tile that changed. See `clearGround`. Only farms and mines
     // move the improvement fingerprint (`signImprovedCells`), so a worker
-    // fencing a herd or pitching a camp still costs the board nothing.
+    // fencing a herd or pitching a camp still costs the board nothing. A wood
+    // felled since the last frame is the third source and moves a third
+    // fingerprint (`signFeatureCells`), for the same handful of writes.
     const foundings = this.state ? signCityCells(this.state) : 0;
     if (
       this.state &&
       (foundings !== this.clearedCitiesSignature ||
-        signImprovedCells(this.state) !== this.clearedImprovementsSignature)
+        signImprovedCells(this.state) !== this.clearedImprovementsSignature ||
+        signFeatureCells(this.state.map) !== this.clearedFeaturesSignature)
     ) {
       const founded = foundings !== this.clearedCitiesSignature;
       this.clearGround();

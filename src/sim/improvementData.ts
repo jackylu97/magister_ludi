@@ -79,6 +79,31 @@
  * asking the same function the turn pipeline banks with. v0 wires one:
  * Feudalism gives freshwater farms a second point of food, the Civil Service
  * stand-in the growth-rhythm note asked for.
+ *
+ * The chop table: a sibling, not a seventh improvement
+ * ---------------------------------------------------
+ * Clearing a forest is the worker's other verb, and it lives in a `chop` block
+ * beside `improvements` rather than as a row inside it. It is a sibling because
+ * it is not the same *shape*: an improvement is a thing that goes **on** a tile
+ * and pays every turn forever; a chop takes something **off** a tile and pays
+ * once. Filing it as an improvement would have meant a row with a meaningless
+ * `clearsClutter`, a `yields` that lied about being per-turn, and an
+ * `improvementDef` whose callers all had to learn about the exception.
+ *
+ * One entry per feature, keyed by `FeatureId`, and an absent feature simply
+ * cannot be cleared — which is the whole of why jungle has no row yet: the
+ * forest was specced, and a jungle chop is one data addition on the day it is
+ * designed rather than a code branch waiting for it. Everything downstream reads
+ * the table generically: the reducer's gate, the worker sheet's Chop row, and
+ * `techGifts` (which surfaces *any* entry on whatever tech it names, so the day
+ * jungle arrives it appears on its own node without anybody remembering to).
+ *
+ * `yields` is a full `TileYieldSpec` for the family resemblance, and the load
+ * validator holds it to **production only** — because production is the only
+ * voice with a one-time bank to pay into (`City.hammerBasket`). Food and gold
+ * have no basket, and a table that quietly promised them would be a number the
+ * player was shown and never received. The day a food chop is designed it needs
+ * somewhere to land, and that is a design decision, not a data edit.
  */
 
 import improvementsJson from '../../data/improvements.json';
@@ -89,8 +114,10 @@ import {
   type FeatureId,
   TERRAIN_IDS,
   type TerrainId,
+  TILE_YIELD_KEYS,
   type TileYield,
   type TileYieldSpec,
+  emptyTileYield,
   readTileYield,
 } from './terrainData';
 import { TECH_IDS, type TechId } from './techData';
@@ -163,8 +190,26 @@ export interface ImprovementDef {
   upgrades?: ImprovementUpgrade[];
 }
 
+/**
+ * What clearing one feature costs and pays. See the module docblock for why this
+ * is a table of its own rather than a seventh improvement.
+ */
+export interface ChopDef {
+  /** The technology a worker's owner must hold before the axe swings at all. */
+  tech: TechId;
+  /** Charges one clearing spends. The same currency a build spends. */
+  chargeCost: number;
+  /**
+   * Banked **once** into the owning city's `hammerBasket`. Production only —
+   * the load validator says so, and the docblock says why.
+   */
+  yields: TileYieldSpec;
+}
+
 export interface ImprovementData {
   improvements: Record<ImprovementId, ImprovementDef>;
+  /** Which features a worker may clear, and what each one pays. May be empty. */
+  chop: Partial<Record<FeatureId, ChopDef>>;
 }
 
 export const IMPROVEMENT_DATA: ImprovementData = improvementsJson as ImprovementData;
@@ -199,6 +244,39 @@ export function isImprovementId(value: unknown): value is ImprovementId {
  */
 export function improvementYield(id: ImprovementId): TileYield {
   return readTileYield(improvementDef(id).yields);
+}
+
+// --- clearing features ------------------------------------------------------
+
+/**
+ * Every feature a worker may clear, in the order the JSON lists them.
+ *
+ * An array rather than the object's keys read at each call site, for hard rule
+ * 2's reason: this list is walked to build the worker's sheet and a technology's
+ * gift list, and an iteration order that came out of a `Record` lookup would be
+ * an ordering nobody wrote down.
+ */
+export const CHOPPABLE_FEATURES = Object.keys(IMPROVEMENT_DATA.chop) as FeatureId[];
+
+/**
+ * What clearing this feature costs and pays, or `null` when nothing clears it.
+ *
+ * `null` is the whole of "jungle is not choppable yet" and of "there is nothing
+ * on this hex to clear" — one absence, read the same way by the gate, the sheet
+ * and the tech card, so adding a feature to the table is the only edit that
+ * teaching the game a new chop needs.
+ */
+export function chopDef(feature: FeatureId): ChopDef | null {
+  return IMPROVEMENT_DATA.chop[feature] ?? null;
+}
+
+/**
+ * What clearing this feature banks, as a full yield. A fresh object every call,
+ * exactly as `improvementYield` returns one.
+ */
+export function chopYield(feature: FeatureId): TileYield {
+  const def = chopDef(feature);
+  return def ? readTileYield(def.yields) : emptyTileYield();
 }
 
 /**
@@ -262,6 +340,31 @@ function validateTable(): void {
     for (const upgrade of def.upgrades ?? []) {
       if (!TECH_IDS.includes(upgrade.tech)) {
         throw new Error(`${where} names unknown technology "${upgrade.tech}"`);
+      }
+    }
+  }
+  // The chop table, held to the four things a chop entry cannot get wrong. The
+  // production-only clause is the interesting one: `City.hammerBasket` is the
+  // only one-time bank in the game, so a chop that promised food would be a
+  // number the sheet printed and the city never received.
+  for (const feature of CHOPPABLE_FEATURES) {
+    const def = chopDef(feature)!;
+    const where = `improvements.json: chop.${feature}`;
+    if (!FEATURE_IDS.includes(feature)) {
+      throw new Error(`${where} is not a known feature`);
+    }
+    // "Clear nothing" is not a verb: `chopErrorAt` reads bare ground as *no*
+    // entry, and a row here would make the absence mean two different things.
+    if (feature === 'none') throw new Error(`${where} cannot clear bare ground`);
+    if (def.chargeCost <= 0) throw new Error(`${where} has a non-positive chargeCost`);
+    if (!TECH_IDS.includes(def.tech)) {
+      throw new Error(`${where} needs unknown technology "${def.tech}"`);
+    }
+    const paid = readTileYield(def.yields);
+    if (paid.production <= 0) throw new Error(`${where} pays no production`);
+    for (const key of TILE_YIELD_KEYS) {
+      if (key !== 'production' && paid[key] !== 0) {
+        throw new Error(`${where} pays ${key}, which has no one-time bank to land in`);
       }
     }
   }

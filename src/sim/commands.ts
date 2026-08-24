@@ -62,7 +62,14 @@ import { isBuildingId } from './buildingData';
 import { assignCitizens, assignableTiles, foundCityAt, foundingError } from './cities';
 import { applyCombat, fortifyError } from './combat';
 import type { ImprovementId } from './improvementData';
-import { buildImprovementAt, improvementError, pillageAt, pillageError } from './improvements';
+import {
+  buildImprovementAt,
+  chopError,
+  chopFeatureAt,
+  improvementError,
+  pillageAt,
+  pillageError,
+} from './improvements';
 import { getTileAt, tileIndex } from './map';
 import { advanceAlongPath } from './movement';
 import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
@@ -346,6 +353,31 @@ export interface BuildImprovementCommand extends PlayerCommand {
 }
 
 /**
+ * Spends one of a worker's charges to clear the feature it is standing in, and
+ * banks the timber in the city that owns the ground.
+ *
+ * `buildImprovement`'s mirror image and deliberately shaped like it: it names
+ * the unit and nothing else, it is instant, it spends all remaining movement,
+ * and a worker that empties its charges on it is consumed. What it does *not*
+ * name is the feature — the feature is whatever the worker is standing in, for
+ * the same reason the tile is wherever the worker is. A command that carried one
+ * could disagree with the ground, and the ground is the truth.
+ *
+ * It is a command of its own rather than a seventh `improvement`, because the
+ * two are not the same act: an improvement goes *on* a tile and pays forever, a
+ * chop takes something *off* and pays once. Folding them together would have
+ * meant an improvement id that names no improvement, and `buildImprovementAt`
+ * branching on it.
+ *
+ * Turn-gated like `moveUnit`: felling a wood is an act, and a seat that has
+ * declared itself finished has finished acting.
+ */
+export interface ChopFeatureCommand extends PlayerCommand {
+  type: 'chopFeature';
+  unitId: number;
+}
+
+/**
  * Tears an improvement out of ground that is not yours, and pockets the salvage.
  *
  * A command of its own rather than a mode of `attack`, for `attack`'s own
@@ -376,6 +408,7 @@ export type Command =
   | AttackCommand
   | FortifyCommand
   | BuildImprovementCommand
+  | ChopFeatureCommand
   | PillageCommand;
 
 /** Convenience alias for the discriminant. */
@@ -940,6 +973,38 @@ function applyBuildImprovement(
 }
 
 /**
+ * Fells a wood. See `ChopFeatureCommand`, and `improvements.ts` for the rules.
+ *
+ * `applyBuildImprovement`'s twin, question for question: is this a real seat,
+ * may it still act, is that its unit — and everything about the *work* delegated
+ * whole to `chopError`, which is what the worker sheet greys its Chop row with.
+ * So an offered row is a command this accepts, and the sentence a player reads
+ * on a refusal is this reducer's own.
+ */
+function applyChopFeature(state: GameState, command: ChopFeatureCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot clear features`);
+  }
+
+  const unit = unitById(state, command.unitId);
+  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
+  if (unit.ownerId !== actor.id) {
+    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
+  }
+
+  const problem = chopError(state, unit.id);
+  if (problem) return fail(problem);
+
+  // Validation is done — `chopError` has already established that the unit is on
+  // the map and that what it is standing in can be cleared.
+  const tile = getTileAt(state.map, unit.col, unit.row)!;
+  chopFeatureAt(state, unit, tile);
+  return ok();
+}
+
+/**
  * Burns somebody else's works. See `PillageCommand`.
  *
  * The seat's questions here, the raid's delegated to `pillageError` — the same
@@ -1003,6 +1068,8 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       return applyFortify(state, command);
     case 'buildImprovement':
       return applyBuildImprovement(state, command);
+    case 'chopFeature':
+      return applyChopFeature(state, command);
     case 'pillage':
       return applyPillage(state, command);
     default:

@@ -1363,6 +1363,12 @@ async function boot(): Promise<void> {
       controls.buildImprovement(id);
       updatePanel(null, renderer.getHover());
     },
+    chopBlocker: () => controls.chopBlocker(),
+    chopPreview: () => controls.chopPreview(),
+    onChop: () => {
+      controls.chop();
+      updatePanel(null, renderer.getHover());
+    },
     pillageBlocker: () => controls.pillageBlocker(),
     onPillage: () => {
       controls.pillage();

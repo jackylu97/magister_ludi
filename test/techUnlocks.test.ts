@@ -1,12 +1,12 @@
 /**
- * What a technology hands over, gathered from the three tables that say so.
+ * What a technology hands over, gathered from the tables that say so.
  *
  * `techGifts` exists because only half of a tech's gifts are written in
  * `data/techs.json`: a resource's `requiresTech`, an improvement's own
- * `requiresTech` and `upgrades[].tech`, and a building's `upgrades[].tech` all
- * name the technology from their own side, and a screen that read only the
- * `unlocks` block would quietly promise a player less than the technology
- * actually gives them — or, since the Age I rework, nothing at all, which is
+ * `requiresTech` and `upgrades[].tech`, a chop entry's `tech`, and a building's
+ * `upgrades[].tech` all name the technology from their own side, and a screen
+ * that read only the `unlocks` block would quietly promise a player less than
+ * the technology actually gives them — or, since the Age I rework, nothing at all, which is
  * what Mining's `unlocks` block says. So what is covered here is exactly that —
  * the inversion, its order, and the fact that every table's entry is accounted
  * for exactly once across the whole tree.
@@ -17,10 +17,16 @@
 
 import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, buildingDef } from '../src/sim/buildingData';
-import { IMPROVEMENT_IDS, improvementDef } from '../src/sim/improvementData';
+import {
+  CHOPPABLE_FEATURES,
+  IMPROVEMENT_IDS,
+  chopDef,
+  chopYield,
+  improvementDef,
+} from '../src/sim/improvementData';
 import { RESOURCE_IDS, resourceDef } from '../src/sim/resourceData';
 import { TECH_IDS, techDef } from '../src/sim/techData';
-import { readTileYield } from '../src/sim/terrainData';
+import { featureDef, readTileYield } from '../src/sim/terrainData';
 import { techGifts, unlockDataProblems } from '../src/sim/techUnlocks';
 import { unitDef } from '../src/sim/unitData';
 
@@ -107,7 +113,7 @@ describe('techGifts', () => {
     // Entry V's "every node is a package" check over to `unlockDataProblems`:
     // Mining's `unlocks` block is empty and its gift is real.
     expect(techDef('mining').unlocks).toEqual({});
-    expect(techGifts('mining')).toEqual([
+    expect(techGifts('mining').filter((gift) => gift.kind === 'improvement')).toEqual([
       {
         kind: 'improvement',
         id: 'mine',
@@ -115,6 +121,36 @@ describe('techGifts', () => {
         glyph: improvementDef('mine').emoji,
       },
     ]);
+  });
+
+  it('finds the feature clearings a tech unlocks, off the chop table', () => {
+    // The generic claim, and the one that matters: nothing here names Mining or
+    // the forest. `techGifts` walks the chop table and files each entry under
+    // whatever tech that entry names, so the day the jungle gets a row it
+    // appears on its own node with no edit to this module.
+    for (const feature of CHOPPABLE_FEATURES) {
+      const chop = chopDef(feature)!;
+      const gifts = techGifts(chop.tech).filter((gift) => gift.kind === 'ability');
+      const mine = gifts.find((gift) => gift.id === feature);
+      expect(mine, feature).toBeDefined();
+      expect(mine!.name).toBe(`Clear ${featureDef(feature).name}`);
+      // What it pays is the table's number, so the tech card and the worker
+      // sheet cannot quote different timber.
+      expect(mine!.pays.production).toBe(chopYield(feature).production);
+    }
+    // And the forest is on Mining, which is the ratified gate.
+    const mining = techGifts('mining').filter((gift) => gift.kind === 'ability');
+    expect(mining.map((gift) => gift.id)).toEqual(['forest']);
+  });
+
+  it('hands the ability list a copy, so a caller cannot retune the chop', () => {
+    // `improvementYield`'s guarantee, kept for the third table: the payout is
+    // shared module state and a reader that summed into it would rebalance the
+    // game from an information surface.
+    const before = chopYield('forest').production;
+    const gift = techGifts('mining').find((entry) => entry.kind === 'ability')!;
+    gift.pays.production += 99;
+    expect(chopYield('forest').production).toBe(before);
   });
 
   it('finds the building renewals a tech switches on, with what they add', () => {
@@ -135,19 +171,27 @@ describe('techGifts', () => {
 
   it('reports a node that hands over nothing at all', () => {
     expect(unlockDataProblems()).toEqual([]);
-    // Mining's whole package is the mine, so taking the gate off the mine makes
-    // it the connective tissue Entry V forbids — and nothing in `techs.json`
-    // would have changed, which is exactly why this check moved out of
-    // `techDataProblems`.
+    // Mining's package is the mine *and* the axe, so both have to be taken away
+    // before the node is the connective tissue Entry V forbids — and nothing in
+    // `techs.json` would have changed either time, which is exactly why this
+    // check moved out of `techDataProblems`. That the chop counts is the point:
+    // a node whose whole gift is a verb is still a package.
     const authored = improvementDef('mine').requiresTech;
+    const chop = chopDef('forest')!;
     try {
       delete (improvementDef('mine') as { requiresTech?: unknown }).requiresTech;
+      // The axe alone still makes Mining a package.
+      expect(techGifts('mining')).toHaveLength(1);
+      expect(unlockDataProblems()).toEqual([]);
+
+      chop.tech = 'earthenware';
       expect(techGifts('mining')).toEqual([]);
       expect(unlockDataProblems()).toContain(
         'tech "mining" hands over nothing (every node is a package — see Entry V)',
       );
     } finally {
       (improvementDef('mine') as { requiresTech?: unknown }).requiresTech = authored;
+      chop.tech = 'mining';
     }
     expect(unlockDataProblems()).toEqual([]);
   });

@@ -1,4 +1,15 @@
 {
+  "chop": {
+    "forest": {
+      "tech": "mining",
+      "chargeCost": 1,
+      "yields": {
+        "food": 0,
+        "production": 20,
+        "gold": 0
+      }
+    }
+  },
   "improvements": {
     "farm": {
       "name": "Farm",

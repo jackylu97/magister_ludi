@@ -3544,6 +3544,13 @@ kbd {
   color: var(--ink-soft);
 }
 
+/* A verb, not a thing: the axe gets the worked-timber brown so it does not read
+   as one more improvement in the green family above it. */
+.info-card-mark.is-ability {
+  border-color: rgba(150, 96, 40, 0.7);
+  color: var(--ink-soft);
+}
+
 .info-card-mark.is-reveal {
   border-color: rgba(31, 138, 133, 0.7);
 }
@@ -3629,6 +3636,11 @@ kbd {
 
 .info-card.is-night .info-card-mark.is-improvement {
   border-color: rgba(127, 208, 108, 0.6);
+  color: rgba(247, 242, 225, 0.85);
+}
+
+.info-card.is-night .info-card-mark.is-ability {
+  border-color: rgba(214, 160, 96, 0.6);
   color: rgba(247, 242, 225, 0.85);
 }
 

@@ -32,7 +32,7 @@ second-tier nodes rather than on "Agriculture or Pottery".
 - **Agriculture** (15🔬, *free at game start*): units — settler, warrior, scout, worker · improvement — **farm** (+1🌾)
 - **Husbandry** (18🔬 ← Agriculture): unit — horseman · improvement — **pasture** · reveals **horses**
 - **Fletching** (18🔬 ← Agriculture): unit — archer (ranged 7) · improvement — **camp**
-- **Mining** (16🔬 ← Agriculture): improvement — **mine** (+1⚙ on hills)
+- **Mining** (16🔬 ← Agriculture): improvement — **mine** (+1⚙ on hills) · ability — **clear forest** (20⚙ once, to the city that owns the tile)
 - **Earthenware** (16🔬 ← Agriculture): building — granary (+3🌾)
 - **Bronzeworking** (23🔬 ← Mining + Earthenware): unit — spearman · building — **barracks** (+10%⚙ toward units built here) · reveals **iron**
 - **Stonecraft** (23🔬 ← Husbandry + Earthenware): improvement — **quarry** · building — monument (+2🎵, **+1 authority capacity**)
@@ -111,7 +111,7 @@ re-pointed Age II/III prerequisites.
 - **Faith.** There is no faith yield, so the shrine's "+2 faith" is not in the game; it pays +1🔬 +1🎵 instead. Divination is still the religion root, and the science half is the design's own ask ("religion should include bonuses to science and culture").
 - **XP and promotions.** The barracks' "+15 XP for units trained here" needs a promotion system; only the +10%⚙ half shipped.
 - **Indirect fire.** Archers and chariot archers use the one ranged rule the combat model has. The archer's indirect fire and the chariot archer's *lack* of it are the same deferred distinction.
-- **Chop / Assarting.** Mining's forest chop (20⚙, +5 per teched resource, +5 per slotted civic) needs a clear-feature mechanic that does not exist. Mining ships as the mine's gate alone.
+- **Chop scalers.** The forest chop itself **shipped** (2026-08-23, Entry XII.b): `chopFeature`, 20⚙ once, gated on Mining, one worker charge, banked in the city that owns the tile. What is still deferred is the *scaling* — "+5 per teched resource, +5 per slotted civic" — which lands as extra fields on the `chop` row plus one term in `chopFeatureAt` once the curve is designed. **Assarting** (a jungle clearing) is one JSON object away and deliberately unwritten: no jungle row exists, and `chopDef` answering `null` is the whole of "not choppable".
 - **Priest / monk.** Unspecified in the design and unbuilt.
 - **Trade menu.** Letters' "unlock trade menu" is unbuilt; the library's +2🪙 shipped.
 - **The unlock-roll system** ("mastery of the hearth", "mastery of the seasons", …). Not built, and every "food unlock?" / "military unlock?" note in the design is parked with it. Wonders stay deliberately absent as the design says.

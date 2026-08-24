@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { type BufferGeometry, InstancedMesh, Matrix4 } from 'three';
 
-import { BoardGeometry, IMPROVEMENT_PROPS, buildBoard } from '../src/render3d/board3d';
+import {
+  BoardGeometry,
+  IMPROVEMENT_PROPS,
+  buildBoard,
+  signFeatureCells,
+} from '../src/render3d/board3d';
+import { FogView } from '../src/render3d/fog3d';
 import {
   ImprovementLayer,
   clearsClutter,
@@ -25,10 +31,11 @@ import { computeFreshwater } from '../src/sim/water';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../src/sim/visibility';
 
 /**
- * The board's half of the improvements milestone.
+ * The board's half of the improvements milestone, and of the chop that followed
+ * it.
  *
- * Two things are being defended, and they are the two things a *new instanced
- * layer* gets wrong:
+ * Three things are being defended. The first two are what a *new instanced
+ * layer* gets wrong; the third is what a new *source of suppression* gets wrong:
  *
  *   1. **The registry closes in both directions.** `Record<ImprovementId, …>`
  *      makes a missing prop a compile error; nothing but a test makes a prop
@@ -39,6 +46,12 @@ import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../src/sim/visibilit
  *      feature until somebody notices the frontier glowing. The layer paints
  *      itself (see `ImprovementLayer.paintFog`), and this is where that is
  *      checked rather than assumed.
+ *   3. **A chopped wood stays chopped.** The board is built once per game, so
+ *      clearing a forest is per-instance suppression on one tile — no rebuild,
+ *      mesh identity intact — and it has to compose with fog in both orders. A
+ *      `restore` that forgot the suppression bit would regrow a forest the first
+ *      time a scout walked past, which is the two-bit state machine's whole
+ *      reason for existing (`instances.ts`).
  */
 
 function materials(): MaterialLibrary {
@@ -320,6 +333,29 @@ describe('the improvement fingerprints', () => {
     expect(signImprovements(state)).toBe(blank);
   });
 
+  it('moves the FEATURE fingerprint when a wood is felled, and not otherwise', () => {
+    // The third fingerprint, and it exists for the same reason the second one
+    // does: the renderer has to *notice* there is a delta to sweep, and a hash
+    // cannot be forgotten the way a notification can.
+    const state = flatState();
+    at(state, 2, 2).feature = 'forest';
+    at(state, 3, 2).feature = 'jungle';
+    const wooded = signFeatureCells(state.map);
+
+    at(state, 2, 2).feature = 'none';
+    const felled = signFeatureCells(state.map);
+    expect(felled).not.toBe(wooded);
+
+    // Same board, same hash: a fact about the ground, not about history.
+    const twin = flatState();
+    at(twin, 3, 2).feature = 'jungle';
+    expect(signFeatureCells(twin.map)).toBe(felled);
+
+    // A farm is not a chop, and must not drag the sweep along with it.
+    at(state, 5, 5).improvement = 'farm';
+    expect(signFeatureCells(state.map)).toBe(felled);
+  });
+
   it('distinguishes two improvements on different tiles', () => {
     const a = flatState();
     at(a, 2, 2).improvement = 'farm';
@@ -545,6 +581,13 @@ describe('improvements and the board scatter', () => {
       const id = state.map.tiles[cell]!.improvement;
       if (id !== undefined && clearsClutter(id)) board.suppressTile(cell, SUPPRESS.clutter);
     }
+    // The third source: a hex the *bake* put a canopy on whose feature is now
+    // gone. Asked of the board's own memory and not of the state, because after
+    // a chop the state says `none` and the buffers still hold pines.
+    for (const cell of board.treedCells) {
+      if (state.map.tiles[cell]!.feature !== 'none') continue;
+      board.suppressTile(cell, SUPPRESS.decor);
+    }
   }
 
   it('clears the wood a town was founded in, and only that tile', () => {
@@ -584,6 +627,164 @@ describe('improvements and the board scatter', () => {
     delete at(state, 4, 4).improvement;
     clearGround(state, board);
     expect(shapes(board, cell).has(geometry.tuft)).toBe(false);
+    board.dispose();
+  });
+
+  // --- the chop, which is the third source of the sweep ---------------------
+
+  it('writes down every hex it planted a canopy on, and nothing else', () => {
+    // The board's memory of its own trees. It has to be *exactly* the tiles that
+    // got a canopy: a hex missing from the list keeps its pines forever after a
+    // chop, and a hex that never had one costs a pointless sweep — and would
+    // suppress a meadow nobody felled.
+    const state = flatState();
+    at(state, 4, 4).feature = 'forest';
+    at(state, 5, 4).feature = 'jungle';
+    at(state, 6, 4).feature = 'forest';
+    // A mountain is dressed by another branch entirely and grows no trees.
+    at(state, 7, 4).terrain = 'mountain';
+    at(state, 7, 4).feature = 'forest';
+    const board = boardFor(state);
+
+    const expected = state.map.tiles
+      .filter((tile) => tile.feature !== 'none' && tile.terrain !== 'mountain')
+      .map((tile) => tileIndex(state.map, tile.col, tile.row));
+    expect([...board.treedCells]).toEqual(expected);
+    board.dispose();
+  });
+
+  it('takes the trees off a chopped hex, and only that hex', () => {
+    const state = flatState();
+    for (const tile of state.map.tiles) tile.feature = 'forest';
+    const board = boardFor(state);
+    const cell = tileIndex(state.map, 4, 4);
+    const neighbour = tileIndex(state.map, 5, 4);
+    expect(shapes(board, cell).has(geometry.pine)).toBe(true);
+
+    // What the reducer does: one field on one tile.
+    at(state, 4, 4).feature = 'none';
+    clearGround(state, board);
+
+    expect(shapes(board, cell).has(geometry.pine)).toBe(false);
+    // The hex itself stays: an axe takes the wood, not the ground under it.
+    expect(shapes(board, cell).has(geometry.prisms.land)).toBe(true);
+    expect(shapes(board, neighbour).has(geometry.pine)).toBe(true);
+    board.dispose();
+  });
+
+  it('reads like cleared ground: the props in the wood go with it', () => {
+    // The documented scope. A chop sweeps at `decor`, the town's grade, because
+    // what has to disappear is a *canopy* — and everything standing among the
+    // trees goes with it. That is the honest picture of a felled wood, and it is
+    // why `chopErrorAt` keeps a revealed, unimproved resource off the axe in the
+    // first place: the only props this can take are ones the player chose to
+    // give up, or ones they never knew were there.
+    const state = flatState();
+    at(state, 4, 4).feature = 'forest';
+    at(state, 4, 4).resource = 'deer';
+    const board = boardFor(state);
+    const cell = tileIndex(state.map, 4, 4);
+    expect(shapes(board, cell).has(geometry.resourceProps.deer)).toBe(true);
+
+    at(state, 4, 4).feature = 'none';
+    clearGround(state, board);
+    expect(shapes(board, cell).has(geometry.pine)).toBe(false);
+    expect(shapes(board, cell).has(geometry.resourceProps.deer)).toBe(false);
+    board.dispose();
+  });
+
+  it('costs no rebuild and no writes off the tile it names', () => {
+    // The same identity the farm's sweep is held to: the meshes after a wood is
+    // felled are the meshes from the build. The board is built once per game and
+    // a gameplay event may never re-bake it.
+    const state = flatState();
+    for (const tile of state.map.tiles) tile.feature = 'forest';
+    const board = boardFor(state);
+    const meshes = board.group.children.slice();
+    const other = tileIndex(state.map, 7, 6);
+    const otherBefore = shown(board, other);
+
+    at(state, 4, 4).feature = 'none';
+    resetInstanceWrites();
+    clearGround(state, board);
+
+    expect(board.group.children).toEqual(meshes);
+    for (let i = 0; i < meshes.length; i++) expect(board.group.children[i]).toBe(meshes[i]);
+    expect(shown(board, other)).toBe(otherBefore);
+    // Two or three trees, times the three wrap copies. Never the board.
+    expect(INSTANCE_WRITES.matrix).toBeGreaterThan(0);
+    expect(INSTANCE_WRITES.matrix).toBeLessThan(30);
+    expect(INSTANCE_WRITES.tint).toBe(0);
+    board.dispose();
+  });
+
+  it('never regrows a felled wood, however often it is swept', () => {
+    // Monotone and idempotent, like every other source: `clearGround` runs the
+    // whole sweep on every frame anything at all moved.
+    const state = flatState();
+    at(state, 4, 4).feature = 'forest';
+    const board = boardFor(state);
+    const cell = tileIndex(state.map, 4, 4);
+    at(state, 4, 4).feature = 'none';
+    clearGround(state, board);
+    const after = shown(board, cell);
+
+    resetInstanceWrites();
+    for (let i = 0; i < 5; i++) clearGround(state, board);
+    expect(shown(board, cell)).toBe(after);
+    expect(INSTANCE_WRITES.matrix).toBe(0);
+    board.dispose();
+  });
+
+  it('composes with the fog: a scout walking past does not regrow the wood', () => {
+    // The two-bit state machine, on the newest source. An instance is off for
+    // one of two independent reasons and `restore` must return it to
+    // `suppressed ? HIDDEN : as-built` — get that wrong and the first visibility
+    // change after a chop puts the forest back, which is exactly the bug that
+    // deferred suppression out of M7.
+    const state = flatState();
+    at(state, 4, 4).feature = 'forest';
+    const board = boardFor(state);
+    const cell = tileIndex(state.map, 4, 4);
+    const fog = new FogView(state.map, board.tiles);
+
+    // Charted and lit, then felled.
+    fog.apply(allVisible(state));
+    at(state, 4, 4).feature = 'none';
+    clearGround(state, board);
+    expect(shapes(board, cell).has(geometry.pine)).toBe(false);
+
+    // The seat loses sight of it, and gets it back.
+    const dark = new Array<number>(state.map.tiles.length).fill(VISIBLE);
+    dark[cell] = HIDDEN;
+    fog.apply(dark);
+    fog.apply(allVisible(state));
+    expect(shapes(board, cell).has(geometry.pine)).toBe(false);
+
+    fog.dispose();
+    board.dispose();
+  });
+
+  it('holds a chop made on ground the seat cannot currently see', () => {
+    // The other order, which is the one a suppression can actually be lost in:
+    // suppressing a fog-hidden instance writes no matrix at all, so the bit has
+    // to be remembered and applied when the fog lifts.
+    const state = flatState();
+    at(state, 4, 4).feature = 'forest';
+    const board = boardFor(state);
+    const cell = tileIndex(state.map, 4, 4);
+    const fog = new FogView(state.map, board.tiles);
+
+    const dark = new Array<number>(state.map.tiles.length).fill(VISIBLE);
+    dark[cell] = HIDDEN;
+    fog.apply(dark);
+    at(state, 4, 4).feature = 'none';
+    clearGround(state, board);
+    fog.apply(allVisible(state));
+
+    expect(shapes(board, cell).has(geometry.pine)).toBe(false);
+    expect(shapes(board, cell).has(geometry.prisms.land)).toBe(true);
+    fog.dispose();
     board.dispose();
   });
 

@@ -21,9 +21,12 @@ import {
   snapshotState,
 } from '../src/sim/game';
 import {
+  CHOPPABLE_FEATURES,
   IMPROVEMENT_DATA,
   IMPROVEMENT_IDS,
   type ImprovementId,
+  chopDef,
+  chopYield,
   improvementDef,
   improvementForResource,
   improvementYield,
@@ -31,6 +34,9 @@ import {
 } from '../src/sim/improvementData';
 import {
   chargesLeft,
+  chopError,
+  chopErrorAt,
+  chopTechError,
   improvementError,
   improvementErrorAt,
   improvementTechError,
@@ -42,6 +48,7 @@ import { type Tile, createMap, getTileAt } from '../src/sim/map';
 import { RESOURCE_IDS, resourceDef, resourceYield } from '../src/sim/resourceData';
 import { RULES } from '../src/sim/rulesData';
 import {
+  type City,
   type GameState,
   type Unit,
   SCHEMA_VERSION,
@@ -56,12 +63,14 @@ import {
   TILE_YIELD_KEYS,
   type TerrainId,
   type TileYield,
+  defenseBonus,
   emptyTileYield,
   isWaterTerrain,
+  moveCost,
   readTileYield,
   tileYield,
 } from '../src/sim/terrainData';
-import { TECH_IDS, techDef } from '../src/sim/techData';
+import { TECH_IDS, type TechId, techDef } from '../src/sim/techData';
 import { unitDef } from '../src/sim/unitData';
 import { computeFreshwater } from '../src/sim/water';
 import { resetVisibility } from '../src/sim/visibility';
@@ -521,6 +530,352 @@ describe('buildImprovement', () => {
   });
 });
 
+// --- clearing features ------------------------------------------------------
+
+/**
+ * The worker's other verb: `chopFeature`.
+ *
+ * Three claims, kept apart because they fail for different reasons:
+ *
+ *   1. **The table is the feature.** Which features can be cleared, what gates
+ *      them and what they pay is `data/improvements.json`'s `chop` block and
+ *      nothing else, so the jungle's absence is a *data* hole rather than a
+ *      missing branch — asserted as such, so the day a jungle row lands the
+ *      whole verb works on it with no code edit.
+ *   2. **The gate.** Every refusal, each with its own sentence, and the state
+ *      byte-identical after every one of them. Including the protection rule,
+ *      which is the one genuinely new decision here.
+ *   3. **The effect**, which is four mutations and one of them is a tile field
+ *      that had never changed during play before.
+ */
+
+describe('the chop table', () => {
+  it('clears the forest, on Mining, for a lump of production', () => {
+    const forest = chopDef('forest');
+    expect(forest).not.toBeNull();
+    expect(forest!.tech).toBe('mining');
+    expect(TECH_IDS).toContain(forest!.tech);
+    expect(forest!.chargeCost).toBeGreaterThan(0);
+    expect(chopYield('forest').production).toBe(20);
+  });
+
+  it('leaves the jungle out, which is a data hole and not a missing branch', () => {
+    // The user specced forests. A jungle chop is one object in the JSON on the
+    // day it is designed, and this asserts the absence rather than tolerating
+    // it: `chopDef` answering `null` is the whole of "not choppable", and it is
+    // the same `null` a bare hex gets.
+    expect(chopDef('jungle')).toBeNull();
+    expect(chopDef('none')).toBeNull();
+    expect(CHOPPABLE_FEATURES).toEqual(['forest']);
+  });
+
+  it('pays in production only, because nothing else has a one-time bank', () => {
+    // `City.hammerBasket` is the only pool a lump can land in. A chop that
+    // promised food would be a number the sheet printed and the city never got,
+    // so the load validator forbids it — and this is the outside check on that.
+    for (const feature of CHOPPABLE_FEATURES) {
+      const paid = chopYield(feature);
+      expect(paid.production, feature).toBeGreaterThan(0);
+      for (const key of TILE_YIELD_KEYS) {
+        if (key === 'production') continue;
+        expect(paid[key], `${feature}.${key}`).toBe(0);
+      }
+    }
+  });
+
+  it('hands back a fresh yield object, so a caller cannot retune the game', () => {
+    const first = chopYield('forest');
+    first.production += 99;
+    expect(chopYield('forest').production).toBe(20);
+  });
+});
+
+describe('chopFeature', () => {
+  /** A player-0 city at (5, 5) and a worker standing in a wood at (5, 4). */
+  function woodedWorker(): { state: GameState; worker: Unit; tile: Tile; city: City } {
+    const state = bareState();
+    const city = foundCityAt(state, 0, at(state, 5, 5));
+    const tile = at(state, 5, 4);
+    tile.feature = 'forest';
+    const worker = createUnit(state, 0, 'worker', 5, 4);
+    return { state, worker, tile, city };
+  }
+
+  function chop(playerId: number, unitId: number): Command {
+    return { type: 'chopFeature', playerId, unitId };
+  }
+
+  /** Refuses with exactly this sentence, and changes nothing at all. */
+  function refuses(state: GameState, command: Command, error: string): void {
+    const before = snapshotState(state);
+    expect(applyCommand(state, command)).toEqual({ ok: false, error });
+    expect(snapshotState(state)).toBe(before);
+  }
+
+  describe('the gate', () => {
+    it('accepts a worker with charges, movement and a wood to fell', () => {
+      const { state, worker } = woodedWorker();
+      expect(chopError(state, worker.id)).toBeNull();
+      expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
+    });
+
+    it('refuses a unit that is not a builder, before it looks at the ground', () => {
+      // `improvementError`'s ordering: a warrior standing in a magnificent
+      // forest should be told it is a warrior.
+      const { state } = woodedWorker();
+      const warrior = createUnit(state, 0, 'warrior', 5, 4);
+      refuses(state, chop(0, warrior.id), 'A Warrior cannot clear features');
+    });
+
+    it('refuses a unit that is not there, or not alive', () => {
+      const { state, worker } = woodedWorker();
+      refuses(state, chop(0, 999), 'No unit with id 999');
+      worker.hp = 0;
+      expect(chopError(state, worker.id)).toBe(`Unit ${worker.id} is not alive`);
+    });
+
+    it('refuses a spent worker and a worker that has already marched', () => {
+      const { state, worker } = woodedWorker();
+      worker.chargesLeft = 0;
+      refuses(state, chop(0, worker.id), 'This worker has no charges left');
+
+      worker.chargesLeft = 3;
+      worker.movesLeft = 0;
+      refuses(state, chop(0, worker.id), `Unit ${worker.id} has no movement left`);
+    });
+
+    it('refuses bare ground and the jungle, each in its own words', () => {
+      const { state, worker, tile } = woodedWorker();
+      tile.feature = 'none';
+      refuses(state, chop(0, worker.id), 'There is nothing to clear on (5, 4)');
+      tile.feature = 'jungle';
+      refuses(state, chop(0, worker.id), 'Jungle cannot be cleared');
+    });
+
+    it('refuses ground that is not yours, and ground that is nobody\'s', () => {
+      const { state, worker } = woodedWorker();
+      at(state, 0, 0).feature = 'forest';
+      worker.col = 0;
+      worker.row = 0;
+      refuses(state, chop(0, worker.id), '(0, 0) is not in your territory');
+
+      foundCityAt(state, 1, at(state, 9, 5));
+      at(state, 9, 4).feature = 'forest';
+      worker.col = 9;
+      worker.row = 4;
+      refuses(state, chop(0, worker.id), '(9, 4) belongs to player 1');
+    });
+
+    it('refuses the tile a town stands on', () => {
+      // A town keeps whatever feature it was founded in and the board has
+      // already suppressed the trees under the houses, so this would be hammers
+      // for a picture that does not change.
+      const { state, worker, city } = woodedWorker();
+      at(state, 5, 5).feature = 'forest';
+      worker.col = 5;
+      worker.row = 5;
+      refuses(state, chop(0, worker.id), `${city.name} stands on (5, 5)`);
+    });
+
+    it('names the technology, and asks it LAST so the ground speaks first', () => {
+      // The ordering the worker sheet is built on, exactly as
+      // `improvementErrorAt`'s: a worker on bare ground is told there is nothing
+      // to clear whatever it has researched, and only a worker in a real wood is
+      // told about Mining. That is what lets the sheet grey the row with a
+      // technology rather than with a fact about the wrong hex.
+      const { state, worker, tile } = woodedWorker();
+      state.players[0]!.techsResearched = ['agriculture'];
+
+      tile.feature = 'none';
+      expect(chopError(state, worker.id)).toBe('There is nothing to clear on (5, 4)');
+      tile.feature = 'forest';
+      refuses(state, chop(0, worker.id), 'Clearing forest needs Mining');
+
+      state.players[0]!.techsResearched.push('mining');
+      expect(chopError(state, worker.id)).toBeNull();
+    });
+
+    it('answers the gate on its own, with no hex in the question', () => {
+      // `improvementTechError`'s sibling, and the reason it is split out: the
+      // sheet greys its Chop row with this and compares it against the full
+      // refusal to decide whether the *only* problem is the tree.
+      const state = bareState();
+      state.players[0]!.techsResearched = ['agriculture'];
+      expect(chopTechError(state, 0, 'forest')).toBe('Clearing forest needs Mining');
+      expect(chopTechError(state, 1, 'forest')).toBeNull();
+      // A feature nothing can clear is never "one technology away".
+      expect(chopTechError(state, 1, 'jungle')).toBe('Jungle cannot be cleared');
+    });
+
+    it('is turn-gated, and refuses somebody else\'s worker', () => {
+      const { state, worker } = woodedWorker();
+      state.turnEnded[0] = true;
+      refuses(
+        state,
+        chop(0, worker.id),
+        `Player 0 has ended turn ${state.turn} and cannot clear features`,
+      );
+      state.turnEnded[0] = false;
+      refuses(state, chop(1, worker.id), `Unit ${worker.id} does not belong to player 1`);
+    });
+
+    it('refuses a player who does not exist', () => {
+      const { state, worker } = woodedWorker();
+      refuses(state, chop(7, worker.id), 'No player with id 7');
+    });
+  });
+
+  describe('the protection rule', () => {
+    /**
+     * Decided 2026-08-23: a chop is refused while the tile carries a resource
+     * whose placement *required* the feature, that resource is revealed to this
+     * player, and the tile is unimproved. The camp is worth more than the
+     * timber, and the game says so instead of letting a player quietly delete
+     * their own deer.
+     */
+    it('refuses to strip a revealed, unimproved resource of its ground', () => {
+      const { state, worker, tile } = woodedWorker();
+      tile.resource = 'deer';
+      refuses(
+        state,
+        chop(0, worker.id),
+        'The deer here needs the forest — build a camp before you clear it',
+      );
+    });
+
+    it('protects exactly the resources whose ground required the feature', () => {
+      // Read off `validFeatures` in `resources.json` rather than from a list
+      // kept here, which is the whole claim: the question is "would the chop
+      // leave this resource somewhere it could never have been generated". Half
+      // of these placements are impossible on a real map — a wheat field does
+      // not grow in a wood — and that is fine: the rule is about the *table*,
+      // and asserting it over the whole table is what stops it drifting.
+      for (const id of RESOURCE_IDS) {
+        const { state, worker, tile } = woodedWorker();
+        tile.resource = id;
+        const bound = resourceDef(id).validFeatures?.includes('none') === false;
+        const refused = chopError(state, worker.id) !== null;
+        expect(`${id}: ${refused ? 'refused' : 'allowed'}`).toBe(
+          `${id}: ${bound ? 'refused' : 'allowed'}`,
+        );
+      }
+    });
+
+    it('lets the timber go once the camp is standing, and keeps the deer', () => {
+      // The other half of "the camp is worth more than the timber": once the
+      // camp is built the deer are *secured* — `openedResource` asks for the
+      // improvement and never for the feature — so the wood is a legitimate
+      // second harvest rather than a loss.
+      const { state, worker, tile } = woodedWorker();
+      tile.resource = 'deer';
+      tile.improvement = 'camp';
+      expect(hasResource(state, 0, 'deer')).toBe(true);
+
+      expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
+      expect(tile.feature).toBe('none');
+      expect(tile.improvement).toBe('camp');
+      expect(hasResource(state, 0, 'deer')).toBe(true);
+    });
+
+    it('says nothing about a seam nobody has a word for yet', () => {
+      // The refusal names the resource, so a protected *unrevealed* one would
+      // leak the map through an error message. An empire that does not know the
+      // deer are there fells the wood and simply loses them, which is the honest
+      // reading of "you did not know". No feature-bound resource carries a
+      // reveal tech today, so one is lent one for the length of this test.
+      const { state, worker, tile } = woodedWorker();
+      tile.resource = 'deer';
+      const authored = resourceDef('deer').requiresTech;
+      try {
+        (resourceDef('deer') as { requiresTech?: TechId }).requiresTech = 'divination';
+        state.players[0]!.techsResearched = ['agriculture', 'mining'];
+        expect(chopError(state, worker.id)).toBeNull();
+        expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
+        expect(tile.feature).toBe('none');
+        expect(tile.resource).toBe('deer');
+      } finally {
+        if (authored === undefined) {
+          delete (resourceDef('deer') as { requiresTech?: TechId }).requiresTech;
+        } else {
+          (resourceDef('deer') as { requiresTech?: TechId }).requiresTech = authored;
+        }
+      }
+    });
+  });
+
+  describe('the effect', () => {
+    it('takes the feature off the tile and banks the timber in the city', () => {
+      const { state, worker, tile, city } = woodedWorker();
+      expect(city.hammerBasket).toBe(0);
+      expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
+      expect(tile.feature).toBe('none');
+      expect(city.hammerBasket).toBe(chopYield('forest').production);
+      expect(unitById(state, worker.id)?.chargesLeft).toBe(2);
+      // Felling a wood is the turn's work, exactly as laying a farm is.
+      expect(unitById(state, worker.id)?.movesLeft).toBe(0);
+    });
+
+    it('pays the city that owns the ground, not the nearest or the first', () => {
+      const state = bareState();
+      const capital = foundCityAt(state, 0, at(state, 2, 2));
+      const second = foundCityAt(state, 0, at(state, 8, 6));
+      at(state, 8, 5).feature = 'forest';
+      const worker = createUnit(state, 0, 'worker', 8, 5);
+
+      expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
+      expect(second.hammerBasket).toBe(chopYield('forest').production);
+      expect(capital.hammerBasket).toBe(0);
+    });
+
+    it('consumes the worker on its last charge, like every other spend', () => {
+      const { state, worker } = woodedWorker();
+      worker.chargesLeft = 1;
+      expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
+      expect(unitById(state, worker.id)).toBeUndefined();
+      expect(state.units).toHaveLength(0);
+    });
+
+    it('lets the yield, the movement cost and the defence follow by themselves', () => {
+      // The point of mutating `Tile.feature` rather than storing a "was cleared"
+      // flag: every evaluator that reads the feature is already correct, and
+      // none of them knows the chop exists.
+      const { state, worker, tile } = woodedWorker();
+      expect(tileYieldOf(tile)).toEqual(tileYield('grassland', 'forest', false));
+      expect(moveCost('grassland', tile.feature, false)).toBe(2);
+      expect(defenseBonus('grassland', tile.feature, false)).toBeGreaterThan(0);
+
+      expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
+      expect(tileYieldOf(tile)).toEqual(tileYield('grassland', 'none', false));
+      expect(moveCost('grassland', tile.feature, false)).toBe(1);
+      expect(defenseBonus('grassland', tile.feature, false)).toBe(0);
+      // And the breakdown says so too: no line about a wood that is not there.
+      const sources = explainTileYield(tile).map((entry) => entry.source);
+      expect(sources.some((source) => source.toLowerCase().includes('forest'))).toBe(false);
+    });
+
+    it('spends charges across three woods and then the worker is gone', () => {
+      const state = bareState();
+      foundCityAt(state, 0, at(state, 5, 5));
+      const cells: [number, number][] = [
+        [5, 4],
+        [4, 5],
+        [6, 5],
+      ];
+      for (const [col, row] of cells) at(state, col, row).feature = 'forest';
+      const worker = createUnit(state, 0, 'worker', 5, 4);
+
+      for (const [col, row] of cells) {
+        worker.col = col;
+        worker.row = row;
+        worker.movesLeft = 2;
+        expect(applyCommand(state, chop(0, worker.id)).ok).toBe(true);
+      }
+      expect(state.units).toHaveLength(0);
+      for (const [col, row] of cells) expect(at(state, col, row).feature).toBe('none');
+    });
+  });
+});
+
 // --- pillaging --------------------------------------------------------------
 
 describe('pillage', () => {
@@ -938,6 +1293,102 @@ describe('improvements in the log', () => {
     expect(game.log.some((command) => command.type === 'buildImprovement')).toBe(true);
     expect(game.log.some((command) => command.type === 'pillage')).toBe(true);
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
+  });
+
+  /**
+   * A real generated game in which player 0 owns a wood it may legally fell.
+   *
+   * Seeds are tried in order until one deals a fellable wood inside the opening
+   * borders, because the map may *not* be edited here: a save carries a seed and
+   * a hand-patched tile would not survive the replay this section exists to
+   * assert. Which seed wins is deterministic, so this is a fixture and not a
+   * search.
+   */
+  function choppingGame(): { game: Game; tile: Tile } {
+    for (const seed of [4242, 7, 19, 55, 101, 808, 1234, 90210]) {
+      const game = createGame({
+        seed,
+        sizeName: 'duel',
+        players: [
+          { name: 'A', color: '#a00', isHuman: true },
+          { name: 'B', color: '#00a', isHuman: true },
+        ],
+      });
+      const { state } = game;
+      for (const player of state.players) {
+        const settler = state.units.find(
+          (unit) => unit.ownerId === player.id && unitDef(unit.type).foundsCity,
+        );
+        if (settler) {
+          dispatch(game, { type: 'foundCity', playerId: player.id, settlerUnitId: settler.id });
+        }
+        dispatch(game, { type: 'chooseResearch', playerId: player.id, techId: 'mining' });
+      }
+      for (let turn = 0; turn < 40; turn++) {
+        if (state.players.every((player) => player.techsResearched.includes('mining'))) break;
+        for (const player of state.players) {
+          dispatch(game, { type: 'endTurn', playerId: player.id });
+        }
+      }
+      if (!state.players[0]!.techsResearched.includes('mining')) continue;
+      const tile = state.map.tiles.find((candidate) => chopErrorAt(state, 0, candidate) === null);
+      if (tile) return { game, tile };
+    }
+    throw new Error('no seed dealt player 0 a wood it could fell');
+  }
+
+  it('replays a chop byte for byte, feature and hammers and all', () => {
+    // `Tile.feature` is the *second* field on a tile that changes during play,
+    // and this is the assertion that keeps the map reproducible anyway: the
+    // board is still a pure function of the seed plus the log, because every
+    // clearing is a logged command.
+    const { game, tile } = choppingGame();
+    const { state } = game;
+    dispatch(game, {
+      type: 'spawnUnit',
+      playerId: 0,
+      ownerId: 0,
+      unitType: 'worker',
+      at: { col: tile.col, row: tile.row },
+    });
+    const worker = state.units[state.units.length - 1]!;
+    const before = tile.feature;
+    expect(dispatch(game, { type: 'chopFeature', playerId: 0, unitId: worker.id }).ok).toBe(true);
+    expect(tile.feature).toBe('none');
+
+    for (let turn = 0; turn < 3; turn++) {
+      for (const player of state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
+    }
+    expect(game.log.some((command) => command.type === 'chopFeature')).toBe(true);
+
+    const replayed = replay(game.config, game.log);
+    expect(snapshotState(replayed)).toBe(snapshotState(game.state));
+    // Spelled out as well as folded into the snapshot, because a replay that
+    // regenerated the map would put the wood back and nothing else would notice.
+    expect(getTileAt(replayed.map, tile.col, tile.row)?.feature).toBe('none');
+    expect(before).not.toBe('none');
+  });
+
+  it('carries a chop through a save file, which regenerates the map', () => {
+    // The save is `{config, log}`: the map comes back out of the seed *with the
+    // wood on it* and the logged chop takes it off again. If a chop were ever
+    // applied outside the command path this is the test that would fail.
+    const { game, tile } = choppingGame();
+    const { state } = game;
+    dispatch(game, {
+      type: 'spawnUnit',
+      playerId: 0,
+      ownerId: 0,
+      unitType: 'worker',
+      at: { col: tile.col, row: tile.row },
+    });
+    const worker = state.units[state.units.length - 1]!;
+    dispatch(game, { type: 'chopFeature', playerId: 0, unitId: worker.id });
+
+    const loaded = loadGame(saveGame(game));
+    expect(getTileAt(loaded.state.map, tile.col, tile.row)?.feature).toBe('none');
+    expect(unitById(loaded.state, worker.id)?.chargesLeft).toBe(2);
+    expect(snapshotState(loaded.state)).toBe(snapshotState(game.state));
   });
 
   it('round-trips a schema 13 save with improvements on the board', () => {

@@ -85,6 +85,7 @@ import {
   techRowCount,
 } from '../sim/techData';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
+import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
 import { HAMMER, YIELD_GLYPH, turnsLabel } from './figures';
 import { createInfoCard } from './infoCard';
@@ -116,6 +117,7 @@ const GIFT_MARK: Record<TechGift['kind'], string> = {
   unit: 'is-unit',
   building: 'is-building',
   improvement: 'is-improvement',
+  ability: 'is-ability',
   reveal: 'is-reveal',
   renewal: 'is-renewal',
   buildingRenewal: 'is-renewal',
@@ -126,6 +128,9 @@ const GIFT_HEADING: Record<TechGift['kind'], string> = {
   unit: 'Units',
   building: 'Buildings',
   improvement: 'Workers may build',
+  // Deliberately not "Workers may clear": the kind is a *verb* gained, and the
+  // gift's own name ("Clear Forest") is where the specifics belong.
+  ability: 'Workers may also',
   reveal: 'Reveals on the map',
   renewal: 'Improvements renewed',
   buildingRenewal: 'Buildings renewed',
@@ -285,16 +290,28 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * condition when it has one. Improvements pay in the three tile yields only,
    * so the row is those three and never the five.
    */
-  function renewalNote(gift: TechGift & { kind: 'renewal' }): string {
-    const add = gift.add;
+  function tileYieldNote(add: TileYield): string {
     const parts: string[] = [];
     if (add.food !== 0) parts.push(`${add.food > 0 ? '+' : ''}${add.food}${YIELD_GLYPH.food}`);
     if (add.production !== 0) {
       parts.push(`${add.production > 0 ? '+' : ''}${add.production}${HAMMER}`);
     }
     if (add.gold !== 0) parts.push(`${add.gold > 0 ? '+' : ''}${add.gold}${YIELD_GLYPH.gold}`);
-    const delta = parts.join(' ');
+    return parts.join(' ');
+  }
+
+  function renewalNote(gift: TechGift & { kind: 'renewal' }): string {
+    const delta = tileYieldNote(gift.add);
     return gift.requiresFreshwater ? `${delta} on fresh water` : delta;
+  }
+
+  /**
+   * What an ability is worth, in the same three voices — with `once` on the end,
+   * because that single word is the whole difference between a chop and a farm
+   * and the card would otherwise read as though the forest paid every turn.
+   */
+  function abilityNote(gift: TechGift & { kind: 'ability' }): string {
+    return `${tileYieldNote(gift.pays)} once`;
   }
 
   /**
@@ -403,8 +420,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       row.append(element('span', 'info-card-gift-name', gift.name));
       // Units are priced through the simulation's own evaluator; buildings
       // quote their flat cost; an improvement quotes the charges it spends;
-      // a reveal and the two renewals cost nothing at all, so the renewals say
-      // what they *pay* instead and the reveal says nothing.
+      // a reveal, an ability and the two renewals cost nothing at all, so the
+      // ability and the renewals say what they *pay* instead and the reveal
+      // says nothing.
       const note =
         gift.kind === 'unit'
           ? `${unitProductionCost(state, playerId, gift.id)}${HAMMER}`
@@ -412,11 +430,13 @@ export function createTechTree(options: TechTreeOptions): TechTree {
             ? `${buildingDef(gift.id).cost}${HAMMER}`
             : gift.kind === 'improvement'
               ? `${improvementDef(gift.id).chargeCost} charge`
-              : gift.kind === 'renewal'
-                ? renewalNote(gift)
-                : gift.kind === 'buildingRenewal'
-                  ? buildingRenewalNote(gift)
-                  : '';
+              : gift.kind === 'ability'
+                ? abilityNote(gift)
+                : gift.kind === 'renewal'
+                  ? renewalNote(gift)
+                  : gift.kind === 'buildingRenewal'
+                    ? buildingRenewalNote(gift)
+                    : '';
       if (note) row.append(element('span', 'info-card-gift-note', note));
       list?.append(row);
     }

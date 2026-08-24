@@ -141,9 +141,13 @@ import { yieldContextFor } from '../sim/cities';
 import {
   IMPROVEMENT_IDS,
   type ImprovementId,
+  chopDef,
+  chopYield,
   improvementDef,
 } from '../sim/improvementData';
 import {
+  chopCity,
+  chopError,
   improvementError,
   improvementTechError,
   improvementYieldDelta,
@@ -483,6 +487,31 @@ export interface GameControls {
   /** Spends a charge. The unit sheet's per-improvement buttons. */
   buildImprovement(id: ImprovementId): void;
 
+  /**
+   * Why the selected worker cannot clear the feature it is standing in, or
+   * `null` when it can — the same three-valued shape as `foundCityBlocker`.
+   *
+   * A blocker rather than an option list, because unlike the improvements this
+   * verb is *one* verb: there is only ever one feature on a hex, so there is
+   * nothing to choose between and everything to explain. It greys with whatever
+   * refused — the ground, the borders, a protected resource, or the technology —
+   * which is Pillage's reading rather than the improvements', because "there is
+   * no forest here" is a fact about this hex and a worker will meet the verb
+   * again on the next one.
+   */
+  chopBlocker(): string | null | undefined;
+  /**
+   * What clearing here would pay and which city would bank it, or `null` when
+   * this hex has no chop in it at all.
+   *
+   * Entry VIII's pre-decision delta for the axe. Offered even while the *tree*
+   * is refusing, exactly as a greyed improvement row still carries its yield:
+   * "the wood here is worth 20⚙ to Uruk" is precisely the argument for going and
+   * researching Mining. It is `null` — rather than a zero — when the ground has
+   * nothing to say, so the panel prints no number rather than a false one.
+   */
+  chopPreview(): { production: number; cityName: string } | null;
+  chop(): void;
   /**
    * Why the selected unit cannot pillage where it stands, or `null` when it can.
    * `undefined` with nothing selected — the same three-valued shape as
@@ -1295,6 +1324,74 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       return;
     }
 
+    if (!unitById(getGame().state, unit.id)) {
+      selectedId = null;
+      setMoveMode(false);
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
+   * Why the selected worker cannot clear where it stands. The seat's question
+   * here, the work's delegated to `chopError` — the same split as
+   * `foundCityBlocker`, and the same guarantee: an enabled button is an accepted
+   * command, and a greyed one wears the reducer's own sentence.
+   */
+  function chopBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    return chopError(getGame().state, unit.id);
+  }
+
+  /**
+   * "+20⚙ → Uruk", as the two facts the panel needs to say it.
+   *
+   * Both halves come from the simulation's own tables — `chopYield` for the
+   * payout, `chopCity` for the city the hammers land in — so the preview cannot
+   * promise a number or a destination the reducer will disagree with. Offered
+   * whenever the *ground* holds a chop and somebody owns it; every other refusal
+   * (the tech, a protected resource, a spent worker) still shows the number,
+   * because that is the number being argued about.
+   */
+  function chopPreview(): { production: number; cityName: string } | null {
+    const unit = selectedUnit();
+    if (!unit || !isBuilder(unit)) return null;
+    const { state } = getGame();
+    const tile = getTileAt(state.map, unit.col, unit.row);
+    if (!tile || chopDef(tile.feature) === null) return null;
+    const city = chopCity(state, tile);
+    if (!city || city.ownerId !== unit.ownerId) return null;
+    return { production: chopYield(tile.feature).production, cityName: city.name };
+  }
+
+  /**
+   * Fells the wood, and lets go of the worker if that was its last charge.
+   *
+   * `buildImprovement`'s twin down to the selection handling, and for the same
+   * reason: a worker that spends its third charge is removed from the board, so
+   * holding its id would leave the sheet describing a piece that is not there.
+   * Asked of the state after the dispatch rather than predicted before it.
+   */
+  function chop(): void {
+    const unit = selectedUnit();
+    if (!unit || chopBlocker() !== null) return;
+    // Read before the dispatch: the command is about to take the feature off the
+    // tile, and the announcement is about the wood that *was* there.
+    const preview = chopPreview();
+
+    const command: Command = { type: 'chopFeature', playerId: localPlayerId, unitId: unit.id };
+    const result = dispatch(getGame(), command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+
+    if (preview) {
+      announce(`Cleared: +${preview.production}⚙ → ${preview.cityName}`);
+    }
     if (!unitById(getGame().state, unit.id)) {
       selectedId = null;
       setMoveMode(false);
@@ -2129,6 +2226,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     fortifyBlocker,
     improvementOptions,
     buildImprovement,
+    chopBlocker,
+    chopPreview,
+    chop,
     pillage,
     pillageBlocker,
     combatForecast,

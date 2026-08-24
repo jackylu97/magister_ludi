@@ -642,6 +642,21 @@ export interface BuiltBoard {
   group: Group;
   /** Which instance slots each tile owns. See `TileInstances`. */
   tiles: TileInstances;
+  /**
+   * Every hex this bake planted a canopy on, in map order.
+   *
+   * The board's memory of its own trees, and the third source of the suppression
+   * sweep. A forest can be cleared mid-game (`chopFeature`) and the board is
+   * never re-baked for a gameplay event, so "there are trees drawn on that hex"
+   * stops being derivable from `Tile.feature` the moment the axe lands: the state
+   * says `none` and the buffers still say pine. Only the bake knows, so the bake
+   * writes it down.
+   *
+   * In map order rather than in any order the game produced, for
+   * `improvedCells`' reason: it is a fact about the board, and an order that
+   * depended on history would make two identical boards behave differently.
+   */
+  treedCells: readonly number[];
   /** World-space extent of one copy of the board, for framing and clamping. */
   bounds: Bounds;
   /** Horizontal wrap period in world units. */
@@ -963,6 +978,17 @@ function touchesSea(map: GameMap, tile: Tile): boolean {
   return false;
 }
 
+/**
+ * Dresses one hex, and reports whether it planted a **canopy** on it.
+ *
+ * The return value is the board's memory of what it baked, and it exists for one
+ * reason: a forest can be *chopped* mid-game (`chopFeature`), and the board is
+ * built once per game and may never be re-baked for a gameplay event. So the
+ * renderer's sweep has to be able to ask "did I draw trees there?" of a tile
+ * whose feature now says `none` — a question the *state* can no longer answer,
+ * because the state is the board after the axe and the buffers are the board
+ * before it. See `BuiltBoard.treedCells` and `Renderer3D.clearGround`.
+ */
 function addDecorations(
   map: GameMap,
   tile: Tile,
@@ -972,7 +998,7 @@ function addDecorations(
   collector: InstanceCollector,
   /** `tileIndex` of `tile`, so every scrap of scatter is fog-addressable. */
   cell: number,
-): void {
+): boolean {
   const position = new Vector3();
   const quaternion = new Quaternion();
   const scale = new Vector3();
@@ -1030,6 +1056,7 @@ function addDecorations(
   const variant = (index: number): boolean =>
     hashUnit(tile.col, tile.row, STREAM.treeVariant * 64 + index) < DECOR.altChance;
 
+  let treed = false;
   if (tile.feature === 'forest') {
     // Two or three, hashed — an even count everywhere looks planted by a
     // machine, and the sim has no per-tile density to read.
@@ -1038,12 +1065,14 @@ function addDecorations(
       const shape = variant(i) ? geometry.pineAlt : geometry.pine;
       place(shape, VIEW3D.featureColor.forest, STREAM.pinePlace, i, 1);
     }
+    treed = true;
   } else if (tile.feature === 'jungle') {
     const count = 2 + Math.floor(hashUnit(tile.col, tile.row, STREAM.jungleCount) * 2);
     for (let i = 0; i < count; i++) {
       const shape = variant(i) ? geometry.broadleafAlt : geometry.broadleaf;
       place(shape, VIEW3D.featureColor.jungle, STREAM.junglePlace, i, 1.1);
     }
+    treed = true;
   }
 
   /**
@@ -1110,6 +1139,8 @@ function addDecorations(
   // The bank dressing stays either way: reeds are a fact about where the water
   // is, not about what is growing on the field beside it.
   addWaterEdge(map, tile, geometry, place);
+
+  return treed;
 
   /**
    * Ground clutter and reeds share the scatter above; both are below.
@@ -1205,6 +1236,35 @@ function addDecorations(
   }
 }
 
+/**
+ * A cheap fingerprint of where the features still stand.
+ *
+ * `signImprovedCells`' sibling, and it answers the same *kind* of question for
+ * the third source of the suppression sweep: when this number moves, something
+ * has been cleared and a hex the bake put trees on now has to read as bare
+ * ground. FNV-1a over the indices of the tiles that still carry a feature,
+ * allocating nothing, walked in map order for the reason every other sign is.
+ *
+ * Which *kind* of feature is deliberately not in the hash. Nothing in the game
+ * turns a forest into a jungle, so the only motion this can see is a feature
+ * going away — and if a transmutation is ever added, the honest fix is a board
+ * rebuild, not a finer hash, because the bake would owe the tile trees of the
+ * other species.
+ *
+ * It takes the **map** and not the state, unlike its siblings, because that is
+ * all it is about: features are a fact about the ground, and a signature that
+ * asked for a `GameState` would be claiming to depend on cities and units it
+ * never reads.
+ */
+export function signFeatureCells(map: GameMap): number {
+  let h = 2166136261 ^ map.tiles.length;
+  for (let i = 0; i < map.tiles.length; i++) {
+    if (map.tiles[i]!.feature === 'none') continue;
+    h = Math.imul(h ^ i, 16777619);
+  }
+  return h >>> 0;
+}
+
 /** Water terrains, which grow nothing and are never dressed. */
 function isWater(tile: Tile): boolean {
   return tile.terrain === 'ocean' || tile.terrain === 'coast' || tile.terrain === 'lake';
@@ -1244,6 +1304,8 @@ export function buildBoard(
   const quaternion = new Quaternion();
   const scale = new Vector3();
   const axis = new Vector3(0, 1, 0);
+  /** Every hex this bake put a canopy on. See `BuiltBoard.treedCells`. */
+  const treedCells: number[] = [];
 
   for (const tile of map.tiles) {
     const center = cellCenter(tile.col, tile.row);
@@ -1300,8 +1362,8 @@ export function buildBoard(
         outlined: false,
         tile: cell,
       });
-    } else {
-      addDecorations(map, tile, top, center, geometry, collector, cell);
+    } else if (addDecorations(map, tile, top, center, geometry, collector, cell)) {
+      treedCells.push(cell);
     }
 
     // The sand band. A decal on the tile's own face rather than a wider prism
@@ -1344,6 +1406,7 @@ export function buildBoard(
   return {
     group,
     tiles: { own: collector.tileHandles(), shared: rivers },
+    treedCells,
     bounds,
     wrapWidth: period,
     tileCount: map.tiles.length,

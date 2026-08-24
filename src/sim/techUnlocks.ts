@@ -34,12 +34,15 @@ import {
   buildingDef,
 } from './buildingData';
 import {
+  CHOPPABLE_FEATURES,
   IMPROVEMENT_IDS,
   type ImprovementId,
+  chopDef,
+  chopYield,
   improvementDef,
 } from './improvementData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from './resourceData';
-import { type TileYield, readTileYield } from './terrainData';
+import { type FeatureId, type TileYield, featureDef, readTileYield } from './terrainData';
 import { TECH_IDS, type TechId, isTechId, techDef } from './techData';
 import { type UnitTypeId, unitDef } from './unitData';
 
@@ -49,6 +52,11 @@ import { type UnitTypeId, unitDef } from './unitData';
  *   · `unit` / `building` — a new row in a city's build list.
  *   · `improvement` — a new row on a *worker's* sheet. The same kind of gift as
  *     a building one grade smaller: something a player may now choose to make.
+ *   · `ability` — a *verb* a worker gains rather than a thing it may make. Today
+ *     that is exactly the feature clearings in the `chop` table (Mining hands
+ *     over the axe), and the list is built by walking that table rather than by
+ *     naming Mining anywhere: the day the jungle gets a row it appears on
+ *     whatever node it names, with nobody remembering to come back here.
  *   · `reveal` — a resource this player may now be *told* about. The ore was
  *     always there and always paid its yield; the technology buys the label
  *     (`isResourceVisible`), so this is a gift to the map and not to the city.
@@ -64,6 +72,7 @@ export type TechGiftKind =
   | 'unit'
   | 'building'
   | 'improvement'
+  | 'ability'
   | 'reveal'
   | 'renewal'
   | 'buildingRenewal';
@@ -85,6 +94,13 @@ export type TechGift =
   | (TechGiftBase & { kind: 'unit'; id: UnitTypeId })
   | (TechGiftBase & { kind: 'building'; id: BuildingId })
   | (TechGiftBase & { kind: 'improvement'; id: ImprovementId })
+  | (TechGiftBase & {
+      kind: 'ability';
+      /** The feature this ability clears. See the `chop` table. */
+      id: FeatureId;
+      /** What one clearing banks, once, in the city that owns the ground. */
+      pays: TileYield;
+    })
   | (TechGiftBase & { kind: 'reveal'; id: ResourceId })
   | (TechGiftBase & {
       kind: 'renewal';
@@ -103,10 +119,10 @@ export type TechGift =
 
 /**
  * Everything `id` hands over: units, then buildings, then the improvements a
- * worker may now lay, then reveals, then the two kinds of renewal — the order a
- * player reads them in, and the order of consequence. Three of them are things
- * to build, one is a thing to look for, and the last two are things that simply
- * happen.
+ * worker may now lay, then the abilities it gains, then reveals, then the two
+ * kinds of renewal — the order a player reads them in, and the order of
+ * consequence. Three of them are things to build, one is a thing a worker may
+ * now do, one is a thing to look for, and the last two simply happen.
  *
  * Every list is walked as an array in table order, never as a Map, so the same
  * tech always produces the same list (hard rule 2, and this feeds a screen the
@@ -132,6 +148,22 @@ export function techGifts(id: TechId): TechGift[] {
       id: improvement,
       name: improvementDef(improvement).name,
       glyph: improvementDef(improvement).emoji,
+    });
+  }
+  for (const feature of CHOPPABLE_FEATURES) {
+    const chop = chopDef(feature)!;
+    if (chop.tech !== id) continue;
+    gifts.push({
+      kind: 'ability',
+      id: feature,
+      // The verb, said as a verb: this is a thing a worker may now *do*, not a
+      // thing a city may now build, and the name is what the card prints.
+      name: `Clear ${featureDef(feature).name}`,
+      glyph: featureDef(feature).glyph ?? '⚒',
+      // Copied rather than handed over, like a renewal's `add`: the table is
+      // shared module state and a caller that summed into it would retune the
+      // game.
+      pays: chopYield(feature),
     });
   }
   for (const resource of RESOURCE_IDS) {

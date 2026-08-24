@@ -1,6 +1,6 @@
 /**
- * Tile improvements: what a worker may build, what it costs them, and what a
- * raider may tear out again.
+ * Tile improvements: what a worker may build, what it costs them, what a worker
+ * may clear away, and what a raider may tear out again.
  *
  * Pure logic over `GameState`, exactly like `cities.ts` and `combat.ts`. The two
  * commands in `commands.ts` validate with `improvementError` / `pillageError`
@@ -41,20 +41,51 @@
  * ownership, and tile ownership is a city's (see `state.ts`). "Your cities' land"
  * is one lookup, it is the same lookup `hasResource` makes, and it means an
  * improvement always has an owner who can lose it.
+ *
+ * The same rule buys the chop its answer to a question it would otherwise have
+ * to invent: hammers have to land *somewhere*, and "the city whose territory
+ * holds the tile" is a city that already exists by the time the axe is legal.
+ *
+ * Clearing (`chopFeature`, 2026-08-23)
+ * -----------------------------------
+ * The worker's other verb: spend a charge, take the forest off the hex, bank a
+ * one-time lump of production into the city that owns the ground. It is the
+ * charge model read backwards — a *known* delta, previewable, instant, with no
+ * partial-progress state — and it is gated, costed and paid entirely out of the
+ * `chop` table in `data/improvements.json`, so the day the jungle is designed
+ * the whole feature arrives as one JSON object. See `chopErrorAt` for the rules,
+ * the resource-protection decision included.
  */
 
-import { tileOwnerPlayerId, tileYieldOf, type TileYieldContext } from './cities';
+import { tileOwnerCityId, tileOwnerPlayerId, tileYieldOf, type TileYieldContext } from './cities';
 import {
   type ImprovementId,
+  chopDef,
+  chopYield,
   improvementDef,
+  improvementForResource,
   isImprovementId,
 } from './improvementData';
 import { type Tile, getTileAt, tileIndex } from './map';
+import { resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
-import { type GameState, type Unit, playerById, removeUnit, unitById } from './state';
+import {
+  type City,
+  type GameState,
+  type Unit,
+  cityById,
+  playerById,
+  removeUnit,
+  unitById,
+} from './state';
 import { hasTech } from './tech';
 import { techDef } from './techData';
-import { TILE_YIELD_KEYS, type TileYield, emptyTileYield } from './terrainData';
+import {
+  TILE_YIELD_KEYS,
+  type TileYield,
+  emptyTileYield,
+  featureDef,
+} from './terrainData';
 import { unitDef } from './unitData';
 
 const IMPROVEMENTS = RULES.improvements;
@@ -267,6 +298,207 @@ export function improvementYieldDelta(
   const delta = emptyTileYield();
   for (const key of TILE_YIELD_KEYS) delta[key] = after[key] - now[key];
   return delta;
+}
+
+// --- clearing features ------------------------------------------------------
+
+/**
+ * The city whose territory holds this tile, or `null` for unclaimed ground.
+ *
+ * One lookup, shared by the gate, the mechanism and the worker sheet's preview,
+ * so "+20⚙ → Uruk" on the button names the city the hammers actually land in.
+ * Two implementations of "which city gets this" is exactly how a preview starts
+ * lying.
+ */
+export function chopCity(state: GameState, tile: Tile): City | null {
+  const cityId = tileOwnerCityId(state, tile.col, tile.row);
+  if (cityId === null) return null;
+  return cityById(state, cityId) ?? null;
+}
+
+/**
+ * Would clearing this tile strip a resource of the ground it was placed on?
+ *
+ * The protection rule, and the one place it is written. Deer are placed in
+ * forest, coffee in jungle, dyes in either — read off `validFeatures` in
+ * `resources.json` rather than from a hand-kept list here, so the question is
+ * literally "would the chop leave this resource somewhere it could never have
+ * been generated". A resource that is happy on bare ground (`'none'` in its
+ * list, which is most of the table) is never protected.
+ */
+function needsItsFeature(tile: Tile): boolean {
+  if (tile.resource === undefined) return false;
+  const valid = resourceDef(tile.resource).validFeatures;
+  return valid !== undefined && !valid.includes('none');
+}
+
+/**
+ * Why this ground cannot be cleared by this player, or `null` when it can.
+ *
+ * The *ground's* half, split out for `improvementErrorAt`'s reason: a lens, an
+ * AI valuation or a "where are my chops?" overlay wants to ask it of a hex with
+ * no worker on it, and a second implementation of the constraint would be a
+ * second implementation that disagrees.
+ *
+ * The clauses, in the order a player thinks of them, with the technology **last**
+ * for exactly the reason `improvementErrorAt` puts it last: the worker sheet's
+ * Chop row is greyed with whatever this says, and "the only thing refusing this
+ * is the tree" has to be a comparison the sheet can make
+ * (`chopErrorAt(…) === chopTechError(…)`) rather than a fact it has to re-derive.
+ *
+ * **The resource-protection rule (decided 2026-08-23).** A chop is refused while
+ * the tile carries a resource whose placement required the feature *and* that
+ * resource is **revealed** to this player *and* the tile is **unimproved** — the
+ * camp is worth more than the timber, and the game says so instead of letting a
+ * player quietly delete their own deer. Both qualifiers are doing work. Revealed,
+ * because a refusal that mentioned a resource the player has not researched the
+ * word for would leak the map through an error message. Unimproved, because once
+ * the camp stands the deer are *secured* — `openedResource` asks for the
+ * improvement, never for the feature — so the timber is a legitimate second
+ * harvest rather than a loss. An unrevealed seam is choppable and is simply gone,
+ * which is the honest reading of "you did not know it was there".
+ */
+export function chopErrorAt(
+  state: GameState,
+  ownerId: number,
+  tile: Tile,
+): string | null {
+  const where = `(${tile.col}, ${tile.row})`;
+
+  const city = chopCity(state, tile);
+  if (city === null) return `${where} is not in your territory`;
+  if (city.ownerId !== ownerId) return `${where} belongs to player ${city.ownerId}`;
+
+  // A town's tile keeps whatever feature it was founded in — nothing clears it,
+  // and the board has already suppressed the trees under the houses. Chopping
+  // there would be hammers for a picture that does not change, so it is refused
+  // where every other "a town stands here" is refused.
+  for (const standing of state.cities) {
+    if (standing.col === tile.col && standing.row === tile.row) {
+      return `${standing.name} stands on ${where}`;
+    }
+  }
+
+  const def = chopDef(tile.feature);
+  if (def === null) {
+    return tile.feature === 'none'
+      ? `There is nothing to clear on ${where}`
+      : `${featureDef(tile.feature).name} cannot be cleared`;
+  }
+
+  if (needsItsFeature(tile) && tile.improvement === undefined) {
+    const resource = tile.resource!;
+    const player = playerById(state, ownerId);
+    if (player && resourceIsVisibleTo(resource, player.techsResearched)) {
+      const needed = improvementForResource(resource);
+      const first = needed === null ? 'work it' : `build a ${improvementDef(needed).name.toLowerCase()}`;
+      return (
+        `The ${resourceDef(resource).name.toLowerCase()} here needs the ` +
+        `${featureDef(tile.feature).name.toLowerCase()} — ${first} before you clear it`
+      );
+    }
+  }
+
+  return chopTechError(state, ownerId, tile.feature);
+}
+
+/**
+ * Why the *tree* refuses to clear this feature, or `null` when it does not.
+ *
+ * `improvementTechError`'s sibling, and split out for the same two callers: the
+ * last clause of `chopErrorAt`, and the worker sheet, which greys its Chop row
+ * with the technology named rather than hiding it. A feature nothing can clear
+ * answers with the ground's sentence, because "jungle needs a technology" would
+ * be a promise the table does not make.
+ */
+export function chopTechError(
+  state: GameState,
+  ownerId: number,
+  feature: Tile['feature'],
+): string | null {
+  const def = chopDef(feature);
+  if (def === null) {
+    return feature === 'none'
+      ? 'There is nothing to clear here'
+      : `${featureDef(feature).name} cannot be cleared`;
+  }
+  if (hasTech(state, ownerId, def.tech)) return null;
+  return `Clearing ${featureDef(feature).name.toLowerCase()} needs ${techDef(def.tech).name}`;
+}
+
+/**
+ * Why this unit cannot clear the feature it is standing in, or `null`.
+ *
+ * **The** gate: the `chopFeature` command refuses with this sentence and the
+ * unit sheet enables its Chop row with it, so an offered button is a command the
+ * reducer takes. The unit's own questions here and the ground's delegated, in
+ * that order and for `improvementError`'s reason — a warrior standing in a
+ * magnificent forest should be told it is a warrior.
+ *
+ * The action gating is `improvementError`'s, clause for clause: alive, a
+ * builder, charges enough for the cost, and movement left to act. Chopping is
+ * the same kind of work as building and it is deliberately not cheaper.
+ */
+export function chopError(state: GameState, unitId: number): string | null {
+  const unit = unitById(state, unitId);
+  if (!unit) return `No unit with id ${String(unitId)}`;
+  if (unit.hp <= 0) return `Unit ${unit.id} is not alive`;
+
+  const def = unitDef(unit.type);
+  if (!isBuilder(unit)) return `A ${def.name} cannot clear features`;
+
+  const tile = getTileAt(state.map, unit.col, unit.row);
+  if (!tile) return `Unit ${unit.id} is not on the map`;
+
+  // The charge cost is the *feature's*, so it has to be read before it can be
+  // checked — and a hex with nothing to clear is answered by the ground rather
+  // than by "no charges left", which would be a sentence about the wrong thing.
+  const chop = chopDef(tile.feature);
+  if (chop !== null) {
+    if (chargesLeft(unit) < chop.chargeCost) {
+      return `This ${def.name.toLowerCase()} has no charges left`;
+    }
+    if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
+  }
+  return chopErrorAt(state, unit.ownerId, tile);
+}
+
+/**
+ * Takes the feature off the tile and banks the timber. Validates nothing — the
+ * rules are `chopError`'s job; this is the mechanism.
+ *
+ * Four mutations, and each is the same rule `buildImprovementAt` writes:
+ *
+ *   · the feature goes, **instantly**, making `Tile.feature` the second field on
+ *     a tile that changes during play. Yield, movement cost and defence all
+ *     follow through the evaluators that already read the feature, so nothing
+ *     here knows they exist.
+ *   · the owning city banks the production, once, into `hammerBasket` — the same
+ *     pool `collectYields` pays into, so a chop simply arrives as a very good
+ *     turn's work rather than as a second kind of production.
+ *   · the worker spends the chop's `chargeCost` and is *removed* at zero, through
+ *     `removeUnit` like every other disappearance.
+ *   · the worker spends **all** its remaining movement. Felling a wood is the
+ *     turn's work, exactly as laying a farm is.
+ *
+ * Returns whether the worker survived, which is what the interface needs in
+ * order to decide whether it still has something selected.
+ */
+export function chopFeatureAt(state: GameState, unit: Unit, tile: Tile): boolean {
+  const paid = chopYield(tile.feature);
+  const cost = chopDef(tile.feature)?.chargeCost ?? 1;
+  const city = chopCity(state, tile);
+  if (city) city.hammerBasket += paid.production;
+
+  tile.feature = 'none';
+  unit.movesLeft = 0;
+  const left = chargesLeft(unit) - cost;
+  if (left <= 0) {
+    removeUnit(state, unit.id);
+    return false;
+  }
+  unit.chargesLeft = left;
+  return true;
 }
 
 // --- pillaging --------------------------------------------------------------

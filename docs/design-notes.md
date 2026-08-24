@@ -450,6 +450,80 @@ they exist.
 
 ---
 
+### Entry XII.b — Chopping: the forest as a one-time hammer (**built** 2026-08-23)
+
+**`chopFeature {playerId, unitId}`.** The worker's second verb, and deliberately the same shape as
+its first: it names the unit and never a tile or a feature (the ground is wherever the worker is),
+it validates fully before it writes, it is **instant**, it spends a charge, it spends **all**
+remaining movement, and a worker that empties itself on it is consumed through `removeUnit`. Four
+mutations: `Tile.feature → 'none'`, one charge, all movement, and `+20⚙` banked once into the
+`hammerBasket` of the city whose territory holds the tile. Everything downstream — tile yield,
+movement cost, defence bonus, the yield breakdown — follows through evaluators that already read
+the feature and know nothing about the axe. That is the whole argument for mutating the feature
+rather than storing a "was cleared" flag beside it.
+
+**The data shape is a sibling table, not a seventh improvement.** `data/improvements.json` grew a
+`chop` block keyed by `FeatureId`:
+
+```json
+"chop": { "forest": { "tech": "mining", "chargeCost": 1, "yields": { "production": 20 } } }
+```
+
+An improvement goes *on* a tile and pays forever; a chop takes something *off* and pays once, so
+filing it as a row would have meant a meaningless `clearsClutter`, a `yields` that lied about
+being per-turn, and every `improvementDef` caller learning about an exception. **Jungle has no
+row**, and that absence is the feature: `chopDef` answering `null` is the whole of "not
+choppable", so the day the jungle is designed it is one JSON object and nothing else — the
+reducer, the worker sheet and the tech card all read the table generically. The load validator
+holds a chop to **production only**, because `hammerBasket` is the only one-time bank in the game
+and a chop that promised food would be a number the sheet printed and the city never received.
+**The user's future scalers (+5⚙ per some X — era, tech count, city size) are noted here and not
+built:** they land as extra fields on this row plus one term in `chopFeatureAt`, and until the
+scaling curve is designed a hook for it would be a hook built twice.
+
+**The protection rule (RATIFIED, this build): the camp is worth more than the timber.** A chop is
+refused while the tile carries a resource whose placement *required* the feature (`validFeatures`
+excludes `'none'` — deer, silk, furs, amber in forest; bananas, spices, coffee, sugar, dyes in
+jungle), **and** that resource is revealed to the chopping player, **and** the tile is
+unimproved. Both qualifiers earn their place. *Revealed*, because the refusal names the resource
+and refusing over an unresearched one would leak the map through an error message — an empire
+that does not know the deer are there fells the wood and simply loses them, which is the honest
+reading of "you did not know". *Unimproved*, because once the camp stands the deer are **secured**
+— `openedResource` asks for the improvement and never for the feature — so the timber is a
+legitimate second harvest rather than a loss. The refusal says the rule out loud: *"The deer here
+needs the forest — build a camp before you clear it."* The rejected alternative was "refused
+always", which is defensible and costs the player the second harvest for no rule they can see.
+
+**`Tile.feature` is now the second field on a tile that changes during play.** The map stays
+reproducible from `{config, log}` because every chop is a logged command, and it stays *safe*
+because nothing regenerates a tile mid-game: features are placed by `generateMap`'s first pass and
+resources by `placeResources`, both of which run once inside `newGame`. The trap in CLAUDE.md was
+widened to say so.
+
+**Render: the third source of the suppression sweep.** The board is built once per game (Entry
+XIII), so a felled wood is per-instance suppression, not a re-bake. The new part is *where the
+sweep gets its list*: after a chop the state says `none` and the buffers still hold pines, so the
+question "did I draw trees there?" can only be answered by the bake. `buildBoard` therefore
+records `treedCells`, and `clearGround` sweeps `treedCells whose feature is now 'none'` at
+`SUPPRESS.decor` — the town's grade, because what has to go is a *canopy*, and everything standing
+among the trees goes with it. A chopped hex reads exactly like ground a settlement cleared, which
+is the one visual consequence worth stating: the only props it can take are ones the player chose
+to give up (an improved resource) or ones they never knew were there. `signFeatureCells(map)`
+joins the other two fingerprints so the renderer notices; the sweep stays monotone, so nothing
+regrows, and it composes with fog in both orders (the two-bit machine — a scout walking past a
+chopped hex must not regrow the forest, which is asserted rather than assumed).
+
+**UI.** The worker sheet gains a **Chop** row beside the improvements, greyed rather than hidden
+when the ground refuses (Fortify's reading: "there is no forest here" is a fact about this hex
+this turn). It wears the payout and the destination before the decision — `Chop +20⚙`, with
+`+20⚙ → Uruk` in the tooltip — from `chopYield` and `chopCity`, the same two functions the reducer
+banks with. The payout shows on the greyed pre-Mining row too, for the reason a greyed Mine still
+quotes its 2⚙: the number is the argument for researching the node. On the star chart, Mining's
+gift list grew an **ability** kind (`techGifts`), driven off the chop table's `tech` field rather
+than off Mining's name — so any future clearing surfaces on its own node automatically.
+
+---
+
 ## Entry X — The naming bible (RATIFIED 2026-08-22; terminology adopted, styling deferred)
 
 Register rule: systems keep grounded civilization-simulation names; period flavor only where it

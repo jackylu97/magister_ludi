@@ -111,6 +111,18 @@ export interface UnitPanelOptions {
   improvementOptions: () => ImprovementOption[];
   onBuildImprovement: (id: ImprovementId) => void;
   /**
+   * Why the selected worker cannot clear the feature it is standing in — the
+   * same three-valued shape as `foundCityBlocker`, answered by
+   * `controls.chopBlocker()`.
+   *
+   * A blocker rather than a list, unlike the improvements, because there is only
+   * ever one feature on a hex: nothing to choose between, everything to explain.
+   */
+  chopBlocker: () => string | null | undefined;
+  /** What clearing would pay and where — `controls.chopPreview()`. */
+  chopPreview: () => { production: number; cityName: string } | null;
+  onChop: () => void;
+  /**
    * Why the selected unit cannot pillage — the same three-valued shape as
    * `foundCityBlocker`, answered by `controls.pillageBlocker()`.
    */
@@ -160,6 +172,9 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onFortify,
     improvementOptions,
     onBuildImprovement,
+    chopBlocker,
+    chopPreview,
+    onChop,
     pillageBlocker,
     onPillage,
     onClose,
@@ -302,6 +317,27 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
           run: () => onBuildImprovement(option.id),
         });
       }
+      // The axe sits beside the improvements because it is the same worker
+      // spending the same charge — but it is one row rather than six, and it is
+      // *greyed* rather than hidden when the ground refuses. That is Fortify's
+      // reading and it is deliberate: "there is no forest here" is a fact about
+      // this hex this turn, and the worker will be standing somewhere else
+      // tomorrow. Hiding it would make the verb something a player has to
+      // discover by wandering into a wood.
+      //
+      // The payout rides on the label whenever there is one to quote, greyed row
+      // included, for the reason a greyed Mine still quotes its 2⚙: the number
+      // is the argument.
+      const chop = chopPreview();
+      const chopBlocked = chopBlocker();
+      actions.push({
+        label: chop ? `Chop +${chop.production}⚙` : 'Chop',
+        blocked: chopBlocked === undefined ? 'No unit selected' : chopBlocked,
+        hint: chop
+          ? `Spend a charge: clear this tile · +${chop.production}⚙ → ${chop.cityName}`
+          : 'Spend a charge: clear the feature on this tile',
+        run: onChop,
+      });
     }
     // Pillage is offered to anything that can fight, and merely *disabled* when
     // there is nothing here to burn — Fortify's reading rather than the
