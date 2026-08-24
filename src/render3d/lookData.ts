@@ -24,7 +24,7 @@
 import viewJson from '../../data/view3d.json';
 
 import type { ImprovementId } from '../sim/improvementData';
-import type { ResourceId } from '../sim/resourceData';
+import type { ResourceId, ResourceKind } from '../sim/resourceData';
 import type { FeatureId, TerrainId } from '../sim/terrainData';
 
 import type { MiniAccent, MiniClass } from './geometry';
@@ -863,6 +863,40 @@ export interface IconSpec {
    */
   marginaliaScale: number;
   marginaliaColor: number;
+  /** How a resource roundel's paper and rim differ by `ResourceKind`. */
+  resourceKinds: Record<ResourceKind, ResourceKindStyle>;
+}
+
+/**
+ * The three `ResourceKind`s read differently on sight, by shape *and* colour —
+ * colour alone fails a colourblind player, and this is the one place both cues
+ * are decided.
+ *
+ * Every field is in the same units `drawDiscCell`'s own numbers are: a
+ * fraction of the atlas cell for a width, a palette name resolved to a colour
+ * for an ink. The shape is baked into the atlas texture rather than into the
+ * marker's geometry, which stays one plain quad per resource — see the module
+ * docblock on `TileIcons` and the trap this follows from in `CLAUDE.md`: a
+ * printed atlas bucket cannot be tinted or re-shaped per instance at runtime,
+ * so the whole of a kind's look has to be drawn into its cell at load.
+ */
+export interface ResourceKindStyle {
+  /**
+   * The paper's silhouette. `'circle'` is bonus's plain roundel, unchanged
+   * from before this table existed. `'scallop'` gives luxury a fluted edge —
+   * the coin-with-a-lozenge-edge read — and `'shield'` gives strategic a
+   * squared, pointed-base silhouette, the Civ convention for "this gates a
+   * unit".
+   */
+  shape: 'circle' | 'scallop' | 'shield';
+  /** The rim's ink, stroked just inside the paper's own edge. */
+  rimColor: number;
+  /** Rim stroke width, as a fraction of the atlas cell. */
+  rimWidth: number;
+  /** `'scallop'` only: how many bumps run around the circumference. */
+  scallops?: number;
+  /** `'scallop'` only: bump height, as a fraction of the base radius. */
+  scallopDepth?: number;
 }
 
 /**
@@ -1186,6 +1220,55 @@ function parseFamilies(
   return families;
 }
 
+/**
+ * The three kinds a resource can be. Written out here rather than derived,
+ * because `ResourceKind` is a closed union in `resourceData.ts` and this is
+ * the loop that has to visit every member of it — the same trade `parseFamilies`
+ * makes against `FAMILY_IDS`.
+ */
+const RESOURCE_KIND_IDS: readonly ResourceKind[] = ['bonus', 'strategic', 'luxury'];
+
+const RESOURCE_KIND_SHAPES: readonly ResourceKindStyle['shape'][] = ['circle', 'scallop', 'shield'];
+
+/**
+ * Reads `icons.resourceKinds`, checked the same way the abacus families are:
+ * every kind named, none twice, and a shape the rasteriser actually knows how
+ * to draw. A silently-missing kind would fall back to `undefined` at
+ * `TileIcons.load` time and throw from inside a canvas rasterisation instead
+ * of from load, which is a far worse place to learn about a typo.
+ */
+function parseResourceKindStyles(
+  raw: Record<
+    string,
+    {
+      shape: string;
+      rimColor: string;
+      rimWidth: number;
+      scallops?: number;
+      scallopDepth?: number;
+    }
+  >,
+): Record<ResourceKind, ResourceKindStyle> {
+  const out: Partial<Record<ResourceKind, ResourceKindStyle>> = {};
+  for (const kind of RESOURCE_KIND_IDS) {
+    const spec = raw[kind];
+    if (!spec) throw new Error(`view3d.json: icons.resourceKinds is missing "${kind}"`);
+    if (!RESOURCE_KIND_SHAPES.includes(spec.shape as ResourceKindStyle['shape'])) {
+      throw new Error(
+        `view3d.json: icons.resourceKinds.${kind}.shape is not a known shape: ${spec.shape}`,
+      );
+    }
+    out[kind] = {
+      shape: spec.shape as ResourceKindStyle['shape'],
+      rimColor: named(spec.rimColor, `icons.resourceKinds.${kind}.rimColor`),
+      rimWidth: spec.rimWidth,
+      scallops: spec.scallops,
+      scallopDepth: spec.scallopDepth,
+    };
+  }
+  return out as Record<ResourceKind, ResourceKindStyle>;
+}
+
 export const VIEW3D: View3DData = {
   palette,
   terrainColor: namedTable<TerrainId>(viewJson.terrainColor, 'terrainColor'),
@@ -1406,6 +1489,7 @@ export const VIEW3D: View3DData = {
     yieldInkColor: named(viewJson.icons.yieldInkColor, 'icons.yieldInkColor'),
     marginaliaScale: viewJson.icons.marginaliaScale,
     marginaliaColor: named(viewJson.icons.marginaliaColor, 'icons.marginaliaColor'),
+    resourceKinds: parseResourceKindStyles(viewJson.icons.resourceKinds),
   },
   resources: {
     spread: viewJson.resources.spread,

@@ -21,9 +21,12 @@ import {
   YIELD_KEYS,
   badgeAtlasLayout,
   paperRadiusFraction,
+  resourceShapeExtent,
+  resourceShapeRadius,
   tileAtlasSize,
   tileIconIndex,
   tileIconRect,
+  traceResourceShape,
   yieldDiscLayout,
   yieldShadowColor,
 } from '../src/render3d/badges3d';
@@ -43,7 +46,7 @@ import { foundCityAt } from '../src/sim/cities';
 import { type GameState, newGame } from '../src/sim/state';
 import { visibleResourceAt } from '../src/sim/tech';
 import { type Tile, createMap, getTileAt } from '../src/sim/map';
-import { RESOURCE_IDS, type ResourceId } from '../src/sim/resourceData';
+import { RESOURCE_IDS, type ResourceId, resourceDef } from '../src/sim/resourceData';
 import { TECH_IDS } from '../src/sim/techData';
 import { computeFreshwater } from '../src/sim/water';
 import { resetVisibility } from '../src/sim/visibility';
@@ -373,6 +376,104 @@ describe('the tile-icon atlas', () => {
   it('refuses to hand back a rectangle for a cell it does not have', () => {
     expect(tileIconIndex({ set: 'resource', id: 'coal' as ResourceId })).toBe(-1);
     expect(() => tileIconRect({ set: 'numeral', id: 42 })).toThrow(/no atlas cell/);
+  });
+});
+
+/**
+ * Resource *kinds* read differently on sight: bonus keeps the plain roundel,
+ * luxury gets a fluted edge and a gilt rim, strategic gets a squared, pointed
+ * silhouette and a vermilion one. Both a shape and a colour cue, because
+ * colour alone fails a colourblind player — see the module docblock on
+ * `ResourceKindStyle` in `lookData.ts` for why this is drawn into the atlas
+ * rather than tinted on the instance.
+ *
+ * None of this needs a canvas: `resourceShapeExtent` and `resourceShapeRadius`
+ * are the pure arithmetic that decides how big a shape's own path is drawn,
+ * which is exactly the part that would fail invisibly — a shape whose radius
+ * ran past `paperRadiusFraction()` would bleed into the next cell of an atlas
+ * packed edge to edge with no gutter, and nothing on screen would look wrong
+ * until somebody dialled up `scallopDepth`.
+ */
+describe('resource kind styling', () => {
+  const KINDS = VIEW3D.icons.resourceKinds;
+
+  it('gives every ResourceKind a style, each with a shape the rasteriser knows', () => {
+    for (const kind of ['bonus', 'strategic', 'luxury'] as const) {
+      const style = KINDS[kind];
+      expect(style, kind).toBeDefined();
+      expect(['circle', 'scallop', 'shield']).toContain(style.shape);
+      expect(style.rimWidth).toBeGreaterThan(0);
+    }
+  });
+
+  it('tells bonus, luxury and strategic apart by shape and by rim colour', () => {
+    // Colour alone is not the rule this table follows — two kinds sharing a
+    // shape, or two sharing a rim, would still be a design bug even though
+    // nothing here would catch it structurally; this pins the actual ratified
+    // triple so a future edit that collapsed two kinds together fails loudly.
+    expect(KINDS.bonus.shape).toBe('circle');
+    expect(KINDS.luxury.shape).toBe('scallop');
+    expect(KINDS.strategic.shape).toBe('shield');
+    const rims = [KINDS.bonus.rimColor, KINDS.luxury.rimColor, KINDS.strategic.rimColor];
+    expect(new Set(rims).size).toBe(3);
+  });
+
+  it('every resource in the table resolves to a style through its own kind', () => {
+    for (const id of RESOURCE_IDS) {
+      const kind = resourceDef(id).kind;
+      expect(KINDS[kind], `${id} (${kind})`).toBeDefined();
+    }
+  });
+
+  it('draws a scallop no smaller than the circle it flutes', () => {
+    // extent === 1 for a shape that never bulges past its own traced radius
+    // (circle and shield both hold to that); a scallop's is strictly more, by
+    // exactly its configured depth.
+    expect(resourceShapeExtent(KINDS.bonus)).toBe(1);
+    expect(resourceShapeExtent(KINDS.strategic)).toBe(1);
+    expect(resourceShapeExtent(KINDS.luxury)).toBeCloseTo(1 + (KINDS.luxury.scallopDepth ?? 0), 10);
+  });
+
+  it('keeps every kind\'s outer edge at the same boundary a plain roundel draws to', () => {
+    // The invariant that matters: whatever a kind's shape and rim do, the
+    // *furthest* ink from the cell's centre — the fill's bulge plus half the
+    // rim's stroke width — lands at the same `outer` a circle always reached,
+    // never past it. That is what keeps the cells packed edge to edge safe.
+    const cell = 128;
+    const outerFraction = paperRadiusFraction();
+    const outer = outerFraction * cell;
+    for (const kind of ['bonus', 'strategic', 'luxury'] as const) {
+      const style = KINDS[kind];
+      const radius = resourceShapeRadius(style, outerFraction, cell);
+      const reach = radius * resourceShapeExtent(style) + (style.rimWidth * cell) / 2;
+      expect(reach, kind).toBeLessThanOrEqual(outer + 1e-9);
+      // And it should not be drawing a shape that has collapsed to a dot: the
+      // rim and the scallop depth are supposed to be a small bite out of a
+      // roundel that still reads as one, not most of it.
+      expect(radius, kind).toBeGreaterThan(outer * 0.5);
+    }
+  });
+
+  it('traces every shape as one closed path a fill and a stroke can share', () => {
+    const calls: string[] = [];
+    const fakeContext = {
+      beginPath: () => calls.push('beginPath'),
+      moveTo: () => calls.push('moveTo'),
+      lineTo: () => calls.push('lineTo'),
+      quadraticCurveTo: () => calls.push('quadraticCurveTo'),
+      arc: () => calls.push('arc'),
+      closePath: () => calls.push('closePath'),
+    } as unknown as CanvasRenderingContext2D;
+
+    for (const kind of ['bonus', 'strategic', 'luxury'] as const) {
+      calls.length = 0;
+      traceResourceShape(fakeContext, KINDS[kind], 0, 0, 10);
+      expect(calls[0], kind).toBe('beginPath');
+      expect(calls, kind).toContain('closePath');
+      // A path that never moved or curved anywhere is a shape that drew
+      // nothing — the one failure mode a call-count cannot otherwise catch.
+      expect(calls.length, kind).toBeGreaterThan(2);
+    }
   });
 });
 

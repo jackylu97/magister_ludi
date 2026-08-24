@@ -94,7 +94,7 @@ import {
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 import type { ModelClass } from '../sim/unitData';
 
-import { VIEW3D, mixColor } from './lookData';
+import { type ResourceKindStyle, VIEW3D, mixColor } from './lookData';
 
 const BADGE = VIEW3D.badges;
 const HP = VIEW3D.hpBar;
@@ -479,36 +479,24 @@ export function tileIconRect(cell: TileIconCell): AtlasRect {
 }
 
 /**
- * Paints one icon onto a disc: the disc in `paper`, then the mark recoloured to
- * `ink` on top of it.
+ * Paints the mark itself, centred in a cell: the row's artwork recoloured to
+ * `ink`, or — with nothing drawn for it yet — the row's own glyph as a
+ * provisional stand-in.
  *
- * The generalisation of `drawBadgeCell` — the roundel is the same object in both
- * atlases — with the two colours as arguments, because the tile atlas needs
- * three different discs (parchment for a resource, and the three yield voices)
- * out of one routine.
+ * Split out of `drawDiscCell` so a shape with a paper *and* a rim
+ * (`drawResourceCell`) can put the mark on top of both without repeating the
+ * recolour-and-stamp arithmetic. Nothing here knows or cares what the paper
+ * under it looked like.
  */
-function drawDiscCell(
+function paintCellMark(
   context: CanvasRenderingContext2D,
   icon: CanvasImageSource | null,
-  index: number,
-  layout: AtlasLayout,
-  paper: number,
+  center: { x: number; y: number },
+  cell: number,
   ink: number,
   iconScale: number,
-  radiusFraction = paperRadiusFraction(),
   fallbackGlyph?: string,
 ): void {
-  const origin = badgeCellOrigin(index, layout);
-  const cell = layout.cell;
-  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
-
-  context.save();
-  context.fillStyle = cssHex(paper);
-  context.beginPath();
-  context.arc(center.x, center.y, radiusFraction * cell, 0, Math.PI * 2);
-  context.fill();
-  context.restore();
-
   // No drawn artwork: print the row's own glyph on the disc instead of leaving
   // it blank. This is what makes a resource added to `data/resources.json` and
   // nowhere else legible on the board — the roundel still *names* the find,
@@ -535,6 +523,181 @@ function drawDiscCell(
   pen.fillStyle = cssHex(ink);
   pen.fillRect(0, 0, size, size);
   context.drawImage(scratch, Math.round(center.x - size / 2), Math.round(center.y - size / 2));
+}
+
+/**
+ * Paints one icon onto a disc: the disc in `paper`, then the mark recoloured to
+ * `ink` on top of it.
+ *
+ * The generalisation of `drawBadgeCell` — the roundel is the same object in both
+ * atlases — with the two colours as arguments, because the tile atlas needs
+ * three different discs (parchment for a resource, and the three yield voices)
+ * out of one routine. `drawResourceCell` is the sibling that swaps the plain
+ * disc for a kind-shaped paper and a coloured rim; this one keeps the shape
+ * every other cell of the atlas still wants.
+ */
+function drawDiscCell(
+  context: CanvasRenderingContext2D,
+  icon: CanvasImageSource | null,
+  index: number,
+  layout: AtlasLayout,
+  paper: number,
+  ink: number,
+  iconScale: number,
+  radiusFraction = paperRadiusFraction(),
+  fallbackGlyph?: string,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+
+  context.save();
+  context.fillStyle = cssHex(paper);
+  context.beginPath();
+  context.arc(center.x, center.y, radiusFraction * cell, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
+  paintCellMark(context, icon, center, cell, ink, iconScale, fallbackGlyph);
+}
+
+/**
+ * How far a kind's shape reaches past the radius its path is traced at, as a
+ * multiple of that radius: `1` for a shape that stays on the circle it is
+ * built from, and more for one that bulges past it.
+ *
+ * The one number `resourceShapeRadius` needs to keep every kind's outer edge
+ * at the *same* boundary a plain circle would reach — `paperRadiusFraction()`,
+ * the boundary the badge parchment and every other tile-atlas disc already
+ * respects. Cells are packed edge to edge with no gutter (see
+ * `yieldDiscLayout`), so a shape that ignored this would bleed into its
+ * neighbour the day somebody dialled up `scallopDepth`.
+ */
+export function resourceShapeExtent(style: ResourceKindStyle): number {
+  if (style.shape === 'scallop') return 1 + Math.max(0, style.scallopDepth ?? 0);
+  return 1;
+}
+
+/**
+ * The base radius `traceResourceShape` should be called with, so that whatever
+ * it draws — circle, scallop or shield — tops out at `outerFraction * cell`,
+ * the same outer edge a plain roundel has always drawn to, with the rim's own
+ * stroke (half of it falls outside the fill) accounted for too.
+ */
+export function resourceShapeRadius(
+  style: ResourceKindStyle,
+  outerFraction: number,
+  cell: number,
+): number {
+  const outer = outerFraction * cell;
+  const rimHalf = (style.rimWidth * cell) / 2;
+  return Math.max(1, (outer - rimHalf) / resourceShapeExtent(style));
+}
+
+/**
+ * Traces one kind's paper silhouette into `context`'s current path, centred at
+ * `(cx, cy)` and built from `radius` — the number `resourceShapeRadius` hands
+ * back, not the cell's own half-width.
+ *
+ * Three shapes, and every one of them is a closed path a `fill` and a `stroke`
+ * both read the same way, which is what lets one call site paint the paper and
+ * the rim off a single trace:
+ *
+ *   `circle`   bonus, unchanged from the roundel every mark used to be.
+ *   `scallop`  luxury's fluted coin: the radius itself is modulated by a sine
+ *              of `scallops` full bumps per turn, walked in enough steps that
+ *              the curve reads as fluted rather than faceted at cell size.
+ *   `shield`   strategic's squared, pointed-base tag — flat shoulders, rounded
+ *              top corners, tapering to a point at the foot. The Civ
+ *              convention for "this is what a unit needs", read as a
+ *              silhouette rather than as a colour.
+ */
+export function traceResourceShape(
+  context: CanvasRenderingContext2D,
+  style: ResourceKindStyle,
+  cx: number,
+  cy: number,
+  radius: number,
+): void {
+  context.beginPath();
+  if (style.shape === 'scallop') {
+    const bumps = Math.max(1, Math.round(style.scallops ?? 12));
+    const depth = Math.max(0, style.scallopDepth ?? 0);
+    const steps = Math.max(64, bumps * 12);
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * Math.PI * 2;
+      const r = radius * (1 + depth * Math.sin(t * bumps));
+      const x = cx + r * Math.cos(t);
+      const y = cy + r * Math.sin(t);
+      if (i === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    }
+    context.closePath();
+    return;
+  }
+  if (style.shape === 'shield') {
+    // A unit square's worth of shield, scaled by `radius`: shoulders at
+    // `±0.92`, the widest the top gets; a flat top between rounded corners of
+    // `0.22`; sides falling to a waist at `+0.05` before curving to a point at
+    // `+1.0`, the tip that sets the shape's own outer reach (see
+    // `resourceShapeExtent`).
+    const w = radius * 0.92;
+    const topY = cy - radius * 0.86;
+    const waistY = cy + radius * 0.05;
+    const tipY = cy + radius;
+    const corner = radius * 0.22;
+    context.moveTo(cx - w + corner, topY);
+    context.lineTo(cx + w - corner, topY);
+    context.quadraticCurveTo(cx + w, topY, cx + w, topY + corner);
+    context.lineTo(cx + w, waistY);
+    context.quadraticCurveTo(cx + w, waistY + radius * 0.3, cx + w * 0.55, waistY + radius * 0.42);
+    context.quadraticCurveTo(cx + w * 0.15, tipY - radius * 0.1, cx, tipY);
+    context.quadraticCurveTo(cx - w * 0.15, tipY - radius * 0.1, cx - w * 0.55, waistY + radius * 0.42);
+    context.quadraticCurveTo(cx - w, waistY + radius * 0.3, cx - w, waistY);
+    context.lineTo(cx - w, topY + corner);
+    context.quadraticCurveTo(cx - w, topY, cx - w + corner, topY);
+    context.closePath();
+    return;
+  }
+  context.arc(cx, cy, radius, 0, Math.PI * 2);
+  context.closePath();
+}
+
+/**
+ * Paints one resource's roundel: paper and rim shaped by its `ResourceKind`
+ * (`ICONS.resourceKinds`), then the mark on top exactly as `drawDiscCell`
+ * stamps it.
+ *
+ * The kind differentiation is a *fill and a stroke of one traced path*, both
+ * baked into the atlas at load — see the trap in `CLAUDE.md` this follows:
+ * nothing about a printed atlas cell can be tinted or re-shaped per instance
+ * once it is drawn, so bonus, strategic and luxury have to look different in
+ * the canvas or they cannot look different on the board at all.
+ */
+function drawResourceCell(
+  context: CanvasRenderingContext2D,
+  icon: CanvasImageSource | null,
+  index: number,
+  layout: AtlasLayout,
+  id: ResourceId,
+  fallbackGlyph?: string,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+  const style = ICONS.resourceKinds[resourceDef(id).kind];
+  const radius = resourceShapeRadius(style, paperRadiusFraction(), cell);
+
+  context.save();
+  traceResourceShape(context, style, center.x, center.y, radius);
+  context.fillStyle = cssHex(ICONS.paperColor);
+  context.fill();
+  context.lineWidth = Math.max(1, style.rimWidth * cell);
+  context.strokeStyle = cssHex(style.rimColor);
+  context.stroke();
+  context.restore();
+
+  paintCellMark(context, icon, center, cell, ICONS.inkColor, ICONS.iconScale, fallbackGlyph);
 }
 
 /**
@@ -772,9 +935,10 @@ export class TileIcons {
         drawNumeralCell(context, cell.id, index, layout);
         return;
       }
-      // A resource is ink on parchment, like a unit badge. A yield is ink on its
-      // own voice's colour, and carries the drop shadow that lets a stack of
-      // them be counted — see `drawYieldCell`.
+      // A resource is ink on parchment shaped by its kind, like a unit badge
+      // with a kind-coloured rim — see `drawResourceCell`. A yield is ink on
+      // its own voice's colour, and carries the drop shadow that lets a stack
+      // of them be counted — see `drawYieldCell`.
       if (cell.set === 'yield') {
         drawYieldCell(context, icons[index] ?? null, index, layout, cell.id);
         return;
@@ -784,17 +948,16 @@ export class TileIcons {
         drawInkCell(context, icons[index] ?? null, index, layout, ICONS.marginaliaScale);
         return;
       }
-      drawDiscCell(
-        context,
-        icons[index] ?? null,
-        index,
-        layout,
-        ICONS.paperColor,
-        ICONS.inkColor,
-        ICONS.iconScale,
-        paperRadiusFraction(),
-        cell.set === 'resource' ? resourceDef(cell.id).emoji : undefined,
-      );
+      if (cell.set === 'resource') {
+        drawResourceCell(context, icons[index] ?? null, index, layout, cell.id, resourceDef(cell.id).emoji);
+        return;
+      }
+      // Every `TileIconCell` variant is one of the four branches above; this is
+      // the exhaustiveness check, not a reachable draw path — a fifth set added
+      // to the union without a painter here fails typecheck instead of drawing
+      // a blank cell.
+      const exhaustive: never = cell;
+      throw new Error(`icons: unhandled atlas cell ${JSON.stringify(exhaustive)}`);
     });
 
     const texture = new CanvasTexture(canvas);

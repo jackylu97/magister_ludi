@@ -393,7 +393,26 @@
     "inkColor": "ink",
     "yieldInkColor": "ink",
     "marginaliaScale": 0.86,
-    "marginaliaColor": "vellumDeep"
+    "marginaliaColor": "vellumDeep",
+    "resourceKinds": {
+      "bonus": {
+        "shape": "circle",
+        "rimColor": "ink",
+        "rimWidth": 0.028
+      },
+      "luxury": {
+        "shape": "scallop",
+        "rimColor": "gilt",
+        "rimWidth": 0.032,
+        "scallops": 12,
+        "scallopDepth": 0.05
+      },
+      "strategic": {
+        "shape": "shield",
+        "rimColor": "crimson",
+        "rimWidth": 0.032
+      }
+    }
   },
   "improvements": {
     "lift": 0.0,
