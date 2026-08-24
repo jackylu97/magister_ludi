@@ -9,7 +9,7 @@ import {
   tileIndex,
   tileNeighbors,
 } from '../src/sim/map';
-import { MAPGEN_CONFIG, generateMap, generateMapDetail } from '../src/sim/mapgen';
+import { MAPGEN_CONFIG, MAP_SIZE_NAMES, generateMap, generateMapDetail } from '../src/sim/mapgen';
 import { makeRng } from '../src/sim/rng';
 import { isFreshwaterTerrain, isWaterTerrain } from '../src/sim/terrainData';
 import {
@@ -403,12 +403,35 @@ describe('rivers on generated maps', () => {
   });
 
   it('meets its river quota on every size and seed', () => {
-    for (const size of ['duel', 'standard', 'large'] as const) {
+    // Every size, the biggest boards included, and that is the point of the
+    // sweep rather than an accident of it. Springs have to stand on range
+    // ground — a fifth of the land, gathered into lines — so the budget of
+    // springs to examine has to scale with the quota it serves. Under the flat
+    // cap this replaced, a giant map reached about seven of every ten rivers it
+    // asked for and a huge map nine; `attemptsPerRiver` is the fix and this is
+    // the test that would notice it being reverted.
+    for (const size of MAP_SIZE_NAMES) {
       for (const seed of seeds) {
         const { map, rivers } = generateMapDetail(seed, size);
-        expect(rivers).toHaveLength(riverCountFor(MAPGEN_CONFIG.rivers, map.width, map.height));
+        const wanted = riverCountFor(MAPGEN_CONFIG.rivers, map.width, map.height);
+        expect(`${size}/${seed}: ${rivers.length} of ${wanted}`).toBe(
+          `${size}/${seed}: ${wanted} of ${wanted}`,
+        );
       }
     }
+  }, 60_000);
+
+  it('scales the spring budget with the quota rather than capping it flat', () => {
+    // The tunable itself, read the way the algorithm reads it: a bigger board
+    // asks for more rivers and therefore gets proportionally more attempts.
+    const config = MAPGEN_CONFIG.rivers;
+    const duel = riverCountFor(config, 40, 25) * config.attemptsPerRiver;
+    const giant = riverCountFor(config, 180, 112) * config.attemptsPerRiver;
+    expect(giant / duel).toBeCloseTo(
+      riverCountFor(config, 180, 112) / riverCountFor(config, 40, 25),
+      9,
+    );
+    expect(config.attemptsPerRiver).toBeGreaterThan(1);
   });
 
   it('spaces springs apart', () => {

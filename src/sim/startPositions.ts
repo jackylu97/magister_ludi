@@ -272,7 +272,15 @@ export function startSpacing(map: GameMap): number {
   return Math.max(STARTS.minDistance, Math.min(STARTS.maxDistance, raw));
 }
 
-/** Greedy sweep: best first, ties by tile index, relaxing spacing when stuck. */
+/**
+ * Greedy sweep: best first, ties by tile index, relaxing spacing when stuck.
+ *
+ * `floor` is where the relaxation stops. The two ordinary sweeps stop at
+ * `minDistance`, which is what makes that number mean what it says: a *floor*
+ * on how close two capitals may be, and not merely the lower clamp on the
+ * spacing derived from the map's size. Only the last-resort sweep passes 1, and
+ * a map that needs it is a map with nowhere left to stand.
+ */
 function seat(
   map: GameMap,
   ordered: readonly Tile[],
@@ -280,8 +288,9 @@ function seat(
   taken: Set<number>,
   count: number,
   fromSpacing: number,
+  floor: number,
 ): void {
-  let spacing = fromSpacing;
+  let spacing = Math.max(floor, fromSpacing);
   while (chosen.length < count && ordered.length > 0) {
     let placedThisSweep = false;
     for (const tile of ordered) {
@@ -297,7 +306,7 @@ function seat(
     }
     // Nothing fits at this spacing (or the list simply ran out).
     if (!placedThisSweep) {
-      if (spacing <= 1) return;
+      if (spacing <= floor) return;
       spacing -= 1;
     }
   }
@@ -329,17 +338,25 @@ export function chooseStartPositions(map: GameMap, count: number): Tile[] {
 
   const spacing = startSpacing(map);
   const taken = new Set<number>();
-  seat(map, accepted, chosen, taken, count, spacing);
+  seat(map, accepted, chosen, taken, count, spacing, STARTS.minDistance);
 
   // Still short: the map cannot honour its own standards, so the refused sites
   // are swept too, best first. A start on snow is a bad start; no start is a
   // crash.
+  const refused = candidates.filter(
+    (t) => scores.get(tileIndex(map, t.col, t.row))!.reject !== null,
+  );
+  refused.sort(byScore);
   if (chosen.length < count) {
-    const refused = candidates.filter(
-      (t) => scores.get(tileIndex(map, t.col, t.row))!.reject !== null,
-    );
-    refused.sort(byScore);
-    seat(map, refused, chosen, taken, count, spacing);
+    seat(map, refused, chosen, taken, count, spacing, STARTS.minDistance);
+  }
+
+  // And still short: there is genuinely nowhere left at `minDistance`. Only now
+  // does the floor itself give way, accepted sites first — a duel map seating
+  // twelve players is the case, and seating them badly beats throwing.
+  if (chosen.length < count) {
+    seat(map, accepted, chosen, taken, count, spacing, 1);
+    if (chosen.length < count) seat(map, refused, chosen, taken, count, spacing, 1);
   }
   return chosen;
 }

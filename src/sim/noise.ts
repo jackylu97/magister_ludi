@@ -148,6 +148,75 @@ export interface FbmOptions {
   persistence: number;
 }
 
+export interface RidgedOptions extends FbmOptions {
+  /**
+   * The height each octave is folded down from. 1 with `noise3`'s [-1, 1] range
+   * puts a crest exactly where the underlying noise crosses zero, which is a
+   * *surface* in 3D and therefore a *line* on the cylinder we sample. That is
+   * the whole reason ridged noise makes ranges instead of blobs.
+   */
+  offset: number;
+  /**
+   * How much of an octave's crest is handed to the next one as a mask. Above 1
+   * a strong crest lets its detail through and a weak one does not, so a range
+   * is rugged along its spine and smooth down its flanks — which is what makes
+   * the ends of a range *taper* rather than stop.
+   */
+  gain: number;
+}
+
+/**
+ * Ridged multifractal noise (Musgrave's construction). Output is in [0, 1] with
+ * crests — the sharp, connected lines — near 1.
+ *
+ * Two differences from `fbm3`, and both are the point:
+ *
+ *   · each octave is `(offset - |noise|)²`, so the smooth zero-crossing of the
+ *     underlying field becomes a sharp maximum. Absolute value is what turns a
+ *     hill-and-valley field into a crease network.
+ *   · each octave is multiplied by a weight carried down from the one above it.
+ *     Detail therefore only lands where the coarse structure was already high,
+ *     which is what keeps a range from dissolving into gravel and what makes it
+ *     thin out at its ends instead of ending in a cliff.
+ *
+ * Amplitude-normalised like `fbm3`, so the [0, 1] claim holds for any octave
+ * count and the field can be rank-normalised afterwards without surprises.
+ */
+export function ridged3(
+  n: Noise3D,
+  x: number,
+  y: number,
+  z: number,
+  options: RidgedOptions,
+): number {
+  let amplitude = 1;
+  let frequency = 1;
+  let weight = 1;
+  let sum = 0;
+  let normalization = 0;
+
+  for (let octave = 0; octave < options.octaves; octave++) {
+    let signal = options.offset - Math.abs(noise3(n, x * frequency, y * frequency, z * frequency));
+    if (signal < 0) signal = 0;
+    signal *= signal;
+    signal *= weight;
+    // The mask for the next octave. Clamped, so a tall crest cannot amplify the
+    // detail on top of it without bound.
+    weight = Math.min(1, Math.max(0, signal * options.gain));
+
+    sum += signal * amplitude;
+    normalization += amplitude;
+    amplitude *= options.persistence;
+    frequency *= options.lacunarity;
+  }
+
+  if (normalization === 0) return 0;
+  // `signal` is at most `offset²`; dividing by it keeps the result in [0, 1]
+  // whatever offset a designer picks.
+  const ceiling = options.offset * options.offset;
+  return ceiling === 0 ? 0 : Math.min(1, sum / normalization / ceiling);
+}
+
 /**
  * Fractal (fractional Brownian motion) sum of simplex octaves.
  * Amplitude-normalised, so the output stays roughly in [-1, 1].

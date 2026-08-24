@@ -322,7 +322,10 @@ Incense is the first *luxury* behind a `requiresTech` reveal (Divination, the us
 note), and it needed no new mechanism at all — which is the argument for having built the reveal
 as a property of the row rather than of the strategic kind.
 
-**Fairness and regional character.** Before the scatter, every land region — connected components
+**Fairness and regional character.** *(The regional half of this paragraph is superseded by
+Entry XVI: "region" now means a carved fixed-size continent, the hand is dealt per continent and
+placed directly rather than rejected into. The fairness half stands, with a third guarantee added.)*
+Before the scatter, every land region — connected components
 of land, which is to say continents — is dealt a hand of `luxuryKindsPerRegion` kinds from the
 map rng, and a luxury find on ground whose region was not dealt it is thrown away (the scatter's
 own rejection idiom, so placement stays a pure function of the draw sequence). After the scatter,
@@ -1217,3 +1220,80 @@ reroll a mastery roll · reroll a card offer · reroll the upgrade target · bre
 
 **Open tuning:** seal length · cadence · band spillover · whether a government pick can ever
 be revisited within a tier (v1: no).
+
+
+## Entry XVI — The world is two fields (mapgen rework, **built** 2026-08-23)
+
+The complaints this answers, in the user's words: biomes too large (forests blanket continents),
+starts with no hills nearby, mountain ranges too thick and continental-wall-like, hills not
+clustered near mountains, forests and jungle uniformly dense rather than regionally varied — and,
+on the resource side, too few settle-able spots near the capital.
+
+**One idea.** The generator used to draw a handful of independent scatters and threshold each one
+on its own. It now draws exactly **two geographies** and reads every terrain decision off them.
+That is the difference between a world and a pile of noise: a forest is where it is because that
+part of the continent is wet, and a hill is where it is because a range runs past it.
+
+**Relief** mixes three ranked components (`elevation.ridgeWeight` / `continentWeight` /
+`gradientWeight`, plus `crestlineWeight`): a **ridged multifractal**, whose crests are connected
+*lines* rather than blobs — this is what a mountain range is; the continental field itself, which
+biases those crests inland onto a landmass's spine so a range separates one half of a continent
+from the other; and the local steepness of that field, so an escarpment reads as hills with no
+crest under it. A fourth term lifts tiles on the crest **skeleton** (transverse local maxima,
+`crestLine`) — the knob that decides whether a range is a line or a wall, because thresholding
+height alone cannot make a thin range: how wide the set above a cut comes out depends on how steep
+that particular massif is, and no threshold reconciles a broad dome with a sharp crease.
+
+**The cuts are quantiles of land, not heights.** `mountainShare` and `hillShare` — "5% of the land
+is mountain" is the sentence a designer wants to write, and a quantile is stable across seeds *and*
+sizes where an absolute cut on a rank-normalised field is only stable across seeds. Hills are
+therefore literally the flank band of the field the peaks came from: foothills hug every range for
+free (98% of mountain tiles have a hill neighbour), and lesser crests that never reach the mountain
+cut surface as standalone hill chains.
+
+**Moisture** is two scales *multiplied*: a low-frequency regional layer (this part of the world is
+wooded country, that part is open steppe) times a fine local layer (copses and clearings).
+Multiplication is the point — a wood needs the region *and* the patch to be wet, so forest
+concentrates into real regions instead of dusting the map evenly. Forest and jungle are then shares
+of their *eligible* ground, ranked within it; jungle ranked inside the equatorial band, because a
+global moisture cut asked whether a tropical tile was wetter than most of the *world* and a seed
+whose wet regions missed the equator had no jungle at all. Optional **rain shadow** dries the
+ground downwind of a range before the field is ranked.
+
+**Feature size versus feature count.** A noise layer states its scale as `frequency` (cycles around
+the world: fixed count, features grow with the map) or `cycleTiles` (tiles per cycle: fixed size in
+hexes, more of them on a bigger map). Continents and regional climate want the first; ranges and
+copses want the second. That one distinction is why a giant map's mountains are now as narrow as a
+duel map's — before, the same five ranges simply grew with the board.
+
+**Measured, before → after** (16 seeds, standard): mountain 11.9% → 5.0% of land; hills 26.5% →
+20.0%; forest 24.2% → 16.3%; jungle 31% → 10% of the equatorial band; mean range width
+(area ÷ longest axis) 2.95 → 1.86, and now flat across sizes (was 2.02 duel / 3.35 large).
+
+**Consequences deliberately taken.** Starts weight production far harder
+(`starts.productionWeight` 1.5 → 2.5) so a capital has hills in its inner ring: 44% → 73% of
+standard starts do. That buys hammers with food — the capital reaches size 2 later — and the
+pacing tests were rewritten to assert the *relation* (build time = cost ÷ the rate the city
+actually banked) rather than one seed's turn count, because an exact turn count was a map-generator
+fixture wearing a pacing test's clothes.
+
+**Continents replace landmasses** (`carveContinents`). A continent is a carved chunk of about
+`continentTargetTiles` — Civ 6's sense of the word — and not a connected landmass. Keyed to
+landmasses, a map whose land happened to be one connected mass had one region, was dealt one hand
+of luxuries, and read as a single grey average from pole to pole. Each continent is dealt
+`luxuryKindsPerContinent` (4) kinds, a kind is confined to `maxContinentsPerLuxury` (2) continents
+map-wide (relaxing deterministically when the map has more continents than the pool can seat), and
+each dealt kind is **placed directly in multiples** rather than hoped for by a scatter that
+rejects off the wrong ground. Duplicates are the design, not a side effect: they feed the
+settle-on-the-seam rule, silver and gold's `perCopy` signatures, and eventually trade.
+
+**Resource density, before → after** (standard): all resources 1 per 7.5 land tiles → 1 per 4.8;
+luxuries 1 per 34 → 1 per 12 (47 → 132 tiles a map, 12 → 18 of the 25 kinds present, ~7 copies of
+a kind — Civ 6's figure); bonus 1 per 12.9 → 1 per 9.9 (the "nowhere to settle" complaint);
+strategic unchanged at 1 per 38. Every possible start now also gets one of its guaranteed luxury
+kinds **in a seam of two**, Civ 5's region luxury: one lonely wine four hexes off is a curiosity,
+two is a reason to plant a city on it.
+
+**Open tuning:** the settler's price now buys four turns of the opening rate rather than five, and
+restoring five is a `units.json` edit rather than a mapgen one — deliberately not folded into this
+pass.

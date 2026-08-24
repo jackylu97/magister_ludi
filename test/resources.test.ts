@@ -12,7 +12,7 @@ import {
 import { applyCommand } from '../src/sim/commands';
 import { createGame, dispatch, loadGame, replay, saveGame, snapshotState } from '../src/sim/game';
 import { improvementForResource } from '../src/sim/improvementData';
-import { type GameMap, type Tile, createMap, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../src/sim/map';
+import { type GameMap, type Tile, createMap, getTileAt, mapRange, tileHex, tileIndex, tileNeighbors, wrappedDistance } from '../src/sim/map';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES, generateMap, generateMapDetail } from '../src/sim/mapgen';
 import {
   RESOURCE_DATA,
@@ -26,8 +26,8 @@ import {
   withExtraResources,
 } from '../src/sim/resourceData';
 import {
-  drawRegionLuxuries,
-  landRegions,
+  carveContinents,
+  dealContinentLuxuries,
   landTileCount,
   tileSuitsResource,
 } from '../src/sim/resources';
@@ -231,24 +231,44 @@ describe('placement', () => {
     expect(herds.length).toBeGreaterThan(0);
   });
 
-  it('holds the density inside a band on every size', () => {
+  it('holds each kind’s density inside a band on every size', () => {
+    // One band per *kind*, because the budgets are per kind now. Luxuries have
+    // no per-1000 budget at all — they are dealt per continent, so their
+    // density is a consequence of the continent size and the copies range and
+    // is asserted as a band around what that arithmetic predicts.
     for (const size of MAP_SIZE_NAMES) {
       for (const seed of [1, 4242]) {
         const map = generateMap(seed, size);
-        const per1000 = (resourceTiles(map).length / landTileCount(map)) * 1000;
+        const land = landTileCount(map);
+        const per1000 = (kind: string): number =>
+          (resourceTiles(map).filter((tile) => resourceDef(tile.resource!).kind === kind).length /
+            land) *
+          1000;
+        const where = `${size}/${seed}`;
+
         // The budget is the floor; the two fairness passes and a cluster that
-        // ran a tile over the target are what push it above. A band rather than
-        // an equality, because all of those are deliberate.
-        //
-        // The ceiling is 1.45× because of the *duel* map specifically, and the
-        // reason is worth writing down: the guarantees are made to every one of
-        // the twelve possible starts, and twelve starts on four hundred land
-        // tiles is the densest that promise ever gets. It falls monotonically
-        // with map size — 1.4× duel, 1.1× standard, 1.02× giant — so this is a
-        // bound on the smallest board rather than a loosening of the density
-        // rule the scatter itself keeps.
-        expect(per1000).toBeGreaterThanOrEqual(CONFIG.countPer1000LandTiles * 0.9);
-        expect(per1000).toBeLessThanOrEqual(CONFIG.countPer1000LandTiles * 1.45);
+        // ran a tile over the target are what push it above. The ceiling is
+        // widest on the *duel* map specifically, and the reason is worth
+        // writing down: the guarantees are made to every one of the twelve
+        // possible starts, and twelve starts on four hundred land tiles is the
+        // densest that promise ever gets.
+        expect(`${where} bonus ${per1000('bonus') >= CONFIG.bonusPer1000LandTiles * 0.85}`).toBe(
+          `${where} bonus true`,
+        );
+        expect(`${where} bonus ${per1000('bonus') <= CONFIG.bonusPer1000LandTiles * 1.45}`).toBe(
+          `${where} bonus true`,
+        );
+        expect(
+          `${where} strategic ${per1000('strategic') >= CONFIG.strategicPer1000LandTiles * 0.7}`,
+        ).toBe(`${where} strategic true`);
+        expect(
+          `${where} strategic ${per1000('strategic') <= CONFIG.strategicPer1000LandTiles * 1.35}`,
+        ).toBe(`${where} strategic true`);
+        // Civ 6’s abundance, which is what this pass was asked for: a bonus
+        // resource roughly every eight to twelve land tiles, so a decent city
+        // site has something worth working without being hunted for.
+        expect(`${where} bonus every ${(land / (per1000('bonus') * land / 1000)).toFixed(0)} tiles`)
+          .toBe(`${where} bonus every ${Math.min(12, Math.max(8, Math.round(1000 / per1000('bonus'))))} tiles`);
       }
     }
   });
@@ -305,12 +325,17 @@ describe('the ground did not move', () => {
     return (h >>> 0).toString(16);
   }
 
+  // Re-measured when the generator moved to the elevation/moisture pipeline
+  // (ridged relief, quantile terrain cuts, two-scale moisture). The fixtures
+  // are a *tripwire*, not a golden output: what they promise is that resources
+  // draw from `rng` strictly after the ground does, and re-measuring them is
+  // exactly what a deliberate change to the ground is supposed to require.
   const FIXTURES: [number, string, string][] = [
-    [1234, 'duel', 'a7c1e5c'],
-    [7, 'duel', '858271ce'],
-    [31337, 'standard', 'b253ce9f'],
-    [99, 'large', 'a636c44c'],
-    [2024, 'huge', 'ba91ba48'],
+    [1234, 'duel', '6257594e'],
+    [7, 'duel', 'bba96c74'],
+    [31337, 'standard', '4720a8e6'],
+    [99, 'large', '9e8a4a0e'],
+    [2024, 'huge', 'e83298ce'],
   ];
 
   it('reproduces the pre-resource generator exactly', () => {
@@ -328,7 +353,11 @@ describe('the ground did not move', () => {
     const counts: [number, string, number, number][] = [
       [1234, 'duel', 7, 0],
       [31337, 'standard', 29, 4],
-      [2024, 'huge', 57, 2],
+      // 57 before the relief rework. Springs now have to stand on range ground,
+      // and `attemptsPerRiver` replaced a flat attempt cap that a huge map's
+      // quota outgrew — between them the huge map finally reaches the count its
+      // own `countPer1000Tiles` was always asking for.
+      [2024, 'huge', 72, 2],
     ];
     for (const [seed, size, rivers, lakes] of counts) {
       const detail = generateMapDetail(seed, size);
@@ -821,71 +850,213 @@ describe('luxury placement', () => {
     }
   });
 
-  it('gives each continent its own hand of kinds', () => {
-    // The regional design: a land region is dealt a *hand* of luxury kinds and
-    // grows those, so a continent has a character rather than an average. What
-    // is asserted is the consequence rather than the hand itself — the hand is
-    // drawn mid-stream from the map rng and is not reproducible from outside —
-    // and the consequence is that no single continent carries the whole table
-    // while the world between them does.
+  it('carves the land into continents of a roughly fixed size, each one contiguous', () => {
+    // The unit regional character is keyed to. A *continent* is a carved chunk
+    // of about `continentTargetTiles`, not a landmass — that is the whole
+    // change: keyed to landmasses, a map whose land happens to be one connected
+    // mass had one region, was dealt one hand, and read as a single grey
+    // average from pole to pole.
+    for (const size of ['duel', 'standard', 'large']) {
+      for (const seed of SEEDS) {
+        const map = generateMap(seed, size);
+        const continents = carveContinents(map, CONFIG);
+        const where = `${size}/${seed}`;
+
+        expect(`${where}: ${continents.count >= 2}`).toBe(`${where}: true`);
+
+        // Every tile belongs somewhere — water included, which is what gives a
+        // pearl bed a continent to belong to.
+        const orphans = Array.from(continents.of).filter((id) => id < 0).length;
+        expect(`${where}: ${orphans} orphan tiles`).toBe(`${where}: 0 orphan tiles`);
+
+        const core = new Map<number, number[]>();
+        for (let i = 0; i < map.tiles.length; i++) {
+          if (!continents.core[i]) continue;
+          const id = continents.of[i]!;
+          const list = core.get(id);
+          if (list) list.push(i);
+          else core.set(id, [i]);
+        }
+
+        const sizes = [...core.values()].map((list) => list.length);
+        const mean = sizes.reduce((a, b) => a + b, 0) / sizes.length;
+        // A band on the *mean* rather than on every cell: farthest-point seeds
+        // divide a lobed continent unevenly on purpose, and a peninsula that
+        // comes out half-size is a peninsula, not a bug. What must hold is that
+        // the carve is aiming at the configured size at all.
+        expect(`${where}: mean ${mean.toFixed(0)} within band`).toBe(
+          `${where}: mean ${Math.min(
+            Math.max(mean, CONFIG.continentTargetTiles * 0.5),
+            CONFIG.continentTargetTiles * 1.6,
+          ).toFixed(0)} within band`,
+        );
+        // No cell may be a shred, and none may be a whole supercontinent that
+        // dodged the carve.
+        for (const count of sizes) {
+          expect(`${where}: cell ${count} <= ${CONFIG.continentTargetTiles * 3}`).toBe(
+            `${where}: cell ${Math.min(count, CONFIG.continentTargetTiles * 3)} <= ${
+              CONFIG.continentTargetTiles * 3
+            }`,
+          );
+        }
+
+        // Contiguity of every carved core, by flood fill over land only.
+        for (const [id, list] of core) {
+          const members = new Set(list);
+          const reached = new Set<number>([list[0]!]);
+          const queue = [list[0]!];
+          for (let head = 0; head < queue.length; head++) {
+            for (const near of tileNeighbors(map, map.tiles[queue[head]!]!)) {
+              const at = tileIndex(map, near.col, near.row);
+              if (!members.has(at) || reached.has(at)) continue;
+              reached.add(at);
+              queue.push(at);
+            }
+          }
+          expect(`${where} continent ${id}: ${reached.size} of ${list.length} connected`).toBe(
+            `${where} continent ${id}: ${list.length} of ${list.length} connected`,
+          );
+        }
+      }
+    }
+  });
+
+  it('carves the same continents every time, and different ones for another seed', () => {
+    const map = generateMap(4242, 'standard');
+    expect(Array.from(carveContinents(map, CONFIG).of)).toEqual(
+      Array.from(carveContinents(map, CONFIG).of),
+    );
+    const other = generateMap(4243, 'standard');
+    expect(Array.from(carveContinents(map, CONFIG).of)).not.toEqual(
+      Array.from(carveContinents(other, CONFIG).of),
+    );
+  });
+
+  it('deals each continent four unique kinds, and keeps a kind to few continents', () => {
+    // Civ 6’s two rules together: a hand per continent gives a coastline its
+    // character, and the cap on how many continents may grow one kind is what
+    // makes that character *exclusive* — which is in turn what will make
+    // trading for someone else’s silk mean anything.
+    const luxuries = resourcesOfKind('luxury');
+    for (const count of [4, 9, 30]) {
+      const first = dealContinentLuxuries(makeRng(99), count, CONFIG);
+      expect(dealContinentLuxuries(makeRng(99), count, CONFIG)).toEqual(first);
+      expect(first).toHaveLength(count);
+
+      const appearances = new Map<ResourceId, number>();
+      for (const hand of first) {
+        expect(hand).toHaveLength(Math.min(CONFIG.luxuryKindsPerContinent, luxuries.length));
+        expect(new Set(hand).size).toBe(hand.length);
+        for (const id of hand) {
+          expect(luxuries).toContain(id);
+          appearances.set(id, (appearances.get(id) ?? 0) + 1);
+        }
+        // Table order, not draw order: a hand is a set, and the order it
+        // happened to be drawn in must not leak into which luxury a fairness
+        // pass reaches for first.
+        expect(hand).toEqual(luxuries.filter((id) => hand.includes(id)));
+      }
+
+      // The cap, and its documented relaxation: with more continents than the
+      // pool can seat at `maxContinentsPerLuxury` apiece the cap rises to the
+      // smallest value that fits, rather than the deal deadlocking.
+      const cap = Math.max(
+        CONFIG.maxContinentsPerLuxury,
+        Math.ceil((count * CONFIG.luxuryKindsPerContinent) / luxuries.length),
+      );
+      for (const [id, seen] of appearances) {
+        expect(`${count} continents, ${id} on ${seen} <= ${cap}`).toBe(
+          `${count} continents, ${id} on ${Math.min(seen, cap)} <= ${cap}`,
+        );
+      }
+      // And the hands are not all the same hand.
+      expect(new Set(first.map((hand) => hand.join(','))).size).toBeGreaterThan(1);
+    }
+  });
+
+  it('places a dealt kind in multiples on its own continent, not as a lonely hex', () => {
+    // Duplicates are the point: they feed the settle-on-the-seam rule, silver
+    // and gold’s per-copy signatures, and eventually a trade good worth
+    // carrying. What is asserted is the consequence rather than the hand — the
+    // hand is drawn mid-stream from the map rng and is not reproducible from
+    // outside.
     for (const seed of SEEDS) {
       const map = generateMap(seed, 'large');
-      const regions = landRegions(map);
+      const continents = carveContinents(map, CONFIG);
+
+      /** Luxury tiles of each kind, per continent. */
+      const copies = new Map<string, number>();
+      const kindTotals = new Map<ResourceId, number>();
+      for (let i = 0; i < map.tiles.length; i++) {
+        const id = map.tiles[i]!.resource;
+        if (id === undefined || resourceDef(id).kind !== 'luxury') continue;
+        const key = `${continents.of[i]}|${id}`;
+        copies.set(key, (copies.get(key) ?? 0) + 1);
+        kindTotals.set(id, (kindTotals.get(id) ?? 0) + 1);
+      }
+
+      // Most (kind, continent) pairs that exist at all carry a real seam. Not
+      // *every* pair: the start guarantees plant single hexes of a kind the
+      // continent was never dealt, and that bending is deliberate.
+      const seams = [...copies.values()].filter((n) => n >= CONFIG.luxuryCopiesPerKind.min).length;
+      expect(`${seed}: ${seams * 2 >= copies.size}`).toBe(`${seed}: true`);
+
+      // And the map as a whole carries far more luxury than one hex per kind:
+      // Civ 6 puts about seven copies of a type on a standard map, and a large
+      // map holds more continents than a standard one.
+      const mean = [...kindTotals.values()].reduce((a, b) => a + b, 0) / kindTotals.size;
+      expect(`${seed}: mean ${mean.toFixed(1)} copies per kind >= 4`).toBe(
+        `${seed}: mean ${Math.max(mean, 4).toFixed(1)} copies per kind >= 4`,
+      );
+      // Most of the table shows up somewhere, which single-hex placement never
+      // managed: a map used to carry about half the luxuries in the game.
+      expect(`${seed}: ${kindTotals.size} kinds of ${resourcesOfKind('luxury').length}`).toBe(
+        `${seed}: ${Math.max(
+          kindTotals.size,
+          Math.round(resourcesOfKind('luxury').length * 0.7),
+        )} kinds of ${resourcesOfKind('luxury').length}`,
+      );
+    }
+  });
+
+  it('gives each continent its own hand, so no one continent carries the table', () => {
+    for (const seed of SEEDS) {
+      const map = generateMap(seed, 'large');
+      const continents = carveContinents(map, CONFIG);
       const kinds = new Map<number, Set<ResourceId>>();
       const sizes = new Map<number, number>();
-      for (const tile of map.tiles) {
-        const region = regions[tileIndex(map, tile.col, tile.row)]!;
-        if (region < 0) continue;
-        sizes.set(region, (sizes.get(region) ?? 0) + 1);
-        const id = tile.resource;
-        if (id === undefined || resourceDef(id).kind !== 'luxury') continue;
-        let set = kinds.get(region);
+      for (let i = 0; i < map.tiles.length; i++) {
+        if (!continents.core[i]) continue;
+        const id = continents.of[i]!;
+        sizes.set(id, (sizes.get(id) ?? 0) + 1);
+        const resource = map.tiles[i]!.resource;
+        if (resource === undefined || resourceDef(resource).kind !== 'luxury') continue;
+        let set = kinds.get(id);
         if (!set) {
           set = new Set();
-          kinds.set(region, set);
+          kinds.set(id, set);
         }
-        set.add(id);
+        set.add(resource);
       }
 
       const luxuries = resourcesOfKind('luxury').length;
       const everywhere = new Set<ResourceId>();
       let biggest = 0;
-      for (const [region, set] of kinds) {
-        if ((sizes.get(region) ?? 0) < 200) continue;
-        // A continent large enough to hold anything still holds only some of it.
-        expect(`region ${region}: ${set.size} of ${luxuries}`).toBe(
-          `region ${region}: ${Math.min(set.size, luxuries - 1)} of ${luxuries}`,
+      for (const [id, set] of kinds) {
+        if ((sizes.get(id) ?? 0) < CONFIG.continentTargetTiles * 0.5) continue;
+        // A continent holds a hand, never the table. The bound is the hand plus
+        // the room the start guarantees have to bend it — see the dealing test.
+        const ceiling = CONFIG.luxuryKindsPerContinent + CONFIG.startLuxuryKinds + 2;
+        expect(`continent ${id}: ${set.size} of ${luxuries}`).toBe(
+          `continent ${id}: ${Math.min(set.size, ceiling)} of ${luxuries}`,
         );
         biggest = Math.max(biggest, set.size);
         for (const id of set) everywhere.add(id);
       }
       // …and the world is more varied than its most varied continent, which is
       // exactly what "variety is geographic" buys.
-      expect(everywhere.size).toBeGreaterThanOrEqual(biggest);
+      expect(everywhere.size).toBeGreaterThan(biggest);
     }
-  });
-
-  it('deals a region its hand deterministically, in table order', () => {
-    // The draw itself, asked directly: `drawRegionLuxuries` is what makes a
-    // continent lean, and it must be a pure function of the stream.
-    const perRegion = CONFIG.luxuryKindsPerRegion;
-    const first = drawRegionLuxuries(makeRng(99), 8, perRegion);
-    const second = drawRegionLuxuries(makeRng(99), 8, perRegion);
-    expect(second).toEqual(first);
-    expect(first).toHaveLength(8);
-
-    const luxuries = resourcesOfKind('luxury');
-    for (const hand of first) {
-      expect(hand).toHaveLength(Math.min(perRegion, luxuries.length));
-      expect(new Set(hand).size).toBe(hand.length);
-      for (const id of hand) expect(luxuries).toContain(id);
-      // Table order, not draw order: a hand is a set, and the order it happened
-      // to be drawn in must not leak into which luxury a fairness pass reaches
-      // for first.
-      expect(hand).toEqual(luxuries.filter((id) => hand.includes(id)));
-    }
-    // Eight regions do not all lean the same way.
-    expect(new Set(first.map((hand) => hand.join(','))).size).toBeGreaterThan(1);
   });
 
   it('guarantees every possible start every luxury its ground can hold, up to two', () => {
@@ -911,6 +1082,51 @@ describe('luxury placement', () => {
           const where = `${size}/${seed} (${start.col},${start.row})`;
           expect(`${where}: ${kinds.size} of ${owed}`).toBe(
             `${where}: ${Math.max(kinds.size, owed)} of ${owed}`,
+          );
+        }
+      }
+    }
+  });
+
+  it('gives one of a start’s guaranteed kinds in multiples, not a single hex', () => {
+    // Civ 5’s contribution to the same promise, and the answer to "there is
+    // nowhere worth settling near my capital": one lonely wine four hexes away
+    // is a curiosity, a seam of two is a reason to plant a city on it. Bounded
+    // by the ground for the same reason the kinds guarantee is — no pass may
+    // invent a jungle to put spices in — so the claim is made against what the
+    // rings could actually grow.
+    for (const size of ['duel', 'standard', 'large']) {
+      for (const seed of SEEDS) {
+        const map = generateMap(seed, size);
+        for (const start of chooseStartPositions(map, RULES.game.maxPlayers)) {
+          const near = mapRange(map, tileHex(start), CONFIG.startLuxuryRadius);
+          const copies = new Map<ResourceId, number>();
+          for (const tile of near) {
+            const id = tile.resource;
+            if (id !== undefined && resourceDef(id).kind === 'luxury') {
+              copies.set(id, (copies.get(id) ?? 0) + 1);
+            }
+          }
+          // The deepest seam the ground could carry: for each kind, what it
+          // already has plus the *free* tiles in reach that would take it. A
+          // start hemmed in by mountains and ocean gets fewer, and that is the
+          // honest bound rather than a weaker test.
+          const room = Math.max(
+            0,
+            ...resourcesOfKind('luxury').map(
+              (id) =>
+                (copies.get(id) ?? 0) +
+                near.filter(
+                  (tile) =>
+                    tile.resource === undefined && tileSuitsResource(tile, resourceDef(id)),
+                ).length,
+            ),
+          );
+          const owed = Math.min(CONFIG.startLuxuryCopies, room);
+          const best = Math.max(0, ...copies.values());
+          const where = `${size}/${seed} (${start.col},${start.row})`;
+          expect(`${where}: deepest seam ${best} of ${owed}`).toBe(
+            `${where}: deepest seam ${Math.max(best, owed)} of ${owed}`,
           );
         }
       }

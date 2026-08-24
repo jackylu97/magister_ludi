@@ -1249,7 +1249,12 @@ describe('escalating settler cost', () => {
     ).toBe(true);
     const capital = game.state.cities[0]!;
 
-    for (let turn = 0; turn < 40; turn++) {
+    // Eighty turns rather than forty. The ladder needs three settlers out of one
+    // capital to be worth replaying, and how long three take is a function of
+    // the ground that capital stands on — which the elevation/moisture rework
+    // moved. A budget generous enough for a slow roll costs nothing here and
+    // stops the fixture being a map-generator test in disguise.
+    for (let turn = 0; turn < 80; turn++) {
       if (capital.queue.length === 0 && capital.population >= unitDef('settler').minCityPop) {
         dispatch(game, {
           type: 'setCityProduction',

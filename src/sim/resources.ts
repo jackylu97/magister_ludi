@@ -11,15 +11,48 @@
  * that still by regenerating a map with the resources stripped and comparing it
  * field by field against a fixture of the pre-resource generator.
  *
- * The scatter
- * -----------
- * A budget, a weighted draw, and a spacing rule:
+ * Three passes, and which one a resource goes through is decided by its kind
+ * rather than by its rarity. Luxuries are a *geography*: where a kind grows is
+ * the whole of what makes it worth trading for. Bonus and strategic resources
+ * are facts about soil and rock, and belong to a scatter.
  *
- *   1. The budget is `countPer1000LandTiles` scaled by the map's *land* count,
- *      so a duel map and a giant map have the same density rather than the same
- *      number. Water resources (fish) are paid for out of the same purse, which
- *      is deliberate: the purse measures "how much stuff is on this map", and a
- *      coastline is part of the map.
+ * The continents
+ * --------------
+ * Regional character is keyed to **carved continents** (`carveContinents`) —
+ * chunks of land of a roughly fixed size, Civ 6's sense of the word, and
+ * emphatically not connected landmasses. Keyed to landmasses, a map whose land
+ * happened to be one connected mass had *one* region, was dealt *one* hand of
+ * luxuries, and read as a single grey average from pole to pole. Every tile
+ * belongs to a continent, sea included, so a pearl bed has one too.
+ *
+ * Each continent is dealt `luxuryKindsPerContinent` kinds, and a kind is
+ * confined to `maxContinentsPerLuxury` continents map-wide. The hand gives a
+ * coastline its character; the cap makes that character exclusive, which is
+ * what will make trading for someone else's silk mean anything.
+ *
+ * Pass 1: the luxuries, dealt
+ * ---------------------------
+ * For every continent and every kind in its hand, `luxuryCopiesPerKind` tiles
+ * are placed *on that continent*. Directed placement rather than a weighted
+ * scatter refused off the wrong ground, which is what this used to be — that
+ * shape could only hope a kind turned up somewhere in its region, so a luxury
+ * arrived as one lonely hex and half the table never appeared at all. Multiple
+ * copies are the point, not a side effect: they feed the settle-on-the-seam
+ * rule, silver and gold's `perCopy` signatures, and eventually a trade good
+ * worth carrying.
+ *
+ * Pass 2: bonus, then strategic
+ * -----------------------------
+ * A budget, a weighted draw, and a spacing rule, once per kind:
+ *
+ *   1. The budget is `bonusPer1000LandTiles` (or `strategicPer1000LandTiles`)
+ *      scaled by the map's *land* count, so a duel map and a giant map have the
+ *      same density rather than the same number. Water resources (fish) are
+ *      paid for out of the same purse, which is deliberate: the purse measures
+ *      "how much stuff is on this map", and a coastline is part of the map. Two
+ *      purses rather than one split by frequency weight, because the two answer
+ *      different questions — how often a city site has something worth working,
+ *      and how scarce iron is — and one purse meant tuning either retuned both.
  *   2. Each attempt draws a resource by `frequency` weight, then a candidate
  *      tile uniformly from that resource's own candidate list — the tiles whose
  *      terrain, feature and hills all satisfy it (see `resourceData.ts`). Both
@@ -40,29 +73,18 @@
  * — finishes rather than spinning. Falling short is not an error; it is what a
  * poor map is.
  *
- * Regional character
- * ------------------
- * A world where every luxury is equally likely on every hex is a world where
- * ten luxuries read as one grey average. So before the scatter runs, the map's
- * **land regions** — connected components of land, which is to say continents
- * and islands — are each dealt a hand of `luxuryKindsPerRegion` luxury kinds
- * from the same `rng`, and a luxury find is refused on ground whose region was
- * not dealt it. Bonus and strategic resources are untouched: iron and wheat are
- * facts about geology and soil, and the design's argument for luxuries is
- * exactly that they are *not* evenly spread — that is what will make trading for
- * them mean something.
- *
- * The rejection reuses the scatter's own idiom rather than reweighting the draw:
- * a find that lands somewhere it may not go is thrown away, so placement stays a
- * pure function of the draw sequence.
- *
  * The fairness passes
  * -------------------
  * The scatter is fair on average and nobody plays an average. So after it, every
  * *possible* start position — `chooseStartPositions` for the maximum player
- * count — is checked twice: for a bonus food resource within `startFoodRadius`,
- * and for `startLuxuryKinds` distinct luxuries within `startLuxuryRadius`. Each
- * gap is filled.
+ * count — is checked three times: for a bonus food resource within
+ * `startFoodRadius`, for `startLuxuryKinds` distinct luxuries within
+ * `startLuxuryRadius`, and for one of those kinds standing in a seam of
+ * `startLuxuryCopies` tiles. Each gap is filled.
+ *
+ * The third is Civ 5's region luxury and it answers a specific complaint —
+ * "there is nowhere worth settling near my capital". One lonely wine four hexes
+ * off is a curiosity; a seam of two is a reason to plant a city on it.
  *
  * That the maximum roster's starts are a superset of any real game's is a
  * promise `startPositions.ts` keeps deliberately: start spacing is scaled to the
@@ -70,9 +92,9 @@
  * exact prefix of a twelve-player game's. Nothing here would notice if that
  * changed, which is why it is written down in both places.
  *
- * Both passes roll **no dice**: the tile chosen is the nearest legal one, ties by
- * tile index, and the luxury chosen prefers the region's own hand so a guarantee
- * does not flatten the regional character the scatter just built. Two reasons
+ * All three roll **no dice**: the tile chosen is the nearest legal one, ties by
+ * tile index, and the luxury chosen prefers the continent's own hand so a
+ * guarantee does not flatten the character the deal just built. Two reasons
  * that matters. It keeps the passes reproducible without consuming from the
  * stream, and it means the guarantees do not shift when the scatter above them
  * is retuned.
@@ -101,12 +123,18 @@ import { chooseStartPositions } from './startPositions';
 import { isWaterTerrain } from './terrainData';
 
 /**
- * Which land region every tile belongs to, indexed by tile index; `-1` for
+ * Which **landmass** every tile belongs to, indexed by tile index; `-1` for
  * water.
  *
  * Connected components of land over the hex neighbourhood, wrap-aware, seeded
- * in tile-index order so a region's *id* is a fact about the map rather than
+ * in tile-index order so a component's *id* is a fact about the map rather than
  * about the traversal. Rolls nothing.
+ *
+ * A landmass is no longer the unit regional character is keyed to — that is
+ * `carveContinents`, which is built on top of this and splits a supercontinent
+ * into several continents. What is left here is the honest primitive: "which
+ * ground is walkable from which", which is what the carve needs and what a
+ * future landmass-aware rule (an ocean-crossing tech, say) would want.
  */
 export function landRegions(map: GameMap): Int32Array {
   const regions = new Int32Array(map.tiles.length).fill(-1);
@@ -133,31 +161,233 @@ export function landRegions(map: GameMap): Int32Array {
 }
 
 /**
- * The luxury kinds each region may grow, region id first — the hand dealt in
- * the module docblock's "Regional character".
+ * Graph distance from a set of source tiles, restricted to `member` tiles.
  *
- * A partial Fisher–Yates over the luxury list, one region at a time in region-id
- * order, so the draws land in a fixed order however the map is shaped. A region
- * is dealt at most as many kinds as the table has, which is the whole of what
- * happens on a table with three luxuries in it.
+ * Plain wrap-aware BFS with an index-ordered queue; `-1` for anything the
+ * sources cannot reach. Distance *through the land* rather than across it,
+ * which is what keeps a carved continent from reaching over a bay.
  */
-export function drawRegionLuxuries(
+function bfsDistances(map: GameMap, member: Uint8Array, sources: readonly number[]): Int32Array {
+  const distance = new Int32Array(map.tiles.length).fill(-1);
+  const queue: number[] = [];
+  for (const source of sources) {
+    if (distance[source] === -1) {
+      distance[source] = 0;
+      queue.push(source);
+    }
+  }
+  for (let head = 0; head < queue.length; head++) {
+    const index = queue[head]!;
+    const next = distance[index]! + 1;
+    for (const near of tileNeighbors(map, map.tiles[index]!)) {
+      const at = tileIndex(map, near.col, near.row);
+      if (!member[at] || distance[at] !== -1) continue;
+      distance[at] = next;
+      queue.push(at);
+    }
+  }
+  return distance;
+}
+
+/** Every tile's continent, plus which of them were carved rather than attached. */
+export interface ContinentMap {
+  /** Continent id per tile index. Every tile has one — water included. */
+  of: Int32Array;
+  /** How many continents the map has. */
+  count: number;
+  /** 1 for a land tile that was *carved* into its continent, 0 for the fringe. */
+  core: Uint8Array;
+}
+
+/**
+ * Carves the map's land into continents of a roughly fixed **size**.
+ *
+ * A continent here is Civ 6's continent and not a landmass: a chunk of ground
+ * about `continentTargetTiles` across, so one big supercontinent is several
+ * continents and a modest island is one. That is the unit regional character
+ * wants. Keyed to landmasses instead, a map whose land happens to be one
+ * connected mass had *one* region, was dealt *one* hand, and read as a single
+ * grey average from pole to pole — which is the complaint this replaces.
+ *
+ * Three steps, none of which roll dice:
+ *
+ *   1. Connected components of land, wrap-aware, in tile-index order.
+ *   2. Every component big enough to be worth carving is split into
+ *      `round(tiles / target)` pieces: seeds are chosen by farthest-point
+ *      sampling (start at the component's lowest tile index, then repeatedly
+ *      take the tile furthest *through the land* from every seed so far), and
+ *      the pieces are the Voronoi cells of those seeds under the same
+ *      through-the-land distance. Farthest-point sampling is what makes the
+ *      pieces compact and comparable in size rather than long shreds.
+ *   3. Everything left — sea, and islets below `minContinentTiles` — is
+ *      attached to whichever carved continent is nearest across open water.
+ *      That is what gives a coastal luxury a continent to belong to, and what
+ *      keeps a two-hex skerry from being dealt a hand of its own.
+ *
+ * Each carved cell is connected by construction: a tile is labelled at the
+ * moment the BFS first reaches it, so the neighbour that reached it is one step
+ * nearer its own seed and carries the same label — follow that chain and you
+ * walk home without leaving the continent.
+ */
+export function carveContinents(map: GameMap, config: ResourceConfig): ContinentMap {
+  const target = Math.max(1, Math.round(config.continentTargetTiles));
+  const minimum = Math.max(1, Math.round(config.minContinentTiles));
+  const of = new Int32Array(map.tiles.length).fill(-1);
+  const core = new Uint8Array(map.tiles.length);
+  let count = 0;
+
+  const regions = landRegions(map);
+  const members = new Map<number, number[]>();
+  for (let i = 0; i < regions.length; i++) {
+    const region = regions[i]!;
+    if (region < 0) continue;
+    const list = members.get(region);
+    if (list) list.push(i);
+    else members.set(region, [i]);
+  }
+  // Region ids are already assigned in tile-index order, so counting up over
+  // them is the map's own order rather than the Map's.
+  const regionIds: number[] = [];
+  for (let region = 0; region < members.size; region++) if (members.has(region)) regionIds.push(region);
+
+  /** Components too small to carve, kept aside for step 3. */
+  const carvable = regionIds.filter((region) => members.get(region)!.length >= minimum);
+  // A map of nothing but skerries still has to have continents, so when no
+  // component is big enough every component becomes one.
+  const toCarve = carvable.length > 0 ? carvable : regionIds;
+
+  for (const region of toCarve) {
+    const tiles = members.get(region)!;
+    const member = new Uint8Array(map.tiles.length);
+    for (const index of tiles) member[index] = 1;
+    const pieces = Math.max(1, Math.round(tiles.length / target));
+
+    // Farthest-point sampling. The first seed is the component's lowest tile
+    // index — an arbitrary choice, but a *fixed* one, which is all determinism
+    // asks of it.
+    const seeds: number[] = [tiles[0]!];
+    while (seeds.length < pieces) {
+      const distance = bfsDistances(map, member, seeds);
+      let best = -1;
+      let bestDistance = -1;
+      for (const index of tiles) {
+        if (distance[index]! > bestDistance) {
+          bestDistance = distance[index]!;
+          best = index;
+        }
+      }
+      if (best < 0 || bestDistance <= 0) break;
+      seeds.push(best);
+    }
+
+    // The Voronoi cells, as one multi-source BFS with the seeds enqueued in
+    // seed order: first touch wins, so ties go to the lower seed.
+    const label = new Int32Array(map.tiles.length).fill(-1);
+    const queue: number[] = [];
+    for (let s = 0; s < seeds.length; s++) {
+      label[seeds[s]!] = count + s;
+      queue.push(seeds[s]!);
+    }
+    for (let head = 0; head < queue.length; head++) {
+      const index = queue[head]!;
+      for (const near of tileNeighbors(map, map.tiles[index]!)) {
+        const at = tileIndex(map, near.col, near.row);
+        if (!member[at] || label[at] !== -1) continue;
+        label[at] = label[index]!;
+        queue.push(at);
+      }
+    }
+    for (const index of tiles) {
+      of[index] = label[index]!;
+      core[index] = 1;
+    }
+    count += seeds.length;
+  }
+
+  // Step 3: the fringe. One multi-source BFS over the *whole* grid from every
+  // carved tile at once, so each leftover tile joins the continent it is
+  // genuinely nearest to rather than the first one the sweep happened to meet.
+  const everywhere = new Uint8Array(map.tiles.length).fill(1);
+  const sources: number[] = [];
+  for (let i = 0; i < of.length; i++) if (of[i]! >= 0) sources.push(i);
+  if (sources.length > 0) {
+    const queue = sources.slice();
+    for (let head = 0; head < queue.length; head++) {
+      const index = queue[head]!;
+      for (const near of tileNeighbors(map, map.tiles[index]!)) {
+        const at = tileIndex(map, near.col, near.row);
+        if (!everywhere[at] || of[at]! >= 0) continue;
+        of[at] = of[index]!;
+        queue.push(at);
+      }
+    }
+  }
+  return { of, count, core };
+}
+
+/**
+ * The luxury kinds each continent may grow, continent id first.
+ *
+ * Civ 6's rule, and its point: a continent gets `luxuryKindsPerContinent`
+ * kinds, and a *kind* is confined to `maxContinentsPerLuxury` continents across
+ * the whole map. Both halves are needed for the thing the design wants, which
+ * is that a luxury reads as coming from **somewhere**. The per-continent hand
+ * gives a coastline its character; the per-kind cap is what makes that
+ * character exclusive, and therefore what makes trading for someone else's
+ * silk mean anything.
+ *
+ * The cap relaxes rather than deadlocks. A map with more continents than the
+ * pool can seat at two apiece — the ordinary case on a giant map — raises the
+ * cap for every continent, deterministically, to the smallest value that fits;
+ * and if a hand still cannot be filled under it, the draw falls back to the
+ * *least used* kinds. A generator that threw here would be a generator that
+ * refused to make big maps.
+ *
+ * Each pick is weighted by the row's `frequency`, one continent at a time in
+ * continent-id order, so the draws land in a fixed order however the map is
+ * shaped. Weighted rather than uniform even though every luxury in the table
+ * carries the same frequency today: the field is the one dial a designer has
+ * for "this ought to be rarer than that", and a deal that ignored it would be a
+ * silently dead number in `resources.json` — the sort of thing that is only
+ * ever discovered by someone changing it and watching nothing happen.
+ */
+export function dealContinentLuxuries(
   rng: Rng,
-  regionCount: number,
-  perRegion: number,
+  continentCount: number,
+  config: ResourceConfig,
 ): ResourceId[][] {
   const luxuries = resourcesOfKind('luxury');
   const hands: ResourceId[][] = [];
-  const size = Math.max(0, Math.min(Math.round(perRegion), luxuries.length));
-  for (let region = 0; region < regionCount; region++) {
-    const pool = luxuries.slice();
+  const size = Math.max(0, Math.min(Math.round(config.luxuryKindsPerContinent), luxuries.length));
+  if (size === 0 || luxuries.length === 0) {
+    for (let i = 0; i < continentCount; i++) hands.push([]);
+    return hands;
+  }
+  // The smallest cap that can seat every continent's hand, never below the
+  // configured one. Ceiling division, so it errs generous by less than a kind.
+  const demanded = Math.ceil((continentCount * size) / luxuries.length);
+  const cap = Math.max(Math.round(config.maxContinentsPerLuxury), demanded);
+  const used = new Map<ResourceId, number>();
+
+  for (let continent = 0; continent < continentCount; continent++) {
     const hand: ResourceId[] = [];
     for (let pick = 0; pick < size; pick++) {
-      const at = nextInt(rng, pick, pool.length);
-      const swap = pool[at]!;
-      pool[at] = pool[pick]!;
-      pool[pick] = swap;
-      hand.push(swap);
+      let pool = luxuries.filter((id) => !hand.includes(id) && (used.get(id) ?? 0) < cap);
+      if (pool.length === 0) {
+        // Every kind is at its cap. Take from the least-used ones, which keeps
+        // the spread as even as the map allows instead of piling onto whatever
+        // the table lists first.
+        const rest = luxuries.filter((id) => !hand.includes(id));
+        if (rest.length === 0) break;
+        let least = Infinity;
+        for (const id of rest) least = Math.min(least, used.get(id) ?? 0);
+        pool = rest.filter((id) => (used.get(id) ?? 0) === least);
+      }
+      const weight = pool.reduce((sum, id) => sum + resourceDef(id).frequency, 0);
+      const chosen =
+        weight > 0 ? drawResource(rng, pool, weight) : pool[nextInt(rng, 0, pool.length)]!;
+      hand.push(chosen);
+      used.set(chosen, (used.get(chosen) ?? 0) + 1);
     }
     // Back into table order: a hand is a *set*, and the order it was drawn in
     // would otherwise leak into which luxury a fairness pass reaches for first.
@@ -168,20 +398,42 @@ export function drawRegionLuxuries(
 
 /** The `resources` block of `data/mapgen.json`. */
 export interface ResourceConfig {
-  /** Resource *tiles* to aim for per 1000 land tiles. Clusters count in full. */
-  countPer1000LandTiles: number;
+  /**
+   * Bonus resource *tiles* per 1000 land tiles. Clusters count in full.
+   *
+   * The density the "nowhere to settle" complaint is about: a decent city site
+   * should see a wheat or a deer without being hunted for. 100 is one bonus per
+   * ten land tiles, which is Civ 6's grain.
+   */
+  bonusPer1000LandTiles: number;
+  /** Strategic resource tiles per 1000 land tiles. Deliberately much rarer. */
+  strategicPer1000LandTiles: number;
   /** Minimum hex distance between two resource tiles of different finds. */
   minSpacing: number;
   /** How far from a start a bonus food must be for the fairness pass to rest. */
   startFoodRadius: number;
-  /** Draws allowed per budgeted tile before the scatter gives up. */
+  /** Draws allowed per budgeted tile before a scatter gives up. */
   attemptsPerResource: number;
   /** How far from a start its guaranteed luxuries may be. */
   startLuxuryRadius: number;
   /** How many *distinct* luxury kinds every start is guaranteed. */
   startLuxuryKinds: number;
-  /** How many luxury kinds one land region may grow. See the docblock. */
-  luxuryKindsPerRegion: number;
+  /**
+   * How many tiles of *one* of those kinds a start is guaranteed. Civ 5's
+   * region luxury, which arrives in a small seam rather than as a single hex —
+   * one copy is a curiosity, two is a reason to settle here.
+   */
+  startLuxuryCopies: number;
+  /** Land tiles one carved continent aims for. See `carveContinents`. */
+  continentTargetTiles: number;
+  /** Land a component needs before it is carved rather than attached. */
+  minContinentTiles: number;
+  /** How many luxury kinds one continent grows. Civ 6's number is 4. */
+  luxuryKindsPerContinent: number;
+  /** How many continents one luxury kind may appear on. Relaxes; see the docblock. */
+  maxContinentsPerLuxury: number;
+  /** Tiles of a dealt kind to place on its continent, drawn from this range. */
+  luxuryCopiesPerKind: { min: number; max: number };
 }
 
 /** Does this tile satisfy a resource's terrain / feature / hills filters? */
@@ -282,24 +534,8 @@ function drawResource(rng: Rng, table: readonly ResourceId[], total: number): Re
  * only" tool — and the tests — can run it on its own.
  */
 export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): void {
-  const budget = Math.max(
-    0,
-    Math.round((landTileCount(map) / 1000) * config.countPer1000LandTiles),
-  );
   const spacing = Math.max(1, Math.round(config.minSpacing));
-
-  // The regional hands, drawn *before* the scatter and from the same stream.
-  const regions = landRegions(map);
-  let regionCount = 0;
-  for (const region of regions) if (region + 1 > regionCount) regionCount = region + 1;
-  const hands = drawRegionLuxuries(rng, regionCount, config.luxuryKindsPerRegion);
-  /** May this luxury grow on this tile's continent? Non-luxuries: always. */
-  const suitsRegion = (tile: Tile, id: ResourceId): boolean => {
-    if (resourceDef(id).kind !== 'luxury') return true;
-    const region = regions[tileIndex(map, tile.col, tile.row)]!;
-    const hand = region >= 0 ? hands[region] : undefined;
-    return hand === undefined || hand.length === 0 || hand.includes(id);
-  };
+  const land = landTileCount(map);
 
   // Candidate lists, built once. In tile-index order, so the uniform draw over
   // one of them is a draw over a list whose order is part of the map.
@@ -310,22 +546,81 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
     if (list.length > 0) candidates.set(id, list);
   }
 
-  // A resource the map has no room for at all (no jungle: no spices) drops out
-  // of the draw entirely rather than eating attempts.
-  const table = RESOURCE_IDS.filter((id) => candidates.has(id));
-  const totalWeight = table.reduce((sum, id) => sum + resourceDef(id).frequency, 0);
-
-  if (budget > 0 && totalWeight > 0) {
-    const maxAttempts = budget * Math.max(1, Math.round(config.attemptsPerResource));
+  /** Places up to `wanted` tiles of one resource from one candidate list. */
+  const scatterOne = (id: ResourceId, list: readonly Tile[], wanted: number): number => {
+    const def = resourceDef(id);
     let placed = 0;
-    for (let attempt = 0; attempt < maxAttempts && placed < budget; attempt++) {
+    const attempts = Math.max(1, Math.round(config.attemptsPerResource)) * Math.max(1, wanted);
+    for (let attempt = 0; attempt < attempts && placed < wanted; attempt++) {
+      const tile = list[nextInt(rng, 0, list.length)]!;
+      if (tile.resource !== undefined) continue;
+      if (hasResourceNear(map, tile, spacing - 1, new Set())) continue;
+      const [min, max] = def.clusterSize ?? [1, 1];
+      const size = min >= max ? min : nextInt(rng, min, max + 1);
+      placed += growCluster(map, tile, id, def, Math.min(size, wanted - placed), spacing);
+    }
+    return placed;
+  };
+
+  // --- the continents, and the hands they are dealt -------------------------
+  // Carving rolls nothing; dealing is the first draw of the resource stream.
+  const continents = carveContinents(map, config);
+  const hands = dealContinentLuxuries(rng, continents.count, config);
+
+  // --- pass 1: the luxuries, dealt continent by continent -------------------
+  // A directed pass rather than a weighted scatter that is *refused* off the
+  // wrong continent, which is what this used to be. The old shape could only
+  // ever hope for a kind to turn up somewhere in its region — so a luxury
+  // arrived as a lonely hex and half the table never appeared at all. Dealing
+  // the copies explicitly is what makes a kind read as a *deposit region*: the
+  // seams that feed the settle-on-the-seam rule, silver and gold's per-copy
+  // signatures, and eventually a trade good worth carrying.
+  const byContinent = new Map<ResourceId, Tile[][]>();
+  for (const id of resourcesOfKind('luxury')) {
+    const list = candidates.get(id);
+    if (!list) continue;
+    const split: Tile[][] = Array.from({ length: continents.count }, () => []);
+    for (const tile of list) {
+      const continent = continents.of[tileIndex(map, tile.col, tile.row)]!;
+      if (continent >= 0) split[continent]!.push(tile);
+    }
+    byContinent.set(id, split);
+  }
+  const copies = config.luxuryCopiesPerKind;
+  const copyMin = Math.max(1, Math.round(copies.min));
+  const copyMax = Math.max(copyMin, Math.round(copies.max));
+  for (let continent = 0; continent < continents.count; continent++) {
+    for (const id of hands[continent] ?? []) {
+      // The draw happens whether or not the ground can take it, so a continent
+      // whose jade has nowhere to sit does not shift every later draw.
+      const wanted = copyMin >= copyMax ? copyMin : nextInt(rng, copyMin, copyMax + 1);
+      const list = byContinent.get(id)?.[continent];
+      if (!list || list.length === 0) continue;
+      scatterOne(id, list, wanted);
+    }
+  }
+
+  // --- pass 2: bonus, then strategic, each on its own budget ---------------
+  // Two budgets rather than one purse split by frequency weight, because the
+  // two answer different design questions: how often a city site has something
+  // worth working, and how scarce iron is. Tying them together meant tuning one
+  // silently retuned the other.
+  for (const [kind, per1000] of [
+    ['bonus', config.bonusPer1000LandTiles],
+    ['strategic', config.strategicPer1000LandTiles],
+  ] as const) {
+    const budget = Math.max(0, Math.round((land / 1000) * per1000));
+    const table = resourcesOfKind(kind).filter((id) => candidates.has(id));
+    const totalWeight = table.reduce((sum, id) => sum + resourceDef(id).frequency, 0);
+    if (budget <= 0 || totalWeight <= 0) continue;
+    const attempts = budget * Math.max(1, Math.round(config.attemptsPerResource));
+    let placed = 0;
+    for (let attempt = 0; attempt < attempts && placed < budget; attempt++) {
       const id = drawResource(rng, table, totalWeight);
       const list = candidates.get(id)!;
       const tile = list[nextInt(rng, 0, list.length)]!;
       if (tile.resource !== undefined) continue;
-      if (!suitsRegion(tile, id)) continue;
       if (hasResourceNear(map, tile, spacing - 1, new Set())) continue;
-
       const def = resourceDef(id);
       const [min, max] = def.clusterSize ?? [1, 1];
       const size = min >= max ? min : nextInt(rng, min, max + 1);
@@ -339,7 +634,7 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
   // neither pass touches any.
   const starts = chooseStartPositions(map, RULES.game.maxPlayers);
   ensureStartFood(map, starts, config);
-  ensureStartLuxuries(map, starts, regions, hands, config);
+  ensureStartLuxuries(map, starts, continents, hands, config);
 }
 
 /**
@@ -412,13 +707,14 @@ function ensureStartFood(
 function ensureStartLuxuries(
   map: GameMap,
   starts: readonly Tile[],
-  regions: Int32Array,
+  continents: ContinentMap,
   hands: readonly ResourceId[][],
   config: ResourceConfig,
 ): void {
   const radius = Math.max(0, Math.round(config.startLuxuryRadius));
   const spacing = Math.max(1, Math.round(config.minSpacing));
   const wanted = Math.max(0, Math.round(config.startLuxuryKinds));
+  const wantedCopies = Math.max(1, Math.round(config.startLuxuryCopies));
   const luxuries = RESOURCE_IDS.filter((id) => resourceDef(id).kind === 'luxury');
   if (wanted === 0 || luxuries.length === 0) return;
 
@@ -426,17 +722,21 @@ function ensureStartLuxuries(
     const from = tileHex(start);
     const near = mapRange(map, from, radius);
 
-    const held = new Set<ResourceId>();
+    /** How many tiles of each luxury kind stand in reach. */
+    const copiesOf = new Map<ResourceId, number>();
     for (const tile of near) {
       if (tile.resource !== undefined && resourceDef(tile.resource).kind === 'luxury') {
-        held.add(tile.resource);
+        copiesOf.set(tile.resource, (copiesOf.get(tile.resource) ?? 0) + 1);
       }
     }
-    if (held.size >= wanted) continue;
+    const held = new Set<ResourceId>(copiesOf.keys());
+    const bestCopies = (): number => Math.max(0, ...copiesOf.values());
+    if (held.size >= wanted && bestCopies() >= wantedCopies) continue;
 
-    // The region's hand first, then the rest of the table, both in table order.
-    const region = regions[tileIndex(map, start.col, start.row)]!;
-    const hand = region >= 0 ? (hands[region] ?? []) : [];
+    // The continent's hand first, then the rest of the table, both in table
+    // order.
+    const continent = continents.of[tileIndex(map, start.col, start.row)]!;
+    const hand = continent >= 0 ? (hands[continent] ?? []) : [];
     const preferred = [...luxuries.filter((id) => hand.includes(id)),
                        ...luxuries.filter((id) => !hand.includes(id))];
 
@@ -451,10 +751,16 @@ function ensureStartLuxuries(
       }))
       .sort((a, b) => a.distance - b.distance || a.index - b.index);
 
-    /** The first (luxury, tile) pair that fits, preferring the spacing rule. */
-    const pick = (respectSpacing: boolean): { tile: Tile; id: ResourceId } | null => {
-      for (const id of preferred) {
-        if (held.has(id)) continue;
+    /**
+     * The first (luxury, tile) pair that fits, preferring the spacing rule.
+     * `wantedKinds` looks for a kind not held yet; otherwise it looks to
+     * *deepen* whichever held kind is nearest to the copies floor.
+     */
+    const pick = (
+      respectSpacing: boolean,
+      among: readonly ResourceId[],
+    ): { tile: Tile; id: ResourceId } | null => {
+      for (const id of among) {
         const def = resourceDef(id);
         for (const entry of ordered) {
           if (entry.tile.resource !== undefined) continue;
@@ -473,11 +779,38 @@ function ensureStartLuxuries(
     // What neither pass will do is invent ground: a start ringed by flat
     // featureless grassland can host exactly one luxury in the whole table, and
     // one is what it gets.
-    while (held.size < wanted) {
-      const chosen = pick(true) ?? pick(false);
-      if (!chosen) break;
+    const plant = (among: readonly ResourceId[]): boolean => {
+      const chosen = pick(true, among) ?? pick(false, among);
+      if (!chosen) return false;
       chosen.tile.resource = chosen.id;
       held.add(chosen.id);
+      copiesOf.set(chosen.id, (copiesOf.get(chosen.id) ?? 0) + 1);
+      // The tile is spoken for now, so the next plant must not offer it again.
+      const at = ordered.findIndex((entry) => entry.tile === chosen.tile);
+      if (at >= 0) ordered.splice(at, 1);
+      return true;
+    };
+
+    while (held.size < wanted) {
+      if (!plant(preferred.filter((id) => !held.has(id)))) break;
+    }
+
+    // Then the seam. Deepening whichever held kind is already deepest is the
+    // cheapest way to reach the floor and the one that reads best on the board:
+    // a second wine beside the first is a vineyard, a second wine four hexes
+    // off is two lonely hexes. Preference order still runs through the
+    // continent's hand, so a guarantee cannot import a kind this ground has no
+    // business growing.
+    let guard = wantedCopies * 2;
+    while (bestCopies() < wantedCopies && guard-- > 0) {
+      const deepest = preferred
+        .filter((id) => held.has(id))
+        .sort((a, b) => (copiesOf.get(b) ?? 0) - (copiesOf.get(a) ?? 0));
+      // Held kinds first; then anything the ground will take. A start whose
+      // two kinds are both coastal has no second wine hex to offer, but it may
+      // well have room for a *third* kind twice over — and two of something
+      // beats one of everything, which is the whole argument for the floor.
+      if (!plant(deepest) && !plant(preferred)) break;
     }
   }
 }

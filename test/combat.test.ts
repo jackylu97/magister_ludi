@@ -1051,9 +1051,10 @@ describe('a war replays exactly', () => {
   function warGame(
     mineType: 'swordsman' | 'warrior' = 'swordsman',
     theirsType: 'spearman' | 'warrior' = 'spearman',
+    seed = 4242,
   ): { game: Game; ids: { mine: number; theirs: number } } {
     const game = createGame({
-      seed: 4242,
+      seed,
       sizeName: 'duel',
       players: [
         { name: 'A', color: '#a00', isHuman: true },
@@ -1154,7 +1155,13 @@ describe('a war replays exactly', () => {
    * disagree about.
    */
   it('reproduces an exchange that killed both sides, from the log', () => {
-    const { game, ids } = warGame('warrior', 'warrior');
+    // Seed 1 rather than the suite's usual 4242: whether two even warriors
+    // grind all the way down to a mutual kill depends on the defence bonus of
+    // the two hexes they happen to be standing on, and the elevation/moisture
+    // rework moved the ground under 4242's opening. The fixture has to *produce*
+    // the clamp for the replay below to be testing it, and the assertion two
+    // lines down is what says so out loud.
+    const { game, ids } = warGame('warrior', 'warrior', 1);
 
     let mutualKill: { attacker: number; hp: number } | null = null;
     const swing = (playerId: number, attackerId: number, defenderId: number): void => {

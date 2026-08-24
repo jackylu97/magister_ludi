@@ -26,6 +26,16 @@
       "height": 112
     }
   },
+  "retired": {
+    "elevation.hills": "An absolute cut on the elevation field. Replaced by elevation.hillShare: hills are now the flank band of the relief field, sized as a share of land.",
+    "elevation.mountains": "An absolute cut on the elevation field, which made blob mountains wherever the continental noise happened to peak. Replaced by elevation.mountainShare, a quantile of a ridged relief field whose crests are lines.",
+    "noise.moisture": "A single-scale moisture field, which dusted forest evenly over every continent. Replaced by noise.moistureRegional times noise.moistureLocal \u2014 see moisture.regionalWeight.",
+    "moisture.forestMin": "An absolute moisture cut for forest. Replaced by moisture.forestShare: the moisture field decides *where* the wood is, a share of eligible ground decides how much.",
+    "moisture.jungleMin": "The same cut for jungle, which asked whether a tropical tile was wetter than most of the *world* \u2014 so a seed whose wet regions missed the equator had no jungle at all. Replaced by moisture.jungleShare, ranked inside the band.",
+    "rivers.maxAttempts": "A flat cap on springs examined. Replaced by rivers.attemptsPerRiver: the budget has to scale with the quota it serves, or the largest maps come up short of rivers.",
+    "resources.countPer1000LandTiles": "One purse for every resource, split by frequency weight, so retuning bonus density silently retuned strategic scarcity. Replaced by resources.bonusPer1000LandTiles and resources.strategicPer1000LandTiles; luxuries left the purse entirely and are dealt per continent.",
+    "resources.luxuryKindsPerRegion": "A hand per connected landmass, which on a one-continent map was one hand for the world. Replaced by resources.luxuryKindsPerContinent over the fixed-size continents of carveContinents."
+  },
   "noise": {
     "elevation": {
       "frequency": 2.6,
@@ -33,19 +43,41 @@
       "lacunarity": 2.0,
       "persistence": 0.45
     },
-    "moisture": {
-      "frequency": 4.4,
+    "ridge": {
+      "cycleTiles": 21,
       "octaves": 4,
+      "lacunarity": 2.0,
+      "persistence": 0.5,
+      "offset": 1.0,
+      "gain": 1.9
+    },
+    "moistureRegional": {
+      "frequency": 1.9,
+      "octaves": 2,
+      "lacunarity": 2.0,
+      "persistence": 0.45
+    },
+    "moistureLocal": {
+      "cycleTiles": 8,
+      "octaves": 3,
       "lacunarity": 2.0,
       "persistence": 0.5
     }
   },
   "elevation": {
     "seaLevel": 0.62,
-    "hills": 0.86,
-    "mountains": 0.965,
     "polarWaterLatitude": 0.94,
-    "polarWaterElevationBonus": 0.12
+    "polarWaterElevationBonus": 0.12,
+    "mountainShare": 0.05,
+    "hillShare": 0.2,
+    "ridgeWeight": 1.0,
+    "continentWeight": 0.25,
+    "gradientWeight": 0.12,
+    "ridgeSharpness": 2.0,
+    "spineFloor": 0.5,
+    "spineNearTiles": 2,
+    "spineFarTiles": 7,
+    "crestlineWeight": 0.35
   },
   "latitude": {
     "snow": 0.9,
@@ -58,8 +90,16 @@
   "moisture": {
     "desertMax": 0.28,
     "plainsMax": 0.55,
-    "forestMin": 0.58,
-    "jungleMin": 0.66
+    "forestShare": 0.32,
+    "jungleShare": 0.15,
+    "regionalWeight": 1.0,
+    "localWeight": 0.55,
+    "rainShadow": {
+      "enabled": true,
+      "windDirection": 3,
+      "rangeTiles": 4,
+      "strength": 0.45
+    }
   },
   "lakes": {
     "maxSize": 8
@@ -68,19 +108,28 @@
     "countPer1000Tiles": 7,
     "minCount": 3,
     "minSpringElevation": 0.86,
-    "minSpringSpacing": 4,
+    "minSpringSpacing": 1,
     "minLength": 3,
     "maxLength": 80,
-    "maxAttempts": 600
+    "attemptsPerRiver": 120
   },
   "resources": {
-    "countPer1000LandTiles": 120,
+    "continentTargetTiles": 170,
+    "minContinentTiles": 40,
+    "luxuryKindsPerContinent": 4,
+    "maxContinentsPerLuxury": 2,
+    "luxuryCopiesPerKind": {
+      "min": 4,
+      "max": 6
+    },
+    "bonusPer1000LandTiles": 100,
+    "strategicPer1000LandTiles": 26,
     "minSpacing": 2,
-    "startFoodRadius": 3,
     "attemptsPerResource": 12,
+    "startFoodRadius": 3,
     "startLuxuryRadius": 4,
     "startLuxuryKinds": 2,
-    "luxuryKindsPerRegion": 6
+    "startLuxuryCopies": 2
   },
   "starts": {
     "spacingFactor": 0.55,
@@ -93,12 +142,12 @@
     "workedTiles": 6,
     "centreWeight": 2.0,
     "foodWeight": 1.0,
-    "productionWeight": 1.5,
+    "productionWeight": 2.5,
     "goldWeight": 0.3,
     "freshwaterBonus": 7,
     "coastBonus": 4,
     "minRingFood": 16,
-    "minRingProduction": 10,
+    "minRingProduction": 11,
     "hostileTerrain": [
       "desert",
       "tundra",

@@ -411,14 +411,35 @@ export interface RiverConfig {
   minCount: number;
   /** Lowest corner altitude a spring may sit at, on the 0..1 elevation scale. */
   minSpringElevation: number;
-  /** Hexes (wrap-aware) two springs must be apart. */
+  /**
+   * Hexes (wrap-aware) two springs must be apart.
+   *
+   * 1, which is to say "not the same hex", and that is a deliberate setting
+   * rather than a disabled rule. Springs now have to stand on range ground, and
+   * range ground is a fifth of the land gathered into lines — spread them out
+   * on top of that and the biggest maps simply cannot seat their own river
+   * quota. Nothing is lost by letting two springs share a ridge: a trace that
+   * runs into an existing river merges with it (`ending: 'river'`), so what
+   * close springs make is a river *system* with tributaries, which is what a
+   * mountain range should shed. A spring standing *on* an existing river is
+   * refused separately, by `vertexTouchesRiver`.
+   */
   minSpringSpacing: number;
   /** Traces shorter than this many edges are discarded whole. */
   minLength: number;
   /** Hard cap on a single trace; a walk that hits it is discarded. */
   maxLength: number;
-  /** Springs examined before giving up on reaching the target count. */
-  maxAttempts: number;
+  /**
+   * Springs examined per river the map asks for.
+   *
+   * Per river rather than a flat cap, because the budget has to grow with the
+   * quota it is a budget *for*. A flat 600 was enough while a spring could sit
+   * anywhere in the top third of the land; once springs are range ground — a
+   * fifth of the land, gathered into lines — a giant map wanted its 141 rivers
+   * out of a budget that ran out around the ninetieth, and simply came up
+   * short. A per-river budget is the same number on every size.
+   */
+  attemptsPerRiver: number;
 }
 
 /** One traced river. The map keeps only its edges; this is for tests and stats. */
@@ -538,7 +559,7 @@ export function traceRivers(map: GameMap, rng: Rng, config: RiverConfig): RiverT
 
   const rivers: RiverTrace[] = [];
   const springs: Hex[] = [];
-  const attempts = Math.min(candidates.length, config.maxAttempts);
+  const attempts = Math.min(candidates.length, target * config.attemptsPerRiver);
   for (let i = 0; i < attempts && rivers.length < target; i++) {
     const spring = candidates[i]!;
     const hex = tileHex(map.tiles[tileIndex(map, spring.col, spring.row)]!);
