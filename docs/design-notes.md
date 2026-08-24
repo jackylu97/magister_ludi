@@ -1420,3 +1420,31 @@ two is a reason to plant a city on it.
 **Open tuning:** the settler's price now buys four turns of the opening rate rather than five, and
 restoring five is a `units.json` edit rather than a mapgen one — deliberately not folded into this
 pass.
+
+---
+
+## Entry XVII — The modifier doctrine (RATIFIED 2026-08-24)
+
+How every bonus in the game composes, forever. Audit new mechanics against this the way
+Entry I's commitments are audited.
+
+1. **Flats first.** All +X contributions sum into the base (they are breakdown lines; the
+   total is the fold — rule 5).
+2. **Percents stack additively WITHIN their stage.** +10% production and +15% production in
+   the same city = +25%, never 1.10 × 1.15. No source is privileged inside a stage.
+3. **Two stages, multiplicative across them.** City-scoped percents (buildings, local luxury
+   signatures, category bonuses) apply to the city's flats; empire/global percents (meter
+   tiers, empire-wide luxury percents, future wonder/card globals) apply AFTER, on the
+   city-modified result: `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, floored once at
+   the very end. A +10% global on top of a +10% city bonus is worth 11 points of base — a
+   global modifier scales with how well-built the empire's cities are.
+4. **The stage is defined by where the effect APPLIES, not where it is held.** Coral's
+   "+20% science in each coastal city" is city-stage even though the seam is one tile;
+   a happiness tier's "+10% science" is global-stage even though it lands on every city.
+5. **Global percents are used SPARINGLY** — meters, and a handful of late, run-defining
+   effects. City percents are the default shape for content.
+6. Every stage's sum is a labelled line in the breakdown it modifies (rule 5): the reader
+   sees flats, the city multiplier, the global multiplier, in that order.
+
+Status: ratified ahead of implementation — the shipped pipeline sums both scopes into one
+pool (net +20% where this doctrine says +21%). Alignment pass queued.
