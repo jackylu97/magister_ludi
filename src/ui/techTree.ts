@@ -90,6 +90,7 @@ import { unitDef } from '../sim/unitData';
 import { HAMMER, YIELD_GLYPH, turnsLabel } from './figures';
 import { createInfoCard } from './infoCard';
 import { BEAKER, researchProgress } from './researchProgress';
+import { resourceMarkNode } from './resourceMark';
 
 /** ÆRA I / II / III — the ages, in the numerals the specimen sets them in. */
 const AGE_NUMERALS: Record<TechAge, string> = { 1: 'I', 2: 'II', 3: 'III' };
@@ -416,7 +417,15 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         box.append(list);
       }
       const row = element('li');
-      row.append(element('span', `info-card-mark ${GIFT_MARK[gift.kind]}`, gift.glyph));
+      // A reveal names a *resource*, and this interface draws its resources
+      // (`src/ui/resourceMark.ts`). Every other gift keeps the glyph its own
+      // table declares — `techGifts` still hands over the row's `emoji`, which
+      // is the fallback the mark falls back *to*, so a resource nobody has
+      // drawn still arrives with something in the box.
+      const mark = element('span', `info-card-mark ${GIFT_MARK[gift.kind]}`);
+      if (gift.kind === 'reveal') mark.append(resourceMarkNode(gift.id));
+      else mark.textContent = gift.glyph;
+      row.append(mark);
       row.append(element('span', 'info-card-gift-name', gift.name));
       // Units are priced through the simulation's own evaluator; buildings
       // quote their flat cost; an improvement quotes the charges it spends;

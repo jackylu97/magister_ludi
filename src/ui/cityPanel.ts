@@ -47,6 +47,7 @@ import { type Game, dispatch } from '../sim/game';
 import { meterEffects } from '../sim/meters';
 import { resourceDef } from '../sim/resourceData';
 import { type ResourceYieldLine, cityResourceYields } from '../sim/resourceEffects';
+import { resourceLabelNodes } from './resourceMark';
 import { type City, type QueueItem, hasEndedTurn } from '../sim/state';
 import { techDef } from '../sim/techData';
 import { isUnlocked, requiredResource } from '../sim/tech';
@@ -210,8 +211,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     if (def.haltsGrowth) notes.append(note('The city banks no food while this is at the front'));
     if (def.minCityPop > 0) notes.append(note(`Needs a city of ${def.minCityPop}`));
     if (def.requiresResource !== undefined) {
-      const resource = resourceDef(def.requiresResource);
-      notes.append(note(`Needs improved ${resource.emoji} ${resource.name}`));
+      // The one note that is built rather than written: the resource's mark is
+      // an element carrying a CSS mask, so it cannot ride inside a template
+      // string. See `src/ui/resourceMark.ts`.
+      const item = element('li');
+      item.append('Needs improved ');
+      item.append(resourceLabelNodes(def.requiresResource));
+      notes.append(item);
     }
     if (def.upgradesTo !== undefined) {
       notes.append(note(`Becomes a ${unitDef(def.upgradesTo).name} in time`));
@@ -755,8 +761,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // Entry IX's correction) — and a button that said only "needs Iron" to a
       // player who is *standing on* their own iron hill would be a button
       // telling them to go to war over something they already have.
-      const needs =
-        missing === null ? '' : `improved ${resourceDef(missing).emoji} ${resourceDef(missing).name}`;
+      // Two forms of the same sentence, and the split is the mark's doing. The
+      // spoken one is words only: a screen reader reading a resource's glyph
+      // announces its Unicode name before the word it decorates, which is the
+      // one surface an icon makes *worse*.
+      const needsSpoken = missing === null ? '' : `improved ${resourceDef(missing).name}`;
       // A label rather than a `title`, and that is the hover card's doing: a
       // native tooltip would arrive a second *after* the card, on top of it,
       // saying less. The sentence is kept — it is the only place a screen
@@ -765,7 +774,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       button.setAttribute(
         'aria-label',
         needsResource
-          ? `${def.name} — needs ${needs}`
+          ? `${def.name} — needs ${needsSpoken}`
           : tooSmall
             ? `${def.name} — needs population ${def.minCityPop}`
             : `${def.name} — ${cost} production`,
@@ -774,15 +783,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // An unbuildable row keeps its reason where the price goes: a "needs
       // improved Iron" that had to share the line with "9⚙ · 4t" would be
       // quoting a schedule for something that is not going to start.
-      button.append(
-        element(
-          'span',
-          'city-buildable-cost',
-          needsResource
-            ? `needs ${needs}`
-            : `${cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'unit', id }, city.queue.length))}`,
-        ),
-      );
+      const price = element('span', 'city-buildable-cost');
+      if (needsResource && missing !== null) {
+        price.append('needs improved ');
+        price.append(resourceLabelNodes(missing));
+      } else {
+        price.textContent = `${cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'unit', id }, city.queue.length))}`;
+      }
+      button.append(price);
       // Priced at the back of the queue, because that is where pressing this
       // would put it — `city.queue.length` is 0 exactly when the queue is
       // empty, which is the one case the banked hammers are already its own.

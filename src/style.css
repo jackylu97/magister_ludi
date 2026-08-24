@@ -131,6 +131,49 @@ body {
   color: var(--ink-soft);
 }
 
+/* The drawn resource mark, inline in a line of text.
+
+   The picture is a `data:` URI SVG generated from `src/art/resourceMarks.ts` —
+   the same path data the board's icon atlas traces — and it arrives here as
+   `--res-mark`, set per element by `src/ui/resourceMark.ts`.
+
+   A *mask* rather than a background image, and that is the whole trick: the ink
+   is `currentColor`, so one drawing reads correctly on parchment (a city panel)
+   and on ink (`.is-night` cards, the top bar's plates) with no second file and
+   no per-surface override. An `<img>` would be one colour forever.
+
+   Sized in `em` against the text it stands next to — roughly the cap height of
+   the UI face, nudged onto the baseline — so the same element is right at the
+   four different sizes this interface sets. */
+.res-mark {
+  flex: none;
+  display: inline-block;
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: -0.19em;
+  background-color: currentColor;
+  -webkit-mask-image: var(--res-mark);
+  mask-image: var(--res-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* The last-resort fallback: a row of `data/resources.json` with no drawn mark
+   prints its `emoji`, which is text and wants none of the above. Nothing that
+   ships takes this path — see `test/resources3d.test.ts`. */
+.res-mark.is-glyph {
+  width: auto;
+  height: auto;
+  vertical-align: baseline;
+  background: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
 /* The board, and everything measured against it.
 
    It starts *below* the top bar rather than under it, and that is load-bearing

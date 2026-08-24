@@ -61,8 +61,8 @@
  *
  * The second atlas: what is printed on a tile
  * -------------------------------------------
- * The same machinery, one plane down. `TileIcons` (below) rasterises the twelve
- * resource marks, the three yield glyphs and ten numerals into a second atlas,
+ * The same machinery, one plane down. `TileIcons` (below) rasterises every
+ * resource mark, the three yield glyphs and ten numerals into a second atlas,
  * and the lens layer prints them flat on the ground. They share this file with
  * the badges rather than living in one of their own because they are the same
  * *system* — a roundel, an ink mark, one grid, one stroke language, one cell
@@ -91,6 +91,12 @@ import {
   SRGBColorSpace,
 } from 'three';
 
+import {
+  MARK_BOX,
+  MARK_STROKE,
+  type ResourceMark,
+  resourceMark,
+} from '../art/resourceMarks';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 import type { ModelClass } from '../sim/unitData';
 
@@ -423,11 +429,14 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
  * place in this renderer that is honest about being cheaper: a digit is a digit
  * in any face, and twelve hand-drawn numerals would be twelve files nobody
  * could tell apart from `fillText`.
+ *
+ * The resources have no files either, and for a different reason: their marks
+ * are **path data** in `src/art/resourceMarks.ts`, traced straight into the cell
+ * (see `drawResourceCell`). They moved out of `public/` when the set went from
+ * seventeen drawings and twenty-four emoji to forty-one drawings, because the
+ * DOM panels print the same marks and a file can only be one colour — see
+ * `src/ui/resourceMark.ts`. One drawing, two printers, no rasterised middleman.
  */
-export const RESOURCE_ICON_FILES: Record<ResourceId, string> = Object.fromEntries(
-  RESOURCE_IDS.map((id) => [id, `sprites/icons/resources/${id}.svg`]),
-) as Record<ResourceId, string>;
-
 export const MARGINALIA_ICON_FILES: Record<MarginaliaKey, string> = {
   serpent: 'sprites/icons/marginalia/serpent.svg',
 };
@@ -664,19 +673,68 @@ export function traceResourceShape(
 }
 
 /**
+ * Traces one drawn mark into the cell, scaled from its authoring grid.
+ *
+ * The whole of the resource half of this atlas: no image, no scratch canvas, no
+ * `source-in` recolour — the paths arrive as data and are stroked in
+ * `icons.inkColor` directly. `context.scale` is what carries the stroke weights
+ * with them, which is why `MARK_STROKE` is quoted in grid units and never in
+ * pixels; a mark authored at weight 5 in a 64 box is weight 5 at *whatever* the
+ * atlas cell turns out to be, which is the property that let `icons.atlasCell`
+ * be a tuning number in the first place.
+ *
+ * `Path2D` rather than a hand-rolled path walker because the marks are SVG path
+ * data and the browser already has the one parser everybody agrees on; the DOM
+ * side (`src/ui/resourceMark.ts`) feeds the same strings to the same parser
+ * through a `<path>`, so the two printers cannot disagree about a curve.
+ */
+function paintMarkPaths(
+  context: CanvasRenderingContext2D,
+  mark: ResourceMark,
+  center: { x: number; y: number },
+  size: number,
+  ink: number,
+): void {
+  const scale = size / MARK_BOX;
+  context.save();
+  context.translate(center.x - size / 2, center.y - size / 2);
+  context.scale(scale, scale);
+  context.fillStyle = cssHex(ink);
+  context.strokeStyle = cssHex(ink);
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  for (const path of mark.paths) {
+    const traced = new Path2D(path.d);
+    if (path.fill) context.fill(traced);
+    const width = path.width ?? MARK_STROKE;
+    // Weight zero is "filled only" — a pip or an eye, which has no outline at
+    // all rather than a hairline one, exactly as the authored files drew them.
+    if (width > 0) {
+      context.lineWidth = width;
+      context.stroke(traced);
+    }
+  }
+  context.restore();
+}
+
+/**
  * Paints one resource's roundel: paper and rim shaped by its `ResourceKind`
- * (`ICONS.resourceKinds`), then the mark on top exactly as `drawDiscCell`
- * stamps it.
+ * (`ICONS.resourceKinds`), then the drawn mark on top of both.
  *
  * The kind differentiation is a *fill and a stroke of one traced path*, both
  * baked into the atlas at load — see the trap in `CLAUDE.md` this follows:
  * nothing about a printed atlas cell can be tinted or re-shaped per instance
  * once it is drawn, so bonus, strategic and luxury have to look different in
  * the canvas or they cannot look different on the board at all.
+ *
+ * A resource with no drawn mark falls through to `fallbackGlyph` — the row's
+ * `emoji`, printed on the roundel exactly as it always was. Nothing in
+ * `data/resources.json` takes that path today; it is there so that a row
+ * installed at runtime still *names* its find, provisionally and obviously,
+ * until somebody draws it a mark.
  */
 function drawResourceCell(
   context: CanvasRenderingContext2D,
-  icon: CanvasImageSource | null,
   index: number,
   layout: AtlasLayout,
   id: ResourceId,
@@ -697,7 +755,18 @@ function drawResourceCell(
   context.stroke();
   context.restore();
 
-  paintCellMark(context, icon, center, cell, ICONS.inkColor, ICONS.iconScale, fallbackGlyph);
+  const mark = resourceMark(id);
+  if (mark === null) {
+    paintCellMark(context, null, center, cell, ICONS.inkColor, ICONS.iconScale, fallbackGlyph);
+    return;
+  }
+  paintMarkPaths(
+    context,
+    mark,
+    center,
+    Math.max(1, ICONS.iconScale * cell),
+    ICONS.inkColor,
+  );
 }
 
 /**
@@ -919,14 +988,15 @@ export class TileIcons {
     const context = canvas.getContext('2d');
     if (!context) return null;
 
+    // Only the yields and the marginalia are still files. The resources are
+    // traced from path data and the numerals are set in text, so both ask for
+    // nothing over the network — see `MARGINALIA_ICON_FILES`.
     const files = TILE_ICON_CELLS.map((cell) =>
-      cell.set === 'resource'
-        ? RESOURCE_ICON_FILES[cell.id]
-        : cell.set === 'yield'
-          ? YIELD_ICON_FILES[cell.id]
-          : cell.set === 'marginalia'
-            ? MARGINALIA_ICON_FILES[cell.id]
-            : null,
+      cell.set === 'yield'
+        ? YIELD_ICON_FILES[cell.id]
+        : cell.set === 'marginalia'
+          ? MARGINALIA_ICON_FILES[cell.id]
+          : null,
     );
     const icons = await Promise.all(files.map((url) => (url ? loadIcon(url) : null)));
 
@@ -949,7 +1019,7 @@ export class TileIcons {
         return;
       }
       if (cell.set === 'resource') {
-        drawResourceCell(context, icons[index] ?? null, index, layout, cell.id, resourceDef(cell.id).emoji);
+        drawResourceCell(context, index, layout, cell.id, resourceDef(cell.id).emoji);
         return;
       }
       // Every `TileIconCell` variant is one of the four branches above; this is

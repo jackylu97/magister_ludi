@@ -112,33 +112,81 @@ as the reference for how heavy an icon has to be to survive being twenty pixels 
 | `siege.svg` | `siege` | catapult, arm thrown, shot in the air |
 | `scout.svg` | `scout` | eye |
 
-## `icons/resources/<resource>.svg` — 12 resource marks
+## `src/art/resourceMarks.ts` — 41 resource marks, as path data
 
 **Original work for this project**, CC0 1.0, drawn in the *same* language as the eight badge
-icons above and for the same reason: a set is a set. They are the ink on the parchment roundel
+icons above and for the same reason: a set is a set. They are the ink on the kind-shaped paper
 the **Resources lens** puts on a tile that carries something (see `src/render3d/badges3d.ts`,
 `TileIcons`), and they are the only thing on the board that can actually *name* a resource —
 the diorama props next to them say "an animal, some ore, a vine", which is atmosphere rather
 than information.
 
-| File | Resource | Mark |
-| --- | --- | --- |
-| `wheat.svg` | `wheat` | a bound sheaf, three stalks and a tie |
-| `cattle.svg` | `cattle` | a cow's head, horns out |
-| `deer.svg` | `deer` | a branching pair of antlers |
-| `fish.svg` | `fish` | a fish, tail to the right |
-| `stone.svg` | `stone` | a cut block in three-quarter view |
-| `horses.svg` | `horses` | the badge set's horse head, reused verbatim |
-| `iron.svg` | `iron` | an anvil on its block |
-| `gems.svg` | `gems` | a cut gem, crown and pavilion |
-| `silk.svg` | `silk` | a banner hung from a rail |
-| `wine.svg` | `wine` | a bunch of grapes with a leaf |
-| `spices.svg` | `spices` | a pepper pod |
-| `salt.svg` | `salt` | a salt crystal, with two sparkles |
+They are **not files**, and this is the one set in this folder that is not. Seventeen of them
+were files; the other twenty-four rows of `data/resources.json` had no drawing at all and fell
+through to the emoji on the row, on the board *and* in every DOM panel that named them.
+Finishing the set meant deciding where a finished mark lives, and a file lost: the panels print
+the same marks as the board, a file can only ever be one colour, and this interface sets the
+same sentence on parchment and on ink. So the drawings are path data on the same 64 × 64 grid,
+traced into the atlas with `Path2D` and masked into the DOM as a `data:` URI
+(`src/ui/resourceMark.ts`) where the ink is `currentColor`. One drawing, two printers.
 
-`horses.svg` is the *same path* as `mounted.svg`, deliberately: the resource and the cavalry it
-buys should be one mark, and duplicating the file rather than sharing one keeps the two rosters
+Shapes that repeat are a small vocabulary of helpers rather than forty-one blobs of path code —
+`cube`, `leaf`, `drop`, `ingot`, `dot`, `spark`, `crescent`, `fan`, `spiral`, `stalk`, `poly`
+and `line`. `cube` reproduces the hand-drawn `stone` and `salt` blocks *to the coordinate*,
+which is how the port of the original seventeen was checked (`test/resources3d.test.ts`).
+
+`horses` is the *same path* as `mounted.svg`, deliberately: the resource and the cavalry it buys
+should be one mark, and keeping its own copy rather than sharing one file keeps the two rosters
 independently editable (a future cavalry badge redraw must not silently redraw the pasture).
+
+`emoji` stays on every row of `data/resources.json` as the **last resort**, and nothing that
+ships uses it: a resource with no entry in the registry prints its glyph exactly as this
+project always did, which is what keeps a resource added at runtime legible with no code
+written for it.
+
+| Resource | Mark |
+| --- | --- |
+| `wheat` | a bound sheaf, three stalks and a tie |
+| `cattle` | a cow's head, horns out |
+| `deer` | a branching pair of antlers |
+| `fish` | a fish, tail to the right |
+| `stone` | a cut block in three-quarter view |
+| `rice` | three drooping stalks standing in water |
+| `maize` | a cob in its husk, kernels ranked |
+| `bananas` | a single fruit, stem up |
+| `copper` | an oxhide ingot, four horns and a hollowed waist |
+| `tin` | two cast bars, stacked |
+| `clay` | a coil pot, its rim thrown wide |
+| `reeds` | papyrus stems under their umbels |
+| `crabs` | a crab, claws raised |
+| `bison` | a bison head, shaggy crown and short horns |
+| `horses` | the badge set's horse head, reused verbatim |
+| `iron` | an anvil on its block |
+| `gems` | a cut gem, crown and pavilion |
+| `silk` | a banner hung from a rail |
+| `wine` | a bunch of grapes with a leaf |
+| `spices` | a pepper pod |
+| `salt` | a salt crystal, with two glints |
+| `incense` | a censer under three curls of smoke |
+| `jade` | a pierced disc, the bi, on its cord |
+| `marble` | a colonnade on its stylobate |
+| `furs` | a stretched pelt |
+| `dyes` | two dye vats, dripping |
+| `ivory` | a pair of tusks, tips up |
+| `amber` | a drop of resin with a fly caught in it |
+| `tea` | a leaf, midrib and two veins |
+| `coffee` | a sprig of two cherries under a leaf |
+| `cotton` | a burst boll in its spiked calyx |
+| `sugar` | two jointed canes and a blade of leaf |
+| `olives` | a sprig, two leaves and two olives |
+| `lapis` | a polished cabochon, flecked with pyrite |
+| `silver` | a cast bar under the moon |
+| `gold` | a cast bar under the sun |
+| `honey` | a comb cell, dripping |
+| `pearls` | a pearl in an open shell |
+| `coral` | a branching stag coral on its foot |
+| `whales` | a fluke, sounding |
+| `tyrian` | a murex whelk, whorl and spines |
 
 ## `icons/yields/<yield>.svg` — the three yield voices
 
@@ -155,12 +203,14 @@ stroke on green grass does not.
 | `production.svg` | production | a hammer, head square on |
 | `gold.svg` | gold | a coin |
 
-All eight badge icons are authored on the same 64 × 64 grid inside a safe circle, in one ink at one
-stroke weight, with round caps and joins throughout — the consistency *is* the design. They
-declare an intrinsic size of 256 px so the browser rasterises them larger than any atlas cell
-asks for and the badge is downsampled rather than blown up. The fill colour in the files is
-the palette's ink, but nothing depends on it: the atlas builder recolours every icon to
-`badges.inkColor` from `data/view3d.json` at load, so the ink stays a data decision.
+Every mark in this folder and in `resourceMarks.ts` is authored on the same 64 × 64 grid inside a
+safe circle, in one ink at one stroke weight, with round caps and joins throughout — the
+consistency *is* the design. The files declare an intrinsic size of 256 px so the browser
+rasterises them larger than any atlas cell asks for and the badge is downsampled rather than
+blown up. The fill colour in the files is the palette's ink, but nothing depends on it: the
+atlas builder recolours every icon to `badges.inkColor` from `data/view3d.json` at load, so the
+ink stays a data decision. The resource marks make the same promise one step earlier — they
+carry no colour at all until somebody asks for one.
 
 ## Marginalia (`icons/marginalia/`)
 

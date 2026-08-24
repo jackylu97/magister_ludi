@@ -13,7 +13,6 @@ import {
 import {
   MARGINALIA_CELLS,
   NUMERAL_CELLS,
-  RESOURCE_ICON_FILES,
   TILE_ICON_CELLS,
   type TileIcons,
   YIELD_COLORS,
@@ -51,6 +50,15 @@ import { TECH_IDS } from '../src/sim/techData';
 import { computeFreshwater } from '../src/sim/water';
 import { resetVisibility } from '../src/sim/visibility';
 import { LENS_DEFAULTS, type LensView } from '../src/ui/mapView';
+import {
+  MARK_BOX,
+  MARK_STROKE,
+  RESOURCE_MARKS,
+  cube,
+  resourceMark,
+  resourceMarkDataUri,
+  resourceMarkSvg,
+} from '../src/art/resourceMarks';
 
 /**
  * The board's half of the resources milestone: the diorama props, the flat
@@ -331,11 +339,11 @@ describe('the tile-icon atlas', () => {
     expect(tileIconIndex({ set: 'marginalia', id: 'serpent' })).toBe(TILE_ICON_CELLS.length - 1);
   });
 
-  it('names an artwork file for every mark that has one', () => {
-    expect(Object.keys(RESOURCE_ICON_FILES).sort()).toEqual([...RESOURCE_IDS].sort());
-    for (const id of RESOURCE_IDS) {
-      expect(RESOURCE_ICON_FILES[id]).toBe(`sprites/icons/resources/${id}.svg`);
-    }
+  it('names an artwork file for every mark that still has one', () => {
+    // The resources stopped being files when the set was finished: their marks
+    // are path data, checked in its own suite below. The yields are still two
+    // vectors under `public/`, and this is the assertion that would catch a
+    // rename that left the atlas with two blank discs.
     for (const key of YIELD_KEYS) {
       expect(YIELD_ICON_FILES[key]).toBe(`sprites/icons/yields/${key}.svg`);
     }
@@ -1010,5 +1018,137 @@ describe('the yield glyphs', () => {
       const material = mesh.material as MeshBasicMaterial;
       expect(material.depthTest).toBe(false);
     }
+  });
+});
+
+// --- the drawn marks --------------------------------------------------------
+
+/**
+ * The forty-one ink pictograms, and the promise that no player-facing surface
+ * prints an emoji for a resource any more.
+ *
+ * The drawings themselves need eyes, not a suite. What is held still here is
+ * everything about them that would fail *silently*: a row of the table nobody
+ * drew a mark for (which would quietly show its emoji on the board and in every
+ * panel), a helper that produced `NaN` for one angle and a mark that vanished, a
+ * coordinate that escaped the 64-grid and printed over the cell next door, two
+ * resources accidentally sharing one drawing, and a sprite export that handed
+ * the DOM an empty picture.
+ */
+describe('the drawn resource marks', () => {
+  it('draws every resource the table ships — nothing falls through to its emoji', () => {
+    const undrawn = RESOURCE_IDS.filter((id) => resourceMark(id) === null);
+    expect(undrawn).toEqual([]);
+  });
+
+  it('keeps no drawing for a resource the table no longer has', () => {
+    // The other direction, and the one a rename breaks: a stale entry is a mark
+    // nothing prints, which nobody would ever notice.
+    const orphans = Object.keys(RESOURCE_MARKS).filter(
+      (id) => !(RESOURCE_IDS as readonly string[]).includes(id),
+    );
+    expect(orphans).toEqual([]);
+  });
+
+  it('gives every mark a note and at least one traced path', () => {
+    for (const id of RESOURCE_IDS) {
+      const mark = resourceMark(id)!;
+      expect(mark.note.length, id).toBeGreaterThan(0);
+      expect(mark.paths.length, id).toBeGreaterThan(0);
+      for (const path of mark.paths) {
+        // Path data, and path data that starts where a path has to start.
+        expect(path.d.startsWith('M'), `${id}: ${path.d}`).toBe(true);
+        expect(path.d, id).not.toMatch(/NaN|Infinity|undefined/);
+      }
+    }
+  });
+
+  /**
+   * The grid is the contract the atlas cell is packed against: cells sit edge to
+   * edge with no gutter (`badgeAtlasLayout`), so a mark that reached past its
+   * 64-square would print on its neighbour's roundel.
+   *
+   * Only the absolute paths are measured, because a *relative* command's numbers
+   * are deltas and a `-18` in one is not a coordinate off the top of the grid —
+   * `dot` is built out of exactly that. A little slop either side of the box, for
+   * the half of a stroke that falls outside its own path.
+   */
+  it('keeps every absolute coordinate on the authoring grid', () => {
+    for (const id of RESOURCE_IDS) {
+      for (const path of resourceMark(id)!.paths) {
+        if (/[a-z]/.test(path.d)) continue;
+        for (const token of path.d.match(/-?\d+(\.\d+)?/g) ?? []) {
+          const value = Number(token);
+          expect(Number.isFinite(value), `${id}: ${path.d}`).toBe(true);
+          expect(value, `${id}: ${path.d}`).toBeGreaterThanOrEqual(-8);
+          expect(value, `${id}: ${path.d}`).toBeLessThanOrEqual(MARK_BOX + 8);
+        }
+      }
+    }
+  });
+
+  it('draws each resource something of its own', () => {
+    const seen = new Map<string, string>();
+    for (const id of RESOURCE_IDS) {
+      const drawing = resourceMark(id)!.paths.map((path) => path.d).join('|');
+      expect(seen.get(drawing) ?? id, `${id} is drawn exactly like ${seen.get(drawing)}`).toBe(id);
+      seen.set(drawing, id);
+    }
+  });
+
+  /**
+   * The port check. `stone` and `salt` were two of the seventeen files that
+   * already existed, and both were a block in three-quarter view; `cube` is that
+   * shape factored out. These are the coordinates the hand-authored SVGs drew,
+   * so a helper that drifted would be caught by the two marks there is a
+   * reference for.
+   */
+  it('reproduces the hand-drawn block exactly, which is what the vocabulary is for', () => {
+    expect(cube(32, 12, 20, 10, 20)).toBe(
+      'M32 12L52 22L32 32L12 22ZM12 22V42L32 52V32M52 22V42L32 52',
+    );
+    expect(resourceMark('stone')!.paths[0]!.d).toBe(cube(32, 12, 20, 10, 20));
+    expect(resourceMark('salt')!.paths[0]!.d).toBe(cube(32, 18, 15, 8, 15));
+  });
+
+  it('exports a non-empty sprite for every resource, carrying its own paths', () => {
+    for (const id of RESOURCE_IDS) {
+      const uri = resourceMarkDataUri(id);
+      expect(uri, id).not.toBeNull();
+      expect(uri!.startsWith('data:image/svg+xml,'), id).toBe(true);
+      const svg = decodeURIComponent(uri!.slice('data:image/svg+xml,'.length));
+      expect(svg, id).toContain(`viewBox="0 0 ${MARK_BOX} ${MARK_BOX}"`);
+      // Every path of the mark is in the exported document: the DOM prints the
+      // whole drawing the atlas traces, not a subset of it.
+      for (const path of resourceMark(id)!.paths) {
+        expect(svg, id).toContain(`d="${path.d}"`);
+      }
+      expect(svg.length, id).toBeGreaterThan(64);
+    }
+  });
+
+  /**
+   * The fallback, from the other side.
+   *
+   * `emoji` stays in the schema as the last resort, and this is the shape of
+   * that promise: a resource the registry has never heard of resolves to no
+   * mark and no sprite, which is exactly the answer every call site turns into
+   * the row's own glyph — on the board (`drawResourceCell`) and in the panels
+   * (`resourceMarkNode`). It is what keeps "a resource nobody wrote code for"
+   * true of the art as well as of the rules.
+   */
+  it('answers nothing for a resource nobody has drawn', () => {
+    expect(resourceMark('unobtanium')).toBeNull();
+    expect(resourceMarkDataUri('unobtanium')).toBeNull();
+  });
+
+  it('inks the exported sprite in whatever colour it is asked for', () => {
+    // The DOM masks it, so the colour is irrelevant there — but the atlas and a
+    // future surface may want it, and a mark that ignored the argument would be
+    // a mark that could only ever be one colour.
+    const svg = resourceMarkSvg(resourceMark('wheat')!, '#123456');
+    expect(svg).toContain('stroke="#123456"');
+    expect(svg).toContain('fill="#123456"');
+    expect(svg).toContain(`stroke-width="${MARK_STROKE}"`);
   });
 });

@@ -67,6 +67,7 @@ import { Renderer3D } from './render3d/renderer3d';
 import { tileYieldOf, yieldContextFor } from './sim/cities';
 import { TILE_YIELD_KEYS } from './sim/terrainData';
 import { YIELD_GLYPH } from './ui/figures';
+import { resourceMarkNode } from './ui/resourceMark';
 import { unitsOnTile } from './sim/units';
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
@@ -509,9 +510,17 @@ function describeImprovement(tile: Tile): string {
   return `${def.emoji} ${def.name}`;
 }
 
-function describeResource(state: GameState, playerId: number, tile: Tile): string {
+/**
+ * The resource row of the readout: the drawn mark, the name, and the kind.
+ *
+ * Nodes rather than a string, which is what the drawn mark costs and all it
+ * costs: the mark is an element carrying a CSS mask (see
+ * `src/ui/resourceMark.ts`), so this row is the one line of the card that
+ * cannot be a `textContent` assignment. The em dash case still is.
+ */
+function describeResource(state: GameState, playerId: number, tile: Tile): Node {
   const id = visibleResourceAt(state, playerId, tile);
-  if (id === null) return '—';
+  if (id === null) return document.createTextNode('—');
   const def = resourceDef(id);
   // A luxury's *signature* is the reason to want this seam rather than the
   // next one, so the readout names it — through `describeResourceEffect`, the
@@ -519,7 +528,10 @@ function describeResource(state: GameState, playerId: number, tile: Tile): strin
   // roundel and the city panel cannot describe the same luxury three ways.
   const signature = describeResourceEffect(id);
   const kind = signature === null ? def.kind : `${def.kind} · ${signature}`;
-  return `${def.emoji} ${def.name} (${kind})`;
+  const row = document.createDocumentFragment();
+  row.append(resourceMarkNode(id));
+  row.append(document.createTextNode(` ${def.name} (${kind})`));
+  return row;
 }
 
 /**
@@ -957,10 +969,8 @@ async function boot(): Promise<void> {
         hover.tile,
       );
       showTileYields(game.state, controls.localPlayerId(), hover.tile);
-      infoResource.textContent = describeResource(
-        game.state,
-        controls.localPlayerId(),
-        hover.tile,
+      infoResource.replaceChildren(
+        describeResource(game.state, controls.localPlayerId(), hover.tile),
       );
       infoImprovement.textContent = describeImprovement(hover.tile);
     } else {
