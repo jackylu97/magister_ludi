@@ -18,8 +18,12 @@ import {
   growthThreshold,
   nextBorderCost,
   nextCityName,
+  planProduction,
   productionModifiers,
+  productionSettledBy,
   queueItemCost,
+  settleProduction,
+  settleProductionWindfall,
   tileOwnerCityId,
   turnsToBuild,
   turnsToFill,
@@ -44,10 +48,13 @@ import {
   type GameConfig,
   type GameState,
   type QueueItem,
+  type Unit,
   SCHEMA_VERSION,
   createUnit,
   newGame,
 } from '../src/sim/state';
+import { chopYield } from '../src/sim/improvementData';
+import { firstBlocker } from '../src/ui/turnBlockers';
 import { techDef } from '../src/sim/techData';
 import { readTileYield, tileYield } from '../src/sim/terrainData';
 import { runEndOfTurn } from '../src/sim/turn';
@@ -997,6 +1004,257 @@ describe('production', () => {
     advanceProduction(state);
     expect(state.units).toHaveLength(1);
     expect(city.hammerBasket).toBe(500 - price);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Entry XVIII: a one-time grant settles its bucket the moment it lands.
+ *
+ * Two claims, and they are the whole of the entry's first commitment:
+ *
+ *   1. **One routine.** `settleProduction` is what the end-of-turn phase does
+ *      and what a chop does, so a windfall completion and a phase completion
+ *      agree about the spawn, the escalation ladder and the overflow *by
+ *      construction*. The A/B tests here are the outside check on that — they
+ *      drive the two doors and compare what came out.
+ *   2. **The player is not railroaded.** A settlement pops the queue and stops.
+ *      An empty queue afterwards is the End Turn blocker's business, exactly as
+ *      a newly founded city's is.
+ *
+ * The chop is the only windfall the game mints today, so it is the vehicle; the
+ * claims are about the routine and inherit to every grant that calls it.
+ */
+describe('windfall settlement (Entry XVIII)', () => {
+  const TIMBER = chopYield('forest').production;
+
+  /** A player-0 city at (8, 5), a wood at (8, 4), and a worker standing in it. */
+  function chopper(): { state: GameState; city: City; worker: Unit } {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    at(state.map, 8, 4).feature = 'forest';
+    const player = state.players[0]!;
+    if (!player.techsResearched.includes('mining')) player.techsResearched.push('mining');
+    const worker = createUnit(state, 0, 'worker', 8, 4);
+    return { state, city, worker };
+  }
+
+  const chop = (unitId: number): Command => ({ type: 'chopFeature', playerId: 0, unitId });
+
+  it('completes an exactly-paid item and banks no overflow', () => {
+    const { state, city, worker } = chopper();
+    // A library is priced at exactly what a wood pays, so this is the edge:
+    // `hammerBasket >= cost` with nothing over.
+    expect(buildingDef('library').cost).toBe(TIMBER);
+    city.queue = [{ kind: 'building', id: 'library' }];
+
+    expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
+    expect(city.buildings).toEqual(['library']);
+    expect(city.queue).toEqual([]);
+    expect(city.hammerBasket).toBe(0);
+  });
+
+  it('completes an overpaid item and carries the exact overflow', () => {
+    const { state, city, worker } = chopper();
+    city.queue = [
+      { kind: 'building', id: 'granary' },
+      { kind: 'building', id: 'monument' },
+    ];
+
+    expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
+    expect(city.buildings).toEqual(['granary']);
+    // At most one item, exactly as the phase does it — the monument is still
+    // queued and the change is in the basket.
+    expect(city.queue).toEqual([{ kind: 'building', id: 'monument' }]);
+    expect(city.hammerBasket).toBe(TIMBER - buildingDef('granary').cost);
+  });
+
+  it('leaves the queue untouched when the timber does not cover the front', () => {
+    const { state, city, worker } = chopper();
+    expect(buildingDef('university').cost).toBeGreaterThan(TIMBER);
+    city.queue = [{ kind: 'building', id: 'university' }];
+
+    expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
+    // The hammers land, and that is all: a windfall is a very good turn's work,
+    // never a discount.
+    expect(city.hammerBasket).toBe(TIMBER);
+    expect(city.buildings).toEqual([]);
+    expect(city.queue).toEqual([{ kind: 'building', id: 'university' }]);
+  });
+
+  it('adds a windfall to what the basket already held', () => {
+    const { state, city, worker } = chopper();
+    city.queue = [{ kind: 'building', id: 'amphitheater' }];
+    city.hammerBasket = buildingDef('amphitheater').cost - TIMBER;
+
+    expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
+    expect(city.buildings).toEqual(['amphitheater']);
+    expect(city.hammerBasket).toBe(0);
+  });
+
+  it('climbs the settler ladder exactly as the phase does', () => {
+    // The A/B: the same city finishing the same settler through the two doors.
+    // Escalation is the property most likely to be forgotten by a second
+    // implementation, because it is the one that reaches outside the city.
+    const windfall = chopper();
+    windfall.city.population = unitDef('settler').minCityPop;
+    windfall.city.queue = [{ kind: 'unit', id: 'settler' }];
+    const price = unitProductionCost(windfall.state, 0, 'settler');
+    windfall.city.hammerBasket = price - TIMBER;
+    expect(applyCommand(windfall.state, chop(windfall.worker.id))).toEqual({ ok: true });
+
+    const phase = chopper();
+    phase.city.population = unitDef('settler').minCityPop;
+    phase.city.queue = [{ kind: 'unit', id: 'settler' }];
+    phase.city.hammerBasket = price;
+    advanceProduction(phase.state);
+
+    expect(windfall.state.players[0]!.settlersBuilt).toBe(1);
+    expect(windfall.state.players[0]!.settlersBuilt).toBe(phase.state.players[0]!.settlersBuilt);
+    // And the ladder is live from that instant: the empire's next settler is
+    // dearer through both doors, by the same rung.
+    expect(unitProductionCost(windfall.state, 0, 'settler')).toBeGreaterThan(price);
+    expect(unitProductionCost(windfall.state, 0, 'settler')).toBe(
+      unitProductionCost(phase.state, 0, 'settler'),
+    );
+    expect(windfall.city.hammerBasket).toBe(phase.city.hammerBasket);
+  });
+
+  it('spawns a mid-turn unit exactly as the phase spawns one, movement and all', () => {
+    // The convention, stated as a test because it is a decision: a unit paid for
+    // by a windfall is born through `createUnit` like every other, which means
+    // full movement and an unspent attack — it can act on the turn the chop
+    // bought it. That is the honest reading of "the moment of the gift is the
+    // moment of the payoff", and matching the phase is what keeps it from being
+    // a second kind of unit.
+    const windfall = chopper();
+    windfall.city.queue = [{ kind: 'unit', id: 'warrior' }];
+    windfall.city.hammerBasket = unitDef('warrior').cost - TIMBER;
+    expect(applyCommand(windfall.state, chop(windfall.worker.id))).toEqual({ ok: true });
+
+    const phase = chopper();
+    phase.city.queue = [{ kind: 'unit', id: 'warrior' }];
+    phase.city.hammerBasket = unitDef('warrior').cost;
+    advanceProduction(phase.state);
+
+    const born = windfall.state.units.find((unit) => unit.type === 'warrior')!;
+    const expected = phase.state.units.find((unit) => unit.type === 'warrior')!;
+    expect(born).toBeDefined();
+    expect(born.movesLeft).toBe(unitDef('warrior').movement);
+    expect(born.hasAttacked).toBe(false);
+    // Every field but the id, which is an allocation order and not a rule.
+    expect({ ...born, id: 0 }).toEqual({ ...expected, id: 0 });
+  });
+
+  it('hands an empty queue to the End Turn blocker rather than forcing a choice', () => {
+    const { state, city, worker } = chopper();
+    city.queue = [{ kind: 'building', id: 'granary' }];
+
+    expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
+    expect(city.queue).toEqual([]);
+    // Nothing is chosen for the player and nothing is refused to them: the city
+    // simply joins the list of things End Turn will stop on (Entry XVIII.4).
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'cityProduction', cityId: city.id });
+  });
+
+  it('re-seats the citizens, so the panel is not left reading last turn', () => {
+    // The sanctioned-mid-turn-mutation half (Entry XVIII.3, and the register in
+    // CLAUDE.md): `setLockedTiles`' precedent, applied to a settlement. The
+    // assignment is the derived state the city panel reads, and a completion
+    // that left it stale would show the player a screen their own click had
+    // already made wrong.
+    const { state, city, worker } = chopper();
+    city.population = 2;
+    city.workedTiles = [];
+    city.queue = [{ kind: 'building', id: 'granary' }];
+
+    expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
+    expect(city.workedTiles).toHaveLength(city.population);
+    // Idempotent, which is what makes running it outside `collectYields` safe:
+    // the phase recomputes it from scratch and reaches the same seats.
+    const seated = worked(city);
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(seated);
+  });
+
+  it('leaves the seats alone when nothing completed', () => {
+    // The other side of the same rule: a chop that only banks hammers is not a
+    // mid-turn mutation of anything the panel derives, so it does no work.
+    const { state, city, worker } = chopper();
+    city.population = 2;
+    city.workedTiles = [];
+    city.queue = [{ kind: 'building', id: 'university' }];
+
+    expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
+    expect(city.workedTiles).toEqual([]);
+  });
+
+  describe('the shared routine', () => {
+    it('is what the phase is made of: one item per city, then stop', () => {
+      const state = flatState();
+      const city = plant(state, 0, 8, 5);
+      city.queue = [
+        { kind: 'building', id: 'shrine' },
+        { kind: 'building', id: 'monument' },
+      ];
+      city.hammerBasket = 500;
+
+      const done = settleProduction(state, city);
+      expect(done?.name).toBe(buildingDef('shrine').name);
+      expect(done?.cost).toBe(buildingDef('shrine').cost);
+      expect(city.queue).toEqual([{ kind: 'building', id: 'monument' }]);
+      // A second call takes the second item — which is exactly why the phase
+      // calls it once per city per turn and not in a loop.
+      expect(settleProduction(state, city)?.name).toBe(buildingDef('monument').name);
+    });
+
+    it('answers "would this complete" without touching anything', () => {
+      const { state, city } = chopper();
+      city.queue = [{ kind: 'building', id: 'granary' }];
+      const before = clone(state);
+
+      expect(planProduction(state, city)).toBeNull();
+      expect(planProduction(state, city, buildingDef('granary').cost)).toMatchObject({
+        kind: 'building',
+        id: 'granary',
+        cost: buildingDef('granary').cost,
+      });
+      expect(state).toEqual(before);
+    });
+
+    it('is the preview the worker sheet promises with', () => {
+      // One evaluator, so "completes Granary!" on the button and the completion
+      // a moment later cannot disagree — no parallel arithmetic in the UI.
+      const { state, city } = chopper();
+      city.queue = [{ kind: 'building', id: 'granary' }];
+      expect(productionSettledBy(state, city, TIMBER)).toBe(buildingDef('granary').name);
+      expect(productionSettledBy(state, city, 0)).toBeNull();
+
+      city.queue = [{ kind: 'building', id: 'university' }];
+      expect(productionSettledBy(state, city, TIMBER)).toBeNull();
+
+      // And it respects every hold the settlement respects: a settler in a city
+      // too small to send one out is not "one chop away" at any price.
+      city.queue = [{ kind: 'unit', id: 'settler' }];
+      city.population = unitDef('settler').minCityPop - 1;
+      expect(productionSettledBy(state, city, 500)).toBeNull();
+      city.population = unitDef('settler').minCityPop;
+      expect(productionSettledBy(state, city, 500)).toBe(unitDef('settler').name);
+    });
+
+    it('drops a building the city already has, and calls it no completion', () => {
+      const state = flatState();
+      const city = plant(state, 0, 8, 5);
+      city.buildings = ['granary'];
+      city.queue = [{ kind: 'building', id: 'granary' }];
+      city.hammerBasket = 500;
+
+      expect(settleProductionWindfall(state, city)).toBeNull();
+      expect(city.queue).toEqual([]);
+      expect(city.buildings).toEqual(['granary']);
+      expect(city.hammerBasket).toBe(500);
+    });
   });
 });
 

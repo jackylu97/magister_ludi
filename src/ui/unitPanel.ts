@@ -144,8 +144,14 @@ export interface UnitPanelOptions {
    * ever one feature on a hex: nothing to choose between, everything to explain.
    */
   chopBlocker: () => string | null | undefined;
-  /** What clearing would pay and where — `controls.chopPreview()`. */
-  chopPreview: () => { production: number; cityName: string } | null;
+  /**
+   * What clearing would pay, where it lands, and what it would *finish* —
+   * `controls.chopPreview()`. `completes` is the name of the item the timber
+   * would settle on the spot (Entry XVIII), or `null` when the queue is empty,
+   * unaffordable or held; it is the settlement check's own answer, never a
+   * comparison this panel makes.
+   */
+  chopPreview: () => { production: number; cityName: string; completes: string | null } | null;
   /**
    * The technology a greyed Chop row is waiting on, or `null` —
    * `controls.chopTechName()`. See `ImprovementOption.requiredTechName` for
@@ -396,8 +402,13 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       actions.push({
         label: chop ? `Chop +${chop.production}⚙` : 'Chop',
         blocked: chopBlocked === undefined ? 'No unit selected' : chopBlocked,
+        // The completion rides on the end of the hint when there is one, because
+        // "this chop finishes the granary" is a different decision from "this
+        // chop pays twenty hammers" — it is the argument, and it is why the
+        // clause is loud (`!`) rather than parenthetical.
         hint: chop
-          ? `Spend a charge: clear this tile · +${chop.production}⚙ → ${chop.cityName}`
+          ? `Spend a charge: clear this tile · +${chop.production}⚙ → ${chop.cityName}` +
+            (chop.completes ? ` · completes ${chop.completes}!` : '')
           : 'Spend a charge: clear the feature on this tile',
         title: techHoverTitle(chopTechName(), chopBlocked ?? null),
         run: onChop,

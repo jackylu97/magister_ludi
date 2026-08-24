@@ -133,10 +133,19 @@ would change every seeded outcome. No further rename passes.
   the seam whose owner holds that improvement's tech. All derived, no flags. Ledgers label
   which ("Gems · mine" vs "Gems · city"); holding both ways is still one holding.
 - City-panel yields are derived state refreshed in `collectYields`; mutations outside
-  the turn pipeline show stale numbers until end of turn. Narrowed since: the
-  `setLockedTiles` command re-runs `assignCitizens` for that city immediately (the
-  only place assignment runs outside `collectYields`), so pinning a citizen updates
-  the panel at once. Everything else still waits for the turn.
+  the turn pipeline show stale numbers until end of turn. The exceptions are a **closed
+  register of sanctioned mid-turn mutations**, each of which re-runs `assignCitizens` for
+  the one city it touched (assignment is idempotent and derived, so the phase recomputes
+  it and agrees):
+  1. `setLockedTiles` — pinning a citizen (the first, and the precedent).
+  2. `purchaseTileAt` — bought ground is worked ground before the turn ends.
+  3. **Windfall settlement** (`chopFeature`, Entry XVIII) — a one-time grant that covers
+     the front of a queue completes it *that instant*, through
+     `settleProductionWindfall` (`cities.ts`), which is `advanceProduction`'s own
+     completion routine (`settleProduction`) plus the re-assignment. Future windfalls
+     (science boons, cards, ruins) join this list by calling a `settle…Windfall`, never
+     by reimplementing a completion or by bypassing the refresh.
+  Everything else still waits for the turn.
 
 ## Direction (see docs/design-notes.md for full ledger)
 - Vanilla Civ mechanics first; deckbuilding civics / happiness+authority / events

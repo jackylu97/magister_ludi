@@ -1740,12 +1740,202 @@ function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | nu
 }
 
 /**
+ * What settling this city's queue would do, given a basket of `hammers`.
+ *
+ * The **whole** of "can the front of this queue complete", asked without
+ * mutating anything, so that the end-of-turn phase, a windfall (Entry XVIII) and
+ * the worker sheet's "this chop finishes it!" preview are three readings of one
+ * function rather than three arithmetics that can disagree. `hammers` defaults
+ * to the city's real basket; a caller weighing a grant that has not landed yet
+ * passes what the basket *would* hold.
+ *
+ * The four holds are `advanceProduction`'s and are described there. `'drop'` is
+ * the fifth answer and is not a completion: a building already standing is
+ * shifted off the queue and nothing is paid for it.
+ *
+ * The spawn tile is part of the plan because "where would it stand" is one of
+ * the holds — a boxed-in city cannot complete a unit — so the question is asked
+ * once and the answer carried, rather than asked here and again in the mutation.
+ * A *hypothetical* plan's tile is therefore only as good as the board at the
+ * moment it was asked, which is why nothing but `settleProduction` acts on it.
+ */
+export type ProductionPlan =
+  | { kind: 'unit'; item: QueueItem; id: UnitTypeId; cost: number; tile: Tile }
+  | { kind: 'building'; item: QueueItem; id: BuildingId; cost: number }
+  | { kind: 'drop'; item: QueueItem };
+
+export function planProduction(
+  state: GameState,
+  city: City,
+  hammers: number = city.hammerBasket,
+): ProductionPlan | null {
+  const item = city.queue[0];
+  if (!item) return null;
+
+  if (item.kind === 'unit') {
+    if (!isUnitTypeId(item.id)) return null;
+    const id: UnitTypeId = item.id;
+    const def = unitDef(id);
+    if (city.population < def.minCityPop) return null;
+    if (def.requiresResource !== undefined && !hasResource(state, city.ownerId, def.requiresResource)) {
+      return null;
+    }
+    const cost = unitProductionCost(state, city.ownerId, id);
+    if (hammers < cost) return null;
+    const tile = spawnTileFor(state, city, id);
+    if (!tile) return null;
+    return { kind: 'unit', item, id, cost, tile };
+  }
+
+  if (!isBuildingId(item.id)) return null;
+  const id: BuildingId = item.id;
+  // Only reachable from a hand-edited save or a queue built before the
+  // building finished some other way; drop it rather than blocking the queue.
+  if (city.buildings.includes(id)) return { kind: 'drop', item };
+  const cost = buildingDef(id).cost;
+  if (hammers < cost) return null;
+  return { kind: 'building', item, id, cost };
+}
+
+/** What a settlement did, for the caller that has to say so out loud. */
+export interface ProductionCompletion {
+  city: City;
+  item: QueueItem;
+  /** The display name of what completed — "Granary", "Settler". */
+  name: string;
+  /** Hammers taken out of the basket. What is left is the overflow. */
+  cost: number;
+  /** The unit that was spawned, when the item was a unit. */
+  unitId?: number;
+}
+
+/**
+ * Completes **at most one** item at the front of this city's queue, if the
+ * basket covers it. The one production-completion routine in the game.
+ *
+ * Extracted from `advanceProduction` (Entry XVIII.1) so that the end-of-turn
+ * phase and a mid-turn windfall are the same code: spawn tile, escalation
+ * ladder, overflow and the queue pop all happen here, once, or the two paths
+ * drift the first time one of them is touched. The phase is now a sweep of this
+ * over `state.cities`; a chop that covers the front item calls it for one city.
+ *
+ * Overflow is "whatever the basket keeps": the cost is subtracted, nothing is
+ * zeroed, and the remainder pays for the next item. A windfall therefore behaves
+ * exactly like a very good turn's work.
+ *
+ * The seam for the other buckets
+ * ------------------------------
+ * Entry XVIII says every one-time grant settles its bucket the moment it lands,
+ * and production is only the first bucket. The shape to copy for the next one
+ * (a flat science boon finishing the researched tech) is: a pure `plan…` that
+ * answers "would this complete, and at what price", a `settle…` that performs it
+ * and hands back what happened, and a `settle…Windfall` that adds whatever
+ * derived state a mid-turn mutation owes the interface. `advanceResearch` gets
+ * `settleResearch` / `settleResearchWindfall` on the day that boon exists — it
+ * is deliberately not built today, because a settlement routine with no windfall
+ * to serve is a guess about what the windfall will need.
+ */
+export function settleProduction(state: GameState, city: City): ProductionCompletion | null {
+  const plan = planProduction(state, city);
+  if (!plan) return null;
+
+  if (plan.kind === 'drop') {
+    city.queue.shift();
+    return null;
+  }
+
+  city.hammerBasket -= plan.cost;
+  city.queue.shift();
+  const done: ProductionCompletion = {
+    city,
+    item: plan.item,
+    name: queueItemName(plan.item),
+    cost: plan.cost,
+  };
+
+  if (plan.kind === 'building') {
+    city.buildings.push(plan.id);
+    return done;
+  }
+
+  // A unit comes into the world through `createUnit` whoever asked for it, so a
+  // unit finished mid-turn by a windfall is born exactly as one finished by the
+  // phase: full movement, unspent attack, eyes opened. It can therefore *act*
+  // on the turn a chop paid for it, which is the honest reading of "the moment
+  // of the gift is the moment of the payoff" (Entry XVIII.2) and is the same
+  // rule the `spawnUnit` harness command already lives by.
+  const unit = createUnit(state, city.ownerId, plan.id, plan.tile.col, plan.tile.row);
+  done.unitId = unit.id;
+  // The ladder climbs at completion, so the next settler — anywhere in the
+  // empire — is dearer from the very next resolution. See `advanceProduction`.
+  if (unitDef(plan.id).costIncrement !== undefined) {
+    const player = playerById(state, city.ownerId);
+    if (player) player.settlersBuilt += 1;
+  }
+  return done;
+}
+
+/**
+ * The mid-turn entry point: settle, then refresh what the open panel reads.
+ *
+ * `settleProduction`'s wrapper for the sanctioned mid-turn mutations (Entry
+ * XVIII.3 — the chop is the second, after `setLockedTiles`). The phase does not
+ * want this: `collectYields` re-assigns every city at the top of the very next
+ * turn, so a re-assignment inside the phase would be work with no reader. A
+ * windfall has no such turn boundary behind it — the player is looking at the
+ * panel *now* — so the assignment is run here for the one city that changed,
+ * exactly as `setLockedTiles` and `purchaseTileAt` run it.
+ *
+ * Every future windfall that pays hammers calls **this**, never
+ * `settleProduction` directly, so that "what does a mid-turn completion owe the
+ * interface" is answered in one place.
+ */
+export function settleProductionWindfall(
+  state: GameState,
+  city: City,
+): ProductionCompletion | null {
+  const done = settleProduction(state, city);
+  // Assignment is idempotent and derived, which is what makes running it outside
+  // `collectYields` safe: the phase recomputes it from scratch and reaches the
+  // same answer. A completed building can change what a citizen is worth on a
+  // tile, so the dots are re-seated before the panel next reads them.
+  if (done) assignCitizens(state, city);
+  return done;
+}
+
+/**
+ * A one-time grant of `grant` hammers would finish *this* — or `null`.
+ *
+ * The preview half of the settlement check, and the reason the worker sheet does
+ * no arithmetic of its own: "+20⚙ → Uruk · completes Granary!" asks
+ * `planProduction` with the basket the grant would leave, so the promise on the
+ * button is made by the function that will keep it. A queue item that would only
+ * be *dropped* answers `null`, because nothing completes.
+ */
+export function productionSettledBy(
+  state: GameState,
+  city: City,
+  grant: number,
+): string | null {
+  const plan = planProduction(state, city, city.hammerBasket + grant);
+  if (!plan || plan.kind === 'drop') return null;
+  return queueItemName(plan.item);
+}
+
+/**
  * `advanceProduction`: finish the front of every city's queue, if it can.
  *
  * At most one item completes per city per turn, exactly as Civ does it — a city
  * that banks four hundred hammers does not empty its whole queue in one turn.
  * The remainder stays in the basket and pays for the next item, which is the
  * only kind of overflow this game has.
+ *
+ * The completion itself is `settleProduction`, which is deliberately *not*
+ * inlined here any more: a windfall settles the same queue by the same rules
+ * mid-turn (Entry XVIII), and two implementations of "finish the front item"
+ * would disagree about a spawn tile or an escalation ladder within a month.
+ * This phase is the sweep — one city at a time, in `state.cities` order, at most
+ * one item each — and nothing else.
  *
  * Four things make production *hold* rather than fail, and all four keep the
  * basket: too few hammers, a population below the item's `minCityPop` (a settler
@@ -1781,45 +1971,7 @@ function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | nu
  */
 export function advanceProduction(state: GameState): void {
   for (const city of state.cities) {
-    const item = city.queue[0];
-    if (!item) continue;
-
-    if (item.kind === 'unit') {
-      if (!isUnitTypeId(item.id)) continue;
-      const def = unitDef(item.id);
-      if (city.population < def.minCityPop) continue;
-      if (def.requiresResource !== undefined && !hasResource(state, city.ownerId, def.requiresResource)) {
-        continue;
-      }
-      const cost = unitProductionCost(state, city.ownerId, item.id);
-      if (city.hammerBasket < cost) continue;
-      const tile = spawnTileFor(state, city, item.id);
-      if (!tile) continue;
-      city.hammerBasket -= cost;
-      city.queue.shift();
-      createUnit(state, city.ownerId, item.id, tile.col, tile.row);
-      // The ladder climbs at completion, so the next settler — anywhere in the
-      // empire — is dearer from the very next resolution. See the docblock.
-      if (def.costIncrement !== undefined) {
-        const player = playerById(state, city.ownerId);
-        if (player) player.settlersBuilt += 1;
-      }
-      continue;
-    }
-
-    if (!isBuildingId(item.id)) continue;
-    const id: BuildingId = item.id;
-    // Only reachable from a hand-edited save or a queue built before the
-    // building finished some other way; drop it rather than blocking the queue.
-    if (city.buildings.includes(id)) {
-      city.queue.shift();
-      continue;
-    }
-    const def = buildingDef(id);
-    if (city.hammerBasket < def.cost) continue;
-    city.hammerBasket -= def.cost;
-    city.queue.shift();
-    city.buildings.push(id);
+    settleProduction(state, city);
   }
 }
 

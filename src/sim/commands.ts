@@ -65,12 +65,14 @@ import {
   foundCityAt,
   foundingError,
   purchaseTileAt,
+  settleProductionWindfall,
   tilePurchaseError,
 } from './cities';
 import { applyCombat, fortifyError } from './combat';
 import type { ImprovementId } from './improvementData';
 import {
   buildImprovementAt,
+  chopCity,
   chopError,
   chopFeatureAt,
   improvementError,
@@ -1012,6 +1014,20 @@ function applyBuildImprovement(
  * whole to `chopError`, which is what the worker sheet greys its Chop row with.
  * So an offered row is a command this accepts, and the sentence a player reads
  * on a refusal is this reducer's own.
+ *
+ * **The timber settles the basket it lands in** (design ledger, Entry XVIII).
+ * `chopFeatureAt` banks the lump, and if that lump covers the front of the
+ * owning city's queue the item completes *this instant* rather than waiting for
+ * a phase the player has to end their turn to reach — the moment of the gift is
+ * the moment of the payoff. It goes through `settleProductionWindfall`, which is
+ * `advanceProduction`'s own completion routine plus the re-assignment a mid-turn
+ * mutation owes the open panel, so a chopped-for granary is finished by exactly
+ * the code an end-of-turn granary is finished by.
+ *
+ * Nothing is forced on the player afterwards. A city left with an empty queue is
+ * the End Turn blocker's business, exactly as a newly founded city is, and the
+ * interface announces the completion rather than opening a screen over it
+ * (Entry XVIII.4).
  */
 function applyChopFeature(state: GameState, command: ChopFeatureCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);
@@ -1032,7 +1048,12 @@ function applyChopFeature(state: GameState, command: ChopFeatureCommand): Comman
   // Validation is done — `chopError` has already established that the unit is on
   // the map and that what it is standing in can be cleared.
   const tile = getTileAt(state.map, unit.col, unit.row)!;
+  // Read before the chop, because it is the *ground's* owner that banks the
+  // timber and the chop is about to change what stands on that ground. Same
+  // lookup the mechanism and the preview use, so all three name one city.
+  const paid = chopCity(state, tile);
   chopFeatureAt(state, unit, tile);
+  if (paid) settleProductionWindfall(state, paid);
   return ok();
 }
 

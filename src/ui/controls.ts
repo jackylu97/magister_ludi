@@ -132,6 +132,8 @@ import {
   cityAt,
   cityTile,
   foundingError,
+  productionSettledBy,
+  queueItemName,
   withinWorkRadius,
 } from '../sim/cities';
 import {
@@ -559,8 +561,13 @@ export interface GameControls {
    * "the wood here is worth 20⚙ to Uruk" is precisely the argument for going and
    * researching Mining. It is `null` — rather than a zero — when the ground has
    * nothing to say, so the panel prints no number rather than a false one.
+   *
+   * `completes` names what the timber would *finish* on landing, or `null`. It
+   * is the settlement check's own answer (Entry XVIII), asked of the basket the
+   * chop would leave — so the sheet's "completes Granary!" is a promise made by
+   * the function that will keep it a moment later.
    */
-  chopPreview(): { production: number; cityName: string } | null;
+  chopPreview(): { production: number; cityName: string; completes: string | null } | null;
   /**
    * The technology Chop is waiting on, or `null` — either because it is not
    * blocked at all, or because whatever is blocking it is not the tree (the
@@ -1589,16 +1596,27 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
-   * "+20⚙ → Uruk", as the two facts the panel needs to say it.
+   * "+20⚙ → Uruk", and — when the timber would finish what the city is building
+   * — the name of the thing it would finish.
    *
-   * Both halves come from the simulation's own tables — `chopYield` for the
-   * payout, `chopCity` for the city the hammers land in — so the preview cannot
-   * promise a number or a destination the reducer will disagree with. Offered
-   * whenever the *ground* holds a chop and somebody owns it; every other refusal
-   * (the tech, a protected resource, a spent worker) still shows the number,
-   * because that is the number being argued about.
+   * Every part comes from the simulation's own tables and evaluators —
+   * `chopYield` for the payout, `chopCity` for the city the hammers land in,
+   * `productionSettledBy` for the completion — so the preview cannot promise a
+   * number, a destination or a granary the reducer will disagree with.
+   * `productionSettledBy` is the settlement check itself asked of the basket the
+   * chop *would* leave (Entry XVIII), never a comparison done here: a second
+   * arithmetic would be the first thing to forget that a settler has a minimum
+   * population or that a boxed-in city cannot spawn.
+   *
+   * Offered whenever the *ground* holds a chop and somebody owns it; every other
+   * refusal (the tech, a protected resource, a spent worker) still shows the
+   * number, because that is the number being argued about.
    */
-  function chopPreview(): { production: number; cityName: string } | null {
+  function chopPreview(): {
+    production: number;
+    cityName: string;
+    completes: string | null;
+  } | null {
     const unit = selectedUnit();
     if (!unit || !isBuilder(unit)) return null;
     const { state } = getGame();
@@ -1606,7 +1624,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!tile || chopDef(tile.feature) === null) return null;
     const city = chopCity(state, tile);
     if (!city || city.ownerId !== unit.ownerId) return null;
-    return { production: chopYield(tile.feature).production, cityName: city.name };
+    const production = chopYield(tile.feature).production;
+    return {
+      production,
+      cityName: city.name,
+      completes: productionSettledBy(state, city, production),
+    };
   }
 
   /**
@@ -1632,12 +1655,55 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * A city's queue as the announcement needs to read it: how long it is, and
+   * what stands at the front.
+   *
+   * Taken before a windfall and again after it, because a completion is only
+   * visible as a *difference* — the same reading `reportCombat` takes of a
+   * unit's hit points rather than predicting the blow. Predicting it here would
+   * mean a second settlement check in the interface, and a chop that freed the
+   * last stacking slot by consuming its own worker would make the prediction and
+   * the reducer disagree.
+   */
+  function queueReading(city: City | null): { queued: number; front: string | null } | null {
+    if (!city) return null;
+    const front = city.queue[0];
+    return { queued: city.queue.length, front: front ? queueItemName(front) : null };
+  }
+
+  /**
+   * "⚒ Granary completed in Uruk — choose the next work.", when the timber just
+   * finished what the city was building (design ledger, Entry XVIII).
+   *
+   * The prompt is a *line*, never a screen: a windfall completion re-aims the
+   * player without grabbing the wheel, and a city left with nothing queued is
+   * the End Turn blocker's business exactly as a newly founded one is (Entry
+   * XVIII.4). Which is also why the tail changes: "choose the next work" is the
+   * honest ask only when there is no next work, and a queue that still has a
+   * warrior in it says so instead.
+   */
+  function announceSettlement(
+    cityId: number,
+    before: { queued: number; front: string | null },
+  ): void {
+    const { state } = getGame();
+    const city = cityById(state, cityId);
+    if (!city || city.queue.length >= before.queued || before.front === null) return;
+    const next = city.queue[0];
+    const tail = next ? `${queueItemName(next)} is next.` : 'choose the next work.';
+    announce(`⚒ ${before.front} completed in ${cityDisplayName(state, city)} — ${tail}`);
+  }
+
+  /**
    * Fells the wood, and lets go of the worker if that was its last charge.
    *
    * `buildImprovement`'s twin down to the selection handling, and for the same
    * reason: a worker that spends its third charge is removed from the board, so
    * holding its id would leave the sheet describing a piece that is not there.
    * Asked of the state after the dispatch rather than predicted before it.
+   *
+   * Two lines can come of one chop, and the settlement wins the slot: "cleared"
+   * is what the player just did, and a granary finishing is what it *bought*.
    */
   function chop(): void {
     const unit = selectedUnit();
@@ -1645,6 +1711,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // Read before the dispatch: the command is about to take the feature off the
     // tile, and the announcement is about the wood that *was* there.
     const preview = chopPreview();
+    const chopped = getTileAt(getGame().state.map, unit.col, unit.row);
+    const paid = chopped ? chopCity(getGame().state, chopped) : null;
+    const queueBefore = queueReading(paid);
 
     const command: Command = { type: 'chopFeature', playerId: localPlayerId, unitId: unit.id };
     const result = dispatch(getGame(), command);
@@ -1656,6 +1725,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (preview) {
       announce(`Cleared: +${preview.production}⚙ → ${preview.cityName}`);
     }
+    if (paid && queueBefore) announceSettlement(paid.id, queueBefore);
     if (!unitById(getGame().state, unit.id)) {
       selectedId = null;
       setMoveMode(false);

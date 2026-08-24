@@ -34,6 +34,7 @@ import {
 } from '../src/sim/improvementData';
 import {
   chargesLeft,
+  chopCity,
   chopError,
   chopErrorAt,
   chopTechError,
@@ -1420,6 +1421,52 @@ describe('improvements in the log', () => {
     expect(getTileAt(loaded.state.map, tile.col, tile.row)?.feature).toBe('none');
     expect(unitById(loaded.state, worker.id)?.chargesLeft).toBe(2);
     expect(snapshotState(loaded.state)).toBe(snapshotState(game.state));
+  });
+
+  it('replays a chop that SETTLED a build, unit and overflow and all', () => {
+    // Entry XVIII's determinism case: a windfall completion happens inside a
+    // command, mid-turn, and so is only reproducible if it is a pure function of
+    // the state the log rebuilt. A settlement that read anything else — a clock,
+    // a rebuilt map, a Map iteration order — would surface right here.
+    const { game, tile } = choppingGame();
+    const { state } = game;
+    const city = chopCity(state, tile)!;
+    expect(city.ownerId).toBe(0);
+    // A warrior, because every *building* in the table is behind a technology
+    // this opening has not reached — and the arithmetic of what a lump pays for
+    // is pinned in `cities.test.ts` anyway. What this test needs is a settlement
+    // *in the log*, which any completed item gives it.
+    dispatch(game, {
+      type: 'setCityProduction',
+      playerId: 0,
+      cityId: city.id,
+      queue: [{ kind: 'unit', id: 'warrior' }],
+    });
+    expect(city.queue).toHaveLength(1);
+
+    dispatch(game, {
+      type: 'spawnUnit',
+      playerId: 0,
+      ownerId: 0,
+      unitType: 'worker',
+      at: { col: tile.col, row: tile.row },
+    });
+    const worker = state.units[state.units.length - 1]!;
+    const warriorsBefore = state.units.filter((unit) => unit.type === 'warrior').length;
+    expect(dispatch(game, { type: 'chopFeature', playerId: 0, unitId: worker.id }).ok).toBe(true);
+    // The whole claim in one line: no turn was ended between the order and the
+    // axe, and the warrior is on the board.
+    expect(state.units.filter((unit) => unit.type === 'warrior')).toHaveLength(
+      warriorsBefore + 1,
+    );
+    expect(city.queue).toEqual([]);
+
+    for (let turn = 0; turn < 3; turn++) {
+      for (const player of state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
+    }
+    const replayed = replay(game.config, game.log);
+    expect(snapshotState(replayed)).toBe(snapshotState(game.state));
+    expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(game.state));
   });
 
   it('round-trips a schema 14 save with improvements on the board', () => {

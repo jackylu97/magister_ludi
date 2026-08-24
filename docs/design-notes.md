@@ -1508,3 +1508,26 @@ The commitments:
 
 Few one-time grants exist today (chop). Cards, events, ruins, and Great People will mint
 many — they all inherit this behavior by calling the settlement helper, not by reimplementing it.
+
+**Built 2026-08-24 (production bucket).** `advanceProduction` is now a sweep of
+`settleProduction(state, city)` (`src/sim/cities.ts`), which is the one completion routine:
+spawn tile, escalation ladder, overflow, queue pop. Its pure half is `planProduction(state,
+city, hammers?)` — the whole of "would the front item complete, at what price" asked of any
+basket, which is also what the worker sheet's "completes Granary!" preview reads through
+`productionSettledBy`. The mid-turn entry point is `settleProductionWindfall`, which adds the
+re-assignment a sanctioned mid-turn mutation owes the open panel (commitment 3; the register
+lives in CLAUDE.md's stale-yields trap). `applyChopFeature` banks the timber and calls it.
+
+Edge conventions settled while building it, all of them "match the phase, and say so":
+a unit finished mid-turn is born through `createUnit` like any other, so it has **full
+movement and can act on the turn the chop paid for it**; a settler completion climbs
+`Player.settlersBuilt` at the instant of completion exactly as the phase does, so the next
+settler in the empire is dearer immediately; overflow is whatever the basket keeps after the
+cost is subtracted; and a queue left **empty** by a settlement forces nothing — the End Turn
+blocker asks for the next production, and the interface says
+"⚒ Granary completed in Uruk — choose the next work."
+
+The seam for the next bucket is deliberate and unbuilt: a science boon wants
+`settleResearch` / `settleResearchWindfall` around `advanceResearch`, in the same three
+shapes (plan · settle · windfall wrapper). Not written today, because a settlement routine
+with no windfall to serve is a guess about what the windfall will need.

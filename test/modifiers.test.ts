@@ -14,6 +14,7 @@ import {
   modifierPercent,
   productionModifiers,
   stageSumsFor,
+  unitProductionCost,
 } from '../src/sim/cities';
 import { computeFreshwater } from '../src/sim/water';
 import { chopYield, improvementForResource } from '../src/sim/improvementData';
@@ -481,20 +482,24 @@ describe('the channels Entry XVII does not own', () => {
 
 describe('Entry XVIII.5: a windfall is modifier-immune', () => {
   /**
-   * A city with a wood to fell beside it, and — when `modified` — a barracks in
-   * it and a warrior at the front of its queue, on a board whose writ is in
+   * A city with a wood to fell beside it, a warrior at the front of its queue,
+   * and — when `modified` — a barracks in it, on a board whose writ is in
    * surplus. That is one live city-stage percentage and one live global-stage
    * percentage, which is precisely the state in which a chop that *did* scale
    * would pay more.
+   *
+   * The warrior is in *both* fixtures, and it is what makes the comparison
+   * honest twice over: it is a unit at the front, so the barracks' category
+   * percentage is live in the modified city, and it is the same queue on both
+   * sides, so the two baskets are settled by the same rules (Entry XVIII) and
+   * differ only by whatever the chop paid.
    */
   function chopper(modified: boolean): { state: GameState; city: City; workerId: number } {
     const state = bareState();
     const city = foundCityAt(state, 0, at(state.map, 5, 5));
     city.population = 4;
-    if (modified) {
-      city.buildings = ['barracks'];
-      city.queue = [{ kind: 'unit', id: 'warrior' }];
-    }
+    city.queue = [{ kind: 'unit', id: 'warrior' }];
+    if (modified) city.buildings = ['barracks'];
     const tile = at(state.map, 5, 4);
     tile.feature = 'forest';
     const worker = createUnit(state, 0, 'worker', 5, 4);
@@ -502,6 +507,16 @@ describe('Entry XVIII.5: a windfall is modifier-immune', () => {
   }
 
   const chop = (unitId: number): Command => ({ type: 'chopFeature', playerId: 0, unitId });
+
+  /**
+   * What the basket should hold after a chop that settles the front item: the
+   * printed lump, less what the completion charged. Read off the game's own
+   * evaluators rather than written as a number, so this says "the lump was
+   * unmodified" and not "the lump was twenty".
+   */
+  function bankedAfterSettling(state: GameState): number {
+    return chopYield('forest').production - unitProductionCost(state, 0, 'warrior');
+  }
 
   it('pays the printed lump into a modified city, to the hammer', () => {
     const { state, city, workerId } = chopper(true);
@@ -513,10 +528,18 @@ describe('Entry XVIII.5: a windfall is modifier-immune', () => {
     expect(applyStages(100, sums.production)).toBeGreaterThan(100);
 
     expect(city.hammerBasket).toBe(0);
+    const charged = unitProductionCost(state, 0, 'warrior');
     expect(applyCommand(state, chop(workerId))).toEqual({ ok: true });
     // The printed number, exactly. Not the staged one, not the city stage alone.
-    expect(city.hammerBasket).toBe(chopYield('forest').production);
-    expect(city.hammerBasket).not.toBe(applyStages(chopYield('forest').production, sums.production));
+    // The lump is read through what it *bought* plus what it left, because a
+    // windfall now settles the queue on landing: the warrior it paid for is on
+    // the board and the overflow is in the basket, and the two together are the
+    // whole of what the chop delivered.
+    expect(city.hammerBasket).toBe(chopYield('forest').production - charged);
+    expect(city.hammerBasket + charged).toBe(chopYield('forest').production);
+    expect(city.hammerBasket + charged).not.toBe(
+      applyStages(chopYield('forest').production, sums.production),
+    );
   });
 
   it('pays a bare city exactly the same lump', () => {
@@ -530,8 +553,9 @@ describe('Entry XVIII.5: a windfall is modifier-immune', () => {
     expect(applyCommand(modified.state, chop(modified.workerId))).toEqual({ ok: true });
     expect(applyCommand(plain.state, chop(plain.workerId))).toEqual({ ok: true });
     // Byte for byte the same basket: the 20⚙ chop is 20⚙ in every city of every
-    // empire, which is the commitment in the ledger's own words.
+    // empire, which is the commitment in the ledger's own words. Both queues
+    // settled the same warrior for the same price, so the overflow is the lump.
     expect(modified.city.hammerBasket).toBe(plain.city.hammerBasket);
-    expect(modified.city.hammerBasket).toBe(chopYield('forest').production);
+    expect(modified.city.hammerBasket).toBe(bankedAfterSettling(modified.state));
   });
 });
