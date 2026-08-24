@@ -51,11 +51,7 @@ import {
   hasEndedTurn,
 } from './sim/state';
 import type { Tile } from './sim/map';
-import { improvementDef } from './sim/improvementData';
-import { resourceDef } from './sim/resourceData';
-import { describeResourceEffect } from './sim/resourceEffects';
-import { featureDef, terrainDef } from './sim/terrainData';
-import { describeUpgrade, visibleResourceAt } from './sim/tech';
+import { describeUpgrade } from './sim/tech';
 import { isExploredBy, isVisibleTo } from './sim/visibility';
 import { techDef } from './sim/techData';
 import { unitDef } from './sim/unitData';
@@ -64,10 +60,12 @@ import { loadSprites } from './render/sprites';
 import { createFlatTileArtist, createTileArtist } from './render/tileVisuals';
 import { playerPieceColor } from './render3d/lookData';
 import { Renderer3D } from './render3d/renderer3d';
-import { tileYieldOf, yieldContextFor } from './sim/cities';
-import { TILE_YIELD_KEYS } from './sim/terrainData';
-import { YIELD_GLYPH } from './ui/figures';
-import { resourceMarkNode } from './ui/resourceMark';
+import {
+  describeImprovement,
+  describeTile,
+  resourceRowNode,
+  tileYieldNodes,
+} from './ui/tileReadout';
 import { unitsOnTile } from './sim/units';
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
@@ -429,109 +427,21 @@ function currentConfig(): GameConfig {
 // --- panel text ------------------------------------------------------------
 
 /**
- * Names for the info panel, read straight from the simulation's own data files.
+ * Writes the hovered tile's yields into the panel's yield row.
  *
- * Both 2D artists already answer `describe` with exactly this, so reading it
- * here instead means the panel says the same words whichever renderer is up —
- * and the 3D renderer never has to grow a text-formatting responsibility to
- * satisfy a DOM element it does not own.
- */
-function describeTile(tile: Tile): { terrain: string; feature: string; hills: boolean } {
-  return {
-    terrain: terrainDef(tile.terrain).name,
-    feature: featureDef(tile.feature).name,
-    hills: tile.hills,
-  };
-}
-
-/**
- * The hovered tile's yields, each figure in the colour that yield is always
- * drawn in — food green, production orange, gold gilt, and so on through all
- * six voices — and in the mono face, because they are numbers. A tile that
- * produces nothing says so once rather than printing six zeroes.
- *
- * `tileYieldOf` is the same function the citizens are assigned with, so what the
- * panel promises is what a city working the tile would actually collect — and it
- * is asked through the **local seat's** yield context, so a renewal this empire
- * has researched (a Feudalism farm on fresh water) is in the figure. The tile
- * itself is the same tile for everybody; what it is worth is not.
+ * The figures themselves come from `tileYieldNodes` (`src/ui/tileReadout.ts`),
+ * which is where the whole vocabulary of the hover card lives now that the
+ * mapgen inspection page speaks it too. What is left here is the one thing that
+ * *is* this page's business: which element the row is written into, and that a
+ * tile producing nothing says so once rather than printing six zeroes.
  */
 function showTileYields(state: GameState, playerId: number, tile: Tile): void {
-  const value = tileYieldOf(tile, yieldContextFor(state, playerId));
-  // All six voices since the luxuries pass. The glyph table is `figures.ts`'s,
-  // which is the one place a yield's mark is written down — a second copy here
-  // is exactly the drift that module exists to stop.
-  const parts: [string, string, number][] = TILE_YIELD_KEYS.map((key) => [
-    key,
-    YIELD_GLYPH[key],
-    value[key],
-  ]);
-  const shown = parts.filter(([, , amount]) => amount > 0);
+  const shown = tileYieldNodes(state, playerId, tile);
   if (shown.length === 0) {
     infoYields.textContent = '—';
     return;
   }
-  infoYields.replaceChildren(
-    ...shown.map(([key, glyph, amount]) => {
-      const span = document.createElement('span');
-      span.className = `tile-yield is-${key}`;
-      span.textContent = `${amount}${glyph}`;
-      return span;
-    }),
-  );
-}
-
-/**
- * What is on the tile under the pointer, through the local seat's eyes.
- *
- * "Horses (strategic)" — the name and the kind, because the kind is what says
- * whether the player should be reaching for a settler or a war plan. Asked of
- * `visibleResourceAt`, which is the simulation's own answer and the same one the
- * resource lens draws from, so the card and the board cannot disagree about
- * whether this empire has heard of iron yet. A tile whose resource is hidden
- * reads as an empty row, exactly like a tile with nothing on it: the honest
- * report of "you do not know of anything here".
- */
-/**
- * What has been *built* on the tile under the pointer.
- *
- * No technology gate and no seat: an improvement is a thing somebody put on the
- * ground, and unlike a strategic resource there is nothing about it to
- * recognise. It is terrain-ish in the fog sense too — the caller only reaches
- * this on ground the local seat has explored (see `updateContext`), and on
- * explored-but-unwatched ground it still answers, exactly as the terrain, the
- * yields and the territory tint do. A chart records the works of an empire the
- * way it records a coastline.
- */
-function describeImprovement(tile: Tile): string {
-  const id = tile.improvement;
-  if (id === undefined) return '—';
-  const def = improvementDef(id);
-  return `${def.emoji} ${def.name}`;
-}
-
-/**
- * The resource row of the readout: the drawn mark, the name, and the kind.
- *
- * Nodes rather than a string, which is what the drawn mark costs and all it
- * costs: the mark is an element carrying a CSS mask (see
- * `src/ui/resourceMark.ts`), so this row is the one line of the card that
- * cannot be a `textContent` assignment. The em dash case still is.
- */
-function describeResource(state: GameState, playerId: number, tile: Tile): Node {
-  const id = visibleResourceAt(state, playerId, tile);
-  if (id === null) return document.createTextNode('—');
-  const def = resourceDef(id);
-  // A luxury's *signature* is the reason to want this seam rather than the
-  // next one, so the readout names it — through `describeResourceEffect`, the
-  // one place the vocabulary is turned into words, so the hover card, the lens
-  // roundel and the city panel cannot describe the same luxury three ways.
-  const signature = describeResourceEffect(id);
-  const kind = signature === null ? def.kind : `${def.kind} · ${signature}`;
-  const row = document.createDocumentFragment();
-  row.append(resourceMarkNode(id));
-  row.append(document.createTextNode(` ${def.name} (${kind})`));
-  return row;
+  infoYields.replaceChildren(...shown);
 }
 
 /**
@@ -970,7 +880,7 @@ async function boot(): Promise<void> {
       );
       showTileYields(game.state, controls.localPlayerId(), hover.tile);
       infoResource.replaceChildren(
-        describeResource(game.state, controls.localPlayerId(), hover.tile),
+        resourceRowNode(game.state, controls.localPlayerId(), hover.tile),
       );
       infoImprovement.textContent = describeImprovement(hover.tile);
     } else {

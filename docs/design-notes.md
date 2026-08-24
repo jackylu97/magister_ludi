@@ -1426,6 +1426,62 @@ two is a reason to plant a city on it.
 restoring five is a `units.json` edit rather than a mapgen one — deliberately not folded into this
 pass.
 
+### Amended 2026-08-24 — the distribution survey
+
+A fifteen-seed survey of the finished generator found four things the entry above claims but does
+not deliver. All four are fixed in data and in `resources.ts`; nothing about the two-fields idea
+changed.
+
+**1. A hand could name ground that does not exist.** The deal drew four kinds per continent from the
+whole table without ever asking whether the continent could grow them, so a hand containing coffee
+on a continent with no jungle dealt a *blank* — the copies were never placed, the kind was absent
+from the map, and the coastline's character was a kind thinner than the ledger said. Coffee was
+missing from 11 maps in 15, sugar from 10, spices from 9. The deal now takes a `LuxuryGround` and
+refuses any kind the continent cannot seat `luxuryMinCopiesPerContinent` (2) tiles of, redrawing
+from the smaller pool. Coffee's own row also lost its `hills` requirement, which was the reason its
+ground barely existed (`docs/luxuries.md`, Approximations).
+
+**2. Refusing unhostable deals was not enough: the draw had to lean.** With every kind on the same
+`frequency`, a jungle continent draws four kinds out of the twenty that suit it and the three that
+*need* it are three tickets in twenty. A kind is now weighted by
+`frequency × (continents ÷ continents that can host it) ^ luxuryScarcityBias` (1.5) — a rare host
+is worth more than its rarity, which is what it takes for coffee to be a thing that exists. Worst
+kind's absence: 11 maps in 15 → 4.
+
+**3. Luxuries had no budget.** Bonus and strategic resources are scattered to a density; luxuries
+were *dealt*, and the total that fell out was a function of how many continents the coastline
+happened to make. Measured: 65–90 tiles per 1000 land, a 38% swing in how much of the trading half
+of the game exists, decided by nothing a designer chose. `luxuryPer1000LandTiles` (75) with a ±10%
+tolerance is the third budget, settled **after** the guarantees by a dice-free trim-or-top-up
+(`settleLuxuryDensity`) that deepens thin seams first, never trims below the seam floor, and never
+touches a copy inside a start's guarantee radius. Now 74.7–81.2.
+
+**4. "About `continentTargetTiles`" was doing no work.** The carve cut each landmass into
+`round(tiles ÷ target)` plain Voronoi cells, and the cell sizes were whatever the coastline handed
+out: 19 to 477 tiles against a target of 170, with a third of them outside a 0.6×–1.5× band. A
+continent that means a different amount of ground every time it is used is not a unit. Cells are
+now grown under a **size quota** (`growBalancedCells`, capacity `ceil(tiles ÷ pieces)`), which makes
+the band arithmetic rather than hope — a component of `x · target` tiles yields pieces of at most
+`x ÷ round(x) · target`, worst case 1.5 — and `minContinentTiles` rose to `0.6 · target` (102) to be
+the floor under `x`. Peninsula tips that a farthest-point seed strands behind a neck are folded into
+a neighbour, or folded-and-recut when the fold alone would break the ceiling
+(`mergeSmallContinents`). Measured: 91–254 tiles, 98% inside the band. The stated remainder is a
+cell with no land border, or none it can join without breaking the ceiling at the other end.
+
+**And more sporadic hills.** `elevation.hillShare` 0.20 → 0.28. At 0.20 the flank band barely
+reached past the ranges, so hills were foothills and almost nothing else and the composite hexes a
+player reads as variety were a rounding error. The extra band is spent furthest from the crests,
+which is where the standalone chains are: hills 322 → 451 a standard map, of which standalone (no
+mountain neighbour) 205 → 296; hill-and-forest 51 → 65; hill-and-jungle 9 → 12.
+`mountainShare` is untouched at 0.05 and the foothill guarantee is unaffected (a wider band can
+only help it). The terrain-hash fixtures in `test/resources.test.ts` were re-measured for this and
+this only — the relief *field* did not move, so elevation, moisture, rivers and coastlines are
+bit-identical.
+
+**Not touched, and why.** `moisture.jungleShare` stays where it is. More jungle would have helped
+the three jungle luxuries directly, but the jungle share of the equatorial band is a ratified number
+with a test band of its own, and the feature-aware deal fixes the complaint without spending it.
+
 ---
 
 ## Entry XVII — The modifier doctrine (RATIFIED 2026-08-24)

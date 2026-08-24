@@ -350,6 +350,53 @@ describe('the elevation field', () => {
     }
   });
 
+  it('puts standalone hills across the interior, wooded ones among them', () => {
+    // The flank band is `hillShare` of the land and it is deliberately *wide*:
+    // at 0.20 it barely reached past the ranges, so hills were foothills and
+    // almost nothing else, and the composite hexes a player reads as variety —
+    // a wooded ridge, a jungle-clad slope — were a rounding error. Widening it
+    // to 0.28 spends the extra band furthest from the crests, which is where the
+    // standalone chains are, and the composites follow.
+    //
+    // The figures below are counts per standard map. Before the widening, over
+    // this sweep: 322 hills, of which 205 stood clear of any mountain, 51
+    // hill-and-forest and 9 hill-and-jungle. After: 451, 296, 65 and 12.
+    let jungleTotal = 0;
+    for (const seed of SEEDS) {
+      const map = generateMap(seed, 'standard');
+      let hills = 0;
+      let standalone = 0;
+      let wooded = 0;
+      let tropical = 0;
+      for (const tile of map.tiles) {
+        if (!tile.hills) continue;
+        hills += 1;
+        if (!tileNeighbors(map, tile).some((near) => near.terrain === 'mountain')) standalone += 1;
+        if (tile.feature === 'forest') wooded += 1;
+        if (tile.feature === 'jungle') tropical += 1;
+      }
+      jungleTotal += tropical;
+      const where = `${seed}`;
+      // Most hills are not foothills. That is the sentence "sporadic hills"
+      // means, and it is the one the widening was for.
+      expect(`${where}: ${standalone} of ${hills} standalone`).toBe(
+        `${where}: ${Math.max(standalone, Math.ceil(hills * 0.55))} of ${hills} standalone`,
+      );
+      expect(`${where}: ${wooded} hill+forest`).toBe(`${where}: ${Math.max(wooded, 30)} hill+forest`);
+    }
+    // Jungle is measured over the sweep rather than per seed, and deliberately.
+    // It grows only inside a band thirteen rows deep and only where the regional
+    // moisture layer put a wet region *in* that band, so a seed whose wet country
+    // missed the equator has almost no jungle at all and none of it on a hill —
+    // seed 2024 has zero, and that is a climate rather than a fault. What has to
+    // hold is that the world type exists in numbers: a jungle-clad slope is a
+    // hex a player meets, not one they hear about.
+    const perMap = jungleTotal / SEEDS.length;
+    expect(`hill+jungle ${perMap.toFixed(1)} per map`).toBe(
+      `hill+jungle ${Math.max(perMap, 8).toFixed(1)} per map`,
+    );
+  });
+
   it('sources its rivers high, on range ground', () => {
     // Rivers trace downhill, so where they are *born* is the whole of whether
     // they read as coming out of the mountains. Two readings, because the

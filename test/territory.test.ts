@@ -644,14 +644,17 @@ describe('purchases in the log', () => {
    *
    * Nothing is hand-fed: the gold comes from the luxuries the capital works, so
    * every byte of the final state is reachable from `{config, log}` alone —
-   * which is the whole point of the test. Seed 1 is chosen because its capital
+   * which is the whole point of the test. The seed is chosen because its capital
    * has something worth selling in its rings; the assertion below that the
    * treasury actually filled is what stops the test quietly passing on a map
-   * where nobody could afford anything.
+   * where nobody could afford anything — and it is what caught seed 1 losing its
+   * saleable rings when the luxury deal and the hill share were retuned. Seed 5
+   * buys three tiles with room to spare, so it is the one with the most margin
+   * against the next retune rather than merely the first that passes.
    */
   it('replays byte-identically, purchases and all', () => {
     const game = createGame({
-      seed: 1,
+      seed: 5,
       sizeName: 'duel',
       players: [{ name: 'Ada', color: '#a00', isHuman: true }],
     });

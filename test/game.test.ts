@@ -170,7 +170,11 @@ describe('replay', () => {
     const game = createGame(config());
 
     // A march long enough to still be running a turn later: several tiles away,
-    // and further than this unit's whole allowance.
+    // and further than *two* of this unit's allowances. One allowance is what
+    // the dispatch itself spends, so `movesLeft + 1` only promised the order
+    // outlives the command — the next end of turn spends a second allowance and
+    // could still finish the route, which is exactly what a retuned map made it
+    // do. Doubling the requirement is what the sentence above always meant.
     const unit = game.state.units.find((u) => u.ownerId === 0)!;
     const { map } = game.state;
     const from = tileHex(map.tiles[tileIndex(map, unit.col, unit.row)]!);
@@ -178,7 +182,7 @@ describe('replay', () => {
       const distance = wrappedDistance(map, from, tileHex(tile));
       if (distance < 4 || distance > 8) return false;
       const path = findPath(game.state, unit, tile);
-      return path !== null && path.length > unit.movesLeft + 1;
+      return path !== null && path.length > unit.movesLeft * 2 + 1;
     });
     if (!target) throw new Error('This seed has no room to march; pick another');
 

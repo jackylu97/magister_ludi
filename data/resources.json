@@ -780,7 +780,6 @@
       "validFeatures": [
         "jungle"
       ],
-      "hills": true,
       "frequency": 2,
       "clusterSize": [
         1,

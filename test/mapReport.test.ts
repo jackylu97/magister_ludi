@@ -11,7 +11,10 @@ import { mapRange, tileHex, tileIndex } from '../src/sim/map';
 import { MAPGEN_CONFIG } from '../src/sim/mapgenData';
 import { RESOURCE_IDS, resourceDef } from '../src/sim/resourceData';
 import { carveContinents, landTileCount } from '../src/sim/resources';
+import { applyCommand } from '../src/sim/commands';
+import { RULES } from '../src/sim/rulesData';
 import { chooseStartPositions, scoreStartSite } from '../src/sim/startPositions';
+import { unitDef } from '../src/sim/unitData';
 import { type GameConfig, type GameState, newGame } from '../src/sim/state';
 import { isWaterTerrain } from '../src/sim/terrainData';
 
@@ -235,6 +238,42 @@ describe('mapReport', () => {
     expect(second.continents).toEqual(first.continents);
     expect(second.starts).toEqual(first.starts);
     expect(Array.from(second.continentOf)).toEqual(Array.from(first.continentOf));
+  });
+});
+
+/**
+ * The page's other claim, and the one it now asserts out loud: **every seat
+ * founds its capital**.
+ *
+ * The "only two of four capitals appear" report turned out to be two flags
+ * painted in board inks (`test/lookData.test.ts` holds that end), and ruling the
+ * *founding* out took a sweep nobody had run. This is that sweep, kept: it costs
+ * a second and it is the difference between "the page says 4/4" and "4/4 is
+ * true". `foundCityAt` rather than the reducer because the question is about the
+ * ground under the settler, which is what a start is chosen on.
+ */
+describe('every seat can plant', () => {
+  it('seats a settler on ground it may found on, at every roster size', () => {
+    for (const seed of [1, 7, 99, 1234, 4242]) {
+      for (const seats of [2, 4, 8, RULES.game.maxPlayers]) {
+        const live = newGame(config(seats, 'standard', seed));
+        const where = `${seed}/${seats} seats`;
+        const settlers = live.units.filter((unit) => unitDef(unit.type).foundsCity);
+        expect(`${where}: ${settlers.length} settlers`).toBe(`${where}: ${seats} settlers`);
+
+        let founded = 0;
+        for (const settler of settlers) {
+          const result = applyCommand(live, {
+            type: 'foundCity',
+            playerId: settler.ownerId,
+            settlerUnitId: settler.id,
+          });
+          if (result.ok) founded += 1;
+          else expect(`${where} seat ${settler.ownerId}: ${result.error}`).toBe(`${where} seat ${settler.ownerId}: founded`);
+        }
+        expect(`${where}: ${founded} capitals`).toBe(`${where}: ${seats} capitals`);
+      }
+    }
   });
 });
 

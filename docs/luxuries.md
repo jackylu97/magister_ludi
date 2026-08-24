@@ -132,6 +132,7 @@ narrowed.
 | Jade: "grassland, grassland hills, riverside" | grassland, hills either | No riverside filter. Both halves of the ground it named are covered. |
 | Cotton: "flat grassland, riverside" | flat grassland | No riverside filter; the flat half is the whole rule. |
 | Sugar: "jungle, marsh, desert floodplain" | jungle (grassland/plains) | No marsh, no floodplain — and the constraint is one AND rule, so "jungle **or** desert" cannot be written as one row at all. The jungle half is the one with the most ground. |
+| Coffee: "jungle hills" | jungle (grassland/plains) | **Widened 2026-08-24.** The two halves are near-independent on this generator — jungle is a share of a thirteen-row equatorial band, hills are a quantile of relief — so their intersection was about a dozen hexes on a standard map, spread over nine or ten continents. Coffee could not reach a seam of two anywhere and was absent from eleven maps in fifteen. The jungle half is the half that carries the flavour; the hills half was the half that made it a ghost. |
 | Olives: "coast-adjacent grassland hills" | grassland hills | No adjacency filter. |
 | Amber: "coastal forest, coastal" | forest on grassland/plains/tundra | No adjacency filter; forest is the half that survives. |
 | Incense: "desert, desert hills, plains, plains hills" | desert or plains, hills either | Expressed exactly. |
@@ -159,6 +160,34 @@ were rescaled to hold the old proportions: roughly **50% bonus, 15% strategic,
 `luxuryKindsPerRegion` rose from 4 to 6, because a hand of four out of
 twenty-five would have made every continent read the same way. The two-distinct-
 luxuries-per-start guarantee is untouched and still green.
+
+**Amended 2026-08-24 — the distribution survey.** Both numbers above have since
+been superseded and the section is kept for the record. The single scatter purse
+is gone (three budgets now: `bonusPer1000LandTiles`, `strategicPer1000LandTiles`
+and, new with this pass, `luxuryPer1000LandTiles`), and hands are dealt to carved
+continents rather than to landmasses at `luxuryKindsPerContinent` (4). What
+changed in *this* pass, all in `data/mapgen.json`:
+
+- **A hand is only dealt what the ground can wear.** A continent must have room
+  for `luxuryMinCopiesPerContinent` (2) tiles of a kind before it can be dealt
+  it. Dealing a kind onto ground that cannot grow it dealt a blank: the copies
+  were never placed, the kind was absent, and the continent's character was a
+  kind thinner than the ledger claimed.
+- **Scarcity leads the draw** (`luxuryScarcityBias`, 1.5). A kind is weighted by
+  its `frequency` times `(continents / continents that can host it)` raised to
+  the bias. A wine grows anywhere and will find a home whoever draws it; the two
+  continents with jungle are the only place coffee can ever come from, and
+  weighting the two alike is how a third of the table came to be missing from
+  most maps. Measured over fifteen standard maps, the worst-served kind went from
+  absent on eleven maps to absent on four.
+- **The total is budgeted.** `luxuryPer1000LandTiles` (75, ±10%) with a
+  deterministic trim-or-top-up after the guarantees. The deal alone swung from 65
+  to 90 tiles per 1000 land — a 38% swing in how much of the trading half of the
+  game exists, decided by how many continents the coastline happened to make. It
+  now runs 74.7–81.2.
+
+The two-distinct-luxuries-per-start guarantee is still untouched and still green,
+and the budget will not trim a copy inside a start's guarantee radius.
 
 ---
 
@@ -247,8 +276,12 @@ punish an unhappy empire for owning amber.
 **Deferred:** Æra III ("+3% production per science building in the city") — waits
 on a **building classification**, exactly as jade's second bullet does.
 
-### Coffee — jungle hills on grassland/plains
+### Coffee — jungle on grassland/plains
 `+2🪙` on tile · **+1⚙ in every city**.
+The hills half of its ratified home was **dropped** (see Approximations): jungle
+and hills are near-independent on this generator, so "jungle hills" described
+about a dozen hexes on a standard map and coffee was absent from eleven maps in
+fifteen.
 **Deferred:** Æra III ("production buildings give an extra 50% of their base
 yield and +1 science") — **building classification**, plus a multiplier on
 building yields that nothing else in the game has.

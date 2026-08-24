@@ -33,10 +33,28 @@
     <p id="hint">
       Drag to pan · scroll to zoom · <strong>F</strong> frames the whole map ·
       <strong>←</strong> / <strong>→</strong> steps the seed · <strong>R</strong> randomises ·
-      <strong>C</strong> continents · <strong>Y</strong> yields. The board is drawn with no
-      seat, so nothing is fogged and every resource wears its roundel whatever anybody has
-      researched.
+      <strong>C</strong> continents · <strong>Y</strong> yields. Hover any hex to read it. The
+      board is drawn with no seat, so nothing is fogged and every resource wears its roundel
+      whatever anybody has researched.
     </p>
+
+    <!--
+      The tile readout. Same rows as the game's info card (`index.html`), same
+      words — they come from `src/ui/tileReadout.ts`, which both pages speak —
+      with two extra rows this page and only this page can print: which carved
+      continent the hex belongs to, and the elevation and moisture the generator
+      read its terrain off. Hidden until something is under the pointer.
+    -->
+    <div id="tile-card" hidden>
+      <p class="tile-head"><span id="tile-terrain">—</span><span id="tile-where"></span></p>
+      <dl>
+        <div><dt>Yields</dt><dd id="tile-yields">—</dd></div>
+        <div><dt>Resource</dt><dd id="tile-resource">—</dd></div>
+        <div><dt>Improvement</dt><dd id="tile-improvement">—</dd></div>
+        <div><dt>Continent</dt><dd id="tile-continent">—</dd></div>
+        <div><dt>Fields</dt><dd id="tile-fields">—</dd></div>
+      </dl>
+    </div>
 
     <aside id="report">
       <div id="controls">

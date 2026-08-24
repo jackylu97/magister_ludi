@@ -51,10 +51,16 @@
     "fallbackOrder": [
       "crimson",
       "teal",
-      "pine",
-      "wheat",
-      "slate",
-      "bone"
+      "gilt",
+      "lapis",
+      "grape",
+      "brook",
+      "timber",
+      "steel",
+      "ink",
+      "brass",
+      "sky",
+      "earth"
     ]
   },
   "sideDarken": -0.26,

@@ -29,6 +29,7 @@ import {
   carveContinents,
   dealContinentLuxuries,
   landTileCount,
+  luxuryGroundOf,
   tileSuitsResource,
 } from '../src/sim/resources';
 import { describeResourceEffect } from '../src/sim/resourceEffects';
@@ -362,16 +363,23 @@ describe('the ground did not move', () => {
   }
 
   // Re-measured when the generator moved to the elevation/moisture pipeline
-  // (ridged relief, quantile terrain cuts, two-scale moisture). The fixtures
-  // are a *tripwire*, not a golden output: what they promise is that resources
-  // draw from `rng` strictly after the ground does, and re-measuring them is
-  // exactly what a deliberate change to the ground is supposed to require.
+  // (ridged relief, quantile terrain cuts, two-scale moisture), and again when
+  // `elevation.hillShare` rose from 0.20 to 0.28 to put standalone hills — and
+  // therefore hill-and-forest and hill-and-jungle hexes — across the interior in
+  // real numbers. Only `tile.hills` moved: the relief *field* is untouched, so
+  // elevation, moisture, the rivers and the coastline are bit-identical (which
+  // is why the river and lake counts below did not move with them).
+  //
+  // The fixtures are a *tripwire*, not a golden output: what they promise is
+  // that resources draw from `rng` strictly after the ground does, and
+  // re-measuring them is exactly what a deliberate change to the ground is
+  // supposed to require.
   const FIXTURES: [number, string, string][] = [
-    [1234, 'duel', '6257594e'],
-    [7, 'duel', 'bba96c74'],
-    [31337, 'standard', '4720a8e6'],
-    [99, 'large', '9e8a4a0e'],
-    [2024, 'huge', 'e83298ce'],
+    [1234, 'duel', '2b6aeab9'],
+    [7, 'duel', 'a3dfb6ad'],
+    [31337, 'standard', 'cfffc507'],
+    [99, 'large', 'a3cbe4ff'],
+    [2024, 'huge', 'bc45fd23'],
   ];
 
   it('reproduces the pre-resource generator exactly', () => {
@@ -1195,6 +1203,231 @@ describe('luxury placement', () => {
  * a suite of fixtures could never demonstrate. `withExtraResources` puts the
  * table back afterwards; nothing in `src/` calls it.
  */
+/**
+ * The three defects the resource survey found, each pinned by the measurement
+ * that found it.
+ *
+ * These are *sweeps* rather than examples, and they have to be: every one of the
+ * three was invisible on any single map and obvious across fifteen. A hand dealt
+ * a kind with nowhere to grow looks, on the map in front of you, exactly like a
+ * hand of three; a luxury total of 65 per 1000 land looks exactly like one of
+ * 90; a continent of 477 tiles looks like a continent.
+ */
+describe('what the survey found', () => {
+  /** Enough maps to see a distribution, few enough to stay under a second each. */
+  const SWEEP = [1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31];
+  const LUXURIES = resourcesOfKind('luxury');
+
+  /** Every luxury kind's tile count on one map, zeroes kept. */
+  function luxuryCounts(map: GameMap): Map<ResourceId, number> {
+    const counts = new Map<ResourceId, number>(LUXURIES.map((id) => [id, 0]));
+    for (const tile of map.tiles) {
+      const id = tile.resource;
+      if (id === undefined || resourceDef(id).kind !== 'luxury') continue;
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    return counts;
+  }
+
+  it('never deals a continent a kind its ground cannot wear', () => {
+    // The zero-copy pathology, at its source. A hand is dealt before a single
+    // tile is placed, so a kind named on ground that cannot grow it is a kind
+    // the map will simply never carry — coffee was absent from eleven maps in
+    // fifteen this way, spices and sugar from ten.
+    for (const seed of SWEEP.slice(0, 6)) {
+      const map = generateMap(seed, 'standard');
+      const continents = carveContinents(map, CONFIG);
+      const candidates = new Map<ResourceId, Tile[]>();
+      for (const id of LUXURIES) {
+        candidates.set(id, map.tiles.filter((tile) => tileSuitsResource(tile, resourceDef(id))));
+      }
+      const ground = luxuryGroundOf(map, continents, candidates, CONFIG);
+      const hands = dealContinentLuxuries(makeRng(seed), continents.count, CONFIG, ground);
+
+      for (let continent = 0; continent < continents.count; continent++) {
+        for (const id of hands[continent] ?? []) {
+          const room = (candidates.get(id) ?? []).filter(
+            (tile) => continents.of[tileIndex(map, tile.col, tile.row)] === continent,
+          ).length;
+          expect(`${seed} continent ${continent} dealt ${id}: room for ${room}`).toBe(
+            `${seed} continent ${continent} dealt ${id}: room for ${Math.max(
+              room,
+              CONFIG.luxuryMinCopiesPerContinent,
+            )}`,
+          );
+        }
+      }
+    }
+  });
+
+  it('grows every kind it deals as a seam, never as a lonely hex', () => {
+    // The consequence on the finished map. The one documented exception is the
+    // start guarantee, which plants single hexes of a kind a continent was never
+    // dealt precisely because a start with nothing to trade is the worse fault —
+    // so a group is allowed to be a single hex only when *every* copy in it
+    // stands inside a start's guarantee radius.
+    const floor = Math.round(CONFIG.luxuryMinCopiesPerContinent);
+    for (const seed of SWEEP.slice(0, 6)) {
+      const map = generateMap(seed, 'standard');
+      const continents = carveContinents(map, CONFIG);
+      const guarded = new Set<number>();
+      for (const start of chooseStartPositions(map, RULES.game.maxPlayers)) {
+        for (const near of mapRange(map, tileHex(start), CONFIG.startLuxuryRadius)) {
+          guarded.add(tileIndex(map, near.col, near.row));
+        }
+      }
+
+      const groups = new Map<string, { copies: number; free: number }>();
+      for (let i = 0; i < map.tiles.length; i++) {
+        const id = map.tiles[i]!.resource;
+        if (id === undefined || resourceDef(id).kind !== 'luxury') continue;
+        const key = `${continents.of[i]}|${id}`;
+        const seen = groups.get(key) ?? { copies: 0, free: 0 };
+        seen.copies += 1;
+        if (!guarded.has(i)) seen.free += 1;
+        groups.set(key, seen);
+      }
+
+      for (const [key, group] of groups) {
+        // Wholly inside a guarantee radius: the guarantee's business, not the
+        // deal's.
+        if (group.free === 0) continue;
+        if (group.copies >= floor) continue;
+        // The only other way out is ground: `deepenThinSeams` tops every thin
+        // group up, so one that is still thin had nowhere *legal* left to put a
+        // copy — free ground of the right kind, on the right continent, with no
+        // other find inside the spacing rule. That last clause is the honest one:
+        // the density pass honours spacing where the guarantee passes do not, so
+        // a continent can have room for a second wine and still not be allowed
+        // to grow one there.
+        const [continent, id] = key.split('|');
+        const room = map.tiles.filter((tile) => {
+          if (tile.resource !== undefined) return false;
+          if (String(continents.of[tileIndex(map, tile.col, tile.row)]) !== continent) return false;
+          if (!tileSuitsResource(tile, resourceDef(id as ResourceId))) return false;
+          return !mapRange(map, tileHex(tile), CONFIG.minSpacing - 1).some(
+            (near) => near.resource !== undefined && near.resource !== id,
+          );
+        }).length;
+        expect(`${seed} ${key}: ${group.copies} copies, ${room} legal tiles`).toBe(
+          `${seed} ${key}: ${group.copies} copies, 0 legal tiles`,
+        );
+      }
+    }
+  });
+
+  it('puts every luxury in the table on a healthy share of maps', () => {
+    // The global reading, and the one the survey was actually about. Before the
+    // feature-aware deal, four kinds were missing from more than half the maps
+    // generated and the table read as a lie. The floor is two thirds rather than
+    // "always" on purpose: a kind that turned up on *every* map would mean the
+    // deal had stopped being a deal.
+    const seen = new Map<ResourceId, number>(LUXURIES.map((id) => [id, 0]));
+    for (const seed of SWEEP) {
+      for (const [id, copies] of luxuryCounts(generateMap(seed, 'standard'))) {
+        if (copies > 0) seen.set(id, (seen.get(id) ?? 0) + 1);
+      }
+    }
+    const floor = Math.ceil(SWEEP.length * 0.6);
+    for (const id of LUXURIES) {
+      const maps = seen.get(id) ?? 0;
+      expect(`${id}: on ${maps} of ${SWEEP.length} maps`).toBe(
+        `${id}: on ${Math.max(maps, floor)} of ${SWEEP.length} maps`,
+      );
+    }
+  });
+
+  it('holds the luxury total inside its budget band on every map', () => {
+    // The third budget. The deal alone swung from 65 to 90 tiles per 1000 land
+    // across fifteen maps — a 38% swing in how much of the trading half of the
+    // game exists, decided by how many continents the coastline happened to
+    // make. `settleLuxuryDensity` trims or tops up to `luxuryPer1000LandTiles`,
+    // and the band asserted here is the one that pass works to.
+    for (const size of ['duel', 'standard', 'large']) {
+      for (const seed of SWEEP.slice(0, 6)) {
+        const map = generateMap(seed, size);
+        const land = landTileCount(map);
+        const target = Math.round((land / 1000) * CONFIG.luxuryPer1000LandTiles);
+        const low = Math.floor(target * (1 - CONFIG.luxuryDensityTolerance));
+        const high = Math.ceil(target * (1 + CONFIG.luxuryDensityTolerance));
+        let total = 0;
+        for (const copies of luxuryCounts(map).values()) total += copies;
+
+        // The one thing the budget may not cut into is the guarantees, which
+        // run before it and which it deliberately refuses to touch. On a duel
+        // map the twelve possible starts are packed close enough that their
+        // guaranteed seams alone outweigh the budget, and a trim that took them
+        // would be the budget overruling a fairness pass — so the ceiling is
+        // whichever of the two is higher, and it is stated rather than tuned
+        // around.
+        let bound = 0;
+        for (const start of chooseStartPositions(map, RULES.game.maxPlayers)) {
+          for (const near of mapRange(map, tileHex(start), CONFIG.startLuxuryRadius)) {
+            const id = near.resource;
+            if (id !== undefined && resourceDef(id).kind === 'luxury') bound += 1;
+          }
+        }
+        const ceiling = Math.max(high, bound);
+        const where = `${size}/${seed}`;
+        expect(`${where}: ${total} in [${low}, ${ceiling}]`).toBe(
+          `${where}: ${Math.min(Math.max(total, low), ceiling)} in [${low}, ${ceiling}]`,
+        );
+      }
+    }
+  });
+
+  it('carves continents to a fixed size, with one documented remainder', () => {
+    // The band is arithmetic rather than hope: a component of `x · target` tiles
+    // is cut into `round(x)` pieces under a size quota, so no piece exceeds
+    // `1.5 · target`, and `minContinentTiles` is the floor under `x` itself.
+    // What is *left* below the band is the remainder the docblock names — a
+    // whole small landmass with no land border to be folded across. Before the
+    // quota the same sweep ran from 19 tiles to 477 against a target of 170.
+    const target = CONFIG.continentTargetTiles;
+    const ceiling = Math.round(target * 1.5);
+    let stranded = 0;
+    let cells = 0;
+    for (const seed of SWEEP) {
+      const map = generateMap(seed, 'standard');
+      const continents = carveContinents(map, CONFIG);
+      const sizes = new Array<number>(continents.count).fill(0);
+      for (let i = 0; i < map.tiles.length; i++) {
+        if (continents.core[i]) sizes[continents.of[i]!]! += 1;
+      }
+      for (let id = 0; id < sizes.length; id++) {
+        cells += 1;
+        const size = sizes[id]!;
+        // The ceiling holds without exception — that half is construction.
+        expect(`${seed}/${id}: ${size} <= ${ceiling}`).toBe(
+          `${seed}/${id}: ${Math.min(size, ceiling)} <= ${ceiling}`,
+        );
+        if (size >= Math.round(target * 0.6)) continue;
+        // Below the band it must have had nowhere to fold: either no land
+        // border at all (a whole small landmass) or no neighbour it could join
+        // without breaking the ceiling at the other end of the band. That is
+        // exactly the rule `mergeSmallContinents` works to.
+        const neighbours = new Set<number>();
+        for (let i = 0; i < map.tiles.length; i++) {
+          if (!continents.core[i] || continents.of[i] !== id) continue;
+          for (const near of tileNeighbors(map, map.tiles[i]!)) {
+            const at = tileIndex(map, near.col, near.row);
+            if (continents.core[at] && continents.of[at] !== id) neighbours.add(continents.of[at]!);
+          }
+        }
+        stranded += 1;
+        const foldable = [...neighbours].filter((other) => size + sizes[other]! <= ceiling);
+        expect(`${seed}/${id}: undersized, ${foldable.length} folds available`).toBe(
+          `${seed}/${id}: undersized, 0 folds available`,
+        );
+      }
+    }
+    // And the remainder is a remainder: a handful of islands, not the rule.
+    expect(`${stranded} of ${cells} stranded`).toBe(
+      `${Math.min(stranded, Math.floor(cells * 0.1))} of ${cells} stranded`,
+    );
+  });
+});
+
 describe('a resource nobody wrote code for', () => {
   /**
    * A row the table has never heard of — the name matters, and it is checked

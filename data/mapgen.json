@@ -69,7 +69,7 @@
     "polarWaterLatitude": 0.94,
     "polarWaterElevationBonus": 0.12,
     "mountainShare": 0.05,
-    "hillShare": 0.2,
+    "hillShare": 0.28,
     "ridgeWeight": 1.0,
     "continentWeight": 0.25,
     "gradientWeight": 0.12,
@@ -115,13 +115,17 @@
   },
   "resources": {
     "continentTargetTiles": 170,
-    "minContinentTiles": 40,
+    "minContinentTiles": 102,
     "luxuryKindsPerContinent": 4,
     "maxContinentsPerLuxury": 2,
     "luxuryCopiesPerKind": {
       "min": 3,
       "max": 6
     },
+    "luxuryMinCopiesPerContinent": 2,
+    "luxuryPer1000LandTiles": 75,
+    "luxuryDensityTolerance": 0.1,
+    "luxuryScarcityBias": 1.5,
     "bonusPer1000LandTiles": 85,
     "strategicPer1000LandTiles": 22,
     "minSpacing": 2,

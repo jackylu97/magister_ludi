@@ -1645,6 +1645,16 @@ export function saturate(color: number, factor: number): number {
  * onto a game piece. The explicit table maps each known player colour onto the
  * muted body colour that belongs to it; anything unrecognised falls back by
  * index, so a third player is never colourless.
+ *
+ * The fallback order is **`RULES.game.maxPlayers` long and holds no ground ink**,
+ * and both halves are load-bearing rather than tidy. Short, it repeats: past its
+ * end two capitals fly the same flag. Sharing an ink with the board, it
+ * disappears: the order used to seat the third and fourth players on `pine` and
+ * `wheat`, which are literally `featureColor.forest` and `terrainColor.plains` —
+ * so on the mapgen page's four-seat map two of the four capitals flew a flag
+ * painted the exact colour of the grass under it and read as an empty pole.
+ * Nobody had failed to found anything; the flags were camouflage.
+ * `test/lookData.test.ts` holds both halves.
  */
 export function playerPieceColor(playerColor: string, playerIndex: number): number {
   const explicit = VIEW3D.players.byColor[playerColor.toLowerCase()];
