@@ -446,9 +446,9 @@ function describeTile(tile: Tile): { terrain: string; feature: string; hills: bo
 
 /**
  * The hovered tile's yields, each figure in the colour that yield is always
- * drawn in — food green, production orange, gold gilt — and in the mono face,
- * because they are numbers. A tile that produces nothing says so once rather
- * than printing three zeroes.
+ * drawn in — food green, production orange, gold gilt, and so on through all
+ * six voices — and in the mono face, because they are numbers. A tile that
+ * produces nothing says so once rather than printing six zeroes.
  *
  * `tileYieldOf` is the same function the citizens are assigned with, so what the
  * panel promises is what a city working the tile would actually collect — and it

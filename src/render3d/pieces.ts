@@ -35,6 +35,13 @@
  * where a bar lands is still the unit's own visual height, and a bar is still
  * never in front of the thing it is reporting on.
  *
+ * A worker's badge carries one thing more: a small numeral boss at its corner
+ * naming `chargesLeft` (`addChargeBadge`). It is built from the tile atlas's
+ * standing numerals rather than a badge cell of its own, and it is why
+ * `chargesLeft` had to join `signUnits` — a charge spent changes nothing about
+ * where a unit stands, so nothing else would ever have told this layer to
+ * redraw the badge that names it.
+ *
  * Two art styles, one layer
  * -------------------------
  * `units.style` in `data/view3d.json` chooses between the sculpted miniature and
@@ -93,11 +100,12 @@
 
 import { Group, type Material, Matrix4, Mesh, Quaternion, type Texture, Vector3 } from 'three';
 
+import { chargesLeft, isBuilder } from '../sim/improvements';
 import type { GameMap } from '../sim/map';
 import type { GameState, Unit } from '../sim/state';
-import { type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
+import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
 
-import { type UnitBadges, badgeCenterY, hpBarY } from './badges3d';
+import { type TileIcons, type UnitBadges, badgeCenterY, hpBarY } from './badges3d';
 import { type BoardGeometry, modelClassFor, pieceHeightFor } from './board3d';
 import { type FogLevels, seesCell } from './fog3d';
 import type { UnitPiece } from './geometry';
@@ -478,6 +486,14 @@ export class UnitLayer {
    * only brightens one rim; it is part of the build rather than an overlay
    * because a badge belongs to its unit, and the layer is cheap to rebuild.
    *
+   * `icons` is the *tile* atlas (`badges3d.ts`'s `TileIcons`, the same one the
+   * lens prints yield glyphs and resource roundels from), asked for one more
+   * thing here: the digit that bosses a worker's badge with its charges left
+   * (see `addChargeBadge`). It is a second atlas rather than a reason to grow
+   * the badge one — the numerals already exist for the lens, and a worker's
+   * charge count is a number in the same voice a tile's yield count is.
+   *
+
    * Fog
    * ---
    * `levels` is the local seat's visibility grid, or null for no fog. A unit is
@@ -503,6 +519,7 @@ export class UnitLayer {
     badges: UnitBadges | null = null,
     selectedUnitId: number | null = null,
     levels: FogLevels = null,
+    icons: TileIcons | null = null,
   ): void {
     this.disposeGroup();
 
@@ -573,6 +590,18 @@ export class UnitLayer {
           unit.id === selectedUnitId,
           slots,
         );
+        if (icons && isBuilder(unit)) {
+          this.addChargeBadge(
+            unit,
+            placement,
+            visualHeight,
+            geometry,
+            collector,
+            faceCamera,
+            icons,
+            slots,
+          );
+        }
       }
       this.addHpBar(unit, placement, visualHeight, geometry, collector, faceCamera);
     }
@@ -645,6 +674,66 @@ export class UnitLayer {
         // The rim travels with its disc: same draw order, so the two halves of
         // one badge can never end up on opposite sides of a ring.
         { overlay: true, opacity: 1, order: RENDER_ORDER.badge },
+      ),
+    );
+  }
+
+  /**
+   * The worker's charge count: a small numeral boss at the badge's upper-right
+   * corner, standing in front of the disc and its rim.
+   *
+   * Only ever called for a builder (`isBuilder`, checked by the caller), and it
+   * draws `chargesLeft` clamped to a single digit — nothing in `data/units.json`
+   * grants a worker ten charges, and a boss is not the place to grow a two-figure
+   * count if one ever did; see `yieldRowLayout` for where that arithmetic
+   * actually lives for the surface that needs it.
+   *
+   * Built from the *tile* atlas's numeral cells (`geometry.numeralMarkers`), not
+   * a badge cell of its own: the digit is already drawn there for the lens, baked
+   * onto its own parchment disc, so the badge grows a corner mark for free rather
+   * than a tenth atlas set. `icons.standingMaterial` is the depth-tested half of
+   * that atlas — the same one the resource markers stand on — because a charge
+   * count is a token in the diorama and has to be hidden by a hill exactly as its
+   * badge is.
+   *
+   * Positioned off the same `right`/`up` camera vectors the HP bar centres
+   * itself with, offset both ways from the badge's own centre so the boss sits
+   * outside the disc rather than over the icon it would otherwise cover, and
+   * nudged forward past `RIM_NUDGE` so it never z-fights the rim it rides in
+   * front of.
+   */
+  private addChargeBadge(
+    unit: Unit,
+    placement: PiecePlacement,
+    visualHeight: number,
+    geometry: BoardGeometry,
+    collector: InstanceCollector,
+    faceCamera: Quaternion,
+    icons: TileIcons,
+    slots: InstanceHandle[],
+  ): void {
+    const anchor = placement.position
+      .clone()
+      .setY(placement.position.y + badgeCenterY(visualHeight));
+    const right = new Vector3(1, 0, 0).applyQuaternion(faceCamera);
+    const up = new Vector3(0, 1, 0).applyQuaternion(faceCamera);
+    const forward = new Vector3(0, 0, 1).applyQuaternion(faceCamera);
+    const corner = BADGE.diameter * BADGE.chargeOffsetX;
+    const rise = BADGE.diameter * BADGE.chargeOffsetY;
+    const position = anchor
+      .clone()
+      .addScaledVector(right, corner)
+      .addScaledVector(up, rise)
+      .addScaledVector(forward, BADGE.chargeNudge);
+    const size = new Vector3(BADGE.chargeDiameter, BADGE.chargeDiameter, 1);
+    const digit = Math.max(0, Math.min(9, Math.round(chargesLeft(unit))));
+
+    slots.push(
+      collector.add(
+        geometry.numeralMarkers[digit]!,
+        [],
+        new Matrix4().compose(position, faceCamera, size),
+        { material: icons.standingMaterial, order: RENDER_ORDER.badge },
       ),
     );
   }
@@ -758,3 +847,38 @@ export class UnitLayer {
     this.hidden.clear();
   }
 }
+
+/**
+ * A cheap order-sensitive fingerprint of everything about the units that this
+ * layer draws: who they are, *what* they are, where they stand, how hurt they
+ * are, and — since the worker charge badge — how many charges they have left.
+ * FNV-1a over integers, so it allocates nothing per frame.
+ *
+ * The renderer rebuilds `UnitLayer` exactly when this changes (see
+ * `Renderer3D.rebuildUnits`), which is what makes it the fingerprint the module
+ * docblock's badge section and `CLAUDE.md`'s piece-fingerprint trap both mean:
+ * any unit property that changes what gets *drawn* has to be hashed in here or
+ * the board goes on showing the old picture. The type is in here because a unit
+ * can change type without moving (a warrior upgraded to a swordsman in place —
+ * see `upgradeUnits` in `tech.ts`), and `chargesLeft` is in here for the same
+ * reason: a worker that spends a charge does not move, but its badge's corner
+ * boss has to count down.
+ */
+export function signUnits(state: GameState): number {
+  let h = 2166136261 ^ state.units.length;
+  for (const unit of state.units) {
+    h = Math.imul(h ^ unit.id, 16777619);
+    h = Math.imul(h ^ unit.col, 16777619);
+    h = Math.imul(h ^ unit.row, 16777619);
+    h = Math.imul(h ^ unit.hp, 16777619);
+    h = Math.imul(h ^ unit.ownerId, 16777619);
+    h = Math.imul(h ^ (UNIT_TYPE_INDEX.get(unit.type) ?? -1), 16777619);
+    h = Math.imul(h ^ chargesLeft(unit), 16777619);
+  }
+  return h >>> 0;
+}
+
+/** Unit types as small integers, so the fingerprint stays integer arithmetic. */
+const UNIT_TYPE_INDEX = new Map<UnitTypeId, number>(
+  UNIT_TYPE_IDS.map((id, index) => [id, index]),
+);

@@ -14,7 +14,12 @@ import {
   Vector3,
 } from 'three';
 
-import { BADGE_CELLS, BADGE_ICON_FILES } from '../src/render3d/badges3d';
+import {
+  BADGE_CELLS,
+  BADGE_ICON_FILES,
+  type TileIcons,
+  type UnitBadges,
+} from '../src/render3d/badges3d';
 import {
   BoardGeometry,
   MINI_SCULPTS,
@@ -36,7 +41,13 @@ import {
 } from '../src/render3d/geometry';
 import { RENDER_ORDER } from '../src/render3d/instances';
 import { VIEW3D } from '../src/render3d/lookData';
-import { UnitLayer, buildSpriteUnit, pieceColors, pieceMaterials } from '../src/render3d/pieces';
+import {
+  UnitLayer,
+  buildSpriteUnit,
+  pieceColors,
+  pieceMaterials,
+  signUnits,
+} from '../src/render3d/pieces';
 import { MaterialLibrary } from '../src/render3d/toon';
 import { createMap, tileIndex } from '../src/sim/map';
 import { type GameState, newGame } from '../src/sim/state';
@@ -88,6 +99,12 @@ function boundsOf(board: BoardGeometry, id: ModelClass): Box3 {
  *                               world geometry is in front of the piece.
  */
 const MESHES_PER_PIECE_BUCKET = 3;
+
+/** A stand-in for the tile atlas: the layer only ever wants a material off it. */
+const fakeIcons = {
+  material: new MeshBasicMaterial({ depthTest: false, depthWrite: false }),
+  standingMaterial: new MeshBasicMaterial(),
+} as unknown as TileIcons;
 
 describe('the model-class roster', () => {
   it('gives every unit type in units.json a class model', () => {
@@ -491,6 +508,131 @@ describe('the units layer in pieces style', () => {
     );
     layer.dispose();
     board.dispose();
+  });
+});
+
+// --- the worker charge badge -------------------------------------------------
+
+/**
+ * The small numeral boss at a worker's badge corner, naming `chargesLeft`.
+ *
+ * Built from `geometry.numeralMarkers` — the standing twin of the lens's flat
+ * digits (`buildNumeralMarkers` in `board3d.ts`) — rather than a cell of the
+ * badge atlas, so what is asserted here is the same shape of thing the yield
+ * glyph tests hold still: which geometry got drawn, in which material's bucket,
+ * for which unit.
+ */
+describe('the worker charge badge', () => {
+  const fakeBadges = { material: new MeshBasicMaterial() } as unknown as UnitBadges;
+
+  function state(units: { type: UnitTypeId; chargesLeft?: number }[]): GameState {
+    const game = newGame({
+      seed: 3,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#d4502e', isHuman: true }],
+    });
+    game.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    resetVisibility(game);
+    game.tileOwner = new Array<number | null>(12 * 8).fill(null);
+    game.cities = [];
+    game.units = units.map(({ type, chargesLeft }, i) => ({
+      id: i + 1,
+      type,
+      ownerId: 0,
+      col: 1 + i * 2,
+      row: 2,
+      hp: unitDef(type).maxHp,
+      movesLeft: 2,
+      hasAttacked: false,
+      ...(chargesLeft === undefined ? {} : { chargesLeft }),
+    }));
+    return game;
+  }
+
+  it('bosses a worker\'s badge with the digit it has charges left', () => {
+    const board = geometry();
+    const layer = new UnitLayer();
+    layer.build(
+      state([{ type: 'worker', chargesLeft: 3 }]),
+      board,
+      new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
+      new Quaternion(),
+      false,
+      null,
+      fakeBadges,
+      null,
+      null,
+      fakeIcons,
+    );
+    const boss = layer.group.children.find(
+      (c): c is InstancedMesh => c instanceof InstancedMesh && c.geometry === board.numeralMarkers[3],
+    );
+    expect(boss).toBeDefined();
+    expect(boss!.material).toBe(fakeIcons.standingMaterial);
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('draws no boss for a unit that is not a builder', () => {
+    const board = geometry();
+    const layer = new UnitLayer();
+    layer.build(
+      state([{ type: 'warrior' }]),
+      board,
+      new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
+      new Quaternion(),
+      false,
+      null,
+      fakeBadges,
+      null,
+      null,
+      fakeIcons,
+    );
+    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    expect(meshes.some((mesh) => board.numeralMarkers.includes(mesh.geometry))).toBe(false);
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('draws no boss at all while the tile atlas has not loaded yet', () => {
+    const board = geometry();
+    const layer = new UnitLayer();
+    layer.build(
+      state([{ type: 'worker', chargesLeft: 3 }]),
+      board,
+      new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
+      new Quaternion(),
+      false,
+      null,
+      fakeBadges,
+      // No `icons` argument: the atlas the boss is drawn from is not ready, so
+      // there is nothing to draw it with — matching the badges themselves, which
+      // stay off the board without their own atlas.
+    );
+    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    expect(meshes.some((mesh) => board.numeralMarkers.includes(mesh.geometry))).toBe(false);
+    layer.dispose();
+    board.dispose();
+  });
+
+  /**
+   * `chargesLeft` has to move `signUnits`, or the rebuild that follows a
+   * `layWorkerImprovement`/`chopFeature` command would never fire — see the
+   * `CLAUDE.md` piece-fingerprint trap. Held still at the pure-function level
+   * rather than through a full renderer, because the renderer itself is not
+   * unit-tested (it needs a real WebGL context); `signUnits` is exactly the kind
+   * of pure arithmetic this file already checks the rest of the layer with.
+   */
+  it('moves the units fingerprint when a worker spends a charge', () => {
+    const before = state([{ type: 'worker', chargesLeft: 3 }]);
+    const after = state([{ type: 'worker', chargesLeft: 2 }]);
+    expect(signUnits(after)).not.toBe(signUnits(before));
+  });
+
+  it('leaves the fingerprint alone when nothing about a unit changed', () => {
+    const a = state([{ type: 'worker', chargesLeft: 3 }]);
+    const b = state([{ type: 'worker', chargesLeft: 3 }]);
+    expect(signUnits(a)).toBe(signUnits(b));
   });
 });
 

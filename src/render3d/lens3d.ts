@@ -4,10 +4,10 @@
  *
  * Three things live here, and they are deliberately not the same kind of thing:
  *
- *   · the **yield glyphs** — what does this ground *make*? A sheaf, a hammer and
- *                   a coin in the interface's yield voices, stacked per point
- *                   like fanned coins, sat on the tile's own face. They are a
- *                   *switch*, not a lens:
+ *   · the **yield glyphs** — what does this ground *make*? A sheaf, a hammer, a
+ *                   coin, a flask, a mask and a flame — the interface's six
+ *                   yield voices — stacked per point like fanned coins, sat on
+ *                   the tile's own face. They are a *switch*, not a lens:
  *                   they sit on the face and compete with nothing, so they can
  *                   be up under any lens (see `LensView.yields`, and the
  *                   reasoning in `mapView.ts`). They replaced coloured pips,
@@ -251,7 +251,7 @@ export class LensLayer {
    * the one before it (see `drawYieldCell` in `badges3d.ts`).
    *
    * Each mark is one cell of the shared tile atlas, so a whole board of yields
-   * is *one* instanced draw per distinct cell — twelve at the very most (three
+   * is *one* instanced draw per distinct cell — sixteen at the very most (six
    * voices plus the digits actually on screen) however large the map is, and the
    * shadows cost none of their own because they travel inside the same stamp.
    */

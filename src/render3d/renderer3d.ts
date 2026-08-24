@@ -50,7 +50,6 @@ import {
 
 import { type GameMap, getTileAt, offsetToAxial, tileIndex } from '../sim/map';
 import type { GameState } from '../sim/state';
-import { UNIT_TYPE_IDS, type UnitTypeId } from '../sim/unitData';
 import type {
   CellRef,
   FallenUnit,
@@ -97,6 +96,7 @@ import {
   unitVisualHeight,
   pieceMaterials,
   placePiece,
+  signUnits,
   unitColor,
 } from './pieces';
 import { type WorldPoint, pickBadge, pickTile } from './picking';
@@ -314,6 +314,12 @@ export class Renderer3D implements MapView {
    * player has to ask for. A failure is silent — the lens shows nothing and the
    * yield switch shows nothing, which is what they showed before this atlas
    * existed.
+   *
+   * The units layer reads it too now, for the worker charge badge's numeral
+   * boss (`UnitLayer.build`'s `icons` parameter), so a units rebuild joins the
+   * lens and the chart the moment this atlas is ready — otherwise a worker
+   * placed before it arrived would carry no charge marker until some unrelated
+   * change next touched `signUnits`.
    */
   private loadIcons(): void {
     void TileIcons.load().then((icons) => {
@@ -324,6 +330,7 @@ export class Renderer3D implements MapView {
       }
       this.icons = icons;
       this.rebuildLens();
+      this.rebuildUnits();
       // The blank chart's serpents are cells of this atlas, so the one layer
       // that could not be finished without it is finished now. The single
       // re-build of the chart layer in a session, and deliberately not a rebuild
@@ -631,6 +638,9 @@ export class Renderer3D implements MapView {
       this.badges,
       this.selectedUnitId,
       this.fogLevels(),
+      // The tile atlas, for the worker charge badge's numeral boss — the same
+      // atlas and the same loading rhythm as the lens's yield glyphs.
+      this.icons,
     );
     // A walk in flight keeps its piece hidden across the rebuild; the sample
     // loop restores it when the animation ends.
@@ -1525,34 +1535,6 @@ export class Renderer3D implements MapView {
     this.renderer.dispose();
   }
 }
-
-/**
- * A cheap order-sensitive fingerprint of everything about the units that the
- * pieces layer draws: who they are, *what* they are, where they stand, and how
- * hurt they are. FNV-1a over integers, so it allocates nothing per frame.
- *
- * The type is in here because a unit can change type without moving: research
- * upgrades a warrior into a swordsman in place (see `upgradeUnits` in
- * `tech.ts`), and every other field stays identical — a fingerprint without it
- * would leave the old silhouette on the board until the unit next walked.
- */
-function signUnits(state: GameState): number {
-  let h = 2166136261 ^ state.units.length;
-  for (const unit of state.units) {
-    h = Math.imul(h ^ unit.id, 16777619);
-    h = Math.imul(h ^ unit.col, 16777619);
-    h = Math.imul(h ^ unit.row, 16777619);
-    h = Math.imul(h ^ unit.hp, 16777619);
-    h = Math.imul(h ^ unit.ownerId, 16777619);
-    h = Math.imul(h ^ (UNIT_TYPE_INDEX.get(unit.type) ?? -1), 16777619);
-  }
-  return h >>> 0;
-}
-
-/** Unit types as small integers, so the fingerprint stays integer arithmetic. */
-const UNIT_TYPE_INDEX = new Map<UnitTypeId, number>(
-  UNIT_TYPE_IDS.map((id, index) => [id, index]),
-);
 
 /** Cheap equality for overlay cell lists, so a repaint is not a rebuild. */
 function sameCells(a: readonly CellRef[], b: readonly CellRef[]): boolean {

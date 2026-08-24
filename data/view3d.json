@@ -318,7 +318,11 @@
     "atlasColumns": 4,
     "iconScale": 0.66,
     "alphaTest": 0.5,
-    "hitboxScale": 1.3
+    "hitboxScale": 1.3,
+    "chargeDiameter": 0.17,
+    "chargeOffsetX": 0.6,
+    "chargeOffsetY": 0.6,
+    "chargeNudge": 0.012
   },
   "animation": {
     "msPerHex": 160,
@@ -374,6 +378,9 @@
     "foodColor": "#6f9e4e",
     "productionColor": "#c98a4b",
     "goldColor": "#d6b053",
+    "scienceColor": "#5b84c2",
+    "cultureColor": "#9f74b8",
+    "faithColor": "#c17a9e",
     "siteInvalidColor": "#2f2b32",
     "siteInvalidOpacity": 0.4,
     "siteCoastColor": "#4f9bc4",

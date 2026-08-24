@@ -50,6 +50,7 @@
   --y-gold: #c8901f;
   --y-sci: #2757b8;
   --y-cul: #7b3fa8;
+  --y-faith: #a8467e;
 
   /* Yields drawn on ink instead of parchment need to be lifted to stay legible
      — the banner and the tooltip are the only two dark surfaces in the set. */
@@ -58,6 +59,7 @@
   --y-gold-lit: #ecc154;
   --y-sci-lit: #82aef2;
   --y-cul-lit: #cf9fee;
+  --y-faith-lit: #e08fc0;
 
   /* --- faces ------------------------------------------------------------ */
   --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
@@ -1258,7 +1260,8 @@ button.seat:active {
   font-size: 11px;
 }
 
-/* Tile yields, each in its own voice. */
+/* Tile yields, each in its own voice. All six since the luxuries pass — see
+   `TILE_YIELD_KEYS` and `showTileYields` in `main.ts`. */
 .tile-yield {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
@@ -1277,6 +1280,15 @@ button.seat:active {
 }
 .tile-yield.is-gold {
   color: var(--y-gold);
+}
+.tile-yield.is-science {
+  color: var(--y-sci);
+}
+.tile-yield.is-culture {
+  color: var(--y-cul);
+}
+.tile-yield.is-faith {
+  color: var(--y-faith);
 }
 
 .hint {

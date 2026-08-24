@@ -323,7 +323,7 @@ describe('the tile-icon atlas', () => {
     expect(numerals).toEqual([...NUMERAL_CELLS]);
     expect(margins).toEqual([...MARGINALIA_CELLS]);
     expect(TILE_ICON_CELLS).toHaveLength(
-      RESOURCE_IDS.length + 3 + 10 + MARGINALIA_CELLS.length,
+      RESOURCE_IDS.length + 6 + 10 + MARGINALIA_CELLS.length,
     );
   });
 
@@ -353,6 +353,9 @@ describe('the tile-icon atlas', () => {
     expect(YIELD_COLORS.food).toBe(VIEW3D.lens.foodColor);
     expect(YIELD_COLORS.production).toBe(VIEW3D.lens.productionColor);
     expect(YIELD_COLORS.gold).toBe(VIEW3D.lens.goldColor);
+    expect(YIELD_COLORS.science).toBe(VIEW3D.lens.scienceColor);
+    expect(YIELD_COLORS.culture).toBe(VIEW3D.lens.cultureColor);
+    expect(YIELD_COLORS.faith).toBe(VIEW3D.lens.faithColor);
   });
 
   it('tiles the cells into a grid big enough to hold them all', () => {
@@ -886,12 +889,40 @@ describe('the yield glyphs', () => {
     tile.terrain = 'desert';
     tile.hills = true;
     // A desert hill is 0/2/0; copper adds a hammer and a coin, so two rows and
-    // nothing green. (The lens draws the three *ground* voices; science, culture
-    // and faith have no glyph on the board yet — see `YIELD_KEYS`.)
+    // nothing green.
     const shapes = marksOver(state, 4, 4).map((mesh) => mesh.geometry);
     expect(shapes).toContain(geometry.yieldGlyphs.production);
     expect(shapes).toContain(geometry.yieldGlyphs.gold);
     expect(shapes).not.toContain(geometry.yieldGlyphs.food);
+  });
+
+  /**
+   * The ratified luxury table pays the three new voices from the ground itself
+   * — silk in culture, tea in science, incense in faith (see the docblock on
+   * `TileYield` in `terrainData.ts`) — so the lens has to draw a row for each of
+   * them exactly as it always has for the three that came before. This is the
+   * whole of the six-voice pip rework: `YIELD_KEYS` grew, and everything that
+   * folds it (`addYieldGlyphs`, `buildIconDecals`) already generalised over the
+   * list rather than naming three cells by hand.
+   */
+  it('draws a row for each of the three ground voices the luxuries pay', () => {
+    const state = flatState();
+    at(state, 4, 4).resource = 'silk';
+    const culture = marksOver(state, 4, 4).map((mesh) => mesh.geometry);
+    expect(culture).toContain(geometry.yieldGlyphs.culture);
+    // Base grassland still pays two food alongside it — a mixed row, not a
+    // replacement.
+    expect(culture).toContain(geometry.yieldGlyphs.food);
+
+    at(state, 4, 4).resource = 'tea';
+    const science = marksOver(state, 4, 4).map((mesh) => mesh.geometry);
+    expect(science).toContain(geometry.yieldGlyphs.science);
+    expect(science).toContain(geometry.yieldGlyphs.gold);
+
+    at(state, 4, 4).resource = 'incense';
+    const faith = marksOver(state, 4, 4).map((mesh) => mesh.geometry);
+    expect(faith).toContain(geometry.yieldGlyphs.faith);
+    expect(faith).toContain(geometry.yieldGlyphs.gold);
   });
 
   it('keeps a real tile\'s yields down to stacks, never numerals', () => {

@@ -414,6 +414,9 @@ export interface LensSpec {
   foodColor: number;
   productionColor: number;
   goldColor: number;
+  scienceColor: number;
+  cultureColor: number;
+  faithColor: number;
   /** Tiles no city may be founded on are simply darkened. */
   siteInvalidColor: number;
   siteInvalidOpacity: number;
@@ -819,6 +822,18 @@ export interface BadgeSpec {
    * that visibly refuses clicks that landed on it.
    */
   hitboxScale: number;
+  /**
+   * The worker's charge-count boss: a small numeral quad at the badge's
+   * upper-right corner, standing in front of the disc and its rim. See
+   * `UnitLayer.addChargeBadge` in `pieces.ts`.
+   */
+  chargeDiameter: number;
+  /** Offset of the boss's centre from the badge's, as a fraction of `diameter`
+   * along the camera's right and up axes — together, "toward the corner". */
+  chargeOffsetX: number;
+  chargeOffsetY: number;
+  /** How far in front of the rim the boss sits, so it never z-fights it. */
+  chargeNudge: number;
 }
 
 export interface AnimationSpec {
@@ -1445,6 +1460,10 @@ export const VIEW3D: View3DData = {
     iconScale: viewJson.badges.iconScale,
     alphaTest: viewJson.badges.alphaTest,
     hitboxScale: viewJson.badges.hitboxScale,
+    chargeDiameter: viewJson.badges.chargeDiameter,
+    chargeOffsetX: viewJson.badges.chargeOffsetX,
+    chargeOffsetY: viewJson.badges.chargeOffsetY,
+    chargeNudge: viewJson.badges.chargeNudge,
   },
   animation: viewJson.animation,
   lens: {
@@ -1469,6 +1488,9 @@ export const VIEW3D: View3DData = {
     foodColor: parseColor(viewJson.lens.foodColor, 'lens.foodColor'),
     productionColor: parseColor(viewJson.lens.productionColor, 'lens.productionColor'),
     goldColor: parseColor(viewJson.lens.goldColor, 'lens.goldColor'),
+    scienceColor: parseColor(viewJson.lens.scienceColor, 'lens.scienceColor'),
+    cultureColor: parseColor(viewJson.lens.cultureColor, 'lens.cultureColor'),
+    faithColor: parseColor(viewJson.lens.faithColor, 'lens.faithColor'),
     siteInvalidColor: parseColor(viewJson.lens.siteInvalidColor, 'lens.siteInvalidColor'),
     siteInvalidOpacity: viewJson.lens.siteInvalidOpacity,
     siteCoastColor: parseColor(viewJson.lens.siteCoastColor, 'lens.siteCoastColor'),

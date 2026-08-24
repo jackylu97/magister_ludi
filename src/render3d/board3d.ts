@@ -324,7 +324,7 @@ function buildImprovementProps(): Record<ImprovementId, BufferGeometry> {
 }
 
 /**
- * One flat quad per tile-atlas cell: the twelve resource roundels, the three
+ * One flat quad per tile-atlas cell: the twelve resource roundels, the six
  * yield glyphs and the ten numerals.
  *
  * The same bargain `buildBadgeQuads` makes, one plane down: the atlas rectangle
@@ -374,6 +374,21 @@ function buildResourceMarkers(): Record<ResourceId, BufferGeometry> {
     out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
   }
   return out as Record<ResourceId, BufferGeometry>;
+}
+
+/**
+ * The ten numeral cells again, *standing up* — the same trick
+ * `buildResourceMarkers` plays, one set over. This is what the worker's charge
+ * badge (`pieces.ts`) is built from: a small camera-facing digit at a badge's
+ * corner is a token standing in the diorama, not a mark lying on the ground, so
+ * the flat decals `buildIconDecals` keeps for the lens cannot be reused any more
+ * than the resource decals could — see that function's own docblock.
+ */
+function buildNumeralMarkers(): BufferGeometry[] {
+  return NUMERAL_CELLS.map((digit) => {
+    const rect = tileIconRect({ set: 'numeral', id: digit });
+    return atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
+  });
 }
 
 /**
@@ -455,6 +470,11 @@ export class BoardGeometry {
    */
   readonly resourceMarkers: Record<ResourceId, BufferGeometry>;
   readonly resourceStem: BufferGeometry;
+  /**
+   * The standing form of the ten numeral cells, for the worker's charge badge
+   * — see `buildNumeralMarkers`. Indexed by digit, exactly as `numerals` is.
+   */
+  readonly numeralMarkers: BufferGeometry[];
   /** An upright unit quad standing on its base, for the sprite units. */
   readonly billboard: BufferGeometry;
   /** The blob shadow under a billboard, and the foot it stands in. */
@@ -525,6 +545,7 @@ export class BoardGeometry {
     this.numerals = icons.numerals;
     this.resourceMarkers = buildResourceMarkers();
     this.resourceStem = markerPin(VIEW3D.lens.resourceStemTaper);
+    this.numeralMarkers = buildNumeralMarkers();
     this.river = riverSegment();
     this.bar = barQuad();
     // Sprite units. Built unconditionally rather than behind the style switch:
@@ -583,6 +604,7 @@ export class BoardGeometry {
     for (const prop of Object.values(this.improvementProps)) prop.dispose();
     for (const quad of Object.values(this.resourceMarkers)) quad.dispose();
     this.resourceStem.dispose();
+    for (const quad of this.numeralMarkers) quad.dispose();
     for (const quad of Object.values(this.yieldGlyphs)) quad.dispose();
     for (const quad of this.numerals) quad.dispose();
     this.river.dispose();

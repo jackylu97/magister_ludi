@@ -62,7 +62,7 @@
  * The second atlas: what is printed on a tile
  * -------------------------------------------
  * The same machinery, one plane down. `TileIcons` (below) rasterises every
- * resource mark, the three yield glyphs and ten numerals into a second atlas,
+ * resource mark, the six yield glyphs and ten numerals into a second atlas,
  * and the lens layer prints them flat on the ground. They share this file with
  * the badges rather than living in one of their own because they are the same
  * *system* — a roundel, an ink mark, one grid, one stroke language, one cell
@@ -364,9 +364,9 @@ export function drawBadgeCell(
  *   resources  a parchment roundel with the resource's ink mark on it, drawn
  *              exactly like a unit badge. The resource *lens* puts these on the
  *              tiles a player may be told about (see `visibleResourceAt`).
- *   yields     one glyph per yield voice — sheaf, hammer, coin — inked on a
- *              disc of that voice's own colour. See `drawYieldCell` for why the
- *              disc survived the pips it replaced.
+ *   yields     one glyph per yield voice — sheaf, hammer, coin, flask, mask,
+ *              flame — inked on a disc of that voice's own colour. See
+ *              `drawYieldCell` for why the disc survived the pips it replaced.
  *   numerals   ten digits on parchment, for the "and more than four" case.
  *
  * The cell order below is the authority on which cell is which, exactly as
@@ -374,7 +374,14 @@ export function drawBadgeCell(
  * coordinates, so reordering it would silently re-point every mark on the board
  * at somebody else's picture.
  */
-export const YIELD_KEYS = ['food', 'production', 'gold'] as const;
+export const YIELD_KEYS = [
+  'food',
+  'production',
+  'gold',
+  'science',
+  'culture',
+  'faith',
+] as const;
 export type YieldKey = (typeof YIELD_KEYS)[number];
 
 /** The ten digits, in value order. `NUMERAL_CELLS[3]` is the glyph for 3. */
@@ -405,7 +412,7 @@ export type TileIconCell =
   | { set: 'marginalia'; id: MarginaliaKey };
 
 /**
- * Every cell of the tile atlas, in layout order: the resources, then the three
+ * Every cell of the tile atlas, in layout order: the resources, then the six
  * yield voices, then the digits, then the marginalia.
  *
  * Appended rather than inserted, and that is not politeness — this list decides
@@ -445,13 +452,19 @@ export const YIELD_ICON_FILES: Record<YieldKey, string> = {
   food: 'sprites/icons/yields/food.svg',
   production: 'sprites/icons/yields/production.svg',
   gold: 'sprites/icons/yields/gold.svg',
+  science: 'sprites/icons/yields/science.svg',
+  culture: 'sprites/icons/yields/culture.svg',
+  faith: 'sprites/icons/yields/faith.svg',
 };
 
-/** The colour each yield voice is printed in. The interface's own three. */
+/** The colour each yield voice is printed in. The interface's own six. */
 export const YIELD_COLORS: Record<YieldKey, number> = {
   food: LENS.foodColor,
   production: LENS.productionColor,
   gold: LENS.goldColor,
+  science: LENS.scienceColor,
+  culture: LENS.cultureColor,
+  faith: LENS.faithColor,
 };
 
 /** The live layout of the tile atlas. */
@@ -540,7 +553,7 @@ function paintCellMark(
  *
  * The generalisation of `drawBadgeCell` — the roundel is the same object in both
  * atlases — with the two colours as arguments, because the tile atlas needs
- * three different discs (parchment for a resource, and the three yield voices)
+ * three different discs (parchment for a resource, and the six yield voices)
  * out of one routine. `drawResourceCell` is the sibling that swaps the plain
  * disc for a kind-shaped paper and a coloured rim; this one keeps the shape
  * every other cell of the atlas still wants.
