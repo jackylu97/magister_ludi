@@ -5,8 +5,10 @@ import { type GameState, newGame } from '../../src/sim/state';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import {
   NOTIFICATION_CAP,
+  type NotificationAction,
   createNotificationLog,
   createSightingWatcher,
+  isActionable,
 } from '../../src/ui/notifications';
 
 /**
@@ -78,13 +80,17 @@ describe('the chronicle', () => {
     expect(log.entries(0).map((entry) => entry.text)).toEqual(['third', 'second', 'first']);
   });
 
-  it('keeps a cell on the entries that carry one, and nothing on the rest', () => {
+  it('keeps an action on the entries that carry one, and nothing on the rest', () => {
     const log = createNotificationLog();
-    log.push(0, { turn: 4, text: 'Bought a tile for Uruk', cell: { col: 3, row: 5 } });
+    log.push(0, {
+      turn: 4,
+      text: 'Bought a tile for Uruk',
+      action: { kind: 'pan', cell: { col: 3, row: 5 } },
+    });
     log.push(0, { turn: 4, text: 'Your people murmur.' });
     const [murmur, bought] = log.entries(0);
-    expect(murmur?.cell).toBeUndefined();
-    expect(bought?.cell).toEqual({ col: 3, row: 5 });
+    expect(murmur?.action).toBeUndefined();
+    expect(bought?.action).toEqual({ kind: 'pan', cell: { col: 3, row: 5 } });
   });
 
   it('drops the oldest past the cap', () => {
@@ -150,6 +156,55 @@ describe('the chronicle', () => {
     const log = createNotificationLog();
     expect(log.entries(7)).toEqual([]);
     expect(log.unread(7)).toBe(0);
+  });
+});
+
+describe('a notification action', () => {
+  /**
+   * A compile-time pin on `NotificationAction`, not a runtime assertion: if a
+   * second kind is ever added to the union without a case here, this function
+   * stops compiling. That is `main.ts`'s `runAction` in miniature — the same
+   * `never`-typed default the reducer's own exhaustiveness check uses
+   * (`sim/commands.ts`, `unhandledCommand`) — kept here so the union's shape is
+   * pinned in the one suite that already owns it, rather than only where it is
+   * consumed.
+   */
+  function describeKind(action: NotificationAction): string {
+    // Aliased-discriminant idiom, matching `sim/commands.ts`'s `applyCommand`
+    // and `main.ts`'s `runAction`: switching on `kind` still narrows `action`
+    // in each case, and leaves `kind` as the `never` the default needs.
+    const kind = action.kind;
+    switch (kind) {
+      case 'pan':
+        return `pan to ${action.cell.col},${action.cell.row}`;
+      default: {
+        const unhandled: never = kind;
+        return unhandled;
+      }
+    }
+  }
+
+  it('is a pan for now, and carries the cell it pans to', () => {
+    const action: NotificationAction = { kind: 'pan', cell: { col: 2, row: 9 } };
+    expect(describeKind(action)).toBe('pan to 2,9');
+  });
+
+  describe('isActionable', () => {
+    it('needs both an action on the entry and a handler for it', () => {
+      const withAction = {
+        turn: 1,
+        text: 'x',
+        action: { kind: 'pan' as const, cell: { col: 0, row: 0 } },
+      };
+      const withoutAction = { turn: 1, text: 'x' };
+      expect(isActionable(withAction, true)).toBe(true);
+      // An entry with somewhere to go, but nobody to take it there (the frozen
+      // 2D renderers' case, `toasts.ts`'s docblock) — still not a button.
+      expect(isActionable(withAction, false)).toBe(false);
+      // Plain news never becomes a button, handler or not.
+      expect(isActionable(withoutAction, true)).toBe(false);
+      expect(isActionable(withoutAction, false)).toBe(false);
+    });
   });
 });
 

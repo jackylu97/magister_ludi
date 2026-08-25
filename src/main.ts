@@ -90,9 +90,13 @@ import {
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
-import { type GameControls, createGameControls } from './ui/controls';
+import { type GameControls, type NoticeKind, createGameControls } from './ui/controls';
 import { type DamageNumbers, createDamageNumbers } from './ui/damageNumbers';
-import { type NotificationLog, createNotificationLog } from './ui/notifications';
+import {
+  type NotificationAction,
+  type NotificationLog,
+  createNotificationLog,
+} from './ui/notifications';
 import { type NotificationsPanel, createNotificationsPanel } from './ui/notificationsPanel';
 import { createPopover } from './ui/popover';
 import { type ToastStack, createToastStack } from './ui/toasts';
@@ -1122,11 +1126,13 @@ async function boot(initial: Game | null): Promise<void> {
 
   /**
    * The message line inside the context card: move mode while it is armed, a
-   * refused order for a beat and a half, or the result of a blow. `kind` is the
-   * difference between news and a "no" the player did not ask for — only the
-   * refusal flashes.
+   * refused order for a beat and a half, or a guidance line End Turn's blocker
+   * pointed the player at. `kind` is the difference between a "no" the player
+   * did not ask for and everything else in this slot — only a refusal flashes;
+   * `'guide'` reads with the same calm styling `'mode'` already has (`controls.ts`
+   * module docblock's three-way split).
    */
-  function showNotice(text: string | null, kind: 'mode' | 'reject'): void {
+  function showNotice(text: string | null, kind: NoticeKind): void {
     const flinches = text !== null && kind === 'reject';
     contextNoticeEl.hidden = text === null;
     contextNoticeEl.textContent = text ?? '';
@@ -1268,6 +1274,20 @@ async function boot(initial: Game | null): Promise<void> {
     },
   });
 
+  /**
+   * The lens menu's rows, in the order they are shown: the exclusive lens
+   * choices the menu below builds buttons for, and — via `controls`'s
+   * `lensOrder` — the one source of order the number-key hotkeys read
+   * (`lensForDigit` in `controls.ts`). Declared before `controls` for exactly
+   * that: the wiring needs the order, and a second copy of this list for the
+   * hotkeys to read would be the very mapping this shape is meant to avoid.
+   */
+  const LENS_OPTIONS: [LensMode, string, string][] = [
+    ['none', 'None', 'The board as it is'],
+    ['settler', 'Settler', 'Where a city may go: blue is coastal, green is fresh water'],
+    ['explorer', 'Explorer', 'What is left to find: gold is a ruin or a village, red is a camp'],
+  ];
+
   const controls = createGameControls({
     viewport: viewportEl,
     renderer,
@@ -1336,16 +1356,43 @@ async function boot(initial: Game | null): Promise<void> {
       const player = game.state.players[playerId];
       if (player) splash.announceVictory(player.name);
     },
+    // The number-key hotkeys' one source of order — see `LENS_OPTIONS`'s own
+    // docblock for why this is declared above rather than the menu passing it
+    // down.
+    lensOrder: LENS_OPTIONS.map(([mode]) => mode),
   });
 
   /**
+   * What clicking a notification's action does — the one switch, shared by the
+   * toast stack and the chronicle, so a toast and its log entry can never come
+   * to disagree about what the click means. Aliased-discriminant idiom, same as
+   * the reducer's own exhaustiveness check (`sim/commands.ts`'s `applyCommand`):
+   * switching on the aliased `kind` still narrows `action` inside each case, and
+   * leaves `kind` — not `action` — as the `never` the `default` needs, so the
+   * day `NotificationAction` grows a second kind this stops compiling wherever
+   * it is not yet handled.
+   */
+  function runAction(action: NotificationAction): void {
+    const kind = action.kind;
+    switch (kind) {
+      case 'pan':
+        controls.panTo(action.cell);
+        return;
+      default: {
+        const unhandled: never = kind;
+        throw new Error(`Unknown notification action "${String(unhandled)}"`);
+      }
+    }
+  }
+
+  /**
    * The notification channel's two surfaces, built after `controls` because both
-   * ask it something: the stack asks it to move the camera, and the panel asks
-   * it whose chronicle to show.
+   * ask it something: the stack runs an entry's action, and the panel asks it
+   * whose chronicle to show.
    */
   toasts = createToastStack({
     container: toastsEl,
-    onPan: (cell) => controls.panTo(cell),
+    onAction: runAction,
   });
 
   notifications = createNotificationsPanel({
@@ -1356,7 +1403,7 @@ async function boot(initial: Game | null): Promise<void> {
     badge: logBadgeEl,
     log: notificationLog,
     localPlayerId: () => controls.localPlayerId(),
-    onPan: (cell) => controls.panTo(cell),
+    onAction: runAction,
     // The HUD's one-card-at-a-time rule, from the other side.
     onOpenPopover: () => {
       menu.close();
@@ -1368,27 +1415,9 @@ async function boot(initial: Game | null): Promise<void> {
   });
 
   /**
-   * The lens menu: the exclusive lens choices, and — under them — the switches
-   * that are not lenses.
-   *
-   * The rows set the player's *chosen* lens, which a selected settler may be
-   * overriding on the board (see `controls.ts`), and each checkbox sets one of
-   * their own switches, which nothing else in the interface takes away. The menu
-   * deliberately shows the choices rather than the overrides: they are the
-   * things the player can change, and the things that come back.
-   *
-   * The switches are checkboxes and not further rows precisely because they
-   * compose with everything above them. A tick in a list of exclusive rows would
-   * say the opposite — that turning yields on turns the settler lens off, which
-   * is exactly the behaviour this shape removed, first for the glyphs and then
-   * for the resource roundels.
+   * The lens menu's rows: the exclusive lens choices, built off `LENS_OPTIONS`
+   * (declared above `controls`, and see that declaration for why).
    */
-  const LENS_OPTIONS: [LensMode, string, string][] = [
-    ['none', 'None', 'The board as it is'],
-    ['settler', 'Settler', 'Where a city may go: blue is coastal, green is fresh water'],
-    ['explorer', 'Explorer', 'What is left to find: gold is a ruin or a village, red is a camp'],
-  ];
-
   const lensButtons = LENS_OPTIONS.map(([mode, label, hint]) => {
     const button = document.createElement('button');
     button.type = 'button';

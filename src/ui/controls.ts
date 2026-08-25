@@ -67,16 +67,25 @@
  * button than it ever did for the left, because on many trackpads a two-finger
  * drag arrives as a right-button drag.
  *
- * Refusals are never silent, and news is not a refusal
- * ----------------------------------------------------
- * There are two things this module has to say and they go to two places.
+ * Refusals are never silent, guidance does not flinch, and news is not either
+ * ---------------------------------------------------------------------------
+ * There are three things this module has to say and they go to two places.
  *
  * A **refusal** — a mountain, a tile out of reach, a seat that has already ended
- * its turn — reports through `onNotice`, which the HUD whispers into the context
- * card for a beat. That card is bottom-left, under the cursor, which is exactly
- * where the player is already looking when an order is bounced: a "no" is a
- * reply to a gesture and it belongs where the gesture came from. The selection
- * survives, because the player almost certainly wants to aim again.
+ * its turn — reports through `onNotice(text, 'reject')`, which the HUD whispers
+ * into the context card for a beat and flashes red. That card is bottom-left,
+ * under the cursor, which is exactly where the player is already looking when an
+ * order is bounced: a "no" is a reply to a gesture and it belongs where the
+ * gesture came from. The selection survives, because the player almost certainly
+ * wants to aim again.
+ *
+ * **Guidance** — "your settlers await a home", said when End Turn takes the
+ * player to the thing they forgot — shares that same bottom-left card, through
+ * the separate `guide` function rather than a flag on `announce`, and reads
+ * `'guide'` for `onNotice`'s `kind`. It is a reply to a gesture too (the player
+ * pressed End Turn), so it belongs in the same slot a refusal does, but it is
+ * not a "no" — the interface did what was asked and is pointing, not scolding —
+ * so it does not flash red the way a refusal does.
  *
  * **News** — a city finished something, a camp was burnt out, a ruin came into
  * view — reports through `onNotify` (`announce`), which the HUD raises as a toast
@@ -85,7 +94,7 @@
  * whispers it into a corner and fades is a line that is missed. Every announce
  * call site in this file gets both surfaces without knowing either exists; the
  * ones that happen *somewhere* pass a `cell` too, which is what makes the toast
- * and its log entry click-to-pan. See `notifications.ts`.
+ * and its log entry click-to-pan (`NotificationAction`, `notifications.ts`).
  *
  * Sightings
  * ---------
@@ -233,10 +242,12 @@ const MOVE_MODE_NOTICE = 'Move mode — click a destination (Esc cancels)';
 const BUY_MODE_NOTICE = 'Buy tiles — click a priced hex to purchase it (Esc cancels)';
 
 /**
- * A line for the context card: either the standing description of a mode the
- * player has put themselves in, or a one-off refusal that fades.
+ * A line for the context card: the standing description of a mode the player
+ * has put themselves in, a one-off refusal that flashes and fades, or a one-off
+ * pointer the player asked for (End Turn's blocker) that fades the same way but
+ * never flashes — see the module docblock's three-way split.
  */
-export type NoticeKind = 'mode' | 'reject';
+export type NoticeKind = 'mode' | 'reject' | 'guide';
 
 /**
  * The optional half of an announcement.
@@ -312,6 +323,39 @@ export interface ImprovementOption {
  */
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
+ * What a digit key does to the manual lens: which mode to set, or `null` when
+ * the digit does nothing.
+ *
+ * Pure and exported so the mapping can be pinned by a test that has no
+ * keyboard, and it is where both halves of the number-key rule live in one
+ * place rather than scattered across the `keydown` handler:
+ *
+ *   · `0` always clears — the Civ convention a player already knows — read
+ *     independently of `order`, so it means "off" even on the day `order`'s
+ *     first entry stops being `'none'`.
+ *   · `1..9` read positions `0..8` of `order`, whichever lens is there. `order`
+ *     is `main.ts`'s `LENS_OPTIONS` (mode-only): the menu's own list is the one
+ *     source of that sequence, so a lens appended to it gets a working hotkey
+ *     with no second mapping to keep in step, and a digit past the end of the
+ *     list names nothing.
+ *   · The number of the lens already active toggles it **off** — Civ-style —
+ *     and any other in-range number switches to it. Both readings come from
+ *     `current`, which must be the *manual* lens (`GameControls.lens()`) and
+ *     never `effectiveLens`'s answer: a selected settler overriding the board
+ *     is not a reason a number key should stop doing what the menu would do.
+ */
+export function lensForDigit(
+  digit: number,
+  order: readonly LensMode[],
+  current: LensMode,
+): LensMode | null {
+  if (!Number.isInteger(digit) || digit < 0 || digit > 9) return null;
+  const target = digit === 0 ? 'none' : (order[digit - 1] ?? null);
+  if (target === null) return null;
+  return target === current ? 'none' : target;
 }
 
 export interface GameControlsOptions {
@@ -453,6 +497,16 @@ export interface GameControlsOptions {
    * itself on every later click.
    */
   onVictory?: (playerId: number) => void;
+
+  /**
+   * The manual lenses, in the order the menu shows them — `main.ts`'s
+   * `LENS_OPTIONS`, mode-only. The one source of order for the number-key
+   * hotkeys (see `lensForDigit`): required rather than defaulted here, because
+   * a default would be the second hardcoded copy of the list this is meant to
+   * avoid. A lens appended to the menu's array gets a working hotkey with
+   * nothing in this file to update.
+   */
+  lensOrder: readonly LensMode[];
 }
 
 export interface GameControls {
@@ -754,6 +808,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onOfferDiscovery,
     onDamage,
     onVictory,
+    lensOrder,
   } = options;
 
   /** The seat this client plays. Player ids are indices, so 0 is the first. */
@@ -821,6 +876,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   let rejection: string | null = null;
   let rejectionTimer = 0;
   /**
+   * A guidance line currently on the card, and the timer that will take it
+   * away — the same shape as `rejection`/`rejectionTimer`, for the same reason:
+   * both are one-off lines in the same slot, and both fade on their own clock
+   * rather than waiting to be replaced.
+   */
+  let guidance: string | null = null;
+  let guidanceTimer = 0;
+  /**
    * The sighting diff's memory: what each seat has already been told is there.
    *
    * View state, per seat, and never reset by anything but a new game — which is
@@ -833,15 +896,23 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   /**
    * Says whatever is currently truest: a refusal while one is fresh, otherwise
-   * move mode while it is armed, otherwise nothing. One funnel, so the two
-   * sources can never fight over the line.
+   * guidance while it is fresh, otherwise move mode while it is armed, otherwise
+   * nothing. One funnel, so none of the sources can fight over the line.
+   *
+   * Refusal outranks guidance because it is always the *newer* of the two — a
+   * refusal only exists in reaction to the very last thing the player did, and
+   * the two are never armed by the same gesture. Both outrank the standing mode
+   * lines, and both revert to whichever mode line is live once their own timer
+   * clears — the mode line was never gone, it was only covered.
    *
    * News no longer competes for this slot — it goes to `announce` and the toast
-   * stack — so what is left here is a refusal and the two standing mode lines,
-   * which is the whole of what a card under the cursor should carry.
+   * stack — so what is left here is a refusal, a guidance line, and the two
+   * standing mode lines, which is the whole of what a card under the cursor
+   * should carry.
    */
   function publishNotice(): void {
     if (rejection !== null) onNotice?.(rejection, 'reject');
+    else if (guidance !== null) onNotice?.(guidance, 'guide');
     else if (moveMode) onNotice?.(MOVE_MODE_NOTICE, 'mode');
     // Below move mode, because the two cannot be armed together — opening a city
     // disarms a move order (see `setOpenCity`) and buy mode lives inside an open
@@ -862,6 +933,26 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * Points the player at something they asked to be pointed at — End Turn's
+   * blocker, and anything with the same shape: a reply to a gesture, not a "no".
+   *
+   * Same bottom-left slot and the same fade-on-a-timer as `reject`, and
+   * deliberately a separate function rather than an `AnnounceOptions` flag: a
+   * call site that reads `guide('☞ …')` is legible for what it is without
+   * anyone having to know `announce`'s options to tell the two apart. See the
+   * module docblock's three-way split.
+   */
+  function guide(text: string): void {
+    guidance = text;
+    window.clearTimeout(guidanceTimer);
+    guidanceTimer = window.setTimeout(() => {
+      guidance = null;
+      publishNotice();
+    }, NOTICE_MS);
+    publishNotice();
+  }
+
+  /**
    * Reports something that *happened* — a blow landed, a city taken, a ruin
    * sighted. A toast under the bar and a line in this seat's chronicle, which is
    * a different channel from a refusal and deliberately so (module docblock).
@@ -872,7 +963,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function announce(text: string, opts: AnnounceOptions = {}): void {
     const entry: NotificationEntry = { turn: getGame().state.turn, text };
-    if (opts.cell) entry.cell = { col: opts.cell.col, row: opts.cell.row };
+    // `AnnounceOptions` still takes a bare `cell` — every call site in this file
+    // already reads that way (its own docblock's reason) — and it is `announce`
+    // that wraps it into the action union `NotificationEntry` actually carries.
+    // `pan` is the only action there is today; a second one gets its own
+    // `opts` field and a branch here, not a change to any call site.
+    if (opts.cell) {
+      entry.action = { kind: 'pan', cell: { col: opts.cell.col, row: opts.cell.row } };
+    }
     onNotify?.(entry, localPlayerId);
   }
 
@@ -2449,9 +2547,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * Every arm does the same three things in the same order — look at it, put it
    * in hand, name it — because that is what "find the thing I forgot" means: the
    * camera answers *where*, the selection or the open panel answers *which*, and
-   * the manicule line answers *what now*. The notice is `announce` rather than
-   * `reject`: this is guidance the player asked for by pressing the button, not
-   * a refusal, and it should not flinch at them.
+   * the manicule line answers *what now*. The notice is `guide` rather than
+   * `announce` or `reject`: this is guidance the player asked for by pressing
+   * the button, not news and not a refusal, and it should not flinch at them
+   * or steal a slot in the chronicle (module docblock's three-way split).
    */
   function focusBlocker(blocker: TurnBlocker): void {
     const { state } = getGame();
@@ -2464,7 +2563,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // A settler is the one idle piece whose job the interface can guess, so
         // it gets its own line. Everything else is told, honestly, that it is
         // waiting to be told.
-        announce(
+        guide(
           unitDef(unit.type).foundsCity
             ? '☞ Your settlers await a home.'
             : '☞ A unit awaits your command.',
@@ -2480,18 +2579,18 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // tile does rather than leaving a unit sheet fighting it for the space.
         selectedId = null;
         setOpenCity(city.id);
-        announce(`☞ ${cityDisplayName(state, city)} wants for work — choose a production.`);
+        guide(`☞ ${cityDisplayName(state, city)} wants for work — choose a production.`);
         return;
       }
       case 'research': {
-        announce('☞ Your scholars await direction.');
+        guide('☞ Your scholars await direction.');
         onOpenTechTree?.();
         return;
       }
       case 'discovery': {
         const offer = playerById(state, localPlayerId)?.pendingDiscovery;
         if (offer) panToCell({ col: offer.col, row: offer.row });
-        announce('☞ A discovery awaits your judgment.');
+        guide('☞ A discovery awaits your judgment.');
         onOfferDiscovery?.();
         return;
       }
@@ -2765,6 +2864,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // The roundels. One switch, no automatic rule to reconcile with — see
       // `effectiveLens`.
       setResources(!resourcesOn);
+      return;
+    }
+    if (event.key.length === 1 && event.key >= '0' && event.key <= '9') {
+      // Reserved for the lens menu (see `lensForDigit`'s docblock): 0 clears,
+      // 1..9 read `lensOrder`'s positions. No other feature may bind a digit —
+      // this branch is meant to be the only place `event.key` is compared
+      // against a numeral in this file.
+      const target = lensForDigit(Number(event.key), lensOrder, manualLens);
+      if (target !== null) setLens(target);
       return;
     }
     if (event.key === 't' || event.key === 'T') {

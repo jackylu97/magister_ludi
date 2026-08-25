@@ -36,20 +36,48 @@ import { HIDDEN, isVisibleTo, visibilityAt } from '../sim/visibility';
 import type { CellRef } from './mapView';
 
 /**
+ * One thing a notification can make happen when it is clicked or tapped.
+ *
+ * A discriminated union rather than a bare `CellRef` because "pan the camera
+ * there" is one *kind* of action and, eventually, not the only one — a future
+ * entry might open a city panel or a tech instead of just looking at it. The
+ * toast stack and the chronicle both take this whole, and the caller that
+ * knows what to do with each kind (`main.ts`'s `runAction`) switches on
+ * `kind` with a `never` default, so a new member of this union fails to
+ * compile wherever it goes unhandled rather than silently doing nothing.
+ */
+export type NotificationAction = { kind: 'pan'; cell: CellRef };
+
+/**
  * One thing that happened, as the player is told it.
  *
- * `cell` is optional and is what makes an entry *navigable*: a completion, a
- * cleared camp, a sighted ruin all happened somewhere, and an entry that knows
- * where can pan the camera there when it is clicked. News about the empire as a
- * whole — a meter going under, an autosave warning — has no cell and is a plain
- * line, which is why the field is optional rather than a sentinel pair of
- * coordinates nobody can distinguish from the north-west corner of the map.
+ * `action` is optional and is what makes an entry *navigable*: a completion, a
+ * cleared camp, a sighted ruin all happened somewhere, and an entry that
+ * carries a `pan` action can take the camera there when it is clicked. News
+ * about the empire as a whole — a meter going under, an autosave warning — has
+ * no action and is a plain line, which is why the field is optional rather
+ * than a sentinel nobody can distinguish from a real one.
  */
 export interface NotificationEntry {
   /** The turn it was announced on. Stamped by the caller, from the live state. */
   turn: number;
   text: string;
-  cell?: CellRef;
+  action?: NotificationAction;
+}
+
+/**
+ * Whether an entry should render as a control rather than plain text.
+ *
+ * Two things have to both be true — the entry has something to do (an
+ * `action`) and the surface has something to do it with (a handler) — and
+ * `toasts.ts` and `notificationsPanel.ts` each need exactly this test to
+ * decide between a `<button>` and a `<div>`/`<p>`. Pulled out once, here,
+ * rather than left as an inline `&&` in each of the two DOM modules: it is the
+ * one piece of that decision with no DOM in it, so it is the one piece a test
+ * can pin without a browser.
+ */
+export function isActionable(entry: NotificationEntry, hasHandler: boolean): boolean {
+  return entry.action !== undefined && hasHandler;
 }
 
 /**

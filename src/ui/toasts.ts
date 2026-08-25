@@ -29,15 +29,18 @@
  * identical either way — a reader who has asked for less motion is not also
  * asking to be told less, or told for a shorter time.
  *
- * Click to pan
+ * Click to act
  * ------------
- * An entry that carries a cell becomes a button and takes the camera there. That
- * is the whole reason the cell is on `NotificationEntry`: "Granary completed in
- * Uruk" is only half an answer if the player then has to find Uruk.
+ * An entry that carries an action becomes a button: clicking it runs the
+ * action *and* dismisses the card immediately, rather than waiting out the
+ * timer. That is the whole reason `action` is on `NotificationEntry`:
+ * "Granary completed in Uruk" is only half an answer if the player then has
+ * to find Uruk. This module does not know what an action *does* — `onAction`
+ * is the one switch, shared with the chronicle (`main.ts`'s `runAction`), so
+ * a toast and its log entry can never disagree about what a click means.
  */
 
-import type { CellRef } from './mapView';
-import type { NotificationEntry } from './notifications';
+import { type NotificationAction, type NotificationEntry, isActionable } from './notifications';
 
 /** How long a toast stays up before it starts leaving. */
 const TOAST_MS = 5200;
@@ -68,15 +71,16 @@ export interface ToastStackOptions {
   /** The fixed box the cards are stacked in. Emptied on `clear`. */
   container: HTMLElement;
   /**
-   * Take the camera to a cell. Optional for `panToCells`'s reason (see
-   * `mapView.ts`): the frozen 2D renderers cannot, and a toast under one of them
-   * is simply not clickable.
+   * Run an entry's action. Optional for `panToCells`'s reason (see
+   * `mapView.ts`): the frozen 2D renderers cannot pan, and a toast under one of
+   * them is simply not clickable. `main.ts`'s `runAction` is the one
+   * implementation, shared with the chronicle.
    */
-  onPan?: (cell: CellRef) => void;
+  onAction?: (action: NotificationAction) => void;
 }
 
 export function createToastStack(options: ToastStackOptions): ToastStack {
-  const { container, onPan } = options;
+  const { container, onAction } = options;
   /** Every live timer, so `clear` can cancel rather than fire into a dead card. */
   const timers = new Set<number>();
 
@@ -113,7 +117,7 @@ export function createToastStack(options: ToastStackOptions): ToastStack {
 
   return {
     show(entry): void {
-      const clickable = entry.cell !== undefined && onPan !== undefined;
+      const clickable = isActionable(entry, onAction !== undefined);
       // A button when it does something, a paragraph when it does not. Not a
       // button-that-does-nothing: a control the keyboard can reach and then
       // gets nothing from is worse than no control.
@@ -121,9 +125,14 @@ export function createToastStack(options: ToastStackOptions): ToastStack {
       card.className = clickable ? 'toast is-clickable' : 'toast';
       if (card instanceof HTMLButtonElement) {
         card.type = 'button';
-        const cell = entry.cell!;
+        const action = entry.action!;
         card.title = 'Show me';
-        card.addEventListener('click', () => onPan?.(cell));
+        // A click both runs the action and takes the card down: the player
+        // asked to be shown the thing, not to keep looking at a card about it.
+        card.addEventListener('click', () => {
+          onAction?.(action);
+          dismiss(card);
+        });
       }
 
       const turn = document.createElement('span');

@@ -27,8 +27,12 @@
  * `notifications.ts`.
  */
 
-import type { CellRef } from './mapView';
-import type { NotificationEntry, NotificationLog } from './notifications';
+import {
+  type NotificationAction,
+  type NotificationEntry,
+  type NotificationLog,
+  isActionable,
+} from './notifications';
 import { type Popover, createPopover } from './popover';
 
 /** Above this the badge stops counting and starts gesturing. */
@@ -60,8 +64,11 @@ export interface NotificationsPanelOptions {
   log: NotificationLog;
   /** Whose chronicle to show. Asked afresh: the seat can change under the card. */
   localPlayerId: () => number;
-  /** Take the camera to a cell. Absent under the frozen 2D renderers. */
-  onPan?: (cell: CellRef) => void;
+  /**
+   * Run an entry's action. Absent under the frozen 2D renderers. `main.ts`'s
+   * `runAction` is the one implementation, shared with the toast stack.
+   */
+  onAction?: (action: NotificationAction) => void;
   /** Told when this opens, so the HUD's other cards can shut. */
   onOpenPopover?: () => void;
 }
@@ -69,19 +76,19 @@ export interface NotificationsPanelOptions {
 export function createNotificationsPanel(
   options: NotificationsPanelOptions,
 ): NotificationsPanel {
-  const { panel, trigger, closeButton, list, badge, log, localPlayerId, onPan, onOpenPopover } =
+  const { panel, trigger, closeButton, list, badge, log, localPlayerId, onAction, onOpenPopover } =
     options;
 
   /** One entry, as a row: the turn in mono, then what happened. */
   function row(entry: NotificationEntry): HTMLElement {
-    const clickable = entry.cell !== undefined && onPan !== undefined;
+    const clickable = isActionable(entry, onAction !== undefined);
     const el = document.createElement(clickable ? 'button' : 'div');
     el.className = clickable ? 'log-entry is-clickable' : 'log-entry';
     if (el instanceof HTMLButtonElement) {
       el.type = 'button';
-      const cell = entry.cell!;
+      const action = entry.action!;
       el.title = 'Show me';
-      el.addEventListener('click', () => onPan?.(cell));
+      el.addEventListener('click', () => onAction?.(action));
     }
 
     const turn = document.createElement('span');
