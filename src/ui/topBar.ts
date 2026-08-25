@@ -83,6 +83,7 @@ import {
 } from './figures';
 import { createInfoCard } from './infoCard';
 import { meterGroups } from './meterBreakdown';
+import { meterMarkNode } from './meterMark';
 import { type Popover, createPopover } from './popover';
 import { yieldMarkNode } from './yieldMark';
 
@@ -161,12 +162,21 @@ const BANKED: Partial<
 };
 
 /**
- * The two meters, as the interface says them. Placeholder glyphs by project
- * policy — the ledger wants theatre masks and a wax seal (Entry XIV.C), and
- * those are drawn art rather than a code change.
+ * The two meters, as **text** — the register `YIELD_GLYPH` keeps for the six
+ * yields (`figures.ts`), one meter over. `smile` and `stamp` are what a
+ * player *sees* now (`src/art/meterMarks.ts`, drawn by `meterMarkNode`);
+ * these two characters are what survives everywhere a figure has to be a
+ * string and cannot hold an element — today, the chip's own native tooltip,
+ * which a mask cannot fill.
+ *
+ * No longer placeholders: Entry XIV.C's want for theatre masks and a wax seal
+ * is answered by a face and a stamp rather than by the literal masks and
+ * seal it named, on the squint-test call `src/art/meterMarks.ts` documents.
  */
-const HAPPINESS_GLYPH = '☺';
-const AUTHORITY_GLYPH = '⚜';
+const METER_GLYPH: Record<MeterId, string> = {
+  happiness: '☺',
+  authority: '⚜',
+};
 
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -338,22 +348,43 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   const meters = element('div', 'civ-meters');
   meters.setAttribute('aria-label', 'Empire meters');
 
-  function chip(glyph: string, label: string, controls: string): HTMLButtonElement {
+  function chip(meter: MeterId, label: string, controls: string): HTMLButtonElement {
     const button = element('button', 'civ-meter');
     button.type = 'button';
     button.setAttribute('aria-haspopup', 'dialog');
     button.setAttribute('aria-expanded', 'false');
     button.setAttribute('aria-controls', controls);
-    const icon = element('span', 'civ-meter-icon', glyph);
+    const icon = element('span', 'civ-meter-icon');
     icon.setAttribute('aria-hidden', 'true');
+    icon.append(meterMarkNode(meter));
     button.append(icon, element('span', 'civ-meter-value', '—'));
-    button.title = `${label} — click for the full breakdown`;
+    // The glyph survives here, in the one spot on this chip that has to be a
+    // string a native tooltip can hold — see `METER_GLYPH`.
+    button.title = `${METER_GLYPH[meter]} ${label} — click for the full breakdown`;
     meters.append(button);
     return button;
   }
 
-  const happinessChip = chip(HAPPINESS_GLYPH, 'Happiness', happiness.panel.id);
-  const authorityChip = chip(AUTHORITY_GLYPH, 'Authority', authority.panel.id);
+  /**
+   * The click-through card's own header lives in `index.html` as static
+   * markup — "Happiness"/"Authority" never changes — so the mark joins it
+   * once here rather than being rebuilt on every open the way `meterCard`'s
+   * hover header is. Wrapped with the title in one `.popover-head-label` so
+   * `.popover-head`'s `justify-content: space-between` keeps treating
+   * icon-and-name as a single item against the close button.
+   */
+  function paintCardHead(elements: MeterCardElements, meter: MeterId): void {
+    const title = elements.panel.querySelector<HTMLElement>('.popover-title');
+    if (!title) return;
+    const wrap = element('span', 'popover-head-label');
+    title.replaceWith(wrap);
+    wrap.append(meterMarkNode(meter), title);
+  }
+
+  const happinessChip = chip('happiness', 'Happiness', happiness.panel.id);
+  const authorityChip = chip('authority', 'Authority', authority.panel.id);
+  paintCardHead(happiness, 'happiness');
+  paintCardHead(authority, 'authority');
   container.append(meters);
 
   /** The effects one meter is currently applying, in `meterEffects` order. */
@@ -428,7 +459,10 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     const playerId = localPlayerId();
     const box = element('div');
     const head = element('div', 'info-card-head');
-    head.append(element('span', 'info-card-name', label));
+    const name = element('span', 'info-card-name');
+    name.append(meterMarkNode(meter));
+    name.append(document.createTextNode(label));
+    head.append(name);
     head.append(element('span', 'info-card-kind', headline));
     box.append(head);
 

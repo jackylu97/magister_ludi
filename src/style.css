@@ -216,6 +216,30 @@ body {
   mask-image: none;
 }
 
+/* The two empire meters, the same mask mechanism a third time
+   (`src/art/meterMarks.ts`, `src/ui/meterMark.ts`) — happiness and authority,
+   replacing the `☺`/`⚜` placeholder characters everywhere they were drawn.
+   Sized in `em` against whatever it sits in, the trick `.res-mark` and
+   `.yield-mark` both use to read right with one rule at every size this
+   interface sets it: 11px in the top-bar chip, ~12px in the click-through
+   card's ruled header, ~14px beside a hover card's name. */
+.meter-mark {
+  flex: none;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.16em;
+  background-color: currentColor;
+  -webkit-mask-image: var(--meter-mark);
+  mask-image: var(--meter-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
 /* The board, and everything measured against it.
 
    It starts *below* the top bar rather than under it, and that is load-bearing
@@ -663,19 +687,26 @@ body {
   border-color: var(--parchment);
 }
 
+/* Sizing context for the `.meter-mark` inside: an `em`-sized mask reads its
+   own font-size, so this is the one number that controls the chip's icon.
+   `filter: saturate(0.9)` used to sit here to mute the `☺`/`⚜` characters'
+   own colour — a currentColor mask has no colour of its own to mute. */
 .civ-meter-icon {
   font-size: 11px;
-  filter: saturate(0.9);
 }
 
 /* A meter in surplus that is actually paying for something speaks in the food
-   voice — the one green already on this bar. */
+   voice — the one green already on this bar. The icon joins the figure:
+   `.meter-mark` paints in `currentColor`, so colouring `.civ-meter-icon` here
+   is the whole change — the drawing itself needed no second rule. */
+.civ-meter.is-good .civ-meter-icon,
 .civ-meter.is-good .civ-meter-value {
   color: var(--y-food-lit);
 }
 
 /* Deficit: the alarm, and only for a deficit. A bonus is a modifier too, and
    colouring it vermilion would teach the player to flinch at good news. */
+.civ-meter.is-alarm .civ-meter-icon,
 .civ-meter.is-alarm .civ-meter-value {
   color: var(--vermilion-lit);
 }
@@ -1075,6 +1106,19 @@ button.log-entry:active {
    interface, so it keeps the italic accent on the second word. */
 .popover-title em {
   font-style: italic;
+}
+
+/* Groups a click-through card's `.meter-mark` with its "Happiness"/
+   "Authority" `<h2>` as one flex item, so `.popover-head`'s
+   `justify-content: space-between` still treats the pair as a single thing
+   against the close button — exactly what the title alone did before a mark
+   joined it. Built once by `topBar.ts`'s `paintCardHead`, not by index.html:
+   the mark is a runtime `data:` URI, nothing static markup can hold. */
+.popover-head-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 /* The same × the city screen wears, one size down. */
