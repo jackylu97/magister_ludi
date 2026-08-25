@@ -953,13 +953,17 @@ about a city. Parked, not planned.
 ## Discoveries: the last pass
 
 Ancient ruins and tribal villages (`placeDiscoveries`, `src/sim/discoveryPlacement.ts`;
-design ledger Entry XX). **The only generation pass whose tunables are not in
-`data/mapgen.json`** — they live in `data/discoveries.json`, beside the pool of boons a
+design ledger Entry XX, retuned 2026-08-25). **The only generation pass whose tunables are
+not in `data/mapgen.json`** — they live in `data/discoveries.json`, beside the pool of boons a
 site hands over, because "how many ruins are there" and "what does a ruin give you" are one
 designer's decision made in one sitting. Halve the payoffs and you will want more of them.
 
-It is also the only pass that is not a *geography*: it reads neither field, it dresses
-ground the two fields have already decided.
+It dresses ground the fields ahead of it have already decided, and it now shares one of
+their geographies rather than reading none: sites are **dealt per carved continent**
+(`carveContinents`, `src/sim/resources.ts`) — the same regions `dealContinentLuxuries`
+reads. Recomputed here rather than threaded through from `placeResources`, because the carve
+is a pure function of `(map, config)` and takes no `Rng`, so recomputing it costs the dice
+stream nothing.
 
 **It runs last, after `placeResources`**, and that ordering is load-bearing in exactly the
 way the rivers' and the resources' are: every draw it makes is a draw nothing before it can
@@ -972,22 +976,46 @@ can walk to is a decoration), carrying **no resource** (a hex already drawing a 
 and a reveal marker does not also want broken columns on it), `minDistanceFromStart` from
 every start in the **maximum roster's** seating — the same list the resource guarantees use,
 because a short roster's starts are a prefix of a full one's — and `minDistanceApart` from
-every site already placed, *across both kinds*, since two ruins four hexes apart and a ruin
-four hexes from a village are the same crowding on the board.
+every site already placed, *across both kinds and every continent*, since two ruins four
+hexes apart and a ruin four hexes from a village are the same crowding on the board.
 
-One shuffle decides which legal hexes are considered first; two greedy sweeps then take
-what still satisfies the spacing, ruins before villages. The counts are a **ceiling, not a
-promise** — a map with room seats all of them, a cramped one seats what it has room for,
-which is `oasisShare`'s bargain exactly.
+One global shuffle decides which legal hexes on a given continent are considered first;
+then, continent by continent in id order, a greedy sweep takes whatever still satisfies the
+spacing, ruins before villages, up to that continent's own dealt count
+(`sitesPerContinent`, drawn per continent from a `{min, max}` range — `dealContinentLuxuries`'s
+bargain exactly, including the "the draw happens whether or not the ground can take it" rule
+so a continent with no legal ground does not shift every later continent's roll). The counts
+are a **ceiling, not a promise** — a continent with room seats every site it was dealt, a
+cramped one seats what it has room for, which is `oasisShare`'s bargain exactly.
+
+**The retune's reason, measured**: at a flat rate per 1000 land tiles the whole map read as
+one grey average, and measured that way the nearest site to a capital sat 7-16 hexes off —
+past what a scout finds early. Dealing per continent instead means every region reads as
+having its own ruins nearby.
+
+**The fairness top-up** (`ensureStartDiscoveries`) closes the gap per-continent dealing still
+leaves for any *one* start: where fewer than `fairness.minWithinRadius` sites already stand
+within `fairness.radius` hexes of a possible start, it plants more on the nearest still-legal
+ground — drawn from the very candidate list `minDistanceFromStart` already filtered off
+**every** possible start, so that exclusion is never the thing that relaxes. What relaxes
+instead is the spacing rule (`ensureStartFood`'s bargain exactly) and, failing even that, the
+floor itself: a low-priority candidate start whose whole radius sits inside closer starts'
+exclusion zones (measured against the *maximum* roster) simply keeps whatever the deal
+already gave it, rather than buying its floor with another seat's capital ring.
 
 ### data/discoveries.json → placement
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `ruinsPerThousandLand` | 5 | ruins budget per 1000 land tiles, before spacing thins it |
-| `villagesPerThousandLand` | 4 | the same for villages |
+| `sitesPerContinent` | `{min: 7, max: 8}` | sites dealt to one carved continent, before spacing thins it |
+| `ruinShare` | 0.55 | share of a continent's dealt sites that are ruins, rounded per continent |
 | `minDistanceFromStart` | 6 | how far a site must stand from every possible start |
 | `minDistanceApart` | 4 | how far a site must stand from every site already placed |
+| `fairness.radius` | 12 | how far from a start the top-up counts sites (a two-scout-reach proxy) |
+| `fairness.minWithinRadius` | 3 | sites the top-up guarantees within that radius |
+
+`ruinsPerThousandLand` (5) and `villagesPerThousandLand` (4) are retired — see the file's own
+`retired` block, in the same changelog-as-data convention `MapgenConfig.retired` uses.
 
 `offerSize` (3) and the `rows` table in the same file are gameplay rather than generation —
 what a claim deals and what each row pays. See design ledger Entry XX.E–F.

@@ -13,8 +13,13 @@
  * designer's decision made in one sitting — halve the pool's payoffs and you will
  * want more of them on the board — and splitting the pair across two files would
  * mean tuning discoveries by editing two files that never mention each other. The
- * scatter is also not a *geography*: it reads no field, it dresses ground the two
- * fields have already decided (see `mapgen.ts`, pass 7).
+ * scatter is also not a *geography* of its own: it dresses ground the fields ahead
+ * of it have already decided, and it now shares one geography with them — the
+ * carved continents (`carveContinents`, `resources.ts`) it deals sites against,
+ * the same regions the luxury deal reads. That call costs nothing on the dice
+ * stream (`carveContinents` takes no `Rng`), so the ordering guarantee below is
+ * unaffected: the *ground* an id is dealt against was decided upstream, the *dice*
+ * that deal it are still the scatter's own (see `mapgen.ts`, pass 7).
  *
  * The flavour split
  * -----------------
@@ -98,10 +103,21 @@ export interface DiscoveryDef {
 
 /** How the two kinds of site are scattered over the land. */
 export interface DiscoveryPlacementConfig {
-  /** Ruins per thousand land tiles, before spacing thins them. */
-  ruinsPerThousandLand: number;
-  /** Villages per thousand land tiles, before spacing thins them. */
-  villagesPerThousandLand: number;
+  /**
+   * Sites dealt to *one* carved continent (`carveContinents`, the same regions
+   * the luxury deal uses — see `discoveryPlacement.ts`), drawn from this range
+   * per continent. Density measured per map rather than per continent read as
+   * one grey average, which is what left a capital 7-16 hexes from the nearest
+   * site under the retired `…PerThousandLand` pair — see `retired` below.
+   */
+  sitesPerContinent: { min: number; max: number };
+  /**
+   * Share of a continent's dealt sites that are ruins rather than villages,
+   * rounded per continent. Not a per-row weight — that is `DiscoveryDef.weights`
+   * one level down, deciding what a *claimed* site offers, not how many of each
+   * kind stand on the board.
+   */
+  ruinShare: number;
   /**
    * How far a site must stand from every start position.
    *
@@ -112,10 +128,29 @@ export interface DiscoveryPlacementConfig {
   minDistanceFromStart: number;
   /** How far a site must stand from every site already placed. */
   minDistanceApart: number;
+  /**
+   * The fairness top-up: tops every start up toward `minWithinRadius` sites
+   * within `radius` hexes, planted deterministically (no dice, `resources.ts`'s
+   * `ensureStartFood` bargain exactly) when the per-continent deal alone left a
+   * start short. Drawn only from ground that already clears
+   * `minDistanceFromStart` against *every* possible start — that exclusion
+   * never relaxes here — so the floor is a target the top-up reaches for, not
+   * an absolute promise: a start whose whole radius sits inside closer starts'
+   * exclusion zones keeps whatever the deal already gave it. See
+   * `discoveryPlacement.ts`'s `ensureStartDiscoveries` docblock.
+   */
+  fairness: { radius: number; minWithinRadius: number };
 }
 
 export interface DiscoveryData {
   placement: DiscoveryPlacementConfig;
+  /**
+   * Tunables that no longer exist, with what replaced them and why — the same
+   * changelog-as-data convention `MapgenConfig.retired` uses, kept here rather
+   * than in `data/mapgen.json` because these are the scatter's *own* retired
+   * keys, not the generator's.
+   */
+  retired: Record<string, string>;
   /**
    * How many options a claim offers. Three, per Entry XV's draft doctrine — the
    * number that fights variance without turning a scout's reward into homework.
@@ -177,8 +212,17 @@ export function discoveryDataProblems(): string[] {
   if (placement.minDistanceApart < 1) {
     problems.push(`minDistanceApart is ${String(placement.minDistanceApart)}; two sites would stack`);
   }
-  if (placement.ruinsPerThousandLand < 0 || placement.villagesPerThousandLand < 0) {
-    problems.push('a per-thousand-land rate is negative');
+  if (placement.sitesPerContinent.min < 0 || placement.sitesPerContinent.max < placement.sitesPerContinent.min) {
+    problems.push('sitesPerContinent is not a valid non-negative range');
+  }
+  if (placement.ruinShare < 0 || placement.ruinShare > 1) {
+    problems.push(`ruinShare is ${String(placement.ruinShare)}, which is not a share`);
+  }
+  if (placement.fairness.minWithinRadius < 0) {
+    problems.push('fairness.minWithinRadius is negative');
+  }
+  if (placement.fairness.radius < placement.minDistanceFromStart) {
+    problems.push('fairness.radius is inside minDistanceFromStart, so the top-up could never plant anything');
   }
 
   for (const id of DISCOVERY_IDS) {

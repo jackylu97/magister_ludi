@@ -867,8 +867,11 @@ export function generateMapDetail(
   // Pass 7: the ruins and the villages, and they are **last** for the third time
   // for the same reason — every draw made here is a draw nothing before it can
   // see, so terrain, water and resources on a given seed are bit-identical to
-  // what they were before discoveries existed. See `discoveryPlacement.ts`.
-  placeDiscoveries(map, rng);
+  // what they were before discoveries existed. `config.resources` is threaded
+  // through only for `carveContinents`'s parameters (continents are dealt sites
+  // exactly as they are dealt luxuries); the carve itself rolls no dice, so this
+  // costs the stream nothing. See `discoveryPlacement.ts`.
+  placeDiscoveries(map, rng, config.resources);
 
   return { map, rivers, lakeCount, floodplainCount };
 }

@@ -1958,3 +1958,52 @@ province, and 0 switches thieving off) and `escortRadius` (2 — one hex looser 
 the escort actually keeps, so a guard that fell a step behind a two-move worker is not
 reassigned). Targeting still asks the wild's **own** fog through `isVisibleTo`: a civilian in
 country the wild has never seen is safe, and that is pinned.
+
+### I. Both faucets retuned: too sparse, too slow (user, 2026-08-25)
+
+The complaint was measured before it was fixed. On standard, solo: 14 discovery sites on the
+whole map with the nearest one 7-16 hexes from the capital, and exactly one camp founded by
+turn 12 (first at 8, one per 5 turns, capping at 8 around turn 43). A scout could walk most of
+an opening without finding anything, and the wild took most of the early game to become a
+nuisance at all.
+
+**Camps: three cadence numbers moved.** `firstCampTurn` 8→6, `campEveryTurns` 5→3, `maxCamps`
+8→12. Nothing about *where* a camp may stand changed — same three distances, same "not
+currently visible to any real empire" rule (Entry XX.B) — only how often the founding sweep
+fires and how high it may go. Re-measured: **3 camps by turn 12** (was 1), **9 by turn 30**
+(cadence gives nine founding attempts by then against a cap of 12 — near the ceiling on a
+standard map with room for it).
+
+**Discoveries: not a rate, a re-architecture.** Retuning `ruinsPerThousandLand` alone could
+not fix "the nearest ruin is sixteen hexes off" — a flat rate per 1000 land tiles is a
+property of the *whole map*, and the whole map is not what a scout walks. The fix borrows the
+shape `dealContinentLuxuries` already proved (Entry XVI, `resources.ts`): carve
+the map into continents and deal *each one* its own site count, so a region reads as having
+ruins nearby rather than the map having a budget somewhere in it. `sitesPerContinent` (a
+`{min, max}` range, drawn per continent exactly as `luxuryCopiesPerKind` is), `ruinShare`
+(the 55/45 split, rounded per continent) replace the retired per-thousand pair — see
+`data/discoveries.json`'s own `retired` block, `MapgenConfig.retired`'s convention borrowed
+into a second file.
+
+Per-continent dealing evens out the *map's* read but says nothing about any *one* start — a
+capital at the corner of a large continent can still land far from its own continent's sites.
+`ensureStartDiscoveries` closes that the way `ensureStartFood` closes the food guarantee: no
+dice, nearest-first, and a floor (`fairness.minWithinRadius` within `fairness.radius`) rather
+than a hope. Its one hard rule, stated because a first draft broke it: **the top-up never
+relaxes `minDistanceFromStart` against any possible start**, including ones other than the one
+it is filling in for. A first pass that let the top-up hunt outside a crowded start's own
+band, respecting only *that* start's exclusion, planted a village one hex from a different
+candidate start's capital — a turn-one freebie for whichever seat that start belonged to in a
+smaller real roster. The fix draws the top-up only from the same globally-filtered candidate
+list the deal itself used; what relaxes instead is the spacing rule between sites
+(`ensureStartFood`'s bargain exactly) and, failing even that, the floor itself for a
+low-priority candidate start whose whole reach sits inside closer starts' exclusion zones —
+rare (under 5% of (seed × start) samples measured), and it keeps whatever the deal already
+gave it rather than buying its floor with someone else's capital ring.
+
+**Measured against the acceptance metric** (a player opening with two scouts should expect
+several discoveries early on, operationalized as sites within 12 hexes of a start — a proxy
+for two-scout reach over ~25 turns): over 10 seeds × every possible start on standard, the
+median is 6, and fewer than 5% of starts fall under the 3-site floor. `minDistanceFromStart`
+holds with zero exceptions across the same sample. Settled at `sitesPerContinent: {7, 8}`,
+`ruinShare: 0.55` — roughly 52 sites per standard map, spread across its ~8 carved continents.

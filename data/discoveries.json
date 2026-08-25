@@ -1,9 +1,17 @@
 {
+  "retired": {
+    "placement.ruinsPerThousandLand": "Density measured against the whole map read as a single grey average, and at 5/1000 land the nearest site to a capital was 7-16 hexes away — too sparse for a scout to find anything in the opening. Replaced by placement.sitesPerContinent, dealt per carved continent (carveContinents, the same regions the luxury deal uses) exactly as villagesPerThousandLand was.",
+    "placement.villagesPerThousandLand": "See placement.ruinsPerThousandLand — folded into placement.sitesPerContinent and split by placement.ruinShare."
+  },
   "placement": {
-    "ruinsPerThousandLand": 5,
-    "villagesPerThousandLand": 4,
+    "sitesPerContinent": { "min": 7, "max": 8 },
+    "ruinShare": 0.55,
     "minDistanceFromStart": 6,
-    "minDistanceApart": 4
+    "minDistanceApart": 4,
+    "fairness": {
+      "radius": 12,
+      "minWithinRadius": 3
+    }
   },
   "offerSize": 3,
   "rows": {

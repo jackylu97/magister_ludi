@@ -37,10 +37,10 @@
     "pillageGold": 25
   },
   "barbarians": {
-    "firstCampTurn": 8,
-    "campEveryTurns": 5,
+    "firstCampTurn": 6,
+    "campEveryTurns": 3,
     "campsPerSpawn": 1,
-    "maxCamps": 8,
+    "maxCamps": 12,
     "minCampDistanceFromCity": 4,
     "minCampDistanceFromStart": 6,
     "minCampDistanceApart": 6,
