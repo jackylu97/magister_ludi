@@ -164,6 +164,46 @@ body {
   mask-position: center;
 }
 
+/* The yield voices, the same mechanism one set over: a `data:` URI SVG of the
+   vendored Lucide/Tabler drawing (`src/art/yieldMarks.ts`) used as a mask, so
+   the mark is `currentColor` wherever it lands. Set per element by
+   `src/ui/yieldMark.ts` through `--yield-mark`.
+
+   Two things differ from `.res-mark` and both follow from what the mark is for.
+   It is a *unit* on a figure — `40⚙`, `+2🌾` — rather than a picture beside a
+   name, so it is set a shade smaller, at the figure's own weight rather than
+   the heading's. And it carries `margin-left` instead of relying on a space in
+   the text: a space between a number and its unit is a line-break opportunity,
+   and a build button that wrapped between the 40 and the cogwheel would be
+   quoting a cost in nothing. */
+.yield-mark {
+  flex: none;
+  display: inline-block;
+  width: 0.95em;
+  height: 0.95em;
+  margin-left: 0.14em;
+  vertical-align: -0.14em;
+  background-color: currentColor;
+  -webkit-mask-image: var(--yield-mark);
+  mask-image: var(--yield-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* A mark that *leads* a figure (`⚙ +10%`, the modifier voice) wants its air on
+   the other side, and a run of them (`⚙🔬🎭 −10%`) wants none between the marks.
+   A class rather than `:first-child`, which counts elements only and would
+   therefore fire on the mark in `40⚙` — the text node before it does not make it
+   a second child. */
+.yield-mark.is-lead {
+  margin-left: 0;
+  margin-right: 0.18em;
+}
+
 /* The last-resort fallback: a row of `data/resources.json` with no drawn mark
    prints its `emoji`, which is text and wants none of the above. Nothing that
    ships takes this path — see `test/resources3d.test.ts`. */
@@ -548,26 +588,40 @@ body {
   line-height: 1;
 }
 
+/* The mark is a mask now, so it takes `color` — which is the whole reason the
+   emoji went. It used to be stuck in the platform's palette and the `saturate`
+   filter was the only lever there was; the voice's own colour can be stated
+   outright, and the mark and the figure beside it finally agree. Sized against
+   the chip's own text rather than in pixels: `.yield-mark` is an `em` square. */
 .civ-yield-icon {
-  font-size: 11px;
-  /* Emoji ignore `color`; the figure beside them carries the voice. */
-  filter: saturate(0.9);
+  display: inline-flex;
+  align-items: center;
+  font-size: 12.5px;
 }
 
-.civ-yield.is-food .civ-yield-value {
+.civ-yield.is-food .civ-yield-value,
+.civ-yield.is-food .civ-yield-icon {
   color: var(--y-food-lit);
 }
-.civ-yield.is-production .civ-yield-value {
+.civ-yield.is-production .civ-yield-value,
+.civ-yield.is-production .civ-yield-icon {
   color: var(--y-prod-lit);
 }
-.civ-yield.is-gold .civ-yield-value {
+.civ-yield.is-gold .civ-yield-value,
+.civ-yield.is-gold .civ-yield-icon {
   color: var(--y-gold-lit);
 }
-.civ-yield.is-science .civ-yield-value {
+.civ-yield.is-science .civ-yield-value,
+.civ-yield.is-science .civ-yield-icon {
   color: var(--y-sci-lit);
 }
-.civ-yield.is-culture .civ-yield-value {
+.civ-yield.is-culture .civ-yield-value,
+.civ-yield.is-culture .civ-yield-icon {
   color: var(--y-cul-lit);
+}
+.civ-yield.is-faith .civ-yield-value,
+.civ-yield.is-faith .civ-yield-icon {
+  color: var(--y-faith-lit);
 }
 
 /* --- the two empire meters -----------------------------------------------
@@ -1124,10 +1178,18 @@ button.log-entry:active {
   border-top: var(--border-thin) dashed rgba(29, 26, 32, 0.18);
 }
 
-.lens-toggle {
+/* `.hud-card label` and not `.lens-toggle`, because the row *is* a `<label>` and
+   that selector (0,1,1) outranks a bare class (0,1,0). Unqualified, this rule
+   lost every one of its own declarations to the card's field-label style — the
+   row came out 9px, mono, uppercase, ink-soft and 34px wide, which is what made
+   a native checkbox look enormous beside it and pushed the name into the box.
+   The row was never meant to be a field label; it is a lens option that happens
+   to wrap a control, so it says so at the specificity that settles it. */
+.hud-card label.lens-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: auto;
   padding: 5px 8px;
   border: var(--border-thin) solid var(--ink);
   border-radius: var(--radius-sm);
@@ -1136,17 +1198,66 @@ button.log-entry:active {
   font-family: var(--face-ui);
   font-size: 12px;
   font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
   cursor: pointer;
 }
 
-.lens-toggle:hover {
+.hud-card label.lens-toggle:hover {
   background: #fffdf4;
 }
 
-.lens-toggle input {
+/* A drawn box rather than the platform's, for the reason `.res-mark` is a mask:
+   the native control arrives at the platform's size in the platform's colour,
+   and this interface sets its rows at 12px in ink on parchment. `accent-color`
+   recolours a native checkbox but cannot resize one, and the size was the
+   complaint — so the box is built here, at `1em`, which puts it on the row's own
+   cap height and keeps it there if the row is ever re-set larger. */
+.lens-toggle input[type='checkbox'] {
+  position: relative;
+  flex: none;
+  width: 1em;
+  height: 1em;
   margin: 0;
-  accent-color: var(--vermilion);
+  appearance: none;
+  -webkit-appearance: none;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 3px;
+  background: var(--table);
   cursor: pointer;
+}
+
+.lens-toggle input[type='checkbox']:checked {
+  border-color: var(--vermilion);
+  background: var(--vermilion);
+}
+
+/* The tick: two edges of an empty box, rotated — a check mark that is a fraction
+   of the box and therefore fills it at any size, rather than a glyph from a font
+   that may not have one. Drawn always and revealed on `:checked`, so ticking
+   changes no geometry. */
+.lens-toggle input[type='checkbox']::after {
+  content: '';
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  width: 26%;
+  height: 54%;
+  border: 2px solid var(--parchment);
+  border-top: 0;
+  border-left: 0;
+  transform: translate(-50%, -50%) rotate(45deg);
+  opacity: 0;
+}
+
+.lens-toggle input[type='checkbox']:checked::after {
+  opacity: 1;
+}
+
+/* The native box carried its own focus ring; a drawn one has to say so. */
+.lens-toggle input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
 }
 
 /* The hotkey sits at the far end, where the tick sits on a lens row. */

@@ -772,11 +772,33 @@ export function resourceMark(id: string): ResourceMark | null {
  * to.
  */
 export function resourceMarkSvg(mark: ResourceMark, color = '#000'): string {
-  const body = mark.paths
+  return markSvg(mark.paths, MARK_BOX, MARK_STROKE, color);
+}
+
+/**
+ * Any list of mark paths as a standalone SVG document: the emitter itself, with
+ * the grid and the house weight as arguments.
+ *
+ * Split out of `resourceMarkSvg` when the yield voices arrived as a *vendored*
+ * set on somebody else's grid (`src/art/yieldMarks.ts`, 24 units at weight
+ * 2.75). Everything a mark's SVG has to get right is here and nowhere else — the
+ * `fill="none"` default, the round caps and joins that make the whole project
+ * one hand, the per-path weight override, and the "weight zero means filled
+ * only" convention that a pip or an eye depends on. A second copy of it for a
+ * second grid is precisely the drift this project keeps one drawing to avoid,
+ * and it would have shown up as one set's marks quietly losing their round caps.
+ */
+export function markSvg(
+  paths: readonly MarkPath[],
+  box: number,
+  stroke: number,
+  color = '#000',
+): string {
+  const body = paths
     .map((path) => {
       const attrs = [`d="${path.d}"`];
       if (path.fill) attrs.push(`fill="${color}"`);
-      if (path.width !== undefined && path.width !== MARK_STROKE) {
+      if (path.width !== undefined && path.width !== stroke) {
         // Weight zero is "filled only" — a pip or an eye, which has no outline
         // at all rather than a hairline one.
         attrs.push(path.width === 0 ? 'stroke="none"' : `stroke-width="${path.width}"`);
@@ -785,8 +807,8 @@ export function resourceMarkSvg(mark: ResourceMark, color = '#000'): string {
     })
     .join('');
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${MARK_BOX} ${MARK_BOX}">` +
-    `<g fill="none" stroke="${color}" stroke-width="${MARK_STROKE}" stroke-linecap="round" stroke-linejoin="round">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${box} ${box}">` +
+    `<g fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round">` +
     `${body}</g></svg>`
   );
 }

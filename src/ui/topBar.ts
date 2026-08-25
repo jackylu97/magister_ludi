@@ -38,13 +38,16 @@
  * beside a chip in a horizontal strip would cover the chips it is being compared
  * against.
  *
- * Gold is the one exception to "the total, and the total alone": it is the
- * only yield the empire *banks* (`Player.gold`) rather than only earns, and a
- * bank a player cannot see is a discovery's Traders' hoard or a tile purchase
- * that appears to do nothing. Its chip is treasury-first — `poolFigure`
- * (`figures.ts`) — with the per-turn total every other chip shows on its own
- * moved into parens beside it, and its hover card leads with an "On hand" row
- * before the same per-city breakdown the other five have always had.
+ * **Gold and faith** are the exceptions to "the total, and the total alone":
+ * they are the two yields the empire *banks* (`Player.gold`, `Player.faithPool`)
+ * rather than only earns, and a bank a player cannot see is a discovery's
+ * Traders' hoard, a tile purchase that appears to do nothing, or a hundred turns
+ * of piety with nothing to show for them. Both chips are pool-first —
+ * `poolFigure` (`figures.ts`) — with the per-turn total every other chip shows
+ * on its own moved into parens beside it, and both hover cards lead with the
+ * banked row before the same per-city breakdown the other four have always had.
+ * Which yields those are, and what their pools are called, is the `BANKED`
+ * register below rather than a comparison repeated at each of the three sites.
  *
  * Like every other derived readout it is recomputed wherever the rest of the HUD
  * is — after any dispatch and after every turn. The elements are built once and
@@ -67,11 +70,10 @@ import {
   meterStanding,
 } from '../sim/meters';
 import { empireResourceYields, foldResourceYields } from '../sim/resourceEffects';
-import { type GameState, playerById } from '../sim/state';
+import { type GameState, type Player, playerById } from '../sim/state';
 import { cityDisplayName, starCapitalSource } from './cityDisplay';
 import {
   type YieldKey,
-  YIELD_GLYPH,
   YIELD_NAME,
   YIELD_NOTE,
   figure,
@@ -82,6 +84,7 @@ import {
 import { createInfoCard } from './infoCard';
 import { meterGroups } from './meterBreakdown';
 import { type Popover, createPopover } from './popover';
+import { yieldMarkNode } from './yieldMark';
 
 /**
  * Everything the player's cities make this turn, added up.
@@ -128,6 +131,34 @@ export function civYields(state: GameState, playerId: number): CityYields {
  * they cannot plan around. Its card says as much (`YIELD_NOTE`).
  */
 const YIELDS: readonly YieldKey[] = ['food', 'production', 'gold', 'science', 'culture', 'faith'];
+
+/**
+ * The yields the empire **banks** rather than only earns, and where the pool is.
+ *
+ * Two of the six, and the register is here rather than as a pair of `key ===`
+ * tests because it is read in three places — the chip's figure, the chip's
+ * title, and the hover card's leading row — and three hand-rolled comparisons
+ * are how gold came to read one way and faith another. A third banked yield
+ * joins by adding a row.
+ *
+ * The rule for membership is a fact about the simulation, not a preference:
+ * `Player` carries a running pool for this yield. Gold has `gold`, which
+ * `purchaseTile` and the buy buttons check against; faith has `faithPool`, which
+ * `collectYields` adds to and — today — nothing spends. Both are banks a player
+ * cannot see anywhere else, and a bank a player cannot see is a discovery's
+ * Traders' hoard or a hundred turns of piety that appear to do nothing.
+ *
+ * Faith's card still ends with `YIELD_NOTE.faith` saying that nothing spends it.
+ * The two statements are not in tension and both are load-bearing: the pool is
+ * real and is *accumulating*, and it has no sink yet. The day something spends
+ * it, the note goes (see the trap in `CLAUDE.md`) and this row does not.
+ */
+const BANKED: Partial<
+  Record<YieldKey, { pool: (player: Player) => number; line: string; title: string }>
+> = {
+  gold: { pool: (player) => player.gold, line: 'On hand', title: 'Gold on hand' },
+  faith: { pool: (player) => player.faithPool, line: 'Gathered', title: 'Faith gathered' },
+};
 
 /**
  * The two meters, as the interface says them. Placeholder glyphs by project
@@ -215,17 +246,18 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   for (const key of YIELDS) {
     const label = YIELD_NAME[key];
     const item = element('span', `civ-yield is-${key}`);
-    const icon = element('span', 'civ-yield-icon', YIELD_GLYPH[key]);
-    // The glyph is decoration with a word behind it: a screen reader gets
-    // "food 14", not "sheaf of rice 14".
-    icon.setAttribute('aria-hidden', 'true');
+    // The drawn mark, not the emoji it used to print (`src/ui/yieldMark.ts`).
+    // It is already `aria-hidden`, and the word behind it is on the chip: a
+    // screen reader gets "food 14", not "sheaf of rice 14".
+    const icon = element('span', 'civ-yield-icon');
+    icon.append(yieldMarkNode(key, true));
     const value = element('span', 'civ-yield-value', '0');
     item.append(icon, value);
-    // Gold is the one figure with a bank behind the rate — the chip leads
-    // with the treasury (`Player.gold`) and puts the per-turn rate every
-    // other yield shows on its own in parens beside it, so the title says
-    // that rather than "per turn" alone.
-    item.title = key === 'gold' ? 'Gold on hand, income per turn in parens' : `${label} per turn`;
+    // Two of the six have a bank behind the rate — the chip leads with the
+    // pool and puts the per-turn rate every other yield shows on its own in
+    // parens beside it, so the title says that rather than "per turn" alone.
+    // See `BANKED` for why these two and not the rest.
+    item.title = BANKED[key] ? `${BANKED[key]!.title}, per turn in parens` : `${label} per turn`;
     item.setAttribute('aria-label', label);
     // Focusable, because the card is the only place the per-city split exists
     // and a keyboard should be able to reach it (see `infoCard.ts`, which binds
@@ -253,19 +285,21 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     );
     box.append(head);
 
-    // Gold alone has a bank behind the rate: what is on hand, which is the
-    // figure `purchaseTile` checks against and the chip now leads with. Led
-    // before the per-city breakdown for the same reason the chip leads with
-    // it — a treasury is read before an income is. It is its own row, ruled
-    // off from the breakdown rather than folded into it, because it is not a
-    // summand of the "per turn" headline above (rule 5's fold is still exactly
-    // the city lines below; this is a second, independent number).
-    if (key === 'gold') {
+    // A banked yield leads with its pool: what is on hand, which for gold is the
+    // figure `purchaseTile` checks against and for faith is the whole of what
+    // the yield has ever been. Led before the per-city breakdown for the same
+    // reason the chip leads with it — a treasury is read before an income is. It
+    // is its own row, ruled off from the breakdown rather than folded into it,
+    // because it is not a summand of the "per turn" headline above (rule 5's
+    // fold is still exactly the city lines below; this is a second, independent
+    // number).
+    const banked = BANKED[key];
+    if (banked) {
       const player = playerById(state, playerId);
       if (player) {
         const onHand = element('div', 'meter-total');
-        onHand.append(element('span', 'meter-line-source', 'On hand'));
-        onHand.append(element('span', 'meter-line-value', figure(player.gold)));
+        onHand.append(element('span', 'meter-line-source', banked.line));
+        onHand.append(element('span', 'meter-line-value', figure(banked.pool(player))));
         box.append(onHand);
       }
     }
@@ -522,11 +556,14 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       const player = playerById(state, playerId);
       for (const key of YIELDS) {
         const el = values.get(key)!;
-        // Gold is treasury-first: `Player.gold` is what a purchase is checked
-        // against, so it is the figure and the per-turn total — what every
-        // other yield chip shows on its own — moves into parens beside it.
+        // A banked yield is pool-first: the figure a player acts on is what is
+        // on hand, so it leads and the per-turn total — what every other yield
+        // chip shows on its own — moves into parens beside it. `totals[key]` is
+        // the rate, taken from the same `civYields` fold the card breaks down,
+        // so the chip and the card cannot come to disagree about it.
+        const banked = BANKED[key];
         const text =
-          key === 'gold' && player ? poolFigure(player.gold, totals.gold) : String(totals[key]);
+          banked && player ? poolFigure(banked.pool(player), totals[key]) : String(totals[key]);
         if (el.textContent !== text) el.textContent = text;
       }
 

@@ -218,7 +218,7 @@ import { sleepError, sleepingSnapshot, unitsOnTile, wakesSince } from '../sim/un
 import { isExploredBy } from '../sim/visibility';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
-import { YIELD_GLYPH } from './figures';
+import { HAMMER, YIELD_GLYPH } from './figures';
 import {
   type CellRef,
   type FallenUnit,
@@ -2148,7 +2148,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     }
 
     if (preview) {
-      announce(`Cleared: +${preview.production}⚙ → ${preview.cityName}`, {
+      announce(`Cleared: +${preview.production}${HAMMER} → ${preview.cityName}`, {
         cell: { col: unit.col, row: unit.row },
       });
     }

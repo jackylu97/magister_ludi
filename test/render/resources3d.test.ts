@@ -17,7 +17,6 @@ import {
   TILE_ICON_CELLS,
   type TileIcons,
   YIELD_COLORS,
-  YIELD_ICON_FILES,
   YIELD_KEYS,
   badgeAtlasLayout,
   paperRadiusFraction,
@@ -62,6 +61,7 @@ import {
   resourceMarkDataUri,
   resourceMarkSvg,
 } from '../../src/art/resourceMarks';
+import { YIELD_MARK_STROKE, yieldMark } from '../../src/art/yieldMarks';
 
 /**
  * The board's half of the resources milestone: the diorama props, the flat
@@ -355,13 +355,35 @@ describe('the tile-icon atlas', () => {
     );
   });
 
-  it('names an artwork file for every mark that still has one', () => {
-    // The resources stopped being files when the set was finished: their marks
-    // are path data, checked in its own suite below. The yields are still two
-    // vectors under `public/`, and this is the assertion that would catch a
-    // rename that left the atlas with two blank discs.
+  /**
+   * The suite that used to assert `YIELD_ICON_FILES[key] === 'sprites/icons/…'`,
+   * rewritten rather than deleted, because the property it was protecting is
+   * still the one that matters: a yield voice with no artwork rasterises as a
+   * blank disc and the board silently stops naming what a tile pays.
+   *
+   * The yields stopped being files when the six were re-cut from Lucide and
+   * Tabler (`src/art/yieldMarks.ts`), so a *rename* can no longer break them —
+   * there is nothing to fetch. What can still break is a mark whose path list is
+   * empty, which is exactly as blank and would pass every other test here. So
+   * the assertion moved down a layer: every voice has a drawing, and every
+   * drawing has ink in it.
+   */
+  it('has a drawing with ink in it for every yield voice', () => {
     for (const key of YIELD_KEYS) {
-      expect(YIELD_ICON_FILES[key]).toBe(`sprites/icons/yields/${key}.svg`);
+      const mark = yieldMark(key);
+      expect(mark.paths.length).toBeGreaterThan(0);
+      expect(mark.note.length).toBeGreaterThan(0);
+      // The courtesy note `CREDITS.md` prints, and the thing a re-vendoring has
+      // to keep: which upstream icon this is and under what licence.
+      expect(mark.credit).toMatch(/Lucide|Tabler/);
+      for (const path of mark.paths) {
+        expect(path.d.length).toBeGreaterThan(0);
+        // Stroked, never a bare fill: the six are outline icons and the mask in
+        // `src/ui/yieldMark.ts` takes the painted stroke. A path that arrived
+        // with weight zero would be invisible in the DOM and filled-only on the
+        // board — the one way these two printers could disagree.
+        expect(path.width ?? YIELD_MARK_STROKE).toBeGreaterThan(0);
+      }
     }
   });
 

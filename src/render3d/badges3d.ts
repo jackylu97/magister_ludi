@@ -94,10 +94,16 @@ import {
 import {
   MARK_BOX,
   MARK_STROKE,
-  type ResourceMark,
+  type MarkPath,
   resourceMark,
 } from '../art/resourceMarks';
 import { siteMark } from '../art/siteMarks';
+import {
+  YIELD_MARK_BOX,
+  YIELD_MARK_SCALE,
+  YIELD_MARK_STROKE,
+  yieldMark,
+} from '../art/yieldMarks';
 import { DISCOVERY_KINDS, type DiscoveryKind } from '../sim/discoveryData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 import type { ModelClass } from '../sim/unitData';
@@ -459,18 +465,18 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
  * seventeen drawings and twenty-four emoji to forty-one drawings, because the
  * DOM panels print the same marks and a file can only be one colour — see
  * `src/ui/resourceMark.ts`. One drawing, two printers, no rasterised middleman.
+ *
+ * The **yields** followed them out of `public/` when the six voices were re-cut
+ * from Lucide and Tabler (`src/art/yieldMarks.ts`), for that reason and one
+ * more: a yield glyph is the most-printed mark in the interface and it is now on
+ * a dozen DOM surfaces as a mask, so it had to be data. The side effect is worth
+ * naming, because it was a live worry — a yield cell can no longer rasterise
+ * blank because a file was renamed or a fetch was blocked, since there is
+ * nothing left to fetch. The marginalia are the last set with a file, and the
+ * only one where `loadIcon` returning null is still reachable.
  */
 export const MARGINALIA_ICON_FILES: Record<MarginaliaKey, string> = {
   serpent: 'sprites/icons/marginalia/serpent.svg',
-};
-
-export const YIELD_ICON_FILES: Record<YieldKey, string> = {
-  food: 'sprites/icons/yields/food.svg',
-  production: 'sprites/icons/yields/production.svg',
-  gold: 'sprites/icons/yields/gold.svg',
-  science: 'sprites/icons/yields/science.svg',
-  culture: 'sprites/icons/yields/culture.svg',
-  faith: 'sprites/icons/yields/faith.svg',
 };
 
 /** The colour each yield voice is printed in. The interface's own six. */
@@ -584,7 +590,7 @@ function drawDiscCell(
   iconScale: number,
   radiusFraction = paperRadiusFraction(),
   fallbackGlyph?: string,
-): void {
+): { x: number; y: number } {
   const origin = badgeCellOrigin(index, layout);
   const cell = layout.cell;
   const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
@@ -597,6 +603,11 @@ function drawDiscCell(
   context.restore();
 
   paintCellMark(context, icon, center, cell, ink, iconScale, fallbackGlyph);
+  // Handed back for the caller that draws its *own* mark on the disc — the yield
+  // voices, whose art is path data. `paintMarkerPaper` makes the same promise
+  // one shape over, and for the same reason: the centre is arithmetic nobody
+  // should be repeating beside the routine that already did it.
+  return center;
 }
 
 /**
@@ -733,17 +744,27 @@ export function traceMarkerPaper(
  *
  * `Path2D` rather than a hand-rolled path walker because the marks are SVG path
  * data and the browser already has the one parser everybody agrees on; the DOM
- * side (`src/ui/resourceMark.ts`) feeds the same strings to the same parser
- * through a `<path>`, so the two printers cannot disagree about a curve.
+ * side (`src/ui/resourceMark.ts`, `src/ui/yieldMark.ts`) feeds the same strings
+ * to the same parser through a `<path>`, so the two printers cannot disagree
+ * about a curve.
+ *
+ * `box` and `stroke` default to this project's own grid and are arguments only
+ * because the yield voices are a *vendored* set on upstream's 24-unit grid (see
+ * `src/art/yieldMarks.ts`): rescaling their path data to 64 would have made them
+ * numbers nobody could check against the source any more, so the tracer takes
+ * the grid instead. Everything the docblock above says about weights carrying
+ * through `context.scale` holds per grid.
  */
 function paintMarkPaths(
   context: CanvasRenderingContext2D,
-  mark: ResourceMark,
+  mark: { paths: readonly MarkPath[] },
   center: { x: number; y: number },
   size: number,
   ink: number,
+  box = MARK_BOX,
+  stroke = MARK_STROKE,
 ): void {
-  const scale = size / MARK_BOX;
+  const scale = size / box;
   context.save();
   context.translate(center.x - size / 2, center.y - size / 2);
   context.scale(scale, scale);
@@ -754,7 +775,7 @@ function paintMarkPaths(
   for (const path of mark.paths) {
     const traced = new Path2D(path.d);
     if (path.fill) context.fill(traced);
-    const width = path.width ?? MARK_STROKE;
+    const width = path.width ?? stroke;
     // Weight zero is "filled only" — a pip or an eye, which has no outline at
     // all rather than a hairline one, exactly as the authored files drew them.
     if (width > 0) {
@@ -936,7 +957,6 @@ export function yieldShadowColor(key: YieldKey): number {
  */
 function drawYieldCell(
   context: CanvasRenderingContext2D,
-  icon: CanvasImageSource | null,
   index: number,
   layout: AtlasLayout,
   key: YieldKey,
@@ -958,15 +978,29 @@ function drawYieldCell(
   context.fill();
   context.restore();
 
-  drawDiscCell(
+  // The voice's disc, then the mark traced onto it. `drawDiscCell` paints the
+  // paper and nothing else here — the mark is path data now (see
+  // `src/art/yieldMarks.ts`), so it goes through the same tracer the resources
+  // and the sites use rather than through the image-and-recolour path, and the
+  // `icon` argument that used to carry a rasterised SVG is gone with it.
+  const center = drawDiscCell(
     context,
-    icon,
+    null,
     index,
     layout,
     YIELD_COLORS[key],
     ICONS.yieldInkColor,
     ICONS.iconScale,
     disc.radius,
+  );
+  paintMarkPaths(
+    context,
+    yieldMark(key),
+    center,
+    Math.max(1, ICONS.iconScale * YIELD_MARK_SCALE * layout.cell),
+    ICONS.yieldInkColor,
+    YIELD_MARK_BOX,
+    YIELD_MARK_STROKE,
   );
 }
 
@@ -1139,15 +1173,12 @@ export class TileIcons {
     const context = canvas.getContext('2d');
     if (!context) return null;
 
-    // Only the yields and the marginalia are still files. The resources are
-    // traced from path data and the numerals are set in text, so both ask for
-    // nothing over the network — see `MARGINALIA_ICON_FILES`.
+    // Only the marginalia are still a file. The resources, the sites and — since
+    // the six voices were re-cut from Lucide and Tabler — the yields are all
+    // traced from path data, and the numerals are set in text, so nothing but
+    // the serpent asks for anything over the network.
     const files = TILE_ICON_CELLS.map((cell) =>
-      cell.set === 'yield'
-        ? YIELD_ICON_FILES[cell.id]
-        : cell.set === 'marginalia'
-          ? MARGINALIA_ICON_FILES[cell.id]
-          : null,
+      cell.set === 'marginalia' ? MARGINALIA_ICON_FILES[cell.id] : null,
     );
     const icons = await Promise.all(files.map((url) => (url ? loadIcon(url) : null)));
 
@@ -1161,7 +1192,7 @@ export class TileIcons {
       // its own voice's colour, and carries the drop shadow that lets a stack
       // of them be counted — see `drawYieldCell`.
       if (cell.set === 'yield') {
-        drawYieldCell(context, icons[index] ?? null, index, layout, cell.id);
+        drawYieldCell(context, index, layout, cell.id);
         return;
       }
       // Bare ink, no disc: see `MARGINALIA_CELLS`.
@@ -1194,7 +1225,17 @@ export class TileIcons {
   }
 }
 
-/** Loads one SVG, or resolves to null if it is missing or blocked. */
+/**
+ * Loads one SVG, or resolves to null if it is missing or blocked.
+ *
+ * Null still does not reject — the atlas is a garnish and a board with a blank
+ * cell in it is better than a renderer that refuses to start — but it is no
+ * longer *quiet*. A missing artwork file used to be indistinguishable from a
+ * mark nobody had drawn: the cell rasterised blank, the board drew a token with
+ * nothing on it, and the only way to find out was to notice. It says so on the
+ * console now, once per file, because "a mark stopped appearing" is the shape of
+ * bug this atlas produces and the console is where somebody is already looking.
+ */
 function loadIcon(url: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const image = new Image();
@@ -1202,7 +1243,10 @@ function loadIcon(url: string): Promise<HTMLImageElement | null> {
     // image without this is tainted and unreadable — see `sprites3d.ts`.
     image.crossOrigin = 'anonymous';
     image.addEventListener('load', () => resolve(image));
-    image.addEventListener('error', () => resolve(null));
+    image.addEventListener('error', () => {
+      console.error(`icons: ${url} did not load — its atlas cell will print blank`);
+      resolve(null);
+    });
     image.src = url;
   });
 }

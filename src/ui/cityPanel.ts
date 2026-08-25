@@ -55,12 +55,14 @@ import {
 import { CITY_YIELD_KEYS, type CityYieldKey, resourceDef } from '../sim/resourceData';
 import { type ResourceYieldLine, cityResourceYields } from '../sim/resourceEffects';
 import { resourceLabelNodes } from './resourceMark';
+import { setYieldText, yieldMarkNode } from './yieldMark';
 import { type City, type QueueItem, hasEndedTurn, playerById } from '../sim/state';
 import { techDef } from '../sim/techData';
 import { isUnlocked, requiredResource } from '../sim/tech';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
 import { cityDisplayName } from './cityDisplay';
 import {
+  type YieldKey,
   HAMMER,
   YIELD_GLYPH,
   effectFigure,
@@ -97,6 +99,18 @@ export interface CityPanel {
   render(): void;
 }
 
+/**
+ * The panel's element builder, and — since the yield glyphs became drawn marks —
+ * its yield printer.
+ *
+ * `setYieldText` rather than `textContent`, which is the one edit that retired
+ * the emoji from this whole file. Every figure in this panel is composed as text
+ * in `YIELD_GLYPH` (`figures.ts`) and lands here: a build button's `40⚙`, a
+ * building card's `+3🌾 every turn`, the modifier ledger's `⚙ +25%`. Routing the
+ * *builder* means the composition code above is untouched and cannot be got
+ * wrong, and it costs a substring check on strings that carry no glyph — which
+ * is nearly all of them.
+ */
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className?: string,
@@ -104,7 +118,7 @@ function element<K extends keyof HTMLElementTagNameMap>(
 ): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
   if (className) el.className = className;
-  if (text !== undefined) el.textContent = text;
+  if (text !== undefined) setYieldText(el, text);
   return el;
 }
 
@@ -463,7 +477,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const yields = cityYields(state, city, [], front);
     const box = element('div', 'city-yields-box');
     const row = element('div', 'city-yields');
-    const entries: [string, string, number][] = [
+    const entries: [YieldKey, string, number][] = [
       ['food', 'Food', yields.food],
       ['production', 'Prod', yields.production],
       ['gold', 'Gold', yields.gold],
@@ -474,7 +488,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     for (const [key, label, value] of entries) {
       const chip = element('div', `city-yield is-${key}`);
       chip.append(element('span', 'city-yield-value', String(value)));
-      chip.append(element('span', 'city-yield-label', label));
+      const name = element('span', 'city-yield-label');
+      // The drawn mark ahead of the abbreviation, so this row and the top bar's
+      // strip name a voice the same way. The word stays: these are the six
+      // headline figures of the panel and "Prod" is what makes them scannable
+      // before a player has learnt six pictures. The mark is `aria-hidden`, so
+      // the chip still reads as its word alone.
+      name.append(yieldMarkNode(key, true), document.createTextNode(label));
+      chip.append(name);
       row.append(chip);
     }
     box.append(row);
@@ -947,7 +968,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         price.append('needs improved ');
         price.append(resourceLabelNodes(missing));
       } else {
-        price.textContent = `${cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'unit', id }, city.queue.length))}`;
+        setYieldText(
+          price,
+          `${cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'unit', id }, city.queue.length))}`,
+        );
       }
       button.append(price);
       // Priced at the back of the queue, because that is where pressing this

@@ -27,7 +27,8 @@ import { describeResourceEffect } from '../sim/resourceEffects';
 import type { GameState } from '../sim/state';
 import { visibleResourceAt } from '../sim/tech';
 import { TILE_YIELD_KEYS, featureDef, terrainDef } from '../sim/terrainData';
-import { YIELD_GLYPH } from './figures';
+import { YIELD_NAME } from './figures';
+import { yieldFigureNodes } from './yieldMark';
 import { resourceMarkNode } from './resourceMark';
 
 /** Terrain and feature by name, plus whether the hex is hilly. */
@@ -54,13 +55,15 @@ export function describeTile(tile: Tile): { terrain: string; feature: string; hi
  */
 export function tileYieldNodes(state: GameState, playerId: number, tile: Tile): HTMLElement[] {
   const value = tileYieldOf(tile, yieldContextFor(state, playerId));
-  // The glyph table is `figures.ts`'s, which is the one place a yield's mark is
-  // written down — a second copy here is exactly the drift that module exists
-  // to stop.
+  // The drawn mark, from the one registry a yield's picture is written down in
+  // (`src/art/yieldMarks.ts`, printed here by `src/ui/yieldMark.ts`). The row
+  // gets an `aria-label` of its own because this is one of the few surfaces
+  // where the figure has *no* word beside it: "2 food" spoken, "2🌾" seen.
   return TILE_YIELD_KEYS.filter((key) => value[key] > 0).map((key) => {
     const span = document.createElement('span');
     span.className = `tile-yield is-${key}`;
-    span.textContent = `${value[key]}${YIELD_GLYPH[key]}`;
+    span.append(yieldFigureNodes(String(value[key]), key));
+    span.setAttribute('aria-label', `${value[key]} ${YIELD_NAME[key]}`);
     return span;
   });
 }

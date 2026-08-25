@@ -34,6 +34,7 @@ import {
   isActionable,
 } from './notifications';
 import { type Popover, createPopover } from './popover';
+import { setYieldText } from './yieldMark';
 
 /** Above this the badge stops counting and starts gesturing. */
 const BADGE_MAX = 99;
@@ -98,7 +99,9 @@ export function createNotificationsPanel(
 
     const text = document.createElement('span');
     text.className = 'log-entry-text';
-    text.textContent = entry.text;
+    // The same treatment the toast gives the same sentence — the string is the
+    // record, the glyphs in it are drawn. See `src/ui/yieldMark.ts`.
+    setYieldText(text, entry.text);
 
     el.append(turn, text);
     return el;

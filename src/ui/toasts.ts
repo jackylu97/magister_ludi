@@ -41,6 +41,7 @@
  */
 
 import { type NotificationAction, type NotificationEntry, isActionable } from './notifications';
+import { setYieldText } from './yieldMark';
 
 /** How long a toast stays up before it starts leaving. */
 const TOAST_MS = 5200;
@@ -144,7 +145,12 @@ export function createToastStack(options: ToastStackOptions): ToastStack {
 
       const text = document.createElement('span');
       text.className = 'toast-text';
-      text.textContent = entry.text;
+      // The entry's own string stays the sentence — it is what the log replays
+      // and what a screen reader is given — but any yield glyph in it is *drawn*
+      // here rather than printed as an emoji, which is the whole of the retiral
+      // (see `src/ui/yieldMark.ts`). The marks are `aria-hidden`, so the spoken
+      // line is unchanged: `setYieldText` leaves the text nodes alone.
+      setYieldText(text, entry.text);
 
       card.append(turn, text);
       container.prepend(card);

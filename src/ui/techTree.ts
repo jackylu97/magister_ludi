@@ -88,6 +88,7 @@ import { type TechGift, techGifts } from '../sim/techUnlocks';
 import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
 import { HAMMER, YIELD_GLYPH, turnsLabel } from './figures';
+import { setYieldText } from './yieldMark';
 import { createInfoCard } from './infoCard';
 import { BEAKER, researchProgress } from './researchProgress';
 import { resourceMarkNode } from './resourceMark';
@@ -187,6 +188,16 @@ export interface TechTreeOptions {
   onOpen?: () => void;
 }
 
+/**
+ * The chart's element builder, and — since the yield glyphs became drawn marks —
+ * its yield printer.
+ *
+ * `setYieldText` rather than `textContent`, the same one-line change the city
+ * panel made and for the same reason: every figure on this screen is composed as
+ * text in `YIELD_GLYPH` (`figures.ts`) and lands here — a node's unlock lines, a
+ * gift's `40⚙`, a renewal's `+1🌾`. Routing the builder leaves the composition
+ * above untouched and makes an emoji impossible to reintroduce by accident.
+ */
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className?: string,
@@ -194,7 +205,7 @@ function element<K extends keyof HTMLElementTagNameMap>(
 ): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
   if (className) el.className = className;
-  if (text !== undefined) el.textContent = text;
+  if (text !== undefined) setYieldText(el, text);
   return el;
 }
 
@@ -425,7 +436,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       // drawn still arrives with something in the box.
       const mark = element('span', `info-card-mark ${GIFT_MARK[gift.kind]}`);
       if (gift.kind === 'reveal') mark.append(resourceMarkNode(gift.id));
-      else mark.textContent = gift.glyph;
+      else setYieldText(mark, gift.glyph);
       row.append(mark);
       row.append(element('span', 'info-card-gift-name', gift.name));
       // Units are priced through the simulation's own evaluator; buildings
@@ -911,9 +922,12 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       // With no aim there is no denominator, so the figures line says what the
       // pool *is* — banking is real (see the model in `src/sim/tech.ts`), and a
       // player who has forgotten to choose should see the beakers piling up.
-      statusFigures.textContent = prompting
-        ? `${Math.floor(player.sciencePool)} ${BEAKER} banked · +${rate}/t`
-        : `${player.techsResearched.length}/${TECH_IDS.length} ✦`;
+      setYieldText(
+        statusFigures,
+        prompting
+          ? `${Math.floor(player.sciencePool)} ${BEAKER} banked · +${rate}/t`
+          : `${player.techsResearched.length}/${TECH_IDS.length} ✦`,
+      );
       statusCard.title = prompting
         ? 'Choose what to research (T)'
         : 'Every technology is researched — the star chart is T';
@@ -931,12 +945,16 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     const progress = researchProgress(player.sciencePool, def.cost, rate);
     statusName.textContent = def.name;
     statusDial.style.setProperty('--progress', `${(progress.fraction * 100).toFixed(1)}%`);
-    statusGlyph.textContent = def.glyph;
+    // Through the printer, like every other glyph on this screen: a tech whose
+    // own glyph *is* one of the six yield marks — Agriculture, Bronze Working,
+    // Drama, Currency — wears the drawn one here as it does on its node, rather
+    // than the emoji on one surface and the drawing on the other.
+    setYieldText(statusGlyph, def.glyph);
     statusGlyph.classList.remove('is-dim');
     statusBoss.textContent = progress.turns === null ? '' : `${progress.turns}t`;
     // The figures line drops the turn count `progress.figures` carries — the
     // dial's boss says it instead, so the two would otherwise repeat a fact.
-    statusFigures.textContent = `${progress.banked}/${progress.cost} ${BEAKER}`;
+    setYieldText(statusFigures, `${progress.banked}/${progress.cost} ${BEAKER}`);
     statusCard.title =
       `${def.name}: ${progress.banked} / ${progress.cost} beakers ` +
       `(+${rate} per turn) — the star chart is T`;

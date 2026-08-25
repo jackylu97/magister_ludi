@@ -37,6 +37,8 @@
  * is `turnSplash.ts`'s rule and it is the same rule here for the same reason.
  */
 
+import { setYieldText } from './yieldMark';
+
 /** One thing a player may take. Strings only — see the module docblock. */
 export interface OfferOption {
   /** The name on the card. "Star tablets". */
@@ -86,10 +88,16 @@ export interface OfferCard {
   dispose(): void;
 }
 
+/**
+ * The card's element builder, and its yield printer: the payoff line is composed
+ * in `YIELD_GLYPH` by `main.ts` ("+20⚙ to Uruk") and the glyph in it is drawn
+ * here. Same one-line seam as the city panel's and the star chart's — see
+ * `src/ui/yieldMark.ts`.
+ */
 function element(tag: string, className: string, text?: string): HTMLElement {
   const node = document.createElement(tag);
   node.className = className;
-  if (text !== undefined) node.textContent = text;
+  if (text !== undefined) setYieldText(node, text);
   return node;
 }
 

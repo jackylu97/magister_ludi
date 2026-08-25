@@ -40,16 +40,45 @@ import type { MeterEffect } from '../sim/meters';
 /** The six yields, in the order the city panel's chip row lists them. */
 export type YieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith';
 
+/**
+ * The six glyphs, as **text**.
+ *
+ * These are no longer what the interface *shows*. The drawn art landed (Lucide's
+ * carrot, gear, flask, notes and flame; Tabler's money bag — see
+ * `src/art/yieldMarks.ts`), and every visible yield glyph in the HUD is now a
+ * masked element printed by `src/ui/yieldMark.ts`. What this table does is
+ * *compose*: a figure is still assembled as a string here and in the panels
+ * above, and the printer swaps each of these characters for its drawing on the
+ * way into the DOM. Nothing about composition changed, which is why forty call
+ * sites did not have to.
+ *
+ * So the table stays, in two roles, and both are deliberate:
+ *
+ *   the token   what a composed figure carries so the printer can find it.
+ *               `40⚙` is how a cost is written down; whether it is *shown* as an
+ *               emoji or as a drawing is the printer's business.
+ *   the text    the register below — every surface where a figure has to be a
+ *               string and cannot hold an element:
+ *                 · a `title` attribute (the platform builds that tooltip;
+ *                   `unitPanel.ts`'s improvement rows and the star chart's
+ *                   research card both quote a yield in one)
+ *                 · an `aria-label` and any announce string — the top bar's
+ *                   chips, the tile readout's rows, the meter chips
+ *                 · a `NotificationEntry.text`, which is a *record* replayed
+ *                   into the log and read aloud; the toast draws the glyph in
+ *                   it, the string itself keeps the character
+ *               A surface on that list is text on purpose. Everything else
+ *               prints through `setYieldText` and a reader sees a drawing.
+ */
 export const YIELD_GLYPH: Record<YieldKey, string> = {
   food: '🌾',
   production: '⚙',
   gold: '💰',
   science: '🔬',
   culture: '🎭',
-  // A votive candle, and a placeholder like every other glyph in this table
-  // (project policy: the drawn art comes later). Chosen because it reads at one
-  // line-height and is not a building — faith in this game is a thing a *tile*
-  // can pay, so its mark had better not look like a temple.
+  // A votive candle. The last of the six with no better text stand-in, and it is
+  // only ever read aloud or shown in a tooltip now — the flame the board and the
+  // panels draw is `yieldMarks.faith`.
   faith: '🕯',
 };
 

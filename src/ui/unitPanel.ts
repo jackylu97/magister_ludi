@@ -47,36 +47,60 @@ import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
 import { fullMovement } from '../sim/units';
 import type { ImprovementOption } from './controls';
-import { YIELD_GLYPH } from './figures';
+import { HAMMER, YIELD_GLYPH, signedFigure } from './figures';
+import { yieldFigureNodes } from './yieldMark';
 
 /** "+40%" — a defence fraction as the percentage a player reads it as. */
 function formatPercent(fraction: number): string {
   return `+${Math.round(fraction * 100)}%`;
 }
 
+/** The three voices an improvement can move, in the order the panel reads them. */
+const DELTA_KEYS = ['food', 'production', 'gold'] as const;
+
+/** "Chop +20⚙" with the cogwheel drawn — the axe's one-row payout. */
+function chopLabel(production: number): DocumentFragment {
+  const fragment = document.createDocumentFragment();
+  fragment.append(document.createTextNode('Chop '));
+  fragment.append(yieldFigureNodes(signedFigure(production), 'production'));
+  return fragment;
+}
+
 /**
- * "+1🌾 +1💰" — a yield delta in the three voices, zeroes left out.
+ * "+1🌾 +1💰" — a yield delta in the three voices, zeroes left out, with each
+ * mark **drawn**.
  *
- * The glyphs come from `YIELD_GLYPH` (`ui/figures.ts`), the table every other
- * yield readout on this interface draws from (the context card, the city
- * panel), because a player should not have to learn that a sheaf on one panel
- * is the same thing as a sheaf on another. An empty delta comes back as an
- * empty string, and the caller decides what to do about it — which is
- * nothing, since an improvement worth no yield is still worth building for
- * the resource it opens.
+ * The marks come from `src/ui/yieldMark.ts`, the one printer every yield glyph
+ * on this interface goes through (the context card, the city panel, the top
+ * bar), because a player should not have to learn that a sheaf on one panel is
+ * the same thing as a sheaf on another. `null` for an empty delta, and the
+ * caller decides what to do about it — which is nothing, since an improvement
+ * worth no yield is still worth building for the resource it opens.
+ */
+function yieldDeltaNodes(delta: TileYield): DocumentFragment | null {
+  const keys = DELTA_KEYS.filter((key) => delta[key] !== 0);
+  if (keys.length === 0) return null;
+  const fragment = document.createDocumentFragment();
+  keys.forEach((key, index) => {
+    if (index > 0) fragment.append(document.createTextNode(' '));
+    fragment.append(yieldFigureNodes(signedFigure(delta[key]), key));
+  });
+  return fragment;
+}
+
+/**
+ * The same delta as plain text, for the `title` attribute beside it.
+ *
+ * The deliberate half of the emoji retirement: a hover card built by the
+ * platform out of an attribute string cannot hold an element, so the row that
+ * *shows* a drawn cogwheel still *says* `⚙` when a pointer rests on it. Every
+ * such surface in this interface keeps `YIELD_GLYPH` for that reason and no
+ * other — see the register in `figures.ts`.
  */
 function formatYieldDelta(delta: TileYield): string {
-  const parts: string[] = [];
-  if (delta.food !== 0) {
-    parts.push(`${delta.food > 0 ? '+' : ''}${delta.food}${YIELD_GLYPH.food}`);
-  }
-  if (delta.production !== 0) {
-    parts.push(`${delta.production > 0 ? '+' : ''}${delta.production}${YIELD_GLYPH.production}`);
-  }
-  if (delta.gold !== 0) {
-    parts.push(`${delta.gold > 0 ? '+' : ''}${delta.gold}${YIELD_GLYPH.gold}`);
-  }
-  return parts.join(' ');
+  return DELTA_KEYS.filter((key) => delta[key] !== 0)
+    .map((key) => `${signedFigure(delta[key])}${YIELD_GLYPH[key]}`)
+    .join(' ');
 }
 
 /**
@@ -188,7 +212,13 @@ export interface UnitPanel {
 
 /** One row of the actions list. Everything a future verb will need. */
 interface UnitAction {
-  label: string;
+  /**
+   * The row's name. A `DocumentFragment` for the two rows that quote a yield —
+   * the improvement deltas and the chop's payout — because a yield's mark is a
+   * masked element now rather than a character (`src/ui/yieldMark.ts`), and a
+   * string cannot carry one. Everything else is still a plain label.
+   */
+  label: string | DocumentFragment;
   /** The keyboard shortcut that does the same job, worn on the button. */
   key?: string;
   /** Why it cannot be taken, or `null` when it can. */
@@ -413,11 +443,22 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // precisely the argument for going and researching Mining.
     if (isBuilder(unit)) {
       for (const option of improvementOptions()) {
-        const delta = formatYieldDelta(option.delta);
+        const delta = yieldDeltaNodes(option.delta);
+        let label: string | DocumentFragment = option.name;
+        if (delta) {
+          const row = document.createDocumentFragment();
+          row.append(document.createTextNode(`${option.name} `), delta);
+          label = row;
+        }
         actions.push({
-          label: delta ? `${option.name} ${delta}` : option.name,
+          label,
           blocked: option.blocked,
-          hint: `Spend a charge: ${option.name.toLowerCase()} on this tile`,
+          hint:
+            `Spend a charge: ${option.name.toLowerCase()} on this tile` +
+            // The hover card is a `title` attribute and therefore text, so the
+            // delta it quotes wears the plain glyph. Deliberate, and the reason
+            // `formatYieldDelta` survived the drawn marks.
+            (delta ? ` · ${formatYieldDelta(option.delta)}` : ''),
           title: techHoverTitle(option.requiredTechName, option.blocked),
           run: () => onBuildImprovement(option.id),
         });
@@ -436,14 +477,14 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       const chop = chopPreview();
       const chopBlocked = chopBlocker();
       actions.push({
-        label: chop ? `Chop +${chop.production}⚙` : 'Chop',
+        label: chop ? chopLabel(chop.production) : 'Chop',
         blocked: chopBlocked === undefined ? 'No unit selected' : chopBlocked,
         // The completion rides on the end of the hint when there is one, because
         // "this chop finishes the granary" is a different decision from "this
         // chop pays twenty hammers" — it is the argument, and it is why the
         // clause is loud (`!`) rather than parenthetical.
         hint: chop
-          ? `Spend a charge: clear this tile · +${chop.production}⚙ → ${chop.cityName}` +
+          ? `Spend a charge: clear this tile · +${chop.production}${HAMMER} → ${chop.cityName}` +
             (chop.completes ? ` · completes ${chop.completes}!` : '')
           : 'Spend a charge: clear the feature on this tile',
         title: techHoverTitle(chopTechName(), chopBlocked ?? null),
@@ -493,7 +534,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       button.type = 'button';
       button.disabled = action.blocked !== null;
       button.title = action.title ?? action.blocked ?? action.hint;
-      button.append(element('span', 'unit-action-label', action.label));
+      const label = element('span', 'unit-action-label');
+      if (typeof action.label === 'string') label.textContent = action.label;
+      else label.append(action.label);
+      button.append(label);
       if (action.key) button.append(element('kbd', 'unit-action-key', action.key));
       button.addEventListener('click', action.run);
       box.append(button);

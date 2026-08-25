@@ -87,6 +87,86 @@ describe('poolFigure', () => {
   it('rounds to a tenth in the house voice, true minus sign included', () => {
     expect(poolFigure(12.34, 1.25)).toBe('12.3 (+1.3)');
   });
+
+  /**
+   * Faith is the second yield to wear this idiom, and the cases it adds are the
+   * ones gold cannot reach — which is the whole reason it is worth a suite of
+   * its own rather than a second `expect` beside the treasury's.
+   *
+   * `Player.faithPool` is **accumulate-only**: `collectYields` adds to it and
+   * nothing spends it (the trap in `CLAUDE.md`, and `YIELD_NOTE.faith` says so
+   * on the card). So a faith chip is a number that only ever goes up, from a
+   * long stretch at exactly nothing — and the two ends of that are the two
+   * shapes a treasury never sits in for long.
+   */
+  describe('the faith chip, the second pool to use it', () => {
+    it('reads as a flat nothing before any city pays it', () => {
+      // Turns one through however many: no temple, no luxury, no faith. It must
+      // not print an em dash or a bare `0` — the parens are what say "and it is
+      // not growing either", which is a different fact from "there is none".
+      expect(poolFigure(0, 0)).toBe('0 (0)');
+    });
+
+    it('leads with what has been gathered once it is running', () => {
+      // The pool is the figure worth reading: nothing spends it, so the number
+      // that means anything is the total, and the rate is the aside.
+      expect(poolFigure(12, 2)).toBe('12 (+2)');
+    });
+
+    it('banks a fraction into a whole-looking pool without lying about either', () => {
+      // A luxury signature can pay a fractional share, so the pool drifts off
+      // the integers in a way a treasury does not. Both halves round to a tenth
+      // rather than one being floored to look tidy.
+      expect(poolFigure(7.5, 0.5)).toBe('7.5 (+0.5)');
+    });
+
+    it('has no way to say a falling pool, and does not need one', () => {
+      // Nothing spends faith today. `poolFigure` would print it correctly if
+      // something did — this is the assertion that the idiom is ready rather
+      // than the claim that the case is reachable, and it is why the day faith
+      // gains a sink costs no change here.
+      expect(poolFigure(40, -6)).toBe('40 (−6)');
+    });
+  });
+});
+
+/**
+ * Which chips wear the pool idiom, asked of the top bar's source.
+ *
+ * The suite has no jsdom, so the chip itself cannot be rendered — but the claim
+ * that matters is not "the string is right" (that is every test above), it is
+ * **which yields get it**, and that is one register in `topBar.ts`. It was two
+ * hand-rolled `key === 'gold'` comparisons before faith joined, which is exactly
+ * how a second banked yield ends up reading differently from the first on two
+ * surfaces out of three.
+ */
+describe('the banked yields', () => {
+  const TOP_BAR = (
+    import.meta.glob('../../src/ui/topBar.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>
+  )['../../src/ui/topBar.ts']!;
+
+  /** Source with its comments taken out — the rule is not the prose about it. */
+  const code = TOP_BAR.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  it('names gold and faith, through their own pools', () => {
+    expect(code).toContain('player.gold');
+    expect(code).toContain('player.faithPool');
+    expect(code).toContain('poolFigure(');
+  });
+
+  it('decides who is banked in one register, not at each site', () => {
+    // The three readers — the chip's figure, its title, the card's leading row.
+    const uses = code.match(/BANKED\[/g) ?? [];
+    expect(uses.length).toBeGreaterThanOrEqual(3);
+    // And no site re-asks the question by hand. This is the assertion that
+    // would have caught faith being added to the chip and forgotten on the card.
+    expect(code).not.toContain("key === 'gold'");
+    expect(code).not.toContain("key === 'faith'");
+  });
 });
 
 describe('an empire modifier as a figure', () => {

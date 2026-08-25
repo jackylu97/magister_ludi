@@ -188,29 +188,58 @@ written for it.
 | `whales` | a fluke, sounding |
 | `tyrian` | a murex whelk, whorl and spines |
 
-## `icons/yields/<yield>.svg` — the three yield voices
+## The six yield voices — `src/art/yieldMarks.ts`
 
-**Original work for this project**, CC0 1.0, same grid, drawn a full stroke-weight heavier than
-everything above. These replaced the coloured dots the board used to print on a tile: a dot can
-say *how many* and never *which*, so a player had to learn that the top row meant food. They
-are rasterised onto a disc of their own voice's colour — food green, production orange, gold
-gilt — because the colour as a mass is what survives being ten pixels across, and a thin green
-stroke on green grass does not.
+**Not our work, and the only vendored drawings in the project.** The six most-read marks in the
+game — they are on the top bar, on every build button and on every tile of the board with the
+yields switch up — are taken from two open icon sets rather than drawn here, because a set drawn
+by people who draw icon sets for a living reads better at twelve pixels than anything this
+project would author for itself.
 
-| File | Yield | Mark |
-| --- | --- | --- |
-| `food.svg` | food | an ear of wheat on a stalk |
-| `production.svg` | production | a hammer, head square on |
-| `gold.svg` | gold | a coin |
+- **Lucide** — <https://lucide.dev> · <https://github.com/lucide-icons/lucide> — **ISC licence**
+- **Tabler Icons** — <https://tabler.io/icons> · <https://github.com/tabler/tabler-icons> — **MIT licence**
 
-Every mark in this folder and in `resourceMarks.ts` is authored on the same 64 × 64 grid inside a
-safe circle, in one ink at one stroke weight, with round caps and joins throughout — the
-consistency *is* the design. The files declare an intrinsic size of 256 px so the browser
-rasterises them larger than any atlas cell asks for and the badge is downsampled rather than
-blown up. The fill colour in the files is the palette's ink, but nothing depends on it: the
-atlas builder recolours every icon to `badges.inkColor` from `data/view3d.json` at load, so the
-ink stays a data decision. The resource marks make the same promise one step earlier — they
-carry no colour at all until somebody asks for one.
+Both licences are permissive and neither requires attribution in a running build. It is given
+because the work deserves it, which is the same sentence this file makes about Kenney at the top.
+
+| Yield | Upstream icon | Set | Mark |
+| --- | --- | --- | --- |
+| food | `carrot` | Lucide (ISC) | a carrot, pulled, with its two leaves |
+| production | `settings` | Lucide (ISC) | a cogwheel, eight teeth around a hub |
+| gold | `moneybag` | Tabler (MIT) | a drawstring money bag |
+| science | `flask-conical` | Lucide (ISC) | a conical flask, filled to its line |
+| culture | `music` | Lucide (ISC) | a beamed pair of notes |
+| faith | `flame` | Lucide (ISC) | a flame with its inner tongue |
+
+They are **path data, not files**, and live in `src/art/yieldMarks.ts` beside the resource marks
+rather than under `public/` — the six SVGs that used to sit in `icons/yields/` are gone. A file
+can only be one colour, and these marks are printed on a coloured disc in the board's atlas *and*
+as `currentColor` in a dozen DOM surfaces set in four different inks. As data they are traced by
+`Path2D` into the atlas cell and emitted as a `data:` URI CSS mask by `src/ui/yieldMark.ts`, from
+one source, with nothing to fetch and nothing to 404 at boot.
+
+Two edits were made to the upstream drawings and no others: three `<circle>` elements became path
+data (every member of a mark in this project is a `d` string, because both printers take exactly
+one kind of thing), and the stroke was weighted from upstream's 2 to **2.75** on the same 24-unit
+grid. Upstream draws for a 24-pixel toolbar icon; a board pip here is about ten pixels across and
+a 2/24 stroke goes spidery at that size. The chosen weight lands almost exactly where the
+hand-drawn set it replaces was printed — ten pixels at the shipped atlas cell, against the old
+files' ten and a half — so the set did not get heavier, it stopped being drawn by us. No path was
+re-fitted, no shape re-centred; `test/render/yieldMarks.test.ts` pins the data against the
+vendored strings so a tidy-up of a curve is a failing test rather than a silent redraw of somebody
+else's icon.
+
+They are rasterised onto a disc of their own voice's colour — food green, production orange, gold
+gilt, and so on through all six — because the colour as a mass is what survives being ten pixels
+across, and a thin green stroke on green grass does not. The ink is `icons.yieldInkColor` from
+`data/view3d.json`, so it stays a data decision.
+
+Every mark in `resourceMarks.ts` and `siteMarks.ts` is authored on the project's own 64 × 64 grid
+inside a safe circle, in one ink at one stroke weight, with round caps and joins throughout — the
+consistency *is* the design. The vendored six keep upstream's 24-unit grid instead, because
+rescaling path data is how a vendored drawing quietly stops being the drawing that was vendored;
+both printers take the grid as a parameter, and `YIELD_MARK_SCALE` reconciles the two sets'
+padding conventions so they print at the same optical size in the same roundel.
 
 ## Marginalia (`icons/marginalia/`)
 
