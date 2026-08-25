@@ -118,6 +118,52 @@ Every pool carries every line, so any draft can start or deepen a thread; the up
 | The Grand Stage | W | — | +20% 🎵 · +1 happiness per 2 cities | vocab + countScaled |
 | Toleration Edicts | W | — | happiness demand −15% | vocab |
 
+## ⚡ The benders (added pass three — narrow, plan-warping; keep beside the staples)
+
+Litanies-model cards: alternate engines, geography commitments, and honest tradeoffs. A
+bender should be a dead draft in the wrong run and the whole plan in the right one.
+
+**Chiefdom / Gov I additions**
+
+| Card | Type | Line | Effect | Mechanism |
+|---|---|---|---|---|
+| The Hermit Crown | E | 🌱 | while you hold ≤3 cities: capital +30% all yields | hook:conditionRule (city count) |
+| Conscription | M | ⚒ | +50% ⚙ toward units · −2 happiness | vocab (negative lines are lines) |
+| River Kings | E | 🌱 | +30% 🌾 in freshwater cities | hook:scopeVariant (freshwater) |
+| The Woodwrights | E | ⚒ | chops pay +100% and grant +10🎵 each | windfallRider |
+| Homestead Charters | E | — | founding a city pays it +20🌾 immediately | windfallRider (founding) |
+| The Long Watch | M | — | sleeping and fortified units: +1 sight, +4 defense | unitStatCard (state-conditional) |
+
+**Gov II additions**
+
+| Card | Type | Line | Effect | Mechanism |
+|---|---|---|---|---|
+| Bread and Circuses | W | 🌱 | +2🎵 per point of positive happiness (cap +12) | rateConversion |
+| The Tithe | E | 🕯 | +1💰 per 🕯 gained per turn | rateConversion |
+| Thalassocracy | E | 🐫 | +20% 💰 and 🎵 in coastal cities · coastal cities cost 0 authority | vocab (coastal scope) + meterRule |
+| Mountain Hold | M | ⚒ | +25% ⚙ in mountain-adjacent cities · +5 defense there | scopeVariant + combatCardLine |
+| Chartered Companies | E | 🐫 | each tile purchased also pays +5🔬 · purchases −15% | windfallRider (purchase) + vocab |
+| Slash and Burn | E | ⚒ | chopping costs no worker charge | hook:actionRule |
+| The Shield Wall | M | ⚒ | +5 combat on hills | combatCardLine (terrain) |
+
+**Gov III additions**
+
+| Card | Type | Line | Effect | Mechanism |
+|---|---|---|---|---|
+| Manifest of the Steppe | E | — | settlers −40% ⚙ and no cost escalation · every city −1 extra happiness demand | vocab + meterRule |
+| The Gilded Court | E | 🐫 | +1 authority capacity per 50💰 held (cap +5) | countScaled (treasury) |
+| Wolf-Mother's Pact | M | 🏹 | barbarians never attack you (theft continues) · camps in your sight pay +50% | hook:behaviorRule + windfallRider |
+| The Iron Price | M | 🏹 | every combat kill grants +5🎵 · pillaging +15💰 | windfallRider (combat) |
+| Athenaeum of the Road | W | 🧭 | your first discovery each Æra: claim ALL THREE options | offerRider |
+| Garrison State | M | ⚒ | each city +2⚙ per garrisoned combat unit (cap +4/city) | countScaled (garrison) |
+
+New hooks this adds: `conditionRule` (an effect gated on a deterministic empire condition,
+evaluated with the meters each refresh), `scopeVariant` (freshwater/mountain-adjacent city
+scopes beside the existing coastal), `actionRule` (a command's cost rule changes while
+slotted — the free chop), `behaviorRule` (the barbarian phase consults slotted cards; the
+Pact is its only client v1). Tradeoffs are ordinary negative vocabulary lines — no special
+machinery, and the breakdown prints them signed like everything else (rule 5).
+
 ## Implementation notes
 
 - 52 cards. Hooks now: `combatCardLine` (labeled preview lines; terrain/adjacency variants),
