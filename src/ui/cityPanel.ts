@@ -55,7 +55,7 @@ import {
 import { CITY_YIELD_KEYS, type CityYieldKey, resourceDef } from '../sim/resourceData';
 import { type ResourceYieldLine, cityResourceYields } from '../sim/resourceEffects';
 import { resourceLabelNodes } from './resourceMark';
-import { type City, type QueueItem, hasEndedTurn } from '../sim/state';
+import { type City, type QueueItem, hasEndedTurn, playerById } from '../sim/state';
 import { techDef } from '../sim/techData';
 import { isUnlocked, requiredResource } from '../sim/tech';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
@@ -64,6 +64,7 @@ import {
   HAMMER,
   YIELD_GLYPH,
   effectFigure,
+  figure,
   percentFigure,
   signedFigure,
   turnsLabel,
@@ -1050,8 +1051,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         'p',
         'hint',
         isBuyMode()
-          ? 'Buy tiles: every price on the board is what that hex costs right ' +
-            'now. Click one to buy it; a greyed tag says why it cannot be had. ' +
+          ? // Leads with the treasury a tag's price is checked against — the
+            // same `Player.gold` the top bar's chip now shows — so affordability
+            // reads here without a hover.
+            `${figure(playerById(state, localPlayerId())?.gold ?? 0)}${YIELD_GLYPH.gold} on ` +
+            'hand. Every price on the board is what that hex costs right now. ' +
+            'Click one to buy it; a greyed tag says why it cannot be had. ' +
             'Escape stops buying and leaves the city open.'
           : 'Dots on the map are the tiles this city works. Click one to pin a ' +
             'citizen there, or any other tile in the ring to move one to it. ' +

@@ -115,6 +115,20 @@ export function figure(value: number): string {
   return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
 }
 
+/**
+ * "132 (+4)" — a pool with its rate beside it, in parens.
+ *
+ * The house pattern for the one yield the empire *banks* rather than only
+ * earns (`Player.gold`): the figure a purchase is checked against comes
+ * first, because that is the number "can I afford this" means, and the
+ * per-turn rate — the number every other yield chip shows on its own — comes
+ * after it, in the signed voice, because "how am I doing" is still worth
+ * answering in the same glance.
+ */
+export function poolFigure(pool: number, perTurn: number): string {
+  return `${figure(pool)} (${signedFigure(perTurn)})`;
+}
+
 /** "+10%", "−50%" — a percentage, same minus sign. */
 export function percentFigure(percent: number): string {
   return percent > 0 ? `+${percent}%` : `−${Math.abs(percent)}%`;

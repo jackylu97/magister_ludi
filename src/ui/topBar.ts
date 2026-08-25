@@ -38,6 +38,14 @@
  * beside a chip in a horizontal strip would cover the chips it is being compared
  * against.
  *
+ * Gold is the one exception to "the total, and the total alone": it is the
+ * only yield the empire *banks* (`Player.gold`) rather than only earns, and a
+ * bank a player cannot see is a discovery's Traders' hoard or a tile purchase
+ * that appears to do nothing. Its chip is treasury-first — `poolFigure`
+ * (`figures.ts`) — with the per-turn total every other chip shows on its own
+ * moved into parens beside it, and its hover card leads with an "On hand" row
+ * before the same per-city breakdown the other five have always had.
+ *
  * Like every other derived readout it is recomputed wherever the rest of the HUD
  * is — after any dispatch and after every turn. The elements are built once and
  * only their text is rewritten: `updatePanel` runs on pointer movement too, and
@@ -59,7 +67,7 @@ import {
   meterStanding,
 } from '../sim/meters';
 import { empireResourceYields, foldResourceYields } from '../sim/resourceEffects';
-import type { GameState } from '../sim/state';
+import { type GameState, playerById } from '../sim/state';
 import { cityDisplayName, starCapitalSource } from './cityDisplay';
 import {
   type YieldKey,
@@ -68,6 +76,7 @@ import {
   YIELD_NOTE,
   figure,
   percentFigure,
+  poolFigure,
   signedFigure,
 } from './figures';
 import { createInfoCard } from './infoCard';
@@ -212,7 +221,11 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     icon.setAttribute('aria-hidden', 'true');
     const value = element('span', 'civ-yield-value', '0');
     item.append(icon, value);
-    item.title = `${label} per turn`;
+    // Gold is the one figure with a bank behind the rate — the chip leads
+    // with the treasury (`Player.gold`) and puts the per-turn rate every
+    // other yield shows on its own in parens beside it, so the title says
+    // that rather than "per turn" alone.
+    item.title = key === 'gold' ? 'Gold on hand, income per turn in parens' : `${label} per turn`;
     item.setAttribute('aria-label', label);
     // Focusable, because the card is the only place the per-city split exists
     // and a keyboard should be able to reach it (see `infoCard.ts`, which binds
@@ -239,6 +252,23 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       element('span', 'info-card-kind', `${figure(civYields(state, playerId)[key])} per turn`),
     );
     box.append(head);
+
+    // Gold alone has a bank behind the rate: what is on hand, which is the
+    // figure `purchaseTile` checks against and the chip now leads with. Led
+    // before the per-city breakdown for the same reason the chip leads with
+    // it — a treasury is read before an income is. It is its own row, ruled
+    // off from the breakdown rather than folded into it, because it is not a
+    // summand of the "per turn" headline above (rule 5's fold is still exactly
+    // the city lines below; this is a second, independent number).
+    if (key === 'gold') {
+      const player = playerById(state, playerId);
+      if (player) {
+        const onHand = element('div', 'meter-total');
+        onHand.append(element('span', 'meter-line-source', 'On hand'));
+        onHand.append(element('span', 'meter-line-value', figure(player.gold)));
+        box.append(onHand);
+      }
+    }
 
     const lines = element('ul', 'meter-lines');
     for (const city of state.cities) {
@@ -489,9 +519,14 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       const { state } = getGame();
       const playerId = localPlayerId();
       const totals = civYields(state, playerId);
+      const player = playerById(state, playerId);
       for (const key of YIELDS) {
         const el = values.get(key)!;
-        const text = String(totals[key]);
+        // Gold is treasury-first: `Player.gold` is what a purchase is checked
+        // against, so it is the figure and the per-turn total — what every
+        // other yield chip shows on its own — moves into parens beside it.
+        const text =
+          key === 'gold' && player ? poolFigure(player.gold, totals.gold) : String(totals[key]);
         if (el.textContent !== text) el.textContent = text;
       }
 

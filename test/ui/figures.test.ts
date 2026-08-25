@@ -12,7 +12,14 @@
 import { describe, expect, it } from 'vitest';
 import { turnsToFill } from '../../src/sim/cities';
 import type { MeterEffect } from '../../src/sim/meters';
-import { BORDER_GLYPH, HAMMER, YIELD_GLYPH, effectFigure, turnsLabel } from '../../src/ui/figures';
+import {
+  BORDER_GLYPH,
+  HAMMER,
+  YIELD_GLYPH,
+  effectFigure,
+  poolFigure,
+  turnsLabel,
+} from '../../src/ui/figures';
 import { BEAKER } from '../../src/ui/researchProgress';
 
 describe('turnsLabel', () => {
@@ -58,6 +65,27 @@ describe('the yield voices', () => {
     // the half that buys ground answers to the writ — so its mark must not be
     // one of the six.
     expect(Object.values(YIELD_GLYPH)).not.toContain(BORDER_GLYPH);
+  });
+});
+
+describe('poolFigure', () => {
+  it('leads with the pool, the rate in parens — the gold chip’s treasury-first idiom', () => {
+    // `Player.gold` first, because that is the figure a purchase is checked
+    // against; the per-turn total — what every other yield chip shows on its
+    // own — moves into parens beside it.
+    expect(poolFigure(132, 4)).toBe('132 (+4)');
+  });
+
+  it('signs the rate but never the pool', () => {
+    // A shrinking or stalled treasury is still a plain magnitude; only the
+    // rate carries a sign, exactly as `signedFigure` / `figure` do everywhere
+    // else on this interface.
+    expect(poolFigure(0, 0)).toBe('0 (0)');
+    expect(poolFigure(50, -3)).toBe('50 (−3)');
+  });
+
+  it('rounds to a tenth in the house voice, true minus sign included', () => {
+    expect(poolFigure(12.34, 1.25)).toBe('12.3 (+1.3)');
   });
 });
 
