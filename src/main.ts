@@ -50,6 +50,7 @@ import {
   type Unit,
   hasEndedTurn,
   playerById,
+  realPlayers,
 } from './sim/state';
 import type { Tile } from './sim/map';
 import { describeUpgrade } from './sim/tech';
@@ -1006,7 +1007,11 @@ async function boot(initial: Game | null): Promise<void> {
       who.textContent = local.name;
       who.style.color = local.color;
     } else {
-      const waiting = state.players.filter((player) => !hasEndedTurn(state, player.id));
+      // `realPlayers`, not the raw roster: the wild's flag is raised for it every
+      // turn (`clearTurnEnded`) so it would never appear here anyway, but a seat
+      // strip that agrees with this line by accident is a seat strip that will
+      // disagree the day a seat is auto-ended for some other reason.
+      const waiting = realPlayers(state).filter((player) => !hasEndedTurn(state, player.id));
       who.textContent =
         waiting.length > 0
           ? `Waiting: ${waiting.map((p) => p.name).join(', ')}`
@@ -1023,13 +1028,22 @@ async function boot(initial: Game | null): Promise<void> {
    * deliberately unglamorous title text. Rebuilt wholesale on every panel
    * update because there are at most a dozen of them and a diff would be more
    * code than the elements.
+   *
+   * **`realPlayers`, never `state.players`.** The wild is a `Player` so that
+   * combat and fog need no second implementation (design ledger, Entry XX), and
+   * it is emphatically not somebody at the table: a chip for it sat in the top
+   * bar of every solo game, ticked, as though the player were waiting on the
+   * steppe to finish thinking. Every roster-shaped surface in the interface asks
+   * the one register — this strip, the status line's waiting list, and the
+   * Abacus's rods — so a seat kind that should not be listed (a city-state) is
+   * excluded by its flag rather than by a third audit of this file.
    */
   function renderSeats(): void {
     const { state } = game;
     const localId = controls.localPlayerId();
     seatsEl.replaceChildren();
 
-    for (const player of state.players) {
+    for (const player of realPlayers(state)) {
       const done = hasEndedTurn(state, player.id);
       const chip = document.createElement('button');
       chip.type = 'button';
@@ -1327,11 +1341,16 @@ async function boot(initial: Game | null): Promise<void> {
     // End Turn's research blocker puts the chart up; it never takes it down.
     onOpenTechTree: () => techTree?.open(),
     onOfferDiscovery: showDiscoveryOffer,
-    onTurnResolved: (_turn, research) => {
+    onTurnResolved: () => {
       // The turn is over and the next one has not been touched, which is the one
-      // moment in a game where the log is a clean place to come back to. Before
-      // the announcements, so a save is taken even if a splash throws.
+      // moment in a game where the log is a clean place to come back to. It is
+      // taken *here* rather than with the card below because a save must never
+      // wait on an animation: the hand-over is held until the marches this click
+      // set off have finished (see `scheduleHandOver`), and a tab closed in that
+      // second would otherwise have lost the turn.
       autosave.save(game, Date.now());
+    },
+    onTurnHandedOver: (_turn, research) => {
       // A discovery outranks the turn card: "your turn" happens every turn,
       // and a technology lands twenty times in a game. The upgrade tally rides
       // underneath it, because a warrior that quietly became a swordsman is
@@ -1541,7 +1560,9 @@ async function boot(initial: Game | null): Promise<void> {
    * The Abacus: the score, as an object on the table.
    *
    * One rod per seat, read off the live roster rather than off a snapshot, so a
-   * new game re-strings it. `beads` is empty for everybody and will stay empty
+   * new game re-strings it — and off `realPlayers`, for `renderSeats`' reason:
+   * the reckoning is between nations, and a rod for the wild was a score line
+   * for the weather. `beads` is empty for everybody and will stay empty
    * until M11 gives the simulation a bead to earn — the screen says so itself,
    * and this is the field that will carry the answer when there is one.
    */
@@ -1551,7 +1572,7 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('abacus-close'),
     trigger: abacusButton,
     rows: (): AbacusRow[] =>
-      game.state.players.map((player) => ({
+      realPlayers(game.state).map((player) => ({
         playerId: player.id,
         name: player.name,
         // The diorama ink, not the panel colour: the label swatch belongs to the
@@ -1693,6 +1714,11 @@ async function boot(initial: Game | null): Promise<void> {
     fortifyBlocker: () => controls.fortifyBlocker(),
     onFortify: () => {
       controls.fortify();
+      updatePanel(null, renderer.getHover());
+    },
+    sleepBlocker: () => controls.sleepBlocker(),
+    onSleep: () => {
+      controls.sleepUnit();
       updatePanel(null, renderer.getHover());
     },
     skipBlocker: () => controls.skipBlocker(),

@@ -207,13 +207,14 @@ import {
   cityById,
   hasEndedTurn,
   playerById,
+  realPlayers,
   unitById,
 } from '../sim/state';
 import { type ResearchReport, researchSince, researchSnapshot } from '../sim/tech';
 import { techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import { isExplorer, unitDef } from '../sim/unitData';
-import { unitsOnTile } from '../sim/units';
+import { sleepError, sleepingSnapshot, unitsOnTile, wakesSince } from '../sim/units';
 import { isExploredBy } from '../sim/visibility';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
@@ -396,6 +397,22 @@ export interface GameControlsOptions {
    * a replay of the same log would announce.
    */
   onTurnResolved?: (turn: number, research: ResearchReport) => void;
+  /**
+   * The turn is *handed over*: the pieces resolution marched have finished
+   * moving and the interface may speak.
+   *
+   * `onTurnResolved`'s twin, and a separate moment rather than a second listener
+   * on the same one. A turn change is two different events wearing one name: the
+   * world moved (nothing may be lost, so the autosave is taken there and then),
+   * and the player is given the new turn (which must wait for the marches the
+   * click set off — see `endTurn`, and Entry XXI of the ledger). Folding them
+   * back together means either a save held hostage to an animation or a card
+   * dropped over pieces that are still walking, and both have shipped.
+   *
+   * It carries the same research difference `onTurnResolved` does, because it is
+   * the half that announces it.
+   */
+  onTurnHandedOver?: (turn: number, research: ResearchReport) => void;
   /**
    * The harness moved the local seat on, because seats were still open. Carries
    * the seat now being played.
@@ -650,6 +667,19 @@ export interface GameControls {
   fortify(): void;
 
   /**
+   * Why the selected unit cannot be told to sleep, or `null` when it can.
+   * `undefined` with nothing selected — the same three-valued shape as
+   * `foundCityBlocker`, and `fortifyBlocker`'s civilian twin.
+   */
+  sleepBlocker(): string | null | undefined;
+  /**
+   * Puts the selected civilian to sleep. The unit sheet's button and the `Z`
+   * key. Waking is not a verb here: any order at all wakes the piece (see
+   * `SleepUnitCommand`), and "never mind" is `cancelOrder`.
+   */
+  sleepUnit(): void;
+
+  /**
    * Why the selected unit cannot be told to skip its turn, or `null` when it
    * can — the same three-valued shape as `foundCityBlocker`.
    *
@@ -803,6 +833,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     getGame,
     onUpdate,
     onTurnResolved,
+    onTurnHandedOver,
     onSeatAdvanced,
     onNotice,
     onNotify,
@@ -1170,6 +1201,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     openCityId = null;
     hoveredCityId = null;
     skippedUnitIds.clear();
+    // And a hand-over the previous seat's End Turn was still owed: its card and
+    // its camera glide are that player's, and this chair is somebody else's.
+    cancelHandOver();
     // Silently, before anything else can poll: the chair this player has just
     // taken has been looking at its own ruins and its own frontier for the whole
     // game, and none of that is news. See `baselineSightings`.
@@ -1792,6 +1826,48 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  // --- sleeping ------------------------------------------------------------
+
+  /**
+   * Why the selected unit cannot be told to sleep. `fortifyBlocker` line for
+   * line, delegating to `sleepError` — the same split, and the same guarantee
+   * that a live button is a command the reducer takes.
+   */
+  function sleepBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    return sleepError(unit);
+  }
+
+  /**
+   * Puts the selected civilian to sleep, and lets go of it.
+   *
+   * The selection is dropped afterwards, which is the one place this differs
+   * from `fortify` and it is the whole point of the verb: sleeping says "stop
+   * showing me this piece", and a sheet that stayed open on it would be the
+   * interface still showing it. What follows is Skip Turn's own advance — hop to
+   * the next piece actually waiting, or leave the player alone.
+   */
+  function sleepUnit(): void {
+    const unit = selectedUnit();
+    if (!unit || sleepBlocker() !== null) return;
+
+    const command: Command = { type: 'sleepUnit', playerId: localPlayerId, unitId: unit.id };
+    const result = commit(command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    renderer.invalidate();
+    // The same advance Skip Turn makes, for the same reason and out of the same
+    // two lines: hop to the next piece actually waiting, and with nothing else
+    // waiting simply let go. See `skipUnit`.
+    const next = endTurnBlocker();
+    if (next?.kind === 'idleUnit') focusBlocker(next);
+    else clearSelection();
   }
 
   // --- skipping --------------------------------------------------------------
@@ -2493,15 +2569,24 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function nextOpenSeat(from: number): number | null {
     const { state } = getGame();
-    const count = state.players.length;
+    // The roster this cycles is `realPlayers` — the one register for who counts
+    // (`state.ts`), which the interface's other three rosters (the seat strip,
+    // the status line's waiting list, the Abacus) now ask as well. It used to
+    // hand-roll `!player.barbarian` here, which was the right answer written in
+    // the wrong place: "which seats can a human sit in" is a fact about the
+    // roster, not a clause this loop should own, and the copy of it that was
+    // *not* written is how a chip for the wild reached the top bar.
+    const seats = realPlayers(state);
+    const count = seats.length;
+    if (count === 0) return null;
+    // `from` is a seat id, and a real seat's id is its index in this list —
+    // barbarians are seated last (`seatBarbarians`) precisely so that holds. A
+    // scan rather than arithmetic anyway, so the day it stops holding this stops
+    // being wrong rather than starting to be subtly wrong.
+    const start = seats.findIndex((player) => player.id === from);
     for (let step = 1; step <= count; step++) {
-      const player = state.players[(from + step) % count];
-      // The wild is never a seat this harness hops to. Its `turnEnded` flag is
-      // raised every turn (`clearTurnEnded`), so the second clause already
-      // covers it — the first is here because "which seats can a human sit in"
-      // is a question that should be answered by the fact, not by a side effect
-      // of the turn flags.
-      if (player && !player.barbarian && !hasEndedTurn(state, player.id)) return player.id;
+      const player = seats[(start + step + count) % count];
+      if (player && !hasEndedTurn(state, player.id)) return player.id;
     }
     return null;
   }
@@ -2578,6 +2663,130 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       if (walked.length === 0) continue;
       renderer.animateMove(unit.id, { col: order.col, row: order.row }, walked);
     }
+  }
+
+  /**
+   * One line per sleeper the resolution woke, each pointing at the piece.
+   *
+   * Read as a *difference* (`wakesSince`) rather than reported by the phase, and
+   * that is the same trade `researchSince` and `announceDeficits` make: the flag
+   * `wakeSleepers` cleared leaves nothing behind on the board, so the only
+   * honest way to ask is to have remembered. It also means a second future cause
+   * of waking is announced without this function hearing about it.
+   *
+   * The sentence names the piece rather than the enemy, deliberately. The player
+   * knows what a worker is and does not yet know what walked up to it; "enemies
+   * near" plus a hex to click is the whole of what they need, and naming the
+   * intruder would be the interface telling them something the fog might not.
+   */
+  function announceWakes(asleep: readonly number[]): void {
+    if (asleep.length === 0) return;
+    for (const unit of wakesSince(getGame().state, localPlayerId, asleep)) {
+      const name = unitDef(unit.type).name.toLowerCase();
+      announce(`Your ${name} wakes — enemies near.`, {
+        cell: { col: unit.col, row: unit.row },
+      });
+    }
+  }
+
+  // --- handing the new turn over -------------------------------------------
+
+  /**
+   * The three-beat hand-over: why End Turn is not one instant.
+   *
+   * The bug this exists to answer was reported twice as "queued moves seem to
+   * happen at the *start* of the next turn rather than when I press End Turn",
+   * and the simulation was never at fault — stored paths walk during resolution
+   * and `animateResolvedMarches` slides them on the resolving click, which is
+   * exactly Civ. What was wrong was that the click did *four* things in one
+   * synchronous breath: it started the marches, dropped a card in the middle of
+   * the board for a second and a half, and glided the camera off to the first
+   * idle piece. A one-hex march is 160ms of sliding under a 1600ms card while
+   * the ground itself is moving; the player never sees a consequence of their
+   * click, only a new turn that arrives with the pieces already elsewhere.
+   *
+   * So the three things are three beats, in the order a player reads them:
+   *
+   *   1. **the marches**, on a still camera and an unobstructed board — the
+   *      consequence of the click, and the only one of the three that is about
+   *      the turn that just *ended*;
+   *   2. **the card**, once the board has stopped moving — "your turn" is a
+   *      hand-over, and a hand-over comes after the handing;
+   *   3. **the camera**, a beat later, to the first piece still awaiting orders
+   *      — the interface pointing, which is a gesture the player has to have
+   *      finished reading the card to follow.
+   *
+   * Nothing here delays the *simulation* by so much as a frame: the state is
+   * final before beat one, and every one of these beats is a thing said about a
+   * board that has already stopped. The player may act straight through all
+   * three — the animations are powerless (`animation3d.ts`) and a command
+   * issued mid-walk simply overtakes them.
+   *
+   * How long beat one lasts is the renderer's answer, not a guess
+   * (`pendingAnimationMs`): it is the walk it actually started, cut to the tiles
+   * actually entered, and `0` when there was nothing to animate — reduced
+   * motion, a march the fog refused, or no standing orders at all. At `0` the
+   * whole thing collapses to the synchronous sequence it has always been, which
+   * is what the frozen 2D pipelines and a reduced-motion reader get.
+   */
+  const HANDOVER_PAN_MS = 450;
+
+  /** Timers beats two and three are waiting on. At most two, usually none. */
+  let handOverTimers: number[] = [];
+
+  /**
+   * Drops a hand-over that has been overtaken, without running it.
+   *
+   * Cancelled rather than flushed, and by the two things that can overtake one:
+   * another turn resolving (its own hand-over is the one worth having) and the
+   * seat changing (the card and the camera glide belong to a player who is no
+   * longer at the table — see `setLocalPlayer`, which clears the selection and
+   * the skip set for the same reason).
+   */
+  function cancelHandOver(): void {
+    for (const timer of handOverTimers) window.clearTimeout(timer);
+    handOverTimers = [];
+  }
+
+  /** Beat `n`: now when there is nothing to wait for, on a timer when there is. */
+  function afterBeat(ms: number, beat: () => void): void {
+    if (ms <= 0) {
+      beat();
+      return;
+    }
+    handOverTimers.push(window.setTimeout(beat, ms));
+  }
+
+  /**
+   * Beats two and three, once the marches beat one started have run their
+   * course. See `HANDOVER_PAN_MS` for the whole argument.
+   */
+  function scheduleHandOver(research: ResearchReport, deficits: readonly string[]): void {
+    const marching = renderer.pendingAnimationMs?.() ?? 0;
+    afterBeat(marching, () => {
+      onTurnHandedOver?.(getGame().state.turn, research);
+      // A reader who has asked for less motion has asked for fewer beats too:
+      // the card and the camera arrive together, as they always did.
+      afterBeat(prefersReducedMotion() ? 0 : HANDOVER_PAN_MS, () => {
+        // The Civ gesture: the same click that marched the standing orders hands
+        // the new turn over *on* the first piece still awaiting one — a unit
+        // whose walk finished with movement to spare would otherwise stand
+        // unnoticed until the next End Turn press tripped over it. Units only:
+        // the blocker gate still catches production and research on the next
+        // press, but auto-opening a city screen or the star chart at every turn
+        // open would be the interface grabbing the wheel, where a camera glide
+        // to a waiting piece is it pointing.
+        //
+        // Asked *here* rather than carried from the resolution, because a player
+        // who spent the marches giving orders has answered it already.
+        const idle = endTurnBlocker();
+        if (idle?.kind === 'idleUnit') focusBlocker(idle);
+        // Last, so it wins the notice line: a meter going under is rarer than a
+        // waiting unit and outranks it, and the camera glide the blocker just
+        // performed is the useful half of that prompt anyway.
+        if (deficits.length > 0) announce(deficits.join(' '));
+      });
+    });
   }
 
   // --- unfinished business -------------------------------------------------
@@ -2676,15 +2885,23 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * the interface's response — a sentence, in the same slot a captured city
    * announces itself in. A crossing back up says nothing, because the chip going
    * quiet has already said it.
+   *
+   * Split into the *reading* and the *saying* because the two no longer happen
+   * at the same instant: the crossing is a difference against a snapshot taken
+   * before the dispatch and stops being true the moment anything else moves a
+   * meter, while the sentence waits for the marches to finish with the rest of
+   * the hand-over (see `endTurn`). So the comparison is made on resolution and
+   * the words are carried, rather than the state being asked again a second
+   * later — by which time the player may have bought a tile.
    */
-  function announceDeficits(before: { happiness: number; authority: number }): void {
+  function deficitLines(before: { happiness: number; authority: number }): string[] {
     const after = meterReading();
     const lines: string[] = [];
     if (before.happiness >= 0 && after.happiness < 0) lines.push('Your people murmur.');
     if (before.authority >= 0 && after.authority < 0) {
       lines.push("The Magister's writ grows thin.");
     }
-    if (lines.length > 0) announce(lines.join(' '));
+    return lines;
   }
 
   /**
@@ -2702,6 +2919,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       }
     }
 
+    // A hand-over still owed by an earlier press has been overtaken: the turn it
+    // was going to announce is not the turn about to begin.
+    cancelHandOver();
+
     const turnBefore = getGame().state.turn;
     // Captured before the dispatch: if this is the command that resolves the
     // turn, the walk is over by the time it returns — and so is the research
@@ -2709,6 +2930,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const orders = standingOrders();
     const research = researchSnapshot(getGame().state, localPlayerId);
     const meters = meterReading();
+    // The third thing that is only visible as a difference, beside the research
+    // and the meters: `wakeSleepers` clears a flag, and afterwards there is
+    // nothing on the board to say it ever stood.
+    const asleep = sleepingSnapshot(getGame().state, localPlayerId);
     const result = commit({ type: 'endTurn', playerId: localPlayerId });
     if (!result.ok) return;
 
@@ -2721,25 +2946,20 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // A fresh turn owes nothing to the one that just ended: every unit gets
       // its idle question asked again in earnest, skipped or not.
       skippedUnitIds.clear();
+      // **First, and alone.** Everything below is held back until these have
+      // finished — see `scheduleHandOver`.
       animateResolvedMarches(orders);
-      onTurnResolved?.(
-        getGame().state.turn,
-        researchSince(getGame().state, localPlayerId, research),
-      );
-      // The Civ gesture: the same click that marched the standing orders hands
-      // the new turn over *on* the first piece still awaiting one — a unit
-      // whose walk finished with movement to spare would otherwise stand
-      // unnoticed until the next End Turn press tripped over it. Units only:
-      // the blocker gate still catches production and research on the next
-      // press, but auto-opening a city screen or the star chart at every turn
-      // open would be the interface grabbing the wheel, where a camera glide
-      // to a waiting piece is it pointing.
-      const idle = endTurnBlocker();
-      if (idle?.kind === 'idleUnit') focusBlocker(idle);
-      // Last, so it wins the notice line: a meter going under is rarer than a
-      // waiting unit and outranks it, and the camera glide the blocker just
-      // performed is the useful half of that prompt anyway.
-      announceDeficits(meters);
+      const report = researchSince(getGame().state, localPlayerId, research);
+      // The world moved, and that is not an announcement: whoever is listening
+      // takes their save now, before a card, a camera or a player can intervene.
+      onTurnResolved?.(getGame().state.turn, report);
+      // Immediately, and not with the hand-over: this is *news*, it goes to the
+      // toast stack and the chronicle rather than to the notice line or the
+      // camera, and it is the one thing in a resolution a player must not first
+      // read three seconds later. Its pan is a link the player follows, never a
+      // camera move of its own — so it cannot fight the marches.
+      announceWakes(asleep);
+      scheduleHandOver(report, deficitLines(meters));
       return;
     }
     const next = nextOpenSeat(localPlayerId);
@@ -2911,6 +3131,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       fortify();
       return;
     }
+    if (event.key === 'z' || event.key === 'Z') {
+      // Fortify's civilian twin gets the key beside it in spirit if not on the
+      // board: `S` is taken by nothing yet but reads as "settle", and Civ has
+      // trained a generation on `Z` for sleep. Silent on a soldier, on nothing
+      // selected, or on a unit already asleep — the blocker decides, exactly as
+      // the button's disabled state does.
+      sleepUnit();
+      return;
+    }
     if (event.key === 'y' || event.key === 'Y') {
       // Toggles the player's own switch, never the automatic rule: pressing Y
       // under an open city panel sets what will be up when the panel closes,
@@ -3026,6 +3255,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     cancelOrderBlocker,
     fortify,
     fortifyBlocker,
+    sleepBlocker,
+    sleepUnit,
     skipUnit,
     skipBlocker,
     isUnitSkipped,

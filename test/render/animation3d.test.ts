@@ -109,6 +109,55 @@ describe('3D move animation', () => {
     expect(animations.activeUnits()).toEqual([]);
     expect(animations.sample(6, 1, map)).toBeNull();
   });
+
+  /**
+   * "How much longer is the board moving" — the question End Turn's hand-over
+   * is scheduled off (`MapView.pendingAnimationMs`, and `scheduleHandOver` in
+   * `controls.ts`), so that the turn card and the camera glide land *after* the
+   * marches the click set off rather than on top of them. Pure arithmetic over
+   * the clocks this class already holds, which is why it can be pinned here
+   * rather than by watching a browser.
+   */
+  describe('remaining time', () => {
+    it('is zero with nothing in flight', () => {
+      expect(new MoveAnimations3D().remainingMs(0)).toBe(0);
+    });
+
+    it('counts down over one walk and reaches zero exactly at the end', () => {
+      const animations = new MoveAnimations3D();
+      animations.start(1, { col: 2, row: 2 }, [{ col: 3, row: 2 }], 100);
+      const total = duration(1);
+      expect(animations.remainingMs(100)).toBe(total);
+      expect(animations.remainingMs(100 + total / 2)).toBeCloseTo(total / 2, 6);
+      expect(animations.remainingMs(100 + total)).toBe(0);
+      // Past the end it stays zero rather than going negative — a caller that
+      // waits on this must never be asked to wait a negative beat.
+      expect(animations.remainingMs(100 + total * 3)).toBe(0);
+    });
+
+    it('answers for the *longest* walk, which is when the board stops', () => {
+      // Two columns set off together and one is going four times as far. The
+      // hand-over waits for the last piece to arrive, not the first.
+      const animations = new MoveAnimations3D();
+      animations.start(1, { col: 2, row: 2 }, [{ col: 3, row: 2 }], 0);
+      animations.start(2, { col: 8, row: 8 }, [
+        { col: 9, row: 8 },
+        { col: 10, row: 8 },
+        { col: 11, row: 8 },
+        { col: 12, row: 8 },
+      ], 0);
+      expect(animations.remainingMs(0)).toBe(duration(4));
+      // The short one has landed; the long one is still going.
+      expect(animations.remainingMs(duration(1))).toBe(duration(4) - duration(1));
+    });
+
+    it('is zero again once the walks are forgotten', () => {
+      const animations = new MoveAnimations3D();
+      animations.start(1, { col: 2, row: 2 }, [{ col: 3, row: 2 }], 0);
+      animations.clear();
+      expect(animations.remainingMs(0)).toBe(0);
+    });
+  });
 });
 
 describe('3D death animation', () => {

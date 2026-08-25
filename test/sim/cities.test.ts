@@ -1890,7 +1890,7 @@ describe('determinism with cities', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 15 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 16 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1898,12 +1898,14 @@ describe('determinism with cities', () => {
 
     const json = saveGame(game);
     expect((JSON.parse(json) as { schemaVersion: number }).schemaVersion).toBe(SCHEMA_VERSION);
-    // Bumped to 12 by the M10 meters: cities grew `captured`, the one fact
-    // happiness and authority cannot recompute from the board. (7 was combat —
-    // `hasAttacked`, `fortifiedTurns`, `City.hp`, `eliminated`, `winnerId`;
-    // 8 was resources; 9 was escalating settlers and `settlersBuilt`; 10 was
-    // fog of war; 11 was workers and improvements.)
-    expect(SCHEMA_VERSION).toBe(15);
+    // Bumped to 16 by sleep: `Unit.sleeping`, the `sleepUnit` command and the
+    // `wakeSleepers` phase. (7 was combat — `hasAttacked`, `fortifiedTurns`,
+    // `City.hp`, `eliminated`, `winnerId`; 8 was resources; 9 was escalating
+    // settlers and `settlersBuilt`; 10 was fog of war; 11 was workers and
+    // improvements; 12 was the meters' `captured`; 13 the luxuries; 14 tile
+    // purchase; 15 barbarians and discoveries.) What this pins is not the
+    // number but that a city save is carried by whatever the number is.
+    expect(SCHEMA_VERSION).toBe(16);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

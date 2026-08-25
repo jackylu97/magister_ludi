@@ -2007,3 +2007,98 @@ for two-scout reach over ~25 turns): over 10 seeds × every possible start on st
 median is 6, and fewer than 5% of starts fall under the 3-site floor. `minDistanceFromStart`
 holds with zero exceptions across the same sample. Settled at `sitesPerContinent: {7, 8}`,
 `ruinShare: 0.55` — roughly 52 sites per standard map, spread across its ~8 carved continents.
+
+---
+
+## Entry XXI — Sleep, the hand-over, and one roster (**built** 2026-08-25)
+
+Three things that landed together because they are three answers to the same complaint:
+*the interface is talking over itself.*
+
+### 1. End Turn is three beats, not one instant
+
+The bug was reported twice, in the same words both times: **"queued moves seem to happen at
+the start of the next turn rather than when I press End Turn."** The simulation was never
+wrong. Stored paths walk during `resetMovement`, `animateResolvedMarches` captures the routes
+before the dispatch and slides them on the resolving click, and that is exactly Civ. What was
+wrong was that one click did four things in one synchronous breath:
+
+1. resolved the turn,
+2. started the marches,
+3. dropped the "Your *turn*" card in the middle of the board for 1600ms,
+4. glided the camera 620ms to the first idle piece — which, after a march that finished with
+   movement to spare, is *the piece that had just marched*.
+
+A one-hex march is 160ms. It ran under a card, behind a moving camera, aimed at its own
+destination. Nobody has ever seen it. The player's report was a perfectly accurate description
+of what the screen did.
+
+**The fix is sequencing, and nothing else.** Sim order is untouched, no phase moved, the state
+is final before anything below happens:
+
+> click → **marches** (still camera, unobstructed board) → **card** → *a beat* → **camera** to
+> the first piece still awaiting orders.
+
+How long beat one lasts is the renderer's own answer — `MapView.pendingAnimationMs()`, the
+longest remaining walk in flight — not a guess and not a constant. At `0` (reduced motion, a
+march the fog refused, no standing orders, a frozen 2D pipeline that does not implement the
+optional method) the whole thing collapses to the synchronous sequence it always was.
+
+The one structural consequence: **"the turn resolved" and "the turn is handed over" are two
+moments and now two callbacks.** The autosave belongs to the first — a save must never wait on
+an animation — and the card to the second. Folding them back together gives you either a save
+held hostage to a walk or a card over walking pieces, and both have shipped.
+
+### 2. Sleep: the civilian's fortify
+
+`Unit.sleeping`, the `sleepUnit` command, and the `wakeSleepers` phase. Presence is the state,
+like `path`, `fortifiedTurns` and `chargesLeft`. It buys exactly one thing — a fourth clause on
+`isIdleUnit` — and changes no rule: a sleeper defends, is captured, is seen and heals exactly
+as it did awake.
+
+Three decisions worth writing down.
+
+**There is no wake verb.** *Any* accepted command that names a sleeping unit wakes it, and that
+is enforced in **one** place (`orderedUnitId` in `commands.ts`, read after a successful
+dispatch) rather than as a `wakeUnit` line in each of the eight handlers that name a unit. The
+`createUnit` argument exactly: one place a command reaches a piece, one place that can forget.
+`sleepUnit` is the single excused arm, which is why it is a reader rather than "does the
+command have a `unitId`". "Never mind, wake up" is spelled `cancelOrder` — the verb that
+already means that — which is why that handler now accepts a sleeping unit with no path.
+
+**`wakeSleepers` is as late as the pipeline allows**: after `barbarians` (the commonest reason
+an enemy is suddenly beside a worker) and, more importantly, after `resetMovement`, because a
+rival column resumes its standing order *inside* the resolution and may finish its march next
+to the sleeper. A wake asked earlier is a wake asked of a board that has not stopped moving. It
+still sits above `refreshVisibility`, which stays last and unconditional: clearing a flag moves
+no piece. Sight is the **unit's own** (`sightOf` + `los.ts`), never the empire's — a worker
+behind a ridge sleeps through a column on the other side of it, and an empire-wide test would
+wake every worker in the realm because a scout on the far coast saw a galley.
+
+**Sleep and Skip are a pair, and the pair is the point.** Both silence a unit; they differ in
+whose fact it is. Skip is a fact about a *conversation* — this client asked, this player said
+not now — so it lives as an argument to `firstBlocker`, lasts one turn, and is in no save. Sleep
+is a fact about the *piece* — logged, serialised, visible to an AI, and ended by the simulation
+itself. So skip is an argument and sleep is a clause, and neither folds into the other.
+
+Deferred, deliberately: **no zzz mark on the board badge.** It is not cheap in the badge idiom
+— a new appended atlas cell set, a rasteriser branch, a geometry marker array, an
+`addSleepBadge`, and `sleeping` in `signUnits` — for a garnish on a state whose entire purpose
+is to stop drawing the player's attention. The unit sheet says "Sleeping 💤" in two places.
+
+### 3. One roster, and the audit that found four
+
+The wild is a `Player` (Entry XX) so that combat, stacking, movement and fog need no second
+implementation, and `realPlayers` is the register for who counts. The simulation obeyed that
+from the start; the **interface never had**. A solo game drew a "Barbarians ✓" chip in the top
+bar, strung the Abacus a scoring rod for the weather, and would have named the wild in the
+status line's waiting list — while the hot-seat seat cycle re-wrote `!player.barbarian` by hand,
+which is the right answer written in the wrong place.
+
+All four now ask `realPlayers`. The rule is precise rather than blanket, and the distinction is
+the whole of it: **`state.players[someId]` is an id lookup** — "who is this" — and a barbarian
+unit's owner has a name and a colour like anybody else; **anything else is a sweep**, and a
+sweep is the question `realPlayers` answers. `test/ui/seatRoster.test.ts` reads the sources and
+fails on the fifth surface, because a behavioural test would only ever have caught one of the
+four and the failure mode of a missed roster is a chip nobody notices for a milestone. A future
+seat kind that should not be listed — a city-state — is one filter's edit, not a second audit.

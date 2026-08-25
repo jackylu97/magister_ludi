@@ -1244,6 +1244,18 @@ export class Renderer3D implements MapView {
     this.invalidate();
   }
 
+  /**
+   * How much longer the walks in flight keep the board moving. See
+   * `MapView.pendingAnimationMs`.
+   *
+   * Walks only, deliberately: a falling piece is *gone* — the state has already
+   * removed it and nothing the interface says next is about it — while a walk is
+   * a piece the player is still meant to be watching arrive.
+   */
+  pendingAnimationMs(): number {
+    return this.animations.remainingMs(performance.now());
+  }
+
   skipAnimations(): void {
     this.animations.clear();
     this.deaths.clear();

@@ -35,7 +35,7 @@
  * the state is the truth and a selection is at most a few dozen elements.
  */
 
-import { fortifyBonus, isCombatant, isFortified, isRanged } from '../sim/combat';
+import { fortifyBonus, isCivilian, isCombatant, isFortified, isRanged } from '../sim/combat';
 import type { ImprovementId } from '../sim/improvementData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
 import { getTileAt } from '../sim/map';
@@ -122,6 +122,12 @@ export interface UnitPanelOptions {
    */
   fortifyBlocker: () => string | null | undefined;
   onFortify: () => void;
+  /**
+   * Why the selected unit cannot be told to sleep — the same three-valued shape
+   * again, answered by `controls.sleepBlocker()`.
+   */
+  sleepBlocker: () => string | null | undefined;
+  onSleep: () => void;
   /**
    * Why the selected unit cannot be waved off this turn — the same
    * three-valued shape again, answered by `controls.skipBlocker()`.
@@ -223,6 +229,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onCancelOrder,
     fortifyBlocker,
     onFortify,
+    sleepBlocker,
+    onSleep,
     skipBlocker,
     onSkip,
     isUnitSkipped,
@@ -354,6 +362,24 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         blocked: blocker === undefined ? 'No unit selected' : blocker,
         hint: 'Dig in: defence grows each turn the unit stays put',
         run: onFortify,
+      });
+    }
+    // Fortify's civilian half, and it sits in Fortify's slot for that reason:
+    // the two are the same gesture ("stay here, stop asking") worn by the two
+    // halves of the roster, they are mutually exclusive by `sleepError` and
+    // `fortifyError`, and a sheet that offered both to anybody would be a sheet
+    // asking the player to know which one their piece is allowed. Listed for
+    // every civilian whether or not it can sleep *now*, which is Fortify's
+    // reading exactly: "already asleep" is a state worth showing, not a row
+    // worth hiding.
+    if (isCivilian(unitDef(unit.type))) {
+      const blocker = sleepBlocker();
+      actions.push({
+        label: unit.sleeping === true ? 'Sleeping 💤' : 'Sleep',
+        key: 'Z',
+        blocked: blocker === undefined ? 'No unit selected' : blocker,
+        hint: 'Sleep here — stops blocking End Turn until enemies come near',
+        run: onSleep,
       });
     }
     // Offered to every unit, not only combatants or builders: any piece with
@@ -531,6 +557,11 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // Fortification first: it is the one they chose.
     const notes: string[] = [];
     if (isFortified(unit)) notes.push(`Fortified ${formatPercent(fortifyBonus(unit))}`);
+    // Beside fortification and for its reason: a standing state the player chose
+    // and would otherwise have to infer from the button's label. The mark is the
+    // same one the button wears, so the sheet says one thing twice rather than
+    // two things once.
+    if (unit.sleeping === true) notes.push('Sleeping 💤');
     // A view-only note for a view-only state: the sim has no idea this unit
     // was skipped (see `controls.ts`), so this is the one place it is said.
     if (isUnitSkipped()) notes.push('Waiting this turn');

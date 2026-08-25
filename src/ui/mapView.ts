@@ -262,6 +262,23 @@ export interface MapView {
   /** Snaps every in-flight piece to its real tile. Called before a new order. */
   skipAnimations(): void;
 
+  /**
+   * Optional: how much longer, in milliseconds, pieces already in flight keep
+   * moving. `0` when the board is still.
+   *
+   * A *read* and nothing more — it starts nothing, promises nothing and may be
+   * ignored. It exists because one caller has something to say that must not be
+   * said over a walk in progress: End Turn animates the standing orders the
+   * click resolved, and the turn card and the camera glide that follow would
+   * otherwise land on top of them (see `endTurn` in `controls.ts`). Only the
+   * renderer holds those clocks, so only the renderer can answer.
+   *
+   * Optional for the usual reason: the 2D pipelines are frozen. Absent, the
+   * caller reads `0` and hands the turn over immediately, which is exactly the
+   * behaviour those renderers have always had.
+   */
+  pendingAnimationMs?(): number;
+
   /** Points the renderer at a state; rebuilds whatever the change invalidated. */
   setGameState(state: GameState | null): void;
   /** Marks the view as needing a redraw. */

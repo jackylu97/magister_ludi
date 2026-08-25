@@ -369,6 +369,12 @@ describe('end-of-turn pipeline', () => {
       'healUnits',
       'advanceFortify',
       'resetMovement',
+      // As late as it can be: the question "is an enemy standing next to my
+      // sleeping worker" is only worth asking of a board that has stopped
+      // moving, which is after the wild has raided *and* after `resetMovement`
+      // has walked everybody's standing orders. See `wakeSleepers`.
+      'wakeSleepers',
+      // Still last and unconditional: clearing a flag moves no piece.
       'refreshVisibility',
     ]);
   });

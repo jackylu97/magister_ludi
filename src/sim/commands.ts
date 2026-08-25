@@ -98,12 +98,13 @@ import {
   playerById,
   removeUnit,
   unitById,
+  wakeUnit,
 } from './state';
 import { buildError, researchError } from './tech';
 import type { TechId } from './techData';
 import { runEndOfTurn } from './turn';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
-import { hasStackingRoom } from './units';
+import { hasStackingRoom, sleepError } from './units';
 import { recomputeVisibility } from './visibility';
 
 // --- command types ----------------------------------------------------------
@@ -337,6 +338,30 @@ export interface FortifyCommand extends PlayerCommand {
 }
 
 /**
+ * Tells a civilian to sleep where it stands.
+ *
+ * `fortify`'s civilian twin, and shaped exactly like it: it names the unit and
+ * nothing else, it costs nothing, it can be given with no movement left, and it
+ * is refused when it would change nothing. What it buys is not defence but
+ * *silence* — a sleeping unit stops blocking End Turn and stops being the piece
+ * the camera flies to when the turn opens (`ui/turnBlockers.ts`). See
+ * `Unit.sleeping` for the whole of what it means.
+ *
+ * There is no "wake" command, and that is the design rather than an omission.
+ * **Every command that names a sleeping unit wakes it** — see `wakeActorUnit`
+ * below — because an order *is* a waking, and a player who has decided to move a
+ * sleeping worker should not have to say so twice. The word for waking a piece
+ * you have no other use for is `cancelOrder`, which already means "never mind".
+ *
+ * Turn-gated like `fortify`: a seat that has declared itself finished has
+ * finished giving orders, and this is one.
+ */
+export interface SleepUnitCommand extends PlayerCommand {
+  type: 'sleepUnit';
+  unitId: number;
+}
+
+/**
  * Spends one of a worker's charges to lay an improvement on the tile it stands
  * on.
  *
@@ -474,6 +499,7 @@ export type Command =
   | ChooseResearchCommand
   | AttackCommand
   | FortifyCommand
+  | SleepUnitCommand
   | BuildImprovementCommand
   | ChopFeatureCommand
   | PillageCommand
@@ -681,12 +707,19 @@ function applyCancelOrder(state: GameState, command: CancelOrderCommand): Comman
     return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
   }
   // `length === 0` is only reachable from a hand-edited save; either way there
-  // is no order to cancel and nothing worth logging.
-  if (!unit.path || unit.path.length === 0) {
+  // is no order to cancel.
+  const marching = unit.path !== undefined && unit.path.length > 0;
+  // Sleep is a standing order too — the cheapest one there is (`Unit.sleeping`)
+  // — and this is the verb that means "never mind". Waking is not a command of
+  // its own for the reason `SleepUnitCommand` gives, so it is this one's second
+  // subject rather than a fifteenth entry in the union. The flag itself is
+  // cleared by `applyCommand`, which wakes the unit *any* accepted order names;
+  // all this handler owes is agreeing there was something to cancel.
+  if (!marching && unit.sleeping !== true) {
     return fail(`Unit ${unit.id} has no standing order`);
   }
 
-  delete unit.path;
+  if (marching) delete unit.path;
   return ok();
 }
 
@@ -1037,6 +1070,33 @@ function applyFortify(state: GameState, command: FortifyCommand): CommandResult 
 }
 
 /**
+ * Puts a civilian to sleep. See `SleepUnitCommand`.
+ *
+ * `applyFortify` line for line, and deliberately so: the seat's questions here,
+ * the unit's delegated whole to `sleepError` — the same function the unit sheet
+ * enables its Sleep button with, so a live button and an accepted command are
+ * one rule — and the mutation is a single field.
+ */
+function applySleepUnit(state: GameState, command: SleepUnitCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot give orders`);
+  }
+
+  const unit = unitById(state, command.unitId);
+  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
+  if (unit.ownerId !== actor.id) {
+    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
+  }
+  const problem = sleepError(unit);
+  if (problem) return fail(problem);
+
+  unit.sleeping = true;
+  return ok();
+}
+
+/**
  * Lays an improvement. See `BuildImprovementCommand`, and `improvements.ts` for
  * the rules.
  *
@@ -1221,10 +1281,80 @@ function applyChooseDiscovery(
 // --- reducer ----------------------------------------------------------------
 
 /**
+ * The unit a command is an order **to**, when it is an order to one.
+ *
+ * The whole of "an order is a waking" (see `Unit.sleeping` and
+ * `SleepUnitCommand`). Written here, once, rather than as a `wakeUnit` line in
+ * each of the eight handlers that names a unit, for `createUnit`'s reason
+ * exactly: there is one place a command reaches a piece, so there is one place
+ * that can forget — and the failure mode of the forgotten version is a worker
+ * that walks across the map still marked asleep, which nothing would complain
+ * about until End Turn quietly stopped mentioning it.
+ *
+ * The two `undefined` arms are the interesting ones. **`sleepUnit`** names a
+ * unit and is emphatically not a waking; it is the one command excused, and
+ * that is the entire reason this is a reader rather than "does the command have
+ * a `unitId`". **`spawnUnit`** names a *type*, not a piece — the unit it is
+ * about does not exist yet.
+ *
+ * Aliased-discriminant idiom, like the reducer's own switch below, so the day a
+ * command is added this stops compiling until somebody has decided whether it
+ * wakes a sleeper.
+ */
+function orderedUnitId(command: Command): number | undefined {
+  const kind = command.type;
+  switch (kind) {
+    case 'moveUnit':
+    case 'cancelOrder':
+    case 'attack':
+    case 'fortify':
+    case 'buildImprovement':
+    case 'chopFeature':
+    case 'pillage':
+      return command.unitId;
+    case 'foundCity':
+      return command.settlerUnitId;
+    case 'sleepUnit':
+    case 'spawnUnit':
+    case 'endTurn':
+    case 'setCityProduction':
+    case 'setLockedTiles':
+    case 'chooseResearch':
+    case 'purchaseTile':
+    case 'chooseDiscovery':
+      return undefined;
+    default: {
+      const unhandled: never = kind;
+      void unhandled;
+      return undefined;
+    }
+  }
+}
+
+/**
  * Applies one command. The only function in the simulation that mutates state.
  * See the module docblock for the success/failure contract.
+ *
+ * Two steps rather than one, and the second is a single rule: an accepted order
+ * wakes the piece it was given to (`orderedUnitId`). It runs **after** the
+ * handler and **only on success**, which is what keeps the byte-identical
+ * promise — a refused order does not wake anybody, because a refused order was
+ * never given.
  */
 export function applyCommand(state: GameState, command: Command): CommandResult {
+  const result = runCommand(state, command);
+  if (!result.ok) return result;
+  const ordered = orderedUnitId(command);
+  if (ordered !== undefined) {
+    const unit = unitById(state, ordered);
+    // Absent when the order spent the piece — a settler that founded a city.
+    if (unit) wakeUnit(unit);
+  }
+  return result;
+}
+
+/** The switch itself. See `applyCommand`, which is what callers use. */
+function runCommand(state: GameState, command: Command): CommandResult {
   const type = readCommandType(command);
   if (type === undefined) return fail('Command is not an object with a string "type"');
 
@@ -1253,6 +1383,8 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       return applyAttack(state, command);
     case 'fortify':
       return applyFortify(state, command);
+    case 'sleepUnit':
+      return applySleepUnit(state, command);
     case 'buildImprovement':
       return applyBuildImprovement(state, command);
     case 'chopFeature':

@@ -59,6 +59,14 @@
  * and *before* the healing, so a raider that marched or fought is not resting —
  * exactly like every other unit on the board. See `barbarianTurn`.
  *
+ * Entry XXI adds `wakeSleepers`, and it is the one phase whose position is "as
+ * late as it can be": it asks whether an enemy is standing next to a sleeping
+ * civilian, and that question is only worth asking of a board that has stopped
+ * moving — after the wild has raided *and* after `resetMovement` has walked
+ * everybody's standing orders. It still sits *above* `refreshVisibility`, which
+ * stays last and unconditional, because clearing a flag moves no piece and
+ * claims no tile. The full argument is on the function.
+ *
  * There is deliberately no elimination phase
  * ------------------------------------------
  * A player is out when they hold no units and no cities, and in v1 the *only*
@@ -83,13 +91,15 @@
 import { barbarianTurn } from './barbarians';
 import { advanceProduction, collectYields, expandBorders, growCities } from './cities';
 import { advanceFortify, healCities } from './combat';
+import { hasLineOfSight } from './los';
+import { getTileAt, tileHex, wrappedDistance } from './map';
 import { advanceAlongPath } from './movement';
 import { advanceResearch } from './tech';
-import type { GameState } from './state';
-import { unitDef } from './unitData';
+import { type GameState, wakeUnit } from './state';
+import { isCombatant, unitDef } from './unitData';
 import { fullMovement, isRested } from './units';
 import { RULES } from './rulesData';
-import { recomputeAllVisibility } from './visibility';
+import { recomputeAllVisibility, sightOf } from './visibility';
 
 export interface TurnPhase {
   /** Stable identifier, used by tests and (later) by the turn-log UI. */
@@ -166,6 +176,12 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: resetMovement,
   },
   {
+    name: 'wakeSleepers',
+    // A sleeping civilian with a foreign combatant inside its own sight wakes.
+    // **Last**, and the position is the rule — see `wakeSleepers`.
+    run: wakeSleepers,
+  },
+  {
     name: 'refreshVisibility',
     // Last, and unconditionally, for every seat.
     //
@@ -195,6 +211,67 @@ function healUnits(state: GameState): void {
     const { maxHp } = unitDef(unit.type);
     if (unit.hp >= maxHp) continue;
     unit.hp = Math.min(maxHp, unit.hp + amount);
+  }
+}
+
+/**
+ * Wakes every sleeping unit with a foreign combatant inside its own sight.
+ *
+ * The reason sleep is safe to give an order at all. A worker told to sleep on
+ * the frontier stops blocking End Turn and stops being auto-focused
+ * (`ui/turnBlockers.ts`), which is exactly what the player asked for and exactly
+ * how a worker gets quietly killed; so the game takes on the duty of noticing
+ * for them. It is a *report*, not a rule — the flag is the only thing this
+ * touches, nothing about the sleeper's movement, posture or defence differs
+ * either way, and the interface says so by diffing the flag (`wakesSince` in
+ * `units.ts`) rather than by re-deriving this sweep.
+ *
+ * Its position in the array is the design, like every other entry.
+ *
+ *   · **After `barbarians`**, because the wild's raid is the commonest thing
+ *     that puts an enemy beside a sleeping worker, and a wake that ran before it
+ *     would answer about last turn's board.
+ *   · **After `resetMovement`**, which is the stronger half of the same claim:
+ *     that phase resumes standing orders, so a rival's column three hexes away
+ *     may finish its march right next to the sleeper *inside the resolution*. A
+ *     wake asked any earlier is a wake asked of a board that has not stopped
+ *     moving.
+ *   · **Before `refreshVisibility`**, which stays last and unconditional as its
+ *     own docblock insists. Nothing here moves a piece, claims a tile or retypes
+ *     a unit, so the fog has nothing to re-read on account of it — and this
+ *     phase does not consult a fog grid, only the sleeper's own eyes.
+ *
+ * "Its own sight" is deliberately the unit's, not its empire's: `sightOf` plus
+ * the same `hasLineOfSight` the fog and the archers ask (`los.ts`), so a worker
+ * behind a ridge sleeps through a column on the other side of it exactly as it
+ * would fail to see one. An empire-wide test would wake every worker in the
+ * realm because a scout on the far coast spotted a galley.
+ *
+ * **Combatants only.** A rival settler wandering past is not a reason to wake a
+ * builder; a warrior is. Any owner but the sleeper's own counts — there is no
+ * diplomacy in this game, and the wild is a `Player` like anybody else, so the
+ * one clause covers barbarians without naming them.
+ *
+ * Iterates `state.units` twice in `state.units` order and touches only a flag,
+ * so it is deterministic in the state alone and rolls no dice.
+ */
+function wakeSleepers(state: GameState): void {
+  for (const sleeper of state.units) {
+    if (sleeper.sleeping !== true) continue;
+    const from = getTileAt(state.map, sleeper.col, sleeper.row);
+    if (!from) continue;
+    const radius = sightOf(state.map, sleeper);
+    const eye = tileHex(from);
+    for (const other of state.units) {
+      if (other.ownerId === sleeper.ownerId) continue;
+      if (!isCombatant(unitDef(other.type))) continue;
+      const to = getTileAt(state.map, other.col, other.row);
+      if (!to) continue;
+      if (wrappedDistance(state.map, eye, tileHex(to)) > radius) continue;
+      if (!hasLineOfSight(state.map, from, to)) continue;
+      wakeUnit(sleeper);
+      break;
+    }
   }
 }
 

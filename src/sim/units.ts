@@ -38,7 +38,7 @@
  */
 
 import type { GameState, Unit } from './state';
-import { type UnitCategory, unitDef } from './unitData';
+import { type UnitCategory, isCivilian, unitDef } from './unitData';
 import { RULES } from './rulesData';
 
 /** Every unit standing on an offset cell, in `state.units` order. */
@@ -120,4 +120,82 @@ export function fullMovement(unit: Unit): number {
  */
 export function isRested(unit: Unit): boolean {
   return unit.movesLeft === fullMovement(unit) && !unit.hasAttacked;
+}
+
+// --- sleep ------------------------------------------------------------------
+
+/**
+ * Why this unit cannot be told to sleep, or `null` when it can.
+ *
+ * Split out of the command for the reason every blocker in this codebase is:
+ * the unit sheet's Sleep button is enabled by exactly the rule the reducer
+ * accepts, so a live button and a rejected command cannot disagree. It asks
+ * nothing about the turn or the actor — those belong to the command.
+ *
+ * Two clauses, and they are `fortifyError`'s two read the other way round.
+ * **Civilians only**: a soldier that means to stand still already has a verb for
+ * it, and it is a better one — fortifying pays defence, and a swordsman that
+ * "slept" would be a swordsman quietly giving up the bonus it was standing there
+ * for. **Not already asleep**: re-sleeping would change nothing and put a log
+ * entry in the save that says nothing, which is `fortify`'s and
+ * `chooseResearch`' refusal exactly.
+ *
+ * Unlike fortify it does **not** require movement, and for fortify's reason:
+ * sleeping is what a worker that has just spent its whole allowance on a farm
+ * does with the rest of its turn, and demanding a movement point would make the
+ * order useless in the situation it exists for.
+ */
+export function sleepError(unit: Unit): string | null {
+  const def = unitDef(unit.type);
+  if (!isCivilian(def)) return `A ${def.name} keeps watch — fortify instead`;
+  if (unit.sleeping === true) return `${def.name} is already asleep`;
+  return null;
+}
+
+/**
+ * Which of a player's units are asleep, by id, in `state.units` order.
+ *
+ * Half of a *difference*, and the same shape as `researchSnapshot` in `tech.ts`
+ * for the same reason: waking is something the **resolution** does (see
+ * `wakeSleepers` in `turn.ts`), and by the time a command returns the flag it
+ * cleared is simply not there any more. The interface takes this before it
+ * dispatches an `endTurn` and asks `wakesSince` afterwards, so the sentence a
+ * player reads is a fact about the state rather than a second implementation of
+ * the phase's rule.
+ *
+ * A plain array rather than a `Set`, because it is small, it is ordered, and
+ * ordered is what a deterministic list of announcements needs.
+ */
+export function sleepingSnapshot(state: GameState, playerId: number): number[] {
+  const ids: number[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId === playerId && unit.sleeping === true) ids.push(unit.id);
+  }
+  return ids;
+}
+
+/**
+ * The player's units that were asleep in `before` and are awake now, in
+ * `state.units` order. See `sleepingSnapshot`.
+ *
+ * A unit that died, or that changed hands, is not in the answer: it is looked up
+ * in the live state and checked against the same owner, so what comes back is
+ * always "a piece of yours that is standing there awake". Nothing else clears
+ * the flag inside a resolution, so every entry is the wake `wakeSleepers` gave
+ * it — but the check is written as "was asleep, is not" rather than as a report
+ * from the phase, so a future second cause of waking is announced for free
+ * instead of silently.
+ */
+export function wakesSince(
+  state: GameState,
+  playerId: number,
+  before: readonly number[],
+): Unit[] {
+  const woken: Unit[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    if (unit.sleeping === true) continue;
+    if (before.includes(unit.id)) woken.push(unit);
+  }
+  return woken;
 }

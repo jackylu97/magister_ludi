@@ -172,6 +172,28 @@ export class MoveAnimations3D {
   }
 
   /**
+   * How much longer the board keeps moving: the largest remaining span over
+   * every walk in flight, and 0 when nothing is.
+   *
+   * A read, not a promise — this class stays as powerless as its docblock says,
+   * and a caller that drops the answer loses nothing. It exists because the
+   * *interface* has things it should not say over a walk still in progress (the
+   * turn card, the camera glide to the next idle piece; see `endTurn` in
+   * `controls.ts`), and "when will the pieces have stopped" is a question only
+   * the thing holding the clocks can answer. Reading it never forgets an
+   * animation the way `sample` does: a finished walk still has to be *drawn*
+   * once more on its real tile, and that sweep belongs to the render loop.
+   */
+  remainingMs(now: number): number {
+    let longest = 0;
+    for (const animation of this.byUnit.values()) {
+      const left = animation.durationMs - (now - animation.startedAt);
+      if (left > longest) longest = left;
+    }
+    return longest;
+  }
+
+  /**
    * Where a unit's piece should be drawn, or `null` when it is not animating
    * (which is the common case, so this stays a single Map lookup). A finished
    * animation is forgotten here, which is what eventually lets the renderer

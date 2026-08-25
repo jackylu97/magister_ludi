@@ -103,6 +103,27 @@ would change every seeded outcome. No further rename passes.
   victory and elimination, the meters, the End Turn blockers, seat cycling, and the median
   tier the wild itself musters against. A hand-rolled filter is how a solo game starts
   declaring victory over an empty steppe. The full loop-by-loop audit is Entry XX.A.
+  **The interface's rosters ask it too, and they were the ones that had been missed**
+  (Entry XXI): the top-bar seat strip, the status line's waiting list, the Abacus's rods
+  and the hot-seat seat cycle each drew a row for the wild. The rule is precise —
+  `state.players[someId]` is an *id lookup* and is fine ("who is this"), anything else is
+  a *sweep* and belongs to `realPlayers` — and `test/ui/seatRoster.test.ts` reads the
+  sources in `src/ui` + `main.ts` and fails on the fifth surface.
+- **An order is a waking, and it is enforced in one place.** `Unit.sleeping` (presence is
+  the state, like `path`/`fortifiedTurns`/`chargesLeft`) is cleared by *any* accepted
+  command that names the unit, through `orderedUnitId` in `applyCommand` — never by a
+  `wakeUnit` line in each handler. `sleepUnit` is the single excused arm; adding a command
+  stops that switch compiling until somebody has decided. There is no wake verb — "never
+  mind" is `cancelOrder`, which is why it now accepts a sleeping unit with no path. The
+  other end of it, `wakeSleepers` (`turn.ts`), sits as late as the pipeline allows (after
+  `resetMovement` has walked everybody's standing orders) and reads the sleeper's **own**
+  sight, never its empire's.
+- **End Turn is three beats, not one instant** (Entry XXI): the marches on a still camera →
+  the turn card → a beat → the camera to the first idle piece. The wait is the renderer's
+  own `pendingAnimationMs()`, never a constant, and `0` collapses the whole thing to the old
+  synchronous order (reduced motion, the frozen 2D pipelines). `onTurnResolved` (the
+  autosave — a save must never wait on an animation) and `onTurnHandedOver` (the card) are
+  two moments on purpose; do not fold them back into one.
 - **`arriveOnTile` (`arrival.ts`) is the one "a unit came to rest here" seam.** Two things
   happen because a piece *arrived* rather than because anybody issued a verb — a ruin is
   claimed, a camp is burnt out — and there are exactly two places a position changes:

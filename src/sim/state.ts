@@ -134,8 +134,16 @@ import {
  *     replayed here is a different game rather than an older one for a reason
  *     beyond the fields: a scout that walked over a hex on turn six now claims
  *     something there, and every empire fights the wild at +2.
+ * 16: Sleep — `Unit.sleeping` and the `sleepUnit` command. A civilian told to
+ *     sleep stops blocking End Turn and stops being auto-focused, and is woken
+ *     by the `wakeSleepers` phase when a foreign combatant comes inside its own
+ *     sight. A v15 log replayed here is the same game: nothing in it can carry
+ *     the new command, and a unit with no `sleeping` key is a unit that is
+ *     awake. It is a bump rather than a free field because the *phase* is new —
+ *     the resolution now has an eleventh step, and a state that ran ten is not
+ *     a state this build produced.
  */
-export const SCHEMA_VERSION = 15;
+export const SCHEMA_VERSION = 16;
 
 // --- players ----------------------------------------------------------------
 
@@ -411,6 +419,33 @@ export interface Unit {
    * changes `ownerId` and touches nothing else, so this needs no rule of its own.
    */
   chargesLeft?: number;
+  /**
+   * This unit has been told to sleep, or the key is **absent** when it has not.
+   *
+   * Presence is the state, which is `path`'s, `fortifiedTurns`' and
+   * `chargesLeft`' convention and is here for the fourth time for the same
+   * reason: a unit that has never slept and a unit just shaken awake must
+   * serialise identically, or two states that are the same game would not
+   * compare equal.
+   *
+   * What it means, and what it deliberately does not. Sleep is a *civilian's*
+   * fortify: the cheapest possible standing order, given to a worker with
+   * nothing to build or a settler waiting on an escort, and its whole content is
+   * "stop asking me about this piece". It costs nothing, spends nothing, and
+   * changes no rule — a sleeping unit defends, is captured, is seen and heals
+   * exactly as it did awake. The only thing that reads it is
+   * `isIdleUnit` (`ui/turnBlockers.ts`), which is the whole point: End Turn
+   * stops nagging, and the post-resolution camera stops flying to it.
+   *
+   * Two things end it, and they are opposite in kind. **An order** — any
+   * command at all that names this unit clears the flag, because telling a piece
+   * to do something is telling it to wake up, and a second verb for "wake" would
+   * be a verb whose only use is undoing a typo. **Enemies** — the `wakeSleepers`
+   * phase clears it when a foreign combatant is inside this unit's own sight at
+   * the end of a resolution, which is the reason sleep is safe to use at all:
+   * a worker left asleep on the frontier is not a worker the player forgot.
+   */
+  sleeping?: boolean;
 }
 
 /**
@@ -926,6 +961,31 @@ export function breakFortify(unit: Unit): boolean {
 }
 
 /**
+ * Wakes a sleeping unit. Returns whether it was asleep.
+ *
+ * `breakFortify`'s sibling in every respect — the key is *deleted* rather than
+ * set false, because presence is the state (see `Unit.sleeping`) and a unit that
+ * has never slept must serialise identically to one just woken — and it lives
+ * here for the same reason: it is a one-line fact about a piece's posture that
+ * more than one occasion reaches, and the occasions must not each own a copy.
+ *
+ * The occasions, and they are the whole rule:
+ *
+ *   1. **any command that names the unit** (`commands.ts`, `wakeActorUnit`) —
+ *      an order is a waking, so there is no separate "wake" verb to forget to
+ *      send;
+ *   2. **`wakeSleepers`** (`turn.ts`), when a foreign combatant is inside the
+ *      sleeper's own sight at the end of a resolution;
+ *   3. **`captureUnit`** below, because the sleep was somebody else's decision
+ *      about somebody else's piece, exactly as the trench was.
+ */
+export function wakeUnit(unit: Unit): boolean {
+  if (unit.sleeping === undefined) return false;
+  delete unit.sleeping;
+  return true;
+}
+
+/**
  * A unit changes hands: the **one** implementation of capture.
  *
  * The third low-level fact about a piece's existence, beside `createUnit` and
@@ -948,8 +1008,11 @@ export function breakFortify(unit: Unit): boolean {
  * this turn**, because a piece that has just been dragged across a hex line has
  * not been marching for its new owner; **no orders**, because the waypoints were
  * the *previous* owner's plan and a captured settler walking back to its old
- * capital would be absurd; and out of any trench, because the trench was dug by
- * somebody else's army. Everything else it keeps — hit points, and a worker's
+ * capital would be absurd; out of any trench, because the trench was dug by
+ * somebody else's army; and **awake**, for the trench's reason exactly — the
+ * sleep was the previous owner's decision that this piece could be left alone,
+ * and it is the first thing the new owner needs asked about. Everything else it
+ * keeps — hit points, and a worker's
  * `chargesLeft` above all (design ledger, M7): capture changes hands and nothing
  * else about what the piece *is*.
  *
@@ -964,6 +1027,7 @@ export function captureUnit(state: GameState, unit: Unit, ownerId: number): void
   unit.movesLeft = 0;
   delete unit.path;
   breakFortify(unit);
+  wakeUnit(unit);
   if (before !== ownerId) recomputeVisibilityFor(state, [before, ownerId]);
 }
 
@@ -1067,6 +1131,18 @@ export function clearTurnEnded(state: GameState): void {
  * `state.players` themselves. One implementation, because the failure mode of a
  * second one is silent — a solo game that declares victory the moment the last
  * camp falls, or a happiness ledger with a line for the raiders.
+ *
+ * **The interface's rosters ask it too**, and they were the ones that had been
+ * missed: the top-bar seat strip, the status line's waiting list, the Abacus's
+ * rods and the hot-seat cycle all draw one row per seat, and every one of them
+ * drew a row for the wild — a "Barbarians ✓" chip in the top bar of every solo
+ * game, and a scoring rod for the weather. Anything with the shape "one thing
+ * per player" belongs here whether it is a rule or a chip, which is what makes
+ * a future seat kind that should not be listed (a city-state) an edit to this
+ * one filter rather than an audit of two directories. The register of them is
+ * `renderSeats`' docblock in `main.ts`; `test/ui/seatRoster.test.ts` reads the
+ * sources and fails on a hand-rolled roster filter, because the failure mode of
+ * a missed surface is a chip nobody notices for a milestone.
  *
  * In `state.players` order, which is the order everything else walks players in,
  * and it is a plain filter rather than a cached list because the roster is tiny
