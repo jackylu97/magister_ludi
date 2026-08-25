@@ -84,6 +84,13 @@ interface PanTween {
   fromZ: number;
   toX: number;
   toZ: number;
+  /**
+   * Optional: the frustum tweens alongside the pan when both are set — see
+   * `frameCells`. `panTo` never sets these, so an ordinary pan leaves the zoom
+   * exactly where the player put it, which is `panTo`'s own contract.
+   */
+  fromFrustum?: number;
+  toFrustum?: number;
   startedAt: number;
   durationMs: number;
 }
@@ -200,19 +207,16 @@ export class DioramaCamera {
   }
 
   /**
-   * Frames a whole board: centres on it and picks the zoom that shows all of it.
+   * The frustum a rectangle of ground needs to fit on screen, with the
+   * standard fit padding — shared by `frameBoard` and `frameCells`.
    *
-   * The board is a rectangle on the ground plane seen from an oblique fixed
-   * angle, so "how much frustum does it need" is not a formula — the corners are
-   * pushed through the camera's own view matrix and the extremes are read back.
-   * The frustum ceiling is raised to whatever this needs, so a giant map can
-   * always be zoomed out far enough to be seen whole.
+   * The rectangle is seen from an oblique fixed angle, so "how much frustum
+   * does it need" is not a formula: the corners are pushed through the
+   * camera's own view matrix and the extremes are read back. That means the
+   * camera must already be pointed at the rectangle's centre — `target` set
+   * and `apply()` called — before this is asked; both callers do that first.
    */
-  frameBoard(bounds: Bounds): void {
-    this.cancelPan();
-    this.target.set((bounds.minX + bounds.maxX) / 2, 0, (bounds.minZ + bounds.maxZ) / 2);
-    this.apply();
-
+  private neededFrustumFor(bounds: Bounds): number {
     const corner = new Vector3();
     let halfWidth = 0;
     let halfHeight = 0;
@@ -223,12 +227,91 @@ export class DioramaCamera {
         halfHeight = Math.max(halfHeight, Math.abs(corner.y));
       }
     }
-    const needed =
-      Math.max(halfHeight, halfWidth / this.aspect) * CAMERA.fitPadding + VIEW3D.board.hexRadius;
+    return Math.max(halfHeight, halfWidth / this.aspect) * CAMERA.fitPadding + VIEW3D.board.hexRadius;
+  }
+
+  /**
+   * Frames a whole board: centres on it and picks the zoom that shows all of it.
+   *
+   * The frustum ceiling is raised to whatever this needs, so a giant map can
+   * always be zoomed out far enough to be seen whole.
+   */
+  frameBoard(bounds: Bounds): void {
+    this.cancelPan();
+    this.target.set((bounds.minX + bounds.maxX) / 2, 0, (bounds.minZ + bounds.maxZ) / 2);
+    this.apply();
+
+    const needed = this.neededFrustumFor(bounds);
     this.maxFrustum = Math.max(CAMERA.maxFrustum, needed);
     this.frustum = Math.min(this.maxFrustum, Math.max(CAMERA.minFrustum, needed));
     this.normalize();
     this.apply();
+  }
+
+  /**
+   * Frames a rectangle of ground — pan and zoom together — for "show me this
+   * city's work radius", the gesture opening a city panel makes.
+   *
+   * Unlike `frameBoard`, the zoom-out ceiling never rises: this is asked for
+   * a handful of tiles, not a map, and letting the diorama zoom out past its
+   * usual band for one would look like the camera lurched rather than framed.
+   *
+   * The target lands `camera.cityFrameBiasPx` screen pixels right of the
+   * rectangle's true centre. Because the camera looks straight down the
+   * middle of the whole canvas — panel included — that draws the framed
+   * tiles that many pixels *left* of screen centre, which is roughly half the
+   * fixed-width city panel's footprint (see `style.css`'s `#city-panel`), so
+   * tiles that would otherwise land dead centre come out clear of it. A fixed
+   * pixel bias rather than a fraction of the frustum, because the panel is a
+   * fixed CSS width regardless of zoom, so the bias has to be too.
+   *
+   * `animate` glides the pan and the zoom together over `camera.panMs`,
+   * sampled by the same `stepPan` an ordinary pan uses (see `PanTween`'s
+   * optional frustum fields); false jumps straight there.
+   */
+  frameCells(bounds: Bounds, animate: boolean, now: number): void {
+    const fromX = this.target.x;
+    const fromZ = this.target.z;
+    const fromFrustum = this.frustum;
+
+    const toX = (bounds.minX + bounds.maxX) / 2;
+    const toZ = (bounds.minZ + bounds.maxZ) / 2;
+    this.target.set(toX, 0, toZ);
+    this.apply();
+    const needed = this.neededFrustumFor(bounds);
+    const toFrustum = Math.min(this.maxFrustum, Math.max(CAMERA.minFrustum, needed));
+
+    const worldPerPixel = (toFrustum * 2) / this.viewportHeight;
+    const bias = CAMERA.cityFrameBiasPx * worldPerPixel;
+    const biasedX = toX + this.right.x * bias;
+    const biasedZ = toZ + this.right.z * bias;
+
+    if (!animate || CAMERA.panMs <= 0) {
+      this.cancelPan();
+      this.target.set(biasedX, 0, biasedZ);
+      this.frustum = toFrustum;
+      this.normalize();
+      this.apply();
+      return;
+    }
+
+    // Restore the starting point: the fit above had to point the camera at
+    // the destination to measure it, but the tween owns the target from here
+    // and must start from where the player actually was.
+    this.target.set(fromX, 0, fromZ);
+    this.frustum = fromFrustum;
+    this.apply();
+
+    this.panTween = {
+      fromX,
+      fromZ,
+      toX: biasedX,
+      toZ: biasedZ,
+      fromFrustum,
+      toFrustum,
+      startedAt: now,
+      durationMs: CAMERA.panMs,
+    };
   }
 
   /** Back to the default zoom, keeping the target where it is. */
@@ -289,6 +372,7 @@ export class DioramaCamera {
     if (t >= 1) {
       this.panTween = null;
       this.target.set(tween.toX, 0, tween.toZ);
+      if (tween.toFrustum !== undefined) this.frustum = tween.toFrustum;
     } else {
       const k = easeInOutCubic(Math.max(0, t));
       this.target.set(
@@ -296,6 +380,9 @@ export class DioramaCamera {
         0,
         tween.fromZ + (tween.toZ - tween.fromZ) * k,
       );
+      if (tween.fromFrustum !== undefined && tween.toFrustum !== undefined) {
+        this.frustum = tween.fromFrustum + (tween.toFrustum - tween.fromFrustum) * k;
+      }
     }
     this.normalize();
     this.apply();

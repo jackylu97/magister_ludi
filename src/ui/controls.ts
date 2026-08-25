@@ -1469,6 +1469,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (cityId !== null) {
       setMoveMode(false);
       selectedId = null;
+      // Frame the work radius the panel is about to talk about — pan *and*
+      // zoom, unlike the ordinary camera moves in this file, so the tiles the
+      // player is about to pin citizens on are actually on screen. Closing
+      // the panel has no mirror call: the player is where they are, and a
+      // camera that snapped back on every close would be busier than Civ's.
+      const city = openCity();
+      if (city) renderer.frameCells?.(workRadiusCells(city), !prefersReducedMotion());
     }
     // Buy mode belongs to the city that was open, whichever way the panel is
     // leaving — closed, or swapped for another town. Carrying it across would

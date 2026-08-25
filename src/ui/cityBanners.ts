@@ -45,11 +45,30 @@
  * Your own cities are always watched (a city sees its own centre), so the button
  * half of this is untouched by fog — which is the property that made it safe to
  * add the third state without rewriting the first two.
+ *
+ * The open city has no banner
+ * ----------------------------
+ * While a city's screen is open, that city's own banner is missing — its name
+ * already lives in the panel, and a label floating over the same ground the
+ * panel is about would be the interface saying it twice, right where the panel
+ * blocks the yield pips on the tiles just north of it.
+ *
+ * `hiddenCityId` (read from `CityBannersOptions.openCity` every `refresh()`,
+ * never pushed in as an event) is the whole of that rule: whichever city that
+ * returns is left out of the list built for this frame, full stop. Nothing
+ * here asks *why* a screen is closed, so every way one closes — Escape, a
+ * click-out, picking up a unit, the End Turn blocker landing on a different
+ * city, a seat change, the city itself being captured or destroyed, a load or
+ * a new game — brings the banner back for free the next time `refresh()` runs,
+ * because the derived value simply stops naming it. An imperative
+ * hide()/show() pair would have to be called from every one of those paths and
+ * would drift the day a new one was added; a value re-read from the source of
+ * truth cannot.
  */
 
 import { queueItemName, turnsToBuild } from '../sim/cities';
 import type { Game } from '../sim/game';
-import type { City } from '../sim/state';
+import type { City, GameState } from '../sim/state';
 import { type CitySighting, isExploredBy, isVisibleTo } from '../sim/visibility';
 import { cityDisplayName } from './cityDisplay';
 import type { MapView } from './mapView';
@@ -62,6 +81,14 @@ export interface CityBannersOptions {
   localPlayerId: () => number;
   /** Called when the player clicks one of their own banners. */
   onOpenCity: (cityId: number) => void;
+  /**
+   * The city whose screen is open, or `null`.
+   *
+   * Read fresh at the top of every `refresh()` — see the module docblock's
+   * "The open city has no banner" — rather than told imperatively, so this
+   * module never has to special-case any of the ways a city screen closes.
+   */
+  openCity: () => City | null;
   /**
    * The pointer moved onto a banner, or off one (`null`).
    *
@@ -125,8 +152,113 @@ interface BannerFacts {
   stale: boolean;
 }
 
+/**
+ * What a live, watched city's banner says.
+ *
+ * Production and its turn estimate are computed from the same functions the
+ * city panel and the simulation use, so a banner can never promise a turn
+ * count the panel disagrees with.
+ */
+function watchedFacts(state: GameState, city: City, mine: boolean): BannerFacts {
+  const facts: BannerFacts = {
+    cityId: city.id,
+    col: city.col,
+    row: city.row,
+    name: cityDisplayName(state, city),
+    ownerId: city.ownerId,
+    pop: `${city.population}`,
+    production: '',
+    mine,
+    stale: false,
+  };
+  if (!mine) return facts;
+
+  const item = city.queue[0];
+  if (item) {
+    // `turnsToBuild` at the front of the queue rather than the subtraction
+    // spelled out here: it is the same arithmetic every other estimate in the
+    // interface reads, and since the Age I rework it also knows that a
+    // barracks fills the basket faster while a unit is at the front.
+    const turns = turnsToBuild(state, city, item, 0);
+    const suffix = turns === null ? '' : ` · ${turns}t`;
+    facts.production = `${queueItemName(item)}${suffix}`;
+  } else {
+    facts.production = 'idle';
+  }
+  return facts;
+}
+
+/**
+ * What a remembered city's banner says: its name and its flag as they were,
+ * and nothing else.
+ *
+ * No population and no production even on your own city, because neither is a
+ * thing a chart remembers — a size on a banner over ground nobody is watching
+ * would be the interface quoting a number twenty turns stale as though it were
+ * current. The name and the flag are exactly what a paper map keeps.
+ */
+function rememberedFacts(state: GameState, sighting: CitySighting, mine: boolean): BannerFacts {
+  return {
+    cityId: sighting.cityId,
+    col: sighting.col,
+    row: sighting.row,
+    // Checked against the *current* capital (see `cityDisplayName`), not the
+    // sighting's own stale facts: the palace is live state, so a remembered
+    // town still gets a true star, never a stale one.
+    name: cityDisplayName(state, {
+      id: sighting.cityId,
+      ownerId: sighting.ownerId,
+      name: sighting.name,
+    }),
+    ownerId: sighting.ownerId,
+    pop: '',
+    production: '',
+    mine,
+    stale: true,
+  };
+}
+
+/**
+ * Every banner that should be on screen: the rule per city is one of three
+ * (see the module docblock's "Three states"), asked of the simulation's own
+ * visibility rather than re-derived here, plus the one further exclusion —
+ * `hiddenCityId`'s banner is left out no matter which of the three it would
+ * otherwise be, because its name is on a panel instead (see "The open city
+ * has no banner").
+ *
+ * Exported and pure — `state`, `seat` and `hiddenCityId` are plain arguments
+ * rather than closures — so the derivation can be pinned by a test with no
+ * renderer, no `container`, and no DOM.
+ */
+export function visibleCityBanners(
+  state: GameState,
+  seat: number,
+  hiddenCityId: number | null,
+): BannerFacts[] {
+  const facts: BannerFacts[] = [];
+  const shown = new Set<number>();
+
+  for (const city of state.cities) {
+    if (!isVisibleTo(state, seat, city.col, city.row)) continue;
+    shown.add(city.id);
+    if (city.id === hiddenCityId) continue;
+    facts.push(watchedFacts(state, city, city.ownerId === seat));
+  }
+  for (const sighting of state.citySightings[seat] ?? []) {
+    if (shown.has(sighting.cityId)) continue;
+    // A memory of a site the seat has never explored is not reachable — the
+    // sighting was recorded by looking at it — but a hand-edited save could
+    // hold one, and a banner floating over Terra Incognita would be the fog
+    // leaking through the one surface that is meant to respect it.
+    if (!isExploredBy(state, seat, sighting.col, sighting.row)) continue;
+    facts.push(rememberedFacts(state, sighting, sighting.ownerId === seat));
+  }
+  return facts;
+}
+
 export function createCityBanners(options: CityBannersOptions): CityBanners {
-  const { container, renderer, getGame, localPlayerId, onOpenCity, onHoverCity } = options;
+  const { container, renderer, getGame, localPlayerId, onOpenCity, openCity, onHoverCity } =
+    options;
   const banners = new Map<number, Banner>();
 
   function build(cityId: number): Banner {
@@ -158,100 +290,13 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
   }
 
   /**
-   * What a live, watched city's banner says.
-   *
-   * Production and its turn estimate are computed from the same functions the
-   * city panel and the simulation use, so a banner can never promise a turn
-   * count the panel disagrees with.
-   */
-  function watched(city: City, mine: boolean): BannerFacts {
-    const facts: BannerFacts = {
-      cityId: city.id,
-      col: city.col,
-      row: city.row,
-      name: cityDisplayName(getGame().state, city),
-      ownerId: city.ownerId,
-      pop: `${city.population}`,
-      production: '',
-      mine,
-      stale: false,
-    };
-    if (!mine) return facts;
-
-    const item = city.queue[0];
-    if (item) {
-      // `turnsToBuild` at the front of the queue rather than the subtraction
-      // spelled out here: it is the same arithmetic every other estimate in the
-      // interface reads, and since the Age I rework it also knows that a
-      // barracks fills the basket faster while a unit is at the front.
-      const turns = turnsToBuild(getGame().state, city, item, 0);
-      const suffix = turns === null ? '' : ` · ${turns}t`;
-      facts.production = `${queueItemName(item)}${suffix}`;
-    } else {
-      facts.production = 'idle';
-    }
-    return facts;
-  }
-
-  /**
-   * What a remembered city's banner says: its name and its flag as they were,
-   * and nothing else.
-   *
-   * No population and no production even on your own city, because neither is a
-   * thing a chart remembers — a size on a banner over ground nobody is watching
-   * would be the interface quoting a number twenty turns stale as though it were
-   * current. The name and the flag are exactly what a paper map keeps.
-   */
-  function remembered(sighting: CitySighting, mine: boolean): BannerFacts {
-    return {
-      cityId: sighting.cityId,
-      col: sighting.col,
-      row: sighting.row,
-      // Checked against the *current* capital (see `cityDisplayName`), not the
-      // sighting's own stale facts: the palace is live state, so a remembered
-      // town still gets a true star, never a stale one.
-      name: cityDisplayName(getGame().state, {
-        id: sighting.cityId,
-        ownerId: sighting.ownerId,
-        name: sighting.name,
-      }),
-      ownerId: sighting.ownerId,
-      pop: '',
-      production: '',
-      mine,
-      stale: true,
-    };
-  }
-
-  /**
-   * Every banner that should be on screen, in `state.cities` order.
-   *
-   * The rule per city is one of three (see the module docblock), and it is asked
-   * of the simulation's own visibility rather than re-derived here: a banner that
-   * disagreed with the board about whether a town is in sight would be the one
-   * element on the page contradicting the diorama under it.
+   * Every banner that should be on screen this frame: `visibleCityBanners`
+   * plus the two live reads it takes as plain arguments, so the pure
+   * derivation stays testable without either of them.
    */
   function visibleBanners(): BannerFacts[] {
     const { state } = getGame();
-    const seat = localPlayerId();
-    const facts: BannerFacts[] = [];
-    const shown = new Set<number>();
-
-    for (const city of state.cities) {
-      if (!isVisibleTo(state, seat, city.col, city.row)) continue;
-      shown.add(city.id);
-      facts.push(watched(city, city.ownerId === seat));
-    }
-    for (const sighting of state.citySightings[seat] ?? []) {
-      if (shown.has(sighting.cityId)) continue;
-      // A memory of a site the seat has never explored is not reachable — the
-      // sighting was recorded by looking at it — but a hand-edited save could
-      // hold one, and a banner floating over Terra Incognita would be the fog
-      // leaking through the one surface that is meant to respect it.
-      if (!isExploredBy(state, seat, sighting.col, sighting.row)) continue;
-      facts.push(remembered(sighting, sighting.ownerId === seat));
-    }
-    return facts;
+    return visibleCityBanners(state, localPlayerId(), openCity()?.id ?? null);
   }
 
   function refresh(): void {

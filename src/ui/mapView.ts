@@ -400,4 +400,28 @@ export interface MapView {
    * change under `?art=sprites` simply does not move the camera.
    */
   panToCells?(cells: readonly CellRef[], animate: boolean): void;
+
+  /**
+   * Optional: pans **and** zooms to frame a group of cells — the "show me
+   * this city's work radius" gesture that opening a city panel makes.
+   *
+   * Unlike `panToCells`, which deliberately leaves the zoom alone, this picks
+   * whatever zoom shows the given cells with a little margin, exactly as
+   * `fitToViewport` does for the whole board. It never widens the diorama's
+   * normal zoom-out ceiling the way `fitToViewport` does, though — a work
+   * radius is a handful of tiles, not a map, and letting the camera zoom out
+   * past its usual band for one would look like a lurch rather than a frame.
+   *
+   * `animate` glides both together; false — reduced motion, or a fresh game
+   * with nothing to transition from — jumps straight there. There is no
+   * matching "un-frame": closing whatever asked for this leaves the camera
+   * exactly where the player left it (see `src/ui/controls.ts`'s
+   * `setOpenCity`), which is the ordinary Civ behaviour and the reason this
+   * method has no counterpart called on close.
+   *
+   * Optional for the usual reason: it is a 3D feature and the 2D pipelines
+   * are frozen, so a city opened under `?art=flat` simply does not move the
+   * camera.
+   */
+  frameCells?(cells: readonly CellRef[], animate: boolean): void;
 }

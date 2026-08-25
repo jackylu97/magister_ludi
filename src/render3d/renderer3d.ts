@@ -1159,6 +1159,41 @@ export class Renderer3D implements MapView {
   }
 
   /**
+   * Pans and zooms together to frame a group of cells — see
+   * `MapView.frameCells`.
+   *
+   * The bounding rectangle is computed wrap-aware exactly as `panToCells`
+   * computes its centroid: each cell's world x is first pulled into the copy
+   * of the cylinder nearest the camera's current target, so a work radius
+   * straddling the seam still forms one small rectangle rather than one that
+   * spans the whole map. A city's work radius is a handful of tiles, far
+   * short of half the wrap period, so "nearest copy" is unambiguous here.
+   */
+  frameCells(cells: readonly CellRef[], animate: boolean): void {
+    if (!this.map || cells.length === 0) return;
+    const period = wrapWidth(this.map);
+    const reference = this.view.target.x;
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+    for (const cell of cells) {
+      const point = cellCenter(cell.col, cell.row);
+      let delta = (((point.x - reference) % period) + period) % period;
+      if (delta > period / 2) delta -= period;
+      const x = reference + delta;
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minZ = Math.min(minZ, point.z);
+      maxZ = Math.max(maxZ, point.z);
+    }
+
+    this.view.frameCells({ minX, maxX, minZ, maxZ }, animate, performance.now());
+    this.invalidate();
+  }
+
+  /**
    * Back to the diorama's default zoom, leaving the pan target alone.
    *
    * `panToCells` deliberately answers "where" and not "how close" — yanking the

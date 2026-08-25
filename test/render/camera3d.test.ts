@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DioramaCamera } from '../../src/render3d/camera3d';
+import { type Bounds, DioramaCamera } from '../../src/render3d/camera3d';
 import { boardBounds, wrapWidth } from '../../src/render3d/layout';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { generateMap } from '../../src/sim/mapgen';
@@ -120,5 +120,94 @@ describe('DioramaCamera.panTo', () => {
     camera.panTo(24, 12, true, 0);
     camera.frameBoard(bounds);
     expect(camera.isPanning).toBe(false);
+  });
+});
+
+/**
+ * `frameCells` — the "open a city" camera move: pan and zoom together, to a
+ * small rectangle rather than the whole board.
+ *
+ * Three things about it are not exercised by anything above and are exactly
+ * what could regress silently: the zoom actually tightens onto a small
+ * rectangle (unlike `panTo`, which never touches it), the zoom-out ceiling it
+ * is bounded by is the diorama's ordinary one rather than one `frameBoard`
+ * raised, and the target lands biased off the rectangle's true centre so a
+ * fixed-width panel would not cover it — never *on* the centre.
+ */
+describe('DioramaCamera.frameCells', () => {
+  const rect: Bounds = { minX: 10, maxX: 13, minZ: 8, maxZ: 11 };
+
+  it('jumps to a tightened zoom, biased off the rectangle centre', () => {
+    const camera = seated();
+    camera.panTo(0, 0, false, 0);
+    const before = camera.radius;
+
+    camera.frameCells(rect, false, 0);
+    expect(camera.isPanning).toBe(false);
+    // A three-unit rectangle needs far less frustum than the default zoom.
+    expect(camera.radius).toBeLessThan(before);
+
+    const centreX = (rect.minX + rect.maxX) / 2;
+    const centreZ = (rect.minZ + rect.maxZ) / 2;
+    // The camera looks along a fixed azimuth (see the module docblock), so
+    // "biased" must move the target off centre in at least one axis — never
+    // land exactly on it.
+    const offCentre = Math.hypot(camera.target.x - centreX, camera.target.z - centreZ);
+    expect(offCentre).toBeGreaterThan(0);
+  });
+
+  it('never raises the zoom-out ceiling the way frameBoard does', () => {
+    const camera = seated();
+    const ceiling = CAMERA.maxFrustum;
+    // A rectangle far larger than the whole board would ask `frameBoard` for
+    // a frustum past its ceiling; `frameCells` must clamp to it instead of
+    // raising it.
+    const huge: Bounds = { minX: -5000, maxX: 5000, minZ: -5000, maxZ: 5000 };
+    camera.frameCells(huge, false, 0);
+    expect(camera.radius).toBeCloseTo(ceiling, 6);
+
+    // Proof the ceiling itself did not move: an ordinary `frameBoard` right
+    // after still fits the real board at its own (much smaller) frustum,
+    // which it could not if `frameCells` had left the ceiling raised to
+    // whatever `huge` needed.
+    camera.frameBoard(bounds);
+    expect(camera.radius).toBeLessThan(ceiling);
+  });
+
+  it('eases the pan and the zoom together, landing exactly on both', () => {
+    const camera = seated();
+    camera.panTo(0, 0, false, 0);
+    const startRadius = camera.radius;
+
+    camera.frameCells(rect, true, 1000);
+    expect(camera.isPanning).toBe(true);
+    // The tween owns both from here; nothing has moved yet.
+    expect(camera.target.x).toBeCloseTo(0, 6);
+    expect(camera.radius).toBeCloseTo(startRadius, 6);
+
+    expect(camera.stepPan(1000 + CAMERA.panMs / 2)).toBe(true);
+    const midRadius = camera.radius;
+    // Framing a tiny rectangle only ever zooms *in* from the default.
+    expect(midRadius).toBeLessThan(startRadius);
+    expect(midRadius).toBeGreaterThan(0);
+
+    expect(camera.stepPan(1000 + CAMERA.panMs * 1.7)).toBe(true);
+    expect(camera.isPanning).toBe(false);
+    // Lands on the same answer the immediate jump would have given.
+    const jumped = seated();
+    jumped.panTo(0, 0, false, 0);
+    jumped.frameCells(rect, false, 0);
+    expect(camera.target.x).toBeCloseTo(jumped.target.x, 6);
+    expect(camera.target.z).toBeCloseTo(jumped.target.z, 6);
+    expect(camera.radius).toBeCloseTo(jumped.radius, 6);
+  });
+
+  it('is cancelled by the player’s own hand, like any other pan', () => {
+    const camera = seated();
+    camera.panTo(0, 0, false, 0);
+    camera.frameCells(rect, true, 0);
+    camera.pan(5, 5);
+    expect(camera.isPanning).toBe(false);
+    expect(camera.stepPan(CAMERA.panMs)).toBe(false);
   });
 });

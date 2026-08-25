@@ -1664,6 +1664,9 @@ async function boot(initial: Game | null): Promise<void> {
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
     onOpenCity: (cityId) => controls.setOpenCity(cityId),
+    // Read fresh every refresh, not pushed — see `cityBanners.ts`'s "The open
+    // city has no banner". Whatever this returns simply drops out of the list.
+    openCity: () => controls.openCity(),
     // Hovering a banner lights that city's worked tiles, exactly as hovering
     // its ground does — the label floats above the board, so the board's own
     // hover picking never sees it.

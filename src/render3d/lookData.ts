@@ -795,6 +795,13 @@ export interface CameraSpec {
    * across a third of a hex is not a camera move, it is lag.
    */
   panSnapDistance: number;
+  /**
+   * Screen-pixel rightward bias `DioramaCamera.frameCells` applies to its
+   * target, so a framed city's work radius clears the fixed-width city panel
+   * instead of landing dead centre behind it. Roughly half the panel's own
+   * pixel footprint — see `frameCells`'s docblock.
+   */
+  cityFrameBiasPx: number;
 }
 
 export interface LightSpec {
