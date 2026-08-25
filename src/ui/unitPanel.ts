@@ -247,6 +247,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
   function turnsRemaining(unit: Unit): number {
     const { map } = getGame().state;
     const allowance = fullMovement(unit);
+    // The mover, not just the ground: a scout ignores terrain cost, and an
+    // estimate that priced its route at a warrior's rates would quote a march
+    // twice as long as the one the reducer will walk. See `tileMoveCost`.
+    const def = unitDef(unit.type);
     let turns = 0;
     let budget = Math.max(0, unit.movesLeft);
     for (const cell of unit.path ?? []) {
@@ -257,7 +261,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       const tile = getTileAt(map, cell.col, cell.row);
       // An impassable waypoint means the order is going to be abandoned, not
       // that it takes forever; stop counting rather than inventing a number.
-      const cost = tile ? tileMoveCost(tile) : null;
+      const cost = tile ? tileMoveCost(tile, def) : null;
       if (cost === null) break;
       budget = Math.max(0, budget - cost);
     }

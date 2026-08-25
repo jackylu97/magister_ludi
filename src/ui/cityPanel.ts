@@ -215,6 +215,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     if (def.charges !== undefined) {
       notes.append(note(`Builds ${def.charges} improvements, then is spent`));
     }
+    // The one note that is about *moving* rather than about building or
+    // fighting, and it earns its line because the Moves figure above cannot say
+    // it: 3 moves through a wood is one hex for a warrior and three for a scout.
+    if (def.ignoresTerrainCost) {
+      notes.append(note(`Ignores terrain · every hex costs 1 of its ${def.movement} moves`));
+    }
     if (def.haltsGrowth) notes.append(note('The city banks no food while this is at the front'));
     if (def.minCityPop > 0) notes.append(note(`Needs a city of ${def.minCityPop}`));
     if (def.requiresResource !== undefined) {

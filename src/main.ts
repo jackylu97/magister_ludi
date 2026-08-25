@@ -1306,6 +1306,7 @@ async function boot(initial: Game | null): Promise<void> {
   const LENS_OPTIONS: [LensMode, string, string][] = [
     ['none', 'None', 'The board as it is'],
     ['settler', 'Settler', 'Where a city may go: blue is coastal, green is fresh water'],
+    ['explorer', 'Explorer', 'What is left to find: gold is a ruin or a village, red is a camp'],
   ];
 
   const lensButtons = LENS_OPTIONS.map(([mode, label, hint]) => {

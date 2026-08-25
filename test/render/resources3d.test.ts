@@ -13,6 +13,7 @@ import {
 import {
   MARGINALIA_CELLS,
   NUMERAL_CELLS,
+  SITE_MARK_CELLS,
   TILE_ICON_CELLS,
   type TileIcons,
   YIELD_COLORS,
@@ -20,12 +21,12 @@ import {
   YIELD_KEYS,
   badgeAtlasLayout,
   paperRadiusFraction,
-  resourceShapeExtent,
-  resourceShapeRadius,
+  markerPaperExtent,
+  markerPaperRadius,
   tileAtlasSize,
   tileIconIndex,
   tileIconRect,
-  traceResourceShape,
+  traceMarkerPaper,
   yieldDiscLayout,
   yieldShadowColor,
 } from '../../src/render3d/badges3d';
@@ -45,6 +46,8 @@ import { foundCityAt } from '../../src/sim/cities';
 import { type GameState, newGame } from '../../src/sim/state';
 import { visibleResourceAt } from '../../src/sim/tech';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
+import { siteMark } from '../../src/art/siteMarks';
+import { DISCOVERY_KINDS } from '../../src/sim/discoveryData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../../src/sim/resourceData';
 import { TECH_IDS } from '../../src/sim/techData';
 import { computeFreshwater } from '../../src/sim/water';
@@ -318,12 +321,18 @@ describe('the tile-icon atlas', () => {
     const yields = TILE_ICON_CELLS.filter((cell) => cell.set === 'yield').map((c) => c.id);
     const numerals = TILE_ICON_CELLS.filter((cell) => cell.set === 'numeral').map((c) => c.id);
     const margins = TILE_ICON_CELLS.filter((cell) => cell.set === 'marginalia').map((c) => c.id);
+    const sites = TILE_ICON_CELLS.filter((cell) => cell.set === 'site').map((c) => c.id);
     expect(resources).toEqual([...RESOURCE_IDS]);
     expect(yields).toEqual([...YIELD_KEYS]);
     expect(numerals).toEqual([...NUMERAL_CELLS]);
     expect(margins).toEqual([...MARGINALIA_CELLS]);
+    // The discovery sites are the fifth set, and the same argument applies: a
+    // kind the simulation can put on a tile with no cell here is a marker that
+    // throws from inside the atlas rasterisation.
+    expect(sites).toEqual([...SITE_MARK_CELLS]);
+    expect(SITE_MARK_CELLS).toEqual([...DISCOVERY_KINDS]);
     expect(TILE_ICON_CELLS).toHaveLength(
-      RESOURCE_IDS.length + 6 + 10 + MARGINALIA_CELLS.length,
+      RESOURCE_IDS.length + 6 + 10 + MARGINALIA_CELLS.length + SITE_MARK_CELLS.length,
     );
   });
 
@@ -336,7 +345,14 @@ describe('the tile-icon atlas', () => {
    */
   it('appends new sets rather than inserting them', () => {
     expect(tileIconIndex({ set: 'resource', id: RESOURCE_IDS[0]! })).toBe(0);
-    expect(tileIconIndex({ set: 'marginalia', id: 'serpent' })).toBe(TILE_ICON_CELLS.length - 1);
+    // The serpent kept its index when the sites arrived behind it, which is the
+    // property this suite is really about: an appended set moves nothing.
+    expect(tileIconIndex({ set: 'marginalia', id: 'serpent' })).toBe(
+      TILE_ICON_CELLS.length - 1 - SITE_MARK_CELLS.length,
+    );
+    expect(tileIconIndex({ set: 'site', id: SITE_MARK_CELLS[SITE_MARK_CELLS.length - 1]! })).toBe(
+      TILE_ICON_CELLS.length - 1,
+    );
   });
 
   it('names an artwork file for every mark that still has one', () => {
@@ -395,10 +411,10 @@ describe('the tile-icon atlas', () => {
  * luxury gets a fluted edge and a gilt rim, strategic gets a squared, pointed
  * silhouette and a vermilion one. Both a shape and a colour cue, because
  * colour alone fails a colourblind player — see the module docblock on
- * `ResourceKindStyle` in `lookData.ts` for why this is drawn into the atlas
+ * `MarkerPaperStyle` in `lookData.ts` for why this is drawn into the atlas
  * rather than tinted on the instance.
  *
- * None of this needs a canvas: `resourceShapeExtent` and `resourceShapeRadius`
+ * None of this needs a canvas: `markerPaperExtent` and `markerPaperRadius`
  * are the pure arithmetic that decides how big a shape's own path is drawn,
  * which is exactly the part that would fail invisibly — a shape whose radius
  * ran past `paperRadiusFraction()` would bleed into the next cell of an atlas
@@ -440,9 +456,9 @@ describe('resource kind styling', () => {
     // extent === 1 for a shape that never bulges past its own traced radius
     // (circle and shield both hold to that); a scallop's is strictly more, by
     // exactly its configured depth.
-    expect(resourceShapeExtent(KINDS.bonus)).toBe(1);
-    expect(resourceShapeExtent(KINDS.strategic)).toBe(1);
-    expect(resourceShapeExtent(KINDS.luxury)).toBeCloseTo(1 + (KINDS.luxury.scallopDepth ?? 0), 10);
+    expect(markerPaperExtent(KINDS.bonus)).toBe(1);
+    expect(markerPaperExtent(KINDS.strategic)).toBe(1);
+    expect(markerPaperExtent(KINDS.luxury)).toBeCloseTo(1 + (KINDS.luxury.scallopDepth ?? 0), 10);
   });
 
   it('keeps every kind\'s outer edge at the same boundary a plain roundel draws to', () => {
@@ -455,8 +471,8 @@ describe('resource kind styling', () => {
     const outer = outerFraction * cell;
     for (const kind of ['bonus', 'strategic', 'luxury'] as const) {
       const style = KINDS[kind];
-      const radius = resourceShapeRadius(style, outerFraction, cell);
-      const reach = radius * resourceShapeExtent(style) + (style.rimWidth * cell) / 2;
+      const radius = markerPaperRadius(style, outerFraction, cell);
+      const reach = radius * markerPaperExtent(style) + (style.rimWidth * cell) / 2;
       expect(reach, kind).toBeLessThanOrEqual(outer + 1e-9);
       // And it should not be drawing a shape that has collapsed to a dot: the
       // rim and the scallop depth are supposed to be a small bite out of a
@@ -476,14 +492,90 @@ describe('resource kind styling', () => {
       closePath: () => calls.push('closePath'),
     } as unknown as CanvasRenderingContext2D;
 
-    for (const kind of ['bonus', 'strategic', 'luxury'] as const) {
+    // The site paper rides in this loop too: it is a member of the same
+    // vocabulary and a fourth silhouette that forgot to close would be filled
+    // and stroked as two different shapes.
+    const styles = {
+      bonus: KINDS.bonus,
+      strategic: KINDS.strategic,
+      luxury: KINDS.luxury,
+      site: VIEW3D.icons.sitePaper,
+    };
+    for (const [name, style] of Object.entries(styles)) {
       calls.length = 0;
-      traceResourceShape(fakeContext, KINDS[kind], 0, 0, 10);
-      expect(calls[0], kind).toBe('beginPath');
-      expect(calls, kind).toContain('closePath');
+      traceMarkerPaper(fakeContext, style, 0, 0, 10);
+      expect(calls[0], name).toBe('beginPath');
+      expect(calls, name).toContain('closePath');
       // A path that never moved or curved anywhere is a shape that drew
       // nothing — the one failure mode a call-count cannot otherwise catch.
-      expect(calls.length, kind).toBeGreaterThan(2);
+      expect(calls.length, name).toBeGreaterThan(2);
+    }
+  });
+});
+
+/**
+ * The discovery sites' own paper, and the two drawings printed on it.
+ *
+ * The claim the marker exists to make is "this is *not* a resource" — a ruin is
+ * an event with a claimant, not a commodity a citizen works — so the checks here
+ * are about **difference**: a silhouette no resource kind wears, a rim ink none
+ * of them uses, and one drawing per kind that is nobody else's.
+ */
+describe('discovery site markers', () => {
+  const PAPER = VIEW3D.icons.sitePaper;
+  const KINDS = VIEW3D.icons.resourceKinds;
+
+  it('wears a silhouette and a rim no resource kind does', () => {
+    expect(PAPER.shape).toBe('hex');
+    const resourceShapes = [KINDS.bonus.shape, KINDS.luxury.shape, KINDS.strategic.shape];
+    expect(resourceShapes).not.toContain(PAPER.shape);
+    const resourceRims = [KINDS.bonus.rimColor, KINDS.luxury.rimColor, KINDS.strategic.rimColor];
+    expect(resourceRims).not.toContain(PAPER.rimColor);
+    expect(PAPER.rimWidth).toBeGreaterThan(0);
+  });
+
+  it('keeps the hex inside the same boundary every other paper draws to', () => {
+    // The packing invariant, asked of the fourth shape: cells sit edge to edge
+    // with no gutter, so ink past `outer` prints on the neighbouring mark.
+    const cell = 128;
+    const outerFraction = paperRadiusFraction();
+    const outer = outerFraction * cell;
+    expect(markerPaperExtent(PAPER)).toBe(1);
+    const radius = markerPaperRadius(PAPER, outerFraction, cell);
+    expect(radius * markerPaperExtent(PAPER) + (PAPER.rimWidth * cell) / 2).toBeLessThanOrEqual(
+      outer + 1e-9,
+    );
+    expect(radius).toBeGreaterThan(outer * 0.5);
+  });
+
+  it('draws every kind of site, and draws each one differently', () => {
+    for (const kind of DISCOVERY_KINDS) {
+      const mark = siteMark(kind);
+      expect(mark, kind).toBeDefined();
+      expect(mark.note.length, kind).toBeGreaterThan(0);
+      expect(mark.paths.length, kind).toBeGreaterThan(0);
+      for (const path of mark.paths) expect(path.d.length, kind).toBeGreaterThan(0);
+    }
+    // Two kinds sharing a drawing would compile, print, and label a village as a
+    // ruin — the same failure the site *sculpts* are checked against.
+    const drawings = DISCOVERY_KINDS.map((kind) =>
+      siteMark(kind)
+        .paths.map((path) => path.d)
+        .join('|'),
+    );
+    expect(new Set(drawings).size).toBe(DISCOVERY_KINDS.length);
+  });
+
+  it('is drawn in the same hand as the resource marks', () => {
+    // Same authoring grid, same house weights. A mark drawn on a different box
+    // would print at a different optical size beside one that was not, and the
+    // set would stop reading as one hand.
+    for (const kind of DISCOVERY_KINDS) {
+      for (const path of siteMark(kind).paths) {
+        const width = path.width ?? MARK_STROKE;
+        expect(width, kind).toBeGreaterThan(0);
+        expect(width, kind).toBeLessThanOrEqual(MARK_STROKE);
+      }
     }
   });
 });

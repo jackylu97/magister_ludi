@@ -10,7 +10,7 @@ import {
 } from '../../src/sim/pathfind';
 import { type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
 import { moveCost } from '../../src/sim/terrainData';
-import type { UnitTypeId } from '../../src/sim/unitData';
+import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 
 /** A blank state whose map is a flat grassland rectangle, ready to be sculpted. */
@@ -48,9 +48,23 @@ function unit(
   return createUnit(state, ownerId, type, col, row);
 }
 
-function cost(state: GameState, path: readonly { col: number; row: number }[]): number {
+/**
+ * What a path costs `type` to walk, tile by tile.
+ *
+ * Takes the unit type rather than only the map because `tileMoveCost` does: the
+ * price of a step is a fact about the destination *and* the mover. A helper that
+ * had kept quoting the ground's own price would agree with the searches for
+ * every unit but the one this parameter exists for.
+ */
+function cost(
+  state: GameState,
+  path: readonly { col: number; row: number }[],
+  type: UnitTypeId = 'warrior',
+): number {
   let total = 0;
-  for (const step of path) total += tileMoveCost(at(state.map, step.col, step.row))!;
+  for (const step of path) {
+    total += tileMoveCost(at(state.map, step.col, step.row), unitDef(type))!;
+  }
   return total;
 }
 
@@ -276,12 +290,60 @@ describe('reachableTiles', () => {
     const state = flatState();
     at(state.map, 5, 4).feature = 'forest';
     at(state.map, 5, 4).hills = true;
-    const scout = unit(state, 4, 4, 'scout'); // 3 MP
-    const reach = reachableTiles(state, scout);
+    // A chariot archer rather than a scout: three points like the scout had, and
+    // it still pays the ground what the ground asks. The scout's own version of
+    // this agreement is the test below.
+    const rider = unit(state, 4, 4, 'chariotArcher'); // 3 MP
+    const reach = reachableTiles(state, rider);
     const forest = reach.find((r) => r.tile.col === 5 && r.tile.row === 4)!;
     expect(forest.cost).toBe(3);
-    const path = findPath(state, scout, forest.tile)!;
-    expect(cost(state, path)).toBe(forest.cost);
+    const path = findPath(state, rider, forest.tile)!;
+    expect(cost(state, path, 'chariotArcher')).toBe(forest.cost);
+  });
+
+  /**
+   * The same agreement for a unit that ignores terrain, and the *difference* the
+   * flag makes to what a turn reaches.
+   *
+   * Two units of three movement points each, dropped on the same hex of the same
+   * ridge, so the only variable is the row in `data/units.json`. The wooded hill
+   * costs the rider its whole turn and lets the scout keep walking — which is the
+   * ability stated as a board fact rather than as a number out of a function.
+   */
+  it('reaches further with a unit that ignores terrain, and agrees with the path', () => {
+    const state = flatState();
+    // Three full columns of wooded ridge rather than three tiles of it, so
+    // there is no cheap way round: the difference measured is the ability and
+    // not a detour the sweep happened to find.
+    for (const col of [5, 6, 7]) {
+      for (let row = 0; row < state.map.height; row++) {
+        at(state.map, col, row).feature = 'forest';
+        at(state.map, col, row).hills = true; // 3 apiece to anybody else
+      }
+    }
+    const rider = unit(state, 4, 4, 'chariotArcher'); // 3 MP, pays the ground
+    const scout = unit(state, 4, 5, 'scout'); // 3 MP, does not
+
+    const ridden = new Map(
+      reachableTiles(state, rider).map((r) => [`${r.tile.col},${r.tile.row}`, r.cost]),
+    );
+    const scouted = new Map(
+      reachableTiles(state, scout).map((r) => [`${r.tile.col},${r.tile.row}`, r.cost]),
+    );
+
+    // One wooded hill is the rider's whole turn; the scout crosses all three.
+    expect(ridden.get('5,4')).toBe(3);
+    expect(ridden.has('6,4')).toBe(false);
+    expect(scouted.get('5,4')).toBe(1);
+    expect(scouted.get('6,4')).toBe(2);
+    expect(scouted.get('7,4')).toBe(3);
+
+    // And the route the pathfinder returns is priced the same way the sweep
+    // priced it — the one-evaluator guarantee, asked of the exempt unit.
+    const goal = at(state.map, 7, 4);
+    const path = findPath(state, scout, goal)!;
+    expect(path).toHaveLength(3);
+    expect(cost(state, path, 'scout')).toBe(scouted.get('7,4'));
   });
 
   it('lets a unit with any movement left enter a tile it cannot afford', () => {

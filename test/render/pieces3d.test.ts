@@ -634,6 +634,31 @@ describe('the worker charge badge', () => {
     const b = state([{ type: 'worker', chargesLeft: 3 }]);
     expect(signUnits(a)).toBe(signUnits(b));
   });
+
+  /**
+   * The other side of the fingerprint trap, and the answer to the question the
+   * scout's movement buff raises: does a change to what a unit can *do* need a
+   * rebuild?
+   *
+   * No, and it must not get one. The trap in `CLAUDE.md` is about properties
+   * that are *visible* — position, health, owner — and a movement allowance is
+   * not one of them: a scout with three points and a scout with none are the
+   * same piece standing on the same hex, drawn identically. Every unit on the
+   * board spends its allowance every turn, so a fingerprint that moved with
+   * `movesLeft` would rebuild the whole units layer on every step of every
+   * march — the one thing this renderer refuses to do — and it would do it to
+   * redraw exactly what was already there.
+   *
+   * Pinned rather than left implicit because the natural mistake, on being told
+   * "the scout's moves changed", is to add the field to the hash.
+   */
+  it('leaves the fingerprint alone when only a movement allowance changed', () => {
+    const spent = state([{ type: 'scout' }]);
+    const fresh = state([{ type: 'scout' }]);
+    spent.units[0]!.movesLeft = 0;
+    expect(fresh.units[0]!.movesLeft).not.toBe(spent.units[0]!.movesLeft);
+    expect(signUnits(spent)).toBe(signUnits(fresh));
+  });
 });
 
 // --- the x-ray silhouette ---------------------------------------------------

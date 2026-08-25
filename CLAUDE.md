@@ -137,7 +137,10 @@ would change every seeded outcome. No further rename passes.
   is the one layer with **two** fog rules and they are not interchangeable: a ruin or a
   village is *ground* and survives on remembered hexes (the improvement rule), while a camp
   is an *occupation* and is drawn only where the seat can see right now (the unit rule) —
-  a remembered camp would be a banner a player sends a warrior at. A layer rebuilt *outside*
+  a remembered camp would be a banner a player sends a warrior at. `sites3d` also draws
+  standing markers off the printed icon atlas, so it (and any new seat-filtered layer that
+  reads the atlas) must be rebuilt in `loadIcons` too, or sites placed before the atlas
+  finishes rasterising stand unmarked. A layer rebuilt *outside*
   `FogView` must also re-apply the wash itself, or it comes up lit on remembered ground; see
   `ImprovementLayer.paintFog` for the pattern (`tile:` on every instance, then `setWash` from
   the collector's own tile→handle map). A per-seat fact about *the board's own* instances is

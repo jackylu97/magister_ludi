@@ -179,7 +179,7 @@ import {
 import { type ResearchReport, researchSince, researchSnapshot } from '../sim/tech';
 import { techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
-import { unitDef } from '../sim/unitData';
+import { isExplorer, unitDef } from '../sim/unitData';
 import { unitsOnTile } from '../sim/units';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
@@ -1023,32 +1023,44 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * What the board is showing: which lens, and whether the yield glyphs and the
    * resource roundels are up.
    *
-   * Two automatic rules sit on top of the player's own choices, both because the
-   * question they answer is the question the player has just asked by doing
-   * something else. They are now independent of each other, which is the point
-   * of splitting the glyphs off the lens list:
+   * Three automatic rules sit on top of the player's own choices, all because
+   * the question they answer is the question the player has just asked by doing
+   * something else. They are independent of each other, which is the point of
+   * splitting the glyphs off the lens list:
    *
    *   · a selected settler ⇒ the settler lens. Picking one up *is* the question
    *     "where should this go".
+   *   · a selected explorer ⇒ the explorer lens. Picking one up is the same
+   *     gesture one question over: "where is there still something to find".
+   *     Asked of the unit table (`isExplorer`) exactly as the settler rule is
+   *     asked of `foundsCity` — never of the string `"scout"` — so a second
+   *     ranging unit inherits the lens with its data row.
    *   · an open city panel ⇒ the glyphs, over that city's work radius. The panel
    *     is a screen full of numbers; this is where they come from.
+   *
+   * The two piece rules are written in precedence order and the order has never
+   * had to matter: no unit both founds cities and ignores terrain. Settler wins
+   * if one ever does, because spending a piece is the more consequential
+   * decision of the two.
    *
    * The city rule scopes the glyphs *only while the player has them off*. With the
    * switch already on, the whole map is marked and the radius is part of it, so
    * narrowing to the radius would be the panel taking glyphs away — which is the
    * opposite of what opening it asked for.
    *
-   * Neither rule touches `manualLens` or `yieldsOn`, so dropping the settler and
+   * No rule touches `manualLens` or `yieldsOn`, so dropping the piece and
    * closing the panel restore exactly what the player had chosen. `resourcesOn`
    * has no rule at all: it is what the player set it to, whatever else is up.
    */
   function effectiveLens(): LensView {
     const playerId = localPlayerId;
     const unit = selectedUnit();
-    const settler = unit !== null && unitDef(unit.type).foundsCity;
+    const def = unit === null ? null : unitDef(unit.type);
+    const settler = def !== null && def.foundsCity;
+    const explorer = def !== null && isExplorer(def);
     const city = openCity();
     return {
-      mode: settler ? 'settler' : manualLens,
+      mode: settler ? 'settler' : explorer ? 'explorer' : manualLens,
       cells: null,
       resources: resourcesOn,
       resourceCells: null,

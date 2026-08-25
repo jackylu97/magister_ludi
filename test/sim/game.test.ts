@@ -252,6 +252,67 @@ describe('replay', () => {
     expect(snapshotState(rebuilt)).toBe(snapshotState(game.state));
   });
 
+  /**
+   * A long march by a unit whose *row* changes what a step costs.
+   *
+   * `ignoresTerrainCost` is the first thing in the roster to make two units of
+   * the same movement allowance walk different distances over the same ground,
+   * and every one of those steps is resolved by the end-of-turn pipeline rather
+   * than by the command that started it. So it is exactly the shape of rule that
+   * a replay can get wrong quietly: the log records "go there", and where the
+   * piece actually stops each turn is re-derived. If the evaluator ever read
+   * anything but the unit table — the live state, a cached allowance, the order
+   * the units happen to sit in — this is the test that would come apart, and it
+   * would come apart as a scout standing on a different hex rather than as an
+   * error.
+   */
+  it('reproduces a march by a unit that ignores terrain cost', () => {
+    const game = createGame(config());
+    const { map } = game.state;
+    const home = game.state.units.find((u) => u.ownerId === 0)!;
+
+    // Beside the capital rather than on it: `reachableTiles` answers "passable,
+    // and nothing of that category is standing there", which is exactly what a
+    // spawn needs and is one fewer rule for this test to restate.
+    const spot = reachableTiles(game.state, home)[0]!.tile;
+    expect(
+      dispatch(game, {
+        type: 'spawnUnit',
+        playerId: 0,
+        ownerId: 0,
+        unitType: 'scout',
+        at: { col: spot.col, row: spot.row },
+      } as unknown as Command).ok,
+    ).toBe(true);
+    const scout = game.state.units.find((u) => u.type === 'scout' && u.ownerId === 0)!;
+
+    // Somewhere far enough that the order outlives several turn changes, so the
+    // walk is resumed by `resetMovement` rather than finished by the command.
+    const from = tileHex(map.tiles[tileIndex(map, scout.col, scout.row)]!);
+    const target = map.tiles.find((tile) => {
+      const distance = wrappedDistance(map, from, tileHex(tile));
+      if (distance < 6 || distance > 10) return false;
+      return findPath(game.state, scout, tile) !== null;
+    });
+    if (!target) throw new Error('This seed has no room to range; pick another');
+
+    expect(
+      dispatch(game, {
+        type: 'moveUnit',
+        playerId: 0,
+        unitId: scout.id,
+        target: { col: target.col, row: target.row },
+      }).ok,
+    ).toBe(true);
+    endTurns(game, 6);
+    expect(scout.col).toBe(target.col);
+    expect(scout.row).toBe(target.row);
+
+    const rebuilt = replay(game.config, game.log);
+    expect(rebuilt).toEqual(game.state);
+    expect(snapshotState(rebuilt)).toBe(snapshotState(game.state));
+  });
+
   it('throws rather than silently skipping a command it cannot apply', () => {
     const bad = [endTurn(0), { type: 'timeTravel' }] as unknown as Command[];
     expect(() => replay(config(), bad)).toThrow(/Replay failed at command 1/);

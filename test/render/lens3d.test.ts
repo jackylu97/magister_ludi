@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { NO_LENS, sameLens } from '../../src/render3d/lens3d';
+import { InstancedMesh, MeshBasicMaterial, Quaternion } from 'three';
+
+import type { TileIcons } from '../../src/render3d/badges3d';
+import { BoardGeometry } from '../../src/render3d/board3d';
+import { LensLayer, NO_LENS, sameLens } from '../../src/render3d/lens3d';
+import { VIEW3D } from '../../src/render3d/lookData';
+import { MaterialLibrary } from '../../src/render3d/toon';
+import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
+import { type GameState, newGame } from '../../src/sim/state';
+import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
+import { computeFreshwater } from '../../src/sim/water';
 import type { LensView } from '../../src/ui/mapView';
 
 function lens(overrides: Partial<LensView> = {}): LensView {
@@ -88,5 +98,190 @@ describe('sameLens', () => {
     const b = lens({ mode: 'settler', yields: true, yieldCells: null });
     expect(sameLens(a, b)).toBe(sameLens(b, a));
     expect(sameLens(a, a)).toBe(true);
+  });
+});
+
+
+// --- the explorer lens ------------------------------------------------------
+
+function flatState(width = 10, height = 8): GameState {
+  const state = newGame({
+    seed: 4,
+    sizeName: 'duel',
+    players: [{ name: 'A', color: '#a00', isHuman: true }],
+  });
+  state.map = createMap({ width, height, terrain: 'grassland' });
+  resetVisibility(state);
+  state.units = [];
+  state.cities = [];
+  state.camps = [];
+  state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
+  for (const tile of state.map.tiles) delete tile.discovery;
+  computeFreshwater(state.map);
+  return state;
+}
+
+function at(state: GameState, col: number, row: number): Tile {
+  const tile = getTileAt(state.map, col, row);
+  if (!tile) throw new Error(`No tile at (${col}, ${row})`);
+  return tile;
+}
+
+/** A fog grid at one level everywhere, with named exceptions. */
+function grid(state: GameState, base: number, except: Record<string, number> = {}): number[] {
+  const out = new Array<number>(state.map.tiles.length).fill(base);
+  for (const [key, level] of Object.entries(except)) {
+    const [col, row] = key.split(',').map(Number);
+    out[tileIndex(state.map, col!, row!)] = level;
+  }
+  return out;
+}
+
+const fakeIcons = {
+  material: new MeshBasicMaterial(),
+  standingMaterial: new MeshBasicMaterial(),
+} as unknown as TileIcons;
+
+/**
+ * Instances per marked hex: a wash and a ring, each replicated at the three wrap
+ * offsets every collector on this board uses. Written as its two factors so the
+ * arithmetic in the assertions stays readable as "this many hexes are marked".
+ */
+const PER_MARK = 2 * 3;
+
+function countInstances(group: { children: unknown[] }): number {
+  let total = 0;
+  for (const child of group.children) {
+    if (child instanceof InstancedMesh) total += child.count;
+  }
+  return total;
+}
+
+/**
+ * The explorer lens draws the board's *sites*, so its whole risk surface is
+ * agreeing with the layer that draws the props: the two must never disagree
+ * about whether a hex has something on it, and they answer to two different fog
+ * rules to stay that way (see `sites3d.ts`). A ring around a hex the board is
+ * drawing nothing on is a promise the game breaks.
+ */
+describe('the explorer lens', () => {
+  const geometry = new BoardGeometry();
+  const mats = (): MaterialLibrary =>
+    new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
+
+  function build(state: GameState, levels: number[] | null): LensLayer {
+    const layer = new LensLayer();
+    layer.build(
+      state,
+      lens({ mode: 'explorer' }),
+      geometry,
+      mats(),
+      fakeIcons,
+      new Quaternion(),
+      levels,
+    );
+    return layer;
+  }
+
+  it('marks every unclaimed site and nothing else', () => {
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+    at(state, 5, 3).discovery = 'village';
+
+    const layer = build(state, grid(state, VISIBLE));
+    expect(countInstances(layer.group)).toBe(2 * PER_MARK);
+    layer.dispose();
+  });
+
+  it('draws nothing on a board with nothing left to find', () => {
+    const state = flatState();
+    const layer = build(state, grid(state, VISIBLE));
+    expect(countInstances(layer.group)).toBe(0);
+    layer.dispose();
+  });
+
+  /**
+   * "Unclaimed" needs no test of its own in the lens, because the claim *deletes*
+   * the field it reads (`claimDiscoveryAt`). This is that identity pinned: the
+   * lens goes quiet on the same edit the prop disappears on.
+   */
+  it('goes dark on a site the moment it is claimed', () => {
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+    const lit = build(state, grid(state, VISIBLE));
+    expect(countInstances(lit.group)).toBe(PER_MARK);
+    lit.dispose();
+
+    delete at(state, 2, 2).discovery;
+    const dark = build(state, grid(state, VISIBLE));
+    expect(countInstances(dark.group)).toBe(0);
+    dark.dispose();
+  });
+
+  it('keeps a site marked on remembered ground and unmarked on unexplored ground', () => {
+    // The ground rule: a ruin is a coastline, so the chart may go on saying it
+    // is there. Terra Incognita gets nothing, which needs no argument.
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+
+    const remembered = build(state, grid(state, EXPLORED));
+    expect(countInstances(remembered.group)).toBe(PER_MARK);
+    remembered.dispose();
+
+    const unknown = build(state, grid(state, HIDDEN));
+    expect(countInstances(unknown.group)).toBe(0);
+    unknown.dispose();
+  });
+
+  it('marks a camp only where the seat is looking right now', () => {
+    // The occupation rule, and the reason the lens cannot use one fog rule for
+    // both: a remembered camp ringed in red is a warning about an army that may
+    // have moved on ten turns ago — and the board is not drawing the stockade
+    // there either.
+    const state = flatState();
+    state.camps.push({ col: 7, row: 5, foundedTurn: 1 });
+
+    const watched = build(state, grid(state, VISIBLE));
+    expect(countInstances(watched.group)).toBe(PER_MARK);
+    watched.dispose();
+
+    const remembered = build(state, grid(state, EXPLORED));
+    expect(countInstances(remembered.group)).toBe(0);
+    remembered.dispose();
+  });
+
+  it('marks a site and a camp in two different inks', () => {
+    // Go here, and do not walk into that. Colour is the bucket key, so two inks
+    // is two buckets per shape — the observable form of "these are not two
+    // grades of one thing".
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+    state.camps.push({ col: 7, row: 5, foundedTurn: 1 });
+
+    const layer = build(state, grid(state, VISIBLE));
+    expect(countInstances(layer.group)).toBe(2 * PER_MARK);
+    const meshes = layer.group.children.filter(
+      (child): child is InstancedMesh => child instanceof InstancedMesh,
+    );
+    // Four buckets: wash and ring, in each of the two inks.
+    expect(meshes).toHaveLength(4);
+    expect(VIEW3D.lens.campColor).not.toBe(VIEW3D.lens.discoveryColor);
+    layer.dispose();
+  });
+
+  it('draws everything when there is no fog at all', () => {
+    // The look-dev reading, matching the site layer: no seat, nothing to hide.
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+    state.camps.push({ col: 7, row: 5, foundedTurn: 1 });
+    const layer = build(state, null);
+    expect(countInstances(layer.group)).toBe(2 * PER_MARK);
+    layer.dispose();
+  });
+
+  it('is a lens of its own as far as the rebuild guard is concerned', () => {
+    expect(sameLens(lens({ mode: 'explorer' }), lens({ mode: 'none' }))).toBe(false);
+    expect(sameLens(lens({ mode: 'explorer' }), lens({ mode: 'settler' }))).toBe(false);
+    expect(sameLens(lens({ mode: 'explorer' }), lens({ mode: 'explorer' }))).toBe(true);
   });
 });

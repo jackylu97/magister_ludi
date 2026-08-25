@@ -159,9 +159,51 @@ describe('moveUnit', () => {
     const state = flatState();
     at(state.map, 2, 3).feature = 'forest';
     at(state.map, 2, 3).hills = true; // costs 3
+    // A horseman rather than a scout: this is the *terrain* rule, and the scout
+    // is now the one unit in the roster exempt from it (see the test below).
+    // Four points in, three spent, one left — a figure the floor cannot fake.
+    const horseman = createUnit(state, 0, 'horseman', 1, 3);
+    expect(applyCommand(state, move(horseman.id, 2, 3))).toEqual({ ok: true });
+    expect(horseman.movesLeft).toBe(1);
+  });
+
+  /**
+   * The other half of the same rule: `ignoresTerrainCost` on a unit's row makes
+   * every hex it can enter cost the floor, and the walker spends what the
+   * evaluator quotes.
+   *
+   * Asserted through `applyCommand` rather than against `tileMoveCost` directly,
+   * because the claim that matters is not "the function returns 1" — that is
+   * pinned in `pathfind.test.ts` — but that the *march* is charged with the
+   * mover's own row. A scout that crossed a wooded hill for 3 while the reachable
+   * highlight promised 1 is exactly the drift the one-evaluator rule exists to
+   * prevent.
+   */
+  it('charges a unit that ignores terrain the floor for every hex', () => {
+    const state = flatState();
+    at(state.map, 2, 3).feature = 'forest';
+    at(state.map, 2, 3).hills = true; // costs 3 to anybody else
+    at(state.map, 3, 3).feature = 'jungle'; // and 2
     const scout = createUnit(state, 0, 'scout', 1, 3);
-    expect(applyCommand(state, move(scout.id, 2, 3))).toEqual({ ok: true });
-    expect(scout.movesLeft).toBe(0);
+    expect(unitDef('scout').ignoresTerrainCost).toBe(true);
+    expect(applyCommand(state, move(scout.id, 3, 3))).toEqual({ ok: true });
+    // Two hexes that would have cost five, walked for two of its three points —
+    // and it is standing on the far one rather than stranded on the wood.
+    expect(scout.col).toBe(3);
+    expect(scout.movesLeft).toBe(1);
+    expect(scout.path).toBeUndefined();
+  });
+
+  /** The exemption is movement only: impassable ground still refuses it. */
+  it('does not let a unit that ignores terrain walk onto a mountain', () => {
+    const state = flatState();
+    at(state.map, 2, 3).terrain = 'mountain';
+    const scout = createUnit(state, 0, 'scout', 1, 3);
+    expect(applyCommand(state, move(scout.id, 2, 3))).toEqual({
+      ok: false,
+      error: `Unit ${scout.id} cannot stop on (2, 3)`,
+    });
+    expect(scout.col).toBe(1);
   });
 
   it('enters a tile it cannot afford as long as it has any movement left', () => {

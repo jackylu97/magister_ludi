@@ -32,6 +32,34 @@
  * patrolling is the country that turns, and the board says so by simply not
  * drawing what nobody is watching.
  *
+ * The standing markers, and why they are here rather than in the lens
+ * ------------------------------------------------------------------
+ * A ruin and a village also wear a **marker**: the resource roundel's idiom
+ * exactly (`addResourceMarkers` in `lens3d.ts`) — a paper mark floated over the
+ * hex on an ink pin — because the props alone had the same problem the diorama's
+ * wheat and cattle had before the roundels landed. A broken column at game zoom
+ * is three grey shapes among the boulders it was carved to look like, and a
+ * player who cannot *see* a ruin cannot decide to go to it.
+ *
+ * The marker is drawn by this layer and not by the lens, unlike every other
+ * standing mark on the board, and the reason is the claim: a site disappears
+ * mid-game, and prop and pin have to disappear *together*. Both are built from
+ * `tile.discovery` in one pass fingerprinted by `signSites`, so the turn a scout
+ * walks onto a ruin and `claimDiscoveryAt` deletes the field, the same rebuild
+ * removes both. Split across two layers with two rebuild triggers, the failure
+ * mode would be a pin standing over ground with nothing under it.
+ *
+ * It is also not a *switch*. The resource roundels answer a question the player
+ * may put down (`LensView.resources`); a site is an event with a claimant, and
+ * an interface that let you turn off the news is one that loses you the race.
+ *
+ * The paper says which kind and says it is not a commodity: both marks are
+ * printed on the hex tablet in its own rim ink (`icons.sitePaper`), which is a
+ * silhouette no resource wears — see `src/art/siteMarks.ts`. The anchor is the
+ * roundel's own upper-left nudge, unchanged, and that costs nothing because a
+ * discovery site never carries a resource (`discoveryPlacement.ts` excludes
+ * them), so the two pins can never be planted in one hex.
+ *
  * Painting its own fog
  * --------------------
  * Same mechanism as the improvements layer, and worth writing down here too
@@ -44,14 +72,23 @@
  * on tiles that are `VISIBLE`, which is the level that takes no wash at all — and
  * the pass is written over the whole map anyway rather than over the ruins alone,
  * because a rule that skipped a bucket is a rule somebody has to remember.
+ *
+ * The markers ride through that pass without being asked to: a pin is ink and
+ * fades with its ruin, while the paper is a *printed* bucket and `setWash`
+ * declines those outright (`instances.ts`), so a remembered site keeps a legible
+ * mark on a faded stake. That is the right reading rather than a lucky one — the
+ * chart's memory of what stood there is exactly as sharp as when it was drawn; it
+ * is the light on the hex that has gone.
  */
 
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
-import { tileIndex } from '../sim/map';
+import type { DiscoveryKind } from '../sim/discoveryData';
+import { type Tile, tileIndex } from '../sim/map';
 import type { GameState } from '../sim/state';
 import { EXPLORED, HIDDEN, VISIBLE } from '../sim/visibility';
 
+import type { TileIcons } from './badges3d';
 import type { BoardGeometry } from './board3d';
 import { type FogLevels, levelAt } from './fog3d';
 import { hashDisc, hashUnit } from './hash';
@@ -63,6 +100,13 @@ import type { MaterialLibrary } from './toon';
 const BOARD = VIEW3D.board;
 const FOG = VIEW3D.fog;
 const SITES = VIEW3D.sites;
+/**
+ * The standing markers' proportions are the *resource* markers' proportions, read
+ * straight out of the lens block rather than copied into a `sites` one. See the
+ * module docblock: one board, one way of planting a mark on a hex, and a second
+ * set of numbers is how the two drift a hex apart.
+ */
+const LENS = VIEW3D.lens;
 
 /**
  * The scatter streams this layer draws from, kept clear of the board's own
@@ -78,6 +122,7 @@ export class SiteLayer {
   readonly group = new Group();
   private drawCallCount = 0;
   private instanceCount = 0;
+  private markerCount = 0;
 
   /**
    * Rebuilds every site prop from scratch, then paints the result for the seat's
@@ -91,6 +136,8 @@ export class SiteLayer {
     materials: MaterialLibrary,
     shadows: boolean,
     levels: FogLevels = null,
+    icons: TileIcons | null = null,
+    faceCamera: Quaternion = new Quaternion(),
   ): void {
     disposeInstancedGroup(this.group);
 
@@ -106,6 +153,7 @@ export class SiteLayer {
     });
     const axis = new Vector3(0, 1, 0);
     let instances = 0;
+    let markers = 0;
 
     const place = (col: number, row: number, kind: SiteKind): void => {
       const tile = map.tiles[tileIndex(map, col, row)];
@@ -133,12 +181,64 @@ export class SiteLayer {
       instances += 1;
     };
 
+    /**
+     * The standing marker over one discovery site: an ink pin and, on top of it,
+     * the kind's paper mark turned to the fixed camera.
+     *
+     * `addResourceMarkers` in `lens3d.ts` line for line — the same lift, the same
+     * upper-left anchor, the same pin — and deliberately so: two standing marks
+     * that sat at different heights over neighbouring hexes would read as two
+     * different *systems* rather than as two things planted on one board. The
+     * pin is added first so the paper is drawn over its top in the one bucket
+     * where draw order still decides anything.
+     */
+    const plant = (tile: Tile, kind: DiscoveryKind, atlas: TileIcons): void => {
+      const centre = cellCenter(tile.col, tile.row);
+      const x = centre.x - LENS.resourceMarkerOffsetX;
+      const z = centre.z - LENS.resourceMarkerOffset;
+      const ground = tileTopY(tile);
+      const cell = tileIndex(map, tile.col, tile.row);
+      collector.add(
+        geometry.resourceStem,
+        [LENS.resourceStemColor],
+        new Matrix4().compose(
+          new Vector3(x, ground + LENS.glyphLift, z),
+          new Quaternion(),
+          new Vector3(
+            LENS.resourceStemRadius,
+            LENS.resourceMarkerLift,
+            LENS.resourceStemRadius,
+          ),
+        ),
+        // Named for the fog pass below, exactly as the props are: the stake
+        // fades with the ground it is driven into.
+        { outlined: false, tile: cell },
+      );
+      collector.add(
+        geometry.siteMarkers[kind],
+        // No ink of its own — the quad *is* the texture. See the same note on
+        // the resource markers and on the unit badges.
+        [],
+        new Matrix4().compose(
+          new Vector3(x, ground + LENS.resourceMarkerLift, z),
+          faceCamera,
+          new Vector3(LENS.resourceIconSize, LENS.resourceIconSize, 1),
+        ),
+        { material: atlas.standingMaterial, tile: cell },
+      );
+      markers += 1;
+    };
+
     // The ground's own sites: drawn on anything the seat has ever charted.
+    // `icons` is null while the atlas is still rasterising — and forever in a
+    // browser with no 2D context — and there the props stand markerless, exactly
+    // as the resource lens draws nothing under the same condition.
     for (const tile of map.tiles) {
       const kind = tile.discovery;
       if (kind === undefined) continue;
       if (levelAt(levels, map, tile.col, tile.row) === HIDDEN) continue;
       place(tile.col, tile.row, kind);
+      if (icons) plant(tile, kind, icons);
     }
 
     // The camps: drawn only where the seat can see *now*. `levels` is null on a
@@ -151,6 +251,7 @@ export class SiteLayer {
 
     this.drawCallCount = collector.flush(this.group, materials, shadows);
     this.instanceCount = instances;
+    this.markerCount = markers;
     this.paintFog(collector, state, levels);
   }
 
@@ -182,9 +283,23 @@ export class SiteLayer {
     return this.drawCallCount;
   }
 
-  /** Sites actually drawn, before wrap copies. For tests and stats. */
+  /**
+   * Sites actually drawn, before wrap copies. For tests and stats.
+   *
+   * Props only. A marker is not a site — it is a label on one — so counting the
+   * two together would make "how many sites are on this board" a number that
+   * changed when the icon atlas finished loading. See `markers`.
+   */
   get instances(): number {
     return this.instanceCount;
+  }
+
+  /**
+   * Standing markers drawn, before wrap copies. Zero until the icon atlas is
+   * ready, and zero forever for the camps, which get no pin.
+   */
+  get markers(): number {
+    return this.markerCount;
   }
 
   dispose(): void {

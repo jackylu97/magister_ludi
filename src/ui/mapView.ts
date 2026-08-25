@@ -63,6 +63,13 @@ export interface ScreenPoint {
  * renderer either implements the contract or does not. `src/render3d/lens3d.ts`
  * owns what each mode *looks* like.
  *
+ * Two modes are questions a *piece* asks, and both are raised automatically when
+ * one is picked up (see `effectiveLens` in `controls.ts`): `settler` is "where
+ * should this go", `explorer` is "where is there something left to find". They
+ * are exclusive of each other for the reason every mode is — a tile carries one
+ * wash — and no unit is ever both, so the precedence between them has never had
+ * to be exercised.
+ *
  * Yields and resources are deliberately *not* members. A lens answers "which of
  * these questions am I asking" and the modes are exclusive because a tile can
  * only carry one wash; the yield glyphs and the resource roundels sit on the
@@ -71,7 +78,7 @@ export interface ScreenPoint {
  * same time — which is one question, asked twice. They are independent switches
  * on `LensView` instead.
  */
-export type LensMode = 'none' | 'settler';
+export type LensMode = 'none' | 'settler' | 'explorer';
 
 /**
  * What the switches start at, before the player has touched anything.

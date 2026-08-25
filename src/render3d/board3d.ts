@@ -42,6 +42,7 @@ import {
   Vector3,
 } from 'three';
 
+import type { DiscoveryKind } from '../sim/discoveryData';
 import { IMPROVEMENT_IDS, type ImprovementId } from '../sim/improvementData';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
@@ -50,6 +51,7 @@ import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
 import {
   NUMERAL_CELLS,
+  SITE_MARK_CELLS,
   YIELD_KEYS,
   type YieldKey,
   badgeCellRect,
@@ -411,6 +413,21 @@ function buildResourceMarkers(): Record<ResourceId, BufferGeometry> {
 }
 
 /**
+ * The two site cells, standing up: the same builder, the same atlas, one more
+ * set of rectangles. See `buildResourceMarkers` — nothing here is different
+ * except which cells are asked for, which is the whole benefit of the sets
+ * sharing one texture.
+ */
+function buildSiteMarkers(): Record<DiscoveryKind, BufferGeometry> {
+  const out: Partial<Record<DiscoveryKind, BufferGeometry>> = {};
+  for (const id of SITE_MARK_CELLS) {
+    const rect = tileIconRect({ set: 'site', id });
+    out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
+  }
+  return out as Record<DiscoveryKind, BufferGeometry>;
+}
+
+/**
  * The ten numeral cells again, *standing up* — the same trick
  * `buildResourceMarkers` plays, one set over. This is what the worker's charge
  * badge (`pieces.ts`) is built from: a small camera-facing digit at a badge's
@@ -524,6 +541,15 @@ export class BoardGeometry {
   readonly resourceMarkers: Record<ResourceId, BufferGeometry>;
   readonly resourceStem: BufferGeometry;
   /**
+   * The same standing quad again, for the two **discovery site** marks — a ruin
+   * and a village — so a site says what it is at a glance the way a resource
+   * does. Planted on `resourceStem`, the one pin on the board, and drawn by
+   * `sites3d.ts` rather than by the lens: a site marker is not a switch the
+   * player turns on, it is part of the site, and prop and pin have to leave the
+   * board together the turn somebody claims it.
+   */
+  readonly siteMarkers: Record<DiscoveryKind, BufferGeometry>;
+  /**
    * The standing form of the ten numeral cells, for the worker's charge badge
    * — see `buildNumeralMarkers`. Indexed by digit, exactly as `numerals` is.
    */
@@ -601,6 +627,7 @@ export class BoardGeometry {
     this.yieldGlyphs = icons.yields;
     this.numerals = icons.numerals;
     this.resourceMarkers = buildResourceMarkers();
+    this.siteMarkers = buildSiteMarkers();
     this.resourceStem = markerPin(VIEW3D.lens.resourceStemTaper);
     this.numeralMarkers = buildNumeralMarkers();
     this.river = riverSegment();
@@ -664,6 +691,7 @@ export class BoardGeometry {
     for (const prop of Object.values(this.improvementProps)) prop.dispose();
     for (const prop of Object.values(this.siteProps)) prop.dispose();
     for (const quad of Object.values(this.resourceMarkers)) quad.dispose();
+    for (const quad of Object.values(this.siteMarkers)) quad.dispose();
     this.resourceStem.dispose();
     for (const quad of this.numeralMarkers) quad.dispose();
     for (const quad of Object.values(this.yieldGlyphs)) quad.dispose();

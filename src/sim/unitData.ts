@@ -170,6 +170,29 @@ export interface UnitDef {
    * absent on everything else.
    */
   charges?: number;
+  /**
+   * True when every passable hex costs this unit exactly `minStepCost` to
+   * enter, whatever grows on it or however steep it is — or the field is
+   * **absent** for everything that pays the terrain what the terrain asks.
+   *
+   * The scout's identity, and the second half of it: `sight` already says it
+   * sees further than it moves, and this says the ground does not slow it. A
+   * forest is 2 and a wooded hill 3 to an army dragging a baggage train; to one
+   * rider following a deer track they are a day's walk like any other, which is
+   * exactly the Civ "ignores terrain cost" promise.
+   *
+   * It buys **movement and nothing else**. Passability is untouched — the flag
+   * is read *after* `moveCost` has already returned `null`, so a mountain and an
+   * ocean refuse a scout exactly as they refuse a warrior — and so is defence:
+   * a scout caught in a wood still gets the wood's cover. See `tileMoveCost` in
+   * `pathfind.ts`, which is the one place this is interpreted, and therefore the
+   * one place pathing, reachability and the walk itself can agree about it.
+   *
+   * Absent rather than `false` for the reason `charges` and `requiresResource`
+   * are: presence of the field *is* the marker, so nothing in `src/sim/` has to
+   * compare a unit type against the string `"scout"`.
+   */
+  ignoresTerrainCost?: boolean;
   /** True when the unit can be spent to found a city. See the docblock. */
   foundsCity: boolean;
   /**
@@ -236,11 +259,12 @@ export function unitDef(id: UnitTypeId): UnitDef {
  * `"archer"`, for the same reason nothing compares against `"settler"` to decide
  * who may found a city.
  *
- * These three read the unit *table* and nothing else — no state, no board, no
+ * These four read the unit *table* and nothing else — no state, no board, no
  * fight — so they live here, at the bottom, where every layer can ask them.
- * `combat.ts` wrote them and re-exports them, because "can it attack" is a
- * question callers have always asked combat; `arrival.ts` needs the third one to
- * know what may be taken with a hex, and cannot import combat (which imports it).
+ * `combat.ts` wrote the first three and re-exports them, because "can it attack"
+ * is a question callers have always asked combat; `arrival.ts` needs the third
+ * one to know what may be taken with a hex, and cannot import combat (which
+ * imports it).
  */
 export function isRanged(def: UnitDef): boolean {
   return def.rangedStrength !== undefined && def.range !== undefined;
@@ -254,6 +278,31 @@ export function isCombatant(def: UnitDef): boolean {
 /** True when the unit is a civilian in combat terms — capturable, never a threat. */
 export function isCivilian(def: UnitDef): boolean {
   return !isCombatant(def);
+}
+
+/**
+ * Is this the piece an empire sends out to *look*?
+ *
+ * Asked of `ignoresTerrainCost`, and the coupling is the claim rather than a
+ * shortcut: a unit that crosses a wooded hill for the price of open grass is a
+ * unit built to cover unknown ground, and there is no other thing that would be
+ * for. So "walks anywhere at one point a hex" and "is an explorer" are one fact
+ * about the data with two readers — the movement evaluator (`tileMoveCost`) and
+ * the interface, which raises the explorer lens the moment such a piece is
+ * picked up (`effectiveLens` in `src/ui/controls.ts`).
+ *
+ * A predicate rather than the raw field at the call site, unlike `foundsCity`
+ * next door, precisely *because* it is a reading and not a restatement: the day
+ * a designer wants a commando that ignores terrain without being a scout, this
+ * function is the one line that splits, and every lens follows it.
+ *
+ * Nothing in `src/sim/` calls it — the rule it stands for is the movement flag,
+ * which the evaluator reads directly. It lives here because it is a question
+ * about the unit *table*, and a copy of it in the UI would be a second opinion
+ * about what a scout is.
+ */
+export function isExplorer(def: UnitDef): boolean {
+  return def.ignoresTerrainCost === true;
 }
 
 /**

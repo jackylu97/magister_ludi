@@ -341,10 +341,11 @@ export class Renderer3D implements MapView {
    * existed.
    *
    * The units layer reads it too now, for the worker charge badge's numeral
-   * boss (`UnitLayer.build`'s `icons` parameter), so a units rebuild joins the
-   * lens and the chart the moment this atlas is ready — otherwise a worker
-   * placed before it arrived would carry no charge marker until some unrelated
-   * change next touched `signUnits`.
+   * boss (`UnitLayer.build`'s `icons` parameter), and so does the sites layer,
+   * for the standing markers over the ruins and the villages. So every layer
+   * that prints out of this atlas is rebuilt the moment it is ready —
+   * otherwise a worker or a ruin placed before it arrived would go unmarked
+   * until some unrelated change next touched its own fingerprint.
    */
   private loadIcons(): void {
     void TileIcons.load().then((icons) => {
@@ -356,6 +357,10 @@ export class Renderer3D implements MapView {
       this.icons = icons;
       this.rebuildLens();
       this.rebuildUnits();
+      // And the sites, whose standing markers are cells of this atlas too: a
+      // ruin placed before it arrived would stand unmarked until some unrelated
+      // change next moved `signSites`.
+      this.rebuildSites();
       // The blank chart's serpents are cells of this atlas, so the one layer
       // that could not be finished without it is finished now. The single
       // re-build of the chart layer in a session, and deliberately not a rebuild
@@ -764,6 +769,12 @@ export class Renderer3D implements MapView {
       this.materials,
       this.shadows,
       this.fogLevels(),
+      // The layer plants a standing marker over every ruin and village, in the
+      // resource roundels' idiom and off the same atlas — so it wants the same
+      // two things the lens does, and for the same reasons. See `sites3d.ts` for
+      // why the marker belongs to this layer rather than to the lens.
+      this.icons,
+      this.view.camera.quaternion.clone(),
     );
     this.sitesSignature = signSites(this.state);
   }
@@ -1621,6 +1632,12 @@ export class Renderer3D implements MapView {
     // both of its tenants. See `sites3d.ts`.
     if (this.state && (fogMoved || signSites(this.state) !== this.sitesSignature)) {
       this.rebuildSites();
+      // The explorer lens is a picture of exactly what that fingerprint counts —
+      // the unclaimed sites and the camps — so a ruin claimed or a camp burnt
+      // out since the last frame has to reach it too, or the board keeps ringing
+      // a hex there is no longer anything on. The settler lens's own rules, two
+      // blocks down, are the same idea against a different fingerprint.
+      if (this.lensView.mode === 'explorer') this.rebuildLens();
     }
     if (this.state && (fogMoved || signTerritory(this.state) !== this.territorySignature)) {
       this.rebuildTerritory();

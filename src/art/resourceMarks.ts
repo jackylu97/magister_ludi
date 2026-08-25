@@ -314,13 +314,20 @@ export function spiral(
 
 // --- the registry -----------------------------------------------------------
 
-/** A stroked path at the house weight — the default, and most of the table. */
-function ink(d: string): MarkPath {
+/**
+ * A stroked path at the house weight — the default, and most of the table.
+ *
+ * Exported with `solid` because they are the two verbs of the drawing language
+ * rather than two helpers of this table: `src/art/siteMarks.ts` draws the ruin
+ * and the village in the same hand, and a second pair of one-line wrappers over
+ * there would be the place the two hands quietly drift apart.
+ */
+export function ink(d: string): MarkPath {
   return { d };
 }
 
 /** A filled shape, outlined at the lighter weight. See `MARK_STROKE_FILLED`. */
-function solid(d: string): MarkPath {
+export function solid(d: string): MarkPath {
   return { d, fill: true, width: MARK_STROKE_FILLED };
 }
 

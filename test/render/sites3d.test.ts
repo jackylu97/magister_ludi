@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { InstancedMesh } from 'three';
+import { InstancedMesh, MeshBasicMaterial, Quaternion } from 'three';
 
+import type { TileIcons } from '../../src/render3d/badges3d';
 import { BoardGeometry, SITE_KINDS, SITE_PROPS } from '../../src/render3d/board3d';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { SiteLayer, signSites } from '../../src/render3d/sites3d';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { type GameState, newGame } from '../../src/sim/state';
+import { DISCOVERY_KINDS } from '../../src/sim/discoveryData';
 import { computeFreshwater } from '../../src/sim/water';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 
@@ -34,6 +36,21 @@ import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibi
 function materials(): MaterialLibrary {
   return new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
 }
+
+/**
+ * A stand-in for the icon atlas.
+ *
+ * `TileIcons.load` needs a 2D canvas and this suite has no jsdom, so what is
+ * passed in is the two materials the layer actually touches. That is enough for
+ * every claim made about the markers here — how many there are, which bucket
+ * they land in, and whether they come and go with their props — because none of
+ * those is a claim about the *picture*. What the marks look like is
+ * `resources3d.ts`'s subject.
+ */
+const fakeIcons = {
+  material: new MeshBasicMaterial(),
+  standingMaterial: new MeshBasicMaterial(),
+} as unknown as TileIcons;
 
 function flatState(width = 10, height = 8): GameState {
   const state = newGame({
@@ -199,6 +216,150 @@ describe('drawing sites', () => {
       return out;
     });
     expect(new Set(colours).size).toBeGreaterThan(1);
+    layer.dispose();
+  });
+});
+
+/**
+ * The standing markers, and the one rule that is specific to them: a marker is
+ * part of its site rather than a lens the player switches on, so it appears,
+ * fades and *disappears* with the prop it labels. See the module docblock in
+ * `sites3d.ts` for why they are drawn by this layer at all.
+ */
+describe('the standing site markers', () => {
+  it('plants one over every ruin and village, and none over a camp', () => {
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+    at(state, 5, 3).discovery = 'village';
+    state.camps.push({ col: 7, row: 5, foundedTurn: 1 });
+
+    const layer = new SiteLayer();
+    layer.build(
+      state,
+      new BoardGeometry(),
+      materials(),
+      false,
+      levels(state, VISIBLE),
+      fakeIcons,
+      new Quaternion(),
+    );
+    // Three props, two markers: a camp is an occupation and gets no label.
+    expect(layer.instances).toBe(3);
+    expect(layer.markers).toBe(2);
+    layer.dispose();
+  });
+
+  it('draws no marker at all until the icon atlas is ready', () => {
+    // The props still stand; only the labels wait. Matching the resource lens,
+    // which draws nothing under the same condition rather than a blank disc.
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+    const layer = new SiteLayer();
+    layer.build(state, new BoardGeometry(), materials(), false, levels(state, VISIBLE));
+    expect(layer.instances).toBe(1);
+    expect(layer.markers).toBe(0);
+    layer.dispose();
+  });
+
+  it('follows the ruin fog rule, not the camp one', () => {
+    // Remembered ground keeps its marker — a chart records a ruin the way it
+    // records a coastline — and unexplored ground has none.
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+    const layer = new SiteLayer();
+    const geometry = new BoardGeometry();
+
+    layer.build(state, geometry, materials(), false, levels(state, EXPLORED), fakeIcons);
+    expect(layer.markers).toBe(1);
+
+    layer.build(state, geometry, materials(), false, levels(state, HIDDEN), fakeIcons);
+    expect(layer.markers).toBe(0);
+    layer.dispose();
+  });
+
+  /**
+   * The claim, which is the whole reason the markers live in this layer.
+   *
+   * `claimDiscoveryAt` deletes `tile.discovery`, and prop and marker are both
+   * built from that one field in one pass, so there is no arrangement of
+   * rebuilds in which a pin outlives the ruin it was planted over.
+   */
+  it('takes the marker away with the prop when the site is claimed', () => {
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+    const layer = new SiteLayer();
+    const geometry = new BoardGeometry();
+
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons);
+    expect(layer.instances).toBe(1);
+    expect(layer.markers).toBe(1);
+
+    delete at(state, 2, 2).discovery;
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons);
+    expect(layer.instances).toBe(0);
+    expect(layer.markers).toBe(0);
+    layer.dispose();
+  });
+
+  it('prints each kind from its own atlas cell, on the shared printed material', () => {
+    // Two kinds must not share a quad: they would compile, draw, and label a
+    // village as a ruin. The geometries come from `tileIconRect`, so distinct
+    // cells are distinct buffers.
+    const geometry = new BoardGeometry();
+    const quads = DISCOVERY_KINDS.map((kind) => geometry.siteMarkers[kind]);
+    expect(new Set(quads).size).toBe(DISCOVERY_KINDS.length);
+
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+    at(state, 5, 3).discovery = 'village';
+    const layer = new SiteLayer();
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons);
+
+    const printed = meshesOf(layer.group).filter(
+      (mesh) => mesh.material === fakeIcons.standingMaterial,
+    );
+    expect(printed).toHaveLength(DISCOVERY_KINDS.length);
+    for (const mesh of printed) expect(quads).toContain(mesh.geometry);
+    layer.dispose();
+  });
+
+  /**
+   * The wash contract, from both ends: the pin is ink and fades with the ground,
+   * the paper is a printed bucket and `setWash` declines it outright. A greyed
+   * roundel would be the fog knocking back a *picture*, which is the failure
+   * `Bucket.material` exists to prevent.
+   */
+  it('fades a remembered marker\'s pin and leaves its paper legible', () => {
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+    const layer = new SiteLayer();
+    layer.build(
+      state,
+      new BoardGeometry(),
+      materials(),
+      false,
+      levels(state, EXPLORED),
+      fakeIcons,
+    );
+
+    const printed = meshesOf(layer.group).filter(
+      (mesh) => mesh.material === fakeIcons.standingMaterial,
+    );
+    expect(printed).toHaveLength(1);
+    // A printed bucket never even gets a colour attribute to knock back.
+    expect(printed[0]!.instanceColor).toBeNull();
+
+    // Something in the layer *was* washed, which is the other half of the claim:
+    // the pass ran, and skipped only the print.
+    const washed = meshesOf(layer.group).some((mesh) => {
+      const colors = mesh.instanceColor;
+      if (!colors) return false;
+      for (let i = 0; i < colors.count; i++) {
+        if (colors.getX(i) !== 1 || colors.getY(i) !== 1 || colors.getZ(i) !== 1) return true;
+      }
+      return false;
+    });
+    expect(washed).toBe(true);
     layer.dispose();
   });
 });

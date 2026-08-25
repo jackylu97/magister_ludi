@@ -30,6 +30,13 @@
  *                   in this game, and it is the one the eye should find first,
  *                   so it is the only grade that carries a ring as well as a
  *                   wash.
+ *   · the **explorer lens** — where is there still something to find? Every
+ *                   unclaimed ruin and village the seat has charted is ringed in
+ *                   gold, every camp it can see right now in crimson. The
+ *                   settler lens's opposite number in shape as well as in
+ *                   subject: that one grades a whole map because every hex is a
+ *                   candidate, this one marks a handful because the failure it
+ *                   fixes is walking past one. See `addDiscoveryWash`.
  *
  * Site semantics, not a desirability score
  * ----------------------------------------
@@ -100,7 +107,7 @@ import type { CellRef, LensView } from '../ui/mapView';
 
 import { type TileIcons, YIELD_KEYS } from './badges3d';
 import type { BoardGeometry } from './board3d';
-import { type FogLevels, knowsCell } from './fog3d';
+import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { InstanceCollector, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, mixColor } from './lookData';
@@ -203,6 +210,15 @@ export class LensLayer {
         resolveTiles(map, lens.cells, levels),
         collector,
         geometry,
+      );
+    }
+    if (lens.mode === 'explorer') {
+      this.addDiscoveryWash(
+        state,
+        resolveTiles(map, lens.cells, levels),
+        collector,
+        geometry,
+        levels,
       );
     }
     if (lens.resources && icons) {
@@ -478,6 +494,81 @@ export class LensLayer {
         new Matrix4().compose(at, identity, unit),
         { onTop: true, opacity: LENS.siteEstuaryRingOpacity },
       );
+    }
+  }
+
+  /**
+   * The explorer wash: every unclaimed discovery site the seat has charted, and
+   * — in a hostile ink — every barbarian camp it can see right now.
+   *
+   * The settler lens's opposite number, and it is deliberately the *thin* one.
+   * That lens grades a whole map, because every legal hex is a candidate and the
+   * question is which is best. This one marks a handful of hexes on a board of
+   * thousands, because the question is not "which of these" but "where are
+   * they" — a discovery is three or four sites on a duel map, and the failure it
+   * exists to fix is a player walking past one. So there is no grade and no
+   * ramp: a ring at full strength over a wash, twice, in two inks.
+   *
+   * Two answers, and they are not two grades of one thing:
+   *
+   *   discovery  gold. Go here. A ruin or a village still standing — which is
+   *              exactly `tile.discovery`, because the field is *deleted* on the
+   *              claim (`claimDiscoveryAt`), so "unclaimed" needs no second
+   *              test and a site claimed by a rival goes dark on this seat's
+   *              board the moment the seat can see that it has.
+   *   camp       crimson. Do not walk into that. A barbarian camp is the other
+   *              thing an explorer meets alone in the dark, and marking it is
+   *              nearly free — the plumbing for the ring is already here.
+   *
+   * The fog rules are the *site layer's* two rules, not one of them applied
+   * twice, and they have to be: this lens must never ring a hex the board is not
+   * drawing the thing on. So the discoveries come through `resolveTiles`, which
+   * cuts at `hidden` and keeps remembered ground (a ruin is ground), while the
+   * camps are asked `seesCell` directly and are marked only where the seat is
+   * looking *now* (a camp is an occupation). A remembered camp ringed in red
+   * would be a warning about an army that may have moved on ten turns ago.
+   */
+  private addDiscoveryWash(
+    state: GameState,
+    tiles: readonly Tile[],
+    collector: InstanceCollector,
+    geometry: BoardGeometry,
+    levels: FogLevels,
+  ): void {
+    const identity = new Quaternion();
+    const unit = new Vector3(1, 1, 1);
+
+    const mark = (tile: Tile, color: number, wash: number, ring: number): void => {
+      const centre = cellCenter(tile.col, tile.row);
+      const at = new Vector3(centre.x, tileTopY(tile) + OVERLAY.lift, centre.z);
+      collector.add(
+        geometry.territory,
+        [color],
+        new Matrix4().compose(at, identity, unit),
+        { onTop: true, opacity: wash },
+      );
+      collector.add(
+        geometry.ring,
+        [color],
+        new Matrix4().compose(at, identity, unit),
+        { onTop: true, opacity: ring },
+      );
+    };
+
+    for (const tile of tiles) {
+      if (tile.discovery === undefined) continue;
+      mark(tile, LENS.discoveryColor, LENS.discoveryOpacity, LENS.discoveryRingOpacity);
+    }
+
+    // Walked over `state.camps` rather than over the tiles, because a camp is
+    // not on the map — it lives in the state, with a history (see
+    // `GameState.camps`) — and because that is the list the site layer draws
+    // from, so the two cannot disagree about which camps exist.
+    for (const camp of state.camps) {
+      if (!seesCell(levels, state.map, camp.col, camp.row)) continue;
+      const tile = getTileAt(state.map, camp.col, camp.row);
+      if (!tile) continue;
+      mark(tile, LENS.campColor, LENS.campOpacity, LENS.campRingOpacity);
     }
   }
 

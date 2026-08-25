@@ -97,10 +97,12 @@ import {
   type ResourceMark,
   resourceMark,
 } from '../art/resourceMarks';
+import { siteMark } from '../art/siteMarks';
+import { DISCOVERY_KINDS, type DiscoveryKind } from '../sim/discoveryData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 import type { ModelClass } from '../sim/unitData';
 
-import { type ResourceKindStyle, VIEW3D, mixColor } from './lookData';
+import { type MarkerPaperStyle, VIEW3D, mixColor } from './lookData';
 
 const BADGE = VIEW3D.badges;
 const HP = VIEW3D.hpBar;
@@ -404,12 +406,23 @@ export const NUMERAL_CELLS: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 export const MARGINALIA_CELLS = ['serpent'] as const;
 export type MarginaliaKey = (typeof MARGINALIA_CELLS)[number];
 
+/**
+ * The discovery sites, in the order `DISCOVERY_KINDS` declares them.
+ *
+ * Aliased from the simulation's own list rather than written out again, because
+ * a kind the sim can put on a tile and this atlas has no cell for is a marker
+ * that throws from inside a canvas rasterisation. The camp is deliberately not
+ * a member — see `src/art/siteMarks.ts` for why an occupation gets no pin.
+ */
+export const SITE_MARK_CELLS: readonly DiscoveryKind[] = DISCOVERY_KINDS;
+
 /** A cell of the tile atlas: which set it belongs to, and which member. */
 export type TileIconCell =
   | { set: 'resource'; id: ResourceId }
   | { set: 'yield'; id: YieldKey }
   | { set: 'numeral'; id: number }
-  | { set: 'marginalia'; id: MarginaliaKey };
+  | { set: 'marginalia'; id: MarginaliaKey }
+  | { set: 'site'; id: DiscoveryKind };
 
 /**
  * Every cell of the tile atlas, in layout order: the resources, then the six
@@ -418,13 +431,16 @@ export type TileIconCell =
  * Appended rather than inserted, and that is not politeness — this list decides
  * texture coordinates, so putting the serpent anywhere but the end would shift
  * every cell after it and silently re-point marks on the board at somebody
- * else's picture. New sets go on the end, always.
+ * else's picture. New sets go on the end, always — which is where the site
+ * marks went when they arrived, behind the marginalia rather than beside the
+ * resources they are printed most like.
  */
 export const TILE_ICON_CELLS: readonly TileIconCell[] = [
   ...RESOURCE_IDS.map((id) => ({ set: 'resource', id }) as TileIconCell),
   ...YIELD_KEYS.map((id) => ({ set: 'yield', id }) as TileIconCell),
   ...NUMERAL_CELLS.map((id) => ({ set: 'numeral', id }) as TileIconCell),
   ...MARGINALIA_CELLS.map((id) => ({ set: 'marginalia', id }) as TileIconCell),
+  ...SITE_MARK_CELLS.map((id) => ({ set: 'site', id }) as TileIconCell),
 ];
 
 /**
@@ -588,37 +604,37 @@ function drawDiscCell(
  * multiple of that radius: `1` for a shape that stays on the circle it is
  * built from, and more for one that bulges past it.
  *
- * The one number `resourceShapeRadius` needs to keep every kind's outer edge
+ * The one number `markerPaperRadius` needs to keep every kind's outer edge
  * at the *same* boundary a plain circle would reach — `paperRadiusFraction()`,
  * the boundary the badge parchment and every other tile-atlas disc already
  * respects. Cells are packed edge to edge with no gutter (see
  * `yieldDiscLayout`), so a shape that ignored this would bleed into its
  * neighbour the day somebody dialled up `scallopDepth`.
  */
-export function resourceShapeExtent(style: ResourceKindStyle): number {
+export function markerPaperExtent(style: MarkerPaperStyle): number {
   if (style.shape === 'scallop') return 1 + Math.max(0, style.scallopDepth ?? 0);
   return 1;
 }
 
 /**
- * The base radius `traceResourceShape` should be called with, so that whatever
+ * The base radius `traceMarkerPaper` should be called with, so that whatever
  * it draws — circle, scallop or shield — tops out at `outerFraction * cell`,
  * the same outer edge a plain roundel has always drawn to, with the rim's own
  * stroke (half of it falls outside the fill) accounted for too.
  */
-export function resourceShapeRadius(
-  style: ResourceKindStyle,
+export function markerPaperRadius(
+  style: MarkerPaperStyle,
   outerFraction: number,
   cell: number,
 ): number {
   const outer = outerFraction * cell;
   const rimHalf = (style.rimWidth * cell) / 2;
-  return Math.max(1, (outer - rimHalf) / resourceShapeExtent(style));
+  return Math.max(1, (outer - rimHalf) / markerPaperExtent(style));
 }
 
 /**
  * Traces one kind's paper silhouette into `context`'s current path, centred at
- * `(cx, cy)` and built from `radius` — the number `resourceShapeRadius` hands
+ * `(cx, cy)` and built from `radius` — the number `markerPaperRadius` hands
  * back, not the cell's own half-width.
  *
  * Three shapes, and every one of them is a closed path a `fill` and a `stroke`
@@ -633,10 +649,16 @@ export function resourceShapeRadius(
  *              top corners, tapering to a point at the foot. The Civ
  *              convention for "this is what a unit needs", read as a
  *              silhouette rather than as a colour.
+ *   `hex`      the discovery sites' tablet: a pointed-top hexagon, six straight
+ *              edges on the circle `radius` names, so its outer reach is the
+ *              radius exactly and `markerPaperExtent` stays 1. The board's own
+ *              cell shape, which is the argument for it — a site is a *place*,
+ *              not a thing you carry — and the roomiest non-circle of the four
+ *              for the mark that has to sit inside it.
  */
-export function traceResourceShape(
+export function traceMarkerPaper(
   context: CanvasRenderingContext2D,
-  style: ResourceKindStyle,
+  style: MarkerPaperStyle,
   cx: number,
   cy: number,
   radius: number,
@@ -662,7 +684,7 @@ export function traceResourceShape(
     // `±0.92`, the widest the top gets; a flat top between rounded corners of
     // `0.22`; sides falling to a waist at `+0.05` before curving to a point at
     // `+1.0`, the tip that sets the shape's own outer reach (see
-    // `resourceShapeExtent`).
+    // `markerPaperExtent`).
     const w = radius * 0.92;
     const topY = cy - radius * 0.86;
     const waistY = cy + radius * 0.05;
@@ -678,6 +700,19 @@ export function traceResourceShape(
     context.quadraticCurveTo(cx - w, waistY + radius * 0.3, cx - w, waistY);
     context.lineTo(cx - w, topY + corner);
     context.quadraticCurveTo(cx - w, topY, cx - w + corner, topY);
+    context.closePath();
+    return;
+  }
+  if (style.shape === 'hex') {
+    // Pointed top: the first vertex is straight up, and the rest follow every
+    // sixty degrees. Canvas y grows downward, so "up" is −90°.
+    for (let i = 0; i < 6; i++) {
+      const angle = (-90 + i * 60) * (Math.PI / 180);
+      const x = cx + radius * Math.cos(angle);
+      const y = cy + radius * Math.sin(angle);
+      if (i === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    }
     context.closePath();
     return;
   }
@@ -753,34 +788,106 @@ function drawResourceCell(
   id: ResourceId,
   fallbackGlyph?: string,
 ): void {
-  const origin = badgeCellOrigin(index, layout);
-  const cell = layout.cell;
-  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
-  const style = ICONS.resourceKinds[resourceDef(id).kind];
-  const radius = resourceShapeRadius(style, paperRadiusFraction(), cell);
-
-  context.save();
-  traceResourceShape(context, style, center.x, center.y, radius);
-  context.fillStyle = cssHex(ICONS.paperColor);
-  context.fill();
-  context.lineWidth = Math.max(1, style.rimWidth * cell);
-  context.strokeStyle = cssHex(style.rimColor);
-  context.stroke();
-  context.restore();
+  const center = paintMarkerPaper(
+    context,
+    index,
+    layout,
+    ICONS.resourceKinds[resourceDef(id).kind],
+  );
 
   const mark = resourceMark(id);
   if (mark === null) {
-    paintCellMark(context, null, center, cell, ICONS.inkColor, ICONS.iconScale, fallbackGlyph);
+    paintCellMark(
+      context,
+      null,
+      center,
+      layout.cell,
+      ICONS.inkColor,
+      ICONS.iconScale,
+      fallbackGlyph,
+    );
     return;
   }
   paintMarkPaths(
     context,
     mark,
     center,
-    Math.max(1, ICONS.iconScale * cell),
+    Math.max(1, ICONS.iconScale * layout.cell),
     ICONS.inkColor,
   );
 }
+
+/**
+ * Fills and rims one cell's paper in the style given, and hands back the cell's
+ * centre for whatever is printed on it.
+ *
+ * Lifted out of `drawResourceCell` when the discovery sites became the second
+ * thing printed on shaped paper. The trace is one path read twice — a `fill` for
+ * the paper and a `stroke` for the rim — which is the whole reason
+ * `traceMarkerPaper` closes every silhouette it draws.
+ */
+function paintMarkerPaper(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+  style: MarkerPaperStyle,
+): { x: number; y: number } {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+  const radius = markerPaperRadius(style, paperRadiusFraction(), cell);
+
+  context.save();
+  traceMarkerPaper(context, style, center.x, center.y, radius);
+  context.fillStyle = cssHex(ICONS.paperColor);
+  context.fill();
+  context.lineWidth = Math.max(1, style.rimWidth * cell);
+  context.strokeStyle = cssHex(style.rimColor);
+  context.stroke();
+  context.restore();
+  return center;
+}
+
+/**
+ * Paints one discovery site's marker cell: the hex tablet, then the drawing of
+ * what stands on the hex.
+ *
+ * `drawResourceCell`'s sibling, and shorter by exactly the fallback: a resource
+ * id is a row of an open JSON table and may have no drawing, while
+ * `DiscoveryKind` is a two-member union with an exhaustive art record (see
+ * `src/art/siteMarks.ts`), so there is no glyph to fall back to and no case in
+ * which one would be reached.
+ *
+ * The mark is printed a shade smaller than a resource's — `siteMarkScale` — for
+ * a geometric reason rather than a stylistic one: a hexagon seats a centred
+ * square at about nine tenths of the width a circle of the same reach does, and
+ * a drawing that ran into its own rim would read as a printing fault.
+ */
+function drawSiteCell(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+  kind: DiscoveryKind,
+): void {
+  const center = paintMarkerPaper(context, index, layout, ICONS.sitePaper);
+  paintMarkPaths(
+    context,
+    siteMark(kind),
+    center,
+    Math.max(1, ICONS.iconScale * SITE_MARK_SCALE * layout.cell),
+    ICONS.inkColor,
+  );
+}
+
+/**
+ * How much of a resource mark's size a site mark is printed at.
+ *
+ * Code rather than `view3d.json`, because it is not a taste number: it is the
+ * ratio between a hexagon's inscribed square and a circle's, and a designer who
+ * dialled it would be disagreeing with geometry. `paperRadiusFraction` is
+ * already the tunable that moves both.
+ */
+const SITE_MARK_SCALE = 0.9;
 
 /**
  * Where a yield glyph's disc sits inside its atlas cell, and where its shadow
@@ -1035,8 +1142,12 @@ export class TileIcons {
         drawResourceCell(context, index, layout, cell.id, resourceDef(cell.id).emoji);
         return;
       }
-      // Every `TileIconCell` variant is one of the four branches above; this is
-      // the exhaustiveness check, not a reachable draw path — a fifth set added
+      if (cell.set === 'site') {
+        drawSiteCell(context, index, layout, cell.id);
+        return;
+      }
+      // Every `TileIconCell` variant is one of the five branches above; this is
+      // the exhaustiveness check, not a reachable draw path — a sixth set added
       // to the union without a painter here fails typecheck instead of drawing
       // a blank cell.
       const exhaustive: never = cell;

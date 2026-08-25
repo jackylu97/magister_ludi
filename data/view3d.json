@@ -422,7 +422,13 @@
     "siteOpacity": 0.44,
     "siteEstuaryMix": 0.5,
     "siteEstuaryOpacity": 0.62,
-    "siteEstuaryRingOpacity": 0.95
+    "siteEstuaryRingOpacity": 0.95,
+    "discoveryColor": "#d8a63c",
+    "discoveryOpacity": 0.5,
+    "discoveryRingOpacity": 1.0,
+    "campColor": "#b35843",
+    "campOpacity": 0.42,
+    "campRingOpacity": 0.9
   },
   "icons": {
     "atlasCell": 128,
@@ -453,6 +459,11 @@
         "rimColor": "crimson",
         "rimWidth": 0.032
       }
+    },
+    "sitePaper": {
+      "shape": "hex",
+      "rimColor": "grape",
+      "rimWidth": 0.04
     }
   },
   "improvements": {

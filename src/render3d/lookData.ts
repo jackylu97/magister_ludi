@@ -484,6 +484,22 @@ export interface LensSpec {
   siteEstuaryMix: number;
   siteEstuaryOpacity: number;
   siteEstuaryRingOpacity: number;
+  /**
+   * The explorer lens: an unclaimed discovery site, and — in a hostile ink — a
+   * barbarian camp the seat can see right now.
+   *
+   * Two colours and no grades, unlike the settler lens's four, because the lens
+   * answers one question with two answers: *go here* and *do not walk into
+   * that*. The ring is at full opacity on both, which is the "strong ring" this
+   * lens is for: a discovery is a handful of hexes on a whole map and the point
+   * is to be able to find it without hunting.
+   */
+  discoveryColor: number;
+  discoveryOpacity: number;
+  discoveryRingOpacity: number;
+  campColor: number;
+  campOpacity: number;
+  campRingOpacity: number;
 }
 
 /**
@@ -932,31 +948,58 @@ export interface IconSpec {
   marginaliaScale: number;
   marginaliaColor: number;
   /** How a resource roundel's paper and rim differ by `ResourceKind`. */
-  resourceKinds: Record<ResourceKind, ResourceKindStyle>;
+  resourceKinds: Record<ResourceKind, MarkerPaperStyle>;
+  /**
+   * The paper every **discovery site** marker is printed on — one style for both
+   * kinds, where the resources get one per kind.
+   *
+   * That asymmetry is the design. A resource marker's shape answers "what *sort*
+   * of resource is this", because bonus, strategic and luxury are three different
+   * decisions a player makes. A site marker's shape answers a question one grade
+   * up — "this is not a resource at all, it is something that *happens*" — and
+   * which of the two kinds it is is carried by the drawing on it (a fallen
+   * column, a pair of huts; see `src/art/siteMarks.ts`). A fourth and fifth
+   * resource-like silhouette would have said the opposite: that ruins and
+   * villages are two more commodities to compare.
+   */
+  sitePaper: MarkerPaperStyle;
 }
 
 /**
- * The three `ResourceKind`s read differently on sight, by shape *and* colour —
- * colour alone fails a colourblind player, and this is the one place both cues
- * are decided.
+ * The three `ResourceKind`s — and, since the discovery sites joined them, the
+ * site marker — read differently on sight by shape *and* colour, because colour
+ * alone fails a colourblind player, and this is the one place both cues are
+ * decided.
  *
  * Every field is in the same units `drawDiscCell`'s own numbers are: a
  * fraction of the atlas cell for a width, a palette name resolved to a colour
  * for an ink. The shape is baked into the atlas texture rather than into the
- * marker's geometry, which stays one plain quad per resource — see the module
+ * marker's geometry, which stays one plain quad per mark — see the module
  * docblock on `TileIcons` and the trap this follows from in `CLAUDE.md`: a
  * printed atlas bucket cannot be tinted or re-shaped per instance at runtime,
- * so the whole of a kind's look has to be drawn into its cell at load.
+ * so the whole of a style's look has to be drawn into its cell at load.
+ *
+ * It is `MarkerPaperStyle` rather than `ResourceKindStyle` for exactly that
+ * widening: what it describes is the *paper a standing marker is printed on*,
+ * and a resource kind is now one of two things that picks one.
  */
-export interface ResourceKindStyle {
+export interface MarkerPaperStyle {
   /**
    * The paper's silhouette. `'circle'` is bonus's plain roundel, unchanged
    * from before this table existed. `'scallop'` gives luxury a fluted edge —
-   * the coin-with-a-lozenge-edge read — and `'shield'` gives strategic a
+   * the coin-with-a-lozenge-edge read — `'shield'` gives strategic a
    * squared, pointed-base silhouette, the Civ convention for "this gates a
-   * unit".
+   * unit", and `'hex'` is the discovery sites' tablet: a pointed-top hexagon,
+   * the board's own cell shape, because a site is a *place on the map* where
+   * every other member of this vocabulary is a thing you hold.
+   *
+   * The hexagon is also the roomiest of the four after the circle — it seats a
+   * centred mark at about nine tenths of a roundel's width, against a diamond's
+   * half — which is why it won over the more obviously-different silhouettes:
+   * a paper that cannot hold its own drawing has traded the wrong legibility
+   * for the right one.
    */
-  shape: 'circle' | 'scallop' | 'shield';
+  shape: 'circle' | 'scallop' | 'shield' | 'hex';
   /** The rim's ink, stroked just inside the paper's own edge. */
   rimColor: number;
   /** Rim stroke width, as a fraction of the atlas cell. */
@@ -1320,7 +1363,36 @@ function parseFamilies(
  */
 const RESOURCE_KIND_IDS: readonly ResourceKind[] = ['bonus', 'strategic', 'luxury'];
 
-const RESOURCE_KIND_SHAPES: readonly ResourceKindStyle['shape'][] = ['circle', 'scallop', 'shield'];
+/** Every silhouette `traceMarkerPaper` knows how to draw. */
+const MARKER_PAPER_SHAPES: readonly MarkerPaperStyle['shape'][] = [
+  'circle',
+  'scallop',
+  'shield',
+  'hex',
+];
+
+/** One paper style, read and checked. The shared half of the two readers below. */
+function parseMarkerPaperStyle(
+  spec: {
+    shape: string;
+    rimColor: string;
+    rimWidth: number;
+    scallops?: number;
+    scallopDepth?: number;
+  },
+  where: string,
+): MarkerPaperStyle {
+  if (!MARKER_PAPER_SHAPES.includes(spec.shape as MarkerPaperStyle['shape'])) {
+    throw new Error(`view3d.json: ${where}.shape is not a known shape: ${spec.shape}`);
+  }
+  return {
+    shape: spec.shape as MarkerPaperStyle['shape'],
+    rimColor: named(spec.rimColor, `${where}.rimColor`),
+    rimWidth: spec.rimWidth,
+    scallops: spec.scallops,
+    scallopDepth: spec.scallopDepth,
+  };
+}
 
 /**
  * Reads `icons.resourceKinds`, checked the same way the abacus families are:
@@ -1329,7 +1401,7 @@ const RESOURCE_KIND_SHAPES: readonly ResourceKindStyle['shape'][] = ['circle', '
  * `TileIcons.load` time and throw from inside a canvas rasterisation instead
  * of from load, which is a far worse place to learn about a typo.
  */
-function parseResourceKindStyles(
+function parseMarkerPaperStyles(
   raw: Record<
     string,
     {
@@ -1340,25 +1412,14 @@ function parseResourceKindStyles(
       scallopDepth?: number;
     }
   >,
-): Record<ResourceKind, ResourceKindStyle> {
-  const out: Partial<Record<ResourceKind, ResourceKindStyle>> = {};
+): Record<ResourceKind, MarkerPaperStyle> {
+  const out: Partial<Record<ResourceKind, MarkerPaperStyle>> = {};
   for (const kind of RESOURCE_KIND_IDS) {
     const spec = raw[kind];
     if (!spec) throw new Error(`view3d.json: icons.resourceKinds is missing "${kind}"`);
-    if (!RESOURCE_KIND_SHAPES.includes(spec.shape as ResourceKindStyle['shape'])) {
-      throw new Error(
-        `view3d.json: icons.resourceKinds.${kind}.shape is not a known shape: ${spec.shape}`,
-      );
-    }
-    out[kind] = {
-      shape: spec.shape as ResourceKindStyle['shape'],
-      rimColor: named(spec.rimColor, `icons.resourceKinds.${kind}.rimColor`),
-      rimWidth: spec.rimWidth,
-      scallops: spec.scallops,
-      scallopDepth: spec.scallopDepth,
-    };
+    out[kind] = parseMarkerPaperStyle(spec, `icons.resourceKinds.${kind}`);
   }
-  return out as Record<ResourceKind, ResourceKindStyle>;
+  return out as Record<ResourceKind, MarkerPaperStyle>;
 }
 
 export const VIEW3D: View3DData = {
@@ -1593,6 +1654,12 @@ export const VIEW3D: View3DData = {
     siteEstuaryMix: viewJson.lens.siteEstuaryMix,
     siteEstuaryOpacity: viewJson.lens.siteEstuaryOpacity,
     siteEstuaryRingOpacity: viewJson.lens.siteEstuaryRingOpacity,
+    discoveryColor: parseColor(viewJson.lens.discoveryColor, 'lens.discoveryColor'),
+    discoveryOpacity: viewJson.lens.discoveryOpacity,
+    discoveryRingOpacity: viewJson.lens.discoveryRingOpacity,
+    campColor: parseColor(viewJson.lens.campColor, 'lens.campColor'),
+    campOpacity: viewJson.lens.campOpacity,
+    campRingOpacity: viewJson.lens.campRingOpacity,
   },
   icons: {
     atlasCell: viewJson.icons.atlasCell,
@@ -1605,7 +1672,8 @@ export const VIEW3D: View3DData = {
     yieldInkColor: named(viewJson.icons.yieldInkColor, 'icons.yieldInkColor'),
     marginaliaScale: viewJson.icons.marginaliaScale,
     marginaliaColor: named(viewJson.icons.marginaliaColor, 'icons.marginaliaColor'),
-    resourceKinds: parseResourceKindStyles(viewJson.icons.resourceKinds),
+    resourceKinds: parseMarkerPaperStyles(viewJson.icons.resourceKinds),
+    sitePaper: parseMarkerPaperStyle(viewJson.icons.sitePaper, 'icons.sitePaper'),
   },
   resources: {
     spread: viewJson.resources.spread,

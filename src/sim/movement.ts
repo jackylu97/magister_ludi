@@ -45,6 +45,7 @@ import { breakFortify } from './combat';
 import { getTileAt } from './map';
 import { type Cell, canStopOn, canTransit, tileMoveCost } from './pathfind';
 import type { GameState, Unit } from './state';
+import { unitDef } from './unitData';
 
 export interface AdvanceResult {
   /** How many tiles the unit actually entered. */
@@ -75,6 +76,11 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
   let cleared = false;
   let index = 0;
   const arrivals: ArrivalReport[] = [];
+  // The mover's own row, resolved once and handed to the evaluator on every
+  // step. This is the third and last reader of `tileMoveCost` (see its
+  // docblock): what the highlight promised and what the march spends have to be
+  // the same arithmetic, abilities included.
+  const def = unitDef(unit.type);
 
   while (index < path.length && unit.movesLeft > 0) {
     const step = path[index]!;
@@ -84,7 +90,7 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
       break;
     }
 
-    const cost = tileMoveCost(tile)!;
+    const cost = tileMoveCost(tile, def)!;
     // Overspending is forgiven, never borrowed: the allowance floors at zero.
     const after = Math.max(0, unit.movesLeft - cost);
     const wouldRestHere = after === 0 || index === path.length - 1;

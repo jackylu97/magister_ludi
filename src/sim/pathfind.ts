@@ -12,6 +12,12 @@
  * implementation, and `findPath`, `reachableTiles` and the executor all call it,
  * so a highlight can never disagree with what the move actually spends.
  *
+ * It is a property of the destination *and of the mover*: a unit whose row
+ * carries `ignoresTerrainCost` pays the floor for every hex it can enter at all.
+ * That second term went into the evaluator rather than beside its three callers
+ * for exactly the reason the first one is there — a reachable set computed by
+ * one rule and walked by another is a promise the board breaks.
+ *
  * Because `rules.movement.minStepCost` floors every step at a positive number,
  * there are no zero-cost edges, which is what lets both searches settle a node
  * the first time they pop it.
@@ -39,7 +45,7 @@ import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, tileHex, til
 import { RULES } from './rulesData';
 import type { GameState, Unit } from './state';
 import { moveCost } from './terrainData';
-import { unitDef } from './unitData';
+import { type UnitDef, unitDef } from './unitData';
 import { hasForeignUnit, hasStackingRoom } from './units';
 
 /** An offset cell. The wire/serialisation form of a position. */
@@ -55,9 +61,31 @@ export interface ReachableTile {
   cost: number;
 }
 
-/** Movement points to enter this tile, or `null` if nothing can walk on it. */
-export function tileMoveCost(tile: Tile): number | null {
-  return moveCost(tile.terrain, tile.feature, tile.hills);
+/**
+ * Movement points for `def` to enter this tile, or `null` if nothing can walk on
+ * it.
+ *
+ * THE movement-cost evaluator, and the reason it takes a *unit definition*
+ * rather than only a tile: `ignoresTerrainCost` (`unitData.ts`) is a rule about
+ * the price of a step, so it belongs where the price is decided and nowhere
+ * else. All three readers go through here — `findPath`, `reachableTiles` and
+ * `advanceAlongPath` — which is what stops a highlight promising a march the
+ * walk will not deliver.
+ *
+ * `def` is optional and its absence means *the ground's own price*, asked by the
+ * two callers that are not about a particular unit: `isPassable`, which wants
+ * only the `null`, and the interface's route estimate for a unit it has not been
+ * handed. The flag is read strictly *after* impassability, so no ability makes a
+ * mountain walkable — see `UnitDef.ignoresTerrainCost`.
+ *
+ * The floor is `rules.movement.minStepCost` rather than a literal 1, so the
+ * ability costs whatever the game says a step costs at minimum, and the "no
+ * zero-cost edges" guarantee both searches settle on holds for a scout too.
+ */
+export function tileMoveCost(tile: Tile, def?: UnitDef): number | null {
+  const ground = moveCost(tile.terrain, tile.feature, tile.hills);
+  if (ground === null) return null;
+  return def?.ignoresTerrainCost ? RULES.movement.minStepCost : ground;
 }
 
 /** True when land units can enter the tile at all, ignoring who is standing on it. */
@@ -186,6 +214,9 @@ export function findPath(state: GameState, unit: Unit, goal: Tile): Cell[] | nul
   if (!canStopOn(state, unit, goal)) return null;
 
   const goalHex = tileHex(goal);
+  // Resolved once: the mover's row is a fact about the whole search, and asking
+  // the table per neighbour would be the same lookup a few thousand times.
+  const def = unitDef(unit.type);
   const minStep = RULES.movement.minStepCost;
   const heuristic = (tile: Tile): number => wrappedDistance(map, tileHex(tile), goalHex) * minStep;
 
@@ -212,7 +243,7 @@ export function findPath(state: GameState, unit: Unit, goal: Tile): Cell[] | nul
       // friendly units. The goal was already checked with the stricter
       // `canStopOn`, which implies this.
       if (!canTransit(state, unit, neighbor)) continue;
-      const step = tileMoveCost(neighbor);
+      const step = tileMoveCost(neighbor, def);
       if (step === null) continue;
 
       const candidate = best[current]! + step;
@@ -253,6 +284,9 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
   if (!start || unit.movesLeft <= 0) return results;
 
   const budget = unit.movesLeft;
+  // `findPath`'s reason: one table lookup for the whole sweep, and the same
+  // definition the executor will spend the points with.
+  const def = unitDef(unit.type);
   const count = map.tiles.length;
   const best = new Float64Array(count).fill(Infinity);
   const settled = new Uint8Array(count);
@@ -280,7 +314,7 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
       const index = tileIndex(map, neighbor.col, neighbor.row);
       if (settled[index] === 1) continue;
       if (!canTransit(state, unit, neighbor)) continue;
-      const step = tileMoveCost(neighbor);
+      const step = tileMoveCost(neighbor, def);
       if (step === null) continue;
 
       const candidate = cost + step;
