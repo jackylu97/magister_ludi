@@ -43,7 +43,7 @@ export type YieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture' | 
 export const YIELD_GLYPH: Record<YieldKey, string> = {
   food: '🌾',
   production: '⚙',
-  gold: '🪙',
+  gold: '💰',
   science: '🔬',
   culture: '🎭',
   // A votive candle, and a placeholder like every other glyph in this table

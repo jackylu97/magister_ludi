@@ -47,6 +47,7 @@ import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
 import { fullMovement } from '../sim/units';
 import type { ImprovementOption } from './controls';
+import { YIELD_GLYPH } from './figures';
 
 /** "+40%" — a defence fraction as the percentage a player reads it as. */
 function formatPercent(fraction: number): string {
@@ -54,22 +55,27 @@ function formatPercent(fraction: number): string {
 }
 
 /**
- * "+1🌾 +1🪙" — a yield delta in the three voices, zeroes left out.
+ * "+1🌾 +1💰" — a yield delta in the three voices, zeroes left out.
  *
- * The glyphs are the ones every other yield readout on this interface uses (the
- * context card, the city panel), because a player should not have to learn that
- * a sheaf on one panel is the same thing as a sheaf on another. An empty delta
- * comes back as an empty string, and the caller decides what to do about it —
- * which is nothing, since an improvement worth no yield is still worth building
- * for the resource it opens.
+ * The glyphs come from `YIELD_GLYPH` (`ui/figures.ts`), the table every other
+ * yield readout on this interface draws from (the context card, the city
+ * panel), because a player should not have to learn that a sheaf on one panel
+ * is the same thing as a sheaf on another. An empty delta comes back as an
+ * empty string, and the caller decides what to do about it — which is
+ * nothing, since an improvement worth no yield is still worth building for
+ * the resource it opens.
  */
 function formatYieldDelta(delta: TileYield): string {
   const parts: string[] = [];
-  if (delta.food !== 0) parts.push(`${delta.food > 0 ? '+' : ''}${delta.food}🌾`);
-  if (delta.production !== 0) {
-    parts.push(`${delta.production > 0 ? '+' : ''}${delta.production}⚙`);
+  if (delta.food !== 0) {
+    parts.push(`${delta.food > 0 ? '+' : ''}${delta.food}${YIELD_GLYPH.food}`);
   }
-  if (delta.gold !== 0) parts.push(`${delta.gold > 0 ? '+' : ''}${delta.gold}🪙`);
+  if (delta.production !== 0) {
+    parts.push(`${delta.production > 0 ? '+' : ''}${delta.production}${YIELD_GLYPH.production}`);
+  }
+  if (delta.gold !== 0) {
+    parts.push(`${delta.gold > 0 ? '+' : ''}${delta.gold}${YIELD_GLYPH.gold}`);
+  }
   return parts.join(' ');
 }
 
