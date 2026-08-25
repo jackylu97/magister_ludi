@@ -67,12 +67,36 @@
  * button than it ever did for the left, because on many trackpads a two-finger
  * drag arrives as a right-button drag.
  *
- * Refusals are never silent
- * -------------------------
- * An order the reducer will not take (a mountain, a tile out of reach, a seat
- * that has already ended its turn) reports through `onNotice`, which the HUD
- * shows in the context card for a beat. The selection survives: the player
- * almost certainly wants to aim again.
+ * Refusals are never silent, and news is not a refusal
+ * ----------------------------------------------------
+ * There are two things this module has to say and they go to two places.
+ *
+ * A **refusal** — a mountain, a tile out of reach, a seat that has already ended
+ * its turn — reports through `onNotice`, which the HUD whispers into the context
+ * card for a beat. That card is bottom-left, under the cursor, which is exactly
+ * where the player is already looking when an order is bounced: a "no" is a
+ * reply to a gesture and it belongs where the gesture came from. The selection
+ * survives, because the player almost certainly wants to aim again.
+ *
+ * **News** — a city finished something, a camp was burnt out, a ruin came into
+ * view — reports through `onNotify` (`announce`), which the HUD raises as a toast
+ * under the top bar *and* files in that seat's chronicle. Nobody asked for it, it
+ * can arrive while a city screen is covering half the window, and a line that
+ * whispers it into a corner and fades is a line that is missed. Every announce
+ * call site in this file gets both surfaces without knowing either exists; the
+ * ones that happen *somewhere* pass a `cell` too, which is what makes the toast
+ * and its log entry click-to-pan. See `notifications.ts`.
+ *
+ * Sightings
+ * ---------
+ * One kind of news has no command behind it: the seat simply came to know that
+ * something is there. After every accepted command (`commit`, the one seam
+ * between this module and the reducer) the local seat's known-sites set is
+ * diffed — discovery sites it has now explored, camps it can now see — and each
+ * new one is announced like any other news. It is pure view-layer diffing:
+ * `createSightingWatcher` reads the state and writes nothing to it, and the
+ * simulation has no idea it is being watched. Sitting down in a new chair
+ * *baselines* rather than polls, so a seat switch is silent.
  *
  * Two kinds of selection
  * ----------------------
@@ -193,6 +217,7 @@ import {
   type LensView,
   type MapView,
 } from './mapView';
+import { type NotificationEntry, createSightingWatcher } from './notifications';
 import { type TurnBlocker, firstBlocker } from './turnBlockers';
 
 /** How far the pointer may travel between down and up and still be a click. */
@@ -212,6 +237,20 @@ const BUY_MODE_NOTICE = 'Buy tiles — click a priced hex to purchase it (Esc ca
  * player has put themselves in, or a one-off refusal that fades.
  */
 export type NoticeKind = 'mode' | 'reject';
+
+/**
+ * The optional half of an announcement.
+ *
+ * One field today, and an object rather than a positional argument precisely so
+ * that it stays one call-site change when there is a second — every existing
+ * `announce(text)` in this file is already correct against this signature, which
+ * is the whole point (the notification pass added toasts and a log to two dozen
+ * call sites without editing any of them).
+ */
+export interface AnnounceOptions {
+  /** Where it happened. Makes the toast and its log entry click-to-pan. */
+  cell?: CellRef;
+}
 
 /**
  * One number to float over the board after a blow lands.
@@ -322,6 +361,21 @@ export interface GameControlsOptions {
    * exactly like `onUpdate`.
    */
   onNotice?: (text: string | null, kind: NoticeKind) => void;
+
+  /**
+   * Something *happened*, and the player should be told: a toast, and a line in
+   * this seat's chronicle.
+   *
+   * The other half of the split described in the module docblock. It carries the
+   * seat as well as the entry because the log is per seat and this module is the
+   * authority on which chair is being played — asking `localPlayerId()` back from
+   * the outside would be a second answer, and a wrong one for the one command
+   * that changes seats.
+   *
+   * Optional like every other reporting hook: the frozen 2D pages are wired by
+   * the same `main.ts` and lose nothing by not listening.
+   */
+  onNotify?: (entry: NotificationEntry, seatId: number) => void;
 
   /**
    * Closes any HUD popover that is open; returns whether there was one.
@@ -454,15 +508,26 @@ export interface GameControls {
   refresh(seatId?: number): void;
 
   /**
-   * Puts a line in the context card's message slot, in the "this happened"
-   * voice — the same slot and the same beat a captured city announces itself
-   * in, without the flinch a refusal carries.
+   * Says that something happened: a toast, and a line in this seat's chronicle.
    *
    * Exposed for the page's own news, which is news about the *session* rather
-   * than about an order: a game resumed from a file, today. Everything the board
-   * itself has to say already goes through here from the inside.
+   * than about an order: a game resumed from a file, an autosave that could not
+   * be written. Everything the board itself has to say already goes through here
+   * from the inside.
+   *
+   * `cell` is where it happened, when that is a question with an answer — it is
+   * what makes the toast and its log entry take the camera there when clicked.
    */
-  announce(text: string): void;
+  announce(text: string, opts?: AnnounceOptions): void;
+
+  /**
+   * Brings one cell into view, respecting the viewer's motion preference.
+   *
+   * Exposed for the notification surfaces: a toast and a chronicle entry are
+   * both "show me", and the camera is reached through `MapView`, which is this
+   * module's to drive (see `mapView.ts`).
+   */
+  panTo(cell: CellRef): void;
   /**
    * Ends the local player's turn, as the button and the Enter key both do —
    * unless the seat has unfinished business, in which case it takes the player
@@ -680,6 +745,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onTurnResolved,
     onSeatAdvanced,
     onNotice,
+    onNotify,
     closePopovers,
     inputBlocked,
     onToggleTechTree,
@@ -751,14 +817,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   let travelled = 0;
   /** Last pointer position in viewport space, so hover survives pan and zoom. */
   let pointer: { x: number; y: number } | null = null;
-  /** A transient line currently on screen, and the timer that will take it away. */
+  /** A refusal currently on the card, and the timer that will take it away. */
   let rejection: string | null = null;
-  /**
-   * How that line should read. A refused order is a "no" and flinches; a combat
-   * result is news and does not — same slot, same timer, different voice.
-   */
-  let rejectionKind: NoticeKind = 'reject';
   let rejectionTimer = 0;
+  /**
+   * The sighting diff's memory: what each seat has already been told is there.
+   *
+   * View state, per seat, and never reset by anything but a new game — which is
+   * exactly what makes a camp announce itself once instead of every time a
+   * patrol re-enters its valley. See `notifications.ts`.
+   */
+  const sightings = createSightingWatcher();
 
   // --- the context card's message line -------------------------------------
 
@@ -766,9 +835,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * Says whatever is currently truest: a refusal while one is fresh, otherwise
    * move mode while it is armed, otherwise nothing. One funnel, so the two
    * sources can never fight over the line.
+   *
+   * News no longer competes for this slot — it goes to `announce` and the toast
+   * stack — so what is left here is a refusal and the two standing mode lines,
+   * which is the whole of what a card under the cursor should carry.
    */
   function publishNotice(): void {
-    if (rejection !== null) onNotice?.(rejection, rejectionKind);
+    if (rejection !== null) onNotice?.(rejection, 'reject');
     else if (moveMode) onNotice?.(MOVE_MODE_NOTICE, 'mode');
     // Below move mode, because the two cannot be armed together — opening a city
     // disarms a move order (see `setOpenCity`) and buy mode lives inside an open
@@ -777,10 +850,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     else onNotice?.(buyMode ? BUY_MODE_NOTICE : null, 'mode');
   }
 
-  /** Puts a line on the card for a beat, in one of its two voices. */
-  function flash(text: string, kind: NoticeKind): void {
+  /** Reports an order the game would not take, visibly and briefly. */
+  function reject(text: string): void {
     rejection = text;
-    rejectionKind = kind;
     window.clearTimeout(rejectionTimer);
     rejectionTimer = window.setTimeout(() => {
       rejection = null;
@@ -789,17 +861,72 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     publishNotice();
   }
 
-  /** Reports an order the game would not take, visibly and briefly. */
-  function reject(text: string): void {
-    flash(text, 'reject');
+  /**
+   * Reports something that *happened* — a blow landed, a city taken, a ruin
+   * sighted. A toast under the bar and a line in this seat's chronicle, which is
+   * a different channel from a refusal and deliberately so (module docblock).
+   *
+   * The turn is stamped here, off the live state, so an entry always says the
+   * turn it was announced on rather than the turn the panel happens to be read
+   * on.
+   */
+  function announce(text: string, opts: AnnounceOptions = {}): void {
+    const entry: NotificationEntry = { turn: getGame().state.turn, text };
+    if (opts.cell) entry.cell = { col: opts.cell.col, row: opts.cell.row };
+    onNotify?.(entry, localPlayerId);
+  }
+
+  // --- sightings -----------------------------------------------------------
+
+  /**
+   * Announces whatever the local seat has just come to know is out there.
+   *
+   * Called from `commit` — after every command the reducer accepted, which is
+   * also every turn resolution, since ending the turn is a command. A refused
+   * command left the state byte-identical (hard rule 1), so there is nothing new
+   * for it to have sighted and it is not polled for.
+   */
+  function pollSightings(): void {
+    for (const sighting of sightings.poll(getGame().state, localPlayerId)) {
+      announce(sighting.text, { cell: { col: sighting.col, row: sighting.row } });
+    }
   }
 
   /**
-   * Reports something that *happened* — a blow landed, a city taken. Same slot
-   * and same timer as a refusal, without the flinch: the player asked for this.
+   * Files everything the seat currently knows as already-told, saying nothing.
+   *
+   * The seat-change and new-game half. A player sitting down at a chair has not
+   * just *discovered* that chair's whole empire — its ruins, the camps its
+   * borders already watch — so the baseline is taken silently and the next poll
+   * speaks only about what changed while this seat was playing. Without it,
+   * every seat hop in the hot-seat harness would open with a column of toasts
+   * about ground that seat charted forty turns ago.
    */
-  function announce(text: string): void {
-    flash(text, 'mode');
+  function baselineSightings(): void {
+    sightings.baseline(getGame().state, localPlayerId);
+  }
+
+  // --- the reducer seam ----------------------------------------------------
+
+  /**
+   * The one place this module hands a command to the simulation.
+   *
+   * `dispatch` plus the after-effects that belong to *every* accepted command
+   * rather than to any one of them — today that is the sighting diff, which has
+   * to run wherever the board's contents or this seat's fog could have moved,
+   * and that is precisely "a command was accepted". A refusal changes nothing
+   * (hard rule 1: rejected command = state byte-identical) and is handed back
+   * untouched for the caller to `reject`.
+   *
+   * Written as a funnel rather than as a line repeated at each of the dozen call
+   * sites because the failure mode of the repeated version is invisible: a new
+   * command that forgot it would simply never announce a sighting, and nobody
+   * would notice until a scout walked past a ruin in silence.
+   */
+  function commit(command: Command): CommandResult {
+    const result = dispatch(getGame(), command);
+    if (result.ok) pollSightings();
+    return result;
   }
 
   // --- move mode -----------------------------------------------------------
@@ -882,13 +1009,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       col,
       row,
     };
-    const result = dispatch(getGame(), command);
+    const result = commit(command);
     if (!result.ok) {
       reject(result.error);
       return true;
     }
 
-    announce(`Bought a tile for ${city.name}`);
+    announce(`Bought a tile for ${city.name}`, { cell: { col, row } });
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
@@ -939,6 +1066,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     openCityId = null;
     hoveredCityId = null;
     skippedUnitIds.clear();
+    // Silently, before anything else can poll: the chair this player has just
+    // taken has been looking at its own ruins and its own frontier for the whole
+    // game, and none of that is news. See `baselineSightings`.
+    baselineSightings();
     setMoveMode(false);
     renderer.skipAnimations();
     refreshOverlays();
@@ -1185,7 +1316,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       playerId: localPlayerId,
       settlerUnitId: unit.id,
     };
-    if (!dispatch(getGame(), command).ok) return;
+    if (!commit(command).ok) return;
 
     // The settler is gone, so the selection is stale by definition; the new
     // city takes its place as the thing the player is looking at. The camera
@@ -1234,7 +1365,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       playerId: localPlayerId,
       unitId: unit.id,
     };
-    const result = dispatch(getGame(), command);
+    const result = commit(command);
     if (!result.ok) {
       reject(result.error);
       return;
@@ -1374,7 +1505,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       unitId: unit.id,
       target: { col, row },
     };
-    const result = dispatch(getGame(), command);
+    const result = commit(command);
     if (!result.ok) {
       reject(result.error);
       onUpdate(unit, hover);
@@ -1384,8 +1515,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setMoveMode(false);
     reportCombat(view, before, cityHpBefore, attackerFrom, { col, row });
     // A melee winner that advanced may have stormed a camp or ridden into a
-    // ruin. Said after the blow, because that is the order it happened in.
-    reportArrivals(result);
+    // ruin. Said after the blow, because that is the order it happened in. The
+    // cell is the unit's own — `unit` is a live reference, so it is already
+    // standing on whatever it took.
+    reportArrivals(result, { col: unit.col, row: unit.row });
 
     if (getGame().state.winnerId !== null && wonBefore === null) {
       onVictory?.(getGame().state.winnerId!);
@@ -1498,7 +1631,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!unit || fortifyBlocker() !== null) return;
 
     const command: Command = { type: 'fortify', playerId: localPlayerId, unitId: unit.id };
-    const result = dispatch(getGame(), command);
+    const result = commit(command);
     if (!result.ok) {
       reject(result.error);
       return;
@@ -1628,7 +1761,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       unitId: unit.id,
       improvement: id,
     };
-    const result = dispatch(getGame(), command);
+    const result = commit(command);
     if (!result.ok) {
       reject(result.error);
       return;
@@ -1752,7 +1885,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!city || city.queue.length >= before.queued || before.front === null) return;
     const next = city.queue[0];
     const tail = next ? `${queueItemName(next)} is next.` : 'choose the next work.';
-    announce(`⚒ ${before.front} completed in ${cityDisplayName(state, city)} — ${tail}`);
+    announce(`⚒ ${before.front} completed in ${cityDisplayName(state, city)} — ${tail}`, {
+      cell: { col: city.col, row: city.row },
+    });
   }
 
   /**
@@ -1777,14 +1912,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const queueBefore = queueReading(paid);
 
     const command: Command = { type: 'chopFeature', playerId: localPlayerId, unitId: unit.id };
-    const result = dispatch(getGame(), command);
+    const result = commit(command);
     if (!result.ok) {
       reject(result.error);
       return;
     }
 
     if (preview) {
-      announce(`Cleared: +${preview.production}⚙ → ${preview.cityName}`);
+      announce(`Cleared: +${preview.production}⚙ → ${preview.cityName}`, {
+        cell: { col: unit.col, row: unit.row },
+      });
     }
     if (paid && queueBefore) announceSettlement(paid.id, queueBefore);
     if (!unitById(getGame().state, unit.id)) {
@@ -1812,12 +1949,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!unit || pillageBlocker() !== null) return;
 
     const command: Command = { type: 'pillage', playerId: localPlayerId, unitId: unit.id };
-    const result = dispatch(getGame(), command);
+    const result = commit(command);
     if (!result.ok) {
       reject(result.error);
       return;
     }
-    announce(`${unitDef(unit.type).name} pillaged (+${RULES.improvements.pillageGold} gold)`);
+    announce(`${unitDef(unit.type).name} pillaged (+${RULES.improvements.pillageGold} gold)`, {
+      cell: { col: unit.col, row: unit.row },
+    });
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
@@ -1875,7 +2014,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       cityId: city.id,
       cells,
     };
-    const result = dispatch(getGame(), command);
+    const result = commit(command);
     if (!result.ok) {
       // The reducer's own words — "this city has 3 citizens and cannot pin 4"
       // is exactly what the player needs to hear.
@@ -2111,7 +2250,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       unitId: unit.id,
       target: { col, row },
     };
-    const result = dispatch(getGame(), command);
+    const result = commit(command);
     if (!result.ok) {
       // The reducer's own words: it knows why better than this module does.
       reject(result.error);
@@ -2126,7 +2265,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const walked = walkedPrefix(route, { col: unit.col, row: unit.row });
     if (walked.length > 0) renderer.animateMove(unit.id, from, walked);
 
-    reportArrivals(result);
+    reportArrivals(result, { col: unit.col, row: unit.row });
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), hover);
@@ -2144,8 +2283,18 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * split it should be: a camp cleared is *news*, over in a sentence, while an
    * offer is a **decision** and the card is how it announces itself. Saying both
    * would put a line in the bar that the modal on top of it immediately hides.
+   *
+   * `at` is where the piece that filed these reports came to rest, and it is the
+   * caller's because the report itself does not carry a hex — `ArrivalReport` is
+   * a list of what was *found*, not a gazetteer, and widening a simulation type
+   * to give a toast something to pan to would be the interface reaching into the
+   * rules. It is exact for every single-step arrival, which is every advance
+   * after a kill and every march that found one thing; a march that burnt out a
+   * camp halfway and then claimed a ruin at its destination pans to the
+   * destination. That is a courtesy landing a hex or two out, not a wrong claim,
+   * and the alternative costs a field on a sim report.
    */
-  function reportArrivals(result: CommandResult): void {
+  function reportArrivals(result: CommandResult, at: CellRef): void {
     if (!result.ok || !result.arrivals) return;
     for (const arrival of result.arrivals) {
       const { camp } = arrival;
@@ -2176,9 +2325,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
           // interface keeping a secret.
           parts.push(camp.warning);
         }
-        announce(`⚔ Camp cleared: ${parts.join(', ')}${tail}`);
+        announce(`⚔ Camp cleared: ${parts.join(', ')}${tail}`, { cell: at });
       } else if (spoils.length > 0) {
-        announce(`⚔ ${spoils.join(', ')}`);
+        announce(`⚔ ${spoils.join(', ')}`, { cell: at });
       }
       // The card is the announcement for a discovery — see the docblock.
       if (arrival.discovery) onOfferDiscovery?.();
@@ -2406,7 +2555,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const orders = standingOrders();
     const research = researchSnapshot(getGame().state, localPlayerId);
     const meters = meterReading();
-    const result = dispatch(getGame(), { type: 'endTurn', playerId: localPlayerId });
+    const result = commit({ type: 'endTurn', playerId: localPlayerId });
     if (!result.ok) return;
 
     // Whatever was still sliding belongs to the turn that just ended.
@@ -2733,6 +2882,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     isBuyMode: () => buyMode,
     localPlayerId: () => localPlayerId,
     announce,
+    panTo: panToCell,
     /**
      * Re-reads the game after it has been replaced. A new game is a new table:
      * the local seat goes to the seat asked for — the first, for a new game, and
@@ -2749,6 +2899,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // that only happens to reuse a low id.
       skippedUnitIds.clear();
       localPlayerId = seatId;
+      // A new table, or a loaded one. Nobody has been told anything about this
+      // world, and everything already on it — a resumed game's charted ruins,
+      // the camps its borders watch — is the state of play rather than news, so
+      // the watcher is emptied and immediately re-baselined for this seat.
+      sightings.reset();
+      baselineSightings();
       // The board is masked by whoever is sitting at it, and this seat may not
       // be the one the last game left behind — the same first move
       // `setLocalPlayer` makes, and for the same reason: an overlay computed

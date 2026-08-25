@@ -762,6 +762,201 @@ body {
   position: static;
   pointer-events: auto;
 }
+
+/* --- the toast stack ------------------------------------------------------
+   News, under the bar and centred: the one place that is neither a control nor
+   the middle of the board. Transparent to the pointer, with the cards
+   themselves opaque to it, for #hud-popovers' reason — the column's box spans
+   the gaps between cards and the board under those gaps stays draggable.
+
+   Above the popover column in the stack (16 against 15) because a toast is a
+   five-second thing and a card is not: the toast should never be the surface
+   that loses, and it is gone before it can be in the way for long. */
+.toasts {
+  position: fixed;
+  top: calc(var(--topbar-h) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 16;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(360px, calc(100vw - 48px));
+  pointer-events: none;
+}
+
+/* The card. A parchment surface with the usual ink edge, one notch quieter than
+   a popover — it is news, not a screen — and it carries its turn in mono on the
+   left the way every other number in this interface is set. */
+.toast {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 7px 10px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--face-ui);
+  font-size: 11.5px;
+  line-height: 1.35;
+  text-align: left;
+  color: var(--ink);
+  pointer-events: auto;
+  animation: toast-in 200ms ease-out both;
+}
+
+.toast-turn {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
+.toast-text {
+  min-width: 0;
+}
+
+/* An entry that knows where it happened is a button. It says so with the hover
+   the rest of the interface's pressable parchment uses, and with a cursor. */
+button.toast {
+  cursor: pointer;
+}
+
+button.toast:hover {
+  background: var(--table);
+}
+
+button.toast:active {
+  transform: translate(1px, 1px);
+}
+
+.toast.is-leaving {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 260ms ease-in, transform 260ms ease-in;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Less motion, not less news: the card appears and holds for exactly the same
+   beat, it simply does not slide or fade on the way in or out. The removal
+   itself is done in JS on the same timer (see `toasts.ts`). */
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+
+  .toast.is-leaving {
+    transition: none;
+  }
+}
+
+/* --- the chronicle --------------------------------------------------------
+   The same entries the toasts showed, newest first, in a scrolling list. The
+   card is the popover recipe; only the list inside it is new. */
+.log-list {
+  max-height: 250px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-entry {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 3px 4px;
+  border: var(--border-thin) solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: left;
+  color: var(--ink);
+}
+
+.log-entry-turn {
+  flex: none;
+  min-width: 18px;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+
+.log-entry-text {
+  min-width: 0;
+}
+
+/* Cell-bearing entries are pressable, and look it: an ink edge on hover rather
+   than a permanent one, so a list of a hundred lines is not a grid of boxes. */
+button.log-entry {
+  cursor: pointer;
+}
+
+button.log-entry:hover {
+  border-color: var(--ink);
+  background: var(--table);
+}
+
+button.log-entry:active {
+  transform: translate(1px, 1px);
+}
+
+/* --- the unread badge -----------------------------------------------------
+   A count, not a dot: "three things happened" and "eleven things happened" are
+   different amounts of urgency, and the list behind the button is capped so the
+   number can never run away. Vermilion, because it is the one thing in the bar
+   asking to be pressed. */
+.icon-btn {
+  position: relative;
+}
+
+.icon-btn-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--vermilion);
+  color: var(--parchment);
+  font-family: var(--face-num);
+  font-size: 8.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.icon-btn-badge[hidden] {
+  display: none;
+}
+
 .popover {
   width: 236px;
 }

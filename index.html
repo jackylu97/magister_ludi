@@ -186,9 +186,11 @@
                                         the seats, and the tool buttons
            under it     #menu-popover   session-rare setup, from the ☰ button
            under it     #help-overlay   the control scheme, from the ? button
+           under it     #log-popover    the chronicle, from the ❧ button
+           top-centre   #toasts         news, for five seconds each
            top-left     #hud-research   what the empire is learning, and the way
                                         into the star chart
-           bottom-left  #hud-context    what is under the cursor, and notices
+           bottom-left  #hud-context    what is under the cursor, and refusals
            right        #city-panel / #unit-panel — one at a time
            bottom-right #hud-end-turn   the one button pressed every single turn
            whole window #tech-overlay   the star chart, from the research card
@@ -274,6 +276,27 @@
             <span id="lens-yields-flag" class="topbar-btn-flag" hidden>Yields</span>
           </span>
         </button>
+        <!-- The chronicle: every notice this seat has been shown, kept where it
+             can be gone back to. A toast is over in five seconds, which is right
+             for a notice and wrong for a record, so the same entries file
+             themselves behind this button. The badge counts what has arrived
+             since it was last opened.
+
+             Per seat, and cleared by a new game: the list is view state and says
+             so on the card. See src/ui/notifications.ts. -->
+        <button
+          id="log-button"
+          class="icon-btn"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="log-popover"
+          title="Chronicle — what has happened"
+          aria-label="Chronicle"
+        >
+          <span aria-hidden="true">❧</span>
+          <span id="log-badge" class="icon-btn-badge" hidden></span>
+        </button>
         <button
           id="help-button"
           class="icon-btn"
@@ -300,6 +323,17 @@
         </button>
       </div>
     </header>
+
+    <!-- The toast stack: news, under the bar and centred.
+
+         That spot is chosen against three things it must not cover — the empire
+         chips and the research card at the left, the popover column at the
+         right, and the middle of the board, which is where the player is
+         actually looking. It is also directly under the strip the same news
+         changes the numbers in. Filled by src/ui/toasts.ts; polite live region,
+         because a toast is exactly the kind of thing a screen reader should
+         read out without stealing focus. -->
+    <div id="toasts" class="toasts" role="status" aria-live="polite"></div>
 
     <!-- The meters' breakdown cards, hung under the *left* end of the bar for
          the same reason the column below hangs under the right: a card opens
@@ -372,6 +406,27 @@
         <p class="hint">
           A city screen shows its own yields; a selected settler shows city sites.
         </p>
+      </div>
+
+      <!-- The chronicle. Newest first, turn-stamped in mono like every other
+           number in this interface, and an entry that knows where it happened
+           is a button that takes the camera there. Capped — see
+           NOTIFICATION_CAP — and per seat. -->
+      <div
+        id="log-popover"
+        class="hud-card popover"
+        role="dialog"
+        aria-label="Chronicle"
+        hidden
+      >
+        <div class="popover-head">
+          <h2 class="popover-title">Chronicle</h2>
+          <button id="log-close" class="popover-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <div id="log-list" class="log-list"></div>
+        <p class="hint">A courtesy, not a record — a save carries the command log.</p>
       </div>
 
       <!-- The game menu. Session-rare, so it costs no permanent screen space:
@@ -515,6 +570,11 @@
           <li>
             <kbd>A</kbd> — or <b>Abacus</b> in the bar — opens the score: one rod per
             player, one bead per point. No bead is earned until the Æras close
+          </li>
+          <li>
+            News arrives as a card under the bar; <b>❧</b> in the bar keeps the
+            <b>chronicle</b> of it. Click a card, or an entry, to be shown where it
+            happened
           </li>
           <li>
             <b>Left click</b> any tile in an open city's ring to pin a citizen — a garrison

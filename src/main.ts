@@ -92,7 +92,10 @@ import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import { type GameControls, createGameControls } from './ui/controls';
 import { type DamageNumbers, createDamageNumbers } from './ui/damageNumbers';
+import { type NotificationLog, createNotificationLog } from './ui/notifications';
+import { type NotificationsPanel, createNotificationsPanel } from './ui/notificationsPanel';
 import { createPopover } from './ui/popover';
+import { type ToastStack, createToastStack } from './ui/toasts';
 import { type TechTree, createTechTree } from './ui/techTree';
 import { type TilePriceTags, createTilePriceTags } from './ui/tilePriceTags';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
@@ -193,6 +196,15 @@ const saveAsGoButton = requireElement<HTMLButtonElement>('save-as-go');
 const saveAsCancelButton = requireElement<HTMLButtonElement>('save-as-cancel');
 const menuSaveNoteEl = requireElement<HTMLElement>('menu-save-note');
 
+/* The notification channel's two surfaces: the toast stack under the bar, and
+   the chronicle behind the ❧ button. See `src/ui/notifications.ts` for what is
+   in them and why it is view state. */
+const toastsEl = requireElement<HTMLElement>('toasts');
+const logButton = requireElement<HTMLButtonElement>('log-button');
+const logPopoverEl = requireElement<HTMLElement>('log-popover');
+const logListEl = requireElement<HTMLElement>('log-list');
+const logBadgeEl = requireElement<HTMLElement>('log-badge');
+
 const contextEl = requireElement<HTMLElement>('hud-context');
 const contextNoticeEl = requireElement<HTMLElement>('context-notice');
 const combatForecastEl = requireElement<HTMLElement>('combat-forecast');
@@ -284,6 +296,7 @@ const menu = createPopover({
   onOpen: () => {
     help.close();
     lens.close();
+    notifications?.close();
     meterCards?.close();
     // A card that opens showing "Restart?" is a card that will eventually be
     // answered by accident. The save row is reset for the same reason, plus one
@@ -299,6 +312,7 @@ const help = createPopover({
   onOpen: () => {
     menu.close();
     lens.close();
+    notifications?.close();
     meterCards?.close();
   },
 });
@@ -309,6 +323,7 @@ const lens = createPopover({
   onOpen: () => {
     menu.close();
     help.close();
+    notifications?.close();
     meterCards?.close();
   },
 });
@@ -401,11 +416,26 @@ let abacus: AbacusScreen | null = null;
  */
 let meterCards: CivYieldStrip | null = null;
 
+/**
+ * Every notice the seats have been shown, and the two surfaces that show them.
+ *
+ * The log is built here, at module scope and before any game exists, because it
+ * outlives no game but belongs to no one game either — `adoptGame` empties it,
+ * and that is the whole of its lifecycle (see `notifications.ts`: it is view
+ * state, and a save carries the command log instead). The panel and the stack
+ * are holders for `meterCards`' reason: both need `controls`, which does not
+ * exist until `boot`, and `closePopovers` is declared before either.
+ */
+const notificationLog: NotificationLog = createNotificationLog();
+let notifications: NotificationsPanel | null = null;
+let toasts: ToastStack | null = null;
+
 function closePopovers(): boolean {
   const wasOpen =
     menu.isOpen ||
     help.isOpen ||
     lens.isOpen ||
+    (notifications?.isOpen ?? false) ||
     (meterCards?.isOpen ?? false) ||
     (techTree?.isOpen ?? false) ||
     (abacus?.isOpen ?? false) ||
@@ -413,6 +443,7 @@ function closePopovers(): boolean {
   menu.close();
   help.close();
   lens.close();
+  notifications?.close();
   meterCards?.close();
   techTree?.close();
   abacus?.close();
@@ -457,6 +488,9 @@ function showLanding(): void {
   // with a card open that they opened a game ago, and so that the landing is
   // never competing with a second surface for the keyboard.
   closePopovers();
+  // A toast is not a popover and would otherwise float over the landing card,
+  // still counting down news about a game the player has walked away from.
+  toasts?.clear();
   setRestartConfirm(false);
   // The Abacus holds a WebGL context of its own, and the game it was counting
   // is over. `closePopovers` above has already shut it; this gives the context
@@ -1128,6 +1162,10 @@ async function boot(initial: Game | null): Promise<void> {
     // The research card changes with the seat, with the science rate and with
     // every completed tech, so it refreshes wherever the rest of the HUD does.
     techTree?.render();
+    // The chronicle changes with the seat too — each has its own — so the badge
+    // and any open list are re-read here rather than only when something is
+    // announced.
+    notifications?.refresh();
     banners.refresh();
     // The tags are about the open city and the treasury, both of which this
     // pass has just re-read; they draw nothing at all unless buy mode is up.
@@ -1236,6 +1274,19 @@ async function boot(initial: Game | null): Promise<void> {
     getGame: () => game,
     onUpdate: updatePanel,
     onNotice: showNotice,
+    // The other half of the split (`controls.ts`'s docblock): news gets a toast
+    // under the bar *and* a line in the seat's chronicle, and both come from the
+    // same entry so a player who missed the card can read exactly what it said.
+    // The seat comes from `controls` rather than being asked back of it — it is
+    // the authority on which chair is being played, and the one command that
+    // changes chairs would otherwise file its news under the wrong one.
+    onNotify: (entry, seatId) => {
+      notificationLog.push(seatId, entry);
+      // Only the seat actually at the keyboard gets a card. The log is written
+      // for everyone, because a seat comes back to it.
+      if (seatId === controls.localPlayerId()) toasts?.show(entry);
+      notifications?.refresh();
+    },
     closePopovers,
     // A screen in front of the board owns the keyboard: the landing, and the two
     // full-screen surfaces — the star chart and the Abacus — each of which
@@ -1284,6 +1335,35 @@ async function boot(initial: Game | null): Promise<void> {
     onVictory: (playerId) => {
       const player = game.state.players[playerId];
       if (player) splash.announceVictory(player.name);
+    },
+  });
+
+  /**
+   * The notification channel's two surfaces, built after `controls` because both
+   * ask it something: the stack asks it to move the camera, and the panel asks
+   * it whose chronicle to show.
+   */
+  toasts = createToastStack({
+    container: toastsEl,
+    onPan: (cell) => controls.panTo(cell),
+  });
+
+  notifications = createNotificationsPanel({
+    panel: logPopoverEl,
+    trigger: logButton,
+    closeButton: requireElement('log-close'),
+    list: logListEl,
+    badge: logBadgeEl,
+    log: notificationLog,
+    localPlayerId: () => controls.localPlayerId(),
+    onPan: (cell) => controls.panTo(cell),
+    // The HUD's one-card-at-a-time rule, from the other side.
+    onOpenPopover: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      meterCards?.close();
+      techTree?.close();
     },
   });
 
@@ -1479,6 +1559,7 @@ async function boot(initial: Game | null): Promise<void> {
       menu.close();
       help.close();
       lens.close();
+      notifications?.close();
       techTree?.close();
     },
   });
@@ -1620,6 +1701,13 @@ async function boot(initial: Game | null): Promise<void> {
     // An announcement about the game that just ended has nothing to say about
     // the one starting, so it goes with it.
     splash.clear();
+    // Nor does its chronicle, and the whole of it goes: the log is view state
+    // and belongs to one game (see `notifications.ts`). Every seat's, because
+    // every seat is being re-dealt. `controls.refresh` re-baselines the sighting
+    // watcher against the new board a few lines down, so the first poll of the
+    // new game says nothing about ground it starts already knowing.
+    notificationLog.clear();
+    toasts?.clear();
     // A star chart of the game that just ended has nothing to say about the
     // one starting either.
     techTree?.close();
