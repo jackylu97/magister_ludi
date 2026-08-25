@@ -2164,3 +2164,24 @@ so a remembered capital still gets a true star, and marked `· remembered` rathe
 current), a camp **only while watched** (an occupation, not ground), a ruin or a village on any
 explored hex (ground, exactly as `sites3d.ts` draws it). The mapgen page asks the same describer
 omniscient, the liberty its resource lens already takes.
+
+---
+
+## Entry XV.b — Orders and Doctrines (RATIFIED 2026-08-25, amending Entry XV)
+
+The card pool splits into two classes; everything else in Entry XV stands.
+
+- **Orders** — the staples: slottable in government slots, entry-sealed, amnesty on
+  adoption, drafted on the culture meter (3 new + 1 upgrade). The posture layer; swap
+  skill expression lives here. Tradeoff cards live here too, BECAUSE they are revocable.
+- **Doctrines** — the benders: **permanent, occupy no slot, and are acquired only at
+  government adoption** — each adoption offers a draft of 3 from that tier's doctrine pool,
+  pick 1. Three per game (tiers 3/7/15): the run's irreversible identity beats, landing on
+  the same day as the slot jump and the seal amnesty — adoption day is THE chapter break.
+  Drawback doctrines are sanctioned (a knowing once-per-era choice is the roguelike's
+  curse-with-upside); drawback ORDERS stay mild since they churn.
+- Magister's Dice reroll doctrine offers like any other draft. Doctrine pools are small
+  (~5–7 per tier), drawn without replacement within a game.
+- Why not full permanence (considered, rejected): it would collapse cards into masteries,
+  delete the seal/amnesty machinery and the swap skill expression, and unbound the power
+  budget that slot scarcity provides. The split keeps both registers the design has wanted.
