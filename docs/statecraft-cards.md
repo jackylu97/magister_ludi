@@ -44,31 +44,32 @@ Your three inline edits from the pre-split draft are preserved and marked ✎.
 | The Hermit Crown | 🌱 | while you hold ≤3 cities: capital +30% all yields | hook:conditionRule |
 | River Kings ✎ | 🌱 | +30% 🌾 in freshwater cities · −10% 🌾 and ⚙ in cities without freshwater | hook:scopeVariant |
 | The Woodwrights | ⚒ | chops pay +100% and grant +10🎵 each | windfallRider |
-| The Ransom Code | 🏹 | rescuing civilians pays +25💰 · yours cannot be stolen with a combat unit within 1 hex | hook:unitStatCard (guard) |
 | The Great Litany | 🕯 | +1🎵 per 3🕯 gained per turn | hook:rateConversion |
+| The Great Warring Tribes ✎ | ⚒ | negative authority no longer penalises ⚙ toward units · +10% ⚙ toward mounted units · +5🔬 +5🎵 per city · you may never build the courthouse family | meterRule + vocab + hook:productionBar *(courthouse family = the future authority buildings; bar activates when they exist)* |
+| Wolf-Mother's Pact ✎ | 🏹 | barbarians never attack you (theft continues) · camps in your sight pay +50% | behaviorRule + windfallRider *(moved from pool III)* |
+| Athenaeum of the Road ✎ | 🧭 | for ALL discoveries: claim all three options | offerRider *(moved from pool III — user: the power must arrive while discoveries live; playtest, possibly remove)* |
 
 ## Doctrine pool II (offered at the tier-7 adoption)
 
 | Doctrine | Line | Effect | Mechanism |
 |---|---|---|---|
-| Thalassocracy | 🐫 | +20% 💰 and 🎵 in coastal cities · coastal cities cost 0 authority | vocab + meterRule |
+| Thalassocracy | 🐫 | +20% 💰 and 🎵 in coastal cities · coastal cities cost 1 fewer authority | vocab + meterRule |
 | Mountain Hold | ⚒ | +25% ⚙ in mountain-adjacent cities · +5 defense there | scopeVariant + combatCardLine |
 | The Burning Way | ⚒ | chopping costs no worker charge · pillaging heals 25 | hook:actionRule + windfallRider |
-| Bread and Circuses | 🌱 | +2🎵 per point of positive happiness (cap +12) | rateConversion |
+| Bread and Circuses | 🌱 | +1🎵 per point of positive happiness (no cap) | rateConversion |
 | The Tithe | 🕯 | +1💰 per 🕯 gained per turn | rateConversion |
-| Divine Inspiration | 🕯 | +1% 🔬 and 🎵 per 10 banked 🕯 (max +20%) | countScaled |
+| Divine Inspiration ✎ | 🕯 | +1% 🔬 and 🎵 per 1000 banked 🕯 (no max) | countScaled *(scale note: current faith income (~2–5/turn) never reaches 1000 — this number assumes religion-era faith inflation; revisit at the faith milestone)* |
+| Religious Mandate ✎ | 🕯 | permanent war with civilizations of a different majority religion · your cities cannot be converted · powerful bonus toward domination/religious victory beads (TBD) | FUTURE: religion + war state + beads — annotated, not built until those systems exist |
 
 ## Doctrine pool III (offered at the tier-15 adoption)
 
 | Doctrine | Line | Effect | Mechanism |
 |---|---|---|---|
-| Wolf-Mother's Pact | 🏹 | barbarians never attack you (theft continues) · camps in your sight pay +50% | hook:behaviorRule + windfallRider |
-| The Iron Price | 🏹 | every combat kill grants +5🎵 · pillaging +15💰 | windfallRider |
+| The Iron Price ✎ | 🏹 | every combat kill grants +15🎵 · pillaging +15💰 | windfallRider |
 | Manifest of the Steppe | — | settlers −40% ⚙, no cost escalation · every city +1 happiness demand | vocab + meterRule |
-| The Gilded Court | 🐫 | +1 authority capacity per 50💰 held (cap +5) | countScaled |
-| The Grand Bazaar | 🐫 | every luxury signature +50% · +2💰 per unique luxury | hook:effectAmplifier + countScaled |
-| Athenaeum of the Road | 🧭 | your first discovery each Æra: claim ALL THREE options | offerRider |
-| Master of Maps | 🧭 | +15🔬 and +15💰 per discovery claimed from here on · units ignore terrain cost in neutral territory | countScaled + unitStatCard |
+| The Gilded Court | 🐫 | unlocks Gilded Hall, building can only be purchased for 1000 gold, +3 authority | countScaled |
+| The Grand Bazaar | 🐫 | happiness effect of unique luxuries +50%, additional copies of a luxury have 30% effectiveness (instead of 0%, don't contribute extra happiness) · +2💰 per unique luxury | hook:effectAmplifier + countScaled |
+| Master of Maps ✎ | 🧭 | all units +1 sight and +1 movement · −10% combat strength | unitStatCard *(rework: the explorer-empire tradeoff)* |
 
 # ORDERS (slottable · sealed · the culture meter's drafts)
 
@@ -86,8 +87,10 @@ Your three inline edits from the pre-split draft are preserved and marked ✎.
 | Corvée Labour | E | ⚒ | +25% ⚙ toward buildings in the capital | vocab |
 | Boundary Stones | E | — | +30% border culture, all cities | vocab |
 | First Rites | W | 🕯 | +1🕯 per city | vocab |
+| Border Ballads | W | 🏹 | +2🎵 per barbarian camp you can currently see | countScaled *(fear makes poets)* |
+| The Widow's Levy | M | — | when a unit of yours dies, its nearest city gains +10⚙ | windfallRider (death) |
 
-## Government I pool (13)
+## Government I pool (15)
 
 | Order | Type | Line | Effect | Mechanism |
 |---|---|---|---|---|
@@ -104,8 +107,12 @@ Your three inline edits from the pre-split draft are preserved and marked ✎.
 | Festival Days | W | 🌱 | +3 happiness | vocab |
 | Scribal Schools | W | ✶ | +10% 🔬, all cities | vocab |
 | Curious Elders | W | ✶ | +5🔬 whenever you claim a discovery | windfallRider |
+| Horse Lords | M | ⚒ | mounted units +1 movement | unitStatCard (class) |
+| The Salt Road | E | 🐫 | +1💰 per improved bonus resource | countScaled |
+| Granary Levies | E | 🌱 | when a city grows, it gains +10⚙ | windfallRider (growth) |
+| Rites of Passage | W | 🕯 | completing a unit grants +2🕯 | windfallRider |
 
-## Government II pool (14)
+## Government II pool (16)
 
 | Order | Type | Line | Effect | Mechanism |
 |---|---|---|---|---|
@@ -123,8 +130,12 @@ Your three inline edits from the pre-split draft are preserved and marked ✎.
 | Provincial Governors | E | — | +3 authority capacity | vocab |
 | Pilgrim Roads | W | 🕯 | +2🕯 per city · +1 happiness per 20 banked 🕯 (max +3) | vocab + countScaled |
 | The Cartographers | W | 🧭 | +2🔬 per unclaimed discovery you can see · scouts +1 movement | countScaled + unitStatCard |
+| Publicani | E | 🐫 | +1💰 per point of positive authority | rateConversion (the writ farmed for coin) |
+| Ore Tithes | E | ⚒ | +3⚙ in each city holding an improved strategic resource | scopeVariant (holding-scoped) |
+| Siege Doctrine | M | ⚒ | +5 combat when attacking cities | combatCardLine |
+| Foreign Quarters | E | 🐫 | +1💰 and +1🔬 in cities adjacent to another civilization's territory | scopeVariant (frontier) |
 
-## Government III pool (14)
+## Government III pool (16)
 
 | Order | Type | Line | Effect | Mechanism |
 |---|---|---|---|---|
@@ -142,6 +153,9 @@ Your three inline edits from the pre-split draft are preserved and marked ✎.
 | Court Astronomers | W | ✶ | +15% 🔬, all cities | vocab |
 | Patronage of the Arts | W | — | +15% 🎵, all cities | vocab |
 | Toleration Edicts | W | — | happiness demand −15% | vocab |
+| Skirmishers' Creed | M | ⚒ | ranged units +1 range | unitStatCard (class) |
+| The Finisher's Art | M | — | +5 combat against units below half strength | combatCardLine (state) |
+| Census of Souls | W | 🕯 | +1🕯 per 2 population in your capital | countScaled |
 
 *(Sorting notes: Hostage Takers → The Ransom Code, promoted to Doctrine. Litanies → The
 Great Litany, promoted. Slash and Burn + the Scorched-Earth heal merged into The Burning
@@ -154,9 +168,10 @@ became the garrison-happiness card and moved off sight/defense.)*
 ## Implementation notes
 
 - 18 Doctrines (5/6/7 per tier, drawn without replacement) + 51 Orders. Hooks:
-  combatCardLine, unitStatCard, windfallRider, foundingRider, countScaled, rateConversion,
-  offerRider, effectAmplifier, meterRule, conditionRule, scopeVariant, actionRule,
-  behaviorRule.
+  combatCardLine, unitStatCard, windfallRider (now incl. death/growth riders), foundingRider,
+  countScaled, rateConversion, offerRider, effectAmplifier, meterRule, conditionRule,
+  scopeVariant (geographic + holding-scoped + frontier), actionRule, behaviorRule,
+  productionBar (a card forbidding a build family).
 - Doctrines: permanent, slotless, one per adoption, dice reroll the offer. Drawback
   doctrines sanctioned; drawback Orders stay mild.
 - Faith scalers capped; all numbers data.
