@@ -2209,6 +2209,49 @@ export function riverSegment(): BufferGeometry {
   ]);
 }
 
+/**
+ * The mitre that turns two border bands into one continuous line where they
+ * meet at a hex corner: a flat kite in the xz plane, its blunt apex *at* the
+ * corner and its local +x running along the inward bisector.
+ *
+ * Sized in units of the band's own **width**, because that is the only free
+ * parameter the joint has. A hexagon's interior angle is always 120°, so once
+ * both bands are cut square a fixed distance back from the corner the piece
+ * that closes the turn is fully determined:
+ *
+ *   the setback  `1/√3` (that is `tan 30°`) of a width along each edge. Cut
+ *                there and a band's *inner* lip ends exactly on the mitre apex,
+ *                which is what makes this a tiling rather than an overlap —
+ *                nothing is drawn twice, so the joint does not double-blend
+ *                into a dark notch at the one place the eye is looking.
+ *   the apex     `2/√3` of a width out along the bisector: where the two inner
+ *                lips, each one width in from its own edge, cross.
+ *   the flanks   half a width either side of the bisector — the setback point
+ *                on each edge, and the two straight sides of the kite that run
+ *                from there to the apex are the bands' own square end caps.
+ *
+ * So the outer boundary of the joint is the hex's own two edges meeting at a
+ * sharp 120° point, and the inner boundary is a second sharp point at the apex.
+ * A crisp turn in a crisp line. Rounding it would mean a fan here instead, and
+ * would be the only curve on a board drawn entirely in straight ink.
+ */
+export function borderCorner(): BufferGeometry {
+  const root3 = Math.sqrt(3);
+  const setback = 1 / (2 * root3); // the setback point's reach along the bisector
+  const apex = 2 / root3;
+  // Wound to match `riverSegment` — counter-clockwise seen from +y — for the
+  // same reason: the material is FrontSide-only and a flipped kite is an
+  // invisible one, which would read as the old notch coming back.
+  return flatFan([
+    { x: 0, z: 0 },
+    { x: setback, z: 0.5 },
+    { x: apex, z: 0 },
+    { x: 0, z: 0 },
+    { x: apex, z: 0 },
+    { x: setback, z: -0.5 },
+  ]);
+}
+
 /** A path-preview chip: a very low cylinder standing on its base. */
 export function pathDot(radius: number, height: number): BufferGeometry {
   const geometry = new CylinderGeometry(radius, radius, height, 12, 1);

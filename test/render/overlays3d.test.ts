@@ -11,7 +11,11 @@ import {
 
 import type { TileIcons } from '../../src/render3d/badges3d';
 import { BoardGeometry } from '../../src/render3d/board3d';
-import { TerritoryLayer, borderBandMatrix } from '../../src/render3d/cities3d';
+import {
+  TerritoryLayer,
+  borderBandMatrix,
+  borderCornerMatrix,
+} from '../../src/render3d/cities3d';
 import { RENDER_ORDER } from '../../src/render3d/instances';
 import { cellCenter, directionDelta, tileScale, tileTopY } from '../../src/render3d/layout';
 import { LensLayer } from '../../src/render3d/lens3d';
@@ -496,6 +500,183 @@ describe('board overlays draw over the board', () => {
         apothem - (VIEW3D.board.hexRadius * VIEW3D.territory.borderWidth) / 2,
         10,
       );
+    }
+  });
+
+  /** How many mitre pieces a layer put down, wrap copies included. */
+  function cornerCount(group: { children: unknown[] }, geo: BoardGeometry): number {
+    let total = 0;
+    for (const { mesh } of decals(group)) {
+      if (mesh.geometry === geo.borderCorner) total += mesh.count;
+    }
+    return total;
+  }
+
+  /**
+   * A territory of exactly the named tiles, claimed for player 0.
+   *
+   * By hand rather than by founding cities: these tests are about the *shape* of
+   * an outline — a lone hex, a domino — and a city's first ring is whatever the
+   * rules say it is.
+   */
+  function claim(state: GameState, cells: readonly Tile[]): void {
+    foundCityAt(state, 0, at(state, 9, 6));
+    state.tileOwner.fill(null);
+    for (const cell of cells) {
+      state.tileOwner[tileIndex(state.map, cell.col, cell.row)] = state.cities[0]!.id;
+    }
+  }
+
+  /**
+   * One band's four corners in world space, as the pair of ends and the pair of
+   * lips: local +x runs along the edge toward the corner shared with
+   * `direction + 1`, local +z points inward, into the tile.
+   */
+  function bandCorners(matrix: Matrix4): {
+    outerAhead: Vector3;
+    innerAhead: Vector3;
+    outerBehind: Vector3;
+    innerBehind: Vector3;
+    length: number;
+  } {
+    const position = new Vector3();
+    const rotation = new Quaternion();
+    const scale = new Vector3();
+    matrix.decompose(position, rotation, scale);
+    const along = new Vector3(1, 0, 0).applyQuaternion(rotation).multiplyScalar(scale.x / 2);
+    const across = new Vector3(0, 0, 1).applyQuaternion(rotation).multiplyScalar(scale.z / 2);
+    return {
+      outerAhead: position.clone().add(along).sub(across),
+      innerAhead: position.clone().add(along).add(across),
+      outerBehind: position.clone().sub(along).sub(across),
+      innerBehind: position.clone().sub(along).add(across),
+      length: scale.x,
+    };
+  }
+
+  /**
+   * How close two of these points have to be to be the same point.
+   *
+   * Loose by the standards of the rest of this file because one side of every
+   * comparison has been through a `Float32Array`: the mitre's corners are
+   * *vertices*, and a buffer attribute is single precision, so the arithmetic
+   * agrees to about a part in 10^9 and no further.
+   */
+  const SAME_POINT = 1e-6;
+
+  /** The mitre's own four points, in world space, deduplicated. */
+  function cornerPoints(geo: BoardGeometry, matrix: Matrix4): Vector3[] {
+    const attribute = geo.borderCorner.getAttribute('position');
+    const out: Vector3[] = [];
+    for (let i = 0; i < attribute.count; i++) {
+      const point = new Vector3(
+        attribute.getX(i),
+        attribute.getY(i),
+        attribute.getZ(i),
+      ).applyMatrix4(matrix);
+      if (!out.some((seen) => seen.distanceTo(point) < SAME_POINT)) out.push(point);
+    }
+    return out;
+  }
+
+  function hasPoint(points: readonly Vector3[], wanted: Vector3): boolean {
+    return points.some((point) => point.distanceTo(wanted) < SAME_POINT);
+  }
+
+  it('mitres every corner a border turns, and none it runs straight through', () => {
+    const state = flatState();
+    const lone = at(state, 3, 3);
+    claim(state, [lone]);
+
+    const layer = new TerritoryLayer();
+    layer.build(state, geometry, materials);
+
+    // A country of one hex: all six edges face the world, so the line turns at
+    // all six of its vertices.
+    expect(bandCount(layer.group, geometry)).toBe(6 * WRAP_COPIES);
+    expect(cornerCount(layer.group, geometry)).toBe(6 * WRAP_COPIES);
+    layer.dispose();
+
+    // A domino. Each hex now has one *interior* edge, and the two vertices at
+    // either end of it are where the outline passes from one tile to the other —
+    // the line carries on there through the neighbour's own band, so neither
+    // tile turns and neither draws a mitre. Four turns each, eight in all, which
+    // is exactly the corner set of the domino's outline.
+    const partner = neighborInDirection(state.map, lone, 0)!;
+    claim(state, [lone, partner]);
+    const both = new TerritoryLayer();
+    both.build(state, geometry, materials);
+    expect(bandCount(both.group, geometry)).toBe(10 * WRAP_COPIES);
+    expect(cornerCount(both.group, geometry)).toBe(8 * WRAP_COPIES);
+    both.dispose();
+  });
+
+  it('stops a turning band inside its own hex, and runs a straight one to the corner', () => {
+    const tile = at(flatState(), 3, 3);
+    const side = VIEW3D.board.hexRadius * faceFraction(tile);
+    const turns = [true, true, true, true, true, true];
+
+    for (let d = 0; d < DIRECTION_COUNT; d++) {
+      // Both ends turning: the band must end short of its own face's corners.
+      // The bug this replaced ran every band *past* them, which is what left a
+      // pair of spurs sticking out of the hexagon at every vertex of a border.
+      expect(bandCorners(borderBandMatrix(tile, d, turns)).length).toBeLessThan(side);
+      // Neither end turning: the line carries on into the next tile of the same
+      // country, so the band runs the full side of the *ideal* hex — reaching
+      // the vertex it shares with that tile rather than the corner of its own
+      // shrunken face, which is what keeps the line from going dashed once per
+      // tile across the grout.
+      expect(bandCorners(borderBandMatrix(tile, d)).length).toBeCloseTo(
+        VIEW3D.board.hexRadius,
+        12,
+      );
+    }
+  });
+
+  it('tiles the joint: the mitre meets both bands lip to lip, and nothing twice', () => {
+    const tile = at(flatState(), 3, 3);
+    const turns = [true, true, true, true, true, true];
+
+    for (let corner = 0; corner < DIRECTION_COUNT; corner++) {
+      const ahead = bandCorners(borderBandMatrix(tile, corner, turns));
+      const behind = bandCorners(
+        borderBandMatrix(tile, (corner + 1) % DIRECTION_COUNT, turns),
+      );
+      // The two bands' inner end caps already meet, at the point one band-width
+      // in from both edges. That is the mitre apex, and it is why the corner
+      // piece can be a tiling rather than a patch laid over the top: at less
+      // than full opacity an overlap would print a dark notch at exactly the
+      // vertex a player reads to see where their ground stops.
+      // Both sides of *this* one are matrix arithmetic, so it holds to double
+      // precision: the two bands genuinely end on the same point.
+      expect(ahead.innerAhead.distanceTo(behind.innerBehind)).toBeLessThan(1e-12);
+
+      const points = cornerPoints(geometry, borderCornerMatrix(tile, corner));
+      expect(points).toHaveLength(4);
+      // …and the piece is bounded by that apex, the two bands' outer end caps,
+      // and the hex vertex itself: it fills the turn and claims nothing else.
+      expect(hasPoint(points, ahead.innerAhead)).toBe(true);
+      expect(hasPoint(points, ahead.outerAhead)).toBe(true);
+      expect(hasPoint(points, behind.outerBehind)).toBe(true);
+    }
+  });
+
+  it('winds the mitre the way a band is wound, or it is a hole', () => {
+    // Counter-clockwise seen from +y, exactly as `riverSegment` is: the border
+    // ink is drawn FrontSide, so a flipped kite is an invisible one — and an
+    // invisible mitre looks precisely like the notch it was added to close.
+    const attribute = geometry.borderCorner.getAttribute('position');
+    expect(attribute.count % 3).toBe(0);
+    for (let i = 0; i < attribute.count; i += 3) {
+      const ax = attribute.getX(i + 1) - attribute.getX(i);
+      const az = attribute.getZ(i + 1) - attribute.getZ(i);
+      const bx = attribute.getX(i + 2) - attribute.getX(i);
+      const bz = attribute.getZ(i + 2) - attribute.getZ(i);
+      // Negative in (x, z), which is counter-clockwise once the +y viewpoint
+      // flips the handedness of the plane. `riverSegment` is wound the same way.
+      expect(ax * bz - az * bx).toBeLessThan(0);
+      // Flat on the ground, facing the sky, like every other overlay shape.
+      expect(attribute.getY(i)).toBe(0);
     }
   });
 

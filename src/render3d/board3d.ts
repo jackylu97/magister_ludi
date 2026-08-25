@@ -68,6 +68,7 @@ import {
   atlasQuad,
   bannerPole,
   barQuad,
+  borderCorner,
   cactus,
   cairnStack,
   brokenColumns,
@@ -515,6 +516,17 @@ export class BoardGeometry {
    */
   readonly borderBand: BufferGeometry;
   /**
+   * The mitre where two of one tile's border bands meet at a hex corner: a kite
+   * sized in units of the band's width, scaled and turned onto the corner by
+   * `borderCornerMatrix` (`cities3d.ts`).
+   *
+   * Its own buffer rather than a second use of `borderBand` because it is a
+   * different *shape* — the band is a rectangle and this is the four-sided
+   * piece that fills the 120° turn between two of them. One geometry serves
+   * every corner on the board: the angle is a hexagon's, so it never varies.
+   */
+  readonly borderCorner: BufferGeometry;
+  /**
    * The diorama props, keyed by resource id: the wheat, the cattle, the ore.
    * Baked lit for every seat, exactly as everything else on the board is, and
    * then taken down per seat by the reveal pass where the resource has a
@@ -644,6 +656,7 @@ export class BoardGeometry {
     this.numeralMarkers = buildNumeralMarkers();
     this.river = riverSegment();
     this.borderBand = riverSegment();
+    this.borderCorner = borderCorner();
     this.bar = barQuad();
     // Sprite units. Built unconditionally rather than behind the style switch:
     // three small shared geometries cost nothing, and a board that had to be
@@ -711,6 +724,7 @@ export class BoardGeometry {
     for (const quad of this.numerals) quad.dispose();
     this.river.dispose();
     this.borderBand.dispose();
+    this.borderCorner.dispose();
     this.bar.dispose();
     this.territory.dispose();
     this.billboard.dispose();

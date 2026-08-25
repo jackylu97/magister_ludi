@@ -349,16 +349,18 @@ export interface TerritorySpec {
   /** Opacity of the border band drawn along an edge where ownership changes. */
   borderOpacity: number;
   /**
-   * The band's thickness as a fraction of the hex radius, and how far it runs
-   * past the edge it lies on.
+   * The band's thickness as a fraction of the hex radius, and the *only* number
+   * the border line has: how far a band runs, where it stops, and how big the
+   * mitre at a corner is are all derived from this and the hexagon's own angles
+   * (`borderBandMatrix`, `borderCorner`).
    *
-   * The overhang closes the corners: two bands meeting at a vertex of the same
-   * tile leave a notch at exactly the width of the band, and running each of
-   * them a few percent long fills it — the same trick, for the same reason, that
-   * `rivers.overhang` plays in the grout.
+   * There used to be a `borderOverhang` beside it — a few percent of extra
+   * length on every band, to close the notch where two of one tile's bands met
+   * at a vertex. It closed that notch by overshooting it, which left a spur
+   * poking out of the hexagon at every turn in every border. The joint is now
+   * built rather than covered, so the overhang has no work left to do.
    */
   borderWidth: number;
-  borderOverhang: number;
   /** An auto-assigned citizen's ring: bone white, the board's quiet voice. */
   workedColor: number;
   workedOpacity: number;
@@ -1599,7 +1601,6 @@ export const VIEW3D: View3DData = {
     tintOpacity: viewJson.territory.tintOpacity,
     borderOpacity: viewJson.territory.borderOpacity,
     borderWidth: viewJson.territory.borderWidth,
-    borderOverhang: viewJson.territory.borderOverhang,
     workedColor: named(viewJson.territory.workedColor, 'territory.workedColor'),
     workedOpacity: viewJson.territory.workedOpacity,
     lockedColor: named(viewJson.territory.lockedColor, 'territory.lockedColor'),
