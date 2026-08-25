@@ -67,7 +67,7 @@
     "growthExponent": 1.65,
     "starvationShrinksAt": -1,
     "baseCityYields": {
-      "food": 3,
+      "food": 2,
       "production": 2,
       "gold": 0
     },

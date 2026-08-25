@@ -66,8 +66,10 @@ import { Renderer3D } from '../render3d/renderer3d';
 import type { HoverInfo } from '../ui/mapView';
 import {
   describeImprovement,
+  describeOccupant,
   describeTile,
   resourceRowNode,
+  tileYieldLineNodes,
   tileYieldNodes,
 } from '../ui/tileReadout';
 import { type TileTint, partitionColor } from '../render3d/tint3d';
@@ -105,6 +107,7 @@ const tileWhereEl = requireElement<HTMLElement>('tile-where');
 const tileYieldsEl = requireElement<HTMLElement>('tile-yields');
 const tileResourceEl = requireElement<HTMLElement>('tile-resource');
 const tileImprovementEl = requireElement<HTMLElement>('tile-improvement');
+const tileOccupantEl = requireElement<HTMLElement>('tile-occupant');
 const tileContinentEl = requireElement<HTMLElement>('tile-continent');
 const tileFieldsEl = requireElement<HTMLElement>('tile-fields');
 
@@ -759,12 +762,21 @@ function showTile(hover: HoverInfo | null): void {
   tileTerrainEl.textContent = `${described.terrain}${described.hills ? ' hills' : ''}${feature}`;
   tileWhereEl.textContent = `${tile.col},${tile.row} · q${hover.axial.q} r${hover.axial.r}`;
 
+  // The total and the lines it is the fold of, from the one breakdown
+  // (`tileYieldLines`) — the same pair the game's card shows, so a hex read
+  // here and read in a game cannot itemize two different ways.
   const yields = tileYieldNodes(game.state, SPECTATOR_SEAT, tile);
-  if (yields.length === 0) tileYieldsEl.textContent = '—';
-  else tileYieldsEl.replaceChildren(...yields);
+  const lines = document.createElement('ul');
+  lines.className = 'yield-lines';
+  lines.append(...tileYieldLineNodes(game.state, SPECTATOR_SEAT, tile));
+  if (yields.length === 0) tileYieldsEl.replaceChildren(lines);
+  else tileYieldsEl.replaceChildren(...yields, lines);
 
   tileResourceEl.replaceChildren(resourceRowNode(game.state, SPECTATOR_SEAT, tile));
   tileImprovementEl.textContent = describeImprovement(tile);
+  // Omniscient: this page has no seat of its own, and a spectator told nothing
+  // about the sites it exists to inspect would be a card refusing to do its job.
+  tileOccupantEl.textContent = describeOccupant(game.state, SPECTATOR_SEAT, tile, true);
 
   const continent = continentAt(game.state.map, report.continentOf, tile.col, tile.row);
   const row = continent >= 0 ? report.continents.rows[continent] : undefined;

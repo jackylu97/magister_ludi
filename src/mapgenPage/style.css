@@ -543,6 +543,41 @@ tr.total .kind {
   color: #56505a;
 }
 
+/* The itemized breakdown under the total, copied from `src/style.css` for the
+   reason the voices above are: the language travels, the cascade does not. */
+.yield-lines {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+}
+
+.yield-line {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  line-height: 1.4;
+}
+
+.yield-line-figures {
+  flex: none;
+  min-width: 62px;
+  font-size: 10px;
+}
+
+.yield-line-source {
+  font-family: var(--face-ui);
+  font-size: 10px;
+  color: var(--ink-faint);
+}
+
+.yield-line.is-replaced {
+  opacity: 0.55;
+}
+
+.yield-line.is-replaced .yield-line-figures {
+  text-decoration: line-through;
+}
+
 /* The resource mark: a CSS mask in `currentColor`, exactly as the game draws it
    (see `.res-mark` in `src/style.css` and `src/ui/resourceMark.ts`). */
 .res-mark {

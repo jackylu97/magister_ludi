@@ -1079,19 +1079,126 @@ export function refreshTileDerived(state: GameState, tile: Tile): void {
 // --- yields -----------------------------------------------------------------
 
 /**
- * What the city centre pays: the larger of its own terrain yield and
- * `baseCityYields`, field by field.
+ * The label the centre's own line carries in a breakdown. One string, because
+ * the hover card, the city panel and a test all have to name the same line.
+ */
+export const CENTRE_SOURCE = 'City centre';
+
+/** The prefix on the line that says the ground under the town was better. */
+const INHERITED_PREFIX = 'Inherited';
+
+/**
+ * What the city centre pays, and *why* — rule 5 applied to the one tile no
+ * citizen works.
  *
- * A city is a city wherever it stands — one planted on snow still feeds itself —
- * but a city on a hill keeps the hill's production. Taking the maximum rather
- * than replacing outright is what gives both.
+ * The rule, as ratified: **a centre pays `baseCityYields`, and inherits the
+ * ground's own yield in any voice where the ground pays more.** A city is a
+ * city wherever it stands — one planted on snow still feeds itself — but a town
+ * on a wheat field keeps the wheat and a town on a hill keeps the hammers. Per
+ * *voice* and not per tile, so a 3🌾/2🪙 seam under a town reads 3🌾/2⚙/2🪙:
+ * the food and the gold are the ground's, the production is the town's own.
+ *
+ * The list, and why it is shaped this way
+ * ---------------------------------------
+ * Two lines, and the fold of them is the maximum, exactly:
+ *
+ *   `City centre`        the flat base, as a `base` entry — what standing here
+ *                        is worth before the ground is consulted at all.
+ *   `Inherited · …`      an `add` entry carrying, per voice, however much the
+ *                        ground beats the base by. Zero in every voice the base
+ *                        already covers, and omitted entirely when the ground
+ *                        beats it nowhere.
+ *
+ * `base + max(ground − base, 0)` is `max(base, ground)` per voice, so the fold
+ * is the rule and there is no total computed beside the list (rule 5). The
+ * alternative — printing the ground's own breakdown and then a top-up line —
+ * folds to the same number but reads backwards: the centre's floor is the
+ * headline of what a town is worth, not a footnote under the grass.
+ *
+ * The inherited line **names the ground that earned it**, because "inherited"
+ * with no subject is the one thing a player cannot act on: `Inherited · Wheat`
+ * says move the town one hex and you lose the wheat. The names are read off the
+ * ground's own `explainTileYield` list and the test is *what the base does not
+ * already cover*: every `add` line paying into an inherited voice, plus the
+ * effective terrain line (the last `base`/`override`, which is what the tile
+ * actually is) only when the terrain **by itself** beats the base somewhere —
+ * an oasis does, plain grassland under a wheat field does not, and listing the
+ * grass there would name the half of the sum the town was getting anyway. No
+ * arithmetic is attributed to any one name: the line carries the whole excess
+ * and the label says what is responsible for it.
+ *
+ * Evaluated through the **city owner's** context, like everything else a city
+ * banks (see `yieldContextFor`): the centre of a town on iron is worth the iron
+ * only to an empire that has heard of it.
+ */
+export function explainCentreYield(state: GameState, city: City): TileYieldContribution[] {
+  const ground = explainTileYield(cityTile(state.map, city), cityContext(state, city));
+  const under = foldTileYield(ground);
+  const base = readTileYield(CITIES.baseCityYields);
+
+  const list: TileYieldContribution[] = [
+    { source: CENTRE_SOURCE, kind: 'base', ...base },
+  ];
+
+  const inherited = emptyTileYield();
+  let inheritsAnything = false;
+  for (const key of TILE_YIELD_KEYS) {
+    const excess = under[key] - base[key];
+    if (excess <= 0) continue;
+    inherited[key] = excess;
+    inheritsAnything = true;
+  }
+  if (!inheritsAnything) return list;
+
+  list.push({
+    source: `${INHERITED_PREFIX} · ${inheritedSources(ground, inherited, base).join(' · ')}`,
+    kind: 'add',
+    ...inherited,
+  });
+  return list;
+}
+
+/**
+ * Which of the ground's lines are the reason the centre inherits anything.
+ *
+ * The terrain line is the *effective* one — the last `base`/`override`, since a
+ * hill replaces the forest that replaced the grass — and it is named only when
+ * the ground it describes beats the base on its own. Every `add` line paying
+ * into an inherited voice is named. Deduped and kept in the ground list's own
+ * order, so the label reads in the order the rules resolved.
+ */
+function inheritedSources(
+  ground: readonly TileYieldContribution[],
+  inherited: TileYield,
+  base: TileYield,
+): string[] {
+  const voices = TILE_YIELD_KEYS.filter((key) => inherited[key] > 0);
+
+  let terrain: TileYieldContribution | undefined;
+  for (const entry of ground) if (entry.kind !== 'add') terrain = entry;
+  const terrainEarnsIt =
+    terrain !== undefined && TILE_YIELD_KEYS.some((key) => terrain![key] > base[key]);
+
+  const names: string[] = [];
+  for (const entry of ground) {
+    const earns =
+      entry.kind === 'add'
+        ? voices.some((key) => entry[key] > 0)
+        : entry === terrain && terrainEarnsIt;
+    if (!earns || names.includes(entry.source)) continue;
+    names.push(entry.source);
+  }
+  // Unreachable while some line pays every voice the fold counted, and a label
+  // reading "Inherited · " would be the visible half of that being wrong.
+  return names.length > 0 ? names : ['the ground'];
+}
+
+/**
+ * What the city centre pays. The fold of `explainCentreYield`, and nothing
+ * else — the number and the explanation cannot drift apart.
  */
 export function centreYield(state: GameState, city: City): TileYield {
-  const own = tileYieldOf(cityTile(state.map, city), cityContext(state, city));
-  const base = readTileYield(CITIES.baseCityYields);
-  const out = emptyTileYield();
-  for (const key of TILE_YIELD_KEYS) out[key] = Math.max(own[key], base[key]);
-  return out;
+  return foldTileYield(explainCentreYield(state, city));
 }
 
 // --- what a building pays ---------------------------------------------------

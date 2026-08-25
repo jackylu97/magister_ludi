@@ -53,7 +53,8 @@ would change every seeded outcome. No further rename passes.
    add it as a contribution entry in the yield-breakdown list (see design-notes Entry VIII,
    "Explainable yields") — totals are the fold of the breakdown; never compute a total beside
    the list. **Landed with M7**: `explainTileYield(tile, ctx?)` in `src/sim/cities.ts`
-   returns the ordered list and `tileYieldOf` is `foldTileYield` of it — one implementation,
+   returns the ordered list and `tileYieldOf` is `foldTileYield` of it (`explainCentreYield`
+   is its sibling for the city centre's base+inherit rule; `centreYield` is that fold) — one implementation,
    golden-tested against the pre-refactor arithmetic. `ctx` carries the owning player's techs
    and now gates **two** lines — the renewals and the resource reveal (see the trap below);
    who passes one is the register in the `yieldContextFor` docblock, and an owned tile is

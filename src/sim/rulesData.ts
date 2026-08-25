@@ -311,9 +311,20 @@ export interface CityRules {
    */
   starvationShrinksAt: number;
   /**
-   * Floor on the city-centre tile's own yield. The centre is worked for free
-   * and is never a citizen slot, and a city on a snow tile still feeds itself,
-   * so the centre pays the *larger* of its terrain yield and this, per field.
+   * What a city centre is worth before the ground under it is consulted. The
+   * centre is worked for free and is never a citizen slot, and a city on a snow
+   * tile still feeds itself, so it pays the *larger* of this and the tile's own
+   * yield **per voice** — a town on a 3🌾/2🪙 seam keeps the food and the gold
+   * and takes the production from here (`explainCentreYield`, `cities.ts`).
+   *
+   * 2🌾/2⚙ is the ratified opening (user decision, 2026-08-25): the old floor of
+   * 3🌾 fed a capital a point of food no ground had earned, which made every
+   * flat start the same start and hid the difference between planting on grass
+   * and planting on a river. Two is the citizen's own upkeep
+   * (`foodPerCitizen`), so a size-1 town on bare ground now feeds itself and
+   * grows on what it *works* rather than on a subsidy. The pacing that follows
+   * is measured, not assumed — see the opening and age-close tests in
+   * `test/sim/tech.test.ts`.
    */
   baseCityYields: TileYieldSpec;
   /** Science each population point produces, before buildings. */

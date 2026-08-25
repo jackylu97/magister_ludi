@@ -64,8 +64,10 @@ import { playerPieceColor } from './render3d/lookData';
 import { Renderer3D } from './render3d/renderer3d';
 import {
   describeImprovement,
+  describeOccupant,
   describeTile,
   resourceRowNode,
+  tileYieldLineNodes,
   tileYieldNodes,
 } from './ui/tileReadout';
 import { explainDiscoveryOffer } from './sim/discoveries';
@@ -221,6 +223,7 @@ const infoFeature = requireElement<HTMLElement>('info-feature');
 const infoYields = requireElement<HTMLElement>('info-yields');
 const infoResource = requireElement<HTMLElement>('info-resource');
 const infoImprovement = requireElement<HTMLElement>('info-improvement');
+const infoOccupant = requireElement<HTMLElement>('info-occupant');
 const infoOffset = requireElement<HTMLElement>('info-offset');
 const infoAxial = requireElement<HTMLElement>('info-axial');
 const infoUnit = requireElement<HTMLElement>('info-unit');
@@ -637,21 +640,33 @@ function currentConfig(): GameConfig {
 // --- panel text ------------------------------------------------------------
 
 /**
- * Writes the hovered tile's yields into the panel's yield row.
+ * Writes the hovered tile's yields into the panel's yield row: the total, and
+ * under it the itemized lines it is the fold of.
  *
- * The figures themselves come from `tileYieldNodes` (`src/ui/tileReadout.ts`),
- * which is where the whole vocabulary of the hover card lives now that the
- * mapgen inspection page speaks it too. What is left here is the one thing that
- * *is* this page's business: which element the row is written into, and that a
- * tile producing nothing says so once rather than printing six zeroes.
+ * Both come from `src/ui/tileReadout.ts`, which is where the whole vocabulary of
+ * the hover card lives now that the mapgen inspection page speaks it too — and
+ * both come from the *same* list there, so the column of lines a player reads
+ * down adds up to the figure above it by construction rather than by agreement
+ * between two evaluators (CLAUDE.md rule 5, at the surface it was written for).
+ *
+ * What is left here is the one thing that *is* this page's business: which
+ * element the row is written into, and that a tile producing nothing says so
+ * once rather than printing six zeroes. A hex whose every line is zero — bare
+ * desert — still gets its lines, because "Desert, nothing" is the answer
+ * somebody hovering bare desert came for.
  */
 function showTileYields(state: GameState, playerId: number, tile: Tile): void {
   const shown = tileYieldNodes(state, playerId, tile);
+  const lines = document.createElement('ul');
+  lines.className = 'yield-lines';
+  lines.append(...tileYieldLineNodes(state, playerId, tile));
   if (shown.length === 0) {
-    infoYields.textContent = '—';
+    const nothing = document.createElement('span');
+    nothing.textContent = '—';
+    infoYields.replaceChildren(nothing, lines);
     return;
   }
-  infoYields.replaceChildren(...shown);
+  infoYields.replaceChildren(...shown, lines);
 }
 
 /**
@@ -1100,6 +1115,7 @@ async function boot(initial: Game | null): Promise<void> {
       infoYields.textContent = '—';
       infoResource.textContent = '—';
       infoImprovement.textContent = '—';
+      infoOccupant.textContent = '—';
       showCombatForecast(controls.combatForecast());
       contextEl.classList.add('is-shown');
       return;
@@ -1120,6 +1136,11 @@ async function boot(initial: Game | null): Promise<void> {
         resourceRowNode(game.state, controls.localPlayerId(), hover.tile),
       );
       infoImprovement.textContent = describeImprovement(hover.tile);
+      infoOccupant.textContent = describeOccupant(
+        game.state,
+        controls.localPlayerId(),
+        hover.tile,
+      );
     } else {
       infoTerrain.textContent = '—';
       infoFeature.textContent = '—';
@@ -1129,6 +1150,7 @@ async function boot(initial: Game | null): Promise<void> {
       infoYields.textContent = '—';
       infoResource.textContent = '—';
       infoImprovement.textContent = '—';
+      infoOccupant.textContent = '—';
     }
 
     // Asked after the readout, because it is a question about the selection and

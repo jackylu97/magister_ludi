@@ -1042,10 +1042,11 @@ describe('pacing', () => {
 
   it('closes its three ages on the Quick-speed schedule (Entry V)', () => {
     const { game, ageDone } = playEmpire(200);
-    // Measured on this seed after the Civ 6-style Age I ramp: **37 / 74 / 111**,
-    // against 40 / 68 / 107 with the flat 16–29 Age I costs, 42 / 100 / 167 with
-    // the M10 meters, 42 / 90 / 132 before them and 43 / 86 / 128 before the
-    // settler retune. Each assertion is a band around the measurement rather
+    // Measured on this seed after the city-centre re-base: **41 / 80 / 120**,
+    // against 40 / 78 / 118 immediately before it, 37 / 74 / 111 when the Civ
+    // 6-style Age I ramp landed, 40 / 68 / 107 with the flat 16–29 Age I costs,
+    // 42 / 100 / 167 with the M10 meters, 42 / 90 / 132 before them and
+    // 43 / 86 / 128 before the settler retune. Each assertion is a band around the measurement rather
     // than the number itself — the map roll moves it by a handful of turns —
     // but the band is tight enough on *both* sides to catch a regression in
     // either direction, which an upper bound alone would not.
@@ -1068,6 +1069,21 @@ describe('pacing', () => {
     // only as a downstream echo of Age I finishing sooner and freeing science
     // buildings one city-turn earlier; that shift is well inside the noise the
     // existing bands already tolerated.
+    //
+    // The city-centre re-base (user decision, 2026-08-25), and why the ages
+    // moved by exactly one and two turns. `baseCityYields` went from 3🌾/2⚙ to
+    // 2🌾/2⚙, with the centre inheriting the ground per voice where the ground
+    // pays more (`explainCentreYield`). Only the **food** floor moved, so every
+    // capital on flat ground loses one food a turn until its own tiles beat
+    // two: the ages close later because the empire grows later, not because it
+    // researches slower — the opening's *production* is untouched (see the
+    // measurement below, whose median is still 3⚙ and whose band is still
+    // 2..4), so the scout's price of nine hammers is still three turns and the
+    // opening kit needed no reprice at all. The whole ripple is 40 → 41,
+    // 78 → 80, 118 → 120: one turn of Age I and two of the later two, well
+    // inside bands that were already tolerating a handful of turns of map roll.
+    // The bands are therefore left where they are; moving them to re-centre on
+    // a two-turn shift would be pinning noise.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -1109,11 +1125,19 @@ describe('pacing', () => {
    *
    * A capital founded on turn 1 makes two production a turn plus whatever its
    * single citizen is sent to work: `baseCityYields`' floor of two, and one
-   * tile. Across the seed sweep below the opening runs 2–5 hammers with a
+   * tile. Across the seed sweep below the opening runs 2–4 hammers with a
    * **median of three**, and three is the number the scout's price of nine was
    * set against: nine hammers is three turns of three, because the scout is
    * what the opening actually wants and three turns is what "immediately"
    * feels like. A warrior at five is therefore two turns of the same rate.
+   *
+   * **The city-centre re-base did not move this**, which is worth writing down
+   * because it was expected to. `baseCityYields` dropped from 3🌾/2⚙ to 2🌾/2⚙
+   * on 2026-08-25 (user decision; see `explainCentreYield`), and the floor that
+   * moved was the *food* one: measured over this same sweep the opening's food
+   * median went 5 → 4 while its production median stayed 3 and its band stayed
+   * 2..4. So the anchor below holds unchanged — what the re-base costs an
+   * opening is a turn or two of growth, not a slower first scout.
    *
    * Asserted over a sweep rather than off one roll, and that is a deliberate
    * rewrite. It used to pin one seed's opening to an exact number, which made

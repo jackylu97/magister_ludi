@@ -736,6 +736,12 @@
         <dd id="info-terrain">—</dd>
         <dt>Feature</dt>
         <dd id="info-feature">—</dd>
+        <!-- The total, and under it the itemized breakdown it is the fold of —
+             one row per contribution, written by `tileYieldLineNodes`
+             (`src/ui/tileReadout.ts`) out of `explainTileYield`'s own ordered
+             list. The lines are the reason the number is what it is, so they
+             live in the same cell as the number rather than in a row of their
+             own that could scroll away from it. -->
         <dt>Yields</dt>
         <dd id="info-yields">—</dd>
         <!-- What is *on* the ground, as opposed to what the ground is. Named
@@ -750,6 +756,13 @@
              the terrain rows above it — see `describeImprovement`. -->
         <dt>Built</dt>
         <dd id="info-improvement">—</dd>
+        <!-- What is *planted* on the hex, as opposed to what has been built on
+             it or who is walking over it: a town, a camp, a ruin or a village.
+             Each obeys its own fog rule — see `describeOccupant` — so a camp is
+             named only while it is watched and a remembered town says it is a
+             memory. -->
+        <dt>Occupant</dt>
+        <dd id="info-occupant">—</dd>
         <!-- Both coordinate systems: offset is how the map is stored, axial is
              how the pathfinder thinks. Two rows rather than one long line,
              because either alone wraps in a 250px card. -->

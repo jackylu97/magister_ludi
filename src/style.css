@@ -1629,6 +1629,47 @@ button.seat:active {
   color: var(--y-faith);
 }
 
+/* The itemized breakdown under the total: one row per contribution, written by
+   `tileYieldLineNodes` out of `explainTileYield`'s own ordered list. Indented
+   under the figure it explains, and set a size down — the total is what the eye
+   lands on, the lines are the reason it is what it is. */
+.yield-lines {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+}
+
+.yield-line {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  line-height: 1.4;
+}
+
+.yield-line-figures {
+  flex: none;
+  min-width: 62px;
+  font-size: 10px;
+}
+
+.yield-line-source {
+  font-family: var(--face-ui);
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+/* A ground line a later override took over — "Forest, replaced by Hills". It
+   stays on the card because the *list* is the explanation (see
+   `explainTileYield`), and it is struck rather than dimmed away entirely so
+   that what happened to it is legible rather than merely quiet. */
+.yield-line.is-replaced {
+  opacity: 0.55;
+}
+
+.yield-line.is-replaced .yield-line-figures {
+  text-decoration: line-through;
+}
+
 .hint {
   margin: 0;
   font-family: var(--face-ui);

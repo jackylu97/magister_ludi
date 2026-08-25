@@ -2102,3 +2102,65 @@ sweep is the question `realPlayers` answers. `test/ui/seatRoster.test.ts` reads 
 fails on the fifth surface, because a behavioural test would only ever have caught one of the
 four and the failure mode of a missed roster is a chip nobody notices for a milestone. A future
 seat kind that should not be listed — a city-state — is one filter's edit, not a second audit.
+
+## Entry XXII — The city centre, and a card that shows its work (**built** 2026-08-25)
+
+Two changes to the same sentence — *what is this hex worth, and why* — one in the rules and one
+on the surface that quotes them.
+
+### 1. A centre pays its base, and inherits the ground per voice
+
+**Ratified by the user on 2026-08-25, ripple accepted in advance.** The centre tile is worked
+for free and is never a citizen slot, so what it pays is a rule rather than an assignment. The
+rule is now:
+
+> `centre[voice] = max(baseCityYields[voice], ground[voice])`, across all six voices.
+
+with `baseCityYields` re-based from **3🌾/2⚙ to 2🌾/2⚙**. A town on a 3🌾/2🪙 seam reads
+3🌾/2⚙/2🪙: the food and the gold are the ground's, the production is the town's own.
+
+The old food floor of three handed every capital a point of food no ground had earned, which
+made a flat start and a river start the same start for the first dozen turns. Two is the
+citizen's own upkeep (`foodPerCitizen`), so a size-1 town now feeds itself exactly and grows on
+what it *works*.
+
+**The measured ripple**, on the scripted empire the age-close test plays (`test/sim/tech.test.ts`):
+
+| | before | after |
+|---|---|---|
+| ages close (I / II / III) | 40 / 78 / 118 | **41 / 80 / 120** |
+| opening production (median, band) | 3, 2..4 | **3, 2..4** — unchanged |
+| opening food (median) | 5 | **4** |
+
+The anticipated stretch of the scout's three-turn anchor **did not happen**, and the reason is
+worth keeping: only the *food* floor moved. A capital's opening production is the centre's two
+hammers plus one worked tile, so the scout at nine hammers is still three turns of three and the
+opening kit needed no reprice. What the re-base costs is growth — one turn of Age I and two of
+the later two ages, inside bands that already tolerated a handful of turns of map roll, so the
+bands stay where they are rather than being re-centred on noise.
+
+The rule is a **breakdown**, per rule 5: `explainCentreYield` returns `City centre` (the base,
+as a `base` entry) and, where the ground beats it, `Inherited · <names>` (the excess, as an
+`add`). `base + max(ground − base, 0)` is `max(base, ground)` per voice, so the fold *is* the
+rule and `centreYield` is one line. The inherited line names the ground that earned it — every
+`add` paying into an inherited voice, plus the effective terrain line when the terrain by itself
+beats the base — because "inherited" with no subject is the one thing a player cannot act on.
+
+### 2. The hover card itemizes what it totals
+
+`explainTileYield` has returned an ordered contribution list since M7 and the hover card was
+still printing only the fold of it. It now prints both: the total, and under it one row per
+contribution — `2🌾 Grassland`, `+1⚙ Mine`, `+1🌾 Feudalism` — drawn in the yield marks through
+the established printer (`yieldFigureNodes`), with the two algebras visible in the typography:
+a `base`/`override` is written plain because it *replaces*, an `add` is signed because it sums,
+and a ground line a later override took over stays on the card struck through, because "forest,
+replaced by hills" is the sentence the entry was written for. On a hex a town stands on the card
+itemizes the **centre's** list instead, since that is what the hex actually pays.
+
+The card also gains an **occupant** row — what is *planted* here, as opposed to what has been
+built on it or who is walking over it — and each kind keeps the fog rule its own kind keeps
+everywhere else: a city in sight or remembered from a sighting (named through `cityDisplayName`,
+so a remembered capital still gets a true star, and marked `· remembered` rather than quoted as
+current), a camp **only while watched** (an occupation, not ground), a ruin or a village on any
+explored hex (ground, exactly as `sites3d.ts` draws it). The mapgen page asks the same describer
+omniscient, the liberty its resource lens already takes.

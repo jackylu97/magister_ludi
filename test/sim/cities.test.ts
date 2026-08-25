@@ -6,11 +6,14 @@ import {
   assignCitizens,
   assignableTiles,
   bestExpansionTile,
+  CENTRE_SOURCE,
   centreYield,
   cityYields,
   collectYields,
   expandBorders,
+  explainCentreYield,
   explainCityBuildings,
+  foldTileYield,
   foundCityAt,
   foundingError,
   foundingErrorAt,
@@ -60,7 +63,7 @@ import {
 import { chopYield } from '../../src/sim/improvementData';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { techDef } from '../../src/sim/techData';
-import { resourceYield } from '../../src/sim/resourceData';
+import { RESOURCE_IDS, resourceYield } from '../../src/sim/resourceData';
 import { TILE_YIELD_KEYS, readTileYield, tileYield } from '../../src/sim/terrainData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
@@ -766,19 +769,133 @@ describe('setLockedTiles', () => {
   });
 });
 
-describe('city yields', () => {
-  it('floors the centre tile at the base city yields, per field', () => {
+/**
+ * The city centre, and the rule ratified on 2026-08-25: **a centre pays
+ * `baseCityYields`, and inherits the ground's own yield in any voice where the
+ * ground pays more.** Per voice, across all six.
+ *
+ * The old reading floored food at three, which handed every flat capital a
+ * point of food no ground had earned; the base is now 2🌾/2⚙ — a citizen's own
+ * upkeep — and the difference between planting on grass and planting on a
+ * river is the ground's to make. See `explainCentreYield` and the measured
+ * pacing note in `test/sim/tech.test.ts`.
+ */
+describe('the city centre', () => {
+  const base = readTileYield(CITIES.baseCityYields);
+  const sourcesOf = (state: GameState, city: City): string[] =>
+    explainCentreYield(state, city).map((entry) => entry.source);
+
+  it('pays its own base on ground that pays less, and says so in one line', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
-    // Desert centre: nothing of its own, so the floor is the whole of it.
-    expect(centreYield(state, city)).toEqual(readTileYield(CITIES.baseCityYields));
-
-    // A hill centre keeps its own production and still gets the food floor.
-    at(state.map, 8, 5).hills = true;
-    expect(centreYield(state, city)).toEqual(
-      readTileYield({ food: CITIES.baseCityYields.food, production: 2, gold: 0 }),
-    );
+    // Desert pays nothing, so the base is the whole of it — and the breakdown
+    // is the base line alone: there is nothing to inherit and no line claiming
+    // there is.
+    expect(centreYield(state, city)).toEqual(base);
+    expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE]);
   });
+
+  it('inherits the ground voice by voice where the ground pays more', () => {
+    // The ratified example: a 3🌾/2🪙 seam under a town reads 3🌾/2⚙/2🪙 — the
+    // food and the gold are the ground's, the production is the town's own.
+    const state = flatState(16, 12, 'grassland');
+    at(state.map, 8, 5).resource = 'cotton';
+    const city = plant(state, 0, 8, 5);
+
+    expect(centreYield(state, city)).toEqual(
+      readTileYield({ food: 3, production: 2, gold: 2 }),
+    );
+    const lines = explainCentreYield(state, city);
+    expect(lines.map((entry) => entry.source)).toEqual([CENTRE_SOURCE, 'Inherited · Cotton']);
+    expect(lines[0]).toMatchObject({ kind: 'base', ...base });
+    // The inherited line carries the *excess* and only the excess: the base
+    // already covers the two hammers, so the line says nothing about them.
+    expect(lines[1]).toMatchObject({ kind: 'add', food: 1, production: 0, gold: 2 });
+  });
+
+  it('names the ground that earned the inheritance, terrain included', () => {
+    // An override is the tile's effective ground line, so an oasis is what the
+    // extra food is inherited *from* — "move the town one hex and you lose it"
+    // is the sentence the label has to be able to say.
+    const state = flatState();
+    at(state.map, 8, 5).feature = 'oasis';
+    const city = plant(state, 0, 8, 5);
+    expect(centreYield(state, city)).toEqual(readTileYield({ food: 3, production: 2, gold: 0 }));
+    expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE, 'Inherited · Oasis']);
+  });
+
+  it('inherits nothing on a tie, in either voice', () => {
+    // Grassland pays exactly the base's two food and less production; a hill
+    // pays exactly its two production and less food. Neither exceeds anything,
+    // so neither earns a line — a breakdown that itemized a tie would be
+    // printing a zero and calling it an explanation.
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    expect(centreYield(state, city)).toEqual(base);
+    expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE]);
+
+    at(state.map, 8, 5).hills = true;
+    expect(centreYield(state, city)).toEqual(base);
+    expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE]);
+  });
+
+  /**
+   * The rule stated over all six voices, and the fold identity with it.
+   *
+   * A single tile paying into all six at once is not reachable from the tables
+   * today — no resource pays more than two voices and no terrain pays past
+   * gold — so the honest form of "per voice, across all six" is the sweep: run
+   * every resource in the table over flat ground and hills, assert
+   * `max(base, ground)` in every voice every time, and assert the corpus
+   * actually reaches all six so the sweep cannot go quietly vacuous.
+   */
+  it('is the per-voice maximum of its base and its ground, over the whole table', () => {
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    const centre = at(state.map, 8, 5);
+    const ctx = yieldContextFor(state, 0);
+    const reached = new Set<string>();
+
+    for (const resource of RESOURCE_IDS) {
+      for (const hills of [false, true]) {
+        centre.resource = resource;
+        centre.hills = hills;
+        const ground = tileYieldOf(centre, ctx);
+        const expected = readTileYield(CITIES.baseCityYields);
+        for (const key of TILE_YIELD_KEYS) {
+          expected[key] = Math.max(base[key], ground[key]);
+          if (ground[key] > 0) reached.add(key);
+        }
+        const label = `${resource}${hills ? ' hills' : ''}`;
+        expect(centreYield(state, city), label).toEqual(expected);
+        // Rule 5, at the one scale it had not been held at: the number is the
+        // fold of the list and there is no second implementation to drift.
+        expect(foldTileYield(explainCentreYield(state, city)), label).toEqual(expected);
+      }
+    }
+
+    expect([...reached].sort()).toEqual([...TILE_YIELD_KEYS].sort());
+  });
+
+  it('reads the ground through its owner, not through whoever is asking', () => {
+    // Iron is invisible until Bronze Working, and the reveal binds the yield
+    // (`explainTileYield`). A centre standing on it is worth the hammer only to
+    // an empire that has heard of iron — the same rule one grade up.
+    const state = flatState();
+    const centre = at(state.map, 8, 5);
+    centre.hills = true;
+    centre.resource = 'iron';
+    const city = plant(state, 0, 8, 5);
+    const before = centreYield(state, city);
+
+    state.players[0]!.techsResearched = [...state.players[0]!.techsResearched, 'bronzeWorking'];
+    const after = centreYield(state, city);
+    expect(after.production).toBeGreaterThan(before.production);
+    expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE, 'Inherited · Iron']);
+  });
+});
+
+describe('city yields', () => {
 
   it('adds the centre, the worked tiles, population science and base culture', () => {
     const state = flatState();
