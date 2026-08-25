@@ -1137,7 +1137,10 @@ describe('the yield glyphs', () => {
   it('draws every mark over the board, never inside it', () => {
     const state = flatState();
     for (const mesh of marksOver(state, 4, 4)) {
-      expect(mesh.renderOrder).toBe(RENDER_ORDER.onTop);
+      // Its own step above the interface's decals, not `onTop` beside them: a
+      // flat readout has to survive being printed under a wash as well as over a
+      // pine, and the two are different failures (see `lens3d.test.ts`).
+      expect(mesh.renderOrder).toBe(RENDER_ORDER.tileIcon);
       const material = mesh.material as MeshBasicMaterial;
       expect(material.depthTest).toBe(false);
     }

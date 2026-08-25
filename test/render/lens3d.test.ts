@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { InstancedMesh, MeshBasicMaterial, Quaternion } from 'three';
 
-import type { TileIcons } from '../../src/render3d/badges3d';
-import { BoardGeometry } from '../../src/render3d/board3d';
+import { type TileIcons, tileIconFlags } from '../../src/render3d/badges3d';
+import { BoardGeometry, buildBoard } from '../../src/render3d/board3d';
+import { RENDER_ORDER } from '../../src/render3d/instances';
 import { LensLayer, NO_LENS, sameLens } from '../../src/render3d/lens3d';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
@@ -283,5 +284,132 @@ describe('the explorer lens', () => {
     expect(sameLens(lens({ mode: 'explorer' }), lens({ mode: 'none' }))).toBe(false);
     expect(sameLens(lens({ mode: 'explorer' }), lens({ mode: 'settler' }))).toBe(false);
     expect(sameLens(lens({ mode: 'explorer' }), lens({ mode: 'explorer' }))).toBe(true);
+  });
+});
+
+// --- the flat readouts and the ground they are printed on --------------------
+
+/**
+ * The bug this block pins is a *pass*, not a lift and not a draw order.
+ *
+ * Three splits every frame into an opaque pass and a transparent one, draws the
+ * whole of the first before any of the second, and sorts by `renderOrder` only
+ * *within* each. The yield glyphs were alpha-tested and not flagged transparent,
+ * which left them in the opaque pass: they beat the pines (opaque, and collected
+ * with a lower order) and lost to every blended decal on the board — the
+ * territory tint, the shore band, and, the day the arid features landed, an
+ * oasis pool and a floodplain wash printed straight over a tile's figures.
+ *
+ * So the assertion is written the way the renderer actually decides: which pass,
+ * then which order. A test that only compared `renderOrder` would have passed
+ * for the whole life of the bug.
+ */
+function drawsAfter(
+  a: { mesh: InstancedMesh; material: MeshBasicMaterial },
+  b: { mesh: InstancedMesh; material: MeshBasicMaterial },
+): boolean {
+  if (a.material.transparent !== b.material.transparent) return a.material.transparent;
+  return a.mesh.renderOrder > b.mesh.renderOrder;
+}
+
+/** Every instanced mesh in a group with the single material it is drawn with. */
+function drawn(group: { children: unknown[] }): {
+  mesh: InstancedMesh;
+  material: MeshBasicMaterial;
+}[] {
+  const out: { mesh: InstancedMesh; material: MeshBasicMaterial }[] = [];
+  for (const child of group.children) {
+    if (!(child instanceof InstancedMesh)) continue;
+    if (Array.isArray(child.material)) continue;
+    out.push({ mesh: child, material: child.material as MeshBasicMaterial });
+  }
+  return out;
+}
+
+describe('a tile\'s yields are the last thing printed on it', () => {
+  const geometry = new BoardGeometry();
+  const mats = (): MaterialLibrary =>
+    new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
+
+  /** The real flat-icon material, which is the half of the fix that is a flag. */
+  const realIcons = {
+    material: new MeshBasicMaterial(tileIconFlags()),
+    standingMaterial: new MeshBasicMaterial(),
+  } as unknown as TileIcons;
+
+  it('flags the flat atlas transparent, which is the only way an order exists', () => {
+    const flags = tileIconFlags();
+    // The pass. Without it the number below means nothing at all.
+    expect(flags.transparent).toBe(true);
+    // Still a cutout, so a stack of coins sorts by collection order and an edge
+    // stays crisp; still ignoring depth, because a readout is not scenery.
+    expect(flags.alphaTest).toBeGreaterThan(0);
+    expect(flags.depthTest).toBe(false);
+    expect(flags.depthWrite).toBe(false);
+    // Above the interface's own washes, below the tags naming a piece.
+    expect(RENDER_ORDER.tileIcon).toBeGreaterThan(RENDER_ORDER.onTop);
+    expect(RENDER_ORDER.tileIcon).toBeLessThan(RENDER_ORDER.badge);
+  });
+
+  it('draws a glyph over the oasis pool and the floodplain wash under it', () => {
+    const map = createMap({ width: 8, height: 6, terrain: 'desert' });
+    // The two arid features, side by side: a pool (all but opaque) and a wash.
+    getTileAt(map, 3, 3)!.feature = 'oasis';
+    getTileAt(map, 4, 3)!.feature = 'floodplain';
+    const board = buildBoard(map, geometry, mats(), false);
+
+    const state = flatState();
+    state.map = map;
+    resetVisibility(state);
+    const layer = new LensLayer();
+    layer.build(
+      state,
+      lens({ yields: true }),
+      geometry,
+      mats(),
+      realIcons,
+      new Quaternion(),
+      null,
+    );
+
+    const glyphs = drawn(layer.group);
+    expect(glyphs.length).toBeGreaterThan(0);
+    const ground = drawn(board.group).filter(
+      ({ mesh }) => mesh.geometry === geometry.pool || mesh.geometry === geometry.floodWash,
+    );
+    // Both features really are on this board, or the comparison below is vacuous.
+    expect(ground.map(({ mesh }) => mesh.geometry)).toContain(geometry.pool);
+    expect(ground.map(({ mesh }) => mesh.geometry)).toContain(geometry.floodWash);
+    for (const glyph of glyphs) {
+      for (const decal of ground) expect(drawsAfter(glyph, decal)).toBe(true);
+    }
+    layer.dispose();
+  });
+
+  it('still beats the trees, which is what it never stopped doing', () => {
+    const map = createMap({ width: 8, height: 6, terrain: 'grassland' });
+    getTileAt(map, 3, 3)!.feature = 'forest';
+    const board = buildBoard(map, geometry, mats(), false);
+
+    const state = flatState();
+    state.map = map;
+    resetVisibility(state);
+    const layer = new LensLayer();
+    layer.build(
+      state,
+      lens({ yields: true, yieldCells: [{ col: 3, row: 3 }] }),
+      geometry,
+      mats(),
+      realIcons,
+      new Quaternion(),
+      null,
+    );
+
+    const pines = drawn(board.group).filter(({ mesh }) => mesh.geometry === geometry.pine);
+    expect(pines.length).toBeGreaterThan(0);
+    for (const glyph of drawn(layer.group)) {
+      for (const pine of pines) expect(drawsAfter(glyph, pine)).toBe(true);
+    }
+    layer.dispose();
   });
 });

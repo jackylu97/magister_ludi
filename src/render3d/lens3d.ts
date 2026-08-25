@@ -108,7 +108,7 @@ import type { CellRef, LensView } from '../ui/mapView';
 import { type TileIcons, YIELD_KEYS } from './badges3d';
 import type { BoardGeometry } from './board3d';
 import { type FogLevels, knowsCell, seesCell } from './fog3d';
-import { InstanceCollector, disposeInstancedGroup } from './instances';
+import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, mixColor } from './lookData';
 import type { MaterialLibrary } from './toon';
@@ -198,11 +198,14 @@ export class LensLayer {
       copyOffsets: [-wrapWidth(map), 0, wrapWidth(map)],
     });
 
-    // The wash first, so the flat marks are collected — and therefore drawn —
-    // after the ground tint they sit on: both are `onTop` decals with the depth
-    // test off, so the order they are added in is the order they layer in. The
-    // resource markers are not in that argument at all any more; they stand up
-    // and are sorted by the depth buffer like everything else in the diorama.
+    // The wash first, and the marks after it — though the *order* no longer
+    // rests on that. A wash is an `onTop` decal and a flat mark is a
+    // `RENDER_ORDER.tileIcon` one, so the glyphs are drawn over the tint they
+    // are printed on by a number rather than by a collection order, which is
+    // what makes them survive an oasis pool or a floodplain wash as well (see
+    // `tileIconFlags` in `badges3d.ts` — the bug was a *pass*, not an order).
+    // The resource markers are not in that argument at all; they stand up and
+    // are sorted by the depth buffer like everything else in the diorama.
     if (lens.mode === 'settler') {
       this.addSiteWash(
         state,
@@ -310,7 +313,7 @@ export class LensLayer {
             shape,
             [],
             new Matrix4().compose(new Vector3(centre.x + offset, y, z), identity, glyph),
-            { onTop: true, material: icons.material },
+            { material: icons.material, order: RENDER_ORDER.tileIcon },
           );
         }
         for (const mark of row.numerals) {
@@ -318,7 +321,7 @@ export class LensLayer {
             geometry.numerals[mark.digit]!,
             [],
             new Matrix4().compose(new Vector3(centre.x + mark.x, y, z), identity, numeral),
-            { onTop: true, material: icons.material },
+            { material: icons.material, order: RENDER_ORDER.tileIcon },
           );
         }
       });

@@ -3,24 +3,43 @@ import {
   InstancedMesh,
   type BufferGeometry,
   type Material,
+  Matrix4,
   MeshBasicMaterial,
   Quaternion,
+  Vector3,
 } from 'three';
 
 import type { TileIcons } from '../../src/render3d/badges3d';
 import { BoardGeometry } from '../../src/render3d/board3d';
-import { TerritoryLayer } from '../../src/render3d/cities3d';
+import { TerritoryLayer, borderBandMatrix } from '../../src/render3d/cities3d';
 import { RENDER_ORDER } from '../../src/render3d/instances';
+import { cellCenter, directionDelta, tileScale, tileTopY } from '../../src/render3d/layout';
 import { LensLayer } from '../../src/render3d/lens3d';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { OverlayLayer } from '../../src/render3d/overlays';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundCityAt } from '../../src/sim/cities';
-import { createMap, getTileAt, type Tile } from '../../src/sim/map';
+import { createMap, getTileAt, tileIndex, type Tile } from '../../src/sim/map';
 import { type GameState, newGame } from '../../src/sim/state';
-import { computeFreshwater } from '../../src/sim/water';
+import { DIRECTION_COUNT, computeFreshwater, neighborInDirection } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 import type { LensView } from '../../src/ui/mapView';
+
+/**
+ * How many copies of every instance the board keeps for the horizontal wrap: one
+ * a world to the west, one where the tile is, one a world to the east. Named
+ * because every instance count in this file is a multiple of it.
+ */
+const WRAP_COPIES = 3;
+
+/**
+ * The fraction of the ideal hex a prism's top face actually covers: a `tileGap`
+ * narrower so the grout shows, times the tile's own hashed size jitter. The band
+ * arithmetic has to agree with both or a border lies in the gutter.
+ */
+function faceFraction(tile: Tile): number {
+  return (1 - VIEW3D.board.tileGap) * tileScale(tile);
+}
 
 /**
  * A two-player state on a flat grassland rectangle, with fresh water recomputed
@@ -115,16 +134,20 @@ function shapesOf(group: { children: unknown[] }): BufferGeometry[] {
  * That is expressed as `depthTest: false` on a mesh drawn after everything else,
  * so these two properties *are* the feature.
  */
-function expectDrawnOverTheBoard(group: { children: unknown[] }): void {
+function expectDrawnOverTheBoard(
+  group: { children: unknown[] },
+  order: number = RENDER_ORDER.onTop,
+): void {
   const drawn = decals(group);
   expect(drawn.length).toBeGreaterThan(0);
   for (const { mesh, material } of drawn) {
     expect(material.depthTest).toBe(false);
     expect(material.depthWrite).toBe(false);
-    // The interface's own layer, named rather than written out: the badges now
-    // sit one step above it (see `RENDER_ORDER`), and the two numbers only stay
-    // consistent while both tests read the same list.
-    expect(mesh.renderOrder).toBe(RENDER_ORDER.onTop);
+    // The layer, named rather than written out: the flat tile icons and the
+    // badges now sit one and two steps above the interface's own decals (see
+    // `RENDER_ORDER`), and the numbers only stay consistent while every test
+    // reads them off the one list.
+    expect(mesh.renderOrder).toBe(order);
   }
 }
 
@@ -154,7 +177,10 @@ describe('board overlays draw over the board', () => {
     expect(shapes).toContain(geometry.yieldGlyphs.production);
     expect(shapes).not.toContain(geometry.yieldGlyphs.gold);
     for (const { mesh } of decals(layer.group)) expect(mesh.count).toBe(3);
-    expectDrawnOverTheBoard(layer.group);
+    // A yield glyph is a readout printed on the face, one step above the washes
+    // the interface prints there — `test/render/lens3d.test.ts` holds the rest
+    // of that argument, including the pass the order lives in.
+    expectDrawnOverTheBoard(layer.group, RENDER_ORDER.tileIcon);
     layer.dispose();
   });
 
@@ -246,6 +272,144 @@ describe('board overlays draw over the board', () => {
     // nothing and gets nothing.
     expect(colorsOf(layer.group)).not.toContain(VIEW3D.overlay.attackColor);
     layer.dispose();
+  });
+
+  /**
+   * Every band instance a territory layer drew, across every wrap copy.
+   *
+   * The bands are the *only* thing sharing `geometry.borderBand`, so counting
+   * that geometry's buckets counts borders and nothing else — the tint is a
+   * hexagon and a worked-tile ring is a ring.
+   */
+  function bandCount(group: { children: unknown[] }, geo: BoardGeometry): number {
+    let total = 0;
+    for (const { mesh } of decals(group)) {
+      if (mesh.geometry === geo.borderBand) total += mesh.count;
+    }
+    return total;
+  }
+
+  /** Every band's world position, wrap copies collapsed to the middle one. */
+  function bandCentres(group: { children: unknown[] }, geo: BoardGeometry): Vector3[] {
+    const out: Vector3[] = [];
+    const matrix = new Matrix4();
+    for (const { mesh } of decals(group)) {
+      if (mesh.geometry !== geo.borderBand) continue;
+      // Three copies of every band, at −period, 0 and +period; the middle one is
+      // the tile where it actually stands. See `InstanceCollector.copyOffsets`.
+      for (let i = 1; i < mesh.count; i += WRAP_COPIES) {
+        mesh.getMatrixAt(i, matrix);
+        out.push(new Vector3().setFromMatrixPosition(matrix));
+      }
+    }
+    return out;
+  }
+
+  /** How many edges of this player's territory face somebody else's ground. */
+  function ownershipEdges(state: GameState, playerId: number): number {
+    const owner = new Map<number, number>();
+    for (const city of state.cities) owner.set(city.id, city.ownerId);
+    let edges = 0;
+    for (let index = 0; index < state.tileOwner.length; index++) {
+      const cityId = state.tileOwner[index];
+      if (cityId === null || cityId === undefined) continue;
+      if (owner.get(cityId) !== playerId) continue;
+      const tile = state.map.tiles[index]!;
+      for (let d = 0; d < DIRECTION_COUNT; d++) {
+        const neighbour = neighborInDirection(state.map, tile, d);
+        const other = neighbour
+          ? state.tileOwner[tileIndex(state.map, neighbour.col, neighbour.row)]
+          : null;
+        const otherPlayer = other === null || other === undefined ? undefined : owner.get(other);
+        if (otherPlayer !== playerId) edges += 1;
+      }
+    }
+    return edges;
+  }
+
+  it('draws a band on exactly the edges where ownership changes, and none inside', () => {
+    const state = flatState();
+    foundCityAt(state, 0, at(state, 5, 4));
+
+    const layer = new TerritoryLayer();
+    layer.build(state, geometry, materials);
+
+    // The interior is silent: a claim of N tiles has far fewer boundary edges
+    // than 6N, and the difference is every edge between two of this player's own
+    // hexes — the ones that used to be painted and are now nothing at all.
+    const edges = ownershipEdges(state, 0);
+    expect(edges).toBeGreaterThan(0);
+    expect(edges).toBeLessThan(6 * state.tileOwner.filter((id) => id !== null).length);
+    expect(bandCount(layer.group, geometry)).toBe(edges * WRAP_COPIES);
+    layer.dispose();
+  });
+
+  it('has both sides draw their own half of a contested edge', () => {
+    const state = flatState();
+    // Two capitals three hexes apart: their first rings do not overlap, but the
+    // tiles between them will be claimed by one or the other.
+    foundCityAt(state, 0, at(state, 4, 4));
+    foundCityAt(state, 1, at(state, 6, 4));
+
+    // A tile of A's, with a tile of B's next door: the frontier, by hand, so the
+    // test does not depend on how far a new city's first claim reaches.
+    const mine = at(state, 5, 4);
+    const theirs = at(state, 6, 4);
+    state.tileOwner[tileIndex(state.map, mine.col, mine.row)] = state.cities[0]!.id;
+    state.tileOwner[tileIndex(state.map, theirs.col, theirs.row)] = state.cities[1]!.id;
+
+    const layer = new TerritoryLayer();
+    layer.build(state, geometry, materials);
+
+    // Two inks on the board, and both of them drew bands.
+    const inks = new Set(
+      decals(layer.group)
+        .filter(({ mesh }) => mesh.geometry === geometry.borderBand)
+        .map(({ material }) => material.color.getHex()),
+    );
+    expect(inks.size).toBe(2);
+
+    // The shared edge is drawn twice, once from each side, and the two bands sit
+    // on opposite sides of the edge itself — each inside its own hex, meeting in
+    // the middle. Anything else is one nation's paint on another's ground.
+    const edge = 0;
+    const ours = new Vector3().setFromMatrixPosition(borderBandMatrix(mine, edge));
+    const centre = cellCenter(mine.col, mine.row);
+    const seam = {
+      x: centre.x + directionDelta(edge).x / 2,
+      z: centre.z + directionDelta(edge).z / 2,
+    };
+    expect(Math.hypot(ours.x - centre.x, ours.z - centre.z)).toBeLessThan(
+      Math.hypot(seam.x - centre.x, seam.z - centre.z),
+    );
+    // And it really is drawn there: the layer's own band centres include ours.
+    const drawn = bandCentres(layer.group, geometry);
+    expect(
+      drawn.some((at) => Math.hypot(at.x - ours.x, at.z - ours.z) < 1e-6),
+    ).toBe(true);
+    layer.dispose();
+  });
+
+  it('lays every band flat on its own tile, inside the prism it belongs to', () => {
+    const state = flatState();
+    const tile = at(state, 5, 4);
+    const centre = cellCenter(tile.col, tile.row);
+    const apothem =
+      (Math.hypot(directionDelta(0).x, directionDelta(0).z) / 2) * faceFraction(tile);
+
+    for (let d = 0; d < DIRECTION_COUNT; d++) {
+      const at3 = new Vector3().setFromMatrixPosition(borderBandMatrix(tile, d));
+      // On the tile's own face, lifted by the shared overlay lift — the same
+      // height the tint sits at, so a border cannot float over its own ground.
+      expect(at3.y).toBeCloseTo(tileTopY(tile) + VIEW3D.overlay.lift, 10);
+      // Inside the hex: pulled back from the seam by half the band's width, so
+      // the neighbour's own half has room on the far side.
+      const reach = Math.hypot(at3.x - centre.x, at3.z - centre.z);
+      expect(reach).toBeCloseTo(
+        apothem - (VIEW3D.board.hexRadius * VIEW3D.territory.borderWidth) / 2,
+        10,
+      );
+    }
   });
 
   it('leaves the territory tint depth-tested, because it is scenery', () => {

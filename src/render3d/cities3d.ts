@@ -25,35 +25,67 @@
  *
  * Territory
  * ---------
- * A low-alpha tint on every owned tile, plus a brighter ring on the tiles at the
- * edge of an empire. The tint alone is too soft to tell you where a border
- * *is* — it says "somewhere around here is Crimson's" — and the ring alone
- * leaves the interior ambiguous when two empires interlock. Together they read
- * the way a Civ minimap does, and the ring costs a perimeter's worth of
- * instances rather than an area's.
+ * **Lines, not paint.** A band in the owner's ink along exactly those hex edges
+ * where ownership changes, and — by default — nothing at all on the interior.
+ *
+ * It used to be the other way round: a low-alpha wash over every owned tile with
+ * a ring around the tiles at the frontier. That answered "roughly whose is this"
+ * loudly and "where exactly does it end" quietly, which is backwards. A player
+ * looks at borders to decide where a settler may stand and which hex a unit
+ * crosses into, and both of those are questions about *the line*. The wash also
+ * put a coloured veil over the terrain it was describing, on a board whose whole
+ * argument is that the terrain is legible.
+ *
+ * The tint survives as a tunable set near zero (`territory.tintOpacity`), so the
+ * old look is one number away and a future faction with a claim to shout about
+ * can have it back without new code.
  *
  * "Edge of an empire", not "edge of a city": two cities of the same player
- * should look like one country, so the ring is drawn where the neighbouring tile
+ * should look like one country, so a band is drawn where the neighbouring tile
  * has a different *owner* (or none), never where two of one player's cities meet.
+ *
+ * Each side draws its own half
+ * ----------------------------
+ * A contested edge — Crimson on one hex, Indigo on the next — is drawn twice,
+ * once by each tile, each band lying *inside* its own hex and meeting the other
+ * at the edge itself. Two surveyors agreeing on a line rather than one line
+ * arbitrarily painted in one of the two inks, and it is what makes a frontier
+ * read as two countries touching instead of as one country with a rim.
+ *
+ * That falls out of the loop rather than being a special case: every owned tile
+ * is asked about all six of its own edges, so a contested edge is simply an edge
+ * two tiles both have something to say about. It also means the geometry is a
+ * *tile's* fact, so a band takes its own hex's jitter (`tileYaw`, `tileScale`)
+ * and hugs the prism it belongs to instead of drifting over the grout.
  */
 
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
-import { getTileAt, neighborTiles, tileHex, tileIndex } from '../sim/map';
+import { type Tile, getTileAt, tileIndex } from '../sim/map';
 import type { City, GameState } from '../sim/state';
 import { EXPLORED, HIDDEN } from '../sim/visibility';
+import { DIRECTION_COUNT, neighborInDirection } from '../sim/water';
 
 import type { BoardGeometry } from './board3d';
 import { type FogLevels, levelAt, seesCell } from './fog3d';
 import { hashSigned } from './hash';
 import { InstanceCollector, disposeInstancedGroup } from './instances';
-import { cellCenter, tileTopY, wrapWidth } from './layout';
+import {
+  cellCenter,
+  directionDelta,
+  edgeYaw,
+  tileScale,
+  tileTopY,
+  tileYaw,
+  wrapWidth,
+} from './layout';
 import { VIEW3D, playerPieceColor } from './lookData';
 import type { MaterialLibrary } from './toon';
 
 const CITY = VIEW3D.city;
 /**
- * How far a remembered tile's territory tint and border ring are knocked back.
+ * How far a remembered tile's border line (and whatever tint is under it) is
+ * knocked back.
  *
  * The board's own instances are *washed toward grey vellum*
  * (`InstanceCollector.setWash`), which is not available to a decal whose whole
@@ -251,12 +283,14 @@ export class TerritoryLayer {
   private drawCallCount = 0;
 
   /**
-   * Rebuilds the tint and the border rings from `state.tileOwner`.
+   * Rebuilds the border lines (and whatever is left of the tint) from
+   * `state.tileOwner`.
    *
-   * One pass over the owned tiles: every one gets a tint, and a tile whose
-   * neighbourhood contains a different owner also gets a ring. The neighbour
-   * test compares *players*, so an internal boundary between two of one
-   * player's own cities is invisible — which is what a country looks like.
+   * One pass over the owned tiles: each is asked, edge by edge, whether the
+   * neighbour on the far side answers to the same *player*. Where it does not, a
+   * band goes down on this tile's side of that edge. Comparing players rather
+   * than cities is what makes an internal boundary between two of one player's
+   * own towns invisible — which is what a country looks like.
    */
   build(
     state: GameState,
@@ -298,28 +332,33 @@ export class TerritoryLayer {
       const centre = cellCenter(tile.col, tile.row);
       const at = new Vector3(centre.x, tileTopY(tile) + OVERLAY.lift, centre.z);
 
-      collector.add(geometry.territory, [color], new Matrix4().compose(at, identity, unit), {
-        overlay: true,
-        opacity: TERRITORY.tintOpacity * faded,
-      });
+      // The interior wash, which is a whisper by default and often nothing at
+      // all. A zero-opacity instance is not drawn but is still an instance, a
+      // matrix and a slot in a bucket, so "off" is expressed by not adding it.
+      if (TERRITORY.tintOpacity > 0) {
+        collector.add(geometry.territory, [color], new Matrix4().compose(at, identity, unit), {
+          overlay: true,
+          opacity: TERRITORY.tintOpacity * faded,
+        });
+      }
 
-      let edge = false;
-      for (const neighbour of neighborTiles(map, tileHex(tile))) {
-        const otherCity = state.tileOwner[tileIndex(map, neighbour.col, neighbour.row)];
+      for (let direction = 0; direction < DIRECTION_COUNT; direction++) {
+        const neighbour = neighborInDirection(map, tile, direction);
+        // A tile at the pole has no neighbour that way and gets a band by the
+        // same test, which is right: the map ends there and so does the country.
+        const otherCity = neighbour
+          ? state.tileOwner[tileIndex(map, neighbour.col, neighbour.row)]
+          : null;
         const otherPlayer =
           otherCity === null || otherCity === undefined ? undefined : ownerOf.get(otherCity);
-        if (otherPlayer !== playerId) {
-          edge = true;
-          break;
-        }
+        if (otherPlayer === playerId) continue;
+        collector.add(
+          geometry.borderBand,
+          [color],
+          borderBandMatrix(tile, direction),
+          { overlay: true, opacity: TERRITORY.borderOpacity * faded },
+        );
       }
-      // A tile at the pole has fewer than six neighbours and is an edge by the
-      // same test, which is right: the map ends there and so does the country.
-      if (!edge) continue;
-      collector.add(geometry.ring, [color], new Matrix4().compose(at, identity, unit), {
-        overlay: true,
-        opacity: TERRITORY.borderOpacity * faded,
-      });
     }
 
     this.drawCallCount = collector.flush(this.group, materials, false);
@@ -332,6 +371,59 @@ export class TerritoryLayer {
   dispose(): void {
     disposeInstancedGroup(this.group);
   }
+}
+
+/**
+ * Where one border band lies: along one edge of one tile, on *that tile's* side
+ * of it.
+ *
+ * Pure arithmetic, exported, and separated from the collecting for the reason
+ * `yieldRowLayout` is: this is the half that can be wrong in a way no draw-call
+ * count would ever show — a band a hair too far out lies in the grout, a band
+ * turned the wrong way lies across the hex — and a matrix is a thing a test can
+ * hold still and read off.
+ *
+ * Three facts about the geometry, in the order they are used:
+ *
+ *   the reach   `directionDelta` is centre to *centre*, so half its length is
+ *               the apothem: the distance from the middle of a hex to the middle
+ *               of one of its sides. Pulling the band half its own width back
+ *               from there is what puts its outer lip *on* the edge and its body
+ *               inside the tile, which is what leaves room for the neighbour's
+ *               own half on a contested edge.
+ *   the face    the board draws each prism a `tileGap` narrower than the ideal
+ *               hex and then jitters its size and its yaw (`tileScale`,
+ *               `tileYaw`). A band that ignored either would hang over the grout
+ *               on one side of a tile and sink into the face on the other, so it
+ *               takes both — the offset is turned by the same yaw as the band,
+ *               or the two would disagree about which way the edge points.
+ *   the length  a hexagon's side equals its circumradius, plus the overhang that
+ *               closes the corner where two of a tile's bands meet.
+ */
+export function borderBandMatrix(tile: Tile, direction: number): Matrix4 {
+  const centre = cellCenter(tile.col, tile.row);
+  const delta = directionDelta(direction);
+  const yaw = tileYaw(tile);
+  const face = tileScale(tile) * (1 - BOARD.tileGap);
+  const width = BOARD.hexRadius * TERRITORY.borderWidth;
+  const length = BOARD.hexRadius * face * TERRITORY.borderOverhang;
+
+  const span = Math.hypot(delta.x, delta.z);
+  const reach = (span / 2) * face - width / 2;
+  const cos = Math.cos(yaw);
+  const sin = Math.sin(yaw);
+  const nx = delta.x / span;
+  const nz = delta.z / span;
+
+  return new Matrix4().compose(
+    new Vector3(
+      centre.x + (nx * cos + nz * sin) * reach,
+      tileTopY(tile) + OVERLAY.lift,
+      centre.z + (-nx * sin + nz * cos) * reach,
+    ),
+    new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), edgeYaw(direction) + yaw),
+    new Vector3(length, 1, width),
+  );
 }
 
 /** city id → owning player id, built once per rebuild instead of scanned per tile. */

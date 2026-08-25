@@ -22,13 +22,17 @@
  * Every figure in this strip is the fold of a list, and all three ways of asking
  * for that list are the same list:
  *
- *   the chip itself   the total, plus — for a meter that is currently biting —
- *                     its consequence spelled out beside it, so the common case
- *                     needs no gesture at all.
- *   hover             what the number is *doing*: the yields it is multiplying
- *                     and by how much, or, for a yield, which city paid for it.
- *   click (meters)    the whole signed ledger, every line, folding to the
- *                     headline figure.
+ *   the chip itself   the total, and the total alone — coloured when a meter is
+ *                     in deficit, which is the one thing that has to survive
+ *                     with no gesture at all. It used to spell its consequence
+ *                     out beside the figure; see `writeChip` for why a sentence
+ *                     in glyphs was not carrying its width.
+ *   hover             where the number comes from and what it is doing: for a
+ *                     meter, its ledger grouped into the two sides it is the
+ *                     difference of, then its effects in words; for a yield,
+ *                     which city paid for it.
+ *   click (meters)    the whole signed ledger, every line in the order the rules
+ *                     produced it, folding to the headline figure.
  *
  * The hover cards are `infoCard.ts`'s, in its `below` placement — a card laid
  * beside a chip in a horizontal strip would cover the chips it is being compared
@@ -47,6 +51,7 @@ import type { Game } from '../sim/game';
 import {
   type MeterContribution,
   type MeterEffect,
+  type MeterId,
   type MeterStanding,
   explainAuthority,
   explainHappiness,
@@ -61,12 +66,12 @@ import {
   YIELD_GLYPH,
   YIELD_NAME,
   YIELD_NOTE,
-  effectFigure,
   figure,
   percentFigure,
   signedFigure,
 } from './figures';
 import { createInfoCard } from './infoCard';
+import { meterGroups } from './meterBreakdown';
 import { type Popover, createPopover } from './popover';
 
 /**
@@ -328,23 +333,64 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   }
 
   /**
-   * The hover card: what this meter is *doing*, in words.
+   * The hover card: where this meter's number comes from, and what it is doing.
    *
-   * A meter that is doing nothing says so rather than showing an empty card —
-   * "nothing yet" is a real answer and the commonest one for the first fifty
-   * turns of a game.
+   * Two halves, in that order, and the order is the point. Since the chips stopped
+   * carrying their effects inline — a chip is a *figure*, and "☺ +8 · 🔬🎭 +10%"
+   * was a sentence wearing a number's clothes — this card is where a player goes
+   * first, so it opens with the breakdown and closes with the consequence.
+   *
+   *   the breakdown  the ledger grouped into the two sides the meter is the
+   *                  difference of (`meterGroups`), each side carrying its own
+   *                  subtotal: supply and demand, capacity and what is spending
+   *                  it. Every line of `explainHappiness` / `explainAuthority` is
+   *                  in exactly one group, so the card is the summands of the
+   *                  figure beside it and never a second derivation of it.
+   *   the effects    unchanged, and still last: what the number is currently
+   *                  doing to the economy, in words.
+   *
+   * A meter that is doing nothing still says so rather than showing a card that
+   * stops after the ledger — "no effect at this level" is a real answer and the
+   * commonest one for the first fifty turns of a game.
    */
-  function effectCard(label: string, headline: string, effects: MeterEffect[]): Node {
+  function meterCard(
+    meter: MeterId,
+    label: string,
+    headline: string,
+    entries: MeterContribution[],
+    effects: MeterEffect[],
+  ): Node {
+    const { state } = getGame();
+    const playerId = localPlayerId();
     const box = element('div');
     const head = element('div', 'info-card-head');
     head.append(element('span', 'info-card-name', label));
     head.append(element('span', 'info-card-kind', headline));
     box.append(head);
+
+    for (const group of meterGroups(meter, entries)) {
+      const heading = element('div', 'meter-group');
+      heading.append(element('span', 'meter-line-source', group.label));
+      heading.append(
+        element(
+          'span',
+          group.total < 0 ? 'meter-line-value is-cost' : 'meter-line-value',
+          signedFigure(group.total),
+        ),
+      );
+      box.append(heading);
+      const lines = element('ul', 'meter-lines');
+      for (const entry of group.lines) {
+        lines.append(meterLine(starCapitalSource(state, playerId, entry.source), entry.value, true));
+      }
+      box.append(lines);
+    }
+
     if (effects.length === 0) {
       box.append(element('p', 'hint', 'No effect at this level.'));
       return box;
     }
-    const lines = element('ul', 'meter-lines');
+    const lines = element('ul', 'meter-lines is-effects');
     for (const effect of effects) {
       const line = element('li', 'meter-line');
       line.append(element('span', 'meter-line-source', effectWords(effect)));
@@ -382,27 +428,46 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
 
   info.bind(happinessChip, () => {
     const { state } = getGame();
-    const standing = meterStanding(explainHappiness(state, localPlayerId()));
-    return effectCard('Happiness', signedFigure(standing.total), effectsOf('happiness'));
+    const entries = explainHappiness(state, localPlayerId());
+    const standing = meterStanding(entries);
+    return meterCard(
+      'happiness',
+      'Happiness',
+      signedFigure(standing.total),
+      entries,
+      effectsOf('happiness'),
+    );
   });
   info.bind(authorityChip, () => {
     const { state } = getGame();
-    const standing = meterStanding(explainAuthority(state, localPlayerId()));
-    return effectCard(
+    const entries = explainAuthority(state, localPlayerId());
+    const standing = meterStanding(entries);
+    // Used against capacity, which is the reading the *chip* gave up when it
+    // went to a net figure: the card is where "six of eight" still lives.
+    return meterCard(
+      'authority',
       'Authority',
       `${figure(standing.cost)}/${figure(standing.gain)}`,
+      entries,
       effectsOf('authority'),
     );
   });
 
   /**
-   * Writes one chip: the figure, and the consequence when there is one.
+   * Writes one chip: a glyph and a figure, and nothing else.
    *
-   * The consequence is on the chip and not only in a card because it is the
-   * thing the player must not miss — Entry XIV.C's "the number and its meaning
-   * in one glance, no tooltip required". The alert ink is reserved for a meter
-   * in *deficit*: a bonus is also a modifier, and colouring it vermilion would
-   * teach the player to flinch at good news.
+   * The effects used to be spelled out beside the number — "☺ +8 · 🔬🎭 +10%" —
+   * on Entry XIV.C's reading that the consequence is the thing a player must not
+   * miss. Two meters doing that at once is most of a HUD strip spent on two
+   * numbers, and the glyph run is unreadable at a glance anyway: it is a
+   * *sentence*, and a sentence belongs in the card that has room for words. The
+   * chip keeps the half of that decision that works without any gesture at all —
+   * the **colour**. Vermilion is still reserved for a meter in deficit, because
+   * a bonus is also a modifier and colouring it alarm ink would teach the player
+   * to flinch at good news; the good state keeps its own quiet ink.
+   *
+   * The spoken label keeps the sentence, because a screen reader has no colour
+   * and no hover.
    */
   function writeChip(
     chipEl: HTMLElement,
@@ -412,9 +477,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     label: string,
   ): void {
     const value = chipEl.querySelector('.civ-meter-value') as HTMLElement;
-    const tail = effects.map(effectFigure).join(' · ');
-    const text = tail ? `${figure} · ${tail}` : figure;
-    if (value.textContent !== text) value.textContent = text;
+    if (value.textContent !== figure) value.textContent = figure;
     chipEl.classList.toggle('is-alarm', total < 0);
     chipEl.classList.toggle('is-good', total >= 0 && effects.length > 0);
     const spoken = effects.map(effectWords).join('; ');
@@ -441,10 +504,16 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         'Happiness',
       );
 
+      // The **net** writ, not "used of capacity". Both meters now read the same
+      // way — one signed figure, positive is room to move — and the pair of
+      // numbers is a thing the player looks up rather than watches: it lives in
+      // the hover card's headline and in its two group subtotals. A chip saying
+      // "6/8" also has to be *subtracted* before it means anything, which is
+      // work the strip should be saving.
       const authorityStanding = meterStanding(explainAuthority(state, playerId));
       writeChip(
         authorityChip,
-        `${figure(authorityStanding.cost)}/${figure(authorityStanding.gain)}`,
+        signedFigure(authorityStanding.total),
         authorityStanding.total,
         effectsOf('authority'),
         'Authority',

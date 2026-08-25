@@ -335,9 +335,30 @@ export interface RiverSpec {
 export interface TerritorySpec {
   /** Territory tint size as a fraction of the hex radius. */
   tintScale: number;
+  /**
+   * How strongly an owned tile's *interior* is washed in its owner's ink.
+   *
+   * Near zero by design since the border rework: the line is what says where a
+   * country is, and a wash over every owned hex was a second, louder answer to
+   * the same question that also fought the terrain under it. The key survives at
+   * a whisper rather than being deleted, because the old look is exactly this
+   * one number away — and a tint of `0` is honoured by drawing no instance at
+   * all, so turning it off costs nothing to draw.
+   */
   tintOpacity: number;
-  /** Opacity of the ring drawn on tiles at the edge of an empire. */
+  /** Opacity of the border band drawn along an edge where ownership changes. */
   borderOpacity: number;
+  /**
+   * The band's thickness as a fraction of the hex radius, and how far it runs
+   * past the edge it lies on.
+   *
+   * The overhang closes the corners: two bands meeting at a vertex of the same
+   * tile leave a notch at exactly the width of the band, and running each of
+   * them a few percent long fills it — the same trick, for the same reason, that
+   * `rivers.overhang` plays in the grout.
+   */
+  borderWidth: number;
+  borderOverhang: number;
   /** An auto-assigned citizen's ring: bone white, the board's quiet voice. */
   workedColor: number;
   workedOpacity: number;
@@ -1549,6 +1570,8 @@ export const VIEW3D: View3DData = {
     tintScale: viewJson.territory.tintScale,
     tintOpacity: viewJson.territory.tintOpacity,
     borderOpacity: viewJson.territory.borderOpacity,
+    borderWidth: viewJson.territory.borderWidth,
+    borderOverhang: viewJson.territory.borderOverhang,
     workedColor: named(viewJson.territory.workedColor, 'territory.workedColor'),
     workedOpacity: viewJson.territory.workedOpacity,
     lockedColor: named(viewJson.territory.lockedColor, 'territory.lockedColor'),

@@ -1031,15 +1031,49 @@ function drawNumeralCell(
 }
 
 /**
+ * The flags that put a *flat* tile icon — a yield glyph, its numeral — above
+ * everything printed on the hex it stands on.
+ *
+ * Exported for the reason `badgeDiscFlags` is: the material needs a canvas, and
+ * these four are the whole of the behaviour.
+ *
+ *   `transparent`  the fix, and the one that reads as a formality until it is
+ *                  wrong. `renderOrder` sorts *within* a pass, and three draws
+ *                  every opaque object before any transparent one — so an
+ *                  alpha-tested glyph left in the opaque pass beat the trees
+ *                  (opaque, drawn earlier) and lost to every blended decal on
+ *                  the board however high its `renderOrder` was. That is what an
+ *                  oasis pool, a floodplain wash or a shore band printing *over*
+ *                  a tile's yields was: not a lift, not an order, a pass.
+ *   `alphaTest`    kept at the same cutoff, so every pixel that survives is
+ *                  fully opaque and the coins of a stack still sort by the order
+ *                  they were collected in rather than by blending.
+ *   `depthTest`    off. A readout is not a thing in the diorama: the marks on a
+ *                  tile beyond a mountain are still that tile's marks. This is
+ *                  the property a badge keeps and a flat glyph gives up, and it
+ *                  is the whole difference between the two materials.
+ *   `depthWrite`   off, for the same reason — a decal that wrote depth would
+ *                  occlude whatever the diorama drew next.
+ */
+export function tileIconFlags(): {
+  transparent: boolean;
+  alphaTest: number;
+  depthTest: boolean;
+  depthWrite: boolean;
+} {
+  return { transparent: true, alphaTest: ICONS.alphaTest, depthTest: false, depthWrite: false };
+}
+
+/**
  * The built tile atlas, and the material every flat icon on the board is drawn
  * with.
  *
  * Not depth-tested. A resource roundel and a yield glyph are *readouts* — the
  * same class of thing as the overlay decals, which the material library also
  * lifts above the board — so they must not be swallowed by the hill they are
- * printed on the far side of. `InstanceCollector` gives a custom-material
- * bucket the overlay draw order when it is added with `onTop`, which is what
- * puts them over the terrain and under nothing.
+ * printed on the far side of. Blended into the late pass (`tileIconFlags`) and
+ * collected at `RENDER_ORDER.tileIcon`, which is what puts them over the terrain
+ * *and* over every wash and band printed on it.
  */
 export class TileIcons {
   private readonly texture: CanvasTexture;
@@ -1067,12 +1101,9 @@ export class TileIcons {
     this.texture = texture;
     this.material = new MeshBasicMaterial({
       map: texture,
-      transparent: false,
-      alphaTest: ICONS.alphaTest,
+      ...tileIconFlags(),
       side: DoubleSide,
       toneMapped: false,
-      depthTest: false,
-      depthWrite: false,
     });
     this.standingMaterial = new MeshBasicMaterial({
       map: texture,

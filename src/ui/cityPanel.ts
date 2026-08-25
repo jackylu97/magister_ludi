@@ -107,6 +107,64 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
+/** One row of the modifier list: what it is, what it is worth, how it reads. */
+export interface ModifierRow {
+  label: string;
+  figures: string;
+  /** A malus, set in the alarm ink. */
+  bad: boolean;
+  /** A stage's own line — the fold, in the panel's louder ink. */
+  stage: boolean;
+}
+
+/**
+ * One stage of the modifier list, as the rows it prints: a heading carrying that
+ * stage's summed percentages, and under it the lines it is the sum of.
+ *
+ * Except when it is the sum of exactly one line, which is the rework this
+ * function exists for. Every percentage `cityStageSums` folds has a line here —
+ * the meters, the luxuries, the hammers behind the current build, and nothing
+ * else joins that fold — so a stage with one source is a heading that restates
+ * its only line in different glyphs. From the two-stage rework (Entry XVII) until
+ * this pass, a contented empire's panel therefore printed
+ *
+ *     Empire            🔬 +10%  🎭 +10%
+ *     Happiness +8      🔬🎭 +10%
+ *
+ * which is the doubled science/culture bonus players reported: two rows, one
+ * fact, differing only in whether the yields were listed apart or together. The
+ * fold of one thing is that thing, so the stage and its reason share a row —
+ * "Empire · Happiness +8   🔬🎭 +10%" — and the moment a second source joins,
+ * the heading comes back to carry the net, which is the whole argument for
+ * summing rather than compounding.
+ *
+ * A stage nothing joined prints nothing. One whose lines cancel to nothing still
+ * prints: "Empire · no net change" over a +10% and a −10% is exactly the case a
+ * player needs to find, and it has two sources, so it is never collapsed.
+ *
+ * Pure, and separated from the DOM for the reason `yieldRowLayout` is: it is the
+ * half of the panel that decides what a player *sees twice*, and a suite with no
+ * jsdom can still read a list of rows.
+ */
+export function stageRows(
+  label: string,
+  figures: string | null,
+  sources: readonly (readonly [string, string, boolean])[],
+): ModifierRow[] {
+  if (figures === null && sources.length === 0) return [];
+  const only = sources.length === 1 ? sources[0]! : null;
+  if (only) {
+    return [{ label: `${label} · ${only[0]}`, figures: only[1], bad: only[2], stage: true }];
+  }
+  const rows: ModifierRow[] = [
+    { label, figures: figures ?? 'no net change', bad: false, stage: true },
+  ];
+  for (const [source, effect, bad] of sources) {
+    rows.push({ label: source, figures: effect, bad, stage: false });
+  }
+  return rows;
+}
+
 export function createCityPanel(options: CityPanelOptions): CityPanel {
   const { container, getGame, localPlayerId, getCity, onClose, onChanged } = options;
   const isBuyMode = options.isBuyMode ?? ((): boolean => false);
@@ -430,8 +488,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // A stage's own line: the same shape, set in the panel's louder ink, because
     // it is the figure the chips were actually multiplied by and the lines under
     // it are its parts.
-    const stageLine = (label: string, figures: string): void => {
-      const item = element('li', 'city-modifier is-stage');
+    const stageLine = (label: string, figures: string, bad = false): void => {
+      const item = element('li', bad ? 'city-modifier is-stage is-bad' : 'city-modifier is-stage');
       item.append(element('span', undefined, label));
       item.append(element('span', 'city-modifier-effect', figures));
       list.append(item);
@@ -455,7 +513,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // a heading carrying that stage's summed percentages and, under it, the lines
     // it is the sum of — so a player reading downward sees flats, "City bonuses
     // ⚙ +25%", its sources, "Empire 🔬 +10%", its sources, and can reach the
-    // number on the chip by hand.
+    // number on the chip by hand. A stage the fold of exactly one line is
+    // written as that line (see below): a sum of one thing is that thing, and
+    // printing both was the same sentence twice.
     const sums = cityStageSums(state, city, front);
     const percents = cityYieldPercents(state, city);
     const hammers = productionModifiers(state, city, front);
@@ -499,10 +559,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // nothing *is*: "Empire · nothing net" over a +10% and a −10% is the whole
       // point of summing rather than compounding, and hiding it would leave a
       // player who can see two modifiers unable to find where they went.
-      const figures = stageFigures(sums, stage);
-      if (figures === null && sources.length === 0) continue;
-      stageLine(STAGE_LABEL[stage], figures ?? 'no net change');
-      for (const [label, effect, bad] of sources) line(label, effect, bad);
+      for (const row of stageRows(STAGE_LABEL[stage], stageFigures(sums, stage), sources)) {
+        if (row.stage) stageLine(row.label, row.figures, row.bad);
+        else line(row.label, row.figures, row.bad);
+      }
     }
     if (list.childElementCount > 0) box.append(list);
     return box;
@@ -511,6 +571,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   /**
    * One stage's summed percentages as figures — `🔬 +20% ⚙ +25%` — or `null`
    * when that stage is doing nothing to any yield.
+   *
+   * See `stageRows` for what is done with it when the stage has exactly one
+   * source: the fold of one line is that line, and printing both was the
+   * doubled science/culture reading players saw after the two-stage rework.
    *
    * The fold of `cityStageSums`, which is the same fold `cityYields` multiplies
    * by, so the heading and the chip cannot disagree. Production carries the

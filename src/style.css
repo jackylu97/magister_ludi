@@ -685,6 +685,38 @@ body {
   color: var(--ink-soft);
 }
 
+/*
+ * One side of a meter, heading the lines it is the sum of: "Supply +17" over the
+ * palace and the luxuries, "Used −4" over the cities. Set in the card's own ink
+ * against the softer lines beneath it, and given the same hairline the city
+ * panel's stage lines use, so a hover card with two groups reads as two blocks
+ * rather than as one column with a stray bold row in it.
+ */
+.meter-group {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+  padding-bottom: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.meter-group:first-of-type {
+  margin-top: 2px;
+}
+
+/* The effects, last on the card and separated from the ledger above them: they
+   are what the number *does*, not where it came from. */
+.meter-lines.is-effects {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: var(--border-thin) solid var(--ink-faint);
+  color: var(--ink-soft);
+}
+
 .meter-total {
   display: flex;
   align-items: baseline;
@@ -2295,6 +2327,16 @@ kbd {
   border-top: 1px solid var(--ink-faint);
   color: var(--ink);
   letter-spacing: 0.02em;
+}
+
+/*
+ * A stage that collapsed into its only line ("Empire · Happiness +8") is still a
+ * stage heading, and still vermilion when the one thing it is the fold of is a
+ * malus — `.is-stage` is written after `.is-bad` and would otherwise take the
+ * colour back.
+ */
+.city-modifier.is-stage.is-bad {
+  color: var(--vermilion);
 }
 
 .city-modifier-effect {

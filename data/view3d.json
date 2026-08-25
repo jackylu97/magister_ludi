@@ -267,8 +267,10 @@
   },
   "territory": {
     "tintScale": 0.99,
-    "tintOpacity": 0.16,
-    "borderOpacity": 0.62,
+    "tintOpacity": 0.03,
+    "borderOpacity": 0.92,
+    "borderWidth": 0.13,
+    "borderOverhang": 1.08,
     "workedColor": "bone",
     "workedOpacity": 0.9,
     "lockedColor": "crimson",

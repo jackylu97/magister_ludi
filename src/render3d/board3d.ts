@@ -503,6 +503,18 @@ export class BoardGeometry {
   /** A fuller hexagon than `decal`, for the territory tint and the lens wash. */
   readonly territory: BufferGeometry;
   /**
+   * One tile's half of a border line: a unit quad lying flat, scaled by the
+   * instance matrix into a band along one hex edge (`TerritoryLayer`).
+   *
+   * The *same shape* a river ribbon is — an edge band is an edge band, and both
+   * are built by `riverSegment`, whose counter-clockwise winding is the thing
+   * neither of them may lose. A second buffer rather than the river's own,
+   * because the two are collected by different layers with different lifetimes
+   * and sharing one would make a border's draw call depend on whether the map
+   * happens to have rivers on it.
+   */
+  readonly borderBand: BufferGeometry;
+  /**
    * The diorama props, keyed by resource id: the wheat, the cattle, the ore.
    * Baked lit for every seat, exactly as everything else on the board is, and
    * then taken down per seat by the reveal pass where the resource has a
@@ -631,6 +643,7 @@ export class BoardGeometry {
     this.resourceStem = markerPin(VIEW3D.lens.resourceStemTaper);
     this.numeralMarkers = buildNumeralMarkers();
     this.river = riverSegment();
+    this.borderBand = riverSegment();
     this.bar = barQuad();
     // Sprite units. Built unconditionally rather than behind the style switch:
     // three small shared geometries cost nothing, and a board that had to be
@@ -697,6 +710,7 @@ export class BoardGeometry {
     for (const quad of Object.values(this.yieldGlyphs)) quad.dispose();
     for (const quad of this.numerals) quad.dispose();
     this.river.dispose();
+    this.borderBand.dispose();
     this.bar.dispose();
     this.territory.dispose();
     this.billboard.dispose();

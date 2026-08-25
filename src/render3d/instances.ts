@@ -111,6 +111,12 @@ export const HIDDEN_MATRIX = new Matrix4().makeScale(0, 0, 0);
  *   `onTop`    a decal that belongs to the *interface*: the hover and selection
  *              rings, the route dots, the worked-tile chips. Not depth tested at
  *              all, so nothing on the board can swallow it.
+ *   `tileIcon` the flat readouts printed on a hex face: the yield glyphs and
+ *              their numerals. Above the interface's own washes for the reason
+ *              the badges are above the rings — a reachable wash or a settler
+ *              tint is a statement *about* the tile, and the figures saying what
+ *              that tile makes must be legible through it, not tinted by it.
+ *              A number that has to be read is the last thing on its hex.
  *   `badge`    the unit badges. Above the rings, because a ring is a mark on the
  *              ground *under* a piece and must not paint over the tag naming it
  *              — but still depth tested, so a mountain in front of a unit hides
@@ -126,8 +132,9 @@ export const RENDER_ORDER = {
   overlay: 10,
   silhouette: 15,
   onTop: 20,
-  badge: 21,
-  hpBar: 22,
+  tileIcon: 21,
+  badge: 22,
+  hpBar: 23,
 } as const;
 
 /**
