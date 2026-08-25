@@ -305,6 +305,24 @@ export interface MapView {
   setWorkedTiles?(cells: readonly CellRef[], locked?: readonly CellRef[]): void;
 
   /**
+   * Optional: marks the ground a city founded on the hovered hex would work —
+   * the settler lens's hover preview, and an empty list whenever that lens is
+   * down or the pointer is off the board.
+   *
+   * A *hover*-frequency call, unlike `setLens`: the UI recomputes it on every
+   * mouse move and the renderer is expected to ignore an unchanged list, which
+   * is why the cells are handed over rather than the hovered hex. Which tiles a
+   * city works is a rules question (`workRadius`), and it is answered where
+   * every other rules question in this file is — in the UI, against the
+   * simulation — so a renderer never has to know the radius.
+   *
+   * Optional like `setWorkedTiles`, and for the same reason: the 2D pipelines
+   * are frozen, and a settler picked up under `?art=flat` simply gets no
+   * preview.
+   */
+  setSiteRadius?(cells: readonly CellRef[]): void;
+
+  /**
    * Optional: draws the board through one player's eyes — fog of war.
    *
    * `null` is an omniscient board, which is what the renderer starts at and what

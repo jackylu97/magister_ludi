@@ -282,7 +282,16 @@ export interface CityRules {
   workRadius: number;
   /** How far from its centre a city's borders may ever reach, in hexes. */
   claimRadius: number;
-  /** Minimum hex distance between two city centres, anyone's. */
+  /**
+   * Minimum hex distance between two city centres, anyone's — so the ground
+   * *within* `minCitySpacing − 1` hexes of an existing city is refused to a
+   * settler (see `foundingErrorAt`).
+   *
+   * At 4 that exclusion is exactly `workRadius`: no town may be planted inside
+   * the ring another town already works, which is the rule this game states in
+   * the one sentence a player can hold — "not within three hexes of a city".
+   * The two numbers are still independent knobs; they merely agree today.
+   */
   minCitySpacing: number;
   /** Food one population point eats every turn. */
   foodPerCitizen: number;

@@ -19,7 +19,20 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { OverlayLayer } from '../../src/render3d/overlays';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundCityAt } from '../../src/sim/cities';
-import { createMap, getTileAt, tileIndex, type Tile } from '../../src/sim/map';
+import {
+  createMap,
+  getTileAt,
+  tileHex,
+  tileIndex,
+  wrappedDistance,
+  type Tile,
+} from '../../src/sim/map';
+import {
+  type ResourceDef,
+  type ResourceId,
+  withExtraResources,
+} from '../../src/sim/resourceData';
+import { RULES } from '../../src/sim/rulesData';
 import { type GameState, newGame } from '../../src/sim/state';
 import { DIRECTION_COUNT, computeFreshwater, neighborInDirection } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -275,6 +288,80 @@ describe('board overlays draw over the board', () => {
   });
 
   /**
+   * The settler lens's hover preview lives in *this* layer and not in the lens,
+   * because it changes on every mouse move and the lens is a few thousand
+   * instances rebuilt only when the lens itself changes. So what is pinned here
+   * is that the overlay draws it at all, in an ink of its own, and that a caller
+   * with nothing to preview draws nothing — the arithmetic of *which* cells is
+   * the UI's (`siteRadiusCells` in `controls.ts`), asked of `mapRange`.
+   */
+  it('previews a prospective city’s work radius in an ink of its own', () => {
+    const state = flatState();
+    const layer = new OverlayLayer();
+    const radius = [
+      { col: 4, row: 4 },
+      { col: 5, row: 4 },
+      { col: 4, row: 5 },
+    ];
+    layer.build(
+      state.map,
+      {
+        reachable: [],
+        path: [],
+        committed: [],
+        hover: { col: 4, row: 4 },
+        selection: null,
+        worked: [],
+        locked: [],
+        siteRadius: radius,
+      },
+      geometry,
+      materials,
+    );
+
+    const colors = colorsOf(layer.group);
+    expect(colors).toContain(VIEW3D.overlay.siteRadiusColor);
+    // Distinct from every other mark this layer draws, or the preview would read
+    // as reachable ground or as a selection.
+    expect(VIEW3D.overlay.siteRadiusColor).not.toBe(VIEW3D.overlay.reachableColor);
+    expect(VIEW3D.overlay.siteRadiusColor).not.toBe(VIEW3D.overlay.selectionColor);
+    expect(VIEW3D.overlay.siteRadiusColor).not.toBe(VIEW3D.overlay.hoverColor);
+    // One chip per cell, times the wrap copies, and inset from the hex so a
+    // preview under the reachable wash still reads as chips.
+    const chips = decals(layer.group).filter(
+      ({ material }) => material.color.getHex() === VIEW3D.overlay.siteRadiusColor,
+    );
+    expect(chips).toHaveLength(1);
+    expect(chips[0]!.mesh.count).toBe(radius.length * WRAP_COPIES);
+    expect(VIEW3D.overlay.siteRadiusScale).toBeLessThan(1);
+    expectDrawnOverTheBoard(layer.group);
+    layer.dispose();
+  });
+
+  it('draws no radius preview when the settler lens is down', () => {
+    const state = flatState();
+    const layer = new OverlayLayer();
+    layer.build(
+      state.map,
+      {
+        reachable: [{ col: 2, row: 2 }],
+        path: [],
+        committed: [],
+        hover: null,
+        selection: null,
+        worked: [],
+        locked: [],
+      },
+      geometry,
+      materials,
+    );
+    // Optional like `attackable`: the UI hands over an empty list — or nothing
+    // at all — whenever the lens is not up, and no chip is drawn.
+    expect(colorsOf(layer.group)).not.toContain(VIEW3D.overlay.siteRadiusColor);
+    layer.dispose();
+  });
+
+  /**
    * Every band instance a territory layer drew, across every wrap copy.
    *
    * The bands are the *only* thing sharing `geometry.borderBand`, so counting
@@ -486,11 +573,89 @@ describe('the settler lens reads a site rather than scoring it', () => {
     expect(washOver(state, 6, 4)).toEqual([]);
   });
 
-  it('darkens ground the reducer would refuse', () => {
+  it('washes ground the reducer would refuse in crimson, not in shade', () => {
     const state = flatState();
     at(state, 6, 4).terrain = 'mountain';
     computeFreshwater(state.map);
-    expect(washOver(state, 6, 4)).toEqual([LENS.siteInvalidColor]);
+    expect(washOver(state, 6, 4)).toEqual([LENS.siteRefusedColor]);
+    // The point of the change: refusal is stated in an ink, never as a
+    // darkening. The fog already darkens, and a refused hex that read as
+    // unexplored ground was the bug.
+    expect(LENS.siteRefusedColor).not.toBe(VIEW3D.palette.ink);
+  });
+
+  it('refuses the whole ring the spacing rule reserves around a city', () => {
+    // The lens is the reducer's own rule painted (`foundingErrorAt`), so the
+    // hexes it refuses are exactly the ones the command would: everything
+    // within `minCitySpacing − 1` of a town, anyone's.
+    const state = flatState(16, 12);
+    foundCityAt(state, 1, at(state, 8, 6));
+    const spacing = RULES.cities.minCitySpacing;
+    for (const tile of state.map.tiles) {
+      const distance = wrappedDistance(state.map, tileHex(tile), tileHex(at(state, 8, 6)));
+      if (distance >= spacing) continue;
+      expect(`${tile.col},${tile.row}: ${washOver(state, tile.col, tile.row)[0]}`).toBe(
+        `${tile.col},${tile.row}: ${LENS.siteRefusedColor}`,
+      );
+    }
+  });
+
+  it('rings a luxury in grape, on refused ground as much as on legal ground', () => {
+    // The ring answers "what is on this hex", not "may I settle here" — a
+    // settler aims at a luxury from a legal tile *beside* it, so the mark has to
+    // survive the crimson.
+    const state = flatState();
+    at(state, 6, 4).resource = 'gems';
+    at(state, 6, 5).resource = 'gems';
+    at(state, 6, 5).terrain = 'mountain';
+    computeFreshwater(state.map);
+
+    expect(washOver(state, 6, 4)).toEqual([LENS.siteLuxuryColor]);
+    expect(washOver(state, 6, 5)).toEqual([LENS.siteRefusedColor, LENS.siteLuxuryColor]);
+  });
+
+  it('leaves a bonus resource unringed — the ring is for luxuries', () => {
+    const state = flatState();
+    at(state, 6, 4).resource = 'wheat';
+    computeFreshwater(state.map);
+    expect(washOver(state, 6, 4)).toEqual([]);
+  });
+
+  it('says nothing about a luxury this seat has no word for yet', () => {
+    // The roundels' own gate (`visibleResourceAt`), asked of the simulation so
+    // the lens cannot ring a dye the player has not heard of. No shipped luxury
+    // is tech-gated today, so the row is invented at runtime — which is also the
+    // honest form of the claim: the gate is data, and the lens asks one
+    // function about it either way.
+    withExtraResources(
+      {
+        tyrianDye: {
+          name: 'Tyrian Dye',
+          kind: 'luxury',
+          yields: { food: 0, production: 0, gold: 3 },
+          validTerrain: ['grassland'],
+          validFeatures: ['none'],
+          frequency: 1,
+          clusterSize: [1, 1],
+          emoji: '🐚',
+          requiresTech: 'bronzeWorking',
+        } as unknown as ResourceDef,
+      },
+      () => {
+        const state = flatState();
+        at(state, 6, 4).resource = 'tyrianDye' as ResourceId;
+        computeFreshwater(state.map);
+
+        const player = state.players[0]!;
+        player.techsResearched = player.techsResearched.filter((id) => id !== 'bronzeWorking');
+        expect(washOver(state, 6, 4)).toEqual([]);
+
+        // And the moment the seat can name it, the ring is there — the reveal
+        // reaches the lens exactly as it reaches the roundel and the yield.
+        player.techsResearched = [...player.techsResearched, 'bronzeWorking'];
+        expect(washOver(state, 6, 4)).toEqual([LENS.siteLuxuryColor]);
+      },
+    );
   });
 
   it('shows the yield glyphs and the settler wash at the same time', () => {

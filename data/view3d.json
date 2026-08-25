@@ -331,7 +331,10 @@
     "committedScale": 0.55,
     "committedStride": 2,
     "attackColor": "#b35843",
-    "attackOpacity": 0.3
+    "attackOpacity": 0.3,
+    "siteRadiusColor": "#dbcfb0",
+    "siteRadiusOpacity": 0.24,
+    "siteRadiusScale": 0.76
   },
   "hpBar": {
     "width": 0.66,
@@ -417,8 +420,11 @@
     "scienceColor": "#5b84c2",
     "cultureColor": "#9f74b8",
     "faithColor": "#c17a9e",
-    "siteInvalidColor": "#2f2b32",
-    "siteInvalidOpacity": 0.4,
+    "siteRefusedColor": "#b35843",
+    "siteRefusedOpacity": 0.5,
+    "siteLuxuryColor": "#7c5f8c",
+    "siteLuxuryRingOpacity": 0.95,
+    "siteLuxuryRingScale": 0.8,
     "siteCoastColor": "#4f9bc4",
     "siteFreshColor": "#63b45c",
     "siteOpacity": 0.44,

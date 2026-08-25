@@ -60,7 +60,7 @@
   "cities": {
     "workRadius": 3,
     "claimRadius": 3,
-    "minCitySpacing": 3,
+    "minCitySpacing": 4,
     "foodPerCitizen": 2,
     "growthBase": 15,
     "growthLinear": 8,

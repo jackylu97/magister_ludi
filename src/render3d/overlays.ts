@@ -90,6 +90,28 @@ export interface OverlayState {
   hover: CellRef | null;
   selection: CellRef | null;
   /**
+   * The work radius a city founded on the hovered hex would have — the settler
+   * lens's hover preview, and empty whenever that lens is not up.
+   *
+   * It lives in *this* layer rather than in `lens3d.ts` for the one reason that
+   * decides where anything on this board lives: what rebuilds it. The lens
+   * covers a whole map in a few thousand instances and is rebuilt only when the
+   * lens itself changes; this set changes on every mouse move, and rebuilding
+   * the lens per hover is the one thing that renderer refuses to do (see the
+   * docblock in `lens3d.ts`). The overlay layer is already torn down and rebuilt
+   * on every hover, and thirty-seven chips times three wrap copies is nothing
+   * beside the reachable set it rebuilds beside them.
+   *
+   * Which cells those are is `src/ui/controls.ts`'s answer, asked of
+   * `mapRange` at the rules' own `workRadius` and cut at the fog — the board is
+   * told *what to draw*, never *why*, exactly as it is for the reachable set and
+   * the worked tiles.
+   *
+   * Optional, like `attackable`: a caller with nothing to say about settling
+   * (the overlay tests, a gallery harness) says nothing.
+   */
+  siteRadius?: readonly CellRef[];
+  /**
    * Tiles the city under the pointer (or in the open panel) works, drawn as
    * small chips. Empty when no city is being looked at — it answers "where do
    * these yields come from?", and that is only a question while somebody is
@@ -155,6 +177,23 @@ export class OverlayLayer {
       const center = cellCenter(cell.col, cell.row);
       return new Vector3(center.x, tileTopY(tile) + OVERLAY.lift, center.z);
     };
+
+    // The prospective city's ground, under everything else in this layer: it is
+    // the quietest thing here and the only one that is not about the piece in
+    // hand, so a reachable tint or a route chip printed over it wins the tile,
+    // which is the right way round. Small chips rather than a full-bleed wash —
+    // see `OverlayState.siteRadius` and the tunables' own note.
+    for (const cell of state.siteRadius ?? []) {
+      const at = anchor(cell);
+      if (!at) continue;
+      const s = OVERLAY.siteRadiusScale;
+      collector.add(
+        geometry.decal,
+        [OVERLAY.siteRadiusColor],
+        new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
+        { onTop: true, opacity: OVERLAY.siteRadiusOpacity },
+      );
+    }
 
     for (const cell of state.reachable) {
       const at = anchor(cell);

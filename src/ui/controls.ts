@@ -214,6 +214,7 @@ import { techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import { isExplorer, unitDef } from '../sim/unitData';
 import { unitsOnTile } from '../sim/units';
+import { isExploredBy } from '../sim/visibility';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
 import { YIELD_GLYPH } from './figures';
@@ -336,11 +337,15 @@ function prefersReducedMotion(): boolean {
  *   · `0` always clears — the Civ convention a player already knows — read
  *     independently of `order`, so it means "off" even on the day `order`'s
  *     first entry stops being `'none'`.
- *   · `1..9` read positions `0..8` of `order`, whichever lens is there. `order`
- *     is `main.ts`'s `LENS_OPTIONS` (mode-only): the menu's own list is the one
- *     source of that sequence, so a lens appended to it gets a working hotkey
- *     with no second mapping to keep in step, and a digit past the end of the
- *     list names nothing.
+ *   · `1..9` count the **lenses**, not the menu's rows: `'none'` is struck out of
+ *     `order` first, wherever it sits, and the digits then run down what is
+ *     left. `order` is `main.ts`'s `LENS_OPTIONS` (mode-only), whose first row
+ *     is the "None" entry — so reading it positionally made `1` mean *off*,
+ *     which is `0`'s job, and cost the list its last lens a digit. A player
+ *     counts the things a key can *show* them; the row that shows nothing is not
+ *     one of them. The menu's own list is still the one source of the sequence,
+ *     so a lens appended to it gets a working hotkey with no second mapping to
+ *     keep in step, and a digit past the end of the list names nothing.
  *   · The number of the lens already active toggles it **off** — Civ-style —
  *     and any other in-range number switches to it. Both readings come from
  *     `current`, which must be the *manual* lens (`GameControls.lens()`) and
@@ -353,7 +358,8 @@ export function lensForDigit(
   current: LensMode,
 ): LensMode | null {
   if (!Number.isInteger(digit) || digit < 0 || digit > 9) return null;
-  const target = digit === 0 ? 'none' : (order[digit - 1] ?? null);
+  const lenses = order.filter((mode) => mode !== 'none');
+  const target = digit === 0 ? 'none' : (lenses[digit - 1] ?? null);
   if (target === null) return null;
   return target === current ? 'none' : target;
 }
@@ -1301,6 +1307,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   function refreshLens(): void {
     renderer.setLens?.(effectiveLens());
+    // The lens and its hover preview go up and come down together — raising the
+    // settler lens with the pointer already resting on a hex should show that
+    // hex's radius at once, and dropping the lens must take it away.
+    refreshSiteRadius();
   }
 
   /** Every cell within a city's work radius, its own centre included. */
@@ -1311,6 +1321,51 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       col: tile.col,
       row: tile.row,
     }));
+  }
+
+  /**
+   * The settler lens's hover preview: the ground a city founded on the hovered
+   * hex would work.
+   *
+   * The question a player actually asks while holding a settler is not "may I
+   * settle here" — the wash already answers that — but "what would I *get*", and
+   * that is the ring of tiles its citizens could stand on. Answered with the
+   * rules' own `workRadius` through `mapRange`, the same call the city panel's
+   * glyph restriction uses, so the preview and a real city's radius cannot come
+   * to disagree.
+   *
+   * Cut at the fog on the lens's own rule (`isExploredBy`, so remembered ground
+   * counts): a chip on Terra Incognita would be a promise about ground the seat
+   * has never seen, and the board is not drawing a hex under it to put one on.
+   *
+   * Empty unless the settler lens is actually up — read off `effectiveLens`
+   * rather than `manualLens`, because picking a settler up raises that lens
+   * without the menu, and that is the moment this preview is for.
+   */
+  function siteRadiusCells(): CellRef[] {
+    if (effectiveLens().mode !== 'settler') return [];
+    const hover = renderer.getHover();
+    if (!hover) return [];
+    const { state } = getGame();
+    const cells: CellRef[] = [];
+    for (const tile of mapRange(state.map, tileHex(hover.tile), RULES.cities.workRadius)) {
+      if (!isExploredBy(state, localPlayerId, tile.col, tile.row)) continue;
+      cells.push({ col: tile.col, row: tile.row });
+    }
+    return cells;
+  }
+
+  /**
+   * Pushes that preview at the board. Called from `refreshHover` — this is
+   * hover-frequency work — and from `refreshLens`, for the lens going up and
+   * down under a stationary pointer. The renderer ignores an unchanged list
+   * (`setSiteRadius`), so a pointer resting on one tile costs one `mapRange`
+   * and nothing else; the *lens* is never rebuilt for a mouse move, which is
+   * the whole reason this lives in the overlay layer (see
+   * `OverlayState.siteRadius`).
+   */
+  function refreshSiteRadius(): void {
+    renderer.setSiteRadius?.(siteRadiusCells());
   }
 
   function refreshPathPreview(): void {
@@ -2705,6 +2760,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // running on every mouse move. Both renderer setters ignore an unchanged
     // value, so resting the pointer on one tile costs nothing.
     refreshSpotlight();
+    // The settler lens's radius preview follows the pointer for the same reason
+    // the spotlight does, and is guarded the same way on the renderer's side.
+    refreshSiteRadius();
     refreshPathPreview();
     onUpdate(selectedUnit(), hover);
   }

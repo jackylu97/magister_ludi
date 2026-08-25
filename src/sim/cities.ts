@@ -835,6 +835,13 @@ export function foundingErrorAt(
     return `(${tile.col}, ${tile.row}) belongs to player ${tileOwner}`;
   }
 
+  // The spacing rule, and it is deliberately stated as a *distance* rather than
+  // as an exclusion radius: two city centres must be at least `minCitySpacing`
+  // hexes apart, which is the same sentence from the other end as "no city
+  // within `minCitySpacing − 1` hexes of an existing one". At 4 that refused
+  // ring is exactly `workRadius`, so a settler can never plant a town inside the
+  // ground another town is already working — anyone's, because a rival's
+  // citizens are working it just as hard as your own.
   const spacing = CITIES.minCitySpacing;
   const nearest = distanceToNearestCity(state, tileHex(tile));
   if (nearest < spacing) {

@@ -194,6 +194,8 @@ export class Renderer3D implements MapView {
   private committedPath: readonly CellRef[] = [];
   private workedTiles: readonly CellRef[] = [];
   private lockedTiles: readonly CellRef[] = [];
+  /** The settler lens's hover preview. See `setSiteRadius`. */
+  private siteRadius: readonly CellRef[] = [];
   /** Which lens the UI has up. See `setLens` and `lens3d.ts`. */
   private lensView: LensView = NO_LENS;
   /** Move mode armed in the UI: draw the selection ring live. See the setter. */
@@ -796,6 +798,7 @@ export class Renderer3D implements MapView {
         selection: selected ? { col: selected.col, row: selected.row } : null,
         worked: this.workedTiles,
         locked: this.lockedTiles,
+        siteRadius: this.siteRadius,
         // The pinned rings wear the seat's own piece colour — worked tiles are
         // only ever shown for the local seat's cities, so the seat is the one
         // player whose colour can be right here. No seat, no colour: the
@@ -894,6 +897,21 @@ export class Renderer3D implements MapView {
   setCommittedPath(cells: readonly CellRef[]): void {
     if (sameCells(this.committedPath, cells)) return;
     this.committedPath = cells;
+    this.rebuildOverlays();
+  }
+
+  /**
+   * The ground a city founded on the hovered hex would work — the settler lens's
+   * hover preview. See `MapView.setSiteRadius`, and `OverlayState.siteRadius`
+   * for why it is an overlay rather than part of the lens.
+   *
+   * Guarded by `sameCells` like every other setter here, so a pointer resting on
+   * one tile costs nothing at all: the preview is recomputed on every mouse
+   * move and rebuilds the layer only when the answer actually changed.
+   */
+  setSiteRadius(cells: readonly CellRef[]): void {
+    if (sameCells(this.siteRadius, cells)) return;
+    this.siteRadius = cells;
     this.rebuildOverlays();
   }
 

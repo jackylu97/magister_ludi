@@ -491,9 +491,25 @@ export interface LensSpec {
   scienceColor: number;
   cultureColor: number;
   faithColor: number;
-  /** Tiles no city may be founded on are simply darkened. */
-  siteInvalidColor: number;
-  siteInvalidOpacity: number;
+  /**
+   * Ground the reducer would refuse a city on, in a refusal ink rather than a
+   * shade: crimson, the colour this interface already says *no* in (the attack
+   * tint, a camp under the explorer lens). A darkening said "this hex is dim",
+   * which a player reads as fog long before they read it as a rule.
+   */
+  siteRefusedColor: number;
+  siteRefusedOpacity: number;
+  /**
+   * A luxury on the ground, ringed in grape so a settler can aim at one.
+   *
+   * A ring and never a wash: the wash is spoken for by the site grades, and this
+   * is a fact about what is *on* the hex rather than about what a city there
+   * would be — so it is drawn on refused ground too. Inset by
+   * `siteLuxuryRingScale` so it sits inside an estuary's ring rather than in it.
+   */
+  siteLuxuryColor: number;
+  siteLuxuryRingOpacity: number;
+  siteLuxuryRingScale: number;
   /**
    * The two things that decide a city site, each with its own ink: a tile
    * touching the sea, and a tile with fresh water. See `lens3d.ts`.
@@ -833,6 +849,18 @@ export interface OverlaySpec {
    */
   attackColor: number;
   attackOpacity: number;
+  /**
+   * The settler lens's hover preview: the ring of ground a city founded on the
+   * hovered hex would work.
+   *
+   * Parchment rather than bone, quiet, and drawn as chips a good deal smaller
+   * than the hex — all three because it shares the screen with the reachable
+   * wash of the very settler that raised the lens, and a second bone-white
+   * full-bleed wash under that one would be unreadable. See `OverlayState.siteRadius`.
+   */
+  siteRadiusColor: number;
+  siteRadiusOpacity: number;
+  siteRadiusScale: number;
 }
 
 export interface HpBarSpec {
@@ -1612,6 +1640,9 @@ export const VIEW3D: View3DData = {
     committedStride: Math.max(1, Math.round(viewJson.overlay.committedStride)),
     attackColor: parseColor(viewJson.overlay.attackColor, 'overlay.attackColor'),
     attackOpacity: viewJson.overlay.attackOpacity,
+    siteRadiusColor: parseColor(viewJson.overlay.siteRadiusColor, 'overlay.siteRadiusColor'),
+    siteRadiusOpacity: viewJson.overlay.siteRadiusOpacity,
+    siteRadiusScale: viewJson.overlay.siteRadiusScale,
   },
   hpBar: {
     width: viewJson.hpBar.width,
@@ -1669,8 +1700,11 @@ export const VIEW3D: View3DData = {
     scienceColor: parseColor(viewJson.lens.scienceColor, 'lens.scienceColor'),
     cultureColor: parseColor(viewJson.lens.cultureColor, 'lens.cultureColor'),
     faithColor: parseColor(viewJson.lens.faithColor, 'lens.faithColor'),
-    siteInvalidColor: parseColor(viewJson.lens.siteInvalidColor, 'lens.siteInvalidColor'),
-    siteInvalidOpacity: viewJson.lens.siteInvalidOpacity,
+    siteRefusedColor: parseColor(viewJson.lens.siteRefusedColor, 'lens.siteRefusedColor'),
+    siteRefusedOpacity: viewJson.lens.siteRefusedOpacity,
+    siteLuxuryColor: parseColor(viewJson.lens.siteLuxuryColor, 'lens.siteLuxuryColor'),
+    siteLuxuryRingOpacity: viewJson.lens.siteLuxuryRingOpacity,
+    siteLuxuryRingScale: viewJson.lens.siteLuxuryRingScale,
     siteCoastColor: parseColor(viewJson.lens.siteCoastColor, 'lens.siteCoastColor'),
     siteFreshColor: parseColor(viewJson.lens.siteFreshColor, 'lens.siteFreshColor'),
     siteOpacity: viewJson.lens.siteOpacity,

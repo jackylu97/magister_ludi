@@ -362,6 +362,48 @@ describe('foundingErrorAt', () => {
     expect(foundingErrorAt(state, 1, at(state.map, 8, 5))).toMatch(/tile\(s\) from the nearest/);
   });
 
+  /**
+   * The spacing rule as a player hears it — *no city within three hexes of
+   * another* — pinned at its literal numbers rather than symbolically, because
+   * the symbolic tests above would go on passing through any change to the
+   * value and this one is the statement of the rule itself.
+   *
+   * Three is not an arbitrary radius: it is `workRadius`, so the reserved ring
+   * is exactly the ground the existing town already works. That identity is
+   * asserted here, and it is why the two numbers are allowed to agree.
+   */
+  it('reserves the ring a city works: nothing may be founded within three hexes', () => {
+    const state = flatState(20, 14);
+    plant(state, 0, 8, 6);
+    expect(CITIES.minCitySpacing).toBe(4);
+    expect(CITIES.minCitySpacing).toBe(CITIES.workRadius + 1);
+
+    const centre = tileHex(at(state.map, 8, 6));
+    /** An unclaimed tile exactly `distance` hexes from that city. */
+    const ring = (distance: number): Tile => {
+      const tile = state.map.tiles.find(
+        (candidate) =>
+          wrappedDistance(state.map, tileHex(candidate), centre) === distance &&
+          tileOwnerCityId(state, candidate.col, candidate.row) === null,
+      );
+      if (!tile) throw new Error(`No unclaimed tile ${distance} hexes out`);
+      return tile;
+    };
+
+    // Two and three are refused *for the spacing*, not for belonging to anyone:
+    // the opening claim only reaches one hex, so these are free ground the rule
+    // is reserving all the same.
+    for (const distance of [2, 3]) {
+      expect(`${distance}: ${foundingErrorAt(state, 0, ring(distance))}`).toMatch(
+        new RegExp(`^${distance}: .*is ${distance} tile\\(s\\) from the nearest city; 4 required$`),
+      );
+    }
+    // Four is the first legal hex, and it is legal to everybody — the rule reads
+    // the board, not the passports.
+    expect(foundingErrorAt(state, 0, ring(4))).toBeNull();
+    expect(foundingErrorAt(state, 1, ring(4))).toBeNull();
+  });
+
   it('judges every tile of a work radius without a unit anywhere near it', () => {
     // What the settler lens does: ask the reducer's own rule, tile by tile.
     const state = flatState(20, 14);

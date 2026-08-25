@@ -21,7 +21,10 @@
  *                   one, and the switch starts on (`LENS_DEFAULTS`): naming the
  *                   ground is not a question the player should have to go and ask.
  *   · the **settler lens** — where may a city go, and what kind of site is it?
- *                   Every tile the reducer would refuse is darkened. Every tile
+ *                   Every tile the reducer would refuse is washed **crimson** —
+ *                   the ink this interface says no in, and never a darkening,
+ *                   which on a fogged board reads as "unexplored" rather than as
+ *                   "forbidden". Every tile
  *                   it would accept is read for the two things that actually
  *                   decide where a capital goes: **blue** for a tile touching
  *                   the coast, **green** for a tile with fresh water, and a
@@ -29,7 +32,12 @@
  *                   harbour and drinking water on one hex — is the premium site
  *                   in this game, and it is the one the eye should find first,
  *                   so it is the only grade that carries a ring as well as a
- *                   wash.
+ *                   wash. Over any of those, a **grape** ring marks a hex
+ *                   carrying a luxury: not a grade of site at all but a thing
+ *                   to aim at, which is why it is also drawn on the ground the
+ *                   crimson is refusing. The prospective city's own work radius
+ *                   is *not* here — it follows the pointer, so it belongs to the
+ *                   overlay layer (see `OverlayState.siteRadius`).
  *   · the **explorer lens** — where is there still something to find? Every
  *                   unclaimed ruin and village the seat has charted is ringed in
  *                   gold, every camp it can see right now in crimson. The
@@ -100,6 +108,7 @@ import {
   yieldContextFor,
 } from '../sim/cities';
 import { type GameMap, type Tile, getTileAt } from '../sim/map';
+import { resourceDef } from '../sim/resourceData';
 import type { GameState } from '../sim/state';
 import { visibleResourceAt } from '../sim/tech';
 import { hasFreshWater, isCoastal } from '../sim/water';
@@ -432,22 +441,37 @@ export class LensLayer {
   }
 
   /**
-   * The settler wash: refused tiles darkened, allowed tiles coloured by what
-   * kind of site they are.
+   * The settler wash: refused tiles in the refusal ink, allowed tiles coloured
+   * by what kind of site they are — and, over either, a ring on any hex whose
+   * luxury a settler ought to be walking toward.
    *
    * Four states and no ramp (see the module docblock for why the old
    * desirability grade went):
    *
-   *   · refused   — darkened, by the reducer's own rule.
+   *   · refused   — **crimson**, by the reducer's own rule. It used to be a
+   *                 darkening, and a darkening is the one thing this board must
+   *                 not use to mean "no": the fog already darkens, so a refused
+   *                 hex read as unexplored ground rather than as a rule. Crimson
+   *                 is the ink this interface says no in everywhere else (the
+   *                 attack tint, a camp under the explorer lens), and it stays
+   *                 legible on remembered ground, where a shade of ink does not.
    *   · coastal   — blue. A neighbouring `coast` tile: this city can reach the sea.
    *   · fresh     — green. `hasFreshWater`, so it can drink and grow.
    *   · both      — the two blended, plus a ring in the same ink at full
    *                 strength. A wash alone cannot say "this one is special" in a
    *                 field of washes; the ring can, and it costs one more bucket.
    *
-   * A tile that is neither gets no mark at all. Silence is the honest answer for
-   * ground that is merely legal, and it also keeps an inland map from being
-   * painted edge to edge in a colour that means nothing.
+   * A tile that is none of those gets no wash at all. Silence is the honest
+   * answer for ground that is merely legal, and it also keeps an inland map from
+   * being painted edge to edge in a colour that means nothing.
+   *
+   * The luxury ring is the exception to the "one grade per tile" shape above,
+   * and deliberately so: it does not answer *may a city go here* — it answers
+   * *what is on this ground* — so it is drawn on refused hexes too. A settler
+   * aims at a luxury from a legal hex nearby, which means the ring has to be
+   * visible on the very tiles the crimson is refusing. Asked of
+   * `visibleResourceAt`, the simulation's own gate, so the lens can never ring a
+   * dye the seat has no word for yet — the same rule the roundels obey.
    */
   private addSiteWash(
     state: GameState,
@@ -458,6 +482,11 @@ export class LensLayer {
   ): void {
     const identity = new Quaternion();
     const unit = new Vector3(1, 1, 1);
+    const luxuryRing = new Vector3(
+      LENS.siteLuxuryRingScale,
+      1,
+      LENS.siteLuxuryRingScale,
+    );
 
     const anchor = (tile: Tile): Vector3 => {
       const centre = cellCenter(tile.col, tile.row);
@@ -466,37 +495,52 @@ export class LensLayer {
 
     const estuary = mixColor(LENS.siteCoastColor, LENS.siteFreshColor, LENS.siteEstuaryMix);
 
+    /** The grape ring, for a luxury this seat may be told about. */
+    const markLuxury = (tile: Tile): void => {
+      const id = visibleResourceAt(state, playerId, tile);
+      if (id === null || resourceDef(id).kind !== 'luxury') return;
+      collector.add(
+        geometry.ring,
+        [LENS.siteLuxuryColor],
+        new Matrix4().compose(anchor(tile), identity, luxuryRing),
+        { onTop: true, opacity: LENS.siteLuxuryRingOpacity },
+      );
+    };
+
+    // The grade first and the luxury ring after it, on every path through the
+    // loop: a ring collected before the wash it sits on would be dulled by it.
     for (const tile of tiles) {
       if (foundingErrorAt(state, playerId, tile) !== null) {
         collector.add(
           geometry.territory,
-          [LENS.siteInvalidColor],
+          [LENS.siteRefusedColor],
           new Matrix4().compose(anchor(tile), identity, unit),
-          { onTop: true, opacity: LENS.siteInvalidOpacity },
+          { onTop: true, opacity: LENS.siteRefusedOpacity },
         );
-        continue;
+      } else {
+        const coastal = isCoastal(state.map, tile);
+        const fresh = hasFreshWater(tile);
+        const both = coastal && fresh;
+        if (coastal || fresh) {
+          const color = both ? estuary : coastal ? LENS.siteCoastColor : LENS.siteFreshColor;
+          const at = anchor(tile);
+          collector.add(
+            geometry.territory,
+            [color],
+            new Matrix4().compose(at, identity, unit),
+            { onTop: true, opacity: both ? LENS.siteEstuaryOpacity : LENS.siteOpacity },
+          );
+          if (both) {
+            collector.add(
+              geometry.ring,
+              [color],
+              new Matrix4().compose(at, identity, unit),
+              { onTop: true, opacity: LENS.siteEstuaryRingOpacity },
+            );
+          }
+        }
       }
-
-      const coastal = isCoastal(state.map, tile);
-      const fresh = hasFreshWater(tile);
-      if (!coastal && !fresh) continue;
-
-      const both = coastal && fresh;
-      const color = both ? estuary : coastal ? LENS.siteCoastColor : LENS.siteFreshColor;
-      const at = anchor(tile);
-      collector.add(
-        geometry.territory,
-        [color],
-        new Matrix4().compose(at, identity, unit),
-        { onTop: true, opacity: both ? LENS.siteEstuaryOpacity : LENS.siteOpacity },
-      );
-      if (!both) continue;
-      collector.add(
-        geometry.ring,
-        [color],
-        new Matrix4().compose(at, identity, unit),
-        { onTop: true, opacity: LENS.siteEstuaryRingOpacity },
-      );
+      markLuxury(tile);
     }
   }
 

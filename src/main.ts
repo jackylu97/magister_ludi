@@ -1418,11 +1418,15 @@ async function boot(initial: Game | null): Promise<void> {
    * The lens menu's rows: the exclusive lens choices, built off `LENS_OPTIONS`
    * (declared above `controls`, and see that declaration for why).
    */
-  const lensButtons = LENS_OPTIONS.map(([mode, label, hint]) => {
+  const lensButtons = LENS_OPTIONS.map(([mode, label, hint], index) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'lens-option';
-    button.title = hint;
+    // The row's own hotkey, spelled out where the row is. Counted the way
+    // `lensForDigit` counts — over the *lenses*, with the None row struck out
+    // and taking `0` — so the tooltip cannot drift from the key that fires.
+    const digit = LENS_OPTIONS.slice(0, index).filter(([m]) => m !== 'none').length + 1;
+    button.title = mode === 'none' ? `${hint} (0)` : `${hint} (${digit})`;
     const name = document.createElement('span');
     name.className = 'lens-option-name';
     name.textContent = label;
