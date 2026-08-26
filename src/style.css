@@ -100,6 +100,20 @@
      panels — one number so nothing can drift out of alignment with it. */
   --topbar-h: 42px;
 
+  /* The research card's own rendered height: its 8px top/bottom padding, its
+     2.5px border on both edges, and the ~62px dial that is the taller of its
+     two children (the text stack never wins that contest). Named for the same
+     reason `--end-turn-h` is — so the HUD dock, pinned directly under the
+     card, can never silently drift out of alignment with it. */
+  --research-card-h: calc(62px + 8px * 2 + 2.5px * 2);
+
+  /* The dock's own height: two 3px-bordered buttons, each an icon, a small
+     gap, and one line of the dock label's 8.5px mono, over 10px top and 8px
+     bottom padding. Read by the Faith card's own fixed column, which hangs
+     under the dock the way `--research-card-h` lets the dock hang under the
+     research card. */
+  --hud-dock-h: calc(10px + 24px + 5px + 11px + 8px + var(--border) * 2);
+
   /* End Turn's own rendered height, built from exactly the numbers `.btn-end`
      is: its padding, its border, and one line of 16px content at the `.btn`
      line-height of 1.25. Named here rather than measured in JS so the corner
@@ -2045,6 +2059,108 @@ kbd {
   #hud-research.is-prompting {
     animation: none;
   }
+}
+
+/* --- the HUD dock -----------------------------------------------------
+   Two square lozenge buttons directly under the research card — Statecraft
+   and Religion, "front and centre" read literally: a fixed corner rather than
+   a click or two down inside another surface. Pinned with `--research-card-h`
+   so it can never drift into the card above it, the same technique
+   `--end-turn-clearance` uses for the corner End Turn owns.
+
+   Built by `src/ui/hudDock.ts`; see that module for why Statecraft opens a
+   screen the dock does not own and Religion opens a small popover of its
+   own. */
+.hud-dock {
+  position: fixed;
+  top: calc(var(--topbar-h) + 12px + var(--research-card-h) + 10px);
+  left: 14px;
+  z-index: 10;
+  display: flex;
+  gap: 10px;
+}
+
+/* The button recipe every bordered control in this HUD shares — 3px ink,
+   an offset shadow, a physical press — laid out as an icon over a tiny mono
+   label rather than as a row, because a square reads as "one more corner of
+   chrome" the way a wide button would not. */
+.hud-dock-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 68px;
+  padding: 10px 8px 8px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 60ms ease-out, box-shadow 60ms ease-out;
+}
+
+.hud-dock-btn:hover {
+  background: #fdfaef;
+}
+
+/* The whole point of the language: a press is a physical event — the same
+   3px throw `--shadow-sm` sets, collapsed to nothing, `#hud-research:active`
+   uses one section up. */
+.hud-dock-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* The drawn mark, masked with `currentColor` — see `--dock-mark`, set per
+   button by `src/ui/hudDock.ts` (`src/art/dockMarks.ts` for Statecraft's
+   scroll, `src/art/yieldMarks.ts`'s own faith flame reused for Religion). */
+.hud-dock-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--dock-mark);
+  mask-image: var(--dock-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+.hud-dock-label {
+  font-family: var(--face-num);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* The Faith card's own fixed column, hung directly under the dock for the
+   same reason `#hud-meters` and `#hud-popovers` each hang under their own
+   trigger rather than sharing the other's corner — a card opens beneath the
+   button that opened it. Same recipe as both: transparent to the pointer,
+   the card itself opaque to it. */
+#hud-dock-popovers {
+  position: fixed;
+  top: calc(
+    var(--topbar-h) + 12px + var(--research-card-h) + 10px + var(--hud-dock-h) + 10px
+  );
+  left: 14px;
+  z-index: 15;
+  pointer-events: none;
+}
+
+#hud-dock-popovers > .hud-card {
+  position: static;
+  pointer-events: auto;
 }
 
 /* --- bottom-left: the context card ----------------------------------------
@@ -5868,45 +5984,56 @@ kbd {
   color: var(--ink-soft);
 }
 
-/* A yield chip with something waiting behind it — today, only culture, when a
-   Statecraft draft is outstanding or a charter is banked. A mark rather than a
-   colour change, so the figure itself keeps its voice. It pulses rather than
-   sitting still: a static dot on a chip a player has not yet learned is
-   clickable (`.civ-yield-clickable`, above) reads as decoration, and the whole
-   point of this mark is that it is not — see the notifications' own unread
-   badge, whose precedent this follows, for the same "something is waiting"
-   reading applied to a strip nobody has to open to feel it. */
-.civ-yield-waiting {
+/* A HUD control with something waiting behind it: today, only the dock's
+   Statecraft button, when a draft is outstanding or a charter is banked
+   (`hasStatecraftOffer`). A mark rather than a colour change, so the figure or
+   icon underneath keeps its own voice. It pulses rather than sitting still: a
+   static dot on a control nobody has learned to read yet is decoration, and
+   the whole point of this mark is that it is not — see the notifications'
+   own unread badge, whose precedent this follows, for the same "something is
+   waiting" reading applied to a control nobody has to open to feel it.
+
+   This used to be `.civ-yield-waiting`, living only on the culture chip
+   (Entry XV). It moved to the dock's Statecraft button when the dock shipped
+   — one badge, not two, on the reading that a fixed corner beats a chip in a
+   scrolling strip as the louder of the interface's two doors to Statecraft —
+   and the class was renamed to say what it is now asked of rather than where
+   it was first drawn. The name still fits either kind of control: `position:
+   relative` is the only thing a host needs to supply. */
+.hud-badge-waiting {
   position: relative;
 }
 
-.civ-yield-waiting::after {
+.hud-badge-waiting::after {
   position: absolute;
   top: -1px;
   right: -3px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--vermilion-lit);
+  /* Plain `--vermilion`, not the `-lit` variant the culture chip wore: that
+     lift exists for ink-dark surfaces (see the root token's own comment) and
+     the dock is parchment, like the research card it sits under. */
+  background: var(--vermilion);
   content: '';
   animation: yield-waiting-pulse 1.8s ease-in-out infinite;
 }
 
-/* `--vermilion-lit` (#f28563) has no separate RGB-components token to draw an
+/* `--vermilion` (#d4502e) has no separate RGB-components token to draw an
    alpha ring off, so the ring's colour is spelled out here rather than through
    a custom property invented for this one rule. */
 @keyframes yield-waiting-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(242, 133, 99, 0.55);
+    box-shadow: 0 0 0 0 rgba(212, 80, 46, 0.55);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(242, 133, 99, 0);
+    box-shadow: 0 0 0 4px rgba(212, 80, 46, 0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .civ-yield-waiting::after {
+  .hud-badge-waiting::after {
     animation: none;
   }
 }

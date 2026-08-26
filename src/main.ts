@@ -107,6 +107,7 @@ import {
 } from './ui/notifications';
 import { type NotificationsPanel, createNotificationsPanel } from './ui/notificationsPanel';
 import { createPopover } from './ui/popover';
+import { type HudDock, createHudDock } from './ui/hudDock';
 import { type ToastStack, createToastStack } from './ui/toasts';
 import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
 import { type TechTree, createTechTree } from './ui/techTree';
@@ -225,6 +226,14 @@ const researchTurnsEl = requireElement<HTMLElement>('research-turns');
 const researchFiguresEl = requireElement<HTMLElement>('research-figures');
 const techOverlayEl = requireElement<HTMLElement>('tech-overlay');
 const techChartEl = requireElement<HTMLElement>('tech-chart');
+/* The HUD dock, directly under the research card: Statecraft and Religion. Its
+   two buttons are runtime `data:` URIs, so `createHudDock` builds them into
+   this container rather than index.html holding them static — see
+   `src/ui/hudDock.ts`. The Faith card's own elements are its popover, wired
+   the same way the meter cards below are. */
+const hudDockEl = requireElement<HTMLElement>('hud-dock');
+const faithPopoverEl = requireElement<HTMLElement>('faith-popover');
+const faithBodyEl = requireElement<HTMLElement>('faith-body');
 /* The Abacus: the bar button that opens it, and the screen it opens. Its canvas
    is not here — `abacusScreen.ts` builds one into the stage on the first open. */
 const abacusButton = requireElement<HTMLButtonElement>('abacus-button');
@@ -479,6 +488,13 @@ let statecraft: StatecraftScreen | null = null;
 let meterCards: CivYieldStrip | null = null;
 
 /**
+ * The HUD dock, once `boot` has built it. A holder for `meterCards`' own
+ * reason: the Faith card it owns needs a game to read, and `closePopovers` is
+ * declared before there is one.
+ */
+let hudDock: HudDock | null = null;
+
+/**
  * Every notice the seats have been shown, and the two surfaces that show them.
  *
  * The log is built here, at module scope and before any game exists, because it
@@ -499,6 +515,7 @@ function closePopovers(): boolean {
     lens.isOpen ||
     (notifications?.isOpen ?? false) ||
     (meterCards?.isOpen ?? false) ||
+    (hudDock?.isOpen ?? false) ||
     (techTree?.isOpen ?? false) ||
     (abacus?.isOpen ?? false) ||
     (statecraft?.isOpen ?? false) ||
@@ -508,6 +525,7 @@ function closePopovers(): boolean {
   lens.close();
   notifications?.close();
   meterCards?.close();
+  hudDock?.close();
   techTree?.close();
   abacus?.close();
   statecraft?.close();
@@ -1315,6 +1333,9 @@ async function boot(initial: Game | null): Promise<void> {
     // change — so every view of them is refreshed wherever the main panel is,
     // the empire's per-turn totals in the top bar included.
     civYields.render();
+    // The dock's badge and its open Faith card change on the same facts the
+    // strip above just read, so it refreshes in the same breath.
+    hudDock?.render();
     // The research card changes with the seat, with the science rate and with
     // every completed tech, so it refreshes wherever the rest of the HUD does.
     techTree?.render();
@@ -1607,6 +1628,32 @@ async function boot(initial: Game | null): Promise<void> {
     ['explorer', 'Explorer', 'What is left to find: gold is a ruin or a village, red is a camp'],
   ];
 
+  /**
+   * A screen in front of the board owns the keyboard: the landing, and the
+   * two full-screen surfaces — the star chart and the Abacus — each of which
+   * handles its own Escape while it is up. Named and hoisted above
+   * `createGameControls` so the HUD dock's own `H` hotkey (wired below,
+   * standalone rather than through `controls.ts`'s own keydown switch — see
+   * that wiring's comment) can defer to the same guard rather than growing a
+   * second copy of it.
+   */
+  function isInputBlocked(): boolean {
+    return (
+      !landingEl.hidden ||
+      (techTree?.isOpen ?? false) ||
+      (abacus?.isOpen ?? false) ||
+      (statecraft?.isOpen ?? false) ||
+      // The load list is the third such screen, and the only one that can be
+      // up while the landing is: it handles its own Escape (see
+      // `savesPanel.ts`).
+      savesPanel.isOpen ||
+      // The offer card is the one genuinely blocking surface here: it owns
+      // the keyboard while it is up, and there is nothing to escape to (see
+      // `offerCard.ts`).
+      offerCard.isOpen
+    );
+  }
+
   const controls = createGameControls({
     viewport: viewportEl,
     renderer,
@@ -1627,21 +1674,7 @@ async function boot(initial: Game | null): Promise<void> {
       notifications?.refresh();
     },
     closePopovers,
-    // A screen in front of the board owns the keyboard: the landing, and the two
-    // full-screen surfaces — the star chart and the Abacus — each of which
-    // handles its own Escape while it is up.
-    inputBlocked: () =>
-      !landingEl.hidden ||
-      (techTree?.isOpen ?? false) ||
-      (abacus?.isOpen ?? false) ||
-      (statecraft?.isOpen ?? false) ||
-      // The load list is the third such screen, and the only one that can be up
-      // while the landing is: it handles its own Escape (see `savesPanel.ts`).
-      savesPanel.isOpen ||
-      // The offer card is the one genuinely blocking surface here: it owns the
-      // keyboard while it is up, and there is nothing to escape to (see
-      // `offerCard.ts`).
-      offerCard.isOpen,
+    inputBlocked: isInputBlocked,
     onToggleTechTree: () => techTree?.toggle(),
     onToggleAbacus: () => abacus?.toggle(),
     // End Turn's research blocker puts the chart up; it never takes it down.
@@ -1964,14 +1997,15 @@ async function boot(initial: Game | null): Promise<void> {
       body: authorityBodyEl,
     },
     // The strip's cards join the HUD's one-card-at-a-time rule: opening one
-    // shuts the menu, the help sheet and the lens menu, exactly as those three
-    // shut each other.
+    // shuts the menu, the help sheet, the lens menu and the dock's Faith card,
+    // exactly as those three shut each other.
     onOpenPopover: () => {
       menu.close();
       help.close();
       lens.close();
       notifications?.close();
       techTree?.close();
+      hudDock?.close();
     },
     // The culture chip's own way in — see `topBar.ts`'s `civ-yield-clickable`.
     // Closes the strip's own cards first, the same one-card-at-a-time rule
@@ -1980,6 +2014,7 @@ async function boot(initial: Game | null): Promise<void> {
     // abandoned its game.
     onOpenStatecraft: () => {
       meterCards?.close();
+      hudDock?.close();
       menu.close();
       help.close();
       lens.close();
@@ -1991,6 +2026,69 @@ async function boot(initial: Game | null): Promise<void> {
   // Escape and the landing screen reach these through `closePopovers`, which is
   // declared before any game exists — so it finds them through this holder.
   meterCards = civYields;
+
+  /**
+   * The HUD dock: Statecraft and Religion, under the research card. See
+   * `src/ui/hudDock.ts` for the design; this is only wiring — the Statecraft
+   * button is a bare trigger (its click mirrors the culture chip's own
+   * `onOpenStatecraft` above and the ☰ menu's door to the same screen), and
+   * the Faith card is the dock's own popover, joining the same one-card-at-
+   * a-time rule every other HUD card keeps.
+   */
+  hudDock = createHudDock({
+    container: hudDockEl,
+    getGame: () => game,
+    localPlayerId: () => controls.localPlayerId(),
+    faith: {
+      panel: faithPopoverEl,
+      closeButton: requireElement('faith-close'),
+      body: faithBodyEl,
+    },
+    onOpenPopover: () => {
+      meterCards?.close();
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      techTree?.close();
+    },
+  });
+  hudDock.statecraftButton.addEventListener('click', () => {
+    hudDock?.close();
+    meterCards?.close();
+    menu.close();
+    help.close();
+    lens.close();
+    notifications?.close();
+    techTree?.close();
+    statecraft?.open();
+  });
+
+  // `H` opens the Faith card — the HUD dock's own hotkey, and deliberately
+  // its own small listener rather than one more branch in `controls.ts`'s
+  // keydown switch: that module owns the board's verbs (fortify, sleep,
+  // move mode, the lens…) and this is a HUD popover with no unit or tile
+  // behind it, the same kind of thing `T`/`C`/`A` are but wired where their
+  // *screens* are built instead of where the board's own hotkeys are. Same
+  // two guards as every hotkey in that switch: nothing while a screen owns
+  // the keyboard (`isInputBlocked`, above) and nothing while the keystroke is
+  // actually text landing in a field. `F` was Fortify's already; `H` reads as
+  // "Holy" and was free — see `index.html`'s help sheet for where it is
+  // documented alongside the rest.
+  window.addEventListener('keydown', (event) => {
+    if (event.key !== 'h' && event.key !== 'H') return;
+    if (isInputBlocked()) return;
+    const target = event.target as HTMLElement | null;
+    const typing =
+      target !== null &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable);
+    if (typing) return;
+    event.preventDefault();
+    hudDock?.toggle();
+  });
 
   /**
    * The two city views. Both are pure readers of the simulation plus one

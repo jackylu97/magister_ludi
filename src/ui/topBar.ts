@@ -81,7 +81,7 @@ import {
   poolFigure,
   signedFigure,
 } from './figures';
-import { hasStatecraftOffer, nextDraftCost, statecraftBlocker } from '../sim/statecraft';
+import { nextDraftCost, statecraftBlocker } from '../sim/statecraft';
 import { createInfoCard } from './infoCard';
 import { meterGroups } from './meterBreakdown';
 import { meterMarkNode } from './meterMark';
@@ -250,8 +250,6 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   const { container, getGame, localPlayerId, happiness, authority, onOpenPopover, onOpenStatecraft } =
     options;
   const values = new Map<YieldKey, HTMLElement>();
-  /** The chip elements themselves, for the one thing a figure cannot say: a badge. */
-  const chips = new Map<YieldKey, HTMLElement>();
 
   /**
    * One card for the whole strip, dropped under whatever is being hovered. The
@@ -306,7 +304,6 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       });
     }
     values.set(key, value);
-    chips.set(key, item);
     info.bind(item, () => yieldCard(key, label));
     container.append(item);
   }
@@ -664,14 +661,12 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         if (el.textContent !== text) el.textContent = text;
       }
 
-      // The badge: a small mark on the culture chip while Statecraft owes the
-      // player a decision. It rides on the chip rather than on a control of its
-      // own for the reason the ladder rides on culture's card — it is a fact
-      // about what this number bought.
-      const cultureChip = chips.get('culture');
-      if (cultureChip) {
-        cultureChip.classList.toggle('civ-yield-waiting', player ? hasStatecraftOffer(player) : false);
-      }
+      // The badge used to ride here — a small mark on the culture chip while
+      // Statecraft owed the player a decision. It has moved to the HUD dock's
+      // Statecraft button (`src/ui/hudDock.ts`), which is now the louder of
+      // the two doors to the same screen: one badge, not two. The chip keeps
+      // its click affordance (`civ-yield-clickable`, above) and its own hint
+      // line in the card below ("press C") — only the pulsing dot moved.
 
       const happinessStanding = meterStanding(explainHappiness(state, playerId));
       writeChip(

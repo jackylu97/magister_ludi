@@ -190,6 +190,8 @@
            top-centre   #toasts         news, for five seconds each
            top-left     #hud-research   what the empire is learning, and the way
                                         into the star chart
+           under it     #hud-dock       Statecraft and Religion, front and
+                                        centre — see the dock's own comment
            bottom-left  #hud-context    what is under the cursor, and refusals
            right        #city-panel / #unit-panel — one at a time
            bottom-right #hud-end-turn   the one button pressed every single turn
@@ -375,6 +377,31 @@
         </div>
         <div id="authority-body" class="meter-body"></div>
         <p class="hint">Capacity, then what your writ is spent on.</p>
+      </div>
+    </div>
+
+    <!-- The Faith card: the HUD dock's Religion button, opened directly
+         beneath it — its own fixed column for the same reason #hud-meters and
+         #hud-popovers each have one rather than sharing: a card hangs under
+         the *button that opened it*, and the dock sits a row lower than the
+         bar. Filled by src/ui/hudDock.ts on open and kept live while up —
+         the pool and rate the faith chip already shows, in the same figures,
+         because there is no second arithmetic to disagree with the first. -->
+    <div id="hud-dock-popovers">
+      <div
+        id="faith-popover"
+        class="hud-card popover popover-narrow"
+        role="dialog"
+        aria-label="Faith"
+        hidden
+      >
+        <div class="popover-head">
+          <h2 class="popover-title">Faith</h2>
+          <button id="faith-close" class="popover-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <div id="faith-body" class="meter-body"></div>
       </div>
     </div>
 
@@ -580,8 +607,13 @@
             <kbd>0</kbd> clears it · the number of the lens already up turns it back off
           </li>
           <li>
-            <kbd>C</kbd> — or the <b>culture chip</b> in the bar, or <b>Statecraft…</b> in this
-            menu — opens Statecraft: your government, your Orders and your Doctrines
+            <kbd>C</kbd> — or the <b>culture chip</b> in the bar, the <b>Statecraft</b> button
+            in the dock under the research card, or <b>Statecraft…</b> in this menu — opens
+            Statecraft: your government, your Orders and your Doctrines
+          </li>
+          <li>
+            <kbd>H</kbd> — or the <b>Religion</b> button in that same dock — opens the Faith
+            card: the pool, the rate, and what is still to come
           </li>
           <li>
             <kbd>T</kbd> — or the <b>research card</b>, top left — opens the star chart;
@@ -652,6 +684,17 @@
         <span id="research-figures" class="research-figures">—</span>
       </span>
     </button>
+
+    <!-- Under the research card: the HUD dock. Two square lozenge buttons in
+         the same ink/parchment language, front and centre because both open
+         onto a *standing* concern rather than a one-off tool — see
+         src/ui/hudDock.ts for the full case and for why Religion's button
+         opens a card of its own rather than the screen the ☰ menu's
+         Statecraft entry and this dock's other button open. Built by
+         `createHudDock`, called from `main.ts`; nothing here is static
+         beyond the container, because both buttons' icons are runtime
+         `data:` URIs. -->
+    <div id="hud-dock" class="hud-dock" aria-label="Statecraft and Religion"></div>
 
     <!-- ================= the star chart =========================
          The tech tree, as a full-screen overlay over the whole board — and the
