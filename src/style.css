@@ -222,7 +222,8 @@ body {
    sized in **pixels** rather than in `em`. A yield mark is a unit on a figure
    and belongs to the type around it; a line emblem is the middle of a card and
    belongs to the card, so it is set by the frame it sits in — which is why the
-   same class is 56px on an offer and 26px on a collection thumbnail.
+   same class is 56px on an offer (`.offer-emblem`) and 42px on a collection
+   thumbnail (`.sc-card-emblem`).
 
    Both paint `currentColor`, so the accent is set once on the card (as `color`)
    and the mark, the rule and the eyebrow are all wearing it. */
@@ -4782,9 +4783,18 @@ kbd {
   color: var(--ink-soft);
 }
 
-/* The emblem: the archetype line's drawing, the loudest place its ink lands. */
+/* The emblem: the archetype line's drawing, the loudest place its ink lands.
+
+   `align-self`, not `justify-self` — `.offer-option` is a **flex** column
+   (see the tarot face rule above), and `justify-self` does not apply to flex
+   items at all (Box Alignment §4.2: it's grid/absolutely-positioned/block-level
+   only). It quietly computed to nothing, and the emblem fell back to
+   `align-items`'s default `stretch`, which for a box with a definite cross
+   size (this one has `width: 56px`) behaves as `flex-start` — flush against
+   the card's left edge instead of centred under the eyebrow. `align-self` is
+   the property that actually governs cross-axis position in a flex column. */
 .offer-emblem {
-  justify-self: center;
+  align-self: center;
   width: 56px;
   height: 56px;
   margin: 6px 0 2px;
@@ -4817,7 +4827,7 @@ kbd {
 }
 
 .offer-options[data-face='tarot'] .offer-option.is-deepen .offer-emblem {
-  justify-self: start;
+  align-self: flex-start;
   width: 30px;
   height: 30px;
   margin: 0;
