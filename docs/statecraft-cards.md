@@ -52,6 +52,7 @@ Signatures rewritten off the flat-% rule too.
 | The Great Warring Tribes ✎ | ⚒ | negative authority no longer penalises ⚙ toward units · +10% ⚙ toward mounted units · conquered cities provide +5 science and culture · you may never build the courthouse family | meterRule + vocab + hook:productionBar *(see critique: the flat per-city 🔬🎵 is the strongest line in pool I and off-theme; courthouse bar is free until that family exists)* |
 | Wolf-Mother's Pact ✎ | 🏹 | barbarians never attack you (theft continues) · camps in your sight pay +50% | behaviorRule + windfallRider |
 | Athenaeum of the Road ✎ | 🧭 | for ALL discoveries: claim all three options | offerRider *(user: playtest, possibly remove — see critique re: power)* |
+| The Founders' Road ✎ *(new)* | — | your first 5 cities are founded with a free monument · cities are automatically joined by roads | foundingRider + FUTURE: roads (the road half activates with the road system; the monument half ships now) |
 
 ## Doctrine pool II (offered at the tier-7 adoption)
 
@@ -98,8 +99,7 @@ Signatures rewritten off the flat-% rule too.
 | Boundary Stones | E | — | +30% border culture, all cities | vocab (channel) |
 | First Rites | W | 🕯 | +1🕯 per city | vocab |
 | Border Ballads | W | 🏹 | +2🎵 per barbarian camp you can currently see | countScaled |
-| Militia Levies *(neutral)* | M | — | all your cities +5 defense | hook:cityStatCard |
-| The Beacon Chain *(neutral)* | W | — | all your cities +1 sight radius | hook:cityStatCard |
+| Militia Levies *(neutral)* | M | — | all your cities +5 defense and +1 sight radius | hook:cityStatCard |
 
 ## Government I pool (17)
 
@@ -178,9 +178,120 @@ Astronomers, Patronage of the Arts, Professional Legions, Standing Army, and the
 of The Academy and three government signatures. Replaced with twelve scoped/conditional
 Orders and two pool-III Doctrines.)*
 
+## Flavor (one line each — the voice of the tech tree's aphorisms)
+
+**Governments**
+- Chiefdom — "Whoever speaks last at the fire, speaks for all."
+- Council of Elders — "Slow counsel, and no one hanged for it."
+- War Chief — "The spear chooses; the rest agree."
+- Priest-King — "The gods speak. He translates."
+- Republic — "A crowd that learned to sign its name."
+- Tyranny — "One will, and the roads run straight."
+- Theocracy — "Law is what the altar remembers."
+- Merchant League — "Every treaty has a ledger underneath."
+- Imperium — "The map is a claim; the legion is the proof."
+- Divine Mandate — "Heaven approves. It was asked."
+
+**Doctrines**
+- The Hermit Crown — "A small kingdom, held entirely in one hand."
+- River Kings — "The river gives; the dry land is told to be grateful."
+- The Woodwrights — "A forest is a city that has not been felled yet."
+- The Great Litany — "Say it every day and it becomes true."
+- The Great Warring Tribes — "No writ runs faster than a horse."
+- Wolf-Mother's Pact — "We are not their prey. We are their kin, and they take their share."
+- Athenaeum of the Road — "Everything found is kept. Everything kept is known."
+- The Founders' Road — "The first stone of every town is a monument to the road that brought it."
+- Thalassocracy — "Our borders are wherever the tide reaches."
+- Mountain Hold — "The peaks are a wall nobody had to build."
+- The Burning Way — "Ash is faster than a plough."
+- Bread and Circuses — "Feed them, amuse them, and they will sing for you."
+- The Tithe — "A tenth of the harvest, and the gods keep the books."
+- Divine Inspiration — "Prayer, given long enough, thinks."
+- Religious Mandate — "There is one truth, and we are its army."
+- The Iron Price — "Every death a verse; every verse a debt paid."
+- Manifest of the Steppe — "There is always more land. There is never enough rest."
+- The Gilded Court — "Gold on the walls, gold in the words, gold under the throne."
+- The Grand Bazaar — "The second silk is not nothing. The tenth is a fortune."
+- Master of Maps — "We see everything. We fear it a little."
+- Hegemony — "Every city carries its own weight, and the crown carries none."
+- Pax Imperia — "In great cities the noise itself is a kind of peace."
+
+**Orders — Chiefdom**
+- Blooded Spears — "The wild taught us. We took notes."
+- Camp Followers — "Behind the war, a market."
+- Far Runners — "Run until the land is new, then run once more."
+- The Long Watch — "A sleepless wall is a comfort to those inside it."
+- The Widow's Levy — "Grief works. It always has."
+- Common Granary — "One store, one hunger, one answer."
+- Salt Tithes — "Salt is small. Its tax is not."
+- Boundary Stones — "A stone that says *ours* says it forever."
+- First Rites — "Before the temple, the gesture."
+- Border Ballads — "Fear, set to a tune, becomes a people."
+- Militia Levies — "Every farmer a spear, every roof a watchtower."
+
+**Orders — Government I**
+- Border Wardens — "Home ground fights beside you."
+- Vanguard — "Strangers' ground fights harder — so must we."
+- Conscription — "Everyone serves. Nobody smiles."
+- Spoils of the Wild — "Their plunder was ours all along."
+- Horse Lords — "The saddle is a country of its own."
+- Weights & Measures — "An honest scale is the first tax."
+- Silk Roads — "Rare things travel; travel makes them rarer."
+- The Salt Road — "Every field pays a toll on its way to market."
+- The Tax Farm — "Count the people, and the coin counts itself."
+- Harbour Dues — "The sea pays for the privilege of arriving."
+- Land Grants — "Land, given freely, is land that was owed."
+- Homestead Charters — "The wagon holds one more family than the law allows."
+- Granary Levies — "A new mouth is a new pair of hands."
+- Census Rolls — "What is counted can be commanded."
+- Festival Days — "Idleness, made sacred, keeps the peace."
+- Curious Elders — "The old ask questions the young forgot to."
+- Rites of Passage — "A sword blessed is a soul enlisted."
+- Tinkers' Guild — "One more mend in every bag of tools."
+- Public Granaries — "The city eats slowly, and stays fed."
+- The Loose Rein — "Laws that change quickly are laws that are watched closely."
+
+**Orders — Government II**
+- Field Surgeons — "Stitched on the road, marching by morning."
+- March Discipline — "Legs are the first weapon."
+- The Shield Wall — "High ground and a locked line — the old arithmetic."
+- Siege Doctrine — "Walls are patient. We are less so."
+- Scorched Earth — "What we cannot keep, we salt."
+- Sumptuary Laws — "Only the crown wears the purple; all the rest are glad to see it."
+- Publicani — "The writ has a price, and we collect it."
+- Chartered Companies — "Every deed of land comes with a survey attached."
+- Foreign Quarters — "The neighbour's coin spends as well as ours."
+- Ore Tithes — "Where the ore is, the hammers gather."
+- Terraced Hillsides — "The hill was made to feed us; it only needed steps."
+- Master Masons — "Every finished wall is a song about itself."
+- Royal Surveyors — "The chain and the plumb line, quietly annexing."
+- Provincial Governors — "Distance obeys, if someone is paid to make it."
+- Pilgrim Roads — "Where the faithful walk, the faithful settle."
+- Lamplighters — "A small flame kept is a small song sung."
+- Scholars' Stipend — "A crowd is a library that has not been catalogued."
+- Emergency Powers — "When the writ tears, the capital holds the pieces."
+- The Common Purse — "Nothing left on the workbench is wasted."
+
+**Orders — Government III**
+- The Marshals — "Shoulder to shoulder, the line is one animal."
+- Garrison State — "The soldiers do not idle. Nobody does."
+- Skirmishers' Creed — "Strike from where they cannot answer."
+- The Finisher's Art — "Mercy is for the unwounded."
+- Frontier Forts — "The border is where we keep our walls."
+- Triumphs — "A city taken is a story told forever."
+- Client Kings — "Better a king who bows than a province that rebels."
+- Provincial Mints — "Every seam of silk, its own small coin."
+- Quarrymen's Guild — "Stone remembers; marble boasts."
+- The Grain Dole — "A full city is a quiet one."
+- Mandate of Heaven — "The pious are easy to govern, and they know it."
+- The Lyceum — "Every new thing learned is a song about the old."
+- Census of Souls — "A great city prays in a great voice."
+- Toleration Edicts — "Let them keep their gods; they will pay their taxes."
+- The Standing Levy — "The spear is always first in line."
+
 ## Implementation notes
 
-- 19 Doctrines live (7/6/7) + 1 awaiting systems; 66 Orders (8 neutral, marked). Hooks: combatCardLine
+- 20 Doctrines live (8/6/7) + 1 awaiting systems; 66 Orders (8 neutral, marked). Hooks: combatCardLine
   (terrain/state/adjacency/frontier), unitStatCard (class/heal/state), windfallRider
   (death/growth/completion/capture/discovery/camp), foundingRider, countScaled (holdings,
   population, worked tiles, garrison, banked pools), rateConversion, offerRider,
