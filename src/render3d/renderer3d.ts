@@ -363,10 +363,15 @@ export class Renderer3D implements MapView {
       // ruin placed before it arrived would stand unmarked until some unrelated
       // change next moved `signSites`.
       this.rebuildSites();
-      // The blank chart's serpents are cells of this atlas, so the one layer
-      // that could not be finished without it is finished now. The single
-      // re-build of the chart layer in a session, and deliberately not a rebuild
-      // of the *board*: the fog's own instances are the only ones affected.
+      // And the towns, whose flags carry the seat's heraldic charge out of the
+      // same atlas: a city founded before it arrived would fly a plain banner
+      // until it next grew.
+      this.rebuildCities();
+      // The blank chart's serpents and its inscription are cells of this atlas,
+      // so the one layer that could not be finished without it is finished now.
+      // The single re-build of the chart layer in a session, and deliberately
+      // not a rebuild of the *board*: the fog's own instances are the only ones
+      // affected.
       this.rebuildFog();
       this.invalidate();
     });
@@ -733,6 +738,7 @@ export class Renderer3D implements MapView {
       this.view.camera.quaternion.clone(),
       this.shadows,
       this.fogLevels(),
+      this.icons,
     );
     this.citiesSignature = signCities(this.state);
   }

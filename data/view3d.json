@@ -252,6 +252,67 @@
     "houseJitter": 0.18,
     "wallColor": "bone",
     "roofColor": "slate",
+    "roofAltColor": "timber",
+    "gable": {
+      "fromTier": 2,
+      "roofH": 0.19,
+      "eave": 0.028
+    },
+    "palisade": {
+      "fromTier": 2,
+      "perEdge": 3,
+      "radius": 0.03,
+      "height": 0.19,
+      "point": 0.07,
+      "ring": 0.9,
+      "color": "timber"
+    },
+    "wall": {
+      "fromTier": 3,
+      "length": 0.9,
+      "height": 0.2,
+      "thickness": 0.085,
+      "merlonH": 0.07,
+      "merlons": 4,
+      "ring": 0.9,
+      "color": "slate"
+    },
+    "shrine": {
+      "fromTier": 2,
+      "width": 0.19,
+      "stepH": 0.09,
+      "taper": 0.62,
+      "finialH": 0.19,
+      "offset": 0.5,
+      "color": "sand",
+      "finialColor": "gilt"
+    },
+    "temple": {
+      "fromTier": 3,
+      "width": 0.36,
+      "stepH": 0.16,
+      "steps": 3,
+      "taper": 0.7,
+      "offset": 0.55,
+      "color": "sand"
+    },
+    "palace": {
+      "fromTier": 1,
+      "width": 0.46,
+      "depth": 0.31,
+      "bodyH": 0.52,
+      "roofH": 0.22,
+      "eave": 0.035,
+      "skirt": 0.45,
+      "finial": 0.05,
+      "offset": 0.55,
+      "color": "bone",
+      "roofColor": "raven",
+      "finialColor": "gilt"
+    },
+    "chargeSize": 0.19,
+    "chargeNudge": 0.014,
+    "chargeInset": 0.33,
     "poleRadius": 0.035,
     "poleHeight": 1.15,
     "poleColor": "ink",
@@ -361,7 +422,10 @@
     "chargeDiameter": 0.17,
     "chargeOffsetX": 0.6,
     "chargeOffsetY": 0.6,
-    "chargeNudge": 0.012
+    "chargeNudge": 0.012,
+    "crestDiameter": 0.22,
+    "crestOffsetX": -0.56,
+    "crestOffsetY": -0.56
   },
   "animation": {
     "msPerHex": 160,
@@ -394,7 +458,10 @@
     "serpentChance": 0.028,
     "serpentRegion": 2,
     "serpentSize": 1.05,
-    "serpentLift": 0.05
+    "serpentLift": 0.05,
+    "draconesChance": 0.02,
+    "draconesSize": 1.7,
+    "draconesLift": 0.05
   },
   "lens": {
     "glyphSize": 0.3,
@@ -449,6 +516,11 @@
     "yieldInkColor": "ink",
     "marginaliaScale": 0.86,
     "marginaliaColor": "vellumDeep",
+    "inscriptionScale": 0.2,
+    "inscriptionTracking": 0.22,
+    "inscriptionLeading": 1.35,
+    "inscriptionColor": "vellumDeep",
+    "chargeScale": 0.78,
     "resourceKinds": {
       "bonus": {
         "shape": "circle",

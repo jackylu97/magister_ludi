@@ -11,6 +11,7 @@ import {
 } from 'three';
 
 import {
+  CHARGE_CELLS,
   MARGINALIA_CELLS,
   NUMERAL_CELLS,
   SITE_MARK_CELLS,
@@ -35,6 +36,7 @@ import {
   buildBoard,
   resourcePropFactory,
 } from '../../src/render3d/board3d';
+import { HERALDRY_IDS } from '../../src/art/heraldryMarks';
 import { cairnStack } from '../../src/render3d/geometry';
 import { cellCenter, tileTopY } from '../../src/render3d/layout';
 import { RENDER_ORDER } from '../../src/render3d/instances';
@@ -322,6 +324,7 @@ describe('the tile-icon atlas', () => {
     const numerals = TILE_ICON_CELLS.filter((cell) => cell.set === 'numeral').map((c) => c.id);
     const margins = TILE_ICON_CELLS.filter((cell) => cell.set === 'marginalia').map((c) => c.id);
     const sites = TILE_ICON_CELLS.filter((cell) => cell.set === 'site').map((c) => c.id);
+    const charges = TILE_ICON_CELLS.filter((cell) => cell.set === 'charge').map((c) => c.id);
     expect(resources).toEqual([...RESOURCE_IDS]);
     expect(yields).toEqual([...YIELD_KEYS]);
     expect(numerals).toEqual([...NUMERAL_CELLS]);
@@ -331,8 +334,19 @@ describe('the tile-icon atlas', () => {
     // throws from inside the atlas rasterisation.
     expect(sites).toEqual([...SITE_MARK_CELLS]);
     expect(SITE_MARK_CELLS).toEqual([...DISCOVERY_KINDS]);
+    // And the sixth: one cell per heraldic charge, which is what a city flag and
+    // a unit badge print the seat's figure out of. A charge a seat can fly with
+    // no cell here is a banner that throws from inside the rasterisation, which
+    // is the discovery kinds' failure exactly.
+    expect(charges).toEqual([...CHARGE_CELLS]);
+    expect(CHARGE_CELLS).toEqual([...HERALDRY_IDS]);
     expect(TILE_ICON_CELLS).toHaveLength(
-      RESOURCE_IDS.length + 6 + 10 + MARGINALIA_CELLS.length + SITE_MARK_CELLS.length,
+      RESOURCE_IDS.length +
+        6 +
+        10 +
+        MARGINALIA_CELLS.length +
+        SITE_MARK_CELLS.length +
+        CHARGE_CELLS.length,
     );
   });
 
@@ -345,14 +359,43 @@ describe('the tile-icon atlas', () => {
    */
   it('appends new sets rather than inserting them', () => {
     expect(tileIconIndex({ set: 'resource', id: RESOURCE_IDS[0]! })).toBe(0);
-    // The serpent kept its index when the sites arrived behind it, which is the
-    // property this suite is really about: an appended set moves nothing.
+    // The serpent kept its index when the sites arrived behind it, and again when
+    // the charges arrived behind those — which is the property this suite is
+    // really about: an appended set moves nothing in front of it.
     expect(tileIconIndex({ set: 'marginalia', id: 'serpent' })).toBe(
-      TILE_ICON_CELLS.length - 1 - SITE_MARK_CELLS.length,
+      TILE_ICON_CELLS.length -
+        SITE_MARK_CELLS.length -
+        CHARGE_CELLS.length -
+        MARGINALIA_CELLS.length,
     );
-    expect(tileIconIndex({ set: 'site', id: SITE_MARK_CELLS[SITE_MARK_CELLS.length - 1]! })).toBe(
+    // The inscription joined the marginalia *behind* the serpent, so the serpent
+    // kept its place inside its own set as well as in front of the sets after it.
+    expect(tileIconIndex({ set: 'marginalia', id: 'dracones' })).toBe(
+      tileIconIndex({ set: 'marginalia', id: 'serpent' }) + 1,
+    );
+    expect(tileIconIndex({ set: 'charge', id: CHARGE_CELLS[CHARGE_CELLS.length - 1]! })).toBe(
       TILE_ICON_CELLS.length - 1,
     );
+  });
+
+  /**
+   * The one place a set was *grown* rather than appended, and why that is safe.
+   *
+   * The inscription joined the marginalia beside the serpent, which pushed the
+   * discovery sites and everything after them one cell along. Nothing broke,
+   * and the reason is worth pinning: no index in this project is ever
+   * *persisted*. Every consumer asks `tileIconRect` at build time — the board's
+   * decals, the standing markers, the fog's chart — so a shifted cell is
+   * re-derived rather than remembered, and the "append, never insert" rule is
+   * about not silently re-pointing a *baked* rectangle, which is a thing that
+   * only happens if somebody writes an index down. Nobody has.
+   */
+  it('re-derives every cell rectangle rather than remembering one', () => {
+    for (const cell of TILE_ICON_CELLS) {
+      const rect = tileIconRect(cell);
+      expect(rect.u1).toBeGreaterThan(rect.u0);
+      expect(rect.v1).toBeGreaterThan(rect.v0);
+    }
   });
 
   /**

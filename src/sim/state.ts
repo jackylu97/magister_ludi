@@ -216,6 +216,25 @@ export interface PlayerSpec {
   name: string;
   /** CSS colour string. The simulation never interprets it; the UI does. */
   color: string;
+  /**
+   * The seat's heraldic charge — a crescent, a stag, a key — as a plain string.
+   * The simulation never interprets it; the renderer and the interface do (see
+   * `src/art/heraldryMarks.ts`, which owns the twelve ids and the drawings).
+   *
+   * `color`'s sibling in every respect, and deliberately so. It is **config**,
+   * which is what makes it replay-safe: a save is `{config, log}`, so a game
+   * reloaded a year later flies the banners it was started with rather than
+   * whatever the fallback order happens to be by then.
+   *
+   * Optional, and absent means *by seat order* (`heraldryFor`) exactly as an
+   * unrecognised colour means by seat order. That is what let heraldry arrive
+   * without a line changing in setup, and it is why **no schema bump** was
+   * needed: `normalizeConfig` writes the key only when it is there, so a config
+   * that never heard of charges normalises byte-identically to one from before
+   * they existed — and nothing in `src/sim/` reads the field, so no outcome can
+   * turn on it.
+   */
+  charge?: string;
   /** Defaults to false — the caller decides who sits at the keyboard. */
   isHuman?: boolean;
 }
@@ -225,6 +244,15 @@ export interface Player {
   id: number;
   name: string;
   color: string;
+  /**
+   * The seat's heraldic charge, copied from its spec. Absent means *by seat
+   * order* — see `PlayerSpec.charge`, which carries the whole argument.
+   *
+   * Uninterpreted here for `color`'s reason, and it must stay that way: the day
+   * a rule reads this field it stops being decoration and starts being a schema
+   * bump.
+   */
+  charge?: string;
   isHuman: boolean;
   /** Treasury. Every city's gold lands here; nothing spends it yet. */
   gold: number;
@@ -852,11 +880,18 @@ export function normalizeConfig(config: GameConfig): GameConfig {
   const normalized: GameConfig = {
     seed: config.seed | 0,
     sizeName: config.sizeName,
-    players: config.players.map((spec) => ({
-      name: spec.name,
-      color: spec.color,
-      isHuman: spec.isHuman ?? false,
-    })),
+    players: config.players.map((spec) => {
+      const player: PlayerSpec = {
+        name: spec.name,
+        color: spec.color,
+        isHuman: spec.isHuman ?? false,
+      };
+      // Written only when it is named, exactly as `barbarians` and the mapgen
+      // sheet are: a seat that took its charge by seat order normalises to *no*
+      // key at all and is byte-identical to a spec from before heraldry existed.
+      if (spec.charge !== undefined) player.charge = spec.charge;
+      return player;
+    }),
   };
   // The override sheet is copied through JSON for the same reason the player
   // specs are copied at all — the config is the save file and a caller that
@@ -918,6 +953,10 @@ export function newGame(config: GameConfig): GameState {
       id: index,
       name: spec.name,
       color: spec.color,
+      // Spread rather than assigned, so a seat with no charge has no key — the
+      // same shape `normalizeConfig` just produced, and the reason a state from
+      // a charge-less config serialises identically to one from before the field.
+      ...(spec.charge === undefined ? {} : { charge: spec.charge }),
       isHuman: spec.isHuman ?? false,
       gold: 0,
       sciencePool: 0,

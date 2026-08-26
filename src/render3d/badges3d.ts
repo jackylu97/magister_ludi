@@ -91,6 +91,8 @@ import {
   SRGBColorSpace,
 } from 'three';
 
+import { HERALDRY_IDS, type HeraldryId, heraldryMark } from '../art/heraldryMarks';
+import { DRACONES_LINES, marginaliaMark } from '../art/marginaliaMarks';
 import {
   MARK_BOX,
   MARK_STROKE,
@@ -398,19 +400,47 @@ export const NUMERAL_CELLS: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 /**
  * The marginalia: marks that are drawn on the *chart* rather than on the world.
  *
- * One member, and it is the only purely decorative mark in the project — the
- * serpent that fog of war scatters over Terra Incognita (*hic svnt dracones*,
- * design-notes Entry X). It rides in this atlas rather than in one of its own
- * because it is the same object as every other mark here: an ink drawing on the
- * badge grid, printed flat on a hex. A second canvas for one glyph would be a
- * second texture, a second material and a second draw call for a garnish.
+ * The only purely decorative set in the project — what a cartographer puts in
+ * the part of the sea he has never been to (*hic svnt dracones*, design-notes
+ * Entry X). They ride in this atlas rather than in one of their own because
+ * they are the same object as every other mark here: ink on the badge grid,
+ * printed flat on a hex. A second canvas for two cells would be a second
+ * texture, a second material and a second draw call for a garnish.
  *
- * Unlike every other set here it is drawn with **no disc under it**. A roundel
- * is a token laid on the board; a serpent is drawn *into* the vellum, and a
- * parchment disc behind it would turn it into a badge announcing something.
+ * Two members, and they are printed by two different painters because they are
+ * two different kinds of thing — see `src/art/marginaliaMarks.ts`:
+ *
+ *   serpent    a drawing, traced from path data like every other mark here.
+ *   dracones   **words**, set rather than drawn: two lines of letterspaced
+ *              small caps at reduced strength. `drawInscriptionCell`.
+ *
+ * Unlike every other set here they are drawn with **no disc under them**. A
+ * roundel is a token laid on the board; a marginale is drawn *into* the vellum,
+ * and a parchment disc behind it would turn it into a badge announcing
+ * something.
  */
-export const MARGINALIA_CELLS = ['serpent'] as const;
+export const MARGINALIA_CELLS = ['serpent', 'dracones'] as const;
 export type MarginaliaKey = (typeof MARGINALIA_CELLS)[number];
+
+/**
+ * The heraldic charges: one cell per seat's drawn figure
+ * (`src/art/heraldryMarks.ts`).
+ *
+ * Aliased from the art registry rather than written out again, for
+ * `SITE_MARK_CELLS`' reason: a charge a seat can fly with no cell here is a
+ * banner that throws from inside the rasterisation.
+ *
+ * Printed on **parchment**, unlike the marginalia and like everything else in
+ * this atlas, and that is the decision that makes one drawing serve both places
+ * a charge appears. A charge is stamped on a *coloured* ground twice over — the
+ * fly of a city flag in the seat's own tincture, and the rim of a unit badge in
+ * the same — and ink on a dark tincture is a smudge while ink on a pale one is
+ * fine. Bringing its own little field of parchment (a canton, which is what
+ * real heraldry does for exactly this reason) means the charge reads identically
+ * on crimson, on sky and on ink, with no second cell per seat and no tinting of
+ * a baked picture.
+ */
+export const CHARGE_CELLS: readonly HeraldryId[] = HERALDRY_IDS;
 
 /**
  * The discovery sites, in the order `DISCOVERY_KINDS` declares them.
@@ -428,7 +458,8 @@ export type TileIconCell =
   | { set: 'yield'; id: YieldKey }
   | { set: 'numeral'; id: number }
   | { set: 'marginalia'; id: MarginaliaKey }
-  | { set: 'site'; id: DiscoveryKind };
+  | { set: 'site'; id: DiscoveryKind }
+  | { set: 'charge'; id: HeraldryId };
 
 /**
  * Every cell of the tile atlas, in layout order: the resources, then the six
@@ -447,6 +478,7 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
   ...NUMERAL_CELLS.map((id) => ({ set: 'numeral', id }) as TileIconCell),
   ...MARGINALIA_CELLS.map((id) => ({ set: 'marginalia', id }) as TileIconCell),
   ...SITE_MARK_CELLS.map((id) => ({ set: 'site', id }) as TileIconCell),
+  ...CHARGE_CELLS.map((id) => ({ set: 'charge', id }) as TileIconCell),
 ];
 
 /**
@@ -472,12 +504,21 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
  * a dozen DOM surfaces as a mask, so it had to be data. The side effect is worth
  * naming, because it was a live worry — a yield cell can no longer rasterise
  * blank because a file was renamed or a fetch was blocked, since there is
- * nothing left to fetch. The marginalia are the last set with a file, and the
- * only one where `loadIcon` returning null is still reachable.
+ * nothing left to fetch.
+ *
+ * The **marginalia** were the last set with a file and are not any more
+ * (`src/art/marginaliaMarks.ts`), which finishes the argument: *nothing* in this
+ * atlas is fetched. The tile atlas cannot rasterise a blank cell at all now —
+ * the whole `loadIcon` path is gone from `TileIcons.load`, and the only cells
+ * left that are not traced from path data are the numerals and the inscription,
+ * both of which are set in text. `loadIcon` survives for the **badge** atlas,
+ * whose eight class icons are still files, and it is the only place a null icon
+ * is still reachable.
+ *
+ * The **charges** were born as path data and never had a file, for the reason
+ * the resources moved: the interface prints the same twelve marks as DOM masks
+ * beside each seat, and a file can only be one colour.
  */
-export const MARGINALIA_ICON_FILES: Record<MarginaliaKey, string> = {
-  serpent: 'sprites/icons/marginalia/serpent.svg',
-};
 
 /** The colour each yield voice is printed in. The interface's own six. */
 export const YIELD_COLORS: Record<YieldKey, number> = {
@@ -1005,38 +1046,141 @@ function drawYieldCell(
 }
 
 /**
- * Paints one mark straight onto the atlas, with nothing behind it.
+ * Paints one marginale straight onto the atlas, with nothing behind it.
  *
- * `drawDiscCell` without the disc — the recolouring half only. The marginalia
+ * `drawResourceCell` without the paper — the tracing half only. The marginalia
  * are the one set that wants this: an ink drawing on the chart, not a token laid
  * on the board. Factored out rather than passed a transparent paper colour,
  * because "fill a circle in nothing" is a fill that still costs a path and still
  * reads, at a glance through the code, as though there were a disc there.
+ *
+ * It used to stamp a loaded image through a recolouring scratch canvas, which is
+ * what the serpent's SVG file needed; since the port to path data
+ * (`src/art/marginaliaMarks.ts`) it goes through `paintMarkPaths` like every
+ * other drawing in this atlas, and the ink is a data decision rather than a
+ * composite operation.
  */
-function drawInkCell(
+function drawMarginaliaCell(
   context: CanvasRenderingContext2D,
-  icon: CanvasImageSource | null,
   index: number,
   layout: AtlasLayout,
-  iconScale: number,
 ): void {
-  if (!icon) return;
   const origin = badgeCellOrigin(index, layout);
   const cell = layout.cell;
-  const size = Math.max(1, Math.round(iconScale * cell));
-  const scratch = document.createElement('canvas');
-  scratch.width = size;
-  scratch.height = size;
-  const pen = scratch.getContext('2d');
-  if (!pen) return;
-  pen.drawImage(icon, 0, 0, size, size);
-  pen.globalCompositeOperation = 'source-in';
-  pen.fillStyle = cssHex(ICONS.marginaliaColor);
-  pen.fillRect(0, 0, size, size);
-  context.drawImage(
-    scratch,
-    Math.round(origin.x + cell / 2 - size / 2),
-    Math.round(origin.y + cell / 2 - size / 2),
+  paintMarkPaths(
+    context,
+    marginaliaMark('serpent'),
+    { x: origin.x + cell / 2, y: origin.y + cell / 2 },
+    Math.max(1, ICONS.marginaliaScale * cell),
+    ICONS.marginaliaColor,
+  );
+}
+
+/**
+ * Paints the inscription: *hic svnt dracones*, in the marginalia's own faded ink.
+ *
+ * The one cell in either atlas that is neither a drawing nor a number, and it is
+ * set rather than drawn for the reason the numerals are: letterforms are what a
+ * face is *for*, and thirteen hand-traced letters would be thirteen paths nobody
+ * could tell from Instrument Serif at a hundred pixels.
+ *
+ * Three things make it read as an inscription rather than as a label, and all
+ * three are Entry VII's inscription voice rendered in a canvas:
+ *
+ *   small caps      approximated by setting the text upper-case at a size a
+ *                   little under the cap height — a canvas has no `font-variant`
+ *                   and the platform faces here have no true small-cap cut. It
+ *                   is the letterspacing that carries the effect anyway.
+ *   letterspacing   `icons.inscriptionTracking` of an em between letters, laid
+ *                   out by hand because `letterSpacing` on a 2D context is very
+ *                   recent and silently ignored where it is missing — which
+ *                   would print the words correctly and unremarkably, the exact
+ *                   failure nobody notices.
+ *   reduced ink     `icons.inscriptionColor`. A chart's marginal note is
+ *                   written lighter than its coastlines; at full strength the
+ *                   words fight the serpent two hexes away. A **colour** and not
+ *                   an opacity, and the difference is not pedantry: this atlas
+ *                   is alpha-tested, so a `globalAlpha` under the cutoff does
+ *                   not fade a glyph, it erodes its antialiased edge and leaves
+ *                   the words looking broken. That is what the first cut of this
+ *                   cell did.
+ *
+ * Two lines, because the cell is square. See `DRACONES_LINES`.
+ */
+function drawInscriptionCell(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const size = Math.round(cell * ICONS.inscriptionScale);
+  const tracking = size * ICONS.inscriptionTracking;
+  const lines = DRACONES_LINES;
+  // Leading is measured off the type size rather than the cell, so the plate
+  // stays a plate if somebody dials the size: two lines set half a size apart
+  // would touch and two set two sizes apart would be two labels.
+  const leading = size * ICONS.inscriptionLeading;
+  const top = origin.y + cell / 2 - ((lines.length - 1) * leading) / 2;
+
+  context.save();
+  context.fillStyle = cssHex(ICONS.inscriptionColor);
+  context.textAlign = 'left';
+  context.textBaseline = 'middle';
+  context.font = `${size}px "Instrument Serif", "Fraunces", Georgia, serif`;
+  lines.forEach((line, row) => {
+    const text = line.toUpperCase();
+    // Laid out letter by letter so the tracking is real everywhere. The width is
+    // measured first so the whole tracked line can be centred on the cell — a
+    // line centred on its *untracked* width drifts right by half its tracking.
+    let width = -tracking;
+    for (const letter of text) width += context.measureText(letter).width + tracking;
+    let x = origin.x + cell / 2 - width / 2;
+    for (const letter of text) {
+      context.fillText(letter, x, top + row * leading);
+      x += context.measureText(letter).width + tracking;
+    }
+  });
+  context.restore();
+}
+
+/**
+ * Paints one heraldic charge: a parchment roundel with the seat's figure inked
+ * on it.
+ *
+ * `drawResourceCell` with no kind and no fallback — the charges are a closed
+ * union with an exhaustive art record (`src/art/heraldryMarks.ts`), so there is
+ * no emoji to fall through to, and no rim, because the rim a charge sits in is
+ * the *player's colour* and it is geometry on the board rather than ink in this
+ * cell (see `UnitLayer.addChargeMark` and `CityLayer.addFlag`).
+ *
+ * The paper is the whole reason this is not `drawMarginaliaCell`: a charge is
+ * stamped on a coloured ground and has to bring its own field. See
+ * `CHARGE_CELLS`.
+ */
+function drawChargeCell(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+  id: HeraldryId,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+
+  context.save();
+  context.fillStyle = cssHex(ICONS.paperColor);
+  context.beginPath();
+  context.arc(center.x, center.y, paperRadiusFraction() * cell, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
+  paintMarkPaths(
+    context,
+    heraldryMark(id),
+    center,
+    Math.max(1, ICONS.chargeScale * cell),
+    ICONS.inkColor,
   );
 }
 
@@ -1173,15 +1317,13 @@ export class TileIcons {
     const context = canvas.getContext('2d');
     if (!context) return null;
 
-    // Only the marginalia are still a file. The resources, the sites and — since
-    // the six voices were re-cut from Lucide and Tabler — the yields are all
-    // traced from path data, and the numerals are set in text, so nothing but
-    // the serpent asks for anything over the network.
-    const files = TILE_ICON_CELLS.map((cell) =>
-      cell.set === 'marginalia' ? MARGINALIA_ICON_FILES[cell.id] : null,
-    );
-    const icons = await Promise.all(files.map((url) => (url ? loadIcon(url) : null)));
-
+    // Nothing here is fetched any more. The resources, the sites, the charges
+    // and — since the six voices were re-cut from Lucide and Tabler — the yields
+    // are all traced from path data; the numerals and the inscription are set in
+    // text; and the serpent followed the rest out of `public/` when the
+    // marginalia became `src/art/marginaliaMarks.ts`. So this atlas cannot
+    // rasterise a blank cell at all, which is the property `test/render/
+    // yieldMarks.test.ts` was written to protect one set at a time.
     TILE_ICON_CELLS.forEach((cell, index) => {
       if (cell.set === 'numeral') {
         drawNumeralCell(context, cell.id, index, layout);
@@ -1195,9 +1337,11 @@ export class TileIcons {
         drawYieldCell(context, index, layout, cell.id);
         return;
       }
-      // Bare ink, no disc: see `MARGINALIA_CELLS`.
+      // Bare ink, no disc: see `MARGINALIA_CELLS`. The two members are printed
+      // by two painters because one is a drawing and the other is words.
       if (cell.set === 'marginalia') {
-        drawInkCell(context, icons[index] ?? null, index, layout, ICONS.marginaliaScale);
+        if (cell.id === 'dracones') drawInscriptionCell(context, index, layout);
+        else drawMarginaliaCell(context, index, layout);
         return;
       }
       if (cell.set === 'resource') {
@@ -1208,10 +1352,15 @@ export class TileIcons {
         drawSiteCell(context, index, layout, cell.id);
         return;
       }
-      // Every `TileIconCell` variant is one of the five branches above; this is
-      // the exhaustiveness check, not a reachable draw path — a sixth set added
-      // to the union without a painter here fails typecheck instead of drawing
-      // a blank cell.
+      // A seat's figure on its own field of parchment; see `CHARGE_CELLS`.
+      if (cell.set === 'charge') {
+        drawChargeCell(context, index, layout, cell.id);
+        return;
+      }
+      // Every `TileIconCell` variant is one of the six branches above; this is
+      // the exhaustiveness check, not a reachable draw path — a seventh set
+      // added to the union without a painter here fails typecheck instead of
+      // drawing a blank cell.
       const exhaustive: never = cell;
       throw new Error(`icons: unhandled atlas cell ${JSON.stringify(exhaustive)}`);
     });

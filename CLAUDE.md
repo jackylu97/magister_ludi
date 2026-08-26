@@ -181,6 +181,37 @@ would change every seeded outcome. No further rename passes.
   the collector's own tile→handle map). A per-seat fact about *the board's own* instances is
   the other shape: it is a patching pass over recorded handles (`reveal3d.ts`), never a
   rebuild and never a bake-time decision.
+- **`CityLook` is the city fingerprint's `CityLook`** (art pass, 2026-08-26). `cityLook(state,
+  city, capitals)` in `cities3d.ts` is the single derivation of everything that changes a
+  town's sculpt — tier, walls, shrine, temple, capital — with exactly two readers:
+  `CityLayer.build` draws it and `signCities` packs it into the hash. A new visual-affecting
+  city property joins `CityLook` and nothing else; drawn-but-not-in-the-look is a town that
+  keeps its old roofs until something unrelated grows it (the piece fingerprint's discipline,
+  one scale up; `test/render/cities3d.test.ts` pins the five). **A town's era is its owner's
+  era** — `cityTier` asks `highestAge(owner.techsResearched)`; there is no such thing as a
+  city's age, and a captured town is re-roofed the turn it changes hands.
+- **Heraldry is config, not state.** `PlayerSpec.charge` / `Player.charge` is a plain
+  uninterpreted string beside `color`, written by `normalizeConfig` only when named, so a
+  charge-less config normalises byte-identically and nothing in `src/sim/` reads it. The
+  fallback is `heraldryFor(seatIndex, charge?)` (`src/art/heraldryMarks.ts`), mirroring
+  `playerPieceColor`. The charge prints on a **parchment canton** (flag hoist, badge boss,
+  seat chip), never straight in the seat's ink — twelve tinctures run sky to ink and no
+  single ink reads on all of them.
+- **"Faint" in the alpha-tested atlas is a colour, never an opacity.** A `globalAlpha` under 1
+  does not fade a mark — every surviving fragment is opaque and the reduced alpha only erodes
+  the antialiased edge until letterforms break. `icons.inscriptionColor` exists for exactly
+  this reason. **Every tile-atlas mark is path data or text; nothing is fetched** —
+  `TileIcons.load` has no `loadIcon` left, which survives only for the eight badge-class
+  files. Reaching for `public/` from the tile atlas reintroduces the blank-cell failure three
+  passes have removed. `TILE_ICON_CELLS` may grow a member mid-set: every consumer re-derives
+  through `tileIconRect` at build time and nothing persists an index (pinned in
+  `test/render/resources3d.test.ts`); *writing an index down* is what the append rule forbids.
+- **Marginalia placement is two rules that must not be merged**: `marginaliaWater` (pure
+  function of the *map*, once at chart build — open sea for `fog.serpentRegion` in every
+  direction) and `FogView.serpentFits` (pure function of the *fog*, per repaint — still
+  unexplored). Hashing alone speckles monsters over an unwalked continent; the fog rule alone
+  does the same with a longer fuse. Each instance carries `tile:` and is hidden the moment the
+  hex is explored — the world drawn in over the monsters is the point.
 - A unit piece is **three** `InstancedMesh`es over one buffer: sculpt, outline shell, and the
   `depthFunc: GreaterDepth` x-ray ghost. Tests that count meshes use
   `MESHES_PER_PIECE_BUCKET`; hide/restore must move all three or a silhouette is left behind.

@@ -246,15 +246,18 @@ describe('the SVG export', () => {
 describe('the atlas can no longer lose a yield mark', () => {
   const source = BADGES_SOURCE;
 
-  it('sources no yield artwork over the network', () => {
+  it('sources no tile artwork over the network at all', () => {
     expect(source).not.toContain('YIELD_ICON_FILES');
     expect(source).not.toContain('sprites/icons/yields');
-    // The marginalia are the last set with a file, and the only place a null
-    // icon is still reachable.
-    expect(source).toContain('MARGINALIA_ICON_FILES');
-    const files = source.slice(source.indexOf('const files = TILE_ICON_CELLS.map'));
-    expect(files.slice(0, 240)).toContain("cell.set === 'marginalia'");
-    expect(files.slice(0, 240)).not.toContain("cell.set === 'yield'");
+    // The marginalia were the last set with a file and are not any more — the
+    // serpent is path data now (`src/art/marginaliaMarks.ts`) and the
+    // inscription is set in text. So the claim this suite used to make about one
+    // set is now true of the whole atlas: `TileIcons.load` fetches *nothing*,
+    // and a blank tile cell is unreachable rather than merely unlikely.
+    expect(source).not.toContain('MARGINALIA_ICON_FILES');
+    const load = source.slice(source.indexOf('static async load(): Promise<TileIcons'));
+    const body = load.slice(0, load.indexOf('return new TileIcons'));
+    expect(body).not.toContain('loadIcon');
   });
 
   it('draws the yield cells from path data', () => {
@@ -266,11 +269,12 @@ describe('the atlas can no longer lose a yield mark', () => {
     expect(draw.slice(0, 1600)).toContain('yieldMark(key)');
   });
 
-  it('says so on the console when the one remaining file does not load', () => {
+  it('says so on the console when a badge icon does not load', () => {
+    // The eight unit-class icons are the only files either atlas still asks for.
     // A missing artwork used to be indistinguishable from a mark nobody had
     // drawn: the cell rasterised blank and the only way to find out was to
-    // notice. It still does not reject — the atlas is a garnish and a renderer
-    // that refused to start over a serpent would be worse — but it is no longer
+    // notice. It still does not reject — a badge is a garnish and a renderer
+    // that refused to start over one would be worse — but it is no longer
     // quiet.
     const loader = source.slice(source.indexOf('function loadIcon'));
     expect(loader.slice(0, 800)).toContain('console.error');

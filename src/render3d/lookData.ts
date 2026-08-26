@@ -296,6 +296,118 @@ export interface CitySpec {
   houseJitter: number;
   wallColor: string;
   roofColor: string;
+  /**
+   * The second roof tone an Æra II house may take, chosen per house by the same
+   * hash its size and yaw come from.
+   *
+   * Two tones rather than one is the cheapest thing that says "this town was
+   * built over time" — a row of identical roofs is a housing estate, and one
+   * roof in three in a different tile is a village that grew. It is a *roof*
+   * colour and never a wall colour on purpose: the walls staying one bone tone
+   * is what keeps the cluster reading as one settlement (see the town's own
+   * docblock on why only the flag carries the player's ink).
+   */
+  roofAltColor: string;
+  /**
+   * The Æra II house's ridged roof: from which tier, how tall, and how far the
+   * eaves overhang.
+   *
+   * `fromTier` is the pattern every aged part below repeats, and it is the whole
+   * reason the tiers are data rather than a switch in `cities3d.ts`: which age a
+   * gable, a palisade, a shrine or a ziggurat belongs to is a *design* decision
+   * about pacing, and a designer who wanted palisades to show from turn one
+   * should not have to open TypeScript to try it. Code holds the algorithm —
+   * `tier >= fromTier` — and the numbers live here.
+   */
+  gable: { fromTier: number; roofH: number; eave: number };
+  /**
+   * The Æra II wall: a ring of sharpened stakes on the hexagon's own perimeter.
+   *
+   * `perEdge` stakes on each of the six sides, so the ring is a hexagon rather
+   * than a circle and sits square on the tile the way every other piece of this
+   * board's furniture does. `ring` is where that hexagon's corners fall, as a
+   * fraction of the hex radius — outside the houses, inside the tile's own rim.
+   */
+  palisade: {
+    fromTier: number;
+    perEdge: number;
+    radius: number;
+    height: number;
+    point: number;
+    ring: number;
+    color: string;
+  };
+  /**
+   * The Æra III wall: six crenellated stone segments, one on each hex edge.
+   *
+   * `length` is a fraction of the hex radius, which for a hexagon *is* the
+   * length of a side — so 1 means the segments meet at the corners and anything
+   * under it leaves a gap, which is what a gate looks like from far enough away.
+   */
+  wall: {
+    fromTier: number;
+    length: number;
+    height: number;
+    thickness: number;
+    merlonH: number;
+    merlons: number;
+    ring: number;
+    color: string;
+  };
+  /**
+   * The shrine that stands when one has been built, from Æra II on: a stepped
+   * plinth with a gilt needle. `offset` is how far from the tile centre it
+   * stands, in hex radii, on its own fixed bearing (see `CityLayer.addWorks`).
+   */
+  shrine: {
+    fromTier: number;
+    width: number;
+    stepH: number;
+    taper: number;
+    finialH: number;
+    offset: number;
+    color: string;
+    finialColor: string;
+  };
+  /** The temple that stands in Æra III when one has been built: a ziggurat. */
+  temple: {
+    fromTier: number;
+    width: number;
+    stepH: number;
+    steps: number;
+    taper: number;
+    offset: number;
+    color: string;
+  };
+  /**
+   * The palace, which the capital has in every age. The one place gilt touches
+   * the world layer, and it is the finial only — see `cityPalaceFinial`.
+   */
+  palace: {
+    fromTier: number;
+    width: number;
+    depth: number;
+    bodyH: number;
+    roofH: number;
+    eave: number;
+    skirt: number;
+    finial: number;
+    offset: number;
+    color: string;
+    roofColor: string;
+    finialColor: string;
+  };
+  /**
+   * The heraldic charge printed on the flag: its size, how far it stands in
+   * front of the cloth, and how far in from the fly it sits.
+   *
+   * `chargeInset` is a fraction of the flag's width. A charge dead centre reads
+   * as a logo; a charge set toward the hoist, where a real banner puts one,
+   * leaves the fly free and lets the colour do its own work.
+   */
+  chargeSize: number;
+  chargeNudge: number;
+  chargeInset: number;
   poleRadius: number;
   poleHeight: number;
   poleColor: string;
@@ -759,6 +871,20 @@ export interface FogSpec {
   /** Serpent decal size as a fraction of the hex radius, and its float. */
   serpentSize: number;
   serpentLift: number;
+  /**
+   * The inscription — *hic svnt dracones* — rolled on its own stream and drawn
+   * larger than the serpent, because it is *words*: a two-line plate at the
+   * serpent's size would be four pixels of cap height at game zoom and read as a
+   * smudge. It spills over its own hex on purpose, the way a legend on a real
+   * chart is written across the water rather than inside a square.
+   *
+   * A hex that rolled a serpent never also rolls the inscription (see
+   * `buildChart`), so the two chances are near enough independent and neither
+   * has to be tuned against the other.
+   */
+  draconesChance: number;
+  draconesSize: number;
+  draconesLift: number;
 }
 
 export interface LookSpec {
@@ -961,6 +1087,24 @@ export interface BadgeSpec {
   chargeOffsetY: number;
   /** How far in front of the rim the boss sits, so it never z-fights it. */
   chargeNudge: number;
+  /**
+   * The seat's **crest**: the heraldic charge, bossed at the badge's lower-left
+   * corner, exactly as the worker's count is bossed at its upper-right. See
+   * `UnitLayer.addCrest`.
+   *
+   * Called a crest rather than a charge in this spec for one flat-footed reason:
+   * `chargeDiameter` above already means a worker's remaining *charges*, and two
+   * unrelated things called `badges.charge…` is how somebody dials the wrong
+   * number. The drawing is still a charge everywhere it is drawn
+   * (`src/art/heraldryMarks.ts`); this is the name of the place it sits.
+   *
+   * It shares `chargeNudge`, because "in front of the rim" is one fact about the
+   * badge and not two — and because a crest and a count nudged differently would
+   * be two bosses at two depths on one disc.
+   */
+  crestDiameter: number;
+  crestOffsetX: number;
+  crestOffsetY: number;
 }
 
 export interface AnimationSpec {
@@ -1005,6 +1149,36 @@ export interface IconSpec {
    */
   marginaliaScale: number;
   marginaliaColor: number;
+  /**
+   * The inscription cell — *hic svnt dracones* — in the same faded marginalia
+   * ink, since it is the same hand writing in the same margin.
+   *
+   * Four knobs because an inscription is *set* rather than drawn and type has
+   * more of them than a path does: the cap height as a fraction of the cell, the
+   * letterspacing and the line leading both in ems of that size (so the plate
+   * holds together when the size moves), and its ink.
+   *
+   * Its **ink** and deliberately not its opacity, which is the trap this cell
+   * walked into first. The tile atlas is *alpha-tested* (`icons.alphaTest`), so
+   * a `globalAlpha` under 1 does not make a mark paler — every fragment that
+   * survives the cutout is fully opaque, and all a reduced alpha actually does
+   * is chew the antialiased edge off every letterform until the words look
+   * broken rather than quiet. "Faint" in an alpha-tested atlas is a *colour*.
+   * See `drawInscriptionCell`.
+   */
+  inscriptionScale: number;
+  inscriptionTracking: number;
+  inscriptionLeading: number;
+  inscriptionColor: number;
+  /**
+   * A heraldic charge's size within its cell.
+   *
+   * Its own number rather than `iconScale`, because a charge is printed on a
+   * plain roundel with no rim while a resource's sits inside one — so the same
+   * fraction would leave the charge looking a size small beside every other mark
+   * in the atlas.
+   */
+  chargeScale: number;
   /** How a resource roundel's paper and rim differ by `ResourceKind`. */
   resourceKinds: Record<ResourceKind, MarkerPaperStyle>;
   /**
@@ -1596,6 +1770,9 @@ export const VIEW3D: View3DData = {
     serpentRegion: Math.max(0, Math.round(viewJson.fog.serpentRegion)),
     serpentSize: viewJson.fog.serpentSize,
     serpentLift: viewJson.fog.serpentLift,
+    draconesChance: Math.max(0, Math.min(1, viewJson.fog.draconesChance)),
+    draconesSize: viewJson.fog.draconesSize,
+    draconesLift: viewJson.fog.draconesLift,
   },
   rivers: {
     color: named(viewJson.rivers.color, 'rivers.color'),
@@ -1681,6 +1858,9 @@ export const VIEW3D: View3DData = {
     chargeOffsetX: viewJson.badges.chargeOffsetX,
     chargeOffsetY: viewJson.badges.chargeOffsetY,
     chargeNudge: viewJson.badges.chargeNudge,
+    crestDiameter: viewJson.badges.crestDiameter,
+    crestOffsetX: viewJson.badges.crestOffsetX,
+    crestOffsetY: viewJson.badges.crestOffsetY,
   },
   animation: viewJson.animation,
   lens: {
@@ -1737,6 +1917,11 @@ export const VIEW3D: View3DData = {
     yieldInkColor: named(viewJson.icons.yieldInkColor, 'icons.yieldInkColor'),
     marginaliaScale: viewJson.icons.marginaliaScale,
     marginaliaColor: named(viewJson.icons.marginaliaColor, 'icons.marginaliaColor'),
+    inscriptionScale: viewJson.icons.inscriptionScale,
+    inscriptionTracking: viewJson.icons.inscriptionTracking,
+    inscriptionLeading: viewJson.icons.inscriptionLeading,
+    inscriptionColor: named(viewJson.icons.inscriptionColor, 'icons.inscriptionColor'),
+    chargeScale: viewJson.icons.chargeScale,
     resourceKinds: parseMarkerPaperStyles(viewJson.icons.resourceKinds),
     sitePaper: parseMarkerPaperStyle(viewJson.icons.sitePaper, 'icons.sitePaper'),
   },

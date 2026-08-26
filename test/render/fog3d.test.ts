@@ -36,7 +36,7 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { UnitLayer } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundCityAt } from '../../src/sim/cities';
-import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
+import { createMap, getTileAt, mapRange, tileHex, tileIndex } from '../../src/sim/map';
 import { type GameState, createUnit, newGame } from '../../src/sim/state';
 import {
   EXPLORED,
@@ -733,17 +733,50 @@ function countInstances(group: { children: unknown[] }): number {
 
 // --- the marginalia ---------------------------------------------------------
 
-describe('the serpent marginalia', () => {
-  it('has a cell of its own at the end of the tile atlas', () => {
-    expect(MARGINALIA_CELLS).toEqual(['serpent']);
-    expect(tileIconIndex({ set: 'marginalia', id: 'serpent' })).toBeGreaterThanOrEqual(0);
+/**
+ * A sea: what the marginalia are actually placed on.
+ *
+ * `flatState` is grassland from edge to edge, which since the ocean rule arrived
+ * carries no monsters at all — and that is itself one of the assertions below.
+ * This is its counterpart, with a lake of land in the middle of it so a suite can
+ * ask what happens *at* a coastline without inventing a continent.
+ */
+function seaState(width = 20, height = 16): GameState {
+  const state = flatState(width, height);
+  for (const tile of state.map.tiles) tile.terrain = 'ocean';
+  // An island four hexes across in the middle. Small enough to leave open sea
+  // all round it on a duel-sized board, big enough that its own interior is
+  // further than `serpentRegion` from the water.
+  for (const tile of state.map.tiles) {
+    if (Math.abs(tile.col - 10) <= 2 && Math.abs(tile.row - 8) <= 2) tile.terrain = 'grassland';
+  }
+  resetVisibility(state);
+  return state;
+}
+
+/** Every tile index that drew a marginale, read off the built chart layer. */
+function marginaliaTiles(state: GameState, fog: FogView): number[] {
+  const drawn: number[] = [];
+  for (const tile of state.map.tiles) {
+    const index = tileIndex(state.map, tile.col, tile.row);
+    if (fog.marginaliaAt(index) > 0) drawn.push(index);
+  }
+  return drawn;
+}
+
+describe('the chart marginalia', () => {
+  it('has a cell for the serpent and one for the inscription', () => {
+    expect(MARGINALIA_CELLS).toEqual(['serpent', 'dracones']);
+    for (const id of MARGINALIA_CELLS) {
+      expect(tileIconIndex({ set: 'marginalia', id })).toBeGreaterThanOrEqual(0);
+    }
   });
 
   it('is drawn nowhere at all until the icon atlas has loaded', () => {
-    // A serpent is a cell of that atlas, so a board built before it arrives is
-    // ruled but unillustrated — the same silent fallback the untagged units make.
-    const state = flatState();
-    const { fog } = rig(state, null);
+    // Both marginalia are cells of that atlas, so a board built before it
+    // arrives is ruled but unillustrated — the same silent fallback the untagged
+    // units make.
+    const { fog } = rig(seaState(), null);
     // Two instanced meshes: the patch and the ghost ring. No third.
     const meshes = fog.group.children.filter((c) => c instanceof InstancedMesh);
     expect(meshes).toHaveLength(2);
@@ -751,12 +784,86 @@ describe('the serpent marginalia', () => {
 
   it('is sparse, and is a fixed property of the map rather than of the fog', () => {
     // Placement is hashed per tile (`hashUnit`), so the same board draws the same
-    // serpents in the same hexes in every game — and moving the fog over them
+    // marginalia in the same hexes in every game — and moving the fog over them
     // never moves them.
-    const chance = VIEW3D.fog.serpentChance;
-    expect(chance).toBeGreaterThan(0);
-    expect(chance).toBeLessThan(0.1);
+    for (const chance of [VIEW3D.fog.serpentChance, VIEW3D.fog.draconesChance]) {
+      expect(chance).toBeGreaterThan(0);
+      expect(chance).toBeLessThan(0.1);
+    }
     expect(VIEW3D.fog.serpentRegion).toBeGreaterThanOrEqual(1);
+  });
+
+  /**
+   * The placement is deterministic in the *map*, which is the whole reason it is
+   * hashed off tile coordinates rather than rolled (rule 4: rendering must never
+   * touch sim randomness). Two charts built over one map draw the same monsters
+   * in the same hexes; nothing about when somebody looked at the screen enters
+   * into it.
+   */
+  it('places the same marginalia every time it is built', () => {
+    const state = seaState();
+    const first = rig(state, fakeIcons);
+    const second = rig(state, fakeIcons);
+    const drawn = marginaliaTiles(state, first.fog);
+    expect(drawn.length).toBeGreaterThan(0);
+    expect(marginaliaTiles(state, second.fog)).toEqual(drawn);
+  });
+
+  /**
+   * **No marginale lands on land**, and none lands within `serpentRegion` of it
+   * either — the rule is about a *neighbourhood* of open water, not about the one
+   * hex the decal is centred on, because a serpent whose tail lies across a
+   * coastline the moment somebody charts the water beside it reads as a bug.
+   *
+   * The failure this pins is the one the ocean rule was added to fix: hashed
+   * placement alone speckles monsters over the unexplored interior of a
+   * continent, where they look like a chart convention for about four turns and
+   * like sloppiness after that.
+   */
+  it('never lands on land, nor within a region of it', () => {
+    const state = seaState();
+    const { fog } = rig(state, fakeIcons);
+    for (const index of marginaliaTiles(state, fog)) {
+      const tile = state.map.tiles[index]!;
+      for (const other of mapRange(state.map, tileHex(tile), VIEW3D.fog.serpentRegion)) {
+        const neighbour = state.map.tiles[tileIndex(state.map, other.col, other.row)]!;
+        expect(neighbour.terrain, `(${tile.col}, ${tile.row}) is too near land`).toBe('ocean');
+      }
+    }
+  });
+
+  it('draws nothing at all on a map with no sea in it', () => {
+    const state = flatState();
+    const { fog } = rig(state, fakeIcons);
+    expect(marginaliaTiles(state, fog)).toEqual([]);
+  });
+
+  /**
+   * The accounting the fog machinery actually rests on: a marginale is filed
+   * under **the tile it stands on**, so charting that hex takes it off the board
+   * in the same pass that takes the vellum away.
+   *
+   * `tile:` on `collector.add` is the board's own version of this and is
+   * asserted above; the chart layer keeps the identical guarantee a different
+   * way, by holding its instances in a per-tile array (`ChartTile`) rather than
+   * in one flat list. Either way the property is the same and it is the one that
+   * matters: the world drawn in over the monsters is the whole point.
+   */
+  it('is taken off the board the moment its hex is charted', () => {
+    const state = seaState();
+    const { fog } = rig(state, fakeIcons);
+    const drawn = marginaliaTiles(state, fog);
+    expect(drawn.length).toBeGreaterThan(0);
+
+    const levels = state.visibility[0]!;
+    const first = drawn[0]!;
+    const tile = state.map.tiles[first]!;
+    expect(fog.marginaliaShownAt(first)).toBe(true);
+    levels[first] = EXPLORED;
+    fog.apply(levels);
+    expect(fog.marginaliaShownAt(first), `(${tile.col}, ${tile.row}) kept its monster`).toBe(
+      false,
+    );
   });
 });
 

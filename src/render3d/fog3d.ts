@@ -10,8 +10,10 @@
  *   hidden    **Terra Incognita.** Every instance the hex owns — its prism, its
  *             trees, its boulders, its resource props, its sand band — is
  *             zero-scaled, and a blank vellum patch with a faint hex ruled on it
- *             is switched on in its place. Occasionally, in the empty quarters,
- *             a serpent (*hic svnt dracones*).
+ *             is switched on in its place. Out in the uncharted **ocean**, and
+ *             only there, a serpent or the inscription *hic svnt dracones* —
+ *             see `marginaliaWater` for why the sea is not decoration but the
+ *             rule.
  *   explored  the diorama, **washed out and knocked back**: every instance's
  *             ink mixed halfway toward a flat grey vellum (`fog.exploredDim` /
  *             `fog.exploredWash`) and then taken down in value
@@ -68,7 +70,8 @@
 
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
-import { type GameMap, mapRange, tileHex, tileIndex } from '../sim/map';
+import { type GameMap, type Tile, mapRange, tileHex, tileIndex } from '../sim/map';
+import { isWaterTerrain } from '../sim/terrainData';
 import { EXPLORED, HIDDEN, VISIBLE } from '../sim/visibility';
 
 import type { TileIcons } from './badges3d';
@@ -139,8 +142,49 @@ export function knowsCell(levels: FogLevels, map: GameMap, col: number, row: num
   return levelAt(levels, map, col, row) !== HIDDEN;
 }
 
-/** The stream the serpent scatter is hashed from. Its own, like every scatter. */
+/**
+ * The streams the marginalia are scattered from. One each, like every scatter,
+ * and different ones so a hex that draws a serpent is not thereby more or less
+ * likely to also carry the inscription.
+ */
 const SERPENT_STREAM = 91;
+const DRACONES_STREAM = 92;
+
+/**
+ * Is this hex deep enough in open water to be worth a marginale?
+ *
+ * A **pure function of the map**, evaluated once when the chart is built, and it
+ * answers a completely different question from `FogView.serpentFits` below —
+ * which is worth being precise about, because the two together are the whole
+ * placement rule and either alone is a bug that ships:
+ *
+ *   here            *may* there ever be a monster on this hex — is it sea, and
+ *                   is it sea for `serpentRegion` in every direction? Decided at
+ *                   build time from the terrain, never from the fog.
+ *   `serpentFits`   is there one *right now* — is that same neighbourhood still
+ *                   unexplored? Decided per repaint from the fog, never from the
+ *                   terrain.
+ *
+ * Splitting them is what puts the marginalia in the empty quarters of the ocean
+ * and nowhere else. Hashing alone would speckle monsters across a continent
+ * nobody had walked yet, which is the failure this exists to prevent: a serpent
+ * drawn over the middle of an unexplored landmass is not a chart convention, it
+ * is a bug that looks like one for about four turns and then reads as sloppy.
+ * The fog rule alone would keep them off *charted* land and put them on the
+ * unwalked interior, which is the same bug with a longer fuse.
+ *
+ * "Region" is the same radius both halves use on purpose. A monster needs elbow
+ * room measured one way, and asking for open sea over a smaller neighbourhood
+ * than the one that has to stay dark would let a serpent sit with its tail on a
+ * coastline the moment somebody charted the water beside it.
+ */
+function marginaliaWater(map: GameMap, tile: Tile): boolean {
+  for (const other of mapRange(map, tileHex(tile), FOG.serpentRegion)) {
+    const neighbour = map.tiles[tileIndex(map, other.col, other.row)];
+    if (!neighbour || !isWaterTerrain(neighbour.terrain)) return false;
+  }
+  return true;
+}
 
 /**
  * The height the blank chart is drawn at.
@@ -181,10 +225,17 @@ export interface FogStats {
 interface ChartTile {
   /** The patch and the ghost ring: on exactly when the tile is hidden. */
   blank: InstanceHandle[];
-  /** The serpent, when this tile drew one. See `settleSerpent`. */
-  serpent: InstanceHandle | null;
-  /** Whether the serpent is currently on the board. */
-  serpentShown: boolean;
+  /**
+   * The marginalia this tile drew — a serpent, the inscription, or neither.
+   *
+   * A list rather than two named fields, because the two are governed by exactly
+   * one rule (`serpentFits`) and nothing downstream of placement cares which is
+   * which: a hex either has enough dark sea around it for marginalia or it does
+   * not. A third marginale joins by being pushed here.
+   */
+  marginalia: InstanceHandle[];
+  /** Whether this tile's marginalia are currently on the board. */
+  marginaliaShown: boolean;
 }
 
 export class FogView {
@@ -198,10 +249,10 @@ export class FogView {
   /** Per tile, the blank-chart instances. Empty until `buildChart` has run. */
   private chart: ChartTile[] = [];
   /**
-   * The handful of tiles that drew a serpent, so settling the marginalia is a
-   * walk over a hundred-odd entries rather than over the map.
+   * The handful of tiles that drew marginalia, so settling them is a walk over a
+   * hundred-odd entries rather than over the map.
    */
-  private serpentTiles: number[] = [];
+  private marginaliaTiles: number[] = [];
   /**
    * The level every tile was last painted at, or −1 for "never painted".
    *
@@ -245,7 +296,7 @@ export class FogView {
   ): void {
     disposeInstancedGroup(this.group);
     this.chart = [];
-    this.serpentTiles = [];
+    this.marginaliaTiles = [];
 
     const period = wrapWidth(this.map);
     const collector = new InstanceCollector({
@@ -255,11 +306,10 @@ export class FogView {
 
     const identity = new Quaternion();
     const unit = new Vector3(1, 1, 1);
-    const serpentScale = new Vector3(
-      BOARD.hexRadius * FOG.serpentSize,
-      1,
-      BOARD.hexRadius * FOG.serpentSize,
-    );
+    const scaleOf = (size: number): Vector3 =>
+      new Vector3(BOARD.hexRadius * size, 1, BOARD.hexRadius * size);
+    const serpentScale = scaleOf(FOG.serpentSize);
+    const draconesScale = scaleOf(FOG.draconesSize);
     const y = chartY();
 
     for (const tile of this.map.tiles) {
@@ -287,23 +337,40 @@ export class FogView {
         ),
       );
 
-      let serpent: InstanceHandle | null = null;
-      if (icons && hashUnit(tile.col, tile.row, SERPENT_STREAM) < FOG.serpentChance) {
-        serpent = collector.add(
-          geometry.serpentDecal,
-          // No ink of its own: the mark *is* the texture. The colour list still
-          // has to be something — see the same note on the unit badges.
-          [],
-          new Matrix4().compose(
-            new Vector3(centre.x, y + FOG.serpentLift, centre.z),
-            identity,
-            serpentScale,
-          ),
-          { material: icons.standingMaterial },
-        );
+      // The marginalia. Two hashed rolls on one water test — the test is the
+      // expensive half (it walks a neighbourhood) so it is asked once and only
+      // where a roll has already come up, which on a standard map is a few
+      // hundred hexes rather than every one of them.
+      const marginalia: InstanceHandle[] = [];
+      if (icons) {
+        const serpent = hashUnit(tile.col, tile.row, SERPENT_STREAM) < FOG.serpentChance;
+        const dracones =
+          !serpent && hashUnit(tile.col, tile.row, DRACONES_STREAM) < FOG.draconesChance;
+        if ((serpent || dracones) && marginaliaWater(this.map, tile)) {
+          marginalia.push(
+            collector.add(
+              serpent ? geometry.serpentDecal : geometry.draconesDecal,
+              // No ink of its own: the mark *is* the texture. The colour list
+              // still has to be something — see the same note on the unit badges.
+              [],
+              new Matrix4().compose(
+                new Vector3(
+                  centre.x,
+                  y + (serpent ? FOG.serpentLift : FOG.draconesLift),
+                  centre.z,
+                ),
+                identity,
+                serpent ? serpentScale : draconesScale,
+              ),
+              { material: icons.standingMaterial },
+            ),
+          );
+        }
       }
-      if (serpent) this.serpentTiles.push(tileIndex(this.map, tile.col, tile.row));
-      this.chart.push({ blank, serpent, serpentShown: true });
+      if (marginalia.length > 0) {
+        this.marginaliaTiles.push(tileIndex(this.map, tile.col, tile.row));
+      }
+      this.chart.push({ blank, marginalia, marginaliaShown: true });
     }
 
     collector.flush(this.group, materials, false);
@@ -349,13 +416,13 @@ export class FogView {
     }
 
     for (const edge of edges) this.paintEdge(edge);
-    // The marginalia last, and all of them: a serpent depends on a whole
+    // The marginalia last, and all of them: a marginale depends on a whole
     // *neighbourhood* being unexplored, so charting one hex can silence one up
     // to `serpentRegion` away. Walking the hundred-odd tiles that actually drew
     // one is cheaper than working out which of them a delta could have reached,
     // and it costs a write only where the answer genuinely flipped.
     if (changed > 0) {
-      for (const index of this.serpentTiles) this.settleSerpent(index);
+      for (const index of this.marginaliaTiles) this.settleMarginalia(index);
     }
 
     return {
@@ -369,6 +436,24 @@ export class FogView {
   /** The level this layer believes a tile is at. For tests and the stats line. */
   paintedLevel(index: number): number {
     return this.painted[index] ?? -1;
+  }
+
+  /**
+   * How many marginalia one tile drew, and whether they are currently on the
+   * board.
+   *
+   * Two readers rather than one, and both exist for the harness: placement is a
+   * pure function of the map and *display* is a function of the fog, so a suite
+   * that could only ask one of them could not tell "no monster was ever placed
+   * here" from "the monster here has been charted over" — which are the two
+   * halves of the whole rule (see `marginaliaWater` and `serpentFits`).
+   */
+  marginaliaAt(index: number): number {
+    return this.chart[index]?.marginalia.length ?? 0;
+  }
+
+  marginaliaShownAt(index: number): boolean {
+    return this.chart[index]?.marginaliaShown ?? false;
   }
 
   /**
@@ -399,10 +484,10 @@ export class FogView {
       for (const handle of chart.blank) InstanceCollector.restore(handle);
     } else {
       for (const handle of chart.blank) InstanceCollector.hide(handle);
-      // A serpent on a tile that is no longer blank is a serpent on the world.
-      if (chart.serpentShown && chart.serpent) {
-        InstanceCollector.hide(chart.serpent);
-        chart.serpentShown = false;
+      // A marginale on a tile that is no longer blank is a monster on the world.
+      if (chart.marginaliaShown && chart.marginalia.length > 0) {
+        for (const handle of chart.marginalia) InstanceCollector.hide(handle);
+        chart.marginaliaShown = false;
       }
     }
   }
@@ -429,15 +514,17 @@ export class FogView {
     InstanceCollector.setWash(edge.handle, FOG.exploredWash, wash.mix, wash.shade);
   }
 
-  /** Switches one tile's serpent on or off, if it is not already right. */
-  private settleSerpent(index: number): void {
+  /** Switches one tile's marginalia on or off, if they are not already right. */
+  private settleMarginalia(index: number): void {
     const chart = this.chart[index];
-    if (!chart?.serpent) return;
+    if (!chart || chart.marginalia.length === 0) return;
     const wanted = this.serpentFits(index);
-    if (wanted === chart.serpentShown) return;
-    chart.serpentShown = wanted;
-    if (wanted) InstanceCollector.restore(chart.serpent);
-    else InstanceCollector.hide(chart.serpent);
+    if (wanted === chart.marginaliaShown) return;
+    chart.marginaliaShown = wanted;
+    for (const handle of chart.marginalia) {
+      if (wanted) InstanceCollector.restore(handle);
+      else InstanceCollector.hide(handle);
+    }
   }
 
   /**

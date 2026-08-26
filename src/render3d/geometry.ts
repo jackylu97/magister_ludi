@@ -2153,6 +2153,255 @@ export function cityHouseRoof(spec: {
 }
 
 /**
+ * The Æra II house's roof: a **gable** rather than the pyramid a hut wears.
+ *
+ * The whole of "a city that has aged", in one edge. A pyramid roof is four
+ * triangles meeting at a point and reads, from this camera, as a cone on a box —
+ * a shelter. A gable has a *ridge*, and a ridge is a thing a carpenter cut: it
+ * is the oldest visual shorthand there is for a building somebody framed rather
+ * than piled up, and it costs two more triangles.
+ *
+ * Built by extruding the end profile along the house's width, so the ridge runs
+ * along the house's long axis and the two eaves overhang by `eave` — an eave
+ * is what stops the roof reading as a lid, and at this camera angle a small one
+ * is all that fits before the walls disappear under it (see `cityHouseRoof` for
+ * the same finding from the other side).
+ */
+export function cityGableRoof(spec: {
+  width: number;
+  depth: number;
+  bodyH: number;
+  roofH: number;
+  eave: number;
+}): BufferGeometry {
+  const halfDepth = spec.depth / 2 + spec.eave;
+  const roof = extrudeProfile(
+    [
+      [0, -halfDepth],
+      [0, halfDepth],
+      [spec.roofH, 0],
+    ],
+    spec.width + spec.eave * 2,
+  );
+  roof.translate(0, spec.bodyH, 0);
+  return flatten(roof);
+}
+
+/**
+ * One stake of a palisade: a post with a sharpened head.
+ *
+ * Stakes, not stone — the Æra II wall is a *palisade*, and the difference has to
+ * be legible from across the table or the two ages of wall are one grey ring.
+ * The point is what does it: a flat-topped post at this size is a fence rail,
+ * while a sharpened one reads as a defence even when it is nine pixels tall.
+ *
+ * Five sides for `bannerPole`'s reason: at this radius the facets are invisible
+ * and the flat shading gives every stake a lit side and a dark side, which is
+ * what keeps a ring of them from smearing into one band.
+ */
+export function palisadeStake(spec: {
+  radius: number;
+  height: number;
+  point: number;
+}): BufferGeometry {
+  const shaft = new CylinderGeometry(spec.radius, spec.radius * 1.1, spec.height, 5, 1);
+  shaft.translate(0, spec.height / 2, 0);
+  const head = new ConeGeometry(spec.radius, spec.point, 5, 1);
+  head.translate(0, spec.height + spec.point / 2, 0);
+  return weld([shaft, head]);
+}
+
+/**
+ * One segment of an Æra III stone wall: a crenellated block lying along x.
+ *
+ * Six of these make a ring, one on each edge of the hex, which is why the
+ * segment is built along x and centred on its own middle — `edgeYaw` turns it
+ * onto its edge exactly as a river ribbon or a border band is turned.
+ *
+ * The merlons are three boxes on top rather than a notched profile, because a
+ * profile extruded along the wall would run the notches the *wrong way* (a
+ * crenellation is a gap along the wall's length, not through its thickness), and
+ * three boxes is the cheapest thing that is actually the shape. They are what
+ * carries "stone" at a glance: the palisade's silhouette is a comb of points and
+ * this one is a square-toothed band, and no zoom confuses the two.
+ */
+export function cityWallSegment(spec: {
+  length: number;
+  height: number;
+  thickness: number;
+  merlonH: number;
+  merlons: number;
+}): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const wall = new BoxGeometry(spec.length, spec.height, spec.thickness);
+  wall.translate(0, spec.height / 2, 0);
+  parts.push(wall);
+
+  const count = Math.max(0, Math.round(spec.merlons));
+  // The teeth and the gaps are the same width, which is what a crenellation is:
+  // `count` merlons and `count - 1` embrasures share the run, so the block at
+  // each end is a merlon and the wall never ends on a hole.
+  const step = count > 1 ? spec.length / (count * 2 - 1) : spec.length;
+  for (let i = 0; i < count; i++) {
+    const merlon = new BoxGeometry(step, spec.merlonH, spec.thickness);
+    merlon.translate(
+      -spec.length / 2 + step / 2 + i * step * 2,
+      spec.height + spec.merlonH / 2,
+      0,
+    );
+    parts.push(merlon);
+  }
+  return weld(parts);
+}
+
+/**
+ * The shrine: a stepped plinth with a finial standing on it.
+ *
+ * Two steps and a needle, and nothing else. A shrine has to be the *smallest*
+ * distinct building in the town — smaller than a house, or it stops reading as
+ * the thing a village put up beside its houses — so it cannot afford a
+ * silhouette with parts. What it can afford is a *profile* nothing else on the
+ * board has: everything else in a city is a box under a slope, and a stack that
+ * steps inward and then rises to a point is unmistakable at nine pixels.
+ *
+ * The finial comes back separately (`cityShrineFinial`) so it can take the gilt,
+ * which is what says "this one is holy" rather than "this one is small".
+ */
+export function cityShrine(spec: {
+  width: number;
+  stepH: number;
+  taper: number;
+}): BufferGeometry {
+  const lower = new BoxGeometry(spec.width, spec.stepH, spec.width);
+  lower.translate(0, spec.stepH / 2, 0);
+  const upperW = spec.width * spec.taper;
+  const upper = new BoxGeometry(upperW, spec.stepH, upperW);
+  upper.translate(0, spec.stepH * 1.5, 0);
+  return weld([lower, upper]);
+}
+
+/** The shrine's gilt needle, standing on top of `cityShrine`'s two steps. */
+export function cityShrineFinial(spec: {
+  width: number;
+  stepH: number;
+  taper: number;
+  finialH: number;
+}): BufferGeometry {
+  const needle = new ConeGeometry(spec.width * spec.taper * 0.42, spec.finialH, 4, 1);
+  needle.rotateY(Math.PI / 4);
+  needle.translate(0, spec.stepH * 2 + spec.finialH / 2, 0);
+  return flatten(needle);
+}
+
+/**
+ * The temple: a ziggurat of stepped terraces.
+ *
+ * One clean shape, which was the brief and is also the only thing that works.
+ * Columns were the other candidate and they lose at this scale for a measurable
+ * reason: a colonnade is a rhythm of gaps about a fifth of a house wide, and at
+ * game zoom the gaps close up into a solid block with a fuzzy top — a temple
+ * that reads as a warehouse. A ziggurat's steps are *horizontal* edges, which
+ * the toon ramp breaks on and the low sun draws a hard shadow line under, so it
+ * stays legible all the way down to twenty pixels.
+ *
+ * `steps` terraces, each `taper` of the one below it. Built as boxes and welded,
+ * so the whole thing is one instance and one draw whatever the count.
+ */
+export function cityTemple(spec: {
+  width: number;
+  stepH: number;
+  steps: number;
+  taper: number;
+}): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const count = Math.max(1, Math.round(spec.steps));
+  for (let i = 0; i < count; i++) {
+    const width = spec.width * spec.taper ** i;
+    const tier = new BoxGeometry(width, spec.stepH, width);
+    tier.translate(0, spec.stepH * (i + 0.5), 0);
+    parts.push(tier);
+  }
+  return weld(parts);
+}
+
+/**
+ * The palace: a hall taller than any house, under a double-pitched roof.
+ *
+ * The capital's ✶ has had no counterpart in the world since the day the star was
+ * added to the name, and this is it. Everything about the shape is chosen to be
+ * *the same kind of thing* as a house and plainly a grade above it — a box under
+ * a ridge, like every other building in the town, but half again as tall, twice
+ * as long, and with the roof broken into two pitches so the profile has a step
+ * in it. A different *kind* of building (a tower, a dome) would have read as a
+ * wonder, and wonders are W3's, not this pass's.
+ *
+ * Returned in two pieces for the reason a house is: body and roof take two
+ * colours, and the palace's roof is the one dark plane in the town.
+ */
+export function cityPalaceBody(spec: {
+  width: number;
+  depth: number;
+  bodyH: number;
+}): BufferGeometry {
+  const body = new BoxGeometry(spec.width, spec.bodyH, spec.depth);
+  body.translate(0, spec.bodyH / 2, 0);
+  return flatten(body);
+}
+
+/**
+ * The palace's roof: a low ridge over a broader skirt, extruded as one profile.
+ *
+ * The break between the two pitches is the whole point and is why this is not
+ * `cityGableRoof` at a larger size: a single pitch tall enough to read from
+ * across the table would be a barn, and the shallow-then-steep profile of a
+ * hall's roof is what the eye reads as *important building*. One extrusion, so
+ * the two pitches can never come apart.
+ */
+export function cityPalaceRoof(spec: {
+  width: number;
+  depth: number;
+  bodyH: number;
+  roofH: number;
+  eave: number;
+  skirt: number;
+}): BufferGeometry {
+  const half = spec.depth / 2 + spec.eave;
+  const shoulder = spec.roofH * spec.skirt;
+  const roof = extrudeProfile(
+    [
+      [0, -half],
+      [0, half],
+      [shoulder, half * 0.55],
+      [spec.roofH, 0],
+      [shoulder, -half * 0.55],
+    ],
+    spec.width + spec.eave * 2,
+  );
+  roof.translate(0, spec.bodyH, 0);
+  return flatten(roof);
+}
+
+/**
+ * The gilt finial on the palace's ridge: a small four-sided spike.
+ *
+ * The one piece of gold anywhere in the world layer, and it is deliberately
+ * three pixels of it. Entry VII gives gilt to the *interface*; the argument for
+ * letting one speck of it stand on the board is that the capital is the one
+ * place the interface already puts a mark (the ✶ in the name) and the world has
+ * had nothing to answer with.
+ */
+export function cityPalaceFinial(spec: {
+  bodyH: number;
+  roofH: number;
+  size: number;
+}): BufferGeometry {
+  const spike = new ConeGeometry(spec.size * 0.5, spec.size * 2.2, 4, 1);
+  spike.rotateY(Math.PI / 4);
+  spike.translate(0, spec.bodyH + spec.roofH + spec.size * 1.1, 0);
+  return flatten(spike);
+}
+
+/**
  * The banner pole a city flies its colours from: a thin cylinder on its base.
  *
  * Five sides, not a smooth barrel — at this radius the facets are invisible but

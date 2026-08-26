@@ -42,6 +42,7 @@ import {
   Vector3,
 } from 'three';
 
+import type { HeraldryId } from '../art/heraldryMarks';
 import type { DiscoveryKind } from '../sim/discoveryData';
 import { IMPROVEMENT_IDS, type ImprovementId } from '../sim/improvementData';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
@@ -50,6 +51,7 @@ import { type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
 import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
 import {
+  CHARGE_CELLS,
   NUMERAL_CELLS,
   SITE_MARK_CELLS,
   YIELD_KEYS,
@@ -75,8 +77,16 @@ import {
   campTent,
   catapultMini,
   chariotMini,
+  cityGableRoof,
   cityHouseBody,
   cityHouseRoof,
+  cityPalaceBody,
+  cityPalaceFinial,
+  cityPalaceRoof,
+  cityShrine,
+  cityShrineFinial,
+  cityTemple,
+  cityWallSegment,
   crystalCluster,
   discRing,
   dyeVats,
@@ -99,6 +109,7 @@ import {
   mountainPeak,
   mountainSnow,
   oreBoulder,
+  palisadeStake,
   palmTree,
   pathDot,
   pineTree,
@@ -406,6 +417,25 @@ function buildIconDecals(): {
  * with them rather than growing twelve more. Reusing the decals was never
  * available: a plane's orientation is baked into its vertices.
  */
+/**
+ * The twelve charges, standing up: `buildResourceMarkers` with a different set
+ * of atlas rectangles, and nothing else different at all.
+ *
+ * Written as its own function rather than folded into that one because the two
+ * are keyed by different id spaces and a `Record<ResourceId | HeraldryId, …>`
+ * would be a table with no total reader. `CHARGE_CELLS` is asked rather than
+ * `HERALDRY_IDS` for `buildSiteMarkers`' reason: the atlas's own cell list is
+ * the authority on what has a rectangle.
+ */
+function buildChargeMarkers(): Record<HeraldryId, BufferGeometry> {
+  const out: Partial<Record<HeraldryId, BufferGeometry>> = {};
+  for (const id of CHARGE_CELLS) {
+    const rect = tileIconRect({ set: 'charge', id });
+    out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
+  }
+  return out as Record<HeraldryId, BufferGeometry>;
+}
+
 function buildResourceMarkers(): Record<ResourceId, BufferGeometry> {
   const out: Partial<Record<ResourceId, BufferGeometry>> = {};
   for (const id of RESOURCE_IDS) {
@@ -497,6 +527,24 @@ export class BoardGeometry {
   /** City shapes: the houses of the town and the pole its banner flies from. */
   readonly houseBody: BufferGeometry;
   readonly houseRoof: BufferGeometry;
+  /**
+   * The **aged** town's shapes, added when cities learned to show their era
+   * (design ledger Entry VII's W1). One geometry per part, built once here with
+   * every other shared shape, and *placed* by `cities3d.ts` — which decides
+   * which of them a given town is entitled to. See `cityTier`.
+   *
+   * The gable roof replaces `houseRoof` from Æra II on and shares `houseBody`
+   * with it, because a town that ages re-roofs; it does not rebuild its walls.
+   */
+  readonly houseGableRoof: BufferGeometry;
+  readonly palisadeStake: BufferGeometry;
+  readonly wallSegment: BufferGeometry;
+  readonly shrine: BufferGeometry;
+  readonly shrineFinial: BufferGeometry;
+  readonly temple: BufferGeometry;
+  readonly palaceBody: BufferGeometry;
+  readonly palaceRoof: BufferGeometry;
+  readonly palaceFinial: BufferGeometry;
   readonly pole: BufferGeometry;
   /** Overlay shapes: reachable tint, highlight ring, path chip, HP bar. */
   readonly decal: BufferGeometry;
@@ -598,6 +646,25 @@ export class BoardGeometry {
   readonly chartPatch: BufferGeometry;
   readonly ghostRing: BufferGeometry;
   readonly serpentDecal: BufferGeometry;
+  /**
+   * The chart's inscription — *hic svnt dracones* — as a flat decal, exactly
+   * like the serpent beside it and out of the same atlas cell list. Two
+   * geometries rather than one shared quad because the atlas rectangle is baked
+   * into the vertices; see `atlasDecal`.
+   */
+  readonly draconesDecal: BufferGeometry;
+  /**
+   * The twelve heraldic charges, standing up: one upright camera-facing quad per
+   * charge, out of the tile atlas.
+   *
+   * One set serves **both** places a charge is printed in the world — the canton
+   * on a city flag and the boss on a unit badge — because both are quads turned
+   * to the same fixed camera, and a charge is the same drawing at two sizes. The
+   * size is the instance matrix's business; the plane is the geometry's, which
+   * is why the flat `numerals` and the standing `numeralMarkers` had to be two
+   * sets and these do not.
+   */
+  readonly chargeMarkers: Record<HeraldryId, BufferGeometry>;
   /** The pale band on a land tile that touches the sea. */
   readonly shoreRing: BufferGeometry;
   /** One river's worth of water, lying across one grout gap. */
@@ -638,6 +705,18 @@ export class BoardGeometry {
     this.badgeRim = discRing(rimInnerFraction(), VIEW3D.badges.rimSegments);
     this.houseBody = cityHouseBody(CITY.house);
     this.houseRoof = cityHouseRoof(CITY.house);
+    this.houseGableRoof = cityGableRoof({ ...CITY.house, ...CITY.gable });
+    this.palisadeStake = palisadeStake(CITY.palisade);
+    this.wallSegment = cityWallSegment({
+      ...CITY.wall,
+      length: BOARD.hexRadius * CITY.wall.length,
+    });
+    this.shrine = cityShrine(CITY.shrine);
+    this.shrineFinial = cityShrineFinial(CITY.shrine);
+    this.temple = cityTemple(CITY.temple);
+    this.palaceBody = cityPalaceBody(CITY.palace);
+    this.palaceRoof = cityPalaceRoof(CITY.palace);
+    this.palaceFinial = cityPalaceFinial({ ...CITY.palace, size: CITY.palace.finial });
     this.pole = bannerPole(CITY.poleRadius, CITY.poleHeight);
     this.decal = hexDecal(BOARD.hexRadius * OVERLAY.reachableScale);
     this.territory = hexDecal(BOARD.hexRadius * VIEW3D.territory.tintScale);
@@ -688,6 +767,9 @@ export class BoardGeometry {
     );
     const serpent = tileIconRect({ set: 'marginalia', id: 'serpent' });
     this.serpentDecal = atlasDecal(serpent.u0, serpent.v0, serpent.u1, serpent.v1);
+    const dracones = tileIconRect({ set: 'marginalia', id: 'dracones' });
+    this.draconesDecal = atlasDecal(dracones.u0, dracones.v0, dracones.u1, dracones.v1);
+    this.chargeMarkers = buildChargeMarkers();
   }
 
   dispose(): void {
@@ -711,6 +793,15 @@ export class BoardGeometry {
     this.badgeRim.dispose();
     this.houseBody.dispose();
     this.houseRoof.dispose();
+    this.houseGableRoof.dispose();
+    this.palisadeStake.dispose();
+    this.wallSegment.dispose();
+    this.shrine.dispose();
+    this.shrineFinial.dispose();
+    this.temple.dispose();
+    this.palaceBody.dispose();
+    this.palaceRoof.dispose();
+    this.palaceFinial.dispose();
     this.pole.dispose();
     this.decal.dispose();
     this.ring.dispose();
@@ -736,6 +827,8 @@ export class BoardGeometry {
     this.chartPatch.dispose();
     this.ghostRing.dispose();
     this.serpentDecal.dispose();
+    this.draconesDecal.dispose();
+    for (const quad of Object.values(this.chargeMarkers)) quad.dispose();
   }
 }
 

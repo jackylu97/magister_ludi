@@ -80,11 +80,16 @@
 
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
+import { heraldryFor } from '../art/heraldryMarks';
+import type { BuildingId } from '../sim/buildingData';
+import { capitalCityOf } from '../sim/cities';
 import { type Tile, getTileAt, tileIndex } from '../sim/map';
 import type { City, GameState } from '../sim/state';
+import { highestAge } from '../sim/techData';
 import { EXPLORED, HIDDEN } from '../sim/visibility';
 import { DIRECTION_COUNT, neighborInDirection } from '../sim/water';
 
+import type { TileIcons } from './badges3d';
 import type { BoardGeometry } from './board3d';
 import { type FogLevels, levelAt, seesCell } from './fog3d';
 import { hashSigned } from './hash';
@@ -133,18 +138,141 @@ export function playerColor(state: GameState, playerId: number): number {
 
 // --- the towns --------------------------------------------------------------
 
+/**
+ * How many sculpt tiers a town has. Æra I huts, Æra II gables, Æra III stone.
+ *
+ * Not a tunable: it is the length of the ladder the shapes were carved for, and
+ * a fourth tier is new geometry rather than a new number. What *is* tunable is
+ * which tier each part joins at — every aged part carries its own `fromTier` in
+ * `data/view3d.json`. See `CitySpec.gable`.
+ */
+export const CITY_TIERS = 3;
+
+/**
+ * Which sculpt tier a town is built at: its **owner's** age, clamped.
+ *
+ * The owner's, not the town's, and there is no such thing as a town's age — a
+ * technology is an empire-wide fact about what its people know how to build, so
+ * an empire that reaches the Bronze Age re-roofs every town it holds at once,
+ * including the ones it just took. That is the same reading the sim takes of
+ * every other age band (`highestAge`, the unit cost multiplier), and taking a
+ * different one here would mean the board disagreed with the ledger about what
+ * age a city was in.
+ *
+ * `highestAge` is the sim's own single age derivation and this asks it rather
+ * than counting techs, exactly as `meterEffects` and `resourceEffects` do.
+ */
+export function cityTier(state: GameState, city: City): number {
+  const owner = state.players[city.ownerId];
+  if (!owner) return 1;
+  return Math.max(1, Math.min(CITY_TIERS, highestAge(owner.techsResearched)));
+}
+
+/**
+ * Everything about a town that changes what is *sculpted* — and therefore
+ * everything the city fingerprint has to carry beyond where the town is and how
+ * big it is.
+ *
+ * One derivation, two readers, and that is the point. `CityLayer.build` asks it
+ * to decide what to draw and `signCities` asks it to decide when to draw again;
+ * a second copy of the rules in the fingerprint is how a board ends up showing
+ * an Æra II town in Æra III until something unrelated happens to move the hash.
+ * The trap in `CLAUDE.md` about the unit fingerprint is this one for cities:
+ * **any new visual-affecting city property joins `CityLook` and nothing else.**
+ */
+export interface CityLook {
+  /** 1, 2 or 3. See `cityTier`. */
+  tier: number;
+  /** A palisade stands: stakes from `palisade.fromTier`, stone from `wall.fromTier`. */
+  walls: boolean;
+  shrine: boolean;
+  temple: boolean;
+  /** The seat of government. See `capitalCityOf` — the sim's own rule, asked. */
+  capital: boolean;
+}
+
+/** Does this town hold a finished building? */
+function holds(city: City, id: BuildingId): boolean {
+  return city.buildings.includes(id);
+}
+
+/**
+ * Which cities are capitals, as a set of ids, resolved once per rebuild.
+ *
+ * `capitalCityOf` is the simulation's own rule and is asked rather than
+ * reimplemented — the founded-first-unless-all-captured reading, with all of its
+ * consequences about conquest, lives in one function and the board must not grow
+ * a second. It is asked once per *owner* rather than once per city, which is what
+ * keeps a hundred-city map from being quadratic in a rebuild that happens every
+ * time a town grows.
+ */
+export function capitalIds(state: GameState): Set<number> {
+  const capitals = new Set<number>();
+  const asked = new Set<number>();
+  for (const city of state.cities) {
+    if (asked.has(city.ownerId)) continue;
+    asked.add(city.ownerId);
+    const capital = capitalCityOf(state, city.ownerId);
+    if (capital) capitals.add(capital.id);
+  }
+  return capitals;
+}
+
+/** The five facts about a town that decide its sculpt. See `CityLook`. */
+export function cityLook(
+  state: GameState,
+  city: City,
+  capitals: ReadonlySet<number>,
+): CityLook {
+  return {
+    tier: cityTier(state, city),
+    walls: holds(city, 'palisade'),
+    shrine: holds(city, 'shrine'),
+    temple: holds(city, 'temple'),
+    capital: capitals.has(city.id),
+  };
+}
+
+/**
+ * Which of the ring's slots are taken by something other than a house, in the
+ * order they claim them.
+ *
+ * A town is a ring of buildings round its pole (see `addTown`), and a palace, a
+ * ziggurat and a shrine stand *in* that ring rather than beside it. That is not
+ * a shortcut, it is the only arrangement that survives the hex: everything has
+ * to fit inside the wall, the middle is spoken for by the pole and whatever
+ * garrison is standing on the tile, and a work parked outside the house ring
+ * ends up straddling the palisade at the sizes these shapes need to be legible.
+ *
+ * A fixed order rather than a hashed one, so the palace is always at the same
+ * bearing of its own town and a player learns where to look.
+ */
+type CityWork = 'palace' | 'temple' | 'shrine';
+
+function cityWorks(look: CityLook): CityWork[] {
+  const works: CityWork[] = [];
+  if (look.capital && look.tier >= CITY.palace.fromTier) works.push('palace');
+  if (look.temple && look.tier >= CITY.temple.fromTier) works.push('temple');
+  if (look.shrine && look.tier >= CITY.shrine.fromTier) works.push('shrine');
+  return works;
+}
+
 export class CityLayer {
   readonly group = new Group();
   private drawCallCount = 0;
 
   /**
-   * Rebuilds every town from scratch. Cheap — a few instances per city — and,
-   * like the units layer, incapable of drifting out of step with the state that
-   * produced it.
+   * Rebuilds every town from scratch. Cheap — a couple of dozen instances per
+   * city at the top tier — and, like the units layer, incapable of drifting out
+   * of step with the state that produced it.
    *
    * `faceCamera` orients the flag quads, which are the same trick the HP bars
    * use: the camera angle never changes, so "face the camera" is one constant
    * rotation baked into the instance matrix rather than a per-frame billboard.
+   *
+   * `icons` is the tile atlas, or null while it is still rasterising. It carries
+   * one thing here — the seat's heraldic charge, printed on the flag — and a
+   * null one means a plain banner, exactly as a null one means an untagged unit.
    */
   build(
     state: GameState,
@@ -153,16 +281,15 @@ export class CityLayer {
     faceCamera: Quaternion,
     shadows: boolean,
     levels: FogLevels = null,
+    icons: TileIcons | null = null,
   ): void {
     disposeInstancedGroup(this.group);
 
     const map = state.map;
     const period = wrapWidth(map);
     const collector = new InstanceCollector({ copyOffsets: [-period, 0, period] });
-    const axis = new Vector3(0, 1, 0);
-    const wall = VIEW3D.palette[CITY.wallColor] ?? 0xffffff;
-    const roof = VIEW3D.palette[CITY.roofColor] ?? 0x888888;
     const pole = VIEW3D.palette[CITY.poleColor] ?? 0x222222;
+    const capitals = capitalIds(state);
 
     for (const city of state.cities) {
       // A town is drawn only where the seat is watching. A city on ground this
@@ -176,10 +303,12 @@ export class CityLayer {
       if (!tile) continue;
       const centre = cellCenter(city.col, city.row);
       const top = tileTopY(tile);
+      const look = cityLook(state, city, capitals);
 
-      this.addHouses(city, centre, top, wall, roof, geometry, collector, axis);
+      this.addTown(city, look, centre, top, geometry, collector);
+      this.addWall(look, tile, centre, top, geometry, collector);
 
-      // The pole stands dead centre, where the houses' scatter leaves a gap.
+      // The pole stands dead centre, where the ring of buildings leaves a gap.
       collector.add(
         geometry.pole,
         [pole],
@@ -189,76 +318,266 @@ export class CityLayer {
           new Vector3(1, 1, 1),
         ),
       );
-      this.addFlag(state, city, centre, top, geometry, collector, faceCamera);
+      this.addFlag(state, city, centre, top, geometry, collector, faceCamera, icons);
     }
 
     this.drawCallCount = collector.flush(this.group, materials, shadows);
   }
 
   /**
-   * The houses, arranged as a village *ring* around the banner pole rather than
+   * The buildings, arranged as a *ring* around the banner pole rather than
    * scattered across the tile the way trees are.
    *
    * The ring is the whole point. The pole stands at the tile centre and so does
-   * any garrison piece, so houses dropped on a hashed disc end up underneath
+   * any garrison piece, so buildings dropped on a hashed disc end up underneath
    * both and the population is invisible — which defeats the one thing drawing
    * houses at all is for. Ringing them leaves the middle clear for the pole and
    * the soldier, and reads as a settlement gathered round its flag.
    *
-   * It is not a *stamped* ring: each house takes an evenly-spaced slot and then
+   * It is not a *stamped* ring: each slot takes an evenly-spaced bearing and then
    * a hashed nudge in angle, radius, size and yaw, so the village looks built
    * rather than surveyed. Every nudge is `hash(col, row, stream)`, so it is
    * identical across rebuilds and across the three wrap copies.
    *
-   * Body and roof are two instances so they can take two colours; both share
-   * one matrix, so they stay one building.
+   * The works claim the ring's first slots and the houses fill the rest, with at
+   * least one house always — a capital of one citizen is a palace with a house
+   * beside it, which is what a seat of government with nobody in it should look
+   * like. Growing the ring by the number of works rather than displacing houses
+   * is deliberate: a town that built a temple must not appear to have lost a
+   * quarter.
    */
-  private addHouses(
+  private addTown(
     city: City,
+    look: CityLook,
     centre: { x: number; z: number },
     top: number,
-    wall: number,
-    roof: number,
     geometry: BoardGeometry,
     collector: InstanceCollector,
-    axis: Vector3,
   ): void {
-    const count = Math.max(1, Math.min(city.population, CITY.houseCap));
+    const works = cityWorks(look);
+    const houses = Math.max(1, Math.min(city.population, CITY.houseCap));
+    const count = works.length + houses;
+
     for (let i = 0; i < count; i++) {
       // Stream 50 upward, well clear of the board's own decoration streams, so
       // adding a house never reshuffles a forest.
       const slot = 50 + i * 5;
       const wobble = hashSigned(city.col, city.row, slot) * (Math.PI / count);
       const angle = (i / count) * Math.PI * 2 + wobble;
+      const work = works[i];
+      const spread = work ? CITY[work].offset : CITY.houseSpread;
       const radius =
-        CITY.houseSpread *
+        spread *
         BOARD.hexRadius *
         (1 + hashSigned(city.col, city.row, slot + 1) * CITY.houseJitter);
-      const jitter = 1 + hashSigned(city.col, city.row, slot + 2) * CITY.houseJitter;
-      // Houses face roughly outward, with a nudge: a village on a hillside
+      // Buildings face roughly outward, with a nudge: a village on a hillside
       // turns its doors to the road, not to a random compass point.
       const yaw = -angle + hashSigned(city.col, city.row, slot + 3) * 0.5;
-
-      const position = new Vector3(
+      const at = new Vector3(
         centre.x + Math.cos(angle) * radius,
         top,
         centre.z + Math.sin(angle) * radius,
       );
-      const quaternion = new Quaternion().setFromAxisAngle(axis, yaw);
-      const scale = new Vector3(jitter, jitter, jitter);
-      const matrix = new Matrix4().compose(position, quaternion, scale);
-      collector.add(geometry.houseBody, [wall], matrix);
-      collector.add(geometry.houseRoof, [roof], matrix);
+
+      if (work) {
+        this.addWork(work, at, yaw, geometry, collector);
+        continue;
+      }
+      // A work is never jittered in size — a palace half a size small is a big
+      // house — but a house is, and it is what makes the ring read as a village.
+      const jitter = 1 + hashSigned(city.col, city.row, slot + 2) * CITY.houseJitter;
+      this.addHouse(city, look, slot, at, yaw, jitter, geometry, collector);
+    }
+  }
+
+  /**
+   * One house: a body under a roof, two instances sharing one matrix so they stay
+   * one building and can take two colours.
+   *
+   * The roof is where the age shows. Æra I keeps the pyramid it always had; from
+   * `gable.fromTier` the same body takes a **ridged** roof, which is the whole of
+   * "a town that has aged" in one edge (see `cityGableRoof`) — and, from the same
+   * tier, one roof in three takes the second tone, chosen by the house's own hash
+   * so it never moves. A town does not rebuild its walls when it learns to frame
+   * a roof, so `houseBody` is shared across all three tiers.
+   */
+  private addHouse(
+    city: City,
+    look: CityLook,
+    slot: number,
+    at: Vector3,
+    yaw: number,
+    jitter: number,
+    geometry: BoardGeometry,
+    collector: InstanceCollector,
+  ): void {
+    const wall = VIEW3D.palette[CITY.wallColor] ?? 0xffffff;
+    const gabled = look.tier >= CITY.gable.fromTier;
+    const roofName =
+      gabled && hashSigned(city.col, city.row, slot + 4) > 0.35
+        ? CITY.roofAltColor
+        : CITY.roofColor;
+    const roof = VIEW3D.palette[roofName] ?? 0x888888;
+
+    const matrix = new Matrix4().compose(
+      at,
+      new Quaternion().setFromAxisAngle(UP, yaw),
+      new Vector3(jitter, jitter, jitter),
+    );
+    collector.add(geometry.houseBody, [wall], matrix);
+    collector.add(gabled ? geometry.houseGableRoof : geometry.houseRoof, [roof], matrix);
+  }
+
+  /**
+   * One work: the palace, the ziggurat or the shrine, at the ring slot it claimed.
+   *
+   * Two of the three are two instances rather than one, and for the houses'
+   * reason: the gilt on a shrine's needle and on a palace's ridge is a *second
+   * colour*, so it is a second instance over the same matrix. The gilt is the one
+   * place gold touches the world layer at all — see `cityPalaceFinial`.
+   */
+  private addWork(
+    work: CityWork,
+    at: Vector3,
+    yaw: number,
+    geometry: BoardGeometry,
+    collector: InstanceCollector,
+  ): void {
+    const matrix = new Matrix4().compose(
+      at,
+      new Quaternion().setFromAxisAngle(UP, yaw),
+      new Vector3(1, 1, 1),
+    );
+    const spec = CITY[work];
+    const ink = VIEW3D.palette[spec.color] ?? 0xffffff;
+
+    if (work === 'temple') {
+      collector.add(geometry.temple, [ink], matrix);
+      return;
+    }
+    if (work === 'shrine') {
+      collector.add(geometry.shrine, [ink], matrix);
+      collector.add(
+        geometry.shrineFinial,
+        [VIEW3D.palette[CITY.shrine.finialColor] ?? 0xffffff],
+        matrix,
+      );
+      return;
+    }
+    collector.add(geometry.palaceBody, [ink], matrix);
+    collector.add(
+      geometry.palaceRoof,
+      [VIEW3D.palette[CITY.palace.roofColor] ?? 0x333333],
+      matrix,
+    );
+    collector.add(
+      geometry.palaceFinial,
+      [VIEW3D.palette[CITY.palace.finialColor] ?? 0xffffff],
+      matrix,
+    );
+  }
+
+  /**
+   * The wall, when a palisade stands: a comb of sharpened stakes on the
+   * hexagon's own perimeter, or — from `wall.fromTier` — six crenellated stone
+   * segments on its six edges.
+   *
+   * Same building, two sculpts, and that is the *point* rather than a shortcut.
+   * There is one wall building in the game; what changes between the ages is what
+   * a people knows how to build it out of, which is exactly the thing this whole
+   * pass exists to show. A later stone-wall building, if one is ever added, joins
+   * by taking `wall.fromTier`'s branch on its own terms.
+   *
+   * Both rings take the tile's own yaw and shrunken face (`tileYaw`,
+   * `tileScale`), for `borderBandMatrix`'s reason: a ring that ignored either
+   * would hang over the grout on one side of the tile and sink into the face on
+   * the other.
+   */
+  private addWall(
+    look: CityLook,
+    tile: Tile,
+    centre: { x: number; z: number },
+    top: number,
+    geometry: BoardGeometry,
+    collector: InstanceCollector,
+  ): void {
+    if (!look.walls) return;
+    const stone = look.tier >= CITY.wall.fromTier;
+    if (!stone && look.tier < CITY.palisade.fromTier) return;
+
+    const yaw = tileYaw(tile);
+    const cos = Math.cos(yaw);
+    const sin = Math.sin(yaw);
+    const face = tileScale(tile) * (1 - BOARD.tileGap);
+    // The tile's own turn, applied to an offset written in the hexagon's frame.
+    // Lifted from `borderBandMatrix`, whose derivation of the sign is the one
+    // this board settles on.
+    const place = (ox: number, oz: number): Vector3 =>
+      new Vector3(centre.x + (ox * cos + oz * sin), top, centre.z + (-ox * sin + oz * cos));
+
+    if (stone) {
+      const spec = CITY.wall;
+      const ink = VIEW3D.palette[spec.color] ?? 0x888888;
+      for (let direction = 0; direction < DIRECTION_COUNT; direction++) {
+        const delta = directionDelta(direction);
+        const span = Math.hypot(delta.x, delta.z);
+        // Half a centre-to-centre step is the apothem — the distance from the
+        // middle of a hex to the middle of one of its sides — which is where a
+        // wall lying *on* an edge has its middle.
+        const reach = (span / 2) * spec.ring * face;
+        collector.add(
+          geometry.wallSegment,
+          [ink],
+          new Matrix4().compose(
+            place((delta.x / span) * reach, (delta.z / span) * reach),
+            new Quaternion().setFromAxisAngle(UP, edgeYaw(direction) + yaw),
+            new Vector3(face, 1, 1),
+          ),
+        );
+      }
+      return;
+    }
+
+    const spec = CITY.palisade;
+    const ink = VIEW3D.palette[spec.color] ?? 0x8a6a45;
+    const radius = BOARD.hexRadius * spec.ring * face;
+    const perEdge = Math.max(1, Math.round(spec.perEdge));
+    for (let corner = 0; corner < DIRECTION_COUNT; corner++) {
+      const a = hexCornerAt(radius, corner);
+      const b = hexCornerAt(radius, corner + 1);
+      // Each edge owns its own start corner and not its end one, so the six runs
+      // tile the perimeter with exactly one stake per corner rather than two
+      // standing in the same hole.
+      for (let i = 0; i < perEdge; i++) {
+        const t = i / perEdge;
+        collector.add(
+          geometry.palisadeStake,
+          [ink],
+          new Matrix4().compose(
+            place(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t),
+            new Quaternion(),
+            new Vector3(1, 1, 1),
+          ),
+        );
+      }
     }
   }
 
   /**
    * The flag: an unlit quad hanging off the top of the pole in the player's
-   * colour, its origin at the pole so scaling grows it outward.
+   * colour, with the seat's heraldic charge stamped on its hoist.
    *
    * Unlit for the same reason the HP bars are — a single-sided quad that took
    * the toon ramp would be a different colour depending on which way the wind
    * blew it, and black when it faced away from the sun.
+   *
+   * The charge is a cell of the tile atlas (`CHARGE_CELLS`) standing a hair in
+   * front of the cloth, on its own little field of parchment. Parchment rather
+   * than ink straight onto the tincture because the twelve seat colours run from
+   * `sky` to `ink` and a charge printed in one ink cannot read on both — see
+   * `CHARGE_CELLS` for the whole of that argument. It is set toward the hoist
+   * (`chargeInset`) where a real banner puts one, which leaves the fly free to be
+   * the colour.
    */
   private addFlag(
     state: GameState,
@@ -268,6 +587,7 @@ export class CityLayer {
     geometry: BoardGeometry,
     collector: InstanceCollector,
     faceCamera: Quaternion,
+    icons: TileIcons | null,
   ): void {
     const anchor = new Vector3(
       centre.x,
@@ -284,6 +604,32 @@ export class CityLayer {
       ),
       { overlay: true, opacity: 1 },
     );
+
+    if (!icons) return;
+    const charge = heraldryFor(city.ownerId, state.players[city.ownerId]?.charge);
+    // `barQuad` runs from x = 0 at the pole out to x = 1, so the inset is a plain
+    // fraction of the flag's own width in the flag's own frame — which is why the
+    // charge stays put when somebody dials `flagWidth`.
+    const right = new Vector3(1, 0, 0).applyQuaternion(faceCamera);
+    const forward = new Vector3(0, 0, 1).applyQuaternion(faceCamera);
+    collector.add(
+      geometry.chargeMarkers[charge],
+      [],
+      new Matrix4().compose(
+        anchor
+          .clone()
+          .addScaledVector(right, CITY.chargeInset * CITY.flagWidth)
+          .addScaledVector(forward, CITY.chargeNudge),
+        faceCamera,
+        new Vector3(CITY.chargeSize, CITY.chargeSize, 1),
+      ),
+      // The atlas's *standing* material: a flag is a thing in the diorama, so
+      // its charge is hidden by the mountain that hides the flag. The flag
+      // itself is an unlit overlay, which is a different question (see above) —
+      // the two are drawn one in front of the other by `chargeNudge`, not by a
+      // depth trick.
+      { material: icons.standingMaterial },
+    );
   }
 
   get drawCalls(): number {
@@ -293,6 +639,24 @@ export class CityLayer {
   dispose(): void {
     disposeInstancedGroup(this.group);
   }
+}
+
+/** The board's one up axis, hoisted: every town matrix turns about it. */
+const UP = new Vector3(0, 1, 0);
+
+/**
+ * The k-th corner of the town's ring, in the prism's own corner phase.
+ *
+ * The same phase `hexPrism` and `hexDecal` are built in, so a palisade sits
+ * square on the hexagon it is defending rather than 30° out of true. Written
+ * here rather than imported because `geometry.ts` keeps its copy private and a
+ * second *user* of a two-line arithmetic is not a reason to widen an API — but
+ * the two must agree, and `test/render/cities3d.test.ts` holds that they do by
+ * checking a stake lands on a hex corner.
+ */
+function hexCornerAt(radius: number, k: number): { x: number; z: number } {
+  const angle = (k * Math.PI) / 3;
+  return { x: radius * Math.sin(angle), z: radius * Math.cos(angle) };
 }
 
 // --- territory --------------------------------------------------------------
@@ -587,15 +951,42 @@ function playerLookup(state: GameState): Map<number, number> {
  * over integers, allocating nothing — the same trick `signUnits` uses, for the
  * same reason: the layer is instanced, so it has to be told when to rebuild, and
  * a hash cannot be forgotten the way an explicit call can.
+ *
+ * **What the age pass added, and the rule it comes with.** A town used to be
+ * where it stood, how big it was and whose it was; since it learned to show its
+ * era it is also its *sculpt tier*, its walls, its shrine, its temple and
+ * whether it is the capital. Those five arrive as `CityLook` — the same
+ * derivation the layer draws from, folded here rather than re-derived — which is
+ * exactly the discipline the unit fingerprint's trap in `CLAUDE.md` demands one
+ * scale up: **any new visual-affecting city property joins `CityLook`**, and it
+ * is then in both the picture and the hash by construction. A property added to
+ * the draw and not to the look is a town that keeps its old roofs until
+ * something unrelated happens to grow it.
+ *
+ * The capital set is resolved once for the whole sweep rather than per city, for
+ * `capitalIds`' stated reason.
  */
 export function signCities(state: GameState): number {
   let h = 2166136261 ^ state.cities.length;
+  const capitals = capitalIds(state);
   for (const city of state.cities) {
     h = Math.imul(h ^ city.id, 16777619);
     h = Math.imul(h ^ city.col, 16777619);
     h = Math.imul(h ^ city.row, 16777619);
     h = Math.imul(h ^ city.population, 16777619);
     h = Math.imul(h ^ city.ownerId, 16777619);
+    // The five sculpt facts, packed into one integer: the tier in the low bits
+    // and one bit each for the rest. Packed rather than hashed one at a time
+    // because they are one answer — "what does this town look like" — and a
+    // reader adding a sixth should have to notice this line.
+    const look = cityLook(state, city, capitals);
+    const bits =
+      look.tier |
+      (look.walls ? 1 << 4 : 0) |
+      (look.shrine ? 1 << 5 : 0) |
+      (look.temple ? 1 << 6 : 0) |
+      (look.capital ? 1 << 7 : 0);
+    h = Math.imul(h ^ bits, 16777619);
   }
   return h >>> 0;
 }
