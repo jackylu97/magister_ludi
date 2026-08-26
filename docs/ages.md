@@ -26,8 +26,32 @@ engines are Age 5's late content.)
 - Earthenware — granary (+3🌾) · **water tiles +1🌾 in a granary town, from Sailing**
 - Divination — shrine (+1🔬 +1🎵)
 - **Sailing** *(shipped 2026-08-26, Entry XXVII)* — **embark** (civilians cross coastal
-  water) · **fishing boats** · the granary's water line. The sea lane (row 6) opens with
-  it, and it is the age's third 8🔬 node off Agriculture.
+  water) · **fishing boats** · the granary's water line. It is the age's third 8🔬 node off
+  Agriculture.
+
+### Authoring a tech's lane (`row`)
+
+The star chart's lanes were re-laid the same day Sailing landed, because one theme per line
+had grown to seven lanes and the seventh was below the fold of a 900px window. **The full
+principle, with the five lanes named and the numbers it bought, is the docblock on
+`src/sim/techData.ts`** — read it before authoring a `row` for an Age 2–5 node. In short:
+
+1. **Five lanes, `0…4`** (`TECH_LANE_LIMIT`). The widest column holds five techs, so five is
+   the floor; a sixth lane is a decision somebody makes, not a row somebody types, and
+   `techDataProblems` is what makes them make it.
+2. **A tech sits in the lane of the prerequisite whose line it continues** — usually the
+   first one listed, which is why `prereqs` order is display order.
+3. **A tech with two prerequisites in different lanes sits between them**, so the connectors
+   fan in symmetrically instead of one running flat and the other diving.
+4. **A leaf goes wherever it keeps the fan even.** Sailing and Calendar hand nothing on, so
+   they are the free pieces that let everything else sit straight.
+
+And the one prohibition that outranks a crossing: **never run a connector flat through a
+node that is not on the path it joins** — that draws a prerequisite which does not exist.
+`chartCrossings` and `chartFalseChains` (same module) measure both, and
+`test/ui/techChart.test.ts` pins the result, so a re-lay can be *checked* rather than
+eyeballed: 24 crossings → 11, and Age I from 7 down to 1, which brute force says is the
+minimum possible at any lane count.
 
 **Suggested additions (grounded bonuses/unlocks):**
 - **Wayfinding** — scouts +1 sight, settlers +1 movement. The expansion tech; flavor: the

@@ -60,18 +60,55 @@
  *     reads as a chain — bronze working, iron working, steel march rightward
  *     because each one is strictly deeper than the last, and an edge can never
  *     point backwards.
- *   - `row` is hand-authored in `data/techs.json`, one lane per theme — seven of
- *     them: the mounted line (0), the missile line (1), the metal line (2),
- *     stone and coin (3), word and number (4), faith and the schools (5), and
- *     the sea (6, Entry XXVII, holding Sailing alone so far) — tuned by eye so
- *     related nodes stay on one line and
- *     prerequisite edges cross as little as possible. There is no automatic
+ *   - `row` is hand-authored in `data/techs.json`. There is no automatic
  *     row-assignment algorithm: a sugiyama-style solver would re-shuffle the
  *     lanes every time a tech was added, and a tree whose shape a player has
  *     learnt is worth more than a tree with two fewer line crossings.
  *
- * `techDataProblems` insists every tech has a row and that no two share a
- * (column, row) cell, which is the whole failure mode hand-authoring has.
+ * The lane principle (re-authored 2026-08-26)
+ * -------------------------------------------
+ * Hand-laid, but not arbitrary. Four rules, in priority order, and the Age 2–5
+ * pass should author new rows the same way:
+ *
+ *   1. **A lane is a line of work, and it is five lanes wide.** `0 … 4`
+ *      (`TECH_LANE_LIMIT`), because the widest column holds five techs and a
+ *      chart deeper than its deepest column is height nobody needs — the old
+ *      seven-lane sky put Divination below the bottom of a 900px window.
+ *   2. **A tech sits in the lane of the prerequisite whose line it continues.**
+ *      Usually the first one listed, which is why `prereqs` order is display
+ *      order. Iron Working continues Bronzeworking's line; Chivalry continues
+ *      Feudalism's.
+ *   3. **A tech with two prerequisites in different lanes sits between them**,
+ *      so the two connectors fan in symmetrically rather than one running flat
+ *      and the other diving. Stonecraft sits between Husbandry and Earthenware;
+ *      Mathematics between Letters and The Wheel.
+ *   4. **A leaf goes wherever it keeps the fan even.** Sailing and Calendar hand
+ *      nothing on, so they are the free pieces that let the rest sit straight.
+ *
+ * And one prohibition that outranks a crossing: **never let a connector run flat
+ * through a node that is not on the path it joins.** Two techs a lane apart
+ * crossing is a line a player can follow with a finger; a line entering one card
+ * and leaving the other side reads as a prerequisite that does not exist.
+ *
+ * What it bought: 24 connector crossings → 11, seven lanes → five, and the Age I
+ * corner from 7 crossings to **1** — which `chartCrossings` and a brute force
+ * over every five-lane arrangement say is the *minimum*: Age I's own subgraph
+ * cannot be drawn flat, at any lane count. The counter is here rather than in a
+ * test so that a future re-lay can be checked rather than eyeballed.
+ *
+ * The five lanes as they stand:
+ *
+ *   0. Fletching → Construction → Machinery → Steel — the bowyer and the works.
+ *   1. Mining → Bronzeworking → Iron Working → Engineering → Physics — the ore.
+ *   2. Agriculture → Earthenware → Calendar → The Wheel → Mathematics — the
+ *      hearth: the root of the tree and what a settled year makes possible.
+ *   3. Sailing → Stonecraft → Currency → Feudalism → Chivalry — stone and coin.
+ *   4. Husbandry → Divination → Letters → Philosophy → Drama → Theology →
+ *      Education — the omen and the word, the one lane that runs end to end.
+ *
+ * `techDataProblems` insists every tech has a row inside `TECH_LANE_LIMIT` and
+ * that no two share a (column, row) cell, which is the whole failure mode
+ * hand-authoring has.
  */
 
 import techsJson from '../../data/techs.json';
@@ -352,6 +389,145 @@ export function techRowCount(): number {
 }
 
 /**
+ * How many lanes the sky is allowed to be: rows `0 … TECH_LANE_LIMIT - 1`.
+ *
+ * Five, and it is a *height* budget rather than a taste: the widest column holds
+ * five techs, so five is the floor, and every lane past it is a lane the player
+ * has to travel to. The seven-lane chart this replaced put its bottom lane below
+ * the fold of a 900px window. A sixth lane is not forbidden by arithmetic —
+ * `techDataProblems` is what forbids it, so that adding one is a decision
+ * somebody makes rather than a row somebody types.
+ */
+export const TECH_LANE_LIMIT = 5;
+
+/** Where a node sits on the chart: its dependency column and its lane. */
+export interface ChartCell {
+  column: number;
+  row: number;
+}
+
+/**
+ * A chart to count crossings in — the cells, and the connectors between them.
+ *
+ * Deliberately keyed by plain `string` rather than `TechId`: the point of a
+ * layout metric is to compare the layout in the file against ones that are not
+ * in the file (the arrangement before a re-lay, a hand-drawn candidate, a
+ * deliberately terrible one), and a test cannot build those out of ids the type
+ * only admits after they have been shipped.
+ */
+export interface ChartLayout {
+  cells: ReadonlyMap<string, ChartCell>;
+  /** One entry per prerequisite edge, prerequisite first. */
+  edges: readonly (readonly [string, string])[];
+}
+
+/** The chart as `data/techs.json` currently lays it out, or a slice of it. */
+export function techChartLayout(includes?: (id: TechId) => boolean): ChartLayout {
+  const shown = TECH_IDS.filter((id) => includes?.(id) ?? true);
+  const inside = new Set<TechId>(shown);
+  const cells = new Map<string, ChartCell>(
+    shown.map((id) => [id, { column: techDepth(id), row: techDef(id).row }]),
+  );
+  const edges: [string, string][] = [];
+  // Iterated over `shown` rather than the map, so the edge list is file order
+  // and two runs of this function are byte-identical.
+  for (const id of shown) {
+    for (const prereq of techDef(id).prereqs) {
+      if (inside.has(prereq)) edges.push([prereq, id]);
+    }
+  }
+  return { cells, edges };
+}
+
+/** Which side of the line `a`→`b` the point `c` falls on. Zero is *on* it. */
+function side(a: ChartCell, b: ChartCell, c: ChartCell): number {
+  return (b.column - a.column) * (c.row - a.row) - (b.row - a.row) * (c.column - a.column);
+}
+
+/**
+ * How many pairs of connectors cross, treating each connector as the straight
+ * segment between the two cells it joins.
+ *
+ * Straight, though the chart draws cubics: the curve is a bezier with horizontal
+ * handles between the same two endpoints, so it stays inside the same corridor
+ * and crosses the same neighbours — a metric that modelled the curve exactly
+ * would answer a different question every time the handle cap was tuned.
+ *
+ * Only *proper* crossings count: two connectors out of one node, or into one
+ * node, meet at that node and are a fan rather than a tangle, so any pair
+ * sharing an endpoint is skipped. Everything else is the standard orientation
+ * test, which is exact here because every coordinate is a small integer.
+ */
+export function chartCrossings(layout: ChartLayout): number {
+  const at = (id: string): ChartCell | undefined => layout.cells.get(id);
+  let crossings = 0;
+  for (let i = 0; i < layout.edges.length; i++) {
+    const [a1, b1] = layout.edges[i];
+    const p1 = at(a1);
+    const p2 = at(b1);
+    if (!p1 || !p2) continue;
+    for (let j = i + 1; j < layout.edges.length; j++) {
+      const [a2, b2] = layout.edges[j];
+      if (a1 === a2 || a1 === b2 || b1 === a2 || b1 === b2) continue;
+      const p3 = at(a2);
+      const p4 = at(b2);
+      if (!p3 || !p4) continue;
+      const d1 = side(p3, p4, p1);
+      const d2 = side(p3, p4, p2);
+      const d3 = side(p1, p2, p3);
+      const d4 = side(p1, p2, p4);
+      const straddles =
+        ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+      if (straddles) crossings++;
+    }
+  }
+  return crossings;
+}
+
+/**
+ * Connectors that run flat through a node they have nothing to do with — the
+ * one layout fault the lane principle ranks above a crossing, because it draws
+ * a prerequisite that does not exist.
+ *
+ * A pass *is* allowed when the node in the way is genuinely on a path between
+ * the two ends: Philosophy → Education runs through Theology, and Philosophy →
+ * Drama → Theology → Education is a real chain, so the line reads as the truth.
+ * Only flat connectors are examined; a diagonal that clips a card disappears
+ * under it and comes out somewhere the eye does not follow.
+ */
+export function chartFalseChains(layout: ChartLayout): string[] {
+  const found: string[] = [];
+  const ancestors = new Map<string, Set<string>>();
+  const behind = (id: string): Set<string> => {
+    const known = ancestors.get(id);
+    if (known) return known;
+    const all = new Set<string>();
+    ancestors.set(id, all);
+    for (const [from, to] of layout.edges) {
+      if (to !== id) continue;
+      all.add(from);
+      for (const older of behind(from)) all.add(older);
+    }
+    return all;
+  };
+
+  for (const [from, to] of layout.edges) {
+    const start = layout.cells.get(from);
+    const end = layout.cells.get(to);
+    if (!start || !end || start.row !== end.row) continue;
+    const low = Math.min(start.column, end.column);
+    const high = Math.max(start.column, end.column);
+    for (const [id, cell] of layout.cells) {
+      if (id === from || id === to) continue;
+      if (cell.row !== start.row || cell.column <= low || cell.column >= high) continue;
+      if (behind(id).has(from) && behind(to).has(id)) continue;
+      found.push(`${from} → ${to} runs through ${id}`);
+    }
+  }
+  return found;
+}
+
+/**
  * The age an empire holding these technologies has *reached*: the highest age
  * any of them belongs to.
  *
@@ -459,6 +635,13 @@ export function techDataProblems(): string[] {
     // are loud here.
     if (!Number.isInteger(def.row) || def.row < 0) {
       problems.push(`tech "${id}" has row ${String(def.row)}, which is not a lane number`);
+    } else if (def.row >= TECH_LANE_LIMIT) {
+      // The height budget, enforced where the rest of the file's hand-authoring
+      // faults are. See `TECH_LANE_LIMIT`: a sixth lane is a decision, not a
+      // typo, and this is where somebody has to come and make it.
+      problems.push(
+        `tech "${id}" sits in lane ${def.row}, past the ${TECH_LANE_LIMIT}-lane chart (0…${TECH_LANE_LIMIT - 1})`,
+      );
     }
 
     for (const prereq of def.prereqs) {

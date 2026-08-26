@@ -3026,6 +3026,74 @@ kbd {
   gap: 5px;
 }
 
+/* One buildable: the button that queues it, and the tag that buys it. Two
+   controls on one line rather than one control with a control inside it — a
+   button in a button is not a thing the platform draws, and the two are
+   genuinely different verbs. The tag takes only the width its figure needs, so
+   a row with no tag (a project) is the full-width button it always was. */
+.city-buildable-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* The purchase offer at the foot of the units — the augur's row. It *is* the
+   offer rather than an alternative to one, so it has no build button beside it
+   and takes the whole grid. */
+.city-buildable-row.is-purchase {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* The price in coin, in the treasury's own ink so it reads as money at a glance
+   and never as another hammer figure. Quieter than the build button it stands
+   beside — buying is the second thing a player does with a row, not the first —
+   and it wears the same pressed shadow so the two feel like one control pair. */
+.city-buildable-buy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 7px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--y-gold);
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer;
+}
+
+.city-buildable-buy.is-offer {
+  justify-content: space-between;
+  gap: 6px;
+  border-left: 5px solid var(--y-faith);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.city-buildable-buy:hover:not(:disabled) {
+  background: #fffdf4;
+}
+
+.city-buildable-buy:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.city-buildable-buy:disabled {
+  border-color: var(--ink-faint);
+  color: var(--ink-faint);
+  background: var(--table);
+  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
+  cursor: default;
+}
+
 /* The stripe down the left edge is what separates the two kinds: a city builds
    many more units than buildings, so the buildings are the quieter colour. */
 .city-buildable {
@@ -3230,13 +3298,20 @@ kbd {
   display: none;
 }
 
-/* The sheet inside it: a bounded window onto a chart that is wider than it. */
+/* The sheet inside it: a bounded window onto a chart that is wider than it.
+
+   `height` rather than `max-height`, which it was until the lanes learnt to
+   space themselves: a sheet that hugged its content made the stage's height a
+   function of the chart's, and the chart's height a function of the stage's —
+   so `spaceLanes` read back the height it had just caused and never found any
+   slack to spread. A screen fills the window; only then is "how much room is
+   there" a question with an answer. */
 .tech-sheet {
   display: flex;
   flex-direction: column;
   gap: 12px;
   width: min(1500px, 100%);
-  max-height: 100%;
+  height: 100%;
   padding: 16px 18px 18px;
   border: var(--border-thin) solid rgba(200, 144, 31, 0.5);
   border-radius: var(--radius);
@@ -3356,13 +3431,22 @@ kbd {
    Column = dependency depth, row = the lane authored in data/techs.json; the
    track lists themselves are written by techTree.ts from that data. */
 .tech-field {
-  --tech-col-w: 234px;
+  /* A card fills its column, so the *gap* is the entire visible run of every
+     connector — at the old 30px a sight-line was a 30px stub between two cards
+     and there was nothing to follow. Narrowing the column and widening the gutter
+     trades no total width (8 × 214 + 7 × 52 is the old 8 × 234 + 7 × 30 to within
+     a card's border) for two thirds more line. */
+  --tech-col-w: 214px;
+  --tech-col-gap: 52px;
+  /* Written by `spaceLanes` (techTree.ts) from the height actually available;
+     the value here is only what the chart is drawn with before it is measured. */
+  --tech-row-gap: 12px;
   position: relative;
   display: grid;
   width: max-content;
   min-width: 100%;
   align-items: start;
-  gap: 12px 30px;
+  gap: var(--tech-row-gap) var(--tech-col-gap);
   /* The two-pixel band top and bottom is the age wash's bleed, and nothing
      else: it keeps the region from being clipped at the scroll origin without
      making the field taller than the lanes in it. */
@@ -3375,7 +3459,10 @@ kbd {
   z-index: 0;
   position: relative;
   align-self: stretch;
-  margin: -2px -15px;
+  /* Half the gutter each side, so the wash meets its neighbour's exactly and
+     the seam falls between the columns rather than beside one. Derived rather
+     than typed, because the gutter is now a variable that gets tuned. */
+  margin: -2px calc(var(--tech-col-gap) / -2);
   padding: 0;
   border-radius: var(--radius-sm);
   background: rgba(247, 242, 225, 0.022);
@@ -3433,6 +3520,65 @@ kbd {
 .tech-line.is-held {
   stroke: rgba(200, 144, 31, 0.55);
   stroke-dasharray: 2 4;
+}
+
+/* --- the focus mode ---
+   Reading one node: its own connectors go solid and the rest of the sky drops
+   to a whisper. No new colour — a line that is *yours* is drawn unbroken, which
+   is the difference the eye actually follows across forty hairlines, and the
+   gilt-when-researched rule survives underneath it (`.is-held.is-lit`). */
+.tech-lines.is-reading .tech-line {
+  stroke: rgba(247, 242, 225, 0.07);
+}
+
+.tech-lines.is-reading .tech-line.is-held {
+  stroke: rgba(200, 144, 31, 0.16);
+}
+
+.tech-line.is-lit,
+.tech-lines.is-reading .tech-line.is-lit {
+  stroke: rgba(247, 242, 225, 0.8);
+  stroke-width: 1.6;
+  stroke-dasharray: none;
+}
+
+.tech-line.is-held.is-lit,
+.tech-lines.is-reading .tech-line.is-held.is-lit {
+  stroke: var(--gilt);
+}
+
+/* The far ends of those lines, ringed rather than moved: a chart whose cards
+   grew on hover would be a chart that reflowed under the pointer, and the lines
+   are measured from where the cards are. Gilt for what a node waits on,
+   parchment for what waits on it — the same two voices the rest of this screen
+   uses for "already yours" and "still ahead". */
+.tech-node.is-prereq {
+  box-shadow: 0 0 0 2px rgba(200, 144, 31, 0.55);
+}
+
+.tech-node.is-heir {
+  box-shadow: 0 0 0 2px rgba(247, 242, 225, 0.32);
+}
+
+/* The node being researched already wears a lapis rim; it keeps it and takes
+   the ring outside it rather than losing one to the other. */
+.tech-node.is-current.is-prereq {
+  box-shadow:
+    0 0 0 1px rgba(130, 174, 242, 0.35),
+    0 0 0 3px rgba(200, 144, 31, 0.55);
+}
+
+.tech-node.is-current.is-heir {
+  box-shadow:
+    0 0 0 1px rgba(130, 174, 242, 0.35),
+    0 0 0 3px rgba(247, 242, 225, 0.32);
+}
+
+/* A locked node is dimmed to 0.42, which would take its ring down with it —
+   and a ring is the one thing a locked node has to say. */
+.tech-node.is-locked.is-prereq,
+.tech-node.is-locked.is-heir {
+  opacity: 0.72;
 }
 
 /* ÆRA I — the age numerals, gilt, letterspaced like an inscription. */
@@ -3632,6 +3778,13 @@ kbd {
    a real number about this empire, not a cost. */
 .tech-unlock-note.is-delta {
   color: var(--y-food-lit);
+}
+
+/* The short-window chart (`spaceLanes`, techTree.ts) drops its epigrams rather
+   than its bottom lane. The line is on the hover card as well; the name, the
+   cost and the unlocks above it are not. */
+.tech-field.is-compact .tech-node-flavor {
+  display: none;
 }
 
 .tech-node-flavor {

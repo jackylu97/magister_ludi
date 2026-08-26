@@ -37,15 +37,37 @@
  * The screen is a dependency chart on a horizontally scrolling stage, not a
  * list of ages: a node's column is `techDepth` — the longest chain of
  * prerequisites behind it — and its row is the lane hand-authored in
- * `data/techs.json`. So a chain reads as a chain, left to right, and the ages
- * are demoted to what they always were: an annotation, painted as dim gilt
- * numerals behind the columns they happen to own (`techAgeBands`).
+ * `data/techs.json` (the lane principle is written down in `techData.ts`). So a
+ * chain reads as a chain, left to right, and the ages are demoted to what they
+ * always were: an annotation, painted as dim gilt numerals behind the columns
+ * they happen to own (`techAgeBands`).
  *
- * Travel is by drag, by wheel (a vertical wheel scrolls the chart sideways,
- * because sideways is the only direction it goes), and by the arrow keys. On
- * opening, the stage jumps — no tween; the player asked to see the chart, not
- * to watch it arrive — to whatever they are researching, or to the leftmost
- * thing they *could* research if they are researching nothing.
+ * Travel is by drag, by wheel and by the arrow keys. On opening, the stage
+ * jumps — no tween; the player asked to see the chart, not to watch it arrive —
+ * to whatever they are researching, or to the leftmost thing they *could*
+ * research if they are researching nothing.
+ *
+ * Sideways is the direction it *mostly* goes, and for a while it was the only
+ * one: the wheel was turned across unconditionally, which was right for a chart
+ * that fitted its window and was a trap for one that did not. The bottom lane of
+ * a seven-lane sky sat below the fold of a 900px screen with no gesture that
+ * would reach it. So the rule now asks the stage rather than assuming: the wheel
+ * goes **down while there is down to go** and sideways otherwise, drag has
+ * always moved both axes, `↑`/`↓` join `←`/`→`, and `centreOn` travels in both.
+ * What made that livable is `fitLanes` (`techFit.ts`) — the lanes are spaced
+ * from the height actually available, so a five-lane chart usually has no down
+ * to go and the wheel behaves exactly as it always did.
+ *
+ * Reading one node's dependencies (the focus mode)
+ * -----------------------------------------------
+ * Forty-odd hairlines behind twenty-six cards is a sky, not a diagram, and the
+ * complaint it earned was the fair one: you cannot tell which line is yours.
+ * Hovering — or tabbing to — a node lights its own connectors solid and drops
+ * the rest to a whisper, and rings the nodes at the other ends: gilt on what it
+ * needs, parchment on what it opens. Nothing is added to the palette and no
+ * layout moves; the chart just stops saying everything at once. It is bound on
+ * the card rather than in CSS because the connectors are not descendants of the
+ * node they belong to — they are one SVG behind all of them.
  *
  * Why the lines are drawn after layout
  * ------------------------------------
@@ -91,6 +113,7 @@ import { unitDef } from '../sim/unitData';
 import { HAMMER, PROJECT_GLYPHS, YIELD_GLYPH, turnsLabel } from './figures';
 import { setYieldText } from './yieldMark';
 import { createInfoCard } from './infoCard';
+import { LANE_GAP_MIN, fitLanes } from './techFit';
 import { BEAKER, researchProgress } from './researchProgress';
 import { resourceMarkNode } from './resourceMark';
 
@@ -244,6 +267,42 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   let restoreTo: HTMLElement | null = null;
   /** Where each node card ended up, so the sight-lines can be measured. */
   const cards = new Map<TechId, HTMLButtonElement>();
+  /**
+   * Every connector and the two nodes it joins, kept because the focus mode
+   * asks a question of a *line* ("is either end the node under the pointer?")
+   * that the drawn `d` attribute cannot be asked. Rebuilt with the lines.
+   */
+  const connectors: { path: SVGPathElement; from: TechId; to: TechId }[] = [];
+  /** The one SVG the connectors live in, kept so the focus mode can dim it. */
+  let lines: SVGSVGElement | null = null;
+  /** The node the chart is currently reading out, or none. */
+  let reading: TechId | null = null;
+
+  /**
+   * Light one node's dependencies and hush everything else.
+   *
+   * Three writes and no layout: the SVG takes a class that dims every line
+   * *not* marked, the node's own lines take that mark, and the nodes at the far
+   * ends take a ring — `is-prereq` for what it waits on, `is-heir` for what
+   * waits on it. `null` puts the sky back.
+   *
+   * Idempotent by the early return, because a pointer crossing a card's border
+   * raises enter and leave in pairs and a card that re-lit on every one of them
+   * would flicker.
+   */
+  function readNode(id: TechId | null): void {
+    if (reading === id) return;
+    reading = id;
+    lines?.classList.toggle('is-reading', id !== null);
+    for (const { path, from, to } of connectors) {
+      path.classList.toggle('is-lit', id !== null && (from === id || to === id));
+    }
+    const needs = id === null ? [] : techDef(id).prereqs;
+    for (const [other, card] of cards) {
+      card.classList.toggle('is-prereq', needs.includes(other));
+      card.classList.toggle('is-heir', id !== null && techDef(other).prereqs.includes(id));
+    }
+  }
 
   // --- one node ------------------------------------------------------------
 
@@ -586,6 +645,15 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // this fire. It never traps the pointer — see `infoCard.ts`.
     info.bind(card, () => techCard(id));
 
+    // The focus mode, on the same four moments the hover card would use if it
+    // took the keyboard: a chart you can only read with a mouse is a chart half
+    // the players cannot read. `focus`/`blur` rather than `focusin`/`focusout`
+    // because a node card has no focusable children to bubble from.
+    card.addEventListener('pointerenter', () => readNode(id));
+    card.addEventListener('pointerleave', () => readNode(null));
+    card.addEventListener('focus', () => readNode(id));
+    card.addEventListener('blur', () => readNode(null));
+
     cards.set(id, card);
     return card;
   }
@@ -606,6 +674,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // does it — see `infoCard.ts`.
     info.hide();
     cards.clear();
+    // Both indexes point at elements that are about to be thrown away, and
+    // `reading` at a card that will not exist — cleared here rather than through
+    // `readNode(null)`, which would spend three passes tidying the dead.
+    connectors.length = 0;
+    reading = null;
     const columns = techColumnCount();
     const rows = techRowCount();
 
@@ -641,10 +714,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       built.append(label);
     }
 
-    const lines = document.createElementNS(SVG_NS, 'svg');
-    lines.setAttribute('class', 'tech-lines');
-    lines.setAttribute('aria-hidden', 'true');
-    built.append(lines);
+    const drawn = document.createElementNS(SVG_NS, 'svg');
+    drawn.setAttribute('class', 'tech-lines');
+    drawn.setAttribute('aria-hidden', 'true');
+    built.append(drawn);
+    lines = drawn;
 
     for (const id of TECH_IDS) {
       const card = renderNode(id);
@@ -664,8 +738,56 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // every card changes height under them. (A background tab never runs the
     // second, which is exactly right — and why the first is not an animation
     // frame: `requestAnimationFrame` does not fire in a hidden tab at all.)
-    drawLines(lines);
-    requestAnimationFrame(() => drawLines(lines));
+    //
+    // The lanes are spaced before the lines are drawn, in both passes and in
+    // that order: the gap moves every card, and a connector measured before it
+    // would be drawn to where the card used to be.
+    spaceLanes(built, rows);
+    drawLines(drawn);
+    requestAnimationFrame(() => {
+      spaceLanes(built, rows);
+      drawLines(drawn);
+    });
+  }
+
+  /**
+   * Fit the lanes to the window: `fitLanes` decides, this measures for it.
+   *
+   * The lanes' own height is taken with the gaps closed to their minimum, which
+   * is the only way to ask "how tall are the cards" of a grid whose gaps are
+   * the thing being chosen. Reading `scrollHeight` flushes layout, so this is
+   * one forced reflow rather than a frame's wait — the same bargain `drawLines`
+   * makes, and for the same reason: the chart must be right on the paint the
+   * player is already looking at.
+   *
+   * `gaps` is the lane count, not one less: the age strip is a track too, so a
+   * five-lane chart has five gaps under six tracks.
+   */
+  function spaceLanes(built: HTMLElement, rows: number): void {
+    const lanesOnly = (): number => {
+      built.style.setProperty('--tech-row-gap', `${LANE_GAP_MIN}px`);
+      // `offsetHeight` and not `scrollHeight`: the connector SVG is an absolute
+      // child of this element and is sized *from* the field's own extent, so
+      // asking for the scroll extent asks a question whose answer includes last
+      // frame's answer — the chart would climb a little every time it was
+      // measured and talk itself into a scrollbar it did not need.
+      return built.offsetHeight - LANE_GAP_MIN * rows;
+    };
+
+    // Closed up first, then — only if that was not enough — the epigrams go.
+    // A chart that will not fit gives up its flavour before it gives up a lane:
+    // the epigram is on the hover card too and the name, the cost and the
+    // unlocks are not, so it is the one line on a node that is said twice. On a
+    // tall window the class comes straight back off, which is why the state is
+    // recomputed from scratch here rather than latched.
+    built.classList.remove('is-compact');
+    let content = lanesOnly();
+    if (fitLanes(chart.clientHeight, content, rows).overflow > 0) {
+      built.classList.add('is-compact');
+      content = lanesOnly();
+    }
+    const { gap } = fitLanes(chart.clientHeight, content, rows);
+    built.style.setProperty('--tech-row-gap', `${gap}px`);
   }
 
   /**
@@ -686,14 +808,21 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     const origin = field;
     if (!origin) return;
     while (svg.firstChild) svg.removeChild(svg.firstChild);
-    const width = origin.scrollWidth;
-    const height = origin.scrollHeight;
+    // The field's own box, not its scroll extent: this SVG is an absolute child
+    // of the field and sizing it from the scroll extent would make it one of the
+    // things being measured — each pass a few pixels larger than the last.
+    const width = origin.offsetWidth;
+    const height = origin.offsetHeight;
     svg.setAttribute('width', String(width));
     svg.setAttribute('height', String(height));
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
 
     const { state } = getGame();
     const player = state.players[localPlayerId()];
+    // The index is rebuilt with the paths, never appended to: `drawLines` runs
+    // twice per render (see `renderChart`), and an index that grew would light
+    // each line twice and leak the first pass's dead nodes.
+    connectors.length = 0;
     for (const id of TECH_IDS) {
       const to = cards.get(id);
       if (!to) continue;
@@ -718,6 +847,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         const held = player?.techsResearched.includes(prereq) ?? false;
         path.setAttribute('class', held ? 'tech-line is-held' : 'tech-line');
         svg.append(path);
+        connectors.push({ path, from: prereq, to: id });
       }
     }
   }
@@ -771,16 +901,26 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     return best;
   }
 
-  /** Puts an element in the middle of the stage, at once and without a tween. */
+  /**
+   * Puts an element in the middle of the stage, at once and without a tween.
+   *
+   * Both axes, because the chart now has two: on a short window the current
+   * research may be a lane below the fold, and a screen that opened having
+   * travelled sideways to a node it left off the bottom would be worse than one
+   * that had not travelled at all. Writing `scrollTop` on a chart that fits is
+   * free — the browser clamps it to zero.
+   */
   function centreOn(card: HTMLElement): void {
     const seen = card.getBoundingClientRect();
-    const window_ = chart.getBoundingClientRect();
-    const drift = seen.left - window_.left - (chart.clientWidth - seen.width) / 2;
-    chart.scrollLeft += drift;
+    const stage = chart.getBoundingClientRect();
+    chart.scrollLeft += seen.left - stage.left - (chart.clientWidth - seen.width) / 2;
+    chart.scrollTop += seen.top - stage.top - (chart.clientHeight - seen.height) / 2;
   }
 
-  /** One column-ish, for the arrow keys and for a wheel notch. */
+  /** One column-ish, for the sideways arrow keys and for a wheel notch. */
   const NUDGE = 260;
+  /** One lane-ish, for the vertical pair. Shorter, because a lane is shorter. */
+  const NUDGE_DOWN = 150;
 
   function nudge(by: number): void {
     chart.scrollLeft += by;
@@ -859,22 +999,33 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   );
 
   /**
-   * The wheel travels sideways, because sideways is the only way this chart
-   * goes. A trackpad's horizontal gesture (and the shift-wheel most browsers
-   * turn into one) arrives as `deltaX` and is left to the browser; a plain
-   * vertical wheel is turned across. Zoom gestures — ctrl or meta held — are
-   * never ours to take.
+   * The wheel goes down while there is down to go, and sideways otherwise.
+   *
+   * It used to go sideways unconditionally, on the grounds that sideways was
+   * the only way this chart went — true of the chart, and a trap for the
+   * window: a sky taller than the stage had a bottom lane no gesture could
+   * reach, because the one gesture that would have reached it had been taken.
+   * So the stage is asked rather than assumed, and the answer is nearly always
+   * "sideways" anyway, `fitLanes` having spent the height first.
+   *
+   * A trackpad's horizontal gesture (and the shift-wheel most browsers turn into
+   * one) arrives as `deltaX` and is left to the browser; shift is honoured here
+   * too for the browsers that do not, and means "across, whatever the stage
+   * says". Zoom gestures — ctrl or meta held — are never ours to take.
    */
   chart.addEventListener(
     'wheel',
     (event) => {
       if (event.ctrlKey || event.metaKey) return;
       if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
-      if (chart.scrollWidth <= chart.clientWidth) return;
-      const unit =
-        event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? chart.clientWidth : 1;
+      const down = !event.shiftKey && chart.scrollHeight > chart.clientHeight;
+      if (!down && chart.scrollWidth <= chart.clientWidth) return;
+      // A page-mode notch is a page of whichever axis is about to move.
+      const page = down ? chart.clientHeight : chart.clientWidth;
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? page : 1;
       event.preventDefault();
-      chart.scrollLeft += event.deltaY * unit;
+      if (down) chart.scrollTop += event.deltaY * unit;
+      else chart.scrollLeft += event.deltaY * unit;
     },
     { passive: false },
   );
@@ -1018,8 +1169,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       return;
     }
     // A card raised over the chart lives on `document.body`, not inside the
-    // overlay, so hiding the overlay would not take it with it.
+    // overlay, so hiding the overlay would not take it with it. The focus mode
+    // is put back for the same reason a pointer leaving a card puts it back:
+    // a hidden chart keeping one node lit would reopen mid-sentence.
     info.hide();
+    readNode(null);
     restoreTo?.focus();
     restoreTo = null;
     renderStatus();
@@ -1048,12 +1202,21 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       setOpen(false);
       return;
     }
-    // The chart only goes sideways, so the sideways keys drive it. Tab still
-    // walks the nodes; these are for reading, not for choosing.
+    // The arrow keys drive the stage in whichever direction it can travel. Tab
+    // still walks the nodes; these are for reading, not for choosing.
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();
       event.stopPropagation();
       nudge(event.key === 'ArrowLeft' ? -NUDGE : NUDGE);
+      return;
+    }
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      // Only claimed when there is somewhere to go: on a chart that fits, up
+      // and down belong to whatever the browser would have done with them.
+      if (chart.scrollHeight <= chart.clientHeight) return;
+      event.preventDefault();
+      event.stopPropagation();
+      chart.scrollTop += event.key === 'ArrowUp' ? -NUDGE_DOWN : NUDGE_DOWN;
     }
   });
 
@@ -1062,10 +1225,13 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     if (event.target === overlay) setOpen(false);
   });
 
+  // A resize changes the height the lanes were spaced for as readily as the
+  // width the lines were measured in, so both are redone, in the same order
+  // renderChart does them.
   window.addEventListener('resize', () => {
-    if (!open) return;
-    const svg = chart.querySelector<SVGSVGElement>('svg.tech-lines');
-    if (svg) drawLines(svg);
+    if (!open || !field || !lines) return;
+    spaceLanes(field, techRowCount());
+    drawLines(lines);
   });
 
   renderStatus();

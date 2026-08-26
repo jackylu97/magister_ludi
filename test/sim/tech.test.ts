@@ -311,12 +311,13 @@ describe('star chart layout', () => {
         );
       }
     }
-    // The whole chart, for scale: eight columns deep, seven lanes tall. Age I
-    // gained three nodes and a third rank in the rework, and Sailing added the
-    // seventh lane at the bottom — the sea gets a row of its own rather than
-    // sharing one with a land chain it has nothing to do with (Entry XXVII).
+    // The whole chart, for scale: eight columns deep, five lanes tall. Seven
+    // lanes was what hand-authoring one theme per line had grown to, and the
+    // bottom one was below the fold of a 900px window; the 2026-08-26 re-lay
+    // (the lane principle, in `techData.ts`) put every tech back inside five —
+    // which is the floor, the widest column holding five techs.
     expect(techColumnCount()).toBe(8);
-    expect(techRowCount()).toBe(7);
+    expect(techRowCount()).toBe(5);
   });
 
   it('hands every tech a lane, and never two techs the same cell', () => {
@@ -889,8 +890,8 @@ describe('research in the log', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 18 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(18);
+  it('round-trips a schema 19 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(19);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

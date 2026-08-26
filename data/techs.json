@@ -21,7 +21,7 @@
       "name": "Husbandry",
       "glyph": "🐄",
       "age": 1,
-      "row": 0,
+      "row": 4,
       "cost": 8,
       "prereqs": [
         "agriculture"
@@ -37,7 +37,7 @@
       "name": "Fletching",
       "glyph": "🏹",
       "age": 1,
-      "row": 1,
+      "row": 0,
       "cost": 8,
       "prereqs": [
         "agriculture"
@@ -53,7 +53,7 @@
       "name": "Sailing",
       "glyph": "⛵",
       "age": 1,
-      "row": 6,
+      "row": 3,
       "cost": 8,
       "prereqs": [
         "agriculture"
@@ -69,7 +69,7 @@
       "name": "Mining",
       "glyph": "⛏",
       "age": 1,
-      "row": 2,
+      "row": 1,
       "cost": 8,
       "prereqs": [
         "agriculture"
@@ -81,7 +81,7 @@
       "name": "Earthenware",
       "glyph": "⚱",
       "age": 1,
-      "row": 3,
+      "row": 2,
       "cost": 8,
       "prereqs": [
         "agriculture"
@@ -97,7 +97,7 @@
       "name": "Bronzeworking",
       "glyph": "⚔",
       "age": 1,
-      "row": 2,
+      "row": 1,
       "cost": 16,
       "prereqs": [
         "mining",
@@ -142,7 +142,7 @@
       "name": "Calendar",
       "glyph": "🌙",
       "age": 1,
-      "row": 4,
+      "row": 2,
       "cost": 16,
       "prereqs": [
         "earthenware"
@@ -161,7 +161,7 @@
       "name": "Divination",
       "glyph": "🔮",
       "age": 1,
-      "row": 5,
+      "row": 4,
       "cost": 16,
       "prereqs": [
         "husbandry"
@@ -183,7 +183,7 @@
       "name": "The Wheel",
       "glyph": "☸",
       "age": 1,
-      "row": 0,
+      "row": 2,
       "cost": 26,
       "prereqs": [
         "husbandry",
@@ -224,7 +224,7 @@
       "name": "Iron Working",
       "glyph": "⚒",
       "age": 2,
-      "row": 2,
+      "row": 1,
       "cost": 132,
       "prereqs": [
         "bronzeWorking",
@@ -241,7 +241,7 @@
       "name": "Construction",
       "glyph": "🏗",
       "age": 2,
-      "row": 1,
+      "row": 0,
       "cost": 183,
       "prereqs": [
         "stonecraft",
@@ -261,7 +261,7 @@
       "name": "Mathematics",
       "glyph": "📐",
       "age": 2,
-      "row": 4,
+      "row": 2,
       "cost": 153,
       "prereqs": [
         "letters",
@@ -295,7 +295,7 @@
       "name": "Philosophy",
       "glyph": "🦉",
       "age": 2,
-      "row": 5,
+      "row": 4,
       "cost": 196,
       "prereqs": [
         "letters",
@@ -312,7 +312,7 @@
       "name": "Engineering",
       "glyph": "⚙",
       "age": 2,
-      "row": 3,
+      "row": 1,
       "cost": 212,
       "prereqs": [
         "mathematics",
@@ -347,7 +347,7 @@
       "name": "Feudalism",
       "glyph": "🏰",
       "age": 3,
-      "row": 2,
+      "row": 3,
       "cost": 266,
       "prereqs": [
         "ironWorking",
@@ -364,7 +364,7 @@
       "name": "Machinery",
       "glyph": "🔧",
       "age": 3,
-      "row": 1,
+      "row": 0,
       "cost": 285,
       "prereqs": [
         "engineering",
@@ -381,7 +381,7 @@
       "name": "Theology",
       "glyph": "⛪",
       "age": 3,
-      "row": 5,
+      "row": 4,
       "cost": 314,
       "prereqs": [
         "philosophy",
@@ -398,7 +398,7 @@
       "name": "Chivalry",
       "glyph": "🐴",
       "age": 3,
-      "row": 0,
+      "row": 3,
       "cost": 342,
       "prereqs": [
         "feudalism",
@@ -415,7 +415,7 @@
       "name": "Physics",
       "glyph": "☄",
       "age": 3,
-      "row": 3,
+      "row": 1,
       "cost": 418,
       "prereqs": [
         "mathematics",
@@ -432,7 +432,7 @@
       "name": "Steel",
       "glyph": "🗡",
       "age": 3,
-      "row": 2,
+      "row": 0,
       "cost": 380,
       "prereqs": [
         "ironWorking",
@@ -449,7 +449,7 @@
       "name": "Education",
       "glyph": "🎓",
       "age": 3,
-      "row": 5,
+      "row": 4,
       "cost": 451,
       "prereqs": [
         "theology",
