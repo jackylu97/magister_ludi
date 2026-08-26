@@ -250,6 +250,22 @@ would change every seeded outcome. No further rename passes.
   (the phase) and the helper — and `test/sim/cities.test.ts` asserts that by reading the
   source, because it is the one property a seventh hand-rolled refresh would break while
   every behavioural test still passed.
+- **A step's price is asked of `stepCost`, and it takes `from` as well as `to`** (Entry XXV,
+  `pathfind.ts`). `tileMoveCost` is now only the *ground's* half — the hex and the mover's
+  `ignoresTerrainCost` — and the zone of control is the half a lone tile cannot answer: a step
+  from a hex an enemy combat unit (or enemy city) touches to another hex **that same piece**
+  touches completes and then empties the purse. There are **four** readers and they must never
+  drift: `findPath`, `reachableTiles`, `advanceAlongPath` and `pathTurns` (the interface's
+  "~N turns", which used to keep its own copy of the loop in `unitPanel.ts` and was the one
+  already wrong). A fifth caller prices a step through `stepCost` or it is a highlight
+  promising a march the walk will not deliver.
+  The lock's arithmetic is the load-bearing part: `stepArrival` lands a locked step **exactly**
+  on `turnBoundary`, never on `max(ground, boundary)`. That is what lets `reachableTiles` stop
+  its frontier there with no zone-of-control clause of its own, and what makes a mid-march
+  slide never cheaper than going around — so the overlay and the reducer cannot disagree. It is
+  also why the lock is never a zero-cost edge, which both searches' settle-once guarantee needs.
+  `zocField(state, ownerId)` is hoisted once per search beside `unitDef`; building one per edge
+  is the shape to avoid, not the rule.
 - **A resource pays only an empire that can name it.** `requiresTech` gates three things
   through one rule (`resourceIsVisibleTo`): the *label* (`visibleResourceAt`), *access*
   (`openedResource`), and the **yield** — `explainTileYield` omits the resource line for a

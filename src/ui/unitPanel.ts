@@ -41,11 +41,10 @@ import { chargesLeft, isBuilder } from '../sim/improvements';
 import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
 import { explainAuthority, meterStanding } from '../sim/meters';
-import { tileMoveCost } from '../sim/pathfind';
+import { inZoneOfControl, pathTurns } from '../sim/pathfind';
 import type { Unit } from '../sim/state';
 import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
-import { fullMovement } from '../sim/units';
 import type { ImprovementOption } from './controls';
 import { HAMMER, YIELD_GLYPH, signedFigure } from './figures';
 import { yieldFigureNodes } from './yieldMark';
@@ -279,40 +278,17 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    * How many more turns the unit's standing order will take, as an estimate the
    * panel is honest about calling one (hence the `~`).
    *
-   * It re-walks the stored waypoints against the movement rules — this turn's
-   * remaining points first, then a full allowance per turn, with the "entering
-   * always costs at least what you have left" floor that `movement.ts` applies —
-   * and counts the refills. It is an estimate rather than a promise because the
-   * board can change under the order: a unit may block a tile, terrain may stop
-   * the march, and the reducer will re-decide all of that at the time. Deriving
-   * it here rather than storing it on the unit is deliberate; a cached number
-   * would be one more thing that can be wrong.
+   * One line, because the arithmetic belongs to the movement evaluator and not
+   * to the panel that prints it: `pathTurns` re-walks the stored waypoints
+   * through the very `stepCost` the turn change will spend the points with, so
+   * the terrain, the mover's abilities and any enemy picket the route slides
+   * along are all priced once. The panel used to keep its own copy of that loop,
+   * which is exactly the sort of second implementation a new movement rule
+   * silently leaves behind. Deriving it rather than storing it on the unit is
+   * deliberate; a cached number would be one more thing that can be wrong.
    */
   function turnsRemaining(unit: Unit): number {
-    const { map } = getGame().state;
-    const allowance = fullMovement(unit);
-    // The mover, not just the ground: a scout ignores terrain cost, and an
-    // estimate that priced its route at a warrior's rates would quote a march
-    // twice as long as the one the reducer will walk. See `tileMoveCost`.
-    const def = unitDef(unit.type);
-    let turns = 0;
-    let budget = Math.max(0, unit.movesLeft);
-    for (const cell of unit.path ?? []) {
-      if (budget <= 0) {
-        turns += 1;
-        budget = allowance;
-      }
-      const tile = getTileAt(map, cell.col, cell.row);
-      // An impassable waypoint means the order is going to be abandoned, not
-      // that it takes forever; stop counting rather than inventing a number.
-      const cost = tile ? tileMoveCost(tile, def) : null;
-      if (cost === null) break;
-      budget = Math.max(0, budget - cost);
-    }
-    // Anything still on the list is at least one more turn of marching, even if
-    // the arithmetic above spent nothing (a one-tile order with points left is
-    // still resolved at the turn change).
-    return Math.max(1, turns);
+    return pathTurns(getGame().state, unit, unit.path ?? []);
   }
 
   /**
@@ -606,6 +582,14 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // same one the button wears, so the sheet says one thing twice rather than
     // two things once.
     if (unit.sleeping === true) notes.push('Sleeping 💤');
+    // A board fact the player cannot see by looking, and the one rule that
+    // turns a neighbouring enemy into a *cost*: stepping to another hex that
+    // same piece also touches ends the turn on arrival (Entry XXV). Said here
+    // rather than left to be discovered by losing a march to it — walking away
+    // is still free, and that is the half the sentence is warning about.
+    if (inZoneOfControl(getGame().state, unit)) {
+      notes.push("Held by an enemy's zone of control");
+    }
     // A view-only note for a view-only state: the sim has no idea this unit
     // was skipped (see `controls.ts`), so this is the one place it is said.
     if (isUnitSkipped()) notes.push('Waiting this turn');

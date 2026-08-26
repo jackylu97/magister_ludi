@@ -27,6 +27,13 @@
  *     order is *kept*. That is a traffic jam, not a wall — the unit waits and
  *     tries again next turn, once its own side has moved on.
  *
+ * A third reason is neither a wall nor a jam: a step that slid along an enemy's
+ * zone of control (Entry XXV) is *taken*, and takes the rest of the allowance
+ * with it. The order is kept and the column resumes next turn, so a route that
+ * was clear when it was approved and has an enemy standing beside it now stops
+ * exactly where the rule says rather than where the plan hoped — the same
+ * honesty the two clauses above are made of.
+ *
  * A stored path is always the *remaining* waypoints, never the walked ones, and
  * the key is deleted rather than set to `[]` when the order finishes, so an idle
  * unit serialises identically however it came to be idle.
@@ -43,7 +50,7 @@
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { breakFortify } from './combat';
 import { getTileAt } from './map';
-import { type Cell, canStopOn, canTransit, tileMoveCost } from './pathfind';
+import { type Cell, canStopOn, canTransit, stepCost, zocField } from './pathfind';
 import type { GameState, Unit } from './state';
 import { unitDef } from './unitData';
 
@@ -77,22 +84,32 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
   let index = 0;
   const arrivals: ArrivalReport[] = [];
   // The mover's own row, resolved once and handed to the evaluator on every
-  // step. This is the third and last reader of `tileMoveCost` (see its
+  // step. This is the third of the four readers of `stepCost` (see its
   // docblock): what the highlight promised and what the march spends have to be
-  // the same arithmetic, abilities included.
+  // the same arithmetic, abilities and zones of control included.
   const def = unitDef(unit.type);
+  // Once for the whole walk, and that is exact rather than an economy: nobody
+  // else moves while a column marches, and the two things a step can change —
+  // a ruin claimed, a civilian taken — are neither of them sources of control.
+  const field = zocField(state, unit.ownerId);
 
   while (index < path.length && unit.movesLeft > 0) {
+    const from = getTileAt(state.map, unit.col, unit.row);
     const step = path[index]!;
     const tile = getTileAt(state.map, step.col, step.row);
-    if (!tile || !canTransit(state, unit, tile)) {
+    if (!from || !tile || !canTransit(state, unit, tile)) {
       cleared = true;
       break;
     }
 
-    const cost = tileMoveCost(tile, def)!;
+    const price = stepCost(state.map, from, tile, def, field)!;
     // Overspending is forgiven, never borrowed: the allowance floors at zero.
-    const after = Math.max(0, unit.movesLeft - cost);
+    // A zone-of-control lock is the same forgiveness read the other way — the
+    // step is taken and everything left over is gone with it.
+    const after = price.locked ? 0 : Math.max(0, unit.movesLeft - price.cost);
+    // `after === 0` already covers the lock, which is the point of spending it
+    // that way: a unit held by a picket comes to rest on the hex it stepped
+    // onto, so the tile has to be one it may legally share.
     const wouldRestHere = after === 0 || index === path.length - 1;
     if (wouldRestHere && !canStopOn(state, unit, tile)) {
       // A jam, not a wall. Keep the order and wait for the tile to clear.

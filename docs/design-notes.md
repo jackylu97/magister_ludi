@@ -2447,3 +2447,91 @@ casualty was a fixture: `QUIET_TURN` was a literal 20, which the new cadence tur
 *founding* turn, and a test about a cargo with nowhere to go started walking it home to a
 camp that had just appeared under it. It is derived off `rules.json` now, like every other
 number in that file.
+
+## Entry XXV — Zone of control (**built** 2026-08-26)
+
+Civ V's rule, adopted whole, because the movement model already had everywhere to put it and
+nowhere else to put it.
+
+### The rule as ratified
+
+> A unit that begins a step **adjacent to an enemy combat unit or an enemy city**, and moves
+> to another tile **that same piece is also adjacent to**, completes the step and then has
+> **no movement left**.
+
+Every clause is load-bearing:
+
+- **The step completes.** A zone of control is a *price*, never a wall. The mover ends its
+  turn on the hex it stepped onto — which is why the walker checks `canStopOn` for a locked
+  step exactly as it does for a step that ran the allowance out.
+- **That same piece.** Leaving one enemy's shadow for another's is a march, not a slide. Two
+  spearmen a hex apart do not chain their tolls; a *line* of them does, which is what makes a
+  line worth forming.
+- **Into contact and out of contact are free.** You may always walk up to an enemy, and you
+  may always walk away. What costs is walking *around*.
+- **Combat units only.** A settler holds nothing, by the same `isCombatant` that decides who
+  may be attacked and who is captured instead.
+- **Any other owner, the wild included.** There is no diplomacy yet, so foreign is hostile —
+  the reading `hasForeignUnit` already gives transit. The barbarian seat is a `Player`, so it
+  binds and is bound with no special case (Entry XX's whole point).
+- **Enemy cities exert it.** A town is a garrison a march cannot kill.
+- **Nobody is exempt.** `ignoresTerrainCost` is about the *ground*: a scout pays a wooded hill
+  one point and is held by a picket exactly as a swordsman is.
+
+### Why it went into the evaluator
+
+Entry VIII's one-evaluator rule, applied to a price that a lone tile cannot answer. `moveCost`
+is a fact about a hex; `tileMoveCost` made it a fact about a hex *and a mover*; a zone of
+control is a fact about a hex, a mover **and the hex the step is taken from**. So `stepCost(map,
+from, to, def, field)` is now THE evaluator and `tileMoveCost` is the ground's own half of it.
+
+Four readers, and the reason they are counted: `findPath`, `reachableTiles`,
+`advanceAlongPath` (the walk the reducer commits) and `pathTurns` (the interface's "~N
+turns"). The fourth was the one that had already drifted — the unit sheet kept its own copy of
+the movement loop, which is exactly the second implementation a new rule leaves silently
+wrong. It is one line now.
+
+### The arithmetic, and why the overlay cannot lie
+
+"Spends everything left" is a fact about a *turn*, so the evaluator's callers had to be able to
+say where a turn ends. `MovePurse` is two numbers — points left in the turn the search starts
+in, and `fullMovement` for every turn after — and `turnBoundary(spent, purse)` is the running
+total at which the current turn ends. A locked step lands **exactly** on that boundary
+(`stepArrival`), and the overspend a short purse would have forgiven is forgiven here too.
+
+That single choice is what keeps the highlight honest, and the proof is short enough to write
+down. Inside `reachableTiles` the purse is one turn, so a lock lands exactly on the allowance
+and the sweep's existing "arriving with nothing left ends the move" clause stops the frontier
+there — no second rule about zones of control anywhere in the sweep. In `findPath` the same
+arithmetic runs with a multi-turn purse. Since a step's ground price depends only on its
+*destination*, a route through a lock reaches any tile's predecessor at the turn boundary,
+which is the largest first-turn value there is — so a route that slides mid-march is never
+cheaper than one that does not, and a tile the sweep highlighted is always routed to by a march
+this turn's points actually complete. `test/sim/zoc.test.ts` asserts it as a property over
+twenty-five random rough boards rather than trusting the paragraph.
+
+The lock is also never a zero-cost edge (`turnBoundary(spent) > spent` for every input), so
+both searches still settle a node the first time they pop it and the A* heuristic stays
+admissible. Nothing about the module's determinism changed.
+
+### What a player sees
+
+The reachable overlay draws it: the hex alongside a picket is highlighted and priced at the
+whole allowance, and the hex beyond it is not drawn at all. The pathfinder routes *around* a
+picket whenever going around is cheaper, which is the behaviour that turns the rule from a
+punishment into a tactic. The unit sheet says "Held by an enemy's zone of control" for a piece
+standing in contact — a warning about the sidestep, since walking away is still free — and the
+"~N turns" line grows by one when a standing order has to slide.
+
+One pre-existing bug fell out of unifying that estimate: it counted *refills* and floored at
+one, so a march needing a refill and a march needing none both read "~1 turns". It counts turn
+changes until arrival now (`turns + 1`), which is what the sentence always claimed.
+
+### What did not change
+
+Nothing about blocking (an enemy hex is still a wall for transit, a friendly hex still blocks
+only stopping), nothing about combat, and nothing about the barbarians beyond obeying it —
+they march by `findPath` into `advanceAlongPath` like everybody else and needed no line of
+their own. A route that was clear when it was approved and has an enemy beside it now stops
+where the rule says and **keeps its order**, resuming next turn: a stop, not an abandonment,
+which is the third clause of `movement.ts`'s "stopping short".
