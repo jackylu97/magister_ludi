@@ -81,6 +81,7 @@ import {
   poolFigure,
   signedFigure,
 } from './figures';
+import { hasStatecraftOffer, nextDraftCost, statecraftBlocker } from '../sim/statecraft';
 import { createInfoCard } from './infoCard';
 import { meterGroups } from './meterBreakdown';
 import { meterMarkNode } from './meterMark';
@@ -241,6 +242,8 @@ export interface CivYieldStripOptions {
 export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStrip {
   const { container, getGame, localPlayerId, happiness, authority, onOpenPopover } = options;
   const values = new Map<YieldKey, HTMLElement>();
+  /** The chip elements themselves, for the one thing a figure cannot say: a badge. */
+  const chips = new Map<YieldKey, HTMLElement>();
 
   /**
    * One card for the whole strip, dropped under whatever is being hovered. The
@@ -274,6 +277,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     // focus alongside hover).
     item.tabIndex = 0;
     values.set(key, value);
+    chips.set(key, item);
     info.bind(item, () => yieldCard(key, label));
     container.append(item);
   }
@@ -332,6 +336,28 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       if (value === 0) continue;
       lines.append(meterLine(`${line.source} · empire`, value, false));
     }
+    // Culture's card gains the ladder it now buys (Entry XV): the tier, the
+    // basket against the next threshold, and whatever offer is outstanding.
+    // Here rather than as a second chip because it is not a second number — it
+    // is what this number is *for*, and a player reading their culture rate
+    // wants the answer in the same breath.
+    if (key === 'culture') {
+      const player = playerById(state, playerId);
+      if (player) {
+        const sc = player.statecraft;
+        const ladder = element('div', 'meter-total');
+        ladder.append(element('span', 'meter-line-source', `Tier ${sc.drafts} · next draft`));
+        ladder.append(
+          element(
+            'span',
+            'meter-line-value',
+            `${Math.max(0, Math.floor(player.culturePool))}/${nextDraftCost(player)}`,
+          ),
+        );
+        box.append(ladder);
+      }
+    }
+
     const note = YIELD_NOTE[key];
     if (lines.childElementCount === 0) {
       box.append(element('p', 'hint', 'No cities yet.'));
@@ -340,6 +366,14 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     }
     box.append(lines);
     if (note) box.append(element('p', 'hint', note));
+    if (key === 'culture') {
+      const player = playerById(state, playerId);
+      const waiting = player ? statecraftBlocker(player) : null;
+      if (waiting !== null) box.append(element('p', 'hint hint-alert', `☞ ${waiting} — press C.`));
+      else if (player?.statecraft.pendingGovernment !== undefined) {
+        box.append(element('p', 'hint hint-alert', '☞ a charter is ready to be sworn — press C.'));
+      }
+    }
     return box;
   }
 
@@ -599,6 +633,15 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         const text =
           banked && player ? poolFigure(banked.pool(player), totals[key]) : String(totals[key]);
         if (el.textContent !== text) el.textContent = text;
+      }
+
+      // The badge: a small mark on the culture chip while Statecraft owes the
+      // player a decision. It rides on the chip rather than on a control of its
+      // own for the reason the ladder rides on culture's card — it is a fact
+      // about what this number bought.
+      const cultureChip = chips.get('culture');
+      if (cultureChip) {
+        cultureChip.classList.toggle('civ-yield-waiting', player ? hasStatecraftOffer(player) : false);
       }
 
       const happinessStanding = meterStanding(explainHappiness(state, playerId));

@@ -110,6 +110,8 @@
  * both, and the answer is the same either way.
  */
 
+import type { Player } from '../sim/state';
+import { statecraftBlocker } from '../sim/statecraft';
 import { availableTechs } from '../sim/tech';
 import { type GameState, type Unit, hasEndedTurn, playerById } from '../sim/state';
 
@@ -125,7 +127,8 @@ export type TurnBlocker =
   | { kind: 'idleUnit'; unitId: number }
   | { kind: 'cityProduction'; cityId: number }
   | { kind: 'research' }
-  | { kind: 'discovery' };
+  | { kind: 'discovery' }
+  | { kind: 'statecraft'; what: 'order' | 'doctrine' };
 
 /**
  * Is this unit awaiting orders? See the module docblock for why these four
@@ -144,6 +147,21 @@ export function isIdleUnit(unit: Unit): boolean {
   // carry `sleeping: false` and a unit that is not asleep is not asleep.
   if (unit.sleeping === true) return false;
   return true;
+}
+
+/**
+ * Which Statecraft draft this empire owes an answer to, or `null`.
+ *
+ * The two that block, in the order they can be outstanding — a draft first,
+ * because an adoption's Doctrine draw can only exist after one. The rule itself
+ * is `statecraftBlocker` in the simulation (which is where a future AI reads
+ * it); this only turns its sentence into the discriminant the interface steers
+ * by, so there is still exactly one answer to "does this empire owe a card".
+ */
+function statecraftBlockerKind(player: Player): 'order' | 'doctrine' | null {
+  const said = statecraftBlocker(player);
+  if (said === null) return null;
+  return player.statecraft.pendingOrder !== undefined ? 'order' : 'doctrine';
 }
 
 /** What `firstBlocker` may be asked to look past. See "Skipped units" above. */
@@ -196,6 +214,19 @@ export function firstBlocker(
   // subject is a decision the reducer is holding open rather than a thing on the
   // board, which is why it names no id: the empire is the subject.
   if (player.pendingDiscovery !== undefined) return { kind: 'discovery' };
+
+  // **Beside the discovery, and for its reasons exactly.** A Statecraft draft is
+  // the same shape of debt one scale out: the offer sits on the empire until it
+  // is spent, no other seat can take it, and the reducer refuses a `chooseOrder`
+  // from a seat that has ended its turn — so a player who pressed past this
+  // would have to wait a whole resolution to answer a card already on screen.
+  //
+  // A **banked government** deliberately does not appear here. Entry XV makes
+  // adoption bankable on purpose — take it when your slots are worth swapping —
+  // and a blocker on it would delete the only reason banking exists. The top
+  // bar's badge is where an unclaimed triple is said out loud instead.
+  const statecraft = statecraftBlockerKind(player);
+  if (statecraft !== null) return { kind: 'statecraft', what: statecraft };
 
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;

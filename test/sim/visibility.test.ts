@@ -107,7 +107,7 @@ describe('the visibility grid', () => {
     // 14, barbarians to 15 and sleep to 16 — the fog fields are still carried by
     // whatever the current number is, which is what this assertion is really
     // pinning.
-    expect(SCHEMA_VERSION).toBe(16);
+    expect(SCHEMA_VERSION).toBe(17);
   });
 
   it('survives a JSON round trip as plain data', () => {

@@ -72,6 +72,22 @@ export interface Offer {
   /** The heading. "The stones remember". */
   title: string;
   options: OfferOption[];
+  /**
+   * A **heavier frame** for a choice that cannot be taken back: the Doctrine
+   * draft and the government triple wear it, an Order draft and a discovery do
+   * not (Entry XV.b — the benders against the staples).
+   *
+   * A data attribute on the overlay rather than a second component, because the
+   * card is the same card: same bones, same keyboard contract, same focus
+   * handling, and one rule in `style.css` about what gilt means. A second
+   * component would be the moment the two drifted on how Escape behaves.
+   */
+  weight?: 'heavy';
+  /**
+   * One line under the heading, for a choice that needs a sentence of its own —
+   * "adopting swaps your slots and lifts every seal". Absent on most cards.
+   */
+  note?: string;
 }
 
 export interface OfferCard {
@@ -108,6 +124,7 @@ export function createOfferCard(container: HTMLElement): OfferCard {
 
   function clear(): void {
     container.hidden = true;
+    container.removeAttribute('data-weight');
     container.replaceChildren();
     choose = null;
     if (restoreFocus && document.contains(restoreFocus)) restoreFocus.focus();
@@ -156,7 +173,12 @@ export function createOfferCard(container: HTMLElement): OfferCard {
       element('p', 'eyebrow offer-eyebrow', offer.eyebrow),
       element('h2', 'offer-title', offer.title),
     );
+    if (offer.note !== undefined) head.append(element('p', 'offer-lede', offer.note));
     sheet.append(head);
+    // The frame is a data attribute on the overlay, so the weight is one CSS
+    // rule and this component still knows nothing about what is being offered.
+    if (offer.weight === undefined) container.removeAttribute('data-weight');
+    else container.setAttribute('data-weight', offer.weight);
 
     const list = element('div', 'offer-options');
     offer.options.forEach((option, index) => {

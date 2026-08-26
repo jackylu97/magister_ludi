@@ -234,6 +234,17 @@ would change every seeded outcome. No further rename passes.
      refreshes **every** city of one empire rather than one, because a technology is an
      empire-wide fact about what ground is worth (a renewal, a resource reveal) and the
      citizen who should move is in whichever town stands on the seam.
+  10. **`settleCultureWindfall`** (`statecraft.ts`, Entry XV) — the fourth bucket, and the
+     one that owes the register **nothing**: a draft mutates no city's derived state, it
+     puts a *decision* on the empire, and the End Turn blocker is what collects it. It is
+     in this list anyway so the register stays the complete answer to "what settles".
+  11. **The Statecraft windfall riders**, which are not a new path but a new *reason* the
+     old ones fire: a rider may pay food or hammers into a town (Granary Levies, The
+     Widow's Levy, Camp Followers), so `payWindfallGrants` reports which cities it
+     touched and its callers settle those buckets through the wrappers above. The one
+     deliberate exception is a **completion** rider: hammers there do not settle, because
+     that call *is* a completion and `settleProduction` allows at most one item per city
+     per call.
   **A new mid-turn yield mutation calls `refreshCityDerived` and adds itself to this
   list.** `assignCitizens` therefore has exactly two callers in the sim — `collectYields`
   (the phase) and the helper — and `test/sim/cities.test.ts` asserts that by reading the
@@ -253,6 +264,57 @@ would change every seeded outcome. No further rename passes.
   instances they are, and the pass writes only where the answer flipped (seat change and
   tech completion both re-evaluate, on the frame, like fog). Marker, prop and yield appear
   together on the reveal — `test/render/reveal3d.test.ts` pins all three.
+
+- **A card's effect is read in exactly one place.** `statecraft.ts` is the only module in
+  the game that switches on a `CardEffect.kind` — the same claim `resourceEffects.ts` makes
+  for a luxury's signature, one scale out, and it buys the same thing: **a new card is a
+  JSON row**. Twenty-four shapes go in (`statecraftData.ts`), labelled lists come out, and
+  every consumer *folds* one into a breakdown it already had. The register of who folds
+  what: `cityYields` and `cityYieldPercents` and `productionModifiers` (`cities.ts`),
+  `explainHappiness` / `explainAuthority` / `meterEffects` (`meters.ts`), `planCombat`
+  (`combat.ts`), `fullMovement` (`units.ts`), `sightOf` / `sightSources` (`visibility.ts`),
+  `healUnits` (`turn.ts`), `createUnit` (`state.ts`), and `explainTileYield` through
+  `TileYieldContext.cards`. A hook that pays into a total **without joining that total's
+  list** is the failure this vocabulary exists to prevent — `test/sim/statecraft.test.ts`
+  asserts the fold identities, and a shape declared and never read fails the register test
+  in the same file. A card whose ratified text needs a one-off is **deferred and
+  annotated** on its data row, never bent into a shape that nearly fits.
+- **A windfall rider is part of the printed number.** Entry XVIII.5 is unchanged — a
+  one-time grant pays its printed figure with no city percentages, no meter tiers and no
+  Entry XVII staging — and `windfallPayout` (`statecraft.ts`) is what keeps that true while
+  letting The Woodwrights double a chop: it composes the base and every rider into **one
+  figure before anything is banked**, so 40⚙ is what the preview promises, what the basket
+  receives and what the announcement says. Nothing downstream of that function ever sees
+  the base again, and a new occasion joins by calling it — never by multiplying a
+  settlement afterwards. Percentages on one occasion **sum** before multiplying once.
+- **The culture bucket is Entry XVIII's fourth**, and `Player.culturePool` **is** the
+  basket. There is deliberately no second bank on `PlayerStatecraft`: a second field would
+  be a second answer to "how close am I to a draft", and the two would disagree the first
+  time a windfall paid one of them. Border culture (`City.culture`) is a **separate
+  channel** and is never spent here — one turn's culture fills both, exactly as it did
+  before anything spent either. Anything that pays culture calls
+  `settleCultureWindfall`, never `settleDraft` directly.
+- **A seal is an absolute turn, not a countdown.** `SlottedOrder.sealedUntil` is compared
+  against `state.turn`; nothing ticks it. A countdown would be state a phase has to
+  maintain, and a phase that maintains it is a phase that can be skipped, run twice or run
+  in the wrong order — so the `statecraft` phase deliberately has no seal step. Adoption's
+  amnesty is likewise total *by construction*: `adoptGovernmentAt` **rebuilds** the slots
+  array to the new layout rather than resizing it, because the new government's slot 2 is
+  not the old one's and carrying anything across by index would seal the wrong card in the
+  wrong kind of slot.
+- **An empire condition is evaluated ignoring condition-gated effects.** `conditionRule`
+  can ask about a meter and a meter counts cards, which is a real cycle; it is cut in one
+  stated place (`conditionDepth` in `statecraft.ts`). Terminating, one rule, and exact for
+  the content that exists. A new condition that reads something a card can change inherits
+  that reading — do not add a second cut.
+- **A Statecraft offer is drawn once, at the moment it opens, and spent by a command.**
+  `discoveries.ts`'s doctrine at the scale Entry XV designed it for: an offer generated on
+  sight would make the deal a function of when somebody looked at a screen, and under
+  simultaneous turns two seats look at different times. A pick names an **index, never an
+  id**. The government triple is the exception that proves it — it is *fixed*, read off the
+  table rather than rolled, and **banked**: a pending draft or Doctrine blocks End Turn and
+  a banked charter deliberately does not (`statecraftBlocker`), because Entry XV makes
+  adoption bankable and a blocker on it would delete the only reason banking exists.
 
 ## Direction (see docs/design-notes.md for full ledger)
 - Vanilla Civ mechanics first; deckbuilding civics / happiness+authority / events

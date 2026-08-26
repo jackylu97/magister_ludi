@@ -106,9 +106,38 @@ it that are not yours, and a scout is how you find out.
 - Saves are already `{config, log}` replays; expose them in the interface (save slot,
   load from landing page) so long playtests can park overnight.
 
-## 5. Culture payoff — Statecraft drafting (Entry XV)
+## 5. Culture payoff — Statecraft drafting (Entry XV) — **BUILT 2026-08-26**
 - Tier = draft count, 3-new+1-upgrade offers, governments at 3/7/15, seals, adoption
-  amnesty, Magister's Dice. Tech masteries ride the same machinery after.
+  amnesty. Tech masteries ride the same machinery after.
+- **Shipped**: `data/statecraft.json` (10 governments, 21 live Doctrines, 65 Orders),
+  a 24-shape effect vocabulary (`statecraftData.ts`) read by exactly one evaluator
+  (`statecraft.ts`), schema v17's `Player.statecraft`, five commands (`chooseOrder`,
+  `slotOrder`, `unslotOrder`, `adoptGovernment`, `chooseDoctrine`), the `statecraft`
+  turn phase, the Statecraft screen (`C`), the offer card in Statecraft dress, and
+  **`settleCultureWindfall`** — Entry XVIII's fourth bucket, which closes the stated
+  absence `discoveries.ts` had been carrying since Entry XX.
+- **Measured cadence** (seed 4242, the scripted pacing empire): first draft turn 7,
+  **6.6 turns per draft across drafts 1–8**, governments offered on turns **24 / 47 / 97**
+  against the ages closing on 41 / 80 / 120. Entry XV's ~5-turn target is reachable by a
+  culture-focused empire and deliberately not by this deliberately-conservative one —
+  see `test/sim/statecraftPacing.test.ts`, which pins both the number and the argument.
+- **Deferred on purpose** (each annotated in the data row and in
+  `docs/statecraft-cards.md`): The Gilded Court's **Gilded Hall** (no building-purchase
+  system to unlock into — its +3 authority half ships), **Religious Mandate** entirely
+  (religion, a war state and the beads), The Founders' Road's **roads** half (the free
+  monument ships), and The Great Warring Tribes' **courthouse prohibition** (inert: no
+  courthouse family exists). **Magister's Dice** are not built — Entry XV parks them as a
+  currency, and a reroll is its own command on the day there is something to spend.
+
+### Still open from here
+- **The upgrade face is generic.** Entry XV's "v1 upgraded faces are generic ~1.5–2×,
+  bespoke texts later" is shipped as written: one `upgradeMultiplier`, floored per
+  figure. A card whose deepened form should *change shape* rather than scale wants a
+  second face in the data, which is a design decision rather than a mechanism.
+- **Culture income is the binding constraint on the opening**, not the cost curve — see
+  the pacing measurement. If the ~5-turn cadence is wanted from a cold start, the lever is
+  early culture (a cheaper monument, a base rate) rather than a cheaper first draft, which
+  would make the mid-game cadence 2–3 turns.
 
 ## 6. Faith payoff — religion (last, biggest)
 - Faith yield, shrines/temples feeding it, religious unlocks through the draft machinery.

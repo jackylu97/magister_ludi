@@ -4750,3 +4750,479 @@ kbd {
     transform: none;
   }
 }
+
+/* ================= Statecraft ==============================================
+   The parchment screen of the three overlays. The star chart is ink and gilt,
+   the Abacus is vellum and wood; this is the table covered in paper — a
+   charter at the top, a row of wax seals under it, and the collection spread
+   out below like cards somebody is deciding between.
+
+   It borrows the offer card's bones (a centred sheet on a dimmed ground, one
+   rise animation) rather than the star chart's, because it is a *document*
+   rather than a map: nothing here pans, and the sheet scrolls internally.
+   ========================================================================= */
+
+.statecraft-overlay {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  padding: 24px;
+  overflow-y: auto;
+  background: rgba(29, 26, 32, 0.72);
+  animation: offer-fade 160ms ease-out both;
+}
+
+.statecraft-overlay[hidden] {
+  display: none;
+}
+
+.statecraft-sheet {
+  width: min(1080px, 100%);
+  padding: 20px 24px 28px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--parchment);
+  box-shadow: 8px 8px 0 var(--ink);
+  animation: offer-rise 220ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+.statecraft-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: var(--border-thin) solid var(--ink);
+}
+
+.statecraft-head-titles {
+  flex: 1 1 auto;
+}
+
+.statecraft-title {
+  margin: 2px 0 0;
+  font-family: var(--face-display);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.statecraft-hint {
+  margin: 0;
+  padding-top: 6px;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.statecraft-close {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--table);
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.statecraft-close:hover {
+  background: var(--parchment);
+}
+
+.statecraft-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 16px;
+}
+
+/* --- the charter --------------------------------------------------------- */
+
+.sc-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sc-eyebrow {
+  margin: 0 0 6px;
+}
+
+.sc-gov-name {
+  margin: 0;
+  font-family: var(--face-display);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.sc-flavor {
+  margin: 6px 0 0;
+  font-family: var(--face-name);
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.sc-none {
+  margin: 4px 0 0;
+  font-family: var(--face-name);
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+.sc-clauses {
+  margin: 8px 0 0;
+  padding-left: 16px;
+  list-style: none;
+}
+
+.sc-clause {
+  position: relative;
+  font-family: var(--face-ui);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.sc-clause::before {
+  position: absolute;
+  left: -14px;
+  content: '·';
+  color: var(--ink-faint);
+}
+
+.sc-clause-deferred {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+}
+
+/* --- the ladder ---------------------------------------------------------- */
+
+.sc-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.sc-tier {
+  font-weight: 600;
+}
+
+.sc-sep,
+.sc-next {
+  color: var(--ink-faint);
+}
+
+.sc-meter {
+  color: var(--y-cul);
+  font-weight: 600;
+}
+
+.sc-track {
+  display: inline-block;
+  width: 90px;
+  height: 7px;
+  overflow: hidden;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 4px;
+  background: var(--table);
+}
+
+.sc-track-fill {
+  display: block;
+  height: 100%;
+  background: var(--y-cul);
+}
+
+/* --- the banked charter -------------------------------------------------- */
+
+.sc-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--table);
+  box-shadow: var(--shadow-sm);
+}
+
+.sc-banner-title {
+  flex: 0 0 100%;
+  margin: 0;
+  font-family: var(--face-display);
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.sc-banner-body {
+  flex: 1 1 320px;
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.sc-banner-button {
+  flex: 0 0 auto;
+}
+
+/* --- the slots ----------------------------------------------------------- */
+
+.sc-slot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sc-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 150px;
+  padding: 10px 12px;
+  border: var(--border-thin) dashed var(--ink-faint);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sc-slot-filled {
+  border-style: solid;
+  border-color: var(--ink);
+  background: var(--table);
+  box-shadow: var(--shadow-sm);
+}
+
+/* A slot the held card can go in. The one hint the screen gives while a card
+   is in hand, and it is the reducer's answer rather than a guess. */
+.sc-slot-open {
+  border-color: var(--vermilion);
+  border-style: solid;
+  background: rgba(212, 80, 46, 0.08);
+}
+
+.sc-slot-type {
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.sc-slot-military .sc-slot-type {
+  color: var(--vermilion);
+}
+
+.sc-slot-economic .sc-slot-type {
+  color: var(--y-gold);
+}
+
+.sc-slot-wildcard .sc-slot-type {
+  color: var(--grape);
+}
+
+.sc-slot-card {
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sc-slot-empty {
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+.sc-seal {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+.sc-seal-set {
+  color: var(--vermilion);
+}
+
+.sc-seal-ghost {
+  opacity: 0.3;
+}
+
+.sc-seal-glyph {
+  font-size: 12px;
+}
+
+.sc-level {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gilt);
+}
+
+/* --- the cards ----------------------------------------------------------- */
+
+.sc-doctrine-row,
+.sc-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.sc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  font: inherit;
+  text-align: left;
+}
+
+.sc-card-order {
+  cursor: pointer;
+}
+
+.sc-card-order:hover:not(:disabled),
+.sc-card-order:focus-visible {
+  box-shadow: var(--shadow-sm);
+  transform: translate(-1px, -1px);
+}
+
+.sc-card-held {
+  border-color: var(--vermilion);
+  box-shadow: 3px 3px 0 var(--vermilion);
+  transform: translate(-1px, -1px);
+}
+
+.sc-card-slotted {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* A Doctrine is heavier than an Order, because it is permanent: gilt rule at
+   the head, and no hover — there is nothing to do to it. */
+.sc-card-doctrine {
+  border-color: var(--gilt);
+  border-width: var(--border);
+  background: var(--table);
+}
+
+.sc-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.sc-card-name {
+  flex: 1 1 auto;
+  margin: 0;
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sc-card-type {
+  font-family: var(--face-num);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.sc-card-note {
+  margin: 6px 0 0;
+  font-family: var(--face-num);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vermilion);
+}
+
+/* --- what is actually in force ------------------------------------------- */
+
+.sc-live-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sc-live-line {
+  font-family: var(--face-ui);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+/* The heavier frame the Doctrine and government offers wear: the same offer
+   card, in a permanent hand. See `offerCard.ts` and main.ts's `showCardOffer`. */
+.offer-overlay[data-weight='heavy'] .offer-sheet {
+  border-width: 5px;
+  border-color: var(--gilt);
+  box-shadow: 10px 10px 0 var(--ink);
+}
+
+.offer-overlay[data-weight='heavy'] .offer-title {
+  color: var(--gilt);
+}
+
+/* The offer card's optional lede: one sentence under the heading, for a choice
+   that needs saying out loud before the options are read. */
+.offer-lede {
+  margin: 6px 0 0;
+  font-family: var(--face-ui);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* A yield chip with something waiting behind it — today, only culture, when a
+   Statecraft draft is outstanding or a charter is banked. A mark rather than a
+   colour change, so the figure itself keeps its voice. */
+.civ-yield-waiting {
+  position: relative;
+}
+
+.civ-yield-waiting::after {
+  position: absolute;
+  top: -1px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--vermilion-lit);
+  content: '';
+}
+
+/* A hint that is asking for something, rather than explaining something. */
+.hint-alert {
+  color: var(--vermilion);
+}

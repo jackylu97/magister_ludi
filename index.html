@@ -673,6 +673,45 @@
       </div>
     </div>
 
+    <!-- ================= Statecraft ============================
+         Your government, your slots, your Orders and your Doctrines — the
+         parchment screen of the three (the star chart is the table at night,
+         the Abacus is the table in daylight, this is the table covered in
+         paper). Built by src/ui/statecraftScreen.ts; opened from the culture
+         chip or with C, closed with Esc, the ×, or a click on the table around
+         the sheet.
+
+         The naming bible is load-bearing here: the slottable cards are Orders,
+         the permanent ones are Doctrines, and this screen never says "policy"
+         or "civic" at the player.
+         ============================================================ -->
+    <div
+      id="statecraft-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Statecraft"
+      hidden
+    >
+      <div class="statecraft-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">the magister’s statecraft</p>
+            <h2 class="statecraft-title">Orders &amp; Doctrines</h2>
+          </div>
+          <p class="statecraft-hint">
+            click an Order, then a slot — <kbd>Esc</kbd> to close
+          </p>
+          <button id="statecraft-close" class="statecraft-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </header>
+        <!-- Everything below the rule is built by statecraftScreen.ts on each
+             open: nothing on this screen is stored, it is all derived. -->
+        <div id="statecraft-body" class="statecraft-body"></div>
+      </div>
+    </div>
+
     <!-- ================= the Abacus ============================
          The score, as a counting frame standing on the table: one rod per
          player, thirteen beads on each, slid left as they are earned and

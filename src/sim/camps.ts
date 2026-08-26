@@ -36,6 +36,7 @@
  */
 
 import { nearestOwnedCity, settleGrowthWindfall } from './cities';
+import { payWindfallGrants, settleCultureWindfall, windfallPayout } from './statecraft';
 import type { Cell } from './pathfind';
 import { RULES } from './rulesData';
 import { type BarbarianCamp, type GameState, playerById } from './state';
@@ -87,8 +88,12 @@ export interface CampBounty {
  * caller has already established that a camp stood here and that this unit is
  * standing on it; this is the mechanism.
  *
- * Nothing here is scaled: `campClearGold` and `campClearFood` are paid exactly as
- * printed, in every empire, at every point in the game (Entry XVIII.5).
+ * Entry XVIII.5 stands: the bounty is a **printed number**, paid exactly, with
+ * no city percentages, no meter tiers and no staging. What Statecraft changes is
+ * *what is printed* — Spoils of the Wild and Wolf-Mother's Pact scale the
+ * figure, Camp Followers adds a voice the camp never paid at all — and
+ * `windfallPayout` composes all of that into one number before a coin is banked.
+ * A rider is part of the printed number; it is never a multiplication afterwards.
  */
 export function settleCampBounty(
   state: GameState,
@@ -105,7 +110,11 @@ export function settleCampBounty(
   const player = playerById(state, playerId);
   if (!player) return bounty;
 
-  bounty.gold = BARB.campClearGold;
+  // One payout for the whole occasion. The percentage riders scale the *gold*,
+  // which is the camp's own figure; the grants are voices no camp pays on its
+  // own and are banked below with the provisions.
+  const payout = windfallPayout(state, playerId, 'camp', BARB.campClearGold);
+  bounty.gold = payout.amount;
   player.gold += bounty.gold;
 
   const city = nearestOwnedCity(state, playerId, at);
@@ -113,13 +122,23 @@ export function settleCampBounty(
     // No town to feed. Said out loud rather than banked into nothing — see the
     // module docblock, and `test/sim/barbarians.test.ts`, which pins it.
     bounty.warning = 'no city to receive the provisions';
+    // The grants that do not need a town — culture, science, faith — are still
+    // paid: a card's verse about a burnt camp is not owed to a granary.
+    payWindfallGrants(state, player, payout, at);
+    settleCultureWindfall(state, player);
     return bounty;
   }
 
-  bounty.food = BARB.campClearFood;
+  // The camp's own provisions, scaled by the same percentage the gold was: a
+  // rider that says "camps pay +50%" means the camp, not half of it.
+  bounty.food = Math.floor((BARB.campClearFood * payout.amount) / Math.max(1, BARB.campClearGold));
   city.foodBasket += bounty.food;
   bounty.cityName = city.name;
+  // Camp Followers' twenty-five bushels and anything else a rider grants, into
+  // the same town the provisions went to (`nearestOwnedCity`, one rule).
+  payWindfallGrants(state, player, payout, at);
   const grown = settleGrowthWindfall(state, city);
   if (grown) bounty.grownTo = grown.population;
+  settleCultureWindfall(state, player);
   return bounty;
 }

@@ -83,6 +83,7 @@ import {
 import type { Tile } from './map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
+import { payWindfallGrants, settleCultureWindfall, windfallPayout } from './statecraft';
 import {
   type GameState,
   type Player,
@@ -424,6 +425,15 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   player.researching = null;
   player.techsResearched.push(plan.techId);
   upgradeUnits(state, player);
+  // The Lyceum's fifteen. Inside the one completion routine (Entry XVIII.1), so
+  // a technology finished by star tablets pays the same verse as one finished by
+  // a turn's beakers — and the culture it pays settles its own bucket at once,
+  // which can hand the empire a draft on the turn it learnt something.
+  const rider = windfallPayout(state, player.id, 'tech');
+  if (rider.grants.length > 0) {
+    payWindfallGrants(state, player, rider);
+    settleCultureWindfall(state, player);
+  }
   return { player, techId: plan.techId, name: techDef(plan.techId).name, cost: plan.cost };
 }
 

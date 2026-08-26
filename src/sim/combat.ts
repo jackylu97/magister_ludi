@@ -120,7 +120,7 @@
  */
 
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
-import { assignCitizens, cityAt } from './cities';
+import { assignCitizens, cityAt, settleProductionWindfall } from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
 import {
   type GameMap,
@@ -133,12 +133,23 @@ import { type Cell, isPassable } from './pathfind';
 import { nextRange } from './rng';
 import { RULES } from './rulesData';
 import {
+  type CombatSituation,
+  cardCityStat,
+  cardCombatLines,
+  cardCombatPercent,
+  cardUnitStat,
+  payWindfallGrants,
+  settleCultureWindfall,
+  windfallPayout,
+} from './statecraft';
+import {
   type City,
   type GameState,
   type Unit,
   breakFortify,
   captureUnit,
   isBarbarian,
+  playerById,
   realPlayers,
   removeUnit,
   unitById,
@@ -490,7 +501,10 @@ function planCombat(
       };
     }
   } else {
-    const range = def.range!;
+    // Skirmishers' Creed. Through `cardUnitStat`, which is the single evaluator
+    // for the stat — so the reducer, the forecast and the attackable-tile tint
+    // all agree about how far an archer reaches.
+    const range = def.range! + cardUnitStat(state, attacker, 'range');
     if (distance > range) {
       return {
         ok: false,
@@ -549,6 +563,40 @@ function planCombat(
       bonuses.push({ source: 'vs barbarians', side: 'defender', amount: wildBonus });
     }
   }
+  /**
+   * The empire's law, both sides, generalised from the wild's tax above.
+   *
+   * Every Statecraft strength line is a `CombatBonusLine` with a label — which
+   * is the whole reason `combatCardLine` is one hook rather than seven cards'
+   * worth of special cases — so it is counted into the strengths *and* itemised
+   * on the forecast card. A card that only mattered inside the reducer would be
+   * a card the player could not plan around.
+   *
+   * The situation is the same triple `planCombat` already has, asked once per
+   * side. The defender's side is asked of the *defending unit's* owner, so a
+   * card is always read for the empire that holds it.
+   */
+  const situationFor = (unit: Unit, side: 'attacker' | 'defender'): CombatSituation => ({
+    unit,
+    side: side === 'attacker' ? 'attack' : 'defend',
+    tile,
+    vsBarbarians:
+      side === 'attacker'
+        ? isBarbarian(state, defenderOwnerId)
+        : !isBarbarian(state, defenderOwnerId) && isBarbarian(state, attacker.ownerId),
+    vsCity: target.city !== null,
+    targetHp: target.city ? target.city.hp : target.unit!.hp,
+    targetMaxHp: target.city ? COMBAT.cityBaseHp : unitDef(target.unit!.type).maxHp,
+  });
+  for (const line of cardCombatLines(state, situationFor(attacker, 'attacker'))) {
+    bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
+  }
+  if (target.unit) {
+    for (const line of cardCombatLines(state, situationFor(target.unit, 'defender'))) {
+      bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
+    }
+  }
+
   const bonusFor = (side: 'attacker' | 'defender'): number => {
     let total = 0;
     for (const line of bonuses) {
@@ -557,7 +605,14 @@ function planCombat(
     return total;
   };
 
-  const attackerBase = kind === 'ranged' ? def.rangedStrength! : def.combatStrength;
+  // Master of Maps' drawback, applied to the unit's **own base** before the
+  // river and before any flat line joins: "−10% combat strength" is a fact about
+  // this army, not a discount on the terrain somebody else is standing on. See
+  // `cardCombatPercent`.
+  const attackerPercent = cardCombatPercent(state, attacker);
+  const attackerBase = Math.floor(
+    ((kind === 'ranged' ? def.rangedStrength! : def.combatStrength) * (100 + attackerPercent)) / 100,
+  );
   // Flat, and **after** the river multiplier — see `CombatBonusLine` for why a
   // fact about the opponent must not scale with the ground.
   const attackerStrength =
@@ -571,6 +626,16 @@ function planCombat(
 
   if (target.city) {
     // A city's walls *are* its terrain: no ground bonus on top of them.
+    // Militia Levies, Mountain Hold, Frontier Forts. A list rather than a number
+    // so the forecast can itemise it (rule 5): a "+11" beside the walls with no
+    // reason beside it is exactly what a breakdown exists to prevent.
+    const walls = cardCityStat(state, target.city, 'defense');
+    for (const line of walls) {
+      bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
+    }
+    // Folded through `bonusFor` like every other line rather than added
+    // separately: they are in the list now, and a second addition would count
+    // the walls twice.
     defenderStrength =
       COMBAT.cityBaseStrength +
       COMBAT.cityStrengthPerPop * target.city.population +
@@ -582,8 +647,11 @@ function planCombat(
     const defenderUnit = target.unit!;
     const defenderDef = unitDef(defenderUnit.type);
     defenderFortify = fortifyBonus(defenderUnit);
-    defenderStrength =
-      defenderDef.combatStrength * (1 + terrainBonus + defenderFortify) + bonusFor('defender');
+    const defenderPercent = cardCombatPercent(state, defenderUnit);
+    const defenderBase = Math.floor(
+      (defenderDef.combatStrength * (100 + defenderPercent)) / 100,
+    );
+    defenderStrength = defenderBase * (1 + terrainBonus + defenderFortify) + bonusFor('defender');
     defenderName = defenderDef.name;
     defenderHp = defenderUnit.hp;
     defenderMaxHp = defenderDef.maxHp;
@@ -806,14 +874,21 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         captureCity(state, target.city, attacker.ownerId);
         outcome.capturedCityId = target.city.id;
         defenderDied = true;
+        payBattleRiders(state, attacker.ownerId, 'capture', tile);
       }
     } else {
       const defender = target.unit!;
       defender.hp -= dealt;
       if (defender.hp <= 0) {
         outcome.killed.push(snapshotFallen(defender));
+        const fallenOwner = defender.ownerId;
         removeUnit(state, defender.id);
         defenderDied = true;
+        // Two riders on one death, and they belong to two empires: the killer's
+        // `kill` and the fallen's `death`. Both are paid, in that order, because
+        // a battle is one event that two laws have something to say about.
+        payBattleRiders(state, attacker.ownerId, 'kill', tile);
+        payBattleRiders(state, fallenOwner, 'death', tile);
       }
     }
 
@@ -830,8 +905,15 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
   // neither, and must not be left holding a standing order it can never walk.
   if (attacker.hp <= 0) {
     outcome.killed.push(snapshotFallen(attacker));
+    const fallenOwner = attacker.ownerId;
+    const defenderOwner = target.city ? target.city.ownerId : target.unit?.ownerId;
     removeUnit(state, attacker.id);
     outcome.attackerSurvived = false;
+    payBattleRiders(state, fallenOwner, 'death', tile);
+    // The counter-attack killed somebody, so the defending empire got a kill —
+    // which is the only reading under which The Iron Price is a card about
+    // *combat* rather than a card about attacking.
+    if (defenderOwner !== undefined) payBattleRiders(state, defenderOwner, 'kill', tile);
   } else {
     attacker.movesLeft = 0;
     attacker.hasAttacked = true;
@@ -908,6 +990,34 @@ function snapshotFallen(unit: Unit): CombatOutcome['killed'][number] {
  * is not building a settler, so a conqueror's next settler is priced exactly as
  * it was before the walls fell.
  */
+/**
+ * Pays one empire's riders on a battle occasion — a kill, a death, a capture.
+ *
+ * The three occasions with **no figure of their own**: nothing about a death is
+ * a number until a card says so, which is why the base is zero and only the
+ * grants are read. `at` is the contested hex, so "its nearest city" resolves the
+ * way a discovery's does — The Widow's Levy raises its ten hammers in the town
+ * nearest the field, not in the capital.
+ *
+ * Culture is settled through the windfall wrapper, because Entry XVIII says a
+ * one-time grant settles its bucket the instant it lands and The Iron Price pays
+ * culture: a kill that fills the meter deals a draft on the spot.
+ */
+function payBattleRiders(
+  state: GameState,
+  playerId: number,
+  occasion: 'kill' | 'death' | 'capture',
+  at: Tile,
+): void {
+  const player = playerById(state, playerId);
+  if (!player) return;
+  const payout = windfallPayout(state, playerId, occasion);
+  if (payout.grants.length === 0) return;
+  const touched = payWindfallGrants(state, player, payout, { col: at.col, row: at.row });
+  for (const city of touched) settleProductionWindfall(state, city);
+  settleCultureWindfall(state, player);
+}
+
 function captureCity(state: GameState, city: City, ownerId: number): void {
   city.ownerId = ownerId;
   city.captured = true;

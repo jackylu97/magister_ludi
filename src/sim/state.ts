@@ -61,6 +61,7 @@ import { generateMap, getMapSize } from './mapgen';
 import { type MapgenOverrides, resolveMapgenConfig } from './mapgenData';
 import { type Rng, hashSeed, makeRng } from './rng';
 import { RULES } from './rulesData';
+import { type PlayerStatecraft, cardExtraCharges, newPlayerStatecraft } from './statecraft';
 import { chooseStartPositions, planStartingUnits } from './startPositions';
 import type { TechId } from './techData';
 import { type UnitTypeId, unitDef } from './unitData';
@@ -142,8 +143,18 @@ import {
  *     awake. It is a bump rather than a free field because the *phase* is new —
  *     the resolution now has an eleventh step, and a state that ran ten is not
  *     a state this build produced.
+ * 17: Statecraft (playable.md item 5, ledger Entry XV and XV.b) —
+ *     `Player.statecraft`, and the five commands that write it (`chooseOrder`,
+ *     `slotOrder`, `unslotOrder`, `adoptGovernment`, `chooseDoctrine`). One
+ *     field and one phase, folded into a single bump because they are one pass.
+ *     A v16 log replayed here is a different game rather than an older one for a
+ *     reason beyond the field: `Player.culturePool` used to be a bank nothing
+ *     spent, and the `statecraft` phase now **spends** it on drafts — so every
+ *     culture figure in a v16 save is a figure that was never going to be
+ *     deducted, and an empire that reached tier 3 on turn forty in this build
+ *     had no tier at all in that one.
  */
-export const SCHEMA_VERSION = 16;
+export const SCHEMA_VERSION = 17;
 
 // --- players ----------------------------------------------------------------
 
@@ -171,7 +182,17 @@ export interface Player {
    * moves the aim and loses nothing. See the model note in `tech.ts`.
    */
   sciencePool: number;
-  /** Culture banked toward the next social policy. A later milestone spends it. */
+  /**
+   * Culture banked toward the next Statecraft draft — and **the basket itself**,
+   * not a running total beside one (see `PlayerStatecraft`, which deliberately
+   * has no basket field of its own).
+   *
+   * Spent by the `statecraft` phase, which deducts the draft's cost and leaves
+   * the overflow here toward the next one. Border culture is a **separate
+   * channel** (`City.culture`) and is not touched: one turn's culture fills a
+   * city's border basket and this pool in parallel, exactly as it did before
+   * anything spent either.
+   */
   culturePool: number;
   /**
    * Faith banked by every temple hill, incense grove and jade seam the empire
@@ -306,6 +327,23 @@ export interface Player {
    * replay deals the same three cards and takes the same one.
    */
   pendingDiscovery?: DiscoveryOffer;
+  /**
+   * Everything Statecraft knows about this empire: its tier, its government, its
+   * Orders and where they are slotted, its Doctrines, and any offer outstanding
+   * (ledger Entry XV and XV.b; the shape and every rule are in `statecraft.ts`).
+   *
+   * **Always present**, like `techsResearched` and unlike `pendingDiscovery`:
+   * every seat has a government and a slot spread from turn one, so this is a
+   * fact about a player rather than a state some of them are in. The wild gets
+   * one too — a `Player` is a `Player`, and giving the seat a chiefdom costs one
+   * object and spares every reader an `undefined` check. Nothing ever fills it:
+   * the phase skips the wild exactly as `advanceResearch` does.
+   *
+   * A nested object rather than eight fields, because it is one subject with one
+   * lifecycle — created whole, replaced wholesale on adoption, and read all at
+   * once by one screen.
+   */
+  statecraft: PlayerStatecraft;
 }
 
 /**
@@ -773,6 +811,10 @@ export function newGame(config: GameConfig): GameState {
       tilesPurchased: 0,
       eliminated: false,
       barbarian: false,
+      // Fresh every time rather than a shared literal, for `techsResearched`'s
+      // reason exactly: a player who drafts a card must not write it into
+      // everybody else's collection.
+      statecraft: newPlayerStatecraft(),
     })),
     turnEnded: normalized.players.map(() => false),
     map,
@@ -858,6 +900,10 @@ function seatBarbarians(state: GameState): void {
     tilesPurchased: 0,
     eliminated: false,
     barbarian: true,
+    // A chiefdom the wild will never leave. Present so that every reader may
+    // index a seat without asking which kind it is; filled by nothing, because
+    // `runStatecraft` skips the wild the way `advanceResearch` does.
+    statecraft: newPlayerStatecraft(),
   };
   state.players.push(player);
   state.turnEnded.push(true);
@@ -905,7 +951,14 @@ export function createUnit(
   // Written after the literal and only when the type declares charges, so a
   // soldier's serialised shape is byte-for-byte what it was before builders
   // existed. See `Unit.chargesLeft` for why presence is the marker.
-  if (def.charges !== undefined) unit.chargesLeft = def.charges;
+  // Tinkers' Guild, and it is applied **at birth** rather than on read, which is
+  // what the card's own text asks for: "workers are built with +1 charge". A
+  // charge is spent, so a bonus computed on read would hand the extra charge
+  // back every time the card was re-slotted and take it away mid-job when it
+  // came out. Floored at 1, because a builder with no charges is not a builder.
+  if (def.charges !== undefined) {
+    unit.chargesLeft = Math.max(1, def.charges + cardExtraCharges(state, ownerId, type));
+  }
   state.units.push(unit);
   // A new pair of eyes opens here, whoever asked for them: the `spawnUnit`
   // command, a city finishing production, a scenario seating an opening roster.

@@ -93,6 +93,24 @@ import {
 } from './resourceData';
 import { RULES } from './rulesData';
 import {
+  type CardTileLine,
+  cardActionRule,
+  cardMeterFlag,
+  cardCityYields,
+  cardEmpireYields,
+  cardFoundingRider,
+  cardPercentYields,
+  cardProduction,
+  cardRulePercent,
+  cardTileLines,
+  foldCardRulePercent,
+  foldCardYields,
+  payWindfallGrants,
+  settleCultureWindfall,
+  tileConditionHolds,
+  windfallPayout,
+} from './statecraft';
+import {
   type City,
   type GameState,
   type QueueItem,
@@ -249,6 +267,18 @@ export interface TileYieldContribution extends TileYield {
 export interface TileYieldContext {
   /** Technologies the owning player holds. `Player.techsResearched`. */
   techs: readonly TechId[];
+  /**
+   * What this empire's Statecraft cards pay on a hex, already resolved into
+   * `{ condition, bag }` lines (`cardTileLines` in `statecraft.ts`).
+   *
+   * The *answer* rather than the question, and that is what keeps this chain
+   * what it is: `explainTileYield` knows about a tile and a context and nothing
+   * else — no `GameState`, no player id, no card table — so a card's line has to
+   * arrive pre-resolved or the whole module would have to grow a second reason
+   * to know about empires. Absent for a context-less (omniscient) evaluation and
+   * for an empire holding no such card, which is most of them.
+   */
+  cards?: readonly CardTileLine[];
 }
 
 /**
@@ -291,7 +321,15 @@ export function yieldContextFor(
   playerId: number,
 ): TileYieldContext | undefined {
   const player = playerById(state, playerId);
-  return player ? { techs: player.techsResearched } : undefined;
+  if (!player) return undefined;
+  const ctx: TileYieldContext = { techs: player.techsResearched };
+  // Written only when there is something in it, so an empire with no such card
+  // builds a context byte-identical to the one this returned before Statecraft
+  // existed — and a sweep of twenty hexes asks the card table once, here, rather
+  // than once per tile.
+  const cards = cardTileLines(state, playerId);
+  if (cards.length > 0) ctx.cards = cards;
+  return ctx;
 }
 
 /** The context of the player who owns a city. Never undefined in practice. */
@@ -353,6 +391,25 @@ export function explainTileYield(
         ...readTileYield(upgrade.add),
       });
     }
+  }
+
+  // The empire's law, last, and as ordinary `add` entries: Common Granary's food
+  // on a resource hex is a line in this breakdown exactly as the improvement's
+  // is, so the hover card, the citizen's score, the city panel and the banked
+  // total all learn about it from one place (rule 5). Nothing here asks *which*
+  // card — the context already resolved that.
+  for (const card of ctx?.cards ?? []) {
+    if (!tileConditionHolds(tile, card.on)) continue;
+    list.push({
+      source: card.source,
+      kind: 'add',
+      food: card.food,
+      production: card.production,
+      gold: card.gold,
+      science: card.science,
+      culture: card.culture,
+      faith: card.faith,
+    });
   }
 
   return list;
@@ -789,6 +846,15 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   state.tileOwner[tileIndex(state.map, tile.col, tile.row)] = city.id;
   for (const near of mapRange(state.map, tileHex(tile), 1)) {
     claimTile(state, city, near);
+  }
+  // What this empire's law founds a city *with* (`foundingRider`): Homestead
+  // Charters' extra citizen, The Founders' Road's monument. Written before the
+  // refresh below, and that ordering is the point — a city founded at size 2 has
+  // two citizens to place, and a refresh run first would seat one.
+  const rider = cardFoundingRider(state, ownerId);
+  if (rider.population > 0) city.population += rider.population;
+  for (const building of rider.buildings) {
+    if (!city.buildings.includes(building)) city.buildings.push(building);
   }
   // A new city is working from the moment it exists, not from the end of the
   // turn: the panel opens on a city that is already doing something, and the
@@ -1375,6 +1441,15 @@ export function productionModifiers(
       stage: 'city',
     });
   }
+  // A card's hammers behind this category — and behind *this unit*, when the row
+  // narrows to one silhouette (The Great Warring Tribes' mounted line). The item
+  // is passed through so the narrowing is asked of what the city is actually
+  // building; there is no Conscription case anywhere in this file.
+  const unitType = toward.kind === 'unit' && isUnitTypeId(toward.id) ? toward.id : undefined;
+  for (const line of cardProduction(state, city, category, unitType)) {
+    if (line.percent === 0) continue;
+    list.push({ source: line.source, percent: line.percent, stage: 'city' });
+  }
   return list;
 }
 
@@ -1459,6 +1534,14 @@ export function cityYieldPercents(state: GameState, city: City): CityYieldPercen
       resource: line.resource,
     });
   }
+  // And the empire's law. A card joins this list with a stage exactly as a
+  // luxury does — never a multiplication of its own afterwards (Entry XVII) —
+  // so a Doctrine that is the third source of a percentage on food is a third
+  // line in one of two sums.
+  for (const line of cardPercentYields(state, city)) {
+    if (line.percent === 0) continue;
+    list.push({ source: line.source, yield: line.yield, percent: line.percent, stage: line.stage });
+  }
   return list;
 }
 
@@ -1497,9 +1580,23 @@ export function cityStageSums(
 ): Record<CityYieldKey, StageSums> {
   const percents = cityYieldPercents(state, city);
   const hammers = modifierPercent(productionModifiers(state, city, toward, hypothetical));
+  // The Great Warring Tribes' first clause, and the only place a card takes a
+  // *meter line* off the table rather than adding one. It is asked here because
+  // here is the one evaluator that knows both the empire's percentages and what
+  // the town is building — "a torn writ no longer slows production toward units"
+  // is a fact about the pair (city, item), which is exactly what `cityStageSums`
+  // is a fact about. The line is dropped, not zeroed, so the panel stops
+  // printing a malus that is not being charged.
+  const exemptUnits =
+    toward?.kind === 'unit' && cardMeterFlag(state, city.ownerId, 'authorityUnitProductionExempt');
+  const live = exemptUnits
+    ? percents.filter(
+        (line) => !(line.meter === 'authority' && line.yield === 'production' && line.percent < 0),
+      )
+    : percents;
   const sums = {} as Record<CityYieldKey, StageSums>;
   for (const key of CITY_YIELD_KEYS) {
-    const staged = stageSumsFor(percents, key);
+    const staged = stageSumsFor(live, key);
     // The hammers join the city stage rather than standing beside it: a barracks
     // is a fact about the town in exactly the way marble and a market are.
     sums[key] = key === 'production' ? withStage(staged, 'city', hammers) : staged;
@@ -1596,6 +1693,18 @@ export function cityYields(
   // prints line by line (`resourceEffects.ts`). Before the buildings only
   // because a seam in the ground is older than a market built over it; the sum
   // is the same either way.
+  // What this empire's Statecraft cards pay this town, the fold of the list the
+  // panel prints line by line (`cardCityYields`). Beside the luxuries because
+  // they are the same kind of thing one table over.
+  for (const line of cardCityYields(state, city)) {
+    total.food += line.food;
+    total.production += line.production;
+    total.gold += line.gold;
+    total.science += line.science;
+    total.culture += line.culture;
+    total.faith += line.faith;
+  }
+
   for (const line of cityResourceYields(state, city)) {
     total.food += line.food;
     total.production += line.production;
@@ -1709,7 +1818,9 @@ export function nextBorderCost(tilesClaimed: number): number {
  */
 export function borderCostFor(state: GameState, city: City): number {
   const base = nextBorderCost(city.tilesClaimed);
-  const percent = foldRulePercent(resourceRulePercent(state, city.ownerId, 'borderCost'));
+  const percent =
+    foldRulePercent(resourceRulePercent(state, city.ownerId, 'borderCost')) +
+    foldCardRulePercent(cardRulePercent(state, city.ownerId, 'borderCost'));
   if (percent === 0) return base;
   return Math.max(1, Math.floor(base * (1 + percent / 100)));
 }
@@ -1783,14 +1894,26 @@ export function borderGrowth(
   yields: CityYields = cityYields(state, city),
 ): BorderGrowth {
   const effects = meterEffects(state, city.ownerId);
-  const frozen = bordersFrozen(effects);
-  const factor = borderFactor(effects);
+  // The one card family that can thaw a frozen border: Emergency Powers, gated
+  // on the writ being torn in the first place. A `meterRule` flag rather than a
+  // percentage, because "borders do not freeze" is not a rate.
+  const exempt = cardMeterFlag(state, city.ownerId, 'borderFreezeExempt');
+  const frozen = bordersFrozen(effects) && !exempt;
+  // Border culture is its **own channel** (Entry XVII: not in the two-stage
+  // pipeline), so a card's percentage on it sums with the meter's and is applied
+  // once, here — never in `cityYieldPercents`, which is about a yield.
+  const cardPercent = foldCardRulePercent(cardRulePercent(state, city.ownerId, 'borderCulture'));
+  // Summed with the meter's, then applied once — additive inside the channel,
+  // exactly as Entry XVII has it inside a stage. Floored at zero for
+  // `borderFactor`'s own reason: the worst a modifier can do is stop a border,
+  // never march it backwards.
+  const factor = frozen ? 0 : Math.max(0, borderFactor(effects) + cardPercent / 100);
   const base = yields.culture;
   const perTurn = Math.floor(base * factor);
   const cost = borderCostFor(state, city);
   return {
     base,
-    percent: borderPercent(effects),
+    percent: borderPercent(effects) + (frozen ? 0 : cardPercent),
     frozen,
     perTurn,
     banked: city.culture,
@@ -1825,8 +1948,22 @@ export function unitProductionCost(
   // whose ladder is currently flat, not a flat type.
   const increment = def.costIncrement;
   if (increment === undefined) return def.cost;
+  // The card half, and it is asked only of an **escalating** type: `settlerCost`
+  // names the rule "what a settler costs", and `costIncrement` is what marks a
+  // type as one (see above), so a card that cheapens settlers cheapens exactly
+  // the types the game escalates and nothing else.
+  const percent = foldCardRulePercent(cardRulePercent(state, playerId, 'settlerCost'));
   const player = playerById(state, playerId);
-  return def.cost + increment * (player?.settlersBuilt ?? 0);
+  // Manifest of the Steppe's second clause: the ladder stops climbing. Read as a
+  // multiplier of zero on the built count rather than as a branch, so the two
+  // clauses compose without either knowing about the other.
+  const built = cardActionRule(state, playerId, 'noSettlerEscalation')
+    ? 0
+    : (player?.settlersBuilt ?? 0);
+  const base = def.cost + increment * built;
+  if (percent === 0) return base;
+  // Floored at 1: a free settler would be an empire that settles every turn.
+  return Math.max(1, Math.floor((base * (100 + percent)) / 100));
 }
 
 /**
@@ -1947,6 +2084,56 @@ export function collectYields(state: GameState): void {
     player.culturePool += empire.culture;
     player.faithPool += empire.faith;
   }
+
+  // And the empire-scale half of Statecraft, last of the three, for a reason
+  // that is the whole of `rateConversion`: a card that pays "per faith gained
+  // per turn" has to be asked *after* everything that pays faith this turn has
+  // paid it, or The Tithe would be converting last turn's rate. So the rates
+  // this pass produced are handed in — the same figures the phase has just
+  // banked, never a second sweep that could answer differently.
+  //
+  // Deliberately **not** compounding: a conversion reads the turn's *base*
+  // rates, so two cards converting faith both read the same faith and neither
+  // reads the other's output. A conversion that fed another conversion would be
+  // an ordering question with no honest answer under simultaneous turns.
+  for (const player of state.players) {
+    const rates = empireRates(state, player.id);
+    const cards = foldCardYields(cardEmpireYields(state, player.id, rates));
+    player.gold += cards.gold;
+    player.sciencePool += cards.science;
+    player.culturePool += cards.culture;
+    player.faithPool += cards.faith;
+  }
+}
+
+/**
+ * What one empire banked this turn, per voice — the input every `rateConversion`
+ * reads (`statecraft.ts`).
+ *
+ * The fold of the same `cityYields` the phase above banked, asked once more
+ * rather than threaded through: threading would mean `collectYields` carrying an
+ * accumulator through two loops for the benefit of one card family, and this is
+ * six additions per city. It is the *base* rate deliberately — before any
+ * conversion pays anything — which is what stops two cards feeding each other.
+ */
+function empireRates(state: GameState, playerId: number): {
+  faithPerTurn: number;
+  culturePerTurn: number;
+  goldPerTurn: number;
+} {
+  const rates = { faithPerTurn: 0, culturePerTurn: 0, goldPerTurn: 0 };
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    const yields = cityYields(state, city, [], city.queue[0]);
+    rates.faithPerTurn += yields.faith;
+    rates.culturePerTurn += yields.culture;
+    rates.goldPerTurn += yields.gold;
+  }
+  const empire = foldResourceYields(empireResourceYields(state, playerId));
+  rates.faithPerTurn += empire.faith;
+  rates.culturePerTurn += empire.culture;
+  rates.goldPerTurn += empire.gold;
+  return rates;
 }
 
 /**
@@ -1965,7 +2152,9 @@ export function collectYields(state: GameState): void {
  * other two rules (`happinessDemand`, `borderCost`) do scale a base.
  */
 export function growthCarryover(state: GameState, city: City, threshold: number): number {
-  const percent = foldRulePercent(resourceRulePercent(state, city.ownerId, 'growthCarryover'));
+  const percent =
+    foldRulePercent(resourceRulePercent(state, city.ownerId, 'growthCarryover')) +
+    foldCardRulePercent(cardRulePercent(state, city.ownerId, 'growthCarryover'));
   if (percent <= 0) return 0;
   return Math.floor((threshold * percent) / 100);
 }
@@ -2030,7 +2219,28 @@ export function settleGrowth(state: GameState, city: City): GrowthCompletion | n
   if (!plan) return null;
   city.foodBasket -= plan.cost;
   city.population = plan.population;
+  payGrowthRider(state, city);
   return { city, population: plan.population };
+}
+
+/**
+ * The riders a city growing pays out — Granary Levies' ten hammers, today.
+ *
+ * Inside `settleGrowth` rather than beside its two callers, which is Entry
+ * XVIII.1's rule read for riders: one completion routine per bucket, used by the
+ * phase and the windfall wrapper alike, so a city grown by a grain cache pays
+ * the same rider as one grown by a good harvest.
+ *
+ * It pays into the town that grew rather than into "the nearest city", because
+ * the occasion *is* a town: a levy raised on a new mouth is raised where the
+ * mouth is.
+ */
+function payGrowthRider(state: GameState, city: City): void {
+  const player = playerById(state, city.ownerId);
+  if (!player) return;
+  const payout = windfallPayout(state, player.id, 'growth');
+  if (payout.grants.length === 0) return;
+  payWindfallGrants(state, player, payout, { col: city.col, row: city.row });
 }
 
 /**
@@ -2050,7 +2260,15 @@ export function settleGrowthWindfall(
   city: City,
 ): GrowthCompletion | null {
   const done = settleGrowth(state, city);
-  if (done) refreshCityDerived(state, city);
+  if (!done) return null;
+  // A growth **rider** can pay hammers (Granary Levies' ten), and Entry XVIII
+  // says a one-time grant settles its bucket the instant it lands — so the
+  // production bucket is settled too, through its own windfall wrapper. A no-op
+  // when the basket does not cover the front item, which is the usual case, and
+  // it is what makes a mid-turn growth pay exactly what an end-of-turn one does
+  // (the phase reaches `advanceProduction` on the very next step).
+  settleProductionWindfall(state, city);
+  refreshCityDerived(state, city);
   return done;
 }
 
@@ -2132,16 +2350,54 @@ function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | nu
  * moment it was asked, which is why nothing but `settleProduction` acts on it.
  */
 export type ProductionPlan =
-  | { kind: 'unit'; item: QueueItem; id: UnitTypeId; cost: number; tile: Tile }
-  | { kind: 'building'; item: QueueItem; id: BuildingId; cost: number }
-  | { kind: 'drop'; item: QueueItem };
+  | { kind: 'unit'; item: QueueItem; index: number; id: UnitTypeId; cost: number; tile: Tile }
+  | { kind: 'building'; item: QueueItem; index: number; id: BuildingId; cost: number }
+  | { kind: 'drop'; item: QueueItem; index: number };
 
+/**
+ * What the front of the queue would do — or, under The Standing Levy, what the
+ * first *unit* in it would do when the front cannot be paid for.
+ *
+ * The card's clause is `unitJumpsQueue` (`actionRule`), and it is read **here**
+ * rather than in the phase so that a windfall gets it too: a chop that covers a
+ * spearman two places down the queue finishes the spearman, exactly as an
+ * end-of-turn basket would. The plan carries the queue `index` it names, which
+ * is the whole of what the jump costs the rest of the file — `settleProduction`
+ * splices at that index instead of shifting, and the index is 0 in every game
+ * where nobody holds the card.
+ *
+ * The jump is deliberately narrow: it is asked **only when the front item does
+ * not complete**, so a card that lets units cut in front cannot slow a queue
+ * down, and it never reorders anything — the building the unit passed is still
+ * next.
+ */
 export function planProduction(
   state: GameState,
   city: City,
   hammers: number = city.hammerBasket,
 ): ProductionPlan | null {
-  const item = city.queue[0];
+  const front = planQueueItem(state, city, hammers, 0);
+  if (front) return front;
+  if (!cardActionRule(state, city.ownerId, 'unitJumpsQueue')) return null;
+  for (let index = 1; index < city.queue.length; index++) {
+    if (city.queue[index]?.kind !== 'unit') continue;
+    const jumped = planQueueItem(state, city, hammers, index);
+    // A `drop` is not a completion and must not be reached by a jump: dropping
+    // an item the player cannot see being considered would be the card quietly
+    // editing the queue.
+    if (jumped && jumped.kind === 'unit') return jumped;
+  }
+  return null;
+}
+
+/** One queue position, planned. The whole of what `planProduction` used to be. */
+function planQueueItem(
+  state: GameState,
+  city: City,
+  hammers: number,
+  index: number,
+): ProductionPlan | null {
+  const item = city.queue[index];
   if (!item) return null;
 
   if (item.kind === 'unit') {
@@ -2156,17 +2412,17 @@ export function planProduction(
     if (hammers < cost) return null;
     const tile = spawnTileFor(state, city, id);
     if (!tile) return null;
-    return { kind: 'unit', item, id, cost, tile };
+    return { kind: 'unit', item, index, id, cost, tile };
   }
 
   if (!isBuildingId(item.id)) return null;
   const id: BuildingId = item.id;
   // Only reachable from a hand-edited save or a queue built before the
   // building finished some other way; drop it rather than blocking the queue.
-  if (city.buildings.includes(id)) return { kind: 'drop', item };
+  if (city.buildings.includes(id)) return { kind: 'drop', item, index };
   const cost = buildingDef(id).cost;
   if (hammers < cost) return null;
-  return { kind: 'building', item, id, cost };
+  return { kind: 'building', item, index, id, cost };
 }
 
 /** What a settlement did, for the caller that has to say so out loud. */
@@ -2212,12 +2468,15 @@ export function settleProduction(state: GameState, city: City): ProductionComple
   if (!plan) return null;
 
   if (plan.kind === 'drop') {
-    city.queue.shift();
+    city.queue.splice(plan.index, 1);
     return null;
   }
 
   city.hammerBasket -= plan.cost;
-  city.queue.shift();
+  // Spliced at the plan's own index rather than shifted, which is `planProduction`'s
+  // side of The Standing Levy: 0 in every game where nobody holds that card, so
+  // this is the shift it used to be.
+  city.queue.splice(plan.index, 1);
   const done: ProductionCompletion = {
     city,
     item: plan.item,
@@ -2225,8 +2484,17 @@ export function settleProduction(state: GameState, city: City): ProductionComple
     cost: plan.cost,
   };
 
+  // Overflow, doubled where a card says so (The Common Purse). Done *here*, in
+  // the one completion routine, so a windfall-completed item overflows by the
+  // same rule an end-of-turn one does. What is left in the basket after the cost
+  // is subtracted is the overflow, so doubling it is one addition of itself.
+  if (city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
+    city.hammerBasket += city.hammerBasket;
+  }
+
   if (plan.kind === 'building') {
     city.buildings.push(plan.id);
+    payCompletionRiders(state, city, 'building');
     return done;
   }
 
@@ -2244,7 +2512,39 @@ export function settleProduction(state: GameState, city: City): ProductionComple
     const player = playerById(state, city.ownerId);
     if (player) player.settlersBuilt += 1;
   }
+  payCompletionRiders(state, city, 'unit');
   return done;
+}
+
+/**
+ * The riders a completion pays out — Master Masons' culture on a wall, Rites of
+ * Passage' faith on a sword.
+ *
+ * **Two occasions per completion**, and that is the vocabulary rather than a
+ * convenience: `completion` fires for anything and `buildingCompletion` /
+ * `unitCompletion` for the kind, so a card may speak about either without the
+ * table having to guess which one it meant. Both are asked, so a card that named
+ * the general occasion is not silently outranked by one that named the specific.
+ */
+function payCompletionRiders(state: GameState, city: City, kind: 'unit' | 'building'): void {
+  const player = playerById(state, city.ownerId);
+  if (!player) return;
+  const at = { col: city.col, row: city.row };
+  for (const occasion of ['completion', kind === 'unit' ? 'unitCompletion' : 'buildingCompletion'] as const) {
+    const payout = windfallPayout(state, player.id, occasion);
+    if (payout.grants.length === 0) continue;
+    // Food a rider pays settles into growth; hammers deliberately do **not**
+    // settle here, because this *is* a completion and `settleProduction` allows
+    // at most one item per city per call — a rider that finished the next item
+    // in the same breath would break the phase's own rule.
+    for (const paid of payWindfallGrants(state, player, payout, at)) {
+      settleGrowthWindfall(state, paid);
+    }
+  }
+  // Culture a rider paid may have filled the meter. Entry XVIII says a windfall
+  // settles its bucket the instant it lands, and the culture bucket's settlement
+  // is a draft.
+  settleCultureWindfall(state, player);
 }
 
 /**
@@ -2582,7 +2882,14 @@ export function tilePurchasePrice(
   cityId: number,
   cell: Cell,
 ): number {
-  return Math.max(1, foldTilePrice(explainTilePurchase(state, playerId, cityId, cell)));
+  const base = foldTilePrice(explainTilePurchase(state, playerId, cityId, cell));
+  // The card discount, applied to the fold rather than as a line inside it: the
+  // ladder's lines are what the *ground* costs, and Land Grants is a fact about
+  // the empire buying it. Floored at 1 — free land is not a discount, it is a
+  // different game.
+  const percent = foldCardRulePercent(cardRulePercent(state, playerId, 'tilePurchase'));
+  if (percent === 0) return Math.max(1, base);
+  return Math.max(1, Math.floor((base * (100 + percent)) / 100));
 }
 
 /**
@@ -2725,6 +3032,19 @@ export function purchaseTileAt(state: GameState, city: City, tile: Tile): void {
   claimTile(state, city, tile);
   player.gold -= price;
   player.tilesPurchased += 1;
+  // Chartered Companies' survey. A rider on an occasion that has no figure of
+  // its own, so the base is zero and only the grants are read.
+  const payout = windfallPayout(state, player.id, 'tilePurchase');
+  if (payout.grants.length > 0) {
+    // Every bucket a rider can pay into settles here, for `settleGrowthWindfall`'s
+    // reason: a grant that waited for the resolution would be a windfall the
+    // player was shown and not given.
+    for (const paid of payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row })) {
+      settleProductionWindfall(state, paid);
+      settleGrowthWindfall(state, paid);
+    }
+    settleCultureWindfall(state, player);
+  }
   refreshCityDerived(state, city);
   // Bought ground is ground you can see, the same rule `expandBorders` keeps.
   recomputeVisibility(state, player.id);

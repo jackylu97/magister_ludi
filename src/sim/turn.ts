@@ -94,6 +94,7 @@ import { advanceFortify, healCities } from './combat';
 import { hasLineOfSight } from './los';
 import { getTileAt, tileHex, wrappedDistance } from './map';
 import { advanceAlongPath } from './movement';
+import { cardUnitStat, runStatecraft } from './statecraft';
 import { advanceResearch } from './tech';
 import { type GameState, wakeUnit } from './state';
 import { isCombatant, unitDef } from './unitData';
@@ -132,6 +133,17 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // Spends `Player.sciencePool` on the tech it is aimed at, and marches the
     // army up its upgrade chains the moment one lands.
     run: advanceResearch,
+  },
+  {
+    name: 'statecraft',
+    // Culture buys a draft, and a tier buys a government offer. Directly after
+    // `advanceResearch` because the two are the same shape — an empire spending
+    // a pool `collectYields` filled at the top of this resolution — and because
+    // a hand must be dealt from a board that has already grown, built and learnt
+    // this turn. Before `expandBorders` and harmlessly so: border culture is a
+    // separate channel (`City.culture`) that this phase never touches, which is
+    // the whole of "do not double-spend". See `runStatecraft`.
+    run: runStatecraft,
   },
   {
     name: 'expandBorders',
@@ -207,10 +219,14 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
 function healUnits(state: GameState): void {
   const amount = RULES.healing.perTurnIfRested;
   for (const unit of state.units) {
-    if (!isRested(unit)) continue;
+    if (!isRested(unit, state)) continue;
     const { maxHp } = unitDef(unit.type);
     if (unit.hp >= maxHp) continue;
-    unit.hp = Math.min(maxHp, unit.hp + amount);
+    // Field Surgeons, through the one place a heal is decided. It rides on the
+    // *rested* rule rather than replacing it: "heal +5 per turn anywhere" means
+    // anywhere on the map, not while marching — a card that healed a unit
+    // mid-charge would be a different card and a much stronger one.
+    unit.hp = Math.min(maxHp, unit.hp + amount + cardUnitStat(state, unit, 'heal'));
   }
 }
 
@@ -260,7 +276,7 @@ function wakeSleepers(state: GameState): void {
     if (sleeper.sleeping !== true) continue;
     const from = getTileAt(state.map, sleeper.col, sleeper.row);
     if (!from) continue;
-    const radius = sightOf(state.map, sleeper);
+    const radius = sightOf(state.map, sleeper, state);
     const eye = tileHex(from);
     for (const other of state.units) {
       if (other.ownerId === sleeper.ownerId) continue;
@@ -286,7 +302,7 @@ function wakeSleepers(state: GameState): void {
  */
 function resetMovement(state: GameState): void {
   for (const unit of state.units) {
-    unit.movesLeft = fullMovement(unit);
+    unit.movesLeft = fullMovement(unit, state);
     // The same allowance, refilled in the same breath: one attack per unit per
     // turn, and this is the turn ending. It is cleared *after* `healUnits` has
     // read it, which is the whole reason that phase comes first.

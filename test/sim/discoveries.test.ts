@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { draftCost } from '../../src/sim/statecraft';
 
 import { createMap, getTileAt, tileIndex, type Tile } from '../../src/sim/map';
 import { arriveOnTile } from '../../src/sim/arrival';
@@ -530,7 +531,6 @@ describe('settlement: every boon pays its printed number', () => {
   it('pays the three empire pools and the treasury exactly', () => {
     for (const [id, read] of [
       ['tradersHoard', (state: GameState): number => playerById(state, 0)!.gold],
-      ['forgottenHymns', (state: GameState): number => playerById(state, 0)!.culturePool],
       ['relicsOfTheOldFaith', (state: GameState): number => playerById(state, 0)!.faithPool],
     ] as const) {
       const state = withCity();
@@ -542,6 +542,43 @@ describe('settlement: every boon pays its printed number', () => {
         `${id}: ${effect.kind === 'unit' ? 0 : effect.amount}`,
       );
     }
+  });
+
+  it('forgotten hymns fill the culture meter and settle a draft on the spot', () => {
+    // The paragraph `discoveries.ts` used to carry — "culture is banked and
+    // nothing settles it, because nothing spends it yet" — closed. Culture is
+    // the fourth Entry XVIII bucket now, and its settlement is a draft.
+    const state = withCity();
+    const player = playerById(state, 0)!;
+    const { effect } = discoveryDef('forgottenHymns');
+    const grant = effect.kind === 'unit' ? 0 : effect.amount;
+    // The hymns are worth more than the opening draft costs, which is the
+    // interesting case and the reason this is its own test.
+    expect(grant).toBeGreaterThanOrEqual(draftCost(0));
+
+    offerOf(state, 0, 'forgottenHymns');
+    const done = settleDiscovery(state, player, 0);
+    expect(player.statecraft.drafts).toBe(1);
+    // The overflow is kept, exactly as a chop's or a good harvest's would be.
+    expect(player.culturePool).toBe(grant - draftCost(0));
+    // And the settlement says so, so the announce line can.
+    expect(done?.completed).toBe('tier 1');
+    expect(player.statecraft.pendingOrder).toBeDefined();
+  });
+
+  it('leaves the meter alone when the hymns do not fill it', () => {
+    const state = withCity();
+    const player = playerById(state, 0)!;
+    // A pool that has already been spent down below the threshold minus the
+    // grant: the boon banks and nothing completes, which is the ordinary case
+    // once the ladder has climbed a little.
+    player.statecraft.drafts = 6;
+    const before = player.culturePool;
+    offerOf(state, 0, 'forgottenHymns');
+    const done = settleDiscovery(state, player, 0);
+    expect(player.statecraft.drafts).toBe(6);
+    expect(player.culturePool).toBeGreaterThan(before);
+    expect(done?.completed).toBeNull();
   });
 
   it('star tablets complete the researched technology instantly, and hand the choice back', () => {

@@ -71,6 +71,7 @@
 
 import { campAt, hasCampAt } from './camps';
 import { applyCombat, isCombatant } from './combat';
+import { cardBehaviorRule } from './statecraft';
 import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from './map';
 import { advanceAlongPath } from './movement';
 import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
@@ -457,7 +458,7 @@ interface RaidTarget {
  * Units are considered before cities, so a garrison standing outside its own
  * walls is reached for before the walls are.
  */
-function nearestTarget(state: GameState, wild: Player, unit: Unit): RaidTarget | null {
+export function nearestTarget(state: GameState, wild: Player, unit: Unit): RaidTarget | null {
   const { map } = state;
   const from = getTileAt(map, unit.col, unit.row);
   if (!from) return null;
@@ -467,6 +468,15 @@ function nearestTarget(state: GameState, wild: Player, unit: Unit): RaidTarget |
   let order = 0;
   const consider = (col: number, row: number, ownerId: number): void => {
     if (ownerId === wild.id) return;
+    // Wolf-Mother's Pact: **barbarians never attack you.** The one
+    // `behaviorRule` the vocabulary has, and it is read here rather than inside
+    // `applyCombat` on purpose — the pact is a fact about what the wild *wants*,
+    // not a rule that makes an empire unhittable, so the raid simply never picks
+    // this seat and everything else about combat is unchanged. Theft continues,
+    // because a thief's prey is chosen by `barbarianRoles` and not by this
+    // function: the wolves take their share, they just do not come for the
+    // spears. See `docs/statecraft-cards.md`.
+    if (cardBehaviorRule(state, ownerId, 'barbariansPassive')) return;
     const tile = getTileAt(map, col, row);
     if (!tile) return;
     const distance = wrappedDistance(map, hex, tileHex(tile));

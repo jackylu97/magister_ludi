@@ -50,6 +50,7 @@
  */
 
 import { type Hex, hexDistance } from './hex';
+import { cardCityStat, cardUnitStat, foldCityStat } from './statecraft';
 import { hasLineOfSight } from './los';
 import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex } from './map';
 import { RULES } from './rulesData';
@@ -217,10 +218,16 @@ export function citySightingOf(
  * forest, which is the only elevation rule this game has and the same one
  * `los.ts` refuses to grow a second half of.
  */
-export function sightOf(map: GameMap, unit: Unit): number {
+export function sightOf(map: GameMap, unit: Unit, state?: GameState): number {
   const base = unitDef(unit.type).sight;
   const tile = getTileAt(map, unit.col, unit.row);
-  return base + (tile?.hills ? VIS.hillsBonus : 0);
+  const ground = base + (tile?.hills ? VIS.hillsBonus : 0);
+  // The empire's law, through the one evaluator for a sight radius — Far Runners
+  // and Master of Maps land here and nowhere else, so the fog, the archers' line
+  // of sight and the sleeper's own eyes all agree about how far a piece sees.
+  // Floored at 1: a blind unit is not a card, it is a bug.
+  if (!state) return ground;
+  return Math.max(1, ground + cardUnitStat(state, unit, 'sight'));
 }
 
 /** One eye: where it stands and how far it reaches. */
@@ -247,13 +254,20 @@ export function sightSources(state: GameState, playerId: number): SightSource[] 
     if (unit.ownerId !== playerId) continue;
     const tile = getTileAt(state.map, unit.col, unit.row);
     if (!tile) continue;
-    sources.push({ tile, radius: sightOf(state.map, unit) });
+    sources.push({ tile, radius: sightOf(state.map, unit, state) });
   }
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     const tile = getTileAt(state.map, city.col, city.row);
     if (!tile) continue;
-    sources.push({ tile, radius: VIS.citySight });
+    // Militia Levies' watchtowers, through the same hook a unit's sight uses.
+    // Folded here rather than added to `citySight` in the rules, because the
+    // rules table is what a city sees and this is what *this empire's* cities
+    // see.
+    sources.push({
+      tile,
+      radius: Math.max(1, VIS.citySight + foldCityStat(cardCityStat(state, city, 'sight'))),
+    });
   }
   return sources;
 }

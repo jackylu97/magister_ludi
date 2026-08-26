@@ -38,6 +38,7 @@
  */
 
 import type { GameState, Unit } from './state';
+import { cardUnitStat } from './statecraft';
 import { type UnitCategory, isCivilian, unitDef } from './unitData';
 import { RULES } from './rulesData';
 
@@ -103,9 +104,24 @@ export function hasStackingRoom(
   return true;
 }
 
-/** The unit's full movement allowance, i.e. what `resetMovement` refills to. */
-export function fullMovement(unit: Unit): number {
-  return unitDef(unit.type).movement;
+/**
+ * The unit's full movement allowance, i.e. what `resetMovement` refills to.
+ *
+ * **The** evaluator for a movement allowance, which is what lets `unitStatCard`
+ * be one hook: Horse Lords, March Discipline, Far Runners, Master of Maps and
+ * Imperium are five rows that all land here, and nothing writes a movement
+ * number onto a unit. Floored at 1, because a card that could take a piece's
+ * last point would be a card that removes it from the game.
+ *
+ * `state` is optional so that the pure question — "what does this *type* move" —
+ * is still askable by a caller with no world in hand (a preview, a test). Every
+ * caller inside the simulation passes it, because an allowance that ignored the
+ * empire's law would be an allowance the board disagrees with.
+ */
+export function fullMovement(unit: Unit, state?: GameState): number {
+  const base = unitDef(unit.type).movement;
+  if (!state) return base;
+  return Math.max(1, base + cardUnitStat(state, unit, 'movement'));
 }
 
 /**
@@ -118,8 +134,8 @@ export function fullMovement(unit: Unit): number {
  * zero-movement siege engine that shot without moving, would heal on the turn it
  * fought. The name is the promise: rested means it rested.
  */
-export function isRested(unit: Unit): boolean {
-  return unit.movesLeft === fullMovement(unit) && !unit.hasAttacked;
+export function isRested(unit: Unit, state?: GameState): boolean {
+  return unit.movesLeft === fullMovement(unit, state) && !unit.hasAttacked;
 }
 
 // --- sleep ------------------------------------------------------------------

@@ -1,0 +1,1446 @@
+{
+  "meter": { "costBase": 6, "costLinear": 3, "costExponent": 2.0, "sealTurns": 5 },
+  "upgradeMultiplier": 1.5,
+  "offer": { "newCards": 3, "doctrineOptions": 3 },
+  "governments": {
+    "chiefdom": {
+      "name": "Chiefdom",
+      "tier": 0,
+      "flavor": "Whoever speaks last at the fire, speaks for all.",
+      "slots": { "military": 1, "economic": 1, "wildcard": 0 },
+      "effects": []
+    },
+    "councilOfElders": {
+      "name": "Council of Elders",
+      "tier": 3,
+      "flavor": "Slow counsel, and no one hanged for it.",
+      "slots": { "military": 1, "economic": 2, "wildcard": 1 },
+      "effects": [
+        { "kind": "happiness", "amount": 2 }
+      ]
+    },
+    "warChief": {
+      "name": "War Chief",
+      "tier": 3,
+      "flavor": "The spear chooses; the rest agree.",
+      "slots": { "military": 2, "economic": 1, "wildcard": 1 },
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": { "test": "always" },
+          "scaled": { "count": "cities", "per": 2, "max": 4 }
+        }
+      ]
+    },
+    "priestKing": {
+      "name": "Priest-King",
+      "tier": 3,
+      "flavor": "The gods speak. He translates.",
+      "slots": { "military": 1, "economic": 1, "wildcard": 2 },
+      "effects": [
+        { "kind": "cityYields", "faith": 2 }
+      ]
+    },
+    "republic": {
+      "name": "Republic",
+      "tier": 7,
+      "flavor": "A crowd that learned to sign its name.",
+      "slots": { "military": 1, "economic": 3, "wildcard": 2 },
+      "effects": [
+        { "kind": "rulePercent", "rule": "borderCulture", "percent": 25 },
+        { "kind": "rulePercent", "rule": "tilePurchase", "percent": -10 }
+      ]
+    },
+    "tyranny": {
+      "name": "Tyranny",
+      "tier": 7,
+      "flavor": "One will, and the roads run straight.",
+      "slots": { "military": 3, "economic": 1, "wildcard": 2 },
+      "effects": [
+        { "kind": "authority", "amount": 3 },
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": { "yield": "gold", "amount": 10 }
+        }
+      ]
+    },
+    "theocracy": {
+      "name": "Theocracy",
+      "tier": 7,
+      "flavor": "Law is what the altar remembers.",
+      "slots": { "military": 1, "economic": 2, "wildcard": 3 },
+      "effects": [
+        { "kind": "cityYields", "faith": 2 },
+        { "kind": "rulePercent", "rule": "happinessDemand", "percent": -5 }
+      ]
+    },
+    "merchantLeague": {
+      "name": "Merchant League",
+      "tier": 15,
+      "flavor": "Every treaty has a ledger underneath.",
+      "slots": { "military": 2, "economic": 4, "wildcard": 3 },
+      "effects": [
+        { "kind": "cityYields", "gold": 1 },
+        {
+          "kind": "countScaled",
+          "count": "uniqueLuxuries",
+          "pays": { "to": "yield", "yield": "gold", "amount": 1, "where": "empire" }
+        }
+      ]
+    },
+    "imperium": {
+      "name": "Imperium",
+      "tier": 15,
+      "flavor": "The map is a claim; the legion is the proof.",
+      "slots": { "military": 4, "economic": 2, "wildcard": 3 },
+      "effects": [
+        { "kind": "authority", "amount": 3 },
+        { "kind": "unitStat", "stat": "movement", "amount": 1, "where": "ownTerritory" }
+      ]
+    },
+    "divineMandate": {
+      "name": "Divine Mandate",
+      "tier": 15,
+      "flavor": "Heaven approves. It was asked.",
+      "slots": { "military": 2, "economic": 3, "wildcard": 4 },
+      "effects": [
+        { "kind": "happinessTierBoost", "points": 5 },
+        {
+          "kind": "rateConversion",
+          "from": "faithPerTurn",
+          "per": 5,
+          "pays": { "to": "yield", "yield": "culture", "amount": 1, "where": "empire" }
+        }
+      ]
+    }
+  },
+  "doctrines": {
+    "hermitCrown": {
+      "name": "The Hermit Crown",
+      "tier": 3,
+      "line": "green",
+      "flavor": "A small kingdom, held entirely in one hand.",
+      "text": "While you hold 3 or fewer cities: your capital gains +30% of every yield.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": { "test": "cityCountAtMost", "value": 3 },
+          "then": [
+            {
+              "kind": "percentYields",
+              "yield": "all",
+              "percent": 30,
+              "scope": { "test": "capital" }
+            }
+          ]
+        }
+      ]
+    },
+    "riverKings": {
+      "name": "River Kings",
+      "tier": 3,
+      "line": "green",
+      "flavor": "The river gives; the dry land is told to be grateful.",
+      "text": "+30% food in freshwater cities; −10% food and production in cities without it.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "food",
+          "percent": 30,
+          "scope": { "test": "freshwater" }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "food",
+          "percent": -10,
+          "scope": { "test": "notFreshwater" }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": -10,
+          "scope": { "test": "notFreshwater" }
+        }
+      ]
+    },
+    "woodwrights": {
+      "name": "The Woodwrights",
+      "tier": 3,
+      "line": "forge",
+      "flavor": "A forest is a city that has not been felled yet.",
+      "text": "Chops pay +100% and grant +10 culture each.",
+      "effects": [
+        { "kind": "windfallRider", "occasion": "chop", "percent": 100 },
+        {
+          "kind": "windfallRider",
+          "occasion": "chop",
+          "grant": { "yield": "culture", "amount": 10 }
+        }
+      ]
+    },
+    "greatLitany": {
+      "name": "The Great Litany",
+      "tier": 3,
+      "line": "procession",
+      "flavor": "Say it every day and it becomes true.",
+      "text": "+1 culture per 3 faith gained per turn.",
+      "effects": [
+        {
+          "kind": "rateConversion",
+          "from": "faithPerTurn",
+          "per": 3,
+          "pays": { "to": "yield", "yield": "culture", "amount": 1, "where": "empire" }
+        }
+      ]
+    },
+    "greatWarringTribes": {
+      "name": "The Great Warring Tribes",
+      "tier": 3,
+      "line": "forge",
+      "flavor": "No writ runs faster than a horse.",
+      "text": "A negative writ no longer slows production toward units · +10% production toward mounted units · conquered cities pay +5 science and +5 culture.",
+      "note": "The courthouse prohibition is inert: no courthouse family exists yet (docs/statecraft-cards.md, FUTURE).",
+      "effects": [
+        { "kind": "meterRule", "rule": "authorityUnitProductionExempt", "value": 1 },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 10,
+          "modelClass": "mounted"
+        },
+        {
+          "kind": "cityYields",
+          "science": 5,
+          "culture": 5,
+          "scope": { "test": "captured" }
+        }
+      ]
+    },
+    "wolfMothersPact": {
+      "name": "Wolf-Mother's Pact",
+      "tier": 3,
+      "line": "hunt",
+      "flavor": "We are not their prey. We are their kin, and they take their share.",
+      "text": "Barbarians never attack you (theft continues) · camps you clear pay +50%.",
+      "effects": [
+        { "kind": "behaviorRule", "rule": "barbariansPassive" },
+        { "kind": "windfallRider", "occasion": "camp", "percent": 50 }
+      ]
+    },
+    "athenaeumOfTheRoad": {
+      "name": "Athenaeum of the Road",
+      "tier": 3,
+      "line": "wayfarers",
+      "flavor": "Everything found is kept. Everything kept is known.",
+      "text": "Every discovery pays all three of its options.",
+      "effects": [
+        { "kind": "offerRider", "rule": "discoveryClaimAll" }
+      ]
+    },
+    "foundersRoad": {
+      "name": "The Founders' Road",
+      "tier": 3,
+      "line": "none",
+      "flavor": "The first stone of every town is a monument to the road that brought it.",
+      "text": "Your first 5 cities are founded with a free monument.",
+      "note": "The road half is FUTURE — it activates with the road system (docs/statecraft-cards.md).",
+      "effects": [
+        { "kind": "foundingRider", "building": "monument", "maxCities": 5 }
+      ]
+    },
+    "thalassocracy": {
+      "name": "Thalassocracy",
+      "tier": 7,
+      "line": "caravan",
+      "flavor": "Our borders are wherever the tide reaches.",
+      "text": "+20% gold and culture in coastal cities · coastal cities cost 1 fewer authority.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 20,
+          "scope": { "test": "coastal" }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 20,
+          "scope": { "test": "coastal" }
+        },
+        { "kind": "meterRule", "rule": "coastalCityCost", "delta": -1 }
+      ]
+    },
+    "mountainHold": {
+      "name": "Mountain Hold",
+      "tier": 7,
+      "line": "forge",
+      "flavor": "The peaks are a wall nobody had to build.",
+      "text": "+25% production in mountain-adjacent cities · +5 defense there.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 25,
+          "scope": { "test": "mountainAdjacent" }
+        },
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 5,
+          "scope": { "test": "mountainAdjacent" }
+        }
+      ]
+    },
+    "burningWay": {
+      "name": "The Burning Way",
+      "tier": 7,
+      "line": "forge",
+      "flavor": "Ash is faster than a plough.",
+      "text": "Chopping costs no worker charge · pillaging heals 25.",
+      "effects": [
+        { "kind": "actionRule", "rule": "freeChop" },
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": { "heal": 25 }
+        }
+      ]
+    },
+    "breadAndCircuses": {
+      "name": "Bread and Circuses",
+      "tier": 7,
+      "line": "green",
+      "flavor": "Feed them, amuse them, and they will sing for you.",
+      "text": "+1 culture per point of positive happiness.",
+      "effects": [
+        {
+          "kind": "rateConversion",
+          "from": "happiness",
+          "per": 1,
+          "pays": { "to": "yield", "yield": "culture", "amount": 1, "where": "empire" }
+        }
+      ]
+    },
+    "theTithe": {
+      "name": "The Tithe",
+      "tier": 7,
+      "line": "procession",
+      "flavor": "A tenth of the harvest, and the gods keep the books.",
+      "text": "+1 gold per faith gained per turn.",
+      "effects": [
+        {
+          "kind": "rateConversion",
+          "from": "faithPerTurn",
+          "per": 1,
+          "pays": { "to": "yield", "yield": "gold", "amount": 1, "where": "empire" }
+        }
+      ]
+    },
+    "divineInspiration": {
+      "name": "Divine Inspiration",
+      "tier": 7,
+      "line": "procession",
+      "flavor": "Prayer, given long enough, thinks.",
+      "text": "+1% science and culture per 200 banked faith.",
+      "note": "Unreachable at current faith income; assumes religion-era inflation (docs/statecraft-cards.md).",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "bankedFaith",
+          "per": 200,
+          "pays": { "to": "percent", "yield": "science", "percent": 1, "stage": "empire" }
+        },
+        {
+          "kind": "countScaled",
+          "count": "bankedFaith",
+          "per": 200,
+          "pays": { "to": "percent", "yield": "culture", "percent": 1, "stage": "empire" }
+        }
+      ]
+    },
+    "ironPrice": {
+      "name": "The Iron Price",
+      "tier": 15,
+      "line": "forge",
+      "flavor": "Every death a verse; every verse a debt paid.",
+      "text": "Every combat kill grants +15 culture · pillaging pays +15 gold.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": { "yield": "culture", "amount": 15 }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": { "yield": "gold", "amount": 15 }
+        }
+      ]
+    },
+    "manifestOfTheSteppe": {
+      "name": "Manifest of the Steppe",
+      "tier": 15,
+      "line": "none",
+      "flavor": "There is always more land. There is never enough rest.",
+      "text": "Settlers cost 40% less and never escalate · every city demands +1 happiness.",
+      "effects": [
+        { "kind": "rulePercent", "rule": "settlerCost", "percent": -40 },
+        { "kind": "actionRule", "rule": "noSettlerEscalation" },
+        { "kind": "meterRule", "rule": "cityHappinessDemand", "delta": 1 }
+      ]
+    },
+    "gildedCourt": {
+      "name": "The Gilded Court",
+      "tier": 15,
+      "line": "caravan",
+      "flavor": "Gold on the walls, gold in the words, gold under the throne.",
+      "text": "+3 authority capacity.",
+      "note": "The Gilded Hall half is DEFERRED: buildings cannot be purchased with gold yet, so `unlocksBuilding` has no mechanism to unlock into. See docs/statecraft-cards.md.",
+      "deferred": ["unlocksBuilding"],
+      "effects": [
+        { "kind": "authority", "amount": 3 }
+      ]
+    },
+    "grandBazaar": {
+      "name": "The Grand Bazaar",
+      "tier": 15,
+      "line": "caravan",
+      "flavor": "The second silk is not nothing. The tenth is a fortune.",
+      "text": "Happiness from unique luxuries +50% · additional copies of a luxury count at 30% · +2 gold per unique luxury.",
+      "effects": [
+        { "kind": "effectAmplifier", "target": "luxuryHappiness", "percent": 50 },
+        { "kind": "effectAmplifier", "target": "luxuryDuplicates", "percent": 30 },
+        {
+          "kind": "countScaled",
+          "count": "uniqueLuxuries",
+          "pays": { "to": "yield", "yield": "gold", "amount": 2, "where": "empire" }
+        }
+      ]
+    },
+    "masterOfMaps": {
+      "name": "Master of Maps",
+      "tier": 15,
+      "line": "wayfarers",
+      "flavor": "We see everything. We fear it a little.",
+      "text": "All units +1 sight and +1 movement · −10% combat strength.",
+      "effects": [
+        { "kind": "unitStat", "stat": "sight", "amount": 1 },
+        { "kind": "unitStat", "stat": "movement", "amount": 1 },
+        { "kind": "unitStat", "stat": "combatPercent", "amount": -10 }
+      ]
+    },
+    "hegemony": {
+      "name": "Hegemony",
+      "tier": 15,
+      "line": "forge",
+      "flavor": "Every city carries its own weight, and the crown carries none.",
+      "text": "+1 authority capacity per city you hold · captured cities cost 2.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "cities",
+          "pays": { "to": "authority", "amount": 1 }
+        },
+        { "kind": "meterRule", "rule": "capturedCityCost", "value": 2 }
+      ]
+    },
+    "paxImperia": {
+      "name": "Pax Imperia",
+      "tier": 15,
+      "line": "green",
+      "flavor": "In great cities the noise itself is a kind of peace.",
+      "text": "Cities of 8 or more population: +3 happiness and +3 culture each.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 3,
+          "per": "city",
+          "scope": { "test": "populationAtLeast", "value": 8 }
+        },
+        {
+          "kind": "cityYields",
+          "culture": 3,
+          "scope": { "test": "populationAtLeast", "value": 8 }
+        }
+      ]
+    },
+    "religiousMandate": {
+      "name": "Religious Mandate",
+      "tier": 0,
+      "line": "procession",
+      "flavor": "There is one truth, and we are its army.",
+      "text": "Permanent war with civilizations of a different majority religion · your cities cannot be converted.",
+      "note": "DEFERRED ENTIRELY — needs religion, a war state and the bead race. Never dealt: it belongs to no live pool (tier 0).",
+      "deferred": ["religion", "warState", "beads"],
+      "effects": []
+    }
+  },
+  "orders": {
+    "bloodedSpears": {
+      "name": "Blooded Spears",
+      "pool": "chiefdom",
+      "slot": "military",
+      "line": "hunt",
+      "flavor": "The wild taught us. We took notes.",
+      "text": "+3 combat strength against barbarians.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": { "test": "vsBarbarians" }
+        }
+      ]
+    },
+    "campFollowers": {
+      "name": "Camp Followers",
+      "pool": "chiefdom",
+      "slot": "military",
+      "line": "hunt",
+      "flavor": "Behind the war, a market.",
+      "text": "Clearing a camp also pays +25 food.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "camp",
+          "grant": { "yield": "food", "amount": 25 }
+        }
+      ]
+    },
+    "farRunners": {
+      "name": "Far Runners",
+      "pool": "chiefdom",
+      "slot": "military",
+      "line": "wayfarers",
+      "flavor": "Run until the land is new, then run once more.",
+      "text": "Scouts gain +1 movement and +1 sight.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": { "modelClass": "scout" }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "sight",
+          "amount": 1,
+          "class": { "modelClass": "scout" }
+        }
+      ]
+    },
+    "theLongWatch": {
+      "name": "The Long Watch",
+      "pool": "chiefdom",
+      "slot": "military",
+      "line": "none",
+      "flavor": "A sleepless wall is a comfort to those inside it.",
+      "text": "A unit fortified in a city gives it +1 happiness, +1 more per fortification level.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "garrisonWatch",
+          "pays": { "to": "happiness", "amount": 1 }
+        }
+      ]
+    },
+    "theWidowsLevy": {
+      "name": "The Widow's Levy",
+      "pool": "chiefdom",
+      "slot": "military",
+      "line": "none",
+      "flavor": "Grief works. It always has.",
+      "text": "When a unit of yours dies, its nearest city gains +10 production.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": { "yield": "production", "amount": 10 }
+        }
+      ]
+    },
+    "militiaLevies": {
+      "name": "Militia Levies",
+      "pool": "chiefdom",
+      "slot": "military",
+      "line": "none",
+      "neutral": true,
+      "flavor": "Every farmer a spear, every roof a watchtower.",
+      "text": "All your cities gain +5 defense and +1 sight radius.",
+      "effects": [
+        { "kind": "cityStat", "stat": "defense", "amount": 5 },
+        { "kind": "cityStat", "stat": "sight", "amount": 1 }
+      ]
+    },
+    "commonGranary": {
+      "name": "Common Granary",
+      "pool": "chiefdom",
+      "slot": "economic",
+      "line": "green",
+      "flavor": "One store, one hunger, one answer.",
+      "text": "+1 food on every tile carrying a resource.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "food": 1,
+          "on": { "test": "hasResource" }
+        }
+      ]
+    },
+    "saltTithes": {
+      "name": "Salt Tithes",
+      "pool": "chiefdom",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "Salt is small. Its tax is not.",
+      "text": "+1 gold per unique luxury.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "uniqueLuxuries",
+          "pays": { "to": "yield", "yield": "gold", "amount": 1, "where": "empire" }
+        }
+      ]
+    },
+    "boundaryStones": {
+      "name": "Boundary Stones",
+      "pool": "chiefdom",
+      "slot": "economic",
+      "line": "none",
+      "flavor": "A stone that says *ours* says it forever.",
+      "text": "+30% border culture in every city.",
+      "effects": [
+        { "kind": "rulePercent", "rule": "borderCulture", "percent": 30 }
+      ]
+    },
+    "firstRites": {
+      "name": "First Rites",
+      "pool": "chiefdom",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "Before the temple, the gesture.",
+      "text": "+1 faith per city.",
+      "effects": [
+        { "kind": "cityYields", "faith": 1 }
+      ]
+    },
+    "borderBallads": {
+      "name": "Border Ballads",
+      "pool": "chiefdom",
+      "slot": "wildcard",
+      "line": "hunt",
+      "flavor": "Fear, set to a tune, becomes a people.",
+      "text": "+2 culture per barbarian camp you can currently see.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "visibleCamps",
+          "pays": { "to": "yield", "yield": "culture", "amount": 2, "where": "empire" }
+        }
+      ]
+    },
+    "borderWardens": {
+      "name": "Border Wardens",
+      "pool": "governmentI",
+      "slot": "military",
+      "line": "none",
+      "flavor": "Home ground fights beside you.",
+      "text": "+3 combat strength inside your own territory.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": { "test": "ownTerritory" }
+        }
+      ]
+    },
+    "vanguard": {
+      "name": "Vanguard",
+      "pool": "governmentI",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "Strangers' ground fights harder — so must we.",
+      "text": "+3 combat strength outside your own territory.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": { "test": "foreignTerritory" }
+        }
+      ]
+    },
+    "conscription": {
+      "name": "Conscription",
+      "pool": "governmentI",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "Everyone serves. Nobody smiles.",
+      "text": "+50% production toward units · −2 happiness.",
+      "effects": [
+        { "kind": "productionBonus", "category": "unit", "percent": 50 },
+        { "kind": "happiness", "amount": -2 }
+      ]
+    },
+    "spoilsOfTheWild": {
+      "name": "Spoils of the Wild",
+      "pool": "governmentI",
+      "slot": "military",
+      "line": "hunt",
+      "flavor": "Their plunder was ours all along.",
+      "text": "Camp bounties +100%.",
+      "effects": [
+        { "kind": "windfallRider", "occasion": "camp", "percent": 100 }
+      ]
+    },
+    "horseLords": {
+      "name": "Horse Lords",
+      "pool": "governmentI",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "The saddle is a country of its own.",
+      "text": "Mounted units gain +1 movement.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": { "modelClass": "mounted" }
+        }
+      ]
+    },
+    "weightsAndMeasures": {
+      "name": "Weights & Measures",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "An honest scale is the first tax.",
+      "text": "+2 gold per city.",
+      "effects": [
+        { "kind": "cityYields", "gold": 2 }
+      ]
+    },
+    "silkRoads": {
+      "name": "Silk Roads",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "Rare things travel; travel makes them rarer.",
+      "text": "+2 gold per unique luxury.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "uniqueLuxuries",
+          "pays": { "to": "yield", "yield": "gold", "amount": 2, "where": "empire" }
+        }
+      ]
+    },
+    "theSaltRoad": {
+      "name": "The Salt Road",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "Every field pays a toll on its way to market.",
+      "text": "+1 gold per improved bonus resource.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "improvedBonusResources",
+          "pays": { "to": "yield", "yield": "gold", "amount": 1, "where": "empire" }
+        }
+      ]
+    },
+    "theTaxFarm": {
+      "name": "The Tax Farm",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "Count the people, and the coin counts itself.",
+      "text": "+1 gold per 3 population, empire-wide.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "population",
+          "per": 3,
+          "pays": { "to": "yield", "yield": "gold", "amount": 1, "where": "empire" }
+        }
+      ]
+    },
+    "harbourDues": {
+      "name": "Harbour Dues",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "The sea pays for the privilege of arriving.",
+      "text": "Coastal cities gain +2 gold and +1 culture.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "gold": 2,
+          "culture": 1,
+          "scope": { "test": "coastal" }
+        }
+      ]
+    },
+    "landGrants": {
+      "name": "Land Grants",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "none",
+      "flavor": "Land, given freely, is land that was owed.",
+      "text": "Tile purchases cost 25% less · +40% border culture.",
+      "effects": [
+        { "kind": "rulePercent", "rule": "tilePurchase", "percent": -25 },
+        { "kind": "rulePercent", "rule": "borderCulture", "percent": 40 }
+      ]
+    },
+    "homesteadCharters": {
+      "name": "Homestead Charters",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "none",
+      "flavor": "The wagon holds one more family than the law allows.",
+      "text": "Newly founded cities start with an extra population.",
+      "effects": [
+        { "kind": "foundingRider", "population": 1 }
+      ]
+    },
+    "granaryLevies": {
+      "name": "Granary Levies",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "green",
+      "flavor": "A new mouth is a new pair of hands.",
+      "text": "When a city grows, it gains +10 production.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "growth",
+          "grant": { "yield": "production", "amount": 10 }
+        }
+      ]
+    },
+    "censusRolls": {
+      "name": "Census Rolls",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "none",
+      "flavor": "What is counted can be commanded.",
+      "text": "+2 authority capacity.",
+      "effects": [
+        { "kind": "authority", "amount": 2 }
+      ]
+    },
+    "tinkersGuild": {
+      "name": "Tinkers' Guild",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "none",
+      "neutral": true,
+      "flavor": "One more mend in every bag of tools.",
+      "text": "Workers are built with +1 charge.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": { "modelClass": "worker" }
+        }
+      ]
+    },
+    "publicGranaries": {
+      "name": "Public Granaries",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "none",
+      "neutral": true,
+      "flavor": "The city eats slowly, and stays fed.",
+      "text": "Cities keep 25% of their food basket when they grow.",
+      "effects": [
+        { "kind": "rulePercent", "rule": "growthCarryover", "percent": 25 }
+      ]
+    },
+    "festivalDays": {
+      "name": "Festival Days",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "green",
+      "flavor": "Idleness, made sacred, keeps the peace.",
+      "text": "+3 happiness.",
+      "effects": [
+        { "kind": "happiness", "amount": 3 }
+      ]
+    },
+    "curiousElders": {
+      "name": "Curious Elders",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "star",
+      "flavor": "The old ask questions the young forgot to.",
+      "text": "+5 science whenever you claim a discovery.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "discovery",
+          "grant": { "yield": "science", "amount": 5 }
+        }
+      ]
+    },
+    "ritesOfPassage": {
+      "name": "Rites of Passage",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "A sword blessed is a soul enlisted.",
+      "text": "Completing a unit grants +2 faith.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "unitCompletion",
+          "grant": { "yield": "faith", "amount": 2 }
+        }
+      ]
+    },
+    "theLooseRein": {
+      "name": "The Loose Rein",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "none",
+      "neutral": true,
+      "flavor": "Laws that change quickly are laws that are watched closely.",
+      "text": "Your Orders' seals last 2 turns instead of 5.",
+      "effects": [
+        { "kind": "metaRule", "rule": "sealTurns", "value": 2 }
+      ]
+    },
+    "fieldSurgeons": {
+      "name": "Field Surgeons",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "Stitched on the road, marching by morning.",
+      "text": "Units heal +5 per turn anywhere.",
+      "effects": [
+        { "kind": "unitStat", "stat": "heal", "amount": 5 }
+      ]
+    },
+    "marchDiscipline": {
+      "name": "March Discipline",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "Legs are the first weapon.",
+      "text": "All combat units gain +1 movement.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": { "category": "military" }
+        }
+      ]
+    },
+    "theShieldWall": {
+      "name": "The Shield Wall",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "High ground and a locked line — the old arithmetic.",
+      "text": "+5 combat strength on hills.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "both",
+          "when": { "test": "onHills" }
+        }
+      ]
+    },
+    "siegeDoctrine": {
+      "name": "Siege Doctrine",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "Walls are patient. We are less so.",
+      "text": "+5 combat strength when attacking cities.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "attack",
+          "when": { "test": "vsCity" }
+        }
+      ]
+    },
+    "scorchedEarth": {
+      "name": "Scorched Earth",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "none",
+      "flavor": "What we cannot keep, we salt.",
+      "text": "Pillaging heals 25 and pays +10 gold.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": { "heal": 25 }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": { "yield": "gold", "amount": 10 }
+        }
+      ]
+    },
+    "sumptuaryLaws": {
+      "name": "Sumptuary Laws",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "Only the crown wears the purple; all the rest are glad to see it.",
+      "text": "+1 happiness per unique luxury.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "uniqueLuxuries",
+          "pays": { "to": "happiness", "amount": 1 }
+        }
+      ]
+    },
+    "publicani": {
+      "name": "Publicani",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "The writ has a price, and we collect it.",
+      "text": "+1 gold per point of positive authority.",
+      "effects": [
+        {
+          "kind": "rateConversion",
+          "from": "authority",
+          "per": 1,
+          "pays": { "to": "yield", "yield": "gold", "amount": 1, "where": "empire" }
+        }
+      ]
+    },
+    "charteredCompanies": {
+      "name": "Chartered Companies",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "Every deed of land comes with a survey attached.",
+      "text": "Each tile purchased pays +5 science · purchases cost 15% less.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tilePurchase",
+          "grant": { "yield": "science", "amount": 5 }
+        },
+        { "kind": "rulePercent", "rule": "tilePurchase", "percent": -15 }
+      ]
+    },
+    "foreignQuarters": {
+      "name": "Foreign Quarters",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "The neighbour's coin spends as well as ours.",
+      "text": "+1 gold and +1 science in cities adjacent to another civilization's territory.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "gold": 1,
+          "science": 1,
+          "scope": { "test": "frontier" }
+        }
+      ]
+    },
+    "oreTithes": {
+      "name": "Ore Tithes",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "forge",
+      "flavor": "Where the ore is, the hammers gather.",
+      "text": "+3 production in each city holding an improved strategic resource.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "production": 3,
+          "scope": { "test": "holdingCategory", "category": "strategic" }
+        }
+      ]
+    },
+    "terracedHillsides": {
+      "name": "Terraced Hillsides",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "green",
+      "flavor": "The hill was made to feed us; it only needed steps.",
+      "text": "+1 food per worked hill tile in each city (at most +4).",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "workedHills",
+          "max": 4,
+          "pays": { "to": "yield", "yield": "food", "amount": 1, "where": "city" }
+        }
+      ]
+    },
+    "masterMasons": {
+      "name": "Master Masons",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "forge",
+      "flavor": "Every finished wall is a song about itself.",
+      "text": "Completing a building grants +5 culture.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "grant": { "yield": "culture", "amount": 5 }
+        }
+      ]
+    },
+    "royalSurveyors": {
+      "name": "Royal Surveyors",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "none",
+      "flavor": "The chain and the plumb line, quietly annexing.",
+      "text": "+50% border culture · tile purchases cost 25% less.",
+      "effects": [
+        { "kind": "rulePercent", "rule": "borderCulture", "percent": 50 },
+        { "kind": "rulePercent", "rule": "tilePurchase", "percent": -25 }
+      ]
+    },
+    "provincialGovernors": {
+      "name": "Provincial Governors",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "none",
+      "flavor": "Distance obeys, if someone is paid to make it.",
+      "text": "+3 authority capacity.",
+      "effects": [
+        { "kind": "authority", "amount": 3 }
+      ]
+    },
+    "emergencyPowers": {
+      "name": "Emergency Powers",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "none",
+      "neutral": true,
+      "flavor": "When the writ tears, the capital holds the pieces.",
+      "text": "While your authority is negative: capital +25% production, and borders do not freeze.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": { "test": "authorityNegative" },
+          "then": [
+            {
+              "kind": "percentYields",
+              "yield": "production",
+              "percent": 25,
+              "scope": { "test": "capital" }
+            },
+            { "kind": "meterRule", "rule": "borderFreezeExempt", "value": 1 }
+          ]
+        }
+      ]
+    },
+    "theCommonPurse": {
+      "name": "The Common Purse",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "none",
+      "neutral": true,
+      "flavor": "Nothing left on the workbench is wasted.",
+      "text": "Production overflow from a completed item is doubled.",
+      "effects": [
+        { "kind": "actionRule", "rule": "doubleOverflow" }
+      ]
+    },
+    "pilgrimRoads": {
+      "name": "Pilgrim Roads",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "Where the faithful walk, the faithful settle.",
+      "text": "+2 faith per city · +1 happiness per 20 banked faith (at most +3).",
+      "effects": [
+        { "kind": "cityYields", "faith": 2 },
+        {
+          "kind": "countScaled",
+          "count": "bankedFaith",
+          "per": 20,
+          "max": 3,
+          "pays": { "to": "happiness", "amount": 1 }
+        }
+      ]
+    },
+    "lamplighters": {
+      "name": "Lamplighters",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "A small flame kept is a small song sung.",
+      "text": "+1 culture per 5 faith gained per turn.",
+      "effects": [
+        {
+          "kind": "rateConversion",
+          "from": "faithPerTurn",
+          "per": 5,
+          "pays": { "to": "yield", "yield": "culture", "amount": 1, "where": "empire" }
+        }
+      ]
+    },
+    "scholarsStipend": {
+      "name": "Scholars' Stipend",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "star",
+      "flavor": "A crowd is a library that has not been catalogued.",
+      "text": "+2 science in each city of 5 or more population.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "science": 2,
+          "scope": { "test": "populationAtLeast", "value": 5 }
+        }
+      ]
+    },
+    "theMarshals": {
+      "name": "The Marshals",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "Shoulder to shoulder, the line is one animal.",
+      "text": "+2 combat strength per adjacent friendly combat unit (at most +4).",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "side": "both",
+          "when": { "test": "always" },
+          "scaled": { "count": "adjacentFriendlies", "per": 1, "max": 4 }
+        }
+      ]
+    },
+    "garrisonState": {
+      "name": "Garrison State",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "The soldiers do not idle. Nobody does.",
+      "text": "Each city gains +2 production per garrisoned combat unit (at most +4 per city).",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "garrison",
+          "max": 4,
+          "pays": { "to": "yield", "yield": "production", "amount": 2, "where": "city" }
+        }
+      ]
+    },
+    "skirmishersCreed": {
+      "name": "Skirmishers' Creed",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "Strike from where they cannot answer.",
+      "text": "Ranged units gain +1 range.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "range",
+          "amount": 1,
+          "class": { "ranged": true }
+        }
+      ]
+    },
+    "theFinishersArt": {
+      "name": "The Finisher's Art",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "none",
+      "flavor": "Mercy is for the unwounded.",
+      "text": "+5 combat strength against units below half strength.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "attack",
+          "when": { "test": "targetBelowHalf" }
+        }
+      ]
+    },
+    "frontierForts": {
+      "name": "Frontier Forts",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "none",
+      "flavor": "The border is where we keep our walls.",
+      "text": "+6 defense in cities within 3 hexes of a foreign border.",
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 6,
+          "scope": { "test": "frontier" }
+        }
+      ]
+    },
+    "triumphs": {
+      "name": "Triumphs",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "A city taken is a story told forever.",
+      "text": "Capturing a city grants +30 culture.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": { "yield": "culture", "amount": 30 }
+        }
+      ]
+    },
+    "theStandingLevy": {
+      "name": "The Standing Levy",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "none",
+      "neutral": true,
+      "flavor": "The spear is always first in line.",
+      "text": "A unit further down a city's queue completes ahead of a building it can already afford.",
+      "effects": [
+        { "kind": "actionRule", "rule": "unitJumpsQueue" }
+      ]
+    },
+    "clientKings": {
+      "name": "Client Kings",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "none",
+      "flavor": "Better a king who bows than a province that rebels.",
+      "text": "+4 authority capacity · captured cities cost 2.",
+      "effects": [
+        { "kind": "authority", "amount": 4 },
+        { "kind": "meterRule", "rule": "capturedCityCost", "value": 2 }
+      ]
+    },
+    "provincialMints": {
+      "name": "Provincial Mints",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "Every seam of silk, its own small coin.",
+      "text": "+1 gold per improved luxury copy — duplicates count.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "luxuryCopies",
+          "pays": { "to": "yield", "yield": "gold", "amount": 1, "where": "empire" }
+        }
+      ]
+    },
+    "quarrymensGuild": {
+      "name": "Quarrymen's Guild",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "forge",
+      "flavor": "Stone remembers; marble boasts.",
+      "text": "+3 production in cities holding stone or marble.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "production": 3,
+          "scope": {
+            "test": "holding",
+            "resources": ["stone", "marble"]
+          }
+        }
+      ]
+    },
+    "theGrainDole": {
+      "name": "The Grain Dole",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "green",
+      "flavor": "A full city is a quiet one.",
+      "text": "Cities of 6 or more population gain +2 happiness each.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": { "test": "populationAtLeast", "value": 6 }
+        }
+      ]
+    },
+    "mandateOfHeaven": {
+      "name": "Mandate of Heaven",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "The pious are easy to govern, and they know it.",
+      "text": "Happiness tiers +5pp · +1 authority capacity per 25 banked faith (at most +4).",
+      "effects": [
+        { "kind": "happinessTierBoost", "points": 5 },
+        {
+          "kind": "countScaled",
+          "count": "bankedFaith",
+          "per": 25,
+          "max": 4,
+          "pays": { "to": "authority", "amount": 1 }
+        }
+      ]
+    },
+    "theLyceum": {
+      "name": "The Lyceum",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "star",
+      "flavor": "Every new thing learned is a song about the old.",
+      "text": "Completing a technology grants +15 culture.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": { "yield": "culture", "amount": 15 }
+        }
+      ]
+    },
+    "censusOfSouls": {
+      "name": "Census of Souls",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "A great city prays in a great voice.",
+      "text": "+1 faith per 2 population in your capital.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "capitalPopulation",
+          "per": 2,
+          "pays": { "to": "yield", "yield": "faith", "amount": 1, "where": "empire" }
+        }
+      ]
+    },
+    "tolerationEdicts": {
+      "name": "Toleration Edicts",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "none",
+      "flavor": "Let them keep their gods; they will pay their taxes.",
+      "text": "Happiness demand −15%.",
+      "effects": [
+        { "kind": "rulePercent", "rule": "happinessDemand", "percent": -15 }
+      ]
+    }
+  }
+}

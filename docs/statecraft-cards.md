@@ -304,6 +304,60 @@ Orders and two pool-III Doctrines.)*
 - The Orders offer UI is the discoveries' offerCard in Statecraft dress; the Doctrine offer
   is the same card in a heavier frame; the collection/slots screen is new (the Orders screen).
 
+## As built (2026-08-26)
+
+Ledger Entry XV / XV.b, playable.md item 5. Every card in the tables above ships **whole**
+except the four halves listed here, each of which is annotated on its own data row
+(`note`, and `deferred` where a named mechanism is missing) so the deferral is legible in
+`data/statecraft.json` as well as here.
+
+| Card | What ships | What does not, and what it waits for |
+|---|---|---|
+| **The Gilded Court** | +3 authority capacity | **The Gilded Hall.** Nothing in the game buys a *building* with gold — the only gold sink is `purchaseTile` — so `unlocksBuilding` has no mechanism to unlock into. It is declared in the vocabulary and read into a *description*, never into a rule. Waits for a building-purchase system. |
+| **Religious Mandate** | nothing — it is never dealt | **All of it.** Needs religion, a war state and the beads. It sits at tier 0, which is not a live pool, so `poolDoctrines` can never draw it; a test asserts that. |
+| **The Founders' Road** | the free monument, for the first 5 cities | **The roads.** Waits for the road system, exactly as the ratified row says. |
+| **The Great Warring Tribes** | the writ exemption, the mounted bonus, the conquered-city yields | **The courthouse prohibition**, inert: no courthouse family exists to forbid. It costs nothing today and needs no code when one does. |
+
+**Magister's Dice are not built.** Entry XV parks them as a currency (cap 3, earned
+deterministically) and a reroll is a thing you spend one *on*. Building the verb before the
+currency would be guessing what it costs, which is the same argument Entry XVIII made about
+`settleResearch` before there was a science boon to serve.
+
+**The hook vocabulary, as implemented.** Every mechanism named in the Implementation notes
+above is a member of one union (`CardEffect`, `src/sim/statecraftData.ts`) read by one
+evaluator (`src/sim/statecraft.ts`). The mapping from that note's names to the shipped
+shapes:
+
+- `combatCardLine` → **`combatLine`**, with a `CombatCondition` (terrain / state /
+  adjacency / frontier / posture) and an optional `scaled` count. Seven cards.
+- `unitStatCard` → **`unitStat`** over `movement | sight | heal | charges | range |
+  combatPercent`, filtered by class, category or ranged-ness. Each stat reaches that stat's
+  **single** evaluator (`fullMovement`, `sightOf`, `healUnits`, `createUnit`, `planCombat`)
+  and nothing writes a stat onto a unit.
+- `windfallRider` → **`windfallRider`** over twelve occasions, composed by `windfallPayout`
+  into the *printed number* (see Entry XV's build note: a rider is not a multiplication
+  after a settlement).
+- `foundingRider`, `offerRider`, `effectAmplifier`, `meterRule`, `conditionRule`,
+  `actionRule`, `behaviorRule`, `metaRule`, `cityStatCard` (→ **`cityStat`**),
+  `unlocksBuilding` → one shape each, same names.
+- `countScaled` and `rateConversion` share one `CardPayout` tail (yield / happiness /
+  authority / percent), which is what makes them one idea each rather than one idea per
+  destination.
+- `scopeVariant` is **not** a shape: it is a `CityScope` *field* on the yield-bearing
+  shapes, read by one `cityScopeAdmits`. Freshwater, mountain-adjacent, frontier,
+  population-threshold, holding, coastal, captured and capital are members of that union.
+- `productionBar` → **`meterRule: authorityUnitProductionExempt`**, read in
+  `cityStageSums`, which is the one evaluator that knows both the empire's percentages and
+  what the town is building.
+- `vocab` in the notes above is not a hook at all — it is `cityYields`, `empireYields`,
+  `percentYields`, `productionBonus`, `rulePercent`, `happiness`, `authority`,
+  `happinessTierBoost` and `tileYield`, the ordinary yield shapes.
+
+**Measured cadence**, seed 4242 on the scripted pacing empire: first draft turn 7, 6.6
+turns per draft over drafts 1–8, governments on turns 24 / 47 / 97. Entry XV's build note
+holds the argument for why that is above the ~5-turn target and why the answer is culture
+income rather than a cheaper curve.
+
 ## Revisions
 
 *(yours — edit away)*

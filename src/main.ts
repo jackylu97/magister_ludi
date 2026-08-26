@@ -103,10 +103,19 @@ import {
 import { type NotificationsPanel, createNotificationsPanel } from './ui/notificationsPanel';
 import { createPopover } from './ui/popover';
 import { type ToastStack, createToastStack } from './ui/toasts';
+import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
 import { type TechTree, createTechTree } from './ui/techTree';
 import { type TilePriceTags, createTilePriceTags } from './ui/tilePriceTags';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
+import { SLOT_WORDS, describeCard } from './sim/statecraft';
+import {
+  type GovernmentId,
+  SLOT_TYPES,
+  doctrineDef,
+  governmentDef,
+  orderDef,
+} from './sim/statecraftData';
 import { createTurnSplash } from './ui/turnSplash';
 import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
 import { YIELD_GLYPH } from './ui/figures';
@@ -183,6 +192,11 @@ const techChartEl = requireElement<HTMLElement>('tech-chart');
 /* The Abacus: the bar button that opens it, and the screen it opens. Its canvas
    is not here — `abacusScreen.ts` builds one into the stage on the first open. */
 const abacusButton = requireElement<HTMLButtonElement>('abacus-button');
+/* Statecraft's overlay and the body its contents are built into on each open.
+   There is no bar button: the screen is opened from the culture chip's card, by
+   the End Turn blocker, and by `C`. */
+const statecraftOverlayEl = requireElement<HTMLElement>('statecraft-overlay');
+const statecraftBodyEl = requireElement<HTMLElement>('statecraft-body');
 const abacusOverlayEl = requireElement<HTMLElement>('abacus-overlay');
 const abacusStageEl = requireElement<HTMLElement>('abacus-stage');
 /**
@@ -416,6 +430,9 @@ let techTree: TechTree | null = null;
  * `controls` is seated at.
  */
 let abacus: AbacusScreen | null = null;
+/* Declared before `controls` for `techTree`'s reason exactly: the controls reach
+   it (the End Turn blocker steers here), and it reaches the controls. */
+let statecraft: StatecraftScreen | null = null;
 
 /**
  * The top bar's meter chips, once `boot` has built them. A holder for the same
@@ -447,6 +464,7 @@ function closePopovers(): boolean {
     (meterCards?.isOpen ?? false) ||
     (techTree?.isOpen ?? false) ||
     (abacus?.isOpen ?? false) ||
+    (statecraft?.isOpen ?? false) ||
     savesPanel.isOpen;
   menu.close();
   help.close();
@@ -455,6 +473,7 @@ function closePopovers(): boolean {
   meterCards?.close();
   techTree?.close();
   abacus?.close();
+  statecraft?.close();
   savesPanel.close();
   return wasOpen;
 }
@@ -505,6 +524,7 @@ function showLanding(): void {
   // and its five thousand triangles back, and the next game builds a fresh
   // stage on the first press of `A`.
   abacus?.dispose();
+  statecraft?.dispose();
   // `hidden` is the whole of the screen state — one flag, read by `inputBlocked`
   // as well as by the stylesheet, so "is the landing up?" has one answer.
   landingEl.hidden = false;
@@ -857,6 +877,7 @@ const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
   cityProduction: 'Choose production',
   research: 'Choose research',
   discovery: 'A discovery awaits',
+  statecraft: 'A card awaits',
 };
 
 function showEndTurnState(blocker: TurnBlocker | null): void {
@@ -1292,6 +1313,134 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
+   * Puts whatever Statecraft owes the local seat on screen — a draft, a
+   * Doctrine, or the banked government triple.
+   *
+   * **One function for three offers**, in the order they can be outstanding, and
+   * that is the whole reason the offer card was written generic (`offerCard.ts`,
+   * "the shape of that gesture"): a Statecraft draft is a discovery's card at a
+   * different scale, and the two dressings differ by a `weight` and the words.
+   *
+   * Every clause a card prints is `describeCard` at the level the empire would
+   * hold it — the same function the Statecraft screen prints, so a card reads
+   * identically on the offer that dealt it and in the collection afterwards.
+   * The upgrade option is the one place two levels are shown at once: it prints
+   * the *current* face and the deepened one, because "widen or deepen" is not a
+   * question a player can answer without both.
+   */
+  function showStatecraftOffer(): void {
+    const seat = controls.localPlayerId();
+    const player = playerById(game.state, seat);
+    if (!player) return;
+    const sc = player.statecraft;
+
+    if (sc.pendingOrder !== undefined) {
+      const offer = sc.pendingOrder;
+      const options: OfferOption[] = offer.options.map((id) => ({
+        title: orderDef(id).name,
+        payoff: `${SLOT_WORDS[orderDef(id).slot]} Order`,
+        note: describeCard(id).map((clause) => clause.text).join(' · '),
+        flavor: orderDef(id).flavor,
+      }));
+      const upgrade = offer.upgrade;
+      if (upgrade !== undefined) {
+        const level = sc.orders.find((owned) => owned.id === upgrade)?.level ?? 1;
+        options.push({
+          title: `${orderDef(upgrade).name} · ${level} → ${level + 1}`,
+          payoff: 'Deepen an Order you hold',
+          // Before and after, from one function at two levels: the whole of the
+          // draft's question in one line.
+          note: `${describeCard(upgrade, level).map((c) => c.text).join(' · ')}  ⟶  ${describeCard(
+            upgrade,
+            level + 1,
+          )
+            .map((c) => c.text)
+            .join(' · ')}`,
+          flavor: orderDef(upgrade).flavor,
+        });
+      }
+      offerCard.show(
+        {
+          eyebrow: `tier ${sc.drafts} · the culture meter is full`,
+          title: 'Write it into law',
+          note: 'A new Order joins your collection. Slotting it is a separate act — and a sealed one.',
+          options,
+        },
+        (index) => {
+          dispatch(game, { type: 'chooseOrder', playerId: seat, optionIndex: index });
+          controls.refresh();
+          statecraft?.refresh();
+          // A pick can uncover the next thing owed — a banked charter dealt on
+          // the same tier — so the chain is offered rather than left waiting
+          // behind a blocker the player has to press twice.
+          showStatecraftOffer();
+        },
+      );
+      return;
+    }
+
+    if (sc.pendingGovernment !== undefined) {
+      const offer = sc.pendingGovernment;
+      offerCard.show(
+        {
+          eyebrow: `tier ${offer.tier} · a charter is ready`,
+          title: 'Swear a government',
+          // The three consequences, said before the choice rather than
+          // discovered after it. This is the one irreversible pick in the game.
+          note:
+            'Adopting swaps your slot spread, lifts every seal so your Orders can be re-laid, ' +
+            'and opens a Doctrine — which is permanent.',
+          weight: 'heavy',
+          options: offer.options.map((id) => ({
+            title: governmentDef(id).name,
+            payoff: slotWords(id),
+            note: describeCard(id).map((clause) => clause.text).join(' · ') || 'No signature',
+            flavor: governmentDef(id).flavor,
+          })),
+        },
+        (index) => {
+          dispatch(game, { type: 'adoptGovernment', playerId: seat, choiceIndex: index });
+          controls.refresh();
+          statecraft?.refresh();
+          showStatecraftOffer();
+        },
+      );
+      return;
+    }
+
+    if (sc.pendingDoctrine !== undefined) {
+      const offer = sc.pendingDoctrine;
+      offerCard.show(
+        {
+          eyebrow: 'a doctrine · permanent, and slotless',
+          title: 'What this age will be remembered for',
+          note: 'A Doctrine occupies no slot and is never given up. One per government.',
+          weight: 'heavy',
+          options: offer.options.map((id) => ({
+            title: doctrineDef(id).name,
+            payoff: 'Permanent',
+            note: describeCard(id).map((clause) => clause.text).join(' · '),
+            flavor: doctrineDef(id).flavor,
+          })),
+        },
+        (index) => {
+          dispatch(game, { type: 'chooseDoctrine', playerId: seat, optionIndex: index });
+          controls.refresh();
+          statecraft?.refresh();
+        },
+      );
+    }
+  }
+
+  /** A government's spread in words: "2 military · 1 economic · 1 wildcard". */
+  function slotWords(id: GovernmentId): string {
+    const spread = governmentDef(id).slots;
+    return SLOT_TYPES.filter((type) => spread[type] > 0)
+      .map((type) => `${spread[type]} ${SLOT_WORDS[type]}`)
+      .join(' · ');
+  }
+
+  /**
    * The rolling autosave, written after every turn resolution.
    *
    * Declared before `controls` because the hook it hangs off is one of that
@@ -1351,6 +1500,7 @@ async function boot(initial: Game | null): Promise<void> {
       !landingEl.hidden ||
       (techTree?.isOpen ?? false) ||
       (abacus?.isOpen ?? false) ||
+      (statecraft?.isOpen ?? false) ||
       // The load list is the third such screen, and the only one that can be up
       // while the landing is: it handles its own Escape (see `savesPanel.ts`).
       savesPanel.isOpen ||
@@ -1363,6 +1513,11 @@ async function boot(initial: Game | null): Promise<void> {
     // End Turn's research blocker puts the chart up; it never takes it down.
     onOpenTechTree: () => techTree?.open(),
     onOfferDiscovery: showDiscoveryOffer,
+    onToggleStatecraft: () => statecraft?.toggle(),
+    // End Turn's Statecraft blocker puts the offer card up, because the offer is
+    // what is owed; the screen is where a *slot* is changed and is opened by the
+    // player rather than at them.
+    onOfferStatecraft: showStatecraftOffer,
     onTurnResolved: () => {
       // The turn is over and the next one has not been touched, which is the one
       // moment in a game where the log is a clean place to come back to. It is
@@ -1576,6 +1731,49 @@ async function boot(initial: Game | null): Promise<void> {
     onChanged: () => updatePanel(null, renderer.getHover()),
     // Two full-screen screens at one z-index is one of them being invisible.
     onOpen: () => abacus?.close(),
+  });
+
+  /**
+   * The Statecraft screen: the empire's law, laid out on the table.
+   *
+   * Declared after `controls` for `techTree`'s reason and reached back through
+   * the `statecraft` holder above. Every write it makes is a **command** — it
+   * calls `dispatch` and never touches the state — so a slot changed here is a
+   * slot changed the same way a network peer or a future AI would change one,
+   * and the sentence a refused drop shows is the reducer's own.
+   */
+  statecraft = createStatecraftScreen({
+    overlay: statecraftOverlayEl,
+    body: statecraftBodyEl,
+    closeButton: requireElement('statecraft-close'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    slot: (cardId, slotIndex) => {
+      dispatch(game, { type: 'slotOrder', playerId: controls.localPlayerId(), cardId, slotIndex });
+      controls.refresh();
+    },
+    unslot: (slotIndex) => {
+      dispatch(game, { type: 'unslotOrder', playerId: controls.localPlayerId(), slotIndex });
+      controls.refresh();
+    },
+    adopt: () => {
+      // The charter is a *card*, not a panel: the same offer surface the draft
+      // and the Doctrine use, so an irreversible choice always arrives the same
+      // way. The screen closes under it, because two modals is one of them
+      // being invisible.
+      statecraft?.close();
+      showStatecraftOffer();
+    },
+    // A refusal is guidance the player provoked, not news: the manicule line,
+    // which is what `controls.guide` writes (see its docblock).
+    onRefuse: (message) => controls.guide(`☞ ${message}`),
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      techTree?.close();
+      abacus?.close();
+    },
   });
 
   /**

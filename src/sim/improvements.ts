@@ -76,6 +76,12 @@ import { type Tile, getTileAt, tileIndex } from './map';
 import { resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
 import {
+  cardActionRule,
+  payWindfallGrants,
+  settleCultureWindfall,
+  windfallPayout,
+} from './statecraft';
+import {
   type City,
   type GameState,
   type Unit,
@@ -507,10 +513,27 @@ export function chopError(state: GameState, unitId: number): string | null {
  * order to decide whether it still has something selected.
  */
 export function chopFeatureAt(state: GameState, unit: Unit, tile: Tile): boolean {
-  const paid = chopYield(tile.feature);
-  const cost = chopDef(tile.feature)?.chargeCost ?? 1;
+  // **The printed number, riders included** (Entry XVIII.5 and `windfallPayout`).
+  // The Woodwrights makes a 20⚙ chop a 40⚙ chop — it does not multiply a 20⚙
+  // settlement afterwards — so the figure banked here is already the whole of
+  // what this empire's law says a felled wood is worth, and nothing downstream
+  // ever sees the base again.
+  const payout = windfallPayout(state, unit.ownerId, 'chop', chopYield(tile.feature).production);
+  // The Burning Way. A `freeChop` empire spends no charge at all, so a worker
+  // clearing a forest is not one job closer to being used up.
+  const cost = cardActionRule(state, unit.ownerId, 'freeChop')
+    ? 0
+    : (chopDef(tile.feature)?.chargeCost ?? 1);
   const city = chopCity(state, tile);
-  if (city) city.hammerBasket += paid.production;
+  if (city) city.hammerBasket += payout.amount;
+  const player = playerById(state, unit.ownerId);
+  if (player) {
+    payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row });
+    // The Woodwrights' ten culture may have filled the meter. A one-time grant
+    // settles its bucket the instant it lands, and culture's settlement is a
+    // draft.
+    settleCultureWindfall(state, player);
+  }
 
   tile.feature = 'none';
   refreshTileDerived(state, tile);
@@ -583,7 +606,20 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): void {
   refreshTileDerived(state, tile);
   unit.movesLeft = Math.max(0, unit.movesLeft - 1);
   const player = playerById(state, unit.ownerId);
-  if (player) player.gold += IMPROVEMENTS.pillageGold;
+  if (!player) return;
+  // Tyranny, Scorched Earth, The Burning Way, The Iron Price — four rows on one
+  // occasion, and they compose without knowing about each other because they are
+  // all riders on `windfallPayout`. The salvage is the base; the gold grants add
+  // to it as ordinary lines, and the heal is the one grant that is not a yield.
+  const payout = windfallPayout(state, player.id, 'pillage', IMPROVEMENTS.pillageGold);
+  player.gold += payout.amount;
+  payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row });
+  if (payout.heal > 0) {
+    // Capped at the type's maximum, like every other heal in the game: a raid
+    // patches a column up, it does not make it new.
+    unit.hp = Math.min(unitDef(unit.type).maxHp, unit.hp + payout.heal);
+  }
+  settleCultureWindfall(state, player);
 }
 
 // --- queries ----------------------------------------------------------------

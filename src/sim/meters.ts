@@ -76,6 +76,15 @@ import {
   resourceTierBoost,
 } from './resourceEffects';
 import { type MeterStep, RULES } from './rulesData';
+import {
+  cardAmplifier,
+  cardAuthority,
+  cardHappiness,
+  cardMeterRule,
+  cardRulePercent,
+  cardTierBoost,
+  foldCardRulePercent,
+} from './statecraft';
 import { type GameState, playerById } from './state';
 import { highestAge } from './techData';
 import { isCoastal } from './water';
@@ -167,7 +176,13 @@ function crowdingDemand(population: number): number {
  * second multiplication to be *about*.
  */
 function ruleFactor(state: GameState, playerId: number, rule: ResourceRule): number {
-  return 1 + foldRulePercent(resourceRulePercent(state, playerId, rule)) / 100;
+  // Both vocabularies, summed and applied once — additive inside the rule, the
+  // reading Entry XVII settles for a stage and the only one under which a
+  // luxury's −5% and a card's −15% read as −20% rather than as ×0.95×0.85.
+  const percent =
+    foldRulePercent(resourceRulePercent(state, playerId, rule)) +
+    foldCardRulePercent(cardRulePercent(state, playerId, rule));
+  return 1 + percent / 100;
 }
 
 /**
@@ -199,11 +214,18 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // because the two are worth the same and are lost in completely different
   // ways, and a player deciding whether to defend a hill or a town needs to know
   // which one is paying for their contentment.
+  // The Grand Bazaar reaches *into* this figure rather than beside it — the one
+  // `effectAmplifier` the vocabulary has, and the reason it is a hook at all: a
+  // card that said "+2 happiness per luxury" would be a different card, because
+  // it would not follow the luxury table when that table is retuned. Applied and
+  // floored **per line**, so five luxuries at +50% pay five rounded points
+  // rather than one rounded total.
+  const luxuryBoost = cardAmplifier(state, playerId, 'luxuryHappiness');
   for (const holding of controlledHoldings(state, playerId, 'luxury')) {
     list.push({
       source: `${resourceDef(holding.id).name} · ${viaWord(holding.id, holding.via)}`,
       part: 'gain',
-      value: rules.perUniqueLuxury,
+      value: Math.floor((rules.perUniqueLuxury * (100 + luxuryBoost)) / 100),
     });
   }
   // A luxury whose signature is *more happiness* says so on a line of its own
@@ -222,11 +244,26 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   for (const line of resourceTierBoost(state, playerId).lines) {
     list.push({ source: `${line.source} · +${line.amount}% when content`, part: 'gain', value: 0 });
   }
+  // The empire's law, in the same two shapes the luxuries use: a card that pays
+  // happiness is a line, and a card that makes contentment *worth more* is a
+  // line worth zero that says so. One evaluator reads the card vocabulary
+  // (`statecraft.ts`); this only folds what it returns.
+  for (const line of cardHappiness(state, playerId)) {
+    list.push({ source: line.source, part: 'gain', value: line.amount });
+  }
+  for (const line of cardTierBoost(state, playerId).lines) {
+    list.push({ source: `${line.source} · +${line.amount}% when content`, part: 'gain', value: 0 });
+  }
 
   // What a citizen costs, less whatever sugar and honey take off it. The factor
   // multiplies *both* demand lines, because "the happiness cost for population"
   // is the whole of what a town asks for and not only its linear half.
   const demand = ruleFactor(state, playerId, 'happinessDemand');
+  // Manifest of the Steppe's price: a flat surcharge per city, applied *outside*
+  // the demand factor because it is not a share of what a citizen asks for — it
+  // is the cost of governing one more town at all, and a Toleration Edict that
+  // discounted it would be discounting the wrong thing.
+  const perCity = cardMeterRule(state, playerId, 'cityHappinessDemand', 0);
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     list.push({
@@ -237,6 +274,9 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
     const crowding = crowdingDemand(city.population) * demand;
     if (crowding > 0) {
       list.push({ source: `${city.name} crowding`, part: 'cost', value: -crowding });
+    }
+    if (perCity > 0) {
+      list.push({ source: `${city.name} · governed`, part: 'cost', value: -perCity });
     }
   }
 
@@ -294,17 +334,27 @@ function cityAuthorityCost(
   captured: boolean,
   coastal: boolean,
   capital: boolean,
+  /**
+   * What a captured and a coastal city cost *this empire*, after whatever its
+   * Statecraft rewrote (`meterRule`). Passed in rather than looked up, because
+   * this function is deliberately free of the state — it prices a *prospective*
+   * city too, and both callers know the empire.
+   */
+  costs: { captured: number; coastal: number } = {
+    captured: METERS.authority.capturedCity,
+    coastal: METERS.authority.coastalCity,
+  },
 ): MeterContribution {
   const rules = METERS.authority;
   // Captured first, and that is the precedence rule: a seized coastal city is
   // priced as a seizure, not as a harbour. The discount is for building a port,
   // not for taking one (design ledger, Entry XIV.D.2).
   if (captured) {
-    return { source: `${name} · captured`, part: 'cost', value: -rules.capturedCity };
+    return { source: `${name} · captured`, part: 'cost', value: -costs.captured };
   }
   if (capital) return { source: `${name} · capital`, part: 'cost', value: -rules.capital };
   if (coastal) {
-    return { source: `${name} · coastal`, part: 'cost', value: -rules.coastalCity };
+    return { source: `${name} · coastal`, part: 'cost', value: -costs.coastal };
   }
   return { source: name, part: 'cost', value: -rules.foundedCity };
 }
@@ -380,7 +430,21 @@ export function explainAuthority(
   for (const line of resourceAuthority(state, playerId)) {
     list.push({ source: line.source, part: 'gain', value: line.amount });
   }
+  // And the writ it has *legislated*. Capacity like any other and its own line,
+  // never a discount on what a city costs — a card that wants cities cheaper
+  // says so with a `meterRule` instead (Hegemony, Client Kings), which is what
+  // keeps the two halves of this meter meaning what they meant.
+  for (const line of cardAuthority(state, playerId)) {
+    list.push({ source: line.source, part: 'gain', value: line.amount });
+  }
 
+  // What a seized and a harbour town cost this empire, asked once for the sweep:
+  // Hegemony and Client Kings *replace* the captured price, Thalassocracy
+  // *shifts* the coastal one, and `cardMeterRule` composes the two shapes.
+  const costs = {
+    captured: cardMeterRule(state, playerId, 'capturedCityCost', rules.capturedCity),
+    coastal: cardMeterRule(state, playerId, 'coastalCityCost', rules.coastalCity),
+  };
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     list.push(
@@ -389,6 +453,7 @@ export function explainAuthority(
         city.captured,
         isCoastalCity(state, city),
         city.id === capital?.id,
+        costs,
       ),
     );
   }
@@ -400,6 +465,7 @@ export function explainAuthority(
         false,
         isCoastal(state.map, prospect.site),
         capital === undefined,
+        costs,
       ),
     );
   }
@@ -559,7 +625,13 @@ export function meterEffects(state: GameState, playerId: number): MeterEffect[] 
   const effects: MeterEffect[] = [];
 
   const happiness = happinessOf(state, playerId);
-  const bonus = tierPercent(happiness, resourceTierBoost(state, playerId).points);
+  // Both vocabularies' tier boosts, summed: amber and Mandate of Heaven push
+  // the same rung, and a second implementation of "how many points" is how one
+  // of them silently stops counting.
+  const bonus = tierPercent(
+    happiness,
+    resourceTierBoost(state, playerId).points + cardTierBoost(state, playerId).points,
+  );
   if (bonus > 0) {
     effects.push({
       meter: 'happiness',

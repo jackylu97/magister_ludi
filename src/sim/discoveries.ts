@@ -71,6 +71,13 @@ import { isPassable } from './pathfind';
 import type { CityYieldKey } from './resourceData';
 import { nextFloat } from './rng';
 import {
+  cardOfferRule,
+  draftSettledBy,
+  payWindfallGrants,
+  settleCultureWindfall,
+  windfallPayout,
+} from './statecraft';
+import {
   type City,
   type DiscoveryOffer,
   type GameState,
@@ -288,6 +295,12 @@ export function explainDiscoveryOption(
     const player = playerById(state, playerId);
     if (player) payoff.completes = researchSettledBy(player, effect.amount);
   }
+  if (effect.pool === 'culture') {
+    const player = playerById(state, playerId);
+    // The same `planDraft` the settlement will run, so "→ tier 4" on a button is
+    // a promise the meter keeps.
+    if (player) payoff.completes = draftSettledBy(player, effect.amount);
+  }
   return payoff;
 }
 
@@ -414,10 +427,22 @@ function payDiscovery(
       warning: null,
     };
   }
-  // Culture and faith: banked, and nothing settles them because nothing spends
-  // them yet. See the module docblock — this is a stated absence, not a gap.
-  if (effect.pool === 'culture') player.culturePool += effect.amount;
-  else player.faithPool += effect.amount;
+  // Culture settles now. This is the paragraph the module docblock promised
+  // would go away: the Statecraft meter spends `culturePool`, so forgotten hymns
+  // are the culture bucket's first windfall and `settleCultureWindfall` is its
+  // completion routine (Entry XVIII's fourth bucket, same three shapes).
+  if (effect.pool === 'culture') {
+    player.culturePool += effect.amount;
+    const drafted = settleCultureWindfall(state, player);
+    return {
+      cityName: null,
+      unitName: null,
+      completed: drafted ? `tier ${drafted.tier}` : null,
+      warning: null,
+    };
+  }
+  // Faith is still banked and nothing spends it (see `Player.faithPool`).
+  player.faithPool += effect.amount;
   return { cityName: null, unitName: null, completed: null, warning: null };
 }
 
@@ -477,8 +502,28 @@ export function settleDiscovery(
   if (id === undefined || !isDiscoveryId(id)) return null;
 
   delete player.pendingDiscovery;
+  // Curious Elders' five beakers: a rider on the *claim*, paid whichever option
+  // was taken, because the card is about finding something rather than about
+  // what was found.
+  const rider = windfallPayout(state, player.id, 'discovery');
+  if (rider.grants.length > 0) {
+    payWindfallGrants(state, player, rider, { col: offer.col, row: offer.row });
+    settleCultureWindfall(state, player);
+  }
   const def = discoveryDef(id);
   const paid = payDiscovery(state, player, offer, def.effect);
+  // The Athenaeum of the Road: the other two options are paid as well. Taken
+  // after the chosen one so the announced settlement is still the card the
+  // player clicked, and so a growth or a completion resolves in the order the
+  // options were dealt — which is the order a replay reproduces.
+  if (cardOfferRule(state, player.id, 'discoveryClaimAll')) {
+    for (let i = 0; i < offer.options.length; i++) {
+      if (i === optionIndex) continue;
+      const other = offer.options[i];
+      if (other === undefined || !isDiscoveryId(other)) continue;
+      payDiscovery(state, player, offer, discoveryDef(other).effect);
+    }
+  }
   return {
     id,
     name: def.name,

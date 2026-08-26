@@ -100,6 +100,19 @@ import {
   unitById,
   wakeUnit,
 } from './state';
+import {
+  adoptGovernmentAt,
+  doctrineChoiceError,
+  governmentChoiceError,
+  orderChoiceError,
+  settleDoctrineChoice,
+  settleOrderChoice,
+  slotOrderAt,
+  slotOrderError,
+  unslotOrderAt,
+  unslotOrderError,
+} from './statecraft';
+import type { OrderId } from './statecraftData';
 import { buildError, researchError } from './tech';
 import type { TechId } from './techData';
 import { runEndOfTurn } from './turn';
@@ -487,6 +500,116 @@ export interface ChooseDiscoveryCommand extends PlayerCommand {
   optionIndex: number;
 }
 
+
+/**
+ * Takes one of the cards a Statecraft draft is offering.
+ *
+ * `chooseDiscovery`'s shape at the scale Entry XV designed it for, and the same
+ * three claims hold: the offer was **drawn once** from `state.rng` when the
+ * meter filled and stored on the player, the pick names an **index rather than
+ * an id** (an index can only ever name something the player was dealt), and both
+ * halves are in the log — so a replay deals the same hand and takes the same
+ * card.
+ *
+ * Three new cards and, when the empire owns anything, one **upgrade** as the
+ * last option: taking it deepens a card already held rather than adding one.
+ * Which it is, is not in the command — the offer knows, and a client that
+ * guessed would be a client the reducer has to second-guess.
+ *
+ * The card lands in the **collection**, never in a slot. Slotting is
+ * `slotOrder`, because it is its own decision and it costs a seal.
+ *
+ * Turn-gated like every other act, and not a trap for the same reason
+ * `chooseDiscovery` is not: the End Turn blocker will not let a seat hand over
+ * while a draft is outstanding.
+ */
+export interface ChooseOrderCommand extends PlayerCommand {
+  type: 'chooseOrder';
+  /** Which option, by position. The upgrade is last when there is one. */
+  optionIndex: number;
+}
+
+/**
+ * Puts an Order the empire holds into one of its government's slots, and
+ * **seals** it there.
+ *
+ * The seal is an *entry* lock (Entry XV): it starts when the card goes in, so a
+ * posture change is anticipated rather than reactive — which is what
+ * simultaneous turns need, since a swap made after seeing what another seat did
+ * this window would be a decision taken with information the design does not
+ * want it taken with. Length is the empire's own (`sealTurnsFor`), so The Loose
+ * Rein is felt at the moment it matters.
+ *
+ * It names the card **and** the slot, and both are load-bearing: a card may fit
+ * several slots (a wildcard takes anything), and which one it goes in decides
+ * what is left for everything else. There is deliberately no swap — an occupied
+ * slot is usually a sealed slot, and a verb that emptied one silently would be
+ * the one thing entry-locking exists to prevent.
+ *
+ * Turn-gated like every other act. A seat that has declared itself finished has
+ * finished rewriting its law.
+ */
+export interface SlotOrderCommand extends PlayerCommand {
+  type: 'slotOrder';
+  cardId: OrderId;
+  slotIndex: number;
+}
+
+/**
+ * Takes an Order back out of a slot. The card returns to the collection — it is
+ * never lost.
+ *
+ * Free once the seal has expired (Entry XV): no cost, no cooldown, no second
+ * seal on the way out, because the friction the design wants is on *committing*
+ * rather than on retreating. Refused while the seal stands, with the sentence
+ * that says how many turns are left.
+ *
+ * It names the slot rather than the card, which is `cancelOrder`'s argument: the
+ * slot is what is being emptied, and a command that named the card could
+ * disagree with the state it was meant to clear.
+ */
+export interface UnslotOrderCommand extends PlayerCommand {
+  type: 'unslotOrder';
+  slotIndex: number;
+}
+
+/**
+ * Adopts one of the three governments a tier offered. **The chapter break.**
+ *
+ * The offer is a fixed triple and it is **banked** (Entry XV: adoption is
+ * bankable), so this command may be sent turns after the tier that opened it —
+ * which is exactly why a banked government does not block End Turn. Taking it
+ * does three things in one breath, because they are one decision: the slot
+ * spread changes, **every slotted card returns to the collection unsealed** (the
+ * amnesty — Civ VI's free-swap window derived rather than ruled), and a Doctrine
+ * draft opens, drawn at this instant from `state.rng`.
+ *
+ * A choice index, never an id, for `chooseOrder`'s reason. There is no way back:
+ * Entry XV settles the open question at "a government pick cannot be revisited
+ * within a tier".
+ */
+export interface AdoptGovernmentCommand extends PlayerCommand {
+  type: 'adoptGovernment';
+  /** Which of the tier's three, by position. */
+  choiceIndex: number;
+}
+
+/**
+ * Takes one of the three Doctrines an adoption offered.
+ *
+ * Permanent, slotless, one per adoption — three per game (Entry XV.b). It is a
+ * separate command from `adoptGovernment` rather than a second field on it,
+ * because it is a separate decision made after seeing what the adoption dealt,
+ * and folding them together would mean choosing a government blind to the
+ * Doctrines it opens or choosing a Doctrine before the government is real.
+ *
+ * `chooseOrder`'s shape otherwise, refusal for refusal.
+ */
+export interface ChooseDoctrineCommand extends PlayerCommand {
+  type: 'chooseDoctrine';
+  optionIndex: number;
+}
+
 /** Every legal mutation of the game, as serializable data. */
 export type Command =
   | EndTurnCommand
@@ -504,7 +627,12 @@ export type Command =
   | ChopFeatureCommand
   | PillageCommand
   | PurchaseTileCommand
-  | ChooseDiscoveryCommand;
+  | ChooseDiscoveryCommand
+  | ChooseOrderCommand
+  | SlotOrderCommand
+  | UnslotOrderCommand
+  | AdoptGovernmentCommand
+  | ChooseDoctrineCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
@@ -1278,6 +1406,108 @@ function applyChooseDiscovery(
   return ok();
 }
 
+
+/**
+ * Takes a card. See `ChooseOrderCommand`, and `statecraft.ts` for the rules.
+ *
+ * The seat's two questions here, everything about the *offer* delegated whole to
+ * `orderChoiceError` — `applyChooseDiscovery`'s split, and the same guarantee:
+ * a refusal leaves the state byte-identical, because not one line below the
+ * validation runs until every question has been answered.
+ */
+function applyChooseOrder(state: GameState, command: ChooseOrderCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot choose an Order`);
+  }
+
+  const problem = orderChoiceError(state, actor.id, command.optionIndex);
+  if (problem) return fail(problem);
+
+  settleOrderChoice(actor, command.optionIndex);
+  return ok();
+}
+
+/**
+ * Slots a card and seals it. See `SlotOrderCommand`.
+ *
+ * `slotOrderError` is the whole of the rule and the Statecraft screen greys its
+ * slots with it, so a slot a player can drop a card on is a command this
+ * accepts, and the sentence they read on a refusal is this reducer's own.
+ */
+function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot slot an Order`);
+  }
+
+  const problem = slotOrderError(state, actor.id, command.cardId, command.slotIndex);
+  if (problem) return fail(problem);
+
+  slotOrderAt(state, actor, command.cardId, command.slotIndex);
+  return ok();
+}
+
+/** Empties a slot. See `UnslotOrderCommand`. `applySlotOrder`'s mirror. */
+function applyUnslotOrder(state: GameState, command: UnslotOrderCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot unslot an Order`);
+  }
+
+  const problem = unslotOrderError(state, actor.id, command.slotIndex);
+  if (problem) return fail(problem);
+
+  unslotOrderAt(actor, command.slotIndex);
+  return ok();
+}
+
+/**
+ * Adopts a government. See `AdoptGovernmentCommand`.
+ *
+ * The three things adoption does — the spread, the amnesty, the Doctrine draw —
+ * are all `adoptGovernmentAt`'s, because they are one decision and a reducer
+ * that did any of them itself would be a second implementation of the chapter
+ * break. This handler owns only the seat's questions.
+ */
+function applyAdoptGovernment(
+  state: GameState,
+  command: AdoptGovernmentCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot adopt a government`);
+  }
+
+  const problem = governmentChoiceError(state, actor.id, command.choiceIndex);
+  if (problem) return fail(problem);
+
+  adoptGovernmentAt(state, actor, command.choiceIndex);
+  return ok();
+}
+
+/** Takes a Doctrine. See `ChooseDoctrineCommand`. `applyChooseOrder`'s twin. */
+function applyChooseDoctrine(
+  state: GameState,
+  command: ChooseDoctrineCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot choose a Doctrine`);
+  }
+
+  const problem = doctrineChoiceError(state, actor.id, command.optionIndex);
+  if (problem) return fail(problem);
+
+  settleDoctrineChoice(actor, command.optionIndex);
+  return ok();
+}
+
 // --- reducer ----------------------------------------------------------------
 
 /**
@@ -1322,6 +1552,13 @@ function orderedUnitId(command: Command): number | undefined {
     case 'chooseResearch':
     case 'purchaseTile':
     case 'chooseDiscovery':
+    // The five Statecraft verbs name no piece at all: they are about the
+    // empire's law, and a card is not an order to a warrior.
+    case 'chooseOrder':
+    case 'slotOrder':
+    case 'unslotOrder':
+    case 'adoptGovernment':
+    case 'chooseDoctrine':
       return undefined;
     default: {
       const unhandled: never = kind;
@@ -1395,6 +1632,16 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyPurchaseTile(state, command);
     case 'chooseDiscovery':
       return applyChooseDiscovery(state, command);
+    case 'chooseOrder':
+      return applyChooseOrder(state, command);
+    case 'slotOrder':
+      return applySlotOrder(state, command);
+    case 'unslotOrder':
+      return applyUnslotOrder(state, command);
+    case 'adoptGovernment':
+      return applyAdoptGovernment(state, command);
+    case 'chooseDoctrine':
+      return applyChooseDoctrine(state, command);
     default:
       return unhandledCommand(kind, type);
   }

@@ -344,3 +344,56 @@ describe('firstBlocker · seats that are never blocked', () => {
     expect(firstBlocker(state, 1)).not.toBeNull();
   });
 });
+
+describe('firstBlocker · Statecraft', () => {
+  it('blocks on an unanswered Order draft, and stops the moment it is answered', () => {
+    const state = settled();
+    const player = state.players[0]!;
+    player.statecraft.pendingOrder = { options: ['firstRites'] };
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'statecraft', what: 'order' });
+    delete player.statecraft.pendingOrder;
+    expect(firstBlocker(state, 0)).toBeNull();
+  });
+
+  it('blocks on a Doctrine draft, and says which of the two it is', () => {
+    const state = settled();
+    state.players[0]!.statecraft.pendingDoctrine = { options: ['riverKings'] };
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'statecraft', what: 'doctrine' });
+  });
+
+  it('does NOT block on a banked government offer', () => {
+    // Entry XV makes adoption bankable on purpose — take it when your slots are
+    // worth swapping — and a blocker on it would delete the only reason banking
+    // exists. The top bar's badge is where an unclaimed triple is said instead.
+    const state = settled();
+    state.players[0]!.statecraft.pendingGovernment = {
+      tier: 3,
+      options: ['councilOfElders', 'warChief', 'priestKing'],
+    };
+    expect(firstBlocker(state, 0)).toBeNull();
+  });
+
+  it('yields to a claimed discovery, and outranks an idle unit', () => {
+    // The cost-of-forgetting order: a discovery is a boon somebody walked across
+    // the map for, a draft is a decision the empire owes, and an idle unit is a
+    // turn of movement. All three at once surfaces them in that order.
+    const state = settled();
+    state.players[0]!.statecraft.pendingOrder = { options: ['firstRites'] };
+    const idle = createUnit(state, 0, 'warrior', 3, 3);
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'statecraft', what: 'order' });
+
+    state.players[0]!.pendingDiscovery = { kind: 'ruins', col: 2, row: 2, options: [] };
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'discovery' });
+
+    delete state.players[0]!.pendingDiscovery;
+    delete state.players[0]!.statecraft.pendingOrder;
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'idleUnit', unitId: idle.id });
+  });
+
+  it('never blocks the wild on a draft it could not answer', () => {
+    const state = settled();
+    state.players[1]!.barbarian = true;
+    state.players[1]!.statecraft.pendingOrder = { options: ['firstRites'] };
+    expect(firstBlocker(state, 1)).toBeNull();
+  });
+});

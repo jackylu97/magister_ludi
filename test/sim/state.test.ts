@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { newPlayerStatecraft } from '../../src/sim/statecraft';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { RULES } from '../../src/sim/rulesData';
 import {
@@ -83,6 +84,9 @@ describe('newGame', () => {
       // wild is appended separately and only when the config asks for it (see
       // the barbarian suite).
       barbarian: false,
+      // Always present, like `techsResearched`: every seat has a government and
+      // a slot spread from turn one. See `Player.statecraft`.
+      statecraft: newPlayerStatecraft(),
     };
     expect(state.players).toEqual([
       { id: 0, name: 'Ada', color: '#e8503a', isHuman: true, ...pools },
@@ -361,6 +365,10 @@ describe('end-of-turn pipeline', () => {
       'growCities',
       'advanceProduction',
       'advanceResearch',
+      // Culture buys a draft, beside the phase that spends the other pool a
+      // resolution filled — and before `expandBorders`, whose channel it never
+      // touches. See `runStatecraft`.
+      'statecraft',
       'expandBorders',
       'healCities',
       // The wild acts after the towns and before the healing, so a raider that

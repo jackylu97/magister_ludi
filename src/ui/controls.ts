@@ -211,6 +211,7 @@ import {
   unitById,
 } from '../sim/state';
 import { type ResearchReport, researchSince, researchSnapshot } from '../sim/tech';
+import { statecraftBlocker } from '../sim/statecraft';
 import { techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import { isExplorer, unitDef } from '../sim/unitData';
@@ -482,6 +483,13 @@ export interface GameControlsOptions {
    * research" by closing the only screen that can fix it.
    */
   onOpenTechTree?: () => void;
+  /** Opens or closes the Statecraft screen. The `C` key and the culture chip. */
+  onToggleStatecraft?: () => void;
+  /**
+   * Puts whatever Statecraft owes this seat on screen. End Turn's blocker calls
+   * it, exactly as `onOfferDiscovery` is called for a claimed ruin.
+   */
+  onOfferStatecraft?: () => void;
 
   /**
    * Puts the local seat's pending discovery card in front of the player.
@@ -596,6 +604,18 @@ export interface GameControls {
    * what makes the toast and its log entry take the camera there when clicked.
    */
   announce(text: string, opts?: AnnounceOptions): void;
+
+  /**
+   * Says what to do next — the manicule line, not the chronicle.
+   *
+   * The third notice kind (`NoticeKind`), exposed for the one surface outside
+   * this file that produces guidance a player provoked: the Statecraft screen's
+   * refusals, which are the reducer's own sentences and are neither news nor a
+   * rejection of an order. It fades and never flashes, and it takes no slot in
+   * the log — a player who dropped a card on the wrong slot is not making
+   * history.
+   */
+  guide(text: string): void;
 
   /**
    * Brings one cell into view, respecting the viewer's motion preference.
@@ -843,6 +863,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onToggleAbacus,
     onOpenTechTree,
     onOfferDiscovery,
+    onToggleStatecraft,
+    onOfferStatecraft,
     onDamage,
     onVictory,
     lensOrder,
@@ -2788,6 +2810,25 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // who spent the marches giving orders has answered it already.
         const idle = endTurnBlocker();
         if (idle?.kind === 'idleUnit') focusBlocker(idle);
+        // A culture meter that filled during the resolution is **news**, and it
+        // is said rather than shown: Entry XVIII.4's rule is that a screen
+        // auto-opens only when it is already the open subject, and the card is
+        // reached by End Turn's blocker or by `C`. Without this line the only
+        // sign of a draft would be a badge nobody was looking at.
+        //
+        // A discovery is the deliberate contrast one line up (`onOfferDiscovery`
+        // in `reportArrivals`): that card opens on the spot because the player
+        // *just walked onto the ruin* and the offer is the announcement. A draft
+        // lands in a resolution the player did not aim at any particular hex, so
+        // it gets the chronicle instead of the wheel.
+        const seat = playerById(getGame().state, localPlayerId);
+        if (seat) {
+          const owed = statecraftBlocker(seat);
+          if (owed !== null) announce(`🎵 The meter is full — ${owed}.`);
+          else if (seat.statecraft.pendingGovernment !== undefined) {
+            announce('🎵 A new charter is ready to be sworn.');
+          }
+        }
         // Last, so it wins the notice line: a meter going under is rarer than a
         // waiting unit and outranks it, and the camera glide the blocker just
         // performed is the useful half of that prompt anyway.
@@ -2863,6 +2904,19 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         if (offer) panToCell({ col: offer.col, row: offer.row });
         guide('☞ A discovery awaits your judgment.');
         onOfferDiscovery?.();
+        return;
+      }
+      case 'statecraft': {
+        // No camera: the empire is the subject, exactly as it is for research.
+        // Two sentences rather than one, because the two drafts are two
+        // different weights of decision and the player should know which is up
+        // before the card lands.
+        guide(
+          blocker.what === 'order'
+            ? '☞ Your council awaits an Order.'
+            : '☞ A Doctrine awaits — and it is permanent.',
+        );
+        onOfferStatecraft?.();
         return;
       }
     }
@@ -3175,6 +3229,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       onToggleTechTree?.();
       return;
     }
+    if (event.key === 'c' || event.key === 'C') {
+      event.preventDefault();
+      onToggleStatecraft?.();
+      return;
+    }
     if (event.key === 'a' || event.key === 'A') {
       // The Abacus. Like the star chart, it takes the keyboard from here while
       // it is up, so this is only ever the way in.
@@ -3247,6 +3306,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   return {
     clearSelection,
     endTurn,
+    guide,
     endTurnBlocker,
     setLocalPlayer,
     lens: () => manualLens,

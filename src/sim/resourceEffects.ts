@@ -83,6 +83,7 @@ import {
   resourceDef,
   resourceEffects,
 } from './resourceData';
+import { cardAmplifier } from './statecraft';
 import { type City, type GameState, playerById } from './state';
 import { type TechAge, highestAge } from './techData';
 
@@ -178,7 +179,20 @@ function copiesFor(
   id: ResourceId,
   effect: ResourceEffect,
 ): number {
-  return effect.perCopy ? resourceCopies(state, playerId, id) : 1;
+  if (effect.perCopy) return resourceCopies(state, playerId, id);
+  // The Grand Bazaar's second clause, and the one place a card reaches into this
+  // vocabulary: "additional copies of a luxury count at 30%". The uniqueness rule
+  // above is unchanged — one kind counts once — and this adds a *fraction* of
+  // each further copy on top of it, so an empire with no such card multiplies by
+  // exactly 1 and every figure in this file is what it always was.
+  //
+  // Not floored here: the callers floor their own products (`lineOf`, and the
+  // meters' own arithmetic), which is what keeps "two half-coin sources pay for
+  // two halves" true one level down.
+  const duplicates = cardAmplifier(state, playerId, 'luxuryDuplicates');
+  if (duplicates === 0) return 1;
+  const extra = Math.max(0, resourceCopies(state, playerId, id) - 1);
+  return 1 + (extra * duplicates) / 100;
 }
 
 /**

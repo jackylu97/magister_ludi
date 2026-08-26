@@ -1294,7 +1294,7 @@ non-vanilla system and it lands after the vanilla loop is proven).
 
 ---
 
-## Entry XV — Statecraft: the full M12 draft spec (RATIFIED 2026-08-23; supersedes Entry II where they differ)
+## Entry XV — Statecraft: the full M12 draft spec (RATIFIED 2026-08-23; **built** 2026-08-26)
 
 Converged over one design session; playtest tunes numbers, not shapes.
 
@@ -1348,6 +1348,79 @@ reroll a mastery roll · reroll a card offer · reroll the upgrade target · bre
 
 **Open tuning:** seal length · cadence · band spillover · whether a government pick can ever
 be revisited within a tier (v1: no).
+
+### Built 2026-08-26 (playable.md item 5)
+
+The whole of it except Magister's Dice, which stay parked: a reroll is a thing you *spend*
+something on, and the currency does not exist yet — building the verb first would be
+guessing what it will cost.
+
+**What the code is.** Three files and one claim. `data/statecraft.json` holds 10
+governments, 21 live Doctrines and 65 Orders; `statecraftData.ts` types them and declares a
+**24-shape effect vocabulary**; `statecraft.ts` is the **only module in the game that reads
+a `CardEffect`**. That is `resourceEffects.ts`'s claim one scale out and it buys the same
+thing: a new card is a JSON row. Every reader in that file returns a **labelled list**, and
+every consumer folds it into a breakdown it already had — rule 5 read at the scale of a
+card, so a Doctrine's +30% is a line in the city panel's stage sum and never a
+multiplication standing beside it.
+
+**The vocabulary is generic, and where it was not it deferred.** `combatCardLine` is not
+"+3 vs barbarians" — it is *a labelled strength line under a stated condition*, and seven
+cards are rows of it. `windfallRider` covers twelve occasions through one composer. Four
+halves are annotated as unbuilt rather than bent into a shape that nearly fits (the Gilded
+Hall, Religious Mandate, the Founders' Road's roads, the courthouse prohibition); the
+register is `docs/statecraft-cards.md` and the `deferred` field on the row.
+
+**A rider is part of the printed number.** Entry XVIII.5 stands unchanged — a one-time
+grant pays its printed figure with no percentages, no meter tiers and no staging — and
+`windfallPayout` is what makes that true *and* lets The Woodwrights double a chop: it
+composes the base and every rider into one figure **before** anything is banked, so 40⚙ is
+what the preview promises, what the basket receives and what the announcement says. There
+is one such function and no path around it. Percentages on one occasion **sum** before
+multiplying once, which is Entry XVII's "additive within a stage" read at a different
+scale.
+
+**Culture is the fourth Entry XVIII bucket.** `settleCultureWindfall` closes the absence
+`discoveries.ts` had been carrying in a docblock since Entry XX ("a completion routine with
+nothing to complete"). `Player.culturePool` is the basket itself rather than a bank beside
+one — a second field would be a second answer to "how close am I", and the two would
+disagree the first time a windfall paid one of them. Border culture stays its own channel
+(`City.culture`), untouched, which is the whole of "do not double-spend".
+
+**Two questions the build had to settle.**
+
+*Recursion.* A `conditionRule` can ask about a meter, and a meter's value counts cards.
+The cut is stated in one place: **an empire condition is evaluated against a reading that
+ignores every condition-gated effect** (`conditionDepth`). Terminating, one rule, and exact
+for the content that exists — Emergency Powers asks about authority and pays in production
+and borders, neither of which is authority.
+
+*Seals are a turn, not a countdown.* `sealedUntil` is an absolute turn compared against
+`state.turn`, never a number a phase ticks. A countdown is state that has to be maintained,
+and a phase that maintains it is a phase that can be skipped, run twice or run in the wrong
+order. So "ticks seals" is a phase this system does **not** have.
+
+**Measured cadence** (seed 4242, the scripted pacing empire from `tech.test.ts`, at
+`costBase 6 / costLinear 3 / costExponent 2`): first draft **turn 7**, **6.6 turns per
+draft across drafts 1–8**, governments offered on **turns 24 / 47 / 97** against the three
+ages closing on 41 / 80 / 120 — so each government arrives a little ahead of the age it
+belongs to, which is "even turn-time between governments" holding on both ladders at once.
+
+The ~5-turn target is **not** met by that empire, and the gap is recorded rather than tuned
+away. The binding constraint is not the curve: this empire makes about **one culture a turn
+for its first thirty turns**, so *any* escalating cost yields a 6–7 turn opening cadence for
+it, and pulling the curve down far enough to hit 5 would make the mid-game cadence 2–3
+turns — a worse game than a slightly slow opening. Five turns is what a *culture-focused*
+empire gets: Boundary Stones, Land Grants and a monument-first build roughly double the
+early rate, and doubling the income halves the cadence. Entry XV's own words are that
+"culture-heavy play races them — that is culture's payoff", so a deliberately conservative
+scripted empire *should* sit above the target and a player chasing it should land on it.
+`test/sim/statecraftPacing.test.ts` pins the number and the argument together.
+
+**Open tuning that is now open with numbers behind it:** the seal at 5 turns has not been
+playtested against a real swap plan; the upgrade face is generic ×1.5 as Entry XV asked for
+v1, and a card whose deepened form should change *shape* rather than scale wants a second
+face in the data.
 
 
 ## Entry XVI — The world is two fields (mapgen rework, **built** 2026-08-23)
@@ -2167,7 +2240,7 @@ omniscient, the liberty its resource lens already takes.
 
 ---
 
-## Entry XV.b — Orders and Doctrines (RATIFIED 2026-08-25, amending Entry XV)
+## Entry XV.b — Orders and Doctrines (RATIFIED 2026-08-25, **built** 2026-08-26)
 
 The card pool splits into two classes; everything else in Entry XV stands.
 
@@ -2185,3 +2258,25 @@ The card pool splits into two classes; everything else in Entry XV stands.
 - Why not full permanence (considered, rejected): it would collapse cards into masteries,
   delete the seal/amnesty machinery and the swap skill expression, and unbound the power
   budget that slot scarcity provides. The split keeps both registers the design has wanted.
+
+**Built 2026-08-26.** The split is real in the state and nowhere else: `PlayerStatecraft`
+carries `orders` (with levels) and `slots` (with seals) for the staples, and a flat
+`doctrines` list for the benders. They share **one** `CardEffect` union and one evaluator —
+they differ in how they are *acquired and held*, and not at all in what they can say, so
+the day a signature and an Order want the same clause there is one clause.
+
+Adoption is one function (`adoptGovernmentAt`) because it is one decision: the slots array
+is **rebuilt** to the new layout rather than resized (the new government's slot 2 is not the
+old one's, so carrying anything across by index would seal the wrong card in the wrong kind
+of slot — the amnesty is therefore total by construction), and the Doctrine draft is drawn
+*at that instant* rather than at the next resolution, because a draw taken later would be a
+draw from a moved generator.
+
+Three slot types shipped, not four. The ratified table types every Order M/E/W, and a
+*diplomatic* slot with no diplomacy to spend it on would be a slot a player can only fill
+with a wildcard card. It joins the union the day the system it names exists.
+
+The interface honours the naming bible (Entry X) exactly: the screen says **Orders** and
+**Doctrines** and never "policy", "civic" or "card" at the player. The Doctrine and
+government offers wear the *same* offer card in a heavier gilt frame rather than a second
+component — same bones, same keyboard contract, one CSS rule about what gilt means.
