@@ -30,6 +30,8 @@ import {
   settleProduction,
   settleProductionWindfall,
   tileOwnerCityId,
+  tileOwnerField,
+  tileOwnerPlayerId,
   tileYieldOf,
   turnsToBuild,
   turnsToFill,
@@ -1801,6 +1803,68 @@ describe('setCityProduction', () => {
     expect(applyCommand(state, set(0, city.id, [{ kind: 'unit', id: 'settler' }]))).toEqual({
       ok: true,
     });
+  });
+});
+
+describe('the hoisted owner field', () => {
+  // The whole of `tileOwnerField` rests on one invariant — `map.tiles[i]` is the
+  // tile whose `tileIndex` is `i`, the same address `state.tileOwner` is indexed
+  // by — and `createMap` is the only place that lays the array out. Asserted
+  // here rather than assumed, because a sweep reading ownership positionally
+  // would go quietly wrong rather than loudly wrong if that ever drifted.
+  it('is indexed exactly like the map it parallels', () => {
+    const { map } = flatState(9, 7);
+    expect(map.tiles).toHaveLength(9 * 7);
+    for (let index = 0; index < map.tiles.length; index++) {
+      const tile = map.tiles[index]!;
+      expect(tileIndex(map, tile.col, tile.row)).toBe(index);
+    }
+  });
+
+  it('answers every hex exactly as the coordinate reading does', () => {
+    const state = flatState();
+    plant(state, 0, 4, 4);
+    plant(state, 1, 11, 7);
+    // Borders pushed out, so the field is asked about ground two cities took at
+    // different moments rather than about two founding rings.
+    for (const city of state.cities) city.culture = nextBorderCost(0) * 4;
+    expandBorders(state);
+
+    const field = tileOwnerField(state);
+    let owned = 0;
+    for (let index = 0; index < state.map.tiles.length; index++) {
+      const tile = state.map.tiles[index]!;
+      const byCoordinate = tileOwnerPlayerId(state, tile.col, tile.row);
+      expect(field.at(index)).toBe(byCoordinate);
+      if (byCoordinate !== null) owned += 1;
+    }
+    // The agreement above would be trivially true on an empty board.
+    expect(owned).toBeGreaterThan(0);
+  });
+
+  it('reads a stale city id as unowned, exactly as the coordinate reading does', () => {
+    const state = flatState();
+    const city = plant(state, 0, 4, 4);
+    const tile = at(state.map, 4, 4);
+    const index = tileIndex(state.map, tile.col, tile.row);
+    // A city id that names nobody: the `?? null` arm both readings share.
+    state.tileOwner[index] = city.id + 999;
+    expect(tileOwnerPlayerId(state, tile.col, tile.row)).toBeNull();
+    expect(tileOwnerField(state).at(index)).toBeNull();
+  });
+
+  it('is hoisted per sweep, so a change of hands is a fresh field away', () => {
+    // Why the lifetime is one loop: the id→owner half is resolved at the moment
+    // of hoisting, so a town that changes seat is only visible to a field built
+    // after it did. Nothing in the sim holds one past its loop; this is the
+    // property that would be broken if something started to.
+    const state = flatState();
+    const city = plant(state, 0, 4, 4);
+    const index = tileIndex(state.map, city.col, city.row);
+    expect(tileOwnerField(state).at(index)).toBe(0);
+    city.ownerId = 1;
+    expect(tileOwnerField(state).at(index)).toBe(1);
+    expect(tileOwnerPlayerId(state, city.col, city.row)).toBe(1);
   });
 });
 

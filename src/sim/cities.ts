@@ -581,9 +581,12 @@ export function hasResource(
   playerId: number,
   resourceId: ResourceId,
 ): boolean {
-  for (const tile of state.map.tiles) {
+  const owner = tileOwnerField(state);
+  const tiles = state.map.tiles;
+  for (let index = 0; index < tiles.length; index++) {
+    const tile = tiles[index]!;
     if (tile.resource !== resourceId) continue;
-    if (tileOwnerPlayerId(state, tile.col, tile.row) !== playerId) continue;
+    if (owner.at(index) !== playerId) continue;
     if (openedResource(state, tile, playerId) !== null) return true;
   }
   return false;
@@ -602,10 +605,13 @@ export function resourceCopies(
   playerId: number,
   resourceId: ResourceId,
 ): number {
+  const owner = tileOwnerField(state);
+  const tiles = state.map.tiles;
   let copies = 0;
-  for (const tile of state.map.tiles) {
+  for (let index = 0; index < tiles.length; index++) {
+    const tile = tiles[index]!;
     if (tile.resource !== resourceId) continue;
-    if (tileOwnerPlayerId(state, tile.col, tile.row) !== playerId) continue;
+    if (owner.at(index) !== playerId) continue;
     if (openedResource(state, tile, playerId) !== null) copies += 1;
   }
   return copies;
@@ -632,6 +638,12 @@ export function resourceCopies(
  * The table's order rather than discovery order, so the breakdown a player reads
  * lists their luxuries the same way twice running — iteration order that is part
  * of the answer is iteration order a replay has to reproduce.
+ *
+ * The sweep is positional (`tileOwnerField`) rather than by coordinate, and that
+ * is not a detail here: this is the most-asked question in the game — once per
+ * city per meter query, about a thousand times a turn on a forty-city empire —
+ * and asking ownership by col/row made each of those a full map's worth of
+ * column wraps and a linear scan of `state.cities` per owned hex.
  */
 export function controlledHoldings(
   state: GameState,
@@ -639,8 +651,11 @@ export function controlledHoldings(
   kind: ResourceKind,
 ): ResourceHolding[] {
   const held = new Map<ResourceId, ResourceVia>();
-  for (const tile of state.map.tiles) {
-    if (tileOwnerPlayerId(state, tile.col, tile.row) !== playerId) continue;
+  const owner = tileOwnerField(state);
+  const tiles = state.map.tiles;
+  for (let index = 0; index < tiles.length; index++) {
+    if (owner.at(index) !== playerId) continue;
+    const tile = tiles[index]!;
     const holding = openedResource(state, tile, playerId);
     if (holding === null || resourceDef(holding.id).kind !== kind) continue;
     if (held.get(holding.id) === 'improvement') continue;
@@ -716,6 +731,58 @@ export function tileOwnerPlayerId(state: GameState, col: number, row: number): n
   const cityId = tileOwnerCityId(state, col, row);
   if (cityId === null) return null;
   return cityById(state, cityId)?.ownerId ?? null;
+}
+
+/**
+ * Who owns each hex, read by **tile index** — the sweep's shape of the question
+ * `tileOwnerPlayerId` answers by coordinate.
+ *
+ * `state.tileOwner` is a parallel array over `state.map.tiles` (`row * width +
+ * col`, see the state's own docblock), so a loop that already holds an index
+ * holds the answer's address too. `tileOwnerPlayerId` cannot know that: given a
+ * col and a row it must wrap the column, find the tile, index the array, and
+ * then scan `state.cities` for the city's owner — the right answer for a caller
+ * that has coordinates and nothing else, and the wrong one four thousand times
+ * in a row. That per-hex cost was 85% of end-of-turn resolution on a forty-city
+ * empire, because the resource sweeps below run about a thousand times a turn.
+ *
+ * So the work is turned round: one pass over the *cities* — forty of them, not
+ * four thousand hexes — into an id→owner lookup, and the sweep reads ownership
+ * positionally. Unclaimed is the common answer and costs one array read.
+ *
+ * The `Map` is a **lookup, never an iteration**: nothing walks it, so no outcome
+ * can depend on its order, and every list these sweeps produce still comes out
+ * in `state.map.tiles` order exactly as before. A stale city id resolves to
+ * `null`, which is what `cityById(...)?.ownerId ?? null` already said. See
+ * `zocField` (`pathfind.ts`) for the same bargain one system over: a fact about
+ * the whole sweep, resolved once, instead of re-derived per step.
+ */
+export interface TileOwnerField {
+  /** The player owning the hex at this tile index, or `null` for unclaimed. */
+  at(index: number): number | null;
+}
+
+/**
+ * Hoists the owner reading for **one sweep**. See `TileOwnerField`.
+ *
+ * "One sweep" is the whole of its lifetime and it is not a soft rule: the
+ * id→owner half is resolved here and now, so a field that outlived the loop that
+ * built it would keep answering with a city list the state has moved past — a
+ * town founded or captured since would read as unowned or as its old seat.
+ * Nothing in the simulation holds one past its loop, and nothing should start
+ * to: hoisting is cheap (one pass over `state.cities`) precisely so that the
+ * answer to "is this still current" can always be "it was built this instant".
+ */
+export function tileOwnerField(state: GameState): TileOwnerField {
+  const owners = new Map<number, number>();
+  for (const city of state.cities) owners.set(city.id, city.ownerId);
+  return {
+    at(index: number): number | null {
+      const cityId = state.tileOwner[index];
+      if (cityId === null || cityId === undefined) return null;
+      return owners.get(cityId) ?? null;
+    },
+  };
 }
 
 /** The city standing on a tile, if any. */

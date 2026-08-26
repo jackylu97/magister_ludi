@@ -281,6 +281,18 @@ would change every seeded outcome. No further rename passes.
   also why the lock is never a zero-cost edge, which both searches' settle-once guarantee needs.
   `zocField(state, ownerId)` is hoisted once per search beside `unitDef`; building one per edge
   is the shape to avoid, not the rule.
+- **Tile ownership has two readings and a sweep asks the field.** `tileOwnerPlayerId(state, col,
+  row)` is the *coordinate-shaped* reading — one hex, resolved through `getTileAt` and a walk of
+  `state.cities` — and it is fine from a verb. `tileOwnerField(state)` (`cities.ts`, beside it) is
+  the *sweep-shaped* one: the id→owner half hoisted once by a pass over the forty cities, answered
+  **by tile index** because `state.tileOwner` is a parallel array over `map.tiles` and a loop
+  already holds the address. A loop over the whole map that asked the coordinate reading per hex
+  was 4.5 million calls a turn and 85% of a forty-city end of turn; `hasResource`,
+  `resourceCopies` and `controlledHoldings` now ask the field. Its lifetime is **one sweep** —
+  `zocField`'s bargain — because a field that outlived its loop would answer with a city list the
+  state has moved past. `isFrontierCity` (`statecraft.ts`) is the one map-wide loop still on the
+  coordinate reading; it is off the profile only because no fixture adopts a frontier card.
+
 - **A resource pays only an empire that can name it.** `requiresTech` gates three things
   through one rule (`resourceIsVisibleTo`): the *label* (`visibleResourceAt`), *access*
   (`openedResource`), and the **yield** — `explainTileYield` omits the resource line for a
