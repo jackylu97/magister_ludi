@@ -26,6 +26,11 @@
   --ink: #1d1a20;
   --ink-soft: #56505a;
   --ink-faint: rgba(29, 26, 32, 0.42);
+  /* The ledger's rule: the lightest ink this interface draws with, and the only
+     one whose job is to *separate* rather than to say anything. Every hairline
+     between two entries of a breakdown is this, so tuning how ruled a ledger
+     looks is one number (art pass A4). */
+  --rule: rgba(29, 26, 32, 0.14);
   --parchment: #f7f2e1;
   --table: #e9e2cf;
 
@@ -504,7 +509,10 @@ body {
    rather than order, so moving either block cannot bring the bug back. The same
    trick `#hud-popovers > .hud-card` uses for the popover column. */
 .hud-card.landing-card {
-  position: static;
+  /* `relative` rather than `static` — see the note on `#hud-meters > .hud-card`.
+     It cancels the fixed positioning the same way and anchors the corner star. */
+  position: relative;
+  z-index: auto;
   padding: 14px 16px 16px;
 }
 
@@ -845,7 +853,12 @@ body {
 }
 
 #hud-meters > .hud-card {
-  position: static;
+  /* `relative`, not `static`: it cancels `.hud-card`'s `fixed` exactly as
+     `static` did and lays out identically, and it is what the corner star's
+     pseudo-element anchors to. `z-index: auto` keeps the stacking as `static`
+     left it, so the column paints in DOM order as it always has. */
+  position: relative;
+  z-index: auto;
   pointer-events: auto;
 }
 
@@ -994,7 +1007,12 @@ body {
 }
 
 #hud-popovers > .hud-card {
-  position: static;
+  /* `relative`, not `static`: it cancels `.hud-card`'s `fixed` exactly as
+     `static` did and lays out identically, and it is what the corner star's
+     pseudo-element anchors to. `z-index: auto` keeps the stacking as `static`
+     left it, so the column paints in DOM order as it always has. */
+  position: relative;
+  z-index: auto;
   pointer-events: auto;
 }
 
@@ -2147,7 +2165,12 @@ kbd {
 }
 
 #hud-dock-popovers > .hud-card {
-  position: static;
+  /* `relative`, not `static`: it cancels `.hud-card`'s `fixed` exactly as
+     `static` did and lays out identically, and it is what the corner star's
+     pseudo-element anchors to. `z-index: auto` keeps the stacking as `static`
+     left it, so the column paints in DOM order as it always has. */
+  position: relative;
+  z-index: auto;
   pointer-events: auto;
 }
 
@@ -6388,4 +6411,589 @@ kbd {
 .rel-rite-say {
   margin: 0 0 2px;
   font-size: 13px;
+}
+
+/* ===========================================================================
+   THE FLOURISH SET
+   ===========================================================================
+   Entry VII capped and ratified a list of ornaments and then the light-theme
+   ruling kept it: wax-seal turn stamp · star-chart tech tree · manicule notices
+   · Roman numerals · **one corner star per panel** · **card-back weave** ·
+   **gold double-frames on announcement surfaces** · **letterspaced small-cap
+   inscriptions**. The first four shipped with the surfaces they belong to. The
+   last four are here, and they are here *together* because they are one
+   register — the engraved apparatus — rather than four unrelated tweaks.
+
+   Nothing below renames anything or moves anything. Every rule in this section
+   either paints in a gutter, replaces a border with two thinner ones, or adds
+   letter-spacing. If a rule here were deleted the interface would still work
+   and still say exactly the same words.
+   =========================================================================== */
+
+/* --- inscriptions ---------------------------------------------------------
+   Letterspaced small caps, in the serif the surface already sets.
+
+   The one lever, so it can be tuned in one place: `--inscription-tracking`.
+   Engraved caps need air between them — the whole reason a stone-cutter's
+   lettering is tracked is that a capital has no descender to space it — and the
+   right amount is a matter of a hundredth of an em, which is exactly the sort
+   of number that gets forked into six different values if each surface owns it.
+
+   `font-variant-caps: small-caps` first, `font-size` untouched: Fraunces and
+   Instrument Serif both carry real small caps, and a face that does not gets
+   the browser's synthesised pair, which at these sizes is indistinguishable
+   from the drawn one. Nothing is upper-cased in the markup, so the *words* are
+   unchanged and a screen reader still reads "Orders & Doctrines".
+
+   Applied by class, and by a selector list naming the three screen titles that
+   already existed — they are the class's whole first cohort, and adding the
+   token to their markup would have been three edits to say one thing. */
+:root {
+  --inscription-tracking: 0.09em;
+}
+
+.inscription,
+.statecraft-title,
+.tech-title,
+.abacus-title {
+  font-variant-caps: small-caps;
+  letter-spacing: var(--inscription-tracking);
+}
+
+/* The eyebrow family is *already* an inscription — mono, uppercase, tracked —
+   and was before there was a word for it. What it lacked was one number: the
+   four surfaces had drifted to four tracking values. They keep their own
+   sizes and inks (a gilt era band and a vermilion popover title are saying
+   different things) and share the tracking from here on. */
+.eyebrow,
+.popover-title,
+.tech-era,
+.marquee-stamp {
+  letter-spacing: calc(var(--inscription-tracking) * 1.7);
+}
+
+/* --- the corner star ------------------------------------------------------
+   One small drawn star at one corner of every panel-class surface.
+
+   `.hud-card` is the shared panel recipe (see its own block above), so this is
+   one rule and it reaches the lens card, the meter cards, both popover columns
+   and the landing's setup card. The picture is path data —
+   `src/ui/deviceMarks.ts`, printed through the same `markSvg` emitter as every
+   resource, yield, site and card mark — arriving as `--corner-star` on the
+   document root, because a pseudo-element has no `style` object for a module to
+   write a mask onto. It masks `currentColor`, so the star is the panel's own
+   ink and needs no second colour for a card drawn on ink.
+
+   Top-left, everywhere, for one reason and one convention. The reason: the
+   right-hand corners are where close buttons live and the bottom of a card is
+   where its longest sentence ends. The convention: a printer's ornament sits at
+   the head of the block it opens.
+
+   It sits in the padding gutter — the star's box is 10px from the padding
+   edge and the content box begins at 12px — so it never overlaps a word.
+
+   Two surfaces are exempt, each for a reason worth stating rather than a taste.
+   `.saves-sheet` is the one `.hud-card` that scrolls its own content, and an
+   absolutely-positioned ornament inside a scroller travels with the content
+   instead of staying on the corner — a star that slides down the page as you
+   look for a save is worse than no star. `.research-card` is not a rectangle:
+   it is a pill with a 999px radius on its dial end, so its box's top-left
+   corner is a good 20px outside the shape a player can see, and the star drew
+   in mid-air beside it. It is also, of the ten, the one surface that is already
+   an instrument rather than a panel. */
+.hud-card:not(.saves-sheet):not(.research-card)::after {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 10px;
+  height: 10px;
+  opacity: 0.32;
+  background-color: currentColor;
+  -webkit-mask-image: var(--corner-star);
+  mask-image: var(--corner-star);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  pointer-events: none;
+  content: '';
+}
+
+/* --- the gold double-frame -----------------------------------------------
+   Two hairline gilt rules with a gap between them, inside the surface's own ink
+   border. Entry VII's own words, and its own restriction: **announcement
+   surfaces only**. A turn card, a discovery, a victory. Never an ordinary
+   panel — the frame is what makes the four announcements in this game read as
+   proclamations rather than as another card, and a game where everything is
+   framed in gold has framed nothing.
+
+   Two pseudo-elements rather than a stack of `box-shadow` rings, because the
+   gap has to be *the surface showing through* and a shadow layer has to be
+   painted in some colour. The turn card is vermilion, the discovery is ink and
+   the victory card is ink with a vermilion shadow; one recipe, three grounds.
+
+   The turn splash is the whole cohort today (`.turn-splash` and its three
+   dresses). `.gilt-frame` is the class an age plate or a wonder announcement
+   joins by wearing, when there is one. */
+.gilt-frame,
+.turn-splash {
+  position: relative;
+}
+
+.gilt-frame::before,
+.turn-splash::before,
+.gilt-frame::after,
+.turn-splash::after {
+  position: absolute;
+  border: 1px solid var(--gilt);
+  border-radius: 4px;
+  pointer-events: none;
+  content: '';
+}
+
+.gilt-frame::before,
+.turn-splash::before {
+  inset: 3px;
+}
+
+.gilt-frame::after,
+.turn-splash::after {
+  inset: 6px;
+  opacity: 0.7;
+}
+
+/* The victory card is bigger than everything else in the game and its frame
+   scales with it: the same two rules, one step further in, so the proportion
+   between the gap and the surface stays the one the turn card sets. */
+.turn-splash.is-victory::before {
+  inset: 5px;
+}
+
+.turn-splash.is-victory::after {
+  inset: 9px;
+}
+
+/* The seat hop is housekeeping and deliberately half the volume of everything
+   else on this element (see `.turn-splash.is-seat`). It gets one rule, not two:
+   a double frame at that size closes into a gold band. */
+.turn-splash.is-seat::after {
+  display: none;
+}
+
+/* --- the ledger -----------------------------------------------------------
+   Every rule-5 breakdown, set the way an account is set.
+
+   Rule 5 says a total is the fold of a printed list and never a second sum
+   computed beside it. This is that rule's *visual* half, and the convention it
+   borrows is the oldest one there is: entries ruled off from one another, the
+   figures in a tabular column, and the accountant's **double rule under the
+   total** — two hairlines, two pixels apart, which is the mark that says "this
+   is a sum, and it is closed".
+
+   One class each, `.ledger` for the list and `.ledger-total` for the closing
+   row, applied by whichever renderer builds the surface. The three breakdown
+   lists that pre-date the class are named alongside it rather than being
+   edited: `.meter-lines` (the meter cards and the yield strip's hover cards),
+   `.yield-lines` (the tile readout) and `.city-modifiers` (the city panel's
+   two-stage modifier ledger) are the same object under three names, and this is
+   where they finally agree about what one looks like. */
+.ledger {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The hairline between two entries, and nowhere else: not above the first and
+   not below the last, because the rules that close a ledger are the total's
+   own and a stray third one under the last entry reads as a total that is
+   missing its figure. */
+.ledger > li + li,
+.meter-lines > li + li,
+.yield-lines > li + li,
+.city-modifiers > li + li {
+  border-top: 1px solid var(--rule);
+}
+
+/* A stage heading is a fresh block, not another entry — it gets the ink rule it
+   already had rather than the hairline (see `.city-modifier.is-stage`). */
+.city-modifiers > li.is-stage + li {
+  border-top: 0;
+}
+
+/* The closing row. One rule above it separates the sum from its summands — the
+   surfaces that had one keep it — and two below it close the account.
+
+   The second hairline is drawn by the pseudo-element rather than by a second
+   border, because the two have to be exactly 2px apart at every zoom and a
+   margin between two bordered boxes is subject to collapsing. */
+.ledger-total {
+  position: relative;
+  padding-bottom: 3px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--ink);
+}
+
+.ledger-total::after {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  border-top: 1px solid var(--ink);
+  pointer-events: none;
+  content: '';
+}
+
+/* `.meter-total` already carried its own ink rule above; wearing `.ledger-total`
+   as well it must not also carry the *bottom* one twice. Nothing to undo — the
+   two rules compose — but the row needs the room the double rule takes. */
+.meter-total.ledger-total {
+  margin-bottom: 7px;
+}
+
+/* --- the card back --------------------------------------------------------
+   A deck deals face-down, and until this pass this one did not have a back.
+
+   The Statecraft draft, the discovery and the belief offer all go through
+   `offerCard.ts`, and a card with an emblem wears the tall tarot face there
+   (`[data-face='tarot']`) — which is exactly the set of cards that belongs to a
+   *deck* rather than to an occasion. So the back is dealt on those and nowhere
+   else, and one implementation covers the Orders, the gods and everything the
+   two systems draft later.
+
+   The weave is two crossed sets of hairlines in ink on parchment — a plate
+   engraver's cross-hatch, at the one density where it reads as a texture rather
+   than as a moiré. Every back is identical, which is the whole point of a back:
+   the emblem is the neutral lozenge seal (`CARD_LINE_MARKS.none`), never the
+   card's own line, because a back that told you what it was hiding is not a
+   back. */
+.card-back {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--gilt);
+  border-radius: inherit;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(29, 26, 32, 0.11) 0 1px,
+      rgba(29, 26, 32, 0) 1px 7px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(29, 26, 32, 0.11) 0 1px,
+      rgba(29, 26, 32, 0) 1px 7px
+    ),
+    var(--parchment);
+  /* The face's own children are `position: relative; z-index: 1` on a tarot
+     card; the back is the one child that covers them. */
+  z-index: 2;
+}
+
+/* The inner gilt rule — the tarot face's own ornament, kept on the back so the
+   two sides of a card are the same object. */
+.card-back::before {
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--gilt);
+  border-radius: 3px;
+  opacity: 0.55;
+  content: '';
+}
+
+/* The emblem, centred and quiet. Ink rather than `currentColor`: a tarot card
+   sets `color` to its own line's accent, and a back that took it would deal
+   four differently-coloured backs. */
+.card-back::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 46px;
+  height: 46px;
+  transform: translate(-50%, -50%);
+  opacity: 0.28;
+  background-color: var(--ink);
+  -webkit-mask-image: var(--card-back-emblem);
+  mask-image: var(--card-back-emblem);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  content: '';
+}
+
+/* The back overrides the tarot face's blanket rule for its own children. */
+.offer-options[data-face='tarot'] .offer-option > .card-back {
+  position: absolute;
+  z-index: 2;
+}
+
+/* The deal: each card comes over on its own beat.
+
+   A real rotation about the card's own vertical axis, which is why the row
+   carries the perspective and the card carries `preserve-3d`. For the first
+   half of the turn the card is facing away, and everything on its face is
+   hidden by `backface-visibility` — so the parchment weave is all there is to
+   see until the card comes round.
+
+   The stagger is `--deal-delay`, written per card by `offerCard.ts` from its
+   own index: a hand dealt all at once is a hand that appeared, and the whole
+   reason to have a back is that a card is *turned over*. */
+.offer-option.is-dealing {
+  transform-style: preserve-3d;
+  animation: card-deal 420ms ease-out var(--deal-delay, 0ms) both;
+}
+
+.offer-option.is-dealing > *:not(.card-back) {
+  backface-visibility: hidden;
+}
+
+.offer-option.is-dealing > .card-back {
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+}
+
+.offer-options {
+  perspective: 1400px;
+}
+
+@keyframes card-deal {
+  from {
+    transform: rotateY(180deg);
+  }
+  to {
+    transform: rotateY(0deg);
+  }
+}
+
+/* Reduced motion never sees a back at all — `offerCard.ts` does not deal one.
+   This is the belt to that braces: a card that somehow arrived face-down with
+   motion off is face-up on the first frame. */
+@media (prefers-reduced-motion: reduce) {
+  .offer-option.is-dealing {
+    animation: none;
+  }
+
+  .offer-option.is-dealing > .card-back {
+    display: none;
+  }
+}
+
+/* --- the frontispiece -----------------------------------------------------
+   The landing screen as a title page (art pass A2).
+
+   Generous margins, a hairline double rule under the title, the printer's
+   device beneath it and an epigraph in the margin. Every word on the page is
+   the one that was already there; the device and the epigraph are the additions
+   and the epigraph is the only new copy. */
+.marquee {
+  padding: 38px 30px 28px;
+}
+
+/* The double rule: two hairlines with air between them, the frontispiece's own
+   version of the ledger's closing mark. Its width is a proportion of the card
+   rather than a length, so it reads as a *rule under a title* at every one of
+   the three sizes `.marquee-title` clamps to. */
+.double-rule {
+  width: 58%;
+  height: 3px;
+  margin: 0 auto;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  opacity: 0.55;
+}
+
+.marquee-rule {
+  margin-top: 16px;
+}
+
+/* The printer's device: an astrolabe, drawn as path data and worn as a mask, so
+   it takes the page's ink like every other mark in the game. */
+.marquee-device {
+  display: block;
+  width: 46px;
+  height: 46px;
+  margin: 14px auto 0;
+  opacity: 0.72;
+  background-color: var(--ink);
+  -webkit-mask-image: var(--device-mark);
+  mask-image: var(--device-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* The epigraph, in the display face's italic — the voice a title page sets a
+   motto in, and the same italic the subtitle above it already uses. Quiet:
+   it is a thing to notice, not a thing to read before pressing Start. */
+.marquee-epigraph {
+  margin: 12px auto 0;
+  /* Wide enough that the shortest four sit on one line and the longest breaks
+     after its dash, which is where a motto with a gloss wants to break. */
+  max-width: 36ch;
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+
+.marquee-epigraph:empty {
+  display: none;
+}
+
+/* --- the pantheon wheel ---------------------------------------------------
+   The belief pool as a horoscope wheel (art pass A5).
+
+   The axis names came off this screen a week ago, deliberately, and the wheel
+   is how they come back as *geometry*: gods of one thread sit in adjacent
+   houses, so a second god on your thread is findable without a word being
+   printed. The arithmetic — which house, at what angle, in which run — is
+   `src/ui/pantheonWheel.ts` and is pinned by its own test; everything here is
+   how the two states of a house look.
+
+   Two states and no third. **Lit**: this seat holds that god — the house takes
+   a gilt wash, its rule is the axis's own ink and the glyph is set in ink.
+   **Outline**: it does not — a hairline house and a ghosted glyph. A player
+   reading the wheel is reading a filled arc against an empty one, which is the
+   one comparison that survives being glanced at. */
+.rel-wheel-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 18px;
+  margin-top: 6px;
+}
+
+.rel-wheel {
+  flex: none;
+  width: 236px;
+  height: 236px;
+  overflow: visible;
+}
+
+.rel-wheel-houses {
+  /* The houses are hover targets and nothing else — the tooltip is the
+     platform's own, off an SVG <title>, which is what the slot cards already
+     use to name a god. */
+  cursor: default;
+}
+
+/* A house's own edge is the *lightest* line on the wheel, and that is
+   load-bearing rather than taste: the seam between two houses of one axis and
+   the seam between two axes are drawn by two different rules, and if they land
+   at the same weight the wheel reads as eighteen unrelated slices and says
+   nothing at all about adjacency. House edges are the ledger's hairline; the
+   seam between runs is `.rel-wheel-spoke`, twice as heavy and in full ink. */
+.rel-house-face {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 0.7;
+  transition: fill 120ms ease;
+}
+
+.rel-house.is-held .rel-house-face {
+  fill: color-mix(in srgb, var(--gilt) 28%, var(--parchment));
+  stroke: var(--line-ink, var(--ink));
+  stroke-width: 1.5;
+}
+
+.rel-house:hover .rel-house-face {
+  fill: color-mix(in srgb, var(--line-ink, var(--ink)) 12%, var(--parchment));
+}
+
+.rel-house.is-held:hover .rel-house-face {
+  fill: color-mix(in srgb, var(--gilt) 42%, var(--parchment));
+}
+
+/* The glyph in the house: the axis mark this screen already draws on a card
+   (`AXIS_MARK`), at wheel scale. Ghosted when the god is unnamed — present
+   enough that the wheel reads as a full sky, faint enough that what you hold
+   is the thing you see. */
+/* Sized in **user units**, not screen pixels: the wheel's viewBox is 100 wide
+   and the element is 236px, so every length inside the SVG is scaled by 2.36 on
+   its way to the screen. Writing "13px" here draws a 31px glyph, which is the
+   mistake this comment exists to stop somebody making twice.
+
+   `grayscale` is the one thing this drawing does that the rest of the interface
+   does not have to: the axis marks are **glyphs**, and four of the ten arrive
+   from the platform as full-colour emoji (`lineMarks.ts` opens with exactly
+   this complaint). One or two of them on a card is the text register doing its
+   job; eighteen of them in a ring is a bag of stickers. Desaturating puts the
+   whole wheel back in one ink without the screen needing ten new drawings — and
+   when a belief ever gets a drawn mark of its own, this line is what it
+   replaces. */
+.rel-house-glyph {
+  font-size: 5.6px;
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: var(--ink-faint);
+  filter: grayscale(1) contrast(1.2);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.rel-house.is-held .rel-house-glyph {
+  fill: var(--ink);
+  opacity: 1;
+}
+
+/* The rule between two runs: a spoke on the seam where one axis stops and the
+   next begins. This is the only thing on the wheel that says an axis exists,
+   and it says it without a word — which was the point. */
+.rel-wheel-spoke {
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  opacity: 0.45;
+}
+
+.rel-wheel-rim {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+/* The hub: how many places at the fire are open, as a figure. No words that are
+   not already on the screen — the eyebrow above the wheel says "pantheon" and
+   the figure says the rest.
+
+   HOOK (heraldry, art pass W2): when a seat carries a drawn charge, the hub is
+   where it goes — behind this figure, at low contrast, so the wheel is visibly
+   *this empire's* sky. Nothing here reads a seat's colour yet. */
+.rel-wheel-hub {
+  fill: var(--parchment);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.rel-wheel-count {
+  font-family: var(--face-num);
+  font-size: 8.5px;
+  font-variant-numeric: tabular-nums;
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: var(--y-faith);
+}
+
+.rel-wheel-of {
+  font-family: var(--face-ui);
+  font-size: 3.1px;
+  letter-spacing: calc(var(--inscription-tracking) * 1.7);
+  text-transform: uppercase;
+  text-anchor: middle;
+  dominant-baseline: central;
+  fill: var(--ink-faint);
+}
+
+/* The slot cards keep their place, beside the wheel: the wheel is the *pool*
+   and a slot card is a god's face, and a player wants both — where a god sits
+   in the sky, and what it actually does. */
+.rel-wheel-row .rel-slot-row {
+  flex: 1 1 340px;
+  margin-top: 0;
 }

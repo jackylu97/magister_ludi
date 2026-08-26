@@ -57,10 +57,12 @@ import {
   type BeliefAxis,
   type BeliefId,
   type RiteId,
+  BELIEF_IDS,
   RELIGION,
   beliefDef,
   riteDef,
 } from '../sim/religionData';
+import { housePath, pantheonWheelLayout, wheelPoint } from './pantheonWheel';
 import { describeCard } from '../sim/statecraft';
 import { type GameState, playerById } from '../sim/state';
 import { gatingTech } from '../sim/tech';
@@ -140,6 +142,45 @@ function axisMarkNode(axis: BeliefAxis): HTMLElement {
   return span;
 }
 
+// --- the wheel --------------------------------------------------------------
+
+/**
+ * The wheel's own dimensions, in the SVG's 100×100 user space.
+ *
+ * Written once here rather than at each call site because the four of them are
+ * a *proportion* and not four independent numbers: the houses are the ring
+ * between `INNER` and `OUTER`, the hub has to clear the ring by enough that the
+ * figure in it never touches a glyph, and the glyph rides the middle of the
+ * band. Changing the look of the wheel is changing these four.
+ */
+const WHEEL = { centre: 50, outer: 46, inner: 29, hub: 21 } as const;
+
+/** An SVG element, with a class. `element`'s twin one namespace over. */
+function svgNode<K extends keyof SVGElementTagNameMap>(
+  tag: K,
+  className?: string,
+): SVGElementTagNameMap[K] {
+  const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  if (className !== undefined) node.setAttribute('class', className);
+  return node;
+}
+
+/**
+ * What the platform's tooltip says about a house.
+ *
+ * The same sentence the slot card carries (`drawBeliefFace` sets `title` to the
+ * name) with the clauses after it, and the clauses come from `describeCard` —
+ * the one function that says what a card does, the same one the offer that
+ * deals this god will print. A wheel that paraphrased would be a second
+ * vocabulary for the same rules, which is the thing this file's docblock is
+ * about.
+ */
+function houseTooltip(id: BeliefId): string {
+  const def = beliefDef(id);
+  const clauses = describeCard(id).map((clause) => clause.text);
+  return clauses.length === 0 ? def.name : `${def.name} — ${clauses.join(' · ')}`;
+}
+
 /**
  * One belief's face: what it is in the eyebrow, the glyph, the name, the
  * clauses, the flavour at the foot.
@@ -203,12 +244,117 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   }
 
   /**
-   * The pantheon: one card-shaped place per slot, filled or outlined.
+   * The pool as a wheel: one house per god, runs of an axis adjacent.
    *
-   * The Statecraft slot row's idiom, and the same argument for it — a row of
+   * The axes have no printed name any more (`AXIS_MARK`, "deliberate"), and
+   * this is where they come back as **geometry**: gods of one thread occupy
+   * adjacent houses, so a second god on your thread is findable without a word.
+   * The arithmetic is `pantheonWheelLayout` — pure, and pinned by
+   * `test/ui/pantheonWheel.test.ts`, because "which house, at what angle, in
+   * which run" is the half of a drawing no screenshot catches.
+   *
+   * Every god in the table gets a house, held or not, and the wheel never
+   * reorders: consecrating one lights its house and moves nothing. A ring that
+   * rearranged as it filled would be a sky a player could never learn.
+   *
+   * Two states and no third — lit, or outlined. The hub carries the same figure
+   * the eyebrow above it does, because there is exactly one answer to "how many
+   * places are open" and two places to read it should not be two numbers.
+   */
+  function drawWheel(state: GameState, seat: number, slots: number): SVGElement {
+    const player = playerById(state, seat);
+    const held = new Set<BeliefId>(player?.pantheon.beliefs ?? []);
+    const { centre, outer, inner, hub } = WHEEL;
+    const svg = svgNode('svg', 'rel-wheel');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    // Decoration with a text equivalent beside it: the eyebrow says how many
+    // gods of how many places, and each house's own name is on its slot card.
+    // A reader walked through eighteen unlabelled arcs would be worse served.
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+
+    const layout = pantheonWheelLayout(BELIEF_IDS);
+    const houses = svgNode('g', 'rel-wheel-houses');
+    for (const house of layout.houses) {
+      const group = svgNode('g', held.has(house.id) ? 'rel-house is-held' : 'rel-house');
+      // The accent resolves through `style.css`'s `[data-axis]` block, exactly
+      // as a slot card's does — one fact about one god, one colour, wherever it
+      // is drawn.
+      group.setAttribute('data-axis', house.axis);
+      const title = svgNode('title');
+      title.textContent = houseTooltip(house.id);
+      group.append(title);
+      const face = svgNode('path', 'rel-house-face');
+      face.setAttribute(
+        'd',
+        housePath(centre, centre, inner, outer, house.startAngle, house.endAngle),
+      );
+      group.append(face);
+      const seat2 = wheelPoint(centre, centre, (inner + outer) / 2, house.midAngle);
+      const glyph = svgNode('text', 'rel-house-glyph');
+      glyph.setAttribute('x', String(Math.round(seat2.x * 100) / 100));
+      glyph.setAttribute('y', String(Math.round(seat2.y * 100) / 100));
+      glyph.textContent = AXIS_MARK[house.axis].glyph;
+      group.append(glyph);
+      houses.append(group);
+    }
+    svg.append(houses);
+
+    // The seams. One spoke where a run ends, and none inside a run: the whole
+    // claim the wheel makes is that these three houses are one thing.
+    for (const sector of layout.sectors) {
+      const a = wheelPoint(centre, centre, inner, sector.startAngle);
+      const b = wheelPoint(centre, centre, outer, sector.startAngle);
+      const spoke = svgNode('line', 'rel-wheel-spoke');
+      spoke.setAttribute('x1', String(a.x));
+      spoke.setAttribute('y1', String(a.y));
+      spoke.setAttribute('x2', String(b.x));
+      spoke.setAttribute('y2', String(b.y));
+      svg.append(spoke);
+    }
+
+    for (const radius of [outer, inner]) {
+      const rim = svgNode('circle', 'rel-wheel-rim');
+      rim.setAttribute('cx', String(centre));
+      rim.setAttribute('cy', String(centre));
+      rim.setAttribute('r', String(radius));
+      svg.append(rim);
+    }
+
+    const disc = svgNode('circle', 'rel-wheel-hub');
+    disc.setAttribute('cx', String(centre));
+    disc.setAttribute('cy', String(centre));
+    disc.setAttribute('r', String(hub));
+    svg.append(disc);
+
+    const count = svgNode('text', 'rel-wheel-count');
+    count.setAttribute('x', String(centre));
+    count.setAttribute('y', String(centre - 2));
+    count.textContent = `${held.size}/${slots}`;
+    svg.append(count);
+    // The word under the figure is one the screen already prints (the eyebrow
+    // above the wheel says "pantheon"): the hub names what it is counting and
+    // introduces no vocabulary of its own.
+    const word = svgNode('text', 'rel-wheel-of');
+    word.setAttribute('x', String(centre));
+    word.setAttribute('y', String(centre + 7));
+    word.textContent = 'pantheon';
+    svg.append(word);
+    return svg;
+  }
+
+  /**
+   * The pantheon: the wheel, and one card-shaped place per slot beside it.
+   *
+   * The slot row is the Statecraft idiom and the same argument for it — a row of
    * slots is a row of *places a thing goes*, and the shape says so before any of
    * the words are read. What differs is that a god never comes back out, so
    * there is nothing to click: these are `article`s, not buttons.
+   *
+   * The wheel does not replace them, and the two are not the same picture: the
+   * wheel is the **pool** — where a god sits in the sky and what it is next to —
+   * and a slot card is a god's **face**, which is what it actually does. A
+   * player wants both, so they sit side by side.
    */
   function drawPantheon(state: GameState, seat: number): HTMLElement {
     const block = element('section', 'rel-pantheon');
@@ -218,6 +364,9 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     block.append(
       element('p', 'eyebrow sc-eyebrow', `pantheon · ${held.length} of ${slots}`),
     );
+    const wheelRow = element('div', 'rel-wheel-row');
+    wheelRow.append(drawWheel(state, seat, slots));
+    block.append(wheelRow);
     if (slots === 0) {
       block.append(
         element(
@@ -241,7 +390,9 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       }
       row.append(card);
     }
-    block.append(row);
+    // Beside the wheel, not under it: the sky and the faces are two readings of
+    // one pantheon and belong on one line.
+    wheelRow.append(row);
     // Gods held beyond the slots the tree currently opens: only reachable from a
     // hand-edited save, and drawn rather than hidden, because a god you hold is
     // a god that pays.
@@ -264,14 +415,14 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
 
   /** The price, line by line — rule 5 for a thing you buy. */
   function drawPrice(price: PurchasePrice): HTMLElement {
-    const list = element('ul', 'rel-price');
+    const list = element('ul', 'rel-price ledger');
     for (const line of price.lines) {
       const item = element('li', 'rel-price-line');
       item.append(element('span', 'meter-line-source', line.source));
       item.append(element('span', 'meter-line-value', String(line.amount)));
       list.append(item);
     }
-    const total = element('li', 'rel-price-line rel-price-total');
+    const total = element('li', 'rel-price-line rel-price-total ledger-total');
     total.append(element('span', 'meter-line-source', 'to call one'));
     total.append(element('span', 'meter-line-value', `${price.total} ${price.currency}`));
     list.append(total);

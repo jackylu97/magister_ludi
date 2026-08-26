@@ -340,14 +340,14 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     if (banked) {
       const player = playerById(state, playerId);
       if (player) {
-        const onHand = element('div', 'meter-total');
+        const onHand = element('div', 'meter-total ledger-total');
         onHand.append(element('span', 'meter-line-source', banked.line));
         onHand.append(element('span', 'meter-line-value', figure(banked.pool(player))));
         box.append(onHand);
       }
     }
 
-    const lines = element('ul', 'meter-lines');
+    const lines = element('ul', 'meter-lines ledger');
     for (const city of state.cities) {
       if (city.ownerId !== playerId) continue;
       lines.append(
@@ -374,7 +374,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       const player = playerById(state, playerId);
       if (player) {
         const sc = player.statecraft;
-        const ladder = element('div', 'meter-total');
+        const ladder = element('div', 'meter-total ledger-total');
         ladder.append(element('span', 'meter-line-source', `Tier ${sc.drafts} · next draft`));
         ladder.append(
           element(
@@ -459,6 +459,14 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   /**
    * One line of a ledger: what it is, and what it is worth. Signed for a meter's
    * contributions (where the sign is the whole point) and plain for a yield's.
+   *
+   * The `ledger` / `ledger-total` tokens the lists and totals below carry are
+   * the *typographic* half of rule 5 (art pass A4): entries ruled off from one
+   * another, and the accountant's double rule under a closing figure. They are
+   * one recipe in `style.css` shared with the tile readout and the city panel's
+   * modifier list, so a breakdown looks the same wherever the interface prints
+   * one. Nothing about the arithmetic changed — a card that wore the class
+   * without folding its own lines would still be the bug the class is dressing.
    */
   function meterLine(source: string, value: number, signed: boolean): HTMLElement {
     const line = element('li', 'meter-line');
@@ -475,7 +483,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     body.replaceChildren();
     const { state } = getGame();
     const playerId = localPlayerId();
-    const lines = element('ul', 'meter-lines');
+    const lines = element('ul', 'meter-lines ledger');
     for (const entry of entries) {
       lines.append(meterLine(starCapitalSource(state, playerId, entry.source), entry.value, true));
     }
@@ -484,7 +492,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       return;
     }
     body.append(lines);
-    const total = element('div', 'meter-total');
+    const total = element('div', 'meter-total ledger-total');
     total.append(element('span', 'meter-line-source', 'Total'));
     total.append(element('span', 'meter-line-value', signedFigure(standing.total)));
     body.append(total);
@@ -540,7 +548,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         ),
       );
       box.append(heading);
-      const lines = element('ul', 'meter-lines');
+      const lines = element('ul', 'meter-lines ledger');
       for (const entry of group.lines) {
         lines.append(meterLine(starCapitalSource(state, playerId, entry.source), entry.value, true));
       }
@@ -551,7 +559,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       box.append(element('p', 'hint', 'No effect at this level.'));
       return box;
     }
-    const lines = element('ul', 'meter-lines is-effects');
+    const lines = element('ul', 'meter-lines is-effects ledger');
     for (const effect of effects) {
       const line = element('li', 'meter-line');
       line.append(element('span', 'meter-line-source', effectWords(effect)));

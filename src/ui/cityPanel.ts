@@ -614,7 +614,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     box.append(row);
 
-    const list = element('ul', 'city-modifiers');
+    const list = element('ul', 'city-modifiers ledger');
     const line = (label: string, figures: string, bad = false): void => {
       const item = element('li', bad ? 'city-modifier is-bad' : 'city-modifier');
       item.append(element('span', undefined, label));

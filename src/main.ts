@@ -100,6 +100,8 @@ import {
   wantsNativeContextMenu,
 } from './ui/controls';
 import { type DamageNumbers, createDamageNumbers } from './ui/damageNumbers';
+import { installFlourishMarks } from './ui/deviceMarks';
+import { dressFrontispiece } from './ui/frontispiece';
 import {
   type NotificationAction,
   type NotificationLog,
@@ -149,6 +151,22 @@ const endTurnLabelEl = requireElement<HTMLElement>('end-turn-label');
 const landingEl = requireElement<HTMLElement>('landing');
 const landingForm = requireElement<HTMLFormElement>('landing-setup');
 const landingErrorEl = requireElement<HTMLElement>('landing-error');
+/** The title page's two dressed elements — the device and the epigraph. */
+const frontispieceEls = {
+  device: document.getElementById('landing-device'),
+  epigraph: document.getElementById('landing-epigraph'),
+};
+
+/**
+ * The corner star, handed to the stylesheet.
+ *
+ * Once, at boot, and before anything is painted. Every panel-class surface in
+ * the game wears the star through a pseudo-element (art pass A1), and a
+ * pseudo-element cannot be reached by script — so the picture goes onto the
+ * root as a custom property and the stylesheet masks with it. See
+ * `installFlourishMarks`.
+ */
+installFlourishMarks(document.documentElement);
 
 /**
  * The right button belongs to the game, and this is the one place that is said.
@@ -591,6 +609,11 @@ function showLanding(): void {
   // as well as by the stylesheet, so "is the landing up?" has one answer.
   landingEl.hidden = false;
   landingErrorEl.hidden = true;
+  // The title page, dressed on every *showing* rather than once at boot: a
+  // player who restarts is opening the book again, and the epigraph in the
+  // margin is drawn fresh (art pass A2). Nothing here is state — see
+  // `frontispiece.ts` on why `Math.random` is allowed on this one screen.
+  dressFrontispiece(frontispieceEls);
   // The shelf may have grown since the last time this screen was up — the game
   // that just ended autosaved every turn of it.
   refreshResumeRow();

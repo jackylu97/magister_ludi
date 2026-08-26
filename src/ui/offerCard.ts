@@ -37,7 +37,51 @@
  * is `turnSplash.ts`'s rule and it is the same rule here for the same reason.
  */
 
+import { cardLineMarkUrl } from './cardLine';
 import { setYieldText } from './yieldMark';
+
+// --- the back ---------------------------------------------------------------
+
+/**
+ * How long a card takes to come over, and how long between two of them.
+ *
+ * Milliseconds, and they are here rather than in `style.css` because the script
+ * has to know when the last card has landed in order to take the backs down.
+ * Two numbers in one place beat a duration in the stylesheet and a timeout in
+ * the module that quietly disagree by 40ms and leave a back on the table.
+ */
+const DEAL_MS = 420;
+const DEAL_STAGGER_MS = 110;
+
+/**
+ * Does this viewer want motion?
+ *
+ * Asked at the moment of dealing rather than cached, because the preference can
+ * change while the page is up and the honest answer is the one that holds when
+ * the cards are laid. Guarded for `matchMedia`'s absence, which is not a browser
+ * this game runs in but is every test environment that ever renders a DOM.
+ */
+function wantsMotion(): boolean {
+  return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
+ * One card's back: the weave, the gilt rules and the neutral seal.
+ *
+ * Entry VII's card-back weave, and the reason it can be one element is that a
+ * back has nothing to say. It is identical on every card in the hand — same
+ * ink, same emblem, same rules — because a back that varied would be telling
+ * you which card to turn over first, which is the one thing a deck must never
+ * do. The emblem is `CARD_LINE_MARKS.none`, the lozenge seal the Statecraft
+ * screen already stamps with, asked for through `cardLine.ts` like every other
+ * card emblem; drawing a ninth seal for the back would have been a second deck.
+ */
+function cardBack(): HTMLElement {
+  const back = element('span', 'card-back');
+  back.setAttribute('aria-hidden', 'true');
+  back.style.setProperty('--card-back-emblem', cardLineMarkUrl('none'));
+  return back;
+}
 
 /** One thing a player may take. Strings only — see the module docblock. */
 export interface OfferOption {
@@ -208,8 +252,31 @@ export function createOfferCard(container: HTMLElement): OfferCard {
   let choose: ((index: number) => void) | null = null;
   /** The element focus should return to once the card is answered. */
   let restoreFocus: HTMLElement | null = null;
+  /** The one timer that takes the backs off. Null whenever nothing is dealing. */
+  let dealTimer: number | null = null;
+
+  /**
+   * The hand is down: the backs come off and the flip class goes with them.
+   *
+   * Both, and in that order, because they are two different bits of state. The
+   * class carries the animation and the `preserve-3d` context; the back is the
+   * element that was covering the face. Leaving either behind is a visible bug
+   * — a stuck `preserve-3d` costs a card its hover shadow, and a stuck back is
+   * a card nobody can read.
+   */
+  function settleDeal(): void {
+    for (const card of container.querySelectorAll<HTMLElement>('.offer-option.is-dealing')) {
+      card.classList.remove('is-dealing');
+      card.style.removeProperty('--deal-delay');
+    }
+    for (const back of container.querySelectorAll('.card-back')) back.remove();
+  }
 
   function clear(): void {
+    if (dealTimer !== null) {
+      window.clearTimeout(dealTimer);
+      dealTimer = null;
+    }
     container.hidden = true;
     container.removeAttribute('data-weight');
     container.replaceChildren();
@@ -291,6 +358,21 @@ export function createOfferCard(container: HTMLElement): OfferCard {
     if (tarot) list.dataset.face = 'tarot';
 
     /**
+     * Is this hand *dealt*, or does it simply appear?
+     *
+     * A deck's cards are dealt face-down and turned over; an occasion's card is
+     * not a card from a deck at all ("the stones remember" is a thing that
+     * happened) and has no back. `tarot` is already exactly that distinction —
+     * a card with an emblem belongs to a deck — so the back rides the same flag
+     * rather than a second one a caller would have to remember.
+     *
+     * Motion off means the hand is face-up on the first frame: no back is built
+     * at all, which is stronger than an animation that finishes instantly,
+     * because there is then no moment where the face is hidden behind anything.
+     */
+    const dealing = tarot && wantsMotion();
+
+    /**
      * One card face, top to bottom: the ordinal, the type in the mono eyebrow,
      * the emblem, the name, what it does, and the flavour at the foot.
      *
@@ -349,6 +431,15 @@ export function createOfferCard(container: HTMLElement): OfferCard {
         button.append(element('span', 'offer-warning', option.warning));
       }
       button.append(element('span', 'offer-flavor', option.flavor));
+      // The back goes on last, so it is the last child and covers the face.
+      // Only a deck's cards get one — see `dealing` — and the delay is the
+      // card's own place in the row, so a hand is turned over rather than
+      // revealed all at once.
+      if (dealing) {
+        button.classList.add('is-dealing');
+        button.style.setProperty('--deal-delay', `${index * DEAL_STAGGER_MS}ms`);
+        button.append(cardBack());
+      }
       button.addEventListener('click', () => take(index));
       return button;
     }
@@ -368,6 +459,23 @@ export function createOfferCard(container: HTMLElement): OfferCard {
     sheet.append(list);
     container.append(sheet);
     container.hidden = false;
+
+    // The backs come off once the last card has landed.
+    //
+    // A timer rather than an `animationend` listener per card, for one reason:
+    // a card whose animation never runs — an element hidden by an ancestor, a
+    // browser that dropped the frame, a tab in the background when the offer
+    // opened — never fires the event, and a back that is never taken down is a
+    // card a player cannot read. The timer fires whatever happened. It is also
+    // cancelled by `clear`, so a card taken down mid-deal leaves nothing behind
+    // to run against a detached tree.
+    if (dealing) {
+      const last = offer.options.length - 1;
+      dealTimer = window.setTimeout(() => {
+        dealTimer = null;
+        settleDeal();
+      }, DEAL_MS + last * DEAL_STAGGER_MS + 40);
+    }
 
     // The first option takes focus, so the card is answerable from the keyboard
     // the instant it appears and a screen reader is put inside it rather than

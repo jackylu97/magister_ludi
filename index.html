@@ -53,10 +53,23 @@
       <div class="landing-stage">
         <!-- The specimen's marquee, verbatim in spirit: the display face, the
              italic vermilion accent on the second word, an italic subtitle and
-             a mono stamp. The one place the game announces itself. -->
+             a mono stamp. The one place the game announces itself.
+
+             Dressed as a **frontispiece** (art pass A2): the engraved title
+             page of a book, with the hairline double rule under the title, the
+             printer's device beneath it and an epigraph in the margin. Every
+             word here is unchanged — the device and the epigraph are the only
+             two things that were added, and the epigraph is the only new copy
+             on the screen. Both are filled in by src/ui/frontispiece.ts on each
+             showing of the landing; the device is a drawn mark (an astrolabe,
+             src/ui/deviceMarks.ts) worn as a mask, so it takes the page's ink
+             like every other mark in the game. -->
         <div class="marquee">
           <h1 class="marquee-title">Magister <em>Ludi</em></h1>
           <p class="marquee-sub">a game of everything mankind has thought</p>
+          <div class="double-rule marquee-rule" aria-hidden="true"></div>
+          <span id="landing-device" class="marquee-device" aria-hidden="true"></span>
+          <p id="landing-epigraph" class="marquee-epigraph"></p>
           <span class="marquee-stamp">one seed · one world</span>
         </div>
 
