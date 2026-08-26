@@ -44,6 +44,26 @@
      the HUD's progress ring are one fact, not two. */
   --lapis: #3f639f;
 
+  /* --- the Statecraft lines --------------------------------------------- */
+  /* One ink per archetype thread (`CardLine`), so a hand of cards reads as
+     coloured at a glance. Six are the specimen's own accents used for what they
+     already mean — vermilion is blood, gilt is money, grape is rite, lapis is
+     knowledge, teal is distance — and the two that are not are added here
+     rather than borrowed from a yield voice: a card's line is not a yield, and
+     a hand that read as "five yields plus two" would be saying something untrue
+     about what the cards do.
+
+     `--line-none` is plain ink, and that is the point of it: two thirds of a
+     good hand is neutral, and a deck where every card shouts has no accent. */
+  --line-hunt: #c2452a;
+  --line-caravan: #b07f12;
+  --line-green: #4e7c3f;
+  --line-forge: #4a5a68;
+  --line-star: #3f639f;
+  --line-procession: #7b3fa8;
+  --line-wayfarers: #1a7873;
+  --line-none: #56505a;
+
   /* --- yield voices ----------------------------------------------------- */
   --y-food: #3f9636;
   --y-prod: #c26a1d;
@@ -192,6 +212,71 @@ body {
   mask-repeat: no-repeat;
   -webkit-mask-position: center;
   mask-position: center;
+}
+
+/* The Statecraft marks: an archetype line's emblem and a slot's office, drawn
+   from `src/art/lineMarks.ts` and printed by `src/ui/cardLine.ts` through
+   `--line-mark`.
+
+   Same mechanism as the two above and one difference that matters: these are
+   sized in **pixels** rather than in `em`. A yield mark is a unit on a figure
+   and belongs to the type around it; a line emblem is the middle of a card and
+   belongs to the card, so it is set by the frame it sits in — which is why the
+   same class is 56px on an offer and 26px on a collection thumbnail.
+
+   Both paint `currentColor`, so the accent is set once on the card (as `color`)
+   and the mark, the rule and the eyebrow are all wearing it. */
+.line-mark,
+.slot-mark {
+  flex: none;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: currentColor;
+  -webkit-mask-image: var(--line-mark);
+  mask-image: var(--line-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* The eight accents, resolved once. Every surface that draws a Statecraft card
+   sets `data-line` on it and reads `--line-ink`; nothing anywhere else knows
+   which hex the Wild Hunt is. That is what lets the frame rule, the emblem and
+   the eyebrow of one card be three elements and still be one colour. */
+[data-line='hunt'] {
+  --line-ink: var(--line-hunt);
+}
+
+[data-line='caravan'] {
+  --line-ink: var(--line-caravan);
+}
+
+[data-line='green'] {
+  --line-ink: var(--line-green);
+}
+
+[data-line='forge'] {
+  --line-ink: var(--line-forge);
+}
+
+[data-line='star'] {
+  --line-ink: var(--line-star);
+}
+
+[data-line='procession'] {
+  --line-ink: var(--line-procession);
+}
+
+[data-line='wayfarers'] {
+  --line-ink: var(--line-wayfarers);
+}
+
+[data-line='none'] {
+  --line-ink: var(--line-none);
 }
 
 /* A mark that *leads* a figure (`⚙ +10%`, the modifier voice) wants its air on
@@ -4465,13 +4550,58 @@ kbd {
   line-height: 1.1;
 }
 
-/* Three across on a desktop, stacking on anything narrow. `auto-fit` rather
-   than a fixed three, so an offer of two or four — which Statecraft will
-   want — lays itself out without a second rule. */
+/* The spread: a row of cards, and — for the Statecraft draft alone — one card
+   centred beneath it.
+
+   **The playtest note this answers.** A draft is three new Orders and one
+   upgrade, and the upgrade was simply the fourth cell of the `auto-fit` grid,
+   which at this sheet's width wrapped to three across and then one card on its
+   own, left-aligned, under them. It read as an afterthought. It is not one: it
+   is the other half of the question, which is *deepen or widen*. So it comes
+   out of the row, is centred under it, and gets a frame and a face of its own —
+   see `orderOfferLayout` in `src/ui/offerCard.ts`, which is where the ordering
+   is decided (and tested), not here. */
 .offer-options {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
+}
+
+/* Three across on a desktop, stacking on anything narrow. `auto-fit` rather
+   than a fixed three, so an offer of two or four lays itself out without a
+   second rule. */
+.offer-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+/* The hinge between the two halves of the choice, and the only place the
+   interface says the word out loud. A rule through the middle of the sentence
+   rather than a heading over it: this is a *fork*, not a section. */
+.offer-hinge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 0;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.offer-hinge::before,
+.offer-hinge::after {
+  flex: 1 1 auto;
+  height: 0;
+  border-top: var(--border-thin) solid var(--ink-faint);
+  content: '';
+}
+
+.offer-centre {
+  display: grid;
+  justify-content: center;
 }
 
 .offer-option {
@@ -4555,6 +4685,196 @@ kbd {
   font-style: italic;
   line-height: 1.35;
   color: var(--ink-soft);
+}
+
+/* --- the tarot face -------------------------------------------------------
+   A card from the Statecraft deck, as against a discovery's plain card. Five by
+   eight and portrait, an ornamental inner rule in the line's ink, the type in
+   the mono eyebrow at the head, the drawn emblem in the middle, the clauses
+   under the name and the flavour along the foot.
+
+   The proportion is held with `min-height` rather than `aspect-ratio`, and that
+   is deliberate: a card whose clauses run long has to be allowed to grow, and a
+   fixed ratio would either clip the rule the card exists to state or force a
+   scrollbar inside a playing card. Tall by default, taller if it must be. */
+.offer-options[data-face='tarot'] .offer-option {
+  /* Flex rather than the plain card's grid, and for one reason: the flavour is
+     pushed to the foot with `margin-top: auto`, which a grid item can only do
+     inside its own row. Four cards of unequal clause length have to rule off at
+     the same line or the hand does not read as a hand. */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: clamp(300px, 24vw, 400px);
+  padding: 20px 16px 16px;
+  border-color: var(--line-ink, var(--ink));
+  text-align: center;
+  color: var(--line-ink, var(--ink));
+}
+
+/* The ornament: a second rule inside the frame, in the accent, at the weight a
+   printed border is. `opacity` rather than a mixed colour so it lands the same
+   on every one of the eight inks. */
+.offer-options[data-face='tarot'] .offer-option::before {
+  position: absolute;
+  inset: 5px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  opacity: 0.4;
+  pointer-events: none;
+  content: '';
+}
+
+/* Everything that is not the ornament sits above it, and everything that is not
+   the accent goes back to ink — the colour is on the frame, the emblem and the
+   eyebrow, and nowhere near the sentences a player has to read. */
+.offer-options[data-face='tarot'] .offer-option > * {
+  position: relative;
+  z-index: 1;
+}
+
+.offer-options[data-face='tarot'] .offer-payoff {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: currentColor;
+}
+
+.offer-options[data-face='tarot'] .offer-option-title {
+  margin-top: 2px;
+  font-family: var(--face-name);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.offer-options[data-face='tarot'] .offer-note,
+.offer-options[data-face='tarot'] .offer-warning {
+  font-family: var(--face-ui);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.offer-options[data-face='tarot'] .offer-warning {
+  color: var(--vermilion);
+}
+
+/* The flavour is the foot of the card, always — `auto` rows above it and this
+   one pushed down, so four cards of unequal clause length still rule off at the
+   same line. */
+/* The foot of a card is the one place on this screen the *display* face gets to
+   speak: Instrument Serif italic, at 15px, which is exactly the floor the
+   project's type rule sets for a serif ("no serif below ~15px, ever"). It is
+   the specimen's own `flavor` treatment, and a tarot card is the first surface
+   in the HUD wide enough to run it — the collection's thumbnails are half this
+   width and keep the sturdier Fraunces italic they have always had. */
+.offer-options[data-face='tarot'] .offer-flavor {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1.5px solid var(--ink-faint);
+  font-family: var(--face-display);
+  font-size: 0.95rem;
+  line-height: 1.25;
+  color: var(--ink-soft);
+}
+
+/* The emblem: the archetype line's drawing, the loudest place its ink lands. */
+.offer-emblem {
+  justify-self: center;
+  width: 56px;
+  height: 56px;
+  margin: 6px 0 2px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--line-mark);
+  mask-image: var(--line-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* --- the deepen card ------------------------------------------------------
+   The one card that changes something already on the table. It is landscape
+   where the others are portrait, because what it has to show is a *change* —
+   two faces of one card, read across — and a change reads along a line. */
+.offer-option.is-deepen {
+  width: min(560px, 100%);
+  min-height: 0;
+  padding: 16px 18px 14px;
+  border-width: var(--border);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.offer-options[data-face='tarot'] .offer-option.is-deepen {
+  min-height: 0;
+  text-align: left;
+}
+
+.offer-options[data-face='tarot'] .offer-option.is-deepen .offer-emblem {
+  justify-self: start;
+  width: 30px;
+  height: 30px;
+  margin: 0;
+}
+
+.offer-options[data-face='tarot'] .offer-option.is-deepen .offer-option-title {
+  font-size: 1.05rem;
+}
+
+.offer-faces {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.offer-face {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border: var(--border-thin) solid var(--ink-faint);
+  border-radius: var(--radius-sm);
+  background: var(--table);
+}
+
+/* The face the card would wear, marked as the answer rather than the question:
+   solid rule, parchment ground, the accent's ink on its label. */
+.offer-face.is-after {
+  border-color: var(--line-ink, var(--ink));
+  background: var(--parchment);
+}
+
+.offer-face-label {
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.offer-face.is-after .offer-face-label {
+  color: var(--line-ink, var(--ink));
+}
+
+.offer-face-text {
+  font-family: var(--face-ui);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.offer-face-arrow {
+  font-family: var(--face-num);
+  font-size: 1.1rem;
+  color: var(--ink-faint);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5095,33 +5415,44 @@ kbd {
   gap: 10px;
 }
 
+/* A slot is a **place a card goes**, so it is drawn as the outline of one:
+   five by eight, portrait, with its office's mark ghosted in the middle. That
+   shape says what the slot is before any of the words are read, which a
+   labelled box never did — and it makes the row above the collection and the
+   hand below it visibly the same objects. */
 .sc-slot {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  min-width: 150px;
-  padding: 10px 12px;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  width: 98px;
+  min-height: 156px;
+  padding: 10px 8px;
   border: var(--border-thin) dashed var(--ink-faint);
   border-radius: var(--radius-sm);
   background: transparent;
   font: inherit;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
 }
 
 .sc-slot-filled {
   border-style: solid;
-  border-color: var(--ink);
-  background: var(--table);
+  border-color: var(--line-ink, var(--ink));
+  background: var(--parchment);
   box-shadow: var(--shadow-sm);
+  color: var(--line-ink, var(--ink));
 }
 
 /* A slot the held card can go in. The one hint the screen gives while a card
-   is in hand, and it is the reducer's answer rather than a guess. */
+   is in hand, and it is the reducer's answer rather than a guess. It is loud on
+   purpose: a player holding a card is looking for exactly this. */
 .sc-slot-open {
   border-color: var(--vermilion);
   border-style: solid;
   background: rgba(212, 80, 46, 0.08);
+  box-shadow: 0 0 0 2px rgba(212, 80, 46, 0.25);
 }
 
 .sc-slot-type {
@@ -5145,40 +5476,72 @@ kbd {
   color: var(--grape);
 }
 
+/* The office's mark, ghosted: the middle of an empty slot, and faint enough to
+   read as an absence rather than as a thing already there. */
+/* The free space in a slot is shared between two `auto` margins, which is what
+   puts the office's ghost in the middle of an empty card and the card's own
+   name in the middle of a filled one — without either of them being positioned
+   against a height nobody would remember to update. */
+.sc-slot-ghost {
+  width: 46px;
+  height: 46px;
+  margin-top: auto;
+  opacity: 0.22;
+}
+
+.sc-slot-emblem {
+  width: 34px;
+  height: 34px;
+  margin-top: auto;
+}
+
 .sc-slot-card {
+  margin-bottom: auto;
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1.2;
   color: var(--ink);
 }
 
 .sc-slot-empty {
+  margin-top: auto;
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: 12px;
   font-style: italic;
   color: var(--ink-faint);
 }
 
-.sc-seal {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
+/* The wax stamp, pressed across the foot of a card rather than laid out inside
+   it — a seal is something applied to a finished thing, and the angle says so.
+   Set is vermilion and counts down in mono; lifted is quiet ink and says
+   "free", because a slot you may empty is not an alarm. */
+.sc-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  position: absolute;
+  right: -6px;
+  bottom: 8px;
+  padding: 2px 6px;
+  transform: rotate(-4deg);
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 999px;
+  background: var(--table);
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: 9px;
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint);
 }
 
-.sc-seal-set {
-  color: var(--vermilion);
+.sc-stamp-set {
+  background: var(--vermilion);
+  border-color: var(--ink);
+  color: var(--parchment);
 }
 
-.sc-seal-ghost {
-  opacity: 0.3;
-}
-
-.sc-seal-glyph {
-  font-size: 12px;
+.sc-stamp-glyph {
+  font-size: 10px;
 }
 
 .sc-level {
@@ -5188,29 +5551,86 @@ kbd {
   color: var(--gilt);
 }
 
+/* What is in hand, in words. The slot row highlights what will take the card;
+   this says which card that is and what to do next — a highlight with no
+   sentence beside it is a colour the player has to guess the meaning of. */
+.sc-hand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 7px 10px;
+  border: var(--border-thin) solid var(--vermilion);
+  border-radius: var(--radius-sm);
+  background: rgba(212, 80, 46, 0.08);
+}
+
+.sc-hand-name {
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sc-hand-say {
+  font-family: var(--face-ui);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
 /* --- the cards ----------------------------------------------------------- */
 
+/* The hand: cards, and drawn as cards. Five by eight and portrait, an
+   ornamental inner rule in the line's ink, the type in the mono eyebrow at the
+   head, the emblem in the middle, the clauses under the name, the flavour along
+   the foot. Identical bones to the offer's tarot face on purpose — a card must
+   read the same on the offer that dealt it and in the collection afterwards,
+   which is the same claim `describeCard` makes about its numbers. */
 .sc-doctrine-row,
 .sc-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
+  gap: 12px;
 }
 
 .sc-card {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 10px 12px;
-  border: var(--border-thin) solid var(--ink);
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  min-height: 262px;
+  padding: 12px 12px 10px;
+  border: var(--border-thin) solid var(--line-ink, var(--ink));
   border-radius: var(--radius-sm);
   background: var(--parchment);
   font: inherit;
-  text-align: left;
+  text-align: center;
+  color: var(--line-ink, var(--ink));
+}
+
+/* The ornament, as on the offer: a second rule inside the frame in the accent.
+   `opacity` rather than a mixed colour so it lands the same on all eight. */
+.sc-card::before {
+  position: absolute;
+  inset: 4px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  opacity: 0.35;
+  pointer-events: none;
+  content: '';
+}
+
+.sc-card > * {
+  position: relative;
+  z-index: 1;
+  width: 100%;
 }
 
 .sc-card-order {
   cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
 .sc-card-order:hover:not(:disabled),
@@ -5219,10 +5639,13 @@ kbd {
   transform: translate(-1px, -1px);
 }
 
+/* A card in hand is lifted off the table and outlined in the local player's own
+   vermilion — not in its line's ink, because "I am holding this" is a fact
+   about the conversation rather than about the card. */
 .sc-card-held {
   border-color: var(--vermilion);
-  box-shadow: 3px 3px 0 var(--vermilion);
-  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--vermilion);
+  transform: translate(-2px, -2px);
 }
 
 .sc-card-slotted {
@@ -5230,35 +5653,71 @@ kbd {
   cursor: default;
 }
 
-/* A Doctrine is heavier than an Order, because it is permanent: gilt rule at
-   the head, and no hover — there is nothing to do to it. */
+/* A Doctrine is heavier than an Order, because it is permanent: a gilt frame
+   with the ornament doubled into a second gilt rule, and no hover — there is
+   nothing to do to it. The same "heavy" the Doctrine offer wears
+   (`.offer-overlay[data-weight='heavy']`), so adoption day looks like one thing
+   on both surfaces. */
 .sc-card-doctrine {
   border-color: var(--gilt);
   border-width: var(--border);
   background: var(--table);
 }
 
+.sc-card-doctrine::before {
+  inset: 3px;
+  border-color: var(--gilt);
+  box-shadow: inset 0 0 0 2px var(--table), inset 0 0 0 3.5px var(--gilt);
+  opacity: 0.8;
+}
+
 .sc-card-head {
   display: flex;
   align-items: baseline;
+  justify-content: center;
   gap: 6px;
 }
 
+/* The emblem: the archetype line's drawing, the loudest place its ink lands. */
+.sc-card-emblem {
+  width: 42px;
+  height: 42px;
+  margin: 4px auto 0;
+}
+
 .sc-card-name {
-  flex: 1 1 auto;
-  margin: 0;
+  margin: 2px 0 0;
   font-family: var(--face-name);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.2;
   color: var(--ink);
 }
 
 .sc-card-type {
   font-family: var(--face-num);
   font-size: 9px;
-  letter-spacing: 0.1em;
+  font-weight: 600;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: currentColor;
+}
+
+.sc-card .sc-clauses {
+  padding: 0;
+  text-align: center;
+}
+
+.sc-card .sc-clause::before {
+  content: none;
+}
+
+/* The flavour rules off the foot of every card at the same line, whatever the
+   clauses above it did. */
+.sc-card .sc-flavor {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1.5px solid var(--ink-faint);
 }
 
 .sc-card-note {
@@ -5268,6 +5727,77 @@ kbd {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--vermilion);
+}
+
+/* --- the collection, grouped by office ------------------------------------
+   The question this screen is asked is almost always "what can go in *that*",
+   so the hand is grouped by the same three words the slots are labelled with
+   and the answer is found by matching a heading. */
+.sc-group + .sc-group {
+  margin-top: 14px;
+}
+
+.sc-group-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 8px;
+  padding-bottom: 5px;
+  border-bottom: var(--border-thin) solid var(--ink-faint);
+}
+
+.sc-group-mark {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  opacity: 0.75;
+}
+
+.sc-group-name {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.sc-group-count {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+.sc-group-military {
+  --line-ink: var(--vermilion);
+}
+
+.sc-group-economic {
+  --line-ink: var(--y-gold);
+}
+
+.sc-group-wildcard {
+  --line-ink: var(--grape);
+}
+
+.sc-group-head .sc-group-mark {
+  color: var(--line-ink, var(--ink-soft));
+}
+
+/* A card that lifts when you point at it is the whole of this screen's motion,
+   and a player who has asked for none gets the outline and the shadow with no
+   travel — the state is still legible, it just does not move. */
+@media (prefers-reduced-motion: reduce) {
+  .sc-card-order {
+    transition: none;
+  }
+
+  .sc-card-order:hover:not(:disabled),
+  .sc-card-order:focus-visible,
+  .sc-card-held {
+    transform: none;
+  }
 }
 
 /* --- what is actually in force ------------------------------------------- */
@@ -5297,6 +5827,26 @@ kbd {
 
 .offer-overlay[data-weight='heavy'] .offer-title {
   color: var(--gilt);
+}
+
+/* And the cards in it wear it too: a gilt frame with the ornament doubled into
+   a second gilt rule, on the table's own ground. The **same** heavy a Doctrine
+   wears in the collection (`.sc-card-doctrine`), because it is the same card —
+   a player should not have to learn that gilt means permanent twice.
+
+   The line's ink stays on the emblem and the eyebrow, which is what keeps a
+   heavy triple readable as three different threads rather than as three
+   identical gold rectangles. */
+.offer-overlay[data-weight='heavy'] .offer-option {
+  border-color: var(--gilt);
+  background: var(--table);
+}
+
+.offer-overlay[data-weight='heavy'] .offer-option::before {
+  inset: 4px;
+  border-color: var(--gilt);
+  box-shadow: inset 0 0 0 2px var(--table), inset 0 0 0 3.5px var(--gilt);
+  opacity: 0.8;
 }
 
 /* The offer card's optional lede: one sentence under the heading, for a choice

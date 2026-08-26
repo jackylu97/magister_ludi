@@ -113,6 +113,7 @@ import { type TechTree, createTechTree } from './ui/techTree';
 import { type TilePriceTags, createTilePriceTags } from './ui/tilePriceTags';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
+import { CARD_LINE_NAME, cardLineMarkUrl, lineOf, slotMarkUrl } from './ui/cardLine';
 import { SLOT_WORDS, describeCard } from './sim/statecraft';
 import {
   type GovernmentId,
@@ -1430,25 +1431,27 @@ async function boot(initial: Game | null): Promise<void> {
       const offer = sc.pendingOrder;
       const options: OfferOption[] = offer.options.map((id) => ({
         title: orderDef(id).name,
-        payoff: `${SLOT_WORDS[orderDef(id).slot]} Order`,
+        payoff: `${SLOT_WORDS[orderDef(id).slot]} order`,
         note: describeCard(id).map((clause) => clause.text).join(' · '),
         flavor: orderDef(id).flavor,
+        ...cardFace(orderDef(id)),
       }));
       const upgrade = offer.upgrade;
       if (upgrade !== undefined) {
         const level = sc.orders.find((owned) => owned.id === upgrade)?.level ?? 1;
         options.push({
           title: `${orderDef(upgrade).name} · ${level} → ${level + 1}`,
-          payoff: 'Deepen an Order you hold',
+          payoff: `deepen · ${SLOT_WORDS[orderDef(upgrade).slot]}`,
           // Before and after, from one function at two levels: the whole of the
-          // draft's question in one line.
-          note: `${describeCard(upgrade, level).map((c) => c.text).join(' · ')}  ⟶  ${describeCard(
-            upgrade,
-            level + 1,
-          )
-            .map((c) => c.text)
-            .join(' · ')}`,
+          // draft's question, and the reason this card is laid out on its own
+          // (`orderOfferLayout`) rather than as the fourth of a row.
+          faces: {
+            before: describeCard(upgrade, level).map((c) => c.text).join(' · '),
+            after: describeCard(upgrade, level + 1).map((c) => c.text).join(' · '),
+          },
+          emphasis: 'deepen',
           flavor: orderDef(upgrade).flavor,
+          ...cardFace(orderDef(upgrade)),
         });
       }
       offerCard.show(
@@ -1488,6 +1491,9 @@ async function boot(initial: Game | null): Promise<void> {
             payoff: slotWords(id),
             note: describeCard(id).map((clause) => clause.text).join(' · ') || 'No signature',
             flavor: governmentDef(id).flavor,
+            // A government joins no archetype thread, so its emblem is the
+            // office it opens the most slots for. See `governmentEmblem`.
+            ...governmentEmblem(id),
           })),
         },
         (index) => {
@@ -1510,9 +1516,10 @@ async function boot(initial: Game | null): Promise<void> {
           weight: 'heavy',
           options: offer.options.map((id) => ({
             title: doctrineDef(id).name,
-            payoff: 'Permanent',
+            payoff: 'permanent doctrine',
             note: describeCard(id).map((clause) => clause.text).join(' · '),
             flavor: doctrineDef(id).flavor,
+            ...cardFace(doctrineDef(id)),
           })),
         },
         (index) => {
@@ -1522,6 +1529,41 @@ async function boot(initial: Game | null): Promise<void> {
         },
       );
     }
+  }
+
+  /**
+   * How a card is *drawn*: its accent key, its emblem and the line's name.
+   *
+   * Spread into an `OfferOption` rather than assembled inside the card, because
+   * `offerCard.ts` holds the line that no simulation type crosses its boundary —
+   * it is handed a picture and a key. The lookup that turns a `CardLine` into
+   * either is `ui/cardLine.ts`, which is the interface's one opinion about what
+   * a thread looks like; this is only the place the two meet.
+   */
+  function cardFace(def: Parameters<typeof lineOf>[0]): Partial<OfferOption> {
+    const id = lineOf(def);
+    return { line: id, emblem: cardLineMarkUrl(id), lineName: CARD_LINE_NAME[id] };
+  }
+
+  /**
+   * A government's emblem: the mark of the office it opens the most slots for.
+   *
+   * The one card class with no archetype thread, so `cardFace` would give all
+   * ten the same neutral seal and a charter triple would be three identical gold
+   * rectangles. The spread *is* a government's character — Tyranny is three
+   * military slots, Theocracy is three wildcards — and it is already the line
+   * printed in the eyebrow, so the picture and the words say one thing.
+   *
+   * Ties break in `SLOT_TYPES` order, which is the order every other list of the
+   * three is written in; there is no government where that decides anything
+   * today, and if one is added it decides it the same way twice.
+   */
+  function governmentEmblem(id: GovernmentId): Partial<OfferOption> {
+    const spread = governmentDef(id).slots;
+    const dominant = SLOT_TYPES.reduce((best, type) =>
+      spread[type] > spread[best] ? type : best,
+    );
+    return { ...cardFace(governmentDef(id)), emblem: slotMarkUrl(dominant) };
   }
 
   /** A government's spread in words: "2 military · 1 economic · 1 wildcard". */

@@ -47,6 +47,11 @@ export interface OfferOption {
    * The payoff, stated as the exact number the empire will receive: "+20⚙ to
    * Uruk", "+15🔬", "A free Scout". The caller composes it, because glyphs are
    * the interface's table (`figures.ts`) and the amounts are the simulation's.
+   *
+   * It is set as the card's **eyebrow** — the small mono line at the top of the
+   * frame — because on a Statecraft card that is what it is: "military order",
+   * "permanent", "2 military · 1 economic". A discovery's `+20⚙ to Uruk` is the
+   * same sentence about a different kind of gift.
    */
   payoff: string;
   /** One line of flavour, set in the name face. */
@@ -63,6 +68,48 @@ export interface OfferOption {
    * would be the interface keeping a secret.
    */
   warning?: string;
+  /**
+   * The accent key this card is drawn in, reaching the DOM as `data-line` and
+   * resolved to ink by one block of `style.css`. A **string**, not a `CardLine`:
+   * the module docblock's rule holds, and the caller looks the key up in
+   * `ui/cardLine.ts`, which is where the interface decides what a line looks
+   * like. Absent is the neutral card, which is most of the good ones.
+   */
+  line?: string;
+  /**
+   * The emblem in the middle of the frame, as a ready CSS `url(…)` value for the
+   * mask. A picture rather than an id, for the same boundary reason — see
+   * `cardLineMarkUrl`.
+   */
+  emblem?: string;
+  /**
+   * What the accent *is*, in words — "The Wild Hunt". It becomes the card's
+   * `title`, so the one thing a colour cannot do (say its own name) is done by
+   * the platform's own tooltip rather than by a legend nobody would read.
+   */
+  lineName?: string;
+  /**
+   * Marks the one option that **deepens** something the player already holds
+   * rather than adding to the hand.
+   *
+   * The whole of what this component knows about the Statecraft draft, and it is
+   * a fact about the *shape of the choice* rather than about Orders: a hand of
+   * cards where one of them changes a card already on the table is a different
+   * question — deepen, or widen — and it is laid out as one. See
+   * `orderOfferLayout`.
+   */
+  emphasis?: 'deepen';
+  /**
+   * The two faces of a deepening: what the card says now, and what it would say
+   * after. Only read on a `'deepen'` option.
+   *
+   * Both are composed by the caller from one function at two levels, so a
+   * player is comparing the same sentence with itself rather than two
+   * paraphrases. It is the one place in the interface two levels of a card are
+   * shown at once, because "deepen or widen" is not a question anybody can
+   * answer without both.
+   */
+  faces?: { before: string; after: string };
 }
 
 /** What the card is asking about. */
@@ -117,6 +164,46 @@ function element(tag: string, className: string, text?: string): HTMLElement {
   return node;
 }
 
+/**
+ * Where the cards of an offer sit: the flanking row, and the one card in the
+ * middle.
+ *
+ * **The user's note, and the fix.** A draft is three new Orders and one upgrade,
+ * and the upgrade was simply the fourth cell of an `auto-fit` grid — which at
+ * the sheet's width wraps to three across and then one card alone, left-aligned,
+ * under them. It read as an afterthought, which is the opposite of what it is:
+ * the upgrade is the *other half of the question*. So it comes out of the row
+ * and is centred beneath it, in a frame of its own that shows both of its faces.
+ *
+ * Pure, and separated from the DOM for `splitYieldText`'s reason — this suite has
+ * no jsdom, and "which card is in the middle" is exactly the sort of thing that
+ * can be quietly wrong on every offer at once. It answers **indices**, never
+ * options, because an index is what the reducer is told (`chooseOrder`'s
+ * `optionIndex`) and re-deriving it from a reordered array is how a player picks
+ * the card next to the one they clicked.
+ *
+ * Every other offer — a discovery's three, a Doctrine's three, the government
+ * triple — has no such card and lays out as it always did: `centre` is `null`
+ * and the row is the whole offer, in order.
+ */
+export interface OfferLayout {
+  /** The flanking cards, in offer order. Indices into `options`. */
+  row: number[];
+  /** The centred card's index, or `null` when the offer has no such card. */
+  centre: number | null;
+}
+
+export function orderOfferLayout(options: readonly OfferOption[]): OfferLayout {
+  // The *first* such card wins, and there is deliberately no support for two:
+  // a draft has at most one upgrade (`OrderOffer.upgrade` is a single id), and
+  // a second centred card would be a spread nobody has designed.
+  const centre = options.findIndex((option) => option.emphasis === 'deepen');
+  return {
+    row: options.map((_option, index) => index).filter((index) => index !== centre),
+    centre: centre === -1 ? null : centre,
+  };
+}
+
 export function createOfferCard(container: HTMLElement): OfferCard {
   let choose: ((index: number) => void) | null = null;
   /** The element focus should return to once the card is answered. */
@@ -148,8 +235,13 @@ export function createOfferCard(container: HTMLElement): OfferCard {
     if (container.hidden) return;
     const digit = Number.parseInt(event.key, 10);
     if (Number.isInteger(digit) && digit >= 1) {
-      const buttons = container.querySelectorAll<HTMLButtonElement>('.offer-option');
-      const button = buttons[digit - 1];
+      // By the index the card *carries*, not by its position in the row: the
+      // draft's deepen card is lifted out of the row and centred beneath it
+      // (`orderOfferLayout`), and a shortcut counted off the DOM would have
+      // started picking the card next to the one the ordinal names.
+      const button = container.querySelector<HTMLButtonElement>(
+        `.offer-option[data-index="${digit - 1}"]`,
+      );
       if (button) {
         event.preventDefault();
         event.stopPropagation();
@@ -181,17 +273,76 @@ export function createOfferCard(container: HTMLElement): OfferCard {
     else container.setAttribute('data-weight', offer.weight);
 
     const list = element('div', 'offer-options');
-    offer.options.forEach((option, index) => {
+
+    /**
+     * A **tarot** offer is one whose cards carry an emblem — the Statecraft
+     * deck, and nothing else today.
+     *
+     * The distinction is the whole of how the two dressings stay one component.
+     * A card with an emblem is a card from a deck: it wears the tall
+     * five-by-eight frame, its type goes up top in the mono eyebrow, and the
+     * drawing is the middle of it. A discovery's card has no deck and no line —
+     * "the stones remember" is a thing that happened, not a thing that was
+     * printed — so it keeps the plain face it has always had, name first. One
+     * flag, read off the options themselves rather than declared by the caller,
+     * because a caller that had to remember it is a caller that will forget.
+     */
+    const tarot = offer.options.some((option) => option.emblem !== undefined);
+    if (tarot) list.dataset.face = 'tarot';
+
+    /**
+     * One card face, top to bottom: the ordinal, the type in the mono eyebrow,
+     * the emblem, the name, what it does, and the flavour at the foot.
+     *
+     * The order is the reading order *and* the accessible order — a card
+     * announces as "1, military order, Blooded Spears, +3 combat against
+     * barbarians" — which is why the eyebrow is a real element in the flow
+     * rather than an absolutely-positioned decoration. On a plain face the
+     * eyebrow is a payoff instead ("+20⚙ to Uruk"), which belongs *after* the
+     * name it is the price of, so the two swap.
+     */
+    function face(option: OfferOption, index: number): HTMLButtonElement {
       const button = document.createElement('button');
-      button.className = 'offer-option';
+      button.className = option.emphasis === 'deepen' ? 'offer-option is-deepen' : 'offer-option';
       button.type = 'button';
+      // The accent and the emblem are the two halves of "this card belongs to a
+      // line". Both are optional and both fail quietly to the neutral face.
+      if (option.line !== undefined) button.dataset.line = option.line;
+      if (option.lineName !== undefined) button.title = option.lineName;
+      // The index the reducer is told, kept on the element so the digit
+      // shortcuts below can stay right whatever order the cards are laid in.
+      button.dataset.index = String(index);
       // The ordinal is the keyboard shortcut made visible, and it is a real part
       // of the card rather than a hint: a player who has seen three offers picks
       // by number without reading.
       button.append(element('span', 'offer-ordinal', String(index + 1)));
+      if (tarot) button.append(element('span', 'offer-payoff', option.payoff));
+      if (option.emblem !== undefined) {
+        const emblem = element('span', 'offer-emblem');
+        emblem.setAttribute('aria-hidden', 'true');
+        emblem.style.setProperty('--line-mark', option.emblem);
+        button.append(emblem);
+      }
       button.append(element('span', 'offer-option-title', option.title));
-      button.append(element('span', 'offer-payoff', option.payoff));
-      if (option.note !== undefined) {
+      if (!tarot) button.append(element('span', 'offer-payoff', option.payoff));
+      if (option.faces !== undefined) {
+        // The deepening, both faces at once: what it says now, and what it would
+        // say after. A row rather than two lines, so the change is read across
+        // rather than hunted for.
+        const faces = element('span', 'offer-faces');
+        const before = element('span', 'offer-face');
+        before.append(
+          element('span', 'offer-face-label', 'now'),
+          element('span', 'offer-face-text', option.faces.before),
+        );
+        const after = element('span', 'offer-face is-after');
+        after.append(
+          element('span', 'offer-face-label', 'deepened'),
+          element('span', 'offer-face-text', option.faces.after),
+        );
+        faces.append(before, element('span', 'offer-face-arrow', '⟶'), after);
+        button.append(faces);
+      } else if (option.note !== undefined) {
         button.append(element('span', 'offer-note', option.note));
       }
       if (option.warning !== undefined) {
@@ -199,8 +350,21 @@ export function createOfferCard(container: HTMLElement): OfferCard {
       }
       button.append(element('span', 'offer-flavor', option.flavor));
       button.addEventListener('click', () => take(index));
-      list.append(button);
-    });
+      return button;
+    }
+
+    const layout = orderOfferLayout(offer.options);
+    const row = element('div', 'offer-row');
+    for (const index of layout.row) row.append(face(offer.options[index]!, index));
+    list.append(row);
+    if (layout.centre !== null) {
+      // The hinge between the two halves of the question, and the only place the
+      // interface says the word out loud.
+      list.append(element('p', 'offer-hinge', 'or deepen what you already hold'));
+      const centre = element('div', 'offer-centre');
+      centre.append(face(offer.options[layout.centre]!, layout.centre));
+      list.append(centre);
+    }
     sheet.append(list);
     container.append(sheet);
     container.hidden = false;

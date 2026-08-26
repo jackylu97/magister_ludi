@@ -34,6 +34,22 @@
  * — which reads better as a selection than as a drag. The keyboard gets the same
  * two steps for free, because both halves are buttons.
  *
+ * A deck, and it looks like one
+ * -----------------------------
+ * Orders and Doctrines are **cards**, and after a playtest they are drawn as
+ * cards: a tall five-by-eight frame, the type in the mono eyebrow at the head,
+ * a drawn emblem in the middle, the clauses under it and the flavour at the
+ * foot. Three things carry the archetype line's accent — the frame rule, the
+ * emblem and the eyebrow — so a hand reads as coloured at a glance without any
+ * of the colour landing on the parchment itself. The table of what a line looks
+ * like is `cardLine.ts`; the drawings are `src/art/lineMarks.ts`; this file
+ * knows only that a card has a face and asks for one.
+ *
+ * A Doctrine wears a **heavier** frame — a double rule in gilt — for the reason
+ * the Doctrine offer does (`offerCard.ts`'s `weight`): adoption day is the one
+ * irreversible thing a player does, and the two surfaces that show it agree on
+ * what heavy looks like.
+ *
  * Derived, never stored
  * ---------------------
  * Nothing on this screen is state. The slot layout is `slotLayout(government)`,
@@ -47,6 +63,7 @@
 import {
   type CardClause,
   type PlayerStatecraft,
+  SLOT_WORDS,
   describeCard,
   draftCost,
   liveEffects,
@@ -56,10 +73,11 @@ import {
   unslotOrderError,
 } from '../sim/statecraft';
 import {
+  type CardDefBase,
   type CardId,
   type GovernmentId,
   type OrderId,
-  type SlotType,
+  SLOT_TYPES,
   cardDef,
   governmentDef,
   isOrderId,
@@ -67,15 +85,9 @@ import {
   orderFitsSlot,
   slotLayout,
 } from '../sim/statecraftData';
+import { CARD_LINE_NAME, cardLineMarkNode, lineOf, slotMarkNode } from './cardLine';
 import type { GameState } from '../sim/state';
 import { playerById } from '../sim/state';
-
-/** How a slot type reads on the screen. Beside the union, one voice. */
-const SLOT_LABEL: Record<SlotType, string> = {
-  military: 'Military',
-  economic: 'Economic',
-  wildcard: 'Wildcard',
-};
 
 /**
  * The wax seal, and the empty slot's ghost of one.
@@ -137,6 +149,64 @@ function clauseList(clauses: readonly CardClause[]): HTMLElement {
     list.append(item);
   }
   return list;
+}
+
+/**
+ * A wax stamp: the seal glyph and, when it is still set, the mono countdown.
+ *
+ * Stamped *over* the frame rather than laid out inside it — a seal is something
+ * pressed onto a finished card, and the interface says so by putting it across
+ * the corner at an angle. `sealRemaining` is the whole of the state; there is no
+ * countdown to tick (see the seal trap in CLAUDE.md).
+ */
+function sealStamp(left: number): HTMLElement {
+  const stamp = element('span', left > 0 ? 'sc-stamp sc-stamp-set' : 'sc-stamp');
+  stamp.append(element('span', 'sc-stamp-glyph', SEAL_GLYPH));
+  // Every number in this interface is tabular mono (the specimen's rule), and a
+  // countdown is a number.
+  stamp.append(element('span', 'sc-stamp-count', left > 0 ? String(left) : 'free'));
+  stamp.title =
+    left > 0
+      ? `Sealed for ${left} more turn${left === 1 ? '' : 's'}`
+      : 'The seal has lifted — click to take it out';
+  return stamp;
+}
+
+/**
+ * The face every card on this screen wears, whichever class it is.
+ *
+ * One builder rather than three, because the three uses of it differ only in
+ * what goes in the eyebrow: an Order says its slot type, a Doctrine says
+ * "permanent", the charter says nothing. Everything else — the accent, the
+ * emblem, the name in the name face, the clauses, the flavour at the foot — is
+ * the same card, and a second copy of it is how a Doctrine and an Order come to
+ * disagree about where a card's name sits.
+ *
+ * `into` is filled rather than returned so the caller can decide whether the
+ * card is an `<article>` or a `<button>`, which is the one real difference
+ * between a Doctrine (nothing to do to it) and an Order (pick it up).
+ */
+function drawCardFace(
+  into: HTMLElement,
+  def: CardDefBase,
+  eyebrow: string,
+  clauses: readonly CardClause[],
+  level = 1,
+): void {
+  const id = lineOf(def);
+  into.dataset.line = id;
+  // The accent's own name, for the one thing a colour cannot do: say what it is.
+  into.title = id === 'none' ? def.name : `${def.name} · ${CARD_LINE_NAME[id]}`;
+  const head = element('div', 'sc-card-head');
+  head.append(element('span', 'sc-card-type', eyebrow));
+  if (level > 1) head.append(element('span', 'sc-level', `·${level}`));
+  into.append(head);
+  const emblem = cardLineMarkNode(id);
+  emblem.classList.add('sc-card-emblem');
+  into.append(emblem);
+  into.append(element('h4', 'sc-card-name', def.name));
+  into.append(clauseList(clauses));
+  into.append(element('p', 'sc-flavor', def.flavor));
 }
 
 export function createStatecraftScreen(options: StatecraftScreenOptions): StatecraftScreen {
@@ -261,7 +331,14 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     return banner;
   }
 
-  /** The slot row: one seal per slot, typed, with its countdown. */
+  /**
+   * The slot row: one card-shaped place per slot, typed, with its seal.
+   *
+   * An empty slot is drawn as the **outline of a card** with its office's mark
+   * ghosted inside it, rather than as a labelled box: a row of slots is a row of
+   * places a card goes, and the shape is what says so before any of the words
+   * are read. A filled slot is the card itself at thumbnail size, stamped.
+   */
   function drawSlots(state: GameState, sc: PlayerStatecraft, seat: number): HTMLElement {
     const block = element('section', 'sc-slots');
     const layout = slotLayout(sc.government);
@@ -275,9 +352,17 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       const takeable = held !== null && filled === null && orderFitsSlot(held, type);
       if (takeable) button.classList.add('sc-slot-open');
       if (filled) button.classList.add('sc-slot-filled');
-      button.append(element('span', 'sc-slot-type', SLOT_LABEL[type]));
+      button.append(element('span', 'sc-slot-type', SLOT_WORDS[type]));
       if (filled) {
         const level = sc.orders.find((owned) => owned.id === filled.card)?.level ?? 1;
+        // A slotted card keeps its own accent, so the row of slots is the same
+        // hand of colours the collection below it is.
+        button.dataset.line = isOrderId(filled.card) ? lineOf(orderDef(filled.card)) : 'none';
+        if (isOrderId(filled.card)) {
+          const emblem = cardLineMarkNode(lineOf(orderDef(filled.card)));
+          emblem.classList.add('sc-slot-emblem');
+          button.append(emblem);
+        }
         button.append(
           element(
             'span',
@@ -287,19 +372,14 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         );
         if (level > 1) button.append(element('span', 'sc-level', `·${level}`));
         const left = sealRemaining(state, filled);
-        const seal = element('span', left > 0 ? 'sc-seal sc-seal-set' : 'sc-seal');
-        seal.append(element('span', 'sc-seal-glyph', SEAL_GLYPH));
-        // Every number in this interface is tabular mono (the specimen's rule),
-        // and a countdown is a number.
-        seal.append(element('span', 'sc-seal-count', left > 0 ? String(left) : 'free'));
-        button.append(seal);
-        button.title =
-          left > 0
-            ? `Sealed for ${left} more turn${left === 1 ? '' : 's'}`
-            : 'The seal has lifted — click to take it out';
+        const stamp = sealStamp(left);
+        button.title = stamp.title;
+        button.append(stamp);
       } else {
+        const ghost = slotMarkNode(type);
+        ghost.classList.add('sc-slot-ghost');
+        button.append(ghost);
         button.append(element('span', 'sc-slot-empty', 'empty'));
-        button.append(element('span', 'sc-seal sc-seal-ghost', SEAL_GLYPH));
         // The refusal, before it is provoked: the same sentence the reducer
         // would answer with, so the tooltip and the rejection are one string.
         if (held !== null) {
@@ -310,6 +390,30 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       row.append(button);
     });
     block.append(row);
+    // The other half of "which slot": the row highlights what will take the card
+    // (`sc-slot-open`, which is the reducer's own answer), and this says in words
+    // what is in hand and what to do with it. A highlight with no sentence is a
+    // colour a player has to guess the meaning of.
+    if (held !== null) {
+      const card = held;
+      // Which offices will take it, asked of `orderFitsSlot` rather than spelled
+      // out — a military card fits military *or* wildcard, and a wildcard card
+      // fits only wildcard, so a hand-written "X or wildcard" says "wildcard or
+      // wildcard" for a third of the deck.
+      const fits = SLOT_TYPES.filter((type) => orderFitsSlot(card, type)).map(
+        (type) => SLOT_WORDS[type],
+      );
+      const hint = element('p', 'sc-hand');
+      hint.append(element('span', 'sc-hand-name', orderDef(card).name));
+      hint.append(
+        element(
+          'span',
+          'sc-hand-say',
+          `in hand — drop it in an empty ${fits.join(' or ')} slot, or click it again to put it back`,
+        ),
+      );
+      block.append(hint);
+    }
     return block;
   }
 
@@ -326,16 +430,23 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const row = element('div', 'sc-doctrine-row');
     for (const id of sc.doctrines) {
       const card = element('article', 'sc-card sc-card-doctrine');
-      card.append(element('h4', 'sc-card-name', cardDef(id).name));
-      card.append(clauseList(describeCard(id)));
-      card.append(element('p', 'sc-flavor', cardDef(id).flavor));
+      drawCardFace(card, cardDef(id), 'permanent', describeCard(id));
       row.append(card);
     }
     block.append(row);
     return block;
   }
 
-  /** The collection: every Order held, slotted ones marked. */
+  /**
+   * The collection: every Order held, grouped by the kind of slot it wants.
+   *
+   * Grouped rather than listed, because the question a player is asking of this
+   * screen is almost always "what can go in *that*" — the groups are the same
+   * three words the slots above are labelled with, so the answer is found by
+   * matching a heading rather than by reading sixty clauses. Within a group the
+   * order is the collection's own (draw order), which is the only order that is
+   * a fact rather than an opinion.
+   */
   function drawCollection(sc: PlayerStatecraft): HTMLElement {
     const block = element('section', 'sc-collection');
     block.append(
@@ -347,34 +458,47 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       );
       return block;
     }
-    const grid = element('div', 'sc-card-grid');
     const slotted = new Set(sc.slots.filter(Boolean).map((entry) => entry!.card));
-    for (const owned of sc.orders) {
-      const def = orderDef(owned.id);
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = `sc-card sc-card-order sc-card-${def.slot}`;
-      if (slotted.has(owned.id)) button.classList.add('sc-card-slotted');
-      if (held === owned.id) button.classList.add('sc-card-held');
-      const head = element('div', 'sc-card-head');
-      head.append(element('h4', 'sc-card-name', def.name));
-      head.append(element('span', 'sc-card-type', SLOT_LABEL[def.slot]));
-      if (owned.level > 1) head.append(element('span', 'sc-level', `·${owned.level}`));
-      button.append(head);
-      // At the level the empire holds it, which is the whole of the upgrade
-      // slot being legible: a deepened card reads as its scaled numbers here and
-      // on the offer that deepened it, from one function.
-      button.append(clauseList(describeCard(owned.id, owned.level)));
-      button.append(element('p', 'sc-flavor', def.flavor));
-      if (slotted.has(owned.id)) {
-        button.append(element('p', 'sc-card-note', 'in a slot'));
-        button.disabled = true;
-      } else {
-        button.addEventListener('click', () => take(owned.id));
+    for (const type of SLOT_TYPES) {
+      const owned = sc.orders.filter((entry) => orderDef(entry.id).slot === type);
+      if (owned.length === 0) continue;
+      const group = element('div', `sc-group sc-group-${type}`);
+      const heading = element('p', 'sc-group-head');
+      const mark = slotMarkNode(type);
+      mark.classList.add('sc-group-mark');
+      heading.append(mark);
+      heading.append(element('span', 'sc-group-name', SLOT_WORDS[type]));
+      heading.append(element('span', 'sc-group-count', String(owned.length)));
+      group.append(heading);
+      const grid = element('div', 'sc-card-grid');
+      for (const entry of owned) {
+        const def = orderDef(entry.id);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `sc-card sc-card-order sc-card-${def.slot}`;
+        if (slotted.has(entry.id)) button.classList.add('sc-card-slotted');
+        if (held === entry.id) button.classList.add('sc-card-held');
+        // At the level the empire holds it, which is the whole of the upgrade
+        // slot being legible: a deepened card reads as its scaled numbers here
+        // and on the offer that deepened it, from one function.
+        drawCardFace(
+          button,
+          def,
+          SLOT_WORDS[def.slot],
+          describeCard(entry.id, entry.level),
+          entry.level,
+        );
+        if (slotted.has(entry.id)) {
+          button.append(element('p', 'sc-card-note', 'in a slot'));
+          button.disabled = true;
+        } else {
+          button.addEventListener('click', () => take(entry.id));
+        }
+        grid.append(button);
       }
-      grid.append(button);
+      group.append(grid);
+      block.append(group);
     }
-    block.append(grid);
     return block;
   }
 
