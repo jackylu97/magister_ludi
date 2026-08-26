@@ -92,13 +92,20 @@ conversion, the Litany at religion scale), **Inquisition** (spread defense — v
 **Missionary Zeal** (spread — v2), **Theocratic Mandate** (the Religious Mandate doctrine's
 partner: activates its deferred half).
 
-## Scope, v1 vs v2
+## Scope: pantheons are native, religions spread (user ruling 2026-08-26 — the Civ VI split)
 
-- **v1**: a religion applies to ALL your own cities. No spread, no conversion, no
-  missionaries, no majority religion. Religious Mandate stays deferred.
-- **v2**: cities gain a majority religion; beliefs narrow from "your cities" to "cities
-  following you"; pressure, missionaries, conversion, Inquisition, Missionary Zeal,
-  Religious Mandate come alive. A scope narrowing, not a redesign.
+- **Pantheon beliefs apply to every city you own, always** — even after a religion is
+  founded, and they can never be converted away. The pantheon is your civilization's
+  native cults; no spread machinery is needed to ship augurs, slots and the synergy pool.
+- **A religion is the exported faith, and spread is its defining feature**: cities carry a
+  majority religion; pressure, missionaries, conversion. Its beliefs split the Civ way —
+  the **founder** belief pays the founding empire everywhere (the reward for founding,
+  immune to how the missionary war goes); **follower** beliefs pay only in cities where the
+  religion is the majority, yours or anyone's — the reason to spread; **enhancer** beliefs
+  are mostly about spreading better or resisting it.
+- Sequencing: **augurs + pantheons ship with the Age 1–2 tree pass; prophets + religions
+  + spread ship together in the Age 2–3 pass.** Religious Mandate activates with the
+  latter.
 
 ## What the tech tree must host (input to the Age 2–3 pass)
 
