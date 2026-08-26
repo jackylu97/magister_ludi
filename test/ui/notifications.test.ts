@@ -177,6 +177,8 @@ describe('a notification action', () => {
     switch (kind) {
       case 'pan':
         return `pan to ${action.cell.col},${action.cell.row}`;
+      case 'openStatecraft':
+        return 'open Statecraft';
       default: {
         const unhandled: never = kind;
         return unhandled;
@@ -187,6 +189,11 @@ describe('a notification action', () => {
   it('is a pan for now, and carries the cell it pans to', () => {
     const action: NotificationAction = { kind: 'pan', cell: { col: 2, row: 9 } };
     expect(describeKind(action)).toBe('pan to 2,9');
+  });
+
+  it('is also an openStatecraft, which carries no cell', () => {
+    const action: NotificationAction = { kind: 'openStatecraft' };
+    expect(describeKind(action)).toBe('open Statecraft');
   });
 
   describe('isActionable', () => {

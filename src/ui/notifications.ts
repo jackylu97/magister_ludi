@@ -45,8 +45,16 @@ import type { CellRef } from './mapView';
  * knows what to do with each kind (`main.ts`'s `runAction`) switches on
  * `kind` with a `never` default, so a new member of this union fails to
  * compile wherever it goes unhandled rather than silently doing nothing.
+ *
+ * `openStatecraft` is the second member and deliberately carries no cell: the
+ * screen it opens is about the empire, not a hex, exactly as the `statecraft`
+ * turn blocker takes no camera move either (`controls.ts`'s `focusBlocker`).
+ * It exists for the one announcement that fires when the *first* draft a game
+ * ever deals appears — see `showStatecraftOffer`'s caller in `main.ts` — so a
+ * player who has never opened the screen is handed the door to it rather than
+ * only a badge on a chip they have not learned to read yet.
  */
-export type NotificationAction = { kind: 'pan'; cell: CellRef };
+export type NotificationAction = { kind: 'pan'; cell: CellRef } | { kind: 'openStatecraft' };
 
 /**
  * One thing that happened, as the player is told it.

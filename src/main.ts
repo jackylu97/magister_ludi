@@ -211,6 +211,7 @@ const menuSaveButton = requireElement<HTMLButtonElement>('menu-save');
 const menuSaveAsButton = requireElement<HTMLButtonElement>('menu-save-as');
 const menuLoadButton = requireElement<HTMLButtonElement>('menu-load');
 const menuExportButton = requireElement<HTMLButtonElement>('menu-export');
+const menuStatecraftButton = requireElement<HTMLButtonElement>('menu-statecraft');
 const saveAsForm = requireElement<HTMLFormElement>('save-as');
 const saveAsNameInput = requireElement<HTMLInputElement>('save-as-name');
 const saveAsGoButton = requireElement<HTMLButtonElement>('save-as-go');
@@ -1574,6 +1575,9 @@ async function boot(initial: Game | null): Promise<void> {
       case 'pan':
         controls.panTo(action.cell);
         return;
+      case 'openStatecraft':
+        statecraft?.open();
+        return;
       default: {
         const unhandled: never = kind;
         throw new Error(`Unknown notification action "${String(unhandled)}"`);
@@ -1835,6 +1839,20 @@ async function boot(initial: Game | null): Promise<void> {
       lens.close();
       notifications?.close();
       techTree?.close();
+    },
+    // The culture chip's own way in — see `topBar.ts`'s `civ-yield-clickable`.
+    // Closes the strip's own cards first, the same one-card-at-a-time rule
+    // `onOpenPopover` keeps for its three: a card left open under the
+    // Statecraft screen would be a card the player comes back to having
+    // abandoned its game.
+    onOpenStatecraft: () => {
+      meterCards?.close();
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      techTree?.close();
+      statecraft?.open();
     },
   });
   // Escape and the landing screen reach these through `closePopovers`, which is
@@ -2098,6 +2116,13 @@ async function boot(initial: Game | null): Promise<void> {
     // would be a card the player comes back to having abandoned its game.
     menu.close();
     savesPanel.open();
+  });
+
+  // The menu's own door to Statecraft — see the button's comment in
+  // `index.html`. Same pattern as Load: the menu goes, the screen comes up.
+  menuStatecraftButton.addEventListener('click', () => {
+    menu.close();
+    statecraft?.open();
   });
 
   menuExportButton.addEventListener('click', () => {

@@ -237,10 +237,18 @@ export interface CivYieldStripOptions {
   authority: MeterCardElements;
   /** Told whenever one of these cards opens, so the HUD's others can shut. */
   onOpenPopover?: () => void;
+  /**
+   * Opens the Statecraft screen. The culture chip is the one yield chip that
+   * is also a button — see the click wiring below — because culture is the
+   * one yield with a screen behind it; the other four have nowhere further to
+   * go than their own hover card.
+   */
+  onOpenStatecraft?: () => void;
 }
 
 export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStrip {
-  const { container, getGame, localPlayerId, happiness, authority, onOpenPopover } = options;
+  const { container, getGame, localPlayerId, happiness, authority, onOpenPopover, onOpenStatecraft } =
+    options;
   const values = new Map<YieldKey, HTMLElement>();
   /** The chip elements themselves, for the one thing a figure cannot say: a badge. */
   const chips = new Map<YieldKey, HTMLElement>();
@@ -276,6 +284,27 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     // and a keyboard should be able to reach it (see `infoCard.ts`, which binds
     // focus alongside hover).
     item.tabIndex = 0;
+    // Culture is the one yield with a screen behind it (Statecraft — see
+    // `onOpenStatecraft`), so it is the one chip that is also a button: the
+    // `civ-yield-clickable` class carries the same cursor and hover wash the
+    // meter buttons use (`.civ-meter:hover`, `style.css`), `role="button"`
+    // and a keydown handler give it the same affordance for a keyboard user
+    // that its `tabIndex` already gave the hover card, and the title and
+    // `aria-label` say what a click does rather than only what the number is.
+    // `C` and the culture chip's own hint line ("press C") still work exactly
+    // as before — this is a second way in, not a replacement.
+    if (key === 'culture' && onOpenStatecraft) {
+      item.classList.add('civ-yield-clickable');
+      item.setAttribute('role', 'button');
+      item.title = 'Open Statecraft';
+      item.setAttribute('aria-label', `${label} — open Statecraft`);
+      item.addEventListener('click', () => onOpenStatecraft());
+      item.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        onOpenStatecraft();
+      });
+    }
     values.set(key, value);
     chips.set(key, item);
     info.bind(item, () => yieldCard(key, label));

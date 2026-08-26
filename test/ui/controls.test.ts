@@ -27,7 +27,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type LensMode } from '../../src/ui/mapView';
-import { lensForDigit } from '../../src/ui/controls';
+import { lensForDigit, lensShowsYields } from '../../src/ui/controls';
 
 const ORDER: readonly LensMode[] = ['none', 'settler', 'explorer'];
 
@@ -90,5 +90,42 @@ describe('lensForDigit', () => {
     // of reading `order` rather than a hardcoded table.
     const grown: readonly LensMode[] = [...ORDER, 'settler'];
     expect(lensForDigit(3, grown, 'none')).toBe('settler');
+  });
+});
+
+/**
+ * `effectiveLens`'s glyph rule, pulled out pure: the settler lens forces the
+ * yield glyphs on regardless of the player's own switch, the same way an open
+ * city panel already does — a settler player judging a site without yields
+ * under the wash is the report that sent this in (`lensShowsYields`'s own
+ * docblock has the reasoning). Neither the player's switch nor `effectiveLens`
+ * itself is touched by this: dropping the settler or closing the panel must
+ * restore exactly what the player had chosen, so the mode/city inputs here
+ * stand in for "is a settler or a panel making the ask right now", never for a
+ * write to `yieldsOn`.
+ */
+describe('lensShowsYields', () => {
+  it('follows the switch when nothing else is asking', () => {
+    expect(lensShowsYields('none', false, false)).toBe(false);
+    expect(lensShowsYields('none', true, false)).toBe(true);
+    expect(lensShowsYields('explorer', false, false)).toBe(false);
+  });
+
+  it('forces the glyphs on for the settler lens, switch off', () => {
+    expect(lensShowsYields('settler', false, false)).toBe(true);
+  });
+
+  it('does not force the glyphs on for the explorer lens', () => {
+    expect(lensShowsYields('explorer', false, false)).toBe(false);
+  });
+
+  it('an open city panel still forces the glyphs on, settler or not', () => {
+    expect(lensShowsYields('none', false, true)).toBe(true);
+    expect(lensShowsYields('settler', false, true)).toBe(true);
+  });
+
+  it('the switch alone is enough under any mode', () => {
+    expect(lensShowsYields('settler', true, false)).toBe(true);
+    expect(lensShowsYields('explorer', true, false)).toBe(true);
   });
 });

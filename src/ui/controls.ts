@@ -264,6 +264,15 @@ export type NoticeKind = 'mode' | 'reject' | 'guide';
 export interface AnnounceOptions {
   /** Where it happened. Makes the toast and its log entry click-to-pan. */
   cell?: CellRef;
+  /**
+   * This news is the Statecraft screen's door, not a place on the map — the
+   * first-draft announcement (`announceFirstStatecraftDraft`) is the one call
+   * site. Mutually exclusive with `cell` in practice (nothing needs both a pan
+   * and a screen-open on one entry today); `announce` prefers `cell` if a call
+   * site somehow set both, since a place beats an abstract "open this" already
+   * a keypress away.
+   */
+  openStatecraft?: boolean;
 }
 
 /**
@@ -364,6 +373,21 @@ export function lensForDigit(
   const target = digit === 0 ? 'none' : (lenses[digit - 1] ?? null);
   if (target === null) return null;
   return target === current ? 'none' : target;
+}
+
+/**
+ * Does the effective lens show the yield glyphs — the rule `effectiveLens`
+ * applies, pulled out pure so it can be pinned without a `GameControls`
+ * instance behind it (see `effectiveLens`'s own docblock for the reasoning).
+ *
+ * Three things can turn the glyphs on, independently: the player's own
+ * switch, an open city panel, and — as of the settler-lens fix below — the
+ * settler lens itself, auto or manual. `yieldsOn` is untouched by any of
+ * this; the caller decides what to do with it, this only decides whether the
+ * glyphs show *this frame*.
+ */
+export function lensShowsYields(mode: LensMode, yieldsOn: boolean, cityOpen: boolean): boolean {
+  return yieldsOn || cityOpen || mode === 'settler';
 }
 
 export interface GameControlsOptions {
@@ -890,6 +914,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   const skippedUnitIds = new Set<number>();
   /**
+   * Whether this seat's first-ever Statecraft draft has already been announced
+   * — see `checkFirstStatecraftDraft`. Set at `refresh` from the seat's actual
+   * history, so a loaded save past its first draft never replays the toast.
+   */
+  let statecraftDraftAnnounced = false;
+  /**
    * Whether the city screen's Buy Tiles mode is up — the next click inside the
    * open city's ring spends gold instead of pinning a citizen.
    *
@@ -1025,10 +1055,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // `AnnounceOptions` still takes a bare `cell` — every call site in this file
     // already reads that way (its own docblock's reason) — and it is `announce`
     // that wraps it into the action union `NotificationEntry` actually carries.
-    // `pan` is the only action there is today; a second one gets its own
-    // `opts` field and a branch here, not a change to any call site.
+    // `cell` wins if a call site ever set both (see `AnnounceOptions.openStatecraft`).
     if (opts.cell) {
       entry.action = { kind: 'pan', cell: { col: opts.cell.col, row: opts.cell.row } };
+    } else if (opts.openStatecraft) {
+      entry.action = { kind: 'openStatecraft' };
     }
     onNotify?.(entry, localPlayerId);
   }
@@ -1082,7 +1113,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function commit(command: Command): CommandResult {
     const result = dispatch(getGame(), command);
-    if (result.ok) pollSightings();
+    if (result.ok) {
+      pollSightings();
+      checkFirstStatecraftDraft();
+    }
     return result;
   }
 
@@ -1328,6 +1362,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    *     ranging unit inherits the lens with its data row.
    *   · an open city panel ⇒ the glyphs, over that city's work radius. The panel
    *     is a screen full of numbers; this is where they come from.
+   *   · the settler lens (auto *or* manual — a player who picked the site menu
+   *     row directly asked for exactly what a selected settler asks for) ⇒ the
+   *     glyphs, over the whole map. Judging a site with the wash but without the
+   *     numbers under it is the report that sent this rule in: crimson and blue
+   *     say whether a hex is legal and whether it touches water, and neither
+   *     says whether it grows anything. This is a third, independent path to
+   *     the glyphs — not folded into the settler-selection rule above, because
+   *     it must also fire when the settler lens is up by the player's own
+   *     manual choice with no unit selected at all.
    *
    * The two piece rules are written in precedence order and the order has never
    * had to matter: no unit both founds cities and ignores terrain. Settler wins
@@ -1337,11 +1380,24 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * The city rule scopes the glyphs *only while the player has them off*. With the
    * switch already on, the whole map is marked and the radius is part of it, so
    * narrowing to the radius would be the panel taking glyphs away — which is the
-   * opposite of what opening it asked for.
+   * opposite of what opening it asked for. The settler rule does not scope at
+   * all — no `yieldCells` restriction to a hovered site's radius — because the
+   * question a settler lens answers is "where", and narrowing the numbers to
+   * one candidate before the player has picked one would be answering a
+   * question they have not asked yet.
    *
    * No rule touches `manualLens` or `yieldsOn`, so dropping the piece and
-   * closing the panel restore exactly what the player had chosen. `resourcesOn`
+   * closing the panel restore exactly what the player had chosen: the settler
+   * rule reads `yieldsOn`, `manualLens`, and the selection the same way the
+   * other two do, it just adds one more `true` to the `yields` fold rather than
+   * writing over the switch. `resourcesOn`
    * has no rule at all: it is what the player set it to, whatever else is up.
+   * (Considered extending that to the explorer lens too — a scout is hunting
+   * resources as much as a settler is hunting ground — but `resourcesOn`
+   * already *defaults* on, so the only viewer it would change anything for is
+   * one who deliberately switched roundels off, and overriding that reads as
+   * the lens fighting the player rather than helping them the way the settler
+   * rule does with a switch that defaults off. Left alone.)
    */
   function effectiveLens(): LensView {
     const playerId = localPlayerId;
@@ -1350,12 +1406,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const settler = def !== null && def.foundsCity;
     const explorer = def !== null && isExplorer(def);
     const city = openCity();
+    const mode = settler ? 'settler' : explorer ? 'explorer' : manualLens;
     return {
-      mode: settler ? 'settler' : explorer ? 'explorer' : manualLens,
+      mode,
       cells: null,
       resources: resourcesOn,
       resourceCells: null,
-      yields: yieldsOn || city !== null,
+      yields: lensShowsYields(mode, yieldsOn, city !== null),
       yieldCells: city && !yieldsOn ? workRadiusCells(city) : null,
       playerId,
     };
@@ -2718,6 +2775,44 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     }
   }
 
+  /**
+   * One toast, once per game: the first Statecraft draft this empire has ever
+   * been dealt.
+   *
+   * Checked from `commit`, after *every* accepted command, the same choke
+   * point `pollSightings` uses and for the same reason: a draft is not only
+   * settled at end of turn (`runStatecraft`, the turn phase) but also by any
+   * of the mid-turn windfalls that route through `settleCultureWindfall`
+   * (clearing a camp, a ruin, a completed improvement, a finished tech) — a
+   * check that only ran inside `endTurn` would miss every one of those. The
+   * tier a first draft lands on is always 1: `settleDraft` deals an Order at
+   * every draft and never a government before whatever tier the ladder first
+   * gates one at, so "drafts went from 0 to nonzero" is unambiguous.
+   *
+   * `statecraftDraftAnnounced` is the flag, not a before/after snapshot,
+   * because the moment worth catching can be several commands after the one
+   * that is easy to snapshot around. It starts wherever `refresh` finds the
+   * seat's own drafts count — zero for a new game, already-crossed for a
+   * loaded save with history — so resuming a game past its first draft does
+   * not replay this toast.
+   *
+   * The existing `statecraft` turn blocker already stops End Turn and opens the
+   * offer card the moment a player *tries* to end a turn a draft is sitting
+   * on — this fires earlier and beside it, not instead of it: a player who has
+   * never seen the screen is pointed at it the instant the draft appears,
+   * rather than only learning it exists by tripping the blocker later. Its
+   * action opens the Statecraft screen itself (`openStatecraft`), not the offer
+   * card and not a camera pan — the empire is the subject, exactly as the
+   * blocker's own guidance line reads for `research` and `statecraft`.
+   */
+  function checkFirstStatecraftDraft(): void {
+    if (statecraftDraftAnnounced) return;
+    const player = playerById(getGame().state, localPlayerId);
+    if (!player || player.statecraft.drafts === 0) return;
+    statecraftDraftAnnounced = true;
+    announce('Your first Order awaits — open the Statecraft.', { openStatecraft: true });
+  }
+
   // --- handing the new turn over -------------------------------------------
 
   /**
@@ -3363,6 +3458,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // that only happens to reuse a low id.
       skippedUnitIds.clear();
       localPlayerId = seatId;
+      // A new table starts this at zero; a loaded save inherits whatever the
+      // resumed seat's own history already crossed — see
+      // `checkFirstStatecraftDraft`.
+      statecraftDraftAnnounced = (playerById(getGame().state, seatId)?.statecraft.drafts ?? 0) > 0;
       // A new table, or a loaded one. Nobody has been told anything about this
       // world, and everything already on it — a resumed game's charted ruins,
       // the camps its borders watch — is the state of play rather than news, so

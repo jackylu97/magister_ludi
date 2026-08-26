@@ -648,6 +648,25 @@ body {
   color: var(--y-faith-lit);
 }
 
+/* The culture chip's own affordance: it is the one yield chip that is also a
+   button (see `topBar.ts`'s `onOpenStatecraft`), and it wears the same cursor
+   and hover wash `.civ-meter` does immediately below, so "this opens
+   something" reads the same way at both ends of the strip. Padding and a
+   matching negative margin keep the hover wash from nudging the row's own
+   gap, the way `.civ-meter`'s does not have to because that strip pads every
+   chip alike. */
+.civ-yield-clickable {
+  cursor: pointer;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: var(--radius-sm);
+}
+
+.civ-yield-clickable:hover,
+.civ-yield-clickable:focus-visible {
+  background: rgba(247, 242, 225, 0.14);
+}
+
 /* --- the two empire meters -----------------------------------------------
    Happiness and authority, at the right-hand end of the yield strip and behind
    their own hairline: they are not yields, they are what the empire *feels*
@@ -5206,7 +5225,12 @@ kbd {
 
 /* A yield chip with something waiting behind it — today, only culture, when a
    Statecraft draft is outstanding or a charter is banked. A mark rather than a
-   colour change, so the figure itself keeps its voice. */
+   colour change, so the figure itself keeps its voice. It pulses rather than
+   sitting still: a static dot on a chip a player has not yet learned is
+   clickable (`.civ-yield-clickable`, above) reads as decoration, and the whole
+   point of this mark is that it is not — see the notifications' own unread
+   badge, whose precedent this follows, for the same "something is waiting"
+   reading applied to a strip nobody has to open to feel it. */
 .civ-yield-waiting {
   position: relative;
 }
@@ -5220,6 +5244,26 @@ kbd {
   border-radius: 50%;
   background: var(--vermilion-lit);
   content: '';
+  animation: yield-waiting-pulse 1.8s ease-in-out infinite;
+}
+
+/* `--vermilion-lit` (#f28563) has no separate RGB-components token to draw an
+   alpha ring off, so the ring's colour is spelled out here rather than through
+   a custom property invented for this one rule. */
+@keyframes yield-waiting-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(242, 133, 99, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(242, 133, 99, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .civ-yield-waiting::after {
+    animation: none;
+  }
 }
 
 /* A hint that is asking for something, rather than explaining something. */

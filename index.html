@@ -404,7 +404,7 @@
         <div id="lens-options" class="lens-options"></div>
         <div id="lens-toggles" class="lens-toggles"></div>
         <p class="hint">
-          A city screen shows its own yields; a selected settler shows city sites.
+          A city screen and the settler lens both show yields regardless of this switch.
         </p>
       </div>
 
@@ -463,6 +463,17 @@
         <!-- The renderer's own switches (shadows) and its stats line are appended
              here by main.ts, because only the 3D pipeline has any. -->
         <div id="menu-extras"></div>
+
+        <!-- Statecraft has no bar button by design (see the overlay's own
+             comment, further down this file) — it opens from the culture
+             chip, from `C`, and now from here, so a player who has stumbled on
+             none of those still has one place that always lists everything a
+             game screen can be reached from. -->
+        <div class="row">
+          <button id="menu-statecraft" class="btn btn-quiet" type="button">
+            Statecraft…
+          </button>
+        </div>
 
         <!-- Saving. Four verbs, in the order they are reached for: Save
              overwrites one quick slot without asking anything, Save As names a
@@ -567,6 +578,10 @@
             <kbd>1</kbd><kbd>2</kbd> pick a lens from that menu, in the order it lists
             them — the numbers count the lenses, so <kbd>1</kbd> is the first one ·
             <kbd>0</kbd> clears it · the number of the lens already up turns it back off
+          </li>
+          <li>
+            <kbd>C</kbd> — or the <b>culture chip</b> in the bar, or <b>Statecraft…</b> in this
+            menu — opens Statecraft: your government, your Orders and your Doctrines
           </li>
           <li>
             <kbd>T</kbd> — or the <b>research card</b>, top left — opens the star chart;
