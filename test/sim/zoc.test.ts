@@ -27,45 +27,19 @@ import {
   zocField,
   zocLocks,
 } from '../../src/sim/pathfind';
-import { type GameState, type Unit, createCity, createUnit, newGame, realPlayers } from '../../src/sim/state';
+import { type GameState, type Unit, createCity, newGame, realPlayers } from '../../src/sim/state';
 import { type Game, createGame, dispatch, replay } from '../../src/sim/game';
-import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
+import { unitDef } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
+import { flatState, unit } from './zocHelpers';
 
 // --- scaffolding ------------------------------------------------------------
-
-/** A blank state on flat grassland, with a second seat to be hostile with. */
-function flatState(width = 12, height = 10): GameState {
-  const state = newGame({
-    seed: 7,
-    sizeName: 'duel',
-    players: [
-      { name: 'A', color: '#a00', isHuman: true },
-      { name: 'B', color: '#00a', isHuman: true },
-    ],
-  });
-  state.map = createMap({ width, height, terrain: 'grassland' });
-  resetVisibility(state);
-  state.units = [];
-  state.cities = [];
-  state.nextEntityId = 1;
-  return state;
-}
 
 function at(map: GameMap, col: number, row: number): Tile {
   const tile = getTileAt(map, col, row);
   if (!tile) throw new Error(`No tile at (${col}, ${row})`);
   return tile;
-}
-
-function unit(
-  state: GameState,
-  tile: Tile,
-  type: UnitTypeId = 'warrior',
-  ownerId = 0,
-): Unit {
-  return createUnit(state, ownerId, type, tile.col, tile.row);
 }
 
 /** A hex's six neighbours, in `HEX_DIRECTIONS` order. Consecutive ones touch. */
@@ -385,65 +359,8 @@ describe('the reachable set under a zone of control', () => {
 
 // --- the four readers agree -------------------------------------------------
 
-/** A tiny deterministic generator, so a failing board can be reproduced. */
-function lcg(seed: number): () => number {
-  let s = seed | 0;
-  return () => {
-    s = (Math.imul(s, 1664525) + 1013904223) | 0;
-    return ((s >>> 8) & 0xffffff) / 0x1000000;
-  };
-}
-
-/** A rough board: mixed terrain, mixed features, and pickets scattered on it. */
-function randomBoard(seed: number): GameState {
-  const state = flatState(11, 9);
-  const rand = lcg(seed);
-  for (const tile of state.map.tiles) {
-    const roll = rand();
-    if (roll < 0.1) tile.terrain = 'mountain';
-    else if (roll < 0.2) tile.feature = 'forest';
-    else if (roll < 0.28) tile.hills = true;
-    else if (roll < 0.33) {
-      tile.feature = 'jungle';
-      tile.hills = true;
-    }
-  }
-  const open = state.map.tiles.filter((tile) => tile.terrain !== 'mountain');
-  const types: UnitTypeId[] = ['warrior', 'scout', 'chariotArcher'];
-  for (let i = 0; i < 6; i++) {
-    const tile = open[Math.floor(rand() * open.length)]!;
-    if (state.units.some((u) => u.col === tile.col && u.row === tile.row)) continue;
-    // Combat units only: an arrival on this board must change nothing but the
-    // mover, so the save/restore below is exact.
-    unit(state, tile, types[Math.floor(rand() * types.length)]!, i % 2);
-  }
-  return state;
-}
 
 describe('one evaluator: the sweep, the route and the walk agree', () => {
-  it('walks to every tile the sweep highlighted, on rough random boards', () => {
-    for (let seed = 1; seed <= 25; seed++) {
-      const state = randomBoard(seed);
-      for (const mover of state.units.filter((u) => u.ownerId === 0)) {
-        const home = { col: mover.col, row: mover.row, movesLeft: mover.movesLeft };
-        for (const { tile } of reachableTiles(state, mover)) {
-          const path = findPath(state, mover, tile);
-          expect(path, `seed ${seed}: no route to a highlighted tile`).not.toBeNull();
-          advanceAlongPath(state, mover, path!);
-          expect(
-            [mover.col, mover.row],
-            `seed ${seed}: highlighted (${tile.col},${tile.row}) was not reached`,
-          ).toEqual([tile.col, tile.row]);
-          expect(mover.path, `seed ${seed}: the march did not finish`).toBeUndefined();
-          mover.col = home.col;
-          mover.row = home.row;
-          mover.movesLeft = home.movesLeft;
-          delete mover.fortifiedTurns;
-        }
-      }
-    }
-  });
-
   it('stops honestly when an enemy moves alongside a queued march', () => {
     const state = flatState();
     // A long straight order down an empty row, queued while the road is clear.

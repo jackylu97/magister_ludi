@@ -1,3 +1,16 @@
+/**
+ * **Slow tier** (`npm run test:slow`, and `npm run test:all`).
+ *
+ * This whole directory is slow by nature, which is why the suffix is on the
+ * file rather than on a sibling: there is no fast half to keep behind. The
+ * fixture *is* the test — around three hundred units and forty cities on a
+ * standard map, built by dispatching real commands, then replayed from its log
+ * to a byte-identical state. A scale fixture that took a second to build would
+ * not be pinning anything the M8 perf constraint cares about.
+ *
+ * `npm run test:stress` therefore names the `all` tier: `test/stress/` holds
+ * exactly this file, and a core-tier run of the directory would collect nothing.
+ */
 import { describe, expect, it } from 'vitest';
 import { InstancedMesh, Matrix4 } from 'three';
 

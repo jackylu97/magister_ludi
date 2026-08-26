@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { createGame, dispatch, snapshotState } from '../../src/sim/game';
 import type { Command } from '../../src/sim/commands';
 import {
   cityStageSums,
@@ -19,7 +19,6 @@ import {
   cityYields,
   explainTileYield,
   foldTileYield,
-  foundCityAt,
   growthThreshold,
   ownedTiles,
   settleGrowthWindfall,
@@ -95,17 +94,6 @@ import { sightOf } from '../../src/sim/visibility';
 
 // --- harness ----------------------------------------------------------------
 
-function game(seed = 7) {
-  return createGame({
-    seed,
-    sizeName: 'duel',
-    players: [
-      { name: 'Ada', color: '#d4502e', isHuman: true },
-      { name: 'Bors', color: '#3a7fe8' },
-    ],
-  });
-}
-
 /** Gives a player a card at a level, in the collection. Test scaffolding only. */
 function grant(sc: PlayerStatecraft, id: OrderId, level = 1): void {
   const owned = sc.orders.find((entry) => entry.id === id);
@@ -125,10 +113,7 @@ function slot(state: GameState, playerId: number, id: OrderId, level = 1): void 
 }
 
 /** A city for a player, on the tile their first unit is standing on. */
-function found(state: GameState, playerId: number) {
-  const unit = state.units.find((u) => u.ownerId === playerId)!;
-  return foundCityAt(state, playerId, getTileAt(state.map, unit.col, unit.row)!);
-}
+import { found, game } from './statecraftHelpers';
 
 // --- the table --------------------------------------------------------------
 
@@ -875,53 +860,6 @@ describe('every hook family, end to end', () => {
 // --- determinism ------------------------------------------------------------
 
 describe('determinism', () => {
-  it('replays a full Statecraft sequence byte for byte', () => {
-    const play = () => {
-      const g = game(31);
-      const player = g.state.players[0]!;
-      const log: Command[] = [];
-      const send = (command: Command): void => {
-        if (dispatch(g, command).ok) log.push(command);
-      };
-      found(g.state, 0);
-      for (let turn = 0; turn < 60; turn++) {
-        // Answer everything Statecraft is owed, then slot, unslot and re-slot.
-        if (player.statecraft.pendingOrder) {
-          send({ type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command);
-        }
-        if (player.statecraft.pendingGovernment) {
-          send({ type: 'adoptGovernment', playerId: 0, choiceIndex: 1 } as Command);
-        }
-        if (player.statecraft.pendingDoctrine) {
-          send({ type: 'chooseDoctrine', playerId: 0, optionIndex: 0 } as Command);
-        }
-        for (const owned of player.statecraft.orders) {
-          for (let i = 0; i < player.statecraft.slots.length; i++) {
-            send({ type: 'slotOrder', playerId: 0, cardId: owned.id, slotIndex: i } as Command);
-          }
-        }
-        for (let i = 0; i < player.statecraft.slots.length; i++) {
-          send({ type: 'unslotOrder', playerId: 0, slotIndex: i } as Command);
-        }
-        // Culture the empire would never earn on a duel map in sixty turns; the
-        // point is the *sequence*, not the economy.
-        player.culturePool += 40;
-        send({ type: 'endTurn', playerId: 0 });
-        send({ type: 'endTurn', playerId: 1 });
-      }
-      return { snapshot: snapshotState(g.state), log, config: g.config };
-    };
-
-    const a = play();
-    const b = play();
-    expect(b.snapshot).toEqual(a.snapshot);
-    expect(a.log.length).toBeGreaterThan(50);
-    // The offers were real: the empire climbed and adopted.
-    const drafted = JSON.parse(a.snapshot) as { players: { statecraft: PlayerStatecraft }[] };
-    expect(drafted.players[0]!.statecraft.drafts).toBeGreaterThan(3);
-    expect(drafted.players[0]!.statecraft.government).not.toBe(STARTING_GOVERNMENT);
-  });
-
   it('round-trips a schema 19 save with Statecraft in it', () => {
     expect(SCHEMA_VERSION).toBe(19);
     const g = game(19);
@@ -942,27 +880,6 @@ describe('determinism', () => {
     expect(JSON.parse(text).players[0].statecraft).toEqual(player.statecraft);
     // A player who has never drafted serialises as the opening state exactly.
     expect(JSON.parse(text).players[1].statecraft).toEqual(newPlayerStatecraft());
-  });
-
-  it('replays a logged game with Statecraft commands in it', () => {
-    const g = game(23);
-    const log: Command[] = [];
-    const send = (command: Command): void => {
-      if (dispatch(g, command).ok) log.push(command);
-    };
-    const player = g.state.players[0]!;
-    // Reach a draft the honest way, so the replay can reproduce it.
-    for (let turn = 0; turn < 40; turn++) {
-      if (player.statecraft.pendingOrder) {
-        send({ type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command);
-      }
-      const unit = g.state.units.find((u) => u.ownerId === 0 && u.type === 'settler');
-      if (unit) send({ type: 'foundCity', playerId: 0, settlerUnitId: unit.id } as Command);
-      send({ type: 'endTurn', playerId: 0 });
-      send({ type: 'endTurn', playerId: 1 });
-    }
-    const replayed = replay(g.config, log);
-    expect(snapshotState(replayed)).toEqual(snapshotState(g.state));
   });
 
   it('keeps the live-effect walk in one fixed order', () => {

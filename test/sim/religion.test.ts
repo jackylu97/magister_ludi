@@ -25,12 +25,11 @@ import {
   explainTileYield,
   foldTileYield,
   foundCityAt,
-  foundingErrorAt,
   yieldContextFor,
 } from '../../src/sim/cities';
 import { previewCombat } from '../../src/sim/combat';
-import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
-import { getTileAt, mapRange, tileHex, wrappedDistance } from '../../src/sim/map';
+import { createGame, dispatch, snapshotState } from '../../src/sim/game';
+import { getTileAt, tileHex, wrappedDistance } from '../../src/sim/map';
 import {
   availableRites,
   beliefPool,
@@ -67,7 +66,7 @@ import {
   riteDef,
   slotsFromTechs,
 } from '../../src/sim/religionData';
-import { type GameState, SCHEMA_VERSION, createUnit, playerById } from '../../src/sim/state';
+import { type GameState, createUnit, playerById } from '../../src/sim/state';
 import {
   anyCardDef,
   describeCard,
@@ -77,7 +76,7 @@ import {
   windfallPayout,
 } from '../../src/sim/statecraft';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
-import { availableTechs, buildError, hasAbility } from '../../src/sim/tech';
+import { hasAbility } from '../../src/sim/tech';
 import { unitDef } from '../../src/sim/unitData';
 
 // --- harness ----------------------------------------------------------------
@@ -124,168 +123,6 @@ function forecast(state: GameState, unitId: number, col: number, row: number) {
 /** Gives a seat a god outright — the offer machinery has its own tests. */
 function keep(state: GameState, playerId: number, id: BeliefId): void {
   playerById(state, playerId)!.pantheon.beliefs.push(id);
-}
-
-/**
- * A scripted **faithful** empire, and the pacing measurement Entry XXVIII's open
- * numbers rest on.
- *
- * `playWarband`'s shape (`buildSinks.test.ts`) with a different appetite: settle
- * a few towns, research toward Divination first, put a shrine in every town, and
- * then spend faith on augurs the moment the pool covers one — a rite when there
- * is a use for one, a god when a slot is open. Deliberately conservative and
- * deliberately scripted, because the number it produces ("the first augur lands
- * on turn N") is only worth anything if the same script always produces it.
- *
- * Every act is a **command**, which is what lets the determinism test above
- * replay the whole thing: the harness never reaches into the state.
- */
-function playFaithful(maxTurns: number): {
-  game: ReturnType<typeof createGame>;
-  firstAugurTurn: number | null;
-  ritesPerformed: number;
-  augursBought: number;
-} {
-  const g = createGame({
-    seed: 4242,
-    sizeName: 'standard',
-    players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
-  });
-  const CITY_TARGET = 3;
-  // The road to the augur, cheapest-first inside the prerequisites the tree
-  // already enforces: this is a *pious* opening, not an optimal one.
-  const ROAD = ['husbandry', 'divination', 'earthenware', 'letters', 'stonecraft', 'calendar'];
-  let firstAugurTurn: number | null = null;
-  let ritesPerformed = 0;
-  let augursBought = 0;
-
-  for (let turn = 0; turn < maxTurns; turn++) {
-    const player = playerById(g.state, 0)!;
-
-    // Answer whatever is owed, always option 0 — this measures the price, not
-    // the choices.
-    if (player.pantheon.pending !== undefined) {
-      dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
-    }
-    if (player.statecraft.pendingOrder !== undefined) {
-      dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command);
-    }
-    if (player.statecraft.pendingGovernment !== undefined) {
-      dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 } as Command);
-    }
-    if (player.statecraft.pendingDoctrine !== undefined) {
-      dispatch(g, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 } as Command);
-    }
-    if (player.pendingDiscovery !== undefined) {
-      dispatch(g, { type: 'chooseDiscovery', playerId: 0, optionIndex: 0 } as Command);
-    }
-    if (player.researching === null) {
-      const next =
-        ROAD.find((id) => !player.techsResearched.includes(id as never)) ??
-        [...availableTechs(g.state, 0)].sort(
-          (a, b) => techDef(a).cost - techDef(b).cost || TECH_IDS.indexOf(a) - TECH_IDS.indexOf(b),
-        )[0];
-      if (next && dispatch(g, { type: 'chooseResearch', playerId: 0, techId: next } as Command).ok) {
-        // taken
-      } else {
-        const fallback = [...availableTechs(g.state, 0)][0];
-        if (fallback) {
-          dispatch(g, { type: 'chooseResearch', playerId: 0, techId: fallback } as Command);
-        }
-      }
-    }
-
-    // Settle.
-    for (const unit of [...g.state.units]) {
-      if (!unitDef(unit.type).foundsCity) continue;
-      if (g.state.cities.length >= CITY_TARGET) continue;
-      if (dispatch(g, { type: 'foundCity', playerId: 0, settlerUnitId: unit.id }).ok) continue;
-      if (unit.path && unit.path.length > 0) continue;
-      const target = nearestSite(g.state, unit.col, unit.row);
-      if (target) dispatch(g, { type: 'moveUnit', playerId: 0, unitId: unit.id, target });
-    }
-
-    // Buy an augur whenever the pool covers one, in the biggest town.
-    const home = g.state.cities.find((city) => city.ownerId === 0);
-    const price = home ? explainPurchaseCost(g.state, 0, home.id, AUGUR, 'faith') : null;
-    if (price && home && player.faithPool >= price.total) {
-      if (
-        dispatch(g, {
-          type: 'purchaseItem',
-          playerId: 0,
-          cityId: home.id,
-          item: { kind: 'unit', id: 'augur' },
-          currency: 'faith',
-        } as Command).ok
-      ) {
-        augursBought += 1;
-        if (firstAugurTurn === null) firstAugurTurn = g.state.turn;
-      }
-    }
-
-    // Spend the augurs, in the order a player weighing the two would: **one
-    // rite first** — an augur is worth more having done something than having
-    // done nothing — and then the whole of what is left on a god, while a slot
-    // is open. An augur with no slot to fill keeps working through its charges.
-    for (const unit of [...g.state.units]) {
-      if (unit.ownerId !== 0 || !isAugur(unit)) continue;
-      for (const rite of availableRites(g.state, 0)) {
-        if (riteError(g.state, 0, unit.id, rite) !== null) continue;
-        if (dispatch(g, { type: 'performRite', playerId: 0, unitId: unit.id, rite } as Command).ok) {
-          ritesPerformed += 1;
-        }
-        break;
-      }
-      // The rite may have spent the piece's last charge, so ask the board again.
-      if (!g.state.units.some((other) => other.id === unit.id)) continue;
-      if (consecrateError(g.state, 0, unit.id) === null) {
-        dispatch(g, { type: 'consecrate', playerId: 0, unitId: unit.id } as Command);
-      }
-    }
-
-    // Keep every queue full: a shrine first, then whatever the town can make.
-    for (const city of g.state.cities) {
-      if (city.queue.length > 0) continue;
-      const queue: { kind: string; id: string }[] = [];
-      if (!city.buildings.includes('shrine') && buildError(g.state, 0, 'building', 'shrine') === null) {
-        queue.push({ kind: 'building', id: 'shrine' });
-      } else if (
-        !city.buildings.includes('monument') &&
-        buildError(g.state, 0, 'building', 'monument') === null
-      ) {
-        queue.push({ kind: 'building', id: 'monument' });
-      } else if (g.state.cities.length < CITY_TARGET && city.population >= unitDef('settler').minCityPop) {
-        queue.push({ kind: 'unit', id: 'settler' });
-      } else {
-        queue.push({ kind: 'unit', id: 'warrior' });
-      }
-      dispatch(g, { type: 'setCityProduction', playerId: 0, cityId: city.id, queue } as Command);
-    }
-
-    dispatch(g, { type: 'endTurn', playerId: 0 });
-  }
-  return { game: g, firstAugurTurn, ritesPerformed, augursBought };
-}
-
-/** The nearest tile a city could legally stand on, or null. `tech.test.ts`'s. */
-function nearestSite(
-  state: GameState,
-  col: number,
-  row: number,
-): { col: number; row: number } | null {
-  const from = state.map.tiles.find((tile) => tile.col === col && tile.row === row);
-  if (!from) return null;
-  let best: { col: number; row: number } | null = null;
-  let bestDistance = Infinity;
-  for (const tile of mapRange(state.map, tileHex(from), 8)) {
-    if (foundingErrorAt(state, 0, tile) !== null) continue;
-    const distance = Math.abs(tile.col - col) + Math.abs(tile.row - row);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      best = { col: tile.col, row: tile.row };
-    }
-  }
-  return best;
 }
 
 // --- the table --------------------------------------------------------------
@@ -1082,20 +919,6 @@ describe('timed effects', () => {
 // --- the log ----------------------------------------------------------------
 
 describe('determinism', () => {
-  it('round-trips a schema 19 save with augurs, rites and beliefs in the log', () => {
-    expect(SCHEMA_VERSION).toBe(19);
-    const played = playFaithful(90);
-    // The empire actually got there: an augur was bought out of faith it earned,
-    // rites were performed, and a god was named. A determinism test over a log
-    // with none of those in it would be a determinism test of nothing.
-    expect(played.firstAugurTurn).not.toBeNull();
-    expect(played.ritesPerformed).toBeGreaterThan(0);
-    expect(playerById(played.game.state, 0)!.pantheon.beliefs.length).toBeGreaterThan(0);
-    // The whole claim: `{config, log}` replays byte for byte.
-    const replayed = replay(played.game.config, played.game.log);
-    expect(snapshotState(replayed)).toEqual(snapshotState(played.game.state));
-  });
-
   it('leaves a refused rite, purchase and consecration unobservable', () => {
     const g = game();
     const city = found(g.state, 0);
@@ -1139,26 +962,3 @@ describe('the panel’s reading', () => {
 
 // --- pacing -----------------------------------------------------------------
 
-describe('what an augur costs a real empire', () => {
-  it('lands the first one in the window the design predicted', () => {
-    const played = playFaithful(90);
-    // eslint-disable-next-line no-console
-    console.log(
-      `[religion] first augur on turn ${String(played.firstAugurTurn)} — ` +
-        `${played.augursBought} bought, ${played.ritesPerformed} rites performed in 90 turns`,
-    );
-    expect(played.firstAugurTurn).not.toBeNull();
-    // A **band**, not a memorised number, for `statecraftPacing.test.ts`'s
-    // reason: a curve that got cheaper is as much a regression as one that got
-    // dearer. `docs/religion.md` predicts "the first augur ~turn 15–20 after
-    // Divination"; this pious opening reaches Divination around turn 10, so the
-    // window is generous on both sides and would catch a retune that made faith
-    // free or made it unreachable.
-    expect(played.firstAugurTurn!).toBeGreaterThan(10);
-    expect(played.firstAugurTurn!).toBeLessThan(75);
-    // And the agent is actually *spent* rather than accumulated: the whole
-    // anti-spam structure is that an augur is three rites or one god.
-    expect(played.ritesPerformed + playerById(played.game.state, 0)!.pantheon.beliefs.length)
-      .toBeGreaterThan(0);
-  });
-});

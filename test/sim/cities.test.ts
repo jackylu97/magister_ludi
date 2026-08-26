@@ -52,9 +52,9 @@ import {
 import { type GameMap, type Tile, createMap, getTileAt, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { meterEffects, yieldFactor } from '../../src/sim/meters';
 import { RULES } from '../../src/sim/rulesData';
+import { config, twoCityGame } from './citiesHelpers';
 import {
   type City,
-  type GameConfig,
   type GameState,
   type QueueItem,
   type Unit,
@@ -1682,43 +1682,6 @@ describe('escalating settler cost', () => {
     expect(unitProductionCost(state, 0, 'settler')).toBe(BASE);
   });
 
-  it('replays a run of escalating settlers byte for byte', () => {
-    const game = createGame({
-      seed: 4242,
-      sizeName: 'standard',
-      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
-    });
-    const founder = game.state.units.find((unit) => unitDef(unit.type).foundsCity)!;
-    expect(
-      dispatch(game, { type: 'foundCity', playerId: 0, settlerUnitId: founder.id }).ok,
-    ).toBe(true);
-    const capital = game.state.cities[0]!;
-
-    // Eighty turns rather than forty. The ladder needs three settlers out of one
-    // capital to be worth replaying, and how long three take is a function of
-    // the ground that capital stands on — which the elevation/moisture rework
-    // moved. A budget generous enough for a slow roll costs nothing here and
-    // stops the fixture being a map-generator test in disguise.
-    for (let turn = 0; turn < 80; turn++) {
-      if (capital.queue.length === 0 && capital.population >= unitDef('settler').minCityPop) {
-        dispatch(game, {
-          type: 'setCityProduction',
-          playerId: 0,
-          cityId: capital.id,
-          queue: [{ kind: 'unit', id: 'settler' }],
-        } as Command);
-      }
-      expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
-    }
-
-    // The run was long enough for the ladder to matter.
-    expect(game.state.players[0]!.settlersBuilt).toBeGreaterThanOrEqual(3);
-    expect(unitProductionCost(game.state, 0, 'settler')).toBe(
-      BASE + STEP * game.state.players[0]!.settlersBuilt,
-    );
-    expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
-  });
-
   it('carries the counter through a save and back', () => {
     const state = flatState();
     settlerCity(state, 0, 8, 5);
@@ -2014,75 +1977,6 @@ describe('the turn pipeline over a live empire', () => {
 // ---------------------------------------------------------------------------
 
 describe('determinism with cities', () => {
-  function config(overrides: Partial<GameConfig> = {}): GameConfig {
-    return {
-      seed: 31337,
-      sizeName: 'duel',
-      players: [
-        { name: 'Ada', color: '#e8503a', isHuman: true },
-        { name: 'Bors', color: '#3a7fe8' },
-      ],
-      ...overrides,
-    };
-  }
-
-  /** Founds a city with each player's starting settler and queues some work. */
-  function twoCityGame(): Game {
-    const game = createGame(config());
-    for (const player of game.state.players) {
-      const settler = game.state.units.find(
-        (unit) => unit.ownerId === player.id && unitDef(unit.type).foundsCity,
-      );
-      expect(settler).toBeDefined();
-      expect(
-        dispatch(game, { type: 'foundCity', playerId: player.id, settlerUnitId: settler!.id }).ok,
-      ).toBe(true);
-    }
-    expect(game.state.cities).toHaveLength(2);
-
-    for (const city of game.state.cities) {
-      expect(
-        dispatch(game, {
-          type: 'setCityProduction',
-          playerId: city.ownerId,
-          cityId: city.id,
-          // Units only. Every building is behind a technology since the Age I
-          // rework, and this game is driven *entirely by commands* so that its
-          // log is a save file — a tech granted by reaching into the state
-          // would not survive the replay these three tests exist to assert.
-          // What is being measured is thirty turns of growth and production,
-          // and a queue of units measures it exactly as well.
-          queue: [
-            { kind: 'unit', id: 'warrior' },
-            { kind: 'unit', id: 'worker' },
-            { kind: 'unit', id: 'scout' },
-          ],
-        }).ok,
-      ).toBe(true);
-    }
-    return game;
-  }
-
-  it('replays thirty turns of two growing cities byte for byte', () => {
-    const game = twoCityGame();
-    for (let turn = 0; turn < 32; turn++) {
-      for (const player of game.state.players) {
-        expect(dispatch(game, { type: 'endTurn', playerId: player.id }).ok).toBe(true);
-      }
-    }
-
-    // The game actually did something worth replaying.
-    expect(game.state.turn).toBe(33);
-    expect(game.state.cities.every((city) => city.population > 1)).toBe(true);
-    // Units rather than buildings, for the reason the queue names: every
-    // building is behind a technology now, and this log may not reach past the
-    // reducer to grant one.
-    expect(game.state.units.some((unit) => unit.type === 'worker')).toBe(true);
-    expect(game.state.tileOwner.some((owner) => owner !== null)).toBe(true);
-
-    expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
-  });
-
   it('round-trips a schema 19 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {

@@ -11,12 +11,25 @@ Naming is settled: "Magister Ludi" is the product name, but internal code may ke
 would change every seeded outcome. No further rename passes.
 
 ## Commands
-- `npm run dev` · `npm run typecheck` · `npm run test` (Vitest) · `npm run build`
-- All three gates (typecheck, test, build) must be clean before any task is "done".
-- `test/` is split by concern (`test/sim`, `test/mapgen`, `test/render`, `test/ui`,
-  `test/stress`); `npm run test:sim` / `test:mapgen` / `test:render` / `test:ui` /
-  `test:stress` run just one directory for fast iteration, but the full `npm run test`
-  is the done-gate — module runs never substitute for it.
+- `npm run dev` · `npm run typecheck` · `npm run test` (Vitest, **core tier**) · `npm run build`
+- **Two test tiers, two gates** (2026-08-26). A test is *core* or *slow*, and the slow ones
+  live in sibling files named `<concern>.slow.test.ts` beside the core file for the same
+  concern (`test/stress/` is slow wholesale). Slow means slow *by kind*, not by clock:
+  a sweep over seeds or sizes, a multi-decade pacing simulation, a long byte-for-byte
+  replay, a scale fixture. A new test of that shape goes in the `.slow` sibling even if
+  it happens to be quick today; a source-reading register test is always core.
+  - `npm run test` = core, ~30 s. **The done-gate for a task**: typecheck, core test, build
+    must all be clean before any task is "done" — subagents run exactly these three.
+  - `npm run test:all` = core + slow. **The push-gate**: the orchestrating session runs it
+    once before every push to `main`, and nothing lands on `main` without it.
+  - `npm run test:slow` runs the slow tier alone; `test:sim` / `test:mapgen` / `test:render`
+    / `test:ui` are *core for that module* (fast iteration, never a substitute for the
+    done-gate); `test:stress` is the stress fixture. Selection is one env var (`TEST_TIER`)
+    and one glob in `vite.config.ts` — there is no exclusion list to maintain.
+  - A helper two tiers share lives in a non-test module (`test/<dir>/<concern>Helpers.ts`,
+    `test/mapgen/fixtures.ts`), never imported from a `.test.ts` file — importing a test
+    file re-registers its tests.
+- Check exit codes, never grep a summary line: `npm run test` prints "Tests" on failure too.
 - Subagents: never commit or push; the orchestrating session handles git.
 - Kill only processes you started, by PID. Never `pkill -f vite`.
 

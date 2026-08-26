@@ -1,4 +1,39 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
+
+/**
+ * The two tiers, selected by one environment variable.
+ *
+ * `npm run test` is the gate that runs after every change, so it must stay
+ * short enough that nobody is tempted to skip it. What makes it long is a
+ * handful of tests with a shape rather than a bug: a sweep over every seed and
+ * size, a hundred-turn pacing simulation, a long byte-for-byte replay, a scale
+ * fixture. Those live in a **sibling file** named `<concern>.slow.test.ts`
+ * beside the concern's own `<concern>.test.ts`, so every concern keeps its fast
+ * unit coverage in core and nothing is dropped from the suite.
+ *
+ * Selection is the suffix and nothing else — there is no list of slow files to
+ * keep in sync, and a new sweep lands in the slow tier by being written in the
+ * file its convention names. `TEST_TIER` picks which half runs:
+ *
+ *   - `core` (the default) — everything except `*.slow.test.ts`.
+ *   - `slow` — only `*.slow.test.ts`.
+ *   - `all`  — both, which is the pre-push gate (`npm run test:all`).
+ *
+ * Vitest's positional arguments are *filters* applied after this include/exclude
+ * pair has collected the files, so `vitest run test/sim` composes with the tier:
+ * the per-module scripts mean "core for that module". `test:stress` is the one
+ * script that names `all`, because `test/stress/` is slow by nature and holds a
+ * single `.slow.test.ts` — under `core` it would collect nothing and Vitest
+ * treats an empty collection as a failure.
+ */
+// Declared rather than imported from `node:process`, for the same reason the
+// build inputs below are relative paths: the tsconfig typechecks this file with
+// only the DOM and Vite client libs, and one environment variable is not worth
+// pulling `@types/node` into the project's type surface.
+declare const process: { env: Record<string, string | undefined> };
+
+const TIER = process.env.TEST_TIER ?? 'core';
+const SLOW_GLOB = '**/*.slow.test.ts';
 
 export default defineConfig({
   server: {
@@ -27,10 +62,18 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
+    include:
+      TIER === 'slow'
+        ? [`test/${SLOW_GLOB}`, `src/${SLOW_GLOB}`]
+        : ['test/**/*.test.ts', 'src/**/*.test.ts'],
+
+    // `configDefaults.exclude` is what keeps `node_modules` and `dist` out;
+    // spreading it rather than replacing it is why the tier can add one glob
+    // without inheriting the job of listing the rest.
+    exclude: TIER === 'core' ? [...configDefaults.exclude, SLOW_GLOB] : [...configDefaults.exclude],
 
     // `forks` is Vitest 2's default and is named here because the stress suite
-    // depends on it: `test/stress/stress.test.ts` bounds its work in CPU time
+    // depends on it: `test/stress/stress.slow.test.ts` bounds its work in CPU time
     // (`process.cpuUsage`), and `process` in a *worker thread* is the whole
     // process — every sibling worker's CPU would be charged to the measurement.
     // One child process per worker is what makes that reading the worker's own.

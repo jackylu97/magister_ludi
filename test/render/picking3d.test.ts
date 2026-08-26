@@ -42,7 +42,7 @@ import {
   pickBadge,
   pickTile,
 } from '../../src/render3d/picking';
-import { generateMap, generateMapDetail } from '../../src/sim/mapgen';
+import { generateMap } from '../../src/sim/mapgen';
 import { SQRT3 } from '../../src/sim/hex';
 import type { GameMap } from '../../src/sim/map';
 import { VIEW3D } from '../../src/render3d/lookData';
@@ -296,61 +296,6 @@ describe('river ribbon placement', () => {
  * the same trick `wrappedDistance` plays in the simulation.
  */
 describe('river ribbon continuity', () => {
-  /** The two ends of the edge a ribbon lies on, in world space. */
-  function ribbonEnds(
-    col: number,
-    row: number,
-    direction: number,
-  ): { x: number; z: number }[] {
-    const centre = cellCenter(col, row);
-    const delta = directionDelta(direction);
-    const mid = { x: centre.x + delta.x / 2, z: centre.z + delta.z / 2 };
-    const yaw = edgeYaw(direction);
-    // A hexagon's side equals its circumradius, so the edge is one radius long.
-    const half = VIEW3D.board.hexRadius / 2;
-    const axis = { x: Math.cos(yaw), z: -Math.sin(yaw) };
-    return [
-      { x: mid.x + axis.x * half, z: mid.z + axis.z * half },
-      { x: mid.x - axis.x * half, z: mid.z - axis.z * half },
-    ];
-  }
-
-  /** Distance between two world points, folded across the wrap seam. */
-  function seamDistance(
-    a: { x: number; z: number },
-    b: { x: number; z: number },
-    period: number,
-  ): number {
-    let dx = a.x - b.x;
-    dx -= period * Math.round(dx / period);
-    return Math.hypot(dx, a.z - b.z);
-  }
-
-  it('joins every consecutive pair of segments end to end', () => {
-    for (const size of ['duel', 'standard'] as const) {
-      for (const seed of [1, 7, 1234, 31337]) {
-        const { map, rivers } = generateMapDetail(seed, size);
-        const period = wrapWidth(map);
-        for (const river of rivers) {
-          for (let i = 1; i < river.edges.length; i++) {
-            const previous = river.edges[i - 1]!;
-            const current = river.edges[i]!;
-            const a = ribbonEnds(previous.col, previous.row, previous.direction);
-            const b = ribbonEnds(current.col, current.row, current.direction);
-            let shared = Infinity;
-            for (const p of a) {
-              for (const q of b) shared = Math.min(shared, seamDistance(p, q, period));
-            }
-            expect(
-              shared,
-              `${size}/${seed}: segments ${i - 1} and ${i} do not meet`,
-            ).toBeLessThan(1e-9);
-          }
-        }
-      }
-    }
-  });
-
   it('overhangs far enough to close the corner each join turns through', () => {
     // Consecutive edges meet at 120°, so a ribbon that stopped exactly at the
     // corner would leave a wedge open. The overhang has to cover half the

@@ -21,7 +21,6 @@ import {
   productionModifiers,
   resourceCopies,
 } from '../../src/sim/cities';
-import { type Game, createGame, dispatch, loadGame, replay, saveGame, snapshotState } from '../../src/sim/game';
 import { type GameMap, type Tile, createMap, getTileAt, mapRange, tileHex, tileIndex } from '../../src/sim/map';
 import {
   authorityOf,
@@ -968,25 +967,6 @@ describe('faith: banked, and spent by nothing', () => {
     expect(player.faithPool).toBe(before * 2);
   });
 
-  it('is carried by a save and survives a replay', () => {
-    const config = {
-      seed: 4242,
-      sizeName: 'standard',
-      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
-    };
-    const game: Game = createGame(config);
-    const founder = game.state.units.find((unit) => unit.type === 'settler')!;
-    expect(dispatch(game, { type: 'foundCity', playerId: 0, settlerUnitId: founder.id }).ok).toBe(true);
-    for (let turn = 0; turn < 6; turn++) {
-      expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
-    }
-    const json = saveGame(game);
-    expect(snapshotState(loadGame(json).state)).toBe(snapshotState(game.state));
-    // The field is on the player and therefore in the snapshot, whatever it
-    // happens to hold on this seed.
-    expect(snapshotState(game.state)).toContain('faithPool');
-  });
-
   it('pays a signature into the pool, once per turn', () => {
     const faithful = plantableWith('perCityYields', (effect) => (effect.faith ?? 0) > 0);
     expect(faithful).toBeDefined();
@@ -1136,34 +1116,6 @@ describe('a city standing on the seam', () => {
 // --- determinism ------------------------------------------------------------
 
 describe('signatures and the replay', () => {
-  /**
-   * Determinism, with the whole vocabulary switched on.
-   *
-   * The signatures touch food, hammers, gold, science, culture, faith, happiness
-   * and authority — every number a turn banks — so a run whose luxuries are
-   * improved and whose log replays byte for byte is the strongest single
-   * statement that none of them reached outside the simulation for anything.
-   */
-  it('replays a run byte for byte with the vocabulary live', () => {
-    const config = {
-      seed: 4242,
-      sizeName: 'standard',
-      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
-    };
-    const game: Game = createGame(config);
-    const founder = game.state.units.find((unit) => unit.type === 'settler')!;
-    expect(dispatch(game, { type: 'foundCity', playerId: 0, settlerUnitId: founder.id }).ok).toBe(
-      true,
-    );
-    for (let turn = 0; turn < 12; turn++) {
-      expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
-    }
-
-    const reloaded = loadGame(saveGame(game));
-    expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));
-    expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
-  });
-
   /**
    * The evaluators themselves are pure functions of the board.
    *

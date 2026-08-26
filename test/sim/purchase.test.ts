@@ -30,7 +30,7 @@ import {
   queueItemName,
   unitProductionCost,
 } from '../../src/sim/cities';
-import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt, tileHex, wrappedDistance } from '../../src/sim/map';
 import {
   type PurchasableItem,
@@ -43,6 +43,7 @@ import { RULES } from '../../src/sim/rulesData';
 import { type City, type GameState, playerById } from '../../src/sim/state';
 import { buildError, gatingTech } from '../../src/sim/tech';
 import { unitDef } from '../../src/sim/unitData';
+import { buyCommand, game } from './purchaseHelpers';
 
 // --- harness ----------------------------------------------------------------
 
@@ -51,17 +52,6 @@ const SETTLER: PurchasableItem = { kind: 'unit', id: 'settler' };
 const GRANARY: PurchasableItem = { kind: 'building', id: 'granary' };
 const AUGUR: PurchasableItem = { kind: 'unit', id: 'augur' };
 const RATE = RULES.production.goldPerHammer;
-
-function game(seed = 11) {
-  return createGame({
-    seed,
-    sizeName: 'duel',
-    players: [
-      { name: 'Ada', color: '#d4502e', isHuman: true },
-      { name: 'Bors', color: '#3a7fe8' },
-    ],
-  });
-}
 
 /** A city for a player, on the tile their first unit is standing on. */
 function found(state: GameState, playerId: number): City {
@@ -76,15 +66,6 @@ function learn(state: GameState, playerId: number, ...techs: string[]): void {
       player.techsResearched.push(tech as never);
     }
   }
-}
-
-function buyCommand(
-  cityId: number,
-  item: PurchasableItem,
-  currency: 'faith' | 'gold' = 'gold',
-  playerId = 0,
-): Command {
-  return { type: 'purchaseItem', playerId, cityId, item, currency } as Command;
 }
 
 /** How far a piece ended up from the town that bought it. */
@@ -389,33 +370,3 @@ describe('every refusal, and each leaves the state byte-identical', () => {
 
 // --- determinism -------------------------------------------------------------
 
-describe('determinism', () => {
-  it('replays a log with purchases in it, byte for byte', () => {
-    // Every act is a **command** and the treasury is earned rather than handed
-    // over, because a save is `{config, log}` and nothing else: a game whose
-    // gold arrived by reaching into the state is a game the replay cannot
-    // reproduce, and it would prove nothing about the command.
-    const live = game();
-    const settler = live.state.units.find((u) => unitDef(u.type).foundsCity)!;
-    expect(
-      dispatch(live, { type: 'foundCity', playerId: 0, settlerUnitId: settler.id } as Command).ok,
-    ).toBe(true);
-    const town = live.state.cities[0]!;
-
-    for (let turn = 0; turn < 40; turn++) {
-      dispatch(live, { type: 'endTurn', playerId: 0 } as Command);
-      dispatch(live, { type: 'endTurn', playerId: 1 } as Command);
-    }
-    expect(playerById(live.state, 0)!.gold).toBeGreaterThan(
-      explainPurchaseCost(live.state, 0, town.id, WARRIOR, 'gold')!.total,
-    );
-
-    expect(dispatch(live, buyCommand(town.id, WARRIOR)).ok).toBe(true);
-    dispatch(live, { type: 'endTurn', playerId: 0 } as Command);
-    dispatch(live, { type: 'endTurn', playerId: 1 } as Command);
-    expect(dispatch(live, buyCommand(town.id, WARRIOR)).ok).toBe(true);
-
-    const replayed = replay(live.config, live.log);
-    expect(snapshotState(replayed)).toEqual(snapshotState(live.state));
-  });
-});

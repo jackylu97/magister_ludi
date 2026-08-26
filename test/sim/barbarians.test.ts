@@ -1059,26 +1059,6 @@ describe('determinism', () => {
 });
 
 describe('replay', () => {
-  it('reproduces a game with camps and raiders in it, byte for byte', () => {
-    const game = createGame({
-      seed: 777,
-      sizeName: 'duel',
-      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
-      barbarians: true,
-    });
-    // Long enough for the wild to found camps, muster and move.
-    for (let turn = 0; turn < 45; turn++) {
-      const pending = playerById(game.state, 0)?.pendingDiscovery;
-      if (pending) dispatch(game, { type: 'chooseDiscovery', playerId: 0, optionIndex: 0 });
-      dispatch(game, { type: 'endTurn', playerId: 0 });
-    }
-    expect(game.state.camps.length).toBeGreaterThan(0);
-    expect(game.state.units.some((unit) => unit.ownerId === 1)).toBe(true);
-
-    const replayed = replay(game.config, game.log);
-    expect(snapshotState(replayed)).toBe(snapshotState(game.state));
-  });
-
   it('reproduces a theft, an escort and a rescue byte for byte', () => {
     const game = createGame({
       seed: 4242,

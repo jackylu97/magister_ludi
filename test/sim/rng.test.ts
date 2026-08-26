@@ -39,15 +39,6 @@ describe('rng', () => {
     expect(a.state).not.toBe(b.state);
   });
 
-  it('keeps nextFloat in [0, 1)', () => {
-    const rng = makeRng(4242);
-    for (let i = 0; i < 20000; i++) {
-      const v = nextFloat(rng);
-      expect(v).toBeGreaterThanOrEqual(0);
-      expect(v).toBeLessThan(1);
-    }
-  });
-
   it('keeps nextUint32 in the unsigned 32-bit range', () => {
     const rng = makeRng(-77);
     for (let i = 0; i < 5000; i++) {

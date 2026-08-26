@@ -54,7 +54,6 @@ import {
   type Unit,
   SCHEMA_VERSION,
   createUnit,
-  newGame,
   unitById,
 } from '../../src/sim/state';
 import {
@@ -73,8 +72,7 @@ import {
 } from '../../src/sim/terrainData';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
-import { computeFreshwater } from '../../src/sim/water';
-import { resetVisibility } from '../../src/sim/visibility';
+import { at, bareState, woodedWorker } from './improvementHelpers';
 import { isIdleUnit } from '../../src/ui/turnBlockers';
 
 /**
@@ -105,32 +103,6 @@ import { isIdleUnit } from '../../src/ui/turnBlockers';
  * replaced under a real `newGame`, so everything that is sized from the board
  * (the fog grids, `tileOwner`) is resized with it.
  */
-function bareState(width = 12, height = 10): GameState {
-  const state = newGame({
-    seed: 1,
-    sizeName: 'duel',
-    players: [
-      { name: 'A', color: '#a00', isHuman: true },
-      { name: 'B', color: '#00a', isHuman: true },
-    ],
-  });
-  state.map = createMap({ width, height, terrain: 'grassland' });
-  resetVisibility(state);
-  state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
-  state.units = [];
-  state.cities = [];
-  state.nextEntityId = 1;
-  for (const player of state.players) player.techsResearched = [...TECH_IDS];
-  computeFreshwater(state.map);
-  return state;
-}
-
-function at(state: GameState, col: number, row: number): Tile {
-  const tile = getTileAt(state.map, col, row);
-  if (!tile) throw new Error(`No tile at (${col}, ${row})`);
-  return tile;
-}
-
 /** A player-0 city at (5, 5) and a worker of theirs standing on `(col, row)`. */
 function workerState(col = 5, row = 4): { state: GameState; worker: Unit } {
   const state = bareState();
@@ -814,16 +786,6 @@ describe('the chop table', () => {
 });
 
 describe('chopFeature', () => {
-  /** A player-0 city at (5, 5) and a worker standing in a wood at (5, 4). */
-  function woodedWorker(): { state: GameState; worker: Unit; tile: Tile; city: City } {
-    const state = bareState();
-    const city = foundCityAt(state, 0, at(state, 5, 5));
-    const tile = at(state, 5, 4);
-    tile.feature = 'forest';
-    const worker = createUnit(state, 0, 'worker', 5, 4);
-    return { state, worker, tile, city };
-  }
-
   function chop(playerId: number, unitId: number): Command {
     return { type: 'chopFeature', playerId, unitId };
   }
@@ -998,24 +960,6 @@ describe('chopFeature', () => {
         chop(0, worker.id),
         'The deer here needs the forest — build a camp before you clear it',
       );
-    });
-
-    it('protects exactly the resources whose ground required the feature', () => {
-      // Read off `validFeatures` in `resources.json` rather than from a list
-      // kept here, which is the whole claim: the question is "would the chop
-      // leave this resource somewhere it could never have been generated". Half
-      // of these placements are impossible on a real map — a wheat field does
-      // not grow in a wood — and that is fine: the rule is about the *table*,
-      // and asserting it over the whole table is what stops it drifting.
-      for (const id of RESOURCE_IDS) {
-        const { state, worker, tile } = woodedWorker();
-        tile.resource = id;
-        const bound = resourceDef(id).validFeatures?.includes('none') === false;
-        const refused = chopError(state, worker.id) !== null;
-        expect(`${id}: ${refused ? 'refused' : 'allowed'}`).toBe(
-          `${id}: ${bound ? 'refused' : 'allowed'}`,
-        );
-      }
     });
 
     it('lets the timber go once the camp is standing, and keeps the deer', () => {

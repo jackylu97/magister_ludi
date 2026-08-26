@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BackSide,
   type BufferGeometry,
   Euler,
   Group,
@@ -13,14 +12,14 @@ import {
   Vector3,
 } from 'three';
 
-import { BoardGeometry, buildBoard } from '../../src/render3d/board3d';
+import { BoardGeometry } from '../../src/render3d/board3d';
 import { InstanceCollector } from '../../src/render3d/instances';
 import { SPRITE_HEIGHT, buildSpriteUnit } from '../../src/render3d/pieces';
 import { VIEW3D } from '../../src/render3d/lookData';
-import { MaterialLibrary } from '../../src/render3d/toon';
-import { createMap, getTileAt, type GameMap, type Tile } from '../../src/sim/map';
+import { createMap, getTileAt, type Tile } from '../../src/sim/map';
 import { generateMap } from '../../src/sim/mapgen';
 import { computeFreshwater, setRiverEdge } from '../../src/sim/water';
+import { materials, statsFor } from './dressingHelpers';
 
 /**
  * The diorama dressing — clutter, reeds, snow, tints, contact shading — is all
@@ -39,64 +38,7 @@ import { computeFreshwater, setRiverEdge } from '../../src/sim/water';
  * `test/sprites3d.test.ts`; what is here is the object it ends up inside.
  */
 
-function materials(): MaterialLibrary {
-  return new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
-}
-
-interface BoardStats {
-  drawCalls: number;
-  instances: number;
-  /** Instance count per geometry, so a kind can be found without a colour. */
-  byGeometry: Map<BufferGeometry, number>;
-  meshes: InstancedMesh[];
-}
-
-function statsFor(map: GameMap, geometry: BoardGeometry): BoardStats {
-  const board = buildBoard(map, geometry, materials(), false);
-  const meshes: InstancedMesh[] = [];
-  const byGeometry = new Map<BufferGeometry, number>();
-  let instances = 0;
-  for (const child of board.group.children) {
-    if (!(child instanceof InstancedMesh)) continue;
-    meshes.push(child);
-    // Only the subjects are counted per geometry: an outline shell shares its
-    // subject's geometry and would double every kind that has one. A shell is
-    // the only back-faced thing on the board — see `MaterialLibrary.outline`.
-    if (!Array.isArray(child.material) && child.material.side === BackSide) continue;
-    byGeometry.set(child.geometry, (byGeometry.get(child.geometry) ?? 0) + child.count);
-    instances += child.count;
-  }
-  return { drawCalls: board.drawCalls, instances, byGeometry, meshes };
-}
-
-/** Every instance matrix in a group, flattened, for a byte-level comparison. */
-function matrixDigest(group: Group): number[] {
-  const out: number[] = [];
-  const matrix = new Matrix4();
-  for (const child of group.children) {
-    if (!(child instanceof InstancedMesh)) continue;
-    for (let i = 0; i < child.count; i++) {
-      child.getMatrixAt(i, matrix);
-      out.push(...matrix.elements);
-    }
-  }
-  return out;
-}
-
 describe('board dressing', () => {
-  it('rebuilds a generated map instance for instance', () => {
-    const map = generateMap(4242, 'standard');
-    const geometry = new BoardGeometry();
-    const library = materials();
-    const first = buildBoard(map, geometry, library, false);
-    const second = buildBoard(map, geometry, library, false);
-    expect(second.drawCalls).toBe(first.drawCalls);
-    expect(matrixDigest(second.group)).toEqual(matrixDigest(first.group));
-    first.dispose();
-    second.dispose();
-    geometry.dispose();
-  });
-
   it('keeps every kind of dressing to one instanced draw', () => {
     const map = generateMap(4242, 'standard');
     const geometry = new BoardGeometry();

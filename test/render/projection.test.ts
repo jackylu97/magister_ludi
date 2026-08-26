@@ -17,22 +17,7 @@ import {
   tileRise,
 } from '../../src/render/projection';
 
-/** A spread of squash values, including the degenerate flat-view case. */
-const SQUASHES = [1, 0.85, 0.58, 0.42, 0.25];
-const BASE_SIZES = [8, 22, 40, 69.28];
-const PADS = [0, 17, 120.5];
-
-function projections(): ReturnType<typeof createProjection>[] {
-  const result = [];
-  for (const squash of SQUASHES) {
-    for (const baseSize of BASE_SIZES) {
-      for (const padTop of PADS) {
-        result.push(createProjection(baseSize, squash, padTop, 5, 10));
-      }
-    }
-  }
-  return result;
-}
+import { BASE_SIZES, projections } from './projectionHelpers';
 
 describe('plane <-> iso', () => {
   it('leaves x alone and only ever scales y', () => {
@@ -82,35 +67,6 @@ describe('projection round-trip', () => {
             isoToAxial(iso.x, iso.y, projection),
           );
           expect({ col: gotCol, row: gotRow }).toEqual({ col, row });
-        }
-      }
-    }
-  });
-
-  it('maps points well inside a hex back to that hex', () => {
-    // Sixteen offsets at 40% of the circumradius: comfortably inside the hex
-    // for every squash, since the squash only ever shrinks the y extent.
-    const offsets: { dx: number; dy: number }[] = [];
-    for (let i = 0; i < 16; i++) {
-      const angle = (Math.PI * 2 * i) / 16;
-      offsets.push({ dx: Math.cos(angle) * 0.4, dy: Math.sin(angle) * 0.4 });
-    }
-
-    for (const projection of projections()) {
-      const { baseSize, squash } = projection;
-      for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
-          const iso = tileIsoCenter(col, row, projection);
-          for (const { dx, dy } of offsets) {
-            const hit = axialToOffset(
-              isoToAxial(
-                iso.x + dx * baseSize,
-                iso.y + dy * baseSize * squash,
-                projection,
-              ),
-            );
-            expect(hit).toEqual({ col, row });
-          }
         }
       }
     }
