@@ -40,34 +40,43 @@ is a tempo decision against the escalating price.
 
 | Rite | Tech home | Effect |
 |---|---|---|
-| Rite of the Harvest | Divination | +20🌾 to the city on/adjacent (settles growth) |
-| Omen Reading | Letters | +20🔬 (settles research) |
-| Consecration of the Bounds | Stonecraft | +15🎵 to that city's border basket |
-| Blessing of Arms | Bronzeworking | one unit heals fully and gains +5 combat for a turn |
-| Rite of Plenty | Calendar | +15💰 |
-| Funeral Rites | The High Temple | +2 happiness for 10 turns in that city (a timed line — new small hook: `timedEffect`) |
+| Rite of the Harvest | Divination | city gains 1 population |
+| Omen Reading | Letters | +15🔬 (settles research), city's buildings that supply science gain +1 science for 20 turns |
+| Consecration of the Bounds | Stonecraft | +15 culture, city gains 30% increased border growth for 20 turns |
+| Blessing of Arms | Bronzeworking | one unit heals fully and gains +5 combat for 5 turns |
+| Rite of Plenty | Calendar | +25 gold, city's worked resource tiles gain 1 gold for 20 turns |
+| Funeral Rites | The High Temple | +2 happiness for 20 turns in that city (a timed line — new small hook: `timedEffect`) |
 
-## Pantheon pool (~14, drawn 3 at a time, without replacement; designed in synergy AXES)
+## Pantheon pool (18, drawn 3 at a time, without replacement; designed in synergy AXES)
 
 Axis tags make synergy findable: a second belief on your axis should read as the obvious
 pick — or you gamble on a new one.
 
 | Belief | Axis | Effect |
 |---|---|---|
-| Goddess of the Harvest | 🌾 hearth | +1🌾 in every city with a granary |
-| Keeper of the Hearth | 🌾 hearth | granary cities +1🕯 · +1 happiness in the capital |
-| Star Readers | ✶ sky | +1🔬 per shrine |
-| Keeper of the Calendar | ✶ sky | +5🔬 whenever a discovery is claimed · +1🔬 in the capital |
+| Goddess of the Harvest | 🌾 hearth | +1🌾 on bonus resources that provide food |
+| Keeper of the Hearth | 🌾 hearth | granaries gain +1 faith · +1 happiness in the capital |
+| Star Readers | ✶ sky | cities adjacent to a mountain gain +3 science |
+| Keeper of the Calendar | ✶ sky | every 20 turns, claim a discovery. bonuses from discoveries are multiplied by the current age. |
 | The Standing Stones | ⛰ stone | monuments +1🎵 +1🕯 |
-| Ancestor Cult | ⛰ stone | +1🎵 per city of 4+ population |
+| Ancestor Worship | ⛰ stone | +1🎵 per city of 4+ population +5% culture per city of 10+ population|
 | Lady of the Hunt | 🌲 wild | camps +1🌾 · clearing a barbarian camp pays +10🕯 |
-| Spirits of the Wood | 🌲 wild | chops pay +5🕯 · forest tiles +1🎵 for cities working them |
-| River Mother | 🌊 water | freshwater cities +1🌾 +1🕯 |
-| Lord of the Deep | 🌊 water | coastal cities +1💰 +1🕯 |
-| God of the Forge | ⚒ war | +1⚙ in cities with a barracks · units +1 combat vs barbarians |
-| Rites of Blood | ⚒ war | combat kills pay +3🕯 |
-| Oracle of the Crossroads | 🧭 road | +2🕯 per discovery claimed · scouts +1 sight |
+| Spirits of the Wood | 🌲 wild | chops pay +15🕯 · forest tiles +1🎵 for cities working them |
+| River Mother | 🌊 water | cities adjacent to river gain +2 food, shrines in these cities supply +1 happiness |
+| Lord of the Sea ✎ | 🌊 water | fishing boats +1⚙ +1💰 *(deferred: water milestone)* |
+| God of the Forge | ⚒ war | barracks gain +1 prod · units +1 combat |
+| Rites of Blood | ⚒ war | combat kills pay +15🕯 multiplied by current age |
+| Oracle of the Crossroads | 🧭 road | +3🕯 per discovery claimed · scouts +1 sight |
 | Sacred Fire | — | +1🕯 in every city (the neutral pick) |
+| Desert Fathers ✎ | ☀ sun | desert tiles +1🕯 |
+| Winter Mother ✎ | ❄ frost | tundra tiles +1🌾 · tundra forests +1🕯 |
+| Lord of the Hoard ✎ | ⛰ stone | mines on luxury resources +1🎵 +1🕯 |
+| Court Augurs ✎ | — | an augur with ≥1 rite charge stationed in a city gives it +5% 🔬 and 🎵 (the reason to keep an augur home) |
+
+*(Lord of the Sea depends on fishing boats — deferred with the water milestone. Doctrine
+note: beliefs MAY modify tiles — religion is the Civ-canonical home for tile-yield
+identity, and beliefs are a third stream beside cards (behaviors) and masteries (things);
+the line is that beliefs express geography-and-piety, masteries express building classes.)*
 
 ## Founder pool (2 drafted at founding — one founder, one follower)
 
