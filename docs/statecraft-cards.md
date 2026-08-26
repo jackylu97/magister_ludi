@@ -49,7 +49,7 @@ Signatures rewritten off the flat-% rule too.
 | River Kings ✎ | 🌱 | +30% 🌾 in freshwater cities · −10% 🌾 and ⚙ in cities without freshwater | hook:scopeVariant |
 | The Woodwrights | ⚒ | chops pay +100% and grant +10🎵 each | windfallRider |
 | The Great Litany | 🕯 | +1🎵 per 3🕯 gained per turn | hook:rateConversion |
-| The Great Warring Tribes ✎ | ⚒ | negative authority no longer penalises ⚙ toward units · +10% ⚙ toward mounted units · +5🔬 +5🎵 per city · you may never build the courthouse family | meterRule + vocab + hook:productionBar *(see critique: the flat per-city 🔬🎵 is the strongest line in pool I and off-theme; courthouse bar is free until that family exists)* |
+| The Great Warring Tribes ✎ | ⚒ | negative authority no longer penalises ⚙ toward units · +10% ⚙ toward mounted units · conquered cities provide +5 science and culture · you may never build the courthouse family | meterRule + vocab + hook:productionBar *(see critique: the flat per-city 🔬🎵 is the strongest line in pool I and off-theme; courthouse bar is free until that family exists)* |
 | Wolf-Mother's Pact ✎ | 🏹 | barbarians never attack you (theft continues) · camps in your sight pay +50% | behaviorRule + windfallRider |
 | Athenaeum of the Road ✎ | 🧭 | for ALL discoveries: claim all three options | offerRider *(user: playtest, possibly remove — see critique re: power)* |
 
@@ -62,7 +62,7 @@ Signatures rewritten off the flat-% rule too.
 | The Burning Way | ⚒ | chopping costs no worker charge · pillaging heals 25 | hook:actionRule + windfallRider |
 | Bread and Circuses ✎ | 🌱 | +1🎵 per point of positive happiness (no cap) | rateConversion |
 | The Tithe | 🕯 | +1💰 per 🕯 gained per turn | rateConversion |
-| Divine Inspiration ✎ | 🕯 | +1% 🔬 and 🎵 per 1000 banked 🕯 (no max) | countScaled *(scale note: unreachable at current faith income; assumes religion-era inflation — revisit at the faith milestone)* |
+| Divine Inspiration ✎ | 🕯 | +1% 🔬 and 🎵 per 200 banked 🕯 (no max) | countScaled *(scale note: unreachable at current faith income; assumes religion-era inflation — revisit at the faith milestone)* |
 
 ## Doctrine pool III (offered at the tier-15 adoption)
 
@@ -93,11 +93,13 @@ Signatures rewritten off the flat-% rule too.
 | Far Runners | M | 🧭 | scouts +1 movement and +1 sight | unitStatCard |
 | The Long Watch ✎ | M | — | a unit fortified in a city gives that city +1 happiness, +1 more per fortification level | countScaled (garrison fortification) |
 | The Widow's Levy | M | — | when a unit of yours dies, its nearest city gains +10⚙ | windfallRider (death) |
-| Common Granary | E | 🌱 | capital +2🌾 | vocab |
+| Common Granary | E | 🌱 | +1 food on resource tiles | vocab |
 | Salt Tithes | E | 🐫 | +1💰 per unique luxury | countScaled |
 | Boundary Stones | E | — | +30% border culture, all cities | vocab (channel) |
 | First Rites | W | 🕯 | +1🕯 per city | vocab |
 | Border Ballads | W | 🏹 | +2🎵 per barbarian camp you can currently see | countScaled |
+| Militia Levies *(neutral)* | M | — | all your cities +5 defense | hook:cityStatCard |
+| The Beacon Chain *(neutral)* | W | — | all your cities +1 sight radius | hook:cityStatCard |
 
 ## Government I pool (17)
 
@@ -120,6 +122,9 @@ Signatures rewritten off the flat-% rule too.
 | Festival Days | W | 🌱 | +3 happiness | vocab |
 | Curious Elders | W | ✶ | +5🔬 whenever you claim a discovery | windfallRider |
 | Rites of Passage | W | 🕯 | completing a unit grants +2🕯 | windfallRider |
+| Tinkers' Guild *(neutral)* | E | — | workers are built with +1 charge | unitStatCard (class) |
+| Public Granaries *(neutral)* | E | — | cities keep 25% of their food basket on growth | vocab (growthCarryover) |
+| The Loose Rein *(neutral)* | W | — | your Orders' seals last 2 turns instead of 5 | hook:metaRule *(the flexibility card — pairs with any swap-heavy plan)* |
 
 ## Government II pool (17)
 
@@ -142,6 +147,8 @@ Signatures rewritten off the flat-% rule too.
 | Pilgrim Roads | W | 🕯 | +2🕯 per city · +1 happiness per 20 banked 🕯 (max +3) | vocab + countScaled |
 | Lamplighters *(new)* | W | 🕯 | +1🎵 per 5🕯 gained per turn | rateConversion *(the Litany's lesser cousin)* |
 | Scholars' Stipend *(new)* | W | ✶ | +2🔬 in each city of 5+ population | scopeVariant (population threshold) |
+| Emergency Powers *(neutral)* | E | — | while authority is negative: capital +25% ⚙ and borders do not freeze | conditionRule + meterRule *(the overextension safety valve)* |
+| The Common Purse *(neutral)* | E | — | production overflow from a completed item is doubled | hook:actionRule (overflow) |
 
 ## Government III pool (14)
 
@@ -161,6 +168,7 @@ Signatures rewritten off the flat-% rule too.
 | The Lyceum | W | ✶ | completing a technology grants +15🎵 | windfallRider *(The Academy, shorn of its %)* |
 | Census of Souls | W | 🕯 | +1🕯 per 2 population in your capital | countScaled |
 | Toleration Edicts | W | — | happiness demand −15% | vocab (rulePercent) |
+| The Standing Levy *(neutral)* | M | — | every city may complete one unit per turn from its basket even if the queue holds a building first (units jump the queue when affordable) | hook:actionRule (queue) |
 
 *(Pass-four cuts: barbarian/discovery cards beyond Gov I — Blood Tribute, Terror of the
 Steppe, The Cartographers, Antiquarians, Tyranny's camp clause. Flat-% yields — War Drums,
@@ -172,12 +180,13 @@ Orders and two pool-III Doctrines.)*
 
 ## Implementation notes
 
-- 19 Doctrines live (7/6/7) + 1 awaiting systems; 58 Orders. Hooks: combatCardLine
+- 19 Doctrines live (7/6/7) + 1 awaiting systems; 66 Orders (8 neutral, marked). Hooks: combatCardLine
   (terrain/state/adjacency/frontier), unitStatCard (class/heal/state), windfallRider
   (death/growth/completion/capture/discovery/camp), foundingRider, countScaled (holdings,
   population, worked tiles, garrison, banked pools), rateConversion, offerRider,
   effectAmplifier, meterRule, conditionRule, scopeVariant (geographic, holding, frontier,
-  population-threshold), actionRule, behaviorRule, productionBar, unlocksBuilding.
+  population-threshold), actionRule (chop/overflow/queue), behaviorRule, productionBar, unlocksBuilding, cityStatCard
+  (city defense/sight), metaRule (a card touching the Statecraft rules themselves — The Loose Rein).
 - Doctrines: permanent, slotless, one per adoption, dice reroll the offer. Drawback
   doctrines sanctioned; drawback Orders stay mild.
 - All numbers data; scalers capped where noted.
