@@ -60,12 +60,21 @@
       "crossbowman": "flag",
       "knight": "person",
       "longswordsman": "pawn",
-      "trebuchet": "tower"
+      "trebuchet": "tower",
+      "augur": "house"
     },
     "byPlayerColor": {
       "#d4502e": "red",
       "#1f8a85": "blue"
     },
-    "fallbackOrder": ["red", "blue", "green", "yellow", "purple", "black", "white"]
+    "fallbackOrder": [
+      "red",
+      "blue",
+      "green",
+      "yellow",
+      "purple",
+      "black",
+      "white"
+    ]
   }
 }

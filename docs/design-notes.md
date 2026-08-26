@@ -2814,3 +2814,157 @@ notice. It is recorded here and in `test/sim/statecraftPacing.test.ts` rather th
 away, because the next person to move those numbers should know what moved them. If the
 third government arriving after Æra III's close is judged wrong, the lever is the water
 line's size, not the draft curve.
+
+## Entry XXVIII — Religion v1: the augur and the pantheon (**built** 2026-08-26)
+
+`docs/religion.md` is the ratified design and this is what shipped of it: **the augur and
+pantheon half**. Prophets, founding a religion, founder/follower/enhancer pools, spread,
+conversion and the Religious Mandate doctrine are the Age 2–3 pass, exactly as that doc's
+scope ruling sequences them. Pantheons are *native and never converted away*, which is
+precisely why this half ships alone and needs no spread machinery at all: every belief here
+pays in every city its empire owns, always.
+
+### The shape: faith buys an agent, and the agent drafts
+
+Culture drafts Orders directly. Faith does **not** — it buys an **augur**, and the augur is
+either *three rites* or *one god*. That single indirection is the whole design, and it is
+what makes the system a decision rather than a queue:
+
+- Consecrate **consumes the whole unit whatever charges are left on it**. A player who has
+  already spent two rites is giving up much less than one who has spent none, so the
+  question is live at every point on the curve.
+- The price escalates (`40🕯 + 15🕯` per augur already called, `Player.augursPurchased`), so
+  *when* to spend faith on a permanent identity rather than on three good turns is a tempo
+  decision against a climbing number.
+- Slots are the anti-spam structure: Divination opens two, the High Temple's third is a JSON
+  row (`slotsFromTech`), and Consecrate is refused — with the sentence the panel prints —
+  once they are full.
+
+### Three shapes, all inherited
+
+Nothing here is a new mechanism. The purchase is `explainUnitCost`'s ordered-lines shape in
+a **bank** instead of a basket (`explainPurchaseCost`, currency-agnostic so the M9 gold
+purchases are the same transaction). The draft is `drawOrderOffer`'s: dealt from `state.rng`
+at the moment the offer opens, stored on the player, spent by a command naming an **index**
+— Entry XV's doctrine inherited for the third time. The rite is Entry XVIII's windfall,
+settled into its bucket through the same `settle…Windfall` helper a chop and a ruin use.
+
+### Beliefs are sources, not shapes
+
+**`statecraft.ts` is still the only module in the game that reads a `CardEffect`.** A belief
+is a `CardDefBase` with an axis; a rite is a `CardDefBase` with a technology and a grant;
+both join `liveEffects`' walk as a fourth and fifth source and every reader below folds them
+without knowing which class a line came from. `CardId` widened from three classes to five
+so a breakdown line still carries one string, and the lookup that spans all five
+(`anyCardDef`) lives in `statecraft.ts` rather than in `statecraftData.ts` — because the
+import between that file and `religionData.ts` is **type-only in both directions**, which is
+what keeps a type cycle from becoming a runtime one.
+
+Where the ratified table asked for something the vocabulary could not say, the vocabulary
+grew a **generic** member available to an Order and a Doctrine on the same terms:
+
+| Shape added | What asked for it | What it says |
+|---|---|---|
+| `CityScope { test: 'hasBuilding' }` | Keeper of the Hearth, The Standing Stones, God of the Forge | "granaries supply +1🕯" is a *city yield in the towns that have a granary* — no new effect kind |
+| `CityScope { test: 'all' }` | River Mother's shrines *in the river towns* | one conjunction; deliberately no `any` and no `not` |
+| `TileCondition { test: 'terrain' }` | Desert Fathers, Winter Mother | a fact about the ground itself |
+| `TileCondition { test: 'resourceKind', yields? }` | Goddess of the Harvest, Lord of the Hoard | "a bonus resource **that feeds you**", read off the resource's own row |
+| `TileCondition { test: 'all' }` | wooded tundra; a mine standing on a luxury | the same conjunction one scale down |
+| `CountKind 'chargedAugurs'` | Court Augurs | the reason to keep one home |
+| `CountKind 'scienceBuildings'` | Omen Reading | read off the building rows, so a retune moves the rite |
+| `windfallRider.perAge` | Keeper of the Calendar, Rites of Blood | "×your era" — **one** multiplier however many riders ask, applied after the summed percentages (Entry XVII at this scale) |
+| `WindfallOccasion 'rite'` | nothing yet | a rite is unambiguously one of Entry XVIII's moments; a vocabulary that could not name it would have a hole in it |
+| `periodicOffer` | Keeper of the Calendar | the one effect whose subject is the **calendar** — read by a phase, absolute `turn % every`, never a counter |
+
+### Timed effects: the new hook, and it is a comparison
+
+A rite's lasting half is a bag of ordinary effects that hangs on a **city** or a **unit**
+for a stated number of turns (`TimedEffect` in `state.ts`). The whole subsystem is that type
+plus one comparison:
+
+    live  ⟺  state.turn < expiresTurn
+
+**Nothing decrements anything.** That is `SlottedOrder.sealedUntil`'s lesson — the seal that
+taught this codebase not to tick — applied to a thing that hangs on a town. `pruneTimedEffects`
+is a **broom, not a clock**: every reader compares turns, so an expired effect is already
+inert and deleting it changes no outcome whatsoever, which is exactly the property that makes
+the phase safe to place anywhere, skip, or run twice. It goes first in the pipeline so the
+turn's arithmetic is done over a list with nothing dead in it, and it *deletes* the key when
+the list empties so a town whose blessings have run out serialises like one never blessed.
+
+The effects are read by the **same evaluators** a slotted Order's are, and that is the claim
+the whole hook rests on: `liveCityEffects` is `liveEffects` plus this city's live rites, and
+every city-scoped reader in `statecraft.ts` was moved onto it in one pass. So a timed
+percentage joins `cityStageSums`, a timed strength line joins `planCombat`'s list, a timed
+`rulePercent` on `borderCulture` joins the borders channel (which is why `cardRulePercent`
+grew an optional `city`), and a timed `tileYield` joins `explainTileYield`'s line list as the
+**fifth producer** — through `cityContext`, beside the granary's, because both are facts
+about *one town* rather than about an empire.
+
+### The five rites, and where each settles
+
+| Rite | Tech | Instant | Lasting |
+|---|---|---|---|
+| Rite of the Harvest | Divination | +1 population | — |
+| Omen Reading | Letters | +15🔬 (`settleResearchWindfall`) | science buildings +1🔬, 20 turns |
+| Consecration of the Bounds | Stonecraft | +15🎵 to the **border basket** | +30% border growth, 20 turns |
+| Blessing of Arms | Bronzeworking | heals the unit whole | +5 combat, 5 turns |
+| Rite of Plenty | Calendar | +25💰 | that city's worked resource tiles +1💰, 20 turns |
+
+Each rite is an `unlocks.abilities` entry on its technology — the key the water pass built
+for embarkation, doing exactly the job it was built for: a rite is a *verb*, it has no row in
+any other table, and hanging it there means the star chart shows it as a gift the way it
+shows embarkation. **The ability id is the rite's id**: one string, one name to get wrong
+instead of two.
+
+The Harvest's citizen is the tenth entry in the mid-turn register and the first one that
+fills no bucket at all — `settlePopulationWindfall` grants the citizen outright, pays the
+growth riders once per point, settles the production bucket (a rider can pay hammers) and
+re-seats the town. Pouring enough food into the basket to *force* a growth would have been a
+different rule wearing a hat: it would gift the carryover, and the size of the gift would
+depend on how hungry the town happened to be.
+
+### One deferral, stated rather than bent
+
+A `percent` rider on the `rite` occasion is **not read**. A percentage scales an occasion's
+own figure and a rite has no single figure — it pays a citizen here, beakers there, coin
+somewhere else. Rather than pick one voice to be "the" figure and silently ignore the rest,
+the arm is left unread and said so on the function. The honest fix, the day a card wants one,
+is a marker on the rite's own row naming its headline voice.
+
+Ancestor Worship's second clause was **ratified sideways**: the doc says "+5% culture per
+city of 10+ population" (empire-wide); it ships as "+5% culture *in* every city of 10+",
+which is one `percentYields` with a `populationAtLeast` scope. The reading is more legible
+and needs no parameterised count; it is recorded here rather than in the row.
+
+### Measured
+
+The scripted **pious** empire (`test/sim/religion.test.ts`'s `playFaithful` — three towns, a
+shrine in each, Divination first) buys its **first augur on turn 49**, two augurs and two
+rites inside ninety turns. `docs/religion.md`'s open numbers predicted "the first augur
+~turn 15–20 after Divination"; a shrine-only empire earns ~1🕯 a turn, so forty faith is
+nearer thirty-five turns after Divination than fifteen. That is a real consequence of a real
+income rather than a regression, and it is recorded rather than tuned away: if the augur is
+wanted earlier, the lever is **faith income** (the shrine's rate, a temple, the Procession's
+cards at their true scale) rather than the price — cheapening the agent would flatten the
+escalation the whole anti-spam structure rests on. The test pins a band, not the number.
+
+### Also in this pass
+
+**Fishing boats pay +1🌾 +1🪙.** The water milestone shipped them at +1🌾 per its brief and
+`docs/luxuries.md` recorded the deviation with the note that "the gold is one number in
+`improvements.json` on the day it is wanted". This was that day; both annotations are closed,
+and **Lord of the Sea** (the 🌊 water belief) rides on top of it with a further +1⚙ +1💰.
+
+**The Religion dock button graduated.** `hudDock.ts` predicted its own seam — "when religion
+lands, the seam is exactly this module's `close()`/`isOpen` pair plus the one line in
+`main.ts`" — and that is what it cost. The Faith popover's whole content is the first block
+of the new parchment sheet, which is deliberately Statecraft's sibling in bones, keyboard
+contract and card face: two systems that draft permanent things from a pool must not look
+like two different games.
+
+**The augur's visuals are deferred, on purpose.** It wears the worker's sculpt and the
+worker's badge (`modelClass: 'worker'`). A distinct silhouette needs a `ModelClass`, a
+procedural mini and a vendored SVG cell in the badge atlas, which is an art pass and not a
+rules one; the unit sheet, the charge badge (which reads *Rites ✧* rather than *Charges ⚒*
+off `UnitDef.consecrates`) and the selection carry the distinction meanwhile.

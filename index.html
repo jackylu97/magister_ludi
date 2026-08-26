@@ -380,30 +380,12 @@
       </div>
     </div>
 
-    <!-- The Faith card: the HUD dock's Religion button, opened directly
-         beneath it — its own fixed column for the same reason #hud-meters and
-         #hud-popovers each have one rather than sharing: a card hangs under
-         the *button that opened it*, and the dock sits a row lower than the
-         bar. Filled by src/ui/hudDock.ts on open and kept live while up —
-         the pool and rate the faith chip already shows, in the same figures,
-         because there is no second arithmetic to disagree with the first. -->
-    <div id="hud-dock-popovers">
-      <div
-        id="faith-popover"
-        class="hud-card popover popover-narrow"
-        role="dialog"
-        aria-label="Faith"
-        hidden
-      >
-        <div class="popover-head">
-          <h2 class="popover-title">Faith</h2>
-          <button id="faith-close" class="popover-close" type="button" aria-label="Close">
-            ×
-          </button>
-        </div>
-        <div id="faith-body" class="meter-body"></div>
-      </div>
-    </div>
+    <!-- The dock's popover column. It held the Faith card until religion had a
+         screen (ledger Entry XXVIII); the pool and its rate are the first block
+         of #religion-overlay now, in the same figures. The column stays because
+         a card hangs under the *button that opened it* and the dock sits a row
+         lower than the bar — the next dock popover wants it. -->
+    <div id="hud-dock-popovers"></div>
 
     <!-- The popover column, hung under the right end of the bar so a card opens
          directly beneath the button that opened it. A flex stack rather than two
@@ -612,8 +594,8 @@
             Statecraft: your government, your Orders and your Doctrines
           </li>
           <li>
-            <kbd>H</kbd> — or the <b>Religion</b> button in that same dock — opens the Faith
-            card: the pool, the rate, and what is still to come
+            <kbd>H</kbd> — or the <b>Religion</b> button in that same dock — opens Religion:
+            your faith, your pantheon, the augur's price and the rites it carries
           </li>
           <li>
             <kbd>T</kbd> — or the <b>research card</b>, top left — opens the star chart;
@@ -688,9 +670,9 @@
     <!-- Under the research card: the HUD dock. Two square lozenge buttons in
          the same ink/parchment language, front and centre because both open
          onto a *standing* concern rather than a one-off tool — see
-         src/ui/hudDock.ts for the full case and for why Religion's button
-         opens a card of its own rather than the screen the ☰ menu's
-         Statecraft entry and this dock's other button open. Built by
+         src/ui/hudDock.ts for the full case. Both are bare triggers now: each
+         opens a parchment screen, and the Faith popover the Religion button
+         used to own became the first block of that screen. Built by
          `createHudDock`, called from `main.ts`; nothing here is static
          beyond the container, because both buttons' icons are runtime
          `data:` URIs. -->
@@ -767,6 +749,39 @@
         <!-- Everything below the rule is built by statecraftScreen.ts on each
              open: nothing on this screen is stored, it is all derived. -->
         <div id="statecraft-body" class="statecraft-body"></div>
+      </div>
+    </div>
+
+    <!-- ================= the Religion sheet =====================
+         Statecraft's sibling, and deliberately the same sheet: the faith pool
+         and what it buys, the pantheon's places (filled or still outlined), and
+         the rites an augur carries. It reuses the statecraft-overlay classes on
+         purpose — two systems that draft permanent things from a pool must not
+         look like two different games. Built by src/ui/religionScreen.ts on each
+         open; nothing on it is stored.
+         ============================================================ -->
+    <div
+      id="religion-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Religion"
+      hidden
+    >
+      <div class="statecraft-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">the magister’s religion</p>
+            <h2 class="statecraft-title">Augurs &amp; Pantheon</h2>
+          </div>
+          <p class="statecraft-hint">
+            an augur is three rites, or one god — <kbd>Esc</kbd> to close
+          </p>
+          <button id="religion-close" class="statecraft-close" type="button" aria-label="Close">
+            ×
+          </button>
+        </header>
+        <div id="religion-body" class="statecraft-body"></div>
       </div>
     </div>
 

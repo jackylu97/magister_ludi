@@ -47,7 +47,9 @@ import statecraftJson from '../../data/statecraft.json';
 import type { BuildingId } from './buildingData';
 import type { ImprovementId } from './improvementData';
 import type { ModifierStage } from './modifiers';
+import type { BeliefId, RiteId } from './religionData';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
+import type { TerrainId } from './terrainData';
 import type { ModelClass, UnitCategory } from './unitData';
 
 // --- ids --------------------------------------------------------------------
@@ -59,11 +61,20 @@ export type OrderId = keyof typeof statecraftJson.orders & string;
 /**
  * A card of any class, named the way the state stores it.
  *
- * The three classes are three *pools*, never three id spaces: a card id is
- * unique across the whole table, which is what lets a breakdown line carry one
- * string and lets `cardDef` be one lookup.
+ * The classes are *pools*, never separate id spaces: a card id is unique across
+ * the whole table, which is what lets a breakdown line carry one string and lets
+ * one lookup answer for all of them.
+ *
+ * **Five classes now, and two of them are not Statecraft's** (ledger Entry
+ * XXVIII). A pantheon belief and an augur's rite are written in this exact
+ * vocabulary and read by this exact evaluator, so they are cards in every sense
+ * that matters here; what differs is only how they are acquired and held, which
+ * is `religion.ts`'s business. The *lookup* that spans all five lives in
+ * `statecraft.ts` (`anyCardDef`) rather than in `cardDef` below, because the
+ * import between this file and `religionData.ts` is type-only in both
+ * directions and must stay that way — see that file's docblock.
  */
-export type CardId = GovernmentId | DoctrineId | OrderId;
+export type CardId = GovernmentId | DoctrineId | OrderId | BeliefId | RiteId;
 
 /**
  * Which slot an Order fits, and therefore what a government's spread is counted
@@ -138,7 +149,26 @@ export type CityScope =
   /** The town controls one of these resources (`openedResource`). */
   | { test: 'holding'; resources: ResourceId[] }
   /** The town controls any resource of this kind. */
-  | { test: 'holdingCategory'; category: ResourceKind };
+  | { test: 'holdingCategory'; category: ResourceKind }
+  /**
+   * The town has finished this building.
+   *
+   * Entry XXVIII's addition, and the shape that makes "granaries supply +1
+   * faith" an ordinary `cityYields` line rather than a new effect kind: a
+   * building's yield *is* a city yield in the towns that have the building.
+   */
+  | { test: 'hasBuilding'; building: BuildingId }
+  /**
+   * Every one of these holds. The composite, and the only one there is.
+   *
+   * There is deliberately no `any` and no `not`. A disjunction is two lines on
+   * a card and reads better as two; a negation is how a scope system turns into
+   * a query language. `all` earns its place because the ratified table asks for
+   * one conjunction it cannot otherwise say — River Mother's shrines *in the
+   * river towns* — and a card that wanted "freshwater and a shrine" would
+   * otherwise have to be two cards that each pay half.
+   */
+  | { test: 'all'; of: CityScope[] };
 
 /**
  * A fact about the empire that gates a whole clause. `conditionRule`'s subject.
@@ -214,7 +244,31 @@ export type TileCondition =
   /** Any water hex — ocean, coast or lake. The granary's line (Entry XXVII). */
   | { test: 'water' }
   /** One *named* improvement, where `improved` is any of them at all. */
-  | { test: 'improvement'; improvement: ImprovementId };
+  | { test: 'improvement'; improvement: ImprovementId }
+  /**
+   * One named terrain. Desert Fathers' and Winter Mother's (Entry XXVIII).
+   *
+   * A fact about the ground itself, where `hills` is a fact about its shape and
+   * `water` a whole category of it. Asked of `Tile.terrain` and nothing else.
+   */
+  | { test: 'terrain'; terrain: TerrainId }
+  /**
+   * A resource of this **kind** sits here — and, with `yields`, one that pays
+   * that voice at all.
+   *
+   * `hasResource` widened by exactly the two questions the ratified table asks:
+   * "a bonus resource that feeds you" (Goddess of the Harvest) and "a luxury"
+   * (Lord of the Hoard). `yields` reads the resource's own row, so a designer
+   * retuning wheat cannot leave a belief paying for something that no longer
+   * feeds anybody.
+   */
+  | { test: 'resourceKind'; kind: ResourceKind; yields?: CityYieldKey }
+  /**
+   * Every one of these holds. `CityScope`'s composite, one scale down, and here
+   * for its reason: a wooded tundra and a mine standing on a luxury are single
+   * conditions in the ratified text and two questions about one hex.
+   */
+  | { test: 'all'; of: TileCondition[] };
 
 // --- payouts ----------------------------------------------------------------
 
@@ -259,7 +313,19 @@ export type CountKind =
   /** Gold in the treasury. */
   | 'bankedGold'
   /** Barbarian camps the empire can currently see. */
-  | 'visibleCamps';
+  | 'visibleCamps'
+  /**
+   * Augurs standing in **this city** with at least one rite charge left
+   * (city-scoped). Court Augurs' whole identity — the reason to keep one home
+   * rather than spend it the turn it is bought.
+   */
+  | 'chargedAugurs'
+  /**
+   * Buildings in **this city** that supply science at all (city-scoped) — a
+   * library, a shrine, a university. Omen Reading's, read off the building rows
+   * so a retune moves the rite with it.
+   */
+  | 'scienceBuildings';
 
 /** What a `rateConversion` reads. A *rate* or a meter standing, never a bank. */
 export type RateSource =
@@ -376,7 +442,9 @@ export type WindfallOccasion =
   /** A technology completed (`settleResearch`). */
   | 'tech'
   /** A tile bought (`purchaseTileAt`). */
-  | 'tilePurchase';
+  | 'tilePurchase'
+  /** An augur's rite performed (`performRiteAt`, Entry XXVIII). */
+  | 'rite';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
@@ -491,6 +559,27 @@ export interface CardWindfallRiderEffect {
   percent?: number;
   /** Adds something the occasion did not pay at all. */
   grant?: WindfallGrantSpec;
+  /**
+   * **Everything on this rider is multiplied by the empire's era** — ×1 in Æra
+   * I, ×2 in Æra II, ×3 in Æra III (`highestAge`).
+   *
+   * The ratified text says "multiplied by the current age" in two places and
+   * means the same thing in both: Keeper of the Calendar multiplies the
+   * *occasion's own* figure (a discovery's twenty hammers become sixty), and
+   * Rites of Blood multiplies its own **grant** (fifteen faith a kill becomes
+   * forty-five). One flag serves both because it is one idea — a payout quoted
+   * in the money of the era it is paid in.
+   *
+   * It is a *multiplier*, not a percentage, and it is applied **after** the
+   * summed `percent` riders (`windfallPayout`), which keeps Entry XVII's "sum
+   * within a stage, apply once" true at this scale: two riders that each say
+   * ×era do not compound into ×era², they agree.
+   *
+   * Still an Entry XVIII.5 printed number: the era changes what is *printed*,
+   * before anything is banked, so the preview, the basket and the announcement
+   * are one figure.
+   */
+  perAge?: boolean;
 }
 
 /** What a newly founded city is founded *with*. */
@@ -589,6 +678,36 @@ export interface CardTileYieldEffect extends CardYieldBag {
 }
 
 /**
+ * A draft that opens **on a cadence** rather than on an occasion.
+ *
+ * Keeper of the Calendar's "every 20 turns, claim a discovery" (Entry XXVIII),
+ * and the one effect in the vocabulary whose subject is the calendar itself.
+ * Every other shape is asked a question about the board and answers it; this one
+ * is read by a turn phase and *opens an offer*, which is why it is a shape and
+ * not a `windfallRider` — there is no occasion to ride on.
+ *
+ * The cadence is `state.turn % every === 0`, an **absolute** comparison rather
+ * than a counter on the player, for `SlottedOrder.sealedUntil`'s reason exactly:
+ * a countdown is state that has to be ticked, and a phase that ticks it is a
+ * phase that can be skipped or run twice. It also means an empire that takes the
+ * belief on turn 19 is offered on turn 20 — the calendar belongs to the world,
+ * not to the convert.
+ *
+ * `site` says which pool the three cards are drawn from, so this reuses the
+ * discovery draft whole (`drawDiscoveryOffer`) rather than inventing a second
+ * one. An empire already holding an unanswered offer is skipped, exactly as a
+ * second ruin is (`discoveryClaimError`) — an offer is a decision the player
+ * owes the game, and a second one dealt on top of it would destroy the first.
+ */
+export interface CardPeriodicOfferEffect {
+  kind: 'periodicOffer';
+  /** Turns between offers. A turn is offered when `turn % every === 0`. */
+  every: number;
+  /** Which discovery pool the offer is drawn from. */
+  site: 'ruins' | 'village';
+}
+
+/**
  * A building a card makes available. **Declared and deferred**: nothing in the
  * game can buy a building with gold yet, so The Gilded Court's Gilded Hall has
  * no mechanism to unlock into. The shape is here so the row can name it and the
@@ -625,6 +744,7 @@ export type CardEffect =
   | CardCityStatEffect
   | CardMetaRuleEffect
   | CardTileYieldEffect
+  | CardPeriodicOfferEffect
   | CardUnlocksBuildingEffect;
 
 /** Every `kind` in the union, for the register test that pins the evaluator. */
@@ -773,8 +893,14 @@ export function orderDef(id: OrderId): OrderDef {
 }
 
 /**
- * Any card by id, whichever class it is — the lookup a breakdown line and a
- * screen use, because neither of them cares which table a name came from.
+ * Any of **Statecraft's own three** classes by id.
+ *
+ * Deliberately not the five-class lookup: `CardId` also spans beliefs and rites
+ * (ledger Entry XXVIII), and this file may not import `religionData.ts` at
+ * runtime — the two are type-only in both directions, which is what keeps a type
+ * cycle from becoming a runtime one. The lookup that answers for all five is
+ * `anyCardDef` in `statecraft.ts`, beside the evaluator that needs it, and any
+ * surface that can be handed a belief must use that one.
  */
 export function cardDef(id: CardId): CardDefBase {
   if (isOrderId(id)) return orderDef(id);
@@ -783,7 +909,10 @@ export function cardDef(id: CardId): CardDefBase {
   throw new Error(`Unknown card "${String(id)}"`);
 }
 
-/** A card's name, or the raw id when nothing knows it (a hand-edited save). */
+/**
+ * A Statecraft card's name, or the raw id when nothing here knows it — which
+ * includes every belief and every rite. See `cardDef` above and `anyCardName`.
+ */
 export function cardName(id: CardId): string {
   if (isOrderId(id) || isDoctrineId(id) || isGovernmentId(id)) return cardDef(id).name;
   return String(id);

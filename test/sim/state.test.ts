@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { newPlayerStatecraft } from '../../src/sim/statecraft';
+import { newPlayerPantheon } from '../../src/sim/religionData';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { RULES } from '../../src/sim/rulesData';
 import {
@@ -87,6 +88,11 @@ describe('newGame', () => {
       // Always present, like `techsResearched`: every seat has a government and
       // a slot spread from turn one. See `Player.statecraft`.
       statecraft: newPlayerStatecraft(),
+      // The same claim one system over (ledger Entry XXVIII): every seat has a
+      // pantheon from turn one, empty though it is, and a lifetime counter for
+      // the augurs it has bought — `settlersBuilt`'s twin in a different bank.
+      pantheon: newPlayerPantheon(),
+      augursPurchased: 0,
     };
     expect(state.players).toEqual([
       { id: 0, name: 'Ada', color: '#e8503a', isHuman: true, ...pools },
@@ -361,6 +367,10 @@ describe('applyCommand contract', () => {
 describe('end-of-turn pipeline', () => {
   it('runs a fixed, named, ordered set of phases', () => {
     expect(END_OF_TURN_PHASES.map((phase) => phase.name)).toEqual([
+      // First, and a broom rather than a clock: an expired rite is already
+      // inert (every reader compares turns), so this only stops dead paper
+      // accumulating. See `pruneTimedEffects` (ledger Entry XXVIII).
+      'pruneTimedEffects',
       'collectYields',
       'growCities',
       'advanceProduction',
@@ -369,6 +379,9 @@ describe('end-of-turn pipeline', () => {
       // resolution filled — and before `expandBorders`, whose channel it never
       // touches. See `runStatecraft`.
       'statecraft',
+      // The cadenced drafts — Keeper of the Calendar's almanac — beside the
+      // phase they are the same shape as, one currency over.
+      'religion',
       'expandBorders',
       'healCities',
       // The wild acts after the towns and before the healing, so a raider that

@@ -1,7 +1,7 @@
 /**
  * The HUD dock: two square buttons under the research card, top-left, in the
  * same ink/parchment lozenge language — the front door to Statecraft and to
- * whatever Religion becomes.
+ * Religion.
  *
  * Why a dock and not two more chips
  * ----------------------------------
@@ -29,36 +29,35 @@
  * pure half of that fact, kept separate from the DOM write so it can be
  * tested without one.
  *
- * Statecraft opens a screen; Religion opens a card
- * --------------------------------------------------
- * The Statecraft button is a bare trigger — `main.ts` wires its click to
- * `statecraft.open()`, the same call the ☰ menu's own door uses, because
- * opening a *screen* means closing every other HUD surface first and this
- * module has no business knowing what those are. Religion has no screen yet,
- * so its button owns a small popover itself, built the same way the top bar
- * builds its meter cards (`topBar.ts`'s `happinessCard`/`authorityCard`): a
- * `createPopover` wired to elements `main.ts` hands in, content rebuilt on
- * open and kept live for as long as the card stays open. When religion lands,
- * the seam is exactly this module's `HudDock.close()`/`isOpen` pair plus the
- * one line in `main.ts` that opens the popover — the button itself does not
- * change.
+ * Both buttons open a screen now
+ * -------------------------------
+ * Each is a **bare trigger** — `main.ts` wires the click to
+ * `statecraft.open()` / `religion.open()`, the same calls the ☰ menu's own
+ * doors use, because opening a *screen* means closing every other HUD surface
+ * first and this module has no business knowing what those are.
+ *
+ * The Religion button used to own a small Faith popover built here, because
+ * religion had no screen and a permanent card was a promise about where the
+ * system would live. Religion v1 (ledger Entry XXVIII) is that screen, and the
+ * popover's whole content — the pool and its rate, in the same figures — is now
+ * the first block of `religionScreen.ts`. The prediction that docblock made
+ * held exactly: the seam was this module's `close()`/`isOpen` pair and one line
+ * in `main.ts`, and the button itself did not change.
  *
  * The Religion button's icon: a reuse, not a second drawing
  * ------------------------------------------------------------
- * The button *is* the faith screen for now — there is nothing behind it that
- * is not already summarised on the card — so it wears faith's own flame
- * (`yieldMarkDataUri('faith')`, `src/art/yieldMarks.ts`) rather than a new
- * icon picked to mean roughly the same thing. One identity, one drawing.
- * Statecraft's scroll is vendored fresh beside it in `src/art/dockMarks.ts`.
+ * The screen behind it is *about* faith — its pool, what buys an augur, what an
+ * augur buys — so the button wears faith's own flame
+ * (`yieldMarkDataUri('faith')`, `src/art/yieldMarks.ts`) rather than a new icon
+ * picked to mean roughly the same thing. One identity, one drawing. Statecraft's
+ * scroll is vendored fresh beside it in `src/art/dockMarks.ts`.
  */
 
 import { statecraftMarkDataUri } from '../art/dockMarks';
 import type { Game } from '../sim/game';
+import { hasReligionOffer } from '../sim/religion';
 import { hasStatecraftOffer } from '../sim/statecraft';
-import { type GameState, type Player, playerById } from '../sim/state';
-import { civYields } from './topBar';
-import { poolFigure } from './figures';
-import { type Popover, createPopover } from './popover';
+import { type Player, playerById } from '../sim/state';
 import { yieldMarkDataUri } from '../art/yieldMarks';
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -86,13 +85,16 @@ export function hudBadgeWaiting(player: Player | undefined): boolean {
   return player !== undefined && hasStatecraftOffer(player);
 }
 
-export interface HudDockFaithElements {
-  /** The card itself. Hidden with the `hidden` attribute while closed. */
-  panel: HTMLElement;
-  /** Filled fresh on every open, and kept live while the card stays open. */
-  body: HTMLElement;
-  /** The card's own × button — every popover in this HUD has one. */
-  closeButton: HTMLElement;
+/**
+ * Is Religion owed a look? The other button's badge, and the same shape.
+ *
+ * Delegates to `hasReligionOffer` for `hudBadgeWaiting`'s reason: what counts as
+ * an outstanding decision is the simulation's own definition (a belief offer
+ * awaiting a pick, today), and this function's whole job is to say what a
+ * missing player means for it.
+ */
+export function religionBadgeWaiting(player: Player | undefined): boolean {
+  return player !== undefined && hasReligionOffer(player);
 }
 
 export interface HudDockOptions {
@@ -100,32 +102,15 @@ export interface HudDockOptions {
   container: HTMLElement;
   getGame: () => Game;
   localPlayerId: () => number;
-  faith: HudDockFaithElements;
-  /** Told whenever the Faith card opens, so the HUD's other one-at-a-time
-   *  cards can shut — the same contract `CivYieldStripOptions.onOpenPopover`
-   *  keeps for the meter cards. */
-  onOpenPopover?: () => void;
 }
 
 export interface HudDock {
-  /** The bare trigger. `main.ts` wires its click — see the module docblock. */
+  /** The two bare triggers. `main.ts` wires their clicks — see the docblock. */
   readonly statecraftButton: HTMLButtonElement;
-  readonly isOpen: boolean;
-  close(): void;
-  /** Opens or closes the Faith card — the `H` hotkey's way in, wired from
-   *  `main.ts` alongside the dock's own standalone keydown listener (see
-   *  that wiring's comment for why it is not one more branch in
-   *  `controls.ts`'s switch). */
-  toggle(): void;
-  /** Refreshes the badge, and the Faith card's figures if it is open. */
+  readonly religionButton: HTMLButtonElement;
+  /** Refreshes both badges. */
   render(): void;
 }
-
-/** The "coming" list — Religion's own eyebrow line, from `docs/religion.md`. */
-const FAITH_COMING = 'Augurs · Pantheons · Prophets';
-
-/** The one sentence the Faith card says about what faith is for, today. */
-const FAITH_IDENTITY = 'The faithful gather. Their purpose comes later.';
 
 /**
  * Icon-only: `title` is the hover tooltip and `aria-label` is the accessible
@@ -148,25 +133,8 @@ function buildButton(id: string, _label: string, title: string, markUri: string)
   return button;
 }
 
-/** Fills the Faith card's body: the pool, the identity line, the coming list. */
-function renderFaithBody(body: HTMLElement, state: GameState, playerId: number): void {
-  body.replaceChildren();
-  const player = playerById(state, playerId);
-  const rate = civYields(state, playerId).faith;
-  const figures = element('div', 'meter-group');
-  figures.append(
-    element('span', 'meter-line-source', 'Gathered'),
-    element('span', 'meter-line-value', player ? poolFigure(player.faithPool, rate) : '—'),
-  );
-  body.append(
-    figures,
-    element('p', 'hint', FAITH_IDENTITY),
-    element('p', 'eyebrow', FAITH_COMING),
-  );
-}
-
 export function createHudDock(options: HudDockOptions): HudDock {
-  const { container, getGame, localPlayerId, faith, onOpenPopover } = options;
+  const { container, getGame, localPlayerId } = options;
 
   container.replaceChildren();
 
@@ -184,36 +152,17 @@ export function createHudDock(options: HudDockOptions): HudDock {
   );
   container.append(statecraftButton, religionButton);
 
-  const faithCard: Popover = createPopover({
-    panel: faith.panel,
-    trigger: religionButton,
-    closeButton: faith.closeButton,
-    onOpen: () => {
-      onOpenPopover?.();
-      const { state } = getGame();
-      renderFaithBody(faith.body, state, localPlayerId());
-    },
-  });
-
   return {
     statecraftButton,
-    get isOpen() {
-      return faithCard.isOpen;
-    },
-    close(): void {
-      faithCard.close();
-    },
-    toggle(): void {
-      faithCard.toggle();
-    },
+    religionButton,
     render(): void {
       const { state } = getGame();
       const player = playerById(state, localPlayerId());
       statecraftButton.classList.toggle('hud-badge-waiting', hudBadgeWaiting(player));
-      // An open card is showing figures from before whatever just happened —
-      // the same reason the meter cards in `topBar.ts` re-render themselves
-      // on every HUD refresh while they are up rather than only on open.
-      if (faithCard.isOpen) renderFaithBody(faith.body, state, localPlayerId());
+      // The same dot on the other button, for the same reason: a belief offer
+      // is a decision the empire owes the game, and the front door is where a
+      // player is told there is one.
+      religionButton.classList.toggle('hud-badge-waiting', religionBadgeWaiting(player));
     },
   };
 }

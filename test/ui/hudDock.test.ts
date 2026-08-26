@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { hudBadgeWaiting } from '../../src/ui/hudDock';
+import { hudBadgeWaiting, religionBadgeWaiting } from '../../src/ui/hudDock';
 import { newGame, type Player } from '../../src/sim/state';
 
 function playerFixture(): Player {
@@ -57,5 +57,27 @@ describe('hudBadgeWaiting', () => {
     expect(hudBadgeWaiting(player)).toBe(true);
     delete player.statecraft.pendingOrder;
     expect(hudBadgeWaiting(player)).toBe(false);
+  });
+});
+
+describe('religionBadgeWaiting', () => {
+  it('is false for a fresh player, and for no player at all', () => {
+    expect(religionBadgeWaiting(playerFixture())).toBe(false);
+    expect(religionBadgeWaiting(undefined)).toBe(false);
+  });
+
+  it('is true while a belief offer is waiting to be named', () => {
+    const player = playerFixture();
+    player.pantheon.pending = { options: [] };
+    expect(religionBadgeWaiting(player)).toBe(true);
+    delete player.pantheon.pending;
+    expect(religionBadgeWaiting(player)).toBe(false);
+  });
+
+  it('is independent of Statecraft: the two doors answer for their own systems', () => {
+    const player = playerFixture();
+    player.statecraft.pendingOrder = { options: [] };
+    expect(hudBadgeWaiting(player)).toBe(true);
+    expect(religionBadgeWaiting(player)).toBe(false);
   });
 });

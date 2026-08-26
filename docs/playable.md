@@ -149,9 +149,21 @@ it that are not yours, and a scout is how you find out.
   early culture (a cheaper monument, a base rate) rather than a cheaper first draft, which
   would make the mid-game cadence 2–3 turns.
 
-## 6. Faith payoff — religion (last, biggest)
-- Faith yield, shrines/temples feeding it, religious unlocks through the draft machinery.
-  Designed after Statecraft proves the plumbing.
+## 6. Faith payoff — religion — **v1 built 2026-08-26** (augurs + pantheons)
+- **Built** (ledger Entry XXVIII, `docs/religion.md` for the ratified design and a
+  per-row "Built" section): faith is spent at last. It buys an **augur**
+  (`purchaseUnit`, 40🕯 escalating by 15🕯 — currency-agnostic in shape so the M9 gold
+  purchases share it), and an augur is *three rites or one god*. **Consecrate** spends the
+  whole unit and deals a 1-of-3 belief offer from `state.rng`; **eighteen beliefs** on nine
+  synergy axes, permanent and empire-wide, are effect sources of the *same* card vocabulary
+  read by the *same* evaluator. **Five rites** are Entry XVIII windfalls hung on their
+  technologies as `unlocks.abilities`, each with a lasting half carried by the new
+  **timed-effect** hook (absolute expiry turns, read by the evaluators a slotted Order is
+  read by). The dock's Faith popover graduated to a real parchment **Religion screen**.
+- **Deferred to the Age 2–3 pass**, per `docs/religion.md`'s scope ruling: prophets,
+  founding a religion, the founder / follower / enhancer pools, **spread and conversion**,
+  and the Religious Mandate doctrine's activation. Pantheons are native and never converted
+  away, which is exactly why this half ships alone and needs none of that machinery.
 
 ## Punted (explicitly)
 - **Non-standard map-size mapgen tuning** (user, 2026-08-24): the game balances around

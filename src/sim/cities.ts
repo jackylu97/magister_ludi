@@ -104,6 +104,7 @@ import {
   cardProduction,
   cardRulePercent,
   cardTileLines,
+  timedCityTileLines,
   foldCardRulePercent,
   foldCardYields,
   payWindfallGrants,
@@ -366,7 +367,12 @@ export function yieldContextFor(
 function cityContext(state: GameState, city: City): TileYieldContext | undefined {
   const ctx = yieldContextFor(state, city.ownerId);
   if (!ctx) return undefined;
-  const own = buildingTileLines(city, ctx.techs);
+  // Two producers are facts about *this town* rather than about the empire, and
+  // both can only be added by whoever has a city in hand: its buildings' tile
+  // lines (the granary's food on water, Entry XXVII) and its **live rites**
+  // (Rite of Plenty's gold on its own worked seams, Entry XXVIII). Appended in
+  // that order, and the tile chain still cannot tell any producer from another.
+  const own = [...buildingTileLines(city, ctx.techs), ...timedCityTileLines(state, city)];
   if (own.length === 0) return ctx;
   return { ...ctx, lines: [...(ctx.lines ?? []), ...own] };
 }
@@ -1955,7 +1961,13 @@ export function borderGrowth(
   // Border culture is its **own channel** (Entry XVII: not in the two-stage
   // pipeline), so a card's percentage on it sums with the meter's and is applied
   // once, here — never in `cityYieldPercents`, which is about a yield.
-  const cardPercent = foldCardRulePercent(cardRulePercent(state, city.ownerId, 'borderCulture'));
+  // The **city** is handed in, so this town's own live rites join the empire's
+  // law in the same fold: Consecration of the Bounds is a `rulePercent` on
+  // `borderCulture` that hangs here for twenty turns (Entry XXVIII), and it
+  // sums with a Doctrine's rather than multiplying after it.
+  const cardPercent = foldCardRulePercent(
+    cardRulePercent(state, city.ownerId, 'borderCulture', city),
+  );
   // Summed with the meter's, then applied once — additive inside the channel,
   // exactly as Entry XVII has it inside a stage. Floored at zero for
   // `borderFactor`'s own reason: the worst a modifier can do is stop a border,
@@ -2211,7 +2223,8 @@ export function collectYields(state: GameState): void {
     player.gold += yields.gold;
     player.sciencePool += yields.science;
     player.culturePool += yields.culture;
-    // The faithful gather. Nothing spends this yet — see `Player.faithPool`.
+    // The faithful gather, and augurs are what they gather for — see
+    // `Player.faithPool` and `explainPurchaseCost`.
     player.faithPool += yields.faith;
   }
 
@@ -2413,6 +2426,45 @@ export function settleGrowthWindfall(
   settleProductionWindfall(state, city);
   refreshCityDerived(state, city);
   return done;
+}
+
+/**
+ * Grants citizens **outright** — not bought from the basket (ledger Entry
+ * XXVIII, the Rite of the Harvest).
+ *
+ * The tenth entry in the mid-turn register (`refreshCityDerived`), and the first
+ * one that does not fill a bucket at all: every other windfall pays *into* a
+ * basket and lets the bucket's own completion routine decide whether that
+ * finishes anything. A rite hands the town a citizen. There is no threshold to
+ * clear, no overflow to carry and no plan to make — so this cannot go through
+ * `settleGrowthWindfall`, and pouring enough food into the basket to force a
+ * growth would be a different rule wearing a hat (it would also gift the
+ * carryover, and the size of the gift would depend on how hungry the town
+ * happened to be).
+ *
+ * What it *does* share with growth is everything that follows a citizen:
+ *
+ *   · the **growth riders** fire, once per citizen, through `settleGrowth`'s own
+ *     rider routine — Granary Levies pays for a mouth however the mouth arrived;
+ *   · the **production windfall** is settled, because a rider can pay hammers;
+ *   · the city is **re-seated**, because a town that just gained a citizen has a
+ *     citizen to place and a panel showing the old dots is showing a town with
+ *     fewer people working than it has.
+ *
+ * Returns the population reached.
+ */
+export function settlePopulationWindfall(
+  state: GameState,
+  city: City,
+  points = 1,
+): number {
+  const grant = Math.max(0, Math.floor(points));
+  if (grant === 0) return city.population;
+  city.population += grant;
+  for (let i = 0; i < grant; i++) payGrowthRider(state, city);
+  settleProductionWindfall(state, city);
+  refreshCityDerived(state, city);
+  return city.population;
 }
 
 /**

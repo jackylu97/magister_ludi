@@ -164,7 +164,7 @@
       "yields": {
         "food": 1,
         "production": 0,
-        "gold": 0
+        "gold": 1
       },
       "validTerrain": [
         "coast"

@@ -189,9 +189,9 @@ would change every seeded outcome. No further rename passes.
   channels** with their own folds (`growthPercent`, `borderPercent`) and are not in this
   pipeline. One-time grants (the chop) are modifier-immune — Entry XVIII.5, pinned in
   `test/sim/modifiers.test.ts`.
-- **Faith is accumulate-only.** Tiles and signatures pay it, `collectYields` banks it into
-  `Player.faithPool`, and nothing spends it. The top bar's card says so; delete that note
-  rather than reword it when something does.
+- ~~**Faith is accumulate-only.**~~ **Superseded 2026-08-26** (Entry XXVIII): tiles and
+  signatures still pay it and `collectYields` still banks it, but **augurs spend it**. The
+  note that said so has been deleted rather than reworded, exactly as this trap instructed.
 - Resource **access** is one rule, `openedResource` in `cities.ts`, with three clauses in
   precedence: the reveal tech (binds *both* other clauses — a mine on a hill does not hand
   over iron before Bronze Working, and see the reveal trap below: it binds the *yield*
@@ -245,6 +245,13 @@ would change every seeded outcome. No further rename passes.
      deliberate exception is a **completion** rider: hammers there do not settle, because
      that call *is* a completion and `settleProduction` allows at most one item per city
      per call.
+  10. **`settlePopulationWindfall`** (Entry XXVIII) — a rite's citizen, granted outright.
+      The first entry that fills **no bucket at all**: there is no threshold to clear and no
+      overflow to carry, so it cannot go through `settleGrowthWindfall`, and pouring enough
+      food into the basket to force a growth would be a different rule wearing a hat (it
+      would gift the carryover, sized by how hungry the town happened to be). It still owes
+      everything that follows a citizen — the growth riders, the production settlement, and
+      the re-seating.
   **A new mid-turn yield mutation calls `refreshCityDerived` and adds itself to this
   list.** `assignCitizens` therefore has exactly two callers in the sim — `collectYields`
   (the phase) and the helper — and `test/sim/cities.test.ts` asserts that by reading the
@@ -278,6 +285,40 @@ would change every seeded outcome. No further rename passes.
   mapgen's start scorer and tests about bare ground, and it is the only exemption. Rule:
   **an owned tile is always evaluated with its owner's context** — the register of who
   passes one is the `yieldContextFor` docblock.
+- **A timed effect is a comparison, never a countdown.** `TimedEffect` (`state.ts`, on
+  `City.timed` and `Unit.timed`) carries an **absolute** `expiresTurn`, and the whole
+  reading is `state.turn < expiresTurn` (`timedEffectIsLive`). Nothing decrements anything —
+  that is `SlottedOrder.sealedUntil`'s lesson applied to a thing that hangs on a town.
+  `pruneTimedEffects` (the pipeline's **first** phase) is a **broom, not a clock**: an
+  expired effect is already inert, so deleting it changes no outcome, which is exactly what
+  makes the phase safe to place anywhere, skip, or run twice. It deletes the key when the
+  list empties, so a town whose blessings ran out serialises like one never blessed. The
+  effects themselves are **ordinary `CardEffect`s read by the ordinary evaluators**:
+  `liveCityEffects(state, city)` is `liveEffects(owner)` plus that city's live rites, and
+  **every city-scoped reader in `statecraft.ts` goes through it** — a new one that reached
+  for `liveEffects` directly would silently ignore every rite. The three off-list consumers
+  are the register: `cardRulePercent` takes an optional `city` (the borders channel),
+  `cardCombatLines` walks `liveUnitEffects`, and `timedCityTileLines` is the fifth `TileLine`
+  producer, added in `cityContext` beside the granary's because both are facts about *one
+  town*.
+- **Faith is spent now, and the only thing it buys is an agent.** `Player.faithPool` is no
+  longer accumulate-only: `purchaseUnit` charges it. The price is `explainPurchaseCost`
+  (`religion.ts`) — `explainUnitCost`'s ordered-lines shape in a **bank**, currency-agnostic
+  so the M9 gold purchases share it — and it reads `UnitDef.purchase`, whose `exclusive`
+  flag is what makes `buildError` refuse the production queue. **Presence of `purchase` is
+  the marker and `consecrates` is the other one**: nothing in `src/sim/` compares a unit type
+  against `"augur"`, exactly as nothing compares against `"settler"`. A purchase deliberately
+  does **not** ask about stacking, because `settleProduction` does not either: a bought piece
+  arrives exactly as a built one does.
+- **A belief is a card, not a system.** Beliefs and rites are rows of the *same* effect
+  vocabulary read by the *same* evaluator; `statecraft.ts` is still the only module that
+  switches on `effect.kind`. `CardId` spans five classes now, and the lookup across all five
+  is `anyCardDef` **in `statecraft.ts`** rather than `cardDef` in `statecraftData.ts` —
+  because the import between that file and `religionData.ts` is **type-only in both
+  directions**, and it must stay that way or a type cycle becomes a runtime one. Adding a
+  belief is a JSON row; adding a *shape* is a design decision, and the shapes this pass added
+  (`hasBuilding` / `all` scopes, `terrain` / `resourceKind` / `all` tile conditions,
+  `perAge`, `periodicOffer`) are generic and available to an Order on the same terms.
 - The **props** for a gated resource are veiled per seat by `RevealView` (`reveal3d.ts`),
   fog's sibling: the board bakes every prop lit, `BuiltBoard.resourceCells` says which
   instances they are, and the pass writes only where the answer flipped (seat change and

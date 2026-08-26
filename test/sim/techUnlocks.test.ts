@@ -60,10 +60,13 @@ describe('techGifts', () => {
     expect(techGifts('construction').map((gift) => gift.kind)).toEqual(['unit', 'building']);
     // Bronzeworking hands over two buildings since the Age I sinks landed —
     // the barracks and the funeral games — and both come after the spearman.
+    // The religion pass hangs a *rite* on it too (Blessing of Arms), which is
+    // an ability like embarkation and sorts with the verbs at the end.
     expect(techGifts('bronzeWorking').map((gift) => gift.kind)).toEqual([
       'unit',
       'building',
       'building',
+      'ability',
       'reveal',
     ]);
   });

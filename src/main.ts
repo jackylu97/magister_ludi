@@ -110,10 +110,13 @@ import { createPopover } from './ui/popover';
 import { type HudDock, createHudDock } from './ui/hudDock';
 import { type ToastStack, createToastStack } from './ui/toasts';
 import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
+import { type ReligionScreen, createReligionScreen } from './ui/religionScreen';
 import { type TechTree, createTechTree } from './ui/techTree';
 import { type TilePriceTags, createTilePriceTags } from './ui/tilePriceTags';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
+import { AXIS_MARK } from './ui/religionScreen';
+import { beliefDef } from './sim/religionData';
 import { CARD_LINE_NAME, cardLineMarkUrl, lineOf, slotMarkUrl } from './ui/cardLine';
 import { SLOT_WORDS, describeCard } from './sim/statecraft';
 import {
@@ -229,11 +232,9 @@ const techChartEl = requireElement<HTMLElement>('tech-chart');
 /* The HUD dock, directly under the research card: Statecraft and Religion. Its
    two buttons are runtime `data:` URIs, so `createHudDock` builds them into
    this container rather than index.html holding them static — see
-   `src/ui/hudDock.ts`. The Faith card's own elements are its popover, wired
-   the same way the meter cards below are. */
+   `src/ui/hudDock.ts`. Both are bare triggers now; the Faith popover they used
+   to sit beside became the Religion screen (ledger Entry XXVIII). */
 const hudDockEl = requireElement<HTMLElement>('hud-dock');
-const faithPopoverEl = requireElement<HTMLElement>('faith-popover');
-const faithBodyEl = requireElement<HTMLElement>('faith-body');
 /* The Abacus: the bar button that opens it, and the screen it opens. Its canvas
    is not here — `abacusScreen.ts` builds one into the stage on the first open. */
 const abacusButton = requireElement<HTMLButtonElement>('abacus-button');
@@ -242,6 +243,10 @@ const abacusButton = requireElement<HTMLButtonElement>('abacus-button');
    the End Turn blocker, and by `C`. */
 const statecraftOverlayEl = requireElement<HTMLElement>('statecraft-overlay');
 const statecraftBodyEl = requireElement<HTMLElement>('statecraft-body');
+/* Religion's overlay and body — Statecraft's sibling sheet, opened from the
+   dock's second button, by the End Turn blocker, and by `H`. */
+const religionOverlayEl = requireElement<HTMLElement>('religion-overlay');
+const religionBodyEl = requireElement<HTMLElement>('religion-body');
 const abacusOverlayEl = requireElement<HTMLElement>('abacus-overlay');
 const abacusStageEl = requireElement<HTMLElement>('abacus-stage');
 /**
@@ -479,6 +484,7 @@ let abacus: AbacusScreen | null = null;
 /* Declared before `controls` for `techTree`'s reason exactly: the controls reach
    it (the End Turn blocker steers here), and it reaches the controls. */
 let statecraft: StatecraftScreen | null = null;
+let religion: ReligionScreen | null = null;
 
 /**
  * The top bar's meter chips, once `boot` has built them. A holder for the same
@@ -515,20 +521,20 @@ function closePopovers(): boolean {
     lens.isOpen ||
     (notifications?.isOpen ?? false) ||
     (meterCards?.isOpen ?? false) ||
-    (hudDock?.isOpen ?? false) ||
     (techTree?.isOpen ?? false) ||
     (abacus?.isOpen ?? false) ||
     (statecraft?.isOpen ?? false) ||
+    (religion?.isOpen ?? false) ||
     savesPanel.isOpen;
   menu.close();
   help.close();
   lens.close();
   notifications?.close();
   meterCards?.close();
-  hudDock?.close();
   techTree?.close();
   abacus?.close();
   statecraft?.close();
+  religion?.close();
   savesPanel.close();
   return wasOpen;
 }
@@ -580,6 +586,7 @@ function showLanding(): void {
   // stage on the first press of `A`.
   abacus?.dispose();
   statecraft?.dispose();
+  religion?.dispose();
   // `hidden` is the whole of the screen state — one flag, read by `inputBlocked`
   // as well as by the stylesheet, so "is the landing up?" has one answer.
   landingEl.hidden = false;
@@ -989,6 +996,7 @@ const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
   research: 'Choose research',
   discovery: 'A discovery awaits',
   statecraft: 'A card awaits',
+  religion: 'A god awaits',
 };
 
 function showEndTurnState(blocker: TurnBlocker | null): void {
@@ -1553,6 +1561,70 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
+   * Puts the local seat's belief offer on screen, if it has one.
+   *
+   * `showStatecraftOffer`'s third sibling, and the same generic card
+   * (`offerCard.ts`) in a **votive** dress: three gods, each with its axis in
+   * the mono eyebrow, what it does in the note, and its aphorism at the foot.
+   * It wears the **heavy** frame the Doctrine and the charter wear, and for
+   * exactly their reason — a belief is permanent, unconvertible, and the one
+   * thing in this system that cannot be taken back.
+   *
+   * Every clause is `describeCard`, the same function the Religion screen
+   * prints, so a god reads identically on the card that dealt it and in the
+   * pantheon afterwards. The emblem is deliberately **absent**: a belief joins
+   * no Statecraft line, so lending it one of that deck's seven marks would be
+   * saying something untrue, and the axis glyph carries the accent instead
+   * (`religionScreen.ts`'s AXIS_MARK — one table, both surfaces).
+   */
+  function showReligionOffer(): void {
+    const seat = controls.localPlayerId();
+    const player = playerById(game.state, seat);
+    const offer = player?.pantheon.pending;
+    if (!offer) return;
+
+    offerCard.show(
+      {
+        eyebrow: 'a god · permanent, and never converted away',
+        title: 'Name what your people keep',
+        note: 'A belief pays in every city you own, for the rest of the game. The augur is spent either way.',
+        weight: 'heavy',
+        options: offer.options.map((id) => {
+          const def = beliefDef(id);
+          const axis = AXIS_MARK[def.axis];
+          return {
+            title: def.name,
+            payoff: `${axis.glyph} ${axis.name}`,
+            note: describeCard(id).map((clause) => clause.text).join(' · '),
+            flavor: def.flavor,
+            // The accent key, resolved by `style.css`'s axis block — the same
+            // `--line-ink` mechanism a Statecraft card's line uses, so a votive
+            // card and an Order card are painted by one rule.
+            line: def.axis,
+          };
+        }),
+      },
+      (index) => {
+        dispatch(game, { type: 'chooseBelief', playerId: seat, optionIndex: index });
+        const taken = playerById(game.state, seat)?.pantheon.beliefs.slice(-1)[0];
+        if (taken !== undefined) {
+          // The chronicle keeps this one and the toast stack does not: a god is
+          // a permanent fact about the empire, worth a line somebody can scroll
+          // back to, and the player has just watched themselves choose it — a
+          // toast telling them what they picked a moment ago is noise.
+          notificationLog.push(seat, {
+            turn: game.state.turn,
+            text: `Your people keep ${beliefDef(taken).name}.`,
+          });
+          notifications?.refresh();
+        }
+        controls.refresh();
+        religion?.refresh();
+      },
+    );
+  }
+
+  /**
    * How a card is *drawn*: its accent key, its emblem and the line's name.
    *
    * Spread into an `OfferOption` rather than assembled inside the card, because
@@ -1685,6 +1757,7 @@ async function boot(initial: Game | null): Promise<void> {
     // what is owed; the screen is where a *slot* is changed and is opened by the
     // player rather than at them.
     onOfferStatecraft: showStatecraftOffer,
+    onOfferReligion: showReligionOffer,
     onTurnResolved: () => {
       // The turn is over and the next one has not been touched, which is the one
       // moment in a game where the log is a clean place to come back to. It is
@@ -1947,6 +2020,44 @@ async function boot(initial: Game | null): Promise<void> {
   });
 
   /**
+   * The Religion screen: the faith pool, the pantheon's places, the augur's
+   * price and the rites it carries.
+   *
+   * Statecraft's sibling in every respect that matters — declared here beside
+   * it, reached back through the `religion` holder, and every write it makes is
+   * a **command**. The one it can send is `purchaseUnit`, so an augur called
+   * from this sheet is called the same way a network peer or a future AI would
+   * call one, and the sentence a refusal shows is the reducer's own.
+   */
+  religion = createReligionScreen({
+    overlay: religionOverlayEl,
+    body: religionBodyEl,
+    closeButton: requireElement('religion-close'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    buy: (cityId, unitType, currency) => {
+      dispatch(game, {
+        type: 'purchaseUnit',
+        playerId: controls.localPlayerId(),
+        cityId,
+        unitType,
+        currency,
+      });
+      controls.refresh();
+      religion?.refresh();
+    },
+    onRefuse: (message) => controls.guide(`☞ ${message}`),
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      techTree?.close();
+      abacus?.close();
+      statecraft?.close();
+    },
+  });
+
+  /**
    * The Abacus: the score, as an object on the table.
    *
    * One rod per seat, read off the live roster rather than off a snapshot, so a
@@ -2005,7 +2116,6 @@ async function boot(initial: Game | null): Promise<void> {
       lens.close();
       notifications?.close();
       techTree?.close();
-      hudDock?.close();
     },
     // The culture chip's own way in — see `topBar.ts`'s `civ-yield-clickable`.
     // Closes the strip's own cards first, the same one-card-at-a-time rule
@@ -2014,7 +2124,6 @@ async function boot(initial: Game | null): Promise<void> {
     // abandoned its game.
     onOpenStatecraft: () => {
       meterCards?.close();
-      hudDock?.close();
       menu.close();
       help.close();
       lens.close();
@@ -2039,42 +2148,40 @@ async function boot(initial: Game | null): Promise<void> {
     container: hudDockEl,
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
-    faith: {
-      panel: faithPopoverEl,
-      closeButton: requireElement('faith-close'),
-      body: faithBodyEl,
-    },
-    onOpenPopover: () => {
-      meterCards?.close();
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      techTree?.close();
-    },
   });
-  hudDock.statecraftButton.addEventListener('click', () => {
-    hudDock?.close();
+  /**
+   * The dock's two doors, wired the same way and deliberately so: both are bare
+   * triggers, both shut every other HUD surface first, and both then open a
+   * parchment screen. The Religion button used to open a small Faith popover
+   * the dock built itself; Religion v1 (ledger Entry XXVIII) gave it a screen,
+   * and the popover's content is its first block.
+   */
+  function openScreen(open: () => void): void {
     meterCards?.close();
     menu.close();
     help.close();
     lens.close();
     notifications?.close();
     techTree?.close();
-    statecraft?.open();
+    open();
+  }
+  hudDock.statecraftButton.addEventListener('click', () => {
+    openScreen(() => statecraft?.open());
+  });
+  hudDock.religionButton.addEventListener('click', () => {
+    openScreen(() => religion?.open());
   });
 
-  // `H` opens the Faith card — the HUD dock's own hotkey, and deliberately
-  // its own small listener rather than one more branch in `controls.ts`'s
-  // keydown switch: that module owns the board's verbs (fortify, sleep,
-  // move mode, the lens…) and this is a HUD popover with no unit or tile
-  // behind it, the same kind of thing `T`/`C`/`A` are but wired where their
-  // *screens* are built instead of where the board's own hotkeys are. Same
-  // two guards as every hotkey in that switch: nothing while a screen owns
-  // the keyboard (`isInputBlocked`, above) and nothing while the keystroke is
-  // actually text landing in a field. `F` was Fortify's already; `H` reads as
-  // "Holy" and was free — see `index.html`'s help sheet for where it is
-  // documented alongside the rest.
+  // `H` opens the Religion screen — the dock's own hotkey, and deliberately its
+  // own small listener rather than one more branch in `controls.ts`'s keydown
+  // switch: that module owns the board's verbs (fortify, sleep, move mode, the
+  // lens…) and this is a screen with no unit or tile behind it, the same kind of
+  // thing `T`/`C`/`A` are but wired where their *screens* are built instead of
+  // where the board's own hotkeys are. Same two guards as every hotkey in that
+  // switch: nothing while a screen owns the keyboard (`isInputBlocked`, above)
+  // and nothing while the keystroke is actually text landing in a field. `F` was
+  // Fortify's already; `H` reads as "Holy" and was free — see `index.html`'s
+  // help sheet for where it is documented alongside the rest.
   window.addEventListener('keydown', (event) => {
     if (event.key !== 'h' && event.key !== 'H') return;
     if (isInputBlocked()) return;
@@ -2087,7 +2194,8 @@ async function boot(initial: Game | null): Promise<void> {
         target.isContentEditable);
     if (typing) return;
     event.preventDefault();
-    hudDock?.toggle();
+    if (religion?.isOpen === true) religion.close();
+    else openScreen(() => religion?.open());
   });
 
   /**
@@ -2215,6 +2323,21 @@ async function boot(initial: Game | null): Promise<void> {
     onPillage: () => {
       controls.pillage();
       updatePanel(null, renderer.getHover());
+    },
+    consecrateBlocker: () => controls.consecrateBlocker(),
+    onConsecrate: () => {
+      // The offer card is opened by `controls.consecrate` itself, through the
+      // `onOfferReligion` seam — the same one the End Turn blocker uses — so
+      // there is one path from "a god was drawn" to "the card is on screen".
+      controls.consecrate();
+      updatePanel(null, renderer.getHover());
+      religion?.refresh();
+    },
+    riteOptions: () => controls.riteOptions(),
+    onPerformRite: (id) => {
+      controls.performRite(id);
+      updatePanel(null, renderer.getHover());
+      religion?.refresh();
     },
     onClose: () => controls.clearSelection(),
   });

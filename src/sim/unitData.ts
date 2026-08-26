@@ -52,7 +52,8 @@ export type UnitTypeId =
   | 'crossbowman'
   | 'knight'
   | 'longswordsman'
-  | 'trebuchet';
+  | 'trebuchet'
+  | 'augur';
 
 /**
  * Stacking is per category (see `rules.stacking.perCategoryPerTile`), which is
@@ -93,6 +94,39 @@ export type ModelClass =
   | 'mounted'
   | 'siege'
   | 'scout';
+
+/**
+ * What one of these costs to **buy outright**, or the field is absent for a type
+ * nothing sells (ledger Entry XXVIII).
+ *
+ * Currency-agnostic on purpose. Faith is the only bank that spends today and the
+ * augur is the only thing it buys, but the M9 gold purchases are the same
+ * transaction with a different pool — so the *shape* carries the currency, the
+ * one price evaluator (`explainPurchaseCost` in `religion.ts`) reads it, and the
+ * day a city can rush-buy a warrior is a JSON row rather than a second purchase
+ * system beside this one.
+ */
+export interface UnitPurchaseSpec {
+  currency: 'faith' | 'gold';
+  /** The base price, before escalation. `UnitDef.cost`'s twin in a bank. */
+  cost: number;
+  /**
+   * What the price climbs by for every one of these this empire has already
+   * bought, or absent for a flat price. `costIncrement`'s twin, and read against
+   * a counter on the player for that field's reason exactly — a purchased unit
+   * may be spent, so the board cannot be counted.
+   */
+  increment?: number;
+  /**
+   * True when **production may never build this type**: it is bought or it does
+   * not exist. The augur's, and the whole of "keep faith legible" — an agent you
+   * could also hammer out would make the faith price a suggestion.
+   *
+   * Refused by `buildError` (`tech.ts`), which is what the city panel greys its
+   * rows with, so the sentence a player reads is the reducer's own.
+   */
+  exclusive?: boolean;
+}
 
 export interface UnitDef {
   name: string;
@@ -170,6 +204,21 @@ export interface UnitDef {
    * absent on everything else.
    */
   charges?: number;
+  /**
+   * True when this unit's charges are **rites** rather than spadework — it may
+   * consecrate a god and it may perform an augur's rite — or the field is
+   * **absent** for everything that digs.
+   *
+   * Presence is the marker, exactly as with `foundsCity`, `charges` and
+   * `costIncrement`: nothing in `src/sim/` asks whether a type is `"augur"`, so
+   * the prophet that arrives with the High Temple is one data row and every rule
+   * about rites follows it. It shares `chargesLeft` with the worker rather than
+   * opening a second counter, which is the whole reason the charge model was
+   * built generic — three instant acts in a box, and *which* acts is this flag.
+   */
+  consecrates?: boolean;
+  /** What one costs to buy outright, or absent. See `UnitPurchaseSpec`. */
+  purchase?: UnitPurchaseSpec;
   /**
    * True when every passable hex costs this unit exactly `minStepCost` to
    * enter, whatever grows on it or however steep it is — or the field is

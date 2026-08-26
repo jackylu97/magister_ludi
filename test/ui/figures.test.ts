@@ -93,11 +93,11 @@ describe('poolFigure', () => {
    * ones gold cannot reach — which is the whole reason it is worth a suite of
    * its own rather than a second `expect` beside the treasury's.
    *
-   * `Player.faithPool` is **accumulate-only**: `collectYields` adds to it and
-   * nothing spends it (the trap in `CLAUDE.md`, and `YIELD_NOTE.faith` says so
-   * on the card). So a faith chip is a number that only ever goes up, from a
-   * long stretch at exactly nothing — and the two ends of that are the two
-   * shapes a treasury never sits in for long.
+   * `Player.faithPool` spent a long time **accumulate-only** and the two shapes
+   * that came of it are still the interesting ones: a chip that sits at exactly
+   * nothing for the opening, and one that only climbs. Augurs spend it now
+   * (ledger Entry XXVIII), so the pool can also *fall* — which the treasury
+   * already covered above and which needs no case of its own here.
    */
   describe('the faith chip, the second pool to use it', () => {
     it('reads as a flat nothing before any city pays it', () => {
@@ -108,8 +108,9 @@ describe('poolFigure', () => {
     });
 
     it('leads with what has been gathered once it is running', () => {
-      // The pool is the figure worth reading: nothing spends it, so the number
-      // that means anything is the total, and the rate is the aside.
+      // The pool is the figure worth reading: an augur is priced against the
+      // total, so the number that means anything is the bank and the rate is
+      // the aside — which is why this idiom leads with it.
       expect(poolFigure(12, 2)).toBe('12 (+2)');
     });
 

@@ -123,10 +123,23 @@ export const TECH_AGES: readonly TechAge[] = [1, 2, 3];
  *
  * The union is the register: an ability is a rule somewhere in the simulation
  * asking `hasAbility`, so a row here with no reader is a promise the game never
- * keeps, and a reader with no row is a rule no node hands over. There is exactly
- * one today — see `ABILITY_TECH`, which is what `pathfind.ts` asks.
+ * keeps, and a reader with no row is a rule no node hands over. `ABILITY_TECH`
+ * is the inversion `pathfind.ts` and `religion.ts` both ask.
+ *
+ * **The five rites are abilities** (ledger Entry XXVIII), and that is the key
+ * doing exactly the job it was built for: a rite is a *verb* an augur may
+ * perform, it has no row in any other table, and hanging it here means the tech
+ * screen shows it as a gift the way it shows embarkation. Each id is also the
+ * rite's id in `data/religion.json` — one string, one name to get wrong instead
+ * of two (`riteAbility`).
  */
-export type AbilityId = 'embark';
+export type AbilityId =
+  | 'embark'
+  | 'riteOfTheHarvest'
+  | 'omenReading'
+  | 'consecrationOfTheBounds'
+  | 'blessingOfArms'
+  | 'riteOfPlenty';
 
 /** What an ability is *called*, for the surfaces that print it. Flavour only. */
 export interface AbilityDef {

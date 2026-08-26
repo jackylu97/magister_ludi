@@ -60,13 +60,22 @@ import {
   resourceCopies,
   tileOwnerPlayerId,
 } from './cities';
+import { buildingDef } from './buildingData';
 import { improvementDef } from './improvementData';
 import { type Tile, getTileAt, neighborTiles, tileHex, wrappedDistance } from './map';
 import { authorityOf, happinessOf } from './meters';
 import type { ModifierStage } from './modifiers';
-import { type CityYieldKey, type ResourceKind, resourceDef } from './resourceData';
+import { beliefDef, isBeliefId, isRiteId, riteDef } from './religionData';
+import { type CityYieldKey, type ResourceKind, resourceDef, resourceYield } from './resourceData';
 import { nextFloat } from './rng';
-import { type City, type GameState, type Player, type Unit, playerById } from './state';
+import {
+  type City,
+  type GameState,
+  type Player,
+  type TimedEffect,
+  type Unit,
+  playerById,
+} from './state';
 import {
   type ActionRuleId,
   type BehaviorRuleId,
@@ -75,6 +84,7 @@ import {
   type CardId,
   type CardPayout,
   type CardRule,
+  type CardTileYieldEffect,
   type CityScope,
   type CombatCondition,
   type CountKind,
@@ -111,6 +121,7 @@ import {
   slotLayout,
 } from './statecraftData';
 import { isWaterTerrain } from './terrainData';
+import { highestAge } from './techData';
 import { type ModelClass, type UnitTypeId, isCombatant, unitDef } from './unitData';
 import { isVisibleTo } from './visibility';
 
@@ -350,7 +361,7 @@ export function livePool(sc: PlayerStatecraft): OrderId[] {
  * conditional roll is the one way a replay falls out of step with the game it
  * replays.
  */
-function drawWithoutReplacement<T>(state: GameState, from: readonly T[], count: number): T[] {
+export function drawWithoutReplacement<T>(state: GameState, from: readonly T[], count: number): T[] {
   const remaining = [...from];
   const wanted = Math.min(Math.max(0, Math.floor(count)), remaining.length);
   const drawn: T[] = [];
@@ -432,7 +443,36 @@ const CLASS_WORD = {
   government: 'Government',
   doctrine: 'Doctrine',
   order: 'Order',
+  belief: 'Belief',
+  rite: 'Rite',
 } as const;
+
+/**
+ * Any card by id, whichever of the **five** classes it is.
+ *
+ * `cardDef` (`statecraftData.ts`) answers for Statecraft's own three; this one
+ * also answers for a pantheon belief and an augur's rite, which are written in
+ * this vocabulary and read by this evaluator (ledger Entry XXVIII). It lives
+ * here rather than down in the data module for one reason and it is worth
+ * stating: the import between `statecraftData.ts` and `religionData.ts` is
+ * **type-only in both directions**, which is what keeps a type cycle from
+ * becoming a runtime one, and a lookup is a value.
+ *
+ * A raw id nothing knows is a hand-edited save, and it gets a card-shaped
+ * nothing rather than a throw — a breakdown line is not the place to take a
+ * whole frame down.
+ */
+export function anyCardDef(id: CardId): CardDefBase {
+  if (isBeliefId(id)) return beliefDef(id);
+  if (isRiteId(id)) return riteDef(id);
+  if (isOrderId(id) || isDoctrineId(id) || isGovernmentId(id)) return cardDef(id);
+  return { name: String(id), flavor: '', effects: [] };
+}
+
+/** A card's name across all five classes. `cardName`'s wider twin. */
+export function anyCardName(id: CardId): string {
+  return anyCardDef(id).name;
+}
 
 /**
  * The recursion cut for `conditionRule`. See the module docblock: while an
@@ -462,24 +502,7 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
   const list: LiveCardEffect[] = [];
 
   const push = (card: CardId, word: string, level: number, effects: readonly CardEffect[]): void => {
-    for (const effect of effects) {
-      if (effect.kind === 'conditionRule') {
-        // The cut. Inside a condition's own evaluation every gate is closed, so
-        // a meter that counts cards cannot count a card that asks about it.
-        if (conditionDepth > 0) continue;
-        conditionDepth += 1;
-        let open: boolean;
-        try {
-          open = empireConditionHolds(state, playerId, effect.when);
-        } finally {
-          conditionDepth -= 1;
-        }
-        if (!open) continue;
-        push(card, word, level, effect.then);
-        continue;
-      }
-      list.push({ source: `${word} · ${cardDef(card).name}`, card, level, effect });
-    }
+    pushEffects(state, playerId, list, card, word, level, effects, push);
   };
 
   push(sc.government, CLASS_WORD.government, 1, governmentDef(sc.government).effects);
@@ -491,13 +514,134 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
     if (!slot || !isOrderId(slot.card)) continue;
     push(slot.card, CLASS_WORD.order, orderLevel(sc, slot.card), orderDef(slot.card).effects);
   }
+  // **The fourth source** (ledger Entry XXVIII), and the whole of what religion
+  // adds to this walk: a pantheon belief is a card of this vocabulary, held
+  // permanently and empire-wide, and it joins the list rather than forking the
+  // evaluator. Last, after the law, because that is the order they were built
+  // in and an order that reshuffled itself would reorder every ledger.
+  const pantheon = playerById(state, playerId)?.pantheon;
+  for (const id of pantheon?.beliefs ?? []) {
+    if (!isBeliefId(id)) continue;
+    push(id, CLASS_WORD.belief, 1, beliefDef(id).effects);
+  }
   return list;
 }
 
-/** Every live effect of one kind. The shape every reader below is built on. */
-function effectsOfKind<K extends CardEffect['kind']>(
+/**
+ * The recursion-safe walk one card's effects take into a live list.
+ *
+ * Extracted out of `liveEffects` so the **timed** sources can take exactly the
+ * same walk — the `conditionRule` flattening, the label, the cut — instead of a
+ * second one that could disagree about any of the three. `recur` is the caller's
+ * own push, so a nested clause carries the parent's word and level.
+ */
+function pushEffects(
   state: GameState,
   playerId: number,
+  list: LiveCardEffect[],
+  card: CardId,
+  word: string,
+  level: number,
+  effects: readonly CardEffect[],
+  recur: (card: CardId, word: string, level: number, effects: readonly CardEffect[]) => void,
+): void {
+  for (const effect of effects) {
+    if (effect.kind === 'conditionRule') {
+      // The cut. Inside a condition's own evaluation every gate is closed, so
+      // a meter that counts cards cannot count a card that asks about it.
+      if (conditionDepth > 0) continue;
+      conditionDepth += 1;
+      let open: boolean;
+      try {
+        open = empireConditionHolds(state, playerId, effect.when);
+      } finally {
+        conditionDepth -= 1;
+      }
+      if (!open) continue;
+      recur(card, word, level, effect.then);
+      continue;
+    }
+    list.push({ source: `${word} · ${anyCardDef(card).name}`, card, level, effect });
+  }
+}
+
+/**
+ * Is this timed effect still running? **The** reading, and it is a comparison.
+ *
+ * See `TimedEffect` (`state.ts`): an expiry is an absolute turn and nothing ever
+ * ticks anything. Everything that shows or folds a rite asks this, so a swept
+ * list and an unswept one are the same game.
+ */
+export function timedEffectIsLive(state: GameState, timed: TimedEffect): boolean {
+  return state.turn < timed.expiresTurn;
+}
+
+/** How many turns a rite has left, for the label. Never negative. */
+export function timedTurnsLeft(state: GameState, timed: TimedEffect): number {
+  return Math.max(0, timed.expiresTurn - state.turn);
+}
+
+/**
+ * The live effects a holder's own rites contribute, labelled with what they are
+ * and how long they have left.
+ *
+ * `playerId` is whose empire the conditions are asked of — the *holder's owner*,
+ * not the augur who performed the rite: a captured city's Omen Reading pays its
+ * new owner (see `City.timed`).
+ */
+function timedLive(
+  state: GameState,
+  playerId: number,
+  holder: { timed?: TimedEffect[] },
+): LiveCardEffect[] {
+  const timed = holder.timed;
+  if (!timed || timed.length === 0) return [];
+  const list: LiveCardEffect[] = [];
+  for (const entry of timed) {
+    if (!timedEffectIsLive(state, entry)) continue;
+    const word = `${CLASS_WORD.rite} · ${anyCardDef(entry.card).name} (${timedTurnsLeft(
+      state,
+      entry,
+    )} turns left)`;
+    // The label is already whole, so the walk is handed a word that produces it:
+    // `pushEffects` writes `word · name`, and a rite's name is in the word.
+    const push = (card: CardId, _word: string, level: number, effects: readonly CardEffect[]): void => {
+      for (const nested of effects) {
+        if (nested.kind === 'conditionRule') {
+          pushEffects(state, playerId, list, card, _word, level, [nested], push);
+          continue;
+        }
+        list.push({ source: word, card, level, effect: nested });
+      }
+    };
+    push(entry.card, word, 1, [entry.effect]);
+  }
+  return list;
+}
+
+/**
+ * Every effect reaching **this city**: its empire's cards, then its own live
+ * rites.
+ *
+ * The seam Entry XXVIII opens, and it is deliberately one function rather than a
+ * flag on `liveEffects`: an empire's law is the same in every town and a rite is
+ * not, so a reader that has a city in hand asks this and a reader that has only
+ * a player asks `liveEffects`. Every city-scoped reader below was moved onto it
+ * in one pass, which is what makes "a timed percentage is an ordinary
+ * percentage" true rather than aspirational.
+ */
+export function liveCityEffects(state: GameState, city: City): LiveCardEffect[] {
+  return [...liveEffects(state, city.ownerId), ...timedLive(state, city.ownerId, city)];
+}
+
+/** Every effect reaching **this unit**: its empire's cards, then its own rites. */
+export function liveUnitEffects(state: GameState, unit: Unit): LiveCardEffect[] {
+  return [...liveEffects(state, unit.ownerId), ...timedLive(state, unit.ownerId, unit)];
+}
+
+/** One live list narrowed to one kind. The shape every reader below is built on. */
+function pickKind<K extends CardEffect['kind']>(
+  live: readonly LiveCardEffect[],
   kind: K,
 ): { source: string; card: CardId; level: number; effect: Extract<CardEffect, { kind: K }> }[] {
   const list: {
@@ -506,16 +650,34 @@ function effectsOfKind<K extends CardEffect['kind']>(
     level: number;
     effect: Extract<CardEffect, { kind: K }>;
   }[] = [];
-  for (const live of liveEffects(state, playerId)) {
-    if (live.effect.kind !== kind) continue;
+  for (const entry of live) {
+    if (entry.effect.kind !== kind) continue;
     list.push({
-      source: live.source,
-      card: live.card,
-      level: live.level,
-      effect: live.effect as Extract<CardEffect, { kind: K }>,
+      source: entry.source,
+      card: entry.card,
+      level: entry.level,
+      effect: entry.effect as Extract<CardEffect, { kind: K }>,
     });
   }
   return list;
+}
+
+/** Every live effect of one kind for an **empire**. */
+function effectsOfKind<K extends CardEffect['kind']>(
+  state: GameState,
+  playerId: number,
+  kind: K,
+): { source: string; card: CardId; level: number; effect: Extract<CardEffect, { kind: K }> }[] {
+  return pickKind(liveEffects(state, playerId), kind);
+}
+
+/** Every live effect of one kind for **one city**, its own rites included. */
+function cityEffectsOfKind<K extends CardEffect['kind']>(
+  state: GameState,
+  city: City,
+  kind: K,
+): { source: string; card: CardId; level: number; effect: Extract<CardEffect, { kind: K }> }[] {
+  return pickKind(liveCityEffects(state, city), kind);
 }
 
 // --- conditions -------------------------------------------------------------
@@ -649,6 +811,16 @@ export function cityScopeAdmits(state: GameState, city: City, scope?: CityScope)
       const held = cityResources(state, city, scope.category as ResourceKind);
       return held.length > 0;
     }
+    case 'hasBuilding':
+      return city.buildings.includes(scope.building);
+    case 'all': {
+      // Recursion into the same evaluator, which is the whole reason the
+      // composite is a scope rather than a second field on every effect.
+      for (const inner of scope.of) {
+        if (!cityScopeAdmits(state, city, inner)) return false;
+      }
+      return true;
+    }
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -682,6 +854,10 @@ function scopeNote(scope?: CityScope): string | null {
       return scope.resources.map((id) => resourceDef(id).name).join('/');
     case 'holdingCategory':
       return `${scope.category} seam`;
+    case 'hasBuilding':
+      return buildingDef(scope.building).name.toLowerCase();
+    case 'all':
+      return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' + ');
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -772,6 +948,34 @@ function countOf(
       }
       return total;
     }
+    case 'chargedAugurs': {
+      if (!city) return 0;
+      // Court Augurs. "Stationed" is the city's own hex, which is where a
+      // garrison stands, and "with a rite left in it" is `chargesLeft` — an
+      // augur that has spent its last charge is not on the board at all, so the
+      // test is really "is this piece an augur of this empire, standing here".
+      let total = 0;
+      for (const unit of state.units) {
+        if (unit.ownerId !== city.ownerId) continue;
+        if (unit.col !== city.col || unit.row !== city.row) continue;
+        if (unitDef(unit.type).consecrates !== true) continue;
+        if ((unit.chargesLeft ?? 0) < 1) continue;
+        total += 1;
+      }
+      return total;
+    }
+    case 'scienceBuildings': {
+      if (!city) return 0;
+      // Omen Reading. "Buildings that supply science" is read off the building
+      // rows — flat science or science per citizen — so a retune of the library
+      // moves the rite with it, and a new science building joins for free.
+      let total = 0;
+      for (const id of city.buildings) {
+        const def = buildingDef(id);
+        if ((def.science ?? 0) > 0 || (def.sciencePerPop ?? 0) > 0) total += 1;
+      }
+      return total;
+    }
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -832,6 +1036,23 @@ function rateOf(
   }
 }
 
+/**
+ * The counts that are asked **of a town** rather than of an empire.
+ *
+ * The register for the one reader that has to know the difference
+ * (`cardHappiness`, which sums a city count across the realm). `countOf` answers
+ * 0 for a city count with no city, so this is about *which question* rather than
+ * about a guard — and it is a list rather than a chain of `||` so that a count
+ * added to the union is added here beside it.
+ */
+const CITY_SCOPED_COUNTS: readonly CountKind[] = [
+  'garrison',
+  'garrisonWatch',
+  'workedHills',
+  'chargedAugurs',
+  'scienceBuildings',
+];
+
 /** How many helpings a count (or a rate) buys, capped where the design caps it. */
 function helpings(total: number, per: number | undefined, max: number | undefined): number {
   const step = per === undefined || per <= 0 ? 1 : per;
@@ -883,14 +1104,14 @@ export function cardCityYields(state: GameState, city: City): CardYieldLine[] {
   const owner = city.ownerId;
   const list: CardYieldLine[] = [];
 
-  for (const { source, card, level, effect } of effectsOfKind(state, owner, 'cityYields')) {
+  for (const { source, card, level, effect } of cityEffectsOfKind(state, city, 'cityYields')) {
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     const line = emptyLine(card, label(source, scopeNote(effect.scope)));
     for (const key of VOICES) line[key] = scaleByLevel(effect[key] ?? 0, level);
     if (paysSomething(line)) list.push(line);
   }
 
-  for (const { source, card, level, effect } of effectsOfKind(state, owner, 'countScaled')) {
+  for (const { source, card, level, effect } of cityEffectsOfKind(state, city, 'countScaled')) {
     const pays = effect.pays;
     if (pays.to !== 'yield' || pays.where !== 'city') continue;
     const times = helpings(countOf(state, owner, effect.count, city), effect.per, effect.max);
@@ -1013,6 +1234,25 @@ export function tileConditionHolds(tile: Tile, on: TileCondition): boolean {
       return isWaterTerrain(tile.terrain);
     case 'improvement':
       return tile.improvement === on.improvement;
+    case 'terrain':
+      return tile.terrain === on.terrain;
+    case 'resourceKind': {
+      const id = tile.resource;
+      if (id === undefined) return false;
+      const def = resourceDef(id);
+      if (def.kind !== on.kind) return false;
+      // "a bonus resource **that provides food**" — asked of the resource's own
+      // row rather than spelled into the belief, so retuning wheat retunes the
+      // goddess with it.
+      if (on.yields === undefined) return true;
+      return resourceYield(id)[on.yields] > 0;
+    }
+    case 'all': {
+      for (const inner of on.of) {
+        if (!tileConditionHolds(tile, inner)) return false;
+      }
+      return true;
+    }
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -1029,8 +1269,29 @@ export function tileConditionHolds(tile: Tile, on: TileCondition): boolean {
  * it, and a city sweeping twenty hexes asks the card table once.
  */
 export function cardTileLines(state: GameState, playerId: number): CardTileLine[] {
+  return tileLinesFrom(pickKind(liveEffects(state, playerId), 'tileYield'));
+}
+
+/**
+ * The `tileYield` lines **this city's own rites** put on its ground — the fifth
+ * producer of a `TileLine` (Entry XXVIII).
+ *
+ * A city's, not an empire's, and that is what makes Rite of Plenty say what it
+ * says: "*that city's* worked resource tiles gain +1 gold". `cityContext`
+ * (`cities.ts`) appends these beside the granary's, which is the one other
+ * producer scoped to a single town — same seam, same argument, and the tile
+ * chain still cannot tell any of the five apart.
+ */
+export function timedCityTileLines(state: GameState, city: City): CardTileLine[] {
+  return tileLinesFrom(pickKind(timedLive(state, city.ownerId, city), 'tileYield'));
+}
+
+/** One list of `tileYield` effects turned into lines. The only such conversion. */
+function tileLinesFrom(
+  found: readonly { source: string; level: number; effect: CardTileYieldEffect }[],
+): CardTileLine[] {
   const list: CardTileLine[] = [];
-  for (const { source, level, effect } of effectsOfKind(state, playerId, 'tileYield')) {
+  for (const { source, level, effect } of found) {
     const line: CardTileLine = {
       source,
       on: effect.on,
@@ -1075,7 +1336,7 @@ export function cardPercentYields(state: GameState, city: City): CardPercentLine
   const owner = city.ownerId;
   const list: CardPercentLine[] = [];
 
-  for (const { source, card, level, effect } of effectsOfKind(state, owner, 'percentYields')) {
+  for (const { source, card, level, effect } of cityEffectsOfKind(state, city, 'percentYields')) {
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     const percent = scaleByLevel(effect.percent, level);
     if (percent === 0) continue;
@@ -1087,7 +1348,7 @@ export function cardPercentYields(state: GameState, city: City): CardPercentLine
     }
   }
 
-  for (const { source, card, level, effect } of effectsOfKind(state, owner, 'countScaled')) {
+  for (const { source, card, level, effect } of cityEffectsOfKind(state, city, 'countScaled')) {
     const pays = effect.pays;
     if (pays.to !== 'percent') continue;
     const times = helpings(countOf(state, owner, effect.count, city), effect.per, effect.max);
@@ -1122,7 +1383,7 @@ export function cardProduction(
   unitType?: UnitTypeId,
 ): CardProductionLine[] {
   const list: CardProductionLine[] = [];
-  for (const { source, card, level, effect } of effectsOfKind(state, city.ownerId, 'productionBonus')) {
+  for (const { source, card, level, effect } of cityEffectsOfKind(state, city, 'productionBonus')) {
     if (effect.category !== category) continue;
     if (effect.modelClass !== undefined) {
       if (unitType === undefined) continue;
@@ -1153,9 +1414,16 @@ export function cardRulePercent(
   state: GameState,
   playerId: number,
   rule: CardRule,
+  city?: City,
 ): CardRuleLine[] {
   const list: CardRuleLine[] = [];
-  for (const { source, card, level, effect } of effectsOfKind(state, playerId, 'rulePercent')) {
+  // A **city** may be handed in, and then its own live rites join the empire's
+  // law: Consecration of the Bounds is a `rulePercent` on `borderCulture` that
+  // hangs on one town for twenty turns, and the borders channel must fold it
+  // exactly as it folds a Doctrine's (Entry XXVIII). Every other caller passes
+  // no city and reads what it always read.
+  const live = city ? liveCityEffects(state, city) : liveEffects(state, playerId);
+  for (const { source, card, level, effect } of pickKind(live, 'rulePercent')) {
     if (effect.rule !== rule) continue;
     const percent = scaleByLevel(effect.percent, level);
     if (percent === 0) continue;
@@ -1191,6 +1459,15 @@ export interface CardMeterLine {
  * **This function must never read a meter.** It is called *by* `explainHappiness`,
  * and a card line that asked how happy the empire was would be the recursion the
  * module docblock cuts one level up.
+ *
+ * **A city's own live rites are not folded here, and that is a stated absence.**
+ * This reader is empire-scoped by construction — it sweeps the realm's towns
+ * itself rather than being handed one — so it walks `liveEffects` where every
+ * city-scoped reader walks `liveCityEffects` (Entry XXVIII). Nothing in the rite
+ * table pays happiness today; **Funeral Rites** is the row that will, and it is
+ * deferred to The High Temple. The fix when it lands is this loop asking each
+ * admitted town for its own effects rather than the empire's, which is a change
+ * to *where the list comes from* and not to the arithmetic.
  */
 export function cardHappiness(state: GameState, playerId: number): CardMeterLine[] {
   const list: CardMeterLine[] = [];
@@ -1220,7 +1497,7 @@ export function cardHappiness(state: GameState, playerId: number): CardMeterLine
     // A count that is city-scoped is summed over the empire's towns; an
     // empire-scale one is asked once. `countOf` answers 0 for a city count with
     // no city, so the branch is about *which question*, not about a guard.
-    if (effect.count === 'garrison' || effect.count === 'garrisonWatch' || effect.count === 'workedHills') {
+    if (CITY_SCOPED_COUNTS.includes(effect.count)) {
       for (const city of state.cities) {
         if (city.ownerId !== playerId) continue;
         times += helpings(countOf(state, playerId, effect.count, city), effect.per, effect.max);
@@ -1413,7 +1690,7 @@ export interface CardCombatLine {
 export function cardCombatLines(state: GameState, situation: CombatSituation): CardCombatLine[] {
   const owner = situation.unit.ownerId;
   const list: CardCombatLine[] = [];
-  for (const { source, card, level, effect } of effectsOfKind(state, owner, 'combatLine')) {
+  for (const { source, card, level, effect } of pickKind(liveUnitEffects(state, situation.unit), 'combatLine')) {
     if (effect.side !== 'both' && effect.side !== situation.side) continue;
     if (!combatConditionHolds(state, situation, effect.when)) continue;
     const each = scaleByLevel(effect.amount, level);
@@ -1540,7 +1817,7 @@ export function cardCityStat(
   stat: 'defense' | 'sight',
 ): CardCityStatLine[] {
   const list: CardCityStatLine[] = [];
-  for (const { source, card, level, effect } of effectsOfKind(state, city.ownerId, 'cityStat')) {
+  for (const { source, card, level, effect } of cityEffectsOfKind(state, city, 'cityStat')) {
     if (effect.stat !== stat) continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     const amount = scaleByLevel(effect.amount, level);
@@ -1599,8 +1876,19 @@ export function windfallPayout(
 ): WindfallPayout {
   const payout: WindfallPayout = { amount: base, grants: [], heal: 0, lines: [] };
   let percent = 0;
+  // The era multiplier (Entry XXVIII). **One** factor however many riders ask
+  // for it, which is Entry XVII's "additive within a stage, applied once" read
+  // at this scale: two cards that each say "×your era" agree rather than
+  // compounding into ×era². Computed before the walk so a rider's own grant can
+  // use the same figure the occasion's payout does.
+  const era = highestAge(playerById(state, playerId)?.techsResearched ?? []);
+  let ageMultiplied = false;
   for (const { source, card, level, effect } of effectsOfKind(state, playerId, 'windfallRider')) {
     if (effect.occasion !== occasion) continue;
+    if (effect.perAge === true) {
+      ageMultiplied = true;
+      if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${'I'.repeat(era)})` });
+    }
     if (effect.percent !== undefined) {
       const share = scaleByLevel(effect.percent, level);
       if (share !== 0) {
@@ -1618,7 +1906,10 @@ export function windfallPayout(
       }
     }
     if (grant.yield !== undefined && grant.amount !== undefined) {
-      const amount = scaleByLevel(grant.amount, level);
+      // A rider's own grant is multiplied by the era when *that rider* says so —
+      // Rites of Blood pays fifteen faith a kill in Æra I and forty-five in Æra
+      // III — which is a fact about the card and not about the occasion.
+      const amount = scaleByLevel(grant.amount, level) * (effect.perAge === true ? era : 1);
       if (amount !== 0) {
         payout.grants.push({ card, source, yield: grant.yield, amount });
         payout.lines.push({ card, source, note: `+${amount} ${grant.yield}` });
@@ -1626,9 +1917,34 @@ export function windfallPayout(
     }
   }
   // Summed, then applied once — see the docblock. Floored, because a windfall is
-  // a whole number all the way down.
+  // a whole number all the way down. The era multiplies **last**, on the figure
+  // the percentages already reached, so "×your era" is a fact about the money
+  // rather than a competitor to the percentages.
   if (percent !== 0 && base !== 0) payout.amount = Math.floor((base * (100 + percent)) / 100);
+  if (ageMultiplied) payout.amount *= era;
   return payout;
+}
+
+/**
+ * The cadenced drafts this empire's cards open — Keeper of the Calendar's, and
+ * nothing else today.
+ *
+ * A reader like every other, so the *phase* that opens the offer
+ * (`openPeriodicOffers` in `religion.ts`) never touches a `CardEffect`. Which is
+ * the point: the one-evaluator rule is not "religion has its own evaluator", it
+ * is that this file is still the only file that knows what a `periodicOffer`
+ * looks like.
+ */
+export function cardPeriodicOffers(
+  state: GameState,
+  playerId: number,
+): { source: string; every: number; site: 'ruins' | 'village' }[] {
+  const list: { source: string; every: number; site: 'ruins' | 'village' }[] = [];
+  for (const { source, effect } of effectsOfKind(state, playerId, 'periodicOffer')) {
+    if (effect.every <= 0) continue;
+    list.push({ source, every: Math.floor(effect.every), site: effect.site });
+  }
+  return list;
 }
 
 /**
@@ -1794,7 +2110,7 @@ function bagWords(bag: Partial<Record<CityYieldKey, number>>, level: number): st
  * reason.
  */
 export function describeCard(id: CardId, level = 1): CardClause[] {
-  const def: CardDefBase = cardDef(id);
+  const def: CardDefBase = anyCardDef(id);
   const clauses: CardClause[] = [];
   for (const effect of def.effects) describeEffect(effect, level, clauses);
   for (const missing of def.deferred ?? []) {
@@ -1882,6 +2198,9 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
     }
     case 'windfallRider': {
       const occasion = OCCASION_WORDS[effect.occasion];
+      if (effect.perAge === true) {
+        out.push({ text: `${occasion} pays in the money of your era` });
+      }
       if (effect.percent !== undefined) {
         out.push({ text: `${occasion} pays ${signed(scaleByLevel(effect.percent, level))}%` });
       }
@@ -1963,6 +2282,13 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
     case 'metaRule':
       out.push({ text: `your Orders' seals last ${effect.value} turns` });
       return;
+    case 'periodicOffer':
+      out.push({
+        text: `every ${effect.every} turns, ${
+          effect.site === 'ruins' ? 'the almanac yields a find' : 'a village comes to meet you'
+        }`,
+      });
+      return;
     case 'unlocksBuilding':
       out.push({ text: `unlocks the ${effect.building}`, deferred: true });
       return;
@@ -2006,6 +2332,13 @@ function tileConditionWords(on: TileCondition): string {
   if (on.test === 'improved') return 'improved tile';
   if (on.test === 'water') return 'water tile';
   if (on.test === 'improvement') return `${improvementDef(on.improvement).name.toLowerCase()} tile`;
+  if (on.test === 'terrain') return `${on.terrain} tile`;
+  if (on.test === 'resourceKind') {
+    return on.yields === undefined
+      ? `${on.kind} resource`
+      : `${on.kind} resource that pays ${on.yields}`;
+  }
+  if (on.test === 'all') return on.of.map((inner) => tileConditionWords(inner)).join(' + ');
   return `${on.feature} tile`;
 }
 
@@ -2055,6 +2388,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   pillage: 'pillaging',
   tech: 'completing a technology',
   tilePurchase: 'buying a tile',
+  rite: 'performing a rite',
 };
 
 const COUNT_WORDS: Record<CountKind, string> = {
@@ -2070,6 +2404,8 @@ const COUNT_WORDS: Record<CountKind, string> = {
   bankedFaith: 'banked faith',
   bankedGold: 'gold in the treasury',
   visibleCamps: 'camp you can see',
+  chargedAugurs: 'augur stationed here with a rite left',
+  scienceBuildings: 'building here that supplies science',
 };
 
 const RATE_WORDS: Record<RateSource, string> = {

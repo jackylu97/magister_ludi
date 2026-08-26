@@ -46,15 +46,15 @@ second-tier nodes rather than on "Agriculture or Pottery".
 - **Agriculture** (15🔬, *free at game start*): units — settler, warrior, scout, worker · improvement — **farm** (+1🌾, on flat grassland or plains, on any flat desert/tundra/snow **with fresh water**, and in a floodplain)
 - **Husbandry** (18🔬 ← Agriculture): unit — horseman · improvement — **pasture** · reveals **horses**
 - **Fletching** (18🔬 ← Agriculture): unit — archer (ranged 7) · improvement — **camp**
-- **Sailing** (8🔬 ← Agriculture, *added 2026-08-26, ledger Entry XXVII*): ability — **embark** (civilians may cross coastal water) · improvement — **fishing boats** (+1🌾, on a coastal seam) · building line — every **granary** town's water tiles gain +1🌾
+- **Sailing** (8🔬 ← Agriculture, *added 2026-08-26, ledger Entry XXVII*): ability — **embark** (civilians may cross coastal water) · improvement — **fishing boats** (+1🌾 +1🪙, on a coastal seam) · building line — every **granary** town's water tiles gain +1🌾
 - **Mining** (16🔬 ← Agriculture): improvement — **mine** (+1⚙ on hills) · ability — **clear forest** (20⚙ once, to the city that owns the tile)
 - **Earthenware** (16🔬 ← Agriculture): building — granary (+3🌾; **its water line waits for Sailing**)
-- **Bronzeworking** (23🔬 ← Mining + Earthenware): unit — spearman · buildings — **barracks** (+10%⚙ toward units built here), **funeral games** (35⚙, **+3 happiness in this city**) · reveals **iron**
-- **Stonecraft** (23🔬 ← Husbandry + Earthenware): improvement — **quarry** · buildings — monument (+2🎵, **+1 authority capacity**), **palisade** (30⚙, **+5 city defense**)
-- **Calendar** (21🔬 ← Earthenware): improvement — **plantation** (+1🌾) · **renewal: plantations +1🪙** · project — **Tithes** (20⚙ → 5🪙, repeating)
-- **Divination** (21🔬 ← Husbandry): building — shrine (+1🔬 +1🎵)
+- **Bronzeworking** (23🔬 ← Mining + Earthenware): unit — spearman · buildings — **barracks** (+10%⚙ toward units built here), **funeral games** (35⚙, **+3 happiness in this city**) · rite — **Blessing of Arms** (heal a unit whole, +5 combat for 5 turns) · reveals **iron**
+- **Stonecraft** (23🔬 ← Husbandry + Earthenware): improvement — **quarry** · buildings — monument (+2🎵, **+1 authority capacity**), **palisade** (30⚙, **+5 city defense**) · rite — **Consecration of the Bounds** (+15🎵 to the border basket, +30% border growth for 20 turns)
+- **Calendar** (21🔬 ← Earthenware): improvement — **plantation** (+1🌾) · **renewal: plantations +1🪙** · project — **Tithes** (20⚙ → 5🪙, repeating) · rite — **Rite of Plenty** (+25💰, that city's worked seams +1💰 for 20 turns)
+- **Divination** (21🔬 ← Husbandry): building — shrine (+1🔬 +1🎵 +1🕯) · unit — **augur** (*faith-purchased, never built*: 40🕯 + 15🕯 per augur already called) · **two pantheon slots** · rite — **Rite of the Harvest** (+1 population). The religion root, and where faith stops being a bank nothing spends (ledger Entry XXVIII).
 - **The Wheel** (29🔬 ← Husbandry + Bronzeworking): units — **war chariot**, **chariot archer** · **renewal: granaries +1🌾**
-- **Letters** (27🔬 ← Earthenware + Divination): building — library (+2🔬, +1🔬/pop, +2🪙) · project — **Scholarship** (20⚙ → 5🔬, repeating)
+- **Letters** (27🔬 ← Earthenware + Divination): building — library (+2🔬, +1🔬/pop, +2🪙) · project — **Scholarship** (20⚙ → 5🔬, repeating) · rite — **Omen Reading** (+15🔬, this city's science buildings +1🔬 for 20 turns)
 
 **The build-sink pass, 2026-08-26 (ledger Entry XXVI).** Age I gained four sinks —
 the palisade, the funeral games, Tithes and Scholarship — because the playtest finding
@@ -112,7 +112,7 @@ the worker's menu from a wall of buttons on turn one into a curve.
 - **Pasture** +1⚙ — *Husbandry* · on cattle/horses only
 - **Camp** +1🌾+1🪙 — *Fletching* · on deer only
 - **Quarry** +1⚙ — *Stonecraft* · on stone/salt only
-- **Fishing Boat** +1🌾 — *Sailing* · on a **coastal** seam only (fish, crabs, pearls, coral, whales, tyrian murex). The only improvement that stands on water, and the worker has to be embarked to build it.
+- **Fishing Boat** +1🌾 +1🪙 — *Sailing* · on a **coastal** seam only (fish, crabs, pearls, coral, whales, tyrian murex). The only improvement that stands on water, and the worker has to be embarked to build it.
 - **Plantation** +1🌾 — *Calendar* · on silk/wine/spices only · Calendar renewal (+1🪙)
 
 The plantation's gate and its renewal are the same tech, which reads oddly and is
@@ -133,14 +133,14 @@ re-pointed Age II/III prerequisites.
 
 **Deferred — designed, not built. Nothing below exists in the code.**
 
-- **Faith.** There is no faith yield, so the shrine's "+2 faith" is not in the game; it pays +1🔬 +1🎵 instead. Divination is still the religion root, and the science half is the design's own ask ("religion should include bonuses to science and culture").
+- ~~**Faith.**~~ **Closed.** The shrine pays +1🔬 +1🎵 **+1🕯**, faith is a real yield (the luxury pass) and it is **spent** (religion v1, ledger Entry XXVIII): Divination now hands over the augur, two pantheon slots and the first rite. The science half stays, because it is the design's own ask ("religion should include bonuses to science and culture").
 - **XP and promotions.** The barracks' "+15 XP for units trained here" needs a promotion system; only the +10%⚙ half shipped.
 - **Indirect fire.** Archers and chariot archers use the one ranged rule the combat model has. The archer's indirect fire and the chariot archer's *lack* of it are the same deferred distinction.
 - **Chop scalers.** The forest chop itself **shipped** (2026-08-23, Entry XII.b): `chopFeature`, 20⚙ once, gated on Mining, one worker charge, banked in the city that owns the tile. What is still deferred is the *scaling* — "+5 per teched resource, +5 per slotted civic" — which lands as extra fields on the `chop` row plus one term in `chopFeatureAt` once the curve is designed. **Assarting** (a jungle clearing) is one JSON object away and deliberately unwritten: no jungle row exists, and `chopDef` answering `null` is the whole of "not choppable".
 - **Priest / monk.** Unspecified in the design and unbuilt.
 - **Trade menu.** Letters' "unlock trade menu" is unbuilt; the library's +2🪙 shipped.
 - **The unlock-roll system** ("mastery of the hearth", "mastery of the seasons", …). Not built, and every "food unlock?" / "military unlock?" note in the design is parked with it. Wonders stay deliberately absent as the design says.
-- ~~**Sailing, entirely.**~~ **Shipped 2026-08-26** as the water milestone (ledger Entry XXVII), and it did headline one rather than being smuggled in. All three pieces of machinery this entry named were built: civilian embarkation went into `tileMoveCost` (the one movement evaluator, which now takes a `MoveProfile` rather than a bare unit row), the fishing boats are an ordinary improvement row, and the granary's water line is a **building tile yield** — a `TileCondition` on a building's row, resolved into the tile chain's own line list. **One deviation from the ratified text below**: the boats pay **+1🌾** and not +1🌾+1🪙, per the milestone brief. The gold is one number in `improvements.json` on the day it is wanted.
+- ~~**Sailing, entirely.**~~ **Shipped 2026-08-26** as the water milestone (ledger Entry XXVII), and it did headline one rather than being smuggled in. All three pieces of machinery this entry named were built: civilian embarkation went into `tileMoveCost` (the one movement evaluator, which now takes a `MoveProfile` rather than a bare unit row), the fishing boats are an ordinary improvement row, and the granary's water line is a **building tile yield** — a `TileCondition` on a building's row, resolved into the tile chain's own line list. **The one deviation from the ratified text below has since been closed**: the boats shipped at **+1🌾** per the milestone brief, and the religion pass (ledger Entry XXVIII) restored the ratified **+1🌾 +1🪙** — one number in `improvements.json`, exactly as this note promised.
 
 **Pacing.** The scripted empire in `test/tech.test.ts` now closes the three ages on
 turns **40 / 68 / 107**, against 42 / 100 / 167 before. Age I got dearer (212

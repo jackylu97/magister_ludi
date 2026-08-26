@@ -110,6 +110,7 @@
  * both, and the answer is the same either way.
  */
 
+import { religionBlocker } from '../sim/religion';
 import type { Player } from '../sim/state';
 import { statecraftBlocker } from '../sim/statecraft';
 import { availableTechs } from '../sim/tech';
@@ -128,7 +129,8 @@ export type TurnBlocker =
   | { kind: 'cityProduction'; cityId: number }
   | { kind: 'research' }
   | { kind: 'discovery' }
-  | { kind: 'statecraft'; what: 'order' | 'doctrine' };
+  | { kind: 'statecraft'; what: 'order' | 'doctrine' }
+  | { kind: 'religion' };
 
 /**
  * Is this unit awaiting orders? See the module docblock for why these four
@@ -227,6 +229,15 @@ export function firstBlocker(
   // bar's badge is where an unclaimed triple is said out loud instead.
   const statecraft = statecraftBlockerKind(player);
   if (statecraft !== null) return { kind: 'statecraft', what: statecraft };
+
+  // **And beside both**, for their reasons exactly (ledger Entry XXVIII): a
+  // belief offer sits on the empire until it is spent, no other seat can take
+  // it, and the reducer refuses a `chooseBelief` from a seat that has ended its
+  // turn — so pressing past it would mean waiting a whole resolution to answer
+  // a card already on screen. It is third rather than first only because a
+  // discovery and a draft can both be outstanding at once and something has to
+  // be; a god does not go stale while the other two are answered.
+  if (religionBlocker(player) !== null) return { kind: 'religion' };
 
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;

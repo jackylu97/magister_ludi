@@ -232,6 +232,15 @@ export function buildError(
     const needs = gate ? techDef(gate).name : 'a technology you do not have';
     return `${itemName(kind, id)} needs ${needs}`;
   }
+  // Some things are **bought or not at all** (ledger Entry XXVIII): the augur is
+  // faith-purchased, and a city that could also hammer one out would make the
+  // faith price a suggestion. Third in the order for the same message-quality
+  // reason the resource is second — a player without Divination should be told
+  // about Divination, and one who has it should be told where augurs come from.
+  if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).purchase?.exclusive === true) {
+    const spec = unitDef(id).purchase!;
+    return `${itemName(kind, id)}s are not built — they are bought with ${spec.currency}`;
+  }
   const resource = requiredResource(kind, id);
   if (resource !== null && !hasResource(state, playerId, resource)) {
     // "improved", since M7. Owning the seam stopped being enough the day workers

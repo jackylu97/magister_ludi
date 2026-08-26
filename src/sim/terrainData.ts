@@ -92,9 +92,10 @@ export type FeatureId = 'none' | 'forest' | 'jungle' | 'oasis' | 'floodplain';
  * honest fix is one wider algebra rather than three side channels bolted onto
  * the chain that `explainTileYield` folds.
  *
- * Faith is *accumulate-only* in this pass: tiles and signatures pay it, cities
- * collect it into `Player.faithPool`, and nothing spends it yet. See the pool's
- * own docblock in `state.ts` for why that is a deliberate half-system.
+ * Faith was *accumulate-only* in the pass that added it — tiles and signatures
+ * paid it, cities collected it, nothing spent it — and augurs spend it now
+ * (ledger Entry XXVIII). Nothing in this algebra changed either way, which was
+ * the argument for carrying the sixth voice a system early.
  */
 export interface TileYield {
   food: number;

@@ -211,7 +211,14 @@ import {
   realPlayers,
   unitById,
 } from '../sim/state';
-import { type ResearchReport, researchSince, researchSnapshot } from '../sim/tech';
+import {
+  consecrateError,
+  isAugur,
+  ritePreview,
+  riteError,
+} from '../sim/religion';
+import { type RiteId, RITE_IDS, riteAbility, riteDef } from '../sim/religionData';
+import { type ResearchReport, hasAbility, researchSince, researchSnapshot } from '../sim/tech';
 import { statecraftBlocker } from '../sim/statecraft';
 import { techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
@@ -325,6 +332,24 @@ export interface ImprovementOption {
    * headline (see `unitPanel.ts`) cannot name a different technology than the
    * one actually gating the row.
    */
+  requiredTechName: string | null;
+}
+
+/**
+ * One rite the augur's sheet offers, with everything that row needs.
+ *
+ * `ImprovementOption`'s twin one agent over, and shaped like it for that type's
+ * reason: the panel prints rows and the *rules* decide which are live, so a row
+ * a player can press is a command the reducer takes.
+ */
+export interface RiteOption {
+  id: RiteId;
+  name: string;
+  /** Why it cannot be performed, or `null`. The reducer's own sentence. */
+  blocked: string | null;
+  /** What it would do, in one line — "+1 pop to Uruk". `ritePreview`'s. */
+  preview: string | null;
+  /** The technology a greyed row is waiting on, or `null`. */
   requiredTechName: string | null;
 }
 
@@ -569,6 +594,13 @@ export interface GameControlsOptions {
    * it, exactly as `onOfferDiscovery` is called for a claimed ruin.
    */
   onOfferStatecraft?: () => void;
+  /**
+   * Puts the local seat's belief offer on screen — `main.ts`'s
+   * `showReligionOffer`. `onOfferStatecraft`'s twin, and it exists for that
+   * one's reason exactly: the End Turn blocker takes the player *to* the thing
+   * they forgot, and a religion offer's "there" is a card rather than a hex.
+   */
+  onOfferReligion?: () => void;
 
   /**
    * Puts the local seat's pending discovery card in front of the player.
@@ -886,6 +918,32 @@ export interface GameControls {
   pillage(): void;
 
   /**
+   * Why the selected augur cannot consecrate a god, or `null` when it can.
+   * `undefined` with nothing selected — `foundCityBlocker`'s three-valued shape.
+   *
+   * The whole rule is `consecrateError` (`religion.ts`), so a live button is an
+   * accepted command and "Your pantheon has no room for another god" is one
+   * sentence written once.
+   */
+  consecrateBlocker(): string | null | undefined;
+  /** Spends the whole augur on a belief offer. The unit sheet's button. */
+  consecrate(): void;
+  /**
+   * The rites this augur could perform where it stands — every rite in the
+   * table, each carrying its blocker and its payoff preview.
+   *
+   * A list rather than a blocker, because this verb is five verbs, and unlike
+   * the improvements the **unknown ones stay on the list** and are greyed with
+   * the node that teaches them. That is the chop's reading rather than the
+   * improvements': a rite the empire has not learnt is a fact about the tree
+   * and the argument for going and learning it, where "there is no forest here"
+   * is a fact about a hex the worker will not be standing on tomorrow.
+   */
+  riteOptions(): RiteOption[];
+  /** Spends one charge on a rite, aimed where the augur stands. */
+  performRite(id: RiteId): void;
+
+  /**
    * What would happen if the selected unit attacked the tile under the pointer,
    * or `null` when that is not a question anybody is asking — nothing selected,
    * nothing hovered, or nothing hostile on the hovered tile.
@@ -944,6 +1002,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onOfferDiscovery,
     onToggleStatecraft,
     onOfferStatecraft,
+    onOfferReligion,
     onDamage,
     onVictory,
     lensOrder,
@@ -2214,6 +2273,96 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * Why the selected augur cannot consecrate. The seat's question here, the
+   * act's delegated whole to `consecrateError` — `chopBlocker`'s split.
+   */
+  function consecrateBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    return consecrateError(getGame().state, localPlayerId, unit.id);
+  }
+
+  /**
+   * Spends the augur on a god, and lets go of the piece.
+   *
+   * The selection is dropped by hand for `buildImprovement`'s reason exactly and
+   * one grade harder: Consecrate always consumes the unit, so holding its id
+   * would leave the sheet describing a piece that is gone. Asked of the state
+   * after the dispatch rather than predicted before it.
+   */
+  function consecrate(): void {
+    const unit = selectedUnit();
+    if (!unit) return;
+    const result = commit({ type: 'consecrate', playerId: localPlayerId, unitId: unit.id });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    if (!unitById(getGame().state, unit.id)) {
+      selectedId = null;
+      setMoveMode(false);
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+    // The offer was dealt by the command; the card is the answer to it.
+    onOfferReligion?.();
+  }
+
+  /** Every rite, with its blocker and its payoff. See `RiteOption`. */
+  function riteOptions(): RiteOption[] {
+    const unit = selectedUnit();
+    if (!unit || !isAugur(unit)) return [];
+    const { state } = getGame();
+    const ended = !canOrder();
+    return RITE_IDS.map((id) => {
+      const blocked = ended
+        ? `You have ended turn ${state.turn}`
+        : riteError(state, localPlayerId, unit.id, id);
+      return {
+        id,
+        name: riteDef(id).name,
+        preview: ritePreview(state, unit.id, id),
+        blocked,
+        // Named off the row's own `tech` field rather than parsed back out of
+        // the sentence, exactly as a greyed improvement's is.
+        requiredTechName: hasAbility(state, localPlayerId, riteAbility(id))
+          ? null
+          : techDef(riteDef(id).tech).name,
+      };
+    });
+  }
+
+  /**
+   * Spends one charge on a rite, and lets go of the augur if that was its last.
+   *
+   * `buildImprovement` line for line — the same reason the selection is dropped
+   * by hand, and the same "believe the simulation" rule about how it is asked.
+   */
+  function performRite(id: RiteId): void {
+    const unit = selectedUnit();
+    if (!unit) return;
+    const result = commit({
+      type: 'performRite',
+      playerId: localPlayerId,
+      unitId: unit.id,
+      rite: id,
+    });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    if (!unitById(getGame().state, unit.id)) {
+      selectedId = null;
+      setMoveMode(false);
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
    * Why the selected worker cannot clear where it stands. The seat's question
    * here, the work's delegated to `chopError` — the same split as
    * `foundCityBlocker`, and the same guarantee: an enabled button is an accepted
@@ -3136,6 +3285,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         onOfferStatecraft?.();
         return;
       }
+      case 'religion': {
+        // No camera either, and for the same reason: the pantheon is the
+        // empire's, not a place on the board.
+        guide('☞ A god awaits a name.');
+        onOfferReligion?.();
+        return;
+      }
     }
   }
 
@@ -3552,6 +3708,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     chop,
     pillage,
     pillageBlocker,
+    consecrateBlocker,
+    consecrate,
+    riteOptions,
+    performRite,
     combatForecast,
     openCity,
     setOpenCity,

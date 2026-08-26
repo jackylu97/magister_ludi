@@ -85,6 +85,17 @@ import {
 import { getTileAt, tileIndex } from './map';
 import { advanceAlongPath } from './movement';
 import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
+import {
+  beliefChoiceError,
+  consecrateAt,
+  consecrateError,
+  performRiteAt,
+  purchaseError,
+  purchaseUnitAt,
+  riteError,
+  settleBeliefChoice,
+} from './religion';
+import type { RiteId } from './religionData';
 import { RULES } from './rulesData';
 import {
   type City,
@@ -611,6 +622,98 @@ export interface ChooseDoctrineCommand extends PlayerCommand {
   optionIndex: number;
 }
 
+/**
+ * Buys a unit outright, out of a named bank, in one of this player's cities.
+ *
+ * **Currency-agnostic in shape and faith-funded in fact** (ledger Entry XXVIII).
+ * The augur is the only thing for sale today and faith is the only pool that
+ * spends, but the transaction the M9 gold purchases want is this one — a city,
+ * a type, a bank — so it is written once now rather than twice later. The
+ * currency is *checked against the roster row* rather than trusted: a client
+ * asking to buy an augur with gold is asking for something the table does not
+ * sell, and `purchaseError` tells it which bank the thing is priced in.
+ *
+ * It names the **city** as well as the type, and both are load-bearing: the city
+ * is where the piece will stand, and stacking room is asked of that hex. The
+ * price is not in the command — the price is `explainPurchaseCost`'s, asked at
+ * the moment this applies, so a client cannot name a figure the reducer then has
+ * to second-guess.
+ *
+ * Instant and complete, like `purchaseTile`: there is no part-paid augur, and it
+ * can act on the turn it was called, exactly as a chopped-for warrior can.
+ *
+ * Turn-gated like every other act. A seat that has declared itself finished has
+ * finished spending.
+ */
+export interface PurchaseUnitCommand extends PlayerCommand {
+  type: 'purchaseUnit';
+  cityId: number;
+  unitType: UnitTypeId;
+  /** Which bank pays. Refused when it is not the one the row is priced in. */
+  currency: 'faith' | 'gold';
+}
+
+/**
+ * Spends an augur — the **whole** augur — to found or widen the pantheon.
+ *
+ * It names the unit and nothing else, which is `foundCity`'s argument: the augur
+ * is what authorises it and there is nothing else to say. And it consumes the
+ * piece *whatever charges are left on it*, which is the anti-spam structure
+ * rather than an oversight (`docs/religion.md`): an augur is three rites **or**
+ * one god, so the price of a god is always a whole agent and the decision is
+ * live at every point on that curve.
+ *
+ * Legal only while a **belief slot is open**. It opens a 1-of-3 offer drawn from
+ * `state.rng` at this instant and stored on the player, answered by
+ * `chooseBelief` — Entry XV's shape for the third time, and both halves in the
+ * log so a replay deals the same three gods and takes the same one.
+ *
+ * Turn-gated like every other act.
+ */
+export interface ConsecrateCommand extends PlayerCommand {
+  type: 'consecrate';
+  unitId: number;
+}
+
+/**
+ * Takes one of the three gods a Consecrate is offering.
+ *
+ * `chooseOrder`'s shape, refusal for refusal: an **index rather than an id** (an
+ * index can only ever name something the player was dealt), no reroll and no
+ * decline, and the End Turn blocker is what stops the offer sitting on the
+ * empire forever. A belief is **permanent** — there is no unconsecrating, no
+ * slot to move it out of, and no later pass that takes it away.
+ */
+export interface ChooseBeliefCommand extends PlayerCommand {
+  type: 'chooseBelief';
+  optionIndex: number;
+}
+
+/**
+ * Spends **one** of an augur's charges on a rite.
+ *
+ * `buildImprovement`'s twin one system over, and shaped like it on purpose: one
+ * charge, instant, fully validated, and an augur that empties its last charge is
+ * removed from the board exactly as a worker is. What differs is the target —
+ * a rite blesses a *town* or a *piece*, and it reaches one hex, so `target` is
+ * the hex it is aimed at and **absent means where the augur stands**.
+ *
+ * It does not spend movement, unlike building. A rite is a thing said, not a
+ * day's work, and the charge is the whole of what it costs.
+ *
+ * The instant half settles into its bucket the moment it lands (Entry XVIII) and
+ * the lasting half is stamped on the target as an absolute-expiry `TimedEffect`.
+ *
+ * Turn-gated like every other act.
+ */
+export interface PerformRiteCommand extends PlayerCommand {
+  type: 'performRite';
+  unitId: number;
+  rite: RiteId;
+  /** The hex blessed. Absent means the hex the augur is standing on. */
+  target?: Cell;
+}
+
 /** Every legal mutation of the game, as serializable data. */
 export type Command =
   | EndTurnCommand
@@ -633,7 +736,11 @@ export type Command =
   | SlotOrderCommand
   | UnslotOrderCommand
   | AdoptGovernmentCommand
-  | ChooseDoctrineCommand;
+  | ChooseDoctrineCommand
+  | PurchaseUnitCommand
+  | ConsecrateCommand
+  | ChooseBeliefCommand
+  | PerformRiteCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
@@ -1548,6 +1655,111 @@ function applyChooseDoctrine(
   return ok();
 }
 
+/**
+ * Buys a unit. See `PurchaseUnitCommand`, and `religion.ts` for the rules.
+ *
+ * The seat's two questions here, everything about the *sale* delegated whole to
+ * `purchaseError` — `applyPurchaseTile`'s split, and the same guarantee: a
+ * refusal leaves the state byte-identical, because not one line below the
+ * validation runs until every question has been answered.
+ */
+function applyPurchaseUnit(state: GameState, command: PurchaseUnitCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot buy units`);
+  }
+
+  const problem = purchaseError(
+    state,
+    actor.id,
+    command.cityId,
+    command.unitType,
+    command.currency,
+  );
+  if (problem) return fail(problem);
+
+  // Validation is done — `purchaseError` has established the city is this
+  // player's, the type is for sale in this currency, and the bank covers it.
+  const city = cityById(state, command.cityId)!;
+  purchaseUnitAt(state, actor, city, command.unitType);
+  return ok();
+}
+
+/**
+ * Spends an augur on a god. See `ConsecrateCommand`.
+ *
+ * `applyChopFeature`'s shape: the seat's questions here, the whole of the act's
+ * rule delegated to `consecrateError` — which is also what the augur's panel
+ * greys its Consecrate row with, so an offered row is a command this accepts and
+ * "Your pantheon has no room for another god" is one sentence in one place.
+ */
+function applyConsecrate(state: GameState, command: ConsecrateCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot consecrate`);
+  }
+
+  const problem = consecrateError(state, actor.id, command.unitId);
+  if (problem) return fail(problem);
+
+  const unit = unitById(state, command.unitId)!;
+  consecrateAt(state, actor, unit);
+  return ok();
+}
+
+/** Takes a god. See `ChooseBeliefCommand`. `applyChooseOrder`'s twin. */
+function applyChooseBelief(state: GameState, command: ChooseBeliefCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot name a god`);
+  }
+
+  const problem = beliefChoiceError(state, actor.id, command.optionIndex);
+  if (problem) return fail(problem);
+
+  settleBeliefChoice(actor, command.optionIndex);
+  return ok();
+}
+
+/**
+ * Performs a rite. See `PerformRiteCommand`, and `religion.ts` for the rules.
+ *
+ * `applyBuildImprovement` question for question — is this a real seat, may it
+ * still act, and then everything about the *work* delegated whole to
+ * `riteError`, which is what the augur's sheet greys its rite rows with.
+ *
+ * **The payout settles here and now** (Entry XVIII), through
+ * `performRiteAt`, which reaches each bucket's own `settle…Windfall`: a Rite of
+ * the Harvest's citizen is placed before this returns, an Omen Reading's beakers
+ * can complete a technology, and the town's derived state is refreshed by the
+ * one helper every mid-turn mutation goes through.
+ */
+function applyPerformRite(state: GameState, command: PerformRiteCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot perform rites`);
+  }
+
+  // An absent target is legal and means "where the augur stands"; a *present*
+  // one that is not a pair of integers is a malformed command, not a default.
+  let target: Cell | undefined;
+  if (command.target !== undefined) {
+    target = readCell(command.target);
+    if (!target) return fail('performRite needs an integer target { col, row }');
+  }
+
+  const problem = riteError(state, actor.id, command.unitId, command.rite, target);
+  if (problem) return fail(problem);
+
+  const unit = unitById(state, command.unitId)!;
+  performRiteAt(state, actor, unit, command.rite, target);
+  return ok();
+}
+
 // --- reducer ----------------------------------------------------------------
 
 /**
@@ -1581,6 +1793,10 @@ function orderedUnitId(command: Command): number | undefined {
     case 'buildImprovement':
     case 'chopFeature':
     case 'pillage':
+    // An augur told to consecrate or to bless is an augur given an order, so it
+    // wakes like anybody else — even though the first of the two spends it.
+    case 'consecrate':
+    case 'performRite':
       return command.unitId;
     case 'foundCity':
       return command.settlerUnitId;
@@ -1599,6 +1815,10 @@ function orderedUnitId(command: Command): number | undefined {
     case 'unslotOrder':
     case 'adoptGovernment':
     case 'chooseDoctrine':
+    // Buying a piece names a *type*, and taking a god names an offer; neither is
+    // an order to anything standing on the board.
+    case 'purchaseUnit':
+    case 'chooseBelief':
       return undefined;
     default: {
       const unhandled: never = kind;
@@ -1682,6 +1902,14 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyAdoptGovernment(state, command);
     case 'chooseDoctrine':
       return applyChooseDoctrine(state, command);
+    case 'purchaseUnit':
+      return applyPurchaseUnit(state, command);
+    case 'consecrate':
+      return applyConsecrate(state, command);
+    case 'chooseBelief':
+      return applyChooseBelief(state, command);
+    case 'performRite':
+      return applyPerformRite(state, command);
     default:
       return unhandledCommand(kind, type);
   }

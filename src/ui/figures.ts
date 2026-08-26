@@ -99,17 +99,20 @@ export const YIELD_NAME: Record<YieldKey, string> = {
 };
 
 /**
- * A sentence a yield's hover card ends with, for the one yield that needs an
+ * A sentence a yield's hover card ends with, for a yield that needs an
  * explanation rather than a breakdown.
  *
- * Faith accumulates and **nothing spends it yet** (see `Player.faithPool`). A
- * pool that silently did nothing would be a lie of omission on a bar whose whole
- * job is to say how the empire is doing, so the card says so out loud. The day
- * something spends it, this entry goes away rather than being reworded.
+ * **Empty, and that is the point.** It held one entry — faith's "the faithful
+ * gather, their purpose comes later" — for as long as the pool had no sink, and
+ * that entry's own docblock promised it would *go away* rather than be reworded
+ * the day something spent it. Religion v1 (ledger Entry XXVIII) is that day:
+ * augurs are bought with faith, so a card explaining that the pool does nothing
+ * would now be the lie of omission it was written to prevent.
+ *
+ * The table stays because the *shape* is right and cost nothing to keep: the
+ * next yield that needs a sentence rather than a breakdown gets one here.
  */
-export const YIELD_NOTE: Partial<Record<YieldKey, string>> = {
-  faith: 'The faithful gather. Their purpose comes later.',
-};
+export const YIELD_NOTE: Partial<Record<YieldKey, string>> = {};
 
 /** Production, the one a cost is quoted in — named for how often it is read. */
 /**

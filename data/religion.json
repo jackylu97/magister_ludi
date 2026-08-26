@@ -1,0 +1,372 @@
+{
+  "pantheon": {
+    "slotsFromTech": {
+      "divination": 2
+    },
+    "offerOptions": 3
+  },
+  "beliefs": {
+    "goddessOfTheHarvest": {
+      "name": "Goddess of the Harvest",
+      "axis": "hearth",
+      "flavor": "She counts the sheaves before the reapers do.",
+      "text": "+1 food on every bonus resource that feeds you.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": { "test": "resourceKind", "kind": "bonus", "yields": "food" },
+          "food": 1
+        }
+      ]
+    },
+    "keeperOfTheHearth": {
+      "name": "Keeper of the Hearth",
+      "axis": "hearth",
+      "flavor": "A fire that has never gone out is worth more than a wall.",
+      "text": "Granaries supply +1 faith. +1 happiness in the capital.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "faith": 1,
+          "scope": { "test": "hasBuilding", "building": "granary" }
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": { "test": "capital" }
+        }
+      ]
+    },
+    "starReaders": {
+      "name": "Star Readers",
+      "axis": "sky",
+      "flavor": "From the high rock the year is a wheel you can see the spokes of.",
+      "text": "+3 science in every city within sight of a mountain.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "science": 3,
+          "scope": { "test": "mountainAdjacent" }
+        }
+      ]
+    },
+    "keeperOfTheCalendar": {
+      "name": "Keeper of the Calendar",
+      "axis": "sky",
+      "flavor": "Nothing is lost that was written down on the right day.",
+      "text": "Every 20 turns, the almanac yields a find. Discoveries pay in the money of your era.",
+      "effects": [
+        { "kind": "periodicOffer", "every": 20, "site": "ruins" },
+        { "kind": "windfallRider", "occasion": "discovery", "perAge": true }
+      ]
+    },
+    "theStandingStones": {
+      "name": "The Standing Stones",
+      "axis": "stone",
+      "flavor": "They were raised by people who expected to be remembered, and were.",
+      "text": "Monuments supply +1 culture and +1 faith.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "culture": 1,
+          "faith": 1,
+          "scope": { "test": "hasBuilding", "building": "monument" }
+        }
+      ]
+    },
+    "ancestorWorship": {
+      "name": "Ancestor Worship",
+      "axis": "stone",
+      "flavor": "The dead outnumber us, and they vote.",
+      "text": "+1 culture in every city of 4 or more. +5% culture in every city of 10 or more.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "culture": 1,
+          "scope": { "test": "populationAtLeast", "value": 4 }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 5,
+          "scope": { "test": "populationAtLeast", "value": 10 }
+        }
+      ]
+    },
+    "ladyOfTheHunt": {
+      "name": "Lady of the Hunt",
+      "axis": "wild",
+      "flavor": "She takes the first kill and leaves the rest, which is why there is a rest.",
+      "text": "+1 food on every camp. Clearing a barbarian camp pays +10 faith.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": { "test": "improvement", "improvement": "camp" },
+          "food": 1
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "camp",
+          "grant": { "yield": "faith", "amount": 10 }
+        }
+      ]
+    },
+    "spiritsOfTheWood": {
+      "name": "Spirits of the Wood",
+      "axis": "wild",
+      "flavor": "Ask before the axe; the asking is the whole of the rite.",
+      "text": "Felling a wood pays +15 faith. +1 culture on every forest.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "chop",
+          "grant": { "yield": "faith", "amount": 15 }
+        },
+        {
+          "kind": "tileYield",
+          "on": { "test": "feature", "feature": "forest" },
+          "culture": 1
+        }
+      ]
+    },
+    "riverMother": {
+      "name": "River Mother",
+      "axis": "water",
+      "flavor": "She is not kind. She is regular, which is better.",
+      "text": "+2 food in every city on fresh water. Their shrines supply +1 happiness.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "food": 2,
+          "scope": { "test": "freshwater" }
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "freshwater" },
+              { "test": "hasBuilding", "building": "shrine" }
+            ]
+          }
+        }
+      ]
+    },
+    "lordOfTheSea": {
+      "name": "Lord of the Sea",
+      "axis": "water",
+      "flavor": "He keeps the count of every net, and forgives none of it.",
+      "text": "+1 production and +1 gold on every fishing boat.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": { "test": "improvement", "improvement": "fishingBoats" },
+          "production": 1,
+          "gold": 1
+        }
+      ]
+    },
+    "godOfTheForge": {
+      "name": "God of the Forge",
+      "axis": "war",
+      "flavor": "He was lamed by his own work and never once stopped.",
+      "text": "Barracks supply +1 production. All your units fight at +1.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "production": 1,
+          "scope": { "test": "hasBuilding", "building": "barracks" }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "when": { "test": "always" },
+          "side": "both"
+        }
+      ]
+    },
+    "ritesOfBlood": {
+      "name": "Rites of Blood",
+      "axis": "war",
+      "flavor": "The altar is old. The queue in front of it is older.",
+      "text": "Killing pays +15 faith, in the money of your era.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "perAge": true,
+          "grant": { "yield": "faith", "amount": 15 }
+        }
+      ]
+    },
+    "oracleOfTheCrossroads": {
+      "name": "Oracle of the Crossroads",
+      "axis": "road",
+      "flavor": "Every road is a question. She charges for the answer.",
+      "text": "+3 faith for every discovery claimed. Scouts see one hex further.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "discovery",
+          "grant": { "yield": "faith", "amount": 3 }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "sight",
+          "amount": 1,
+          "class": { "modelClass": "scout" }
+        }
+      ]
+    },
+    "sacredFire": {
+      "name": "Sacred Fire",
+      "axis": "none",
+      "flavor": "No story, no festival, no priest. It simply must not go out.",
+      "text": "+1 faith in every city.",
+      "effects": [{ "kind": "cityYields", "faith": 1 }]
+    },
+    "desertFathers": {
+      "name": "Desert Fathers",
+      "axis": "sun",
+      "flavor": "They went out to find nothing, and were the first to succeed.",
+      "text": "+1 faith on every desert hex.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": { "test": "terrain", "terrain": "desert" },
+          "faith": 1
+        }
+      ]
+    },
+    "winterMother": {
+      "name": "Winter Mother",
+      "axis": "frost",
+      "flavor": "She does not sleep through it. She is it.",
+      "text": "+1 food on every tundra hex. +1 faith where the tundra is wooded.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": { "test": "terrain", "terrain": "tundra" },
+          "food": 1
+        },
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "all",
+            "of": [
+              { "test": "terrain", "terrain": "tundra" },
+              { "test": "feature", "feature": "forest" }
+            ]
+          },
+          "faith": 1
+        }
+      ]
+    },
+    "lordOfTheHoard": {
+      "name": "Lord of the Hoard",
+      "axis": "stone",
+      "flavor": "He counts it nightly. He has never spent any of it.",
+      "text": "+1 culture and +1 faith on every mine standing on a luxury.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "all",
+            "of": [
+              { "test": "improvement", "improvement": "mine" },
+              { "test": "resourceKind", "kind": "luxury" }
+            ]
+          },
+          "culture": 1,
+          "faith": 1
+        }
+      ]
+    },
+    "courtAugurs": {
+      "name": "Court Augurs",
+      "axis": "none",
+      "flavor": "Keep one at home. The omens travel badly.",
+      "text": "+5% science and +5% culture in each city housing an augur with a rite left in it.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "chargedAugurs",
+          "pays": { "to": "percent", "yield": "science", "percent": 5, "stage": "city" }
+        },
+        {
+          "kind": "countScaled",
+          "count": "chargedAugurs",
+          "pays": { "to": "percent", "yield": "culture", "percent": 5, "stage": "city" }
+        }
+      ]
+    }
+  },
+  "rites": {
+    "riteOfTheHarvest": {
+      "name": "Rite of the Harvest",
+      "tech": "divination",
+      "target": "city",
+      "flavor": "The grain was always going to come up. Somebody has to be thanked.",
+      "grant": { "population": 1 },
+      "effects": []
+    },
+    "omenReading": {
+      "name": "Omen Reading",
+      "tech": "letters",
+      "target": "city",
+      "flavor": "The liver said what the scribe already suspected.",
+      "grant": { "science": 15 },
+      "duration": 20,
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "scienceBuildings",
+          "pays": { "to": "yield", "yield": "science", "amount": 1, "where": "city" }
+        }
+      ]
+    },
+    "consecrationOfTheBounds": {
+      "name": "Consecration of the Bounds",
+      "tech": "stonecraft",
+      "target": "city",
+      "flavor": "Walk the line once a year and the line walks itself the rest of it.",
+      "grant": { "borderCulture": 15 },
+      "duration": 20,
+      "effects": [{ "kind": "rulePercent", "rule": "borderCulture", "percent": 30 }]
+    },
+    "blessingOfArms": {
+      "name": "Blessing of Arms",
+      "tech": "bronzeWorking",
+      "target": "unit",
+      "flavor": "The god does not promise you live. Only that it will be worth watching.",
+      "grant": { "healFully": true },
+      "duration": 5,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "when": { "test": "always" },
+          "side": "both"
+        }
+      ]
+    },
+    "riteOfPlenty": {
+      "name": "Rite of Plenty",
+      "tech": "calendar",
+      "target": "city",
+      "flavor": "A feast is an argument that the year was good, made loudly enough to win.",
+      "grant": { "gold": 25 },
+      "duration": 20,
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": { "test": "hasResource" },
+          "gold": 1
+        }
+      ]
+    }
+  }
+}

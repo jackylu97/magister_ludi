@@ -128,9 +128,11 @@ export function civYields(state: GameState, playerId: number): CityYields {
  * glyphs and the names come from `figures.ts`, which is the one table — a
  * second copy in this file is exactly the drift that module exists to stop.
  *
- * Faith is on the strip from the pass that introduced it even though nothing
- * spends it: it is banked every turn and a bank the player cannot see is a bank
- * they cannot plan around. Its card says as much (`YIELD_NOTE`).
+ * Faith joined the strip in the pass that introduced it, before anything spent
+ * it, on the grounds that a bank the player cannot see is a bank they cannot
+ * plan around. Augurs spend it now (ledger Entry XXVIII), which changed the
+ * argument's premise and not its conclusion — and took the card's explanatory
+ * note away with it (`YIELD_NOTE`, now empty).
  */
 const YIELDS: readonly YieldKey[] = ['food', 'production', 'gold', 'science', 'culture', 'faith'];
 
@@ -146,14 +148,15 @@ const YIELDS: readonly YieldKey[] = ['food', 'production', 'gold', 'science', 'c
  * The rule for membership is a fact about the simulation, not a preference:
  * `Player` carries a running pool for this yield. Gold has `gold`, which
  * `purchaseTile` and the buy buttons check against; faith has `faithPool`, which
- * `collectYields` adds to and — today — nothing spends. Both are banks a player
- * cannot see anywhere else, and a bank a player cannot see is a discovery's
- * Traders' hoard or a hundred turns of piety that appear to do nothing.
+ * `collectYields` adds to and **augurs spend** (ledger Entry XXVIII). Both are
+ * banks a player cannot see anywhere else, and a bank a player cannot see is a
+ * discovery's Traders' hoard or a hundred turns of piety that appear to do
+ * nothing.
  *
- * Faith's card still ends with `YIELD_NOTE.faith` saying that nothing spends it.
- * The two statements are not in tension and both are load-bearing: the pool is
- * real and is *accumulating*, and it has no sink yet. The day something spends
- * it, the note goes (see the trap in `CLAUDE.md`) and this row does not.
+ * Faith's card used to end with `YIELD_NOTE.faith` saying that nothing spent it.
+ * That entry is **gone**, not reworded, exactly as its docblock and the trap in
+ * `CLAUDE.md` said it would be the day something did — and this row did not
+ * change, which is what that note predicted too.
  */
 const BANKED: Partial<
   Record<YieldKey, { pool: (player: Player) => number; line: string; title: string }>

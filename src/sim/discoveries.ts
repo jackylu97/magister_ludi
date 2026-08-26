@@ -441,7 +441,7 @@ function payDiscovery(
       warning: null,
     };
   }
-  // Faith is still banked and nothing spends it (see `Player.faithPool`).
+  // Straight into the bank an augur is priced against (see `Player.faithPool`).
   player.faithPool += effect.amount;
   return { cityName: null, unitName: null, completed: null, warning: null };
 }

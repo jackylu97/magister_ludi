@@ -392,7 +392,13 @@ describe('a project is gated, once, by the tree', () => {
     const tithes = techGifts('calendar').filter((gift) => gift.kind === 'project');
     expect(tithes.map((gift) => gift.id)).toEqual(['tithes']);
     expect(tithes[0]).toMatchObject({ name: 'Tithes', glyph: '↻' });
-    expect(techGifts('letters').map((gift) => gift.kind)).toEqual(['building', 'project']);
+    // Letters also teaches Omen Reading, which is an ability (a rite is a verb,
+    // hung on the tree's `abilities` key like embarkation) and sorts last.
+    expect(techGifts('letters').map((gift) => gift.kind)).toEqual([
+      'building',
+      'project',
+      'ability',
+    ]);
   });
 
   it('states its rate in one place', () => {

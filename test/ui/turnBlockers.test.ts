@@ -397,3 +397,39 @@ describe('firstBlocker · Statecraft', () => {
     expect(firstBlocker(state, 1)).toBeNull();
   });
 });
+
+describe('firstBlocker · Religion', () => {
+  it('blocks on an unanswered belief offer, and stops the moment it is answered', () => {
+    const state = settled();
+    const player = state.players[0]!;
+    player.pantheon.pending = { options: ['sacredFire'] };
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'religion' });
+    delete player.pantheon.pending;
+    expect(firstBlocker(state, 0)).toBeNull();
+  });
+
+  it('sits behind a discovery and a draft, and ahead of an idle unit', () => {
+    // The same cost-of-forgetting order one system over: a god does not go
+    // stale while the other two are answered, and it still outranks a piece
+    // that is merely standing about.
+    const state = settled();
+    const player = state.players[0]!;
+    const idle = createUnit(state, 0, 'warrior', 3, 3);
+    player.pantheon.pending = { options: ['sacredFire'] };
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'religion' });
+
+    player.statecraft.pendingOrder = { options: ['firstRites'] };
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'statecraft', what: 'order' });
+    delete player.statecraft.pendingOrder;
+
+    delete player.pantheon.pending;
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'idleUnit', unitId: idle.id });
+  });
+
+  it('never blocks the wild on a god it could not name', () => {
+    const state = settled();
+    state.players[1]!.barbarian = true;
+    state.players[1]!.pantheon.pending = { options: ['sacredFire'] };
+    expect(firstBlocker(state, 1)).toBeNull();
+  });
+});

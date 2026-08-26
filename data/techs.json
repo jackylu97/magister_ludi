@@ -7,7 +7,14 @@
       "row": 2,
       "cost": 15,
       "prereqs": [],
-      "unlocks": { "units": ["settler", "warrior", "scout", "worker"] },
+      "unlocks": {
+        "units": [
+          "settler",
+          "warrior",
+          "scout",
+          "worker"
+        ]
+      },
       "flavor": "The first furrow is the first calendar."
     },
     "husbandry": {
@@ -16,8 +23,14 @@
       "age": 1,
       "row": 0,
       "cost": 8,
-      "prereqs": ["agriculture"],
-      "unlocks": { "units": ["horseman"] },
+      "prereqs": [
+        "agriculture"
+      ],
+      "unlocks": {
+        "units": [
+          "horseman"
+        ]
+      },
       "flavor": "A horse is a decision arrived at sooner."
     },
     "fletching": {
@@ -26,8 +39,14 @@
       "age": 1,
       "row": 1,
       "cost": 8,
-      "prereqs": ["agriculture"],
-      "unlocks": { "units": ["archer"] },
+      "prereqs": [
+        "agriculture"
+      ],
+      "unlocks": {
+        "units": [
+          "archer"
+        ]
+      },
       "flavor": "Distance is the oldest mercy."
     },
     "sailing": {
@@ -36,8 +55,14 @@
       "age": 1,
       "row": 6,
       "cost": 8,
-      "prereqs": ["agriculture"],
-      "unlocks": { "abilities": ["embark"] },
+      "prereqs": [
+        "agriculture"
+      ],
+      "unlocks": {
+        "abilities": [
+          "embark"
+        ]
+      },
       "flavor": "The shore stops being the edge of the world."
     },
     "mining": {
@@ -46,7 +71,9 @@
       "age": 1,
       "row": 2,
       "cost": 8,
-      "prereqs": ["agriculture"],
+      "prereqs": [
+        "agriculture"
+      ],
       "unlocks": {},
       "flavor": "The hill is asked what it is made of."
     },
@@ -56,8 +83,14 @@
       "age": 1,
       "row": 3,
       "cost": 8,
-      "prereqs": ["agriculture"],
-      "unlocks": { "buildings": ["granary"] },
+      "prereqs": [
+        "agriculture"
+      ],
+      "unlocks": {
+        "buildings": [
+          "granary"
+        ]
+      },
       "flavor": "What the jar keeps, the year forgets."
     },
     "bronzeWorking": {
@@ -66,8 +99,22 @@
       "age": 1,
       "row": 2,
       "cost": 16,
-      "prereqs": ["mining", "earthenware"],
-      "unlocks": { "units": ["spearman"], "buildings": ["barracks", "funeralGames"] },
+      "prereqs": [
+        "mining",
+        "earthenware"
+      ],
+      "unlocks": {
+        "units": [
+          "spearman"
+        ],
+        "buildings": [
+          "barracks",
+          "funeralGames"
+        ],
+        "abilities": [
+          "blessingOfArms"
+        ]
+      },
       "flavor": "Two soft metals agree to become a hard one."
     },
     "stonecraft": {
@@ -76,8 +123,19 @@
       "age": 1,
       "row": 3,
       "cost": 16,
-      "prereqs": ["husbandry", "earthenware"],
-      "unlocks": { "buildings": ["monument", "palisade"] },
+      "prereqs": [
+        "husbandry",
+        "earthenware"
+      ],
+      "unlocks": {
+        "buildings": [
+          "monument",
+          "palisade"
+        ],
+        "abilities": [
+          "consecrationOfTheBounds"
+        ]
+      },
       "flavor": "Stone remembers longer than any of us."
     },
     "calendar": {
@@ -86,8 +144,17 @@
       "age": 1,
       "row": 4,
       "cost": 16,
-      "prereqs": ["earthenware"],
-      "unlocks": { "projects": ["tithes"] },
+      "prereqs": [
+        "earthenware"
+      ],
+      "unlocks": {
+        "projects": [
+          "tithes"
+        ],
+        "abilities": [
+          "riteOfPlenty"
+        ]
+      },
       "flavor": "The year, cut into pieces small enough to plan."
     },
     "divination": {
@@ -96,8 +163,20 @@
       "age": 1,
       "row": 5,
       "cost": 16,
-      "prereqs": ["husbandry"],
-      "unlocks": { "buildings": ["shrine"] },
+      "prereqs": [
+        "husbandry"
+      ],
+      "unlocks": {
+        "buildings": [
+          "shrine"
+        ],
+        "units": [
+          "augur"
+        ],
+        "abilities": [
+          "riteOfTheHarvest"
+        ]
+      },
       "flavor": "We question the sky, and learn the habit of questions."
     },
     "theWheel": {
@@ -106,8 +185,16 @@
       "age": 1,
       "row": 0,
       "cost": 26,
-      "prereqs": ["husbandry", "bronzeWorking"],
-      "unlocks": { "units": ["chariot", "chariotArcher"] },
+      "prereqs": [
+        "husbandry",
+        "bronzeWorking"
+      ],
+      "unlocks": {
+        "units": [
+          "chariot",
+          "chariotArcher"
+        ]
+      },
       "flavor": "Nobody expected the circle to be useful."
     },
     "letters": {
@@ -116,19 +203,38 @@
       "age": 1,
       "row": 4,
       "cost": 24,
-      "prereqs": ["earthenware", "divination"],
-      "unlocks": { "buildings": ["library"], "projects": ["scholarship"] },
+      "prereqs": [
+        "earthenware",
+        "divination"
+      ],
+      "unlocks": {
+        "buildings": [
+          "library"
+        ],
+        "projects": [
+          "scholarship"
+        ],
+        "abilities": [
+          "omenReading"
+        ]
+      },
       "flavor": "A thought that outlives the mouth it came from."
     },
-
     "ironWorking": {
       "name": "Iron Working",
       "glyph": "⚒",
       "age": 2,
       "row": 2,
       "cost": 132,
-      "prereqs": ["bronzeWorking", "stonecraft"],
-      "unlocks": { "units": ["swordsman"] },
+      "prereqs": [
+        "bronzeWorking",
+        "stonecraft"
+      ],
+      "unlocks": {
+        "units": [
+          "swordsman"
+        ]
+      },
       "flavor": "Every age is named for what it kills with."
     },
     "construction": {
@@ -137,8 +243,18 @@
       "age": 2,
       "row": 1,
       "cost": 183,
-      "prereqs": ["stonecraft", "fletching"],
-      "unlocks": { "units": ["compositeBowman"], "buildings": ["aqueduct"] },
+      "prereqs": [
+        "stonecraft",
+        "fletching"
+      ],
+      "unlocks": {
+        "units": [
+          "compositeBowman"
+        ],
+        "buildings": [
+          "aqueduct"
+        ]
+      },
       "flavor": "Water persuaded to climb."
     },
     "mathematics": {
@@ -147,8 +263,15 @@
       "age": 2,
       "row": 4,
       "cost": 153,
-      "prereqs": ["letters", "theWheel"],
-      "unlocks": { "units": ["catapult"] },
+      "prereqs": [
+        "letters",
+        "theWheel"
+      ],
+      "unlocks": {
+        "units": [
+          "catapult"
+        ]
+      },
       "flavor": "The siege begins as a diagram."
     },
     "currency": {
@@ -157,8 +280,15 @@
       "age": 2,
       "row": 3,
       "cost": 162,
-      "prereqs": ["letters", "stonecraft"],
-      "unlocks": { "buildings": ["market"] },
+      "prereqs": [
+        "letters",
+        "stonecraft"
+      ],
+      "unlocks": {
+        "buildings": [
+          "market"
+        ]
+      },
       "flavor": "A promise small enough to carry."
     },
     "philosophy": {
@@ -167,8 +297,15 @@
       "age": 2,
       "row": 5,
       "cost": 196,
-      "prereqs": ["letters", "divination"],
-      "unlocks": { "buildings": ["temple"] },
+      "prereqs": [
+        "letters",
+        "divination"
+      ],
+      "unlocks": {
+        "buildings": [
+          "temple"
+        ]
+      },
       "flavor": "First we ask what a thing is; the asking never stops."
     },
     "engineering": {
@@ -177,8 +314,16 @@
       "age": 2,
       "row": 3,
       "cost": 212,
-      "prereqs": ["mathematics", "construction"],
-      "unlocks": { "buildings": ["workshop", "watermill"] },
+      "prereqs": [
+        "mathematics",
+        "construction"
+      ],
+      "unlocks": {
+        "buildings": [
+          "workshop",
+          "watermill"
+        ]
+      },
       "flavor": "The river is put to work and does not complain."
     },
     "drama": {
@@ -187,19 +332,32 @@
       "age": 2,
       "row": 4,
       "cost": 234,
-      "prereqs": ["philosophy", "currency"],
-      "unlocks": { "buildings": ["amphitheater"] },
+      "prereqs": [
+        "philosophy",
+        "currency"
+      ],
+      "unlocks": {
+        "buildings": [
+          "amphitheater"
+        ]
+      },
       "flavor": "The city sits down to watch itself."
     },
-
     "feudalism": {
       "name": "Feudalism",
       "glyph": "🏰",
       "age": 3,
       "row": 2,
       "cost": 266,
-      "prereqs": ["ironWorking", "currency"],
-      "unlocks": { "units": ["pikeman"] },
+      "prereqs": [
+        "ironWorking",
+        "currency"
+      ],
+      "unlocks": {
+        "units": [
+          "pikeman"
+        ]
+      },
       "flavor": "Everyone kneels to someone and calls it order."
     },
     "machinery": {
@@ -208,8 +366,15 @@
       "age": 3,
       "row": 1,
       "cost": 285,
-      "prereqs": ["engineering", "construction"],
-      "unlocks": { "units": ["crossbowman"] },
+      "prereqs": [
+        "engineering",
+        "construction"
+      ],
+      "unlocks": {
+        "units": [
+          "crossbowman"
+        ]
+      },
       "flavor": "A crank is a servant that never sleeps."
     },
     "theology": {
@@ -218,8 +383,15 @@
       "age": 3,
       "row": 5,
       "cost": 314,
-      "prereqs": ["philosophy", "drama"],
-      "unlocks": { "buildings": ["monastery"] },
+      "prereqs": [
+        "philosophy",
+        "drama"
+      ],
+      "unlocks": {
+        "buildings": [
+          "monastery"
+        ]
+      },
       "flavor": "The library, copied by candlelight, one page a day."
     },
     "chivalry": {
@@ -228,8 +400,15 @@
       "age": 3,
       "row": 0,
       "cost": 342,
-      "prereqs": ["feudalism", "husbandry"],
-      "unlocks": { "units": ["knight"] },
+      "prereqs": [
+        "feudalism",
+        "husbandry"
+      ],
+      "unlocks": {
+        "units": [
+          "knight"
+        ]
+      },
       "flavor": "Armour, with manners."
     },
     "physics": {
@@ -238,8 +417,15 @@
       "age": 3,
       "row": 3,
       "cost": 418,
-      "prereqs": ["mathematics", "engineering"],
-      "unlocks": { "units": ["trebuchet"] },
+      "prereqs": [
+        "mathematics",
+        "engineering"
+      ],
+      "unlocks": {
+        "units": [
+          "trebuchet"
+        ]
+      },
       "flavor": "Weight, argued into flight."
     },
     "steel": {
@@ -248,8 +434,15 @@
       "age": 3,
       "row": 2,
       "cost": 380,
-      "prereqs": ["ironWorking", "machinery"],
-      "unlocks": { "units": ["longswordsman"] },
+      "prereqs": [
+        "ironWorking",
+        "machinery"
+      ],
+      "unlocks": {
+        "units": [
+          "longswordsman"
+        ]
+      },
       "flavor": "Iron, taught patience by fire."
     },
     "education": {
@@ -258,8 +451,15 @@
       "age": 3,
       "row": 5,
       "cost": 451,
-      "prereqs": ["theology", "philosophy"],
-      "unlocks": { "buildings": ["university"] },
+      "prereqs": [
+        "theology",
+        "philosophy"
+      ],
+      "unlocks": {
+        "buildings": [
+          "university"
+        ]
+      },
       "flavor": "A school is a city's second memory."
     }
   },
@@ -268,6 +468,31 @@
       "name": "Embark",
       "glyph": "⛵",
       "summary": "Workers and settlers may cross coastal water."
+    },
+    "riteOfTheHarvest": {
+      "name": "Rite of the Harvest",
+      "glyph": "🌾",
+      "summary": "An augur may spend a rite to give a city a citizen."
+    },
+    "omenReading": {
+      "name": "Omen Reading",
+      "glyph": "🔮",
+      "summary": "An augur may spend a rite for beakers now and sharper scribes after."
+    },
+    "consecrationOfTheBounds": {
+      "name": "Consecration of the Bounds",
+      "glyph": "🗿",
+      "summary": "An augur may spend a rite to walk a city's borders outward."
+    },
+    "blessingOfArms": {
+      "name": "Blessing of Arms",
+      "glyph": "⚔",
+      "summary": "An augur may spend a rite to heal a unit whole and send it out stronger."
+    },
+    "riteOfPlenty": {
+      "name": "Rite of Plenty",
+      "glyph": "🍷",
+      "summary": "An augur may spend a rite for coin now and richer seams after."
     }
   }
 }

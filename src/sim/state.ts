@@ -60,9 +60,11 @@ import type { DiscoveryId, DiscoveryKind } from './discoveryData';
 import type { GameMap } from './map';
 import { generateMap, getMapSize } from './mapgen';
 import { type MapgenOverrides, resolveMapgenConfig } from './mapgenData';
+import { type PlayerPantheon, newPlayerPantheon } from './religionData';
 import { type Rng, hashSeed, makeRng } from './rng';
 import { RULES } from './rulesData';
 import { type PlayerStatecraft, cardExtraCharges, newPlayerStatecraft } from './statecraft';
+import type { CardEffect, CardId } from './statecraftData';
 import { chooseStartPositions, planStartingUnits } from './startPositions';
 import type { TechId } from './techData';
 import { type UnitTypeId, unitDef } from './unitData';
@@ -154,8 +156,50 @@ import {
  *     culture figure in a v16 save is a figure that was never going to be
  *     deducted, and an empire that reached tier 3 on turn forty in this build
  *     had no tier at all in that one.
+ * 18: Religion v1 — augurs and pantheons (playable.md item 6, ledger Entry
+ *     XXVIII). Four fields and four commands, one pass: `Player.pantheon` (the
+ *     gods held and any belief offer outstanding), `Player.augursPurchased` (the
+ *     faith-price ladder), and `City.timed` / `Unit.timed` (the rites that run
+ *     out) — written by `purchaseUnit`, `consecrate`, `chooseBelief` and
+ *     `performRite`. A v17 log replayed here is a different game rather than an
+ *     older one for two reasons beyond the fields: `Player.faithPool` used to be
+ *     a bank nothing spent and augurs now **spend** it, and fishing boats pay
+ *     +1🪙 they did not pay before, so every coastal yield in a v17 save is a
+ *     figure this build would not have banked.
  */
-export const SCHEMA_VERSION = 17;
+export const SCHEMA_VERSION = 18;
+
+/**
+ * One effect that runs out — an augur's rite hanging on a city or a unit
+ * (ledger Entry XXVIII).
+ *
+ * **The whole subsystem is this type plus one comparison.** `expiresTurn` is an
+ * absolute turn and the reading is `state.turn < expiresTurn`; nothing anywhere
+ * decrements anything. That is `SlottedOrder.sealedUntil`'s lesson taken as a
+ * rule: a countdown is state that has to be ticked, a phase that ticks it is a
+ * phase that can be skipped, run twice or run in the wrong order, and a turn
+ * number is *compared* instead of maintained. `pruneTimedEffects` (`turn.ts`)
+ * exists only to stop dead paper accumulating in a save — deleting nothing would
+ * change no outcome, which is exactly the property that makes it safe.
+ *
+ * `effect` is an ordinary `CardEffect` and is read by the **same evaluators**
+ * that read a slotted Order's: a timed city percentage joins `cityStageSums`, a
+ * timed strength line joins `planCombat`'s list, a timed border percentage joins
+ * the borders channel, a timed tile line joins `explainTileYield`'s. There is no
+ * second interpretation of a card effect anywhere in the game, and a rite is not
+ * about to be the first (see `statecraft.ts`, `liveCityEffects`).
+ *
+ * `card` is the rite it came from, so the line labels itself off the one table
+ * — "Rite · Omen Reading (12 turns left)" — and a saved game carries a name
+ * rather than a sentence.
+ */
+export interface TimedEffect {
+  /** The rite (a `CardId`, see `statecraftData.ts`) that stamped this. */
+  card: CardId;
+  effect: CardEffect;
+  /** Live while `state.turn < expiresTurn`. Never a countdown. */
+  expiresTurn: number;
+}
 
 // --- players ----------------------------------------------------------------
 
@@ -197,21 +241,24 @@ export interface Player {
   culturePool: number;
   /**
    * Faith banked by every temple hill, incense grove and jade seam the empire
-   * works. **Nothing spends it yet.**
+   * works — and **spent on augurs** (ledger Entry XXVIII).
    *
-   * A deliberate half-system, and the reason it is shipped rather than waited
-   * for: faith is a *tile* yield in the ratified luxury table — incense pays it
-   * where it grows, jade pays it out of the rock — so either the algebra carries
-   * it now or four rows ship with their signature quietly deleted. Carrying it
-   * costs one field and one line in `collectYields`; deleting the rows would
-   * cost the design.
+   * It shipped as a deliberate half-system: faith is a *tile* yield in the
+   * ratified luxury table — incense pays it where it grows, jade pays it out of
+   * the rock — so either the algebra carried it or four rows shipped with their
+   * signature quietly deleted. The pool filled, the top bar showed it, and the
+   * hover said out loud that the faithful were gathering and their purpose came
+   * later. That was an honest empty room; a number that silently did nothing
+   * would not have been.
    *
-   * So the pool fills, the top bar shows it, and the hover says out loud that
-   * the faithful are gathering and their purpose comes later. That is an honest
-   * empty room; a number that silently did nothing would not be.
+   * The room is furnished now. `purchaseUnit` charges this pool through
+   * `explainPurchaseCost` (`religion.ts`), which is the only thing that spends
+   * it — augurs, and nothing else, because "keep faith legible" is the design
+   * (`docs/religion.md`). The hover's note is *gone* rather than reworded,
+   * exactly as it promised.
    *
    * A pool rather than a rate, exactly as `sciencePool` and `culturePool` are:
-   * whatever eventually spends it will spend a bank, not an income.
+   * what spends it spends a bank, not an income.
    */
   faithPool: number;
   /**
@@ -345,6 +392,32 @@ export interface Player {
    * once by one screen.
    */
   statecraft: PlayerStatecraft;
+  /**
+   * The empire's native cults: which gods it has consecrated, and any belief
+   * offer outstanding (ledger Entry XXVIII; the shape and every rule are in
+   * `religionData.ts` and `religion.ts`).
+   *
+   * **Always present**, like `statecraft` and for its reason: every seat has a
+   * pantheon from turn one, empty though it is, so this is a fact about a player
+   * rather than a state some of them are in. The wild gets one too and nothing
+   * ever fills it — the phases skip it exactly as `advanceResearch` does.
+   */
+  pantheon: PlayerPantheon;
+  /**
+   * How many augurs this player has ever **bought with faith**.
+   *
+   * `settlersBuilt`'s twin one currency over, and the escalation in
+   * `explainPurchaseCost` (`religion.ts`): the second augur costs 15🕯 more than
+   * the first, so *when* to spend faith on a god rather than on three rites is a
+   * tempo decision against a climbing price.
+   *
+   * On the player because it can never be derived, for `settlersBuilt`'s reason
+   * exactly: an augur is *consumed* by consecrating or by its last rite, so
+   * counting the ones standing around would price the fourth like the first.
+   * Nothing lowers it, and a captured augur does not raise it — it was paid for
+   * by somebody else.
+   */
+  augursPurchased: number;
 }
 
 /**
@@ -485,6 +558,20 @@ export interface Unit {
    * a worker left asleep on the frontier is not a worker the player forgot.
    */
   sleeping?: boolean;
+  /**
+   * Effects that run out — a Blessing of Arms on this piece — or the key is
+   * **absent**, which it is for every unit almost all of the time.
+   *
+   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s
+   * and `sleeping`'s convention and is here for the fifth time for the same
+   * reason: a warrior that was never blessed and one whose blessing has been
+   * swept away must serialise identically. See `TimedEffect` for why an expiry
+   * is an absolute turn and never a countdown.
+   *
+   * A captured unit keeps them, exactly as it keeps its charges: capture moves
+   * `ownerId` and touches nothing else, and a blessing is on the piece.
+   */
+  timed?: TimedEffect[];
 }
 
 /**
@@ -599,6 +686,19 @@ export interface City {
    * that is not currently workable is ignored rather than dropped.
    */
   lockedTiles: { col: number; row: number }[];
+  /**
+   * Effects that run out — an Omen Reading on this town's scribes, a
+   * Consecration of its bounds — or the key is **absent**, which it is for every
+   * city almost all of the time.
+   *
+   * `Unit.timed`'s twin, same convention and same reason. A **captured** city
+   * keeps them, and that is deliberate rather than an omission: a rite was
+   * performed on the *place*, and the conqueror inherits the walls, the granary
+   * and the calendar together. Its effects then pay their new owner, because
+   * every reader asks the city's owner for the empire half and the city itself
+   * for this half.
+   */
+  timed?: TimedEffect[];
 }
 
 // --- state ------------------------------------------------------------------
@@ -828,6 +928,10 @@ export function newGame(config: GameConfig): GameState {
       // reason exactly: a player who drafts a card must not write it into
       // everybody else's collection.
       statecraft: newPlayerStatecraft(),
+      // The same argument one system over: a player who consecrates a god must
+      // not write it into everybody else's pantheon.
+      pantheon: newPlayerPantheon(),
+      augursPurchased: 0,
     })),
     turnEnded: normalized.players.map(() => false),
     map,
@@ -917,6 +1021,8 @@ function seatBarbarians(state: GameState): void {
     // index a seat without asking which kind it is; filled by nothing, because
     // `runStatecraft` skips the wild the way `advanceResearch` does.
     statecraft: newPlayerStatecraft(),
+    pantheon: newPlayerPantheon(),
+    augursPurchased: 0,
   };
   state.players.push(player);
   state.turnEnded.push(true);

@@ -369,9 +369,13 @@ somewhere. Empire-scoped like every other signature: a boat in a town nowhere
 near the murex is better for it too, which is what makes a trade good a trade
 good.
 
-**The boats themselves pay +1🌾.** The Age-I design note in `docs/tech-unlocks.md`
-said +1🌾+1🪙; the milestone brief said +1🌾, and that is what shipped. The gold is
-one number in `improvements.json` on the day it is wanted.
+**The boats themselves pay +1🌾 +1🪙.** The water milestone shipped them at
++1🌾 only — the milestone brief's figure rather than the Age-I design note's in
+`docs/tech-unlocks.md` — and the note said the gold was one number in
+`improvements.json` on the day it was wanted. That day was the religion pass
+(ledger Entry XXVIII): the row now reads `food: 1, gold: 1`, which is the
+ratified text, and **Lord of the Sea** (the 🌊 water pantheon belief) rides on
+top of it with a further +1⚙ +1🪙.
 
 ### Pearls — coast
 `+3🪙` on tile · **+1 happiness per city** · Æra III: **+3🪙 in every coastal

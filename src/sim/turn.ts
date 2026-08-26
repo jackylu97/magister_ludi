@@ -92,6 +92,7 @@ import { barbarianTurn } from './barbarians';
 import { advanceProduction, collectYields, expandBorders, growCities } from './cities';
 import { type CombatOutcome, advanceFortify, healCities } from './combat';
 import { hasLineOfSight } from './los';
+import { openPeriodicOffers, pruneTimedEffects } from './religion';
 import { getTileAt, tileHex, wrappedDistance } from './map';
 import { advanceAlongPath } from './movement';
 import { cardUnitStat, runStatecraft } from './statecraft';
@@ -144,6 +145,16 @@ export interface TurnPhase {
  */
 export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
   {
+    name: 'pruneTimedEffects',
+    // **First**, and it is a broom rather than a clock (ledger Entry XXVIII).
+    // Every reader of a rite compares `state.turn` against an absolute
+    // `expiresTurn`, so an effect that has run out is already inert and deleting
+    // it changes no outcome at all — which is exactly what makes this phase safe
+    // to place anywhere. It goes first so the turn's arithmetic is done over a
+    // list with nothing dead in it, and so a panel never has to filter one.
+    run: pruneTimedEffects,
+  },
+  {
     name: 'collectYields',
     // Re-assigns citizens, then banks food, hammers, gold, science and culture.
     run: collectYields,
@@ -174,6 +185,16 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // separate channel (`City.culture`) that this phase never touches, which is
     // the whole of "do not double-spend". See `runStatecraft`.
     run: runStatecraft,
+  },
+  {
+    name: 'religion',
+    // The cadenced drafts — Keeper of the Calendar's almanac, and nothing else
+    // today. Directly after `statecraft` because it is the same shape one
+    // currency over: an offer dealt from `state.rng` at the end of a resolution,
+    // blocking End Turn until it is answered, on a board that has already grown,
+    // built and learnt this turn. It skips the wild for `runStatecraft`'s
+    // reason. See `openPeriodicOffers`.
+    run: openPeriodicOffers,
   },
   {
     name: 'expandBorders',

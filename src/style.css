@@ -6030,3 +6030,209 @@ kbd {
 .hint-alert {
   color: var(--vermilion);
 }
+
+/* ================= the Religion sheet ==================================
+   Statecraft's sibling and mostly its classes: the overlay, the sheet, the
+   head, the card face and the clause list are all shared, so the two screens
+   cannot drift on what a parchment sheet or a drafted card looks like. What is
+   its own is here, and it is three things — the axis accents, the pantheon's
+   places, and the rite reference.
+
+   The axis accent resolves through the same `--line-ink` custom property a
+   Statecraft line does, so a belief's frame rule, its glyph and its eyebrow are
+   three elements and one colour. Nine axes plus the neutral, and six of them
+   reuse an ink that already means the right thing (the hearth is the green
+   belt's growing ink, the sky is lapis, the forge is the forge levy's slate).
+   ====================================================================== */
+[data-axis='hearth'],
+[data-line='hearth'] {
+  --line-ink: var(--line-green);
+}
+
+[data-axis='sky'],
+[data-line='sky'] {
+  --line-ink: var(--line-star);
+}
+
+[data-axis='stone'],
+[data-line='stone'] {
+  --line-ink: var(--line-forge);
+}
+
+[data-axis='wild'],
+[data-line='wild'] {
+  --line-ink: var(--line-hunt);
+}
+
+[data-axis='water'],
+[data-line='water'] {
+  --line-ink: var(--line-wayfarers);
+}
+
+[data-axis='war'],
+[data-line='war'] {
+  --line-ink: var(--vermilion);
+}
+
+[data-axis='road'],
+[data-line='road'] {
+  --line-ink: var(--line-caravan);
+}
+
+[data-axis='sun'],
+[data-line='sun'] {
+  --line-ink: var(--gilt);
+}
+
+[data-axis='frost'],
+[data-line='frost'] {
+  --line-ink: var(--cobalt);
+}
+
+/* The neutral belief, which is most of the good ones — the same plain ink a
+   card that joins no Statecraft line takes. `[data-line='none']` above already
+   says it for the offer card; this says it for the pantheon's own slots. */
+[data-axis='none'] {
+  --line-ink: var(--line-none);
+}
+
+/* The pool, in the display face: this is the one number the screen exists for. */
+.rel-pool-figure {
+  margin: 2px 0 6px;
+  font-family: var(--face-num);
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  color: var(--y-faith);
+}
+
+.rel-slot-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* A place at the fire. Filled it is a card; empty it is the outline of one,
+   which is the same argument the Statecraft slot row makes — a row of places is
+   read as a row before any of the words are. */
+.rel-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  width: 168px;
+  min-height: 200px;
+  padding: 12px 12px 10px;
+  border: var(--border-thin) solid var(--line-ink, var(--ink));
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  text-align: center;
+  color: var(--line-ink, var(--ink));
+}
+
+.rel-slot-empty {
+  border-style: dashed;
+  border-color: var(--ink-faint);
+  background: transparent;
+  color: var(--ink-faint);
+  justify-content: center;
+}
+
+.rel-slot-ghost {
+  font-size: 28px;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+/* The axis glyph, sized like a card's emblem and inked like one. */
+.rel-card-emblem {
+  font-size: 26px;
+  line-height: 1;
+  margin: 2px 0;
+  color: var(--line-ink, var(--ink));
+}
+
+.rel-axis-mark {
+  color: var(--line-ink, var(--ink));
+}
+
+/* The price, line by line — rule 5 for a thing you buy, in the meter card's own
+   two-column shape so a breakdown reads the same wherever it appears. */
+.rel-price {
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0;
+}
+
+.rel-price-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 1px 0;
+}
+
+.rel-price-total {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: var(--border-thin) solid var(--ink-faint);
+  font-weight: 600;
+}
+
+.rel-buy-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rel-city-select {
+  font: inherit;
+  padding: 3px 6px;
+  border: var(--border-thin) solid var(--ink-faint);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+}
+
+.rel-rite-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.rel-rite {
+  padding: 8px 10px;
+  border-left: 2px solid var(--grape);
+  background: color-mix(in srgb, var(--parchment) 88%, transparent);
+}
+
+/* A rite the empire has not been taught. Greyed rather than hidden: a reference
+   that concealed what you have not learnt is a reference you cannot plan with. */
+.rel-rite-locked {
+  border-left-color: var(--ink-faint);
+  opacity: 0.62;
+}
+
+.rel-rite-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 2px;
+}
+
+.rel-rite-name {
+  font-family: var(--face-display);
+}
+
+.rel-rite-tech {
+  font-family: var(--face-num);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.rel-rite-say {
+  margin: 0 0 2px;
+  font-size: 13px;
+}

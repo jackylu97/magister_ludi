@@ -38,6 +38,9 @@
 import { fortifyBonus, isCivilian, isCombatant, isFortified, isRanged } from '../sim/combat';
 import type { ImprovementId } from '../sim/improvementData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
+import { isAugur } from '../sim/religion';
+import type { RiteId } from '../sim/religionData';
+import type { RiteOption } from './controls';
 import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
 import { explainAuthority, meterStanding } from '../sim/meters';
@@ -201,6 +204,26 @@ export interface UnitPanelOptions {
    */
   pillageBlocker: () => string | null | undefined;
   onPillage: () => void;
+  /**
+   * Why the selected augur cannot consecrate a god — the same three-valued
+   * shape as `foundCityBlocker`, answered by `controls.consecrateBlocker()`.
+   *
+   * A blocker rather than a list, because it is one verb: a pantheon with no
+   * room says so in one sentence, and the sentence is the reducer's own.
+   */
+  consecrateBlocker: () => string | null | undefined;
+  onConsecrate: () => void;
+  /**
+   * The rites this augur could perform where it stands —
+   * `controls.riteOptions()`, already carrying each row's blocker and payoff.
+   *
+   * A list rather than a blocker, because this verb is five verbs. Unlike the
+   * improvements, the rows the *tree* refuses stay on the list and are greyed
+   * with the node named: a rite is a permanent gift of a technology, and hiding
+   * one would make it something a player discovers by accident.
+   */
+  riteOptions: () => RiteOption[];
+  onPerformRite: (id: RiteId) => void;
   /** Drops the selection — the × button and, through `controls`, Escape. */
   onClose: () => void;
 }
@@ -271,6 +294,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onChop,
     pillageBlocker,
     onPillage,
+    consecrateBlocker,
+    onConsecrate,
+    riteOptions,
+    onPerformRite,
     onClose,
   } = options;
 
@@ -467,6 +494,31 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         run: onChop,
       });
     }
+    // The augur's two verbs, and the order is the decision: **Consecrate first**,
+    // because it is the one that spends the whole piece and the one a player is
+    // choosing *against* when they perform a rite instead. Its blocker sentence
+    // is the reducer's own — "Your pantheon has no room for another god" — so a
+    // greyed row explains itself rather than merely refusing.
+    if (isAugur(unit)) {
+      const blocker = consecrateBlocker();
+      actions.push({
+        label: 'Consecrate',
+        blocked: blocker === undefined ? 'No unit selected' : blocker,
+        hint: 'Spend this augur — the whole of it — to name a god of your pantheon',
+        run: onConsecrate,
+      });
+      for (const rite of riteOptions()) {
+        actions.push({
+          label: rite.name,
+          blocked: rite.blocked,
+          hint:
+            `Spend a rite: ${rite.name.toLowerCase()}` +
+            (rite.preview ? ` · ${rite.preview}` : ''),
+          title: techHoverTitle(rite.requiredTechName, rite.blocked),
+          run: () => onPerformRite(rite.id),
+        });
+      }
+    }
     // Pillage is offered to anything that can fight, and merely *disabled* when
     // there is nothing here to burn — Fortify's reading rather than the
     // improvements' one, because "there is nothing to pillage" is a fact about
@@ -560,7 +612,14 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // being left to be inferred from how many buttons the actions list has.
     if (isBuilder(unit)) {
       const left = chargesLeft(unit);
-      stats.append(stat('Charges', `⚒ ${left}/${def.charges ?? left}`, left <= 1));
+      // The same field, two vocabularies: a worker's charges are spadework and
+      // an augur's are **rites** (`UnitDef.consecrates` is the marker, not the
+      // type's name). One line rather than two blocks, because it is one number
+      // — the scarcest thing about either piece.
+      const rites = isAugur(unit);
+      stats.append(
+        stat(rites ? 'Rites' : 'Charges', `${rites ? '✧' : '⚒'} ${left}/${def.charges ?? left}`, left <= 1),
+      );
     }
     // The fighting numbers, and only for things that fight: a settler's sheet
     // does not carry a strength of zero, which would read as a statistic rather

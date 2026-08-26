@@ -131,6 +131,87 @@ Augur 40🕯 +15; prophet 150🕯 escalating; rite amounts; belief numbers — a
 playtest. Faith income today is ~2–5/turn from shrines/temples/luxuries/cards; the augur
 price implies the first augur ~turn 15–20 after Divination, which feels right.
 
+## Built — v1, 2026-08-26 (ledger Entry XXVIII)
+
+**The augur and pantheon half shipped whole.** Prophets, religions and spread are the Age
+2–3 pass, exactly as the scope ruling above sequences them.
+
+### The agents
+
+| Row | Built | Notes |
+|---|---|---|
+| **Augur** | ✅ everything above | `data/units.json`, `consecrates: true` (the marker — nothing in `src/sim/` compares a type against `"augur"`), 3 charges shared with the worker's machinery, `purchase: { currency: 'faith', cost: 40, increment: 15, exclusive: true }`. `exclusive` is what makes production refuse it, in `buildError`, with the bank named. |
+| **Prophet** | ⏳ Age 2–3 | Waits on The High Temple, which does not exist in the tree yet. |
+
+`purchaseUnit { playerId, cityId, unitType, currency }` is the command, currency-agnostic in
+shape and faith-funded in fact: the currency is *checked against the roster row*, so asking
+to buy an augur with gold is told which bank the thing is priced in rather than quietly
+charged faith. The price is `explainPurchaseCost` — an ordered list of labelled lines whose
+fold is the figure, `explainUnitCost`'s shape in a bank.
+
+**Stacking is deliberately not asked of a purchase**, because `settleProduction` does not ask
+it either: a bought piece arrives exactly as a built one does. Asking would also have made
+the augur nearly unbuyable early, when a town's own tile usually has a worker on it.
+
+### Slots
+
+| Source | Built |
+|---|---|
+| Divination → 2 | ✅ `slotsFromTech` in `data/religion.json`, **derived never stored** |
+| The High Temple → +1 | ⏳ one JSON row, the day the node exists |
+| Founder / follower / enhancer | ⏳ Age 2–3 |
+
+### Rites — all five, end to end
+
+| Rite | Built | Notes |
+|---|---|---|
+| Rite of the Harvest | ✅ | `settlePopulationWindfall` — grants the citizen outright, pays the growth riders, settles production, re-seats the town. Tenth entry in the mid-turn register. |
+| Omen Reading | ✅ | +15🔬 through `settleResearchWindfall`; the lasting half is a `countScaled` over `scienceBuildings`, 20 turns. |
+| Consecration of the Bounds | ✅ | +15🎵 to the **border basket** (a separate channel from the draft pool); +30% through a timed `rulePercent` on `borderCulture`. |
+| Blessing of Arms | ✅ | Heals whole; +5 as a timed `combatLine` on the **unit**, 5 turns, itemised in the forecast. |
+| Rite of Plenty | ✅ | +25💰; the lasting half is a timed `tileYield` on this **city's** context, beside the granary's. |
+| Funeral Rites | ⏳ | Waits on The High Temple, as this doc says. |
+
+Each is an `unlocks.abilities` entry on its technology and the **ability id is the rite's
+id**. `performRite { playerId, unitId, rite, target? }` spends one charge; an absent target
+means "where the augur stands", reach is one hex, and an augur that empties is removed from
+the board exactly as a worker is.
+
+### The pantheon pool — all eighteen live
+
+Every row ships. Three notes:
+
+- **Lord of the Sea** is live: fishing boats now pay +1🌾 +1🪙 in `data/improvements.json`
+  (the water milestone's stated deviation, closed in this pass) and the belief adds +1⚙ +1💰
+  on top.
+- **Ancestor Worship**'s second clause was **ratified sideways**: "+5% culture per city of
+  10+ population" ships as "+5% culture *in* every city of 10+", one `percentYields` with a
+  `populationAtLeast` scope. More legible, and it needs no parameterised count.
+- **Keeper of the Calendar** needed the one genuinely new effect shape, `periodicOffer` — the
+  only effect in the vocabulary whose subject is the calendar. Its cadence is
+  `turn % every === 0`, absolute, so no counter exists to be skipped or double-ticked; its
+  second clause is `windfallRider { occasion: 'discovery', perAge: true }`.
+
+### Deferred, with the reason
+
+| Row | Waits for |
+|---|---|
+| Prophets, founding, founder/follower/enhancer pools | The High Temple (Age 2) and the Age 2–3 tree pass |
+| Spread, pressure, conversion, Inquisition, Missionary Zeal | The same pass — this is the *religion*, where the pantheon is the *cult* |
+| Theocratic Mandate | The Religious Mandate doctrine's deferred half |
+| Funeral Rites | The High Temple |
+| A `percent` rider on the `rite` windfall occasion | A rite has no single figure to scale; the honest fix is a marker on the row naming its headline voice |
+| Faith-purchasable buildings | "Maybe never — keep faith legible", as above |
+| A distinct augur sculpt and badge cell | An art pass. It wears the worker's silhouette; the unit sheet says *Rites ✧* rather than *Charges ⚒* |
+
+### Measured
+
+The scripted pious empire (three towns, a shrine in each, Divination first) buys its **first
+augur on turn 49** — about thirty-five turns after Divination rather than the fifteen to
+twenty this doc's open numbers predicted, because a shrine-only empire earns roughly one
+faith a turn. Recorded rather than tuned away: the lever is **faith income**, not the price,
+since cheapening the agent would flatten the escalation the anti-spam structure rests on.
+
 ## Revisions
 
 *(yours — edit away)*
