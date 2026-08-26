@@ -2280,3 +2280,26 @@ The interface honours the naming bible (Entry X) exactly: the screen says **Orde
 **Doctrines** and never "policy", "civic" or "card" at the player. The Doctrine and
 government offers wear the *same* offer card in a heavier gilt frame rather than a second
 component — same bones, same keyboard contract, one CSS rule about what gilt means.
+
+---
+
+## Entry XXIII — Netcode architecture: lockstep with a referee (recorded 2026-08-26, for M14)
+
+The game is entirely client-side today and stays that way for single-player. For
+multiplayer, nothing migrates: **the server runs the same `src/sim` unchanged** (pure TS,
+no DOM/clock/Math.random — the CLAUDE.md purity rule is what makes this possible; protect it).
+
+- **Clients** run the sim locally: own commands validate instantly, no round trip.
+- **The server** (a separate small Web Service; the client stays a Static Site) does three
+  things: **lobby** (match seats), **order** (commands into the one canonical log —
+  contention by log order, the existing rule), **relay**. It also **replays** the log through
+  the same sim, which makes it authoritative for free: illegal commands from a hacked client
+  are refused by its own `applyCommand`; periodic client state hashes vs. the server's
+  detect desync and the server wins; reconnection = replay the log. AI seats run server-side
+  in multiplayer.
+- **Known limitation, accepted**: every client holds full state, so hidden information
+  (fog) is peekable by a determined cheater. A filtered-view authoritative server would be a
+  sim redesign; friends-scale play does not justify it (Civ V's own lockstep has the same
+  property). Revisit only if the product becomes ranked/public.
+- Hosting: two services from one repo when the time comes (`render.yaml`: static client +
+  `server/` web service); the client can move to any CDN independently.
