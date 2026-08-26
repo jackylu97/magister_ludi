@@ -5,6 +5,7 @@ import {
   advanceFortify,
   applyCombat,
   attackTargetAt,
+  foldCombatStrength,
   fortifyBonus,
   hasLineOfSight,
   isFortified,
@@ -1236,5 +1237,104 @@ describe('a war replays exactly', () => {
     // A capture is not a fight: no blow is struck, so no die is thrown and the
     // generator is exactly where it was.
     expect(state.rng).toEqual(rngBefore);
+  });
+});
+
+/**
+ * **The forecast's headline is a fold** (user, 2026-08-26: "combat info should
+ * show attack strength of each unit").
+ *
+ * Hard rule 5 read at the card: `attackerStrength` and `defenderStrength` are
+ * the sum of `attackerLines` and `defenderLines` and are never computed beside
+ * them. The identity is what makes the card printable without arithmetic on the
+ * interface's side, so it is asserted directly rather than through the numbers
+ * it happens to produce today — a retune of the river penalty or the wild's tax
+ * must not be able to break the card without breaking this.
+ */
+describe('the strength breakdown', () => {
+  it('folds to the two strengths, on the plainest possible fight', () => {
+    const state = flatState();
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    createUnit(state, 1, 'warrior', 4, 3);
+    const view = forecast(state, a.id, 4, 3);
+
+    expect(foldCombatStrength(view.attackerLines)).toBe(view.attackerStrength);
+    expect(foldCombatStrength(view.defenderLines)).toBe(view.defenderStrength);
+    // On bare ground against an unfortified equal, each side is one line: its
+    // own printed strength. A card with more lines than that would be inventing
+    // reasons.
+    expect(view.attackerLines).toEqual([
+      { source: 'Warrior', amount: unitDef('warrior').combatStrength },
+    ]);
+    expect(view.defenderLines).toEqual([
+      { source: 'Warrior', amount: unitDef('warrior').combatStrength },
+    ]);
+  });
+
+  it('keeps folding once the ground, the trench and the ford are in it', () => {
+    const state = flatState();
+    const tile = at(state.map, 4, 3);
+    tile.hills = true;
+    tile.feature = 'forest';
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const d = createUnit(state, 1, 'warrior', 4, 3);
+    setRiverEdge(state.map, at(state.map, 3, 3), 0);
+    // Two turns of digging in, so the fortification line is a real one.
+    d.fortifiedTurns = 2;
+
+    const view = forecast(state, a.id, 4, 3);
+    expect(view.acrossRiver).toBe(true);
+    expect(foldCombatStrength(view.attackerLines)).toBeCloseTo(view.attackerStrength, 10);
+    expect(foldCombatStrength(view.defenderLines)).toBeCloseTo(view.defenderStrength, 10);
+
+    // The attacker's ford is a line of its own, and it takes points away.
+    const ford = view.attackerLines.find((line) => line.source.startsWith('across a river'));
+    expect(ford).toBeDefined();
+    expect(ford!.amount).toBeLessThan(0);
+    // The defender's two reasons are apart, because they are two decisions: the
+    // hex it stands on, and the turns it spent standing there.
+    const sources = view.defenderLines.map((line) => line.source);
+    expect(sources.some((source) => source.startsWith('terrain '))).toBe(true);
+    expect(sources.some((source) => source.startsWith('fortified '))).toBe(true);
+  });
+
+  it('itemises a city as walls, citizens and whatever the cards added', () => {
+    const state = flatState();
+    const city = foundCityAt(state, 1, at(state.map, 8, 4));
+    const a = createUnit(state, 0, 'warrior', 7, 4);
+    const view = forecast(state, a.id, 8, 4);
+
+    expect(foldCombatStrength(view.defenderLines)).toBe(view.defenderStrength);
+    expect(view.defenderLines[0]).toEqual({ source: 'walls', amount: COMBAT.cityBaseStrength });
+    // A town of one citizen says so, in the singular.
+    expect(view.defenderLines[1]).toEqual({
+      source: `${city.population} citizen`,
+      amount: COMBAT.cityStrengthPerPop * city.population,
+    });
+  });
+
+  it('gives the wild\'s tax to the side that is actually owed it', () => {
+    const game = createGame({
+      seed: 1,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#a00', isHuman: true }],
+      barbarians: true,
+    });
+    const state = game.state;
+    state.map = createMap({ width: 16, height: 8, terrain: 'grassland' });
+    resetVisibility(state);
+    state.tileOwner = new Array<number | null>(16 * 8).fill(null);
+    state.units = [];
+    state.cities = [];
+    state.nextEntityId = 1;
+    const wildId = state.players.length - 1;
+
+    const mine = createUnit(state, 0, 'warrior', 3, 3);
+    createUnit(state, wildId, 'warrior', 4, 3);
+    const view = forecast(state, mine.id, 4, 3);
+
+    expect(foldCombatStrength(view.attackerLines)).toBe(view.attackerStrength);
+    expect(view.attackerLines.map((line) => line.source)).toContain('vs barbarians');
+    expect(view.defenderLines.map((line) => line.source)).not.toContain('vs barbarians');
   });
 });

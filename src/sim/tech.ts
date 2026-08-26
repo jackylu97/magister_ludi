@@ -81,7 +81,12 @@ import {
   turnsToFill,
 } from './cities';
 import type { Tile } from './map';
-import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
+import {
+  CITY_YIELD_KEYS,
+  type ResourceId,
+  resourceDef,
+  resourceIsVisibleTo,
+} from './resourceData';
 import { RULES } from './rulesData';
 import { payWindfallGrants, settleCultureWindfall, windfallPayout } from './statecraft';
 import {
@@ -614,11 +619,11 @@ export function buildingYieldDelta(
     const toward = city.queue[0];
     const now = cityYields(state, city, [], toward);
     const after = cityYields(state, city, [id], toward);
-    total.food += after.food - now.food;
-    total.production += after.production - now.production;
-    total.gold += after.gold - now.gold;
-    total.science += after.science - now.science;
-    total.culture += after.culture - now.culture;
+    // Every voice, off the key list rather than by hand: the fifth reading was
+    // missing the day faith became a thing a building could pay (the shrine and
+    // the temple, 2026-08-26), which is exactly the drift a hand-written fold
+    // invites.
+    for (const key of CITY_YIELD_KEYS) total[key] += after[key] - now[key];
   }
   return total;
 }

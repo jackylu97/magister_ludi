@@ -25,8 +25,14 @@
         "grassland",
         "plains"
       ],
+      "freshwaterTerrain": [
+        "desert",
+        "tundra",
+        "snow"
+      ],
       "validFeatures": [
-        "none"
+        "none",
+        "floodplain"
       ],
       "requiresHills": false,
       "improvesResource": [

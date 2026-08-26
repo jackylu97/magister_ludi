@@ -8,8 +8,8 @@
  * Effects are flat modifier fields, not a scripting hook
  * -----------------------------------------------------
  * A building's effect is a handful of numbers a city adds up — `food`,
- * `production`, `gold`, `science`, `culture`, `sciencePerPop` — rather than a
- * named behaviour the simulation
+ * `production`, `gold`, `science`, `culture`, `faith`, `sciencePerPop` — rather
+ * than a named behaviour the simulation
  * switches on. That is a deliberate ceiling: everything Milestone 3 needs is a
  * sum, and a sum can be read out of a data file, totalled in one place
  * (`cityYields` in `cities.ts`) and displayed in the city panel without any
@@ -108,6 +108,14 @@ export interface BuildingYield {
   /** Flat beakers, as opposed to the per-citizen term. */
   science?: number;
   culture?: number;
+  /**
+   * Flat faith. The sixth voice, and the last of them to reach this table:
+   * faith was a *tile* yield and a luxury's until the shrine and the temple
+   * were moved off culture onto it (user, 2026-08-26), which is the whole of
+   * why a building may pay it at all. Accumulate-only downstream, exactly as
+   * every other faith source is — see `Player.faithPool`.
+   */
+  faith?: number;
   /** Science per population point, floored when applied. See the docblock. */
   sciencePerPop?: number;
 }
@@ -149,6 +157,17 @@ export interface BuildingDef {
   science: number;
   /** Flat culture added to the city's total every turn. */
   culture: number;
+  /**
+   * Flat faith added to the city's total every turn, or absent for none.
+   *
+   * The one **optional** field among the six voices, and deliberately: every
+   * other one is required so that a designer reading a row never has to
+   * remember a default, but faith arrived after the table was written and
+   * making it required would have meant `"faith": 0` on twenty rows that have
+   * nothing to do with it. Absent means zero, and `explainBuildingYield` is
+   * where that is read.
+   */
+  faith?: number;
   /** Science per population point, floored when applied. See the docblock. */
   sciencePerPop: number;
   /**

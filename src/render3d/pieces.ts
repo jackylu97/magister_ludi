@@ -603,7 +603,7 @@ export class UnitLayer {
           );
         }
       }
-      this.addHpBar(unit, placement, visualHeight, geometry, collector, faceCamera);
+      this.addHpBar(unit, placement, visualHeight, geometry, collector, faceCamera, slots);
     }
 
     this.drawCallCount = collector.flush(this.group, materials, shadows);
@@ -744,6 +744,21 @@ export class UnitLayer {
    *
    * The bar is only drawn below full health, so a board where nothing has
    * fought yet carries no bars at all.
+   *
+   * **Both instances go into `slots`**, like every other part of a piece, and
+   * the day they did not was the bug (user, 2026-08-26: "health bars bugged...
+   * when there are 3 units adjacent to each other, the combat somehow modifies
+   * the health bar of the third unit"). `slots` is `this.handles.get(unit.id)`
+   * — the list `hide` and `restore` move — so a bar left out of it was a bar
+   * that stayed lit over the hex a piece had walked out of. On a board where
+   * three units stand adjacent, a bar hanging over an empty hex reads as
+   * belonging to whichever piece is standing beside it, which is exactly the
+   * "third unit's bar changed" the report describes. Nothing about combat was
+   * wrong; the bar simply never left.
+   *
+   * The rule this is a case of: **every instance a piece is made of belongs to
+   * that piece's slot list.** A visual added here without pushing its handle is
+   * a visual `hide` cannot take off the board.
    */
   private addHpBar(
     unit: Unit,
@@ -752,6 +767,7 @@ export class UnitLayer {
     geometry: BoardGeometry,
     collector: InstanceCollector,
     faceCamera: Quaternion,
+    slots: InstanceHandle[],
   ): void {
     const maxHp = unitDef(unit.type).maxHp;
     const fraction = Math.max(0, Math.min(1, unit.hp / maxHp));
@@ -768,14 +784,16 @@ export class UnitLayer {
       .setY(placement.position.y + hpBarY(visualHeight))
       .addScaledVector(right, -HP.width / 2);
 
-    collector.add(
-      geometry.bar,
-      [HP.backColor],
-      new Matrix4().compose(anchor, faceCamera, new Vector3(HP.width, HP.height, 1)),
-      // On top: a health bar behind a pine tree is a health bar nobody can read.
-      // And above the badge it is stacked on, which is where it sits in the
-      // world too — the bar may not be clipped by the disc under it.
-      { onTop: true, opacity: 1, order: RENDER_ORDER.hpBar },
+    slots.push(
+      collector.add(
+        geometry.bar,
+        [HP.backColor],
+        new Matrix4().compose(anchor, faceCamera, new Vector3(HP.width, HP.height, 1)),
+        // On top: a health bar behind a pine tree is a health bar nobody can read.
+        // And above the badge it is stacked on, which is where it sits in the
+        // world too — the bar may not be clipped by the disc under it.
+        { onTop: true, opacity: 1, order: RENDER_ORDER.hpBar },
+      ),
     );
     // A hair nearer the eye than the backing, so the two never z-fight. Neither
     // writes depth and — being `onTop` — neither tests it either, so what puts
@@ -785,11 +803,13 @@ export class UnitLayer {
       new Vector3(0, 0, 1).applyQuaternion(faceCamera),
       0.01,
     );
-    collector.add(
-      geometry.bar,
-      [fraction > 0.5 ? HP.goodColor : HP.fillColor],
-      new Matrix4().compose(front, faceCamera, new Vector3(HP.width * fraction, HP.height, 1)),
-      { onTop: true, opacity: 1, order: RENDER_ORDER.hpBar },
+    slots.push(
+      collector.add(
+        geometry.bar,
+        [fraction > 0.5 ? HP.goodColor : HP.fillColor],
+        new Matrix4().compose(front, faceCamera, new Vector3(HP.width * fraction, HP.height, 1)),
+        { onTop: true, opacity: 1, order: RENDER_ORDER.hpBar },
+      ),
     );
   }
 

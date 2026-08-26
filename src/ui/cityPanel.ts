@@ -350,6 +350,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       [YIELD_GLYPH.gold, def.gold],
       [YIELD_GLYPH.science, def.science],
       [YIELD_GLYPH.culture, def.culture],
+      [YIELD_GLYPH.faith, def.faith ?? 0],
     ];
     for (const [glyph, value] of flat) {
       if (value !== 0) notes.append(note(`${value > 0 ? '+' : ''}${value}${glyph} every turn`));
@@ -383,6 +384,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         gold: upgrade.add.gold ?? 0,
         science: upgrade.add.science ?? 0,
         culture: upgrade.add.culture ?? 0,
+        faith: upgrade.add.faith ?? 0,
         sciencePerPop: upgrade.add.sciencePerPop ?? 0,
       });
       notes.append(note(`${figures} with ${techDef(upgrade.tech).name}`));
@@ -408,7 +410,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * What one line of a building's breakdown pays, in the yields' own glyphs:
    * `+3🌾`, `+1🔬/pop`. Empty for a line that pays nothing at all — a barracks
    * has no yields of its own and is listed below as the modifier it is, not
-   * here as a row of five zeroes.
+   * here as a row of six zeroes.
    */
   function buildingFigures(entry: BuildingYieldContribution): string {
     const parts: string[] = [];
@@ -418,6 +420,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       [entry.gold, YIELD_GLYPH.gold],
       [entry.science, YIELD_GLYPH.science],
       [entry.culture, YIELD_GLYPH.culture],
+      [entry.faith, YIELD_GLYPH.faith],
     ];
     for (const [value, glyph] of voices) {
       if (value === 0) continue;

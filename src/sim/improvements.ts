@@ -99,6 +99,7 @@ import {
   featureDef,
 } from './terrainData';
 import { unitDef } from './unitData';
+import { hasFreshWater } from './water';
 
 const IMPROVEMENTS = RULES.improvements;
 
@@ -135,6 +136,17 @@ export function chargesLeft(unit: Unit): number {
  * off the row (see `improvementData.ts`), and the messages name the filter that
  * actually refused so the player is told the one true thing rather than "you
  * cannot build that here".
+ *
+ * Two clauses are not filters on the row and are written here because they are
+ * facts about the *ground*, not about the improvement:
+ *
+ *   · **`freshwaterTerrain` widens `validTerrain` on ground that can drink** —
+ *     the one seam in the AND, and the only reason a farm reaches a riverside
+ *     desert. See the field's docblock for why it is a union rather than a
+ *     fifth filter.
+ *   · **A seam claims its own hex.** A resource some improvement opens will take
+ *     that improvement and no other, so the wrong one is refused by name. See
+ *     the clause; it is `chopErrorAt`'s protection rule read forwards.
  */
 export function improvementErrorAt(
   state: GameState,
@@ -163,7 +175,17 @@ export function improvementErrorAt(
   }
 
   if (def.validTerrain !== undefined && !def.validTerrain.includes(tile.terrain)) {
-    return `A ${def.name.toLowerCase()} cannot be built on ${tile.terrain}`;
+    // The one seam in the AND: `freshwaterTerrain` *widens* the list on ground
+    // that can drink (user, 2026-08-26 — a riverside desert or tundra takes a
+    // farm; grassland and plains never needed the water). Two refusals, and the
+    // difference between them is what a player does next: dry ground the row
+    // will never accept, against ground it would accept if it were watered.
+    if (!(def.freshwaterTerrain ?? []).includes(tile.terrain)) {
+      return `A ${def.name.toLowerCase()} cannot be built on ${tile.terrain}`;
+    }
+    if (!hasFreshWater(tile)) {
+      return `A ${def.name.toLowerCase()} on ${tile.terrain} needs fresh water`;
+    }
   }
   if (def.validFeatures !== undefined && !def.validFeatures.includes(tile.feature)) {
     return `A ${def.name.toLowerCase()} cannot be built in ${tile.feature}`;
@@ -176,6 +198,41 @@ export function improvementErrorAt(
   if (def.requiresResource !== undefined) {
     if (tile.resource === undefined || !def.requiresResource.includes(tile.resource)) {
       return `A ${def.name.toLowerCase()} needs a resource it can work`;
+    }
+  }
+  // **The ground the seam is on belongs to the seam.** A resource that some
+  // improvement opens (`improvementForResource`, the table's own inverse) will
+  // take that improvement and no other, so a farm on a deer forest or a mine on
+  // wheat is refused here rather than left as a mistake a player discovers three
+  // turns later by noticing the luxury never arrived. Honey was the row that
+  // made this urgent: it is the only luxury whose home is bare flat grassland,
+  // which is *exactly* where a farm goes, and the farm's +1🌾 reads plausible
+  // enough that nobody suspects the plantation they never built.
+  //
+  // Two things bound it, and both are deliberate:
+  //
+  //   · **Revealed only**, `chopErrorAt`'s rule and for its reason: a refusal
+  //     naming a resource the player has not researched the word for would leak
+  //     the map through an error message.
+  //   · **A bonus resource nothing improves stays free** — `improvementForResource`
+  //     answers `null` for it, and bare ground is bare ground.
+  //
+  // It is not a trap door: an improvement *replaces* whatever stands on the tile
+  // (see `buildImprovementAt`), so a farm laid over an unrevealed seam is
+  // recoverable the day the seam is named.
+  if (tile.resource !== undefined) {
+    const owningPlayer = playerById(state, ownerId);
+    const wanted = improvementForResource(tile.resource);
+    if (
+      wanted !== null &&
+      wanted !== improvementId &&
+      owningPlayer !== undefined &&
+      resourceIsVisibleTo(tile.resource, owningPlayer.techsResearched)
+    ) {
+      return (
+        `${resourceDef(tile.resource).name} wants a ` +
+        `${improvementDef(wanted).name.toLowerCase()}`
+      );
     }
   }
   // The technology **last**, after every question about the ground, which is the

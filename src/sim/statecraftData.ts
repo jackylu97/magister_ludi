@@ -31,9 +31,15 @@
  * ------
  * An Order drafted twice is *deepened* rather than duplicated (Entry XV's
  * upgrade slot). A level-2 card's numbers are its printed numbers scaled by
- * `upgradeMultiplier` (default 1.5, per-effect override with `upgradeScale`),
- * floored per figure. Scaling lives in the evaluator rather than in the data, so
- * a retune is one number and not sixty-five.
+ * `upgradeMultiplier` (1.5), floored per figure — and **advanced by at least one
+ * whole point per level**, which is the clause that makes a card printing a
+ * single point upgradable at all (`scaleByLevel`, fixed 2026-08-26; a third of
+ * the table had been offerable as an upgrade that did nothing). Scaling lives in
+ * the evaluator rather than in the data, so a retune is one number and not
+ * sixty-five.
+ *
+ * A card with **no figure at all** is the one thing that rule cannot reach, and
+ * it says so on its row: see `CardDefBase.upgradable`.
  */
 
 import statecraftJson from '../../data/statecraft.json';
@@ -623,6 +629,27 @@ export interface CardDefBase {
   note?: string;
   /** Named halves that are deliberately absent. See `docs/statecraft-cards.md`. */
   deferred?: string[];
+  /**
+   * False for a card the upgrade slot must never roll. **Absent means yes.**
+   *
+   * The second half of the 2026-08-26 upgrade fix (user: "some cards don't have
+   * an upgrade"). `scaleByLevel` now guarantees that any *figure* advances by at
+   * least a point per level, which reaches every card that prints a number. It
+   * cannot reach a card that prints none — an `actionRule` is a switch, and a
+   * switch has no louder setting — and an offer that deepened one would be a
+   * draft option that changed nothing, which is the one thing a draft may never
+   * be.
+   *
+   * So such a card says so on its row and `drawOrderOffer` skips it. It is a
+   * **declaration, not a shrug**: a card marked this way is a card somebody has
+   * decided has no second face, and giving it one later is deleting this field
+   * and writing the clause. `test/sim/statecraft.test.ts` holds the two halves
+   * together — every upgradable card's level-2 face must differ from its
+   * level-1 face, and every non-upgradable card must genuinely have nothing to
+   * scale, so the flag cannot be used to paper over a row that simply needs a
+   * bigger number.
+   */
+  upgradable?: boolean;
   effects: CardEffect[];
 }
 

@@ -93,7 +93,12 @@ import {
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
-import { type GameControls, type NoticeKind, createGameControls } from './ui/controls';
+import {
+  type GameControls,
+  type NoticeKind,
+  createGameControls,
+  wantsNativeContextMenu,
+} from './ui/controls';
 import { type DamageNumbers, createDamageNumbers } from './ui/damageNumbers';
 import {
   type NotificationAction,
@@ -139,6 +144,36 @@ const endTurnLabelEl = requireElement<HTMLElement>('end-turn-label');
 const landingEl = requireElement<HTMLElement>('landing');
 const landingForm = requireElement<HTMLFormElement>('landing-setup');
 const landingErrorEl = requireElement<HTMLElement>('landing-error');
+
+/**
+ * The right button belongs to the game, and this is the one place that is said.
+ *
+ * Installed **at the document** rather than on the viewport, which is what
+ * shipped and what leaked: right-drag pans with the pointer captured by the
+ * viewport, but `contextmenu` is a mouse event and is hit-tested normally, so
+ * every pan that ended with the cursor over a banner, a price tag, a toast, a
+ * popover or the unit sheet fired the browser's menu on a surface that had
+ * never heard of the rule. The condition is a fact about the *page* — is a
+ * board on screen at all — so it is enforced where the page is known, and
+ * `landingEl.hidden` is already the single answer to that (see `showLanding`).
+ *
+ * Two exemptions, and only two. The **landing** keeps the whole native menu: it
+ * is a form, not a board, and a player pasting a seed should be able to paste a
+ * seed. Over a live game, `wantsNativeContextMenu` keeps it for a text field
+ * and nothing else — the save-name box is the one that matters today.
+ *
+ * Capture phase, so a surface that stops propagation on its own listeners
+ * cannot accidentally opt itself back into a browser menu.
+ */
+document.addEventListener(
+  'contextmenu',
+  (event) => {
+    if (!landingEl.hidden) return;
+    if (wantsNativeContextMenu(event.target as HTMLElement | null)) return;
+    event.preventDefault();
+  },
+  true,
+);
 const startButton = requireElement<HTMLButtonElement>('start-game');
 const restartButton = requireElement<HTMLButtonElement>('restart');
 const restartConfirmEl = requireElement<HTMLElement>('restart-confirm');
@@ -715,8 +750,22 @@ function describeUnitsOn(state: GameState, playerId: number, tile: Tile): string
 }
 
 /**
- * The combat forecast block: both damage figures with their bands, and the two
- * hit-point bars they would leave behind.
+ * A strength for the forecast card: whole when it is whole, one decimal when the
+ * multipliers left it fractional.
+ *
+ * Terrain and fortification are fractions of a small integer, so a defender's
+ * effective strength is very often something like 8.5 — and rounding it to 9 on
+ * the card while the curve fights with 8.5 would be the card lying about the
+ * evaluator it is a view of. One decimal is the least that never does that.
+ */
+function strengthFigure(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+/**
+ * The combat forecast block: the two effective strengths over the lines they
+ * fold from, both damage figures with their bands, and the two hit-point bars
+ * they would leave behind.
  *
  * Every number comes from `previewCombat` and none is recomputed here, which is
  * the whole point (Entry VIII, applied to violence): the card is a *view* of the
@@ -748,6 +797,51 @@ function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>)
       ? `Shoot ${preview.defenderName}`
       : `Attack ${preview.defenderName}`;
   combatForecastEl.append(head);
+
+  /**
+   * The two effective strengths, as the card's **headline** (user, 2026-08-26:
+   * "combat info should show attack strength of each unit"), each over the lines
+   * it is the fold of.
+   *
+   * Rule 5, and the card's job here is only to *print* it: `attackerLines` and
+   * `defenderLines` come out of `planCombat` already folding to the numbers
+   * above them, so nothing is summed on this side of the wall. A capture is the
+   * one case with no strengths worth reading — nobody fights — and it returns
+   * before this block below.
+   */
+  function strengthColumn(
+    label: string,
+    strength: number,
+    lines: readonly { source: string; amount: number }[],
+    tone: 'attacker' | 'defender',
+  ): HTMLElement {
+    const column = document.createElement('div');
+    column.className = `combat-strength is-${tone}`;
+
+    const who = document.createElement('span');
+    who.className = 'combat-strength-label';
+    who.textContent = label;
+
+    const figure = document.createElement('span');
+    figure.className = 'combat-strength-figure';
+    figure.textContent = strengthFigure(strength);
+
+    const list = document.createElement('ul');
+    list.className = 'combat-strength-lines';
+    for (const line of lines) {
+      const row = document.createElement('li');
+      const source = document.createElement('span');
+      source.textContent = line.source;
+      const amount = document.createElement('span');
+      amount.className = 'combat-strength-amount';
+      amount.textContent = `${line.amount > 0 ? '+' : ''}${strengthFigure(line.amount)}`;
+      row.append(source, amount);
+      list.append(row);
+    }
+
+    column.append(who, figure, list);
+    return column;
+  }
 
   /** One side of the trade: a damage figure, its band, and the bar it leaves. */
   function side(
@@ -805,6 +899,14 @@ function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>)
     return;
   }
 
+  const strengths = document.createElement('div');
+  strengths.className = 'combat-strengths';
+  strengths.append(
+    strengthColumn(preview.attackerName, preview.attackerStrength, preview.attackerLines, 'attacker'),
+    strengthColumn(preview.defenderName, preview.defenderStrength, preview.defenderLines, 'defender'),
+  );
+  combatForecastEl.append(strengths);
+
   combatForecastEl.append(
     side(
       preview.defenderName,
@@ -830,23 +932,12 @@ function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>)
     );
   }
 
-  // What is making the defender hard to kill, and what is making the attacker
-  // weak — the itemisation behind the two strengths above.
+  // Whatever is left to say once the two columns have said the rest. Terrain,
+  // fortification, the ford and every flat bonus are **strength lines** now and
+  // are printed under the side they belong to — repeating them here was the same
+  // sentence twice, and worse, it was the same sentence with the reasons pooled
+  // so a reader could not tell which side each one helped.
   const modifiers: string[] = [];
-  if (preview.terrainBonus > 0) {
-    modifiers.push(`terrain +${Math.round(preview.terrainBonus * 100)}%`);
-  }
-  if (preview.fortifyBonus > 0) {
-    modifiers.push(`fortified +${Math.round(preview.fortifyBonus * 100)}%`);
-  }
-  if (preview.acrossRiver) modifiers.push('across a river');
-  // The flat lines, from the same plan the strengths above were folded from
-  // (`CombatBonusLine`) — "vs barbarians +2" today, a promotion tomorrow. Printed
-  // as points rather than as a percentage because that is what they are, and
-  // because a bonus shown in the wrong unit is a bonus a player mis-plans around.
-  for (const line of preview.bonuses) {
-    modifiers.push(`${line.source} +${line.amount}`);
-  }
   if (preview.capturesCity) modifiers.push('would take the city');
   if (modifiers.length > 0) {
     const note = document.createElement('p');

@@ -18,6 +18,10 @@
  *     requiresHills    the tile's `hills` flag must equal this      (optional)
  *     requiresResource the tile must carry one of these resources   (optional)
  *
+ * with exactly one seam in the AND, `freshwaterTerrain`, which *widens*
+ * `validTerrain` on ground that can drink rather than adding a filter of its
+ * own. See the field; the farm is its only user and the reason it exists.
+ *
  * `requiresTech` sits beside them and is the one filter that is *not* about the
  * ground: it asks the worker's owner rather than the hex, which is why it is
  * documented on the field and not in this shape. Every improvement carries one
@@ -170,6 +174,22 @@ export interface ImprovementDef {
   yields: TileYieldSpec;
   /** Terrains this may be built on, or absent for "any". See the docblock. */
   validTerrain?: TerrainId[];
+  /**
+   * Terrains this may **also** be built on when the tile can drink
+   * (`hasFreshWater`), or absent for "fresh water changes nothing".
+   *
+   * The one place the constraint shape is not a plain AND, and it is a *union*
+   * rather than a second filter for exactly that reason: it widens
+   * `validTerrain` on watered ground instead of adding a clause every other row
+   * would then have to opt out of. Read as one sentence off the farm's row —
+   * "grassland and plains, and any flat desert, tundra or snow that can drink"
+   * (user, 2026-08-26). Grassland and plains keep working dry, which is what
+   * makes this a widening and not a new requirement.
+   *
+   * `requiresHills` is asked separately and still applies, which is what makes
+   * "any **flat** tile with fresh water" the rule rather than "any tile".
+   */
+  freshwaterTerrain?: TerrainId[];
   /** Features it may be built on, or absent for "any". */
   validFeatures?: FeatureId[];
   /** Required value of the tile's `hills` flag, or absent for "either". */
@@ -314,10 +334,16 @@ function validateTable(): void {
     const def = improvementDef(id);
     const where = `improvements.json: ${id}`;
     if (def.chargeCost <= 0) throw new Error(`${where} has a non-positive chargeCost`);
-    for (const terrain of def.validTerrain ?? []) {
+    for (const terrain of [...(def.validTerrain ?? []), ...(def.freshwaterTerrain ?? [])]) {
       if (!TERRAIN_IDS.includes(terrain)) {
         throw new Error(`${where} names unknown terrain "${terrain}"`);
       }
+    }
+    // A widening with nothing to widen is a row that means "any terrain, if it
+    // can drink" while *looking* like a narrowing — the one reading of this
+    // pair nobody could guess from the row.
+    if (def.freshwaterTerrain !== undefined && def.validTerrain === undefined) {
+      throw new Error(`${where} has freshwaterTerrain but no validTerrain to widen`);
     }
     for (const feature of def.validFeatures ?? []) {
       if (!FEATURE_IDS.includes(feature)) {

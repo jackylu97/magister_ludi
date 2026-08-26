@@ -112,6 +112,7 @@ const YIELD_GLYPHS: [keyof ReturnType<typeof buildingYieldDelta>, string][] = [
   ['gold', YIELD_GLYPH.gold],
   ['science', YIELD_GLYPH.science],
   ['culture', YIELD_GLYPH.culture],
+  ['faith', YIELD_GLYPH.faith],
 ];
 
 /** How a gift's mark is drawn: which class the small box beside it wears. */
@@ -327,8 +328,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   }
 
   /**
-   * The same sentence for a building renewal, which pays in five voices rather
-   * than three — a building can hand a city beakers and culture, and an
+   * The same sentence for a building renewal, which pays in six voices rather
+   * than three — a building can hand a city beakers, culture and faith, and an
    * improvement never can. Written off the delta's *present* fields, so a
    * renewal that says only `{food: 1}` reads as `+1🌾` and not as four zeroes.
    */
@@ -341,6 +342,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       [add.gold, YIELD_GLYPH.gold],
       [add.science, YIELD_GLYPH.science],
       [add.culture, YIELD_GLYPH.culture],
+      [add.faith, YIELD_GLYPH.faith],
     ];
     for (const [value, glyph] of voices) {
       if (value === undefined || value === 0) continue;

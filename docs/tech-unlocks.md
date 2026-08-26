@@ -18,6 +18,15 @@ the report against it.
 - **Improvements** — tech gates what a worker may build (`requiresTech` in `improvements.json`). The worker sheet greys a locked row and names the tech; a hex that could never take the improvement is still absent rather than greyed.
 - **Auto-upgrade** — when a tech lands, existing units on an upgrade chain retype for free (AoE2-style): warrior→swordsman, spearman→pikeman, archer→compositeBowman→crossbowman, horseman→knight, swordsman→longswordsman, catapult→trebuchet. Untouched by the rework.
 - **Improvement renewals** — a tech adds yield to an *existing* improvement (`upgrades[].tech`). Two now: Calendar +1🪙 on plantations, Feudalism +1🌾 on freshwater farms.
+
+> **The farm's home widened, 2026-08-26.** It was flat, featureless grassland or plains.
+> It is now that *plus* any flat desert, tundra or snow that can drink (`hasFreshWater` —
+> a river on one of its own edges, or a lake or oasis beside it) *plus* the floodplain
+> feature, which is fresh by construction. Grassland and plains still need no water. The
+> data shape is `freshwaterTerrain` on the farm's row — a **union** with `validTerrain`
+> rather than a fifth filter, so the dry half of the table is untouched. Note the two
+> renewals now stack on the same ground: Feudalism's +1🌾 is freshwater-only, so a
+> riverside desert farm is a 2🌾 improvement the moment both land.
 - **Building renewals** — the same idea for a building (`upgrades[].tech` in `buildings.json`). One: The Wheel, +1🌾 on every granary. Each lands as its own labelled line in the city panel's yield breakdown.
 - **Building authority capacity** — a building raises the empire's writ (`authorityCapacity`). One: the monument, +1. The authority breakdown counts them per type ("Monuments ×3 +3"); nothing in the meter names the monument.
 - **Per-category production modifier** — a building puts a share of its city's hammers behind one *kind* of item (`productionBonus: { category, percent }`). One: the barracks, +10% toward units. Luxuries declare the same shape (marble, +15% toward buildings), and `productionModifiers` is one list over both tables. It flows through `cityYields`, so the estimate, the panel and the hammers the basket receives are one number.
@@ -29,7 +38,7 @@ Eleven nodes, one root. **Agriculture is the only starting technology and the on
 tech with no prerequisite**, so every game opens on a real choice between four
 second-tier nodes rather than on "Agriculture or Pottery".
 
-- **Agriculture** (15🔬, *free at game start*): units — settler, warrior, scout, worker · improvement — **farm** (+1🌾)
+- **Agriculture** (15🔬, *free at game start*): units — settler, warrior, scout, worker · improvement — **farm** (+1🌾, on flat grassland or plains, on any flat desert/tundra/snow **with fresh water**, and in a floodplain)
 - **Husbandry** (18🔬 ← Agriculture): unit — horseman · improvement — **pasture** · reveals **horses**
 - **Fletching** (18🔬 ← Agriculture): unit — archer (ranged 7) · improvement — **camp**
 - **Mining** (16🔬 ← Agriculture): improvement — **mine** (+1⚙ on hills) · ability — **clear forest** (20⚙ once, to the city that owns the tile)

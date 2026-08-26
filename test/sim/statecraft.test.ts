@@ -52,6 +52,7 @@ import {
   describeCard,
   draftCost,
   drawOrderOffer,
+  isUpgradable,
   liveEffects,
   livePool,
   newPlayerStatecraft,
@@ -1281,5 +1282,87 @@ describe('the behavioural hooks, in the verbs they change', () => {
     const sightBefore = citySight();
     slot(g.state, 0, 'militiaLevies');
     expect(citySight()).toBe(sightBefore + 1);
+  });
+});
+
+/**
+ * **An upgrade always changes something** (user, 2026-08-26: "some cards don't
+ * have an upgrade").
+ *
+ * A third of the table was offerable as an upgrade that did nothing at all:
+ * `floor(1 × 1.5)` is `1`, so the multiplier swallowed itself on every card
+ * whose printed figure was a single point — nineteen of the sixty-five Orders.
+ * The fix is two halves and this block holds them together, because either half
+ * alone is a way to hide the other:
+ *
+ *   1. **`scaleByLevel` advances the magnitude by at least a point per level**,
+ *      which reaches every card that prints a number.
+ *   2. **`upgradable: false`** on a card that prints none, which the upgrade
+ *      draw then never rolls.
+ *
+ * The trap the second half opens is that it can be used to paper over a row
+ * that simply needed a bigger number — so it is asserted in *both* directions:
+ * an upgradable card must actually deepen, and a non-upgradable one must have
+ * genuinely nothing to scale.
+ */
+describe('every upgrade is a real upgrade', () => {
+  /** True when this card's level-2 face reads differently from its level-1 face. */
+  function deepens(id: OrderId): boolean {
+    return JSON.stringify(describeCard(id, 1)) !== JSON.stringify(describeCard(id, 2));
+  }
+
+  it('advances a single point rather than flooring it away', () => {
+    // The exact case that shipped: one point, one level, and nothing happened.
+    expect(scaleByLevel(1, 2)).toBe(2);
+    expect(scaleByLevel(-1, 2)).toBe(-2);
+    // Two levels deep advances twice, and the multiplier takes over the moment
+    // it is worth more than the floor.
+    expect(scaleByLevel(1, 3)).toBe(3);
+    expect(scaleByLevel(4, 3)).toBe(9);
+    // Nothing that already deepened deepens differently: only ±1 moved.
+    for (const value of [2, 3, 4, 6, 10, 25, -2, -3, -10]) {
+      const factor = STATECRAFT.upgradeMultiplier;
+      const raw = value * factor;
+      const floored = raw < 0 ? -Math.floor(-raw) : Math.floor(raw);
+      expect(scaleByLevel(value, 2), String(value)).toBe(floored);
+    }
+    // Zero stays zero: a clause that pays nothing is not a clause.
+    expect(scaleByLevel(0, 5)).toBe(0);
+  });
+
+  it('deepens every Order that is offerable as an upgrade', () => {
+    const flat = ORDER_IDS.filter((id) => isUpgradable(id) && !deepens(id));
+    expect(flat, `these read the same at level 2: ${flat.join(', ')}`).toEqual([]);
+  });
+
+  it('marks as unupgradable only cards with no figure to advance', () => {
+    const marked = ORDER_IDS.filter((id) => !isUpgradable(id));
+    // The flag is a declaration about three switches, not an escape hatch.
+    expect(marked.length).toBeGreaterThan(0);
+    for (const id of marked) {
+      expect(deepens(id), `${id} has a number and does not need the flag`).toBe(false);
+    }
+  });
+
+  it('never rolls an unupgradable card as the upgrade option', () => {
+    const game = createGame({
+      seed: 99,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#a00', isHuman: true }],
+    });
+    const sc = newPlayerStatecraft();
+    // An empire holding *only* switches has nothing to deepen, and the offer
+    // says so by having no upgrade at all rather than by offering a no-op.
+    sc.orders = ORDER_IDS.filter((id) => !isUpgradable(id)).map((id) => ({ id, level: 1 }));
+    expect(sc.orders.length).toBeGreaterThan(0);
+    expect(drawOrderOffer(game.state, sc).upgrade).toBeUndefined();
+
+    // Add one card that does deepen and it is the only thing that can be rolled,
+    // however many times the bag is drawn from.
+    const deepenable = ORDER_IDS.find((id) => isUpgradable(id))!;
+    sc.orders.push({ id: deepenable, level: 1 });
+    for (let draw = 0; draw < 40; draw++) {
+      expect(drawOrderOffer(game.state, sc).upgrade).toBe(deepenable);
+    }
   });
 });

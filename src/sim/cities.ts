@@ -1288,6 +1288,8 @@ export interface BuildingYieldContribution {
   gold: number;
   science: number;
   culture: number;
+  /** Flat faith. Absent on the row means zero — see `BuildingDef.faith`. */
+  faith: number;
   sciencePerPop: number;
 }
 
@@ -1316,6 +1318,7 @@ export function explainBuildingYield(
       gold: def.gold,
       science: def.science,
       culture: def.culture,
+      faith: def.faith ?? 0,
       sciencePerPop: def.sciencePerPop,
     },
   ];
@@ -1330,6 +1333,7 @@ export function explainBuildingYield(
       gold: add.gold ?? 0,
       science: add.science ?? 0,
       culture: add.culture ?? 0,
+      faith: add.faith ?? 0,
       sciencePerPop: add.sciencePerPop ?? 0,
     });
   }
@@ -1723,6 +1727,10 @@ export function cityYields(
     total.gold += entry.gold;
     total.culture += entry.culture;
     total.science += entry.science;
+    // The shrine and the temple are why this line exists: a building may pay
+    // faith since 2026-08-26, and faith is banked into `Player.faithPool` by
+    // `collectYields` like every other source of it.
+    total.faith += entry.faith;
     // Floored per *entry* rather than per building, which is the same rule the
     // old per-building floor was: two half-science sources must pay for two
     // halves rather than round into a free point.

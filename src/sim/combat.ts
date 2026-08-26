@@ -363,6 +363,51 @@ export interface CombatBonusLine {
   amount: number;
 }
 
+/**
+ * One line of how one side reached the **effective strength** it fights with.
+ *
+ * Hard rule 5 applied to violence's headline number, which is the one number the
+ * card had been printing without its reasons (user, 2026-08-26: "combat info
+ * should show attack strength of each unit"). `attackerStrength` and
+ * `defenderStrength` are the *fold* of these lists and are never computed beside
+ * them — `foldCombatStrength` is the only sum, and `combat.test.ts` asserts the
+ * two identities.
+ *
+ * A percentage is written **in the label and paid in points**: "terrain +25%"
+ * carries the 2 strength it was worth on this unit, not the 25. That is the only
+ * reading under which the list folds at all, and it is also the more useful one
+ * — a player comparing two hexes wants to know what the ground is worth *here*.
+ *
+ * `CombatBonusLine`'s sibling and deliberately not the same type: a bonus line
+ * is a flat point total that has to be added **after** the multipliers and
+ * carries a `side`; a strength line is a *presentation* of one side's whole
+ * arithmetic, multipliers folded in, and every line in the list is that side's.
+ */
+export interface CombatStrengthLine {
+  /** Display label — "Warrior", "terrain +25%", "fortified +20%", "vs barbarians". */
+  source: string;
+  /** Strength points this line contributes. Signed: a river takes points away. */
+  amount: number;
+}
+
+/**
+ * A signed whole percentage, for a strength line's label. `+25%`, `-10%`.
+ *
+ * Rounded to whole points because every percentage in the combat rules is one,
+ * and a label is not the place a rounding difference should first appear.
+ */
+function signedPercent(percent: number): string {
+  const whole = Math.round(percent);
+  return `${whole > 0 ? '+' : ''}${whole}%`;
+}
+
+/** The fold of a strength breakdown. The only sum of one. */
+export function foldCombatStrength(lines: readonly CombatStrengthLine[]): number {
+  let total = 0;
+  for (const line of lines) total += line.amount;
+  return total;
+}
+
 /** Everything a forecast says, and everything the notice line needs. */
 export interface CombatForecast {
   kind: CombatKind;
@@ -373,9 +418,16 @@ export interface CombatForecast {
   defenderCityId: number | null;
   attackerName: string;
   defenderName: string;
-  /** Effective strengths, every modifier already in them. */
+  /**
+   * Effective strengths, every modifier already in them — and the **fold** of
+   * the two breakdowns below, never a second computation. See
+   * `CombatStrengthLine`.
+   */
   attackerStrength: number;
   defenderStrength: number;
+  /** How each strength above was reached, in the order a card should print it. */
+  attackerLines: CombatStrengthLine[];
+  defenderLines: CombatStrengthLine[];
   /** The defender's terrain share of its multiplier, for the card to itemise. */
   terrainBonus: number;
   /** Its fortification share. Always 0 for a city. */
@@ -610,19 +662,44 @@ function planCombat(
   // this army, not a discount on the terrain somebody else is standing on. See
   // `cardCombatPercent`.
   const attackerPercent = cardCombatPercent(state, attacker);
-  const attackerBase = Math.floor(
-    ((kind === 'ranged' ? def.rangedStrength! : def.combatStrength) * (100 + attackerPercent)) / 100,
-  );
+  const attackerStat = kind === 'ranged' ? def.rangedStrength! : def.combatStrength;
+  const attackerBase = Math.floor((attackerStat * (100 + attackerPercent)) / 100);
   // Flat, and **after** the river multiplier — see `CombatBonusLine` for why a
   // fact about the opponent must not scale with the ground.
-  const attackerStrength =
-    attackerBase * (acrossRiver ? 1 - COMBAT.riverAttackPenalty : 1) + bonusFor('attacker');
+  const riverFactor = acrossRiver ? 1 - COMBAT.riverAttackPenalty : 1;
+  const attackerStrength = attackerBase * riverFactor + bonusFor('attacker');
+
+  /**
+   * The attacker's arithmetic, written down in the order it happened — hard rule
+   * 5's breakdown for `attackerStrength`, which is its fold and nothing else.
+   * The roster's printed strength, then the empire's law, then the ford, then
+   * every flat line; each percentage names itself in the label and pays in
+   * points (see `CombatStrengthLine`).
+   */
+  const attackerLines: CombatStrengthLine[] = [{ source: def.name, amount: attackerStat }];
+  if (attackerBase !== attackerStat) {
+    attackerLines.push({
+      source: `doctrine ${signedPercent(attackerPercent)}`,
+      amount: attackerBase - attackerStat,
+    });
+  }
+  if (acrossRiver) {
+    attackerLines.push({
+      source: `across a river ${signedPercent(-COMBAT.riverAttackPenalty * 100)}`,
+      amount: attackerBase * riverFactor - attackerBase,
+    });
+  }
+  for (const line of bonuses) {
+    if (line.side === 'attacker') attackerLines.push({ source: line.source, amount: line.amount });
+  }
 
   let defenderStrength: number;
   let defenderFortify = 0;
   let defenderName: string;
   let defenderHp: number;
   let defenderMaxHp: number;
+  /** The defender's half of the same breakdown. Folds to `defenderStrength`. */
+  const defenderLines: CombatStrengthLine[] = [];
 
   if (target.city) {
     // A city's walls *are* its terrain: no ground bonus on top of them.
@@ -640,6 +717,14 @@ function planCombat(
       COMBAT.cityBaseStrength +
       COMBAT.cityStrengthPerPop * target.city.population +
       bonusFor('defender');
+    defenderLines.push({ source: 'walls', amount: COMBAT.cityBaseStrength });
+    const garrison = COMBAT.cityStrengthPerPop * target.city.population;
+    if (garrison !== 0) {
+      defenderLines.push({
+        source: `${target.city.population} citizen${target.city.population === 1 ? '' : 's'}`,
+        amount: garrison,
+      });
+    }
     defenderName = target.city.name;
     defenderHp = target.city.hp;
     defenderMaxHp = COMBAT.cityBaseHp;
@@ -652,9 +737,38 @@ function planCombat(
       (defenderDef.combatStrength * (100 + defenderPercent)) / 100,
     );
     defenderStrength = defenderBase * (1 + terrainBonus + defenderFortify) + bonusFor('defender');
+    defenderLines.push({ source: defenderDef.name, amount: defenderDef.combatStrength });
+    if (defenderBase !== defenderDef.combatStrength) {
+      defenderLines.push({
+        source: `doctrine ${signedPercent(defenderPercent)}`,
+        amount: defenderBase - defenderDef.combatStrength,
+      });
+    }
+    // Terrain and the trench are two separate reasons the same hex is hard, and
+    // a player choosing where to attack from needs them apart.
+    if (terrainBonus !== 0) {
+      defenderLines.push({
+        source: `terrain ${signedPercent(terrainBonus * 100)}`,
+        amount: defenderBase * terrainBonus,
+      });
+    }
+    if (defenderFortify !== 0) {
+      defenderLines.push({
+        source: `fortified ${signedPercent(defenderFortify * 100)}`,
+        amount: defenderBase * defenderFortify,
+      });
+    }
     defenderName = defenderDef.name;
     defenderHp = defenderUnit.hp;
     defenderMaxHp = defenderDef.maxHp;
+  }
+
+  // The flat lines join **last** on the defender's side, and after the branch so
+  // that a city's walls-cards and a unit's cards are appended by one statement:
+  // a city pushes its own onto `bonuses` inside the branch above, and this is
+  // the only place either kind reaches the breakdown.
+  for (const line of bonuses) {
+    if (line.side === 'defender') defenderLines.push({ source: line.source, amount: line.amount });
   }
 
   // --- damage ------------------------------------------------------------
@@ -709,6 +823,8 @@ function planCombat(
     defenderName,
     attackerStrength,
     defenderStrength,
+    attackerLines,
+    defenderLines,
     terrainBonus: target.city ? 0 : terrainBonus,
     fortifyBonus: defenderFortify,
     bonuses,
@@ -774,6 +890,25 @@ export interface CombatOutcome {
   attackerId: number;
   attackerName: string;
   defenderName: string;
+  /**
+   * Who swung and who was swung at, **as the board stood before the blow**.
+   *
+   * Both are here for one reason: a notice is per *seat*, and the only two
+   * questions a seat asks of a fight it did not order are "was that mine?" and
+   * "who did it?" (user, 2026-08-26). `defenderOwnerId` is read before anything
+   * can change hands, so a captured worker still reports the empire that lost
+   * it rather than the one that took it — which is the empire the news is for.
+   * `null` only when the target was neither a unit nor a city, which cannot
+   * happen today and is typed honestly anyway.
+   */
+  attackerOwnerId: number;
+  defenderOwnerId: number | null;
+  /** The tile that was struck. What a notice's pan action aims at. */
+  at: { col: number; row: number };
+  /** The defending unit's id, or `null` when a city was the target. */
+  defenderUnitId: number | null;
+  /** The defending city's id, or `null` when a unit was the target. */
+  defenderCityId: number | null;
   damageToDefender: number;
   damageToAttacker: number;
   /** Units taken off the board, in removal order: defender first if both died. */
@@ -835,6 +970,11 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     attackerId: attacker.id,
     attackerName: forecast.attackerName,
     defenderName: forecast.defenderName,
+    attackerOwnerId: attacker.ownerId,
+    defenderOwnerId: defenderOwnerBefore,
+    at: { col: tile.col, row: tile.row },
+    defenderUnitId: forecast.defenderUnitId,
+    defenderCityId: forecast.defenderCityId,
     damageToDefender: 0,
     damageToAttacker: 0,
     killed: [],

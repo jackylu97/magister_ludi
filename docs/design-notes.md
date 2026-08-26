@@ -2312,3 +2312,138 @@ so every one-evaluator UI function runs unchanged against the view. Clients stop
 single-player runs the full sim in a Web Worker projecting the local seat's view, so the
 projection boundary is exercised in every game. Lockstep is retired as the plan. Until M14
 the client deploys as a static site; nothing before M14 changes this cost.
+
+---
+
+## Entry XXIV — The turn-35 playtest pass (user, 2026-08-26, **built** 2026-08-26)
+
+Ten findings off one playthrough. Most were one-line rules; four were architectural and are
+written down here because each opened a seam the codebase did not have.
+
+### 1. The right button belongs to the game
+
+The context-menu suppression was on the **viewport**, and that was the bug. Right-drag pans
+with the pointer *captured* by the viewport, but `contextmenu` is a mouse event and is
+hit-tested normally — so every pan that came to rest over a banner, a price tag, a toast, a
+popover or the unit sheet fired the browser's Back/Forward menu on a surface that had never
+heard of the rule. The condition is a fact about the **page** ("is a board on screen at
+all"), so it moved to a document-level listener in `main.ts` gated on `landingEl.hidden`,
+which is already the single answer to that question. Two exemptions: the landing keeps the
+whole native menu (it is a form, not a board), and over a live game `wantsNativeContextMenu`
+keeps it for a text field and nothing else.
+
+### 2. An upgrade always changes something
+
+`floor(1 × 1.5)` is `1`. The upgrade multiplier therefore swallowed itself on every card
+whose printed figure was a single point — **nineteen of the sixty-five Orders**, each of
+them offerable as the draft's upgrade option and changing nothing at all. The fix is one
+rule in the evaluator rather than nineteen data edits: `scaleByLevel` advances the magnitude
+by **at least one whole point per level**. A figure of 2 or more is untouched, so nothing
+that already upgraded upgrades differently.
+
+The rule cannot reach a card that prints no number, and three do — The Loose Rein, The
+Common Purse, The Standing Levy, all pure switches. Those carry `"upgradable": false` and
+the upgrade draw filters them out of the bag rather than re-rolling a bad draw (the draw
+still spends exactly one roll, over a smaller bag). The flag is a **declaration**, and the
+suite asserts it in both directions so it cannot be used to paper over a row that simply
+needed a bigger number. The Loose Rein is the interesting one: its only figure is a *seal
+length*, which the generic multiplier would deepen the wrong way (2 turns becoming 3).
+
+### 3. Faith is a building's sixth voice
+
+The shrine and the temple moved off culture onto faith, which the building table had no
+field for — `BuildingDef` gained an **optional** `faith` (the one optional voice, because
+requiring it would have meant `"faith": 0` on twenty rows with nothing to do with it), and
+`explainBuildingYield` reads it into the breakdown `cityYields` folds. `buildingYieldDelta`
+was folding five voices by hand and now folds `CITY_YIELD_KEYS`, which is the drift a
+hand-written fold invites.
+
+**Measured, not tuned.** The scripted empire's draft cadence went from 6.6 to **7.0 turns
+per draft** early and the three governments from 24 / 47 / 97 to **24 / 49 / 109**. The
+first five drafts are *unmoved* — the shrine and the temple are not standing that early —
+and the drift starts at draft 6 and compounds, because an escalating cost turns a constant
+loss of income into a widening gap. Monument and amphitheater are untouched and are now the
+whole of a town's built culture; a city can no longer reach ten culture on buildings alone,
+which is what made `territory.test.ts`'s writ fixture need a seam.
+
+### 4. A seam claims its own hex
+
+`improvementErrorAt` gained the rule the board always implied: a resource that some
+improvement opens (`improvementForResource`, the table's own inverse) will take **that**
+improvement and no other. A farm on a deer forest is refused by name — "Wheat wants a farm".
+
+**Honey is the row that made it urgent**, and the finding "wow honey is broken" was exactly
+this. Honey is the only luxury whose home is bare flat grassland, which is precisely where a
+farm goes; measured, a farm on honey paid `5F/0P/1G` and held **no luxury at all**
+(happiness 8), against the plantation's `5F/0P/2G` and the whole signature (happiness 13.1).
+The farm even looked *right* — one more food than bare ground — so nothing on screen told
+the player they had thrown the luxury away. Two bounds, both deliberate: **revealed only**
+(`chopErrorAt`'s rule — a refusal naming an unresearched resource leaks the map through an
+error message), and a bonus resource nothing improves stays free. It is not a trap door
+either: an improvement replaces whatever stands on the tile, so a farm laid over an
+unrevealed seam is recoverable the day the seam is named.
+
+### 5. The farm learned to drink
+
+`freshwaterTerrain` on the farm's row is the **one seam in the improvement AND**, and it is
+a *union* rather than a fifth filter: it widens `validTerrain` on ground that can drink
+instead of adding a clause every other row would then have to opt out of. Read off the row
+as one sentence — "grassland and plains, and any flat desert, tundra or snow that can
+drink". `requiresHills` is still asked separately, which is what makes it "any **flat**
+watered tile". `floodplain` joined `validFeatures`; it is fresh by construction
+(`deriveFloodplains` only ever writes one onto ground already touching a river or an oasis),
+so the two clauses agree without a second rule. The refusals split accordingly: dry ground
+the row will never accept, against ground it would accept if it were watered.
+
+### 6. The forecast's headline is a fold
+
+The combat card printed damage without ever printing the two numbers the damage comes from.
+`CombatForecast` gained `attackerLines` / `defenderLines` — `CombatStrengthLine`, hard rule 5
+applied to violence — and the two strengths are now the **fold** of those lists
+(`foldCombatStrength`), never a second computation. A percentage names itself in the label
+and pays in points: "terrain +25%" carries the 2 strength it was worth *on this unit*, which
+is the only reading under which the list folds at all and also the more useful one. Terrain,
+fortification, the ford and every flat bonus moved out of the card's pooled footnote and
+under the side they actually help — the pooled version was the same sentence twice, with the
+reasons mixed so a reader could not tell which side each one helped.
+
+### 7. A resolution reports what it did
+
+`TurnReport` is `CommandResult.arrivals`' argument one scale up, and it exists because the
+wild does all of its raiding **inside** the end-of-turn pipeline: by the time `endTurn`
+returns the raider has been paid, the worker has changed hands, and the board says nothing
+about who hit whom — a diff of two boards cannot name an attacker at all. So the pipeline is
+handed a sink, `barbarianTurn` writes into it, and `applyEndTurn` passes it out. `attack`
+reports its own blow on the same channel, so a seat struck by *another empire* during a
+simultaneous turn hears about it by the same rule. Nothing is stored on `GameState`: none of
+it is a fact about the world, it is a fact about the **transition**, and a transition is over.
+
+`TurnPhase.run` takes the report as a **second parameter**, so every phase with nothing to
+say is assignable unchanged. `CombatOutcome` gained the four facts a per-seat notice needs —
+both owners *as the board stood before the blow* (so a captured worker still reports the
+empire that lost it, which is the empire the news is for), the hex, and the defender's ids.
+`reportRaids` in `controls.ts` announces one line per blow this seat was on the wrong end of,
+with a pan action, naming barbarian and player attackers alike.
+
+### 8. Every instance a piece is made of belongs to that piece's slot list
+
+The health-bar report — "with three units adjacent, a fight modifies the third unit's bar" —
+was not about combat at all. `addHpBar` was the **one** part of a piece whose instances were
+never pushed into the unit's `slots`, which is the list `hide`/`restore` move. A piece that
+walked (or died) therefore left its bar lit over the hex it had left, and on a board where
+three units stand adjacent a bar hanging over an empty hex reads as belonging to whichever
+piece is standing beside it. Reproduced first (18 bar instances drawn where 12 were
+expected), then fixed by pushing both handles. The rule it is a case of is stated on the
+method: a visual added there without recording its handle is a visual `hide` cannot take off
+the board.
+
+### 9. The wild, louder
+
+`campEveryTurns` 3→2, `maxCamps` 12→16, `unitEveryTurns` 4→3. Nothing about *where* a camp
+may stand changed — same three distances, same "not currently visible to any real empire"
+rule (Entry XX.B). Re-measured over five seeds, solo, nobody moving: **4 camps and 3 units by
+turn 12** (was 3 and 1), **13 camps and 20–21 units by turn 30** (was 9 and 13). The one
+casualty was a fixture: `QUIET_TURN` was a literal 20, which the new cadence turned into a
+*founding* turn, and a test about a cargo with nowhere to go started walking it home to a
+camp that had just appeared under it. It is derived off `rules.json` now, like every other
+number in that file.

@@ -41,7 +41,7 @@ import {
 } from '../../src/sim/state';
 import { advanceResearch } from '../../src/sim/tech';
 import { TECH_IDS, type TechId } from '../../src/sim/techData';
-import { END_OF_TURN_PHASES } from '../../src/sim/turn';
+import { END_OF_TURN_PHASES, runEndOfTurn } from '../../src/sim/turn';
 import { unitDef } from '../../src/sim/unitData';
 import { fullMovement, hasStackingRoom } from '../../src/sim/units';
 import {
@@ -697,8 +697,25 @@ describe('clearing a camp', () => {
  * prisoner or a camp that kept one it should have handed back.
  */
 
-/** A quiet turn number: no camp founding sweep, no muster from a camp founded on 1. */
-const QUIET_TURN = 20;
+/**
+ * A quiet turn number: no camp founding sweep, and no muster from a camp
+ * founded on turn 1.
+ *
+ * **Derived, never written down.** It was a literal 20 until the wild's
+ * cadences were retuned on 2026-08-26 (`campEveryTurns` 3→2, `unitEveryTurns`
+ * 4→3), at which point 20 quietly became a *founding* turn — and the fixture
+ * about a cargo with nowhere to go started walking it home to a camp that had
+ * just appeared under it. Read off `rules.json` the way every other number in
+ * this file is, so the next retune moves it instead of breaking it.
+ */
+const QUIET_TURN = ((): number => {
+  for (let turn = 12; turn < 500; turn++) {
+    if ((turn - BARB.firstCampTurn) % Math.max(1, BARB.campEveryTurns) === 0) continue;
+    if ((turn - 1) % Math.max(1, BARB.unitEveryTurns) === 0) continue;
+    return turn;
+  }
+  throw new Error('rules.json leaves no quiet turn for these fixtures');
+})();
 
 /**
  * What `resetMovement` does, for a test that drives `barbarianTurn` directly:
@@ -1159,5 +1176,98 @@ describe('replay', () => {
     // And the flag round-trips: a config that never asked has no key at all.
     expect(Object.prototype.hasOwnProperty.call(quiet.config, 'barbarians')).toBe(false);
     expect(loud.config.barbarians).toBe(true);
+  });
+});
+
+/**
+ * **The resolution reports its blows** (user, 2026-08-26: "should be a
+ * notification when units are attacked/die").
+ *
+ * The wild raids inside the end-of-turn pipeline, so by the time `endTurn`
+ * returns the raider has already been paid and the board says nothing about who
+ * hit whom — a diff of two boards cannot name an attacker at all. So the
+ * pipeline reports, on `CommandResult.combats`, which is `arrivals`' sibling and
+ * joined it for the identical argument (see `TurnReport`).
+ *
+ * What is asserted here is the *channel* and the facts a per-seat notice needs,
+ * never the wording: the sentence belongs to `reportRaids` in `controls.ts`, and
+ * a test that pinned it here would fail on a copy edit.
+ */
+describe('the turn report', () => {
+  it('carries every blow the wild landed, with both owners and the hex', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    const mine = createUnit(state, 0, 'warrior', 9, 8);
+    createUnit(state, wild, 'warrior', 10, 8);
+    recomputeAllVisibility(state);
+
+    state.turn = QUIET_TURN;
+    const report = runEndOfTurn(state);
+    const struck = report.combats.filter((combat) => combat.defenderUnitId === mine.id);
+    expect(struck).toHaveLength(1);
+    const blow = struck[0]!;
+    expect(blow.attackerOwnerId).toBe(wild);
+    expect(blow.defenderOwnerId).toBe(0);
+    expect(blow.at).toEqual({ col: 9, row: 8 });
+    expect(blow.damageToDefender).toBeGreaterThan(0);
+  });
+
+  it('reports a stolen worker as a capture, owned by the empire that lost it', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    const prey = createUnit(state, 0, 'worker', 9, 8);
+    createUnit(state, wild, 'warrior', 10, 8);
+    recomputeAllVisibility(state);
+
+    state.turn = QUIET_TURN;
+    const report = runEndOfTurn(state);
+    const taken = report.combats.find((combat) => combat.capturedUnitId === prey.id);
+    expect(taken).toBeDefined();
+    // Read *before* the change of hands: the news belongs to the empire that
+    // lost the worker, not to the one now holding it.
+    expect(taken!.defenderOwnerId).toBe(0);
+    expect(taken!.attackerOwnerId).toBe(wild);
+    expect(state.units.find((unit) => unit.id === prey.id)!.ownerId).toBe(wild);
+  });
+
+  it('says nothing at all on a quiet resolution, and stays out of the save', () => {
+    const state = wildState();
+    state.turn = QUIET_TURN;
+    expect(runEndOfTurn(state).combats).toEqual([]);
+
+    // The channel is a *transition* report and never state: a game with a raid
+    // in it still replays byte-identically from `{config, log}`.
+    const game = createGame({
+      seed: 7,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#a00', isHuman: true }],
+      barbarians: true,
+    });
+    for (let turn = 0; turn < 24; turn++) {
+      dispatch(game, { type: 'endTurn', playerId: 0 });
+    }
+    expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
+  });
+
+  it('says nothing about a blow the player ordered themselves', () => {
+    const state = wildState();
+    const wild = wildId(state);
+    const mine = createUnit(state, 0, 'warrior', 9, 8);
+    createUnit(state, wild, 'warrior', 10, 8);
+    recomputeAllVisibility(state);
+
+    // `combats` is for news the actor could not otherwise have. An attacker
+    // knows it attacked — the interface narrates its own blow off the forecast
+    // it just showed — so an ordinary attack returns the bare `{ ok: true }` it
+    // always has. That is `CommandResult`'s standing promise: a caller that has
+    // never heard of either optional field is unaffected by both.
+    expect(
+      applyCommand(state, {
+        type: 'attack',
+        playerId: 0,
+        unitId: mine.id,
+        target: { col: 10, row: 8 },
+      }),
+    ).toEqual({ ok: true });
   });
 });

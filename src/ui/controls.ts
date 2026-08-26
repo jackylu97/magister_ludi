@@ -206,6 +206,7 @@ import {
   type Unit,
   cityById,
   hasEndedTurn,
+  isBarbarian,
   playerById,
   realPlayers,
   unitById,
@@ -388,6 +389,60 @@ export function lensForDigit(
  */
 export function lensShowsYields(mode: LensMode, yieldsOn: boolean, cityOpen: boolean): boolean {
   return yieldsOn || cityOpen || mode === 'settler';
+}
+
+// --- the right button belongs to the game -----------------------------------
+
+/**
+ * The element shapes the context-menu rule reads, duck-typed so the rule can be
+ * asked without a DOM — this suite has no jsdom, and a rule about *which*
+ * surfaces keep the browser's menu is exactly the half worth pinning.
+ */
+export interface ContextMenuTarget {
+  tagName: string;
+  /** An `<input>`'s type. Absent is `"text"`, as the platform reads it. */
+  type?: string;
+  /** True on an editable host **and on every node inside one** — DOM-inherited. */
+  isContentEditable?: boolean;
+}
+
+/**
+ * The input types whose native menu is genuinely useful: the ones that hold
+ * *text a player might cut, paste or spell-check*. A checkbox, a range or a
+ * button is a control, and a control has nothing to offer that menu.
+ */
+const TEXT_INPUT_TYPES: readonly string[] = [
+  'text',
+  'search',
+  'url',
+  'tel',
+  'email',
+  'password',
+  'number',
+];
+
+/**
+ * Does this element legitimately want the browser's context menu?
+ *
+ * The **only** exemption from the suppression `main.ts` installs at the document
+ * while a game is on screen. Right click is a game input — a march order, and a
+ * pan while it is held — so a menu that appeared anywhere over a live game would
+ * be a menu the player learns to expect and then loses the moment the cursor
+ * comes to rest one pixel to the left, on the board.
+ *
+ * Asked of the event's own target and nothing above it, deliberately: an
+ * editable region has no game surface inside it, and `isContentEditable` is
+ * already inherited down the tree by the platform, so there is no ancestor walk
+ * to get wrong. The landing screen is not covered by this rule at all — it is
+ * *not a board*, and `main.ts` lets its whole page keep the native menu.
+ */
+export function wantsNativeContextMenu(target: ContextMenuTarget | null): boolean {
+  if (!target) return false;
+  if (target.isContentEditable === true) return true;
+  const tag = target.tagName.toUpperCase();
+  if (tag === 'TEXTAREA') return true;
+  if (tag === 'INPUT') return TEXT_INPUT_TYPES.includes((target.type ?? 'text').toLowerCase());
+  return false;
 }
 
 export interface GameControlsOptions {
@@ -1100,9 +1155,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * The one place this module hands a command to the simulation.
    *
    * `dispatch` plus the after-effects that belong to *every* accepted command
-   * rather than to any one of them — today that is the sighting diff, which has
-   * to run wherever the board's contents or this seat's fog could have moved,
-   * and that is precisely "a command was accepted". A refusal changes nothing
+   * rather than to any one of them — the sighting diff, which has to run
+   * wherever the board's contents or this seat's fog could have moved, and that
+   * is precisely "a command was accepted"; and the raid report, which is the
+   * same argument for a fight this seat did not order. A refusal changes nothing
    * (hard rule 1: rejected command = state byte-identical) and is handed back
    * untouched for the caller to `reject`.
    *
@@ -1115,9 +1171,75 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const result = dispatch(getGame(), command);
     if (result.ok) {
       pollSightings();
+      reportRaids(result);
       checkFirstStatecraftDraft();
     }
     return result;
+  }
+
+  /**
+   * **Somebody hit you.** One line per blow this seat was on the wrong end of,
+   * with a pan action onto the hex it landed on.
+   *
+   * The news a player was missing (user, 2026-08-26): the wild does all of its
+   * raiding inside the end-of-turn resolution, so a worker could be stolen and a
+   * warrior beaten to a third of its hit points between one press of End Turn
+   * and the next, and nothing said a word. The board afterwards cannot be asked
+   * about it — the raider has already been paid — which is why the reducer
+   * reports (`CommandResult.combats`, `TurnReport`) rather than the interface
+   * diffing.
+   *
+   * Three rules, and each is about *whose* news this is:
+   *
+   *   · **Only the seat that was struck**, never the seat that struck. A blow
+   *     this seat ordered already has its own line (`reportCombatNotice`), and
+   *     announcing it twice is the interface talking over itself.
+   *   · **The attacker is named** — "a raider", "Ada's Warrior" — because "you
+   *     were attacked" without a subject is a line a player cannot act on. Both
+   *     phrasings are written even though only the wild can reach this channel
+   *     today (`attack` deliberately reports nothing — see `applyAttack`): under
+   *     netcode a relayed blow arrives the same shape, and a branch written when
+   *     the rule is fresh is a branch that is right.
+   *   · **A death or a capture outranks a scratch.** They are different news:
+   *     one is a unit to heal, the other is a unit to replace.
+   *
+   * A city taking a hit is deliberately not announced here: a town is not lost
+   * to a raid (barbarians never capture), it heals itself every turn, and the
+   * banner already shows the bar. The day a *player* besieges a town, this is
+   * the function that grows the clause.
+   */
+  function reportRaids(result: CommandResult): void {
+    if (!result.ok || !result.combats) return;
+    const { state } = getGame();
+    for (const combat of result.combats) {
+      if (combat.defenderOwnerId !== localPlayerId) continue;
+      if (combat.attackerOwnerId === localPlayerId) continue;
+      if (combat.defenderUnitId === null) continue;
+      const cell = { col: combat.at.col, row: combat.at.row };
+      const attacker = isBarbarian(state, combat.attackerOwnerId)
+        ? `a ${combat.attackerName.toLowerCase()}`
+        : `${playerById(state, combat.attackerOwnerId)?.name ?? 'an enemy'}'s ${combat.attackerName}`;
+
+      if (combat.capturedUnitId === combat.defenderUnitId) {
+        announce(`⚔ Your ${combat.defenderName.toLowerCase()} was taken by ${attacker}`, {
+          cell,
+        });
+        continue;
+      }
+      const fell = combat.killed.some((unit) => unit.id === combat.defenderUnitId);
+      if (fell) {
+        announce(`⚔ Your ${combat.defenderName.toLowerCase()} was slain by ${attacker}`, { cell });
+        continue;
+      }
+      // Still standing: the hit points it has left, read off the board rather
+      // than subtracted here, so the line agrees with the bar over its head.
+      const survivor = unitById(state, combat.defenderUnitId);
+      const left = survivor === undefined ? '' : ` — ${survivor.hp}/${unitDef(survivor.type).maxHp}`;
+      announce(
+        `⚔ Your ${combat.defenderName.toLowerCase()} was attacked by ${attacker}${left}`,
+        { cell },
+      );
+    }
   }
 
   // --- move mode -----------------------------------------------------------
@@ -3145,14 +3267,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   // --- wiring --------------------------------------------------------------
 
-  /**
-   * The browser's context menu never appears over the board.
-   *
-   * Right click is a game input here whether or not anything is selected, and a
-   * menu that popped up on the "nothing selected" half of that rule would be a
-   * menu the player learns to expect and then loses.
-   */
-  viewport.addEventListener('contextmenu', (event) => event.preventDefault());
+  // The browser's context menu is suppressed **at the document**, not here —
+  // see `wantsNativeContextMenu` below and its one installer in `main.ts`. A
+  // listener on the viewport was the bug: right-drag pans with the pointer
+  // *captured* by the viewport, but `contextmenu` is a mouse event and is
+  // hit-tested normally, so a pan that ended with the cursor over a banner, a
+  // price tag, a toast or the unit sheet fired the menu on a surface that never
+  // heard of the rule. Right click is a game input for as long as a game is on
+  // screen, and that is a fact about the page rather than about one element.
 
   viewport.addEventListener('pointerdown', (event) => {
     // Left and right only, and only one at a time: a second button pressed

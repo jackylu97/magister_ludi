@@ -915,3 +915,148 @@ describe('the x-ray silhouette', () => {
     materials.dispose();
   });
 });
+
+/**
+ * **A fight must not touch a bystander's bar** (user, 2026-08-26: "health bars
+ * bugged... when there are 3 units adjacent to each other, the combat somehow
+ * modifies the health bar of the third unit that wasn't involved").
+ *
+ * The claim under test is narrow and is the one a diff of two boards can make:
+ * **each drawn bar belongs to exactly one unit, and says that unit's fraction.**
+ * A bar is two instances — a full-width backing and a fill scaled to the
+ * fraction — so "whose bar is this" is answered by its x position and "what does
+ * it say" by the fill's width. Three units, one of them hurt, is the smallest
+ * board on which a bar can land over the wrong head.
+ */
+/** The wrap copies every instanced visual is emitted in. See `copyOffsets`. */
+const WRAP_COPIES = 3;
+
+describe('the HP bar belongs to its own unit', () => {
+  /** Three warriors in a row on blank grassland, adjacent. */
+  function state(types: UnitTypeId[]): GameState {
+    const game = newGame({
+      seed: 1,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#d4502e', isHuman: true }],
+    });
+    game.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    resetVisibility(game);
+    game.tileOwner = new Array<number | null>(12 * 8).fill(null);
+    game.cities = [];
+    game.units = types.map((type, i) => ({
+      id: i + 1,
+      type,
+      ownerId: 0,
+      col: 1 + i,
+      row: 2,
+      hp: unitDef(type).maxHp,
+      movesLeft: 2,
+      hasAttacked: false,
+    }));
+    return game;
+  }
+
+  /** Every bar instance the layer drew, as `{ x, y, width }`. */
+  function bars(layer: UnitLayer, board: ReturnType<typeof geometry>) {
+    const out: { x: number; y: number; width: number }[] = [];
+    const matrix = new Matrix4();
+    const scale = new Vector3();
+    const position = new Vector3();
+    for (const child of layer.group.children) {
+      if (!(child instanceof InstancedMesh) || child.geometry !== board.bar) continue;
+      for (let i = 0; i < child.count; i++) {
+        child.getMatrixAt(i, matrix);
+        position.setFromMatrixPosition(matrix);
+        scale.setFromMatrixScale(matrix);
+        out.push({ x: position.x, y: position.y, width: scale.x });
+      }
+    }
+    return out;
+  }
+
+  it('draws bars only over the units that are actually hurt', () => {
+    const board = geometry();
+    const game = state(['warrior', 'warrior', 'warrior']);
+    // Three in a row, adjacent — the board the bug was seen on.
+    game.units.forEach((unit, i) => {
+      unit.col = 3 + i;
+      unit.row = 2;
+    });
+    const layer = new UnitLayer();
+    const library = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+
+    // Nobody hurt: no bars at all.
+    layer.build(game, board, library, new Quaternion(), false, null);
+    expect(bars(layer, board)).toHaveLength(0);
+
+    // The middle one takes a blow. One unit hurt is one bar — a backing and a
+    // fill — over one column, and nothing over either neighbour. Every instance
+    // is drawn three times, once per wrap copy (`copyOffsets`), so the counts
+    // below are per-copy figures times WRAP_COPIES.
+    game.units[1]!.hp = 40;
+    layer.build(game, board, library, new Quaternion(), false, null);
+    const drawn = bars(layer, board);
+    expect(drawn).toHaveLength(2 * WRAP_COPIES);
+    // One column: the backing and the fill share a left edge, and the three
+    // copies are the same bar a period apart.
+    expect(new Set(drawn.map((bar) => Math.round(bar.x * 1000))).size).toBe(WRAP_COPIES);
+    // And the fill says 40/100 of the backing, not somebody else's fraction.
+    const widths = drawn.map((bar) => bar.width).sort((a, b) => a - b);
+    expect(widths[0]! / widths[widths.length - 1]!).toBeCloseTo(0.4, 5);
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('takes the bar with the piece when a walk hides it', () => {
+    const board = geometry();
+    const game = state(['warrior', 'warrior', 'warrior']);
+    game.units.forEach((unit, i) => {
+      unit.col = 3 + i;
+      unit.row = 2;
+      unit.hp = 40;
+    });
+    const layer = new UnitLayer();
+    const library = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    layer.build(game, board, library, new Quaternion(), false, null);
+    expect(bars(layer, board)).toHaveLength(6 * WRAP_COPIES);
+
+    // The animation layer is drawing this one now. Its resting visual comes off
+    // the board — **all** of it. A bar left standing over the hex a piece walked
+    // out of is a bar the eye reads as belonging to whoever is standing next to
+    // it, which is exactly the bug this pins.
+    layer.hide(game.units[1]!.id);
+    const left = bars(layer, board).filter((bar) => bar.width > 0);
+    expect(left).toHaveLength(4 * WRAP_COPIES);
+
+    layer.restore(game.units[1]!.id);
+    expect(bars(layer, board).filter((bar) => bar.width > 0)).toHaveLength(6 * WRAP_COPIES);
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('re-applies a standing hide to the bars across a rebuild', () => {
+    const board = geometry();
+    const game = state(['warrior', 'warrior', 'warrior']);
+    game.units.forEach((unit, i) => {
+      unit.col = 3 + i;
+      unit.row = 2;
+      unit.hp = 40;
+    });
+    const layer = new UnitLayer();
+    const library = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    layer.build(game, board, library, new Quaternion(), false, null);
+    layer.hide(game.units[1]!.id);
+
+    // A blow lands somewhere else while the walk is still in flight: the layer
+    // is rebuilt off the fingerprint, and `build` re-applies every standing
+    // hide. The bar has to go back down with the rest of the piece.
+    game.units[0]!.hp = 20;
+    layer.build(game, board, library, new Quaternion(), false, null);
+    expect(bars(layer, board).filter((bar) => bar.width > 0)).toHaveLength(4 * WRAP_COPIES);
+
+    layer.dispose();
+    board.dispose();
+  });
+});

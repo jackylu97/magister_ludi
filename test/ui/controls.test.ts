@@ -27,7 +27,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type LensMode } from '../../src/ui/mapView';
-import { lensForDigit, lensShowsYields } from '../../src/ui/controls';
+import { lensForDigit, lensShowsYields, wantsNativeContextMenu } from '../../src/ui/controls';
 
 const ORDER: readonly LensMode[] = ['none', 'settler', 'explorer'];
 
@@ -127,5 +127,61 @@ describe('lensShowsYields', () => {
   it('the switch alone is enough under any mode', () => {
     expect(lensShowsYields('settler', true, false)).toBe(true);
     expect(lensShowsYields('explorer', true, false)).toBe(true);
+  });
+});
+
+/**
+ * The right button belongs to the game, and `wantsNativeContextMenu` is the one
+ * exemption from that.
+ *
+ * The bug this replaced was a `contextmenu` listener on the **viewport**: right
+ * click pans with the pointer captured, but `contextmenu` is hit-tested like any
+ * mouse event, so a pan that came to rest over a banner, a price tag, a toast or
+ * the unit sheet handed the player the browser's Back/Forward menu. The fix is a
+ * document-level suppression in `main.ts` gated on `landingEl.hidden`; what is
+ * pinned here is the *predicate*, because a rule about which surfaces keep the
+ * native menu is the half that can quietly grow wrong.
+ *
+ * The claim is narrow on purpose: **text a player might paste keeps its menu,
+ * and nothing else does.** A checkbox is a control, a button is a control, and
+ * the board is emphatically not text.
+ */
+describe('wantsNativeContextMenu', () => {
+  it('keeps the native menu for the text fields a player types into', () => {
+    expect(wantsNativeContextMenu({ tagName: 'TEXTAREA' })).toBe(true);
+    expect(wantsNativeContextMenu({ tagName: 'INPUT', type: 'text' })).toBe(true);
+    expect(wantsNativeContextMenu({ tagName: 'INPUT', type: 'search' })).toBe(true);
+    expect(wantsNativeContextMenu({ tagName: 'INPUT', type: 'number' })).toBe(true);
+    expect(wantsNativeContextMenu({ tagName: 'INPUT', type: 'password' })).toBe(true);
+  });
+
+  it('reads a bare <input> as text, the way the platform does', () => {
+    expect(wantsNativeContextMenu({ tagName: 'INPUT' })).toBe(true);
+  });
+
+  it('is case-insensitive about both the tag and the type', () => {
+    expect(wantsNativeContextMenu({ tagName: 'input', type: 'TEXT' })).toBe(true);
+    expect(wantsNativeContextMenu({ tagName: 'textarea' })).toBe(true);
+  });
+
+  it('takes the menu away from every control that holds no text', () => {
+    expect(wantsNativeContextMenu({ tagName: 'INPUT', type: 'checkbox' })).toBe(false);
+    expect(wantsNativeContextMenu({ tagName: 'INPUT', type: 'range' })).toBe(false);
+    expect(wantsNativeContextMenu({ tagName: 'INPUT', type: 'button' })).toBe(false);
+    expect(wantsNativeContextMenu({ tagName: 'SELECT' })).toBe(false);
+    expect(wantsNativeContextMenu({ tagName: 'BUTTON' })).toBe(false);
+  });
+
+  it('keeps it inside an editable region, which the DOM inherits for us', () => {
+    expect(wantsNativeContextMenu({ tagName: 'SPAN', isContentEditable: true })).toBe(true);
+  });
+
+  it('takes it away from every surface the board is made of', () => {
+    // The five that leaked: the canvas itself and the four DOM layers over it.
+    expect(wantsNativeContextMenu({ tagName: 'CANVAS' })).toBe(false);
+    expect(wantsNativeContextMenu({ tagName: 'DIV' })).toBe(false);
+    expect(wantsNativeContextMenu({ tagName: 'SPAN' })).toBe(false);
+    expect(wantsNativeContextMenu({ tagName: 'P' })).toBe(false);
+    expect(wantsNativeContextMenu(null)).toBe(false);
   });
 });

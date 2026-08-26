@@ -143,19 +143,35 @@ export function nextDraftCost(player: Player): number {
 
 /**
  * How a level scales a printed figure: `×upgradeMultiplier` per level above the
- * first, floored **per figure** so two half-points pay for two halves.
+ * first, floored **per figure** so two half-points pay for two halves — and
+ * never by less than one whole point per level.
  *
  * In the evaluator rather than in the data (see `statecraftData.ts`): a retune
  * is one number, not sixty-five rows, and an upgraded face is guaranteed to be
  * the printed face's shape rather than a second card that could disagree with
  * it. Magnitude-preserving on a malus too — Conscription's −2 happiness deepens
  * to −3, which is the tradeoff getting sharper as the card gets stronger.
+ *
+ * **The floor on the advance is the whole of the 2026-08-26 fix** (user: "some
+ * cards don't have an upgrade"). `floor(1 × 1.5)` is `1`, so the multiplier
+ * swallowed itself on every card whose printed figure was a single point — and
+ * that was **nineteen of the sixty-five Orders**, a third of the table, each of
+ * them offerable as an upgrade that changed nothing at all. The fix is here
+ * rather than in nineteen rows because it is one rule: *an upgrade always
+ * advances the number*. A figure of 2 or more is untouched (`floor(2 × 1.5)` is
+ * already 3), so nothing that upgraded before upgrades differently now — only
+ * ±1 moves, and only to ±2.
+ *
+ * A card with **no figure at all** cannot be reached from here and is the other
+ * half of the fix: see `CardDefBase.upgradable`.
  */
 export function scaleByLevel(value: number, level: number): number {
   if (level <= 1 || value === 0) return value;
   const factor = STATECRAFT.upgradeMultiplier ** (level - 1);
   const scaled = value * factor;
-  return scaled < 0 ? -Math.floor(-scaled) : Math.floor(scaled);
+  const floored = scaled < 0 ? -Math.floor(-scaled) : Math.floor(scaled);
+  const advanced = Math.max(Math.abs(floored), Math.abs(value) + (level - 1));
+  return value < 0 ? -advanced : advanced;
 }
 
 // --- what a player holds ----------------------------------------------------
@@ -356,14 +372,31 @@ function drawWithoutReplacement<T>(state: GameState, from: readonly T[], count: 
  *
  * Both draws spend the generator in a fixed order (new cards, then the upgrade),
  * so the same state deals the same hand.
+ *
+ * **A card with no second face is not in the upgrade draw at all** (user,
+ * 2026-08-26). `isUpgradable` reads the row; the three cards that answer no are
+ * pure switches with no figure to advance, and offering one would be a draft
+ * option that changed nothing — see `CardDefBase.upgradable`. Filtering the
+ * *pool* rather than re-rolling a bad draw is what keeps the generator honest:
+ * the draw still spends exactly one roll, over a smaller bag.
  */
 export function drawOrderOffer(state: GameState, sc: PlayerStatecraft): OrderOffer {
   const options = drawWithoutReplacement(state, livePool(sc), STATECRAFT.offer.newCards);
-  const upgrades = drawWithoutReplacement(state, sc.orders.map((owned) => owned.id), 1);
+  const deepenable = sc.orders.map((owned) => owned.id).filter(isUpgradable);
+  const upgrades = drawWithoutReplacement(state, deepenable, 1);
   const offer: OrderOffer = { options };
   const target = upgrades[0];
   if (target !== undefined) offer.upgrade = target;
   return offer;
+}
+
+/**
+ * Can this card be deepened at all? `CardDefBase.upgradable`, read in the one
+ * place that matters and exported because the collection screen greys a card
+ * that will never be offered rather than leaving the player to wonder.
+ */
+export function isUpgradable(id: CardId): boolean {
+  return cardDef(id).upgradable !== false;
 }
 
 /**

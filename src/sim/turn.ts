@@ -90,7 +90,7 @@
 
 import { barbarianTurn } from './barbarians';
 import { advanceProduction, collectYields, expandBorders, growCities } from './cities';
-import { advanceFortify, healCities } from './combat';
+import { type CombatOutcome, advanceFortify, healCities } from './combat';
 import { hasLineOfSight } from './los';
 import { getTileAt, tileHex, wrappedDistance } from './map';
 import { advanceAlongPath } from './movement';
@@ -102,10 +102,40 @@ import { fullMovement, isRested } from './units';
 import { RULES } from './rulesData';
 import { recomputeAllVisibility, sightOf } from './visibility';
 
+/**
+ * What a resolution *did* that stops being visible the instant it is over.
+ *
+ * `CommandResult.arrivals`' argument, one scale up and for the same reason: the
+ * end-of-turn pipeline is where the wild strikes, and by the time `endTurn`
+ * returns the raider has already been paid, the worker has already changed
+ * hands and the board says nothing about who hit whom. An interface that wanted
+ * to tell a player "your warrior was attacked" would have to re-derive it from
+ * a diff of two boards — which cannot name the attacker at all.
+ *
+ * So the pipeline **reports**, exactly as `arriveOnTile` reports: it is handed a
+ * sink, phases that have something to say write into it, and `applyEndTurn`
+ * passes it out through the `CommandResult`. Nothing is stored on `GameState`,
+ * because none of it is a fact about the world — it is a fact about the
+ * *transition*, and a transition is over.
+ *
+ * `run` takes it as a **second parameter**, so every phase that has nothing to
+ * report is assignable unchanged (a function of one argument satisfies a
+ * two-argument signature). Only `barbarianTurn` reads it today.
+ */
+export interface TurnReport {
+  /** Every blow struck during the resolution, in the order they landed. */
+  combats: CombatOutcome[];
+}
+
+/** A fresh, empty report. The one place its shape is written. */
+export function emptyTurnReport(): TurnReport {
+  return { combats: [] };
+}
+
 export interface TurnPhase {
   /** Stable identifier, used by tests and (later) by the turn-log UI. */
   name: string;
-  run: (state: GameState) => void;
+  run: (state: GameState, report: TurnReport) => void;
 }
 
 /**
@@ -326,6 +356,8 @@ function resetMovement(state: GameState): void {
  * counter advances — so a phase still sees the turn that is ending in
  * `state.turn`, and sees every player marked as having ended it.
  */
-export function runEndOfTurn(state: GameState): void {
-  for (const phase of END_OF_TURN_PHASES) phase.run(state);
+export function runEndOfTurn(state: GameState): TurnReport {
+  const report = emptyTurnReport();
+  for (const phase of END_OF_TURN_PHASES) phase.run(state, report);
+  return report;
 }

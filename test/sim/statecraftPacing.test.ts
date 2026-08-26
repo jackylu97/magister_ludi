@@ -142,22 +142,35 @@ describe('the culture ladder', () => {
   it('hands the scripted empire a draft about every five turns early on', () => {
     const { draftTurn } = playEmpire(120);
     /**
-     * **Measured on seed 4242 at `costBase 6 / costLinear 3 / costExponent 2`:**
-     * drafts land on turns 7, 16, 24, 32, 38, 42, 47, 53, 60, 67, 73, 79, 85,
-     * 90, 97 — so the three governments are offered on turns **24 / 47 / 97**,
-     * against the tech tree's three ages closing on 41 / 80 / 120. Each
-     * government therefore arrives a little ahead of the age it belongs to,
-     * which is Entry XV's "even turn-time between governments" holding on both
-     * ladders at once.
+     * **Measured on seed 4242 at `costBase 6 / costLinear 3 / costExponent 2`,
+     * re-measured 2026-08-26 after the shrine and the temple moved off culture
+     * onto faith:** drafts land on turns 7, 16, 24, 32, 38, 43, 49, 56, 64, 72,
+     * 81, 88, 96, 102, 109, 116 — so the three governments are offered on turns
+     * **24 / 49 / 109**, against the tech tree's three ages closing on 41 / 80 /
+     * 120. Each government still arrives ahead of the age it belongs to, which
+     * is Entry XV's "even turn-time between governments" holding on both ladders
+     * at once, but the third one now arrives with the age rather than well
+     * before it.
      *
-     * The early cadence comes out at **6.6 turns per draft** across drafts 1–8,
-     * against Entry XV's stated target of ~5, and the gap is worth writing down
-     * rather than tuning away. The binding constraint is not the curve: this
-     * empire makes about **one culture a turn for its first thirty turns**
-     * (one per city, plus a monument it builds behind the granary), so *any*
-     * escalating cost yields a 6–7 turn opening cadence for it. Pulling the
-     * curve down far enough to hit 5 would make the mid-game cadence 2–3 turns,
-     * which is a worse game than a slightly slow opening.
+     * The early cadence comes out at **7.0 turns per draft** across drafts 1–8
+     * (6.6 before the shrine and temple moved), against Entry XV's stated target
+     * of ~5, and the gap is worth writing down rather than tuning away. The
+     * binding constraint is not the curve: this empire makes about **one culture
+     * a turn for its first thirty turns** (one per city, plus a monument it
+     * builds behind the granary), so *any* escalating cost yields a 6–7 turn
+     * opening cadence for it. Pulling the curve down far enough to hit 5 would
+     * make the mid-game cadence 2–3 turns, which is a worse game than a slightly
+     * slow opening.
+     *
+     * **What the faith move cost, exactly.** The first five drafts are
+     * *unmoved* (7 / 16 / 24 / 32 / 38): the shrine and the temple are not
+     * standing that early under this build order, so the opening is untouched.
+     * The drift starts at draft 6 and compounds — draft 6 slips 1 turn, draft 8
+     * slips 3, draft 12 slips 9, draft 15 slips 12. Each town that finishes both
+     * gives up 3 culture a turn, and an escalating cost turns a constant loss of
+     * income into a widening gap rather than a fixed one. Monument and
+     * amphitheater are untouched and are now the *whole* of a town's built
+     * culture.
      *
      * The five-turn target is reachable, and reaching it is the point: it is
      * what a *culture-focused* empire gets — Boundary Stones, Land Grants and a
@@ -176,13 +189,13 @@ describe('the culture ladder', () => {
     expect(first).toBeGreaterThan(3);
     expect(first).toBeLessThan(12);
     // The early cadence — drafts 1 through 8, the stretch Entry XV's "~5 turns
-    // per draft early" is about. Measured 6.6; the band is two-sided, because a
+    // per draft early" is about. Measured 7.0; the band is two-sided, because a
     // curve that got cheaper is as much a regression as one that got dearer.
     const earlyCadence = (eighth - first) / 7;
     expect(earlyCadence).toBeGreaterThan(4);
     expect(earlyCadence).toBeLessThan(9);
     // The three government tiers all arrive, and they arrive spread out.
-    // Measured 24 / 47 / 97.
+    // Measured 24 / 49 / 109.
     const tiers = GOVERNMENT_TIERS.map((tier) => draftTurn[tier - 1]);
     for (const [index, turn] of tiers.entries()) {
       expect(turn, `government ${index + 1}`).toBeDefined();

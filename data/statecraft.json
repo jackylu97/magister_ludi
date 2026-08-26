@@ -913,6 +913,7 @@
       "neutral": true,
       "flavor": "Laws that change quickly are laws that are watched closely.",
       "text": "Your Orders' seals last 2 turns instead of 5.",
+      "upgradable": false,
       "effects": [
         { "kind": "metaRule", "rule": "sealTurns", "value": 2 }
       ]
@@ -1160,6 +1161,7 @@
       "neutral": true,
       "flavor": "Nothing left on the workbench is wasted.",
       "text": "Production overflow from a completed item is doubled.",
+      "upgradable": false,
       "effects": [
         { "kind": "actionRule", "rule": "doubleOverflow" }
       ]
@@ -1317,6 +1319,7 @@
       "neutral": true,
       "flavor": "The spear is always first in line.",
       "text": "A unit further down a city's queue completes ahead of a building it can already afford.",
+      "upgradable": false,
       "effects": [
         { "kind": "actionRule", "rule": "unitJumpsQueue" }
       ]

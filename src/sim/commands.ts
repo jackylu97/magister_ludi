@@ -69,7 +69,7 @@ import {
   settleProductionWindfall,
   tilePurchaseError,
 } from './cities';
-import { applyCombat, fortifyError } from './combat';
+import { type CombatOutcome, applyCombat, fortifyError } from './combat';
 import { discoveryChoiceError, settleDiscovery } from './discoveries';
 import type { ImprovementId } from './improvementData';
 import {
@@ -659,14 +659,32 @@ export type CommandType = Command['type'];
  * peer — is unaffected.
  */
 export type CommandResult =
-  | { ok: true; arrivals?: ArrivalReport[] }
+  | { ok: true; arrivals?: ArrivalReport[]; combats?: CombatOutcome[] }
   | { ok: false; error: string };
 
-function ok(arrivals?: readonly ArrivalReport[]): CommandResult {
-  // Written only when there is something in it, so the overwhelmingly common
-  // result is byte-identical to the `{ ok: true }` this used to be.
-  if (arrivals !== undefined && arrivals.length > 0) return { ok: true, arrivals: [...arrivals] };
-  return { ok: true };
+/**
+ * Builds a success, writing each optional field **only when it has something in
+ * it** — so the overwhelmingly common result is byte-identical to the
+ * `{ ok: true }` this used to be, and a caller that has never heard of either
+ * field is unaffected.
+ *
+ * `combats` is `arrivals`' sibling and joined this signature for the same
+ * argument (see the docblock above): a blow struck **inside a resolution** is a
+ * difference that stops existing the instant the command returns — by then the
+ * raider has been paid, the worker has changed hands, and the board cannot be
+ * asked who hit whom. Exactly one command produces it, `endTurn`, and only when
+ * the wild actually struck; `attack` deliberately does not (see `applyAttack`).
+ * The interface filters the list by the seat at the keyboard; the reducer has no
+ * opinion about who is watching.
+ */
+function ok(
+  arrivals?: readonly ArrivalReport[],
+  combats?: readonly CombatOutcome[],
+): CommandResult {
+  const result: CommandResult = { ok: true };
+  if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
+  if (combats !== undefined && combats.length > 0) result.combats = [...combats];
+  return result;
 }
 
 function fail(error: string): CommandResult {
@@ -739,10 +757,13 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   state.turnEnded[actor.id] = true;
   if (!allTurnsEnded(state)) return ok();
 
-  runEndOfTurn(state);
+  // The resolution reports what it did — today, every blow the wild landed. See
+  // `TurnReport`: by the time this returns the raider has been paid and the
+  // board cannot be asked who hit whom.
+  const report = runEndOfTurn(state);
   clearTurnEnded(state);
   state.turn += 1;
-  return ok();
+  return ok(undefined, report.combats);
 }
 
 /** Reads an offset cell defensively; commands may arrive from a save or a socket. */
@@ -1166,6 +1187,15 @@ function applyAttack(state: GameState, command: AttackCommand): CommandResult {
   if (!result.ok) return fail(result.error);
   // A melee winner that advanced may have stormed a camp or ridden into a ruin.
   const arrival = result.outcome.arrival;
+  // The blow itself is deliberately **not** reported on `combats`. That channel
+  // is for news the actor could not otherwise have — a camp's bounty already
+  // banked, a raid that happened inside a resolution — and an attacker knows it
+  // attacked: the interface narrates its own blow from the forecast it just
+  // showed (`reportCombatNotice`). Reporting it here would also put a field on
+  // the overwhelmingly common result for nobody's benefit, which is the promise
+  // `CommandResult` makes above. The day a *relayed* command has to tell a
+  // watching seat, that is the referee's per-seat projection (ledger Entry
+  // XXIII), not this return value.
   return ok(arrival === null ? undefined : [arrival]);
 }
 

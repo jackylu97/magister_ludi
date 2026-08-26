@@ -36,7 +36,8 @@
       "production": 0,
       "gold": 0,
       "science": 1,
-      "culture": 1,
+      "culture": 0,
+      "faith": 1,
       "sciencePerPop": 0
     },
     "barracks": {
@@ -70,7 +71,8 @@
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 2,
+      "culture": 0,
+      "faith": 2,
       "sciencePerPop": 0
     },
     "market": {

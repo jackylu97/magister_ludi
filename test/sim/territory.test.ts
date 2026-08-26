@@ -36,6 +36,7 @@ import {
 } from '../../src/sim/meters';
 import { RULES } from '../../src/sim/rulesData';
 import { type City, type GameState, newGame } from '../../src/sim/state';
+import { improvementForResource } from '../../src/sim/improvementData';
 import { TECH_IDS } from '../../src/sim/techData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -251,7 +252,28 @@ describe('the writ and the borders', () => {
     // A city that actually makes culture, so the tier is not lost to the floor
     // — a +10% on three culture is three, and that is the design (see
     // `borderGrowth`). Ten or more is where the writ starts paying.
+    //
+    // **Buildings alone no longer reach ten.** The shrine and the temple moved
+    // off culture onto faith on 2026-08-26, so the whole table now pays a town
+    // 7 culture (monument 2, amphitheater 3, monastery 2) over the 1 it makes
+    // for being a town. The two culture *seams* below make up the difference,
+    // which is the honest fixture rather than a smaller assertion: a town that
+    // wants its borders to run needs more than a build order now.
     city.buildings.push('monument', 'temple', 'amphitheater', 'monastery', 'shrine');
+    state.players[0]!.techsResearched = [...TECH_IDS];
+    for (const [col, row] of [
+      [7, 6],
+      [6, 7],
+    ] as const) {
+      const seam = at(state.map, col, row);
+      seam.resource = 'silk';
+      seam.improvement = improvementForResource('silk')!;
+    }
+
+    // One settling pass first: planting a seam changes which tile the citizen
+    // wants, and `borderGrowth` reads `city.workedTiles` as it stands. Asking
+    // before the assignment has caught up would compare two different cities.
+    collectYields(state);
 
     const growth = borderGrowth(state, city);
     expect(growth.frozen).toBe(false);

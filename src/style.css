@@ -3717,6 +3717,91 @@ kbd {
   color: var(--ink-soft);
 }
 
+/* The headline: both effective strengths, side by side, each over the lines it
+   is the fold of (rule 5 — the multiplied number is never shown without its
+   reasons). Two equal columns with a hairline between them, so the eye compares
+   the two big figures first and reads downward for why. */
+.combat-strengths {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 10px;
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--ink-faint);
+}
+
+.combat-strength {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.combat-strength.is-defender {
+  padding-left: 10px;
+  border-left: 1px solid var(--ink-faint);
+}
+
+.combat-strength-label {
+  font-family: var(--face-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The one number the card exists to show. Tabular, like every number here. */
+.combat-strength-figure {
+  font-family: var(--face-num);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.combat-strength.is-attacker .combat-strength-figure {
+  color: var(--teal);
+}
+
+.combat-strength.is-defender .combat-strength-figure {
+  color: var(--vermilion);
+}
+
+/* The reasons, one per row: the label on the left, its points on the right. */
+.combat-strength-lines {
+  margin: 3px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.combat-strength-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-family: var(--face-ui);
+  font-size: 9.5px;
+  color: var(--ink-soft);
+}
+
+.combat-strength-lines li > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combat-strength-amount {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
 /* One side of the trade: who, how much, the bar, and what is left. A grid so
    the four columns line up between the two rows however long the names are. */
 .combat-side {

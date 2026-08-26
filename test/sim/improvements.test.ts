@@ -368,11 +368,188 @@ describe('buildImprovement', () => {
       );
       tile.feature = 'none';
       tile.terrain = 'tundra';
+      // Dry tundra is not refused for being tundra any more — it is refused for
+      // being *dry*. See the freshwater block below.
       expect(improvementError(state, worker.id, 'farm')).toBe(
-        'A farm cannot be built on tundra',
+        'A farm on tundra needs fresh water',
+      );
+      tile.terrain = 'mountain';
+      expect(improvementError(state, worker.id, 'farm')).toBe(
+        'A farm cannot be built on mountain',
       );
       tile.terrain = 'plains';
       expect(improvementError(state, worker.id, 'farm')).toBeNull();
+    });
+
+    /**
+     * The farm's freshwater widening (user, 2026-08-26).
+     *
+     * The rule is a **union**, not a fifth filter: `freshwaterTerrain` adds to
+     * `validTerrain` on ground that can drink, so grassland and plains keep
+     * working dry and the ground the row would never accept is still refused by
+     * terrain rather than by thirst. `requiresHills: false` is asked separately
+     * and still holds, which is what makes it "any *flat* watered tile".
+     */
+    it('farms watered desert, tundra and snow, and only while they are watered', () => {
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+
+      for (const terrain of ['desert', 'tundra', 'snow'] as const) {
+        tile.terrain = terrain;
+        tile.freshwater = false;
+        expect(improvementError(state, worker.id, 'farm')).toBe(
+          `A farm on ${terrain} needs fresh water`,
+        );
+        tile.freshwater = true;
+        expect(improvementError(state, worker.id, 'farm')).toBeNull();
+      }
+
+      // The widening never reaches ground the row does not name at all.
+      tile.terrain = 'mountain';
+      expect(improvementError(state, worker.id, 'farm')).toBe(
+        'A farm cannot be built on mountain',
+      );
+
+      // And it does not relax the hills filter: watered high ground is still
+      // high ground.
+      tile.terrain = 'desert';
+      tile.hills = true;
+      expect(improvementError(state, worker.id, 'farm')).toBe('A farm needs flat ground');
+    });
+
+    it('keeps grassland and plains farmable with no water anywhere near', () => {
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      tile.freshwater = false;
+      for (const terrain of ['grassland', 'plains'] as const) {
+        tile.terrain = terrain;
+        expect(improvementError(state, worker.id, 'farm')).toBeNull();
+      }
+    });
+
+    it('farms a floodplain, which is fresh desert by construction', () => {
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      tile.terrain = 'desert';
+      tile.feature = 'floodplain';
+      // `deriveFloodplains` only ever writes one onto ground that already
+      // touches a river or an oasis, so this is the state the generator makes.
+      tile.freshwater = true;
+      expect(improvementError(state, worker.id, 'farm')).toBeNull();
+    });
+
+    /**
+     * **A seam claims its own hex** (user, 2026-08-26: "should not be allowed to
+     * build the incorrect improvement on resource tiles").
+     *
+     * The rule is one line read off the table's own inverse
+     * (`improvementForResource`): a resource that some improvement opens will
+     * take that improvement and no other. Asserted over the **whole table**
+     * rather than on a handful of rows, because the failure it prevents is a
+     * silent one — a farm on a deer forest looks like a farm and the camp's
+     * luxury simply never arrives.
+     *
+     * Honey is the row that made it urgent and it is named below: it is the only
+     * luxury whose home is bare flat grassland, which is exactly where a farm
+     * goes.
+     */
+    describe('a resource refuses every improvement but its own', () => {
+      /** Puts the tile in a state that satisfies this improvement's ground filters. */
+      function shapeFor(tile: Tile, id: ImprovementId): void {
+        const def = improvementDef(id);
+        tile.terrain = def.validTerrain?.[0] ?? 'grassland';
+        tile.feature = def.validFeatures?.[0] ?? 'none';
+        tile.hills = def.requiresHills ?? false;
+        tile.freshwater = true;
+      }
+
+      it('refuses the wrong one by name, for every improvable resource', () => {
+        const { state, worker } = workerState();
+        const tile = at(state, 5, 4);
+        let checked = 0;
+
+        for (const resource of RESOURCE_IDS) {
+          const wanted = improvementForResource(resource);
+          if (wanted === null) continue;
+          for (const other of IMPROVEMENT_IDS) {
+            if (other === wanted) continue;
+            const def = improvementDef(other);
+            // A resource-improvement refuses on its own `requiresResource`
+            // filter first, which is a different (and correct) sentence. This
+            // clause is about the improvements that *would* otherwise be legal.
+            if (def.requiresResource !== undefined) continue;
+            shapeFor(tile, other);
+            tile.resource = resource;
+            tile.improvement = undefined;
+            expect(
+              improvementError(state, worker.id, other),
+              `${other} on ${resource}`,
+            ).toBe(`${resourceDef(resource).name} wants a ${improvementDef(wanted).name.toLowerCase()}`);
+            checked += 1;
+          }
+        }
+        // The sweep is not vacuous: every land resource in the table has an
+        // improver today, and the two generic improvements reach most of them.
+        expect(checked).toBeGreaterThan(20);
+      });
+
+      it('never refuses the improvement the resource actually wants', () => {
+        const { state, worker } = workerState();
+        const tile = at(state, 5, 4);
+        for (const resource of RESOURCE_IDS) {
+          const wanted = improvementForResource(resource);
+          if (wanted === null) continue;
+          shapeFor(tile, wanted);
+          tile.resource = resource;
+          tile.improvement = undefined;
+          const error = improvementError(state, worker.id, wanted) ?? '';
+          expect(error, `${wanted} on ${resource}`).not.toContain('wants a');
+        }
+      });
+
+      it('names honey, the row that made the rule urgent', () => {
+        const { state, worker } = workerState();
+        const tile = at(state, 5, 4);
+        // Honey's home: bare flat grassland — a farm's home exactly.
+        tile.terrain = 'grassland';
+        tile.feature = 'none';
+        tile.hills = false;
+        tile.resource = 'honey';
+        expect(improvementError(state, worker.id, 'farm')).toBe('Honey wants a plantation');
+        expect(improvementError(state, worker.id, 'plantation')).toBeNull();
+      });
+
+      it('leaves ground with no improvable resource on it alone', () => {
+        const { state, worker } = workerState();
+        const tile = at(state, 5, 4);
+        tile.resource = undefined;
+        expect(improvementError(state, worker.id, 'farm')).toBeNull();
+        // Every land resource the table names has an improver today, so "a
+        // bonus resource nobody improves stays free" has no land row to stand
+        // on — the four unimproved ones are all at sea. Pinned as a property of
+        // the table so the day a land row is added with no improver, the rule
+        // above is already known to let it through.
+        for (const resource of RESOURCE_IDS) {
+          if (improvementForResource(resource) !== null) continue;
+          expect(resourceDef(resource).validTerrain?.every(isWaterTerrain) ?? false).toBe(true);
+        }
+      });
+
+      it('says nothing about a seam the player cannot yet name', () => {
+        const { state, worker } = workerState();
+        const tile = at(state, 5, 4);
+        // Horses want a pasture and are gated behind Husbandry. A refusal that
+        // named them would leak the map through an error message — `chopErrorAt`
+        // keeps the same silence for the same reason.
+        tile.terrain = 'grassland';
+        tile.feature = 'none';
+        tile.hills = false;
+        tile.resource = 'horses';
+        expect(improvementError(state, worker.id, 'farm')).toBe('Horses wants a pasture');
+
+        state.players[0]!.techsResearched = TECH_IDS.filter((id) => id !== 'husbandry');
+        expect(improvementError(state, worker.id, 'farm')).toBeNull();
+      });
     });
 
     it('holds a mine to high ground', () => {

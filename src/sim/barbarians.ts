@@ -71,6 +71,7 @@
 
 import { campAt, hasCampAt } from './camps';
 import { applyCombat, isCombatant } from './combat';
+import type { TurnReport } from './turn';
 import { cardBehaviorRule } from './statecraft';
 import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from './map';
 import { advanceAlongPath } from './movement';
@@ -833,7 +834,12 @@ function marchTo(state: GameState, unit: Unit, goal: Tile): void {
  * A thief is therefore a raider that has chosen a worker; the *rule* that hands
  * the worker over is the rule a player's warrior has always captured by.
  */
-function closeAndStrike(state: GameState, unit: Unit, goal: Tile): void {
+function closeAndStrike(
+  state: GameState,
+  unit: Unit,
+  goal: Tile,
+  report?: TurnReport,
+): void {
   if (!isAdjacentTo(state, unit, goal)) {
     const approach = approachTile(state, unit, goal);
     if (approach) marchTo(state, unit, approach);
@@ -845,7 +851,12 @@ function closeAndStrike(state: GameState, unit: Unit, goal: Tile): void {
   const after = unitById(state, unit.id);
   if (!after || after.hasAttacked || after.movesLeft <= 0) return;
   if (!isAdjacentTo(state, after, goal)) return;
-  applyCombat(state, after.id, { col: goal.col, row: goal.row });
+  const struck = applyCombat(state, after.id, { col: goal.col, row: goal.row });
+  // The one thing the wild owes the interface: **it happened, and here is who**.
+  // See `TurnReport` — the blow is over and the board cannot be asked about it,
+  // and a raid a player is never told about is a raid they discover by counting
+  // their army. A refused blow reports nothing, exactly as it changes nothing.
+  if (struck.ok) report?.combats.push(struck.outcome);
 }
 
 /**
@@ -935,7 +946,11 @@ function shadow(state: GameState, unit: Unit, cargoId: number): void {
  * and it would be an opinion formed on a board two turns stale. The wild decides
  * again, from scratch, every turn.
  */
-export function raid(state: GameState, veterans: readonly number[]): void {
+export function raid(
+  state: GameState,
+  veterans: readonly number[],
+  report?: TurnReport,
+): void {
   const wild = barbarianPlayer(state);
   if (!wild) return;
   const roles = barbarianRoles(state, wild, veterans);
@@ -956,12 +971,12 @@ export function raid(state: GameState, veterans: readonly number[]): void {
         case 'thief': {
           const prey = unitById(state, role.preyId);
           const at = prey === undefined ? null : getTileAt(state.map, prey.col, prey.row);
-          if (at) closeAndStrike(state, unit, at);
+          if (at) closeAndStrike(state, unit, at, report);
           break;
         }
         case 'raider': {
           const target = nearestTarget(state, wild, unit);
-          if (target) closeAndStrike(state, unit, target.tile);
+          if (target) closeAndStrike(state, unit, target.tile, report);
           else wander(state, unit);
           break;
         }
@@ -1012,7 +1027,7 @@ export function raid(state: GameState, veterans: readonly number[]): void {
  *     can see them changed, and that phase is the sweep that redraws every map
  *     once the world has stopped moving.
  */
-export function barbarianTurn(state: GameState): void {
+export function barbarianTurn(state: GameState, report?: TurnReport): void {
   const wild = barbarianPlayer(state);
   if (!wild) return;
 
@@ -1021,7 +1036,7 @@ export function barbarianTurn(state: GameState): void {
   // units from `state.units`, and a list of objects would keep corpses marching.
   const veterans = state.units.filter((unit) => unit.ownerId === wild.id).map((unit) => unit.id);
   musterCamps(state);
-  raid(state, veterans);
+  raid(state, veterans, report);
 }
 
 /** Every camp on the board, as cells — a pure read for the renderer and tests. */

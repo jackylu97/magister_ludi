@@ -4,6 +4,18 @@ Mechanics: ledger Entry XV + XV.b. **Orders** are slottable, entry-sealed, draft
 culture meter (3 new + 1 upgrade), amnestied on adoption. **Doctrines** are permanent,
 occupy no slot, and are drafted 1-of-3 at each government adoption from that tier's pool.
 
+### Upgrades (fixed 2026-08-26)
+
+A level-2 face is the printed face's numbers `×1.5`, floored per figure — **and advanced by
+at least one whole point per level**. That last clause is the fix: `floor(1 × 1.5)` is `1`,
+so before it, *nineteen of the sixty-five Orders* could be dealt as the draft's upgrade
+option and change nothing at all. Every card that prints a number is now deepenable; a card
+that prints none (`The Loose Rein`, `The Common Purse`, `The Standing Levy` — three
+switches) carries `"upgradable": false` on its row and the upgrade slot never rolls it.
+Giving one of those three a second face is a design decision, not a data edit: write the
+clause and delete the flag. `test/sim/statecraft.test.ts` holds both halves together, in
+both directions, so the flag cannot be used to hide a row that just needs a bigger number.
+
 Pass four (user rulings 2026-08-25): **no card depending on barbarians or discoveries past
 Chiefdom/Gov I** (those systems fade by the Age of Empire), and **no "flat +X% of a yield"
 Orders** (generically strong, uninteresting). Every surviving percentage is a *category*
