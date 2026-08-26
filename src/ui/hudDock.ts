@@ -127,7 +127,15 @@ const FAITH_COMING = 'Augurs · Pantheons · Prophets';
 /** The one sentence the Faith card says about what faith is for, today. */
 const FAITH_IDENTITY = 'The faithful gather. Their purpose comes later.';
 
-function buildButton(id: string, label: string, title: string, markUri: string): HTMLButtonElement {
+/**
+ * Icon-only: `title` is the hover tooltip and `aria-label` is the accessible
+ * name, so a screen reader or a mouseover both still say "Statecraft (C)" /
+ * "Religion (H)" even though nothing is printed on the button itself. `label`
+ * is no longer laid out — see the module docblock's note on this pass — but
+ * stays a parameter so a caller reads as "this button means X" at the call
+ * site, not just "here is a tooltip string".
+ */
+function buildButton(id: string, _label: string, title: string, markUri: string): HTMLButtonElement {
   const button = element('button', 'hud-dock-btn');
   button.type = 'button';
   button.id = id;
@@ -136,8 +144,7 @@ function buildButton(id: string, label: string, title: string, markUri: string):
   const icon = element('span', 'hud-dock-icon');
   icon.setAttribute('aria-hidden', 'true');
   icon.style.setProperty('--dock-mark', `url("${markUri}")`);
-  const text = element('span', 'hud-dock-label', label);
-  button.append(icon, text);
+  button.append(icon);
   return button;
 }
 
