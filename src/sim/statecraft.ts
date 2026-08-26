@@ -2178,8 +2178,11 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       return;
     case 'combatLine': {
       const each = signed(scaleByLevel(effect.amount, level));
+      // "per adjacent friendly combat unit", never "per 1 adjacent friendly
+      // combat units": a helping of one is the thing itself, and printing the
+      // 1 is what made The Marshals read like a rounding error.
       const scale = effect.scaled
-        ? ` per ${effect.scaled.per} ${SCALE_WORDS[effect.scaled.count]}` +
+        ? ` per ${countWords(effect.scaled.per, SCALE_WORDS[effect.scaled.count])}` +
           (effect.scaled.max === undefined ? '' : ` (at most ${signed(effect.scaled.max)})`)
         : '';
       out.push({ text: `${each} combat strength${scale} ${COMBAT_WORDS[effect.when.test]}`.trim() });
@@ -2198,12 +2201,9 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
     }
     case 'windfallRider': {
       const occasion = OCCASION_WORDS[effect.occasion];
-      if (effect.perAge === true) {
-        out.push({ text: `${occasion} pays in the money of your era` });
-      }
-      if (effect.percent !== undefined) {
-        out.push({ text: `${occasion} pays ${signed(scaleByLevel(effect.percent, level))}%` });
-      }
+      // The **grant first**, then the riders on it. Rites of Blood pays fifteen
+      // faith and the age multiplies it; leading with the multiplier said the
+      // second half of a sentence whose first half had not been printed yet.
       const grant = effect.grant;
       if (grant?.yield !== undefined && grant.amount !== undefined) {
         out.push({
@@ -2212,6 +2212,12 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       }
       if (grant?.heal !== undefined) {
         out.push({ text: `${occasion} heals ${scaleByLevel(grant.heal, level)}` });
+      }
+      if (effect.percent !== undefined) {
+        out.push({ text: `${occasion} pays ${signed(scaleByLevel(effect.percent, level))}%` });
+      }
+      if (effect.perAge === true) {
+        out.push({ text: `${occasion} pays in the money of your era` });
       }
       return;
     }
@@ -2223,39 +2229,66 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         });
       }
       if (effect.building !== undefined) {
-        out.push({ text: `new cities are founded with a ${effect.building}${limit}` });
+        // The building's **name**, not its id: "a monument" is a lucky accident
+        // of that row's spelling, and the next founding rider's would not be.
+        out.push({
+          text: `new cities are founded with a ${buildingDef(effect.building).name}${limit}`,
+        });
       }
       return;
     }
     case 'countScaled': {
-      const per = effect.per === undefined || effect.per === 1 ? '' : `${effect.per} `;
-      const cap = effect.max === undefined ? '' : ` (at most ${effect.max})`;
+      // The cap is on the **count** (`helpings` in this file), so it is printed
+      // as the payout it works out to — "(at most +3 happiness)" — which is how
+      // every ratified row states it and the only form a player can check
+      // against the ledger. A bare "(at most 4)" beside "+2 production per …"
+      // read as a cap of four production, which was wrong by half.
+      const cap =
+        effect.max === undefined
+          ? ''
+          : ` (at most ${payoutWords(effect.pays, level, effect.max)})`;
       out.push({
-        text: `${payoutWords(effect.pays, level)} per ${per}${COUNT_WORDS[effect.count]}${cap}`,
+        text: `${payoutWords(effect.pays, level)} per ${countWords(
+          effect.per,
+          COUNT_WORDS[effect.count],
+        )}${cap}`,
       });
       return;
     }
     case 'rateConversion': {
-      const per = effect.per === 1 ? '' : `${effect.per} `;
-      out.push({ text: `${payoutWords(effect.pays, level)} per ${per}${RATE_WORDS[effect.from]}` });
+      out.push({
+        text: `${payoutWords(effect.pays, level)} per ${countWords(
+          effect.per,
+          RATE_WORDS[effect.from],
+        )}`,
+      });
       return;
     }
     case 'offerRider':
       out.push({ text: OFFER_WORDS[effect.rule] });
       return;
     case 'effectAmplifier':
-      out.push({
-        text: `${AMPLIFIER_WORDS[effect.target]} ${signed(scaleByLevel(effect.percent, level))}%`,
-      });
+      out.push({ text: AMPLIFIER_WORDS[effect.target](scaleByLevel(effect.percent, level)) });
       return;
-    case 'meterRule':
+    case 'meterRule': {
+      // Two shapes wear this hook and they read differently. A **switch** — a
+      // rule of the meters suspended, carried as `value: 1` because the shape
+      // has no boolean — is already a whole sentence in `METER_RULE_WORDS`, and
+      // "borders keep growing … is 1" was that sentence with its plumbing left
+      // showing. A **number** is a figure a player has to be told.
+      const words = METER_RULE_WORDS[effect.rule];
+      if (METER_RULE_SWITCHES.includes(effect.rule)) {
+        out.push({ text: words });
+        return;
+      }
       out.push({
         text:
           effect.value !== undefined
-            ? `${METER_RULE_WORDS[effect.rule]} is ${effect.value}`
-            : `${METER_RULE_WORDS[effect.rule]} ${signed(effect.delta ?? 0)}`,
+            ? `${words} is ${effect.value}`
+            : `${words} ${signed(effect.delta ?? 0)}`,
       });
       return;
+    }
     case 'conditionRule': {
       const inner: CardClause[] = [];
       for (const nested of effect.then) describeEffect(nested, level, inner);
@@ -2290,7 +2323,7 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       });
       return;
     case 'unlocksBuilding':
-      out.push({ text: `unlocks the ${effect.building}`, deferred: true });
+      out.push({ text: `unlocks the ${buildingDef(effect.building).name}`, deferred: true });
       return;
     default: {
       const unhandled: never = kind;
@@ -2302,13 +2335,105 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
 
 function conditionValue(when: EmpireCondition): string {
   return when.test === 'cityCountAtMost' || when.test === 'cityCountAtLeast'
-    ? ` ${when.value}`
+    ? ` ${when.value} cities`
     : '';
 }
 
+/**
+ * "per adjacent friendly combat unit" · "per 3 population" — a helping, in
+ * words, with the **1 left out**.
+ *
+ * One helping of a thing is the thing, so `per: 1` prints no number and takes
+ * the singular; anything else prints the number and takes the plural. The one
+ * place either decision is made, because `combatLine`, `countScaled` and
+ * `rateConversion` all print helpings and all three used to print them
+ * differently.
+ */
+function countWords(per: number | undefined, words: PluralWords): string {
+  return per === undefined || per === 1 ? words.one : `${per} ${words.many}`;
+}
+
+/** A noun in both numbers, for `countWords`. */
+interface PluralWords {
+  one: string;
+  many: string;
+}
+
+/**
+ * A city scope as a **noun phrase**: "every city on fresh water with a Shrine",
+ * "your capital", "every city of 5+".
+ *
+ * Deliberately *not* `scopeNote`, and the split is the whole of this pass's
+ * scope fix. `scopeNote` is the **label** on a breakdown line ("Harbour Dues ·
+ * coastal city") and is free to be a fragment; this is read inside a sentence,
+ * where the same fragment came out as "+2 science in every size 5+" and "−10%
+ * food in every no fresh water". So the phrase is *built* rather than looked
+ * up: every scope contributes an adjective ("coastal"), a qualifier ("on fresh
+ * water"), or both, and the composite merges them — which is what turns "fresh
+ * water + shrine" into "every city on fresh water with a Shrine".
+ */
+interface ScopePhrase {
+  adjectives: string[];
+  qualifiers: string[];
+}
+
+function scopePhrase(scope: CityScope, into: ScopePhrase): void {
+  const test = scope.test;
+  switch (test) {
+    case 'coastal':
+      into.adjectives.push('coastal');
+      return;
+    case 'freshwater':
+      into.qualifiers.push('on fresh water');
+      return;
+    case 'notFreshwater':
+      into.qualifiers.push('without fresh water');
+      return;
+    case 'mountainAdjacent':
+      into.qualifiers.push('beside a mountain');
+      return;
+    case 'frontier':
+      into.adjectives.push('frontier');
+      return;
+    case 'captured':
+      into.adjectives.push('conquered');
+      return;
+    case 'capital':
+      into.adjectives.push('capital');
+      return;
+    case 'populationAtLeast':
+      into.qualifiers.push(`of ${scope.value}+`);
+      return;
+    case 'holding':
+      into.qualifiers.push(
+        `holding ${scope.resources.map((id) => resourceDef(id).name).join(' or ')}`,
+      );
+      return;
+    case 'holdingCategory':
+      into.qualifiers.push(`holding an improved ${scope.category} resource`);
+      return;
+    case 'hasBuilding':
+      into.qualifiers.push(`with a ${buildingDef(scope.building).name}`);
+      return;
+    case 'all':
+      for (const inner of scope.of) scopePhrase(inner, into);
+      return;
+    default: {
+      const unhandled: never = test;
+      void unhandled;
+      return;
+    }
+  }
+}
+
 function scopeWords(scope?: CityScope): string {
-  const note = scopeNote(scope);
-  return note === null ? 'every city' : `every ${note}`;
+  if (!scope) return 'every city';
+  // The capital is a **single** town, and the one scope that does not read as
+  // "every …". It is also the only one that can say "your".
+  if (scope.test === 'capital') return 'your capital';
+  const phrase: ScopePhrase = { adjectives: [], qualifiers: [] };
+  scopePhrase(scope, phrase);
+  return ['every', ...phrase.adjectives, 'city', ...phrase.qualifiers].join(' ');
 }
 
 function filterWords(filter: UnitFilter): string {
@@ -2319,27 +2444,88 @@ function filterWords(filter: UnitFilter): string {
   return 'all units';
 }
 
-function payoutWords(pays: CardPayout, level: number): string {
-  if (pays.to === 'yield') return `${signed(scaleByLevel(pays.amount, level))} ${pays.yield}`;
-  if (pays.to === 'happiness') return `${signed(scaleByLevel(pays.amount, level))} happiness`;
-  if (pays.to === 'authority') return `${signed(scaleByLevel(pays.amount, level))} authority`;
-  return `${signed(scaleByLevel(pays.percent, level))}% ${pays.yield}`;
+/**
+ * What a payout is worth in words, optionally `times` helpings of it — which is
+ * how a `countScaled` cap is printed, since the cap is on the count.
+ *
+ * "authority capacity", not "authority": the meter is a *capacity* and every
+ * ratified row says so (Hegemony, Mandate of Heaven, Client Kings). One word,
+ * and it is the difference between a card that raises the ceiling and one that
+ * would appear to hand out writ.
+ */
+function payoutWords(pays: CardPayout, level: number, times = 1): string {
+  if (pays.to === 'yield') {
+    return `${signed(scaleByLevel(pays.amount, level) * times)} ${pays.yield}`;
+  }
+  if (pays.to === 'happiness') {
+    return `${signed(scaleByLevel(pays.amount, level) * times)} happiness`;
+  }
+  if (pays.to === 'authority') {
+    return `${signed(scaleByLevel(pays.amount, level) * times)} authority capacity`;
+  }
+  return `${signed(scaleByLevel(pays.percent, level) * times)}% ${pays.yield}`;
+}
+
+/**
+ * A tile condition as a noun phrase: "every mine tile carrying a luxury
+ * resource", "every tundra forest tile".
+ *
+ * `scopeWords`' twin one scale down, and it exists for the same reason: the
+ * composite used to be joined with a `+` — "every tundra tile + forest tile",
+ * which reads as two tiles rather than one wooded one. Adjectives stack in
+ * front of the noun, qualifiers behind it, and `all` merges both lists.
+ */
+interface TilePhrase {
+  adjectives: string[];
+  qualifiers: string[];
+}
+
+function tilePhrase(on: TileCondition, into: TilePhrase): void {
+  const test = on.test;
+  switch (test) {
+    case 'hasResource':
+      into.qualifiers.push('carrying a resource');
+      return;
+    case 'hills':
+      into.adjectives.push('hill');
+      return;
+    case 'improved':
+      into.adjectives.push('improved');
+      return;
+    case 'water':
+      into.adjectives.push('water');
+      return;
+    case 'improvement':
+      into.adjectives.push(improvementDef(on.improvement).name.toLowerCase());
+      return;
+    case 'terrain':
+      into.adjectives.push(on.terrain);
+      return;
+    case 'feature':
+      into.adjectives.push(on.feature);
+      return;
+    case 'resourceKind':
+      into.qualifiers.push(
+        on.yields === undefined
+          ? `carrying a ${on.kind} resource`
+          : `carrying a ${on.kind} resource that pays ${on.yields}`,
+      );
+      return;
+    case 'all':
+      for (const inner of on.of) tilePhrase(inner, into);
+      return;
+    default: {
+      const unhandled: never = test;
+      void unhandled;
+      return;
+    }
+  }
 }
 
 function tileConditionWords(on: TileCondition): string {
-  if (on.test === 'hasResource') return 'tile carrying a resource';
-  if (on.test === 'hills') return 'hill tile';
-  if (on.test === 'improved') return 'improved tile';
-  if (on.test === 'water') return 'water tile';
-  if (on.test === 'improvement') return `${improvementDef(on.improvement).name.toLowerCase()} tile`;
-  if (on.test === 'terrain') return `${on.terrain} tile`;
-  if (on.test === 'resourceKind') {
-    return on.yields === undefined
-      ? `${on.kind} resource`
-      : `${on.kind} resource that pays ${on.yields}`;
-  }
-  if (on.test === 'all') return on.of.map((inner) => tileConditionWords(inner)).join(' + ');
-  return `${on.feature} tile`;
+  const phrase: TilePhrase = { adjectives: [], qualifiers: [] };
+  tilePhrase(on, phrase);
+  return [...phrase.adjectives, 'tile', ...phrase.qualifiers].join(' ');
 }
 
 const RULE_WORDS: Record<CardRule, string> = {
@@ -2361,9 +2547,14 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   targetBelowHalf: 'against units below half strength',
 };
 
-const SCALE_WORDS: Record<'cities' | 'adjacentFriendlies', string> = {
-  cities: 'cities you hold',
-  adjacentFriendlies: 'adjacent friendly units',
+const SCALE_WORDS: Record<'cities' | 'adjacentFriendlies', PluralWords> = {
+  cities: { one: 'city you hold', many: 'cities you hold' },
+  // `adjacentFriendlies` counts **combatants** and nothing else, so the words
+  // say so: a settler standing beside a spearman is not a shield wall.
+  adjacentFriendlies: {
+    one: 'adjacent friendly combat unit',
+    many: 'adjacent friendly combat units',
+  },
 };
 
 const STAT_WORDS: Record<'movement' | 'sight' | 'heal' | 'charges' | 'range', string> = {
@@ -2391,29 +2582,45 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   rite: 'performing a rite',
 };
 
-const COUNT_WORDS: Record<CountKind, string> = {
-  uniqueLuxuries: 'unique luxury',
-  luxuryCopies: 'improved luxury copy',
-  improvedBonusResources: 'improved bonus resource',
-  cities: 'city you hold',
-  population: 'population',
-  capitalPopulation: 'population in your capital',
-  garrison: 'garrisoned unit',
-  garrisonWatch: 'fortification level in the garrison',
-  workedHills: 'worked hill tile',
-  bankedFaith: 'banked faith',
-  bankedGold: 'gold in the treasury',
-  visibleCamps: 'camp you can see',
-  chargedAugurs: 'augur stationed here with a rite left',
-  scienceBuildings: 'building here that supplies science',
+const COUNT_WORDS: Record<CountKind, PluralWords> = {
+  uniqueLuxuries: { one: 'unique luxury', many: 'unique luxuries' },
+  luxuryCopies: { one: 'improved luxury copy', many: 'improved luxury copies' },
+  improvedBonusResources: {
+    one: 'improved bonus resource',
+    many: 'improved bonus resources',
+  },
+  cities: { one: 'city you hold', many: 'cities you hold' },
+  population: { one: 'population', many: 'population' },
+  capitalPopulation: {
+    one: 'population in your capital',
+    many: 'population in your capital',
+  },
+  // `garrisonOf` keeps only combatants, and the words say so.
+  garrison: { one: 'garrisoned combat unit', many: 'garrisoned combat units' },
+  garrisonWatch: {
+    one: 'fortification level in the garrison',
+    many: 'fortification levels in the garrison',
+  },
+  workedHills: { one: 'worked hill tile', many: 'worked hill tiles' },
+  bankedFaith: { one: 'banked faith', many: 'banked faith' },
+  bankedGold: { one: 'gold in the treasury', many: 'gold in the treasury' },
+  visibleCamps: { one: 'camp you can see', many: 'camps you can see' },
+  chargedAugurs: {
+    one: 'augur stationed here with a rite left',
+    many: 'augurs stationed here with a rite left',
+  },
+  scienceBuildings: {
+    one: 'building here that supplies science',
+    many: 'buildings here that supply science',
+  },
 };
 
-const RATE_WORDS: Record<RateSource, string> = {
-  faithPerTurn: 'faith gained per turn',
-  culturePerTurn: 'culture gained per turn',
-  goldPerTurn: 'gold gained per turn',
-  happiness: 'point of positive happiness',
-  authority: 'point of positive authority',
+const RATE_WORDS: Record<RateSource, PluralWords> = {
+  faithPerTurn: { one: 'faith gained per turn', many: 'faith gained per turn' },
+  culturePerTurn: { one: 'culture gained per turn', many: 'culture gained per turn' },
+  goldPerTurn: { one: 'gold gained per turn', many: 'gold gained per turn' },
+  happiness: { one: 'point of positive happiness', many: 'points of positive happiness' },
+  authority: { one: 'point of positive authority', many: 'points of positive authority' },
 };
 
 const OFFER_WORDS: Record<OfferRuleId, string> = {
@@ -2421,18 +2628,41 @@ const OFFER_WORDS: Record<OfferRuleId, string> = {
   discoveryOfferSize: 'discoveries offer more options',
 };
 
-const AMPLIFIER_WORDS: Record<'luxuryHappiness' | 'luxuryDuplicates', string> = {
-  luxuryHappiness: 'happiness from unique luxuries',
-  luxuryDuplicates: 'duplicate luxury copies count at',
+/**
+ * The amplifiers, as **formatters** rather than as stems, because the two do not
+ * take the same sign. Fifty percent *more* happiness is a bonus and wears a
+ * `+`; a duplicate counting at thirty percent is a *share* of what a first copy
+ * pays, and "+30%" read as thirty points more than nothing.
+ */
+const AMPLIFIER_WORDS: Record<
+  'luxuryHappiness' | 'luxuryDuplicates',
+  (percent: number) => string
+> = {
+  luxuryHappiness: (percent) => `happiness from unique luxuries ${signed(percent)}%`,
+  luxuryDuplicates: (percent) => `duplicate luxury copies count at ${percent}%`,
 };
 
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {
   capturedCityCost: 'the authority a captured city costs',
   coastalCityCost: 'the authority a coastal city costs',
   cityHappinessDemand: 'the happiness every city demands',
-  borderFreezeExempt: 'borders keep growing while the writ is torn',
+  borderFreezeExempt: 'your borders keep growing',
   authorityUnitProductionExempt: 'a torn writ no longer slows production toward units',
 };
+
+/**
+ * The meter rules that are **switches**: a rule suspended rather than a figure
+ * moved. They carry `value: 1` because the shape has no boolean, and their
+ * words are already whole sentences — printing "… is 1" after one was the
+ * plumbing showing through Emergency Powers and The Great Warring Tribes.
+ *
+ * A list rather than a `Set` for CLAUDE.md's iteration rule, and beside the
+ * table it qualifies so a rule added to one is added to the other.
+ */
+const METER_RULE_SWITCHES: readonly MeterRuleId[] = [
+  'borderFreezeExempt',
+  'authorityUnitProductionExempt',
+];
 
 const ACTION_WORDS: Record<ActionRuleId, string> = {
   freeChop: 'chopping costs no worker charge',

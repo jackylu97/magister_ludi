@@ -365,6 +365,36 @@ shapes:
   `percentYields`, `productionBonus`, `rulePercent`, `happiness`, `authority`,
   `happinessTierBoost` and `tileYield`, the ordinary yield shapes.
 
+## The prose audit (2026-08-26, ledger Entry XXIX)
+
+Every row above was dumped through `describeCard` and read against its own `text` field and
+this doc. One **data** correction and a stack of **prose** ones; the split is worth keeping
+straight, because only the first changes a game.
+
+| Card | Was | Now | Layer |
+|---|---|---|---|
+| **Garrison State** | `max: 4` against `amount: 2` — the cap is on the *count*, so it paid up to **+8⚙**, twice what its own text and this doc promise | `max: 2` → +4⚙ | **data** |
+| Any capped `countScaled` | "(at most 4)" — a count, printed where a player reads a payout | "(at most +4 production)" | prose |
+| Emergency Powers · The Great Warring Tribes | "…borders keep growing while the writ is torn **is 1**" | a switch prints its sentence and stops | prose |
+| The Marshals | "per **1** adjacent friendly **units**" | "per adjacent friendly combat unit" | prose |
+| Scholars' Stipend · The Grain Dole · Pax Imperia · Ancestor Worship | "in every **size 5+**" | "in every city of 5+" | prose |
+| River Kings · Mountain Hold · Star Readers · River Mother | "in every **no fresh water**", "in every **mountain hold**" | "in every city without fresh water", "…beside a mountain" | prose |
+| Ore Tithes · Quarrymen's Guild | "in every **strategic seam**", "in every **Stone/Marble**" | "in every city holding an improved strategic resource", "…holding Stone or Marble" | prose |
+| Keeper of the Hearth · The Standing Stones · God of the Forge | "in every **granary**" | "in every city with a Granary" | prose |
+| Winter Mother · Lord of the Hoard | "every tundra tile **+** forest tile" | "every tundra forest tile", "every mine tile carrying a luxury resource" | prose |
+| Hegemony · Mandate of Heaven · Client Kings | "+1 **authority**" | "+1 authority capacity" | prose |
+| The Founders' Road | "founded with a **monument**" (the raw id) | "a Monument" | prose |
+| The Grand Bazaar | "duplicate luxury copies count at **+30%**" | "…at 30%" — a share, not a bonus | prose |
+| The Hermit Crown | "while you hold at most **3**" | "…at most 3 cities" | prose |
+| The Gilded Court · Religious Mandate | deferred clauses printed their annotation tokens — "unlocksBuilding", "beads" | prose on the data row | data (strings) |
+| Rites of Blood · Keeper of the Calendar | the era multiplier printed *before* the grant it multiplies | the grant leads | prose |
+
+The root cause of two thirds of that list was one reuse: `describeCard` was calling
+`scopeNote`, which is the **label** on a breakdown line ("Harbour Dues · coastal city") and
+is free to be a fragment, as the words *inside a sentence*. Scopes and tile conditions now
+build a noun phrase — adjectives in front, qualifiers behind, composites merged — which is
+why "fresh water + shrine" became "every city on fresh water with a Shrine".
+
 **Measured cadence**, seed 4242 on the scripted pacing empire: first draft turn 7, 6.6
 turns per draft over drafts 1–8, governments on turns 24 / 47 / 97. Entry XV's build note
 holds the argument for why that is above the ~5-turn target and why the answer is culture

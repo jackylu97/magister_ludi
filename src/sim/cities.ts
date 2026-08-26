@@ -2512,8 +2512,12 @@ export function growCities(state: GameState): void {
  * Where a unit built in this city can stand: the city tile if its category has
  * room, otherwise the first neighbour in `HEX_DIRECTIONS` order that is passable
  * and has room. `null` when the city is completely boxed in.
+ *
+ * Exported since M9's purchases: a bought piece stands where a built one would,
+ * which is the whole of "same completion routine" applied to the one question a
+ * price cannot answer. See `realiseItem`.
  */
-function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | null {
+export function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | null {
   const { category } = unitDef(type);
   const centre = cityTile(state.map, city);
   if (hasStackingRoom(state, centre.col, centre.row, category)) return centre;
@@ -2757,27 +2761,63 @@ export function settleProduction(state: GameState, city: City): ProductionComple
   }
 
   if (plan.kind === 'building') {
-    city.buildings.push(plan.id);
-    payCompletionRiders(state, city, 'building');
+    realiseItem(state, city, { kind: 'building', id: plan.id });
     return done;
   }
+  done.unitId = realiseItem(state, city, { kind: 'unit', id: plan.id, tile: plan.tile });
+  return done;
+}
 
-  // A unit comes into the world through `createUnit` whoever asked for it, so a
-  // unit finished mid-turn by a windfall is born exactly as one finished by the
-  // phase: full movement, unspent attack, eyes opened. It can therefore *act*
-  // on the turn a chop paid for it, which is the honest reading of "the moment
-  // of the gift is the moment of the payoff" (Entry XVIII.2) and is the same
-  // rule the `spawnUnit` harness command already lives by.
-  const unit = createUnit(state, city.ownerId, plan.id, plan.tile.col, plan.tile.row);
-  done.unitId = unit.id;
+/**
+ * A thing this city is about to have, once somebody has paid for it. The
+ * argument to `realiseItem`, and deliberately **not** a `QueueItem`: a project
+ * is not on it, because a project is a conversion that never becomes anything,
+ * and the spawn tile rides along on a unit because "where would it stand" is
+ * settled before the payment, never after it.
+ */
+export type CompletedItem =
+  | { kind: 'unit'; id: UnitTypeId; tile: Tile }
+  | { kind: 'building'; id: BuildingId };
+
+/**
+ * **The one place a city gains a thing.** The half of a completion that is about
+ * the *thing* rather than about the queue, split out (M9) so that the two ways
+ * to acquire one — hammers and coin — are one implementation.
+ *
+ * What is here is everything that follows from a unit or a building *existing*:
+ * the piece comes into the world through `createUnit` (full movement, unspent
+ * attack, its charges, its owner's fog refreshed — so it can act on the turn it
+ * arrived, Entry XVIII.2's reading), the escalation ladder climbs so the next
+ * settler anywhere in the empire is dearer, the building joins the town, and
+ * either way the completion riders are paid.
+ *
+ * What is deliberately *not* here is everything about the **basket**: the cost
+ * subtraction, the overflow (and The Common Purse's doubling of it) and the
+ * queue splice all belong to `settleProduction`, because a purchase touches none
+ * of them — a bought granary does not spend the hammers a city had banked toward
+ * a spearman. That line is the whole reason the split lands where it does.
+ *
+ * Answers the new unit's id, or `undefined` for a building.
+ */
+export function realiseItem(
+  state: GameState,
+  city: City,
+  item: CompletedItem,
+): number | undefined {
+  if (item.kind === 'building') {
+    city.buildings.push(item.id);
+    payCompletionRiders(state, city, 'building');
+    return undefined;
+  }
+  const unit = createUnit(state, city.ownerId, item.id, item.tile.col, item.tile.row);
   // The ladder climbs at completion, so the next settler — anywhere in the
   // empire — is dearer from the very next resolution. See `advanceProduction`.
-  if (unitDef(plan.id).costIncrement !== undefined) {
+  if (unitDef(item.id).costIncrement !== undefined) {
     const player = playerById(state, city.ownerId);
     if (player) player.settlersBuilt += 1;
   }
   payCompletionRiders(state, city, 'unit');
-  return done;
+  return unit.id;
 }
 
 /**

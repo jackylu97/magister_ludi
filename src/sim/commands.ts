@@ -90,11 +90,16 @@ import {
   consecrateAt,
   consecrateError,
   performRiteAt,
-  purchaseError,
-  purchaseUnitAt,
   riteError,
   settleBeliefChoice,
 } from './religion';
+import {
+  type PurchaseCurrency,
+  type PurchasableItem,
+  purchaseError,
+  purchaseItemAt,
+  readPurchasableItem,
+} from './purchase';
 import type { RiteId } from './religionData';
 import { RULES } from './rulesData';
 import {
@@ -623,34 +628,37 @@ export interface ChooseDoctrineCommand extends PlayerCommand {
 }
 
 /**
- * Buys a unit outright, out of a named bank, in one of this player's cities.
+ * Buys a thing outright, out of a named bank, in one of this player's cities.
  *
- * **Currency-agnostic in shape and faith-funded in fact** (ledger Entry XXVIII).
- * The augur is the only thing for sale today and faith is the only pool that
- * spends, but the transaction the M9 gold purchases want is this one — a city,
- * a type, a bank — so it is written once now rather than twice later. The
- * currency is *checked against the roster row* rather than trusted: a client
- * asking to buy an augur with gold is asking for something the table does not
- * sell, and `purchaseError` tells it which bank the thing is priced in.
+ * **One transaction, two banks** (ledger Entry XXIX; Entry XXVIII is the augur
+ * it grew out of). The religion pass wrote this command currency-agnostic in
+ * shape and faith-funded in fact, on the argument that the M9 gold purchases
+ * were the same transaction. They are, and this is it: the `unitType` widened
+ * to an `item`, because gold buys buildings as well, and nothing else about the
+ * shape changed.
  *
- * It names the **city** as well as the type, and both are load-bearing: the city
- * is where the piece will stand, and stacking room is asked of that hex. The
- * price is not in the command — the price is `explainPurchaseCost`'s, asked at
- * the moment this applies, so a client cannot name a figure the reducer then has
- * to second-guess.
+ * The **city** and the **item** are both load-bearing: the city is where the
+ * thing lands, and the bank is checked against the roster row rather than
+ * trusted — a client asking to buy an augur with gold is asking for something
+ * the table does not sell, and `purchaseError` tells it which bank the thing is
+ * priced in. The price is deliberately *not* in the command: it is
+ * `explainPurchaseCost`'s, asked at the moment this applies, so a client cannot
+ * name a figure the reducer then has to second-guess.
  *
- * Instant and complete, like `purchaseTile`: there is no part-paid augur, and it
- * can act on the turn it was called, exactly as a chopped-for warrior can.
+ * Instant and complete, like `purchaseTile`: there is no part-paid granary, and
+ * a bought piece can act on the turn it was bought, exactly as a chopped-for
+ * warrior can.
  *
  * Turn-gated like every other act. A seat that has declared itself finished has
  * finished spending.
  */
-export interface PurchaseUnitCommand extends PlayerCommand {
-  type: 'purchaseUnit';
+export interface PurchaseItemCommand extends PlayerCommand {
+  type: 'purchaseItem';
   cityId: number;
-  unitType: UnitTypeId;
+  /** A unit or a building. A project is not a thing that can be delivered. */
+  item: PurchasableItem;
   /** Which bank pays. Refused when it is not the one the row is priced in. */
-  currency: 'faith' | 'gold';
+  currency: PurchaseCurrency;
 }
 
 /**
@@ -737,7 +745,7 @@ export type Command =
   | UnslotOrderCommand
   | AdoptGovernmentCommand
   | ChooseDoctrineCommand
-  | PurchaseUnitCommand
+  | PurchaseItemCommand
   | ConsecrateCommand
   | ChooseBeliefCommand
   | PerformRiteCommand;
@@ -1656,33 +1664,37 @@ function applyChooseDoctrine(
 }
 
 /**
- * Buys a unit. See `PurchaseUnitCommand`, and `religion.ts` for the rules.
+ * Buys a unit or a building. See `PurchaseItemCommand`, and `purchase.ts` for
+ * the rules.
  *
  * The seat's two questions here, everything about the *sale* delegated whole to
  * `purchaseError` — `applyPurchaseTile`'s split, and the same guarantee: a
  * refusal leaves the state byte-identical, because not one line below the
  * validation runs until every question has been answered.
  */
-function applyPurchaseUnit(state: GameState, command: PurchaseUnitCommand): CommandResult {
+function applyPurchaseItem(state: GameState, command: PurchaseItemCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);
   if (typeof actor === 'string') return fail(actor);
   if (hasEndedTurn(state, actor.id)) {
-    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot buy units`);
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot buy anything`);
   }
 
   const problem = purchaseError(
     state,
     actor.id,
     command.cityId,
-    command.unitType,
+    command.item,
     command.currency,
   );
   if (problem) return fail(problem);
 
   // Validation is done — `purchaseError` has established the city is this
-  // player's, the type is for sale in this currency, and the bank covers it.
+  // player's, the thing is for sale in this bank, there is room for it and the
+  // bank covers it. `readPurchasableItem` runs again here rather than being
+  // threaded out of the check, because the command's `item` is JSON off the
+  // wire and this is the one place it becomes a type.
   const city = cityById(state, command.cityId)!;
-  purchaseUnitAt(state, actor, city, command.unitType);
+  purchaseItemAt(state, actor, city, readPurchasableItem(command.item)!, command.currency);
   return ok();
 }
 
@@ -1817,7 +1829,7 @@ function orderedUnitId(command: Command): number | undefined {
     case 'chooseDoctrine':
     // Buying a piece names a *type*, and taking a god names an offer; neither is
     // an order to anything standing on the board.
-    case 'purchaseUnit':
+    case 'purchaseItem':
     case 'chooseBelief':
       return undefined;
     default: {
@@ -1902,8 +1914,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyAdoptGovernment(state, command);
     case 'chooseDoctrine':
       return applyChooseDoctrine(state, command);
-    case 'purchaseUnit':
-      return applyPurchaseUnit(state, command);
+    case 'purchaseItem':
+      return applyPurchaseItem(state, command);
     case 'consecrate':
       return applyConsecrate(state, command);
     case 'chooseBelief':

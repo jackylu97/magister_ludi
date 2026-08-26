@@ -2968,3 +2968,126 @@ worker's badge (`modelClass: 'worker'`). A distinct silhouette needs a `ModelCla
 procedural mini and a vendored SVG cell in the badge atlas, which is an art pass and not a
 rules one; the unit sheet, the charge badge (which reads *Rites ✧* rather than *Charges ⚒*
 off `UnitDef.consecrates`) and the selection carry the distinction meanwhile.
+
+## Entry XXIX — Purchases, generalised · the playtest pass (**built** 2026-08-26)
+
+Four notes off one playtest, and three of them turned out to be the same note: *the
+interface was printing the plumbing.* The augur sat in the production queue greyed, belief
+cards wore the designer's axis names as eyebrows, and forty-odd Order clauses read like the
+data they were built from ("in every size 5+", "borders keep growing while the writ is torn
+is 1"). The fourth, gold purchasing, is M9's last remainder and is the reason the pass is an
+entry rather than a fix list.
+
+### The purchase, one transaction wide
+
+`purchaseUnit` became **`purchaseItem { playerId, cityId, item, currency }`** and moved to
+`src/sim/purchase.ts`. That is the whole shape change: Entry XXVIII had already written the
+transaction currency-agnostic on the argument that "the M9 gold purchases are the same
+transaction", and they are, so gold joined it rather than opening a second one beside it.
+
+**Gold buys anything the city could build; faith buys what the roster prices in faith.** The
+rule that keeps those apart is one sentence on the data — *a row that names its own bank is
+sold out of that bank and no other* — and it is what refuses gold the augur without any
+clause in `purchase.ts` knowing what an augur is. Gold's other gates are not re-derived
+either: they are `buildError`'s, asked through `buildError` itself, so the technology, the
+improved strategic resource and "this is bought, not built" are one implementation with the
+queue. Two gates a queue asks that `buildError` does not — a building already standing, a
+city too small — are asked beside it.
+
+**The price is `explainUnitCost`'s shape in a bank** (rule 5, for a price): an ordered list
+of labelled lines whose fold is the figure. For gold the lines are *the item's own
+production cost lines*, then the conversion as a line of its own carrying the difference it
+makes. That is the load-bearing choice in the whole pass: the settler ladder and the age
+band reach a price tag because they are already lines 2 and 3 of the thing being converted,
+and nothing had to be taught about either. The rate is `production.goldPerHammer` = **2**,
+a rules knob and a first number.
+
+**The full cost, never the remainder.** A town three turns into a granary pays what a town
+that has banked nothing pays, and keeps its hammers. Charging for what is left would make
+the best moment to buy anything the moment before it would have finished — the moment buying
+is worth least — and it would turn every purchase into an arithmetic problem about a bar.
+
+**One completion routine.** `settleProduction` was split: `realiseItem` (`cities.ts`) is the
+half that is about the *thing* — the piece born through `createUnit`, the `settlersBuilt`
+ladder, the building joining the town, the completion riders — and `settleProduction` keeps
+the half that is about the *basket*: the cost subtraction, the overflow and The Common
+Purse's doubling of it, the queue splice. A purchase touches none of the second half, and
+that is exactly where the line falls. One consequence is deliberate and is a change from
+Entry XXVIII: a bought piece now stands where a built one would (`spawnTileFor` — the city
+tile, else a neighbour), where the augur used to be placed on the city tile regardless.
+Sharing the convention is worth more than that difference, and the only new refusal is the
+one production already gives, a town boxed in on every side.
+
+**The authority freeze does not bar a purchase**, and that is a ruling. The freeze is about
+*ground* — the accrual, the expansion, `purchaseTile` — because land follows the writ. An
+overdrawn empire is short of legitimacy, not of coin, and a freeze on the treasury would be
+a second unratified meter effect wearing the first one's name. `test/sim/purchase.test.ts`
+asserts the absence by reading the source, because the failure it guards against is somebody
+*adding* the clause on the grounds that it looks like the tile purchase.
+
+Schema 19, and the bump is entirely about the **log** rather than about a field: a v18
+save's `purchaseUnit` is a command this reducer does not recognise, and `Player.gold` in a
+v18 game was a bank with nothing to spend it on.
+
+### The interface half
+
+Every build row in the city panel now carries **"or 60💰"** beside it, greyed with
+`purchaseError`'s own sentence — a sibling control rather than a button inside a button,
+because those are two different verbs (the next few turns, or the treasury). The augur is
+**out of the build list entirely** and has a faith-priced row of its own at the foot of the
+units, "Call an augur · 40🕯", shown before Divination with the node named. Its verb is on
+the roster row (`purchase.verb`), so a prophet is *called* and a mercenary would be *hired*
+without a DOM file learning either name. The caption leads with the treasury the tags are
+checked against, which is the Buy Tiles precedent one list up.
+
+That is item 1 of the playtest as well as item 2's interface: a greyed row for something no
+city ever builds answered "why can I not build this" with "because it is not built", which
+is a category error rather than an answer.
+
+### The axis has no word
+
+A belief's axis is a **designer's thread through the pool** — it exists so that a second god
+on the same axis is findable, and so the founder amplifiers of the Age 2–3 pass have
+something to read. It was printing as an eyebrow ("the stone", "the hearth") and a tooltip
+on every belief card, where it read as *a category the player was choosing between*. Every
+player-facing name is gone; the accent and the glyph stay, and `AXIS_MARK` is now a glyph
+and nothing else, so there is nowhere left for a name to be printed from. The eyebrow says
+"a god", which is the true answer to what that line is for.
+
+### Forty clauses of prose
+
+`describeCard` is the only place a card's effect becomes a sentence, and it had been reusing
+`scopeNote` — the **label** on a breakdown line, which is free to be a fragment — as the
+words inside a sentence. That is where "in every size 5+", "in every no fresh water" and
+"in every Stone/Marble" came from. Scopes and tile conditions are now *built* rather than
+looked up: each contributes an adjective or a qualifier, and the composite merges them, so
+"fresh water + shrine" is "every city on fresh water with a Shrine" and "tundra tile +
+forest tile" is "every tundra forest tile".
+
+The rest of the audit, in one list, because every one of them is the same failure at a
+different size — a shape printed as itself rather than as what it means:
+
+- A **meter rule** that is a *switch* (`value: 1`, because the shape has no boolean) printed
+  "… is 1" after a sentence that was already complete.
+- A **helping of one** printed its 1 and took the plural: "per 1 adjacent friendly units".
+- A **`countScaled` cap** is on the *count*, and printed as one: "(at most 4)" beside "+2
+  production per garrisoned combat unit" meant +8, and every ratified row states such caps
+  as the payout. It now prints as the payout — and Garrison State's data was **wrong**, not
+  its prose: `max: 4` against `amount: 2` paid double what its own text promised. Fixed to
+  `max: 2`.
+- A **payout to authority** said "authority" where every ratified row says "authority
+  capacity" — the difference between raising a ceiling and handing out writ.
+- A **founding rider** printed the building's *id*; The Founders' Road only read correctly
+  because `monument` happens to be spelled like a word.
+- A **duplicate-luxury amplifier** wore a `+`: copies count *at* 30%, not 30 points more.
+- **Deferred clauses** printed their annotation tokens — "unlocksBuilding — not built yet",
+  "beads — not built yet". Those strings are player-facing and are now prose, in the data.
+- A **rite's duration** was not printed at all, so the Religion screen promised Omen
+  Reading's science for ever. It is the rite row's own field and had no business inside a
+  `CardEffect`; the screen prints it beside the clauses it qualifies.
+- The **windfall riders** printed their multiplier before the thing being multiplied ("pays
+  in the money of your era", then "grants +15 faith"). The grant leads now.
+
+Ancestor Worship's second clause reads "+5% culture in every city of 10+" against a doc that
+says "per city of 10+ population"; that is the recorded sideways ratification of Entry
+XXVIII, kept, and the prose now matches the data rather than the other way round.

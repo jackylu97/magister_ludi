@@ -60,18 +60,14 @@ import {
   type Player,
   type TimedEffect,
   type Unit,
-  cityById,
-  createUnit,
   playerById,
   realPlayers,
   removeUnit,
   unitById,
 } from './state';
 import {
-  type UnitCostLine,
   capitalCityOf,
   cityAt,
-  foldUnitCost,
   nearestOwnedCity,
   refreshCityDerived,
   settleGrowthWindfall,
@@ -102,9 +98,8 @@ import {
   timedEffectIsLive,
   windfallPayout,
 } from './statecraft';
-import { gatingTech, hasAbility, hasTech, settleResearchWindfall } from './tech';
-import { techDef } from './techData';
-import { type UnitTypeId, isCombatant, isUnitTypeId, unitDef } from './unitData';
+import { hasAbility, settleResearchWindfall } from './tech';
+import { isCombatant, unitDef } from './unitData';
 
 // --- the pantheon's slots ---------------------------------------------------
 
@@ -150,171 +145,19 @@ export function beliefPool(player: Player): BeliefId[] {
 // --- buying an agent --------------------------------------------------------
 
 /**
- * How many of this type this empire has already bought — the counter the price
- * ladder climbs.
+ * Buying an augur lives in `purchase.ts` now (M9, ledger Entry XXIX).
  *
- * A switch with one arm today, and it is a *register* rather than a stub: a
- * purchased unit can be spent (an augur consecrates, a settler founds), so the
- * board can never be counted and each purchasable type needs a field on the
- * player. The M9 gold purchases add their own arm here, beside this one.
+ * It was written here, in the religion pass, as `explainUnitCost`'s shape in a
+ * bank — currency-agnostic in shape and faith-funded in fact, "because the M9
+ * gold purchases are the same transaction". They are, and they arrived, so the
+ * transaction moved to a module of its own rather than growing a second one:
+ * `explainPurchaseCost`, `purchaseError` and `purchaseItemAt` are the same three
+ * functions, one bank wider. The augur's own rule did not change and is still a
+ * fact about its roster row — `purchase: { currency: "faith", exclusive: true }`
+ * — which is what makes `buildError` refuse the production queue and what keeps
+ * gold away from it without gold knowing what an augur is.
  */
-function purchasesMade(player: Player, type: UnitTypeId): number {
-  return unitDef(type).consecrates === true ? player.augursPurchased : 0;
-}
 
-/** What a purchase costs, and out of which bank. */
-export interface PurchasePrice {
-  currency: 'faith' | 'gold';
-  /** The ordered lines the price is the fold of. Rule 5, for a price. */
-  lines: UnitCostLine[];
-  /** The fold. */
-  total: number;
-}
-
-/**
- * What one unit of this type costs *this player, right now*, as the ordered list
- * the price is the fold of.
- *
- * `explainUnitCost`'s shape in a bank instead of a basket, and deliberately the
- * same shape: hard rule 5 says a number a player is charged must arrive with its
- * reasons, and "40🕯 base + 30🕯 for the two already called" is what makes the
- * escalation legible instead of mysterious.
- *
- * Two lines, in the order they apply:
- *
- *   1. **the roster's price** — `purchase.cost` off `data/units.json`.
- *   2. **the ladder** — `purchase.increment` for every one this empire has
- *      already bought. Presence of the field is the marker, exactly as
- *      `costIncrement` is for hammers.
- *
- * There is deliberately **no era band and no card rule** on it yet. A settler's
- * hammers are multiplied by the age because a settler is on the production
- * ladder the whole game; faith income is a straight line in Æra I and the price
- * of the first augur is the pacing decision the whole system rests on (see
- * `docs/religion.md`, "Open numbers"). Both are one line here on the day the
- * playtest asks for them.
- *
- * `null` for a type nothing sells.
- */
-export function explainPurchaseCost(
-  state: GameState,
-  playerId: number,
-  type: UnitTypeId,
-): PurchasePrice | null {
-  const spec = unitDef(type).purchase;
-  if (!spec) return null;
-  const def = unitDef(type);
-  const lines: UnitCostLine[] = [{ source: def.name, amount: spec.cost }];
-  const player = playerById(state, playerId);
-  const increment = spec.increment;
-  if (increment !== undefined && player) {
-    const bought = purchasesMade(player, type);
-    if (bought > 0) {
-      lines.push({
-        source: `${bought} already called`,
-        amount: increment * bought,
-      });
-    }
-  }
-  return { currency: spec.currency, lines, total: foldUnitCost(lines) };
-}
-
-/** What this player currently holds of one currency. The one such reading. */
-export function bankOf(player: Player, currency: 'faith' | 'gold'): number {
-  return currency === 'faith' ? player.faithPool : player.gold;
-}
-
-/**
- * Why this player cannot buy this unit in this city, or `null` when they can.
- *
- * **The** gate: the `purchaseUnit` command refuses with this sentence and the
- * Religion screen's purchase row is enabled by exactly it, so a button a player
- * can press is a command the reducer takes. `tilePurchaseError`'s shape.
- *
- * The refusals in the order a player would think of them: is this my city, do I
- * know how to call one, and can I afford it. The **currency** is checked against
- * the row rather than trusted from the command — a client asking to buy an augur
- * with gold is asking for something the table does not sell, and it is told so
- * rather than quietly charged faith.
- *
- * **Stacking is deliberately not asked**, and that is a consistency decision
- * rather than an omission: `settleProduction` puts a completed unit on the city
- * tile through `createUnit` without asking either, so a purchase that refused
- * where a build succeeds would be a second rule about the same hex — and it
- * would make the augur nearly unbuyable in the early game, when a town's own
- * tile usually has a worker standing on it. A bought piece arrives exactly as a
- * built one does.
- */
-export function purchaseError(
-  state: GameState,
-  playerId: number,
-  cityId: number,
-  type: unknown,
-  currency: unknown,
-): string | null {
-  const player = playerById(state, playerId);
-  if (!player) return `No player with id ${String(playerId)}`;
-  const city = cityById(state, cityId);
-  if (!city) return `No city with id ${String(cityId)}`;
-  if (city.ownerId !== playerId) return `${city.name} does not belong to ${player.name}`;
-  if (typeof type !== 'string' || !isPurchasableType(type)) {
-    return `Nothing called "${String(type)}" is for sale`;
-  }
-  const def = unitDef(type);
-  const spec = def.purchase!;
-  if (currency !== spec.currency) {
-    // The M9 seam, said out loud rather than left as a silent refusal: gold buys
-    // nothing yet, and a player who asks is told which bank the thing is priced
-    // in rather than that it does not exist.
-    return `A ${def.name} is bought with ${spec.currency}, not ${String(currency)}`;
-  }
-  // The tree's own gate, asked through the tree: `gatingTech` is the inversion
-  // of `unlocks`, so "which node hands over an augur" has one answer and this
-  // module grows no second opinion about it.
-  const gate = gatingTech('unit', type);
-  if (gate !== null && !hasTech(state, playerId, gate)) {
-    return `${def.name}s need ${techDef(gate).name}`;
-  }
-  const price = explainPurchaseCost(state, playerId, type)!;
-  const held = bankOf(player, price.currency);
-  if (held < price.total) {
-    return `${def.name} costs ${price.total} ${price.currency}; ${player.name} has ${Math.floor(held)}`;
-  }
-  return null;
-}
-
-/** Is this a type the roster puts a price on at all? */
-function isPurchasableType(type: string): type is UnitTypeId {
-  return isUnitTypeId(type) && unitDef(type).purchase !== undefined;
-}
-
-/**
- * Buys one unit, and charges the bank.
- *
- * Validates nothing — the rule is `purchaseError`'s and the command asks it
- * first. Three mutations and each is a rule:
- *
- *   · the pool is charged the **fold of the printed lines**, so the price the
- *     screen showed is the price paid;
- *   · the counter climbs, so the next one is dearer from this instant — the
- *     ladder is a fact about the empire, exactly as `settlersBuilt` is;
- *   · the unit is born through `createUnit`, which is the one path a piece takes
- *     onto the board, so it arrives with full movement, an unspent attack, its
- *     charges and its owner's fog already refreshed. **It can act this turn**,
- *     which is the same reading a chopped-for warrior gets (Entry XVIII.2).
- */
-export function purchaseUnitAt(
-  state: GameState,
-  player: Player,
-  city: City,
-  type: UnitTypeId,
-): Unit {
-  const price = explainPurchaseCost(state, player.id, type)!;
-  if (price.currency === 'faith') player.faithPool -= price.total;
-  else player.gold -= price.total;
-  if (unitDef(type).consecrates === true) player.augursPurchased += 1;
-  return createUnit(state, player.id, type, city.col, city.row);
-}
 
 // --- consecration -----------------------------------------------------------
 

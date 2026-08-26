@@ -42,6 +42,7 @@ import {
   unitProductionCost,
 } from '../sim/cities';
 import { type BuildingId, BUILDING_IDS, buildingDef } from '../sim/buildingData';
+import { RULES } from '../sim/rulesData';
 import {
   type ProjectId,
   PROJECT_IDS,
@@ -49,6 +50,15 @@ import {
   projectRate,
 } from '../sim/projectData';
 import { isCombatant, isRanged } from '../sim/combat';
+import {
+  type PurchasableItem,
+  type PurchaseCurrency,
+  explainPurchaseCost,
+  isPurchaseOnly,
+  purchasableName,
+  purchaseError,
+  purchaseVerb,
+} from '../sim/purchase';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { growthPercent, meterEffects } from '../sim/meters';
@@ -224,6 +234,24 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       playerId: localPlayerId(),
       cityId: city.id,
       queue,
+    };
+    if (!dispatch(getGame(), command).ok) return;
+    onChanged();
+  }
+
+  /**
+   * Sends a purchase and repaints. `commit`'s twin one bank over, and the same
+   * contract: a refused command changes nothing at all, and the button that
+   * sent it was only enabled because `purchaseError` said the reducer would
+   * take it.
+   */
+  function buy(city: City, item: PurchasableItem, currency: PurchaseCurrency): void {
+    const command: Command = {
+      type: 'purchaseItem',
+      playerId: localPlayerId(),
+      cityId: city.id,
+      item,
+      currency,
     };
     if (!dispatch(getGame(), command).ok) return;
     onChanged();
@@ -990,6 +1018,18 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * get there. Availability is asked of `isUnlocked` — the same function the
    * reducer validates the queue with — so this list can never offer a button
    * `setCityProduction` would refuse.
+   *
+   * A **purchase-only** type is the third case and is hidden from this list
+   * altogether (`isPurchaseOnly`, the playtest's first note): the augur is not a
+   * thing this city cannot build yet, it is a thing no city ever builds, and a
+   * greyed row for it answered "why can I not build this" with "because it is
+   * not built". It has a row of its own at the foot of the units instead, in the
+   * bank it is actually sold in.
+   *
+   * Every buildable row also carries its **price in coin** (M9, Entry XXIX), so
+   * "or 60💰" is beside the thing it would buy rather than on a screen of its
+   * own. The tag is greyed with `purchaseError`'s sentence, exactly as the build
+   * button is greyed with `buildError`'s.
    */
   function renderBuildables(city: City, locked: boolean): HTMLElement {
     const { state } = getGame();
@@ -1004,8 +1044,29 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       commit(city, next);
     };
 
+    /**
+     * One buildable row: the button that queues it, and — for a unit or a
+     * building — the small tag that buys it outright.
+     *
+     * The tag is a **sibling** of the build button rather than a control inside
+     * it, because a button inside a button is not a thing the platform will
+     * draw, and because the two are genuinely different verbs: one spends the
+     * next few turns, the other spends the treasury.
+     */
+    const row = (build: HTMLElement, item?: PurchasableItem): void => {
+      const line = element('div', 'city-buildable-row');
+      line.append(build);
+      if (item) {
+        const tag = priceTag(city, item, 'gold', locked);
+        if (tag) line.append(tag);
+      }
+      grid.append(line);
+    };
+
     for (const id of UNIT_TYPE_IDS) {
       if (!isUnlocked(state, city.ownerId, 'unit', id)) continue;
+      // Bought or not at all: it belongs to the purchase row below, not here.
+      if (isPurchaseOnly({ kind: 'unit', id })) continue;
       const def = unitDef(id);
       // The live price, not the base one: a settler gets dearer with every
       // settler this player has built, and the button quotes exactly what
@@ -1067,7 +1128,24 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // empty, which is the one case the banked hammers are already its own.
       info.bind(button, () => itemCard(city, { kind: 'unit', id }, city.queue.length));
       button.addEventListener('click', () => add({ kind: 'unit', id }));
-      grid.append(button);
+      row(button, { kind: 'unit', id });
+    }
+
+    // The things that are **bought or not at all**, at the foot of the units and
+    // priced in their own bank. Shown whether or not the technology has landed,
+    // unlike a buildable row: the Religion screen has said "an augur costs 40🕯"
+    // since before Divination, and a player who opens a city ought to find the
+    // same offer in the place they are already deciding what a town does next.
+    for (const id of UNIT_TYPE_IDS) {
+      const item: PurchasableItem = { kind: 'unit', id };
+      if (!isPurchaseOnly(item)) continue;
+      const currency = unitDef(id).purchase!.currency;
+      const tag = priceTag(city, item, currency, locked, purchaseVerb(item));
+      if (tag) {
+        const line = element('div', 'city-buildable-row is-purchase');
+        line.append(tag);
+        grid.append(line);
+      }
     }
 
     const queued = new Set(
@@ -1091,7 +1169,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       );
       info.bind(button, () => itemCard(city, { kind: 'building', id }, city.queue.length));
       button.addEventListener('click', () => add({ kind: 'building', id }));
-      grid.append(button);
+      row(button, { kind: 'building', id });
     }
 
     // The projects, at the bottom of the list because that is what they are for:
@@ -1124,11 +1202,79 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       );
       info.bind(button, () => itemCard(city, { kind: 'project', id }, city.queue.length));
       button.addEventListener('click', () => add({ kind: 'project', id }));
-      grid.append(button);
+      // No price tag: a project is a conversion that never completes, so there
+      // is nothing to buy. See `PurchasableItem`.
+      row(button);
     }
 
     box.append(grid);
+    // The Buy Tiles caption's precedent, one list up: lead with the treasury
+    // every tag on this grid is checked against, so affordability reads without
+    // a hover, and say what the conversion is so the figures are checkable.
+    const treasury = playerById(state, localPlayerId())?.gold ?? 0;
+    box.append(
+      element(
+        'p',
+        'hint',
+        `${figure(treasury)}${YIELD_GLYPH.gold} in the treasury. A price tag buys ` +
+          `the row outright at ${RULES.production.goldPerHammer}${YIELD_GLYPH.gold} ` +
+          `per ${HAMMER} of its full cost — the hammers this city has banked stay banked.`,
+      ),
+    );
     return box;
+  }
+
+  /**
+   * The small button beside a build row that buys the thing outright — "or
+   * 60💰" — or `null` when this bank does not sell it at all.
+   *
+   * `label` overrides the terse form for a row that *is* the offer rather than
+   * an alternative to one: the augur's row has no build button beside it, so it
+   * reads "Call an augur · 40🕯" and fills the line.
+   *
+   * Every question it asks is the reducer's. The price is
+   * `explainPurchaseCost`'s total, so the number on the tag is the number the
+   * bank loses; the blocker is `purchaseError`'s sentence, so a greyed tag says
+   * why in the words the command would have answered with. A `title` rather
+   * than the hover card, because this is a *control* with a refusal on it and
+   * the card beside it is describing the thing itself.
+   */
+  function priceTag(
+    city: City,
+    item: PurchasableItem,
+    currency: PurchaseCurrency,
+    locked: boolean,
+    label?: string,
+  ): HTMLElement | null {
+    const { state } = getGame();
+    const seat = localPlayerId();
+    const price = explainPurchaseCost(state, seat, city.id, item, currency);
+    if (!price) return null;
+    const glyph = currency === 'faith' ? YIELD_GLYPH.faith : YIELD_GLYPH.gold;
+    const button = element(
+      'button',
+      label === undefined ? 'city-buildable-buy' : 'city-buildable-buy is-offer',
+    );
+    button.type = 'button';
+    setYieldText(
+      button,
+      label === undefined
+        ? `or ${price.total}${glyph}`
+        : `${label} · ${price.total}${glyph}`,
+    );
+    const blocker = locked
+      ? `You have ended turn ${state.turn}`
+      : purchaseError(state, seat, city.id, item, currency);
+    button.disabled = blocker !== null;
+    // Words only in the spoken form: a screen reader announcing a currency glyph
+    // reads its Unicode name before the number it decorates.
+    button.setAttribute(
+      'aria-label',
+      blocker ?? `Buy ${purchasableName(item)} for ${price.total} ${currency}`,
+    );
+    button.title = blocker ?? `Buy ${purchasableName(item)} outright`;
+    button.addEventListener('click', () => buy(city, item, currency));
+    return button;
   }
 
   function renderBuilt(city: City): HTMLElement | null {

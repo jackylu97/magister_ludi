@@ -30,13 +30,11 @@ import {
 } from '../../src/sim/cities';
 import { previewCombat } from '../../src/sim/combat';
 import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
-import { getTileAt, mapRange, tileHex } from '../../src/sim/map';
+import { getTileAt, mapRange, tileHex, wrappedDistance } from '../../src/sim/map';
 import {
   availableRites,
-  bankOf,
   beliefPool,
   consecrateError,
-  explainPurchaseCost,
   hasOpenBeliefSlot,
   isAugur,
   liveTimedEffects,
@@ -44,11 +42,19 @@ import {
   pantheonSlots,
   performRiteAt,
   pruneTimedEffects,
-  purchaseUnitAt,
   religionBlocker,
   riteError,
   ritePreview,
 } from '../../src/sim/religion';
+import {
+  type PurchasableItem,
+  bankOf,
+  explainPurchaseCost,
+  purchaseItemAt,
+} from '../../src/sim/purchase';
+
+/** The one thing faith sells. Named once, so the shape reads out of the way. */
+const AUGUR: PurchasableItem = { kind: 'unit', id: 'augur' };
 import {
   type BeliefId,
   BELIEF_IDS,
@@ -200,15 +206,15 @@ function playFaithful(maxTurns: number): {
     }
 
     // Buy an augur whenever the pool covers one, in the biggest town.
-    const price = explainPurchaseCost(g.state, 0, 'augur');
     const home = g.state.cities.find((city) => city.ownerId === 0);
+    const price = home ? explainPurchaseCost(g.state, 0, home.id, AUGUR, 'faith') : null;
     if (price && home && player.faithPool >= price.total) {
       if (
         dispatch(g, {
-          type: 'purchaseUnit',
+          type: 'purchaseItem',
           playerId: 0,
           cityId: home.id,
-          unitType: 'augur',
+          item: { kind: 'unit', id: 'augur' },
           currency: 'faith',
         } as Command).ok
       ) {
@@ -340,25 +346,33 @@ describe('the augur is bought, never built', () => {
   it('prices the first at the printed figure and each later one a step higher', () => {
     const g = game();
     learn(g.state, 0, 'divination');
+    const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
     const spec = unitDef('augur').purchase!;
 
-    const first = explainPurchaseCost(g.state, 0, 'augur')!;
+    const first = explainPurchaseCost(g.state, 0, city.id, AUGUR, 'faith')!;
     expect(first.currency).toBe('faith');
     expect(first.total).toBe(spec.cost);
     expect(first.lines).toHaveLength(1);
 
     player.augursPurchased = 2;
-    const third = explainPurchaseCost(g.state, 0, 'augur')!;
+    const third = explainPurchaseCost(g.state, 0, city.id, AUGUR, 'faith')!;
     expect(third.total).toBe(spec.cost + 2 * spec.increment!);
     // Rule 5 for a price: the fold of the printed lines *is* the figure.
     expect(third.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(third.total);
     expect(third.lines[1]!.source).toMatch(/2 already called/);
   });
 
-  it('answers null for a type nothing sells', () => {
+  it('answers null when faith is asked for a thing it does not sell', () => {
     const g = game();
-    expect(explainPurchaseCost(g.state, 0, 'warrior')).toBeNull();
+    const city = found(g.state, 0);
+    // Faith sells exactly what the table prices in faith. A warrior is bought
+    // with coin like everything else, so the faith bank has no figure for it.
+    expect(
+      explainPurchaseCost(g.state, 0, city.id, { kind: 'unit', id: 'warrior' }, 'faith'),
+    ).toBeNull();
+    // And gold has no figure for the augur, for the mirror reason.
+    expect(explainPurchaseCost(g.state, 0, city.id, AUGUR, 'gold')).toBeNull();
   });
 
   it('refuses every way it can, and each refusal leaves the state byte-identical', () => {
@@ -370,32 +384,37 @@ describe('the augur is bought, never built', () => {
     const cases: { why: string; command: Command; match: RegExp }[] = [
       {
         why: 'no such player',
-        command: { type: 'purchaseUnit', playerId: 9, cityId: city.id, unitType: 'augur', currency: 'faith' } as Command,
+        command: { type: 'purchaseItem', playerId: 9, cityId: city.id, item: { kind: 'unit', id: 'augur' }, currency: 'faith' } as Command,
         match: /No player/,
       },
       {
         why: 'somebody else’s city',
-        command: { type: 'purchaseUnit', playerId: 1, cityId: city.id, unitType: 'augur', currency: 'faith' } as Command,
+        command: { type: 'purchaseItem', playerId: 1, cityId: city.id, item: { kind: 'unit', id: 'augur' }, currency: 'faith' } as Command,
         match: /does not belong/,
       },
       {
         why: 'no such city',
-        command: { type: 'purchaseUnit', playerId: 0, cityId: 999, unitType: 'augur', currency: 'faith' } as Command,
+        command: { type: 'purchaseItem', playerId: 0, cityId: 999, item: { kind: 'unit', id: 'augur' }, currency: 'faith' } as Command,
         match: /No city/,
       },
       {
-        why: 'a type nothing sells',
-        command: { type: 'purchaseUnit', playerId: 0, cityId: city.id, unitType: 'warrior', currency: 'faith' } as Command,
+        why: 'a thing this game has never heard of',
+        command: { type: 'purchaseItem', playerId: 0, cityId: city.id, item: { kind: 'unit', id: 'dragon' }, currency: 'faith' } as unknown as Command,
         match: /for sale/,
       },
       {
+        why: 'faith asked for a thing the treasury sells',
+        command: { type: 'purchaseItem', playerId: 0, cityId: city.id, item: { kind: 'unit', id: 'warrior' }, currency: 'faith' } as Command,
+        match: /bought with gold, not faith/,
+      },
+      {
         why: 'the wrong bank',
-        command: { type: 'purchaseUnit', playerId: 0, cityId: city.id, unitType: 'augur', currency: 'gold' } as Command,
+        command: { type: 'purchaseItem', playerId: 0, cityId: city.id, item: { kind: 'unit', id: 'augur' }, currency: 'gold' } as Command,
         match: /bought with faith, not gold/,
       },
       {
         why: 'the technology',
-        command: { type: 'purchaseUnit', playerId: 0, cityId: city.id, unitType: 'augur', currency: 'faith' } as Command,
+        command: { type: 'purchaseItem', playerId: 0, cityId: city.id, item: { kind: 'unit', id: 'augur' }, currency: 'faith' } as Command,
         match: /need Divination/,
       },
     ];
@@ -416,10 +435,10 @@ describe('the augur is bought, never built', () => {
     playerById(g.state, 0)!.faithPool = 39;
     const before = snapshotState(g.state);
     const result = applyCommand(g.state, {
-      type: 'purchaseUnit',
+      type: 'purchaseItem',
       playerId: 0,
       cityId: city.id,
-      unitType: 'augur',
+      item: { kind: 'unit', id: 'augur' },
       currency: 'faith',
     } as Command);
     expect(result.ok).toBe(false);
@@ -435,10 +454,10 @@ describe('the augur is bought, never built', () => {
     dispatch(g, { type: 'endTurn', playerId: 0 });
     const before = snapshotState(g.state);
     const result = applyCommand(g.state, {
-      type: 'purchaseUnit',
+      type: 'purchaseItem',
       playerId: 0,
       cityId: city.id,
-      unitType: 'augur',
+      item: { kind: 'unit', id: 'augur' },
       currency: 'faith',
     } as Command);
     expect(result.ok).toBe(false);
@@ -453,10 +472,10 @@ describe('the augur is bought, never built', () => {
     player.faithPool = 100;
 
     expect(dispatch(g, {
-      type: 'purchaseUnit',
+      type: 'purchaseItem',
       playerId: 0,
       cityId: city.id,
-      unitType: 'augur',
+      item: { kind: 'unit', id: 'augur' },
       currency: 'faith',
     } as Command).ok).toBe(true);
 
@@ -464,8 +483,19 @@ describe('the augur is bought, never built', () => {
     expect(player.augursPurchased).toBe(1);
     const augur = g.state.units.find((u) => u.type === 'augur')!;
     expect(augur.ownerId).toBe(0);
-    expect(augur.col).toBe(city.col);
-    expect(augur.row).toBe(city.row);
+    // It stands where a *built* one would: on the city tile if that hex has
+    // room for another civilian, otherwise the first neighbour that has — the
+    // one spawn convention, since the purchase and the production queue were
+    // put through one completion routine (`realiseItem`). The opening town has
+    // a worker on its own tile, so this augur is next door, and that is the
+    // rule rather than an accident.
+    expect(
+      wrappedDistance(
+        g.state.map,
+        tileHex(getTileAt(g.state.map, augur.col, augur.row)!),
+        tileHex(getTileAt(g.state.map, city.col, city.row)!),
+      ),
+    ).toBeLessThanOrEqual(1);
     // Born through `createUnit`, so it can act this turn: full movement, its
     // charges, an unspent attack.
     expect(augur.chargesLeft).toBe(unitDef('augur').charges);
@@ -473,7 +503,7 @@ describe('the augur is bought, never built', () => {
     expect(isAugur(augur)).toBe(true);
 
     // The second one is dearer, from this instant.
-    expect(explainPurchaseCost(g.state, 0, 'augur')!.total).toBe(55);
+    expect(explainPurchaseCost(g.state, 0, city.id, AUGUR, 'faith')!.total).toBe(55);
     expect(bankOf(player, 'faith')).toBe(60);
   });
 
@@ -485,7 +515,7 @@ describe('the augur is bought, never built', () => {
     player.faithPool = 500;
     // A second town four hexes off, so the two cannot be confused.
     const far = foundCityAt(g.state, 0, getTileAt(g.state.map, 10, 10)!);
-    purchaseUnitAt(g.state, player, far, 'augur');
+    purchaseItemAt(g.state, player, far, { kind: 'unit', id: 'augur' }, 'faith');
     const augur = g.state.units.find((u) => u.type === 'augur')!;
     expect([augur.col, augur.row]).toEqual([far.col, far.row]);
   });
@@ -1052,8 +1082,8 @@ describe('timed effects', () => {
 // --- the log ----------------------------------------------------------------
 
 describe('determinism', () => {
-  it('round-trips a schema 18 save with augurs, rites and beliefs in the log', () => {
-    expect(SCHEMA_VERSION).toBe(18);
+  it('round-trips a schema 19 save with augurs, rites and beliefs in the log', () => {
+    expect(SCHEMA_VERSION).toBe(19);
     const played = playFaithful(90);
     // The empire actually got there: an augur was bought out of faith it earned,
     // rites were performed, and a god was named. A determinism test over a log
@@ -1073,7 +1103,7 @@ describe('determinism', () => {
     const before = snapshotState(g.state);
     // Every one of the four commands, each refused for a different reason.
     applyCommand(g.state, {
-      type: 'purchaseUnit', playerId: 0, cityId: city.id, unitType: 'augur', currency: 'faith',
+      type: 'purchaseItem', playerId: 0, cityId: city.id, item: { kind: 'unit', id: 'augur' }, currency: 'faith',
     } as Command);
     applyCommand(g.state, { type: 'consecrate', playerId: 0, unitId: augur.id } as Command);
     applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);

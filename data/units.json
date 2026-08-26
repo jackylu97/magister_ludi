@@ -280,7 +280,8 @@
         "currency": "faith",
         "cost": 40,
         "increment": 15,
-        "exclusive": true
+        "exclusive": true,
+        "verb": "Call an augur"
       },
       "foundsCity": false,
       "haltsGrowth": false,

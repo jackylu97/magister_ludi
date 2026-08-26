@@ -46,14 +46,13 @@
 
 import { civYields } from './topBar';
 import { poolFigure } from './figures';
+import { availableRites, beliefPool, pantheonSlots } from '../sim/religion';
 import {
+  type PurchasableItem,
   type PurchasePrice,
-  availableRites,
-  beliefPool,
   explainPurchaseCost,
-  pantheonSlots,
   purchaseError,
-} from '../sim/religion';
+} from '../sim/purchase';
 import {
   type BeliefAxis,
   type BeliefId,
@@ -75,19 +74,29 @@ import type { UnitTypeId } from '../sim/unitData';
  * and a screen that renamed the hearth would be a screen disagreeing with the
  * design doc it implements. The accent keys resolve through `style.css`'s
  * `--line-ink` block, exactly as a card's line does, so the frame rule, the
- * glyph and the eyebrow of one belief are three elements and one colour.
+ * glyph and the emblem of one belief are three elements and one colour.
+ *
+ * **The axis has no player-facing name, and that is deliberate** (playtest,
+ * 2026-08-26). It used to print one — "the stone", "the hearth" — in the
+ * eyebrow of every belief card and in its tooltip, and it read as a *category
+ * the player was choosing between* rather than as what it is: a designer's
+ * thread through the pool, there so a second god on the same axis is findable.
+ * It stays in the data (`BeliefDef.axis`), it still picks the accent, and the
+ * founder amplifiers the Age 2–3 pass will draft from it (Syncretism reads the
+ * axis directly) — it simply has no word. So this table is a glyph and nothing
+ * else, and there is nowhere left for a name to be printed from.
  */
-export const AXIS_MARK: Record<BeliefAxis, { glyph: string; name: string }> = {
-  hearth: { glyph: '🌾', name: 'the hearth' },
-  sky: { glyph: '✶', name: 'the sky' },
-  stone: { glyph: '⛰', name: 'the stone' },
-  wild: { glyph: '🌲', name: 'the wild' },
-  water: { glyph: '🌊', name: 'the water' },
-  war: { glyph: '⚒', name: 'the forge' },
-  road: { glyph: '🧭', name: 'the road' },
-  sun: { glyph: '☀', name: 'the sun' },
-  frost: { glyph: '❄', name: 'the frost' },
-  none: { glyph: '◈', name: 'no axis' },
+export const AXIS_MARK: Record<BeliefAxis, { glyph: string }> = {
+  hearth: { glyph: '🌾' },
+  sky: { glyph: '✶' },
+  stone: { glyph: '⛰' },
+  wild: { glyph: '🌲' },
+  water: { glyph: '🌊' },
+  war: { glyph: '⚒' },
+  road: { glyph: '🧭' },
+  sun: { glyph: '☀' },
+  frost: { glyph: '❄' },
+  none: { glyph: '◈' },
 };
 
 /** The empty slot's ghost — the outline of a god nobody has named. */
@@ -111,7 +120,7 @@ export interface ReligionScreenOptions {
   getState: () => GameState;
   getPlayerId: () => number;
   /** Sends the purchase. The screen never mutates state itself. */
-  buy: (cityId: number, unitType: UnitTypeId, currency: 'faith' | 'gold') => void;
+  buy: (cityId: number, item: PurchasableItem, currency: 'faith' | 'gold') => void;
   /** Said in the manicule line — a refusal, in the reducer's own words. */
   onRefuse?: (message: string) => void;
   onOpen?: () => void;
@@ -132,19 +141,22 @@ function axisMarkNode(axis: BeliefAxis): HTMLElement {
 }
 
 /**
- * One belief's face: the axis in the eyebrow, the glyph, the name, the clauses,
- * the flavour at the foot.
+ * One belief's face: what it is in the eyebrow, the glyph, the name, the
+ * clauses, the flavour at the foot.
  *
- * `drawCardFace`'s shape (`statecraftScreen.ts`) with the axis where the slot
+ * `drawCardFace`'s shape (`statecraftScreen.ts`) with "a god" where the slot
  * type goes, so a god and an Order are the same object at a glance — which is
- * true: both are permanent things drafted three at a time from a pool.
+ * true: both are permanent things drafted three at a time from a pool. The
+ * eyebrow used to carry the **axis name** and no longer does (see `AXIS_MARK`):
+ * what a player needs to know in that line is what kind of thing this is, and
+ * every belief is the same kind of thing.
  */
 function drawBeliefFace(into: HTMLElement, id: BeliefId): void {
   const def = beliefDef(id);
   into.dataset.axis = def.axis;
-  into.title = `${def.name} · ${AXIS_MARK[def.axis].name}`;
+  into.title = def.name;
   const head = element('div', 'sc-card-head');
-  head.append(element('span', 'sc-card-type', AXIS_MARK[def.axis].name));
+  head.append(element('span', 'sc-card-type', 'a god'));
   into.append(head);
   const mark = axisMarkNode(def.axis);
   mark.classList.add('rel-card-emblem');
@@ -278,8 +290,15 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     const block = element('section', 'rel-purchase');
     block.append(element('p', 'eyebrow sc-eyebrow', 'the augur'));
     const type: UnitTypeId = 'augur';
-    const price = explainPurchaseCost(state, seat, type);
+    const item: PurchasableItem = { kind: 'unit', id: type };
     const cities = state.cities.filter((city) => city.ownerId === seat);
+    // The price is asked **of a city**, since M9 — a purchase always happens
+    // somewhere — so the town has to be picked before the figure can be quoted.
+    if (aimedCityId === null || !cities.some((city) => city.id === aimedCityId)) {
+      aimedCityId = cities[0]?.id ?? null;
+    }
+    const price =
+      aimedCityId === null ? null : explainPurchaseCost(state, seat, aimedCityId, item, 'faith');
     if (!price || cities.length === 0) {
       block.append(element('p', 'sc-none', 'You have no city an augur could be called to.'));
       return block;
@@ -305,11 +324,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       option.textContent = city.name;
       select.append(option);
     }
-    if (aimedCityId !== null && cities.some((city) => city.id === aimedCityId)) {
-      select.value = String(aimedCityId);
-    } else {
-      aimedCityId = cities[0]!.id;
-    }
+    select.value = String(aimedCityId);
     select.addEventListener('change', () => {
       aimedCityId = Number.parseInt(select.value, 10);
       draw();
@@ -320,16 +335,16 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     button.type = 'button';
     button.className = 'btn btn-primary rel-buy';
     button.textContent = `Call an augur · ${price.total} ${price.currency}`;
-    const problem = purchaseError(state, seat, aimedCityId!, type, price.currency);
+    const problem = purchaseError(state, seat, aimedCityId!, item, price.currency);
     button.disabled = problem !== null;
     button.title = problem ?? `An augur joins ${select.selectedOptions[0]?.textContent ?? 'the city'}`;
     button.addEventListener('click', () => {
-      const blocked = purchaseError(state, seat, aimedCityId!, type, price.currency);
+      const blocked = purchaseError(state, seat, aimedCityId!, item, price.currency);
       if (blocked !== null) {
         options.onRefuse?.(blocked);
         return;
       }
-      options.buy(aimedCityId!, type, price.currency);
+      options.buy(aimedCityId!, item, price.currency);
       draw();
     });
     row.append(button);
@@ -367,11 +382,19 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       const clauses = describeCard(id);
       const said = clauses.map((clause) => clause.text).join(' · ');
       const grantWords = describeGrant(id);
+      // **How long the lasting half lasts.** `describeCard` cannot say it: a
+      // clause is an ordinary `CardEffect` and knows nothing about the rite it
+      // hangs on, so the duration is the row's own (`RiteDef.duration`) and is
+      // printed here, beside the clauses it qualifies. Without it the reference
+      // promised Omen Reading's science for ever.
+      const lasting = clauses.length > 0 && def.duration !== undefined
+        ? `for ${def.duration} turns`
+        : '';
       row.append(
         element(
           'p',
           'rel-rite-say',
-          [grantWords, said].filter((part) => part.length > 0).join(' · '),
+          [grantWords, said, lasting].filter((part) => part.length > 0).join(' · '),
         ),
       );
       row.append(element('p', 'sc-flavor', def.flavor));

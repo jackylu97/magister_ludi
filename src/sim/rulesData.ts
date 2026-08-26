@@ -511,6 +511,20 @@ export interface ProductionRules {
    * labelled line (`explainUnitCost`), never at the point of sale.
    */
   unitCostAgeMultiplier: number[];
+  /**
+   * Gold one hammer of an item's **full** production cost costs to buy outright
+   * (M9's purchases, ledger Entry XXIX). The whole of the conversion, in one
+   * number, applied as its own labelled line by `explainPurchaseCost`
+   * (`purchase.ts`) — so the settler ladder and the age band flow into a price
+   * tag because they are already lines of the cost being converted.
+   *
+   * It reads off the **full** cost and never the remainder: a city half way to a
+   * settler pays the same coin as one that has banked nothing, and the hammers
+   * it had banked are still in the basket afterwards. Charging the remainder
+   * would make the best moment to buy anything "one turn before it finishes",
+   * which is the moment buying is worth least.
+   */
+  goldPerHammer: number;
 }
 
 export interface RulesConfig {

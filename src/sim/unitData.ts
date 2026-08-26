@@ -100,11 +100,15 @@ export type ModelClass =
  * nothing sells (ledger Entry XXVIII).
  *
  * Currency-agnostic on purpose. Faith is the only bank that spends today and the
- * augur is the only thing it buys, but the M9 gold purchases are the same
- * transaction with a different pool — so the *shape* carries the currency, the
- * one price evaluator (`explainPurchaseCost` in `religion.ts`) reads it, and the
- * day a city can rush-buy a warrior is a JSON row rather than a second purchase
- * system beside this one.
+ * augur was the only thing it bought, but the M9 gold purchases are the same
+ * transaction with a different pool — so the *shape* carries the currency and
+ * the one price evaluator (`explainPurchaseCost` in `purchase.ts`) reads it.
+ *
+ * The rule this row carries, as of M9: **a type that names its own bank is sold
+ * out of that bank and no other.** Gold buys everything the roster leaves
+ * silent, at the treasury's flat conversion from hammers, so a warrior needs no
+ * row here at all — and the augur's row is what keeps gold away from it without
+ * gold having to know what an augur is.
  */
 export interface UnitPurchaseSpec {
   currency: 'faith' | 'gold';
@@ -122,10 +126,20 @@ export interface UnitPurchaseSpec {
    * not exist. The augur's, and the whole of "keep faith legible" — an agent you
    * could also hammer out would make the faith price a suggestion.
    *
-   * Refused by `buildError` (`tech.ts`), which is what the city panel greys its
-   * rows with, so the sentence a player reads is the reducer's own.
+   * Refused by `buildError` (`tech.ts`), which is also what the reducer refuses
+   * a queue with — and the city panel now leaves such a row **out** of the build
+   * list entirely (`isPurchaseOnly`), because a greyed row for something that
+   * belongs to a different list answers nothing.
    */
   exclusive?: boolean;
+  /**
+   * How the interface offers this purchase — "Call an augur".
+   *
+   * Here rather than in the panel because a prophet is *called*, a mercenary is
+   * *hired* and a relic is *acquired*, and none of those should teach a DOM file
+   * a type's name. Absent falls back to "Buy a ⟨name⟩".
+   */
+  verb?: string;
 }
 
 export interface UnitDef {

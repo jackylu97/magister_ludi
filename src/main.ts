@@ -1591,10 +1591,13 @@ async function boot(initial: Game | null): Promise<void> {
         weight: 'heavy',
         options: offer.options.map((id) => {
           const def = beliefDef(id);
-          const axis = AXIS_MARK[def.axis];
           return {
             title: def.name,
-            payoff: `${axis.glyph} ${axis.name}`,
+            // The axis's **glyph and nothing else**: it is the accent's mark,
+            // not a category the player is picking between, and the word for it
+            // came off every surface in the 2026-08-26 playtest pass. See
+            // `AXIS_MARK`. The eyebrow above already says what all three are.
+            payoff: AXIS_MARK[def.axis].glyph,
             note: describeCard(id).map((clause) => clause.text).join(' · '),
             flavor: def.flavor,
             // The accent key, resolved by `style.css`'s axis block — the same
@@ -2025,9 +2028,10 @@ async function boot(initial: Game | null): Promise<void> {
    *
    * Statecraft's sibling in every respect that matters — declared here beside
    * it, reached back through the `religion` holder, and every write it makes is
-   * a **command**. The one it can send is `purchaseUnit`, so an augur called
-   * from this sheet is called the same way a network peer or a future AI would
-   * call one, and the sentence a refusal shows is the reducer's own.
+   * a **command**. The one it can send is `purchaseItem`, so an augur called
+   * from this sheet is called the same way the city panel's own faith row calls
+   * one — and the same way a network peer or a future AI would — and the
+   * sentence a refusal shows is the reducer's own.
    */
   religion = createReligionScreen({
     overlay: religionOverlayEl,
@@ -2035,12 +2039,12 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('religion-close'),
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
-    buy: (cityId, unitType, currency) => {
+    buy: (cityId, item, currency) => {
       dispatch(game, {
-        type: 'purchaseUnit',
+        type: 'purchaseItem',
         playerId: controls.localPlayerId(),
         cityId,
-        unitType,
+        item,
         currency,
       });
       controls.refresh();

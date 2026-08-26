@@ -143,15 +143,21 @@ price implies the first augur ~turn 15–20 after Divination, which feels right.
 | **Augur** | ✅ everything above | `data/units.json`, `consecrates: true` (the marker — nothing in `src/sim/` compares a type against `"augur"`), 3 charges shared with the worker's machinery, `purchase: { currency: 'faith', cost: 40, increment: 15, exclusive: true }`. `exclusive` is what makes production refuse it, in `buildError`, with the bank named. |
 | **Prophet** | ⏳ Age 2–3 | Waits on The High Temple, which does not exist in the tree yet. |
 
-`purchaseUnit { playerId, cityId, unitType, currency }` is the command, currency-agnostic in
-shape and faith-funded in fact: the currency is *checked against the roster row*, so asking
-to buy an augur with gold is told which bank the thing is priced in rather than quietly
-charged faith. The price is `explainPurchaseCost` — an ordered list of labelled lines whose
-fold is the figure, `explainUnitCost`'s shape in a bank.
+`purchaseUnit { playerId, cityId, unitType, currency }` was the command. **Superseded
+2026-08-26** by `purchaseItem { playerId, cityId, item, currency }` (ledger Entry XXIX),
+which is the same transaction one generalisation wider: gold buys units and buildings out of
+the treasury, and the augur is still bought with faith because its roster row names that
+bank — *a row that names its own bank is sold out of that bank and no other*. The price is
+still `explainPurchaseCost` (now `src/sim/purchase.ts`), an ordered list of labelled lines
+whose fold is the figure, `explainUnitCost`'s shape in a bank.
 
-**Stacking is deliberately not asked of a purchase**, because `settleProduction` does not ask
-it either: a bought piece arrives exactly as a built one does. Asking would also have made
-the augur nearly unbuyable early, when a town's own tile usually has a worker on it.
+**Stacking is asked**, as of that pass, and the earlier note here said it was not. The
+reason it changed is that a purchase and a build now go through **one** completion routine
+(`realiseItem`), so a bought piece stands where a built one would: the city tile if that hex
+has room, otherwise the first neighbour that has. That is not the refusal the old note was
+worried about — an augur bought into a town whose own tile holds a worker simply stands next
+door — and the only purchase a boxed-in town cannot make is the one production could not
+complete either.
 
 ### Slots
 

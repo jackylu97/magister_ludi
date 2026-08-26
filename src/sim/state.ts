@@ -166,8 +166,16 @@ import {
  *     a bank nothing spent and augurs now **spend** it, and fishing boats pay
  *     +1🪙 they did not pay before, so every coastal yield in a v17 save is a
  *     figure this build would not have banked.
+ * 19: Purchases, generalised (playable.md item 2's remainder, ledger Entry
+ *     XXIX). **No new field** — this bump is entirely about the log. The
+ *     `purchaseUnit` command became `purchaseItem` and carries a
+ *     `{ kind, id }` item rather than a `unitType`, so a v18 log's augur
+ *     purchase is a command this reducer does not recognise; and gold now buys
+ *     units and buildings, which a v18 game had no way to spend it on at all.
+ *     `Player.gold` in a v18 save is therefore a bank with a different meaning
+ *     rather than the same bank one version older.
  */
-export const SCHEMA_VERSION = 18;
+export const SCHEMA_VERSION = 19;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

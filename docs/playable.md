@@ -47,9 +47,42 @@ game more playtestable than the last.
   struck through with the reducer's own reason.
 
 ### Still open from here (M9 remainder)
-- **Unit and building gold purchase** — deliberately out of scope for item 2. The price
-  machinery (`explainTilePurchase` / one-evaluator + labelled lines) is the shape to copy.
-- **Unit upkeep** — still unbuilt. Nothing spends gold per turn.
+- **Unit and building gold purchase — ANSWERED 2026-08-26** (ledger Entry XXIX). The shape
+  named here is the shape it took, one generalisation further out: the augur's faith
+  purchase (Entry XXVIII) had already written the transaction currency-agnostic, so gold
+  joined it rather than opening a second one. `purchaseItem { playerId, cityId, item,
+  currency }` is the command; `explainPurchaseCost` is the one evaluator, and its labelled
+  lines are the item's **production cost lines** plus a `×2 in gold` conversion — which is
+  what carries the settler ladder and the age band into a price tag without either knowing
+  the tag exists.
+  - **Gold buys anything the city could build** (same unlock and resource gates, asked
+    through `buildError` itself), **faith buys what the roster prices in faith** (the
+    augur), and a row that names its own bank is sold out of that bank and no other — which
+    is what keeps gold away from the augur with no clause that knows what an augur is.
+  - **The full cost, never the remainder.** Buying does not consume the banked basket and
+    is not discounted by it; the hammers stay banked and pay for whatever is next. Charging
+    the remainder would make the best moment to buy anything the moment before it would
+    have finished.
+  - **One completion routine**: `realiseItem` (`cities.ts`), split out of
+    `settleProduction` so a bought thing arrives exactly as a built one does — same spawn
+    convention, same `settlersBuilt` ladder, same completion riders. What a purchase does
+    *not* touch is the basket, which is the line the split is drawn along.
+  - **The authority freeze does not bar it**, and that is a ruling rather than an omission:
+    the freeze is about *ground* (accrual, expansion, `purchaseTile`) because land follows
+    the writ. An overdrawn empire is short of legitimacy, not of coin.
+  - Interface: every build row in the city panel carries an "or 60💰" tag greyed with the
+    reducer's own sentence, the augur has a faith-priced row of its own at the foot of the
+    units ("Call an augur · 40🕯", greyed pre-Divination with the node named), and the
+    caption leads with the treasury the tags are checked against — the Buy Tiles precedent.
+  - **No discounts.** The card vocabulary has one purchase-price rule (`tilePurchase`,
+    which is ground) and nothing that speaks about buying a unit or a building. Inventing a
+    second rule so a card *could* be written for it later would be building the lever
+    before the hand.
+  - Open: **2💰 per ⚙ is a first number**, not a measured one. It is a rules knob
+    (`production.goldPerHammer`) precisely so the playtest can move it.
+- **Unit upkeep** — **still unbuilt**. Nothing spends gold per turn, and the purchases above
+  make that gap louder rather than quieter: gold now has a sink deep enough to matter and
+  still no recurring cost to balance it against.
 - **The faucet — ANSWERED 2026-08-26** (ledger Entry XXVI). The build-sink pass minted the
   first *baseline* gold source: **Tithes**, a repeating queue row unlocked at Calendar that
   converts 20⚙ into 5🪙 and never leaves the queue. It is deliberately a poor rate — four

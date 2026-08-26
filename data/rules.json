@@ -188,7 +188,8 @@
       1,
       1.5,
       2
-    ]
+    ],
+    "goldPerHammer": 2
   },
   "startingUnits": [
     "settler",

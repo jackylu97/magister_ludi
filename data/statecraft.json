@@ -399,7 +399,7 @@
       "flavor": "Gold on the walls, gold in the words, gold under the throne.",
       "text": "+3 authority capacity.",
       "note": "The Gilded Hall half is DEFERRED: buildings cannot be purchased with gold yet, so `unlocksBuilding` has no mechanism to unlock into. See docs/statecraft-cards.md.",
-      "deferred": ["unlocksBuilding"],
+      "deferred": ["The Gilded Hall, a building bought with gold"],
       "effects": [
         { "kind": "authority", "amount": 3 }
       ]
@@ -474,7 +474,7 @@
       "flavor": "There is one truth, and we are its army.",
       "text": "Permanent war with civilizations of a different majority religion · your cities cannot be converted.",
       "note": "DEFERRED ENTIRELY — needs religion, a war state and the bead race. Never dealt: it belongs to no live pool (tier 0).",
-      "deferred": ["religion", "warState", "beads"],
+      "deferred": ["permanent war with civilizations of another faith", "your cities cannot be converted", "a powerful bonus toward the domination and religious beads"],
       "effects": []
     }
   },
@@ -1243,7 +1243,7 @@
         {
           "kind": "countScaled",
           "count": "garrison",
-          "max": 4,
+          "max": 2,
           "pays": { "to": "yield", "yield": "production", "amount": 2, "where": "city" }
         }
       ]

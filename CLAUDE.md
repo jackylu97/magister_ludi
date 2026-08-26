@@ -245,6 +245,11 @@ would change every seeded outcome. No further rename passes.
      deliberate exception is a **completion** rider: hammers there do not settle, because
      that call *is* a completion and `settleProduction` allows at most one item per city
      per call.
+  12. **`purchaseItemAt`** (`purchase.ts`, Entry XXIX) — a thing bought outright with gold
+      or faith. It is **not** a new completion path and must never become one: it goes
+      through `realiseItem`, the half of `settleProduction` that is about the *thing*
+      rather than about the basket. What it owes the register is the refresh, because a
+      granary bought at noon changes what a citizen is worth before the turn ends.
   10. **`settlePopulationWindfall`** (Entry XXVIII) — a rite's citizen, granted outright.
       The first entry that fills **no bucket at all**: there is no threshold to clear and no
       overflow to carry, so it cannot go through `settleGrowthWindfall`, and pouring enough
@@ -301,15 +306,24 @@ would change every seeded outcome. No further rename passes.
   `cardCombatLines` walks `liveUnitEffects`, and `timedCityTileLines` is the fifth `TileLine`
   producer, added in `cityContext` beside the granary's because both are facts about *one
   town*.
-- **Faith is spent now, and the only thing it buys is an agent.** `Player.faithPool` is no
-  longer accumulate-only: `purchaseUnit` charges it. The price is `explainPurchaseCost`
-  (`religion.ts`) — `explainUnitCost`'s ordered-lines shape in a **bank**, currency-agnostic
-  so the M9 gold purchases share it — and it reads `UnitDef.purchase`, whose `exclusive`
-  flag is what makes `buildError` refuse the production queue. **Presence of `purchase` is
+- **A thing is bought in one place, out of one of two banks** (`purchase.ts`, Entry XXIX).
+  `purchaseItem { cityId, item, currency }` is the command; `explainPurchaseCost` is the
+  price — `explainUnitCost`'s ordered-lines shape in a **bank** — and `purchaseError` is the
+  gate every surface greys with. The rules that keep the two banks apart are on the *data*:
+  **a row that names its own bank (`UnitDef.purchase`) is sold out of that bank and no
+  other**, which is what refuses gold the augur; everything the roster leaves silent is sold
+  by the treasury at `production.goldPerHammer` per hammer of its **full** production cost
+  (never the remainder — the banked basket is neither spent nor discounted). Gold's other
+  gates are `buildError`'s, asked through `buildError` itself. **Presence of `purchase` is
   the marker and `consecrates` is the other one**: nothing in `src/sim/` compares a unit type
-  against `"augur"`, exactly as nothing compares against `"settler"`. A purchase deliberately
-  does **not** ask about stacking, because `settleProduction` does not either: a bought piece
-  arrives exactly as a built one does.
+  against `"augur"`, exactly as nothing compares against `"settler"`.
+  A purchase **realises** through `realiseItem` (`cities.ts`) — the half of
+  `settleProduction` that is about the *thing* (`createUnit`, `spawnTileFor`,
+  `settlersBuilt`, the completion riders), never the half about the *basket* (cost,
+  overflow, splice). A second way to acquire a unit or a building calls that, or the two
+  drift on a spawn tile within a month. The **authority freeze does not bar a purchase** —
+  it is about ground, and `test/sim/purchase.test.ts` reads the source to keep the clause
+  from being added.
 - **A belief is a card, not a system.** Beliefs and rites are rows of the *same* effect
   vocabulary read by the *same* evaluator; `statecraft.ts` is still the only module that
   switches on `effect.kind`. `CardId` spans five classes now, and the lookup across all five
