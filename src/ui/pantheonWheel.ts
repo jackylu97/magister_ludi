@@ -10,11 +10,19 @@
  * Gods of one axis occupy adjacent houses, so synergy is something you see
  * rather than something you are told.
  *
- * Pure, and separated from the drawing for the reason `splitYieldText` and
- * `meterGroups` are: this suite has no jsdom, and *which house a god is in and
- * where that house is* is the half that can be quietly wrong in a way no
- * screenshot catches — a sector that wraps past twelve o'clock, a run of one
- * axis split by another, eighteen slices that come to 359 degrees.
+ * The **arithmetic** is pure and is separated from the drawing for the reason
+ * `splitYieldText` and `meterGroups` are: this suite has no jsdom, and *which
+ * house a god is in and where that house is* is the half that can be quietly
+ * wrong in a way no screenshot catches — a sector that wraps past twelve
+ * o'clock, a run of one axis split by another, eighteen slices that come to 359
+ * degrees.
+ *
+ * The **drawing** is at the foot of the file (`drawPantheonWheel`), and it is
+ * here rather than on the religion screen because it now has two callers: the
+ * screen, and the flair gallery, which draws the same wheel with a held set
+ * nobody has played to so that the lit and unlit states can be seen together.
+ * It touches the DOM only inside its own body — nothing at module scope does —
+ * so the pure half is still importable by a test that has no `document`.
  *
  * The wheel is drawn from the pool, not from the table
  * ---------------------------------------------------
@@ -216,4 +224,148 @@ export function housePath(
     `L${n(c.x)} ${n(c.y)}` +
     `A${n(inner)} ${n(inner)} 0 ${large} 0 ${n(d.x)} ${n(d.y)}Z`
   );
+}
+
+// --- the drawing ------------------------------------------------------------
+
+/**
+ * The wheel's own dimensions, in the SVG's 100×100 user space.
+ *
+ * Written once here rather than at each call site because the four of them are
+ * a *proportion* and not four independent numbers: the houses are the ring
+ * between `inner` and `outer`, the hub has to clear the ring by enough that the
+ * figure in it never touches a glyph, and the glyph rides the middle of the
+ * band. Changing the look of the wheel is changing these four.
+ */
+export const WHEEL = { centre: 50, outer: 46, inner: 29, hub: 21 } as const;
+
+/** An SVG element, with a class. `element`'s twin one namespace over. */
+function svgNode<K extends keyof SVGElementTagNameMap>(
+  tag: K,
+  className?: string,
+): SVGElementTagNameMap[K] {
+  const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  if (className !== undefined) node.setAttribute('class', className);
+  return node;
+}
+
+/**
+ * What the drawing needs that the arithmetic cannot know.
+ *
+ * The two callbacks are the reason this is a function of *four* things rather
+ * than of a `GameState`. A house's glyph and its tooltip are facts about a
+ * belief — the axis mark the religion screen already owns, and the clause list
+ * `describeCard` prints — and reaching for either from here would drag the
+ * whole religion screen's vocabulary into a module whose test runs without a
+ * DOM. Handed in, the drawing has no opinion about what a belief *is*, which is
+ * what lets a gallery lay out four of them with invented held sets.
+ */
+export interface PantheonWheelOptions {
+  layout: WheelLayout;
+  /** Which gods this seat has consecrated. Everything else is drawn outlined. */
+  held: ReadonlySet<BeliefId>;
+  /** How many places the seat has, for the hub's figure. */
+  slots: number;
+  /** The mark that rides the middle of a house's band. */
+  glyph: (axis: BeliefAxis) => string;
+  /** The platform tooltip. Omitted draws no `<title>` at all. */
+  tooltip?: (id: BeliefId) => string;
+}
+
+/**
+ * The pool as a wheel: one house per god, runs of an axis adjacent.
+ *
+ * Extracted from `religionScreen.ts` unchanged, so that the flair gallery can
+ * draw the same object with a held set nobody has played to — which is the only
+ * way to see the lit, unlit and hub states side by side. The screen calls it
+ * with its own two callbacks and gets exactly the SVG it built before.
+ *
+ * Every god in the pool gets a house, held or not, and the wheel never
+ * reorders: consecrating one lights its house and moves nothing. A ring that
+ * rearranged as it filled would be a sky a player could never learn.
+ *
+ * Two states and no third — lit, or outlined. The hub carries the same figure
+ * the eyebrow above it does, because there is exactly one answer to "how many
+ * places are open" and two places to read it should not be two numbers.
+ */
+export function drawPantheonWheel(options: PantheonWheelOptions): SVGSVGElement {
+  const { layout, held, slots, glyph, tooltip } = options;
+  const { centre, outer, inner, hub } = WHEEL;
+  const svg = svgNode('svg', 'rel-wheel');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  // Decoration with a text equivalent beside it: the eyebrow says how many
+  // gods of how many places, and each house's own name is on its slot card.
+  // A reader walked through eighteen unlabelled arcs would be worse served.
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+
+  const houses = svgNode('g', 'rel-wheel-houses');
+  for (const house of layout.houses) {
+    const group = svgNode('g', held.has(house.id) ? 'rel-house is-held' : 'rel-house');
+    // The accent resolves through `style.css`'s `[data-axis]` block, exactly
+    // as a slot card's does — one fact about one god, one colour, wherever it
+    // is drawn.
+    group.setAttribute('data-axis', house.axis);
+    if (tooltip) {
+      const title = svgNode('title');
+      title.textContent = tooltip(house.id);
+      group.append(title);
+    }
+    const face = svgNode('path', 'rel-house-face');
+    face.setAttribute(
+      'd',
+      housePath(centre, centre, inner, outer, house.startAngle, house.endAngle),
+    );
+    group.append(face);
+    const seat = wheelPoint(centre, centre, (inner + outer) / 2, house.midAngle);
+    const mark = svgNode('text', 'rel-house-glyph');
+    mark.setAttribute('x', String(Math.round(seat.x * 100) / 100));
+    mark.setAttribute('y', String(Math.round(seat.y * 100) / 100));
+    mark.textContent = glyph(house.axis);
+    group.append(mark);
+    houses.append(group);
+  }
+  svg.append(houses);
+
+  // The seams. One spoke where a run ends, and none inside a run: the whole
+  // claim the wheel makes is that these three houses are one thing.
+  for (const sector of layout.sectors) {
+    const a = wheelPoint(centre, centre, inner, sector.startAngle);
+    const b = wheelPoint(centre, centre, outer, sector.startAngle);
+    const spoke = svgNode('line', 'rel-wheel-spoke');
+    spoke.setAttribute('x1', String(a.x));
+    spoke.setAttribute('y1', String(a.y));
+    spoke.setAttribute('x2', String(b.x));
+    spoke.setAttribute('y2', String(b.y));
+    svg.append(spoke);
+  }
+
+  for (const radius of [outer, inner]) {
+    const rim = svgNode('circle', 'rel-wheel-rim');
+    rim.setAttribute('cx', String(centre));
+    rim.setAttribute('cy', String(centre));
+    rim.setAttribute('r', String(radius));
+    svg.append(rim);
+  }
+
+  const disc = svgNode('circle', 'rel-wheel-hub');
+  disc.setAttribute('cx', String(centre));
+  disc.setAttribute('cy', String(centre));
+  disc.setAttribute('r', String(hub));
+  svg.append(disc);
+
+  const count = svgNode('text', 'rel-wheel-count');
+  count.setAttribute('x', String(centre));
+  count.setAttribute('y', String(centre - 2));
+  count.textContent = `${held.size}/${slots}`;
+  svg.append(count);
+  // The word under the figure is one the screen already prints (the eyebrow
+  // above the wheel says "pantheon"): the hub names what it is counting and
+  // introduces no vocabulary of its own.
+  const word = svgNode('text', 'rel-wheel-of');
+  word.setAttribute('x', String(centre));
+  word.setAttribute('y', String(centre + 7));
+  word.textContent = 'pantheon';
+  svg.append(word);
+  return svg;
 }

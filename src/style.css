@@ -1664,6 +1664,28 @@ button.seat:hover {
   filter: brightness(1.08);
 }
 
+/* The seat's charge, printed ahead of its name — `.res-mark`'s mechanism at
+   chip scale (`src/art/heraldryMarks.ts` through `--seat-charge`, written per
+   element by the chip loop in `src/main.ts`).
+
+   A mask in `currentColor` rather than an image, for the reason every drawn
+   mark here is one: the chip's ink is parchment on the seat's tincture and
+   *inverts* when that seat has ended its turn, so a two-tone drawing would have
+   to exist twice. Sized in `em` so it tracks the 11px chip type, and nudged
+   onto the baseline a shade less than `.res-mark` is, because these letterforms
+   are set at their cap height with no descenders under them. */
+.seat-charge {
+  flex: none;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.12em;
+  margin-right: 0.3em;
+  background-color: currentColor;
+  -webkit-mask: var(--seat-charge) center / contain no-repeat;
+  mask: var(--seat-charge) center / contain no-repeat;
+}
+
 /* Your own seat is the one that is "out on the table". On ink the usual lifted
    ink shadow would be invisible, so the ring is parchment instead. */
 button.seat.is-local {

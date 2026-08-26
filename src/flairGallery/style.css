@@ -1,0 +1,614 @@
+/*
+ * The Flair Cabinet's own stylesheet: **layout only**.
+ *
+ * The page imports `src/style.css` first, so every specimen on it is drawn by
+ * the game's own rules — a `.hud-card` here is the card the HUD builds, a
+ * `.ledger` is the ledger the breakdowns set, a `.marquee-title` is the size
+ * the landing screen announces at. That is the whole bargain of the page: a
+ * reproduction is a second implementation and would drift within a week.
+ *
+ * So nothing below restyles a game class. What it does is three things:
+ *
+ *   · gives the page a shape the game does not have (a scrolling sheet with a
+ *     sticky index, sections, swatch grids);
+ *   · **un-pins** the two recipes that are `position: fixed` in the game and
+ *     have to sit in the flow here — `.hud-card` and `.turn-splash`. Same
+ *     trick, and the same note, as `#hud-meters > .hud-card`: `relative`
+ *     cancels `fixed` without touching anything else on the element;
+ *   · hands three flourishes a knob the game gives them as a constant, so this
+ *     page can be *iterated on*. Each defaults to the game's own number, so a
+ *     slider left alone shows exactly what ships.
+ */
+
+/* --- the sheet ----------------------------------------------------------- */
+
+/* The game pins `html, body { height: 100%; overflow: hidden }` because it is an
+   application over a board and nothing on it may scroll the document. This page
+   is the opposite thing — one long sheet — so both are handed back. It is the
+   only rule here that *undoes* one of the game's rather than adding to it, and
+   it is undone at the document rather than on any surface, so nothing the page
+   reproduces is affected. */
+html,
+body {
+  height: auto;
+  overflow: visible;
+}
+
+/* `relative`, not `static`: it cancels `.hud-card`'s `fixed` exactly as
+   `#hud-meters > .hud-card` does in the game, and for the same reason — the
+   recipe is a *card*, and where the game happens to pin one is not part of it.
+   Scoped to `#sheet` rather than written bare so it reads as what it is: a fact
+   about this page's flow, not an opinion about the class. Every panel on the
+   sheet needs it, and a specimen that quietly floated out of the flow was
+   exactly how the wheel's stall lost its column. */
+#sheet .hud-card,
+#sheet .turn-splash {
+  position: relative;
+  inset: auto;
+}
+
+body {
+  margin: 0;
+  background: var(--table);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+#index {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 30;
+  width: 214px;
+  padding: 22px 14px;
+  overflow-y: auto;
+  border-right: var(--border) solid var(--ink);
+  background: var(--parchment);
+}
+
+#index h1 {
+  margin: 0 0 4px;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 1.6rem;
+  line-height: 1.05;
+}
+
+#index h1 em {
+  font-style: italic;
+  color: var(--vermilion);
+}
+
+#index p {
+  margin: 0 0 16px;
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+#index ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: section;
+}
+
+#index li {
+  counter-increment: section;
+}
+
+#index a {
+  display: block;
+  padding: 4px 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 12px;
+}
+
+/* The index numbers are numbers, so they are mono and tabular like every other
+   figure in this interface. */
+#index a::before {
+  display: inline-block;
+  width: 1.7em;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  content: counter(section) '.';
+}
+
+#index a:hover {
+  color: var(--vermilion);
+}
+
+#sheet {
+  margin-left: 214px;
+  padding: 30px 34px 120px;
+  max-width: 1180px;
+}
+
+.sheet-section {
+  padding-top: 26px;
+  margin-bottom: 46px;
+  border-top: var(--border-thin) solid var(--ink);
+}
+
+.sheet-section > h2 {
+  margin: 0;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1.05;
+}
+
+/* Where the asset appears in the game. One line, and it is the only thing on
+   this page that is documentation rather than specimen. */
+.sheet-where {
+  margin: 4px 0 18px;
+  max-width: 62ch;
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.sheet-block {
+  margin: 0 0 26px;
+}
+
+.sheet-block > h3 {
+  margin: 0 0 10px;
+  font-family: var(--face-name);
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.sheet-note {
+  margin: 0 0 12px;
+  max-width: 62ch;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* --- the controls -------------------------------------------------------- */
+
+.sheet-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+}
+
+.sheet-controls label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sheet-controls input[type='range'] {
+  width: 130px;
+}
+
+/* Every number on this page is tabular mono, the readouts beside the sliders
+   included — a knob whose figure was set in the UI face would be the one number
+   in the project that is not. */
+.sheet-figure {
+  min-width: 4.5em;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.sheet-controls button {
+  padding: 3px 10px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sheet-controls button:active {
+  transform: translate(1px, 1px);
+}
+
+/* --- the mark tables ----------------------------------------------------- */
+
+.mark-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
+  gap: 10px;
+}
+
+.mark-cell {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+}
+
+.mark-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  min-height: 66px;
+}
+
+/* The mark itself, at whatever size the row asks for: `.res-mark`'s mechanism
+   with the size handed in rather than inherited, because the whole question
+   this page asks is "does it survive 12px and does it hold at 64px". */
+.mark-swatch {
+  flex: none;
+  display: block;
+  width: var(--mark-size);
+  height: var(--mark-size);
+  background-color: currentColor;
+  -webkit-mask: var(--mark) center / contain no-repeat;
+  mask: var(--mark) center / contain no-repeat;
+}
+
+.mark-ink {
+  color: var(--ink);
+}
+
+/* The gilt reading. Half this set is printed in gold somewhere — a card's rim,
+   a shrine's needle, an age band — and a mark that reads in ink and dissolves
+   in gilt is a mark that has not been checked. */
+.mark-gilt {
+  color: var(--gilt);
+}
+
+.mark-id {
+  font-family: var(--face-num);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+
+.mark-note {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+/* --- heraldry ------------------------------------------------------------ */
+
+.tincture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 10px;
+}
+
+/* One seat: the tincture as the ground, the charge on a parchment canton over
+   it. The canton is what the board actually prints (`CHARGE_CELLS`) — twelve
+   tinctures run sky to ink and no single ink reads on all of them. */
+.tincture {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 10px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--seat-tincture);
+}
+
+.tincture-canton {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(29, 26, 32, 0.35);
+  border-radius: 3px;
+  background: var(--parchment);
+  color: var(--ink);
+}
+
+.tincture-label {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--parchment);
+  font-family: var(--face-num);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+
+/* The seat strip as the top bar draws it: ink ground, because that is the only
+   surface a chip is ever seen on. */
+.seat-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+}
+
+/* --- the flourish stalls ------------------------------------------------- */
+
+/* One flourish per stall, alone on the surface it wears. */
+.stall-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.stall .turn-splash {
+  display: inline-block;
+}
+
+.stall-title {
+  margin: 0 0 6px;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* The corner star's two knobs. The game's own numbers are the defaults, so an
+   untouched page is the shipping star; see `.hud-card::after` in style.css. */
+.stall-star .hud-card::after {
+  width: var(--star-size, 10px);
+  height: var(--star-size, 10px);
+  opacity: var(--star-opacity, 0.32);
+}
+
+/* The card back is a `position: absolute` cover, so its card needs a size to
+   cover. One card rather than a hand — the deal is the thing being inspected,
+   and three of them turning would be a screenshot of the Statecraft screen. */
+.stall-deal .offer-options {
+  max-width: 232px;
+}
+
+.stall-inscription {
+  display: grid;
+  gap: 10px;
+}
+
+.inscription-screen {
+  font-family: var(--face-display);
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.inscription-aera {
+  font-family: var(--face-display);
+  font-size: 1.4rem;
+}
+
+/* --- the frontispiece ---------------------------------------------------- */
+
+.frontispiece-stage {
+  width: min(430px, 100%);
+}
+
+/* --- the wheel ----------------------------------------------------------- */
+
+.wheel-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: 22px;
+  align-items: start;
+}
+
+.wheel-toggles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 3px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wheel-toggles label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+/* --- the three-dimensional stalls ---------------------------------------- */
+
+.city-canvas,
+.parts-canvas {
+  display: block;
+  width: 100%;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--table);
+}
+
+.city-canvas {
+  aspect-ratio: 3 / 0.85;
+}
+
+.parts-canvas {
+  aspect-ratio: 3 / 0.62;
+}
+
+/* The panel captions, laid on the same six-across rhythm the canvas draws in,
+   so a caption is under its own diorama at every width. */
+.city-captions,
+.parts-captions {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: center;
+}
+
+.city-captions {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.parts-captions {
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.city-captions li,
+.parts-captions li {
+  font-family: var(--face-num);
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.city-captions strong,
+.parts-captions strong {
+  display: block;
+  font-family: var(--face-name);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The shelf's names are *identifiers* — `cityGableRoof` — so they keep the mono
+   face the rest of the page sets code in rather than taking the naming serif a
+   caption would otherwise get. */
+.parts-captions strong {
+  font-family: var(--face-num);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+
+/* --- the chart swatch ---------------------------------------------------- */
+
+.chart-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.chart-swatch {
+  display: block;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+}
+
+/* --- the palette and the ramp -------------------------------------------- */
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  gap: 8px;
+}
+
+.palette-chip {
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.palette-ink {
+  height: 44px;
+  background: var(--chip-color);
+}
+
+.palette-name {
+  display: block;
+  padding: 3px 7px 0;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.palette-hex {
+  display: block;
+  padding: 0 7px 4px;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+.ramp {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+}
+
+.ramp .label {
+  display: block;
+  margin-bottom: 2px;
+  font-family: var(--face-num);
+  font-size: 0.66rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* The specimen's own five, at the specimen's own sizes (`docs/design-specimen.html`). */
+.r-display {
+  font-family: var(--face-display);
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.r-city {
+  font-family: var(--face-name);
+  font-weight: 600;
+  font-variation-settings: 'opsz' 90;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+.r-flavor {
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 1.2rem;
+}
+
+.r-ui {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.r-num {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 900px) {
+  #index {
+    position: static;
+    width: auto;
+    border-right: 0;
+    border-bottom: var(--border) solid var(--ink);
+  }
+
+  #sheet {
+    margin-left: 0;
+    padding: 20px 16px 80px;
+  }
+
+  .wheel-layout {
+    grid-template-columns: 1fr;
+  }
+}

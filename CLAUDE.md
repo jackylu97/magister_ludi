@@ -45,6 +45,12 @@ would change every seeded outcome. No further rename passes.
 - `data/*.json` — every balance number, cost, curve, color mapping. Code contains
   algorithms, never tuned constants. `docs/mapgen.md` is the designer's reference
   for `data/mapgen.json`: every pass end to end and every tunable with its default.
+- `flair.html` + `src/flairGallery/` — the art inspection page (beside `pieces.html`,
+  `mapgen.html`, `abacus.html`): every drawn mark family, the heraldic charges on each
+  tincture, each flourish in isolation with live sliders, the frontispiece, the pantheon
+  wheel, the six city tiers in Three.js, the chart marginalia, the palette and ramp. **A new
+  visual asset is added there in the same pass that ships it** — the page is where art is
+  iterated, not the game. All five root pages are named in `vite.config.ts`'s inputs.
 - `test/` — sim + pure-render-math tests, split into `sim/`, `mapgen/`, `render/`,
   `ui/`, `stress/` by concern. Never drop coverage; reworked tests replace.
 

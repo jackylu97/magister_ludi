@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Magister Ludi — The Flair Cabinet</title>
+
+    <!--
+      The interface's four voices (see index.html): Instrument Serif announces,
+      Fraunces names, Instrument Sans works, IBM Plex Mono counts. A look-dev
+      page judged in the wrong typeface is judged against the wrong product —
+      and this page is the one that judges the typefaces themselves.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
+  </head>
+  <body>
+    <!--
+      The whole page is built by script. Nothing here is markup a designer would
+      edit: every specimen on it is asked of the module that draws the real
+      thing, which is the only property that makes an inspection page worth
+      keeping (see src/flairGallery/main.ts).
+    -->
+    <nav id="index" aria-label="Sections"></nav>
+    <main id="sheet"></main>
+
+    <script type="module" src="/src/flairGallery/main.ts"></script>
+  </body>
+</html>

@@ -60,6 +60,7 @@ import { unitDef } from './sim/unitData';
 import { Renderer } from './render/renderer';
 import { loadSprites } from './render/sprites';
 import { createFlatTileArtist, createTileArtist } from './render/tileVisuals';
+import { heraldryFor, heraldryMarkDataUri } from './art/heraldryMarks';
 import { playerPieceColor } from './render3d/lookData';
 import { Renderer3D } from './render3d/renderer3d';
 import {
@@ -1230,6 +1231,22 @@ async function boot(initial: Game | null): Promise<void> {
       chip.classList.toggle('is-done', done);
       chip.style.setProperty('--seat-color', player.color);
       chip.textContent = done ? `${player.name} ✓` : player.name;
+      // The seat's charge, ahead of its name. Heraldry is how a seat stops
+      // being "the blue one" (art pass, W2), and the chip is the surface where
+      // that matters most: a dozen of them sit in one strip at 11px, where the
+      // twelve tinctures are the only thing telling them apart and four of them
+      // are a shade of the same green. The mark is masked in `currentColor`
+      // like every other drawn glyph in this interface, so it inherits the
+      // chip's parchment ink and flips with it when the seat is done — which is
+      // why the URI is asked for undecorated rather than in the seat's colour.
+      const charge = document.createElement('span');
+      charge.setAttribute('aria-hidden', 'true');
+      charge.className = 'seat-charge';
+      charge.style.setProperty(
+        '--seat-charge',
+        `url("${heraldryMarkDataUri(heraldryFor(player.id, player.charge))}")`,
+      );
+      chip.prepend(charge);
       chip.title = `dev: switch seat to ${player.name}`;
       // `setLocalPlayer` calls back into `updatePanel`, which rebuilds these
       // chips — including this one, mid-click. That is safe: the event has
