@@ -41,6 +41,10 @@
  *     now reads buildings and resources through one shape.
  *   · `upgrades` — the building half of the punctuated-renewal hook that
  *     `improvements.json` has had since M7. See `BuildingUpgrade`.
+ *   · `tileYields` — what the building pays on the *ground* its city works
+ *     rather than in the city's own totals, as lines the tile chain folds
+ *     (`buildingTileLines` in `buildingEffects.ts`). The granary's point of food
+ *     on water is the first. See `BuildingTileYield`.
  *   · `happiness` — contentment this building supplies, folded as one more line
  *     of `explainHappiness` (`meters.ts`) through `buildingEffects.ts`. There is
  *     no funeral-games case in the meter; a second one is a data row.
@@ -70,6 +74,9 @@ import buildingsJson from '../../data/buildings.json';
 // `unlockDataProblems` in `techUnlocks.ts` does it, from a module that already
 // sees both tables.
 import type { TechId } from './techData';
+// Type-only for `TechId`'s reason, one table over: `statecraftData.ts` imports
+// `BuildingId` from here.
+import type { TileCondition } from './statecraftData';
 
 /**
  * The kinds of thing a city can be building, and therefore the kinds a
@@ -176,6 +183,37 @@ export interface BuildingUpgrade {
   add: BuildingYield;
 }
 
+/**
+ * What a building pays on **the ground its city works**, rather than in the
+ * city's own totals — the granary's point of food on every water hex.
+ *
+ * `BuildingUpgrade`'s sibling and emphatically not the same thing, which is why
+ * it is a second field rather than a flag on that one. An upgrade is a number
+ * added to a *building's* line and is worth the same in every town; this is a
+ * number added to a *tile's* line and is worth whatever the town's ground turns
+ * out to be — a granary in a landlocked city gets nothing from it, and the
+ * player can see exactly why, because the line shows up in the hex's own
+ * breakdown (hard rule 5) rather than in a lump on the building.
+ *
+ * The condition is `TileCondition` (`statecraftData.ts`), shared with the cards
+ * and the luxuries, so "which hexes" is one predicate for all three; and the
+ * shape is generic in it rather than in "water", so a lighthouse that paid the
+ * coast or a mill that paid the hills is a data row.
+ *
+ * `requiresTech` is the tech gate and it belongs here rather than on the
+ * building's own `unlocks`, because it gates *this line* and not the building:
+ * the granary is an Earthenware building whose water line waits for Sailing, so
+ * it is Sailing's card that announces it (`techGifts`).
+ */
+export interface BuildingTileYield {
+  /** Which hexes this lands on. See `tileConditionHolds`. */
+  on: TileCondition;
+  /** The technology the city's owner must hold, or absent for "from the start". */
+  requiresTech?: TechId;
+  /** Added to the tile's yield, never replacing it. */
+  add: BuildingYield;
+}
+
 export interface BuildingDef {
   name: string;
   /** Hammers to complete. */
@@ -245,6 +283,8 @@ export interface BuildingDef {
   cityStat?: BuildingCityStat;
   /** Tech-driven renewals. See `BuildingUpgrade` and the module docblock. */
   upgrades?: BuildingUpgrade[];
+  /** What this pays on the *ground*. See `BuildingTileYield`. */
+  tileYields?: BuildingTileYield[];
 }
 
 export interface BuildingData {

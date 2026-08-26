@@ -45,6 +45,7 @@
 import statecraftJson from '../../data/statecraft.json';
 
 import type { BuildingId } from './buildingData';
+import type { ImprovementId } from './improvementData';
 import type { ModifierStage } from './modifiers';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
 import type { ModelClass, UnitCategory } from './unitData';
@@ -194,12 +195,26 @@ export interface UnitFilter {
   ranged?: boolean;
 }
 
-/** What a tile must be for a `tileYield` line to land on it. */
+/**
+ * What a tile must be for a line of yield to land on it.
+ *
+ * Declared here because Statecraft's `tileYield` was the first shape to need
+ * one, and shared from here because it was not the last: a building's
+ * `tileYields` (`buildingData.ts`) and a luxury's `improvementYields`
+ * (`resourceData.ts`) ask exactly the same question of exactly the same hex.
+ * One predicate, `tileConditionHolds` in `statecraft.ts`, answers for all three
+ * — a second copy of "is this water" is how a granary and a card start
+ * disagreeing about the same coastline.
+ */
 export type TileCondition =
   | { test: 'hasResource' }
   | { test: 'hills' }
   | { test: 'feature'; feature: string }
-  | { test: 'improved' };
+  | { test: 'improved' }
+  /** Any water hex — ocean, coast or lake. The granary's line (Entry XXVII). */
+  | { test: 'water' }
+  /** One *named* improvement, where `improved` is any of them at all. */
+  | { test: 'improvement'; improvement: ImprovementId };
 
 // --- payouts ----------------------------------------------------------------
 

@@ -60,10 +60,11 @@
  *     reads as a chain — bronze working, iron working, steel march rightward
  *     because each one is strictly deeper than the last, and an edge can never
  *     point backwards.
- *   - `row` is hand-authored in `data/techs.json`, one lane per theme — six of
- *     them since the Age I rework: the mounted line (0), the missile line (1),
- *     the metal line (2), stone and coin (3), word and number (4), faith and
- *     the schools (5) — tuned by eye so related nodes stay on one line and
+ *   - `row` is hand-authored in `data/techs.json`, one lane per theme — seven of
+ *     them: the mounted line (0), the missile line (1), the metal line (2),
+ *     stone and coin (3), word and number (4), faith and the schools (5), and
+ *     the sea (6, Entry XXVII, holding Sailing alone so far) — tuned by eye so
+ *     related nodes stay on one line and
  *     prerequisite edges cross as little as possible. There is no automatic
  *     row-assignment algorithm: a sugiyama-style solver would re-shuffle the
  *     lanes every time a tech was added, and a tree whose shape a player has
@@ -82,6 +83,7 @@ export type TechId =
   | 'agriculture'
   | 'husbandry'
   | 'fletching'
+  | 'sailing'
   | 'mining'
   | 'earthenware'
   | 'bronzeWorking'
@@ -116,7 +118,26 @@ export type TechAge = 1 | 2 | 3;
  */
 export const TECH_AGES: readonly TechAge[] = [1, 2, 3];
 
-/** What a technology hands over. Both lists are optional; at least one is not. */
+/**
+ * A *verb* a technology hands an empire, as opposed to a thing it may make.
+ *
+ * The union is the register: an ability is a rule somewhere in the simulation
+ * asking `hasAbility`, so a row here with no reader is a promise the game never
+ * keeps, and a reader with no row is a rule no node hands over. There is exactly
+ * one today — see `ABILITY_TECH`, which is what `pathfind.ts` asks.
+ */
+export type AbilityId = 'embark';
+
+/** What an ability is *called*, for the surfaces that print it. Flavour only. */
+export interface AbilityDef {
+  name: string;
+  /** The mark the star chart centres it on, like a tech's own `glyph`. */
+  glyph: string;
+  /** One line of what it lets an empire do. */
+  summary: string;
+}
+
+/** What a technology hands over. Every list is optional; at least one is not. */
 export interface TechUnlocks {
   units?: UnitTypeId[];
   buildings?: BuildingId[];
@@ -126,6 +147,15 @@ export interface TechUnlocks {
    * is and the inversion below needed one more call rather than a new idea.
    */
   projects?: ProjectId[];
+  /**
+   * Verbs (`AbilityId`). The fourth key, and the only one whose gift is not a
+   * row in some other table: embarkation is a *rule*, so what the tree can name
+   * is the rule's id and what says it out loud is `data/techs.json`'s own
+   * `abilities` block. Inverted into `ABILITY_TECH` below, exactly as the three
+   * above are, so "may this empire embark" is one lookup rather than a tech id
+   * spelled into `pathfind.ts`.
+   */
+  abilities?: AbilityId[];
 }
 
 export interface TechDef {
@@ -154,6 +184,13 @@ export interface TechDef {
 
 export interface TechData {
   techs: Record<TechId, TechDef>;
+  /**
+   * What each verb is called. A sibling block rather than a row inside `techs`
+   * for `improvements.json`'s `chop` reason: an ability is not the same *shape*
+   * as a technology — it has no cost, no prereqs and no place on the chart — and
+   * filing it as one would have meant four fields nobody could fill in.
+   */
+  abilities: Record<AbilityId, AbilityDef>;
 }
 
 export const TECH_DATA: TechData = techsJson as TechData;
@@ -207,6 +244,42 @@ export const BUILDING_UNLOCK_TECH: ReadonlyMap<BuildingId, TechId> = invert(
 export const PROJECT_UNLOCK_TECH: ReadonlyMap<ProjectId, TechId> = invert(
   (unlocks) => unlocks.projects,
 );
+
+/**
+ * Which tech hands over each verb. **The** register for "may this empire do
+ * that", and the reason no rule in the simulation names a technology by hand:
+ * `hasAbility` (`tech.ts`) is one lookup here plus one `hasTech`, so moving
+ * embarkation to a different node is one line of `data/techs.json`.
+ *
+ * Every `AbilityId` has a row — an ability no node hands over is a rule that can
+ * never fire — and `techDataProblems` says so rather than leaving it as silence.
+ */
+export const ABILITY_TECH: ReadonlyMap<AbilityId, TechId> = invert(
+  (unlocks) => unlocks.abilities,
+);
+
+/** Every ability id, in the order the table lists them. Iteration order. */
+export const ABILITY_IDS = Object.keys(TECH_DATA.abilities) as AbilityId[];
+
+export function abilityDef(id: AbilityId): AbilityDef {
+  return TECH_DATA.abilities[id];
+}
+
+/**
+ * Does an empire holding these technologies have this verb?
+ *
+ * **The** rule, and it takes the tech *list* rather than a `GameState` for
+ * exactly `resourceIsVisibleTo`'s reason: the only question is "is the gate in
+ * hand", and a signature that needed the whole world would drag this table into
+ * a cycle with the modules that read it — `pathfind.ts` is downstream of
+ * `cities.ts`, which is downstream of `tech.ts`, so the movement evaluator
+ * cannot ask a research module anything. `hasAbility` (`tech.ts`) is the
+ * state-flavoured wrapper for everyone who is not in that bind.
+ */
+export function techsGrant(techs: readonly TechId[], ability: AbilityId): boolean {
+  const gate = ABILITY_TECH.get(ability);
+  return gate !== undefined && techs.includes(gate);
+}
 
 // --- the chart's geometry ---------------------------------------------------
 
@@ -413,6 +486,27 @@ export function techDataProblems(): string[] {
           `project "${project}" is unlocked by both "${PROJECT_UNLOCK_TECH.get(project)}" and "${id}"`,
         );
       }
+    }
+    for (const ability of def.unlocks.abilities ?? []) {
+      if (!Object.prototype.hasOwnProperty.call(TECH_DATA.abilities, ability)) {
+        problems.push(`tech "${id}" unlocks ability "${ability}", which the table does not name`);
+      } else if (ABILITY_TECH.get(ability) !== id) {
+        problems.push(
+          `ability "${ability}" is unlocked by both "${ABILITY_TECH.get(ability)}" and "${id}"`,
+        );
+      }
+    }
+  }
+
+  // An ability nothing hands over is a rule that can never fire, which is
+  // exactly the quiet-nothing the rest of this function refuses.
+  for (const ability of ABILITY_IDS) {
+    if (!ABILITY_TECH.has(ability)) {
+      problems.push(`ability "${ability}" is handed over by no technology`);
+    }
+    const def = abilityDef(ability);
+    if (typeof def.glyph !== 'string' || def.glyph.length === 0) {
+      problems.push(`ability "${ability}" has no glyph`);
     }
   }
 

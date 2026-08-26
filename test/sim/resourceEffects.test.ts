@@ -153,9 +153,9 @@ function growTerritory(state: GameState, city: City): void {
  *
  * The improvement is whatever `improvements.json` says opens that resource, so
  * this helper is as data-driven as the thing it is testing — a luxury moved from
- * the plantation to the quarry needs no edit here. A sea luxury has no
- * improvement at all and cannot be planted: that is the point of it, and
- * `plantable` is how a test asks.
+ * the plantation to the quarry needs no edit here, and since Entry XXVII a sea
+ * luxury plants exactly like a land one: the improvement it names is the fishing
+ * boats. `plantable` is how a test asks, and it is now true of every row.
  */
 function plant(state: GameState, city: City, col: number, row: number, id: ResourceId): Tile {
   const tile = at(state.map, col, row);
@@ -166,7 +166,7 @@ function plant(state: GameState, city: City, col: number, row: number, id: Resou
   return tile;
 }
 
-/** True when some improvement opens this resource — false for everything wet. */
+/** True when some improvement opens this resource. True of every row since the boats. */
 function plantable(id: ResourceId): boolean {
   return improvementForResource(id) !== null;
 }
@@ -425,23 +425,18 @@ describe('perCityYields: the wide shape', () => {
     const harbour = foundCityAt(state, 0, at(state.map, 1, 5));
     growTerritory(state, harbour);
 
-    // A coastal signature is inert until work boats exist — no improvement opens
-    // a sea luxury — so the scope is asserted through the evaluator directly,
-    // with the empire *holding* the kind. That is the honest shape of the test:
-    // the rule under test is the scope, not the improvement.
-    const held = new Set<ResourceId>([id]);
-    const linesFor = (city: City): number => {
-      // `cityResourceYields` reads `controlledResources`, so a kind nobody can
-      // improve yet cannot be forced through it. What can be asserted without
-      // inventing a work boat is that the scope predicate is the *only* thing
-      // separating the two towns — which `resourcePercentYields` shows below on
-      // a shape that shares the same `scopeAdmits`.
-      return cityResourceYields(state, city).filter((line) => held.has(line.resource)).length;
-    };
-    expect(linesFor(harbour)).toBe(0);
+    // Entry XXVII: a sea luxury is a *held* luxury now, so the scope is asserted
+    // the way every other one is — the seam improved on the empire's own coast,
+    // and the two towns' lines compared. This test used to go through the
+    // evaluator's internals because nothing could open a sea seam at all.
+    standIn(state, 0, 3);
+    plant(state, harbour, 0, 6, id);
+    const linesFor = (city: City): number =>
+      cityResourceYields(state, city).filter((line) => line.resource === id).length;
+    expect(linesFor(harbour)).toBeGreaterThan(0);
     expect(linesFor(inland)).toBe(0);
     expect(effect.scope).toBe('coastal');
-    expect(plantable(id)).toBe(false);
+    expect(plantable(id)).toBe(true);
   });
 });
 
@@ -1117,17 +1112,24 @@ describe('a city standing on the seam', () => {
     expect(hasResource(state, 1, 'gems')).toBe(true);
   });
 
-  it('gives nothing for a resource no improvement opens', () => {
-    // The sea luxuries and the fish: a city cannot be founded on water anyway,
-    // and even standing on one would open nothing, because "the technology the
-    // improvement needs" has no improvement to ask.
+  it('opens a sea seam under a town only once its owner can sail', () => {
+    // The settled path read for the newest improvement. It used to be the
+    // opposite assertion — a sea resource had no improvement, so a town standing
+    // on one drew nothing by either path — and Entry XXVII is what changed it.
+    // A city cannot in fact be founded on water (`foundingErrorAt` refuses), so
+    // the rule is stated where it can be: the fishing boats' technology gates a
+    // town's claim on the seam under it exactly as the mine's gates a capital
+    // founded on gems.
     const state = flatState();
-    standIn(state, 0, 3);
     const site = at(state.map, 6, 5);
     site.resource = 'pearls';
     foundCityAt(state, 0, site);
-    expect(improvementForResource('pearls')).toBeNull();
+    expect(improvementForResource('pearls')).toBe('fishingBoats');
+    const player = state.players[0]!;
+    player.techsResearched = player.techsResearched.filter((id) => id !== 'sailing');
     expect(hasResource(state, 0, 'pearls')).toBe(false);
+    standIn(state, 0, 1);
+    expect(hasResource(state, 0, 'pearls')).toBe(true);
   });
 });
 

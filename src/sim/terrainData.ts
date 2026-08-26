@@ -169,6 +169,18 @@ export interface TerrainDef {
    * flag feeds via `computeFreshwater` in `water.ts`.
    */
   freshwater: boolean;
+  /**
+   * True for water an **embarked** mover may cross. Coast, and nothing else in
+   * v1 (design ledger, Entry XXVII).
+   *
+   * A flag rather than "water and not ocean" written into the evaluator, for the
+   * reason `freshwater` is one: which water a boat may be dragged across is a
+   * fact about the *terrain row*, and the day the deep ocean opens to a galley
+   * the change is this field on one row rather than a clause in `tileMoveCost`.
+   * It is read strictly *after* `moveCost`, so it can only ever widen what is
+   * passable and never narrow it — nothing here makes dry ground unwalkable.
+   */
+  embarkable: boolean;
   /** False when no citizen may ever work the tile (mountains). See the docblock. */
   workable: boolean;
   /** Movement points to enter; `null` means impassable. See the docblock. */
@@ -269,6 +281,20 @@ export function featureDef(id: FeatureId): FeatureDef {
 /** True when the terrain is a water tile (ocean, coast or lake). */
 export function isWaterTerrain(id: TerrainId): boolean {
   return TERRAIN_DATA.terrains[id].water;
+}
+
+/**
+ * True when an embarked mover may cross this water — coast, today, and nothing
+ * else.
+ *
+ * `isWaterTerrain`'s narrower sibling, and the two are not interchangeable: the
+ * broad one says "nothing walks here" and is what the board, the yield chain and
+ * `hasFreshWater` mean by water; this one says "a civilian with Sailing may
+ * *swim* here", which is a subset and is the only thing `tileMoveCost` asks. See
+ * `TerrainDef.embarkable`.
+ */
+export function isEmbarkableTerrain(id: TerrainId): boolean {
+  return TERRAIN_DATA.terrains[id].embarkable;
 }
 
 /**

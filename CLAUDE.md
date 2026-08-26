@@ -251,7 +251,10 @@ would change every seeded outcome. No further rename passes.
   source, because it is the one property a seventh hand-rolled refresh would break while
   every behavioural test still passed.
 - **A step's price is asked of `stepCost`, and it takes `from` as well as `to`** (Entry XXV,
-  `pathfind.ts`). `tileMoveCost` is now only the *ground's* half — the hex and the mover's
+  `pathfind.ts`), and the mover it is asked about is a **`MoveProfile`** (`{ def, embarks }`,
+  hoisted once per sweep by `moveProfile` — embarkation is a fact about the mover's *empire*,
+  Entry XXVII: a civilian whose owner holds Sailing may enter `embarkable` terrain, today
+  coast alone, at `rules.movement.embarkCost`). `tileMoveCost` is now only the *ground's* half — the hex and the mover's
   `ignoresTerrainCost` — and the zone of control is the half a lone tile cannot answer: a step
   from a hex an enemy combat unit (or enemy city) touches to another hex **that same piece**
   touches completes and then empties the purse. There are **four** readers and they must never

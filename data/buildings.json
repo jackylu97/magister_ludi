@@ -27,6 +27,17 @@
             "food": 1
           }
         }
+      ],
+      "tileYields": [
+        {
+          "on": {
+            "test": "water"
+          },
+          "requiresTech": "sailing",
+          "add": {
+            "food": 1
+          }
+        }
       ]
     },
     "shrine": {

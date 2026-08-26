@@ -78,12 +78,14 @@ import {
   type ResourceRule,
   type ResourceYieldBag,
   RESOURCE_EFFECT_YIELDS,
+  RESOURCE_IDS,
   ageLabel,
   effectIsLive,
   resourceDef,
   resourceEffects,
 } from './resourceData';
-import { cardAmplifier } from './statecraft';
+import { type ImprovementId, improvementDef } from './improvementData';
+import { type TileLine, cardAmplifier } from './statecraft';
 import { type City, type GameState, playerById } from './state';
 import { type TechAge, highestAge } from './techData';
 
@@ -359,6 +361,82 @@ export function empireResourceYields(state: GameState, playerId: number): Resour
   for (const { id, effect } of liveEffects(state, playerId)) {
     if (effect.kind !== 'empireYields') continue;
     list.push(lineOf(id, effect, 'empire', copiesFor(state, playerId, id, effect)));
+  }
+  return list;
+}
+
+/**
+ * Every improvement some luxury pays on, resolved once at load.
+ *
+ * A `Set` and not a list because the only question asked of it is membership,
+ * and it is asked once per tile in `boardHasAny`. Iteration order never reaches
+ * an outcome — the *lines* are walked in `liveEffects`' table order, which is
+ * the order that has to be stable.
+ */
+const IMPROVEMENTS_PAID_ON: ReadonlySet<ImprovementId> = new Set(
+  RESOURCE_IDS.flatMap((id) =>
+    resourceEffects(id)
+      .filter((effect) => effect.kind === 'improvementYields')
+      .map((effect) => effect.improvement),
+  ),
+);
+
+/** Does any hex on the board carry one of these improvements? */
+function boardHasAny(state: GameState, wanted: ReadonlySet<ImprovementId>): boolean {
+  if (wanted.size === 0) return false;
+  for (const tile of state.map.tiles) {
+    const built = tile.improvement;
+    if (built !== undefined && wanted.has(built)) return true;
+  }
+  return false;
+}
+
+/**
+ * Every line this empire's luxuries put on **the ground**, as the tile chain
+ * needs to read them (`TileLine`, `statecraft.ts`).
+ *
+ * The `improvementYields` shape resolved: tyrian's "fishing boats give +1
+ * culture", whales' Æra III "fishing boats gain +1 production". A *line on a
+ * hex* rather than a lump in a city, so it lands as an ordinary contribution in
+ * `explainTileYield` (hard rule 5) and the hover card, the citizen's score, the
+ * city panel and the banked total all learn it from one place.
+ *
+ * Empire-scoped, like every other signature: the seam is held once and every
+ * boat the empire owns is better for it — including boats in a town nowhere
+ * near the murex, which is the point of a *trade* good.
+ *
+ * Resolved once per context (`yieldContextFor` in `cities.ts`) rather than once
+ * per tile, exactly as `cardTileLines` is, so a city sweeping twenty hexes asks
+ * the resource table once.
+ */
+export function resourceTileLines(state: GameState, playerId: number): TileLine[] {
+  const list: TileLine[] = [];
+  // The cheapest possible reject, and it is the **board's** rather than the
+  // empire's: no hex carries one of the improvements these effects name, so no
+  // such line can land on anything, for anybody. One pass of property compares
+  // with no allocation and no lookup, against `liveEffects`' walk of every owned
+  // tile through `openedResource` — and a context is built once per city per
+  // refresh, so this is the difference between a fifth of a turn resolution and
+  // nothing at all on the boards where the sea is empty.
+  if (!boardHasAny(state, IMPROVEMENTS_PAID_ON)) return list;
+  for (const { id, effect } of liveEffects(state, playerId)) {
+    if (effect.kind !== 'improvementYields') continue;
+    const copies = copiesFor(state, playerId, id, effect);
+    // Through `lineOf` so a `perCopy` improvement line scales and labels itself
+    // exactly as every other bag on the table does — there is one reading of a
+    // yield bag in this module and this is not a second one.
+    const paid = lineOf(id, effect, improvementDef(effect.improvement).name.toLowerCase(), copies);
+    const resolved: TileLine = {
+      source: paid.source,
+      on: { test: 'improvement', improvement: effect.improvement },
+      food: paid.food,
+      production: paid.production,
+      gold: paid.gold,
+      science: paid.science,
+      culture: paid.culture,
+      faith: paid.faith,
+    };
+    if (foldOne(paid) !== 0) list.push(resolved);
   }
   return list;
 }
@@ -659,9 +737,14 @@ function describeOne(effect: ResourceEffect): string | null {
   const where =
     effect.kind === 'empireYields'
       ? 'to the empire'
-      : effect.kind === 'perPopulationYields'
-        ? `per citizen in ${scopeWords(effect.scope)}`
-        : `in ${scopeWords(effect.scope)}`;
+      : effect.kind === 'improvementYields'
+        ? // The one bag that lands on ground rather than in a town, so it names
+          // the ground: "…on every fishing boats" reads wrong, "on every fishing
+          // boats tile" reads as the hex it actually pays.
+          `on every ${improvementDef(effect.improvement).name.toLowerCase()} tile`
+        : effect.kind === 'perPopulationYields'
+          ? `per citizen in ${scopeWords(effect.scope)}`
+          : `in ${scopeWords(effect.scope)}`;
   const parts: string[] = [];
   for (const key of RESOURCE_EFFECT_YIELDS) {
     const value = effect[key];

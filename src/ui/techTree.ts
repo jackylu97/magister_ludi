@@ -129,6 +129,7 @@ const GIFT_MARK: Record<TechGift['kind'], string> = {
   reveal: 'is-reveal',
   renewal: 'is-renewal',
   buildingRenewal: 'is-renewal',
+  buildingTileYield: 'is-renewal',
 };
 
 /** The sentence each kind of gift is introduced by, in the card's list. */
@@ -143,6 +144,10 @@ const GIFT_HEADING: Record<TechGift['kind'], string> = {
   reveal: 'Reveals on the map',
   renewal: 'Improvements renewed',
   buildingRenewal: 'Buildings renewed',
+  // Deliberately not folded in with the line above: a renewed building pays its
+  // city more, and this one pays its city's *ground* more. The heading is what
+  // tells a player to go and look at the map rather than at the panel.
+  buildingTileYield: 'Buildings pay new ground',
 };
 
 export interface TechTree {
@@ -330,7 +335,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * and the card would otherwise read as though the forest paid every turn.
    */
   function abilityNote(gift: TechGift & { kind: 'ability' }): string {
-    return `${tileYieldNote(gift.pays)} once`;
+    // A verb that banks nothing says nothing about banking: Sailing's embark
+    // gift has no `pays`, and the card's own name ("Embark") is the sentence.
+    return gift.pays ? `${tileYieldNote(gift.pays)} once` : '';
   }
 
   /**

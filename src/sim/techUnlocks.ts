@@ -43,8 +43,16 @@ import {
 } from './improvementData';
 import { type ProjectId, projectDef } from './projectData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from './resourceData';
+import type { TileCondition } from './statecraftData';
 import { type FeatureId, type TileYield, featureDef, readTileYield } from './terrainData';
-import { TECH_IDS, type TechId, isTechId, techDef } from './techData';
+import {
+  type AbilityId,
+  TECH_IDS,
+  type TechId,
+  abilityDef,
+  isTechId,
+  techDef,
+} from './techData';
 import { type UnitTypeId, unitDef } from './unitData';
 
 /**
@@ -56,11 +64,14 @@ import { type UnitTypeId, unitDef } from './unitData';
  *     odd cost.
  *   · `improvement` — a new row on a *worker's* sheet. The same kind of gift as
  *     a building one grade smaller: something a player may now choose to make.
- *   · `ability` — a *verb* a worker gains rather than a thing it may make. Today
- *     that is exactly the feature clearings in the `chop` table (Mining hands
- *     over the axe), and the list is built by walking that table rather than by
- *     naming Mining anywhere: the day the jungle gets a row it appears on
- *     whatever node it names, with nobody remembering to come back here.
+ *   · `ability` — a *verb* an empire gains rather than a thing it may make. Two
+ *     tables feed it and neither is named here: the feature clearings in the
+ *     `chop` table (Mining hands over the axe), and the `abilities` block in
+ *     `techs.json` itself (Sailing hands over embarkation). Both are walked, so
+ *     the day the jungle gets a chop row or a node hands over a second verb it
+ *     appears on whatever tech it names, with nobody remembering to come back
+ *     here. A clearing carries what it `pays`; a named verb does not, which is
+ *     the whole of the difference between them.
  *   · `reveal` — a resource this player may now be *told* about. The ore was
  *     always there and always paid its yield; the technology buys the label
  *     (`isResourceVisible`), so this is a gift to the map and not to the city.
@@ -71,6 +82,11 @@ import { type UnitTypeId, unitDef } from './unitData';
  *     kind rather than folded in with a `target` field so that a caller which
  *     has checked `kind` still gets the id typed for the table it is about to
  *     reach for.
+ *   · `buildingTileYield` — a building a player may already have quietly starts
+ *     paying on *ground of a certain kind*: the granary's food on water, which
+ *     waits for Sailing. `buildingRenewal`'s sibling and a separate kind for its
+ *     reason — the two carry different payloads, because one lands in a city's
+ *     totals and the other on a hex.
  */
 export type TechGiftKind =
   | 'unit'
@@ -102,10 +118,19 @@ export type TechGift =
   | (TechGiftBase & { kind: 'improvement'; id: ImprovementId })
   | (TechGiftBase & {
       kind: 'ability';
-      /** The feature this ability clears. See the `chop` table. */
-      id: FeatureId;
-      /** What one clearing banks, once, in the city that owns the ground. */
-      pays: TileYield;
+      /**
+       * The feature this ability clears, or the verb's own id. Two tables, one
+       * kind: a clearing is "a thing a worker may now do" and so is embarking,
+       * and a card that told them apart would be a card with two layouts for one
+       * sentence.
+       */
+      id: FeatureId | AbilityId;
+      /**
+       * What one clearing banks, once, in the city that owns the ground —
+       * **absent** for a verb that is not a clearing. Presence is the state, the
+       * way it is everywhere else in this codebase.
+       */
+      pays?: TileYield;
     })
   | (TechGiftBase & { kind: 'reveal'; id: ResourceId })
   | (TechGiftBase & {
@@ -121,6 +146,14 @@ export type TechGift =
       id: BuildingId;
       /** What the renewal adds to every city holding the building. */
       add: BuildingYield;
+    })
+  | (TechGiftBase & {
+      kind: 'buildingTileYield';
+      id: BuildingId;
+      /** What the building starts paying on every hex that satisfies `on`. */
+      add: BuildingYield;
+      /** Which hexes. See `tileConditionHolds`. */
+      on: TileCondition;
     });
 
 /**
@@ -179,6 +212,18 @@ export function techGifts(id: TechId): TechGift[] {
       pays: chopYield(feature),
     });
   }
+  for (const ability of techDef(id).unlocks.abilities ?? []) {
+    // The `chop` table's siblings, and they sort together on purpose: a worker
+    // that may now clear a wood and an empire that may now put a worker on the
+    // water are the same *kind* of news. No `pays` — a verb that banks nothing
+    // says nothing about banking.
+    gifts.push({
+      kind: 'ability',
+      id: ability,
+      name: abilityDef(ability).name,
+      glyph: abilityDef(ability).glyph,
+    });
+  }
   for (const resource of RESOURCE_IDS) {
     if (resourceDef(resource).requiresTech !== id) continue;
     gifts.push({
@@ -213,6 +258,20 @@ export function techGifts(id: TechId): TechGift[] {
         name: buildingDef(building).name,
         glyph: '▣',
         add: { ...upgrade.add },
+      });
+    }
+  }
+  for (const building of BUILDING_IDS) {
+    for (const line of buildingDef(building).tileYields ?? []) {
+      if (line.requiresTech !== id) continue;
+      gifts.push({
+        kind: 'buildingTileYield',
+        id: building,
+        name: buildingDef(building).name,
+        glyph: '▣',
+        // Copied rather than handed over, like every other renewal's `add`.
+        add: { ...line.add },
+        on: line.on,
       });
     }
   }

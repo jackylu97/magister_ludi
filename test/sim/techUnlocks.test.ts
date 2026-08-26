@@ -139,7 +139,7 @@ describe('techGifts', () => {
       expect(mine!.name).toBe(`Clear ${featureDef(feature).name}`);
       // What it pays is the table's number, so the tech card and the worker
       // sheet cannot quote different timber.
-      expect(mine!.pays.production).toBe(chopYield(feature).production);
+      expect(mine!.pays!.production).toBe(chopYield(feature).production);
     }
     // And the forest is on Mining, which is the ratified gate.
     const mining = techGifts('mining').filter((gift) => gift.kind === 'ability');
@@ -152,7 +152,7 @@ describe('techGifts', () => {
     // game from an information surface.
     const before = chopYield('forest').production;
     const gift = techGifts('mining').find((entry) => entry.kind === 'ability')!;
-    gift.pays.production += 99;
+    gift.pays!.production += 99;
     expect(chopYield('forest').production).toBe(before);
   });
 

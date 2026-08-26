@@ -23,8 +23,11 @@ engines are Age 5's late content.)
 - Husbandry — horseman · pasture · reveals horses
 - Fletching — archer · camp
 - Mining — mine
-- Earthenware — granary (+3🌾)
+- Earthenware — granary (+3🌾) · **water tiles +1🌾 in a granary town, from Sailing**
 - Divination — shrine (+1🔬 +1🎵)
+- **Sailing** *(shipped 2026-08-26, Entry XXVII)* — **embark** (civilians cross coastal
+  water) · **fishing boats** · the granary's water line. The sea lane (row 6) opens with
+  it, and it is the age's third 8🔬 node off Agriculture.
 
 **Suggested additions (grounded bonuses/unlocks):**
 - **Wayfinding** — scouts +1 sight, settlers +1 movement. The expansion tech; flavor: the
@@ -45,8 +48,9 @@ engines are Age 5's late content.)
 - *(optional)* **Weaving** — city center +1🪙; plants the loom thread that ends at the
   Jacquard/Calculating Engine in Age 5.
 
-Age total ~9–10 nodes. Pacing goals covered: improvements (existing six), religion
-(Divination + Ancestor Rites), growth (Earthenware), expansion (Wayfinding), military
+Age total ~9–10 nodes. Pacing goals covered: improvements (existing **seven**, the
+fishing boats included), religion (Divination + Ancestor Rites), growth (Earthenware),
+expansion (Wayfinding **and Sailing** — a coastal start is no longer a wall), military
 (Husbandry/Fletching units + The Palisade).
 
 ## Age 2 — The Age of Heroes

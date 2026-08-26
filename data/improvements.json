@@ -156,6 +156,37 @@
       ],
       "clearsClutter": false
     },
+    "fishingBoats": {
+      "name": "Fishing Boat",
+      "emoji": "🛥️",
+      "chargeCost": 1,
+      "requiresTech": "sailing",
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "coast"
+      ],
+      "requiresResource": [
+        "fish",
+        "crabs",
+        "pearls",
+        "coral",
+        "whales",
+        "tyrian"
+      ],
+      "improvesResource": [
+        "fish",
+        "crabs",
+        "pearls",
+        "coral",
+        "whales",
+        "tyrian"
+      ],
+      "clearsClutter": false
+    },
     "plantation": {
       "name": "Plantation",
       "emoji": "\ud83c\udf3f",

@@ -60,6 +60,7 @@ import {
   resourceCopies,
   tileOwnerPlayerId,
 } from './cities';
+import { improvementDef } from './improvementData';
 import { type Tile, getTileAt, neighborTiles, tileHex, wrappedDistance } from './map';
 import { authorityOf, happinessOf } from './meters';
 import type { ModifierStage } from './modifiers';
@@ -109,6 +110,7 @@ import {
   slotCount,
   slotLayout,
 } from './statecraftData';
+import { isWaterTerrain } from './terrainData';
 import { type ModelClass, type UnitTypeId, isCombatant, unitDef } from './unitData';
 import { isVisibleTo } from './visibility';
 
@@ -965,16 +967,23 @@ export function foldCardYields(list: readonly CardYieldLine[]): Record<CityYield
 // --- tile yields ------------------------------------------------------------
 
 /**
- * A card's line on a **hex**, as `explainTileYield` needs to read it.
+ * One source's line on a **hex**, as `explainTileYield` needs to read it.
  *
- * The one shape that crosses into the tile chain, and it is carried on
+ * THE shape that crosses into the tile chain, and it is carried on
  * `TileYieldContext` rather than looked up there for that chain's stated reason:
  * `explainTileYield` knows about a tile and a context and nothing else — no
  * `GameState`, no player, no card table. So the context carries the *answer*
  * ("this empire pays +1 food on a hex with a resource on it") and the tile chain
  * only has to ask whether the hex qualifies.
+ *
+ * Three producers now write one of these and they are deliberately the same
+ * shape (Entry XXVII): a card's `tileYield` (`cardTileLines`, below), a
+ * building's `tileYields` (`buildingTileLines`, `buildingEffects.ts`) and a
+ * luxury's `improvementYields` (`resourceTileLines`, `resourceEffects.ts`). The
+ * tile chain folds one list and has no idea which of the three a line came from,
+ * which is exactly what makes a fourth producer a data row.
  */
-export interface CardTileLine {
+export interface TileLine {
   source: string;
   on: TileCondition;
   food: number;
@@ -984,6 +993,9 @@ export interface CardTileLine {
   culture: number;
   faith: number;
 }
+
+/** The name this shape had when Statecraft was its only producer. */
+export type CardTileLine = TileLine;
 
 /** Does this hex satisfy a tile condition? One evaluator, like every other. */
 export function tileConditionHolds(tile: Tile, on: TileCondition): boolean {
@@ -997,6 +1009,10 @@ export function tileConditionHolds(tile: Tile, on: TileCondition): boolean {
       return tile.feature === on.feature;
     case 'improved':
       return tile.improvement !== undefined;
+    case 'water':
+      return isWaterTerrain(tile.terrain);
+    case 'improvement':
+      return tile.improvement === on.improvement;
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -1988,6 +2004,8 @@ function tileConditionWords(on: TileCondition): string {
   if (on.test === 'hasResource') return 'tile carrying a resource';
   if (on.test === 'hills') return 'hill tile';
   if (on.test === 'improved') return 'improved tile';
+  if (on.test === 'water') return 'water tile';
+  if (on.test === 'improvement') return `${improvementDef(on.improvement).name.toLowerCase()} tile`;
   return `${on.feature} tile`;
 }
 

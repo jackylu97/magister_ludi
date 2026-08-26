@@ -63,7 +63,7 @@ function cost(
 ): number {
   let total = 0;
   for (const step of path) {
-    total += tileMoveCost(at(state.map, step.col, step.row), unitDef(type))!;
+    total += tileMoveCost(at(state.map, step.col, step.row), { def: unitDef(type), embarks: false })!;
   }
   return total;
 }

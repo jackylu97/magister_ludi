@@ -94,6 +94,11 @@
 import resourcesJson from '../../data/resources.json';
 
 import type { ProductionCategory } from './buildingData';
+// Type-only, and it must stay that way: `improvementData.ts` imports
+// `RESOURCE_IDS` from here as a *value* and validates at load, so a value import
+// back would close a cycle around two tables that both build indexes on
+// evaluation. See the note in `validateEffect`.
+import type { ImprovementId } from './improvementData';
 import {
   FEATURE_IDS,
   type FeatureId,
@@ -229,6 +234,17 @@ type Signature<T> = T & ResourceEffectModifiers;
  *                       costs, how much food a city keeps when it grows.
  *   · `happinessTierBoost`  raises the *positive* happiness tiers by so many
  *                       percentage points. Amber, and nothing else.
+ *   · `improvementYields`  flat yields on **every hex of this empire carrying a
+ *                       named improvement** — the ratified "fishing boats give
+ *                       +1 culture" (tyrian) and "fishing boats gain +1
+ *                       production" (whales, Æra III). The one shape that pays
+ *                       into the *tile* chain rather than into a city's totals,
+ *                       so it lands as an ordinary contribution line in
+ *                       `explainTileYield` (hard rule 5) and the hover card, the
+ *                       citizen's score and the banked total all learn it from
+ *                       one place. It is scoped to the *empire* like every other
+ *                       signature: the seam is held once, and every boat the
+ *                       empire owns is better for it.
  *
  * Uniqueness is not part of the shape because it is part of the *reading*: an
  * empire effect counts once per kind however many seams feed it, and an
@@ -256,7 +272,8 @@ export type ResourceEffect =
       scope?: ResourceCityScope;
     }>
   | Signature<{ kind: 'rulePercent'; rule: ResourceRule; percent: number }>
-  | Signature<{ kind: 'happinessTierBoost'; points: number }>;
+  | Signature<{ kind: 'happinessTierBoost'; points: number }>
+  | Signature<{ kind: 'improvementYields'; improvement: ImprovementId } & ResourceYieldBag>;
 
 /** Every effect shape's tag, for the loader's validation and for tests. */
 export const RESOURCE_EFFECT_KINDS: readonly ResourceEffect['kind'][] = [
@@ -269,6 +286,7 @@ export const RESOURCE_EFFECT_KINDS: readonly ResourceEffect['kind'][] = [
   'percentYields',
   'rulePercent',
   'happinessTierBoost',
+  'improvementYields',
 ];
 
 /** Every rule a `rulePercent` may name. Validation, and the evaluator's switch. */
@@ -537,6 +555,14 @@ function validateEffect(where: string, effect: ResourceEffect): void {
     }
     return;
   }
+  // `improvementYields` falls through to the yield-bag checks below like every
+  // other bag shape. That the improvement it names is *real* is checked in
+  // `improvementData.ts`'s own validator, which is the module that can see both
+  // tables — this one may only import `ImprovementId` as a type, or the two
+  // load-time validators would close a cycle and whichever ran second would read
+  // an uninitialised binding. Same bargain `buildingData.ts` keeps with the tech
+  // table, and for the same reason.
+  //
   // Every yield shape, and the one asymmetry among them: the empire banks gold,
   // science, culture and faith and has nowhere to put food or hammers. The
   // per-city shapes *do* have somewhere to put them — a city is exactly the

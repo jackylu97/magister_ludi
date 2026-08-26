@@ -50,9 +50,9 @@
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { breakFortify } from './combat';
 import { getTileAt } from './map';
-import { type Cell, canStopOn, canTransit, stepCost, zocField } from './pathfind';
+import { type Cell, canStopOn, canTransit, moveProfile, stepCost, zocField } from './pathfind';
 import type { GameState, Unit } from './state';
-import { unitDef } from './unitData';
+
 
 export interface AdvanceResult {
   /** How many tiles the unit actually entered. */
@@ -83,11 +83,12 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
   let cleared = false;
   let index = 0;
   const arrivals: ArrivalReport[] = [];
-  // The mover's own row, resolved once and handed to the evaluator on every
-  // step. This is the third of the four readers of `stepCost` (see its
-  // docblock): what the highlight promised and what the march spends have to be
-  // the same arithmetic, abilities and zones of control included.
-  const def = unitDef(unit.type);
+  // The mover's own profile — its row, and whether its empire may take to the
+  // water — resolved once and handed to the evaluator on every step. This is the
+  // third of the four readers of `stepCost` (see its docblock): what the
+  // highlight promised and what the march spends have to be the same arithmetic,
+  // abilities and zones of control included.
+  const mover = moveProfile(state, unit);
   // Once for the whole walk, and that is exact rather than an economy: nobody
   // else moves while a column marches, and the two things a step can change —
   // a ruin claimed, a civilian taken — are neither of them sources of control.
@@ -97,12 +98,12 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
     const from = getTileAt(state.map, unit.col, unit.row);
     const step = path[index]!;
     const tile = getTileAt(state.map, step.col, step.row);
-    if (!from || !tile || !canTransit(state, unit, tile)) {
+    if (!from || !tile || !canTransit(state, unit, tile, mover)) {
       cleared = true;
       break;
     }
 
-    const price = stepCost(state.map, from, tile, def, field)!;
+    const price = stepCost(state.map, from, tile, mover, field)!;
     // Overspending is forgiven, never borrowed: the allowance floors at zero.
     // A zone-of-control lock is the same forgiveness read the other way — the
     // step is taken and everything left over is gone with it.
@@ -111,7 +112,7 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
     // that way: a unit held by a picket comes to rest on the hex it stepped
     // onto, so the tile has to be one it may legally share.
     const wouldRestHere = after === 0 || index === path.length - 1;
-    if (wouldRestHere && !canStopOn(state, unit, tile)) {
+    if (wouldRestHere && !canStopOn(state, unit, tile, mover)) {
       // A jam, not a wall. Keep the order and wait for the tile to clear.
       break;
     }

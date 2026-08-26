@@ -82,6 +82,7 @@ import {
   dyeVats,
   fenceRing,
   fishFin,
+  fishingBoat,
   flowerSpray,
   furRack,
   furrowRows,
@@ -320,6 +321,7 @@ export const IMPROVEMENT_PROPS: Record<ImprovementId, (size: number) => BufferGe
   pasture: fenceRing,
   camp: campTent,
   quarry: quarrySteps,
+  fishingBoats: fishingBoat,
   plantation: trellisRows,
 };
 

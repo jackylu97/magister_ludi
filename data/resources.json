@@ -1158,6 +1158,12 @@
           "percent": 5,
           "scope": "coastal",
           "fromAge": 3
+        },
+        {
+          "kind": "improvementYields",
+          "improvement": "fishingBoats",
+          "production": 1,
+          "fromAge": 3
         }
       ],
       "emoji": "\ud83d\udc0b"
@@ -1180,6 +1186,13 @@
       "clusterSize": [
         1,
         2
+      ],
+      "effects": [
+        {
+          "kind": "improvementYields",
+          "improvement": "fishingBoats",
+          "culture": 1
+        }
       ],
       "emoji": "\ud83d\udc1a"
     }

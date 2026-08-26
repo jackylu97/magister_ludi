@@ -392,7 +392,8 @@ the worker's menu opens over a game instead of arriving whole on turn one.
 `improvesResource` is a second, separate field because the mine is buildable on any hill and is
 *also* what opens an iron seam. Two deliberate deviations, both documented in the data accessor:
 **fish has no improvement** (the work boat is naval, deferred; fish stays visible and simply
-cannot be accessed, and nothing is gated on it), and **salt is quarried rather than mined**,
+cannot be accessed, and nothing is gated on it — *closed 2026-08-26 by Entry XXVII: the fishing
+boats reach fish and the five other sea rows*), and **salt is quarried rather than mined**,
 because salt is placed on desert with no hills constraint and filing it under the mine would have
 made every flat salt pan permanently unimprovable — the exact "rule nobody could play against"
 Entry IX refused for strategics.
@@ -2650,3 +2651,166 @@ It does not make gold *spendable* in any new way — projects are a faucet, and 
 were open before this pass (tile purchase) are the sinks that are open after it. It does not
 touch what ground is worth: no tile yield, no centre yield, no improvement moved. And it does
 not answer unit upkeep, which is still unbuilt and is the other half of "units are too cheap".
+
+---
+
+## Entry XXVII — The water milestone (user, 2026-08-26, **built** 2026-08-26)
+
+Three changes that only make sense together: **Sailing**, **civilian embarkation**, and
+**fishing boats**. Each one alone is inert — an improvement on water nobody can reach is a
+row nobody can build, and a worker at sea with nothing to do there is a novelty — so they
+shipped as one milestone, and the ledger records them as one.
+
+The sea existed before this. Coast has been *workable* terrain since M6, mapgen has been
+seeding six resources on it (fish and crabs, and the four sea luxuries the ratified table
+added), and every one of those luxuries had both tiers written, tested and **inert**,
+because `openedResource` asks for the improvement that opens a seam and no improvement
+touched water. `docs/luxuries.md` said so in a section headed "placed, specified, and
+inert", and `test/sim/improvements.test.ts` asserted the hole as "water iff unimproved" so
+that the day the row landed it would fail in both directions at once. It did.
+
+### 1. Embarkation is a term in the one step evaluator
+
+`stepCost` (`pathfind.ts`) has taken `from`, `to`, the mover and the board since Entry XXV.
+It now takes a **`MoveProfile`** rather than a bare `UnitDef`, and the profile carries two
+things: the mover's row, and whether it `embarks`. The second is a fact about the unit's
+*empire* as much as about the unit — a civilian whose owner holds the embark ability — and
+it is hoisted once per sweep beside `zocField` for exactly `zocField`'s reason.
+
+The rule itself is four lines of `tileMoveCost`, and the two abilities it reads sit on
+opposite sides of impassability, which is the whole of what each one means. `embarks`
+**widens**: water's `moveCost` is `null`, so a piece that may swim pays
+`movement.embarkCost` for water whose terrain row is `embarkable`. `ignoresTerrainCost`
+**narrows a price that already exists**, strictly after, so no ability makes a mountain
+walkable and a scout gets nothing here (it is a combat unit and never embarks at all).
+
+Everything downstream inherits it and nothing else was touched: `findPath`,
+`reachableTiles`, `advanceAlongPath` and `pathTurns` are the four readers, and
+`canTransit` / `canStopOn` take an optional profile so the `moveUnit` command, the
+highlight and the walk cannot disagree about one hex.
+
+**Three decisions, and each is stated rather than discovered:**
+
+- **Coast only.** `embarkable` is a *terrain flag*, not "water and not ocean" written into
+  the evaluator, and only the coast carries it. The deep ocean stays impassable to
+  everything until there are naval units; a lake likewise. The day a galley opens the
+  ocean, the change is one field on one row.
+- **Civilians only** (`isCivilian` — the same predicate combat, capture and stacking ask,
+  so a settler and a future augur inherit the sea with no second list). A combat unit at
+  sea would be a navy, and there is none.
+- **One movement point**, `movement.embarkCost`, a number of its own rather than
+  `minStepCost` reused. The floor is a guarantee about the *search* — no free edges, so a
+  node settles the first time it is popped — while this is the price of a design decision.
+  They are equal in v1 and are allowed to stop being.
+
+**The quirk, stated rather than patched.** An embarked civilian is **unreachable**. Nothing
+can attack it, because everything that could is a combat unit and no combat unit embarks;
+nothing can capture it, because `arriveOnTile` needs somebody to arrive. A settler parked
+one hex offshore is safe from the wild, and `test/sim/water.test.ts` asserts that by
+running the barbarian AI at it rather than by asserting a predicate. This is a real hole
+in the fiction and it closes when naval units land — which is the same event that opens the
+ocean. It is accepted for v1 because the alternative is a rule ("civilians drown after N
+turns at sea", "may not end a turn on water") that would be deleted on that same day.
+
+`foundingErrorAt` needed nothing: it asks `isPassable`, which deliberately still means
+**land**. That function's callers — a city site, a spawn tile, a barbarian's target — every
+one of them means dry ground, and widening it would have put a town on the sea. "May *this*
+piece go there" is `canTransit`, which takes the piece.
+
+### 2. Fishing boats are an improvement like any other
+
+`requiresTech: sailing`, one charge, on a coastal seam, built by a worker standing on the
+water exactly as a farm is built by a worker standing in a field. **+1🌾.** It is the only
+row that names both a terrain and a resource, and the terrain clause is deliberate: a
+worker can only stand on water it could embark onto, and coast is all of that today.
+
+The claim worth recording is what it took: **nothing**. `openedResource` did not change.
+`resourceEffects.ts` did not change. The meters did not change. Six sea resources went from
+"in nobody's hands by either path" to ordinary holdings because a row appeared in
+`improvements.json`, and every signature written for them fired on its own. Note which
+clause opens them, because it is not the third — a city still cannot be founded on water,
+so a sea seam is always held by the *improvement* standing on it.
+
+Two ratified lines that had been deferred *on* fishing boats came live with them, and they
+needed a shape: **`improvementYields`**, a bag of yields a held luxury pays on every hex of
+the empire's carrying a named improvement. Tyrian's "+1🎵 on fishing boats" and whales'
+Æra III "+1⚙ on fishing boats". It is the one luxury shape that pays into the **tile**
+chain, so it lands as an ordinary contribution line in `explainTileYield` (hard rule 5) and
+the hover card, the citizen's score, the city panel and the banked total learn it from one
+place. Empire-scoped like every other signature: a boat in a town nowhere near the murex is
+better for it, which is what makes a trade good a trade good.
+
+### 3. The granary pays the water — as a *tile* line
+
+"Water tiles +1🌾 in cities with a granary." The tempting shape was a flat bonus on the
+building; the right one is a line on the **hex**, because that is what it is, and because a
+lump on the building would have been a number with no explanation on any of the tiles it
+came from.
+
+So `BuildingDef` gained **`tileYields`**: a list of `{ on: TileCondition, requiresTech?,
+add }`. `TileCondition` was Statecraft's, and it is now shared by all three things that put
+yield on a hex — a card's `tileYield`, a building's `tileYields`, a luxury's
+`improvementYields` — with **one** predicate, `tileConditionHolds`, answering for all of
+them. It gained two arms here: `water` and a *named* `improvement` (where `improved` was
+any).
+
+`TileYieldContext` correspondingly stopped having a `cards` field and gained **`lines`**:
+one channel, three producers, and `explainTileYield`'s last clause is one loop instead of
+three. The empire-scoped producers resolve in `yieldContextFor`; the building lines are a
+fact about *one city* and are added by `cityContext`, which is the only place the two
+scales meet — and the reason the hover card, which asks the empire's context, cannot see a
+granary. A fourth producer joins by appending to that list.
+
+`requiresTech` is on the *line* rather than on the building, so the granary is still an
+Earthenware building whose water line waits for Sailing — and it is **Sailing's** card that
+announces it (`techGifts` gained a `buildingTileYield` kind for exactly that).
+
+### 4. Abilities are a fourth `unlocks` key
+
+Embarkation is a *rule*, not a thing to make, so what the tree names is the rule's id:
+`unlocks.abilities: ["embark"]`, with a sibling `abilities` block in `techs.json` saying
+what it is called — `improvements.json`'s `chop` table one file over, and for its reason.
+`ABILITY_TECH` inverts it; `techsGrant(techs, ability)` is THE rule (shaped exactly like
+`resourceIsVisibleTo`, and for the same cycle-avoidance reason: `pathfind.ts` is downstream
+of `cities.ts`, which is downstream of `tech.ts`, so the movement evaluator cannot ask a
+research module anything). `hasAbility` is the state-flavoured wrapper for everybody else.
+**No rule in the simulation spells a tech id.** Moving embarkation to another node is a
+data edit.
+
+The gift surfaces beside the chop clearings under one `ability` kind, because "a thing a
+worker may now do" and "a thing an empire may now do" are the same news to a player. A
+clearing carries what it `pays`; a verb does not, and presence is the state.
+
+### What was already right
+
+**Item four of the brief needed no code at all.** Coast, ocean and lake all carry
+`workable: true`, `isWorkableTile` asks the terrain, and `assignableTiles` asks
+`isWorkableTile` — so a coastal town has been claiming and working the sea since M6.
+`bestExpansionTile` scores water like anything else. The milestone confirmed it with tests
+rather than changing anything.
+
+**The renderer needed one prop and no plumbing.** `improvements3d.ts` is generic over
+`IMPROVEMENT_IDS`, `tileTopY` has a height class per terrain, and `placePiece` uses it — so
+a fishing boat floats on the coast prism and an embarked civilian stands on it, with no
+special art and no special case. The boat is drawn *against* a warship on purpose: a long
+low hull with one vertical and a net float beside it, because the day naval units land the
+two must not be confusable.
+
+### Measured
+
+The scripted pacing empire's culture ladder **slowed**, and it is worth knowing which of the
+three changes did it. Sailing itself costs almost nothing (with the granary's water line
+removed the ladder measures within a turn of its old numbers), and the node's *position* in
+the file is irrelevant (moving it two places reproduced the slowed ladder turn for turn).
+It is the **granary's food on water**: a coastal granary town's citizens move onto the sea —
+2🌾1🪙 against bare grassland's 2🌾 — and the hammers they were making on land go with them,
+so every culture building lands later and an escalating draft cost turns that into a
+widening gap. Governments now land on turns **24 / 52 / 124**, against 24 / 49 / 109, and
+the third has slipped past the close of the age it belongs to.
+
+That is a real consequence of a real bonus rather than a regression, and the empire is not
+poorer — it is *differently* employed, and this scripted one never revisits a build order to
+notice. It is recorded here and in `test/sim/statecraftPacing.test.ts` rather than tuned
+away, because the next person to move those numbers should know what moved them. If the
+third government arriving after Æra III's close is judged wrong, the lever is the water
+line's size, not the draft curve.

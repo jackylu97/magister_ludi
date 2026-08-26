@@ -1230,6 +1230,58 @@ export function trellisRows(size: number): BufferGeometry {
   return flatten(merged);
 }
 
+/**
+ * Fishing boats: one small hull with a mast and a boom, and a float beside it.
+ *
+ * The only improvement prop that stands on *water*, which decides everything
+ * about it. It cannot be a thing built up off the ground the way the trellis and
+ * the tent are, because a hex of coast is already the lowest prism on the board
+ * and anything tall reads as stranded; so the silhouette is horizontal — a long
+ * low hull — with exactly one vertical to say it is a boat rather than a log.
+ *
+ * The hull is a box tapered at the bow by a shear rather than a lathe: at forty
+ * pixels the taper is two pixels of asymmetry, and two pixels is all it takes to
+ * stop a rectangle reading as a raft. The float is what keeps it from reading as
+ * a *ship* — a boat with a net buoy beside it is fishing, a boat alone is navy,
+ * and the day naval units land the two must not be confusable.
+ */
+export function fishingBoat(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const length = size * 1.05;
+  const beam = size * 0.34;
+  const depth = size * 0.2;
+
+  // The hull, sitting with its waterline just above the tile top so the prism's
+  // own surface reads as the sea it floats on.
+  const hull = new BoxGeometry(length, depth, beam);
+  hull.translate(0, depth * 0.42, 0);
+  parts.push(hull);
+  // The bow: a wedge finishing the hull forward, narrower than the beam.
+  const bow = new ConeGeometry(beam * 0.5, size * 0.34, 4, 1);
+  bow.rotateY(Math.PI / 4);
+  bow.rotateZ(-Math.PI / 2);
+  bow.translate(length * 0.5 + size * 0.14, depth * 0.42, 0);
+  parts.push(bow);
+
+  // The one vertical, stepped a little aft of centre, with a boom raked off it.
+  const mast = shaft(size * 0.78, size * 0.03, 4);
+  mast.translate(-length * 0.08, depth * 0.8, 0);
+  parts.push(mast);
+  parts.push(
+    slabAt(size * 0.46, size * 0.03, size * 0.03, size * 0.1, depth * 0.8 + size * 0.5, 0, -0.22),
+  );
+
+  // The net float, off the port quarter. Small, round, and not touching the
+  // hull — a second solid at a distance is what says "gear in the water".
+  const float = new IcosahedronGeometry(size * 0.09, 0);
+  float.translate(-length * 0.42, size * 0.06, beam * 0.9);
+  parts.push(float);
+
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
 // --- unit miniatures -------------------------------------------------------
 
 /**

@@ -311,11 +311,12 @@ describe('star chart layout', () => {
         );
       }
     }
-    // The whole chart, for scale: eight columns deep, six lanes tall. Age I
-    // gained three nodes and a third rank in the rework, which is where both
-    // numbers came from.
+    // The whole chart, for scale: eight columns deep, seven lanes tall. Age I
+    // gained three nodes and a third rank in the rework, and Sailing added the
+    // seventh lane at the bottom — the sea gets a row of its own rather than
+    // sharing one with a land chain it has nothing to do with (Entry XXVII).
     expect(techColumnCount()).toBe(8);
-    expect(techRowCount()).toBe(6);
+    expect(techRowCount()).toBe(7);
   });
 
   it('hands every tech a lane, and never two techs the same cell', () => {
@@ -493,11 +494,12 @@ describe('chooseResearch', () => {
 
   it('offers exactly the techs whose prerequisites are met', () => {
     const state = flatState();
-    // The four second-tier nodes, in the tree's own order — the whole of a
+    // The five second-tier nodes, in the tree's own order — the whole of a
     // player's opening choice now that Agriculture is the only root.
     expect(availableTechs(state, 0)).toEqual([
       'husbandry',
       'fletching',
+      'sailing',
       'mining',
       'earthenware',
     ]);

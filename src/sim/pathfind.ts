@@ -25,6 +25,17 @@
  * `from`, `to`, mover, board — is now THE evaluator and `tileMoveCost` is the
  * ground's own half of it.
  *
+ * Since Entry XXVII the mover is a `MoveProfile` rather than a bare `UnitDef`,
+ * because the second thing a step's price now depends on is the mover's
+ * *empire*: a civilian whose owner holds the embark ability may walk onto
+ * embarkable water, which is ground that is otherwise impassable to everything.
+ * The rule is in `tileMoveCost` and nowhere else, so pathing, the reachable
+ * highlight, the walk and the "~N turns" estimate all inherit it for free — and
+ * so does everything downstream of `canTransit`, the `moveUnit` command
+ * included. Combat units never embark, which is why an embarked civilian cannot
+ * be reached by a melee: see the ledger entry, where that quirk is stated rather
+ * than patched around.
+ *
  * Because `rules.movement.minStepCost` floors every step at a positive number,
  * there are no zero-cost edges, which is what lets both searches settle a node
  * the first time they pop it. A zone-of-control lock keeps that guarantee: it
@@ -52,9 +63,10 @@
 
 import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, tileHex, tileIndex, wrappedDistance } from './map';
 import { RULES } from './rulesData';
-import type { GameState, Unit } from './state';
-import { moveCost } from './terrainData';
-import { type UnitDef, isCombatant, unitDef } from './unitData';
+import { type GameState, type Unit, playerById } from './state';
+import { techsGrant } from './techData';
+import { isEmbarkableTerrain, moveCost } from './terrainData';
+import { type UnitDef, isCivilian, isCombatant, unitDef } from './unitData';
 import { fullMovement, hasForeignUnit, hasStackingRoom } from './units';
 
 /** An offset cell. The wire/serialisation form of a position. */
@@ -71,43 +83,120 @@ export interface ReachableTile {
 }
 
 /**
- * Movement points for `def` to enter this tile, or `null` if nothing can walk on
- * it.
+ * Everything about the *mover* a step's price depends on, resolved once.
  *
- * THE movement-cost evaluator, and the reason it takes a *unit definition*
- * rather than only a tile: `ignoresTerrainCost` (`unitData.ts`) is a rule about
- * the price of a step, so it belongs where the price is decided and nowhere
- * else. All three readers go through here — `findPath`, `reachableTiles` and
- * `advanceAlongPath` — which is what stops a highlight promising a march the
- * walk will not deliver.
+ * A struct rather than the bare `UnitDef` this used to be, and for `zocField`'s
+ * reason exactly: both terms are facts about the whole sweep, asked per edge.
+ * The row is one lookup; embarkation is a lookup *and* a question about the
+ * mover's empire, which is precisely the sort of thing that must not be
+ * re-derived tens of thousands of times inside one search.
  *
- * `def` is optional and its absence means *the ground's own price*, asked by the
- * two callers that are not about a particular unit: `isPassable`, which wants
- * only the `null`, and the interface's route estimate for a unit it has not been
- * handed. The flag is read strictly *after* impassability, so no ability makes a
- * mountain walkable — see `UnitDef.ignoresTerrainCost`.
+ * It is also where the seam is. `def` answers "what can this piece do with the
+ * ground"; `embarks` answers "may this piece be on the water at all", which is a
+ * fact about the unit's **owner** as much as about the unit. Keeping them in one
+ * value is what lets `stepCost` stay a pure function of (map, from, to, mover,
+ * field) with nothing to look up.
+ */
+export interface MoveProfile {
+  /** The mover's row, or absent for "the ground's own price". See `tileMoveCost`. */
+  def?: UnitDef;
+  /**
+   * True when this piece may cross **embarkable** water: a civilian whose owner
+   * holds the embark ability (Sailing, today — `techsGrant` is the register).
+   *
+   * Civilians only, and that is the v1 rule rather than an oversight: a combat
+   * unit at sea would be a navy, and there is none. See `moveProfile`.
+   */
+  embarks: boolean;
+}
+
+/**
+ * The profile `unit` is moving with as things stand.
+ *
+ * `movePurse`'s sibling: the two things a caller has to hoist before a sweep,
+ * and both are asked of the state exactly once. An owner who has vanished
+ * (impossible in play, reachable from a hand-edited save) simply cannot embark,
+ * which is the strictest honest answer.
+ */
+export function moveProfile(state: GameState, unit: Unit): MoveProfile {
+  const def = unitDef(unit.type);
+  const owner = playerById(state, unit.ownerId);
+  const embarks =
+    isCivilian(def) && owner !== undefined && techsGrant(owner.techsResearched, 'embark');
+  return { def, embarks };
+}
+
+/**
+ * Movement points for `mover` to enter this tile, or `null` if it cannot be on
+ * this ground at all.
+ *
+ * THE movement-cost evaluator, and the reason it takes a *mover* rather than
+ * only a tile: `ignoresTerrainCost` (`unitData.ts`) is a rule about the price of
+ * a step and embarkation is a rule about whether there is a price at all, so
+ * both belong where the price is decided and nowhere else. All the readers go
+ * through here — `findPath`, `reachableTiles` and `advanceAlongPath` — which is
+ * what stops a highlight promising a march the walk will not deliver.
+ *
+ * `mover` is optional and its absence means *the ground's own price to a land
+ * unit*, asked by the callers that are not about a particular piece:
+ * `isPassable`, which wants only the `null`, and the interface's route estimate
+ * for a unit it has not been handed.
+ *
+ * The two abilities are read from opposite sides of impassability, and that is
+ * the whole of what each one means:
+ *
+ *   · **`embarks` widens.** Water has `moveCost: null`, so it is the ground the
+ *     `null` came from, and an embarked civilian pays `movement.embarkCost` for
+ *     the water its terrain row calls `embarkable` (coast, today). Ocean, lakes
+ *     and mountains are untouched — `isEmbarkableTerrain` is a narrower question
+ *     than `isWaterTerrain` on purpose.
+ *   · **`ignoresTerrainCost` narrows a price that already exists**, strictly
+ *     *after* impassability, so no ability makes a mountain walkable — see
+ *     `UnitDef.ignoresTerrainCost`. A scout does not get the sea for free
+ *     either: it is a combat unit, so it never embarks in the first place.
  *
  * The floor is `rules.movement.minStepCost` rather than a literal 1, so the
  * ability costs whatever the game says a step costs at minimum, and the "no
  * zero-cost edges" guarantee both searches settle on holds for a scout too.
  */
-export function tileMoveCost(tile: Tile, def?: UnitDef): number | null {
+export function tileMoveCost(tile: Tile, mover?: MoveProfile): number | null {
   const ground = moveCost(tile.terrain, tile.feature, tile.hills);
-  if (ground === null) return null;
-  return def?.ignoresTerrainCost ? RULES.movement.minStepCost : ground;
+  if (ground === null) {
+    if (!mover?.embarks || !isEmbarkableTerrain(tile.terrain)) return null;
+    return RULES.movement.embarkCost;
+  }
+  return mover?.def?.ignoresTerrainCost ? RULES.movement.minStepCost : ground;
 }
 
-/** True when land units can enter the tile at all, ignoring who is standing on it. */
+/**
+ * True when land units can enter the tile at all, ignoring who is standing on it.
+ *
+ * Deliberately **land**, and it stayed that way when embarkation landed: this is
+ * what a city site, a spawn tile and a barbarian's target ask, and every one of
+ * them means "is this dry ground". A city on the ocean floor and a camp on the
+ * water are the two things it is here to refuse. "May *this* piece go there" is
+ * `canTransit`, which takes the piece.
+ */
 export function isPassable(tile: Tile): boolean {
   return tileMoveCost(tile) !== null;
 }
 
 /**
- * May `unit` move *through* this tile? Passable terrain with no foreign unit on
- * it. Friendly units are walked past, not around.
+ * May `unit` move *through* this tile? Ground this mover can be on, with no
+ * foreign unit on it. Friendly units are walked past, not around.
+ *
+ * `mover` defaults to the unit's own profile so every existing caller reads the
+ * same as it always did, and the two sweeps pass theirs in — the default is a
+ * `playerById` per edge otherwise, which is the lookup `moveProfile` exists to
+ * do once.
  */
-export function canTransit(state: GameState, unit: Unit, tile: Tile): boolean {
-  if (!isPassable(tile)) return false;
+export function canTransit(
+  state: GameState,
+  unit: Unit,
+  tile: Tile,
+  mover: MoveProfile = moveProfile(state, unit),
+): boolean {
+  if (tileMoveCost(tile, mover) === null) return false;
   return !hasForeignUnit(state, tile.col, tile.row, unit.ownerId);
 }
 
@@ -116,8 +205,13 @@ export function canTransit(state: GameState, unit: Unit, tile: Tile): boolean {
  * under the stacking cap for the unit's own category. The unit is excluded from
  * its own count, so "may I stay here?" is always true.
  */
-export function canStopOn(state: GameState, unit: Unit, tile: Tile): boolean {
-  if (!canTransit(state, unit, tile)) return false;
+export function canStopOn(
+  state: GameState,
+  unit: Unit,
+  tile: Tile,
+  mover: MoveProfile = moveProfile(state, unit),
+): boolean {
+  if (!canTransit(state, unit, tile, mover)) return false;
   const { category } = unitDef(unit.type);
   return hasStackingRoom(state, tile.col, tile.row, category, unit.id);
 }
@@ -297,18 +391,19 @@ export interface StepPrice {
  * — the ground, the mover's abilities, and the zone of control — so a highlight
  * cannot promise a march the walk will not deliver.
  *
- * `def` and `field` are passed in rather than derived, because both are facts
+ * `mover` and `field` are passed in rather than derived, because both are facts
  * about the whole sweep and re-deriving them per edge would be the same lookup
- * a few thousand times. Every caller hoists them; see `zocField`.
+ * a few thousand times. Every caller hoists them; see `zocField` and
+ * `moveProfile`.
  */
 export function stepCost(
   map: GameMap,
   from: Tile,
   to: Tile,
-  def: UnitDef | undefined,
+  mover: MoveProfile | undefined,
   field: ZocField,
 ): StepPrice | null {
-  const cost = tileMoveCost(to, def);
+  const cost = tileMoveCost(to, mover);
   if (cost === null) return null;
   return { cost, locked: zocLocks(map, field, from, to) };
 }
@@ -349,7 +444,7 @@ export function stepArrival(spent: number, price: StepPrice, purse: MovePurse): 
  */
 export function pathTurns(state: GameState, unit: Unit, path: readonly Cell[]): number {
   const { map } = state;
-  const def = unitDef(unit.type);
+  const mover = moveProfile(state, unit);
   const purse = movePurse(state, unit);
   const field = zocField(state, unit.ownerId);
   let from = getTileAt(map, unit.col, unit.row);
@@ -362,7 +457,7 @@ export function pathTurns(state: GameState, unit: Unit, path: readonly Cell[]): 
     }
     const to = getTileAt(map, cell.col, cell.row);
     if (!from || !to) break;
-    const price = stepCost(map, from, to, def, field);
+    const price = stepCost(map, from, to, mover, field);
     if (price === null) break;
     budget = price.locked ? 0 : Math.max(0, budget - price.cost);
     from = to;
@@ -468,14 +563,15 @@ export function findPath(state: GameState, unit: Unit, goal: Tile): Cell[] | nul
   const startIndex = tileIndex(map, start.col, start.row);
   const goalIndex = tileIndex(map, goal.col, goal.row);
   if (startIndex === goalIndex) return null;
-  if (!canStopOn(state, unit, goal)) return null;
 
   const goalHex = tileHex(goal);
-  // Resolved once: the mover's row is a fact about the whole search, and asking
-  // the table per neighbour would be the same lookup a few thousand times.
-  const def = unitDef(unit.type);
-  // The two other facts about the whole search, hoisted for `def`'s reason: who
-  // holds ground against this mover, and where its turns end. See `stepCost`.
+  // Resolved once: the mover's row and whether its empire may take to the water
+  // are facts about the whole search, and asking the tables per neighbour would
+  // be the same lookup a few thousand times.
+  const mover = moveProfile(state, unit);
+  if (!canStopOn(state, unit, goal, mover)) return null;
+  // The two other facts about the whole search, hoisted for `mover`'s reason:
+  // who holds ground against it, and where its turns end. See `stepCost`.
   const field = zocField(state, unit.ownerId);
   const purse = movePurse(state, unit);
   const minStep = RULES.movement.minStepCost;
@@ -503,8 +599,8 @@ export function findPath(state: GameState, unit: Unit, goal: Tile): Cell[] | nul
       // Transit is all an intermediate tile needs, so a path may thread between
       // friendly units. The goal was already checked with the stricter
       // `canStopOn`, which implies this.
-      if (!canTransit(state, unit, neighbor)) continue;
-      const price = stepCost(map, tile, neighbor, def, field);
+      if (!canTransit(state, unit, neighbor, mover)) continue;
+      const price = stepCost(map, tile, neighbor, mover, field);
       if (price === null) continue;
 
       // A locked step lands on the end of the turn it was taken in, which is
@@ -555,8 +651,8 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
 
   const budget = unit.movesLeft;
   // `findPath`'s reason: one table lookup for the whole sweep, and the same
-  // definition the executor will spend the points with.
-  const def = unitDef(unit.type);
+  // profile the executor will spend the points with.
+  const mover = moveProfile(state, unit);
   const field = zocField(state, unit.ownerId);
   // A single turn's purse, so `turnBoundary` inside the sweep is always
   // `budget`: a locked step lands exactly on the allowance and the frontier's
@@ -580,7 +676,7 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
     const cost = best[current]!;
     if (current !== startIndex) {
       const tile = map.tiles[current]!;
-      if (canStopOn(state, unit, tile)) results.push({ tile, cost });
+      if (canStopOn(state, unit, tile, mover)) results.push({ tile, cost });
     }
     // Arriving with nothing left ends the move: no step can follow.
     if (cost >= budget) continue;
@@ -589,8 +685,8 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
     for (const neighbor of neighborsOf(map, tile)) {
       const index = tileIndex(map, neighbor.col, neighbor.row);
       if (settled[index] === 1) continue;
-      if (!canTransit(state, unit, neighbor)) continue;
-      const price = stepCost(map, tile, neighbor, def, field);
+      if (!canTransit(state, unit, neighbor, mover)) continue;
+      const price = stepCost(map, tile, neighbor, mover, field);
       if (price === null) continue;
 
       const candidate = stepArrival(cost, price, purse);

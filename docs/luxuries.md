@@ -51,6 +51,7 @@ on `effect.kind`.
 | Shape | What it does |
 |---|---|
 | `perCityYields` | Flat yields in **every** city — or, with `scope`, every coastal one (`"coastal"`) or only the city holding the seam (`"owner"`). |
+| `improvementYields` | Flat yields on **every hex of this empire carrying a named improvement**. The one shape that pays into the *tile* chain, so it shows up as a line in the hex's own breakdown. Whales and tyrian, both on fishing boats. |
 | `perPopulationYields` | The same, multiplied by each city's population, floored per city. |
 | `empireYields` | A flat sum to the empire, once, landing in no city. |
 | `extraHappiness` | On top of the flat `perUniqueLuxury`; optionally `per: "city"` or `per: "coastalCity"`. |
@@ -335,36 +336,62 @@ three; honey's own tile line carries no happiness.)
 
 ---
 
-## The sea luxuries — placed, specified, and inert
+## The sea luxuries — live since 2026-08-26
 
-**All four are switched off, and prominently so.** Pearls, coral, whales and
-tyrian murex are on the map, in the data, with both tiers written and tested. No
-improvement can be built on water, so **nobody can hold one**: no happiness, no
-per-city yields, no signature of any kind fires. Their *tile* yields still pay a
-citizen working the coast, which is the same bargain fish has kept since M6.
+**All four were switched off, and prominently so.** This section used to open by
+saying that pearls, coral, whales and tyrian murex were on the map, in the data,
+with both tiers written and tested, and that no improvement could be built on
+water — so **nobody could hold one**: no happiness, no per-city yields, no
+signature of any kind fired. It said they would land the day work boats did, and
+that the row to change was one line of `data/improvements.json`.
 
-They land the day work boats do, and the row to change is one line of
-`data/improvements.json`. `test/improvements.test.ts` asserts the hole as "water
-iff unimproved", so that day the test fails in both directions at once.
+**That is exactly what happened** (the water milestone, ledger Entry XXVII). The
+row is `fishingBoats`, gated on **Sailing**, buildable on a coastal seam by a
+worker standing on the water — which is the milestone's other half, civilian
+embarkation. Nothing in `openedResource`, `resourceEffects.ts` or the meters knew
+the hole existed, which is why closing it needed no edit in any of them.
+
+**What came live, per row:**
+
+| Row | Live now | Still waiting |
+|---|---|---|
+| Pearls | tile line, +1 happiness per city, **both Æra III tiers** | — |
+| Coral | tile line, +2🔬 per coastal city, **Æra III +20%🔬 coastal** | — |
+| Whales | tile line, +2⚙ per coastal city, Æra III +5%⚙ coastal, **and the fishing-boat rider** | — |
+| Tyrian | tile line, **and the fishing-boat rider** | Æra III −10% civic cost (**civics / Statecraft**) |
+
+The two **fishing-boat riders** needed a shape as well as an improvement, and
+they got one: `improvementYields`, a bag of yields an empire's held luxury pays
+on **every hex of its carrying a named improvement**. It resolves through
+`resourceTileLines` into the tile chain's own line list, so it lands as an
+ordinary contribution in `explainTileYield` (hard rule 5) rather than as a lump
+somewhere. Empire-scoped like every other signature: a boat in a town nowhere
+near the murex is better for it too, which is what makes a trade good a trade
+good.
+
+**The boats themselves pay +1🌾.** The Age-I design note in `docs/tech-unlocks.md`
+said +1🌾+1🪙; the milestone brief said +1🌾, and that is what shipped. The gold is
+one number in `improvements.json` on the day it is wanted.
 
 ### Pearls — coast
 `+3🪙` on tile · **+1 happiness per city** · Æra III: **+3🪙 in every coastal
-city** and **+3 happiness per coastal city**.
+city** and **+3 happiness per coastal city**. All live.
 
 ### Coral — coast
 `+1🔬 +1🌾` on tile · **+2🔬 in every coastal city** · Æra III: **+20% science in
 each coastal city** — a *local* percentage, applied inside each coastal city,
-not an empire-cumulative one.
+not an empire-cumulative one. All live.
 
 ### Whales — coast
 `+2🌾 +1🪙` on tile · **+2⚙ in every coastal city** · Æra III: **+5% production
-in every coastal city**.
-**Deferred:** "fishing boats gain +1 production" — waits on **fishing boats**.
+in every coastal city** **and +1⚙ on every fishing boat the empire owns**. All
+live; the boat rider is an `improvementYields` line and, like its sibling
+percentage, waits for Æra III.
 
 ### Tyrian Murex — coast
-`+1🌾 +3🪙` on tile. **No live signature.**
-**Deferred:** "fishing boats give +1 culture" — **fishing boats**. Æra III
-("−10% cost of new civics") — **civics / Statecraft**.
+`+1🌾 +3🪙` on tile · **+1🎵 on every fishing boat the empire owns** — its base
+signature, live from the moment the seam is worked, and the row's first.
+**Deferred:** Æra III ("−10% cost of new civics") — **civics / Statecraft**.
 
 ---
 
@@ -378,7 +405,7 @@ against the list: only **fish** changed (`+1🌾` → `+2🌾`).
 | Wheat | +1🌾 | grassland/plains |
 | Cattle | +1🌾 | grassland |
 | Deer | +1🌾 | forest on grassland/plains/tundra |
-| Fish | +2🌾 | coast *(no improvement)* |
+| Fish | +2🌾 | coast · **fishing boats** |
 | Stone | +1⚙ | plains/desert/tundra |
 | Rice | +2🌾 | flat grassland |
 | Maize | +1🌾 | flat plains |
@@ -387,7 +414,7 @@ against the list: only **fish** changed (`+1🌾` → `+2🌾`).
 | Tin | +2🪙 | hills |
 | Clay | +1🌾 +1⚙ | flat grassland/plains |
 | Reeds | +1🌾 +1🔬 | flat grassland/plains |
-| Crabs | +1🌾 +1🪙 | coast *(no improvement)* |
+| Crabs | +1🌾 +1🪙 | coast · **fishing boats** |
 | Bison | +1🌾 | flat plains |
 
 Reeds is the first bonus resource to pay **science** off a tile, which is one of
@@ -406,10 +433,10 @@ Everything above, in one place, by what it waits on.
 | Trade routes / connected cities | spices Æra III, furs Æra III |
 | Wonders | marble Æra III (and marble's base line, standing in as buildings) |
 | Great people | lapis Æra III |
-| Civics / Statecraft | jade Æra III, tyrian Æra III |
+| Civics / Statecraft | jade Æra III, tyrian Æra III *(the only sea line still parked)* |
 | Unit upkeep | salt's −10% |
 | Faith **spending** | incense Æra III |
-| Fishing boats / work boats | whales Æra III (part), tyrian's base line; **and every signature of all four sea luxuries** |
+| ~~Fishing boats / work boats~~ | ~~whales Æra III (part), tyrian's base line; **and every signature of all four sea luxuries**~~ — **all landed 2026-08-26**, Entry XXVII |
 | Unique units | ivory (war elephants, and its Æra III combat tier) |
 | A building classification | jade's base line, tea Æra III, coffee Æra III, cotton Æra III |
 

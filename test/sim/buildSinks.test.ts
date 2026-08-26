@@ -619,10 +619,15 @@ describe('what the pass did to the opening', () => {
      *   after              **6 units** (5 warriors, 1 spearman), 3 cities
      *
      * — a **25% cut**, which is the pass's whole claim about the roster. Note
-     * what did *not* change: the city count, the technology count (9 either
-     * way) and the map. The empire researches at the same rate and simply
-     * cannot buy as much army with it, which is the finding the pass was
-     * answering.
+     * what did *not* change: the city count and the map. The empire researches
+     * at the same rate and simply cannot buy as much army with it, which is the
+     * finding the pass was answering.
+     *
+     * The technology count was 9 either way when this was written and is **10**
+     * since the water milestone (Entry XXVII) — Sailing is one more 8🔬 node on
+     * the Age I ramp, and this empire's cheapest-first script takes it. That is
+     * the tree getting wider, not the empire getting faster; the roster claim
+     * above is unmoved.
      *
      * The building-first empire measured 4 units at turn 40 both before and
      * after — it is hammer-bound on settlers and granaries rather than on the
@@ -637,7 +642,7 @@ describe('what the pass did to the opening', () => {
     expect(game.state.cities.length).toBe(3);
     expect(mine.length).toBeGreaterThanOrEqual(5);
     expect(mine.length).toBeLessThanOrEqual(7);
-    expect(game.state.players[0]!.techsResearched.length).toBe(9);
+    expect(game.state.players[0]!.techsResearched.length).toBe(10);
   }, 120_000);
 
   it('leaves what ground is worth untouched: this was a price pass', () => {

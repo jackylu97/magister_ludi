@@ -97,6 +97,7 @@ import {
   playerById,
 } from './state';
 import {
+  type AbilityId,
   BUILDING_UNLOCK_TECH,
   TECH_IDS,
   type TechId,
@@ -104,6 +105,7 @@ import {
   UNIT_UNLOCK_TECH,
   isTechId,
   techDef,
+  techsGrant,
 } from './techData';
 import { isProjectId, projectDef } from './projectData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
@@ -117,6 +119,21 @@ export function hasTech(state: GameState, playerId: number, techId: TechId): boo
   const player = playerById(state, playerId);
   if (!player) return false;
   return player.techsResearched.includes(techId);
+}
+
+/**
+ * Does this player hold the verb `ability` names?
+ *
+ * `hasTech`'s sibling, and the one every surface that is *not* the movement
+ * evaluator asks: the unit sheet greying an order, the tech card saying what
+ * Sailing hands over. It is `techsGrant` with a player looked up, because the
+ * gate itself is a fact about the tree and belongs in `techData.ts` (see that
+ * function for why `pathfind.ts` cannot come through here).
+ */
+export function hasAbility(state: GameState, playerId: number, ability: AbilityId): boolean {
+  const player = playerById(state, playerId);
+  if (!player) return false;
+  return techsGrant(player.techsResearched, ability);
 }
 
 /** Are every one of a technology's prerequisites already in hand? */

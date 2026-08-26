@@ -146,13 +146,14 @@ function build(playerId: number, unitId: number, improvement: ImprovementId): Co
 // --- the table --------------------------------------------------------------
 
 describe('the improvement table', () => {
-  it('names six improvements and recognises its own ids', () => {
+  it('names seven improvements and recognises its own ids', () => {
     expect(IMPROVEMENT_IDS).toEqual([
       'farm',
       'mine',
       'pasture',
       'camp',
       'quarry',
+      'fishingBoats',
       'plantation',
     ]);
     expect(isImprovementId('farm')).toBe(true);
@@ -180,21 +181,34 @@ describe('the improvement table', () => {
     }
   });
 
-  it('leaves exactly the water resources unimproved, and nothing on land', () => {
+  it('sends every water resource to the fishing boats, and nothing on land', () => {
     // The forward table is written per improvement; this is the inversion, and
-    // the only holes in it are the documented ones — every resource that sits on
-    // *water*. The improvement they all want is the same one (a work boat), and
-    // it is deferred with the rest of naval, so they stay on the map, keep
-    // paying whoever works the tile, and are in nobody's hands in the
-    // `hasResource` sense. Asserted as "water iff unimproved" rather than as a
-    // list of names, so the day the work boat lands this test fails in both
-    // directions at once and tells whoever added it what else to wire up.
+    // since Entry XXVII it has no holes at all. It used to assert the opposite —
+    // "water iff *un*improved", the documented deferral — and the day the boats
+    // landed it failed in both directions at once, which is exactly what it was
+    // written to do. What it pins now is the other half of the same claim: a
+    // resource on water goes to the boats and to nothing else, and no land
+    // resource wanders into them.
     for (const id of RESOURCE_IDS) {
       const wet = resourceDef(id).validTerrain.every(isWaterTerrain);
-      const improved = improvementForResource(id) !== null;
-      expect(`${id}: ${improved ? 'improved' : 'bare'}`).toBe(`${id}: ${wet ? 'bare' : 'improved'}`);
+      const wants = improvementForResource(id);
+      expect(wants, `${id} is improved by something`).not.toBeNull();
+      expect(wants === 'fishingBoats', `${id} wants fishing boats`).toBe(wet);
     }
-    expect(improvementForResource('fish')).toBeNull();
+    expect(improvementForResource('fish')).toBe('fishingBoats');
+    expect(improvementForResource('tyrian')).toBe('fishingBoats');
+  });
+
+  it('puts the fishing boats on the coast and only on a seam', () => {
+    // The one row that uses both filters, and the reason is in the table's
+    // docblock: the terrain clause is what keeps it honest if a sea resource is
+    // ever seeded on the deep ocean, since a worker can only stand on water it
+    // could embark onto.
+    const def = improvementDef('fishingBoats');
+    expect(def.validTerrain).toEqual(['coast']);
+    expect(def.requiresTech).toBe('sailing');
+    expect(def.clearsClutter).toBe(false);
+    expect(def.requiresResource).toEqual(def.improvesResource);
   });
 
   it('hands back a fresh yield object, so a caller cannot retune the game', () => {

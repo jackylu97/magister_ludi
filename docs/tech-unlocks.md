@@ -31,6 +31,8 @@ the report against it.
 - **Building authority capacity** — a building raises the empire's writ (`authorityCapacity`). One: the monument, +1. The authority breakdown counts them per type ("Monuments ×3 +3"); nothing in the meter names the monument.
 - **Per-category production modifier** — a building puts a share of its city's hammers behind one *kind* of item (`productionBonus: { category, percent }`). One: the barracks, +10% toward units. Luxuries declare the same shape (marble, +15% toward buildings), and `productionModifiers` is one list over both tables. It flows through `cityYields`, so the estimate, the panel and the hammers the basket receives are one number.
 - **Resource reveal** — tech makes a strategic resource *visible* (it works regardless). Two now: Husbandry reveals horses, Bronzeworking reveals iron.
+- **Abilities** — a tech hands the empire a *verb* rather than a thing to make (`unlocks.abilities`, named in `techs.json`'s own `abilities` block). One: Sailing → **embark**. It reads through `techsGrant` / `hasAbility`, so no rule in the simulation spells a tech id; moving embarkation to another node is a data edit.
+- **Building tile yields** — a building pays on the *ground* its town works rather than in its own totals (`tileYields` in `buildings.json`, with a `TileCondition` and an optional `requiresTech`). One: the **granary**, +1🌾 on every water hex, from Sailing. It lands as its own line in the hex's yield breakdown (hard rule 5), so a landlocked granary town simply never sees it.
 - **Repeating projects** — tech unlocks a queue row that *never completes* (`unlocks.projects`, ledger Entry XXVI). Two now: Calendar → **Tithes** (20⚙ → 5🪙), Letters → **Scholarship** (20⚙ → 5🔬). The row stays where it stands and is charged again the moment it is paid, so a town that has run out of things to build is never idle. The payout is a *printed conversion* and nothing multiplies it — the hammers were already staged on their way into the basket (Entry XVII).
 - **Building happiness** — a building supplies contentment to the city that holds it (`happiness`). One: **funeral games**, +3. Folded as its own line of the happiness ledger through `buildingEffects.ts`; nothing in the meter names it.
 - **Building city stat** — a building raises what its own town is worth to storm, or how far it sees (`cityStat`). One: the **palisade**, +5 defense. The same shape a Statecraft card uses, folded into the same forecast lines.
@@ -44,8 +46,9 @@ second-tier nodes rather than on "Agriculture or Pottery".
 - **Agriculture** (15🔬, *free at game start*): units — settler, warrior, scout, worker · improvement — **farm** (+1🌾, on flat grassland or plains, on any flat desert/tundra/snow **with fresh water**, and in a floodplain)
 - **Husbandry** (18🔬 ← Agriculture): unit — horseman · improvement — **pasture** · reveals **horses**
 - **Fletching** (18🔬 ← Agriculture): unit — archer (ranged 7) · improvement — **camp**
+- **Sailing** (8🔬 ← Agriculture, *added 2026-08-26, ledger Entry XXVII*): ability — **embark** (civilians may cross coastal water) · improvement — **fishing boats** (+1🌾, on a coastal seam) · building line — every **granary** town's water tiles gain +1🌾
 - **Mining** (16🔬 ← Agriculture): improvement — **mine** (+1⚙ on hills) · ability — **clear forest** (20⚙ once, to the city that owns the tile)
-- **Earthenware** (16🔬 ← Agriculture): building — granary (+3🌾)
+- **Earthenware** (16🔬 ← Agriculture): building — granary (+3🌾; **its water line waits for Sailing**)
 - **Bronzeworking** (23🔬 ← Mining + Earthenware): unit — spearman · buildings — **barracks** (+10%⚙ toward units built here), **funeral games** (35⚙, **+3 happiness in this city**) · reveals **iron**
 - **Stonecraft** (23🔬 ← Husbandry + Earthenware): improvement — **quarry** · buildings — monument (+2🎵, **+1 authority capacity**), **palisade** (30⚙, **+5 city defense**)
 - **Calendar** (21🔬 ← Earthenware): improvement — **plantation** (+1🌾) · **renewal: plantations +1🪙** · project — **Tithes** (20⚙ → 5🪙, repeating)
@@ -101,14 +104,15 @@ and costs deliberately left alone (see *Implementation status*).
 
 ## Improvements — what workers can build (for cross-reference)
 
-All six cost 1 worker charge. **Every one is now tech-gated**, which is what turns
-the worker's menu from a wall of six buttons on turn one into a curve.
+All seven cost 1 worker charge. **Every one is tech-gated**, which is what turns
+the worker's menu from a wall of buttons on turn one into a curve.
 
 - **Farm** +1🌾 — *Agriculture* · flat grassland/plains, clears clutter · improves wheat · Feudalism renewal (+1🌾 freshwater)
 - **Mine** +1⚙ — *Mining* · any hills, clears clutter · improves iron, gems
 - **Pasture** +1⚙ — *Husbandry* · on cattle/horses only
 - **Camp** +1🌾+1🪙 — *Fletching* · on deer only
 - **Quarry** +1⚙ — *Stonecraft* · on stone/salt only
+- **Fishing Boat** +1🌾 — *Sailing* · on a **coastal** seam only (fish, crabs, pearls, coral, whales, tyrian murex). The only improvement that stands on water, and the worker has to be embarked to build it.
 - **Plantation** +1🌾 — *Calendar* · on silk/wine/spices only · Calendar renewal (+1🪙)
 
 The plantation's gate and its renewal are the same tech, which reads oddly and is
@@ -136,7 +140,7 @@ re-pointed Age II/III prerequisites.
 - **Priest / monk.** Unspecified in the design and unbuilt.
 - **Trade menu.** Letters' "unlock trade menu" is unbuilt; the library's +2🪙 shipped.
 - **The unlock-roll system** ("mastery of the hearth", "mastery of the seasons", …). Not built, and every "food unlock?" / "military unlock?" note in the design is parked with it. Wonders stay deliberately absent as the design says.
-- **Sailing, entirely.** Embarkation, fishing boats and water-conditional yields ("water tiles +1🌾 in cities with a granary") each need new machinery — a movement rule for civilians on water, a water improvement, and a yield that reads a *building* from a *tile*. It headlines a future water milestone rather than being smuggled into Age I, so Sailing is not in the tree at all.
+- ~~**Sailing, entirely.**~~ **Shipped 2026-08-26** as the water milestone (ledger Entry XXVII), and it did headline one rather than being smuggled in. All three pieces of machinery this entry named were built: civilian embarkation went into `tileMoveCost` (the one movement evaluator, which now takes a `MoveProfile` rather than a bare unit row), the fishing boats are an ordinary improvement row, and the granary's water line is a **building tile yield** — a `TileCondition` on a building's row, resolved into the tile chain's own line list. **One deviation from the ratified text below**: the boats pay **+1🌾** and not +1🌾+1🪙, per the milestone brief. The gold is one number in `improvements.json` on the day it is wanted.
 
 **Pacing.** The scripted empire in `test/tech.test.ts` now closes the three ages on
 turns **40 / 68 / 107**, against 42 / 100 / 167 before. Age I got dearer (212
@@ -155,7 +159,7 @@ old length is wanted.
 - **Every improvement is tech-gated now**; the spread is the one above.
 - **No chop/clear-feature mechanic exists** (forest chop for ⚙ is designed in the ledger, not built).
 - Renewals are cheap and generic on both improvements and buildings; reveals are cheap and generic on resources. Any tech can take another of any of them with one data line.
-- Fish and work boats are deferred; no improvement touches water.
+- ~~Fish and work boats are deferred; no improvement touches water.~~ **Fishing boats landed 2026-08-26** (Entry XXVII), on Sailing, and reach all six sea resources.
 - Techs are the only unlock source — no civics/cards yet (M12).
 
 ## Revisions

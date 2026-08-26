@@ -39,6 +39,14 @@
  *     grassland, plains or tundra" here would be a second copy of a rule that
  *     already exists in `resources.json` and could drift from it.
  *
+ * Fishing boats are the one row that uses **both**, and deliberately: it names
+ * its six sea resources *and* `validTerrain: ["coast"]`. That is not the
+ * redundancy the paragraph above refuses — the terrain clause is what keeps the
+ * row honest the day a sea resource is seeded on the deep ocean, since a worker
+ * can only be standing on water it could embark onto (Entry XXVII) and coast is
+ * all of that today. Read as one sentence off the row: "on a coastal seam, and
+ * only on the coast".
+ *
  * `improvesResource` is a different question from `requiresResource` and that is
  * why it is a different field. It is the list of resources this improvement
  * *unlocks access to* (`hasResource` in `cities.ts`, design ledger Entry IX's
@@ -47,22 +55,27 @@
  * on any hill and *also* the thing that opens an iron seam, so it names hills as
  * its constraint and iron and gems as what it improves.
  *
- * Deliberate holes, both documented rather than papered over
- * ----------------------------------------------------------
- * **Nothing wet has an improvement.** The water improvement is a work boat,
- * which needs naval units and embarkation — deferred with the rest of naval. So
- * fish and crabs, and the four sea luxuries the ratified table added (pearls,
- * coral, whales and tyrian murex), all stay on the map, stay visible, keep
- * paying a citizen who works the tile, and simply cannot be *accessed* in the
- * `hasResource` sense. For the bonus rows that costs a player nothing. For the
- * four luxuries it costs them everything they were specified to do — their
- * happiness, their per-city yields and both tiers of their signatures are
- * written, tested and **inert** until the work boat lands. That is deliberate
- * and is annotated in `docs/luxuries.md`: the design is ratified and the data is
- * the honest place to hold it, and `test/improvements.test.ts` asserts the hole
- * as "water iff unimproved" so the day the row is added it fails in both
- * directions at once.
+ * The sea, opened (Entry XXVII, 2026-08-26)
+ * -----------------------------------------
+ * **Fishing boats close the hole this docblock used to describe.** It said that
+ * nothing wet had an improvement, that the six sea rows — fish and crabs, and
+ * the four luxuries the ratified table added (pearls, coral, whales and tyrian
+ * murex) — stayed on the map, stayed visible, paid a citizen who worked the
+ * tile, and simply could not be *accessed* in the `hasResource` sense; and that
+ * the four luxuries' happiness, per-city yields and both tiers of their
+ * signatures were therefore written, tested and **inert**.
  *
+ * All of it now fires, and the change really was the one row this file promised:
+ * a `fishingBoats` entry gated on Sailing. Nothing in `openedResource`,
+ * `resourceEffects.ts` or the meters knew the hole existed, which is why closing
+ * it needed no edit in any of them. The *other* half of the same milestone is
+ * why a worker can be standing there at all — civilian embarkation, in
+ * `tileMoveCost` (`pathfind.ts`) — and the two are one feature: an improvement
+ * on water that nobody can reach would have been the same hole with a row in it.
+ * `docs/luxuries.md` records what came live per sea row.
+ *
+ * A deliberate hole, documented rather than papered over
+ * ------------------------------------------------------
  * **Salt and jade are quarried, not mined**, which is where this table narrows
  * the design note (which said the mine's list carried salt). Both are placed
  * with no `hills` constraint, so roughly half of each sits on flat ground — and
@@ -112,7 +125,7 @@
 
 import improvementsJson from '../../data/improvements.json';
 
-import { RESOURCE_IDS, type ResourceId } from './resourceData';
+import { RESOURCE_IDS, type ResourceId, resourceEffects } from './resourceData';
 import {
   FEATURE_IDS,
   type FeatureId,
@@ -126,7 +139,14 @@ import {
 } from './terrainData';
 import { TECH_IDS, type TechId } from './techData';
 
-export type ImprovementId = 'farm' | 'mine' | 'pasture' | 'camp' | 'quarry' | 'plantation';
+export type ImprovementId =
+  | 'farm'
+  | 'mine'
+  | 'pasture'
+  | 'camp'
+  | 'quarry'
+  | 'fishingBoats'
+  | 'plantation';
 
 /**
  * One tech-driven renewal of an improvement's yield.
@@ -391,6 +411,22 @@ function validateTable(): void {
     for (const key of TILE_YIELD_KEYS) {
       if (key !== 'production' && paid[key] !== 0) {
         throw new Error(`${where} pays ${key}, which has no one-time bank to land in`);
+      }
+    }
+  }
+  // The other table's half of the same question, and it is here rather than in
+  // `resourceData.ts` because this is the module that can see both: a luxury's
+  // `improvementYields` signature names an improvement, and `resourceData` may
+  // only import `ImprovementId` as a type (a value import back would close a
+  // load-time cycle between two validators). A signature naming an improvement
+  // that does not exist is a payoff that can never land on any hex.
+  for (const resource of RESOURCE_IDS) {
+    for (const effect of resourceEffects(resource)) {
+      if (effect.kind !== 'improvementYields') continue;
+      if (!isImprovementId(effect.improvement)) {
+        throw new Error(
+          `resources.json: ${resource} pays on unknown improvement "${String(effect.improvement)}"`,
+        );
       }
     }
   }

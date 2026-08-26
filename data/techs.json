@@ -30,6 +30,16 @@
       "unlocks": { "units": ["archer"] },
       "flavor": "Distance is the oldest mercy."
     },
+    "sailing": {
+      "name": "Sailing",
+      "glyph": "⛵",
+      "age": 1,
+      "row": 6,
+      "cost": 8,
+      "prereqs": ["agriculture"],
+      "unlocks": { "abilities": ["embark"] },
+      "flavor": "The shore stops being the edge of the world."
+    },
     "mining": {
       "name": "Mining",
       "glyph": "⛏",
@@ -251,6 +261,13 @@
       "prereqs": ["theology", "philosophy"],
       "unlocks": { "buildings": ["university"] },
       "flavor": "A school is a city's second memory."
+    }
+  },
+  "abilities": {
+    "embark": {
+      "name": "Embark",
+      "glyph": "⛵",
+      "summary": "Workers and settlers may cross coastal water."
     }
   }
 }

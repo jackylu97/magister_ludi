@@ -607,15 +607,21 @@ describe('strategic resources gate production', () => {
     expect(improvementForResource('iron')).toBe('mine');
   });
 
-  it('leaves fish permanently unreachable, and says so in the data', () => {
-    // The one documented hole: the water improvement is a work boat and naval is
-    // deferred. Asserted rather than left implicit, so the day somebody adds the
-    // row this test is what tells them to delete it.
+  it('opens fish to a fishing boat, and to nothing else', () => {
+    // This used to be the one documented hole — the water improvement was a work
+    // boat, naval was deferred, and the test said "the day somebody adds the row
+    // this is what tells them to delete it". Entry XXVII added the row, so what
+    // it pins now is the same rule from the other side: the boats open the seam
+    // and a farm laid on the same hex does not.
     const state = bareState();
     foundCityAt(state, 0, at(state, 5, 5));
     at(state, 5, 4).resource = 'fish';
-    expect(improvementForResource('fish')).toBeNull();
+    expect(improvementForResource('fish')).toBe('fishingBoats');
     expect(hasResource(state, 0, 'fish')).toBe(false);
+    at(state, 5, 4).improvement = 'farm';
+    expect(hasResource(state, 0, 'fish')).toBe(false);
+    at(state, 5, 4).improvement = 'fishingBoats';
+    expect(hasResource(state, 0, 'fish')).toBe(true);
   });
 
   it('does not count a resource on unclaimed ground, improved or not', () => {

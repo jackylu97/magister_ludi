@@ -296,12 +296,12 @@ describe('the zone-of-control rule', () => {
     const { guard, here, along, away } = picket(state.map);
     unit(state, guard, 'warrior', 1);
     const field = zocField(state, 0);
-    const def = unitDef('warrior');
-    expect(stepCost(state.map, here, along, def, field)).toEqual({ cost: 1, locked: true });
-    expect(stepCost(state.map, here, away, def, field)).toEqual({ cost: 1, locked: false });
+    const mover = { def: unitDef('warrior'), embarks: false };
+    expect(stepCost(state.map, here, along, mover, field)).toEqual({ cost: 1, locked: true });
+    expect(stepCost(state.map, here, away, mover, field)).toEqual({ cost: 1, locked: false });
     // Impassable is still impassable, and it is decided before anything else.
     along.terrain = 'mountain';
-    expect(stepCost(state.map, here, along, def, field)).toBeNull();
+    expect(stepCost(state.map, here, along, mover, field)).toBeNull();
   });
 
   it('tells the interface when a unit is being held', () => {

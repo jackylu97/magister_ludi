@@ -6,7 +6,8 @@
     "maxPlayers": 12
   },
   "movement": {
-    "minStepCost": 1
+    "minStepCost": 1,
+    "embarkCost": 1
   },
   "stacking": {
     "perCategoryPerTile": 1

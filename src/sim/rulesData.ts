@@ -38,6 +38,17 @@ export interface MovementRules {
    * ever be free (and therefore no zero-cost cycle can exist for the pathfinder).
    */
   minStepCost: number;
+  /**
+   * What one step of **embarkable water** costs a mover that may cross it
+   * (`MoveProfile.embarks` in `pathfind.ts`).
+   *
+   * A number of its own rather than `minStepCost` reused, because the two say
+   * different things: the floor is a guarantee about the *search* — no edge is
+   * free, so a node settles the first time it is popped — while this is the
+   * price of a design decision, and the day a coastal crossing should cost a
+   * whole turn it is this line that moves. They happen to be equal in v1.
+   */
+  embarkCost: number;
 }
 
 export interface StackingRules {

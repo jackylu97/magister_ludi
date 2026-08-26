@@ -193,6 +193,41 @@ describe('the improvement layer', () => {
     expect(matrix.elements[14]).toBeCloseTo(centre.z, 5);
   });
 
+  it('floats a fishing boat on the coast prism, not on the land height', () => {
+    // The one improvement that stands on water (Entry XXVII). Nothing in this
+    // layer knows that — it asks `tileTopY`, which has a height class per
+    // terrain — and this is the assertion that says so out loud: the boat sits
+    // on the *coast's* top face, which is strictly below dry ground.
+    const state = flatState();
+    const sea = at(state, 6, 4);
+    sea.terrain = 'coast';
+    sea.resource = 'fish';
+    sea.improvement = 'fishingBoats';
+    const layer = layerFor(state);
+    expect(layer.instances).toBe(1);
+    const mesh = meshesOf(layer.group).find(
+      (candidate) => candidate.geometry === geometry.improvementProps.fishingBoats,
+    );
+    expect(mesh).toBeDefined();
+    const matrix = mesh!.matrixWorld.clone();
+    mesh!.getMatrixAt(1, matrix);
+    expect(matrix.elements[13]).toBeCloseTo(tileTopY(sea) + VIEW3D.improvements.lift, 5);
+    expect(tileTopY(sea)).toBeLessThan(tileTopY(at(state, 6, 5)));
+  });
+
+  it('hides a fishing boat on ground nobody has charted, like every other prop', () => {
+    // The instancing contract: every instance names its `tile`, so the fog
+    // accounting reaches the sea exactly as it reaches the fields.
+    const state = flatState();
+    const sea = at(state, 6, 4);
+    sea.terrain = 'coast';
+    sea.improvement = 'fishingBoats';
+    const hidden = new Array<number>(state.map.tiles.length).fill(HIDDEN);
+    expect(layerFor(state, hidden).instances).toBe(0);
+    const explored = new Array<number>(state.map.tiles.length).fill(EXPLORED);
+    expect(layerFor(state, explored).instances).toBe(1);
+  });
+
   it('places a prop identically on every rebuild and every wrap copy', () => {
     // Placement is `hash(col, row, stream)` like every other scatter, so a farm
     // does not hop when the layer is rebuilt for an unrelated reason.

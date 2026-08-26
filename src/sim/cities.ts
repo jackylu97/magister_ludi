@@ -94,7 +94,7 @@ import {
 import { type ProjectId, isProjectId, projectDef } from './projectData';
 import { RULES } from './rulesData';
 import {
-  type CardTileLine,
+  type TileLine,
   cardActionRule,
   cardMeterFlag,
   cardCityYields,
@@ -152,7 +152,9 @@ import {
   resourcePercentYields,
   resourceProduction,
   resourceRulePercent,
+  resourceTileLines,
 } from './resourceEffects';
+import { buildingTileLines } from './buildingEffects';
 
 const CITIES = RULES.cities;
 
@@ -269,17 +271,33 @@ export interface TileYieldContext {
   /** Technologies the owning player holds. `Player.techsResearched`. */
   techs: readonly TechId[];
   /**
-   * What this empire's Statecraft cards pay on a hex, already resolved into
-   * `{ condition, bag }` lines (`cardTileLines` in `statecraft.ts`).
+   * What this empire's **law, holdings and works** pay on a hex, already
+   * resolved into `{ source, condition, bag }` lines (`TileLine` in
+   * `statecraft.ts`).
    *
    * The *answer* rather than the question, and that is what keeps this chain
    * what it is: `explainTileYield` knows about a tile and a context and nothing
-   * else — no `GameState`, no player id, no card table — so a card's line has to
-   * arrive pre-resolved or the whole module would have to grow a second reason
-   * to know about empires. Absent for a context-less (omniscient) evaluation and
-   * for an empire holding no such card, which is most of them.
+   * else — no `GameState`, no player id, no card table — so a line has to arrive
+   * pre-resolved or the whole module would have to grow a second reason to know
+   * about empires. Absent for a context-less (omniscient) evaluation and for an
+   * empire whose law, holdings and works say nothing about ground, which is most
+   * of them.
+   *
+   * **One list, three producers**, and the chain cannot tell them apart:
+   *
+   *   · a Statecraft card's `tileYield` (`cardTileLines`) — the empire's law;
+   *   · a luxury's `improvementYields` (`resourceTileLines`) — what a held seam
+   *     is worth to every hex of a kind, tyrian's boats and whales';
+   *   · a building's `tileYields` (`buildingTileLines`) — the granary's food on
+   *     water, and the only one of the three that is a fact about *one city*,
+   *     which is why `cityContext` adds it and `yieldContextFor` cannot.
+   *
+   * A fourth producer joins by appending to this list. It was `cards` alone
+   * until Entry XXVII; folding the other two into the same channel rather than
+   * giving each its own field is what keeps `explainTileYield`'s last clause one
+   * loop instead of three.
    */
-  cards?: readonly CardTileLine[];
+  lines?: readonly TileLine[];
 }
 
 /**
@@ -324,18 +342,33 @@ export function yieldContextFor(
   const player = playerById(state, playerId);
   if (!player) return undefined;
   const ctx: TileYieldContext = { techs: player.techsResearched };
-  // Written only when there is something in it, so an empire with no such card
-  // builds a context byte-identical to the one this returned before Statecraft
-  // existed — and a sweep of twenty hexes asks the card table once, here, rather
-  // than once per tile.
-  const cards = cardTileLines(state, playerId);
-  if (cards.length > 0) ctx.cards = cards;
+  // Written only when there is something in it, so an empire whose law and
+  // holdings say nothing about ground builds a context byte-identical to the one
+  // this returned before Statecraft existed — and a sweep of twenty hexes asks
+  // both tables once, here, rather than once per tile.
+  const lines = [...cardTileLines(state, playerId), ...resourceTileLines(state, playerId)];
+  if (lines.length > 0) ctx.lines = lines;
   return ctx;
 }
 
-/** The context of the player who owns a city. Never undefined in practice. */
+/**
+ * The context of the player who owns a city, **plus what that city's own
+ * buildings pay on its ground**. Never undefined in practice.
+ *
+ * The one place the two scales meet. Everything `yieldContextFor` resolves is a
+ * fact about the *empire* and is the same in every town; a granary is a fact
+ * about *this* town, so it can only be added by whoever has a city in hand — and
+ * that is exactly the four callers in the register that pass a city's context
+ * (`assignCitizens`, `centreYield`, `cityYields`, `bestExpansionTile`). A hex
+ * outside anybody's borders has no granary to ask about, which is why the empire
+ * context is the honest answer for the hover card and the lens.
+ */
 function cityContext(state: GameState, city: City): TileYieldContext | undefined {
-  return yieldContextFor(state, city.ownerId);
+  const ctx = yieldContextFor(state, city.ownerId);
+  if (!ctx) return undefined;
+  const own = buildingTileLines(city, ctx.techs);
+  if (own.length === 0) return ctx;
+  return { ...ctx, lines: [...(ctx.lines ?? []), ...own] };
 }
 
 /**
@@ -394,22 +427,24 @@ export function explainTileYield(
     }
   }
 
-  // The empire's law, last, and as ordinary `add` entries: Common Granary's food
-  // on a resource hex is a line in this breakdown exactly as the improvement's
-  // is, so the hover card, the citizen's score, the city panel and the banked
-  // total all learn about it from one place (rule 5). Nothing here asks *which*
-  // card — the context already resolved that.
-  for (const card of ctx?.cards ?? []) {
-    if (!tileConditionHolds(tile, card.on)) continue;
+  // The empire's law, holdings and works, last, and as ordinary `add` entries:
+  // Common Granary's food on a resource hex, a granary's food on water, tyrian's
+  // culture on a fishing boat — each a line in this breakdown exactly as the
+  // improvement's is, so the hover card, the citizen's score, the city panel and
+  // the banked total all learn about them from one place (rule 5). Nothing here
+  // asks *which* of the three a line came from — the context already resolved
+  // that, and that is the whole reason there is one list rather than three.
+  for (const line of ctx?.lines ?? []) {
+    if (!tileConditionHolds(tile, line.on)) continue;
     list.push({
-      source: card.source,
+      source: line.source,
       kind: 'add',
-      food: card.food,
-      production: card.production,
-      gold: card.gold,
-      science: card.science,
-      culture: card.culture,
-      faith: card.faith,
+      food: line.food,
+      production: line.production,
+      gold: line.gold,
+      science: line.science,
+      culture: line.culture,
+      faith: line.faith,
     });
   }
 
@@ -489,10 +524,13 @@ export interface ResourceHolding {
  *      flag is set: it is derived every time it is asked, so researching a
  *      technology *is* the event, with no schema and no bookkeeping of its own.
  *
- * A resource nothing improves — fish, and the four sea luxuries, whose work boat
- * is deferred with the rest of naval — is therefore never in anybody's hands by
- * either path, which is the honest answer rather than a special case: a city
- * cannot be founded on water either.
+ * A resource nothing improves is therefore never in anybody's hands by either
+ * path, which is the honest answer rather than a special case. That used to be
+ * the *whole sea* — fish, crabs and the four sea luxuries, whose work boat was
+ * deferred with the rest of naval — and since Entry XXVII it is nobody: the
+ * fishing boats reach all six. Note which clause opened them, because it is not
+ * the third: a city still cannot be founded on water, so a sea seam is always
+ * held by clause **2**, the improvement standing on it.
  */
 function openedResource(
   state: GameState,

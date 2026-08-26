@@ -512,6 +512,12 @@
         "shade": 0.1,
         "size": 0.52,
         "jitter": 0.06
+      },
+      "fishingBoats": {
+        "color": "timber",
+        "shade": 0.22,
+        "size": 0.44,
+        "jitter": 0.1
       }
     }
   },
