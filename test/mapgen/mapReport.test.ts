@@ -16,6 +16,7 @@ import { RULES } from '../../src/sim/rulesData';
 import { chooseStartPositions, scoreStartSite } from '../../src/sim/startPositions';
 import { unitDef } from '../../src/sim/unitData';
 import { type GameConfig, type GameState, newGame } from '../../src/sim/state';
+import { gameFor } from './fixtures';
 import { isWaterTerrain } from '../../src/sim/terrainData';
 
 /**
@@ -41,8 +42,14 @@ function config(players: number, sizeName = 'duel', seed = 4242): GameConfig {
   };
 }
 
+/**
+ * A private game for a roster and a map. `gameFor` rather than `newGame`: the
+ * standard-map default is asked for a dozen times in this file and generating
+ * that map a dozen times is a dozen times the wall clock for one map. Every
+ * caller still gets a state of its own — see `./fixtures`.
+ */
 function state(players = 4, sizeName = 'duel', seed = 4242): GameState {
-  return newGame(config(players, sizeName, seed));
+  return gameFor(config(players, sizeName, seed));
 }
 
 describe('resourceCensus', () => {

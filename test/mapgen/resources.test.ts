@@ -14,7 +14,7 @@ import { applyCommand } from '../../src/sim/commands';
 import { createGame, dispatch, loadGame, replay, saveGame, snapshotState } from '../../src/sim/game';
 import { improvementForResource } from '../../src/sim/improvementData';
 import { type GameMap, type Tile, createMap, getTileAt, mapRange, tileHex, tileIndex, tileNeighbors, wrappedDistance } from '../../src/sim/map';
-import { MAPGEN_CONFIG, MAP_SIZE_NAMES, generateMap, generateMapDetail } from '../../src/sim/mapgen';
+import { MAPGEN_CONFIG, MAP_SIZE_NAMES, generateMap } from '../../src/sim/mapgen';
 import {
   RESOURCE_DATA,
   RESOURCE_IDS,
@@ -35,6 +35,7 @@ import {
   tileSuitsResource,
 } from '../../src/sim/resources';
 import { describeResourceEffect } from '../../src/sim/resourceEffects';
+import { detailFor, mapFor } from './fixtures';
 import { makeRng } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
 import { chooseStartPositions } from '../../src/sim/startPositions';
@@ -180,7 +181,7 @@ describe('the resource table', () => {
 describe('placement', () => {
   it('never puts a resource on ground its own rules refuse', () => {
     for (const [seed, size] of SAMPLES) {
-      const map = generateMap(seed, size);
+      const map = mapFor(seed, size);
       for (const tile of resourceTiles(map)) {
         const def = resourceDef(tile.resource!);
         expect(tileSuitsResource(tile, def)).toBe(true);
@@ -200,7 +201,7 @@ describe('placement', () => {
     // a possible start** — which is a real constraint, not an escape hatch: a
     // leak in the scatter would show up in open country and fail here.
     for (const [seed, size] of SAMPLES) {
-      const map = generateMap(seed, size);
+      const map = mapFor(seed, size);
       const starts = chooseStartPositions(map, RULES.game.maxPlayers).map((tile) => tileHex(tile));
       const reach = Math.max(CONFIG.startFoodRadius, CONFIG.startLuxuryRadius);
       for (const tile of resourceTiles(map)) {
@@ -222,7 +223,7 @@ describe('placement', () => {
   });
 
   it('grows clusters: some finds are more than one tile', () => {
-    const map = generateMap(1234, 'standard');
+    const map = mapFor(1234, 'standard');
     // Horses ask for two or three tiles a find, so a whole standard map with no
     // adjacent pair at all would mean the cluster walk never ran.
     const herds = map.tiles.filter(
@@ -242,7 +243,7 @@ describe('placement', () => {
     // is asserted as a band around what that arithmetic predicts.
     for (const size of MAP_SIZE_NAMES) {
       for (const seed of [1, 4242]) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         const land = landTileCount(map);
         const per1000 = (kind: string): number =>
           (resourceTiles(map).filter((tile) => resourceDef(tile.resource!).kind === kind).length /
@@ -294,7 +295,7 @@ describe('placement', () => {
     for (const size of MAP_SIZE_NAMES) {
       if (size === 'duel') continue;
       for (const seed of [1, 4242]) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         const land = landTileCount(map);
         const per1000 = (kind: string): number =>
           (resourceTiles(map).filter((tile) => resourceDef(tile.resource!).kind === kind).length /
@@ -314,11 +315,14 @@ describe('placement', () => {
   });
 
   it('places every kind, not just the cheap ones', () => {
-    const map = generateMap(1, 'large');
+    const map = mapFor(1, 'large');
     const kinds = new Set(resourceTiles(map).map((tile) => resourceDef(tile.resource!).kind));
     expect(kinds).toEqual(new Set(['bonus', 'strategic', 'luxury']));
   });
 
+  // `generateMap` rather than `./fixtures`' memo table, here and in "rolls no
+  // dice" below: both tests are *about* generating twice, so a cache would turn
+  // them into assertions that a Map hands back what it stored.
   it('is deterministic in the seed, and different for another', () => {
     const digest = (map: GameMap): string =>
       map.tiles.map((tile) => tile.resource ?? '').join(',');
@@ -327,7 +331,7 @@ describe('placement', () => {
   });
 
   it('survives a JSON round trip with the resources on it', () => {
-    const map = generateMap(1234, 'duel');
+    const map = mapFor(1234, 'duel');
     expect(JSON.parse(JSON.stringify(map))).toEqual(map);
     // Absent, not `'none'`: a bare tile and a tile that lost its resource must
     // serialise identically. See the `Tile.resource` docblock.
@@ -398,7 +402,7 @@ describe('the ground did not move', () => {
 
   it('reproduces the pre-resource generator exactly', () => {
     for (const [seed, size, expected] of FIXTURES) {
-      expect(`${seed}/${size}: ${hashTerrain(generateMap(seed, size))}`).toBe(
+      expect(`${seed}/${size}: ${hashTerrain(mapFor(seed, size))}`).toBe(
         `${seed}/${size}: ${expected}`,
       );
     }
@@ -420,7 +424,7 @@ describe('the ground did not move', () => {
       [2024, 'huge', 143, 2],
     ];
     for (const [seed, size, rivers, lakes] of counts) {
-      const detail = generateMapDetail(seed, size);
+      const detail = detailFor(seed, size);
       expect([detail.rivers.length, detail.lakeCount]).toEqual([rivers, lakes]);
     }
   });
@@ -429,7 +433,7 @@ describe('the ground did not move', () => {
 describe('the fairness pass', () => {
   it('gives every possible start a bonus food within the configured radius', () => {
     for (const [seed, size] of SAMPLES) {
-      const map = generateMap(seed, size);
+      const map = mapFor(seed, size);
       const starts = chooseStartPositions(map, RULES.game.maxPlayers);
       expect(starts.length).toBeGreaterThan(0);
       for (const start of starts) {
@@ -448,7 +452,7 @@ describe('the fairness pass', () => {
     // `chooseStartPositions(map, n)` is a prefix of the same call for a larger
     // n, so planting for `maxPlayers` covers every game the map can host. That
     // is the property the pass leans on, so it is asserted rather than assumed.
-    const map = generateMap(31337, 'standard');
+    const map = mapFor(31337, 'standard');
     const all = chooseStartPositions(map, RULES.game.maxPlayers);
     for (let n = 1; n <= 4; n++) {
       expect(chooseStartPositions(map, n)).toEqual(all.slice(0, n));
@@ -894,7 +898,7 @@ describe('resources and the save file', () => {
 
 describe('the placement helpers', () => {
   it('counts land as everything that is not water', () => {
-    const map = generateMap(1234, 'duel');
+    const map = mapFor(1234, 'duel');
     let land = 0;
     for (const tile of map.tiles) if (!isWaterTerrain(tile.terrain)) land++;
     expect(landTileCount(map)).toBe(land);
@@ -923,7 +927,7 @@ describe('the placement helpers', () => {
   it('keeps the wrap in mind when it measures spacing', () => {
     // A resource one tile east of column 0 across the seam is adjacent, and the
     // spacing sweep has to know it. `wrappedDistance` is what it asks.
-    const map = generateMap(1234, 'duel');
+    const map = mapFor(1234, 'duel');
     const west = getTileAt(map, 0, 5)!;
     const east = getTileAt(map, map.width - 1, 5)!;
     expect(wrappedDistance(map, tileHex(west), tileHex(east))).toBe(1);
@@ -945,7 +949,7 @@ describe('luxury placement', () => {
 
   it('puts every luxury only on ground its own row allows', () => {
     for (const seed of SEEDS) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       for (const tile of map.tiles) {
         const id = tile.resource;
         if (id === undefined || resourceDef(id).kind !== 'luxury') continue;
@@ -963,7 +967,7 @@ describe('luxury placement', () => {
     const seen = new Set<ResourceId>();
     for (const size of ['standard', 'large', 'huge']) {
       for (const seed of SEEDS) {
-        for (const tile of generateMap(seed, size).tiles) {
+        for (const tile of mapFor(seed, size).tiles) {
           if (tile.resource !== undefined) seen.add(tile.resource);
         }
       }
@@ -981,7 +985,7 @@ describe('luxury placement', () => {
     // average from pole to pole.
     for (const size of ['duel', 'standard', 'large']) {
       for (const seed of SEEDS) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         const continents = carveContinents(map, CONFIG);
         const where = `${size}/${seed}`;
 
@@ -1090,11 +1094,11 @@ describe('luxury placement', () => {
   });
 
   it('carves the same continents every time, and different ones for another seed', () => {
-    const map = generateMap(4242, 'standard');
+    const map = mapFor(4242, 'standard');
     expect(Array.from(carveContinents(map, CONFIG).of)).toEqual(
       Array.from(carveContinents(map, CONFIG).of),
     );
-    const other = generateMap(4243, 'standard');
+    const other = mapFor(4243, 'standard');
     expect(Array.from(carveContinents(map, CONFIG).of)).not.toEqual(
       Array.from(carveContinents(other, CONFIG).of),
     );
@@ -1149,7 +1153,7 @@ describe('luxury placement', () => {
     // hand is drawn mid-stream from the map rng and is not reproducible from
     // outside.
     for (const seed of SEEDS) {
-      const map = generateMap(seed, 'large');
+      const map = mapFor(seed, 'large');
       const continents = carveContinents(map, CONFIG);
 
       /** Luxury tiles of each kind, per continent. */
@@ -1189,7 +1193,7 @@ describe('luxury placement', () => {
 
   it('gives each continent its own hand, so no one continent carries the table', () => {
     for (const seed of SEEDS) {
-      const map = generateMap(seed, 'large');
+      const map = mapFor(seed, 'large');
       const continents = carveContinents(map, CONFIG);
       const kinds = new Map<number, Set<ResourceId>>();
       const sizes = new Map<number, number>();
@@ -1235,7 +1239,7 @@ describe('luxury placement', () => {
     // no fairness pass may invent a jungle to put spices in.
     for (const size of ['duel', 'standard', 'large']) {
       for (const seed of SEEDS) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         for (const start of chooseStartPositions(map, RULES.game.maxPlayers)) {
           const near = mapRange(map, tileHex(start), CONFIG.startLuxuryRadius);
           const kinds = new Set<ResourceId>();
@@ -1265,7 +1269,7 @@ describe('luxury placement', () => {
     // rings could actually grow.
     for (const size of ['duel', 'standard', 'large']) {
       for (const seed of SEEDS) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         for (const start of chooseStartPositions(map, RULES.game.maxPlayers)) {
           const near = mapRange(map, tileHex(start), CONFIG.startLuxuryRadius);
           const copies = new Map<ResourceId, number>();
@@ -1305,7 +1309,7 @@ describe('luxury placement', () => {
     // The pass that was here before this one, unchanged and still holding: the
     // luxury guarantee was added beside it, not on top of it.
     for (const seed of SEEDS) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       for (const start of chooseStartPositions(map, RULES.game.maxPlayers)) {
         const fed = mapRange(map, tileHex(start), CONFIG.startFoodRadius).some(
           (tile) => tile.resource !== undefined && isBonusFood(tile.resource),
@@ -1359,7 +1363,7 @@ describe('what the survey found', () => {
     // the map will simply never carry — coffee was absent from eleven maps in
     // fifteen this way, spices and sugar from ten.
     for (const seed of SWEEP.slice(0, 6)) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       const continents = carveContinents(map, CONFIG);
       const candidates = new Map<ResourceId, Tile[]>();
       for (const id of LUXURIES) {
@@ -1392,7 +1396,7 @@ describe('what the survey found', () => {
     // stands inside a start's guarantee radius.
     const floor = Math.round(CONFIG.luxuryMinCopiesPerContinent);
     for (const seed of SWEEP.slice(0, 6)) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       const continents = carveContinents(map, CONFIG);
       const guarded = new Set<number>();
       for (const start of chooseStartPositions(map, RULES.game.maxPlayers)) {
@@ -1465,7 +1469,7 @@ describe('what the survey found', () => {
     // (`docs/luxuries.md`) and not a knob for a sweep to turn on its own.
     const seen = new Map<ResourceId, number>(LUXURIES.map((id) => [id, 0]));
     for (const seed of SWEEP) {
-      for (const [id, copies] of luxuryCounts(generateMap(seed, 'standard'))) {
+      for (const [id, copies] of luxuryCounts(mapFor(seed, 'standard'))) {
         if (copies > 0) seen.set(id, (seen.get(id) ?? 0) + 1);
       }
     }
@@ -1486,7 +1490,7 @@ describe('what the survey found', () => {
     // and the band asserted here is the one that pass works to.
     for (const size of ['duel', 'standard', 'large']) {
       for (const seed of SWEEP.slice(0, 6)) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         const land = landTileCount(map);
         const target = Math.round((land / 1000) * CONFIG.luxuryPer1000LandTiles);
         const low = Math.floor(target * (1 - CONFIG.luxuryDensityTolerance));
@@ -1529,7 +1533,7 @@ describe('what the survey found', () => {
     let stranded = 0;
     let cells = 0;
     for (const seed of SWEEP) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       const continents = carveContinents(map, CONFIG);
       const sizes = new Array<number>(continents.count).fill(0);
       for (let i = 0; i < map.tiles.length; i++) {
@@ -1596,6 +1600,12 @@ describe('a resource nobody wrote code for', () => {
 
       // Placed: the scatter reads only the constraint fields, so a huge
       // frequency is enough to make the seeded draw find it.
+      //
+      // `generateMap` rather than `./fixtures`' memo table, and this is the one
+      // place in the directory where the reason is not determinism but the
+      // *table*: `withExtraResources` swaps the resource rows for the length of
+      // this callback, so `(seed, size)` is not the whole of what this map is a
+      // function of and a cached answer would be one from the ordinary table.
       const map = generateMap(4242, 'standard');
       const tiles = map.tiles.filter((tile) => tile.resource === id);
       expect(tiles.length).toBeGreaterThan(0);

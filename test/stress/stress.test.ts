@@ -61,11 +61,21 @@ import {
  * properties of the algorithm and they are the same on a laptop and on a loaded
  * CI box, so they are asserted tightly.
  *
- * **Wall clock second, and generously.** Every timing bound below is roughly an
+ * **CPU time second, and generously.** Every timing bound below is roughly an
  * order of magnitude above what the machine this was written on actually does —
  * the numbers are in the comments beside them. They are there to catch a change
  * that makes something *quadratic*, not to police a few milliseconds. A timing
  * assertion tuned tight is a test that fails on somebody else's Tuesday.
+ *
+ * And it is *CPU* time — `cpuMs` below, `process.cpuUsage()`'s user + system
+ * delta — rather than wall clock, which is the same sentence one step further.
+ * The suite runs nine workers on one machine, so wall clock here measures how
+ * often the scheduler got round to this thread as much as it measures the work,
+ * and it does so most on exactly the loaded box a bound is least able to defend
+ * itself on. CPU time is the work, and it is what "somebody made this
+ * quadratic" moves. Every bound below keeps the value it was given: CPU time is
+ * never more than the wall time it replaces for a single-threaded run, so a
+ * bound that held before still holds, and it now means what it says.
  *
  * The fixture is built out of ordinary commands through `dispatch`, so the log
  * it produces is a real save file — which is what makes the replay assertion at
@@ -73,6 +83,39 @@ import {
  * byte-identical state, at a scale where any Map-order or floating-point sin
  * would have somewhere to hide.
  */
+
+/**
+ * `process`, typed by hand rather than by `@types/node`.
+ *
+ * The tsconfig's `types` is `["vite/client"]` and this suite runs on the DOM
+ * lib, which is the right shape for a browser game — the sim is pure and knows
+ * nothing about a host. Reaching for the one host fact a stress bound needs is
+ * not a reason to pull Node's whole global surface into every file's scope, so
+ * the surface used is declared here, exactly as wide as it is used.
+ */
+interface CpuUsage {
+  user: number;
+  system: number;
+}
+const nodeProcess = (
+  globalThis as unknown as { process: { cpuUsage(previous?: CpuUsage): CpuUsage } }
+).process;
+
+/**
+ * CPU milliseconds spent between this call and the call to what it returns.
+ *
+ * `process.cpuUsage()` reports microseconds of user + system time charged to
+ * *this process*, so a worker that spent half its wall clock waiting for eight
+ * siblings to get off the CPU is not charged for the wait. See the file
+ * docblock: every bound here is about work, not about how busy the box was.
+ */
+function cpuMs(): () => number {
+  const started = nodeProcess.cpuUsage();
+  return () => {
+    const spent = nodeProcess.cpuUsage(started);
+    return (spent.user + spent.system) / 1000;
+  };
+}
 
 const TARGET_CITIES = 40;
 const TARGET_UNITS = 300;
@@ -101,7 +144,7 @@ interface Fixture {
  * makes the whole fixture a pure function of the seed.
  */
 function buildFixture(seed = 8_1508): Fixture {
-  const started = performance.now();
+  const spentBuilding = cpuMs();
   const game = createGame({
     seed,
     sizeName: 'standard',
@@ -176,7 +219,7 @@ function buildFixture(seed = 8_1508): Fixture {
     game,
     cityCount: state.cities.length,
     unitCount: state.units.length,
-    buildMs: performance.now() - started,
+    buildMs: spentBuilding(),
   };
 }
 
@@ -240,7 +283,7 @@ describe('the stress scenario', () => {
     console.log(
       `[stress] ${fixture.cityCount} cities, ${fixture.unitCount} units, ` +
         `${game.state.map.tiles.length} tiles, ${game.log.length} commands, ` +
-        `built in ${fixture.buildMs.toFixed(0)}ms`,
+        `built in ${fixture.buildMs.toFixed(0)}ms cpu`,
     );
     expect(fixture.cityCount).toBeGreaterThanOrEqual(TARGET_CITIES - 2);
     expect(fixture.unitCount).toBeGreaterThanOrEqual(TARGET_UNITS - 5);
@@ -345,11 +388,11 @@ describe('visibility at scale', () => {
       .sort((a, b) => b.units - a.units)[0]!;
 
     const runs = 20;
-    const started = performance.now();
+    const spentRecompute = cpuMs();
     for (let i = 0; i < runs; i++) recomputeVisibility(state, biggest.id);
-    const each = (performance.now() - started) / runs;
+    const each = spentRecompute() / runs;
     console.log(
-      `[stress] full recompute for a ${biggest.units}-unit seat: ${each.toFixed(2)}ms`,
+      `[stress] full recompute for a ${biggest.units}-unit seat: ${each.toFixed(2)}ms cpu`,
     );
     // Generous by roughly two orders of magnitude; the measured figure is in the
     // log line above. This catches "somebody made it quadratic", nothing finer.
@@ -363,21 +406,21 @@ describe('the board at scale', () => {
   const geometry = new BoardGeometry();
   const materials = new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
 
-  const started = performance.now();
+  const spentBoard = cpuMs();
   const board = buildBoard(probe.map, geometry, materials, false);
-  const boardMs = performance.now() - started;
+  const boardMs = spentBoard();
 
   const fog = new FogView(probe.map, board.tiles);
-  const chartStarted = performance.now();
+  const spentChart = cpuMs();
   fog.buildChart(geometry, materials, null);
-  const chartMs = performance.now() - chartStarted;
+  const chartMs = spentChart();
 
   it('builds its instance buffers in a sane time', () => {
     console.log(
       `[stress] board: ${board.tileCount} tiles, ${board.instanceCount} instances, ` +
-        `${board.drawCalls} draws, built in ${boardMs.toFixed(0)}ms`,
+        `${board.drawCalls} draws, built in ${boardMs.toFixed(0)}ms cpu`,
     );
-    console.log(`[stress] blank-chart layer built in ${chartMs.toFixed(0)}ms`);
+    console.log(`[stress] blank-chart layer built in ${chartMs.toFixed(0)}ms cpu`);
     // The board is built once per map and this is the number the fog exists to
     // avoid paying twice. Bounded very generously — see the file docblock.
     expect(boardMs).toBeLessThan(4000);
@@ -413,21 +456,21 @@ describe('the board at scale', () => {
   });
 
   it('paints the whole board once, then costs nothing at all when nothing moves', () => {
-    const first = performance.now();
+    const spentFirstPaint = cpuMs();
     const initial = fog.apply(probe.visibility[0]!);
-    const firstMs = performance.now() - first;
+    const firstMs = spentFirstPaint();
     expect(initial.tiles).toBe(probe.map.tiles.length);
 
     resetInstanceWrites();
-    const idle = performance.now();
+    const spentIdle = cpuMs();
     const nothing = fog.apply(probe.visibility[0]!);
-    const idleMs = performance.now() - idle;
+    const idleMs = spentIdle();
     expect(nothing.tiles).toBe(0);
     expect(INSTANCE_WRITES.matrix + INSTANCE_WRITES.tint).toBe(0);
     console.log(
       `[stress] fog first paint ${initial.tiles} tiles / ` +
-        `${initial.matrixWrites + initial.tintWrites} writes in ${firstMs.toFixed(0)}ms · ` +
-        `idle repaint ${idleMs.toFixed(2)}ms, 0 writes`,
+        `${initial.matrixWrites + initial.tintWrites} writes in ${firstMs.toFixed(0)}ms cpu · ` +
+        `idle repaint ${idleMs.toFixed(2)}ms cpu, 0 writes`,
     );
     expect(firstMs).toBeLessThan(2000);
     expect(idleMs).toBeLessThan(50);
@@ -446,9 +489,9 @@ describe('the board at scale', () => {
     expect(delta.became.length).toBeGreaterThan(0);
 
     resetInstanceWrites();
-    const started2 = performance.now();
+    const spentRepaint = cpuMs();
     const stats = fog.apply(state.visibility[0]!);
-    const ms = performance.now() - started2;
+    const ms = spentRepaint();
 
     expect(stats.tiles).toBe(delta.became.length);
     // THE render-side incrementality assertion. Every write is on a changed
@@ -471,7 +514,7 @@ describe('the board at scale', () => {
     expect(stats.matrixWrites).toBeLessThan(board.instanceCount / 50);
     console.log(
       `[stress] one move repaint: ${stats.tiles} tiles, ${stats.matrixWrites} matrix + ` +
-        `${stats.tintWrites} tint writes in ${ms.toFixed(2)}ms ` +
+        `${stats.tintWrites} tint writes in ${ms.toFixed(2)}ms cpu ` +
         `(board has ${board.instanceCount} instances)`,
     );
     expect(ms).toBeLessThan(50);
@@ -487,13 +530,13 @@ describe('the board at scale', () => {
     fog.apply(probe.visibility[0]!);
 
     resetInstanceWrites();
-    const started3 = performance.now();
+    const spentSwap = cpuMs();
     const swap = fog.apply(probe.visibility[1]!);
-    const ms = performance.now() - started3;
+    const ms = spentSwap();
 
     console.log(
       `[stress] seat swap: ${swap.tiles} tiles, ` +
-        `${swap.matrixWrites + swap.tintWrites} writes in ${ms.toFixed(1)}ms`,
+        `${swap.matrixWrites + swap.tintWrites} writes in ${ms.toFixed(1)}ms cpu`,
     );
     expect(swap.tiles).toBeGreaterThan(0);
     // Still attribute writes, still the same meshes. This is the one case the
@@ -525,15 +568,15 @@ describe('the board at scale', () => {
 
 describe('a full turn at scale', () => {
   it('resolves every seat, with the fog kept honest, inside a generous bound', () => {
-    const started = performance.now();
+    const spentTurn = cpuMs();
     for (const player of game.state.players) {
       const result = dispatch(game, { type: 'endTurn', playerId: player.id });
       expect(result).toEqual({ ok: true });
     }
-    const ms = performance.now() - started;
+    const ms = spentTurn();
     console.log(
       `[stress] one full turn resolution (${fixture.unitCount} units, ` +
-        `${fixture.cityCount} cities, ${SEATS} seats): ${ms.toFixed(0)}ms`,
+        `${fixture.cityCount} cities, ${SEATS} seats): ${ms.toFixed(0)}ms cpu`,
     );
     expect(game.state.turn).toBe(2);
     // The milestone's own suggestion, and the measured figure is an order of
@@ -551,10 +594,10 @@ describe('a full turn at scale', () => {
     // Fog is in the snapshot, so a visibility grid that depended on Map order,
     // on a Set's iteration, or on anything outside the state would show up here
     // as a diff and nowhere else.
-    const started = performance.now();
+    const spentReplay = cpuMs();
     const replayed = replay(game.config, game.log);
-    const ms = performance.now() - started;
-    console.log(`[stress] replay of ${game.log.length} commands: ${ms.toFixed(0)}ms`);
+    const ms = spentReplay();
+    console.log(`[stress] replay of ${game.log.length} commands: ${ms.toFixed(0)}ms cpu`);
     expect(snapshotState(replayed)).toBe(snapshotState(game.state));
     expect(ms).toBeLessThan(20_000);
   });
@@ -619,7 +662,7 @@ describe('a full turn at scale', () => {
     console.log(`[stress] ${sites.length} improvable sites found across ${SEATS} seats`);
     expect(sites.length).toBeGreaterThanOrEqual(WORKER_WAVE);
 
-    const started = performance.now();
+    const spentBuilds = cpuMs();
     let built = 0;
     for (const site of sites) {
       const spawn: Command = {
@@ -645,10 +688,10 @@ describe('a full turn at scale', () => {
         break;
       }
     }
-    const ms = performance.now() - started;
+    const ms = spentBuilds();
     console.log(
-      `[stress] ${built} improvements built by ${built} workers in ${ms.toFixed(0)}ms ` +
-        `(${(ms / Math.max(1, built)).toFixed(2)}ms each)`,
+      `[stress] ${built} improvements built by ${built} workers in ${ms.toFixed(0)}ms cpu ` +
+        `(${(ms / Math.max(1, built)).toFixed(2)}ms cpu each)`,
     );
     // Not every site takes a worker — a civilian already standing there is
     // refused by stacking, which is the rule doing its job — but most do.
@@ -675,12 +718,12 @@ describe('a full turn at scale', () => {
     const geometry = new BoardGeometry();
     const materials = new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
     const layer = new ImprovementLayer();
-    const layerStarted = performance.now();
+    const spentLayer = cpuMs();
     layer.build(state, geometry, materials, false, state.visibility[0]!);
-    const layerMs = performance.now() - layerStarted;
+    const layerMs = spentLayer();
     console.log(
       `[stress] improvements layer: ${layer.instances} instances, ` +
-        `${layer.drawCalls} draws, built in ${layerMs.toFixed(2)}ms`,
+        `${layer.drawCalls} draws, built in ${layerMs.toFixed(2)}ms cpu`,
     );
     // One per improved tile the seat can see, and never more.
     expect(layer.instances).toBeLessThanOrEqual(improved.length);
@@ -778,9 +821,9 @@ describe('what building on a tile costs the board', () => {
 
       // THE "BEFORE" NUMBER: what founding a city or finishing a farm used to
       // cost, because it is exactly the work the old fingerprint triggered.
-      const rebuildStarted = performance.now();
+      const spentRebuild = cpuMs();
       const board = buildBoard(map, geometry, materials, false);
-      const rebuildMs = performance.now() - rebuildStarted;
+      const rebuildMs = spentRebuild();
 
       const meshes = board.group.children.slice();
       // Two different hexes: a farm and a founding never land on the same one.
@@ -794,23 +837,23 @@ describe('what building on a tile costs the board', () => {
 
       // --- a farm, or a mine: the meadow goes ---------------------------------
       resetInstanceWrites();
-      const farmStarted = performance.now();
+      const spentFarm = cpuMs();
       board.suppressTile(cell, SUPPRESS.clutter);
-      const farmMs = performance.now() - farmStarted;
+      const farmMs = spentFarm();
       const farmWrites = INSTANCE_WRITES.matrix;
 
       // --- a town: the wood goes too ------------------------------------------
       resetInstanceWrites();
-      const townStarted = performance.now();
+      const spentTown = cpuMs();
       board.suppressTile(townCell, SUPPRESS.decor);
-      const townMs = performance.now() - townStarted;
+      const townMs = spentTown();
       const townWrites = INSTANCE_WRITES.matrix;
 
       console.log(
         `[stress] ${sizeName} (${map.tiles.length} tiles, ${board.instanceCount} instances): ` +
-          `board rebuild ${rebuildMs.toFixed(0)}ms — which is what a farm or a founding ` +
-          `used to cost. Now: farm ${farmWrites} writes in ${farmMs.toFixed(3)}ms, ` +
-          `founding ${townWrites} writes in ${townMs.toFixed(3)}ms ` +
+          `board rebuild ${rebuildMs.toFixed(0)}ms cpu — which is what a farm or a founding ` +
+          `used to cost. Now: farm ${farmWrites} writes in ${farmMs.toFixed(3)}ms cpu, ` +
+          `founding ${townWrites} writes in ${townMs.toFixed(3)}ms cpu ` +
           `(the tile owns ${owned} instances).`,
       );
 
@@ -862,16 +905,16 @@ describe('what building on a tile costs the board', () => {
 
     const meshes = board.group.children.slice();
     resetInstanceWrites();
-    const started = performance.now();
+    const spentSweep = cpuMs();
     for (const city of state.cities) {
       board.suppressTile(tileIndex(state.map, city.col, city.row), SUPPRESS.decor);
     }
     for (const { cell } of improved) board.suppressTile(cell, SUPPRESS.clutter);
-    const ms = performance.now() - started;
+    const ms = spentSweep();
 
     console.log(
       `[stress] save-load: ${state.cities.length} towns + ${improved.length} works ` +
-        `applied in ${INSTANCE_WRITES.matrix} writes / ${ms.toFixed(2)}ms ` +
+        `applied in ${INSTANCE_WRITES.matrix} writes / ${ms.toFixed(2)}ms cpu ` +
         `(those tiles own ${owned} instances of the board's ${board.instanceCount})`,
     );
     expect(INSTANCE_WRITES.matrix).toBeLessThanOrEqual(owned);

@@ -7,7 +7,6 @@ import {
   crestLine,
   frequencyOf,
   generateMap,
-  generateMapDetail,
   getMapSize,
   latitudeOf,
   rankAmong,
@@ -17,9 +16,10 @@ import {
 } from '../../src/sim/mapgen';
 import { createMap, getTileAt, tileHex, tileIndex, tileNeighbors, wrappedDistance } from '../../src/sim/map';
 import { neighborInDirection, vertexTiles } from '../../src/sim/water';
+import { detailFor, mapFor } from './fixtures';
 import { FEATURE_IDS, TERRAIN_IDS, isWaterTerrain } from '../../src/sim/terrainData';
 
-const duel = generateMap(1234, 'duel');
+const duel = mapFor(1234, 'duel');
 
 function terrainCounts(map = duel): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -50,7 +50,7 @@ describe('map sizes', () => {
   it('generates a map of the configured dimensions', () => {
     for (const name of MAP_SIZE_NAMES) {
       const size = getMapSize(name);
-      const map = generateMap(7, name);
+      const map = mapFor(7, name);
       expect(map.width).toBe(size.width);
       expect(map.height).toBe(size.height);
       expect(map.tiles).toHaveLength(size.width * size.height);
@@ -61,14 +61,18 @@ describe('map sizes', () => {
 });
 
 describe('determinism', () => {
+  // The one corner of this file that calls `generateMap` rather than the memo
+  // table in `./fixtures`: a test whose subject is "the same seed twice gives
+  // the same map" has to generate twice, or it is asserting that a cache hands
+  // back what it stored.
   it('produces an identical map for the same seed and size', () => {
     expect(generateMap(4242, 'duel')).toEqual(generateMap(4242, 'duel'));
     expect(generateMap(4242, 'standard')).toEqual(generateMap(4242, 'standard'));
   });
 
   it('produces different maps for different seeds', () => {
-    const a = generateMap(1, 'duel');
-    const b = generateMap(2, 'duel');
+    const a = mapFor(1, 'duel');
+    const b = mapFor(2, 'duel');
     expect(a).not.toEqual(b);
     const differing = a.tiles.filter((tile, i) => tile.terrain !== b.tiles[i]!.terrain);
     expect(differing.length).toBeGreaterThan(a.tiles.length * 0.1);
@@ -84,7 +88,7 @@ describe('determinism', () => {
 
 describe('tile validity', () => {
   it('gives every tile a known terrain and feature', () => {
-    for (const map of [duel, generateMap(55, 'standard')]) {
+    for (const map of [duel, mapFor(55, 'standard')]) {
       for (const tile of map.tiles) {
         expect(TERRAIN_IDS).toContain(tile.terrain);
         expect(FEATURE_IDS).toContain(tile.feature);
@@ -128,7 +132,7 @@ describe('terrain distribution', () => {
       for (const seed of [1, 2, 3, 99, 31337]) {
         // Rank-normalised elevation means seaLevel is a fraction of the map, so
         // this is stable across seeds; the bounds are still deliberately loose.
-        const fraction = landFraction(generateMap(seed, name));
+        const fraction = landFraction(mapFor(seed, name));
         expect(fraction).toBeGreaterThan(0.2);
         expect(fraction).toBeLessThan(0.6);
       }
@@ -147,7 +151,7 @@ describe('terrain distribution', () => {
     // pass and are deliberately not coast, however much land they touch. That a
     // lake never mints a coastal tile is asserted in `water.test.ts`.
     for (const seed of [2468, 1, 7, 31337]) {
-      const map = generateMap(seed, 'duel');
+      const map = mapFor(seed, 'duel');
       for (const tile of map.tiles) {
         if (!isWaterTerrain(tile.terrain) || tile.terrain === 'lake') continue;
         const touchesLand = tileNeighbors(map, tile).some((n) => !isWaterTerrain(n.terrain));
@@ -157,7 +161,7 @@ describe('terrain distribution', () => {
   });
 
   it('puts the coldest terrain at the poles', () => {
-    const map = generateMap(31337, 'standard');
+    const map = mapFor(31337, 'standard');
     const polarLand = map.tiles.filter(
       (t) => (t.row === 0 || t.row === map.height - 1) && !isWaterTerrain(t.terrain),
     );
@@ -167,7 +171,7 @@ describe('terrain distribution', () => {
   });
 
   it('keeps jungle in the tropics and forest out of the ice', () => {
-    const map = generateMap(777, 'standard');
+    const map = mapFor(777, 'standard');
     for (const tile of map.tiles) {
       const latitude = latitudeOf(tile.row, map.height);
       if (tile.feature === 'jungle') {
@@ -212,7 +216,7 @@ describe('the elevation field', () => {
   it('holds the mountain and hill shares of land on every seed and size', () => {
     for (const size of MAP_SIZE_NAMES) {
       for (const seed of SEEDS.slice(0, 4)) {
-        const { land, mountain, hills } = relief(generateMap(seed, size));
+        const { land, mountain, hills } = relief(mapFor(seed, size));
         const where = `${size}/${seed}`;
         // Quantiles of the land, so these are near-exact rather than banded.
         // The slack is rounding on the cut plus the polar rows, whose ice the
@@ -267,7 +271,7 @@ describe('the elevation field', () => {
     // giant map's mountains were three times the width of the duel map's.
     for (const size of MAP_SIZE_NAMES) {
       for (const seed of SEEDS.slice(0, 4)) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         const ranges = mountainRanges(map).filter((members) => members.length >= 4);
         expect(`${size}/${seed}: ${ranges.length > 0}`).toBe(`${size}/${seed}: true`);
         let widthSum = 0;
@@ -299,7 +303,7 @@ describe('the elevation field', () => {
     // hill beside it is a peak that erupted out of a plain.
     for (const size of ['duel', 'standard', 'large']) {
       for (const seed of SEEDS) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         let peaks = 0;
         let flanked = 0;
         for (const tile of map.tiles) {
@@ -321,7 +325,7 @@ describe('the elevation field', () => {
     // continent had none at all; the relief field is ranked over the land as a
     // whole and its crests run everywhere.
     for (const seed of SEEDS.slice(0, 6)) {
-      const map = generateMap(seed, 'large');
+      const map = mapFor(seed, 'large');
       const seen = new Uint8Array(map.tiles.length);
       for (let start = 0; start < map.tiles.length; start++) {
         if (seen[start] || isWaterTerrain(map.tiles[start]!.terrain)) continue;
@@ -372,7 +376,7 @@ describe('the elevation field', () => {
     // is still true, and there are far more of both.
     let jungleTotal = 0;
     for (const seed of SEEDS) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       let hills = 0;
       let standalone = 0;
       let wooded = 0;
@@ -417,7 +421,7 @@ describe('the elevation field', () => {
     // floor is high ground by any reading and still averages below the cut.
     for (const size of ['duel', 'standard', 'large']) {
       for (const seed of SEEDS.slice(0, 4)) {
-        const { map, rivers } = generateMapDetail(seed, size);
+        const { map, rivers } = detailFor(seed, size);
         expect(rivers.length).toBeGreaterThan(0);
 
         let land = 0;
@@ -536,7 +540,7 @@ describe('the moisture field', () => {
     // ceiling is set a point clear of that rather than on it.
     for (const size of ['duel', 'standard', 'large']) {
       for (const seed of SEEDS) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         let land = 0;
         let forest = 0;
         let band = 0;
@@ -575,7 +579,7 @@ describe('the moisture field', () => {
     // a standard map, and the floor is set well under that so a retune has room.
     for (const size of ['standard', 'large', 'huge']) {
       for (const seed of SEEDS.slice(0, 6)) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         const blockWidth = Math.max(6, Math.round(map.width / 8));
         const blockHeight = Math.max(6, Math.round(map.height / 6));
         const blocks = new Map<string, { land: number; forest: number }>();
@@ -623,7 +627,7 @@ describe('the moisture field', () => {
     let openDesertAll = 0;
     let openAll = 0;
     for (const seed of [1, 7, 42, 777, 1234, 4242]) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       let lee = 0;
       let leeMoisture = 0;
       let open = 0;
@@ -685,7 +689,7 @@ describe('rank normalisation', () => {
   });
 
   it('makes the water fraction track the configured sea level', () => {
-    const map = generateMap(2024, 'standard');
+    const map = mapFor(2024, 'standard');
     let water = 0;
     for (const tile of map.tiles) if (isWaterTerrain(tile.terrain)) water++;
     // The polar elevation bonus converts a little water into ice caps.

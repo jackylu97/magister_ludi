@@ -13,6 +13,7 @@ import { type GameConfig, newGame } from '../../src/sim/state';
 import { moveCost } from '../../src/sim/terrainData';
 import { unitDef } from '../../src/sim/unitData';
 import { unitsOnTile } from '../../src/sim/units';
+import { gameFor, mapFor } from './fixtures';
 
 function config(players: number, sizeName = 'duel', seed = 4242): GameConfig {
   return {
@@ -24,7 +25,7 @@ function config(players: number, sizeName = 'duel', seed = 4242): GameConfig {
 
 describe('chooseStartPositions', () => {
   it('places every player on passable land', () => {
-    const map = generateMap(4242, 'duel');
+    const map = mapFor(4242, 'duel');
     const starts = chooseStartPositions(map, 4);
     expect(starts).toHaveLength(4);
     for (const tile of starts) {
@@ -32,6 +33,8 @@ describe('chooseStartPositions', () => {
     }
   });
 
+  // `generateMap` rather than `./fixtures`' memo table: the subject is two
+  // generations of one seed agreeing, which a cache would answer for free.
   it('is deterministic in the map alone', () => {
     const a = generateMap(77, 'duel');
     const b = generateMap(77, 'duel');
@@ -43,7 +46,7 @@ describe('chooseStartPositions', () => {
   });
 
   it('keeps starts at least minSpacing apart when the map allows it', () => {
-    const map = generateMap(4242, 'standard');
+    const map = mapFor(4242, 'standard');
     const starts = chooseStartPositions(map, 4);
     for (let i = 0; i < starts.length; i++) {
       for (let j = i + 1; j < starts.length; j++) {
@@ -54,7 +57,7 @@ describe('chooseStartPositions', () => {
   });
 
   it('never places two players on the same tile, however cramped the map', () => {
-    const map = generateMap(9, 'duel');
+    const map = mapFor(9, 'duel');
     const starts = chooseStartPositions(map, RULES.game.maxPlayers);
     const indices = starts.map((t) => tileIndex(map, t.col, t.row));
     expect(new Set(indices).size).toBe(indices.length);
@@ -62,17 +65,17 @@ describe('chooseStartPositions', () => {
 
   it('relaxes the spacing rather than seating fewer players', () => {
     // The smallest map with the largest player count: spacing cannot hold.
-    const map = generateMap(1, 'duel');
+    const map = mapFor(1, 'duel');
     expect(chooseStartPositions(map, RULES.game.maxPlayers)).toHaveLength(RULES.game.maxPlayers);
   });
 
   it('asks for nothing and gets nothing', () => {
-    const map = generateMap(1, 'duel');
+    const map = mapFor(1, 'duel');
     expect(chooseStartPositions(map, 0)).toEqual([]);
   });
 
   it('prefers well-scored ground over the surrounding waste', () => {
-    const map = generateMap(4242, 'duel');
+    const map = mapFor(4242, 'duel');
     const starts = chooseStartPositions(map, 2);
     const scores = map.tiles
       .filter((t) => moveCost(t.terrain, t.feature, t.hills) !== null)
@@ -86,7 +89,7 @@ describe('chooseStartPositions', () => {
 
 describe('planStartingUnits', () => {
   it('seats the whole roster for every player', () => {
-    const map = generateMap(4242, 'standard');
+    const map = mapFor(4242, 'standard');
     const starts = chooseStartPositions(map, 3);
     const placements = planStartingUnits(map, starts, RULES.startingUnits);
     expect(placements).toHaveLength(3 * RULES.startingUnits.length);
@@ -94,7 +97,7 @@ describe('planStartingUnits', () => {
   });
 
   it('stacks the different categories on the start tile itself', () => {
-    const map = generateMap(4242, 'standard');
+    const map = mapFor(4242, 'standard');
     const starts = chooseStartPositions(map, 1);
     const placements = planStartingUnits(map, starts, RULES.startingUnits);
     const start = starts[0]!;
@@ -104,7 +107,7 @@ describe('planStartingUnits', () => {
   });
 
   it('spills a same-category unit onto a neighbouring tile', () => {
-    const map = generateMap(4242, 'standard');
+    const map = mapFor(4242, 'standard');
     const starts = chooseStartPositions(map, 1);
     const placements = planStartingUnits(map, starts, ['warrior', 'warrior', 'settler']);
     const start = starts[0]!;
@@ -122,7 +125,7 @@ describe('planStartingUnits', () => {
 describe('newGame start placement', () => {
   it('gives every player their starting roster on every map size', () => {
     for (const sizeName of MAP_SIZE_NAMES) {
-      const state = newGame(config(3, sizeName));
+      const state = gameFor(config(3, sizeName));
       expect(state.units).toHaveLength(3 * RULES.startingUnits.length);
       for (const player of state.players) {
         const owned = state.units.filter((u) => u.ownerId === player.id);
@@ -132,7 +135,7 @@ describe('newGame start placement', () => {
   });
 
   it('seats even a full lobby on the smallest map', () => {
-    const state = newGame(config(RULES.game.maxPlayers, 'duel'));
+    const state = gameFor(config(RULES.game.maxPlayers, 'duel'));
     expect(state.units).toHaveLength(RULES.game.maxPlayers * RULES.startingUnits.length);
     // And every unit stands somewhere it could legally have been spawned.
     for (const unit of state.units) {
@@ -142,7 +145,7 @@ describe('newGame start placement', () => {
   });
 
   it('never breaks the stacking rule', () => {
-    const state = newGame(config(RULES.game.maxPlayers, 'duel'));
+    const state = gameFor(config(RULES.game.maxPlayers, 'duel'));
     const seen = new Set<string>();
     for (const unit of state.units) {
       const key = `${unit.col},${unit.row}`;
@@ -185,7 +188,7 @@ describe('start-site scoring', () => {
   const SEEDS = [1, 7, 99, 1234, 4242, 31337];
 
   it('folds its own ledger, and names the site bonuses it gives', () => {
-    const map = generateMap(4242, 'standard');
+    const map = mapFor(4242, 'standard');
     for (const tile of chooseStartPositions(map, 4)) {
       const score = scoreStartSite(map, tile);
       const fold = score.entries.reduce((sum, entry) => sum + entry.value, 0);
@@ -204,7 +207,7 @@ describe('start-site scoring', () => {
   it('never seats anybody on cold or arid ground when the map has better', () => {
     for (const size of MAP_SIZE_NAMES) {
       for (const seed of SEEDS.slice(0, 3)) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         for (const start of chooseStartPositions(map, 4)) {
           // The hard rejection is on the *site*, so a start on snow, tundra or
           // desert can only mean the accepted pool was exhausted — which is a
@@ -218,7 +221,7 @@ describe('start-site scoring', () => {
 
   it('clears the food and production floors on every start it accepts', () => {
     for (const seed of SEEDS) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       for (const start of chooseStartPositions(map, 6)) {
         const score = scoreStartSite(map, start);
         expect(score.reject).toBeNull();
@@ -239,7 +242,7 @@ describe('start-site scoring', () => {
     // the clamp guarantees is asserted for it separately, below.
     for (const size of MAP_SIZE_NAMES.filter((name) => name !== 'duel')) {
       for (const seed of SEEDS.slice(0, 3)) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         const spacing = startSpacing(map);
         const starts = chooseStartPositions(map, 4);
         for (let i = 0; i < starts.length; i++) {
@@ -256,7 +259,7 @@ describe('start-site scoring', () => {
 
   it('keeps a duel map’s starts apart even when it has to relax', () => {
     for (const seed of SEEDS) {
-      const map = generateMap(seed, 'duel');
+      const map = mapFor(seed, 'duel');
       const starts = chooseStartPositions(map, 4);
       for (let i = 0; i < starts.length; i++) {
         for (let j = i + 1; j < starts.length; j++) {
@@ -270,8 +273,8 @@ describe('start-site scoring', () => {
   });
 
   it('scales that spacing to the map and not to the roster', () => {
-    const small = generateMap(4242, 'duel');
-    const large = generateMap(4242, 'giant');
+    const small = mapFor(4242, 'duel');
+    const large = mapFor(4242, 'giant');
     expect(startSpacing(large)).toBeGreaterThan(startSpacing(small));
     expect(startSpacing(small)).toBeGreaterThanOrEqual(STARTS.minDistance);
     expect(startSpacing(large)).toBeLessThanOrEqual(STARTS.maxDistance);
@@ -289,6 +292,9 @@ describe('start-site scoring', () => {
     // The whole reason a site is scored on a *ground view* of each tile: the
     // fairness passes plant food and luxuries at the starts, and a guarantee
     // that moved the start it was made to would chase itself around the map.
+    // `generateMap`, not `mapFor`: this test **writes wheat onto the map** it is
+    // given, and a shared fixture it poisoned would be handed to every later
+    // sweep asking for the same seed. See `./fixtures`' contract.
     const map = generateMap(99, 'standard');
     const before = chooseStartPositions(map, 6).map((t) => tileIndex(map, t.col, t.row));
     for (const tile of map.tiles) {

@@ -28,5 +28,39 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['test/**/*.test.ts', 'src/**/*.test.ts'],
+
+    // `forks` is Vitest 2's default and is named here because the stress suite
+    // depends on it: `test/stress/stress.test.ts` bounds its work in CPU time
+    // (`process.cpuUsage`), and `process` in a *worker thread* is the whole
+    // process — every sibling worker's CPU would be charged to the measurement.
+    // One child process per worker is what makes that reading the worker's own.
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        // A worker keeps its module graph from one test file to the next
+        // instead of tearing the whole registry down and re-evaluating every
+        // import. This suite can afford it, and the reason is a property of the
+        // code rather than luck:
+        //
+        //   - `src/sim/` is pure and its data tables (`RULES`, `MAPGEN_CONFIG`,
+        //     the resource/tech/unit rows) are read-only at runtime. The one
+        //     helper that edits a table, `withExtraResources`, restores it in a
+        //     `finally`.
+        //   - `INSTANCE_WRITES` (`src/render3d/instances.ts`) is the one mutable
+        //     module singleton the tests read, and it is an accumulator every
+        //     assertion opens with `resetInstanceWrites()` — a leftover count
+        //     from the previous *file* is zeroed by the same call that zeroes a
+        //     leftover count from the previous *line*.
+        //   - Nothing anywhere calls `vi.mock`, `vi.stubGlobal` or writes to
+        //     `globalThis`, so there is no per-file global to unwind.
+        //
+        // It also lets the mapgen memo table (`test/mapgen/fixtures.ts`) span
+        // the whole directory rather than one file, which is where most of what
+        // this bought comes from. A test that ever *does* need a virgin module
+        // graph is the signal to turn this back on rather than to work around
+        // it.
+        isolate: false,
+      },
+    },
   },
 });

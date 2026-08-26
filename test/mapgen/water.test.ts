@@ -9,7 +9,8 @@ import {
   tileIndex,
   tileNeighbors,
 } from '../../src/sim/map';
-import { MAPGEN_CONFIG, MAP_SIZE_NAMES, generateMap, generateMapDetail } from '../../src/sim/mapgen';
+import { MAPGEN_CONFIG, MAP_SIZE_NAMES, generateMap } from '../../src/sim/mapgen';
+import { detailFor, mapFor } from './fixtures';
 import { makeRng } from '../../src/sim/rng';
 import { isFreshwaterTerrain, isWaterTerrain } from '../../src/sim/terrainData';
 import {
@@ -157,7 +158,7 @@ describe('lake classification', () => {
 
   it('is only ocean, never lake, that becomes coast on a generated map', () => {
     for (const seed of [1, 7, 31337, 2024]) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       for (const tile of map.tiles) {
         if (tile.terrain !== 'coast') continue;
         // A coast tile must touch land *and* be reachable from the open sea; a
@@ -169,7 +170,7 @@ describe('lake classification', () => {
   });
 
   it('keeps every lake within the configured size on a generated map', () => {
-    const map = generateMap(31337, 'standard');
+    const map = mapFor(31337, 'standard');
     for (const body of waterBodies(map)) {
       const lakes = body.tiles.filter((i) => map.tiles[i]!.terrain === 'lake');
       if (lakes.length === 0) continue;
@@ -276,7 +277,7 @@ describe('river tracing', () => {
   it('never runs uphill, and reports its altitudes non-increasing', () => {
     for (const size of ['duel', 'standard']) {
       for (const seed of [1, 7, 1234]) {
-        const { map, rivers } = generateMapDetail(seed, size);
+        const { map, rivers } = detailFor(seed, size);
         for (const river of rivers) {
           let previous = Infinity;
           for (const vertex of river.vertices) {
@@ -361,7 +362,7 @@ describe('rivers on generated maps', () => {
   it('keeps every edge flag mirrored on both tiles', () => {
     for (const size of sizes) {
       for (const seed of seeds) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         for (const tile of map.tiles) {
           for (let d = 0; d < DIRECTION_COUNT; d++) {
             if (!hasRiverEdge(tile, d)) continue;
@@ -376,7 +377,7 @@ describe('rivers on generated maps', () => {
 
   it('runs every river edge between two land tiles', () => {
     for (const seed of seeds) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       for (const tile of map.tiles) {
         if (tile.riverEdges === 0) continue;
         expect(isWaterTerrain(tile.terrain)).toBe(false);
@@ -391,7 +392,7 @@ describe('rivers on generated maps', () => {
   it('ends every river at water or at another river, and keeps none too short', () => {
     for (const size of sizes) {
       for (const seed of seeds) {
-        const { rivers } = generateMapDetail(seed, size);
+        const { rivers } = detailFor(seed, size);
         expect(rivers.length).toBeGreaterThan(0);
         for (const river of rivers) {
           expect(['water', 'river']).toContain(river.ending);
@@ -412,7 +413,7 @@ describe('rivers on generated maps', () => {
     // the test that would notice it being reverted.
     for (const size of MAP_SIZE_NAMES) {
       for (const seed of seeds) {
-        const { map, rivers } = generateMapDetail(seed, size);
+        const { map, rivers } = detailFor(seed, size);
         const wanted = riverCountFor(MAPGEN_CONFIG.rivers, map.width, map.height);
         expect(`${size}/${seed}: ${rivers.length} of ${wanted}`).toBe(
           `${size}/${seed}: ${wanted} of ${wanted}`,
@@ -435,12 +436,15 @@ describe('rivers on generated maps', () => {
   });
 
   it('spaces springs apart', () => {
-    const { rivers } = generateMapDetail(31337, 'standard');
+    const { rivers } = detailFor(31337, 'standard');
     const springs = rivers.map((r) => r.vertices[0]!);
     const keys = springs.map((v) => `${v.col},${v.row},${v.north}`);
     expect(new Set(keys).size).toBe(keys.length);
   });
 
+  // `generateMap` rather than `./fixtures`' memo table, here and in the terrain
+  // test below: both compare two generations of one seed, and a cache would
+  // hand back the same object twice and make the comparison vacuous.
   it('is deterministic in the seed, and different seeds differ', () => {
     const masks = (seed: number, size: string): number[] =>
       generateMap(seed, size).tiles.map((t) => t.riverEdges);
@@ -515,7 +519,7 @@ describe('fresh water', () => {
     // neighbours, which no other source here does.
     for (const size of ['duel', 'standard'] as const) {
       for (const seed of [1, 7, 1234, 31337]) {
-        const map = generateMap(seed, size);
+        const map = mapFor(seed, size);
         let fresh = 0;
         for (const tile of map.tiles) {
           const expected =
@@ -542,7 +546,7 @@ describe('fresh water', () => {
     // would be a dry pool and nothing here would be able to tell.
     let oases = 0;
     for (const seed of [1, 7, 1234, 31337]) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       for (const tile of map.tiles) {
         if (tile.feature !== 'oasis') continue;
         oases += 1;
@@ -565,7 +569,7 @@ describe('fresh water', () => {
     // tile the freshwater rule has no clause for.
     let floodplains = 0;
     for (const seed of [1, 7, 1234, 31337]) {
-      const map = generateMap(seed, 'standard');
+      const map = mapFor(seed, 'standard');
       for (const tile of map.tiles) {
         const touchesWater =
           tile.riverEdges !== 0 ||
@@ -587,7 +591,7 @@ describe('fresh water', () => {
   });
 
   it('survives a JSON round-trip with the rest of the map', () => {
-    const map = generateMap(1234, 'duel');
+    const map = mapFor(1234, 'duel');
     const clone = JSON.parse(JSON.stringify(map)) as GameMap;
     expect(clone).toEqual(map);
     expect(clone.tiles.some((t) => t.riverEdges !== 0)).toBe(true);
