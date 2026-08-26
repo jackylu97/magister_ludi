@@ -1153,10 +1153,13 @@ export interface IconSpec {
    * The inscription cell — *hic svnt dracones* — in the same faded marginalia
    * ink, since it is the same hand writing in the same margin.
    *
-   * Four knobs because an inscription is *set* rather than drawn and type has
-   * more of them than a path does: the cap height as a fraction of the cell, the
-   * letterspacing and the line leading both in ems of that size (so the plate
-   * holds together when the size moves), and its ink.
+   * Five knobs because an inscription is *set* rather than drawn and type has
+   * more of them than a path does: the cap height as a fraction of the cell
+   * (a **maximum** — `drawInscriptionCell`'s fit step may shrink it further so
+   * the widest line clears the cell), the letterspacing and the line leading
+   * both in ems of that size (so the plate holds together when the size
+   * moves), its ink, and the margin the fit step fits *into* (`inscriptionPad`,
+   * documented on its own field below).
    *
    * Its **ink** and deliberately not its opacity, which is the trap this cell
    * walked into first. The tile atlas is *alpha-tested* (`icons.alphaTest`), so
@@ -1170,6 +1173,15 @@ export interface IconSpec {
   inscriptionTracking: number;
   inscriptionLeading: number;
   inscriptionColor: number;
+  /**
+   * The margin `drawInscriptionCell`'s fit step reserves on *each* side of the
+   * cell, as a fraction of the cell — so the usable width it fits the widest
+   * line into is `cell × (1 − 2 × inscriptionPad)`. `inscriptionScale` sets the
+   * type's ceiling; this is what keeps a fitted plate off the cell's own edge
+   * once the fit step has done its job, the way a printed page has a margin
+   * distinct from its type size.
+   */
+  inscriptionPad: number;
   /**
    * A heraldic charge's size within its cell.
    *
@@ -1921,6 +1933,7 @@ export const VIEW3D: View3DData = {
     inscriptionTracking: viewJson.icons.inscriptionTracking,
     inscriptionLeading: viewJson.icons.inscriptionLeading,
     inscriptionColor: named(viewJson.icons.inscriptionColor, 'icons.inscriptionColor'),
+    inscriptionPad: viewJson.icons.inscriptionPad,
     chargeScale: viewJson.icons.chargeScale,
     resourceKinds: parseMarkerPaperStyles(viewJson.icons.resourceKinds),
     sitePaper: parseMarkerPaperStyle(viewJson.icons.sitePaper, 'icons.sitePaper'),

@@ -30,6 +30,7 @@
 import {
   TileIcons,
   badgeCellOrigin,
+  fitInscription,
   tileAtlasSize,
   tileIconIndex,
 } from '../render3d/badges3d';
@@ -152,45 +153,67 @@ export async function drawMarginaliaSwatches(into: HTMLElement): Promise<TileIco
 }
 
 /**
- * How wide the inscription actually sets, against the cell it has to fit in.
+ * How wide the inscription actually sets, against the cell it has to fit in
+ * — and what `drawInscriptionCell`'s fit step does about it.
  *
  * Measured at runtime rather than written down, for the reason everything else
  * on this page is asked of the game: the answer depends on `icons.
  * inscriptionScale`, on `inscriptionTracking`, and — the part nobody would
  * predict — on **whether the display face has finished loading when the atlas
- * rasterises**, since a fallback serif sets wider than Instrument Serif does.
+ * rasterises**, since a fallback serif sets wider than Instrument Serif does
+ * (`TileIcons.load` now waits on `document.fonts.ready` before it rasterises
+ * any text cell, for exactly that reason, so this measurement and the board's
+ * own atlas are reading the same face).
  *
- * A cell is square and the plate is centred in it (`drawInscriptionCell`), so a
- * line wider than the cell loses half the difference off each end. That is a
- * fact about the shipped atlas rather than about this page — which is exactly
- * the sort of thing an inspection page exists to make visible, and exactly the
- * sort of thing it must not quietly correct.
+ * The first widths reported are *unfitted* — both lines set at
+ * `inscriptionScale` with no shrink, the numbers the bug report measured, so
+ * this line keeps saying what a naive read of the tunables would produce.
+ * `fitInscription` is then run against them with the same usable width
+ * `drawInscriptionCell` fits into, so the rest of the line says what the
+ * shipped atlas actually draws: a plate shrunk to clear the cell rather than
+ * one that overruns it. Only a pathological tunable (a `inscriptionPad` at or
+ * past 0.5, leaving no usable width) would still show an overrun after the
+ * fit step — this note keeps that check rather than assuming it away.
  */
 function inscriptionMeasure(): HTMLElement {
   const note = element('p', 'sheet-note');
   const context = document.createElement('canvas').getContext('2d');
   const layout = tileAtlasSize();
   if (!context) return note;
-  const size = Math.round(layout.cell * ICONS.inscriptionScale);
-  const tracking = size * ICONS.inscriptionTracking;
-  context.font = `${size}px "Instrument Serif", "Fraunces", Georgia, serif`;
-  const widthOf = (line: string): number => {
+
+  const widthOf = (line: string, tracking: number): number => {
     let width = -tracking;
     for (const letter of line.toUpperCase()) {
       width += context.measureText(letter).width + tracking;
     }
     return width;
   };
+
+  const maxSize = Math.round(layout.cell * ICONS.inscriptionScale);
+  context.font = `${maxSize}px "Instrument Serif", "Fraunces", Georgia, serif`;
+  const maxTracking = maxSize * ICONS.inscriptionTracking;
+  const maxWidths = DRACONES_LINES.map((line) => widthOf(line, maxTracking));
+
+  const usable = layout.cell - 2 * layout.cell * ICONS.inscriptionPad;
+  const ratio = fitInscription(maxWidths, usable);
+  const size = Math.max(1, Math.round(maxSize * ratio));
+  context.font = `${size}px "Instrument Serif", "Fraunces", Georgia, serif`;
+  const tracking = size * ICONS.inscriptionTracking;
+  const fittedWidths = DRACONES_LINES.map((line) => widthOf(line, tracking));
+
   const measured = DRACONES_LINES.map(
-    (line) => `${line.toUpperCase()} ${Math.round(widthOf(line))}px`,
+    (line, i) =>
+      `${line.toUpperCase()} ${Math.round(maxWidths[i])}px → ${Math.round(fittedWidths[i])}px`,
   );
-  const widest = Math.max(...DRACONES_LINES.map(widthOf));
+  const widestFitted = Math.max(...fittedWidths);
   note.textContent =
-    `Set at ${size}px in a ${layout.cell}px cell: ${measured.join(' · ')}. ` +
-    (widest > layout.cell
-      ? `The wider line overruns the cell by ${Math.round(widest - layout.cell)}px, ` +
-        'and a centred plate loses half of that off each end.'
-      : 'Both lines clear the cell.');
+    `At the maximum (${maxSize}px in a ${layout.cell}px cell): ${measured.join(' · ')}. ` +
+    (ratio < 1
+      ? `The fit step shrinks the type to ${size}px (×${ratio.toFixed(2)}) so the widest line clears the cell. `
+      : 'Both lines already clear the cell at the maximum size — the fit step leaves the type alone. ') +
+    (widestFitted > layout.cell
+      ? `Even fitted, the widest line still overruns the cell by ${Math.round(widestFitted - layout.cell)}px.`
+      : 'Both lines set inside the cell.');
   return note;
 }
 

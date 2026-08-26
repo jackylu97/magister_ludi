@@ -520,6 +520,7 @@
     "inscriptionTracking": 0.22,
     "inscriptionLeading": 1.35,
     "inscriptionColor": "vellumDeep",
+    "inscriptionPad": 0.08,
     "chargeScale": 0.78,
     "resourceKinds": {
       "bonus": {

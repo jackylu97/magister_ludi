@@ -13,6 +13,7 @@ import {
   badgeHitRadius,
   badgeTopY,
   cssHex,
+  fitInscription,
   hpBarY,
   paperRadiusFraction,
   rimInnerFraction,
@@ -603,5 +604,57 @@ describe('badges in the units layer', () => {
       expect(badgeHitRadius()).toBeGreaterThanOrEqual(BADGE.diameter / 2);
       expect(BADGE.hitboxScale).toBeGreaterThanOrEqual(1);
     });
+  });
+});
+
+describe('the inscription fit step', () => {
+  // `fitInscription` is `drawInscriptionCell`'s whole fit decision, held apart
+  // from the canvas so it is testable with no font, no context, and no atlas
+  // at all — the widths below stand in for `ctx.measureText`'s answer.
+  const ICONS = VIEW3D.icons;
+
+  it('leaves the size alone when every line already clears the usable width', () => {
+    expect(fitInscription([40, 55], 100)).toBe(1);
+    // Exactly at the edge is still "clears" — a line flush with the usable
+    // width has not overrun the cell, so there is nothing to shrink for.
+    expect(fitInscription([100], 100)).toBe(1);
+  });
+
+  it('shrinks by exactly the ratio that brings the widest line to the usable width', () => {
+    // Two lines, one of them the one that decides the ratio — the narrower
+    // line comes along under it and is never itself measured against the
+    // usable width.
+    expect(fitInscription([80, 200], 100)).toBeCloseTo(0.5, 12);
+    expect(fitInscription([183], 107.52)).toBeCloseTo(107.52 / 183, 12);
+  });
+
+  it('declines to divide by zero or produce a negative or growing scale', () => {
+    expect(fitInscription([], 100)).toBe(1);
+    expect(fitInscription([0, 0], 100)).toBe(1);
+    expect(fitInscription([50], 0)).toBe(1);
+    expect(fitInscription([50], -10)).toBe(1);
+  });
+
+  it('fits the measured overrun from the bug report inside a 128px cell', () => {
+    // "HIC SVNT" measured 162px and "DRACONES" measured 183px at
+    // `inscriptionScale` 0.2 on a 128px cell — the exact numbers a centred
+    // plate was losing ~28px off each end to. `inscriptionPad` reserves a
+    // margin on top of the cell itself, so the usable width the fit step
+    // targets is narrower than 128 still.
+    const cell = 128;
+    const usable = cell - 2 * cell * ICONS.inscriptionPad;
+    const widths = [162, 183];
+    const ratio = fitInscription(widths, usable);
+    expect(ratio).toBeLessThan(1);
+    const fitted = widths.map((w) => w * ratio);
+    for (const width of fitted) expect(width).toBeLessThanOrEqual(usable + 1e-9);
+    // And the fitted plate still clears the *cell*, not just the usable
+    // fraction of it — the pad is slack on top of fitting, not instead of it.
+    for (const width of fitted) expect(width).toBeLessThan(cell);
+  });
+
+  it('inscriptionPad is a fraction of the cell, not a pixel count', () => {
+    expect(ICONS.inscriptionPad).toBeGreaterThan(0);
+    expect(ICONS.inscriptionPad).toBeLessThan(0.5);
   });
 });

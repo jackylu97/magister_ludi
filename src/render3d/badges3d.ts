@@ -1077,6 +1077,27 @@ function drawMarginaliaCell(
 }
 
 /**
+ * The inscription's fit step: how much to shrink `inscriptionScale` — a
+ * *maximum*, never a promise — so the widest set line clears the cell.
+ *
+ * Pure and given only measured widths so it is testable with no canvas at
+ * all, the way `stepCost` is testable with no board. `widths` are the tracked
+ * widths of the set lines at the maximum size; `usable` is the cell's width
+ * minus its padding on both sides. The ratio is `1` — no shrink — when the
+ * widest line already clears, because growing type to *fill* the cell is a
+ * different feature nobody asked for; otherwise it is exactly the ratio that
+ * brings the widest line to `usable`, and the shorter lines come along under
+ * it with room to spare. A non-positive `usable` (a pathological tunable) or
+ * a non-positive widest width returns `1` rather than a division by zero or a
+ * negative scale — the fit step declines to make the text disappear.
+ */
+export function fitInscription(widths: readonly number[], usable: number): number {
+  const widest = Math.max(0, ...widths);
+  if (widest <= 0 || usable <= 0 || widest <= usable) return 1;
+  return usable / widest;
+}
+
+/**
  * Paints the inscription: *hic svnt dracones*, in the marginalia's own faded ink.
  *
  * The one cell in either atlas that is neither a drawing nor a number, and it is
@@ -1084,8 +1105,8 @@ function drawMarginaliaCell(
  * face is *for*, and thirteen hand-traced letters would be thirteen paths nobody
  * could tell from Instrument Serif at a hundred pixels.
  *
- * Three things make it read as an inscription rather than as a label, and all
- * three are Entry VII's inscription voice rendered in a canvas:
+ * Four things make it read as an inscription rather than as a label, and the
+ * first three are Entry VII's inscription voice rendered in a canvas:
  *
  *   small caps      approximated by setting the text upper-case at a size a
  *                   little under the cap height — a canvas has no `font-variant`
@@ -1104,6 +1125,16 @@ function drawMarginaliaCell(
  *                   not fade a glyph, it erodes its antialiased edge and leaves
  *                   the words looking broken. That is what the first cut of this
  *                   cell did.
+ *   fit to cell     "HIC SVNT" and "DRACONES", set at `inscriptionScale`, both
+ *                   overran a 128px cell — 162px and 183px, losing letters off
+ *                   both ends of a centred plate. `fitInscription` measures the
+ *                   tracked width of every line at the maximum size and, if the
+ *                   widest exceeds the cell minus `icons.inscriptionPad` on
+ *                   each side, shrinks the type size by that ratio before a
+ *                   single pixel is set. A fit step and not a smaller constant,
+ *                   so a future inscription — a longer motto, a translated one —
+ *                   is sized to the cell it actually lands in rather than to
+ *                   this one's word lengths.
  *
  * Two lines, because the cell is square. See `DRACONES_LINES`.
  */
@@ -1114,27 +1145,47 @@ function drawInscriptionCell(
 ): void {
   const origin = badgeCellOrigin(index, layout);
   const cell = layout.cell;
-  const size = Math.round(cell * ICONS.inscriptionScale);
-  const tracking = size * ICONS.inscriptionTracking;
   const lines = DRACONES_LINES;
+  const maxSize = Math.round(cell * ICONS.inscriptionScale);
+  const usable = cell - 2 * cell * ICONS.inscriptionPad;
+
+  context.save();
+  context.textAlign = 'left';
+  context.textBaseline = 'middle';
+
+  // Laid out letter by letter so the tracking is real everywhere — see the
+  // docblock above. Measured twice on purpose: once at the maximum size to
+  // find the fit ratio, then again at the fitted size, because a line's
+  // tracked width does not scale exactly linearly with its type size (kerning
+  // and hinting round per letter) and re-measuring is cheaper than a plate
+  // that is off by a pixel.
+  const trackedWidth = (text: string, tracking: number): number => {
+    let width = -tracking;
+    for (const letter of text) width += context.measureText(letter).width + tracking;
+    return width;
+  };
+
+  context.font = `${maxSize}px "Instrument Serif", "Fraunces", Georgia, serif`;
+  const maxTracking = maxSize * ICONS.inscriptionTracking;
+  const maxWidths = lines.map((line) => trackedWidth(line.toUpperCase(), maxTracking));
+  const ratio = fitInscription(maxWidths, usable);
+  const size = Math.max(1, Math.round(maxSize * ratio));
+  const tracking = size * ICONS.inscriptionTracking;
+  context.font = `${size}px "Instrument Serif", "Fraunces", Georgia, serif`;
+
   // Leading is measured off the type size rather than the cell, so the plate
   // stays a plate if somebody dials the size: two lines set half a size apart
   // would touch and two set two sizes apart would be two labels.
   const leading = size * ICONS.inscriptionLeading;
   const top = origin.y + cell / 2 - ((lines.length - 1) * leading) / 2;
 
-  context.save();
   context.fillStyle = cssHex(ICONS.inscriptionColor);
-  context.textAlign = 'left';
-  context.textBaseline = 'middle';
-  context.font = `${size}px "Instrument Serif", "Fraunces", Georgia, serif`;
   lines.forEach((line, row) => {
     const text = line.toUpperCase();
-    // Laid out letter by letter so the tracking is real everywhere. The width is
-    // measured first so the whole tracked line can be centred on the cell — a
-    // line centred on its *untracked* width drifts right by half its tracking.
-    let width = -tracking;
-    for (const letter of text) width += context.measureText(letter).width + tracking;
+    // The width is measured first so the whole tracked line can be centred on
+    // the cell — a line centred on its *untracked* width drifts right by half
+    // its tracking.
+    const width = trackedWidth(text, tracking);
     let x = origin.x + cell / 2 - width / 2;
     for (const letter of text) {
       context.fillText(letter, x, top + row * leading);
@@ -1316,6 +1367,32 @@ export class TileIcons {
     canvas.height = layout.height;
     const context = canvas.getContext('2d');
     if (!context) return null;
+
+    // A canvas samples whatever face is *currently* installed the instant
+    // `fillText` runs — there is no "wait for this font" primitive on the 2D
+    // context, only on the document. Rasterising the numerals or the
+    // inscription before Instrument Serif has swapped in silently ships the
+    // Georgia fallback, which sets *wider* — so the inscription's measured
+    // width, and therefore `fitInscription`'s ratio, would depend on how far
+    // page load had gotten when this ran rather than on the data. The
+    // explicit `load` call is what actually asks the browser to fetch the
+    // face (a face nothing has rendered yet may not be loading at all, so
+    // `fonts.ready` alone can resolve with nothing to wait for); `fonts.ready`
+    // then covers every other face already in flight (IBM Plex Mono, for the
+    // numerals). `document.fonts` does not exist in every environment this
+    // module loads in — Vitest's `node` environment among them, and this
+    // function is never called from a test for exactly that reason — so the
+    // wait is opportunistic, not required, and any failure is swallowed: a
+    // face that never loads leaves the fallback the fit step sizes around,
+    // which is the pre-existing behaviour, not a regression.
+    if (typeof document !== 'undefined' && document.fonts) {
+      try {
+        await document.fonts.load(`${Math.round(layout.cell * ICONS.inscriptionScale)}px "Instrument Serif"`);
+        await document.fonts.ready;
+      } catch {
+        // Best effort — see above.
+      }
+    }
 
     // Nothing here is fetched any more. The resources, the sites, the charges
     // and — since the six voices were re-cut from Lucide and Tabler — the yields
