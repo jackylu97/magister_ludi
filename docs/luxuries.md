@@ -118,6 +118,12 @@ it is the more specific fact and the one a pillage can take away.
 
 ---
 
+## Balance flags from play
+
+- **Honey (2026-08-26): too strong as ratified** — the user is rethinking its effect; the
+  row stands until a replacement is designed. (Not a bug — the farm-overwrites-seam problem
+  was separate and is fixed by the wrong-improvement rule.)
+
 ## Approximations
 
 The map has no marsh, and no way to express "riverside" or "adjacent to X" as a
