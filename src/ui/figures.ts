@@ -36,6 +36,7 @@
  */
 
 import type { MeterEffect } from '../sim/meters';
+import type { ProjectPayout } from '../sim/projectData';
 
 /** The six yields, in the order the city panel's chip row lists them. */
 export type YieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith';
@@ -111,6 +112,34 @@ export const YIELD_NOTE: Partial<Record<YieldKey, string>> = {
 };
 
 /** Production, the one a cost is quoted in — named for how often it is read. */
+/**
+ * The three banks a repeating project may pay into, in this interface's glyphs
+ * and in words.
+ *
+ * `src/sim` may not know what a UI draws, so `projectRate` (`projectData.ts`)
+ * takes the marks as an argument and these are the tables that supply them.
+ * Typed as `Record<keyof ProjectPayout, …>`, so a fourth bank added to that
+ * shape is a compile error here rather than a rate label that silently drops a
+ * figure — and they live beside `YIELD_GLYPH` for its own reason: the city
+ * panel and the star chart both quote a project's rate, and two copies of the
+ * same three entries is exactly the drift this file exists to end.
+ *
+ * The spoken table is the drawn mark's doing and it is the buildable grid's
+ * existing rule: a screen reader given a yield glyph announces its Unicode name
+ * before the word it decorates, so a spoken sentence is words only.
+ */
+export const PROJECT_GLYPHS: Record<keyof ProjectPayout, string> = {
+  gold: YIELD_GLYPH.gold,
+  science: YIELD_GLYPH.science,
+  faith: YIELD_GLYPH.faith,
+};
+
+export const PROJECT_SPOKEN: Record<keyof ProjectPayout, string> = {
+  gold: ' gold',
+  science: ' science',
+  faith: ' faith',
+};
+
 export const HAMMER = YIELD_GLYPH.production;
 
 /**

@@ -42,6 +42,12 @@ import {
   unitProductionCost,
 } from '../sim/cities';
 import { type BuildingId, BUILDING_IDS, buildingDef } from '../sim/buildingData';
+import {
+  type ProjectId,
+  PROJECT_IDS,
+  projectDef,
+  projectRate,
+} from '../sim/projectData';
 import { isCombatant, isRanged } from '../sim/combat';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
@@ -64,6 +70,8 @@ import { cityDisplayName } from './cityDisplay';
 import {
   type YieldKey,
   HAMMER,
+  PROJECT_GLYPHS,
+  PROJECT_SPOKEN,
   YIELD_GLYPH,
   effectFigure,
   figure,
@@ -72,6 +80,30 @@ import {
   turnsLabel,
 } from './figures';
 import { createInfoCard } from './infoCard';
+
+
+/**
+ * Where a newly-pressed build row lands: at the back, but **in front of any
+ * standing project**.
+ *
+ * A project never leaves the queue (Entry XXVI), so a plain append would be
+ * putting every future warrior behind a row that is never reached — the queue
+ * would silently stop the moment a player queued Tithes. Reading a project as
+ * *the standing order a city falls back to* puts new work ahead of it, which is
+ * what the player meant by both presses and needs no second control to say so.
+ *
+ * The trailing *run*, not the last item, because two projects may stand
+ * together: a player who queued Tithes and then Scholarship has said "mint coin
+ * when there is nothing else", and a warrior belongs in front of both.
+ *
+ * Pure and module-level for `stageRows`' reason — this is the panel's placement
+ * decision rather than its DOM, and the suite that holds it still has no jsdom.
+ */
+export function insertionIndex(queue: readonly QueueItem[]): number {
+  let at = queue.length;
+  while (at > 0 && queue[at - 1]?.kind === 'project') at -= 1;
+  return at;
+}
 
 export interface CityPanelOptions {
   /** The element the panel lives in. Emptied and rebuilt on every render. */
@@ -199,11 +231,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
   /** A copy of the city's queue: the panel edits a draft, never the state. */
   function draft(city: City): QueueItem[] {
-    return city.queue.map((item) =>
-      item.kind === 'unit'
-        ? { kind: 'unit', id: item.id }
-        : { kind: 'building', id: item.id },
-    );
+    return city.queue.map((item): QueueItem => {
+      if (item.kind === 'unit') return { kind: 'unit', id: item.id };
+      if (item.kind === 'project') return { kind: 'project', id: item.id };
+      return { kind: 'building', id: item.id };
+    });
   }
 
   // --- the hover card ------------------------------------------------------
@@ -371,6 +403,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const toward = category === 'unit' ? 'units' : 'buildings';
       notes.append(note(`${percentFigure(percent)}${HAMMER} toward ${toward} here`));
     }
+    // The two that arrived with the Age I sinks, written off the presence of the
+    // field like everything above them: a second wall or a second festival
+    // describes itself here without this function learning its name.
+    if (def.happiness !== undefined && def.happiness !== 0) {
+      notes.append(note(`${def.happiness > 0 ? '+' : ''}${def.happiness} happiness in this city`));
+    }
+    if (def.cityStat !== undefined && def.cityStat.amount !== 0) {
+      const { stat, amount } = def.cityStat;
+      notes.append(note(`${amount > 0 ? '+' : ''}${amount} city ${stat}`));
+    }
     // Every renewal this building will ever get, whether or not its owner has
     // earned it yet. One already held is folded into what the building pays and
     // gets its own line in the panel's breakdown; one still ahead is a promise,
@@ -395,13 +437,54 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
+   * What a project is: a rate, and the fact that it never stops.
+   *
+   * Nothing here computes either. The rate is `projectRate`'s answer — one
+   * function, so a retuned cost cannot leave a stale label behind it — and the
+   * estimate is `turnsToBuild`'s, which for a repeatable item is the interval
+   * between payouts rather than a date.
+   */
+  function projectCard(city: City, id: ProjectId, index: number): Node {
+    const def = projectDef(id);
+    const box = element('div');
+
+    const head = element('div', 'info-card-head');
+    head.append(element('span', 'info-card-name', def.name));
+    head.append(element('span', 'info-card-kind', 'project · repeats'));
+    box.append(head);
+
+    const figures = element('div', 'info-card-figures');
+    figures.append(element('span', 'info-card-cost', `${def.cost}${HAMMER}`));
+    figures.append(
+      element(
+        'span',
+        'info-card-turns',
+        turnsLabel(turnsToBuild(getGame().state, city, { kind: 'project', id }, index)),
+      ),
+    );
+    box.append(figures);
+
+    const notes = element('ul', 'info-card-notes');
+    const rate = element('li');
+    setYieldText(rate, `Pays ${projectRate(id, PROJECT_GLYPHS)} for every ${def.cost}${HAMMER}`);
+    notes.append(rate);
+    // The two things a player has to know to plan around one, and both are
+    // consequences of "it never leaves the queue" rather than extra rules.
+    notes.append(note('Never completes — the city pays it again and again'));
+    notes.append(note('Anything else you queue goes in front of it'));
+    notes.append(note(def.note));
+    box.append(notes);
+    return box;
+  }
+
+  /**
    * The card for whatever a row stands for, at the queue position it occupies —
    * or, for a row in the "add to queue" grid, the position it would land in.
    */
   function itemCard(city: City, item: QueueItem, index: number): Node {
-    return item.kind === 'unit'
-      ? unitCard(city, item.id, index)
-      : buildingCard(city, item.id, index);
+    if (item.kind === 'unit') return unitCard(city, item.id, index);
+    if (item.kind === 'project') return projectCard(city, item.id, index);
+    return buildingCard(city, item.id, index);
   }
 
   // --- sections ------------------------------------------------------------
@@ -892,8 +975,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
-   * Everything the city could add: every *unlocked* unit type, and every
-   * unlocked building it has not built and has not already queued.
+   * Everything the city could add: every *unlocked* unit type, every unlocked
+   * building it has not built and has not already queued, and — last, because
+   * they are the floor rather than a choice — the unlocked projects.
    *
    * A unit the city is too small for is shown *disabled with its reason* rather
    * than hidden — "why can I not build a settler" is a question the interface
@@ -915,7 +999,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
     const add = (item: QueueItem): void => {
       const next = draft(city);
-      next.push(item);
+      // In front of any standing project, never behind it — see `insertionIndex`.
+      next.splice(insertionIndex(city.queue), 0, item);
       commit(city, next);
     };
 
@@ -1006,6 +1091,39 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       );
       info.bind(button, () => itemCard(city, { kind: 'building', id }, city.queue.length));
       button.addEventListener('click', () => add({ kind: 'building', id }));
+      grid.append(button);
+    }
+
+    // The projects, at the bottom of the list because that is what they are for:
+    // the thing a city falls back on when the rows above it are spent (Entry
+    // XXVI). Already-queued ones are hidden for a building's reason one scale
+    // further — a project never leaves the queue, so a second copy could never
+    // be reached — and the price is the *rate* rather than a total, because a
+    // repeatable item has no total.
+    const standing = new Set(
+      city.queue.filter((item) => item.kind === 'project').map((item) => item.id),
+    );
+    for (const id of PROJECT_IDS) {
+      if (standing.has(id)) continue;
+      if (!isUnlocked(state, city.ownerId, 'project', id)) continue;
+      const def = projectDef(id);
+      const button = element('button', 'city-buildable is-building');
+      button.type = 'button';
+      button.disabled = locked;
+      button.setAttribute(
+        'aria-label',
+        `${def.name} — repeating project, ${def.cost} production for ${projectRate(id, PROJECT_SPOKEN)}`,
+      );
+      button.append(element('span', 'city-buildable-name', `${def.name} ↻`));
+      button.append(
+        element(
+          'span',
+          'city-buildable-cost',
+          `${def.cost}${HAMMER} → ${projectRate(id, PROJECT_GLYPHS)}`,
+        ),
+      );
+      info.bind(button, () => itemCard(city, { kind: 'project', id }, city.queue.length));
+      button.addEventListener('click', () => add({ kind: 'project', id }));
       grid.append(button);
     }
 

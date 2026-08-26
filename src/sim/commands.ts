@@ -60,6 +60,7 @@
 
 import type { ArrivalReport } from './arrival';
 import { isBuildingId } from './buildingData';
+import { isProjectId } from './projectData';
 import {
   assignableTiles,
   foundCityAt,
@@ -953,6 +954,7 @@ function readQueueItem(value: unknown): QueueItem | undefined {
   const { kind, id } = value as { kind?: unknown; id?: unknown };
   if (kind === 'unit' && isUnitTypeId(id)) return { kind, id };
   if (kind === 'building' && isBuildingId(id)) return { kind, id };
+  if (kind === 'project' && isProjectId(id)) return { kind, id };
   return undefined;
 }
 
@@ -960,13 +962,17 @@ function readQueueItem(value: unknown): QueueItem | undefined {
  * Validates a whole queue against a city, returning the sanitised items or an
  * error message.
  *
- * The three rules a queue must satisfy, and why each is checked *here* rather
- * than being tolerated and skipped later:
+ * The rules a queue must satisfy, and why each is checked *here* rather than
+ * being tolerated and skipped later:
  *
  *   - every id is real. A typo in a queue silently blocking production for a
  *     hundred turns is the worst possible failure mode.
  *   - a building is built once. Already in `city.buildings`, or twice in this
  *     queue, is a mistake the player cannot see the consequences of.
+ *   - a **project** is likewise queued once, and for the same reason read one
+ *     scale further: a project never leaves the queue (Entry XXVI), so a second
+ *     copy of Tithes is not a second conversion, it is a row that can never be
+ *     reached and a queue that has silently stopped below it.
  *   - a unit's `minCityPop` is met *now*. A settler queued in a size-1 city is
  *     almost always a misclick. (If the city later shrinks below it, production
  *     holds instead — see `advanceProduction`. Refusing at the gate and holding
@@ -985,9 +991,10 @@ function validateQueue(state: GameState, city: City, raw: unknown): QueueItem[] 
 
   const items: QueueItem[] = [];
   const seenBuildings = new Set<string>();
+  const seenProjects = new Set<string>();
   for (let i = 0; i < raw.length; i++) {
     const item = readQueueItem(raw[i]);
-    if (!item) return `Queue item ${i} is not a known unit or building`;
+    if (!item) return `Queue item ${i} is not a known unit, building or project`;
 
     const blocked = buildError(state, city.ownerId, item.kind, item.id);
     if (blocked !== null) return blocked;
@@ -998,6 +1005,9 @@ function validateQueue(state: GameState, city: City, raw: unknown): QueueItem[] 
       }
       if (seenBuildings.has(item.id)) return `${item.id} appears twice in the queue`;
       seenBuildings.add(item.id);
+    } else if (item.kind === 'project') {
+      if (seenProjects.has(item.id)) return `${item.id} appears twice in the queue`;
+      seenProjects.add(item.id);
     } else {
       const def = unitDef(item.id);
       if (city.population < def.minCityPop) {
@@ -1034,11 +1044,11 @@ function applySetCityProduction(
 
   // Copy: the command (and the log entry it becomes) must not be aliased into
   // the state, or a caller reusing its array would rewrite history.
-  city.queue = queue.map((item) =>
-    item.kind === 'unit'
-      ? { kind: 'unit', id: item.id }
-      : { kind: 'building', id: item.id },
-  );
+  city.queue = queue.map((item): QueueItem => {
+    if (item.kind === 'unit') return { kind: 'unit', id: item.id };
+    if (item.kind === 'project') return { kind: 'project', id: item.id };
+    return { kind: 'building', id: item.id };
+  });
   return ok();
 }
 

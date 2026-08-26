@@ -58,8 +58,11 @@ describe('techGifts', () => {
     // Construction and Bronzeworking are the nodes that do; the order is the
     // reading order the node card already uses.
     expect(techGifts('construction').map((gift) => gift.kind)).toEqual(['unit', 'building']);
+    // Bronzeworking hands over two buildings since the Age I sinks landed —
+    // the barracks and the funeral games — and both come after the spearman.
     expect(techGifts('bronzeWorking').map((gift) => gift.kind)).toEqual([
       'unit',
+      'building',
       'building',
       'reveal',
     ]);
@@ -81,7 +84,7 @@ describe('techGifts', () => {
     // Iron is on the map from turn one and pays its production to whoever works
     // the tile; Bronze Working buys the *label* (see `isResourceVisible`). The
     // gift is real and the `unlocks` block does not know about it.
-    expect(techDef('bronzeWorking').unlocks.buildings).toEqual(['barracks']);
+    expect(techDef('bronzeWorking').unlocks.buildings).toEqual(['barracks', 'funeralGames']);
     const reveals = techGifts('bronzeWorking').filter((gift) => gift.kind === 'reveal');
     expect(reveals.map((gift) => gift.id)).toEqual(['iron']);
     expect(reveals[0]).toMatchObject({

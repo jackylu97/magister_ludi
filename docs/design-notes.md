@@ -2535,3 +2535,118 @@ they march by `findPath` into `advanceAlongPath` like everybody else and needed 
 their own. A route that was clear when it was approved and has an enemy beside it now stops
 where the rule says and **keeps its order**, resuming next turn: a stop, not an abandonment,
 which is the third clause of `movement.ts`'s "stopping short".
+
+## Entry XXVI — A queue is never idle (build sinks, **built** 2026-08-26)
+
+The playtest finding, in the user's words: *"early game runs out of things to build, units
+too cheap vs tech pace."* Two complaints, one cause. A town that has built its granary and
+its monument and cannot yet afford a settler has nothing left to do with its hammers, so it
+builds warriors — and warriors were cheap enough that "build warriors" was never a real
+decision. The queue had no floor and the roster had no price.
+
+Three things land together because they are the same finding read three ways: give the
+queue a floor, give the roster a price, and give Age I two more things worth wanting.
+
+### 1. A project is a queue row that never leaves
+
+**Tithes** (Calendar, 20⚙ → 5🪙) and **Scholarship** (Letters, 20⚙ → 5🔬). Both are
+`QueueItem`'s third kind, both are data rows in `data/buildings.json`'s `projects` table,
+and both work by *not being removed*.
+
+That is the whole mechanism, and every other property falls out of it. `settleProduction`
+subtracts the cost, banks the conversion, and returns before the splice — so the row is
+still standing there tomorrow morning asking for twenty more. `turnsToBuild` needed no
+project clause, because for a repeatable item "how long until this completes" and "how
+often does this pay" are the same question. Overflow needed no rule, because whatever the
+basket keeps is next turn's down payment. And `advanceProduction`'s existing "at most one
+item per city per turn" is the rate limiter, for free.
+
+Three things it deliberately returns *before*, each because it did not finish anything:
+the splice, the overflow doubling (The Common Purse is about a completed thing's
+remainder; doubling a conversion's change every turn is a mint), and the completion riders
+(Master Masons' culture on a wall would otherwise pay every fourth turn for ever).
+
+**The payout is not a windfall, and the reason is arithmetic rather than taste.** Entry
+XVIII's windfalls are one-time grants that pay a printed figure with no staging; a project
+looks like one and is not. The hammers a project consumes were *already staged* on their
+way into the basket — Entry XVII's city percentages, then the meter tiers, floored once,
+in `collectYields` — so a payout that then rode the modifier pipeline would be charging one
+conversion two multiplications. A project is the city's own exchange rate on hammers it has
+already earned: 20⚙ in, 5🪙 out, and the number on the row is the number the treasury
+receives. Nothing modifies it, including a barracks: a project is not a `ProductionCategory`
+and `productionModifiers` returns an empty list for one, which is what "a barracks minting
+money" would otherwise be.
+
+`ProjectPayout` names three banks — gold, science, faith — and culture is deliberately
+absent. Those three accumulate and are read where they lie; `Player.culturePool` is a
+*basket* whose filling is a draft, so a project that paid culture would be a second path
+into Entry XV's bucket. The day one is wanted it joins by calling `settleCultureWindfall`,
+which is the register in CLAUDE.md doing its job.
+
+**Where a new row goes.** A project never leaves the queue, so the panel's old "append"
+would have put every future warrior behind a row that is never reached. `insertionIndex`
+puts a newly-pressed row in front of the *trailing run* of projects — a project read as the
+standing order a city falls back to, which is what the player meant by both presses and
+needs no second control to say so. The reducer refuses the same project twice for the
+matching reason: a second copy of Tithes is not a second conversion, it is a row that can
+never be reached and a queue that has silently stopped below it.
+
+### 2. The roster is priced in the money of its own age
+
+Age I is up ~40% with a mounted premium — warrior 5→7, worker 8→10, spearman and archer
+6→8, horseman 8→12, war chariot 11→17, chariot archer 9→14. The **scout is deliberately
+unmoved at 9⚙**: three turns at the median capital's 3⚙ is what an opening scout is *for*,
+and it is the one price the opening is balanced against. The settler is unchanged; its
+escalation ladder already does that work.
+
+The later rosters are handled by a band rather than by hand. Beaker costs climb roughly
+nine-fold between Age I and Age III (16🔬 → 380🔬) while hammer prices climbed about twice,
+so a late empire's science pace was buying it units that were, relative to everything else
+it could spend hammers on, nearly free. `unitCostAgeMultiplier` (`[1, 1.5, 2]`, in
+`rules.json`) multiplies a unit by the age of the technology that unlocks it — read off the
+tree, never stored on the unit row, because "when does this belong" is already written down
+once in `unlocks`.
+
+It is applied as a **labelled line**, not as a multiplication at the point of sale.
+`explainUnitCost` is the ordered list a price is the fold of — *roster's price · the ladder
+· the age band · the empire's law* — and `unitProductionCost` is `foldUnitCost` of it. Each
+line carries the difference it makes to the running figure, so the list sums to the price
+however the intermediate roundings fall. Hard rule 5, said about a price rather than a
+yield.
+
+**Measured** (seed 4242, the scripted pacing empire playing the military line, at turn 40):
+**8 units before, 6 after** — a 25% cut, with the city count, the technology count (9) and
+the map identical. The building-first empire measured 4 units either side: it is hammer-bound
+on settlers and granaries rather than on the roster, so the price change is invisible to it.
+That asymmetry is the point — the pass taxes the player who was spamming units, not the one
+who was building. Opening timings across 21 seeds: median capital 3⚙ (band 2–4), scout still
+3 turns, warrior 2→3, worker 3→4. `test/sim/buildSinks.test.ts` pins all of it.
+
+### 3. Two Age I building sinks, declared generically
+
+**Palisade** (Stonecraft, 30⚙, +5 city defense) and **Funeral Games** (Bronzeworking, 35⚙,
++3 happiness). Both were already proposed in `docs/ages.md` as *nodes*; both ship as
+*buildings*, which is cheaper and truer — a wall is what stone is for, and the games are
+held for the war dead on the node that hands over the spearman.
+
+Neither is a case anywhere. `BuildingDef` gained two fields — `happiness` and `cityStat` —
+and `cityStat` is deliberately `CardCityStatEffect`'s shape minus its scope, because a wall
+a card raises and a wall a town *built* are the same fact about the same city. Both are read
+by one new evaluator, `buildingEffects.ts`, which is `resourceEffects.ts`'s bargain one
+scale down: the table says what a building *is*, and one module says what an empire's
+buildings are *worth*. Its two answers are lists, never numbers — the happiness ledger gains
+"Uruk · Funeral Games +3" and the combat forecast gains "Palisade +5" beside the walls a
+Doctrine raised. A second happiness building, or a watchtower that adds sight, is a data
+row.
+
+Funeral Games is the first building in the game to touch a meter's *supply* side. It reads
+per **town** rather than per type, unlike the monument's writ: a monument's capacity is an
+empire-wide fact and reads honestly as a count, while a happiness building is a thing
+standing in a named place a player may be about to lose.
+
+### What this does not do
+
+It does not make gold *spendable* in any new way — projects are a faucet, and the sinks that
+were open before this pass (tile purchase) are the sinks that are open after it. It does not
+touch what ground is worth: no tile yield, no centre yield, no improvement moved. And it does
+not answer unit upkeep, which is still unbuilt and is the other half of "units are too cheap".

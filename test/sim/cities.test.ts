@@ -62,7 +62,7 @@ import {
 } from '../../src/sim/state';
 import { chopYield } from '../../src/sim/improvementData';
 import { firstBlocker } from '../../src/ui/turnBlockers';
-import { techDef } from '../../src/sim/techData';
+import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { RESOURCE_IDS, resourceYield } from '../../src/sim/resourceData';
 import { TILE_YIELD_KEYS, readTileYield, tileYield } from '../../src/sim/terrainData';
 import { runEndOfTurn } from '../../src/sim/turn';
@@ -1559,13 +1559,25 @@ describe('escalating settler cost', () => {
     expect(unitProductionCost(state, 1, 'settler')).toBe(BASE);
   });
 
-  it('leaves every type without an increment at its flat price', () => {
+  it('leaves every type without an increment off the ladder', () => {
     const state = flatState();
     state.players[0]!.settlersBuilt = 5;
     for (const id of UNIT_TYPE_IDS) {
       const def = unitDef(id);
       if (def.costIncrement !== undefined) continue;
-      expect(unitProductionCost(state, 0, id), id).toBe(def.cost);
+      // Not `def.cost`: since the build-sink pass a later-age type is also
+      // multiplied by its Æra band (Entry XXVI), which is a fact about the
+      // *roster* and not about this empire. What the ladder must not do is
+      // move — so the price is asked with and without five settlements and the
+      // two answers have to agree.
+      const priced = unitProductionCost(state, 0, id);
+      state.players[0]!.settlersBuilt = 0;
+      expect(unitProductionCost(state, 0, id), id).toBe(priced);
+      state.players[0]!.settlersBuilt = 5;
+      // And the band is the only thing between the printed cost and the price.
+      const band = RULES.production.unitCostAgeMultiplier;
+      const age = techDef(UNIT_UNLOCK_TECH.get(id)!).age;
+      expect(priced, id).toBe(Math.floor(def.cost * (band[age - 1] ?? 1)));
     }
     // Exactly one type escalates today, and it is the one that founds cities.
     const escalating = UNIT_TYPE_IDS.filter((id) => unitDef(id).costIncrement !== undefined);

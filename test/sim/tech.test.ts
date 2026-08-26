@@ -1178,8 +1178,14 @@ describe('pacing', () => {
     );
     // And the prices, read straight off it.
     expect(median).toBe(3);
+    // The scout is the anchor and it did not move in the build-sink pass
+    // (Entry XXVI): three turns at the median rate is what an opening scout is
+    // for. The warrior did — the whole Age I roster went up ~40% against a tech
+    // pace that had outrun it — and two turns is what a first warrior now costs
+    // a median capital, up from one and a bit.
     expect(unitDef('scout').cost).toBe(median * 3);
-    expect(unitDef('warrior').cost).toBe(5);
+    expect(unitDef('warrior').cost).toBe(7);
+    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(3);
   }, 30_000);
 
   it('turns a fresh capital into a scout at exactly its own rate', () => {

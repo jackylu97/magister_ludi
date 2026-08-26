@@ -120,6 +120,7 @@
  */
 
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
+import { buildingCityStat } from './buildingEffects';
 import { assignCitizens, cityAt, settleProductionWindfall } from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
 import {
@@ -708,6 +709,13 @@ function planCombat(
     // reason beside it is exactly what a breakdown exists to prevent.
     const walls = cardCityStat(state, target.city, 'defense');
     for (const line of walls) {
+      bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
+    }
+    // And the walls the town actually *built*, beside the ones its law raised.
+    // Two tables, one list: the forecast itemises a palisade exactly as it
+    // itemises Frontier Forts, and `bonusFor` folds both without knowing which
+    // is which.
+    for (const line of buildingCityStat(target.city, 'defense')) {
       bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
     }
     // Folded through `bonusFor` like every other line rather than added

@@ -55,6 +55,7 @@
  */
 
 import type { BuildingId } from './buildingData';
+import type { ProjectId } from './projectData';
 import type { DiscoveryId, DiscoveryKind } from './discoveryData';
 import type { GameMap } from './map';
 import { generateMap, getMapSize } from './mapgen';
@@ -496,7 +497,19 @@ export interface Unit {
  */
 export type QueueItem =
   | { kind: 'unit'; id: UnitTypeId }
-  | { kind: 'building'; id: BuildingId };
+  | { kind: 'building'; id: BuildingId }
+  | { kind: 'project'; id: ProjectId };
+
+/**
+ * The three kinds of row a queue holds, for the gates that ask one question of
+ * all of them (`buildError`, `isUnlocked`, `gatingTech` in `tech.ts`).
+ *
+ * Deliberately *not* the same type as `ProductionCategory` (`buildingData.ts`),
+ * which is what a production bonus may name and stops at unit/building: a
+ * barracks putting ten percent behind Tithes would be a barracks minting money,
+ * and a project's rate is printed on its row precisely so nothing modifies it.
+ */
+export type QueueKind = QueueItem['kind'];
 
 /**
  * A city.

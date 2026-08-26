@@ -332,6 +332,42 @@ would change every seeded outcome. No further rename passes.
   a banked charter deliberately does not (`statecraftBlocker`), because Entry XV makes
   adoption bankable and a blocker on it would delete the only reason banking exists.
 
+- **A project is a queue row that never leaves, and that is the whole mechanism** (Entry
+  XXVI). `QueueItem`'s third kind. `settleProduction` subtracts the cost, banks the
+  conversion and **returns before the splice** — so `turnsToBuild` needed no project
+  clause (for a repeatable item "when does this finish" and "how often does this pay" are
+  one question), overflow needed no rule (the remainder is next turn's down payment), and
+  `advanceProduction`'s "at most one item per city per turn" is the rate limiter for free.
+  It returns before three things on purpose, each because nothing *finished*: the splice,
+  the overflow doubling (The Common Purse is about a completed thing's remainder — doubling
+  a conversion's change every turn is a mint), and `payCompletionRiders`. **The payout is
+  deliberately NOT an Entry XVIII windfall**: the hammers were already staged on their way
+  into the basket (Entry XVII), so a payout riding the modifier pipeline would charge one
+  conversion two multiplications. Nothing modifies it — a project is not a
+  `ProductionCategory`, and `productionModifiers` returns `[]` for one, which is what a
+  barracks minting money would otherwise be. `ProjectPayout` names **gold, science, faith**
+  and culture is absent for the register's reason: those three accumulate, `culturePool` is
+  a basket whose filling is a draft, so a culture project joins by calling
+  `settleCultureWindfall` and never by adding a field. The interface's half is
+  `insertionIndex` (`cityPanel.ts`): a new row lands in front of the **trailing run** of
+  projects, and the reducer refuses the same project twice — a second copy is not a second
+  conversion, it is a row that can never be reached.
+- **A building's non-yield facts are read in one place**, `buildingEffects.ts` —
+  `resourceEffects.ts`'s bargain one scale down. Flat yields still fold in `cityYields`;
+  `happiness` and `cityStat` fold through this module into `explainHappiness` (`meters.ts`),
+  `planCombat`'s defender breakdown and `sightSources`' radius. `cityStat` is deliberately
+  `CardCityStatEffect`'s shape **minus its scope** — a wall a card raises and a wall a town
+  built are the same fact about the same city — so the two lists concatenate with no
+  translation. Both answers are lists, never numbers. A second happiness building or a
+  watchtower is a data row; a `buildingDef(...).happiness` reach from inside a consumer is
+  the second loop this file exists to prevent.
+- **A unit's price is a fold too.** `explainUnitCost` (`cities.ts`) is the ordered list —
+  roster's price · the settler ladder · the age band · the empire's law — and
+  `unitProductionCost` is `foldUnitCost` of it. Each line carries the *difference* it makes
+  to the running figure, so the list sums exactly however the intermediate floors fall. The
+  age band (`RULES.production.unitCostAgeMultiplier`) is read off the tech that unlocks the
+  unit, never stored on the unit row: `unlocks` already says when a unit belongs.
+
 ## Direction (see docs/design-notes.md for full ledger)
 - Vanilla Civ mechanics first; deckbuilding civics / happiness+authority / events
   are specced but deliberately later. Do not build parked ideas.

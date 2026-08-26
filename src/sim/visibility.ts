@@ -49,6 +49,7 @@
  * board. `test/stress.test.ts` pins both numbers.
  */
 
+import { buildingCityStat, foldBuildingCityStat } from './buildingEffects';
 import { type Hex, hexDistance } from './hex';
 import { cardCityStat, cardUnitStat, foldCityStat } from './statecraft';
 import { hasLineOfSight } from './los';
@@ -266,7 +267,14 @@ export function sightSources(state: GameState, playerId: number): SightSource[] 
     // see.
     sources.push({
       tile,
-      radius: Math.max(1, VIS.citySight + foldCityStat(cardCityStat(state, city, 'sight'))),
+      radius: Math.max(
+        1,
+        VIS.citySight +
+          foldCityStat(cardCityStat(state, city, 'sight')) +
+          // And whatever the town has *built* that watches, through the same
+          // hook. Two tables, one radius — see `buildingEffects.ts`.
+          foldBuildingCityStat(buildingCityStat(city, 'sight')),
+      ),
     });
   }
   return sources;

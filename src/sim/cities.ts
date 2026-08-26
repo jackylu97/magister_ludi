@@ -91,6 +91,7 @@ import {
   resourceIsVisibleTo,
   resourceYield,
 } from './resourceData';
+import { type ProjectId, isProjectId, projectDef } from './projectData';
 import { RULES } from './rulesData';
 import {
   type CardTileLine,
@@ -130,7 +131,7 @@ import {
   readTileYield,
   terrainDef,
 } from './terrainData';
-import { TECH_IDS, type TechId, techDef } from './techData';
+import { TECH_IDS, type TechId, UNIT_UNLOCK_TECH, techDef } from './techData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
 import { recomputeVisibility } from './visibility';
@@ -1421,8 +1422,14 @@ export function productionModifiers(
   hypothetical: readonly BuildingId[] = [],
 ): ProductionModifier[] {
   if (!toward) return [];
-  // The one place a queue item's kind is read as a bonus *category*; the two
-  // types are structurally identical and this line is what keeps them so.
+  // The one place a queue item's kind is read as a bonus *category*, and the
+  // one place the two vocabularies are allowed to differ: a `ProductionCategory`
+  // is what a bonus may *name*, and a project is deliberately not one of them.
+  // A project's rate is a printed conversion (Entry XXVI) — a barracks putting
+  // ten percent behind Tithes would be a barracks minting money — so a city
+  // building one carries no category bonus at all, which is exactly what an
+  // empty list means to `cityYields`.
+  if (toward.kind === 'project') return [];
   const category: ProductionCategory = toward.kind;
   const list: ProductionModifier[] = [];
   for (const id of BUILDING_IDS) {
@@ -1930,53 +1937,139 @@ export function borderGrowth(
   };
 }
 
+/** One line of why a unit costs what it costs. Folds to `unitProductionCost`. */
+export interface UnitCostLine {
+  source: string;
+  /** Hammers this line adds to the running figure. Signed. */
+  amount: number;
+}
+
 /**
- * What one unit of this type costs *this player, right now*: its base cost plus
- * `costIncrement` for every escalating unit they have already built.
+ * The age band a unit's price is multiplied by: the age of the technology that
+ * unlocks it, or the first band for a type nothing gates.
+ *
+ * Read off the tree rather than stored on the unit row, because "when does this
+ * belong" is already written down once — in `unlocks` — and a second copy on
+ * the unit is a second copy to forget when a designer moves a node between ages.
+ */
+function unitCostFactor(type: UnitTypeId): { age: number; factor: number } {
+  const ladder = RULES.production.unitCostAgeMultiplier;
+  const gate = UNIT_UNLOCK_TECH.get(type);
+  const age = gate === undefined ? 1 : techDef(gate).age;
+  return { age, factor: ladder[age - 1] ?? ladder[0] ?? 1 };
+}
+
+/**
+ * What one unit of this type costs *this player, right now*, as the ordered
+ * list the price is the fold of (hard rule 5, said about a price rather than a
+ * yield).
+ *
+ * Four lines, in the order they apply, because the order is the arithmetic:
+ *
+ *   1. **the roster's price** — `cost` off `data/units.json`.
+ *   2. **the ladder** — `costIncrement` for every escalating unit this empire
+ *      has already built. Presence of the field is the marker, here and in
+ *      `advanceProduction`: a designer who writes an increment of zero has
+ *      declared an escalating type whose ladder is currently flat, not a flat
+ *      type.
+ *   3. **the age band** — `unitCostAgeMultiplier`, on the sum of the two above.
+ *      It multiplies the *escalated* figure rather than the printed one so that
+ *      a late-age settler-like unit escalates in the money of its own era; the
+ *      settler itself is Age I and multiplies by one, so nothing about the
+ *      opening moved. See `ProductionRules`.
+ *   4. **the empire's law** — `settlerCost`, asked only of an **escalating**
+ *      type: that rule names "what a settler costs", and `costIncrement` is
+ *      what marks a type as one, so a card that cheapens settlers cheapens
+ *      exactly the types the game escalates and nothing else.
+ *
+ * Every step floors, and the fold is exact by construction: each line carries
+ * the *difference* it makes to the running figure, so the list sums to the
+ * price no matter how the intermediate roundings fall.
+ *
+ * An unknown player is priced with no ladder and no law rather than refused:
+ * this is a display and charging function, and the caller that could be handed
+ * a stale id is the UI.
+ */
+export function explainUnitCost(
+  state: GameState,
+  playerId: number,
+  type: UnitTypeId,
+): UnitCostLine[] {
+  const def = unitDef(type);
+  const lines: UnitCostLine[] = [{ source: def.name, amount: def.cost }];
+  let running = def.cost;
+
+  const increment = def.costIncrement;
+  if (increment !== undefined) {
+    const player = playerById(state, playerId);
+    // Manifest of the Steppe's second clause: the ladder stops climbing. Read as
+    // a multiplier of zero on the built count rather than as a branch, so the
+    // two clauses compose without either knowing about the other.
+    const built = cardActionRule(state, playerId, 'noSettlerEscalation')
+      ? 0
+      : (player?.settlersBuilt ?? 0);
+    if (built > 0) {
+      lines.push({ source: `${built} already founded`, amount: increment * built });
+      running += increment * built;
+    }
+  }
+
+  const { age, factor } = unitCostFactor(type);
+  if (factor !== 1) {
+    const scaled = Math.floor(running * factor);
+    lines.push({ source: `Æra ${'I'.repeat(age)} roster ×${factor}`, amount: scaled - running });
+    running = scaled;
+  }
+
+  if (increment !== undefined) {
+    const percent = foldCardRulePercent(cardRulePercent(state, playerId, 'settlerCost'));
+    if (percent !== 0) {
+      // Floored at 1: a free settler would be an empire that settles every turn.
+      const ruled = Math.max(1, Math.floor((running * (100 + percent)) / 100));
+      lines.push({ source: `doctrine ${percent > 0 ? '+' : ''}${percent}%`, amount: ruled - running });
+      running = ruled;
+    }
+  }
+
+  return lines;
+}
+
+/** The fold of `explainUnitCost`, and the only sum of one. */
+export function foldUnitCost(lines: readonly UnitCostLine[]): number {
+  let total = 0;
+  for (const line of lines) total += line.amount;
+  return total;
+}
+
+/**
+ * What one unit of this type costs *this player, right now*.
  *
  * The one evaluator (Entry VIII). `advanceProduction` charges through it, the
  * city panel prices its buildable rows and its queue rows through it, the
  * banners and the panel estimate turns through it, and the tech screen quotes a
  * not-yet-unlocked unit through it — so the number on the button is the number
  * the city pays, and no second implementation can drift out from under the
- * first. A type with no `costIncrement` passes straight through, which is every
- * unit but the settler.
- *
- * An unknown player is priced at base rather than refused: this is a display and
- * charging function, and the caller that could be handed a stale id is the UI.
+ * first. It is the fold of `explainUnitCost` and nothing else, so the sentence
+ * the panel prints and the hammers the basket is charged are one arithmetic.
  */
 export function unitProductionCost(
   state: GameState,
   playerId: number,
   type: UnitTypeId,
 ): number {
-  const def = unitDef(type);
-  // Presence of the field is the marker, here and in `advanceProduction`: a
-  // designer who writes an increment of zero has declared an escalating type
-  // whose ladder is currently flat, not a flat type.
-  const increment = def.costIncrement;
-  if (increment === undefined) return def.cost;
-  // The card half, and it is asked only of an **escalating** type: `settlerCost`
-  // names the rule "what a settler costs", and `costIncrement` is what marks a
-  // type as one (see above), so a card that cheapens settlers cheapens exactly
-  // the types the game escalates and nothing else.
-  const percent = foldCardRulePercent(cardRulePercent(state, playerId, 'settlerCost'));
-  const player = playerById(state, playerId);
-  // Manifest of the Steppe's second clause: the ladder stops climbing. Read as a
-  // multiplier of zero on the built count rather than as a branch, so the two
-  // clauses compose without either knowing about the other.
-  const built = cardActionRule(state, playerId, 'noSettlerEscalation')
-    ? 0
-    : (player?.settlersBuilt ?? 0);
-  const base = def.cost + increment * built;
-  if (percent === 0) return base;
-  // Floored at 1: a free settler would be an empire that settles every turn.
-  return Math.max(1, Math.floor((base * (100 + percent)) / 100));
+  return foldUnitCost(explainUnitCost(state, playerId, type));
 }
 
 /**
  * Hammers the item at the front of a queue costs *this player*, or `null` if it
- * is unknown. Units are priced by `unitProductionCost`; buildings are flat.
+ * is unknown. Units are priced by `unitProductionCost`; buildings and projects
+ * are flat.
+ *
+ * A project's cost is what one *turn of the conversion* costs — it is charged
+ * again the moment it is paid, because a project never leaves the queue (see
+ * `settleProduction`). That is why `turnsToBuild` needs no project clause: "how
+ * long until this completes" and "how often does this pay" are the same
+ * question for a repeatable item.
  *
  * Takes the owner rather than reading it off a city, because a queue item is
  * also priced before it belongs to one (the panel's buildable rows).
@@ -1989,12 +2082,16 @@ export function queueItemCost(
   if (item.kind === 'unit') {
     return isUnitTypeId(item.id) ? unitProductionCost(state, playerId, item.id) : null;
   }
+  if (item.kind === 'project') {
+    return isProjectId(item.id) ? projectDef(item.id).cost : null;
+  }
   return isBuildingId(item.id) ? buildingDef(item.id).cost : null;
 }
 
 /** The display name of a queue item, or its raw id if the id is unknown. */
 export function queueItemName(item: QueueItem): string {
   if (item.kind === 'unit') return isUnitTypeId(item.id) ? unitDef(item.id).name : item.id;
+  if (item.kind === 'project') return isProjectId(item.id) ? projectDef(item.id).name : item.id;
   return isBuildingId(item.id) ? buildingDef(item.id).name : item.id;
 }
 
@@ -2360,6 +2457,7 @@ function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | nu
 export type ProductionPlan =
   | { kind: 'unit'; item: QueueItem; index: number; id: UnitTypeId; cost: number; tile: Tile }
   | { kind: 'building'; item: QueueItem; index: number; id: BuildingId; cost: number }
+  | { kind: 'project'; item: QueueItem; index: number; id: ProjectId; cost: number }
   | { kind: 'drop'; item: QueueItem; index: number };
 
 /**
@@ -2423,6 +2521,18 @@ function planQueueItem(
     return { kind: 'unit', item, index, id, cost, tile };
   }
 
+  // A project is the plainest of the three: hammers, and nothing else. No
+  // population floor, no strategic resource, no spawn tile and no `drop` —
+  // there is no state a project can be in that makes it illegal, which is the
+  // whole of what "the queue is never idle" means (Entry XXVI).
+  if (item.kind === 'project') {
+    if (!isProjectId(item.id)) return null;
+    const id: ProjectId = item.id;
+    const cost = projectDef(id).cost;
+    if (hammers < cost) return null;
+    return { kind: 'project', item, index, id, cost };
+  }
+
   if (!isBuildingId(item.id)) return null;
   const id: BuildingId = item.id;
   // Only reachable from a hand-edited save or a queue built before the
@@ -2433,7 +2543,15 @@ function planQueueItem(
   return { kind: 'building', item, index, id, cost };
 }
 
-/** What a settlement did, for the caller that has to say so out loud. */
+/**
+ * What a settlement did, for the caller that has to say so out loud.
+ *
+ * A project reports here like anything else — "Uruk · Tithes" is a thing that
+ * happened and the announcement line is entitled to say so — with the one
+ * difference that `item` is still standing in `city.queue` when the caller
+ * reads this. Nothing downstream cares: every consumer prints the name and the
+ * cost, and none of them goes looking for the row.
+ */
 export interface ProductionCompletion {
   city: City;
   item: QueueItem;
@@ -2471,6 +2589,29 @@ export interface ProductionCompletion {
  * is deliberately not built today, because a settlement routine with no windfall
  * to serve is a guess about what the windfall will need.
  */
+/**
+ * Banks one completion of a project into its owner's pools.
+ *
+ * The whole of what a project *does*, in one function, so that the three banks
+ * it may pay into are read as a table rather than as three branches somebody
+ * has to remember to grow. `pays` is the printed figure and nothing multiplies
+ * it — see `projectData.ts` for why that is arithmetic rather than taste.
+ *
+ * Nothing here settles a bucket, and that is the reason culture is not in
+ * `ProjectPayout`: gold, science and faith are pools that accumulate and are
+ * read where they lie, while a culture pool that fills is a draft owed
+ * (`settleCultureWindfall`). A project that paid culture would be the second
+ * path into that bucket the register in CLAUDE.md exists to forbid.
+ */
+function payProject(state: GameState, playerId: number, id: ProjectId): void {
+  const player = playerById(state, playerId);
+  if (!player) return;
+  const { pays } = projectDef(id);
+  player.gold += pays.gold ?? 0;
+  player.sciencePool += pays.science ?? 0;
+  player.faithPool += pays.faith ?? 0;
+}
+
 export function settleProduction(state: GameState, city: City): ProductionCompletion | null {
   const plan = planProduction(state, city);
   if (!plan) return null;
@@ -2478,6 +2619,31 @@ export function settleProduction(state: GameState, city: City): ProductionComple
   if (plan.kind === 'drop') {
     city.queue.splice(plan.index, 1);
     return null;
+  }
+
+  // A project is the one completion that leaves the queue as it found it, and
+  // that is the whole mechanism of a repeatable item: the hammers come out, the
+  // conversion is banked, and the row is still standing there tomorrow morning
+  // asking for twenty more. It returns before three things that are about
+  // *finishing something*, each deliberately:
+  //
+  //   · the **splice** — nothing finished, so nothing leaves.
+  //   · the **overflow doubling** (The Common Purse) — a card about the
+  //     remainder left over from a completed thing. A repeatable item's
+  //     remainder is not overflow, it is next turn's down payment, and doubling
+  //     it every turn would be a mint rather than a bonus.
+  //   · the **completion riders** — Master Masons' culture on a wall, Rites of
+  //     Passage' faith on a sword. Both are paid for building a *thing*; a
+  //     conversion that triggered them would pay a card's one-off every fourth
+  //     turn for the rest of the game.
+  //
+  // What it does do is bank the printed figure, unstaged. See `projectData.ts`:
+  // the hammers were already multiplied on their way into the basket, so a
+  // payout that rode the modifier pipeline would charge one conversion twice.
+  if (plan.kind === 'project') {
+    city.hammerBasket -= plan.cost;
+    payProject(state, city.ownerId, plan.id);
+    return { city, item: plan.item, name: queueItemName(plan.item), cost: plan.cost };
   }
 
   city.hammerBasket -= plan.cost;

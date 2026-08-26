@@ -182,6 +182,13 @@
     ],
     "retoolCost": 0
   },
+  "production": {
+    "unitCostAgeMultiplier": [
+      1,
+      1.5,
+      2
+    ]
+  },
   "startingUnits": [
     "settler",
     "warrior"

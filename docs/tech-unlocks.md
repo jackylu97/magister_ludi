@@ -31,6 +31,9 @@ the report against it.
 - **Building authority capacity** — a building raises the empire's writ (`authorityCapacity`). One: the monument, +1. The authority breakdown counts them per type ("Monuments ×3 +3"); nothing in the meter names the monument.
 - **Per-category production modifier** — a building puts a share of its city's hammers behind one *kind* of item (`productionBonus: { category, percent }`). One: the barracks, +10% toward units. Luxuries declare the same shape (marble, +15% toward buildings), and `productionModifiers` is one list over both tables. It flows through `cityYields`, so the estimate, the panel and the hammers the basket receives are one number.
 - **Resource reveal** — tech makes a strategic resource *visible* (it works regardless). Two now: Husbandry reveals horses, Bronzeworking reveals iron.
+- **Repeating projects** — tech unlocks a queue row that *never completes* (`unlocks.projects`, ledger Entry XXVI). Two now: Calendar → **Tithes** (20⚙ → 5🪙), Letters → **Scholarship** (20⚙ → 5🔬). The row stays where it stands and is charged again the moment it is paid, so a town that has run out of things to build is never idle. The payout is a *printed conversion* and nothing multiplies it — the hammers were already staged on their way into the basket (Entry XVII).
+- **Building happiness** — a building supplies contentment to the city that holds it (`happiness`). One: **funeral games**, +3. Folded as its own line of the happiness ledger through `buildingEffects.ts`; nothing in the meter names it.
+- **Building city stat** — a building raises what its own town is worth to storm, or how far it sees (`cityStat`). One: the **palisade**, +5 defense. The same shape a Statecraft card uses, folded into the same forecast lines.
 
 ## Age I
 
@@ -43,14 +46,23 @@ second-tier nodes rather than on "Agriculture or Pottery".
 - **Fletching** (18🔬 ← Agriculture): unit — archer (ranged 7) · improvement — **camp**
 - **Mining** (16🔬 ← Agriculture): improvement — **mine** (+1⚙ on hills) · ability — **clear forest** (20⚙ once, to the city that owns the tile)
 - **Earthenware** (16🔬 ← Agriculture): building — granary (+3🌾)
-- **Bronzeworking** (23🔬 ← Mining + Earthenware): unit — spearman · building — **barracks** (+10%⚙ toward units built here) · reveals **iron**
-- **Stonecraft** (23🔬 ← Husbandry + Earthenware): improvement — **quarry** · building — monument (+2🎵, **+1 authority capacity**)
-- **Calendar** (21🔬 ← Earthenware): improvement — **plantation** (+1🌾) · **renewal: plantations +1🪙**
+- **Bronzeworking** (23🔬 ← Mining + Earthenware): unit — spearman · buildings — **barracks** (+10%⚙ toward units built here), **funeral games** (35⚙, **+3 happiness in this city**) · reveals **iron**
+- **Stonecraft** (23🔬 ← Husbandry + Earthenware): improvement — **quarry** · buildings — monument (+2🎵, **+1 authority capacity**), **palisade** (30⚙, **+5 city defense**)
+- **Calendar** (21🔬 ← Earthenware): improvement — **plantation** (+1🌾) · **renewal: plantations +1🪙** · project — **Tithes** (20⚙ → 5🪙, repeating)
 - **Divination** (21🔬 ← Husbandry): building — shrine (+1🔬 +1🎵)
 - **The Wheel** (29🔬 ← Husbandry + Bronzeworking): units — **war chariot**, **chariot archer** · **renewal: granaries +1🌾**
-- **Letters** (27🔬 ← Earthenware + Divination): building — library (+2🔬, +1🔬/pop, +2🪙)
+- **Letters** (27🔬 ← Earthenware + Divination): building — library (+2🔬, +1🔬/pop, +2🪙) · project — **Scholarship** (20⚙ → 5🔬, repeating)
 
-Age I is 227🔬 in total, 212 of it payable. The chart is eight columns by six
+**The build-sink pass, 2026-08-26 (ledger Entry XXVI).** Age I gained four sinks —
+the palisade, the funeral games, Tithes and Scholarship — because the playtest finding
+was that an early town runs out of things to build. Beaker costs are untouched; what
+moved is the *hammer* side: the Age I roster is up ~40% with a mounted premium (warrior
+5→7⚙, worker 8→10, spearman/archer 6→8, horseman 8→12, war chariot 11→17, chariot archer
+9→14), and the **scout is deliberately unmoved at 9⚙** because three turns at the median
+capital's 3⚙ is what an opening scout is for. The settler is unchanged; its escalation
+ladder does the work there.
+
+Age total 227🔬, 212 of it payable. The chart is eight columns by six
 lanes; ÆRA I paints columns 0–3, II 4–5, III 6–7.
 
 **The two chariots.** The Wheel's pair is the doc's "chariot (stronger than a

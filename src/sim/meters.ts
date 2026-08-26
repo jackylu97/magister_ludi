@@ -59,6 +59,7 @@
  */
 
 import { BUILDING_IDS, buildingDef, buildingPlural } from './buildingData';
+import { buildingHappiness } from './buildingEffects';
 import { improvementDef, improvementForResource } from './improvementData';
 import {
   capitalCityOf,
@@ -253,6 +254,14 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   }
   for (const line of cardTierBoost(state, playerId).lines) {
     list.push({ source: `${line.source} · +${line.amount}% when content`, part: 'gain', value: 0 });
+  }
+  // And the contentment the empire has *built*. Its own line for the reason
+  // every other supply here has one — a player about to lose a town is entitled
+  // to know what leaves with it — and folded through the one evaluator that
+  // reads a building's non-yield fields (`buildingEffects.ts`), so nothing in
+  // this meter has ever heard of a funeral games.
+  for (const line of buildingHappiness(state, playerId)) {
+    list.push({ source: line.source, part: 'gain', value: line.amount });
   }
 
   // What a citizen costs, less whatever sugar and honey take off it. The factor

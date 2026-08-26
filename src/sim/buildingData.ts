@@ -21,11 +21,12 @@
  * and is floored at the point it is applied, per building, so two half-science
  * buildings do not round into a free point. See `cityYields`.
  *
- * The three fields that name a behaviour
- * --------------------------------------
- * Three of them exist now, and each is a *number the caller interprets* rather
- * than a switch anybody has to grow a case in. All three arrived with the Age I
- * rework and all three are read in exactly one place:
+ * The five fields that name a behaviour
+ * -------------------------------------
+ * Five of them exist now, and each is a *number the caller interprets* rather
+ * than a switch anybody has to grow a case in. The first three arrived with the
+ * Age I rework, the last two with the Age I sinks (Entry XXVI), and every one
+ * of them is read in exactly one place:
  *
  *   · `authorityCapacity` — writ this building supplies, counted per building
  *     type by `explainAuthority` (`meters.ts`). There is no monument special
@@ -40,6 +41,17 @@
  *     now reads buildings and resources through one shape.
  *   · `upgrades` — the building half of the punctuated-renewal hook that
  *     `improvements.json` has had since M7. See `BuildingUpgrade`.
+ *   · `happiness` — contentment this building supplies, folded as one more line
+ *     of `explainHappiness` (`meters.ts`) through `buildingEffects.ts`. There is
+ *     no funeral-games case in the meter; a second one is a data row.
+ *   · `cityStat` — what the town is worth to storm, and how far it sees, folded
+ *     into `planCombat`'s defender breakdown and `sightSources`' radius beside
+ *     the card lines that already land there.
+ *
+ * The last two are read through `buildingEffects.ts` rather than from this
+ * table directly, which is `resourceEffects.ts`'s bargain one scale down: the
+ * *table* says what a building is, and one evaluator says what an empire's
+ * buildings are worth. Nothing else in the game asks a building for either.
  *
  * One of each per city. Nothing here says so — that is a city rule and it lives
  * in the `setCityProduction` validation and in `advanceProduction`.
@@ -63,13 +75,32 @@ import type { TechId } from './techData';
  * The kinds of thing a city can be building, and therefore the kinds a
  * production bonus can name.
  *
- * Structurally `QueueItem['kind']` (`state.ts`) and deliberately declared here
- * instead: `state.ts` is the game's *state*, and both tables that hand out a
- * category bonus — buildings and resources — are read by modules that must not
- * depend on it. `cities.ts` is where the two meet, and it is the one place that
- * checks a queue item's kind against this type.
+ * A **subset** of `QueueItem['kind']` (`state.ts`) since projects landed, and
+ * the gap is the type doing its job rather than drift: a `ProductionCategory` is
+ * what a bonus may *name*, and a project deliberately is not one — its rate is a
+ * printed conversion (Entry XXVI), so a barracks putting ten percent behind
+ * Tithes would be a barracks minting money. `productionModifiers` (`cities.ts`)
+ * is the one place a queue item's kind is checked against this type, and it
+ * answers an empty list for a project.
+ *
+ * Declared here rather than in `state.ts` because that module is the game's
+ * *state*, and both tables that hand out a category bonus — buildings and
+ * resources — are read by modules that must not depend on it. `cities.ts` is
+ * where the two meet.
  */
 export type ProductionCategory = 'unit' | 'building';
+
+/**
+ * A stat of the city a building stands in. See `BuildingDef.cityStat`.
+ *
+ * `stat` is deliberately the same two words `CardCityStatEffect` uses, so that
+ * `buildingCityStat` and `cardCityStat` can be asked the same question and
+ * their answers concatenated without a translation in the middle.
+ */
+export interface BuildingCityStat {
+  stat: 'defense' | 'sight';
+  amount: number;
+}
 
 /** A percentage of a city's hammers, behind one category. See `BuildingDef`. */
 export interface ProductionBonus {
@@ -83,6 +114,8 @@ export type BuildingId =
   | 'granary'
   | 'shrine'
   | 'barracks'
+  | 'palisade'
+  | 'funeralGames'
   | 'library'
   | 'temple'
   | 'market'
@@ -185,6 +218,31 @@ export interface BuildingDef {
    * `productionBonus` is one fewer ×100 for a surface to forget.
    */
   productionBonus?: ProductionBonus;
+  /**
+   * Happiness this building supplies its owner, counted once for **the city
+   * that holds it**. Absent means none.
+   *
+   * The fifth field that names a behaviour, and the first building in the game
+   * to touch a meter's *supply* side rather than its capacity side. Deliberately
+   * the same reading a luxury's `extraHappiness` has — a number the meter's own
+   * evaluator folds as one more line of `explainHappiness`, never a rule
+   * anything switches on — so the second happiness building is a data row, and
+   * the day one wants "in every city" it declares that the way a luxury does
+   * (`per`), rather than growing a case here.
+   */
+  happiness?: number;
+  /**
+   * A stat of **the city itself** — what it is worth to storm, and how far it
+   * sees. Absent means none.
+   *
+   * Structurally `CardCityStatEffect` (`statecraftData.ts`) minus its `scope`,
+   * and that is the point: a wall a card raises and a wall a city *builds* are
+   * the same fact about the same city, so they fold into the same two lists
+   * (`planCombat`'s defender breakdown, `sightSources`' radius) through
+   * `buildingEffects.ts`. A building has no scope because it stands in exactly
+   * one town — the scope *is* the building.
+   */
+  cityStat?: BuildingCityStat;
   /** Tech-driven renewals. See `BuildingUpgrade` and the module docblock. */
   upgrades?: BuildingUpgrade[];
 }

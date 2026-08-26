@@ -477,6 +477,31 @@ export interface ResearchRules {
   retoolCost: number;
 }
 
+/**
+ * The system half of what a city builds. The per-thing half — a unit's `cost`,
+ * a building's, a project's — lives in the content tables, because those
+ * describe *a thing* rather than the system.
+ *
+ * One knob today, and it exists because the two halves of the game move at
+ * different rates. Beaker costs climb roughly nine-fold between Age I and Age
+ * III (16🔬 → 380🔬) while the roster's hammer prices climb about twice, so a
+ * late empire's science pace buys it units that are, relative to everything
+ * else it can spend hammers on, nearly free. The multiplier reprices the roster
+ * by the age of the technology that unlocks it rather than by hand, so a
+ * designer retuning "how much dearer is a later army" edits one array instead
+ * of fourteen rows — and the Age I numbers, which the opening is balanced
+ * against, are untouched at ×1.
+ */
+export interface ProductionRules {
+  /**
+   * Multiplier on a unit's printed cost, indexed by `age − 1` of the technology
+   * that unlocks it. An ungated unit, and any age past the end of the array,
+   * takes the first entry. Applied inside `unitProductionCost` as its own
+   * labelled line (`explainUnitCost`), never at the point of sale.
+   */
+  unitCostAgeMultiplier: number[];
+}
+
 export interface RulesConfig {
   game: GameRules;
   movement: MovementRules;
@@ -489,6 +514,7 @@ export interface RulesConfig {
   cities: CityRules;
   meters: MeterRules;
   research: ResearchRules;
+  production: ProductionRules;
   /** Unit types every player receives at their start position, in order. */
   startingUnits: UnitTypeId[];
 }

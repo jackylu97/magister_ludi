@@ -92,6 +92,7 @@ import { payWindfallGrants, settleCultureWindfall, windfallPayout } from './stat
 import {
   type GameState,
   type Player,
+  type QueueKind,
   type Unit,
   playerById,
 } from './state';
@@ -99,10 +100,12 @@ import {
   BUILDING_UNLOCK_TECH,
   TECH_IDS,
   type TechId,
+  PROJECT_UNLOCK_TECH,
   UNIT_UNLOCK_TECH,
   isTechId,
   techDef,
 } from './techData';
+import { isProjectId, projectDef } from './projectData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 
 const RESEARCH = RULES.research;
@@ -139,41 +142,42 @@ export function missingPrereqs(state: GameState, playerId: number, techId: TechI
 export function isUnlocked(
   state: GameState,
   playerId: number,
-  kind: 'unit' | 'building',
+  kind: QueueKind,
   id: string,
 ): boolean {
-  const gate =
-    kind === 'unit'
-      ? isUnitTypeId(id)
-        ? UNIT_UNLOCK_TECH.get(id)
-        : undefined
-      : isBuildingId(id)
-        ? BUILDING_UNLOCK_TECH.get(id)
-        : undefined;
-  if (gate === undefined) return true;
+  const gate = gatingTech(kind, id);
+  if (gate === null) return true;
   return hasTech(state, playerId, gate);
 }
 
-/** The technology that gates a queue item, or `null` when nothing does. */
-export function gatingTech(kind: 'unit' | 'building', id: string): TechId | null {
+/**
+ * The technology that gates a queue item, or `null` when nothing does.
+ *
+ * One lookup per kind and `isUnlocked` is now this plus `hasTech`, which is
+ * what keeps "what gates this" and "may I build this" from being two tables
+ * that can disagree about a third kind of row.
+ */
+export function gatingTech(kind: QueueKind, id: string): TechId | null {
   if (kind === 'unit') return (isUnitTypeId(id) && UNIT_UNLOCK_TECH.get(id)) || null;
+  if (kind === 'project') return (isProjectId(id) && PROJECT_UNLOCK_TECH.get(id)) || null;
   return (isBuildingId(id) && BUILDING_UNLOCK_TECH.get(id)) || null;
 }
 
-/** The display name of a unit or building id, or the raw id if it is unknown. */
-function itemName(kind: 'unit' | 'building', id: string): string {
+/** The display name of a queue item's id, or the raw id if it is unknown. */
+function itemName(kind: QueueKind, id: string): string {
   if (kind === 'unit') return isUnitTypeId(id) ? unitDef(id).name : id;
+  if (kind === 'project') return isProjectId(id) ? projectDef(id).name : id;
   return isBuildingId(id) ? buildingDef(id).name : id;
 }
 
 /**
  * The strategic resource a queue item needs, or `null` when it needs none.
  *
- * Buildings never do today; the signature takes the kind anyway so the gate
- * below can ask one question about either, and so the day a stable needs horses
- * this is the only line that changes.
+ * Buildings and projects never do today; the signature takes the kind anyway so
+ * the gate below can ask one question about all three, and so the day a stable
+ * needs horses this is the only line that changes.
  */
-export function requiredResource(kind: 'unit' | 'building', id: string): ResourceId | null {
+export function requiredResource(kind: QueueKind, id: string): ResourceId | null {
   if (kind !== 'unit' || !isUnitTypeId(id)) return null;
   return unitDef(id).requiresResource ?? null;
 }
@@ -203,7 +207,7 @@ export function requiredResource(kind: 'unit' | 'building', id: string): Resourc
 export function buildError(
   state: GameState,
   playerId: number,
-  kind: 'unit' | 'building',
+  kind: QueueKind,
   id: string,
 ): string | null {
   if (!isUnlocked(state, playerId, kind, id)) {

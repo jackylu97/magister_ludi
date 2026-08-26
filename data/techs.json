@@ -57,7 +57,7 @@
       "row": 2,
       "cost": 16,
       "prereqs": ["mining", "earthenware"],
-      "unlocks": { "units": ["spearman"], "buildings": ["barracks"] },
+      "unlocks": { "units": ["spearman"], "buildings": ["barracks", "funeralGames"] },
       "flavor": "Two soft metals agree to become a hard one."
     },
     "stonecraft": {
@@ -67,7 +67,7 @@
       "row": 3,
       "cost": 16,
       "prereqs": ["husbandry", "earthenware"],
-      "unlocks": { "buildings": ["monument"] },
+      "unlocks": { "buildings": ["monument", "palisade"] },
       "flavor": "Stone remembers longer than any of us."
     },
     "calendar": {
@@ -77,7 +77,7 @@
       "row": 4,
       "cost": 16,
       "prereqs": ["earthenware"],
-      "unlocks": {},
+      "unlocks": { "projects": ["tithes"] },
       "flavor": "The year, cut into pieces small enough to plan."
     },
     "divination": {
@@ -107,7 +107,7 @@
       "row": 4,
       "cost": 24,
       "prereqs": ["earthenware", "divination"],
-      "unlocks": { "buildings": ["library"] },
+      "unlocks": { "buildings": ["library"], "projects": ["scholarship"] },
       "flavor": "A thought that outlives the mouth it came from."
     },
 

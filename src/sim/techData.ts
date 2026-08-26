@@ -75,6 +75,7 @@
 
 import techsJson from '../../data/techs.json';
 import { type BuildingId, isBuildingId } from './buildingData';
+import { type ProjectId, isProjectId } from './projectData';
 import { type UnitTypeId, isUnitTypeId } from './unitData';
 
 export type TechId =
@@ -119,6 +120,12 @@ export const TECH_AGES: readonly TechAge[] = [1, 2, 3];
 export interface TechUnlocks {
   units?: UnitTypeId[];
   buildings?: BuildingId[];
+  /**
+   * Repeatable queue items (Entry XXVI). The third `unlocks` key and the same
+   * shape as the other two, so a project's gate is edited where a building's
+   * is and the inversion below needed one more call rather than a new idea.
+   */
+  projects?: ProjectId[];
 }
 
 export interface TechDef {
@@ -190,6 +197,15 @@ export const UNIT_UNLOCK_TECH: ReadonlyMap<UnitTypeId, TechId> = invert(
 /** Which tech enables each building. Absent means "buildable from turn one". */
 export const BUILDING_UNLOCK_TECH: ReadonlyMap<BuildingId, TechId> = invert(
   (unlocks) => unlocks.buildings,
+);
+
+/**
+ * Which tech enables each project. Absent would mean "from turn one", and
+ * deliberately no row is: a conversion available on turn one is a capital that
+ * never has to choose what to do with its hammers.
+ */
+export const PROJECT_UNLOCK_TECH: ReadonlyMap<ProjectId, TechId> = invert(
+  (unlocks) => unlocks.projects,
 );
 
 // --- the chart's geometry ---------------------------------------------------
@@ -386,6 +402,15 @@ export function techDataProblems(): string[] {
       } else if (BUILDING_UNLOCK_TECH.get(building) !== id) {
         problems.push(
           `building "${building}" is unlocked by both "${BUILDING_UNLOCK_TECH.get(building)}" and "${id}"`,
+        );
+      }
+    }
+    for (const project of def.unlocks.projects ?? []) {
+      if (!isProjectId(project)) {
+        problems.push(`tech "${id}" unlocks project "${project}", which does not exist`);
+      } else if (PROJECT_UNLOCK_TECH.get(project) !== id) {
+        problems.push(
+          `project "${project}" is unlocked by both "${PROJECT_UNLOCK_TECH.get(project)}" and "${id}"`,
         );
       }
     }

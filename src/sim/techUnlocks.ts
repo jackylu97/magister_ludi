@@ -41,6 +41,7 @@ import {
   chopYield,
   improvementDef,
 } from './improvementData';
+import { type ProjectId, projectDef } from './projectData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from './resourceData';
 import { type FeatureId, type TileYield, featureDef, readTileYield } from './terrainData';
 import { TECH_IDS, type TechId, isTechId, techDef } from './techData';
@@ -49,7 +50,10 @@ import { type UnitTypeId, unitDef } from './unitData';
 /**
  * What kind of gift this is, which is also what surface it changes:
  *
- *   · `unit` / `building` — a new row in a city's build list.
+ *   · `unit` / `building` / `project` — a new row in a city's build list. The
+ *     third is the repeatable kind (Entry XXVI): a row that never leaves the
+ *     queue, which is why it is its own gift rather than a building with an
+ *     odd cost.
  *   · `improvement` — a new row on a *worker's* sheet. The same kind of gift as
  *     a building one grade smaller: something a player may now choose to make.
  *   · `ability` — a *verb* a worker gains rather than a thing it may make. Today
@@ -71,6 +75,7 @@ import { type UnitTypeId, unitDef } from './unitData';
 export type TechGiftKind =
   | 'unit'
   | 'building'
+  | 'project'
   | 'improvement'
   | 'ability'
   | 'reveal'
@@ -93,6 +98,7 @@ interface TechGiftBase {
 export type TechGift =
   | (TechGiftBase & { kind: 'unit'; id: UnitTypeId })
   | (TechGiftBase & { kind: 'building'; id: BuildingId })
+  | (TechGiftBase & { kind: 'project'; id: ProjectId })
   | (TechGiftBase & { kind: 'improvement'; id: ImprovementId })
   | (TechGiftBase & {
       kind: 'ability';
@@ -118,11 +124,12 @@ export type TechGift =
     });
 
 /**
- * Everything `id` hands over: units, then buildings, then the improvements a
- * worker may now lay, then the abilities it gains, then reveals, then the two
- * kinds of renewal — the order a player reads them in, and the order of
- * consequence. Three of them are things to build, one is a thing a worker may
- * now do, one is a thing to look for, and the last two simply happen.
+ * Everything `id` hands over: units, then buildings, then projects, then the
+ * improvements a worker may now lay, then the abilities it gains, then reveals,
+ * then the two kinds of renewal — the order a player reads them in, and the
+ * order of consequence. Four of them are things to build, one is a thing a
+ * worker may now do, one is a thing to look for, and the last two simply
+ * happen.
  *
  * Every list is walked as an array in table order, never as a Map, so the same
  * tech always produces the same list (hard rule 2, and this feeds a screen the
@@ -130,7 +137,7 @@ export type TechGift =
  */
 export function techGifts(id: TechId): TechGift[] {
   const gifts: TechGift[] = [];
-  const { units = [], buildings = [] } = techDef(id).unlocks;
+  const { units = [], buildings = [], projects = [] } = techDef(id).unlocks;
 
   for (const unit of units) {
     gifts.push({ kind: 'unit', id: unit, name: unitDef(unit).name, glyph: unitDef(unit).glyph });
@@ -140,6 +147,12 @@ export function techGifts(id: TechId): TechGift[] {
     // the same filled block, which is exactly the reading: a building is a
     // building, and what distinguishes one is its yields, not its badge.
     gifts.push({ kind: 'building', id: building, name: buildingDef(building).name, glyph: '▣' });
+  }
+  for (const project of projects) {
+    // The recycle mark rather than the building block: what distinguishes a
+    // project from everything else on this card is that it comes back, and the
+    // badge is the one place the card can say so without a sentence.
+    gifts.push({ kind: 'project', id: project, name: projectDef(project).name, glyph: '↻' });
   }
   for (const improvement of IMPROVEMENT_IDS) {
     if (improvementDef(improvement).requiresTech !== id) continue;

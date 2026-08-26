@@ -50,10 +50,18 @@ game more playtestable than the last.
 - **Unit and building gold purchase** — deliberately out of scope for item 2. The price
   machinery (`explainTilePurchase` / one-evaluator + labelled lines) is the shape to copy.
 - **Unit upkeep** — still unbuilt. Nothing spends gold per turn.
-- **The faucet.** Building the sink showed there is barely a source: a capital with no
-  gold-paying luxury in its rings earns *zero* gold for forty turns. Roads and trade routes are
-  parked, markets are late, so tile purchase is currently unaffordable on a poor start. This is
-  the first thing to argue about when item 2 is played.
+- **The faucet — ANSWERED 2026-08-26** (ledger Entry XXVI). The build-sink pass minted the
+  first *baseline* gold source: **Tithes**, a repeating queue row unlocked at Calendar that
+  converts 20⚙ into 5🪙 and never leaves the queue. It is deliberately a poor rate — four
+  hammers to the coin — because it is a floor rather than an economy: a town with nothing
+  left to build now always has something to do with its hammers, and a capital with no
+  gold-paying luxury in its rings is no longer earning zero. Unlike the Traders' hoard and
+  the camp bounty (which Entry XX flagged as the wrong *shape* — one-time and geographic),
+  this is per-turn, everywhere, and a decision: every coin costs four hammers that could
+  have been a settler.
+  **Still not answered by it**: roads, trade routes and markets are the real economy and
+  are still parked, and tile purchase on a poor start is still slow. What changed is that
+  it is now slow rather than impossible.
 
 ## 3. Barbarians & discoveries — **BUILT** (2026-08-24; ledger Entry XX)
 Two features in one pass, because they are the same one read twice: the map has things on
@@ -97,10 +105,12 @@ it that are not yours, and a scout is how you find out.
   stays and heals), and the raider AI is a v1 jitter rather than a patrol.
 
 ### Still open from here
-- **The gold faucet, again.** This pass minted two new gold sources (Traders' hoard, the
-  camp bounty) and both are one-time and geographic — the wrong shape for an economy's
-  baseline even if the right shape for an adventure. Flagged in Entry XX.G for the user's
-  review; roads, trade routes and markets are still the real answer.
+- **The gold faucet, again — partly answered 2026-08-26.** This pass minted two new gold
+  sources (Traders' hoard, the camp bounty) and both are one-time and geographic — the
+  wrong shape for an economy's baseline even if the right shape for an adventure. Flagged
+  in Entry XX.G for the user's review. The **Tithes** project (Entry XXVI) is the
+  right-shaped one: per-turn, everywhere, and priced as a real decision. Roads, trade
+  routes and markets are still the rest of the answer.
 
 ## 4. Save / load UI
 - Saves are already `{config, log}` replays; expose them in the interface (save slot,

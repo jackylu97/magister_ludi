@@ -54,6 +54,31 @@
         "percent": 10
       }
     },
+    "palisade": {
+      "name": "Palisade",
+      "cost": 30,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "cityStat": {
+        "stat": "defense",
+        "amount": 5
+      }
+    },
+    "funeralGames": {
+      "name": "Funeral Games",
+      "cost": 35,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "happiness": 3
+    },
     "library": {
       "name": "Library",
       "cost": 20,
@@ -144,6 +169,25 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0.75
+    }
+  },
+
+  "projects": {
+    "tithes": {
+      "name": "Tithes",
+      "cost": 20,
+      "pays": {
+        "gold": 5
+      },
+      "note": "The temple counts the year's take and the treasury keeps a fifth of it."
+    },
+    "scholarship": {
+      "name": "Scholarship",
+      "cost": 20,
+      "pays": {
+        "science": 5
+      },
+      "note": "Hands that could have raised a wall copy a book instead."
     }
   }
 }

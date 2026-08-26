@@ -66,6 +66,7 @@ import { unitProductionCost } from '../sim/cities';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { improvementDef } from '../sim/improvementData';
+import { projectDef, projectRate } from '../sim/projectData';
 import { hasEndedTurn } from '../sim/state';
 import {
   availableTechs,
@@ -87,7 +88,7 @@ import {
 import { type TechGift, techGifts } from '../sim/techUnlocks';
 import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
-import { HAMMER, YIELD_GLYPH, turnsLabel } from './figures';
+import { HAMMER, PROJECT_GLYPHS, YIELD_GLYPH, turnsLabel } from './figures';
 import { setYieldText } from './yieldMark';
 import { createInfoCard } from './infoCard';
 import { BEAKER, researchProgress } from './researchProgress';
@@ -119,6 +120,10 @@ const YIELD_GLYPHS: [keyof ReturnType<typeof buildingYieldDelta>, string][] = [
 const GIFT_MARK: Record<TechGift['kind'], string> = {
   unit: 'is-unit',
   building: 'is-building',
+  // A project is a thing a city builds, so it wears the build mark: what
+  // separates it from a building is that it repeats, and the row's own glyph
+  // (↻) and note carry that.
+  project: 'is-building',
   improvement: 'is-improvement',
   ability: 'is-ability',
   reveal: 'is-reveal',
@@ -130,6 +135,7 @@ const GIFT_MARK: Record<TechGift['kind'], string> = {
 const GIFT_HEADING: Record<TechGift['kind'], string> = {
   unit: 'Units',
   building: 'Buildings',
+  project: 'Repeating projects',
   improvement: 'Workers may build',
   // Deliberately not "Workers may clear": the kind is a *verb* gained, and the
   // gift's own name ("Clear Forest") is where the specifics belong.
@@ -442,7 +448,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       row.append(mark);
       row.append(element('span', 'info-card-gift-name', gift.name));
       // Units are priced through the simulation's own evaluator; buildings
-      // quote their flat cost; an improvement quotes the charges it spends;
+      // quote their flat cost; a project quotes its *rate*, because a
+      // repeatable item has no total; an improvement quotes the charges it
+      // spends;
       // a reveal, an ability and the two renewals cost nothing at all, so the
       // ability and the renewals say what they *pay* instead and the reveal
       // says nothing.
@@ -451,6 +459,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
           ? `${unitProductionCost(state, playerId, gift.id)}${HAMMER}`
           : gift.kind === 'building'
             ? `${buildingDef(gift.id).cost}${HAMMER}`
+            : gift.kind === 'project'
+              ? `${projectDef(gift.id).cost}${HAMMER} → ${projectRate(gift.id, PROJECT_GLYPHS)}`
             : gift.kind === 'improvement'
               ? `${improvementDef(gift.id).chargeCost} charge`
               : gift.kind === 'ability'
