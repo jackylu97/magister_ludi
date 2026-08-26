@@ -2303,3 +2303,12 @@ no DOM/clock/Math.random — the CLAUDE.md purity rule is what makes this possib
   property). Revisit only if the product becomes ranked/public.
 - Hosting: two services from one repo when the time comes (`render.yaml`: static client +
   `server/` web service); the client can move to any CDN independently.
+
+**Ruling (user, 2026-08-26): M14 builds the hidden-information design, not lockstep.**
+The server is authoritative with **per-seat filtered views**: `viewFor(state, seat)` projects a
+redacted `GameState` (unexplored tiles blanked, unseen units absent, rivals' private fields
+zeroed, remembered versions of mutable tile fields the way `citySightings` remembers cities),
+so every one-evaluator UI function runs unchanged against the view. Clients stop simulating;
+single-player runs the full sim in a Web Worker projecting the local seat's view, so the
+projection boundary is exercised in every game. Lockstep is retired as the plan. Until M14
+the client deploys as a static site; nothing before M14 changes this cost.
