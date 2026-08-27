@@ -13,12 +13,14 @@
  *
  * What fills it, and why the answer is a list
  * -------------------------------------------
- * Three sources: a **trickle** from buildings, a lump and a trickle from
- * **wonders**, and lumps from **Triumphs**. Rule 5 applies to a count exactly as
- * it applies to a yield, so `explainRenown` is the ordered list — one line per
- * building, per wonder and per triumph earned this turn — and every total is a
- * fold of it. The HUD's hover prints those lines verbatim; nothing composes a
- * second sentence about a library.
+ * Four sources: a **trickle** from buildings, a lump and a trickle from
+ * **wonders**, a trickle from whatever **cards** say so (the Council of Elders'
+ * counsel — `CardRenownEffect`, read by the one evaluator like every other
+ * clause), and lumps from **Triumphs**. Rule 5 applies to a count exactly as it
+ * applies to a yield, so `explainRenown` is the ordered list — one line per
+ * building, per wonder, per card and per triumph earned this turn — and every
+ * total is a fold of it. The HUD's hover prints those lines verbatim; nothing
+ * composes a second sentence about a library.
  *
  * The feed record
  * ---------------
@@ -56,6 +58,7 @@ import {
   type Player,
   realPlayers,
 } from './state';
+import { cardRenownLines } from './statecraft';
 import { triumphDef } from './triumphData';
 import { awardCountTriumphs } from './triumphs';
 
@@ -91,6 +94,13 @@ export interface RenownLine {
  * founding order, `BUILDING_IDS` is table order — so the list a player reads
  * this turn is the list they read last turn with one more line on it.
  *
+ * The **card** lines sit between the two halves rather than at the end, because
+ * everything recurring belongs together: a player scanning the hover reads what
+ * their empire earns every turn as one block and what it happened to earn today
+ * as another. They are asked of the one evaluator (`cardRenownLines`), so a
+ * government, an Order, a belief, a wonder's clause and a legacy all arrive by
+ * the same road and this file has no idea which was which.
+ *
  * Triumph lines are the ones **earned this turn**, read off `Player.triumphs`
  * where the stamp matches `state.turn`. They are already banked by the time
  * anything reads this (a triumph settles the instant it is earned, Entry XVIII),
@@ -111,6 +121,9 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
         perTurn: true,
       });
     }
+  }
+  for (const line of cardRenownLines(state, playerId)) {
+    lines.push({ source: line.source, family: line.family, amount: line.amount, perTurn: true });
   }
   const player = state.players[playerId];
   for (const earned of player?.triumphs ?? []) {

@@ -18,6 +18,7 @@ import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map
 import { type Rng, cloneRng, makeRng, nextRange } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, createUnit, newGame } from '../../src/sim/state';
+import { techDef } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
 import { setRiverEdge } from '../../src/sim/water';
@@ -234,6 +235,28 @@ describe('melee', () => {
     expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
     expect(state.units.find((unit) => unit.id === d.id)).toBeUndefined();
     expect({ col: a.col, row: a.row }).toEqual({ col: 4, row: 3 });
+  });
+
+  it('settles a kill’s beakers rather than dropping them in the pool (War Chief)', () => {
+    // The first battle rider in the game to pay science, and the rule it has to
+    // obey is `tech.ts`': every windfall that pays beakers goes through
+    // `settleResearchWindfall`, so a kill that covers the last of a technology
+    // finishes it on the spot instead of a turn later.
+    const state = flatState();
+    const player = state.players[0]!;
+    player.statecraft.government = 'warChief';
+    player.statecraft.orders.push({ id: 'bloodedSpears', level: 1 });
+    player.statecraft.slots = [{ card: 'bloodedSpears', sealedUntil: 0 }];
+    player.researching = 'husbandry';
+    player.sciencePool = techDef('husbandry').cost - 5;
+
+    const a = createUnit(state, 0, 'swordsman', 3, 3);
+    const d = createUnit(state, 1, 'warrior', 4, 3);
+    d.hp = 4;
+    expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
+
+    expect(player.techsResearched).toContain('husbandry');
+    expect(player.sciencePool).toBe(0);
   });
 
   it('takes the civilians sheltering behind the defender it killed', () => {

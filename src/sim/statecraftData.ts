@@ -46,7 +46,7 @@ import statecraftJson from '../../data/statecraft.json';
 
 import type { BuildingId, ProductionCategory } from './buildingData';
 // Type-only in both directions, exactly as `religionData.ts` is. See `CardId`.
-import type { GreatPersonId } from './greatPeopleData';
+import type { Family, GreatPersonId } from './greatPeopleData';
 import type { ImprovementId } from './improvementData';
 import type { ModifierStage } from './modifiers';
 import type { ProjectId, ProjectPayout } from './projectData';
@@ -779,6 +779,30 @@ export interface CardWindfallRiderEffect {
    * are one figure.
    */
   perAge?: boolean;
+  /**
+   * **Everything on this rider is multiplied by the number of Orders this
+   * empire has *slotted*** — the non-null entries of `PlayerStatecraft.slots`.
+   * `perAge`'s sibling, in every respect that matters:
+   *
+   *   · it multiplies the *occasion's own* figure and the rider's own **grant**,
+   *     exactly as the era does, because a payout "per slotted Order" is one
+   *     idea however the occasion happens to be quoted;
+   *   · it composes with `perAge` as a **product** — a rider carrying both is
+   *     ×era × slots — rather than as a second competitor to the summed
+   *     percentages, which is Entry XVII's "sum within a stage, apply once" read
+   *     at this scale for the second time;
+   *   · it is folded in `windfallPayout`, **before anything is banked**, so the
+   *     preview, the basket and the announcement remain one figure (Entry
+   *     XVIII.5).
+   *
+   * Zero slotted Orders therefore pays **nothing**, and pays it silently: a
+   * grant of zero is dropped from the payout the way every other zero line in
+   * this file is dropped, rather than printed as a nought nobody can act on.
+   * The card's own text is where a player reads the condition ("per slotted
+   * Order"), which is War Chief's whole bargain — a warlord who fills his
+   * council rides harder on every kill.
+   */
+  perSlottedOrder?: boolean;
 }
 
 /** What a newly founded city is founded *with*. */
@@ -1041,6 +1065,38 @@ export interface CardProjectRiderEffect {
   pays: ProjectPayout;
 }
 
+/**
+ * Renown, paid **every turn** — the fifth Entry XVIII bucket said as a card
+ * clause. The Council of Elders' standing: *1 renown per turn in every city*.
+ *
+ * It is a `renown` shape rather than a `cityYields` one because renown is not a
+ * yield: it is not worked by a citizen, it is not staged by Entry XVII's
+ * percentages, and it does not sit in a city at all — it accumulates on the
+ * *player*, toward a great person. So it joins `explainRenown`'s list
+ * (`renown.ts`) rather than any city's, and the trickle the `renown` phase banks
+ * is still the fold of exactly that list.
+ *
+ * `per` is the only scaling this shape has and `'city'` is its only reading:
+ * "in every city" is a multiplier on a fact about the *empire*, not a line per
+ * town, so one line prints with the arithmetic shown ("… · 1 per city × 3")
+ * rather than three lines a player has to add up. Absent means flat.
+ *
+ * `family` is **optional on purpose**. A named family biases the great-person
+ * draw through `Player.renownByFamily`; an unfamilied trickle feeds the pool and
+ * no family, which leaves the draw exactly as flat as it was — and flat is the
+ * documented behaviour when nothing has fed (`chooseGreatPerson`'s weighting).
+ * A government's counsel favours nobody in particular, so the Council names
+ * none.
+ */
+export interface CardRenownEffect {
+  kind: 'renown';
+  amount: number;
+  /** `'city'` multiplies by the cities this empire holds. Absent: flat. */
+  per?: 'city';
+  /** Which family this feeds. Absent feeds the pool and no family. */
+  family?: Family;
+}
+
 /** Everything a card may say. One union, one evaluator (`statecraft.ts`). */
 export type CardEffect =
   | CardCityYieldsEffect
@@ -1071,7 +1127,8 @@ export type CardEffect =
   | CardPantheonSlotsEffect
   | CardPurchaseRiderEffect
   | CardZocRuleEffect
-  | CardProjectRiderEffect;
+  | CardProjectRiderEffect
+  | CardRenownEffect;
 
 /** Every `kind` in the union, for the register test that pins the evaluator. */
 export type CardEffectKind = CardEffect['kind'];

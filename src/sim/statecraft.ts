@@ -70,7 +70,7 @@ import {
   isBuildingId,
   isWonder,
 } from './buildingData';
-import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
+import { type Family, greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { improvementDef } from './improvementData';
 import { type ProjectId, type ProjectPayout, projectDef } from './projectData';
 import { type Tile, getTileAt, neighborTiles, tileHex, wrappedDistance } from './map';
@@ -2223,12 +2223,28 @@ export function windfallPayout(
   // compounding into ×era². Computed before the walk so a rider's own grant can
   // use the same figure the occasion's payout does.
   const era = highestAge(playerById(state, playerId)?.techsResearched ?? []);
+  // The slotted-Order multiplier (War Chief). `perAge`'s sibling and hoisted
+  // beside it for the same reason: **one** factor however many riders ask for
+  // it, and computed before the walk so a rider's own grant multiplies by the
+  // same count the occasion's figure does. Zero is a real answer — an empire
+  // with an empty council rides no harder — and it makes every figure on this
+  // payout zero, which drops the lines rather than printing noughts.
+  const slotted = filledOrderSlots(state, playerId);
   let ageMultiplied = false;
+  let slotMultiplied = false;
   for (const { source, card, level, effect } of effectsOfKind(state, playerId, 'windfallRider')) {
     if (effect.occasion !== occasion) continue;
     if (effect.perAge === true) {
       ageMultiplied = true;
       if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${'I'.repeat(era)})` });
+    }
+    if (effect.perSlottedOrder === true) {
+      slotMultiplied = true;
+      // Noted only when it *changes* the figure, which is `perAge`'s rule for
+      // Æra I exactly: a ×1 is not news, and a ×0 has already deleted every
+      // line it would have annotated.
+      const orders = slotted === 1 ? 'Order' : 'Orders';
+      if (slotted > 1) payout.lines.push({ card, source, note: `×${slotted} (slotted ${orders})` });
     }
     if (effect.percent !== undefined) {
       const share = scaleByLevel(effect.percent, level);
@@ -2249,8 +2265,15 @@ export function windfallPayout(
     if (grant.yield !== undefined && grant.amount !== undefined) {
       // A rider's own grant is multiplied by the era when *that rider* says so —
       // Rites of Blood pays fifteen faith a kill in Æra I and forty-five in Æra
-      // III — which is a fact about the card and not about the occasion.
-      const amount = scaleByLevel(grant.amount, level) * (effect.perAge === true ? era : 1);
+      // III — which is a fact about the card and not about the occasion. The
+      // slotted-Order count multiplies the same way and the two **compose as a
+      // product**: a rider carrying both is ×era × slots, because they are two
+      // independent facts about the payout rather than two competing scalings of
+      // one.
+      const amount =
+        scaleByLevel(grant.amount, level) *
+        (effect.perAge === true ? era : 1) *
+        (effect.perSlottedOrder === true ? slotted : 1);
       if (amount !== 0) {
         payout.grants.push({ card, source, yield: grant.yield, amount });
         payout.lines.push({ card, source, note: `+${amount} ${grant.yield}` });
@@ -2263,7 +2286,29 @@ export function windfallPayout(
   // rather than a competitor to the percentages.
   if (percent !== 0 && base !== 0) payout.amount = Math.floor((base * (100 + percent)) / 100);
   if (ageMultiplied) payout.amount *= era;
+  if (slotMultiplied) payout.amount *= slotted;
   return payout;
+}
+
+/**
+ * How many of this empire's Order slots are **filled**.
+ *
+ * The non-null entries of `PlayerStatecraft.slots` — held-but-unslotted Orders
+ * deliberately do not count, because slotting is the decision the government's
+ * spread makes scarce and a card that pays for it has to pay for *that*. A
+ * derived count and never a stored one, for `barbarianRoles`' reason: a number
+ * on the player would have to be maintained by every path that slots, unslots,
+ * or rebuilds the spread on adoption, and one missed path is a silent
+ * miscount.
+ */
+export function filledOrderSlots(state: GameState, playerId: number): number {
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return 0;
+  let count = 0;
+  for (const slot of sc.slots) {
+    if (slot) count += 1;
+  }
+  return count;
 }
 
 /**
@@ -2440,6 +2485,51 @@ export function cardProjectPays(
     }
   }
   return bag;
+}
+
+/** One card's standing renown, as `explainRenown` prints it. See `cardRenownLines`. */
+export interface CardRenownLine {
+  card: CardId;
+  source: string;
+  family: Family | null;
+  amount: number;
+}
+
+/**
+ * Every card paying this empire renown **per turn** — the Council of Elders'
+ * standing, and whatever else joins it.
+ *
+ * A *list*, for rule 5's reason at the scale of a count: `explainRenown`
+ * (`renown.ts`) is the ordered ledger the HUD's hover prints verbatim, and a
+ * government quietly adding three to a total nobody itemised is exactly the
+ * silence that ledger exists to prevent. So this reader hands back lines and the
+ * bucket's fold stays the only sum.
+ *
+ * The arithmetic is **printed into the source**, not left for the reader to do:
+ * "in every city" is one line whose label says *how* it reached its figure
+ * ("Government · Council of Elders · 1 per city × 3"), because a player checking
+ * a hover against the ledger needs the multiplicand and the count, and three
+ * identical one-renown lines would give them neither.
+ *
+ * A zero pays no line at all — an empire with no cities holds no counsel worth
+ * recording — which is the same rule every other list in this file follows.
+ */
+export function cardRenownLines(state: GameState, playerId: number): CardRenownLine[] {
+  const list: CardRenownLine[] = [];
+  for (const { source, card, level, effect } of effectsOfKind(state, playerId, 'renown')) {
+    const each = scaleByLevel(effect.amount, level);
+    if (each === 0) continue;
+    const helpings = effect.per === 'city' ? cityCount(state, playerId) : 1;
+    const amount = each * helpings;
+    if (amount === 0) continue;
+    list.push({
+      card,
+      source: effect.per === 'city' ? `${source} · ${each} per city × ${helpings}` : source,
+      family: effect.family ?? null,
+      amount,
+    });
+  }
+  return list;
 }
 
 /**
@@ -2692,19 +2782,33 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       // faith and the age multiplies it; leading with the multiplier said the
       // second half of a sentence whose first half had not been printed yet.
       const grant = effect.grant;
+      // The slotted-Order count rides as a **suffix on the figure it
+      // multiplies**, unlike the era, and the difference is what the two say:
+      // "in the money of your era" is a whole sentence about the payout, while
+      // "per slotted Order" is a *rate* and a rate read as a separate clause
+      // repeats itself once per grant on the card ("a kill grants +5 science",
+      // "a kill pays once per slotted Order", "a kill grants +5 culture", …).
+      // War Chief carries two grants, so it would have said it twice.
+      const per = effect.perSlottedOrder === true ? ' per slotted Order' : '';
       if (grant?.yield !== undefined && grant.amount !== undefined) {
         out.push({
-          text: `${occasion} grants ${signed(scaleByLevel(grant.amount, level))} ${grant.yield}`,
+          text: `${occasion} grants ${signed(scaleByLevel(grant.amount, level))} ${grant.yield}${per}`,
         });
       }
       if (grant?.heal !== undefined) {
-        out.push({ text: `${occasion} heals ${scaleByLevel(grant.heal, level)}` });
+        out.push({ text: `${occasion} heals ${scaleByLevel(grant.heal, level)}${per}` });
       }
       if (effect.percent !== undefined) {
-        out.push({ text: `${occasion} pays ${signed(scaleByLevel(effect.percent, level))}%` });
+        out.push({ text: `${occasion} pays ${signed(scaleByLevel(effect.percent, level))}%${per}` });
       }
       if (effect.perAge === true) {
         out.push({ text: `${occasion} pays in the money of your era` });
+      }
+      // A rider that multiplies only the *occasion's own* figure has no clause
+      // to hang the suffix on, so it gets the sentence instead. Nothing on the
+      // table reads this way today; it is here so the shape cannot ship silent.
+      if (per !== '' && grant === undefined && effect.percent === undefined) {
+        out.push({ text: `${occasion} pays once over per slotted Order` });
       }
       return;
     }
@@ -2849,6 +2953,18 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
     case 'projectRider': {
       const bag = bagWords(effect.pays, level);
       if (bag) out.push({ text: `${projectDef(effect.project).name} pays ${bag}` });
+      return;
+    }
+    case 'renown': {
+      // "per turn" is load-bearing and never trimmed: every other count on a
+      // card is a standing fact, and this one is a trickle. The family, where a
+      // card names one, trails as its own phrase rather than modifying "renown"
+      // — a player reads *what they gain* first and *whom it favours* second.
+      const where = effect.per === 'city' ? ' in every city' : '';
+      const family = effect.family === undefined ? '' : `, favouring ${effect.family}s`;
+      out.push({
+        text: `${signed(scaleByLevel(effect.amount, level))} renown per turn${where}${family}`,
+      });
       return;
     }
     default: {

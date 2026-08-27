@@ -48,12 +48,15 @@ import {
   foldCardYields,
   cardOfferRule,
   cardUnitStat,
+  cardRenownLines,
   describeCard,
   draftCost,
   drawOrderOffer,
+  filledOrderSlots,
   isUpgradable,
   liveEffects,
   livePool,
+  payWindfallGrants,
   newPlayerStatecraft,
   orderChoiceError,
   planDraft,
@@ -68,6 +71,7 @@ import {
 } from '../../src/sim/statecraft';
 import {
   type CardEffectKind,
+  type CardWindfallRiderEffect,
   type OrderId,
   DOCTRINE_IDS,
   GOVERNMENT_IDS,
@@ -196,6 +200,22 @@ describe('the card table', () => {
     ]);
   });
 
+  it('states the two tier-3 rivals in the words they were ratified in', () => {
+    // Playtest ruling, 8/27: both tier-3 alternatives to the Priest-King were
+    // thin enough that nobody took them. Pinned as *sentences* rather than as
+    // effect rows, because what the ruling settled was the printed card — the
+    // rows are one of several ways to say it and the words are not.
+    expect(describeCard('councilOfElders').map((clause) => clause.text)).toEqual([
+      '+3 happiness',
+      '+1 renown per turn in every city',
+    ]);
+    expect(describeCard('warChief').map((clause) => clause.text)).toEqual([
+      '+1 combat strength per 2 cities you hold (at most +3)',
+      'killing a unit grants +5 science per slotted Order',
+      'killing a unit grants +5 culture per slotted Order',
+    ]);
+  });
+
   it('gives every card a name, a flavour line and at least one effect or a stated deferral', () => {
     for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS]) {
       const def = cardDef(id);
@@ -244,7 +264,7 @@ describe('the card table', () => {
       'authority', 'happinessTierBoost', 'combatLine', 'unitStat', 'windfallRider',
       'foundingRider', 'countScaled', 'rateConversion', 'offerRider', 'effectAmplifier',
       'meterRule', 'conditionRule', 'actionRule', 'behaviorRule', 'cityStat', 'metaRule',
-      'tileYield',
+      'tileYield', 'renown',
     ];
     for (const kind of expected) expect(used.has(kind), kind).toBe(true);
   });
@@ -779,6 +799,28 @@ describe('every hook family, end to end', () => {
     expect(cardCityStat(g.state, city, 'sight')).toHaveLength(1);
   });
 
+  it('renown — the Council of Elders is a line per empire, with its arithmetic shown', () => {
+    const g = game();
+    const sc = playerById(g.state, 0)!.statecraft;
+    // A government that says nothing about renown says nothing about renown.
+    expect(cardRenownLines(g.state, 0)).toEqual([]);
+    sc.government = 'councilOfElders';
+    // No cities, no counsel: a zero pays no line rather than a line worth zero.
+    expect(cardRenownLines(g.state, 0)).toEqual([]);
+    const city = found(g.state, 0);
+    expect(cardRenownLines(g.state, 0)).toEqual([
+      {
+        card: 'councilOfElders',
+        // One line with the multiplicand and the count in it — not one line per
+        // town for a reader to add up.
+        source: 'Government · Council of Elders · 1 per city × 1',
+        family: null,
+        amount: 1,
+      },
+    ]);
+    void city;
+  });
+
   it('countScaled — Salt Tithes scales with what the empire holds, capped where capped', () => {
     const g = game();
     found(g.state, 0);
@@ -1042,6 +1084,92 @@ describe('rule 5 holds with cards active', () => {
     expect(payout.amount).toBe(40);
     // And a rider on a different occasion is not on this one.
     expect(windfallPayout(g.state, 0, 'camp').grants.map((g2) => g2.yield)).toEqual(['food']);
+  });
+
+  it('perSlottedOrder — War Chief’s kill pays by the council he keeps', () => {
+    const kill = (orders: OrderId[]) => {
+      const g = game(29);
+      const sc = playerById(g.state, 0)!.statecraft;
+      sc.government = 'warChief';
+      // Slotted, not merely held: the whole of what this rider prices is the
+      // scarce decision, so an Order in the pocket buys nothing.
+      sc.slots = orders.map((id) => ({ card: id, sealedUntil: 0 }));
+      for (const id of orders) sc.orders.push({ id, level: 1 });
+      expect(filledOrderSlots(g.state, 0)).toBe(orders.length);
+      const payout = windfallPayout(g.state, 0, 'kill');
+      return payout.grants.map((grant) => [grant.yield, grant.amount] as const);
+    };
+    // An empty council pays **nothing**, and pays it silently — the zero grants
+    // are dropped rather than printed as noughts a player cannot act on.
+    expect(kill([])).toEqual([]);
+    expect(kill(['bloodedSpears'])).toEqual([
+      ['science', 5],
+      ['culture', 5],
+    ]);
+    expect(kill(['bloodedSpears', 'campFollowers', 'farRunners'])).toEqual([
+      ['science', 15],
+      ['culture', 15],
+    ]);
+  });
+
+  it('perSlottedOrder composes with perAge as a product, not as a second percentage', () => {
+    const g = game(29);
+    const sc = playerById(g.state, 0)!.statecraft;
+    sc.government = 'warChief';
+    sc.orders.push({ id: 'bloodedSpears', level: 1 }, { id: 'campFollowers', level: 1 });
+    sc.slots = [
+      { card: 'bloodedSpears', sealedUntil: 0 },
+      { card: 'campFollowers', sealedUntil: 0 },
+    ];
+    // Æra II. Nothing on the table carries both flags on one rider today, so the
+    // composition is pinned by lending War Chief's science rider the era for the
+    // length of this test and handing it straight back — the alternative is a
+    // product nobody checks until the first card that wants one.
+    playerById(g.state, 0)!.techsResearched.push('currency' as never, 'mathematics' as never, 'philosophy' as never);
+    const rider = governmentDef('warChief').effects.find(
+      (effect) => effect.kind === 'windfallRider' && effect.grant?.yield === 'science',
+    ) as CardWindfallRiderEffect;
+    rider.perAge = true;
+    try {
+      const payout = windfallPayout(g.state, 0, 'kill');
+      // 5 × 2 slots × 2 æra = 20. The culture rider, which asked for neither
+      // era nor anything else, is untouched at 5 × 2 — a multiplier is a fact
+      // about *its own rider* and never about the payout.
+      expect(payout.grants.map((grant) => [grant.yield, grant.amount])).toEqual([
+        ['science', 20],
+        ['culture', 10],
+      ]);
+      // Both multipliers are annotated, so the announcement can say why.
+      expect(payout.lines.map((line) => line.note)).toEqual([
+        '×2 (Æra II)',
+        '×2 (slotted Orders)',
+        '+20 science',
+        '×2 (slotted Orders)',
+        '+10 culture',
+      ]);
+    } finally {
+      delete rider.perAge;
+    }
+  });
+
+  it('perSlottedOrder pays into the empire’s banks, and only what it printed', () => {
+    const g = game(29);
+    const player = playerById(g.state, 0)!;
+    player.statecraft.government = 'warChief';
+    player.statecraft.drafts = 20; // No draft threshold in the way of the arithmetic.
+    player.statecraft.orders.push({ id: 'bloodedSpears', level: 1 });
+    player.statecraft.slots = [{ card: 'bloodedSpears', sealedUntil: 0 }];
+    const science = player.sciencePool;
+    const culture = player.culturePool;
+    // Asking twice is asking once: the multiplier is a *reading* of the slots,
+    // with no counter to tick and no draw to spend, which is what keeps a
+    // preview free and a replay byte-identical.
+    const before = snapshotState(g.state);
+    expect(windfallPayout(g.state, 0, 'kill')).toEqual(windfallPayout(g.state, 0, 'kill'));
+    expect(snapshotState(g.state)).toEqual(before);
+    payWindfallGrants(g.state, player, windfallPayout(g.state, 0, 'kill'));
+    expect(player.sciencePool - science).toBe(5);
+    expect(player.culturePool - culture).toBe(5);
   });
 });
 

@@ -41,8 +41,8 @@ Signatures rewritten off the flat-% rule too.
 | Tier | Choice | Slots (M/E/W) | Signature |
 |---|---|---|---|
 | 0 | **Chiefdom** | 1/1/0 | — |
-| 3 | **Council of Elders** | 1/2/1 | +2 happiness |
-| | **War Chief** | 2/1/1 | +1 combat strength per 2 cities you hold (max +4) |
+| 3 | **Council of Elders** | 1/2/1 | +3 happiness · +1 renown per turn in every city |
+| | **War Chief** | 2/1/1 | +1 combat strength per 2 cities you hold (max +3) · killing a unit grants +5 science and +5 culture per slotted Order |
 | | **Priest-King** | 1/1/2 | +2🕯 per city |
 | 7 | **Republic** | 1/3/2 | +25% border culture · tile purchases −10% |
 | | **Tyranny** | 3/1/2 | +3 authority capacity · pillaging pays +10💰 |

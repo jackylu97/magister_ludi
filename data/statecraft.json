@@ -30,7 +30,12 @@
       "effects": [
         {
           "kind": "happiness",
-          "amount": 2
+          "amount": 3
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "per": "city"
         }
       ]
     },
@@ -54,8 +59,26 @@
           "scaled": {
             "count": "cities",
             "per": 2,
-            "max": 4
+            "max": 3
           }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "yield": "science",
+            "amount": 5
+          },
+          "perSlottedOrder": true
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "yield": "culture",
+            "amount": 5
+          },
+          "perSlottedOrder": true
         }
       ]
     },

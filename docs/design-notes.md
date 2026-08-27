@@ -3305,3 +3305,15 @@ sentence.
 the row said `offer: 'order'` and the doc says *every Statecraft draft*. It now carries a
 Doctrine rider too. (And an offer already pending when a wonder completes keeps its size —
 drawn once, at the moment it opens.)
+
+**Addendum — two governments buffed (user, 2026-08-27).** *"Council of Elders: +3 happiness,
+gain 1 renown per turn in every city. War Chief: +1 combat strength per 2 cities you hold
+(max 3); killing a unit yields 5 science and 5 culture per slotted order."* Two additions to
+the vocabulary, each read where its cousin already was: a `renown` card effect
+(`{ amount, per: 'city', family? }`), folded into `explainRenown` between the buildings'
+trickle and the Triumph lumps so renown is still added in one place and the HUD hover still
+prints the whole list — family-less, so the pool grows and the draw stays flat; and
+`perSlottedOrder` on a windfall rider, `perAge`'s sibling and a product with it, applied in
+`windfallPayout` before anything is banked (zero slotted Orders prints no line). Found on the
+way: a kill's science was dropped into the pool without settling — `payBattleRiders` now calls
+`settleResearchWindfall`, so a kill that covers the last of a tech finishes it that instant.

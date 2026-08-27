@@ -155,6 +155,7 @@ import {
   removeUnit,
   unitById,
 } from './state';
+import { settleResearchWindfall } from './tech';
 import { defenseBonus } from './terrainData';
 import { isVisibleTo, recomputeVisibilityFor } from './visibility';
 import { isCivilian, isCombatant, isRanged, unitDef } from './unitData';
@@ -1188,6 +1189,14 @@ function snapshotFallen(unit: Unit): CombatOutcome['killed'][number] {
  * Culture is settled through the windfall wrapper, because Entry XVIII says a
  * one-time grant settles its bucket the instant it lands and The Iron Price pays
  * culture: a kill that fills the meter deals a draft on the spot.
+ *
+ * **Beakers are settled the same way**, for the same reason and by the same
+ * rule: `settleResearchWindfall` is what every windfall that pays science calls
+ * (`tech.ts`), and War Chief's five-a-kill is the first battle rider to pay any.
+ * A kill that covers the last of a technology therefore finishes it here, and
+ * re-seats every one of that empire's citizens with it — the register's entry 9,
+ * which is exactly what a rider paying into a pool the phase would otherwise
+ * have spent an hour later owes.
  */
 function payBattleRiders(
   state: GameState,
@@ -1202,6 +1211,7 @@ function payBattleRiders(
   const touched = payWindfallGrants(state, player, payout, { col: at.col, row: at.row });
   for (const city of touched) settleProductionWindfall(state, city);
   settleCultureWindfall(state, player);
+  settleResearchWindfall(state, player);
 }
 
 function captureCity(state: GameState, city: City, ownerId: number): void {

@@ -13,6 +13,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildingDef } from '../../src/sim/buildingData';
+import { foundCityAt } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { greatPersonBlocker } from '../../src/sim/greatPeople';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
@@ -28,6 +29,7 @@ import {
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, claimWonder } from '../../src/sim/state';
 import { offerSize } from '../../src/sim/statecraft';
+import { isWaterTerrain } from '../../src/sim/terrainData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { game, found } from './statecraftHelpers';
 
@@ -38,6 +40,25 @@ function town(state: GameState, playerId: number, ...buildings: string[]) {
   const city = state.cities.find((c) => c.ownerId === playerId) ?? found(state, playerId);
   for (const id of buildings) city.buildings.push(id as never);
   return city;
+}
+
+/**
+ * Grows this seat's holding to `count` cities, planted on whatever dry ground
+ * the map offers.
+ *
+ * Straight through `foundCityAt`, which is the verb and not the command, so the
+ * settling rules are somebody else's test: what is on trial below is what a
+ * *number of cities* is worth, and reaching it the honest way would be forty
+ * turns of walking.
+ */
+function holding(state: GameState, playerId: number, count: number): void {
+  if (state.cities.length === 0) found(state, playerId);
+  for (const tile of state.map.tiles) {
+    if (state.cities.length >= count) return;
+    if (isWaterTerrain(tile.terrain)) continue;
+    if (state.cities.some((c) => c.col === tile.col && c.row === tile.row)) continue;
+    foundCityAt(state, playerId, tile);
+  }
 }
 
 // --- the ledger -------------------------------------------------------------
@@ -87,6 +108,46 @@ describe('the ledger', () => {
     const g = game();
     town(g.state, 0, 'library');
     expect(renownPerTurn(g.state, 1)).toBe(0);
+  });
+
+  it('takes a card’s standing trickle as a line like any other (Council of Elders)', () => {
+    const g = game();
+    g.state.players[0]!.statecraft.government = 'councilOfElders';
+    holding(g.state, 0, 3);
+    // One line for the counsel, its arithmetic printed, and it sits with the
+    // recurring half rather than at the end. (Founding three towns earns
+    // Triumphs, which are the *lumps* at the end of the list and have their own
+    // tests — the recurring half is what this one is about.)
+    expect(explainRenown(g.state, 0).filter((line) => line.perTurn)).toEqual([
+      {
+        source: 'Government · Council of Elders · 1 per city × 3',
+        family: null,
+        amount: 3,
+        perTurn: true,
+      },
+    ]);
+    expect(renownPerTurn(g.state, 0)).toBe(3);
+    // N cities, +N a turn — the whole of the ruling.
+    holding(g.state, 0, 5);
+    expect(renownPerTurn(g.state, 0)).toBe(5);
+    // And it is not a fact about the world: the rival's council says nothing.
+    expect(renownPerTurn(g.state, 1)).toBe(0);
+  });
+
+  it('sits a card’s trickle beside the buildings, in one recurring block', () => {
+    const g = game();
+    g.state.players[0]!.statecraft.government = 'councilOfElders';
+    const city = town(g.state, 0, 'library');
+    expect(explainRenown(g.state, 0).filter((line) => line.perTurn)).toEqual([
+      { source: `Library at ${city.name}`, family: 'scholar', amount: 1, perTurn: true },
+      {
+        source: 'Government · Council of Elders · 1 per city × 1',
+        family: null,
+        amount: 1,
+        perTurn: true,
+      },
+    ]);
+    expect(renownPerTurn(g.state, 0)).toBe(2);
   });
 });
 
@@ -212,6 +273,24 @@ describe('the renown phase', () => {
     expect(g.state.players[0]!.renownByFamily.merchant).toBe(1);
     runEndOfTurn(g.state);
     expect(g.state.players[0]!.renownPool).toBe(4);
+  });
+
+  it('banks a card’s trickle into the pool and into no family at all', () => {
+    const g = game();
+    g.state.players[0]!.statecraft.government = 'councilOfElders';
+    holding(g.state, 0, 3);
+    // One resolution first, so the Triumphs founding three towns earned are
+    // behind us and what the next one moves is the trickle alone.
+    runEndOfTurn(g.state);
+    const player = g.state.players[0]!;
+    const pool = player.renownPool;
+    const feed = { ...player.renownByFamily };
+    runEndOfTurn(g.state);
+    expect(player.renownPool - pool).toBe(3);
+    // **The pool only.** An unfamilied trickle leaves the great-person draw
+    // exactly as flat as it was, which is the documented reading when nothing
+    // has fed — a government's counsel favours nobody in particular.
+    expect(player.renownByFamily).toEqual(feed);
   });
 
   it('never pays a triumph twice — the lump is banked when it is earned', () => {
