@@ -926,8 +926,37 @@ export interface CameraSpec {
    * target, so a framed city's work radius clears the fixed-width city panel
    * instead of landing dead centre behind it. Roughly half the panel's own
    * pixel footprint — see `frameCells`'s docblock.
+   *
+   * It therefore moves whenever the panel's width does, and the panel's width
+   * is a CSS number in another file: the 2026-08-27 legibility pass widened
+   * `#city-panel` from 286px to 340px, and this went from 150 to 177 —
+   * (340 + 14) / 2, the box plus its gutter, halved. The rule is written down
+   * at both ends (`style.css`'s `#city-panel` carries the other half).
    */
   cityFrameBiasPx: number;
+}
+
+/**
+ * The city screen's vignette — see `vignette3d.ts` for what it draws and why it
+ * is screen space.
+ *
+ * The two radii are in units of *one work radius of ground*: 1.0 is exactly the
+ * outer edge of the tiles the open city can work, so `innerRadius` says how much
+ * air the ring is given before the wash starts and `outerRadius` says where the
+ * wash has reached full strength. They are the only numbers here that are not a
+ * matter of taste — everything else on this spec is.
+ */
+export interface VignetteSpec {
+  /** Fully clear out to this multiple of the work radius. */
+  innerRadius: number;
+  /** Fully washed beyond this multiple. Must exceed `innerRadius` to be soft. */
+  outerRadius: number;
+  /** How dark the wash gets at full strength, 0–1. */
+  opacity: number;
+  /** Palette name of the ink the wash is laid in. */
+  color: number;
+  /** Fade in and out, in milliseconds. 0 makes it instant for everybody. */
+  fadeMs: number;
 }
 
 export interface LightSpec {
@@ -1481,6 +1510,7 @@ export interface View3DData {
   camera: CameraSpec;
   lights: LightSpec;
   overlay: OverlaySpec;
+  vignette: VignetteSpec;
   hpBar: HpBarSpec;
   badges: BadgeSpec;
   animation: AnimationSpec;
@@ -1822,6 +1852,16 @@ export const VIEW3D: View3DData = {
     siteRadiusColor: parseColor(viewJson.overlay.siteRadiusColor, 'overlay.siteRadiusColor'),
     siteRadiusOpacity: viewJson.overlay.siteRadiusOpacity,
     siteRadiusScale: viewJson.overlay.siteRadiusScale,
+  },
+  vignette: {
+    innerRadius: viewJson.vignette.innerRadius,
+    outerRadius: viewJson.vignette.outerRadius,
+    opacity: viewJson.vignette.opacity,
+    // Named from the palette for the badges' reason: the wash is ink, and an
+    // ink written out here would be the one colour on the board outside the
+    // twelve-colour discipline.
+    color: named(viewJson.vignette.color, 'vignette.color'),
+    fadeMs: viewJson.vignette.fadeMs,
   },
   hpBar: {
     width: viewJson.hpBar.width,

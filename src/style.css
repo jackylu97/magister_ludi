@@ -1784,6 +1784,16 @@ button.seat:active {
   font-variant-numeric: tabular-nums;
 }
 
+/* A row with nothing to say is not drawn at all — no "Occupant: —", no label
+   with an em dash after it (`setInfoRow` in `main.ts`, which hides the term and
+   its value together because in a grid either one alone leaves a hole). Stated
+   here rather than left to the user agent because a grid item is exactly the
+   kind of box a stray `display` elsewhere would resurrect. */
+.info-list dt[hidden],
+.info-list dd[hidden] {
+  display: none;
+}
+
 /* The terrain is the one name in this block, so it gets the naming face. The
    selectors carry `#info` only to outrank the `.info-list dd` default above. */
 #info #info-terrain {
@@ -1831,10 +1841,12 @@ button.seat:active {
   color: var(--y-faith);
 }
 
-/* The itemized breakdown under the total: one row per contribution, written by
-   `tileYieldLineNodes` out of `explainTileYield`'s own ordered list. Indented
-   under the figure it explains, and set a size down — the total is what the eye
-   lands on, the lines are the reason it is what it is. */
+/* The itemized breakdown under the total: the ground, then one row per thing
+   sitting on it, written by `tileYieldLineNodes` out of `explainTileYield`'s own
+   ordered list. Indented under the figure it explains, and set a size down — the
+   total is what the eye lands on, the lines are the reason it is what it is.
+   Absent entirely on a hex with nothing on it: there the figure *is* the ground
+   and a one-entry ledger would be arithmetic where none happened. */
 .yield-lines {
   list-style: none;
   margin: 2px 0 0;
@@ -1860,17 +1872,13 @@ button.seat:active {
   color: var(--ink-soft);
 }
 
-/* A ground line a later override took over — "Forest, replaced by Hills". It
-   stays on the card because the *list* is the explanation (see
-   `explainTileYield`), and it is struck rather than dimmed away entirely so
-   that what happened to it is legible rather than merely quiet. */
-.yield-line.is-replaced {
-  opacity: 0.55;
-}
-
-.yield-line.is-replaced .yield-line-figures {
-  text-decoration: line-through;
-}
+/* There is no `.is-replaced` rule any more, and its absence is the point: a
+   ground line a later override took over used to be printed struck through, and
+   a forest on grassland is not grassland-with-a-correction — it is a forest.
+   `displayYieldLines` (`src/ui/tileReadout.ts`) drops the superseded lines
+   before this stylesheet ever sees them, so the base row of the ledger is
+   whatever the hex *is*. The derivation still exists; it is `explainTileYield`'s,
+   and it was never a thing to typeset. */
 
 .hint {
   margin: 0;
@@ -2363,43 +2371,97 @@ kbd {
 }
 
 /* --- tile price tags -------------------------------------------------------
-   One per hex the open city could buy, floating over the board with the city
-   banners (`tilePriceTags.ts`). Mono numerals on ink, as every price in this
-   game is; the barred state keeps the figure and loses the offer, because a
-   player who cannot afford a tile still needs to know what it costs. */
+   The **price plate**: one per hex the open city could buy, floating over the
+   board with the city banners (`tilePriceTags.ts`).
+
+   It is the city panel's buy tag (`.city-buildable-buy`) laid on the ground, and
+   deliberately so: a price on a hex and a price on a build row are the same
+   offer in two places, and until this pass they were two different objects —
+   gilt numerals on an ink pill out here, gilt numerals on parchment in there.
+   Parchment under a hairline ink rim, the coin drawn rather than typed, the
+   figure in tabular mono, and a solid ink throw so the plate sits *above* the
+   diorama rather than painted onto it.
+
+   Everything tunable is a custom property on the class, so the plate can be
+   dialed in one block — this is `data/view3d.json`'s job done in the register a
+   DOM surface actually reads. `flair.html` carries a specimen of all three
+   states for exactly that iteration. */
 .tile-price {
+  --price-paper: var(--parchment);
+  --price-ink: var(--y-gold);
+  --price-rim: var(--ink);
+  --price-throw: 2px;
+  --price-size: 11px;
+  --price-pad: 3px 8px;
+  /* The greyed set: the panel's disabled tag, ink and rim both faint and the
+     paper dropped to the table so the plate reads as *not offered today*
+     rather than as withdrawn. */
+  --price-paper-barred: var(--table);
+  --price-ink-barred: var(--ink-faint);
+  --price-rim-barred: var(--ink-faint);
+  /* The hovered plate's rim — the one state the panel has no equivalent for,
+     because on a board the tag under the cursor has to name the hex. */
+  --price-rim-hover: var(--gilt);
+
   position: absolute;
   top: 0;
   left: 0;
   pointer-events: auto;
-  padding: 2px 7px;
-  border: var(--border-thin) solid var(--ink);
-  border-radius: 999px;
-  background: var(--ink);
-  color: var(--y-gold-lit);
+  display: flex;
+  align-items: center;
+  padding: var(--price-pad);
+  border: var(--border-thin) solid var(--price-rim);
+  border-radius: var(--radius-sm);
+  background: var(--price-paper);
+  color: var(--price-ink);
   font-family: var(--face-num);
-  font-size: 11px;
+  font-size: var(--price-size);
   font-variant-numeric: tabular-nums;
-  line-height: 1.3;
+  line-height: 1.25;
   white-space: nowrap;
   cursor: pointer;
-  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.4);
+  box-shadow: var(--price-throw) var(--price-throw) 0 var(--ink);
 }
 
-.tile-price:hover:not(.is-barred) {
-  border-color: var(--y-gold-lit);
-  box-shadow: 3px 3px 0 rgba(29, 26, 32, 0.5);
+/* The coin sits a touch smaller than a panel mark: the plate is the smallest
+   type in the interface and a full-size mark would out-shout its own figure. */
+.tile-price .yield-mark {
+  width: 0.85em;
+  height: 0.85em;
 }
 
-/* Struck through rather than hidden: the price is still the answer to "what
-   would this cost", and the strike is what says you may not have it today. */
+/* Gilt rim and a longer throw — the plate lifts off the hex rather than growing,
+   because a tag that changed size would move the figure the eye is reading.
+
+   `.is-hovered` is the same state reachable without a cursor: the flair cabinet
+   needs to photograph it, and a gallery-local copy of this rule is exactly the
+   reproduction that page's docblock forbids. It is also the hook a *selected*
+   hex would use, which is why it is a class rather than a second declaration. */
+.tile-price:hover:not(:disabled),
+.tile-price.is-hovered:not(:disabled) {
+  border-color: var(--price-rim-hover);
+  box-shadow: calc(var(--price-throw) + 1px) calc(var(--price-throw) + 1px) 0 var(--ink);
+}
+
+/* The panel's press, minus the nudge: `.city-buildable-buy` depresses by moving
+   two pixels into its own shadow, and this plate cannot — its `transform` is the
+   projection of a hex and is written inline every frame, so a stylesheet rule
+   would either be overridden or fight the camera. Losing the throw is the same
+   gesture with the half that survives. */
+.tile-price:active:not(:disabled) {
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* Greyed rather than struck. The price is still the answer to "what would this
+   cost", and a line through it says *withdrawn* when what it means is *not
+   today* — so the plate keeps its figure and loses its ink, exactly as the city
+   panel's buy tag does when the treasury will not cover it. */
 .tile-price.is-barred {
-  background: var(--table);
-  color: var(--ink-soft);
-  text-decoration: line-through;
-  opacity: 0.75;
+  border-color: var(--price-rim-barred);
+  background: var(--price-paper-barred);
+  color: var(--price-ink-barred);
   cursor: not-allowed;
-  box-shadow: none;
+  box-shadow: var(--price-throw) var(--price-throw) 0 rgba(29, 26, 32, 0.18);
 }
 
 /* --- the turn splash ------------------------------------------------------
@@ -2622,7 +2684,21 @@ kbd {
   bottom: auto;
   max-height: calc(100dvh - var(--topbar-h) - 14px - var(--end-turn-clearance));
   z-index: 12;
-  width: 286px;
+  /* Widened from 286px in the 2026-08-27 legibility pass, and it is one number
+     three things depend on. The yield strip is six voices, and six chips in
+     286px came out at 40px each — narrower than the word "FAITH" is at the
+     chip's own 8px eyebrow. The build rows carry a price tag beside the build
+     button since the purchase pass, and a two-column grid of those left the
+     name about seventy pixels to live in. And the two panels share this rule on
+     purpose (see the note above), so the unit sheet moves with it rather than
+     becoming a second box in the same corner at a different size.
+
+     `camera.cityFrameBiasPx` in `data/view3d.json` is the fourth dependant and
+     is not in this file: it is roughly half this box's footprint (width plus
+     the 14px gutter), so a framed city clears the panel instead of landing
+     behind it. Changing this number without changing that one hides the thing
+     the panel is talking about. */
+  width: 340px;
   padding: 11px 13px 13px;
   overflow-y: auto;
   border: var(--border) solid var(--ink);
@@ -2796,9 +2872,15 @@ kbd {
   letter-spacing: 0.02em;
 }
 
+/* Six columns for six voices. It said five for as long as faith has been a
+   yield, which is not a narrow strip — it is a strip that silently wrapped the
+   sixth chip onto a second row, so the panel's headline figures read as five
+   and a straggler. The count is the number of entries `renderYields` prints,
+   and the widened panel (above) is what gives six chips room to say their
+   names. */
 .city-yields {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 4px;
 }
 
@@ -2843,6 +2925,12 @@ kbd {
 }
 .city-yield.is-culture .city-yield-value {
   color: var(--y-cul);
+}
+/* Faith's own ink, which this list had never been given — the sixth chip was
+   printing in plain ink while its mark beside it was drawn in `--y-faith`, so
+   the one number and the one glyph naming the same voice disagreed. */
+.city-yield.is-faith .city-yield-value {
+  color: var(--y-faith);
 }
 
 /* The citizen line: a label and a count, on the rule under the yields. */
@@ -2949,26 +3037,45 @@ kbd {
 }
 
 /* Buy Tiles: the button that arms the mode, under the border line it belongs
-   to. Sized and inked like the panel's other actions; the active state is
-   inverted rather than tinted, so "this mode is on" reads at a glance across
-   the room, which is the same job the crosshair cursor is doing on the board. */
+   to. The active state is inverted rather than tinted, so "this mode is on"
+   reads at a glance across the room, which is the same job the crosshair cursor
+   is doing on the board.
+
+   Its *typography* is the panel's own register and used to be nobody's: 10.5px
+   uppercase on tracked letters made it the only shouting control on a screen
+   whose every other control — the build rows, the queue's icon buttons, the
+   close cross — is 11px face-ui in sentence case. An eyebrow is what `h3` is
+   for on this panel, and an eyebrow that can be pressed is a category error.
+   So it is set exactly as `.city-buildable` is (face, size, weight, no
+   tracking, no transform) and wears the same pressed shadow, which is what
+   makes the panel read as one family of controls rather than three; and it is
+   the HUD's own reading of a mode toggle too — see `.hud-card
+   button.lens-option`, which is sentence-case face-ui at 600 and marks "on"
+   with ink rather than with capitals. */
 .city-buy-tiles {
   margin-top: 6px;
   width: 100%;
   padding: 5px 8px;
   border: var(--border-thin) solid var(--ink);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--parchment);
   color: var(--ink);
   font-family: var(--face-ui);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  box-shadow: 2px 2px 0 var(--ink);
   cursor: pointer;
 }
 
 .city-buy-tiles:hover:not(:disabled) {
-  background: var(--table);
+  background: #fffdf4;
+}
+
+.city-buy-tiles:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
 }
 
 .city-buy-tiles.is-active {
@@ -2978,6 +3085,7 @@ kbd {
 
 .city-buy-tiles:disabled {
   opacity: 0.45;
+  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
   cursor: not-allowed;
 }
 
@@ -3065,10 +3173,24 @@ kbd {
 
 /* --- add to queue --------------------------------------------------------- */
 
+/* One buildable per line, not two.
+ *
+ * Two columns was right while a row was a name and a price. It stopped being
+ * right the day the purchase pass put a second control on every row: half a
+ * 286px panel, minus the tag, left the name and the "40⚙ · 6t" schedule about
+ * seventy pixels between them, and both went to ellipsis. A build list is read
+ * down anyway — the eye is scanning names — so the column that was bought with
+ * that width was never worth the two figures it cost.
+ *
+ * One column makes the row an honest three-cell grid (name | cost · turns |
+ * buy) at the panel's ordinary sizes, and it is the whole of the fix: nothing
+ * below shrinks a font to fit. The list is taller for it, and the panel has
+ * scrolled since long before this pass.
+ */
 .city-buildable-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 5px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
 }
 
 /* One buildable: the button that queues it, and the tag that buys it. Two
@@ -3080,7 +3202,7 @@ kbd {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -3100,22 +3222,31 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px 7px;
+  /* Wide enough for the dearest tag the bank prints, so the buy column never
+     takes width from the name it stands beside — which is exactly what it was
+     doing, one row at a time, whenever a price gained a digit. */
+  min-width: 4.8em;
+  padding: 5px 8px;
   border: var(--border-thin) solid var(--ink);
   border-radius: var(--radius-sm);
   background: var(--parchment);
   color: var(--y-gold);
   font-family: var(--face-num);
-  font-size: 10px;
+  font-size: 10.5px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   box-shadow: 2px 2px 0 var(--ink);
   cursor: pointer;
 }
 
+/* The offer that *is* the row — the augur's. It spans the grid, and its label is
+   one sentence ending in a price ("Call an augur · 40🕯"), so it is centred with
+   the currency mark tucked against the figure. `space-between` was right while
+   the row was half a two-column grid and pushed the mark to the far edge the
+   moment the list became full width, which read as a price for nothing. */
 .city-buildable-buy.is-offer {
-  justify-content: space-between;
-  gap: 6px;
+  justify-content: center;
+  gap: 3px;
   border-left: 5px solid var(--y-faith);
   font-family: var(--face-ui);
   font-size: 11px;
@@ -3142,11 +3273,11 @@ kbd {
 /* The stripe down the left edge is what separates the two kinds: a city builds
    many more units than buildings, so the buildings are the quieter colour. */
 .city-buildable {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 5px;
-  padding: 5px 7px;
+  gap: 8px;
+  padding: 6px 8px;
   border: var(--border-thin) solid var(--ink);
   border-left: 5px solid var(--y-prod);
   border-radius: var(--radius-sm);
@@ -3180,14 +3311,29 @@ kbd {
   cursor: default;
 }
 
+/* Left, explicitly. A `<button>` centres its content by the platform's own
+   stylesheet, which never showed while the name was a flex item shrunk to its
+   own width — the moment the row became a grid and the name got a whole 1fr
+   track, every unit in the list started floating in the middle of its button
+   and the column of names stopped being a column. */
 .city-buildable-name {
   overflow: hidden;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* The schedule column. `min-width` rather than a fixed track, because one row in
+   this list does not carry a schedule at all: an unbuildable unit prints "needs
+   improved ⛏ Iron" here instead, and a fixed column would either clip that
+   sentence or reserve its width on every row that has none. A floor wide enough
+   for the longest real figure ("120⚙ · 15t") is what makes the tabular numerals
+   worth having — every row's cost lands on the same column, so the list can be
+   read down as a column of prices — and the one long sentence simply takes the
+   width it needs from the name beside it. */
 .city-buildable-cost {
-  flex: 0 0 auto;
+  min-width: 5.8em;
+  text-align: right;
   font-family: var(--face-num);
   font-size: 10px;
   font-variant-numeric: tabular-nums;

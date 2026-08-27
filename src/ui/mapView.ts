@@ -424,4 +424,28 @@ export interface MapView {
    * camera.
    */
   frameCells?(cells: readonly CellRef[], animate: boolean): void;
+
+  /**
+   * Optional: says which city's screen is open, so the board can wash down
+   * everything outside that city's work radius — the city screen's vignette.
+   *
+   * `null` is "no city screen", and it is the whole of the close protocol. The
+   * renderer is never told that a panel was dismissed, or how: the UI has one
+   * derived answer to "which city is open" (`controls.openCity()`), this is that
+   * answer, and it is passed on the same `refreshOverlays` sweep that already
+   * refreshes the worked-tile dots and the lens. So Escape, a click on the
+   * board, selecting a unit, switching seats, starting a new game and loading a
+   * save all clear the wash without any of them knowing it exists — which is the
+   * property a parallel "vignette on" flag would have quietly lost the first
+   * time somebody added a seventh way to close the panel.
+   *
+   * `animate` has the same meaning it has on `frameCells`: the caller passes
+   * false for reduced motion, and the wash lands instantly. The renderer is told
+   * rather than asked, exactly as it is about every other motion in this
+   * interface.
+   *
+   * Optional for the usual reason — it is a 3D feature, and the frozen 2D
+   * pipelines simply have no wash.
+   */
+  setCityFocus?(cell: CellRef | null, animate: boolean): void;
 }

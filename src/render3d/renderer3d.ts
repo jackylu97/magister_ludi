@@ -49,6 +49,10 @@ import {
 } from 'three';
 
 import { type GameMap, getTileAt, offsetToAxial, tileIndex } from '../sim/map';
+// The work radius, and the only rule this renderer asks the simulation for: the
+// vignette's hole is the ground the open city can actually work, so the number
+// has to be that one rather than a look-alike in `view3d.json`.
+import { RULES } from '../sim/rulesData';
 import type { GameState } from '../sim/state';
 import type {
   CellRef,
@@ -88,6 +92,12 @@ import { LensLayer, NO_LENS, sameLens } from './lens3d';
 import { VIEW3D, playerPieceColor } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { OverlayLayer } from './overlays';
+import {
+  CityFocusVignette,
+  type FocusAnchor,
+  focusAnchor,
+  workRadiusWorld,
+} from './vignette3d';
 import { SiteLayer, signSites } from './sites3d';
 import {
   UnitLayer,
@@ -143,6 +153,11 @@ export class Renderer3D implements MapView {
   private readonly improvements = new ImprovementLayer();
   private readonly sites = new SiteLayer();
   private readonly overlays = new OverlayLayer();
+  /**
+   * The city screen's wash. One mesh and one number; see `vignette3d.ts` for why
+   * it is screen space and why it cannot touch anything else in this file.
+   */
+  private readonly vignette = new CityFocusVignette();
   private readonly lens = new LensLayer();
   private readonly animations = new MoveAnimations3D();
   /**
@@ -301,6 +316,10 @@ export class Renderer3D implements MapView {
     // selection ring and route have to stay readable on top of it.
     this.scene.add(this.lens.group);
     this.scene.add(this.overlays.group);
+    // Last, and over everything — see `RENDER_ORDER.vignette`. It is a wash on
+    // the finished frame, not a layer among the others, so it is added here
+    // rather than sorted into the list above by what it is about.
+    this.scene.add(this.vignette.mesh);
 
     this.resize();
     this.applyLight();
@@ -919,6 +938,71 @@ export class Renderer3D implements MapView {
     if (sameCells(this.siteRadius, cells)) return;
     this.siteRadius = cells;
     this.rebuildOverlays();
+  }
+
+  /**
+   * The city whose screen is open, or `null` — see `MapView.setCityFocus`.
+   *
+   * One cell in, a wash over everything outside its work radius out. The
+   * renderer is told the subject and nothing else: not that a panel exists, not
+   * which one, not why it closed. That is what lets every close path in
+   * `controls.ts` — Escape, a click on the board, selecting a unit, a seat
+   * change, a new game, a load — clear it by simply having no open city to
+   * report, through the one `refreshOverlays` they all already call.
+   */
+  setCityFocus(cell: CellRef | null, animate: boolean): void {
+    const before = this.vignette.focus();
+    this.vignette.setFocus(cell, animate, performance.now());
+    if (this.vignette.focus() !== before) this.invalidate();
+  }
+
+  /**
+   * The vignette's ellipse for this frame, in viewport pixels, or `null` when
+   * there is nothing to hole it around.
+   *
+   * Three points through `projectPoint` — the city, and the city stepped one
+   * work radius along the camera's right and along the ground direction that
+   * climbs the screen. Measuring rather than deriving is the whole trick: the
+   * elevation foreshortening, the zoom and the seam wrap are all already in that
+   * function, and a hand-rolled `sin(elevation)` here would be a second copy of
+   * the projection quietly waiting for the day the camera angle becomes a
+   * setting.
+   *
+   * The wrap is resolved exactly as `projectCell` resolves it, so a town just
+   * over the seam is washed around the copy of itself the player is looking at.
+   */
+  private cityFocusAnchor(): FocusAnchor | null {
+    const cell = this.vignette.focus();
+    if (!cell || !this.map) return null;
+    const tile = getTileAt(this.map, cell.col, cell.row);
+    if (!tile) return null;
+
+    const centre = cellCenter(cell.col, cell.row);
+    const period = wrapWidth(this.map);
+    const reference = this.view.target.x;
+    let delta = (((centre.x - reference) % period) + period) % period;
+    if (delta > period / 2) delta -= period;
+    const x = reference + delta;
+    const y = tileTopY(tile);
+    const radius = workRadiusWorld(RULES.cities.workRadius, VIEW3D.board.hexRadius);
+
+    // Camera right is horizontal by construction (see `DioramaCamera`), so a
+    // step along it stays on the ground plane. The climb axis is the horizontal
+    // part of camera up: a ground displacement along it is what rises on screen,
+    // foreshortened by exactly the elevation this measurement is trying to
+    // capture. It degenerates only for a camera looking straight down, which
+    // this one never is — and `focusAnchor` floors the axis anyway.
+    const right = new Vector3().setFromMatrixColumn(this.view.camera.matrixWorld, 0).normalize();
+    const up = new Vector3().setFromMatrixColumn(this.view.camera.matrixWorld, 1);
+    const climb = new Vector3(up.x, 0, up.z);
+    if (climb.lengthSq() > 1e-8) climb.normalize();
+    else climb.copy(right);
+
+    return focusAnchor(
+      this.projectPoint({ x, y, z: centre.z }),
+      this.projectPoint({ x: x + right.x * radius, y, z: centre.z + right.z * radius }),
+      this.projectPoint({ x: x + climb.x * radius, y, z: centre.z + climb.z * radius }),
+    );
   }
 
   setWorkedTiles(cells: readonly CellRef[], locked: readonly CellRef[] = []): void {
@@ -1628,7 +1712,11 @@ export class Renderer3D implements MapView {
     // An animating camera forces frames the same way a walking piece does: it
     // moved the target, so the frame it moved it on has to be drawn.
     const panned = this.view.stepPan(now);
-    if (!this.dirty && !hadWalkers && !hadFallers && !panned) return;
+    // The city screen's wash fades on its own clock and forces frames the same
+    // way a walker or a moving camera does — one number, sampled here, so the
+    // render-on-demand loop goes back to idle the instant the fade lands.
+    const fading = this.vignette.step(now);
+    if (!this.dirty && !hadWalkers && !hadFallers && !panned && !fading) return;
 
     this.dirty = false;
     // The pieces are instanced, so unlike the 2D units layer they are not
@@ -1725,6 +1813,14 @@ export class Renderer3D implements MapView {
     // The light rig follows the pan target, so it must be recomputed on any
     // frame the camera could have moved — which is every frame we draw.
     this.applyLight();
+    // After the light and immediately before the draw, because the anchor is a
+    // *projection*: it has to be taken against the camera this frame is actually
+    // rendered with, not the one the last frame left behind.
+    this.vignette.place(
+      this.cityFocusAnchor(),
+      this.canvas.clientWidth,
+      this.canvas.clientHeight,
+    );
     this.renderer.render(this.scene, this.view.camera);
     this.lastDrawCalls = this.renderer.info.render.calls;
     // After the draw, so anything the listener projects sees the camera the
@@ -1748,6 +1844,7 @@ export class Renderer3D implements MapView {
     this.sites.dispose();
     this.lens.dispose();
     this.overlays.dispose();
+    this.vignette.dispose();
     this.fog?.dispose();
     this.reveal?.dispose();
     if (this.board) this.board.dispose();

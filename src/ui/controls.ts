@@ -1476,6 +1476,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // onto the tile it is attacking.
     renderer.setAttackable?.(attackableCells());
     refreshSpotlight();
+    refreshCityFocus();
     refreshLens();
     // A unit that is already marching shows the route it is marching on. Only
     // the selected one: every stored order on the board at once would be a
@@ -1523,6 +1524,36 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       worked.some((tile) => tile.col === cell.col && tile.row === cell.row),
     );
     renderer.setWorkedTiles?.(worked, locked);
+  }
+
+  /**
+   * The city screen's vignette: while a city panel is open, the board washes
+   * down everything outside that city's work radius.
+   *
+   * `openCity()` and deliberately **not** `spotlitCity()`, which is the one line
+   * in this function worth arguing about. The worked-tile dots answer "which
+   * ground feeds this town" for a hovered banner too, because that is a cheap
+   * question a player asks constantly. The vignette is not answering a question,
+   * it is saying *you are on a different screen now* — and a wash that swept the
+   * board every time the pointer crossed a town would be saying it about
+   * nothing.
+   *
+   * It rides `refreshOverlays` rather than `setOpenCity` for the reason the
+   * banner hide does: `setOpenCity` is one of the ways a city stops being open,
+   * not all of them. A seat change, a new game and a load each clear
+   * `openCityId` directly and then refresh, and a city destroyed or captured
+   * under the panel stops resolving without anybody assigning anything. Reading
+   * the derived answer on the sweep they all already make is what makes those
+   * paths free.
+   */
+  function refreshCityFocus(): void {
+    const city = openCity();
+    if (!city) {
+      renderer.setCityFocus?.(null, !prefersReducedMotion());
+      return;
+    }
+    const tile = cityTile(getGame().state.map, city);
+    renderer.setCityFocus?.({ col: tile.col, row: tile.row }, !prefersReducedMotion());
   }
 
   /**

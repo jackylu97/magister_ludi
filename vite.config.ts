@@ -65,6 +65,18 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+
+    // Vitest replaces the contents of any `.css` import with an empty string
+    // unless this is on — `?raw` included, which is the whole of why it is here.
+    // `test/ui/cityScreen.test.ts` holds a rule that spans `style.css` and
+    // `data/view3d.json` (the camera's city-framing bias is half the city
+    // panel's width, and the two numbers live in different files), and this
+    // project deliberately has no node typings, so `node:fs` is not the way a
+    // test reads a source here — Vite's raw glob is, exactly as
+    // `seatRoster.test.ts` reads `src/ui`. Nothing in the suite *imports* a
+    // stylesheet for its side effect, so switching this on costs the collection
+    // one stylesheet parse and changes nothing else.
+    css: true,
     include:
       TIER === 'slow'
         ? [`test/${SLOW_GLOB}`, `src/${SLOW_GLOB}`]

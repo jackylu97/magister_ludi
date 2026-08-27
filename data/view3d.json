@@ -361,7 +361,7 @@
     "fitPadding": 1.06,
     "panMs": 620,
     "panSnapDistance": 0.4,
-    "cityFrameBiasPx": 150
+    "cityFrameBiasPx": 177
   },
   "lights": {
     "keyColor": "#ffe9c8",
@@ -396,6 +396,13 @@
     "siteRadiusColor": "#dbcfb0",
     "siteRadiusOpacity": 0.24,
     "siteRadiusScale": 0.76
+  },
+  "vignette": {
+    "innerRadius": 1.05,
+    "outerRadius": 1.6,
+    "opacity": 0.68,
+    "color": "ink",
+    "fadeMs": 260
   },
   "hpBar": {
     "width": 0.66,

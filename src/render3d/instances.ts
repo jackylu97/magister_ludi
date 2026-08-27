@@ -135,6 +135,14 @@ export const RENDER_ORDER = {
   tileIcon: 21,
   badge: 22,
   hpBar: 23,
+  /**
+   * The city screen's vignette (`vignette3d.ts`), and deliberately the last
+   * number in this table: it is not a readout competing with the others, it is
+   * a wash over the finished frame, so everything above must be able to be
+   * dimmed by it — the badges and the HP bars included, or a distant piece's tag
+   * would stay at full contrast in the country the wash is pushing back.
+   */
+  vignette: 30,
 } as const;
 
 /**
