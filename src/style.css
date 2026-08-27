@@ -1805,9 +1805,33 @@ button.seat:active {
 }
 
 #info #info-feature,
+#info #info-water,
 #info #info-unit {
   font-family: var(--face-ui);
   font-size: 11px;
+}
+
+/* What a seam still wants, under the resource it is a clause about: the
+   improvement that opens it and the technology that teaches the improvement
+   (`resourceRequirementNode`). Its own line, because it is a sentence rather
+   than a figure, and set small and soft so the resource's own name stays the
+   loud thing in the cell.
+
+   `is-wanting` is the whole of the ink rule: vermilion when this seat does not
+   hold the technology — the alarm colour it means everywhere else on this
+   interface — and the card's own soft ink when it does, at which point the line
+   has stopped being a warning and become an instruction. */
+.tile-requires {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--face-ui);
+  font-size: 10px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.tile-requires.is-wanting {
+  color: var(--vermilion);
 }
 
 /* Tile yields, each in its own voice. All six since the luxuries pass — see
@@ -2314,6 +2338,14 @@ kbd {
   right: 14px;
   bottom: 14px;
   z-index: 10;
+  /* A row, so anything pinned here sits *beside* End Turn rather than on top of
+     it. That is not a styling preference: the right-hand panels reserve exactly
+     this corner by height (`--end-turn-clearance`), so a second control stacked
+     above the button grows past the reserved band and is drawn over by an open
+     city screen — which is precisely where the offer's way back is needed. */
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .btn-end {
@@ -3193,6 +3225,24 @@ kbd {
   gap: 4px;
 }
 
+/* Air between the last build row and the caption under it (user, 2026-08-27).
+   The caption is a different *kind* of thing from the rows above it — prose
+   about how a price tag works, not a control — and at the grid's own 4px gap it
+   read as one more row that had lost its button. The rule is the same one the
+   panel's other blocks keep: a paragraph after a list gets a list's worth of
+   space, not a row's. */
+.city-buildables .hint {
+  margin-top: 11px;
+}
+
+/* The panel's own closing caption — how the ring is worked, or how Buy Tiles
+   works — is a *different* paragraph from the build list's, and with the price
+   caption shortened the two abutted at zero and read as one run of prose. Same
+   air as the rule above, for the same reason. */
+#city-panel > .hint {
+  margin-top: 11px;
+}
+
 /* One buildable: the button that queues it, and the tag that buys it. Two
    controls on one line rather than one control with a control inside it — a
    button in a button is not a thing the platform draws, and the two are
@@ -3501,7 +3551,20 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: min(1500px, 100%);
+  /* The cap that made the chart look strange on a big display (user,
+     2026-08-27), and the first half of the fix. It was 1500px, which is a hair
+     under the widest window this game was drawn on and *half* of a 4K one — so
+     past about 1550 the sheet stopped growing and the star chart became a narrow
+     lit island in the middle of an enormous field of ink, still scrolling
+     sideways with two thirds of the screen doing nothing.
+
+     2880 is not a round number, it is the chart's own full extent: eight columns
+     at `COL_WIDTH_MAX`, seven gutters, the field's padding and this sheet's. Up
+     to it the sheet takes the room and `spaceColumns` spends it on the columns;
+     past it the sheet stops, `fitColumns` reports slack and `.is-roomy` centres
+     the tracks. On the windows the game was drawn for `100%` still wins and
+     nothing about this screen has changed. */
+  width: min(2880px, 100%);
   height: 100%;
   padding: 16px 18px 18px;
   border: var(--border-thin) solid rgba(200, 144, 31, 0.5);
@@ -3627,6 +3690,9 @@ kbd {
      and there was nothing to follow. Narrowing the column and widening the gutter
      trades no total width (8 × 214 + 7 × 52 is the old 8 × 234 + 7 × 30 to within
      a card's border) for two thirds more line. */
+  /* Written by `spaceColumns` (techTree.ts) from the width actually available,
+     between `COL_WIDTH_MIN` and `COL_WIDTH_MAX`; the value here is only what the
+     chart is drawn with before it is measured, and it is the floor. */
   --tech-col-w: 214px;
   --tech-col-gap: 52px;
   /* Written by `spaceLanes` (techTree.ts) from the height actually available;
@@ -3636,12 +3702,30 @@ kbd {
   display: grid;
   width: max-content;
   min-width: 100%;
+  /* The vertical half of the high-resolution fix. The lanes are `min-content`
+     tracks and the gap between them is capped (`LANE_GAP_MAX` — past it they
+     stop reading as one chart), so on a 1440-tall window the whole chart used to
+     huddle against the top with six hundred pixels of night under it. Centred
+     instead, and `safe` is load-bearing: a chart taller than the stage must
+     start at the top, or the first lane is scrolled off the top edge with no
+     way back to it. */
+  min-height: 100%;
+  align-content: safe center;
   align-items: start;
   gap: var(--tech-row-gap) var(--tech-col-gap);
   /* The two-pixel band top and bottom is the age wash's bleed, and nothing
      else: it keeps the region from being clipped at the scroll origin without
      making the field taller than the lanes in it. */
   padding: 2px 22px 2px 0;
+}
+
+/* The sideways half: a chart that has hit `COL_WIDTH_MAX` and still has room to
+   spare sits in the middle of it rather than against the left edge. Set by
+   `spaceColumns` off `fitColumns`' own slack, so the class is on exactly when
+   there is air — and `safe` again, so a chart wider than the stage still starts
+   at column zero, where the player's first technology is. */
+.tech-field.is-roomy {
+  justify-content: safe center;
 }
 
 /* An age, painted behind its columns: a wash, a seam where the age changes,
@@ -4699,6 +4783,25 @@ kbd {
   color: var(--ink-faint);
 }
 
+/* A clause the game has declared and not built, struck through — the same
+   two-tier greying `.offer-clause.is-deferred` uses, so a deferred half of a
+   wonder reads identically on the hover card and on the card that offers a
+   name. `cityPanel.ts` has set this class on the line since wonders landed; it
+   had nowhere to land, so a promise the game does not keep was printing in the
+   same ink as the rest. */
+.info-card-notes li.is-deferred {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+}
+
+/* Its opposite number: a caveat on a clause that *is* built (`BuildingDef.note`
+   — Hagia Sophia's augur standing in for a prophet). Italic and quiet, never
+   struck: nothing here is missing. */
+.info-card-notes li.is-caveat {
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
 /* Done, in hand, or the reducer's own sentence about why not. */
 .info-card-state {
   margin: 6px 0 0;
@@ -4711,6 +4814,66 @@ kbd {
 
 .info-card-state.is-blocked {
   color: var(--vermilion);
+}
+
+/* The unit sheet's own card, raised by the rows whose sentence is longer than a
+   `title` should be — the rites (user, 2026-08-27). Its own class rather than
+   the build list's, because a rite is not an *item*: there is no cost line, no
+   schedule and no stat grid, only what it does now, what it leaves behind, and
+   how long that lasts. The frame, the ink and the placement are `.info-card`'s
+   and unchanged. */
+.unit-card-title {
+  margin: 0;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 90;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+/* What it pays the instant it is performed — the reducer's own targeted
+   sentence, so it is a figure and wears the figure face.
+
+   In the card's own ink, deliberately, and not in a yield's: the sentence is
+   composed by `ritePreview` in words rather than glyphs ("+25 gold to
+   Aldermarch", "+1 pop to Uruk"), and one voice's colour on a line that may name
+   any of six would be the card colouring gold green. */
+.unit-card-payoff {
+  margin: 3px 0 0;
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+/* What it leaves behind, one clause a line, in `describeCard`'s words. */
+.unit-card-clause {
+  margin: 3px 0 0;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.unit-card-clause.is-deferred {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+}
+
+.unit-card-blocked {
+  margin: 5px 0 0;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  color: var(--vermilion);
+}
+
+.unit-card-flavor {
+  margin: 6px 0 0;
+  font-family: var(--face-name);
+  font-style: italic;
+  font-size: 11px;
+  color: var(--ink-faint);
 }
 
 /* The gift list: units, buildings, reveals, renewals, each under its own small
@@ -4831,6 +4994,14 @@ kbd {
 .info-card.is-night .info-card-gift-note,
 .info-card.is-night .info-card-flavor {
   color: rgba(247, 242, 225, 0.6);
+}
+
+/* Both of the note modifiers set colour on the `li` itself, which beats the
+   night rule's inheritance whatever the specificity says — so the night card
+   restates them in its own ink rather than printing dark ink on dark parchment. */
+.info-card.is-night .info-card-notes li.is-deferred,
+.info-card.is-night .info-card-notes li.is-caveat {
+  color: rgba(247, 242, 225, 0.42);
 }
 
 .info-card.is-night .info-card-heading,
@@ -4998,6 +5169,88 @@ kbd {
   padding-bottom: 12px;
   border-bottom: var(--border-thin) solid var(--ink);
   text-align: center;
+}
+
+/* The foot: the one control on this sheet that is not a card.
+
+   Under the hand, quiet, and with the sentence beside it that stops it reading
+   as a dismiss — "the offer waits — nothing is spent" is the whole difference
+   between this and a close button, and it is worth a line of type. Its height is
+   `FOOT` in `offerCard.ts`; the two must move together or the spread thinks it
+   fits and does not. */
+.offer-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.offer-look {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 4px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.offer-look:hover,
+.offer-look:focus-visible {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.offer-look-key {
+  font-family: var(--face-num);
+  font-size: 8.5px;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
+}
+
+.offer-foot-note {
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+/* The way back, pinned above End Turn while an offer is being held off-screen.
+   Gilt rather than the primary ink, because it is not the button that ends the
+   turn and must not be mistaken for it in the corner they share; it sits *over*
+   End Turn in the same stack, which is the reading order — the offer is what
+   the turn wants first. */
+.offer-return {
+  flex: none;
+  padding: 9px 16px 10px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--gilt);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 12.5px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.offer-return[hidden] {
+  display: none;
+}
+
+.offer-return:hover,
+.offer-return:focus-visible {
+  filter: brightness(1.08);
+}
+
+.offer-return:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--ink);
 }
 
 .offer-eyebrow {

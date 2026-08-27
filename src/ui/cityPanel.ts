@@ -116,6 +116,42 @@ export function insertionIndex(queue: readonly QueueItem[]): number {
   return at;
 }
 
+/**
+ * May this unit type ever appear as a **build** row at all?
+ *
+ * Not "can this city build one today" — that is `buildError`'s question and its
+ * answer is a greyed row with a reason on it. This is the prior question, and
+ * the two things it turns away are the two the roster marks as belonging to
+ * another verb entirely:
+ *
+ *   · **bought or not at all** (`UnitDef.purchase.exclusive`, through
+ *     `isPurchaseOnly`) — the augur, which has a row of its own at the foot of
+ *     the list, in the bank it is actually sold in.
+ *   · **neither built nor bought** (`UnitDef.greatWork`) — a great person is
+ *     *called*, by a renown bucket that filled and an offer that was answered,
+ *     and the roster's row is a template rather than a thing a town makes.
+ *
+ * The second is the playtest's (user, 2026-08-27), and the row it removes was
+ * worse than a greyed one: a great person's row carries no cost, so the list
+ * printed "Great Person · 0⚙ · 0t" — an offer to have the best piece in the
+ * game this turn for nothing. `buildError` would of course have refused the
+ * press ("Great Persons are neither built nor bought — they are called"), so
+ * nothing was ever wrong; the panel was simply advertising a door that opens
+ * onto a wall.
+ *
+ * Asked of the two **markers** and never of a type id, exactly as the reducer
+ * asks (`buildError`, `purchaseError`): a second great-person family or a second
+ * faith-bought piece is a JSON row and this list learns about it for free.
+ *
+ * Pure and module-level for `stageRows`' reason: the suite has no jsdom, and
+ * "which rows exist" is the half of the build list that can be quietly wrong.
+ */
+export function offeredInBuildList(id: UnitTypeId): boolean {
+  if (isPurchaseOnly({ kind: 'unit', id })) return false;
+  if (unitDef(id).greatWork === true) return false;
+  return true;
+}
+
 export interface CityPanelOptions {
   /** The element the panel lives in. Emptied and rebuilt on every render. */
   container: HTMLElement;
@@ -176,29 +212,35 @@ export interface ModifierRow {
 }
 
 /**
- * One stage of the modifier list, as the rows it prints: a heading carrying that
- * stage's summed percentages, and under it the lines it is the sum of.
+ * One stage of the modifier list, as the rows it prints: **its sources, and
+ * nothing above them**.
  *
- * Except when it is the sum of exactly one line, which is the rework this
- * function exists for. Every percentage `cityStageSums` folds has a line here —
- * the meters, the luxuries, the hammers behind the current build, and nothing
- * else joins that fold — so a stage with one source is a heading that restates
- * its only line in different glyphs. From the two-stage rework (Entry XVII) until
- * this pass, a contented empire's panel therefore printed
+ * The heading is gone, and this is the second and last pass at the same
+ * complaint. Every percentage `cityStageSums` folds has a line here — the
+ * meters, the luxuries, the hammers behind the current build, and nothing else
+ * joins that fold — so the heading was, by construction, its own lines said
+ * again in different glyphs. The first pass collapsed the *one-source* case,
+ * which left the two-source case printing
  *
  *     Empire            🔬 +10%  🎭 +10%
- *     Happiness +8      🔬🎭 +10%
+ *     Happiness +6      🔬🎭 +10%
+ *     Silk              🔬 +10%
  *
- * which is the doubled science/culture bonus players reported: two rows, one
- * fact, differing only in whether the yields were listed apart or together. The
- * fold of one thing is that thing, so the stage and its reason share a row —
- * "Empire · Happiness +8   🔬🎭 +10%" — and the moment a second source joins,
- * the heading comes back to carry the net, which is the whole argument for
- * summing rather than compounding.
+ * and the player's reading of that (user, 2026-08-27) is the right one: the
+ * first row is arithmetic they can do by eye off the two under it, and the
+ * lines are clear enough on their own. So the fold is not printed and its parts
+ * are. Nothing is lost that the panel did not already say twice, and the yield
+ * chips at the top of the screen are where the *multiplied* figure belongs.
  *
- * A stage nothing joined prints nothing. One whose lines cancel to nothing still
- * prints: "Empire · no net change" over a +10% and a −10% is exactly the case a
- * player needs to find, and it has two sources, so it is never collapsed.
+ * The label survives in exactly one place, and it is a **canary rather than a
+ * heading**: a stage that folds to a figure with no source to explain it. That
+ * cannot happen today and the register test in `test/ui/cityModifiers.test.ts`
+ * is what keeps it so — but if a future modifier ever joins `cityStageSums`
+ * without joining this list, the panel says "Empire 🔬 +10%" with nothing under
+ * it rather than swallowing a percentage the player cannot account for. A
+ * silent stage would be the one failure this list exists to prevent.
+ *
+ * A stage nothing joined at all prints nothing, exactly as before.
  *
  * Pure, and separated from the DOM for the reason `yieldRowLayout` is: it is the
  * half of the panel that decides what a player *sees twice*, and a suite with no
@@ -209,18 +251,17 @@ export function stageRows(
   figures: string | null,
   sources: readonly (readonly [string, string, boolean])[],
 ): ModifierRow[] {
-  if (figures === null && sources.length === 0) return [];
-  const only = sources.length === 1 ? sources[0]! : null;
-  if (only) {
-    return [{ label: `${label} · ${only[0]}`, figures: only[1], bad: only[2], stage: true }];
+  if (sources.length === 0) {
+    // Nothing folded and nothing to say, or the canary above.
+    if (figures === null) return [];
+    return [{ label, figures, bad: false, stage: true }];
   }
-  const rows: ModifierRow[] = [
-    { label, figures: figures ?? 'no net change', bad: false, stage: true },
-  ];
-  for (const [source, effect, bad] of sources) {
-    rows.push({ label: source, figures: effect, bad, stage: false });
-  }
-  return rows;
+  return sources.map(([source, effect, bad]) => ({
+    label: source,
+    figures: effect,
+    bad,
+    stage: false,
+  }));
 }
 
 export function createCityPanel(options: CityPanelOptions): CityPanel {
@@ -424,23 +465,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     if (def.sciencePerPop !== 0) {
       notes.append(note(`+${def.sciencePerPop}${YIELD_GLYPH.science} per citizen`));
     }
-    // The three fields that name a behaviour rather than a yield. Written off
-    // the presence of the field, exactly as the unit card is: the second
-    // building that raises the writ describes itself here without being taught.
-    if (def.authorityCapacity !== undefined && def.authorityCapacity !== 0) {
-      notes.append(note(`+${def.authorityCapacity} authority capacity`));
-    }
+    // The fields that name a behaviour rather than a yield. Written off the
+    // presence of the field, exactly as the unit card is: the second building
+    // that raises the writ describes itself here without being taught.
+    //
+    // **`authorityCapacity` and `happiness` are no longer among them**: both are
+    // now clauses of `describeCard` below, because a wonder is a card and the
+    // card was printing four of Circus Maximus's five points of cheer and none
+    // of The Forbidden City's writ at all. Two lines said one way each is the
+    // whole of the bargain — a copy here would be the same fact in two voices,
+    // and the one that drifts is always the copy.
     if (def.productionBonus !== undefined && def.productionBonus.percent !== 0) {
       const { category, percent } = def.productionBonus;
         const toward =
         category === 'unit' ? 'units' : category === 'wonder' ? 'wonders' : 'buildings';
       notes.append(note(`${percentFigure(percent)}${HAMMER} toward ${toward} here`));
-    }
-    // The two that arrived with the Age I sinks, written off the presence of the
-    // field like everything above them: a second wall or a second festival
-    // describes itself here without this function learning its name.
-    if (def.happiness !== undefined && def.happiness !== 0) {
-      notes.append(note(`${def.happiness > 0 ? '+' : ''}${def.happiness} happiness in this city`));
     }
     if (def.cityStat !== undefined && def.cityStat.amount !== 0) {
       const { stat, amount } = def.cityStat;
@@ -473,11 +512,31 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       if (clause.deferred) line.classList.add('is-deferred');
       notes.append(line);
     }
+    // The standing caveat, italic rather than struck: `deferred` is "this half
+    // is missing" and `note` is "this half is here and there is something to
+    // know about it" (Hagia Sophia hands over an augur where the ratified text
+    // says a prophet). Two different things a row can say about itself, and a
+    // card that painted them alike would be telling the player a promise was
+    // broken when it was only bent.
+    if (def.note !== undefined && def.note !== '') {
+      const caveat = note(def.note);
+      caveat.classList.add('is-caveat');
+      notes.append(caveat);
+    }
     if (isWonder(id)) {
       notes.append(note('A wonder: one of these stands in the whole world'));
     }
     if (notes.childElementCount === 0) notes.append(note('No yields of its own'));
     box.append(notes);
+    // Why this town cannot start it, in the reducer's own sentence — "The
+    // Colossus wants a harbour; Uruk has none", "The Oracle already stands in Ur
+    // (Crimson)". The star chart's node card has said this at the foot since it
+    // was written (`info-card-state is-blocked`); the queue's card had no room
+    // for the *site* clause at all, which is the one refusal a player cannot
+    // work out by looking at the row. Asked with the town in hand, which is what
+    // lets `buildError` answer the ground's question at all.
+    const problem = buildError(getGame().state, city.ownerId, 'building', id, city);
+    if (problem !== null) box.append(element('p', 'info-card-state is-blocked', problem));
     return box;
   }
 
@@ -662,13 +721,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       if (figures) line(entry.source, figures);
     }
     // Then the two multiplications, in the order they happen (Entry XVII): what
-    // the town did for itself, then what the empire does to the result. Each is
-    // a heading carrying that stage's summed percentages and, under it, the lines
-    // it is the sum of — so a player reading downward sees flats, "City bonuses
-    // ⚙ +25%", its sources, "Empire 🔬 +10%", its sources, and can reach the
-    // number on the chip by hand. A stage the fold of exactly one line is
-    // written as that line (see below): a sum of one thing is that thing, and
-    // printing both was the same sentence twice.
+    // the town did for itself, then what the empire does to the result. Each
+    // prints the *lines* it is the sum of and not the sum — see `stageRows`,
+    // whose whole subject is that the fold and its parts were the same sentence
+    // twice. A player reading downward sees the flats, then every percentage
+    // with its source beside it, and the chip at the top of the screen is where
+    // the multiplied figure lives.
     const sums = cityStageSums(state, city, front);
     const percents = cityYieldPercents(state, city);
     const hammers = productionModifiers(state, city, front);
@@ -708,10 +766,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
           percent.percent < 0,
         ]);
       }
-      // A stage nothing joined is not printed at all. One whose lines cancel to
-      // nothing *is*: "Empire · nothing net" over a +10% and a −10% is the whole
-      // point of summing rather than compounding, and hiding it would leave a
-      // player who can see two modifiers unable to find where they went.
+      // A stage nothing joined is not printed at all; one whose lines cancel to
+      // nothing prints both lines, which is the whole point of summing rather
+      // than compounding — a player who can see two modifiers can find where
+      // they went.
       for (const row of stageRows(STAGE_LABEL[stage], stageFigures(sums, stage), sources)) {
         if (row.stage) stageLine(row.label, row.figures, row.bad);
         else line(row.label, row.figures, row.bad);
@@ -1036,12 +1094,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * reducer validates the queue with — so this list can never offer a button
    * `setCityProduction` would refuse.
    *
-   * A **purchase-only** type is the third case and is hidden from this list
-   * altogether (`isPurchaseOnly`, the playtest's first note): the augur is not a
-   * thing this city cannot build yet, it is a thing no city ever builds, and a
-   * greyed row for it answered "why can I not build this" with "because it is
-   * not built". It has a row of its own at the foot of the units instead, in the
-   * bank it is actually sold in.
+   * A type that belongs to **another verb** is the third case and is hidden from
+   * this list altogether (`offeredInBuildList`, two playtest notes): the augur is
+   * not a thing this city cannot build yet, it is a thing no city ever builds,
+   * and a great person is not built by anybody at all. A greyed row for either
+   * answered "why can I not build this" with "because it is not built". The
+   * augur has a row of its own at the foot of the units instead, in the bank it
+   * is actually sold in; a great person has no row here at all, because there is
+   * no counter it is sold over.
    *
    * Every buildable row also carries its **price in coin** (M9, Entry XXIX), so
    * "or 60💰" is beside the thing it would buy rather than on a screen of its
@@ -1082,8 +1142,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
     for (const id of UNIT_TYPE_IDS) {
       if (!isUnlocked(state, city.ownerId, 'unit', id)) continue;
-      // Bought or not at all: it belongs to the purchase row below, not here.
-      if (isPurchaseOnly({ kind: 'unit', id })) continue;
+      // Bought or not at all, or called and never made: neither belongs on a
+      // build row. See `offeredInBuildList`.
+      if (!offeredInBuildList(id)) continue;
       const def = unitDef(id);
       // The live price, not the base one: a settler gets dearer with every
       // settler this player has built, and the button quotes exactly what
@@ -1246,17 +1307,23 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
 
     box.append(grid);
-    // The Buy Tiles caption's precedent, one list up: lead with the treasury
-    // every tag on this grid is checked against, so affordability reads without
-    // a hover, and say what the conversion is so the figures are checkable.
-    const treasury = playerById(state, localPlayerId())?.gold ?? 0;
+    // What a price tag *is*, and nothing about how much money you have.
+    //
+    // The treasury figure used to lead this line, on the Buy Tiles caption's
+    // precedent. It is off (user, 2026-08-27) because the precedent stopped
+    // holding the day the top bar grew a gold chip: the number is on screen
+    // already, a hand's width above this, and a second copy that only some
+    // screens carry is a number a player has to check against itself. What is
+    // left is the rule a tag cannot state on its own — the conversion, and that
+    // the banked hammers are neither spent nor discounted — which is the part
+    // somebody reading a price actually needs.
     box.append(
       element(
         'p',
         'hint',
-        `${figure(treasury)}${YIELD_GLYPH.gold} in the treasury. A price tag buys ` +
-          `the row outright at ${RULES.production.goldPerHammer}${YIELD_GLYPH.gold} ` +
-          `per ${HAMMER} of its full cost — the hammers this city has banked stay banked.`,
+        `A price tag buys the row outright at ${RULES.production.goldPerHammer}` +
+          `${YIELD_GLYPH.gold} per ${HAMMER} of its full cost — the hammers this ` +
+          'city has banked stay banked.',
       ),
     );
     return box;
@@ -1387,9 +1454,15 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
             'hand. Every price on the board is what that hex costs right now. ' +
             'Click one to buy it; a greyed tag says why it cannot be had. ' +
             'Escape stops buying and leaves the city open.'
-          : 'Dots on the map are the tiles this city works. Click one to pin a ' +
-            'citizen there, or any other tile in the ring to move one to it. ' +
-            'A unit standing in the ring is selected by clicking its badge.',
+          : // The board draws a *ring* on every worked hex and has since the
+            // overlay pass — bone white where the assignment chose the tile,
+            // the seat's own ink where the player pinned it (`overlays.ts`).
+            // This line still said "dots" (user, 2026-08-27), which is the one
+            // thing on the board it is not.
+            'A ringed hex is a tile this city works. Click one to pin a ' +
+            'citizen there, or any other hex in the work radius to move one ' +
+            'to it. A unit standing in the radius is selected by clicking its ' +
+            'badge.',
       ),
     );
   }

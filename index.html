@@ -864,6 +864,14 @@
         <dd id="info-terrain">—</dd>
         <dt>Feature</dt>
         <dd id="info-feature">—</dd>
+        <!-- What water the hex touches: "Coastal", "Fresh water", or both. Two
+             independent facts about the *neighbourhood* rather than about the
+             ground, which is why they are not a clause on the terrain row —
+             `isCoastal` is what a harbour needs and the settler lens washes
+             blue, `hasFreshWater` is what a farm drinks. Dry inland ground has
+             no row at all; see `describeWater`. -->
+        <dt>Water</dt>
+        <dd id="info-water">—</dd>
         <!-- The total, and under it the itemized breakdown it is the fold of —
              the ground, then one row per thing sitting on it, written by
              `tileYieldLineNodes` (`src/ui/tileReadout.ts`) out of
@@ -907,6 +915,15 @@
     <!-- Bottom-right, alone, and the same size and place every turn of every
          game: the most-pressed control in the game gets a muscle-memory home. -->
     <div id="hud-end-turn">
+      <!-- The way back to an offer the player put away to look at the board
+           ("View map", src/ui/offerCard.ts). Pinned in this corner rather than
+           floating over the map because this is the corner that already means
+           "what the turn still wants from you" — the End Turn button under it
+           stops on the very same offer. Hidden unless an offer is being held
+           off-screen; nothing is spent while it is up. -->
+      <button id="offer-return" class="btn offer-return" type="button" hidden>
+        ☞ Return to the offer
+      </button>
       <!-- The label is its own element because the button says what it is *for*
            right now: "End Turn" when the turn may end, and the name of the first
            piece of unfinished business when it may not (see src/ui/turnBlockers.ts).

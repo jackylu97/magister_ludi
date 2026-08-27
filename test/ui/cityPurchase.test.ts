@@ -68,9 +68,15 @@ describe('the build list and the price tags', () => {
     expect(source).toMatch(/purchaseError\(state, seat, city\.id, item, currency\)/);
   });
 
-  it('leads the purchase caption with the treasury, as Buy Tiles does', () => {
+  it('states the conversion in the caption, and the treasury nowhere', () => {
+    // The caption used to lead with `Player.gold`, on the Buy Tiles caption's
+    // precedent. That precedent stopped holding the day the top bar grew a gold
+    // chip (user, 2026-08-27): the figure is on screen a hand's width above
+    // this, and a second copy is a number a player has to check against itself.
+    // What a caption *can* say that no price tag can is the rule behind every
+    // tag on the grid, and that is read off the rules rather than typed.
     const source = panelSource();
-    expect(source).toMatch(/in the treasury/);
+    expect(source).not.toMatch(/in the treasury/);
     expect(source).toMatch(/RULES\.production\.goldPerHammer/);
   });
 });

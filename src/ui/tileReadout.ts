@@ -28,13 +28,15 @@ import {
   yieldContextFor,
 } from '../sim/cities';
 import { campAt } from '../sim/camps';
-import { improvementDef } from '../sim/improvementData';
+import { improvementDef, improvementForResource } from '../sim/improvementData';
 import type { Tile } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
 import { describeResourceEffect } from '../sim/resourceEffects';
-import type { GameState } from '../sim/state';
+import { type GameState, playerById } from '../sim/state';
 import { visibleResourceAt } from '../sim/tech';
+import { techDef } from '../sim/techData';
 import { TILE_YIELD_KEYS, featureDef, terrainDef } from '../sim/terrainData';
+import { hasFreshWater, isCoastal } from '../sim/water';
 import { citySightingOf, isExploredBy, isVisibleTo } from '../sim/visibility';
 import { cityDisplayName } from './cityDisplay';
 import { YIELD_GLYPH, YIELD_NAME, type YieldKey } from './figures';
@@ -399,6 +401,94 @@ export function describeImprovement(tile: Tile): string | null {
 }
 
 /**
+ * What kind of water this hex has, or `null` when it has none.
+ *
+ * Two independent facts, and they are two because the game treats them as two.
+ * **Coastal** is `isCoastal` — a neighbouring `coast` hex, the sea specifically,
+ * which is what a harbour needs and what the settler lens washes blue.
+ * **Fresh water** is `hasFreshWater` — a lake, a river edge or an oasis next
+ * door, which is what a farm drinks and what a city site is scored for. A hex
+ * can have both, one, or neither, so they are joined rather than ranked.
+ *
+ * Asked of the simulation's own two accessors, never re-derived: `water.ts` says
+ * in so many words that nothing outside it should read `Tile.freshwater`
+ * directly, and the day the coast test changes the card follows for free. The
+ * settler lens paints from exactly these two, which is the point — a player who
+ * has seen the blue wash and then hovers the hex should be told the same thing
+ * in words.
+ *
+ * `null` rather than a dash for the reason every describer on this card answers
+ * `null`: a row saying "Water: none" is a line the player has to read in order
+ * to learn there was nothing to read. Dry inland ground simply has no water row.
+ */
+export function describeWater(state: GameState, tile: Tile): string | null {
+  const parts: string[] = [];
+  if (isCoastal(state.map, tile)) parts.push('Coastal');
+  if (hasFreshWater(tile)) parts.push('Fresh water');
+  return parts.length === 0 ? null : parts.join(' · ');
+}
+
+/**
+ * What a seam still wants before it pays: the improvement that opens it, the
+ * technology that teaches the improvement, and whether this seat holds it.
+ *
+ * The playtest's note (user, 2026-08-27) and the honest answer to a question the
+ * card was leaving on the board: a player hovers Gems, reads "Gems (luxury)",
+ * and has no way to learn from that card that the seam is worth nothing until
+ * somebody researches Mining and walks a worker over. `openedResource`
+ * (`cities.ts`) is the register of what "opens" means and its middle clause is
+ * this one — the improvement on the tile — so this reads the same table from the
+ * same end: `improvementForResource` inverts `improvesResource`, and the tech is
+ * the improvement row's own `requiresTech`.
+ *
+ * Deliberately silent in the two cases where there is nothing to want:
+ *
+ *   · **the improvement is already standing here** — the seam is open, and a
+ *     line telling a player to build the mine they built is furniture.
+ *   · **nothing improves this resource** and **no technology gates the
+ *     improvement** — the first is a data row that opens itself, the second an
+ *     improvement anybody can lay from turn one; neither is news.
+ *
+ * The seat's holding rides out as a flag rather than as a second sentence, so
+ * the *caller* decides what a want looks like — vermilion for a technology this
+ * empire lacks, plain ink for one it holds. That split is `TileYieldPart`'s: the
+ * words are decided here, the ink where the ink is.
+ *
+ * The **first** clause of `openedResource` is not repeated here on purpose. A
+ * resource this empire cannot yet *name* has no row on this card at all
+ * (`visibleResourceAt` answers `null`), so by the time anything asks this
+ * question the reveal tech has already landed — and a hex that said "requires
+ * Mine (Mining)" under a resource it refuses to name would be the card leaking
+ * the thing the gate exists to hide.
+ */
+export interface ResourceRequirement {
+  /** "requires Mine (Mining)" — the whole line, ready to print. */
+  text: string;
+  /** True when this seat holds the technology. Plain ink; false is the alarm. */
+  held: boolean;
+}
+
+export function resourceRequirementOf(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+): ResourceRequirement | null {
+  const id = visibleResourceAt(state, playerId, tile);
+  if (id === null) return null;
+  const needed = improvementForResource(id);
+  if (needed === null) return null;
+  if (tile.improvement === needed) return null;
+  const def = improvementDef(needed);
+  const gate = def.requiresTech;
+  if (gate === undefined) return null;
+  const player = playerById(state, playerId);
+  return {
+    text: `requires ${def.name} (${techDef(gate).name})`,
+    held: player !== undefined && player.techsResearched.includes(gate),
+  };
+}
+
+/**
  * The resource row: the drawn mark, the name, and the kind.
  *
  * Nodes rather than a string, which is what the drawn mark costs and all it
@@ -426,4 +516,33 @@ export function resourceRowNode(state: GameState, playerId: number, tile: Tile):
   row.append(resourceMarkNode(id));
   row.append(document.createTextNode(` ${def.name} (${kind})`));
   return row;
+}
+
+/**
+ * The requirement line as an element, or `null` when there is nothing to want.
+ *
+ * The DOM half of `resourceRequirementOf`, three lines of it, exactly as
+ * `tileYieldLineNodes` is the DOM half of `tileYieldLines` — the words and the
+ * decision are pure and testable, and this turns them into a span with the ink
+ * on it. `is-wanting` is the class the stylesheet paints vermilion; a technology
+ * the empire already holds gets no modifier and reads in the card's own ink,
+ * because at that point the line is an instruction rather than a warning.
+ *
+ * A `title` too, since the class is the only thing carrying "you cannot do this
+ * yet" and a colour is not a thing a screen reader can read out.
+ */
+export function resourceRequirementNode(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+): HTMLElement | null {
+  const want = resourceRequirementOf(state, playerId, tile);
+  if (want === null) return null;
+  const span = document.createElement('span');
+  span.className = want.held ? 'tile-requires' : 'tile-requires is-wanting';
+  span.textContent = want.text;
+  span.title = want.held
+    ? 'Your workers can open this seam.'
+    : 'This seam pays nothing until the technology lands.';
+  return span;
 }

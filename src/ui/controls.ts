@@ -161,6 +161,8 @@
  */
 
 import {
+  type CompletionGrantReport,
+  type WonderCompletion,
   assignableTiles,
   cityAt,
   cityTile,
@@ -169,6 +171,7 @@ import {
   queueItemName,
   withinWorkRadius,
 } from '../sim/cities';
+import { buildingDef } from '../sim/buildingData';
 import {
   type CombatPreview,
   attackTargetAt,
@@ -492,6 +495,103 @@ export function lensForDigit(
  */
 export function lensShowsYields(mode: LensMode, yieldsOn: boolean, cityOpen: boolean): boolean {
   return yieldsOn || cityOpen || mode === 'settler';
+}
+
+// --- what a wonder handed over ----------------------------------------------
+
+/**
+ * One line of news about a completion grant, ready to be announced.
+ *
+ * Pure data rather than a call, for `lensForDigit`'s reason exactly: the whole
+ * of the rule — which grants are this seat's, which wonder each one came from,
+ * and what each one is called — is worth pinning by a test with no reducer, no
+ * renderer and no DOM behind it, and there is a real bug in each of those three
+ * clauses that no behavioural test would catch.
+ */
+export interface GrantNotice {
+  /** The sentence, wonder first: "The Great Library · Mathematics is understood". */
+  text: string;
+  /** The piece that arrived, for the pan a unit grant's toast carries. */
+  unitId?: number;
+  /** True on the one grant that puts a decision on the seat. See `reportGrants`. */
+  opensDoctrine?: boolean;
+}
+
+/** "a Spearman", "an Augur" — the article the name itself asks for. */
+function withArticle(name: string): string {
+  return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
+}
+
+/**
+ * What one grant is, in words. Every arm says the honest thing on both
+ * outcomes, because `done: false` is a real outcome and a wonder that quietly
+ * handed over nothing is the worst line the interface could fail to print.
+ *
+ * The failure arm for a unit deliberately does **not** name the piece: the
+ * report cannot say *why* it failed (there was no melee row to pick from, or
+ * there was nowhere in the town to stand), and "no room for a Spearman" would
+ * be the interface inventing the half it was not told.
+ */
+function grantSentence(report: CompletionGrantReport): string {
+  if (report.grant === 'unit') {
+    return report.done ? `${withArticle(report.name)} answers the call` : 'nothing answered the call';
+  }
+  if (report.grant === 'tech') {
+    return report.done ? `${report.name} is understood` : 'nothing was being researched';
+  }
+  // Not "a Doctrine is already owed", which was the first wording and is a
+  // guess: `done: false` covers **two** causes here — a seat already holding an
+  // unanswered draft, and a government whose tier deals no Doctrine at all
+  // (every chiefdom, which is where this was caught in the browser) — and the
+  // report does not say which. Same discipline as the unit arm one line up.
+  return report.done ? 'a Doctrine draft opens' : 'no Doctrine could be dealt';
+}
+
+/**
+ * Pairs a resolution's grants with the wonders that handed them over, and turns
+ * this seat's share into lines.
+ *
+ * **The pairing is positional, and it has to be**: `CompletionGrantReport` says
+ * what arrived and never which building sent it (`cities.ts`), and both lists
+ * are filled by the same sweep in the same order — `advanceProduction` pushes a
+ * completion's wonder and then that completion's grants, and the windfall path
+ * (`chopFeature`) carries the one completion's two fields out together. So
+ * walking the wonders and consuming each row's `onComplete` entries in order
+ * lands every grant on the marvel that paid it.
+ *
+ * That is a claim about two lists, so it is **checked rather than trusted**: the
+ * kinds must line up entry for entry, and the first disagreement stops the walk
+ * dead. Silence is the right failure here — a grant announced under the wrong
+ * wonder's name is worse than a grant announced under none, and a grant with no
+ * wonder beside it has no owner either (the report carries no `playerId`), so
+ * announcing it would risk telling this seat about another empire's free sword.
+ *
+ * The seat filter is the wonder's, for that same reason: `wonders` is
+ * deliberately *not* filtered by the reducer (a marvel is news to everybody),
+ * and `WonderCompletion.playerId` is the only thing in the result that knows
+ * whose grant this was.
+ */
+export function wonderGrantNotices(
+  wonders: readonly WonderCompletion[] | undefined,
+  grants: readonly CompletionGrantReport[] | undefined,
+  seatId: number,
+): GrantNotice[] {
+  if (grants === undefined || grants.length === 0) return [];
+  const notices: GrantNotice[] = [];
+  let next = 0;
+  for (const wonder of wonders ?? []) {
+    for (const promised of buildingDef(wonder.building).onComplete ?? []) {
+      const report = grants[next];
+      if (report === undefined || report.grant !== promised.grant) return notices;
+      next += 1;
+      if (wonder.playerId !== seatId) continue;
+      const notice: GrantNotice = { text: `✶ ${wonder.name} · ${grantSentence(report)}` };
+      if (report.unitId !== undefined) notice.unitId = report.unitId;
+      if (report.grant === 'doctrineDraft' && report.done) notice.opensDoctrine = true;
+      notices.push(notice);
+    }
+  }
+  return notices;
 }
 
 // --- the right button belongs to the game -----------------------------------
@@ -1362,6 +1462,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       pollSightings();
       reportRaids(result);
       reportWonders(result);
+      reportGrants(result);
       reportTriumphs(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
@@ -1421,6 +1522,46 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         announce(`${done.name} left ${name}'s queue — it stands elsewhere`, { cell });
       }
     }
+  }
+
+  /**
+   * **And what the wonder handed over.** One line per grant, the marvel named
+   * first and the thing it produced second.
+   *
+   * `reportWonders`' half-step sibling: the wonder line is the world's news and
+   * this is the owner's, so it runs immediately after and reads the same
+   * result. The rule that decides which grants are this seat's, and which
+   * marvel each belongs to, is the pure `wonderGrantNotices` — everything left
+   * here is the two things a closure has to do, resolving a new piece's hex for
+   * the pan and raising the card a Doctrine draft demands.
+   *
+   * The pan is the same gesture a raid's line carries: a free Spearman is a
+   * piece the player did not place and would otherwise have to go looking for.
+   *
+   * **The Doctrine is opened, not merely announced**, and that is the one place
+   * this differs from `checkGreatPersonOffer`'s rising edge. The argument in
+   * `scheduleHandOver` — a draft that lands in a resolution gets the chronicle
+   * rather than the wheel — is about the culture meter filling on a turn the
+   * player aimed at nothing in particular. This one is a *consequence of a thing
+   * the player just built*: the Theatre of Dionysus is four hundred hammers with
+   * "and a Doctrine" printed on the card, so the card arriving is the
+   * announcement, exactly as a claimed ruin's offer is (`onOfferDiscovery` in
+   * `reportArrivals`). Raised last, so the chronicle line is already standing
+   * behind the modal when it lands; the End Turn blocker remains the backstop
+   * for a player who came to it any other way (`statecraftBlocker`).
+   */
+  function reportGrants(result: CommandResult): void {
+    if (!result.ok) return;
+    const notices = wonderGrantNotices(result.wonders, result.grants, localPlayerId);
+    if (notices.length === 0) return;
+    const { state } = getGame();
+    let doctrine = false;
+    for (const notice of notices) {
+      const born = notice.unitId === undefined ? undefined : unitById(state, notice.unitId);
+      announce(notice.text, born ? { cell: { col: born.col, row: born.row } } : {});
+      if (notice.opensDoctrine) doctrine = true;
+    }
+    if (doctrine) onOfferStatecraft?.();
   }
 
   /**
@@ -1826,11 +1967,24 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    *
    *   · a selected settler ⇒ the settler lens. Picking one up *is* the question
    *     "where should this go".
-   *   · a selected explorer ⇒ the explorer lens. Picking one up is the same
-   *     gesture one question over: "where is there still something to find".
-   *     Asked of the unit table (`isExplorer`) exactly as the settler rule is
-   *     asked of `foundsCity` — never of the string `"scout"` — so a second
-   *     ranging unit inherits the lens with its data row.
+   *   · a selected **fighting piece** ⇒ the explorer lens. Picking one up is the
+   *     same gesture one question over: "where is there still something to
+   *     find". Asked of the unit table (`isCombatant`, `isExplorer`) exactly as
+   *     the settler rule is asked of `foundsCity` — never of the string
+   *     `"scout"` — so a second ranging unit inherits the lens with its data row.
+   *
+   *     It was the scout's alone until the playtest said otherwise (user,
+   *     2026-08-27), and the correction is the honest one: a warrior walked out
+   *     of the capital in turn three is doing exactly what the scout is doing,
+   *     and a lens that went dark the moment the player picked the other piece
+   *     up was answering "who is this" rather than "what is this for". So it is
+   *     **every combatant** — `isCombatant`, the same predicate the pillage row
+   *     and the capture rule ask, so a civilian keeps a clean board — with
+   *     `isExplorer` still in the fold rather than folded away: a ranging piece
+   *     that somehow never learns to fight is still an explorer, and dropping
+   *     the clause would make that a silent behaviour change rather than a
+   *     decision. The two are an `or` today and one of them is redundant today;
+   *     which is which is the data's business, not this function's.
    *   · an open city panel ⇒ the glyphs, over that city's work radius. The panel
    *     is a screen full of numbers; this is where they come from.
    *   · the settler lens (auto *or* manual — a player who picked the site menu
@@ -1875,7 +2029,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const unit = selectedUnit();
     const def = unit === null ? null : unitDef(unit.type);
     const settler = def !== null && def.foundsCity;
-    const explorer = def !== null && isExplorer(def);
+    const explorer = def !== null && (isCombatant(def) || isExplorer(def));
     const city = openCity();
     const mode = settler ? 'settler' : explorer ? 'explorer' : manualLens;
     return {

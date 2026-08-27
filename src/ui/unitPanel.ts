@@ -39,7 +39,8 @@ import { fortifyBonus, isCivilian, isCombatant, isFortified, isRanged } from '..
 import type { ImprovementId } from '../sim/improvementData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
 import { isAugur } from '../sim/religion';
-import type { RiteId } from '../sim/religionData';
+import { type RiteId, riteDef } from '../sim/religionData';
+import { describeCard } from '../sim/statecraft';
 import type { GreatPersonView, RiteOption } from './controls';
 import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
@@ -50,6 +51,7 @@ import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
 import type { ImprovementOption } from './controls';
 import { HAMMER, YIELD_GLYPH, signedFigure } from './figures';
+import { createInfoCard } from './infoCard';
 import { yieldFigureNodes } from './yieldMark';
 
 /** "+40%" — a defence fraction as the percentage a player reads it as. */
@@ -269,6 +271,19 @@ interface UnitAction {
    * keeps `blocked ?? hint`'s usual meaning intact.
    */
   title?: string;
+  /**
+   * A **hover card** for a row whose sentence is longer than a `title` should
+   * be, or absent for the rows whose whole meaning is their label.
+   *
+   * The rites' (user, 2026-08-27): "Rite of Plenty" says nothing at all about
+   * what a rite of plenty *does*, and the augur has three charges and five
+   * names to spend them on. A `title` was the wrong instrument — a native
+   * tooltip arrives a second late, on top of whatever else is up, and cannot
+   * rule a clause list — so the rows that need paragraphs get the same
+   * `.info-card` the build list and the star chart raise, and the rest keep the
+   * one-line `title` they have always had.
+   */
+  card?: () => Node;
   run: () => void;
 }
 
@@ -316,6 +331,14 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onGreatPersonWork,
     onClose,
   } = options;
+
+  /**
+   * The hover card this sheet's longer rows raise — the same component and the
+   * same `info-card` dress the build list and the star chart use, so a clause
+   * reads identically wherever a player meets one. One per panel, appended to
+   * the body once at construction; `render` puts it away before it rebuilds.
+   */
+  const info = createInfoCard({ className: 'info-card' });
 
   /**
    * How many more turns the unit's standing order will take, as an estimate the
@@ -565,6 +588,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
             `Spend a rite: ${rite.name.toLowerCase()}` +
             (rite.preview ? ` · ${rite.preview}` : ''),
           title: techHoverTitle(rite.requiredTechName, rite.blocked),
+          card: () => riteCard(rite),
           run: () => onPerformRite(rite.id),
         });
       }
@@ -627,6 +651,63 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     return actions;
   }
 
+  /**
+   * What a rite *is*, on the card that rises beside the row.
+   *
+   * Five names on an augur's sheet with nothing but their titles was the
+   * playtest's complaint (user, 2026-08-27), and it is the same complaint the
+   * build list answered with a hover card: a player deciding how to spend three
+   * charges is comparing five things they cannot read.
+   *
+   * Every word comes from the simulation and none is written here:
+   *
+   *   · **what it does now** — `RiteOption.preview`, the reducer's own targeted
+   *     sentence ("+1 pop to Uruk"), so the card promises exactly the number the
+   *     command will pay and names the town it will land in.
+   *   · **what it leaves behind** — `describeCard`, the one function that turns
+   *     a `CardEffect` into words, which is why a rite and a belief and an Order
+   *     read identically. A UI copy of the effect text would be the second
+   *     description this codebase spends whole modules avoiding.
+   *   · **the flavour**, last and in the flavour's own voice.
+   *
+   * **No duration line**, and that is the one place this card differs from the
+   * Religion screen's reference. A clause is an ordinary `CardEffect` and knows
+   * nothing about the rite it hangs on, so that screen has to print
+   * `RiteDef.duration` beside the clauses or it promises Omen Reading's science
+   * for ever — but `ritePreview` already ends with "20 turns of blessing", and a
+   * card that said the number twice on six lines would be the city panel's
+   * doubled Empire row in miniature.
+   *
+   * A rite has **no price** to print. It is not bought — the augur is, once, out
+   * of the faith bank (`purchase.exclusive`), and a rite spends one of the three
+   * charges that came with the piece. So the card says what the charge buys and
+   * the sheet's own Charges line says how many are left; a coin figure here
+   * would be inventing a bank.
+   */
+  function riteCard(rite: RiteOption): Node {
+    const def = riteDef(rite.id);
+    const card = element('div', 'unit-card');
+    card.append(element('h4', 'unit-card-title', rite.name));
+    if (rite.preview) card.append(element('p', 'unit-card-payoff', rite.preview));
+    const clauses = describeCard(rite.id);
+    for (const clause of clauses) {
+      card.append(
+        element(
+          'p',
+          clause.deferred ? 'unit-card-clause is-deferred' : 'unit-card-clause',
+          clause.text,
+        ),
+      );
+    }
+    // The one thing on the card that is not about the rite: what it *costs*,
+    // which is the piece rather than a purse. Said here because this is the
+    // screen where the decision is made.
+    card.append(element('p', 'unit-card-clause', 'Spends one of the augur’s charges'));
+    if (rite.blocked !== null) card.append(element('p', 'unit-card-blocked', rite.blocked));
+    card.append(element('p', 'unit-card-flavor', def.flavor));
+    return card;
+  }
+
   function renderActions(unit: Unit): HTMLElement {
     const box = element('div', 'unit-actions');
     box.append(element('h3', undefined, 'Actions'));
@@ -646,6 +727,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       else label.append(action.label);
       button.append(label);
       if (action.key) button.append(element('kbd', 'unit-action-key', action.key));
+      // The rows that carry a paragraph raise the card; the rest keep their
+      // one-line `title`. Bound after the label so the anchor is the whole
+      // button, which is what `placeCard` measures against.
+      if (action.card) info.bind(button, action.card);
       button.addEventListener('click', action.run);
       box.append(button);
     }
@@ -654,6 +739,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
 
   function render(): void {
     const unit = getUnit();
+    // The panel tears its DOM down and builds it again, which takes the anchor
+    // out from under an open card with no `pointerleave` to follow — the city
+    // panel's reason exactly (`infoCard.ts`).
+    info.hide();
     container.replaceChildren();
     container.hidden = unit === null;
     if (!unit) return;

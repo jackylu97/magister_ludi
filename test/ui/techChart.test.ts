@@ -27,7 +27,15 @@ import {
   techDef,
   techDepth,
 } from '../../src/sim/techData';
-import { LANE_GAP_MAX, LANE_GAP_MIN, fitLanes } from '../../src/ui/techFit';
+import {
+  COL_WIDTH_MAX,
+  COL_WIDTH_MIN,
+  LANE_GAP_MAX,
+  LANE_GAP_MIN,
+  fitColumns,
+  fitLanes,
+} from '../../src/ui/techFit';
+import { techColumnCount } from '../../src/sim/techData';
 
 /**
  * The lanes as they were authored before 2026-08-26: one lane per theme, seven
@@ -272,5 +280,73 @@ describe('fitLanes', () => {
     // A single-lane chart has no gap to size, and asking for one would be a
     // division by zero dressed up as a layout.
     expect(fitLanes(900, 100, 0).gap).toBe(LANE_GAP_MIN);
+  });
+});
+
+/**
+ * The chart on a big display (user, 2026-08-27), which is the sideways half of
+ * `fitLanes` and arrived for the same reason: a length that was a constant.
+ *
+ * Eight columns at the drawn-for 214px with 52px gutters is a chart about 2080
+ * wide, so past roughly 2100 the chart simply stopped growing — the age washes
+ * ended mid-screen and everything right of them was night. Nothing errored;
+ * the chart had stopped using the room. The three stages of the rule are asserted
+ * at the three window widths that show each of them.
+ */
+describe('fitColumns', () => {
+  /** The gutter in `style.css` — `--tech-col-gap`. */
+  const GAP = 52;
+
+  it('holds the drawn-for width on a window the chart is wider than', () => {
+    // 1440p and below: the chart scrolls sideways exactly as it always has, and
+    // the card keeps the width its type was set for.
+    const fit = fitColumns(1440, 8, GAP);
+    expect(fit.width).toBe(COL_WIDTH_MIN);
+    expect(fit.slack).toBe(0);
+  });
+
+  it('takes the room a wide window offers, up to the cap', () => {
+    const fit = fitColumns(2560, 8, GAP);
+    expect(fit.width).toBeGreaterThan(COL_WIDTH_MIN);
+    expect(fit.width).toBeLessThanOrEqual(COL_WIDTH_MAX);
+    // Everything it was given, to the pixel the flooring left behind.
+    expect(fit.slack).toBeLessThan(8);
+  });
+
+  it('stops at the cap on a 4K window and reports the room it did not take', () => {
+    const fit = fitColumns(3840, 8, GAP);
+    expect(fit.width).toBe(COL_WIDTH_MAX);
+    // Which is what the stylesheet centres the chart with, rather than leaving
+    // it against the left edge of an enormous field.
+    expect(fit.slack).toBeGreaterThan(0);
+  });
+
+  it('never lets a column out of its bounds, at any width', () => {
+    for (const available of [0, 320, 900, 1280, 1920, 2560, 3440, 3840, 7680]) {
+      const fit = fitColumns(available, techColumnCount(), GAP);
+      expect(fit.width, String(available)).toBeGreaterThanOrEqual(COL_WIDTH_MIN);
+      expect(fit.width, String(available)).toBeLessThanOrEqual(COL_WIDTH_MAX);
+      expect(fit.slack, String(available)).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('answers the drawn-for width for a stage nobody has laid out yet', () => {
+    // A chart measured before it is in the document, and a chart with no
+    // columns: both must answer a width rather than a division by zero.
+    expect(fitColumns(0, 8, GAP).width).toBe(COL_WIDTH_MIN);
+    expect(fitColumns(1920, 0, GAP).width).toBe(COL_WIDTH_MIN);
+    expect(fitColumns(Number.NaN, 8, GAP).width).toBe(COL_WIDTH_MIN);
+  });
+
+  it('fills the stage it was given, gutters included, whenever it is not capped', () => {
+    // The claim the whole rule rests on: what a column takes times the columns,
+    // plus the gutters, plus the slack, is the room there was.
+    for (const available of [1280, 2560, 3840]) {
+      const columns = 8;
+      const fit = fitColumns(available, columns, GAP);
+      const used = fit.width * columns + GAP * (columns - 1);
+      if (fit.slack > 0) expect(used + fit.slack).toBe(available);
+      else expect(used).toBeGreaterThanOrEqual(available - columns);
+    }
   });
 });

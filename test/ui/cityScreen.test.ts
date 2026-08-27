@@ -38,6 +38,9 @@
 import { describe, expect, it } from 'vitest';
 
 import viewJson from '../../data/view3d.json';
+import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
+import { isPurchaseOnly } from '../../src/sim/purchase';
+import { offeredInBuildList } from '../../src/ui/cityPanel';
 
 const SOURCES = import.meta.glob(
   ['../../src/ui/cityPanel.ts', '../../src/ui/controls.ts', '../../src/style.css'],
@@ -188,6 +191,67 @@ describe('the build list', () => {
     expect(declaration('.city-buildable-buy', 'min-width')).toBeDefined();
     // And the name is still the cell that gives: it, and only it, ellipsises.
     expect(declaration('.city-buildable-name', 'text-overflow')).toBe('ellipsis');
+  });
+
+  it('offers no row for a piece that is called rather than built', () => {
+    // The playtest's (2026-08-27): "Great Person" sat among the units at
+    // 0⚙ · 0t, which reads as the best piece in the game for nothing. It is
+    // neither built nor bought — `buildError` and `purchaseError` both refuse
+    // the row — so it has no place on a list of things a town can start.
+    const called = UNIT_TYPE_IDS.filter((id) => unitDef(id).greatWork === true);
+    // The premise: if the roster ever stops marking one, this test is vacuous
+    // and should say so rather than pass.
+    expect(called.length).toBeGreaterThan(0);
+    for (const id of called) expect(offeredInBuildList(id), id).toBe(false);
+  });
+
+  it('still offers every ordinary unit, and still hides the ones sold in a bank', () => {
+    // The other two arms, so "hide it" cannot quietly become "hide everything".
+    expect(offeredInBuildList('warrior')).toBe(true);
+    expect(offeredInBuildList('settler')).toBe(true);
+    for (const id of UNIT_TYPE_IDS) {
+      if (!isPurchaseOnly({ kind: 'unit', id })) continue;
+      expect(offeredInBuildList(id), id).toBe(false);
+    }
+    // And the predicate turns away exactly the two marked classes, no third.
+    const hidden = UNIT_TYPE_IDS.filter((id) => !offeredInBuildList(id));
+    for (const id of hidden) {
+      const def = unitDef(id);
+      expect(def.greatWork === true || isPurchaseOnly({ kind: 'unit', id }), id).toBe(true);
+    }
+  });
+});
+
+/**
+ * The captions under the two lists, and the one thing a caption must be: true.
+ *
+ * All three from the same playtest note (2026-08-27). Read from the source
+ * because a stale sentence throws nothing, renders perfectly, and is only ever
+ * caught by somebody reading it — which is exactly what happened.
+ */
+describe('what the panel says at the foot of a list', () => {
+  it('does not say "dots" about a board that draws rings', () => {
+    // `overlays.ts` has drawn a *ring* on every worked hex since the overlay
+    // pass — bone white for the assignment's choice, the seat's ink for a pin.
+    const text = source('cityPanel.ts');
+    expect(text).not.toContain('Dots on the map');
+    expect(text).toContain('A ringed hex is a tile this city works');
+  });
+
+  it('does not print the treasury a second time under the build list', () => {
+    // The top bar carries `Player.gold` on a chip a hand's width above this
+    // caption; a second copy is a number a player has to check against itself.
+    // What is left is the rule a price tag cannot state on its own.
+    const text = source('cityPanel.ts');
+    expect(text).not.toContain('in the treasury');
+    expect(text).toContain('A price tag buys the row outright at');
+  });
+
+  it('leaves air between the last build row and the caption', () => {
+    // A paragraph after a list gets a list's worth of space, not a row's: at the
+    // grid's own gap the caption read as one more row that had lost its button.
+    const grid = pixels('.city-buildable-grid', 'gap');
+    expect(pixels('.city-buildables .hint', 'margin-top')).toBeGreaterThan(grid);
   });
 });
 

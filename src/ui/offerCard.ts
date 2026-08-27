@@ -30,6 +30,29 @@
  * dismiss and no close button; the only way out is to choose, and the End Turn
  * blocker is what stops the player wandering off before they do.
  *
+ * Hidden is not dismissed
+ * -----------------------
+ * The one thing that *was* an oversight: a draft asks "which of these three",
+ * and the answer depends on the board — which city is starving, where the
+ * frontier is, whether that wonder is worth the hammers — and the sheet was over
+ * the board (user, 2026-08-27). So there is now a **View map** control, and it is
+ * emphatically not a dismiss:
+ *
+ *   · nothing is spent. The offer is still on the empire, still first in
+ *     `firstBlocker`, still what End Turn stops on. Not one command is sent.
+ *   · the sheet is put away and the *offer is kept*, so reopening deals the same
+ *     cards in the same order with the same indices — which it must, because an
+ *     offer is drawn once at the moment it opens (CLAUDE.md) and a redraw would
+ *     make the deal a function of when somebody looked at a screen.
+ *   · the return is *persistent and obvious*: the caller raises a pinned chip and
+ *     End Turn's own blocker leads back here, which is the affordance this
+ *     interface already uses for "you owe the turn something".
+ *
+ * Which is why Escape now does something here after years of doing nothing, and
+ * why it still does not mean "throw it away": it means "let me look first".
+ * `phaseAfter` is the whole of that distinction, written down as three states so
+ * the difference between *hidden* and *gone* is a thing a test can hold still.
+ *
  * Data is data
  * ------------
  * Every string arrives as a text node, never as markup: a city's name, a unit's
@@ -221,6 +244,52 @@ export interface Offer {
   widening?: string[];
 }
 
+/**
+ * Where an offer stands with this component: not held, held and on screen, or
+ * held and put away while the player looks at the board.
+ *
+ * Three states rather than a boolean, because the difference between the last
+ * two is the whole of what View map had to get right — a hidden sheet is still
+ * an unanswered offer, and treating it as gone is the bug where a player looks
+ * at their capital and finds the draft has evaporated.
+ */
+export type OfferPhase = 'none' | 'shown' | 'hidden';
+
+/** What can happen to an offer. `show` deals one; the rest act on one held. */
+export type OfferEvent = 'show' | 'viewMap' | 'reopen' | 'take' | 'clear';
+
+/**
+ * The state machine, pure, and it *is* the component's own — `createOfferCard`
+ * keeps its phase by running this rather than by setting flags beside it, which
+ * is what makes asserting it here worth anything (this suite has no jsdom).
+ *
+ * The two rules that matter and would otherwise be an `if` somebody deletes:
+ *
+ *   · **`viewMap` from `'none'` is nothing at all.** Escape with no offer up
+ *     must not put the interface into a state where a "Return to the offer" chip
+ *     points at nothing.
+ *   · **`viewMap` never becomes `'none'`.** Only taking a card and an explicit
+ *     `clear` (a new game) end an offer. If hiding could end one, the boon would
+ *     be thrown away by the key players press to close things.
+ *
+ * `reopen` from `'shown'` is idempotent rather than an error: the chip and the
+ * End Turn blocker can both lead back here and pressing the second after the
+ * first should simply leave the card where it is.
+ */
+export function phaseAfter(phase: OfferPhase, event: OfferEvent): OfferPhase {
+  switch (event) {
+    case 'show':
+      return 'shown';
+    case 'viewMap':
+      return phase === 'none' ? 'none' : 'hidden';
+    case 'reopen':
+      return phase === 'none' ? 'none' : 'shown';
+    case 'take':
+    case 'clear':
+      return 'none';
+  }
+}
+
 export interface OfferCard {
   /**
    * Shows an offer and calls `onChoose` with the index taken. Replaces whatever
@@ -230,6 +299,21 @@ export interface OfferCard {
   show(offer: Offer, onChoose: (index: number) => void): void;
   /** True while a card is up. `main.ts` asks, to keep hotkeys off the board. */
   readonly isOpen: boolean;
+  /**
+   * True while an offer is **held** — on screen or put away behind View map.
+   *
+   * The question `isOpen` cannot answer and the caller needs: whether to draw
+   * the chip that leads back, and whether a fresh `show` would be re-dealing
+   * something the player is already holding. See `OfferPhase`.
+   */
+  readonly isPending: boolean;
+  /**
+   * Puts the sheet away **without spending the offer**, and answers whether
+   * there was one to put away. Escape and the View map button, and nothing else.
+   */
+  viewMap(): boolean;
+  /** Deals the held offer again — same cards, same order, same indices. */
+  reopen(): void;
   /** Takes the card down without choosing. For a new game, not for a player. */
   clear(): void;
   dispose(): void;
@@ -318,6 +402,15 @@ const HEAD = 119;
 const HINGE = 16;
 /** The landscape upgrade card beneath the row, flavourless by design. */
 const CENTRE = 226;
+/**
+ * The View map control and its note, under the hand: a small button, its note,
+ * and the margin above them.
+ *
+ * In the budget for the same reason `HEAD` is — the row's height is what is
+ * *left*, and a strip added to the sheet without being subtracted here is a
+ * spread that thinks it fits and does not.
+ */
+const FOOT = 38;
 /** A hair of air at the foot, so "exactly fits" is never "exactly overflows". */
 const SLACK = 10;
 
@@ -393,7 +486,7 @@ export function offerSpread(
     CARD_MAX,
   );
   const below = centre ? HINGE + CENTRE + GAP : 0;
-  const budget = stage.height - OVERLAY_PAD * 2 - SHEET_PAD_Y - HEAD - below - SLACK;
+  const budget = stage.height - OVERLAY_PAD * 2 - SHEET_PAD_Y - HEAD - FOOT - below - SLACK;
   const height = clamp(HEIGHT_MIN, Math.min(Math.round(share * TAROT_RATIO), budget), HEIGHT_MAX);
   // A card is **portrait**, whatever the room allows: a hand of two on a short
   // window has the width for two posters and a poster is not a card from a deck.
@@ -410,7 +503,7 @@ export function offerSpread(
       Math.round(
         clamp(SCALE_MIN, Math.min(card / CARD_DESIGNED, height / CONTENT_AT_ONE), 1) * 100,
       ) / 100,
-    total: OVERLAY_PAD * 2 + SHEET_PAD_Y + HEAD + height + below,
+    total: OVERLAY_PAD * 2 + SHEET_PAD_Y + HEAD + height + below + FOOT,
   };
 }
 
@@ -425,8 +518,42 @@ export function orderOfferLayout(options: readonly OfferOption[]): OfferLayout {
   };
 }
 
-export function createOfferCard(container: HTMLElement): OfferCard {
+/** What the caller is told when the sheet is put away or brought back. */
+export interface OfferCardOptions {
+  /**
+   * Called whenever the phase moves, with the phase it moved to.
+   *
+   * One callback rather than two, so the caller cannot wire up "hidden" and
+   * forget "back": the chip that leads to a hidden offer has to come down again
+   * when the offer is answered, and a `take` reports `'none'` here for exactly
+   * that reason.
+   */
+  onPhase?: (phase: OfferPhase) => void;
+}
+
+export function createOfferCard(
+  container: HTMLElement,
+  options: OfferCardOptions = {},
+): OfferCard {
   let choose: ((index: number) => void) | null = null;
+  /**
+   * The offer being held, kept **whole** rather than re-derived on reopen.
+   *
+   * An offer is drawn once at the moment it opens (CLAUDE.md), and the cards
+   * that came out of that draw are these. Re-asking the caller for them would
+   * work today, because every generator reads the pending offer off the state
+   * and nothing has been spent — and it would be one refactor away from a
+   * redraw. Holding the array is the cheaper honesty.
+   */
+  let standing: { offer: Offer; onChoose: (index: number) => void } | null = null;
+  let phase: OfferPhase = 'none';
+
+  /** Runs the machine, does the DOM, and tells the caller where it landed. */
+  function moveTo(event: OfferEvent): OfferPhase {
+    phase = phaseAfter(phase, event);
+    options.onPhase?.(phase);
+    return phase;
+  }
   /** The element focus should return to once the card is answered. */
   let restoreFocus: HTMLElement | null = null;
   /** The one timer that takes the backs off. Null whenever nothing is dealing. */
@@ -484,7 +611,12 @@ export function createOfferCard(container: HTMLElement): OfferCard {
     for (const back of container.querySelectorAll('.card-back')) back.remove();
   }
 
-  function clear(): void {
+  /**
+   * Takes the sheet off the screen. The DOM half of both endings, and of the
+   * hiding — what differs between them is what is *kept*, which is `standing`
+   * and the phase, and neither is touched here.
+   */
+  function teardown(): void {
     if (dealTimer !== null) {
       window.clearTimeout(dealTimer);
       dealTimer = null;
@@ -493,16 +625,44 @@ export function createOfferCard(container: HTMLElement): OfferCard {
     container.removeAttribute('data-weight');
     container.replaceChildren();
     spreadOf = null;
-    choose = null;
     if (restoreFocus && document.contains(restoreFocus)) restoreFocus.focus();
     restoreFocus = null;
+  }
+
+  function clear(): void {
+    teardown();
+    standing = null;
+    choose = null;
+    moveTo('clear');
+  }
+
+  /**
+   * Puts the sheet away and keeps the offer. **Nothing is spent** — see the
+   * module docblock — so `standing` and `choose` both survive and `reopen` deals
+   * the very same array back.
+   */
+  function viewMap(): boolean {
+    if (phase !== 'shown') return false;
+    teardown();
+    moveTo('viewMap');
+    return true;
+  }
+
+  function reopen(): void {
+    if (standing === null) return;
+    // Through `show`, so the spread is re-measured against the window as it is
+    // *now*: a player who looked at the map may well have resized on the way.
+    show(standing.offer, standing.onChoose);
   }
 
   function take(index: number): void {
     const callback = choose;
     // Cleared *before* the callback, so a handler that re-opens a card (a second
     // ruin claimed by the same march) is not immediately torn down by this one.
-    clear();
+    teardown();
+    standing = null;
+    choose = null;
+    moveTo('take');
     callback?.(index);
   }
 
@@ -513,6 +673,15 @@ export function createOfferCard(container: HTMLElement): OfferCard {
    */
   function onKeyDown(event: KeyboardEvent): void {
     if (container.hidden) return;
+    // Escape is "let me look first", never "throw it away" — see the module
+    // docblock. Swallowed either way, so it cannot also reach the board's own
+    // Escape and close a panel behind the sheet.
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      viewMap();
+      return;
+    }
     const digit = Number.parseInt(event.key, 10);
     if (Number.isInteger(digit) && digit >= 1) {
       // By the index the card *carries*, not by its position in the row: the
@@ -537,6 +706,9 @@ export function createOfferCard(container: HTMLElement): OfferCard {
   function show(offer: Offer, onChoose: (index: number) => void): void {
     restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     choose = onChoose;
+    // Held from here until it is taken or a new game clears it — through View
+    // map and back, which is the whole point of keeping it.
+    standing = { offer, onChoose };
     container.replaceChildren();
 
     const sheet = element('div', 'offer-sheet');
@@ -703,8 +875,27 @@ export function createOfferCard(container: HTMLElement): OfferCard {
       list.append(centre);
     }
     sheet.append(list);
+    // The one control on this sheet that is not a card. At the foot, after the
+    // hand, because it is the thing you reach for *having read them* — and small
+    // and quiet, because the decision is still the cards. It says "View map"
+    // rather than "Close": there is nothing to close, and a player who read
+    // "Close" would reasonably believe the offer had gone with it.
+    const foot = element('div', 'offer-foot');
+    const look = document.createElement('button');
+    look.className = 'offer-look';
+    look.type = 'button';
+    look.append(element('span', 'offer-look-label', 'View map'));
+    look.append(element('kbd', 'offer-look-key', 'Esc'));
+    look.title = 'Look at the board. The offer waits — nothing is spent.';
+    look.addEventListener('click', () => {
+      viewMap();
+    });
+    foot.append(look);
+    foot.append(element('p', 'offer-foot-note', 'the offer waits — nothing is spent'));
+    sheet.append(foot);
     container.append(sheet);
     container.hidden = false;
+    moveTo('show');
 
     // The backs come off once the last card has landed.
     //
@@ -739,6 +930,11 @@ export function createOfferCard(container: HTMLElement): OfferCard {
     get isOpen(): boolean {
       return !container.hidden;
     },
+    get isPending(): boolean {
+      return phase !== 'none';
+    },
+    viewMap,
+    reopen,
     clear,
     dispose(): void {
       window.removeEventListener('keydown', onKeyDown, true);

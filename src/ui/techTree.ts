@@ -113,7 +113,7 @@ import { unitDef } from '../sim/unitData';
 import { HAMMER, PROJECT_GLYPHS, YIELD_GLYPH, turnsLabel } from './figures';
 import { setYieldText } from './yieldMark';
 import { createInfoCard } from './infoCard';
-import { LANE_GAP_MIN, fitLanes } from './techFit';
+import { LANE_GAP_MIN, fitColumns, fitLanes } from './techFit';
 import { BEAKER, researchProgress } from './researchProgress';
 import { resourceMarkNode } from './resourceMark';
 
@@ -739,15 +739,50 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // second, which is exactly right — and why the first is not an animation
     // frame: `requestAnimationFrame` does not fire in a hidden tab at all.)
     //
-    // The lanes are spaced before the lines are drawn, in both passes and in
-    // that order: the gap moves every card, and a connector measured before it
-    // would be drawn to where the card used to be.
+    // The columns are sized before the lanes are spaced, and the lanes before
+    // the lines are drawn, in both passes and in that order. Each step moves
+    // what the next one measures: a wider column re-wraps every card's title and
+    // therefore changes how tall the lanes are, and the gap between lanes moves
+    // every card, so a connector measured before either would be drawn to where
+    // the card used to be.
+    spaceColumns(built, columns);
     spaceLanes(built, rows);
     drawLines(drawn);
     requestAnimationFrame(() => {
+      spaceColumns(built, columns);
       spaceLanes(built, rows);
       drawLines(drawn);
     });
+  }
+
+  /**
+   * Fit the columns to the window: `fitColumns` decides, this measures for it.
+   *
+   * The sideways half of `spaceLanes`, and it landed for the same kind of report
+   * — the chart looked wrong on a big display (user, 2026-08-27) because the
+   * column width was a constant in the stylesheet and eight of them stopped
+   * short of a 2560px window by four hundred pixels, leaving the age washes
+   * ending mid-screen with night to their right.
+   *
+   * `clientWidth` is the stage's *content* box, which is what the field has to
+   * fit in, and the field's own horizontal padding is subtracted because that
+   * padding is inside the field rather than beside it. The gutter is read off
+   * the computed style rather than typed here, so the stylesheet stays the one
+   * place a gutter is decided (`--tech-col-gap`) — the arithmetic only spends
+   * what it is told.
+   *
+   * The slack goes to the *stylesheet* as a flag, not as a length: whether a
+   * chart that has hit its cap is centred is a question about alignment, and
+   * alignment is CSS's job. `is-roomy` is the whole of that hand-off.
+   */
+  function spaceColumns(built: HTMLElement, columns: number): void {
+    const style = window.getComputedStyle(built);
+    const gap = Number.parseFloat(style.columnGap) || 0;
+    const padding =
+      (Number.parseFloat(style.paddingLeft) || 0) + (Number.parseFloat(style.paddingRight) || 0);
+    const fit = fitColumns(chart.clientWidth - padding, columns, gap);
+    built.style.setProperty('--tech-col-w', `${fit.width}px`);
+    built.classList.toggle('is-roomy', fit.slack > 0);
   }
 
   /**
@@ -1230,6 +1265,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   // renderChart does them.
   window.addEventListener('resize', () => {
     if (!open || !field || !lines) return;
+    spaceColumns(field, techColumnCount());
     spaceLanes(field, techRowCount());
     drawLines(lines);
   });

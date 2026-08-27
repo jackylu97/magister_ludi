@@ -67,6 +67,8 @@ import {
   describeImprovement,
   describeOccupant,
   describeTile,
+  describeWater,
+  resourceRequirementNode,
   resourceRowNode,
   tileYieldLineNodes,
   tileYieldNodes,
@@ -232,6 +234,9 @@ const turnSplashEl = requireElement<HTMLElement>('turn-splash');
 /* The offer card's shell. Its contents are built by `ui/offerCard.ts` on each
    show — see that file for why this is the one blocking surface here. */
 const offerOverlayEl = requireElement<HTMLElement>('offer-overlay');
+/* The way back to an offer put away behind View map. Pinned in the End Turn
+   corner because that button stops on the very same offer — see `index.html`. */
+const offerReturnEl = requireElement<HTMLButtonElement>('offer-return');
 
 /** The HUD's surfaces; see the layout comment in `index.html`. */
 const menuButton = requireElement<HTMLButtonElement>('menu-button');
@@ -311,6 +316,7 @@ const infoMap = requireElement<HTMLElement>('info-map');
 const infoSeed = requireElement<HTMLElement>('info-seed');
 const infoTerrain = requireElement<HTMLElement>('info-terrain');
 const infoFeature = requireElement<HTMLElement>('info-feature');
+const infoWater = requireElement<HTMLElement>('info-water');
 const infoYields = requireElement<HTMLElement>('info-yields');
 const infoResource = requireElement<HTMLElement>('info-resource');
 const infoImprovement = requireElement<HTMLElement>('info-improvement');
@@ -787,7 +793,15 @@ function setInfoRow(
  * is the only row those two disagree about.
  */
 function clearInfoRows(): void {
-  for (const row of [infoFeature, infoYields, infoResource, infoImprovement, infoOccupant, infoUnit]) {
+  for (const row of [
+    infoFeature,
+    infoWater,
+    infoYields,
+    infoResource,
+    infoImprovement,
+    infoOccupant,
+    infoUnit,
+  ]) {
     setInfoRow(row, null);
   }
 }
@@ -819,6 +833,30 @@ function showTileYields(state: GameState, playerId: number, tile: Tile): void {
     shown.push(lines);
   }
   setInfoRow(infoYields, shown);
+}
+
+/**
+ * The resource row: what is in the ground, and — under it — what the empire
+ * still has to do about it.
+ *
+ * Two nodes in one cell rather than a row of its own, because the requirement is
+ * not a separate fact: "requires Mine (Mining)" is a clause *about* the gems on
+ * this hex and reads as furniture the moment it is separated from them. Both
+ * halves come from `tileReadout.ts` — the mark and the name, and the want with
+ * its ink already decided — so this is the placement and nothing else, which is
+ * the split the whole module was written for.
+ *
+ * A seam with nothing left to want (the mine already stands, or nothing improves
+ * it) has one node and looks exactly as it always did; a hex with no resource at
+ * all has none, and the row disappears with the term beside it.
+ */
+function showTileResource(state: GameState, playerId: number, tile: Tile): void {
+  const shown: Node[] = [];
+  const resource = resourceRowNode(state, playerId, tile);
+  if (resource) shown.push(resource);
+  const wants = resourceRequirementNode(state, playerId, tile);
+  if (wants) shown.push(wants);
+  setInfoRow(infoResource, shown);
 }
 
 /**
@@ -1346,9 +1384,13 @@ async function boot(initial: Game | null): Promise<void> {
       const described = describeTile(hover.tile);
       setInfoRow(infoTerrain, described.terrain + (described.hills ? ' (hills)' : ''));
       setInfoRow(infoFeature, described.feature);
+      // What water the hex touches, and it is deliberately its own row rather
+      // than a clause on the terrain: "Grassland (hills)" is what the ground
+      // *is*, and coast and fresh water are facts about what is next to it.
+      setInfoRow(infoWater, describeWater(game.state, hover.tile));
       setInfoRow(infoUnit, describeUnitsOn(game.state, seat, hover.tile));
       showTileYields(game.state, seat, hover.tile);
-      setInfoRow(infoResource, resourceRowNode(game.state, seat, hover.tile));
+      showTileResource(game.state, seat, hover.tile);
       setInfoRow(infoImprovement, describeImprovement(hover.tile));
       setInfoRow(infoOccupant, describeOccupant(game.state, seat, hover.tile));
     } else {
@@ -1442,7 +1484,20 @@ async function boot(initial: Game | null): Promise<void> {
    * controls report into it, both when a march claims a site and when End Turn
    * finds the offer still unanswered.
    */
-  const offerCard = createOfferCard(offerOverlayEl);
+  const offerCard = createOfferCard(offerOverlayEl, {
+    /**
+     * The chip that leads back, raised and lowered by the card's own phase.
+     *
+     * One callback rather than a poll, and read off `'hidden'` rather than off
+     * "is the overlay up": an offer that has been *taken* reports `'none'` here
+     * and takes the chip down with it, which is the case a hand-rolled
+     * `!isOpen` would have got exactly backwards.
+     */
+    onPhase: (phase) => {
+      offerReturnEl.hidden = phase !== 'hidden';
+    },
+  });
+  offerReturnEl.addEventListener('click', () => offerCard.reopen());
 
   /**
    * The header line for an offer dealt wider than the table deals: the fold's

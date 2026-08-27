@@ -40,7 +40,9 @@ import {
   describeImprovement,
   describeOccupant,
   describeTile,
+  describeWater,
   displayYieldLines,
+  resourceRequirementOf,
   itemisedYieldLines,
   tileYieldContributions,
   tileYieldLines,
@@ -457,5 +459,113 @@ describe('a line that pays nothing', () => {
     const lines = tileYieldLines(state, 0, at(state, 4, 4));
     expect(lines).toHaveLength(1);
     expect(lines[0]).toMatchObject({ source: 'Desert', figures: '0', parts: [] });
+  });
+});
+
+/**
+ * The two rows the playtest asked for (user, 2026-08-27), both pure and both the
+ * *text* half of a card whose DOM half is three lines.
+ *
+ * They are here rather than in the panel because the thing that can be quietly
+ * wrong is the sentence: a hex that is coastal and says nothing, a seam that
+ * wants Mining and says nothing, a technology the empire already holds printed
+ * in the alarm ink. None of those throws.
+ */
+describe('describeWater', () => {
+  it('says nothing at all about dry inland ground', () => {
+    const state = boardState();
+    expect(describeWater(state, at(state, 4, 4))).toBeNull();
+  });
+
+  it('names the sea, the fresh water, and both when a hex has both', () => {
+    const state = boardState();
+    const hex = at(state, 4, 4);
+    // Fresh water alone: the flag `computeFreshwater` sets, read through
+    // `hasFreshWater` rather than off the field.
+    hex.freshwater = true;
+    expect(describeWater(state, hex)).toBe('Fresh water');
+
+    // The sea is a fact about the *neighbours*, and `coast` specifically — a
+    // lake is water a city cannot sail out of and speaks through fresh water.
+    hex.freshwater = false;
+    const beside = at(state, 5, 4);
+    beside.terrain = 'coast';
+    expect(describeWater(state, hex)).toBe('Coastal');
+
+    hex.freshwater = true;
+    expect(describeWater(state, hex)).toBe('Coastal · Fresh water');
+  });
+
+  it('is not fooled by a lake next door, which is not a coast', () => {
+    const state = boardState();
+    const hex = at(state, 4, 4);
+    at(state, 5, 4).terrain = 'lake';
+    expect(describeWater(state, hex)).toBeNull();
+  });
+});
+
+describe('what a seam still wants', () => {
+  /** A hex carrying a resource, revealed to seat 0 by having no gate at all. */
+  function seam(state: GameState, resource: 'gems' | 'wheat'): Tile {
+    const hex = at(state, 4, 4);
+    hex.hills = resource === 'gems';
+    hex.resource = resource;
+    return hex;
+  }
+
+  it('names the improvement and its technology, in the words the tables use', () => {
+    const state = boardState();
+    const hex = seam(state, 'gems');
+    // Seat 0 has not researched Mining: the line is a want, and the caller
+    // paints a want vermilion.
+    const want = resourceRequirementOf(state, 0, hex);
+    expect(want).not.toBeNull();
+    expect(want!.text).toBe('requires Mine (Mining)');
+    expect(want!.held).toBe(false);
+  });
+
+  it('reads plain the moment the empire holds the technology', () => {
+    const state = boardState();
+    const hex = seam(state, 'gems');
+    state.players[0]!.techsResearched.push('mining');
+    const want = resourceRequirementOf(state, 0, hex);
+    // Same sentence — it is still what has to be built — in the card's own ink.
+    expect(want).toEqual({ text: 'requires Mine (Mining)', held: true });
+  });
+
+  it('goes quiet once the improvement is standing on it', () => {
+    const state = boardState();
+    const hex = seam(state, 'gems');
+    state.players[0]!.techsResearched.push('mining');
+    hex.improvement = 'mine';
+    expect(resourceRequirementOf(state, 0, hex)).toBeNull();
+  });
+
+  it('says nothing about a hex with no resource on it', () => {
+    const state = boardState();
+    expect(resourceRequirementOf(state, 0, at(state, 4, 4))).toBeNull();
+  });
+
+  it('never leaks a resource this empire cannot yet name', () => {
+    // `openedResource`'s first clause, and the reason it is not repeated in the
+    // requirement: a gated resource has no row on this card at all, so a line
+    // reading "requires Mine (Mining)" under a hex the card refuses to describe
+    // would be the readout leaking the very thing the gate hides.
+    const state = boardState();
+    const hex = at(state, 4, 4);
+    hex.hills = true;
+    hex.resource = 'iron';
+    expect(resourceRequirementOf(state, 0, hex)).toBeNull();
+
+    state.players[0]!.techsResearched.push('bronzeWorking');
+    expect(resourceRequirementOf(state, 0, hex)!.text).toBe('requires Mine (Mining)');
+  });
+
+  it('names each family off the improvement table, never off a written-down map', () => {
+    // The inverse `improvementForResource` builds, read through: wheat is a
+    // farm's and a farm needs Agriculture, and neither string is in the UI.
+    const state = boardState();
+    const hex = seam(state, 'wheat');
+    expect(resourceRequirementOf(state, 0, hex)!.text).toBe('requires Farm (Agriculture)');
   });
 });
