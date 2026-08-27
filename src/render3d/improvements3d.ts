@@ -25,6 +25,14 @@
  * would fence half a herd. That is the composition rule in one number — see the
  * prop docblock in `geometry.ts`.
  *
+ * The five **great works** are the one exception to "one instance", and only
+ * just: each is a body and a single gilt element, drawn as two instances over
+ * one matrix (`BoardGeometry.improvementGilt`). That is `CityLayer.addWork`'s
+ * arrangement for the shrine's needle and it is here for the same reason — a
+ * bucket's ink is what the fog wash is computed from, so two colours have to be
+ * two buckets or the body washes as though it were gold. Both name the tile, so
+ * `instances` still counts *improvements* and the fog still finds both.
+ *
  * Fog, from birth
  * ---------------
  * Improvements are terrain-ish, so they survive on ground the seat merely
@@ -157,18 +165,29 @@ export class ImprovementLayer {
         tileTopY(tile) + IMPROVEMENTS.lift,
         centre.z + offset.z,
       );
+      const matrix = new Matrix4().compose(
+        position,
+        new Quaternion().setFromAxisAngle(axis, yaw),
+        new Vector3(1, 1, 1),
+      );
       collector.add(
         geometry.improvementProps[id],
         [shade(spec.color, spec.shade)],
-        new Matrix4().compose(
-          position,
-          new Quaternion().setFromAxisAngle(axis, yaw),
-          new Vector3(1, 1, 1),
-        ),
+        matrix,
         // Named, so the wash below can find it again — and so that anything
         // later that wants to hide an improvement a tile at a time already can.
         { tile: cell },
       );
+      // A great work's one gilt element, over the *same* matrix — the shrine
+      // needle's arrangement (`CityLayer.addWork`). Two instances rather than a
+      // two-group mesh because a bucket's ink is what the fog wash is derived
+      // from, and one bucket holding both would wash a bone colonnade as though
+      // it were gold. It names the same tile, so it fades, hides and is found
+      // by `paintFog` with the body it belongs to.
+      const gilt = geometry.improvementGilt[id];
+      if (gilt && spec.gilt !== undefined) {
+        collector.add(gilt, [spec.gilt], matrix, { tile: cell });
+      }
       instances += 1;
     }
 

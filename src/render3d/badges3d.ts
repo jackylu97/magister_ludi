@@ -118,15 +118,34 @@ const ICONS = VIEW3D.icons;
 const LENS = VIEW3D.lens;
 
 /**
+ * What a badge can say, which is *nearly* the model class and no longer exactly
+ * it.
+ *
+ * The sculpt is chosen by `ModelClass` and always will be — that is a fact about
+ * what a piece is shaped like. The badge answers a different question, "what am
+ * I looking at", and the great people broke the two apart: a great person stands
+ * on the settler's sculpt (`modelClass` in `data/units.json`) and must not wear
+ * the settler's *name*, because a player who marches Archimedes at a hex looking
+ * for a city site has been lied to by the board.
+ *
+ * One extra member and not five. Families differ by what they *do*, and the game
+ * says which family a piece is by its name in the unit panel; a scholar and a
+ * general drawn with two badges would be two more silhouettes to learn for
+ * information the interface already gives in words. What the board owes is the
+ * one distinction it cannot say any other way: *this piece is not a settler.*
+ */
+export type BadgeClass = ModelClass | 'greatPerson';
+
+/**
  * The atlas layout, in cell order, and the authority on which cell a class
  * lands in.
  *
  * A list rather than a derivation from the sculpt registry, because it decides
  * texture coordinates: reordering the registry must never silently re-point
  * every badge on the board at somebody else's icon. `test/pieces3d.test.ts`
- * checks the two agree as *sets*.
+ * checks it covers every model class and names the one member that is not one.
  */
-export const BADGE_CELLS: readonly ModelClass[] = [
+export const BADGE_CELLS: readonly BadgeClass[] = [
   'settler',
   'worker',
   'melee',
@@ -135,6 +154,7 @@ export const BADGE_CELLS: readonly ModelClass[] = [
   'mountedRanged',
   'siege',
   'scout',
+  'greatPerson',
 ];
 
 /**
@@ -145,8 +165,18 @@ export const BADGE_CELLS: readonly ModelClass[] = [
  * size the data asks for — including the day somebody doubles `atlasCell`
  * because the panel got bigger. Vendored under `public/` because Vite serves
  * `public/` and only `public/`; see `public/sprites/CREDITS.md` for provenance.
+ *
+ * A **file** and not path data, which is worth one sentence because everything
+ * else printed on this board went the other way (see the trap in `CLAUDE.md`:
+ * the tile atlas has no `loadIcon` left). The reason those moved is that the
+ * *interface* prints the same marks in four inks, and a file can only be one
+ * colour. A class badge is printed here and nowhere else, so it has never paid
+ * that cost, and a set of nine in which one member arrived by a different route
+ * would be a set of eight plus an exception. If a DOM surface ever needs these,
+ * the whole set moves together — `paintMarkPaths` in this file is already the
+ * printer that would take them.
  */
-export const BADGE_ICON_FILES: Record<ModelClass, string> = {
+export const BADGE_ICON_FILES: Record<BadgeClass, string> = {
   settler: 'sprites/icons/settler.svg',
   worker: 'sprites/icons/worker.svg',
   melee: 'sprites/icons/melee.svg',
@@ -155,6 +185,7 @@ export const BADGE_ICON_FILES: Record<ModelClass, string> = {
   mountedRanged: 'sprites/icons/mountedRanged.svg',
   siege: 'sprites/icons/siege.svg',
   scout: 'sprites/icons/scout.svg',
+  greatPerson: 'sprites/icons/greatPerson.svg',
 };
 
 // --- layout arithmetic -----------------------------------------------------
@@ -202,7 +233,7 @@ export interface AtlasRect {
  * this backwards does not fail, it silently draws the bottom row of icons on the
  * top row of units, which is exactly the kind of bug a test can hold still.
  */
-export function badgeCellRect(cls: ModelClass): AtlasRect {
+export function badgeCellRect(cls: BadgeClass): AtlasRect {
   const layout = badgeAtlasSize();
   const index = BADGE_CELLS.indexOf(cls);
   if (index < 0) throw new Error(`badges: ${cls} has no atlas cell`);

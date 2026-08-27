@@ -83,7 +83,7 @@ with a feathered edge — see `src/render3d/sprites3d.ts`, tuned by `units.sprit
 A unit type with no file here falls back to its procedural game piece, which is why the
 settler still stands as a piece while these two are billboards.
 
-## `icons/<class>.svg` — 8 model-class badge icons
+## `icons/<class>.svg` — 9 badge icons
 
 **Original work for this project**, dedicated to the public domain under **CC0 1.0** so it
 carries the same terms as everything around it. Drawn as part of the model-class pass (see
@@ -111,6 +111,22 @@ as the reference for how heavy an icon has to be to survive being twenty pixels 
 | `mountedRanged.svg` | `mountedRanged` | horse head with an arrow |
 | `siege.svg` | `siege` | catapult, arm thrown, shot in the air |
 | `scout.svg` | `scout` | eye |
+| `greatPerson.svg` | — | laurel wreath, two branches tied, a jewel in the gap |
+
+The ninth is the odd one and stays odd on purpose: it is not a model class at all. A great
+person stands on the **settler's** sculpt (`modelClass` in `data/units.json`, because it is a
+civilian with a handcart) and must not wear the settler's *name* — the badge is the board's
+only sentence about what a piece is, and "settler" floating over Archimedes is a wrong
+sentence rather than a missing one. So the badge set is one longer than the sculpt set, and
+`BadgeClass` in `src/render3d/badges3d.ts` is where the two stop being the same list.
+
+**One laurel for all five families**, not five. A scholar and a general differ in what they
+*do*, and the interface says which is which in words, in the unit panel and on the offer card;
+five more badges would be five more silhouettes to learn for information the player already
+has. What the board owes is the one distinction it cannot say any other way, which is *this
+piece is not a settler*. Drawn against the eye it shares a ring-ish footprint with: the eye is
+a closed lens with a solid pupil dead centre, the wreath is an open ring with a gap at the top
+and the jewel sitting in it, so the two do not smudge together at twenty pixels.
 
 ## `src/art/resourceMarks.ts` — 41 resource marks, as path data
 

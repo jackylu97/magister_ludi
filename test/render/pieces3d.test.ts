@@ -24,6 +24,7 @@ import {
   BoardGeometry,
   MINI_SCULPTS,
   MODEL_CLASS_IDS,
+  badgeClassFor,
   modelClassFor,
   pieceHeightFor,
 } from '../../src/render3d/board3d';
@@ -49,6 +50,7 @@ import {
   signUnits,
 } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
+import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
 import { createMap, tileIndex } from '../../src/sim/map';
 import { type GameState, newGame } from '../../src/sim/state';
 import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../../src/sim/unitData';
@@ -117,14 +119,53 @@ describe('the model-class roster', () => {
     board.dispose();
   });
 
-  it('gives every class an icon cell and every icon cell a class model', () => {
+  it('gives every class an icon cell and every icon cell an icon file', () => {
     // The two lists are written out separately on purpose — the atlas order
     // decides texture coordinates and must not follow a registry reorder — so
     // this is the seam that has to be nailed down.
-    expect([...BADGE_CELLS].sort()).toEqual([...MODEL_CLASS_IDS].sort());
-    for (const id of MODEL_CLASS_IDS) {
+    //
+    // They used to be the same *set*. They are not any more, and the difference
+    // is exactly one member: a great person stands on the settler's sculpt and
+    // wears a badge of its own (`BadgeClass`), so the badge list is the sculpt
+    // list plus `greatPerson` and nothing else. Written as a containment plus a
+    // named exception rather than a sorted equality, so a tenth cell somebody
+    // adds without deciding what it is fails here.
+    for (const id of MODEL_CLASS_IDS) expect(BADGE_CELLS).toContain(id);
+    expect(BADGE_CELLS).toContain('greatPerson');
+    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + 1);
+    for (const id of BADGE_CELLS) {
       expect(BADGE_ICON_FILES[id], `no icon file for ${id}`).toMatch(/^sprites\/icons\/.+\.svg$/);
     }
+  });
+
+  it('badges a great person as itself and never as the settler it is sculpted as', () => {
+    // The whole of what `badgeClassFor` exists for. The sculpt is shared on
+    // purpose — a great person *is* a civilian with a handcart — and the badge
+    // is the one place the board can say it is not a settler.
+    const greatPeople = UNIT_TYPE_IDS.filter((type) => unitDef(type).greatWork);
+    expect(greatPeople.length).toBeGreaterThan(0);
+    for (const type of greatPeople) {
+      expect(modelClassFor(type)).toBe('settler');
+      expect(badgeClassFor(type)).toBe('greatPerson');
+    }
+    // And nothing else takes it: every ordinary row still badges as its class.
+    for (const type of UNIT_TYPE_IDS) {
+      if (unitDef(type).greatWork) continue;
+      expect(badgeClassFor(type)).toBe(modelClassFor(type));
+    }
+  });
+
+  it('builds a badge quad for every cell, the great person included', () => {
+    const board = geometry();
+    const seen = new Set<unknown>();
+    for (const id of BADGE_CELLS) {
+      expect(board.badgeIcons[id], `no badge quad for ${id}`).toBeDefined();
+      seen.add(board.badgeIcons[id]);
+    }
+    // Distinct geometries, because each bakes its own atlas rectangle: two
+    // classes sharing one quad would be two classes wearing one icon.
+    expect(seen.size).toBe(BADGE_CELLS.length);
+    board.dispose();
   });
 
   it('leaves no class model without a unit standing on it', () => {
@@ -658,6 +699,74 @@ describe('the worker charge badge', () => {
     spent.units[0]!.movesLeft = 0;
     expect(fresh.units[0]!.movesLeft).not.toBe(spent.units[0]!.movesLeft);
     expect(signUnits(spent)).toBe(signUnits(fresh));
+  });
+
+  /**
+   * `Unit.person` joins the hash, and the state docblock that asks for it is the
+   * authority (`CLAUDE.md`'s piece-fingerprint trap, one more property).
+   *
+   * It is the one member of the hash that changes nothing drawn *today* — every
+   * great person wears the one laurel badge and stands on the settler's sculpt —
+   * and it is in anyway because it is the only thing that says which piece this
+   * is. The three cases below are the whole contract: a person appearing moves
+   * it, two different people differ, and two of the same do not.
+   */
+  it('moves the units fingerprint when a piece becomes somebody', () => {
+    const anonymous = state([{ type: 'greatPerson' }]);
+    const named = state([{ type: 'greatPerson' }]);
+    named.units[0]!.person = GREAT_PERSON_IDS[0]!;
+    expect(signUnits(named)).not.toBe(signUnits(anonymous));
+  });
+
+  it('tells two different great people apart', () => {
+    const one = state([{ type: 'greatPerson' }]);
+    const other = state([{ type: 'greatPerson' }]);
+    one.units[0]!.person = GREAT_PERSON_IDS[0]!;
+    other.units[0]!.person = GREAT_PERSON_IDS[1]!;
+    expect(GREAT_PERSON_IDS[0]).not.toBe(GREAT_PERSON_IDS[1]);
+    expect(signUnits(one)).not.toBe(signUnits(other));
+  });
+
+  it('leaves the fingerprint alone for two pieces that are the same person', () => {
+    const a = state([{ type: 'greatPerson' }]);
+    const b = state([{ type: 'greatPerson' }]);
+    a.units[0]!.person = GREAT_PERSON_IDS[0]!;
+    b.units[0]!.person = GREAT_PERSON_IDS[0]!;
+    expect(signUnits(a)).toBe(signUnits(b));
+  });
+
+  /**
+   * And nothing *else* new joined it. Written as a source read rather than as a
+   * behaviour, because the failure this guards against is somebody adding a
+   * field to the hash that moves on every step of every march — the one thing
+   * the movement-allowance test above is about, generalised.
+   */
+  it('hashes exactly the seven properties the trap names', () => {
+    // Read through Vite's raw glob rather than `node:fs` — the pattern
+    // `test/sim/cities.test.ts` set for the same kind of assertion, and for the
+    // same reason: this project has no node typings and a source read is not
+    // worth a dependency.
+    const modules = import.meta.glob('../../src/render3d/pieces.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const source = Object.values(modules)[0]!;
+    const body = source.slice(
+      source.indexOf('export function signUnits'),
+      source.indexOf('/** Unit types as small integers'),
+    );
+    const hashed = [...body.matchAll(/h \^ ([A-Za-z_.()?]+)/g)].map((m) => m[1]);
+    expect(hashed).toEqual([
+      'unit.id',
+      'unit.col',
+      'unit.row',
+      'unit.hp',
+      'unit.ownerId',
+      '(UNIT_TYPE_INDEX.get(unit.type)',
+      'chargesLeft(unit)',
+      'personIndex(unit)',
+    ]);
   });
 });
 

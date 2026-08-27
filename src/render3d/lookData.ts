@@ -1339,6 +1339,16 @@ export interface ImprovementPropSpec {
   size: number;
   /** Radius of the hashed offset from the tile centre, in hex radii. */
   jitter: number;
+  /**
+   * The ink of this improvement's **one gilt element**, when it has one — the
+   * five great works and nothing else (`IMPROVEMENT_GILT` in `board3d.ts`).
+   *
+   * Optional rather than defaulted, because absence is the *meaning*: gold on
+   * this board says "a great person did this once", and a default would hand it
+   * to every farm the day somebody forgot a row. Shade is deliberately not
+   * paired with it — a gilt mark is one flat bright note or it is not the mark.
+   */
+  gilt?: number;
 }
 
 export interface ImprovementLookSpec {
@@ -1556,6 +1566,21 @@ function parseColor(value: string, where: string): number {
 }
 
 const rawPalette = viewJson.palette as Record<string, string>;
+
+/**
+ * The improvement prop rows as authored, before their palette names are
+ * resolved.
+ *
+ * Cast to one declared row shape rather than read straight off the JSON import,
+ * because `gilt` is on five rows of twelve: TypeScript infers the literal's
+ * per-key types, so `Object.entries` would hand back a union in which the key
+ * exists on some members and not others, and reading it at all would be an
+ * error. The cast says what the *table* is, which is a table of optional gilt.
+ */
+const rawImprovementProps = viewJson.improvements.props as Record<
+  string,
+  { color: string; shade: number; size: number; jitter: number; gilt?: string }
+>;
 
 const palette: Record<string, number> = {};
 for (const [name, value] of Object.entries(rawPalette)) {
@@ -1990,9 +2015,18 @@ export const VIEW3D: View3DData = {
   improvements: {
     lift: viewJson.improvements.lift,
     props: Object.fromEntries(
-      Object.entries(viewJson.improvements.props).map(([id, spec]) => [
+      Object.entries(rawImprovementProps).map(([id, spec]) => [
         id,
-        { ...spec, color: named(spec.color, `improvements.props.${id}.color`) },
+        {
+          ...spec,
+          color: named(spec.color, `improvements.props.${id}.color`),
+          // Spread and then overwritten, so a row without the key stays without
+          // it: `gilt: undefined` would serialise as a present-but-empty ink and
+          // make "has a gilt element" a truthiness test rather than a fact.
+          ...(spec.gilt === undefined
+            ? {}
+            : { gilt: named(spec.gilt, `improvements.props.${id}.gilt`) }),
+        },
       ]),
     ) as Record<ImprovementId, ImprovementPropSpec>,
   },

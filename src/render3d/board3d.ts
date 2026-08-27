@@ -51,6 +51,8 @@ import { type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
 import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
 import {
+  type BadgeClass,
+  BADGE_CELLS,
   CHARGE_CELLS,
   NUMERAL_CELLS,
   SITE_MARK_CELLS,
@@ -65,6 +67,8 @@ import {
   type MiniClass,
   type MiniFactory,
   type UnitPiece,
+  academyHall,
+  academyRidge,
   archerMini,
   atlasDecal,
   atlasQuad,
@@ -73,6 +77,8 @@ import {
   borderCorner,
   cactus,
   cairnStack,
+  citadelBanner,
+  citadelRing,
   brokenColumns,
   campTent,
   catapultMini,
@@ -90,6 +96,8 @@ import {
   cityWonder,
   cityWonderTip,
   crystalCluster,
+  customsVane,
+  customsWarehouse,
   discRing,
   dyeVats,
   fenceRing,
@@ -105,6 +113,10 @@ import {
   horsemanMini,
   incenseBurner,
   jadeSlab,
+  landmarkCap,
+  landmarkStele,
+  manufactoryDoor,
+  manufactoryHall,
   marbleColumn,
   markerPin,
   mineHead,
@@ -192,6 +204,28 @@ export function modelClassFor(type: UnitTypeId): ModelClass {
 }
 
 /**
+ * The badge a unit type wears, which is its model class except for the one
+ * roster row that is not what it is shaped like.
+ *
+ * A great person stands on the settler's sculpt — a civilian with a handcart —
+ * because it is a civilian with a handcart, and sculpting five more silhouettes
+ * for five families would be five more things to learn about pieces that are
+ * spent within a few turns of arriving. What it must not do is wear the
+ * settler's *name*: the badge is the board's only sentence about what a piece
+ * is, and "settler" over Archimedes is a wrong sentence rather than a missing
+ * one.
+ *
+ * Asked of `UnitDef.greatWork` and never of the type id, for `modelClassFor`'s
+ * reason exactly and the sim's: nothing compares a unit against the string
+ * `"settler"`, and nothing here compares one against `"greatPerson"`. The row
+ * that says a piece plants a great work is the row that earns the badge.
+ */
+export function badgeClassFor(type: UnitTypeId): BadgeClass {
+  const def = unitDef(type);
+  return def.greatWork ? 'greatPerson' : def.modelClass;
+}
+
+/**
  * Every sculpt on the board, and the size class it is cut to.
  *
  * Typed `Record<ModelClass, …>` on purpose: this is the one place the art and
@@ -247,20 +281,25 @@ function buildUnitPieces(): Record<ModelClass, UnitPiece> {
 }
 
 /**
- * One quad per model class, each carrying its own cell of the badge atlas.
+ * One quad per badge class, each carrying its own cell of the badge atlas.
  *
  * Baking the atlas rectangle into the geometry is what makes badges instanceable
  * without a per-instance attribute: every badge of one class is the same quad
- * with the same UVs, so the whole class is one `InstancedMesh`, and all eight
+ * with the same UVs, so the whole class is one `InstancedMesh`, and all nine
  * classes share a single material and a single texture.
+ *
+ * Walked over `BADGE_CELLS` rather than `MODEL_CLASS_IDS`, and that is the whole
+ * of what `BadgeClass` changed here: the badges are one cell longer than the
+ * sculpts are, because the great person borrows a silhouette and does not borrow
+ * a name (see `badgeClassFor`).
  */
-function buildBadgeQuads(): Record<ModelClass, BufferGeometry> {
-  const out: Partial<Record<ModelClass, BufferGeometry>> = {};
-  for (const id of MODEL_CLASS_IDS) {
+function buildBadgeQuads(): Record<BadgeClass, BufferGeometry> {
+  const out: Partial<Record<BadgeClass, BufferGeometry>> = {};
+  for (const id of BADGE_CELLS) {
     const rect = badgeCellRect(id);
     out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
   }
-  return out as Record<ModelClass, BufferGeometry>;
+  return out as Record<BadgeClass, BufferGeometry>;
 }
 
 /**
@@ -336,6 +375,38 @@ export const IMPROVEMENT_PROPS: Record<ImprovementId, (size: number) => BufferGe
   quarry: quarrySteps,
   fishingBoats: fishingBoat,
   plantation: trellisRows,
+  academy: academyHall,
+  landmark: landmarkStele,
+  manufactory: manufactoryHall,
+  customsHouse: customsWarehouse,
+  citadel: citadelRing,
+};
+
+/**
+ * The one gilt element on each of the five great works, by improvement id.
+ *
+ * **Partial on purpose**, and it is the one improvement table that is: gold is
+ * what says "a great person did this once" (see the great-works docblock in
+ * `geometry.ts`), so a worker's improvement has no row here and must not grow
+ * one. That asymmetry is why this is a second registry rather than a second
+ * field on the first — an exhaustive record would make "no gilt" a shape
+ * somebody had to write down seven times.
+ *
+ * It is a second *geometry*, drawn by `improvements3d.ts` as a second instance
+ * over the same matrix, exactly as `CityLayer.addWork` draws a shrine's needle.
+ * Its ink comes from the data row (`improvements.props.<id>.gilt`), and the two
+ * halves are checked against each other in `test/render/improvements3d.test.ts`:
+ * a shape with no ink would print in the body's colour, and an ink with no
+ * shape would be a number nothing reads.
+ */
+export const IMPROVEMENT_GILT: Partial<
+  Record<ImprovementId, (size: number) => BufferGeometry>
+> = {
+  academy: academyRidge,
+  landmark: landmarkCap,
+  manufactory: manufactoryDoor,
+  customsHouse: customsVane,
+  citadel: citadelBanner,
 };
 
 /** One prop per improvement, each built at the size its data row asks for. */
@@ -345,6 +416,16 @@ function buildImprovementProps(): Record<ImprovementId, BufferGeometry> {
     out[id] = IMPROVEMENT_PROPS[id](BOARD.hexRadius * IMPROVEMENTS.props[id].size);
   }
   return out as Record<ImprovementId, BufferGeometry>;
+}
+
+/** The gilt element of every improvement that has one, at that prop's size. */
+function buildImprovementGilt(): Partial<Record<ImprovementId, BufferGeometry>> {
+  const out: Partial<Record<ImprovementId, BufferGeometry>> = {};
+  for (const id of IMPROVEMENT_IDS) {
+    const build = IMPROVEMENT_GILT[id];
+    if (build) out[id] = build(BOARD.hexRadius * IMPROVEMENTS.props[id].size);
+  }
+  return out;
 }
 
 /**
@@ -524,7 +605,7 @@ export class BoardGeometry {
    * The floating unit badges: one atlas-carrying quad per class, and the flat
    * ring of player colour that goes round every one of them. See `badges3d.ts`.
    */
-  readonly badgeIcons: Record<ModelClass, BufferGeometry>;
+  readonly badgeIcons: Record<BadgeClass, BufferGeometry>;
   readonly badgeRim: BufferGeometry;
   /** City shapes: the houses of the town and the pole its banner flies from. */
   readonly houseBody: BufferGeometry;
@@ -597,6 +678,16 @@ export class BoardGeometry {
    * mid-game and the board's buffers may not be rebuilt for that.
    */
   readonly improvementProps: Record<ImprovementId, BufferGeometry>;
+  /**
+   * The gilt element of the five great works, keyed by improvement id and
+   * **absent** for every improvement a worker can build.
+   *
+   * A second geometry rather than a second group on the first, for the reason
+   * written over `IMPROVEMENT_GILT`: the layer draws it as a second instance
+   * over the same matrix so each bucket keeps one ink, which is what the fog
+   * wash is computed from.
+   */
+  readonly improvementGilt: Partial<Record<ImprovementId, BufferGeometry>>;
   /**
    * The three *site* props — the ruin, the village, the barbarian camp — keyed
    * by site kind. Built here with every other shared shape and placed by
@@ -734,6 +825,7 @@ export class BoardGeometry {
     this.dot = pathDot(OVERLAY.pathDotRadius, OVERLAY.pathDotHeight);
     this.resourceProps = buildResourceProps();
     this.improvementProps = buildImprovementProps();
+    this.improvementGilt = buildImprovementGilt();
     this.siteProps = buildSiteProps();
     const icons = buildIconDecals();
     this.yieldGlyphs = icons.yields;
@@ -817,6 +909,7 @@ export class BoardGeometry {
     this.dot.dispose();
     for (const prop of Object.values(this.resourceProps)) prop.dispose();
     for (const prop of Object.values(this.improvementProps)) prop.dispose();
+    for (const prop of Object.values(this.improvementGilt)) prop?.dispose();
     for (const prop of Object.values(this.siteProps)) prop.dispose();
     for (const quad of Object.values(this.resourceMarkers)) quad.dispose();
     for (const quad of Object.values(this.siteMarkers)) quad.dispose();

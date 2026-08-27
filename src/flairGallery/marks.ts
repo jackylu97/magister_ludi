@@ -196,8 +196,12 @@ function deviceFamily(into: HTMLElement): void {
  * The badge-class icons — the one family on this page that is **not** path data
  * in a module.
  *
- * Eight vendored SVG files under `public/`, rasterised into the unit-badge
- * atlas by the only `loadIcon` call left in the renderer. They are shown here
+ * Nine vendored SVG files under `public/`, rasterised into the unit-badge
+ * atlas by the only `loadIcon` call left in the renderer. Nine and not eight
+ * since the great people: the ninth is not a model class at all (`BadgeClass`
+ * in `badges3d.ts`) — a great person stands on the settler's sculpt and must
+ * not wear the settler's name, so the badge set is one longer than the sculpt
+ * set and the laurel is the whole of the difference. They are shown here
  * exactly as everything else is, masked through `currentColor`, which is what
  * the atlas does to them too (it recolours them to the badge's ink). Their
  * being files is the reason there is no note under them: a file has no `note`
@@ -209,7 +213,7 @@ function badgeFamily(into: HTMLElement): void {
     block(
       into,
       'Badge classes — public/sprites/icons/*.svg',
-      'The eight model classes, worn on the parchment badge that floats over a piece. Vendored files rather than path data — the last set in the game that is fetched at all.',
+      'The eight model classes and the laurel every great person wears, on the parchment badge that floats over a piece. Vendored files rather than path data — the last set in the game that is fetched at all.',
     ),
   );
   for (const cls of BADGE_CELLS) markCell(grid, cls, `/${BADGE_ICON_FILES[cls]}`);

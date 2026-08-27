@@ -57,10 +57,11 @@ import { type HeraldryId } from '../art/heraldryMarks';
 import { TileIcons } from '../render3d/badges3d';
 import { BoardGeometry } from '../render3d/board3d';
 import { CityLayer } from '../render3d/cities3d';
-import { VIEW3D } from '../render3d/lookData';
+import { VIEW3D, shade } from '../render3d/lookData';
 import { cellCenter } from '../render3d/layout';
 import { MaterialLibrary, computeHullNormals } from '../render3d/toon';
 import { type BuildingId } from '../sim/buildingData';
+import { type ImprovementId } from '../sim/improvementData';
 import { foundCityAt } from '../sim/cities';
 import { createMap, getTileAt } from '../sim/map';
 import { type GameState, newGame } from '../sim/state';
@@ -74,6 +75,7 @@ const SEATS = seatTinctures();
 const LOOK = VIEW3D.look;
 const LIGHTS = VIEW3D.lights;
 const CITY = VIEW3D.city;
+const IMPROVEMENTS = VIEW3D.improvements;
 
 /** How the six panels are laid out, and how close the camera stands. */
 const PANELS = 6;
@@ -479,9 +481,20 @@ export class PartsShelf {
 
   /** A lit, outlined mesh — the two-mesh sandwich the board draws with. */
   private solid(geometry: BufferGeometry, colorName: string): Group {
+    return this.inked(geometry, VIEW3D.palette[colorName] ?? 0xffffff);
+  }
+
+  /**
+   * The same, given a colour rather than a palette *name*.
+   *
+   * The city block quotes palette names; the improvement props quote a name and
+   * a `shade` off it, so their ink is already a number by the time it gets here.
+   * One sandwich, two ways in — the alternative was a second copy of the mesh
+   * plus shell, which is the one thing on this page that must match the board.
+   */
+  private inked(geometry: BufferGeometry, color: number): Group {
     const group = new Group();
     computeHullNormals(geometry);
-    const color = VIEW3D.palette[colorName] ?? 0xffffff;
     const mesh = new Mesh(geometry, this.materials.get(color));
     const shell = new Mesh(geometry, this.materials.outline);
     mesh.add(shell);
@@ -526,7 +539,27 @@ export class PartsShelf {
         return this.solid(parts.pole, CITY.poleColor);
       case 'flag':
         return this.buildFlag();
+      default:
+        return this.buildGreatWork(id);
     }
+  }
+
+  /**
+   * One great work: the body in its own ink, and its single gilt element.
+   *
+   * Both read off `BoardGeometry` at the size `improvements.props` asks for, so
+   * this shelf moves when somebody retunes a work — the same bargain the city
+   * parts make. Two meshes rather than one, because that is how the board draws
+   * them: a great work's gilt is a second instance over the same matrix (see
+   * `improvements3d.ts`), never a second material group.
+   */
+  private buildGreatWork(id: ImprovementId): Group {
+    const spec = IMPROVEMENTS.props[id];
+    const group = new Group();
+    group.add(this.inked(this.geometry.improvementProps[id], shade(spec.color, spec.shade)));
+    const gilt = this.geometry.improvementGilt[id];
+    if (gilt && spec.gilt !== undefined) group.add(this.inked(gilt, spec.gilt));
+    return group;
   }
 
   /**

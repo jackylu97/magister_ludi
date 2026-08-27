@@ -69,6 +69,7 @@ import {
   type BuiltBoard,
   BoardGeometry,
   buildBoard,
+  badgeClassFor,
   modelClassFor,
   signFeatureCells,
 } from './board3d';
@@ -1426,7 +1427,7 @@ export class Renderer3D implements MapView {
             this.geometry,
             this.materials,
             this.badges,
-            modelClassFor(unit.type),
+            badgeClassFor(unit.type),
             color,
             faceCamera,
             unitVisualHeight(unit.type, this.sprites),

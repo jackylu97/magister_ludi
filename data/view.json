@@ -61,7 +61,8 @@
       "knight": "person",
       "longswordsman": "pawn",
       "trebuchet": "tower",
-      "augur": "house"
+      "augur": "house",
+      "greatPerson": "house"
     },
     "byPlayerColor": {
       "#d4502e": "red",

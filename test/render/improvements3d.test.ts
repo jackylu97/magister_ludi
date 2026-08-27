@@ -3,6 +3,7 @@ import { type BufferGeometry, InstancedMesh, Matrix4 } from 'three';
 
 import {
   BoardGeometry,
+  IMPROVEMENT_GILT,
   IMPROVEMENT_PROPS,
   buildBoard,
   signFeatureCells,
@@ -23,7 +24,11 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { cellCenter, tileTopY } from '../../src/render3d/layout';
 import { foundCityAt } from '../../src/sim/cities';
-import { IMPROVEMENT_IDS, type ImprovementId } from '../../src/sim/improvementData';
+import {
+  IMPROVEMENT_IDS,
+  type ImprovementId,
+  improvementDef,
+} from '../../src/sim/improvementData';
 import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { type GameState, newGame } from '../../src/sim/state';
 import { TECH_IDS } from '../../src/sim/techData';
@@ -133,6 +138,147 @@ describe('the improvement prop registry', () => {
       expect(shape.getIndex(), id).toBeNull();
       expect(shape.getAttribute('normal'), id).toBeDefined();
     }
+  });
+
+  /**
+   * The gilt half of the registry, which is the one improvement table that is
+   * deliberately *partial*.
+   *
+   * Gold on this board says "built once, by somebody irreplaceable" — the
+   * palace finial, the shrine's needle, a wonder's tip, and now the five great
+   * works. So the two halves have to agree exactly: a shape with no ink would
+   * print in the body's colour and a gilt farm would be a farm claiming to be a
+   * monument. Both directions, because neither is a compile error.
+   */
+  it('gilts exactly the five great works, shape and ink together', () => {
+    const works = IMPROVEMENT_IDS.filter((id) => improvementDef(id).greatPerson !== undefined);
+    expect(works.length).toBe(5);
+    for (const id of IMPROVEMENT_IDS) {
+      const wanted = works.includes(id);
+      expect(IMPROVEMENT_GILT[id] !== undefined, `${id} gilt shape`).toBe(wanted);
+      expect(geometry.improvementGilt[id] !== undefined, `${id} gilt geometry`).toBe(wanted);
+      expect(VIEW3D.improvements.props[id].gilt !== undefined, `${id} gilt ink`).toBe(wanted);
+    }
+  });
+
+  it('paints every gilt element in the one gold the world reserves', () => {
+    // One ink, not five: the mark means "a great person", and five golds would
+    // be five golds. Read off the palette rather than written down, so retuning
+    // `gilt` moves the works with the palace.
+    for (const id of IMPROVEMENT_IDS) {
+      const gilt = VIEW3D.improvements.props[id].gilt;
+      if (gilt === undefined) continue;
+      expect(gilt, id).toBe(VIEW3D.palette.gilt);
+    }
+  });
+
+  it('keeps every gilt element inside the prop budget, and distinct', () => {
+    const built = IMPROVEMENT_IDS.map((id) => geometry.improvementGilt[id]).filter(
+      (shape): shape is BufferGeometry => shape !== undefined,
+    );
+    expect(new Set(built).size).toBe(built.length);
+    for (const shape of built) {
+      expect(shape.getIndex()).toBeNull();
+      expect(triangles(shape)).toBeLessThan(400);
+      expect(triangles(shape)).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * A great work stays on its own hex, gilt and jitter included.
+   *
+   * The one geometric claim these are big enough to break. The tile face's
+   * inradius is `hexRadius * (1 − tileGap) * cos 30°`, and a prop wider than
+   * that hangs over the grout onto a neighbour — which at this camera reads as
+   * a citadel somebody built half in the sea. The citadel is the binding case
+   * and the reason it takes a *hashed yaw* like every other prop: its ring is
+   * sized to fit inside the face at any rotation, so it never has to know which
+   * way the tile it stands on is turned.
+   */
+  it('keeps every great work inside its own tile face at any yaw', () => {
+    const gap = VIEW3D.board.tileGap;
+    const inradius = VIEW3D.board.hexRadius * (1 - gap) * Math.cos(Math.PI / 6);
+    for (const id of IMPROVEMENT_IDS) {
+      if (improvementDef(id).greatPerson === undefined) continue;
+      const spec = VIEW3D.improvements.props[id];
+      const shapes = [geometry.improvementProps[id], geometry.improvementGilt[id]!];
+      let reach = 0;
+      let floor = 0;
+      for (const shape of shapes) {
+        const pos = shape.getAttribute('position');
+        for (let i = 0; i < pos.count; i++) {
+          reach = Math.max(reach, Math.hypot(pos.getX(i), pos.getZ(i)));
+          floor = Math.min(floor, pos.getY(i));
+        }
+      }
+      // The nudge the layer may give it counts against the margin.
+      expect(reach + spec.jitter * VIEW3D.board.hexRadius, id).toBeLessThan(inradius);
+      // And it stands *on* the tile top, like every shape in this file: an
+      // origin that drifted would sink the work into every hill it was built on.
+      expect(floor, id).toBeGreaterThan(-1e-6);
+    }
+  });
+
+  it('lifts every gilt element clear of the work it marks, or into its face', () => {
+    // Four of the five put their gold at the top — a ridge, a cap, a vane, a
+    // banner — because a bright mark at the silhouette's apex is the one that
+    // survives being forty pixels tall. The manufactory's door is deliberately
+    // the exception and is checked as one: it is *on* the wall, at eye level,
+    // which is what a door is.
+    const board = geometry;
+    for (const id of ['academy', 'landmark', 'customsHouse', 'citadel'] as const) {
+      const body = board.improvementProps[id];
+      const gilt = board.improvementGilt[id]!;
+      body.computeBoundingBox();
+      gilt.computeBoundingBox();
+      expect(gilt.boundingBox!.max.y, id).toBeGreaterThan(body.boundingBox!.max.y);
+    }
+    const hall = board.improvementProps.manufactory;
+    const door = board.improvementGilt.manufactory!;
+    hall.computeBoundingBox();
+    door.computeBoundingBox();
+    expect(door.boundingBox!.max.y).toBeLessThan(hall.boundingBox!.max.y);
+    expect(door.boundingBox!.min.y).toBeLessThan(0.05);
+  });
+
+  it('builds the great works larger than anything a worker leaves', () => {
+    // The first of the three things that separate a monument from a job of work
+    // (see the great-works docblock in `geometry.ts`), and the only one a test
+    // can hold still: size. A citadel the size of a camp would be scatter.
+    const works = IMPROVEMENT_IDS.filter((id) => improvementDef(id).greatPerson !== undefined);
+    const ordinary = IMPROVEMENT_IDS.filter((id) => improvementDef(id).greatPerson === undefined);
+    const biggestJob = Math.max(...ordinary.map((id) => VIEW3D.improvements.props[id].size));
+    for (const id of works) {
+      expect(VIEW3D.improvements.props[id].size, id).toBeGreaterThan(biggestJob * 0.7);
+    }
+  });
+
+  it('draws a great work as two instances over one matrix, body and gilt', () => {
+    // The shrine-needle arrangement (`CityLayer.addWork`), and the reason for it:
+    // a bucket's ink is what the fog wash is computed from, so two colours have
+    // to be two buckets or the body washes as though it were gold. Both name the
+    // tile, so `instances` still counts *improvements*.
+    const state = flatState();
+    at(state, 4, 4).improvement = 'academy';
+    const layer = new ImprovementLayer();
+    layer.build(state, geometry, materials(), false, allVisible(state));
+    const meshes = layer.group.children.filter(
+      (child): child is InstancedMesh => child instanceof InstancedMesh,
+    );
+    const body = meshes.find((mesh) => mesh.geometry === geometry.improvementProps.academy);
+    const gilt = meshes.find((mesh) => mesh.geometry === geometry.improvementGilt.academy);
+    expect(body).toBeDefined();
+    expect(gilt).toBeDefined();
+    // One improvement, whatever it took to draw it.
+    expect(layer.instances).toBe(1);
+    // And they stand in the same place: a gilt ridge that drifted off its own
+    // roof would be a bright bar hanging in the air.
+    const a = new Matrix4();
+    const b = new Matrix4();
+    body!.getMatrixAt(0, a);
+    gilt!.getMatrixAt(0, b);
+    expect(b.elements).toEqual(a.elements);
+    layer.dispose();
   });
 
   it('gives the pasture a dead-centre placement and the others a nudge', () => {

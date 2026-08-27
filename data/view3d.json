@@ -606,6 +606,41 @@
         "shade": 0.22,
         "size": 0.44,
         "jitter": 0.1
+      },
+      "academy": {
+        "color": "bone",
+        "shade": -0.04,
+        "size": 0.78,
+        "jitter": 0.03,
+        "gilt": "gilt"
+      },
+      "landmark": {
+        "color": "bone",
+        "shade": -0.12,
+        "size": 0.68,
+        "jitter": 0.04,
+        "gilt": "gilt"
+      },
+      "manufactory": {
+        "color": "slate",
+        "shade": 0.08,
+        "size": 0.8,
+        "jitter": 0.03,
+        "gilt": "gilt"
+      },
+      "customsHouse": {
+        "color": "timber",
+        "shade": 0.16,
+        "size": 0.74,
+        "jitter": 0.03,
+        "gilt": "gilt"
+      },
+      "citadel": {
+        "color": "slate",
+        "shade": -0.1,
+        "size": 0.86,
+        "jitter": 0.0,
+        "gilt": "gilt"
       }
     }
   },

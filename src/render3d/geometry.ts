@@ -1282,6 +1282,327 @@ export function fishingBoat(size: number): BufferGeometry {
   return flatten(merged);
 }
 
+// --- the great works -------------------------------------------------------
+
+/**
+ * The five things a *great person* leaves on a hex, and the gilt on each of them.
+ *
+ * They are improvements like the six above — one instance per improved tile,
+ * placed and turned by `improvements3d.ts` off the same hashed streams — and
+ * everything that section's docblock says about composition still holds. What
+ * separates them is what they have to say at a glance, and it is one sentence:
+ * *somebody irreplaceable did this once*. A worker's improvement is work; a
+ * great work is a monument, and the board has to be able to tell them apart at
+ * forty pixels without a label.
+ *
+ * Three things carry that, all of them silhouette:
+ *
+ *   · **Size.** Every one of these is built at roughly a third again the size a
+ *     farm or a quarry is (`improvements.props` in `view3d.json`), which is the
+ *     smallest difference that survives the ortho camera.
+ *   · **Formality.** A worker's prop is a thing that grew where it was needed —
+ *     alternating furrow lengths, a spoil heap off to one side, a tent nudged
+ *     off centre. These are *symmetrical* and stand on plinths. Nothing here is
+ *     lumpy on purpose, because a monument that looked improvised would read as
+ *     more scatter.
+ *   · **One gilt element each,** and this is the load-bearing one.
+ *
+ * The gold rule, and why this file gets to break it
+ * -------------------------------------------------
+ * Gold is the scarcest ink on this board and it has been spent in exactly three
+ * places: the palace's finial, the shrine's needle and a wonder's tip — the
+ * things a whole empire builds once (see `cityPalaceFinial`). A great work is
+ * the fourth, and it is the same claim: an academy is not a building a town
+ * decided to put up, it is Archimedes, spent. So each of the five carries a
+ * *single* gilt element and never more — a roof ridge, a capstone, a door, a
+ * vane, a banner — and that one bright mark is the whole tell. Widening this
+ * further would make gold mean "expensive" instead of "unrepeatable", and there
+ * would be no ink left to say the second thing.
+ *
+ * The gilt is a **second geometry**, not a second group, exactly as the shrine's
+ * needle is (`cityShrineFinial`, and `CityLayer.addWork`'s docblock): the layer
+ * draws it as a second instance over the same matrix. Two instances rather than
+ * one two-group mesh because a bucket's ink is what the fog wash is computed
+ * from, and a bucket that held both inks would have to wash a bone colonnade as
+ * though it were gold.
+ */
+
+/**
+ * The academy: a colonnaded hall on a stylobate, under a gilt roof ridge.
+ *
+ * A *temple front* is the shape, and it is chosen against the rest of the board
+ * rather than out of the dictionary: five columns under an entablature is the
+ * only silhouette in the diorama that is a rhythm — every other prop is one or
+ * two masses, and a repeated vertical beat at this size reads as "institution"
+ * before a player can name what building it is. It is deliberately close to the
+ * `marbleColumn` resource prop and deliberately much larger than it, which is
+ * the same joke the ruin plays on the same shape: two drums are a quarry, five
+ * columns and a roof are a school.
+ */
+export function academyHall(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+
+  // Two steps of stylobate. A monument that met the grass at its own wall would
+  // read as a shed; the plinth is most of what says "raised on purpose".
+  parts.push(slabAt(size * 1.0, size * 0.07, size * 0.66, 0, size * 0.035, 0));
+  parts.push(slabAt(size * 0.88, size * 0.06, size * 0.56, 0, size * 0.1, 0));
+
+  const floor = size * 0.13;
+  const columnH = size * 0.32;
+  for (let i = 0; i < 5; i++) {
+    const column = new CylinderGeometry(size * 0.042, size * 0.05, columnH, 6, 1);
+    column.translate((i - 2) * size * 0.19, floor + columnH / 2, -size * 0.2);
+    parts.push(column);
+  }
+  // The cella behind the colonnade: one solid wall, so the gaps between the
+  // columns are dark rather than transparent. A colonnade with daylight through
+  // it loses its rhythm the moment it stands on pale ground.
+  parts.push(
+    slabAt(size * 0.8, columnH, size * 0.07, 0, floor + columnH / 2, size * 0.2),
+  );
+  // The entablature the columns carry, wider than they stand: the overhang is
+  // what makes five posts read as holding something up.
+  const architrave = floor + columnH;
+  parts.push(slabAt(size * 0.92, size * 0.07, size * 0.6, 0, architrave + size * 0.035, 0));
+
+  // A shallow gable along x. Two leaned planes rather than a prism, because the
+  // ridge has to be a real edge for the gilt to sit on.
+  const eaves = architrave + size * 0.07;
+  const rise = size * 0.14;
+  const half = size * 0.3;
+  const pitch = Math.atan2(rise, half);
+  const slope = Math.hypot(half, rise);
+  for (const side of [-1, 1]) {
+    const plane = new BoxGeometry(size * 0.96, size * 0.045, slope);
+    plane.rotateX(side * pitch);
+    plane.translate(0, eaves + rise / 2, (side * half) / 2);
+    parts.push(plane);
+  }
+  return weld(parts);
+}
+
+/** The academy's gilt ridge: a square bar on edge, capping the gable's spine. */
+export function academyRidge(size: number): BufferGeometry {
+  const architrave = size * 0.13 + size * 0.32;
+  const apex = architrave + size * 0.07 + size * 0.14;
+  // Turned 45° so it is a diamond in section — a ridge *cap*, which is a bright
+  // line on both slopes at once, where a flat bar would only catch the lit one.
+  const ridge = new CylinderGeometry(size * 0.05, size * 0.05, size * 1.0, 4, 1);
+  ridge.rotateY(Math.PI / 4);
+  ridge.rotateZ(Math.PI / 2);
+  ridge.translate(0, apex + size * 0.012, 0);
+  return flatten(ridge);
+}
+
+/**
+ * The landmark: a square stele on a stepped base, under a gilt pyramidion.
+ *
+ * The one great work that is a *vertical* and nothing else, which is the whole
+ * of why it is the artist's: it says nothing about what it is for. Four sides
+ * rather than six or eight, because a tapered square catches one lit face and
+ * one shadowed one at this camera and therefore reads as a shaft rather than as
+ * a pole — the difference between this and `bannerPole` at twelve pixels.
+ *
+ * Drawn against `brokenColumns`, which is the other lone upright on the board:
+ * that one is snapped, leaning and unfinished at the top, and this one is
+ * whole, plumb and capped. A ruin is what time did; a landmark is what somebody
+ * meant.
+ */
+export function landmarkStele(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  parts.push(slabAt(size * 0.62, size * 0.09, size * 0.62, 0, size * 0.045, 0));
+  parts.push(slabAt(size * 0.46, size * 0.08, size * 0.46, 0, size * 0.13, 0));
+
+  const shaftH = size * 0.62;
+  const shaft = new CylinderGeometry(size * 0.105, size * 0.155, shaftH, 4, 1);
+  // Square on to the camera's axes rather than corner on: the flat face is what
+  // takes the key light cleanly and keeps the taper legible.
+  shaft.rotateY(Math.PI / 4);
+  shaft.translate(0, size * 0.17 + shaftH / 2, 0);
+  parts.push(shaft);
+  return weld(parts);
+}
+
+/** The landmark's gilt cap: the pyramidion, cut to the shaft's own square. */
+export function landmarkCap(size: number): BufferGeometry {
+  const top = size * 0.17 + size * 0.62;
+  const cap = new ConeGeometry(size * 0.105, size * 0.17, 4, 1);
+  cap.rotateY(Math.PI / 4);
+  cap.translate(0, top + size * 0.085, 0);
+  return flatten(cap);
+}
+
+/**
+ * The manufactory: a long gabled hall with a kiln at one end, and a gilt door.
+ *
+ * Asymmetric on purpose, and the only one of the five that is. A works is not a
+ * monument to itself — it is a place where something is made — so the shape is
+ * a shed with one enormous piece of equipment growing out of it, which is what
+ * every real foundry looks like from a distance and what nothing else on this
+ * board is shaped like.
+ *
+ * The kiln is *chimney-less* deliberately: a stack would be a thin vertical and
+ * this board already spends thin verticals on masts, poles and steles. A fat
+ * tapered drum taller than the roof it stands beside is unmistakable and cannot
+ * be confused with any of them.
+ */
+export function manufactoryHall(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const hallH = size * 0.3;
+  parts.push(slabAt(size * 0.98, hallH, size * 0.46, -size * 0.06, hallH / 2, 0));
+
+  // The same two-plane gable the academy wears, shallower — a workshop roof,
+  // not a pediment.
+  const rise = size * 0.1;
+  const half = size * 0.26;
+  const pitch = Math.atan2(rise, half);
+  const slope = Math.hypot(half, rise);
+  for (const side of [-1, 1]) {
+    const plane = new BoxGeometry(size * 1.02, size * 0.04, slope);
+    plane.rotateX(side * pitch);
+    plane.translate(-size * 0.06, hallH + rise / 2, (side * half) / 2);
+    parts.push(plane);
+  }
+
+  // The kiln: a heavy truncated drum standing clear of the hall's end wall, and
+  // taller than the ridge by half again.
+  const kilnH = size * 0.62;
+  const kiln = new CylinderGeometry(size * 0.11, size * 0.19, kilnH, 6, 1);
+  kiln.translate(size * 0.44, kilnH / 2, 0);
+  parts.push(kiln);
+  // Its rim, which is what keeps the drum from reading as a silo: a silo is
+  // closed at the top and a kiln is a mouth.
+  const rim = new CylinderGeometry(size * 0.13, size * 0.125, size * 0.05, 6, 1);
+  rim.translate(size * 0.44, kilnH + size * 0.02, 0);
+  parts.push(rim);
+  return weld(parts);
+}
+
+/** The manufactory's gilt door, standing proud of the hall's long front wall. */
+export function manufactoryDoor(size: number): BufferGeometry {
+  const door = new BoxGeometry(size * 0.17, size * 0.2, size * 0.05);
+  door.translate(-size * 0.24, size * 0.1, -size * 0.24);
+  return flatten(door);
+}
+
+/**
+ * The customs house: three tiers of warehouse under wide eaves, with a gilt
+ * weathervane on top.
+ *
+ * A *stack*, which no other improvement on the board is. The merchant's work
+ * had to say "goods, in quantity, under one roof" without a single crate in it,
+ * and the answer is the shape a warehouse takes when it grows: three floors,
+ * each smaller than the one under it, each with an overhanging eave that throws
+ * a hard shadow line. Three stacked shadows at this camera is the read, and it
+ * is the same trick `cityTemple` plays with terraces one scale up — which is
+ * why this one has eaves and the ziggurat does not, so the two do not become
+ * one stepped wedge on a board that shows both.
+ */
+export function customsWarehouse(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const tiers: readonly { w: number; d: number; h: number }[] = [
+    { w: 0.86, d: 0.66, h: 0.22 },
+    { w: 0.66, d: 0.5, h: 0.2 },
+    { w: 0.44, d: 0.34, h: 0.18 },
+  ];
+  let y = 0;
+  for (const tier of tiers) {
+    parts.push(slabAt(size * tier.w, size * tier.h, size * tier.d, 0, y + (size * tier.h) / 2, 0));
+    y += size * tier.h;
+    // The eave: a thin slab a little wider than the floor it caps. It is the
+    // whole reason the stack reads as three storeys and not as one taper.
+    parts.push(
+      slabAt(size * (tier.w + 0.08), size * 0.03, size * (tier.d + 0.08), 0, y + size * 0.015, 0),
+    );
+    y += size * 0.03;
+  }
+  return weld(parts);
+}
+
+/** The customs house's gilt weathervane: a mast, a pennant and its arrow. */
+export function customsVane(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const roof = size * (0.22 + 0.2 + 0.18) + size * 0.09;
+  const mastH = size * 0.22;
+  const mast = shaft(mastH, size * 0.018, 4);
+  mast.translate(0, roof, 0);
+  parts.push(mast);
+  // The pennant, and the arrow it points with. Both flat and both on the same
+  // side of the mast, so the vane has a *direction* — a symmetrical finial here
+  // would just be a second, smaller version of the landmark's cap.
+  parts.push(slabAt(size * 0.14, size * 0.07, size * 0.02, -size * 0.08, roof + mastH * 0.82, 0));
+  const arrow = new ConeGeometry(size * 0.045, size * 0.12, 3, 1);
+  arrow.rotateZ(-Math.PI / 2);
+  arrow.translate(size * 0.09, roof + mastH * 0.82, 0);
+  parts.push(arrow);
+  return weld(parts);
+}
+
+/**
+ * The citadel: a squat hexagonal fort — six wall runs with a bastion at every
+ * corner — around a platform carrying a gilt banner.
+ *
+ * `cityWallSegment`'s ring at a third the height and on its own hexagon rather
+ * than on the tile's. It is drawn *inside* the hex face with room to spare on
+ * every side, which is what lets it take the layer's hashed yaw like every
+ * other prop: a ring sized to the tile's own edges would have to know the
+ * tile's rotation, and an improvement prop deliberately does not.
+ *
+ * The bastions are what make it a fort rather than a wall. Six knobs on a ring
+ * is a silhouette nothing else here has — the palisade is a comb of points and
+ * the Æra III wall is a square-toothed band, and both of those belong to a town
+ * — so a citadel on open ground cannot be misread as somebody's city.
+ */
+export function citadelRing(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const apothem = size * 0.44;
+  const wallH = size * 0.15;
+  // A closed hexagon: each run spans the full edge between two corners, plus a
+  // little, so the corners are lapped rather than mitred. Nothing here is seen
+  // from close enough for the lap to show, and a mitre would be six wedges.
+  const run = apothem * 1.1547 * 1.06;
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    // Turned a quarter past its own bearing, so the run lies *across* the
+    // radius: `fenceRing`'s rail, and the same trap — a box left on its bearing
+    // is a spoke, and six spokes is a wheel rather than a fort.
+    const wall = new BoxGeometry(run, wallH, size * 0.07);
+    wall.rotateY(-(angle + Math.PI / 2));
+    wall.translate(Math.cos(angle) * apothem, wallH / 2, Math.sin(angle) * apothem);
+    parts.push(wall);
+  }
+  // The bastions, on the corners the runs meet at — half a step out and a step
+  // taller, so the ring has a rhythm from every direction the camera sees it.
+  const corner = apothem / Math.cos(Math.PI / 6);
+  const bastionH = size * 0.21;
+  for (let i = 0; i < 6; i++) {
+    const angle = ((i + 0.5) / 6) * Math.PI * 2;
+    const bastion = new CylinderGeometry(size * 0.075, size * 0.085, bastionH, 5, 1);
+    bastion.translate(Math.cos(angle) * corner, bastionH / 2, Math.sin(angle) * corner);
+    parts.push(bastion);
+  }
+  // The parade ground: a low hexagonal pad the banner stands on, so the pole
+  // rises out of something instead of out of bare grass inside a ring.
+  const pad = new CylinderGeometry(size * 0.17, size * 0.19, size * 0.1, 6, 1);
+  pad.translate(0, size * 0.05, 0);
+  parts.push(pad);
+  return weld(parts);
+}
+
+/** The citadel's gilt banner: the pole on the parade ground, and its pennant. */
+export function citadelBanner(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const poleH = size * 0.52;
+  const pole = shaft(poleH, size * 0.022, 5);
+  pole.translate(0, size * 0.1, 0);
+  parts.push(pole);
+  // A swallow-tailed pennant, which is two slabs: the fly is what stops a small
+  // rectangle on a stick reading as a road sign.
+  parts.push(slabAt(size * 0.16, size * 0.09, size * 0.018, size * 0.09, size * 0.53, 0));
+  parts.push(slabAt(size * 0.07, size * 0.04, size * 0.018, size * 0.2, size * 0.555, 0));
+  return weld(parts);
+}
+
 // --- unit miniatures -------------------------------------------------------
 
 /**

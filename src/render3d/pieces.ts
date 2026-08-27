@@ -100,13 +100,20 @@
 
 import { Group, type Material, Matrix4, Mesh, Quaternion, type Texture, Vector3 } from 'three';
 
+import { GREAT_PERSON_IDS, type GreatPersonId } from '../sim/greatPeopleData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
 import type { GameMap } from '../sim/map';
 import type { GameState, Unit } from '../sim/state';
-import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
 
-import { type TileIcons, type UnitBadges, badgeCenterY, hpBarY } from './badges3d';
-import { type BoardGeometry, modelClassFor, pieceHeightFor } from './board3d';
+import {
+  type BadgeClass,
+  type TileIcons,
+  type UnitBadges,
+  badgeCenterY,
+  hpBarY,
+} from './badges3d';
+import { type BoardGeometry, badgeClassFor, modelClassFor, pieceHeightFor } from './board3d';
 import { type FogLevels, seesCell } from './fog3d';
 import type { UnitPiece } from './geometry';
 import { hashSigned } from './hash';
@@ -311,7 +318,7 @@ export function buildBadge(
   geometry: BoardGeometry,
   materials: MaterialLibrary,
   badges: UnitBadges,
-  modelClass: ModelClass,
+  badgeClass: BadgeClass,
   rimColor: number,
   faceCamera: Quaternion,
   visualHeight: number,
@@ -320,7 +327,7 @@ export function buildBadge(
   const forward = new Vector3(0, 0, 1).applyQuaternion(faceCamera);
   const height = badgeCenterY(visualHeight);
 
-  const disc = new Mesh(geometry.badgeIcons[modelClass], badges.material);
+  const disc = new Mesh(geometry.badgeIcons[badgeClass], badges.material);
   disc.position.y = height;
   disc.quaternion.copy(faceCamera);
   disc.scale.set(BADGE.diameter, BADGE.diameter, 1);
@@ -646,7 +653,7 @@ export class UnitLayer {
 
     slots.push(
       collector.add(
-        geometry.badgeIcons[modelClassFor(unit.type)],
+        geometry.badgeIcons[badgeClassFor(unit.type)],
         // No ink of its own: the disc *is* the texture, and the material is the
         // shared atlas one. The colour list still has to be something, and an
         // empty one would collide in the bucket key with any other textured
@@ -883,6 +890,18 @@ export class UnitLayer {
  * see `upgradeUnits` in `tech.ts`), and `chargesLeft` is in here for the same
  * reason: a worker that spends a charge does not move, but its badge's corner
  * boss has to count down.
+ *
+ * `person` is the newest member and the one that needs a sentence, because it
+ * changes nothing that is drawn *today*: every great person wears one badge (see
+ * `BadgeClass`) and stands on the settler's sculpt, so Archimedes and Imhotep
+ * are the same picture. It is hashed anyway, and not out of tidiness — the state
+ * docblock on `Unit.person` asks for it, and the reason it asks is that `person`
+ * is the only thing that says *which piece this is*. A unit's type answers "what
+ * can it do" and for a great person the answer is the same for all eighty; the
+ * day a family earns its own mark — a general's badge over a citadel, say — the
+ * fingerprint is already right, and getting that wrong is a board that goes on
+ * drawing the old picture until something unrelated moves. One `imul` for a
+ * property that is absent on all but a handful of units in a whole game.
  */
 export function signUnits(state: GameState): number {
   let h = 2166136261 ^ state.units.length;
@@ -894,6 +913,7 @@ export function signUnits(state: GameState): number {
     h = Math.imul(h ^ unit.ownerId, 16777619);
     h = Math.imul(h ^ (UNIT_TYPE_INDEX.get(unit.type) ?? -1), 16777619);
     h = Math.imul(h ^ chargesLeft(unit), 16777619);
+    h = Math.imul(h ^ personIndex(unit), 16777619);
   }
   return h >>> 0;
 }
@@ -902,3 +922,18 @@ export function signUnits(state: GameState): number {
 const UNIT_TYPE_INDEX = new Map<UnitTypeId, number>(
   UNIT_TYPE_IDS.map((id, index) => [id, index]),
 );
+
+/**
+ * Great people as small integers, for `UNIT_TYPE_INDEX`'s reason.
+ *
+ * `-1` for the units that are nobody, which is nearly all of them: absence is
+ * the state on `Unit.person`, so the fingerprint has to have a value for "not a
+ * great person" that no roster row can collide with.
+ */
+const GREAT_PERSON_INDEX = new Map<GreatPersonId, number>(
+  GREAT_PERSON_IDS.map((id, index) => [id, index]),
+);
+
+function personIndex(unit: Unit): number {
+  return unit.person === undefined ? -1 : (GREAT_PERSON_INDEX.get(unit.person) ?? -1);
+}
