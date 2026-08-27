@@ -464,6 +464,18 @@ would change every seeded outcome. No further rename passes.
   a banked charter deliberately does not (`statecraftBlocker`), because Entry XV makes
   adoption bankable and a blocker on it would delete the only reason banking exists.
 
+- **A draft's size is one fold, asked when the offer opens** (2026-08-27, Entry XXXI).
+  `explainOfferSize(state, playerId, kind)` in `statecraft.ts` — base from `rules.offers`,
+  one line per live `offerRider` (`{ offer: kind | 'all', extra }`, read from every
+  `liveEffects` source: an Order, a belief, a wonder), a negative cap line at `rules.offers.max`
+  — and `offerSize` is its fold. **Every generator asks it at the moment the offer opens**
+  (`drawOrderOffer`, `drawDoctrineOffer`, `drawBeliefOffer`, `drawDiscoveryOffer`), never on
+  sight; the extra cards are extra iterations of the same draw loop so a rider-free game
+  replays byte-identically. `OfferKind` is open for `'greatPerson'`. The per-module size
+  numbers still sitting in `statecraft.json` / `religion.json` / `discoveries.json` are dead
+  and annotated; a generator that read one again would be a second table. The spread
+  (`offerSpread` in `offerCard.ts`, pure) lays out 2–5 cards inside 1280×720 by custom
+  properties; a pick still names an index.
 - **A project is a queue row that never leaves, and that is the whole mechanism** (Entry
   XXVI). `QueueItem`'s third kind. `settleProduction` subtracts the cost, banks the
   conversion and **returns before the splice** — so `turnsToBuild` needed no project

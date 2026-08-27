@@ -155,6 +155,11 @@ export interface DiscoveryData {
    * How many options a claim offers. Three, per Entry XV's draft doctrine — the
    * number that fights variance without turning a scout's reward into homework.
    * A pool smaller than this offers whatever it has.
+   *
+   * **No longer read** (the offer-size pass, 2026-08-27): `rules.offers.discovery`
+   * is the base and `explainOfferSize` is the fold, so a card that widens every
+   * draft widens a ruin's too. Kept, and still validated, for the shape of the
+   * file.
    */
   offerSize: number;
   rows: Record<string, DiscoveryDef>;

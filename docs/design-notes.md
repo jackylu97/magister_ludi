@@ -3130,3 +3130,21 @@ marvel sculpt with a gilt tip stands beside the palace slot until the rows bring
 **Seams left for what follows:** `RealisedItem.wonder` is what the Triumph *A Marvel
 Raised* and renown will read; the draft-size evaluator (next) is what The Oracle's row will
 use. Known gap: a rite's hammers complete a wonder correctly but carry no toast.
+
+
+---
+
+## Entry XXXI — Draft size is one fold (**built** 2026-08-27)
+
+**Why now:** great people (docs/great-people.md — John Dee), wonders (docs/wonders.md — The
+Oracle, the Leaning Tower) and, the user expects, religion and more all want to say "one
+more card in a draft". Built once, generically, before any of them: `explainOfferSize` is a
+rule-5 list — the base from `rules.offers` (3 for Orders, Doctrines, beliefs, discoveries;
+the Statecraft upgrade face stays one), one line per live `offerRider` from any of
+`liveEffects`' five sources, a cap at 5 — and `offerSize` is its fold. Each generator asks
+it **when the offer opens** (Entry XV's doctrine), the extra draws append to the same seeded
+loop, and a pick names an index as before. The placeholder wonder is The Oracle carrying
+`offerRider order +1`, so the wonder → draft path is live end to end. The spread scales for
+2–5 cards inside 1280×720 (which also fixed the shipped 3-card draft overflowing there), and
+above base the header prints the fold's lines as chips — the player can see *why* the hand
+grew. `OfferKind` is open for `'greatPerson'`.

@@ -179,6 +179,18 @@ export interface Offer {
    * "adopting swaps your slots and lifts every seal". Absent on most cards.
    */
   note?: string;
+  /**
+   * Why this hand is wider than the table deals — one composed line per source,
+   * "+1 · Wonder · The Oracle".
+   *
+   * The interface's half of `explainOfferSize` (`src/sim/statecraft.ts`): the
+   * size of an offer is a fold, and a fold that nobody prints is a card the
+   * player paid for and cannot see working. Strings, like everything else that
+   * crosses this boundary — the caller formats the sign and the sim supplies the
+   * label, so no wording is invented here that the card does not already say.
+   * Absent, or empty, on an offer dealt at the base size, which is most of them.
+   */
+  widening?: string[];
 }
 
 export interface OfferCard {
@@ -237,6 +249,143 @@ export interface OfferLayout {
   centre: number | null;
 }
 
+/** The window the spread is being laid out in. */
+export interface OfferStage {
+  width: number;
+  height: number;
+}
+
+export interface OfferSpread {
+  /** Cards in the flanking row — what these numbers were computed for. */
+  count: number;
+  /** The sheet's width. */
+  sheet: number;
+  /** One flanking card's width. */
+  card: number;
+  /** One flanking card's min-height: the tarot proportion, or the room. */
+  height: number;
+  /** The emblem's side. */
+  emblem: number;
+  /** Type scale, 1 at the designed three. */
+  scale: number;
+  /** What the spread stands, overlay padding to overlay padding. */
+  total: number;
+}
+
+/**
+ * The stylesheet's own numbers, and they must stay the stylesheet's.
+ *
+ * Every one of these is a length in the `.offer-*` block; they are here because
+ * the fit is arithmetic and arithmetic cannot be done in a selector. A change to
+ * either side without the other is a spread that thinks it fits and does not —
+ * which is what `test/ui/offerCard.test.ts` is for.
+ */
+const OVERLAY_PAD = 24;
+const SHEET_PAD_X = 20;
+const SHEET_PAD_Y = 38;
+const GAP = 12;
+/** The head: eyebrow, title, lede, the widening chips, the rule and its margin. */
+const HEAD = 119;
+/** The "or deepen what you already hold" rule and its own margin. */
+const HINGE = 16;
+/** The landscape upgrade card beneath the row, flavourless by design. */
+const CENTRE = 226;
+/** A hair of air at the foot, so "exactly fits" is never "exactly overflows". */
+const SLACK = 10;
+
+const CARD_MIN = 132;
+const CARD_MAX = 300;
+/** The card the type was drawn for: scale 1, emblem 56. */
+const CARD_DESIGNED = 265;
+/**
+ * What a designed card's *content* stands, measured: title, clauses, emblem and
+ * flavour at scale 1 in a 265-wide frame.
+ *
+ * The second half of the scale rule, and the one a width-only scale was missing.
+ * A card's height is `max(the proportion, what is written on it)`, so a spread
+ * squeezed vertically has to shrink the **writing** or the cards silently grow
+ * past the room the arithmetic promised them. Content scales very nearly with
+ * the type scale, so the ratio of the height granted to the height a full-size
+ * card wants *is* the scale that makes it fit.
+ */
+const CONTENT_AT_ONE = 290;
+const SCALE_MIN = 0.74;
+const TAROT_RATIO = 1.55;
+const HEIGHT_MIN = 210;
+const HEIGHT_MAX = 400;
+const SHEET_BASE = 880;
+const SHEET_PER_CARD = 90;
+
+function clamp(low: number, value: number, high: number): number {
+  return Math.min(high, Math.max(low, value));
+}
+
+/**
+ * How big the cards are when there are `count` of them in the row.
+ *
+ * **The spread has to fit any size now** (user, 2026-08-27), because how many
+ * cards an offer deals is a *fold* rather than a constant: the base is three,
+ * The Oracle adds one to every Statecraft draft, the Leaning Tower adds one to
+ * every draft of every kind, and a great person adds one on top of that. Five is
+ * the cap (`rules.offers.max`) and five is what this lays out.
+ *
+ * Computed here rather than in `style.css`, for `orderOfferLayout`'s reason one
+ * scale up: a spread that overflows at 1280×720 is exactly the sort of thing
+ * that is quietly wrong on every offer at once, and a stylesheet cannot be asked
+ * whether it fits. The stylesheet is handed the five numbers as custom
+ * properties and does the drawing; this is the arithmetic, pure and testable
+ * against a stage.
+ *
+ * The shape of the rule:
+ *
+ *   · **the sheet widens a little** per card past three, so five cards are not
+ *     five slivers — but only to what the stage can hold.
+ *   · **the card takes its share of what is left**, floored so it stays a card
+ *     and capped so a hand of two is not two posters.
+ *   · **the height is the tarot proportion, or the room there is** — whichever
+ *     is smaller. That is what makes the whole spread fit at 720 with an upgrade
+ *     card beneath it, and it is why the budget has to know about the centre.
+ *   · **the type and the emblem scale with the card**, so a narrow card is a
+ *     small card rather than a normal card with the words falling out of it.
+ */
+export function offerSpread(
+  count: number,
+  stage: OfferStage,
+  options?: { centre?: boolean },
+): OfferSpread {
+  const cards = Math.max(1, Math.round(count));
+  const centre = options?.centre === true;
+  const sheet = Math.min(
+    SHEET_BASE + Math.max(0, cards - 3) * SHEET_PER_CARD,
+    stage.width - OVERLAY_PAD * 2,
+  );
+  const share = clamp(
+    CARD_MIN,
+    Math.floor((sheet - SHEET_PAD_X * 2 - GAP * (cards - 1)) / cards),
+    CARD_MAX,
+  );
+  const below = centre ? HINGE + CENTRE + GAP : 0;
+  const budget = stage.height - OVERLAY_PAD * 2 - SHEET_PAD_Y - HEAD - below - SLACK;
+  const height = clamp(HEIGHT_MIN, Math.min(Math.round(share * TAROT_RATIO), budget), HEIGHT_MAX);
+  // A card is **portrait**, whatever the room allows: a hand of two on a short
+  // window has the width for two posters and a poster is not a card from a deck.
+  // So the height the budget granted is what the width is finally held to, and a
+  // small window narrows the hand rather than flattening it.
+  const card = Math.min(share, Math.round(height / 1.05));
+  return {
+    count: cards,
+    sheet,
+    card,
+    height,
+    emblem: clamp(28, Math.round(card * 0.21), 60),
+    scale:
+      Math.round(
+        clamp(SCALE_MIN, Math.min(card / CARD_DESIGNED, height / CONTENT_AT_ONE), 1) * 100,
+      ) / 100,
+    total: OVERLAY_PAD * 2 + SHEET_PAD_Y + HEAD + height + below,
+  };
+}
+
 export function orderOfferLayout(options: readonly OfferOption[]): OfferLayout {
   // The *first* such card wins, and there is deliberately no support for two:
   // a draft has at most one upgrade (`OrderOffer.upgrade` is a single id), and
@@ -254,6 +403,41 @@ export function createOfferCard(container: HTMLElement): OfferCard {
   let restoreFocus: HTMLElement | null = null;
   /** The one timer that takes the backs off. Null whenever nothing is dealing. */
   let dealTimer: number | null = null;
+  /**
+   * The hand on the table, as `offerSpread` needs to be asked about it. Kept so
+   * a window resized *while* an offer is up is re-measured rather than left at
+   * the size the spread was dealt at — the one screen a player cannot dismiss is
+   * the last one that should be allowed to fall off the bottom of a shrunk
+   * window.
+   */
+  let spreadOf: { count: number; centre: boolean } | null = null;
+
+  /**
+   * Hands the stylesheet the four numbers and the count.
+   *
+   * The count is a custom property rather than a class because it is a
+   * *quantity* — CSS reads it in the grid's `repeat()` — and the rest are
+   * lengths the arithmetic in `offerSpread` decided. Nothing here draws; the
+   * `.offer-*` block does all of it off these five.
+   */
+  function applySpread(): void {
+    if (!spreadOf) return;
+    const spread = offerSpread(
+      spreadOf.count,
+      { width: window.innerWidth, height: window.innerHeight },
+      { centre: spreadOf.centre },
+    );
+    container.style.setProperty('--offer-count', String(spread.count));
+    container.style.setProperty('--offer-sheet', `${spread.sheet}px`);
+    container.style.setProperty('--offer-card', `${spread.card}px`);
+    container.style.setProperty('--offer-card-height', `${spread.height}px`);
+    container.style.setProperty('--offer-emblem', `${spread.emblem}px`);
+    container.style.setProperty('--offer-scale', String(spread.scale));
+  }
+
+  function onResize(): void {
+    if (!container.hidden) applySpread();
+  }
 
   /**
    * The hand is down: the backs come off and the flip class goes with them.
@@ -280,6 +464,7 @@ export function createOfferCard(container: HTMLElement): OfferCard {
     container.hidden = true;
     container.removeAttribute('data-weight');
     container.replaceChildren();
+    spreadOf = null;
     choose = null;
     if (restoreFocus && document.contains(restoreFocus)) restoreFocus.focus();
     restoreFocus = null;
@@ -333,6 +518,14 @@ export function createOfferCard(container: HTMLElement): OfferCard {
       element('h2', 'offer-title', offer.title),
     );
     if (offer.note !== undefined) head.append(element('p', 'offer-lede', offer.note));
+    // Why the hand is wider than the table deals, in the register the rest of
+    // the interface states a source in: one small line per card that widened it.
+    // Silent at the base size, which is the common case and wants no furniture.
+    if (offer.widening !== undefined && offer.widening.length > 0) {
+      const widening = element('p', 'offer-widening');
+      for (const line of offer.widening) widening.append(element('span', 'offer-widening-line', line));
+      head.append(widening);
+    }
     sheet.append(head);
     // The frame is a data attribute on the overlay, so the weight is one CSS
     // rule and this component still knows nothing about what is being offered.
@@ -445,6 +638,11 @@ export function createOfferCard(container: HTMLElement): OfferCard {
     }
 
     const layout = orderOfferLayout(offer.options);
+    // The spread is measured for the *row*, because the upgrade card is not in
+    // it — it is the thing beneath it, and what it costs the row is height
+    // rather than width (`offerSpread`'s `centre`).
+    spreadOf = { count: Math.max(1, layout.row.length), centre: layout.centre !== null };
+    applySpread();
     const row = element('div', 'offer-row');
     for (const index of layout.row) row.append(face(offer.options[index]!, index));
     list.append(row);
@@ -486,6 +684,7 @@ export function createOfferCard(container: HTMLElement): OfferCard {
   // Capturing, so the card sees a key before the board's own handlers do. That
   // is what makes it modal in practice: `controls.ts` binds on the window too.
   window.addEventListener('keydown', onKeyDown, true);
+  window.addEventListener('resize', onResize);
 
   return {
     show,
@@ -495,6 +694,7 @@ export function createOfferCard(container: HTMLElement): OfferCard {
     clear,
     dispose(): void {
       window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('resize', onResize);
       clear();
     },
   };

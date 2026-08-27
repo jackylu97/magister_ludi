@@ -411,8 +411,29 @@ export type AmplifierTarget =
   /** What a *duplicate* copy of a luxury is worth, as a share of the first. */
   | 'luxuryDuplicates';
 
-/** A draft offer a card rewrites. */
-export type OfferRuleId = 'discoveryClaimAll' | 'discoveryOfferSize';
+/**
+ * A rule about how an offer *pays*, as against how big it is.
+ *
+ * `discoveryOfferSize` used to sit here as a placeholder for "this card makes a
+ * discovery deal more options" and is gone: the size of an offer is now a fold
+ * of its own (`explainOfferSize`), one evaluator for all four drafts, and a rule
+ * id that named one of them would have been a second answer to the same
+ * question. What is left is the shape this list was always for — a rule about
+ * what happens when the offer is *answered*.
+ */
+export type OfferRuleId = 'discoveryClaimAll';
+
+/**
+ * Which draft an `offerRider` widens.
+ *
+ * The four offers a game deals today, plus the `'all'` that widens every one of
+ * them — the Leaning Tower's line, and a great person's. Kept as a string union
+ * here rather than derived from the rules block so a JSON row that names a
+ * fifth kind fails to compile against the table rather than silently widening
+ * nothing. It is `OfferKind` (`statecraft.ts`) plus `'all'`; the two move
+ * together, and the great people pass adds `'greatPerson'` to both.
+ */
+export type OfferRiderScope = 'order' | 'doctrine' | 'belief' | 'discovery' | 'all';
 
 /**
  * The occasion a `windfallRider` rides on — Entry XVIII's payouts, and the
@@ -627,11 +648,30 @@ export interface CardRateConversionEffect {
   pays: CardPayout;
 }
 
-/** A rule about a draft offer rather than about the world. */
+/**
+ * A rule about a draft offer rather than about the world.
+ *
+ * **Two halves, and a row says exactly one of them.** `rule` is a named rule
+ * about how an offer *pays* (`OfferRuleId`); `offer` + `extra` say how much
+ * *wider* an offer is dealt — the Oracle's card in every Statecraft draft, the
+ * Leaning Tower's card in every draft of every kind, and the great person who
+ * shows one more of everything. Both live on one shape because they are one
+ * question asked of one hook ("what does this card do to an offer"), and a
+ * second `kind` would have been a second thing for `liveEffects` consumers to
+ * remember to read.
+ *
+ * `extra` is scaled by an Order's level like every other figure in the
+ * vocabulary (`scaleByLevel`), and the cap in `rules.offers.max` is what keeps a
+ * deeply drafted card from dealing a spread nobody can see.
+ */
 export interface CardOfferRiderEffect {
   kind: 'offerRider';
-  rule: OfferRuleId;
-  amount?: number;
+  /** A named rule of what an answered offer does. */
+  rule?: OfferRuleId;
+  /** Which draft this widens. `'all'` widens every one of them. */
+  offer?: OfferRiderScope;
+  /** How many extra cards it deals. Absent means one — the ordinary card. */
+  extra?: number;
 }
 
 /** A percentage on somebody else's effect. The Grand Bazaar's whole identity. */
@@ -838,6 +878,14 @@ export interface StatecraftMeterConfig {
   sealTurns: number;
 }
 
+/**
+ * **Superseded as the source of the two numbers below** (the offer-size pass,
+ * 2026-08-27): how many cards a draft deals is `rules.offers` folded by
+ * `explainOfferSize`, because a wonder, a belief or a great person may widen it
+ * and one evaluator has to answer for all four kinds of offer. These rows are
+ * kept for the shape of the file and are no longer read; retuning them changes
+ * nothing, and `rules.offers.order` / `rules.offers.doctrine` are the dials.
+ */
 export interface StatecraftOfferConfig {
   /** How many *new* cards a draft offers beside the upgrade. Entry XV: 3. */
   newCards: number;

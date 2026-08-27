@@ -183,6 +183,13 @@
     ],
     "retoolCost": 0
   },
+  "offers": {
+    "order": 3,
+    "doctrine": 3,
+    "belief": 3,
+    "discovery": 3,
+    "max": 5
+  },
   "production": {
     "unitCostAgeMultiplier": [
       1,

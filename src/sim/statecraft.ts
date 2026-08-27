@@ -73,6 +73,7 @@ import type { ModifierStage } from './modifiers';
 import { beliefDef, isBeliefId, isRiteId, riteDef } from './religionData';
 import { type CityYieldKey, type ResourceKind, resourceDef, resourceYield } from './resourceData';
 import { nextFloat } from './rng';
+import { RULES } from './rulesData';
 import {
   type City,
   type GameState,
@@ -97,6 +98,7 @@ import {
   type EmpireCondition,
   type GovernmentId,
   type MeterRuleId,
+  type OfferRiderScope,
   type OfferRuleId,
   type OrderId,
   type OrderPool,
@@ -378,8 +380,118 @@ export function drawWithoutReplacement<T>(state: GameState, from: readonly T[], 
   return drawn;
 }
 
+// --- how big an offer is ----------------------------------------------------
+
 /**
- * Deals one draft: `offer.newCards` from the live pool, plus one owned card
+ * The kinds of offer this game deals, and the axis `explainOfferSize` is asked
+ * about.
+ *
+ * **Open on purpose.** The great people pass adds `'greatPerson'` here, as a key
+ * of `rules.offers` and as a member of `OfferRiderScope` — three edits, no
+ * fourth, and every rider that says `'all'` widens it the day it exists without
+ * anybody revisiting a card. Nothing switches over these names: the base is an
+ * index into the rules block and a rider matches by equality or by `'all'`.
+ */
+export type OfferKind = 'order' | 'doctrine' | 'belief' | 'discovery';
+
+/** One contribution to how many cards an offer deals. Rule 5, for a count. */
+export interface OfferSizeLine {
+  /**
+   * Where the number came from: the table itself, a card's own label ("Wonder ·
+   * The Oracle"), or the cap. The interface prints these verbatim — see the
+   * offer header — so no consumer composes a second sentence about a card.
+   */
+  source: string;
+  /** The **difference** this line makes to the running count, signed. */
+  delta: number;
+}
+
+/** What the table deals before any card widens it. One label per kind. */
+const OFFER_BASE_WORDS: Record<OfferKind, string> = {
+  order: 'a draft',
+  doctrine: 'a doctrine draft',
+  belief: 'a consecration',
+  discovery: 'a discovery',
+};
+
+/**
+ * How many cards an offer of this kind deals *this empire, right now* — as the
+ * ordered list it is the fold of (rule 5, at the scale of a decision).
+ *
+ * **One evaluator for four drafts.** A Statecraft draft, a Doctrine triple, a
+ * consecration and a claimed ruin all ask this, so a card that says "every draft
+ * shows one more card" is read once and lands on all of them — which is the
+ * whole point: The Oracle (+1 Statecraft draft) and the Leaning Tower (+1 in
+ * every draft of every kind) are JSON rows, and the great person who does the
+ * same is a row on another table read through the same fold.
+ *
+ * The lines, in order:
+ *
+ *   1. **the base**, `rules.offers[kind]` — every number data, as ever.
+ *   2. **one line per live `offerRider`** whose `offer` is this kind or `'all'`,
+ *      from every source `liveEffects` walks. A wonder standing in a city, a
+ *      belief, a Doctrine and an Order are all the same sentence here, and none
+ *      of them needed code.
+ *   3. **the cap**, `rules.offers.max`, as a negative line — so an offer that was
+ *      trimmed says it was trimmed rather than quietly ignoring a card the
+ *      player paid for.
+ *
+ * The Statecraft draft's upgrade face is deliberately **not** in this count: a
+ * rider adds to the *new* cards, and "3 new + 1 upgrade" becomes "4 new + 1
+ * upgrade". The upgrade is one card because it is one question (deepen or
+ * widen), and two of them would be a different question.
+ */
+export function explainOfferSize(
+  state: GameState,
+  playerId: number,
+  kind: OfferKind,
+): OfferSizeLine[] {
+  const lines: OfferSizeLine[] = [
+    { source: OFFER_BASE_WORDS[kind], delta: Math.max(0, Math.floor(RULES.offers[kind])) },
+  ];
+  let running = lines[0]!.delta;
+
+  for (const { source, level, effect } of effectsOfKind(state, playerId, 'offerRider')) {
+    if (effect.offer !== kind && effect.offer !== 'all') continue;
+    // A rider with no figure deals the ordinary one card, so a data row may say
+    // only which draft it widens. Scaled by level like every other figure in
+    // the vocabulary — a deeply drafted Order deals more, and the cap below is
+    // what stops that becoming a spread nobody can read.
+    const extra = scaleByLevel(effect.extra ?? 1, level);
+    if (extra === 0) continue;
+    lines.push({ source, delta: extra });
+    running += extra;
+  }
+
+  const max = Math.max(1, Math.floor(RULES.offers.max));
+  if (running > max) lines.push({ source: `the table's limit of ${max}`, delta: max - running });
+  return lines;
+}
+
+/** The fold of `explainOfferSize`, and the only sum of one. */
+export function foldOfferSize(lines: readonly OfferSizeLine[]): number {
+  let total = 0;
+  for (const line of lines) total += line.delta;
+  return total;
+}
+
+/**
+ * How many cards this offer deals. The fold, and the **one** number every
+ * generator draws to.
+ *
+ * Asked at the moment the offer opens and never again — the trap the whole
+ * Statecraft chapter is built on (an offer is drawn once and spent by a
+ * command), which for a *size* matters twice over: an empire that finishes a
+ * wonder between the draw and the click would otherwise be shown a hand with a
+ * card missing, and under simultaneous turns two seats look at different times.
+ * The drawn array is the offer; its length is the size, for good.
+ */
+export function offerSize(state: GameState, playerId: number, kind: OfferKind): number {
+  return foldOfferSize(explainOfferSize(state, playerId, kind));
+}
+
+/**
+ * Deals one draft: `offerSize` cards from the live pool, plus one owned card
  * rolled as the upgrade target.
  *
  * The upgrade is rolled from what the player *holds* rather than chosen by them,
@@ -397,9 +509,19 @@ export function drawWithoutReplacement<T>(state: GameState, from: readonly T[], 
  * option that changed nothing — see `CardDefBase.upgradable`. Filtering the
  * *pool* rather than re-rolling a bad draw is what keeps the generator honest:
  * the draw still spends exactly one roll, over a smaller bag.
+ *
+ * **How many new cards is asked of `offerSize`, at the moment the offer opens**
+ * — which is why this takes the whole player rather than its `PlayerStatecraft`:
+ * a rider may sit on a wonder standing in one of its cities, and the empire is
+ * what knows that. The upgrade face stays one however wide the hand gets.
  */
-export function drawOrderOffer(state: GameState, sc: PlayerStatecraft): OrderOffer {
-  const options = drawWithoutReplacement(state, livePool(sc), STATECRAFT.offer.newCards);
+export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
+  const sc = player.statecraft;
+  const options = drawWithoutReplacement(
+    state,
+    livePool(sc),
+    offerSize(state, player.id, 'order'),
+  );
   const deepenable = sc.orders.map((owned) => owned.id).filter(isUpgradable);
   const upgrades = drawWithoutReplacement(state, deepenable, 1);
   const offer: OrderOffer = { options };
@@ -420,15 +542,20 @@ export function isUpgradable(id: CardId): boolean {
 /**
  * Deals one Doctrine draft from a tier's pool, **without replacement within a
  * game** — a Doctrine already held is not offered again (Entry XV.b).
+ *
+ * `offerSize`'s second caller, and it takes the player for `drawOrderOffer`'s
+ * reason: how wide a triple is dealt is a fact about the empire, not about its
+ * collection. A pool shorter than the size deals the pool — a late tier whose
+ * Doctrines are all held is a smaller hand, never a blocked adoption.
  */
 export function drawDoctrineOffer(
   state: GameState,
-  sc: PlayerStatecraft,
+  player: Player,
   tier: number,
 ): DoctrineOffer {
-  const held = new Set<DoctrineId>(sc.doctrines);
+  const held = new Set<DoctrineId>(player.statecraft.doctrines);
   const pool = poolDoctrines(tier).filter((id) => !held.has(id));
-  return { options: drawWithoutReplacement(state, pool, STATECRAFT.offer.doctrineOptions) };
+  return { options: drawWithoutReplacement(state, pool, offerSize(state, player.id, 'doctrine')) };
 }
 
 // --- what is live -----------------------------------------------------------
@@ -2308,9 +2435,21 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       });
       return;
     }
-    case 'offerRider':
-      out.push({ text: OFFER_WORDS[effect.rule] });
+    case 'offerRider': {
+      // The two halves of the hook, each said the way it reads. A named rule is
+      // already a whole sentence; a widening is a figure, and a figure is a
+      // thing a player has to be told — "+1 card in every Statecraft draft".
+      if (effect.rule !== undefined) {
+        out.push({ text: OFFER_WORDS[effect.rule] });
+        return;
+      }
+      if (effect.offer === undefined) return;
+      const extra = scaleByLevel(effect.extra ?? 1, level);
+      out.push({
+        text: `+${extra} ${extra === 1 ? 'card' : 'cards'} in ${OFFER_DRAFT_WORDS[effect.offer]}`,
+      });
       return;
+    }
     case 'effectAmplifier':
       out.push({ text: AMPLIFIER_WORDS[effect.target](scaleByLevel(effect.percent, level)) });
       return;
@@ -2669,7 +2808,15 @@ const RATE_WORDS: Record<RateSource, PluralWords> = {
 
 const OFFER_WORDS: Record<OfferRuleId, string> = {
   discoveryClaimAll: 'every discovery pays all of its options',
-  discoveryOfferSize: 'discoveries offer more options',
+};
+
+/** What a widened draft is *called*, on the card that widens it. */
+const OFFER_DRAFT_WORDS: Record<OfferRiderScope, string> = {
+  order: 'every Statecraft draft',
+  doctrine: 'every doctrine draft',
+  belief: 'every consecration',
+  discovery: 'every discovery',
+  all: 'every draft of every kind',
 };
 
 /**
@@ -2801,7 +2948,7 @@ export function settleDraft(state: GameState, player: Player): DraftCompletion |
 
   player.culturePool = plan.overflow;
   sc.drafts = plan.tier;
-  const offer = drawOrderOffer(state, sc);
+  const offer = drawOrderOffer(state, player);
   sc.pendingOrder = offer;
 
   let government: GovernmentOffer | null = null;
@@ -3170,7 +3317,7 @@ export function adoptGovernmentAt(
   // kind of slot. The amnesty is total by construction.
   sc.slots = slotLayout(id).map(() => null);
 
-  const doctrines = drawDoctrineOffer(state, sc, offer.tier);
+  const doctrines = drawDoctrineOffer(state, player, offer.tier);
   let opened: DoctrineOffer | null = null;
   if (doctrines.options.length > 0) {
     sc.pendingDoctrine = doctrines;

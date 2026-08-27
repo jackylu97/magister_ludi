@@ -93,6 +93,7 @@ import {
 import {
   cardPeriodicOffers,
   drawWithoutReplacement,
+  offerSize,
   payWindfallGrants,
   settleCultureWindfall,
   timedEffectIsLive,
@@ -200,16 +201,21 @@ export function consecrateError(
 }
 
 /**
- * Deals one belief offer: three gods from the pool, without replacement.
+ * Deals one belief offer: `offerSize` gods from the pool, without replacement.
  *
  * `drawOrderOffer`'s draw exactly — the shared `drawWithoutReplacement`, over a
  * candidate list in file order, spending the generator once per card whether or
  * not the bag was long enough. A pool shorter than the offer hands back what it
  * has, which is the honest answer for a late pantheon.
+ *
+ * **How many is asked of `offerSize`**, the one evaluator all four drafts share
+ * (`statecraft.ts`), at the moment the offer opens. Three is what the table says
+ * and a rider is what changes it, so the wonder that widens every draft widens
+ * this one with nothing written here.
  */
 export function drawBeliefOffer(state: GameState, player: Player): BeliefOffer {
   return {
-    options: drawWithoutReplacement(state, beliefPool(player), RELIGION.pantheon.offerOptions),
+    options: drawWithoutReplacement(state, beliefPool(player), offerSize(state, player.id, 'belief')),
   };
 }
 
@@ -704,7 +710,7 @@ export function openPeriodicOffers(state: GameState): void {
         kind: cadence.site,
         col: seat.col,
         row: seat.row,
-        options: drawDiscoveryOffer(state, cadence.site),
+        options: drawDiscoveryOffer(state, cadence.site, offerSize(state, player.id, 'discovery')),
       };
       break;
     }

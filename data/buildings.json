@@ -199,7 +199,8 @@
           "kind": "cityYields",
           "faith": 1,
           "scope": { "test": "hasBuilding", "building": "theOracle" }
-        }
+        },
+        { "kind": "offerRider", "offer": "order", "extra": 1 }
       ]
     }
   },

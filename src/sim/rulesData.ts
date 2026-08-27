@@ -545,6 +545,44 @@ export interface ProductionRules {
   wonderRefundGoldPerHammer: number;
 }
 
+/**
+ * How many cards each kind of offer deals, before any card widens it.
+ *
+ * **One block for four drafts**, and it is here rather than three cards deep in
+ * `data/statecraft.json`, `data/religion.json` and `data/discoveries.json`
+ * because "how big is an offer" turned out to be one question the moment
+ * anything could answer it differently — a wonder that adds a card to every
+ * Statecraft draft and a great person who adds one to *every* draft are the same
+ * sentence about all four. The evaluator that folds those riders in is
+ * `explainOfferSize` (`statecraft.ts`); these are the **base** lines it starts
+ * from, and nothing else reads them.
+ *
+ * The keys are `OfferKind`'s members (`statecraft.ts`) so the evaluator can
+ * index this by the kind it was asked about rather than switch over four names.
+ * A fifth kind — the great people this block was widened for — is a key here and
+ * a member there, and no third place.
+ */
+export interface OfferRules {
+  /** A Statecraft draft's **new** cards. The upgrade face is one, always. */
+  order: number;
+  /** The Doctrine triple dealt on adoption. */
+  doctrine: number;
+  /** The gods a Consecrate deals. */
+  belief: number;
+  /** The boons a claimed ruin or village deals. */
+  discovery: number;
+  /**
+   * The most cards any one offer may hold, however many riders are live.
+   *
+   * A cap rather than a balance decision left to the card table: five tarot
+   * cards is what the spread lays out at 1280×720 without scrolling
+   * (`offerSpread` in `src/ui/offerCard.ts`), and an offer nobody can see all of
+   * is a decision made by whichever card happened to be on screen. It is a line
+   * of the fold like any other, so a capped offer *says* it was capped.
+   */
+  max: number;
+}
+
 export interface RulesConfig {
   game: GameRules;
   movement: MovementRules;
@@ -557,6 +595,7 @@ export interface RulesConfig {
   cities: CityRules;
   meters: MeterRules;
   research: ResearchRules;
+  offers: OfferRules;
   production: ProductionRules;
   /** Unit types every player receives at their start position, in order. */
   startingUnits: UnitTypeId[];

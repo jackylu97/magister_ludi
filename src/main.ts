@@ -121,7 +121,7 @@ import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { AXIS_MARK } from './ui/religionScreen';
 import { beliefDef } from './sim/religionData';
 import { CARD_LINE_NAME, cardLineMarkUrl, lineOf, slotMarkUrl } from './ui/cardLine';
-import { SLOT_WORDS, describeCard } from './sim/statecraft';
+import { type OfferKind, SLOT_WORDS, describeCard, explainOfferSize } from './sim/statecraft';
 import {
   type GovernmentId,
   SLOT_TYPES,
@@ -1437,6 +1437,30 @@ async function boot(initial: Game | null): Promise<void> {
   const offerCard = createOfferCard(offerOverlayEl);
 
   /**
+   * The header line for an offer dealt wider than the table deals: the fold's
+   * own lines, signed.
+   *
+   * `explainOfferSize` (`src/sim/statecraft.ts`) is the one evaluator all four
+   * drafts ask how many cards to deal, and this prints everything in it past the
+   * base — "+1 · Wonder · The Oracle", "−1 · the table's limit of 5". The
+   * wording is the simulation's label and the sign is the interface's, which is
+   * the same bargain every breakdown in this HUD strikes: no sentence is
+   * invented here that the card does not already say.
+   *
+   * Re-derived at the moment the card is shown rather than stored on the offer,
+   * and that is not a contradiction of "an offer is drawn once": the *cards* are
+   * the deal and they were drawn when it opened. This is an explanation of a
+   * number that has already been spent, and re-asking it can only ever produce
+   * the sentence that dealt them.
+   */
+  function wideningLines(kind: OfferKind): string[] {
+    const lines = explainOfferSize(game.state, controls.localPlayerId(), kind);
+    return lines
+      .slice(1)
+      .map((line) => `${line.delta > 0 ? '+' : ''}${line.delta} · ${line.source}`);
+  }
+
+  /**
    * Puts the local seat's pending offer on screen, if it has one.
    *
    * The offer is read off the *state* rather than passed in, so the card can
@@ -1481,6 +1505,7 @@ async function boot(initial: Game | null): Promise<void> {
         eyebrow: offer.kind === 'ruins' ? 'an ancient ruin' : 'a tribal village',
         title: offer.kind === 'ruins' ? 'The stones remember' : 'They come to meet you',
         options,
+        widening: wideningLines('discovery'),
       },
       (index) => {
         dispatch(game, { type: 'chooseDiscovery', playerId: seat, optionIndex: index });
@@ -1544,6 +1569,7 @@ async function boot(initial: Game | null): Promise<void> {
           title: 'Write it into law',
           note: 'A new Order joins your collection. Slotting it is a separate act — and a sealed one.',
           options,
+          widening: wideningLines('order'),
         },
         (index) => {
           dispatch(game, { type: 'chooseOrder', playerId: seat, optionIndex: index });
@@ -1598,6 +1624,7 @@ async function boot(initial: Game | null): Promise<void> {
           title: 'What this age will be remembered for',
           note: 'A Doctrine occupies no slot and is never given up. One per government.',
           weight: 'heavy',
+          widening: wideningLines('doctrine'),
           options: offer.options.map((id) => ({
             title: doctrineDef(id).name,
             payoff: 'permanent doctrine',
@@ -1644,6 +1671,7 @@ async function boot(initial: Game | null): Promise<void> {
         title: 'Name what your people keep',
         note: 'A belief pays in every city you own, for the rest of the game. The augur is spent either way.',
         weight: 'heavy',
+        widening: wideningLines('belief'),
         options: offer.options.map((id) => {
           const def = beliefDef(id);
           return {

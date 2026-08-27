@@ -194,7 +194,14 @@ export function newPlayerPantheon(): PlayerPantheon {
 export interface PantheonConfig {
   /** Belief slots each technology opens. Summed over what the empire holds. */
   slotsFromTech: Partial<Record<TechId, number>>;
-  /** How many beliefs a Consecrate deals. Three, like every other draft. */
+  /**
+   * How many beliefs a Consecrate deals. Three, like every other draft.
+   *
+   * **No longer read** (the offer-size pass, 2026-08-27): the size of every
+   * offer in the game is `rules.offers` folded by `explainOfferSize`, so that a
+   * card which widens "every draft" widens this one too. `rules.offers.belief`
+   * is the dial; this row is kept for the shape of the file.
+   */
   offerOptions: number;
 }
 

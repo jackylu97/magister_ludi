@@ -56,7 +56,6 @@ import {
   settleProductionWindfall,
 } from './cities';
 import {
-  DISCOVERY_DATA,
   DISCOVERY_IDS,
   type DiscoveryEffect,
   type DiscoveryId,
@@ -73,6 +72,7 @@ import { nextFloat } from './rng';
 import {
   cardOfferRule,
   draftSettledBy,
+  offerSize,
   payWindfallGrants,
   settleCultureWindfall,
   windfallPayout,
@@ -93,7 +93,15 @@ import { hasStackingRoom } from './units';
 // --- the draw ---------------------------------------------------------------
 
 /**
- * `offerSize` rows drawn **without replacement**, weighted by the site's kind.
+ * `size` rows drawn **without replacement**, weighted by the site's kind.
+ *
+ * **How many is the caller's, and the caller asks `offerSize`** (`statecraft.ts`,
+ * the one evaluator all four drafts share) at the moment the offer opens. It
+ * used to read `DISCOVERY_DATA.offerSize` straight off the table, which was the
+ * base and nothing else; the base is `rules.offers.discovery` now, and a card, a
+ * wonder or a great person may widen it. A number rather than a player, because
+ * this function's whole business is the *bag* — who is drawing and why they draw
+ * four is settled before it is called.
  *
  * Without replacement because three cards that can be the same card are two
  * cards and a joke; weighted because the flavour split is a gradient rather than
@@ -107,9 +115,13 @@ import { hasStackingRoom } from './units';
  * taken even when the pool is short, because a conditional draw is the one way a
  * replay can fall out of step with the game it replays.
  */
-export function drawDiscoveryOffer(state: GameState, kind: DiscoveryKind): DiscoveryId[] {
+export function drawDiscoveryOffer(
+  state: GameState,
+  kind: DiscoveryKind,
+  size: number,
+): DiscoveryId[] {
   const remaining = DISCOVERY_IDS.filter((id) => discoveryWeight(id, kind) > 0);
-  const wanted = Math.min(Math.max(0, Math.round(DISCOVERY_DATA.offerSize)), remaining.length);
+  const wanted = Math.min(Math.max(0, Math.round(size)), remaining.length);
   const drawn: DiscoveryId[] = [];
 
   for (let taken = 0; taken < wanted; taken++) {
@@ -193,7 +205,10 @@ export function claimDiscoveryAt(state: GameState, unit: Unit, tile: Tile): Disc
     kind,
     col: tile.col,
     row: tile.row,
-    options: drawDiscoveryOffer(state, kind),
+    // The size is settled here, once, with the rest of the offer — see the
+    // trap: an offer generated on sight would be a deal that depended on when
+    // somebody looked at a screen.
+    options: drawDiscoveryOffer(state, kind, offerSize(state, player.id, 'discovery')),
   };
   player.pendingDiscovery = offer;
   return offer;

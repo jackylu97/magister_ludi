@@ -281,11 +281,11 @@ describe('the draw', () => {
   it('deals the same hand from the same generator state', () => {
     const a = bareState();
     const b = bareState();
-    expect(drawDiscoveryOffer(a, 'ruins')).toEqual(drawDiscoveryOffer(b, 'ruins'));
+    expect(drawDiscoveryOffer(a, 'ruins', 3)).toEqual(drawDiscoveryOffer(b, 'ruins', 3));
     // And a *different* hand once the stream has moved, or the draw would not
     // be a draw at all.
-    const first = drawDiscoveryOffer(a, 'ruins');
-    const second = drawDiscoveryOffer(a, 'ruins');
+    const first = drawDiscoveryOffer(a, 'ruins', 3);
+    const second = drawDiscoveryOffer(a, 'ruins', 3);
     expect(first.length).toBe(second.length);
   });
 
@@ -293,7 +293,7 @@ describe('the draw', () => {
     const state = bareState();
     for (let i = 0; i < 200; i++) {
       for (const kind of DISCOVERY_KINDS) {
-        const drawn = drawDiscoveryOffer(state, kind);
+        const drawn = drawDiscoveryOffer(state, kind, 3);
         expect(new Set(drawn).size).toBe(drawn.length);
         for (const id of drawn) expect(discoveryWeight(id, kind)).toBeGreaterThan(0);
       }
@@ -307,7 +307,7 @@ describe('the draw', () => {
     const seen = new Set<string>();
     for (let i = 0; i < 400; i++) {
       for (const kind of DISCOVERY_KINDS) {
-        for (const id of drawDiscoveryOffer(state, kind)) seen.add(id);
+        for (const id of drawDiscoveryOffer(state, kind, 3)) seen.add(id);
       }
     }
     expect([...seen].sort()).toEqual([...DISCOVERY_IDS].sort());

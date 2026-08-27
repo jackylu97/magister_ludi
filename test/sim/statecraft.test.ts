@@ -305,8 +305,11 @@ describe('the meter', () => {
 describe('the draft', () => {
   it('deals three new cards without replacement, from the live pool only', () => {
     const g = game();
-    const sc = g.state.players[0]!.statecraft;
-    const offer = drawOrderOffer(g.state, sc);
+    const player = g.state.players[0]!;
+    const sc = player.statecraft;
+    // Three, because three is what `rules.offers.order` says and nothing this
+    // empire holds widens it. The size is a fold now — see `explainOfferSize`.
+    const offer = drawOrderOffer(g.state, player);
     expect(offer.options).toHaveLength(3);
     expect(new Set(offer.options).size).toBe(3);
     const pool = new Set(livePool(sc));
@@ -317,27 +320,28 @@ describe('the draft', () => {
 
   it('never re-offers a card already held', () => {
     const g = game();
-    const sc = g.state.players[0]!.statecraft;
+    const player = g.state.players[0]!;
+    const sc = player.statecraft;
     for (const id of ORDER_IDS.filter((id) => orderDef(id).pool === 'chiefdom')) grant(sc, id);
     // Every chiefdom card is held, so the live pool is empty and the draw hands
     // back what it has — the honest answer (see `drawWithoutReplacement`).
     expect(livePool(sc)).toEqual([]);
-    expect(drawOrderOffer(g.state, sc).options).toEqual([]);
+    expect(drawOrderOffer(g.state, player).options).toEqual([]);
   });
 
   it('rolls the upgrade target from the collection', () => {
     const g = game();
-    const sc = g.state.players[0]!.statecraft;
-    grant(sc, 'firstRites');
-    const offer = drawOrderOffer(g.state, sc);
+    const player = g.state.players[0]!;
+    grant(player.statecraft, 'firstRites');
+    const offer = drawOrderOffer(g.state, player);
     expect(offer.upgrade).toBe('firstRites');
   });
 
   it('deals the same hand from the same generator state', () => {
     const a = game(11);
     const b = game(11);
-    expect(drawOrderOffer(a.state, a.state.players[0]!.statecraft)).toEqual(
-      drawOrderOffer(b.state, b.state.players[0]!.statecraft),
+    expect(drawOrderOffer(a.state, a.state.players[0]!)).toEqual(
+      drawOrderOffer(b.state, b.state.players[0]!),
     );
   });
 
@@ -1267,19 +1271,21 @@ describe('every upgrade is a real upgrade', () => {
       sizeName: 'duel',
       players: [{ name: 'A', color: '#a00', isHuman: true }],
     });
+    const player = game.state.players[0]!;
     const sc = newPlayerStatecraft();
+    player.statecraft = sc;
     // An empire holding *only* switches has nothing to deepen, and the offer
     // says so by having no upgrade at all rather than by offering a no-op.
     sc.orders = ORDER_IDS.filter((id) => !isUpgradable(id)).map((id) => ({ id, level: 1 }));
     expect(sc.orders.length).toBeGreaterThan(0);
-    expect(drawOrderOffer(game.state, sc).upgrade).toBeUndefined();
+    expect(drawOrderOffer(game.state, player).upgrade).toBeUndefined();
 
     // Add one card that does deepen and it is the only thing that can be rolled,
     // however many times the bag is drawn from.
     const deepenable = ORDER_IDS.find((id) => isUpgradable(id))!;
     sc.orders.push({ id: deepenable, level: 1 });
     for (let draw = 0; draw < 40; draw++) {
-      expect(drawOrderOffer(game.state, sc).upgrade).toBe(deepenable);
+      expect(drawOrderOffer(game.state, player).upgrade).toBe(deepenable);
     }
   });
 });
