@@ -3247,3 +3247,61 @@ right while the meters could only stifle, and it silently ate the first card pus
 way (the Hanging Gardens). Now floored once at every factor, byte-identical at 1. And
 `buildingsOfKind` unblocks Ptahhotep's deferred legacy ("+1 authority per library") if that
 row is revisited.
+
+---
+
+## Entry XXXIV — Playtest batch two: the research plan, leftover movement, settler focus (**built** 2026-08-27)
+
+**Source:** the user's `8/27/26` block in `docs/playtest_notes.md`, twenty findings after a
+desktop session on the deployed build. The interface items are commits `e9a8e48` and the
+queue pass; the world items are `9c62ef9`; this entry is the sim.
+
+**The research plan is one list.** *"Clicking a technology that can't be researched will
+auto-queue all prerequisites; holding shift adds more, keeping the auto-queue behaviour."*
+`Player.researching` stays the aim and the progress model; `Player.researchQueue` (presence is
+the state — `Unit.path`'s convention, deleted when empty, so a game that never queues
+serialises as before; schema 22) is what stands behind it, and `researchPlan(player)` is
+`[researching, …queue]`. **Invariant: a non-empty queue always has a head**, held by the only
+two writers (`writeResearchPlan`, `promoteResearchQueue`), which is why the End Turn blocker
+needed no change — `researching === null` already means nothing is planned. `chooseResearch`
+gains `queue: 'replace' | 'append'`; absent is replace, and a target whose prerequisites are
+met expands to itself, so every old log replays byte-identically. The expansion is the
+unresearched prerequisite closure sorted by **chart depth then roster order** — a fact about
+the tree, not about the click. No accepted no-ops: a plan identical to the standing one is
+refused with a sentence. `dequeueResearch` cascades to dependants (a kept row would be one the
+phase steps over forever, so an unreachable queued tech is dropped, not skipped). Promotion
+runs *inside* `settleResearch`, after the push, so a windfall that completes a tech (a star
+tablet, the Great Library) advances the head by the same routine. `queueTurns` is the
+interface's evaluator — cumulative cost through `turnsToFill`, floored at one node a turn.
+
+**Orders at zero movement, and the march that finishes the turn.** *"Unit should move at the
+end of turn following its orders if it has leftover movement; moving a unit with no movement
+should create new orders and overwrite its current orders."* `applyMoveUnit`'s
+`movesLeft <= 0` refusal is gone: `advanceAlongPath` with an empty purse takes no step and
+stores the route, which is exactly "new orders, overwriting". The new phase
+`spendLeftoverMovement` sits **immediately before `resetMovement`** and both halves of that
+position are load-bearing: before the refill, so what it spends is this turn's allowance and
+never a free second one; after `healUnits`/`advanceFortify`, so "was this piece still all
+turn" is decided before a neighbour stepping aside can move it (otherwise a unit's healing
+would depend on somebody else's path). It stays above `wakeSleepers`/`refreshVisibility`,
+which want a stopped board. The case it serves is the jam that cleared.
+
+**Settler focus.** *"City should auto-work production tiles when creating a settler."*
+`assignCitizens` re-runs the greedy with `rules.cities.citizenWeightsWhileHalted` (the base
+sheet with food and production swapped) when the front row's unit `haltsGrowth` — nothing
+compares against `"settler"` — and puts the ordinary sheet back whole if the town would
+starve. Locks first in both passes; still derived, idempotent, and two callers.
+`citizenFocus(city)` reports the *decision*, not the starvation fallback, so a readout cannot
+flicker with a border.
+
+**Numbers moved:** Chiefdom seats a wildcard (the user's first option; the second — no
+wildcard-only tier-1 Orders — is a two-row edit: `firstRites`, `borderBallads`); Forgotten
+Hymns pays 7 culture, was 15, and it is the only culture discovery; the Tinkers' Guild
+clause is *generated* — `describeEffect`'s `unitStat charges` arm now reads "newly created
+worker units gain +1 charge", and the row's `text` field was the stale half of the same
+sentence.
+
+**The Oracle, on the way.** The deployed build showed no fourth card after the Oracle stood;
+the row said `offer: 'order'` and the doc says *every Statecraft draft*. It now carries a
+Doctrine rider too. (And an offer already pending when a wonder completes keeps its size —
+drawn once, at the moment it opens.)

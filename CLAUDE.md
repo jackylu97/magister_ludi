@@ -143,6 +143,21 @@ would change every seeded outcome. No further rename passes.
   `state.players[someId]` is an *id lookup* and is fine ("who is this"), anything else is
   a *sweep* and belongs to `realPlayers` — and `test/ui/seatRoster.test.ts` reads the
   sources in `src/ui` + `main.ts` and fails on the fifth surface.
+- **The research plan is one list and a non-empty queue always has a head** (Entry XXXIV).
+  `Player.researching` is the aim; `Player.researchQueue` (presence is the state, deleted
+  when empty) stands behind it; `researchPlan(player)` is the concatenation and the **only
+  two writers** are `writeResearchPlan` and `promoteResearchQueue` (which runs *inside*
+  `settleResearch`, so a windfall advances the head by the same routine). The End Turn
+  blocker relies on that invariant — `researching === null` means nothing is planned — so a
+  third writer that leaves a queue behind an empty head is a seat that can end its turn with
+  a plan the phase never touches. `chooseResearch` without `queue` is byte-identical to the
+  old command; the expansion order is chart depth then roster order, a fact about the tree.
+- **`spendLeftoverMovement` sits immediately before `resetMovement`, and both halves of
+  that are load-bearing** (Entry XXXIV): before the refill so what it spends is this turn's
+  purse, after `healUnits`/`advanceFortify` so a piece's stillness is judged before a
+  neighbour's path can move it. It walks `state.units` in array order through
+  `advanceAlongPath` — the same seam as every march — and a move ordered at zero movement is
+  now *accepted* and stored as orders, never refused.
 - **An order is a waking, and it is enforced in one place.** `Unit.sleeping` (presence is
   the state, like `path`/`fortifiedTurns`/`chargesLeft`) is cleared by *any* accepted
   command that names the unit, through `orderedUnitId` in `applyCommand` — never by a
