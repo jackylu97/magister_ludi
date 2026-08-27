@@ -27,6 +27,29 @@
  * and the accent ink, and it costs no drawing — which is what the design pass
  * asked for.
  *
+ * Two panes, and the pantheon never leaves
+ * ----------------------------------------
+ * The user's note (2026-08-27), one screen after the same note about
+ * Statecraft: "ideally it would also fit on a single screen; split panes would
+ * be good here too". The sheet used to be one column — the pool and the augur,
+ * then the wheel and eighteen-hundred pixels of slot cards, then the rites —
+ * and a player deciding whether to call an augur had to scroll past their own
+ * gods to reach the button that calls one.
+ *
+ * It is now the same **split** the Statecraft sheet is, down to the classes and
+ * the breakpoint: the pantheon is a fixed column on the left — the wheel, the
+ * gods under it, the count over it — and everything a player *does* is a pane
+ * that scrolls beside it. The division is "what my faith is" against "what I
+ * can do with it", which is also why the pool figure moved: how much faith has
+ * gathered is not a fact about the sky, it is the first line of the price.
+ *
+ * A god in the column is a **row**, not the tall card it was. That is the hand's
+ * argument from `statecraftScreen.ts` — the tarot proportion is the ceremony and
+ * it stays where the ceremony is (`offerCard.ts`, which is where a god is dealt
+ * and turned over) — and it costs the same one thing it cost there: the flavour
+ * line, which is the only part of a card that says nothing about what the card
+ * does, and which the offer still prints.
+ *
  * Derived, never stored
  * ---------------------
  * Nothing on this screen is state. The slots are `pantheonSlots(techs)`, the
@@ -161,8 +184,8 @@ function houseTooltip(id: BeliefId): string {
 }
 
 /**
- * One belief's face: what it is in the eyebrow, the glyph, the name, the
- * clauses, the flavour at the foot.
+ * One belief's face: the glyph and what it is in the eyebrow, the name, the
+ * clauses.
  *
  * `drawCardFace`'s shape (`statecraftScreen.ts`) with "a god" where the slot
  * type goes, so a god and an Order are the same object at a glance — which is
@@ -170,17 +193,23 @@ function houseTooltip(id: BeliefId): string {
  * eyebrow used to carry the **axis name** and no longer does (see `AXIS_MARK`):
  * what a player needs to know in that line is what kind of thing this is, and
  * every belief is the same kind of thing.
+ *
+ * **Compact**, and it followed the hand for the same two reasons: the glyph is
+ * a chip in the eyebrow rather than a plate of its own — the drawing is kept and
+ * the whitespace around it is what went — and the flavour line is off, because
+ * it is the one part of the card that says nothing about what the card does and
+ * it is still read on the offer that deals the god (`offerCard.ts`).
  */
 function drawBeliefFace(into: HTMLElement, id: BeliefId): void {
   const def = beliefDef(id);
   into.dataset.axis = def.axis;
   into.title = def.name;
   const head = element('div', 'sc-card-head');
-  head.append(element('span', 'sc-card-type', 'a god'));
-  into.append(head);
   const mark = axisMarkNode(def.axis);
   mark.classList.add('rel-card-emblem');
-  into.append(mark);
+  head.append(mark);
+  head.append(element('span', 'sc-card-type', 'a god'));
+  into.append(head);
   into.append(element('h4', 'sc-card-name', def.name));
   const list = element('ul', 'sc-clauses');
   for (const clause of describeCard(id)) {
@@ -189,7 +218,6 @@ function drawBeliefFace(into: HTMLElement, id: BeliefId): void {
     list.append(item);
   }
   into.append(list);
-  into.append(element('p', 'sc-flavor', def.flavor));
 }
 
 export function createReligionScreen(options: ReligionScreenOptions): ReligionScreen {
@@ -252,17 +280,19 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   }
 
   /**
-   * The pantheon: the wheel, and one card-shaped place per slot beside it.
+   * The pantheon: the wheel, and one place per slot **under** it.
    *
-   * The slot row is the Statecraft idiom and the same argument for it — a row of
-   * slots is a row of *places a thing goes*, and the shape says so before any of
-   * the words are read. What differs is that a god never comes back out, so
+   * The slot list is the Statecraft idiom and the same argument for it — a run
+   * of slots is a run of *places a thing goes*, and the shape says so before any
+   * of the words are read. What differs is that a god never comes back out, so
    * there is nothing to click: these are `article`s, not buttons.
    *
    * The wheel does not replace them, and the two are not the same picture: the
    * wheel is the **pool** — where a god sits in the sky and what it is next to —
-   * and a slot card is a god's **face**, which is what it actually does. A
-   * player wants both, so they sit side by side.
+   * and a slot is a god's **face**, which is what it actually does. A player
+   * wants both, so they are stacked in one column: the sky, then the gods in it.
+   * They sat side by side while this was a full-width sheet; in a 320px column a
+   * card beside the wheel is two things neither of which can be read.
    */
   function drawPantheon(state: GameState, seat: number): HTMLElement {
     const block = element('section', 'rel-pantheon');
@@ -298,9 +328,9 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       }
       row.append(card);
     }
-    // Beside the wheel, not under it: the sky and the faces are two readings of
-    // one pantheon and belong on one line.
-    wheelRow.append(row);
+    // Under the wheel, in the same column: the sky and the faces are two
+    // readings of one pantheon and the column is the whole of it.
+    block.append(row);
     // Gods held beyond the slots the tree currently opens: only reachable from a
     // hand-edited save, and drawn rather than hidden, because a god you hold is
     // a god that pays.
@@ -503,12 +533,27 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     const seat = options.getPlayerId();
     body.replaceChildren();
     if (!playerById(state, seat)) return;
+    // The split, and it is the Statecraft sheet's own — the same four classes,
+    // so the two parchment screens cannot drift apart and the width at which
+    // they stack is one media query rather than two that agree today.
+    const split = element('div', 'sc-split');
+    const column = element('aside', 'sc-column');
+    const stack = element('div', 'sc-column-body');
+    stack.append(drawPantheon(state, seat));
+    column.append(stack);
+    split.append(column);
+
+    const pane = element('div', 'sc-pane');
+    // The pool and the price on one line: how much faith has gathered is the
+    // first line of what an augur costs, and reading the two apart was the old
+    // sheet asking a player to hold a figure in their head while they scrolled.
     const head = element('div', 'sc-head-row');
     head.append(drawPool(state, seat));
     head.append(drawPurchase(state, seat));
-    body.append(head);
-    body.append(drawPantheon(state, seat));
-    body.append(drawRites(state, seat));
+    pane.append(head);
+    pane.append(drawRites(state, seat));
+    split.append(pane);
+    body.append(split);
   }
 
   function open(): void {
