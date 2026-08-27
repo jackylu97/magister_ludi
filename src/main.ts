@@ -2264,6 +2264,8 @@ async function boot(initial: Game | null): Promise<void> {
     overlay: techOverlayEl,
     chart: techChartEl,
     closeButton: requireElement('tech-close'),
+    planStrip: requireElement('tech-plan'),
+    hintLine: requireElement('tech-hint'),
     statusCard: researchCard,
     statusName: techCurrentEl,
     statusDial: researchDialEl,

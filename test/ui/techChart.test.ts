@@ -350,3 +350,248 @@ describe('fitColumns', () => {
     }
   });
 });
+
+/**
+ * The research plan, drawn three times on one screen (playtest batch two).
+ *
+ * The queue landed in the simulation as one list — `researching` plus whatever
+ * stands behind it — and the chart now shows that list as a numeral on every
+ * node in it, a line on the hover card, and a strip along the foot. All three
+ * are folds of the same list, so what is asserted here is the folds and the
+ * *rules* between them: head-first numbering, nothing at all off the plan, one
+ * condition gating all three surfaces, and a × that says what it would really
+ * take with it.
+ *
+ * `planDependants` is the one that has to be read against the reducer rather
+ * than against a hand-written expectation: `dequeueResearch` cascades, and a
+ * strip that promised to drop one row while the command dropped four would be
+ * the interface lying about a command it is about to send. It is asserted to be
+ * exactly the difference `researchPlanWithout` — the reducer's own routine —
+ * makes, which is the only form of the claim a change to that cascade cannot
+ * quietly break.
+ *
+ * The rest is read out of the source, for `cityScreen.test.ts`'s reason: there
+ * is no jsdom in this suite, and the failures being guarded against (a click
+ * that stopped reading `shiftKey`, a strip measured after the lanes were spaced)
+ * are never thrown errors.
+ */
+
+import { applyCommand } from '../../src/sim/commands';
+import { newGame } from '../../src/sim/state';
+import { researchPlan, researchPlanWithout } from '../../src/sim/tech';
+import {
+  chooseResearchCommand,
+  dequeueTitle,
+  planDependants,
+  planIsQueue,
+  planPlace,
+} from '../../src/ui/techTree';
+
+const CHART_SOURCE = import.meta.glob(['../../src/ui/techTree.ts'], {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
+
+function chartSource(): string {
+  const text = Object.values(CHART_SOURCE)[0];
+  if (typeof text !== 'string' || text.length === 0) throw new Error('techTree.ts came back empty');
+  return text;
+}
+
+/**
+ * The body of one function in `techTree.ts`, by its declaration line.
+ *
+ * Deliberately literal and deliberately brace-matched: an assertion that merely
+ * searched the whole file for `shiftKey` would pass on a mention in a comment,
+ * and half of what this file is checking is *which* function does a thing.
+ */
+function chartFunction(declaration: string): string {
+  const text = chartSource();
+  const at = text.indexOf(declaration);
+  expect(at, `no "${declaration}" in techTree.ts`).toBeGreaterThanOrEqual(0);
+  let depth = 0;
+  for (let index = text.indexOf('{', at); index < text.length; index += 1) {
+    if (text[index] === '{') depth += 1;
+    else if (text[index] === '}') {
+      depth -= 1;
+      if (depth === 0) return text.slice(at, index + 1);
+    }
+  }
+  throw new Error(`"${declaration}" is never closed`);
+}
+
+/** A plan a player could actually hold: Bronzeworking behind both its parents. */
+const PLAN = ['mining', 'earthenware', 'bronzeWorking'] as const;
+
+describe('the numbered chips', () => {
+  it('numbers the plan head-first, counting the current research as 1', () => {
+    // The head *is* what the beakers are pointed at (see `researchPlan`), so a
+    // numeral is a schedule and not a list of things somebody clicked.
+    expect(planPlace(PLAN, 'mining')).toBe(1);
+    expect(planPlace(PLAN, 'earthenware')).toBe(2);
+    expect(planPlace(PLAN, 'bronzeWorking')).toBe(3);
+  });
+
+  it('gives a node that is not in the plan no numeral at all', () => {
+    expect(planPlace(PLAN, 'sailing')).toBeNull();
+    expect(planPlace([], 'mining')).toBeNull();
+  });
+
+  it('renumbers rather than remembering — a shorter plan starts again at 1', () => {
+    // What a dequeue leaves behind. The chips are derived on every render from
+    // the plan as it stands, so a cascade that takes three rows out cannot leave
+    // a ④ hanging over a plan of two.
+    const after = researchPlanWithout(PLAN, 'mining');
+    expect(after).toEqual(['earthenware']);
+    expect(planPlace(after, 'earthenware')).toBe(1);
+    expect(planPlace(after, 'mining')).toBeNull();
+    expect(planPlace(after, 'bronzeWorking')).toBeNull();
+  });
+
+  it('draws nothing at all until there is a queue to be first in', () => {
+    // The user's own condition ("when a queue exists on the tech screen"), and
+    // one function so the numerals, the hover line and the strip cannot
+    // disagree — a lone ① over a node with no list anywhere is the failure.
+    expect(planIsQueue([])).toBe(false);
+    expect(planIsQueue(['mining'])).toBe(false);
+    expect(planIsQueue(PLAN)).toBe(true);
+  });
+
+  it('gates all three surfaces on that one condition', () => {
+    // Read out of the source because there is no jsdom: the numeral, the hover
+    // card's plan line and the strip each ask `planIsQueue` before they draw.
+    expect(chartFunction('function renderNode(')).toContain('planIsQueue(plan)');
+    expect(chartFunction('function techCard(')).toContain('planIsQueue(researchPlan(player))');
+    expect(chartFunction('function renderPlanStrip(')).toContain('!planIsQueue(plan)');
+  });
+});
+
+describe('a chip’s ✕', () => {
+  it('names what would go with the row, from the reducer’s own cascade', () => {
+    // Dropping a parent takes the child with it, and the child is *named* — "and
+    // what depends on it" alone leaves the player to work out which of six chips
+    // it meant.
+    expect(planDependants(PLAN, 'mining')).toEqual(['bronzeWorking']);
+    expect(dequeueTitle(PLAN, 'mining')).toBe(
+      'Removes Mining and what depends on it: Bronzeworking',
+    );
+    expect(dequeueTitle(PLAN, 'earthenware')).toBe(
+      'Removes Earthenware and what depends on it: Bronzeworking',
+    );
+  });
+
+  it('says only what it removes when nothing stands on it', () => {
+    expect(planDependants(PLAN, 'bronzeWorking')).toEqual([]);
+    expect(dequeueTitle(PLAN, 'bronzeWorking')).toBe('Removes Bronzeworking from the plan');
+  });
+
+  it('is exactly the difference the reducer’s own routine makes', () => {
+    // The claim that matters: not that these particular names come out, but that
+    // whatever `researchPlanWithout` drops is what the ✕ warned about. A change
+    // to the cascade moves both sides of this together or fails here.
+    for (const techId of PLAN) {
+      const kept = researchPlanWithout(PLAN, techId);
+      const gone = PLAN.filter((id) => id !== techId && !kept.includes(id));
+      expect(planDependants(PLAN, techId)).toEqual(gone);
+    }
+  });
+
+  it('has nothing to say about a technology the plan does not hold', () => {
+    expect(planDependants(PLAN, 'sailing')).toEqual([]);
+  });
+});
+
+describe('clicking a star', () => {
+  it('aims plainly, and adds with shift', () => {
+    expect(chooseResearchCommand(0, 'bronzeWorking', true)).toEqual({
+      type: 'chooseResearch',
+      playerId: 0,
+      techId: 'bronzeWorking',
+      queue: 'append',
+    });
+  });
+
+  it('omits the mode entirely on a plain click', () => {
+    // An absent mode *is* replace, so a plain click writes byte-for-byte the log
+    // entry this screen has always written and every save made before the queue
+    // existed still replays against it. Written as a key check rather than an
+    // equality so the intent survives a reader skimming it.
+    const command = chooseResearchCommand(3, 'mining', false);
+    expect(command).toEqual({ type: 'chooseResearch', playerId: 3, techId: 'mining' });
+    expect(Object.keys(command)).not.toContain('queue');
+  });
+
+  it('is a command the reducer takes, both ways', () => {
+    // The one end-to-end pass: the shapes above are only worth anything if the
+    // reducer accepts them, and a locked node has to expand rather than refuse.
+    const state = newGame({
+      seed: 7,
+      sizeName: 'duel',
+      players: [
+        { name: 'A', color: '#a00', isHuman: true },
+        { name: 'B', color: '#00a', isHuman: true },
+      ],
+    });
+    const player = state.players[0]!;
+
+    expect(applyCommand(state, chooseResearchCommand(0, 'bronzeWorking', false)).ok).toBe(true);
+    // Bronzeworking is three deep, so naming it named its prerequisites too and
+    // the head is one of *those* rather than the node that was clicked.
+    const plan = researchPlan(player);
+    expect(plan[plan.length - 1]).toBe('bronzeWorking');
+    expect(plan.length).toBeGreaterThan(1);
+    expect(planPlace(plan, 'bronzeWorking')).toBe(plan.length);
+
+    // Shift keeps everything already lined up and adds behind it.
+    expect(applyCommand(state, chooseResearchCommand(0, 'sailing', true)).ok).toBe(true);
+    const appended = researchPlan(player);
+    expect(appended.slice(0, plan.length)).toEqual(plan);
+    expect(appended[appended.length - 1]).toBe('sailing');
+  });
+
+  it('reads shift off the click event rather than latching a mode', () => {
+    // A modifier is a fact about *this* press. The handler takes the event and
+    // hands `shiftKey` straight to the command builder; anything that stored it
+    // would be a mode the player cannot see.
+    const handler = chartFunction("card.addEventListener('click'");
+    expect(handler).toContain('event.shiftKey');
+    expect(handler).toContain('chooseResearchCommand(playerId, id, event.shiftKey)');
+  });
+
+  it('says the reducer’s own sentence when a click is refused after all', () => {
+    // It used to `return` on a failed dispatch, which is a click that does
+    // nothing and explains nothing. See `refuse`.
+    expect(chartFunction("card.addEventListener('click'")).toContain('refuse(result.error)');
+  });
+});
+
+describe('the strip at the foot', () => {
+  it('is laid out before the lanes are spaced', () => {
+    // The load-bearing ordering. The strip is a flex sibling of the stage, so it
+    // appearing takes real height off `chart.clientHeight` — and `spaceLanes`
+    // spends exactly that height on the lanes. Measured the other way round, a
+    // chart gains a strip and keeps the gaps it had without one.
+    const body = chartFunction('function renderChart(');
+    const strip = body.indexOf('renderPlanStrip()');
+    const lanes = body.indexOf('spaceLanes(');
+    expect(strip).toBeGreaterThanOrEqual(0);
+    expect(lanes).toBeGreaterThan(strip);
+  });
+
+  it('quotes the cumulative schedule, not each node against the pool', () => {
+    // `queueTurns` is the reading in which the costs accumulate and at most one
+    // technology lands per turn; `turnsToTech` is the per-node one the *cards*
+    // use, and a strip built out of it would promise the whole plan arriving at
+    // once.
+    const body = chartFunction('function renderPlanStrip(');
+    expect(body).toContain('queueTurns(state, playerId)');
+    expect(body).not.toContain('turnsToTech');
+  });
+
+  it('greys a ✕ with the reducer’s own refusal and titles it with the cascade', () => {
+    const body = chartFunction('function renderPlanStrip(');
+    expect(body).toContain('dequeueResearchError(state, playerId, step.techId)');
+    expect(body).toContain('dequeueTitle(plan, step.techId)');
+  });
+});

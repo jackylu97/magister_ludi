@@ -93,8 +93,13 @@ import { hasEndedTurn } from '../sim/state';
 import {
   availableTechs,
   buildingYieldDelta,
+  dequeueResearchError,
   playerScience,
+  prereqsMet,
+  queueTurns,
   researchError,
+  researchPlan,
+  researchPlanWithout,
   turnsToTech,
 } from '../sim/tech';
 import {
@@ -173,6 +178,106 @@ const GIFT_HEADING: Record<TechGift['kind'], string> = {
   buildingTileYield: 'Buildings pay new ground',
 };
 
+// --- the plan, read four ways ------------------------------------------------
+//
+// The queue landed in the simulation as one list — `researching` and everything
+// standing behind it (`researchPlan`, `src/sim/tech.ts`) — and this screen shows
+// that list in three places at once: a numeral on every node that is in it, a
+// line on the hover card, and the strip along the foot. All three are folds of
+// the same list, and the four functions below are what they fold with, kept pure
+// and exported so the rules can be asserted without a browser. Nothing here
+// keeps a second opinion about the tree: `planDependants` asks the *reducer's*
+// cascade what a removal would take with it, rather than walking `prereqs` a
+// second time and drifting the first time that rule changes.
+
+/**
+ * Where this technology stands in the plan, counting the current research as 1,
+ * or `null` for a node that is not in it at all.
+ *
+ * The whole of the numbered chips (user, playtest batch two: "show a numbered
+ * icon clarifying what order it is in the queue"). A plan is head-first and its
+ * head is what the beakers are pointed at, so 1 is always the thing being
+ * researched now — which is what makes the numerals a schedule rather than a
+ * list of things somebody clicked.
+ */
+export function planPlace(plan: readonly TechId[], techId: TechId): number | null {
+  const at = plan.indexOf(techId);
+  return at < 0 ? null : at + 1;
+}
+
+/**
+ * Is there a *queue* here, as opposed to merely a current research?
+ *
+ * The user's own condition — "when a queue exists on the tech screen, show a
+ * numbered icon" — and the reason it is a function rather than three `> 1`s: it
+ * gates the numerals, the hover card's plan line and the strip at the foot, and
+ * two of those agreeing while the third does not is a lone ① floating over a
+ * node with no list anywhere to be first in.
+ *
+ * A plan of one is not a queue but a research, and the HUD's card at the
+ * top-left has said which one since long before this screen had a strip.
+ */
+export function planIsQueue(plan: readonly TechId[]): boolean {
+  return plan.length > 1;
+}
+
+/**
+ * What else would leave the plan if this technology did — the transitive
+ * dependants, in plan order.
+ *
+ * `dequeueResearch` drops a node **and everything behind it that only made
+ * sense because of it**, so a × that promised to remove one row and removed
+ * four would be the interface lying about a command it is about to send. The
+ * answer is the difference between the plan and `researchPlanWithout`, which is
+ * the reducer's own routine: there is no copy of the cascade here to fall out
+ * of step with it.
+ *
+ * Empty for a technology the plan does not hold, which is also the case the ×
+ * is never drawn for.
+ */
+export function planDependants(plan: readonly TechId[], techId: TechId): TechId[] {
+  if (!plan.includes(techId)) return [];
+  const kept = researchPlanWithout(plan, techId);
+  return plan.filter((id) => id !== techId && !kept.includes(id));
+}
+
+/**
+ * The sentence a chip's × carries: what pressing it would cost.
+ *
+ * Two shapes, because a player is in two different situations. Dropping the
+ * last row of a plan is exactly what it looks like; dropping a row with things
+ * standing on it is not, and the ones that go with it are **named** rather than
+ * summarised — "and what depends on it" alone would leave the player to work out
+ * which of the six chips it meant.
+ */
+export function dequeueTitle(plan: readonly TechId[], techId: TechId): string {
+  const name = techDef(techId).name;
+  const dependants = planDependants(plan, techId);
+  if (dependants.length === 0) return `Removes ${name} from the plan`;
+  const named = dependants.map((id) => techDef(id).name).join(', ');
+  return `Removes ${name} and what depends on it: ${named}`;
+}
+
+/**
+ * The command a click on a node sends: aim, or — with shift down — add.
+ *
+ * The unshifted form deliberately **omits `queue`** rather than writing
+ * `'replace'`. An absent mode *is* replace (see `ChooseResearchCommand`), so a
+ * plain click writes byte-for-byte the log entry this screen has always written
+ * and every save made before the queue existed still replays against it. Shift
+ * is the second destination rather than the second mind, and it is the only
+ * thing on this screen that names the mode at all.
+ */
+export function chooseResearchCommand(
+  playerId: number,
+  techId: TechId,
+  append: boolean,
+): Command {
+  return append
+    ? { type: 'chooseResearch', playerId, techId, queue: 'append' }
+    : { type: 'chooseResearch', playerId, techId };
+}
+
 export interface TechTree {
   readonly isOpen: boolean;
   open(): void;
@@ -192,6 +297,26 @@ export interface TechTreeOptions {
   chart: HTMLElement;
   /** The overlay's own × button. */
   closeButton: HTMLElement;
+  /**
+   * The strip along the foot of the sheet: the research plan, head first.
+   *
+   * Emptied and rebuilt per render, and `hidden` while the plan is one node
+   * long — a strip that said "① Pottery" and nothing else would be the research
+   * card's job done worse. A *sibling* of the stage rather than something
+   * floating over it, so `spaceLanes` measures the height the lanes actually
+   * have left; see `renderPlanStrip`.
+   */
+  planStrip: HTMLElement;
+  /**
+   * The head's caption line — normally how to travel the chart, and for a beat
+   * and a half after a refused click, the reducer's own sentence.
+   *
+   * This screen is full-window, so the context card the rest of the game says
+   * "no" in is behind it. Rather than open a second channel, the refusal takes
+   * the one line in the head that is already there for saying things quietly.
+   * See `refuse`.
+   */
+  hintLine: HTMLElement;
   /**
    * The HUD's research card (top-left, under the bar). The whole card is a
    * button: it opens this screen, and it is where what is being learnt is
@@ -246,11 +371,23 @@ function element<K extends keyof HTMLElementTagNameMap>(
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+/**
+ * How long a refused choice stays in the head's caption line.
+ *
+ * The same beat and a half `controls.ts` gives a refused order, and typed here
+ * rather than imported because the two screens share a *convention* and not a
+ * module — reaching into the board's controller for a duration would be this
+ * overlay depending on the surface it is drawn over.
+ */
+const REFUSAL_MS = 1800;
+
 export function createTechTree(options: TechTreeOptions): TechTree {
   const {
     overlay,
     chart,
     closeButton,
+    planStrip,
+    hintLine,
     statusCard,
     statusName,
     statusDial,
@@ -277,6 +414,38 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   let lines: SVGSVGElement | null = null;
   /** The node the chart is currently reading out, or none. */
   let reading: TechId | null = null;
+
+  // --- saying no -----------------------------------------------------------
+
+  /** The travel hint as the document wrote it, so a refusal can be taken back. */
+  const hintText = hintLine.innerHTML;
+  /** The timer that puts it back. */
+  let refusalTimer = 0;
+
+  /**
+   * Speaks the reducer's own refusal, briefly, in the head's caption slot.
+   *
+   * Every refusal on this screen is the reducer's sentence and not this
+   * module's: a node's `disabled` and a chip's × are both derived from the very
+   * error functions the commands validate with, so a click that is nonetheless
+   * refused means the board moved under the player — a technology finished by a
+   * ruin between the render and the press. That is rare and it is *news*, so it
+   * is said rather than swallowed, which is what the old `if (!ok) return` did.
+   *
+   * The caption slot rather than the context card at the bottom of the screen
+   * for the plainest of reasons: this overlay covers that card. `NOTICE_MS`
+   * matches `controls.ts` so a "no" lasts the same beat and a half wherever the
+   * player meets one.
+   */
+  function refuse(text: string): void {
+    hintLine.textContent = text;
+    hintLine.classList.add('is-refusing');
+    window.clearTimeout(refusalTimer);
+    refusalTimer = window.setTimeout(() => {
+      hintLine.innerHTML = hintText;
+      hintLine.classList.remove('is-refusing');
+    }, REFUSAL_MS);
+  }
 
   /**
    * Light one node's dependencies and hush everything else.
@@ -489,6 +658,25 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       box.append(element('p', 'info-card-state is-blocked', problem));
     }
 
+    // "3 in the plan · ~11 turns" — what the corner numeral means, spelled out
+    // where there is room for words. The schedule is `queueTurns`, which is the
+    // *cumulative* reading (the third node is paid for by what is left after the
+    // first two, and no more than one technology lands per turn), so this is the
+    // turn the plan actually delivers it on rather than the turn it would land
+    // if the beakers were pointed at it alone — which is what the `~Nt` on the
+    // node's own figures line already says.
+    if (player && planIsQueue(researchPlan(player))) {
+      const steps = queueTurns(state, playerId);
+      const at = steps.findIndex((step) => step.techId === id);
+      if (at >= 0) {
+        // An empire making no science has no schedule at all, and "~null turns"
+        // is the shape of bug this says a sentence about instead.
+        const turns = steps[at]!.turns;
+        const when = turns === null ? 'no science being made' : `~${turns} turns`;
+        box.append(element('p', 'info-card-state is-planned', `${at + 1} in the plan · ${when}`));
+      }
+    }
+
     const gifts = techGifts(id);
     if (gifts.length === 0) {
       box.append(element('p', 'info-card-state', 'Hands over nothing on its own'));
@@ -552,16 +740,33 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
     const researched = player?.techsResearched.includes(id) ?? false;
     const current = player?.researching === id;
+    const plan = player ? researchPlan(player) : [];
+    const place = planIsQueue(plan) ? planPlace(plan, id) : null;
+    // Two readings of the same click, because there are two clicks: a plain one
+    // aims the beakers (and queues whatever the target needs), a shifted one
+    // adds to what is already lined up. Both are `researchError`, which is what
+    // the reducer validates with, so a node this screen lets you press either
+    // way is a node the reducer accepts that way.
+    const ended = hasEndedTurn(state, playerId);
     const problem = researchError(state, playerId, id);
-    // Locked means "not yet, and not next either": the prerequisites are the
-    // difference, and they are what the sight-lines are drawn for.
-    const choosable = problem === null && !hasEndedTurn(state, playerId);
+    const appendProblem = researchError(state, playerId, id, 'append');
+    const choosable = !ended && (problem === null || appendProblem === null);
 
     const card = element('button', 'tech-node');
     card.type = 'button';
     card.classList.toggle('is-researched', researched);
     card.classList.toggle('is-current', current);
-    card.classList.toggle('is-locked', !researched && !current && problem !== null);
+    // **Locked is now a fact about the tree, not about the command.** It used to
+    // be `researchError !== null`, which was the same question until the queue
+    // landed: pointing at a distant node stopped being a refusal (it queues the
+    // prerequisites instead), so that reading quietly stopped dimming anything
+    // at all and the chart lost the one mark that says how far off a node is.
+    // `prereqsMet` is the question that was always meant.
+    card.classList.toggle('is-locked', !researched && !current && !prereqsMet(state, playerId, id));
+    // A node standing in the plan is lit whatever its prerequisites say: the
+    // player has already decided about it, and a decision should not be drawn
+    // in the same grey as ground nobody has looked at.
+    card.classList.toggle('is-planned', place !== null);
     card.disabled = !choosable;
     // Every disabled node says why, in the reducer's own words where there are
     // any: a star you cannot press and cannot ask about is a dead end.
@@ -622,14 +827,40 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
     card.append(renderUnlocks(id));
     if (def.flavor) card.append(element('p', 'tech-node-flavor', def.flavor));
+
+    // The numeral, worn on the card's *corner* rather than set inside it: it is
+    // a mark about the node — its place in a list that lives somewhere else —
+    // and a figure in the body would read as one more of the node's own numbers.
+    // Absolutely placed, so renumbering (a dequeue cascades, and several can
+    // vanish at once) never reflows a lane, and appended last for the same
+    // reason the refusal below is: the card is read out before it is annotated.
+    if (place !== null) {
+      const chip = element('span', 'tech-node-place', String(place));
+      // Spoken as a sentence, because "3" alone beside a technology's name is
+      // the one thing on this card a screen reader cannot make sense of.
+      chip.setAttribute('aria-label', `${place} in the research plan`);
+      card.append(chip);
+    }
     // Last, so it is heard after the node has been read out rather than before
     // it has been named. See `refusal` above for why it is not a `title`.
     if (refusal) card.append(element('span', 'sr-only', refusal));
 
-    card.addEventListener('click', () => {
+    // Two gestures, one command. A plain click *aims* — the target's
+    // unresearched prerequisites come with it and the whole list becomes the
+    // plan — and a shifted one *adds*, keeping what is already lined up. Both
+    // are the user's own words for the feature ("clicking a technology that
+    // can't be researched will auto-queue all prerequisites. Holding shift will
+    // add more technologies to the queue"), and neither is a lesson in the tree:
+    // the expansion is `researchExpansion`'s, made by the reducer.
+    card.addEventListener('click', (event) => {
       if (!choosable) return;
-      const command: Command = { type: 'chooseResearch', playerId, techId: id };
-      if (!dispatch(getGame(), command).ok) return;
+      const command = chooseResearchCommand(playerId, id, event.shiftKey);
+      const result = dispatch(getGame(), command);
+      if (!result.ok) {
+        // The board moved under the click — say so rather than swallowing it.
+        refuse(result.error);
+        return;
+      }
       render();
       // The card that was clicked no longer exists — the chart is rebuilt from
       // the new state — so the keyboard is handed to the node that replaced it
@@ -663,11 +894,101 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   /** The field the cards are placed on, kept so measurement has an origin. */
   let field: HTMLElement | null = null;
 
+  // --- the plan strip ------------------------------------------------------
+
+  /**
+   * The plan along the foot of the sheet, head first: "① Earthenware ~3t ×".
+   *
+   * The third fold of `researchPlan` on this screen, and the one that answers a
+   * question the chart cannot: the numerals on the nodes say *which* order, and
+   * this says the order itself, in one line, without the player having to find
+   * six stars scattered over four columns to read it.
+   *
+   *   · **The schedule is `queueTurns`**, not `turnsToTech` per row. The costs
+   *     accumulate against one pool and at most one technology lands per turn,
+   *     so a per-node reading would promise the whole plan arriving at once.
+   *   · **Every × carries what it would take with it** (`dequeueTitle`), because
+   *     `dequeueResearch` cascades and a button that removed four rows having
+   *     said it would remove one is a button nobody presses twice.
+   *   · **A × is greyed with the reducer's own sentence** — `dequeueResearchError`
+   *     — for the same reason every other control in this game is.
+   *
+   * Hidden while the plan is one node long, which is the state every game
+   * starts in and returns to: a strip holding only what the research card at
+   * the top-left already says would be a second readout of one fact. Hiding is
+   * the `hidden` attribute on a flex sibling of the stage, so the height goes
+   * back to the lanes — which is why this is called *before* `spaceLanes` runs.
+   */
+  function renderPlanStrip(): void {
+    const { state } = getGame();
+    const playerId = localPlayerId();
+    const player = state.players[playerId];
+    const plan = player ? researchPlan(player) : [];
+    const steps = queueTurns(state, playerId);
+    const ended = hasEndedTurn(state, playerId);
+
+    planStrip.replaceChildren();
+    planStrip.hidden = !planIsQueue(plan);
+    if (planStrip.hidden) return;
+
+    planStrip.append(element('span', 'tech-plan-label', 'the plan'));
+    const list = element('ol', 'tech-plan-list');
+    for (const [index, step] of steps.entries()) {
+      const def = techDef(step.techId);
+      const chip = element('li', 'tech-plan-chip');
+      chip.append(element('span', 'tech-plan-place', String(index + 1)));
+      chip.append(element('span', 'tech-plan-name', def.name));
+      // "~5t", in the node figures' own idiom — a tilde because it is an
+      // estimate at the current rate, and an em dash for an empire making no
+      // science at all, which has no schedule rather than a long one.
+      chip.append(
+        element('span', 'tech-plan-turns', step.turns === null ? '—' : `~${step.turns}t`),
+      );
+
+      const drop = element('button', 'tech-plan-drop', '✕');
+      drop.type = 'button';
+      const blocked = ended
+        ? `You have ended turn ${state.turn}`
+        : dequeueResearchError(state, playerId, step.techId);
+      drop.disabled = blocked !== null;
+      drop.title = blocked ?? dequeueTitle(plan, step.techId);
+      drop.setAttribute('aria-label', drop.title);
+      drop.addEventListener('click', () => {
+        const command: Command = {
+          type: 'dequeueResearch',
+          playerId,
+          techId: step.techId,
+        };
+        const result = dispatch(getGame(), command);
+        if (!result.ok) {
+          refuse(result.error);
+          return;
+        }
+        render();
+        // The chip that was pressed is gone and so, often, are the ones behind
+        // it — a cascade can empty half the strip. The keyboard goes to whatever
+        // now stands in its place, or to the row's end, or out of the strip
+        // entirely once the plan is back to one node.
+        const drops = planStrip.querySelectorAll<HTMLButtonElement>('.tech-plan-drop');
+        (drops[Math.min(index, drops.length - 1)] ?? closeButton).focus();
+        onChanged();
+      });
+      chip.append(drop);
+      list.append(chip);
+    }
+    planStrip.append(list);
+  }
+
   function renderChart(): void {
     // A rebuild is not a journey: choosing a research redraws every card, and
     // a chart that snapped back to column zero each time would make the player
     // find their place again for nothing.
     const wasAt = { left: chart.scrollLeft, top: chart.scrollTop };
+
+    // Before anything is measured. The strip is a flex sibling of the stage, so
+    // it appearing or going takes real height off `chart.clientHeight` — and
+    // `spaceLanes` below spends exactly that height on the lanes.
+    renderPlanStrip();
 
     // Every node is about to be replaced, so an open card would be left
     // pointing at a star that no longer exists. Same reason the city panel

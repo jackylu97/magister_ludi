@@ -303,8 +303,14 @@ export function tileYieldLineNodes(
  * of on ground it has explored. The explored check is what keeps a hand-edited
  * save from floating a remembered town over Terra Incognita — the same guard
  * `cityBanners.ts` makes, and for the same reason.
+ *
+ * Exported since the unit sheet started *naming* a march's destination
+ * (`marchDestination`, `unitPanel.ts`): "marching to Uruk" about a town this
+ * seat has never laid eyes on would be a leak dressed as a convenience, and a
+ * second copy of this rule is how the two surfaces would come to disagree about
+ * a remembered city.
  */
-function knowsCity(state: GameState, playerId: number, cityId: number, tile: Tile): boolean {
+export function knowsCity(state: GameState, playerId: number, cityId: number, tile: Tile): boolean {
   if (isVisibleTo(state, playerId, tile.col, tile.row)) return true;
   return (
     citySightingOf(state, playerId, cityId) !== null &&

@@ -2988,6 +2988,18 @@ kbd {
   color: var(--ink);
 }
 
+/* Why the citizens moved: a footnote to the row above it, in the running face
+   rather than the mono eyebrow, so it reads as a remark and not as another
+   figure. Only on the towns that are actually chasing hammers — see
+   `renderCitizenFocus`. */
+.city-focus {
+  margin: 0 0 6px;
+  font-family: var(--face-ui);
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
 /* --- progress bars: chunky, ink-bordered, flat fills ---------------------- */
 
 .city-progress {
@@ -3480,6 +3492,21 @@ kbd {
   color: var(--ink-soft);
 }
 
+/* The standing orders, which are a *decision this player made* rather than an
+   observation about the piece — so the rule down its hoist and the full-strength
+   ink, where the notes above it are grey. Same mono figures: the "~4 turns" is a
+   number and reads as one. */
+.unit-orders {
+  margin: 9px 0 0;
+  padding-left: 7px;
+  border-left: 2px solid var(--lapis);
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
 /* A list, not a button: fortify, sleep and the rest are the same shape and
    stack under this one as they arrive. */
 .unit-actions {
@@ -3619,6 +3646,19 @@ kbd {
   color: rgba(247, 242, 225, 0.7);
 }
 
+/* The caption line while it is carrying a refusal instead of the travel hint
+   (`refuse`, techTree.ts). Vermilion and full strength — a "no" that whispered
+   in the same grey as the instructions would not be read as a reply at all —
+   and on one line, so a long sentence cannot grow the head and push the chart
+   down under it. */
+.tech-hint.is-refusing {
+  max-width: 46ch;
+  overflow: hidden;
+  color: var(--vermilion-lit);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tech-close {
   flex: none;
   width: 26px;
@@ -3655,6 +3695,141 @@ kbd {
 
 .tech-chart.is-panning {
   cursor: grabbing;
+}
+
+/* --- the plan strip ---
+   The research plan along the foot of the sheet, head first. A flex sibling of
+   the stage rather than something floating over it, which is the load-bearing
+   part: `flex: none` here means the stage's `flex: 1` measures the height that
+   is actually left, and `spaceLanes` spends exactly that on the lanes. Hidden
+   (the attribute, set by `renderPlanStrip`) whenever the plan is a single
+   research and there is no queue to lay out. */
+.tech-plan {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 9px;
+  border-top: 1.5px solid rgba(200, 144, 31, 0.35);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200, 144, 31, 0.32) transparent;
+}
+
+.tech-plan[hidden] {
+  display: none;
+}
+
+.tech-plan-label {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gilt);
+}
+
+.tech-plan-list {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One queued technology: its place, its name, what it will take, and the way
+   out of it. The chip is a card in miniature — same border, same radius — so
+   the strip reads as a row of the same things the chart is made of. */
+.tech-plan-chip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 3px;
+  border: 1px solid rgba(247, 242, 225, 0.28);
+  border-radius: var(--radius-sm);
+  background: #1e1b22;
+  white-space: nowrap;
+}
+
+/* The head of the plan is what the beakers are actually pointed at, so it wears
+   the same lapis rim its node does. */
+.tech-plan-chip:first-child {
+  border-color: var(--y-sci-lit);
+}
+
+/* The numeral, in the ring the nodes wear it in — one mark, drawn twice, so the
+   eye can carry a number from the strip to a star without translating. */
+.tech-plan-place,
+.tech-node-place {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--gilt);
+  border-radius: 999px;
+  background: #16141a;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--gilt);
+}
+
+/* On a node it hangs off the corner rather than sitting inside the card: it is
+   a mark *about* the star, and absolutely placed so that renumbering — a
+   dequeue cascades and several can vanish at once — never reflows a lane. */
+.tech-node-place {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(38%, -38%);
+  box-shadow: 0 0 0 2px #16141a;
+}
+
+.tech-plan-name {
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 90;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--parchment);
+}
+
+.tech-plan-turns {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(247, 242, 225, 0.55);
+}
+
+/* The way out. Quiet until it is pointed at, because a row of six red crosses
+   would read as six warnings rather than as six removals. */
+.tech-plan-drop {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: rgba(247, 242, 225, 0.45);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tech-plan-drop:hover:not(:disabled) {
+  border-color: var(--vermilion);
+  color: var(--vermilion-lit);
+}
+
+.tech-plan-drop:disabled {
+  cursor: default;
+  opacity: 0.35;
 }
 
 .tech-chart::-webkit-scrollbar {
@@ -3921,6 +4096,19 @@ kbd {
 /* Locked: still legible — a chart you cannot read is not a chart. */
 .tech-node.is-locked {
   opacity: 0.42;
+}
+
+/* In the plan: a decision the player has already made, drawn in the gilt this
+   screen uses for "yours". A locked node comes most of the way back out of the
+   dim for it — the same lift the focus mode's rings take, and for the same
+   reason: the one thing a dimmed card must still be able to say is that it has
+   been chosen. */
+.tech-node.is-planned {
+  border-color: rgba(200, 144, 31, 0.55);
+}
+
+.tech-node.is-locked.is-planned {
+  opacity: 0.8;
 }
 
 .tech-node-head {
@@ -4816,6 +5004,13 @@ kbd {
   color: var(--vermilion);
 }
 
+/* "3 in the plan · ~11 turns" — the star chart's only user of this modifier,
+   and gilt because a plan is a decision already made rather than a state of the
+   world. It sits under the block/being-researched line, never instead of it. */
+.info-card-state.is-planned {
+  color: var(--gilt);
+}
+
 /* The unit sheet's own card, raised by the rows whose sentence is longer than a
    `title` should be — the rites (user, 2026-08-27). Its own class rather than
    the build list's, because a rite is not an *item*: there is no cost line, no
@@ -5015,6 +5210,13 @@ kbd {
 
 .info-card.is-night .info-card-state.is-blocked {
   color: #f0a48f;
+}
+
+/* The night card restates it for the same reason the blocked line does: the
+   rule above sets colour on the element itself and the night sweep would
+   otherwise grey out the one line on the card that is gilt on purpose. */
+.info-card.is-night .info-card-state.is-planned {
+  color: var(--gilt);
 }
 
 .info-card.is-night .info-card-mark {

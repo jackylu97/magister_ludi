@@ -311,3 +311,124 @@ describe('the vignette and the open city', () => {
     expect((focus.match(/renderer\.setCityFocus\?\./g) ?? []).length).toBe(2);
   });
 });
+
+/**
+ * A sixth promise, and the one this pass added: **the panel says why the
+ * citizens moved.**
+ *
+ * `assignCitizens` swaps to `citizenWeightsWhileHalted` whenever the front of
+ * the queue halts growth (playtest batch two: "a city should auto-work
+ * production tiles when creating a settler"), and a panel that showed a
+ * different assignment than it did last turn with nothing to account for it
+ * reads as the game shuffling citizens at random. The line is one sentence, only
+ * on the towns that are actually chasing hammers.
+ *
+ * Two halves, and the failure is only ever in the join between them: the
+ * *decision* is `citizenFocus`, which is asserted against the simulation, and
+ * the panel is asserted to ask it — a UI that re-derived "is there a settler at
+ * the front" would be a second reading of a rule the sim already owns, and would
+ * still be printing the line the day something other than a settler halts a town.
+ */
+
+import { citizenFocus, foundCityAt } from '../../src/sim/cities';
+import { type Tile, createMap, getTileAt } from '../../src/sim/map';
+import { type GameState, newGame } from '../../src/sim/state';
+import { resetVisibility } from '../../src/sim/visibility';
+
+/** The sentence, written once here and once in the panel — and nowhere else. */
+const FOCUS_LINE = 'Working for production — a settler is at the front.';
+
+function focusState(): GameState {
+  const state = newGame({
+    seed: 5,
+    sizeName: 'duel',
+    players: [
+      { name: 'A', color: '#a00', isHuman: true },
+      { name: 'B', color: '#00a', isHuman: true },
+    ],
+  });
+  state.map = createMap({ width: 16, height: 12, terrain: 'grassland' });
+  resetVisibility(state);
+  state.tileOwner = new Array<number | null>(16 * 12).fill(null);
+  state.units = [];
+  state.cities = [];
+  state.nextEntityId = 1;
+  return state;
+}
+
+function tileAt(state: GameState, col: number, row: number): Tile {
+  const tile = getTileAt(state.map, col, row);
+  if (!tile) throw new Error(`No tile at (${col}, ${row})`);
+  return tile;
+}
+
+describe('the citizen focus line', () => {
+  it('is silent while the town is simply growing', () => {
+    const state = focusState();
+    const city = foundCityAt(state, 0, tileAt(state, 6, 6));
+    city.queue = [{ kind: 'building', id: 'granary' }];
+    expect(citizenFocus(city)).toBe('balanced');
+  });
+
+  it('speaks when a settler is at the front of the queue', () => {
+    const state = focusState();
+    const city = foundCityAt(state, 0, tileAt(state, 6, 6));
+    city.queue = [{ kind: 'unit', id: 'settler' }];
+    expect(citizenFocus(city)).toBe('production');
+  });
+
+  it('is about the *front* of the queue and nothing further back', () => {
+    // The halt is a fact about what the hammers are going into right now, so a
+    // settler queued behind a granary changes nothing about where the citizens
+    // stand this turn.
+    const state = focusState();
+    const city = foundCityAt(state, 0, tileAt(state, 6, 6));
+    city.queue = [
+      { kind: 'building', id: 'granary' },
+      { kind: 'unit', id: 'settler' },
+    ];
+    expect(citizenFocus(city)).toBe('balanced');
+  });
+
+  it('is printed by the panel off that decision, not off a queue it reads itself', () => {
+    const text = source('cityPanel.ts');
+    expect(text).toContain(FOCUS_LINE);
+
+    // The printer's own body: it asks `citizenFocus` and asks nothing else. The
+    // rule this guards is that nothing here re-derives the halt — not from the
+    // queue's front, not from `haltsGrowth`, and certainly not by comparing a
+    // type against `"settler"`. The marker belongs to the simulation, and the
+    // day something other than a settler halts a town this sentence is the one
+    // place that needs a word rather than a second condition.
+    const at = text.indexOf('function renderCitizenFocus(');
+    expect(at).toBeGreaterThanOrEqual(0);
+    let depth = 0;
+    let printer = '';
+    for (let index = text.indexOf('{', at); index < text.length; index += 1) {
+      if (text[index] === '{') depth += 1;
+      else if (text[index] === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          printer = text.slice(at, index + 1);
+          break;
+        }
+      }
+    }
+    expect(printer).toContain(`citizenFocus(city) !== 'production'`);
+    expect(printer).not.toContain('haltsGrowth');
+    expect(printer).not.toContain('queue');
+    // The *quoted* id, not the word: the sentence itself says "a settler", which
+    // is prose about the one thing that halts a town today and not a comparison.
+    expect(printer).not.toContain("'settler'");
+  });
+
+  it('stands directly under the citizens’ row, which is what it is a note about', () => {
+    const text = source('cityPanel.ts');
+    const citizens = text.indexOf('container.append(renderCitizens(city));');
+    const focus = text.indexOf('const focus = renderCitizenFocus(city);');
+    const growth = text.indexOf('container.append(renderGrowth(city));');
+    expect(citizens).toBeGreaterThanOrEqual(0);
+    expect(focus).toBeGreaterThan(citizens);
+    expect(growth).toBeGreaterThan(focus);
+  });
+});

@@ -29,6 +29,7 @@ import {
   borderGrowth,
   cityStageSums,
   cityYields,
+  citizenFocus,
   explainCityBuildings,
   growthSurplus,
   growthThreshold,
@@ -961,6 +962,37 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return line;
   }
 
+  /**
+   * "Working for production — a settler is at the front."
+   *
+   * The one line that explains why a town's citizens have quietly moved off the
+   * wheat. `assignCitizens` swaps to `citizenWeightsWhileHalted` whenever growth
+   * is halted (playtest batch two), and without a word for it the panel simply
+   * shows a different assignment than it did last turn with nothing to account
+   * for the change — which reads as the game shuffling citizens at random.
+   *
+   * The question is asked of `citizenFocus`, the simulation's own readout, so
+   * this cannot say "production" about a town placing citizens the balanced way.
+   * It is deliberately the *decision* rather than the outcome — see that
+   * function's docblock for why the starvation guard putting the balanced sheet
+   * back does not change the sentence — and it says nothing at all while the
+   * town is growing normally, because a line that is always there is a line
+   * nobody reads.
+   *
+   * "a settler is at the front" is the shape of every halt there is today; the
+   * marker is the queue row's `haltsGrowth` and nothing here compares a type
+   * against `"settler"`, so the day something else halts a town this sentence is
+   * the one place that needs a word.
+   */
+  function renderCitizenFocus(city: City): HTMLElement | null {
+    if (citizenFocus(city) !== 'production') return null;
+    return element(
+      'p',
+      'city-focus',
+      'Working for production — a settler is at the front.',
+    );
+  }
+
   function bar(value: number, total: number, className: string): HTMLElement {
     const track = element('div', 'city-bar');
     const fill = element('div', `city-bar-fill ${className}`);
@@ -1427,6 +1459,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
     container.append(renderYields(city));
     container.append(renderCitizens(city));
+    // Directly under the citizens' row, because it is a note about *that* row:
+    // why those hexes and not the ones the town worked last turn.
+    const focus = renderCitizenFocus(city);
+    if (focus) container.append(focus);
     container.append(renderGrowth(city));
     container.append(renderProduction(city));
     // After production, because the two food/hammer baskets are what a player

@@ -268,6 +268,39 @@ const NOTICE_MS = 1800;
 /** What the context card says while move mode is armed. */
 const MOVE_MODE_NOTICE = 'Move mode — click a destination (Esc cancels)';
 
+/**
+ * And while the piece in hand has nothing left to spend this turn.
+ *
+ * **A spent unit is not an unorderable one** (playtest batch two). The reducer
+ * takes a march from a piece with zero movement and stores the whole route as
+ * standing orders — `advanceAlongPath` simply takes no step it cannot pay for —
+ * so the last click of a unit's turn stopped being the one click that did
+ * nothing. Nothing in this module ever refused that order; what *said* it was
+ * impossible was the board, because `reachableTiles` reports the tiles a unit
+ * can end **this turn** on and a spent piece has none, so arming move mode over
+ * one lights nothing at all.
+ *
+ * That silence is the honest answer to the question the ring asks and the wrong
+ * answer to the question the player is asking, so the line says the other half
+ * out loud rather than the highlight pretending to a reach the turn does not
+ * have. The order lands, the unit sheet's Orders line confirms it, and the march
+ * begins when `resetMovement` refills the purse.
+ */
+const MOVE_MODE_SPENT_NOTICE =
+  'Move mode — spent for this turn; click a destination and it sets off on the next (Esc cancels)';
+
+/**
+ * Which of the two move-mode lines a piece with `movesLeft` points left gets.
+ *
+ * Split out and exported for the test: the difference between the two sentences
+ * is a *rule* — that an order given at zero movement is stored rather than
+ * refused — and a rule asserted by reading a screenshot is a rule nobody
+ * asserts. See `MOVE_MODE_SPENT_NOTICE`.
+ */
+export function moveModeNotice(movesLeft: number): string {
+  return movesLeft > 0 ? MOVE_MODE_NOTICE : MOVE_MODE_SPENT_NOTICE;
+}
+
 /** And while the city screen's Buy Tiles mode is up. */
 const BUY_MODE_NOTICE = 'Buy tiles — click a priced hex to purchase it (Esc cancels)';
 
@@ -1344,7 +1377,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function publishNotice(): void {
     if (rejection !== null) onNotice?.(rejection, 'reject');
     else if (guidance !== null) onNotice?.(guidance, 'guide');
-    else if (moveMode) onNotice?.(MOVE_MODE_NOTICE, 'mode');
+    // Two sentences, because a spent piece can still be ordered and the board
+    // cannot say so — see `MOVE_MODE_SPENT_NOTICE`. Asked of the live selection
+    // rather than latched at arming time: a unit that spends its last point
+    // *while* move mode is up (there is no such gesture today, and the line
+    // should still be right the day there is) re-reads on the next publish.
+    else if (moveMode) onNotice?.(moveModeNotice(selectedUnit()?.movesLeft ?? 0), 'mode');
     // Below move mode, because the two cannot be armed together — opening a city
     // disarms a move order (see `setOpenCity`) and buy mode lives inside an open
     // city — but the order is stated rather than assumed, so the line stays

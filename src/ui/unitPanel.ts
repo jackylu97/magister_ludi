@@ -46,10 +46,13 @@ import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
 import { explainAuthority, meterStanding } from '../sim/meters';
 import { inZoneOfControl, pathTurns } from '../sim/pathfind';
-import type { Unit } from '../sim/state';
+import { cityAt } from '../sim/cities';
+import type { GameState, Unit } from '../sim/state';
 import type { TileYield } from '../sim/terrainData';
 import { unitDef } from '../sim/unitData';
 import type { ImprovementOption } from './controls';
+import { cityDisplayName } from './cityDisplay';
+import { describeTile, knowsCity } from './tileReadout';
 import { HAMMER, YIELD_GLYPH, signedFigure } from './figures';
 import { createInfoCard } from './infoCard';
 import { yieldFigureNodes } from './yieldMark';
@@ -296,6 +299,54 @@ function element<K extends keyof HTMLElementTagNameMap>(
   if (className) el.className = className;
   if (text !== undefined) el.textContent = text;
   return el;
+}
+
+/**
+ * What the far end of a standing order is *called* — "Uruk", "Forest (14, 9)",
+ * "(14, 9)".
+ *
+ * A route is a list of coordinates, and a sheet that printed the last pair of
+ * them would be asking the player to hold a map in their head. So the hex is
+ * named the way every other surface in this interface names one: a town if this
+ * seat knows there is a town there, otherwise the ground, with the coordinates
+ * kept beside it because two forests look identical in a sentence.
+ *
+ * Two rules are borrowed rather than restated, which is the whole reason this is
+ * a function and not three lines inside `render`:
+ *
+ *   · **`knowsCity`** (`tileReadout.ts`) decides whether the town may be named
+ *     at all. "Marching to Uruk" about a city this seat has never seen would be
+ *     the unit sheet leaking the map, and the banners' rule is the one already
+ *     written down for exactly this question.
+ *   · **`describeTile`** names the ground, so a hex reads the same here as it
+ *     does in the context card under the pointer.
+ *
+ * Pure, and exported for the test that pins those two borrowings: the failure
+ * this guards against is a sentence that is merely wrong, which no thrown error
+ * would ever catch.
+ */
+export function marchDestination(
+  state: GameState,
+  playerId: number,
+  cell: { col: number; row: number },
+): string {
+  const where = `(${cell.col}, ${cell.row})`;
+  const tile = getTileAt(state.map, cell.col, cell.row);
+  // An order aimed off the map is not a thing the reducer will take, so this is
+  // a hand-edited save or a stale path; the coordinates are still the truth.
+  if (!tile) return where;
+
+  const city = cityAt(state, tile.col, tile.row);
+  if (city && knowsCity(state, playerId, city.id, tile)) {
+    return cityDisplayName(state, city);
+  }
+
+  const { terrain, feature, hills } = describeTile(tile);
+  // The feature is what the eye sees first — a march into a forest is a march
+  // into a forest whatever the soil under it is — and the hills are the one
+  // fact about bare ground worth a word, being what the route will cost.
+  const ground = feature ?? (hills ? `${terrain} hills` : terrain);
+  return `${ground} ${where}`;
 }
 
 export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
@@ -637,12 +688,14 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       });
     }
     // Only offered while there is something to cancel: a permanently disabled
-    // "Cancel Order" on every unit that has never been given one would be a
-    // button that means nothing, exactly as Found City is on a warrior.
+    // "Cancel Orders" on every unit that has never been given one would be a
+    // button that means nothing, exactly as Found City is on a warrior. The
+    // label is the plural the Orders line above uses, so the button reads as the
+    // answer to that line rather than as a verb about something else.
     if (unit.path && unit.path.length > 0) {
       const blocker = cancelOrderBlocker();
       actions.push({
-        label: 'Cancel Order',
+        label: 'Cancel Orders',
         blocked: blocker === undefined ? 'No unit selected' : blocker,
         hint: 'Stop here and forget the rest of the route',
         run: onCancelOrder,
@@ -856,13 +909,29 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       container.append(element('p', 'unit-note', notes.join(' · ')));
     }
 
-    // A unit with stored orders is going somewhere by itself. The board draws
-    // the route it will walk (dimmer than a hovered preview — see
-    // `MapView.setCommittedPath`); this says how long it will be busy, which the
-    // route cannot, and it is the line the Cancel Order button below answers.
-    if (unit.path && unit.path.length > 0) {
+    // **What this piece has been told to do**, which is the question a player
+    // clicking a unit is asking (user, playtest batch two: "clicking a unit
+    // should show its current orders"). It used to say only "En route", which
+    // is the one fact the board already draws for itself — `setCommittedPath`
+    // paints the whole route under the selected piece — and left the two facts
+    // a route cannot carry unsaid: *where* it ends and *how long* it will be.
+    //
+    // Both come from somewhere that already knows: `marchDestination` names the
+    // hex by the banners' own rule, and `turnsRemaining` is `pathTurns`, the
+    // movement evaluator's arithmetic rather than a copy of it. It is the line
+    // the Cancel Orders button below answers, and it is the only readout a unit
+    // ordered at zero movement gets — such a piece walks nothing this turn, so
+    // nothing on the board moves and this sentence is the whole confirmation
+    // that the order was taken.
+    const orders = unit.path;
+    if (orders && orders.length > 0) {
+      const target = marchDestination(getGame().state, unit.ownerId, orders[orders.length - 1]!);
       container.append(
-        element('p', 'unit-note', `En route · ~${turnsRemaining(unit)} turns`),
+        element(
+          'p',
+          'unit-orders',
+          `Orders: marching to ${target} · ~${turnsRemaining(unit)} turns`,
+        ),
       );
     }
 
