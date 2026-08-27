@@ -117,64 +117,122 @@ Three tiers, the Doctrine split (`docs/statecraft-cards.md`), roughly 2 / 4 / 4 
 Per-person legacies for the full Heroes and Empire roster are written once the initial-cut
 question is ruled — that is where the content volume is.
 
-## The roster — starter names by age and family
+## The roster — the long list (≈2× what ships; cut freely)
 
-Register per Entry III and VII: *half-remembered* people, real kernels, the wunderkammer
-rather than the textbook. Each row is name · one-line epigram · why them. Leaders (the
-seats' own faces) are a separate roster and never appear here.
+**Ruled 2026-08-27 (user):** the family **boons** stay (a scholar's science burst, an
+engineer's hurry, the works) and every person *also* leaves a permanent **legacy** on the
+government. Eighty names below, twenty per age, four per family, so the cut can keep the
+best ten or twelve. Tiers: **★** game-defining with a malice · **●** generic strong ·
+**○** situational, no malice. Every legacy is written in the card vocabulary (flats,
+conditions, `combatLine`, `unitStat`, `cityStat`, `meterRule`, `offerRider`, `windfallRider`,
+tile conditions); the two or three that would need a new shape are marked *(new shape)*.
+Register per Entry III and VII: half-remembered people, real kernels, the wunderkammer
+rather than the textbook; no rulers (they are the leader roster's). Epigrams are one line.
 
 ### Æra II — Heroes
 
-| family | name | epigram | kernel |
-|---|---|---|---|
-| Scholar | **Imhotep** | *"He read the sky and then the stone."* | vizier, physician, the first architect with a name |
-| Scholar | **Ahmes** | *"Here is the way of every dark thing."* | the scribe of the Rhind papyrus — its opening line |
-| Artist | **Enheduanna** | *"I am the priestess; I write."* | the first author in history to sign her name |
-| Artist | **Homer** | *"Blind, and the whole war before him."* | the bard; the Iliad is the age's book |
-| Engineer | **Senenmut** | *"Every terrace of it was his."* | Hatshepsut's architect, Deir el-Bahari |
-| Engineer | **Amenhotep son of Hapu** | *"They made him a god for building."* | the deified overseer of works |
-| Merchant | **Ea-nāṣir** | *"You said the copper was fine."* | the merchant whose customers' complaint tablets survive — the wunderkammer's patron saint |
-| Merchant | **Kushim** | *"29,086 measures barley 37 months."* | the first named person in writing — an accountant |
-| General | **Ahmose son of Ebana** | *"I took a hand. I was given gold."* | the soldier whose tomb autobiography counts his trophies |
-| General | **Piyamaradu** | *"The king wrote to the king about him."* | the Hittite-Mycenaean freebooter no treaty could hold |
+| family | name | tier | legacy | epigram · kernel |
+|---|---|---|---|---|
+| Scholar | **Imhotep** | ● | +1⚙ in every city with a monument | *"He read the sky and then the stone."* · vizier, physician, the first architect with a name |
+| Scholar | **Ahmes** | ○ | +2🔬 in every city on a river | *"Here is the way of every dark thing."* · the scribe of the Rhind papyrus, its opening line |
+| Scholar | **Kidinnu** | ★ | capital +30% 🔬, but every city's border growth −25% — eyes on the sky, not the land | *"He knew where the moon would be in a hundred years."* · Babylonian astronomer; the lunar tables |
+| Scholar | **Ptahhotep** | ○ | +1 authority capacity per library | *"Great is the law; enduring."* · the Maxims, the oldest book of advice |
+| Artist | **Enheduanna** | ● | capital +3🎵; shrines +1🎵 | *"I am the priestess; I write."* · the first author to sign her name |
+| Artist | **Homer** | ★ | a fallen unit pays 🎵 ×3 (Epic Poetry's line, tripled), but units cannot heal outside your borders — they march for the song | *"Blind, and the whole war before him."* · the bard |
+| Artist | **Sin-lēqi-unninni** | ● | amphitheaters and the Hall of Deeds +2🎵 | *"He who saw the deep."* · compiler of the standard Gilgamesh |
+| Artist | **Ilimilku** | ○ | coastal cities +2🎵 | *"He wrote the storm-god down."* · the Ugaritic scribe of the Baal cycle |
+| Engineer | **Senenmut** | ● | buildings −10% ⚙ | *"Every terrace of it was his."* · Hatshepsut's architect |
+| Engineer | **Hemiunu** | ★ | wonders −30% ⚙ everywhere, but −2 happiness while any wonder is in a queue — the levies | *"Two million stones, and his name on none."* · the Great Pyramid's overseer |
+| Engineer | **Amenhotep son of Hapu** | ○ | wonders in the capital +20% ⚙ | *"They made him a god for building."* · the deified overseer of works |
+| Engineer | **Bezalel** | ○ | cities with a shrine or temple +1⚙ +1🕯 | *"Filled with the spirit, in all manner of workmanship."* · the tabernacle's artisan |
+| Merchant | **Ea-nāṣir** | ★ | copper and tin tiles +3🪙, but every luxury you hold counts one fewer for happiness | *"You said the copper was fine."* · the complaint tablets; the wunderkammer's patron |
+| Merchant | **Kushim** | ● | +1🪙 per granary | *"29,086 measures barley 37 months."* · the first named person in writing — an accountant |
+| Merchant | **Aššur-idī** | ○ | +2🪙 in every city that is not the capital — the colony trade | *"Send the tin by the next donkeys."* · Old Assyrian trader of the Kanesh letters |
+| Merchant | **Lamassī** | ○ | plantations and pastures +1🪙 — textiles for the caravans | *"I wove the cloth; you sold it short."* · the merchant's wife whose letters survive |
+| General | **Ahmose son of Ebana** | ● | melee units +1 combat | *"I took a hand. I was given gold."* · the soldier's tomb autobiography |
+| General | **Piyamaradu** | ★ | units +3 combat outside your borders, but −2 authority capacity — no treaty could hold him | *"The king wrote to the king about him."* · the Hittite-Mycenaean freebooter |
+| General | **Sinuhe** | ○ | units heal +5 anywhere — the wanderer's medicine | *"I fled, and no one pursued."* · the exile who fought for Retjenu and came home |
+| General | **Deborah** | ○ | +25% combat within two hexes of your own city | *"The stars in their courses fought."* · the judge who led at Kishon |
 
 ### Æra III — Empire
 
-| family | name | epigram | kernel |
-|---|---|---|---|
-| Scholar | **Archimedes** | *"Do not disturb my circles."* | the siege of Syracuse; the last words |
-| Scholar | **Zhang Heng** | *"The dragon dropped its ball toward the earthquake."* | the seismoscope, the armillary sphere |
-| Scholar | **Eratosthenes** | *"He measured the world with a well and a stick."* | the circumference of the earth |
-| Artist | **Sappho** | *"Someone will remember us."* | the tenth muse; the surviving fragment |
-| Artist | **Sima Qian** | *"He finished the Records rather than die."* | the Grand Historian |
-| Engineer | **Li Bing** | *"He cut the mountain and the river obeyed."* | Dujiangyan, still watering the plain |
-| Engineer | **Hero of Alexandria** | *"The temple doors opened by themselves."* | pneumatics; the staged miracle |
-| Merchant | **Zhang Qian** | *"He went west and came back with the world."* | the envoy who opened the Silk Road |
-| Merchant | **Hippalus** | *"He learned when the wind turned."* | the monsoon route to India |
-| General | **Hannibal** | *"We will find a way, or make one."* | the Alps; the elephants |
-| General | **Han Xin** | *"Backs to the river, they could not lose."* | the battle of Jingxing |
-| General | **Boudica** | *"They burned three cities before the road."* | the rising |
+| family | name | tier | legacy | epigram · kernel |
+|---|---|---|---|---|
+| Scholar | **Archimedes** | ★ | siege units +50% vs cities; the legacy is *lost* the turn an enemy enters his city | *"Do not disturb my circles."* · Syracuse |
+| Scholar | **Hypatia** | ★ | +20% 🔬 empire-wide; lost the first turn happiness goes negative — the mob | *"Reserve your right to think."* · Alexandria |
+| Scholar | **Zhang Heng** | ● | libraries +2🔬 | *"The dragon dropped its ball toward the earthquake."* · the seismoscope |
+| Scholar | **Eratosthenes** | ○ | +1🔬 per continent you have revealed | *"He measured the world with a well and a stick."* · the circumference |
+| Artist | **Sappho** | ● | capital +2🎵, +1 happiness | *"Someone will remember us."* · the fragment |
+| Artist | **Qu Yuan** | ★ | +30% 🎵 empire-wide, but capital −2 happiness — the exile's lament | *"The road is long; I will search high and low."* · the poet of the Chu Ci |
+| Artist | **Sima Qian** | ○ | +1🎵 in every city per age that has closed | *"He finished the Records rather than die."* · the Grand Historian |
+| Artist | **Phidias** | ○ | each wonder +3🎵 | *"He put his own face on the shield."* · the Parthenon's sculptor |
+| Engineer | **Li Bing** | ○ | farms beside a river +1🌾 | *"He cut the mountain and the river obeyed."* · Dujiangyan |
+| Engineer | **Hero of Alexandria** | ● | workshops +2⚙ | *"The temple doors opened by themselves."* · pneumatics |
+| Engineer | **Vitruvius** | ● | cities with an aqueduct +2⚙, +1 happiness | *"Firmness, commodity, delight."* · the ten books |
+| Engineer | **Eupalinos** | ○ | cities adjacent to a mountain +2🌾 — the tunnel | *"They met in the middle of the hill."* · Samos |
+| Merchant | **Zhang Qian** | ● | +2🪙 per connected city | *"He went west and came back with the world."* · the Silk Road's envoy |
+| Merchant | **Hippalus** | ○ | fishing boats +1🪙; embarked units +1 movement | *"He learned when the wind turned."* · the monsoon |
+| Merchant | **Crassus** | ★ | purchases −30% 🪙, but every purchase −1 happiness for 10 turns — the fire brigade | *"No man is rich who cannot pay an army."* · the fire brigade; Carrhae |
+| Merchant | **Pytheas** | ○ | coastal cities and scouts +1 sight | *"Where the sea congeals."* · Massalia to Thule |
+| General | **Hannibal** | ★ | +5 attacking in foreign territory, −4 defending in your own — the army that never came home | *"We will find a way, or make one."* · the Alps |
+| General | **Han Xin** | ● | units +2 combat when adjacent to a river or coast | *"Backs to the river, they could not lose."* · Jingxing |
+| General | **Boudica** | ○ | +25% defending inside your borders, for the age she was recruited in | *"They burned three cities before the road."* · the rising |
+| General | **Spartacus** | ○ | units +3 combat when attacking at a strength disadvantage | *"He left the school with kitchen knives."* · Vesuvius |
 
-### Æra IV — Cathedrals (candidates)
+### Æra IV — Cathedrals
 
-Scholars: **al-Khwārizmī** (*"the reckoning by restoration"*), **Shen Kuo** (*Dream Pool
-Essays*), **Hildegard of Bingen**, **Ibn Sīnā** · Artists: **Murasaki Shikibu**, **Snorri
-Sturluson**, **Rūmī** · Engineers: **al-Jazarī** (the automata), **Su Song** (the water
-clock), **Villard de Honnecourt** (the sketchbook) · Merchants: **Ibn Baṭṭūṭa**, **Marco
-Polo**, **Benjamin of Tudela** · Generals: **Subutai**, **Tomoe Gozen**, **El Cid**,
-**Jan Žižka** (the wagon fort; blind, undefeated).
+| family | name | tier | legacy | epigram · kernel |
+|---|---|---|---|---|
+| Scholar | **al-Khwārizmī** | ● | universities +3🔬 | *"The reckoning by restoration and balancing."* · al-jabr |
+| Scholar | **Shen Kuo** | ○ | +1🔬 per improved strategic resource | *"The needle points south, and a little east."* · the Dream Pool Essays |
+| Scholar | **Ibn Sīnā** | ● | +1 happiness in every city — the Canon | *"Medicine is not hard; the hard part is the patient."* · the Canon of Medicine |
+| Scholar | **Āryabhaṭa** | ○ | cities with a shrine +2🔬 — the sky read from the temple | *"The earth turns; the stars do not."* · the Āryabhaṭīya |
+| Artist | **Murasaki Shikibu** | ● | capital +3🎵, every other city +1🎵 | *"The world is a floating bridge of dreams."* · the Tale of Genji |
+| Artist | **Snorri Sturluson** | ★ | a fallen unit pays 🎵 and 🕯 (both), but −2 authority capacity — the chieftain who wrote treason | *"He told the kings' lives and lost his own."* · the Edda, the Heimskringla |
+| Artist | **Rūmī** | ○ | cities with a temple +2🎵, +1 happiness | *"Out beyond ideas of wrongdoing…"* · the Masnavi |
+| Artist | **Sei Shōnagon** | ○ | +1🎵 per luxury you hold | *"Things that make the heart beat faster."* · the Pillow Book |
+| Engineer | **al-Jazarī** | ● | workshops +3⚙ | *"It poured the wine and bowed."* · the automata |
+| Engineer | **Su Song** | ○ | capital +2🔬 +2⚙ | *"The tower kept the hours and the heavens."* · the water clock |
+| Engineer | **Villard de Honnecourt** | ● | buildings and wonders −15% ⚙ | *"Drawn from life, and from thought."* · the sketchbook |
+| Engineer | **Li Jie** | ★ | buildings −25% ⚙, but border growth −25% in every city — the state's every hammer | *"A standard for every beam."* · the Yingzao Fashi |
+| Merchant | **Benjamin of Tudela** | ● | +1🪙 per city | *"He counted every congregation."* · the Itinerary |
+| Merchant | **Ibn Baṭṭūṭa** | ○ | +1🪙 per foreign city you have sighted | *"Thirty years, and I never took the same road twice."* · the Rihla |
+| Merchant | **Marco Polo** | ○ | +3🪙 per trade route to another empire *(needs trade routes)* | *"I have not told the half."* · the Travels |
+| Merchant | **Francesco Datini** | ● | markets +2🪙 | *"In the name of God and of profit."* · the merchant of Prato's ledgers |
+| General | **Subutai** | ★ | mounted +1 movement and +5 attacking, but every city −5 defense — the horde has no walls | *"He conquered thirty nations from the saddle."* · the Mongol strategist |
+| General | **Tomoe Gozen** | ● | mounted and ranged +2 combat | *"A warrior worth a thousand."* · the Heike |
+| General | **Jan Žižka** | ○ | fortified units +5 defense — the wagon fort | *"Blind, and undefeated."* · the Hussite wars |
+| General | **El Cid** | ○ | units +3 combat in cities you captured | *"He won a battle dead."* · Valencia |
 
-### Æra V — Magister (candidates)
+### Æra V — Magister
 
-Scholars: **Paracelsus** (*"the dose makes the poison"*), **Tycho Brahe** (the brass nose,
-the island observatory), **John Dee** (the angelic conversations — the hermetic register's
-own magister), **Copernicus** · Artists: **Christine de Pizan**, **Albrecht Dürer** (the
-rhinoceros he never saw), **Hildegard**'s successor if not used above · Engineers:
-**Leonardo** (the notebooks), **Taqī al-Dīn** (the Istanbul observatory), **Jacques de
-Vaucanson** (the digesting duck — the Clockwork Servant's kernel), **Ada Lovelace** (the
-Engine's one programmer; the magister's dream reaches her) · Merchants: **Jakob Fugger**,
-**Zheng He** (the treasure fleet), **Cosimo de' Medici** · Generals: **Gustavus Adolphus**,
-**Nzinga of Ndongo**, **Yi Sun-sin** (the turtle ships; never lost).
+| family | name | tier | legacy | epigram · kernel |
+|---|---|---|---|---|
+| Scholar | **Paracelsus** | ★ | +25% 🔬 empire-wide, but every city −1 happiness — the dose | *"The dose makes the poison."* · the alchemist-physician |
+| Scholar | **Tycho Brahe** | ○ | cities on hills or beside a mountain +3🔬 | *"A brass nose, and an island for the stars."* · Uraniborg |
+| Scholar | **John Dee** | ● | every draft shows one extra card *(offerRider)* | *"The angels speak in a language of their own."* · the magister's own magister |
+| Scholar | **Copernicus** | ● | +2🔬 in every city | *"He stopped the sun and moved the earth."* · De revolutionibus |
+| Artist | **Christine de Pizan** | ● | +3🎵 and +1 authority capacity in the capital | *"A city of ladies, built of reason."* · the first professional woman of letters |
+| Artist | **Dürer** | ○ | +2🎵 per wonder — the prints | *"A rhinoceros he never saw, drawn perfectly."* · the woodcuts |
+| Artist | **Bashō** | ○ | forest tiles you work +1🎵 | *"Even in Kyoto, I long for Kyoto."* · the narrow road |
+| Artist | **Sor Juana** | ○ | universities +2🎵 | *"I do not study to know more, but to ignore less."* · the tenth muse of Mexico |
+| Engineer | **Leonardo** | ★ | engineer boons doubled and wonders −30% ⚙, but projects pay half — he never finishes | *"Art is never finished, only abandoned."* · the notebooks |
+| Engineer | **Taqī al-Dīn** | ● | capital +3🔬 +2⚙ | *"He measured the comet and they tore the tower down."* · the Istanbul observatory |
+| Engineer | **Mimar Sinan** | ○ | temples and cathedrals −30% ⚙, +1🎵 | *"An apprentice's mosque, a journeyman's, a master's."* · the Süleymaniye |
+| Engineer | **Vaucanson** | ○ | workers +1 charge | *"It ate, it digested, it— well."* · the mechanical duck |
+| Merchant | **Jakob Fugger** | ★ | +30% 🪙 and purchases −20%, but −1 authority capacity per three cities — he bought the emperor | *"Rich by the grace of God."* · the Fugger bank |
+| Merchant | **Zheng He** | ● | coastal cities +3🪙; embarked units +2 movement | *"Seven voyages, and then the ships were burned."* · the treasure fleet |
+| Merchant | **Gracia Mendes Nasi** | ● | new cities are founded with +1 population | *"She moved a whole people by ledger."* · the House of Mendes |
+| Merchant | **Cosimo de' Medici** | ○ | +1🎵 per 50🪙 in the treasury, up to +6 | *"Patron of everything, prince of nothing."* · the bank that bought a Renaissance |
+| General | **Gustavus Adolphus** | ● | ranged +2 combat; siege +1 movement | *"The Lion of the North."* · Breitenfeld |
+| General | **Nzinga of Ndongo** | ○ | units +5 defending in forest or jungle | *"She sat on her servant's back rather than the floor."* · the forty-year war |
+| General | **Yi Sun-sin** | ○ | naval units +5 combat *(needs naval units)* | *"Thirteen ships against three hundred."* · Myeongnyang |
+| General | **Lautaro** | ○ | units +3 combat vs mounted | *"He learned their horses and turned them."* · the Mapuche toqui |
+
+**Counts:** 80 names · per age 4★ / 8● / 8○ → cut to ~2★ / 4● / 4○ per age as the Doctrine
+philosophy suggests, or keep the long list and let the roster's *depth* be what makes two
+games differ. Marked as waiting on content: Marco Polo (trade routes), Yi Sun-sin (naval
+units); Homer and Snorri assume Epic Poetry's death-culture line.
 
 ## What this needs, and what it reuses
 
