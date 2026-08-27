@@ -91,7 +91,7 @@ drawMarkFamilies(
   const root = open(
     'heraldry',
     'Heraldry',
-    'A seat’s charge, on the two grounds it actually prints on: the parchment canton of a city flag or a unit badge, and the top bar’s seat chip.',
+    'A seat’s charge, on the two grounds it actually prints on: the parchment canton of a city flag, and the top bar’s seat chip.',
   );
   drawHeraldry(root);
   drawSeatChips(root);

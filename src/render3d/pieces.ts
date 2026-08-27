@@ -100,7 +100,6 @@
 
 import { Group, type Material, Matrix4, Mesh, Quaternion, type Texture, Vector3 } from 'three';
 
-import { heraldryFor } from '../art/heraldryMarks';
 import { chargesLeft, isBuilder } from '../sim/improvements';
 import type { GameMap } from '../sim/map';
 import type { GameState, Unit } from '../sim/state';
@@ -591,9 +590,6 @@ export class UnitLayer {
           unit.id === selectedUnitId,
           slots,
         );
-        if (icons) {
-          this.addCrest(state, unit, placement, visualHeight, geometry, collector, faceCamera, icons, slots);
-        }
         if (icons && isBuilder(unit)) {
           this.addChargeBadge(
             unit,
@@ -678,73 +674,6 @@ export class UnitLayer {
         // The rim travels with its disc: same draw order, so the two halves of
         // one badge can never end up on opposite sides of a ring.
         { overlay: true, opacity: 1, order: RENDER_ORDER.badge },
-      ),
-    );
-  }
-
-  /**
-   * The seat's crest: the owner's heraldic charge, bossed at the badge's
-   * **lower-left** corner.
-   *
-   * Why the rim and not the face
-   * ----------------------------
-   * Both were tried at game zoom (the brief asked for both). A badge is about
-   * forty pixels across and its face is already spoken for by the class icon —
-   * a foot, a bow, a horse — which is the one mark on the board that has to
-   * survive being small, because it answers "what will this thing do to me".
-   * Anything set beside it inside the rim costs that icon a third of its width
-   * and both marks come out mush. Bossed on the rim, the crest is drawn at its
-   * own size on its own parchment, reads as a second token rather than as
-   * clutter on the first, and the class icon loses nothing at all.
-   *
-   * It is the *diagonal opposite* of the worker's count deliberately: the two
-   * bosses never collide on a worker, and a badge with both reads as a token
-   * with a mark at each corner rather than as a lopsided one.
-   *
-   * Everything else is `addChargeBadge`'s, because it is the same object one
-   * corner over: a standing quad out of the tile atlas, positioned off the same
-   * camera axes, nudged past `RIM_NUDGE` so it never z-fights the rim. It costs
-   * one instance per unit and one **draw per distinct charge on screen** — which
-   * is at most one per seat, since a seat flies one charge, and is the same
-   * accounting the coloured rims already have.
-   *
-   * The charge is a fact about the *owner*, so `signUnits` needed nothing: a
-   * unit changing hands moves `ownerId`, which is already in the fingerprint.
-   */
-  private addCrest(
-    state: GameState,
-    unit: Unit,
-    placement: PiecePlacement,
-    visualHeight: number,
-    geometry: BoardGeometry,
-    collector: InstanceCollector,
-    faceCamera: Quaternion,
-    icons: TileIcons,
-    slots: InstanceHandle[],
-  ): void {
-    const anchor = placement.position
-      .clone()
-      .setY(placement.position.y + badgeCenterY(visualHeight));
-    const right = new Vector3(1, 0, 0).applyQuaternion(faceCamera);
-    const up = new Vector3(0, 1, 0).applyQuaternion(faceCamera);
-    const forward = new Vector3(0, 0, 1).applyQuaternion(faceCamera);
-    const position = anchor
-      .clone()
-      .addScaledVector(right, BADGE.diameter * BADGE.crestOffsetX)
-      .addScaledVector(up, BADGE.diameter * BADGE.crestOffsetY)
-      .addScaledVector(forward, BADGE.chargeNudge);
-    const charge = heraldryFor(unit.ownerId, state.players[unit.ownerId]?.charge);
-
-    slots.push(
-      collector.add(
-        geometry.chargeMarkers[charge],
-        [],
-        new Matrix4().compose(
-          position,
-          faceCamera,
-          new Vector3(BADGE.crestDiameter, BADGE.crestDiameter, 1),
-        ),
-        { material: icons.standingMaterial, order: RENDER_ORDER.badge },
       ),
     );
   }

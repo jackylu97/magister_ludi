@@ -431,14 +431,16 @@ export type MarginaliaKey = (typeof MARGINALIA_CELLS)[number];
  * banner that throws from inside the rasterisation.
  *
  * Printed on **parchment**, unlike the marginalia and like everything else in
- * this atlas, and that is the decision that makes one drawing serve both places
- * a charge appears. A charge is stamped on a *coloured* ground twice over — the
- * fly of a city flag in the seat's own tincture, and the rim of a unit badge in
- * the same — and ink on a dark tincture is a smudge while ink on a pale one is
- * fine. Bringing its own little field of parchment (a canton, which is what
- * real heraldry does for exactly this reason) means the charge reads identically
- * on crimson, on sky and on ink, with no second cell per seat and no tinting of
- * a baked picture.
+ * this atlas: a charge is stamped on the *coloured* fly of a city flag, in the
+ * seat's own tincture, and ink straight on a dark tincture is a smudge while
+ * ink on a pale one is fine. Bringing its own little field of parchment (a
+ * canton, which is what real heraldry does for exactly this reason) means the
+ * charge reads identically on crimson, on sky and on ink, with no tinting of a
+ * baked picture.
+ *
+ * These cells were also the unit badge's crest boss until the 2026-08-27
+ * ruling removed it — the colour of a badge's rim is mark enough for a piece
+ * that small. The cells stayed: the flag is still drawn from them.
  */
 export const CHARGE_CELLS: readonly HeraldryId[] = HERALDRY_IDS;
 

@@ -12,10 +12,16 @@
  * colour saying which house and the drawn figure saying it again in a vocabulary
  * that survives being small, being grey, and being printed.
  *
- * So a seat carries a charge, and the charge is printed everywhere the colour is:
- * on the city flag (the fly, on its own little field of parchment — a canton),
- * inside the unit badge's rim as a boss, and beside the seat's swatch in the
- * interface. Same drawing every time, because there is one drawing.
+ * So a seat carries a charge, and the charge is printed everywhere the colour
+ * needs a second mark to lean on: on the city flag (the fly, on its own little
+ * field of parchment — a canton), and beside the seat's swatch in the interface.
+ * Same drawing every time, because there is one drawing.
+ *
+ * Deliberately **not** on the unit badge (ruling, 2026-08-27): at forty pixels
+ * across a badge is already a class icon and a coloured rim, and the rim's
+ * colour alone is enough to say whose the piece is — a boss there was one mark
+ * too many for what it bought. The atlas cells (`CHARGE_CELLS`,
+ * `geometry.chargeMarkers`) stay, because the flag still stands on them.
  *
  * Purely presentational, all the way down
  * ---------------------------------------

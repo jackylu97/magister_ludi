@@ -422,10 +422,7 @@
     "chargeDiameter": 0.17,
     "chargeOffsetX": 0.6,
     "chargeOffsetY": 0.6,
-    "chargeNudge": 0.012,
-    "crestDiameter": 0.22,
-    "crestOffsetX": -0.56,
-    "crestOffsetY": -0.56
+    "chargeNudge": 0.012
   },
   "animation": {
     "msPerHex": 160,

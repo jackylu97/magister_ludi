@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { InstancedMesh, MeshBasicMaterial, Quaternion } from 'three';
 
 import {
   HERALDRY_IDS,
-  type HeraldryId,
   heraldryFor,
   heraldryMark,
   heraldryMarkDataUri,
@@ -17,15 +15,9 @@ import {
   marginaliaMarkDataUri,
 } from '../../src/art/marginaliaMarks';
 import { MARK_BOX, MARK_STROKE } from '../../src/art/resourceMarks';
-import { type TileIcons, type UnitBadges, CHARGE_CELLS } from '../../src/render3d/badges3d';
+import { CHARGE_CELLS } from '../../src/render3d/badges3d';
 import { BoardGeometry } from '../../src/render3d/board3d';
 import { VIEW3D } from '../../src/render3d/lookData';
-import { UnitLayer } from '../../src/render3d/pieces';
-import { MaterialLibrary } from '../../src/render3d/toon';
-import { createMap } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
-import { unitDef } from '../../src/sim/unitData';
-import { resetVisibility } from '../../src/sim/visibility';
 
 /**
  * Heraldry: the twelve charges a seat can fly, and the chart's two marginalia
@@ -208,7 +200,12 @@ describe('a seat always has a charge', () => {
   });
 });
 
-// --- the atlas --------------------------------------------------------------
+// --- the atlas ---------------------------------------------------------------
+//
+// One reader left as of the 2026-08-27 ruling: the city flag's canton
+// (`CityLayer.addFlag` in `cities3d.ts`). The unit badge's crest boss is gone —
+// a badge's coloured rim is mark enough at that size — but the cells stay,
+// because the flag still stands on them.
 
 describe('every charge has a cell and a quad', () => {
   it('gives the board a standing quad per charge', () => {
@@ -223,117 +220,6 @@ describe('every charge has a cell and a quad', () => {
     // banner.
     const quads = new Set(HERALDRY_IDS.map((id) => geometry.chargeMarkers[id]));
     expect(quads.size).toBe(HERALDRY_IDS.length);
-    geometry.dispose();
-  });
-});
-
-// --- the crest on a unit badge ---------------------------------------------
-
-const fakeIcons = {
-  material: new MeshBasicMaterial(),
-  standingMaterial: new MeshBasicMaterial(),
-} as unknown as TileIcons;
-const fakeBadges = { material: new MeshBasicMaterial() } as unknown as UnitBadges;
-
-function unitState(charge?: string): GameState {
-  const state = newGame({
-    seed: 4,
-    sizeName: 'duel',
-    players: [
-      { name: 'A', color: '#d4502e', isHuman: true, ...(charge ? { charge } : {}) },
-      { name: 'B', color: '#1f8a85', isHuman: true },
-    ],
-  });
-  state.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
-  resetVisibility(state);
-  state.tileOwner = new Array<number | null>(12 * 8).fill(null);
-  state.cities = [];
-  state.units = [0, 1].map((ownerId) => ({
-    id: ownerId + 1,
-    type: 'warrior' as const,
-    ownerId,
-    col: 2 + ownerId * 3,
-    row: 3,
-    hp: unitDef('warrior').maxHp,
-    movesLeft: 2,
-    hasAttacked: false,
-  }));
-  return state;
-}
-
-/** Instances of one charge's quad on a built unit layer, all wrap copies. */
-function crestsOf(layer: UnitLayer, geometry: BoardGeometry, id: HeraldryId): number {
-  let total = 0;
-  for (const child of layer.group.children) {
-    if (!(child instanceof InstancedMesh)) continue;
-    if (child.geometry === geometry.chargeMarkers[id]) total += child.count;
-  }
-  return total;
-}
-
-function buildUnits(state: GameState, icons: TileIcons | null): {
-  layer: UnitLayer;
-  geometry: BoardGeometry;
-} {
-  const geometry = new BoardGeometry();
-  const layer = new UnitLayer();
-  layer.build(
-    state,
-    geometry,
-    new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
-    new Quaternion(),
-    false,
-    null,
-    fakeBadges,
-    null,
-    null,
-    icons,
-  );
-  return { layer, geometry };
-}
-
-describe('a unit badge carries its seat’s crest', () => {
-  it('bosses one crest per unit, in that unit owner’s charge', () => {
-    const state = unitState();
-    const { layer, geometry } = buildUnits(state, fakeIcons);
-    // Two seats, one unit each, three wrap copies: one bucket per charge.
-    expect(crestsOf(layer, geometry, HERALDRY_IDS[0]!)).toBe(3);
-    expect(crestsOf(layer, geometry, HERALDRY_IDS[1]!)).toBe(3);
-    expect(crestsOf(layer, geometry, HERALDRY_IDS[2]!)).toBe(0);
-    layer.dispose();
-    geometry.dispose();
-  });
-
-  it('follows the seat that was configured, not the seat index', () => {
-    const state = unitState('sun');
-    const { layer, geometry } = buildUnits(state, fakeIcons);
-    expect(crestsOf(layer, geometry, 'sun')).toBe(3);
-    expect(crestsOf(layer, geometry, HERALDRY_IDS[0]!)).toBe(0);
-    layer.dispose();
-    geometry.dispose();
-  });
-
-  it('draws no crest at all while the atlas is still rasterising', () => {
-    const state = unitState();
-    const { layer, geometry } = buildUnits(state, null);
-    for (const id of HERALDRY_IDS) expect(crestsOf(layer, geometry, id)).toBe(0);
-    layer.dispose();
-    geometry.dispose();
-  });
-
-  /**
-   * The crest is a fact about the *owner*, so `signUnits` needed nothing added:
-   * a unit changing hands moves `ownerId`, which is already in the fingerprint
-   * (see the piece-fingerprint trap in `CLAUDE.md`). Asserted as the behaviour
-   * that depends on it — a captured warrior flies its captor's charge.
-   */
-  it('changes with the unit’s owner', () => {
-    const state = unitState();
-    state.units[0]!.ownerId = 1;
-    const { layer, geometry } = buildUnits(state, fakeIcons);
-    expect(crestsOf(layer, geometry, HERALDRY_IDS[0]!)).toBe(0);
-    expect(crestsOf(layer, geometry, HERALDRY_IDS[1]!)).toBe(6);
-    layer.dispose();
     geometry.dispose();
   });
 });

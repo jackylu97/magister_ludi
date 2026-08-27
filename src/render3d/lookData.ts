@@ -1087,24 +1087,6 @@ export interface BadgeSpec {
   chargeOffsetY: number;
   /** How far in front of the rim the boss sits, so it never z-fights it. */
   chargeNudge: number;
-  /**
-   * The seat's **crest**: the heraldic charge, bossed at the badge's lower-left
-   * corner, exactly as the worker's count is bossed at its upper-right. See
-   * `UnitLayer.addCrest`.
-   *
-   * Called a crest rather than a charge in this spec for one flat-footed reason:
-   * `chargeDiameter` above already means a worker's remaining *charges*, and two
-   * unrelated things called `badges.charge…` is how somebody dials the wrong
-   * number. The drawing is still a charge everywhere it is drawn
-   * (`src/art/heraldryMarks.ts`); this is the name of the place it sits.
-   *
-   * It shares `chargeNudge`, because "in front of the rim" is one fact about the
-   * badge and not two — and because a crest and a count nudged differently would
-   * be two bosses at two depths on one disc.
-   */
-  crestDiameter: number;
-  crestOffsetX: number;
-  crestOffsetY: number;
 }
 
 export interface AnimationSpec {
@@ -1870,9 +1852,6 @@ export const VIEW3D: View3DData = {
     chargeOffsetX: viewJson.badges.chargeOffsetX,
     chargeOffsetY: viewJson.badges.chargeOffsetY,
     chargeNudge: viewJson.badges.chargeNudge,
-    crestDiameter: viewJson.badges.crestDiameter,
-    crestOffsetX: viewJson.badges.crestOffsetX,
-    crestOffsetY: viewJson.badges.crestOffsetY,
   },
   animation: viewJson.animation,
   lens: {

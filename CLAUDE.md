@@ -200,9 +200,9 @@ would change every seeded outcome. No further rename passes.
   uninterpreted string beside `color`, written by `normalizeConfig` only when named, so a
   charge-less config normalises byte-identically and nothing in `src/sim/` reads it. The
   fallback is `heraldryFor(seatIndex, charge?)` (`src/art/heraldryMarks.ts`), mirroring
-  `playerPieceColor`. The charge prints on a **parchment canton** (flag hoist, badge boss,
-  seat chip), never straight in the seat's ink — twelve tinctures run sky to ink and no
-  single ink reads on all of them.
+  `playerPieceColor`. The charge prints on a **parchment canton** (flag hoist, seat chip),
+  never straight in the seat's ink — twelve tinctures run sky to ink and no single ink reads
+  on all of them.
 - **"Faint" in the alpha-tested atlas is a colour, never an opacity.** A `globalAlpha` under 1
   does not fade a mark — every surviving fragment is opaque and the reduced alpha only erodes
   the antialiased edge until letterforms break. `icons.inscriptionColor` exists for exactly
