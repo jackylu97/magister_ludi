@@ -95,8 +95,10 @@ would change every seeded outcome. No further rename passes.
 ## Known traps
 - `MeshToonMaterial` silently ignores `flatShading` — bake facets into geometry.
 - Fog is unusable with the ortho camera.
-- Piece visuals rebuild off a fingerprint of `(id, col, row, hp, ownerId)` — any new
-  visual-affecting unit property must be added to the fingerprint.
+- Piece visuals rebuild off a fingerprint — `signUnits` in `pieces.ts` hashes `id`, `col`,
+  `row`, `hp`, `ownerId`, `type`, `chargesLeft` and `person` — and any new
+  visual-affecting unit property must be added to it. A source-reading test pins exactly which
+  properties are hashed, so adding one is a decision, not a drift.
 - `Tile.improvement`, `Tile.feature` and `Tile.discovery` are the **three** fields on a tile
   that change during play. `discovery` is the mildest — it can only ever be *removed*, by a
   unit walking onto a ruin (`claimDiscoveryAt`) — and it forbids exactly what the other two
@@ -476,6 +478,39 @@ would change every seeded outcome. No further rename passes.
   and annotated; a generator that read one again would be a second table. The spread
   (`offerSpread` in `offerCard.ts`, pure) lays out 2–5 cards inside 1280×720 by custom
   properties; a pick still names an index.
+- **Renown is added in exactly one place** (great people, 2026-08-27, Entry XXXII).
+  `settleRenownWindfall` (`renown.ts`) is the fifth Entry XVIII seam — the buildings' trickle,
+  a wonder's lump, every Triumph — and register entry 13 is the three great-person verbs.
+  Overflow carries; a **spent roster banks rather than blocks** (nothing deducted, no empty
+  offer left on a seat). `explainRenown` is the rule-5 list the HUD hover prints.
+- **A great person is neither built nor bought — it is *called*.** `UnitDef.greatWork` is the
+  marker (`consecrates`' third sibling); `buildError` and `purchaseError` both refuse the row,
+  so it is the one unit type with no unlock tech. **`Unit.person` says *who*; `UnitDef.greatWork`
+  says *what kind*** — two fields, two questions — and `Unit.person` is in the piece fingerprint.
+  A worker may not plant a work and a great person may plant nothing else: one symmetric clause
+  in `improvementError`; `ImprovementDef.greatPerson` names the **family** (presence is the
+  marker). A citadel is worth its `defense` to whoever stands on the hex — one flat labelled
+  line in `planCombat`'s defender fold, never a term in the multiplier.
+- **Legacies are `liveEffects`' sixth source** and `CardId`'s seventh class; nothing else reads
+  `Player.legacies`, and **nothing revokes a legacy** — which is why "lost the turn an enemy
+  enters his city" is a deferred half on a data row and not a rule hiding in the walk. A legacy
+  whose sentence needs a shape that does not exist ships as `legacy: []` with `deferred:` on the
+  row; **a shape is never bent to nearly fit** (the Statecraft rule, third time).
+- **The draw is weighted, never restricted, and spills before it fails.** Weight is
+  `1000 + floor(1000 × feed share)` in integers — flat when nothing has fed, at most 2×, never
+  zero; the spill walks `[age, previous…, next…]` and stops the moment the hand can fill, so a
+  healthy age never leaks a neighbour's name. `chooseGreatPerson` is **the reducer's one refusal
+  that mutates**: a name another seat already took is refused *and* the offer is redrawn (the
+  alternative is a seat holding a dead hand that can never end its turn) — confined to that
+  clause, fully log-determined, documented on the handler.
+- **The Triumph news is a diff, not a sink.** `Player.triumphs` is append-only and turn-stamped;
+  `triumphMarks`/`triumphsSince` for a resolution, `triumphsAwarded` for a command — which is why
+  `foundCityAt`, `realiseItem`, `applyCombat`, `captureCity`, `settleResearch`, `claimDiscoveryAt`,
+  `adoptGovernmentAt` and `arriveOnTile` grew no parameters. `triumphs.ts` owns the only switch on
+  a trigger kind, split into announced *occasions* (hooked at those seams) and swept *standing
+  counts* (read off the board once a turn in the `renown` phase — a size-10 city is a fact, not
+  an event, and a sweep cannot miss). `state.contested` is the world's register, keyed
+  `(id, age)`: first seat by log/sweep order, once per era.
 - **A project is a queue row that never leaves, and that is the whole mechanism** (Entry
   XXVI). `QueueItem`'s third kind. `settleProduction` subtracts the cost, banks the
   conversion and **returns before the splice** — so `turnsToBuild` needed no project

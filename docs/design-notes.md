@@ -3148,3 +3148,42 @@ loop, and a pick names an index as before. The placeholder wonder is The Oracle 
 2–5 cards inside 1280×720 (which also fixed the shipped 3-card draft overflowing there), and
 above base the header prints the fold's lines as chips — the player can see *why* the hand
 grew. `OfferKind` is open for `'greatPerson'`.
+
+
+---
+
+## Entry XXXII — Great people and Triumphs (**built** 2026-08-27; the design is `docs/great-people.md`)
+
+**Rulings (user, 2026-08-27):** a rolling mechanic · the non-building sources are **Triumphs** ·
+every person has a **unique legacy**, tiered like Doctrines (game-defining with a malice /
+generic strong / situational without) · the family **boons stay** (a scholar's burst, an
+engineer's hurry, the works) *and* each person leaves a legacy on the government · the roster
+(eighty names, twenty an age) is the right size and serves eight seats by rule, not by count.
+
+**Renown** is the fifth Entry XVIII bucket: buildings pay a trickle by family, a wonder a lump
+and a trickle, a Triumph a lump; the ladder is `rules.renown` (40, +25 a recruit); every grain
+goes through `settleRenownWindfall`, and `explainRenown` is the ledger. Crossing the threshold
+opens an offer of `offerSize(…, 'greatPerson')` names (Entry XXXI) from the current age's
+roster minus the world's `recruited`, **weighted by what fed the bucket** (integers, never
+zero, at most 2×) and **spilling** to the previous age's forgotten and then the next age's
+early before it ever shrinks. A pick is an index; the person arrives as a unit in the capital
+— *called*, neither built nor bought.
+
+**Two verbs, one legacy.** The **act** pays the family's boon through the seam that already
+existed (research, production, culture with a timed happiness, gold, a heal and a timed aura);
+the **work** plants the family's improvement (academy, landmark, manufactory, customs house,
+citadel — a worker cannot; the citadel claims its ring and is worth its defense to whoever
+stands on it). Either way the person is spent and the **legacy attaches**: `Player.legacies`,
+read by `liveEffects` as its sixth source through the same card vocabulary as an Order, a
+belief or a wonder.
+
+**Triumphs** are data (`triumphs.json`, seventeen; three deferred on content) with one trigger
+switch in `triumphs.ts`: occasions hooked at the seams that already announce, standing counts
+swept once a turn. Scopes: once, per age, contested (the world's `contested` register, first by
+log order), per event. The news is a diff of an append-only list, so no seam grew a parameter.
+
+**Deferred, for the ruling:** twenty-three legacies ship empty and fourteen partial because
+their sentences need shapes that do not exist — a unit filter on `combatLine`, six new
+`CountKind`s, a purchase-price hook, a scoped `productionBonus`, and *revocation* — plus three
+systematic translations to ratify (a building discount as a production bonus, "melee +1" as a
+percent, a disjunction as two lines). The rule held: nothing was bent to nearly fit.
