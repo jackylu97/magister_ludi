@@ -570,13 +570,9 @@ tr.total .kind {
   color: var(--ink-faint);
 }
 
-.yield-line.is-replaced {
-  opacity: 0.55;
-}
-
-.yield-line.is-replaced .yield-line-figures {
-  text-decoration: line-through;
-}
+/* No `.is-replaced` rule: superseded ground lines are dropped before they are
+   drawn (`displayYieldLines` in `src/ui/tileReadout.ts`), on this card as on the
+   game's, because both pages print from the one breakdown. */
 
 /* The resource mark: a CSS mask in `currentColor`, exactly as the game draws it
    (see `.res-mark` in `src/style.css` and `src/ui/resourceMark.ts`). */

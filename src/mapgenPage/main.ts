@@ -751,6 +751,11 @@ function fitWholeMap(): void {
  */
 const SPECTATOR_SEAT = 0;
 
+/** The spectator card's em dash, as a node, for the rows that can come up empty. */
+function nothing(): Node {
+  return document.createTextNode('—');
+}
+
 function showTile(hover: HoverInfo | null): void {
   if (!hover || !game || !report) {
     tileCardEl.hidden = true;
@@ -758,25 +763,39 @@ function showTile(hover: HoverInfo | null): void {
   }
   const { tile } = hover;
   const described = describeTile(tile);
-  const feature = tile.feature === 'none' ? '' : ` · ${described.feature}`;
+  const feature = described.feature === null ? '' : ` · ${described.feature}`;
   tileTerrainEl.textContent = `${described.terrain}${described.hills ? ' hills' : ''}${feature}`;
+  // The coordinates, which the game's card no longer prints: offset cell and
+  // axial hex are how the map is stored and how the pathfinder thinks, and this
+  // is the page where that is the point of hovering.
   tileWhereEl.textContent = `${tile.col},${tile.row} · q${hover.axial.q} r${hover.axial.r}`;
 
   // The total and the lines it is the fold of, from the one breakdown
   // (`tileYieldLines`) — the same pair the game's card shows, so a hex read
-  // here and read in a game cannot itemize two different ways.
-  const yields = tileYieldNodes(game.state, SPECTATOR_SEAT, tile);
-  const lines = document.createElement('ul');
-  lines.className = 'yield-lines';
-  lines.append(...tileYieldLineNodes(game.state, SPECTATOR_SEAT, tile));
-  if (yields.length === 0) tileYieldsEl.replaceChildren(lines);
-  else tileYieldsEl.replaceChildren(...yields, lines);
+  // here and read in a game cannot itemize two different ways. That now includes
+  // the *silences*: a hex whose yield is just its ground gets the figure alone,
+  // because `tileYieldLineNodes` hands back no rows for it.
+  const yields: Node[] = tileYieldNodes(game.state, SPECTATOR_SEAT, tile);
+  const rows = tileYieldLineNodes(game.state, SPECTATOR_SEAT, tile);
+  if (rows.length > 0) {
+    const lines = document.createElement('ul');
+    lines.className = 'yield-lines';
+    lines.append(...rows);
+    yields.push(lines);
+  }
+  tileYieldsEl.replaceChildren(...(yields.length === 0 ? [nothing()] : yields));
 
-  tileResourceEl.replaceChildren(resourceRowNode(game.state, SPECTATOR_SEAT, tile));
-  tileImprovementEl.textContent = describeImprovement(tile);
+  // The em dash is this page's own: a spectator's card keeps its shape so the
+  // rows a generated map is being read for stay where the eye left them. The
+  // game's card drops an empty row instead.
+  tileResourceEl.replaceChildren(
+    resourceRowNode(game.state, SPECTATOR_SEAT, tile) ?? nothing(),
+  );
+  tileImprovementEl.textContent = describeImprovement(tile) ?? '—';
   // Omniscient: this page has no seat of its own, and a spectator told nothing
   // about the sites it exists to inspect would be a card refusing to do its job.
-  tileOccupantEl.textContent = describeOccupant(game.state, SPECTATOR_SEAT, tile, true);
+  tileOccupantEl.textContent =
+    describeOccupant(game.state, SPECTATOR_SEAT, tile, true) ?? '—';
 
   const continent = continentAt(game.state.map, report.continentOf, tile.col, tile.row);
   const row = continent >= 0 ? report.continents.rows[continent] : undefined;

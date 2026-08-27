@@ -865,11 +865,13 @@
         <dt>Feature</dt>
         <dd id="info-feature">—</dd>
         <!-- The total, and under it the itemized breakdown it is the fold of —
-             one row per contribution, written by `tileYieldLineNodes`
-             (`src/ui/tileReadout.ts`) out of `explainTileYield`'s own ordered
-             list. The lines are the reason the number is what it is, so they
-             live in the same cell as the number rather than in a row of their
-             own that could scroll away from it. -->
+             the ground, then one row per thing sitting on it, written by
+             `tileYieldLineNodes` (`src/ui/tileReadout.ts`) out of
+             `explainTileYield`'s own ordered list. The lines are the reason the
+             number is what it is, so they live in the same cell as the number
+             rather than in a row of their own that could scroll away from it.
+             A hex with nothing on it shows the figure alone: its one line would
+             only restate the total above it. -->
         <dt>Yields</dt>
         <dd id="info-yields">—</dd>
         <!-- What is *on* the ground, as opposed to what the ground is. Named
@@ -891,13 +893,12 @@
              memory. -->
         <dt>Occupant</dt>
         <dd id="info-occupant">—</dd>
-        <!-- Both coordinate systems: offset is how the map is stored, axial is
-             how the pathfinder thinks. Two rows rather than one long line,
-             because either alone wraps in a 250px card. -->
-        <dt>Cell</dt>
-        <dd id="info-offset">—</dd>
-        <dt>Hex</dt>
-        <dd id="info-axial">—</dd>
+        <!-- The two coordinate rows that used to close this card — offset cell
+             and axial hex — are gone from the *game*. They are how the map is
+             stored and how the pathfinder thinks, which is a fact about the
+             program rather than about the world; the inspection page
+             (`mapgen.html`) still prints both, because there they are the
+             reason somebody is hovering at all. -->
         <dt>Unit</dt>
         <dd id="info-unit">—</dd>
       </dl>

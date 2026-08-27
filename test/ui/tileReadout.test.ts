@@ -37,8 +37,11 @@ import { foundCityAt } from '../../src/sim/cities';
 import { YIELD_GLYPH, type YieldKey } from '../../src/ui/figures';
 import {
   type TileYieldLine,
+  describeImprovement,
   describeOccupant,
   describeTile,
+  displayYieldLines,
+  itemisedYieldLines,
   tileYieldContributions,
   tileYieldLines,
 } from '../../src/ui/tileReadout';
@@ -109,6 +112,13 @@ describe('describeTile', () => {
   it('names every feature in the table, with nothing left blank', () => {
     for (const feature of FEATURE_IDS as FeatureId[]) {
       const described = describeTile(tile({ feature }));
+      // `none` is the one row whose *name* is not a thing to tell anybody: bare
+      // ground has no feature, and "Feature: None" is a label spending a line of
+      // a small card to say nothing.
+      if (feature === 'none') {
+        expect(described.feature).toBeNull();
+        continue;
+      }
       expect(described.feature, feature).toBeTruthy();
       expect(described.feature, feature).not.toBe('undefined');
     }
@@ -162,8 +172,9 @@ describe('tileYieldLines', () => {
     expect(lines[2]!.figures).toBe(`2${YIELD_GLYPH.production}`);
     expect(lines[3]!.figures).toBe(`+2${YIELD_GLYPH.gold}`);
     expect(lines[4]!.figures).toBe(`+1${YIELD_GLYPH.production}`);
-    // Ground a later override took over stays on the card, struck rather than
-    // dropped — "forest, replaced by hills" is the sentence the entry is for.
+    // Ground a later override took over is still *written* — this list is the
+    // faithful print of `explainTileYield`'s derivation — and marked. What the
+    // card does with it is `displayYieldLines`'s business, below.
     expect(lines.filter((line) => line.replaced).map((line) => line.source)).toEqual([
       'Grassland',
       'Forest',
@@ -225,6 +236,135 @@ describe('tileYieldLines', () => {
 });
 
 /**
+ * The presentation fold: what a *player* is shown, as against the derivation the
+ * simulation writes.
+ *
+ * Two rules, both pure, both about a small card's attention. `displayYieldLines`
+ * drops the ground a later override took over — a forest on grassland is a
+ * forest, not grassland with a correction printed over it — and
+ * `itemisedYieldLines` drops the whole account when the fold left one line,
+ * because a ledger of one entry restates the total above it.
+ *
+ * The claim worth pinning is that neither can change a number: the total is
+ * still `foldTileYield` of the simulation's own list, and what these two do is
+ * decide which of its lines are *typeset*.
+ */
+describe('displayYieldLines', () => {
+  it('reads a forest on grassland as one base line, the forest', () => {
+    const state = boardState();
+    const hex = at(state, 4, 4);
+    hex.feature = 'forest';
+
+    expect(tileYieldLines(state, 0, hex).map((line) => line.source)).toEqual([
+      'Grassland',
+      'Forest',
+    ]);
+    const shown = displayYieldLines(tileYieldLines(state, 0, hex));
+    expect(shown.map((line) => line.source)).toEqual(['Forest']);
+    // And it is written plain, as a base line is — the forest *is* the hex's
+    // yield, not a signed addition to grass nobody is being shown.
+    expect(shown[0]!.figures).toBe(`1${YIELD_GLYPH.food} 1${YIELD_GLYPH.production}`);
+    // The fold of what is shown is still the tile's total: a dropped line is by
+    // definition one a later override had already overwritten.
+    expect(foldPrinted(shown)).toEqual(tileYieldOf(hex, yieldContextFor(state, 0)));
+  });
+
+  it('keeps one ground line however long the override chain is', () => {
+    const state = boardState();
+    const hex = at(state, 4, 4);
+    hex.feature = 'forest';
+    hex.hills = true;
+    hex.resource = 'gems';
+    hex.improvement = 'mine';
+
+    const shown = displayYieldLines(tileYieldLines(state, 0, hex));
+    // Grassland and Forest both go; Hills stands, and everything sitting *on*
+    // the hex follows it in the order the rules resolved.
+    expect(shown.map((line) => line.source)).toEqual(['Hills', 'Gems', 'Mine']);
+    expect(shown.every((line) => !line.replaced)).toBe(true);
+    expect(foldPrinted(shown)).toEqual(tileYieldOf(hex, yieldContextFor(state, 0)));
+  });
+
+  it('never drops a line on ground that was never overridden', () => {
+    const state = boardState();
+    const hex = at(state, 4, 4);
+    hex.resource = 'wheat';
+    hex.improvement = 'farm';
+    const lines = tileYieldLines(state, 0, hex);
+    expect(displayYieldLines(lines)).toEqual(lines);
+  });
+});
+
+describe('itemisedYieldLines', () => {
+  it('shows no account for a hex whose yield is only its ground', () => {
+    const state = boardState();
+    const hex = at(state, 4, 4);
+    // Bare grassland: one line, and it would say exactly what the figure above
+    // it already says.
+    expect(itemisedYieldLines(tileYieldLines(state, 0, hex))).toEqual([]);
+
+    // A forest on it is still one line *after* the fold, so still no account —
+    // this is the case the fold above created and the rule has to cover.
+    hex.feature = 'forest';
+    expect(itemisedYieldLines(tileYieldLines(state, 0, hex))).toEqual([]);
+
+    // Bare desert, which pays nothing at all, is the same answer: there is no
+    // calculation to show, only a figure (and the card drops even that).
+    expect(itemisedYieldLines(tileYieldLines(boardState('desert'), 0, at(boardState('desert'), 4, 4)))).toEqual([]);
+  });
+
+  it('itemizes as soon as anything sits on the ground', () => {
+    const state = boardState();
+    const hex = at(state, 4, 4);
+
+    // A resource is a modifier — every kind of `add` is, which is the whole of
+    // the rule: the card does not ask what sort of thing earned a line.
+    hex.resource = 'cotton';
+    expect(itemisedYieldLines(tileYieldLines(state, 0, hex)).map((line) => line.source)).toEqual([
+      'Grassland',
+      'Cotton',
+    ]);
+
+    // An improvement, on ground with no resource at all, is the same answer.
+    delete hex.resource;
+    hex.improvement = 'farm';
+    expect(itemisedYieldLines(tileYieldLines(state, 0, hex)).map((line) => line.source)).toEqual([
+      'Grassland',
+      'Farm',
+    ]);
+  });
+
+  it('itemizes a city centre only when the ground gave it something', () => {
+    // The centre's inheritance is an `add` like any other, so a seam under a
+    // town itemizes and a plain hex under one does not.
+    const state = boardState();
+    at(state, 4, 4).resource = 'cotton';
+    foundCityAt(state, 0, at(state, 4, 4));
+    see(state, 0, at(state, 4, 4), VISIBLE);
+    expect(
+      itemisedYieldLines(tileYieldLines(state, 0, at(state, 4, 4))).map((line) => line.source),
+    ).toEqual(['City centre', 'Inherited · Cotton']);
+
+    // Grassland is under the centre's own 2🌾/2⚙ floor, so it inherits nothing
+    // and the centre is the only line there is: a figure, no account.
+    const bare = boardState();
+    foundCityAt(bare, 0, at(bare, 6, 6));
+    see(bare, 0, at(bare, 6, 6), VISIBLE);
+    const lines = tileYieldLines(bare, 0, at(bare, 6, 6));
+    expect(lines.map((line) => line.source)).toEqual(['City centre']);
+    expect(itemisedYieldLines(lines)).toEqual([]);
+  });
+});
+
+/** The rows that simply are not drawn when they have nothing to say. */
+describe('an empty row', () => {
+  it('is null, not an em dash', () => {
+    expect(describeImprovement(tile())).toBeNull();
+    expect(describeImprovement(tile({ improvement: 'farm' }))).toContain('Farm');
+  });
+});
+
+/**
  * The occupant row: what is *planted* on the hex, each kind under the fog rule
  * its own kind obeys everywhere else in the game.
  */
@@ -232,14 +372,14 @@ describe('describeOccupant', () => {
   it('says nothing about bare ground', () => {
     const state = boardState();
     see(state, 0, at(state, 4, 4), VISIBLE);
-    expect(describeOccupant(state, 0, at(state, 4, 4))).toBe('—');
+    expect(describeOccupant(state, 0, at(state, 4, 4))).toBeNull();
   });
 
   it('names a site on ground the seat has explored, and not before', () => {
     const state = boardState();
     const hex = at(state, 4, 4);
     hex.discovery = 'ruins';
-    expect(describeOccupant(state, 0, hex)).toBe('—');
+    expect(describeOccupant(state, 0, hex)).toBeNull();
 
     // A site is *ground*, so it survives on a remembered hex — the same rule
     // the board draws it by (`sites3d.ts`).
@@ -260,7 +400,7 @@ describe('describeOccupant', () => {
     see(state, 0, hex, EXPLORED);
     // An occupation, not ground: a remembered camp would be a banner a player
     // sends a warrior at ten turns after it burnt out.
-    expect(describeOccupant(state, 0, hex)).toBe('—');
+    expect(describeOccupant(state, 0, hex)).toBeNull();
     see(state, 0, hex, VISIBLE);
     expect(describeOccupant(state, 0, hex)).toBe('Barbarian camp');
   });
@@ -273,7 +413,7 @@ describe('describeOccupant', () => {
 
     // Seat 1 has not seen it: the hex is ground.
     see(state, 1, hex, HIDDEN);
-    expect(describeOccupant(state, 1, hex)).toBe('—');
+    expect(describeOccupant(state, 1, hex)).toBeNull();
 
     see(state, 1, hex, VISIBLE);
     // The star is the capital mark from `cityDisplayName`, the one formatter a
@@ -306,7 +446,7 @@ describe('describeOccupant', () => {
     // Nothing explored by anybody, and the mapgen page still has to be able to
     // describe the ground it exists to inspect — the liberty its resource lens
     // already takes.
-    expect(describeOccupant(state, 0, hex)).toBe('—');
+    expect(describeOccupant(state, 0, hex)).toBeNull();
     expect(describeOccupant(state, 0, hex, true)).toBe('Tribal village — unclaimed');
   });
 });

@@ -308,8 +308,6 @@ const infoYields = requireElement<HTMLElement>('info-yields');
 const infoResource = requireElement<HTMLElement>('info-resource');
 const infoImprovement = requireElement<HTMLElement>('info-improvement');
 const infoOccupant = requireElement<HTMLElement>('info-occupant');
-const infoOffset = requireElement<HTMLElement>('info-offset');
-const infoAxial = requireElement<HTMLElement>('info-axial');
 const infoUnit = requireElement<HTMLElement>('info-unit');
 
 for (const name of MAP_SIZE_NAMES) {
@@ -746,8 +744,50 @@ function currentConfig(): GameConfig {
 // --- panel text ------------------------------------------------------------
 
 /**
- * Writes the hovered tile's yields into the panel's yield row: the total, and
- * under it the itemized lines it is the fold of.
+ * One row of the readout, shown only when it has something to say.
+ *
+ * The card is a `<dl>` grid, so a row is *two* elements — the term and its
+ * value — and hiding one without the other leaves either a label pointing at
+ * nothing or a figure with no name. Nothing else in the card knows that; this
+ * function is where the pair is one thing. The term is found by adjacency
+ * rather than by an id of its own, because in a definition list the `<dt>`
+ * immediately before a `<dd>` *is* that value's label by definition.
+ *
+ * Empty is `null`, never `'—'`: a dash is a mark a player has to read in order
+ * to learn there was nothing to read, and a card of six of them is a card that
+ * says nothing loudly. Every describer in `tileReadout.ts` speaks `null` for
+ * this reason.
+ */
+function setInfoRow(
+  value: HTMLElement,
+  content: string | Node | readonly Node[] | null,
+): void {
+  const nodes = content === null || typeof content === 'string' ? [] : [content].flat();
+  const empty = content === null || (typeof content !== 'string' && nodes.length === 0);
+  const term = value.previousElementSibling;
+  value.hidden = empty;
+  if (term instanceof HTMLElement) term.hidden = empty;
+  if (typeof content === 'string') value.textContent = content;
+  else value.replaceChildren(...nodes);
+}
+
+/**
+ * Every row of the readout *except* the terrain, taken off the card.
+ *
+ * The two occasions are the ones where the ground has nothing to describe: fog,
+ * where the terrain slot carries "Terra Incognita" alone, and no hover at all,
+ * where the card is fading out anyway. Terrain is left to the caller because it
+ * is the only row those two disagree about.
+ */
+function clearInfoRows(): void {
+  for (const row of [infoFeature, infoYields, infoResource, infoImprovement, infoOccupant, infoUnit]) {
+    setInfoRow(row, null);
+  }
+}
+
+/**
+ * Writes the hovered tile's yields into the panel's yield row: the total, and —
+ * when there is a calculation behind it — the itemized lines it is the fold of.
  *
  * Both come from `src/ui/tileReadout.ts`, which is where the whole vocabulary of
  * the hover card lives now that the mapgen inspection page speaks it too — and
@@ -755,24 +795,23 @@ function currentConfig(): GameConfig {
  * down adds up to the figure above it by construction rather than by agreement
  * between two evaluators (CLAUDE.md rule 5, at the surface it was written for).
  *
- * What is left here is the one thing that *is* this page's business: which
- * element the row is written into, and that a tile producing nothing says so
- * once rather than printing six zeroes. A hex whose every line is zero — bare
- * desert — still gets its lines, because "Desert, nothing" is the answer
- * somebody hovering bare desert came for.
+ * The two silences are the page's own business and they are different silences.
+ * A hex with no modifier on it (`itemisedYieldLines` hands back nothing) keeps
+ * its figure and drops the account: an itemization of one entry restates the
+ * number above it and reads as arithmetic where none happened. A hex that pays
+ * *nothing at all* drops the row entirely — "Yields: —" is the em dash this
+ * card no longer draws anywhere.
  */
 function showTileYields(state: GameState, playerId: number, tile: Tile): void {
-  const shown = tileYieldNodes(state, playerId, tile);
-  const lines = document.createElement('ul');
-  lines.className = 'yield-lines';
-  lines.append(...tileYieldLineNodes(state, playerId, tile));
-  if (shown.length === 0) {
-    const nothing = document.createElement('span');
-    nothing.textContent = '—';
-    infoYields.replaceChildren(nothing, lines);
-    return;
+  const shown: Node[] = tileYieldNodes(state, playerId, tile);
+  const rows = tileYieldLineNodes(state, playerId, tile);
+  if (rows.length > 0) {
+    const lines = document.createElement('ul');
+    lines.className = 'yield-lines';
+    lines.append(...rows);
+    shown.push(lines);
   }
-  infoYields.replaceChildren(...shown, lines);
+  setInfoRow(infoYields, shown);
 }
 
 /**
@@ -786,13 +825,14 @@ function showTileYields(state: GameState, playerId: number, tile: Tile): void {
  *
  * The card describes the *ground and what is on it*; the selected unit has its
  * own panel on the right, with its own numbers and its own verbs. A stack says
- * how deep it is rather than listing itself into a scrollbar.
+ * how deep it is rather than listing itself into a scrollbar. `null` when there
+ * is nobody to describe, which is this card's word for "draw no row".
  */
-function describeUnitsOn(state: GameState, playerId: number, tile: Tile): string {
-  if (!isVisibleTo(state, playerId, tile.col, tile.row)) return '—';
+function describeUnitsOn(state: GameState, playerId: number, tile: Tile): string | null {
+  if (!isVisibleTo(state, playerId, tile.col, tile.row)) return null;
   const units = unitsOnTile(state, tile.col, tile.row);
   const first = units[0];
-  if (!first) return '—';
+  if (!first) return null;
   const def = unitDef(first.type);
   const owner = state.players[first.ownerId];
   const more = units.length > 1 ? ` +${units.length - 1}` : '';
@@ -1278,59 +1318,34 @@ async function boot(initial: Game | null): Promise<void> {
      * Entry X) is allowed into the readout.
      *
      * A hidden tile answers with its name and nothing else — not its terrain,
-     * not its coordinates in the world's own words, not its yields. Picking
-     * still works normally (fog is a mask, not a hole in the board), so a player
-     * may hover, click and order a march into it; the card simply refuses to
-     * describe ground nobody has been to. Blanking every row and writing the
-     * phrase into the terrain slot is deliberate: the card's shape does not
-     * change, so hovering across a frontier reads as the world running out
-     * rather than as a panel breaking.
+     * not its yields, not what is standing on it. Picking still works normally
+     * (fog is a mask, not a hole in the board), so a player may hover, click and
+     * order a march into it; the card simply refuses to describe ground nobody
+     * has been to. The phrase goes in the terrain slot and every other row is
+     * *dropped* rather than dashed, which is the same rule the rest of the card
+     * now keeps: unexplored ground has one thing to say about itself and says
+     * exactly that.
      */
     if (hover && !isExploredBy(game.state, controls.localPlayerId(), hover.tile.col, hover.tile.row)) {
-      infoTerrain.textContent = 'Terra Incognita';
-      infoFeature.textContent = '—';
-      infoOffset.textContent = '—';
-      infoAxial.textContent = '—';
-      infoUnit.textContent = '—';
-      infoYields.textContent = '—';
-      infoResource.textContent = '—';
-      infoImprovement.textContent = '—';
-      infoOccupant.textContent = '—';
+      setInfoRow(infoTerrain, 'Terra Incognita');
+      clearInfoRows();
       showCombatForecast(controls.combatForecast());
       contextEl.classList.add('is-shown');
       return;
     }
     if (hover) {
+      const seat = controls.localPlayerId();
       const described = describeTile(hover.tile);
-      infoTerrain.textContent = described.terrain + (described.hills ? ' (hills)' : '');
-      infoFeature.textContent = described.feature;
-      infoOffset.textContent = `col ${hover.tile.col}, row ${hover.tile.row}`;
-      infoAxial.textContent = `q ${hover.axial.q}, r ${hover.axial.r}`;
-      infoUnit.textContent = describeUnitsOn(
-        game.state,
-        controls.localPlayerId(),
-        hover.tile,
-      );
-      showTileYields(game.state, controls.localPlayerId(), hover.tile);
-      infoResource.replaceChildren(
-        resourceRowNode(game.state, controls.localPlayerId(), hover.tile),
-      );
-      infoImprovement.textContent = describeImprovement(hover.tile);
-      infoOccupant.textContent = describeOccupant(
-        game.state,
-        controls.localPlayerId(),
-        hover.tile,
-      );
+      setInfoRow(infoTerrain, described.terrain + (described.hills ? ' (hills)' : ''));
+      setInfoRow(infoFeature, described.feature);
+      setInfoRow(infoUnit, describeUnitsOn(game.state, seat, hover.tile));
+      showTileYields(game.state, seat, hover.tile);
+      setInfoRow(infoResource, resourceRowNode(game.state, seat, hover.tile));
+      setInfoRow(infoImprovement, describeImprovement(hover.tile));
+      setInfoRow(infoOccupant, describeOccupant(game.state, seat, hover.tile));
     } else {
-      infoTerrain.textContent = '—';
-      infoFeature.textContent = '—';
-      infoOffset.textContent = '—';
-      infoAxial.textContent = '—';
-      infoUnit.textContent = '—';
-      infoYields.textContent = '—';
-      infoResource.textContent = '—';
-      infoImprovement.textContent = '—';
-      infoOccupant.textContent = '—';
+      setInfoRow(infoTerrain, null);
+      clearInfoRows();
     }
 
     // Asked after the readout, because it is a question about the selection and

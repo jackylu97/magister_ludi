@@ -41,11 +41,23 @@ import { YIELD_GLYPH, YIELD_NAME, type YieldKey } from './figures';
 import { yieldFigureNodes } from './yieldMark';
 import { resourceMarkNode } from './resourceMark';
 
-/** Terrain and feature by name, plus whether the hex is hilly. */
-export function describeTile(tile: Tile): { terrain: string; feature: string; hills: boolean } {
+/**
+ * Terrain and feature by name, plus whether the hex is hilly.
+ *
+ * A hex wearing no feature answers `null` rather than the table's `None`: bare
+ * ground has no feature, and a row reading "Feature: None" is a label spending a
+ * line of a small card to say nothing. `none` is a real row in `terrain.json`
+ * (it has a move cost and a defense bonus like any other) — it is only its
+ * *name* that is not a thing to tell anybody.
+ */
+export function describeTile(tile: Tile): {
+  terrain: string;
+  feature: string | null;
+  hills: boolean;
+} {
   return {
     terrain: terrainDef(tile.terrain).name,
-    feature: featureDef(tile.feature).name,
+    feature: tile.feature === 'none' ? null : featureDef(tile.feature).name,
     hills: tile.hills,
   };
 }
@@ -125,9 +137,11 @@ export interface TileYieldLine {
   /** What earned them: `Grassland`, `Wheat`, `Mine`, `City centre`. */
   source: string;
   /**
-   * A ground line a later `override` has taken over — `Forest`, on a hill. Kept
-   * on the card rather than dropped, because "forest, replaced by hills" is the
-   * sentence `explainTileYield` writes the entry for; the printer dims it.
+   * A ground line a later `override` has taken over — `Grassland`, under a
+   * forest. It is written here because this list is the faithful print of
+   * `explainTileYield`'s derivation, and it is what `displayYieldLines` drops:
+   * a hex is what it *is*, and a forest's yield is the forest's, not the grass
+   * struck through with the trees' figures beside it.
    */
   replaced: boolean;
 }
@@ -166,7 +180,8 @@ function partsOf(entry: TileYieldContribution): TileYieldPart[] {
  * a fact about the hex a player came to the card for, and a blank figure column
  * beside a name reads as a bug. `replaced` is derived here rather than in the
  * simulation because it is a *typographic* fact — the last `base`/`override` is
- * the one that stands, every earlier one is history the card shows dimmed.
+ * the one that stands, every earlier one is history. What a surface *does* with
+ * that history is `displayYieldLines`'s business, and today it drops it.
  */
 export function tileYieldLines(
   state: GameState,
@@ -196,8 +211,51 @@ export function tileYieldLines(
 }
 
 /**
+ * The **presentation fold**: the lines a player is actually shown.
+ *
+ * The simulation's list is a *derivation* — grassland, then forest taking it
+ * over, then hills taking that over — and printing a derivation is what the
+ * struck-through "Grassland" row was. But nobody hovering a wood asks what the
+ * ground would have been worth if the trees were not there; a forest on
+ * grassland simply *is* a forest, and its yield is the tile's base yield. So
+ * every superseded ground line is dropped and the one that stands is the base
+ * line, named for what the hex is now — `Forest`, or `Hills` on a forested
+ * hill, which is the entry whose figures the fold keeps.
+ *
+ * Pure, and pure *presentation*: `explainTileYield` still writes every step and
+ * `foldTileYield` still folds all of them. Dropping a replaced line cannot
+ * change the arithmetic, because a replaced line is by definition one a later
+ * `base`/`override` overwrote — which is exactly what `replaced` records.
+ */
+export function displayYieldLines(lines: readonly TileYieldLine[]): TileYieldLine[] {
+  return lines.filter((line) => !line.replaced);
+}
+
+/**
+ * The same list, or nothing at all when there is no sum to show.
+ *
+ * A breakdown earns its space by explaining a number that would otherwise be
+ * mysterious. After the fold above, a hex with no modifier on it has exactly
+ * one line — its ground — and that line's figures *are* the total printed above
+ * it. Printing it anyway is a ledger whose single entry restates its own sum,
+ * which reads as a calculation where none happened.
+ *
+ * So: two or more lines is an account and gets itemized; one line is a plain
+ * figure. "Modifier" here is precisely *anything the fold left beside the
+ * ground* — a resource, an improvement, a renewal, a card's or a building's or
+ * a rite's tile line, the city centre's inheritance — because they are all the
+ * same `add` entry to the list, and the card has no business asking which kind
+ * of thing earned a line when the simulation deliberately does not.
+ */
+export function itemisedYieldLines(lines: readonly TileYieldLine[]): TileYieldLine[] {
+  const shown = displayYieldLines(lines);
+  return shown.length > 1 ? shown : [];
+}
+
+/**
  * The breakdown as elements: one row per line, its figures drawn in their own
- * voices beside the name of what earned them.
+ * voices beside the name of what earned them — or **no rows at all** for a hex
+ * whose yield is just its ground (`itemisedYieldLines`).
  *
  * Each row carries its own `aria-label` in words — "2 food, 1 production from
  * Grassland" — because the marks are `aria-hidden` decoration (see
@@ -209,9 +267,9 @@ export function tileYieldLineNodes(
   playerId: number,
   tile: Tile,
 ): HTMLElement[] {
-  return tileYieldLines(state, playerId, tile).map((line) => {
+  return itemisedYieldLines(tileYieldLines(state, playerId, tile)).map((line) => {
     const row = document.createElement('li');
-    row.className = line.replaced ? 'yield-line is-replaced' : 'yield-line';
+    row.className = 'yield-line';
     const figures = document.createElement('span');
     figures.className = 'yield-line-figures';
     if (line.parts.length === 0) figures.textContent = line.figures;
@@ -228,10 +286,7 @@ export function tileYieldLineNodes(
     const spoken = line.parts
       .map((part) => `${part.text} ${YIELD_NAME[part.key]}`)
       .join(', ');
-    row.setAttribute(
-      'aria-label',
-      `${spoken} from ${line.source}${line.replaced ? ', replaced' : ''}`,
-    );
+    row.setAttribute('aria-label', `${spoken} from ${line.source}`);
     return row;
   });
 }
@@ -291,13 +346,19 @@ const SITE_NAME: Readonly<Record<'ruins' | 'village', string>> = {
  * `omniscient` is the inspection page's reading, the same liberty its resource
  * lens already takes: a spectator with no seat of its own would otherwise be
  * told nothing about the ground it exists to inspect.
+ *
+ * **`null` when nothing is planted here**, which is the shape every describer
+ * on this card now speaks: a row with nothing to say is a row the game does not
+ * draw, and "Occupant: —" is a label the player has to read to learn that there
+ * was nothing to read. The em dash, where a surface still wants one, is that
+ * surface's own fallback (the inspection page keeps it).
  */
 export function describeOccupant(
   state: GameState,
   playerId: number,
   tile: Tile,
   omniscient = false,
-): string {
+): string | null {
   const city = cityAt(state, tile.col, tile.row);
   if (city && (omniscient || knowsCity(state, playerId, city.id, tile))) {
     const owner = state.players[city.ownerId]?.name ?? '—';
@@ -320,19 +381,19 @@ export function describeOccupant(
     return `${SITE_NAME[site]} — unclaimed`;
   }
 
-  return '—';
+  return null;
 }
 
 /**
- * What has been *built* on the tile.
+ * What has been *built* on the tile, or `null` on ground nobody has worked.
  *
  * No technology gate and no seat: an improvement is a thing somebody put on the
  * ground, and unlike a strategic resource there is nothing about it to
  * recognise.
  */
-export function describeImprovement(tile: Tile): string {
+export function describeImprovement(tile: Tile): string | null {
   const id = tile.improvement;
-  if (id === undefined) return '—';
+  if (id === undefined) return null;
   const def = improvementDef(id);
   return `${def.emoji} ${def.name}`;
 }
@@ -343,17 +404,18 @@ export function describeImprovement(tile: Tile): string {
  * Nodes rather than a string, which is what the drawn mark costs and all it
  * costs: the mark is an element carrying a CSS mask (see
  * `src/ui/resourceMark.ts`), so this row is the one line of the card that
- * cannot be a `textContent` assignment. The em dash case still is.
+ * cannot be a `textContent` assignment.
  *
  * Asked of `visibleResourceAt`, which is the simulation's own answer and the
  * same one the resource lens draws from, so the card and the board cannot
  * disagree about whether this empire has heard of iron yet. A tile whose
- * resource is hidden reads as an empty row, exactly like a tile with nothing on
- * it: the honest report of "you do not know of anything here".
+ * resource is hidden answers `null` exactly like a tile with nothing on it —
+ * the honest report of "you do not know of anything here", and the same "no row
+ * at all" the other describers now speak.
  */
-export function resourceRowNode(state: GameState, playerId: number, tile: Tile): Node {
+export function resourceRowNode(state: GameState, playerId: number, tile: Tile): Node | null {
   const id = visibleResourceAt(state, playerId, tile);
-  if (id === null) return document.createTextNode('—');
+  if (id === null) return null;
   const def = resourceDef(id);
   // A luxury's *signature* is the reason to want this seam rather than the next
   // one, so the readout names it — through `describeResourceEffect`, the one
