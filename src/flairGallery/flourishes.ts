@@ -28,6 +28,7 @@ import { CARD_LINE_ACCENT, cardLineMarkUrl } from '../ui/cardLine';
 import { printerDeviceMarkUrl } from '../ui/deviceMarks';
 import { AXIS_MARK } from '../ui/religionScreen';
 import { drawPantheonWheel, pantheonWheelLayout } from '../ui/pantheonWheel';
+import { YIELD_GLYPH, setYieldText } from '../ui/yieldMark';
 import { type BeliefId, BELIEF_IDS, beliefDef } from '../sim/religionData';
 import { block, button, checkbox, controls, element, slider } from './sheet';
 
@@ -51,8 +52,75 @@ export function drawFlourishes(into: HTMLElement): void {
   cornerStarStall(into);
   cardBackStall(into);
   giltFrameStall(into);
+  pricePlateStall(into);
   inscriptionStall(into);
   ledgerStall(into);
+}
+
+/**
+ * The price plate, in its three states, over a scrap of board.
+ *
+ * It earns a stall for the reason the corner star does: in the game it is only
+ * ever seen *on top of a diorama*, three or four at a time, at 11px, while the
+ * player is looking at the ground rather than at the plate. That is precisely
+ * the condition under which "is the rim too heavy, is the greyed one still
+ * readable, does the coin out-shout its own figure" cannot be answered — so it
+ * is here, alone, on a ground the same value the board is.
+ *
+ * The three plates are the real class wearing the real states. The hovered one
+ * carries `.is-hovered`, which exists in `style.css` for exactly this: a copy of
+ * the hover rule here would be the one thing this page must never do.
+ *
+ * The knobs write the plate's own custom properties, so each is a proposal
+ * against the shipping number rather than a preview of a change already made —
+ * the corner star's bargain, one device over.
+ */
+function pricePlateStall(into: HTMLElement): void {
+  const root = block(
+    into,
+    'The price plate',
+    'What a hex costs, while Buy Tiles mode is up. The city panel’s buy tag laid on the ground: parchment under a hairline ink rim, the coin drawn from `src/art/yieldMarks.ts` rather than typed, the figure in tabular mono. A hex the treasury cannot cover keeps its figure and loses its ink — greyed, never struck, because a line through a price says *withdrawn* when it means *not today*.',
+  );
+  const grid = stallGrid(root);
+  const cell = stall(grid, 'three plates, over ground', 'stall-price');
+  const ground = element('div', 'price-ground');
+
+  const states: { caption: string; price: number; barred: boolean; hovered: boolean }[] = [
+    { caption: 'affordable', price: 50, barred: false, hovered: false },
+    { caption: 'hovered', price: 75, barred: false, hovered: true },
+    { caption: 'unaffordable', price: 110, barred: true, hovered: false },
+  ];
+  const plates: HTMLElement[] = [];
+  for (const state of states) {
+    const slot = element('div', 'price-slot');
+    const plate = element('button', 'tile-price');
+    plate.type = 'button';
+    if (state.barred) {
+      plate.classList.add('is-barred');
+      plate.disabled = true;
+    }
+    if (state.hovered) plate.classList.add('is-hovered');
+    // The game's own printer, so the coin on this page is the coin on the board.
+    setYieldText(plate, `${YIELD_GLYPH.gold} ${state.price}`);
+    slot.append(plate, element('span', 'price-caption', state.caption));
+    ground.append(slot);
+    plates.push(plate);
+  }
+  cell.append(ground);
+
+  // Written on each plate rather than on the ground under them: the defaults are
+  // declared on `.tile-price` itself, so a value inherited from an ancestor
+  // would lose to the class every time.
+  const dial = (name: string, value: string): void => {
+    for (const plate of plates) plate.style.setProperty(name, value);
+  };
+  const knobs = controls(root);
+  slider(knobs, 'size', { min: 8, max: 20, step: 0.5, value: 11 }, (v) => `${v}px`, (v) => {
+    dial('--price-size', `${v}px`);
+  });
+  slider(knobs, 'throw', { min: 0, max: 6, step: 1, value: 2 }, (v) => `${v}px`, (v) => {
+    dial('--price-throw', `${v}px`);
+  });
 }
 
 /**

@@ -612,3 +612,44 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* --- the price plate -------------------------------------------------------
+   The plate is only ever seen on top of the diorama, so the stall gives it one:
+   a flat swatch of the board's own sage (`data/view3d.json`'s palette) with the
+   three states standing on it. Flat and unlit on purpose — a toon-shaded hex
+   here would be a screenshot of the renderer, and the question this stall asks
+   is whether parchment and gilt survive being laid on green.
+
+   The plate itself is `position: absolute` in the game, because on the board it
+   is placed by `projectCell` every frame. Nothing places it here, so it is
+   returned to the flow — the one override, and the only line on this page that
+   touches the class at all. */
+.price-ground {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: flex-start;
+  padding: 22px 18px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: #93a877;
+}
+
+.price-slot {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+}
+
+.price-slot .tile-price {
+  position: static;
+}
+
+.price-caption {
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(29, 26, 32, 0.6);
+}

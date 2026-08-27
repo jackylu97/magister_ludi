@@ -29,12 +29,41 @@
  * the same job for the hex itself (see the precedence table in `controls.ts`),
  * so both the label and the ground answer. A greyed tag is not a button — it is
  * a price and a reason, and pressing it does nothing but say so again.
+ *
+ * The plate (art pass, 2026-08-27)
+ * --------------------------------
+ * It used to be a bare figure on an ink pill, which read as a *label* — a number
+ * floating over the ground, in the voice the damage numbers and the tile readout
+ * use. A price is not a label, it is an **offer**, and this interface already has
+ * a printed language for one: the city panel's `or 60💰` tag, parchment under a
+ * hairline ink rim with the figure in the treasury's own gilt. So the tag is now
+ * that same plate, laid on the hex.
+ *
+ * Three things follow from choosing the panel's language rather than inventing a
+ * second one, and each is the reason the tag looks the way it does:
+ *
+ *   · **The coin is drawn, never typed.** `setYieldText` prints `💰` as the
+ *     mask-drawn mark from `src/art/yieldMarks.ts`, exactly as every other
+ *     figure in the HUD does; the emoji survives only in the `aria-label` and
+ *     the `title`, which are strings the platform builds and cannot hold a node.
+ *   · **A refusal is greyed, not struck.** The panel greys a buy it cannot pay
+ *     for — faint ink, faint rim, the paper gone to `--table` — and a price with
+ *     a line through it said "withdrawn" when what it means is "not today".
+ *   · **The hovered plate takes the gilt rim**, which is the one state the panel
+ *     has no equivalent for: on a board, the tag under the cursor has to say
+ *     which hex is about to change hands.
+ *
+ * The plate's dimensions, inks and lift are CSS custom properties on the class
+ * itself (`--price-*` in `style.css`) rather than numbers spread through its
+ * rules — this is a DOM surface, so its tunables belong in the stylesheet the
+ * way a renderer's belong in `data/view3d.json`.
  */
 
 import { purchasableTiles } from '../sim/cities';
 import type { Game } from '../sim/game';
 import type { City } from '../sim/state';
 import type { MapView } from './mapView';
+import { YIELD_GLYPH, setYieldText } from './yieldMark';
 
 export interface TilePriceTagsOptions {
   /** An element covering the viewport, above the canvas. The banners' sheet. */
@@ -115,11 +144,22 @@ export function createTilePriceTags(options: TilePriceTagsOptions): TilePriceTag
       const signature = `${offer.price}|${offer.error ?? ''}`;
       if (signature !== tag.signature) {
         tag.signature = signature;
-        // The figure alone, in mono. The glyph is the gold coin the top bar and
-        // the yield lines already use, so a price reads as a price everywhere.
-        tag.root.textContent = `${offer.price}`;
-        // The reducer's own sentence, which is what the refusal will say if the
-        // player clicks the ground under the tag anyway.
+        // The coin then the figure, printed rather than typed: `setYieldText`
+        // swaps the glyph for the drawn mark and the space after it is what
+        // gives the mark its air (the lead rule, `yieldMark.ts`). The mark leads
+        // here where the city panel's `or 60💰` trails, because that tag is the
+        // end of a sentence and this one is a plate with nothing around it —
+        // leading with the coin is what says "money" before it says "sixty".
+        setYieldText(tag.root, `${YIELD_GLYPH.gold} ${offer.price}`);
+        // Words only in the spoken form and in the tooltip: the platform builds
+        // both out of a string, and a screen reader given the glyph reads its
+        // Unicode name before the number it decorates. The refusal is the
+        // reducer's own sentence, which is what clicking the ground under the
+        // tag would have answered with.
+        tag.root.setAttribute(
+          'aria-label',
+          affordable ? `Buy this tile for ${offer.price} gold` : offer.error ?? '',
+        );
         tag.root.title = affordable
           ? `Buy this tile for ${offer.price} gold`
           : offer.error ?? '';
