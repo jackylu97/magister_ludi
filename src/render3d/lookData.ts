@@ -997,6 +997,31 @@ export interface OverlaySpec {
   reachableOpacity: number;
   /** Reachable decal size as a fraction of the hex radius. */
   reachableScale: number;
+  /**
+   * The rim drawn around every reachable hex, and the half of that overlay a
+   * player actually counts.
+   *
+   * A wash alone says "somewhere around here"; it has no edge, so on a board of
+   * grass and sand its boundary is wherever the eye decides the tint stopped —
+   * which is the complaint this pair answers (user, 2026-08-27: "unit's
+   * available moves should have more noticeable highlight, its too subtle right
+   * now"). The rim gives the set a *border*, and a border is a shape: six of
+   * them along one edge read as one region with a countable frontier.
+   *
+   * Brighter than the wash and nearly opaque, deliberately. The wash may stay
+   * quiet — it is lying over terrain the player still has to read — and it is
+   * the line that has to survive being drawn over a jungle.
+   *
+   * Sized *inside* the selection ring (`ringOuter`) rather than at it, so a hex
+   * that is both reachable and hovered wears two concentric marks instead of one
+   * z-fighting smudge.
+   */
+  reachableRimColor: number;
+  reachableRimOpacity: number;
+  /** Outer radius of the reachable rim, as a fraction of the hex radius. */
+  reachableRimOuter: number;
+  /** Band width of the reachable rim, as a fraction of the hex radius. */
+  reachableRimWidth: number;
   pathColor: number;
   pathOpacity: number;
   pathDotRadius: number;
@@ -1104,6 +1129,53 @@ export interface BadgeSpec {
   /** Palette names: the roundel's paper, and the ink the icon is drawn in. */
   paperColor: number;
   inkColor: number;
+  /**
+   * The wild's own paper, ink and rim — the whole of what makes a barbarian
+   * piece read as one.
+   *
+   * The barbarian seat is a `Player` like any other (`Player.barbarian`, Entry
+   * XX) and so it draws a piece in a seat colour like anybody's, which is
+   * exactly the complaint: "barbarian icons should have red tint … should look
+   * different than a player unit" (user, 2026-08-27). A seat colour is a *name*
+   * — Crimson, Teal, Raven — and the wild is not a name a player negotiates
+   * with, so it is given a different *paper* rather than a thirteenth tincture:
+   * the roundel darkens to `vellumDeep` and the mark and the rim go oxblood, the
+   * Statecraft deck's `hunt` line, which is this project's word for blood.
+   *
+   * Three colours and not one because the badge has three surfaces and a red
+   * rim on bone paper reads as "a player whose colour happens to be red". It is
+   * the darkened parchment that says *this one is not a seat*.
+   *
+   * The ink is a deeper oxblood than the rim on purpose: a mark has to survive
+   * being ten pixels of stroke on its own paper, and `#c2452a` on `vellumDeep`
+   * is about three to one, which is a rim's contrast rather than a letter's.
+   */
+  wildPaperColor: number;
+  wildInkColor: number;
+  wildRimColor: number;
+  /**
+   * Badge overrides by unit id — the view layer's own answer to "which mark
+   * names this row", read after `greatWork` and `consecrates` and before
+   * `modelClass` (see `badgeClassFor` in `board3d.ts`).
+   *
+   * A *view* table and not a column on `UnitDef`, because which drawing a row
+   * wears is a fact about the art and not about the rules: `data/units.json` is
+   * the simulation's file and a `badge:` field there would be the renderer
+   * reaching across the fence for a decision only it can make. It is keyed by
+   * unit id exactly as `pieces.byUnitType` is in `data/view.json` — the frozen
+   * pipeline's own precedent for "art, keyed by row".
+   *
+   * The spear line is why it exists (user, 2026-08-27: "spearman line needs its
+   * own icon distinct from warrior line"). A spearman is `modelClass: 'melee'`
+   * and should be — it is a foot soldier and shares the sculpt — but the badge
+   * is the board's only sentence about what a piece *is*, and a sword over the
+   * unit you fielded specifically to stop a horse is the same wrong sentence
+   * `greatPerson` and `religious` exist to prevent, one row further down.
+   *
+   * Values are validated against `BADGE_CELLS` at load, so a typo is a loud
+   * failure rather than a badge that silently falls back to the sword.
+   */
+  byUnitType: Readonly<Record<string, string>>;
   /** `shade` amount applied to the rim of the selected unit's badge. */
   selectedRimShade: number;
   /** Atlas cell size in pixels, and how many cells per row. */
@@ -1877,6 +1949,10 @@ export const VIEW3D: View3DData = {
     reachableColor: parseColor(viewJson.overlay.reachableColor, 'overlay.reachableColor'),
     reachableOpacity: viewJson.overlay.reachableOpacity,
     reachableScale: viewJson.overlay.reachableScale,
+    reachableRimColor: parseColor(viewJson.overlay.reachableRimColor, 'overlay.reachableRimColor'),
+    reachableRimOpacity: viewJson.overlay.reachableRimOpacity,
+    reachableRimOuter: viewJson.overlay.reachableRimOuter,
+    reachableRimWidth: viewJson.overlay.reachableRimWidth,
     pathColor: parseColor(viewJson.overlay.pathColor, 'overlay.pathColor'),
     pathOpacity: viewJson.overlay.pathOpacity,
     pathDotRadius: viewJson.overlay.pathDotRadius,
@@ -1928,6 +2004,10 @@ export const VIEW3D: View3DData = {
     // the twelve-colour discipline would be the one thing on the board that did.
     paperColor: named(viewJson.badges.paperColor, 'badges.paperColor'),
     inkColor: named(viewJson.badges.inkColor, 'badges.inkColor'),
+    wildPaperColor: named(viewJson.badges.wildPaperColor, 'badges.wildPaperColor'),
+    wildInkColor: named(viewJson.badges.wildInkColor, 'badges.wildInkColor'),
+    wildRimColor: named(viewJson.badges.wildRimColor, 'badges.wildRimColor'),
+    byUnitType: viewJson.badges.byUnitType,
     selectedRimShade: viewJson.badges.selectedRimShade,
     atlasCell: viewJson.badges.atlasCell,
     atlasColumns: viewJson.badges.atlasColumns,

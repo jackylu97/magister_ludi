@@ -135,7 +135,13 @@ const fakeIcons = {
 } as unknown as TileIcons;
 
 /** The same stand-in for the badge atlas; the layer only ever wants a material. */
-const fakeBadges = { material: new MeshBasicMaterial() } as unknown as UnitBadges;
+const badgeMaterial = new MeshBasicMaterial();
+const wildBadgeMaterial = new MeshBasicMaterial();
+const fakeBadges = {
+  material: badgeMaterial,
+  wildMaterial: wildBadgeMaterial,
+  materialFor: (wild: boolean) => (wild ? wildBadgeMaterial : badgeMaterial),
+} as unknown as UnitBadges;
 
 // --- the mapping ------------------------------------------------------------
 

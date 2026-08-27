@@ -44,17 +44,71 @@
 /** The grid every mark is authored on. Square, and the same one the badges use. */
 export const MARK_BOX = 64;
 
-/** The house stroke weight, in grid units. */
-export const MARK_STROKE = 5;
+/**
+ * The house stroke weight, in grid units.
+ *
+ * **6.5 as of the luxury pass (2026-08-27), where it was 5** — and the change is
+ * a correction rather than a taste, so it is worth the arithmetic. When the six
+ * yield voices and the ten unit badges went over to vendored 24-unit drawings
+ * they were weighted up from upstream's 2 to 2.75, which is 0.115 of their box;
+ * this set stayed at 5 of 64, which is 0.078 of its own. The note in
+ * `public/sprites/CREDITS.md` claiming the two sets still shared a weight was
+ * written before that move and had been wrong ever since: a resource roundel and
+ * a unit badge sit on the same board at the same size, and one of them was a
+ * third lighter than the other. The user's report is the same observation from
+ * the outside — "icon pass over luxury resources, the new unit banners look
+ * great".
+ *
+ * 6.5 of 64 is 0.102, which lands the two sets on the same painted line once the
+ * house grid's slightly tighter safe circle is allowed for (these marks reach
+ * about 78% of their box where a 24-unit vendored one reaches about 83%). It is
+ * one number for the whole house hand — resources, sites, heraldry, card lines,
+ * the marginalia and the printer's devices all default to it — because the
+ * alternative is a per-family weight, and a per-family weight is how a set stops
+ * being a set. That is the same sentence this project has already written twice,
+ * once about half a badge roster in somebody else's fills and once about the six
+ * yields.
+ */
+export const MARK_STROKE = 6.5;
 
 /**
  * The lighter weight the *filled* shapes are outlined at.
  *
  * A filled lobe carries its own mass, so stroking it at the full weight fattens
  * it past everything around it — the hand-drawn wheat and grape files already
- * made this distinction and it is kept.
+ * made this distinction and it is kept. Held at 0.8 of the house weight, which
+ * is what it was before the weight moved.
  */
-export const MARK_STROKE_FILLED = 4;
+export const MARK_STROKE_FILLED = 5.2;
+
+/**
+ * The grid a **ported** mark keeps: upstream's, not the project's.
+ *
+ * Nine marks in this table are Tabler Icons (MIT) copied to the coordinate — see
+ * `PORTED_MARKS` and `public/sprites/CREDITS.md` — and they keep the 24-unit box
+ * and the badge roster's 2.75 weight for the reason `yieldMarks.ts` gives at
+ * length: rescaling path data is how a vendored drawing quietly stops being the
+ * drawing that was vendored, and a `d` string that no longer matches its source
+ * is one nobody can check again. Both printers already take the grid as a
+ * parameter, so the cost of keeping it is nothing.
+ */
+export const PORTED_MARK_BOX = 24;
+export const PORTED_MARK_STROKE = 2.75;
+
+/**
+ * How much of a house mark's print a ported one is given, on the roundel.
+ *
+ * `YIELD_MARK_SCALE`'s twin and the same kind of number — geometry, not taste.
+ * A 24-unit vendored drawing reaches about 83% of its box against this set's
+ * 78%, so printing both at one nominal size would make the ported nine visibly
+ * the larger and push the widest of them (the wheat ear, the grape bunch) onto
+ * the roundel's rim, which reads as a printing fault rather than as a token.
+ *
+ * The *DOM* side deliberately does not want it: a mask is sized by the text it
+ * sits beside and has no rim to run into, exactly as `.yield-mark` in
+ * `style.css` decided for the six voices.
+ */
+export const PORTED_MARK_SCALE = 0.9;
 
 /**
  * One traced path of a mark.
@@ -77,6 +131,52 @@ export interface ResourceMark {
   /** What the mark is a picture of. The row `CREDITS.md` prints. */
   note: string;
   paths: readonly MarkPath[];
+  /**
+   * The upstream icon this mark was ported from: set, name and licence.
+   *
+   * Present on exactly the nine Tabler ports and absent on the thirty-two
+   * drawings that are this project's own, which is what makes "who drew this"
+   * a property of the table rather than a list in a markdown file that can drift
+   * from it. `yieldMarks.ts` carries the same field for the same reason, and the
+   * flair gallery prints it under the mark.
+   */
+  credit?: string;
+  /**
+   * The authoring grid, when it is not this project's. See `PORTED_MARK_BOX`.
+   *
+   * Both printers read it through `resourceMarkPrint`, so a mark on a foreign
+   * grid needs no special case anywhere else — and a mark that omits it is on
+   * the house grid, which is the overwhelming majority and stays unannotated.
+   */
+  box?: number;
+  /** The default stroke on that grid. See `PORTED_MARK_STROKE`. */
+  stroke?: number;
+}
+
+/** How one mark is printed: its grid, its weight, and its share of the box. */
+export interface MarkPrint {
+  box: number;
+  stroke: number;
+  /** Multiplier on the printed size, reconciling two grids' padding. */
+  scale: number;
+}
+
+/**
+ * The grid, weight and print size one mark wants.
+ *
+ * The single place the two grids are reconciled, and therefore the single thing
+ * a new printer has to call. Deriving the scale from *whether the mark declared
+ * a box* rather than storing a third number per row is deliberate: a per-mark
+ * size knob would be a taste dial on a set whose whole claim is that it has one
+ * hand, and the first mark nudged with it would be the last one anybody trusted.
+ */
+export function resourceMarkPrint(mark: ResourceMark): MarkPrint {
+  if (mark.box === undefined) return { box: MARK_BOX, stroke: MARK_STROKE, scale: 1 };
+  return {
+    box: mark.box,
+    stroke: mark.stroke ?? PORTED_MARK_STROKE,
+    scale: PORTED_MARK_SCALE,
+  };
 }
 
 // --- the stroke vocabulary --------------------------------------------------
@@ -332,6 +432,37 @@ export function solid(d: string): MarkPath {
 }
 
 /**
+ * A stroked path on the *ported* grid — every member of every Tabler port here.
+ *
+ * All nine upstream drawings are pure outline: `fill="none"`, one weight, round
+ * caps and joins. Not one has a filled lobe, which is why there is no `solid`
+ * counterpart and why a ported mark that grew one would be a mark that had
+ * stopped matching its source. `yieldMarks.ts` says the same thing about its
+ * own six, in the same words, because it is the same rule.
+ */
+function ported(d: string): MarkPath {
+  return { d, width: PORTED_MARK_STROKE };
+}
+
+/**
+ * One Tabler port: the note, the credit, the grid, and the paths.
+ *
+ * A builder rather than nine hand-written objects, so that "this row is somebody
+ * else's drawing on somebody else's grid" is one word at the call site and
+ * cannot be half-declared — a `box` without a `credit` would be an uncredited
+ * vendored drawing, which is the one bookkeeping mistake this file must not make.
+ */
+function tabler(note: string, icon: string, ...ds: string[]): ResourceMark {
+  return {
+    note,
+    credit: `Tabler Icons \`${icon}\` (MIT)`,
+    box: PORTED_MARK_BOX,
+    stroke: PORTED_MARK_STROKE,
+    paths: ds.map(ported),
+  };
+}
+
+/**
  * Every drawn mark, keyed by resource id.
  *
  * A plain string key, not `Record<ResourceId, …>`: the point of the fallback is
@@ -347,19 +478,14 @@ export function solid(d: string): MarkPath {
  */
 export const RESOURCE_MARKS: Readonly<Record<string, ResourceMark>> = {
   // --- bonus ---------------------------------------------------------------
-  wheat: {
-    note: 'a bound sheaf, three stalks and a tie',
-    paths: [
-      ink('M32 56V24'),
-      ink('M20 54C16 44 16 34 19 26'),
-      ink('M44 54C48 44 48 34 45 26'),
-      solid('M32 24C27 20 25 14 26 8C31 10 33 16 32 24Z'),
-      solid('M32 24C37 20 39 14 38 8C33 10 31 16 32 24Z'),
-      solid('M19 26C15 23 13 18 14 13C18 15 20 20 19 26Z'),
-      solid('M45 26C49 23 51 18 50 13C46 15 44 20 45 26Z'),
-      ink('M17 42H47'),
-    ],
-  },
+  wheat: tabler(
+    'an ear of wheat, two sprays off one stem',
+    'wheat',
+    'M12.014 21.514v-3.75',
+    'M5.93 9.504l-.43 1.604c-.712 2.659 .866 5.391 3.524 6.105c.997 .268 1.993 .535 2.99 .801v-3.44c-.164 -2.105 -1.637 -3.879 -3.676 -4.426l-2.408 -.644',
+    'M13.744 11.164c.454 -.454 .815 -.994 1.061 -1.587c.246 -.594 .372 -1.23 .372 -1.873c0 -.643 -.126 -1.279 -.372 -1.872c-.246 -.594 -.606 -1.133 -1.061 -1.588l-1.73 -1.73l-1.73 1.73c-.454 .454 -.815 .994 -1.06 1.588c-.246 .594 -.372 1.23 -.373 1.872c0 .643 .127 1.279 .373 1.873c.246 .594 .606 1.133 1.06 1.587',
+    'M18.099 9.504l.43 1.604c.712 2.659 -.866 5.391 -3.525 6.105c-.997 .268 -1.994 .535 -2.99 .801v-3.44c.164 -2.105 1.637 -3.879 3.677 -4.426l2.408 -.644',
+  ),
   cattle: {
     note: "a cow's head, horns out",
     paths: [
@@ -370,26 +496,29 @@ export const RESOURCE_MARKS: Readonly<Record<string, ResourceMark>> = {
       { d: dot(37, 42, 2.5), fill: true, width: 0 },
     ],
   },
-  deer: {
-    note: 'a branching pair of antlers',
-    paths: [
-      ink('M32 56V36'),
-      ink('M32 36C26 30 23 22 23 12'),
-      ink(line(27, 25, 16, 20)),
-      ink(line(24, 17, 14, 11)),
-      ink('M32 36C38 30 41 22 41 12'),
-      ink(line(37, 25, 48, 20)),
-      ink(line(40, 17, 50, 11)),
-    ],
-  },
-  fish: {
-    note: 'a fish, tail to the right',
-    paths: [
-      ink('M10 32C18 19 38 19 46 32C38 45 18 45 10 32Z'),
-      ink('M46 32L58 23V41Z'),
-      { d: dot(21, 28, 2.5), fill: true, width: 0 },
-    ],
-  },
+  deer: tabler(
+    "a stag's head, antlers full",
+    'deer',
+    'M3 3c0 2 1 3 4 3c2 0 3 1 3 3',
+    'M21 3c0 2 -1 3 -4 3c-2 0 -3 .333 -3 3',
+    'M12 18c-1 0 -4 -3 -4 -6c0 -2 1.333 -3 4 -3s4 1 4 3c0 3 -3 6 -4 6',
+    'M15.185 14.889l.095 -.18a4 4 0 1 1 -6.56 0',
+    'M17 3c0 1.333 -.333 2.333 -1 3',
+    'M7 3c0 1.333 .333 2.333 1 3',
+    'M7 6c-2.667 .667 -4.333 1.667 -5 3',
+    'M17 6c2.667 .667 4.333 1.667 5 3',
+    'M8.5 10l-1.5 -1',
+    'M15.5 10l1.5 -1',
+    'M12 15h.01',
+  ),
+  fish: tabler(
+    'a fish, tail to the left',
+    'fish',
+    'M16.69 7.44a6.973 6.973 0 0 0 -1.69 4.56c0 1.747 .64 3.345 1.699 4.571',
+    'M2 9.504c7.715 8.647 14.75 10.265 20 2.498c-5.25 -7.761 -12.285 -6.142 -20 2.504',
+    'M18 11v.01',
+    'M11.5 10.5c-.667 1 -.667 2 0 3',
+  ),
   stone: {
     note: 'a cut block in three-quarter view',
     paths: [ink(cube(32, 12, 20, 10, 20))],
@@ -417,17 +546,16 @@ export const RESOURCE_MARKS: Readonly<Record<string, ResourceMark>> = {
       ink(leaf(49, 40, 34, 13, 72)),
     ],
   },
-  bananas: {
-    note: 'a single fruit, stem up',
-    paths: [
-      // One fruit, not three, and that is a legibility decision rather than a
-      // botanical one: a *hand* of bananas at twenty pixels is three crescents
-      // whose gaps close into one black mound, and splaying them instead reads
-      // as a fork. The single crescent is what every reader already knows.
-      solid(crescent(46, 14, 38, 29, 100, 175)),
-      ink(line(12, 17, 9, 7)),
-    ],
-  },
+  // One fruit, not three, and upstream agrees: a *hand* of bananas at twenty
+  // pixels is three crescents whose gaps close into one black mound, and
+  // splaying them instead reads as a fork. What the port buys over the crescent
+  // that was here is the stem and the squared-off end — the two details that
+  // stop a single arc reading as a horn.
+  bananas: tabler(
+    'a single fruit, stem squared at the top',
+    'banana',
+    'M20 6v-2a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v2a9.09 9.09 0 0 1 -4 8.08c-2 1.31 -5 1.57 -7 1.59a2 2 0 0 0 -2 2a2 2 0 0 0 1.16 1.81c2.69 1.2 9.46 3.44 14.35 -1.66c4.49 -4.74 1.49 -11.82 1.49 -11.82',
+  ),
   copper: {
     note: 'an oxhide ingot, four horns and a hollowed waist',
     paths: [
@@ -493,12 +621,21 @@ export const RESOURCE_MARKS: Readonly<Record<string, ResourceMark>> = {
   },
 
   // --- strategic -----------------------------------------------------------
-  horses: {
-    note: "the badge set's horse head, reused verbatim",
-    paths: [
-      solid('M17 56C17 40 17 29 25 21L25 12L32 7L35 16C45 18 54 25 57 32C58 35 56 37 52 37L38 38C34 43 36 50 38 56Z'),
-    ],
-  },
+  // The open art question `CREDITS.md` recorded when the badges went to Tabler,
+  // now closed the way it was always going to be. The pasture and the cavalry it
+  // buys were one drawing until the icon pass moved `mounted.svg` and left this
+  // one behind as a filled silhouette — the only mark in the table carrying that
+  // much solid ink, and the one that most obviously belonged to another hand.
+  // It is the badge's horse again, and it is the badge's horse *by being the
+  // same upstream drawing* rather than by sharing a file: a resource mark and a
+  // unit badge are never in the same roundel, and the two rosters keep the right
+  // to move independently.
+  horses: tabler(
+    "the badge set's horse, in full",
+    'horse',
+    'M7 10l-.85 8.507a1.357 1.357 0 0 0 1.35 1.493h.146a2 2 0 0 0 1.857 -1.257l.994 -2.486a2 2 0 0 1 1.857 -1.257h1.292a2 2 0 0 1 1.857 1.257l.994 2.486a2 2 0 0 0 1.857 1.257h.146a1.37 1.37 0 0 0 1.364 -1.494l-.864 -9.506h-8c0 -3 -3 -5 -6 -5l-3 6l2 2l3 -2',
+    'M22 14v-2a3 3 0 0 0 -3 -3',
+  ),
   iron: {
     note: 'an anvil on its block',
     paths: [
@@ -508,14 +645,12 @@ export const RESOURCE_MARKS: Readonly<Record<string, ResourceMark>> = {
   },
 
   // --- luxury --------------------------------------------------------------
-  gems: {
-    note: 'a cut gem, crown and pavilion',
-    paths: [
-      ink('M20 14H44L56 28L32 54L8 28Z'),
-      ink('M8 28H56'),
-      ink('M20 14L26 28L32 54L38 28L44 14'),
-    ],
-  },
+  gems: tabler(
+    'a cut gem, table and pavilion, with one facet line',
+    'diamond',
+    'M6 5h12l3 5l-8.5 9.5a.7 .7 0 0 1 -1 0l-8.5 -9.5l3 -5',
+    'M10 12l-2 -2.2l.6 -1',
+  ),
   silk: {
     note: 'a banner hung from a rail',
     paths: [
@@ -524,27 +659,28 @@ export const RESOURCE_MARKS: Readonly<Record<string, ResourceMark>> = {
       ink('M20 26C26 22 38 30 44 26'),
     ],
   },
-  wine: {
-    note: 'a bunch of grapes with a leaf',
-    paths: [
-      { d: 'M32 14V6', width: MARK_STROKE_FILLED },
-      solid('M32 9C38 4 47 6 48 13C42 16 34 15 32 9Z'),
-      solid(dot(32, 22, 6)),
-      solid(dot(22, 31, 6)),
-      solid(dot(42, 31, 6)),
-      solid(dot(27, 42, 6)),
-      solid(dot(37, 42, 6)),
-      solid(dot(32, 53, 6)),
-    ],
-  },
-  spices: {
-    note: 'a pepper pod',
-    paths: [
-      solid('M42 18C48 27 45 41 34 50C25 57 14 53 16 44C19 32 30 22 42 18Z'),
-      ink(line(42, 18, 45, 9)),
-      ink(line(45, 9, 54, 12)),
-    ],
-  },
+  // The six berries were filled here and the gaps between them closed into one
+  // black mound at the size a tile roundel is actually read at. Upstream's are
+  // outlined and overlapped, which is the same bunch drawn so that the boundary
+  // between two berries survives being one pixel wide.
+  wine: tabler(
+    'a bunch of grapes under a stem and a leaf',
+    'grape',
+    'M13 3a14.5 14.5 0 0 0 -1 6',
+    'M12 8.9s-2.77 .52 -4.1 -.8s-.8 -4 -.8 -4s2.57 -.53 3.88 .8s1.02 4 1.02 4',
+    'M14 19a2 2 0 1 0 -4 0a2 2 0 0 0 4 0',
+    'M14 17a2 2 0 1 1 0 -4a2 2 0 0 1 0 4',
+    'M10 17a2 2 0 1 1 0 -4a2 2 0 0 1 0 4',
+    'M12 13a2 2 0 1 1 0 -4a2 2 0 0 1 0 4',
+    'M16 13a2 2 0 1 1 0 -4a2 2 0 0 1 0 4',
+    'M8 13a2 2 0 1 1 0 -4a2 2 0 0 1 0 4',
+  ),
+  spices: tabler(
+    'a pepper pod under its stem',
+    'pepper',
+    'M13 11c0 2.21 -2.239 4 -5 4s-5 -1.79 -5 -4a8 8 0 1 0 16 0a3 3 0 0 0 -6 0',
+    'M16 8c0 -2 2 -4 4 -4',
+  ),
   salt: {
     note: 'a salt crystal, with two glints',
     paths: [ink(cube(32, 18, 15, 8, 15)), ink(spark(53, 14, 4)), ink(spark(9, 43, 3))],
@@ -620,15 +756,12 @@ export const RESOURCE_MARKS: Readonly<Record<string, ResourceMark>> = {
       ink('M32 34C35 30 39 28 42 29'),
     ],
   },
-  tea: {
-    note: 'a leaf, midrib and two veins',
-    paths: [
-      ink(leaf(32, 32, 46, 26, 315)),
-      ink(line(16, 48, 48, 16)),
-      ink(line(26, 38, 22, 26)),
-      ink(line(38, 26, 42, 38)),
-    ],
-  },
+  tea: tabler(
+    'a leaf on its stem, midrib drawn',
+    'leaf',
+    'M5 21c.5 -4.5 2.5 -8 7 -10',
+    'M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3l.014 0',
+  ),
   coffee: {
     note: 'a sprig of two cherries under a leaf',
     paths: [
@@ -772,7 +905,8 @@ export function resourceMark(id: string): ResourceMark | null {
  * to.
  */
 export function resourceMarkSvg(mark: ResourceMark, color = '#000'): string {
-  return markSvg(mark.paths, MARK_BOX, MARK_STROKE, color);
+  const print = resourceMarkPrint(mark);
+  return markSvg(mark.paths, print.box, print.stroke, color);
 }
 
 /**

@@ -103,7 +103,7 @@ import { Group, type Material, Matrix4, Mesh, Quaternion, type Texture, Vector3 
 import { GREAT_PERSON_IDS, type GreatPersonId } from '../sim/greatPeopleData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
 import type { GameMap } from '../sim/map';
-import type { GameState, Unit } from '../sim/state';
+import { type GameState, type Unit, isBarbarian } from '../sim/state';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
 
 import {
@@ -628,6 +628,19 @@ export class UnitLayer {
    * bucket per player). A board with fifty units and six classes draws the same
    * eight badge meshes as a board with six.
    *
+   * **The wild is the one seat whose badge is not a seat colour.** A barbarian
+   * warrior standing next to your own was reading as another empire's piece
+   * (user, 2026-08-27), because it *is* a `Player` and so it was drawn like one.
+   * It now takes the wild atlas — darkened parchment, oxblood mark — and an
+   * oxblood rim, all three from `badges.wild*` in `data/view3d.json`. Asked of
+   * `isBarbarian`, the sim's register for that seat (CLAUDE.md's `realPlayers`
+   * rule, read from the other end), never of the seat's colour or its name.
+   *
+   * It costs nothing per unit for the reason everything else here does: the
+   * material and the rim ink are both already part of the bucket key, so the
+   * wild's pieces batch among themselves exactly as a nation's do, and a world
+   * with no barbarians in it collects no wild bucket at all.
+   *
    * Not `onTop`. A badge is a thing standing in the diorama and has to be hidden
    * by whatever hides its unit; the lift is what clears the sculpt's own head.
    * It does claim a draw order above the interface rings, which is a different
@@ -650,6 +663,7 @@ export class UnitLayer {
       .clone()
       .setY(placement.position.y + badgeCenterY(visualHeight));
     const size = new Vector3(BADGE.diameter, BADGE.diameter, 1);
+    const wild = isBarbarian(state, unit.ownerId);
 
     slots.push(
       collector.add(
@@ -657,10 +671,12 @@ export class UnitLayer {
         // No ink of its own: the disc *is* the texture, and the material is the
         // shared atlas one. The colour list still has to be something, and an
         // empty one would collide in the bucket key with any other textured
-        // shape that ever arrives.
-        [BADGE.paperColor],
+        // shape that ever arrives. It names the paper the atlas was *printed*
+        // on, so a nation's roundel and the wild's can never share a bucket even
+        // if the two materials were ever made interchangeable.
+        [wild ? BADGE.wildPaperColor : BADGE.paperColor],
         new Matrix4().compose(anchor, faceCamera, size),
-        { material: badges.material, order: RENDER_ORDER.badge },
+        { material: badges.materialFor(wild), order: RENDER_ORDER.badge },
       ),
     );
 
@@ -668,7 +684,12 @@ export class UnitLayer {
     // sense that matters: it is a different *colour*, so it lands in its own
     // bucket and costs one extra draw for the one selected unit, and nothing at
     // all on a board with no selection.
-    const ink = unitColor(state, unit);
+    //
+    // The wild's rim is oxblood rather than its seat ink, and it still takes the
+    // selection lift — a barbarian a player has clicked on is still the piece in
+    // hand, and a selection that only worked on your own units would be the kind
+    // of hole nobody notices until they are trying to read a stack.
+    const ink = wild ? BADGE.wildRimColor : unitColor(state, unit);
     const rimColor = selected ? shade(ink, BADGE.selectedRimShade) : ink;
     const front = anchor
       .clone()

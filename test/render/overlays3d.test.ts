@@ -240,6 +240,72 @@ describe('board overlays draw over the board', () => {
     layer.dispose();
   });
 
+  /**
+   * The reachable set is a wash *and* a rim, and the rim is the load-bearing
+   * half.
+   *
+   * A wash on its own has no edge — over mixed terrain its boundary is wherever
+   * the eye decides the tint stopped — which is what "too subtle" meant (user,
+   * 2026-08-27). What is held still here is the pair: both marks on every
+   * reachable hex, in two different inks, and the rim brighter and more opaque
+   * than the wash it edges. The last clause is the one a well-meaning tune-down
+   * would break, and it would break it invisibly.
+   */
+  it('rims every reachable hex as well as washing it, and rims it brighter', () => {
+    const state = flatState();
+    const layer = new OverlayLayer();
+    const cells = [
+      { col: 2, row: 2 },
+      { col: 3, row: 2 },
+      { col: 4, row: 2 },
+    ];
+    layer.build(
+      state.map,
+      {
+        reachable: cells,
+        path: [],
+        committed: [],
+        hover: null,
+        selection: null,
+        worked: [],
+        locked: [],
+      },
+      geometry,
+      materials,
+    );
+
+    const drawn = decals(layer.group);
+    const wash = drawn.find((entry) => entry.mesh.geometry === geometry.decal);
+    const rim = drawn.find((entry) => entry.mesh.geometry === geometry.reachRing);
+    expect(wash, 'the reachable wash').toBeDefined();
+    expect(rim, 'the reachable rim').toBeDefined();
+    // One instance of each per hex, times the three wrap copies — and one bucket
+    // apiece, because both are keyed on a single colour.
+    expect(wash!.mesh.count).toBe(cells.length * 3);
+    expect(rim!.mesh.count).toBe(cells.length * 3);
+    expect(rim!.material.color.getHex()).toBe(VIEW3D.overlay.reachableRimColor);
+    expect(rim!.material.opacity).toBeGreaterThan(wash!.material.opacity);
+    expectDrawnOverTheBoard(layer.group);
+    layer.dispose();
+  });
+
+  it('keeps the reachable rim inside the selection ring rather than on top of it', () => {
+    // A hex that is both reachable and hovered wears two concentric marks. At
+    // the same radius they would be one smudge fighting for the same pixels,
+    // and the ring — which answers "where is the cursor" — would be the one
+    // that lost, because it is drawn first.
+    expect(VIEW3D.overlay.reachableRimOuter).toBeLessThan(VIEW3D.overlay.ringOuter);
+    // And a band a player can actually see: thinner than the selection ring's,
+    // which is the difference between "this is the piece" and "this is ground".
+    expect(VIEW3D.overlay.reachableRimWidth).toBeGreaterThan(0);
+    expect(VIEW3D.overlay.reachableRimWidth).toBeLessThan(VIEW3D.overlay.ringWidth);
+    // The wash reaches the rim it is edged by, so no ring of bare board shows
+    // between the two.
+    expect(VIEW3D.overlay.reachableScale).toBeGreaterThanOrEqual(
+      VIEW3D.overlay.reachableRimOuter,
+    );
+  });
+
   it('tints attackable tiles in their own colour, over the reachable wash', () => {
     const state = flatState();
     const layer = new OverlayLayer();

@@ -38,8 +38,10 @@
  * The whole layer is thrown away and rebuilt whenever the selection, the hover
  * or the reachable set changes — never per frame. That is a few hundred
  * instances at most (a unit with three movement points reaches perhaps thirty
- * tiles, times three wrap copies), and rebuilding is what keeps this layer
- * incapable of disagreeing with the state that produced it.
+ * tiles, each now carrying a wash *and* a rim, times three wrap copies), and
+ * rebuilding is what keeps this layer incapable of disagreeing with the state
+ * that produced it. Two instances per reachable hex is still two buckets for the
+ * whole set, because both are keyed on one colour apiece.
  */
 
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
@@ -195,6 +197,14 @@ export class OverlayLayer {
       );
     }
 
+    // The reachable set: a wash *and* a rim, and the rim is the half that is
+    // actually read. A wash on its own has no edge — on grass beside sand its
+    // boundary is wherever the eye decides the tint stopped — which is why the
+    // highlight was "too subtle" (user, 2026-08-27) at any opacity anybody was
+    // willing to lay over terrain. One rim per hex rather than an outline around
+    // the region: the answer a player wants is "how many steps", and a set of
+    // drawn hexes can be counted where a blob can only be judged. See
+    // `OverlaySpec.reachableRimColor`.
     for (const cell of state.reachable) {
       const at = anchor(cell);
       if (!at) continue;
@@ -202,6 +212,12 @@ export class OverlayLayer {
         onTop: true,
         opacity: OVERLAY.reachableOpacity,
       });
+      collector.add(
+        geometry.reachRing,
+        [OVERLAY.reachableRimColor],
+        new Matrix4().compose(at, identity, unit),
+        { onTop: true, opacity: OVERLAY.reachableRimOpacity },
+      );
     }
 
     // The attack tint, over the reachable wash rather than under it: a tile that

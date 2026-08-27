@@ -27,7 +27,7 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { UnitLayer, badgeAnchors } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { createMap } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState, barbarianPlayer, newGame } from '../../src/sim/state';
 import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -47,7 +47,13 @@ const BADGE = VIEW3D.badges;
 
 /** A stand-in for the rasterised atlas: the layer only ever wants a material. */
 function fakeBadges(): UnitBadges {
-  return { material: new MeshBasicMaterial() } as unknown as UnitBadges;
+  const material = new MeshBasicMaterial();
+  const wildMaterial = new MeshBasicMaterial();
+  return {
+    material,
+    wildMaterial,
+    materialFor: (wild: boolean) => (wild ? wildMaterial : material),
+  } as unknown as UnitBadges;
 }
 
 describe('the badge atlas layout', () => {
@@ -406,6 +412,83 @@ describe('badges in the units layer', () => {
     // One bucket for the selection's lifted ink, one for everybody else.
     expect(rims).toHaveLength(2);
     expect(rims.map((m) => m.count).sort()).toEqual([3, 3]);
+    layer.dispose();
+    board.dispose();
+  });
+
+  /**
+   * The wild's badge, which is the one badge on the board that is not a seat.
+   *
+   * The barbarian seat is a `Player` so that combat, stacking, movement and fog
+   * need no second implementation (Entry XX) — and the price of that was a
+   * barbarian warrior drawn exactly like a neighbour's (user, 2026-08-27:
+   * "barbarian icons should have red tint … should look different than a player
+   * unit"). What is held still here is the whole of the fix and each half of it
+   * separately, because either half alone is wrong: a red rim on bone parchment
+   * reads as "a player whose colour is red", and darkened parchment with a seat
+   * rim reads as a rendering fault.
+   */
+  it('prints the wild’s badge on its own atlas, and rims it in oxblood', () => {
+    const game = newGame({
+      seed: 7,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#d4502e', isHuman: true }],
+      barbarians: true,
+    });
+    game.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    resetVisibility(game);
+    game.tileOwner = new Array<number | null>(12 * 8).fill(null);
+    game.cities = [];
+    const wild = barbarianPlayer(game)!;
+    expect(wild).toBeDefined();
+    game.units = [0, wild.id].map((ownerId, i) => ({
+      id: i + 1,
+      type: 'warrior' as UnitTypeId,
+      ownerId,
+      col: 1 + i * 2,
+      row: 2,
+      hp: unitDef('warrior').maxHp,
+      movesLeft: 2,
+      hasAttacked: false,
+    }));
+
+    const board = new BoardGeometry();
+    const layer = new UnitLayer();
+    const badges = fakeBadges();
+    layer.build(
+      game,
+      board,
+      new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
+      new Quaternion(),
+      false,
+      null,
+      badges,
+    );
+    const meshes = layer.group.children.filter(
+      (c): c is InstancedMesh => c instanceof InstancedMesh,
+    );
+
+    // Two warriors, one class, and *two* disc buckets — because the two seats
+    // print off two different atlases. One bucket would mean the wild was
+    // wearing a nation's paper.
+    const discs = meshes.filter((m) => m.geometry === board.badgeIcons.melee);
+    expect(discs).toHaveLength(2);
+    const discMaterials = discs.map((m) => m.material);
+    expect(discMaterials).toContain(badges.material);
+    expect(discMaterials).toContain(badges.wildMaterial);
+
+    // And two rims: the seat's own ink, and the wild's oxblood — which is a
+    // colour no seat tincture can take, so the two can never collide.
+    const rims = meshes.filter((m) => m.geometry === board.badgeRim);
+    expect(rims).toHaveLength(2);
+    const rimColors = rims.map((m) => (m.material as MeshBasicMaterial).color.getHex());
+    expect(rimColors).toContain(BADGE.wildRimColor);
+    expect(VIEW3D.players.fallbackOrder).not.toContain(BADGE.wildRimColor);
+    // The darkened parchment is the half that says "not a seat"; the rim alone
+    // would only say "a red one".
+    expect(BADGE.wildPaperColor).not.toBe(BADGE.paperColor);
+    expect(BADGE.wildInkColor).not.toBe(BADGE.inkColor);
+
     layer.dispose();
     board.dispose();
   });

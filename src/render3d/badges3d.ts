@@ -98,6 +98,7 @@ import {
   MARK_STROKE,
   type MarkPath,
   resourceMark,
+  resourceMarkPrint,
 } from '../art/resourceMarks';
 import { siteMark } from '../art/siteMarks';
 import {
@@ -145,8 +146,19 @@ const LENS = VIEW3D.lens;
  * eleventh. Named for what the family *is* rather than for the augur, because
  * `consecrates` is the marker (see `badgeClassFor`) and nothing here has ever
  * compared a unit type against a name.
+ *
+ * `spear` is the third, and it arrived from the other direction. The two above
+ * are rows that are *not what they are shaped like*; a spearman is exactly what
+ * it is shaped like — a foot soldier, `modelClass: 'melee'`, sharing the
+ * swordsman's sculpt and rightly so — and the badge still owes it a mark,
+ * because the sword says "this is the line you send at a city" and the spear
+ * line is the one you send at a horse (user, 2026-08-27: "spearman line needs
+ * its own icon distinct from warrior line"). So the badge is one grade finer
+ * than the sculpt here rather than one grade coarser, and which rows take it is
+ * `badges.byUnitType` in `data/view3d.json` — art keyed by row, never a name
+ * compared in this file.
  */
-export type BadgeClass = ModelClass | 'greatPerson' | 'religious';
+export type BadgeClass = ModelClass | 'greatPerson' | 'religious' | 'spear';
 
 /**
  * The atlas layout, in cell order, and the authority on which cell a class
@@ -160,9 +172,10 @@ export type BadgeClass = ModelClass | 'greatPerson' | 'religious';
  * Grown by **appending**, which is the same rule `TILE_ICON_CELLS` carries and
  * for the same reason: every consumer re-derives its rectangle through
  * `badgeCellRect` at build time and nothing writes an index down, so a new cell
- * on the end costs a row of atlas and re-points nothing. Ten cells in a
- * four-wide atlas is three rows with two spare, and the layout arithmetic has
- * always been a function of the count.
+ * on the end costs a row of atlas and re-points nothing. Eleven cells in a
+ * four-wide atlas is three rows with one spare, and the layout arithmetic has
+ * always been a function of the count — `spear` was appended and nothing else
+ * moved, which is the rule doing its job rather than being quoted.
  */
 export const BADGE_CELLS: readonly BadgeClass[] = [
   'settler',
@@ -175,6 +188,7 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
   'scout',
   'greatPerson',
   'religious',
+  'spear',
 ];
 
 /**
@@ -196,14 +210,15 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
  * the whole set moves together — `paintMarkPaths` in this file is already the
  * printer that would take them.
  *
- * As of the icon pass the drawings behind these ten are **Tabler Icons** (MIT)
+ * As of the icon pass the drawings behind these are **Tabler Icons** (MIT)
  * rather than this project's own hand — the same decision `yieldMarks.ts` made
  * for the six yield voices, for the same reason and at the same weight (2.75 of
  * a 24-unit box, where upstream ships 2). Eight are Tabler drawings copied
- * verbatim; the horse-archer is two of them composed and the catapult is drawn
- * here in Tabler's geometry, because neither Tabler nor Lucide has either shape
- * and a filled silhouette from a third family would make this set two sets.
- * `public/sprites/CREDITS.md` names each one; the files carry it too.
+ * verbatim; the horse-archer is two of them composed and the catapult and the
+ * spear are drawn here in Tabler's geometry, because neither Tabler nor Lucide
+ * has any of those shapes and a filled silhouette from a third family would make
+ * this set two sets. `public/sprites/CREDITS.md` names each one; the files carry
+ * it too.
  */
 export const BADGE_ICON_FILES: Record<BadgeClass, string> = {
   settler: 'sprites/icons/settler.svg',
@@ -216,6 +231,7 @@ export const BADGE_ICON_FILES: Record<BadgeClass, string> = {
   scout: 'sprites/icons/scout.svg',
   greatPerson: 'sprites/icons/greatPerson.svg',
   religious: 'sprites/icons/religious.svg',
+  spear: 'sprites/icons/spear.svg',
 };
 
 // --- layout arithmetic -----------------------------------------------------
@@ -377,12 +393,38 @@ export function cssHex(color: number): string {
 }
 
 /**
+ * The two inks a badge cell can be printed in: a nation's, and the wild's.
+ *
+ * A *pair of colours* rather than a flag, because the atlas painter has no
+ * business knowing what a barbarian is — it is handed paper and ink and prints
+ * with them. Which pair a piece gets is `pieces.ts`'s question, asked of
+ * `isBarbarian` (`src/sim/state.ts`), which is the register for "who is the
+ * wild"; nothing here compares a seat against a name or a colour.
+ */
+export interface BadgeInkStyle {
+  paper: number;
+  ink: number;
+}
+
+/** The ordinary roundel: bone parchment, ink mark. */
+export function nationBadgeStyle(): BadgeInkStyle {
+  return { paper: BADGE.paperColor, ink: BADGE.inkColor };
+}
+
+/** The wild's: darkened parchment, oxblood mark. See `BadgeSpec.wildPaperColor`. */
+export function wildBadgeStyle(): BadgeInkStyle {
+  return { paper: BADGE.wildPaperColor, ink: BADGE.wildInkColor };
+}
+
+/**
  * Paints one cell: the parchment roundel, then the icon inked on top of it.
  *
- * The icon arrives as whatever colour its SVG was authored in and leaves in
- * `badges.inkColor`, recoloured through a scratch canvas with `source-in` —
- * which keeps the ink a *data* decision rather than something baked into eight
- * files that would all have to be re-exported to change it.
+ * The icon arrives as whatever colour its SVG was authored in and leaves in the
+ * style's ink, recoloured through a scratch canvas with `source-in` — which
+ * keeps the ink a *data* decision rather than something baked into eleven files
+ * that would all have to be re-exported to change it. That indirection is also
+ * what makes the wild's atlas free: the same eleven drawings, printed a second
+ * time in a second pair of colours, with no second set of files.
  *
  * A null icon is not an error. The roundel is still drawn, so a class whose
  * artwork failed to load shows a blank parchment token rather than nothing at
@@ -393,13 +435,14 @@ export function drawBadgeCell(
   icon: CanvasImageSource | null,
   index: number,
   layout: AtlasLayout,
+  style: BadgeInkStyle = nationBadgeStyle(),
 ): void {
   const origin = badgeCellOrigin(index, layout);
   const cell = layout.cell;
   const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
 
   context.save();
-  context.fillStyle = cssHex(BADGE.paperColor);
+  context.fillStyle = cssHex(style.paper);
   context.beginPath();
   context.arc(center.x, center.y, paperRadiusFraction() * cell, 0, Math.PI * 2);
   context.fill();
@@ -417,7 +460,7 @@ export function drawBadgeCell(
   // `source-in` keeps the icon's alpha and replaces its colour wholesale. Done
   // on its own canvas so it cannot reach the parchment already painted here.
   ink.globalCompositeOperation = 'source-in';
-  ink.fillStyle = cssHex(BADGE.inkColor);
+  ink.fillStyle = cssHex(style.ink);
   ink.fillRect(0, 0, size, size);
   context.drawImage(scratch, Math.round(center.x - size / 2), Math.round(center.y - size / 2));
 }
@@ -933,12 +976,18 @@ function drawResourceCell(
     );
     return;
   }
+  // The mark's own grid, weight and print size — see `resourceMarkPrint`. Nine
+  // of the forty-one rows are Tabler ports that keep upstream's 24-unit box, and
+  // the whole of what that costs the atlas is this one lookup.
+  const print = resourceMarkPrint(mark);
   paintMarkPaths(
     context,
     mark,
     center,
-    Math.max(1, ICONS.iconScale * layout.cell),
+    Math.max(1, print.scale * ICONS.iconScale * layout.cell),
     ICONS.inkColor,
+    print.box,
+    print.stroke,
   );
 }
 
@@ -1575,8 +1624,21 @@ export function badgeDiscFlags(): {
 }
 
 /**
- * The built atlas: one texture, one material, shared by every badge on the
- * board whatever class or player it belongs to.
+ * The built atlas: the drawings, printed twice.
+ *
+ * One texture and one material for every badge a *nation* flies, whatever class
+ * or seat, and a second pair for the wild — same eleven cells, same layout, same
+ * quads, printed on darkened parchment in oxblood (`wildBadgeStyle`). Two
+ * textures rather than one because a printed bucket cannot be tinted: an atlas
+ * material carries the ink in its own pixels, and `InstanceCollector` refuses a
+ * per-instance colour on a textured bucket precisely so that nothing can grey
+ * out a roundel by accident (see `Bucket.material` in `instances.ts`). So the
+ * only place a second ink can come from is a second print.
+ *
+ * It costs one more 512 × 384 canvas and one more draw call on a board that has
+ * barbarians on screen, and nothing at all on one that has not — the wild's
+ * bucket is only created when something asks for it, which is the same property
+ * that makes the selected unit's brighter rim free.
  *
  * Unlit and alpha-tested rather than blended, for the same reason the unit
  * billboards are (see `sprites3d.ts`): a cutout writes depth and sorts with
@@ -1588,12 +1650,20 @@ export function badgeDiscFlags(): {
  */
 export class UnitBadges {
   private readonly texture: CanvasTexture;
+  private readonly wildTexture: CanvasTexture;
   readonly material: MeshBasicMaterial;
+  readonly wildMaterial: MeshBasicMaterial;
 
-  private constructor(texture: CanvasTexture) {
+  private constructor(texture: CanvasTexture, wildTexture: CanvasTexture) {
     this.texture = texture;
-    this.material = new MeshBasicMaterial({
-      map: texture,
+    this.wildTexture = wildTexture;
+    this.material = UnitBadges.discMaterial(texture);
+    this.wildMaterial = UnitBadges.discMaterial(wildTexture);
+  }
+
+  private static discMaterial(map: CanvasTexture): MeshBasicMaterial {
+    return new MeshBasicMaterial({
+      map,
       ...badgeDiscFlags(),
       // The camera is fixed in front of every badge, but a quad that vanished
       // because it ended up back-facing is a costly bug for two pixels of save.
@@ -1602,13 +1672,31 @@ export class UnitBadges {
     });
   }
 
+  /**
+   * The material a piece of this seat's badges print with.
+   *
+   * The one question this class answers about *who*, and it takes the answer
+   * rather than the seat: the caller has already asked `isBarbarian`, which is
+   * the sim's register for the wild, and this file has no business re-deriving
+   * it from a colour or a name.
+   */
+  materialFor(wild: boolean): MeshBasicMaterial {
+    return wild ? this.wildMaterial : this.material;
+  }
+
   dispose(): void {
     this.material.dispose();
+    this.wildMaterial.dispose();
     this.texture.dispose();
+    this.wildTexture.dispose();
   }
 
   /**
-   * Rasterises every icon into one atlas and returns the set.
+   * Rasterises every icon into the two atlases and returns the set.
+   *
+   * The icons are loaded **once** and drawn twice, which is the whole reason the
+   * ink is a `source-in` recolour rather than a colour baked into the files:
+   * a second print costs a canvas, not a second fetch.
    *
    * Never rejects. A missing icon file leaves a blank roundel (see
    * `drawBadgeCell`) and a browser with no 2D context at all resolves to null,
@@ -1617,24 +1705,30 @@ export class UnitBadges {
    */
   static async load(): Promise<UnitBadges | null> {
     const layout = badgeAtlasSize();
-    const canvas = document.createElement('canvas');
-    canvas.width = layout.width;
-    canvas.height = layout.height;
-    const context = canvas.getContext('2d');
-    if (!context) return null;
-
     const icons = await Promise.all(BADGE_CELLS.map((cls) => loadIcon(BADGE_ICON_FILES[cls])));
-    BADGE_CELLS.forEach((_, index) => {
-      drawBadgeCell(context, icons[index] ?? null, index, layout);
-    });
 
-    const texture = new CanvasTexture(canvas);
-    texture.colorSpace = SRGBColorSpace;
-    // Mipmaps so a badge does not crawl when the board is zoomed out; linear
-    // magnification so the ink stays soft rather than blocky when it is not.
-    texture.generateMipmaps = true;
-    texture.magFilter = LinearFilter;
-    texture.anisotropy = 4;
-    return new UnitBadges(texture);
+    const print = (style: BadgeInkStyle): CanvasTexture | null => {
+      const canvas = document.createElement('canvas');
+      canvas.width = layout.width;
+      canvas.height = layout.height;
+      const context = canvas.getContext('2d');
+      if (!context) return null;
+      BADGE_CELLS.forEach((_, index) => {
+        drawBadgeCell(context, icons[index] ?? null, index, layout, style);
+      });
+      const texture = new CanvasTexture(canvas);
+      texture.colorSpace = SRGBColorSpace;
+      // Mipmaps so a badge does not crawl when the board is zoomed out; linear
+      // magnification so the ink stays soft rather than blocky when it is not.
+      texture.generateMipmaps = true;
+      texture.magFilter = LinearFilter;
+      texture.anisotropy = 4;
+      return texture;
+    };
+
+    const nation = print(nationBadgeStyle());
+    const wild = nation === null ? null : print(wildBadgeStyle());
+    if (nation === null || wild === null) return null;
+    return new UnitBadges(nation, wild);
   }
 }

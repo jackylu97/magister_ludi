@@ -57,13 +57,17 @@ import { LENS_DEFAULTS, type LensView } from '../../src/ui/mapView';
 import {
   MARK_BOX,
   MARK_STROKE,
+  PORTED_MARK_BOX,
+  PORTED_MARK_SCALE,
+  PORTED_MARK_STROKE,
   RESOURCE_MARKS,
   cube,
   resourceMark,
   resourceMarkDataUri,
+  resourceMarkPrint,
   resourceMarkSvg,
 } from '../../src/art/resourceMarks';
-import { YIELD_MARK_STROKE, yieldMark } from '../../src/art/yieldMarks';
+import { YIELD_MARK_BOX, YIELD_MARK_STROKE, yieldMark } from '../../src/art/yieldMarks';
 
 /**
  * The board's half of the resources milestone: the diorama props, the flat
@@ -1308,7 +1312,13 @@ describe('the drawn resource marks', () => {
       expect(uri, id).not.toBeNull();
       expect(uri!.startsWith('data:image/svg+xml,'), id).toBe(true);
       const svg = decodeURIComponent(uri!.slice('data:image/svg+xml,'.length));
-      expect(svg, id).toContain(`viewBox="0 0 ${MARK_BOX} ${MARK_BOX}"`);
+      // Each mark's *own* grid, which is the house 64 for the drawings this
+      // project authored and upstream's 24 for the nine Tabler ports (see
+      // `resourceMarkPrint`). Asked of the mark rather than assumed, because
+      // a ported drawing whose viewBox had been rewritten to 64 would be a
+      // drawing that no longer matched the source it was copied from.
+      const print = resourceMarkPrint(resourceMark(id)!);
+      expect(svg, id).toContain(`viewBox="0 0 ${print.box} ${print.box}"`);
       // Every path of the mark is in the exported document: the DOM prints the
       // whole drawing the atlas traces, not a subset of it.
       for (const path of resourceMark(id)!.paths) {
@@ -1336,10 +1346,71 @@ describe('the drawn resource marks', () => {
   it('inks the exported sprite in whatever colour it is asked for', () => {
     // The DOM masks it, so the colour is irrelevant there — but the atlas and a
     // future surface may want it, and a mark that ignored the argument would be
-    // a mark that could only ever be one colour.
-    const svg = resourceMarkSvg(resourceMark('wheat')!, '#123456');
+    // a mark that could only ever be one colour. Asked of a mark with a *fill*
+    // in it, which the nine ported ones deliberately have not got.
+    const svg = resourceMarkSvg(resourceMark('cattle')!, '#123456');
     expect(svg).toContain('stroke="#123456"');
     expect(svg).toContain('fill="#123456"');
     expect(svg).toContain(`stroke-width="${MARK_STROKE}"`);
+  });
+
+  /**
+   * The nine Tabler ports, and the bookkeeping that keeps them honest.
+   *
+   * Vendored path data is the one kind of drawing in this project that can go
+   * quietly wrong: nothing on screen changes when a `d` string is "tidied up",
+   * and once it has been the file no longer matches the source anybody would
+   * check it against. So the shape of a port is asserted rather than its
+   * pixels — upstream's grid kept, upstream's weight kept, no fills anywhere
+   * (all nine upstream drawings are pure outline), and a credit on the row so
+   * `CREDITS.md` has one place to be right about.
+   */
+  describe('the ported marks', () => {
+    const ported = RESOURCE_IDS.filter((id) => resourceMark(id)?.credit !== undefined);
+
+    it('keeps every port on upstream’s grid, at upstream’s weight, with no fill', () => {
+      expect(ported.length).toBeGreaterThan(0);
+      for (const id of ported) {
+        const mark = resourceMark(id)!;
+        expect(mark.box, id).toBe(PORTED_MARK_BOX);
+        expect(mark.stroke, id).toBe(PORTED_MARK_STROKE);
+        expect(mark.credit, id).toMatch(/^Tabler Icons `[a-z-]+` \(MIT\)$/);
+        for (const path of mark.paths) {
+          expect(path.fill, `${id} grew a fill upstream has not got`).toBeUndefined();
+          expect(path.width, id).toBe(PORTED_MARK_STROKE);
+        }
+      }
+    });
+
+    it('prints a port smaller than a house mark, and a house mark unscaled', () => {
+      // Two grids, two padding conventions: a 24-unit vendored drawing reaches
+      // further into its box than this project's own, so printing both at one
+      // nominal size would put the widest ports on the roundel's rim.
+      expect(resourceMarkPrint(resourceMark('wheat')!).scale).toBe(PORTED_MARK_SCALE);
+      expect(PORTED_MARK_SCALE).toBeLessThan(1);
+      const house = resourceMarkPrint(resourceMark('stone')!);
+      expect(house).toEqual({ box: MARK_BOX, stroke: MARK_STROKE, scale: 1 });
+    });
+
+    /**
+     * The weights, which are the whole reason this pass happened.
+     *
+     * A resource roundel and a unit badge share a board and are read at the same
+     * size; the badges went to 2.75 of 24 and this set stayed at 5 of 64, which
+     * is a third lighter. The claim held here is the corrected one — the two
+     * sets' *painted* lines are within a few percent of each other, counting the
+     * ported set's print scale — because that is the number a player sees and it
+     * is the number that silently drifts the next time either set moves.
+     */
+    it('lands the house weight and the vendored weight on one painted line', () => {
+      const house = MARK_STROKE / MARK_BOX;
+      const vendored = (PORTED_MARK_STROKE / PORTED_MARK_BOX) * PORTED_MARK_SCALE;
+      expect(Math.abs(house - vendored) / house).toBeLessThan(0.05);
+      // And the yields, which are the third set on the same board.
+      expect(YIELD_MARK_STROKE / YIELD_MARK_BOX).toBeCloseTo(
+        PORTED_MARK_STROKE / PORTED_MARK_BOX,
+        10,
+      );
+    });
   });
 });

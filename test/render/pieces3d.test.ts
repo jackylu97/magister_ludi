@@ -125,16 +125,20 @@ describe('the model-class roster', () => {
     // this is the seam that has to be nailed down.
     //
     // They used to be the same *set*. They are not any more, and the difference
-    // is exactly two members, each a piece that borrows a body it must not be
-    // named after (`BadgeClass`): a great person stands on the settler's sculpt
-    // and an augur on the worker's. So the badge list is the sculpt list plus
-    // `greatPerson` and `religious` and nothing else. Written as a containment
-    // plus named exceptions rather than a sorted equality, so an eleventh cell
-    // somebody adds without deciding what it is fails here.
+    // is exactly three members. Two are pieces that borrow a body they must not
+    // be named after (`BadgeClass`): a great person stands on the settler's
+    // sculpt and an augur on the worker's. The third goes the other way — the
+    // spear line *is* what it is shaped like and still earns its own mark,
+    // because the sword and the spear are two answers to two different threats.
+    // So the badge list is the sculpt list plus `greatPerson`, `religious` and
+    // `spear`, and nothing else. Written as a containment plus named exceptions
+    // rather than a sorted equality, so a twelfth cell somebody adds without
+    // deciding what it is fails here.
     for (const id of MODEL_CLASS_IDS) expect(BADGE_CELLS).toContain(id);
     expect(BADGE_CELLS).toContain('greatPerson');
     expect(BADGE_CELLS).toContain('religious');
-    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + 2);
+    expect(BADGE_CELLS).toContain('spear');
+    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + 3);
     for (const id of BADGE_CELLS) {
       expect(BADGE_ICON_FILES[id], `no icon file for ${id}`).toMatch(/^sprites\/icons\/.+\.svg$/);
     }
@@ -150,12 +154,43 @@ describe('the model-class roster', () => {
       expect(modelClassFor(type)).toBe('settler');
       expect(badgeClassFor(type)).toBe('greatPerson');
     }
-    // And nothing else takes it: every ordinary row still badges as its class.
+    // And nothing else takes it: every ordinary row still badges as its class,
+    // save the rows the art table names (`badges.byUnitType`).
     for (const type of UNIT_TYPE_IDS) {
       const def = unitDef(type);
       if (def.greatWork || def.consecrates) continue;
+      if (type in VIEW3D.badges.byUnitType) continue;
       expect(badgeClassFor(type)).toBe(modelClassFor(type));
     }
+  });
+
+  /**
+   * The art table's own clause, which is the third and last thing that can move
+   * a badge off its sculpt (`badgeClassFor`).
+   *
+   * Read out of `data/view3d.json` rather than written here, so the assertion is
+   * "whatever the table says, the renderer obeys" and not a second copy of the
+   * table that would go stale the first time a row was added. What *is* written
+   * here is the shape of the answer: a named row takes the named class, and it
+   * is a class the atlas actually has a cell for — a typo either side is a badge
+   * silently drawing somebody else's icon.
+   */
+  it('lets the art table split a model class, and only into a cell that exists', () => {
+    const table = VIEW3D.badges.byUnitType;
+    expect(Object.keys(table).length).toBeGreaterThan(0);
+    for (const [type, cls] of Object.entries(table)) {
+      expect(UNIT_TYPE_IDS, `${type} is not a unit type`).toContain(type);
+      expect(BADGE_CELLS, `${cls} has no atlas cell`).toContain(cls);
+      expect(badgeClassFor(type as UnitTypeId)).toBe(cls);
+    }
+    // The spear line is why the table exists: it must not wear the sword the
+    // warrior line wears, and the warrior line must still wear it.
+    expect(badgeClassFor('spearman')).toBe('spear');
+    expect(badgeClassFor('pikeman')).toBe('spear');
+    expect(badgeClassFor('warrior')).toBe('melee');
+    expect(badgeClassFor('swordsman')).toBe('melee');
+    // …and the split is a *badge* split only. Both lines are still one sculpt.
+    expect(modelClassFor('spearman')).toBe(modelClassFor('warrior'));
   });
 
   it('badges a rite-worker as religious and never as the worker it is sculpted as', () => {
@@ -589,7 +624,13 @@ describe('the units layer in pieces style', () => {
  * for which unit.
  */
 describe('the worker charge badge', () => {
-  const fakeBadges = { material: new MeshBasicMaterial() } as unknown as UnitBadges;
+  const badgeMaterial = new MeshBasicMaterial();
+  const wildBadgeMaterial = new MeshBasicMaterial();
+  const fakeBadges = {
+    material: badgeMaterial,
+    wildMaterial: wildBadgeMaterial,
+    materialFor: (wild: boolean) => (wild ? wildBadgeMaterial : badgeMaterial),
+  } as unknown as UnitBadges;
 
   function state(units: { type: UnitTypeId; chargesLeft?: number }[]): GameState {
     const game = newGame({

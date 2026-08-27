@@ -47,7 +47,7 @@ import type { DiscoveryKind } from '../sim/discoveryData';
 import { IMPROVEMENT_IDS, type ImprovementId } from '../sim/improvementData';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
-import { type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
+import { type ModelClass, UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
 import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
 import {
@@ -230,13 +230,46 @@ export function modelClassFor(type: UnitTypeId): ModelClass {
  * move. `greatWork` is asked **first** and the order is not arbitrary: a great
  * person that also consecrated would still be a great person, because the laurel
  * is about who the piece is and the candle is about what it does.
+ *
+ * The **third** clause is the art table (`badges.byUnitType` in
+ * `data/view3d.json`, resolved once by `BADGE_OVERRIDES`), and it sits here and
+ * not first for the same reason: the two above are facts the *rules* carry about
+ * a row, and a look-and-feel file must not be able to hang a candle on
+ * Archimedes. What it may do is split a model class the sculpt cannot — the
+ * spear line off the sword line — which is a decision about drawings and
+ * therefore a decision the renderer's own data file gets to make.
  */
 export function badgeClassFor(type: UnitTypeId): BadgeClass {
   const def = unitDef(type);
   if (def.greatWork) return 'greatPerson';
   if (def.consecrates) return 'religious';
-  return def.modelClass;
+  return BADGE_OVERRIDES.get(type) ?? def.modelClass;
 }
+
+/**
+ * `badges.byUnitType`, resolved once and checked against the atlas.
+ *
+ * Checked rather than trusted: the table is plain JSON keyed by two open string
+ * spaces — a unit id and a badge class — and both halves of a typo fail
+ * invisibly. A misspelt unit id would simply never match, and a misspelt class
+ * would index a cell that does not exist and draw whatever happens to be at the
+ * origin of the atlas. Both are the shape of bug that ships, so both throw at
+ * load, where a bad data edit belongs (the same discipline `parseColor` and the
+ * `named` palette lookup keep one file over).
+ */
+const BADGE_OVERRIDES: ReadonlyMap<UnitTypeId, BadgeClass> = (() => {
+  const out = new Map<UnitTypeId, BadgeClass>();
+  for (const [type, cls] of Object.entries(VIEW3D.badges.byUnitType)) {
+    if (!UNIT_TYPE_IDS.includes(type as UnitTypeId)) {
+      throw new Error(`view3d.json: badges.byUnitType names an unknown unit type: ${type}`);
+    }
+    if (!BADGE_CELLS.includes(cls as BadgeClass)) {
+      throw new Error(`view3d.json: badges.byUnitType.${type} is not a badge class: ${cls}`);
+    }
+    out.set(type as UnitTypeId, cls as BadgeClass);
+  }
+  return out;
+})();
 
 /**
  * Every sculpt on the board, and the size class it is cut to.
@@ -648,6 +681,16 @@ export class BoardGeometry {
   /** Overlay shapes: reachable tint, highlight ring, path chip, HP bar. */
   readonly decal: BufferGeometry;
   readonly ring: BufferGeometry;
+  /**
+   * The reachable set's own rim — a thinner hex band, drawn inside the selection
+   * ring so a hovered reachable hex wears both without either z-fighting.
+   *
+   * A second buffer rather than `ring` at a smaller instance scale, because a
+   * scaled ring scales its *band* too: shrinking the selection ring to fit
+   * inside itself would thin the line at exactly the moment the design wants it
+   * kept. See `OverlaySpec.reachableRimColor`.
+   */
+  readonly reachRing: BufferGeometry;
   readonly dot: BufferGeometry;
   readonly bar: BufferGeometry;
   /** A fuller hexagon than `decal`, for the territory tint and the lens wash. */
@@ -835,6 +878,10 @@ export class BoardGeometry {
       BOARD.hexRadius * OVERLAY.ringOuter,
       BOARD.hexRadius * OVERLAY.ringWidth,
     );
+    this.reachRing = hexRing(
+      BOARD.hexRadius * OVERLAY.reachableRimOuter,
+      BOARD.hexRadius * OVERLAY.reachableRimWidth,
+    );
     this.dot = pathDot(OVERLAY.pathDotRadius, OVERLAY.pathDotHeight);
     this.resourceProps = buildResourceProps();
     this.improvementProps = buildImprovementProps();
@@ -919,6 +966,7 @@ export class BoardGeometry {
     this.pole.dispose();
     this.decal.dispose();
     this.ring.dispose();
+    this.reachRing.dispose();
     this.dot.dispose();
     for (const prop of Object.values(this.resourceProps)) prop.dispose();
     for (const prop of Object.values(this.improvementProps)) prop.dispose();

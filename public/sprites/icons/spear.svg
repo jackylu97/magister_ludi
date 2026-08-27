@@ -1,0 +1,14 @@
+<!-- Not a Tabler icon: Tabler draws no spear, lance, pike or javelin, and a filled
+     silhouette borrowed from a third family would make this set two sets. So this one
+     is drawn here, in Tabler's geometry rather than in ours — the 24-unit box, the
+     family's 2.75 stroke, round caps and joins, no fill anywhere — exactly as
+     `siege.svg` was. It is deliberately NOT the sword on another angle: at twenty
+     pixels a diagonal blade is a diagonal blade whatever its tip is shaped like, so
+     the spear stands upright, which is the one silhouette in this set that reads at a
+     glance against `melee.svg`'s diagonal. A leaf blade, a socket collar, and the two
+     lugs of a boar-spear — the part of the weapon that is about stopping a charge. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 10.5v10.5"/>
+<path d="M12 3c2.2 2.2 3 4.2 3 5.5c0 1.7 -1.3 3 -3 3s-3 -1.3 -3 -3c0 -1.3 .8 -3.3 3 -5.5"/>
+<path d="M8 14.5l4 -1.5l4 1.5"/>
+</g></svg>

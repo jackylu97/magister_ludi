@@ -31,7 +31,13 @@ import {
   marginaliaMarkDataUri,
 } from '../art/marginaliaMarks';
 import { METER_MARKS, meterMarkDataUri } from '../art/meterMarks';
-import { MARK_BOX, MARK_STROKE, RESOURCE_MARKS, markSvg, resourceMarkDataUri } from '../art/resourceMarks';
+import {
+  MARK_BOX,
+  MARK_STROKE,
+  RESOURCE_MARKS,
+  markSvg,
+  resourceMarkDataUri,
+} from '../art/resourceMarks';
 import { siteMark } from '../art/siteMarks';
 import { YIELD_MARKS, yieldMarkDataUri } from '../art/yieldMarks';
 import { BADGE_CELLS, BADGE_ICON_FILES } from '../render3d/badges3d';
@@ -150,19 +156,32 @@ function lineFamily(into: HTMLElement): void {
   }
 }
 
+/**
+ * The resource marks, which as of the luxury pass are **two hands under one
+ * weight** — and the page says which is which under every cell.
+ *
+ * Nine rows are Tabler Icons ported to the coordinate (`ResourceMark.credit`),
+ * on upstream's 24-unit grid; the other thirty-two are this project's own on the
+ * house 64. The provenance is read off the mark rather than listed here, so a
+ * tenth port is a row of `resourceMarks.ts` and this page does not move — which
+ * is the rule the whole file is built on.
+ */
 function resourceFamily(into: HTMLElement): void {
   const ids = Object.keys(RESOURCE_MARKS);
+  const ported = ids.filter((id) => RESOURCE_MARKS[id]!.credit !== undefined).length;
   const grid = markGrid(
     block(
       into,
       `Resources — src/art/resourceMarks.ts (${ids.length})`,
-      'The house hand and the house grid: 64 units, weight 5, round caps. Printed on the tile roundels, in the readout, the ledgers and the resource lens.',
+      `One weight, two grids: ${ids.length - ported} drawn here on the house 64 at weight ${MARK_STROKE}, ${ported} ported from Tabler (MIT) on upstream's 24 at 2.75 — the badges' own weight, which is what puts both sets on the same painted line. Printed on the tile roundels, in the readout, the ledgers and the resource lens.`,
     ),
   );
   for (const id of ids) {
     const uri = resourceMarkDataUri(id);
     if (uri === null) continue;
-    markCell(grid, id, uri, RESOURCE_MARKS[id]!.note);
+    const mark = RESOURCE_MARKS[id]!;
+    const cell = markCell(grid, id, uri, mark.note);
+    if (mark.credit !== undefined) cell.append(element('div', 'mark-note', mark.credit));
   }
 }
 
@@ -196,11 +215,13 @@ function deviceFamily(into: HTMLElement): void {
  * The badge-class icons — the one family on this page that is **not** path data
  * in a module.
  *
- * Ten vendored SVG files under `public/`, rasterised into the unit-badge atlas
- * by the only `loadIcon` call left in the renderer. Ten and not eight because
- * two of them are not model classes at all (`BadgeClass` in `badges3d.ts`): a
- * great person stands on the settler's sculpt and an augur on the worker's, and
- * neither may wear the name of the body it borrows. They are shown here exactly
+ * Eleven vendored SVG files under `public/`, rasterised into the unit-badge
+ * atlas by the only `loadIcon` call left in the renderer. Eleven and not eight
+ * because three of them are not model classes at all (`BadgeClass` in
+ * `badges3d.ts`): a great person stands on the settler's sculpt and an augur on
+ * the worker's, and neither may wear the name of the body it borrows; the spear
+ * line shares the swordsman's sculpt and earns its own mark from the other
+ * direction, because sword and spear answer two different threats. Shown exactly
  * as everything else is, masked through `currentColor`, which is what the atlas
  * does to them too (it recolours them to the badge's ink) — and at the same
  * three sizes, which is the whole point of putting them on this page: **12** is
@@ -214,14 +235,91 @@ function deviceFamily(into: HTMLElement): void {
  * else's drawings.
  */
 function badgeFamily(into: HTMLElement): void {
-  const grid = markGrid(
-    block(
-      into,
-      'Badge classes — public/sprites/icons/*.svg',
-      'The eight model classes, the laurel every great person wears and the candle every religious piece does, on the parchment badge that floats over a piece. Tabler Icons (MIT) at the yield marks’ weight, save the horse-archer and the catapult, which Tabler has not got. Vendored files rather than path data — the last set in the game that is fetched at all.',
-    ),
+  const root = block(
+    into,
+    'Badge classes — public/sprites/icons/*.svg',
+    'The eight model classes, the laurel every great person wears, the candle every religious piece does, and the spear the anti-cavalry line does, on the parchment badge that floats over a piece. Tabler Icons (MIT) at the yield marks’ weight, save the horse-archer, the catapult and the spear, which Tabler has not got. Vendored files rather than path data — the last set in the game that is fetched at all.',
   );
+  const grid = markGrid(root);
   for (const cls of BADGE_CELLS) markCell(grid, cls, `/${BADGE_ICON_FILES[cls]}`);
+  drawBadgeRoundels(root);
+}
+
+/**
+ * The roundel itself, printed both ways: a nation's, and the wild's.
+ *
+ * The row above shows the *drawings*; this one shows the **badge**, which is a
+ * different object — parchment, a mark, and a rim of somebody's colour — and it
+ * is the only place on this page where the barbarian treatment can be judged,
+ * because that treatment is entirely a matter of which three colours the same
+ * eleven drawings are printed in (`BadgeSpec.wildPaperColor` and its two
+ * siblings; `UnitBadges` prints the atlas twice).
+ *
+ * Every number and colour is read out of `data/view3d.json` through `VIEW3D` —
+ * the disc's diameter as a ratio to its rim's width, the paper, the ink, the two
+ * rims — so this is the shipping badge at gallery scale rather than a picture of
+ * one.
+ *
+ * **Three and not two**, and the third is the point of the row. Seat 0's own
+ * tincture is crimson, which is close enough to the wild's oxblood that a rim
+ * alone would not tell them apart — so the near-miss case is drawn here beside
+ * the wild rather than left to be discovered on a board. What separates them is
+ * the *paper*, which is most of a roundel's area and the thing the eye reads
+ * first, and the mark's ink behind it. A version of this treatment that lost the
+ * darkened parchment and kept only the red rim would look right in isolation and
+ * fail against exactly one seat.
+ */
+function drawBadgeRoundels(into: HTMLElement): void {
+  const BADGE = VIEW3D.badges;
+  const row = element('div', 'mark-grid');
+  const tinctures = seatTinctures();
+  const specs: { id: string; paper: number; ink: number; rim: string; note: string }[] = [
+    {
+      id: `a nation · ${tinctures[1]!.name}`,
+      paper: BADGE.paperColor,
+      ink: BADGE.inkColor,
+      rim: tinctures[1]!.color,
+      note: 'bone parchment, ink mark, the seat’s own tincture on the rim',
+    },
+    {
+      id: `a nation · ${tinctures[0]!.name}`,
+      paper: BADGE.paperColor,
+      ink: BADGE.inkColor,
+      rim: tinctures[0]!.color,
+      note: 'the near miss: seat 0 flies a red of its own, so the rim cannot be the thing that says “wild”',
+    },
+    {
+      id: 'the wild',
+      paper: BADGE.wildPaperColor,
+      ink: BADGE.wildInkColor,
+      rim: hex(BADGE.wildRimColor),
+      note: 'darkened parchment and oxblood — a barbarian is a seat the sim needs and not a nation the player negotiates with',
+    },
+  ];
+  for (const spec of specs) {
+    const cell = element('div', 'mark-cell');
+    const disc = element('div');
+    // Sized off the data's own ratio: the rim is `rimWidth` of a `diameter`-wide
+    // disc, so a badge redrawn twice as fat in the game gets fatter here too.
+    const size = 64;
+    disc.style.width = `${size}px`;
+    disc.style.height = `${size}px`;
+    disc.style.borderRadius = '50%';
+    disc.style.background = hex(spec.paper);
+    disc.style.border = `${(size * BADGE.rimWidth) / BADGE.diameter}px solid ${spec.rim}`;
+    disc.style.boxSizing = 'border-box';
+    disc.style.display = 'grid';
+    disc.style.placeItems = 'center';
+    const mark = element('span', 'mark-swatch');
+    mark.setAttribute('aria-hidden', 'true');
+    mark.style.setProperty('--mark', `url("/${BADGE_ICON_FILES.melee}")`);
+    mark.style.setProperty('--mark-size', `${Math.round(size * BADGE.iconScale)}px`);
+    mark.style.color = hex(spec.ink);
+    disc.append(mark);
+    cell.append(disc, element('div', 'mark-id', spec.id), element('div', 'mark-note', spec.note));
+    row.append(cell);
+  }
+  into.append(row);
 }
 
 function heraldryFamily(into: HTMLElement): void {

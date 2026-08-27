@@ -83,12 +83,12 @@ with a feathered edge — see `src/render3d/sprites3d.ts`, tuned by `units.sprit
 A unit type with no file here falls back to its procedural game piece, which is why the
 settler still stands as a piece while these two are billboards.
 
-## `icons/<class>.svg` — 10 badge icons
+## `icons/<class>.svg` — 11 badge icons
 
-**Not our work any more, and that is the point.** Ten SVG files, one per `BadgeClass`
+**Not our work any more, and that is the point.** Eleven SVG files, one per `BadgeClass`
 (`src/render3d/badges3d.ts`), rasterised into the parchment roundel that floats over a
 piece and says which unit is standing there. They were drawn for this project until the
-icon pass; they are now **Tabler Icons** — with two exceptions this section names — for the
+icon pass; they are now **Tabler Icons** — with three exceptions this section names — for the
 same reason the six yield voices stopped being drawn here (see below, and it is the same
 sentence twice): a set drawn by people who draw icon sets for a living reads better at
 twenty pixels than anything this project would author for itself, and the badge is the
@@ -102,7 +102,7 @@ which is the same sentence this file makes about Kenney at the top.
 
 **One family, not two.** Lucide (ISC) was preferred first, being already in the project for
 the yields, and lost on coverage: it has no bow, no horse, no laurel and no candle, which is
-four of the ten. Tabler has all four. A set half in one hand and half in another is two sets
+four of them. Tabler has all four. A set half in one hand and half in another is two sets
 wearing one name, so the whole badge roster moved to Tabler rather than the six shapes Lucide
 was missing.
 
@@ -118,8 +118,9 @@ was missing.
 | `scout.svg` | `scout` | Tabler `binoculars` | field glasses |
 | `greatPerson.svg` | — | Tabler `laurel-wreath` | a laurel wreath, eight leaves and a tie |
 | `religious.svg` | — | Tabler `candle` | a lit candle |
+| `spear.svg` | `spear` | *drawn here* | a spear upright: leaf blade, socket collar, two lugs |
 
-### The two edits made to the eight vendored drawings, and no others
+### The two edits made to the vendored drawings, and no others
 
 1. **The stroke was weighted from 2 to 2.75** on Tabler's own 24-unit grid. This is the
    `yieldMarks.ts` number exactly, arrived at there for the same problem: upstream draws for
@@ -137,13 +138,14 @@ No path was re-fitted, no shape re-centred, and the 24-unit grid is upstream's o
 re-vendoring a diff rather than a redraw. Every file carries its upstream name and URL in an
 XML comment at the top.
 
-### The two that are not Tabler drawings, and why they are not somebody else's either
+### The three that are not Tabler drawings, and why they are not somebody else's either
 
-Neither Tabler nor Lucide draws a **catapult** or a **horse-archer**, and there was a third
-family available that draws both. It was not used, for the reason this file already gave
-about Kenney's board-game icons two paragraphs into the old version of this section: those
-are filled silhouettes, these are strokes, and a badge set has exactly one job, which is to
-be one family. Half a set in somebody's fills and half in somebody's strokes is worse than
+Neither Tabler nor Lucide draws a **catapult**, a **horse-archer** or a **spear** (nor a
+lance, pike or javelin under any other name), and there was a third family available that
+draws all of them. It was not used, for the reason this file already gave about Kenney's
+board-game icons two paragraphs into the old version of this section: those are filled
+silhouettes, these are strokes, and a badge set has exactly one job, which is to be one
+family. Half a set in somebody's fills and half in somebody's strokes is worse than
 either.
 
 - `mountedRanged.svg` is a **composition** of two Tabler drawings: `horse` verbatim, scaled
@@ -155,12 +157,22 @@ either.
   round caps and joins, no fill anywhere, and a stroked ring for the shot because Tabler never
   fills. The composition is the old hand-drawn catapult's — base, A-frame, arm thrown, shot in
   the air — re-laid on that grid.
+- `spear.svg` is the same, and it arrived because the spear line was wearing the sword
+  (user, 2026-08-27: "spearman line needs its own icon distinct from warrior line"). It is
+  deliberately **not** the sword redrawn on another angle: at twenty pixels a diagonal blade is
+  a diagonal blade whatever its tip is shaped like, so the spear stands upright, which is the
+  one silhouette in this set that separates cleanly from `melee.svg`'s diagonal at a glance. A
+  leaf blade, a socket collar and the two lugs of a boar-spear — the part of the weapon that is
+  about stopping a charge, which is what the unit is for. Which rows wear it is
+  `badges.byUnitType` in `data/view3d.json` (spearman and pikeman today), not a name compared
+  in TypeScript.
 
-### Why the set is ten when the sculpt roster is eight
+### Why the set is eleven when the sculpt roster is eight
 
-`BadgeClass` is `ModelClass` plus two, and both extra members exist for one reason: a piece
+`BadgeClass` is `ModelClass` plus three. Two of the extras exist for one reason: a piece
 that borrows another piece's body must not wear that piece's *name*. The badge is the board's
-only sentence about what a unit is, and a wrong sentence is worse than a missing one.
+only sentence about what a unit is, and a wrong sentence is worse than a missing one. The
+third goes the other way — see `spear` below.
 
 - **`greatPerson`** — a great person stands on the **settler's** sculpt, because it is a
   civilian with a handcart. "Settler" floating over Archimedes sends a player looking for a
@@ -170,10 +182,21 @@ only sentence about what a unit is, and a wrong sentence is worse than a missing
   foot with a bundle. "Worker" over the only piece in the game that spends faith is the worse
   of the two mistakes: it is an invitation to march it at a hill and build a mine. One candle
   for the whole family here too — the prophet the High Temple brings will wear this one.
+- **`spear`** — a spearman *is* what it is shaped like: a foot soldier, `modelClass: 'melee'`,
+  sharing the swordsman's sculpt and rightly so. The badge is finer than the sculpt here rather
+  than coarser, because the sword says "the line you send at a city" and the spear line is the
+  one you send at a horse, and a player who cannot tell them apart on the board is a player who
+  loses a stack to a chariot. One spear for the whole line — spearman, pikeman, and whatever
+  comes after them.
 
-Both are read off the unit row rather than off a type name (`badgeClassFor` asks
+The first two are read off the unit row rather than off a type name (`badgeClassFor` asks
 `UnitDef.greatWork` and `UnitDef.consecrates`), so a new great person or a new priest is a
-data row and the renderer does not move.
+data row and the renderer does not move. The third is read off `badges.byUnitType` in
+`data/view3d.json`, and that is the fence rather than an inconsistency: what a piece *does* is
+the simulation's fact and belongs on the unit row, while which drawing names it is the
+renderer's, and a `badge:` column in `data/units.json` would be the art reaching across into
+the rules' own file. The table is checked against the atlas at load, so a typo either side is a
+thrown error rather than a badge quietly drawing somebody else's icon.
 
 The candle is deliberately **not** the faith yield's flame. They are two different questions
 asked in two different places — the flame is a *number's* voice on the top bar, the candle is
@@ -183,16 +206,63 @@ lit, tended, and something a person carries.
 
 ## `src/art/resourceMarks.ts` — 41 resource marks, as path data
 
-**Original work for this project**, CC0 1.0, drawn in the language the eight badge icons above
-were drawn in — one ink, one weight, round caps and joins, on a 64-unit grid — and for the
-reason that language exists: a set is a set. (The badges have since gone over to Tabler and
-these have not; see the icon pass note above. What they still share is the weight, which is
-what a viewer actually reads, and the ink and the caps. What they no longer share is the hand,
-which is a debt this file is recording rather than hiding.) They are the ink on the kind-shaped paper
-the **Resources lens** puts on a tile that carries something (see `src/render3d/badges3d.ts`,
-`TileIcons`), and they are the only thing on the board that can actually *name* a resource —
-the diorama props next to them say "an animal, some ore, a vine", which is atmosphere rather
-than information.
+**Thirty-two original, nine vendored**, and the split is new as of the luxury pass
+(2026-08-27). They are the ink on the kind-shaped paper the **Resources lens** puts on a tile
+that carries something (see `src/render3d/badges3d.ts`, `TileIcons`), and they are the only
+thing on the board that can actually *name* a resource — the diorama props next to them say
+"an animal, some ore, a vine", which is atmosphere rather than information.
+
+- The thirty-two are **original work for this project**, CC0 1.0, on the house 64-unit grid.
+- The nine are **Tabler Icons** (MIT), pinned at the same `@tabler/icons` **3.46.0** the badge
+  roster is, copied to the coordinate and kept on upstream's 24-unit grid. Each one carries its
+  own `credit` on its row in `resourceMarks.ts`, which is what makes the table below checkable
+  rather than a second list that can drift from the code.
+
+### The debt this file was recording, and how it was paid
+
+The note that stood here said the resource marks and the badges still shared *the weight,
+which is what a viewer actually reads*. That had been wrong since the icon pass. The badges and
+the six yield voices went to a vendored 2.75 on a 24-unit box — 0.115 of their grid — while
+this set stayed at 5 on 64, which is 0.078 of its own, a third lighter. The user's report is
+the same observation from outside the code: *"icon pass over luxury resources, the new unit
+banners look great."*
+
+Two things changed and nothing else:
+
+1. **The house weight went from 5 to 6.5** (`MARK_STROKE`), which is 0.102 of the 64 box and
+   lands on the vendored sets' painted line once the house grid's tighter safe circle is
+   allowed for — these marks reach about 78% of their box where a 24-unit vendored one reaches
+   about 83%. The filled shapes' lighter outline followed it, 4 → 5.2, holding the same ratio.
+   It is **one number for the whole house hand** — resources, discovery sites, heraldry, card
+   lines, the marginalia and the printer's devices all default to it — because a per-family
+   weight is how a set stops being a set, which is the same sentence this file already makes
+   twice about the badges and the yields.
+2. **Nine marks were replaced by Tabler drawings**, in every case where upstream has a mark
+   that reads as the thing at twelve pixels and ours did not. Six of the nine were *filled*
+   here, and a fill is what kills a mark at that size: the gaps between six grape berries or
+   three banana crescents close into one black mound. Upstream's are outline, overlapped, and
+   survive the shrink.
+
+Every other mark stayed exactly as drawn, re-weighted only by (1). Where Tabler has nothing
+that reads as the thing — an oxhide ingot, a coil pot, a murex whelk, a bison, a censer, a
+crab, a comb cell — ours is still the better drawing and there was no reason to move it.
+
+| Resource | Tabler icon | Why it moved |
+| --- | --- | --- |
+| `wheat` | `wheat` | a bound sheaf of seven paths against one ear of four |
+| `deer` | `deer` | a stag's head reads as a deer; bare antlers read as a fork |
+| `fish` | `fish` | ours was a filled lens with a triangle; upstream's has a gill line and a mouth |
+| `bananas` | `banana` | the stem and the squared end are what stop one crescent reading as a horn |
+| `horses` | `horse` | the open question below, closed |
+| `gems` | `diamond` | the same cut gem with one facet line instead of five |
+| `wine` | `grape` | six filled berries closed into a mound at tile size |
+| `spices` | `pepper` | a filled pod was a blob; the outline keeps the shoulder |
+| `tea` | `leaf` | the same leaf, drawn by somebody who draws leaves |
+
+The two edits made to these nine are the badge section's two, word for word: nothing was
+re-fitted or re-centred, the 24-unit grid is upstream's own, and `test/render/resources3d.test.ts`
+pins the grid, the weight and the no-fill rule so a tidy-up of a curve is a failing test rather
+than a silent redraw of somebody else's icon.
 
 They are **not files**, and this is the one set in this folder that is not. Seventeen of them
 were files; the other twenty-four rows of `data/resources.json` had no drawing at all and fell
@@ -208,14 +278,15 @@ Shapes that repeat are a small vocabulary of helpers rather than forty-one blobs
 and `line`. `cube` reproduces the hand-drawn `stone` and `salt` blocks *to the coordinate*,
 which is how the port of the original seventeen was checked (`test/resources3d.test.ts`).
 
-`horses` **was** the same path as `mounted.svg` — the resource and the cavalry it buys drawn as
-one mark — and it is not any more, because the icon pass moved the badge to Tabler's horse and
-left this one where it was. That is the arrangement working rather than failing: the note here
-used to say that keeping its own copy rather than sharing one file was what let the two rosters
-move independently, "a future cavalry badge redraw must not silently redraw the pasture". The
-redraw came, and it did not. Whether the pasture should now follow the badge is an open art
-question and a separate pass; nothing is broken while it is open, because a resource mark and a
-unit badge are never on screen in the same roundel.
+`horses` **is the badge's horse again**, and that closes the open art question this file has
+been carrying since the icon pass. The story is worth keeping because the arrangement worked:
+the pasture and the cavalry it buys were one drawing; the badge moved to Tabler and the
+pasture did not, precisely because each roster keeps its own copy rather than sharing a file,
+and "a future cavalry badge redraw must not silently redraw the pasture" is what that bought.
+The redraw came, it did not propagate, and somebody then *decided* — which is the whole point.
+It is the same upstream drawing rather than a shared file still, because a resource mark and a
+unit badge are never on screen in the same roundel and the two rosters keep the right to move
+apart again.
 
 `emoji` stays on every row of `data/resources.json` as the **last resort**, and nothing that
 ships uses it: a resource with no entry in the registry prints its glyph exactly as this
@@ -224,26 +295,26 @@ written for it.
 
 | Resource | Mark |
 | --- | --- |
-| `wheat` | a bound sheaf, three stalks and a tie |
+| `wheat` | an ear of wheat, two sprays off one stem — Tabler `wheat` (MIT) |
 | `cattle` | a cow's head, horns out |
-| `deer` | a branching pair of antlers |
-| `fish` | a fish, tail to the right |
+| `deer` | a stag's head, antlers full — Tabler `deer` (MIT) |
+| `fish` | a fish, tail to the left — Tabler `fish` (MIT) |
 | `stone` | a cut block in three-quarter view |
 | `rice` | three drooping stalks standing in water |
 | `maize` | a cob in its husk, kernels ranked |
-| `bananas` | a single fruit, stem up |
+| `bananas` | a single fruit, stem squared at the top — Tabler `banana` (MIT) |
 | `copper` | an oxhide ingot, four horns and a hollowed waist |
 | `tin` | two cast bars, stacked |
 | `clay` | a coil pot, its rim thrown wide |
 | `reeds` | papyrus stems under their umbels |
 | `crabs` | a crab, claws raised |
 | `bison` | a bison head, shaggy crown and short horns |
-| `horses` | the badge set's horse head, reused verbatim |
+| `horses` | the badge set's horse, in full — Tabler `horse` (MIT) |
 | `iron` | an anvil on its block |
-| `gems` | a cut gem, crown and pavilion |
+| `gems` | a cut gem, table and pavilion, with one facet line — Tabler `diamond` (MIT) |
 | `silk` | a banner hung from a rail |
-| `wine` | a bunch of grapes with a leaf |
-| `spices` | a pepper pod |
+| `wine` | a bunch of grapes under a stem and a leaf — Tabler `grape` (MIT) |
+| `spices` | a pepper pod under its stem — Tabler `pepper` (MIT) |
 | `salt` | a salt crystal, with two glints |
 | `incense` | a censer under three curls of smoke |
 | `jade` | a pierced disc, the bi, on its cord |
@@ -252,7 +323,7 @@ written for it.
 | `dyes` | two dye vats, dripping |
 | `ivory` | a pair of tusks, tips up |
 | `amber` | a drop of resin with a fly caught in it |
-| `tea` | a leaf, midrib and two veins |
+| `tea` | a leaf on its stem, midrib drawn — Tabler `leaf` (MIT) |
 | `coffee` | a sprig of two cherries under a leaf |
 | `cotton` | a burst boll in its spiked calyx |
 | `sugar` | two jointed canes and a blade of leaf |
@@ -312,12 +383,14 @@ gilt, and so on through all six — because the colour as a mass is what survive
 across, and a thin green stroke on green grass does not. The ink is `icons.yieldInkColor` from
 `data/view3d.json`, so it stays a data decision.
 
-Every mark in `resourceMarks.ts` and `siteMarks.ts` is authored on the project's own 64 × 64 grid
-inside a safe circle, in one ink at one stroke weight, with round caps and joins throughout — the
-consistency *is* the design. The vendored six keep upstream's 24-unit grid instead, because
-rescaling path data is how a vendored drawing quietly stops being the drawing that was vendored;
-both printers take the grid as a parameter, and `YIELD_MARK_SCALE` reconciles the two sets'
-padding conventions so they print at the same optical size in the same roundel.
+Every *original* mark in `resourceMarks.ts` and `siteMarks.ts` is authored on the project's own
+64 × 64 grid inside a safe circle, in one ink at one stroke weight, with round caps and joins
+throughout — the consistency *is* the design. Every **vendored** mark keeps upstream's 24-unit
+grid instead — the six yields here, and since the luxury pass the nine ported resource marks —
+because rescaling path data is how a vendored drawing quietly stops being the drawing that was
+vendored; both printers take the grid as a parameter, and a scale constant reconciles the two
+sets' padding conventions so they print at the same optical size in the same roundel
+(`YIELD_MARK_SCALE` for the voices, `PORTED_MARK_SCALE` for the resource ports).
 
 ## Marginalia (`icons/marginalia/`)
 
