@@ -419,7 +419,7 @@ would change every seeded outcome. No further rename passes.
 - **A card's effect is read in exactly one place.** `statecraft.ts` is the only module in
   the game that switches on a `CardEffect.kind` — the same claim `resourceEffects.ts` makes
   for a luxury's signature, one scale out, and it buys the same thing: **a new card is a
-  JSON row**. Twenty-four shapes go in (`statecraftData.ts`), labelled lists come out, and
+  JSON row**. Twenty-eight shapes go in (`statecraftData.ts`), labelled lists come out, and
   every consumer *folds* one into a breakdown it already had. The register of who folds
   what: `cityYields` and `cityYieldPercents` and `productionModifiers` (`cities.ts`),
   `explainHappiness` / `explainAuthority` / `meterEffects` (`meters.ts`), `planCombat`
@@ -551,6 +551,18 @@ would change every seeded outcome. No further rename passes.
   currency, because gold's gates are production's gates and production's would have sold one.
   Known gap: a rite's hammers can complete a wonder correctly but carry no toast out through
   `RiteResult`.
+  **The rows are in** (Entry XXXIII, 27 of them, Æra I–III): a wonder may carry
+  `requiresSite: CityScope` (refused in `buildError`, naming the site) and `onComplete`
+  **completion grants** (a unit / `bestMelee` / the current research / a Doctrine draft),
+  realised in `realiseItem` after the claim through the ordinary paths and reported as
+  `RealisedItem.grants` → `CommandResult.grants` — `done: false` is a real outcome (nothing
+  researched, a Doctrine already owed), never a silent skip. The four shapes the list added
+  are read like every other: `pantheonSlots` in `pantheonSlots()` (a fold beside
+  `slotsFromTechs`), `purchaseRider` as one line in `explainPurchaseCost`'s bank,
+  `zocRule 'borders'` as one clause in `zocField` (every owned hex of the holder projects;
+  inside that border every step locks), `projectRider` at the one place a project's payout
+  is banked (a flat addition to the *payout*, never to the hammers going in). A wonder's
+  half that needs a shape which does not exist ships as `deferred:` on the row.
 - **A building's non-yield facts are read in one place**, `buildingEffects.ts` —
   `resourceEffects.ts`'s bargain one scale down. Flat yields still fold in `cityYields`;
   `happiness` and `cityStat` fold through this module into `explainHappiness` (`meters.ts`),

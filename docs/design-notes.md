@@ -3187,3 +3187,63 @@ their sentences need shapes that do not exist — a unit filter on `combatLine`,
 `CountKind`s, a purchase-price hook, a scoped `productionBonus`, and *revocation* — plus three
 systematic translations to ratify (a building discount as a production bonus, "melee +1" as a
 percent, a disjunction as two lines). The rule held: nothing was bent to nearly fit.
+
+---
+
+## Entry XXXIII — The wonders themselves (**built** 2026-08-27; the list is `docs/wonders.md`)
+
+**Ruling (user, 2026-08-27):** *"I really like this list of wonders. Put these in — use the
+current tech tree, and I'll see what feels out of whack from playtesting."* With edits to the
+doc that are now the ratified text: Stonehenge calls a free augur; the Pyramids have no chop
+rider; "augur" became "religious units" on the Ziggurat and Djenné; Artemis counts in its own
+city; the caps came off the Circus and Notre-Dame; Uruk +2 and the Forbidden City +5 authority;
+Dionysus opens a **Doctrine** draft; Hagia Sophia's free unit is a prophet; the Alhambra's
+mounted line is +2.
+
+**What landed.** Twenty-seven rows, Æra I–III, homed on the tree that exists — five of them on
+Theology, which is the doc's own homing and the playtest will say whether it holds. Æra V's five
+wait on Age V nodes. Every row is `wonder: true`, a renown line (`onComplete: 10`, the doc's
+figure), and effects in the card vocabulary; `statecraft.ts` is still the only reader of a
+kind. The Oracle lost its `placeholder` flag and is simply the first of them.
+
+**The shapes it took, and the rule that sized them.** Entry XV's rule, third application: a
+shape is added *generically* or the half is deferred on the row, never bent. Eleven generic
+extensions, each one union member read where its shape was already read — `combatLine.class`
+(a `UnitFilter`, which gains `consecrates`), `capitalTerritory` and `inCity` conditions,
+`CityScope.onTerrain`, `TileCondition.freshwater` and `.resource`, `tileYield.scope` (a tile
+pays only if its owning city admits — the granary's seam in `cityContext`), three
+`CountKind`s for buildings and worked tiles plus `countScaled.within: 'city'`,
+`AmplifierTarget.riteDuration` (applied where a rite's absolute expiry is stamped, still a
+comparison), `CardRule.growthSurplus`, `unitStat.where: 'embarked'`, and
+`BuildingDef.requiresSite: CityScope` (the Colossus wants a harbour, Petra a desert, Machu
+Picchu a mountain — refused by `buildError` in a sentence that names the site). And the doc's
+four **new shapes**: `pantheonSlots` (the slot count is now a fold of techs and cards, beside
+`slotsFromTechs`); `purchaseRider` (one labelled line in `explainPurchaseCost`'s bank, both
+currencies, riders summed before one multiplication); `zocRule 'borders'` (one clause in
+`zocField` after units and cities — the holder's every owned hex projects, so inside that
+border every step is a locked step, which is Civ V's Great Wall and the intent); and
+`projectRider` (a flat addition to a project's *payout* at the one place it is banked — never
+to the hammers going in, so Entry XXVI's double-staging argument is untouched).
+
+**Completion grants.** `BuildingDef.onComplete` — a unit, the best melee the seat can build,
+the current research outright, a Doctrine draft — realised in `realiseItem` after the claim,
+through the ordinary paths (`createUnit` + `spawnTileFor`; `settleResearchWindfall` with the
+remaining cost so the register's refresh fires; `drawDoctrineOffer` at the government's tier).
+Two of them can *fail honestly*: no research chosen, or a Doctrine already owed / no
+government — the `periodicOffer` precedent, an offer being a decision the player owes the game
+and a second one dealt on top destroying the first. The news is `RealisedItem.grants` →
+`CommandResult.grants`, `done: false` a real outcome, and Entry XXX's "a third kind of news
+joins the shape" was exactly this.
+
+**Deferred on the row, and why.** Zeus's "+15% attacking cities" (a *percentage* under a
+condition — `combatLine` is flat and `unitStat.combatPercent` takes no condition; the shape
+that serves both is a design decision); Terracotta's and the Alhambra's "units built here start
+with…" (a permanent per-unit grant is a promotions system, parked); Notre-Dame's cathedrals
+(no row); the Forbidden City's extra Order office (**which slot kind** is the user's call).
+Hagia Sophia carries a *note*, not a deferral: an augur is called until a prophet exists.
+
+**Found on the way.** `growthSurplus` returned the raw surplus whenever its factor was ≥ 1 —
+right while the meters could only stifle, and it silently ate the first card pushing the other
+way (the Hanging Gardens). Now floored once at every factor, byte-identical at 1. And
+`buildingsOfKind` unblocks Ptahhotep's deferred legacy ("+1 authority per library") if that
+row is revisited.

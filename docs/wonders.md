@@ -3,8 +3,12 @@
 Working doc (2026-08-27). The framework ships separately (one per world; a wonder is a
 building row with `wonder: true` whose effects are cards read by `liveCityEffects`; beaten
 → hammers refunded as gold at 1💰/⚙; production category `wonder`; never purchasable).
-This is the list to fill it. **Nothing here is scheduled until the Revisions section says
-so.** Companions: `docs/tech-tree-ages-2-5.md` (the homes), `docs/great-people.md` (renown
+This is the list to fill it. **Built 2026-08-27** (design-notes Entry XXXIII): every row of
+Æra I–III is in `data/buildings.json`, homed on the current tree as the tables say (Zeus on
+Iron Working, five on Theology); the Æra V five wait on Age V nodes. Deferred halves are
+annotated on their rows: Zeus's conditional percentage, the two built-here promotions,
+Notre-Dame's cathedrals, the Forbidden City's office (which slot kind — yours to rule).
+Hagia Sophia calls an augur until a prophet exists. Companions: `docs/tech-tree-ages-2-5.md` (the homes), `docs/great-people.md` (renown
 +10 on completion, the Triumph *A Marvel Raised*), `docs/art-pass.md` W3 (the world's one
 permitted spectacle), design-notes Entry VI (the Bead Race — a wonder is a feat).
 
