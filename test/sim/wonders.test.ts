@@ -1119,6 +1119,20 @@ describe('a wonder in words', () => {
     );
   });
 
+  it('prints the two meter fields, which are not effects either', () => {
+    // The Forbidden City's whole sentence is five points of writ and Circus
+    // Maximus keeps four of its five points of cheer on the row rather than in
+    // `effects` — both are `BuildingDef` fields read by `buildingEffects.ts`,
+    // and a card built out of `def.effects` alone printed neither. Said in the
+    // meters' own words, the same two `describeEffect` arms use for a card.
+    expect(describeCard('forbiddenCity').map((c) => c.text)).toContain('+5 authority capacity');
+    expect(describeCard('circusMaximus').map((c) => c.text)).toContain('+4 happiness');
+    // And a row with neither field says neither thing — the clause is the
+    // presence of the number, never a zero printed for completeness.
+    expect(describeCard('theOracle').map((c) => c.text.includes('authority'))).not.toContain(true);
+    expect(describeCard('theOracle').map((c) => c.text.includes('happiness'))).not.toContain(true);
+  });
+
   it('names who a filtered combat line is for, and whose ground a tile line is on', () => {
     expect(describeCard('alhambra').map((c) => c.text)).toContain(
       '+2 combat strength for mounted units',

@@ -363,6 +363,22 @@ export interface CityRules {
   /** Weights the citizen assigner and the border chooser both score tiles with. */
   citizenWeights: CitizenWeights;
   /**
+   * The same weights for a city whose growth is **halted** — a settler at the
+   * front of the queue (`growthIsHalted`).
+   *
+   * A second sheet rather than a modifier, because the edit a designer wants to
+   * make here is "what does a town care about while it is building a settler",
+   * and that is a set of weights, not a multiplier on one of them. The shipped
+   * pair is the same three numbers with food and production **swapped**: a town
+   * that banks no food toward growth is a town whose surplus grain goes nowhere,
+   * so the hammers that finish the settler are worth more than the bushels that
+   * do not. Food is not zeroed, and that is deliberate — the citizens still eat,
+   * and a sheet that ignored them would be a sheet that starves the town to
+   * build the settler faster. See `assignCitizens`, which also refuses the
+   * swapped sheet outright when it would put the town into deficit.
+   */
+  citizenWeightsWhileHalted: CitizenWeights;
+  /**
    * City names, handed out in order per player. A player who founds more cities
    * than there are names falls back to `"<player name> <n>"`.
    */

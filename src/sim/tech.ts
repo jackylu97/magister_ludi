@@ -33,6 +33,22 @@
  * beakers does not empty an age in one resolution. The overflow pays for the
  * next one the moment it is chosen.
  *
+ * The queue (playtest batch two)
+ * ------------------------------
+ * `researching` is still the aim and still the whole of the research model;
+ * `Player.researchQueue` is only what stands **behind** it. `researchPlan` is
+ * the two read as one list, and every function here that means "what this empire
+ * is set to learn" asks that rather than the fields.
+ *
+ * The queue changes no arithmetic at all. Nothing is spent by planning, the pool
+ * is still the progress, switching is still free, and the overflow from a
+ * completion still pays for whatever comes up next — the difference is only that
+ * "whatever comes up next" can now have been decided in advance instead of
+ * asked for at the top of a turn. Two writers touch the field, and between them
+ * they are the invariant the End Turn blocker leans on (a non-empty queue always
+ * has a head): `writeResearchPlan`, for the two commands, and
+ * `promoteResearchQueue`, inside the one completion routine.
+ *
  * Unlocks and auto-upgrade
  * ------------------------
  * Gating is one question — `isUnlocked` — asked by the reducer's production
@@ -115,6 +131,7 @@ import {
   highestAge,
   isTechId,
   techDef,
+  techDepth,
   techsGrant,
 } from './techData';
 import { awardOccasion } from './triumphs';
@@ -424,8 +441,115 @@ export function visibleResourceAt(
 // --- choosing ---------------------------------------------------------------
 
 /**
- * Why this player cannot start researching this technology, or `null` when they
- * can.
+ * How a `chooseResearch` treats what is already lined up: blow it away, or add
+ * to the end of it. `'replace'` is the default and is what every command that
+ * predates the queue means (see `ChooseResearchCommand`).
+ */
+export type ResearchQueueMode = 'replace' | 'append';
+
+/**
+ * What this empire is set to learn, current research first: `researching`,
+ * then everything in `Player.researchQueue`.
+ *
+ * **The** reading of the plan, and the one place `researchQueue`'s absence turns
+ * into an empty list — so a state from before the field, or a hand-edited one
+ * missing the key, is a plan of at most one entry rather than a crash. Every
+ * other function in this file asks *this* rather than the two fields.
+ */
+export function researchPlan(player: Player): TechId[] {
+  const queue = player.researchQueue ?? [];
+  return player.researching === null ? [...queue] : [player.researching, ...queue];
+}
+
+/**
+ * Writes a plan back onto a player: the head becomes the current research and
+ * everything behind it becomes the queue.
+ *
+ * One of the two writers of `Player.researchQueue`, and between them they are
+ * the whole of the invariant that field's docblock promises — a queue is never
+ * non-empty while nothing is being researched, because the head is always taken
+ * off the front of the same list the tail comes from. The key is **deleted**
+ * rather than emptied, which is `Unit.path`'s convention: an empire that emptied
+ * its queue and one that never had one must serialise identically.
+ *
+ * It spends nothing. The pool is the progress (see the module docblock), so
+ * re-planning moves the aim and every banked beaker stays where it was — which
+ * is exactly what made switching free before a queue existed.
+ */
+function writeResearchPlan(player: Player, plan: readonly TechId[]): void {
+  player.researching = plan[0] ?? null;
+  const rest = plan.slice(1);
+  if (rest.length > 0) player.researchQueue = [...rest];
+  else delete player.researchQueue;
+}
+
+/**
+ * Every technology this player must still learn to hold `techId`, ending with
+ * `techId` itself, in an order that never puts a node before its prerequisites.
+ *
+ * This is the whole of "clicking a locked node queues what it needs". The
+ * closure is walked over `prereqs`, technologies already held are simply not in
+ * it, and the result is sorted by **`techDepth` then `TECH_IDS` order** —
+ * prerequisite depth, then the roster.
+ *
+ * `techDepth` is the chart column: the length of the longest chain of
+ * prerequisites behind a node, over the *whole* tree rather than over what this
+ * player is missing. That makes it a valid topological key for free (a
+ * prerequisite is always in a strictly earlier column — the drawing code leans
+ * on the same guarantee), and it makes the order a fact about the **tree**
+ * rather than about the moment the offer was made: two empires that queue Iron
+ * Working from different starting knowledge queue the shared part of it in the
+ * same order. `TECH_IDS` breaks the ties, because a sort that fell back on
+ * `Map` iteration order would be a sort a replay could disagree with.
+ */
+export function researchExpansion(
+  state: GameState,
+  playerId: number,
+  techId: TechId,
+): TechId[] {
+  const needed = new Set<TechId>();
+  const walk = (id: TechId): void => {
+    if (needed.has(id) || hasTech(state, playerId, id)) return;
+    needed.add(id);
+    for (const prereq of techDef(id).prereqs) walk(prereq);
+  };
+  walk(techId);
+  const order = new Map(TECH_IDS.map((id, index) => [id, index]));
+  return [...needed].sort(
+    (a, b) => techDepth(a) - techDepth(b) || order.get(a)! - order.get(b)!,
+  );
+}
+
+/**
+ * The plan a `chooseResearch` for `techId` would install, given the mode.
+ *
+ * `'replace'` *is* the expansion: the player pointed at a node, and what it
+ * takes to get there is the whole of what they asked for. `'append'` keeps the
+ * plan and adds only what is not in it already — the shift-click, which is a
+ * second destination rather than a second mind.
+ *
+ * Pure, so the tech screen can show what a click would do before it is made.
+ */
+export function plannedResearch(
+  state: GameState,
+  playerId: number,
+  techId: TechId,
+  mode: ResearchQueueMode,
+): TechId[] {
+  const expansion = researchExpansion(state, playerId, techId);
+  const player = playerById(state, playerId);
+  if (mode === 'replace' || !player) return expansion;
+  const plan = researchPlan(player);
+  return [...plan, ...expansion.filter((id) => !plan.includes(id))];
+}
+
+/** True when two plans are the same list in the same order. */
+function samePlan(a: readonly TechId[], b: readonly TechId[]): boolean {
+  return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
+/**
+ * Why this player cannot aim at this technology, or `null` when they can.
  *
  * The rule the `chooseResearch` command validates with and the tech screen
  * enables its nodes by — one implementation, so a node the screen lets you click
@@ -433,14 +557,24 @@ export function visibleResourceAt(
  * seat has already finished is a question about the actor and belongs to the
  * command, exactly as `foundingError` leaves it there.
  *
- * Switching mid-research is deliberately not an error (see the module docblock);
- * re-choosing what is *already* being researched is, because it would be a
- * command that changes nothing and a log entry that says nothing.
+ * **A missing prerequisite stopped being a refusal** the day the queue landed
+ * (playtest batch two). Pointing at a locked node now means "and everything it
+ * needs", so the clause that used to name the missing nodes would be refusing
+ * exactly the click the feature exists for. What is left is the honest set:
+ * a node this build does not have, one already held, and — the oldest of the
+ * three — a command that would change nothing.
+ *
+ * That last clause is now a comparison of *plans* rather than of one field, and
+ * it has to be: re-choosing the current research with an empty queue and
+ * re-choosing it with a queue behind it are different commands, and only the
+ * first changes nothing. An accepted no-op would put a log entry in the save
+ * that says nothing, which is the same refusal `fortify` and `cancelOrder` make.
  */
 export function researchError(
   state: GameState,
   playerId: number,
   techId: unknown,
+  mode: ResearchQueueMode = 'replace',
 ): string | null {
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
@@ -450,13 +584,125 @@ export function researchError(
   if (player.techsResearched.includes(techId)) {
     return `${player.name} has already researched ${def.name}`;
   }
-  if (player.researching === techId) return `${def.name} is already being researched`;
 
-  const missing = missingPrereqs(state, playerId, techId);
-  if (missing.length > 0) {
-    return `${def.name} needs ${missing.map((id) => techDef(id).name).join(', ')}`;
+  const next = plannedResearch(state, playerId, techId, mode);
+  if (samePlan(next, researchPlan(player))) {
+    // Two sentences for one clause, because the player is in two different
+    // situations: the beakers are already pointed at it, or it is simply further
+    // down a list they have already drawn up.
+    return player.researching === techId
+      ? `${def.name} is already being researched`
+      : `${def.name} is already in ${player.name}'s research plan`;
   }
   return null;
+}
+
+/**
+ * Installs the plan a `chooseResearch` asked for. Validate with `researchError`
+ * first; this writes.
+ */
+export function chooseResearchFor(
+  state: GameState,
+  playerId: number,
+  techId: TechId,
+  mode: ResearchQueueMode,
+): void {
+  const player = playerById(state, playerId);
+  if (!player) return;
+  writeResearchPlan(player, plannedResearch(state, playerId, techId, mode));
+}
+
+/**
+ * The plan with `techId` — and everything behind it that only made sense
+ * *because* of it — taken out.
+ *
+ * "Depended on it" is transitive and is asked of the tree, not of the list: a
+ * later entry goes too when any of its prerequisites has already been dropped.
+ * That is the only reading that leaves a plan a player can actually follow — a
+ * queue holding Iron Working with Bronzeworking pulled out from under it is a
+ * row `promoteResearchQueue` would have to skip anyway, and a queue that
+ * silently skips things is a queue that lies about what it will learn.
+ *
+ * A technology the player already holds is never dropped by the cascade, because
+ * it is not in the plan to begin with — this walks the plan, and the plan is
+ * only ever unresearched nodes.
+ */
+export function researchPlanWithout(plan: readonly TechId[], techId: TechId): TechId[] {
+  const dropped = new Set<TechId>([techId]);
+  const kept: TechId[] = [];
+  for (const id of plan) {
+    if (dropped.has(id)) continue;
+    if (techDef(id).prereqs.some((prereq) => dropped.has(prereq))) {
+      dropped.add(id);
+      continue;
+    }
+    kept.push(id);
+  }
+  return kept;
+}
+
+/**
+ * Why this player cannot take this technology out of their plan, or `null`.
+ *
+ * `researchError`'s mirror, and it makes the same refusal for the same reason:
+ * dropping something that is not there changes nothing, and an accepted no-op is
+ * a log entry that says nothing.
+ */
+export function dequeueResearchError(
+  state: GameState,
+  playerId: number,
+  techId: unknown,
+): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  if (!isTechId(techId)) return `Unknown technology "${String(techId)}"`;
+  if (!researchPlan(player).includes(techId)) {
+    return `${techDef(techId).name} is not in ${player.name}'s research plan`;
+  }
+  return null;
+}
+
+/**
+ * Takes a technology out of a plan. Validate with `dequeueResearchError` first;
+ * this writes.
+ */
+export function dequeueResearchFor(
+  state: GameState,
+  playerId: number,
+  techId: TechId,
+): void {
+  const player = playerById(state, playerId);
+  if (!player) return;
+  writeResearchPlan(player, researchPlanWithout(researchPlan(player), techId));
+}
+
+/**
+ * Moves the front of the queue into `researching`, dropping anything that has
+ * stopped making sense on the way.
+ *
+ * The second of `Player.researchQueue`'s two writers, and the one that runs
+ * inside `settleResearch` — so the queue advances by exactly the same code
+ * whether a turn's beakers finished the node or a ruin's star tablets did.
+ *
+ * Two things are dropped rather than researched, and both are states only a
+ * *history* can produce: a technology the player has since come by another way
+ * (a Great Library grant, a discovery), and one whose prerequisites are no
+ * longer met — which today means somebody dequeued the node underneath it in a
+ * build where that cascade did not exist, or hand-edited the save. Skipping and
+ * keeping would leave a row the queue can never reach; dropping is the reading
+ * that keeps "the plan is what will be learnt" true.
+ */
+function promoteResearchQueue(state: GameState, player: Player): void {
+  const queue = player.researchQueue;
+  if (!queue) return;
+  while (queue.length > 0) {
+    const next = queue.shift()!;
+    if (player.techsResearched.includes(next)) continue;
+    if (!prereqsMet(state, player.id, next)) continue;
+    player.researching = next;
+    break;
+  }
+  if (queue.length === 0) delete player.researchQueue;
 }
 
 /**
@@ -576,6 +822,14 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   player.sciencePool -= plan.cost;
   player.researching = null;
   player.techsResearched.push(plan.techId);
+  // The queue advances **here**, inside the one completion routine, and *after*
+  // the push — so the promoted node's prerequisites are read against the tree
+  // the player holds now rather than the one they held a line ago. It is the
+  // whole reason a windfall and a turn's beakers cannot disagree about what is
+  // researched next: `settleResearchWindfall` is this function with a refresh
+  // around it. The overflow is untouched and pays for whatever came up, exactly
+  // as it paid for whatever the player chose by hand before a queue existed.
+  promoteResearchQueue(state, player);
   if (highestAge(player.techsResearched) > eraBefore) {
     awardOccasion(state, player.id, 'ageEntered');
   }
@@ -737,6 +991,46 @@ export function turnsToTech(
   const player = playerById(state, playerId);
   if (!player) return null;
   return turnsToFill(techDef(techId).cost - player.sciencePool, playerScience(state, playerId));
+}
+
+/** One row of a queue schedule: a technology and when it would land. */
+export interface ResearchQueueStep {
+  techId: TechId;
+  /** Turns from now, or `null` when the empire makes no science at all. */
+  turns: number | null;
+}
+
+/**
+ * When each technology in this player's plan would land, at the current rate.
+ *
+ * `turnsToTech` for a list, and the *same* `turnsToFill` the production panel
+ * quotes — so the schedule the queue prints is arithmetic the turn pipeline will
+ * actually perform, and there is no second copy of it in the interface.
+ *
+ * Two things make it more than a map over `turnsToTech`, and both are rules the
+ * pipeline really has:
+ *
+ *   · **the costs accumulate.** The pool is one bank aimed at one node at a
+ *     time, so the third entry is paid for by the beakers left after the first
+ *     two — a per-node reading would promise the whole queue arriving at once.
+ *   · **one technology per player per turn.** `settleResearch` completes at most
+ *     one, however full the pool is (see its docblock), so the *n*-th entry can
+ *     never land sooner than *n* turns from now however cheap it is. That floor
+ *     is what keeps a banked four hundred beakers from printing "3 techs, 1
+ *     turn" against a resolution that will hand over exactly one.
+ */
+export function queueTurns(state: GameState, playerId: number): ResearchQueueStep[] {
+  const player = playerById(state, playerId);
+  if (!player) return [];
+  const rate = playerScience(state, playerId);
+  const steps: ResearchQueueStep[] = [];
+  let cost = 0;
+  for (const techId of researchPlan(player)) {
+    cost += techDef(techId).cost;
+    const turns = turnsToFill(cost - player.sciencePool, rate);
+    steps.push({ techId, turns: turns === null ? null : Math.max(steps.length + 1, turns) });
+  }
+  return steps;
 }
 
 /**

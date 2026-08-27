@@ -93,6 +93,11 @@
       "production": 2,
       "gold": 1
     },
+    "citizenWeightsWhileHalted": {
+      "food": 2,
+      "production": 3,
+      "gold": 1
+    },
     "cityNames": [
       "Aldermarch",
       "Brightwater",

@@ -17,7 +17,9 @@ import {
   foundCityAt,
   foundingError,
   foundingErrorAt,
+  citizenFocus,
   growCities,
+  growthIsHalted,
   growthThreshold,
   nextBorderCost,
   nextCityName,
@@ -649,6 +651,102 @@ describe('locked tiles', () => {
     city.lockedTiles = [{ col: 8, row: 4 }];
     assignCitizens(state, city);
     expect(worked(city)).toEqual(['9,4']);
+  });
+});
+
+/**
+ * The settler focus (playtest batch two): "a city should auto-work production
+ * tiles when creating a settler".
+ *
+ * The marker is `growthIsHalted` — the front of the queue says `haltsGrowth` —
+ * so nothing here compares a unit type against `"settler"`, and the day
+ * something else stops a town growing it gets the same focus.
+ */
+describe('citizen focus while growth is halted', () => {
+  /** A city with a farm and a mine in its ring, one citizen to place. */
+  function farmVsMine(state: GameState): City {
+    const farm = at(state.map, 8, 4);
+    farm.terrain = 'grassland';
+    farm.improvement = 'farm';
+    const mine = at(state.map, 9, 4);
+    mine.hills = true;
+    mine.improvement = 'mine';
+    const city = plant(state, 0, 8, 5);
+    city.population = 1;
+    return city;
+  }
+
+  it('takes the farm while the city is growing and the mine while it is not', () => {
+    const state = flatState();
+    const city = farmVsMine(state);
+    // 3🌾 against 3⚙ — the ordinary sheet weights food above hammers.
+    expect(tileYieldOf(at(state.map, 8, 4), yieldContextFor(state, 0))).toMatchObject({
+      food: 3,
+      production: 0,
+    });
+    expect(tileYieldOf(at(state.map, 9, 4), yieldContextFor(state, 0))).toMatchObject({
+      food: 0,
+      production: 3,
+    });
+
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['8,4']);
+    expect(citizenFocus(city)).toBe('balanced');
+
+    // A settler at the front banks no food toward growth, so the bushels go
+    // nowhere and the hammers finish the settler.
+    city.queue = [{ kind: 'unit', id: 'settler' }];
+    expect(growthIsHalted(city)).toBe(true);
+    expect(citizenFocus(city)).toBe('production');
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['9,4']);
+
+    // Derived and idempotent, like every other assignment.
+    const first = [...city.workedTiles];
+    assignCitizens(state, city);
+    expect(city.workedTiles).toEqual(first);
+
+    // And it is only the *front* of the queue that decides.
+    city.queue = [{ kind: 'unit', id: 'warrior' }, { kind: 'unit', id: 'settler' }];
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['8,4']);
+  });
+
+  it('keeps a pinned tile pinned, focus or no focus', () => {
+    const state = flatState();
+    const city = farmVsMine(state);
+    city.queue = [{ kind: 'unit', id: 'settler' }];
+    city.lockedTiles = [{ col: 8, row: 4 }];
+    assignCitizens(state, city);
+    // The player's pin outranks the focus, exactly as it outranks the score.
+    expect(worked(city)).toEqual(['8,4']);
+  });
+
+  it('refuses the focus outright when it would starve the town', () => {
+    const state = flatState();
+    // Three farms and three mines, and a city too big to live on hammers.
+    for (const [col, row] of [[8, 4], [9, 4], [8, 6]] as const) {
+      const tile = at(state.map, col, row);
+      tile.terrain = 'grassland';
+      tile.improvement = 'farm';
+    }
+    for (const [col, row] of [[7, 4], [7, 5], [9, 6]] as const) {
+      const tile = at(state.map, col, row);
+      tile.hills = true;
+      tile.improvement = 'mine';
+    }
+    const city = plant(state, 0, 8, 5);
+    city.population = 3;
+    city.queue = [{ kind: 'unit', id: 'settler' }];
+
+    assignCitizens(state, city);
+    // The focused sheet would have taken all three mines and left the town
+    // eating six for a harvest of two. The focus is a preference, never a way
+    // to starve a city, so the ordinary sheet is put back whole.
+    expect(worked(city).sort()).toEqual(['8,4', '8,6', '9,4']);
+    expect(cityYields(state, city).food).toBeGreaterThanOrEqual(
+      city.population * RULES.cities.foodPerCitizen,
+    );
   });
 });
 
@@ -1980,7 +2078,7 @@ describe('the turn pipeline over a live empire', () => {
 // ---------------------------------------------------------------------------
 
 describe('determinism with cities', () => {
-  it('round-trips a schema 21 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 22 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1995,7 +2093,7 @@ describe('determinism with cities', () => {
     // improvements; 12 was the meters' `captured`; 13 the luxuries; 14 tile
     // purchase; 15 barbarians and discoveries.) What this pins is not the
     // number but that a city save is carried by whatever the number is.
-    expect(SCHEMA_VERSION).toBe(21);
+    expect(SCHEMA_VERSION).toBe(22);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

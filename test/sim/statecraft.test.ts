@@ -172,6 +172,30 @@ describe('the card table', () => {
     }
   });
 
+  it('opens with a slot for every kind of card the chiefdom pool can deal', () => {
+    // Playtest batch two, 8/27: "chiefdom should include 1 wildcard slot, or
+    // make all tier 1 orders non-wildcard". The first option — two of the
+    // eleven chiefdom-pool Orders are wildcard-only (First Rites, Border
+    // Ballads), and a starting government that could never play a card its own
+    // pool deals is a draft that hands a seat a dead card.
+    const layout = slotLayout(STARTING_GOVERNMENT);
+    expect(layout).toEqual(['military', 'economic', 'wildcard']);
+    const pool = ORDER_IDS.filter((id) => orderDef(id).pool === 'chiefdom');
+    for (const id of pool) {
+      expect(layout.includes(orderDef(id).slot) || layout.includes('wildcard'), id).toBe(true);
+    }
+  });
+
+  it('says out loud that a charge is granted at build time, not to the army', () => {
+    // `cardExtraCharges` is read exactly once, by `createUnit`, so a worker
+    // already in the field gains nothing when the Order is slotted — and the
+    // clause has to say so. Playtest batch two, 8/27: "Tinker's guild should
+    // read: newly created worker units gain +1 charge".
+    expect(describeCard('tinkersGuild').map((clause) => clause.text)).toEqual([
+      'newly created worker units gain +1 charge',
+    ]);
+  });
+
   it('gives every card a name, a flavour line and at least one effect or a stated deferral', () => {
     for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS]) {
       const def = cardDef(id);
@@ -405,14 +429,17 @@ describe('the command matrix', () => {
   it('refuses a type mismatch with the reducer’s own sentence', () => {
     const g = game();
     const sc = g.state.players[0]!.statecraft;
-    // The chiefdom's layout is [military, economic]; First Rites is a wildcard
-    // card, so neither typed slot takes it.
-    expect(slotLayout(sc.government)).toEqual(['military', 'economic']);
-    grant(sc, 'firstRites');
+    // The chiefdom's layout is [military, economic, wildcard] — the third slot
+    // arrived with the playtest pass, so that the two wildcard-only cards in the
+    // chiefdom pool (First Rites, Border Ballads) are cards an opening
+    // government can actually play. Blooded Spears is military, so the economic
+    // slot still refuses it.
+    expect(slotLayout(sc.government)).toEqual(['military', 'economic', 'wildcard']);
+    grant(sc, 'bloodedSpears');
     refuses(
       g,
-      { type: 'slotOrder', playerId: 0, cardId: 'firstRites', slotIndex: 0 } as Command,
-      'is wildcard and slot 1 is military',
+      { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: 1 } as Command,
+      'is military and slot 2 is economic',
     );
   });
 
@@ -864,8 +891,8 @@ describe('every hook family, end to end', () => {
 // --- determinism ------------------------------------------------------------
 
 describe('determinism', () => {
-  it('round-trips a schema 21 save with Statecraft in it', () => {
-    expect(SCHEMA_VERSION).toBe(21);
+  it('round-trips a schema 22 save with Statecraft in it', () => {
+    expect(SCHEMA_VERSION).toBe(22);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -880,7 +907,7 @@ describe('determinism', () => {
     // drafts — what this pins is the *shape*: the field serialises, survives
     // JSON, and comes back identical.
     const text = snapshotState(g.state);
-    expect(JSON.parse(text).schemaVersion).toBe(21);
+    expect(JSON.parse(text).schemaVersion).toBe(22);
     expect(JSON.parse(text).players[0].statecraft).toEqual(player.statecraft);
     // A player who has never drafted serialises as the opening state exactly.
     expect(JSON.parse(text).players[1].statecraft).toEqual(newPlayerStatecraft());

@@ -2554,7 +2554,24 @@ export function describeCard(id: CardId, level = 1): CardClause[] {
   // card that left it out would be a card that lies by omission. Printed here,
   // in this file, so the one description of a card is still one function.
   if (isBuildingId(id)) {
-    for (const grant of buildingDef(id).onComplete ?? []) {
+    const building = buildingDef(id);
+    // **The two meter fields, for the same reason as the grant.** `happiness`
+    // and `authorityCapacity` are older than this vocabulary and are read by
+    // `buildingEffects.ts` rather than by an effect arm, so a card built out of
+    // `def.effects` alone printed *nothing at all* for The Forbidden City (whose
+    // whole sentence is five points of writ) and dropped four of Circus
+    // Maximus's five points of cheer on the floor. They are said in the meters'
+    // own words — the same two `describeEffect` arms print for a card that
+    // raises either — so a wall a wonder raises and a wall an Order raises read
+    // identically. This is the *one* description of a building, which is why the
+    // city panel stopped printing its own copy of these two lines.
+    if (building.happiness !== undefined && building.happiness !== 0) {
+      clauses.push({ text: `${signed(building.happiness)} happiness` });
+    }
+    if (building.authorityCapacity !== undefined && building.authorityCapacity !== 0) {
+      clauses.push({ text: `${signed(building.authorityCapacity)} authority capacity` });
+    }
+    for (const grant of building.onComplete ?? []) {
       clauses.push({ text: grantWords(grant) });
     }
   }
@@ -2650,6 +2667,20 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       const amount = scaleByLevel(effect.amount, level);
       if (effect.stat === 'combatPercent') {
         out.push({ text: `${signed(amount)}% combat strength for ${who}${where}` });
+        return;
+      }
+      // **Charges are the one stat that is not a standing fact about a piece.**
+      // Every other `unitStat` is asked of a unit that is already on the board —
+      // `fullMovement`, `sightOf`, `healUnits` all read the card each time — but
+      // `cardExtraCharges` is read exactly once, by `createUnit`, and the number
+      // it hands over is written into `chargesLeft` and never revisited. So a
+      // worker already standing in the field gains nothing when the Order is
+      // slotted, and the sentence has to say so: "workers: +1 charge" promised a
+      // fleet-wide refit that never happens. Said in the *card's* voice rather
+      // than as a footnote, which is how the ratified text reads it.
+      if (effect.stat === 'charges') {
+        const charges = amount === 1 || amount === -1 ? 'charge' : 'charges';
+        out.push({ text: `newly created ${who} gain ${signed(amount)} ${charges}${where}` });
         return;
       }
       out.push({ text: `${who}: ${signed(amount)} ${STAT_WORDS[effect.stat]}${where}` });
@@ -3143,11 +3174,16 @@ const WHERE_WORDS: Record<'anywhere' | 'ownTerritory' | 'embarked', string> = {
   embarked: ' while embarked',
 };
 
-const STAT_WORDS: Record<'movement' | 'sight' | 'heal' | 'charges' | 'range', string> = {
+/**
+ * The stats that read as "`who`: +n *thing*". `charges` and `combatPercent` are
+ * absent because each has a sentence of its own in `describeEffect` — the first
+ * because it applies only to units not yet built, the second because a percent
+ * belongs before the noun rather than after it.
+ */
+const STAT_WORDS: Record<'movement' | 'sight' | 'heal' | 'range', string> = {
   movement: 'movement',
   sight: 'sight',
   heal: 'healing per turn',
-  charges: 'charge',
   range: 'range',
 };
 

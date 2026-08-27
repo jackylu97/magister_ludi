@@ -139,7 +139,11 @@ describe('the discovery pool', () => {
       grainCache: 20,
       masonsHoard: 20,
       starTablets: 15,
-      forgottenHymns: 15,
+      // Halved (playtest batch two, 8/27): "early culture from discoveries
+      // should be lower". Culture is the one pool a discovery pays that buys a
+      // *decision* rather than a number, so fifteen of it out of the first ruin
+      // a scout walked into was handing a seat its opening Order for free.
+      forgottenHymns: 7,
       relicsOfTheOldFaith: 15,
       aGuideOffersService: 'scout',
       laborersJoinYou: 'worker',

@@ -233,6 +233,11 @@
           "kind": "offerRider",
           "offer": "order",
           "extra": 1
+        },
+        {
+          "kind": "offerRider",
+          "offer": "doctrine",
+          "extra": 1
         }
       ],
       "renown": {

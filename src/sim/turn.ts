@@ -59,6 +59,12 @@
  * and *before* the healing, so a raider that marched or fought is not resting —
  * exactly like every other unit on the board. See `barbarianTurn`.
  *
+ * Playtest batch two adds `spendLeftoverMovement`, immediately before
+ * `resetMovement` and immediately after the healing. Both halves of that are the
+ * rule: the points it spends must be *this* turn's, and "has this unit been
+ * still all turn?" must already have been answered, so that a piece's healing
+ * never depends on whether a neighbour got out of its way. See the function.
+ *
  * Entry XXI adds `wakeSleepers`, and it is the one phase whose position is "as
  * late as it can be": it asks whether an enemy is standing next to a sleeping
  * civilian, and that question is only worth asking of a board that has stopped
@@ -293,6 +299,12 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: advanceFortify,
   },
   {
+    name: 'spendLeftoverMovement',
+    // Standing orders march once more on **this** turn's unspent points, before
+    // anything is refilled. The position is the rule — see the function.
+    run: spendLeftoverMovement,
+  },
+  {
     name: 'resetMovement',
     // Refills every allowance, clears `hasAttacked`, then walks standing orders
     // with the new points.
@@ -399,6 +411,59 @@ function wakeSleepers(state: GameState): void {
       wakeUnit(sleeper);
       break;
     }
+  }
+}
+
+/**
+ * Marches every standing order that still has movement to spend, on the points
+ * this turn left it.
+ *
+ * The case it exists for is a **jam that has since cleared**. `advanceAlongPath`
+ * stops short of a tile the mover may not come to rest on and *keeps* the order
+ * (see `movement.ts`): traffic, not a wall. Until now the column then sat on a
+ * full purse for the rest of the turn while the friendly piece in its way walked
+ * off, and set out again only on the next turn's allowance — so a player who
+ * moved two units in the wrong order paid a turn for it. This phase asks once
+ * more, after everybody has finished moving, which is the earliest honest moment
+ * to ask: the board has stopped changing.
+ *
+ * It is not a second allowance. A unit that spent its points has none here, and
+ * `advanceAlongPath` is the same walk with the same purse — this only spends
+ * what the turn already granted and nobody got round to using.
+ *
+ * Its position in the array is the design, like every other entry.
+ *
+ *   · **Immediately before `resetMovement`**, which is what makes the points it
+ *     spends *this* turn's rather than next turn's. One line later and the
+ *     allowance has been refilled, and the phase would be a free extra march
+ *     every turn for every unit under orders.
+ *   · **After `healUnits` and `advanceFortify`**, and this is the load-bearing
+ *     half. Both ask "has this unit been still all turn?", and the answer must
+ *     be about the turn the *player* had. Asking any earlier would make a
+ *     unit's healing depend on whether a neighbour happened to step out of its
+ *     way — a piece that sat jammed all turn would heal or not according to
+ *     somebody else's marching order, which is a rule nobody could predict and
+ *     nobody asked for. So the healing is decided first, and the tidying-up
+ *     march happens after it.
+ *   · **Before `wakeSleepers` and `refreshVisibility`**, which both insist on a
+ *     board that has stopped moving and stay where they are; a column that
+ *     finishes its march here is exactly the sort of thing the first is watching
+ *     for.
+ *
+ * Walked in `state.units` order, like every other sweep, so two orders
+ * contending for the same tile always resolve the same way. Whatever the march
+ * turns up — a ruin, a camp — is claimed by `arriveOnTile` per step and the
+ * report is dropped, exactly as `resetMovement` drops it: this is a phase, and a
+ * phase has no `CommandResult` to hand it out through.
+ */
+function spendLeftoverMovement(state: GameState): void {
+  for (const unit of state.units) {
+    const path = unit.path;
+    // `length === 0` is only reachable from a hand-edited save; `resetMovement`
+    // is one line away and owns tidying it up.
+    if (!path || path.length === 0) continue;
+    if (unit.movesLeft <= 0) continue;
+    advanceAlongPath(state, unit, path);
   }
 }
 

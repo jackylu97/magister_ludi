@@ -96,7 +96,7 @@ import {
 import { type ProjectId, isProjectId, projectDef } from './projectData';
 import { governmentDef } from './statecraftData';
 import { settleRenownWindfall } from './renown';
-import { RULES } from './rulesData';
+import { type CitizenWeights, RULES } from './rulesData';
 import {
   type TileLine,
   cardActionRule,
@@ -773,9 +773,15 @@ export function isWorkableTile(tile: Tile): boolean {
  * borders take next — because a city that expands toward land it would not work
  * is a city that expands for no reason.
  */
-export function yieldScore(value: TileYield): number {
-  const w = CITIES.citizenWeights;
-  return value.food * w.food + value.production * w.production + value.gold * w.gold;
+export function yieldScore(
+  value: TileYield,
+  weights: CitizenWeights = CITIES.citizenWeights,
+): number {
+  return (
+    value.food * weights.food +
+    value.production * weights.production +
+    value.gold * weights.gold
+  );
 }
 
 /** The city that owns a tile, or `null`. Reads `state.tileOwner`. */
@@ -1203,8 +1209,68 @@ export function assignableTiles(state: GameState, city: City): Tile[] {
  * The result is stored sorted by tile index rather than by score, so the state
  * serialises identically however the sort arrived at it, and so the UI can draw
  * the dots in a stable order.
+ *
+ * Focus
+ * -----
+ * A town whose growth is halted — a settler at the front of the queue — scores
+ * with `citizenWeightsWhileHalted` instead, which puts hammers over bushels
+ * (playtest batch two: "a city should auto-work production tiles when creating a
+ * settler"). It is asked of `growthIsHalted`, which is asked of the row's
+ * `haltsGrowth`, so nothing here compares a unit type against `"settler"` — the
+ * marker is the *rule*, and the day something else stops a town growing it gets
+ * the same focus for free.
+ *
+ * The focus is a preference and never a way to starve a town: if the swapped
+ * sheet leaves the city short of what its citizens eat, the ordinary sheet is
+ * used instead. That check is made against `cityYields`, the same evaluator the
+ * pipeline banks with, so what it refuses is exactly the deficit `growCities`
+ * would have taken a population point for.
  */
 export function assignCitizens(state: GameState, city: City): void {
+  writeAssignment(state, city, chooseCitizens(state, city, CITIES.citizenWeights));
+  if (!growthIsHalted(city)) return;
+  // The focused sheet, tried and kept only if it feeds the town. The balanced
+  // assignment is already written, so `cityYields` below reads the *focused*
+  // one — one call each way rather than a hypothetical, which is what keeps this
+  // the same arithmetic the turn pipeline performs.
+  const balanced = city.workedTiles;
+  writeAssignment(state, city, chooseCitizens(state, city, CITIES.citizenWeightsWhileHalted));
+  if (cityYields(state, city).food < foodUpkeep(city)) city.workedTiles = balanced;
+}
+
+/**
+ * Which weights this city's citizens are being placed by, for a panel that wants
+ * to say so.
+ *
+ * The *decision*, not the outcome: it says a settler is at the front and the
+ * town is chasing hammers, which is what a "focus" readout means. Whether the
+ * starvation guard in `assignCitizens` then put the balanced sheet back is a
+ * fact about one board, and a readout that flickered between two words as a
+ * border moved would be a readout nobody could read.
+ */
+export function citizenFocus(city: City): 'balanced' | 'production' {
+  return growthIsHalted(city) ? 'production' : 'balanced';
+}
+
+/** Stores an assignment on the city, sorted by tile index. See `assignCitizens`. */
+function writeAssignment(state: GameState, city: City, worked: readonly Tile[]): void {
+  const { map } = state;
+  const ordered = [...worked].sort(
+    (a, b) => tileIndex(map, a.col, a.row) - tileIndex(map, b.col, b.row),
+  );
+  city.workedTiles = ordered.map((tile) => ({ col: tile.col, row: tile.row }));
+}
+
+/**
+ * The greedy itself: honoured locks first, then the best remaining tiles by
+ * `weights`. Pure — it reads the board and returns a list, so `assignCitizens`
+ * can ask it twice with two sheets and keep the one that feeds the town.
+ */
+function chooseCitizens(
+  state: GameState,
+  city: City,
+  weights: CitizenWeights,
+): Tile[] {
   const { map } = state;
   const candidates = assignableTiles(state, city);
   const index = (tile: Tile): number => tileIndex(map, tile.col, tile.row);
@@ -1231,7 +1297,9 @@ export function assignCitizens(state: GameState, city: City): void {
   // the best one — the turn the renewal lands, not the turn after.
   const ctx = cityContext(state, city);
   const scores = new Map<number, number>();
-  for (const tile of candidates) scores.set(index(tile), yieldScore(tileYieldOf(tile, ctx)));
+  for (const tile of candidates) {
+    scores.set(index(tile), yieldScore(tileYieldOf(tile, ctx), weights));
+  }
   candidates.sort((a, b) => {
     const ia = index(a);
     const ib = index(b);
@@ -1243,9 +1311,7 @@ export function assignCitizens(state: GameState, city: City): void {
     if (taken.has(index(tile))) continue;
     worked.push(tile);
   }
-
-  worked.sort((a, b) => index(a) - index(b));
-  city.workedTiles = worked.map((tile) => ({ col: tile.col, row: tile.row }));
+  return worked;
 }
 
 /**

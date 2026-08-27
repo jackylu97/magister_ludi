@@ -14,7 +14,7 @@
       "slots": {
         "military": 1,
         "economic": 1,
-        "wildcard": 0
+        "wildcard": 1
       },
       "effects": []
     },
@@ -1183,7 +1183,7 @@
       "line": "none",
       "neutral": true,
       "flavor": "One more mend in every bag of tools.",
-      "text": "Workers are built with +1 charge.",
+      "text": "Newly created worker units gain +1 charge.",
       "effects": [
         {
           "kind": "unitStat",

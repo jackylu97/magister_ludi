@@ -325,7 +325,8 @@ describe('moveUnit', () => {
       move(999, 3, 2), // no such unit
       move(enemy.id, 6, 5), // not the acting player's unit
       move(warrior.id, 3, 2, 9), // no such acting player
-      move(spent.id, 7, 2), // no movement left
+      // A spent unit is deliberately **not** in this list any more: an order
+      // given with no movement left is now a standing order (see below).
       move(warrior.id, 2, 2), // already there
       move(warrior.id, 4, 2), // impassable target
       move(warrior.id, 6, 6), // occupied by an enemy soldier
@@ -503,6 +504,123 @@ describe('resetMovement', () => {
     expect(first.row).toBe(4);
     expect(second.col).toBe(4);
     expect(second.path).toEqual([{ col: 3, row: 4 }]);
+  });
+});
+
+/**
+ * Orders given with nothing left to spend, and the phase that spends what a
+ * jammed column never got round to using (playtest batch two).
+ */
+describe('standing orders and leftover movement', () => {
+  it('takes a march from a spent unit and records it as a standing order', () => {
+    const state = flatState();
+    const scout = createUnit(state, 0, 'scout', 2, 2);
+    scout.movesLeft = 0;
+
+    // Accepted, and nothing moves: `advanceAlongPath` takes no step it cannot
+    // pay for, so an allowance of zero stores the whole route.
+    expect(applyCommand(state, move(scout.id, 5, 2))).toEqual({ ok: true });
+    expect([scout.col, scout.row]).toEqual([2, 2]);
+    expect(scout.movesLeft).toBe(0);
+    expect(scout.path).toEqual([
+      { col: 3, row: 2 },
+      { col: 4, row: 2 },
+      { col: 5, row: 2 },
+    ]);
+
+    // And the stored order is what sets off next turn.
+    endRound(state);
+    expect(scout.col).toBe(5);
+    expect(scout.path).toBeUndefined();
+  });
+
+  it('overwrites the orders a spent unit already had', () => {
+    const state = flatState();
+    const scout = createUnit(state, 0, 'scout', 2, 2);
+    applyCommand(state, move(scout.id, 8, 2));
+    scout.movesLeft = 0;
+    const wasAt = { col: scout.col, row: scout.row };
+
+    expect(applyCommand(state, move(scout.id, 2, 5))).toEqual({ ok: true });
+    expect([scout.col, scout.row]).toEqual([wasAt.col, wasAt.row]);
+    // Half of an abandoned route is not a plan: the new order replaces the old
+    // one whole, exactly as it does for a unit that still has movement.
+    expect(scout.path![scout.path!.length - 1]).toEqual({ col: 2, row: 5 });
+    expect(scout.path!.some((cell) => cell.col === 8)).toBe(false);
+  });
+
+  it('still refuses an order a spent unit could never walk', () => {
+    const state = flatState();
+    const scout = createUnit(state, 0, 'scout', 2, 2);
+    scout.movesLeft = 0;
+    createUnit(state, 1, 'warrior', 5, 2);
+    const before = clone(state);
+    for (const bad of [
+      move(scout.id, 2, 2), // already there
+      move(scout.id, 5, 2), // an enemy is standing on it
+      move(scout.id, 2, 99), // off the map
+    ]) {
+      expect(applyCommand(state, bad).ok, JSON.stringify(bad)).toBe(false);
+    }
+    expect(state).toEqual(before);
+  });
+
+  it('marches a jam that cleared with the movement the turn left it', () => {
+    const state = flatState();
+    const column = createUnit(state, 0, 'warrior', 0, 3);
+    const blocker = createUnit(state, 0, 'warrior', 2, 3);
+
+    // The column sets off, gets one hex, and stops rather than resting on top of
+    // its own picket: traffic, not a wall, so the order is kept.
+    applyCommand(state, move(column.id, 6, 3));
+    expect([column.col, column.movesLeft]).toEqual([1, 1]);
+    expect(column.path![0]).toEqual({ col: 2, row: 3 });
+
+    // The picket is ordered out of the way inside the same turn.
+    applyCommand(state, move(blocker.id, 2, 0));
+    expect(unitsOnTile(state, 2, 3)).toHaveLength(0);
+
+    endRound(state);
+    // Four hexes, not three: `spendLeftoverMovement` walks the one point the
+    // jam left unspent *before* the allowance is refilled, and `resetMovement`
+    // then walks the two the new turn granted.
+    expect(column.col).toBe(4);
+    expect(column.path).toEqual([
+      { col: 5, row: 3 },
+      { col: 6, row: 3 },
+    ]);
+  });
+
+  it('is deterministic: the same orders resolve byte-identically, in array order', () => {
+    const run = (): GameState => {
+      const state = flatState();
+      // Three columns behind one picket, so the leftover phase has more than one
+      // unit to walk and two of them want the same hex.
+      const first = createUnit(state, 0, 'warrior', 0, 3);
+      const second = createUnit(state, 0, 'warrior', 0, 4);
+      const picket = createUnit(state, 0, 'warrior', 2, 3);
+      applyCommand(state, move(first.id, 6, 3));
+      applyCommand(state, move(second.id, 6, 3));
+      applyCommand(state, move(picket.id, 2, 0));
+      endRound(state);
+      endRound(state);
+      return state;
+    };
+    // A sweep over `state.units` is part of the state; a sweep over a Map or a
+    // Set would not be, and this is where that would show.
+    expect(JSON.stringify(run())).toBe(JSON.stringify(run()));
+  });
+
+  it('never marches a unit that has nothing left, and never twice on one point', () => {
+    const state = flatState();
+    const scout = createUnit(state, 0, 'scout', 2, 2);
+    applyCommand(state, move(scout.id, 8, 2));
+    // The order spent every point it had, so the leftover phase has nothing to
+    // give it: one turn is one allowance, and the phase is not a second one.
+    expect(scout.movesLeft).toBe(0);
+    const reached = scout.col;
+    endRound(state);
+    expect(scout.col - reached).toBe(unitDef('scout').movement);
   });
 });
 

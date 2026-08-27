@@ -25,9 +25,14 @@ import {
   describeUpgrade,
   isUnlocked,
   playerScience,
+  prereqsMet,
+  queueTurns,
   researchError,
+  researchExpansion,
+  researchPlan,
   researchSince,
   researchSnapshot,
+  settleResearchWindfall,
   turnsToTech,
   upgradeTargetFor,
 } from '../../src/sim/tech';
@@ -417,7 +422,7 @@ describe('chooseResearch', () => {
     expect(state.players[1]!.researching).toBe(null);
   });
 
-  it('refuses byte-identically: unknown, held, prerequisite-short, repeated, finished seat', () => {
+  it('refuses byte-identically: unknown, held, repeated, bad mode, finished seat', () => {
     const state = flatState();
     state.players[0]!.sciencePool = 40;
     applyCommand(state, choose(0, 'fletching'));
@@ -427,8 +432,10 @@ describe('chooseResearch', () => {
       choose(0, 'the invention of fire'),
       choose(0, 42 as unknown as string),
       choose(0, 'agriculture'), // already researched — it is in the opening kit
-      choose(0, 'ironWorking'), // prerequisites not met
       choose(0, 'fletching'), // already the current choice
+      // A mode this build does not know is refused rather than guessed at: the
+      // field arrives from a save or a socket like every other one.
+      { ...choose(0, 'mining'), queue: 'front' } as unknown as Command,
       choose(9, 'letters'), // no such player
     ]) {
       const result = applyCommand(state, bad);
@@ -442,12 +449,19 @@ describe('chooseResearch', () => {
     expect(snapshotState(state)).toBe(afterEnd);
   });
 
-  it('names the missing prerequisites when it refuses one', () => {
+  it('queues the missing prerequisites instead of refusing them', () => {
     const state = flatState();
-    const result = applyCommand(state, choose(0, 'ironWorking'));
-    expect(result.ok).toBe(false);
-    expect(result.ok === false && result.error).toContain('Bronzeworking');
-    expect(result.ok === false && result.error).toContain('Stonecraft');
+    // The clause that used to name them is gone: pointing at a locked node now
+    // means "and everything it needs", which is the whole feature.
+    expect(applyCommand(state, choose(0, 'ironWorking'))).toEqual({ ok: true });
+    const plan = researchPlan(state.players[0]!);
+    expect(plan[plan.length - 1]).toBe('ironWorking');
+    expect(plan).toContain('bronzeWorking');
+    expect(plan).toContain('stonecraft');
+    // The head is what the beakers are aimed at, and it is a node that can be
+    // started right now.
+    expect(state.players[0]!.researching).toBe(plan[0]);
+    expect(prereqsMet(state, 0, plan[0]!)).toBe(true);
   });
 
   it('switches mid-research without losing a single beaker', () => {
@@ -474,8 +488,11 @@ describe('chooseResearch', () => {
       const result = applyCommand(state, choose(0, id));
       expect(result.ok, id).toBe(problem === null);
       if (result.ok) {
-        // Put it back, so each node is judged against the same state.
+        // Put it back, so each node is judged against the same state — the plan
+        // is *both* fields now, and clearing one of them would leave a queue
+        // standing behind a null head.
         state.players[0]!.researching = null;
+        delete state.players[0]!.researchQueue;
       } else {
         expect(result.error, id).toBe(problem);
       }
@@ -840,8 +857,8 @@ describe('glanceable numbers', () => {
 // ---------------------------------------------------------------------------
 
 describe('research in the log', () => {
-  it('round-trips a schema 21 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(21);
+  it('round-trips a schema 22 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(22);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -870,6 +887,251 @@ describe('research in the log', () => {
     // A log that asks for the same tech twice cannot be a log this game produced.
     const forged = [...game.log, choose(0, 'earthenware')];
     expect(() => replay(game.config, forged)).toThrow(/already being researched/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * The research queue (playtest batch two).
+ *
+ * The claims worth pinning are the ones a second implementation would get wrong:
+ * the *order* prerequisites come out in, that the two modes are two rules over
+ * one plan, that a dequeue takes its dependants with it, and — the load-bearing
+ * one — that the queue advances by the same code whether a turn's beakers or a
+ * windfall finished the node.
+ */
+describe('the research queue', () => {
+  /** `chooseResearch` with a mode. */
+  function queue(playerId: number, techId: string, mode: 'replace' | 'append'): Command {
+    return { type: 'chooseResearch', playerId, techId, queue: mode } as Command;
+  }
+
+  function drop(playerId: number, techId: string): Command {
+    return { type: 'dequeueResearch', playerId, techId } as Command;
+  }
+
+  it('expands a locked node by prerequisite depth, then roster order', () => {
+    const state = flatState();
+    // Iron Working from the opening kit needs five nodes under it, spread over
+    // three depths. Depth first — so nothing is ever queued before something it
+    // needs — and `TECH_IDS` order within a depth, because a sort that fell back
+    // on anything else would be a sort a replay could disagree with.
+    expect(researchExpansion(state, 0, 'ironWorking')).toEqual([
+      'husbandry',
+      'mining',
+      'earthenware',
+      'bronzeWorking',
+      'stonecraft',
+      'ironWorking',
+    ]);
+    // Every entry stands behind everything it needs.
+    const seen: TechId[] = [];
+    for (const id of researchExpansion(state, 0, 'ironWorking')) {
+      for (const prereq of techDef(id).prereqs) {
+        expect(seen.includes(prereq) || prereqsMet(state, 0, id), `${id} → ${prereq}`).toBe(true);
+      }
+      seen.push(id);
+    }
+    // What is already held is simply not in it.
+    grant(state, 0, 'mining', 'earthenware', 'bronzeWorking');
+    expect(researchExpansion(state, 0, 'ironWorking')).toEqual([
+      'husbandry',
+      'stonecraft',
+      'ironWorking',
+    ]);
+  });
+
+  it('makes the head the current research and the rest the queue', () => {
+    const state = flatState();
+    expect(applyCommand(state, choose(0, 'ironWorking'))).toEqual({ ok: true });
+    const player = state.players[0]!;
+    expect(player.researching).toBe('husbandry');
+    expect(player.researchQueue).toEqual([
+      'mining',
+      'earthenware',
+      'bronzeWorking',
+      'stonecraft',
+      'ironWorking',
+    ]);
+    expect(researchPlan(player)).toEqual(['husbandry', ...player.researchQueue!]);
+    // Nothing was spent: the pool is still the progress.
+    expect(player.sciencePool).toBe(0);
+  });
+
+  it('replaces by default and appends on request, skipping what is already lined up', () => {
+    const state = flatState();
+    applyCommand(state, choose(0, 'ironWorking'));
+    const player = state.players[0]!;
+
+    // `replace` blows the plan away — the player changed their mind.
+    expect(applyCommand(state, queue(0, 'sailing', 'replace'))).toEqual({ ok: true });
+    expect(researchPlan(player)).toEqual(['sailing']);
+
+    // `append` is a second destination, and adds only what is missing.
+    expect(applyCommand(state, queue(0, 'bronzeWorking', 'append'))).toEqual({ ok: true });
+    expect(researchPlan(player)).toEqual(['sailing', 'mining', 'earthenware', 'bronzeWorking']);
+    expect(applyCommand(state, queue(0, 'stonecraft', 'append'))).toEqual({ ok: true });
+    // Earthenware is already in the plan and is not queued twice; husbandry is
+    // the only thing Stonecraft still needs.
+    expect(researchPlan(player)).toEqual([
+      'sailing',
+      'mining',
+      'earthenware',
+      'bronzeWorking',
+      'husbandry',
+      'stonecraft',
+    ]);
+    // The head never moved: appending is not choosing.
+    expect(player.researching).toBe('sailing');
+  });
+
+  it('refuses an append that would change nothing, byte-identically', () => {
+    const state = flatState();
+    applyCommand(state, choose(0, 'ironWorking'));
+    const before = snapshotState(state);
+    const result = applyCommand(state, queue(0, 'bronzeWorking', 'append'));
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.error).toContain('already in');
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('dequeues a node and everything queued behind it that needed it', () => {
+    const state = flatState();
+    applyCommand(state, choose(0, 'ironWorking'));
+    const player = state.players[0]!;
+
+    // Bronzeworking goes, and Iron Working goes with it — a plan holding a node
+    // whose prerequisite has been pulled out is a plan that lies.
+    expect(applyCommand(state, drop(0, 'bronzeWorking'))).toEqual({ ok: true });
+    expect(researchPlan(player)).toEqual(['husbandry', 'mining', 'earthenware', 'stonecraft']);
+
+    // Dropping the head promotes whatever stood behind it, and spends nothing.
+    player.sciencePool = 33;
+    expect(applyCommand(state, drop(0, 'husbandry'))).toEqual({ ok: true });
+    // Stonecraft needed Husbandry, so it went too.
+    expect(researchPlan(player)).toEqual(['mining', 'earthenware']);
+    expect(player.researching).toBe('mining');
+    expect(player.sciencePool).toBe(33);
+  });
+
+  it('empties to no queue at all, and refuses a node that is not in the plan', () => {
+    const state = flatState();
+    applyCommand(state, choose(0, 'bronzeWorking'));
+    const player = state.players[0]!;
+    for (const id of ['bronzeWorking', 'mining', 'earthenware']) {
+      applyCommand(state, drop(0, id));
+    }
+    // The key is deleted rather than emptied — an empire that emptied its queue
+    // and one that never had one serialise identically.
+    expect(player.researching).toBe(null);
+    expect('researchQueue' in player).toBe(false);
+
+    const before = snapshotState(state);
+    const result = applyCommand(state, drop(0, 'sailing'));
+    expect(result.ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('never leaves a queue standing behind an empty head', () => {
+    // The invariant the End Turn blocker leans on: it asks `researching === null`
+    // and nothing else, so a plan with something in it must always have a head.
+    const state = flatState();
+    const player = state.players[0]!;
+    const check = (): void => {
+      if ((player.researchQueue ?? []).length > 0) expect(player.researching).not.toBe(null);
+    };
+
+    applyCommand(state, choose(0, 'ironWorking'));
+    check();
+    player.sciencePool = 10_000;
+    for (let turn = 0; turn < 8; turn++) {
+      advanceResearch(state);
+      check();
+    }
+    applyCommand(state, choose(0, 'letters'));
+    check();
+    for (const id of [...researchPlan(player)]) {
+      applyCommand(state, drop(0, id));
+      check();
+    }
+  });
+
+  it('advances the head when a technology completes, keeping the overflow', () => {
+    const state = flatState();
+    applyCommand(state, choose(0, 'bronzeWorking'));
+    const player = state.players[0]!;
+    expect(researchPlan(player)).toEqual(['mining', 'earthenware', 'bronzeWorking']);
+
+    player.sciencePool = techDef('mining').cost + 5;
+    advanceResearch(state);
+    expect(player.techsResearched).toContain('mining');
+    // The next one is aimed at in the same phase, and the overflow is waiting
+    // for it exactly as it waited for a hand-made choice.
+    expect(player.researching).toBe('earthenware');
+    expect(player.sciencePool).toBe(5);
+    expect(player.researchQueue).toEqual(['bronzeWorking']);
+
+    // One technology per player per turn, queue or no queue.
+    player.sciencePool = 10_000;
+    advanceResearch(state);
+    expect(player.techsResearched).toContain('earthenware');
+    expect(player.techsResearched).not.toContain('bronzeWorking');
+    expect(player.researching).toBe('bronzeWorking');
+  });
+
+  it('drops a queued node the empire came by some other way', () => {
+    const state = flatState();
+    applyCommand(state, choose(0, 'bronzeWorking'));
+    const player = state.players[0]!;
+    // A gift, a ruin, a Great Library: earthenware arrives without the queue.
+    grant(state, 0, 'earthenware');
+    player.sciencePool = techDef('mining').cost;
+    advanceResearch(state);
+    expect(player.researching).toBe('bronzeWorking');
+    expect('researchQueue' in player).toBe(false);
+  });
+
+  it('advances the head from a windfall by the same routine a turn does', () => {
+    const state = flatState();
+    applyCommand(state, choose(0, 'bronzeWorking'));
+    const player = state.players[0]!;
+    // Star tablets: the pool is filled outside the pipeline and settled at once.
+    player.sciencePool = techDef('mining').cost;
+    const done = settleResearchWindfall(state, player);
+    expect(done?.techId).toBe('mining');
+    expect(player.researching).toBe('earthenware');
+    expect(player.researchQueue).toEqual(['bronzeWorking']);
+  });
+
+  it('schedules the plan cumulatively, one technology per turn at the floor', () => {
+    const game = researchingGame();
+    const state = game.state;
+    expect(applyCommand(state, queue(0, 'ironWorking', 'replace'))).toEqual({ ok: true });
+    const steps = queueTurns(state, 0);
+    expect(steps.map((step) => step.techId)).toEqual(researchPlan(state.players[0]!));
+    // Cumulative: each entry is paid for out of what the ones before it left.
+    for (let i = 1; i < steps.length; i++) {
+      expect(steps[i]!.turns!).toBeGreaterThanOrEqual(steps[i - 1]!.turns!);
+    }
+    // And nothing lands sooner than its place in the queue, however full the
+    // pool is — `settleResearch` completes at most one a resolution.
+    state.players[0]!.sciencePool = 100_000;
+    expect(queueTurns(state, 0).map((step) => step.turns)).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
+  it('replays a queued game byte-identically', () => {
+    const game = researchingGame();
+    expect(dispatch(game, queue(0, 'ironWorking', 'replace')).ok).toBe(true);
+    expect(dispatch(game, queue(0, 'sailing', 'append')).ok).toBe(true);
+    expect(dispatch(game, drop(0, 'stonecraft')).ok).toBe(true);
+    for (let turn = 0; turn < 25; turn++) {
+      for (const player of game.state.players) {
+        dispatch(game, { type: 'endTurn', playerId: player.id });
+      }
+    }
+    expect(replay(game.config, game.log)).toEqual(game.state);
+    expect(loadGame(saveGame(game)).state).toEqual(game.state);
   });
 });
 

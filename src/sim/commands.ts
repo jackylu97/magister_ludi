@@ -141,7 +141,14 @@ import {
   unslotOrderError,
 } from './statecraft';
 import type { OrderId } from './statecraftData';
-import { buildError, researchError } from './tech';
+import {
+  type ResearchQueueMode,
+  buildError,
+  chooseResearchFor,
+  dequeueResearchError,
+  dequeueResearchFor,
+  researchError,
+} from './tech';
 import type { TechId } from './techData';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
@@ -182,6 +189,11 @@ export interface EndTurnCommand extends PlayerCommand {
  * remainder on the unit as a standing order that `resetMovement` resumes. A
  * second `moveUnit` for the same unit replaces the first — the player changed
  * their mind, and half of an abandoned route is not a plan.
+ *
+ * **A unit with no movement left is a legal subject**, and walks none of the
+ * route: it records the whole thing as a standing order and sets off next turn.
+ * "As much as this turn's movement pays for" is exactly none of it, which is why
+ * this needs no clause of its own — see `applyMoveUnit`.
  *
  * `playerId` must own the unit and must not have ended the turn: a seat that has
  * declared itself finished is finished, however much movement its units have
@@ -300,24 +312,66 @@ export interface SetLockedTilesCommand extends PlayerCommand {
 }
 
 /**
- * Points this player's science at a technology.
+ * Points this player's science at a technology — and at everything that
+ * technology needs.
  *
- * The only research command there is, because the model has only one decision in
- * it: progress *is* `Player.sciencePool` (see `tech.ts`), so choosing is aiming
- * rather than spending, and there is nothing to cancel, refund or bank
- * separately. Switching mid-research is therefore legal and lossless — a player
- * who reacts to something another seat did inside the same turn window keeps
- * every beaker they had banked.
+ * Choosing is aiming rather than spending: progress *is* `Player.sciencePool`
+ * (see `tech.ts`), so there is nothing to cancel, refund or bank separately, and
+ * switching mid-research is legal and lossless. A player who reacts to something
+ * another seat did inside the same turn window keeps every beaker they banked.
  *
- * Re-choosing the tech already being researched is refused: it would change
- * nothing and put a log entry in the save that says nothing. So is a tech
- * already held, and one whose prerequisites are not met.
+ * **The target need not be reachable.** Naming a locked node names its
+ * unresearched prerequisites too, in `researchExpansion`'s order, and the whole
+ * list becomes the plan: the head is what `sciencePool` is aimed at and the rest
+ * is `Player.researchQueue`. That is the entire feature — clicking a distant
+ * node is one command, not a lesson in the tree.
+ *
+ * `queue` says what to do with what is already lined up, and its **absent value
+ * is `'replace'`**, which is what this command meant before a queue existed: a
+ * log written by an older build replays byte-identically, because a target whose
+ * prerequisites were met expands to itself and a plan that was one node long is
+ * replaced by a plan that is one node long. `'append'` is the shift-click — a
+ * second destination rather than a second mind — and adds only what the plan
+ * does not already hold.
+ *
+ * Refused when the command would change nothing: a technology already held, and
+ * a plan that comes out identical to the one already standing (re-choosing the
+ * current research with an empty queue is the commonest case). An accepted no-op
+ * is a log entry a replay has to apply and that says nothing about what happened.
  *
  * Turn-gated like `setCityProduction`: choosing what to learn is an act, and a
  * seat that has declared itself finished has finished acting.
  */
 export interface ChooseResearchCommand extends PlayerCommand {
   type: 'chooseResearch';
+  techId: TechId;
+  queue?: ResearchQueueMode;
+}
+
+/**
+ * Takes a technology out of this player's research plan.
+ *
+ * `chooseResearch`'s other half, and `cancelOrder` one system over: a plan that
+ * spans a dozen turns has to be revisable without being re-drawn from scratch.
+ * It names the technology rather than an index for `cancelOrder`'s reason — an
+ * index is a statement about a list the player may have been looking at two
+ * commands ago, and a name is a statement about what they meant.
+ *
+ * **Everything that only made sense because of it goes too**, transitively:
+ * dropping Bronzeworking drops the Iron Working standing behind it. The
+ * alternative is a plan holding rows the completion phase would silently step
+ * over, which is a plan that lies about what will be learnt.
+ *
+ * The named technology may be the current research; the plan is one list and
+ * this is one rule over it (see `researchPlan`). Dropping the head simply
+ * promotes whatever was behind it, and the pool is not touched — this is a
+ * switch, and switching has always been free.
+ *
+ * Refused when the technology is not in the plan at all, and turn-gated exactly
+ * like `chooseResearch`.
+ */
+export interface DequeueResearchCommand extends PlayerCommand {
+  type: 'dequeueResearch';
   techId: TechId;
 }
 
@@ -798,6 +852,7 @@ export type Command =
   | SetCityProductionCommand
   | SetLockedTilesCommand
   | ChooseResearchCommand
+  | DequeueResearchCommand
   | AttackCommand
   | FortifyCommand
   | SleepUnitCommand
@@ -1016,7 +1071,14 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
   if (unit.ownerId !== actor.id) {
     return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
   }
-  if (unit.movesLeft <= 0) return fail(`Unit ${unit.id} has no movement left`);
+  // **No movement left is not a refusal** (playtest batch two). A spent unit
+  // given a march records the route and walks none of it: `advanceAlongPath`
+  // takes no step it cannot pay for, so an allowance of zero stores the whole
+  // path and moves nothing, and `resetMovement` sets off next turn. That is what
+  // a player means by ordering a unit that has already moved — "go there,
+  // starting when you can" — and refusing it made the last click of a unit's
+  // turn the one click that did nothing. Every other gate below still applies,
+  // so an order that could never be walked is still refused rather than parked.
 
   // `getTileAt` wraps the column, so an un-wrapped target from the UI resolves
   // to the tile the player actually clicked.
@@ -1354,15 +1416,29 @@ function applySetLockedTiles(
 }
 
 /**
- * Aims this player's science at a technology. See `ChooseResearchCommand`.
+ * Reads the queue mode off a command defensively, `undefined` for a value that
+ * is not one — the reducer trusts a field from a save or a socket only as far as
+ * it validates it. An **absent** mode is `'replace'`, which is what every
+ * command written before the queue existed meant.
+ */
+function readQueueMode(value: unknown): ResearchQueueMode | undefined {
+  if (value === undefined || value === 'replace') return 'replace';
+  return value === 'append' ? 'append' : undefined;
+}
+
+/**
+ * Aims this player's science at a technology, queueing what it needs. See
+ * `ChooseResearchCommand`.
  *
- * Two questions, asked in the order a player would think of them: may this seat
- * still act, and is that a technology they could start. The second is delegated
- * whole to `researchError` — the same function the tech screen enables its nodes
- * with — so a node the interface offers is a node this accepts.
+ * Three questions, asked in the order a player would think of them: may this
+ * seat still act, is that a mode this build knows, and is that a plan they could
+ * install. The last is delegated whole to `researchError` — the same function
+ * the tech screen enables its nodes with — so a node the interface offers is a
+ * node this accepts.
  *
- * The mutation is one field. Nothing is spent: the pool is the progress, and it
- * stays exactly where it was even when the aim moves mid-research.
+ * The mutation is `writeResearchPlan`, through `chooseResearchFor`, and it is
+ * still not a *spend*: the pool is the progress, and it stays exactly where it
+ * was however far the plan moves.
  */
 function applyChooseResearch(
   state: GameState,
@@ -1374,10 +1450,41 @@ function applyChooseResearch(
     return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot choose research`);
   }
 
-  const problem = researchError(state, actor.id, command.techId);
+  const mode = readQueueMode(command.queue);
+  if (mode === undefined) {
+    return fail(`chooseResearch queue must be "replace" or "append"`);
+  }
+
+  const problem = researchError(state, actor.id, command.techId, mode);
   if (problem) return fail(problem);
 
-  actor.researching = command.techId;
+  chooseResearchFor(state, actor.id, command.techId, mode);
+  return ok();
+}
+
+/**
+ * Drops a technology — and its dependants — out of this player's plan. See
+ * `DequeueResearchCommand`.
+ *
+ * `applyChooseResearch`'s mirror, down to the split: the seat question belongs
+ * to the reducer and the plan question is delegated whole to
+ * `dequeueResearchError`, so the button the tech screen greys out and the
+ * refusal the reducer makes are the same sentence.
+ */
+function applyDequeueResearch(
+  state: GameState,
+  command: DequeueResearchCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot choose research`);
+  }
+
+  const problem = dequeueResearchError(state, actor.id, command.techId);
+  if (problem) return fail(problem);
+
+  dequeueResearchFor(state, actor.id, command.techId);
   return ok();
 }
 
@@ -2038,6 +2145,10 @@ function orderedUnitId(command: Command): number | undefined {
     case 'setCityProduction':
     case 'setLockedTiles':
     case 'chooseResearch':
+    // Research is about the empire's schedule, not about a piece: neither
+    // aiming the beakers nor dropping a node off the plan is an order to
+    // anything standing on the board.
+    case 'dequeueResearch':
     case 'purchaseTile':
     case 'chooseDiscovery':
     // The five Statecraft verbs name no piece at all: they are about the
@@ -2110,6 +2221,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applySetLockedTiles(state, command);
     case 'chooseResearch':
       return applyChooseResearch(state, command);
+    case 'dequeueResearch':
+      return applyDequeueResearch(state, command);
     case 'attack':
       return applyAttack(state, command);
     case 'fortify':

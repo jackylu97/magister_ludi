@@ -19,6 +19,7 @@ import {
   playerById,
   unitById,
 } from '../../src/sim/state';
+import { researchPlan } from '../../src/sim/tech';
 import { END_OF_TURN_PHASES, runEndOfTurn } from '../../src/sim/turn';
 import { generateMap } from '../../src/sim/mapgen';
 import { nextUint32 } from '../../src/sim/rng';
@@ -78,6 +79,9 @@ describe('newGame', () => {
       culturePool: 0,
       faithPool: 0,
       researching: null,
+      // No `researchQueue` key: presence is the state, exactly as it is for
+      // `Unit.path`, so an empire that never queued anything serialises as one
+      // from before the field existed. See the suite at the bottom of this file.
       techsResearched: RULES.research.startingTechs,
       settlersBuilt: 0,
       tilesPurchased: 0,
@@ -407,6 +411,12 @@ describe('end-of-turn pipeline', () => {
       'barbarians',
       'healUnits',
       'advanceFortify',
+      // A standing order that was jammed marches once more on *this* turn's
+      // unspent points — after the two phases that ask "has this unit been
+      // still all turn?", so a piece's healing never depends on whether a
+      // neighbour got out of its way, and immediately before the refill, so the
+      // points it spends are the turn's own. See `spendLeftoverMovement`.
+      'spendLeftoverMovement',
       'resetMovement',
       // As late as it can be: the question "is an enemy standing next to my
       // sleeping worker" is only worth asking of a board that has stopped
@@ -423,5 +433,68 @@ describe('end-of-turn pipeline', () => {
     const before = clone(state);
     runEndOfTurn(state);
     expect(state).toEqual(before);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * `Player.researchQueue`, the schema-22 field, and the two properties the rest
+ * of the game leans on: an absent key reads as an empty plan, and a plan is
+ * never non-empty behind an empty head.
+ */
+describe('the research queue field', () => {
+  it('is absent until something is queued, and gone again when it empties', () => {
+    const state = newGame(config());
+    const player = state.players[0]!;
+    expect('researchQueue' in player).toBe(false);
+    expect(researchPlan(player)).toEqual([]);
+
+    // A node whose prerequisites are met is a plan of one, and still no key —
+    // a game that never queues serialises exactly as it did at schema 21.
+    expect(applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: 'mining' })).toEqual({
+      ok: true,
+    });
+    expect('researchQueue' in player).toBe(false);
+    expect(researchPlan(player)).toEqual(['mining']);
+
+    // A locked node fills it: Bronzeworking wants Mining and Earthenware first.
+    expect(
+      applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: 'bronzeWorking' }),
+    ).toEqual({ ok: true });
+    expect(researchPlan(player)).toEqual(['mining', 'earthenware', 'bronzeWorking']);
+    expect(player.researchQueue).toEqual(['earthenware', 'bronzeWorking']);
+
+    // Dropping the head takes its dependants with it and empties the plan — and
+    // the key is deleted rather than left as `[]`.
+    expect(
+      applyCommand(state, { type: 'dequeueResearch', playerId: 0, techId: 'mining' }),
+    ).toEqual({ ok: true });
+    expect(researchPlan(player)).toEqual(['earthenware']);
+    expect('researchQueue' in player).toBe(false);
+    expect(
+      applyCommand(state, { type: 'dequeueResearch', playerId: 0, techId: 'earthenware' }),
+    ).toEqual({ ok: true });
+    expect(player.researching).toBe(null);
+    expect('researchQueue' in player).toBe(false);
+  });
+
+  it('reads a state that has never heard of it as an empty plan', () => {
+    // The migration, such as it is: a save is `{config, log}` and is refused
+    // across a schema bump, so the only way a key-less player reaches this build
+    // is a snapshot or a hand-edited state. It reads as "nothing queued" rather
+    // than as a crash, through the one place the `?? []` lives.
+    const state = newGame(config());
+    const player = state.players[0]!;
+    player.researching = 'mining';
+    delete player.researchQueue;
+    expect(researchPlan(player)).toEqual(['mining']);
+  });
+
+  it('carries the schema version that says the queue and the leftover march exist', () => {
+    // A v21 log is not merely older: a `moveUnit` given with no movement left
+    // used to be refused and is now a standing order, and the resolution has
+    // grown a phase no v21 state has been through.
+    expect(SCHEMA_VERSION).toBe(22);
   });
 });

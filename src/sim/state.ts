@@ -198,8 +198,17 @@ import {
  *     a library now pays a renown a turn, so every empire in it reaches a
  *     recruitment it never had, and `state.rng` is advanced by every offer that
  *     opens — which moves every roll after it.
+ * 22: The research queue and the leftover march (playtest batch two) — one
+ *     optional field, `Player.researchQueue`, and two commands (`chooseResearch`
+ *     grew a `queue` mode, and `dequeueResearch` is new). A v21 log replayed here
+ *     is a *different game* rather than an older one for a reason beyond the
+ *     field: a `moveUnit` given to a unit with no movement left used to be
+ *     **refused**, and is now accepted as a standing order — so a command a v21
+ *     log could never contain is one this build writes — and the resolution has
+ *     grown a phase (`spendLeftoverMovement`) that marches a jammed column with
+ *     the movement its turn left it, which no v21 state can have been through.
  */
-export const SCHEMA_VERSION = 21;
+export const SCHEMA_VERSION = 22;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -327,6 +336,26 @@ export interface Player {
    * by `advanceResearch` the moment the tech completes.
    */
   researching: TechId | null;
+  /**
+   * What this player has lined up **after** `researching`, in the order it will
+   * be learnt. Absent means nothing is queued.
+   *
+   * Presence is the state, which is `Unit.path`'s convention and is here for the
+   * same two reasons: an empire that never queued anything serialises exactly as
+   * it did before this field existed, and a state that reaches this build with
+   * no key at all reads as an empty queue rather than as a crash. Every read goes
+   * through `researchPlan` (`tech.ts`), which is where the `?? []` lives.
+   *
+   * The head is deliberately **not** in here. `researching` is still the whole of
+   * "what the beakers are aimed at" — switching is still free and lossless, the
+   * pool is still the progress — and this is only what follows, so nothing that
+   * asked `researching` before has to learn a second question. The invariant that
+   * makes the End Turn blocker still correct is the other half of that split: a
+   * non-empty queue always has a head, because the only two writers
+   * (`writeResearchPlan` and `promoteResearchQueue`) fill `researching` from the
+   * front of the plan and delete this key the moment nothing is left behind it.
+   */
+  researchQueue?: TechId[];
   /**
    * Technologies this player holds, in the order they completed.
    *
