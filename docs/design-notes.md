@@ -905,7 +905,7 @@ in both of the ways land is acquired.
   (`BorderGrowth.frozen`), never a rate of zero, so the panel says "frozen" and the authority
   chip's hover says "borders frozen · purchases barred".
 - **Gold buys tiles** — the first gold sink. `purchaseTile { playerId, cityId, col, row }`, valid
-  on unowned land inside the city's work radius that touches the *player's* territory, with the
+  on unowned tile (land or water — water since 2026-08-27, Entry XXVII made it worked ground) inside the city's work radius that touches the *player's* territory, with the
   writ solvent and the price covered. Price is Civ 6 shaped and entirely in `rules.json`: a base
   by ring (50 / 50 / 50 / 75), times `1 + progressFactor · gameProgress` rounded to 5, plus a
   flat +5 per tile this player has ever bought. `Player.tilesPurchased` (schema 13 → 14) is the

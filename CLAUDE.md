@@ -18,10 +18,19 @@ would change every seeded outcome. No further rename passes.
   a sweep over seeds or sizes, a multi-decade pacing simulation, a long byte-for-byte
   replay, a scale fixture. A new test of that shape goes in the `.slow` sibling even if
   it happens to be quick today; a source-reading register test is always core.
-  - `npm run test` = core, ~30 s. **The done-gate for a task**: typecheck, core test, build
-    must all be clean before any task is "done" — subagents run exactly these three.
-  - `npm run test:all` = core + slow. **The push-gate**: the orchestrating session runs it
-    once before every push to `main`, and nothing lands on `main` without it.
+  - **Subagents run narrow tests only** (2026-08-27): `npx vitest run <the test files or
+    directory for the code you changed>` — never `npm run test`, never the whole suite, and
+    never a typecheck of the whole tree as a pass/fail (run `npm run typecheck` if you like,
+    but an error in a file outside your fence is *not yours* — do not investigate it, do not
+    touch it, note it in one line). Several agents edit the tree at once on disjoint fences,
+    and a broad run sees their half-finished files: every "failure" that comes from that is
+    wasted time and tokens. A subagent's done-gate is **its own tests green + its own files
+    typechecking**.
+  - **The batch-gate is the orchestrator's**: once a batch of agents has reported and the
+    tree is settled, the orchestrating session runs typecheck + `npm run test` (core, ~30 s)
+    + build, then commits each pass by explicit path.
+  - `npm run test:all` = core + slow, ~85 s. **The push-gate**: the orchestrating session runs
+    it once before every push to `main`, and nothing lands on `main` without it.
   - `npm run test:slow` runs the slow tier alone; `test:sim` / `test:mapgen` / `test:render`
     / `test:ui` are *core for that module* (fast iteration, never a substitute for the
     done-gate); `test:stress` is the stress fixture. Selection is one env var (`TEST_TIER`)
@@ -30,7 +39,10 @@ would change every seeded outcome. No further rename passes.
     `test/mapgen/fixtures.ts`), never imported from a `.test.ts` file — importing a test
     file re-registers its tests.
 - Check exit codes, never grep a summary line: `npm run test` prints "Tests" on failure too.
-- Subagents: never commit or push; the orchestrating session handles git.
+- Subagents: never commit or push; the orchestrating session handles git. **Never `git stash`,
+  `checkout`, `reset` or otherwise move the working tree either** — other agents' uncommitted
+  edits live in it, and a stash-bisect of a failure that was theirs to begin with is how work
+  gets lost. A failure in a file outside your fence is not yours: note it, move on.
 - Kill only processes you started, by PID. Never `pkill -f vite`.
 
 ## Layout

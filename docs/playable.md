@@ -36,7 +36,7 @@ game more playtestable than the last.
   pool, and only the half that buys ground answers to the writ. At *any* authority deficit
   borders FREEZE: no accrual, no expansion from a full basket, no purchases. Its own ladder
   (`meters.borderFreeze`), a labelled state everywhere it shows.
-- `purchaseTile` is the first gold sink: unowned land, inside the work radius, touching the
+- `purchaseTile` is the first gold sink: unowned tile (land or water — water since 2026-08-27, Entry XXVII made it worked ground), inside the work radius, touching the
   player's territory, writ solvent, price covered. Price = ring base × era scaling (rounded to
   5) + 5 per prior purchase, less furs' −10%, all from `rules.json`, all through one evaluator
   the overlay and the reducer share. `Player.tilesPurchased` is the per-player ladder (schema 14).
