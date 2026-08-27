@@ -26,7 +26,7 @@ import {
 import { VIEW3D } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundingErrorAt } from '../../src/sim/cities';
-import { IMPROVEMENT_IDS } from '../../src/sim/improvementData';
+import { IMPROVEMENT_IDS, isGreatPersonWork } from '../../src/sim/improvementData';
 import { improvementError, improvementErrorAt } from '../../src/sim/improvements';
 import type { Command } from '../../src/sim/commands';
 import {
@@ -584,7 +584,11 @@ describe('a full turn at scale', () => {
     const spentTurn = cpuMs();
     for (const player of game.state.players) {
       const result = dispatch(game, { type: 'endTurn', playerId: player.id });
-      expect(result).toEqual({ ok: true });
+      // Just `.ok`, not the whole shape: a resolution may carry news beside it —
+      // a Triumph is a diff of `Player.triumphs`, and turn 1's close is exactly
+      // the kind of milestone that awards one (see CLAUDE.md, "The Triumph news
+      // is a diff, not a sink").
+      expect(result.ok).toBe(true);
     }
     const ms = spentTurn();
     console.log(
@@ -662,6 +666,11 @@ describe('a full turn at scale', () => {
       for (const player of state.players) {
         let chosen: (typeof IMPROVEMENT_IDS)[number] | null = null;
         for (const id of IMPROVEMENT_IDS) {
+          // A great work is planted by a great person, not spadework — it has no
+          // builder for `improvementErrorAt`'s ground-shaped check to refuse, so
+          // without this skip a tile whose only legal improvement is a work
+          // counts as a site with nothing a worker can actually build there.
+          if (isGreatPersonWork(id)) continue;
           if (improvementErrorAt(state, player.id, tile, id) === null) {
             chosen = id;
             break;
@@ -690,6 +699,8 @@ describe('a full turn at scale', () => {
       if (!dispatch(game, spawn).ok) continue;
       const worker = state.units[state.units.length - 1]!;
       for (const id of IMPROVEMENT_IDS) {
+        // Same skip, for symmetry: a worker never gets to ask for a great work.
+        if (isGreatPersonWork(id)) continue;
         if (improvementError(state, worker.id, id) !== null) continue;
         const order: Command = {
           type: 'buildImprovement',
