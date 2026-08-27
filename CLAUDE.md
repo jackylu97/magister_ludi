@@ -484,6 +484,25 @@ would change every seeded outcome. No further rename passes.
   `insertionIndex` (`cityPanel.ts`): a new row lands in front of the **trailing run** of
   projects, and the reducer refuses the same project twice — a second copy is not a second
   conversion, it is a row that can never be reached.
+- **A wonder is one per world, and the register is `GameState.wonders`** (built 2026-08-27,
+  Entry XXX). Written in one place (`claimWonder`), from one place (`realiseItem`). The claim
+  is *history* — who first raised it — and never moves; what a wonder *pays* follows the
+  stones (the holding city's `buildings`, read by `liveEffects`' fifth source), so a captured
+  wonder changes sides with no bookkeeping. **"Banked toward it" is the front row or nothing**:
+  a city has one basket and it pays for `queue[0]`, so a beaten wonder refunds the whole basket
+  iff the wonder is the front row (`rules.production.wonderRefundGoldPerHammer`, 1 — half the
+  purchase rate, which is the penalty), and a wonder standing second is removed with nothing
+  refunded. A per-item ledger would be a second ledger this game deliberately does not have.
+  `wonder` is its own `ProductionCategory` and `queueCategory` is the one place a row is sorted
+  into one — a `'building'` percentage does not ride on a wonder. `CardId` includes
+  `BuildingId` (a wonder's `effects` sit on its row, adapted in `anyCardDef`; no building id is
+  a card id, pinned). `realiseItem` returns `RealisedItem` — two kinds of news exist and a third
+  joins the shape, never a second out-parameter. `buildError` takes an optional `city` and a
+  caller that has a town passes it, or re-sending a queue that legitimately holds the wonder
+  refuses itself. **A wonder is never for sale** — refused in `purchaseError` before the
+  currency, because gold's gates are production's gates and production's would have sold one.
+  Known gap: a rite's hammers can complete a wonder correctly but carry no toast out through
+  `RiteResult`.
 - **A building's non-yield facts are read in one place**, `buildingEffects.ts` —
   `resourceEffects.ts`'s bargain one scale down. Flat yields still fold in `cityYields`;
   `happiness` and `cityStat` fold through this module into `explainHappiness` (`meters.ts`),

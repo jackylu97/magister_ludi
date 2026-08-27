@@ -3091,3 +3091,42 @@ different size — a shape printed as itself rather than as what it means:
 Ancestor Worship's second clause reads "+5% culture in every city of 10+" against a doc that
 says "per city of 10+ population"; that is the recorded sideways ratification of Entry
 XXVIII, kept, and the prose now matches the data rather than the other way round.
+
+
+---
+
+## Entry XXX — Wonders, the framework (**built** 2026-08-27; the list is `docs/wonders.md`)
+
+**Ruling (user, 2026-08-27):** framework first, no list yet — *"only one wonder can exist;
+if you're beat to a wonder, refund production as gold, 1× modifier, as there should be some
+penalty to missing a wonder."*
+
+**What a wonder is.** A building row with `wonder: true`, unlocked by a tech like any
+building, in its own production category `wonder` (so a "+X% toward wonders" line has a
+target; nothing supplies one yet), never purchasable. **Its effect is a card**: `effects:
+CardEffect[]` in the Statecraft vocabulary, read by `liveEffects` as a fifth source after the
+pantheon — asked of the *board* (the holding city's `buildings`), never of the claim, so a
+captured wonder pays its captor. `statecraft.ts` stays the only reader of `effect.kind`;
+adding a wonder is a JSON row. One placeholder row on Divination exercises every path until
+the ratified list replaces it.
+
+**One per world.** `GameState.wonders: WonderClaim[]` in claim order (schema 20), written by
+`claimWonder` from `realiseItem` — the shared completion, so a chop or a rite that finishes
+a wonder claims it exactly as a turn does. `buildError` refuses a claimed wonder naming the
+city and the owner, and a second copy in one empire.
+
+**Being beaten.** Cities settle in founding order; the first to complete claims, and inside
+the same phase every other queue in the world loses the row. Hammers are "toward" a wonder
+**iff it is the front row** — a city has one basket and it pays for `queue[0]` — and then the
+whole basket returns as gold at `wonderRefundGoldPerHammer` (1). The purchase rate is 2💰/⚙,
+so a lost wonder returns exactly half of what buying the hammers would have cost: that is
+the penalty, and it is a tunable. The refund is a conversion of already-staged hammers, not
+an Entry XVIII windfall (a project's argument), and it is announced to the seat.
+
+**On the board.** `CityLook` gains `wonders` (a count, in the fingerprint); one generic
+marvel sculpt with a gilt tip stands beside the palace slot until the rows bring their own
+(art-pass W3). Every seat is told when a wonder completes, in the chronicle's plain voice.
+
+**Seams left for what follows:** `RealisedItem.wonder` is what the Triumph *A Marvel
+Raised* and renown will read; the draft-size evaluator (next) is what The Oracle's row will
+use. Known gap: a rite's hammers complete a wonder correctly but carry no toast.
