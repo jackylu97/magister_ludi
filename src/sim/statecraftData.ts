@@ -45,6 +45,8 @@
 import statecraftJson from '../../data/statecraft.json';
 
 import type { BuildingId, ProductionCategory } from './buildingData';
+// Type-only in both directions, exactly as `religionData.ts` is. See `CardId`.
+import type { GreatPersonId } from './greatPeopleData';
 import type { ImprovementId } from './improvementData';
 import type { ModifierStage } from './modifiers';
 import type { BeliefId, RiteId } from './religionData';
@@ -74,6 +76,13 @@ export type OrderId = keyof typeof statecraftJson.orders & string;
  * import between this file and `religionData.ts` is type-only in both
  * directions and must stay that way — see that file's docblock.
  *
+ * **Seven classes since the great people pass**, and the seventh is the one that
+ * *walks*: a great person's legacy is a list of effects in this vocabulary
+ * (`GreatPersonDef.legacy`), attached to the empire when the person is spent and
+ * read by this evaluator through `liveEffects`' sixth source. A person is a card
+ * for the same reason a belief is — what differs is only how it is acquired and
+ * held, which is `greatPeople.ts`'s business.
+ *
  * **Six classes since the wonders framework**, and the sixth is the loosest fit
  * on purpose. A *wonder* is a building row carrying `effects` in this
  * vocabulary (`BuildingDef.effects`), so the thing a live line came from may be
@@ -85,7 +94,14 @@ export type OrderId = keyof typeof statecraftJson.orders & string;
  * remain unique across the whole table: no building id is a card id, and
  * `test/sim/wonders.test.ts` pins that.
  */
-export type CardId = GovernmentId | DoctrineId | OrderId | BeliefId | RiteId | BuildingId;
+export type CardId =
+  | GovernmentId
+  | DoctrineId
+  | OrderId
+  | BeliefId
+  | RiteId
+  | BuildingId
+  | GreatPersonId;
 
 /**
  * Which slot an Order fits, and therefore what a government's spread is counted
@@ -426,14 +442,20 @@ export type OfferRuleId = 'discoveryClaimAll';
 /**
  * Which draft an `offerRider` widens.
  *
- * The four offers a game deals today, plus the `'all'` that widens every one of
- * them — the Leaning Tower's line, and a great person's. Kept as a string union
- * here rather than derived from the rules block so a JSON row that names a
- * fifth kind fails to compile against the table rather than silently widening
- * nothing. It is `OfferKind` (`statecraft.ts`) plus `'all'`; the two move
- * together, and the great people pass adds `'greatPerson'` to both.
+ * The five offers a game deals, plus the `'all'` that widens every one of them —
+ * the Leaning Tower's line, and John Dee's. Kept as a string union here rather
+ * than derived from the rules block so a JSON row that names a sixth kind fails
+ * to compile against the table rather than silently widening nothing. It is
+ * `OfferKind` (`statecraft.ts`) plus `'all'`; the two move together, and the
+ * great people pass added `'greatPerson'` to both.
  */
-export type OfferRiderScope = 'order' | 'doctrine' | 'belief' | 'discovery' | 'all';
+export type OfferRiderScope =
+  | 'order'
+  | 'doctrine'
+  | 'belief'
+  | 'discovery'
+  | 'greatPerson'
+  | 'all';
 
 /**
  * The occasion a `windfallRider` rides on — Entry XVIII's payouts, and the
@@ -878,26 +900,16 @@ export interface StatecraftMeterConfig {
   sealTurns: number;
 }
 
-/**
- * **Superseded as the source of the two numbers below** (the offer-size pass,
- * 2026-08-27): how many cards a draft deals is `rules.offers` folded by
- * `explainOfferSize`, because a wonder, a belief or a great person may widen it
- * and one evaluator has to answer for all four kinds of offer. These rows are
- * kept for the shape of the file and are no longer read; retuning them changes
- * nothing, and `rules.offers.order` / `rules.offers.doctrine` are the dials.
- */
-export interface StatecraftOfferConfig {
-  /** How many *new* cards a draft offers beside the upgrade. Entry XV: 3. */
-  newCards: number;
-  /** How many Doctrines an adoption offers. Entry XV.b: 3. */
-  doctrineOptions: number;
-}
-
 export interface StatecraftConfig {
   meter: StatecraftMeterConfig;
   /** What a level-2 face multiplies its printed numbers by. */
   upgradeMultiplier: number;
-  offer: StatecraftOfferConfig;
+  // There is deliberately **no `offer` block**. How many cards a draft deals was
+  // moved to `rules.offers` by the offer-size pass (Entry XXXI) and folded by
+  // `explainOfferSize`, because a wonder, a belief or a great person may widen
+  // it and one evaluator has to answer for all five kinds; the two numbers that
+  // sat here were dead the day that landed, and a dead number in a data file is
+  // a dial a designer will one day turn expecting something to happen.
   governments: Record<GovernmentId, GovernmentDef>;
   doctrines: Record<DoctrineId, DoctrineDef>;
   orders: Record<OrderId, OrderDef>;

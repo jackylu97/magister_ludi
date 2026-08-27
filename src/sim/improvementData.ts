@@ -125,6 +125,7 @@
 
 import improvementsJson from '../../data/improvements.json';
 
+import { type Family, isFamily } from './greatPeopleData';
 import { RESOURCE_IDS, type ResourceId, resourceEffects } from './resourceData';
 import {
   FEATURE_IDS,
@@ -146,7 +147,16 @@ export type ImprovementId =
   | 'camp'
   | 'quarry'
   | 'fishingBoats'
-  | 'plantation';
+  | 'plantation'
+  // The five **great-person works** (`docs/great-people.md`). Ordinary rows in
+  // every respect but one: `greatPerson` names the family whose piece plants
+  // them, which is what a worker is refused by and what a great person is
+  // offered. See the field.
+  | 'academy'
+  | 'landmark'
+  | 'manufactory'
+  | 'customsHouse'
+  | 'citadel';
 
 /**
  * One tech-driven renewal of an improvement's yield.
@@ -228,6 +238,42 @@ export interface ImprovementDef {
   clearsClutter: boolean;
   /** Tech-driven renewals. See `ImprovementUpgrade` and the module docblock. */
   upgrades?: ImprovementUpgrade[];
+  /**
+   * The **family** whose great person plants this, or the field is **absent** on
+   * everything a worker builds.
+   *
+   * Presence is the marker — `charges`' and `consecrates`' convention for the
+   * third time — so nothing in `src/sim/` compares an improvement id against
+   * `"academy"`, and a sixth work is a JSON row. The *value* is load-bearing
+   * rather than decorative: it is the inverse of "which work does a scholar
+   * plant", built once at load (`workForFamily`) exactly as
+   * `improvementForResource` inverts `improvesResource`. A plain `true` would
+   * have meant a second table mapping families to works, and two tables that
+   * can disagree.
+   *
+   * The rule it carries is symmetric and lives in `improvementErrorAt`: a
+   * builder may not lay a work, and a great person may lay nothing else.
+   */
+  greatPerson?: Family;
+  /**
+   * Flat strength this improvement adds to whoever defends the hex it stands
+   * on, or absent for the ordinary improvement that adds none.
+   *
+   * The citadel's, and it is a *number the caller interprets* rather than a
+   * behaviour anything switches on — `BuildingDef.cityStat`'s bargain one scale
+   * down. `planCombat` folds it into the defender's breakdown as one more
+   * labelled line beside the terrain, the trench and the cards, so a forecast
+   * says "Citadel +8" rather than being quietly eight points harder.
+   */
+  defense?: number;
+  /**
+   * True when planting this claims the hex and its neighbours for the owner.
+   *
+   * The citadel's other half. `claimsClutter`'s neighbour in kind: a fact about
+   * the *board* that follows from the improvement rather than from who built it,
+   * so an AI that plants one takes the ground without knowing it should.
+   */
+  claimsNeighbours?: boolean;
 }
 
 /**
@@ -341,6 +387,32 @@ export function improvementForResource(resource: ResourceId): ImprovementId | nu
 }
 
 /**
+ * The work each family plants, inverted from the rows at load — the same trick
+ * `RESOURCE_IMPROVEMENT` plays one field over, and for its reason: the table is
+ * written forwards because that is how a designer reads it, and the question the
+ * game asks ("what does a scholar build?") is the other way round.
+ *
+ * The validator below refuses two works claiming one family, so this map is
+ * total on whatever families the table actually serves and the lookup below is
+ * the only reading of it.
+ */
+const FAMILY_WORK = new Map<Family, ImprovementId>();
+for (const id of IMPROVEMENT_IDS) {
+  const family = IMPROVEMENT_DATA.improvements[id].greatPerson;
+  if (family !== undefined && !FAMILY_WORK.has(family)) FAMILY_WORK.set(family, id);
+}
+
+/** The improvement this family's great person plants, or `null` when none does. */
+export function workForFamily(family: Family): ImprovementId | null {
+  return FAMILY_WORK.get(family) ?? null;
+}
+
+/** Is this a great person's work — the one thing a worker may never build? */
+export function isGreatPersonWork(id: ImprovementId): boolean {
+  return improvementDef(id).greatPerson !== undefined;
+}
+
+/**
  * Fails loudly at load if the table names something that does not exist.
  *
  * The same cheapest-possible-test `resourceData.ts` runs, and for the same
@@ -382,6 +454,9 @@ function validateTable(): void {
     }
     if (def.requiresTech !== undefined && !TECH_IDS.includes(def.requiresTech)) {
       throw new Error(`${where} needs unknown technology "${def.requiresTech}"`);
+    }
+    if (def.greatPerson !== undefined && !isFamily(def.greatPerson)) {
+      throw new Error(`${where} names unknown family "${String(def.greatPerson)}"`);
     }
     for (const upgrade of def.upgrades ?? []) {
       if (!TECH_IDS.includes(upgrade.tech)) {
@@ -429,6 +504,19 @@ function validateTable(): void {
         );
       }
     }
+  }
+  // Two works claiming one family would make "what does a scholar plant?" a
+  // question with two answers, and `workForFamily` would silently keep the
+  // first — the same failure `improvesResource` is held to below.
+  const claimedBy = new Map<Family, ImprovementId>();
+  for (const id of IMPROVEMENT_IDS) {
+    const family = improvementDef(id).greatPerson;
+    if (family === undefined) continue;
+    const owner = claimedBy.get(family);
+    if (owner !== undefined) {
+      throw new Error(`improvements.json: ${family} is served by both ${owner} and ${id}`);
+    }
+    claimedBy.set(family, id);
   }
   // Two improvements claiming one resource would make "what do I build on this
   // iron?" a question with two answers, and `improvementForResource` would

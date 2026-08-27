@@ -57,6 +57,8 @@
 import type { BuildingId } from './buildingData';
 import type { ProjectId } from './projectData';
 import type { DiscoveryId, DiscoveryKind } from './discoveryData';
+import { FAMILIES, type Family, type GreatPersonId } from './greatPeopleData';
+import type { TriumphId } from './triumphData';
 import type { GameMap } from './map';
 import { generateMap, getMapSize } from './mapgen';
 import { type MapgenOverrides, resolveMapgenConfig } from './mapgenData';
@@ -183,8 +185,21 @@ import {
  *     building available it did not have, and — the load-bearing half — a city
  *     beaten to a wonder has its queue rewritten and its basket converted to
  *     gold by a rule that did not exist, which no earlier log can have expected.
+ * 21: Great people, renown and Triumphs (`docs/great-people.md`) — the fifth
+ *     Entry XVIII bucket and everything that spends it, folded into one bump
+ *     because they are one pass. Five fields on the player
+ *     (`renownPool`, `renownByFamily`, `legacies`, `triumphs`,
+ *     `greatPeopleRecruited`, and the transient `greatPersonOffer`), two on the
+ *     state (`recruited`, the world's consumed roster, and `contested`, the
+ *     register of the triumphs only one seat may hold), one on a unit
+ *     (`person`) and one new command (`chooseGreatPerson`, plus the two verbs
+ *     `greatPersonAct` and `greatPersonWork`). A v20 log replayed here is a
+ *     *different game* rather than an older one for a reason beyond the fields:
+ *     a library now pays a renown a turn, so every empire in it reaches a
+ *     recruitment it never had, and `state.rng` is advanced by every offer that
+ *     opens — which moves every roll after it.
  */
-export const SCHEMA_VERSION = 20;
+export const SCHEMA_VERSION = 21;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -463,6 +478,129 @@ export interface Player {
    * by somebody else.
    */
   augursPurchased: number;
+  /**
+   * Renown banked toward the next great person — **the fifth Entry XVIII
+   * bucket**, and the basket itself (`docs/great-people.md`).
+   *
+   * `culturePool`'s twin one currency over, and deliberately the same shape: a
+   * *pool*, not a rate, filled by buildings and wonders a turn at a time and by
+   * Triumphs in lumps, and spent by `settleRenownWindfall` (`renown.ts`) the
+   * instant it covers the ladder. There is no second bank anywhere and there
+   * must never be — a second answer to "how close am I to a recruitment" is two
+   * answers that disagree the first time a windfall pays one of them.
+   *
+   * The overflow stays here toward the next name, exactly as the culture pool's
+   * does.
+   */
+  renownPool: number;
+  /**
+   * How much renown each family has *fed this empire*, ever — the record the
+   * offer is weighted by.
+   *
+   * Not a second pool: nothing is ever spent out of it and nothing is ever
+   * subtracted. It is a **history**, and it exists because the draw has to be
+   * able to say "an empire of libraries is offered scholars" without any rule
+   * saying so. Ever, rather than this-turn, so a library torn down by a
+   * conqueror does not un-teach the empire what it was.
+   *
+   * Always present with all five keys, like `techsResearched` and unlike
+   * `greatPersonOffer`: every seat has a feed record from turn one, empty though
+   * it is, so this is a fact about a player rather than a state some of them are
+   * in. A record rather than five fields because it is read all at once by one
+   * weighting and by one hover.
+   */
+  renownByFamily: Record<Family, number>;
+  /**
+   * The great people this empire has **spent**, in the order they were spent —
+   * and therefore the legacies reaching it (*they served you; their legacy
+   * remains*).
+   *
+   * `liveEffects`' **sixth source** (`statecraft.ts`): each id is looked up
+   * through `anyCardDef` and its `legacy` walked exactly as a belief's effects
+   * are. Nothing else in the game reads this list.
+   *
+   * An array in spend order, for `techsResearched`' reason: iteration order that
+   * is part of the state is iteration order a replay reproduces, and a ledger
+   * that reshuffled itself would look wrong for no reason.
+   */
+  legacies: GreatPersonId[];
+  /**
+   * The Triumphs this empire has earned, in the order it earned them.
+   *
+   * Append-only and stamped with the turn, which is what makes the *news* a
+   * diff rather than a sink threaded through nine mechanisms: what a command
+   * awarded is the slice past the length it started at (`triumphsAwarded` in
+   * `triumphs.ts`), and what a resolution awarded is the same slice taken across
+   * every seat. `arriveOnTile` reports rather than announces; this is the same
+   * idea for a thing that happens in ten places instead of two.
+   *
+   * It is also the **register of what has been earned**, which is how `once` and
+   * `perAge` are enforced — see `awardTriumph`.
+   */
+  triumphs: EarnedTriumph[];
+  /**
+   * How many great people this empire has ever **recruited** — the ladder in
+   * `renownThreshold` (`renown.ts`).
+   *
+   * `settlersBuilt`'s and `augursPurchased`' third sibling, and on the player
+   * for their reason exactly: a recruited person is *consumed* by its act or its
+   * work, so counting the ones standing around would price the fourth like the
+   * first. `legacies.length` is deliberately not the counter either — a person
+   * is recruited when it is picked and leaves its legacy only when it is spent,
+   * and an empire holding an unspent great person has already paid for it.
+   *
+   * Nothing lowers it.
+   */
+  greatPeopleRecruited: number;
+  /**
+   * The names a filled renown bucket is offering, or the key is **absent** —
+   * which it is for every player almost all of the time.
+   *
+   * Presence *is* "this empire owes the game a decision", which is
+   * `pendingDiscovery`'s convention and is here for its reason: a player who has
+   * never filled the bucket and one who has just spent an offer must serialise
+   * identically. Blocks End Turn (`greatPersonBlocker`).
+   *
+   * Drawn once, at the moment the bucket filled, and spent by an ordinary
+   * command naming an **index** — Entry XV's doctrine for the fifth time. An
+   * offer rolled on sight would make the deal a function of when somebody looked
+   * at a screen, and under simultaneous turns two seats look at different times.
+   */
+  greatPersonOffer?: GreatPersonOffer;
+}
+
+/**
+ * One Triumph, earned. See `Player.triumphs`.
+ *
+ * Three facts and no more: **what**, **when**, and — for the scopes that are
+ * counted per era — **which age it was earned in**. Everything else a surface
+ * could want is on the row (`triumphData.ts`), because a triumph's name and what
+ * it paid are the table's business and history does not restate a table.
+ */
+export interface EarnedTriumph {
+  id: TriumphId;
+  /** `state.turn` it was earned on. What makes the news a diff. */
+  turn: number;
+  /**
+   * The empire's age at the moment it was earned, on a `perAge` or `contested`
+   * row and absent on the others.
+   *
+   * Absent rather than zero on a `once` row, so a save from a game with no
+   * per-age triumphs in it serialises as small as it reads.
+   */
+  age?: number;
+}
+
+/**
+ * The names a renown bucket dealt, in draw order.
+ *
+ * `DiscoveryOffer`'s shape minus the site — a great person arrives in the
+ * capital, so there is no hex to carry — and `OrderOffer`'s rule: a pick is an
+ * **index**, never an id, because an index can only ever name something the
+ * player was actually dealt.
+ */
+export interface GreatPersonOffer {
+  options: GreatPersonId[];
 }
 
 /**
@@ -617,6 +755,30 @@ export interface Unit {
    * `ownerId` and touches nothing else, and a blessing is on the piece.
    */
   timed?: TimedEffect[];
+  /**
+   * **Which** great person this piece is, or the key is **absent** on every
+   * ordinary unit — which is all of them but a handful in a whole game.
+   *
+   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * `sleeping`'s and `timed`'s convention and is here for the sixth time for the
+   * same reason: a warrior and Archimedes must serialise differently in kind.
+   *
+   * It is deliberately *not* how the rules ask "is this a great person" — that
+   * is `UnitDef.greatWork`, a fact about the **type**, exactly as `consecrates`
+   * is for the augur and `foundsCity` for the settler. This says *who*, which is
+   * what the family verb and the legacy need: `greatPersonAct` reads the family
+   * off it, and spending the piece pushes this id onto `Player.legacies`.
+   *
+   * A captured great person keeps it, exactly as a captured worker keeps its
+   * charges — capture moves `ownerId` and touches nothing else about what the
+   * piece *is*, so a stolen Imhotep leaves his legacy to his captor.
+   *
+   * **The renderer's fingerprint must learn it.** Piece visuals rebuild off a
+   * hash of `(id, col, row, hp, ownerId)` (the trap in CLAUDE.md); a great
+   * person that ought to look like Archimedes rather than like a settler is a
+   * visual-affecting unit property, and the render pass adds it there.
+   */
+  person?: GreatPersonId;
 }
 
 /**
@@ -769,6 +931,35 @@ export interface WonderClaim {
   turn: number;
 }
 
+/**
+ * One contested Triumph, claimed. See `GameState.contested`.
+ *
+ * `WonderClaim`'s shape one register over, and for its reason: **what** was
+ * claimed, **who** claimed it, and **when** — plus the `age` it was claimed in,
+ * because a contested row is contested once per era and the pair `(id, age)` is
+ * the key. This is history, and history does not change.
+ */
+export interface ContestedTriumph {
+  id: TriumphId;
+  /** The empire that got there first. */
+  playerId: number;
+  /** The age it was claimed in. The other half of the uniqueness key. */
+  age: number;
+  /** `state.turn` when it was claimed. */
+  turn: number;
+}
+
+/**
+ * A feed record with every family at nothing — the shape `Player.renownByFamily`
+ * is created with, in **one place**, so that every seat's record serialises with
+ * the same five keys in the same order.
+ */
+export function emptyRenownFeed(): Record<Family, number> {
+  const feed = {} as Record<Family, number>;
+  for (const family of FAMILIES) feed[family] = 0;
+  return feed;
+}
+
 // --- state ------------------------------------------------------------------
 
 export interface GameConfig {
@@ -908,6 +1099,41 @@ export interface GameState {
    */
   wonders: WonderClaim[];
   /**
+   * Every great person any empire has recruited, **in the order they were
+   * picked** — the world's consumed roster.
+   *
+   * `GameState.wonders`' twin one table over, and the whole of "only one empire
+   * ever has Archimedes": a name is spent iff there is an entry here, the draw
+   * subtracts this list from the age's roster, and `greatPersonChoiceError`
+   * refuses the *second* pick of a name a faster seat took in the same window.
+   * Written in exactly one place, `settleGreatPersonChoice` (`greatPeople.ts`).
+   *
+   * An **array in pick order** rather than a set, for `camps`' stated reason: an
+   * outcome that depends on iteration order must depend on an order the state
+   * itself carries. It is short — a dozen rows in a whole game — so the linear
+   * lookup costs nothing.
+   *
+   * It deliberately does **not** record who took each name. Who holds a legacy
+   * is `Player.legacies`, and who is holding an unspent piece is the board; a
+   * third answer here would be a third thing to keep in step.
+   */
+  recruited: GreatPersonId[];
+  /**
+   * The contested Triumphs, and who took each — **in claim order**.
+   *
+   * A contested triumph is the world's, not a seat's (Entry V's feats): the
+   * first empire into an era earns First Light and nobody else ever can, in that
+   * era. This is that register, and it is the *only* place contention is
+   * settled — `awardTriumph` refuses a row whose `(id, age)` is already here, so
+   * "first by log and sweep order" is a property of the order commands were
+   * applied in rather than of a check somebody could forget to run.
+   *
+   * An array rather than a `Record<TriumphId, playerId>` because the key is a
+   * *pair* (a contested row is claimed once per age) and because claim order is
+   * a fact a chronicle wants anyway — `GameState.wonders`' argument exactly.
+   */
+  contested: ContestedTriumph[];
+  /**
    * The last player standing, once there is one; `null` while the game is live.
    *
    * Conquest is the only victory v1 has, and it is decided by
@@ -1035,6 +1261,14 @@ export function newGame(config: GameConfig): GameState {
       // not write it into everybody else's pantheon.
       pantheon: newPlayerPantheon(),
       augursPurchased: 0,
+      renownPool: 0,
+      // Fresh every time rather than a shared literal, for `techsResearched`'s
+      // reason exactly: a player whose libraries feed the scholars must not
+      // write that into everybody else's history.
+      renownByFamily: emptyRenownFeed(),
+      legacies: [],
+      triumphs: [],
+      greatPeopleRecruited: 0,
     })),
     turnEnded: normalized.players.map(() => false),
     map,
@@ -1050,6 +1284,10 @@ export function newGame(config: GameConfig): GameState {
     camps: [],
     // Nothing has been built yet, which is what an empty claim register means.
     wonders: [],
+    // Nobody has been recruited and nothing has been claimed, which is what two
+    // empty registers mean.
+    recruited: [],
+    contested: [],
     winnerId: null,
   };
   placeStartingUnits(state);
@@ -1128,6 +1366,14 @@ function seatBarbarians(state: GameState): void {
     statecraft: newPlayerStatecraft(),
     pantheon: newPlayerPantheon(),
     augursPurchased: 0,
+    // Present so every reader may index a seat without asking which kind it is,
+    // and filled by nothing: the renown phase skips the wild the way
+    // `advanceResearch` does. The wild has no screen to be offered a name on.
+    renownPool: 0,
+    renownByFamily: emptyRenownFeed(),
+    legacies: [],
+    triumphs: [],
+    greatPeopleRecruited: 0,
   };
   state.players.push(player);
   state.turnEnded.push(true);
@@ -1160,6 +1406,7 @@ export function createUnit(
   type: UnitTypeId,
   col: number,
   row: number,
+  person?: GreatPersonId,
 ): Unit {
   const def = unitDef(type);
   const unit: Unit = {
@@ -1183,6 +1430,12 @@ export function createUnit(
   if (def.charges !== undefined) {
     unit.chargesLeft = Math.max(1, def.charges + cardExtraCharges(state, ownerId, type));
   }
+  // Written **here**, after the literal and only when a caller named one, for
+  // `chargesLeft`'s reason exactly: every field of a `Unit` is written in one
+  // place, which is what keeps the serialised key order stable, and an ordinary
+  // warrior's shape is byte-for-byte what it was before great people existed.
+  // Exactly one caller passes it — `settleGreatPersonChoice` (`greatPeople.ts`).
+  if (person !== undefined) unit.person = person;
   state.units.push(unit);
   // A new pair of eyes opens here, whoever asked for them: the `spawnUnit`
   // command, a city finishing production, a scenario seating an opening roster.

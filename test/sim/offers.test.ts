@@ -50,7 +50,7 @@ import {
 import { type GameState, claimWonder, newGame } from '../../src/sim/state';
 import { game, found } from './statecraftHelpers';
 
-const KINDS: OfferKind[] = ['order', 'doctrine', 'belief', 'discovery'];
+const KINDS: OfferKind[] = ['order', 'doctrine', 'belief', 'discovery', 'greatPerson'];
 
 /** The whole vocabulary of this pass, as a row a card could carry. */
 function rider(
@@ -104,7 +104,14 @@ describe('the base', () => {
     // The numbers this pass moved into `rules.offers` are the ones the three
     // data files carried before it. If a retune ever changes them, this is the
     // line that says so out loud rather than a dozen `toHaveLength(3)`s.
-    expect(RULES.offers).toEqual({ order: 3, doctrine: 3, belief: 3, discovery: 3, max: 5 });
+    expect(RULES.offers).toEqual({
+      order: 3,
+      doctrine: 3,
+      belief: 3,
+      discovery: 3,
+      greatPerson: 3,
+      max: 5,
+    });
   });
 
   it('is the fold of its own list and nothing else', () => {

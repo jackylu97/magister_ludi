@@ -148,7 +148,7 @@ describe('the card table', () => {
     for (const pool of ORDER_POOLS) {
       const cards = ORDER_IDS.filter((id) => orderDef(id).pool === pool);
       // Three new cards an offer, so a pool has to be able to fill one.
-      expect(cards.length, pool).toBeGreaterThanOrEqual(STATECRAFT.offer.newCards);
+      expect(cards.length, pool).toBeGreaterThanOrEqual(RULES.offers.order);
       for (const type of SLOT_TYPES) {
         expect(cards.some((id) => orderDef(id).slot === type), `${pool}/${type}`).toBe(true);
       }
@@ -158,7 +158,7 @@ describe('the card table', () => {
   it('fills every live Doctrine pool, and keeps the deferred one out of all of them', () => {
     for (const tier of GOVERNMENT_TIERS) {
       expect(poolDoctrines(tier).length, `tier ${tier}`).toBeGreaterThanOrEqual(
-        STATECRAFT.offer.doctrineOptions,
+        RULES.offers.doctrine,
       );
     }
     // Religious Mandate awaits religion, a war state and the beads. It sits at
@@ -864,8 +864,8 @@ describe('every hook family, end to end', () => {
 // --- determinism ------------------------------------------------------------
 
 describe('determinism', () => {
-  it('round-trips a schema 20 save with Statecraft in it', () => {
-    expect(SCHEMA_VERSION).toBe(20);
+  it('round-trips a schema 21 save with Statecraft in it', () => {
+    expect(SCHEMA_VERSION).toBe(21);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -880,7 +880,7 @@ describe('determinism', () => {
     // drafts — what this pins is the *shape*: the field serialises, survives
     // JSON, and comes back identical.
     const text = snapshotState(g.state);
-    expect(JSON.parse(text).schemaVersion).toBe(20);
+    expect(JSON.parse(text).schemaVersion).toBe(21);
     expect(JSON.parse(text).players[0].statecraft).toEqual(player.statecraft);
     // A player who has never drafted serialises as the opening state exactly.
     expect(JSON.parse(text).players[1].statecraft).toEqual(newPlayerStatecraft());

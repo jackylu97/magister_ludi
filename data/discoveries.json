@@ -4,7 +4,10 @@
     "placement.villagesPerThousandLand": "See placement.ruinsPerThousandLand — folded into placement.sitesPerContinent and split by placement.ruinShare."
   },
   "placement": {
-    "sitesPerContinent": { "min": 7, "max": 8 },
+    "sitesPerContinent": {
+      "min": 7,
+      "max": 8
+    },
     "ruinShare": 0.55,
     "minDistanceFromStart": 6,
     "minDistanceApart": 4,
@@ -13,55 +16,108 @@
       "minWithinRadius": 3
     }
   },
-  "offerSize": 3,
   "rows": {
     "grainCache": {
       "name": "Grain cache",
       "flavor": "Jars sunk in cool earth, sealed against a winter nobody survived.",
-      "weights": { "ruins": 1, "village": 4 },
-      "effect": { "kind": "cityYield", "yield": "food", "amount": 20 }
+      "weights": {
+        "ruins": 1,
+        "village": 4
+      },
+      "effect": {
+        "kind": "cityYield",
+        "yield": "food",
+        "amount": 20
+      }
     },
     "masonsHoard": {
       "name": "Masons' hoard",
       "flavor": "Dressed stone, stacked and numbered, for a wall never raised.",
-      "weights": { "ruins": 4, "village": 1 },
-      "effect": { "kind": "cityYield", "yield": "production", "amount": 20 }
+      "weights": {
+        "ruins": 4,
+        "village": 1
+      },
+      "effect": {
+        "kind": "cityYield",
+        "yield": "production",
+        "amount": 20
+      }
     },
     "starTablets": {
       "name": "Star tablets",
       "flavor": "Clay ruled into a sky, and the sky has not moved since.",
-      "weights": { "ruins": 5, "village": 1 },
-      "effect": { "kind": "pool", "pool": "science", "amount": 15 }
+      "weights": {
+        "ruins": 5,
+        "village": 1
+      },
+      "effect": {
+        "kind": "pool",
+        "pool": "science",
+        "amount": 15
+      }
     },
     "forgottenHymns": {
       "name": "Forgotten hymns",
       "flavor": "The words are gone; the shape of the singing is not.",
-      "weights": { "ruins": 4, "village": 2 },
-      "effect": { "kind": "pool", "pool": "culture", "amount": 15 }
+      "weights": {
+        "ruins": 4,
+        "village": 2
+      },
+      "effect": {
+        "kind": "pool",
+        "pool": "culture",
+        "amount": 15
+      }
     },
     "relicsOfTheOldFaith": {
       "name": "Relics of the old faith",
       "flavor": "Somebody knelt here for a long time, and wore the stone.",
-      "weights": { "ruins": 4, "village": 2 },
-      "effect": { "kind": "pool", "pool": "faith", "amount": 15 }
+      "weights": {
+        "ruins": 4,
+        "village": 2
+      },
+      "effect": {
+        "kind": "pool",
+        "pool": "faith",
+        "amount": 15
+      }
     },
     "aGuideOffersService": {
       "name": "A guide offers service",
       "flavor": "She knows the passes, and asks only to be going somewhere.",
-      "weights": { "ruins": 1, "village": 4 },
-      "effect": { "kind": "unit", "unitType": "scout" }
+      "weights": {
+        "ruins": 1,
+        "village": 4
+      },
+      "effect": {
+        "kind": "unit",
+        "unitType": "scout"
+      }
     },
     "laborersJoinYou": {
       "name": "Laborers join you",
       "flavor": "A dozen hands, and the tools they were holding when they came.",
-      "weights": { "ruins": 1, "village": 4 },
-      "effect": { "kind": "unit", "unitType": "worker" }
+      "weights": {
+        "ruins": 1,
+        "village": 4
+      },
+      "effect": {
+        "kind": "unit",
+        "unitType": "worker"
+      }
     },
     "tradersHoard": {
       "name": "Traders' hoard",
       "flavor": "A caravan's whole season, buried the night before it was needed.",
-      "weights": { "ruins": 3, "village": 3 },
-      "effect": { "kind": "pool", "pool": "gold", "amount": 25 }
+      "weights": {
+        "ruins": 3,
+        "village": 3
+      },
+      "effect": {
+        "kind": "pool",
+        "pool": "gold",
+        "amount": 25
+      }
     }
   }
 }

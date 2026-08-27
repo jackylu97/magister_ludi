@@ -63,6 +63,10 @@
       "productionBonus": {
         "category": "unit",
         "percent": 10
+      },
+      "renown": {
+        "family": "general",
+        "perTurn": 1
       }
     },
     "palisade": {
@@ -98,7 +102,11 @@
       "gold": 2,
       "science": 2,
       "culture": 0,
-      "sciencePerPop": 1
+      "sciencePerPop": 1,
+      "renown": {
+        "family": "scholar",
+        "perTurn": 1
+      }
     },
     "temple": {
       "name": "Temple",
@@ -119,7 +127,11 @@
       "gold": 3,
       "science": 0,
       "culture": 0,
-      "sciencePerPop": 0
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "merchant",
+        "perTurn": 1
+      }
     },
     "aqueduct": {
       "name": "Aqueduct",
@@ -139,7 +151,11 @@
       "gold": 0,
       "science": 0,
       "culture": 0,
-      "sciencePerPop": 0
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "engineer",
+        "perTurn": 1
+      }
     },
     "watermill": {
       "name": "Watermill",
@@ -149,7 +165,11 @@
       "gold": 0,
       "science": 0,
       "culture": 0,
-      "sciencePerPop": 0
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "engineer",
+        "perTurn": 2
+      }
     },
     "amphitheater": {
       "name": "Amphitheater",
@@ -159,7 +179,11 @@
       "gold": 0,
       "science": 0,
       "culture": 3,
-      "sciencePerPop": 0
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "artist",
+        "perTurn": 1
+      }
     },
     "monastery": {
       "name": "Monastery",
@@ -179,9 +203,12 @@
       "gold": 0,
       "science": 0,
       "culture": 0,
-      "sciencePerPop": 0.75
+      "sciencePerPop": 0.75,
+      "renown": {
+        "family": "scholar",
+        "perTurn": 2
+      }
     },
-
     "theOracle": {
       "name": "The Oracle",
       "placeholder": true,
@@ -198,13 +225,24 @@
         {
           "kind": "cityYields",
           "faith": 1,
-          "scope": { "test": "hasBuilding", "building": "theOracle" }
+          "scope": {
+            "test": "hasBuilding",
+            "building": "theOracle"
+          }
         },
-        { "kind": "offerRider", "offer": "order", "extra": 1 }
-      ]
+        {
+          "kind": "offerRider",
+          "offer": "order",
+          "extra": 1
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 2
+      }
     }
   },
-
   "projects": {
     "tithes": {
       "name": "Tithes",

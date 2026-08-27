@@ -118,7 +118,11 @@ function build(playerId: number, unitId: number, improvement: ImprovementId): Co
 // --- the table --------------------------------------------------------------
 
 describe('the improvement table', () => {
-  it('names seven improvements and recognises its own ids', () => {
+  it('names seven worker improvements, five works, and recognises its own ids', () => {
+    // Two halves of one table, and the split is `ImprovementDef.greatPerson`:
+    // the first seven are what a worker's charge buys, the last five are what a
+    // great person plants (`docs/great-people.md`), and no rule anywhere
+    // compares an id against a string to tell them apart.
     expect(IMPROVEMENT_IDS).toEqual([
       'farm',
       'mine',
@@ -127,6 +131,11 @@ describe('the improvement table', () => {
       'quarry',
       'fishingBoats',
       'plantation',
+      'academy',
+      'landmark',
+      'manufactory',
+      'customsHouse',
+      'citadel',
     ]);
     expect(isImprovementId('farm')).toBe(true);
     expect(isImprovementId('orchard')).toBe(false);
@@ -458,6 +467,10 @@ describe('buildImprovement', () => {
           const wanted = improvementForResource(resource);
           if (wanted === null) continue;
           for (const other of IMPROVEMENT_IDS) {
+          // A great person's work never reaches the seam clause: a worker is
+          // refused it one rung earlier, by the symmetric clause in
+          // `improvementError` that keeps the two halves of the table apart.
+          if (improvementDef(other).greatPerson !== undefined) continue;
             if (other === wanted) continue;
             const def = improvementDef(other);
             // A resource-improvement refuses on its own `requiresResource`
@@ -641,6 +654,10 @@ describe('buildImprovement', () => {
       // The rework's other half: the worker's menu is a curve now, not a wall of
       // six buttons on turn one. A row with no gate would be a hole in it.
       for (const id of IMPROVEMENT_IDS) {
+        // A great person's work is gated by the *person*, not by the tree: it
+        // is planted by a piece a renown bucket had to fill to produce, which is
+        // a steeper gate than any technology and one no worker can reach.
+        if (improvementDef(id).greatPerson !== undefined) continue;
         const gate = improvementDef(id).requiresTech;
         expect(gate, id).toBeDefined();
         expect(TECH_IDS, id).toContain(gate!);
@@ -658,6 +675,7 @@ describe('buildImprovement', () => {
       // anything; empty it back out so every gate in the table is live to ask.
       state.players[0]!.techsResearched = [];
       for (const id of IMPROVEMENT_IDS) {
+        if (improvementDef(id).greatPerson !== undefined) continue;
         const gate = improvementDef(id).requiresTech!;
         expect(improvementTechError(state, 0, id)).toContain(techDef(gate).name);
       }
@@ -1247,11 +1265,22 @@ describe('explainTileYield', () => {
 
   it('has an entry for every improvement, and each one moves the total', () => {
     for (const id of IMPROVEMENT_IDS) {
+      const def = improvementDef(id);
       const tile = bareTile({ improvement: id });
-      const entry = explainTileYield(tile).find((row) => row.source === improvementDef(id).name);
+      const entry = explainTileYield(tile).find((row) => row.source === def.name);
       expect(entry, id).toBeDefined();
       expect(entry!.kind).toBe('add');
-      expect(entry!.food + entry!.production + entry!.gold, id).toBeGreaterThan(0);
+      // Six voices, not three: an academy pays science and a landmark culture,
+      // and the three-voice reading was written when the ground only ever paid
+      // food, hammers and coin. **The citadel is the one row that pays nothing
+      // at all** — what it is worth is +8 to whoever defends the hex
+      // (`ImprovementDef.defense`, folded into `planCombat`'s breakdown) and a
+      // ring of ground, neither of which is a tile yield.
+      const paid =
+        entry!.food + entry!.production + entry!.gold +
+        entry!.science + entry!.culture + entry!.faith;
+      if ((def.defense ?? 0) > 0) expect(paid, id).toBe(0);
+      else expect(paid, id).toBeGreaterThan(0);
     }
   });
 });
@@ -1638,8 +1667,8 @@ describe('improvements in the log', () => {
     expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 20 save with improvements on the board', () => {
-    expect(SCHEMA_VERSION).toBe(20);
+  it('round-trips a schema 21 save with improvements on the board', () => {
+    expect(SCHEMA_VERSION).toBe(21);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

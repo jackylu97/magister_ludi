@@ -73,6 +73,9 @@ import buildingsJson from '../../data/buildings.json';
 // Nothing checks that these ids are real technologies here for that reason —
 // `unlockDataProblems` in `techUnlocks.ts` does it, from a module that already
 // sees both tables.
+// Type-only for `TechId`'s reason, one table over: `greatPeopleData.ts` imports
+// nothing from here at runtime and this imports only its `Family`.
+import type { Family } from './greatPeopleData';
 import type { TechId } from './techData';
 // Type-only for `TechId`'s reason, one table over: `statecraftData.ts` imports
 // `BuildingId` from here.
@@ -117,6 +120,28 @@ export type ProductionCategory = 'unit' | 'building' | 'wonder';
 export interface BuildingCityStat {
   stat: 'defense' | 'sight';
   amount: number;
+}
+
+/**
+ * The renown a building or a wonder pays, and which family it feeds.
+ *
+ * The **floor** of the renown bucket (`docs/great-people.md`): a library is one
+ * renown a turn tagged scholar, a wonder is ten on completion and two a turn
+ * thereafter. A column on the row rather than a table of its own, for
+ * `productionBonus`' reason exactly — it is a fact about what this building *is*
+ * — and read in one place (`explainRenown`, `renown.ts`), so a second renown
+ * building is a JSON row.
+ *
+ * `family` is doing two jobs at once and that is the design: it says who is fed,
+ * and the feed record is what **biases the draw** (`Player.renownByFamily`), so
+ * an empire of libraries is offered scholars without any rule saying so.
+ */
+export interface BuildingRenown {
+  family: Family;
+  /** Paid every turn, for as long as the building stands. */
+  perTurn: number;
+  /** Paid once, the turn it is finished. Wonders only, today. */
+  onComplete?: number;
 }
 
 /** A percentage of a city's hammers, behind one category. See `BuildingDef`. */
@@ -300,6 +325,8 @@ export interface BuildingDef {
    * one town — the scope *is* the building.
    */
   cityStat?: BuildingCityStat;
+  /** What this pays into the renown bucket, or absent. See `BuildingRenown`. */
+  renown?: BuildingRenown;
   /** Tech-driven renewals. See `BuildingUpgrade` and the module docblock. */
   upgrades?: BuildingUpgrade[];
   /** What this pays on the *ground*. See `BuildingTileYield`. */

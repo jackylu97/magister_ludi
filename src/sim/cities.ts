@@ -93,6 +93,7 @@ import {
   resourceYield,
 } from './resourceData';
 import { type ProjectId, isProjectId, projectDef } from './projectData';
+import { settleRenownWindfall } from './renown';
 import { RULES } from './rulesData';
 import {
   type TileLine,
@@ -163,6 +164,7 @@ import {
   resourceTileLines,
 } from './resourceEffects';
 import { buildingTileLines } from './buildingEffects';
+import { awardFoundingTriumphs, awardOccasion } from './triumphs';
 
 const CITIES = RULES.cities;
 
@@ -1013,6 +1015,13 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // is claimed two lines above — a refresh in the constructor would light the
   // centre and leave the opening ring dark until something else moved.
   recomputeVisibility(state, ownerId);
+  // The Third Hearth, and The Far Shore. In the **mechanism** rather than in the
+  // `foundCity` handler, for `buildImprovementAt`'s stated reason: an AI that
+  // founds a city earns what a player would, without anybody remembering to add
+  // a line. It reports nothing here — `Player.triumphs` is the record and the
+  // news is a diff (`triumphsAwarded`), which is why this seam needed no new
+  // parameter and no new return value.
+  awardFoundingTriumphs(state, city);
   return city;
 }
 
@@ -1248,6 +1257,20 @@ export function assignCitizens(state: GameState, city: City): void {
  *      technology is an empire-wide fact about what ground is worth (a renewal, a
  *      resource reveal) and the citizen who should move is in whichever town
  *      happens to stand on the seam.
+ *  13. **The great-person verbs** (`greatPeople.ts`) — the newest entries, and
+ *      they are three different reasons rather than one. An **engineer's act**
+ *      pours hammers into a town and settles them, so it refreshes for
+ *      `settleProductionWindfall`'s reason; an **artist's act** hangs a timed
+ *      happiness on the town, which is a `CardEffect` the city's own ledger
+ *      reads, so the panel must not be quoting the figure from before it; and
+ *      **every work** writes `Tile.improvement`, so it refreshes through
+ *      `refreshTileDerived` exactly as `buildImprovementAt` does — plus, for the
+ *      **citadel**, the town whose borders just swallowed seven hexes.
+ *      `settleRenownWindfall` (`renown.ts`) is the one that owes this register
+ *      **nothing**, exactly as `settleCultureWindfall` owes it nothing: a
+ *      recruitment mutates no city's derived state, it puts a *decision* on the
+ *      empire, and the End Turn blocker is what collects it. It is named here
+ *      anyway so the register stays the complete answer to "what settles".
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -3005,6 +3028,7 @@ export function realiseItem(
     // a wonder existing *is* the claim — a second path that put a building in a
     // town without claiming would be a second Oracle.
     const wonder = isWonder(item.id) ? claimWonderFor(state, city, item.id) : undefined;
+    if (wonder) payWonderRenown(state, city, item.id);
     payCompletionRiders(state, city, 'building');
     return wonder ? { wonder } : {};
   }
@@ -3017,6 +3041,34 @@ export function realiseItem(
   }
   payCompletionRiders(state, city, 'unit');
   return { unitId: unit.id };
+}
+
+/**
+ * Pays what finishing a wonder is worth in renown: the row's own lump, and the
+ * Triumph a marvel raised earns on top of it.
+ *
+ * Beside the claim rather than inside it, because they are two different facts:
+ * `claimWonderFor` settles who *has* the wonder, and this settles what building
+ * it *paid*. Both go through the seams their buckets already own — the lump
+ * through `settleRenownWindfall`, so a wonder that fills the ladder opens a
+ * great-person offer before this returns, and the triumph through
+ * `awardTriumph`, which pays through the same seam again.
+ *
+ * The **lump** is on the building row (`BuildingDef.renown.onComplete`), which
+ * is what makes a second wonder that pays differently a JSON edit; the trickle
+ * on the same row is banked by the renown phase like a library's, and neither
+ * knows about the other.
+ */
+function payWonderRenown(state: GameState, city: City, building: BuildingId): void {
+  const player = playerById(state, city.ownerId);
+  if (!player) return;
+  const renown = buildingDef(building).renown;
+  if (renown !== undefined && (renown.onComplete ?? 0) !== 0) {
+    settleRenownWindfall(state, player, [
+      { family: renown.family, amount: renown.onComplete ?? 0 },
+    ]);
+  }
+  awardOccasion(state, player.id, 'wonderCompleted');
 }
 
 /**

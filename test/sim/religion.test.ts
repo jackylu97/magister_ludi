@@ -75,6 +75,7 @@ import {
   payWindfallGrants,
   windfallPayout,
 } from '../../src/sim/statecraft';
+import { RULES } from '../../src/sim/rulesData';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { hasAbility } from '../../src/sim/tech';
 import { unitDef } from '../../src/sim/unitData';
@@ -150,7 +151,7 @@ describe('the religion table', () => {
   });
 
   it('holds enough gods to fill an offer many times over', () => {
-    expect(BELIEF_IDS.length).toBeGreaterThanOrEqual(RELIGION.pantheon.offerOptions * 4);
+    expect(BELIEF_IDS.length).toBeGreaterThanOrEqual(RULES.offers.belief * 4);
   });
 
   it('teaches each rite through its own technology, as an ability', () => {
@@ -415,7 +416,7 @@ describe('consecrate', () => {
 
     const player = playerById(g.state, 0)!;
     const offer = player.pantheon.pending!;
-    expect(offer.options).toHaveLength(RELIGION.pantheon.offerOptions);
+    expect(offer.options).toHaveLength(RULES.offers.belief);
     expect(new Set(offer.options).size).toBe(offer.options.length);
     expect(religionBlocker(player)).toMatch(/god/);
 

@@ -102,7 +102,9 @@ import { openPeriodicOffers, pruneTimedEffects } from './religion';
 import { getTileAt, tileHex, wrappedDistance } from './map';
 import { advanceAlongPath } from './movement';
 import { cardUnitStat, runStatecraft } from './statecraft';
+import { runRenown } from './renown';
 import { advanceResearch } from './tech';
+import { type TriumphAward, triumphMarks, triumphsSince } from './triumphs';
 import { type GameState, wakeUnit } from './state';
 import { isCombatant, unitDef } from './unitData';
 import { fullMovement, isRested } from './units';
@@ -143,11 +145,27 @@ export interface TurnReport {
    * — a wonder is the one thing another empire finishing takes away from you.
    */
   wonders: WonderCompletion[];
+  /**
+   * Every Triumph earned during the resolution, in seat order.
+   *
+   * `wonders`' sibling, and it joins for the same argument: a triumph is a
+   * *difference* that stops existing the instant the resolution is over — the
+   * renown is banked, the offer may already be open, and no diff of two boards
+   * can say which of the four things that happened this turn earned it.
+   *
+   * It is filled by a **diff**, not by a sink: `Player.triumphs` is append-only
+   * and stamped, so `runEndOfTurn` remembers each seat's length before the
+   * pipeline and slices afterwards (`triumphsSince`). That is why not one phase
+   * grew a parameter — the alternative was threading an out-list through
+   * `foundCityAt`, `realiseItem`, `settleProduction` and `applyCombat` for a
+   * fact the state already records.
+   */
+  triumphs: TriumphAward[];
 }
 
 /** A fresh, empty report. The one place its shape is written. */
 export function emptyTurnReport(): TurnReport {
-  return { combats: [], wonders: [] };
+  return { combats: [], wonders: [], triumphs: [] };
 }
 
 export interface TurnPhase {
@@ -214,6 +232,17 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // built and learnt this turn. It skips the wild for `runStatecraft`'s
     // reason. See `openPeriodicOffers`.
     run: openPeriodicOffers,
+  },
+  {
+    name: 'renown',
+    // Buildings and wonders pay their trickle, standing Triumphs are claimed,
+    // and a filled ladder deals a great person. Directly after `religion`
+    // because it is the same shape a fifth currency over — an empire spending a
+    // pool this resolution filled, on a board that has already grown, built and
+    // learnt — and *after* `advanceProduction`, which is what lets a wonder
+    // finished this turn pay into the same sweep that banks the library beside
+    // it. It skips the wild for `runStatecraft`'s reason. See `runRenown`.
+    run: runRenown,
   },
   {
     name: 'expandBorders',
@@ -398,6 +427,14 @@ function resetMovement(state: GameState): void {
  */
 export function runEndOfTurn(state: GameState): TurnReport {
   const report = emptyTurnReport();
+  // The marks are taken **before** a phase runs, because a triumph can be earned
+  // by nearly any of them — a wonder in `advanceProduction`, an era in
+  // `advanceResearch`, a camp burnt out by a raider's own march in
+  // `resetMovement`, a standing count in `renown` — and a diff of one
+  // append-only list is cheaper and less forgettable than a sink threaded
+  // through all four. See `TurnReport.triumphs`.
+  const marks = triumphMarks(state);
   for (const phase of END_OF_TURN_PHASES) phase.run(state, report);
+  report.triumphs.push(...triumphsSince(state, marks));
   return report;
 }

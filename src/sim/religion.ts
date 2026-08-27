@@ -66,6 +66,7 @@ import {
   unitById,
 } from './state';
 import {
+  type WonderCompletion,
   capitalCityOf,
   cityAt,
   nearestOwnedCity,
@@ -100,6 +101,7 @@ import {
   windfallPayout,
 } from './statecraft';
 import { hasAbility, settleResearchWindfall } from './tech';
+import { awardOccasion } from './triumphs';
 import { isCombatant, unitDef } from './unitData';
 
 // --- the pantheon's slots ---------------------------------------------------
@@ -279,13 +281,22 @@ export interface BeliefChoice {
  * fact already been made, and a player who has answered must serialise
  * identically to one who never had an offer.
  */
-export function settleBeliefChoice(player: Player, optionIndex: number): BeliefChoice | null {
+export function settleBeliefChoice(
+  state: GameState,
+  player: Player,
+  optionIndex: number,
+): BeliefChoice | null {
   const offer = player.pantheon.pending;
   if (!offer) return null;
   const id = offer.options[optionIndex];
   if (id === undefined || !isBeliefId(id)) return null;
   delete player.pantheon.pending;
   player.pantheon.beliefs.push(id);
+  // A God Named. It takes the `state` **only** for this — the belief itself is a
+  // fact about the player alone — and that is a fair price for putting the
+  // triumph in the mechanism rather than in the reducer, where an AI naming a
+  // god would earn nothing.
+  awardOccasion(state, player.id, 'beliefConsecrated');
   return { id, name: beliefDef(id).name };
 }
 
@@ -415,6 +426,20 @@ export interface RitePerformance {
   augurSpent: boolean;
   /** The turn the lasting half runs out, or `null` for a pure windfall. */
   expiresTurn: number | null;
+  /**
+   * Wonders this rite's hammers finished, in the order they completed.
+   *
+   * The gap the wonders framework left and named (`GameState.wonders`'s ledger
+   * entry: "a rite's hammers can complete a wonder correctly but carry no toast
+   * out"). The *rule* was always right — a Rite of the Forge that covers the
+   * front of a queue completes it through `settleProductionWindfall`, which is
+   * `advanceProduction`'s own routine — but the completion is news to **every**
+   * seat, and the one thing that could say so was being dropped on the floor.
+   *
+   * Empty on every rite that finished nothing, which is almost all of them, so a
+   * caller that has never heard of it is unaffected.
+   */
+  wonders: WonderCompletion[];
 }
 
 /**
@@ -448,7 +473,8 @@ export function performRiteAt(
 
   const expiresTurn = stampRite(state, rite, def, city, blessed);
   const paid = payRiteGrant(state, player, def, city, blessed);
-  payRiteRiders(state, player, unit);
+  const wonders = payRiteRiders(state, player, unit);
+  wonders.unshift(...paid.wonders);
 
   const left = (unit.chargesLeft ?? 0) - 1;
   const augurSpent = left <= 0;
@@ -464,6 +490,7 @@ export function performRiteAt(
     research: paid.research,
     augurSpent,
     expiresTurn,
+    wonders,
   };
 }
 
@@ -497,6 +524,8 @@ function stampRite(
 interface RiteGrantResult {
   population: number | null;
   research: string | null;
+  /** Wonders the rite's hammers finished. See `RitePerformance.wonders`. */
+  wonders: WonderCompletion[];
 }
 
 /**
@@ -520,7 +549,7 @@ function payRiteGrant(
   unit: Unit | null,
 ): RiteGrantResult {
   const grant = def.grant;
-  const result: RiteGrantResult = { population: null, research: null };
+  const result: RiteGrantResult = { population: null, research: null, wonders: [] };
 
   if (grant.gold !== undefined) player.gold += grant.gold;
   if (grant.faith !== undefined) player.faithPool += grant.faith;
@@ -544,7 +573,11 @@ function payRiteGrant(
     }
     if (grant.production !== undefined) {
       city.hammerBasket += grant.production;
-      settleProductionWindfall(state, city);
+      // The completion is *read* rather than discarded: a rite that covers the
+      // front of a queue holding a wonder has just taken it off the board for
+      // everybody, and `ProductionCompletion.wonder` is the report that says so.
+      const done = settleProductionWindfall(state, city);
+      if (done?.wonder) result.wonders.push(done.wonder);
     }
     if (grant.food !== undefined) {
       city.foodBasket += grant.food;
@@ -576,17 +609,22 @@ function payRiteGrant(
  * and said so here. The day a card wants one, the honest fix is a marker on the
  * rite's own row naming its headline voice, not a guess in this function.
  */
-function payRiteRiders(state: GameState, player: Player, unit: Unit): void {
+function payRiteRiders(state: GameState, player: Player, unit: Unit): WonderCompletion[] {
+  const wonders: WonderCompletion[] = [];
   const payout = windfallPayout(state, player.id, 'rite');
   if (payout.heal > 0) {
     unit.hp = Math.min(unitDef(unit.type).maxHp, unit.hp + payout.heal);
   }
-  if (payout.grants.length === 0) return;
+  if (payout.grants.length === 0) return wonders;
   const at = { col: unit.col, row: unit.row };
   for (const city of payWindfallGrants(state, player, payout, at)) {
-    settleProductionWindfall(state, city);
+    // A rider's hammers may finish a wonder exactly as the rite's own may, and
+    // the news goes out the same way. See `RitePerformance.wonders`.
+    const done = settleProductionWindfall(state, city);
+    if (done?.wonder) wonders.push(done.wonder);
     refreshCityDerived(state, city);
   }
+  return wonders;
 }
 
 /**

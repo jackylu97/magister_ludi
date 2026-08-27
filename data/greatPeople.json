@@ -1,0 +1,1511 @@
+{
+  "people": {
+    "imhotep": {
+      "name": "Imhotep",
+      "family": "scholar",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "He read the sky and then the stone.",
+      "kernel": "Vizier, physician, the first architect with a name.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "production": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "monument"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 5
+        }
+      ]
+    },
+    "ahmes": {
+      "name": "Ahmes",
+      "family": "scholar",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Here is the way of every dark thing.",
+      "kernel": "The scribe of the Rhind papyrus, and its opening line.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "science": 2,
+          "scope": {
+            "test": "freshwater"
+          }
+        }
+      ]
+    },
+    "kidinnu": {
+      "name": "Kidinnu",
+      "family": "scholar",
+      "age": 2,
+      "tier": "defining",
+      "epigram": "He knew where the moon would be in a hundred years.",
+      "kernel": "Babylonian astronomer; the lunar tables.",
+      "legacy": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 30,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "borderCulture",
+          "percent": -25
+        }
+      ]
+    },
+    "ptahhotep": {
+      "name": "Ptahhotep",
+      "family": "scholar",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Great is the law; enduring.",
+      "kernel": "The Maxims, the oldest book of advice.",
+      "legacy": [],
+      "deferred": [
+        "+1 authority capacity per library — `countScaled` counts no buildings."
+      ]
+    },
+    "enheduanna": {
+      "name": "Enheduanna",
+      "family": "artist",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "I am the priestess; I write.",
+      "kernel": "The first author to sign her name.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "culture": 3,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "cityYields",
+          "culture": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "shrine"
+          }
+        }
+      ]
+    },
+    "homer": {
+      "name": "Homer",
+      "family": "artist",
+      "age": 2,
+      "tier": "defining",
+      "epigram": "Blind, and the whole war before him.",
+      "kernel": "The bard.",
+      "legacy": [],
+      "deferred": [
+        "A fallen unit pays ×3 culture — Epic Poetry's death line does not exist yet.",
+        "Units cannot heal outside your borders — no shape gates a heal on territory."
+      ]
+    },
+    "sinLeqiUnninni": {
+      "name": "Sin-lēqi-unninni",
+      "family": "artist",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "He who saw the deep.",
+      "kernel": "Compiler of the standard Gilgamesh.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "culture": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "amphitheater"
+          }
+        }
+      ],
+      "deferred": [
+        "The Hall of Deeds' half — no such building exists yet."
+      ]
+    },
+    "ilimilku": {
+      "name": "Ilimilku",
+      "family": "artist",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "He wrote the storm-god down.",
+      "kernel": "The Ugaritic scribe of the Baal cycle.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "culture": 2,
+          "scope": {
+            "test": "coastal"
+          }
+        }
+      ]
+    },
+    "senenmut": {
+      "name": "Senenmut",
+      "family": "engineer",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "Every terrace of it was his.",
+      "kernel": "Hatshepsut's architect.",
+      "legacy": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 10
+        }
+      ]
+    },
+    "hemiunu": {
+      "name": "Hemiunu",
+      "family": "engineer",
+      "age": 2,
+      "tier": "defining",
+      "epigram": "Two million stones, and his name on none.",
+      "kernel": "The Great Pyramid's overseer.",
+      "legacy": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 30
+        }
+      ],
+      "deferred": [
+        "−2 happiness while any wonder is in a queue — no `EmpireCondition` reads a queue."
+      ]
+    },
+    "amenhotepSonOfHapu": {
+      "name": "Amenhotep son of Hapu",
+      "family": "engineer",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "They made him a god for building.",
+      "kernel": "The deified overseer of works.",
+      "legacy": [],
+      "deferred": [
+        "Wonders **in the capital** +20%⚙ — `productionBonus` carries no `CityScope`."
+      ]
+    },
+    "bezalel": {
+      "name": "Bezalel",
+      "family": "engineer",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Filled with the spirit, in all manner of workmanship.",
+      "kernel": "The tabernacle's artisan.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "production": 1,
+          "faith": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "shrine"
+          }
+        },
+        {
+          "kind": "cityYields",
+          "production": 1,
+          "faith": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        }
+      ]
+    },
+    "eaNasir": {
+      "name": "Ea-nāṣir",
+      "family": "merchant",
+      "age": 2,
+      "tier": "defining",
+      "epigram": "You said the copper was fine.",
+      "kernel": "The complaint tablets; the wunderkammer's patron.",
+      "legacy": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "mine"
+              },
+              {
+                "test": "resourceKind",
+                "kind": "bonus"
+              }
+            ]
+          },
+          "gold": 3
+        }
+      ],
+      "deferred": [
+        "Every luxury you hold counts one fewer for happiness — `effectAmplifier` scales a figure, it does not change a count."
+      ]
+    },
+    "kushim": {
+      "name": "Kushim",
+      "family": "merchant",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "29,086 measures barley, 37 months.",
+      "kernel": "The first named person in writing — an accountant.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "gold": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "granary"
+          }
+        }
+      ]
+    },
+    "assurIdi": {
+      "name": "Aššur-idī",
+      "family": "merchant",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "Send the tin by the next donkeys.",
+      "kernel": "Old Assyrian trader of the Kanesh letters.",
+      "legacy": [],
+      "deferred": [
+        "+2🪙 in every city that is **not** the capital — `CityScope` has no negation."
+      ]
+    },
+    "lamassi": {
+      "name": "Lamassī",
+      "family": "merchant",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "I wove the cloth; you sold it short.",
+      "kernel": "The merchant's wife whose letters survive.",
+      "legacy": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "improvement",
+            "improvement": "plantation"
+          },
+          "gold": 1
+        },
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "improvement",
+            "improvement": "pasture"
+          },
+          "gold": 1
+        }
+      ]
+    },
+    "ahmoseSonOfEbana": {
+      "name": "Ahmose son of Ebana",
+      "family": "general",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "I took a hand. I was given gold.",
+      "kernel": "The soldier's tomb autobiography.",
+      "legacy": [
+        {
+          "kind": "unitStat",
+          "stat": "combatPercent",
+          "amount": 10,
+          "class": {
+            "modelClass": "melee"
+          }
+        }
+      ]
+    },
+    "piyamaradu": {
+      "name": "Piyamaradu",
+      "family": "general",
+      "age": 2,
+      "tier": "defining",
+      "epigram": "The king wrote to the king about him.",
+      "kernel": "The Hittite-Mycenaean freebooter.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "when": {
+            "test": "foreignTerritory"
+          },
+          "side": "both"
+        },
+        {
+          "kind": "authority",
+          "amount": -2
+        }
+      ]
+    },
+    "sinuhe": {
+      "name": "Sinuhe",
+      "family": "general",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "I fled, and no one pursued.",
+      "kernel": "The exile who fought for Retjenu and came home.",
+      "legacy": [
+        {
+          "kind": "unitStat",
+          "stat": "heal",
+          "amount": 5
+        }
+      ]
+    },
+    "deborah": {
+      "name": "Deborah",
+      "family": "general",
+      "age": 2,
+      "tier": "situational",
+      "epigram": "The stars in their courses fought.",
+      "kernel": "The judge who led at Kishon.",
+      "legacy": [],
+      "deferred": [
+        "+25% combat within two hexes of your own city — `CombatCondition` has no distance test."
+      ]
+    },
+    "archimedes": {
+      "name": "Archimedes",
+      "family": "scholar",
+      "age": 3,
+      "tier": "defining",
+      "epigram": "Do not disturb my circles.",
+      "kernel": "Syracuse.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 6,
+          "when": {
+            "test": "vsCity"
+          },
+          "side": "attack"
+        }
+      ],
+      "deferred": [
+        "Siege units only — `combatLine` carries no `UnitFilter`.",
+        "The legacy is *lost* the turn an enemy enters his city — nothing revokes a legacy."
+      ]
+    },
+    "hypatia": {
+      "name": "Hypatia",
+      "family": "scholar",
+      "age": 3,
+      "tier": "defining",
+      "epigram": "Reserve your right to think.",
+      "kernel": "Alexandria.",
+      "legacy": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10,
+          "stage": "empire"
+        }
+      ],
+      "deferred": [
+        "Lost the first turn happiness goes negative — nothing revokes a legacy."
+      ]
+    },
+    "zhangHeng": {
+      "name": "Zhang Heng",
+      "family": "scholar",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "The dragon dropped its ball toward the earthquake.",
+      "kernel": "The seismoscope.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "science": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "library"
+          }
+        }
+      ]
+    },
+    "eratosthenes": {
+      "name": "Eratosthenes",
+      "family": "scholar",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "He measured the world with a well and a stick.",
+      "kernel": "The circumference.",
+      "legacy": [],
+      "deferred": [
+        "+1🔬 per 20 tiles revealed — `CountKind` counts no explored ground."
+      ]
+    },
+    "sappho": {
+      "name": "Sappho",
+      "family": "artist",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "Someone will remember us.",
+      "kernel": "The fragment.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "culture": 2,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 1
+        }
+      ]
+    },
+    "quYuan": {
+      "name": "Qu Yuan",
+      "family": "artist",
+      "age": 3,
+      "tier": "defining",
+      "epigram": "The road is long; I will search high and low.",
+      "kernel": "The poet of the Chu Ci.",
+      "legacy": [
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 30,
+          "stage": "empire"
+        },
+        {
+          "kind": "happiness",
+          "amount": -5,
+          "per": "city",
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "simaQian": {
+      "name": "Sima Qian",
+      "family": "artist",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "He finished the Records rather than die.",
+      "kernel": "The Grand Historian.",
+      "legacy": [],
+      "deferred": [
+        "+1🎵 per age that has closed — only a `windfallRider` may say `perAge`."
+      ]
+    },
+    "phidias": {
+      "name": "Phidias",
+      "family": "artist",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "He put his own face on the shield.",
+      "kernel": "The Parthenon's sculptor.",
+      "legacy": [],
+      "deferred": [
+        "+3🎵 per wonder — `CountKind` counts no wonders."
+      ]
+    },
+    "liBing": {
+      "name": "Li Bing",
+      "family": "engineer",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "He cut the mountain and the river obeyed.",
+      "kernel": "Dujiangyan.",
+      "legacy": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "improvement",
+            "improvement": "farm"
+          },
+          "food": 1
+        }
+      ],
+      "deferred": [
+        "… **beside a river**, and its +1⚙ — `TileCondition` has no river test."
+      ]
+    },
+    "heroOfAlexandria": {
+      "name": "Hero of Alexandria",
+      "family": "engineer",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "The temple doors opened by themselves.",
+      "kernel": "Pneumatics.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "production": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "workshop"
+          }
+        }
+      ],
+      "deferred": [
+        "Wonders that supply science gain +5⚙ — no shape reads another row's yields."
+      ]
+    },
+    "vitruvius": {
+      "name": "Vitruvius",
+      "family": "engineer",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "Firmness, commodity, delight.",
+      "kernel": "The ten books.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "production": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "aqueduct"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "aqueduct"
+          }
+        }
+      ]
+    },
+    "eupalinos": {
+      "name": "Eupalinos",
+      "family": "engineer",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "They met in the middle of the hill.",
+      "kernel": "Samos.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "food": 3,
+          "production": 2,
+          "scope": {
+            "test": "mountainAdjacent"
+          }
+        }
+      ]
+    },
+    "zhangQian": {
+      "name": "Zhang Qian",
+      "family": "merchant",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "He went west and came back with the world.",
+      "kernel": "The Silk Road's envoy.",
+      "legacy": [],
+      "deferred": [
+        "+2🪙 per 20 tiles explored — `CountKind` counts no explored ground."
+      ]
+    },
+    "nanaivandak": {
+      "name": "Nanaivandak",
+      "family": "merchant",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "The letters never reached home.",
+      "kernel": "The Sogdian Ancient Letters, found sealed at Dunhuang.",
+      "legacy": [],
+      "deferred": [
+        "+2🪙 per connected city and +10%🪙 from connections — there are no city connections yet."
+      ]
+    },
+    "hippalus": {
+      "name": "Hippalus",
+      "family": "merchant",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "He learned when the wind turned.",
+      "kernel": "The monsoon.",
+      "legacy": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          },
+          "gold": 1
+        }
+      ],
+      "deferred": [
+        "Embarked units +1 movement — `unitStat` cannot narrow to the embarked."
+      ]
+    },
+    "crassus": {
+      "name": "Crassus",
+      "family": "merchant",
+      "age": 3,
+      "tier": "defining",
+      "epigram": "No man is rich who cannot pay an army.",
+      "kernel": "The fire brigade; Carrhae.",
+      "legacy": [],
+      "deferred": [
+        "Purchases −30%🪙 — no shape reaches `explainPurchaseCost`.",
+        "Every purchase −1 happiness for 10 turns — nothing stamps a timed effect on an empire."
+      ]
+    },
+    "pytheas": {
+      "name": "Pytheas",
+      "family": "merchant",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "Where the sea congeals.",
+      "kernel": "Massalia to Thule.",
+      "legacy": [
+        {
+          "kind": "cityStat",
+          "stat": "sight",
+          "amount": 1,
+          "scope": {
+            "test": "coastal"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "sight",
+          "amount": 1,
+          "class": {
+            "modelClass": "scout"
+          }
+        }
+      ]
+    },
+    "hannibal": {
+      "name": "Hannibal",
+      "family": "general",
+      "age": 3,
+      "tier": "defining",
+      "epigram": "We will find a way, or make one.",
+      "kernel": "The Alps.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "when": {
+            "test": "foreignTerritory"
+          },
+          "side": "attack"
+        },
+        {
+          "kind": "combatLine",
+          "amount": -4,
+          "when": {
+            "test": "ownTerritory"
+          },
+          "side": "defend"
+        }
+      ]
+    },
+    "hanXin": {
+      "name": "Han Xin",
+      "family": "general",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "Backs to the river, they could not lose.",
+      "kernel": "Jingxing.",
+      "legacy": [],
+      "deferred": [
+        "+2 combat beside a river or coast — `CombatCondition` reads no water."
+      ]
+    },
+    "boudica": {
+      "name": "Boudica",
+      "family": "general",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "They burned three cities before the road.",
+      "kernel": "The rising.",
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "when": {
+            "test": "ownTerritory"
+          },
+          "side": "defend"
+        }
+      ],
+      "deferred": [
+        "… for the age she was recruited in — a legacy carries no age."
+      ]
+    },
+    "spartacus": {
+      "name": "Spartacus",
+      "family": "general",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "He left the school with kitchen knives.",
+      "kernel": "Vesuvius.",
+      "legacy": [],
+      "deferred": [
+        "+3 combat attacking at a strength disadvantage — `CombatCondition` compares no strengths."
+      ]
+    },
+    "alKhwarizmi": {
+      "name": "al-Khwārizmī",
+      "family": "scholar",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "The reckoning by restoration and balancing.",
+      "kernel": "al-jabr.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "science": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "university"
+          }
+        }
+      ]
+    },
+    "shenKuo": {
+      "name": "Shen Kuo",
+      "family": "scholar",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "The needle points south, and a little east.",
+      "kernel": "The Dream Pool Essays.",
+      "legacy": [],
+      "deferred": [
+        "+1🔬 per improved strategic resource — `CountKind` counts only improved *bonus* resources."
+      ]
+    },
+    "ibnSina": {
+      "name": "Ibn Sīnā",
+      "family": "scholar",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "Medicine is not hard; the hard part is the patient.",
+      "kernel": "The Canon of Medicine.",
+      "legacy": [
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city"
+        }
+      ]
+    },
+    "aryabhata": {
+      "name": "Āryabhaṭa",
+      "family": "scholar",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "The earth turns; the stars do not.",
+      "kernel": "The Āryabhaṭīya.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "science": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "shrine"
+          }
+        }
+      ]
+    },
+    "murasakiShikibu": {
+      "name": "Murasaki Shikibu",
+      "family": "artist",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "The world is a floating bridge of dreams.",
+      "kernel": "The Tale of Genji.",
+      "legacy": [],
+      "deferred": [
+        "+2🎵 per active melee unit — `CountKind` counts no units in the field."
+      ]
+    },
+    "snorriSturluson": {
+      "name": "Snorri Sturluson",
+      "family": "artist",
+      "age": 4,
+      "tier": "defining",
+      "epigram": "He told the kings' lives and lost his own.",
+      "kernel": "The Edda, the Heimskringla.",
+      "legacy": [
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "yield": "culture",
+            "amount": 3
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "yield": "faith",
+            "amount": 3
+          }
+        },
+        {
+          "kind": "authority",
+          "amount": -2
+        }
+      ]
+    },
+    "rumi": {
+      "name": "Rūmī",
+      "family": "artist",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "Out beyond ideas of wrongdoing…",
+      "kernel": "The Masnavi.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "culture": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        }
+      ]
+    },
+    "seiShonagon": {
+      "name": "Sei Shōnagon",
+      "family": "artist",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "Things that make the heart beat faster.",
+      "kernel": "The Pillow Book.",
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "uniqueLuxuries",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "alJazari": {
+      "name": "al-Jazarī",
+      "family": "engineer",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "It poured the wine and bowed.",
+      "kernel": "The automata.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "production": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "workshop"
+          }
+        }
+      ]
+    },
+    "suSong": {
+      "name": "Su Song",
+      "family": "engineer",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "The tower kept the hours and the heavens.",
+      "kernel": "The water clock.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "production": 2,
+          "science": 2,
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "villardDeHonnecourt": {
+      "name": "Villard de Honnecourt",
+      "family": "engineer",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "Drawn from life, and from thought.",
+      "kernel": "The sketchbook.",
+      "legacy": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 15
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 15
+        }
+      ]
+    },
+    "liJie": {
+      "name": "Li Jie",
+      "family": "engineer",
+      "age": 4,
+      "tier": "defining",
+      "epigram": "A standard for every beam.",
+      "kernel": "The Yingzao Fashi.",
+      "legacy": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 20
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "borderCulture",
+          "percent": -25
+        }
+      ]
+    },
+    "benjaminOfTudela": {
+      "name": "Benjamin of Tudela",
+      "family": "merchant",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "He counted every congregation.",
+      "kernel": "The Itinerary.",
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "cities",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "ibnBattuta": {
+      "name": "Ibn Baṭṭūṭa",
+      "family": "merchant",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "Thirty years, and I never took the same road twice.",
+      "kernel": "The Rihla.",
+      "legacy": [],
+      "deferred": [
+        "+1🪙 per foreign city sighted — `CountKind` counts no sightings."
+      ]
+    },
+    "marcoPolo": {
+      "name": "Marco Polo",
+      "family": "merchant",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "I have not told the half.",
+      "kernel": "The Travels.",
+      "legacy": [],
+      "deferred": [
+        "+3🪙 per trade route to another empire — there are no trade routes yet."
+      ]
+    },
+    "francescoDatini": {
+      "name": "Francesco Datini",
+      "family": "merchant",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "In the name of God and of profit.",
+      "kernel": "The merchant of Prato's ledgers.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "gold": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "market"
+          }
+        }
+      ]
+    },
+    "subutai": {
+      "name": "Subutai",
+      "family": "general",
+      "age": 4,
+      "tier": "defining",
+      "epigram": "He conquered thirty nations from the saddle.",
+      "kernel": "The Mongol strategist.",
+      "legacy": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "mounted"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "combatPercent",
+          "amount": 25,
+          "class": {
+            "modelClass": "mounted"
+          }
+        },
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": -5
+        }
+      ]
+    },
+    "tomoeGozen": {
+      "name": "Tomoe Gozen",
+      "family": "general",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "A warrior worth a thousand.",
+      "kernel": "The Heike.",
+      "legacy": [
+        {
+          "kind": "unitStat",
+          "stat": "combatPercent",
+          "amount": 15,
+          "class": {
+            "modelClass": "mounted"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "combatPercent",
+          "amount": 15,
+          "class": {
+            "ranged": true
+          }
+        }
+      ]
+    },
+    "janZizka": {
+      "name": "Jan Žižka",
+      "family": "general",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "Blind, and undefeated.",
+      "kernel": "The Hussite wars.",
+      "legacy": [],
+      "deferred": [
+        "Fortified units +5 defense — `CombatCondition` cannot ask about a trench."
+      ]
+    },
+    "elCid": {
+      "name": "El Cid",
+      "family": "general",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "He won a battle dead.",
+      "kernel": "Valencia.",
+      "legacy": [],
+      "deferred": [
+        "+3 combat in cities you captured — `CombatCondition` has no `captured` test."
+      ]
+    },
+    "paracelsus": {
+      "name": "Paracelsus",
+      "family": "scholar",
+      "age": 5,
+      "tier": "defining",
+      "epigram": "The dose makes the poison.",
+      "kernel": "The alchemist-physician.",
+      "legacy": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 25,
+          "stage": "empire"
+        },
+        {
+          "kind": "happiness",
+          "amount": -1,
+          "per": "city"
+        }
+      ]
+    },
+    "tychoBrahe": {
+      "name": "Tycho Brahe",
+      "family": "scholar",
+      "age": 5,
+      "tier": "situational",
+      "epigram": "A brass nose, and an island for the stars.",
+      "kernel": "Uraniborg.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "science": 3,
+          "scope": {
+            "test": "mountainAdjacent"
+          }
+        }
+      ],
+      "deferred": [
+        "… cities **on hills** — `CityScope` cannot ask about its own ground."
+      ]
+    },
+    "johnDee": {
+      "name": "John Dee",
+      "family": "scholar",
+      "age": 5,
+      "tier": "strong",
+      "epigram": "The angels speak in a language of their own.",
+      "kernel": "The magister's own magister.",
+      "legacy": [
+        {
+          "kind": "offerRider",
+          "offer": "all",
+          "extra": 1
+        }
+      ]
+    },
+    "copernicus": {
+      "name": "Copernicus",
+      "family": "scholar",
+      "age": 5,
+      "tier": "strong",
+      "epigram": "He stopped the sun and moved the earth.",
+      "kernel": "De revolutionibus.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "science": 2
+        }
+      ]
+    },
+    "christineDePizan": {
+      "name": "Christine de Pizan",
+      "family": "artist",
+      "age": 5,
+      "tier": "strong",
+      "epigram": "A city of ladies, built of reason.",
+      "kernel": "The first professional woman of letters.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "culture": 3,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "authority",
+          "amount": 1
+        }
+      ]
+    },
+    "durer": {
+      "name": "Dürer",
+      "family": "artist",
+      "age": 5,
+      "tier": "situational",
+      "epigram": "A rhinoceros he never saw, drawn perfectly.",
+      "kernel": "The woodcuts.",
+      "legacy": [],
+      "deferred": [
+        "+2🎵 per wonder — `CountKind` counts no wonders."
+      ]
+    },
+    "basho": {
+      "name": "Bashō",
+      "family": "artist",
+      "age": 5,
+      "tier": "situational",
+      "epigram": "Even in Kyoto, I long for Kyoto.",
+      "kernel": "The narrow road.",
+      "legacy": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "feature",
+            "feature": "forest"
+          },
+          "culture": 1
+        }
+      ]
+    },
+    "sorJuana": {
+      "name": "Sor Juana",
+      "family": "artist",
+      "age": 5,
+      "tier": "situational",
+      "epigram": "I do not study to know more, but to ignore less.",
+      "kernel": "The tenth muse of Mexico.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "culture": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "university"
+          }
+        }
+      ]
+    },
+    "leonardo": {
+      "name": "Leonardo",
+      "family": "engineer",
+      "age": 5,
+      "tier": "defining",
+      "epigram": "Art is never finished, only abandoned.",
+      "kernel": "The notebooks.",
+      "legacy": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 30
+        }
+      ],
+      "deferred": [
+        "Engineer boons doubled — no shape amplifies a great person's act.",
+        "Projects pay half — a project's payout is deliberately unmodifiable (Entry XXVI)."
+      ]
+    },
+    "taqiAlDin": {
+      "name": "Taqī al-Dīn",
+      "family": "engineer",
+      "age": 5,
+      "tier": "strong",
+      "epigram": "He measured the comet and they tore the tower down.",
+      "kernel": "The Istanbul observatory.",
+      "legacy": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 15,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 15,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "capital"
+              },
+              {
+                "test": "mountainAdjacent"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "mimarSinan": {
+      "name": "Mimar Sinan",
+      "family": "engineer",
+      "age": 5,
+      "tier": "situational",
+      "epigram": "An apprentice's mosque, a journeyman's, a master's.",
+      "kernel": "The Süleymaniye.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "culture": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        }
+      ],
+      "deferred": [
+        "Temples and cathedrals −30%⚙ — `productionBonus` names a category, never a building."
+      ]
+    },
+    "vaucanson": {
+      "name": "Vaucanson",
+      "family": "engineer",
+      "age": 5,
+      "tier": "situational",
+      "epigram": "It ate, it digested, it— well.",
+      "kernel": "The mechanical duck.",
+      "legacy": [
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": {
+            "modelClass": "worker"
+          }
+        }
+      ]
+    },
+    "jakobFugger": {
+      "name": "Jakob Fugger",
+      "family": "merchant",
+      "age": 5,
+      "tier": "defining",
+      "epigram": "Rich by the grace of God.",
+      "kernel": "The Fugger bank.",
+      "legacy": [
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 30,
+          "stage": "empire"
+        },
+        {
+          "kind": "countScaled",
+          "count": "cities",
+          "per": 3,
+          "pays": {
+            "to": "authority",
+            "amount": -1
+          }
+        }
+      ],
+      "deferred": [
+        "Purchases −20% — no shape reaches `explainPurchaseCost`."
+      ]
+    },
+    "zhengHe": {
+      "name": "Zheng He",
+      "family": "merchant",
+      "age": 5,
+      "tier": "strong",
+      "epigram": "Seven voyages, and then the ships were burned.",
+      "kernel": "The treasure fleet.",
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "gold": 3,
+          "scope": {
+            "test": "coastal"
+          }
+        }
+      ],
+      "deferred": [
+        "Embarked units +2 movement — `unitStat` cannot narrow to the embarked."
+      ]
+    },
+    "graciaMendesNasi": {
+      "name": "Gracia Mendes Nasi",
+      "family": "merchant",
+      "age": 5,
+      "tier": "strong",
+      "epigram": "She moved a whole people by ledger.",
+      "kernel": "The House of Mendes.",
+      "legacy": [
+        {
+          "kind": "foundingRider",
+          "population": 1
+        }
+      ]
+    },
+    "cosimoDeMedici": {
+      "name": "Cosimo de' Medici",
+      "family": "merchant",
+      "age": 5,
+      "tier": "situational",
+      "epigram": "Patron of everything, prince of nothing.",
+      "kernel": "The bank that bought a Renaissance.",
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "bankedGold",
+          "per": 50,
+          "max": 6,
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "gustavusAdolphus": {
+      "name": "Gustavus Adolphus",
+      "family": "general",
+      "age": 5,
+      "tier": "strong",
+      "epigram": "The Lion of the North.",
+      "kernel": "Breitenfeld.",
+      "legacy": [
+        {
+          "kind": "unitStat",
+          "stat": "combatPercent",
+          "amount": 15,
+          "class": {
+            "ranged": true
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "siege"
+          }
+        }
+      ]
+    },
+    "nzingaOfNdongo": {
+      "name": "Nzinga of Ndongo",
+      "family": "general",
+      "age": 5,
+      "tier": "situational",
+      "epigram": "She sat on her servant's back rather than the floor.",
+      "kernel": "The forty-year war.",
+      "legacy": [],
+      "deferred": [
+        "+5 defending in forest or jungle — `CombatCondition` reads only hills."
+      ]
+    },
+    "yiSunSin": {
+      "name": "Yi Sun-sin",
+      "family": "general",
+      "age": 5,
+      "tier": "situational",
+      "epigram": "Thirteen ships against three hundred.",
+      "kernel": "Myeongnyang.",
+      "legacy": [],
+      "deferred": [
+        "Naval units +5 combat — there are no naval units yet."
+      ]
+    },
+    "lautaro": {
+      "name": "Lautaro",
+      "family": "general",
+      "age": 5,
+      "tier": "situational",
+      "epigram": "He learned their horses and turned them.",
+      "kernel": "The Mapuche toqui.",
+      "legacy": [],
+      "deferred": [
+        "+3 combat vs mounted — `CombatCondition` cannot name the other side's class."
+      ]
+    }
+  }
+}

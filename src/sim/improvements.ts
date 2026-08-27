@@ -70,6 +70,7 @@ import {
   chopYield,
   improvementDef,
   improvementForResource,
+  isGreatPersonWork,
   isImprovementId,
 } from './improvementData';
 import { type Tile, getTileAt, tileIndex } from './map';
@@ -297,6 +298,21 @@ export function improvementError(
   if (!isBuilder(unit)) return `A ${def.name} cannot build improvements`;
   if (!isImprovementId(improvementId)) {
     return `Unknown improvement "${String(improvementId)}"`;
+  }
+  // **A worker may not plant a great person's work, and a great person may
+  // plant nothing else.** One symmetric clause, asked of the two data flags that
+  // already mark both sides (`ImprovementDef.greatPerson` and
+  // `UnitDef.greatWork`), so nothing here compares an id against `"academy"` or
+  // a type against `"greatPerson"`. It sits in `improvementError` rather than in
+  // `improvementErrorAt` because it is a fact about the **actor**, not about the
+  // ground — which is exactly what lets `greatPersonWorkError` delegate the
+  // ground's half to that function whole and have this clause not fire on it.
+  const work = isGreatPersonWork(improvementId);
+  const great = unitDef(unit.type).greatWork === true;
+  if (work !== great) {
+    return work
+      ? `A ${def.name.toLowerCase()} cannot build a ${improvementDef(improvementId).name.toLowerCase()}`
+      : `${def.name}s leave a work behind, not a ${improvementDef(improvementId).name.toLowerCase()}`;
   }
   const cost = improvementDef(improvementId).chargeCost;
   if (chargesLeft(unit) < cost) {

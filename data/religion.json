@@ -2,8 +2,7 @@
   "pantheon": {
     "slotsFromTech": {
       "divination": 2
-    },
-    "offerOptions": 3
+    }
   },
   "beliefs": {
     "goddessOfTheHarvest": {
@@ -14,7 +13,11 @@
       "effects": [
         {
           "kind": "tileYield",
-          "on": { "test": "resourceKind", "kind": "bonus", "yields": "food" },
+          "on": {
+            "test": "resourceKind",
+            "kind": "bonus",
+            "yields": "food"
+          },
           "food": 1
         }
       ]
@@ -28,13 +31,18 @@
         {
           "kind": "cityYields",
           "faith": 1,
-          "scope": { "test": "hasBuilding", "building": "granary" }
+          "scope": {
+            "test": "hasBuilding",
+            "building": "granary"
+          }
         },
         {
           "kind": "happiness",
           "amount": 1,
           "per": "city",
-          "scope": { "test": "capital" }
+          "scope": {
+            "test": "capital"
+          }
         }
       ]
     },
@@ -47,7 +55,9 @@
         {
           "kind": "cityYields",
           "science": 3,
-          "scope": { "test": "mountainAdjacent" }
+          "scope": {
+            "test": "mountainAdjacent"
+          }
         }
       ]
     },
@@ -57,8 +67,16 @@
       "flavor": "Nothing is lost that was written down on the right day.",
       "text": "Every 20 turns, the almanac yields a find. Discoveries pay in the money of your era.",
       "effects": [
-        { "kind": "periodicOffer", "every": 20, "site": "ruins" },
-        { "kind": "windfallRider", "occasion": "discovery", "perAge": true }
+        {
+          "kind": "periodicOffer",
+          "every": 20,
+          "site": "ruins"
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "discovery",
+          "perAge": true
+        }
       ]
     },
     "theStandingStones": {
@@ -71,7 +89,10 @@
           "kind": "cityYields",
           "culture": 1,
           "faith": 1,
-          "scope": { "test": "hasBuilding", "building": "monument" }
+          "scope": {
+            "test": "hasBuilding",
+            "building": "monument"
+          }
         }
       ]
     },
@@ -84,13 +105,19 @@
         {
           "kind": "cityYields",
           "culture": 1,
-          "scope": { "test": "populationAtLeast", "value": 4 }
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 4
+          }
         },
         {
           "kind": "percentYields",
           "yield": "culture",
           "percent": 5,
-          "scope": { "test": "populationAtLeast", "value": 10 }
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 10
+          }
         }
       ]
     },
@@ -102,13 +129,19 @@
       "effects": [
         {
           "kind": "tileYield",
-          "on": { "test": "improvement", "improvement": "camp" },
+          "on": {
+            "test": "improvement",
+            "improvement": "camp"
+          },
           "food": 1
         },
         {
           "kind": "windfallRider",
           "occasion": "camp",
-          "grant": { "yield": "faith", "amount": 10 }
+          "grant": {
+            "yield": "faith",
+            "amount": 10
+          }
         }
       ]
     },
@@ -121,11 +154,17 @@
         {
           "kind": "windfallRider",
           "occasion": "chop",
-          "grant": { "yield": "faith", "amount": 15 }
+          "grant": {
+            "yield": "faith",
+            "amount": 15
+          }
         },
         {
           "kind": "tileYield",
-          "on": { "test": "feature", "feature": "forest" },
+          "on": {
+            "test": "feature",
+            "feature": "forest"
+          },
           "culture": 1
         }
       ]
@@ -139,7 +178,9 @@
         {
           "kind": "cityYields",
           "food": 2,
-          "scope": { "test": "freshwater" }
+          "scope": {
+            "test": "freshwater"
+          }
         },
         {
           "kind": "happiness",
@@ -148,8 +189,13 @@
           "scope": {
             "test": "all",
             "of": [
-              { "test": "freshwater" },
-              { "test": "hasBuilding", "building": "shrine" }
+              {
+                "test": "freshwater"
+              },
+              {
+                "test": "hasBuilding",
+                "building": "shrine"
+              }
             ]
           }
         }
@@ -163,7 +209,10 @@
       "effects": [
         {
           "kind": "tileYield",
-          "on": { "test": "improvement", "improvement": "fishingBoats" },
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          },
           "production": 1,
           "gold": 1
         }
@@ -178,12 +227,17 @@
         {
           "kind": "cityYields",
           "production": 1,
-          "scope": { "test": "hasBuilding", "building": "barracks" }
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
         },
         {
           "kind": "combatLine",
           "amount": 1,
-          "when": { "test": "always" },
+          "when": {
+            "test": "always"
+          },
           "side": "both"
         }
       ]
@@ -198,7 +252,10 @@
           "kind": "windfallRider",
           "occasion": "kill",
           "perAge": true,
-          "grant": { "yield": "faith", "amount": 15 }
+          "grant": {
+            "yield": "faith",
+            "amount": 15
+          }
         }
       ]
     },
@@ -211,13 +268,18 @@
         {
           "kind": "windfallRider",
           "occasion": "discovery",
-          "grant": { "yield": "faith", "amount": 3 }
+          "grant": {
+            "yield": "faith",
+            "amount": 3
+          }
         },
         {
           "kind": "unitStat",
           "stat": "sight",
           "amount": 1,
-          "class": { "modelClass": "scout" }
+          "class": {
+            "modelClass": "scout"
+          }
         }
       ]
     },
@@ -226,7 +288,12 @@
       "axis": "none",
       "flavor": "No story, no festival, no priest. It simply must not go out.",
       "text": "+1 faith in every city.",
-      "effects": [{ "kind": "cityYields", "faith": 1 }]
+      "effects": [
+        {
+          "kind": "cityYields",
+          "faith": 1
+        }
+      ]
     },
     "desertFathers": {
       "name": "Desert Fathers",
@@ -236,7 +303,10 @@
       "effects": [
         {
           "kind": "tileYield",
-          "on": { "test": "terrain", "terrain": "desert" },
+          "on": {
+            "test": "terrain",
+            "terrain": "desert"
+          },
           "faith": 1
         }
       ]
@@ -249,7 +319,10 @@
       "effects": [
         {
           "kind": "tileYield",
-          "on": { "test": "terrain", "terrain": "tundra" },
+          "on": {
+            "test": "terrain",
+            "terrain": "tundra"
+          },
           "food": 1
         },
         {
@@ -257,8 +330,14 @@
           "on": {
             "test": "all",
             "of": [
-              { "test": "terrain", "terrain": "tundra" },
-              { "test": "feature", "feature": "forest" }
+              {
+                "test": "terrain",
+                "terrain": "tundra"
+              },
+              {
+                "test": "feature",
+                "feature": "forest"
+              }
             ]
           },
           "faith": 1
@@ -276,8 +355,14 @@
           "on": {
             "test": "all",
             "of": [
-              { "test": "improvement", "improvement": "mine" },
-              { "test": "resourceKind", "kind": "luxury" }
+              {
+                "test": "improvement",
+                "improvement": "mine"
+              },
+              {
+                "test": "resourceKind",
+                "kind": "luxury"
+              }
             ]
           },
           "culture": 1,
@@ -294,12 +379,22 @@
         {
           "kind": "countScaled",
           "count": "chargedAugurs",
-          "pays": { "to": "percent", "yield": "science", "percent": 5, "stage": "city" }
+          "pays": {
+            "to": "percent",
+            "yield": "science",
+            "percent": 5,
+            "stage": "city"
+          }
         },
         {
           "kind": "countScaled",
           "count": "chargedAugurs",
-          "pays": { "to": "percent", "yield": "culture", "percent": 5, "stage": "city" }
+          "pays": {
+            "to": "percent",
+            "yield": "culture",
+            "percent": 5,
+            "stage": "city"
+          }
         }
       ]
     }
@@ -310,7 +405,9 @@
       "tech": "divination",
       "target": "city",
       "flavor": "The grain was always going to come up. Somebody has to be thanked.",
-      "grant": { "population": 1 },
+      "grant": {
+        "population": 1
+      },
       "effects": []
     },
     "omenReading": {
@@ -318,13 +415,20 @@
       "tech": "letters",
       "target": "city",
       "flavor": "The liver said what the scribe already suspected.",
-      "grant": { "science": 15 },
+      "grant": {
+        "science": 15
+      },
       "duration": 20,
       "effects": [
         {
           "kind": "countScaled",
           "count": "scienceBuildings",
-          "pays": { "to": "yield", "yield": "science", "amount": 1, "where": "city" }
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "city"
+          }
         }
       ]
     },
@@ -333,22 +437,34 @@
       "tech": "stonecraft",
       "target": "city",
       "flavor": "Walk the line once a year and the line walks itself the rest of it.",
-      "grant": { "borderCulture": 15 },
+      "grant": {
+        "borderCulture": 15
+      },
       "duration": 20,
-      "effects": [{ "kind": "rulePercent", "rule": "borderCulture", "percent": 30 }]
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "borderCulture",
+          "percent": 30
+        }
+      ]
     },
     "blessingOfArms": {
       "name": "Blessing of Arms",
       "tech": "bronzeWorking",
       "target": "unit",
       "flavor": "The god does not promise you live. Only that it will be worth watching.",
-      "grant": { "healFully": true },
+      "grant": {
+        "healFully": true
+      },
       "duration": 5,
       "effects": [
         {
           "kind": "combatLine",
           "amount": 5,
-          "when": { "test": "always" },
+          "when": {
+            "test": "always"
+          },
           "side": "both"
         }
       ]
@@ -358,12 +474,16 @@
       "tech": "calendar",
       "target": "city",
       "flavor": "A feast is an argument that the year was good, made loudly enough to win.",
-      "grant": { "gold": 25 },
+      "grant": {
+        "gold": 25
+      },
       "duration": 20,
       "effects": [
         {
           "kind": "tileYield",
-          "on": { "test": "hasResource" },
+          "on": {
+            "test": "hasResource"
+          },
           "gold": 1
         }
       ]

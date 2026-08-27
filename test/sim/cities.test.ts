@@ -1567,6 +1567,9 @@ describe('escalating settler cost', () => {
     for (const id of UNIT_TYPE_IDS) {
       const def = unitDef(id);
       if (def.costIncrement !== undefined) continue;
+      // A great person is neither built nor bought and has no unlock tech, so
+      // it has no band either — see `tech.test.ts`'s reading of the exception.
+      if (def.greatWork === true) continue;
       // Not `def.cost`: since the build-sink pass a later-age type is also
       // multiplied by its Æra band (Entry XXVI), which is a fact about the
       // *roster* and not about this empire. What the ladder must not do is
@@ -1977,7 +1980,7 @@ describe('the turn pipeline over a live empire', () => {
 // ---------------------------------------------------------------------------
 
 describe('determinism with cities', () => {
-  it('round-trips a schema 20 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 21 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1992,7 +1995,7 @@ describe('determinism with cities', () => {
     // improvements; 12 was the meters' `captured`; 13 the luxuries; 14 tile
     // purchase; 15 barbarians and discoveries.) What this pins is not the
     // number but that a city save is carried by whatever the number is.
-    expect(SCHEMA_VERSION).toBe(20);
+    expect(SCHEMA_VERSION).toBe(21);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

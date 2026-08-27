@@ -1,0 +1,182 @@
+{
+  "triumphs": {
+    "thirdHearth": {
+      "name": "The Third Hearth",
+      "epigram": "Three fires, and the road between them.",
+      "when": {
+        "kind": "cityFounded",
+        "count": 3
+      },
+      "pays": 10,
+      "scope": "once",
+      "family": "merchant"
+    },
+    "firstLight": {
+      "name": "First Light of the Æra",
+      "epigram": "Somebody has to be first into the new century.",
+      "when": {
+        "kind": "ageEntered"
+      },
+      "pays": 15,
+      "scope": "contested",
+      "family": "scholar"
+    },
+    "marvelRaised": {
+      "name": "A Marvel Raised",
+      "epigram": "The scaffolding comes down and the thing is simply there.",
+      "when": {
+        "kind": "wonderCompleted"
+      },
+      "pays": 10,
+      "scope": "perEvent",
+      "family": "engineer"
+    },
+    "againstTheOdds": {
+      "name": "Against the Odds",
+      "epigram": "The stronger army lost, and everyone counted again.",
+      "when": {
+        "kind": "battleWonAgainstStronger"
+      },
+      "pays": 8,
+      "scope": "perAge",
+      "family": "general"
+    },
+    "campBurned": {
+      "name": "The Camp Burned",
+      "epigram": "The smoke went up and the road was quiet after.",
+      "when": {
+        "kind": "campCleared"
+      },
+      "pays": 6,
+      "scope": "perAge",
+      "family": "general"
+    },
+    "ruinRead": {
+      "name": "A Ruin Read",
+      "epigram": "Somebody else's answer, left where it fell.",
+      "when": {
+        "kind": "discoveryClaimed"
+      },
+      "pays": 5,
+      "scope": "perAge",
+      "family": "scholar"
+    },
+    "writExtends": {
+      "name": "The Writ Extends",
+      "epigram": "New seals, new hands, the same tax.",
+      "when": {
+        "kind": "governmentAdopted"
+      },
+      "pays": 10,
+      "scope": "perEvent",
+      "family": "merchant"
+    },
+    "godNamed": {
+      "name": "A God Named",
+      "epigram": "You say the name and the name says you.",
+      "when": {
+        "kind": "beliefConsecrated"
+      },
+      "pays": 6,
+      "scope": "perEvent",
+      "family": "artist"
+    },
+    "greatCity": {
+      "name": "The Great City",
+      "epigram": "Ten thousand strangers who all live here.",
+      "when": {
+        "kind": "cityPopulation",
+        "count": 10
+      },
+      "pays": 12,
+      "scope": "once",
+      "family": "merchant"
+    },
+    "farShore": {
+      "name": "The Far Shore",
+      "epigram": "The other side of the water has a name now.",
+      "when": {
+        "kind": "cityOnOtherContinent"
+      },
+      "pays": 12,
+      "scope": "once",
+      "family": "merchant"
+    },
+    "theTaken": {
+      "name": "The Taken",
+      "epigram": "The gates open the way they were built to.",
+      "when": {
+        "kind": "cityCaptured"
+      },
+      "pays": 10,
+      "scope": "perAge",
+      "family": "general"
+    },
+    "fallenBecomeVerse": {
+      "name": "The Fallen Become Verse",
+      "epigram": "The song is longer than the battle was.",
+      "when": {
+        "kind": "unitLostThenWon"
+      },
+      "pays": 6,
+      "scope": "perAge",
+      "family": "artist",
+      "deferred": "A unit lost in a battle you then win — combat carries no memory of the exchange, and the line waits on Epic Poetry."
+    },
+    "longRoad": {
+      "name": "The Long Road",
+      "epigram": "Two towns and a week between them, now three days.",
+      "when": {
+        "kind": "citiesConnected"
+      },
+      "pays": 8,
+      "scope": "once",
+      "family": "merchant",
+      "deferred": "Two cities connected by road — there are no roads and no connections yet."
+    },
+    "eightLuxuries": {
+      "name": "The Eight Luxuries",
+      "epigram": "Eight things nobody needs and everybody wants.",
+      "when": {
+        "kind": "luxuriesImproved",
+        "count": 8
+      },
+      "pays": 10,
+      "scope": "once",
+      "family": "merchant"
+    },
+    "tenHearths": {
+      "name": "The Ten Hearths",
+      "epigram": "A map with your colour on it in ten places.",
+      "when": {
+        "kind": "cityCount",
+        "count": 10
+      },
+      "pays": 15,
+      "scope": "once",
+      "family": "merchant"
+    },
+    "firstKeel": {
+      "name": "The First Keel",
+      "epigram": "It floats, which was the whole question.",
+      "when": {
+        "kind": "firstNavalUnit"
+      },
+      "pays": 5,
+      "scope": "once",
+      "family": "engineer",
+      "deferred": "Your first naval unit — there are no naval units; Sailing embarks civilians only."
+    },
+    "cityOfMarvels": {
+      "name": "The City of Marvels",
+      "epigram": "Seven of them, and the eighth is the skyline.",
+      "when": {
+        "kind": "wondersInOneCity",
+        "count": 7
+      },
+      "pays": 20,
+      "scope": "once",
+      "family": "engineer"
+    }
+  }
+}

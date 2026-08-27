@@ -66,6 +66,7 @@ import {
   isBuildingId,
   isWonder,
 } from './buildingData';
+import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { improvementDef } from './improvementData';
 import { type Tile, getTileAt, neighborTiles, tileHex, wrappedDistance } from './map';
 import { authorityOf, happinessOf } from './meters';
@@ -128,6 +129,7 @@ import {
   slotLayout,
 } from './statecraftData';
 import { isWaterTerrain } from './terrainData';
+import { awardOccasion } from './triumphs';
 import { highestAge } from './techData';
 import { type ModelClass, type UnitTypeId, isCombatant, unitDef } from './unitData';
 import { isVisibleTo } from './visibility';
@@ -386,13 +388,14 @@ export function drawWithoutReplacement<T>(state: GameState, from: readonly T[], 
  * The kinds of offer this game deals, and the axis `explainOfferSize` is asked
  * about.
  *
- * **Open on purpose.** The great people pass adds `'greatPerson'` here, as a key
- * of `rules.offers` and as a member of `OfferRiderScope` — three edits, no
- * fourth, and every rider that says `'all'` widens it the day it exists without
- * anybody revisiting a card. Nothing switches over these names: the base is an
- * index into the rules block and a rider matches by equality or by `'all'`.
+ * **Open on purpose, and the great people pass took it up**: `'greatPerson'` is
+ * a member here, a key of `rules.offers` and a member of `OfferRiderScope` —
+ * three edits, no fourth, and every rider that already said `'all'` widened the
+ * new draft the day it existed without anybody revisiting a card. Nothing
+ * switches over these names: the base is an index into the rules block and a
+ * rider matches by equality or by `'all'`.
  */
-export type OfferKind = 'order' | 'doctrine' | 'belief' | 'discovery';
+export type OfferKind = 'order' | 'doctrine' | 'belief' | 'discovery' | 'greatPerson';
 
 /** One contribution to how many cards an offer deals. Rule 5, for a count. */
 export interface OfferSizeLine {
@@ -412,6 +415,7 @@ const OFFER_BASE_WORDS: Record<OfferKind, string> = {
   doctrine: 'a doctrine draft',
   belief: 'a consecration',
   discovery: 'a discovery',
+  greatPerson: 'a great-person offer',
 };
 
 /**
@@ -578,6 +582,7 @@ const CLASS_WORD = {
   belief: 'Belief',
   rite: 'Rite',
   wonder: 'Wonder',
+  legacy: 'Legacy',
 } as const;
 
 /**
@@ -599,6 +604,18 @@ export function anyCardDef(id: CardId): CardDefBase {
   if (isBeliefId(id)) return beliefDef(id);
   if (isRiteId(id)) return riteDef(id);
   if (isOrderId(id) || isDoctrineId(id) || isGovernmentId(id)) return cardDef(id);
+  // The **seventh** class, and the one that walks: a great person's legacy is a
+  // list of effects in this vocabulary on a row of another table
+  // (`greatPeopleData.ts`), adapted into the card shape here rather than copied
+  // into a second table that could disagree with it. Asked *before* the building
+  // arm below, because the two id spaces are disjoint and the cheaper guard
+  // should not have to prove it. A row with an **empty** legacy is a name whose
+  // ratified text needs a shape that does not exist yet; it answers a
+  // card-shaped nothing, which is exactly what it is worth to this evaluator.
+  if (isGreatPersonId(id)) {
+    const def = greatPersonDef(id);
+    return { name: def.name, flavor: def.epigram, effects: def.legacy, deferred: def.deferred };
+  }
   // The sixth class, and the one whose table is not a card table at all: a
   // wonder's effects sit on its **building** row (`BuildingDef.effects`), so the
   // row is adapted into the card shape here rather than copied into a second
@@ -690,6 +707,20 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
       }
     }
   }
+  // **The sixth source** (`docs/great-people.md`): the legacies of every great
+  // person this empire has spent — *they served you; their legacy remains*.
+  // Last, after the law, the gods and the stones, for the reason each of those
+  // is last in turn: it is the order they were acquired in, so no ledger
+  // reshuffles itself.
+  //
+  // Read off `Player.legacies` and nowhere else. A person is on the board and
+  // spent, or it is a line here; there is no third state, and nothing revokes a
+  // legacy — which is why Archimedes' "lost the turn an enemy enters his city"
+  // is a *deferred* half on his row rather than a rule hiding in this walk.
+  for (const id of playerById(state, playerId)?.legacies ?? []) {
+    if (!isGreatPersonId(id)) continue;
+    push(id, CLASS_WORD.legacy, 1, greatPersonDef(id).legacy);
+  }
   return list;
 }
 
@@ -765,7 +796,12 @@ function timedLive(
   const list: LiveCardEffect[] = [];
   for (const entry of timed) {
     if (!timedEffectIsLive(state, entry)) continue;
-    const word = `${CLASS_WORD.rite} · ${anyCardDef(entry.card).name} (${timedTurnsLeft(
+    // Which *kind* of blessing this is, asked of the id: an augur's rite and a
+    // great person's parting gift both hang on a town or a piece by exactly the
+    // same mechanism, and the only thing that differs is what to call it. One
+    // question, in the one place the label is written.
+    const kind = isGreatPersonId(entry.card) ? CLASS_WORD.legacy : CLASS_WORD.rite;
+    const word = `${kind} · ${anyCardDef(entry.card).name} (${timedTurnsLeft(
       state,
       entry,
     )} turns left)`;
@@ -2816,6 +2852,7 @@ const OFFER_DRAFT_WORDS: Record<OfferRiderScope, string> = {
   doctrine: 'every doctrine draft',
   belief: 'every consecration',
   discovery: 'every discovery',
+  greatPerson: 'every great-person offer',
   all: 'every draft of every kind',
 };
 
@@ -3316,6 +3353,12 @@ export function adoptGovernmentAt(
   // so carrying anything across by index would seal the wrong card in the wrong
   // kind of slot. The amnesty is total by construction.
   sc.slots = slotLayout(id).map(() => null);
+
+  // The Writ Extends. **Before** the Doctrine draw, so a triumph that fills the
+  // renown ladder opens its great-person offer before this empire is handed a
+  // second card to answer — and so the two draws spend `state.rng` in an order
+  // a replay reproduces.
+  awardOccasion(state, player.id, 'governmentAdopted');
 
   const doctrines = drawDoctrineOffer(state, player, offer.tier);
   let opened: DoctrineOffer | null = null;

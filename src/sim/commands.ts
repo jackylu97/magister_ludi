@@ -83,6 +83,15 @@ import {
   pillageAt,
   pillageError,
 } from './improvements';
+import {
+  greatPersonActAt,
+  greatPersonActError,
+  greatPersonChoiceError,
+  greatPersonWorkAt,
+  greatPersonWorkError,
+  redrawGreatPersonOffer,
+  settleGreatPersonChoice,
+} from './greatPeople';
 import { getTileAt, tileIndex } from './map';
 import { advanceAlongPath } from './movement';
 import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
@@ -133,6 +142,7 @@ import {
 import type { OrderId } from './statecraftData';
 import { buildError, researchError } from './tech';
 import type { TechId } from './techData';
+import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom, sleepError } from './units';
@@ -723,6 +733,60 @@ export interface PerformRiteCommand extends PlayerCommand {
   target?: Cell;
 }
 
+/**
+ * Takes one of the names a filled renown bucket is offering.
+ *
+ * `chooseOrder`'s shape for the fifth time, refusal for refusal: an **index
+ * rather than an id** (an index can only ever name something the player was
+ * dealt), no reroll and no decline, and the End Turn blocker is what stops the
+ * offer sitting on the empire forever.
+ *
+ * The **one** thing it does that its four siblings do not: the roster is shared
+ * by the whole world, so a name another seat took in this same window is refused
+ * — and the seat's offer is re-drawn on the spot rather than left unplayable.
+ * See `greatPersonChoiceError` and the module docblock of `greatPeople.ts`.
+ *
+ * Turn-gated like every other act.
+ */
+export interface ChooseGreatPersonCommand extends PlayerCommand {
+  type: 'chooseGreatPerson';
+  optionIndex: number;
+}
+
+/**
+ * Spends a great person on its family's boon — the burst.
+ *
+ * `consecrate`'s shape: it names the piece and nothing else, because the piece
+ * is what authorises it and its *family* is what decides what happens. And it
+ * consumes the whole person, which is the decision the recruit put to the
+ * player: the burst now, or the ground forever.
+ *
+ * Every payout lands through the seam its bucket already has (Entry XVIII), so a
+ * scholar's beakers can finish a technology and an engineer's hammers a granary
+ * before this returns.
+ *
+ * Turn-gated like every other act.
+ */
+export interface GreatPersonActCommand extends PlayerCommand {
+  type: 'greatPersonAct';
+  unitId: number;
+}
+
+/**
+ * Spends a great person on its family's work — the ground.
+ *
+ * `buildImprovement` without the improvement: *which* work is the family's, read
+ * off the roster, so a client cannot ask a merchant to plant an academy. The
+ * ground is held to exactly the rules a worker's farm is held to
+ * (`improvementErrorAt`), and the piece is consumed whole rather than charged.
+ *
+ * Turn-gated like every other act.
+ */
+export interface GreatPersonWorkCommand extends PlayerCommand {
+  type: 'greatPersonWork';
+  unitId: number;
+}
+
 /** Every legal mutation of the game, as serializable data. */
 export type Command =
   | EndTurnCommand
@@ -749,7 +813,10 @@ export type Command =
   | PurchaseItemCommand
   | ConsecrateCommand
   | ChooseBeliefCommand
-  | PerformRiteCommand;
+  | PerformRiteCommand
+  | ChooseGreatPersonCommand
+  | GreatPersonActCommand
+  | GreatPersonWorkCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
@@ -781,6 +848,7 @@ export type CommandResult =
       arrivals?: ArrivalReport[];
       combats?: CombatOutcome[];
       wonders?: WonderCompletion[];
+      triumphs?: TriumphAward[];
     }
   | { ok: false; error: string };
 
@@ -808,11 +876,13 @@ function ok(
   arrivals?: readonly ArrivalReport[],
   combats?: readonly CombatOutcome[],
   wonders?: readonly WonderCompletion[],
+  triumphs?: readonly TriumphAward[],
 ): CommandResult {
   const result: CommandResult = { ok: true };
   if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
   if (combats !== undefined && combats.length > 0) result.combats = [...combats];
   if (wonders !== undefined && wonders.length > 0) result.wonders = [...wonders];
+  if (triumphs !== undefined && triumphs.length > 0) result.triumphs = [...triumphs];
   return result;
 }
 
@@ -886,14 +956,16 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   state.turnEnded[actor.id] = true;
   if (!allTurnsEnded(state)) return ok();
 
-  // The resolution reports what it did — every blow the wild landed, and every
-  // wonder somebody finished. See `TurnReport`: by the time this returns the
-  // raider has been paid, the board cannot be asked who hit whom, and a city
-  // beaten to a wonder has already had its basket turned into gold.
+  // The resolution reports what it did — every blow the wild landed, every
+  // wonder somebody finished, and every Triumph anybody earned. See
+  // `TurnReport`: by the time this returns the raider has been paid, the board
+  // cannot be asked who hit whom, a city beaten to a wonder has already had its
+  // basket turned into gold, and the renown a triumph paid may already have
+  // dealt somebody a great person.
   const report = runEndOfTurn(state);
   clearTurnEnded(state);
   state.turn += 1;
-  return ok(undefined, report.combats, report.wonders);
+  return ok(undefined, report.combats, report.wonders, report.triumphs);
 }
 
 /** Reads an offset cell defensively; commands may arrive from a save or a socket. */
@@ -1755,7 +1827,7 @@ function applyChooseBelief(state: GameState, command: ChooseBeliefCommand): Comm
   const problem = beliefChoiceError(state, actor.id, command.optionIndex);
   if (problem) return fail(problem);
 
-  settleBeliefChoice(actor, command.optionIndex);
+  settleBeliefChoice(state, actor, command.optionIndex);
   return ok();
 }
 
@@ -1791,7 +1863,111 @@ function applyPerformRite(state: GameState, command: PerformRiteCommand): Comman
   if (problem) return fail(problem);
 
   const unit = unitById(state, command.unitId)!;
-  performRiteAt(state, actor, unit, command.rite, target);
+  const mark = actor.triumphs.length;
+  const done = performRiteAt(state, actor, unit, command.rite, target);
+  // A rite's hammers may finish a wonder, and a wonder is news to every seat —
+  // the gap the wonders framework left and named. Its triumphs ride out the
+  // same way every other command's do, as a diff of this seat's own list.
+  return ok(undefined, undefined, done.wonders, triumphsAwarded(actor, mark));
+}
+
+/**
+ * Calls a great person. See `ChooseGreatPersonCommand`, and `greatPeople.ts` for
+ * the rules.
+ *
+ * `applyChooseOrder`'s split — the seat's two questions here, everything about
+ * the *offer* delegated whole to `greatPersonChoiceError` — with one thing none
+ * of its siblings has: **a refusal that mutates**. When the name was taken by a
+ * faster seat this window, the offer this player is holding is unplayable, so it
+ * is re-drawn before the refusal is returned.
+ *
+ * That is a deliberate exception to "a rejected command leaves the state
+ * byte-identical", and it is the only one in the reducer. It is confined to
+ * exactly one refusal (the contention clause, which no other seat's command can
+ * provoke by accident), it is fully determined by the log (the redraw spends
+ * `state.rng` at a point every replay reaches identically), and the alternative
+ * is a seat holding a hand of spent names that can never end its turn. Every
+ * other refusal below returns before a single line runs.
+ */
+function applyChooseGreatPerson(
+  state: GameState,
+  command: ChooseGreatPersonCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot call anybody`);
+  }
+
+  const problem = greatPersonChoiceError(state, actor.id, command.optionIndex);
+  if (problem) {
+    // The one refusal that leaves the empire something to do. See the docblock;
+    // every other refusal in this file returns a byte-identical state.
+    if (problem.includes('already been called')) redrawGreatPersonOffer(state, actor);
+    return fail(problem);
+  }
+
+  settleGreatPersonChoice(state, actor, command.optionIndex);
+  return ok();
+}
+
+/**
+ * Spends a great person on its family's boon. See `GreatPersonActCommand`.
+ *
+ * `applyPerformRite`'s shape: the seat's questions here, the whole of the act's
+ * rule delegated to `greatPersonActError`, which is also what the unit panel
+ * greys its Act row with — so an offered button is a command this accepts.
+ *
+ * **The payout settles here and now** (Entry XVIII), through `greatPersonActAt`,
+ * which reaches each bucket's own `settle…Windfall`. What comes back is the
+ * *triumphs* those settlements earned along the way — a technology that opened
+ * an era, a wonder a hurry finished — read as a diff of this seat's own
+ * append-only list (`triumphsAwarded`), which is why this handler needs no sink
+ * and the mechanism needed no parameter.
+ */
+function applyGreatPersonAct(
+  state: GameState,
+  command: GreatPersonActCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot spend a great person`);
+  }
+
+  const problem = greatPersonActError(state, actor.id, command.unitId);
+  if (problem) return fail(problem);
+
+  const mark = actor.triumphs.length;
+  greatPersonActAt(state, actor, unitById(state, command.unitId)!);
+  return ok(undefined, undefined, undefined, triumphsAwarded(actor, mark));
+}
+
+/**
+ * Plants a great person's work. See `GreatPersonWorkCommand`.
+ *
+ * `applyBuildImprovement`'s twin, question for question, with the improvement
+ * read off the roster rather than off the command — the ground's half is
+ * `improvementErrorAt`'s, the same function a worker's farm is held to.
+ */
+function applyGreatPersonWork(
+  state: GameState,
+  command: GreatPersonWorkCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot plant a work`);
+  }
+
+  const problem = greatPersonWorkError(state, actor.id, command.unitId);
+  if (problem) return fail(problem);
+
+  // Validation is done — `greatPersonWorkError` has established that the unit is
+  // this player's, that it is a great person, and that it is on the map.
+  const unit = unitById(state, command.unitId)!;
+  const tile = getTileAt(state.map, unit.col, unit.row)!;
+  greatPersonWorkAt(state, actor, unit, tile);
   return ok();
 }
 
@@ -1832,6 +2008,10 @@ function orderedUnitId(command: Command): number | undefined {
     // wakes like anybody else — even though the first of the two spends it.
     case 'consecrate':
     case 'performRite':
+    // A great person told to act or to plant is a piece given an order, so it
+    // wakes like anybody else — even though both verbs spend it.
+    case 'greatPersonAct':
+    case 'greatPersonWork':
       return command.unitId;
     case 'foundCity':
       return command.settlerUnitId;
@@ -1854,6 +2034,8 @@ function orderedUnitId(command: Command): number | undefined {
     // an order to anything standing on the board.
     case 'purchaseItem':
     case 'chooseBelief':
+    // Calling a name answers an offer; the piece it mints does not exist yet.
+    case 'chooseGreatPerson':
       return undefined;
     default: {
       const unhandled: never = kind;
@@ -1945,6 +2127,12 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyChooseBelief(state, command);
     case 'performRite':
       return applyPerformRite(state, command);
+    case 'chooseGreatPerson':
+      return applyChooseGreatPerson(state, command);
+    case 'greatPersonAct':
+      return applyGreatPersonAct(state, command);
+    case 'greatPersonWork':
+      return applyGreatPersonWork(state, command);
     default:
       return unhandledCommand(kind, type);
   }

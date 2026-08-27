@@ -13,7 +13,7 @@
   "improvements": {
     "farm": {
       "name": "Farm",
-      "emoji": "\ud83c\udf31",
+      "emoji": "🌱",
       "chargeCost": 1,
       "requiresTech": "agriculture",
       "yields": {
@@ -55,7 +55,7 @@
     },
     "mine": {
       "name": "Mine",
-      "emoji": "\u26cf\ufe0f",
+      "emoji": "⛏️",
       "chargeCost": 1,
       "requiresTech": "mining",
       "yields": {
@@ -88,7 +88,7 @@
     },
     "pasture": {
       "name": "Pasture",
-      "emoji": "\ud83d\udc11",
+      "emoji": "🐑",
       "chargeCost": 1,
       "requiresTech": "husbandry",
       "yields": {
@@ -110,7 +110,7 @@
     },
     "camp": {
       "name": "Camp",
-      "emoji": "\u26fa",
+      "emoji": "⛺",
       "chargeCost": 1,
       "requiresTech": "fletching",
       "yields": {
@@ -134,7 +134,7 @@
     },
     "quarry": {
       "name": "Quarry",
-      "emoji": "\ud83e\uddf1",
+      "emoji": "🧱",
       "chargeCost": 1,
       "requiresTech": "stonecraft",
       "yields": {
@@ -189,7 +189,7 @@
     },
     "plantation": {
       "name": "Plantation",
-      "emoji": "\ud83c\udf3f",
+      "emoji": "🌿",
       "chargeCost": 1,
       "requiresTech": "calendar",
       "yields": {
@@ -238,6 +238,140 @@
           }
         }
       ]
+    },
+    "academy": {
+      "name": "Academy",
+      "emoji": "📜",
+      "chargeCost": 1,
+      "greatPerson": "scholar",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0,
+        "science": 3
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "validFeatures": [
+        "none",
+        "forest",
+        "jungle",
+        "oasis",
+        "floodplain"
+      ],
+      "clearsClutter": true
+    },
+    "landmark": {
+      "name": "Landmark",
+      "emoji": "🗿",
+      "chargeCost": 1,
+      "greatPerson": "artist",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0,
+        "culture": 3
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "validFeatures": [
+        "none",
+        "forest",
+        "jungle",
+        "oasis",
+        "floodplain"
+      ],
+      "clearsClutter": true
+    },
+    "manufactory": {
+      "name": "Manufactory",
+      "emoji": "🏭",
+      "chargeCost": 1,
+      "greatPerson": "engineer",
+      "yields": {
+        "food": 0,
+        "production": 3,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "validFeatures": [
+        "none",
+        "forest",
+        "jungle",
+        "oasis",
+        "floodplain"
+      ],
+      "clearsClutter": true
+    },
+    "customsHouse": {
+      "name": "Customs House",
+      "emoji": "🏦",
+      "chargeCost": 1,
+      "greatPerson": "merchant",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 3
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "validFeatures": [
+        "none",
+        "forest",
+        "jungle",
+        "oasis",
+        "floodplain"
+      ],
+      "clearsClutter": true
+    },
+    "citadel": {
+      "name": "Citadel",
+      "emoji": "🛡️",
+      "chargeCost": 1,
+      "greatPerson": "general",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "validFeatures": [
+        "none",
+        "forest",
+        "jungle",
+        "oasis",
+        "floodplain"
+      ],
+      "clearsClutter": true,
+      "defense": 8,
+      "claimsNeighbours": true
     }
   }
 }

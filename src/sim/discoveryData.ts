@@ -151,17 +151,11 @@ export interface DiscoveryData {
    * keys, not the generator's.
    */
   retired: Record<string, string>;
-  /**
-   * How many options a claim offers. Three, per Entry XV's draft doctrine — the
-   * number that fights variance without turning a scout's reward into homework.
-   * A pool smaller than this offers whatever it has.
-   *
-   * **No longer read** (the offer-size pass, 2026-08-27): `rules.offers.discovery`
-   * is the base and `explainOfferSize` is the fold, so a card that widens every
-   * draft widens a ruin's too. Kept, and still validated, for the shape of the
-   * file.
-   */
-  offerSize: number;
+  // There is deliberately **no `offerSize`**. How many boons a claim deals is
+  // `rules.offers.discovery` folded by `explainOfferSize` (Entry XXXI), so a
+  // card that widens every draft widens a ruin's too; the number that sat here
+  // was dead the day that landed, and a dead number in a data file is a dial a
+  // designer will one day turn expecting something to happen.
   rows: Record<string, DiscoveryDef>;
 }
 
@@ -211,9 +205,8 @@ export function discoveryWeight(id: DiscoveryId, kind: DiscoveryKind): number {
  */
 export function discoveryDataProblems(): string[] {
   const problems: string[] = [];
-  const { placement, offerSize } = DISCOVERY_DATA;
+  const { placement } = DISCOVERY_DATA;
 
-  if (!(offerSize > 0)) problems.push(`offerSize is ${String(offerSize)}, which offers nothing`);
   if (placement.minDistanceApart < 1) {
     problems.push(`minDistanceApart is ${String(placement.minDistanceApart)}; two sites would stack`);
   }

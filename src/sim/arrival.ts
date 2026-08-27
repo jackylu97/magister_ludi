@@ -44,6 +44,7 @@ import {
   captureUnit,
   playerById,
 } from './state';
+import { awardOccasion } from './triumphs';
 import { isCivilian, unitDef } from './unitData';
 import { unitsOnTile } from './units';
 
@@ -112,6 +113,10 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
   if (!isWild && hasCampAt(state, tile.col, tile.row)) {
     removeCampAt(state, tile.col, tile.row);
     report.camp = settleCampBounty(state, unit.ownerId, { col: tile.col, row: tile.row });
+    // The Camp Burned. Beside the bounty rather than in the reducer, for the
+    // same reason the bounty itself is here: this is the one place a camp stops
+    // existing, and the wild is already excluded one line above.
+    awardOccasion(state, unit.ownerId, 'campCleared');
   }
 
   /**

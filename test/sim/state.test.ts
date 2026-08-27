@@ -12,6 +12,7 @@ import {
   cityById,
   clearTurnEnded,
   deriveGameplayRng,
+  emptyRenownFeed,
   hasEndedTurn,
   newGame,
   normalizeConfig,
@@ -93,6 +94,17 @@ describe('newGame', () => {
       // the augurs it has bought — `settlersBuilt`'s twin in a different bank.
       pantheon: newPlayerPantheon(),
       augursPurchased: 0,
+      // The fifth Entry XVIII bucket and its history (`docs/great-people.md`):
+      // an empty pool, a feed record with all five families at nothing, no
+      // legacies, no Triumphs and nobody recruited. All present from turn one
+      // for `statecraft`'s reason — they are facts about a player rather than
+      // states some of them are in — and the transient `greatPersonOffer` is
+      // absent, exactly as `pendingDiscovery` is.
+      renownPool: 0,
+      renownByFamily: emptyRenownFeed(),
+      legacies: [],
+      triumphs: [],
+      greatPeopleRecruited: 0,
     };
     expect(state.players).toEqual([
       { id: 0, name: 'Ada', color: '#e8503a', isHuman: true, ...pools },
@@ -382,6 +394,12 @@ describe('end-of-turn pipeline', () => {
       // The cadenced drafts — Keeper of the Calendar's almanac — beside the
       // phase they are the same shape as, one currency over.
       'religion',
+      // Buildings and wonders pay their renown trickle, standing Triumphs are
+      // claimed, and a filled ladder deals a great person — the same shape a
+      // fifth currency over, and after `advanceProduction` so a wonder finished
+      // this turn pays into the sweep that banks the library beside it. See
+      // `runRenown`.
+      'renown',
       'expandBorders',
       'healCities',
       // The wild acts after the towns and before the healing, so a raider that

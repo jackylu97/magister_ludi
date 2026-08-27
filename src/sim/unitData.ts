@@ -53,7 +53,8 @@ export type UnitTypeId =
   | 'knight'
   | 'longswordsman'
   | 'trebuchet'
-  | 'augur';
+  | 'augur'
+  | 'greatPerson';
 
 /**
  * Stacking is per category (see `rules.stacking.perCategoryPerTile`), which is
@@ -231,6 +232,24 @@ export interface UnitDef {
    * built generic — three instant acts in a box, and *which* acts is this flag.
    */
   consecrates?: boolean;
+  /**
+   * True when this unit's charges are a **great person's** — the act it is spent
+   * on and the work it plants — or the field is **absent** for everything that
+   * digs or prays.
+   *
+   * Presence is the marker, exactly as with `foundsCity`, `charges` and
+   * `consecrates`: nothing in `src/sim/` asks whether a type is
+   * `"greatPerson"`, so the great admiral that arrives with naval units is one
+   * data row. It is the third reading of one charge counter — three instant
+   * acts in a box, and *which* acts is this flag — and the rule it carries is
+   * symmetric: a `greatWork` piece may plant only a work, and a worker may
+   * plant nothing but ordinary improvements (`improvementErrorAt`).
+   *
+   * It is a fact about the **type**; *which* person a given piece is is
+   * `Unit.person`, a fact about the piece. Two fields because they answer two
+   * questions, and the family verb needs the second one.
+   */
+  greatWork?: boolean;
   /** What one costs to buy outright, or absent. See `UnitPurchaseSpec`. */
   purchase?: UnitPurchaseSpec;
   /**

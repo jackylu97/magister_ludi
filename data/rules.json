@@ -188,7 +188,24 @@
     "doctrine": 3,
     "belief": 3,
     "discovery": 3,
+    "greatPerson": 3,
     "max": 5
+  },
+  "renown": {
+    "first": 40,
+    "step": 25
+  },
+  "greatPeople": {
+    "scholarShare": 0.5,
+    "engineerHammers": 40,
+    "merchantGold": 60,
+    "artistCulture": 40,
+    "artistHappiness": 2,
+    "artistTurns": 10,
+    "generalRadius": 2,
+    "generalCombat": 3,
+    "generalTurns": 5,
+    "citadelClaimRadius": 1
   },
   "production": {
     "unitCostAgeMultiplier": [

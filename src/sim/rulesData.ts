@@ -546,6 +546,56 @@ export interface ProductionRules {
 }
 
 /**
+ * The renown ladder — the fifth Entry XVIII bucket (`docs/great-people.md`).
+ *
+ * Two numbers, and they are the settler ladder's shape one currency over: the
+ * first great person costs `first`, and every one an empire has already
+ * recruited puts `step` on the price. Escalating by *recruits* rather than by
+ * turns is what keeps a wide empire's faster trickle from becoming a faster
+ * *rate* of great people — it buys the same names sooner and then pays more for
+ * each, exactly as it does for settlers and for augurs.
+ */
+export interface RenownRules {
+  /** What the first great person costs. */
+  first: number;
+  /** What each one already recruited adds to the next one's price. */
+  step: number;
+}
+
+/**
+ * What a great person's **act** pays, per family.
+ *
+ * Every figure is an Entry XVIII.5 printed number: it is paid through the seam
+ * its bucket already has (`settle…Windfall`), unmodified by city percentages,
+ * meter tiers or Entry XVII staging. Two of them are quoted in the money of the
+ * era they are paid in (`highestAge`), which is `windfallRider.perAge`'s rule
+ * applied to a payout with no card behind it — a hurry that was worth a granary
+ * in Æra I should still be worth something in Æra III.
+ */
+export interface GreatPeopleRules {
+  /** Share of the *current technology's* cost a scholar's act pays, 0–1. */
+  scholarShare: number;
+  /** Hammers an engineer's act pays, **multiplied by the empire's era**. */
+  engineerHammers: number;
+  /** Gold a merchant's act pays, **multiplied by the empire's era**. */
+  merchantGold: number;
+  /** Culture an artist's act pays into the draft basket. */
+  artistCulture: number;
+  /** Happiness an artist's act hangs on the town. */
+  artistHappiness: number;
+  /** How many turns that happiness lasts. */
+  artistTurns: number;
+  /** How far a general's act reaches, in hexes. */
+  generalRadius: number;
+  /** Strength a general's act hangs on every piece in reach. */
+  generalCombat: number;
+  /** How many turns that strength lasts. */
+  generalTurns: number;
+  /** How far a citadel claims ground around itself, in hexes. */
+  citadelClaimRadius: number;
+}
+
+/**
  * How many cards each kind of offer deals, before any card widens it.
  *
  * **One block for four drafts**, and it is here rather than three cards deep in
@@ -572,6 +622,15 @@ export interface OfferRules {
   /** The boons a claimed ruin or village deals. */
   discovery: number;
   /**
+   * The names a filled renown bucket deals (`docs/great-people.md`).
+   *
+   * The fifth kind, and the one this block was widened for: it is a key here, a
+   * member of `OfferKind` (`statecraft.ts`) and a member of `OfferRiderScope`
+   * (`statecraftData.ts`), and there is no third place — every rider that says
+   * `'all'` widened it the day it existed without anybody revisiting a card.
+   */
+  greatPerson: number;
+  /**
    * The most cards any one offer may hold, however many riders are live.
    *
    * A cap rather than a balance decision left to the card table: five tarot
@@ -596,6 +655,8 @@ export interface RulesConfig {
   meters: MeterRules;
   research: ResearchRules;
   offers: OfferRules;
+  renown: RenownRules;
+  greatPeople: GreatPeopleRules;
   production: ProductionRules;
   /** Unit types every player receives at their start position, in order. */
   startingUnits: UnitTypeId[];

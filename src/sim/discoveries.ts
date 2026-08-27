@@ -87,6 +87,7 @@ import {
   playerById,
 } from './state';
 import { researchSettledBy, settleResearchWindfall } from './tech';
+import { awardOccasion } from './triumphs';
 import { type UnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
 
@@ -211,6 +212,11 @@ export function claimDiscoveryAt(state: GameState, unit: Unit, tile: Tile): Disc
     options: drawDiscoveryOffer(state, kind, offerSize(state, player.id, 'discovery')),
   };
   player.pendingDiscovery = offer;
+  // A Ruin Read. **After** the offer is stored, and the ordering matters: a
+  // triumph pays renown, renown can fill the ladder, and the great-person offer
+  // that opens is a *second* decision this empire now owes the game — one that
+  // must not be dealt into a half-written claim.
+  awardOccasion(state, player.id, 'discoveryClaimed');
   return offer;
 }
 

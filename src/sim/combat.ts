@@ -158,6 +158,8 @@ import {
 import { defenseBonus } from './terrainData';
 import { isVisibleTo, recomputeVisibilityFor } from './visibility';
 import { isCivilian, isCombatant, isRanged, unitDef } from './unitData';
+import { improvementDef } from './improvementData';
+import { awardOccasion } from './triumphs';
 import { hasStackingRoom, unitsOnTile } from './units';
 import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
 
@@ -649,6 +651,28 @@ function planCombat(
       bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
     }
   }
+  /**
+   * **The ground's own works.** A citadel is the one improvement that is worth
+   * something to whoever stands on it (`ImprovementDef.defense`), and it joins
+   * as one more labelled line on the defender's side rather than as a term in
+   * the multiplier — for `CombatBonusLine`'s stated reason: a fact about the
+   * *hex* that is not the terrain must not scale with the terrain, and a
+   * forecast that said "+8" with no reason beside it is what a breakdown exists
+   * to prevent.
+   *
+   * It pays whoever is defending the hex, not whoever built it. That is the
+   * Civ rule and the honest one — a captured citadel is a captured fort.
+   */
+  if (tile.improvement !== undefined) {
+    const fortification = improvementDef(tile.improvement).defense ?? 0;
+    if (fortification !== 0) {
+      bonuses.push({
+        source: improvementDef(tile.improvement).name.toLowerCase(),
+        side: 'defender',
+        amount: fortification,
+      });
+    }
+  }
 
   const bonusFor = (side: 'attacker' | 'defender'): number => {
     let total = 0;
@@ -1091,6 +1115,20 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     }
   }
 
+  // Against the Odds: the attacker is still standing, the thing it went at is
+  // not, and the forecast said the other side was the stronger. Asked of
+  // `forecast` — the *same* two numbers the card showed the player before they
+  // committed — rather than of a second arithmetic, which is the whole reason
+  // `planCombat` is a plan: what the triumph rewards is beating the odds the
+  // player was shown.
+  if (
+    outcome.attackerSurvived &&
+    defenderDied &&
+    forecast.defenderStrength > forecast.attackerStrength
+  ) {
+    awardOccasion(state, attacker.ownerId, 'battleWonAgainstStronger');
+  }
+
   updateElimination(state);
   // 6 — everybody's map. A fight moves eyes in more ways than a march does: a
   // piece died (its owner sees less), a civilian or a town changed hands (two
@@ -1174,6 +1212,10 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   city.hammerBasket = 0;
   city.lockedTiles = [];
   assignCitizens(state, city);
+  // The Taken. In the mechanism beside the change of hands, for
+  // `awardFoundingTriumphs`' reason: capturing a town is one thing that happens
+  // in one place, and an AI that storms a city earns what a player would.
+  awardOccasion(state, ownerId, 'cityCaptured');
 }
 
 /** "Warrior attacks Archer: 34 − 12" — one line, for the notice and the log. */

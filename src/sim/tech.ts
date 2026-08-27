@@ -106,10 +106,12 @@ import {
   type TechId,
   PROJECT_UNLOCK_TECH,
   UNIT_UNLOCK_TECH,
+  highestAge,
   isTechId,
   techDef,
   techsGrant,
 } from './techData';
+import { awardOccasion } from './triumphs';
 import { isProjectId, projectDef } from './projectData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 
@@ -262,6 +264,16 @@ export function buildError(
   if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).purchase?.exclusive === true) {
     const spec = unitDef(id).purchase!;
     return `${itemName(kind, id)}s are not built — they are bought with ${spec.currency}`;
+  }
+  // And some things are **neither built nor bought**: a great person is
+  // *recruited*, by a renown bucket that filled and an offer that was answered
+  // (`docs/great-people.md`). Refused here — and in `purchaseError`, for the same
+  // sentence — because the row has no `purchase` block and would otherwise be
+  // sold by the treasury at `goldPerHammer × 0`, which is to say given away.
+  // Asked of `UnitDef.greatWork`, so nothing here compares a type against
+  // `"greatPerson"`, exactly as nothing compares against `"augur"`.
+  if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).greatWork === true) {
+    return `${itemName(kind, id)}s are neither built nor bought — they are called`;
   }
   // The two wonder clauses, after the technology and before the resource, in the
   // order a player needs to hear them: a wonder that already stands somewhere is
@@ -498,9 +510,18 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   const plan = planResearch(player);
   if (!plan) return null;
 
+  // The era **before** the node lands, so "did this technology open a new age"
+  // is a comparison rather than a flag anybody has to maintain. It is the whole
+  // of First Light of the Æra, and it is asked here — inside the one research
+  // completion routine — so a boon that finished the tech earns it exactly as a
+  // turn's beakers would.
+  const eraBefore = highestAge(player.techsResearched);
   player.sciencePool -= plan.cost;
   player.researching = null;
   player.techsResearched.push(plan.techId);
+  if (highestAge(player.techsResearched) > eraBefore) {
+    awardOccasion(state, player.id, 'ageEntered');
+  }
   upgradeUnits(state, player);
   // The Lyceum's fifteen. Inside the one completion routine (Entry XVIII.1), so
   // a technology finished by star tablets pays the same verse as one finished by

@@ -327,6 +327,9 @@ describe('the roster is priced in the money of its own age', () => {
     const band = RULES.production.unitCostAgeMultiplier;
     expect(band[0]).toBe(1);
     for (const id of UNIT_TYPE_IDS) {
+      // A great person is neither built nor bought, so it is not priced in
+      // hammers at all — see `tech.test.ts`'s reading of the same exception.
+      if (unitDef(id).greatWork === true) continue;
       const gate = UNIT_UNLOCK_TECH.get(id);
       // Every unit in the roster is gated; an ungated one would take band 1.
       expect(gate, id).toBeDefined();

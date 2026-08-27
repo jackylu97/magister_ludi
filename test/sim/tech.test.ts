@@ -83,7 +83,11 @@ function plant(state: GameState, ownerId: number, col: number, row: number): Cit
 
 function endRound(state: GameState): void {
   for (const player of state.players) {
-    expect(applyCommand(state, { type: 'endTurn', playerId: player.id })).toEqual({ ok: true });
+    // `ok: true` and nothing more is asserted, rather than the whole result: a
+    // resolution now reports what it *did* (`TurnReport` — the wild's blows, a
+    // wonder claimed, a Triumph earned), and a helper that pinned the shape
+    // would fail every time the pipeline learnt to say something new.
+    expect(applyCommand(state, { type: 'endTurn', playerId: player.id }).ok).toBe(true);
   }
 }
 
@@ -143,7 +147,15 @@ describe('tech data integrity', () => {
   });
 
   it('reaches every unit and every building in the game', () => {
-    for (const id of UNIT_TYPE_IDS) expect(UNIT_UNLOCK_TECH.has(id), id).toBe(true);
+    for (const id of UNIT_TYPE_IDS) {
+      // **One exception, and it is a rule rather than a hole**: a great person
+      // is neither built nor bought (`UnitDef.greatWork`), so there is nothing
+      // for a technology to unlock. `buildError` and `purchaseError` both refuse
+      // the row outright, which is what keeps an ungated type — `isUnlocked`
+      // answers `true` for one — off every roster.
+      if (unitDef(id).greatWork === true) continue;
+      expect(UNIT_UNLOCK_TECH.has(id), id).toBe(true);
+    }
     for (const id of BUILDING_IDS) expect(BUILDING_UNLOCK_TECH.has(id), id).toBe(true);
   });
 
@@ -828,8 +840,8 @@ describe('glanceable numbers', () => {
 // ---------------------------------------------------------------------------
 
 describe('research in the log', () => {
-  it('round-trips a schema 20 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(20);
+  it('round-trips a schema 21 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(21);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

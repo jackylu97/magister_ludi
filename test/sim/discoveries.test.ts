@@ -210,8 +210,8 @@ describe('claiming', () => {
     const offer = claimDiscoveryAt(state, warrior, tile);
     expect(offer).not.toBeNull();
     expect(tile.discovery).toBeUndefined();
-    expect(offer!.options).toHaveLength(DISCOVERY_DATA.offerSize);
-    expect(new Set(offer!.options).size).toBe(DISCOVERY_DATA.offerSize);
+    expect(offer!.options).toHaveLength(RULES.offers.discovery);
+    expect(new Set(offer!.options).size).toBe(RULES.offers.discovery);
     expect(playerById(state, 0)!.pendingDiscovery).toEqual(offer);
     // The site is carried on the offer, because a free unit stands *there* and
     // the nearest city is nearest *to there* — neither may be read off a unit

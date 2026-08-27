@@ -310,6 +310,15 @@ export function purchaseError(
   if (bought.kind === 'building' && isWonder(bought.id)) {
     return `${name} is a wonder — it must be built, not bought`;
   }
+  // **A great person is never for sale either**, and for the wonder's reason
+  // exactly: the row carries no `purchase` spec, so gold's ordinary gates below
+  // would sell one at `goldPerHammer × 0` — which is to say give it away. It is
+  // *called*, by a renown bucket that filled (`docs/great-people.md`), and the
+  // matching refusal is in `buildError`. Asked of `UnitDef.greatWork`, so
+  // nothing here compares a type against a string.
+  if (bought.kind === 'unit' && unitDef(bought.id).greatWork === true) {
+    return `A ${name} is called, not bought`;
+  }
 
   const bank = rosterBank(bought);
   if (bank !== undefined && bank !== currency) {

@@ -288,6 +288,22 @@
       "minCityPop": 0,
       "modelClass": "worker",
       "glyph": "A"
+    },
+    "greatPerson": {
+      "name": "Great Person",
+      "category": "civilian",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 0,
+      "cost": 0,
+      "charges": 1,
+      "greatWork": true,
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "settler",
+      "glyph": "G"
     }
   }
 }
