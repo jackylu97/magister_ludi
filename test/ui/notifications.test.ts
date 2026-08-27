@@ -179,6 +179,8 @@ describe('a notification action', () => {
         return `pan to ${action.cell.col},${action.cell.row}`;
       case 'openStatecraft':
         return 'open Statecraft';
+      case 'openGreatPerson':
+        return 'open the great person offer';
       default: {
         const unhandled: never = kind;
         return unhandled;
@@ -194,6 +196,11 @@ describe('a notification action', () => {
   it('is also an openStatecraft, which carries no cell', () => {
     const action: NotificationAction = { kind: 'openStatecraft' };
     expect(describeKind(action)).toBe('open Statecraft');
+  });
+
+  it('is also an openGreatPerson, which carries no cell either', () => {
+    const action: NotificationAction = { kind: 'openGreatPerson' };
+    expect(describeKind(action)).toBe('open the great person offer');
   });
 
   describe('isActionable', () => {

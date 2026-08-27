@@ -40,7 +40,7 @@ import type { ImprovementId } from '../sim/improvementData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
 import { isAugur } from '../sim/religion';
 import type { RiteId } from '../sim/religionData';
-import type { RiteOption } from './controls';
+import type { GreatPersonView, RiteOption } from './controls';
 import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
 import { explainAuthority, meterStanding } from '../sim/meters';
@@ -224,6 +224,19 @@ export interface UnitPanelOptions {
    */
   riteOptions: () => RiteOption[];
   onPerformRite: (id: RiteId) => void;
+  /**
+   * Who the selected piece is, if it is a great person, and what its two verbs
+   * would do — `controls.greatPersonView()`, or `null` for every other piece.
+   *
+   * **One object rather than the six accessors** every other verb on this sheet
+   * takes, and the exception is the sheet's own doing: a great person changes
+   * the *header* as well as the actions list — the name, the family, the
+   * epigram — so this panel is answering one question about who is selected
+   * rather than six about what the ground allows.
+   */
+  greatPerson: () => GreatPersonView | null;
+  onGreatPersonAct: () => void;
+  onGreatPersonWork: () => void;
   /** Drops the selection — the × button and, through `controls`, Escape. */
   onClose: () => void;
 }
@@ -298,6 +311,9 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onConsecrate,
     riteOptions,
     onPerformRite,
+    greatPerson,
+    onGreatPersonAct,
+    onGreatPersonWork,
     onClose,
   } = options;
 
@@ -358,6 +374,31 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
   }
 
   /**
+   * A great person's verb, as the hover card says it: what it does, why it
+   * cannot be done, and the legacy that attaches whichever way you choose.
+   *
+   * The legacy is on **both** cards on purpose. It is the half of a recruit that
+   * does not depend on the decision — *they served you; their legacy remains* —
+   * so a player weighing burst against ground should see it twice and stop
+   * weighing it. A `deferred` clause is marked in the words, because a `title`
+   * attribute is text the platform draws and cannot be struck through the way
+   * the card that dealt this name struck it.
+   */
+  function verbTitle(
+    view: GreatPersonView,
+    verb: { blocked: string | null; preview: string },
+    when: 'now' | 'forever',
+  ): string {
+    const lines = [
+      verb.blocked ?? `${view.name} · ${when} — ${verb.preview}`,
+    ];
+    for (const clause of view.legacy) {
+      lines.push(`Legacy: ${clause.text}${clause.deferred ? ' (not built yet)' : ''}`);
+    }
+    return lines.join('\n');
+  }
+
+  /**
    * What this unit can do. One entry per verb, in the order they are offered.
    *
    * Founding is only listed for units that could ever found — `foundsCity` in
@@ -366,6 +407,9 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    */
   function actionsFor(unit: Unit): UnitAction[] {
     const actions: UnitAction[] = [];
+    // Read once, at the top, because it decides two things: whether the two
+    // verbs are offered at all, and whether the *builder's* rows are.
+    const person = greatPerson();
     if (unitDef(unit.type).foundsCity) {
       // `undefined` means "no unit selected", which cannot happen while a unit
       // is being rendered — but it is a different value from `null` ("no
@@ -444,7 +488,13 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // so a charge is spent against a number rather than against a hope — and a
     // greyed row carries it too, because "the mine here would be worth 2⚙" is
     // precisely the argument for going and researching Mining.
-    if (isBuilder(unit)) {
+    // `isBuilder` is "this piece has charges", and a great person is the first
+    // piece in the game that has them without being a worker. Its charge buys an
+    // act or a work, not spadework, so the six improvement rows and the axe are
+    // not its verbs — an "Act · Work · Chop" sheet would be offering a third
+    // thing the roster has never heard of. The augur is excused the same way by
+    // *not* being a builder at all; this one has to say so.
+    if (isBuilder(unit) && !person) {
       for (const option of improvementOptions()) {
         const delta = yieldDeltaNodes(option.delta);
         let label: string | DocumentFragment = option.name;
@@ -519,6 +569,35 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         });
       }
     }
+    // The great person's two verbs, and they are **two** rather than a list for
+    // the reason the augur's Consecrate is one: the family decides *which* act
+    // and *which* work (`greatPersonActAt`, `workOf`), so the player is choosing
+    // between the burst and the ground rather than between five gifts. That
+    // choice is the whole of what a recruit puts to you (`docs/great-people.md`)
+    // — which is why both rows carry the number they would pay and the town or
+    // the hex it would land on, and why neither is ever hidden: "your nearest
+    // city is three hexes away" is a fact about where the piece is standing this
+    // turn, not a verb it will never have.
+    //
+    // The labels are the two words and nothing else. The simulation names no
+    // verb per family, and inventing five ("Discourse", "Compose", "Survey"…)
+    // would be the interface teaching a vocabulary the rules do not have.
+    if (person) {
+      actions.push({
+        label: 'Act',
+        blocked: person.act.blocked,
+        hint: `Spend ${person.name} now — ${person.act.preview}`,
+        title: verbTitle(person, person.act, 'now'),
+        run: onGreatPersonAct,
+      });
+      actions.push({
+        label: 'Work',
+        blocked: person.work.blocked,
+        hint: `Spend ${person.name} here, forever — ${person.work.preview}`,
+        title: verbTitle(person, person.work, 'forever'),
+        run: onGreatPersonWork,
+      });
+    }
     // Pillage is offered to anything that can fight, and merely *disabled* when
     // there is nothing here to burn — Fortify's reading rather than the
     // improvements' one, because "there is nothing to pillage" is a fact about
@@ -586,10 +665,25 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // "your colour" — but it is read from the unit, not assumed.
     container.style.setProperty('--unit-color', owner?.color ?? 'var(--ink)');
 
+    // A great person is the one piece on the board whose *name* is the thing
+    // worth printing: every other sheet is headed by a type ("Warrior",
+    // "Settler") because one warrior is every warrior, and there is exactly one
+    // Archimedes in the world (`state.recruited`). So the roster's name takes
+    // the heading and the family takes the line under it, where the owner's name
+    // sits for everybody else — the family being what decides both verbs, and
+    // therefore the one fact about the piece a player has to read before
+    // pressing anything.
+    const person = greatPerson();
     const header = element('div', 'unit-header');
     const title = element('div', 'unit-title');
-    title.append(element('h2', undefined, def.name));
-    title.append(element('span', 'unit-owner', owner?.name ?? 'Unowned'));
+    title.append(element('h2', undefined, person ? person.name : def.name));
+    title.append(
+      element(
+        'span',
+        'unit-owner',
+        person ? `${person.family} · ${owner?.name ?? 'Unowned'}` : owner?.name ?? 'Unowned',
+      ),
+    );
     header.append(title);
 
     const close = element('button', 'city-close', '×');
@@ -617,9 +711,12 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       // type's name). One line rather than two blocks, because it is one number
       // — the scarcest thing about either piece.
       const rites = isAugur(unit);
-      stats.append(
-        stat(rites ? 'Rites' : 'Charges', `${rites ? '✧' : '⚒'} ${left}/${def.charges ?? left}`, left <= 1),
-      );
+      // The same field, three vocabularies now: a worker's charges are
+      // spadework, an augur's are rites, and a great person's is the *one* thing
+      // they are — spent on the act or on the work, and then the piece is gone.
+      const label = person ? 'Service' : rites ? 'Rites' : 'Charges';
+      const mark = person ? '✦' : rites ? '✧' : '⚒';
+      stats.append(stat(label, `${mark} ${left}/${def.charges ?? left}`, left <= 1));
     }
     // The fighting numbers, and only for things that fight: a settler's sheet
     // does not carry a strength of zero, which would read as a statistic rather
@@ -631,6 +728,14 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       }
     }
     container.append(stats);
+
+    // The epigram: one line, the roster's own, in the display italic the offer
+    // card set it in. It is *flavour* and it is here anyway, because it is the
+    // only thing on this sheet that says who the piece was — and a player who
+    // took Archimedes over Hypatia three turns ago has forgotten which is which.
+    if (person) {
+      container.append(element('p', 'unit-epigram', person.epigram));
+    }
 
     // The standing states a player has to know before ordering anything.
     // Fortification first: it is the one they chose.

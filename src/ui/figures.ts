@@ -185,9 +185,19 @@ export function figure(value: number): string {
  * per-turn rate — the number every other yield chip shows on its own — comes
  * after it, in the signed voice, because "how am I doing" is still worth
  * answering in the same glance.
+ *
+ * **"24/40 (+3)" is the same grammar with a rung on it.** A pool that is filling
+ * toward a *threshold* — renown against the great-person ladder — reads as the
+ * pool over what it is climbing to, and then the rate, because "how close am I"
+ * is one question and not two. It is an optional argument rather than a second
+ * function for the reason `BANKED` is a table rather than a pair of `===`
+ * tests: the two would drift on the spacing, the parens or the minus sign the
+ * first time either was touched, and the whole point of this file is that a
+ * figure is written one way everywhere it appears.
  */
-export function poolFigure(pool: number, perTurn: number): string {
-  return `${figure(pool)} (${signedFigure(perTurn)})`;
+export function poolFigure(pool: number, perTurn: number, threshold?: number): string {
+  const head = threshold === undefined ? figure(pool) : `${figure(pool)}/${figure(threshold)}`;
+  return `${head} (${signedFigure(perTurn)})`;
 }
 
 /** "+10%", "−50%" — a percentage, same minus sign. */

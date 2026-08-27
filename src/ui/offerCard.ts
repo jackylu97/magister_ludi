@@ -107,11 +107,39 @@ export interface OfferOption {
    */
   note?: string;
   /**
+   * The same, as **separate clauses** — one line each, and each able to say that
+   * it is a promise the game has not made.
+   *
+   * `note` joins a card's clauses with a middle dot, which is right for three
+   * short ones and wrong the moment one of them is *declared and not built*: a
+   * struck-through half inside a joined string cannot be struck through at all,
+   * and the card would be quietly claiming a rule it does not have. So a caller
+   * with a `deferred` half hands over the list and the card rules each line on
+   * its own.
+   *
+   * Strings, like everything else that crosses this boundary — the caller has
+   * already turned a `CardClause` into text and a flag, and this component still
+   * knows nothing about cards. `note` and `notes` are not exclusive; nothing
+   * uses both today.
+   */
+  notes?: readonly { text: string; deferred?: boolean }[];
+  /**
    * Why this payoff would be wasted, or absent. An empire with no cities has
    * nowhere to put a lump of food, and a card that quietly paid it nowhere
    * would be the interface keeping a secret.
    */
   warning?: string;
+  /**
+   * A last small line under the flavour: what this name actually was.
+   *
+   * The great-person card's kernel — "vizier, physician, the first architect
+   * with a name" — and the register is Entry III's: the flavour is what the
+   * person *said*, the footnote is why anybody remembers them. Set below the
+   * flavour rather than inside it because they are two different voices, and a
+   * card that ran them together would be putting an encyclopaedia entry in
+   * italics.
+   */
+  footnote?: string;
   /**
    * The accent key this card is drawn in, reaching the DOM as `data-line` and
    * resolved to ink by one block of `style.css`. A **string**, not a `CardLine`:
@@ -620,10 +648,30 @@ export function createOfferCard(container: HTMLElement): OfferCard {
       } else if (option.note !== undefined) {
         button.append(element('span', 'offer-note', option.note));
       }
+      // The clause list, when the caller had one to give: a line each, and the
+      // ones the game has not built greyed and struck through rather than
+      // silently printed as promises. Same class the Statecraft screen's card
+      // faces use, so a clause reads identically wherever it appears.
+      if (option.notes !== undefined && option.notes.length > 0) {
+        const list = element('span', 'offer-clauses');
+        for (const clause of option.notes) {
+          const line = element(
+            'span',
+            clause.deferred ? 'offer-clause is-deferred' : 'offer-clause',
+            clause.text,
+          );
+          if (clause.deferred) line.title = 'Declared, and not built yet';
+          list.append(line);
+        }
+        button.append(list);
+      }
       if (option.warning !== undefined) {
         button.append(element('span', 'offer-warning', option.warning));
       }
       button.append(element('span', 'offer-flavor', option.flavor));
+      if (option.footnote !== undefined) {
+        button.append(element('span', 'offer-footnote', option.footnote));
+      }
       // The back goes on last, so it is the last child and covers the face.
       // Only a deck's cards get one — see `dealing` — and the delay is the
       // card's own place in the row, so a hand is turned over rather than

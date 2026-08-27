@@ -7547,3 +7547,117 @@ kbd {
 .city-buildable:disabled .city-buildable-eyebrow {
   color: var(--ink-faint);
 }
+
+/* --- renown, great people and their Triumphs -----------------------------
+   The fifth Entry XVIII bucket (`docs/great-people.md`) and the two surfaces it
+   reaches: the chip at the end of the yield strip, and the checklist inside its
+   hover card. */
+
+/* The renown chip wears the strip's gilt — the same voice gold does — because
+   renown and money are the two things on that row an empire *banks* rather than
+   only earns, and a sixth colour on a strip of six would be a new voice for a
+   thing that is not a new kind of number. It is told apart by its drawing (a
+   laurel, `src/art/meterMarks.ts`) and by its position past the hairline of the
+   yields, not by a hue nobody could name. */
+.civ-yield.is-renown .civ-yield-value,
+.civ-yield.is-renown .civ-yield-icon {
+  color: var(--y-gold-lit);
+}
+
+/* A name is waiting to be called. The chip's only state, and it is the quiet
+   good ink rather than the alarm vermilion — which stays reserved for a meter
+   in deficit, so a player never learns to flinch at good news. */
+.civ-yield.is-renown.is-good .civ-yield-value {
+  text-shadow: 0 0 10px rgba(236, 193, 84, 0.75);
+}
+
+/* The checklist's heading: the inscription voice the panels already use, ruled
+   off from the ledger above it because it is a second, independent list rather
+   than more summands of the total. */
+.renown-heading {
+  margin: 12px 0 4px;
+  padding-top: 8px;
+  /* A hairline, the ledger's own rule ink — not `--border-thin`, which is the
+     2px a *frame* is drawn at. This separates two lists; it does not box one. */
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+}
+
+/* Seventeen rows is a long card, so the board scrolls inside itself rather than
+   growing the hover card past the window. The ledger's own rules survive it. */
+.renown-triumphs {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* Already had: struck through, the way a spent thing is struck through
+   everywhere else in this interface (`.sc-clause-deferred`). It is a *record*,
+   so it keeps the ledger's ink and only loses its weight. */
+.renown-triumphs .meter-line.is-earned {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+}
+
+/* Declared and not built: fainter still, and **not** struck through — a strike
+   would be claiming the empire had it. The row is there so the promise the game
+   has not made is said out loud rather than quietly left off the list. */
+.renown-triumphs .meter-line.is-unbuilt {
+  opacity: 0.45;
+  font-style: italic;
+}
+
+/* A great person's own line on the unit sheet: the roster's epigram, in the
+   display italic the offer card set it in and at the floor the project's type
+   rule sets for a serif. It is flavour and it is the only thing on the sheet
+   that says who the piece *was*. */
+.unit-epigram {
+  margin: 10px 0 0;
+  font-family: var(--face-display);
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+/* --- an offer card's clause list and its footnote ------------------------
+   A card whose rule is several sentences, one of which the game has not built.
+   `.offer-note` joins clauses with a middle dot, which cannot strike one of them
+   through; this is the same content ruled line by line. */
+.offer-clauses {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.offer-clause {
+  font-family: var(--face-ui);
+  font-size: calc(0.8rem * var(--offer-scale, 1));
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+/* The same two-tier greying the Statecraft collection uses, so a deferred half
+   reads identically on the card that dealt the name and in the ledger after. */
+.offer-clause.is-deferred {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+}
+
+/* The kernel: why anybody remembers this name. Under the flavour and quieter
+   than it, because they are two voices — what the person said, and what they
+   did. Mono, like every other note this interface sets small. */
+.offer-footnote {
+  font-family: var(--face-num);
+  font-size: calc(0.62rem * var(--offer-scale, 1));
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+}
+
+/* On a tarot face the footnote rides *under* the flavour rule, which is already
+   pinned to the foot by `margin-top: auto` — so it needs no margin of its own,
+   only a hair of air. */
+.offer-options[data-face='tarot'] .offer-footnote {
+  padding-top: calc(4px * var(--offer-scale, 1));
+}

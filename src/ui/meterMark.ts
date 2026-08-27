@@ -30,7 +30,7 @@
  * draws.
  */
 
-import { meterMarkDataUri } from '../art/meterMarks';
+import { meterMarkDataUri, renownMarkDataUri } from '../art/meterMarks';
 import type { MeterId } from '../sim/meters';
 
 /**
@@ -49,5 +49,26 @@ export function meterMarkNode(key: MeterId): HTMLSpanElement {
   // keeps ownership of the vendor-prefixed pair and this only supplies the
   // picture — the same split `.res-mark`/`.yield-mark` use.
   span.style.setProperty('--meter-mark', `url("${meterMarkDataUri(key)}")`);
+  return span;
+}
+
+/**
+ * The laurel — **renown**, the fifth Entry XVIII bucket — as the same kind of
+ * span.
+ *
+ * It is here rather than in `yieldMark.ts` for the reason the drawing is in
+ * `meterMarks.ts`: renown is not a yield (no citizen works a tile for it, no
+ * city banks it, it is never drawn on the board), so it has no place in the
+ * six-voice table and nothing composes it into a sentence the way `40⚙` is
+ * composed. It sits alone on a chip beside a figure, which is exactly what the
+ * two meter marks do, so it wears their class and their mechanism.
+ *
+ * `aria-hidden` for `meterMarkNode`'s reason: the chip says "renown" in words.
+ */
+export function renownMarkNode(): HTMLSpanElement {
+  const span = document.createElement('span');
+  span.setAttribute('aria-hidden', 'true');
+  span.className = 'meter-mark';
+  span.style.setProperty('--meter-mark', `url("${renownMarkDataUri()}")`);
   return span;
 }

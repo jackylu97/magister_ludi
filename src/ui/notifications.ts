@@ -53,8 +53,18 @@ import type { CellRef } from './mapView';
  * ever deals appears — see `showStatecraftOffer`'s caller in `main.ts` — so a
  * player who has never opened the screen is handed the door to it rather than
  * only a badge on a chip they have not learned to read yet.
+ *
+ * `openGreatPerson` is the third, and it is `openStatecraft`'s twin one bucket
+ * over (`docs/great-people.md`): it carries no cell for that member's reason
+ * exactly — a name is offered to the *empire*, not to a hex, which is why the
+ * `greatPerson` turn blocker takes no camera move either. It exists so the line
+ * that says a great person is waiting is a line the player can *press*, rather
+ * than a sentence pointing at a chip and a keyboard shortcut nobody has learned.
  */
-export type NotificationAction = { kind: 'pan'; cell: CellRef } | { kind: 'openStatecraft' };
+export type NotificationAction =
+  | { kind: 'pan'; cell: CellRef }
+  | { kind: 'openStatecraft' }
+  | { kind: 'openGreatPerson' };
 
 /**
  * One thing that happened, as the player is told it.

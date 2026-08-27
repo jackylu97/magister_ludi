@@ -82,9 +82,13 @@ import {
   signedFigure,
 } from './figures';
 import { nextDraftCost, statecraftBlocker } from '../sim/statecraft';
+import { greatPersonBlocker } from '../sim/greatPeople';
+import { explainRenown, foldRenown, renownPerTurn, renownThreshold } from '../sim/renown';
+import { TRIUMPH_IDS, type TriumphScope, triumphDef } from '../sim/triumphData';
+import { highestAge } from '../sim/techData';
 import { createInfoCard } from './infoCard';
 import { meterGroups } from './meterBreakdown';
-import { meterMarkNode } from './meterMark';
+import { meterMarkNode, renownMarkNode } from './meterMark';
 import { type Popover, createPopover } from './popover';
 import { yieldMarkNode } from './yieldMark';
 
@@ -180,6 +184,35 @@ const BANKED: Partial<
 const METER_GLYPH: Record<MeterId, string> = {
   happiness: '☺',
   authority: '⚜',
+};
+
+/**
+ * Renown as **text**, the register `METER_GLYPH` and `YIELD_GLYPH` keep for
+ * everything else the interface draws.
+ *
+ * A four-pointed star rather than a laurel character, and the choice is the
+ * project's emoji rule read carefully: `🏆`/`🎖` are emoji and the text register
+ * forbids them, `❦` is a printer's fleuron nothing in this game means, and there
+ * is no laurel in any font this interface can count on. `✦` is what the specimen
+ * already uses for a mark of standing, it survives in a `title` attribute and in
+ * a screen reader, and the *drawing* — the wreath a player actually sees — is
+ * `renownMarkNode` (`src/art/meterMarks.ts`).
+ */
+const RENOWN_GLYPH = '✦';
+
+/**
+ * How often a triumph may be earned, in the words the checklist prints.
+ *
+ * The interface's half of `TriumphScope`, and it is a table for `CARD_LINE_NAME`'s
+ * reason: the same four words are read on the hover and nowhere else, and a
+ * `switch` inlined into the row builder is where a fifth scope would silently
+ * print nothing. Exhaustive over the union, so a fifth stops this file compiling.
+ */
+const TRIUMPH_SCOPE_WORD: Record<TriumphScope, string> = {
+  once: 'once',
+  perAge: 'each age',
+  contested: 'first in the world',
+  perEvent: 'every time',
 };
 
 function element<K extends keyof HTMLElementTagNameMap>(
@@ -403,6 +436,141 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         box.append(element('p', 'hint hint-alert', '☞ a charter is ready to be sworn — press C.'));
       }
     }
+    return box;
+  }
+
+  // --- renown ---------------------------------------------------------------
+
+  /**
+   * The renown chip: the fifth Entry XVIII bucket, beside the culture that fills
+   * the fourth.
+   *
+   * It sits at the end of the yield strip rather than with the two meters, and
+   * that is a reading rather than a layout: a meter is a *standing* (how the
+   * empire feels, what its writ will bear) and renown is a **pool filling toward
+   * a threshold**, which is exactly what the culture beside it is. So it wears
+   * the yield chip's dress and the `poolFigure` grammar, with the rung on it —
+   * `24/40 (+3)` is "twenty-four of the forty this great person costs, and three
+   * a turn".
+   *
+   * The pool, the ladder and the rate all come from `renown.ts`: the chip is the
+   * fold of `explainRenown`'s recurring half and the card is its lines, so this
+   * strip can never promise a figure the phase disagrees with.
+   */
+  const renownItem = element('span', 'civ-yield is-renown');
+  {
+    const icon = element('span', 'civ-yield-icon');
+    icon.append(renownMarkNode());
+    renownItem.append(icon);
+    renownItem.title = `${RENOWN_GLYPH} Renown toward the next great person, per turn in parens`;
+    renownItem.setAttribute('aria-label', 'renown');
+    renownItem.tabIndex = 0;
+  }
+  const renownValue = element('span', 'civ-yield-value', '0');
+  renownItem.append(renownValue);
+  container.append(renownItem);
+  info.bind(renownItem, () => renownCard());
+
+  /**
+   * Has this empire already earned this row?
+   *
+   * `alreadyEarned`'s reading (`triumphs.ts`) at the two scopes where it is a
+   * fact a player can see on their own list: a `once` row is earned forever, and
+   * a `perAge` or `contested` one is earned *for this era*. `perEvent` is never
+   * barred and therefore never greys — a wonder is worth a triumph every time,
+   * and a line struck through would be saying the opposite.
+   *
+   * Deliberately read off `Player.triumphs` rather than by calling into the
+   * simulation's own gate, because that gate is a *mutation's* precondition and
+   * takes the world's contested register with it; this is a checklist, and the
+   * honest thing for a checklist to say is what this empire has done.
+   */
+  function triumphEarned(player: Player, id: (typeof TRIUMPH_IDS)[number]): boolean {
+    const scope = triumphDef(id).scope;
+    if (scope === 'perEvent') return false;
+    if (scope === 'once') return player.triumphs.some((earned) => earned.id === id);
+    const age = highestAge(player.techsResearched);
+    return player.triumphs.some((earned) => earned.id === id && earned.age === age);
+  }
+
+  /**
+   * Where this turn's renown came from, and the whole board of Triumphs beneath
+   * it.
+   *
+   * Two blocks, and they answer two different questions a player has at once:
+   *
+   *   the ledger     rule 5 for a count — every line of `explainRenown`, the
+   *                  trickle and this turn's lumps together, folding to the
+   *                  total under the double rule. The lines are the simulation's
+   *                  own sentences ("Library at Ur", "Triumph · The Third
+   *                  Hearth"); nothing here composes a second one.
+   *   the checklist  every row of `TRIUMPH`, in table order, with what it pays
+   *                  and how often it may be had. Struck through where this
+   *                  empire has already had it, and fainter still where the row
+   *                  is *declared and not built* — which is the same two-tier
+   *                  greying a card's deferred clause wears, for the same
+   *                  reason: a promise the game has not made is said out loud
+   *                  rather than quietly left off the list.
+   */
+  function renownCard(): Node {
+    const { state } = getGame();
+    const playerId = localPlayerId();
+    const player = playerById(state, playerId);
+    const box = element('div');
+    const head = element('div', 'info-card-head');
+    const name = element('span', 'info-card-name');
+    name.append(renownMarkNode());
+    name.append(document.createTextNode('Renown'));
+    head.append(name);
+    head.append(
+      element(
+        'span',
+        'info-card-kind',
+        player
+          ? `${figure(player.renownPool)} of ${figure(renownThreshold(player))}`
+          : `${figure(0)}`,
+      ),
+    );
+    box.append(head);
+
+    const lines = explainRenown(state, playerId);
+    if (lines.length === 0) {
+      box.append(
+        element('p', 'hint', 'Nothing yet. Libraries, wonders and Triumphs pay renown.'),
+      );
+    } else {
+      const list = element('ul', 'meter-lines ledger');
+      for (const line of lines) list.append(meterLine(line.source, line.amount, false));
+      box.append(list);
+      const total = element('div', 'meter-total ledger-total');
+      total.append(element('span', 'meter-line-source', 'This turn'));
+      total.append(element('span', 'meter-line-value', figure(foldRenown(lines))));
+      box.append(total);
+    }
+
+    box.append(element('p', 'eyebrow renown-heading', 'triumphs'));
+    const board = element('ul', 'meter-lines ledger renown-triumphs');
+    for (const id of TRIUMPH_IDS) {
+      const def = triumphDef(id);
+      const row = element('li', 'meter-line');
+      // A deferred row is fainter than an earned one and says why in its own
+      // tooltip: struck through would claim the empire had it.
+      if (def.deferred !== undefined) {
+        row.classList.add('is-unbuilt');
+        row.title = def.deferred;
+      } else if (player && triumphEarned(player, id)) {
+        row.classList.add('is-earned');
+      }
+      row.append(
+        element('span', 'meter-line-source', `${def.name} · ${TRIUMPH_SCOPE_WORD[def.scope]}`),
+      );
+      row.append(element('span', 'meter-line-value', signedFigure(def.pays)));
+      board.append(row);
+    }
+    box.append(board);
+
+    const waiting = player ? greatPersonBlocker(player) : null;
+    if (waiting !== null) box.append(element('p', 'hint hint-alert', `☞ ${waiting}.`));
     return box;
   }
 
@@ -671,6 +839,22 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
           banked && player ? poolFigure(banked.pool(player), totals[key]) : String(totals[key]);
         if (el.textContent !== text) el.textContent = text;
       }
+
+      // Renown, in the same grammar with its rung: pool over the ladder, rate in
+      // parens. A seat that does not exist reads as an empty ladder rather than
+      // as an em dash, which is the honest answer on turn one.
+      const renown = player
+        ? poolFigure(player.renownPool, renownPerTurn(state, playerId), renownThreshold(player))
+        : poolFigure(0, 0, 0);
+      if (renownValue.textContent !== renown) renownValue.textContent = renown;
+      // The one thing on this chip that has to survive with no gesture at all:
+      // a name is waiting to be called. `is-good` is the strip's existing quiet
+      // ink for "something good is true here" — never the alarm vermilion, which
+      // is reserved for a meter in deficit.
+      renownItem.classList.toggle(
+        'is-good',
+        player !== undefined && greatPersonBlocker(player) !== null,
+      );
 
       // The badge used to ride here — a small mark on the culture chip while
       // Statecraft owed the player a decision. It has moved to the HUD dock's

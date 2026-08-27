@@ -184,6 +184,17 @@ import type {
   UnslotOrderCommand,
 } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
+import {
+  actCityFor,
+  familyOf,
+  greatPersonActError,
+  greatPersonWorkError,
+  hasGreatPersonOffer,
+  isGreatPerson,
+  personOf,
+  workOf,
+} from '../sim/greatPeople';
+import { type Family, greatPersonDef } from '../sim/greatPeopleData';
 import { yieldContextFor } from '../sim/cities';
 import {
   IMPROVEMENT_IDS,
@@ -224,15 +235,15 @@ import {
 } from '../sim/religion';
 import { type RiteId, RITE_IDS, riteAbility, riteDef } from '../sim/religionData';
 import { type ResearchReport, hasAbility, researchSince, researchSnapshot } from '../sim/tech';
-import { statecraftBlocker } from '../sim/statecraft';
-import { techDef } from '../sim/techData';
+import { type CardClause, describeCard, statecraftBlocker } from '../sim/statecraft';
+import { highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import { isExplorer, unitDef } from '../sim/unitData';
 import { sleepError, sleepingSnapshot, unitsOnTile, wakesSince } from '../sim/units';
 import { isExploredBy } from '../sim/visibility';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
-import { HAMMER, YIELD_GLYPH } from './figures';
+import { HAMMER, YIELD_GLYPH, signedFigure } from './figures';
 import {
   type CellRef,
   type FallenUnit,
@@ -296,6 +307,12 @@ export interface AnnounceOptions {
    * a keypress away.
    */
   openStatecraft?: boolean;
+  /**
+   * This news is the great-person card's door. `openStatecraft`'s twin one
+   * bucket over, and the same mutual exclusivity in practice: an offer is made
+   * to the empire and has no hex, so nothing sets both.
+   */
+  openGreatPerson?: boolean;
 }
 
 /**
@@ -366,6 +383,52 @@ export interface RiteOption {
   preview: string | null;
   /** The technology a greyed row is waiting on, or `null`. */
   requiredTechName: string | null;
+}
+
+/**
+ * One of a great person's two verbs, as the unit sheet needs it.
+ *
+ * `RiteOption` minus the id, because *which* act and *which* work belong to the
+ * family rather than to the player (`greatPersonActAt`, `workOf`): the sheet
+ * offers exactly two rows and the reducer is told the piece, never the verb's
+ * name. What is left is the shape every other verb on that sheet already has —
+ * the reducer's own refusal, and what it would do stated as the number.
+ */
+export interface GreatPersonVerb {
+  /** Why it cannot be taken, or `null`. `greatPersonActError`'s own sentence. */
+  blocked: string | null;
+  /** What it would do, in one line. Never `null` — a verb always has an answer. */
+  preview: string;
+}
+
+/**
+ * Everything a great person's sheet shows, read once.
+ *
+ * A single object rather than six accessors for `chopPreview`'s reason: the
+ * panel asks one question ("who is this, and what can they do") and every part
+ * of the answer comes from the same read of the same piece, so a name and a
+ * greyed button can never describe two different turns.
+ *
+ * `null` for anything that is not a great person, which is every other piece on
+ * the board.
+ */
+export interface GreatPersonView {
+  name: string;
+  family: Family;
+  /** One line, the roster's own. Never a rule. */
+  epigram: string;
+  /** Why this person is remembered at all. The wunderkammer's register. */
+  kernel: string;
+  /** The burst. */
+  act: GreatPersonVerb;
+  /** The ground. */
+  work: GreatPersonVerb;
+  /**
+   * The legacy that attaches **either way**, in `describeCard`'s words — the
+   * same function the offer that dealt this name printed, so a player reads the
+   * same sentences before and after the decision.
+   */
+  legacy: readonly CardClause[];
 }
 
 /**
@@ -616,6 +679,14 @@ export interface GameControlsOptions {
    * they forgot, and a religion offer's "there" is a card rather than a hex.
    */
   onOfferReligion?: () => void;
+  /**
+   * Puts the local seat's great-person offer on screen — `main.ts`'s
+   * `showGreatPersonOffer`. The fourth of the four, and it exists for
+   * `onOfferStatecraft`'s reason exactly: End Turn's blocker takes the player
+   * *to* the thing they forgot, and a name's "there" is a card rather than a
+   * hex.
+   */
+  onOfferGreatPerson?: () => void;
 
   /**
    * Puts the local seat's pending discovery card in front of the player.
@@ -945,6 +1016,23 @@ export interface GameControls {
   pillage(): void;
 
   /**
+   * Who the selected piece is, if it is a great person, and what its two verbs
+   * would do — or `null`, which is every other piece on the board.
+   *
+   * **One object rather than six accessors**, unlike every other verb on this
+   * sheet, and the difference is what the sheet is asking. A worker's row is a
+   * question about the ground it stands on; a great person's whole panel — the
+   * header, the epigram, both buttons and the legacy under them — is one
+   * question about *who this is*, and six separate reads would be six chances
+   * for the name and the greyed button to describe two different turns.
+   */
+  greatPersonView(): GreatPersonView | null;
+  /** Spends the whole person on the family's boon. The sheet's Act button. */
+  greatPersonAct(): void;
+  /** Spends the whole person on the family's work. The sheet's Work button. */
+  greatPersonWork(): void;
+
+  /**
    * Why the selected augur cannot consecrate a god, or `null` when it can.
    * `undefined` with nothing selected — `foundCityBlocker`'s three-valued shape.
    *
@@ -1030,6 +1118,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onToggleStatecraft,
     onOfferStatecraft,
     onOfferReligion,
+    onOfferGreatPerson,
     onDamage,
     onVictory,
     lensOrder,
@@ -1060,6 +1149,18 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * history, so a loaded save past its first draft never replays the toast.
    */
   let statecraftDraftAnnounced = false;
+  /**
+   * Whether a great-person offer was outstanding the last time anything was
+   * committed — the rising edge this seat is told about.
+   *
+   * An **edge** rather than `statecraftDraftAnnounced`'s once-per-game latch,
+   * because unlike the first draft this is a thing that happens again: an
+   * empire recruits a name every twenty-odd turns for the whole game, and each
+   * one is news. It is view state and never in the save, so a reload announces
+   * whatever is currently outstanding once — which is right, because a player
+   * coming back to a game does need telling.
+   */
+  let greatPersonOfferOutstanding = false;
   /**
    * Whether the city screen's Buy Tiles mode is up — the next click inside the
    * open city's ring spends gold instead of pinning a citizen.
@@ -1201,6 +1302,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       entry.action = { kind: 'pan', cell: { col: opts.cell.col, row: opts.cell.row } };
     } else if (opts.openStatecraft) {
       entry.action = { kind: 'openStatecraft' };
+    } else if (opts.openGreatPerson) {
+      entry.action = { kind: 'openGreatPerson' };
     }
     onNotify?.(entry, localPlayerId);
   }
@@ -1259,7 +1362,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       pollSightings();
       reportRaids(result);
       reportWonders(result);
+      reportTriumphs(result);
       checkFirstStatecraftDraft();
+      checkGreatPersonOffer();
     }
     return result;
   }
@@ -1315,6 +1420,36 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         }
         announce(`${done.name} left ${name}'s queue — it stands elsewhere`, { cell });
       }
+    }
+  }
+
+  /**
+   * **You earned a Triumph.** One chronicle line each, with what it paid.
+   *
+   * `reportWonders`' sibling and `reportRaids`' opposite: filtered by seat,
+   * because a triumph is a claim on the world made by *one* empire and the news
+   * another empire wants about it is the wonder or the captured city that
+   * carried it, both of which already have their own lines.
+   *
+   * It reads the reducer's own report rather than diffing the board, and it
+   * covers **both** paths without a second call site, which is the whole reason
+   * it lives in `commit`: a triumph earned inside a command (a city founded, a
+   * government adopted, a great person's hurry finishing a wonder) rides that
+   * command's `CommandResult.triumphs`, and every triumph earned during a
+   * *resolution* rides `endTurn`'s — `applyEndTurn` hands `TurnReport.triumphs`
+   * straight into its own result. So the two paths are one funnel here, exactly
+   * as they already are for combats and wonders.
+   *
+   * The renown is **already banked** by the time this runs (`awardTriumph` pays
+   * through `settleRenownWindfall` the instant it awards), so the line says what
+   * it paid rather than what it will pay — and the offer it may have opened is
+   * announced by `checkGreatPersonOffer`, not here.
+   */
+  function reportTriumphs(result: CommandResult): void {
+    if (!result.ok || !result.triumphs) return;
+    for (const triumph of result.triumphs) {
+      if (triumph.playerId !== localPlayerId) continue;
+      announce(`✦ Triumph — ${triumph.name} · ${signedFigure(triumph.pays)} renown`);
     }
   }
 
@@ -2517,6 +2652,156 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onUpdate(selectedUnit(), renderer.getHover());
   }
 
+  // --- the great person ----------------------------------------------------
+
+  /**
+   * What the selected great person's **act** would do, in one line.
+   *
+   * Every figure is `RULES.greatPeople`'s and every destination is the
+   * simulation's own — `actCityFor` for the town, `player.researching` for the
+   * study — because this is the sentence a player decides on and
+   * `greatPersonActAt` is what will happen. Two implementations of "which city
+   * gets this" is exactly how a preview starts lying (`chopCity`'s argument, one
+   * agent over), so there is only the one.
+   *
+   * Two of the five are quoted **in the money of the era** (`highestAge`),
+   * because the rules multiply them by it — a hurry worth a granary in Æra I
+   * should still be worth something in Æra III, and a preview that printed the
+   * base would be short by a factor of three.
+   */
+  function greatPersonActPreview(unit: Unit): string {
+    const { state } = getGame();
+    const people = RULES.greatPeople;
+    const player = playerById(state, unit.ownerId);
+    const era = player ? highestAge(player.techsResearched) : 1;
+    const city = actCityFor(state, unit);
+    const where = city ? cityDisplayName(state, city) : 'your nearest city';
+    switch (familyOf(unit)) {
+      case 'scholar': {
+        const aim = player?.researching ?? null;
+        const beakers = aim === null ? 0 : Math.floor(techDef(aim).cost * people.scholarShare);
+        const toward = aim === null ? 'your current study' : techDef(aim).name;
+        return `+${beakers}${YIELD_GLYPH.science} toward ${toward}`;
+      }
+      case 'engineer':
+        return `+${people.engineerHammers * era}${HAMMER} to ${where}`;
+      case 'merchant':
+        return `+${people.merchantGold * era}${YIELD_GLYPH.gold} to the treasury`;
+      case 'artist':
+        return (
+          `+${people.artistCulture}${YIELD_GLYPH.culture} toward the next draft · ` +
+          `+${people.artistHappiness} happiness in ${where} for ${people.artistTurns} turns`
+        );
+      case 'general':
+        return (
+          `Every unit within ${people.generalRadius} hexes healed, ` +
+          `and +${people.generalCombat} combat strength for ${people.generalTurns} turns`
+        );
+      default:
+        return 'Nothing — this piece serves no family';
+    }
+  }
+
+  /**
+   * What the selected great person's **work** would leave on this hex.
+   *
+   * The improvement's own name and the delta from `improvementYieldDelta` — the
+   * *same* evaluator a worker's farm row quotes, asked with the owner's context
+   * — so an academy's `+3🔬` on the sheet is the number the tile will pay.
+   */
+  function greatPersonWorkPreview(unit: Unit): string {
+    const { state } = getGame();
+    const work = workOf(unit);
+    if (work === null) return 'Nothing — this piece leaves no work';
+    const name = improvementDef(work).name;
+    const tile = getTileAt(state.map, unit.col, unit.row);
+    if (!tile) return name;
+    const delta = improvementYieldDelta(tile, work, yieldContextFor(state, unit.ownerId));
+    const figures = (['food', 'production', 'gold'] as const)
+      .filter((key) => delta[key] !== 0)
+      .map((key) => `${signedFigure(delta[key])}${YIELD_GLYPH[key]}`)
+      .join(' ');
+    return figures ? `${name} here · ${figures}` : `${name} here`;
+  }
+
+  /**
+   * Who the selected piece is, and what it may do — or `null` for every piece
+   * that is not a great person.
+   *
+   * The two blockers are the reducer's own (`greatPersonActError`,
+   * `greatPersonWorkError`), with the seat's question in front of them exactly
+   * as `chopBlocker` puts it in front of `chopError`: an offered button is a
+   * command this client's `commit` will have taken.
+   */
+  function greatPersonView(): GreatPersonView | null {
+    const unit = selectedUnit();
+    if (!unit || !isGreatPerson(unit)) return null;
+    const id = personOf(unit);
+    if (id === null) return null;
+    const { state } = getGame();
+    const def = greatPersonDef(id);
+    const ended = !canOrder() ? `You have ended turn ${state.turn}` : null;
+    return {
+      name: def.name,
+      family: def.family,
+      epigram: def.epigram,
+      kernel: def.kernel,
+      act: {
+        blocked: ended ?? greatPersonActError(state, localPlayerId, unit.id),
+        preview: greatPersonActPreview(unit),
+      },
+      work: {
+        blocked: ended ?? greatPersonWorkError(state, localPlayerId, unit.id),
+        preview: greatPersonWorkPreview(unit),
+      },
+      legacy: describeCard(id),
+    };
+  }
+
+  /**
+   * Spends the great person, one verb or the other, and lets go of the piece.
+   *
+   * `consecrate`'s shape and for its reason one grade harder: **either** verb
+   * consumes the whole person, so holding its id would leave the sheet
+   * describing somebody who is no longer on the board. Asked of the state after
+   * the dispatch rather than predicted before it.
+   *
+   * The announcement is composed from the preview taken *before* the command,
+   * because by the time this returns the piece is gone and the board cannot be
+   * asked what it was going to do — the same argument `CommandResult.arrivals`
+   * makes one layer lower. The Triumphs the act may have earned along the way
+   * (a technology that opened an era, a hurry that finished a wonder) come back
+   * on the result and are announced by `reportTriumphs` in `commit`.
+   */
+  function spendGreatPerson(verb: 'act' | 'work'): void {
+    const unit = selectedUnit();
+    if (!unit) return;
+    const view = greatPersonView();
+    if (!view) return;
+    const said = verb === 'act' ? view.act.preview : view.work.preview;
+    const result = commit(
+      verb === 'act'
+        ? { type: 'greatPersonAct', playerId: localPlayerId, unitId: unit.id }
+        : { type: 'greatPersonWork', playerId: localPlayerId, unitId: unit.id },
+    );
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    announce(`✦ ${view.name} — ${said}`, { cell: { col: unit.col, row: unit.row } });
+    // The legacy is the half that survives the choice, and it is worth its own
+    // line: the board decision was burst or ground, and the card is yours
+    // whichever was taken (`docs/great-people.md`).
+    announce(`✦ ${view.name}'s legacy stands with your government`);
+    if (!unitById(getGame().state, unit.id)) {
+      selectedId = null;
+      setMoveMode(false);
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
   /**
    * Why the selected worker cannot clear where it stands. The seat's question
    * here, the work's delegated to `chopError` — the same split as
@@ -3239,6 +3524,28 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     announce('Your first Order awaits — open the Statecraft.', { openStatecraft: true });
   }
 
+  /**
+   * **A name is waiting to be called.** One line, on the turn the bucket fills.
+   *
+   * `checkFirstStatecraftDraft`'s sibling with one difference, and the
+   * difference is the mechanic: a first draft happens once in a game and is
+   * latched, while a recruitment happens every twenty-odd turns and each one is
+   * news — so this is a **rising edge** against the offer actually on the seat
+   * rather than a flag that is never lowered.
+   *
+   * The line carries the card's own door (`openGreatPerson`), because a chip
+   * that has quietly turned gold is not a thing a player who has never seen a
+   * great person knows to hover.
+   */
+  function checkGreatPersonOffer(): void {
+    const player = playerById(getGame().state, localPlayerId);
+    const waiting = player !== undefined && hasGreatPersonOffer(player);
+    if (waiting && !greatPersonOfferOutstanding) {
+      announce('✦ A great person awaits your call.', { openGreatPerson: true });
+    }
+    greatPersonOfferOutstanding = waiting;
+  }
+
   // --- handing the new turn over -------------------------------------------
 
   /**
@@ -3445,6 +3752,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // empire's, not a place on the board.
         guide('☞ A god awaits a name.');
         onOfferReligion?.();
+        return;
+      }
+      case 'greatPerson': {
+        // And no camera for the fourth, for the third's reason: the roster is
+        // the world's and the offer is the empire's. The piece the pick mints
+        // arrives in the capital, and *that* is what gets a pan — from the
+        // recruitment's own announcement, once there is somebody to look at.
+        guide('☞ A great person awaits your call.');
+        onOfferGreatPerson?.();
         return;
       }
     }
@@ -3864,6 +4180,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     chop,
     pillage,
     pillageBlocker,
+    greatPersonView,
+    greatPersonAct: () => spendGreatPerson('act'),
+    greatPersonWork: () => spendGreatPerson('work'),
     consecrateBlocker,
     consecrate,
     riteOptions,
@@ -3900,6 +4219,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // resumed seat's own history already crossed — see
       // `checkFirstStatecraftDraft`.
       statecraftDraftAnnounced = (playerById(getGame().state, seatId)?.statecraft.drafts ?? 0) > 0;
+      // Deliberately **false** rather than "whatever this seat holds": a resumed
+      // game with a name already waiting should say so once, which is exactly
+      // what a rising edge against `false` does on the next commit.
+      greatPersonOfferOutstanding = false;
       // A new table, or a loaded one. Nobody has been told anything about this
       // world, and everything already on it — a resumed game's charted ruins,
       // the camps its borders watch — is the state of play rather than news, so

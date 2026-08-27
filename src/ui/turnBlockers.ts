@@ -110,6 +110,7 @@
  * both, and the answer is the same either way.
  */
 
+import { greatPersonBlocker } from '../sim/greatPeople';
 import { religionBlocker } from '../sim/religion';
 import type { Player } from '../sim/state';
 import { statecraftBlocker } from '../sim/statecraft';
@@ -130,7 +131,8 @@ export type TurnBlocker =
   | { kind: 'research' }
   | { kind: 'discovery' }
   | { kind: 'statecraft'; what: 'order' | 'doctrine' }
-  | { kind: 'religion' };
+  | { kind: 'religion' }
+  | { kind: 'greatPerson' };
 
 /**
  * Is this unit awaiting orders? See the module docblock for why these four
@@ -238,6 +240,19 @@ export function firstBlocker(
   // discovery and a draft can both be outstanding at once and something has to
   // be; a god does not go stale while the other two are answered.
   if (religionBlocker(player) !== null) return { kind: 'religion' };
+
+  // **The fourth offer**, and it owes the turn exactly what the other three do
+  // (`docs/great-people.md`): the hand sits on the empire until it is spent, no
+  // other seat can answer it, and the reducer refuses a `chooseGreatPerson` from
+  // a seat that has ended its turn — so pressing past it would mean waiting a
+  // whole resolution to answer a card already on screen. It is fourth of the
+  // four rather than first for the discovery's reason read the other way: all
+  // four can be outstanding at once and something has to be last, and a name
+  // does not go stale while the other three are answered.
+  //
+  // An **empty** offer never reaches here: `greatPersonBlocker` answers `null`
+  // for one, because a spent roster is not a decision.
+  if (greatPersonBlocker(player) !== null) return { kind: 'greatPerson' };
 
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;

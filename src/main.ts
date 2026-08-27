@@ -120,6 +120,13 @@ import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { AXIS_MARK } from './ui/religionScreen';
 import { beliefDef } from './sim/religionData';
+import { personOf } from './sim/greatPeople';
+import {
+  type Family,
+  type GreatPersonTier,
+  greatPersonDef,
+} from './sim/greatPeopleData';
+import type { CardLine } from './sim/statecraftData';
 import { CARD_LINE_NAME, cardLineMarkUrl, lineOf, slotMarkUrl } from './ui/cardLine';
 import { type OfferKind, SLOT_WORDS, describeCard, explainOfferSize } from './sim/statecraft';
 import {
@@ -1061,6 +1068,7 @@ const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
   discovery: 'A discovery awaits',
   statecraft: 'A card awaits',
   religion: 'A god awaits',
+  greatPerson: 'A great person awaits',
 };
 
 function showEndTurnState(blocker: TurnBlocker | null): void {
@@ -1711,6 +1719,154 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
+   * Puts the local seat's great-person offer on screen, if it has one.
+   *
+   * `showReligionOffer`'s fourth sibling, and the same generic card
+   * (`offerCard.ts`) in a **roster** dress: three names from the age's roster,
+   * the family in the mono eyebrow, the legacy's clauses under the name, the
+   * epigram at the foot and the kernel — why anybody remembers them — smaller
+   * still beneath it.
+   *
+   * It is a tarot face, deliberately: a great person *is* a card from a deck
+   * (`anyCardDef` answers for one, and its legacy is written in the same
+   * vocabulary an Order's is), the roster is shared by every seat and consumed
+   * on the pick, and the deal's turn-over is the gesture that says so. It is
+   * **not** heavy-framed, unlike the Doctrine and the charter: those two are
+   * irreversible *choices about your own law*, while a name another empire takes
+   * first is simply gone — the weight there would be dread rather than warning.
+   *
+   * Every clause is `describeCard`, the same function the Statecraft collection
+   * prints, so a legacy reads identically on the card that dealt it and in the
+   * ledger afterwards — and a **deferred** half prints struck through in its own
+   * greyed line rather than being joined into a sentence that would claim it.
+   */
+  function showGreatPersonOffer(): void {
+    const seat = controls.localPlayerId();
+    const player = playerById(game.state, seat);
+    const offer = player?.greatPersonOffer;
+    // An empty offer is what a spent roster leaves behind for one instant
+    // (`settleRenownWindfall`); it blocks nothing and there is nothing to show.
+    if (!offer || offer.options.length === 0) return;
+
+    offerCard.show(
+      {
+        eyebrow: 'the age offers you a name',
+        title: 'Who will serve you',
+        note: 'One name, from a roster the whole world draws on. Their legacy stays whichever verb you spend them on.',
+        widening: wideningLines('greatPerson'),
+        options: offer.options.map((id) => {
+          const def = greatPersonDef(id);
+          const option: OfferOption = {
+            // The family, in the mono eyebrow — the one fact that decides both
+            // verbs, so it is the first thing read.
+            payoff: def.family,
+            title: def.name,
+            notes: describeCard(id).map((clause) =>
+              clause.deferred === true ? { text: clause.text, deferred: true } : { text: clause.text },
+            ),
+            flavor: def.epigram,
+            footnote: def.kernel,
+            // The accent is the **tier**, not the family: what a player is
+            // choosing between is a game-defining card with a malice, a
+            // generically strong one and a situational one, and that is the
+            // question the colour should be answering. The family is already
+            // said in the eyebrow and drawn in the emblem.
+            line: TIER_ACCENT[def.tier],
+            lineName: TIER_NAME[def.tier],
+            emblem: cardLineMarkUrl(FAMILY_EMBLEM[def.family]),
+          };
+          return option;
+        }),
+      },
+      (index) => {
+        const taken = offer.options[index];
+        dispatch(game, { type: 'chooseGreatPerson', playerId: seat, optionIndex: index });
+        if (taken !== undefined) announceRecruit(seat, taken);
+        controls.refresh();
+        statecraft?.refresh();
+      },
+    );
+  }
+
+  /**
+   * The line a recruitment gets, and the camera that goes with it.
+   *
+   * Composed **after** the dispatch and read off the board, because the piece is
+   * the thing worth looking at and it did not exist a moment ago: the reducer
+   * mints it in the capital through `createUnit` (`settleGreatPersonChoice`), so
+   * asking the state where it stands is asking the one authority on the matter.
+   * A recruit with **nowhere to stand** — an empire with no cities, which is a
+   * seat about to be eliminated — still gets its line, without a pan.
+   *
+   * The chronicle keeps it and the toast shows it, unlike a belief's line
+   * (`showReligionOffer`), and the difference is that a belief lands nowhere: a
+   * great person is a *piece*, and "where did they appear" is a thing a player
+   * needs told once.
+   *
+   * The plain voice, deliberately. "Archimedes joins Crimson's court" is a
+   * flourish the naming bible allows a splash and not the record of a fact.
+   */
+  function announceRecruit(seat: number, id: Parameters<typeof greatPersonDef>[0]): void {
+    const def = greatPersonDef(id);
+    const piece = game.state.units.find(
+      (unit) => unit.ownerId === seat && personOf(unit) === id,
+    );
+    controls.announce(
+      `✦ ${def.name} has been recruited`,
+      piece ? { cell: { col: piece.col, row: piece.row } } : {},
+    );
+  }
+
+  /**
+   * The three tiers, as the accent keys `style.css` resolves.
+   *
+   * Reused from the Statecraft deck's own eight rather than added beside them,
+   * because the three gradings *are* the deck's own philosophy read one class
+   * over (`docs/statecraft-cards.md`, applied to people by the 2026-08-27
+   * ruling) and a fourth palette would be the interface claiming they are a
+   * different kind of thing:
+   *
+   *   defining     the Wild Hunt's oxblood — blood, and the malice that comes
+   *                with a game-defining card;
+   *   strong       the Long Caravan's gilt — money, and the card that is never
+   *                the wrong pick;
+   *   situational  the Wayfarers' verdigris — distance, and the card that is
+   *                great for one map and harmless otherwise.
+   */
+  const TIER_ACCENT: Record<GreatPersonTier, CardLine> = {
+    defining: 'hunt',
+    strong: 'caravan',
+    situational: 'wayfarers',
+  };
+
+  /** What the accent *is*, in words. The card's `title`, as for a line. */
+  const TIER_NAME: Record<GreatPersonTier, string> = {
+    defining: 'Game-defining — and it costs you something',
+    strong: 'Strong, and never the wrong pick',
+    situational: 'Situational, and harmless otherwise',
+  };
+
+  /**
+   * The emblem each family wears: the Statecraft line whose drawing already
+   * means what the family means.
+   *
+   * A borrowing rather than five new marks, and the marks are borrowed for what
+   * they *depict* rather than for the thread they belong to — the star for a
+   * scholar, the candle for an artist, the anvil for an engineer, the road for a
+   * merchant, the bow for a general (see `src/art/lineMarks.ts`'s notes). The
+   * accent on the card is the tier, so nothing here is claiming a great person
+   * joins an archetype line; it is one picture, chosen because it is the right
+   * picture.
+   */
+  const FAMILY_EMBLEM: Record<Family, CardLine> = {
+    scholar: 'star',
+    artist: 'procession',
+    engineer: 'forge',
+    merchant: 'caravan',
+    general: 'hunt',
+  };
+
+  /**
    * How a card is *drawn*: its accent key, its emblem and the line's name.
    *
    * Spread into an `OfferOption` rather than assembled inside the card, because
@@ -1844,6 +2000,7 @@ async function boot(initial: Game | null): Promise<void> {
     // player rather than at them.
     onOfferStatecraft: showStatecraftOffer,
     onOfferReligion: showReligionOffer,
+    onOfferGreatPerson: showGreatPersonOffer,
     onTurnResolved: () => {
       // The turn is over and the next one has not been touched, which is the one
       // moment in a game where the log is a clean place to come back to. It is
@@ -1902,6 +2059,9 @@ async function boot(initial: Game | null): Promise<void> {
         return;
       case 'openStatecraft':
         statecraft?.open();
+        return;
+      case 'openGreatPerson':
+        showGreatPersonOffer();
         return;
       default: {
         const unhandled: never = kind;
@@ -2423,6 +2583,20 @@ async function boot(initial: Game | null): Promise<void> {
       controls.performRite(id);
       updatePanel(null, renderer.getHover());
       religion?.refresh();
+    },
+    greatPerson: () => controls.greatPersonView(),
+    // Either verb spends the whole piece and hangs its legacy on the government,
+    // so the Statecraft screen is refreshed the way the Religion screen is after
+    // a rite: the collection's "in force" list has just grown a line.
+    onGreatPersonAct: () => {
+      controls.greatPersonAct();
+      updatePanel(null, renderer.getHover());
+      statecraft?.refresh();
+    },
+    onGreatPersonWork: () => {
+      controls.greatPersonWork();
+      updatePanel(null, renderer.getHover());
+      statecraft?.refresh();
     },
     onClose: () => controls.clearSelection(),
   });
