@@ -17,6 +17,8 @@ import { describe, expect, it } from 'vitest';
 import type { Command } from '../../src/sim/commands';
 import { createGame, dispatch, loadGame, replay, saveGame, snapshotState } from '../../src/sim/game';
 import { purchasableTiles } from '../../src/sim/cities';
+import { getTileAt } from '../../src/sim/map';
+import { terrainDef } from '../../src/sim/terrainData';
 
 describe('purchases in the log', () => {
   /**
@@ -71,4 +73,58 @@ describe('purchases in the log', () => {
     expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(game.state));
   });
 
+  /**
+   * The same claim with **water** in the log (2026-08-27).
+   *
+   * A separate run rather than a tweak to the one above, because the two are
+   * asking different things: that one proves a purchase replays, this one proves
+   * that the hex the seat bought being *sea* changes nothing about the bytes.
+   * Seed 5's capital sits on a coast with three water hexes on its frontier, so
+   * the preference below finds one without the fixture having to touch the map —
+   * which would have broken the "reachable from `{config, log}` alone" property
+   * this file exists for.
+   *
+   * The preference is water-first-then-anything rather than water-only: a turn
+   * where the only affordable hex is a field should still spend the coin, or the
+   * treasury sits full and the test proves nothing about the ladder.
+   */
+  it('replays byte-identically with a water tile in the log', () => {
+    const game = createGame({
+      seed: 5,
+      sizeName: 'duel',
+      players: [{ name: 'Ada', color: '#a00', isHuman: true }],
+    });
+    const founder = game.state.units.find((unit) => unit.type === 'settler')!;
+    expect(dispatch(game, { type: 'foundCity', playerId: 0, settlerUnitId: founder.id }).ok).toBe(
+      true,
+    );
+    const city = game.state.cities[0]!;
+
+    let waterBought = 0;
+    for (let turn = 0; turn < 45; turn++) {
+      const affordable = purchasableTiles(game.state, city).filter((one) => one.error === null);
+      const wet = affordable.filter(
+        (one) => terrainDef(getTileAt(game.state.map, one.col, one.row)!.terrain).water,
+      );
+      const offer = wet[0] ?? affordable[0];
+      if (offer) {
+        expect(
+          dispatch(game, {
+            type: 'purchaseTile',
+            playerId: 0,
+            cityId: city.id,
+            col: offer.col,
+            row: offer.row,
+          } as Command).ok,
+        ).toBe(true);
+        if (wet[0]) waterBought += 1;
+      }
+      expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+    }
+    // The point of the run: sea was actually sold.
+    expect(waterBought).toBeGreaterThan(0);
+
+    expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
+    expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(game.state));
+  });
 });

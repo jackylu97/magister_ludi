@@ -550,6 +550,53 @@ describe('a belief is an effect source, not a second evaluator', () => {
     expect(foldTileYield(explainTileYield(wooded, ctx)).faith).toBe(1);
   });
 
+  it('merges two lines from the same source into one entry (Winter Mother, tundra forest)', () => {
+    // Winter Mother pays two `tileYield` lines — food on any tundra hex, faith
+    // on a wooded one — and both hold on a tundra forest. The user's rule: one
+    // card is one line, carrying every voice it pays, so the breakdown must
+    // show exactly one "Belief · Winter Mother" entry with both voices summed,
+    // not two entries under the same name.
+    const g = game();
+    keep(g.state, 0, 'winterMother');
+    const ctx = yieldContextFor(g.state, 0)!;
+    const base = getTileAt(g.state.map, 4, 4)!;
+    const wooded = { ...base, terrain: 'tundra' as const, feature: 'forest' as const };
+    const before = foldTileYield(explainTileYield(wooded, ctx));
+    const list = explainTileYield(wooded, ctx);
+    const winterMotherLines = list.filter((entry) => entry.source === 'Belief · Winter Mother');
+    expect(winterMotherLines).toHaveLength(1);
+    expect(winterMotherLines[0]).toMatchObject({
+      source: 'Belief · Winter Mother',
+      kind: 'add',
+      food: 1,
+      faith: 1,
+    });
+    // The fold is untouched by the merge — it was always a sum.
+    expect(foldTileYield(list)).toEqual(before);
+  });
+
+  it('keeps two different sources on one tile as two entries (Winter Mother + Spirits of the Wood)', () => {
+    // Spirits of the Wood pays culture on any forest, so a tundra forest under
+    // both beliefs earns two *different* voices from two *different* cards —
+    // those must stay separate lines, only same-source lines merge.
+    const g = game();
+    keep(g.state, 0, 'winterMother');
+    keep(g.state, 0, 'spiritsOfTheWood');
+    const ctx = yieldContextFor(g.state, 0)!;
+    const base = getTileAt(g.state.map, 4, 4)!;
+    const wooded = { ...base, terrain: 'tundra' as const, feature: 'forest' as const };
+    const list = explainTileYield(wooded, ctx);
+    const cardLines = list.filter((entry) => entry.source.startsWith('Belief ·'));
+    expect(cardLines.map((entry) => entry.source).sort()).toEqual([
+      'Belief · Spirits of the Wood',
+      'Belief · Winter Mother',
+    ]);
+    const winter = cardLines.find((entry) => entry.source === 'Belief · Winter Mother')!;
+    expect(winter).toMatchObject({ food: 1, faith: 1 });
+    const spirits = cardLines.find((entry) => entry.source === 'Belief · Spirits of the Wood')!;
+    expect(spirits).toMatchObject({ culture: 1 });
+  });
+
   it('narrows a tile line by resource kind and the voice it pays (Goddess of the Harvest)', () => {
     const g = game();
     keep(g.state, 0, 'goddessOfTheHarvest');

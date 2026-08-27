@@ -440,8 +440,34 @@ export function explainTileYield(
   // the banked total all learn about them from one place (rule 5). Nothing here
   // asks *which* of the three a line came from — the context already resolved
   // that, and that is the whole reason there is one list rather than three.
+  //
+  // One card can speak twice about one hex — Winter Mother pays +1 food on any
+  // tundra tile *and* +1 faith on a wooded one, so a tundra forest satisfies
+  // both of her `tileYield` lines. The player reads one name and expects one
+  // line under it, so lines that share a `source` are merged into a single
+  // entry, summed, at the position of that source's **first** appearance —
+  // order of first appearance in `ctx.lines`, the same determinism rule as
+  // everywhere else in this fold. `sourceIndex` is only an index back into
+  // `list`; nothing ever iterates it for output, so a `Map`'s own iteration
+  // order never governs an outcome. `TileYieldContribution` carries no `on` /
+  // condition field for display — only `source` names the line — so a merge of
+  // lines with different conditions loses nothing: there was never a condition
+  // to pick between in the first place.
+  const sourceIndex = new Map<string, number>();
   for (const line of ctx?.lines ?? []) {
     if (!tileConditionHolds(tile, line.on)) continue;
+    const existingAt = sourceIndex.get(line.source);
+    if (existingAt !== undefined) {
+      const merged = list[existingAt];
+      merged.food += line.food;
+      merged.production += line.production;
+      merged.gold += line.gold;
+      merged.science += line.science;
+      merged.culture += line.culture;
+      merged.faith += line.faith;
+      continue;
+    }
+    sourceIndex.set(line.source, list.length);
     list.push({
       source: line.source,
       kind: 'add',
@@ -3271,19 +3297,29 @@ export function tilePurchasePrice(
  * returns, and the reducer refuses with the same sentence. That is
  * `improvementError`'s contract and `buildError`'s, one grade over.
  *
- * The seven questions, in the order a player would ask them:
+ * The six questions, in the order a player would ask them:
  *
  *   1. is there such a player, and such a city, and is the city theirs;
- *   2. is the cell on the map, and is it land — the sea is nobody's to sell;
+ *   2. is the cell on the map;
  *   3. is it unowned — a rival's ground is taken by war, not by cheque, and
  *      your *own* ground is already yours;
  *   4. is it inside the city's work radius — you buy ground a town can use;
- *   5. does it touch this empire's territory — land is bought at the frontier,
+ *   5. does it touch this empire's territory — ground is bought at the frontier,
  *      never as an island across the map;
  *   6. is the writ solvent — the freeze bars purchases as well as growth
  *      (`bordersFrozen`), because a freeze money could step around would be a
  *      freeze on the poor only;
  *   7. is there gold enough.
+ *
+ * **The sea is for sale** (2026-08-27). There used to be a seventh question — is
+ * it land — and it was a leftover from when water was scenery. A coast hex is
+ * worked ground now: Sailing's fishing boats improve it, a granary reads its
+ * water line, and a citizen can be seated on it. So a harbour town buys its bay
+ * on exactly the terms a farming town buys its hill, and the *distance* and
+ * *frontier* clauses are what keep a seat from buying the open ocean — the same
+ * two that keep it from buying a mountain range three rings out. Nothing in the
+ * ladder is land-only (`explainTilePurchase` prices ring, era, habit and furs),
+ * so no clause was owed a water reading.
  *
  * Adjacency is to the *player's* territory rather than to this city's, and that
  * is deliberate where `bestExpansionTile` is not: culture creeps outward from
@@ -3305,7 +3341,6 @@ export function tilePurchaseError(
   const { map } = state;
   const tile = getTileAt(map, cell.col, cell.row);
   if (!tile) return `No tile at (${String(cell.col)}, ${String(cell.row)})`;
-  if (terrainDef(tile.terrain).water) return 'The sea is not for sale';
 
   const index = tileIndex(map, tile.col, tile.row);
   const owner = state.tileOwner[index];
@@ -3330,9 +3365,9 @@ export function tilePurchaseError(
 }
 
 /**
- * Every cell the Buy Tiles overlay has something to say about: each unowned land
- * hex in the city's work radius that touches the empire, priced, with the reason
- * it cannot be had when it cannot.
+ * Every cell the Buy Tiles overlay has something to say about: each unowned hex
+ * in the city's work radius that touches the empire, priced, with the reason
+ * it cannot be had when it cannot. Water included — see `tilePurchaseError`.
  *
  * Built once per overlay rather than by asking the two evaluators per hex in a
  * render loop, and returned in tile-index order so the overlay is a pure
@@ -3354,13 +3389,15 @@ export function purchasableTiles(state: GameState, city: City): TileOffer[] {
   const owner = city.ownerId;
   const offers: TileOffer[] = [];
   // `mapRange` at the work radius answers the "too far" question by
-  // construction, and the three below are what "there is nothing here to offer"
-  // means: owned ground, sea, and hexes off the frontier. They are asked
+  // construction, and the two below are what "there is nothing here to offer"
+  // means: owned ground, and hexes off the frontier. They are asked
   // directly rather than by matching `tilePurchaseError`'s sentences — an error
-  // string is for a player to read, never for code to branch on.
+  // string is for a player to read, never for code to branch on. There is no
+  // third clause for water any more, and there must not be one: this list and
+  // that evaluator are the same rule seen twice, so a filter here the reducer
+  // does not keep is a hex the overlay refuses to price and the command sells.
   for (const tile of mapRange(map, tileHex(cityTile(map, city)), CITIES.workRadius)) {
     if (state.tileOwner[tileIndex(map, tile.col, tile.row)] !== null) continue;
-    if (terrainDef(tile.terrain).water) continue;
     if (!touchesTerritory(state, owner, tile)) continue;
     const cell: Cell = { col: tile.col, row: tile.row };
     offers.push({

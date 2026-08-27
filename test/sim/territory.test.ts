@@ -523,6 +523,51 @@ describe('buying ground', () => {
     expect(city.workedTiles.some((c) => c.col === cell.col && c.row === cell.row)).toBe(true);
   });
 
+  /**
+   * **The sea is for sale** (user, 2026-08-27). Water was barred from the till
+   * back when it was scenery; Entry XXVII made it worked ground — fishing boats
+   * improve it, the granary reads its water line, a citizen sits on it — so a
+   * harbour town buys its bay on exactly the terms a farming town buys its hill.
+   *
+   * Asserted as a *sameness* rather than as its own rule: the coast hex is
+   * priced by the same ladder, sold by the same command and claimed into the
+   * same `tileOwner` array as the grassland it replaced. That is the whole
+   * change — a clause removed, nothing added — and a test that invented a water
+   * price would be testing something the game does not do.
+   */
+  it('sells the bay: a coast hex on the frontier is bought exactly as land is', () => {
+    const { state, city, cell } = ready();
+    const asLand = tilePurchasePrice(state, 0, city.id, cell);
+    at(state.map, cell.col, cell.row).terrain = 'coast';
+
+    expect(tilePurchaseError(state, 0, city.id, cell)).toBeNull();
+    // The ladder prices ring, era, habit and furs — nothing about the ground —
+    // so the sea costs what the field did.
+    expect(tilePurchasePrice(state, 0, city.id, cell)).toBe(asLand);
+
+    const purse = state.players[0]!.gold;
+    expect(buy(state, city.id, cell)).toEqual({ ok: true });
+    expect(state.tileOwner[tileIndex(state.map, cell.col, cell.row)]).toBe(city.id);
+    expect(state.players[0]!.gold).toBe(purse - asLand);
+    expect(state.players[0]!.tilesPurchased).toBe(1);
+  });
+
+  it('offers the water too, so the overlay prices the whole frontier', () => {
+    const { state, city, cell } = ready();
+    at(state.map, cell.col, cell.row).terrain = 'coast';
+    at(state.map, cell.col, cell.row + 1).terrain = 'ocean';
+    const offers = purchasableTiles(state, city);
+    // The list and `tilePurchaseError` are the same rule seen twice: every hex
+    // the evaluator would sell is quoted, water included.
+    const coast = offers.find((o) => o.col === cell.col && o.row === cell.row);
+    expect(coast).toBeDefined();
+    expect(coast!.error).toBeNull();
+    expect(coast!.price).toBeGreaterThan(0);
+    for (const offer of offers) {
+      expect(offer.error).toBe(tilePurchaseError(state, 0, city.id, offer));
+    }
+  });
+
   it('prices the sale at exactly what the evaluator quoted', () => {
     // Rule 5 at the till: the tag the overlay paints is the charge.
     const { state, city, cell } = ready();
@@ -582,10 +627,25 @@ describe('buying ground', () => {
       expect(refuse(state, city.id, { col: 3, row: -4 })).toContain('No tile');
     });
 
-    it('the tile is water', () => {
-      const { state, city, cell } = ready();
-      at(state.map, cell.col, cell.row).terrain = 'coast';
-      expect(refuse(state, city.id, cell)).toContain('sea');
+    /**
+     * The sea obeys the frontier rule, and that is now the *only* thing keeping
+     * a seat out of the open ocean — there is no "the sea is not for sale"
+     * clause any more (2026-08-27). These two are the land refusals above with
+     * water under them, asserted separately because they are what replaced the
+     * terrain check: a hex three rings out is too far whether it is a mountain
+     * or a swell, and an unreachable hex inside the radius is an island either
+     * way.
+     */
+    it('the water is outside the city\'s work radius', () => {
+      const { state, city } = ready();
+      at(state.map, 13, 8).terrain = 'ocean';
+      expect(refuse(state, city.id, { col: 13, row: 8 })).toContain('Too far');
+    });
+
+    it('the water does not touch the empire', () => {
+      const { state, city } = ready();
+      at(state.map, 11, 8).terrain = 'ocean';
+      expect(refuse(state, city.id, { col: 11, row: 8 })).toContain('Not next to your territory');
     });
 
     it('the tile is already owned — by anyone, including this city', () => {
@@ -636,7 +696,7 @@ describe('buying ground', () => {
     state.players[0]!.gold = 0;
     const offers = purchasableTiles(state, city);
     expect(offers.length).toBeGreaterThan(0);
-    // Every offer is unowned land inside the radius that touches the empire...
+    // Every offer is unowned ground inside the radius that touches the empire...
     for (const offer of offers) {
       expect(state.tileOwner[tileIndex(state.map, offer.col, offer.row)]).toBeNull();
       expect(offer.price).toBeGreaterThan(0);
