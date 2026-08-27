@@ -11,6 +11,11 @@ buildings are called **Triumphs** (2026-08-27; "deeds" retired) · triumphs are 
 **Still weighing:** whether great people make the initial cut at all (the argument for: they
 are the third and last draft currency; the argument against: one more offer type).
 
+**Ruled 2026-08-27 (user):** every great person has a **unique ability** — that is what the
+draft is for — and the roster follows the **Doctrine philosophy**: some are game-defining
+and situational *with a malice*, some are generic strong bonuses, some are situational with
+no malice. See "Legacies" below.
+
 ## The shape in one paragraph
 
 One empire-wide **renown** pool — the fourth Entry XVIII bucket — filled by **buildings**
@@ -53,16 +58,19 @@ announced. **Once** = once per game per seat. **Per age** = the first time in ea
 | 4 | **Against the Odds** | you win a battle against a unit of higher strength | +8 | per age |
 | 5 | **The Camp Burned** | you clear a barbarian camp | +6 | per age |
 | 6 | **A Ruin Read** | you claim a discovery | +5 | per age |
-| 7 | **The Unbowed** | a city of yours survives an assault (attacked, not taken, attacker driven off) | +10 | per age |
-| 8 | **The Writ Extends** | you adopt a government | +10 | per adoption |
-| 9 | **A God Named** | you consecrate a pantheon belief | +6 | per belief |
-| 10 | **The Great City** | a city of yours reaches population 10 | +12 | once |
-| 11 | **The Far Shore** | you found a city on a continent you did not start on | +12 | once |
-| 12 | **The Taken** | you capture a city | +10 | per capture |
-| 13 | **The Fallen Become Verse** | you lose a unit in a battle you then win *(needs Epic Poetry)* | +6 | per age |
-| 14 | **The Long Road** | two of your cities are connected by road *(needs The Royal Road)* | +8 | once |
+| 7 | **The Writ Extends** | you adopt a government | +10 | per adoption |
+| 8 | **A God Named** | you consecrate a pantheon belief | +6 | per belief |
+| 9 | **The Great City** | a city of yours reaches population 10 | +12 | once |
+| 10 | **The Far Shore** | you found a city on a continent you did not start on | +12 | once |
+| 11 | **The Taken** | you capture a city | +10 | per age ✎ (per capture would be the whole military faucet) |
+| 12 | **The Fallen Become Verse** | you lose a unit in a battle you then win *(needs Epic Poetry)* | +6 | per age |
+| 13 | **The Long Road** | two of your cities are connected by road *(needs The Royal Road)* | +8 | once |
+| 14 | **The Eight Luxuries** ✎ | you have improved eight distinct luxuries | +10 | once |
+| 15 | **The Ten Hearths** ✎ | ten cities in your empire | +15 | once |
+| 16 | **The First Keel** ✎ | you build your first naval unit *(needs naval units — none exist yet; Sailing embarks civilians only)* | +5 | once |
+| 17 | **The City of Marvels** ✎ | seven wonders in one city | +20 | once |
 
-Fourteen; trim to ten if the hover gets long. Rules of the list: no triumph is the only
+Seventeen (✎ user, 2026-08-27: The Unbowed removed — assault survival is too easy to farm — and four added). Trim if the hover gets long; the three that wait on later content are marked. Rules of the list: no triumph is the only
 way over a threshold (the building floor always gets there); no triumph rewards a bank
 statement (Entry VI's rule — claims on the world, never private milestones); contested ones
 are the only ones another seat can take from you.
@@ -84,6 +92,30 @@ one-line twist on the family verb — is one JSON field.)
 The **act / work** choice is the decision each recruit puts to you: the burst now or the
 ground forever. Works are improvement rows (`improvements.json`) with a `greatPerson: true`
 flag so a worker cannot build them, and they take the tile's meadow like a farm does.
+
+## Legacies — the unique ability, and the three tiers
+
+**A great person is a card that walks.** Their unique ability is written in the same effect
+vocabulary Orders and beliefs use (`statecraftData.ts`'s shapes; `statecraft.ts` stays the
+only reader), so a person is a JSON row — name, family, age, epigram, tier, effects — exactly
+as a belief is. A shape that does not exist is a design decision, never a one-off.
+
+**Where it lives:** the family verbs (act now / work forever) stay the *board* decision; the
+unique ability is a **legacy** that attaches to the empire when the person is spent, either
+way, and persists — *they served you; their legacy remains*. Two decisions per recruit
+(which name, then burst or ground), one content cost per name, and the family-weighted draw
+still matters because a general's legacy is a war card and a scholar's a science card.
+
+Three tiers, the Doctrine split (`docs/statecraft-cards.md`), roughly 2 / 4 / 4 per age:
+
+| tier | count/age | shape | examples from the roster |
+|---|---|---|---|
+| **Game-defining, with a malice** | ~2 | situational and large; the malice lands on a meter, a cost or a fragility, never on a yield you cannot see | **Ea-nāṣir** — copper and tin tiles +3🪙, but every luxury you hold counts one fewer for happiness (*"the copper was fine"*) · **Han Xin** — units beside a river or coast fight at +5, but each city's authority cost is +1 (the general the emperor could not keep) · **Archimedes** — siege +50% vs cities, and the legacy is *lost* the turn an enemy enters his city |
+| **Generic strong** | ~4 | never the wrong pick; a flat that scales with the empire | **Imhotep** — +1⚙ in every city with a monument · **Zhang Qian** — +2🪙 per connected city · **Sappho** — capital +2🎵, +1 happiness · **Senenmut** — buildings −10% ⚙ |
+| **Situational, no malice** | ~4 | great for one map or one plan, harmless otherwise | **Li Bing** — farms beside a river +1🌾 · **Hippalus** — fishing boats +1🪙, embarked units +1 movement · **Boudica** — +25% defending inside your borders, for the age she was recruited in · **Eratosthenes** — +1🔬 per continent you have revealed |
+
+Per-person legacies for the full Heroes and Empire roster are written once the initial-cut
+question is ruled — that is where the content volume is.
 
 ## The roster — starter names by age and family
 
@@ -164,7 +196,7 @@ hook shape, and they are one `switch` in one file.
 
 1. **Offer composition:** mixed families weighted by feed (recommended — a scholar, a
    general, a merchant is a decision) vs one family per draft.
-2. **Works per family** (v1) vs a **signature per person** (v2).
+2. ~~Works per family vs a signature per person~~ — **ruled: unique per person**, as a legacy in the card vocabulary; the family keeps the two verbs.
 3. **Initial cut:** in, or after the first playable-to-the-curtain build?
 4. **Trim** the triumph list to ten? Which four go — I'd drop 6 (A Ruin Read: discoveries
    are already their own reward), 9 (A God Named: faith is its own draft), 13 and 14
