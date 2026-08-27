@@ -189,7 +189,8 @@
       1.5,
       2
     ],
-    "goldPerHammer": 2
+    "goldPerHammer": 2,
+    "wonderRefundGoldPerHammer": 1
   },
   "startingUnits": [
     "settler",

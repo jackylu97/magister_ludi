@@ -2402,6 +2402,70 @@ export function cityPalaceFinial(spec: {
 }
 
 /**
+ * A **wonder**: an outsized stepped plinth, taller than anything else a town
+ * has, under a gilt tip.
+ *
+ * The world's one permitted spectacle (`docs/art-pass.md`, W3), and deliberately
+ * **one generic sculpt for every wonder** until the rows exist: the framework
+ * that landed first has one placeholder row in it, and twenty-three sculpts for
+ * twenty-three wonders nobody has ratified would be twenty-three shapes to
+ * throw away. Per-wonder silhouettes come with the rows; the docblock says so
+ * because the next hand here should not have to guess whether this was a
+ * decision or an omission.
+ *
+ * It is the *ziggurat's* profile deliberately — steps a low sun draws hard
+ * shadow lines under, legible down to twenty pixels for `cityTemple`'s reason —
+ * at a scale nothing else in the town reaches, so that "there is a wonder here"
+ * is readable from across the table without reading a label. The palace is the
+ * grade below it and stops at a house-and-a-half; this goes past the palace's
+ * ridge, which is the whole of what makes it a spectacle rather than a big
+ * temple.
+ *
+ * `tiers` terraces, each `taper` of the one below, and the tip comes back
+ * separately (`cityWonderTip`) so it can take the gilt — `cityShrine`'s bargain
+ * at four times the size.
+ */
+export function cityWonder(spec: {
+  width: number;
+  stepH: number;
+  tiers: number;
+  taper: number;
+}): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const count = Math.max(1, Math.round(spec.tiers));
+  for (let i = 0; i < count; i++) {
+    const width = spec.width * spec.taper ** i;
+    const tier = new BoxGeometry(width, spec.stepH, width);
+    tier.translate(0, spec.stepH * (i + 0.5), 0);
+    parts.push(tier);
+  }
+  return weld(parts);
+}
+
+/**
+ * The wonder's gilt tip: a four-sided spike standing on the top terrace.
+ *
+ * The second speck of gold in the world layer, after the palace's finial, and it
+ * is the same argument: gilt belongs to the interface (Entry VII), and the two
+ * things the world is allowed to spend it on are the seat of government and a
+ * wonder — the two things the interface already marks.
+ */
+export function cityWonderTip(spec: {
+  width: number;
+  stepH: number;
+  tiers: number;
+  taper: number;
+  tipH: number;
+}): BufferGeometry {
+  const count = Math.max(1, Math.round(spec.tiers));
+  const top = spec.width * spec.taper ** (count - 1);
+  const spike = new ConeGeometry(top * 0.42, spec.tipH, 4, 1);
+  spike.rotateY(Math.PI / 4);
+  spike.translate(0, spec.stepH * count + spec.tipH / 2, 0);
+  return flatten(spike);
+}
+
+/**
  * The banner pole a city flies its colours from: a thin cylinder on its base.
  *
  * Five sides, not a smooth barrel — at this radius the facets are invisible but

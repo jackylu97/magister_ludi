@@ -71,7 +71,7 @@
  * Expansion is the science economy; pricing expansion re-prices the tree.
  */
 
-import { type BuildingId, buildingDef, isBuildingId } from './buildingData';
+import { type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';
 import {
   type CityYields,
   cityYields,
@@ -90,11 +90,14 @@ import {
 import { RULES } from './rulesData';
 import { payWindfallGrants, settleCultureWindfall, windfallPayout } from './statecraft';
 import {
+  type City,
   type GameState,
   type Player,
   type QueueKind,
   type Unit,
+  cityById,
   playerById,
+  wonderClaim,
 } from './state';
 import {
   type AbilityId,
@@ -220,12 +223,31 @@ export function requiredResource(kind: QueueKind, id: string): ResourceId | null
  * warrior up its chain. Controlling a resource can be *lost* — a captured city
  * takes its iron with it — so a gate that could go backwards has no business
  * deciding what a unit already on the board is.
+ *
+ * The wonder clauses, and why they need a city
+ * --------------------------------------------
+ * A wonder is refused twice over (the wonders framework, 2026-08-27): once
+ * because **somebody in the world has already built it**, in a sentence that
+ * names the town and the empire holding it, and once because **this empire is
+ * already building it somewhere else** — a second copy in one realm is a queue
+ * that can never complete, which is exactly the failure this gate exists to
+ * refuse before a hundred turns of hammers go into it.
+ *
+ * `city` is the town being asked *on behalf of*, and it is optional for the
+ * oldest reason in this file: without it the second clause would refuse a player
+ * re-sending the very queue that legitimately holds the wonder, because
+ * `validateQueue` re-validates every row of the new queue against the empire the
+ * old one is still standing in. So the caller that has a town hands it over and
+ * that town is excluded from the sweep; the caller that has none (a purchase, a
+ * report) gets the stricter reading, which is the honest answer to "could this
+ * empire start one anywhere".
  */
 export function buildError(
   state: GameState,
   playerId: number,
   kind: QueueKind,
   id: string,
+  city?: City,
 ): string | null {
   if (!isUnlocked(state, playerId, kind, id)) {
     const gate = gatingTech(kind, id);
@@ -241,6 +263,26 @@ export function buildError(
     const spec = unitDef(id).purchase!;
     return `${itemName(kind, id)}s are not built — they are bought with ${spec.currency}`;
   }
+  // The two wonder clauses, after the technology and before the resource, in the
+  // order a player needs to hear them: a wonder that already stands somewhere is
+  // gone for good, and one this empire is already raising is a decision it has
+  // made. Neither can ever fire for an ordinary building.
+  if (kind === 'building' && isBuildingId(id) && isWonder(id)) {
+    const claim = wonderClaim(state, id);
+    if (claim) {
+      const where = cityById(state, claim.cityId);
+      const who = playerById(state, claim.playerId);
+      const town = where?.name ?? `city ${claim.cityId}`;
+      const empire = who?.name ?? `player ${claim.playerId}`;
+      return `${itemName(kind, id)} already stands in ${town} (${empire})`;
+    }
+    for (const other of state.cities) {
+      if (other.ownerId !== playerId || other.id === city?.id) continue;
+      if (!other.queue.some((item) => item.kind === 'building' && item.id === id)) continue;
+      return `${other.name} is already building ${itemName(kind, id)}`;
+    }
+  }
+
   const resource = requiredResource(kind, id);
   if (resource !== null && !hasResource(state, playerId, resource)) {
     // "improved", since M7. Owning the seam stopped being enough the day workers

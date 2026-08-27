@@ -168,7 +168,8 @@
       ],
       "unlocks": {
         "buildings": [
-          "shrine"
+          "shrine",
+          "theOracle"
         ],
         "units": [
           "augur"

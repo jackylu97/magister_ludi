@@ -76,7 +76,7 @@ import buildingsJson from '../../data/buildings.json';
 import type { TechId } from './techData';
 // Type-only for `TechId`'s reason, one table over: `statecraftData.ts` imports
 // `BuildingId` from here.
-import type { TileCondition } from './statecraftData';
+import type { CardEffect, TileCondition } from './statecraftData';
 
 /**
  * The kinds of thing a city can be building, and therefore the kinds a
@@ -94,8 +94,18 @@ import type { TileCondition } from './statecraftData';
  * *state*, and both tables that hand out a category bonus — buildings and
  * resources — are read by modules that must not depend on it. `cities.ts` is
  * where the two meet.
+ *
+ * **`wonder` is its own category and not a kind of building** (the wonders
+ * framework, 2026-08-27). A wonder is a `'building'` *queue row* — it is built
+ * out of the same basket by the same routine — but it is a category of its own
+ * here for the reason the category exists at all: a percentage names one, and
+ * the great-person legacies the design has already ratified say "+30%⚙ toward
+ * wonders" rather than "+30% toward buildings". So a barracks' `building`
+ * bonus does **not** ride on a wonder and a wonder bonus does not ride on a
+ * granary; `queueCategory` (`cities.ts`) is the one place a row is sorted into
+ * one of the three, and nothing supplies a `wonder` percentage yet.
  */
-export type ProductionCategory = 'unit' | 'building';
+export type ProductionCategory = 'unit' | 'building' | 'wonder';
 
 /**
  * A stat of the city a building stands in. See `BuildingDef.cityStat`.
@@ -131,7 +141,16 @@ export type BuildingId =
   | 'watermill'
   | 'amphitheater'
   | 'monastery'
-  | 'university';
+  | 'university'
+  /**
+   * **Placeholder wonder.** The one row that exercises the wonders framework
+   * until the tree pass lands the real roster (`docs/tech-tree-ages-2-5.md`
+   * lists twenty-three across four ages, The Oracle among them, homed on Epic
+   * Poetry in Æra II). It is homed on Divination here because Divination is a
+   * technology that exists today; the row carries `placeholder: true` and the
+   * tree pass replaces it.
+   */
+  | 'theOracle';
 
 /**
  * What a building pays a city every turn.
@@ -285,6 +304,52 @@ export interface BuildingDef {
   upgrades?: BuildingUpgrade[];
   /** What this pays on the *ground*. See `BuildingTileYield`. */
   tileYields?: BuildingTileYield[];
+  /**
+   * **A wonder: one of these stands in the whole world, ever.** Absent means an
+   * ordinary building, which is every row but one today.
+   *
+   * A flag rather than a second table, and that is the whole framework: a
+   * wonder is unlocked by a technology like any building, queued like any
+   * building, paid for out of the same basket by the same completion routine,
+   * and pays its `yields` through `cityYields` like any building. Four things
+   * key off this flag and nothing else does — the production category
+   * (`queueCategory`), the one-per-world claim (`GameState.wonders`, written by
+   * `realiseItem`), the refusal to sell one (`purchaseError`) and the sculpt
+   * (`CityLook.wonders`).
+   */
+  wonder?: boolean;
+  /**
+   * What this building *does* beyond its yields, in the Statecraft vocabulary —
+   * read by the one evaluator that reads a card (`statecraft.ts`).
+   *
+   * **A wonder's effect is a card, not a system.** The same bargain a belief and
+   * a rite already struck (ledger Entry XXVIII): twenty-four effect shapes go in
+   * as JSON, labelled lists come out, and `statecraft.ts` stays the only module
+   * in the game that switches on a `CardEffect.kind`. So The Hanging Gardens'
+   * "+3🌾 and +1 happiness in this city" is two rows of data rather than two
+   * branches, and a wonder whose ratified text needs a shape the vocabulary
+   * lacks is **deferred and annotated** rather than bent to fit.
+   *
+   * The scope is the ordinary `CityScope`: an effect with **no scope** reaches
+   * every city of the empire that holds the wonder (exactly as a belief does),
+   * and one that means "in the city the wonder stands in" says so with
+   * `{ test: 'hasBuilding', building: <this row> }` — which is derived from the
+   * board, so a captured wonder pays its captor and stops paying its builder
+   * with no bookkeeping at all.
+   *
+   * Declared on `BuildingDef` rather than on a wonder-only type because there is
+   * nothing wonder-shaped about it: the day an ordinary building wants a card
+   * effect it fills this in, and the evaluator will not notice the difference.
+   */
+  effects?: CardEffect[];
+  /**
+   * True on a row that exists to exercise a framework and will be replaced.
+   *
+   * Written down in the data rather than in a comment because a comment in JSON
+   * is a lie waiting to happen, and because the test that asserts the roster is
+   * sane needs to be able to tell a stand-in from a ratified row.
+   */
+  placeholder?: boolean;
 }
 
 export interface BuildingData {
@@ -298,6 +363,20 @@ export const BUILDING_IDS = Object.keys(BUILDING_DATA.buildings) as BuildingId[]
 export function buildingDef(id: BuildingId): BuildingDef {
   return BUILDING_DATA.buildings[id];
 }
+
+/**
+ * Is this building a wonder — one of which stands in the whole world?
+ *
+ * The one reading of `BuildingDef.wonder`, so that nothing anywhere compares a
+ * building id against `"theOracle"`, exactly as nothing in `src/sim/` compares a
+ * unit against `"settler"` or `"augur"`.
+ */
+export function isWonder(id: BuildingId): boolean {
+  return buildingDef(id).wonder === true;
+}
+
+/** Every wonder, in the table's own order. The roster, derived from the flag. */
+export const WONDER_IDS: readonly BuildingId[] = BUILDING_IDS.filter(isWonder);
 
 /**
  * Runtime guard. Production queues arrive from save files and (eventually)

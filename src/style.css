@@ -5724,19 +5724,25 @@ kbd {
 }
 
 /* --- the split ------------------------------------------------------------
-   The Statecraft sheet is the one of the two that **splits**, so everything
-   here is scoped to its id rather than to the shared `.statecraft-*` classes —
-   the Religion sheet is the same paper and is still one column that scrolls as
-   a whole (index.html says so out loud, and this is that promise kept).
+   **Both** parchment sheets split, and they split the same way — so this block
+   is written once and named twice. It is scoped to the two ids rather than to
+   the shared `.statecraft-*` classes because the cap is a fact about a
+   *screen*: any later overlay borrowing this paper is one column until it says
+   otherwise here.
 
-   The user's note (2026-08-27): you had to scroll far down to pick an Order and
-   back up to slot it. So the sheet is capped at the viewport, the offices are a
-   column that never moves, and the hand scrolls in its own pane beside them. */
-#statecraft-overlay {
+   The user's note (2026-08-27), made twice: on Statecraft, "you had to scroll
+   far down to pick an Order and back up to slot it"; on Religion, "ideally it
+   would also fit on a single screen; split panes would be good here too". So
+   each sheet is capped at the viewport, the half a player reads *from* is a
+   column that never moves — the offices, the pantheon — and the half they act
+   on scrolls in its own pane beside it. */
+#statecraft-overlay,
+#religion-overlay {
   overflow: hidden;
 }
 
-#statecraft-overlay .statecraft-sheet {
+#statecraft-overlay .statecraft-sheet,
+#religion-overlay .statecraft-sheet {
   display: flex;
   flex-direction: column;
   width: min(1240px, 100%);
@@ -5744,7 +5750,8 @@ kbd {
   min-height: 0;
 }
 
-#statecraft-overlay .statecraft-body {
+#statecraft-overlay .statecraft-body,
+#religion-overlay .statecraft-body {
   flex: 1 1 auto;
   min-height: 0;
   gap: 14px;
@@ -5757,8 +5764,9 @@ kbd {
   min-height: 0;
 }
 
-/* The offices. A fixed column, and the one thing on this screen that is always
-   on screen: it is the other half of every click the hand makes.
+/* The offices — and, one screen over, the pantheon. A fixed column, and the one
+   thing on the screen that is always on screen: it is the other half of every
+   click the pane beside it makes.
 
    Two parts, because on a short viewport something has to give and it must not
    be the button that signs the law: the charter, the offices and the Doctrines
@@ -5799,14 +5807,19 @@ kbd {
    beside a 260px pane is two things neither of which can be read. */
 @media (max-width: 860px) {
   /* And with the panes stacked there is nothing to pin them against, so the
-     sheet goes back to being one document that scrolls as a whole — the shape
-     the Religion sheet keeps at every width. Capping the height here would clip
-     a column that has no scroller of its own. */
-  #statecraft-overlay {
+     sheet goes back to being one document that scrolls as a whole. Capping the
+     height here would clip a column that has no scroller of its own.
+
+     One media query for both sheets, deliberately: the width at which a split
+     stops being readable is a fact about the split, and two breakpoints that
+     agree today are two breakpoints. */
+  #statecraft-overlay,
+  #religion-overlay {
     overflow-y: auto;
   }
 
-  #statecraft-overlay .statecraft-sheet {
+  #statecraft-overlay .statecraft-sheet,
+  #religion-overlay .statecraft-sheet {
     max-height: none;
   }
 
@@ -6655,7 +6668,18 @@ kbd {
   --line-ink: var(--line-none);
 }
 
-/* The pool, in the display face: this is the one number the screen exists for. */
+/* The pool, in the display face: this is the one number the screen exists for.
+   It sits at the head of the pane rather than in the column, because how much
+   faith has gathered is the first line of what an augur costs. */
+.rel-pool {
+  flex: 0 0 auto;
+}
+
+.rel-purchase {
+  flex: 1 1 340px;
+  min-width: 0;
+}
+
 .rel-pool-figure {
   margin: 2px 0 6px;
   font-family: var(--face-num);
@@ -6664,56 +6688,73 @@ kbd {
   color: var(--y-faith);
 }
 
+/* The places at the fire, stacked under the wheel. A column rather than a row
+   of plates: in 320px a tall card beside the wheel is two things neither of
+   which can be read, and what a player wants off a god they already hold is its
+   name and its clauses, which is a line. */
 .rel-slot-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 6px;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
 }
 
-/* A place at the fire. Filled it is a card; empty it is the outline of one,
-   which is the same argument the Statecraft slot row makes — a row of places is
-   read as a row before any of the words are. */
+/* A place at the fire. Filled it is a compact row — the Statecraft hand's
+   density, the same eyebrow-chip-name-clauses order — and empty it is the
+   outline of one, which is the same argument the Statecraft slot row makes: a
+   run of places is read as a run before any of the words are. */
 .rel-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
   position: relative;
-  width: 168px;
-  min-height: 200px;
-  padding: 12px 12px 10px;
+  padding: 7px 9px 8px;
   border: var(--border-thin) solid var(--line-ink, var(--ink));
   border-radius: var(--radius-sm);
   background: var(--parchment);
-  text-align: center;
+  text-align: left;
   color: var(--line-ink, var(--ink));
 }
 
 .rel-slot-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   border-style: dashed;
   border-color: var(--ink-faint);
   background: transparent;
   color: var(--ink-faint);
-  justify-content: center;
 }
 
 .rel-slot-ghost {
-  font-size: 28px;
+  font-size: 18px;
   line-height: 1;
   opacity: 0.55;
 }
 
-/* The axis glyph, sized like a card's emblem and inked like one. */
+/* The axis glyph. A **chip** in the eyebrow now, sized to `.sc-card-emblem`'s
+   18px box so a god's mark and an Order's drawing sit at one height — the plate
+   it used to be belongs to the offer that deals the god, which is where the
+   ceremony is. */
 .rel-card-emblem {
-  font-size: 26px;
-  line-height: 1;
-  margin: 2px 0;
+  flex: none;
+  font-size: 15px;
+  line-height: 18px;
   color: var(--line-ink, var(--ink));
 }
 
 .rel-axis-mark {
   color: var(--line-ink, var(--ink));
+}
+
+/* A god's clauses at the hand's reading size — the same two declarations
+   `.sc-card .sc-clause` makes, because a row of a god and a card of an Order
+   are the same density by design and not by coincidence. */
+.rel-slot .sc-clauses {
+  margin-top: 4px;
+  padding-left: 13px;
+}
+
+.rel-slot .sc-clause {
+  font-size: 11.5px;
+  line-height: 1.4;
 }
 
 /* The price, line by line — rule 5 for a thing you buy, in the meter card's own
@@ -6745,6 +6786,15 @@ kbd {
   flex-wrap: wrap;
 }
 
+/* `.btn` is `flex: 1`, which in a two-item row makes the button eat whatever the
+   select does not want. It is a control on a panel and takes its own width — and
+   it stays in the panel's register (sentence case, no tracking), which is the
+   rule the city panel's Buy Tiles note is the other instance of. */
+.rel-buy {
+  flex: 0 0 auto;
+  text-transform: none;
+}
+
 .rel-city-select {
   font: inherit;
   padding: 3px 6px;
@@ -6752,17 +6802,21 @@ kbd {
   border-radius: var(--radius-sm);
   background: var(--parchment);
   color: var(--ink);
+  text-transform: none;
 }
 
+/* The rites, as compact rows in the pane. `auto-fit` rather than a fixed count
+   because the pane's width is whatever is left beside the pantheon: three
+   across on a wide sheet, one when the panes have stacked. */
 .rel-rite-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 8px;
   margin-top: 6px;
 }
 
 .rel-rite {
-  padding: 8px 10px;
+  padding: 6px 9px;
   border-left: 2px solid var(--grape);
   background: color-mix(in srgb, var(--parchment) 88%, transparent);
 }
@@ -6793,7 +6847,8 @@ kbd {
 
 .rel-rite-say {
   margin: 0 0 2px;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 /* ===========================================================================
@@ -7249,6 +7304,7 @@ kbd {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
+  justify-content: center;
   gap: 18px;
   margin-top: 6px;
 }
@@ -7258,6 +7314,19 @@ kbd {
   width: 236px;
   height: 236px;
   overflow: visible;
+}
+
+/* 236px is the width of a wheel with a column of slot cards beside it, which is
+   what the flair gallery still draws and what this was. In the pantheon column
+   the wheel *is* the column, so on the screen it is sized to it — 200px, which
+   is what leaves the places at the fire above the fold on a 720-tall viewport —
+   and `min(…, 100%)` so a narrower column shrinks it rather than clipping it.
+   The drawing is a 100×100 viewBox and scales exactly: `WHEEL`'s proportions are
+   untouched, and the gallery's stall is left at the size it was tuned at. */
+#religion-overlay .rel-wheel {
+  width: min(200px, 100%);
+  height: auto;
+  aspect-ratio: 1;
 }
 
 .rel-wheel-houses {
@@ -7373,10 +7442,37 @@ kbd {
   fill: var(--ink-faint);
 }
 
-/* The slot cards keep their place, beside the wheel: the wheel is the *pool*
-   and a slot card is a god's face, and a player wants both — where a god sits
-   in the sky, and what it actually does. */
-.rel-wheel-row .rel-slot-row {
-  flex: 1 1 340px;
-  margin-top: 0;
+/* The gods keep their place with the wheel — the wheel is the *pool* and a slot
+   is a god's face, and a player wants both: where a god sits in the sky, and
+   what it actually does. They are stacked now rather than side by side, because
+   the pantheon is a 320px column (see `.sc-column`), so the run of places is a
+   sibling of `.rel-wheel-row` and no longer inside it. */
+
+/* --- wonders (the city panel's build list) --------------------------------
+   A wonder row is a *building* row that has been told it is a different kind of
+   decision: the stripe goes gilt — the one colour this interface reserves for
+   the singular (Entry VII, and the palace's finial in the world layer) — and the
+   name carries a small eyebrow, because a player deciding what to spend a
+   hundred hammers on needs to know it is a race before they read the price.
+
+   There is deliberately no third state for "claimed": a row nobody can build any
+   more is greyed by the platform's own `:disabled`, and the reducer's sentence
+   ("The Oracle already stands in Uruk") is printed where the price would be. One
+   place to read why, and it is the reducer's own words. */
+.city-buildable.is-wonder {
+  border-left-color: var(--gilt);
+}
+
+.city-buildable-eyebrow {
+  margin-left: 6px;
+  font-family: var(--face-ui);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: var(--inscription-tracking);
+  text-transform: uppercase;
+  color: var(--gilt);
+}
+
+.city-buildable:disabled .city-buildable-eyebrow {
+  color: var(--ink-faint);
 }

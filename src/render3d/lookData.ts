@@ -398,6 +398,27 @@ export interface CitySpec {
     finialColor: string;
   };
   /**
+   * A **wonder**: the outsized stepped plinth under a gilt tip that stands in a
+   * town holding one, in every age (`fromTier: 1` — a wonder is not a thing a
+   * people grows into, it is a thing they built).
+   *
+   * One generic sculpt for every wonder for now; per-wonder shapes arrive with
+   * the rows. `tiers` and `taper` are the ziggurat's own knobs at a bigger
+   * scale, and the numbers are chosen so the tip clears the palace's ridge —
+   * that height difference is the whole spectacle (see `cityWonder`).
+   */
+  wonder: {
+    fromTier: number;
+    width: number;
+    stepH: number;
+    tiers: number;
+    taper: number;
+    tipH: number;
+    offset: number;
+    color: string;
+    tipColor: string;
+  };
+  /**
    * The heraldic charge printed on the flag: its size, how far it stands in
    * front of the cloth, and how far in from the fly it sits.
    *

@@ -66,7 +66,7 @@ import {
   refreshCityDerived,
   spawnTileFor,
 } from './cities';
-import { type BuildingId, buildingDef, isBuildingId } from './buildingData';
+import { type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';
 import { RULES } from './rulesData';
 import { buildError, gatingTech, hasTech } from './tech';
 import { techDef } from './techData';
@@ -299,6 +299,18 @@ export function purchaseError(
   }
   const name = purchasableName(bought);
 
+  // **A wonder is never for sale**, in any bank, at any price. Civ's rule, and
+  // the one refusal here that is about *what the thing is* rather than about
+  // this city or this treasury — so it is asked before the currency, before the
+  // gates and before the price. It is structural rather than a flag on the row:
+  // a wonder carries no `purchase` spec, and the category check below would fall
+  // through to gold's ordinary gates, which would happily sell one. A wonder
+  // that could be bought would make "one per world" a question of who is
+  // richest on the turn it unlocks.
+  if (bought.kind === 'building' && isWonder(bought.id)) {
+    return `${name} is a wonder — it must be built, not bought`;
+  }
+
   const bank = rosterBank(bought);
   if (bank !== undefined && bank !== currency) {
     // Said out loud rather than left as a silent refusal: a client asking to buy
@@ -403,5 +415,9 @@ export function purchaseItemAt(
   if (queued >= 0) city.queue.splice(queued, 1);
 
   refreshCityDerived(state, city);
-  return born;
+  // The unit's id, or `undefined` for a building. A purchase can never claim a
+  // wonder — `purchaseError` refuses one outright — so the other half of
+  // `RealisedItem` is never populated on this path and there is nothing here to
+  // report onward.
+  return born.unitId;
 }

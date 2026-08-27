@@ -81,7 +81,7 @@
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
 import { heraldryFor } from '../art/heraldryMarks';
-import type { BuildingId } from '../sim/buildingData';
+import { type BuildingId, isWonder } from '../sim/buildingData';
 import { capitalCityOf } from '../sim/cities';
 import { type Tile, getTileAt, tileIndex } from '../sim/map';
 import type { City, GameState } from '../sim/state';
@@ -189,6 +189,18 @@ export interface CityLook {
   temple: boolean;
   /** The seat of government. See `capitalCityOf` — the sim's own rule, asked. */
   capital: boolean;
+  /**
+   * How many **wonders** stand in this town — the world's one permitted
+   * spectacle (`docs/art-pass.md`, W3), one outsized sculpt each.
+   *
+   * A count rather than a flag, and rather than a list of which ones: a town may
+   * hold two, and every wonder is drawn with the same generic marvel until the
+   * ratified rows arrive with sculpts of their own (see `cityWonder`). The day
+   * they do, this becomes the list and the fingerprint folds the ids — which is
+   * a change to *this* type and to nothing else, which is the whole point of
+   * `CityLook`.
+   */
+  wonders: number;
 }
 
 /** Does this town hold a finished building? */
@@ -218,7 +230,7 @@ export function capitalIds(state: GameState): Set<number> {
   return capitals;
 }
 
-/** The five facts about a town that decide its sculpt. See `CityLook`. */
+/** The six facts about a town that decide its sculpt. See `CityLook`. */
 export function cityLook(
   state: GameState,
   city: City,
@@ -230,6 +242,12 @@ export function cityLook(
     shrine: holds(city, 'shrine'),
     temple: holds(city, 'temple'),
     capital: capitals.has(city.id),
+    // Counted off the town's own `buildings` rather than off
+    // `GameState.wonders`, and the difference is a captured city: the claim
+    // register records who *built* a wonder and never moves, while the marvel
+    // stands where the stones are. The sim takes the same reading of what a
+    // wonder pays (`liveEffects`).
+    wonders: city.buildings.filter(isWonder).length,
   };
 }
 
@@ -247,11 +265,19 @@ export function cityLook(
  * A fixed order rather than a hashed one, so the palace is always at the same
  * bearing of its own town and a player learns where to look.
  */
-type CityWork = 'palace' | 'temple' | 'shrine';
+type CityWork = 'palace' | 'temple' | 'shrine' | 'wonder';
 
 function cityWorks(look: CityLook): CityWork[] {
   const works: CityWork[] = [];
   if (look.capital && look.tier >= CITY.palace.fromTier) works.push('palace');
+  // Beside the palace and ahead of the temple, so the two biggest things a town
+  // can hold stand together and a wonder is never pushed round the back by a
+  // shrine. One slot per wonder: the ring grows to fit them, exactly as it grows
+  // for a temple, so a town that finished a marvel never appears to have lost a
+  // quarter of its houses.
+  for (let i = 0; i < look.wonders && look.tier >= CITY.wonder.fromTier; i++) {
+    works.push('wonder');
+  }
   if (look.temple && look.tier >= CITY.temple.fromTier) works.push('temple');
   if (look.shrine && look.tier >= CITY.shrine.fromTier) works.push('shrine');
   return works;
@@ -453,6 +479,15 @@ export class CityLayer {
 
     if (work === 'temple') {
       collector.add(geometry.temple, [ink], matrix);
+      return;
+    }
+    if (work === 'wonder') {
+      collector.add(geometry.wonder, [ink], matrix);
+      collector.add(
+        geometry.wonderTip,
+        [VIEW3D.palette[CITY.wonder.tipColor] ?? 0xffffff],
+        matrix,
+      );
       return;
     }
     if (work === 'shrine') {
@@ -985,7 +1020,10 @@ export function signCities(state: GameState): number {
       (look.walls ? 1 << 4 : 0) |
       (look.shrine ? 1 << 5 : 0) |
       (look.temple ? 1 << 6 : 0) |
-      (look.capital ? 1 << 7 : 0);
+      (look.capital ? 1 << 7 : 0) |
+      // A *count*, not a bit, and it takes the high byte: a town's second wonder
+      // is a second sculpt on the ring, so the hash has to move for it.
+      (look.wonders << 8);
     h = Math.imul(h ^ bits, 16777619);
   }
   return h >>> 0;

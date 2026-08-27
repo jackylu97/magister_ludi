@@ -180,6 +180,27 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0.75
+    },
+
+    "theOracle": {
+      "name": "The Oracle",
+      "placeholder": true,
+      "wonder": true,
+      "cost": 120,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "faith": 2,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "cityYields",
+          "faith": 1,
+          "scope": { "test": "hasBuilding", "building": "theOracle" }
+        }
+      ]
     }
   },
 

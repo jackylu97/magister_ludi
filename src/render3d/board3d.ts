@@ -87,6 +87,8 @@ import {
   cityShrineFinial,
   cityTemple,
   cityWallSegment,
+  cityWonder,
+  cityWonderTip,
   crystalCluster,
   discRing,
   dyeVats,
@@ -545,6 +547,9 @@ export class BoardGeometry {
   readonly palaceBody: BufferGeometry;
   readonly palaceRoof: BufferGeometry;
   readonly palaceFinial: BufferGeometry;
+  /** The wonder's plinth and its gilt tip. One generic sculpt — see `cityWonder`. */
+  readonly wonder: BufferGeometry;
+  readonly wonderTip: BufferGeometry;
   readonly pole: BufferGeometry;
   /** Overlay shapes: reachable tint, highlight ring, path chip, HP bar. */
   readonly decal: BufferGeometry;
@@ -717,6 +722,8 @@ export class BoardGeometry {
     this.palaceBody = cityPalaceBody(CITY.palace);
     this.palaceRoof = cityPalaceRoof(CITY.palace);
     this.palaceFinial = cityPalaceFinial({ ...CITY.palace, size: CITY.palace.finial });
+    this.wonder = cityWonder(CITY.wonder);
+    this.wonderTip = cityWonderTip(CITY.wonder);
     this.pole = bannerPole(CITY.poleRadius, CITY.poleHeight);
     this.decal = hexDecal(BOARD.hexRadius * OVERLAY.reachableScale);
     this.territory = hexDecal(BOARD.hexRadius * VIEW3D.territory.tintScale);
@@ -802,6 +809,8 @@ export class BoardGeometry {
     this.palaceBody.dispose();
     this.palaceRoof.dispose();
     this.palaceFinial.dispose();
+    this.wonder.dispose();
+    this.wonderTip.dispose();
     this.pole.dispose();
     this.decal.dispose();
     this.ring.dispose();

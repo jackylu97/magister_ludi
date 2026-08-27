@@ -89,7 +89,13 @@
  */
 
 import { barbarianTurn } from './barbarians';
-import { advanceProduction, collectYields, expandBorders, growCities } from './cities';
+import {
+  type WonderCompletion,
+  advanceProduction,
+  collectYields,
+  expandBorders,
+  growCities,
+} from './cities';
 import { type CombatOutcome, advanceFortify, healCities } from './combat';
 import { hasLineOfSight } from './los';
 import { openPeriodicOffers, pruneTimedEffects } from './religion';
@@ -121,16 +127,27 @@ import { recomputeAllVisibility, sightOf } from './visibility';
  *
  * `run` takes it as a **second parameter**, so every phase that has nothing to
  * report is assignable unchanged (a function of one argument satisfies a
- * two-argument signature). Only `barbarianTurn` reads it today.
+ * two-argument signature). `barbarianTurn` and `advanceProduction` read it.
  */
 export interface TurnReport {
   /** Every blow struck during the resolution, in the order they landed. */
   combats: CombatOutcome[];
+  /**
+   * Every wonder finished during the resolution, in the order the sweep claimed
+   * them, with the refunds each one paid out (`WonderCompletion`).
+   *
+   * `combats`' sibling, and it joins for the same argument read one scale wider:
+   * by the time `endTurn` returns, the claim is in `state.wonders`, the losers'
+   * queues have been rewritten and their baskets are gold, and no diff of two
+   * boards can name what happened. Unlike a blow, it is **news to every seat**
+   * — a wonder is the one thing another empire finishing takes away from you.
+   */
+  wonders: WonderCompletion[];
 }
 
 /** A fresh, empty report. The one place its shape is written. */
 export function emptyTurnReport(): TurnReport {
-  return { combats: [] };
+  return { combats: [], wonders: [] };
 }
 
 export interface TurnPhase {
@@ -166,7 +183,9 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
   },
   {
     name: 'advanceProduction',
-    // Completes at most one item per city, carrying the overflow forward.
+    // Completes at most one item per city, carrying the overflow forward — and
+    // reports any wonder claimed, which is the one completion the whole world
+    // hears about. The second phase to write into the report, after the wild.
     run: advanceProduction,
   },
   {

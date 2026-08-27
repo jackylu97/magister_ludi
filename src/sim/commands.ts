@@ -62,6 +62,7 @@ import type { ArrivalReport } from './arrival';
 import { isBuildingId } from './buildingData';
 import { isProjectId } from './projectData';
 import {
+  type WonderCompletion,
   assignableTiles,
   foundCityAt,
   foundingError,
@@ -775,7 +776,12 @@ export type CommandType = Command['type'];
  * peer — is unaffected.
  */
 export type CommandResult =
-  | { ok: true; arrivals?: ArrivalReport[]; combats?: CombatOutcome[] }
+  | {
+      ok: true;
+      arrivals?: ArrivalReport[];
+      combats?: CombatOutcome[];
+      wonders?: WonderCompletion[];
+    }
   | { ok: false; error: string };
 
 /**
@@ -792,14 +798,21 @@ export type CommandResult =
  * the wild actually struck; `attack` deliberately does not (see `applyAttack`).
  * The interface filters the list by the seat at the keyboard; the reducer has no
  * opinion about who is watching.
+ *
+ * `wonders` is the third, from the same command and for the same reason, with
+ * one difference the interface leans on: it is **not** filtered by seat. A
+ * wonder finishing is news to everybody, including — especially — the empires
+ * that were building it and have just been handed their hammers back as gold.
  */
 function ok(
   arrivals?: readonly ArrivalReport[],
   combats?: readonly CombatOutcome[],
+  wonders?: readonly WonderCompletion[],
 ): CommandResult {
   const result: CommandResult = { ok: true };
   if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
   if (combats !== undefined && combats.length > 0) result.combats = [...combats];
+  if (wonders !== undefined && wonders.length > 0) result.wonders = [...wonders];
   return result;
 }
 
@@ -873,13 +886,14 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   state.turnEnded[actor.id] = true;
   if (!allTurnsEnded(state)) return ok();
 
-  // The resolution reports what it did — today, every blow the wild landed. See
-  // `TurnReport`: by the time this returns the raider has been paid and the
-  // board cannot be asked who hit whom.
+  // The resolution reports what it did — every blow the wild landed, and every
+  // wonder somebody finished. See `TurnReport`: by the time this returns the
+  // raider has been paid, the board cannot be asked who hit whom, and a city
+  // beaten to a wonder has already had its basket turned into gold.
   const report = runEndOfTurn(state);
   clearTurnEnded(state);
   state.turn += 1;
-  return ok(undefined, report.combats);
+  return ok(undefined, report.combats, report.wonders);
 }
 
 /** Reads an offset cell defensively; commands may arrive from a save or a socket. */
@@ -1111,7 +1125,10 @@ function validateQueue(state: GameState, city: City, raw: unknown): QueueItem[] 
     const item = readQueueItem(raw[i]);
     if (!item) return `Queue item ${i} is not a known unit, building or project`;
 
-    const blocked = buildError(state, city.ownerId, item.kind, item.id);
+    // The city is handed over so the wonder clause can tell "this town is
+    // already building it" (fine — it is what is being re-sent) from "another of
+    // my towns is" (a second copy that could never complete). See `buildError`.
+    const blocked = buildError(state, city.ownerId, item.kind, item.id, city);
     if (blocked !== null) return blocked;
 
     if (item.kind === 'building') {
@@ -1469,8 +1486,14 @@ function applyChopFeature(state: GameState, command: ChopFeatureCommand): Comman
   // lookup the mechanism and the preview use, so all three name one city.
   const paid = chopCity(state, tile);
   chopFeatureAt(state, unit, tile);
-  if (paid) settleProductionWindfall(state, paid);
-  return ok();
+  const done = paid ? settleProductionWindfall(state, paid) : null;
+  // Timber can finish a **wonder**, and a wonder finishing is news to the whole
+  // world (`CommandResult.wonders`) — including to the empires whose baskets it
+  // has just turned into gold. Reported here rather than only from `endTurn`
+  // because a windfall completion is a completion: the claim is made and the
+  // refunds are paid by the same routine either way, and a channel that only
+  // carried the end-of-turn half would be a silence nobody could explain.
+  return ok(undefined, undefined, done?.wonder ? [done.wonder] : undefined);
 }
 
 /**

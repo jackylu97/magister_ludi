@@ -1258,9 +1258,64 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (result.ok) {
       pollSightings();
       reportRaids(result);
+      reportWonders(result);
       checkFirstStatecraftDraft();
     }
     return result;
+  }
+
+  /**
+   * **Somebody finished a wonder.** One chronicle line for the world, and one
+   * more for this seat if it was the one beaten to it.
+   *
+   * The one report in this file that is deliberately *not* filtered by seat
+   * (`reportRaids` is the foil). A wonder is the one thing in the game another
+   * empire completing takes away from you, whether or not you can see the town
+   * it stands in — Civ has always said so out loud, and a player who was
+   * building it and heard nothing would only find out by opening the panel and
+   * seeing an empty queue.
+   *
+   * A chronicle line and nothing else: no splash, no "Mirabile" flourish. The
+   * naming bible allows the flourish as splash flavour, and this is the plain
+   * record of a thing that happened.
+   *
+   * The refund line is the *seat's* half and comes second, because it is the
+   * consequence rather than the news. It is read straight off the report — the
+   * gold is already in the treasury and the queue row is already gone by the
+   * time this runs, so nothing here can be re-derived from the board (see
+   * `WonderCompletion`).
+   */
+  function reportWonders(result: CommandResult): void {
+    if (!result.ok || !result.wonders) return;
+    const { state } = getGame();
+    for (const done of result.wonders) {
+      const city = cityById(state, done.cityId);
+      const empire = playerById(state, done.playerId)?.name ?? 'An empire';
+      const where = city ? cityDisplayName(state, city) : 'a distant city';
+      announce(
+        `✶ ${empire} has completed ${done.name} in ${where}`,
+        city ? { cell: { col: city.col, row: city.row } } : {},
+      );
+      for (const refund of done.refunds) {
+        if (refund.playerId !== localPlayerId) continue;
+        const beaten = cityById(state, refund.cityId);
+        if (!beaten) continue;
+        const name = cityDisplayName(state, beaten);
+        const cell = { col: beaten.col, row: beaten.row };
+        // Two sentences, because they are two different pieces of news: a town
+        // that had banked nothing simply stops building it, and a town that had
+        // banked a hundred hammers wants to know where they went.
+        if (refund.hammers > 0) {
+          announce(
+            `${name}'s ${refund.hammers}${HAMMER} toward ${done.name} returned as ` +
+              `${refund.gold}${YIELD_GLYPH.gold}`,
+            { cell },
+          );
+          continue;
+        }
+        announce(`${done.name} left ${name}'s queue — it stands elsewhere`, { cell });
+      }
+    }
   }
 
   /**

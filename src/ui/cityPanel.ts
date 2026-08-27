@@ -41,7 +41,8 @@ import {
   turnsToFill,
   unitProductionCost,
 } from '../sim/cities';
-import { type BuildingId, BUILDING_IDS, buildingDef } from '../sim/buildingData';
+import { type BuildingId, BUILDING_IDS, buildingDef, isWonder } from '../sim/buildingData';
+import { describeCard } from '../sim/statecraft';
 import { RULES } from '../sim/rulesData';
 import {
   type ProjectId,
@@ -74,7 +75,7 @@ import { resourceLabelNodes } from './resourceMark';
 import { setYieldText, yieldMarkNode } from './yieldMark';
 import { type City, type QueueItem, hasEndedTurn, playerById } from '../sim/state';
 import { techDef } from '../sim/techData';
-import { isUnlocked, requiredResource } from '../sim/tech';
+import { buildError, isUnlocked, requiredResource } from '../sim/tech';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
 import { cityDisplayName } from './cityDisplay';
 import {
@@ -387,7 +388,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
     const head = element('div', 'info-card-head');
     head.append(element('span', 'info-card-name', def.name));
-    head.append(element('span', 'info-card-kind', 'building'));
+    // "wonder", not "building", because the one thing a player needs to know
+    // before spending a hundred hammers is that somebody else may get there
+    // first. Read off the row's own flag (`isWonder`) — there is no Oracle case.
+    head.append(element('span', 'info-card-kind', isWonder(id) ? 'wonder' : 'building'));
     box.append(head);
 
     const figures = element('div', 'info-card-figures');
@@ -428,7 +432,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     if (def.productionBonus !== undefined && def.productionBonus.percent !== 0) {
       const { category, percent } = def.productionBonus;
-      const toward = category === 'unit' ? 'units' : 'buildings';
+        const toward =
+        category === 'unit' ? 'units' : category === 'wonder' ? 'wonders' : 'buildings';
       notes.append(note(`${percentFigure(percent)}${HAMMER} toward ${toward} here`));
     }
     // The two that arrived with the Age I sinks, written off the presence of the
@@ -458,6 +463,18 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         sciencePerPop: upgrade.add.sciencePerPop ?? 0,
       });
       notes.append(note(`${figures} with ${techDef(upgrade.tech).name}`));
+    }
+    // What a **wonder** does beyond its yields, in the vocabulary's own words —
+    // `describeCard`, the same function the offer, the collection and the slot
+    // hover call, so a wonder's clause reads exactly as a Doctrine's does. A
+    // building with no `effects` (which is every other row) adds nothing here.
+    for (const clause of describeCard(id)) {
+      const line = note(clause.text);
+      if (clause.deferred) line.classList.add('is-deferred');
+      notes.append(line);
+    }
+    if (isWonder(id)) {
+      notes.append(note('A wonder: one of these stands in the whole world'));
     }
     if (notes.childElementCount === 0) notes.append(note('No yields of its own'));
     box.append(notes);
@@ -1155,21 +1172,42 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       if (city.buildings.includes(id) || queued.has(id)) continue;
       if (!isUnlocked(state, city.ownerId, 'building', id)) continue;
       const def = buildingDef(id);
+      const wonder = isWonder(id);
+      // The reducer's own sentence, and the only thing that can grey a building
+      // row: "The Oracle already stands in Uruk (Crimson)", or "Ur is already
+      // building The Oracle". The city is handed over so the second clause does
+      // not fire on the town that is legitimately building it — see
+      // `buildError`, whose sentence this is.
+      const blocked = buildError(state, city.ownerId, 'building', id, city);
       const button = element('button', 'city-buildable is-building');
+      if (wonder) button.classList.add('is-wonder');
       button.type = 'button';
-      button.disabled = locked;
-      button.setAttribute('aria-label', `${def.name} — ${def.cost} production`);
-      button.append(element('span', 'city-buildable-name', def.name));
+      button.disabled = locked || blocked !== null;
+      button.setAttribute('aria-label', blocked ?? `${def.name} — ${def.cost} production`);
+      const name = element('span', 'city-buildable-name', def.name);
+      // The eyebrow: a wonder is a different *kind* of thing to spend a hundred
+      // hammers on, and a player deciding needs to know that before they read
+      // the price rather than after they lose the race.
+      if (wonder) name.append(element('span', 'city-buildable-eyebrow', 'wonder'));
+      button.append(name);
+      // A row nobody can build keeps its reason where the price goes, exactly as
+      // an unbuildable unit row does: quoting a schedule for something that is
+      // never going to start is the one thing worse than saying nothing.
       button.append(
         element(
           'span',
           'city-buildable-cost',
-          `${def.cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length))}`,
+          blocked ??
+            `${def.cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length))}`,
         ),
       );
       info.bind(button, () => itemCard(city, { kind: 'building', id }, city.queue.length));
       button.addEventListener('click', () => add({ kind: 'building', id }));
-      row(button, { kind: 'building', id });
+      // **No Buy tag on a wonder.** `purchaseError` refuses one outright (a
+      // wonder is built, not bought), so a price tag here would be an offer the
+      // reducer will not honour — `isPurchaseOnly`'s sibling question, asked of
+      // the other end of the same rule.
+      row(button, wonder ? undefined : { kind: 'building', id });
     }
 
     // The projects, at the bottom of the list because that is what they are for:

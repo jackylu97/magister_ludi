@@ -1977,7 +1977,7 @@ describe('the turn pipeline over a live empire', () => {
 // ---------------------------------------------------------------------------
 
 describe('determinism with cities', () => {
-  it('round-trips a schema 19 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 20 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1992,7 +1992,7 @@ describe('determinism with cities', () => {
     // improvements; 12 was the meters' `captured`; 13 the luxuries; 14 tile
     // purchase; 15 barbarians and discoveries.) What this pins is not the
     // number but that a city save is carried by whatever the number is.
-    expect(SCHEMA_VERSION).toBe(19);
+    expect(SCHEMA_VERSION).toBe(20);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

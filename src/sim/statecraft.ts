@@ -60,7 +60,12 @@ import {
   resourceCopies,
   tileOwnerPlayerId,
 } from './cities';
-import { buildingDef } from './buildingData';
+import {
+  type ProductionCategory,
+  buildingDef,
+  isBuildingId,
+  isWonder,
+} from './buildingData';
 import { improvementDef } from './improvementData';
 import { type Tile, getTileAt, neighborTiles, tileHex, wrappedDistance } from './map';
 import { authorityOf, happinessOf } from './meters';
@@ -445,6 +450,7 @@ const CLASS_WORD = {
   order: 'Order',
   belief: 'Belief',
   rite: 'Rite',
+  wonder: 'Wonder',
 } as const;
 
 /**
@@ -466,6 +472,15 @@ export function anyCardDef(id: CardId): CardDefBase {
   if (isBeliefId(id)) return beliefDef(id);
   if (isRiteId(id)) return riteDef(id);
   if (isOrderId(id) || isDoctrineId(id) || isGovernmentId(id)) return cardDef(id);
+  // The sixth class, and the one whose table is not a card table at all: a
+  // wonder's effects sit on its **building** row (`BuildingDef.effects`), so the
+  // row is adapted into the card shape here rather than copied into a second
+  // table that could disagree with it. An ordinary building has no effects and
+  // answers an empty card, which is exactly what it is worth to this evaluator.
+  if (isBuildingId(id)) {
+    const def = buildingDef(id);
+    return { name: def.name, flavor: '', effects: def.effects ?? [] };
+  }
   return { name: String(id), flavor: '', effects: [] };
 }
 
@@ -484,7 +499,8 @@ let conditionDepth = 0;
 /**
  * Every effect currently reaching this empire, in one fixed order: the
  * government's signature, then its Doctrines in the order they were taken, then
- * the slotted Orders in **slot order**.
+ * the slotted Orders in **slot order**, then the pantheon's beliefs, then the
+ * wonders this empire's cities hold.
  *
  * **The** walk. Every reader below filters this and none of them repeats the
  * gating, the level scaling or the ordering — which is how "one evaluator" stays
@@ -523,6 +539,29 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
   for (const id of pantheon?.beliefs ?? []) {
     if (!isBeliefId(id)) continue;
     push(id, CLASS_WORD.belief, 1, beliefDef(id).effects);
+  }
+  // **The fifth source** (the wonders framework, 2026-08-27): the wonders
+  // standing in this empire's cities. Last, after the law and the gods, for the
+  // reason the beliefs are last — the order they were built in, so no ledger
+  // reshuffles itself.
+  //
+  // Asked of the **board** rather than of `state.wonders`, and that is the whole
+  // of how a captured wonder changes sides: the claim register records who first
+  // raised it and never moves, while the effects follow the city's `buildings`
+  // list, so a conqueror inherits the walls, the granary and the Oracle together
+  // — the same reading `City.timed` takes of a rite performed on a place.
+  //
+  // The empty-register guard is not an optimisation of the rare case, it is the
+  // ordinary one: this walk runs several times per city per turn, and in a game
+  // where nobody has finished a wonder there is nothing here to sweep for.
+  if (state.wonders.length > 0) {
+    for (const city of state.cities) {
+      if (city.ownerId !== playerId) continue;
+      for (const id of city.buildings) {
+        if (!isWonder(id)) continue;
+        push(id, CLASS_WORD.wonder, 1, buildingDef(id).effects ?? []);
+      }
+    }
   }
   return list;
 }
@@ -620,8 +659,13 @@ function timedLive(
 }
 
 /**
- * Every effect reaching **this city**: its empire's cards, then its own live
- * rites.
+ * Every effect reaching **this city**: its empire's cards (which since the
+ * wonders framework include the wonders standing anywhere in the empire — see
+ * `liveEffects`, whose fifth source they are), then its own live rites.
+ *
+ * A wonder's *city-scoped* clause needs nothing special here: it says
+ * `{ test: 'hasBuilding', building: <itself> }` and `cityScopeAdmits` answers
+ * it off the town's own `buildings` list, which is true in exactly one city.
  *
  * The seam Entry XXVIII opens, and it is deliberately one function rather than a
  * flag on `liveEffects`: an empire's law is the same in every town and a rite is
@@ -1379,7 +1423,7 @@ export interface CardProductionLine {
 export function cardProduction(
   state: GameState,
   city: City,
-  category: 'unit' | 'building',
+  category: ProductionCategory,
   unitType?: UnitTypeId,
 ): CardProductionLine[] {
   const list: CardProductionLine[] = [];

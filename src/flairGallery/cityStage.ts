@@ -511,6 +511,11 @@ export class PartsShelf {
       }
       case 'cityTemple':
         return this.solid(parts.temple, CITY.temple.color);
+      case 'cityWonder': {
+        const group = this.solid(parts.wonder, CITY.wonder.color);
+        group.add(this.solid(parts.wonderTip, CITY.wonder.tipColor));
+        return group;
+      }
       case 'cityPalace': {
         const group = this.solid(parts.palaceBody, CITY.palace.color);
         group.add(this.solid(parts.palaceRoof, CITY.palace.roofColor));
@@ -665,6 +670,7 @@ export const PART_IDS = [
   'cityShrine',
   'cityTemple',
   'cityPalace',
+  'cityWonder',
   'bannerPole',
   'flag',
 ] as const;
@@ -676,6 +682,7 @@ export const PART_CAPTIONS: Record<(typeof PART_IDS)[number], string> = {
   cityShrine: 'the shrine, and its gilt needle — two colours, one matrix',
   cityTemple: 'the stepped temple, from Æra III when one stands',
   cityPalace: 'body, ridged roof and gilt finial: the capital’s ✶, in the world',
+  cityWonder: 'the marvel: four terraces past the palace’s ridge, under a gilt tip',
   bannerPole: 'the pole, dead centre where the ring of buildings leaves a gap',
   flag: 'the cloth in the seat’s tincture, the charge on a parchment canton',
 };

@@ -525,6 +525,24 @@ export interface ProductionRules {
    * which is the moment buying is worth least.
    */
   goldPerHammer: number;
+  /**
+   * Gold each hammer banked toward a wonder is worth when somebody else
+   * finishes it first (the wonders framework, 2026-08-27).
+   *
+   * **1, and the 1 is the penalty.** `goldPerHammer` above is 2 — what a hammer
+   * costs to buy outright — so a lost wonder hands back exactly *half* of what
+   * the work would have cost in coin, and losing a race is a real loss rather
+   * than a lossless detour through the treasury. A rate of 2 would make queuing
+   * a wonder you expect to lose a way of laundering hammers into gold at par;
+   * 0 would make it a trap nobody races twice.
+   *
+   * It is a rate here rather than a constant in code for the reason every other
+   * number in this file is: it is a tuning decision about how sharply the game
+   * punishes second place, and a designer should be able to try 1.5 without
+   * opening TypeScript. Applied in one place — `refundBeatenWonders`
+   * (`cities.ts`) — and floored there, because a treasury is whole numbers.
+   */
+  wonderRefundGoldPerHammer: number;
 }
 
 export interface RulesConfig {

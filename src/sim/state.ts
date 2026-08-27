@@ -174,8 +174,17 @@ import {
  *     units and buildings, which a v18 game had no way to spend it on at all.
  *     `Player.gold` in a v18 save is therefore a bank with a different meaning
  *     rather than the same bank one version older.
+ * 20: Wonders — `GameState.wonders`, the claim register that makes a wonder one
+ *     per world (2026-08-27). One field, no new command: a wonder is queued by
+ *     the `setCityProduction` a v19 log already carries. It is a bump rather
+ *     than a free field because a v19 log replayed here is a *different game*:
+ *     the roster has a row in it that Divination now unlocks, so an empire that
+ *     researched Divination on turn twelve has a hundred-and-twenty-hammer
+ *     building available it did not have, and — the load-bearing half — a city
+ *     beaten to a wonder has its queue rewritten and its basket converted to
+ *     gold by a rule that did not exist, which no earlier log can have expected.
  */
-export const SCHEMA_VERSION = 19;
+export const SCHEMA_VERSION = 20;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -737,6 +746,29 @@ export interface City {
   timed?: TimedEffect[];
 }
 
+/**
+ * One wonder, claimed. See `GameState.wonders`.
+ *
+ * Four facts and no more: **what** was built, **where** it stands, **who** built
+ * it and **when**. Everything else a surface could want — the wonder's name, its
+ * yields, its effects — is on the building row, and everything about who holds
+ * it *now* is on the city. This is the history, and history does not change.
+ *
+ * `{ cityId, playerId, building }` is deliberately the shape a future `triumphs`
+ * evaluator reads to pay renown on a completion (`docs/great-people.md`): the
+ * seam is the report `realiseItem` already returns, so great people join by
+ * reading it rather than by growing a hook inside the completion routine.
+ */
+export interface WonderClaim {
+  building: BuildingId;
+  /** The city it stands in, at the moment it was finished. */
+  cityId: number;
+  /** The empire that finished it. Not necessarily the one that holds it now. */
+  playerId: number;
+  /** `state.turn` when it completed. */
+  turn: number;
+}
+
 // --- state ------------------------------------------------------------------
 
 export interface GameConfig {
@@ -851,6 +883,30 @@ export interface GameState {
    * it, which is every world whose config did not ask for them.
    */
   camps: BarbarianCamp[];
+  /**
+   * Every wonder that has been built, **in the order they were claimed**.
+   *
+   * The whole of "one per world": there is no flag on a building, no counter on
+   * a player and no second register anywhere — a wonder is claimed iff there is
+   * a row here naming it, and `buildError` (`tech.ts`) refuses the second empire
+   * to reach for it in a sentence read off this row. Written in exactly one
+   * place, `claimWonder`, called from exactly one place, `realiseItem`
+   * (`cities.ts`) — the same discipline `captureUnit` keeps for a change of
+   * ownership.
+   *
+   * An **array in claim order** rather than a `Record<BuildingId, …>`, and for
+   * `GameState.camps`' stated reason: an outcome that depends on iteration
+   * order must depend on an order the state itself carries, and "the order they
+   * were finished" is a fact a chronicle wants anyway. It is short — twenty-odd
+   * rows in a whole game — so the linear lookup below costs nothing.
+   *
+   * It is deliberately a record of the *claim* and not of where the wonder
+   * stands today. A captured wonder pays its captor (the effects are read off
+   * the holding city's `buildings`, like every other building), while this row
+   * keeps saying who first raised it and when — which is the shape the future
+   * `triumphs` evaluator reads to pay renown (`docs/great-people.md`).
+   */
+  wonders: WonderClaim[];
   /**
    * The last player standing, once there is one; `null` while the game is live.
    *
@@ -992,6 +1048,8 @@ export function newGame(config: GameConfig): GameState {
     visibility: normalized.players.map(() => newVisibilityGrid(map.tiles.length)),
     citySightings: normalized.players.map(() => []),
     camps: [],
+    // Nothing has been built yet, which is what an empty claim register means.
+    wonders: [],
     winnerId: null,
   };
   placeStartingUnits(state);
@@ -1291,6 +1349,47 @@ export function createCity(
   };
   state.cities.push(city);
   return city;
+}
+
+/**
+ * The claim on a wonder, or `undefined` while it is still unbuilt.
+ *
+ * **The** question, asked by everything that has an opinion about wonders: the
+ * build gate, the purchase gate, the panel's greyed row and the sculpt. A linear
+ * scan of a list that holds at most one row per wonder in the game — see
+ * `GameState.wonders` for why an array is the right shape here.
+ */
+export function wonderClaim(state: GameState, building: BuildingId): WonderClaim | undefined {
+  for (const claim of state.wonders) {
+    if (claim.building === building) return claim;
+  }
+  return undefined;
+}
+
+/**
+ * Records a wonder as built. **The one place `state.wonders` is written**, and
+ * it is `createCity`'s neighbour for that reason.
+ *
+ * Deliberately not idempotent and deliberately not a validator: it appends. The
+ * rule that there is only ever one row per wonder lives at the gate
+ * (`buildError`) and in the sweep that empties every other queue of it the
+ * instant this is called (`refundBeatenWonders`), which is what makes "the first
+ * city in the sweep wins" a property of the completion routine rather than of a
+ * check somebody could forget to run.
+ */
+export function claimWonder(
+  state: GameState,
+  building: BuildingId,
+  city: City,
+): WonderClaim {
+  const claim: WonderClaim = {
+    building,
+    cityId: city.id,
+    playerId: city.ownerId,
+    turn: state.turn,
+  };
+  state.wonders.push(claim);
+  return claim;
 }
 
 // --- turn status ------------------------------------------------------------

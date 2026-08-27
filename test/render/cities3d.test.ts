@@ -253,6 +253,26 @@ describe('a town shows what stands in it', () => {
     expect(drew(built, built.geometry.palaceBody)).toBe(3);
     built.layer.dispose();
   });
+
+  /**
+   * The world's one permitted spectacle (`docs/art-pass.md`, W3): a marvel and
+   * its gilt tip, drawn from Æra I because a wonder is not a thing a people
+   * grows into. One per wonder standing, so the ring grows for a second one
+   * rather than swapping the first out.
+   */
+  it('raises a marvel in a town that finished a wonder', () => {
+    const state = townState();
+    const before = build(state);
+    expect(drew(before, before.geometry.wonder)).toBe(0);
+    before.layer.dispose();
+
+    state.cities[0]!.buildings.push('theOracle');
+    const built = build(state);
+    // Three, like the palace: one per wrap copy.
+    expect(drew(built, built.geometry.wonder)).toBe(3);
+    expect(drew(built, built.geometry.wonderTip)).toBe(3);
+    built.layer.dispose();
+  });
 });
 
 // --- the fingerprint --------------------------------------------------------
@@ -269,6 +289,8 @@ describe('the city fingerprint carries every sculpt fact', () => {
     ['raising a palisade', (s) => void s.cities[0]!.buildings.push('palisade')],
     ['building a shrine', (s) => void s.cities[0]!.buildings.push('shrine')],
     ['building a temple', (s) => void s.cities[0]!.buildings.push('temple')],
+    // The world's one permitted spectacle, and the sixth fact `CityLook` names.
+    ['finishing a wonder', (s) => void s.cities[0]!.buildings.push('theOracle')],
     // Founding an *older* city cannot happen, so the capital moves the way it
     // really moves: the seat's first town changes hands.
     ['losing the capital', (s) => void (s.cities[0]!.ownerId = 1)],
@@ -307,7 +329,14 @@ describe('the city fingerprint carries every sculpt fact', () => {
     ageUp(state, 0, 3);
     state.cities[0]!.buildings.push('palisade', 'temple');
     const look = cityLook(state, state.cities[0]!, capitalIds(state));
-    expect(look).toEqual({ tier: 3, walls: true, shrine: false, temple: true, capital: true });
+    expect(look).toEqual({
+      tier: 3,
+      walls: true,
+      shrine: false,
+      temple: true,
+      capital: true,
+      wonders: 0,
+    });
   });
 });
 

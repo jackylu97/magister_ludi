@@ -56,6 +56,7 @@ import {
   type ProductionCategory,
   buildingDef,
   isBuildingId,
+  isWonder,
 } from './buildingData';
 import type { Hex } from './hex';
 import {
@@ -118,10 +119,16 @@ import {
   type QueueItem,
   type Unit,
   cityById,
+  claimWonder,
   createCity,
   createUnit,
   playerById,
+  wonderClaim,
 } from './state';
+// Type-only, exactly as `barbarians.ts` takes it: `turn.ts` imports this module
+// for its phases, so a *value* import back would close a load-time cycle. The
+// pipeline's report is a type this module writes into and never constructs.
+import type { TurnReport } from './turn';
 import {
   TERRAIN_DATA,
   TILE_YIELD_KEYS,
@@ -1552,6 +1559,31 @@ export interface ProductionModifier {
  * be worth" would quietly answer zero. There is no hypothetical resource,
  * because nothing previews owning one.
  */
+/**
+ * Which bonus category a queue row belongs to, or `null` for a row no
+ * percentage may name.
+ *
+ * **The one place a queue item's kind is read as a bonus category**, and the one
+ * place the two vocabularies are allowed to differ (`QueueKind` in `state.ts` is
+ * what a city may build; `ProductionCategory` in `buildingData.ts` is what a
+ * bonus may name). Two rows map to something other than their kind:
+ *
+ *   · a **project** maps to `null`. Its rate is a printed conversion (Entry
+ *     XXVI) — a barracks putting ten percent behind Tithes would be a barracks
+ *     minting money — so a city building one carries no category bonus at all,
+ *     which is exactly what an empty list means to `cityYields`.
+ *   · a **wonder** is a `'building'` row that maps to `'wonder'`. A wonder is
+ *     built out of the same basket by the same routine, but it is its own
+ *     category so that a percentage can name it (the ratified great-person
+ *     legacies say "+30%⚙ toward wonders") — and, symmetrically, so that a
+ *     barracks-shaped "+15% toward buildings" does *not* quietly ride on one.
+ */
+export function queueCategory(item: QueueItem): ProductionCategory | null {
+  if (item.kind === 'project') return null;
+  if (item.kind === 'building') return isWonder(item.id) ? 'wonder' : 'building';
+  return 'unit';
+}
+
 export function productionModifiers(
   state: GameState,
   city: City,
@@ -1559,15 +1591,8 @@ export function productionModifiers(
   hypothetical: readonly BuildingId[] = [],
 ): ProductionModifier[] {
   if (!toward) return [];
-  // The one place a queue item's kind is read as a bonus *category*, and the
-  // one place the two vocabularies are allowed to differ: a `ProductionCategory`
-  // is what a bonus may *name*, and a project is deliberately not one of them.
-  // A project's rate is a printed conversion (Entry XXVI) — a barracks putting
-  // ten percent behind Tithes would be a barracks minting money — so a city
-  // building one carries no category bonus at all, which is exactly what an
-  // empty list means to `cityYields`.
-  if (toward.kind === 'project') return [];
-  const category: ProductionCategory = toward.kind;
+  const category = queueCategory(toward);
+  if (category === null) return [];
   const list: ProductionModifier[] = [];
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id) && !hypothetical.includes(id)) continue;
@@ -2725,6 +2750,17 @@ function planQueueItem(
   // Only reachable from a hand-edited save or a queue built before the
   // building finished some other way; drop it rather than blocking the queue.
   if (city.buildings.includes(id)) return { kind: 'drop', item, index };
+  // A wonder somebody else already finished. Unreachable in an ordinary game —
+  // `claimWonder`'s own sweep (`refundBeatenWonders`) takes the row out of every
+  // other queue in the world the instant it is claimed, and `buildError` refuses
+  // it at the gate — so this is the hand-edited-save arm, and it is a *drop*
+  // rather than a hold for the reason the line above is: a row that can never
+  // complete must not be allowed to block the queue behind it forever. Nothing
+  // is refunded here, because the refund belongs to the sweep that knew the
+  // hammers were still toward it.
+  if (isWonder(id) && wonderClaim(state, id) !== undefined) {
+    return { kind: 'drop', item, index };
+  }
   const cost = buildingDef(id).cost;
   if (hammers < cost) return null;
   return { kind: 'building', item, index, id, cost };
@@ -2748,6 +2784,50 @@ export interface ProductionCompletion {
   cost: number;
   /** The unit that was spawned, when the item was a unit. */
   unitId?: number;
+  /**
+   * The wonder that was claimed, when the item was one — the news every seat
+   * gets, and the losers' refunds with it. Absent for anything else, which is
+   * every completion in most games.
+   */
+  wonder?: WonderCompletion;
+}
+
+/**
+ * A wonder finished, and what finishing it did to everybody else.
+ *
+ * The report `realiseItem` hands back, carried out through
+ * `ProductionCompletion` → `TurnReport.wonders` → `CommandResult.wonders` to the
+ * one line the interface prints. It is a report and not a rule: the claim is
+ * already in `state.wonders` and the gold is already in the losers' treasuries
+ * by the time anybody reads this — the same discipline `ArrivalReport` keeps.
+ *
+ * `{ cityId, playerId, building }` is the shape a future **`triumphs`** evaluator
+ * reads to pay renown on a wonder (`docs/great-people.md`). That is the seam,
+ * and it is deliberately the *report* rather than a hook inside the completion
+ * routine: great people join by reading what already comes out, so nothing about
+ * a wonder completing has to learn what a great person is.
+ */
+export interface WonderCompletion {
+  building: BuildingId;
+  /** The display name, resolved once so no surface has to look the row up. */
+  name: string;
+  cityId: number;
+  playerId: number;
+  /** `state.turn` it was finished on. */
+  turn: number;
+  /** Every city that was beaten to it. See `refundBeatenWonders`. */
+  refunds: WonderRefund[];
+}
+
+/** One city beaten to a wonder, and what it got back. See `refundBeatenWonders`. */
+export interface WonderRefund {
+  building: BuildingId;
+  cityId: number;
+  playerId: number;
+  /** Hammers that were in the basket toward it — zero unless it was the front row. */
+  hammers: number;
+  /** Gold paid for them, at `production.wonderRefundGoldPerHammer`. */
+  gold: number;
 }
 
 /**
@@ -2854,10 +2934,15 @@ export function settleProduction(state: GameState, city: City): ProductionComple
   }
 
   if (plan.kind === 'building') {
-    realiseItem(state, city, { kind: 'building', id: plan.id });
+    const realised = realiseItem(state, city, { kind: 'building', id: plan.id });
+    if (realised.wonder) done.wonder = realised.wonder;
     return done;
   }
-  done.unitId = realiseItem(state, city, { kind: 'unit', id: plan.id, tile: plan.tile });
+  done.unitId = realiseItem(state, city, {
+    kind: 'unit',
+    id: plan.id,
+    tile: plan.tile,
+  }).unitId;
   return done;
 }
 
@@ -2871,6 +2956,22 @@ export function settleProduction(state: GameState, city: City): ProductionComple
 export type CompletedItem =
   | { kind: 'unit'; id: UnitTypeId; tile: Tile }
   | { kind: 'building'; id: BuildingId };
+
+/**
+ * What realising a thing produced, for the caller that has to pass it on.
+ *
+ * Two optional fields and both are usually absent: a building answers `{}`, a
+ * unit answers its new id, and a **wonder** answers the completion every seat is
+ * told about. It became a shape rather than staying `number | undefined` on the
+ * day the second kind of news existed — a second out-parameter would have been a
+ * second place to forget one.
+ */
+export interface RealisedItem {
+  /** The unit that came into the world, when the item was a unit. */
+  unitId?: number;
+  /** The wonder that was claimed, when the building was one. */
+  wonder?: WonderCompletion;
+}
 
 /**
  * **The one place a city gains a thing.** The half of a completion that is about
@@ -2896,11 +2997,16 @@ export function realiseItem(
   state: GameState,
   city: City,
   item: CompletedItem,
-): number | undefined {
+): RealisedItem {
   if (item.kind === 'building') {
     city.buildings.push(item.id);
+    // The claim, and the race it settles. Here rather than in `settleProduction`
+    // because this is the routine that means "the city now has the thing", and
+    // a wonder existing *is* the claim — a second path that put a building in a
+    // town without claiming would be a second Oracle.
+    const wonder = isWonder(item.id) ? claimWonderFor(state, city, item.id) : undefined;
     payCompletionRiders(state, city, 'building');
-    return undefined;
+    return wonder ? { wonder } : {};
   }
   const unit = createUnit(state, city.ownerId, item.id, item.tile.col, item.tile.row);
   // The ladder climbs at completion, so the next settler — anywhere in the
@@ -2910,7 +3016,86 @@ export function realiseItem(
     if (player) player.settlersBuilt += 1;
   }
   payCompletionRiders(state, city, 'unit');
-  return unit.id;
+  return { unitId: unit.id };
+}
+
+/**
+ * Claims a wonder for this city and settles the race for it: every other city in
+ * the world stops building it, and whoever was actually paying for it is handed
+ * the hammers back as gold.
+ *
+ * Returns the report the pipeline announces to **every** seat — a wonder is the
+ * one thing in this game that is news to people who had nothing to do with it,
+ * because it is the one thing they can no longer have.
+ */
+function claimWonderFor(state: GameState, city: City, building: BuildingId): WonderCompletion {
+  const claim = claimWonder(state, building, city);
+  return {
+    building,
+    name: buildingDef(building).name,
+    cityId: claim.cityId,
+    playerId: claim.playerId,
+    turn: claim.turn,
+    refunds: refundBeatenWonders(state, building, city),
+  };
+}
+
+/**
+ * Takes a claimed wonder out of every *other* city's queue and pays back what
+ * was banked toward it, as gold.
+ *
+ * **What "banked toward it" is, exactly**: a city has one basket
+ * (`City.hammerBasket`) and it pays for whatever stands at the **front** of its
+ * queue (`advanceProduction` only ever looks at `queue[0]`). So the hammers are
+ * toward the wonder if and only if the wonder is the front row — and then it is
+ * the *whole* basket, which is emptied. A wonder standing second in a queue has
+ * had nothing spent on it: the basket in that town is toward the item in front
+ * of it, the row is simply removed, and the refund is zero. There is no
+ * per-item ledger anywhere in this game and this rule is what keeps it that way.
+ *
+ * **The rate is a rule, not a constant**:
+ * `production.wonderRefundGoldPerHammer`, 1 against a purchase rate of 2 — see
+ * its docblock for why losing a wonder costs exactly half of what buying the
+ * work would have. Floored, because a treasury is whole numbers.
+ *
+ * It is deliberately **not an Entry XVIII windfall**. Nothing is being *granted*:
+ * these are hammers the city already banked, already staged through Entry XVII's
+ * percentages on their way in, being converted to coin at a printed rate — the
+ * same reasoning that keeps a project's payout out of the modifier pipeline. A
+ * refund that rode `payWindfallGrants` would let a card double the consolation
+ * prize for losing a race.
+ *
+ * Nothing here is refreshed through `refreshCityDerived`, and that is not an
+ * omission: a citizen assignment is a function of ground, population and locks
+ * (`assignCitizens`), and this touches a queue and a basket. The panel reads
+ * both live.
+ *
+ * Cities are walked in `state.cities` order, so the report is in founding order
+ * whichever seat is reading it.
+ */
+function refundBeatenWonders(
+  state: GameState,
+  building: BuildingId,
+  winner: City,
+): WonderRefund[] {
+  const rate = RULES.production.wonderRefundGoldPerHammer;
+  const refunds: WonderRefund[] = [];
+  for (const city of state.cities) {
+    if (city.id === winner.id) continue;
+    const index = city.queue.findIndex(
+      (item) => item.kind === 'building' && item.id === building,
+    );
+    if (index < 0) continue;
+    city.queue.splice(index, 1);
+    // Only the front row was being paid for. See the docblock.
+    const hammers = index === 0 ? Math.max(0, city.hammerBasket) : 0;
+    const gold = Math.floor(hammers * rate);
+    if (index === 0) city.hammerBasket -= hammers;
+    const player = playerById(state, city.ownerId);
+    if (player) player.gold += gold;
+    refunds.push({ building, cityId: city.id, playerId: city.ownerId, hammers, gold });
+  }
+  return refunds;
 }
 
 /**
@@ -3037,9 +3222,18 @@ export function productionSettledBy(
  * function, so a queue whose price has risen shows the rise immediately rather
  * than stalling against a figure the player was never shown.
  */
-export function advanceProduction(state: GameState): void {
+export function advanceProduction(state: GameState, report?: TurnReport): void {
   for (const city of state.cities) {
-    settleProduction(state, city);
+    const done = settleProduction(state, city);
+    // A wonder is the one completion that is news to seats who had nothing to do
+    // with it, so it rides out on the pipeline's report exactly as a blow the
+    // wild landed does. **Contention is settled by this loop and nothing else**:
+    // two empires finishing the same wonder on the same turn are two cities in
+    // one sweep, the earlier one in `state.cities` order claims it, and by the
+    // time the later one is reached the row is no longer in its queue (see
+    // `refundBeatenWonders`) — so "first in the sweep wins" is a property of the
+    // state's own order, which is founding order, and not of the wall clock.
+    if (done?.wonder) report?.wonders.push(done.wonder);
   }
 }
 

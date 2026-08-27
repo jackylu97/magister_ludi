@@ -310,6 +310,17 @@
       "roofColor": "raven",
       "finialColor": "gilt"
     },
+    "wonder": {
+      "fromTier": 1,
+      "width": 0.44,
+      "stepH": 0.21,
+      "tiers": 4,
+      "taper": 0.76,
+      "tipH": 0.22,
+      "offset": 0.58,
+      "color": "bone",
+      "tipColor": "gilt"
+    },
     "chargeSize": 0.19,
     "chargeNudge": 0.014,
     "chargeInset": 0.33,

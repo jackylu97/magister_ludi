@@ -44,7 +44,7 @@
 
 import statecraftJson from '../../data/statecraft.json';
 
-import type { BuildingId } from './buildingData';
+import type { BuildingId, ProductionCategory } from './buildingData';
 import type { ImprovementId } from './improvementData';
 import type { ModifierStage } from './modifiers';
 import type { BeliefId, RiteId } from './religionData';
@@ -73,8 +73,19 @@ export type OrderId = keyof typeof statecraftJson.orders & string;
  * `statecraft.ts` (`anyCardDef`) rather than in `cardDef` below, because the
  * import between this file and `religionData.ts` is type-only in both
  * directions and must stay that way — see that file's docblock.
+ *
+ * **Six classes since the wonders framework**, and the sixth is the loosest fit
+ * on purpose. A *wonder* is a building row carrying `effects` in this
+ * vocabulary (`BuildingDef.effects`), so the thing a live line came from may be
+ * a `BuildingId`; widening this union is what lets one lookup, one label and one
+ * `describeCard` answer for it, instead of a parallel evaluator for buildings.
+ * The union admits every building id rather than only the wonders because
+ * "which rows are wonders" is a *flag in the data*, not a type — and an ordinary
+ * building that one day carries an effect is then already spoken for. Ids
+ * remain unique across the whole table: no building id is a card id, and
+ * `test/sim/wonders.test.ts` pins that.
  */
-export type CardId = GovernmentId | DoctrineId | OrderId | BeliefId | RiteId;
+export type CardId = GovernmentId | DoctrineId | OrderId | BeliefId | RiteId | BuildingId;
 
 /**
  * Which slot an Order fits, and therefore what a government's spread is counted
@@ -494,10 +505,16 @@ export interface CardPercentYieldsEffect {
   stage?: ModifierStage;
 }
 
-/** Hammers behind a category, optionally only behind one class of unit. */
+/**
+ * Hammers behind a category, optionally only behind one class of unit.
+ *
+ * `'wonder'` is a category of its own (see `ProductionCategory`), which is what
+ * lets the ratified great-person legacies say "+30%⚙ toward wonders" as a data
+ * row. Nothing supplies one yet.
+ */
 export interface CardProductionBonusEffect {
   kind: 'productionBonus';
-  category: 'unit' | 'building';
+  category: ProductionCategory;
   percent: number;
   /** Narrows a unit bonus to one silhouette — the mounted line, today. */
   modelClass?: ModelClass;

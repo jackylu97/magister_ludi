@@ -48,12 +48,15 @@ describe('the build list and the price tags', () => {
     expect(source).toMatch(/purchaseVerb\(item\)/);
   });
 
-  it('gives a unit row and a building row a tag, and a project row none', () => {
+  it('gives a unit row and a building row a tag, and a project or a wonder none', () => {
     const source = panelSource();
     // The rows are built through one helper, so the three call sites say which
-    // of them is priced. A project never completes, so there is nothing to buy.
+    // of them is priced. A project never completes, so there is nothing to buy;
+    // a **wonder** is refused by `purchaseError` outright (it is built, not
+    // bought), so its row withholds the tag rather than offering a price the
+    // reducer will not honour.
     expect(source).toMatch(/row\(button, \{ kind: 'unit', id \}\)/);
-    expect(source).toMatch(/row\(button, \{ kind: 'building', id \}\)/);
+    expect(source).toMatch(/row\(button, wonder \? undefined : \{ kind: 'building', id \}\)/);
     expect(source).toMatch(/\n\s*row\(button\);/);
   });
 
