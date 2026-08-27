@@ -1,5 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="256" height="256"><g fill="#2f2b32" stroke="#2f2b32" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
-<path d="M14 57 C14 43 14 33 21 26 L21 18 L27 14 L30 22 C39 24 47 30 50 36 C51 39 49 41 45 41 L33 42 C29 46 31 52 33 57 Z" stroke-width="4"/>
-<path d="M39 25 L55 9" fill="none" stroke-width="6"/>
-<path d="M45 6 L59 6 L59 20 Z" stroke-width="3"/>
+<!-- Not a Tabler icon: Tabler has no horse-archer, so this is a *composition* of two
+     of its drawings and is marked as one. The horse is Tabler `horse` (MIT) verbatim,
+     scaled 0.75 into the lower-left with its stroke-width divided back out (2.75/0.75)
+     so it prints at the family's weight; the arrow is Tabler `bow`'s (MIT) arrowhead
+     corner `M17 3h4v4` with its shaft cut short so it clears the horse's back. Nothing
+     was re-fitted — the two upstream paths are copy-pasteable out of this file. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(0 5.5) scale(0.75)" stroke-width="3.667">
+<path d="M7 10l-.85 8.507a1.357 1.357 0 0 0 1.35 1.493h.146a2 2 0 0 0 1.857 -1.257l.994 -2.486a2 2 0 0 1 1.857 -1.257h1.292a2 2 0 0 1 1.857 1.257l.994 2.486a2 2 0 0 0 1.857 1.257h.146a1.37 1.37 0 0 0 1.364 -1.494l-.864 -9.506h-8c0 -3 -3 -5 -6 -5l-3 6l2 2l3 -2"/>
+<path d="M22 14v-2a3 3 0 0 0 -3 -3"/>
+</g>
+<path d="M17 3h4v4"/>
+<path d="M21 3l-6 6"/>
 </g></svg>

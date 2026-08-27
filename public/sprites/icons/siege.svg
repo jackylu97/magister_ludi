@@ -1,7 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="256" height="256"><g fill="#2f2b32" stroke="#2f2b32" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
-<path d="M11 55 H53" fill="none"/>
-<path d="M21 55 L32 29" fill="none"/>
-<path d="M43 55 L32 29" fill="none"/>
-<path d="M14 44 L45 15" fill="none"/>
-<circle cx="51" cy="11" r="7.5" stroke="none"/>
+<!-- Not a Tabler icon: neither Tabler nor Lucide draws a catapult, and a filled
+     silhouette borrowed from a third family would make this set two sets. So this one
+     is drawn here, in Tabler's geometry rather than in ours — the 24-unit box, the
+     family's 2.75 stroke, round caps and joins, no fill anywhere — and it is the old
+     hand-drawn catapult's composition (base, A-frame, arm thrown, shot in the air)
+     re-laid on that grid. The shot is a stroked ring because Tabler never fills. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 20h16"/>
+<path d="M8 20l4 -9"/>
+<path d="M16 20l-4 -9"/>
+<path d="M5.5 16.5l11.5 -10.5"/>
+<path d="M17.5 4.5a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/>
 </g></svg>

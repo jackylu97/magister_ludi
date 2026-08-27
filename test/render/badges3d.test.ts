@@ -3,6 +3,7 @@ import { InstancedMesh, Matrix4, MeshBasicMaterial, Quaternion, Vector3 } from '
 
 import {
   BADGE_CELLS,
+  BADGE_ICON_FILES,
   type UnitBadges,
   badgeAtlasLayout,
   badgeAtlasSize,
@@ -83,6 +84,38 @@ describe('the badge atlas layout', () => {
       seen.add(key);
     }
     expect(seen.size).toBe(BADGE_CELLS.length);
+  });
+
+  /**
+   * That every icon named actually exists, and that no icon exists unnamed.
+   *
+   * The one assertion in this file that touches the disk, and it earns the
+   * exception: the badge atlas is the last thing in the renderer that *fetches*
+   * anything, so its whole failure mode is a file that was renamed or never
+   * added. `loadIcon` says so on the console and then draws a blank roundel,
+   * which is a bug you find by noticing — exactly the shape of thing a gate
+   * should catch instead. Both directions, because an orphan file is the other
+   * half of the same mistake: a drawing somebody made for a class that was never
+   * wired up looks identical, from the repository, to one that was.
+   *
+   * Read through Vite's raw glob rather than `node:fs`, the pattern the rest of
+   * this suite uses and for the same reason: this project has no node typings
+   * and a file read is not worth a dependency. Non-recursive, so the marginalia
+   * in their own folder are not swept up.
+   */
+  it('has a file on disk for every badge cell, and no icon file with no cell', () => {
+    const files = import.meta.glob('../../public/sprites/icons/*.svg', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const onDisk = new Set(Object.keys(files).map((path) => path.split('/').pop()!));
+    const named = new Set(BADGE_CELLS.map((cls) => BADGE_ICON_FILES[cls].split('/').pop()!));
+    expect([...named].sort()).toEqual([...onDisk].sort());
+    // And each is a drawing rather than an empty file somebody touched.
+    for (const [path, text] of Object.entries(files)) {
+      expect(text, `${path} has no path data`).toContain('<path');
+    }
   });
 
   it('puts the first cell at the top-left of the canvas and at v = 1', () => {

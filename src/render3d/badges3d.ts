@@ -133,8 +133,20 @@ const LENS = VIEW3D.lens;
  * general drawn with two badges would be two more silhouettes to learn for
  * information the interface already gives in words. What the board owes is the
  * one distinction it cannot say any other way: *this piece is not a settler.*
+ *
+ * `religious` is the second such member and arrived the same way, one sentence
+ * later. An augur is sculpted as a **worker** — it is a civilian on foot with a
+ * bundle, and carving it a body of its own would be a fifteenth miniature nobody
+ * could pick out at forty pixels — so without a badge of its own the board says
+ * "worker" over a piece that cannot build a road and is the only thing in the
+ * game that spends faith. One badge for the whole family again, and for the
+ * reason above: the prophet the High Temple brings is the same kind of piece
+ * doing the same kind of thing, and it will wear this one rather than an
+ * eleventh. Named for what the family *is* rather than for the augur, because
+ * `consecrates` is the marker (see `badgeClassFor`) and nothing here has ever
+ * compared a unit type against a name.
  */
-export type BadgeClass = ModelClass | 'greatPerson';
+export type BadgeClass = ModelClass | 'greatPerson' | 'religious';
 
 /**
  * The atlas layout, in cell order, and the authority on which cell a class
@@ -143,7 +155,14 @@ export type BadgeClass = ModelClass | 'greatPerson';
  * A list rather than a derivation from the sculpt registry, because it decides
  * texture coordinates: reordering the registry must never silently re-point
  * every badge on the board at somebody else's icon. `test/pieces3d.test.ts`
- * checks it covers every model class and names the one member that is not one.
+ * checks it covers every model class and names the two members that are not one.
+ *
+ * Grown by **appending**, which is the same rule `TILE_ICON_CELLS` carries and
+ * for the same reason: every consumer re-derives its rectangle through
+ * `badgeCellRect` at build time and nothing writes an index down, so a new cell
+ * on the end costs a row of atlas and re-points nothing. Ten cells in a
+ * four-wide atlas is three rows with two spare, and the layout arithmetic has
+ * always been a function of the count.
  */
 export const BADGE_CELLS: readonly BadgeClass[] = [
   'settler',
@@ -155,6 +174,7 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
   'siege',
   'scout',
   'greatPerson',
+  'religious',
 ];
 
 /**
@@ -171,10 +191,19 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
  * the tile atlas has no `loadIcon` left). The reason those moved is that the
  * *interface* prints the same marks in four inks, and a file can only be one
  * colour. A class badge is printed here and nowhere else, so it has never paid
- * that cost, and a set of nine in which one member arrived by a different route
- * would be a set of eight plus an exception. If a DOM surface ever needs these,
+ * that cost, and a set of ten in which one member arrived by a different route
+ * would be a set of nine plus an exception. If a DOM surface ever needs these,
  * the whole set moves together — `paintMarkPaths` in this file is already the
  * printer that would take them.
+ *
+ * As of the icon pass the drawings behind these ten are **Tabler Icons** (MIT)
+ * rather than this project's own hand — the same decision `yieldMarks.ts` made
+ * for the six yield voices, for the same reason and at the same weight (2.75 of
+ * a 24-unit box, where upstream ships 2). Eight are Tabler drawings copied
+ * verbatim; the horse-archer is two of them composed and the catapult is drawn
+ * here in Tabler's geometry, because neither Tabler nor Lucide has either shape
+ * and a filled silhouette from a third family would make this set two sets.
+ * `public/sprites/CREDITS.md` names each one; the files carry it too.
  */
 export const BADGE_ICON_FILES: Record<BadgeClass, string> = {
   settler: 'sprites/icons/settler.svg',
@@ -186,6 +215,7 @@ export const BADGE_ICON_FILES: Record<BadgeClass, string> = {
   siege: 'sprites/icons/siege.svg',
   scout: 'sprites/icons/scout.svg',
   greatPerson: 'sprites/icons/greatPerson.svg',
+  religious: 'sprites/icons/religious.svg',
 };
 
 // --- layout arithmetic -----------------------------------------------------

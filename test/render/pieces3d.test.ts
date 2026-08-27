@@ -125,14 +125,16 @@ describe('the model-class roster', () => {
     // this is the seam that has to be nailed down.
     //
     // They used to be the same *set*. They are not any more, and the difference
-    // is exactly one member: a great person stands on the settler's sculpt and
-    // wears a badge of its own (`BadgeClass`), so the badge list is the sculpt
-    // list plus `greatPerson` and nothing else. Written as a containment plus a
-    // named exception rather than a sorted equality, so a tenth cell somebody
-    // adds without deciding what it is fails here.
+    // is exactly two members, each a piece that borrows a body it must not be
+    // named after (`BadgeClass`): a great person stands on the settler's sculpt
+    // and an augur on the worker's. So the badge list is the sculpt list plus
+    // `greatPerson` and `religious` and nothing else. Written as a containment
+    // plus named exceptions rather than a sorted equality, so an eleventh cell
+    // somebody adds without deciding what it is fails here.
     for (const id of MODEL_CLASS_IDS) expect(BADGE_CELLS).toContain(id);
     expect(BADGE_CELLS).toContain('greatPerson');
-    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + 1);
+    expect(BADGE_CELLS).toContain('religious');
+    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + 2);
     for (const id of BADGE_CELLS) {
       expect(BADGE_ICON_FILES[id], `no icon file for ${id}`).toMatch(/^sprites\/icons\/.+\.svg$/);
     }
@@ -150,8 +152,31 @@ describe('the model-class roster', () => {
     }
     // And nothing else takes it: every ordinary row still badges as its class.
     for (const type of UNIT_TYPE_IDS) {
-      if (unitDef(type).greatWork) continue;
+      const def = unitDef(type);
+      if (def.greatWork || def.consecrates) continue;
       expect(badgeClassFor(type)).toBe(modelClassFor(type));
+    }
+  });
+
+  it('badges a rite-worker as religious and never as the worker it is sculpted as', () => {
+    // The great person's clause one row down, and the reason it was worth a
+    // tenth cell: an augur is sculpted as a worker because it *is* a figure on
+    // foot with a bundle, and a worker badge over the only piece in the game
+    // that spends faith invites the player to send it at a hill and build a
+    // mine. Read off `consecrates` rather than the id, so the prophet the High
+    // Temple brings is a data row and `badgeClassFor` does not move.
+    const clergy = UNIT_TYPE_IDS.filter((type) => unitDef(type).consecrates);
+    expect(clergy.length).toBeGreaterThan(0);
+    for (const type of clergy) {
+      expect(modelClassFor(type)).toBe('worker');
+      expect(badgeClassFor(type)).toBe('religious');
+    }
+    // Nothing else takes it, which is the half that would rot silently: a
+    // `religious` badge on a row that cannot perform a rite is a lie the board
+    // tells once per piece and nobody can trace back to a table.
+    for (const type of UNIT_TYPE_IDS) {
+      if (unitDef(type).consecrates) continue;
+      expect(badgeClassFor(type)).not.toBe('religious');
     }
   });
 

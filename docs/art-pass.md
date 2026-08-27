@@ -210,3 +210,22 @@ renaming mechanics (the naming bible is ratified).
 ## Revisions
 
 *(yours — edit away; ✎ marks what changed)*
+
+**✎ 2026-08-27 — the badge icons are Tabler's now, and there are ten of them.** The nine
+hand-drawn unit badges under `public/sprites/icons/` were replaced with **Tabler Icons**
+(MIT, pinned at 3.46.0), and a tenth was added for religious pieces. Lucide was preferred
+first — it is already in the project for the six yield voices — and lost on coverage: it has
+no bow, no horse, no laurel and no candle, four of the ten. Tabler has all four, so the whole
+roster moved to one family rather than splitting six/four across two hands. Weighted from
+upstream's 2/24 stroke to **2.75**, which is `yieldMarks.ts`'s number arrived at for the same
+problem and lands almost exactly on the weight the hand-drawn set was printed at — the badges
+did not get heavier, they stopped being drawn by us. Two shapes neither family has are the
+exceptions and are marked as such in the files: the horse-archer is Tabler's `horse` and `bow`
+composed, and the catapult is drawn here in Tabler's geometry rather than borrowed from a
+filled-silhouette family, for the reason `public/sprites/CREDITS.md` has always given about
+Kenney's board-game icons — a badge set has one job, which is to be one family. The tenth
+badge is a **candle** for `BadgeClass.religious`: an augur is sculpted as a worker, and
+"worker" over the only piece in the game that spends faith is an invitation to march it at a
+hill and build a mine. Deliberately not the faith yield's flame — the flame is a number's
+voice, the candle is a piece's name, and one mark doing both would read as "this tile makes
+faith". All ten are on `flair.html`.

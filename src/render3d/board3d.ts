@@ -204,8 +204,8 @@ export function modelClassFor(type: UnitTypeId): ModelClass {
 }
 
 /**
- * The badge a unit type wears, which is its model class except for the one
- * roster row that is not what it is shaped like.
+ * The badge a unit type wears, which is its model class except for the two
+ * kinds of roster row that are not what they are shaped like.
  *
  * A great person stands on the settler's sculpt — a civilian with a handcart —
  * because it is a civilian with a handcart, and sculpting five more silhouettes
@@ -215,14 +215,27 @@ export function modelClassFor(type: UnitTypeId): ModelClass {
  * is, and "settler" over Archimedes is a wrong sentence rather than a missing
  * one.
  *
- * Asked of `UnitDef.greatWork` and never of the type id, for `modelClassFor`'s
- * reason exactly and the sim's: nothing compares a unit against the string
- * `"settler"`, and nothing here compares one against `"greatPerson"`. The row
- * that says a piece plants a great work is the row that earns the badge.
+ * An augur is the same problem one row down. It is sculpted as a `worker` and
+ * should be — a figure on foot with a bundle — but "worker" over the only piece
+ * in the game that spends faith is the same wrong sentence, and the mistake it
+ * invites is worse than the great person's, because a worker badge is an
+ * invitation to send it at a hill and build a mine.
+ *
+ * Asked of `UnitDef.greatWork` and `UnitDef.consecrates`, never of the type id,
+ * for `modelClassFor`'s reason exactly and the sim's: nothing compares a unit
+ * against the string `"settler"`, nothing compares one against `"augur"`, and
+ * nothing here compares one against `"greatPerson"`. The row that says a piece
+ * plants a great work, or performs a rite, is the row that earns the badge — so
+ * the prophet the High Temple brings is a data row and this function does not
+ * move. `greatWork` is asked **first** and the order is not arbitrary: a great
+ * person that also consecrated would still be a great person, because the laurel
+ * is about who the piece is and the candle is about what it does.
  */
 export function badgeClassFor(type: UnitTypeId): BadgeClass {
   const def = unitDef(type);
-  return def.greatWork ? 'greatPerson' : def.modelClass;
+  if (def.greatWork) return 'greatPerson';
+  if (def.consecrates) return 'religious';
+  return def.modelClass;
 }
 
 /**

@@ -83,55 +83,112 @@ with a feathered edge — see `src/render3d/sprites3d.ts`, tuned by `units.sprit
 A unit type with no file here falls back to its procedural game piece, which is why the
 settler still stands as a piece while these two are billboards.
 
-## `icons/<class>.svg` — 9 badge icons
+## `icons/<class>.svg` — 10 badge icons
 
-**Original work for this project**, dedicated to the public domain under **CC0 1.0** so it
-carries the same terms as everything around it. Drawn as part of the model-class pass (see
-`src/render3d/badges3d.ts`): the 3D board sculpts one model per `modelClass` in
-`data/units.json`, and these are the ink marks on the parchment roundel that says which unit
-is actually standing there.
+**Not our work any more, and that is the point.** Ten SVG files, one per `BadgeClass`
+(`src/render3d/badges3d.ts`), rasterised into the parchment roundel that floats over a
+piece and says which unit is standing there. They were drawn for this project until the
+icon pass; they are now **Tabler Icons** — with two exceptions this section names — for the
+same reason the six yield voices stopped being drawn here (see below, and it is the same
+sentence twice): a set drawn by people who draw icon sets for a living reads better at
+twenty pixels than anything this project would author for itself, and the badge is the
+smallest thing on the board that has to be *read* rather than merely seen.
 
-Kenney's **Board Game Icons** pack (<https://opengameart.org/content/board-game-icons>, 250
-icons, CC0, vectors included) was downloaded and inspected first, and it is the reason these
-are drawn rather than vendored. Four of the eight classes have a good match in it —
-`sword` (melee), `bow` (ranged), `chess_knight` (mounted), `flag_triangle` (settler) — and
-four have none at all: the pack has no hammer, no siege engine, no eye or spyglass, and
-certainly no horse-archer. A set that was half Kenney's chunky rounded fills and half
-hand-drawn would read as two sets, and a badge set has exactly one job, which is to be one
-family; so all eight are drawn here in one language instead. Kenney's optical weight was used
-as the reference for how heavy an icon has to be to survive being twenty pixels across.
+- **Tabler Icons** — <https://tabler.io/icons> · <https://github.com/tabler/tabler-icons> —
+  **MIT licence**, pinned at `@tabler/icons` **3.46.0**
 
-| File | Model class | Mark |
-| --- | --- | --- |
-| `settler.svg` | `settler` | pennant on a planted pole |
-| `worker.svg` | `worker` | mallet |
-| `melee.svg` | `melee` | upright sword |
-| `ranged.svg` | `ranged` | bow with a nocked arrow |
-| `mounted.svg` | `mounted` | horse head |
-| `mountedRanged.svg` | `mountedRanged` | horse head with an arrow |
-| `siege.svg` | `siege` | catapult, arm thrown, shot in the air |
-| `scout.svg` | `scout` | eye |
-| `greatPerson.svg` | — | laurel wreath, two branches tied, a jewel in the gap |
+MIT requires no attribution in a running build. It is given because the work deserves it,
+which is the same sentence this file makes about Kenney at the top.
 
-The ninth is the odd one and stays odd on purpose: it is not a model class at all. A great
-person stands on the **settler's** sculpt (`modelClass` in `data/units.json`, because it is a
-civilian with a handcart) and must not wear the settler's *name* — the badge is the board's
-only sentence about what a piece is, and "settler" floating over Archimedes is a wrong
-sentence rather than a missing one. So the badge set is one longer than the sculpt set, and
-`BadgeClass` in `src/render3d/badges3d.ts` is where the two stop being the same list.
+**One family, not two.** Lucide (ISC) was preferred first, being already in the project for
+the yields, and lost on coverage: it has no bow, no horse, no laurel and no candle, which is
+four of the ten. Tabler has all four. A set half in one hand and half in another is two sets
+wearing one name, so the whole badge roster moved to Tabler rather than the six shapes Lucide
+was missing.
 
-**One laurel for all five families**, not five. A scholar and a general differ in what they
-*do*, and the interface says which is which in words, in the unit panel and on the offer card;
-five more badges would be five more silhouettes to learn for information the player already
-has. What the board owes is the one distinction it cannot say any other way, which is *this
-piece is not a settler*. Drawn against the eye it shares a ring-ish footprint with: the eye is
-a closed lens with a solid pupil dead centre, the wreath is an open ring with a gap at the top
-and the jewel sitting in it, so the two do not smudge together at twenty pixels.
+| File | Badge class | Upstream icon | Mark |
+| --- | --- | --- | --- |
+| `settler.svg` | `settler` | Tabler `tent` | an A-frame tent, its door thrown open |
+| `worker.svg` | `worker` | Tabler `hammer` | a claw hammer, head up |
+| `melee.svg` | `melee` | Tabler `sword` | a sword on the diagonal, hilt low |
+| `ranged.svg` | `ranged` | Tabler `bow` | a bow drawn, the arrow away to the corner |
+| `mounted.svg` | `mounted` | Tabler `horse` | a horse in full, head down |
+| `mountedRanged.svg` | `mountedRanged` | *composed* — Tabler `horse` + Tabler `bow` | the horse, smaller, under a loosed arrow |
+| `siege.svg` | `siege` | *drawn here* | a catapult, arm thrown, shot in the air |
+| `scout.svg` | `scout` | Tabler `binoculars` | field glasses |
+| `greatPerson.svg` | — | Tabler `laurel-wreath` | a laurel wreath, eight leaves and a tie |
+| `religious.svg` | — | Tabler `candle` | a lit candle |
+
+### The two edits made to the eight vendored drawings, and no others
+
+1. **The stroke was weighted from 2 to 2.75** on Tabler's own 24-unit grid. This is the
+   `yieldMarks.ts` number exactly, arrived at there for the same problem: upstream draws for
+   a 24-pixel toolbar icon and a 2/24 stroke goes spidery at the size a game asks for. It
+   also lands almost exactly on the weight the hand-drawn badges it replaces were printed at
+   — 7 of 64, against 2.75 of 24 — so the set did not get heavier, it stopped being drawn by
+   us.
+2. **The stroke colour became `#2f2b32`**, because these are loaded as `<img>` and
+   `currentColor` has nothing to resolve against there. The atlas recolours every surviving
+   pixel wholesale (`drawBadgeCell`), so the value is inert; it is the old files' ink so that
+   a file opened on its own looks like what the board draws.
+
+No path was re-fitted, no shape re-centred, and the 24-unit grid is upstream's own — the
+`d` strings in these files are copy-pasteable back to and from Tabler's, which is what makes
+re-vendoring a diff rather than a redraw. Every file carries its upstream name and URL in an
+XML comment at the top.
+
+### The two that are not Tabler drawings, and why they are not somebody else's either
+
+Neither Tabler nor Lucide draws a **catapult** or a **horse-archer**, and there was a third
+family available that draws both. It was not used, for the reason this file already gave
+about Kenney's board-game icons two paragraphs into the old version of this section: those
+are filled silhouettes, these are strokes, and a badge set has exactly one job, which is to
+be one family. Half a set in somebody's fills and half in somebody's strokes is worse than
+either.
+
+- `mountedRanged.svg` is a **composition** of two Tabler drawings: `horse` verbatim, scaled
+  0.75 into the lower-left with its stroke-width divided back out so it still prints at 2.75,
+  under `bow`'s own arrowhead corner with the shaft cut short to clear the horse's back. Both
+  upstream paths are intact and legible in the file.
+- `siege.svg` is **drawn for this project**, CC0 1.0 like everything else original here, but
+  drawn in *Tabler's* geometry rather than in ours: the 24-unit box, the family's 2.75 stroke,
+  round caps and joins, no fill anywhere, and a stroked ring for the shot because Tabler never
+  fills. The composition is the old hand-drawn catapult's — base, A-frame, arm thrown, shot in
+  the air — re-laid on that grid.
+
+### Why the set is ten when the sculpt roster is eight
+
+`BadgeClass` is `ModelClass` plus two, and both extra members exist for one reason: a piece
+that borrows another piece's body must not wear that piece's *name*. The badge is the board's
+only sentence about what a unit is, and a wrong sentence is worse than a missing one.
+
+- **`greatPerson`** — a great person stands on the **settler's** sculpt, because it is a
+  civilian with a handcart. "Settler" floating over Archimedes sends a player looking for a
+  city site. One laurel for all five families, not five: a scholar and a general differ in
+  what they *do*, and the unit panel and the offer card already say which in words.
+- **`religious`** — an augur stands on the **worker's** sculpt, because it is a figure on
+  foot with a bundle. "Worker" over the only piece in the game that spends faith is the worse
+  of the two mistakes: it is an invitation to march it at a hill and build a mine. One candle
+  for the whole family here too — the prophet the High Temple brings will wear this one.
+
+Both are read off the unit row rather than off a type name (`badgeClassFor` asks
+`UnitDef.greatWork` and `UnitDef.consecrates`), so a new great person or a new priest is a
+data row and the renderer does not move.
+
+The candle is deliberately **not** the faith yield's flame. They are two different questions
+asked in two different places — the flame is a *number's* voice on the top bar, the candle is
+a *piece's* name on the board — and a player who saw the same mark in both places would
+reasonably read the badge as "this tile makes faith". A candle is the same idea one step over:
+lit, tended, and something a person carries.
 
 ## `src/art/resourceMarks.ts` — 41 resource marks, as path data
 
-**Original work for this project**, CC0 1.0, drawn in the *same* language as the eight badge
-icons above and for the same reason: a set is a set. They are the ink on the kind-shaped paper
+**Original work for this project**, CC0 1.0, drawn in the language the eight badge icons above
+were drawn in — one ink, one weight, round caps and joins, on a 64-unit grid — and for the
+reason that language exists: a set is a set. (The badges have since gone over to Tabler and
+these have not; see the icon pass note above. What they still share is the weight, which is
+what a viewer actually reads, and the ink and the caps. What they no longer share is the hand,
+which is a debt this file is recording rather than hiding.) They are the ink on the kind-shaped paper
 the **Resources lens** puts on a tile that carries something (see `src/render3d/badges3d.ts`,
 `TileIcons`), and they are the only thing on the board that can actually *name* a resource —
 the diorama props next to them say "an animal, some ore, a vine", which is atmosphere rather
@@ -151,9 +208,14 @@ Shapes that repeat are a small vocabulary of helpers rather than forty-one blobs
 and `line`. `cube` reproduces the hand-drawn `stone` and `salt` blocks *to the coordinate*,
 which is how the port of the original seventeen was checked (`test/resources3d.test.ts`).
 
-`horses` is the *same path* as `mounted.svg`, deliberately: the resource and the cavalry it buys
-should be one mark, and keeping its own copy rather than sharing one file keeps the two rosters
-independently editable (a future cavalry badge redraw must not silently redraw the pasture).
+`horses` **was** the same path as `mounted.svg` — the resource and the cavalry it buys drawn as
+one mark — and it is not any more, because the icon pass moved the badge to Tabler's horse and
+left this one where it was. That is the arrangement working rather than failing: the note here
+used to say that keeping its own copy rather than sharing one file was what let the two rosters
+move independently, "a future cavalry badge redraw must not silently redraw the pasture". The
+redraw came, and it did not. Whether the pasture should now follow the badge is an open art
+question and a separate pass; nothing is broken while it is open, because a resource mark and a
+unit badge are never on screen in the same roundel.
 
 `emoji` stays on every row of `data/resources.json` as the **last resort**, and nothing that
 ships uses it: a resource with no entry in the registry prints its glyph exactly as this

@@ -196,24 +196,29 @@ function deviceFamily(into: HTMLElement): void {
  * The badge-class icons — the one family on this page that is **not** path data
  * in a module.
  *
- * Nine vendored SVG files under `public/`, rasterised into the unit-badge
- * atlas by the only `loadIcon` call left in the renderer. Nine and not eight
- * since the great people: the ninth is not a model class at all (`BadgeClass`
- * in `badges3d.ts`) — a great person stands on the settler's sculpt and must
- * not wear the settler's name, so the badge set is one longer than the sculpt
- * set and the laurel is the whole of the difference. They are shown here
- * exactly as everything else is, masked through `currentColor`, which is what
- * the atlas does to them too (it recolours them to the badge's ink). Their
- * being files is the reason there is no note under them: a file has no `note`
- * field, and inventing one on this page would be inventing provenance —
- * `public/sprites/CREDITS.md` is where that lives.
+ * Ten vendored SVG files under `public/`, rasterised into the unit-badge atlas
+ * by the only `loadIcon` call left in the renderer. Ten and not eight because
+ * two of them are not model classes at all (`BadgeClass` in `badges3d.ts`): a
+ * great person stands on the settler's sculpt and an augur on the worker's, and
+ * neither may wear the name of the body it borrows. They are shown here exactly
+ * as everything else is, masked through `currentColor`, which is what the atlas
+ * does to them too (it recolours them to the badge's ink) — and at the same
+ * three sizes, which is the whole point of putting them on this page: **12** is
+ * about what a badge is on a zoomed-out board, and a set that dissolves there is
+ * a set nobody has checked.
+ *
+ * Their being files is the reason there is no note under them: a file has no
+ * `note` field, and inventing one on this page would be inventing provenance —
+ * `public/sprites/CREDITS.md` is where that lives, and since the icon pass there
+ * is real provenance to keep straight, because eight of the ten are somebody
+ * else's drawings.
  */
 function badgeFamily(into: HTMLElement): void {
   const grid = markGrid(
     block(
       into,
       'Badge classes — public/sprites/icons/*.svg',
-      'The eight model classes and the laurel every great person wears, on the parchment badge that floats over a piece. Vendored files rather than path data — the last set in the game that is fetched at all.',
+      'The eight model classes, the laurel every great person wears and the candle every religious piece does, on the parchment badge that floats over a piece. Tabler Icons (MIT) at the yield marks’ weight, save the horse-archer and the catapult, which Tabler has not got. Vendored files rather than path data — the last set in the game that is fetched at all.',
     ),
   );
   for (const cls of BADGE_CELLS) markCell(grid, cls, `/${BADGE_ICON_FILES[cls]}`);

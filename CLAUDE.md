@@ -221,8 +221,9 @@ would change every seeded outcome. No further rename passes.
   does not fade a mark — every surviving fragment is opaque and the reduced alpha only erodes
   the antialiased edge until letterforms break. `icons.inscriptionColor` exists for exactly
   this reason. **Every tile-atlas mark is path data or text; nothing is fetched** —
-  `TileIcons.load` has no `loadIcon` left, which survives only for the eight badge-class
-  files. Reaching for `public/` from the tile atlas reintroduces the blank-cell failure three
+  `TileIcons.load` has no `loadIcon` left, which survives only for the ten badge-class
+  files (Tabler, MIT — `public/sprites/CREDITS.md`; the augur wears the candle off
+  `consecrates`, never off its name). Reaching for `public/` from the tile atlas reintroduces the blank-cell failure three
   passes have removed. `TILE_ICON_CELLS` may grow a member mid-set: every consumer re-derives
   through `tileIconRect` at build time and nothing persists an index (pinned in
   `test/render/resources3d.test.ts`); *writing an index down* is what the append rule forbids.
