@@ -299,8 +299,12 @@ describe('a project is gated, once, by the tree', () => {
     expect(tithes.map((gift) => gift.id)).toEqual(['tithes']);
     expect(tithes[0]).toMatchObject({ name: 'Tithes', glyph: '↻' });
     // Letters also teaches Omen Reading, which is an ability (a rite is a verb,
-    // hung on the tree's `abilities` key like embarkation) and sorts last.
+    // hung on the tree's `abilities` key like embarkation) and sorts last. Two
+    // buildings since the wonders' roster: the library, and the Great Ziggurat
+    // standing on the same node — a wonder is an ordinary `unlocks.buildings`
+    // entry, which is the whole of how it is homed.
     expect(techGifts('letters').map((gift) => gift.kind)).toEqual([
+      'building',
       'building',
       'project',
       'ability',
@@ -461,10 +465,17 @@ describe('the palisade is a wall the town built', () => {
   });
 
   it('is handed over by Stonecraft, on the same list the monument is', () => {
+    // The wonders homed on each node are on the same list and after the
+    // ordinary rows, because that is the order `unlocks.buildings` carries.
     const gifts = techGifts('stonecraft').filter((gift) => gift.kind === 'building');
-    expect(gifts.map((gift) => gift.id)).toEqual(['monument', 'palisade']);
+    expect(gifts.map((gift) => gift.id)).toEqual([
+      'monument',
+      'palisade',
+      'stonehenge',
+      'pyramids',
+    ]);
     const games = techGifts('bronzeWorking').filter((gift) => gift.kind === 'building');
-    expect(games.map((gift) => gift.id)).toEqual(['barracks', 'funeralGames']);
+    expect(games.map((gift) => gift.id)).toEqual(['barracks', 'funeralGames', 'wallsOfUruk']);
   });
 
   it('costs what an Age I sink should: a real decision against a settler', () => {

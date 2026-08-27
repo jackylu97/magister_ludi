@@ -88,7 +88,13 @@ import {
   resourceIsVisibleTo,
 } from './resourceData';
 import { RULES } from './rulesData';
-import { payWindfallGrants, settleCultureWindfall, windfallPayout } from './statecraft';
+import type { CityScope } from './statecraftData';
+import {
+  cityScopeAdmits,
+  payWindfallGrants,
+  settleCultureWindfall,
+  windfallPayout,
+} from './statecraft';
 import {
   type City,
   type GameState,
@@ -193,6 +199,46 @@ function itemName(kind: QueueKind, id: string): string {
 }
 
 /**
+ * What a site requirement asks for, **named as a place** — "a harbour", "a
+ * mountain within reach" — rather than as the flag that encodes it.
+ *
+ * `scopeWords` (`statecraft.ts`) is the sibling that reads a scope inside a
+ * sentence about *where an effect lands*, and it says "every coastal city",
+ * which is the wrong half of the sentence here: this one completes "The Colossus
+ * wants …". A player told "requires coastal" has been told the name of a field.
+ *
+ * A composite names each of its parts, which is the only reading that stays
+ * honest when a future row asks for two things at once.
+ */
+function siteWords(site: CityScope): string {
+  switch (site.test) {
+    case 'coastal':
+      return 'a harbour';
+    case 'freshwater':
+      return 'fresh water';
+    case 'mountainAdjacent':
+      return 'a mountain within reach';
+    case 'onTerrain':
+      return `${site.terrain} to stand on`;
+    case 'holding':
+      return `${site.resources.map((id) => resourceDef(id).name).join(' or ')}`;
+    case 'holdingCategory':
+      return `an improved ${site.category} resource`;
+    case 'populationAtLeast':
+      return `a population of ${site.value}`;
+    case 'hasBuilding':
+      return `a ${buildingDef(site.building).name}`;
+    case 'all':
+      return site.of.map((inner) => siteWords(inner)).join(' and ');
+    default:
+      // Every other scope is a fact about the *empire's* arrangement rather than
+      // about the ground — a capital, a conquest, a frontier — and no row asks
+      // for one as a site. The honest fallback is the scope's own word.
+      return `a ${site.test} site`;
+  }
+}
+
+/**
  * The strategic resource a queue item needs, or `null` when it needs none.
  *
  * Buildings and projects never do today; the signature takes the kind anyway so
@@ -292,6 +338,17 @@ export function buildError(
       if (other.ownerId !== playerId || other.id === city?.id) continue;
       if (!other.queue.some((item) => item.kind === 'building' && item.id === id)) continue;
       return `${other.name} is already building ${itemName(kind, id)}`;
+    }
+  }
+  // **The site**, last of the building clauses and only when a town is in hand:
+  // the ground under a city is a question about *that* city, and a caller with
+  // none is asking the tree's question ("could I ever build this") rather than
+  // the queue's. Evaluated by `cityScopeAdmits`, the one scope evaluator, so a
+  // wonder cannot be refused a coast it would then have paid.
+  if (kind === 'building' && isBuildingId(id) && city !== undefined) {
+    const site = buildingDef(id).requiresSite;
+    if (site !== undefined && !cityScopeAdmits(state, city, site)) {
+      return `${itemName(kind, id)} wants ${siteWords(site)}; ${city.name} has none`;
     }
   }
 

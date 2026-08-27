@@ -57,13 +57,21 @@ describe('techGifts', () => {
   it('puts units before buildings when a tech hands over both', () => {
     // Construction and Bronzeworking are the nodes that do; the order is the
     // reading order the node card already uses.
-    expect(techGifts('construction').map((gift) => gift.kind)).toEqual(['unit', 'building']);
-    // Bronzeworking hands over two buildings since the Age I sinks landed —
-    // the barracks and the funeral games — and both come after the spearman.
-    // The religion pass hangs a *rite* on it too (Blessing of Arms), which is
-    // an ability like embarkation and sorts with the verbs at the end.
+    // Construction hands over the composite bowman, the aqueduct and the
+    // Circus Maximus — a wonder is an ordinary building on the list.
+    expect(techGifts('construction').map((gift) => gift.kind)).toEqual([
+      'unit',
+      'building',
+      'building',
+    ]);
+    // Bronzeworking hands over three buildings — the barracks and the funeral
+    // games from the Age I sinks, and the Walls of Uruk from the wonders — and
+    // all of them come after the spearman. The religion pass hangs a *rite* on
+    // it too (Blessing of Arms), which is an ability like embarkation and sorts
+    // with the verbs at the end.
     expect(techGifts('bronzeWorking').map((gift) => gift.kind)).toEqual([
       'unit',
+      'building',
       'building',
       'building',
       'ability',
@@ -87,7 +95,11 @@ describe('techGifts', () => {
     // Iron is on the map from turn one and pays its production to whoever works
     // the tile; Bronze Working buys the *label* (see `isResourceVisible`). The
     // gift is real and the `unlocks` block does not know about it.
-    expect(techDef('bronzeWorking').unlocks.buildings).toEqual(['barracks', 'funeralGames']);
+    expect(techDef('bronzeWorking').unlocks.buildings).toEqual([
+      'barracks',
+      'funeralGames',
+      'wallsOfUruk',
+    ]);
     const reveals = techGifts('bronzeWorking').filter((gift) => gift.kind === 'reveal');
     expect(reveals.map((gift) => gift.id)).toEqual(['iron']);
     expect(reveals[0]).toMatchObject({

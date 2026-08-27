@@ -211,7 +211,6 @@
     },
     "theOracle": {
       "name": "The Oracle",
-      "placeholder": true,
       "wonder": true,
       "cost": 120,
       "food": 0,
@@ -238,6 +237,865 @@
       ],
       "renown": {
         "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "stonehenge": {
+      "name": "Stonehenge",
+      "wonder": true,
+      "cost": 130,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 3,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "pantheonSlots",
+          "amount": 1
+        },
+        {
+          "kind": "tileYield",
+          "faith": 1,
+          "on": {
+            "test": "resource",
+            "resources": [
+              "stone",
+              "marble"
+            ]
+          }
+        }
+      ],
+      "onComplete": [
+        {
+          "grant": "unit",
+          "unit": "augur"
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 1
+      }
+    },
+    "pyramids": {
+      "name": "The Pyramids",
+      "wonder": true,
+      "cost": 150,
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": {
+            "modelClass": "worker",
+            "consecrates": false
+          }
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "hangingGardens": {
+      "name": "The Hanging Gardens",
+      "wonder": true,
+      "cost": 150,
+      "food": 3,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": 25
+        },
+        {
+          "kind": "tileYield",
+          "food": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "farm"
+              },
+              {
+                "test": "freshwater"
+              }
+            ]
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "hangingGardens"
+          }
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "wallsOfUruk": {
+      "name": "The Walls of Uruk",
+      "wonder": true,
+      "cost": 140,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "sciencePerPop": 0,
+      "authorityCapacity": 2,
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 10,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "when": {
+            "test": "capitalTerritory"
+          },
+          "side": "both"
+        }
+      ],
+      "renown": {
+        "family": "general",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "greatZiggurat": {
+      "name": "The Great Ziggurat",
+      "wonder": true,
+      "cost": 160,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 2,
+      "culture": 0,
+      "faith": 2,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {
+            "consecrates": true
+          },
+          "percent": -25
+        },
+        {
+          "kind": "cityYields",
+          "science": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "shrine"
+          }
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "greatLighthouse": {
+      "name": "The Great Lighthouse",
+      "wonder": true,
+      "cost": 130,
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "requiresSite": {
+        "test": "coastal"
+      },
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "where": "embarked"
+        },
+        {
+          "kind": "tileYield",
+          "gold": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          }
+        },
+        {
+          "kind": "cityStat",
+          "stat": "sight",
+          "amount": 1,
+          "scope": {
+            "test": "coastal"
+          }
+        }
+      ],
+      "renown": {
+        "family": "merchant",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "templeOfArtemis": {
+      "name": "The Temple of Artemis",
+      "wonder": true,
+      "cost": 140,
+      "food": 2,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 1,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "tileYield",
+          "food": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "camp"
+          }
+        },
+        {
+          "kind": "tileYield",
+          "food": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "pasture"
+          }
+        },
+        {
+          "kind": "countScaled",
+          "count": "improvedBonusResources",
+          "within": "city",
+          "max": 4,
+          "pays": {
+            "to": "happiness",
+            "amount": 1
+          }
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 1
+      }
+    },
+    "greatLibrary": {
+      "name": "The Great Library",
+      "wonder": true,
+      "cost": 300,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 3,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "onComplete": [
+        {
+          "grant": "tech"
+        }
+      ],
+      "effects": [
+        {
+          "kind": "cityYields",
+          "science": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "library"
+          }
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "colossus": {
+      "name": "The Colossus",
+      "wonder": true,
+      "cost": 280,
+      "food": 0,
+      "production": 0,
+      "gold": 3,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "requiresSite": {
+        "test": "coastal"
+      },
+      "effects": [
+        {
+          "kind": "tileYield",
+          "gold": 1,
+          "production": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "water"
+              },
+              {
+                "test": "hasResource"
+              }
+            ]
+          }
+        }
+      ],
+      "renown": {
+        "family": "merchant",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "petra": {
+      "name": "Petra",
+      "wonder": true,
+      "cost": 280,
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "requiresSite": {
+        "test": "onTerrain",
+        "terrain": "desert"
+      },
+      "effects": [
+        {
+          "kind": "tileYield",
+          "food": 1,
+          "production": 1,
+          "on": {
+            "test": "terrain",
+            "terrain": "desert"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "petra"
+          }
+        },
+        {
+          "kind": "tileYield",
+          "gold": 1,
+          "on": {
+            "test": "feature",
+            "feature": "floodplain"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "petra"
+          }
+        }
+      ],
+      "renown": {
+        "family": "merchant",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "circusMaximus": {
+      "name": "The Circus Maximus",
+      "wonder": true,
+      "cost": 300,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "happiness": 4,
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "buildingsOfKind",
+          "building": "barracks",
+          "pays": {
+            "to": "happiness",
+            "amount": 1
+          }
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "terracottaArmy": {
+      "name": "The Terracotta Army",
+      "wonder": true,
+      "cost": 320,
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "authorityCapacity": 2,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "when": {
+            "test": "inCity"
+          },
+          "side": "defend"
+        }
+      ],
+      "deferred": [
+        "units built in this city start with +1 combat strength — a permanent grant to one piece is a promotions system, and this game has none"
+      ],
+      "renown": {
+        "family": "general",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "greatWall": {
+      "name": "The Great Wall",
+      "wonder": true,
+      "cost": 340,
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "zocRule",
+          "rule": "borders"
+        },
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 5
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "theatreOfDionysus": {
+      "name": "The Theatre of Dionysus",
+      "wonder": true,
+      "cost": 320,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 3,
+      "sciencePerPop": 0,
+      "onComplete": [
+        {
+          "grant": "doctrineDraft"
+        }
+      ],
+      "effects": [
+        {
+          "kind": "cityYields",
+          "culture": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "amphitheater"
+          }
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "mausoleum": {
+      "name": "The Mausoleum",
+      "wonder": true,
+      "cost": 300,
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "authorityCapacity": 2,
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "buildingsInCity",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 1,
+            "where": "city"
+          }
+        },
+        {
+          "kind": "tileYield",
+          "gold": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "quarry"
+          }
+        }
+      ],
+      "renown": {
+        "family": "merchant",
+        "onComplete": 10,
+        "perTurn": 1
+      }
+    },
+    "statueOfZeus": {
+      "name": "The Statue of Zeus",
+      "wonder": true,
+      "cost": 260,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 1,
+      "sciencePerPop": 0,
+      "onComplete": [
+        {
+          "grant": "unit",
+          "unit": "bestMelee"
+        }
+      ],
+      "effects": [],
+      "deferred": [
+        "+15% combat strength attacking cities — a combat *percentage* under a condition: `combatLine` is a flat strength line and `unitStat`'s `combatPercent` takes no condition"
+      ],
+      "renown": {
+        "family": "general",
+        "onComplete": 10,
+        "perTurn": 1
+      }
+    },
+    "chichenItza": {
+      "name": "Chichen Itza",
+      "wonder": true,
+      "cost": 450,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "faith": 2,
+      "sciencePerPop": 0,
+      "happiness": 1,
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "riteDuration",
+          "percent": 50
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "hagiaSophia": {
+      "name": "Hagia Sophia",
+      "wonder": true,
+      "cost": 480,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 3,
+      "sciencePerPop": 0,
+      "onComplete": [
+        {
+          "grant": "unit",
+          "unit": "augur"
+        }
+      ],
+      "effects": [
+        {
+          "kind": "cityYields",
+          "faith": 1,
+          "culture": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        }
+      ],
+      "note": "the ratified text grants a prophet; an augur is called until the prophet exists",
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "angkorWat": {
+      "name": "Angkor Wat",
+      "wonder": true,
+      "cost": 480,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 2,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "workedTilesInCity",
+          "per": 2,
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 1,
+            "where": "city"
+          }
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "tilePurchase",
+          "percent": -25
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "greatMosqueOfDjenne": {
+      "name": "The Great Mosque of Djenné",
+      "wonder": true,
+      "cost": 460,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 3,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": {
+            "consecrates": true
+          }
+        },
+        {
+          "kind": "pantheonSlots",
+          "amount": 1
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "notreDame": {
+      "name": "Notre-Dame",
+      "wonder": true,
+      "cost": 470,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "buildingsOfKind",
+          "building": "temple",
+          "pays": {
+            "to": "happiness",
+            "amount": 1
+          }
+        }
+      ],
+      "deferred": [
+        "cathedrals +2 culture — there is no cathedral in the building table"
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "houseOfWisdom": {
+      "name": "The House of Wisdom",
+      "wonder": true,
+      "cost": 500,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 4,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "onComplete": [
+        {
+          "grant": "tech"
+        }
+      ],
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 50,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "houseOfWisdom"
+          }
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "forbiddenCity": {
+      "name": "The Forbidden City",
+      "wonder": true,
+      "cost": 500,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "sciencePerPop": 0,
+      "authorityCapacity": 5,
+      "effects": [],
+      "deferred": [
+        "one more Order office — a government's slot spread is rebuilt on every adoption, so *which kind* of slot a wonder opens is a design decision rather than a number added to one"
+      ],
+      "renown": {
+        "family": "merchant",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "alhambra": {
+      "name": "The Alhambra",
+      "wonder": true,
+      "cost": 460,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 3,
+      "sciencePerPop": 0,
+      "happiness": 1,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "when": {
+            "test": "always"
+          },
+          "side": "both",
+          "class": {
+            "modelClass": "mounted"
+          }
+        }
+      ],
+      "deferred": [
+        "units built here start with the garrison bonus — a permanent grant to one piece is a promotions system, and this game has none"
+      ],
+      "renown": {
+        "family": "general",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "machuPicchu": {
+      "name": "Machu Picchu",
+      "wonder": true,
+      "cost": 470,
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "requiresSite": {
+        "test": "mountainAdjacent"
+      },
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 25,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "machuPicchu"
+          }
+        }
+      ],
+      "renown": {
+        "family": "engineer",
+        "onComplete": 10,
+        "perTurn": 2
+      }
+    },
+    "waterClockOfSuSong": {
+      "name": "The Water Clock of Su Song",
+      "wonder": true,
+      "cost": 440,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 3,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "authorityCapacity": 1,
+      "effects": [
+        {
+          "kind": "projectRider",
+          "project": "scholarship",
+          "pays": {
+            "science": 3
+          }
+        }
+      ],
+      "renown": {
+        "family": "engineer",
         "onComplete": 10,
         "perTurn": 2
       }

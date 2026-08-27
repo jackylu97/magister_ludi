@@ -68,6 +68,7 @@ import {
 } from './cities';
 import { type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';
 import { RULES } from './rulesData';
+import { cardPurchaseRiders } from './statecraft';
 import { buildError, gatingTech, hasTech } from './tech';
 import { techDef } from './techData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
@@ -175,10 +176,17 @@ function rosterBank(item: PurchasableItem): PurchaseCurrency | undefined {
  *      settler's price tag inherits the settler ladder and the age band because
  *      they are lines 2 and 3 of what is being converted.
  *
- * There are deliberately **no discounts on it**. The vocabulary has one
- * purchase-price rule (`tilePurchase`, which is ground) and nothing that speaks
- * about buying a unit or a building; inventing a second rule so that a card
- * could be written for it later would be building the lever before the hand.
+ * **A discount is a line of the list, never a multiplication afterwards.** The
+ * vocabulary grew a `purchaseRider` with the wonders (the Great Ziggurat's
+ * cheaper augurs), and it lands as `cardPurchaseRiders` gives it: the riders that
+ * admit this unit are **summed**, applied **once** to the price the lines above
+ * have reached, and carried as one labelled line holding the *difference* — so
+ * the fold is still the price, the screen still prints why, and two riders on one
+ * purchase are additive exactly as everything else in this game that stacks is.
+ * It is asked in both banks, because "religious units cost less" is about the
+ * augur's faith and would be a strange rule that stopped at the treasury's door.
+ * Nothing speaks about a *building* being cheaper: a filter is about units, and
+ * the one building nobody may buy is the one a card would most want to discount.
  *
  * `cityId` is taken because a purchase is always *somewhere* — the price is
  * asked of a real town of this empire's or it is not asked at all — and because
@@ -206,6 +214,7 @@ export function explainPurchaseCost(
         lines.push({ source: `${bought} already called`, amount: increment * bought });
       }
     }
+    applyRiders(state, playerId, item.id, lines);
     return { currency: bank, lines, total: foldUnitCost(lines) };
   }
 
@@ -222,7 +231,41 @@ export function explainPurchaseCost(
   // however the rounding falls. `Math.floor` once, at the end, for the same
   // reason Entry XVII floors once.
   lines.push({ source: `×${rate} in gold`, amount: Math.floor(cost * rate) - cost });
+  // **After** the conversion, so the discount is off the price and not off the
+  // hammers: a quarter off a warrior is a quarter off the coin, whatever the
+  // rate happens to be.
+  if (item.kind === 'unit') applyRiders(state, playerId, item.id, lines);
   return { currency: 'gold', lines, total: foldUnitCost(lines) };
+}
+
+/**
+ * Folds every purchase rider that admits this unit into **one** line on the
+ * price, carrying the difference it makes to the running figure.
+ *
+ * Summed then applied once (Entry XVII's discipline at the scale of a price
+ * tag), floored once, and named after the cards that did it so the screen can
+ * print the reason. Nothing is appended when no card speaks, which is every
+ * purchase in most games — the list is then byte-identical to the one this
+ * returned before `purchaseRider` existed.
+ */
+function applyRiders(
+  state: GameState,
+  playerId: number,
+  type: UnitTypeId,
+  lines: UnitCostLine[],
+): void {
+  const riders = cardPurchaseRiders(state, playerId, type);
+  if (riders.length === 0) return;
+  let percent = 0;
+  for (const rider of riders) percent += rider.percent;
+  if (percent === 0) return;
+  const running = foldUnitCost(lines);
+  const priced = Math.max(0, Math.floor((running * (100 + percent)) / 100));
+  if (priced === running) return;
+  lines.push({
+    source: `${riders.map((rider) => rider.source).join(' + ')} (${percent > 0 ? '+' : ''}${percent}%)`,
+    amount: priced - running,
+  });
 }
 
 /** What this player currently holds of one bank. The one such reading. */
@@ -425,8 +468,10 @@ export function purchaseItemAt(
 
   refreshCityDerived(state, city);
   // The unit's id, or `undefined` for a building. A purchase can never claim a
-  // wonder — `purchaseError` refuses one outright — so the other half of
-  // `RealisedItem` is never populated on this path and there is nothing here to
-  // report onward.
+  // wonder — `purchaseError` refuses one outright — so neither `RealisedItem`'s
+  // wonder nor its completion grants are ever populated on this path (only
+  // wonders carry `onComplete` today), and there is nothing here to report
+  // onward. The day an ordinary building grants something, this signature grows
+  // the way `RealisedItem` already has.
   return born.unitId;
 }

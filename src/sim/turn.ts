@@ -90,6 +90,7 @@
 
 import { barbarianTurn } from './barbarians';
 import {
+  type CompletionGrantReport,
   type WonderCompletion,
   advanceProduction,
   collectYields,
@@ -161,11 +162,22 @@ export interface TurnReport {
    * fact the state already records.
    */
   triumphs: TriumphAward[];
+  /**
+   * Every completion grant a finished building handed over during the
+   * resolution, in the sweep's own order (`CompletionGrantReport`).
+   *
+   * `wonders`' sibling one scale in: a wonder is news to every seat and a grant
+   * is news to its owner, but both are *differences* that stop existing the
+   * instant the resolution ends — the sword is standing in the town, the
+   * technology is in the list, the Doctrine offer is on the seat, and no diff of
+   * two boards can say which building handed any of it over.
+   */
+  grants: CompletionGrantReport[];
 }
 
 /** A fresh, empty report. The one place its shape is written. */
 export function emptyTurnReport(): TurnReport {
-  return { combats: [], wonders: [], triumphs: [] };
+  return { combats: [], wonders: [], triumphs: [], grants: [] };
 }
 
 export interface TurnPhase {

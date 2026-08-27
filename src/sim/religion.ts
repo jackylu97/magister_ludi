@@ -92,6 +92,8 @@ import {
   slotsFromTechs,
 } from './religionData';
 import {
+  cardAmplifier,
+  cardPantheonSlots,
   cardPeriodicOffers,
   drawWithoutReplacement,
   offerSize,
@@ -107,16 +109,24 @@ import { isCombatant, unitDef } from './unitData';
 // --- the pantheon's slots ---------------------------------------------------
 
 /**
- * How many gods this empire may hold, derived from the technologies it holds.
+ * How many gods this empire may hold: the technologies it holds, **plus every
+ * live `pantheonSlots` card** — Stonehenge's, and the Great Mosque of Djenné's.
  *
  * **Never stored.** Divination opens two (two, so early synergy exists at all),
  * and the High Temple's third is a row in `data/religion.json` rather than a
  * code change. A counter on the player would be a second answer that disagrees
- * with the tree the moment a save is replayed against a retuned table.
+ * with the tree the moment a save is replayed against a retuned table — and it
+ * would disagree with the *stones* the moment a wonder changed hands, which is
+ * why a wonder's slot is folded here rather than granted when it is finished.
+ *
+ * One fold, so "how many gods may I hold" has one answer: `hasOpenBeliefSlot`,
+ * the consecration screen and the offer all ask this. Floored at zero, because
+ * a card that took a slot away must not make an empire owe one back.
  */
 export function pantheonSlots(state: GameState, playerId: number): number {
   const player = playerById(state, playerId);
-  return player ? slotsFromTechs(player.techsResearched) : 0;
+  if (!player) return 0;
+  return Math.max(0, slotsFromTechs(player.techsResearched) + cardPantheonSlots(state, playerId));
 }
 
 /** Gods held. The other half of "is there room". */
@@ -471,7 +481,7 @@ export function performRiteAt(
   const city = def.target === 'city' ? riteCityTarget(state, unit, target) : null;
   const blessed = def.target === 'unit' ? riteUnitTarget(state, unit, target) : null;
 
-  const expiresTurn = stampRite(state, rite, def, city, blessed);
+  const expiresTurn = stampRite(state, player.id, rite, def, city, blessed);
   const paid = payRiteGrant(state, player, def, city, blessed);
   const wonders = payRiteRiders(state, player, unit);
   wonders.unshift(...paid.wonders);
@@ -502,9 +512,20 @@ export function performRiteAt(
  * second shape for the evaluator to unwrap. The array is created lazily so a
  * city that has never been blessed serialises exactly as it did before this
  * system existed (`City.timed`'s convention).
+ *
+ * **The `riteDuration` amplifier is read here, once, at the stamp** — Chichen
+ * Itza's fifty percent. It lengthens the *duration* before the expiry is
+ * computed, and the expiry is still an absolute turn nobody ever ticks
+ * (`TimedEffect`): a blessing that got longer the day a wonder finished would be
+ * re-deriving a fact the state already wrote down, and one that got shorter the
+ * day the wonder was captured would be a countdown wearing a comparison's
+ * clothes. Floored once, and never below a single turn — an amplifier may
+ * lengthen a blessing or shorten it, but a rite that expired the instant it was
+ * performed would be a charge spent on nothing.
  */
 function stampRite(
   state: GameState,
+  playerId: number,
   rite: RiteId,
   def: RiteDef,
   city: City | null,
@@ -513,7 +534,9 @@ function stampRite(
   if (def.duration === undefined || def.effects.length === 0) return null;
   const holder: { timed?: TimedEffect[] } | null = def.target === 'city' ? city : unit;
   if (!holder) return null;
-  const expiresTurn = state.turn + Math.max(1, Math.floor(def.duration));
+  const percent = cardAmplifier(state, playerId, 'riteDuration');
+  const turns = Math.floor((Math.max(1, Math.floor(def.duration)) * (100 + percent)) / 100);
+  const expiresTurn = state.turn + Math.max(1, turns);
   const list = holder.timed ?? [];
   for (const effect of def.effects) list.push({ card: rite, effect, expiresTurn });
   holder.timed = list;

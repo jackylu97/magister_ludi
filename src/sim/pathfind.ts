@@ -61,8 +61,10 @@
  * may cross the east–west seam whenever that is shorter.
  */
 
+import { tileOwnerField } from './cities';
 import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, tileHex, tileIndex, wrappedDistance } from './map';
 import { RULES } from './rulesData';
+import { cardBorderZoc } from './statecraft';
 import { type GameState, type Unit, playerById } from './state';
 import { techsGrant } from './techData';
 import { isEmbarkableTerrain, moveCost } from './terrainData';
@@ -251,6 +253,24 @@ export interface ZocField {
  *     scout is bound exactly as a swordsman is.
  *   - **Enemy cities.** A town is a garrison that cannot be killed by a march,
  *     and Civ V's rule is that it holds ground like one.
+ *   - **Enemy *borders*, for a seat whose law says so** — the Great Wall, and
+ *     the only card in the game that speaks to this field (`zocRule`). Every hex
+ *     that empire owns projects control exactly as one of its spearmen would,
+ *     which means that inside such a border **every step is a locked step**: a
+ *     mover crossing it is always leaving one owned hex alongside another, so it
+ *     completes the step and then empties its purse. That is the intent and it
+ *     is Civ V's Great Wall — a wall is not a fence, it is a country you cross
+ *     one day at a time.
+ *
+ * The clause is a *source*, and that is the whole of why it costs nothing else:
+ * the lock's arithmetic (`zocLocks`, `stepArrival`) and its four readers are
+ * untouched, because they only ever ask this field what it projects from. It is
+ * hoisted once per search like everything else here.
+ *
+ * The border sweep is **positional** — `state.tileOwner` by index, resolved
+ * through `tileOwnerField` — for that field's stated reason: this runs inside a
+ * search and asking ownership by coordinate would be a walk of `state.cities`
+ * per hex of the map.
  */
 export function zocField(state: GameState, ownerId: number): ZocField {
   const { map } = state;
@@ -274,6 +294,24 @@ export function zocField(state: GameState, ownerId: number): ZocField {
   for (const city of state.cities) {
     if (city.ownerId === ownerId) continue;
     project(city.col, city.row);
+  }
+  // The Great Wall, last, so a game where nobody holds it is byte-identical to
+  // the one this answered before the card existed. Asked once per *seat* rather
+  // than once per hex: the walk of the map only happens for an empire whose law
+  // actually says this, which in almost every game is none of them.
+  const walled: number[] = [];
+  for (const player of state.players) {
+    if (player.id === ownerId) continue;
+    if (cardBorderZoc(state, player.id)) walled.push(player.id);
+  }
+  if (walled.length > 0) {
+    const owner = tileOwnerField(state);
+    for (let index = 0; index < map.tiles.length; index++) {
+      const holder = owner.at(index);
+      if (holder === null || !walled.includes(holder)) continue;
+      const tile = map.tiles[index]!;
+      project(tile.col, tile.row);
+    }
   }
 
   if (sources.length === 0) return { sources, adjacent: new Uint8Array(0) };

@@ -79,7 +79,9 @@ import type { Family } from './greatPeopleData';
 import type { TechId } from './techData';
 // Type-only for `TechId`'s reason, one table over: `statecraftData.ts` imports
 // `BuildingId` from here.
-import type { CardEffect, TileCondition } from './statecraftData';
+import type { CardEffect, CityScope, TileCondition } from './statecraftData';
+// Type-only for `TechId`'s reason: `unitData.ts` imports nothing from here.
+import type { UnitTypeId } from './unitData';
 
 /**
  * The kinds of thing a city can be building, and therefore the kinds a
@@ -151,6 +153,38 @@ export interface ProductionBonus {
   percent: number;
 }
 
+/**
+ * Something a building hands its owner **the moment it is finished**, once.
+ *
+ * The wonders' shape (2026-08-27) and declared on `BuildingDef` rather than on a
+ * wonder-only type, because there is nothing wonder-shaped about it: the day an
+ * ordinary building wants to hand over a unit it fills this in, and
+ * `realiseItem` will not notice the difference.
+ *
+ * Three grants, and each is a *seam that already exists* rather than a new one —
+ * which is the whole test a grant has to pass to be in this union:
+ *
+ *   · **`unit`** — through `createUnit` and `spawnTileFor`, exactly as a built
+ *     one is, so the spawn convention has one implementation. `'bestMelee'`
+ *     resolves to the strongest melee type this empire can currently build
+ *     (the Statue of Zeus' "a free melee unit of your best type"), so a row
+ *     never has to name a unit the tree may retune out from under it.
+ *   · **`tech`** — through `settleResearchWindfall`, so the register's refresh
+ *     fires and every city of the empire is re-seated on ground a new
+ *     technology just made worth more. A seat with nothing chosen loses it, and
+ *     the result says so: the alternative is a second research offer, which
+ *     would be a second research interface.
+ *   · **`doctrineDraft`** — through `drawDoctrineOffer` at the seat's current
+ *     government tier, **skipped** when the seat has no live pool or is already
+ *     holding an unanswered Doctrine. That is `periodicOffer`'s precedent word
+ *     for word: an offer is a decision the player owes the game, and a second
+ *     one dealt on top of it would destroy the first.
+ */
+export type CompletionGrant =
+  | { grant: 'unit'; unit: UnitTypeId | 'bestMelee' }
+  | { grant: 'tech' }
+  | { grant: 'doctrineDraft' };
+
 export type BuildingId =
   | 'monument'
   | 'granary'
@@ -167,15 +201,44 @@ export type BuildingId =
   | 'amphitheater'
   | 'monastery'
   | 'university'
-  /**
-   * **Placeholder wonder.** The one row that exercises the wonders framework
-   * until the tree pass lands the real roster (`docs/tech-tree-ages-2-5.md`
-   * lists twenty-three across four ages, The Oracle among them, homed on Epic
-   * Poetry in Æra II). It is homed on Divination here because Divination is a
-   * technology that exists today; the row carries `placeholder: true` and the
-   * tree pass replaces it.
-   */
-  | 'theOracle';
+  // --- the wonders ---------------------------------------------------------
+  //
+  // Twenty-seven, ratified from `docs/wonders.md` and homed on the tree as it
+  // stands today (2026-08-27). They are ordinary rows carrying `wonder: true`
+  // and are listed here in age order only because the table is; nothing reads
+  // this order, and nothing anywhere compares an id against one of these names
+  // — `isWonder` is the one marker and `WONDER_IDS` the one roster.
+  //
+  // Æra I — the Age of Omens.
+  | 'theOracle'
+  | 'stonehenge'
+  | 'pyramids'
+  | 'hangingGardens'
+  | 'wallsOfUruk'
+  | 'greatZiggurat'
+  | 'greatLighthouse'
+  | 'templeOfArtemis'
+  // Æra II — the Age of Heroes.
+  | 'greatLibrary'
+  | 'colossus'
+  | 'petra'
+  | 'circusMaximus'
+  | 'terracottaArmy'
+  | 'greatWall'
+  | 'theatreOfDionysus'
+  | 'mausoleum'
+  | 'statueOfZeus'
+  // Æra III — the Age of Empire.
+  | 'chichenItza'
+  | 'hagiaSophia'
+  | 'angkorWat'
+  | 'greatMosqueOfDjenne'
+  | 'notreDame'
+  | 'houseOfWisdom'
+  | 'forbiddenCity'
+  | 'alhambra'
+  | 'machuPicchu'
+  | 'waterClockOfSuSong';
 
 /**
  * What a building pays a city every turn.
@@ -350,7 +413,7 @@ export interface BuildingDef {
    * read by the one evaluator that reads a card (`statecraft.ts`).
    *
    * **A wonder's effect is a card, not a system.** The same bargain a belief and
-   * a rite already struck (ledger Entry XXVIII): twenty-four effect shapes go in
+   * a rite already struck (ledger Entry XXVIII): twenty-eight effect shapes go in
    * as JSON, labelled lists come out, and `statecraft.ts` stays the only module
    * in the game that switches on a `CardEffect.kind`. So The Hanging Gardens'
    * "+3🌾 and +1 happiness in this city" is two rows of data rather than two
@@ -369,6 +432,55 @@ export interface BuildingDef {
    * effect it fills this in, and the evaluator will not notice the difference.
    */
   effects?: CardEffect[];
+  /**
+   * What the **ground under the city** must be for this to be built at all —
+   * the Great Lighthouse's harbour, Petra's desert, Machu Picchu's mountain.
+   * Absent means anywhere, which is every ordinary building.
+   *
+   * A `CityScope`, so "which towns" is the same shape and the same evaluator
+   * (`cityScopeAdmits`) that decides where a card's clause lands — a site
+   * requirement and a scoped effect are one question asked at two moments, and
+   * a second predicate would be how a wonder comes to pay a coastal city it
+   * refused to be built in. Checked in `buildError` with the `city` argument the
+   * wonders framework added; a caller with no town in hand cannot ask about the
+   * ground and does not (the tech screen's "what could I build one day").
+   *
+   * The refusal names the *site* rather than the scope — "The Colossus wants a
+   * harbour" — because a player who is told "requires coastal" has been told the
+   * name of a flag, not the reason.
+   */
+  requiresSite?: CityScope;
+  /**
+   * What finishing this hands its owner, once. See `CompletionGrant`.
+   *
+   * Realised in `realiseItem` right after the claim, so a grant arrives by the
+   * one routine that means "the city now has the thing" — and so a wonder
+   * bought, gifted or granted some future way would hand its unit over by the
+   * same code. Every grant that mutates a city's derived state settles through
+   * the register's own wrappers (`refreshCityDerived`, CLAUDE.md).
+   */
+  onComplete?: CompletionGrant[];
+  /**
+   * A half of this row's ratified text that is **deliberately not built**, in
+   * the words a player reads, struck through on the card.
+   *
+   * `CardDefBase.deferred`'s field on a building row, carried through
+   * `anyCardDef` so the two are one convention: a wonder whose text needs an
+   * effect shape the vocabulary lacks ships with the half it can say and this
+   * beside it, rather than with a shape bent to nearly fit. The great-people
+   * table's `deferred` is the same field one table over.
+   */
+  deferred?: string[];
+  /**
+   * A standing caveat on what this row *does* do — printed in italics, not
+   * struck through. `CardDefBase.note`.
+   *
+   * The difference from `deferred` is the difference between "this clause is
+   * missing" and "this clause is here and there is something to know about it":
+   * Hagia Sophia grants an augur where the ratified text says a prophet, and
+   * that is a note, because a piece really does arrive.
+   */
+  note?: string;
   /**
    * True on a row that exists to exercise a framework and will be replaced.
    *

@@ -49,6 +49,7 @@ import type { BuildingId, ProductionCategory } from './buildingData';
 import type { GreatPersonId } from './greatPeopleData';
 import type { ImprovementId } from './improvementData';
 import type { ModifierStage } from './modifiers';
+import type { ProjectId, ProjectPayout } from './projectData';
 import type { BeliefId, RiteId } from './religionData';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
 import type { TerrainId } from './terrainData';
@@ -186,6 +187,16 @@ export type CityScope =
    */
   | { test: 'hasBuilding'; building: BuildingId }
   /**
+   * The town's **own hex** is this terrain — Petra's desert city.
+   *
+   * A fact about the ground the centre stands on and nothing wider: a city with
+   * one desert tile in its third ring is not a desert city, and a scope that
+   * counted the ring would be a second, fuzzier answer to a question the board
+   * already answers exactly. `TileCondition`'s `terrain` one scale up, asked of
+   * `cityTile`.
+   */
+  | { test: 'onTerrain'; terrain: TerrainId }
+  /**
    * Every one of these holds. The composite, and the only one there is.
    *
    * There is deliberately no `any` and no `not`. A disjunction is two lines on
@@ -230,7 +241,25 @@ export type CombatCondition =
   /** The target is a city. */
   | { test: 'vsCity' }
   /** The target is below half its maximum hit points. */
-  | { test: 'targetBelowHalf' };
+  | { test: 'targetBelowHalf' }
+  /**
+   * The contested tile belongs to this player's **capital** — the Walls of
+   * Uruk's line, and `ownTerritory` narrowed to one town's borders.
+   *
+   * Asked of the same hex `ownTerritory` is asked of (the contested one), for
+   * that arm's reason exactly: a strength line is a fact about *the fight*, and
+   * the fight happens on one hex whichever side is being asked about.
+   */
+  | { test: 'capitalTerritory' }
+  /**
+   * A city of this player's stands on the contested tile — a garrison, said as
+   * a condition rather than as a count.
+   *
+   * The Terracotta Army's, and it pairs with `side: 'defend'` on every row that
+   * will ever want it: the contested hex is the defender's own, so "garrisoned"
+   * and "standing on the hex being stormed" are the same sentence.
+   */
+  | { test: 'inCity' };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount = 'cities' | 'adjacentFriendlies';
@@ -244,12 +273,34 @@ export interface CombatScale {
   max?: number;
 }
 
-/** Which units a `unitStat` reaches. Absent means every one. */
+/**
+ * Which units an effect reaches. Absent means every one.
+ *
+ * Two shapes read it now — `unitStat` since Entry XV, and `combatLine`'s
+ * `class` since the wonders pass — and one predicate answers for both
+ * (`unitMatches` in `statecraft.ts`). Every field is a fact about the *type*, so
+ * nothing here can ask about the piece: a filter that could ask "is this unit
+ * wounded" would be a `CombatCondition` wearing a filter's clothes.
+ */
 export interface UnitFilter {
   modelClass?: ModelClass;
   category?: UnitCategory;
   /** True: only types that shoot. False: only types that close. */
   ranged?: boolean;
+  /**
+   * True: only the **religious** types — the ones whose charges are rites
+   * (`UnitDef.consecrates`). False: only the ones whose charges are not.
+   *
+   * "Religious units", which is how the Great Ziggurat and the Great Mosque of
+   * Djenné are both written, read off the roster's own marker rather than off a
+   * name — nothing in `src/sim/` compares a type against `"augur"`, so the
+   * prophet that arrives one day is priced and charged by these two wonders
+   * without either row being touched. It is also what lets the Pyramids say
+   * "workers" and mean the ones that dig: an augur shares the worker's
+   * `modelClass`, so `{ modelClass: 'worker', consecrates: false }` is the
+   * spade-carrying half of it.
+   */
+  consecrates?: boolean;
 }
 
 /**
@@ -290,6 +341,23 @@ export type TileCondition =
    * feeds anybody.
    */
   | { test: 'resourceKind'; kind: ResourceKind; yields?: CityYieldKey }
+  /**
+   * One of these **named** resources sits here — Stonehenge's stone and marble.
+   *
+   * `CityScope`'s `holding` one scale down and deliberately the same shape: a
+   * list, because the ratified text names a *material* ("stone") that the table
+   * spells as two rows, and two cards each paying half would be the wrong fix.
+   * Where `resourceKind` asks what class a seam is, this asks which seam it is.
+   */
+  | { test: 'resource'; resources: ResourceId[] }
+  /**
+   * The hex has fresh water — a river edge or a lake beside it (`Tile.freshwater`).
+   *
+   * `CityScope`'s `freshwater` one scale down, and the Hanging Gardens' half of
+   * "farms beside fresh water": the farm is an `improvement` condition, the
+   * water is this one, and `all` is what makes them one line.
+   */
+  | { test: 'freshwater' }
   /**
    * Every one of these holds. `CityScope`'s composite, one scale down, and here
    * for its reason: a wooded tundra and a mine standing on a luxury are single
@@ -352,7 +420,34 @@ export type CountKind =
    * library, a shrine, a university. Omen Reading's, read off the building rows
    * so a retune moves the rite with it.
    */
-  | 'scienceBuildings';
+  | 'scienceBuildings'
+  /**
+   * Buildings of **one named kind** the empire holds — one per city that has
+   * built it. The effect names which in `CardCountScaledEffect.building`.
+   *
+   * The Circus Maximus' barracks and Notre-Dame's temples, and the first count
+   * in the union that needs an argument. It is empire-wide by default and
+   * narrowed to the holding town by `within: 'city'` like every other count that
+   * can be asked either way; a building is one per city, so this is also "how
+   * many of my cities have one".
+   */
+  | 'buildingsOfKind'
+  /**
+   * Buildings standing in **this city**, of every kind (city-scoped).
+   *
+   * The Mausoleum's, and deliberately the town's whole `buildings` list —
+   * wonders included, because a wonder is a building and the tomb is paid for
+   * what the city has raised, not for what class it belongs to.
+   */
+  | 'buildingsInCity'
+  /**
+   * Tiles **this city** is working (city-scoped) — `City.workedTiles`, the city
+   * centre excluded exactly as the assigner counts them.
+   *
+   * Angkor Wat's, and `workedHills`' unfiltered twin: one asks how much of a
+   * town's labour is on high ground and this asks how much labour there is.
+   */
+  | 'workedTilesInCity';
 
 /** What a `rateConversion` reads. A *rate* or a meter standing, never a bank. */
 export type RateSource =
@@ -388,7 +483,18 @@ export type CardRule =
   /** How fast the border basket fills (`borderGrowth`). */
   | 'borderCulture'
   /** What a settler costs in hammers (`unitProductionCost`). */
-  | 'settlerCost';
+  | 'settlerCost'
+  /**
+   * How much of a city's food **surplus** reaches its basket (`growthSurplus`).
+   *
+   * The Hanging Gardens' channel, and the seventh rule for the reason the other
+   * six are rules: growth is not a yield. Entry XIV.D.4 keeps the surplus in a
+   * channel of its own with its own fold, so a percentage on it is neither a
+   * city-stage nor a global-stage percentage on food — it is a different rule
+   * with a different consumer, and the meters' stifle already sums into exactly
+   * this figure.
+   */
+  | 'growthSurplus';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -425,7 +531,19 @@ export type AmplifierTarget =
   /** The flat happiness every unique luxury pays. */
   | 'luxuryHappiness'
   /** What a *duplicate* copy of a luxury is worth, as a share of the first. */
-  | 'luxuryDuplicates';
+  | 'luxuryDuplicates'
+  /**
+   * How long a **timed** effect runs — Chichen Itza's fifty percent.
+   *
+   * Read where a rite's `expiresTurn` is computed (`performRiteAt`), on the
+   * duration, floored once. It stays a comparison and never becomes a countdown:
+   * the amplifier changes what turn a blessing is stamped to expire on and
+   * nothing anywhere ticks anything, which is `TimedEffect`'s whole rule. Read
+   * at the moment of the stamp for `cardExtraCharges`' reason — a blessing that
+   * got longer when the wonder finished would be re-deriving a fact the state
+   * already wrote down.
+   */
+  | 'riteDuration';
 
 /**
  * A rule about how an offer *pays*, as against how big it is.
@@ -599,6 +717,16 @@ export interface CardCombatLineEffect {
   /** Which posture it pays in. `'both'` is the common case. */
   side: 'attack' | 'defend' | 'both';
   scaled?: CombatScale;
+  /**
+   * Which units the line reaches. Absent means every one of this empire's.
+   *
+   * The Alhambra's mounted +2, and the field the ratified great-person legacies
+   * have been waiting on ("+3 to your ships", "+2 to siege"). It is the *same*
+   * `UnitFilter` `unitStat` takes, read by the same predicate, so "which units"
+   * is one question with one answer however a card asks it — and it is asked of
+   * whichever side the line pays, exactly as `side` says.
+   */
+  class?: UnitFilter;
 }
 
 /** A stat on a class of unit. Each stat has exactly one evaluator downstream. */
@@ -607,8 +735,19 @@ export interface CardUnitStatEffect {
   stat: 'movement' | 'sight' | 'heal' | 'charges' | 'range' | 'combatPercent';
   amount: number;
   class?: UnitFilter;
-  /** Narrows the stat to units standing on their owner's ground. Imperium's. */
-  where?: 'ownTerritory';
+  /**
+   * Narrows the stat to *where the piece is standing*. Absent means anywhere.
+   *
+   *   · `'ownTerritory'` — on its owner's ground. Imperium's.
+   *   · `'embarked'` — on water, which for a piece that is on the board at all
+   *     means it embarked to get there (`isEmbarkableTerrain`, Entry XXVII).
+   *     The Great Lighthouse's extra point of movement at sea.
+   *
+   * Both are asked of the hex the unit is on, in `cardUnitStat`, which is the
+   * only reading a per-turn allowance can have: a ship is quick because it set
+   * out from the water, and the allowance is refilled where it stands.
+   */
+  where?: 'ownTerritory' | 'embarked';
 }
 
 /** A rider on a windfall. See `WindfallOccasion` for what "rider" means. */
@@ -660,6 +799,18 @@ export interface CardCountScaledEffect {
   /** The most helpings that ever pay. */
   max?: number;
   pays: CardPayout;
+  /** Which building `buildingsOfKind` counts. Ignored by every other count. */
+  building?: BuildingId;
+  /**
+   * Narrows an **empire** count to the town the line is being paid in.
+   *
+   * The Temple of Artemis' "in this city", and a modifier on the *count* rather
+   * than a second count: `improvedBonusResources` is the same sweep whether it
+   * is asked of a realm or of one town's ground, so the question is which
+   * ground, not which sweep. The city-scoped counts (`garrison`, `workedHills`,
+   * the rest) already answer per town and ignore this.
+   */
+  within?: 'city';
 }
 
 /** A payout converted from a rate or a meter standing. See `RateSource`. */
@@ -754,6 +905,21 @@ export interface CardMetaRuleEffect {
 export interface CardTileYieldEffect extends CardYieldBag {
   kind: 'tileYield';
   on: TileCondition;
+  /**
+   * Whose ground it lands on: the hex pays only if its **owning city** is
+   * admitted. Absent means every hex this empire works.
+   *
+   * Petra's desert and the Hanging Gardens' farms are both "in this city", which
+   * a wonder says the way every other wonder clause says it — `hasBuilding` on
+   * its own row, derived from the board, so a captured wonder moves its ground
+   * bonus with it.
+   *
+   * It is read where the *town* is known (`cityContext` in `cities.ts`) rather
+   * than in the empire-wide pass, for the granary's reason exactly: a fact about
+   * one city can only be resolved by whoever has one in hand, and a hex outside
+   * anybody's borders has no city to ask.
+   */
+  scope?: CityScope;
 }
 
 /**
@@ -798,6 +964,83 @@ export interface CardUnlocksBuildingEffect {
   building: BuildingId;
 }
 
+/**
+ * Room for another god — Stonehenge's, and the Great Mosque of Djenné's.
+ *
+ * A *slot grant*, and the first shape in the vocabulary whose subject is a
+ * structural limit rather than a number in a ledger. It is read exactly where
+ * the technologies' slots are read (`pantheonSlots`, `religion.ts`), as one more
+ * line of the same fold, so "how many beliefs may I hold" has one answer and a
+ * wonder cannot open a slot the consecration screen does not offer.
+ *
+ * There is deliberately no Statecraft twin yet: the Forbidden City's "one more
+ * Order office" would have to say *which kind* of slot it opens, and a spread is
+ * rebuilt on every adoption (`adoptGovernmentAt`), so an office grant is a
+ * design decision about the layout rather than a number added to one. It is
+ * deferred on that row.
+ */
+export interface CardPantheonSlotsEffect {
+  kind: 'pantheonSlots';
+  amount: number;
+}
+
+/**
+ * A percentage on what a **unit costs to buy** — the Great Ziggurat's cheaper
+ * augurs.
+ *
+ * One labelled line in `explainPurchaseCost`'s bank (`purchase.ts`), which is
+ * the whole of why it is a shape rather than a `CardRule`: a purchase price is
+ * already an ordered list whose fold is the number on the button, so a discount
+ * joins it as a line and the screen prints the reason without being told about
+ * cards. Riders **sum before one multiplication** and the price is floored once,
+ * exactly as Entry XVII sums within a stage.
+ *
+ * `class` is the ordinary `UnitFilter`, so the row says "religious units" by
+ * asking the roster (`consecrates`) rather than by naming the augur. Buildings
+ * are out of reach on purpose: a filter is about units, and a wonder is never
+ * for sale anyway.
+ */
+export interface CardPurchaseRiderEffect {
+  kind: 'purchaseRider';
+  class: UnitFilter;
+  /** Signed whole percent off the price. `-25` is the Ziggurat's quarter. */
+  percent: number;
+}
+
+/**
+ * A rule of the **zone of control** — the Great Wall's, and the only one there
+ * is.
+ *
+ * `'borders'`: every hex this empire owns exerts a zone of control against
+ * everybody else, exactly as one of its combat units would. One clause in
+ * `zocField` (`pathfind.ts`), after the units and the cities, so the lock's
+ * arithmetic and its four readers are untouched — a border is simply another
+ * source, and `stepCost` prices a step alongside it the way it prices a step
+ * alongside a spearman.
+ */
+export interface CardZocRuleEffect {
+  kind: 'zocRule';
+  rule: 'borders';
+}
+
+/**
+ * More out of one turn of a **project** — the Water Clock of Su Song's beakers
+ * on Scholarship.
+ *
+ * `pays` is a *delta* on the project's printed conversion, added where the
+ * payout is banked (`payProject`, `cities.ts`) and nowhere else. It is a flat
+ * addition to what comes **out**, never to the hammers going in, so Entry XXVI's
+ * argument is untouched: the hammers were staged on their way into the basket
+ * and this does not multiply them, it enlarges the printed rate. A card that
+ * wanted a *percentage* of a conversion would be reopening that argument and is
+ * deliberately not expressible.
+ */
+export interface CardProjectRiderEffect {
+  kind: 'projectRider';
+  project: ProjectId;
+  pays: ProjectPayout;
+}
+
 /** Everything a card may say. One union, one evaluator (`statecraft.ts`). */
 export type CardEffect =
   | CardCityYieldsEffect
@@ -824,7 +1067,11 @@ export type CardEffect =
   | CardMetaRuleEffect
   | CardTileYieldEffect
   | CardPeriodicOfferEffect
-  | CardUnlocksBuildingEffect;
+  | CardUnlocksBuildingEffect
+  | CardPantheonSlotsEffect
+  | CardPurchaseRiderEffect
+  | CardZocRuleEffect
+  | CardProjectRiderEffect;
 
 /** Every `kind` in the union, for the register test that pins the evaluator. */
 export type CardEffectKind = CardEffect['kind'];

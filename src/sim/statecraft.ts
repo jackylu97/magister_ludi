@@ -23,7 +23,7 @@
  *
  * The one-evaluator rule, said precisely
  * --------------------------------------
- * There are twenty-four shapes in the vocabulary and one walk over them
+ * There are twenty-eight shapes in the vocabulary and one walk over them
  * (`liveEffects`). Every reader filters that walk; none of them re-derives which
  * cards are live, which are gated, or how a level scales. That is what keeps the
  * promise true as the table grows — the failure mode of a second walk is a card
@@ -49,25 +49,30 @@
  * and borders, neither of which is authority.
  */
 
-import type { BuildingId } from './buildingData';
 import {
   capitalCityOf,
+  cityAt,
   cityResources,
   cityTile,
   controlledResources,
   isCoastalCity,
   nearestOwnedCity,
   resourceCopies,
+  tileOwnerCityId,
   tileOwnerPlayerId,
 } from './cities';
 import {
+  type BuildingId,
+  type CompletionGrant,
   type ProductionCategory,
   buildingDef,
+  buildingPlural,
   isBuildingId,
   isWonder,
 } from './buildingData';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { improvementDef } from './improvementData';
+import { type ProjectId, type ProjectPayout, projectDef } from './projectData';
 import { type Tile, getTileAt, neighborTiles, tileHex, wrappedDistance } from './map';
 import { authorityOf, happinessOf } from './meters';
 import type { ModifierStage } from './modifiers';
@@ -85,7 +90,9 @@ import {
 } from './state';
 import {
   type ActionRuleId,
+  type AmplifierTarget,
   type BehaviorRuleId,
+  type CardCountScaledEffect,
   type CardDefBase,
   type CardEffect,
   type CardId,
@@ -623,7 +630,17 @@ export function anyCardDef(id: CardId): CardDefBase {
   // answers an empty card, which is exactly what it is worth to this evaluator.
   if (isBuildingId(id)) {
     const def = buildingDef(id);
-    return { name: def.name, flavor: '', effects: def.effects ?? [] };
+    // `deferred` and `note` come across with the effects, because they are the
+    // same convention: a wonder whose ratified text needs a shape the vocabulary
+    // lacks says so on its row exactly as a great person or an Order does, and
+    // `describeCard` prints all three the same way for all seven classes.
+    return {
+      name: def.name,
+      flavor: '',
+      effects: def.effects ?? [],
+      deferred: def.deferred,
+      note: def.note,
+    };
   }
   return { name: String(id), flavor: '', effects: [] };
 }
@@ -1020,6 +1037,9 @@ export function cityScopeAdmits(state: GameState, city: City, scope?: CityScope)
     }
     case 'hasBuilding':
       return city.buildings.includes(scope.building);
+    case 'onTerrain':
+      // The centre's own hex and nothing wider. See the scope's docblock.
+      return cityTile(state.map, city).terrain === scope.terrain;
     case 'all': {
       // Recursion into the same evaluator, which is the whole reason the
       // composite is a scope rather than a second field on every effect.
@@ -1063,6 +1083,8 @@ function scopeNote(scope?: CityScope): string | null {
       return `${scope.category} seam`;
     case 'hasBuilding':
       return buildingDef(scope.building).name.toLowerCase();
+    case 'onTerrain':
+      return `${scope.terrain} city`;
     case 'all':
       return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' + ');
     default: {
@@ -1090,9 +1112,10 @@ function label(source: string, note: string | null): string {
 function countOf(
   state: GameState,
   playerId: number,
-  count: CountKind,
+  effect: CardCountScaledEffect,
   city?: City,
 ): number {
+  const count = effect.count;
   switch (count) {
     case 'uniqueLuxuries':
       return controlledResources(state, playerId, 'luxury').length;
@@ -1104,6 +1127,17 @@ function countOf(
       return total;
     }
     case 'improvedBonusResources': {
+      // **"In this city" is a different sweep of the same question** (the Temple
+      // of Artemis). At empire scale the count is of *copies* — two improved
+      // wheat fields are two — because that is what the ratified table means by
+      // "improved bonus resources" across a realm. At town scale it is asked of
+      // the town's own holdings (`cityResources`), which is the uniqueness
+      // reading every city-scale resource question already takes
+      // (`resourceEffects.ts`): two wheat fields in one city are one holding,
+      // and the sweep is over that city's tiles rather than the whole map.
+      if (effect.within === 'city') {
+        return city ? cityResources(state, city, 'bonus').length : 0;
+      }
       let total = 0;
       for (const id of controlledResources(state, playerId, 'bonus')) {
         total += resourceCopies(state, playerId, id);
@@ -1183,6 +1217,25 @@ function countOf(
       }
       return total;
     }
+    case 'buildingsOfKind': {
+      // A named building, counted once per town that has raised it — the Circus
+      // Maximus' barracks and Notre-Dame's temples. A row with no `building` is
+      // a data error rather than "count everything": it would silently pay per
+      // *city*, which is a count that already exists.
+      const wanted = effect.building;
+      if (wanted === undefined) return 0;
+      if (effect.within === 'city') return city?.buildings.includes(wanted) ? 1 : 0;
+      let total = 0;
+      for (const town of state.cities) {
+        if (town.ownerId !== playerId) continue;
+        if (town.buildings.includes(wanted)) total += 1;
+      }
+      return total;
+    }
+    case 'buildingsInCity':
+      return city ? city.buildings.length : 0;
+    case 'workedTilesInCity':
+      return city ? city.workedTiles.length : 0;
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -1258,7 +1311,23 @@ const CITY_SCOPED_COUNTS: readonly CountKind[] = [
   'workedHills',
   'chargedAugurs',
   'scienceBuildings',
+  'buildingsInCity',
+  'workedTilesInCity',
 ];
+
+/**
+ * Is *this line* asked of a town rather than of a realm?
+ *
+ * The register above says which counts can only ever be asked of a town;
+ * `within: 'city'` is a **line** narrowing a count that could be asked either
+ * way (the Temple of Artemis' bonus resources), so the question is about the
+ * effect and not only about the `CountKind`. One predicate, so a reader that
+ * sums across the empire's towns and one that is handed a single town agree
+ * about which is which.
+ */
+function isCityScopedCount(effect: CardCountScaledEffect): boolean {
+  return effect.within === 'city' || CITY_SCOPED_COUNTS.includes(effect.count);
+}
 
 /** How many helpings a count (or a rate) buys, capped where the design caps it. */
 function helpings(total: number, per: number | undefined, max: number | undefined): number {
@@ -1321,7 +1390,7 @@ export function cardCityYields(state: GameState, city: City): CardYieldLine[] {
   for (const { source, card, level, effect } of cityEffectsOfKind(state, city, 'countScaled')) {
     const pays = effect.pays;
     if (pays.to !== 'yield' || pays.where !== 'city') continue;
-    const times = helpings(countOf(state, owner, effect.count, city), effect.per, effect.max);
+    const times = helpings(countOf(state, owner, effect, city), effect.per, effect.max);
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
     line[pays.yield] = scaleByLevel(pays.amount, level) * times;
@@ -1356,7 +1425,7 @@ export function cardEmpireYields(
   for (const { source, card, level, effect } of effectsOfKind(state, playerId, 'countScaled')) {
     const pays = effect.pays;
     if (pays.to !== 'yield' || pays.where === 'city') continue;
-    const times = helpings(countOf(state, playerId, effect.count), effect.per, effect.max);
+    const times = helpings(countOf(state, playerId, effect), effect.per, effect.max);
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
     line[pays.yield] = scaleByLevel(pays.amount, level) * times;
@@ -1454,6 +1523,10 @@ export function tileConditionHolds(tile: Tile, on: TileCondition): boolean {
       if (on.yields === undefined) return true;
       return resourceYield(id)[on.yields] > 0;
     }
+    case 'resource':
+      return tile.resource !== undefined && on.resources.includes(tile.resource);
+    case 'freshwater':
+      return tile.freshwater;
     case 'all': {
       for (const inner of on.of) {
         if (!tileConditionHolds(tile, inner)) return false;
@@ -1476,7 +1549,37 @@ export function tileConditionHolds(tile: Tile, on: TileCondition): boolean {
  * it, and a city sweeping twenty hexes asks the card table once.
  */
 export function cardTileLines(state: GameState, playerId: number): CardTileLine[] {
-  return tileLinesFrom(pickKind(liveEffects(state, playerId), 'tileYield'));
+  // **Unscoped lines only.** A `scope` is a question about the *owning city*,
+  // and this pass has no city in hand — the same reason a granary's water line
+  // cannot be resolved here (`TileYieldContext.lines`). The scoped ones are
+  // added by `scopedCardTileLines` from `cityContext`, which does.
+  return tileLinesFrom(
+    pickKind(liveEffects(state, playerId), 'tileYield').filter(
+      ({ effect }) => effect.scope === undefined,
+    ),
+  );
+}
+
+/**
+ * The `tileYield` lines this empire's cards put on **one town's** ground — the
+ * lines whose `scope` names which cities they land in.
+ *
+ * `timedCityTileLines`' sibling, and it joins `cityContext` for the same reason:
+ * "the ground of the city that holds the Hanging Gardens" is a fact about one
+ * town, and only a caller holding that town can resolve it. Petra's desert and
+ * the Gardens' irrigated farms are both written `hasBuilding` on the wonder's
+ * own row, so the answer follows the stones when a town changes hands.
+ */
+export function scopedCardTileLines(state: GameState, city: City): CardTileLine[] {
+  return tileLinesFrom(
+    pickKind(liveEffects(state, city.ownerId), 'tileYield')
+      .filter(
+        ({ effect }) =>
+          effect.scope !== undefined && cityScopeAdmits(state, city, effect.scope),
+      )
+      // Labelled with where it landed, exactly as a scoped `cityYields` line is.
+      .map((entry) => ({ ...entry, source: label(entry.source, scopeNote(entry.effect.scope)) })),
+  );
 }
 
 /**
@@ -1558,7 +1661,7 @@ export function cardPercentYields(state: GameState, city: City): CardPercentLine
   for (const { source, card, level, effect } of cityEffectsOfKind(state, city, 'countScaled')) {
     const pays = effect.pays;
     if (pays.to !== 'percent') continue;
-    const times = helpings(countOf(state, owner, effect.count, city), effect.per, effect.max);
+    const times = helpings(countOf(state, owner, effect, city), effect.per, effect.max);
     if (times === 0) continue;
     const percent = scaleByLevel(pays.percent, level) * times;
     if (percent === 0) continue;
@@ -1704,13 +1807,13 @@ export function cardHappiness(state: GameState, playerId: number): CardMeterLine
     // A count that is city-scoped is summed over the empire's towns; an
     // empire-scale one is asked once. `countOf` answers 0 for a city count with
     // no city, so the branch is about *which question*, not about a guard.
-    if (CITY_SCOPED_COUNTS.includes(effect.count)) {
+    if (isCityScopedCount(effect)) {
       for (const city of state.cities) {
         if (city.ownerId !== playerId) continue;
-        times += helpings(countOf(state, playerId, effect.count, city), effect.per, effect.max);
+        times += helpings(countOf(state, playerId, effect, city), effect.per, effect.max);
       }
     } else {
-      times = helpings(countOf(state, playerId, effect.count), effect.per, effect.max);
+      times = helpings(countOf(state, playerId, effect), effect.per, effect.max);
     }
     if (times === 0) continue;
     list.push({ card, source: label(source, `×${times}`), amount: each * times });
@@ -1745,7 +1848,7 @@ export function cardAuthority(state: GameState, playerId: number): CardMeterLine
     if (effect.pays.to !== 'authority') continue;
     const each = scaleByLevel(effect.pays.amount, level);
     if (each === 0) continue;
-    const times = helpings(countOf(state, playerId, effect.count), effect.per, effect.max);
+    const times = helpings(countOf(state, playerId, effect), effect.per, effect.max);
     if (times === 0) continue;
     list.push({ card, source: label(source, `×${times}`), amount: each * times });
   }
@@ -1849,6 +1952,20 @@ function combatConditionHolds(
       return situation.vsCity;
     case 'targetBelowHalf':
       return situation.targetMaxHp > 0 && situation.targetHp * 2 < situation.targetMaxHp;
+    case 'capitalTerritory': {
+      // `ownTerritory` narrowed to the capital's own borders, asked by tile id
+      // rather than by owner so that a second city standing beside the first
+      // does not lend its ground to the Walls of Uruk.
+      const capital = capitalCityOf(state, situation.unit.ownerId);
+      if (!capital) return false;
+      return tileOwnerCityId(state, situation.tile.col, situation.tile.row) === capital.id;
+    }
+    case 'inCity': {
+      // A town of this unit's own empire stands on the contested hex. Paired
+      // with `side: 'defend'` on every row that wants it — see the condition.
+      const here = cityAt(state, situation.tile.col, situation.tile.row);
+      return here !== undefined && here.ownerId === situation.unit.ownerId;
+    }
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -1899,6 +2016,10 @@ export function cardCombatLines(state: GameState, situation: CombatSituation): C
   const list: CardCombatLine[] = [];
   for (const { source, card, level, effect } of pickKind(liveUnitEffects(state, situation.unit), 'combatLine')) {
     if (effect.side !== 'both' && effect.side !== situation.side) continue;
+    // Which units the line reaches, asked of the same predicate `unitStat` asks
+    // — the Alhambra's mounted +2. Of *this* piece, whichever side it is on, so
+    // a line that pays both postures pays a knight in either.
+    if (!unitMatches(situation.unit.type, effect.class)) continue;
     if (!combatConditionHolds(state, situation, effect.when)) continue;
     const each = scaleByLevel(effect.amount, level);
     if (each === 0) continue;
@@ -1950,6 +2071,13 @@ function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
   }
   if (filter.category !== undefined && def.category !== filter.category) return false;
   if (filter.ranged !== undefined && (def.range !== undefined) !== filter.ranged) return false;
+  // "Religious units", asked of the roster's own marker. Absent on every type
+  // that digs, so `=== true` is the reading and `false` means "the ones that
+  // do not pray" — which is how the Pyramids reach the worker without reaching
+  // the augur standing beside it in the same `modelClass`.
+  if (filter.consecrates !== undefined && (def.consecrates === true) !== filter.consecrates) {
+    return false;
+  }
   return true;
 }
 
@@ -1978,6 +2106,12 @@ export function cardUnitStat(
     if (!unitMatches(unit.type, effect.class)) continue;
     if (effect.where === 'ownTerritory') {
       if (tileOwnerPlayerId(state, unit.col, unit.row) !== unit.ownerId) continue;
+    }
+    if (effect.where === 'embarked') {
+      // On water is embarked: nothing else can be standing there, because
+      // embarkation is the only way a piece reaches a water hex at all.
+      const here = getTileAt(state.map, unit.col, unit.row);
+      if (!here || !isWaterTerrain(here.terrain)) continue;
     }
     total += scaleByLevel(effect.amount, level);
   }
@@ -2217,16 +2351,109 @@ export function cardOfferRule(state: GameState, playerId: number, rule: OfferRul
 }
 
 /**
+ * One line of what a card takes off a purchase price. See `CardPurchaseRiderEffect`.
+ */
+export interface CardPurchaseLine {
+  card: CardId;
+  source: string;
+  percent: number;
+}
+
+/**
+ * Every purchase rider this empire's cards put on **one unit type** — the
+ * ordered lines `explainPurchaseCost` folds into its bank.
+ *
+ * A list rather than a number for rule 5's reason at the scale of a price tag:
+ * the Religion screen prints the augur's price line by line, and a quarter off
+ * with no name beside it is exactly the silence a breakdown exists to prevent.
+ * The caller sums them and multiplies **once** — two riders on one purchase are
+ * additive, as everything else in this game that stacks is.
+ */
+export function cardPurchaseRiders(
+  state: GameState,
+  playerId: number,
+  type: UnitTypeId,
+): CardPurchaseLine[] {
+  const list: CardPurchaseLine[] = [];
+  for (const { source, card, level, effect } of effectsOfKind(state, playerId, 'purchaseRider')) {
+    if (!unitMatches(type, effect.class)) continue;
+    const percent = scaleByLevel(effect.percent, level);
+    if (percent === 0) continue;
+    list.push({ card, source, percent });
+  }
+  return list;
+}
+
+/**
+ * How many extra belief slots this empire's cards open — Stonehenge's one, and
+ * Djenné's.
+ *
+ * A number rather than a list, because the consumer is a *count* and not a
+ * ledger: `pantheonSlots` (`religion.ts`) is "how many gods may I hold", and
+ * every reading of it — the consecration screen, `hasOpenBeliefSlot`, the offer
+ * — folds the technologies' slots and these in one place.
+ */
+export function cardPantheonSlots(state: GameState, playerId: number): number {
+  let total = 0;
+  for (const { level, effect } of effectsOfKind(state, playerId, 'pantheonSlots')) {
+    total += scaleByLevel(effect.amount, level);
+  }
+  return total;
+}
+
+/**
+ * Does this empire's law make its **borders** exert a zone of control?
+ *
+ * The Great Wall's one clause, asked of an empire rather than of a hex, so
+ * `zocField` resolves it once per sweep beside the units and the cities it
+ * already walks. See `zocRule`.
+ */
+export function cardBorderZoc(state: GameState, playerId: number): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'zocRule')) {
+    if (effect.rule === 'borders') return true;
+  }
+  return false;
+}
+
+/**
+ * What this empire's cards add to one turn of one **project's** payout, summed
+ * per voice — the Water Clock of Su Song's beakers on Scholarship.
+ *
+ * A bag rather than a list, because the consumer banks it into three pools and
+ * there is no breakdown to print: the panel quotes a project's *rate*, and the
+ * rate a rider changes is the rate the panel should quote (`projectRate` reads
+ * this through `projectPays`). A flat addition to what comes out, never to the
+ * hammers going in — see the shape's docblock for why that keeps Entry XXVI's
+ * argument closed.
+ */
+export function cardProjectPays(
+  state: GameState,
+  playerId: number,
+  project: ProjectId,
+): ProjectPayout {
+  const bag: ProjectPayout = {};
+  for (const { level, effect } of effectsOfKind(state, playerId, 'projectRider')) {
+    if (effect.project !== project) continue;
+    for (const key of ['gold', 'science', 'faith'] as const) {
+      const amount = scaleByLevel(effect.pays[key] ?? 0, level);
+      if (amount !== 0) bag[key] = (bag[key] ?? 0) + amount;
+    }
+  }
+  return bag;
+}
+
+/**
  * What an amplifier does to somebody else's number, as a whole signed percent.
  *
  * The Grand Bazaar's shape and the one hook that reaches *into* another
- * vocabulary: the flat happiness every luxury pays, and what a duplicate copy is
- * worth. The luxury table goes on saying what it says; this scales the reading.
+ * vocabulary: the flat happiness every luxury pays, what a duplicate copy is
+ * worth, and — since the wonders pass — how long a blessing runs. The other
+ * table goes on saying what it says; this scales the reading.
  */
 export function cardAmplifier(
   state: GameState,
   playerId: number,
-  target: 'luxuryHappiness' | 'luxuryDuplicates',
+  target: AmplifierTarget,
 ): number {
   let percent = 0;
   for (const { level, effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
@@ -2320,6 +2547,17 @@ export function describeCard(id: CardId, level = 1): CardClause[] {
   const def: CardDefBase = anyCardDef(id);
   const clauses: CardClause[] = [];
   for (const effect of def.effects) describeEffect(effect, level, clauses);
+  // **A completion grant is not an effect, and it still has to be printed.** It
+  // happens once, at the moment the stones go up, so it is a field on the
+  // building row rather than a shape in the vocabulary (`CompletionGrant`) — but
+  // it is half of what the Statue of Zeus and the Great Library *are*, and a
+  // card that left it out would be a card that lies by omission. Printed here,
+  // in this file, so the one description of a card is still one function.
+  if (isBuildingId(id)) {
+    for (const grant of buildingDef(id).onComplete ?? []) {
+      clauses.push({ text: grantWords(grant) });
+    }
+  }
   for (const missing of def.deferred ?? []) {
     clauses.push({ text: `${missing} — not built yet`, deferred: true });
   }
@@ -2342,7 +2580,12 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
     }
     case 'tileYield': {
       const words = bagWords(effect, level);
-      if (words) out.push({ text: `${words} on every ${tileConditionWords(effect.on)}` });
+      // The scope trails the hex as a clause of its own, because a scoped tile
+      // line is about *whose* ground: Petra's desert is the desert of one town,
+      // and the sentence has to say so without turning the hex into a
+      // possessive nobody can parse.
+      const whose = effect.scope === undefined ? '' : `, in ${scopeWords(effect.scope)}`;
+      if (words) out.push({ text: `${words} on every ${tileConditionWords(effect.on)}${whose}` });
       return;
     }
     case 'percentYields': {
@@ -2392,12 +2635,18 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         ? ` per ${countWords(effect.scaled.per, SCALE_WORDS[effect.scaled.count])}` +
           (effect.scaled.max === undefined ? '' : ` (at most ${signed(effect.scaled.max)})`)
         : '';
-      out.push({ text: `${each} combat strength${scale} ${COMBAT_WORDS[effect.when.test]}`.trim() });
+      // Who the line is for, when it is not for everybody — the Alhambra's
+      // mounted +2 read as a bare "+2 combat strength" until `class` was
+      // printed, which is a card that lies by omission.
+      const who = effect.class === undefined ? '' : ` for ${filterWords(effect.class)}`;
+      out.push({
+        text: `${each} combat strength${who}${scale} ${COMBAT_WORDS[effect.when.test]}`.trim(),
+      });
       return;
     }
     case 'unitStat': {
       const who = effect.class ? filterWords(effect.class) : 'all units';
-      const where = effect.where === 'ownTerritory' ? ' inside your territory' : '';
+      const where = WHERE_WORDS[effect.where ?? 'anywhere'];
       const amount = scaleByLevel(effect.amount, level);
       if (effect.stat === 'combatPercent') {
         out.push({ text: `${signed(amount)}% combat strength for ${who}${where}` });
@@ -2439,7 +2688,7 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         // The building's **name**, not its id: "a monument" is a lucky accident
         // of that row's spelling, and the next founding rider's would not be.
         out.push({
-          text: `new cities are founded with a ${buildingDef(effect.building).name}${limit}`,
+          text: `new cities are founded with ${buildingWords(effect.building)}${limit}`,
         });
       }
       return;
@@ -2454,11 +2703,16 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         effect.max === undefined
           ? ''
           : ` (at most ${payoutWords(effect.pays, level, effect.max)})`;
+      // A count that names a building says the building's own name — "per
+      // Barracks", "per Temple" — rather than a stem in the table, because one
+      // shape serves every such row and a table entry could only name one of
+      // them. `within` is printed where it changes the sentence's meaning.
+      const words = countNoun(effect);
+      const here = effect.within === 'city' && !CITY_SCOPED_COUNTS.includes(effect.count)
+        ? ' in this city'
+        : '';
       out.push({
-        text: `${payoutWords(effect.pays, level)} per ${countWords(
-          effect.per,
-          COUNT_WORDS[effect.count],
-        )}${cap}`,
+        text: `${payoutWords(effect.pays, level)} per ${countWords(effect.per, words)}${here}${cap}`,
       });
       return;
     }
@@ -2544,12 +2798,51 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
     case 'unlocksBuilding':
       out.push({ text: `unlocks the ${buildingDef(effect.building).name}`, deferred: true });
       return;
+    case 'pantheonSlots': {
+      const slots = scaleByLevel(effect.amount, level);
+      out.push({ text: `${signed(slots)} pantheon ${slots === 1 || slots === -1 ? 'slot' : 'slots'}` });
+      return;
+    }
+    case 'purchaseRider': {
+      const percent = scaleByLevel(effect.percent, level);
+      // "cost −25%", not "−25% cost": the sign belongs to the price, and a
+      // discount read as a bonus is the one thing this line must not do.
+      out.push({
+        text: `${filterWords(effect.class)} cost ${percent < 0 ? '−' : '+'}${Math.abs(percent)}% to buy`,
+      });
+      return;
+    }
+    case 'zocRule':
+      out.push({ text: 'every hex you own holds ground against your rivals' });
+      return;
+    case 'projectRider': {
+      const bag = bagWords(effect.pays, level);
+      if (bag) out.push({ text: `${projectDef(effect.project).name} pays ${bag}` });
+      return;
+    }
     default: {
       const unhandled: never = kind;
       void unhandled;
       return;
     }
   }
+}
+
+/**
+ * What a completion grant hands over, in words. See `CompletionGrant`.
+ *
+ * "on completion" leads every one of them, because that is the whole difference
+ * between a grant and an effect: everything else on a card is true for as long
+ * as the card is held, and this is true once.
+ */
+function grantWords(grant: CompletionGrant): string {
+  if (grant.grant === 'tech') return 'on completion, the technology you are researching is finished';
+  if (grant.grant === 'doctrineDraft') return 'on completion, a Doctrine draft opens';
+  const what =
+    grant.unit === 'bestMelee'
+      ? 'the best melee unit you can build'
+      : article(unitDef(grant.unit).name);
+  return `on completion, ${what} joins you`;
 }
 
 function conditionValue(when: EmpireCondition): string {
@@ -2576,6 +2869,21 @@ function countWords(per: number | undefined, words: PluralWords): string {
 interface PluralWords {
   one: string;
   many: string;
+}
+
+/**
+ * What a `countScaled` is counting, as a noun in both numbers.
+ *
+ * `COUNT_WORDS` for every count whose noun is fixed, and the *building's own
+ * name* for the one count that takes an argument — so "+1 happiness per
+ * Barracks" and "per Temple" are one shape, one table entry and two data rows.
+ */
+function countNoun(effect: CardCountScaledEffect): PluralWords {
+  if (effect.count === 'buildingsOfKind' && effect.building !== undefined) {
+    const name = buildingDef(effect.building).name;
+    return { one: name, many: buildingPlural(name, 2) };
+  }
+  return COUNT_WORDS[effect.count];
 }
 
 /**
@@ -2632,7 +2940,10 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push(`holding an improved ${scope.category} resource`);
       return;
     case 'hasBuilding':
-      into.qualifiers.push(`with a ${buildingDef(scope.building).name}`);
+      into.qualifiers.push(`with ${buildingWords(scope.building)}`);
+      return;
+    case 'onTerrain':
+      into.adjectives.push(scope.terrain);
       return;
     case 'all':
       for (const inner of scope.of) scopePhrase(inner, into);
@@ -2643,6 +2954,36 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     }
   }
+}
+
+/**
+ * "a Granary", "an Amphitheater" — a name with the article English actually
+ * takes in front of it.
+ *
+ * A **sound** rule and not a spelling one, which is why it is a function and not
+ * a field: the table's names are ordinary English words, and the exceptions
+ * English keeps for this ("a university", "an hour") are exceptions of
+ * pronunciation. Nothing on this roster hits one, so the vowel test is exact
+ * today; the day a row does, it earns a `plural`-style field beside its name
+ * rather than a special case here — `buildingPlural`'s bargain.
+ */
+function article(name: string): string {
+  return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
+}
+
+/**
+ * A building named the way a sentence would name it: **"a Granary", "an
+ * Amphitheater" — but "The Oracle" and "Machu Picchu"**.
+ *
+ * The split is `isWonder`, and it is grammar following the design rather than a
+ * list of exceptions: there are many granaries and exactly one Oracle, so an
+ * ordinary building is a common noun and takes an article, and a wonder is a
+ * proper noun and takes none. "a The Oracle" was the plumbing showing through
+ * every wonder that scopes a clause to its own town.
+ */
+function buildingWords(id: BuildingId): string {
+  const name = buildingDef(id).name;
+  return isWonder(id) ? name : article(name);
 }
 
 function scopeWords(scope?: CityScope): string {
@@ -2656,10 +2997,18 @@ function scopeWords(scope?: CityScope): string {
 }
 
 function filterWords(filter: UnitFilter): string {
+  // The religious clause is asked **first** and reads as a whole noun phrase,
+  // because it is the one filter that names a *vocation* rather than a
+  // silhouette: an augur is a `worker` by model, and "worker units" is exactly
+  // the wrong thing to call one. The Pyramids' half of the same pair reads the
+  // other way round — "workers", the ones that are not religious.
+  if (filter.consecrates === true) return 'religious units';
+  if (filter.consecrates === false && filter.modelClass === 'worker') return 'workers';
   if (filter.modelClass !== undefined) return `${filter.modelClass} units`;
   if (filter.ranged === true) return 'ranged units';
   if (filter.ranged === false) return 'melee units';
   if (filter.category !== undefined) return `${filter.category} units`;
+  if (filter.consecrates === false) return 'units that do not pray';
   return 'all units';
 }
 
@@ -2730,6 +3079,14 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
           : `carrying a ${on.kind} resource that pays ${on.yields}`,
       );
       return;
+    case 'resource':
+      into.qualifiers.push(
+        `carrying ${on.resources.map((id) => resourceDef(id).name).join(' or ')}`,
+      );
+      return;
+    case 'freshwater':
+      into.qualifiers.push('beside fresh water');
+      return;
     case 'all':
       for (const inner of on.of) tilePhrase(inner, into);
       return;
@@ -2754,6 +3111,7 @@ const RULE_WORDS: Record<CardRule, string> = {
   tilePurchase: 'the price of buying a tile',
   borderCulture: 'border culture',
   settlerCost: 'the hammers a settler costs',
+  growthSurplus: 'the food surplus a city banks toward growing',
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -2764,6 +3122,8 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   onHills: 'on hills',
   vsCity: 'against cities',
   targetBelowHalf: 'against units below half strength',
+  capitalTerritory: 'inside your capital’s borders',
+  inCity: 'garrisoned in one of your cities',
 };
 
 const SCALE_WORDS: Record<'cities' | 'adjacentFriendlies', PluralWords> = {
@@ -2774,6 +3134,13 @@ const SCALE_WORDS: Record<'cities' | 'adjacentFriendlies', PluralWords> = {
     one: 'adjacent friendly combat unit',
     many: 'adjacent friendly combat units',
   },
+};
+
+/** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
+const WHERE_WORDS: Record<'anywhere' | 'ownTerritory' | 'embarked', string> = {
+  anywhere: '',
+  ownTerritory: ' inside your territory',
+  embarked: ' while embarked',
 };
 
 const STAT_WORDS: Record<'movement' | 'sight' | 'heal' | 'charges' | 'range', string> = {
@@ -2832,6 +3199,11 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'building here that supplies science',
     many: 'buildings here that supply science',
   },
+  // The named building is not in these words: `describeEffect` prints it, so
+  // that "+1 happiness per Barracks" and "per Temple" are one table entry.
+  buildingsOfKind: { one: 'of them', many: 'of them' },
+  buildingsInCity: { one: 'building in this city', many: 'buildings in this city' },
+  workedTilesInCity: { one: 'tile worked here', many: 'tiles worked here' },
 };
 
 const RATE_WORDS: Record<RateSource, PluralWords> = {
@@ -2862,12 +3234,10 @@ const OFFER_DRAFT_WORDS: Record<OfferRiderScope, string> = {
  * `+`; a duplicate counting at thirty percent is a *share* of what a first copy
  * pays, and "+30%" read as thirty points more than nothing.
  */
-const AMPLIFIER_WORDS: Record<
-  'luxuryHappiness' | 'luxuryDuplicates',
-  (percent: number) => string
-> = {
+const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   luxuryHappiness: (percent) => `happiness from unique luxuries ${signed(percent)}%`,
   luxuryDuplicates: (percent) => `duplicate luxury copies count at ${percent}%`,
+  riteDuration: (percent) => `blessings last ${signed(percent)}% longer`,
 };
 
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {

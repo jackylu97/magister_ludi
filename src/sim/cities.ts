@@ -53,6 +53,7 @@
 import {
   BUILDING_IDS,
   type BuildingId,
+  type CompletionGrant,
   type ProductionCategory,
   buildingDef,
   isBuildingId,
@@ -93,6 +94,7 @@ import {
   resourceYield,
 } from './resourceData';
 import { type ProjectId, isProjectId, projectDef } from './projectData';
+import { governmentDef } from './statecraftData';
 import { settleRenownWindfall } from './renown';
 import { RULES } from './rulesData';
 import {
@@ -106,6 +108,9 @@ import {
   cardProduction,
   cardRulePercent,
   cardTileLines,
+  cardProjectPays,
+  drawDoctrineOffer,
+  scopedCardTileLines,
   timedCityTileLines,
   foldCardRulePercent,
   foldCardYields,
@@ -117,6 +122,7 @@ import {
 import {
   type City,
   type GameState,
+  type Player,
   type QueueItem,
   type Unit,
   cityById,
@@ -140,8 +146,16 @@ import {
   readTileYield,
   terrainDef,
 } from './terrainData';
-import { TECH_IDS, type TechId, UNIT_UNLOCK_TECH, techDef } from './techData';
-import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
+import { TECH_IDS, type TechId, UNIT_UNLOCK_TECH, isTechId, techDef } from './techData';
+// **A function-level cycle, and the mirror of one that already existed**:
+// `tech.ts` asks this module what a city yields, and since the wonders' roster
+// this module asks `tech.ts` what an empire may build (the Statue of Zeus' best
+// melee) and finishes a technology outright (the Great Library's). Everything at
+// the top level of both files is a constant from a data table, which is the
+// condition the whole simulation's cycles are safe under — see the docblock in
+// `statecraft.ts`.
+import { buildError, settleResearchWindfall } from './tech';
+import { UNIT_TYPE_IDS, type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
 import { recomputeVisibility } from './visibility';
 import { isCoastal } from './water';
@@ -150,7 +164,7 @@ import {
   borderFactor,
   borderPercent,
   bordersFrozen,
-  growthFactor,
+  growthPercent,
   meterEffects,
 } from './meters';
 import {
@@ -295,12 +309,16 @@ export interface TileYieldContext {
    *
    * **One list, three producers**, and the chain cannot tell them apart:
    *
-   *   · a Statecraft card's `tileYield` (`cardTileLines`) — the empire's law;
+   *   · a Statecraft card's **unscoped** `tileYield` (`cardTileLines`) — the
+   *     empire's law, worth the same on every hex it owns;
    *   · a luxury's `improvementYields` (`resourceTileLines`) — what a held seam
    *     is worth to every hex of a kind, tyrian's boats and whales';
    *   · a building's `tileYields` (`buildingTileLines`) — the granary's food on
-   *     water, and the only one of the three that is a fact about *one city*,
-   *     which is why `cityContext` adds it and `yieldContextFor` cannot.
+   *     water, and the first of them that is a fact about *one city*, which is
+   *     why `cityContext` adds it and `yieldContextFor` cannot;
+   *   · a card's **scoped** `tileYield` (`scopedCardTileLines`) — Petra's desert
+   *     and the Hanging Gardens' irrigated farms, which are the same fact about
+   *     one city said by a card instead of by a building.
    *
    * A fourth producer joins by appending to this list. It was `cards` alone
    * until Entry XXVII; folding the other two into the same channel rather than
@@ -376,12 +394,18 @@ export function yieldContextFor(
 function cityContext(state: GameState, city: City): TileYieldContext | undefined {
   const ctx = yieldContextFor(state, city.ownerId);
   if (!ctx) return undefined;
-  // Two producers are facts about *this town* rather than about the empire, and
-  // both can only be added by whoever has a city in hand: its buildings' tile
-  // lines (the granary's food on water, Entry XXVII) and its **live rites**
-  // (Rite of Plenty's gold on its own worked seams, Entry XXVIII). Appended in
-  // that order, and the tile chain still cannot tell any producer from another.
-  const own = [...buildingTileLines(city, ctx.techs), ...timedCityTileLines(state, city)];
+  // Three producers are facts about *this town* rather than about the empire,
+  // and none can be added by anybody without a city in hand: its buildings' tile
+  // lines (the granary's food on water, Entry XXVII), its **live rites** (Rite
+  // of Plenty's gold on its own worked seams, Entry XXVIII), and the **scoped**
+  // card lines (Petra's desert, the Hanging Gardens' irrigated farms — a
+  // `tileYield` whose `scope` names which towns it lands in). Appended in that
+  // order, and the tile chain still cannot tell any producer from another.
+  const own = [
+    ...buildingTileLines(city, ctx.techs),
+    ...timedCityTileLines(state, city),
+    ...scopedCardTileLines(state, city),
+  ];
   if (own.length === 0) return ctx;
   return { ...ctx, lines: [...(ctx.lines ?? []), ...own] };
 }
@@ -1974,11 +1998,26 @@ export function growthSurplus(
   let surplus = yields.food - foodUpkeep(city);
   if (growthIsHalted(city)) surplus = Math.min(0, surplus);
   if (surplus <= 0) return surplus;
-  const factor = growthFactor(meterEffects(state, city.ownerId));
+  // **One channel, one sum, one multiplication.** The meters' stifle and every
+  // card that speaks to `growthSurplus` (the Hanging Gardens) are additive
+  // percentages on the same figure, exactly as Entry XVII's stages are additive
+  // within a stage — a −25% stifle and a +25% wonder have to read as nothing at
+  // all, which they do not if they are multiplied one after the other. Floored
+  // at zero for `growthFactor`'s reason: the worst any of this may do is stall a
+  // city, never eat it.
+  const percent =
+    growthPercent(meterEffects(state, city.ownerId)) +
+    foldCardRulePercent(cardRulePercent(state, city.ownerId, 'growthSurplus', city));
+  const factor = Math.max(0, 1 + percent / 100);
   // Floored, so the basket stays whole: the panel prints it, the threshold is a
   // whole number, and a fraction of a bushel banked forever is a fraction that
-  // eventually decides a growth turn nobody can account for.
-  return factor >= 1 ? surplus : Math.floor(surplus * factor);
+  // eventually decides a growth turn nobody can account for. Applied **whatever
+  // the factor is**: it used to be skipped at 1 or above, which was exactly
+  // right while the meters were the only source and could only ever stifle, and
+  // silently ate the first card that pushed the other way. A factor of exactly 1
+  // still leaves a whole surplus untouched, so a game where nobody holds such a
+  // card banks what it always banked.
+  return Math.floor(surplus * factor);
 }
 
 /**
@@ -2813,6 +2852,11 @@ export interface ProductionCompletion {
    * every completion in most games.
    */
   wonder?: WonderCompletion;
+  /**
+   * What the finished thing **handed over** — `RealisedItem.grants`, carried
+   * straight through. Absent when nothing was granted, which is almost always.
+   */
+  grants?: CompletionGrantReport[];
 }
 
 /**
@@ -2892,14 +2936,22 @@ export interface WonderRefund {
  * read where they lie, while a culture pool that fills is a draft owed
  * (`settleCultureWindfall`). A project that paid culture would be the second
  * path into that bucket the register in CLAUDE.md exists to forbid.
+ *
+ * **The riders are flat additions to the payout** — the Water Clock of Su
+ * Song's three extra beakers on Scholarship — and they are added here, in the
+ * one place a conversion is banked, so the panel's quoted rate and the pool's
+ * gain are one figure. They do **not** reopen Entry XXVI's argument: nothing
+ * multiplies the hammers going in, so no conversion is staged twice; the printed
+ * rate simply got bigger for an empire that raised the clock.
  */
 function payProject(state: GameState, playerId: number, id: ProjectId): void {
   const player = playerById(state, playerId);
   if (!player) return;
   const { pays } = projectDef(id);
-  player.gold += pays.gold ?? 0;
-  player.sciencePool += pays.science ?? 0;
-  player.faithPool += pays.faith ?? 0;
+  const extra = cardProjectPays(state, playerId, id);
+  player.gold += (pays.gold ?? 0) + (extra.gold ?? 0);
+  player.sciencePool += (pays.science ?? 0) + (extra.science ?? 0);
+  player.faithPool += (pays.faith ?? 0) + (extra.faith ?? 0);
 }
 
 export function settleProduction(state: GameState, city: City): ProductionCompletion | null {
@@ -2959,6 +3011,7 @@ export function settleProduction(state: GameState, city: City): ProductionComple
   if (plan.kind === 'building') {
     const realised = realiseItem(state, city, { kind: 'building', id: plan.id });
     if (realised.wonder) done.wonder = realised.wonder;
+    if (realised.grants) done.grants = realised.grants;
     return done;
   }
   done.unitId = realiseItem(state, city, {
@@ -2994,6 +3047,37 @@ export interface RealisedItem {
   unitId?: number;
   /** The wonder that was claimed, when the building was one. */
   wonder?: WonderCompletion;
+  /**
+   * What the building **handed over** on completion, in the order the row lists
+   * it — a free settler-of-war, a technology finished outright, a Doctrine draft
+   * opened. Absent for everything that grants nothing, which is every completion
+   * in most games.
+   *
+   * The third kind of news, joining the shape rather than becoming a second
+   * out-parameter (which is what this interface exists to prevent). It is a
+   * **report**: by the time anybody reads it the unit is on the board, the
+   * research is banked and the offer is on the seat.
+   */
+  grants?: CompletionGrantReport[];
+}
+
+/**
+ * One thing a completion handed over, said in the words a toast would use.
+ *
+ * A *report* and never a rule — everything it describes has already happened
+ * (`ArrivalReport`'s discipline). `done: false` is a grant the state could not
+ * take: a seat with no research chosen when the Great Library lands loses the
+ * technology, and the interface has to be able to say so rather than leaving a
+ * player wondering what a wonder did.
+ */
+export interface CompletionGrantReport {
+  grant: CompletionGrant['grant'];
+  /** What arrived, named: "Swordsman", "Mathematics", "a Doctrine draft". */
+  name: string;
+  /** False when nothing could be granted. See the docblock. */
+  done: boolean;
+  /** The unit that arrived, for a `unit` grant that landed. */
+  unitId?: number;
 }
 
 /**
@@ -3029,8 +3113,16 @@ export function realiseItem(
     // town without claiming would be a second Oracle.
     const wonder = isWonder(item.id) ? claimWonderFor(state, city, item.id) : undefined;
     if (wonder) payWonderRenown(state, city, item.id);
+    // The row's own completion grants, **after** the claim and the renown and
+    // before the riders: a wonder hands over what it hands over because it now
+    // stands, and a technology it finishes has to land before a rider that might
+    // pay on `tech` is asked. See `CompletionGrant`.
+    const grants = payCompletionGrants(state, city, item.id);
     payCompletionRiders(state, city, 'building');
-    return wonder ? { wonder } : {};
+    const realised: RealisedItem = {};
+    if (wonder) realised.wonder = wonder;
+    if (grants.length > 0) realised.grants = grants;
+    return realised;
   }
   const unit = createUnit(state, city.ownerId, item.id, item.tile.col, item.tile.row);
   // The ladder climbs at completion, so the next settler — anywhere in the
@@ -3041,6 +3133,137 @@ export function realiseItem(
   }
   payCompletionRiders(state, city, 'unit');
   return { unitId: unit.id };
+}
+
+/**
+ * The strongest melee type this empire can build **right now**, or `null`.
+ *
+ * The Statue of Zeus' "a free melee unit of your best type", read off the roster
+ * rather than named on the row — so the wonder keeps meaning what it says
+ * through every retune of the tree, and a data row never has to be edited
+ * because a longswordsman arrived. Melee is `modelClass`, which is the roster's
+ * own word for the line that closes; ties go to roster order, which is the
+ * table's own order and therefore a fact a replay reproduces.
+ *
+ * "Can build" is `buildError`'s question, asked whole rather than re-derived, so
+ * the free sword obeys the technology gate and the improved-iron gate exactly as
+ * a built one does. A seat that can build nothing gets nothing, and the report
+ * says so.
+ */
+/**
+ * How many beakers this empire is still short of the node it is researching, or
+ * `null` when it is aiming at nothing at all.
+ *
+ * The pure half of the Great Library's grant. It reads the aim and the table
+ * and nothing else, so the *completion* is still `settleResearch`'s — the grant
+ * covers the shortfall and the one research-completion routine spends it, which
+ * is how a wonder's technology earns the era check, the upgrade sweep and the
+ * Lyceum's culture exactly as a turn's beakers would.
+ */
+function pendingResearchCost(player: Player): { missing: number } | null {
+  const id = player.researching;
+  if (id === null || !isTechId(id)) return null;
+  return { missing: Math.max(0, techDef(id).cost - player.sciencePool) };
+}
+
+function bestMeleeFor(state: GameState, playerId: number): UnitTypeId | null {
+  let best: UnitTypeId | null = null;
+  let strength = -1;
+  for (const id of UNIT_TYPE_IDS) {
+    const def = unitDef(id);
+    if (def.modelClass !== 'melee') continue;
+    if (buildError(state, playerId, 'unit', id) !== null) continue;
+    if (def.combatStrength <= strength) continue;
+    strength = def.combatStrength;
+    best = id;
+  }
+  return best;
+}
+
+/**
+ * Hands over what a finished building grants, once. See `CompletionGrant`.
+ *
+ * Every arm goes through the seam that already owns its bucket, and none of them
+ * grows a second one:
+ *
+ *   · a **unit** through `createUnit` + `spawnTileFor`, the same pair
+ *     `realiseItem` uses for a built one, so the spawn convention has one
+ *     implementation and the piece can act on the turn it arrived. A town with
+ *     nowhere to put it gets nothing rather than a piece standing in the sea.
+ *   · a **technology** through `settleResearchWindfall`, by covering whatever is
+ *     left of the current research — so the register's refresh fires and every
+ *     city of the empire is re-seated on ground the node just made worth more.
+ *     A seat with nothing chosen loses it, and the report says so: an
+ *     offer-shaped alternative would be a second research interface, and holding
+ *     the grant until a choice was made would be state nobody sweeps.
+ *   · a **Doctrine draft** through `drawDoctrineOffer` at the seat's own
+ *     government tier, **skipped** when there is no live pool (the chiefdom's
+ *     tier deals nothing) or the seat is already holding an unanswered one —
+ *     `periodicOffer`'s precedent exactly, because an offer is a decision the
+ *     player owes the game and a second one dealt on top would destroy the
+ *     first.
+ */
+function payCompletionGrants(
+  state: GameState,
+  city: City,
+  building: BuildingId,
+): CompletionGrantReport[] {
+  const grants = buildingDef(building).onComplete;
+  if (!grants || grants.length === 0) return [];
+  const player = playerById(state, city.ownerId);
+  if (!player) return [];
+  const reports: CompletionGrantReport[] = [];
+
+  for (const grant of grants) {
+    if (grant.grant === 'unit') {
+      const type = grant.unit === 'bestMelee' ? bestMeleeFor(state, player.id) : grant.unit;
+      if (type === null) {
+        reports.push({ grant: 'unit', name: 'a unit', done: false });
+        continue;
+      }
+      const tile = spawnTileFor(state, city, type);
+      if (!tile) {
+        reports.push({ grant: 'unit', name: unitDef(type).name, done: false });
+        continue;
+      }
+      const born = createUnit(state, player.id, type, tile.col, tile.row);
+      reports.push({ grant: 'unit', name: unitDef(type).name, done: true, unitId: born.id });
+      continue;
+    }
+    if (grant.grant === 'tech') {
+      const plan = pendingResearchCost(player);
+      if (plan === null) {
+        reports.push({ grant: 'tech', name: 'a technology', done: false });
+        continue;
+      }
+      // The pool is topped up to exactly what the node costs and the ordinary
+      // completion routine spends it, so the overflow, the era check, the
+      // upgrade sweep and the Lyceum's rider all happen once and in one place.
+      if (plan.missing > 0) player.sciencePool += plan.missing;
+      const done = settleResearchWindfall(state, player);
+      reports.push({
+        grant: 'tech',
+        name: done?.name ?? 'a technology',
+        done: done !== null,
+      });
+      continue;
+    }
+    // A Doctrine draft.
+    const sc = player.statecraft;
+    if (sc.pendingDoctrine !== undefined) {
+      reports.push({ grant: 'doctrineDraft', name: 'a Doctrine draft', done: false });
+      continue;
+    }
+    const offer = drawDoctrineOffer(state, player, governmentDef(sc.government).tier);
+    if (offer.options.length === 0) {
+      reports.push({ grant: 'doctrineDraft', name: 'a Doctrine draft', done: false });
+      continue;
+    }
+    sc.pendingDoctrine = offer;
+    reports.push({ grant: 'doctrineDraft', name: 'a Doctrine draft', done: true });
+  }
+
+  return reports;
 }
 
 /**
@@ -3286,6 +3509,11 @@ export function advanceProduction(state: GameState, report?: TurnReport): void {
     // `refundBeatenWonders`) — so "first in the sweep wins" is a property of the
     // state's own order, which is founding order, and not of the wall clock.
     if (done?.wonder) report?.wonders.push(done.wonder);
+    // What a finished building handed over — a free sword, a technology, a
+    // Doctrine draft. News to its owner alone, unlike a wonder, but news that
+    // stops existing the instant the resolution is over: by the time anybody
+    // reads it the piece is on the board and the offer is on the seat.
+    if (done?.grants) report?.grants.push(...done.grants);
   }
 }
 

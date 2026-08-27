@@ -62,6 +62,7 @@ import type { ArrivalReport } from './arrival';
 import { isBuildingId } from './buildingData';
 import { isProjectId } from './projectData';
 import {
+  type CompletionGrantReport,
   type WonderCompletion,
   assignableTiles,
   foundCityAt,
@@ -849,6 +850,7 @@ export type CommandResult =
       combats?: CombatOutcome[];
       wonders?: WonderCompletion[];
       triumphs?: TriumphAward[];
+      grants?: CompletionGrantReport[];
     }
   | { ok: false; error: string };
 
@@ -871,18 +873,27 @@ export type CommandResult =
  * one difference the interface leans on: it is **not** filtered by seat. A
  * wonder finishing is news to everybody, including — especially — the empires
  * that were building it and have just been handed their hammers back as gold.
+ *
+ * `grants` is the fifth and the narrowest: what a finished building *handed
+ * over* — the Statue of Zeus' free sword, the Great Library's technology, the
+ * Theatre of Dionysus' Doctrine draft (`CompletionGrantReport`). News to its
+ * owner alone, and a difference like every other field here: by the time this
+ * returns the piece is on the board, the node is in the list and the offer is on
+ * the seat, so nothing downstream could re-derive which building did it.
  */
 function ok(
   arrivals?: readonly ArrivalReport[],
   combats?: readonly CombatOutcome[],
   wonders?: readonly WonderCompletion[],
   triumphs?: readonly TriumphAward[],
+  grants?: readonly CompletionGrantReport[],
 ): CommandResult {
   const result: CommandResult = { ok: true };
   if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
   if (combats !== undefined && combats.length > 0) result.combats = [...combats];
   if (wonders !== undefined && wonders.length > 0) result.wonders = [...wonders];
   if (triumphs !== undefined && triumphs.length > 0) result.triumphs = [...triumphs];
+  if (grants !== undefined && grants.length > 0) result.grants = [...grants];
   return result;
 }
 
@@ -965,7 +976,7 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   const report = runEndOfTurn(state);
   clearTurnEnded(state);
   state.turn += 1;
-  return ok(undefined, report.combats, report.wonders, report.triumphs);
+  return ok(undefined, report.combats, report.wonders, report.triumphs, report.grants);
 }
 
 /** Reads an offset cell defensively; commands may arrive from a save or a socket. */
@@ -1565,7 +1576,13 @@ function applyChopFeature(state: GameState, command: ChopFeatureCommand): Comman
   // because a windfall completion is a completion: the claim is made and the
   // refunds are paid by the same routine either way, and a channel that only
   // carried the end-of-turn half would be a silence nobody could explain.
-  return ok(undefined, undefined, done?.wonder ? [done.wonder] : undefined);
+  return ok(
+    undefined,
+    undefined,
+    done?.wonder ? [done.wonder] : undefined,
+    undefined,
+    done?.grants,
+  );
 }
 
 /**
