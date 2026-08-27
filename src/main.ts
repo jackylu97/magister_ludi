@@ -2039,9 +2039,14 @@ async function boot(initial: Game | null): Promise<void> {
    *
    * Declared after `controls` for `techTree`'s reason and reached back through
    * the `statecraft` holder above. Every write it makes is a **command** — it
-   * calls `dispatch` and never touches the state — so a slot changed here is a
-   * slot changed the same way a network peer or a future AI would change one,
-   * and the sentence a refused drop shows is the reducer's own.
+   * hands a batch to `controls.sendStatecraft` and never touches the state — so
+   * a slot changed here is a slot changed the same way a network peer or a
+   * future AI would change one, and the sentence a refused drop shows is the
+   * reducer's own.
+   *
+   * A *batch*, because the screen stages: placing and removing edit a local
+   * arrangement and the whole diff goes over in one list when the player
+   * confirms it or leaves the sheet. See `statecraftStaging.ts`.
    */
   statecraft = createStatecraftScreen({
     overlay: statecraftOverlayEl,
@@ -2049,14 +2054,7 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('statecraft-close'),
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
-    slot: (cardId, slotIndex) => {
-      dispatch(game, { type: 'slotOrder', playerId: controls.localPlayerId(), cardId, slotIndex });
-      controls.refresh();
-    },
-    unslot: (slotIndex) => {
-      dispatch(game, { type: 'unslotOrder', playerId: controls.localPlayerId(), slotIndex });
-      controls.refresh();
-    },
+    send: (commands) => controls.sendStatecraft(commands),
     adopt: () => {
       // The charter is a *card*, not a panel: the same offer surface the draft
       // and the Doctrine use, so an irreversible choice always arrives the same

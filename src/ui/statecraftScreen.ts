@@ -4,60 +4,94 @@
  *
  * The third full-screen overlay, and deliberately the *parchment* one. The star
  * chart is the table at night and the Abacus is the table in daylight; this is
- * the table covered in paper — a government's charter at the top, a row of wax
- * seals under it, and the collection spread out below like cards a player is
- * deciding between. It follows both of the others' shape exactly: `hidden` is
- * the whole of the screen state, Escape closes it and hands the keyboard back,
- * the × and a click on the ground around the sheet do the same, and opening it
- * closes whatever else was up.
+ * the table covered in paper — a government's charter down the left with a row
+ * of wax seals under it, and the collection spread out beside it like cards a
+ * player is deciding between. It follows both of the others' shape exactly:
+ * `hidden` is the whole of the screen state, Escape closes it and hands the
+ * keyboard back, the × and a click on the ground around the sheet do the same,
+ * and opening it closes whatever else was up.
  *
  * The naming bible (Entry X) is load-bearing here and nowhere else in the
  * interface: the slottable cards are **Orders**, the permanent ones are
  * **Doctrines**, and the screen never says "policy", "civic" or "card" at the
  * player. The word "card" appears in this file only in identifiers.
  *
- * One rule, one sentence
- * ----------------------
- * Every refusal a player can provoke here is the **reducer's own sentence**:
- * `slotOrderError` and `unslotOrderError` are what grey a slot, what the tooltip
- * says, and what the reducer would answer if the command were sent anyway. So a
- * slot a player can drop a card on is a command the simulation takes, and a slot
- * they cannot is one that explains itself. There is no second opinion in this
- * file about what is legal.
+ * Two panes, and the offices never leave
+ * --------------------------------------
+ * The user's note (2026-08-27): "you need to scroll far down to select an
+ * order, then scroll back up to slot it". The screen used to be one column —
+ * charter, offices, Doctrines, then sixty tall cards — and the two halves of its
+ * only gesture were a page apart. It is now a **split**: the government's
+ * offices are a fixed column on the left (the charter above them, the Doctrines
+ * and the Confirm block below), and the hand scrolls in its own pane on the
+ * right. A split rather than a sticky header because the office row is not a
+ * *heading*, it is the other half of the click — a player picking a card is
+ * looking at the offices the whole time, and a sticky bar tall enough to hold
+ * card-shaped slots would have eaten the hand it was pinned above. On a short
+ * viewport the hand scrolls and the offices do not move at all.
  *
- * Click, not drag
- * ---------------
- * Click a card in the collection to pick it up, click a slot to put it down —
- * and click the card again to put it back. Drag was considered and dropped: it
- * needs a pointer, it needs a fallback for the keyboard anyway, and the gesture
- * this screen actually wants is *comparison* — hold one card against three slots
- * — which reads better as a selection than as a drag. The keyboard gets the same
- * two steps for free, because both halves are buttons.
+ * An office is a **line** rather than a card-shaped hole for the same reason: in
+ * a fixed column the name of what is in it has to be readable, and a row can
+ * carry the office, the card, its accent and its seal on one line at any slot
+ * count. It keeps the line's emblem, so it is still visibly the same object as
+ * the card in the hand that fills it.
  *
- * A deck, and it looks like one
- * -----------------------------
- * Orders and Doctrines are **cards**, and after a playtest they are drawn as
- * cards: a tall five-by-eight frame, the type in the mono eyebrow at the head,
- * a drawn emblem in the middle, the clauses under it and the flavour at the
- * foot. Three things carry the archetype line's accent — the frame rule, the
- * emblem and the eyebrow — so a hand reads as coloured at a glance without any
- * of the colour landing on the parchment itself. The table of what a line looks
- * like is `cardLine.ts`; the drawings are `src/art/lineMarks.ts`; this file
- * knows only that a card has a face and asks for one.
+ * A hand is a working list
+ * ------------------------
+ * The cards in the collection are **compact**: the mono eyebrow, the emblem
+ * shrunk to a chip beside it, the name, and the clauses at reading size. The
+ * tarot proportion is a *ceremony* and it stays where the ceremony is — the
+ * draft spread (`offerCard.ts`), which is where a card is dealt and turned over.
+ * The hand is where a player compares thirty of them, and thirty tarot plates is
+ * a scroll. Three things still carry the archetype line's accent — the frame
+ * rule, the emblem chip and the eyebrow — so a hand reads as coloured at a
+ * glance without any of the colour landing on the parchment itself. The table of
+ * what a line looks like is `cardLine.ts`; the drawings are `src/art/lineMarks.ts`.
  *
- * A Doctrine wears a **heavier** frame — a double rule in gilt — for the reason
- * the Doctrine offer does (`offerCard.ts`'s `weight`): adoption day is the one
+ * A Doctrine wears a **heavier** frame — a gilt double rule — for the reason the
+ * Doctrine offer does (`offerCard.ts`'s `weight`): adoption day is the one
  * irreversible thing a player does, and the two surfaces that show it agree on
  * what heavy looks like.
  *
+ * Nothing is locked until you leave
+ * ---------------------------------
+ * The user's second note, and the reason `statecraftStaging.ts` exists:
+ * "slots should only lock after leaving the menu". Slotting **seals** — the
+ * reducer stamps `sealedUntil` the instant a card goes in — so laying out a
+ * spread used to mean paying for each step of it as an experiment. Placing and
+ * removing now edit a **local arrangement** and send nothing; the arrangement
+ * becomes real on **Confirm**, or on leaving the screen by any door, which is
+ * the same instruction said with the handle. **Revert** throws it away.
+ *
+ * The staging is per **seat** and is *discarded*, never committed, when the
+ * chair changes: a hot-seat handover must not sign the previous player's law,
+ * and `stagedSeat` is what makes that impossible rather than unlikely. The same
+ * holds for `dispose` — the game it was an arrangement of no longer exists.
+ *
+ * One rule, one sentence
+ * ----------------------
+ * Every refusal a player can provoke here is the **reducer's own sentence**:
+ * `placeError` and `removeError` (`statecraftStaging.ts`) *are* `slotOrderError`
+ * and `unslotOrderError`, asked of the staged arrangement, and they are what
+ * grey an office, what the tooltip says, what greys Confirm, and what the
+ * reducer would answer if the command were sent anyway. There is no second
+ * opinion in this file about what is legal.
+ *
+ * Click, not drag
+ * ---------------
+ * Click a card in the collection to pick it up, click an office to put it down —
+ * and click the card again to put it back. Drag was considered and dropped: it
+ * needs a pointer, it needs a fallback for the keyboard anyway, and the gesture
+ * this screen actually wants is *comparison* — hold one card against three
+ * offices — which reads better as a selection than as a drag. The keyboard gets
+ * the same two steps for free, because both halves are buttons.
+ *
  * Derived, never stored
  * ---------------------
- * Nothing on this screen is state. The slot layout is `slotLayout(government)`,
- * the seal countdown is `sealedUntil − turn`, the collection is
- * `statecraft.orders`, and every number a card prints is `describeCard` at the
- * level the empire holds it. The one thing this file *does* keep is which card
- * the player has in hand, which is a fact about a conversation and not about the
- * game — `turnBlockers.ts`'s skip set, one screen over.
+ * Nothing on this screen is state except the arrangement, which is a *proposal*
+ * rather than a fact. The slot layout is `slotLayout(government)`, the seal
+ * countdown is `sealedUntil − turn`, the collection is `statecraft.orders`, and
+ * every number a card prints is `describeCard` at the level the empire holds it.
  */
 
 import {
@@ -69,8 +103,6 @@ import {
   liveEffects,
   nextDraftCost,
   sealRemaining,
-  slotOrderError,
-  unslotOrderError,
 } from '../sim/statecraft';
 import {
   type CardDefBase,
@@ -86,6 +118,18 @@ import {
   slotLayout,
 } from '../sim/statecraftData';
 import { CARD_LINE_NAME, cardLineMarkNode, lineOf, slotMarkNode } from './cardLine';
+import {
+  type SlotCommand,
+  type StagedSlots,
+  changedOffices,
+  diff,
+  place,
+  placeError,
+  remove,
+  removeError,
+  stage,
+  validate,
+} from './statecraftStaging';
 import type { GameState } from '../sim/state';
 import { playerById } from '../sim/state';
 
@@ -121,9 +165,17 @@ export interface StatecraftScreenOptions {
   /** The live game and the seat being looked at. Read on every draw. */
   getState: () => GameState;
   getPlayerId: () => number;
-  /** Sends a command. The screen never mutates state itself. */
-  slot: (cardId: OrderId, slotIndex: number) => void;
-  unslot: (slotIndex: number) => void;
+  /**
+   * Sends the staged arrangement as one batch — every `unslotOrder`, then every
+   * `slotOrder` (`statecraftStaging.ts`'s `diff` decides the order, because the
+   * order is a rule rather than a convenience). Answers the refusal that stopped
+   * the batch, or `null` when every command was taken.
+   *
+   * A batch rather than a command per gesture, because a gesture is no longer a
+   * command: the screen never mutates state itself and now never sends until the
+   * player has said so.
+   */
+  send: (commands: readonly SlotCommand[]) => string | null;
   /** Opens the banked government offer's card. */
   adopt?: () => void;
   /** Said in the manicule line — a refusal, in the reducer's own words. */
@@ -154,10 +206,11 @@ function clauseList(clauses: readonly CardClause[]): HTMLElement {
 /**
  * A wax stamp: the seal glyph and, when it is still set, the mono countdown.
  *
- * Stamped *over* the frame rather than laid out inside it — a seal is something
- * pressed onto a finished card, and the interface says so by putting it across
- * the corner at an angle. `sealRemaining` is the whole of the state; there is no
- * countdown to tick (see the seal trap in CLAUDE.md).
+ * `sealRemaining` is the whole of the state; there is no countdown to tick (see
+ * the seal trap in CLAUDE.md). An office holding a card this session merely
+ * *staged* gets no stamp at all — nothing has sealed it, and a "free" chip on a
+ * card the simulation has never seen would be the interface answering a question
+ * about a thing that does not exist yet.
  */
 function sealStamp(left: number): HTMLElement {
   const stamp = element('span', left > 0 ? 'sc-stamp sc-stamp-set' : 'sc-stamp');
@@ -175,12 +228,16 @@ function sealStamp(left: number): HTMLElement {
 /**
  * The face every card on this screen wears, whichever class it is.
  *
- * One builder rather than three, because the three uses of it differ only in
- * what goes in the eyebrow: an Order says its slot type, a Doctrine says
- * "permanent", the charter says nothing. Everything else — the accent, the
- * emblem, the name in the name face, the clauses, the flavour at the foot — is
- * the same card, and a second copy of it is how a Doctrine and an Order come to
- * disagree about where a card's name sits.
+ * One builder rather than three, because the two uses of it differ only in what
+ * goes in the eyebrow: an Order says its slot type, a Doctrine says "permanent".
+ * Everything else — the accent, the emblem chip, the name in the name face, the
+ * clauses — is the same card, and a second copy of it is how a Doctrine and an
+ * Order come to disagree about where a card's name sits.
+ *
+ * **Compact**, and what that cost: the flavour line is off the hand's cards. It
+ * is the one thing on a card that says nothing about what the card does, it is
+ * a third of the card's height, and it is still read where it belongs — on the
+ * offer that deals the card, which is the ceremony (`offerCard.ts`).
  *
  * `into` is filled rather than returned so the caller can decide whether the
  * card is an `<article>` or a `<button>`, which is the one real difference
@@ -198,15 +255,17 @@ function drawCardFace(
   // The accent's own name, for the one thing a colour cannot do: say what it is.
   into.title = id === 'none' ? def.name : `${def.name} · ${CARD_LINE_NAME[id]}`;
   const head = element('div', 'sc-card-head');
+  // The emblem is a **chip** in the eyebrow rather than a plate in the middle of
+  // the card: the drawing is kept (it is how a line is recognised) and the
+  // whitespace around it is what went.
+  const emblem = cardLineMarkNode(id);
+  emblem.classList.add('sc-card-emblem');
+  head.append(emblem);
   head.append(element('span', 'sc-card-type', eyebrow));
   if (level > 1) head.append(element('span', 'sc-level', `·${level}`));
   into.append(head);
-  const emblem = cardLineMarkNode(id);
-  emblem.classList.add('sc-card-emblem');
-  into.append(emblem);
   into.append(element('h4', 'sc-card-name', def.name));
   into.append(clauseList(clauses));
-  into.append(element('p', 'sc-flavor', def.flavor));
 }
 
 export function createStatecraftScreen(options: StatecraftScreenOptions): StatecraftScreen {
@@ -217,6 +276,28 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * and it is cleared whenever the screen closes or the government changes.
    */
   let held: OrderId | null = null;
+  /**
+   * The arrangement the player is building, or `null` when there is nothing to
+   * say beyond what the empire's law already says.
+   *
+   * A *proposal*, not state: it is a copy of `PlayerStatecraft.slots` with this
+   * session's edits on it, and every question asked of it goes through the sim's
+   * own evaluators (`statecraftStaging.ts`). It is re-taken from the live slots
+   * on every draw while it is clean, so a seal that lifted between turns or a
+   * card slotted by another route shows up immediately; once it is dirty it is
+   * the player's and nothing overwrites it.
+   */
+  let staged: StagedSlots | null = null;
+  /**
+   * Whose arrangement it is. `-1` for nobody.
+   *
+   * The hot-seat guard, and the reason it is a field rather than an assumption:
+   * an arrangement is a proposal by *one* player about *their* government, so
+   * the chair changing throws it away rather than committing it. Every path that
+   * could sign it — `commitStaging`, and therefore every close — checks this
+   * first.
+   */
+  let stagedSeat = -1;
 
   function isOpen(): boolean {
     return !overlay.hidden;
@@ -226,36 +307,114 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     trigger?.setAttribute('aria-expanded', String(isOpen()));
   }
 
+  /** Throws the arrangement away. Revert, seat changes, and the way out of a game. */
+  function discardStaging(): void {
+    staged = null;
+    stagedSeat = -1;
+    held = null;
+  }
+
+  /**
+   * The arrangement this draw is about.
+   *
+   * Re-taken from the live slots whenever there is nothing staged, whenever the
+   * chair has changed under it, and whenever the government's spread no longer
+   * has the same number of offices — an adoption rebuilds the slots array (the
+   * amnesty; see the seal trap in CLAUDE.md) and an arrangement indexed into the
+   * old spread would be putting cards in offices that no longer exist.
+   */
+  function ensureStaging(sc: PlayerStatecraft, seat: number): StagedSlots {
+    if (staged === null || stagedSeat !== seat || staged.length !== sc.slots.length) {
+      staged = stage(sc.slots);
+      stagedSeat = seat;
+      held = null;
+      return staged;
+    }
+    // Clean means "says exactly what the law says", so it costs nothing to
+    // re-take it — and re-taking is what keeps a lifted seal current.
+    if (changedOffices(sc.slots, staged) === 0) staged = stage(sc.slots);
+    return staged;
+  }
+
+  /**
+   * Signs the arrangement: the diff, as one batch, through the one seam.
+   *
+   * Called by Confirm and by **every** way out of the screen (the user's rule:
+   * leaving locks it in). Silent and free when nothing was staged, which is the
+   * common case — closing a screen you only read must not write a save.
+   *
+   * Validated once more against the live state before anything is sent, because
+   * the game may have moved since the last draw (a turn resolved, a seal lifted,
+   * another client played). If the batch is refused anyway — the one refusal an
+   * evaluator cannot foresee is the reducer's seat guard, a seat that has ended
+   * its turn — the caller's `send` reports it and the arrangement is re-synced
+   * from the live state rather than left half-applied.
+   */
+  function commitStaging(): void {
+    const arrangement = staged;
+    if (arrangement === null) return;
+    const state = options.getState();
+    const seat = options.getPlayerId();
+    // Somebody else's arrangement. Thrown away, never signed — see `stagedSeat`.
+    if (stagedSeat !== seat) {
+      discardStaging();
+      return;
+    }
+    const player = playerById(state, seat);
+    if (!player) {
+      discardStaging();
+      return;
+    }
+    const commands = diff(player.statecraft.slots, arrangement, seat);
+    if (commands.length === 0) return;
+    const problem = validate(state, seat, arrangement);
+    if (problem !== null) {
+      options.onRefuse?.(problem);
+      staged = stage(player.statecraft.slots);
+      return;
+    }
+    options.send(commands);
+    // Whatever happened — every command taken, or a batch stopped part-way and
+    // reported — the truth is now the live state's and the proposal is spent.
+    staged = stage(playerById(options.getState(), seat)?.statecraft.slots ?? []);
+  }
+
   function take(id: OrderId): void {
     held = held === id ? null : id;
     draw();
   }
 
+  /**
+   * A click on an office. Edits the arrangement; sends nothing.
+   *
+   * An occupied office is the *take it out* gesture, whether or not a card is in
+   * hand: clicking a seal to lift it is the thing a player reaches for, and
+   * making it depend on what else they were holding would be a mode. There is
+   * deliberately no swap, because the reducer has none (see `SlotOrderCommand`).
+   */
   function drop(index: number): void {
     const state = options.getState();
     const seat = options.getPlayerId();
     const sc = playerById(state, seat)?.statecraft;
     if (!sc) return;
-    // An occupied slot is the *unslot* gesture, whether or not a card is in
-    // hand: clicking a seal to take it off is the thing a player reaches for,
-    // and making it depend on what else they were holding would be a mode.
-    if (sc.slots[index]) {
-      const problem = unslotOrderError(state, seat, index);
+    const arrangement = ensureStaging(sc, seat);
+    if (arrangement[index]) {
+      const problem = removeError(state, seat, arrangement, index);
       if (problem !== null) {
         options.onRefuse?.(problem);
         return;
       }
-      options.unslot(index);
+      staged = remove(arrangement, index);
       draw();
       return;
     }
     if (held === null) return;
-    const problem = slotOrderError(state, seat, held, index);
+    const problem = placeError(state, seat, arrangement, held, index);
     if (problem !== null) {
       options.onRefuse?.(problem);
       return;
     }
-    options.slot(held, index);
+    staged = place(arrangement, index, held, state.turn);
     held = null;
     draw();
   }
@@ -332,68 +491,84 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   }
 
   /**
-   * The slot row: one card-shaped place per slot, typed, with its seal.
+   * The offices: one line per slot, typed, with what is in it and its seal.
    *
-   * An empty slot is drawn as the **outline of a card** with its office's mark
-   * ghosted inside it, rather than as a labelled box: a row of slots is a row of
-   * places a card goes, and the shape is what says so before any of the words
-   * are read. A filled slot is the card itself at thumbnail size, stamped.
+   * A line rather than a card-shaped hole — see the module docblock. An empty
+   * office keeps the office's mark, ghosted, so the column still reads as a row
+   * of *places a card goes* before any of the words are read.
    */
-  function drawSlots(state: GameState, sc: PlayerStatecraft, seat: number): HTMLElement {
+  function drawSlots(
+    state: GameState,
+    sc: PlayerStatecraft,
+    seat: number,
+    arrangement: StagedSlots,
+  ): HTMLElement {
     const block = element('section', 'sc-slots');
     const layout = slotLayout(sc.government);
     block.append(element('p', 'eyebrow sc-eyebrow', `${layout.length} slots`));
     const row = element('div', 'sc-slot-row');
     layout.forEach((type, index) => {
-      const filled = sc.slots[index] ?? null;
+      const filled = arrangement[index] ?? null;
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `sc-slot sc-slot-${type}`;
-      const takeable = held !== null && filled === null && orderFitsSlot(held, type);
+      // The one hint while a card is in hand, and it is the reducer's own answer
+      // about the *staged* arrangement rather than a guess about the live one:
+      // an office this session emptied will take a card, and the highlight says
+      // so before the arrangement is signed.
+      const takeable = held !== null && filled === null && placeError(state, seat, arrangement, held, index) === null;
       if (takeable) button.classList.add('sc-slot-open');
       if (filled) button.classList.add('sc-slot-filled');
-      button.append(element('span', 'sc-slot-type', SLOT_WORDS[type]));
+      // What this session changed about this office — a card put in, or one
+      // taken out. Both are "unconfirmed", and both are drawn as such.
+      const moved = (sc.slots[index]?.card ?? null) !== (filled?.card ?? null);
+      if (moved) button.classList.add('sc-slot-staged');
+      const text = element('span', 'sc-slot-text');
+      text.append(element('span', 'sc-slot-type', SLOT_WORDS[type]));
       if (filled) {
         const level = sc.orders.find((owned) => owned.id === filled.card)?.level ?? 1;
-        // A slotted card keeps its own accent, so the row of slots is the same
-        // hand of colours the collection below it is.
+        // A slotted card keeps its own accent, so the column of offices is the
+        // same hand of colours the collection beside it is.
         button.dataset.line = isOrderId(filled.card) ? lineOf(orderDef(filled.card)) : 'none';
         if (isOrderId(filled.card)) {
           const emblem = cardLineMarkNode(lineOf(orderDef(filled.card)));
           emblem.classList.add('sc-slot-emblem');
           button.append(emblem);
         }
-        button.append(
-          element(
-            'span',
-            'sc-slot-card',
-            isOrderId(filled.card) ? orderDef(filled.card).name : String(filled.card),
-          ),
-        );
-        if (level > 1) button.append(element('span', 'sc-level', `·${level}`));
-        const left = sealRemaining(state, filled);
-        const stamp = sealStamp(left);
-        button.title = stamp.title;
-        button.append(stamp);
+        const name = element('span', 'sc-slot-card', isOrderId(filled.card) ? orderDef(filled.card).name : String(filled.card));
+        if (level > 1) name.append(element('span', 'sc-level', `·${level}`));
+        text.append(name);
+        button.append(text);
+        if (filled.staged) {
+          // Nothing has sealed it — see `sealStamp`. The office's rim says it is
+          // unconfirmed and the Confirm block counts it.
+          button.title = `${orderDef(filled.card).name} — unconfirmed`;
+        } else {
+          const stamp = sealStamp(sealRemaining(state, filled));
+          button.title = stamp.title;
+          button.append(stamp);
+        }
       } else {
         const ghost = slotMarkNode(type);
         ghost.classList.add('sc-slot-ghost');
         button.append(ghost);
-        button.append(element('span', 'sc-slot-empty', 'empty'));
+        text.append(element('span', 'sc-slot-empty', 'empty'));
+        button.append(text);
         // The refusal, before it is provoked: the same sentence the reducer
         // would answer with, so the tooltip and the rejection are one string.
         if (held !== null) {
-          button.title = slotOrderError(state, seat, held, index) ?? `Slot ${orderDef(held).name} here`;
+          button.title =
+            placeError(state, seat, arrangement, held, index) ?? `Slot ${orderDef(held).name} here`;
         }
       }
       button.addEventListener('click', () => drop(index));
       row.append(button);
     });
     block.append(row);
-    // The other half of "which slot": the row highlights what will take the card
-    // (`sc-slot-open`, which is the reducer's own answer), and this says in words
-    // what is in hand and what to do with it. A highlight with no sentence is a
-    // colour a player has to guess the meaning of.
+    // The other half of "which office": the column highlights what will take the
+    // card (`sc-slot-open`, which is the reducer's own answer), and this says in
+    // words what is in hand. A highlight with no sentence is a colour a player
+    // has to guess the meaning of.
     if (held !== null) {
       const card = held;
       // Which offices will take it, asked of `orderFitsSlot` rather than spelled
@@ -417,7 +592,64 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     return block;
   }
 
-  /** The Doctrines, permanent and slotless. A row rather than a grid: there are three. */
+  /**
+   * Confirm, Revert, and the count of what is unconfirmed.
+   *
+   * The only place on this screen that writes to the simulation. Confirm is
+   * greyed with nothing staged and greyed again when the arrangement would be
+   * refused — with the reducer's own sentence printed under it, because a
+   * disabled button that will not say why is the interface keeping a secret.
+   */
+  function drawCommit(
+    state: GameState,
+    sc: PlayerStatecraft,
+    seat: number,
+    arrangement: StagedSlots,
+  ): HTMLElement {
+    const block = element('div', 'sc-commit');
+    const changes = changedOffices(sc.slots, arrangement);
+    const problem = changes === 0 ? null : validate(state, seat, arrangement);
+    const row = element('div', 'sc-commit-row');
+    const confirm = element('button', 'btn btn-primary sc-confirm', 'Confirm') as HTMLButtonElement;
+    confirm.type = 'button';
+    confirm.disabled = changes === 0 || problem !== null;
+    // The gilt rim: an arrangement that is real is a plain button, one that is
+    // only proposed wears the same gilt the irreversible cards do. It cannot be
+    // mistaken for saved.
+    if (changes > 0) confirm.classList.add('is-unconfirmed');
+    confirm.title =
+      problem ?? (changes === 0 ? 'Nothing to confirm' : 'Seal the arrangement — this is what leaving does');
+    confirm.addEventListener('click', () => {
+      commitStaging();
+      draw();
+    });
+    row.append(confirm);
+    const revert = element('button', 'btn btn-quiet sc-revert', 'Revert') as HTMLButtonElement;
+    revert.type = 'button';
+    revert.disabled = changes === 0;
+    revert.title = 'Put the offices back the way the law has them';
+    revert.addEventListener('click', () => {
+      staged = stage(sc.slots);
+      stagedSeat = seat;
+      held = null;
+      draw();
+    });
+    row.append(revert);
+    block.append(row);
+    if (changes > 0) {
+      block.append(
+        element(
+          'p',
+          'sc-commit-note',
+          `${changes} unconfirmed change${changes === 1 ? '' : 's'}`,
+        ),
+      );
+    }
+    if (problem !== null) block.append(element('p', 'sc-commit-problem', problem));
+    return block;
+  }
+
+  /** The Doctrines, permanent and slotless. Beneath the offices: there are few. */
   function drawDoctrines(sc: PlayerStatecraft): HTMLElement {
     const block = element('section', 'sc-doctrines');
     block.append(element('p', 'eyebrow sc-eyebrow', 'doctrines · permanent'));
@@ -442,12 +674,16 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    *
    * Grouped rather than listed, because the question a player is asking of this
    * screen is almost always "what can go in *that*" — the groups are the same
-   * three words the slots above are labelled with, so the answer is found by
+   * three words the offices are labelled with, so the answer is found by
    * matching a heading rather than by reading sixty clauses. Within a group the
    * order is the collection's own (draw order), which is the only order that is
    * a fact rather than an opinion.
+   *
+   * What counts as "in a slot" is the **arrangement**, not the law: a card the
+   * player has just staged is spoken for, and one they have just taken out is
+   * back in the hand, whether or not either has been signed yet.
    */
-  function drawCollection(sc: PlayerStatecraft): HTMLElement {
+  function drawCollection(sc: PlayerStatecraft, arrangement: StagedSlots): HTMLElement {
     const block = element('section', 'sc-collection');
     block.append(
       element('p', 'eyebrow sc-eyebrow', `orders · ${sc.orders.length} held`),
@@ -458,7 +694,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       );
       return block;
     }
-    const slotted = new Set(sc.slots.filter(Boolean).map((entry) => entry!.card));
+    const slotted = new Set(arrangement.filter(Boolean).map((entry) => entry!.card));
     for (const type of SLOT_TYPES) {
       const owned = sc.orders.filter((entry) => orderDef(entry.id).slot === type);
       if (owned.length === 0) continue;
@@ -509,24 +745,39 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     body.replaceChildren();
     if (!player) return;
     const sc = player.statecraft;
-    // A card in hand that has since been slotted (by a hotkey, or by another
-    // client) is a card nobody is holding.
-    if (held !== null && sc.slots.some((entry) => entry?.card === held)) held = null;
+    const arrangement = ensureStaging(sc, seat);
+    // A card in hand that is spoken for — staged, or slotted by another route —
+    // is a card nobody is holding.
+    if (held !== null && arrangement.some((entry) => entry?.card === held)) held = null;
 
     const banner = drawPendingGovernment(sc);
     if (banner) body.append(banner);
-    const head = element('div', 'sc-head-row');
-    head.append(drawGovernment(sc));
-    head.append(drawProgress(state, sc, seat));
-    body.append(head);
-    body.append(drawSlots(state, sc, seat));
-    body.append(drawDoctrines(sc));
-    body.append(drawCollection(sc));
+
+    // The split: the offices on the left and never moving, the hand on the right
+    // and scrolling in its own pane. See the module docblock.
+    const split = element('div', 'sc-split');
+    const column = element('aside', 'sc-column');
+    // The column's own two parts: what scrolls when the viewport is short, and
+    // the one block that must never be what scrolled off — a player cannot be
+    // asked to go looking for the button that signs their law.
+    const stack = element('div', 'sc-column-body');
+    stack.append(drawGovernment(sc));
+    stack.append(drawProgress(state, sc, seat));
+    stack.append(drawSlots(state, sc, seat, arrangement));
+    stack.append(drawDoctrines(sc));
+    column.append(stack);
+    column.append(drawCommit(state, sc, seat, arrangement));
+    split.append(column);
+
+    const pane = element('div', 'sc-pane');
+    pane.append(drawCollection(sc, arrangement));
 
     // The empire's law as one list, last, because it is the *answer* rather than
     // the arrangement: what is actually reaching the ledgers right now, from the
     // one evaluator every ledger reads (`liveEffects`). A player wondering why
-    // their capital is at +30% finds it here and nowhere else.
+    // their capital is at +30% finds it here and nowhere else — and it is the
+    // **live** law, deliberately, which is the other half of why an unconfirmed
+    // arrangement cannot be mistaken for a signed one.
     const live = liveEffects(state, seat);
     if (live.length > 0) {
       const block = element('section', 'sc-live');
@@ -539,8 +790,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         list.append(element('li', 'sc-live-line', entry.source));
       }
       block.append(list);
-      body.append(block);
+      pane.append(block);
     }
+    split.append(pane);
+    body.append(split);
   }
 
   function open(): void {
@@ -548,15 +801,27 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     options.onOpen?.();
     overlay.hidden = false;
     setExpanded();
+    // A fresh sheet of paper: whatever the last visit proposed is either signed
+    // (it closed) or thrown away (the chair changed), so an opening screen never
+    // inherits an arrangement.
+    discardStaging();
     draw();
     closeButton.focus();
   }
 
+  /**
+   * Leaving locks it in — the user's rule, and it is enforced here rather than
+   * at each door, because every door in the interface (Escape, the ×, a click on
+   * the table, another screen opening, `closePopovers`) comes through this one
+   * function. The overlay is hidden *first* so a repaint provoked by the batch
+   * cannot draw a screen that is on its way out.
+   */
   function close(): void {
     if (!isOpen()) return;
     overlay.hidden = true;
-    held = null;
     setExpanded();
+    commitStaging();
+    discardStaging();
     trigger?.focus();
   }
 
@@ -593,11 +858,18 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     refresh(): void {
       if (isOpen()) draw();
     },
+    /**
+     * The game is going away (the landing screen). The arrangement is
+     * **discarded**, not signed: it is a proposal about a government that is
+     * about to stop existing, and `showLanding` has already closed the screen —
+     * which is where a proposal about a game still being played gets signed.
+     */
     dispose(): void {
       closeButton.removeEventListener('click', close);
       overlay.removeEventListener('click', onOverlayClick);
       window.removeEventListener('keydown', onKeyDown, true);
       overlay.hidden = true;
+      discardStaging();
       body.replaceChildren();
     },
   };

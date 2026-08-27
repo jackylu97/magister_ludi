@@ -5723,6 +5723,111 @@ kbd {
   padding-top: 16px;
 }
 
+/* --- the split ------------------------------------------------------------
+   The Statecraft sheet is the one of the two that **splits**, so everything
+   here is scoped to its id rather than to the shared `.statecraft-*` classes —
+   the Religion sheet is the same paper and is still one column that scrolls as
+   a whole (index.html says so out loud, and this is that promise kept).
+
+   The user's note (2026-08-27): you had to scroll far down to pick an Order and
+   back up to slot it. So the sheet is capped at the viewport, the offices are a
+   column that never moves, and the hand scrolls in its own pane beside them. */
+#statecraft-overlay {
+  overflow: hidden;
+}
+
+#statecraft-overlay .statecraft-sheet {
+  display: flex;
+  flex-direction: column;
+  width: min(1240px, 100%);
+  max-height: 100%;
+  min-height: 0;
+}
+
+#statecraft-overlay .statecraft-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 14px;
+}
+
+.sc-split {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 18px;
+  min-height: 0;
+}
+
+/* The offices. A fixed column, and the one thing on this screen that is always
+   on screen: it is the other half of every click the hand makes.
+
+   Two parts, because on a short viewport something has to give and it must not
+   be the button that signs the law: the charter, the offices and the Doctrines
+   scroll inside `.sc-column-body`, and the Confirm block is the column's foot
+   and does not. A sticky footer *inside* the scroller was the first try and it
+   covered the last office — a pinned block always covers whatever is under it,
+   which is exactly what an office must never be. */
+.sc-column {
+  display: flex;
+  flex: 0 0 320px;
+  flex-direction: column;
+  min-height: 0;
+  padding-right: 16px;
+  border-right: var(--border-thin) solid var(--ink-faint);
+}
+
+.sc-column-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sc-pane {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Under a sheet this narrow the two panes are one column again: a 320px column
+   beside a 260px pane is two things neither of which can be read. */
+@media (max-width: 860px) {
+  /* And with the panes stacked there is nothing to pin them against, so the
+     sheet goes back to being one document that scrolls as a whole — the shape
+     the Religion sheet keeps at every width. Capping the height here would clip
+     a column that has no scroller of its own. */
+  #statecraft-overlay {
+    overflow-y: auto;
+  }
+
+  #statecraft-overlay .statecraft-sheet {
+    max-height: none;
+  }
+
+  .sc-split {
+    flex-direction: column;
+  }
+
+  .sc-column {
+    flex: 0 0 auto;
+    padding-right: 0;
+    padding-bottom: 12px;
+    border-right: none;
+    border-bottom: var(--border-thin) solid var(--ink-faint);
+  }
+
+  .sc-column-body,
+  .sc-pane {
+    overflow-y: visible;
+  }
+}
+
 /* --- the charter --------------------------------------------------------- */
 
 .sc-head-row {
@@ -5790,10 +5895,14 @@ kbd {
 
 /* --- the ladder ---------------------------------------------------------- */
 
+/* The ladder in one line — or in two, in the office column, where 320px is not
+   always enough for the tier, the basket, the bar and the next price. Wrapping
+   is allowed; a *word* breaking is not, which is what "Tier / 6" was. */
 .sc-progress {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 4px 8px;
   margin: 0;
   font-family: var(--face-num);
   font-size: 12px;
@@ -5803,6 +5912,12 @@ kbd {
 
 .sc-tier {
   font-weight: 600;
+}
+
+.sc-tier,
+.sc-meter,
+.sc-next {
+  white-space: nowrap;
 }
 
 .sc-sep,
@@ -5869,30 +5984,43 @@ kbd {
 
 .sc-slot-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
 }
 
-/* A slot is a **place a card goes**, so it is drawn as the outline of one:
-   five by eight, portrait, with its office's mark ghosted in the middle. That
-   shape says what the slot is before any of the words are read, which a
-   labelled box never did — and it makes the row above the collection and the
-   hand below it visibly the same objects. */
+/* An office is a **line**, not a card-shaped hole.
+
+   It used to be the outline of a card — five by eight, portrait, the office's
+   mark ghosted in the middle — which was right while the offices were a row
+   across the whole sheet. In a fixed 320px column it is not: what a player needs
+   to read there is the *name of what is in the office*, and a name set 98px wide
+   is three lines of hyphenation. So the office is a row — mark, office, card,
+   seal — at any slot count, and it keeps the line's emblem so it is still
+   visibly the same object as the card in the hand that fills it. */
 .sc-slot {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 9px;
   position: relative;
-  width: 98px;
-  min-height: 156px;
-  padding: 10px 8px;
+  width: 100%;
+  min-height: 42px;
+  padding: 6px 10px;
   border: var(--border-thin) dashed var(--ink-faint);
   border-radius: var(--radius-sm);
   background: transparent;
   font: inherit;
-  text-align: center;
+  text-align: left;
   cursor: pointer;
+}
+
+/* The office and its occupant, stacked: the small caps word above the name, so
+   a column of offices reads down its own left edge. */
+.sc-slot-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
 }
 
 .sc-slot-filled {
@@ -5911,6 +6039,18 @@ kbd {
   border-style: solid;
   background: rgba(212, 80, 46, 0.08);
   box-shadow: 0 0 0 2px rgba(212, 80, 46, 0.25);
+}
+
+/* An office this session changed and has not signed: the gilt of the
+   irreversible cards, dashed, because nothing here is irreversible *yet*. It is
+   deliberately loud — the whole point of staging is that a player can tell at a
+   glance which of these are proposals. Last, so it wins over both states above:
+   a staged office is unconfirmed whether it was filled or emptied. */
+.sc-slot.sc-slot-staged {
+  border-color: var(--gilt);
+  border-style: dashed;
+  background: rgba(200, 144, 31, 0.1);
+  box-shadow: 0 0 0 2px rgba(200, 144, 31, 0.22);
 }
 
 .sc-slot-type {
@@ -5934,32 +6074,30 @@ kbd {
   color: var(--grape);
 }
 
-/* The office's mark, ghosted: the middle of an empty slot, and faint enough to
-   read as an absence rather than as a thing already there. */
-/* The free space in a slot is shared between two `auto` margins, which is what
-   puts the office's ghost in the middle of an empty card and the card's own
-   name in the middle of a filled one — without either of them being positioned
-   against a height nobody would remember to update. */
+/* The office's mark, ghosted: the head of an empty office, and faint enough to
+   read as an absence rather than as a thing already there. Its filled sibling is
+   the archetype line's own emblem at the same size, so the two rows line up
+   whatever is in them. */
 .sc-slot-ghost {
-  width: 46px;
-  height: 46px;
-  margin-top: auto;
+  flex: none;
+  width: 24px;
+  height: 24px;
   opacity: 0.22;
 }
 
 .sc-slot-emblem {
-  width: 34px;
-  height: 34px;
-  margin-top: auto;
+  flex: none;
+  width: 26px;
+  height: 26px;
 }
 
 .sc-slot-card {
-  margin-bottom: auto;
   font-family: var(--face-name);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
   color: var(--ink);
+  overflow-wrap: anywhere;
 }
 
 .sc-slot-empty {
@@ -5970,17 +6108,25 @@ kbd {
   color: var(--ink-faint);
 }
 
-/* The wax stamp, pressed across the foot of a card rather than laid out inside
-   it — a seal is something applied to a finished thing, and the angle says so.
+/* The two `auto` margins the old card-shaped slot used to centre its contents
+   are undone inside a row — and only inside a row, because the Religion sheet's
+   pantheon places still lay a `.sc-slot-empty` out the tall way. */
+.sc-slot .sc-slot-card,
+.sc-slot .sc-slot-empty {
+  margin: 0;
+}
+
+/* The wax stamp, at the end of the office's line and still pressed on at an
+   angle — a seal is something applied to a finished thing, and the tilt says so.
    Set is vermilion and counts down in mono; lifted is quiet ink and says
-   "free", because a slot you may empty is not an alarm. */
+   "free", because a slot you may empty is not an alarm. An office holding a
+   card that is only *staged* has no stamp at all: nothing has sealed it. */
 .sc-stamp {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 3px;
-  position: absolute;
-  right: -6px;
-  bottom: 8px;
+  margin-left: auto;
   padding: 2px 6px;
   transform: rotate(-4deg);
   border: var(--border-thin) solid var(--ink);
@@ -6037,34 +6183,102 @@ kbd {
   color: var(--ink-soft);
 }
 
+/* --- confirm, and what is not signed yet ---------------------------------
+   Nothing on this screen reaches the simulation until this block says so (the
+   user, 2026-08-27: "slots should only lock after leaving the menu"), so it sits
+   at the foot of the office column and outside its scroller — the one control
+   that must never be the thing that scrolled off. Leaving the screen does
+   exactly what Confirm does, which is why it is a *confirmation*, not a save. */
+.sc-commit {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: var(--border-thin) solid var(--ink-faint);
+  background: var(--parchment);
+}
+
+.sc-commit-row {
+  display: flex;
+  gap: 8px;
+}
+
+.sc-confirm {
+  flex: 1 1 auto;
+}
+
+.sc-revert {
+  flex: 0 0 auto;
+}
+
+/* The gilt rim: an arrangement that is only proposed wears the same gilt the
+   irreversible cards do, so a player cannot mistake unconfirmed for saved. */
+.sc-confirm.is-unconfirmed:not(:disabled) {
+  border-color: var(--gilt);
+  box-shadow: 0 0 0 2px rgba(200, 144, 31, 0.35), var(--shadow-sm);
+}
+
+.sc-commit-note {
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--gilt);
+}
+
+/* The reducer's own sentence, in the one place a greyed Confirm can explain
+   itself. Vermilion, because it is a refusal rather than a note. */
+.sc-commit-problem {
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--vermilion);
+}
+
 /* --- the cards ----------------------------------------------------------- */
 
-/* The hand: cards, and drawn as cards. Five by eight and portrait, an
-   ornamental inner rule in the line's ink, the type in the mono eyebrow at the
-   head, the emblem in the middle, the clauses under the name, the flavour along
-   the foot. Identical bones to the offer's tarot face on purpose — a card must
-   read the same on the offer that dealt it and in the collection afterwards,
-   which is the same claim `describeCard` makes about its numbers. */
-.sc-doctrine-row,
+/* The hand: a **working list**, not a spread.
+
+   The cards were tall five-by-eight plates with the emblem on its own line and
+   the flavour along the foot — which is what a card looks like when it is being
+   *dealt*, and that is where that face still lives (`.offer-options` with
+   `data-face="tarot"`). Thirty of them in a collection is a scroll: the user had
+   to travel a page to compare two Orders. So the hand's card keeps everything
+   that says what the card *is* — the line's accent on the frame, the drawn
+   emblem, the mono eyebrow, the name, the clauses at reading size — and drops
+   the whitespace and the flavour line. The emblem is a chip in the eyebrow
+   rather than a plate in the middle: the drawing survives, its margins do not.
+
+   Four across at 1280 and at 1440, against one and a half rows before. */
 .sc-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
+  gap: 10px;
+}
+
+/* The Doctrines sit in the office column, which is one card wide. */
+.sc-doctrine-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .sc-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 2px;
   position: relative;
-  min-height: 262px;
-  padding: 12px 12px 10px;
+  padding: 9px 11px 10px;
   border: var(--border-thin) solid var(--line-ink, var(--ink));
   border-radius: var(--radius-sm);
   background: var(--parchment);
   font: inherit;
-  text-align: center;
+  text-align: left;
   color: var(--line-ink, var(--ink));
 }
 
@@ -6131,22 +6345,26 @@ kbd {
 
 .sc-card-head {
   display: flex;
-  align-items: baseline;
-  justify-content: center;
+  align-items: center;
+  justify-content: flex-start;
   gap: 6px;
 }
 
-/* The emblem: the archetype line's drawing, the loudest place its ink lands. */
+/* The emblem: the archetype line's drawing, and still the loudest place its ink
+   lands — a chip in the eyebrow rather than a plate of its own. The Religion
+   sheet's belief cards keep the plate (`.rel-card-emblem`): a god is dealt and
+   never listed. */
 .sc-card-emblem {
-  width: 42px;
-  height: 42px;
-  margin: 4px auto 0;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
 }
 
 .sc-card-name {
   margin: 2px 0 0;
   font-family: var(--face-name);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   line-height: 1.2;
   color: var(--ink);
@@ -6161,21 +6379,18 @@ kbd {
   color: currentColor;
 }
 
+/* Left-aligned and bulleted, which the tarot face could not be: a centred
+   clause list has to drop its bullets, and a bullet is what makes two clauses
+   read as two things a card does rather than as a sentence that wrapped. */
 .sc-card .sc-clauses {
-  padding: 0;
-  text-align: center;
+  margin-top: 5px;
+  padding-left: 13px;
+  text-align: left;
 }
 
-.sc-card .sc-clause::before {
-  content: none;
-}
-
-/* The flavour rules off the foot of every card at the same line, whatever the
-   clauses above it did. */
-.sc-card .sc-flavor {
-  margin-top: auto;
-  padding-top: 8px;
-  border-top: 1.5px solid var(--ink-faint);
+.sc-card .sc-clause {
+  font-size: 11.5px;
+  line-height: 1.4;
 }
 
 .sc-card-note {

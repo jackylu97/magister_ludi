@@ -177,7 +177,12 @@ import {
   isRanged,
   previewCombat,
 } from '../sim/combat';
-import type { Command, CommandResult } from '../sim/commands';
+import type {
+  Command,
+  CommandResult,
+  SlotOrderCommand,
+  UnslotOrderCommand,
+} from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { yieldContextFor } from '../sim/cities';
 import {
@@ -258,6 +263,16 @@ const BUY_MODE_NOTICE = 'Buy tiles — click a priced hex to purchase it (Esc ca
  * pointer the player asked for (End Turn's blocker) that fades the same way but
  * never flashes — see the module docblock's three-way split.
  */
+/**
+ * The two commands the Statecraft screen can send, and the whole of what
+ * `sendStatecraft` will carry.
+ *
+ * Named rather than widened to `Command` on purpose: this is a batch seam, and a
+ * batch of arbitrary commands is a way for a surface to smuggle a turn's worth
+ * of orders past the one-gesture-one-command reading every other call site keeps.
+ */
+export type StatecraftSlotCommand = SlotOrderCommand | UnslotOrderCommand;
+
 export type NoticeKind = 'mode' | 'reject' | 'guide';
 
 /**
@@ -727,6 +742,18 @@ export interface GameControls {
    * history.
    */
   guide(text: string): void;
+
+  /**
+   * Sends the Statecraft screen's staged arrangement as one batch, in the order
+   * it was handed over — every `unslotOrder`, then every `slotOrder`.
+   *
+   * The screen no longer sends a command per gesture (the user, 2026-08-27:
+   * "slots should only lock after leaving the menu"), so this is the one seam
+   * that surface writes through. It answers the refusal that stopped the batch,
+   * or `null` when every command was taken; the refusal has already been said in
+   * the notice line by the time it comes back.
+   */
+  sendStatecraft(commands: readonly StatecraftSlotCommand[]): string | null;
 
   /**
    * Brings one cell into view, respecting the viewer's motion preference.
@@ -1234,6 +1261,48 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       checkFirstStatecraftDraft();
     }
     return result;
+  }
+
+  /**
+   * The Statecraft screen's batch, through the same seam every other order takes.
+   *
+   * The screen stages an arrangement and sends it as **one list** when the
+   * player confirms it or leaves (see `statecraftScreen.ts`), and the list is
+   * ordered so that it is valid at every step — every `unslotOrder` before every
+   * `slotOrder`, which is `statecraftStaging.ts`'s `diff`. This walks it through
+   * `commit` so a slot changed on that sheet is a slot changed exactly the way a
+   * network peer or a future AI would change one: the same autosave, the same
+   * sighting poll, the same blockers.
+   *
+   * It stops at the first refusal, reports it in this module's own rejection
+   * line, and answers it — the screen then re-syncs its arrangement from the
+   * live state rather than leaving half of it standing. After validation that
+   * should be unreachable; the one refusal an evaluator cannot foresee is the
+   * reducer's seat guard (a seat that has ended its turn has finished rewriting
+   * its law), which is why this reports rather than throws.
+   *
+   * The repaint at the end is `refreshOverlays` and one `onUpdate`, deliberately
+   * **not** the public `refresh()`: that one is "the game object was replaced"
+   * and it seats the client back at player 0, which on a hot-seat table would
+   * hand the chair to somebody else for slotting a card.
+   */
+  function sendStatecraft(commands: readonly StatecraftSlotCommand[]): string | null {
+    let sent = 0;
+    let refusal: string | null = null;
+    for (const command of commands) {
+      const result = commit(command);
+      if (!result.ok) {
+        reject(result.error);
+        refusal = result.error;
+        break;
+      }
+      sent++;
+    }
+    if (sent > 0) {
+      refreshOverlays();
+      onUpdate(selectedUnit(), renderer.getHover());
+    }
+    return refusal;
   }
 
   /**
@@ -3711,6 +3780,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     clearSelection,
     endTurn,
     guide,
+    sendStatecraft,
     endTurnBlocker,
     setLocalPlayer,
     lens: () => manualLens,
