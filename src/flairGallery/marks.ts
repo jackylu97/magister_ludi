@@ -35,6 +35,7 @@ import {
   MARK_BOX,
   MARK_STROKE,
   RESOURCE_MARKS,
+  RESOURCE_MARK_STROKE,
   markSvg,
   resourceMarkDataUri,
 } from '../art/resourceMarks';
@@ -157,23 +158,25 @@ function lineFamily(into: HTMLElement): void {
 }
 
 /**
- * The resource marks, which as of the luxury pass are **two hands under one
- * weight** — and the page says which is which under every cell.
+ * The resource marks, which as of the one-hand pass are **one family on one
+ * grid** — and the page says where every single drawing came from.
  *
- * Nine rows are Tabler Icons ported to the coordinate (`ResourceMark.credit`),
- * on upstream's 24-unit grid; the other thirty-two are this project's own on the
- * house 64. The provenance is read off the mark rather than listed here, so a
- * tenth port is a row of `resourceMarks.ts` and this page does not move — which
- * is the rule the whole file is built on.
+ * They used to be two hands under one weight (thirty-two of ours on the house
+ * 64, nine Tabler ports on upstream's 24), which is what the user read off the
+ * board: a shared weight is not a shared hand. All forty-one are on the badge
+ * roster's 24-unit grid at its 2.75 now, some vendored and some drawn here in
+ * that geometry, and `ResourceMark.credit` says which for every row — so the
+ * split is read off the marks rather than listed here, and moving a row from one
+ * column to the other is an edit to `resourceMarks.ts` alone.
  */
 function resourceFamily(into: HTMLElement): void {
   const ids = Object.keys(RESOURCE_MARKS);
-  const ported = ids.filter((id) => RESOURCE_MARKS[id]!.credit !== undefined).length;
+  const ported = ids.filter((id) => RESOURCE_MARKS[id]!.credit.startsWith('Tabler')).length;
   const grid = markGrid(
     block(
       into,
       `Resources — src/art/resourceMarks.ts (${ids.length})`,
-      `One weight, two grids: ${ids.length - ported} drawn here on the house 64 at weight ${MARK_STROKE}, ${ported} ported from Tabler (MIT) on upstream's 24 at 2.75 — the badges' own weight, which is what puts both sets on the same painted line. Printed on the tile roundels, in the readout, the ledgers and the resource lens.`,
+      `One hand, one grid: all ${ids.length} on Tabler's 24-unit box at weight ${RESOURCE_MARK_STROKE} — ${ported} vendored from Tabler (MIT), ${ids.length - ported} drawn here in that geometry where no icon set has the thing. The badges and the six yield voices are the same box at the same weight; the house 64 at ${MARK_STROKE} is the *other* families below. Printed on the tile roundels, in the readout, the ledgers and the resource lens.`,
     ),
   );
   for (const id of ids) {
@@ -181,7 +184,7 @@ function resourceFamily(into: HTMLElement): void {
     if (uri === null) continue;
     const mark = RESOURCE_MARKS[id]!;
     const cell = markCell(grid, id, uri, mark.note);
-    if (mark.credit !== undefined) cell.append(element('div', 'mark-note', mark.credit));
+    cell.append(element('div', 'mark-note', mark.credit));
   }
 }
 

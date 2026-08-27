@@ -57,17 +57,20 @@ import { LENS_DEFAULTS, type LensView } from '../../src/ui/mapView';
 import {
   MARK_BOX,
   MARK_STROKE,
-  PORTED_MARK_BOX,
-  PORTED_MARK_SCALE,
-  PORTED_MARK_STROKE,
   RESOURCE_MARKS,
-  cube,
+  RESOURCE_MARK_BOX,
+  RESOURCE_MARK_SCALE,
+  RESOURCE_MARK_STROKE,
   resourceMark,
   resourceMarkDataUri,
-  resourceMarkPrint,
   resourceMarkSvg,
 } from '../../src/art/resourceMarks';
-import { YIELD_MARK_BOX, YIELD_MARK_STROKE, yieldMark } from '../../src/art/yieldMarks';
+import {
+  YIELD_MARK_BOX,
+  YIELD_MARK_SCALE,
+  YIELD_MARK_STROKE,
+  yieldMark,
+} from '../../src/art/yieldMarks';
 
 /**
  * The board's half of the resources milestone: the diorama props, the flat
@@ -1261,10 +1264,10 @@ describe('the drawn resource marks', () => {
   /**
    * The grid is the contract the atlas cell is packed against: cells sit edge to
    * edge with no gutter (`badgeAtlasLayout`), so a mark that reached past its
-   * 64-square would print on its neighbour's roundel.
+   * 24-square would print on its neighbour's roundel.
    *
    * Only the absolute paths are measured, because a *relative* command's numbers
-   * are deltas and a `-18` in one is not a coordinate off the top of the grid —
+   * are deltas and a `-8` in one is not a coordinate off the top of the grid —
    * `dot` is built out of exactly that. A little slop either side of the box, for
    * the half of a stroke that falls outside its own path.
    */
@@ -1275,8 +1278,8 @@ describe('the drawn resource marks', () => {
         for (const token of path.d.match(/-?\d+(\.\d+)?/g) ?? []) {
           const value = Number(token);
           expect(Number.isFinite(value), `${id}: ${path.d}`).toBe(true);
-          expect(value, `${id}: ${path.d}`).toBeGreaterThanOrEqual(-8);
-          expect(value, `${id}: ${path.d}`).toBeLessThanOrEqual(MARK_BOX + 8);
+          expect(value, `${id}: ${path.d}`).toBeGreaterThanOrEqual(-3);
+          expect(value, `${id}: ${path.d}`).toBeLessThanOrEqual(RESOURCE_MARK_BOX + 3);
         }
       }
     }
@@ -1292,18 +1295,31 @@ describe('the drawn resource marks', () => {
   });
 
   /**
-   * The port check. `stone` and `salt` were two of the seventeen files that
-   * already existed, and both were a block in three-quarter view; `cube` is that
-   * shape factored out. These are the coordinates the hand-authored SVGs drew,
-   * so a helper that drifted would be caught by the two marks there is a
-   * reference for.
+   * The claim the 2026-08-27 one-hand pass makes, held as a property of the data
+   * rather than as a convention forty-one rows have to keep.
+   *
+   * The set used to be two hands under one weight — thirty-two drawings of ours
+   * on the house 64 grid and nine Tabler ports on upstream's 24 — and the user
+   * read that off the board exactly as it was written ("the luxury resources
+   * don't look different"). A shared *weight* is not a shared hand. So: no row
+   * declares a box, no path declares a width, and no path is filled. Everything
+   * is stroked by the one weight on the group, and the only way to break that is
+   * to write a `width:` or a `fill:` into this table, which is what fails here.
    */
-  it('reproduces the hand-drawn block exactly, which is what the vocabulary is for', () => {
-    expect(cube(32, 12, 20, 10, 20)).toBe(
-      'M32 12L52 22L32 32L12 22ZM12 22V42L32 52V32M52 22V42L32 52',
-    );
-    expect(resourceMark('stone')!.paths[0]!.d).toBe(cube(32, 12, 20, 10, 20));
-    expect(resourceMark('salt')!.paths[0]!.d).toBe(cube(32, 18, 15, 8, 15));
+  it('is one hand: one grid, one weight, and no fills anywhere', () => {
+    for (const id of RESOURCE_IDS) {
+      const mark = resourceMark(id)!;
+      for (const path of mark.paths) {
+        expect(path.width, `${id} declared its own stroke weight`).toBeUndefined();
+        expect(path.fill, `${id} grew a fill this set has not got`).toBeUndefined();
+      }
+    }
+    // And the grid the whole table is on is the one the badges and the six yield
+    // voices are on, at the same weight — which is the *reason* it moved.
+    expect(RESOURCE_MARK_BOX).toBe(YIELD_MARK_BOX);
+    expect(RESOURCE_MARK_STROKE).toBe(YIELD_MARK_STROKE);
+    // The house grid is still declared, because five other sets draw on it.
+    expect(MARK_STROKE / MARK_BOX).toBeCloseTo(0.102, 3);
   });
 
   it('exports a non-empty sprite for every resource, carrying its own paths', () => {
@@ -1312,13 +1328,11 @@ describe('the drawn resource marks', () => {
       expect(uri, id).not.toBeNull();
       expect(uri!.startsWith('data:image/svg+xml,'), id).toBe(true);
       const svg = decodeURIComponent(uri!.slice('data:image/svg+xml,'.length));
-      // Each mark's *own* grid, which is the house 64 for the drawings this
-      // project authored and upstream's 24 for the nine Tabler ports (see
-      // `resourceMarkPrint`). Asked of the mark rather than assumed, because
-      // a ported drawing whose viewBox had been rewritten to 64 would be a
-      // drawing that no longer matched the source it was copied from.
-      const print = resourceMarkPrint(resourceMark(id)!);
-      expect(svg, id).toContain(`viewBox="0 0 ${print.box} ${print.box}"`);
+      // Upstream's 24-unit grid, for every row — the twenty ports because
+      // rewriting a vendored viewBox is how a copy stops matching its source,
+      // and the twenty-one drawn here because they are drawn *on* that grid so
+      // the whole table is one set of coordinates.
+      expect(svg, id).toContain(`viewBox="0 0 ${RESOURCE_MARK_BOX} ${RESOURCE_MARK_BOX}"`);
       // Every path of the mark is in the exported document: the DOM prints the
       // whole drawing the atlas traces, not a subset of it.
       for (const path of resourceMark(id)!.paths) {
@@ -1346,71 +1360,60 @@ describe('the drawn resource marks', () => {
   it('inks the exported sprite in whatever colour it is asked for', () => {
     // The DOM masks it, so the colour is irrelevant there — but the atlas and a
     // future surface may want it, and a mark that ignored the argument would be
-    // a mark that could only ever be one colour. Asked of a mark with a *fill*
-    // in it, which the nine ported ones deliberately have not got.
+    // a mark that could only ever be one colour.
     const svg = resourceMarkSvg(resourceMark('cattle')!, '#123456');
     expect(svg).toContain('stroke="#123456"');
-    expect(svg).toContain('fill="#123456"');
-    expect(svg).toContain(`stroke-width="${MARK_STROKE}"`);
+    expect(svg).toContain(`stroke-width="${RESOURCE_MARK_STROKE}"`);
+    // And not a fill in the document, because there is not a fill in the set.
+    expect(svg).not.toContain('fill="#123456"');
   });
 
   /**
-   * The nine Tabler ports, and the bookkeeping that keeps them honest.
+   * The provenance bookkeeping, which is the half of this set that can go
+   * quietly wrong.
    *
-   * Vendored path data is the one kind of drawing in this project that can go
-   * quietly wrong: nothing on screen changes when a `d` string is "tidied up",
-   * and once it has been the file no longer matches the source anybody would
-   * check it against. So the shape of a port is asserted rather than its
-   * pixels — upstream's grid kept, upstream's weight kept, no fills anywhere
-   * (all nine upstream drawings are pure outline), and a credit on the row so
-   * `CREDITS.md` has one place to be right about.
+   * Nothing on screen changes when a vendored `d` string is "tidied up", and
+   * once it has been, the row no longer matches the source anybody would check
+   * it against — so what is pinned is the *shape of a credit* rather than the
+   * pixels. Every row carries one now (it used to be present on nine and absent
+   * on thirty-two, which made "who drew this" unanswerable for most of the
+   * table), and it is one of exactly two sentences: somebody's icon under its
+   * licence, or ours under Tabler's geometry.
    */
-  describe('the ported marks', () => {
-    const ported = RESOURCE_IDS.filter((id) => resourceMark(id)?.credit !== undefined);
+  describe('where each drawing came from', () => {
+    const CREDITS = /^(Tabler Icons `[a-z-]+` \(MIT\)|drawn for this project \(CC0\), in Tabler’s geometry)$/;
 
-    it('keeps every port on upstream’s grid, at upstream’s weight, with no fill', () => {
-      expect(ported.length).toBeGreaterThan(0);
-      for (const id of ported) {
-        const mark = resourceMark(id)!;
-        expect(mark.box, id).toBe(PORTED_MARK_BOX);
-        expect(mark.stroke, id).toBe(PORTED_MARK_STROKE);
-        expect(mark.credit, id).toMatch(/^Tabler Icons `[a-z-]+` \(MIT\)$/);
-        for (const path of mark.paths) {
-          expect(path.fill, `${id} grew a fill upstream has not got`).toBeUndefined();
-          expect(path.width, id).toBe(PORTED_MARK_STROKE);
-        }
+    it('gives every mark a credit, in one of the two sentences', () => {
+      for (const id of RESOURCE_IDS) {
+        expect(resourceMark(id)!.credit, id).toMatch(CREDITS);
       }
     });
 
-    it('prints a port smaller than a house mark, and a house mark unscaled', () => {
-      // Two grids, two padding conventions: a 24-unit vendored drawing reaches
-      // further into its box than this project's own, so printing both at one
-      // nominal size would put the widest ports on the roundel's rim.
-      expect(resourceMarkPrint(resourceMark('wheat')!).scale).toBe(PORTED_MARK_SCALE);
-      expect(PORTED_MARK_SCALE).toBeLessThan(1);
-      const house = resourceMarkPrint(resourceMark('stone')!);
-      expect(house).toEqual({ box: MARK_BOX, stroke: MARK_STROKE, scale: 1 });
+    it('is mostly somebody else’s hand, and says which rows are not', () => {
+      const ported = RESOURCE_IDS.filter((id) => resourceMark(id)!.credit.startsWith('Tabler'));
+      const drawn = RESOURCE_IDS.filter((id) => !resourceMark(id)!.credit.startsWith('Tabler'));
+      // Both halves are non-empty on purpose: a table that had gone all-Tabler
+      // would have bent a metaphor past breaking somewhere (there is no bison
+      // and no oxhide ingot in any icon set), and one that had gone all-ours
+      // would be the hand this pass took the set *away* from.
+      expect(ported.length).toBeGreaterThan(RESOURCE_IDS.length / 3);
+      expect(drawn.length).toBeGreaterThan(0);
+      expect(ported.length + drawn.length).toBe(RESOURCE_IDS.length);
     });
 
     /**
-     * The weights, which are the whole reason this pass happened.
+     * The print inset, and why it is one number for the whole table now.
      *
-     * A resource roundel and a unit badge share a board and are read at the same
-     * size; the badges went to 2.75 of 24 and this set stayed at 5 of 64, which
-     * is a third lighter. The claim held here is the corrected one — the two
-     * sets' *painted* lines are within a few percent of each other, counting the
-     * ported set's print scale — because that is the number a player sees and it
-     * is the number that silently drifts the next time either set moves.
+     * A 24-unit drawing reaches about 83% of its box where a house 64-unit one
+     * reaches about 78%, so a mark printed at the nominal size the house set was
+     * printed at lands on the roundel's rim. This used to apply to nine rows and
+     * is now the set's own; `YIELD_MARK_SCALE` is the same number for the same
+     * reason one set over, which is what keeps a resource roundel and a yield
+     * disc the same optical size on one hex.
      */
-    it('lands the house weight and the vendored weight on one painted line', () => {
-      const house = MARK_STROKE / MARK_BOX;
-      const vendored = (PORTED_MARK_STROKE / PORTED_MARK_BOX) * PORTED_MARK_SCALE;
-      expect(Math.abs(house - vendored) / house).toBeLessThan(0.05);
-      // And the yields, which are the third set on the same board.
-      expect(YIELD_MARK_STROKE / YIELD_MARK_BOX).toBeCloseTo(
-        PORTED_MARK_STROKE / PORTED_MARK_BOX,
-        10,
-      );
+    it('insets the whole set the way the yield voices are inset', () => {
+      expect(RESOURCE_MARK_SCALE).toBeLessThan(1);
+      expect(Math.abs(RESOURCE_MARK_SCALE - YIELD_MARK_SCALE)).toBeLessThan(0.05);
     });
   });
 });

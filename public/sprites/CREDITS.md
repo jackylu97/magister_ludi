@@ -206,136 +206,155 @@ lit, tended, and something a person carries.
 
 ## `src/art/resourceMarks.ts` — 41 resource marks, as path data
 
-**Thirty-two original, nine vendored**, and the split is new as of the luxury pass
-(2026-08-27). They are the ink on the kind-shaped paper the **Resources lens** puts on a tile
-that carries something (see `src/render3d/badges3d.ts`, `TileIcons`), and they are the only
-thing on the board that can actually *name* a resource — the diorama props next to them say
-"an animal, some ore, a vine", which is atmosphere rather than information.
+**One hand on one grid, twenty vendored and twenty-one drawn here**, and that is new as of
+the one-hand pass (2026-08-27). They are the ink on the kind-shaped paper the **Resources
+lens** puts on a tile that carries something (see `src/render3d/badges3d.ts`, `TileIcons`),
+and they are the only thing on the board that can actually *name* a resource — the diorama
+props next to them say "an animal, some ore, a vine", which is atmosphere rather than
+information.
 
-- The thirty-two are **original work for this project**, CC0 1.0, on the house 64-unit grid.
-- The nine are **Tabler Icons** (MIT), pinned at the same `@tabler/icons` **3.46.0** the badge
-  roster is, copied to the coordinate and kept on upstream's 24-unit grid. Each one carries its
-  own `credit` on its row in `resourceMarks.ts`, which is what makes the table below checkable
-  rather than a second list that can drift from the code.
+- They are **not files**, and this is the one set in this folder that is not. See "path data,
+  not files" below.
+- Every one of them is on **Tabler's 24-unit grid at weight 2.75** — the badge roster's own
+  box and the six yield voices' own box.
+- **Twenty are Tabler Icons** (MIT), pinned at the same `@tabler/icons` **3.46.0** the badges
+  are, copied to the coordinate.
+- **Twenty-one are original work for this project** (CC0 1.0), drawn *in Tabler's geometry*:
+  the 24 box, 2.75, round caps and joins, no fill anywhere. This is `siege.svg` and
+  `spear.svg`'s arrangement one set over, and for the same reason.
+
+Each row carries its own `credit` in `resourceMarks.ts` — **required**, not optional — which
+is what makes the table below checkable rather than a second list that can drift from the
+code.
 
 ### The debt this file was recording, and how it was paid
 
-The note that stood here said the resource marks and the badges still shared *the weight,
-which is what a viewer actually reads*. That had been wrong since the icon pass. The badges and
-the six yield voices went to a vendored 2.75 on a 24-unit box — 0.115 of their grid — while
-this set stayed at 5 on 64, which is 0.078 of its own, a third lighter. The user's report is
-the same observation from outside the code: *"icon pass over luxury resources, the new unit
-banners look great."*
+The previous note said the set was "two hands under one weight": thirty-two drawings of ours
+on the house 64-unit grid and nine Tabler ports on upstream's 24, re-weighted so both painted
+the same line. That fixed the weight and nothing else, and the user read the rest of it off
+the board:
 
-Two things changed and nothing else:
+> *"the luxury resources don't look different, ideally they look consistent with the lucide
+> icons and military icons. We need to do a pass on the bonus resources too."*
 
-1. **The house weight went from 5 to 6.5** (`MARK_STROKE`), which is 0.102 of the 64 box and
-   lands on the vendored sets' painted line once the house grid's tighter safe circle is
-   allowed for — these marks reach about 78% of their box where a 24-unit vendored one reaches
-   about 83%. The filled shapes' lighter outline followed it, 4 → 5.2, holding the same ratio.
-   It is **one number for the whole house hand** — resources, discovery sites, heraldry, card
-   lines, the marginalia and the printer's devices all default to it — because a per-family
-   weight is how a set stops being a set, which is the same sentence this file already makes
-   twice about the badges and the yields.
-2. **Nine marks were replaced by Tabler drawings**, in every case where upstream has a mark
-   that reads as the thing at twelve pixels and ours did not. Six of the nine were *filled*
-   here, and a fill is what kills a mark at that size: the gaps between six grape berries or
-   three banana crescents close into one black mound. Upstream's are outline, overlapped, and
-   survive the shrink.
+A shared weight is not a shared hand. Two sets drawn to two padding conventions, with two
+ideas about how round a corner is and whether a lobe may be filled, sit on one board looking
+like two sets. So the whole table moved:
 
-Every other mark stayed exactly as drawn, re-weighted only by (1). Where Tabler has nothing
-that reads as the thing — an oxhide ingot, a coil pot, a murex whelk, a bison, a censer, a
-crab, a comb cell — ours is still the better drawing and there was no reason to move it.
+1. **All forty-one are on the 24-unit grid at 2.75.** The house 64 and its 6.5 stay declared
+   in `resourceMarks.ts` because five other families still draw on them — heraldry, the
+   discovery sites, the card lines, the marginalia and the printer's devices — and those are
+   drawn *large*, where 64 units of detail is right. A resource mark is read at twelve pixels
+   on a hex, and twelve pixels is what this grid is for.
+2. **Eleven more marks became Tabler drawings**, wherever upstream has one that reads as the
+   thing at twelve pixels. Some of those shift the metaphor a step, deliberately: a paw for
+   furs, a bone for ivory, a stack of coin for silver, a crown for gold, a candy for sugar.
+   A mark that reads is worth more than a mark that is literal and illegible.
+3. **The rest were redrawn here on the 24 grid**, and every fill in the set is gone. A filled
+   lobe closes its own gaps at tile size — which is why two solid tusks read as a pair of
+   croissants and six solid grape berries read as one mound.
+4. **`PORTED_MARK_BOX` / `PORTED_MARK_STROKE` / `PORTED_MARK_SCALE` and `resourceMarkPrint`
+   are gone**, along with the `cube`, `crescent`, `spiral` and `fan` helpers whose only
+   callers were marks that left. One grid needs no reconciliation; the single inset that
+   remains is `RESOURCE_MARK_SCALE`, `YIELD_MARK_SCALE`'s twin.
 
-| Resource | Tabler icon | Why it moved |
-| --- | --- | --- |
-| `wheat` | `wheat` | a bound sheaf of seven paths against one ear of four |
-| `deer` | `deer` | a stag's head reads as a deer; bare antlers read as a fork |
-| `fish` | `fish` | ours was a filled lens with a triangle; upstream's has a gill line and a mouth |
-| `bananas` | `banana` | the stem and the squared end are what stop one crescent reading as a horn |
-| `horses` | `horse` | the open question below, closed |
-| `gems` | `diamond` | the same cut gem with one facet line instead of five |
-| `wine` | `grape` | six filled berries closed into a mound at tile size |
-| `spices` | `pepper` | a filled pod was a blob; the outline keeps the shoulder |
-| `tea` | `leaf` | the same leaf, drawn by somebody who draws leaves |
+`test/render/resources3d.test.ts` pins the shape of all of it: one grid, one weight, no fills,
+and a credit on every row in one of exactly two sentences.
 
-The two edits made to these nine are the badge section's two, word for word: nothing was
-re-fitted or re-centred, the 24-unit grid is upstream's own, and `test/render/resources3d.test.ts`
-pins the grid, the weight and the no-fill rule so a tidy-up of a curve is a failing test rather
-than a silent redraw of somebody else's icon.
+### The two edits made to the vendored drawings, and no others
 
-They are **not files**, and this is the one set in this folder that is not. Seventeen of them
-were files; the other twenty-four rows of `data/resources.json` had no drawing at all and fell
-through to the emoji on the row, on the board *and* in every DOM panel that named them.
-Finishing the set meant deciding where a finished mark lives, and a file lost: the panels print
-the same marks as the board, a file can only ever be one colour, and this interface sets the
-same sentence on parchment and on ink. So the drawings are path data on the same 64 × 64 grid,
-traced into the atlas with `Path2D` and masked into the DOM as a `data:` URI
+Word for word the badge section's two, above: the stroke was weighted from upstream's 2 to
+**2.75** on upstream's own 24-unit grid, and nothing else. No path was re-fitted and no shape
+re-centred, so a `d` string here is copy-pasteable back to and from Tabler's — which is what
+makes a re-vendoring a diff rather than a redraw. (The colour edit does not apply: these are
+path data, inked by whoever prints them.)
+
+### Path data, not files
+
+Seventeen of these were once SVG files; the other twenty-four rows of `data/resources.json`
+had no drawing at all and fell through to the emoji on the row, on the board *and* in every
+DOM panel that named them. Finishing the set meant deciding where a finished mark lives, and
+a file lost: the panels print the same marks as the board, a file can only ever be one colour,
+and this interface sets the same sentence on parchment and on ink. So the drawings are path
+data, traced into the atlas with `Path2D` and masked into the DOM as a `data:` URI
 (`src/ui/resourceMark.ts`) where the ink is `currentColor`. One drawing, two printers.
 
-Shapes that repeat are a small vocabulary of helpers rather than forty-one blobs of path code —
-`cube`, `leaf`, `drop`, `ingot`, `dot`, `spark`, `crescent`, `fan`, `spiral`, `stalk`, `poly`
-and `line`. `cube` reproduces the hand-drawn `stone` and `salt` blocks *to the coordinate*,
-which is how the port of the original seventeen was checked (`test/resources3d.test.ts`).
+Shapes that repeat are a small vocabulary of helpers rather than forty-one blobs of path code
+— `leaf`, `drop`, `ingot`, `dot`, `spark`, `stalk`, `poly` and `line`. They take coordinates
+and are grid-agnostic, which is why the move from 64 to 24 cost them nothing.
 
-`horses` **is the badge's horse again**, and that closes the open art question this file has
-been carrying since the icon pass. The story is worth keeping because the arrangement worked:
-the pasture and the cavalry it buys were one drawing; the badge moved to Tabler and the
-pasture did not, precisely because each roster keeps its own copy rather than sharing a file,
-and "a future cavalry badge redraw must not silently redraw the pasture" is what that bought.
-The redraw came, it did not propagate, and somebody then *decided* — which is the whole point.
-It is the same upstream drawing rather than a shared file still, because a resource mark and a
-unit badge are never on screen in the same roundel and the two rosters keep the right to move
-apart again.
+`horses` **is the badge's horse**, and that closes the open art question this file carried
+from the icon pass. It is the same upstream drawing rather than a shared file, because a
+resource mark and a unit badge are never on screen in the same roundel and the two rosters
+keep the right to move apart again.
 
 `emoji` stays on every row of `data/resources.json` as the **last resort**, and nothing that
 ships uses it: a resource with no entry in the registry prints its glyph exactly as this
 project always did, which is what keeps a resource added at runtime legible with no code
 written for it.
 
-| Resource | Mark |
-| --- | --- |
-| `wheat` | an ear of wheat, two sprays off one stem — Tabler `wheat` (MIT) |
-| `cattle` | a cow's head, horns out |
-| `deer` | a stag's head, antlers full — Tabler `deer` (MIT) |
-| `fish` | a fish, tail to the left — Tabler `fish` (MIT) |
-| `stone` | a cut block in three-quarter view |
-| `rice` | three drooping stalks standing in water |
-| `maize` | a cob in its husk, kernels ranked |
-| `bananas` | a single fruit, stem squared at the top — Tabler `banana` (MIT) |
-| `copper` | an oxhide ingot, four horns and a hollowed waist |
-| `tin` | two cast bars, stacked |
-| `clay` | a coil pot, its rim thrown wide |
-| `reeds` | papyrus stems under their umbels |
-| `crabs` | a crab, claws raised |
-| `bison` | a bison head, shaggy crown and short horns |
-| `horses` | the badge set's horse, in full — Tabler `horse` (MIT) |
-| `iron` | an anvil on its block |
-| `gems` | a cut gem, table and pavilion, with one facet line — Tabler `diamond` (MIT) |
-| `silk` | a banner hung from a rail |
-| `wine` | a bunch of grapes under a stem and a leaf — Tabler `grape` (MIT) |
-| `spices` | a pepper pod under its stem — Tabler `pepper` (MIT) |
-| `salt` | a salt crystal, with two glints |
-| `incense` | a censer under three curls of smoke |
-| `jade` | a pierced disc, the bi, on its cord |
-| `marble` | a colonnade on its stylobate |
-| `furs` | a stretched pelt |
-| `dyes` | two dye vats, dripping |
-| `ivory` | a pair of tusks, tips up |
-| `amber` | a drop of resin with a fly caught in it |
-| `tea` | a leaf on its stem, midrib drawn — Tabler `leaf` (MIT) |
-| `coffee` | a sprig of two cherries under a leaf |
-| `cotton` | a burst boll in its spiked calyx |
-| `sugar` | two jointed canes and a blade of leaf |
-| `olives` | a sprig, two leaves and two olives |
-| `lapis` | a polished cabochon, flecked with pyrite |
-| `silver` | a cast bar under the moon |
-| `gold` | a cast bar under the sun |
-| `honey` | a comb cell, dripping |
-| `pearls` | a pearl in an open shell |
-| `coral` | a branching stag coral on its foot |
-| `whales` | a fluke, sounding |
-| `tyrian` | a murex whelk, whorl and spines |
+| Resource | Source | Mark |
+| --- | --- | --- |
+| `wheat` | Tabler `wheat` | an ear of wheat, two sprays off one stem |
+| `cattle` | *drawn here* | an ox's head, horns swept wide |
+| `deer` | Tabler `deer` | a stag's head, antlers full |
+| `fish` | Tabler `fish` | a fish, tail to the left |
+| `stone` | Tabler `cube` | a cut block in three-quarter view |
+| `rice` | *drawn here* | three drooping stalks standing in water |
+| `maize` | *drawn here* | a cob laid on the diagonal, kernels ranked, one husk at its foot |
+| `bananas` | Tabler `banana` | a single fruit, stem squared at the top |
+| `copper` | *drawn here* | an oxhide ingot, four horns and a hollowed waist |
+| `tin` | *drawn here* | two cast bars, stacked |
+| `clay` | *drawn here* | a coil pot, its rim thrown wide |
+| `reeds` | *drawn here* | papyrus stems under their umbels |
+| `crabs` | *drawn here* | a crab, eyes on stalks and both claws up |
+| `bison` | *drawn here* | a bison head, shaggy crown and stub horns |
+| `horses` | Tabler `horse` | the badge set's horse, in full |
+| `iron` | *drawn here* | an anvil, horn out, on its foot |
+| `gems` | Tabler `diamond` | a cut gem, table and pavilion, with one facet line |
+| `silk` | *drawn here* | a bolt of cloth hung from a rail, its hem in points |
+| `wine` | Tabler `grape` | a bunch of grapes under a stem and a leaf |
+| `spices` | Tabler `pepper` | a pepper pod under its stem |
+| `salt` | Tabler `salt` | a salt shaker, three grains falling |
+| `incense` | *drawn here* | a censer under three curls of smoke |
+| `jade` | *drawn here* | a pierced disc, the bi |
+| `marble` | Tabler `building-bank` | a colonnade under its pediment, on a stylobate |
+| `furs` | Tabler `paw` | a paw, four toes and a pad |
+| `dyes` | Tabler `bucket-droplet` | a dyer's bucket, one drop cast |
+| `ivory` | Tabler `bone` | a bone, knuckled at both ends |
+| `amber` | *drawn here* | a drop of resin with something caught in it |
+| `tea` | Tabler `leaf` | a leaf on its stem, midrib drawn |
+| `coffee` | Tabler `coffee` | a cup under two curls of steam |
+| `cotton` | *drawn here* | a burst boll in its spiked calyx |
+| `sugar` | Tabler `candy` | a boiled sweet, twisted at both ends |
+| `olives` | *drawn here* | a sprig, two leaves over two olives |
+| `lapis` | *drawn here* | a polished cabochon, flecked with pyrite |
+| `silver` | Tabler `coins` | a stack of struck coin |
+| `gold` | Tabler `crown` | a crown, five points |
+| `honey` | *drawn here* | a comb cell, dripping |
+| `pearls` | *drawn here* | a pearl over an open shell |
+| `coral` | *drawn here* | a branching stag coral on its foot |
+| `whales` | *drawn here* | a fluke, sounding |
+| `tyrian` | Tabler `spiral` | a whelk shell, whorl tapering to its apex |
+
+### The five swaps worth arguing about
+
+Metaphor moved a step in each of these, on purpose, and each one is a mark that reads at
+twelve pixels replacing one that did not:
+
+- **`stone` and `salt` were the same drawing.** Both were the house `cube()` block; salt was
+  told apart by two sparkles, which is a difference twelve pixels cannot carry. Stone is now
+  upstream's `cube` and salt is a shaker.
+- **`silver` and `gold` were the same drawing too** — a cast bar under a moon and the same bar
+  under a sun. They are two different treasures now: a stack of struck coin, and the metal a
+  crown is made of.
+- **`furs`** was a stretched pelt, which has no name at this size; a paw is the animal it came
+  off, and a silhouette that survives.
+- **`ivory`** was two filled tusks, the heaviest mark in the old table and the one that most
+  obviously read as a pair of croissants.
+- **`incense` is deliberately *not* Tabler's `candle` or `flame`.** The candle is the augur's
+  badge and the flame is the faith yield's voice, so either would have the board saying "this
+  hex makes faith". A censer is the same idea one step over — burnt, not lit. It is drawn here.
 
 ## The six yield voices — `src/art/yieldMarks.ts`
 
@@ -383,14 +402,16 @@ gilt, and so on through all six — because the colour as a mass is what survive
 across, and a thin green stroke on green grass does not. The ink is `icons.yieldInkColor` from
 `data/view3d.json`, so it stays a data decision.
 
-Every *original* mark in `resourceMarks.ts` and `siteMarks.ts` is authored on the project's own
-64 × 64 grid inside a safe circle, in one ink at one stroke weight, with round caps and joins
-throughout — the consistency *is* the design. Every **vendored** mark keeps upstream's 24-unit
-grid instead — the six yields here, and since the luxury pass the nine ported resource marks —
-because rescaling path data is how a vendored drawing quietly stops being the drawing that was
-vendored; both printers take the grid as a parameter, and a scale constant reconciles the two
-sets' padding conventions so they print at the same optical size in the same roundel
-(`YIELD_MARK_SCALE` for the voices, `PORTED_MARK_SCALE` for the resource ports).
+There are **two grids in this project and the split is by what a mark is read at**, not by who
+drew it. Everything read small — the six yields here, the eleven badges, and since the one-hand
+pass all forty-one resource marks — is on upstream's **24-unit** box at 2.75, vendored or drawn
+in that geometry. Everything read large — the twelve heraldic charges, the discovery sites, the
+card lines, the marginalia, the printer's devices — is on this project's own **64-unit** grid at
+6.5, inside a safe circle, in one ink with round caps and joins throughout. A vendored mark
+keeps upstream's grid rather than being rescaled into ours, because rescaling path data is how a
+vendored drawing quietly stops being the drawing that was vendored. Both printers take the box
+as a parameter, and one scale constant per small set (`YIELD_MARK_SCALE`, `RESOURCE_MARK_SCALE`)
+insets it to the same optical size in the same roundel.
 
 ## Marginalia (`icons/marginalia/`)
 

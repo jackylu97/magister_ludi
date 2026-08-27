@@ -1,13 +1,20 @@
 /**
- * The drawn site marks: one ink pictogram per kind of discovery site, in the
- * same hand and on the same grid as `resourceMarks.ts`.
+ * The drawn site marks: one ink pictogram per kind of discovery site, on the
+ * **house 64-unit grid** at the house weight.
  *
  * Why a second file rather than two more rows over there
  * -----------------------------------------------------
- * The drawing language is shared and deliberately so — `MARK_BOX`, the house
- * stroke weight, `ink` and `solid`, and every silhouette helper come from that
- * module, so the two sets are one hand and cannot drift. What is *not* shared is
- * the thing being drawn. A resource mark names a commodity: something the ground
+ * The house drawing language is shared and deliberately so — `MARK_BOX`,
+ * `MARK_STROKE`, `ink` and `solid`, and every silhouette helper come from
+ * `resourceMarks.ts`, which is where that language lives. The *resource* table
+ * itself no longer speaks it: since the one-hand pass (2026-08-27) all forty-one
+ * resource marks are on Tabler's 24-unit box at 2.75, because a resource mark is
+ * read at twelve pixels on a hex. A site marker is read on its own hex tablet
+ * with nothing competing, so it stays where the heraldry and the card lines are —
+ * 64 units is the right grid for a drawing that is allowed detail, and
+ * `public/sprites/CREDITS.md` records the split.
+ *
+ * What is *not* shared, and never was, is the thing being drawn. A resource mark names a commodity: something the ground
  * carries, that a citizen works, that shows up in a yield. A site mark names an
  * **event**: something that happens once, to whoever gets there first, and then
  * is gone. Keying both off one registry would invite exactly the confusion the

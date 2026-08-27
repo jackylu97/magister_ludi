@@ -97,8 +97,10 @@ import {
   MARK_BOX,
   MARK_STROKE,
   type MarkPath,
+  RESOURCE_MARK_BOX,
+  RESOURCE_MARK_SCALE,
+  RESOURCE_MARK_STROKE,
   resourceMark,
-  resourceMarkPrint,
 } from '../art/resourceMarks';
 import { siteMark } from '../art/siteMarks';
 import {
@@ -976,18 +978,19 @@ function drawResourceCell(
     );
     return;
   }
-  // The mark's own grid, weight and print size — see `resourceMarkPrint`. Nine
-  // of the forty-one rows are Tabler ports that keep upstream's 24-unit box, and
-  // the whole of what that costs the atlas is this one lookup.
-  const print = resourceMarkPrint(mark);
+  // One grid, one weight, one print size for all forty-one — the whole table is
+  // on upstream's 24-unit box now (see the module docblock in `resourceMarks.ts`),
+  // so there is no per-mark lookup left to get wrong. The inset is
+  // `RESOURCE_MARK_SCALE`, which reconciles a 24-unit drawing's reach with the
+  // roundel's rim exactly as `YIELD_MARK_SCALE` does one set over.
   paintMarkPaths(
     context,
     mark,
     center,
-    Math.max(1, print.scale * ICONS.iconScale * layout.cell),
+    Math.max(1, RESOURCE_MARK_SCALE * ICONS.iconScale * layout.cell),
     ICONS.inkColor,
-    print.box,
-    print.stroke,
+    RESOURCE_MARK_BOX,
+    RESOURCE_MARK_STROKE,
   );
 }
 
