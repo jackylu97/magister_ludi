@@ -184,5 +184,10 @@ so it stays an integer). Trader cost `40⚙`, the settler band's floor.
    trader's cost in gold (no walk)?
 
 ## Revisions
-
-*(yours — edit away; ✎ marks what changed)*
+origin pays
+rangeTurns, lets make that 10. Once a trader has been sent to a city, the origin and destination city both get a trading post. Trading posts extend the range of routes.
+foreign routes, yes. Lets add that later once we add diplomacy.
+internal routes to the capital? We should jsut keep the logic as above and have player decide optimal routes to send
+road maintenance, yes, we should start adding maintenance costs to the game, note that as a to-do. 1gold per 4 hexes seems reasonable. For enforcement, only charge maintenance for roads built by the player.
+Road is permanent, the route expires in 20 turns. Add a button for 'auto-resend'.
+the trader unit should be traveling along the road and can be pillaged for gold, food, and production to the pillager's nearest city.
