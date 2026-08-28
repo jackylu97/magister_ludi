@@ -393,14 +393,17 @@ describe('settlement: every boon pays its printed number', () => {
   it("banks a masons' hoard as hammers and completes the front of the queue", () => {
     const state = withCity();
     const city = state.cities[0]!;
-    city.queue = [{ kind: 'building', id: 'monument' }];
+    // Re-pinned 2026-08-28: the ×1.4 building-cost ruling put the monument
+    // (21⚙) above a masons' hoard's flat 20, so a shrine (15⚙, still under it)
+    // stands in for the "the hoard alone completes the front" case.
+    city.queue = [{ kind: 'building', id: 'shrine' }];
     city.hammerBasket = 0;
 
     offerOf(state, 0, 'masonsHoard', 5, 6);
     const done = settleDiscovery(state, playerById(state, 0)!, 0);
     expect(done?.cityName).toBe(city.name);
-    expect(city.buildings).toContain('monument');
-    expect(done?.completed).toBe('Monument');
+    expect(city.buildings).toContain('shrine');
+    expect(done?.completed).toBe('Shrine');
   });
 
   it('pays the three empire pools and the treasury exactly', () => {
@@ -558,7 +561,10 @@ describe('the preview', () => {
     const state = bareState();
     foundCityAt(state, 0, at(state, 5, 5));
     const city = state.cities[0]!;
-    city.queue = [{ kind: 'building', id: 'monument' }];
+    // Re-pinned 2026-08-28, same reason as the settlement test above: a
+    // shrine (15⚙) stays under the hoard's flat 20 where a monument (21⚙) no
+    // longer does.
+    city.queue = [{ kind: 'building', id: 'shrine' }];
     city.hammerBasket = 0;
 
     const player = playerById(state, 0)!;
@@ -567,7 +573,7 @@ describe('the preview', () => {
     expect(payoff!.yield).toBe('production');
     expect(payoff!.amount).toBe(20);
     expect(payoff!.cityName).toBe(city.name);
-    expect(payoff!.completes).toBe('Monument');
+    expect(payoff!.completes).toBe('Shrine');
 
     const done = settleDiscovery(state, player, 0);
     expect(done?.completed).toBe(payoff!.completes);
