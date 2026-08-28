@@ -243,13 +243,13 @@ describe('the index', () => {
     expect(landing).toEqual({ openSection: 'intro', marked: 'intro:howToPlay', clearSearch: false });
   });
 
-  it('finds “caravan” on the Concepts shelf, in the prose rather than a name', () => {
-    const filtered = filterSections(BOOK, 'caravan');
+  it('finds “trader” on the Concepts shelf, in the prose rather than a name', () => {
+    const filtered = filterSections(BOOK, 'trader');
     const hits = filtered.find((section) => section.id === 'concept')!.entries;
     expect(hits.length).toBeGreaterThan(0);
     for (const entry of hits) {
       expect(entry.written).toBe(true);
-      expect(entry.clauses.some((clause) => clause.text.toLowerCase().includes('caravan'))).toBe(
+      expect(entry.clauses.some((clause) => clause.text.toLowerCase().includes('trader'))).toBe(
         true,
       );
     }
