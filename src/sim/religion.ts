@@ -181,13 +181,38 @@ export function isAugur(unit: Unit): boolean {
 }
 
 /**
+ * True when this augur has already spent its day — the one reading of "a rite is
+ * the augur's whole turn" (user, 2026-08-27, restated in the 8/28 playtest as
+ * "performing a rite should end the augur's turn").
+ *
+ * `performRiteAt` has zeroed `movesLeft` since the rule was first stated, but
+ * *spending* the turn and *refusing the next act* are two halves of one rule and
+ * only the first half had been written: an augur with two charges could perform
+ * two rites in one resolution, which is precisely the sprint the charge ladder
+ * exists to prevent. Both gates below ask this, so the second rite and the
+ * consecration after a rite are refused by the same sentence.
+ *
+ * `movesLeft`, rather than a flag of its own, because that is already the
+ * game's word for "this piece has acted": a worker's verbs refuse on it
+ * (`improvementError`), an attack spends it, and reading it here means the augur
+ * that walked its whole allowance to reach a town blesses it *next* turn — the
+ * same bargain every other piece on the board makes with its movement. It needs
+ * no phase to clear it; `resetMovement` already does, which is the
+ * `TimedEffect` discipline applied to a thing that lasts exactly one turn.
+ */
+export function augurHasActed(unit: Unit): boolean {
+  return unit.movesLeft <= 0;
+}
+
+/**
  * Why this augur cannot consecrate, or `null` when it can.
  *
  * **Consecrate spends the whole unit, whatever it has left.** That is the
  * anti-spam structure (`docs/religion.md`): an augur is *either* three rites *or*
  * one god, so a player who has already spent two charges is giving up much less
  * than one who has spent none, and the choice is a real one at every point on
- * that curve. There is therefore no charge clause here at all — only a slot one.
+ * that curve. There is therefore no charge clause here at all — only a slot one,
+ * and the turn clause every act of an augur's now shares (`augurHasActed`).
  *
  * The blocker sentence for a full pantheon is the one the unit panel prints, so
  * a greyed row and a refused command say the same thing.
@@ -203,6 +228,11 @@ export function consecrateError(
   if (!unit) return `No unit with id ${String(unitId)}`;
   if (unit.ownerId !== playerId) return `Unit ${unit.id} does not belong to player ${playerId}`;
   if (!isAugur(unit)) return `A ${unitDef(unit.type).name} cannot consecrate`;
+  // Held to the rite's own rule (`augurHasActed`): an augur that blessed a town
+  // this turn does not then go and found a god with what is left of the day.
+  // Consecration spends the whole piece either way, so this is not about
+  // charges — it is about the turn, and it is the same sentence the rite gives.
+  if (augurHasActed(unit)) return `The augur has acted this turn`;
   if (player.pantheon.pending !== undefined) {
     return `${player.name} has a god still awaiting judgment`;
   }
@@ -374,8 +404,8 @@ export function riteUnitTarget(
  * **The** gate, and the unit panel greys its rite rows with exactly it, so an
  * offered row is a command the reducer takes and the sentence on a refusal is
  * the reducer's own. The refusals in the order a player would think of them: is
- * this my augur, does it have a rite left, do I know this one, is the target in
- * reach, and is there anything there to bless.
+ * this my augur, does it have a rite left, has it already acted today, do I know
+ * this one, is the target in reach, and is there anything there to bless.
  *
  * Reach is **one hex**, measured on the map's own wrapped distance, and it is
  * the same rule for both target kinds: a rite is a thing you walk up to.
@@ -394,6 +424,10 @@ export function riteError(
   if (unit.ownerId !== playerId) return `Unit ${unit.id} does not belong to player ${playerId}`;
   if (!isAugur(unit)) return `A ${unitDef(unit.type).name} performs no rites`;
   if ((unit.chargesLeft ?? 0) < 1) return `That augur has no rites left`;
+  // The other half of "a rite is the augur's whole turn". `performRiteAt` spends
+  // the movement; this refuses the act that would have followed it, which is
+  // what makes an augur three rites over three turns rather than three in one.
+  if (augurHasActed(unit)) return `The augur has acted this turn`;
   if (!isRiteId(rite)) return `There is no rite called "${String(rite)}"`;
   const def = riteDef(rite);
   if (!hasAbility(state, playerId, riteAbility(rite))) {
@@ -518,6 +552,9 @@ export interface RitePerformance {
  *      *mechanism* rather than in the reducer, for `buildImprovementAt`'s stated
  *      reason: an AI that performs one gets it without having to remember. Only
  *      a surviving augur is written to, because a spent one has left the board.
+ *      The *refusal* that makes this bite is `augurHasActed`, asked by both
+ *      gates — spending the movement here and refusing the next act there are
+ *      one rule in two halves, and for a while only this half existed.
  */
 export function performRiteAt(
   state: GameState,

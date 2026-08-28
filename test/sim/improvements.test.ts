@@ -30,6 +30,7 @@ import {
   improvementDef,
   improvementForResource,
   improvementYield,
+  isGreatPersonWork,
   isImprovementId,
 } from '../../src/sim/improvementData';
 import {
@@ -1406,15 +1407,21 @@ describe('explainTileYield', () => {
       expect(entry!.kind).toBe('add');
       // Six voices, not three: an academy pays science and a landmark culture,
       // and the three-voice reading was written when the ground only ever paid
-      // food, hammers and coin. **The citadel is the one row that pays nothing
-      // at all** — what it is worth is +8 to whoever defends the hex
+      // food, hammers and coin.
+      //
+      // **Every row pays something now**, the citadel included: it was the one
+      // exception — worth +8 to whoever defends the hex
       // (`ImprovementDef.defense`, folded into `planCombat`'s breakdown) and a
-      // ring of ground, neither of which is a tile yield.
+      // ring of ground, neither of which is a tile yield — and it grew 2⚙ on
+      // 2026-08-28 (user: "citadel improvements should give +2 production").
+      // A fort that pays nothing is a fort a player never plants outside a war,
+      // and the general who plants one has spent a great person on the hex.
       const paid =
         entry!.food + entry!.production + entry!.gold +
         entry!.science + entry!.culture + entry!.faith;
-      if ((def.defense ?? 0) > 0) expect(paid, id).toBe(0);
-      else expect(paid, id).toBeGreaterThan(0);
+      expect(paid, id).toBeGreaterThan(0);
+      if (id === 'citadel') expect(entry!.production).toBe(2);
+      expect(def.name.length, id).toBeGreaterThan(0);
     }
   });
 });
@@ -1610,6 +1617,14 @@ describe('improvements in the log', () => {
    * passes or fails on terrain. The map may not be edited either — a save
    * carries a seed, and a hand-patched tile would not survive the replay this
    * whole section exists to assert.
+   *
+   * **A worker's improvement, though.** `improvementErrorAt` is the *ground's*
+   * half of the question and says nothing about who is standing there — the
+   * "a worker may not plant a work" clause lives in `improvementError`, one
+   * scale up — so a great person's work is legal on ground no worker could
+   * touch, and the caller below spawns a worker. Filtered here rather than
+   * asserted around, because the section is about a build and a pillage
+   * replaying, not about who may plant what.
    */
   function improvableTile(
     state: GameState,
@@ -1617,6 +1632,7 @@ describe('improvements in the log', () => {
   ): { tile: Tile; id: ImprovementId } | null {
     for (const tile of state.map.tiles) {
       for (const id of IMPROVEMENT_IDS) {
+        if (isGreatPersonWork(id)) continue;
         if (improvementErrorAt(state, playerId, tile, id) === null) return { tile, id };
       }
     }
@@ -1801,8 +1817,8 @@ describe('improvements in the log', () => {
     expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 24 save with improvements on the board', () => {
-    expect(SCHEMA_VERSION).toBe(24);
+  it('round-trips a schema 25 save with improvements on the board', () => {
+    expect(SCHEMA_VERSION).toBe(25);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

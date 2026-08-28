@@ -140,6 +140,7 @@ import { awardOccasion } from './triumphs';
 import { highestAge } from './techData';
 import { type ModelClass, type UnitTypeId, isCombatant, unitDef } from './unitData';
 import { isVisibleTo } from './visibility';
+import { isCoastal } from './water';
 
 const METER = STATECRAFT.meter;
 
@@ -1082,6 +1083,15 @@ export function cityScopeAdmits(state: GameState, city: City, scope?: CityScope)
       return city.captured;
     case 'capital':
       return capitalCityOf(state, city.ownerId)?.id === city.id;
+    case 'notCapital':
+      // The negation asked of the same answer, rather than of a second lookup:
+      // a realm with no capital at all (none founded yet) has no city standing
+      // here to ask about either, so the two arms cannot disagree.
+      return capitalCityOf(state, city.ownerId)?.id !== city.id;
+    case 'onHills':
+      // The centre's own hex, exactly as `onTerrain` is. Hills are an overlay
+      // and never a terrain — see the scope.
+      return cityTile(state.map, city).hills;
     case 'populationAtLeast':
       return city.population >= scope.value;
     case 'holding': {
@@ -1137,6 +1147,10 @@ function scopeNote(scope?: CityScope): string | null {
       return 'conquered city';
     case 'capital':
       return 'capital';
+    case 'notCapital':
+      return 'not the capital';
+    case 'onHills':
+      return 'hill city';
     case 'populationAtLeast':
       return `size ${scope.value}+`;
     case 'holding':
@@ -1197,15 +1211,11 @@ function countOf(
       // reading every city-scale resource question already takes
       // (`resourceEffects.ts`): two wheat fields in one city are one holding,
       // and the sweep is over that city's tiles rather than the whole map.
-      if (effect.within === 'city') {
-        return city ? cityResources(state, city, 'bonus').length : 0;
-      }
-      let total = 0;
-      for (const id of controlledResources(state, playerId, 'bonus')) {
-        total += resourceCopies(state, playerId, id);
-      }
-      return total;
+      return improvedResources(state, playerId, 'bonus', effect, city);
     }
+    case 'improvedStrategicResources':
+      // The same sweep with the other kind. See `improvedResources`.
+      return improvedResources(state, playerId, 'strategic', effect, city);
     case 'cities':
       return cityCount(state, playerId);
     case 'population': {
@@ -1298,12 +1308,91 @@ function countOf(
       return city ? city.buildings.length : 0;
     case 'workedTilesInCity':
       return city ? city.workedTiles.length : 0;
+    case 'wonders': {
+      // A wonder is one per world, so the empire's own towns are the whole of
+      // the question — and a captured wonder joins this count the turn the town
+      // changes hands, which is the framework's rule (what a wonder pays follows
+      // the stones).
+      let total = 0;
+      for (const town of state.cities) {
+        if (town.ownerId !== playerId) continue;
+        for (const id of town.buildings) {
+          if (isWonder(id)) total += 1;
+        }
+      }
+      return total;
+    }
+    case 'revealedTiles': {
+      // The seat's own monotone grid, counted whole. Anything above `HIDDEN`
+      // has been walked past once, which is what "revealed" means everywhere
+      // else in the game — the level is read as a number here rather than
+      // through `isExploredBy` because the address is the index a sweep already
+      // holds and there are four thousand of them.
+      const grid = state.visibility[playerId];
+      if (!grid) return 0;
+      let total = 0;
+      for (const level of grid) {
+        if (level > 0) total += 1;
+      }
+      return total;
+    }
+    case 'sightedCities': {
+      // **Foreign** towns only: a seat's own cities are in its sightings too,
+      // and a card that counted them would be paying twice for founding.
+      let total = 0;
+      for (const sighting of state.citySightings[playerId] ?? []) {
+        if (sighting.ownerId !== playerId) total += 1;
+      }
+      return total;
+    }
+    case 'agesClosed':
+      // The eras *behind* this empire. `highestAge` is 1-based and an empire in
+      // the first age has closed nothing, so the floor at zero is the meaning
+      // rather than a guard.
+      return Math.max(0, highestAge(playerById(state, playerId)?.techsResearched ?? []) - 1);
+    case 'unitsInField': {
+      let total = 0;
+      for (const unit of state.units) {
+        if (unit.ownerId !== playerId) continue;
+        if (!unitMatches(unit.type, effect.class)) continue;
+        total += 1;
+      }
+      return total;
+    }
     default: {
       const unhandled: never = count;
       void unhandled;
       return 0;
     }
   }
+}
+
+/**
+ * Improved seams of one kind, at whichever scale the line asks for.
+ *
+ * The body `improvedBonusResources` always had, lifted the day a second kind
+ * wanted it (Shen Kuo's strategics), because the *reading* is the subtle part
+ * and two copies of it would drift: at empire scale the count is of **copies**
+ * — two improved wheat fields are two — and at town scale it is of **holdings**,
+ * which is the uniqueness reading every city-scale resource question already
+ * takes (`resourceEffects.ts`). One helper, so a card that names bonus seams and
+ * one that names strategic seams can never disagree about what "improved" means.
+ */
+function improvedResources(
+  state: GameState,
+  playerId: number,
+  kind: ResourceKind,
+  effect: CardCountScaledEffect,
+  city?: City,
+): number {
+  if (effect.within === 'city') {
+    return city ? cityResources(state, city, kind).length : 0;
+  }
+  let total = 0;
+  for (const id of controlledResources(state, playerId, kind)) {
+    total += resourceCopies(state, playerId, id);
+  }
+  return total;
 }
 
 /** The combat units standing in a city, in `state.units` order. */
@@ -1757,6 +1846,10 @@ export function cardProduction(
   const list: CardProductionLine[] = [];
   for (const { source, card, level, effect } of cityEffectsOfKind(state, city, 'productionBonus')) {
     if (effect.category !== category) continue;
+    // *Where* the hammers land, where `modelClass` is *what* they land on. The
+    // town is already in hand — a production modifier is asked of one city's
+    // queue — so the scope is the ordinary one and needs no second reading.
+    if (!cityScopeAdmits(state, city, effect.scope)) continue;
     if (effect.modelClass !== undefined) {
       if (unitType === undefined) continue;
       if (unitDef(unitType).modelClass !== effect.modelClass) continue;
@@ -2028,6 +2121,25 @@ function combatConditionHolds(
       const here = cityAt(state, situation.tile.col, situation.tile.row);
       return here !== undefined && here.ownerId === situation.unit.ownerId;
     }
+    case 'capturedCity': {
+      // `inCity` and one more question of the same town, asked of the same
+      // field `CityScope`'s `captured` asks of it.
+      const here = cityAt(state, situation.tile.col, situation.tile.row);
+      return here !== undefined && here.ownerId === situation.unit.ownerId && here.captured;
+    }
+    case 'onFeature':
+      return situation.tile.feature === when.feature;
+    case 'freshwater':
+      return situation.tile.freshwater;
+    case 'coastal':
+      // The same predicate a coastal *city* is decided by — Entry I.b's one
+      // evaluator, asked of a hex nobody has founded on.
+      return isCoastal(state.map, situation.tile);
+    case 'fortified':
+      // A fact about the piece this line is being asked for, whichever posture
+      // it is in: a dug-in unit that sallies is still dug in until the reducer
+      // breaks the fortification, and `breakFortify` is what decides that.
+      return situation.unit.fortifiedTurns !== undefined;
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -2766,8 +2878,12 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
     }
     case 'productionBonus': {
       const what = effect.modelClass ? `${effect.modelClass} units` : `${effect.category}s`;
+      // The scope trails as its own clause, exactly as a scoped `tileYield`'s
+      // does: "+20% production toward wonders, in your capital" says *where* the
+      // hammers are quicker without turning the category into a possessive.
+      const whose = effect.scope === undefined ? '' : `, in ${scopeWords(effect.scope)}`;
       out.push({
-        text: `${signed(scaleByLevel(effect.percent, level))}% production toward ${what}`,
+        text: `${signed(scaleByLevel(effect.percent, level))}% production toward ${what}${whose}`,
       });
       return;
     }
@@ -2808,8 +2924,14 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       // mounted +2 read as a bare "+2 combat strength" until `class` was
       // printed, which is a card that lies by omission.
       const who = effect.class === undefined ? '' : ` for ${filterWords(effect.class)}`;
+      // A condition that takes an argument prints it here, so that forest and
+      // jungle are one entry in `COMBAT_WORDS` and two rows on a card.
+      const when =
+        effect.when.test === 'onFeature'
+          ? `${COMBAT_WORDS.onFeature} ${effect.when.feature}`
+          : COMBAT_WORDS[effect.when.test];
       out.push({
-        text: `${each} combat strength${who}${scale} ${COMBAT_WORDS[effect.when.test]}`.trim(),
+        text: `${each} combat strength${who}${scale} ${when}`.trim(),
       });
       return;
     }
@@ -3099,6 +3221,13 @@ function countNoun(effect: CardCountScaledEffect): PluralWords {
     const name = buildingDef(effect.building).name;
     return { one: name, many: buildingPlural(name, 2) };
   }
+  // The filtered count, said the way the filter says it everywhere else —
+  // "per melee unit in the field". `filterWords` is already plural ("melee
+  // units"), so the singular trims the noun and the plural takes it whole.
+  if (effect.count === 'unitsInField' && effect.class !== undefined) {
+    const many = `${filterWords(effect.class)} in the field`;
+    return { one: many.replace(/\bunits\b/, 'unit'), many };
+  }
   return COUNT_WORDS[effect.count];
 }
 
@@ -3143,6 +3272,14 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     case 'capital':
       into.adjectives.push('capital');
+      return;
+    case 'notCapital':
+      // A qualifier and not an adjective: "every city but your capital" reads,
+      // and "every non-capital city" is a form no ratified row uses.
+      into.qualifiers.push('but your capital');
+      return;
+    case 'onHills':
+      into.qualifiers.push('on hills');
       return;
     case 'populationAtLeast':
       into.qualifiers.push(`of ${scope.value}+`);
@@ -3340,6 +3477,13 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   targetBelowHalf: 'against units below half strength',
   capitalTerritory: 'inside your capital’s borders',
   inCity: 'garrisoned in one of your cities',
+  capturedCity: 'in a city you took by force',
+  // The feature is printed by `describeEffect`, so that forest and jungle are
+  // one table entry and two data rows — `buildingsOfKind`'s bargain.
+  onFeature: 'in',
+  freshwater: 'beside fresh water',
+  coastal: 'on the coast',
+  fortified: 'while fortified',
 };
 
 const SCALE_WORDS: Record<'cities' | 'adjacentFriendlies', PluralWords> = {
@@ -3397,6 +3541,10 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'improved bonus resource',
     many: 'improved bonus resources',
   },
+  improvedStrategicResources: {
+    one: 'improved strategic resource',
+    many: 'improved strategic resources',
+  },
   cities: { one: 'city you hold', many: 'cities you hold' },
   population: { one: 'population', many: 'population' },
   capitalPopulation: {
@@ -3426,6 +3574,13 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   buildingsOfKind: { one: 'of them', many: 'of them' },
   buildingsInCity: { one: 'building in this city', many: 'buildings in this city' },
   workedTilesInCity: { one: 'tile worked here', many: 'tiles worked here' },
+  wonders: { one: 'wonder you hold', many: 'wonders you hold' },
+  revealedTiles: { one: 'hex you have revealed', many: 'hexes you have revealed' },
+  sightedCities: { one: 'foreign city you have sighted', many: 'foreign cities you have sighted' },
+  agesClosed: { one: 'age that has closed', many: 'ages that have closed' },
+  // The filter is not in these words: `countNoun` prints it, so that "per melee
+  // unit" and "per ranged unit" are one entry — `buildingsOfKind`'s bargain.
+  unitsInField: { one: 'unit in the field', many: 'units in the field' },
 };
 
 const RATE_WORDS: Record<RateSource, PluralWords> = {

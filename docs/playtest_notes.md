@@ -58,3 +58,18 @@ wow honey is broken, probably needs a rework  [done 8/26 — it was the farm-ove
 - great people improvements should be buildable anywhere, automatically gives strategic or luxury resource if built on top of them.
 - 'escape' key should work to exit the tech screen.
 - mapgen needs more bonus and fishing resource to enable wide coastal play
+
+
+8/28
+- citadel improvements should give +2 production
+- orders + religion benefits should show in city build screen (aka +1 prod for barracks belief, preview for barracks in the city build list should show +1 prod)
+- need to implement unimplemented orders/great people
+- performing a rite should end the augur's turn
+- cities can only purchase a single unit per turn
+- make early tiles easier to get with culture, we can ramp more over time
+- same with early food, the first few population feel a bit slow considering how fast other things seem to ramp up.
+- science costs need to scale harder
+- early statecrafts need a nerf (i'll handle)
+- health bars still bugged, aren't showing correct health in bar, but the hover info seems correct.
+- terrain bonuses should be additive, not percentage, could you check how civ 5/6 handles this?
+- need to flesh out city combat -- city should take damage from attacks from units, captured if a unit attacks and brings city health to zero. Cities heal every turn. Defensive buildings raise defensive strength and city health. City's base defensive strength is equal to strongest trainable unit (strategic resource rules apply). Add a new mechanic: cities under siege (all surrounding tiles under zone of control) take slow chip damage and cannot heal.

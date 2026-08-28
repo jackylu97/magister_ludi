@@ -325,7 +325,7 @@
       "greatPerson": "general",
       "yields": {
         "food": 0,
-        "production": 0,
+        "production": 2,
         "gold": 0
       },
       "clearsClutter": true,

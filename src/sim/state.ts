@@ -225,8 +225,16 @@ import {
  *     misread for the plainest possible reason: it contains a command name this
  *     build's reducer does not have, so a replay of one would stop dead partway
  *     through and leave a state no game ever reached.
+ * 25: One unit bought per city per turn (user, 2026-08-28: "cities can only
+ *     purchase a single unit per turn"). One optional field on a city
+ *     (`City.purchasedUnitTurn`, an absolute turn) and one clause in
+ *     `purchaseError`. A v24 log is a *different game* rather than an older one
+ *     for the usual reason: it may contain a second `purchaseItem` on a town
+ *     inside one turn, which this reducer refuses — so the replay would leave
+ *     the piece unbought, the treasury unspent, and every seeded thing after it
+ *     shifted.
  */
-export const SCHEMA_VERSION = 24;
+export const SCHEMA_VERSION = 25;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1035,6 +1043,26 @@ export interface City {
    * else reads it.
    */
   tradingPost?: boolean;
+  /**
+   * The turn this town last bought a **unit**, or the key is **absent** on a
+   * town that never has (user, 2026-08-28 playtest: "cities can only purchase a
+   * single unit per turn").
+   *
+   * An **absolute** turn compared against `state.turn`, never a countdown —
+   * `TimedEffect`'s rule and `SlottedOrder.sealedUntil`'s, applied to the
+   * shortest-lived fact in the game. The whole reading is
+   * `city.purchasedUnitTurn === state.turn`, so nothing decrements it, no phase
+   * clears it and the field is *already* meaningless the moment the turn rolls
+   * over. That is what makes the rule safe under simultaneous turns: there is no
+   * moment in the pipeline where it has to have been reset.
+   *
+   * **Units only.** A treasury that can turn coin into a garrison as fast as it
+   * can click is the thing the note is about; a town that buys a granary and a
+   * library on the same afternoon has bought two things it then has to feed.
+   * Written by `purchaseItemAt` and read by `purchaseError`, and by nothing
+   * else.
+   */
+  purchasedUnitTurn?: number;
 }
 
 /**

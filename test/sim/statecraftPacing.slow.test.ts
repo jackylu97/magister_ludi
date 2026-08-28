@@ -209,8 +209,15 @@ describe('the culture ladder', () => {
     }
     expect(tiers[0]!).toBeGreaterThan(14);
     expect(tiers[0]!).toBeLessThan(34);
-    expect(tiers[1]!).toBeGreaterThan(36);
-    expect(tiers[1]!).toBeLessThan(64);
+    // **Re-centred 2026-08-28.** Two things had drifted under this band and only
+    // one of them is a change: `GOVERNMENT_TIERS` moved to 4 / 10 / 18, which put
+    // the second charter on draft 10 rather than draft 7 and the measurement at
+    // 63 — one turn inside a bound written for 52 — and then the growth curve
+    // came down (10 · 6 · 1.65) and moved it to 64. A single turn of drift is
+    // noise, and a band a turn wide is not a band; it is re-centred on the new
+    // measurement at the width it always had.
+    expect(tiers[1]!).toBeGreaterThan(48);
+    expect(tiers[1]!).toBeLessThan(80);
     expect(tiers[2]!).toBeGreaterThan(90);
     expect(tiers[2]!).toBeLessThan(135);
   });

@@ -405,6 +405,15 @@ export interface CityRules {
    * is `growthBase + growthLinear · (n − 1) + (n − 1) ^ growthExponent`,
    * floored — linear early, superlinear later, so a size-2 city grows in a
    * handful of turns and a size-12 one takes an age.
+   *
+   * **The first citizens cost a third less since 2026-08-28** (user, playtest:
+   * "the first few population feel a bit slow considering how fast other things
+   * seem to ramp up"), which is 10 · 6 · 1.65 rather than 15 · 8 · 1.65. Both
+   * *height* terms come down and the exponent is untouched, for the border
+   * curve's reason inverted: the discount is meant to be felt at the bottom and
+   * to fade on its own, and the superlinear term is what makes it fade. The
+   * schedule is now 10 · 17 · 25 · 34 · 43 · 54 · 65 (was 15 · 24 · 34 · 45 ·
+   * 56 · 69 · 82) — a third off the second citizen and a fifth off the eighth.
    */
   growthBase: number;
   growthLinear: number;
@@ -449,12 +458,16 @@ export interface CityRules {
    * game"). Only the *pacing* is Civ 6's; which tile is taken is still this
    * game's best-yield chooser.
    *
-   * **Less a tenth since 2026-08-27** (user, playtest: "culture cost of adding
-   * new tiles feels a bit slow"), which is 9 · 5.4 · 1.3. The discount is taken
-   * on the two *height* terms and not on the exponent, so the curve keeps its
-   * shape — the tenth tile is a tenth cheaper exactly as the first one is —
-   * rather than flattening out under the empires that expand most. The schedule
-   * is now 9 · 14 · 22 · 31 and the monument band still holds.
+   * **Cheap early and steeper after, since 2026-08-28** (user, playtest: "make
+   * early tiles easier to get with culture, we can ramp more over time"), which
+   * is 6 · 4 · 1.45. The previous pass took a flat tenth off the two height
+   * terms and kept the shape; this one deliberately does *not* keep the shape.
+   * The height comes down again **and** the exponent goes up, so the discount is
+   * spent entirely on the opening tiles and has paid itself back by the eighth:
+   * the schedule is 6 · 10 · 16 · 25 · 35 · 47 · 59 · 73 against the old 9 · 14
+   * · 22 · 31 · 41 · 52 · 64 · 76. A third off the first tile, a quarter off the
+   * second, and level by the last — which is the ramp the note asked for, rather
+   * than a discount that grows with the empires already expanding fastest.
    */
   borderCostBase: number;
   borderCostLinear: number;

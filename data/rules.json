@@ -77,8 +77,8 @@
     "claimRadius": 3,
     "minCitySpacing": 4,
     "foodPerCitizen": 2,
-    "growthBase": 15,
-    "growthLinear": 8,
+    "growthBase": 10,
+    "growthLinear": 6,
     "growthExponent": 1.65,
     "starvationShrinksAt": -1,
     "baseCityYields": {
@@ -88,9 +88,9 @@
     },
     "sciencePerPop": 1,
     "baseCulturePerCity": 1,
-    "borderCostBase": 9,
-    "borderCostLinear": 5.4,
-    "borderCostExponent": 1.3,
+    "borderCostBase": 6,
+    "borderCostLinear": 4,
+    "borderCostExponent": 1.45,
     "tilePurchase": {
       "ringBase": [
         50,

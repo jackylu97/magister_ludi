@@ -12,8 +12,10 @@ import {
   collectYields,
   expandBorders,
   explainCentreYield,
+  explainBuildingPreview,
   explainCityBuildings,
   explainTileYield,
+  foldBuildingPreview,
   foldTileYield,
   foundCityAt,
   foundingError,
@@ -68,7 +70,7 @@ import {
 import { chopYield } from '../../src/sim/improvementData';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
-import { RESOURCE_IDS, resourceYield } from '../../src/sim/resourceData';
+import { CITY_YIELD_KEYS, RESOURCE_IDS, resourceYield } from '../../src/sim/resourceData';
 import {
   FEATURE_IDS,
   TERRAIN_IDS,
@@ -76,6 +78,7 @@ import {
   readTileYield,
   tileYield,
 } from '../../src/sim/terrainData';
+import { beliefDef } from '../../src/sim/religionData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -1113,6 +1116,71 @@ describe('city yields', () => {
   });
 
   /**
+   * The build screen's preview, and the reason it is not `explainBuildingYield`
+   * (user, 2026-08-28: "orders + religion benefits should show in city build
+   * screen … preview for barracks in the city build list should show +1 prod").
+   *
+   * The row's own answer for a barracks is *nothing* — it pays no flat yield at
+   * all — which is exactly the number the playtest complained about, because a
+   * seat holding God of the Forge is looking at a hammer the screen will not
+   * admit to. The claim is that `explainBuildingPreview` asks the question the
+   * player is actually asking: what would this town's yields become.
+   */
+  it('previews what a card would pay for a building the town has not built yet', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+
+    // With no god, a barracks changes no yield this reading is about: its
+    // productionBonus is a fact about a *build* (`toward`), never about the
+    // town, and the preview says so by being empty.
+    expect(explainBuildingPreview(state, city, 'barracks')).toEqual([]);
+
+    // God of the Forge: "+1⚙ in every city with a Barracks" — a `cityYields`
+    // effect scoped `hasBuilding: barracks`, which is invisible to every
+    // evaluator that reads the building's own row.
+    state.players[0]!.pantheon.beliefs.push('godOfTheForge');
+    const lines = explainBuildingPreview(state, city, 'barracks');
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.card).toBe('godOfTheForge');
+    expect(lines[0]!.source).toMatch(new RegExp(beliefDef('godOfTheForge').name));
+    expect(lines[0]!.production).toBe(1);
+    expect(foldBuildingPreview(lines).production).toBe(1);
+
+    // And the belief pays nothing until the barracks stands: the preview is a
+    // *difference*, so the town's current yields are untouched by asking.
+    expect(cityYields(state, city).production).toBe(
+      cityYields(state, { ...city, buildings: [] }).production,
+    );
+  });
+
+  it('is the fold of the true difference, rule 5 at the scale of a preview', () => {
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    city.population = 4;
+    assignCitizens(state, city);
+    // Two gods, one on a granary and one on a monument, so the preview has to
+    // pick the right one out for each row — and the granary's own tile line
+    // (food on water) rides along with it.
+    state.players[0]!.pantheon.beliefs.push('keeperOfTheHearth', 'theStandingStones');
+
+    for (const id of ['granary', 'monument', 'barracks', 'library'] as const) {
+      const lines = explainBuildingPreview(state, city, id);
+      const ghost = { ...city, buildings: [...city.buildings, id] };
+      const gain = cityYields(state, ghost);
+      const now = cityYields(state, city);
+      const folded = foldBuildingPreview(lines);
+      for (const key of CITY_YIELD_KEYS) {
+        expect(folded[key], `${id} ${key}`).toBe(gain[key] - now[key]);
+      }
+    }
+
+    // A building the town already has gains it nothing, and the caller needs no
+    // special case for it.
+    city.buildings.push('granary');
+    expect(explainBuildingPreview(state, city, 'granary')).toEqual([]);
+  });
+
+  /**
    * The barracks: a share of the hammers, but only behind a *unit*.
    *
    * The claim under test is not the ten percent, it is that there is exactly one
@@ -1160,8 +1228,15 @@ describe('growth', () => {
         Math.floor(c.growthBase + c.growthLinear * steps + steps ** c.growthExponent),
       );
     }
-    expect(growthThreshold(1)).toBe(15);
-    expect(growthThreshold(2)).toBe(24);
+    // Retuned 2026-08-28 (user — "the first few population feel a bit slow
+    // considering how fast other things seem to ramp up"): 10 · 6 · 1.65,
+    // where it was 15 · 8 · 1.65. Both *height* terms came down and the
+    // exponent did not move, so the discount is felt at the bottom and the
+    // superlinear term takes it back — a third off the second citizen, a fifth
+    // off the eighth. It was 15 · 24 · 34 · 45 · 56 · 69 · 82.
+    expect([1, 2, 3, 4, 5, 6, 7, 8].map(growthThreshold)).toEqual([
+      10, 17, 25, 34, 43, 54, 65, 76,
+    ]);
     // Strictly increasing, so a bigger city never grows faster.
     for (let pop = 1; pop < 20; pop++) {
       expect(growthThreshold(pop + 1)).toBeGreaterThan(growthThreshold(pop));
@@ -1977,17 +2052,19 @@ describe('borders', () => {
         Math.floor(c.borderCostBase + c.borderCostLinear * claimed ** c.borderCostExponent),
       );
     }
-    // Civ 6's own numbers (10 · 6 · 1.3) less a tenth (9 · 5.4 · 1.3, retuned
-    // 2026-08-27 — "culture cost of adding new tiles feels a bit slow"): the
-    // first tile beyond the founding ring is 9 culture, the second 14, the third
-    // 22, the fourth 31 — the schedule the monument band in `territory.test.ts`
-    // is measured against. The exponent did **not** move, so the shape of the
-    // curve is unchanged and only its height came down.
-    expect(nextBorderCost(0)).toBe(9);
-    expect(nextBorderCost(1)).toBe(14);
-    expect(nextBorderCost(2)).toBe(22);
-    expect(nextBorderCost(3)).toBe(31);
-    expect(nextBorderCost(4)).toBe(41);
+    // Reshaped 2026-08-28 (user — "make early tiles easier to get with culture,
+    // we can ramp more over time"): 6 · 4 · 1.45, where it was Civ 6's own
+    // 10 · 6 · 1.3 and then 9 · 5.4 · 1.3. This is the first pass to move the
+    // **exponent**, deliberately: the height comes down a third and the ramp
+    // takes it back, so the eighth tile is 73 against the old 76 while the
+    // first is 6 against 9. The schedule the monument band in
+    // `territory.test.ts` is measured against.
+    expect(nextBorderCost(0)).toBe(6);
+    expect(nextBorderCost(1)).toBe(10);
+    expect(nextBorderCost(2)).toBe(16);
+    expect(nextBorderCost(3)).toBe(25);
+    expect(nextBorderCost(4)).toBe(35);
+    expect(nextBorderCost(7)).toBe(73);
     // Each tile costs more than the last.
     for (let claimed = 0; claimed < 12; claimed++) {
       expect(nextBorderCost(claimed + 1)).toBeGreaterThan(nextBorderCost(claimed));
@@ -2118,7 +2195,7 @@ describe('the turn pipeline over a live empire', () => {
 // ---------------------------------------------------------------------------
 
 describe('determinism with cities', () => {
-  it('round-trips a schema 24 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 25 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -2133,7 +2210,7 @@ describe('determinism with cities', () => {
     // improvements; 12 was the meters' `captured`; 13 the luxuries; 14 tile
     // purchase; 15 barbarians and discoveries.) What this pins is not the
     // number but that a city save is carried by whatever the number is.
-    expect(SCHEMA_VERSION).toBe(24);
+    expect(SCHEMA_VERSION).toBe(25);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

@@ -244,6 +244,60 @@ describe('buying a unit', () => {
     expect(city.hammerBasket).toBe(9);
   });
 
+  it('sells one unit a turn and no more, byte-identically, and buildings anyway', () => {
+    // User, 2026-08-28: "cities can only purchase a single unit per turn". A
+    // treasury that can turn coin into a garrison as fast as a player can click
+    // is the thing being refused; a town that buys a granary and a library on
+    // one afternoon has bought two things it then has to feed.
+    const g = game();
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.gold = 2000;
+    const gate = gatingTech('building', 'granary');
+    if (gate) learn(g.state, 0, gate);
+
+    expect(city.purchasedUnitTurn).toBeUndefined();
+    expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
+    // An absolute turn, stamped — never a countdown.
+    expect(city.purchasedUnitTurn).toBe(g.state.turn);
+
+    const goldAfterOne = player.gold;
+    const before = snapshotState(g.state);
+    const second = dispatch(g, buyCommand(city.id, WARRIOR));
+    expect(second.ok).toBe(false);
+    expect(second.ok === false && second.error).toMatch(/already bought a unit this turn/);
+    expect(snapshotState(g.state)).toEqual(before);
+    expect(player.gold).toBe(goldAfterOne);
+
+    // A building is untouched by the rule, on the same afternoon.
+    expect(dispatch(g, buyCommand(city.id, GRANARY)).ok).toBe(true);
+    expect(city.buildings).toContain('granary');
+
+    // And the day rolls over on its own: nothing clears the stamp, the
+    // comparison simply stops matching.
+    for (const seat of g.state.players) dispatch(g, { type: 'endTurn', playerId: seat.id });
+    expect(city.purchasedUnitTurn).toBeLessThan(g.state.turn);
+    expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
+    expect(city.purchasedUnitTurn).toBe(g.state.turn);
+  });
+
+  it('counts a faith purchase against the same one-a-turn allowance', () => {
+    // The rule is about how fast a town can be reinforced, not about which bank
+    // paid — so the augur spends the day exactly as a warrior does.
+    const g = game();
+    learn(g.state, 0, 'divination');
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 500;
+    player.gold = 2000;
+
+    expect(dispatch(g, buyCommand(city.id, AUGUR, 'faith')).ok).toBe(true);
+    expect(city.purchasedUnitTurn).toBe(g.state.turn);
+    const blocked = dispatch(g, buyCommand(city.id, WARRIOR));
+    expect(blocked.ok).toBe(false);
+    expect(blocked.ok === false && blocked.error).toMatch(/already bought a unit this turn/);
+  });
+
   it('still buys an augur with faith, into the same routine', () => {
     const g = game();
     learn(g.state, 0, 'divination');

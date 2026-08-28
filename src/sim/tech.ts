@@ -62,8 +62,8 @@
  *
  * Pacing (Quick speed, standard map, the science economy exactly as it stands)
  * ---------------------------------------------------------------------------
- * The ages cost 167 / 1272 / 2456 beakers; the two starting techs are free, so a
- * whole game pays 3865. Those figures are *measured*, not guessed. The science
+ * The ages cost 169 / 1655 / 4420 beakers; the two starting techs are free, so a
+ * whole game pays 6229. Those figures are *measured*, not guessed. The science
  * economy is pop-based, so it is really a measurement of how fast the empire
  * gets its cities: a scripted empire — `test/tech.test.ts`'s harness, which
  * founds five cities and always builds what it can — banks roughly 120 beakers
@@ -85,6 +85,18 @@
  * 1/19/28/40/50 rather than 1/17/20/24/28, and twenty turns of citizens the
  * empire no longer has by turn 40 is twenty turns of beakers it no longer banks.
  * Expansion is the science economy; pricing expansion re-prices the tree.
+ *
+ * **The later ages were scaled up on 2026-08-28** (user, playtest: "science
+ * costs need to scale harder"): Age II ×1.3 and Age III ×1.8, each cost rounded
+ * to the nearest five, Age I untouched. That is the paragraph above used
+ * deliberately rather than as a repair — the *shape* inside each age is
+ * preserved exactly, and only the band each age sits in moved. The three ages
+ * now cost 169 / 1655 / 4420 against 169 / 1272 / 2456, and the scripted
+ * empire's closes went 32 / 62 / 97 → 30 / 67 / 122 (Age I *earlier*, because
+ * the growth curve came down in the same pass and science here is pop-based).
+ * The point of the change is the finale: an age III that used to be swept in
+ * thirty-five turns is now sixty, so the last age is a stretch of the game
+ * rather than a formality.
  */
 
 import { type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';

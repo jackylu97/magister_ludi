@@ -270,6 +270,63 @@ hook shape, and they are one `switch` in one file.
    are already their own reward), 9 (A God Named: faith is its own draft), 13 and 14
    (both need later techs).
 
+## As built, 2026-08-28 — the legacies that were waiting on a shape
+
+The roster shipped 2026-08-27 with 23 rows carrying an empty `legacy` and 37 carrying a
+`deferred` sentence, because the shapes were not there. **Nineteen of those rows are now
+built**; six rows still leave nothing behind. Nothing was bent to nearly fit — every row
+below is written in a shape `statecraft.ts` reads, and the sentence in the right-hand
+column is what `describeCard` actually prints on the card.
+
+**Three extensions carried most of it**, each a growth of a union already designed to grow,
+each read in the one place its family lives:
+
+| extension | read in | rows it unblocked |
+|---|---|---|
+| `CountKind` +6 (`wonders`, `revealedTiles`, `sightedCities`, `improvedStrategicResources`, `agesClosed`, `unitsInField`) and `countScaled.class` | `countOf` | Phidias, Dürer, Eratosthenes, Zhang Qian, Ibn Baṭṭūṭa, Shen Kuo, Sima Qian, Murasaki Shikibu |
+| `CombatCondition` +5 (`capturedCity`, `onFeature`, `freshwater`, `coastal`, `fortified`) | `combatConditionHolds` | Nzinga, Han Xin, Jan Žižka, El Cid |
+| `CityScope` +2 (`onHills`, `notCapital`) and `productionBonus.scope` | `cityScopeAdmits`, `cardProduction` | Tycho Brahe, Aššur-idī, Amenhotep son of Hapu |
+
+Eight more rows needed **no new shape at all** — their deferral sentences had gone stale
+when the wonders pass (2026-08-27) added `combatLine.class`, `unitStat.where: 'embarked'`,
+`TileCondition.freshwater`, `CountKind.buildingsOfKind` and `purchaseRider`.
+
+| person | now prints | note |
+|---|---|---|
+| **Ptahhotep** | +1 authority capacity per Library | `buildingsOfKind` |
+| **Homer** | losing a unit grants +9 culture | Snorri's death rider, tripled — Epic Poetry's own line still does not exist |
+| **Archimedes** | +6 combat strength for siege units against cities | `combatLine.class` |
+| **Li Bing** | +1 food, +1 production on every farm tile beside fresh water | `freshwater` is a river edge *or* a lake beside it, so slightly wider than "river" |
+| **Hippalus** | fishing boats +1 gold · all units +1 movement while embarked | |
+| **Zheng He** | coastal cities +3 gold · all units +2 movement while embarked | |
+| **Crassus** | all units cost −30% to buy | units only; buildings have no rider hook |
+| **Jakob Fugger** | +30% gold · −1 authority per 3 cities · all units cost −20% to buy | as above |
+| **Phidias / Dürer** | +3 / +2 culture per wonder you hold | a captured wonder moves the count with the stones |
+| **Eratosthenes** | +1 science per 20 hexes you have revealed | the seat's own monotone grid ✎ *a fully-charted map pays large; worth measuring* |
+| **Zhang Qian** | +2 gold per 20 hexes you have revealed | as above |
+| **Ibn Baṭṭūṭa** | +1 gold per foreign city you have sighted | city memory, never his own towns |
+| **Shen Kuo** | +1 science per improved strategic resource | |
+| **Sima Qian** | +1 culture per age that has closed, in every city | |
+| **Murasaki Shikibu** | +2 culture per melee unit in the field | |
+| **Nzinga of Ndongo** | +5 combat strength in forest · in jungle | a disjunction is two lines |
+| **Han Xin** | +2 combat strength beside fresh water · on the coast | a hex that is both pays twice |
+| **Jan Žižka** | +5 combat strength while fortified | |
+| **El Cid** | +3 combat strength in a city you took by force | |
+| **Tycho Brahe** | +3 science in every city beside a mountain · on hills | |
+| **Aššur-idī** | +2 gold in every city but your capital | |
+| **Amenhotep son of Hapu** | +20% production toward wonders, in your capital | |
+
+**Still deferred, and what each waits on** (the ruling list — six of these rows still leave
+nothing at all): Deborah and Spartacus (a combat condition that measures *distance* or
+compares *strengths*) · Lautaro (`CombatSituation` carries no target type) · Nanaivandak and
+Marco Polo (city connections / trade routes) · Yi Sun-sin (naval units) · Sin-lēqi-unninni
+(the Hall of Deeds) · Hemiunu (an `EmpireCondition` that reads a queue) · Ea-nāṣir (an
+amplifier that changes a *count* rather than a figure) · Hero of Alexandria (a shape that
+reads another row's yields) · Mimar Sinan (a `productionBonus` that names a *building*) ·
+Boudica (a legacy carries no age) · Archimedes' and Hypatia's maluses and Leonardo's halves
+(**nothing revokes a legacy**, and a project's payout is deliberately unmodifiable) ·
+Crassus (a timed effect on an *empire*) · Crassus and Fugger's building purchases.
+
 ## Revisions
 
 *(yours — edit away; ✎ marks what changed)*

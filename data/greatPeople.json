@@ -70,9 +70,16 @@
       "tier": "situational",
       "epigram": "Great is the law; enduring.",
       "kernel": "The Maxims, the oldest book of advice.",
-      "legacy": [],
-      "deferred": [
-        "+1 authority capacity per library — `countScaled` counts no buildings."
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "buildingsOfKind",
+          "building": "library",
+          "pays": {
+            "to": "authority",
+            "amount": 1
+          }
+        }
       ]
     },
     "enheduanna": {
@@ -107,10 +114,18 @@
       "tier": "defining",
       "epigram": "Blind, and the whole war before him.",
       "kernel": "The bard.",
-      "legacy": [],
+      "legacy": [
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "yield": "culture",
+            "amount": 9
+          }
+        }
+      ],
       "deferred": [
-        "A fallen unit pays ×3 culture — Epic Poetry's death line does not exist yet.",
-        "Units cannot heal outside your borders — no shape gates a heal on territory."
+        "Units cannot heal outside your borders — `unitStat.where` knows `ownTerritory` and `embarked` but not its negation, and \"cannot heal\" is a prohibition rather than a negative number."
       ]
     },
     "sinLeqiUnninni": {
@@ -191,9 +206,15 @@
       "tier": "situational",
       "epigram": "They made him a god for building.",
       "kernel": "The deified overseer of works.",
-      "legacy": [],
-      "deferred": [
-        "Wonders **in the capital** +20%⚙ — `productionBonus` carries no `CityScope`."
+      "legacy": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 20,
+          "scope": {
+            "test": "capital"
+          }
+        }
       ]
     },
     "bezalel": {
@@ -279,9 +300,14 @@
       "tier": "situational",
       "epigram": "Send the tin by the next donkeys.",
       "kernel": "Old Assyrian trader of the Kanesh letters.",
-      "legacy": [],
-      "deferred": [
-        "+2🪙 in every city that is **not** the capital — `CityScope` has no negation."
+      "legacy": [
+        {
+          "kind": "cityYields",
+          "gold": 2,
+          "scope": {
+            "test": "notCapital"
+          }
+        }
       ]
     },
     "lamassi": {
@@ -391,11 +417,13 @@
           "when": {
             "test": "vsCity"
           },
-          "side": "attack"
+          "side": "attack",
+          "class": {
+            "modelClass": "siege"
+          }
         }
       ],
       "deferred": [
-        "Siege units only — `combatLine` carries no `UnitFilter`.",
         "The legacy is *lost* the turn an enemy enters his city — nothing revokes a legacy."
       ]
     },
@@ -443,9 +471,18 @@
       "tier": "situational",
       "epigram": "He measured the world with a well and a stick.",
       "kernel": "The circumference.",
-      "legacy": [],
-      "deferred": [
-        "+1🔬 per 20 tiles revealed — `CountKind` counts no explored ground."
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "revealedTiles",
+          "per": 20,
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
       ]
     },
     "sappho": {
@@ -500,9 +537,17 @@
       "tier": "situational",
       "epigram": "He finished the Records rather than die.",
       "kernel": "The Grand Historian.",
-      "legacy": [],
-      "deferred": [
-        "+1🎵 per age that has closed — only a `windfallRider` may say `perAge`."
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "agesClosed",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "city"
+          }
+        }
       ]
     },
     "phidias": {
@@ -512,9 +557,17 @@
       "tier": "situational",
       "epigram": "He put his own face on the shield.",
       "kernel": "The Parthenon's sculptor.",
-      "legacy": [],
-      "deferred": [
-        "+3🎵 per wonder — `CountKind` counts no wonders."
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "wonders",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 3,
+            "where": "empire"
+          }
+        }
       ]
     },
     "liBing": {
@@ -528,14 +581,20 @@
         {
           "kind": "tileYield",
           "on": {
-            "test": "improvement",
-            "improvement": "farm"
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "farm"
+              },
+              {
+                "test": "freshwater"
+              }
+            ]
           },
-          "food": 1
+          "food": 1,
+          "production": 1
         }
-      ],
-      "deferred": [
-        "… **beside a river**, and its +1⚙ — `TileCondition` has no river test."
       ]
     },
     "heroOfAlexandria": {
@@ -611,9 +670,18 @@
       "tier": "strong",
       "epigram": "He went west and came back with the world.",
       "kernel": "The Silk Road's envoy.",
-      "legacy": [],
-      "deferred": [
-        "+2🪙 per 20 tiles explored — `CountKind` counts no explored ground."
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "revealedTiles",
+          "per": 20,
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 2,
+            "where": "empire"
+          }
+        }
       ]
     },
     "nanaivandak": {
@@ -643,10 +711,13 @@
             "improvement": "fishingBoats"
           },
           "gold": 1
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "where": "embarked"
         }
-      ],
-      "deferred": [
-        "Embarked units +1 movement — `unitStat` cannot narrow to the embarked."
       ]
     },
     "crassus": {
@@ -656,9 +727,15 @@
       "tier": "defining",
       "epigram": "No man is rich who cannot pay an army.",
       "kernel": "The fire brigade; Carrhae.",
-      "legacy": [],
+      "legacy": [
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "percent": -30
+        }
+      ],
       "deferred": [
-        "Purchases −30%🪙 — no shape reaches `explainPurchaseCost`.",
+        "… and on **buildings** — `purchaseRider` is asked of a unit type, and `explainPurchaseCost`'s building half has no rider hook.",
         "Every purchase −1 happiness for 10 turns — nothing stamps a timed effect on an empire."
       ]
     },
@@ -721,9 +798,23 @@
       "tier": "strong",
       "epigram": "Backs to the river, they could not lose.",
       "kernel": "Jingxing.",
-      "legacy": [],
-      "deferred": [
-        "+2 combat beside a river or coast — `CombatCondition` reads no water."
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "when": {
+            "test": "freshwater"
+          },
+          "side": "both"
+        },
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "when": {
+            "test": "coastal"
+          },
+          "side": "both"
+        }
       ]
     },
     "boudica": {
@@ -784,9 +875,17 @@
       "tier": "situational",
       "epigram": "The needle points south, and a little east.",
       "kernel": "The Dream Pool Essays.",
-      "legacy": [],
-      "deferred": [
-        "+1🔬 per improved strategic resource — `CountKind` counts only improved *bonus* resources."
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "improvedStrategicResources",
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
       ]
     },
     "ibnSina": {
@@ -829,9 +928,20 @@
       "tier": "strong",
       "epigram": "The world is a floating bridge of dreams.",
       "kernel": "The Tale of Genji.",
-      "legacy": [],
-      "deferred": [
-        "+2🎵 per active melee unit — `CountKind` counts no units in the field."
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "unitsInField",
+          "class": {
+            "modelClass": "melee"
+          },
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 2,
+            "where": "empire"
+          }
+        }
       ]
     },
     "snorriSturluson": {
@@ -1014,9 +1124,17 @@
       "tier": "situational",
       "epigram": "Thirty years, and I never took the same road twice.",
       "kernel": "The Rihla.",
-      "legacy": [],
-      "deferred": [
-        "+1🪙 per foreign city sighted — `CountKind` counts no sightings."
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "sightedCities",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
       ]
     },
     "marcoPolo": {
@@ -1113,9 +1231,15 @@
       "tier": "situational",
       "epigram": "Blind, and undefeated.",
       "kernel": "The Hussite wars.",
-      "legacy": [],
-      "deferred": [
-        "Fortified units +5 defense — `CombatCondition` cannot ask about a trench."
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "when": {
+            "test": "fortified"
+          },
+          "side": "defend"
+        }
       ]
     },
     "elCid": {
@@ -1125,9 +1249,15 @@
       "tier": "situational",
       "epigram": "He won a battle dead.",
       "kernel": "Valencia.",
-      "legacy": [],
-      "deferred": [
-        "+3 combat in cities you captured — `CombatCondition` has no `captured` test."
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "when": {
+            "test": "capturedCity"
+          },
+          "side": "both"
+        }
       ]
     },
     "paracelsus": {
@@ -1165,10 +1295,14 @@
           "scope": {
             "test": "mountainAdjacent"
           }
+        },
+        {
+          "kind": "cityYields",
+          "science": 3,
+          "scope": {
+            "test": "onHills"
+          }
         }
-      ],
-      "deferred": [
-        "… cities **on hills** — `CityScope` cannot ask about its own ground."
       ]
     },
     "johnDee": {
@@ -1228,9 +1362,17 @@
       "tier": "situational",
       "epigram": "A rhinoceros he never saw, drawn perfectly.",
       "kernel": "The woodcuts.",
-      "legacy": [],
-      "deferred": [
-        "+2🎵 per wonder — `CountKind` counts no wonders."
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "wonders",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 2,
+            "where": "empire"
+          }
+        }
       ]
     },
     "basho": {
@@ -1383,10 +1525,15 @@
             "to": "authority",
             "amount": -1
           }
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "percent": -20
         }
       ],
       "deferred": [
-        "Purchases −20% — no shape reaches `explainPurchaseCost`."
+        "… and on **buildings** — `purchaseRider` is asked of a unit type, and `explainPurchaseCost`'s building half has no rider hook."
       ]
     },
     "zhengHe": {
@@ -1403,10 +1550,13 @@
           "scope": {
             "test": "coastal"
           }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 2,
+          "where": "embarked"
         }
-      ],
-      "deferred": [
-        "Embarked units +2 movement — `unitStat` cannot narrow to the embarked."
       ]
     },
     "graciaMendesNasi": {
@@ -1478,9 +1628,25 @@
       "tier": "situational",
       "epigram": "She sat on her servant's back rather than the floor.",
       "kernel": "The forty-year war.",
-      "legacy": [],
-      "deferred": [
-        "+5 defending in forest or jungle — `CombatCondition` reads only hills."
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "when": {
+            "test": "onFeature",
+            "feature": "forest"
+          },
+          "side": "defend"
+        },
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "when": {
+            "test": "onFeature",
+            "feature": "jungle"
+          },
+          "side": "defend"
+        }
       ]
     },
     "yiSunSin": {
@@ -1504,7 +1670,7 @@
       "kernel": "The Mapuche toqui.",
       "legacy": [],
       "deferred": [
-        "+3 combat vs mounted — `CombatCondition` cannot name the other side's class."
+        "+3 combat vs mounted — `combatLine.class` names *this* side's units, and `CombatSituation` carries no target type at all, so asking about the other side's class is a change to what a fight reports rather than a card shape."
       ]
     }
   }

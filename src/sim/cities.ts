@@ -96,10 +96,11 @@ import {
   resourceYield,
 } from './resourceData';
 import { type ProjectId, isProjectId, projectDef } from './projectData';
-import { governmentDef } from './statecraftData';
+import { type CardId, governmentDef } from './statecraftData';
 import { settleRenownWindfall } from './renown';
 import { type CitizenWeights, RULES } from './rulesData';
 import {
+  type CardYieldLine,
   type TileLine,
   cardActionRule,
   cardMeterFlag,
@@ -1682,6 +1683,210 @@ export function explainCityBuildings(
     list.push(...explainBuildingYield(id, ctx));
   }
   return list;
+}
+
+/**
+ * One thing a town would gain by finishing a building, as a player reads it.
+ *
+ * `BuildingYieldContribution`'s shape one question wider: that one is what a
+ * building's *row* pays, this one is what the **city's yields** change by, which
+ * is not the same list at all the moment a card is in play. `card` names the
+ * Order, Doctrine, belief, legacy or wonder that spoke; `building` names the row
+ * that did. Exactly one of the two is set on a line the game produces today, and
+ * neither is set on the reconciliation line below.
+ */
+export interface BuildingPreviewLine {
+  /** Display label: "Barracks", "God of the Forge", "Ore Tithes". */
+  source: string;
+  /** The building whose own row paid this, or absent. */
+  building?: BuildingId;
+  /** The card that paid this, or absent. */
+  card?: CardId;
+  food: number;
+  production: number;
+  gold: number;
+  science: number;
+  culture: number;
+  faith: number;
+}
+
+function emptyPreviewLine(source: string): BuildingPreviewLine {
+  return { source, food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
+}
+
+/** True when a preview line changes nothing. Such lines are never in a list. */
+function previewPays(line: BuildingPreviewLine): boolean {
+  return CITY_YIELD_KEYS.some((key) => line[key] !== 0);
+}
+
+/** The fold: every line **sums**. The only place a preview's total is computed. */
+export function foldBuildingPreview(lines: readonly BuildingPreviewLine[]): CityYields {
+  const total = emptyCityYields();
+  for (const line of lines) for (const key of CITY_YIELD_KEYS) total[key] += line[key];
+  return total;
+}
+
+/**
+ * What this town's yields would gain if this building stood in it — the ordered,
+ * **labelled** list the build screen prints beside a row a player is choosing
+ * (user, 2026-08-28: "orders + religion benefits should show in city build
+ * screen … preview for barracks in the city build list should show +1 prod").
+ *
+ * The question is not "what does a barracks pay" — `explainBuildingYield`
+ * answers that off the table and would answer *nothing* for a barracks, which is
+ * exactly the number the playtest complained about. It is "what would change
+ * here", and since Statecraft and the pantheon that is a question about the
+ * empire's whole law: a belief that pays a forge town a hammer, an Order that
+ * counts barracks, a wonder whose tile line wants a granary. Every one of those
+ * is a `hasBuilding` scope or a `countScaled` count, and every one of them is
+ * invisible to a preview that reads the building's own row.
+ *
+ * **A ghost town, never a mutation.** The honest way to ask a conditional
+ * question of an evaluator this large is to ask it twice: once of the city, once
+ * of a *shallow copy* whose `buildings` array is the city's with the candidate
+ * appended, and to take the difference. Nothing in `state` is touched, nothing
+ * is cloned deeply, and — this is the point — no rule is reimplemented. A card
+ * shape that does not exist yet is previewed correctly the day it is added,
+ * because the thing being diffed is `cityYields` itself.
+ *
+ * The list, in the order a player reads it:
+ *
+ *   1. **the row's own lines** — the building and each renewal its owner has
+ *      earned, `explainBuildingYield`'s list with the science-per-pop term
+ *      resolved against this town's population, exactly as `cityYields` resolves
+ *      it;
+ *   2. **the flat card lines that woke up**, one per `(card, source)` whose
+ *      figure differs between the two readings — which is a belief scoped to
+ *      `hasBuilding`, a `countScaled` that counts the thing, and nothing else;
+ *   3. **the tile lines that woke up**, summed over the tiles this town actually
+ *      works: a granary's food on water, a wonder's desert line gated on a
+ *      building. Grouped by source, because that is the name a player reads;
+ *   4. **one reconciliation line, when the arithmetic needs it**, carrying the
+ *      difference between the labelled lines above and the true change — which
+ *      is Entry XVII's two multiplications doing their work on the new flats and
+ *      any percentage the building itself unlocked. `applyRiders`' idiom in
+ *      `purchase.ts`: a line of the list that holds *the difference it makes to
+ *      the running figure*, never a multiplication performed afterwards.
+ *
+ * So `foldBuildingPreview(explainBuildingPreview(state, city, id))` is exactly
+ * `cityYields(ghost) − cityYields(city)`, floors and stages included, which is
+ * rule 5 read at the scale of a preview: the number on the row is the fold of
+ * the reasons printed under it.
+ *
+ * A building the town already has previews as the empty list — there is nothing
+ * to gain — and no caller has to special-case it.
+ *
+ * **No `toward`.** The reading is "what does this town make", not "how fast does
+ * it build the next thing", so the production-category bonuses are deliberately
+ * out: a barracks previewed with `toward` pointed at itself would report the
+ * share of hammers it puts behind *units* as zero, which is true and useless.
+ * `turnsToBuild` is where that question already lives.
+ */
+export function explainBuildingPreview(
+  state: GameState,
+  city: City,
+  id: BuildingId,
+): BuildingPreviewLine[] {
+  if (city.buildings.includes(id)) return [];
+  // The ghost. Shallow on purpose: every other field is shared with the real
+  // town, and `buildings` is the one array that is replaced rather than pushed
+  // to, so nothing downstream can write through it into `state`.
+  const ghost: City = { ...city, buildings: [...city.buildings, id] };
+
+  const lines: BuildingPreviewLine[] = [];
+
+  // 1. The row itself, read under the ghost's own context so a renewal this
+  //    empire has earned is on the preview the turn the tech lands.
+  for (const entry of explainBuildingYield(id, cityContext(state, ghost))) {
+    const line = emptyPreviewLine(entry.source);
+    line.building = id;
+    line.food = entry.food;
+    line.production = entry.production;
+    line.gold = entry.gold;
+    line.science = entry.science + Math.floor(city.population * entry.sciencePerPop);
+    line.culture = entry.culture;
+    line.faith = entry.faith;
+    if (previewPays(line)) lines.push(line);
+  }
+
+  // 2. The cards that woke up. Keyed by card **and** source, because one card
+  //    may pay a town twice under two labels (`countScaled`'s "×3" suffix), and
+  //    walked in the ghost's order so the list reads in the evaluator's order.
+  const before = new Map<string, CardYieldLine>();
+  for (const line of cardCityYields(state, city)) before.set(`${line.card} ${line.source}`, line);
+  for (const after of cardCityYields(state, ghost)) {
+    const was = before.get(`${after.card} ${after.source}`);
+    const line = emptyPreviewLine(after.source);
+    line.card = after.card;
+    for (const key of CITY_YIELD_KEYS) line[key] = after[key] - (was?.[key] ?? 0);
+    if (previewPays(line)) lines.push(line);
+  }
+
+  // 3. The ground. A building may change what a *tile* pays — the granary's
+  //    food on water, a scoped card line — and that arrives through the
+  //    context rather than through any list above, so it is diffed where it
+  //    lands: per worked tile, per source, summed. Only `add` entries can
+  //    differ (terrain and features do not care what has been built), which is
+  //    what makes a diff by source exact rather than approximate.
+  const groundBefore = cityContext(state, city);
+  const groundAfter = cityContext(state, ghost);
+  const ground = new Map<string, BuildingPreviewLine>();
+  const order: string[] = [];
+  for (const cell of city.workedTiles) {
+    const tile = getTileAt(state.map, cell.col, cell.row);
+    if (!tile) continue;
+    const was = addsBySource(explainTileYield(tile, groundBefore));
+    for (const entry of explainTileYield(tile, groundAfter)) {
+      if (entry.kind !== 'add') continue;
+      let line = ground.get(entry.source);
+      if (!line) {
+        line = emptyPreviewLine(entry.source);
+        ground.set(entry.source, line);
+        order.push(entry.source);
+      }
+      const old = was.get(entry.source);
+      for (const key of CITY_YIELD_KEYS) line[key] += entry[key] - (old?.[key] ?? 0);
+    }
+  }
+  for (const source of order) {
+    const line = ground.get(source)!;
+    if (previewPays(line)) lines.push(line);
+  }
+
+  // 4. The reconciliation. Everything the labelled lines above cannot name: the
+  //    two stages multiplying the new flats, a percentage the building itself
+  //    unlocked, the city centre's inherit rule, and every floor on the way.
+  //    Appended only when it is not zero, so a town with no percentages at all
+  //    reads a list of nothing but named reasons.
+  const gain = emptyCityYields();
+  const after = cityYields(state, ghost);
+  const now = cityYields(state, city);
+  for (const key of CITY_YIELD_KEYS) gain[key] = after[key] - now[key];
+  const named = foldBuildingPreview(lines);
+  const rest = emptyPreviewLine('Multipliers and rounding');
+  for (const key of CITY_YIELD_KEYS) rest[key] = gain[key] - named[key];
+  if (previewPays(rest)) lines.push(rest);
+
+  return lines;
+}
+
+/**
+ * One tile's `add` contributions, summed by source — the shape the preview's
+ * ground diff subtracts. Merged by source for `explainTileYield`'s own reason:
+ * one card can speak twice about one hex and a player reads one name.
+ */
+function addsBySource(list: readonly TileYieldContribution[]): Map<string, TileYield> {
+  const map = new Map<string, TileYield>();
+  for (const entry of list) {
+    if (entry.kind !== 'add') continue;
+    let sum = map.get(entry.source);
+    if (!sum) {
+      sum = emptyTileYield();
+      map.set(entry.source, sum);
+    }
+    for (const key of TILE_YIELD_KEYS) sum[key] += entry[key];
+  }
+  return map;
 }
 
 // --- what the empire multiplies ---------------------------------------------

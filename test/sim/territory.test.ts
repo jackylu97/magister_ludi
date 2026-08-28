@@ -145,7 +145,14 @@ describe('the border cost curve', () => {
     // Said, 2026-08-27: the whole curve came down 10% (user — "culture cost of
     // adding new tiles feels a bit slow"), which is `borderCostBase` 10 → 9 and
     // `borderCostLinear` 6 → 5.4. It was [10, 16, 24, 35].
-    expect([0, 1, 2, 3].map(nextBorderCost)).toEqual([9, 14, 22, 31]);
+    //
+    // Said again, 2026-08-28 (user — "make early tiles easier to get with
+    // culture, we can ramp more over time"): 6 · 4 · 1.45, which is a *shape*
+    // change and not another flat discount. The opening rungs come down a third
+    // and the exponent takes it back later — the eighth tile is 73 against the
+    // old 76 — so the discount is spent where the note pointed it. It was
+    // [9, 14, 22, 31].
+    expect([0, 1, 2, 3].map(nextBorderCost)).toEqual([6, 10, 16, 25]);
   });
 
   it('counts expansions, not owned tiles: the founding ring is free', () => {
@@ -170,12 +177,18 @@ describe('a monument buys three or four tiles by the early game', () => {
    * palace 4 + monument 1 − a free capital = +5, which is the first bonus rung.
    *
    * The arithmetic that follows, and which the run below has to reproduce:
-   * banking 3 a turn against 9 · 14 · 22 · 31 (the curve came down 10% on
-   * 2026-08-27) claims the first tile on turn 3 exactly, the second on turn 8,
-   * the third on turn 15 and the fourth on turn 26. It was 4 · 9 · 17 · 29
-   * against 10 · 16 · 24 · 35, so the whole schedule slid about two turns
-   * earlier and the band below still holds — which is the point of measuring a
-   * band rather than a number. A real capital spends its opening five or six turns building the
+   * banking 3 a turn against 6 · 10 · 16 · 25 (the curve was reshaped on
+   * 2026-08-28 — cheaper at the bottom, steeper after) claims the first tile on
+   * turn 2, the second on turn 6, the third on turn 11 and the fourth on turn
+   * 19. It was 3 · 8 · 15 · 26 against 9 · 14 · 22 · 31, and 4 · 9 · 17 · 29
+   * against 10 · 16 · 24 · 35 before that.
+   *
+   * **The band below still holds, and that is the measurement rather than a
+   * coincidence**: the fifth rung is 35 culture, which this town does not bank
+   * until turn 31, so every turn from 19 to 30 sits at exactly four tiles — the
+   * whole 25–30 window is inside the 3–4 the user asked for, with the tiles
+   * arriving earlier in the opening where the note said they were wanted.
+   * A real capital spends its opening five or six turns building the
    * monument, which slides the whole schedule later by about that much and lands
    * the *third* tile inside the window instead — which is why the assertion is a
    * band of 3–4 across turns 25–30 rather than a number.
@@ -208,7 +221,7 @@ describe('a monument buys three or four tiles by the early game', () => {
     }
 
     // The schedule the docblock works out by hand, reproduced by the pipeline.
-    expect(claimedOn.slice(0, 4)).toEqual([3, 8, 15, 26]);
+    expect(claimedOn.slice(0, 4)).toEqual([2, 6, 11, 19]);
 
     // And the claim the user asked for, as a band over the window: three or
     // four tiles on every turn from 25 to 30. Read off the same schedule so

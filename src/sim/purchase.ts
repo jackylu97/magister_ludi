@@ -299,8 +299,9 @@ export function readPurchasableItem(raw: unknown): PurchasableItem | null {
  * command the reducer takes, and a greyed one carries the reducer's own words.
  *
  * The refusals in the order a player would think of them: is this my city, is
- * this a thing at all, which bank is it sold out of, may I build it, is there
- * room for it, and can I afford it.
+ * this a thing at all, which bank is it sold out of, may I build it, has this
+ * town already taken delivery of a soldier today, is there room for it, and can
+ * I afford it.
  *
  * The middle question is the load-bearing one. **Gold's gates are production's
  * gates**, asked through `buildError` itself rather than re-derived: the
@@ -401,6 +402,20 @@ export function purchaseError(
     }
   }
 
+  // **One unit per city per turn** (user, 2026-08-28: "cities can only purchase
+  // a single unit per turn"). Asked here rather than of the price, because it is
+  // not about affordability at all: an empire with the coin for four warriors
+  // may still only take delivery of one in this town today, and the other three
+  // are a decision about *where*. The reading is a comparison against an
+  // absolute turn (`City.purchasedUnitTurn`) — nothing counts down, so there is
+  // no phase that has to clear it before the next resolution.
+  //
+  // Buildings are deliberately untouched: a granary and a library bought on one
+  // afternoon are two things the town then has to justify, where two bought
+  // soldiers are an army that skipped the queue.
+  if (bought.kind === 'unit' && city.purchasedUnitTurn === state.turn) {
+    return `${city.name} has already bought a unit this turn`;
+  }
   if (bought.kind === 'unit' && spawnTileFor(state, city, bought.id) === null) {
     return `${city.name} has nowhere to put a ${name}`;
   }
@@ -418,7 +433,7 @@ export function purchaseError(
  * Buys one thing, and charges the bank.
  *
  * Validates nothing — the rule is `purchaseError`'s and the command asks it
- * first. Four mutations and each is a rule:
+ * first. Five mutations and each is a rule:
  *
  *   · the bank is charged the **fold of the printed lines**, so the price the
  *     screen showed is the price paid;
@@ -429,7 +444,9 @@ export function purchaseError(
  *     this turn**;
  *   · a queued copy is struck off, because the town now has the thing and a row
  *     asking for it again is a row the queue would either drop or duplicate. The
- *     hammers banked behind it stay in the basket and pay for whatever is next.
+ *     hammers banked behind it stay in the basket and pay for whatever is next;
+ *   · **a bought unit spends the town's day**, stamped as the absolute turn the
+ *     matching clause in `purchaseError` compares against.
  *
  * Then the panel is refreshed, because this is a mid-turn mutation of a city's
  * derived state — see `refreshCityDerived`'s register in CLAUDE.md, of which
@@ -448,6 +465,11 @@ export function purchaseItemAt(
   if (item.kind === 'unit' && unitDef(item.id).consecrates === true) {
     player.augursPurchased += 1;
   }
+  // The town's day is spent on units, and stamped as an absolute turn so nothing
+  // has to unstamp it. Written for every unit including the augur — a faith
+  // purchase is still a purchase, and the rule is about how fast a town can be
+  // reinforced rather than about which bank paid.
+  if (item.kind === 'unit') city.purchasedUnitTurn = state.turn;
 
   const born =
     item.kind === 'building'

@@ -745,6 +745,50 @@ describe('rites', () => {
     expect(snapshotState(g.state)).toEqual(before);
   });
 
+  it('are the augur’s whole turn: a second one is refused, byte-identically', () => {
+    // User, 2026-08-28: "performing a rite should end the augur's turn". The
+    // *spending* half has been in `performRiteAt` since the rule was stated —
+    // `movesLeft` to zero — but the refusal that makes it bite was missing, so
+    // a three-charge augur could bless three towns in one resolution and the
+    // charge ladder bought nothing. Both halves now read `augurHasActed`.
+    const g = game();
+    learn(g.state, 0, 'divination');
+    const city = found(g.state, 0);
+    const augur = augurAt(g.state, 0, city.col, city.row);
+    expect(augur.chargesLeft ?? 0).toBeGreaterThan(1);
+    expect(augur.movesLeft).toBeGreaterThan(0);
+
+    const rite = {
+      type: 'performRite',
+      playerId: 0,
+      unitId: augur.id,
+      rite: 'riteOfTheHarvest',
+    } as Command;
+    expect(applyCommand(g.state, rite).ok).toBe(true);
+    // Still standing, still holding charges — and out of day.
+    expect(augur.chargesLeft).toBe(2);
+    expect(augur.movesLeft).toBe(0);
+
+    expect(riteError(g.state, 0, augur.id, 'riteOfTheHarvest')).toMatch(/acted this turn/);
+    // And the *other* act an augur can take is held to the same sentence: a
+    // blessing does not leave enough of the afternoon to found a god.
+    expect(consecrateError(g.state, 0, augur.id)).toMatch(/acted this turn/);
+
+    const before = snapshotState(g.state);
+    const second = applyCommand(g.state, rite);
+    expect(second.ok).toBe(false);
+    expect(second.ok === false && second.error).toMatch(/acted this turn/);
+    expect(snapshotState(g.state)).toEqual(before);
+
+    // Next turn it may act again: nothing counted down, `resetMovement` simply
+    // gave the piece its day back.
+    for (const player of g.state.players) {
+      dispatch(g, { type: 'endTurn', playerId: player.id });
+    }
+    expect(augur.movesLeft).toBeGreaterThan(0);
+    expect(riteError(g.state, 0, augur.id, 'riteOfTheHarvest')).toBeNull();
+  });
+
   it('reach one hex, and default to where the augur stands', () => {
     const g = game();
     learn(g.state, 0, 'divination');

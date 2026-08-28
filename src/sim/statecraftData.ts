@@ -187,6 +187,28 @@ export type CityScope =
    */
   | { test: 'hasBuilding'; building: BuildingId }
   /**
+   * The town's **own hex** is hills — Tycho Brahe's observatory ground.
+   *
+   * `onTerrain`'s sibling and deliberately *not* one of its values: hills are an
+   * overlay on a terrain rather than a terrain (`terrainData.ts`'s `hills`
+   * block), so a grassland hill is grassland *and* hills and a scope that tried
+   * to say "hills" through `onTerrain` could never match anything. Asked of
+   * `cityTile`, exactly as `onTerrain` is, and `TileCondition`'s own `hills` one
+   * scale up.
+   */
+  | { test: 'onHills' }
+  /**
+   * The town is **not** this empire's capital — Aššur-idī's colony trade.
+   *
+   * `notFreshwater`'s precedent, and it is here for that member's reason
+   * exactly: there is no `not` composite and there will not be one, so a
+   * negation that the ratified table actually asks for earns its own named
+   * member. Two negations now, both of scopes whose positive half a card also
+   * uses, which is the shape of the rule — a negation is written down when a
+   * card needs it and never invented in advance.
+   */
+  | { test: 'notCapital' }
+  /**
    * The town's **own hex** is this terrain — Petra's desert city.
    *
    * A fact about the ground the centre stands on and nothing wider: a city with
@@ -259,7 +281,44 @@ export type CombatCondition =
    * will ever want it: the contested hex is the defender's own, so "garrisoned"
    * and "standing on the hex being stormed" are the same sentence.
    */
-  | { test: 'inCity' };
+  | { test: 'inCity' }
+  /**
+   * A city of this player's stands on the contested tile **and was taken by
+   * force** — El Cid in Valencia.
+   *
+   * `inCity` narrowed exactly as `capitalTerritory` narrows `ownTerritory`, and
+   * it reads `City.captured`, which is the same field `CityScope`'s `captured`
+   * reads. One fact about a town, asked at two scales.
+   */
+  | { test: 'capturedCity' }
+  /** The contested tile carries this feature. Nzinga's forest and jungle. */
+  | { test: 'onFeature'; feature: string }
+  /**
+   * The contested tile has fresh water — a river edge or a lake beside it.
+   *
+   * `CityScope`'s and `TileCondition`'s `freshwater` at the third scale, asked
+   * of the hex the fight is on. Han Xin's backs-to-the-river half.
+   */
+  | { test: 'freshwater' }
+  /**
+   * The contested tile touches open water — `isCoastal`, the same predicate a
+   * coastal *city* is decided by (Entry I.b: one evaluator).
+   *
+   * Han Xin's other half. A disjunction is two lines, so "beside a river or
+   * coast" is this member and the one above it on one card, and a hex that is
+   * both pays twice — the vocabulary's own reading, stated in
+   * `greatPeopleData.ts` and not bent here.
+   */
+  | { test: 'coastal' }
+  /**
+   * This piece is dug in (`Unit.fortifiedTurns`) — Jan Žižka's wagon fort.
+   *
+   * A fact about the *piece* rather than about its type, which is precisely why
+   * it is a condition and not a `UnitFilter` field: see that interface's
+   * docblock, which names "is this unit wounded" as the same mistake. The
+   * condition asks about the side the line pays, exactly as `class` does.
+   */
+  | { test: 'fortified' };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount = 'cities' | 'adjacentFriendlies';
@@ -391,6 +450,17 @@ export type CountKind =
   | 'luxuryCopies'
   /** Improved bonus-resource tiles the empire controls. */
   | 'improvedBonusResources'
+  /**
+   * Improved **strategic** seams the empire controls — Shen Kuo's.
+   *
+   * `improvedBonusResources`' sibling and answered by the same sweep with the
+   * other `ResourceKind`, rather than by a `kind:` argument on the effect: the
+   * two counts read differently on a card ("per improved bonus resource", "per
+   * improved strategic resource") and a member each is what lets `COUNT_WORDS`
+   * say so without a second table. Luxuries already have two counts of their
+   * own, which is why this pair is the whole of it.
+   */
+  | 'improvedStrategicResources'
   /** Cities held. */
   | 'cities'
   /** Citizens across the empire. */
@@ -447,7 +517,58 @@ export type CountKind =
    * Angkor Wat's, and `workedHills`' unfiltered twin: one asks how much of a
    * town's labour is on high ground and this asks how much labour there is.
    */
-  | 'workedTilesInCity';
+  | 'workedTilesInCity'
+  /**
+   * **Wonders** standing in this empire's cities — Phidias' and Dürer's.
+   *
+   * `buildingsOfKind` without the argument, and a count rather than a widening
+   * of that one because "a wonder" is a class the data already declares
+   * (`BuildingDef.wonder`, read by `isWonder`) while `buildingsOfKind` names one
+   * row. A wonder is one per world, so counting across the empire's towns is
+   * exact — and a wonder that changes hands changes this count with it, which is
+   * the wonders framework's own rule (what a wonder *pays* follows the stones).
+   */
+  | 'wonders'
+  /**
+   * Hexes this empire has **explored** — Eratosthenes' well and stick, and
+   * Zhang Qian's road west.
+   *
+   * Read off `GameState.visibility`, which is monotone: a tile explored is
+   * explored forever, so this count never falls and a card written on it cannot
+   * be farmed by walking away. It is the *seat's* own grid and not the world's,
+   * which is what makes two empires' Eratosthenes worth different numbers.
+   */
+  | 'revealedTiles'
+  /**
+   * Foreign cities this empire has ever **sighted** — Ibn Baṭṭūṭa's Rihla.
+   *
+   * `GameState.citySightings`, the M8 city memory, filtered to other seats'
+   * towns. A memory rather than a live watch, deliberately: the Rihla is thirty
+   * years of roads, and a count that fell when a scout came home would be a card
+   * that punishes the traveller for arriving.
+   */
+  | 'sightedCities'
+  /**
+   * Ages this empire has **closed** — one less than the era it stands in
+   * (`highestAge`), so a realm still in the first age counts nothing.
+   *
+   * Sima Qian's, and the generic answer to a clause that until now only a
+   * `windfallRider` could say (`perAge`): that flag multiplies a payout by the
+   * era, and this counts the eras *behind* you. Two readings of the calendar,
+   * each in the shape its cards want.
+   */
+  | 'agesClosed'
+  /**
+   * This empire's **living pieces**, narrowed by `CardCountScaledEffect.class`.
+   *
+   * Murasaki Shikibu's melee line. The second count in the union that takes an
+   * argument, and it takes the ordinary `UnitFilter` — so "per melee unit", "per
+   * ranged unit" and "per religious unit" are one shape, one arm and one table
+   * entry, exactly as `buildingsOfKind` made "per Barracks" and "per Temple"
+   * one. An absent filter counts every piece, the filter's own reading
+   * everywhere else.
+   */
+  | 'unitsInField';
 
 /** What a `rateConversion` reads. A *rate* or a meter standing, never a bank. */
 export type RateSource =
@@ -681,6 +802,16 @@ export interface CardProductionBonusEffect {
   percent: number;
   /** Narrows a unit bonus to one silhouette — the mounted line, today. */
   modelClass?: ModelClass;
+  /**
+   * Narrows the bonus to the towns a scope admits — Amenhotep son of Hapu's
+   * wonders **in the capital**.
+   *
+   * The ordinary `CityScope`, read in `cardProduction`, which already has the
+   * town in hand because a production modifier is asked of one city's queue.
+   * `modelClass` narrows *what* is being built and this narrows *where*, so the
+   * two are independent and a row may carry both.
+   */
+  scope?: CityScope;
 }
 
 /** A percentage on a named rule. See `CardRule`. */
@@ -827,6 +958,15 @@ export interface CardCountScaledEffect {
   pays: CardPayout;
   /** Which building `buildingsOfKind` counts. Ignored by every other count. */
   building?: BuildingId;
+  /**
+   * Which units `unitsInField` counts. Ignored by every other count.
+   *
+   * `building`'s sibling, and the same bargain one table over: a count that
+   * needs an argument names it on the effect rather than in the union, so the
+   * union stays a list of *questions* and the row says which one it is asking.
+   * Absent counts every piece.
+   */
+  class?: UnitFilter;
   /**
    * Narrows an **empire** count to the town the line is being paid in.
    *

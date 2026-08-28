@@ -133,19 +133,25 @@ function playFaithful(maxTurns: number): {
     // rite first** — an augur is worth more having done something than having
     // done nothing — and then the whole of what is left on a god, while a slot
     // is open. An augur with no slot to fill keeps working through its charges.
+    //
+    // Since 2026-08-28 that is a **two-turn** plan rather than a same-turn one:
+    // a rite is the augur's whole turn (`augurHasActed`) and consecration is
+    // held to the same sentence, so the god is asked for on a *later* pass, off
+    // an augur that has already done a day's work. Asked first for that reason
+    // — after the rite below the piece has no day left — and gated on a spent
+    // charge so the "one rite first" reading survives the reordering.
+    const charges = unitDef('augur').charges ?? 0;
     for (const unit of [...g.state.units]) {
       if (unit.ownerId !== 0 || !isAugur(unit)) continue;
+      if ((unit.chargesLeft ?? charges) < charges && consecrateError(g.state, 0, unit.id) === null) {
+        if (dispatch(g, { type: 'consecrate', playerId: 0, unitId: unit.id } as Command).ok) continue;
+      }
       for (const rite of availableRites(g.state, 0)) {
         if (riteError(g.state, 0, unit.id, rite) !== null) continue;
         if (dispatch(g, { type: 'performRite', playerId: 0, unitId: unit.id, rite } as Command).ok) {
           ritesPerformed += 1;
         }
         break;
-      }
-      // The rite may have spent the piece's last charge, so ask the board again.
-      if (!g.state.units.some((other) => other.id === unit.id)) continue;
-      if (consecrateError(g.state, 0, unit.id) === null) {
-        dispatch(g, { type: 'consecrate', playerId: 0, unitId: unit.id } as Command);
       }
     }
 
@@ -195,8 +201,8 @@ function nearestSite(
 }
 
 describe('determinism', () => {
-  it('round-trips a schema 24 save with augurs, rites and beliefs in the log', () => {
-    expect(SCHEMA_VERSION).toBe(24);
+  it('round-trips a schema 25 save with augurs, rites and beliefs in the log', () => {
+    expect(SCHEMA_VERSION).toBe(25);
     const played = playFaithful(90);
     // The empire actually got there: an augur was bought out of faith it earned,
     // rites were performed, and a god was named. A determinism test over a log

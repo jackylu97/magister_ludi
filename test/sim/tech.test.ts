@@ -224,10 +224,19 @@ describe('tech data integrity', () => {
     // is untouched — the Wheel's 26 and Letters' 24 both still clear it — and
     // ages II/III are unchanged, per the rework's own note that only Age I was
     // in scope.
+    //
+    // **Ages II and III were scaled up on 2026-08-28** (user — "science costs
+    // need to scale harder"): ×1.3 and ×1.8, each cost rounded to the nearest
+    // five, Age I untouched. That is the "the table is a *scale*" paragraph in
+    // `tech.ts` used deliberately — the shape *inside* each age is preserved
+    // exactly and only the band moved. The one claim above that no longer holds
+    // is Age III's floor sitting barely above Age II's ceiling: 480 against 305
+    // is a gap on purpose, because the endgame was being swept in thirty-five
+    // turns and is now sixty. The bands were [120, 250] and [255, 460].
     const bands: Record<number, [number, number]> = {
       1: [8, 32],
-      2: [120, 250],
-      3: [255, 460],
+      2: [165, 310],
+      3: [475, 815],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);
@@ -857,8 +866,8 @@ describe('glanceable numbers', () => {
 // ---------------------------------------------------------------------------
 
 describe('research in the log', () => {
-  it('round-trips a schema 24 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(24);
+  it('round-trips a schema 25 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(25);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

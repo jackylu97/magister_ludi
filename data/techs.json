@@ -239,7 +239,7 @@
       "glyph": "⚒",
       "age": 2,
       "row": 1,
-      "cost": 132,
+      "cost": 170,
       "prereqs": [
         "bronzeWorking",
         "stonecraft"
@@ -260,7 +260,7 @@
       "glyph": "🏗",
       "age": 2,
       "row": 0,
-      "cost": 183,
+      "cost": 240,
       "prereqs": [
         "stonecraft",
         "fletching"
@@ -281,7 +281,7 @@
       "glyph": "📐",
       "age": 2,
       "row": 2,
-      "cost": 153,
+      "cost": 200,
       "prereqs": [
         "letters",
         "theWheel"
@@ -301,7 +301,7 @@
       "glyph": "💰",
       "age": 2,
       "row": 3,
-      "cost": 162,
+      "cost": 210,
       "prereqs": [
         "letters",
         "stonecraft"
@@ -323,7 +323,7 @@
       "glyph": "🦉",
       "age": 2,
       "row": 4,
-      "cost": 196,
+      "cost": 255,
       "prereqs": [
         "letters",
         "divination"
@@ -341,7 +341,7 @@
       "glyph": "⚙",
       "age": 2,
       "row": 1,
-      "cost": 212,
+      "cost": 275,
       "prereqs": [
         "mathematics",
         "construction"
@@ -360,7 +360,7 @@
       "glyph": "🎭",
       "age": 2,
       "row": 4,
-      "cost": 234,
+      "cost": 305,
       "prereqs": [
         "philosophy",
         "currency"
@@ -378,7 +378,7 @@
       "glyph": "🏰",
       "age": 3,
       "row": 3,
-      "cost": 266,
+      "cost": 480,
       "prereqs": [
         "ironWorking",
         "currency"
@@ -395,7 +395,7 @@
       "glyph": "🔧",
       "age": 3,
       "row": 0,
-      "cost": 285,
+      "cost": 515,
       "prereqs": [
         "engineering",
         "construction"
@@ -415,7 +415,7 @@
       "glyph": "⛪",
       "age": 3,
       "row": 4,
-      "cost": 314,
+      "cost": 565,
       "prereqs": [
         "philosophy",
         "drama"
@@ -437,7 +437,7 @@
       "glyph": "🐴",
       "age": 3,
       "row": 3,
-      "cost": 342,
+      "cost": 615,
       "prereqs": [
         "feudalism",
         "husbandry"
@@ -457,7 +457,7 @@
       "glyph": "☄",
       "age": 3,
       "row": 1,
-      "cost": 418,
+      "cost": 750,
       "prereqs": [
         "mathematics",
         "engineering"
@@ -477,7 +477,7 @@
       "glyph": "🗡",
       "age": 3,
       "row": 0,
-      "cost": 380,
+      "cost": 685,
       "prereqs": [
         "ironWorking",
         "machinery"
@@ -494,7 +494,7 @@
       "glyph": "🎓",
       "age": 3,
       "row": 4,
-      "cost": 451,
+      "cost": 810,
       "prereqs": [
         "theology",
         "philosophy"

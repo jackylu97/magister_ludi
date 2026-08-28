@@ -230,6 +230,19 @@ describe('pacing', () => {
     // inside bands that were already tolerating a handful of turns of map roll.
     // The bands are therefore left where they are; moving them to re-centre on
     // a two-turn shift would be pinning noise.
+    //
+    // **Re-pinned 2026-08-28**, deliberately, because two knobs moved at once
+    // and both were meant to be felt. Age II costs went ×1.3 and Age III ×1.8
+    // (user: "science costs need to scale harder"), and the growth curve came
+    // down to 10 · 6 · 1.65 (user: "the first few population feel a bit slow").
+    // This seed measured **32 / 62 / 97** before and **30 / 67 / 122** after,
+    // and the two changes pull in opposite directions on purpose: the cheaper
+    // citizens buy Age I two turns *earlier* (science here is pop-based, so a
+    // faster basket is a faster tree), and then the ×1.8 on Age III more than
+    // spends that back — twenty-five turns of finale, which is the "scale
+    // harder" the note asked for. The bands below are re-centred on the new
+    // measurements at the widths the old ones had (±7 / ±12 / ±16), so they
+    // still catch a regression in either direction without pinning map roll.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -237,12 +250,12 @@ describe('pacing', () => {
     expect(second, `age II: ${String(second)}`).toBeDefined();
     expect(third, `age III: ${String(third)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(30);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(44);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(62);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(86);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(96);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(128);
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(23);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(37);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(55);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(79);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(106);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(138);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 60_000);
 

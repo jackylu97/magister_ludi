@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { cityYields, foundCityAt } from '../../src/sim/cities';
+import { cityYields, foundCityAt, growthThreshold } from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { applyCombat } from '../../src/sim/combat';
 import {
@@ -914,6 +914,7 @@ describe('plundering a caravan', () => {
     const player = state.players[1]!;
     const goldBefore = player.gold;
     const foodBefore = theirs.foodBasket;
+    const popBefore = theirs.population;
     const hammersBefore = theirs.hammerBasket;
 
     const result = applyCombat(state, raider.id, { col: 6, row: 4 });
@@ -928,7 +929,16 @@ describe('plundering a caravan', () => {
     expect(plunder.gold).toBe(TRADE.pillageBounty.gold);
     expect(plunder.cityName).toBe(theirs.name);
     expect(player.gold - goldBefore).toBe(TRADE.pillageBounty.gold);
-    expect(theirs.foodBasket - foodBefore).toBe(TRADE.pillageBounty.food);
+    // The food is asked of the *bucket*, not of the basket: a plundered
+    // caravan's provisions go through `settleGrowthWindfall`, and since the
+    // growth curve came down on 2026-08-28 ten food is exactly a size-1 town's
+    // whole threshold — so the honest reading of "the bounty landed" is the
+    // basket's rise plus whatever a citizen cost, which is the register entry
+    // this path has always gone through.
+    const foodLanded =
+      theirs.foodBasket - foodBefore +
+      (theirs.population > popBefore ? growthThreshold(popBefore) : 0);
+    expect(foodLanded).toBe(TRADE.pillageBounty.food);
     expect(theirs.hammerBasket - hammersBefore).toBe(TRADE.pillageBounty.production);
     // The route died with the piece: nothing to expire, nothing to clean up.
     expect(usedRouteSlots(state, 0)).toBe(0);
@@ -1046,7 +1056,7 @@ describe('trade in the log', () => {
     // v23 wrote `sendTrader`, which this build's reducer does not have: a v23
     // log would stop dead partway through a replay, so the save is refused
     // rather than misread.
-    expect(SCHEMA_VERSION).toBe(24);
+    expect(SCHEMA_VERSION).toBe(25);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

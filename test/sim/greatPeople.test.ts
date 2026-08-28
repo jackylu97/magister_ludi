@@ -49,7 +49,7 @@ import {
   rosterOfAge,
 } from '../../src/sim/greatPeopleData';
 import { improvementError } from '../../src/sim/improvements';
-import { getTileAt } from '../../src/sim/map';
+import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { settleRenownWindfall } from '../../src/sim/renown';
 import {
@@ -59,7 +59,17 @@ import {
   newGame,
   unitById,
 } from '../../src/sim/state';
-import { liveEffects } from '../../src/sim/statecraft';
+import {
+  type CombatSituation,
+  cardAuthority,
+  cardCityYields,
+  cardCombatLines,
+  cardEmpireYields,
+  cardProduction,
+  describeCard,
+  foldCardYields,
+  liveEffects,
+} from '../../src/sim/statecraft';
 import type { CardEffectKind } from '../../src/sim/statecraftData';
 import { highestAge } from '../../src/sim/techData';
 import { game, found } from './statecraftHelpers';
@@ -539,6 +549,293 @@ describe('a legacy is a card', () => {
     const bare = cityYields(g.state, city).culture;
     city.buildings.push('shrine');
     expect(cityYields(g.state, city).culture).toBe(bare + 1);
+  });
+});
+
+// --- the legacies the 2026-08-28 pass built ---------------------------------
+
+/**
+ * The shapes this pass added to the vocabulary, each read where its family
+ * already lives (`countOf`, `combatConditionHolds`, `cityScopeAdmits`,
+ * `cardProduction`) and each carrying at least one legacy that had been
+ * deferred for want of it.
+ *
+ * Behavioural rather than source-reading on purpose: the register test below
+ * proves the *kind* is read, and only a fight, a town or a sweep can prove that
+ * a **member** of a condition union is asked the right question. A member
+ * declared and never asked is exactly the silent card the register exists to
+ * prevent, one scale down.
+ */
+describe('the legacies this pass built', () => {
+  /** A legacy attached to a seat, without spending a piece to do it. */
+  function bear(state: GameState, playerId: number, id: GreatPersonId): void {
+    state.players[playerId]!.legacies.push(id);
+  }
+
+  /** The empire's once-a-turn card yields, folded. */
+  function empire(state: GameState, playerId: number) {
+    return foldCardYields(cardEmpireYields(state, playerId));
+  }
+
+  /** One side of one fight, as `cardCombatLines` is asked about it. */
+  function fight(
+    state: GameState,
+    unit: Unit,
+    tile: ReturnType<typeof getTileAt>,
+    side: 'attack' | 'defend',
+  ): number {
+    const situation: CombatSituation = {
+      unit,
+      side,
+      tile: tile!,
+      vsBarbarians: false,
+      vsCity: false,
+      targetHp: 10,
+      targetMaxHp: 10,
+    };
+    return cardCombatLines(state, situation).reduce((sum, line) => sum + line.amount, 0);
+  }
+
+  it('Ptahhotep counts libraries across the realm, into authority capacity', () => {
+    const g = game(101);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'ptahhotep');
+    const bare = cardAuthority(g.state, 0).reduce((sum, line) => sum + line.amount, 0);
+    city.buildings.push('library');
+    expect(cardAuthority(g.state, 0).reduce((sum, line) => sum + line.amount, 0)).toBe(bare + 1);
+  });
+
+  it('Phidias is paid for the wonders standing in his empire’s towns', () => {
+    const g = game(103);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'phidias');
+    expect(empire(g.state, 0).culture).toBe(0);
+    city.buildings.push('theOracle');
+    city.buildings.push('stonehenge');
+    // Three a wonder, and an ordinary building is not one.
+    expect(empire(g.state, 0).culture).toBe(6);
+    city.buildings.push('library');
+    expect(empire(g.state, 0).culture).toBe(6);
+  });
+
+  it('Eratosthenes measures the world in twenties, off the seat’s own grid', () => {
+    const g = game(107);
+    found(g.state, 0);
+    bear(g.state, 0, 'eratosthenes');
+    const grid = g.state.visibility[0]!;
+    grid.fill(0);
+    for (let i = 0; i < 45; i++) grid[i] = 1;
+    // Two helpings of twenty; the five over pay nothing until they are twenty.
+    expect(empire(g.state, 0).science).toBe(2);
+    // The other seat's grid is the other seat's.
+    expect(empire(g.state, 1).science).toBe(0);
+  });
+
+  it('Ibn Baṭṭūṭa remembers foreign towns and never his own', () => {
+    const g = game(109);
+    found(g.state, 0);
+    bear(g.state, 0, 'ibnBattuta');
+    g.state.citySightings[0] = [
+      { cityId: 1, col: 1, row: 1, name: 'Ur', ownerId: 0 },
+      { cityId: 2, col: 2, row: 2, name: 'Kish', ownerId: 1 },
+      { cityId: 3, col: 3, row: 3, name: 'Lagash', ownerId: 1 },
+    ];
+    expect(empire(g.state, 0).gold).toBe(2);
+  });
+
+  it('Sima Qian pays every town, once per age behind it', () => {
+    const g = game(113);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'simaQian');
+    const player = g.state.players[0]!;
+    // An empire in the first age has closed nothing.
+    expect(highestAge(player.techsResearched)).toBe(1);
+    expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(0);
+    player.techsResearched.push('ironWorking');
+    expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(1);
+  });
+
+  it('Murasaki Shikibu counts the melee in the field, and the filter bites', () => {
+    const g = game(127);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'murasakiShikibu');
+    const before = empire(g.state, 0).culture;
+    createUnit(g.state, 0, 'warrior', city.col, city.row);
+    createUnit(g.state, 0, 'warrior', city.col, city.row);
+    // A worker is in the field and is not melee.
+    createUnit(g.state, 0, 'worker', city.col, city.row);
+    // The other seat's army is the other seat's.
+    createUnit(g.state, 1, 'warrior', city.col, city.row);
+    expect(empire(g.state, 0).culture).toBe(before + 4);
+  });
+
+  it('Shen Kuo is paid for the strategic seams the empire has opened', () => {
+    const g = game(131);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'shenKuo');
+    expect(empire(g.state, 0).science).toBe(0);
+
+    // The proven setup: a great person's work opens whatever seam it stands on,
+    // once the empire has a word for it (see "opens whatever seam" above).
+    const unit = call(g.state, 0, SAMPLE.scholar);
+    unit.col += 1;
+    const tile = getTileAt(g.state.map, unit.col, unit.row)!;
+    claimTile(g.state, city, tile);
+    tile.terrain = 'grassland';
+    tile.feature = 'none';
+    tile.hills = true;
+    tile.resource = 'iron';
+    const player = g.state.players[0]!;
+    if (!player.techsResearched.includes('bronzeWorking')) {
+      player.techsResearched.push('bronzeWorking');
+    }
+    applyCommand(g.state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
+    expect(hasResource(g.state, 0, 'iron')).toBe(true);
+    expect(empire(g.state, 0).science).toBe(1);
+  });
+
+  it('Nzinga defends in the trees and nowhere else', () => {
+    const g = game(137);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'nzingaOfNdongo');
+    const unit = createUnit(g.state, 0, 'warrior', city.col, city.row);
+    const tile = getTileAt(g.state.map, unit.col, unit.row)!;
+    tile.feature = 'none';
+    expect(fight(g.state, unit, tile, 'defend')).toBe(0);
+    tile.feature = 'forest';
+    expect(fight(g.state, unit, tile, 'defend')).toBe(5);
+    tile.feature = 'jungle';
+    expect(fight(g.state, unit, tile, 'defend')).toBe(5);
+    // Defending only — the forty-year war was fought from the trees.
+    expect(fight(g.state, unit, tile, 'attack')).toBe(0);
+  });
+
+  it('Han Xin fights beside a river or a coast, and a hex that is both pays twice', () => {
+    const g = game(139);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'hanXin');
+    const unit = createUnit(g.state, 0, 'warrior', city.col, city.row);
+    const tile = getTileAt(g.state.map, unit.col, unit.row)!;
+    tile.freshwater = false;
+    for (const near of neighborTiles(g.state.map, tileHex(tile))) {
+      if (near.terrain === 'coast') near.terrain = 'grassland';
+    }
+    expect(fight(g.state, unit, tile, 'attack')).toBe(0);
+    tile.freshwater = true;
+    expect(fight(g.state, unit, tile, 'attack')).toBe(2);
+    // A disjunction is two lines, and a hex on both pays both — the
+    // vocabulary's own reading, stated in `greatPeopleData.ts`.
+    const shore = neighborTiles(g.state.map, tileHex(tile))[0]!;
+    shore.terrain = 'coast';
+    expect(fight(g.state, unit, tile, 'defend')).toBe(4);
+  });
+
+  it('Jan Žižka is worth nothing until the wagons are drawn up', () => {
+    const g = game(149);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'janZizka');
+    const unit = createUnit(g.state, 0, 'warrior', city.col, city.row);
+    const tile = getTileAt(g.state.map, unit.col, unit.row)!;
+    expect(fight(g.state, unit, tile, 'defend')).toBe(0);
+    unit.fortifiedTurns = 0;
+    expect(fight(g.state, unit, tile, 'defend')).toBe(5);
+    // Defence only. A fort that charged would not be a fort.
+    expect(fight(g.state, unit, tile, 'attack')).toBe(0);
+  });
+
+  it('El Cid holds only the towns he took', () => {
+    const g = game(151);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'elCid');
+    const unit = createUnit(g.state, 0, 'warrior', city.col, city.row);
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    expect(fight(g.state, unit, tile, 'defend')).toBe(0);
+    city.captured = true;
+    expect(fight(g.state, unit, tile, 'defend')).toBe(3);
+    expect(fight(g.state, unit, tile, 'attack')).toBe(3);
+  });
+
+  it('Tycho Brahe reads the sky from hills as well as from beside a mountain', () => {
+    const g = game(157);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'tychoBrahe');
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    tile.hills = false;
+    const bare = foldCardYields(cardCityYields(g.state, city)).science;
+    tile.hills = true;
+    expect(foldCardYields(cardCityYields(g.state, city)).science).toBe(bare + 3);
+  });
+
+  it('Aššur-idī pays the colonies and never the capital', () => {
+    const g = game(163);
+    const capital = found(g.state, 0);
+    bear(g.state, 0, 'assurIdi');
+    expect(foldCardYields(cardCityYields(g.state, capital)).gold).toBe(0);
+    const colony = foundCityAt(
+      g.state,
+      0,
+      getTileAt(g.state.map, capital.col + 4, capital.row)!,
+    )!;
+    expect(foldCardYields(cardCityYields(g.state, colony)).gold).toBe(2);
+    // Still nothing in the capital: the negation is a scope, not a subtraction.
+    expect(foldCardYields(cardCityYields(g.state, capital)).gold).toBe(0);
+  });
+
+  it('Amenhotep hurries wonders in the capital and nowhere else', () => {
+    const g = game(167);
+    const capital = found(g.state, 0);
+    bear(g.state, 0, 'amenhotepSonOfHapu');
+    const at = (city: typeof capital, category: 'wonder' | 'building') =>
+      cardProduction(g.state, city, category).reduce((sum, line) => sum + line.percent, 0);
+    expect(at(capital, 'wonder')).toBe(20);
+    // A wonder bonus does not ride on an ordinary building (the categories).
+    expect(at(capital, 'building')).toBe(0);
+    const colony = foundCityAt(
+      g.state,
+      0,
+      getTileAt(g.state.map, capital.col + 4, capital.row)!,
+    )!;
+    expect(at(colony, 'wonder')).toBe(0);
+  });
+
+  it('prints every legacy this pass wrote, in words', () => {
+    // The card's own sentence, which is what a player reads — a shape that
+    // evaluates correctly and prints nothing is a card that lies by omission.
+    const printed = (id: GreatPersonId) => describeCard(id).map((clause) => clause.text);
+    expect(printed('ptahhotep')).toEqual(['+1 authority capacity per Library']);
+    expect(printed('phidias')).toEqual(['+3 culture per wonder you hold']);
+    expect(printed('eratosthenes')).toEqual(['+1 science per 20 hexes you have revealed']);
+    expect(printed('ibnBattuta')).toEqual(['+1 gold per foreign city you have sighted']);
+    expect(printed('simaQian')).toEqual(['+1 culture per age that has closed']);
+    expect(printed('murasakiShikibu')).toEqual(['+2 culture per melee unit in the field']);
+    expect(printed('shenKuo')).toEqual(['+1 science per improved strategic resource']);
+    expect(printed('nzingaOfNdongo')).toEqual([
+      '+5 combat strength in forest',
+      '+5 combat strength in jungle',
+    ]);
+    expect(printed('hanXin')).toEqual([
+      '+2 combat strength beside fresh water',
+      '+2 combat strength on the coast',
+    ]);
+    expect(printed('janZizka')).toEqual(['+5 combat strength while fortified']);
+    expect(printed('elCid')).toEqual(['+3 combat strength in a city you took by force']);
+    expect(printed('assurIdi')).toEqual(['+2 gold in every city but your capital']);
+    expect(printed('amenhotepSonOfHapu')).toEqual([
+      '+20% production toward wonders, in your capital',
+    ]);
+    // The deferred half prints too, struck through — a promise not made is said
+    // out loud rather than quietly dropped.
+    expect(printed('archimedes')).toEqual([
+      '+6 combat strength for siege units against cities',
+      'The legacy is *lost* the turn an enemy enters his city — nothing revokes a legacy.'
+        + ' — not built yet',
+    ]);
+    expect(printed('tychoBrahe')).toEqual([
+      '+3 science in every city beside a mountain',
+      '+3 science in every city on hills',
+    ]);
+    expect(printed('crassus')[0]).toBe('all units cost −30% to buy');
+    expect(printed('crassus')).toHaveLength(3);
   });
 });
 
