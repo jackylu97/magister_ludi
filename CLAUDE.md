@@ -62,7 +62,14 @@ would change every seeded outcome. No further rename passes.
   tincture, each flourish in isolation with live sliders, the frontispiece, the pantheon
   wheel, the six city tiers in Three.js, the chart marginalia, the palette and ramp. **A new
   visual asset is added there in the same pass that ships it** — the page is where art is
-  iterated, not the game. All five root pages are named in `vite.config.ts`'s inputs.
+  iterated, not the game. **`compendium.html` + `src/ui/compendium.ts`** is the sixth root page
+  (2026-08-27): the Compendium — every unit, building, wonder, improvement, resource, tech,
+  Order, Doctrine, belief, rite, great person and Triumph **generated from the data rows and the
+  sim's own describers** (`describeCard`, `techGifts`, `explainUnitCost`,
+  `describeResourceSignature`…), never hand-written prose about a number; the same module
+  mounts as the in-game overlay behind the "?" card. Every entry has a stable `kind:id`
+  anchor (`unit:swordsman`) for keyword links later. All six root pages are named in
+  `vite.config.ts`'s inputs.
 - `test/` — sim + pure-render-math tests, split into `sim/`, `mapgen/`, `render/`,
   `ui/`, `stress/` by concern. Never drop coverage; reworked tests replace.
 
