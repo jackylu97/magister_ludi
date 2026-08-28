@@ -50,7 +50,15 @@
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { breakFortify } from './combat';
 import { getTileAt } from './map';
-import { type Cell, canStopOn, canTransit, moveProfile, stepCost, zocField } from './pathfind';
+import {
+  type Cell,
+  canStopOn,
+  canTransit,
+  moveProfile,
+  snapMovement,
+  stepCost,
+  zocField,
+} from './pathfind';
 import type { GameState, Unit } from './state';
 
 
@@ -107,7 +115,10 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
     // Overspending is forgiven, never borrowed: the allowance floors at zero.
     // A zone-of-control lock is the same forgiveness read the other way — the
     // step is taken and everything left over is gone with it.
-    const after = price.locked ? 0 : Math.max(0, unit.movesLeft - price.cost);
+    // Snapped, because a road step costs a third and three of them have to come
+    // to exactly one point — see `snapMovement`. The allowance a unit carries is
+    // always a whole third for the same reason.
+    const after = price.locked ? 0 : Math.max(0, snapMovement(unit.movesLeft - price.cost));
     // `after === 0` already covers the lock, which is the point of spending it
     // that way: a unit held by a picket comes to rest on the hex it stepped
     // onto, so the tile has to be one it may legally share.

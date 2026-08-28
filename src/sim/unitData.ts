@@ -40,6 +40,7 @@ export type UnitTypeId =
   | 'scout'
   | 'settler'
   | 'worker'
+  | 'trader'
   | 'archer'
   | 'spearman'
   | 'horseman'
@@ -250,6 +251,24 @@ export interface UnitDef {
    * questions, and the family verb needs the second one.
    */
   greatWork?: boolean;
+  /**
+   * True when this unit may be **sent** — it carries a trade route between two
+   * cities and lays road under its feet — or the field is **absent** for
+   * everything that does not.
+   *
+   * Presence is the marker, exactly as with `foundsCity`, `charges`,
+   * `consecrates` and `greatWork`: nothing in `src/sim/` asks whether a type is
+   * `"trader"`, so the cargo ship that sails a coastal route one day is one data
+   * row and every rule about caravans follows it. Four rules read it — the
+   * `sendTrader` gate (`trade.ts`), the road a step lays (`arriveOnTile`), the
+   * shuttle phase (`marchTraders`), and the one clause that says a laden caravan
+   * is **plundered rather than captured** when a soldier reaches it.
+   *
+   * It is a fact about the **type**; whether a given piece is currently carrying
+   * a route is `Unit.trade`, a fact about the piece. Two fields because they
+   * answer two questions — the same split `greatWork` and `Unit.person` make.
+   */
+  trades?: boolean;
   /** What one costs to buy outright, or absent. See `UnitPurchaseSpec`. */
   purchase?: UnitPurchaseSpec;
   /**
@@ -385,6 +404,19 @@ export function isCivilian(def: UnitDef): boolean {
  */
 export function isExplorer(def: UnitDef): boolean {
   return def.ignoresTerrainCost === true;
+}
+
+/**
+ * Is this the piece an empire sends out to *trade*?
+ *
+ * The one reading of `UnitDef.trades`, so that nothing anywhere compares a unit
+ * type against `"trader"` — exactly as nothing compares against `"settler"`,
+ * `"augur"` or `"greatPerson"`. It lives beside `isCivilian` because
+ * `arrival.ts` asks it on every step of every march and cannot import the trade
+ * rules (which import the city rules, which is the way the arrows already run).
+ */
+export function trades(def: UnitDef): boolean {
+  return def.trades === true;
 }
 
 /**

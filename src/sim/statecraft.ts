@@ -479,6 +479,27 @@ export function explainOfferSize(
   return lines;
 }
 
+/**
+ * Every extra trade route this empire's cards grant, as labelled lines —
+ * `explainOfferSize`'s second half at the scale of a caravan.
+ *
+ * It stops here, in the one module that switches on a `CardEffect.kind`, and
+ * hands `trade.ts` a list it folds into `explainRouteSlots` beside the lines the
+ * *buildings* supply. A market's slot and the Great Lighthouse's are one number
+ * with two sources, exactly as authority capacity is.
+ */
+export function cardRouteSlots(state: GameState, playerId: number): OfferSizeLine[] {
+  const lines: OfferSizeLine[] = [];
+  for (const { source, level, effect } of effectsOfKind(state, playerId, 'routeRider')) {
+    // A rider with no figure grants the ordinary one route, so a data row may
+    // say only that it widens the fold. Scaled by level like every other figure.
+    const extra = scaleByLevel(effect.extra ?? 1, level);
+    if (extra === 0) continue;
+    lines.push({ source, delta: extra });
+  }
+  return lines;
+}
+
 /** The fold of `explainOfferSize`, and the only sum of one. */
 export function foldOfferSize(lines: readonly OfferSizeLine[]): number {
   let total = 0;
@@ -2875,6 +2896,13 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       });
       return;
     }
+    case 'routeRider': {
+      // A figure, and a figure is a thing a player has to be told — "+1 trade
+      // route". `offerRider`'s widening half, read the same way.
+      const extra = scaleByLevel(effect.extra ?? 1, level);
+      out.push({ text: `+${extra} trade ${extra === 1 ? 'route' : 'routes'}` });
+      return;
+    }
     case 'effectAmplifier':
       out.push({ text: AMPLIFIER_WORDS[effect.target](scaleByLevel(effect.percent, level)) });
       return;
@@ -3315,6 +3343,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   death: 'losing a unit',
   kill: 'killing a unit',
   pillage: 'pillaging',
+  pillageTrader: 'plundering a caravan',
   tech: 'completing a technology',
   tilePurchase: 'buying a tile',
   rite: 'performing a rite',

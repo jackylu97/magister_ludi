@@ -36,11 +36,22 @@
  * be reached by a melee: see the ledger entry, where that quirk is stated rather
  * than patched around.
  *
- * Because `rules.movement.minStepCost` floors every step at a positive number,
- * there are no zero-cost edges, which is what lets both searches settle a node
- * the first time they pop it. A zone-of-control lock keeps that guarantee: it
- * moves the running total to the *end of the current turn*, which is always
- * strictly beyond where the step started from.
+ * Since the trade pass it is a property of the **pair of hexes** in a second
+ * way: a step whose two ends are both paved costs `roadStepCost` — a third of a
+ * point — and the ground's price is *replaced* rather than discounted. That is
+ * the other thing a lone tile cannot answer, and it is the reason `stepCost`
+ * takes `from` at all (Entry XXV was built for roads a year before there were
+ * any). Movement points are therefore exact **thirds**, and every running total
+ * in this file goes through `snapMovement`; see its docblock for why a float
+ * third is a bug waiting for a fourth step.
+ *
+ * Because every step costs a positive number — `rules.movement.minStepCost` off
+ * a road, `roadStepCost` on one — there are no zero-cost edges, which is what
+ * lets both searches settle a node the first time they pop it. A zone-of-control
+ * lock keeps that guarantee: it moves the running total to the *end of the
+ * current turn*, which is always strictly beyond where the step started from.
+ * The A* heuristic is scaled by `cheapestStepCost` rather than by the floor, so
+ * it stays admissible over paved ground.
  *
  * Blocking
  * --------
@@ -75,6 +86,75 @@ import { fullMovement, hasForeignUnit, hasStackingRoom } from './units';
 export interface Cell {
   col: number;
   row: number;
+}
+
+// --- exact thirds -----------------------------------------------------------
+
+/**
+ * The denominator every movement point in this game is a whole multiple of.
+ *
+ * Three, because a road costs a third of a point (`rules.movement.roadCostThirds`
+ * over this) and nothing else in the game is fractional. It is written down once
+ * so the two halves of the claim — the price of a road step, and the snapping
+ * that keeps a running total exact — cannot be given different denominators.
+ */
+export const MOVEMENT_DENOMINATOR = 3;
+
+/**
+ * What one step **along a road** costs, in movement points. See
+ * `rules.movement.roadCostThirds`.
+ */
+export const roadStepCost = RULES.movement.roadCostThirds / MOVEMENT_DENOMINATOR;
+
+/**
+ * The cheapest any single step can be, whatever it crosses — the floor a road
+ * pushed below `minStepCost`.
+ *
+ * `findPath`'s heuristic multiplies this by the hexes remaining, so it must be
+ * the *cheapest* edge that exists or the estimate stops being admissible and A*
+ * stops being optimal. Before roads that was `minStepCost`; with roads on the
+ * board a straight line of highway is cheaper per hex than the floor, and a
+ * heuristic that had not noticed would quietly return second-best routes over
+ * exactly the ground a player built to be fast.
+ */
+export const cheapestStepCost = Math.min(RULES.movement.minStepCost, roadStepCost);
+
+/**
+ * Snaps a movement figure onto the exact third it must be a multiple of.
+ *
+ * **Why every accumulation goes through it.** A third is not representable in
+ * binary, so `1/3 + 1/3 + 1/3` is `0.9999999999999999` and a column with one
+ * point left would find a fourth road step it had not paid for. The integer
+ * numerator *is* representable, so the arithmetic is done there and divided
+ * back: every running total in this file, and the `movesLeft` the walk writes,
+ * is `k / 3` for an integer `k` and two totals that mean the same number are the
+ * same double.
+ *
+ * That last property is the one the searches lean on. `best[index]` comparisons,
+ * the settle-once guarantee and the agreement between the four readers of
+ * `stepCost` all rest on equal costs comparing equal — and IEEE arithmetic is
+ * deterministic, so a replay reproduces it exactly on any machine.
+ */
+export function snapMovement(points: number): number {
+  return Math.round(points * MOVEMENT_DENOMINATOR) / MOVEMENT_DENOMINATOR;
+}
+
+/**
+ * Is this step taken **along a road** — both feet on paving?
+ *
+ * The one reading of `Tile.road`, and it asks nothing about *whose* road it is:
+ * anybody walks a highway, which is Civ's rule and the honest one (an invader
+ * uses your roads). The builder's seat on the field is for maintenance, and
+ * maintenance alone.
+ *
+ * Both tiles, and that is exactly why a step's price needs `from` as well as
+ * `to` (Entry XXV, built for this before roads existed): a road is a *thing
+ * between two hexes*, so a caravan stepping off the highway into a forest pays
+ * the forest, and one stepping onto the highway from a forest pays the forest
+ * too. Half a road is no road.
+ */
+export function isRoadStep(from: Tile, to: Tile): boolean {
+  return from.road !== undefined && to.road !== undefined;
 }
 
 /** A tile a unit can reach this turn, with what getting there costs. */
@@ -406,14 +486,22 @@ export function movePurse(state: GameState, unit: Unit): MovePurse {
  */
 export function turnBoundary(spent: number, purse: MovePurse): number {
   if (spent < purse.left) return purse.left;
-  return purse.left + purse.refill * (Math.floor((spent - purse.left) / purse.refill) + 1);
+  // Snapped for `snapMovement`'s reason: `spent` may be a sum of road thirds,
+  // and a boundary that landed a hair off would make an equal total compare
+  // unequal in the searches' `best` arrays.
+  return snapMovement(
+    purse.left + purse.refill * (Math.floor(snapMovement(spent - purse.left) / purse.refill) + 1),
+  );
 }
 
 // --- the step evaluator -----------------------------------------------------
 
 /** What one step off a tile costs, and whether it ends the turn on arrival. */
 export interface StepPrice {
-  /** Movement points the destination's ground asks. See `tileMoveCost`. */
+  /**
+   * Movement points this step asks: the destination's ground (`tileMoveCost`),
+   * or `roadStepCost` when both hexes are paved — always a whole third.
+   */
   cost: number;
   /** True when the step slides along an enemy's zone of control. */
   locked: boolean;
@@ -433,6 +521,15 @@ export interface StepPrice {
  * about the whole sweep and re-deriving them per edge would be the same lookup
  * a few thousand times. Every caller hoists them; see `zocField` and
  * `moveProfile`.
+ *
+ * **The road replaces the ground's half, it does not discount it** (the trade
+ * pass). A step between two paved hexes costs `roadStepCost` whatever grows on
+ * the destination or however steep it is — a wooded hill on a highway is a road
+ * — which is Civ's rule and the reason `Tile.road` is worth building at all. It
+ * is asked strictly *after* impassability, exactly as `ignoresTerrainCost` is
+ * (see `tileMoveCost`): no road makes a mountain walkable, because no road was
+ * ever laid on one. The zone of control is untouched — a locked step is a locked
+ * step, on a road or off it — and so are rivers and embarkation.
  */
 export function stepCost(
   map: GameMap,
@@ -441,8 +538,9 @@ export function stepCost(
   mover: MoveProfile | undefined,
   field: ZocField,
 ): StepPrice | null {
-  const cost = tileMoveCost(to, mover);
-  if (cost === null) return null;
+  const ground = tileMoveCost(to, mover);
+  if (ground === null) return null;
+  const cost = isRoadStep(from, to) ? roadStepCost : ground;
   return { cost, locked: zocLocks(map, field, from, to) };
 }
 
@@ -456,7 +554,7 @@ export function stepCost(
  * `reachableTiles` stop expanding there without a second rule about it.
  */
 export function stepArrival(spent: number, price: StepPrice, purse: MovePurse): number {
-  return price.locked ? turnBoundary(spent, purse) : spent + price.cost;
+  return price.locked ? turnBoundary(spent, purse) : snapMovement(spent + price.cost);
 }
 
 /**
@@ -479,11 +577,22 @@ export function stepArrival(spent: number, price: StepPrice, purse: MovePurse): 
  * needs on top of that is one more — which is where a zone of control shows up
  * in a number a player can read, since a slide along a picket empties the purse
  * and the next hex has to wait for the refill.
+ *
+ * `purse` defaults to what the unit is actually holding, which is the reading
+ * every interface wants ("~N turns from now"). One caller passes a **full** one:
+ * a trade route's range (`sendTraderError` in `trade.ts`) is a fact about the
+ * distance between two cities and must not shorten because the caravan walked
+ * into town before it was sent. It is the same arithmetic either way, which is
+ * the whole reason the purse is a parameter rather than a second loop.
  */
-export function pathTurns(state: GameState, unit: Unit, path: readonly Cell[]): number {
+export function pathTurns(
+  state: GameState,
+  unit: Unit,
+  path: readonly Cell[],
+  purse: MovePurse = movePurse(state, unit),
+): number {
   const { map } = state;
   const mover = moveProfile(state, unit);
-  const purse = movePurse(state, unit);
   const field = zocField(state, unit.ownerId);
   let from = getTileAt(map, unit.col, unit.row);
   let turns = 0;
@@ -497,7 +606,7 @@ export function pathTurns(state: GameState, unit: Unit, path: readonly Cell[]): 
     if (!from || !to) break;
     const price = stepCost(map, from, to, mover, field);
     if (price === null) break;
-    budget = price.locked ? 0 : Math.max(0, budget - price.cost);
+    budget = price.locked ? 0 : Math.max(0, snapMovement(budget - price.cost));
     from = to;
   }
   return turns + 1;
@@ -612,8 +721,11 @@ export function findPath(state: GameState, unit: Unit, goal: Tile): Cell[] | nul
   // who holds ground against it, and where its turns end. See `stepCost`.
   const field = zocField(state, unit.ownerId);
   const purse = movePurse(state, unit);
-  const minStep = RULES.movement.minStepCost;
-  const heuristic = (tile: Tile): number => wrappedDistance(map, tileHex(tile), goalHex) * minStep;
+  // `cheapestStepCost`, not `minStepCost`: a road is cheaper than the floor, so
+  // an estimate built on the floor would overestimate a highway and A* would
+  // stop returning the cheapest route over exactly the ground a player paved.
+  const heuristic = (tile: Tile): number =>
+    wrappedDistance(map, tileHex(tile), goalHex) * cheapestStepCost;
 
   const count = map.tiles.length;
   const best = new Float64Array(count).fill(Infinity);

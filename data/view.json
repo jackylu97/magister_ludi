@@ -48,6 +48,7 @@
       "scout": "flag",
       "settler": "house",
       "worker": "tower",
+      "trader": "boat",
       "archer": "flag",
       "spearman": "pawn",
       "horseman": "person",

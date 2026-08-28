@@ -307,6 +307,9 @@
         "stonecraft"
       ],
       "unlocks": {
+        "units": [
+          "trader"
+        ],
         "buildings": [
           "market",
           "colossus",

@@ -611,6 +611,8 @@ export type WindfallOccasion =
   | 'kill'
   /** An improvement pillaged (`pillageAt`). */
   | 'pillage'
+  /** A laden caravan destroyed (`settleTraderPlunder`, the trade pass). */
+  | 'pillageTrader'
   /** A technology completed (`settleResearch`). */
   | 'tech'
   /** A tile bought (`purchaseTileAt`). */
@@ -871,6 +873,28 @@ export interface CardOfferRiderEffect {
   extra?: number;
 }
 
+/**
+ * Trade routes an empire may run at once, on top of what its buildings supply.
+ *
+ * `CardOfferRiderEffect`'s sibling one system over, and deliberately the same
+ * shape: a number of extra somethings, scaled by an Order's level like every
+ * other figure in the vocabulary, folded into a list the surface prints line by
+ * line (`explainRouteSlots` in `trade.ts` — the **only** reader).
+ *
+ * **Scope-free for now**, and that is a declaration rather than an oversight.
+ * Harbourmasters' ratified text is "coastal cities +1 route", which wants a
+ * `CityScope` on a fold that is empire-wide — a route belongs to an empire, not
+ * to a town — so the day that card is written the honest move is to decide what
+ * a scoped route slot *means* (a slot only a coastal city may send from?) and
+ * give this shape the field then. Until then the Great Lighthouse carries the
+ * first one empire-wide, with a `note` on its row saying so.
+ */
+export interface CardRouteRiderEffect {
+  kind: 'routeRider';
+  /** How many extra routes. Absent means one. */
+  extra?: number;
+}
+
 /** A percentage on somebody else's effect. The Grand Bazaar's whole identity. */
 export interface CardEffectAmplifierEffect {
   kind: 'effectAmplifier';
@@ -1114,6 +1138,7 @@ export type CardEffect =
   | CardCountScaledEffect
   | CardRateConversionEffect
   | CardOfferRiderEffect
+  | CardRouteRiderEffect
   | CardEffectAmplifierEffect
   | CardMeterRuleEffect
   | CardConditionRuleEffect

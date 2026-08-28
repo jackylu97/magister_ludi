@@ -207,8 +207,18 @@ import {
  *     log could never contain is one this build writes — and the resolution has
  *     grown a phase (`spendLeftoverMovement`) that marches a jammed column with
  *     the movement its turn left it, which no v21 state can have been through.
+ * 23: Trade (`docs/trade.md`) — the caravan, the road and the city connection.
+ *     One field on a tile (`Tile.road`, the **fourth** thing on a hex that
+ *     changes during play), one on a unit (`Unit.trade`), one on a city
+ *     (`City.tradingPost`), three commands (`sendTrader`, `setAutoResend`,
+ *     `cancelRoute`) and one phase (`marchTraders`). A v22 log replayed here is
+ *     a *different game* rather than an older one for a reason beyond the
+ *     fields: a step between two road hexes now costs a third of a movement
+ *     point, so every march over ground a caravan has crossed arrives somewhere
+ *     a v22 walk would not have reached — and connected cities pay gold their
+ *     empire never had.
  */
-export const SCHEMA_VERSION = 22;
+export const SCHEMA_VERSION = 23;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -808,6 +818,71 @@ export interface Unit {
    * visual-affecting unit property, and the render pass adds it there.
    */
   person?: GreatPersonId;
+  /**
+   * The trade route this piece is **carrying**, or the key is **absent** on
+   * every unit that is not on the road — which is all of them but a handful.
+   *
+   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * `sleeping`'s, `timed`'s and `person`'s convention and is here for the
+   * seventh time for the same reason: a trader idling at home and one that has
+   * never been sent must serialise identically, or two states that are the same
+   * game would not compare equal.
+   *
+   * **The route is the piece.** There is deliberately no `GameState.routes`
+   * register: the caravan *is* the route, so a route ends when the trader dies
+   * with no bookkeeping anywhere, a plundered route is a dead unit, and "how
+   * many routes do I run" is a count of units rather than a list that could
+   * disagree with the board. That is the one structural decision the design doc
+   * left open, and it is settled this way because every other shape needs a rule
+   * for what happens to the register when the piece is killed.
+   *
+   * It is a fact about the **piece** and not about the type: whether a unit *may*
+   * carry one is `UnitDef.trades`, which is the same two-fields-two-questions
+   * split `greatWork` and `person` make.
+   */
+  trade?: TradeRoute;
+}
+
+/**
+ * A live trade route, as it sits on the caravan carrying it (`Unit.trade`).
+ *
+ * Four facts and no more: the two ends, when it lapses, and which way the piece
+ * is walking. What the route *pays* is nowhere here — it is derived every turn
+ * from the two cities as they stand (`explainRouteYield` in `trade.ts`), so a
+ * destination that finishes a library raises the route the next turn and a
+ * destination that is captured stops paying its old owner. A snapshot of the
+ * buildings at send time would be a second ledger.
+ */
+export interface TradeRoute {
+  /** The city the caravan set out from. **The city the route pays.** */
+  from: number;
+  /** The partner. Its buildings and people are what the route is worth. */
+  to: number;
+  /**
+   * The turn this route stops paying — an **absolute** turn, read as
+   * `state.turn < expiresTurn`, exactly as `TimedEffect.expiresTurn` is.
+   * Nothing decrements it; the shuttle phase compares it, and only when the
+   * caravan is standing at home.
+   */
+  expiresTurn: number;
+  /**
+   * True while the caravan is walking *toward* `to`, false while it is walking
+   * home. Flipped by `marchTraders` the turn it arrives, which is what makes the
+   * piece shuttle rather than teleport — and what makes a road get walked in
+   * both directions.
+   */
+  outbound: boolean;
+  /**
+   * True when the caravan should start a fresh leg instead of idling the turn
+   * its route lapses (the user's ruling: "add a button for auto-resend").
+   *
+   * Always present rather than optional, unlike the flags on `Unit` — it is
+   * `hasAttacked`'s case one level in: every route either renews or does not,
+   * which is a real state and not an absent one, and there is exactly one place
+   * a route comes into existence (`sendTraderAt`) so no creation path can leave
+   * it out.
+   */
+  autoResend: boolean;
 }
 
 /**
@@ -935,6 +1010,23 @@ export interface City {
    * for this half.
    */
   timed?: TimedEffect[];
+  /**
+   * True once a caravan has ever set out from this town or arrived at it, or the
+   * key is **absent** on a town no route has touched.
+   *
+   * **History, and it is never cleared** — the same kind of fact `captured` is,
+   * and stored for the same reason: a post is a thing that *happened* to a
+   * place, and by the turn after the route lapses there is nothing on the board
+   * left to derive it from. A captured town keeps its post, exactly as it keeps
+   * its granary.
+   *
+   * What it buys is **range**: each post among a proposed route's two endpoints
+   * is worth `rules.trade.postRangeTurns` more turns of march
+   * (`sendTraderError`), which is the user's ruling — the first caravan to a
+   * town is the expensive one and every one after it reaches further. Nothing
+   * else reads it.
+   */
+  tradingPost?: boolean;
 }
 
 /**
@@ -1579,6 +1671,13 @@ export function wakeUnit(unit: Unit): boolean {
  * their callers nothing: a piece that changes hands is a pair of eyes closing on
  * one side and opening on the other, and this is the only place that knows both
  * ids at once.
+ *
+ * **A trader never reaches here** (the trade pass). A laden caravan caught by a
+ * soldier is *plundered* — destroyed, and its cargo paid to the killer's nearest
+ * city — rather than taken, so both call sites above ask `trades` first and
+ * neither this function nor its rules learnt a thing about routes. That is the
+ * shape a fourth occasion should copy: the exception belongs to the occasion,
+ * never to the change of hands.
  */
 export function captureUnit(state: GameState, unit: Unit, ownerId: number): void {
   const before = unit.ownerId;

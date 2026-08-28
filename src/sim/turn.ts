@@ -107,12 +107,14 @@ import { type CombatOutcome, advanceFortify, healCities } from './combat';
 import { hasLineOfSight } from './los';
 import { openPeriodicOffers, pruneTimedEffects } from './religion';
 import { getTileAt, tileHex, wrappedDistance } from './map';
+import { findPath } from './pathfind';
 import { advanceAlongPath } from './movement';
 import { cardUnitStat, runStatecraft } from './statecraft';
 import { runRenown } from './renown';
 import { advanceResearch } from './tech';
+import { endRoute, routeTarget, standsIn } from './trade';
 import { type TriumphAward, triumphMarks, triumphsSince } from './triumphs';
-import { type GameState, wakeUnit } from './state';
+import { type GameState, type Unit, wakeUnit } from './state';
 import { isCombatant, unitDef } from './unitData';
 import { fullMovement, isRested } from './units';
 import { RULES } from './rulesData';
@@ -299,6 +301,13 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: advanceFortify,
   },
   {
+    name: 'marchTraders',
+    // The caravans keep walking, turn around at each end, and drop a route that
+    // has run out. Directly before `spendLeftoverMovement`, and the position is
+    // the rule — see `marchTraders`.
+    run: marchTraders,
+  },
+  {
     name: 'spendLeftoverMovement',
     // Standing orders march once more on **this** turn's unspent points, before
     // anything is refilled. The position is the rule — see the function.
@@ -411,6 +420,112 @@ function wakeSleepers(state: GameState): void {
       wakeUnit(sleeper);
       break;
     }
+  }
+}
+
+/**
+ * Walks every caravan carrying a route, turns it around at each end, and ends a
+ * route that has run out.
+ *
+ * **The shuttle**, and the whole of it. A trade route in this game is a piece
+ * that walks (`Unit.trade` — see `trade.ts`), which means somebody has to keep
+ * it walking: a caravan that arrived last turn is standing on its destination
+ * with no orders, and nothing else in the pipeline would ever give it any.
+ *
+ * Its position in the array is the design, like every other entry.
+ *
+ *   · **Immediately before `spendLeftoverMovement`**, so a caravan that has just
+ *     turned around sets off on *this* turn's remaining points rather than
+ *     standing in the gateway for a turn. That phase and `resetMovement` then
+ *     walk the path this one set, which is what keeps the walk in one place: this
+ *     phase decides *where* a caravan is going and never how far it gets.
+ *   · **After everything that can move a piece or take a city** — the wild's
+ *     raid above all — because a route whose destination changed hands during
+ *     the resolution should end this turn and not next, and because a caravan
+ *     killed by a raider must not be marched first.
+ *   · **Before `wakeSleepers` and `refreshVisibility`**, which both insist on a
+ *     board that has stopped moving and stay where they are.
+ *
+ * What it does *not* do is lay road, pay anything, or refresh a city. The road is
+ * `arriveOnTile`'s, per step, on every march whoever ordered it; the yields are
+ * derived on read from wherever the caravan happens to be standing; and a route
+ * that ends here changes no city's derived state that the next `collectYields`
+ * will not recompute one phase into the next turn.
+ *
+ * Walked in `state.units` order, like every other sweep, and it rolls no dice.
+ */
+function marchTraders(state: GameState): void {
+  for (const unit of state.units) {
+    if (unit.trade === undefined) continue;
+    marchOneTrader(state, unit);
+  }
+}
+
+/**
+ * One caravan's leg. Split out so the sweep above reads as the sentence it is.
+ *
+ * The order of the three questions is the rule:
+ *
+ *   1. **has it arrived?** If it is standing on the town it was walking to, the
+ *      leg is over. A leg that ended *at home* is where expiry is asked, and
+ *      nowhere else — a route runs out when the caravan gets back, not in the
+ *      middle of the road, which is what stops a piece being stranded holding a
+ *      dead route halfway across the map.
+ *   2. **is the route still a route?** `routeTarget` answers `null` when either
+ *      end has stopped being one of this empire's cities, and that ends the
+ *      route exactly as expiry does. A missing *path* deliberately does not: a
+ *      jam is not a wall (see below), so a caravan with nowhere to walk this
+ *      turn waits, and only a route that has already lapsed is dropped where it
+ *      stands — which is what stops a stranded caravan holding a slot for ever.
+ *   3. **does it need a path?** Only when it has none: a caravan mid-march is
+ *      already under orders, and re-pathing it every turn would throw away a
+ *      route the board agreed to and re-derive it against a board that may have
+ *      an enemy standing on it.
+ */
+function marchOneTrader(state: GameState, unit: Unit): void {
+  const route = unit.trade;
+  if (!route) return;
+
+  let target = routeTarget(state, unit);
+  if (target && standsIn(unit, target)) {
+    // Home, at the end of the road: the one moment expiry is asked.
+    if (!route.outbound && state.turn >= route.expiresTurn) {
+      if (!route.autoResend) {
+        endRoute(state, unit);
+        return;
+      }
+      // A fresh leg on the same terms — the whole of "auto-resend". The expiry
+      // is *rewritten* rather than extended, so a caravan that sat at home for
+      // ten turns does not carry ten turns of credit.
+      route.expiresTurn = state.turn + Math.max(1, Math.floor(RULES.trade.routeTurns));
+    }
+    route.outbound = !route.outbound;
+    target = routeTarget(state, unit);
+    delete unit.path;
+  }
+
+  if (!target) {
+    endRoute(state, unit);
+    return;
+  }
+
+  if (!unit.path || unit.path.length === 0) {
+    const goal = getTileAt(state.map, target.col, target.row);
+    const path = goal ? findPath(state, unit, goal) : null;
+    if (!path || path.length === 0) {
+      // **A jam is not a wall**, which is `advanceAlongPath`'s own distinction
+      // read one level up: the commonest reason a caravan cannot path to a town
+      // right now is that another civilian is standing in the gateway, and a
+      // route that died of that would be a route killed by traffic. So it waits.
+      //
+      // The one thing that must not happen is a caravan waiting *forever* on a
+      // partner it can never reach again, holding a route slot: so a route that
+      // has already lapsed ends here rather than at home, which is the only case
+      // where the caravan will never get home to end it properly.
+      if (state.turn >= route.expiresTurn) endRoute(state, unit);
+      return;
+    }
+    unit.path = path.map((cell) => ({ col: cell.col, row: cell.row }));
   }
 }
 

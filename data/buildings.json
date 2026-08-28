@@ -2,6 +2,7 @@
   "buildings": {
     "monument": {
       "name": "Monument",
+      "category": "culture",
       "cost": 15,
       "food": 0,
       "production": 0,
@@ -13,6 +14,7 @@
     },
     "granary": {
       "name": "Granary",
+      "category": "food",
       "cost": 15,
       "food": 3,
       "production": 0,
@@ -42,6 +44,7 @@
     },
     "shrine": {
       "name": "Shrine",
+      "category": "faith",
       "cost": 11,
       "food": 0,
       "production": 0,
@@ -53,6 +56,7 @@
     },
     "barracks": {
       "name": "Barracks",
+      "category": "military",
       "cost": 18,
       "food": 0,
       "production": 0,
@@ -71,6 +75,7 @@
     },
     "palisade": {
       "name": "Palisade",
+      "category": "military",
       "cost": 30,
       "food": 0,
       "production": 0,
@@ -85,6 +90,7 @@
     },
     "funeralGames": {
       "name": "Funeral Games",
+      "category": "culture",
       "cost": 35,
       "food": 0,
       "production": 0,
@@ -96,6 +102,7 @@
     },
     "library": {
       "name": "Library",
+      "category": "science",
       "cost": 20,
       "food": 0,
       "production": 0,
@@ -110,6 +117,7 @@
     },
     "temple": {
       "name": "Temple",
+      "category": "faith",
       "cost": 25,
       "food": 0,
       "production": 0,
@@ -121,10 +129,12 @@
     },
     "market": {
       "name": "Market",
+      "category": "gold",
       "cost": 28,
       "food": 0,
       "production": 0,
       "gold": 3,
+      "routeSlots": 1,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
@@ -135,6 +145,7 @@
     },
     "aqueduct": {
       "name": "Aqueduct",
+      "category": "food",
       "cost": 28,
       "food": 3,
       "production": 0,
@@ -145,6 +156,7 @@
     },
     "workshop": {
       "name": "Workshop",
+      "category": "production",
       "cost": 33,
       "food": 0,
       "production": 2,
@@ -159,6 +171,7 @@
     },
     "watermill": {
       "name": "Watermill",
+      "category": "production",
       "cost": 30,
       "food": 2,
       "production": 1,
@@ -173,6 +186,7 @@
     },
     "amphitheater": {
       "name": "Amphitheater",
+      "category": "culture",
       "cost": 35,
       "food": 0,
       "production": 0,
@@ -187,6 +201,7 @@
     },
     "monastery": {
       "name": "Monastery",
+      "category": "faith",
       "cost": 38,
       "food": 0,
       "production": 0,
@@ -197,6 +212,7 @@
     },
     "university": {
       "name": "University",
+      "category": "science",
       "cost": 48,
       "food": 0,
       "production": 0,
@@ -211,6 +227,7 @@
     },
     "theOracle": {
       "name": "The Oracle",
+      "category": "faith",
       "wonder": true,
       "cost": 120,
       "food": 0,
@@ -248,6 +265,7 @@
     },
     "stonehenge": {
       "name": "Stonehenge",
+      "category": "faith",
       "wonder": true,
       "cost": 130,
       "food": 0,
@@ -288,6 +306,7 @@
     },
     "pyramids": {
       "name": "The Pyramids",
+      "category": "production",
       "wonder": true,
       "cost": 150,
       "food": 0,
@@ -315,6 +334,7 @@
     },
     "hangingGardens": {
       "name": "The Hanging Gardens",
+      "category": "food",
       "wonder": true,
       "cost": 150,
       "food": 3,
@@ -358,6 +378,7 @@
     },
     "wallsOfUruk": {
       "name": "The Walls of Uruk",
+      "category": "military",
       "wonder": true,
       "cost": 140,
       "food": 0,
@@ -393,6 +414,7 @@
     },
     "greatZiggurat": {
       "name": "The Great Ziggurat",
+      "category": "faith",
       "wonder": true,
       "cost": 160,
       "food": 0,
@@ -427,6 +449,7 @@
     },
     "greatLighthouse": {
       "name": "The Great Lighthouse",
+      "category": "gold",
       "wonder": true,
       "cost": 130,
       "food": 0,
@@ -460,16 +483,22 @@
           "scope": {
             "test": "coastal"
           }
+        },
+        {
+          "kind": "routeRider",
+          "extra": 1
         }
       ],
       "renown": {
         "family": "merchant",
         "onComplete": 10,
         "perTurn": 2
-      }
+      },
+      "note": "the ratified clause is a route in every coastal city; the rider that carries it is empire-wide until a scope reaches this hook"
     },
     "templeOfArtemis": {
       "name": "The Temple of Artemis",
+      "category": "food",
       "wonder": true,
       "cost": 140,
       "food": 2,
@@ -515,6 +544,7 @@
     },
     "greatLibrary": {
       "name": "The Great Library",
+      "category": "science",
       "wonder": true,
       "cost": 300,
       "food": 0,
@@ -546,11 +576,13 @@
     },
     "colossus": {
       "name": "The Colossus",
+      "category": "gold",
       "wonder": true,
       "cost": 280,
       "food": 0,
       "production": 0,
       "gold": 3,
+      "routeSlots": 1,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
@@ -583,6 +615,7 @@
     },
     "petra": {
       "name": "Petra",
+      "category": "gold",
       "wonder": true,
       "cost": 280,
       "food": 0,
@@ -630,6 +663,7 @@
     },
     "circusMaximus": {
       "name": "The Circus Maximus",
+      "category": "culture",
       "wonder": true,
       "cost": 300,
       "food": 0,
@@ -658,6 +692,7 @@
     },
     "terracottaArmy": {
       "name": "The Terracotta Army",
+      "category": "military",
       "wonder": true,
       "cost": 320,
       "food": 0,
@@ -688,6 +723,7 @@
     },
     "greatWall": {
       "name": "The Great Wall",
+      "category": "military",
       "wonder": true,
       "cost": 340,
       "food": 0,
@@ -715,6 +751,7 @@
     },
     "theatreOfDionysus": {
       "name": "The Theatre of Dionysus",
+      "category": "culture",
       "wonder": true,
       "cost": 320,
       "food": 0,
@@ -746,6 +783,7 @@
     },
     "mausoleum": {
       "name": "The Mausoleum",
+      "category": "gold",
       "wonder": true,
       "cost": 300,
       "food": 0,
@@ -783,6 +821,7 @@
     },
     "statueOfZeus": {
       "name": "The Statue of Zeus",
+      "category": "military",
       "wonder": true,
       "cost": 260,
       "food": 0,
@@ -809,6 +848,7 @@
     },
     "chichenItza": {
       "name": "Chichen Itza",
+      "category": "faith",
       "wonder": true,
       "cost": 450,
       "food": 0,
@@ -834,6 +874,7 @@
     },
     "hagiaSophia": {
       "name": "Hagia Sophia",
+      "category": "faith",
       "wonder": true,
       "cost": 480,
       "food": 0,
@@ -869,6 +910,7 @@
     },
     "angkorWat": {
       "name": "Angkor Wat",
+      "category": "faith",
       "wonder": true,
       "cost": 480,
       "food": 0,
@@ -904,6 +946,7 @@
     },
     "greatMosqueOfDjenne": {
       "name": "The Great Mosque of Djenné",
+      "category": "faith",
       "wonder": true,
       "cost": 460,
       "food": 0,
@@ -935,6 +978,7 @@
     },
     "notreDame": {
       "name": "Notre-Dame",
+      "category": "culture",
       "wonder": true,
       "cost": 470,
       "food": 0,
@@ -965,6 +1009,7 @@
     },
     "houseOfWisdom": {
       "name": "The House of Wisdom",
+      "category": "science",
       "wonder": true,
       "cost": 500,
       "food": 0,
@@ -997,6 +1042,7 @@
     },
     "forbiddenCity": {
       "name": "The Forbidden City",
+      "category": "culture",
       "wonder": true,
       "cost": 500,
       "food": 0,
@@ -1018,6 +1064,7 @@
     },
     "alhambra": {
       "name": "The Alhambra",
+      "category": "culture",
       "wonder": true,
       "cost": 460,
       "food": 0,
@@ -1051,6 +1098,7 @@
     },
     "machuPicchu": {
       "name": "Machu Picchu",
+      "category": "gold",
       "wonder": true,
       "cost": 470,
       "food": 0,
@@ -1081,6 +1129,7 @@
     },
     "waterClockOfSuSong": {
       "name": "The Water Clock of Su Song",
+      "category": "science",
       "wonder": true,
       "cost": 440,
       "food": 0,

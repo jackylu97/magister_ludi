@@ -43,10 +43,11 @@
  * ---------------------------------------------------------------------------
  * `Tile.improvement` is the farm or the mine a worker built; `Tile.feature` is
  * what a chop takes away; `Tile.discovery` is the ruin or village a scout
- * consumes by walking into it. Those three are the fields that change during a
+ * consumes by walking into it; `Tile.road` is the highway a caravan wore into
+ * the ground. Those **four** are the fields that change during a
  * game, and each docblock says why that is compatible with a save file carrying a
- * seed rather than a board. The discovery is the mildest of the three — it can
- * only ever be *removed* — and it forbids exactly what the other two do: nothing
+ * seed rather than a board. The discovery is the mildest of them — it can
+ * only ever be *removed* — and it forbids exactly what the others do: nothing
  * regenerates the map mid-game.
  *
  * THE INVARIANT: an edge is flagged on *both* of the tiles that share it. Bit
@@ -140,6 +141,32 @@ export interface Tile {
    * with the other two, is that nothing may regenerate the map mid-game.
    */
   discovery?: DiscoveryKind;
+  /**
+   * The empire whose caravan laid the road on this hex, or the key is **absent**
+   * — which it is on every tile of every map the generator ever produced.
+   * Absence rather than a `false`, for the reason `resource` gives above.
+   *
+   * **The fourth field on a tile that changes during a game** (the trade pass,
+   * `docs/trade.md`; the trap in `CLAUDE.md` said three on purpose, and this is
+   * the design decision that adds one). It is written by exactly one thing — a
+   * *trader's step*, in `arriveOnTile`, the one "a piece came to rest here" seam
+   * — and removed by exactly one thing, `pillage`, the same verb that strips a
+   * farm. Never by mapgen, never by a turn phase, never by anything that would
+   * have to regenerate a tile.
+   *
+   * A **seat id and not a boolean**, and that is the whole of road maintenance:
+   * anybody may *walk* a road (an invader uses your highways — Civ's rule and
+   * the honest one, and `stepCost` asks nothing about who built it), but only
+   * the empire that laid one pays the upkeep on it, which is the user's ruling.
+   * So the field answers "whose road is this to keep" and nothing asks it
+   * "whose road is this to use".
+   *
+   * Roads are **permanent** (the user's ruling): nothing ages them out, no
+   * pillage-by-time, no repair verb. The save-file promise survives exactly as
+   * it does for `improvement` — a road is laid by a *movement*, every movement
+   * is in the log, and a replay walks the same caravan over the same hexes.
+   */
+  road?: number;
 }
 
 export interface GameMap {

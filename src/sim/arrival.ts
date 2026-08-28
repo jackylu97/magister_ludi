@@ -2,11 +2,13 @@
  * The one implementation of "a unit came to rest on this hex, and the hex had
  * something on it".
  *
- * Three things in this game happen because a piece *arrived* rather than because
+ * Five things in this game happen because a piece *arrived* rather than because
  * anybody issued a verb for them: a ruin or a village is claimed, a barbarian
- * camp is burnt out, and the civilians standing on the hex change hands with the
+ * camp is burnt out, the civilians standing on the hex change hands with the
  * ground (Entry XX.H — the rule that hands a stolen laborer back when its camp
- * is stormed). All are consequences of the foot landing, and all have
+ * is stormed), a **laden caravan on that hex is plundered** rather than taken,
+ * and a **road is laid** under a caravan of one's own that has come to rest here
+ * (the trade pass). All are consequences of the foot landing, and all have
  * exactly two ways to happen — an ordinary march (`advanceAlongPath` in
  * `movement.ts`, which is itself the one implementation of a walk, whether the
  * order was fresh or resumed by `resetMovement`) and the advance a melee attacker
@@ -43,9 +45,11 @@ import {
   type Unit,
   captureUnit,
   playerById,
+  removeUnit,
 } from './state';
+import { type TraderPlunder, layRoadUnder, settleTraderPlunder } from './trade';
 import { awardOccasion } from './triumphs';
-import { isCivilian, unitDef } from './unitData';
+import { isCivilian, trades, unitDef } from './unitData';
 import { unitsOnTile } from './units';
 
 /** A civilian that changed hands because somebody took the ground it stood on. */
@@ -70,16 +74,31 @@ export interface ArrivalReport {
   camp: CampBounty | null;
   /** Civilians the arriving unit took with the ground. Usually empty. */
   captured: CapturedCivilian[];
+  /**
+   * Caravans destroyed on this hex and what each paid, in the order they were
+   * taken. Usually empty.
+   *
+   * `captured`'s sibling and its exception: a laden trader standing where
+   * somebody comes to rest is **plundered rather than taken**, so it is a
+   * different list rather than a flag on the same one. See the plunder clause in
+   * `arriveOnTile`.
+   */
+  plundered: TraderPlunder[];
 }
 
 /** Nothing happened. Shared so a caller can compare rather than allocate. */
 export function emptyArrival(): ArrivalReport {
-  return { discovery: null, camp: null, captured: [] };
+  return { discovery: null, camp: null, captured: [], plundered: [] };
 }
 
 /** True when this arrival is worth reporting at all. */
 export function isEmptyArrival(report: ArrivalReport): boolean {
-  return report.discovery === null && report.camp === null && report.captured.length === 0;
+  return (
+    report.discovery === null &&
+    report.camp === null &&
+    report.captured.length === 0 &&
+    report.plundered.length === 0
+  );
 }
 
 /**
@@ -148,7 +167,35 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
    */
   for (const other of unitsOnTile(state, tile.col, tile.row)) {
     if (other.ownerId === unit.ownerId) continue;
-    if (!isCivilian(unitDef(other.type))) continue;
+    const otherDef = unitDef(other.type);
+    if (!isCivilian(otherDef)) continue;
+    /**
+     * **A laden caravan is plundered, not taken** (the trade pass).
+     *
+     * The one exception to the rule above, and it is on the *occasion* rather
+     * than on `captureUnit`, which is what keeps the change of hands one
+     * three-line function that has never heard of routes. A trade route is a
+     * thing between two of *somebody else's* cities — there is nothing to
+     * inherit — so what a soldier gets is the cargo, paid to the nearest town it
+     * can be carried to (`settleTraderPlunder`), and what the owner gets is the
+     * loss. The wild plunders exactly as an empire does and simply has nowhere
+     * to put the goods, which the report says out loud.
+     *
+     * An **unladen** trader is an ordinary civilian and is captured like one:
+     * the clause asks `trades` *and* the piece's own `trade`, because what is
+     * worth killing is the cargo and not the profession.
+     */
+    if (trades(otherDef) && other.trade !== undefined) {
+      const fromOwnerId = other.ownerId;
+      removeUnit(state, other.id);
+      report.plundered.push(
+        settleTraderPlunder(state, unit.ownerId, fromOwnerId, {
+          col: tile.col,
+          row: tile.row,
+        }),
+      );
+      continue;
+    }
     const fromOwnerId = other.ownerId;
     report.captured.push({
       id: other.id,
@@ -160,5 +207,9 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
   }
 
   report.discovery = claimDiscoveryAt(state, unit, tile);
+  // The road, last, and only under a caravan actually carrying a route: a
+  // highway is *worn* by traffic, so it is written where an arrival is written
+  // and nowhere else. See `layRoadUnder` and `Tile.road`.
+  layRoadUnder(unit, tile);
   return report;
 }

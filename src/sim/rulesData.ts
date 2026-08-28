@@ -49,6 +49,22 @@ export interface MovementRules {
    * whole turn it is this line that moves. They happen to be equal in v1.
    */
   embarkCost: number;
+  /**
+   * What one step **along a road** costs, in thirds of a movement point — so
+   * `1` is Civ's ⅓ and a two-movement column covers six hexes of highway.
+   *
+   * Stored as a numerator rather than as `0.3333…` because movement points are
+   * exact thirds and a decimal in a data file is a decimal that drifts: three
+   * road steps have to come to exactly one point or a unit finishes its turn
+   * holding a billionth of a move. `pathfind.ts` is the one place the fraction is
+   * formed (`roadStepCost`), and `snapMovement` is what keeps every running
+   * total on a whole third.
+   *
+   * A road step **replaces** the ground's own price rather than discounting it —
+   * a wooded hill on a highway is a road, not a cheaper hill — which is the rule
+   * `stepCost` states and the reason the price needs both tiles.
+   */
+  roadCostThirds: number;
 }
 
 export interface StackingRules {
@@ -141,6 +157,84 @@ export interface ImprovementRules {
    * than for a farm would quietly make luxuries the thing armies go for.
    */
   pillageGold: number;
+}
+
+/**
+ * The system half of trade: how long a route runs, how far a caravan may be
+ * sent, what a road costs its builder to keep and what killing a trader is
+ * worth (`docs/trade.md`).
+ *
+ * The per-thing half is in the content tables where it belongs — the trader's
+ * own price and speed on its `units.json` row, a building's `routeSlots` on its
+ * row — because those describe *a thing* rather than the system. What is here is
+ * every number a designer would reach for to answer "are caravans worth it".
+ *
+ * Nothing here is a probability either. A route is a fixed number of turns and a
+ * fixed reach, and what varies is the board: a trading post at each end buys
+ * three more turns of march, and roads buy the rest by making the march cheaper.
+ */
+export interface TradeRules {
+  /**
+   * How many turns a route pays before it lapses, counted from the turn the
+   * caravan was sent (`Unit.trade.expiresTurn`, an **absolute** turn — the
+   * timed-effect rule; nothing counts down).
+   */
+  routeTurns: number;
+  /**
+   * How far a partner may be, in **turns of the trader's own march**
+   * (`pathTurns`) rather than in hexes.
+   *
+   * Turns rather than hexes so that roads extend a caravan's reach for free and
+   * a mountain range shortens it, which is the honest reading of "how far can a
+   * caravan walk" — and it is priced by the very function the panel prints
+   * beside a standing order, so a route that is offered is a route that arrives.
+   */
+  rangeTurns: number;
+  /**
+   * Extra turns of range each **trading post** among the two endpoints is worth
+   * (`City.tradingPost` — a city that has ever been an end of a route).
+   *
+   * The user's ruling, and the whole of what a post is for: the first route to a
+   * town is the expensive one, and every route after it reaches further.
+   */
+  postRangeTurns: number;
+  /**
+   * Combined population of the two ends per 💰 a route pays:
+   * `floor((pop(from) + pop(to)) / goldPerCombinedPop)`. The user's table.
+   */
+  goldPerCombinedPop: number;
+  /**
+   * Population per 💰 a **connected** non-capital city pays its empire every
+   * turn: `floor(pop / connectionPerPop)`.
+   *
+   * Civ V's city connection with the capital term dropped — see
+   * `connectedCities` (`trade.ts`), which is where the flood fill lives.
+   */
+  connectionPerPop: number;
+  /**
+   * Road hexes per 💰 of upkeep an empire pays every turn:
+   * `floor(roadsBuilt / roadsPerMaintenance)`, charged only for the roads that
+   * empire's own caravans laid (`Tile.road` carries the builder's seat).
+   *
+   * The user's ruling — the first maintenance cost in the game, and deliberately
+   * a cheap one: it exists so that sprawling a highway network is a decision
+   * rather than a freebie.
+   */
+  roadsPerMaintenance: number;
+  /**
+   * What killing somebody's laden caravan pays the killer's nearest owned city
+   * (`settleTraderPlunder` in `trade.ts`).
+   *
+   * Three voices rather than one because a caravan carries goods, not coin: the
+   * gold is the occasion's own figure that riders scale, and the food and the
+   * hammers ride the same scaling so that "+50% on plundered caravans" means the
+   * caravan and not a third of it — the camp bounty's rule exactly.
+   */
+  pillageBounty: {
+    gold: number;
+    food: number;
+    production: number;
+  };
 }
 
 /**
@@ -666,6 +760,7 @@ export interface RulesConfig {
   healing: HealingRules;
   combat: CombatRules;
   improvements: ImprovementRules;
+  trade: TradeRules;
   barbarians: BarbarianRules;
   cities: CityRules;
   meters: MeterRules;

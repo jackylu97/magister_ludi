@@ -178,6 +178,12 @@ import {
   resourceTileLines,
 } from './resourceEffects';
 import { buildingTileLines } from './buildingEffects';
+// A function-level cycle, exactly as `statecraft.ts` and `tech.ts` are: that
+// module asks this one what a city is and where the nearest one stands, and this
+// one asks it what the caravans standing in its towns are worth. Everything at
+// the top level of both files is a constant from a data table, which is the
+// condition every cycle in this simulation is safe under.
+import { cityRouteYields, explainTradeGold, tradeGold } from './trade';
 import { awardFoundingTriumphs, awardOccasion } from './triumphs';
 
 const CITIES = RULES.cities;
@@ -1361,6 +1367,13 @@ function chooseCitizens(
  *      recruitment mutates no city's derived state, it puts a *decision* on the
  *      empire, and the End Turn blocker is what collects it. It is named here
  *      anyway so the register stays the complete answer to "what settles".
+ *  14. **The trade verbs** (`trade.ts`) — `sendTraderAt` and `endRoute`, and they
+ *      are one reason read from both ends: a route's food and hammers are lines
+ *      of the **origin's** `cityYields`, so the turn a caravan sets out that town
+ *      is already richer and the turn its route ends it is already poorer. The
+ *      caravan's own *march* owes this register nothing — a route pays wherever
+ *      the trader is standing — which is why the shuttle phase does not refresh
+ *      and does not need to.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -2000,6 +2013,18 @@ export function cityYields(
     total.faith += line.faith;
   }
 
+  // What the caravans this town sent out are bringing home, the fold of the list
+  // the panel prints line by line (`explainRouteYield` in `trade.ts`). Beside the
+  // luxuries and the cards because it is the same kind of thing a third table
+  // over — and *inside* this function rather than beside it, so a route's food
+  // is staged like every other flat (Entry XVII) and its gold reaches the
+  // treasury through the same `collectYields` as the market's.
+  for (const line of cityRouteYields(state, city)) {
+    total.food += line.food;
+    total.production += line.production;
+    total.gold += line.gold;
+  }
+
   // The fold of `explainCityBuildings`, and the only place a building's worth is
   // summed — a candidate the city already has is skipped in there, because a
   // preview that promised a second library would be a preview that lies.
@@ -2487,6 +2512,15 @@ export function collectYields(state: GameState): void {
     player.faithPool += empire.faith;
   }
 
+  // Trade's empire-scale half: the connection gold every town joined to the
+  // capital by road pays, less what those roads cost to keep. Banked once per
+  // player after every city has collected, which is the same seam and the same
+  // argument the luxuries' loop above makes — a connection belongs to no town,
+  // it belongs to the road between two.
+  for (const player of state.players) {
+    player.gold += tradeGold(state, player.id);
+  }
+
   // And the empire-scale half of Statecraft, last of the three, for a reason
   // that is the whole of `rateConversion`: a card that pays "per faith gained
   // per turn" has to be asked *after* everything that pays faith this turn has
@@ -2535,6 +2569,10 @@ function empireRates(state: GameState, playerId: number): {
   rates.faithPerTurn += empire.faith;
   rates.culturePerTurn += empire.culture;
   rates.goldPerTurn += empire.gold;
+  // Trade's empire line joins the *base* rate for the reason every other line
+  // here does: a card that pays "per gold gained per turn" has to read the gold
+  // this turn actually produced, and a connected empire's roads are part of it.
+  for (const line of explainTradeGold(state, playerId)) rates.goldPerTurn += line.gold;
   return rates;
 }
 

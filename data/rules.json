@@ -7,7 +7,8 @@
   },
   "movement": {
     "minStepCost": 1,
-    "embarkCost": 1
+    "embarkCost": 1,
+    "roadCostThirds": 1
   },
   "stacking": {
     "perCategoryPerTile": 1
@@ -36,6 +37,19 @@
   },
   "improvements": {
     "pillageGold": 25
+  },
+  "trade": {
+    "routeTurns": 20,
+    "rangeTurns": 10,
+    "postRangeTurns": 3,
+    "goldPerCombinedPop": 10,
+    "connectionPerPop": 2,
+    "roadsPerMaintenance": 4,
+    "pillageBounty": {
+      "gold": 30,
+      "food": 10,
+      "production": 10
+    }
   },
   "barbarians": {
     "firstCampTurn": 6,

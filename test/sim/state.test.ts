@@ -411,6 +411,11 @@ describe('end-of-turn pipeline', () => {
       'barbarians',
       'healUnits',
       'advanceFortify',
+      // The caravans keep walking: a route's leg is turned around at each end
+      // and a route that has run out is dropped, immediately before the two
+      // phases that actually spend the movement it just aimed. See
+      // `marchTraders`.
+      'marchTraders',
       // A standing order that was jammed marches once more on *this* turn's
       // unspent points — after the two phases that ask "has this unit been
       // still all turn?", so a piece's healing never depends on whether a
@@ -495,6 +500,6 @@ describe('the research queue field', () => {
     // A v21 log is not merely older: a `moveUnit` given with no movement left
     // used to be refused and is now a standing order, and the resolution has
     // grown a phase no v21 state has been through.
-    expect(SCHEMA_VERSION).toBe(22);
+    expect(SCHEMA_VERSION).toBe(23);
   });
 });

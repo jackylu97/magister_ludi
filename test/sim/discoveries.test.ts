@@ -660,6 +660,7 @@ describe('arrival', () => {
       discovery: null,
       camp: null,
       captured: [],
+      plundered: [],
     });
   });
 });

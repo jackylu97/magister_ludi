@@ -113,6 +113,32 @@ import type { UnitTypeId } from './unitData';
 export type ProductionCategory = 'unit' | 'building' | 'wonder';
 
 /**
+ * What a building is *for* — the one word on every row that says which shelf it
+ * belongs on. See `BuildingDef.category`.
+ *
+ * Deliberately **not** `ProductionCategory`, and the two must never be merged: a
+ * production category is what a *percentage may name* (three words, one of them
+ * `wonder`), while this is what a building *pays* (seven words, and every wonder
+ * has one like any other row). The Colossus is a `wonder` to a bonus and a
+ * `gold` building to a caravan, and both readings are true at once.
+ *
+ * The seven are the six yields plus `military`, which is the one purpose that is
+ * not a yield at all — a barracks and a palisade pay nothing and are plainly
+ * what an army is built out of. Trade reads the split as "what a city consumes"
+ * (food, culture, science → the caravan brings food) against "what a city makes"
+ * (production, military, gold → it brings hammers); `faith` is in the vocabulary
+ * and deliberately pays a route nothing, which is the user's table exactly.
+ */
+export type BuildingCategory =
+  | 'food'
+  | 'culture'
+  | 'science'
+  | 'production'
+  | 'military'
+  | 'gold'
+  | 'faith';
+
+/**
  * A stat of the city a building stands in. See `BuildingDef.cityStat`.
  *
  * `stat` is deliberately the same two words `CardCityStatEffect` uses, so that
@@ -323,6 +349,23 @@ export interface BuildingTileYield {
 
 export interface BuildingDef {
   name: string;
+  /**
+   * What this building is *for*, in one word — the row's main yield or purpose.
+   *
+   * Read by exactly one rule (`explainRouteYield` in `trade.ts`, which pays a
+   * caravan a point of food for every food, culture or science building at its
+   * destination and a hammer for every production, military or gold one), and
+   * that is deliberately all: it is a *label*, not a second `ProductionCategory`
+   * — nothing multiplies a yield by it, nothing gates a build on it. The two
+   * words are not the same question, which is why they are not the same type: a
+   * wonder's production category is `'wonder'` and its trade category is
+   * whatever the wonder pays.
+   *
+   * Required on every row rather than optional, so a designer adding a building
+   * decides what it is instead of inheriting a default that would quietly make
+   * every new building worth a hammer to somebody's caravan.
+   */
+  category: BuildingCategory;
   /** Hammers to complete. */
   cost: number;
   /** Flat food added to the city's total every turn. */
@@ -331,6 +374,20 @@ export interface BuildingDef {
   production: number;
   /** Flat gold added to the city's total every turn. */
   gold: number;
+  /**
+   * Trade routes this building lets its empire run at once, or absent for none
+   * — the market's one, and the Colossus'.
+   *
+   * Counted per *building standing on the board* by `explainRouteSlots`
+   * (`trade.ts`), so four markets are four routes and a captured market changes
+   * whose caravans it pays for with no bookkeeping. Absent means none, which is
+   * every row but two.
+   *
+   * A card may widen the same fold with a `routeRider` effect (the Great
+   * Lighthouse carries the first one) — the field and the rider are two sources
+   * of one number, exactly as `authorityCapacity` and a card's `authority` are.
+   */
+  routeSlots?: number;
   /** Flat science added to the city's total every turn, before `sciencePerPop`. */
   science: number;
   /** Flat culture added to the city's total every turn. */

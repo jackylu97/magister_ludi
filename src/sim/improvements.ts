@@ -646,7 +646,11 @@ export function pillageError(state: GameState, unitId: number): string | null {
 
   const tile = getTileAt(state.map, unit.col, unit.row);
   if (!tile) return `Unit ${unit.id} is not on the map`;
-  if (tile.improvement === undefined) {
+  // **Two things are pillageable, and a road is the second** (the trade pass).
+  // A hex carrying a road and no improvement is a legal target: tearing up a
+  // highway is the only thing anybody can do about somebody else's roads, and
+  // roads are otherwise permanent (the user's ruling).
+  if (tile.improvement === undefined && tile.road === undefined) {
     return `There is nothing to pillage on (${tile.col}, ${tile.row})`;
   }
 
@@ -669,6 +673,12 @@ export function pillageError(state: GameState, unitId: number): string | null {
  * unimproved tile, which means the answer to "how do I fix it?" is the answer to
  * "how did I build it?" and there is one mechanism instead of two.
  *
+ * **The road goes with the farm** (the trade pass), and both are torn out by the
+ * one verb rather than by two: a raid on a hex takes what has been *built* on
+ * it, and a road is built. It is the only thing that ever removes a road — they
+ * are permanent otherwise, which is the user's ruling — so the answer to "how do
+ * I fix it?" is again the answer to "how was it made?": send a caravan.
+ *
  * The refresh is `buildImprovementAt`'s, read from the other end and owed to the
  * other player: the raid takes the farm's food away *now*, and the panel it has
  * to stop lying to is the **victim's**. Asking the ground who to tell
@@ -676,6 +686,7 @@ export function pillageError(state: GameState, unitId: number): string | null {
  */
 export function pillageAt(state: GameState, unit: Unit, tile: Tile): void {
   delete tile.improvement;
+  delete tile.road;
   refreshTileDerived(state, tile);
   unit.movesLeft = Math.max(0, unit.movesLeft - 1);
   const player = playerById(state, unit.ownerId);

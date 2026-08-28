@@ -60,6 +60,21 @@
       "modelClass": "worker",
       "glyph": "D"
     },
+    "trader": {
+      "name": "Trader",
+      "category": "civilian",
+      "movement": 2,
+      "sight": 1,
+      "maxHp": 100,
+      "combatStrength": 0,
+      "cost": 20,
+      "trades": true,
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "worker",
+      "glyph": "C"
+    },
     "archer": {
       "name": "Archer",
       "category": "military",

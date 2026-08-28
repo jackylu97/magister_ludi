@@ -156,9 +156,10 @@ import {
   unitById,
 } from './state';
 import { settleResearchWindfall } from './tech';
+import { type TraderPlunder, settleTraderPlunder } from './trade';
 import { defenseBonus } from './terrainData';
 import { isVisibleTo, recomputeVisibilityFor } from './visibility';
-import { isCivilian, isCombatant, isRanged, unitDef } from './unitData';
+import { isCivilian, isCombatant, isRanged, trades, unitDef } from './unitData';
 import { improvementDef } from './improvementData';
 import { awardOccasion } from './triumphs';
 import { hasStackingRoom, unitsOnTile } from './units';
@@ -457,6 +458,16 @@ export interface CombatForecast {
   defenderMaxHp: number;
   /** Melee on a civilian: it changes hands and nobody is hurt. */
   capturesUnit: boolean;
+  /**
+   * Melee on a **laden caravan**: it is destroyed and its cargo paid to the
+   * attacker's nearest city, rather than changing hands (the trade pass).
+   *
+   * A forecast flag beside `capturesUnit` rather than a branch inside the
+   * resolution, so the *preview* tells the truth too: a player about to ride
+   * down a trader is shown a kill and not a capture, and the two cannot disagree
+   * because they read the same plan.
+   */
+  plundersUnit: boolean;
   /** Melee on a city the midpoint roll would empty: it changes hands. */
   capturesCity: boolean;
 }
@@ -806,24 +817,39 @@ function planCombat(
 
   // --- damage ------------------------------------------------------------
 
+  // A caravan carrying a route is **plundered rather than taken**: a trade route
+  // is a thing between two of somebody else's cities, so there is nothing to
+  // inherit and what a soldier gets is the cargo. Asked of the piece's own
+  // `trade` as well as of its type, because an unladen trader is an ordinary
+  // civilian and is captured like one.
+  const plundersUnit =
+    kind === 'melee' &&
+    target.unit !== null &&
+    trades(unitDef(target.unit.type)) &&
+    target.unit.trade !== undefined;
+
   const capturesUnit =
     kind === 'melee' &&
     target.unit !== null &&
     isCivilian(unitDef(target.unit.type)) &&
-    COMBAT.captureCivilians;
+    COMBAT.captureCivilians &&
+    !plundersUnit;
 
   // A city under bombardment is softened, never taken: the Civ rule that keeps
   // archers out of the capital-capturing business.
   const defenderFloor = target.city !== null && kind === 'ranged' ? 1 : 0;
 
-  const baseToDefender = capturesUnit ? 0 : curve(attackerStrength - defenderStrength);
+  // No dice on either kind of one-sided blow: a civilian taken and a caravan
+  // ridden down are both decided by arriving, not by a roll.
+  const baseToDefender = capturesUnit || plundersUnit ? 0 : curve(attackerStrength - defenderStrength);
   // The defender hits back only in a melee, and only when it is something that
   // can hit back: a city has no counter-attack in v1, and neither has a settler.
   const counters =
     kind === 'melee' &&
     target.unit !== null &&
     isCombatant(unitDef(target.unit.type)) &&
-    !capturesUnit;
+    !capturesUnit &&
+    !plundersUnit;
   const baseToAttacker = counters ? curve(defenderStrength - attackerStrength) : 0;
 
   const band = COMBAT.rollBand;
@@ -873,6 +899,7 @@ function planCombat(
     defenderHp,
     defenderMaxHp,
     capturesUnit,
+    plundersUnit,
     capturesCity: target.city !== null && kind === 'melee' && damageToDefender >= defenderHp,
   };
 
@@ -948,6 +975,17 @@ export interface CombatOutcome {
   killed: { id: number; type: Unit['type']; ownerId: number; col: number; row: number }[];
   /** A civilian that changed hands instead of dying, or `null`. */
   capturedUnitId: number | null;
+  /**
+   * What plundering a laden caravan paid, or `null` — which it is on every blow
+   * that was not one (the trade pass).
+   *
+   * `capturedUnitId`'s opposite number: the piece is in `killed` like anything
+   * else that died, and this is the *difference* the board cannot be asked about
+   * afterwards — the gold is in the treasury, the grain is in a basket, and
+   * re-deriving which town received it would be a second implementation of
+   * `nearestOwnedCity`. The same argument `ArrivalReport` makes.
+   */
+  plundered: TraderPlunder | null;
   /** A city that changed hands, or `null`. */
   capturedCityId: number | null;
   /** True when the melee attacker moved into the tile it emptied. */
@@ -1012,6 +1050,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     damageToAttacker: 0,
     killed: [],
     capturedUnitId: null,
+    plundered: null,
     capturedCityId: null,
     advanced: false,
     arrival: null,
@@ -1020,7 +1059,25 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
 
   // 1 & 2 — the dice, and the damage they decide.
   let defenderDied = false;
-  if (forecast.capturesUnit) {
+  if (forecast.plundersUnit) {
+    // A laden caravan: destroyed where it stands, its cargo paid to the nearest
+    // town the attacker holds. No roll, no counter — see `plundersUnit` on the
+    // forecast, which is where the rule is decided, and `settleTraderPlunder`,
+    // which is the one place the bounty is composed. The kill and death riders
+    // are paid exactly as they are for any other death, because a death is what
+    // this is.
+    const caravan = target.unit!;
+    const fromOwnerId = caravan.ownerId;
+    outcome.killed.push(snapshotFallen(caravan));
+    removeUnit(state, caravan.id);
+    defenderDied = true;
+    outcome.plundered = settleTraderPlunder(state, attacker.ownerId, fromOwnerId, {
+      col: tile.col,
+      row: tile.row,
+    });
+    payBattleRiders(state, attacker.ownerId, 'kill', tile);
+    payBattleRiders(state, fromOwnerId, 'death', tile);
+  } else if (forecast.capturesUnit) {
     // The one implementation of a change of hands (`state.ts`), which the wild's
     // thieves steal by and a rescuing empire takes back by — the same three
     // lines, whoever is holding the spear. See `captureUnit`.
