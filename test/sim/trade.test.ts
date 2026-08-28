@@ -43,7 +43,8 @@ import {
   foldRouteYield,
   roadsBuiltBy,
   routeSlots,
-  sendTraderError,
+  routeStartable,
+  startRouteError,
   usedRouteSlots,
 } from '../../src/sim/trade';
 import { buildError } from '../../src/sim/tech';
@@ -58,9 +59,10 @@ import { at, bareState } from './improvementHelpers';
  * Five separable claims are defended here and they are kept apart because they
  * fail for different reasons:
  *
- *   1. **The send is a gate.** Every refusal leaves the state byte-identical,
- *      and the gate the reducer accepts is exactly the one a plate would be
- *      drawn from (`sendTraderError`).
+ *   1. **The start is a gate.** Every refusal leaves the state byte-identical,
+ *      and the gate the reducer accepts is exactly the one a row would be greyed
+ *      from — `startRouteError` for a chosen caravan, `routeStartable` for the
+ *      pair of towns on its own, and the two are one implementation.
  *   2. **The shuttle is a phase.** A caravan walks, turns around, lays road, and
  *      drops a route that has run out — all of it out of `state`, none of it out
  *      of a clock.
@@ -99,8 +101,8 @@ function tradeWorld(width = 16): {
   return { state, home, partner, trader };
 }
 
-function send(playerId: number, unitId: number, cityId: number): Command {
-  return { type: 'sendTrader', playerId, unitId, cityId };
+function send(playerId: number, unitId: number, fromCityId: number, toCityId: number): Command {
+  return { type: 'startRoute', playerId, unitId, fromCityId, toCityId };
 }
 
 /** One whole resolution, exactly as `applyEndTurn` runs it. */
@@ -178,10 +180,10 @@ describe('the trader', () => {
 
 // --- sending ----------------------------------------------------------------
 
-describe('sendTrader', () => {
+describe('startRoute', () => {
   it('opens a route, posts both cities and sets the caravan walking', () => {
     const { state, home, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id))).toEqual({ ok: true });
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id))).toEqual({ ok: true });
 
     expect(trader.trade).toEqual({
       from: home.id,
@@ -198,7 +200,39 @@ describe('sendTrader', () => {
     expect([trader.col, trader.row]).toEqual([3, 4]);
   });
 
-  it('refuses every illegal send and leaves the state byte-identical', () => {
+  /**
+   * The 2026-08-28 ruling, and the whole of it: *where* the caravan is standing
+   * is not a question the gate asks. It appears in the origin's gates and sets
+   * out from there.
+   */
+  it('teleports the caravan to the origin from anywhere on the map', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    // As far from either town as the board allows, and under a standing order.
+    trader.col = 14;
+    trader.row = 8;
+    trader.path = [{ col: 13, row: 8 }];
+
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id))).toEqual({ ok: true });
+
+    expect([trader.col, trader.row]).toEqual([home.col, home.row]);
+    // The old order is gone and the new one aims at the partner.
+    expect(trader.path?.[trader.path.length - 1]).toEqual({ col: partner.col, row: partner.row });
+    expect(trader.trade?.from).toBe(home.id);
+    expect(trader.trade?.to).toBe(partner.id);
+    // The seam ran on an unladen caravan, so no road was worn under it: a
+    // caravan's own origin hex is paved by *coming home*, never by setting out.
+    expect(at(state, home.col, home.row).road).toBeUndefined();
+  });
+
+  it('wakes a sleeping caravan, like any other order', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    trader.col = 6;
+    trader.sleeping = true;
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    expect(trader.sleeping).toBeUndefined();
+  });
+
+  it('refuses every illegal start and leaves the state byte-identical', () => {
     const { state, home, partner, trader } = tradeWorld();
     const worker = createUnit(state, 0, 'worker', 3, 4);
     const theirs = foundCityAt(state, 1, at(state, 3, 8));
@@ -206,28 +240,43 @@ describe('sendTrader', () => {
     const refusals: { why: string; command: Command; match: RegExp }[] = [
       {
         why: 'not a trader',
-        command: send(0, worker.id, partner.id),
+        command: send(0, worker.id, home.id, partner.id),
         match: /carries no trade route/,
       },
       {
         why: 'somebody else’s piece',
-        command: send(1, trader.id, partner.id),
+        command: send(1, trader.id, home.id, partner.id),
         match: /does not belong/,
       },
       {
+        why: 'no such unit',
+        command: send(0, 9999, home.id, partner.id),
+        match: /No unit with id/,
+      },
+      {
         why: 'a foreign partner',
-        command: send(0, trader.id, theirs.id),
+        command: send(0, trader.id, home.id, theirs.id),
         match: /foreign routes wait on diplomacy/,
       },
       {
-        why: 'no such city',
-        command: send(0, trader.id, 9999),
+        why: 'a foreign origin',
+        command: send(0, trader.id, theirs.id, partner.id),
+        match: /belongs to another empire/,
+      },
+      {
+        why: 'no such destination',
+        command: send(0, trader.id, home.id, 9999),
         match: /No city with id/,
       },
       {
-        why: 'the city it is standing in',
-        command: send(0, trader.id, home.id),
-        match: /already stands/,
+        why: 'no such origin',
+        command: send(0, trader.id, 9999, partner.id),
+        match: /No city with id/,
+      },
+      {
+        why: 'one city twice',
+        command: send(0, trader.id, home.id, home.id),
+        match: /two different cities/,
       },
     ];
 
@@ -240,12 +289,41 @@ describe('sendTrader', () => {
     }
   });
 
-  it('refuses a caravan standing in a field', () => {
-    const { state, partner, trader } = tradeWorld();
+  it('does not care that the caravan is standing in a field', () => {
+    const { state, home, partner, trader } = tradeWorld();
     trader.col = 5;
+    expect(startRouteError(state, 0, trader.id, home.id, partner.id)).toBeNull();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    expect([trader.col, trader.row]).toEqual([home.col, home.row]);
+  });
+
+  it('refuses when a civilian is already standing in the origin’s gates', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    trader.col = 6;
+    // Stacking is one civilian per hex, so a settler on the gate is a wall the
+    // caravan cannot appear behind.
+    createUnit(state, 0, 'settler', home.col, home.row);
+
+    expect(routeStartable(state, 0, home.id, partner.id)).toMatch(/standing in/);
     const before = snapshotState(state);
-    const result = applyCommand(state, send(0, trader.id, partner.id));
-    expect(result).toEqual({ ok: false, error: expect.stringMatching(/must stand in one of your cities/) });
+    const result = applyCommand(state, send(0, trader.id, home.id, partner.id));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/standing in/);
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('refuses a second caravan into gates one of yours already holds', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    // `trader` is standing on the origin, which is *not* a wall to itself — that
+    // is the commonest send in the game — but it is one to anybody else.
+    const other = createUnit(state, 0, 'trader', 6, 4);
+    expect(routeStartable(state, 0, home.id, partner.id)).toBeNull();
+    expect(startRouteError(state, 0, trader.id, home.id, partner.id)).toBeNull();
+
+    const before = snapshotState(state);
+    const result = applyCommand(state, send(0, other.id, home.id, partner.id));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/standing in/);
     expect(snapshotState(state)).toBe(before);
   });
 
@@ -253,11 +331,11 @@ describe('sendTrader', () => {
     const { state, home, partner, trader } = tradeWorld();
     // Two slots, so it is the pair that refuses and not the cap.
     partner.buildings.push('market');
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
 
-    const second = createUnit(state, 0, 'trader', 10, 4);
+    const second = createUnit(state, 0, 'trader', 8, 4);
     const before = snapshotState(state);
-    const result = applyCommand(state, send(0, second.id, home.id));
+    const result = applyCommand(state, send(0, second.id, partner.id, home.id));
     expect(result).toEqual({
       ok: false,
       error: expect.stringMatching(/already runs between/),
@@ -266,34 +344,36 @@ describe('sendTrader', () => {
   });
 
   it('refuses a caravan already carrying one', () => {
-    const { state, partner, trader } = tradeWorld();
+    const { state, home, partner, trader } = tradeWorld();
     const third = foundCityAt(state, 0, at(state, 3, 0));
     partner.buildings.push('market');
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
-    const result = applyCommand(state, send(0, trader.id, third.id));
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    const before = snapshotState(state);
+    const result = applyCommand(state, send(0, trader.id, home.id, third.id));
     expect(result).toEqual({
       ok: false,
       error: expect.stringMatching(/already carrying a route/),
     });
+    expect(snapshotState(state)).toBe(before);
   });
 
   it('refuses at the cap, and says how many routes there are', () => {
     const { state, home, partner, trader } = tradeWorld();
     const third = foundCityAt(state, 0, at(state, 3, 0));
     expect(routeSlots(state, 0)).toBe(1);
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     expect(usedRouteSlots(state, 0)).toBe(1);
 
-    const second = createUnit(state, 0, 'trader', 3, 4);
+    const second = createUnit(state, 0, 'trader', 5, 4);
     const before = snapshotState(state);
-    const result = applyCommand(state, send(0, second.id, third.id));
+    const result = applyCommand(state, send(0, second.id, home.id, third.id));
     expect(result).toEqual({ ok: false, error: 'All 1 of your trade routes are running' });
     expect(snapshotState(state)).toBe(before);
 
     // And with no market at all the sentence is the one that tells a player what
     // to build.
     home.buildings.length = 0;
-    expect(sendTraderError(state, 0, second.id, third.id)).toBe(
+    expect(startRouteError(state, 0, second.id, home.id, third.id)).toBe(
       'You have no trade routes — build a market',
     );
   });
@@ -307,7 +387,7 @@ describe('sendTrader', () => {
     home.buildings.push('market');
     const trader = createUnit(state, 0, 'trader', 2, 4);
 
-    expect(sendTraderError(state, 0, trader.id, far.id)).toMatch(
+    expect(startRouteError(state, 0, trader.id, home.id, far.id)).toMatch(
       /is \d+ turns away; a caravan may be sent 10/,
     );
 
@@ -315,10 +395,10 @@ describe('sendTrader', () => {
     // first route to a town is the expensive one.
     home.tradingPost = true;
     far.tradingPost = true;
-    expect(sendTraderError(state, 0, trader.id, far.id)).toBeNull();
+    expect(startRouteError(state, 0, trader.id, home.id, far.id)).toBeNull();
   });
 
-  it('measures range from a full purse, so walking into town does not shorten it', () => {
+  it('measures the range from the origin, whatever the caravan has left', () => {
     const state = bareState(60, 9);
     const home = foundCityAt(state, 0, at(state, 2, 4));
     const far = foundCityAt(state, 0, at(state, 23, 4));
@@ -326,20 +406,53 @@ describe('sendTrader', () => {
     home.tradingPost = true;
     const trader = createUnit(state, 0, 'trader', 2, 4);
 
-    const rested = sendTraderError(state, 0, trader.id, far.id);
+    const rested = startRouteError(state, 0, trader.id, home.id, far.id);
     trader.movesLeft = 0;
-    expect(sendTraderError(state, 0, trader.id, far.id)).toBe(rested);
+    expect(startRouteError(state, 0, trader.id, home.id, far.id)).toBe(rested);
+    // And from the far side of the map, because the march is measured from the
+    // town the caravan is about to appear in.
+    trader.col = 40;
+    trader.row = 8;
+    expect(startRouteError(state, 0, trader.id, home.id, far.id)).toBe(rested);
   });
 
   it('refuses a partner with no land route', () => {
-    const { state, partner, trader } = tradeWorld();
+    const { state, home, partner, trader } = tradeWorld();
     // Two walls of ocean, because the board is a cylinder: one across the short
     // way and one across the way round.
     for (let row = 0; row < state.map.height; row++) {
       at(state, 6, row).terrain = 'ocean';
       at(state, 13, row).terrain = 'ocean';
     }
-    expect(sendTraderError(state, 0, trader.id, partner.id)).toMatch(/No road a caravan could walk/);
+    expect(startRouteError(state, 0, trader.id, home.id, partner.id)).toMatch(
+      /No road a caravan could walk/,
+    );
+  });
+
+  it('is one gate read twice: routeStartable is startRouteError minus the piece', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    const third = foundCityAt(state, 0, at(state, 3, 0));
+    const pairs: [number, number][] = [
+      [home.id, partner.id],
+      [partner.id, home.id],
+      [home.id, third.id],
+      [third.id, partner.id],
+      [home.id, home.id],
+    ];
+    // An idle trader, standing anywhere at all: the two must agree on every pair.
+    for (const where of [
+      [3, 4],
+      [6, 4],
+      [10, 4],
+    ] as [number, number][]) {
+      trader.col = where[0];
+      trader.row = where[1];
+      for (const [from, to] of pairs) {
+        expect(startRouteError(state, 0, trader.id, from, to), `${from}→${to} @${where[0]}`).toBe(
+          routeStartable(state, 0, from, to),
+        );
+      }
+    }
   });
 });
 
@@ -348,7 +461,7 @@ describe('sendTrader', () => {
 describe('the shuttle', () => {
   it('walks to the partner, lays road on every hex it rests on, and comes home', () => {
     const { state, home, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
 
     runUntil(state, () => trader.col === partner.col && trader.row === partner.row);
     // Every hex it entered is paved, and the road carries the *builder's* seat
@@ -369,7 +482,7 @@ describe('the shuttle', () => {
 
   it('ends the route when it lapses at home, and the caravan idles', () => {
     const { state, home, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     // A route that runs out mid-road is inert but not gone: the caravan finishes
     // its leg, comes home, and *then* the shuttle drops it.
     trader.trade!.expiresTurn = state.turn;
@@ -383,8 +496,8 @@ describe('the shuttle', () => {
   });
 
   it('starts a fresh leg instead, when auto-resend is on', () => {
-    const { state, trader, partner } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    const { state, home, trader, partner } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     expect(
       applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: trader.id, on: true }),
     ).toEqual({ ok: true });
@@ -403,16 +516,16 @@ describe('the shuttle', () => {
   });
 
   it('ends when the destination stops being one of yours', () => {
-    const { state, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     partner.ownerId = 1;
     resolve(state);
     expect(trader.trade).toBeUndefined();
   });
 
   it('is cancelled by a verb of its own, which leaves the march alone', () => {
-    const { state, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     const path = trader.path;
     expect(path).toBeDefined();
 
@@ -444,7 +557,7 @@ describe('route news', () => {
 
   it('reports a lapsed route once, the turn it comes home', () => {
     const { state, home, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     readyToLapseAtHome(state, home, trader);
 
     const report = runEndOfTurn(state);
@@ -456,7 +569,7 @@ describe('route news', () => {
 
   it('reports a renewal too, when auto-resend is on', () => {
     const { state, home, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     expect(
       applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: trader.id, on: true }),
     ).toEqual({ ok: true });
@@ -472,7 +585,7 @@ describe('route news', () => {
 
   it('travels out through the resolving endTurn command, the way a grant does', () => {
     const { state, home, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     readyToLapseAtHome(state, home, trader);
 
     expect(applyCommand(state, { type: 'endTurn', playerId: 1 })).toEqual({ ok: true });
@@ -485,8 +598,8 @@ describe('route news', () => {
   });
 
   it('never reports a route the player cancelled themselves', () => {
-    const { state, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     expect(applyCommand(state, { type: 'cancelRoute', playerId: 0, unitId: trader.id })).toEqual({
       ok: true,
     });
@@ -624,7 +737,7 @@ describe('a route’s yields', () => {
     // to feed the later settles." `home` already carries `tradeWorld`'s
     // market (a `gold`-category building, so it counts toward production too).
     home.buildings.push('granary', 'library', 'workshop');
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
 
     const lines = explainRouteYield(state, trader);
     expect(lines.map((line) => line.source)).toEqual([
@@ -645,7 +758,7 @@ describe('a route’s yields', () => {
     home.population = 6;
     partner.population = 8;
     home.buildings.push('granary', 'library', 'workshop');
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
 
     expect(explainRouteYieldBetween(state, home, partner)).toEqual(
       explainRouteYield(state, trader),
@@ -654,7 +767,7 @@ describe('a route’s yields', () => {
 
   it('is derived, not snapshotted: a library built tomorrow raises it tomorrow', () => {
     const { state, home, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     expect(foldRouteYield(explainRouteYield(state, trader)).food).toBe(0);
     home.buildings.push('library');
     expect(foldRouteYield(explainRouteYield(state, trader)).food).toBe(1);
@@ -664,7 +777,7 @@ describe('a route’s yields', () => {
     const { state, home, partner, trader } = tradeWorld();
     home.buildings.push('granary', 'amphitheater', 'library', 'workshop', 'barracks');
     const before = cityYields(state, partner);
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     const after = cityYields(state, partner);
     expect(after.food).toBeGreaterThan(before.food);
     expect(after.production).toBeGreaterThan(before.production);
@@ -673,7 +786,7 @@ describe('a route’s yields', () => {
   it('stops paying the turn it lapses, wherever the caravan is standing', () => {
     const { state, home, trader, partner } = tradeWorld();
     home.buildings.push('library');
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     expect(explainRouteYield(state, trader)).not.toEqual([]);
     trader.trade!.expiresTurn = state.turn;
     expect(explainRouteYield(state, trader)).toEqual([]);
@@ -792,8 +905,8 @@ describe('the city connection', () => {
 
 describe('plundering a caravan', () => {
   it('destroys it and pays the killer’s nearest city', () => {
-    const { state, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     trader.col = 6;
 
     const theirs = foundCityAt(state, 1, at(state, 6, 7));
@@ -835,8 +948,8 @@ describe('plundering a caravan', () => {
   });
 
   it('is taken by the wild too, which has nowhere to put the goods', () => {
-    const { state, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     trader.col = 6;
     state.players[1]!.barbarian = true;
     const raider = createUnit(state, 1, 'warrior', 6, 5);
@@ -874,8 +987,8 @@ describe('plundering a caravan', () => {
 
 describe("the attack command's plunder news", () => {
   it('carries the plunder figures on an ordered attack that kills a laden trader', () => {
-    const { state, partner, trader } = tradeWorld();
-    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     trader.col = 6;
 
     const theirs = foundCityAt(state, 1, at(state, 6, 7));
@@ -929,11 +1042,28 @@ describe('trade in the log', () => {
     };
   }
 
-  it('carries the schema version that says routes and roads exist', () => {
-    // A v22 log is not merely older: a step between two paved hexes costs a
-    // third of a point, so every march over ground a caravan crossed arrives
-    // somewhere a v22 walk would not have reached.
-    expect(SCHEMA_VERSION).toBe(23);
+  it('carries the schema version that says a caravan starts a route by name', () => {
+    // v23 wrote `sendTrader`, which this build's reducer does not have: a v23
+    // log would stop dead partway through a replay, so the save is refused
+    // rather than misread.
+    expect(SCHEMA_VERSION).toBe(24);
+  });
+
+  it('refuses the command the old build wrote, rather than half-applying it', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    const before = snapshotState(state);
+    const stale = {
+      type: 'sendTrader',
+      playerId: 0,
+      unitId: trader.id,
+      cityId: partner.id,
+    } as unknown as Command;
+
+    const result = applyCommand(state, stale);
+    expect(result.ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
+    // And the verb that replaced it is accepted against the same board.
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
   });
 
   it('replays a game with two routes byte-for-byte', () => {
@@ -949,18 +1079,14 @@ describe('trade in the log', () => {
     const north = foundCityAt(state, 0, at(state, 3, 0));
     home.buildings.push('market');
     north.buildings.push('market');
-    // Two caravans, two different pairs, and neither destination has a piece
-    // standing on it — a city centre a civilian is already parked on is a hex
-    // nothing else may come to rest on, which the send gate refuses up front.
-    const first = createUnit(state, 0, 'trader', 3, 4);
-    const second = createUnit(state, 0, 'trader', 3, 0);
-    // And the gate says *which* of the two it is: a hex with a caravan already
-    // parked on it is a queue, not a missing road.
-    expect(sendTraderError(state, 0, first.id, north.id)).toMatch(/already has a caravan/);
+    // Two caravans and two different pairs. Neither is standing where it sets
+    // out from — the teleport is part of what has to replay byte-for-byte.
+    const first = createUnit(state, 0, 'trader', 6, 6);
+    const second = createUnit(state, 0, 'trader', 7, 2);
     const before = snapshotState(state);
 
-    expect(dispatch(game, send(0, first.id, partner.id)).ok).toBe(true);
-    expect(dispatch(game, send(0, second.id, partner.id)).ok).toBe(true);
+    expect(dispatch(game, send(0, first.id, home.id, partner.id)).ok).toBe(true);
+    expect(dispatch(game, send(0, second.id, north.id, partner.id)).ok).toBe(true);
     for (let turn = 0; turn < 6; turn++) {
       dispatch(game, { type: 'endTurn', playerId: 0 });
       dispatch(game, { type: 'endTurn', playerId: 1 });

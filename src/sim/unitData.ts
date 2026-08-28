@@ -260,7 +260,7 @@ export interface UnitDef {
    * `consecrates` and `greatWork`: nothing in `src/sim/` asks whether a type is
    * `"trader"`, so the cargo ship that sails a coastal route one day is one data
    * row and every rule about caravans follows it. Four rules read it — the
-   * `sendTrader` gate (`trade.ts`), the road a step lays (`arriveOnTile`), the
+   * `startRoute` gate (`trade.ts`), the road a step lays (`arriveOnTile`), the
    * shuttle phase (`marchTraders`), and the one clause that says a laden caravan
    * is **plundered rather than captured** when a soldier reaches it.
    *

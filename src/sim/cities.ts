@@ -1415,7 +1415,7 @@ function chooseCitizens(
  *      hex it claims is a hex a citizen may now be sent to, so the panel that is
  *      wrong without this is the one showing where the town's people are
  *      standing.
- *  15. **The trade verbs** (`trade.ts`) — `sendTraderAt` and `endRoute`, and they
+ *  15. **The trade verbs** (`trade.ts`) — `startRouteAt` and `endRoute`, and they
  *      are one reason read from both ends: a route's food and hammers are lines
  *      of the **destination's** `cityYields` (2026-08-27: the origin's buildings
  *      set the figure, the destination banks it), so the turn a route opens that

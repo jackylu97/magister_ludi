@@ -114,7 +114,10 @@ would change every seeded outcome. No further rename passes.
   `stepCost(from, to)`, so the four readers agree by construction; `snapMovement` keeps the
   numerator an integer and the A* heuristic scales by `cheapestStepCost` (an unpaved minimum
   is inadmissible over paving). `Unit.trade` is the route — presence is the state, there is
-  **no route register**, and a count of routes is a count of traders. `marchTraders` aims a
+  **no route register**, and a count of routes is a count of traders. **A caravan is not a
+  piece you position** (2026-08-28): `startRoute` may name any idle trader anywhere and places
+  it on the origin's centre through `arriveOnTile` — a teleport is a third way to move a unit
+  and calls the one seam like the other two. `marchTraders` aims a
   leg immediately before `spendLeftoverMovement` spends it. A melee blow on a unit that
   `trades` **plunders** (bounty to the nearest city, forfeited by the wild) and never
   `captureUnit`s — the register's one exception, by marker. `explainTradeGold` is two lines
@@ -365,7 +368,7 @@ would change every seeded outcome. No further rename passes.
       while the basket covers the next rung, carries the remainder, then refreshes — the hex it
       claims is a hex a citizen may now be sent to.
   15. **The trade verbs** (`trade.ts`, Entry XXXV) — a route's yields join the origin's
-      breakdown the turn it is sent or ends, so `sendTrader`/`cancelRoute` refresh the origin.
+      breakdown the turn it is sent or ends, so `startRoute`/`cancelRoute` refresh the origin.
   **A new mid-turn yield mutation calls `refreshCityDerived` and adds itself to this
   list.** `assignCitizens` therefore has exactly two callers in the sim — `collectYields`
   (the phase) and the helper — and `test/sim/cities.test.ts` asserts that by reading the

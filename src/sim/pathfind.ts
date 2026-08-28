@@ -580,7 +580,7 @@ export function stepArrival(spent: number, price: StepPrice, purse: MovePurse): 
  *
  * `purse` defaults to what the unit is actually holding, which is the reading
  * every interface wants ("~N turns from now"). One caller passes a **full** one:
- * a trade route's range (`sendTraderError` in `trade.ts`) is a fact about the
+ * a trade route's range (`routeStartable` in `trade.ts`) is a fact about the
  * distance between two cities and must not shorten because the caravan walked
  * into town before it was sent. It is the same arithmetic either way, which is
  * the whole reason the purse is a parameter rather than a second loop.

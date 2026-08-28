@@ -58,7 +58,7 @@
  * validate-fully contract above is what buys that for free.
  */
 
-import type { ArrivalReport } from './arrival';
+import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { isBuildingId } from './buildingData';
 import { isProjectId } from './projectData';
 import {
@@ -153,9 +153,8 @@ import type { TechId } from './techData';
 import {
   type RouteEndReport,
   endRoute,
-  originCityOf,
-  sendTraderAt,
-  sendTraderError,
+  startRouteAt,
+  startRouteError,
 } from './trade';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
@@ -850,7 +849,8 @@ export interface GreatPersonWorkCommand extends PlayerCommand {
 }
 
 /**
- * Sends a caravan to one of your own cities, opening a trade route.
+ * Opens a trade route between two of your own cities, and puts one of your
+ * caravans on it.
  *
  * The trader is **not** consumed: it walks the route for as long as the route
  * runs, laying road under its feet on every hex it rests on, and shuttles back
@@ -859,37 +859,27 @@ export interface GreatPersonWorkCommand extends PlayerCommand {
  * made this way because it is what makes the piece worth defending — a caravan
  * on the road is a thing an enemy can ride down, which is the user's ruling.
  *
- * It names a **destination city**, never a path: the route is a fact about two
- * towns and the walk is the pipeline's business, exactly as `moveUnit` names a
- * target and never a route. The origin is *where the trader is standing*, which
- * is why the command does not carry it — a command naming an origin could name
- * one the piece is not in.
+ * It names **both cities and never a path**: the route is a fact about two
+ * towns, and the walk is the pipeline's business exactly as `moveUnit` names a
+ * target and never a route. **Where the trader is standing is not asked** — the
+ * user's ruling of 2026-08-28 ("I want to remove all micromanagement of units"):
+ * the piece teleports into the origin's gates and sets out from there, so a
+ * caravan idling in a field is one click from useful again. See `trade.ts`'s
+ * module docblock for why that trade is the right one.
  *
- * Everything is validated by `sendTraderError` before a field is written, so a
+ * Everything is validated by `startRouteError` before a field is written, so a
  * refusal leaves the state byte-identical like every other handler. Turn-gated
  * like every other order.
  */
-export interface SendTraderCommand extends PlayerCommand {
-  type: 'sendTrader';
+export interface StartRouteCommand extends PlayerCommand {
+  type: 'startRoute';
   unitId: number;
-  /** The partner city. Must be another city of `playerId`'s. */
-  cityId: number;
+  /** The origin. Must be a city of `playerId`'s; the caravan appears in it. */
+  fromCityId: number;
+  /** The partner. Must be another city of `playerId`'s. */
+  toCityId: number;
 }
 
-/**
- * Turns a caravan's auto-resend on or off (the user's ruling: "add a button for
- * auto-resend").
- *
- * A route that lapses with this on starts a fresh leg from home instead of
- * idling — which is the whole of "set it and forget it" for an empire that has
- * decided a partner is worth a permanent caravan. It is a *setting on the
- * route*, so it can be flipped at any time in either direction, and it does
- * nothing at all until the route reaches its expiry standing at home.
- *
- * Refusing when the value would not change is deliberate and is `fortify`'s and
- * `chooseResearch`'s refusal exactly: an accepted no-op is a command in the log
- * that a replay has to apply and that says nothing about what happened.
- */
 export interface SetAutoResendCommand extends PlayerCommand {
   type: 'setAutoResend';
   unitId: number;
@@ -946,7 +936,7 @@ export type Command =
   | ChooseGreatPersonCommand
   | GreatPersonActCommand
   | GreatPersonWorkCommand
-  | SendTraderCommand
+  | StartRouteCommand
   | SetAutoResendCommand
   | CancelRouteCommand;
 
@@ -2200,37 +2190,67 @@ function applyGreatPersonWork(
 // --- reducer ----------------------------------------------------------------
 
 /**
- * Opens a trade route. See `SendTraderCommand`, and `trade.ts` for the rules.
+ * Opens a trade route. See `StartRouteCommand`, and `trade.ts` for the rules.
  *
  * The seat's two questions here, everything about the *route* delegated whole to
- * `sendTraderError` — `applyBuildImprovement`'s split, and the same guarantee: a
+ * `startRouteError` — `applyBuildImprovement`'s split, and the same guarantee: a
  * refusal leaves the state byte-identical, because not one line below the
  * validation runs until every question has been answered.
  *
- * The caravan does not march here. `sendTraderAt` sets the path and the pipeline
+ * Then the **teleport**, which is a third way a unit's position changes and so
+ * owes `arriveOnTile` everything a march owes it (CLAUDE.md's rule, and the one
+ * reason this is not four lines inside `startRouteAt`: `arrival.ts` imports
+ * `trade.ts`, never the other way round). Written in `advanceAlongPath`'s own
+ * order and for its reasons — the position, then the standing order dropped,
+ * then the seam, then one recompute of what the empire can see. On a city centre
+ * the seam finds nothing to claim and lays no road: `layRoadUnder` asks for a
+ * caravan *carrying a route*, and this one is still unladen, which is why the
+ * route is written **after** the arrival and not before. That is the same answer
+ * the shuttle gives — a caravan's own origin hex is never paved, because a road
+ * is worn by arriving somewhere and it started there.
+ *
+ * The caravan does not march here. `startRouteAt` sets the path and the pipeline
  * walks it — `spendLeftoverMovement` on this very turn, `resetMovement` on the
  * next — which is what keeps one implementation of a walk instead of two, and
  * what makes the road a caravan lays a thing `arriveOnTile` writes on every step
  * of every leg rather than a thing this command writes once.
  */
-function applySendTrader(state: GameState, command: SendTraderCommand): CommandResult {
+function applyStartRoute(state: GameState, command: StartRouteCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);
   if (typeof actor === 'string') return fail(actor);
   if (hasEndedTurn(state, actor.id)) {
-    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot send a caravan`);
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot start a route`);
   }
 
-  const problem = sendTraderError(state, actor.id, command.unitId, command.cityId);
+  const problem = startRouteError(
+    state,
+    actor.id,
+    command.unitId,
+    command.fromCityId,
+    command.toCityId,
+  );
   if (problem) return fail(problem);
 
-  // Validation is done — `sendTraderError` has established that the unit is this
-  // player's trader, that it stands in one of their cities, and that the partner
-  // is another of them.
+  // Validation is done — `startRouteError` has established that the unit is this
+  // player's idle trader, that both cities are this player's, and that the
+  // origin's gates have room for the piece.
   const unit = unitById(state, command.unitId)!;
-  const home = originCityOf(state, unit)!;
-  const to = cityById(state, command.cityId)!;
-  sendTraderAt(state, unit, home, to);
-  return ok();
+  const from = cityById(state, command.fromCityId)!;
+  const to = cityById(state, command.toCityId)!;
+
+  const gates = getTileAt(state.map, from.col, from.row)!;
+  unit.col = gates.col;
+  unit.row = gates.row;
+  // Whatever it was walking toward, it is not there any more. The sleep flag is
+  // `orderedUnitId`'s business, like every other order's.
+  delete unit.path;
+  const arrival = arriveOnTile(state, unit, gates);
+  // The piece moved, so what its owner can see moved with it — one recompute per
+  // order, exactly as `applyMoveUnit` does it.
+  recomputeVisibility(state, actor.id);
+
+  startRouteAt(state, unit, from, to);
+  return ok(isEmptyArrival(arrival) ? undefined : [arrival]);
 }
 
 /**
@@ -2328,7 +2348,7 @@ function orderedUnitId(command: Command): number | undefined {
     case 'greatPersonWork':
     // A caravan told to set out, to renew or to stop is a piece given an order,
     // so it wakes like anybody else.
-    case 'sendTrader':
+    case 'startRoute':
     case 'setAutoResend':
     case 'cancelRoute':
       return command.unitId;
@@ -2458,8 +2478,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyGreatPersonAct(state, command);
     case 'greatPersonWork':
       return applyGreatPersonWork(state, command);
-    case 'sendTrader':
-      return applySendTrader(state, command);
+    case 'startRoute':
+      return applyStartRoute(state, command);
     case 'setAutoResend':
       return applySetAutoResend(state, command);
     case 'cancelRoute':

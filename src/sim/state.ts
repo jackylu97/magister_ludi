@@ -210,15 +210,23 @@ import {
  * 23: Trade (`docs/trade.md`) — the caravan, the road and the city connection.
  *     One field on a tile (`Tile.road`, the **fourth** thing on a hex that
  *     changes during play), one on a unit (`Unit.trade`), one on a city
- *     (`City.tradingPost`), three commands (`sendTrader`, `setAutoResend`,
+ *     (`City.tradingPost`), three commands (`startRoute`, `setAutoResend`,
  *     `cancelRoute`) and one phase (`marchTraders`). A v22 log replayed here is
  *     a *different game* rather than an older one for a reason beyond the
  *     fields: a step between two road hexes now costs a third of a movement
  *     point, so every march over ground a caravan has crossed arrives somewhere
  *     a v22 walk would not have reached — and connected cities pay gold their
  *     empire never had.
+ * 24: The caravan stopped being a piece you position (the user, 2026-08-28: "I
+ *     want to remove all micromanagement of units"). No field moved and no rule
+ *     about the board changed — `sendTrader { unitId, cityId }` was **replaced**
+ *     by `startRoute { unitId, fromCityId, toCityId }`, which names its own
+ *     origin and teleports the caravan into it. A v23 log is refused rather than
+ *     misread for the plainest possible reason: it contains a command name this
+ *     build's reducer does not have, so a replay of one would stop dead partway
+ *     through and leave a state no game ever reached.
  */
-export const SCHEMA_VERSION = 23;
+export const SCHEMA_VERSION = 24;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -879,7 +887,7 @@ export interface TradeRoute {
    * Always present rather than optional, unlike the flags on `Unit` — it is
    * `hasAttacked`'s case one level in: every route either renews or does not,
    * which is a real state and not an absent one, and there is exactly one place
-   * a route comes into existence (`sendTraderAt`) so no creation path can leave
+   * a route comes into existence (`startRouteAt`) so no creation path can leave
    * it out.
    */
   autoResend: boolean;
@@ -1022,7 +1030,7 @@ export interface City {
    *
    * What it buys is **range**: each post among a proposed route's two endpoints
    * is worth `rules.trade.postRangeTurns` more turns of march
-   * (`sendTraderError`), which is the user's ruling — the first caravan to a
+   * (`routeStartable`), which is the user's ruling — the first caravan to a
    * town is the expensive one and every one after it reaches further. Nothing
    * else reads it.
    */

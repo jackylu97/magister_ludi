@@ -28,13 +28,36 @@
  * are the fold of `explainRouteYield`, and there is no second ledger to keep in
  * step.
  *
+ * The caravan is a route, not a piece you position
+ * ------------------------------------------------
+ * The user's ruling of 2026-08-28, and it replaced a verb: *"the caravan has an
+ * action 'start route' and you choose from an available trade route in the trade
+ * screen (from any city). Once chosen, the caravan teleports to the origin city
+ * and begins the route as before. I want to remove all micromanagement of
+ * units."*
+ *
+ * So `startRoute` names **both** cities and the trader's own position is
+ * irrelevant — it may be standing in a field, in the wrong town, or halfway home
+ * from a route that lapsed. The command teleports it into the origin's gates and
+ * the route begins there. That is a deliberate trade of simulation for
+ * ergonomics, and it is the right trade for exactly the reason the ruling gives:
+ * walking a caravan to the town it should set out from is a chore with no
+ * decision in it, and the decision — *which pair of towns is worth a route* —
+ * was being buried under the chore.
+ *
+ * The consequence for the gate is that the *unit* half and the *route* half come
+ * apart, so they are two functions over one implementation: `routeStartable`
+ * answers everything a pair of towns can be asked on its own (the screen greys a
+ * row with it before any trader is chosen) and `startRouteError` is that plus
+ * the four clauses only a piece can answer. Nothing is duplicated between them.
+ *
  * Internal routes only, for now
  * -----------------------------
  * A route must join two cities of the **same empire**. The doc's foreign route —
  * doubled gold, half of it to the partner — is a *deferred* half and is annotated
  * as one rather than half-built: there is no war state and no diplomacy, so
  * "trade with me" has nothing to mean yet and a foreign route would be a gift
- * with no way to refuse it. `sendTraderError` refuses it in a sentence; when
+ * with no way to refuse it. `routeStartable` refuses it in a sentence; when
  * diplomacy lands, the clause moves and `explainRouteYield` grows the two lines
  * the doc's table already names.
  *
@@ -68,7 +91,7 @@ import {
   tileHex,
   tileIndex,
 } from './map';
-import { type Cell, canStopOn, findPath, pathTurns } from './pathfind';
+import { type Cell, findPath, pathTurns } from './pathfind';
 import { RULES } from './rulesData';
 import {
   type City,
@@ -84,8 +107,14 @@ import {
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
-import { trades, unitDef } from './unitData';
-import { fullMovement } from './units';
+import {
+  UNIT_TYPE_IDS,
+  type UnitTypeId,
+  isCivilian,
+  trades,
+  unitDef,
+} from './unitData';
+import { fullMovement, hasStackingRoom, unitsOnTile } from './units';
 
 const TRADE = RULES.trade;
 
@@ -445,7 +474,7 @@ export function usedRouteSlots(state: GameState, playerId: number): number {
   return tradersOf(state, playerId).length;
 }
 
-// --- sending ----------------------------------------------------------------
+// --- starting a route -------------------------------------------------------
 
 /**
  * How far a caravan may be sent to *this* partner, in turns of its own march.
@@ -461,53 +490,135 @@ export function routeRange(from: City, to: City): number {
 }
 
 /**
- * Why this caravan cannot be sent to this city, or `null` when it can.
+ * The roster's caravan — the first row that `trades`.
  *
- * Split out of the command for the reason every blocker in this codebase is: the
- * send plate the interface draws over a candidate partner is enabled by exactly
- * the rule the reducer accepts, so a live button and a rejected command cannot
- * disagree. It asks nothing about the turn or the actor — those belong to the
- * command.
- *
- * The clauses, in the order a player meets them:
- *
- *   1. the piece is a **trader** (`UnitDef.trades`) and is not already carrying
- *      a route — a caravan runs one route at a time, and a second `sendTrader`
- *      would silently abandon the first;
- *   2. it stands on **one of your city centres**, which is the origin. A route
- *      starts in a town, not in a field;
- *   3. the destination is **another city of yours** — see the module docblock for
- *      why foreign routes are a deferred half rather than a missing one;
- *   4. a **free slot** (`routeSlots` against `usedRouteSlots`);
- *   5. **no live route already joins the pair**, in either direction — one route
- *      per pair, so a player cannot stack four caravans on one rich partner;
- *   6. the partner's own hex has **room** for the caravan, and a **land path
- *      exists** for this mover, priced through the very `findPath` the march
- *      will walk;
- *   7. the partner is **in range**, measured by `pathTurns` on a *full* purse —
- *      a fact about the distance between two towns, not about how much the
- *      caravan happens to have left today.
+ * Derived off the flag rather than named, which is the discipline every marker
+ * in this game keeps (`settler`, `augur`, `greatPerson`): nothing in `src/sim/`
+ * compares a unit type against a string, and `test/sim/trade.test.ts` reads the
+ * sources to make sure of it. `null` on a roster with no caravan at all — a
+ * world where no route can be started, and the gate says so rather than
+ * pretending.
  */
-export function sendTraderError(
+function caravanTypeId(): UnitTypeId | null {
+  for (const id of UNIT_TYPE_IDS) {
+    if (trades(unitDef(id))) return id;
+  }
+  return null;
+}
+
+/** An **unladen** caravan of this empire standing on this hex, or `null`. */
+function idleCaravanAt(
   state: GameState,
   playerId: number,
-  unitId: number,
-  cityId: number,
+  col: number,
+  row: number,
+): Unit | null {
+  for (const unit of unitsOnTile(state, col, row)) {
+    if (unit.ownerId !== playerId) continue;
+    if (unit.trade !== undefined) continue;
+    if (trades(unitDef(unit.type))) return unit;
+  }
+  return null;
+}
+
+/**
+ * The piece standing in this town's gates that a caravan could not share the hex
+ * with, or `null`.
+ *
+ * Stacking is per *category* (`hasStackingRoom`), so only a civilian can be in
+ * the way. The exception is the load-bearing part: **an unladen caravan of the
+ * asking empire is not a wall**, because it is precisely the piece a
+ * `startRoute` would move — the commonest send in the game is a caravan standing
+ * in the town that built it, and counting it as a blocker would grey that row
+ * out. `startRouteError` re-asks the question about the *particular* piece it
+ * has been handed, which is the clause that stops two caravans landing on one
+ * hex.
+ */
+function centreBlocker(state: GameState, playerId: number, city: City): Unit | null {
+  for (const unit of unitsOnTile(state, city.col, city.row)) {
+    const def = unitDef(unit.type);
+    if (!isCivilian(def)) continue;
+    if (unit.ownerId === playerId && trades(def) && unit.trade === undefined) continue;
+    return unit;
+  }
+  return null;
+}
+
+/**
+ * A caravan that does not exist, standing in the origin's gates.
+ *
+ * Every distance question a route asks — is there a land road, and how many
+ * turns is it — is a fact about **the two towns and the roster's caravan**, not
+ * about the piece that happens to be chosen: the trader teleports to the origin
+ * before it walks a step, so measuring from wherever it is standing now would be
+ * measuring the wrong march. So the search is run against a probe, and both
+ * gates run the same one.
+ *
+ * `exceptId` is whichever unladen caravan of this empire is parked in the
+ * *destination's* gates, because `findPath` refuses a goal nobody could stop on
+ * and `centreBlocker` has already ruled that such a caravan is not a wall — the
+ * probe stands in for it. Everything else on the goal hex has been refused
+ * before the search runs.
+ */
+function caravanProbe(
+  playerId: number,
+  type: UnitTypeId,
+  from: City,
+  exceptId: number,
+): Unit {
+  const def = unitDef(type);
+  return {
+    id: exceptId,
+    ownerId: playerId,
+    type,
+    col: from.col,
+    row: from.row,
+    hp: def.maxHp,
+    movesLeft: def.movement,
+    hasAttacked: false,
+  };
+}
+
+/**
+ * Why a route could not be started between these two towns, or `null` when one
+ * could — **the gate minus the piece**.
+ *
+ * This is what the Trade screen greys a row with before any trader has been
+ * chosen, and it is the whole of what a pair of towns can be asked on its own:
+ *
+ *   1. both are **cities of yours**, and they are **two** cities;
+ *   2. a **free slot** (`routeSlots` against `usedRouteSlots`);
+ *   3. **no live route already joins the pair**, in either direction — one route
+ *      per pair, so a player cannot stack four caravans on one rich partner;
+ *   4. **both gates have room** for a caravan (`centreBlocker`): the origin's,
+ *      because the trader appears there, and the destination's, because
+ *      `findPath` refuses a goal nobody could stop on and "there is no road"
+ *      would be a lie about a hex with a settler parked on it;
+ *   5. a **land path exists** for the roster's caravan, priced through the very
+ *      `findPath` the march will walk;
+ *   6. the destination is **in range**, measured by `pathTurns` on a *full*
+ *      purse — a fact about the distance between two towns, not about how much
+ *      any particular caravan has left today.
+ *
+ * `startRouteError` is this plus the four clauses only a piece can answer, so
+ * there is one implementation of all six and a greyed row and a rejected command
+ * cannot disagree about why.
+ */
+export function routeStartable(
+  state: GameState,
+  playerId: number,
+  fromCityId: number,
+  toCityId: number,
 ): string | null {
-  const unit = unitById(state, unitId);
-  if (!unit) return `No unit with id ${String(unitId)}`;
-  if (unit.ownerId !== playerId) return `Unit ${unit.id} does not belong to player ${playerId}`;
+  const type = caravanTypeId();
+  if (!type) return 'This world has no caravans';
 
-  const def = unitDef(unit.type);
-  if (!trades(def)) return `A ${def.name} carries no trade route`;
-  if (unit.trade !== undefined) return `${def.name} ${unit.id} is already carrying a route`;
-
-  const home = originCityOf(state, unit);
-  if (!home) return `${def.name} ${unit.id} must stand in one of your cities to be sent`;
-
-  const to = cityById(state, cityId);
-  if (!to) return `No city with id ${String(cityId)}`;
-  if (to.id === home.id) return `${to.name} is where this caravan already stands`;
+  const from = cityById(state, fromCityId);
+  if (!from) return `No city with id ${String(fromCityId)}`;
+  const to = cityById(state, toCityId);
+  if (!to) return `No city with id ${String(toCityId)}`;
+  if (from.ownerId !== playerId) return `${from.name} belongs to another empire`;
+  if (to.id === from.id) return `A route joins two different cities`;
   if (to.ownerId !== playerId) {
     // The deferred half, said out loud rather than half-built. See the module
     // docblock: foreign routes wait on diplomacy.
@@ -525,32 +636,85 @@ export function sendTraderError(
   for (const other of tradersOf(state, playerId)) {
     const route = other.trade!;
     const joins =
-      (route.from === home.id && route.to === to.id) ||
-      (route.from === to.id && route.to === home.id);
+      (route.from === from.id && route.to === to.id) ||
+      (route.from === to.id && route.to === from.id);
     if (joins && routeIsLive(state, other)) {
-      return `A caravan already runs between ${home.name} and ${to.name}`;
+      return `A caravan already runs between ${from.name} and ${to.name}`;
     }
+  }
+
+  const parked = centreBlocker(state, playerId, from);
+  if (parked) {
+    return `A ${unitDef(parked.type).name} is standing in ${from.name}`;
+  }
+  const waiting = centreBlocker(state, playerId, to);
+  if (waiting) {
+    return `A ${unitDef(waiting.type).name} is standing in ${to.name}`;
   }
 
   const goal = getTileAt(state.map, to.col, to.row);
   if (!goal) return `${to.name} is off the map`;
-  // Asked before the search, because `findPath` refuses a goal nobody could stop
-  // on and the *reason* matters to a player: a caravan already parked in the
-  // gateway is a queue, not a wall, and telling somebody there is no road when
-  // there plainly is one is the sort of message that gets a rule blamed.
-  if (!canStopOn(state, unit, goal)) {
-    return `${to.name} already has a caravan standing in it`;
-  }
-  const path = findPath(state, unit, goal);
-  if (!path) return `No road a caravan could walk from ${home.name} to ${to.name}`;
+  if (!getTileAt(state.map, from.col, from.row)) return `${from.name} is off the map`;
 
-  const range = routeRange(home, to);
+  const probe = caravanProbe(
+    playerId,
+    type,
+    from,
+    idleCaravanAt(state, playerId, to.col, to.row)?.id ?? -1,
+  );
+  const path = findPath(state, probe, goal);
+  if (!path) return `No road a caravan could walk from ${from.name} to ${to.name}`;
+
+  const range = routeRange(from, to);
   // A full purse: the range is a fact about the two towns, not about how much
-  // this caravan has left today. See `pathTurns`.
-  const full = fullMovement(unit, state);
-  const turns = pathTurns(state, unit, path, { left: full, refill: full });
+  // any caravan has left today. See `pathTurns`.
+  const full = fullMovement(probe, state);
+  const turns = pathTurns(state, probe, path, { left: full, refill: full });
   if (turns > range) {
     return `${to.name} is ${turns} turns away; a caravan may be sent ${range}`;
+  }
+  return null;
+}
+
+/**
+ * Why *this* caravan cannot start *this* route, or `null` when it can.
+ *
+ * `routeStartable` and four clauses more, in the order a player meets them: the
+ * piece exists, it is **yours**, it is a **trader** (`UnitDef.trades`), and it is
+ * **idle** — a caravan runs one route at a time, and a second `startRoute` would
+ * silently abandon the first.
+ *
+ * The fifth is at the far end and is the one `routeStartable` structurally
+ * cannot ask: the origin's gates must have room for **this** piece. A caravan
+ * already standing there is not a blocker to itself (which is the whole reason
+ * the commonest send works) and *is* a blocker to any other, and
+ * `hasStackingRoom`'s `exceptId` is exactly that distinction.
+ *
+ * Where the trader is standing is asked nowhere at all — see the module
+ * docblock. It teleports.
+ */
+export function startRouteError(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+  fromCityId: number,
+  toCityId: number,
+): string | null {
+  const unit = unitById(state, unitId);
+  if (!unit) return `No unit with id ${String(unitId)}`;
+  if (unit.ownerId !== playerId) return `Unit ${unit.id} does not belong to player ${playerId}`;
+
+  const def = unitDef(unit.type);
+  if (!trades(def)) return `A ${def.name} carries no trade route`;
+  if (unit.trade !== undefined) return `${def.name} ${unit.id} is already carrying a route`;
+
+  const problem = routeStartable(state, playerId, fromCityId, toCityId);
+  if (problem) return problem;
+
+  // `routeStartable` has resolved both towns, so this cannot be null.
+  const from = cityById(state, fromCityId)!;
+  if (!hasStackingRoom(state, from.col, from.row, def.category, unit.id)) {
+    return `Another ${def.name} is standing in ${from.name}`;
   }
   return null;
 }
@@ -559,9 +723,10 @@ export function sendTraderError(
  * The city this caravan is standing in, when it is standing in one of its
  * owner's.
  *
- * A route's origin is a *place the piece is*, which is why this asks the board
- * rather than taking a city id from the command: a command naming an origin
- * could name one the trader is not in.
+ * No longer part of any gate — a route's origin is named by the command now, not
+ * read off the board (see the module docblock) — and kept because it is still
+ * the honest answer to "where is this caravan", which the interface asks when it
+ * labels an idle trader.
  */
 export function originCityOf(state: GameState, unit: Unit): City | null {
   for (const city of state.cities) {
@@ -586,12 +751,19 @@ export function originCityOf(state: GameState, unit: Unit): City | null {
  *     the same turn, `resetMovement` the next), which is what keeps the walk in
  *     one place instead of two.
  *
+ * The **teleport is not here**, and that is deliberate: putting a piece on a hex
+ * means answering what was standing there, which is `arriveOnTile`'s job and
+ * `arrival.ts` imports *this* module (`layRoadUnder`, `settleTraderPlunder`).
+ * So the reducer moves the piece through the one seam and then calls this, which
+ * is the same split `applyMoveUnit` makes with `advanceAlongPath`. The caravan
+ * is therefore already standing in `from`'s gates when the path is found here.
+ *
  * The destination is re-seated because a route that has just been opened is a
  * route whose destination is already receiving its food — the mid-turn
  * register's rule (`refreshCityDerived`), and the reason the city panel does
  * not wait for the turn to end to tell the truth.
  */
-export function sendTraderAt(state: GameState, unit: Unit, from: City, to: City): void {
+export function startRouteAt(state: GameState, unit: Unit, from: City, to: City): void {
   unit.trade = {
     from: from.id,
     to: to.id,
@@ -604,7 +776,14 @@ export function sendTraderAt(state: GameState, unit: Unit, from: City, to: City)
 
   const goal = getTileAt(state.map, to.col, to.row);
   const path = goal ? findPath(state, unit, goal) : null;
-  if (path && path.length > 0) unit.path = path.map((cell) => ({ col: cell.col, row: cell.row }));
+  if (path && path.length > 0) {
+    unit.path = path.map((cell) => ({ col: cell.col, row: cell.row }));
+  } else {
+    // The teleport already cleared whatever order the piece was under; an
+    // origin that *is* the destination is refused by the gate, so this is only
+    // reachable on a board that changed under a caller validating nothing.
+    delete unit.path;
+  }
   refreshCityDerived(state, to);
 }
 

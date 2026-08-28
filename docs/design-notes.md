@@ -3374,6 +3374,22 @@ wants to start in the capital, and the empire-wide slot cap is what stops the ca
 being the only origin. `explainRouteYieldBetween(state, from, to)` counts `from`'s buildings;
 `cityRouteYields` folds the routes whose `to` is the city; the sheet says "Caravan from Uruk"
 on the town that receives it.
+
+**Simplified the next morning (user, 2026-08-28):** *"The caravan has action 'start route' and
+you choose from an available trade route in the trade screen (from any city). Once chosen, the
+caravan teleports to the origin city and begins the route as before. I want to remove all
+micromanagement of units."* So the trader is not a piece you position: `startRoute { unitId,
+fromCityId, toCityId }` replaces `sendTrader`, the trader may be anywhere, and on acceptance it
+is placed on the origin's centre — **through `arriveOnTile`**, because Entry XXIV's rule is
+that a third way to move a unit calls the one seam, and a teleport is a third way. Send mode
+and its plates are gone; the Trade screen is the one place a route is chosen, its rows greyed
+by `routeStartable` (the gate without a unit) and its Start button naming which idle caravan
+will go. The route itself — the shuttle, the roads under it, the plunder — is unchanged.
+
+**To-do recorded the same day:** a deploy landing under an open tab leaves the page asking for
+chunk names that no longer exist (the Statecraft screen would not close until a refresh). The
+game should catch a failed dynamic import and show "a new version is available — refresh"
+rather than fail silently.
 Foreign routes, the harbour connection and the King's Road card wait on diplomacy, the
 Wayfinding building and the war-pace pass respectively.
 
