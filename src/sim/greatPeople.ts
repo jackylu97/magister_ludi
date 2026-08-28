@@ -469,7 +469,7 @@ export interface GreatPersonRecruit {
  *   2. **the world's register is written**, which is what makes the name
  *      unavailable to every other seat — one place, this one.
  *   3. **the ladder climbs**, so the next recruitment is dearer. At the *pick*
- *      rather than at the offer, exactly as `settlersBuilt` climbs at completion
+ *      rather than at the offer, exactly as `unitsBuilt` climbs at completion
  *      rather than when a settler is queued: an empire has recruited somebody
  *      when it has somebody.
  *   4. **the piece arrives**, in the capital or the nearest town to it, through

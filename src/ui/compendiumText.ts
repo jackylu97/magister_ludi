@@ -245,7 +245,7 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     '◆',
     [
       'Some hexes carry a resource. Bonus resources such as wheat or fish add yields. Luxury resources such as silk or gems make your whole empire happier. Strategic resources such as iron or horses let you build certain units. Improvements are things a worker builds on a hex — a farm, a mine, a pasture — to increase its yield or to work its resource.',
-      'To use a resource, build the improvement it asks for on it (the hex will tell you which) and own the hex. Workers have a limited number of uses, so spend them on your best hexes first. Clearing a forest gives a one-time production boost to the nearby city.',
+      'To use a resource, build the improvement it asks for on it (the hex will tell you which) and own the hex. Workers have a limited number of uses, so spend them on your best hexes first. Clearing a forest gives a one-time production boost to the nearby city, and that boost grows with every technology you learn — though more slowly than the price of a soldier or a settler climbs, so it is not a substitute for a good mine.',
       'Details: you need three things to use a resource — the technology that reveals it, the right improvement on it (or a city built on it), and ownership of the hex. A hex with a resource only accepts the improvement that resource requires. Luxuries count once per type, except silver and gold, where every copy counts. Clearing forest or jungle is not allowed on a hex with a resource you could otherwise work. Improvements built by great people can go on any land hex and give access to any resource on it.',
     ],
   ),

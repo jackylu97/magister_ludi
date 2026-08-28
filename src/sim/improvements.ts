@@ -114,7 +114,7 @@ const IMPROVEMENTS = RULES.improvements;
  * True when this unit type builds improvements at all.
  *
  * Asked of the data (`UnitDef.charges`), never of the string `"worker"` — the
- * same discipline `foundsCity` and `costIncrement` keep, so a future engineer is
+ * same discipline `foundsCity` and `escalation` keep, so a future engineer is
  * one data row rather than a second branch in every rule.
  */
 export function isBuilder(unit: Unit): boolean {
