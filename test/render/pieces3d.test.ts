@@ -19,6 +19,7 @@ import {
   BADGE_ICON_FILES,
   type TileIcons,
   type UnitBadges,
+  hpBarY,
 } from '../../src/render3d/badges3d';
 import {
   BoardGeometry,
@@ -44,13 +45,16 @@ import {
   warriorMini,
 } from '../../src/render3d/geometry';
 import { RENDER_ORDER } from '../../src/render3d/instances';
+import { wrapWidth } from '../../src/render3d/layout';
 import { VIEW3D } from '../../src/render3d/lookData';
 import {
   UnitLayer,
   buildSpriteUnit,
   pieceColors,
   pieceMaterials,
+  placePiece,
   signUnits,
+  unitStackIndices,
 } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
@@ -1468,6 +1472,310 @@ describe('the HP bar belongs to its own unit', () => {
     game.units[0]!.hp = 20;
     layer.build(game, board, library, new Quaternion(), false, null);
     expect(bars(layer, board).filter((bar) => bar.width > 0)).toHaveLength(4 * WRAP_COPIES);
+
+    layer.dispose();
+    board.dispose();
+  });
+});
+
+/**
+ * **What a bar says.** (user, 2026-08-28: "health bars still bugged, aren't
+ * showing correct health in bar, but the hover info seems correct".)
+ *
+ * The 2026-08-26 report (Entry XXIV.8) was a bar *left behind* — an orphan over
+ * a hex a piece had walked out of — and the block above pins that fix. This one
+ * is the other claim, and it is the one the suite could not make: **every drawn
+ * bar reports its own unit's `hp / maxHp`, and no other unit's.** The old test
+ * only ever hurt one unit and compared the smallest drawn width against the
+ * largest, which cannot tell a right answer from a neighbour's.
+ *
+ * So the audit here is per unit rather than per board: each unit's bar is found
+ * by the anchor it *must* be at — `placePiece` + `hpBarY`, the same two
+ * functions `addHpBar` places it with — and the fill under that anchor is
+ * measured against that unit's own roster row. Three unit rows have a `maxHp`
+ * that is not 100 (pikeman and crossbowman 110, knight and longswordsman 120),
+ * which is exactly the case a bar computed against a hard-coded hundred would
+ * get wrong while the hover, which reads `def.maxHp`, stayed right.
+ */
+describe('what a health bar says', () => {
+  const materials = (): MaterialLibrary => new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+
+  function war(specs: { type: UnitTypeId; col: number; row: number }[]): GameState {
+    const game = newGame({
+      seed: 5,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#d4502e', isHuman: true }],
+    });
+    game.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    resetVisibility(game);
+    game.tileOwner = new Array<number | null>(12 * 8).fill(null);
+    game.cities = [];
+    game.units = specs.map((spec, i) => ({
+      id: i + 1,
+      type: spec.type,
+      ownerId: 0,
+      col: spec.col,
+      row: spec.row,
+      hp: unitDef(spec.type).maxHp,
+      movesLeft: 2,
+      hasAttacked: false,
+    }));
+    return game;
+  }
+
+  interface BarInstance {
+    x: number;
+    y: number;
+    width: number;
+  }
+
+  /** Every bar instance still on the board, hidden ones excluded. */
+  function barInstances(layer: UnitLayer, board: BoardGeometry): BarInstance[] {
+    const out: BarInstance[] = [];
+    const matrix = new Matrix4();
+    const scale = new Vector3();
+    const position = new Vector3();
+    for (const child of layer.group.children) {
+      if (!(child instanceof InstancedMesh) || child.geometry !== board.bar) continue;
+      for (let i = 0; i < child.count; i++) {
+        child.getMatrixAt(i, matrix);
+        position.setFromMatrixPosition(matrix);
+        scale.setFromMatrixScale(matrix);
+        if (scale.x < 1e-9) continue;
+        out.push({ x: position.x, y: position.y, width: scale.x });
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Where unit `id`'s bar has to be anchored, derived the way `addHpBar` derives
+   * it. The identity-quaternion camera makes the world's +x the bar's own left-
+   * to-right, so the anchor is half a bar west of the piece.
+   */
+  function anchorOf(game: GameState, id: number): { x: number; y: number } {
+    const unit = game.units.find((u) => u.id === id)!;
+    const placement = placePiece(game.map, unit, unitStackIndices(game).get(id) ?? 0);
+    return {
+      x: placement.position.x - VIEW3D.hpBar.width / 2,
+      y: placement.position.y + hpBarY(pieceHeightFor(unit.type)),
+    };
+  }
+
+  /**
+   * Every complaint the board can make about its bars: a bar over a unit at full
+   * health, a hurt unit missing one, a fill that is not that unit's fraction of
+   * that unit's own maximum, and any instance sitting over nobody at all.
+   *
+   * Only the middle wrap copy is audited — the other two are the same bar a
+   * period east and west (`copyOffsets`), and counting them would say every
+   * right answer three times and every wrong one three times with it.
+   */
+  function complaints(game: GameState, layer: UnitLayer, board: BoardGeometry): string[] {
+    const period = wrapWidth(game.map);
+    const drawn = barInstances(layer, board).filter((b) => b.x >= -2 && b.x <= period - 2);
+    const problems: string[] = [];
+    const claimed = new Set<BarInstance>();
+    for (const unit of game.units) {
+      const anchor = anchorOf(game, unit.id);
+      const mine = drawn.filter(
+        (b) => Math.abs(b.x - anchor.x) < 1e-6 && Math.abs(b.y - anchor.y) < 1e-6,
+      );
+      for (const bar of mine) claimed.add(bar);
+      const maxHp = unitDef(unit.type).maxHp;
+      if (unit.hp >= maxHp) {
+        if (mine.length > 0) problems.push(`unit ${unit.id} is unhurt and has ${mine.length} bars`);
+        continue;
+      }
+      if (mine.length !== 2) {
+        problems.push(`unit ${unit.id} (${unit.hp}/${maxHp}) drew ${mine.length} bar instances`);
+        continue;
+      }
+      const [backing, fill] = mine.map((b) => b.width).sort((a, b) => b - a) as [number, number];
+      if (Math.abs(backing - VIEW3D.hpBar.width) > 1e-6) {
+        problems.push(`unit ${unit.id} backing is ${backing}, not ${VIEW3D.hpBar.width}`);
+      }
+      const want = VIEW3D.hpBar.width * (unit.hp / maxHp);
+      if (Math.abs(fill - want) > 1e-6) {
+        problems.push(`unit ${unit.id} (${unit.hp}/${maxHp}) fill is ${fill}, want ${want}`);
+      }
+    }
+    for (const bar of drawn) {
+      if (!claimed.has(bar)) problems.push(`a bar at x=${bar.x} belongs to nobody`);
+    }
+    return problems;
+  }
+
+  it('gives every hurt unit its own fraction when several are hurt at once', () => {
+    const board = geometry();
+    const game = war([
+      { type: 'warrior', col: 3, row: 3 },
+      { type: 'warrior', col: 4, row: 3 },
+      { type: 'warrior', col: 5, row: 3 },
+    ]);
+    const layer = new UnitLayer();
+    // Three adjacent, three different fractions, and one of them either side of
+    // the colour threshold so the fills land in two different buckets — which is
+    // the arrangement under which a bar keyed by slot rather than by unit would
+    // hand a neighbour's width over.
+    game.units[0]!.hp = 80;
+    game.units[1]!.hp = 45;
+    game.units[2]!.hp = 12;
+    layer.build(game, board, materials(), new Quaternion(), false, null);
+    expect(complaints(game, layer, board)).toEqual([]);
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('measures a fill against the unit\'s own maxHp, never a hundred', () => {
+    const board = geometry();
+    // Same hit points, three different maxima: 60/100, 60/120, 60/110. A bar
+    // computed against a hundred would draw all three the same length.
+    const game = war([
+      { type: 'warrior', col: 3, row: 3 },
+      { type: 'knight', col: 4, row: 3 },
+      { type: 'pikeman', col: 5, row: 3 },
+    ]);
+    const layer = new UnitLayer();
+    for (const unit of game.units) unit.hp = 60;
+    layer.build(game, board, materials(), new Quaternion(), false, null);
+    expect(complaints(game, layer, board)).toEqual([]);
+    // And they really are three different lengths, so the audit above is not
+    // agreeing with itself about a number nothing varies.
+    const fills = game.units.map((unit) => {
+      const anchor = anchorOf(game, unit.id);
+      return Math.min(
+        ...barInstances(layer, board)
+          .filter((b) => Math.abs(b.x - anchor.x) < 1e-6 && Math.abs(b.y - anchor.y) < 1e-6)
+          .map((b) => b.width),
+      );
+    });
+    expect(new Set(fills.map((f) => Math.round(f * 1e6))).size).toBe(3);
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('keeps every bar on its own unit across a death and the compaction after it', () => {
+    const board = geometry();
+    const game = war([
+      { type: 'warrior', col: 3, row: 3 },
+      { type: 'warrior', col: 4, row: 3 },
+      { type: 'warrior', col: 5, row: 3 },
+    ]);
+    const layer = new UnitLayer();
+    const library = materials();
+    game.units[0]!.hp = 70;
+    game.units[1]!.hp = 40;
+    game.units[2]!.hp = 25;
+    layer.build(game, board, library, new Quaternion(), false, null);
+    expect(complaints(game, layer, board)).toEqual([]);
+
+    // The middle one falls. `state.units` closes up behind it, so every unit
+    // after it changes index while keeping its id — the shuffle a layer that
+    // keyed a bar by slot position would survive right up until it happened.
+    game.units.splice(1, 1);
+    game.units[1]!.hp = 15;
+    layer.build(game, board, library, new Quaternion(), false, null);
+    expect(complaints(game, layer, board)).toEqual([]);
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('takes the bar away on a full heal and re-measures a partial one', () => {
+    const board = geometry();
+    const game = war([
+      { type: 'warrior', col: 3, row: 3 },
+      { type: 'warrior', col: 4, row: 3 },
+    ]);
+    const layer = new UnitLayer();
+    const library = materials();
+    game.units[0]!.hp = 30;
+    game.units[1]!.hp = 30;
+    layer.build(game, board, library, new Quaternion(), false, null);
+    expect(complaints(game, layer, board)).toEqual([]);
+
+    game.units[0]!.hp = unitDef('warrior').maxHp;
+    game.units[1]!.hp = 65;
+    layer.build(game, board, library, new Quaternion(), false, null);
+    expect(complaints(game, layer, board)).toEqual([]);
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('restores the right fraction after a walk that spanned a fresh blow', () => {
+    const board = geometry();
+    const game = war([
+      { type: 'warrior', col: 3, row: 3 },
+      { type: 'warrior', col: 4, row: 3 },
+      { type: 'warrior', col: 5, row: 3 },
+    ]);
+    const layer = new UnitLayer();
+    const library = materials();
+    game.units[1]!.hp = 60;
+    layer.build(game, board, library, new Quaternion(), false, null);
+
+    // The middle piece is mid-stride, so its resting visual — bar included — is
+    // off the board. A blow lands on it and on a bystander while it is away, the
+    // layer is rebuilt under the standing hide, and the walk then ends.
+    layer.hide(game.units[1]!.id);
+    game.units[0]!.hp = 30;
+    game.units[1]!.hp = 20;
+    layer.build(game, board, library, new Quaternion(), false, null);
+    layer.restore(game.units[1]!.id);
+    expect(complaints(game, layer, board)).toEqual([]);
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  /**
+   * The layering guarantee `addHpBar` depends on and the type system cannot
+   * state: the fill is drawn **after** its backing.
+   *
+   * Neither quad tests or writes depth, and both live in instanced buckets whose
+   * `InstancedMesh` sits at the group origin — so three's transparent sort ties
+   * on render order *and* on depth for every bar on the board, and settles it on
+   * the object id. The id is the order `flush` built the meshes in, which is the
+   * order the buckets were first claimed in, which is the order of the two `add`
+   * calls in `addHpBar`. Swap those two calls and every bar on the board goes
+   * flat dark with no visible fill at all — which is a health bar that shows no
+   * health, and nothing else in the suite would notice.
+   */
+  it('builds the bar backing before any fill, which is what draws the fill on top', () => {
+    const board = geometry();
+    const game = war([
+      { type: 'warrior', col: 3, row: 3 },
+      { type: 'warrior', col: 4, row: 3 },
+    ]);
+    const layer = new UnitLayer();
+    // One either side of the colour threshold, so both fill buckets exist and
+    // the claim is about the backing against *every* fill, not just the first.
+    game.units[0]!.hp = 80;
+    game.units[1]!.hp = 20;
+    layer.build(game, board, materials(), new Quaternion(), false, null);
+
+    const meshes = layer.group.children.filter(
+      (child): child is InstancedMesh =>
+        child instanceof InstancedMesh && child.geometry === board.bar,
+    );
+    expect(meshes).toHaveLength(3); // one backing, two fills
+    for (const mesh of meshes) expect(mesh.renderOrder).toBe(RENDER_ORDER.hpBar);
+    const scale = new Vector3();
+    const matrix = new Matrix4();
+    const isBacking = (mesh: InstancedMesh): boolean => {
+      mesh.getMatrixAt(0, matrix);
+      scale.setFromMatrixScale(matrix);
+      return Math.abs(scale.x - VIEW3D.hpBar.width) < 1e-6;
+    };
+    const backing = meshes.filter(isBacking);
+    expect(backing).toHaveLength(1);
+    for (const fill of meshes.filter((mesh) => !isBacking(mesh))) {
+      expect(backing[0]!.id).toBeLessThan(fill.id);
+    }
 
     layer.dispose();
     board.dispose();

@@ -850,10 +850,20 @@ export class UnitLayer {
         { onTop: true, opacity: 1, order: RENDER_ORDER.hpBar },
       ),
     );
-    // A hair nearer the eye than the backing, so the two never z-fight. Neither
-    // writes depth and — being `onTop` — neither tests it either, so what puts
-    // the fill in front is three's back-to-front sort of the transparent pass,
-    // which this offset is what decides.
+    // A hair nearer the eye than the backing, so the two never z-fight.
+    //
+    // **The offset is not what puts the fill in front, and believing it does is
+    // how the fill ends up under its own backing.** Both quads live in
+    // *instanced* buckets, and three sorts the transparent pass by each
+    // `InstancedMesh`'s own world position — which for every bucket in this
+    // layer is the group origin. Every bar mesh therefore ties on depth, and the
+    // sort falls through to its last term, the object id. What actually holds
+    // the fill in front is that the backing is collected **first**: the backing
+    // claims its bucket before any fill claims one, `flush` builds meshes in
+    // bucket-insertion order, so the backing's mesh always carries the lower id
+    // and is always drawn first. `test/render/pieces3d.test.ts` pins that
+    // ordering, because it is a guarantee about the *order of these two `add`
+    // calls* and nothing in the type system says so.
     const front = anchor.clone().addScaledVector(
       new Vector3(0, 0, 1).applyQuaternion(faceCamera),
       0.01,
