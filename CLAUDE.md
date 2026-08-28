@@ -207,6 +207,14 @@ would change every seeded outcome. No further rename passes.
   passes the report out through `CommandResult.arrivals`, because a cleared camp's bounty
   is already banked by the time the command returns and re-deriving which town received it
   would be a second implementation of `nearestOwnedCity`.
+- **The yields lens rebuilds when a hex's yield can have changed, and nowhere else**
+  (2026-08-28). It is guarded by the fingerprints the frame already watches — improvements
+  (`signImprovedCells`/`signImprovements`), features (a chop), territory (ownership is the
+  context a hex is evaluated in), the reveal pass (`RevealStats.cells > 0`) — and, for cards
+  and beliefs with no board fingerprint, once per accepted command through
+  `MapView.noteStateChanged?()` from `controls.ts`'s `commit`. Never a per-frame yield
+  recomputation over the map. A new seam that changes what a hex pays must reach one of those
+  five, or the coin stacks go stale until a lens toggle.
 - Fog of war patches the board **in place** (`src/render3d/fog3d.ts`): a visibility change is
   per-instance matrix/tint writes for changed tiles only, never a board rebuild. Anything that
   adds instances to `buildBoard` must pass `tile:` to `collector.add` or it will keep drawing
