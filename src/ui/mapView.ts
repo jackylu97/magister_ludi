@@ -70,6 +70,13 @@ export interface ScreenPoint {
  * wash — and no unit is ever both, so the precedence between them has never had
  * to be exercised.
  *
+ * The third is a question the *world* asks and no piece does: `faith` is "whose
+ * argument is winning, and where" — the tide of religion, painted in the ink of
+ * whoever founded the faith that is pressing. It is not raised by picking
+ * anything up, because there is no religious piece a player carries around that
+ * wants a board-wide answer; it is a lens a player *goes and asks for*, like a
+ * strategic-view toggle in Civ.
+ *
  * Yields and resources are deliberately *not* members. A lens answers "which of
  * these questions am I asking" and the modes are exclusive because a tile can
  * only carry one wash; the yield glyphs and the resource roundels sit on the
@@ -78,7 +85,7 @@ export interface ScreenPoint {
  * same time — which is one question, asked twice. They are independent switches
  * on `LensView` instead.
  */
-export type LensMode = 'none' | 'settler' | 'explorer';
+export type LensMode = 'none' | 'settler' | 'explorer' | 'faith';
 
 /**
  * What the switches start at, before the player has touched anything.

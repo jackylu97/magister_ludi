@@ -7454,6 +7454,153 @@ kbd {
   line-height: 1.4;
 }
 
+/* ---------------------------------------------------------------------------
+   THE RELIGION BLOCK
+   ---------------------------------------------------------------------------
+   What this seat's faith *is*, in the pane rather than in the column. The
+   column is the pantheon — what the empire believes — and this is what has been
+   made out of it, which is a thing a player does and therefore a thing that
+   scrolls. Same paper, same eyebrows, no new register. */
+.rel-faith {
+  margin-top: 14px;
+}
+
+.rel-faith-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 4px;
+}
+
+.rel-faith-title {
+  margin: 0;
+  font-family: var(--face-display);
+  font-size: 20px;
+}
+
+/* The name, editable in place. It changes no rule, so it is a field rather than
+   a ceremony — dressed as the sheet's own paper with a hairline under it, so it
+   reads as a name that can be edited rather than as a form control dropped on
+   parchment. */
+.rel-name-field {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-bottom: var(--border-thin) dashed var(--ink-faint);
+  background: transparent;
+  font-family: var(--face-display);
+  font-size: 20px;
+  color: var(--ink);
+  text-transform: none;
+}
+
+.rel-name-field:focus {
+  outline: none;
+  border-bottom-style: solid;
+  border-bottom-color: var(--ink);
+}
+
+.rel-faith-count,
+.rel-faith-how {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.rel-faith-count {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.rel-house {
+  margin-top: 10px;
+}
+
+.rel-house .rel-slot {
+  margin-top: 4px;
+}
+
+.rel-trickle,
+.rel-following {
+  margin-top: 12px;
+}
+
+/* One town that follows. A line rather than a card: what a player wants off a
+   congregation is who, how many, and whose — and the ledger that explains it is
+   on the hover, because it is `explainPressure`'s list and it is long. */
+.rel-town {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 3px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.rel-town-name {
+  font-family: var(--face-display);
+}
+
+/* A foreign town wears its owner's ink. Whose town it is is the whole of what
+   makes a rival's banner news — and the ink is the banner's own, set inline
+   from `Player.color`, exactly as the city banners are. */
+.rel-town-foreign .rel-town-name {
+  color: var(--seat-ink, var(--ink));
+}
+
+.rel-town-owner {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.rel-town-majority {
+  color: var(--gilt, var(--ink));
+}
+
+.rel-town-count {
+  margin-left: auto;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* ---------------------------------------------------------------------------
+   THE CITY SHEET'S FAITH BLOCK
+   ---------------------------------------------------------------------------
+   `.city-built`'s dress, because it is the same kind of block: a short list of
+   standing facts about one town. What differs is that a faith carries whose it
+   is, so a foreign one is named in its founder's ink here for the Religion
+   sheet's reason exactly. */
+.city-faith-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  margin: 0 0 2px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.city-faith-name {
+  font-family: var(--face-display);
+}
+
+.city-faith-row.is-foreign .city-faith-name {
+  color: var(--seat-ink, var(--ink));
+}
+
+.city-faith-majority {
+  margin-left: 4px;
+  color: var(--gilt, var(--ink));
+}
+
+.city-faith-count {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
 /* ===========================================================================
    THE FLOURISH SET
    ===========================================================================

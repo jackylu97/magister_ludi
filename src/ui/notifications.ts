@@ -31,8 +31,9 @@
  * only ever be told what that seat was told.
  */
 
-import type { GameState } from '../sim/state';
+import { type GameState, type ReligionId, cityReligion, playerById } from '../sim/state';
 import { HIDDEN, isVisibleTo, visibilityAt } from '../sim/visibility';
+import { beliefDef, isBeliefId } from '../sim/religionData';
 import type { CellRef } from './mapView';
 
 /**
@@ -342,6 +343,212 @@ export function createSightingWatcher(): SightingWatcher {
     },
     reset(): void {
       toldBySeat.clear();
+    },
+  };
+}
+
+// --- religion ----------------------------------------------------------------
+
+/**
+ * The four things a seat is told about a faith — its own or somebody else's.
+ *
+ * `SightingKind`'s twin one system over, and it exists for the same reason: the
+ * simulation reports **nothing** about religion. There is no `TurnReport` field
+ * for a founding and no `CommandResult` field for a conversion, and that is
+ * correct rather than an oversight — unlike a blow or a cleared camp, every one
+ * of these is a *standing fact about the board* that survives the resolution
+ * that produced it (`GameState.religions` holds the founding, `City.followers`
+ * holds the banner). A difference that can still be read off the state afterwards
+ * is a difference the interface may read for itself, which is exactly the split
+ * `TurnReport.triumphs`' docblock draws.
+ */
+export type ReligionNewsKind = 'founded' | 'converted' | 'proclaimed' | 'enhanced';
+
+/** One thing about a faith the local seat has just learned. */
+export interface ReligionNews {
+  kind: ReligionNewsKind;
+  /** The line the interface announces, written here so a test can pin it. */
+  text: string;
+  /** Where it happened, for the chronicle's pan. Absent for news about the world. */
+  cell?: CellRef;
+}
+
+export interface ReligionWatcher {
+  /**
+   * Everything about religion this seat has learned since the last poll or
+   * baseline, in one fixed order: foundings, enhancements, proclamations, then
+   * conversions — religions in founding order and towns in `state.cities` order,
+   * so two polls of one state read the same way round.
+   */
+  poll(state: GameState, seatId: number): ReligionNews[];
+  /** Takes the same reading and says nothing. `SightingWatcher.baseline`'s half. */
+  baseline(state: GameState, seatId: number): void;
+  /** Forgets every seat. A new game, or a loaded one. */
+  reset(): void;
+}
+
+/**
+ * A religion's name after a possessive — "Crimson's Way of the Reed".
+ *
+ * Every generated name begins with an article (`religion.json`'s three patterns
+ * are all "the …"), and "Crimson's the Way of the Reed" is not English. The
+ * article is what goes, and nothing else: a player may rename a faith to
+ * anything at all, and a name that does not start with one is used whole.
+ */
+function possessed(name: string): string {
+  return name.startsWith('the ') ? name.slice(4) : name;
+}
+
+/**
+ * The diff behind the religion toasts.
+ *
+ * **Two structures, because there are two kinds of news here**, and collapsing
+ * them would get one of the two wrong:
+ *
+ *   · a founding, an enhancement and a proclamation are things that *happened
+ *     once*, so they are a monotone told-set keyed by identity —
+ *     `createSightingWatcher`'s structure and its argument verbatim;
+ *   · a **conversion is a change**, so it is a snapshot of what each town
+ *     believed last time this seat looked. A told-set would announce a town
+ *     turning to the Hearth Cult once and stay silent for ever after, including
+ *     the turn a rival took it and the turn it came back — and a town changing
+ *     hands of faith twice is two pieces of news, not one.
+ *
+ * Seat-filtered where the fiction demands it and not where it does not. A
+ * founding and an enhancement are **world** news (a religion is a public thing,
+ * and `reportWonders` is the precedent for announcing what a rival did); a
+ * proclamation is announced only where the seat can see the hex, which is the
+ * *occupation* rule this file already keeps for a camp; and a conversion is
+ * announced only for this seat's **own** towns, because whose town turned is
+ * what makes it news.
+ */
+export function createReligionWatcher(): ReligionWatcher {
+  const toldBySeat = new Map<number, Set<string>>();
+  const faithBySeat = new Map<number, Map<number, ReligionId | null>>();
+
+  function toldFor(seatId: number): Set<string> {
+    let told = toldBySeat.get(seatId);
+    if (!told) {
+      told = new Set<string>();
+      toldBySeat.set(seatId, told);
+    }
+    return told;
+  }
+
+  function faithFor(seatId: number): Map<number, ReligionId | null> {
+    let seen = faithBySeat.get(seatId);
+    if (!seen) {
+      seen = new Map<number, ReligionId | null>();
+      faithBySeat.set(seatId, seen);
+    }
+    return seen;
+  }
+
+  /** Every one-time fact this seat currently knows, keyed by its identity. */
+  function facts(state: GameState, seatId: number): { key: string; news: ReligionNews }[] {
+    const found: { key: string; news: ReligionNews }[] = [];
+    for (const religion of state.religions) {
+      const mine = religion.founderId === seatId;
+      const founder = playerById(state, religion.founderId)?.name ?? 'An empire';
+      found.push({
+        key: `founded:${religion.id}`,
+        news: {
+          kind: 'founded',
+          text: mine
+            ? `You founded ${religion.name}`
+            : `${founder} founded ${religion.name}`,
+        },
+      });
+      const enhancer = religion.enhancer;
+      if (enhancer !== undefined && isBeliefId(enhancer)) {
+        found.push({
+          key: `enhanced:${religion.id}:${enhancer}`,
+          news: {
+            kind: 'enhanced',
+            text: mine
+              ? `${religion.name} is enhanced — ${beliefDef(enhancer).name}`
+              : `${founder} enhanced ${possessed(religion.name)}`,
+          },
+        });
+      }
+      for (const pulse of religion.pulses) {
+        // The camp's rule: a proclamation is an *occupation* of a hex for as
+        // long as it lasts, so only a seat that can see the ground is told —
+        // except the seat whose prophet spoke, which knows what it just did.
+        if (!mine && !isVisibleTo(state, seatId, pulse.col, pulse.row)) continue;
+        found.push({
+          key: `pulse:${religion.id}:${pulse.col},${pulse.row}:${pulse.startTurn}`,
+          news: {
+            kind: 'proclaimed',
+            text: mine
+              ? `Your prophet proclaims ${religion.name} here`
+              : `${founder} proclaims ${possessed(religion.name)} nearby`,
+            cell: { col: pulse.col, row: pulse.row },
+          },
+        });
+      }
+    }
+    return found;
+  }
+
+  /** What each of this seat's own towns believes right now. */
+  function banners(state: GameState, seatId: number): Map<number, ReligionId | null> {
+    const now = new Map<number, ReligionId | null>();
+    for (const city of state.cities) {
+      if (city.ownerId !== seatId) continue;
+      now.set(city.id, cityReligion(city));
+    }
+    return now;
+  }
+
+  return {
+    poll(state, seatId): ReligionNews[] {
+      const told = toldFor(seatId);
+      const fresh: ReligionNews[] = [];
+      for (const { key, news } of facts(state, seatId)) {
+        if (told.has(key)) continue;
+        told.add(key);
+        fresh.push(news);
+      }
+      const seen = faithFor(seatId);
+      const now = banners(state, seatId);
+      for (const [cityId, followed] of now) {
+        const before = seen.get(cityId);
+        // `before === undefined` is a town this seat has never looked at — a
+        // captured one, a freshly founded one — and it is *not* news that its
+        // people believe what they already believed. Only a town that was
+        // watched believing something else has turned.
+        if (before !== undefined && before !== followed && followed !== null) {
+          const religion = state.religions[followed];
+          const city = state.cities.find((town) => town.id === cityId);
+          if (religion && city) {
+            const founder = playerById(state, religion.founderId)?.name ?? 'a rival';
+            fresh.push({
+              kind: 'converted',
+              text:
+                religion.founderId === seatId
+                  ? `${city.name} now follows ${religion.name}`
+                  : `${city.name} now follows ${founder}'s ${possessed(religion.name)}`,
+              cell: { col: city.col, row: city.row },
+            });
+          }
+        }
+        seen.set(cityId, followed);
+      }
+      // A town this seat no longer owns is forgotten, so a city retaken years
+      // later is looked at fresh rather than compared against a banner it flew
+      // under somebody else.
+      for (const cityId of [...seen.keys()]) if (!now.has(cityId)) seen.delete(cityId);
+      return fresh;
+    },
+    baseline(state, seatId): void {
+      const told = toldFor(seatId);
+      for (const { key } of facts(state, seatId)) told.add(key);
+      faithBySeat.set(seatId, banners(state, seatId));
+    },
+    reset(): void {
+      toldBySeat.clear();
+      faithBySeat.clear();
     },
   };
 }

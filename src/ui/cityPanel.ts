@@ -93,9 +93,15 @@ import {
   type City,
   type GameState,
   type QueueItem,
+  type ReligionId,
+  cityReligion,
+  followerCount,
   hasEndedTurn,
   playerById,
+  unconvertedCitizens,
 } from '../sim/state';
+import { type PressureLine, explainPressure } from '../sim/religion';
+import { pressureLedgerText } from './religionScreen';
 import { techDef } from '../sim/techData';
 import { buildError, isUnlocked, requiredResource } from '../sim/tech';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
@@ -114,6 +120,80 @@ import {
 } from './figures';
 import { createInfoCard } from './infoCard';
 
+
+/**
+ * One faith with a claim on this town, as the city sheet lists it.
+ *
+ * A claim is any of three things and the list is the union of them, because all
+ * three are the same question asked at different distances: people who already
+ * follow, faith banked toward the next of them turning, and pressure arriving
+ * this turn. A row that appeared only once somebody had converted would be a
+ * player watching their capital flip with no warning at all.
+ */
+export interface CityFaithRow {
+  religion: ReligionId;
+  /** The faith's own name, as its founder last set it. */
+  name: string;
+  /** True when the seat reading the sheet founded it. */
+  ours: boolean;
+  founderName: string;
+  /** The founder's banner ink — a foreign faith is named in the colour of who owns it. */
+  founderColor: string;
+  /** Citizens of this town who follow it, of the whole population. */
+  following: number;
+  population: number;
+  /** True when more than half the town follows it — `cityReligion`'s answer. */
+  majority: boolean;
+  /** Faith banked toward the next citizen turning, and what one costs. */
+  banked: number;
+  perConvert: number;
+  /** `explainPressure`'s lines for this faith, for the hover. */
+  ledger: PressureLine[];
+}
+
+/**
+ * Every faith with a claim on this town, in **founding order**, plus the
+ * citizens who follow nothing.
+ *
+ * Pure, exported, and the whole of what the followers block prints — the
+ * `religionReading` bargain one screen over. Every figure is somebody else's:
+ * the counts are `followerCount`, the banner is `cityReligion`, the remainder is
+ * `unconvertedCitizens` (derived, never stored — a second count of the
+ * unconverted would disagree the turn a citizen was born) and each ledger is
+ * `explainPressure`, which is the same list the tide folds into the bank.
+ *
+ * `state.religions` order rather than "most followers first", because founding
+ * order is an order the state carries and a list that re-sorted itself as
+ * congregations changed would be one a player could never learn.
+ */
+export function cityFaithRows(state: GameState, city: City, seat: number): CityFaithRow[] {
+  if (state.religions.length === 0) return [];
+  const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
+  const lines = explainPressure(state, city);
+  const majority = cityReligion(city);
+  const rows: CityFaithRow[] = [];
+  for (const religion of state.religions) {
+    const following = followerCount(city, religion.id);
+    const banked = city.pressureBank?.[religion.id] ?? 0;
+    const ledger = lines.filter((line) => line.religion === religion.id);
+    if (following === 0 && banked === 0 && ledger.length === 0) continue;
+    const founder = playerById(state, religion.founderId);
+    rows.push({
+      religion: religion.id,
+      name: religion.name,
+      ours: religion.founderId === seat,
+      founderName: founder?.name ?? 'somebody',
+      founderColor: founder?.color ?? 'var(--ink)',
+      following,
+      population: city.population,
+      majority: majority === religion.id,
+      banked,
+      perConvert,
+      ledger,
+    });
+  }
+  return rows;
+}
 
 /**
  * Where a newly-pressed build row lands: at the back, but **in front of any
@@ -1595,6 +1675,77 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return box;
   }
 
+  /**
+   * What this town believes — one line per faith with a claim on it, and the
+   * citizens who follow nothing.
+   *
+   * Under the citizens' row rather than beside the buildings, because it is a
+   * fact about the *people*: a religion does not take a town, it takes people in
+   * it one at a time, and the town flies the banner more than half of them
+   * follow (`City.followers`). So this reads as a second reading of the row
+   * above it.
+   *
+   * Absent entirely until something presses, which is most of a game — the
+   * `renderBuilt` reading rather than `renderRoutes`': a town nobody has preached
+   * to has nothing to say about faith, and a permanent "no religion" line would
+   * be the sheet answering a question nobody asked.
+   *
+   * Foreign faiths are named in **their founder's ink**, because whose faith it
+   * is is the whole of what makes a rival's banner in your town news.
+   */
+  function renderFollowers(city: City): HTMLElement | null {
+    const { state } = getGame();
+    const rows = cityFaithRows(state, city, localPlayerId());
+    if (rows.length === 0) return null;
+    const box = element('div', 'city-built city-faith');
+    box.append(element('h3', undefined, 'Faith'));
+    for (const row of rows) {
+      const line = element('p', row.ours ? 'city-faith-row' : 'city-faith-row is-foreign');
+      const name = element('span', 'city-faith-name', row.name);
+      if (!row.ours) {
+        name.style.setProperty('--seat-ink', row.founderColor);
+        name.title = `Founded by ${row.founderName}`;
+      }
+      line.append(document.createTextNode('Following '));
+      line.append(name);
+      if (row.majority) {
+        // The banner. A mark rather than a word, beside the name it is about,
+        // exactly as the capital's star sits beside a city's.
+        const mark = element('span', 'city-faith-majority', '✶');
+        mark.title = `More than half of ${city.name} follows ${row.name}`;
+        line.append(mark);
+      }
+      line.append(
+        element(
+          'span',
+          'city-faith-count',
+          ` · ${figure(row.following)} of ${figure(row.population)} citizens`,
+        ),
+      );
+      // The ledger on hover, and the bank's distance to the next citizen after
+      // it: how hard a faith is pressing and how close the next one is to
+      // turning are two different questions, and this is the one place either is
+      // answerable.
+      const ledger = pressureLedgerText(row.ledger);
+      line.title =
+        row.banked > 0
+          ? `${ledger} · ${row.banked} of ${row.perConvert} toward the next citizen`
+          : ledger;
+      box.append(line);
+    }
+    const left = unconvertedCitizens(city);
+    if (left > 0) {
+      box.append(
+        element(
+          'p',
+          'hint',
+          `${figure(left)} of ${figure(city.population)} follow the old gods.`,
+        ),
+      );
+    }
+    return box;
+  }
+
   function renderBuilt(city: City): HTMLElement | null {
     if (city.buildings.length === 0) return null;
     const box = element('div', 'city-built');
@@ -1721,6 +1872,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // why those hexes and not the ones the town worked last turn.
     const focus = renderCitizenFocus(city);
     if (focus) container.append(focus);
+    // And what those citizens believe — a second reading of the row above, and
+    // absent until something presses. See `renderFollowers`.
+    const faith = renderFollowers(city);
+    if (faith) container.append(faith);
     container.append(renderGrowth(city));
     container.append(renderProduction(city));
     // After production, because the two food/hammer baskets are what a player

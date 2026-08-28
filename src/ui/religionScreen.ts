@@ -69,7 +69,20 @@
 
 import { civYields } from './topBar';
 import { poolFigure } from './figures';
-import { availableRites, beliefPool, pantheonSlots } from '../sim/religion';
+import {
+  type PressureLine,
+  availableRites,
+  beliefPool,
+  explainPressure,
+  foundReligionError,
+  holySites,
+  maxReligions,
+  pantheonSlots,
+  poolHeld,
+  poolSlots,
+  renameReligionError,
+  RELIGION_NAME_LIMIT,
+} from '../sim/religion';
 import {
   type PurchasableItem,
   type PurchasePrice,
@@ -79,18 +92,29 @@ import {
 import {
   type BeliefAxis,
   type BeliefId,
+  type ReligionBeliefPool,
   type RiteId,
   BELIEF_IDS,
   RELIGION,
+  RELIGION_BELIEF_POOLS,
   beliefDef,
   riteDef,
 } from '../sim/religionData';
 import { drawPantheonWheel, pantheonWheelLayout } from './pantheonWheel';
-import { describeCard } from '../sim/statecraft';
-import { type GameState, playerById } from '../sim/state';
+import { type CardYieldLine, cardEmpireYields, describeCard } from '../sim/statecraft';
+import {
+  type GameState,
+  type Religion,
+  cityReligion,
+  followerCount,
+  foundedReligion,
+  playerById,
+} from '../sim/state';
+import { cityDisplayName } from './cityDisplay';
 import { gatingTech } from '../sim/tech';
-import { techDef } from '../sim/techData';
+import { type TechId, techDef } from '../sim/techData';
 import type { UnitTypeId } from '../sim/unitData';
+import { YIELD_GLYPH } from './yieldMark';
 
 /**
  * The mark each axis wears, and the accent it is drawn in.
@@ -159,6 +183,205 @@ export function riteGrantWords(id: RiteId): string {
   return parts.join(', ');
 }
 
+// --- the religion, as the pane reads it -------------------------------------
+
+/**
+ * The technology that opens each drawable pool — the gate a player is told
+ * about when a house is standing empty.
+ *
+ * The **follower** gate is read off the roster (`gatingTech('unit', 'prophet')`)
+ * rather than named here, because a house is filled by a prophet's charge and
+ * "what teaches a prophet" is already a fact the unit table carries. The
+ * **enhancer** gate is the one literal in this file, and it is `religion.ts`'s
+ * own `ENHANCER_TECH`, which is private to that module. A copy is a second
+ * table, so `test/ui/religionScreen.test.ts` reads it back out of
+ * `enhanceReligionError`'s own refusal sentence — the day the sim moves the
+ * gate, the pane's word for it fails rather than quietly lying.
+ */
+const ENHANCER_TECH: TechId = 'theology';
+
+/** What teaches each pool, as a technology name. */
+export function poolTechName(pool: ReligionBeliefPool): string {
+  if (pool === 'enhancer') return techDef(ENHANCER_TECH).name;
+  const gate = gatingTech('unit', PROPHET);
+  return gate === null ? 'the tree' : techDef(gate).name;
+}
+
+/** The piece whose charges found and spread a faith. Named once, read twice. */
+const PROPHET: UnitTypeId = 'prophet';
+
+/** What each pool is called on the sheet, and what a house of it is for. */
+export const POOL_WORD: Readonly<Record<ReligionBeliefPool, { name: string; says: string }>> = {
+  follower: {
+    name: 'follower belief',
+    says: 'Pays you for every city in the world that follows your faith, whoever owns it.',
+  },
+  enhancer: { name: 'enhancer belief', says: 'Bends how far and how hard your faith spreads.' },
+};
+
+/** One house of a religion: what it holds, how many it may, and what fills it. */
+export interface ReligionHouse {
+  pool: ReligionBeliefPool;
+  slots: number;
+  held: BeliefId[];
+  /** How many places are standing empty. */
+  empty: number;
+  /** What fills one — the sentence an empty house prints. */
+  fills: string;
+}
+
+/** One city that follows something, as the pane lists it. */
+export interface FollowingCityLine {
+  cityId: number;
+  /** `cityDisplayName`'s answer — the capital keeps its star. */
+  name: string;
+  /** True when this seat owns the town. */
+  ours: boolean;
+  /** The owning empire's name, and the ink its banner is drawn in. */
+  ownerName: string;
+  ownerColor: string;
+  /** Citizens of this town that follow **this** religion, of the whole population. */
+  following: number;
+  population: number;
+  /** True when this religion is the one more than half the town follows. */
+  majority: boolean;
+  /** `explainPressure`'s lines for this religion, for the hover. */
+  ledger: PressureLine[];
+}
+
+/** Everything the right pane prints. Pure, and the whole of what a test can pin. */
+export interface ReligionReading {
+  /** The faith this seat founded, or `null` — `foundedReligion`'s answer. */
+  religion: Religion | null;
+  /** How many religions the world holds, against the cap it will ever hold. */
+  count: string;
+  /** How to found one, when this seat has not. `null` once it has. */
+  found: { blocker: string | null; how: string } | null;
+  houses: ReligionHouse[];
+  /** The founder's trickle, in the sim's own labelled lines. */
+  trickle: CardYieldLine[];
+  /** Every town in the world that follows this faith, ours first, then in city order. */
+  following: FollowingCityLine[];
+}
+
+/**
+ * What the pane says, derived and never stored.
+ *
+ * Every figure on it is somebody else's: the cap is `maxReligions`, the houses
+ * are `poolSlots`/`poolHeld`, the trickle is `cardEmpireYields` filtered to the
+ * lines `liveEffects`' seventh source pushed, and each town's ledger is
+ * `explainPressure` — the same list the tide folds. Nothing here adds up a
+ * number the simulation has not already added up, which is hard rule 5 read for
+ * a screen.
+ *
+ * `holySites` is hoisted **once** for the whole sweep and handed to every town's
+ * `explainPressure`, which is that function's own bargain (`zocField`'s): asking
+ * per town would be one pass over the map per city on the list.
+ */
+export function religionReading(state: GameState, seat: number): ReligionReading {
+  const mine = foundedReligion(state, seat) ?? null;
+  const count = `${state.religions.length} of ${maxReligions(state)} religions founded`;
+  const houses: ReligionHouse[] = [];
+  const following: FollowingCityLine[] = [];
+  let trickle: CardYieldLine[] = [];
+
+  if (mine !== null) {
+    for (const pool of RELIGION_BELIEF_POOLS) {
+      const slots = poolSlots(pool);
+      const held = pool === 'follower' ? [...mine.follower] : mine.enhancer ? [mine.enhancer] : [];
+      houses.push({
+        pool,
+        slots,
+        held,
+        empty: Math.max(0, slots - poolHeld(mine, pool)),
+        fills: `a prophet's charge, once you have ${poolTechName(pool)}`,
+      });
+    }
+    // Only the lines this religion pushed. `liveEffects` labels the trickle with
+    // the religion's own name (`Religion · the Hearth Cult`) and a follower
+    // belief with the belief after it, so a prefix match is exactly "what my
+    // faith pays me" and nothing else on the empire's ledger.
+    const word = `Religion · ${mine.name}`;
+    trickle = cardEmpireYields(state, seat).filter((line) => line.source.startsWith(word));
+
+    const sites = holySites(state);
+    for (const city of state.cities) {
+      const held = followerCount(city, mine.id);
+      if (held <= 0) continue;
+      const owner = playerById(state, city.ownerId);
+      following.push({
+        cityId: city.id,
+        name: cityDisplayName(state, city),
+        ours: city.ownerId === seat,
+        ownerName: owner?.name ?? 'somebody',
+        ownerColor: owner?.color ?? 'var(--ink)',
+        following: held,
+        population: city.population,
+        majority: cityReligion(city) === mine.id,
+        ledger: explainPressure(state, city, sites).filter((line) => line.religion === mine.id),
+      });
+    }
+    // Ours first, then `state.cities` order inside each half — founding order,
+    // which is an order the state carries. A list sorted by how many follow
+    // would reshuffle itself every turn.
+    following.sort((a, b) => Number(b.ours) - Number(a.ours));
+  }
+
+  return {
+    religion: mine,
+    count,
+    found:
+      mine !== null
+        ? null
+        : {
+            blocker: foundReligionError(state, seat),
+            how: `A prophet plants the first holy site, and the faith is founded where the stones go up. Prophets are called with faith once you have ${poolTechName('follower')}.`,
+          },
+    houses,
+    trickle,
+    following,
+  };
+}
+
+/**
+ * One town's pressure ledger as a hover sentence — the source, its figure, and
+ * the total under them.
+ *
+ * `explainPressure`'s list verbatim, which is the point: the temple's line is a
+ * *difference* carried so the list still sums to the total, so a reader who adds
+ * the column up gets the figure the bank actually receives.
+ */
+export function pressureLedgerText(lines: readonly PressureLine[]): string {
+  if (lines.length === 0) return 'Nothing presses here.';
+  let total = 0;
+  const said: string[] = [];
+  for (const line of lines) {
+    total += line.amount;
+    said.push(`${line.source} ${signed(line.amount)}`);
+  }
+  return `${said.join(' · ')} — ${Math.max(0, total)} a turn`;
+}
+
+/** A signed whole figure, for a ledger a temple can subtract from. */
+function signed(amount: number): string {
+  return amount < 0 ? String(amount) : `+${amount}`;
+}
+
+/**
+ * The eyebrow the offer card wears when a belief is dealt, which is the one
+ * place a player is told **which bag** the three cards came out of.
+ *
+ * `BeliefOffer.pool` is absent for the pantheon and named for the two religion
+ * pools, so the three drafts read as three different decisions on the same card
+ * — which they are: a god is your identity, a follower belief is what your
+ * followers pay you, an enhancer is how far they spread.
+ */
+export function beliefOfferEyebrow(pool: ReligionBeliefPool | undefined): string {
+  if (pool === undefined) return 'a god · permanent, and never converted away';
+  if (pool === 'follower') return 'a follower belief · pays you wherever your faith is followed';
+  return 'an enhancer belief · bends how your faith spreads';
+}
+
 export interface ReligionScreen {
   readonly isOpen: boolean;
   open(): void;
@@ -178,6 +401,12 @@ export interface ReligionScreenOptions {
   getPlayerId: () => number;
   /** Sends the purchase. The screen never mutates state itself. */
   buy: (cityId: number, item: PurchasableItem, currency: 'faith' | 'gold') => void;
+  /**
+   * Sends `renameReligion`. Optional, so a page with no religion verb wired
+   * simply shows the name as a heading rather than as a field — the same
+   * bargain `onOpenTrade` makes one sheet over.
+   */
+  rename?: (name: string) => void;
   /** Said in the manicule line — a refusal, in the reducer's own words. */
   onRefuse?: (message: string) => void;
   onOpen?: () => void;
@@ -474,6 +703,171 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   }
 
   /**
+   * The religion block: what this seat's faith **is**, and who follows it.
+   *
+   * Two states and no third, which is the whole of `foundedReligion`'s reading:
+   * a seat that has founded nothing is told what a religion is and how one is
+   * founded, with the world's count against the cap beside it — because "can I
+   * still have one" is the first question, and the answer stops being yes. A
+   * seat that has one gets its name, its houses, what its followers pay it, and
+   * the list of towns that follow.
+   *
+   * Every figure comes off `religionReading`, which is pure and pinned; this
+   * function is the DOM and the two controls (the name field, and the hover on
+   * each town's row).
+   */
+  function drawReligion(state: GameState, seat: number): HTMLElement {
+    const block = element('section', 'rel-faith');
+    const reading = religionReading(state, seat);
+    const mine = reading.religion;
+    block.append(element('p', 'eyebrow sc-eyebrow', 'your religion'));
+
+    if (mine === null) {
+      block.append(
+        element(
+          'p',
+          'sc-flavor',
+          'A religion is a faith of your own: it is founded out of the gods you keep, it ' +
+            'spreads from your holy sites into every town near enough to hear it, and it pays ' +
+            'you for each town in the world that follows it — including your rivals’.',
+        ),
+      );
+      block.append(element('p', 'rel-faith-how', reading.found!.how));
+      // The world's count, and the blocker under it when there is one. The cap
+      // is a fact about the *world* rather than about this seat, which is why it
+      // is printed whether or not anything is stopping this player today.
+      block.append(element('p', 'rel-faith-count', reading.count));
+      if (reading.found!.blocker !== null) {
+        block.append(element('p', 'sc-none', reading.found!.blocker));
+      }
+      return block;
+    }
+
+    // The name, editable in place. It is generated so a religion has one at all
+    // (`generateReligionName`); renaming changes no rule, which is why this is a
+    // field rather than a ceremony, and why a refusal is the reducer's own
+    // sentence in the manicule line rather than an error on the control.
+    const nameRow = element('div', 'rel-faith-name');
+    if (options.rename) {
+      const field = document.createElement('input');
+      field.type = 'text';
+      field.className = 'rel-name-field';
+      field.value = mine.name;
+      field.maxLength = RELIGION_NAME_LIMIT;
+      field.setAttribute('aria-label', 'The name of your religion');
+      const send = (): void => {
+        const next = field.value.trim();
+        if (next === mine.name) return;
+        const problem = renameReligionError(state, seat, next);
+        if (problem !== null) {
+          options.onRefuse?.(problem);
+          field.value = mine.name;
+          return;
+        }
+        options.rename!(next);
+        draw();
+      };
+      field.addEventListener('change', send);
+      field.addEventListener('blur', send);
+      nameRow.append(field);
+    } else {
+      nameRow.append(element('h3', 'rel-faith-title', mine.name));
+    }
+    block.append(nameRow);
+    block.append(element('p', 'rel-faith-count', reading.count));
+
+    // The houses. An empty one says what fills it rather than showing a ghost
+    // and nothing else — the gods' slot row is a place a player already knows
+    // how to fill, and a religion's two houses are not.
+    for (const house of reading.houses) {
+      const box = element('div', 'rel-house');
+      box.append(
+        element(
+          'p',
+          'eyebrow sc-eyebrow',
+          `${POOL_WORD[house.pool].name} · ${house.held.length} of ${house.slots}`,
+        ),
+      );
+      for (const id of house.held) {
+        const card = element('article', 'rel-slot');
+        drawBeliefFace(card, id);
+        box.append(card);
+      }
+      if (house.empty > 0) {
+        const empty = element('article', 'rel-slot rel-slot-empty');
+        empty.append(element('span', 'rel-slot-ghost', SLOT_GLYPH));
+        empty.append(element('span', 'sc-slot-empty', house.fills));
+        empty.title = POOL_WORD[house.pool].says;
+        box.append(empty);
+      }
+      block.append(box);
+    }
+
+    // What the faith pays its founder. `cardEmpireYields`' own labelled lines,
+    // so the figure here is the figure `collectYields` banks.
+    const trickle = element('div', 'rel-trickle');
+    trickle.append(element('p', 'eyebrow sc-eyebrow', 'what your followers pay you'));
+    if (reading.trickle.length === 0) {
+      trickle.append(element('p', 'sc-none', 'Nothing yet — no town abroad follows you.'));
+    } else {
+      const list = element('ul', 'rel-price ledger');
+      for (const line of reading.trickle) {
+        const item = element('li', 'rel-price-line');
+        item.append(element('span', 'meter-line-source', line.source));
+        item.append(element('span', 'meter-line-value', trickleFigures(line)));
+        list.append(item);
+      }
+      trickle.append(list);
+    }
+    block.append(trickle);
+
+    // The congregation. Yours and theirs in one list, because a follower belief
+    // pays for both and a player reading two lists would be reading one figure
+    // twice.
+    const towns = element('div', 'rel-following');
+    towns.append(
+      element('p', 'eyebrow sc-eyebrow', `following cities · ${reading.following.length}`),
+    );
+    if (reading.following.length === 0) {
+      towns.append(element('p', 'sc-none', 'Nobody follows you yet. Plant a holy site.'));
+    }
+    for (const town of reading.following) {
+      const row = element('p', town.ours ? 'rel-town' : 'rel-town rel-town-foreign');
+      const name = element('span', 'rel-town-name', town.name);
+      if (!town.ours) name.style.setProperty('--seat-ink', town.ownerColor);
+      row.append(name);
+      if (!town.ours) row.append(element('span', 'rel-town-owner', town.ownerName));
+      if (town.majority) {
+        const mark = element('span', 'rel-town-majority', '✶');
+        mark.title = `${mine.name} is the faith of ${town.name}`;
+        row.append(mark);
+      }
+      row.append(
+        element(
+          'span',
+          'rel-town-count',
+          `${town.following} of ${town.population} citizens`,
+        ),
+      );
+      // The ledger on hover, and it is `explainPressure`'s own list — the same
+      // one the tide folds into the bank.
+      row.title = pressureLedgerText(town.ledger);
+      towns.append(row);
+    }
+    block.append(towns);
+    return block;
+  }
+
+  /** One trickle line's figures, in the voices it actually pays. */
+  function trickleFigures(line: CardYieldLine): string {
+    const parts: string[] = [];
+    for (const key of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
+      if (line[key] !== 0) parts.push(`+${line[key]}${YIELD_GLYPH[key]}`);
+    }
+    return parts.join(' ');
+  }
+
+  /**
    * The rites, as a reference: what each does, and what it is waiting on.
    *
    * Every rite in the table, not only the known ones, and the unknown ones say
@@ -565,6 +959,11 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     head.append(drawPool(state, seat));
     head.append(drawPurchase(state, seat));
     pane.append(head);
+    // The religion above the rites, because it is the larger question: a rite is
+    // one charge of one augur, and a faith is the thing the whole screen is
+    // about. The pantheon stays in the column — what your empire *is* — and this
+    // is what it has been made into, which is a thing you do with it.
+    pane.append(drawReligion(state, seat));
     pane.append(drawRites(state, seat));
     split.append(pane);
     body.append(split);

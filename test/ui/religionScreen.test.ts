@@ -159,7 +159,16 @@ describe('the breakpoint', () => {
 describe("the sheet's controls", () => {
   it('leaves no uppercased control on the Religion sheet', () => {
     // The eyebrows are labels and may shout; a button and a select may not.
-    for (const selector of ['.rel-buy', '.rel-city-select', '.btn', '.btn-primary']) {
+    // Three now: the religion pane's name field is the third control this
+    // sheet builds, and it is the one most likely to be dressed as a form
+    // element by accident.
+    for (const selector of [
+      '.rel-buy',
+      '.rel-city-select',
+      '.rel-name-field',
+      '.btn',
+      '.btn-primary',
+    ]) {
       const transform = declaration(selector, 'text-transform') ?? 'none';
       expect(`${selector}: ${transform}`).toBe(`${selector}: none`);
     }

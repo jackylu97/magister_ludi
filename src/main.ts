@@ -48,6 +48,7 @@ import {
   type GameState,
   type PlayerSpec,
   type Unit,
+  foundedReligion,
   hasEndedTurn,
   playerById,
   realPlayers,
@@ -123,7 +124,7 @@ import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
 import { triumphDef } from './sim/triumphData';
-import { AXIS_MARK } from './ui/religionScreen';
+import { AXIS_MARK, beliefOfferEyebrow } from './ui/religionScreen';
 import { beliefDef } from './sim/religionData';
 import { personOf } from './sim/greatPeople';
 import {
@@ -1861,9 +1862,21 @@ async function boot(initial: Game | null): Promise<void> {
 
     offerCard.show(
       {
-        eyebrow: 'a god · permanent, and never converted away',
-        title: 'Name what your people keep',
-        note: 'A belief pays in every city you own, for the rest of the game. The augur is spent either way.',
+        // **The eyebrow is the bag.** One `chooseBelief` answers three drafts
+        // now (`BeliefOffer.pool`), and they are three different decisions
+        // wearing one card: a god is your identity, a follower belief is what
+        // your followers pay you, an enhancer is how far they spread. The word
+        // for each is `beliefOfferEyebrow`'s, which is the screen that houses
+        // them — one table, both surfaces, exactly as `AXIS_MARK` is.
+        eyebrow: beliefOfferEyebrow(offer.pool),
+        title:
+          offer.pool === undefined
+            ? 'Name what your people keep'
+            : `Name what ${foundedReligion(game.state, seat)?.name ?? 'your faith'} teaches`,
+        note:
+          offer.pool === undefined
+            ? 'A belief pays in every city you own, for the rest of the game. The augur is spent either way.'
+            : 'This belongs to your religion, not to your empire. The prophet’s charge is spent either way.',
         weight: 'heavy',
         widening: wideningLines('belief'),
         options: offer.options.map((id) => {
@@ -1886,15 +1899,30 @@ async function boot(initial: Game | null): Promise<void> {
       },
       (index) => {
         dispatch(game, { type: 'chooseBelief', playerId: seat, optionIndex: index });
-        const taken = playerById(game.state, seat)?.pantheon.beliefs.slice(-1)[0];
+        // Which shelf the pick lands on is the *offer's* answer, never this
+        // card's (`settleBeliefChoice`): an offer that names a pool belongs to
+        // the religion, one that names none to the pantheon. So the line is read
+        // back off whichever shelf it went to, rather than off the pantheon and
+        // silently nothing for two drafts in three.
+        const pool = offer.pool;
+        const mine = foundedReligion(game.state, seat);
+        const taken =
+          pool === undefined
+            ? playerById(game.state, seat)?.pantheon.beliefs.slice(-1)[0]
+            : pool === 'follower'
+              ? mine?.follower.slice(-1)[0]
+              : mine?.enhancer;
         if (taken !== undefined) {
-          // The chronicle keeps this one and the toast stack does not: a god is
-          // a permanent fact about the empire, worth a line somebody can scroll
-          // back to, and the player has just watched themselves choose it — a
-          // toast telling them what they picked a moment ago is noise.
+          // The chronicle keeps this one and the toast stack does not: a belief
+          // is a permanent fact about the empire, worth a line somebody can
+          // scroll back to, and the player has just watched themselves choose it
+          // — a toast telling them what they picked a moment ago is noise.
           notificationLog.push(seat, {
             turn: game.state.turn,
-            text: `Your people keep ${beliefDef(taken).name}.`,
+            text:
+              pool === undefined
+                ? `Your people keep ${beliefDef(taken).name}.`
+                : `${mine?.name ?? 'Your faith'} teaches ${beliefDef(taken).name}.`,
           });
           notifications?.refresh();
         }
@@ -2126,6 +2154,13 @@ async function boot(initial: Game | null): Promise<void> {
     ['none', 'None', 'The board as it is'],
     ['settler', 'Settler', 'Where a city may go: blue is coastal, green is fresh water'],
     ['explorer', 'Explorer', 'What is left to find: gold is a ruin or a village, red is a camp'],
+    // The third, and the only one no piece raises. A settler and a scout each
+    // bring their own lens up by being picked up (`effectiveLens`); there is no
+    // piece a player carries that wants a board-wide answer about faith, so this
+    // is one they go and ask for — appended, which is all a new lens costs,
+    // because the digit hotkey is `lensOrder`'s position rather than a mapping
+    // of its own (`lensForDigit`).
+    ['faith', 'Faith', 'Whose faith is winning, and where: each hex in its founder’s ink'],
   ];
 
   /**
@@ -2514,6 +2549,11 @@ async function boot(initial: Game | null): Promise<void> {
       controls.refresh();
       religion?.refresh();
     },
+    rename: (name) => {
+      controls.renameReligion(name);
+      controls.refresh();
+      religion?.refresh();
+    },
     onRefuse: (message) => controls.guide(`☞ ${message}`),
     onOpen: () => {
       menu.close();
@@ -2867,6 +2907,16 @@ async function boot(initial: Game | null): Promise<void> {
     riteOptions: () => controls.riteOptions(),
     onPerformRite: (id) => {
       controls.performRite(id);
+      updatePanel(null, renderer.getHover());
+      religion?.refresh();
+    },
+    prophetRows: () => controls.prophetRows(),
+    onProphetAct: (verb, pool) => {
+      // Three of the four deal a hand, and the offer card is raised by
+      // `controls.prophetAct` itself through the `onOfferReligion` seam — the
+      // same one the augur's Consecrate and the End Turn blocker use, so there
+      // is one path from "a belief was drawn" to "the card is on screen".
+      controls.prophetAct(verb, pool);
       updatePanel(null, renderer.getHover());
       religion?.refresh();
     },

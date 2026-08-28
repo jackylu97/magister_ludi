@@ -29,7 +29,13 @@ import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, isWonder } from '../../src/sim/buildingData';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
 import { IMPROVEMENT_IDS } from '../../src/sim/improvementData';
-import { BELIEF_IDS, RITE_IDS } from '../../src/sim/religionData';
+import {
+  ALL_BELIEF_IDS,
+  BELIEF_IDS,
+  ENHANCER_BELIEF_IDS,
+  FOLLOWER_BELIEF_IDS,
+  RITE_IDS,
+} from '../../src/sim/religionData';
 import { RESOURCE_IDS } from '../../src/sim/resourceData';
 import { DOCTRINE_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
 import { newGame } from '../../src/sim/state';
@@ -86,7 +92,13 @@ describe('the shelves', () => {
     expect(shelf('tech').entries).toHaveLength(TECH_IDS.length + LEAD);
     expect(shelf('order').entries).toHaveLength(ORDER_IDS.length + LEAD);
     expect(shelf('doctrine').entries).toHaveLength(DOCTRINE_IDS.length + LEAD);
-    expect(shelf('belief').entries).toHaveLength(BELIEF_IDS.length + LEAD);
+    // **All three pools on one shelf** (religion v2). A belief is one id space
+    // across three bags, so the shelf is `ALL_BELIEF_IDS` and neither the
+    // follower nor the enhancer pool may be quietly missing from it.
+    expect(shelf('belief').entries).toHaveLength(ALL_BELIEF_IDS.length + LEAD);
+    expect(ALL_BELIEF_IDS.length).toBe(
+      BELIEF_IDS.length + FOLLOWER_BELIEF_IDS.length + ENHANCER_BELIEF_IDS.length,
+    );
     expect(shelf('rite').entries).toHaveLength(RITE_IDS.length + LEAD);
     expect(shelf('greatPerson').entries).toHaveLength(GREAT_PERSON_IDS.length + LEAD);
     expect(shelf('triumph').entries).toHaveLength(TRIUMPH_IDS.length + LEAD);

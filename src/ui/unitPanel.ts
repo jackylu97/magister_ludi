@@ -38,10 +38,10 @@
 import { fortifyBonus, isCivilian, isCombatant, isFortified, isRanged } from '../sim/combat';
 import type { ImprovementId } from '../sim/improvementData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
-import { isAugur } from '../sim/religion';
-import { type RiteId, riteDef } from '../sim/religionData';
+import { isAugur, isProphet } from '../sim/religion';
+import { type ReligionBeliefPool, type RiteId, riteDef } from '../sim/religionData';
 import { describeCard } from '../sim/statecraft';
-import type { GreatPersonView, RiteOption } from './controls';
+import type { GreatPersonView, ProphetRow, ProphetVerb, RiteOption } from './controls';
 import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
 import { explainAuthority, meterStanding } from '../sim/meters';
@@ -225,6 +225,20 @@ export interface UnitPanelOptions {
    */
   riteOptions: () => RiteOption[];
   onPerformRite: (id: RiteId) => void;
+  /**
+   * The four things the selected prophet's charges could do —
+   * `controls.prophetRows()`, already carrying each row's blocker and its
+   * sentence. Empty for every other piece on the board.
+   *
+   * A list rather than four blockers, for the rites' reason: the rules decide
+   * which rows are live and this panel only prints them. Unlike the rites,
+   * nothing here is hidden — all four rows always stand, greyed with whatever
+   * the reducer would refuse them with, because every one of them is a fact
+   * about the *empire's faith* rather than about the hex the piece is on, and a
+   * verb that vanished would be one a player never learns exists.
+   */
+  prophetRows: () => ProphetRow[];
+  onProphetAct: (verb: ProphetVerb, pool?: ReligionBeliefPool) => void;
   /**
    * Who the selected piece is, if it is a great person, and what its two verbs
    * would do — `controls.greatPersonView()`, or `null` for every other piece.
@@ -420,6 +434,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onConsecrate,
     riteOptions,
     onPerformRite,
+    prophetRows,
+    onProphetAct,
     greatPerson,
     onGreatPersonAct,
     onGreatPersonWork,
@@ -685,7 +701,12 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // not its verbs — an "Act · Work · Chop" sheet would be offering a third
     // thing the roster has never heard of. The augur is excused the same way by
     // *not* being a builder at all; this one has to say so.
-    if (isBuilder(unit) && !person) {
+    //
+    // The **prophet** is the second such piece and is excused for the same
+    // reason: `plantingHandOf` gives it the holy site and nothing else, so six
+    // greyed farm rows and an axe under its four ministries would be the sheet
+    // offering spadework a prophet will never do.
+    if (isBuilder(unit) && !person && !isProphet(unit)) {
       for (const option of improvementOptions()) {
         const delta = yieldDeltaNodes(option.delta);
         let label: string | DocumentFragment = option.name;
@@ -758,6 +779,40 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
           title: techHoverTitle(rite.requiredTechName, rite.blocked),
           card: () => riteCard(rite),
           run: () => onPerformRite(rite.id),
+        });
+      }
+    }
+    // The prophet's four verbs, in the order a player meets them: the one that
+    // founds first, then the two that spend a charge on the faith it founded,
+    // then the one that takes a draft back. Every one of them is offered and
+    // merely *greyed* when the rules refuse it — Fortify's reading rather than
+    // the improvements' — because all four are facts about the empire's religion
+    // rather than about this hex, and a row that vanished would be a verb a
+    // player only discovers by standing somewhere else.
+    //
+    // Redraft is **two** rows, one per pool. It is the one prophet verb that
+    // names something besides the piece, and the two pools are refused
+    // separately — a faith holding a follower belief and no enhancer may give
+    // the first back and not the second — so a single row with a hidden choice
+    // would be a button whose sentence is right about only half of what it does.
+    if (isProphet(unit)) {
+      for (const row of prophetRows()) {
+        if (row.pools) {
+          for (const pool of row.pools) {
+            actions.push({
+              label: `${row.name} · ${pool.name}`,
+              blocked: pool.blocked,
+              hint: row.says,
+              run: () => onProphetAct(row.verb, pool.pool),
+            });
+          }
+          continue;
+        }
+        actions.push({
+          label: row.name,
+          blocked: row.blocked,
+          hint: row.says,
+          run: () => onProphetAct(row.verb),
         });
       }
     }
@@ -1009,11 +1064,13 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       // type's name). One line rather than two blocks, because it is one number
       // — the scarcest thing about either piece.
       const rites = isAugur(unit);
-      // The same field, three vocabularies now: a worker's charges are
-      // spadework, an augur's are rites, and a great person's is the *one* thing
-      // they are — spent on the act or on the work, and then the piece is gone.
-      const label = person ? 'Service' : rites ? 'Rites' : 'Charges';
-      const mark = person ? '✦' : rites ? '✧' : '⚒';
+      // The same field, **four** vocabularies now: a worker's charges are
+      // spadework, an augur's are rites, a prophet's are *ministries* — the four
+      // things one charge does to a faith — and a great person's is the one
+      // thing they are, spent on the act or on the work and then gone.
+      const ministry = isProphet(unit);
+      const label = person ? 'Service' : rites ? 'Rites' : ministry ? 'Ministry' : 'Charges';
+      const mark = person ? '✦' : rites ? '✧' : ministry ? '☩' : '⚒';
       stats.append(stat(label, `${mark} ${left}/${def.charges ?? left}`, left <= 1));
     }
     // The fighting numbers, and only for things that fight: a settler's sheet

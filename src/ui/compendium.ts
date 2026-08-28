@@ -79,11 +79,13 @@ import {
   improvementForResource,
 } from '../sim/improvementData';
 import {
-  BELIEF_IDS,
+  ALL_BELIEF_IDS,
   type BeliefId,
+  type ReligionBeliefPool,
   RITE_IDS,
   type RiteId,
   beliefDef,
+  beliefPoolOf,
   riteDef,
 } from '../sim/religionData';
 import {
@@ -388,7 +390,12 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
       text: 'A city stores no food toward its next citizen while one of these is at the front of its build queue.',
     });
   }
-  if (def.charges !== undefined && def.consecrates !== true && def.greatWork !== true) {
+  if (
+    def.charges !== undefined &&
+    def.consecrates !== true &&
+    def.greatWork !== true &&
+    def.prophesies !== true
+  ) {
     out.push({
       text: `Carries ${def.charges} work ${plural(def.charges, 'charge')}. Building an improvement spends one or more of them, and the unit is used up when they run out.`,
     });
@@ -397,6 +404,19 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
     const charges = def.charges ?? 0;
     out.push({
       text: `Carries ${charges} ${plural(charges, 'charge')}. Performing a rite on a city spends one of them; adding a belief to your pantheon uses up the whole unit.`,
+    });
+  }
+  // The **prophet**, and it is `consecrates`' sibling in every respect: a marker
+  // on the row rather than a name anything compares against, and a charge count
+  // that has to be said in its own vocabulary or it reads as spadework — the
+  // clause above it would otherwise claim a prophet digs mines.
+  if (def.prophesies === true) {
+    const charges = def.charges ?? 0;
+    out.push({
+      text: `Carries ${charges} ${plural(charges, 'charge')}, and each one spends the whole turn. A charge plants a holy site, draws a belief for your religion, proclaims your faith over the land around it, or gives one of your religion's drafts back to be drawn again.`,
+    });
+    out.push({
+      text: 'The first holy site a prophet plants founds your religion, out of the gods you already keep.',
     });
   }
   if (def.greatWork === true) {
@@ -688,8 +708,16 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
     clauses.push({ text: 'Claims the hex it stands on and every hex next to it for your empire.' });
   }
   if (def.greatPerson !== undefined) {
+    // **`greatPerson` names the family, and the family is not always a great
+    // person's.** Since the prophet joined that field (`WorkFamily`), the flat
+    // sentence would have claimed a holy site is built by a scholar — so the
+    // hand is read off the row rather than assumed, exactly as the sim reads it
+    // (`plantingHandOf`).
     clauses.push({
-      text: 'Only a great person can build this, and a great person can build nothing else.',
+      text:
+        def.greatPerson === 'prophet'
+          ? 'Only a prophet can plant this, and a prophet can build nothing else.'
+          : 'Only a great person can build this, and a great person can build nothing else.',
       note: true,
     });
   }
@@ -889,13 +917,33 @@ function doctrineEntry(id: DoctrineId): CompendiumEntry {
   };
 }
 
+/**
+ * What each of the three pools is called on a card's eyebrow, and who a belief
+ * drawn from it pays.
+ *
+ * A belief is one id space across three bags (`BeliefId`), and *which bag* is
+ * the only thing about a belief a reader cannot work out from its clauses: the
+ * three are drawn by different agents, at different moments, and — the part that
+ * matters — **paid to different people**. A god pays the empire that keeps it; a
+ * follower belief pays the empire that founded the faith, wherever the followers
+ * live, including in a rival's towns. A shelf that printed all three under one
+ * word would be hiding the one distinction the pools exist for.
+ */
+const BELIEF_POOL_WORD: Readonly<Record<'pantheon' | ReligionBeliefPool, string>> = {
+  pantheon: 'a god — pays the empire that keeps it',
+  follower: 'follower belief — pays the founder',
+  enhancer: 'enhancer belief — bends how a faith spreads',
+};
+
 function beliefEntry(id: BeliefId): CompendiumEntry {
   const def = beliefDef(id);
   return {
     id: compendiumId('belief', id),
     section: 'belief',
     name: def.name,
-    eyebrow: 'belief',
+    // `beliefPoolOf` is the data's own answer — `null` for the pantheon — so a
+    // row moved between bags moves its eyebrow with it.
+    eyebrow: BELIEF_POOL_WORD[beliefPoolOf(id) ?? 'pantheon'],
     mark: { kind: 'glyph', glyph: AXIS_MARK[def.axis].glyph },
     rows: [],
     clauses: cardClauses(id, def.note),
@@ -1282,7 +1330,11 @@ export function compendiumSections(state: GameState | null = null): CompendiumSe
   }
   for (const id of ORDER_IDS) push(orderEntry(id));
   for (const id of DOCTRINE_IDS) push(doctrineEntry(id));
-  for (const id of BELIEF_IDS) push(beliefEntry(id));
+  // **All three pools**, in `ALL_BELIEF_IDS`' own order — the pantheon's gods,
+  // then the follower beliefs, then the enhancers. One shelf rather than three,
+  // because they are one id space read by one describer; the eyebrow is what
+  // says which bag a row came out of (see `BELIEF_POOL_WORD`).
+  for (const id of ALL_BELIEF_IDS) push(beliefEntry(id));
   for (const id of RITE_IDS) push(riteEntry(id));
   for (const id of GREAT_PERSON_IDS) push(greatPersonEntry(id));
   for (const id of TRIUMPH_IDS) push(triumphEntry(id));

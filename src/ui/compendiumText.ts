@@ -107,7 +107,7 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     'what your cities produce',
     '⚙',
     [
-      'A "yield" is anything a city produces each turn. There are six: food, production, gold, science, culture and faith. Food makes the city grow. Production builds units and buildings. Gold goes into your treasury to buy things. Science researches technologies. Culture earns you cards and expands your borders. Faith buys augurs, the game\'s religious units.',
+      'A "yield" is anything a city produces each turn. There are six: food, production, gold, science, culture and faith. Food makes the city grow. Production builds units and buildings. Gold goes into your treasury to buy things. Science researches technologies. Culture earns you cards and expands your borders. Faith buys augurs and prophets, the game\'s religious units.',
       'Where yields come from: each of your citizens works one hex near the city, and that hex pays whatever its terrain, resource and improvement are worth — a grassland hex gives food, a hill gives production, a farm adds more food, a mine adds more production. Buildings add more on top. So a city grows by getting more citizens, working better hexes, and building.',
       'You can see a city\'s yields on its screen, and every hex\'s yield by hovering it. Citizens are placed automatically; you can lock one to a hex you want worked.',
       'Details: if a hex has both hills and a feature such as forest, the feature\'s yield is what counts. The city\'s own hex is always worked. Bonuses from cards, luxuries and the happiness and authority meters are percentages, applied in two stages — city-level bonuses first, then empire-level — with all the percentages in one stage added together before they are applied. A city that is building a settler puts its citizens on production rather than food until it is done.',
@@ -165,13 +165,16 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
   written(
     'concept',
     'religion',
-    'Faith and the pantheon',
-    'augurs, beliefs, rites',
+    'Faith and religion',
+    'augurs, prophets, beliefs, followers',
     '🕯',
     [
-      'Faith is a yield produced by religious buildings such as shrines and temples. It is spent on augurs — religious units you buy in a city. An augur can do two things: add a belief to your pantheon (a permanent bonus for all your cities), or perform a rite on a city (a temporary blessing, such as extra science or faster border growth).',
-      'Early on, use an augur to pick beliefs while you have open belief slots; they are permanent and choose what your civilisation is good at. Later augurs are best used for rites on the cities that need them.',
-      'Details: each augur costs more faith than the last. A rite takes effect immediately and lasts a stated number of turns; performing one uses the augur\'s movement for the turn. Beliefs apply to every city you own and cannot be taken away. Prophets, named religions and the spread of religion between cities are designed but not yet built.',
+      'Faith is a yield, produced by religious buildings such as shrines and temples and by holy sites on the land. It buys two units, and they are the whole of what faith does. An augur adds a belief to your pantheon — a permanent bonus for every city you own — or performs a rite on a city, which is a blessing that starts at once and runs for a stated number of turns. A prophet founds and spreads a religion.',
+      'A religion is a faith of your own, with a name. Your prophet plants a holy site, and the religion is founded there, out of the gods your pantheon already keeps; the name is made from what those gods are about, and you can change it on the Religion screen. Only so many religions exist in a world — roughly two thirds as many as there are players — so founding one is a race, and a civilisation that waits may find there is none left to found.',
+      'A religion spreads to people, not to places. Every turn, holy sites, nearby cities that already follow, roads, trade routes and proclamations press on each city in reach; when enough has accumulated, one citizen of that city changes faith. A city follows the religion more than half its citizens do, and until one religion passes half the city follows nothing. A temple is the defence: it doubles the pull of the faith a city already keeps and halves everybody else\'s. Growth adds a citizen who follows nothing, which is why a big city is slow to convert.',
+      'What the founder gets is the point of founding. A religion holds beliefs of its own, drawn with a prophet\'s charge: a follower belief pays you for every city in the world that follows your faith, whoever owns it, and an enhancer belief bends the spread itself. On top of that, foreign cities that follow you pay you faith and gold every turn. So a faith that reaches into a rival\'s land is a faith that is being paid for by that rival.',
+      'A prophet carries a few charges and each one spends its whole turn. One plants a holy site — the anchor of the faith, and the only thing about a religion an enemy can take away, by capturing the hex or pillaging it. One draws a belief for your religion. One proclaims: a wide, strong pulse of conversion on the hex the prophet stands on, which converts and then fades to nothing, leaving no site behind. And one gives a pool of your religion\'s beliefs back so it can be drawn again.',
+      'Details: each augur and each prophet costs more faith than the last, and they are counted separately. A rite spends one of the augur\'s charges; adding a belief to your pantheon spends the whole augur. A prophet is used up when its last charge is spent. The pantheon is never redrafted — it is what the religion was founded out of. A captured city keeps its followers, exactly as it keeps its buildings. Your religion, its beliefs, what your followers pay you, and every city in the world that follows are all on the Religion screen; a city\'s own congregations are on its city screen, and hovering one shows what is pressing on it and from where.',
     ],
   ),
   written(

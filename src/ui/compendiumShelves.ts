@@ -85,7 +85,7 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
   ]),
   improvement: lead('improvement', 'About improvements', '⛏', [
     'An improvement is something built on a single hex to make that hex worth more — a farm, a mine, a pasture, a fishing boat. It is also how you gain the use of a resource: most resources pay nothing until the improvement they ask for stands on them.',
-    'Workers build almost all of them. A worker carries a number of work charges, spends one or more on each improvement, and is used up when they run out. The five special improvements at the end of this shelf can only be built by a great person.',
+    'Workers build almost all of them. A worker carries a number of work charges, spends one or more on each improvement, and is used up when they run out. A few at the end of this shelf are built by nobody else: five of them are a great person’s own work, one for each family, and the holy site is planted by a prophet.',
     'Each entry below gives what an improvement adds to a hex, the terrain it may be built on, the resources it opens, and the technology that unlocks it.',
   ]),
   resource: lead('resource', 'About resources', '◆', [
@@ -110,8 +110,9 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'Each entry below gives the government tier a Doctrine belongs to and exactly what it does. The words these cards use are explained on the Orders shelf.',
   ]),
   belief: lead('belief', 'About beliefs', '◈', [
-    'A belief is a permanent bonus added to your pantheon. You get one by spending an augur — a religious unit bought with faith — and the augur is used up entirely doing it.',
-    'A belief applies to every city you own, for the rest of the game, and nothing can take it away. Your pantheon holds only a limited number of them, so the early ones decide a great deal about what your civilisation is good at.',
+    'A belief is a permanent card your religion or your pantheon keeps. They are drawn from three separate pools, and the eyebrow on every card below says which pool it belongs to, because the three are drawn by different units and paid to different people.',
+    'A god is drawn by an augur, a religious unit bought with faith, and the augur is used up entirely doing it. A god belongs to your pantheon: it pays every city you own, for the rest of the game, and nothing can take it away. Your pantheon holds only a limited number, so the early ones decide a great deal about what your civilisation is good at.',
+    'The other two belong to the religion a prophet founds. A follower belief pays the empire that founded the faith, counted over every city in the world that follows it — including cities somebody else owns. An enhancer belief bends the spread itself: how far a holy site reaches, how hard it presses, how long a proclamation lasts. Both are drawn with a prophet’s charge, and a prophet can give a pool back and draw again.',
     'Each entry below gives exactly what a belief does. The words these cards use are explained on the Orders shelf.',
   ]),
   rite: lead('rite', 'About rites', '☩', [

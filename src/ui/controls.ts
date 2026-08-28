@@ -228,6 +228,7 @@ import {
   type GameState,
   type Unit,
   cityById,
+  foundedReligion,
   hasEndedTurn,
   isBarbarian,
   playerById,
@@ -236,13 +237,25 @@ import {
 } from '../sim/state';
 import {
   consecrateError,
+  enhanceReligionError,
   isAugur,
+  isProphet,
+  plantHolySiteError,
+  proclaimError,
+  redraftError,
   ritePreview,
   riteCityTarget,
   riteError,
   riteUnitTarget,
 } from '../sim/religion';
-import { type RiteId, RITE_IDS, riteAbility, riteDef } from '../sim/religionData';
+import {
+  type ReligionBeliefPool,
+  type RiteId,
+  RELIGION_BELIEF_POOLS,
+  RITE_IDS,
+  riteAbility,
+  riteDef,
+} from '../sim/religionData';
 import { type ResearchReport, hasAbility, researchSince, researchSnapshot } from '../sim/tech';
 import { type CardClause, describeCard, statecraftBlocker } from '../sim/statecraft';
 import { highestAge, techDef } from '../sim/techData';
@@ -270,7 +283,12 @@ import {
   type LensView,
   type MapView,
 } from './mapView';
-import { type NotificationEntry, createSightingWatcher } from './notifications';
+import {
+  type NotificationEntry,
+  createReligionWatcher,
+  createSightingWatcher,
+} from './notifications';
+import { POOL_WORD } from './religionScreen';
 import {
   NO_ROUTE_CAPACITY,
   type RouteReading,
@@ -494,6 +512,51 @@ export interface RiteOption {
   preview: string | null;
   /** The technology a greyed row is waiting on, or `null`. */
   requiredTechName: string | null;
+}
+
+/**
+ * The four things a prophet's charges do (`docs/religion-v2.md`).
+ *
+ * The command names, verbatim, because that is what the sheet's row *is*: a row
+ * a player can press is one of these four commands with the piece's id on it,
+ * and a fifth verb would fail to compile here before it could fail silently in
+ * the panel.
+ */
+export type ProphetVerb = 'plantHolySite' | 'enhanceReligion' | 'proclaim' | 'redraftBeliefs';
+
+/**
+ * One row of the prophet's sheet, with everything that row needs.
+ *
+ * `RiteOption`'s twin one agent over and shaped like it for that type's reason:
+ * the *rules* decide which rows are live and the panel only prints them, so an
+ * offered row is a command the reducer takes and a greyed one carries the
+ * reducer's own sentence.
+ *
+ * `pools` is the one thing no other verb on that sheet has. Redraft names a
+ * **pool** as well as a piece, and the two are refused separately — a religion
+ * holding a follower belief and no enhancer may give back the first and not the
+ * second — so the row carries one sub-row per pool, each with its own blocker
+ * out of `redraftError`. Absent on the other three verbs, which name nothing but
+ * the piece.
+ */
+export interface ProphetRow {
+  verb: ProphetVerb;
+  /** The row's name — "Plant Holy Site". */
+  name: string;
+  /** Why it cannot be taken, or `null`. The reducer's own sentence. */
+  blocked: string | null;
+  /** What it would do, in one line. Never `null` — a verb always has an answer. */
+  says: string;
+  /** Redraft's two sub-rows, or absent. */
+  pools?: ProphetPoolRow[];
+}
+
+/** One pool a redraft could give back, with its own refusal. */
+export interface ProphetPoolRow {
+  pool: ReligionBeliefPool;
+  /** "follower belief" / "enhancer belief" — `POOL_WORD`'s name. */
+  name: string;
+  blocked: string | null;
 }
 
 /**
@@ -1349,6 +1412,20 @@ export interface GameControls {
   performRite(id: RiteId): void;
 
   /**
+   * The four rows a selected prophet's sheet offers — empty for every other
+   * piece on the board. See `ProphetRow`.
+   *
+   * A list rather than four blockers, for `riteOptions`' reason: the panel
+   * prints rows and the rules decide which are live, so a fifth charge verb is
+   * a row here and nothing in the sheet.
+   */
+  prophetRows(): ProphetRow[];
+  /** Spends one of the prophet's charges. `pool` is Redraft's, ignored by the rest. */
+  prophetAct(verb: ProphetVerb, pool?: ReligionBeliefPool): void;
+  /** Renames this empire's religion. The Religion sheet's name field. */
+  renameReligion(name: string): void;
+
+  /**
    * What would happen if the selected unit attacked the tile under the pointer,
    * or `null` when that is not a question anybody is asking — nothing selected,
    * nothing hovered, or nothing hostile on the hovered tile.
@@ -1551,6 +1628,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * patrol re-enters its valley. See `notifications.ts`.
    */
   const sightings = createSightingWatcher();
+  /**
+   * The religion diff's memory: what each seat has already been told about every
+   * faith in the world, and what each of its own towns last believed.
+   *
+   * `sightings`' sibling and reset with it, for its reason exactly. It is a
+   * *watcher* rather than a report field because the simulation reports nothing
+   * here — see `createReligionWatcher`, which says why that is the right split.
+   */
+  const religionNews = createReligionWatcher();
 
   // --- the context card's message line -------------------------------------
 
@@ -1670,6 +1756,32 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function baselineSightings(): void {
     sightings.baseline(getGame().state, localPlayerId);
+    // The faiths of the world go quiet with the ground for the same reason: a
+    // player sitting down has not just discovered that a rival founded a
+    // religion forty turns ago, nor that their own capital has always followed
+    // it. See `createReligionWatcher`'s two structures.
+    religionNews.baseline(getGame().state, localPlayerId);
+  }
+
+  /**
+   * **A faith moved.** A religion founded anywhere, an enhancement drafted, a
+   * proclamation this seat can see, and any of its own towns that changed its
+   * banner.
+   *
+   * `pollSightings`' sibling, called from the same funnel and for the same
+   * reason: every one of these can happen without this seat issuing a verb — a
+   * rival's prophet founds, and a town of yours turns during a resolution — so
+   * the poll belongs to "a command was accepted" rather than to any command.
+   *
+   * It reads the *state*, not a report, and that is deliberate: unlike a blow or
+   * a cleared camp, all four are standing facts the board still carries when the
+   * command returns, so there is nothing here the simulation would have to hand
+   * out to keep (`ReligionNewsKind`'s docblock).
+   */
+  function reportReligion(): void {
+    for (const news of religionNews.poll(getGame().state, localPlayerId)) {
+      announce(news.text, news.cell ? { cell: news.cell } : {});
+    }
   }
 
   // --- the reducer seam ----------------------------------------------------
@@ -1704,6 +1816,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // move; the yields lens is told once per accepted command (`MapView`, optional).
       renderer.noteStateChanged?.();
       pollSightings();
+      reportReligion();
       reportRaids(result, caravans);
       reportWonders(result);
       reportGrants(result);
@@ -2528,6 +2641,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * if one ever does, because spending a piece is the more consequential
    * decision of the two.
    *
+   * **A manually raised `faith` lens beats both**, and it is the one exception
+   * to "a selected piece asks its own question". The other two modes are
+   * questions a *piece* asks and the automatic rules exist because picking one
+   * up **is** the asking; faith is a question the world asks and no piece does
+   * (`LensMode`), so nothing raises it and nothing may take it away — a player
+   * who went to the menu for it and then clicked a warrior to see where it
+   * stands has not stopped asking whose faith is winning. It is a rule about
+   * `manualLens` alone, so dropping it puts the automatic pair straight back.
+   *
    * The city rule scopes the glyphs *only while the player has them off*. With the
    * switch already on, the whole map is marked and the radius is part of it, so
    * narrowing to the radius would be the panel taking glyphs away — which is the
@@ -2557,7 +2679,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const settler = def !== null && def.foundsCity;
     const explorer = def !== null && (isCombatant(def) || isExplorer(def));
     const city = openCity();
-    const mode = settler ? 'settler' : explorer ? 'explorer' : manualLens;
+    const mode =
+      manualLens === 'faith'
+        ? 'faith'
+        : settler
+          ? 'settler'
+          : explorer
+            ? 'explorer'
+            : manualLens;
     return {
       mode,
       cells: null,
@@ -3379,6 +3508,127 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  // --- the prophet ---------------------------------------------------------
+
+  /**
+   * The four rows a prophet's sheet offers, each with the reducer's own refusal.
+   *
+   * `riteOptions`' shape one agent over, and the same contract: the seat's
+   * question is asked here (has this player ended their turn) and everything
+   * about the *act* is delegated whole to the sim's four gates, so a row a
+   * player can press is a command `commit` will have taken.
+   *
+   * **Plant Holy Site says it founds**, and it says so because the verb does: an
+   * empire with no religion founds one where the stones go up
+   * (`plantHolySiteAt`), which is also why all three founding refusals reach the
+   * player on this row rather than in a gate nothing asks. The sentence changes
+   * with the state and the row does not — two rows for one command would be the
+   * interface inventing a verb.
+   *
+   * **Redraft carries its pools.** It is the one prophet verb that names
+   * something besides the piece, and the two pools are refused separately, so
+   * each is a sub-row with its own `redraftError`.
+   */
+  function prophetRows(): ProphetRow[] {
+    const unit = selectedUnit();
+    if (!unit || !isProphet(unit)) return [];
+    const { state } = getGame();
+    const ended = !canOrder() ? `You have ended turn ${state.turn}` : null;
+    const mine = foundedReligion(state, localPlayerId);
+    const faith = mine?.name ?? 'your faith';
+    return [
+      {
+        verb: 'plantHolySite',
+        name: 'Plant Holy Site',
+        blocked: ended ?? plantHolySiteError(state, localPlayerId, unit.id),
+        says:
+          mine === undefined
+            ? 'Spend a charge: found your religion here, and raise its first holy site'
+            : `Spend a charge: raise a holy site of ${faith} on this hex`,
+      },
+      {
+        verb: 'enhanceReligion',
+        name: 'Enhance',
+        blocked: ended ?? enhanceReligionError(state, localPlayerId, unit.id),
+        says: `Spend a charge: draw an enhancer belief for ${faith}`,
+      },
+      {
+        verb: 'proclaim',
+        name: 'Proclaim',
+        blocked: ended ?? proclaimError(state, localPlayerId, unit.id),
+        says: `Spend a charge: preach ${faith} here — a wide pulse that converts and then fades`,
+      },
+      {
+        verb: 'redraftBeliefs',
+        name: 'Redraft',
+        // The row itself is refused by the *piece's* questions, which is what
+        // `redraftError` answers first for either pool; a pool that has nothing
+        // to give back is refused on its own sub-row rather than greying the
+        // whole verb.
+        blocked: ended ?? redraftError(state, localPlayerId, unit.id, 'follower'),
+        says: `Spend a charge: give one of ${faith}'s pools back and draw again`,
+        pools: RELIGION_BELIEF_POOLS.map((pool) => ({
+          pool,
+          name: POOL_WORD[pool].name,
+          blocked: ended ?? redraftError(state, localPlayerId, unit.id, pool),
+        })),
+      },
+    ];
+  }
+
+  /**
+   * Sends one of a prophet's four verbs, and lets go of a piece it emptied.
+   *
+   * `performRite`'s shape exactly, and for its two reasons: a charge is the
+   * prophet's whole turn and the last one takes the piece off the board, so the
+   * selection is asked of the state *after* the dispatch rather than predicted
+   * before it; and three of the four open a draft, so the offer card is raised
+   * through the one `onOfferReligion` seam the End Turn blocker also uses.
+   *
+   * The announcement is deliberately **not** here. Founding a religion, a town
+   * turning and a proclamation are all news the world's own watcher composes
+   * from the state (`reportReligion` in `commit`), because two of the three
+   * happen to seats that issued no verb at all.
+   */
+  function prophetAct(verb: ProphetVerb, pool: ReligionBeliefPool = 'follower'): void {
+    const unit = selectedUnit();
+    if (!unit) return;
+    const command: Command =
+      verb === 'redraftBeliefs'
+        ? { type: 'redraftBeliefs', playerId: localPlayerId, unitId: unit.id, pool }
+        : { type: verb, playerId: localPlayerId, unitId: unit.id };
+    const result = commit(command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    if (!unitById(getGame().state, unit.id)) {
+      selectedId = null;
+      setMoveMode(false);
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+    // Three of the four deal a hand; `hasReligionOffer` is what says so, and the
+    // card is the answer to it. Asked of the state rather than of the verb, so a
+    // pool that is full and drew nothing raises nothing.
+    if (playerById(getGame().state, localPlayerId)?.pantheon.pending !== undefined) {
+      onOfferReligion?.();
+    }
+  }
+
+  /**
+   * Renames this empire's religion. The Religion sheet's name field.
+   *
+   * The one command in the game whose whole effect is a string, and it is sent
+   * through `commit` like every other so that a client, a peer and an AI all
+   * change a name the same way.
+   */
+  function renameReligion(name: string): void {
+    const result = commit({ type: 'renameReligion', playerId: localPlayerId, name });
+    if (!result.ok) reject(result.error);
   }
 
   // --- the great person ----------------------------------------------------
@@ -4951,6 +5201,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     consecrate,
     riteOptions,
     performRite,
+    prophetRows,
+    prophetAct,
+    renameReligion,
     combatForecast,
     openCity,
     setOpenCity,
@@ -5000,6 +5253,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // the camps its borders watch — is the state of play rather than news, so
       // the watcher is emptied and immediately re-baselined for this seat.
       sightings.reset();
+      religionNews.reset();
       baselineSightings();
       // The board is masked by whoever is sitting at it, and this seat may not
       // be the one the last game left behind — the same first move
