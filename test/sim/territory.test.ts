@@ -467,7 +467,7 @@ describe('what a tile costs', () => {
     expect(tilePurchasePrice(state, 1, first.id, cellA)).toBe(opening);
 
     const lines = explainTilePurchase(state, 0, first.id, cellA);
-    expect(lines.some((line) => line.source.includes('Bought 3 before'))).toBe(true);
+    expect(lines.some((line) => line.source.includes('3 hexes bought before'))).toBe(true);
   });
 
   it('takes furs off the gold price too, on a line that names them', () => {

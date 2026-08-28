@@ -533,7 +533,7 @@ describe('the +2 against the wild', () => {
     expect(attacking.ok).toBe(true);
     if (!attacking.ok) return;
     expect(attacking.bonuses).toEqual([
-      { source: 'vs barbarians', side: 'attacker', amount: BARB.combatBonus },
+      { source: 'Against barbarians', side: 'attacker', amount: BARB.combatBonus },
     ]);
     expect(attacking.attackerStrength).toBe(
       unitDef('warrior').combatStrength + BARB.combatBonus,
@@ -545,7 +545,7 @@ describe('the +2 against the wild', () => {
     expect(raiding.ok).toBe(true);
     if (!raiding.ok) return;
     expect(raiding.bonuses).toEqual([
-      { source: 'vs barbarians', side: 'defender', amount: BARB.combatBonus },
+      { source: 'Against barbarians', side: 'defender', amount: BARB.combatBonus },
     ]);
     expect(raiding.defenderStrength).toBeGreaterThan(unitDef('warrior').combatStrength);
   });
@@ -568,7 +568,7 @@ describe('the +2 against the wild', () => {
     expect(view.ok).toBe(true);
     if (!view.ok) return;
     expect(view.bonuses).toEqual([
-      { source: 'vs barbarians', side: 'defender', amount: BARB.combatBonus },
+      { source: 'Against barbarians', side: 'defender', amount: BARB.combatBonus },
     ]);
   });
 

@@ -810,9 +810,9 @@ function planCombat(
   const wildBonus = RULES.barbarians.combatBonus;
   if (wildBonus !== 0) {
     if (!isBarbarian(state, attacker.ownerId) && isBarbarian(state, defenderOwnerId)) {
-      bonuses.push({ source: 'vs barbarians', side: 'attacker', amount: wildBonus });
+      bonuses.push({ source: 'Against barbarians', side: 'attacker', amount: wildBonus });
     } else if (isBarbarian(state, attacker.ownerId) && !isBarbarian(state, defenderOwnerId)) {
-      bonuses.push({ source: 'vs barbarians', side: 'defender', amount: wildBonus });
+      bonuses.push({ source: 'Against barbarians', side: 'defender', amount: wildBonus });
     }
   }
   /**
@@ -868,7 +868,7 @@ function planCombat(
     const fortification = improvementDef(tile.improvement).defense ?? 0;
     if (fortification !== 0) {
       bonuses.push({
-        source: improvementDef(tile.improvement).name.toLowerCase(),
+        source: improvementDef(tile.improvement).name,
         side: 'defender',
         amount: fortification,
       });
@@ -905,13 +905,13 @@ function planCombat(
   const attackerLines: CombatStrengthLine[] = [{ source: def.name, amount: attackerStat }];
   if (attackerBase !== attackerStat) {
     attackerLines.push({
-      source: `doctrine ${signedPercent(attackerPercent)}`,
+      source: `Cards ${signedPercent(attackerPercent)}`,
       amount: attackerBase - attackerStat,
     });
   }
   if (acrossRiver) {
     attackerLines.push({
-      source: `across a river ${signedPercent(-COMBAT.riverAttackPenalty * 100)}`,
+      source: `Across a river ${signedPercent(-COMBAT.riverAttackPenalty * 100)}`,
       amount: attackerBase * riverFactor - attackerBase,
     });
   }
@@ -966,7 +966,7 @@ function planCombat(
     defenderLines.push({ source: defenderDef.name, amount: defenderDef.combatStrength });
     if (defenderBase !== defenderDef.combatStrength) {
       defenderLines.push({
-        source: `doctrine ${signedPercent(defenderPercent)}`,
+        source: `Cards ${signedPercent(defenderPercent)}`,
         amount: defenderBase - defenderDef.combatStrength,
       });
     }

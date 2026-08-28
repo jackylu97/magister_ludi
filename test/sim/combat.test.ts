@@ -1375,7 +1375,7 @@ describe('the strength breakdown', () => {
     expect(foldCombatStrength(view.defenderLines)).toBeCloseTo(view.defenderStrength, 10);
 
     // The attacker's ford is a line of its own, and it takes points away.
-    const ford = view.attackerLines.find((line) => line.source.startsWith('across a river'));
+    const ford = view.attackerLines.find((line) => line.source.startsWith('Across a river'));
     expect(ford).toBeDefined();
     expect(ford!.amount).toBeLessThan(0);
     // The defender's two reasons are apart, because they are two decisions: the
@@ -1447,8 +1447,8 @@ describe('the strength breakdown', () => {
     const view = forecast(state, mine.id, 4, 3);
 
     expect(foldCombatStrength(view.attackerLines)).toBe(view.attackerStrength);
-    expect(view.attackerLines.map((line) => line.source)).toContain('vs barbarians');
-    expect(view.defenderLines.map((line) => line.source)).not.toContain('vs barbarians');
+    expect(view.attackerLines.map((line) => line.source)).toContain('Against barbarians');
+    expect(view.defenderLines.map((line) => line.source)).not.toContain('Against barbarians');
   });
 });
 

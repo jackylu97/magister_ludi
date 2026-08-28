@@ -1031,8 +1031,14 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // card set it in. It is *flavour* and it is here anyway, because it is the
     // only thing on this sheet that says who the piece was — and a player who
     // took Archimedes over Hypatia three turns ago has forgotten which is which.
-    if (person) {
-      container.append(element('p', 'unit-epigram', person.epigram));
+    // **Labelled**, for the Compendium's stated reason (copy pass, 2026-08-28):
+    // the Act and Work rows below it are two exact promises in the same column,
+    // and an unlabelled sentence above them reads as a third.
+    if (person && person.epigram.length > 0) {
+      const line = element('p', 'unit-epigram');
+      line.append(element('span', 'flavor-label', 'Flavour'));
+      line.append(document.createTextNode(person.epigram));
+      container.append(line);
     }
 
     // The standing states a player has to know before ordering anything.

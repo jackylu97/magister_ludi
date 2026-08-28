@@ -228,8 +228,8 @@ describe('the card table', () => {
     ]);
     expect(describeCard('warChief').map((clause) => clause.text)).toEqual([
       '+1 combat strength per 2 cities you hold (at most +3)',
-      'killing a unit grants +5 science per slotted Order',
-      'killing a unit grants +5 culture per slotted Order',
+      'killing a unit grants +5 science for each Order you have in a slot',
+      'killing a unit grants +5 culture for each Order you have in a slot',
     ]);
   });
 
@@ -1557,7 +1557,7 @@ describe('the master-list cut of 2026-08-28', () => {
     playerById(g.state, 0)!.statecraft.government = 'merchantLeague';
     const after = explainRouteYieldBetween(g.state, from, to);
     // Rule 5: the extra is a line of the list the totals are the fold of.
-    expect(after.some((line) => line.source.includes('charter'))).toBe(true);
+    expect(after.some((line) => line.source.includes('cards'))).toBe(true);
     const paid = foldRouteYield(after);
     expect(paid.food).toBe(before.food + Math.floor((before.food * 50) / 100));
     expect(paid.production).toBe(before.production + Math.floor((before.production * 50) / 100));
@@ -1853,7 +1853,7 @@ describe('the master-list cut of 2026-08-28', () => {
     // Still a card: a save that holds it slotted still replays, and it still
     // says what it does.
     expect(describeCard('theLooseRein').map((c) => c.text)).toEqual([
-      "your Orders' seals last 2 turns",
+      'a newly placed Order is locked for 2 turns instead of 5',
     ]);
     const g = game();
     slot(g.state, 0, 'theLooseRein');
@@ -1897,8 +1897,8 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(said('theSultanate')).toEqual([
       'all units: +1 movement',
       '-20% production toward units',
-      '+10% science in every conquered city',
-      '+10% culture in every conquered city',
+      '+10% science in every captured city',
+      '+10% culture in every captured city',
     ]);
     expect(said('theCuria')).toEqual([
       '+3 faith per Cathedral — not built yet',
@@ -1906,7 +1906,7 @@ describe('the master-list cut of 2026-08-28', () => {
     ]);
     expect(said('theCommonwealth')).toEqual([
       'great people can be purchased with gold — not built yet',
-      'great-people improvements gain +50% yields — not built yet',
+      'great-person improvements pay +50% more — not built yet',
     ]);
     expect(said('theEmpire')).toEqual([
       '+6 authority capacity',
@@ -1914,7 +1914,7 @@ describe('the master-list cut of 2026-08-28', () => {
       'capturing a city with a wonder heals all your units — not built yet',
     ]);
     expect(said('theMagisterium')).toEqual([
-      '+1 card in every draft of every kind',
+      '+1 card in every offer of every kind',
       '+3 renown per turn per wonder you hold',
       'great people can be purchased with faith — not built yet',
     ]);
@@ -1926,11 +1926,11 @@ describe('the master-list cut of 2026-08-28', () => {
     ]);
     expect(said('foundersRoad')).toEqual([
       'new cities are founded with a Monument (first 5 cities)',
-      'new cities are joined to your realm by road',
+      'new cities are joined to your nearest city by road',
     ]);
     expect(said('gildedCourt')).toEqual(['unlocks the Gilded Hall', '+3 authority capacity']);
     expect(said('burningWay')).toEqual([
-      'chopping costs no worker charge',
+      'clearing a forest or jungle costs no worker charge',
       'pillaging heals a further 25',
     ]);
     expect(said('scorchedEarth')).toEqual([
@@ -1943,8 +1943,8 @@ describe('the master-list cut of 2026-08-28', () => {
       '+2 combat strength against barbarians',
     ]);
     expect(said('campFollowers')).toEqual([
-      'clearing a camp grants +25 food',
-      'clearing a camp gifts a random military unit',
+      'clearing a barbarian camp grants +25 food',
+      'clearing a barbarian camp grants a random military unit',
     ]);
     expect(said('farRunners')).toEqual([
       'scout units: +1 movement',
@@ -1952,36 +1952,36 @@ describe('the master-list cut of 2026-08-28', () => {
       'civilian units: +2 movement while embarked',
     ]);
     expect(said('theLongWatch')).toEqual([
-      '+1 happiness per fortification level in the garrison',
+      '+1 happiness per fortification level among the units in the city',
       '+1 happiness per fortification in this city',
     ]);
     expect(said('theWidowsLevy')).toEqual([
       'losing a unit grants +10 production',
       'losing a unit grants +40 gold',
     ]);
-    expect(said('commonGranary')).toEqual(['+1 food on every tile carrying a luxury resource']);
+    expect(said('commonGranary')).toEqual(['+1 food on every hex carrying a luxury resource']);
     expect(said('saltTithes')).toEqual(['+2 gold per unique luxury']);
     expect(said('borderBallads')).toEqual([
-      '+2 culture per camp you have found',
-      'killing a unit of the wild grants +4 culture',
+      '+2 culture per barbarian camp you have found',
+      'killing a barbarian unit grants +4 culture',
     ]);
     expect(said('silkRoads')).toEqual(['+3 gold per trade route you run']);
     expect(said('festivalDays')).toEqual(['+4 happiness']);
     expect(said('ritesOfPassage')).toEqual(['completing a unit grants +5 faith']);
     expect(said('theLaureate')).toEqual([
-      '+2 science on every academy tile',
-      '+2 culture on every landmark tile',
-      '+2 production on every manufactory tile',
-      '+2 gold on every customs house tile',
-      '+2 production on every citadel tile',
-      'the first time this is slotted, a great person answers your call',
+      '+2 science on every hex with an Academy',
+      '+2 culture on every hex with a Landmark',
+      '+2 production on every hex with a Manufactory',
+      '+2 gold on every hex with a Customs House',
+      '+2 production on every hex with a Citadel',
+      'the first time this Order is placed in a slot, you are offered a great person',
     ]);
 
     // The beliefs the same pass touched, read by the same evaluator.
     expect(said('ladyOfTheHunt')).toEqual([
-      '+1 food, +1 gold on every camp tile',
-      'clearing a camp grants +10 faith',
+      '+1 food, +1 gold on every hex with a Camp',
+      'clearing a barbarian camp grants +10 faith',
     ]);
-    expect(said('lordOfTheSea')).toEqual(['+1 production, +1 gold on every fishing boat tile']);
+    expect(said('lordOfTheSea')).toEqual(['+1 production, +1 gold on every hex with a Fishing Boat']);
   });
 });

@@ -234,12 +234,12 @@ export function consecrateError(
   // charges — it is about the turn, and it is the same sentence the rite gives.
   if (augurHasActed(unit)) return `The augur has acted this turn`;
   if (player.pantheon.pending !== undefined) {
-    return `${player.name} has a god still awaiting judgment`;
+    return `${player.name} still has a belief waiting to be chosen`;
   }
   if (!hasOpenBeliefSlot(state, playerId)) {
-    return 'Your pantheon has no room for another god';
+    return 'Your pantheon has no room for another belief';
   }
-  if (beliefPool(player).length === 0) return 'There are no gods left to consecrate';
+  if (beliefPool(player).length === 0) return 'There are no beliefs left to choose';
   return null;
 }
 
@@ -293,7 +293,7 @@ export function beliefChoiceError(
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
   const offer = player.pantheon.pending;
-  if (!offer) return `${player.name} has no god awaiting consecration`;
+  if (!offer) return `${player.name} has no belief waiting to be chosen`;
   if (!Number.isInteger(optionIndex)) {
     return `chooseBelief needs an integer optionIndex, got ${String(optionIndex)}`;
   }
@@ -814,12 +814,12 @@ export function ritePreview(
   if (grant.faith !== undefined) parts.push(`+${grant.faith} faith`);
   if (grant.culture !== undefined) parts.push(`+${grant.culture} culture`);
   if (grant.borderCulture !== undefined && city) {
-    parts.push(`+${grant.borderCulture} culture to ${city.name}'s bounds`);
+    parts.push(`+${grant.borderCulture} culture toward ${city.name}'s borders`);
   }
   if (grant.production !== undefined && city) parts.push(`+${grant.production} production`);
   if (grant.food !== undefined && city) parts.push(`+${grant.food} food`);
-  if (grant.healFully === true && blessed) parts.push(`heals the ${unitDef(blessed.type).name} whole`);
-  if (def.duration !== undefined) parts.push(`${def.duration} turns of blessing`);
+  if (grant.healFully === true && blessed) parts.push(`heals the ${unitDef(blessed.type).name} fully`);
+  if (def.duration !== undefined) parts.push(`lasts ${def.duration} turns`);
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
@@ -925,7 +925,7 @@ export function openPeriodicOffers(state: GameState): void {
  * answer a card already on screen.
  */
 export function religionBlocker(player: Player): string | null {
-  return player.pantheon.pending !== undefined ? 'a god is waiting to be named' : null;
+  return player.pantheon.pending !== undefined ? 'a belief is waiting to be chosen' : null;
 }
 
 /** Is anything religious waiting to be answered? The dock button's badge. */

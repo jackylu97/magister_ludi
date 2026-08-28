@@ -231,7 +231,12 @@ describe("the unit sheet's two verbs", () => {
   it('shows the person rather than the piece type in the header', () => {
     const panel = sourceOf('unitPanel.ts');
     expect(panel).toContain('person ? person.name : def.name');
-    expect(panel).toContain("element('p', 'unit-epigram', person.epigram)");
+    // The epigram is *labelled* flavour since the copy pass (2026-08-28), for
+    // the Compendium's reason: the Act and Work rows below it are two exact
+    // promises, and an unlabelled sentence above them reads as a third.
+    expect(panel).toContain("element('p', 'unit-epigram')");
+    expect(panel).toContain("element('span', 'flavor-label', 'Flavour')");
+    expect(panel).toContain('document.createTextNode(person.epigram)');
   });
 });
 

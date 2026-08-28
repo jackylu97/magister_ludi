@@ -508,7 +508,7 @@ describe('the work', () => {
     const plan = previewCombat(g.state, attacker.id, { col: tile.col, row: tile.row });
     expect(plan.ok === false ? plan.error : 'ok').toBe('ok');
     if (plan.ok) {
-      expect(plan.defenderLines.some((line) => line.source === 'citadel')).toBe(true);
+      expect(plan.defenderLines.some((line) => line.source === 'Citadel')).toBe(true);
     }
     void defender;
   });
@@ -853,7 +853,7 @@ describe('the legacies this pass built', () => {
       '+2 combat strength on the coast',
     ]);
     expect(printed('janZizka')).toEqual(['+5 combat strength while fortified']);
-    expect(printed('elCid')).toEqual(['+3 combat strength in a city you took by force']);
+    expect(printed('elCid')).toEqual(['+3 combat strength in a city you captured']);
     expect(printed('assurIdi')).toEqual(['+2 gold in every city but your capital']);
     expect(printed('amenhotepSonOfHapu')).toEqual([
       '+20% production toward wonders, in your capital',
@@ -862,8 +862,7 @@ describe('the legacies this pass built', () => {
     // out loud rather than quietly dropped.
     expect(printed('archimedes')).toEqual([
       '+6 combat strength for siege units against cities',
-      'The legacy is *lost* the turn an enemy enters his city — nothing revokes a legacy.'
-        + ' — not built yet',
+      'this legacy is lost the turn an enemy enters his city — not built yet',
     ]);
     expect(printed('tychoBrahe')).toEqual([
       '+3 science in every city beside a mountain',

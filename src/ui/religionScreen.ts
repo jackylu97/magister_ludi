@@ -151,11 +151,11 @@ export function riteGrantWords(id: RiteId): string {
   if (grant.faith !== undefined) parts.push(`+${grant.faith} faith`);
   if (grant.culture !== undefined) parts.push(`+${grant.culture} culture`);
   if (grant.borderCulture !== undefined) {
-    parts.push(`+${grant.borderCulture} culture toward the city's bounds`);
+    parts.push(`+${grant.borderCulture} culture toward the city's borders`);
   }
   if (grant.production !== undefined) parts.push(`+${grant.production} production`);
   if (grant.food !== undefined) parts.push(`+${grant.food} food`);
-  if (grant.healFully === true) parts.push('heals the unit whole');
+  if (grant.healFully === true) parts.push('heals the unit fully');
   return parts.join(', ');
 }
 
@@ -276,7 +276,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       element(
         'p',
         'sc-flavor',
-        'Faith buys augurs, and augurs buy gods. Nothing else spends it.',
+        'Faith buys augurs. An augur can name a belief or perform a rite. Nothing else spends faith.',
       ),
     );
     return block;
@@ -421,7 +421,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     const price =
       aimedCityId === null ? null : explainPurchaseCost(state, seat, aimedCityId, item, 'faith');
     if (!price || cities.length === 0) {
-      block.append(element('p', 'sc-none', 'You have no city an augur could be called to.'));
+      block.append(element('p', 'sc-none', 'You have no city an augur could be bought in.'));
       return block;
     }
     const gate = gatingTech('unit', type);
@@ -429,7 +429,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       element(
         'p',
         'sc-flavor',
-        `Three rites, or one god. ${
+        `An augur carries three rites, or names one belief. ${
           gate === null ? '' : `Called by those who have ${techDef(gate).name}.`
         }`,
       ),
@@ -518,7 +518,12 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
           [grantWords, said, lasting].filter((part) => part.length > 0).join(' · '),
         ),
       );
-      row.append(element('p', 'sc-flavor', def.flavor));
+      // Labelled, for the Compendium's reason (copy pass, 2026-08-28): the
+      // rite's own payoff line sits directly above it in the same column.
+      const flavor = element('p', 'sc-flavor');
+      flavor.append(element('span', 'flavor-label', 'Flavour'));
+      flavor.append(document.createTextNode(def.flavor));
+      row.append(flavor);
       list.append(row);
     }
     block.append(list);
@@ -528,7 +533,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       element(
         'p',
         'sc-flavor',
-        'An augur carries three rites. Consecrating a god spends the whole augur, however many are left.',
+        'An augur carries three rites. Naming a belief spends the whole augur, however many rites are left.',
       ),
     );
     return block;

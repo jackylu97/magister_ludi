@@ -379,14 +379,14 @@ describe('the roster is priced in the money of its own age', () => {
     expect(settler).toEqual([{ source: 'Settler', amount: unitDef('settler').cost }]);
     state.players[0]!.settlersBuilt = 3;
     const escalated = explainUnitCost(state, 0, 'settler');
-    expect(escalated.map((line) => line.source)).toEqual(['Settler', '3 already founded']);
+    expect(escalated.map((line) => line.source)).toEqual(['Settler', '3 already built']);
     expect(foldUnitCost(escalated)).toBe(
       unitDef('settler').cost + 3 * unitDef('settler').costIncrement!,
     );
     // And a later-age unit says which band it is in.
     expect(explainUnitCost(state, 0, 'knight').map((line) => line.source)).toEqual([
       'Knight',
-      'Æra III roster ×2',
+      'Age band · Æra III ×2',
     ]);
   });
 

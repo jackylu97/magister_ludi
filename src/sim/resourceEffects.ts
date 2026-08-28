@@ -757,8 +757,8 @@ function describeOne(effect: ResourceEffect): string | null {
 /** How each rule reads in a sentence. Beside the union it names. */
 const RULE_WORDS: Record<ResourceRule, string> = {
   happinessDemand: 'happiness demanded per citizen',
-  borderCost: 'culture for the next border tile',
-  growthCarryover: 'of the basket kept when a city grows',
+  borderCost: 'culture for the next border hex',
+  growthCarryover: 'of the stored food kept when a city grows',
 };
 
 function scopeWords(scope: ResourceCityScope | undefined): string {

@@ -503,7 +503,7 @@
         "onComplete": 10,
         "perTurn": 2
       },
-      "note": "the ratified clause is a route in every coastal city; the rider that carries it is empire-wide until a scope reaches this hook"
+      "note": "The extra trade route is empire-wide. The design calls for one per coastal city."
     },
     "templeOfArtemis": {
       "name": "The Temple of Artemis",
@@ -722,7 +722,7 @@
         }
       ],
       "deferred": [
-        "units built in this city start with +1 combat strength — a permanent grant to one piece is a promotions system, and this game has none"
+        "units built in this city start with +1 combat strength"
       ],
       "renown": {
         "family": "general",
@@ -848,7 +848,7 @@
       ],
       "effects": [],
       "deferred": [
-        "+15% combat strength attacking cities — a combat *percentage* under a condition: `combatLine` is a flat strength line and `unitStat`'s `combatPercent` takes no condition"
+        "+15% combat strength when attacking cities"
       ],
       "renown": {
         "family": "general",
@@ -911,7 +911,7 @@
           }
         }
       ],
-      "note": "the ratified text grants a prophet; an augur is called until the prophet exists",
+      "note": "The design calls for a prophet. Until prophets exist, an augur is granted instead.",
       "renown": {
         "family": "artist",
         "onComplete": 10,
@@ -1009,7 +1009,7 @@
         }
       ],
       "deferred": [
-        "cathedrals +2 culture — there is no cathedral in the building table"
+        "+2 culture in every city with a Cathedral"
       ],
       "renown": {
         "family": "artist",
@@ -1064,7 +1064,7 @@
       "authorityCapacity": 5,
       "effects": [],
       "deferred": [
-        "one more Order office — a government's slot spread is rebuilt on every adoption, so *which kind* of slot a wonder opens is a design decision rather than a number added to one"
+        "one more Order slot"
       ],
       "renown": {
         "family": "merchant",
@@ -1098,7 +1098,7 @@
         }
       ],
       "deferred": [
-        "units built here start with the garrison bonus — a permanent grant to one piece is a promotions system, and this game has none"
+        "units built here start with the bonus for standing in one of your cities"
       ],
       "renown": {
         "family": "general",
@@ -1189,7 +1189,7 @@
       "pays": {
         "gold": 5
       },
-      "note": "The temple counts the year's take and the treasury keeps a fifth of it."
+      "note": "A way to turn spare production into gold when a city has little left worth building."
     },
     "scholarship": {
       "name": "Scholarship",
@@ -1197,7 +1197,7 @@
       "pays": {
         "science": 5
       },
-      "note": "Hands that could have raised a wall copy a book instead."
+      "note": "A way to turn spare production into science when a city has little left worth building."
     }
   }
 }

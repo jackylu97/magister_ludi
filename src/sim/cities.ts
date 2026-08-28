@@ -2634,7 +2634,7 @@ export function explainUnitCost(
       ? 0
       : (player?.settlersBuilt ?? 0);
     if (built > 0) {
-      lines.push({ source: `${built} already founded`, amount: increment * built });
+      lines.push({ source: `${built} already built`, amount: increment * built });
       running += increment * built;
     }
   }
@@ -2642,7 +2642,7 @@ export function explainUnitCost(
   const { age, factor } = unitCostFactor(type);
   if (factor !== 1) {
     const scaled = Math.floor(running * factor);
-    lines.push({ source: `Æra ${'I'.repeat(age)} roster ×${factor}`, amount: scaled - running });
+    lines.push({ source: `Age band · Æra ${'I'.repeat(age)} ×${factor}`, amount: scaled - running });
     running = scaled;
   }
 
@@ -2651,7 +2651,7 @@ export function explainUnitCost(
     if (percent !== 0) {
       // Floored at 1: a free settler would be an empire that settles every turn.
       const ruled = Math.max(1, Math.floor((running * (100 + percent)) / 100));
-      lines.push({ source: `doctrine ${percent > 0 ? '+' : ''}${percent}%`, amount: ruled - running });
+      lines.push({ source: `Cards ${percent > 0 ? '+' : ''}${percent}%`, amount: ruled - running });
       running = ruled;
     }
   }
@@ -4202,7 +4202,7 @@ export function explainTilePurchase(
   const prior = player?.tilesPurchased ?? 0;
   if (prior > 0 && rules.perPriorPurchase !== 0) {
     lines.push({
-      source: `Bought ${prior} before`,
+      source: `${prior} hexes bought before`,
       amount: rules.perPriorPurchase * prior,
     });
   }

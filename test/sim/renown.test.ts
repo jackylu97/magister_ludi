@@ -257,7 +257,7 @@ describe('settleRenownWindfall', () => {
     const player = g.state.players[0]!;
     expect(greatPersonBlocker(player)).toBeNull();
     settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.first }]);
-    expect(greatPersonBlocker(player)).toBe('a great person is waiting to be called');
+    expect(greatPersonBlocker(player)).toBe('a great person is waiting to be chosen');
   });
 });
 

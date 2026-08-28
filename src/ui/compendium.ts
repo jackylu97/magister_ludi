@@ -970,7 +970,11 @@ function greatPersonEntry(id: GreatPersonId): CompendiumEntry {
     });
   }
   clauses.push(...cardClauses(id));
-  clauses.push({ text: def.kernel, note: true });
+  // The kernel is **biography, not a rule**, and a note clause in the rules
+  // column reads as a footnote to one (copy pass, 2026-08-28). The two words in
+  // front are the whole of the fix — the same argument as the flavour label,
+  // for a line that is not quite flavour either.
+  clauses.push({ text: `Who they were: ${def.kernel}`, note: true });
   return {
     id: compendiumId('greatPerson', id),
     section: 'greatPerson',

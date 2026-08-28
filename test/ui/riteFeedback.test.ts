@@ -77,13 +77,13 @@ describe('riteSentence', () => {
     // than reading `city.name`: a town is named here the way it is named
     // everywhere else in the interface.
     expect(riteSentence(state, augur, 'omenReading')).toBe(
-      '✶ Omen Reading at Uruk ✶ · +15 science · 20 turns of blessing',
+      '✶ Omen Reading at Uruk ✶ · +15 science · lasts 20 turns',
     );
   });
 
   it('says how long the blessing runs, because that is half of what was spent', () => {
     const { state, augur } = world();
-    expect(riteSentence(state, augur, 'riteOfPlenty')).toContain('20 turns of blessing');
+    expect(riteSentence(state, augur, 'riteOfPlenty')).toContain('lasts 20 turns');
   });
 
   it('names the town through the one city-name formatter', () => {
@@ -97,7 +97,7 @@ describe('riteSentence', () => {
     // announcement are one sentence produced once.
     const { state, augur } = world();
     const line = riteSentence(state, augur, 'consecrationOfTheBounds');
-    expect(line).toContain("+15 culture to Uruk's bounds");
+    expect(line).toContain("+15 culture toward Uruk's borders");
   });
 
   it('names the piece instead when the rite is aimed at one', () => {
@@ -105,7 +105,7 @@ describe('riteSentence', () => {
     createUnit(state, 0, 'warrior', 5, 5);
     const line = riteSentence(state, augur, 'blessingOfArms');
     expect(line).toContain('over the warrior');
-    expect(line).toContain('heals the Warrior whole');
+    expect(line).toContain('heals the Warrior fully');
   });
 
   it('names no place when there is no town to aim at', () => {
@@ -115,7 +115,7 @@ describe('riteSentence', () => {
     const { state, augur } = world();
     state.cities = [];
     expect(riteSentence(state, augur, 'omenReading')).toBe(
-      '✶ Omen Reading · +15 science · 20 turns of blessing',
+      '✶ Omen Reading · +15 science · lasts 20 turns',
     );
   });
 

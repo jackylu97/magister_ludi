@@ -9,7 +9,7 @@
       "name": "Goddess of the Harvest",
       "axis": "hearth",
       "flavor": "She counts the sheaves before the reapers do.",
-      "text": "+1 food on every bonus resource that feeds you.",
+      "text": "+1 food on every hex carrying a bonus resource that pays food.",
       "effects": [
         {
           "kind": "tileYield",
@@ -50,7 +50,7 @@
       "name": "Star Readers",
       "axis": "sky",
       "flavor": "From the high rock the year is a wheel you can see the spokes of.",
-      "text": "+3 science in every city within sight of a mountain.",
+      "text": "+3 science in every city beside a mountain.",
       "effects": [
         {
           "kind": "cityYields",
@@ -65,7 +65,7 @@
       "name": "Keeper of the Calendar",
       "axis": "sky",
       "flavor": "Nothing is lost that was written down on the right day.",
-      "text": "Every 20 turns, the almanac yields a find. Discoveries pay in the money of your era.",
+      "text": "Every 20 turns, you are offered a find from a ruin. A ruin pays once for each age you have reached.",
       "effects": [
         {
           "kind": "periodicOffer",
@@ -100,7 +100,7 @@
       "name": "Ancestor Worship",
       "axis": "stone",
       "flavor": "The dead outnumber us, and they vote.",
-      "text": "+1 culture in every city of 4 or more. +5% culture in every city of 10 or more.",
+      "text": "+1 culture in every city of 4 or more population. +5% culture in every city of 10 or more.",
       "effects": [
         {
           "kind": "cityYields",
@@ -125,7 +125,7 @@
       "name": "Lady of the Hunt",
       "axis": "wild",
       "flavor": "She takes the first kill and leaves the rest, which is why there is a rest.",
-      "text": "+1 food and +1 gold on every camp. Clearing a barbarian camp pays +10 faith.",
+      "text": "+1 food and +1 gold on every hex with a Camp improvement. Clearing a barbarian camp pays +10 faith.",
       "effects": [
         {
           "kind": "tileYield",
@@ -150,7 +150,7 @@
       "name": "Spirits of the Wood",
       "axis": "wild",
       "flavor": "Ask before the axe; the asking is the whole of the rite.",
-      "text": "Felling a wood pays +15 faith. +1 culture on every forest.",
+      "text": "Clearing a forest or jungle pays +15 faith. +1 culture on every forest hex.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -174,7 +174,7 @@
       "name": "River Mother",
       "axis": "water",
       "flavor": "She is not kind. She is regular, which is better.",
-      "text": "+2 food in every city on fresh water. Their shrines supply +1 happiness.",
+      "text": "+2 food in every city on fresh water. Those cities' shrines supply +1 happiness.",
       "effects": [
         {
           "kind": "cityYields",
@@ -206,7 +206,7 @@
       "name": "Lord of the Sea",
       "axis": "water",
       "flavor": "He keeps the count of every net, and forgives none of it.",
-      "text": "+1 production and +1 gold on every fishing boat.",
+      "text": "+1 production and +1 gold on every hex with a Fishing Boat.",
       "effects": [
         {
           "kind": "tileYield",
@@ -223,7 +223,7 @@
       "name": "God of the Forge",
       "axis": "war",
       "flavor": "He was lamed by his own work and never once stopped.",
-      "text": "Barracks supply +1 production. All your units fight at +1.",
+      "text": "Barracks supply +1 production. All your units gain +1 combat strength.",
       "effects": [
         {
           "kind": "cityYields",
@@ -247,7 +247,7 @@
       "name": "Rites of Blood",
       "axis": "war",
       "flavor": "The altar is old. The queue in front of it is older.",
-      "text": "Killing pays +15 faith, in the money of your era.",
+      "text": "Killing a unit pays +15 faith, once for each age you have reached.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -264,7 +264,7 @@
       "name": "Oracle of the Crossroads",
       "axis": "road",
       "flavor": "Every road is a question. She charges for the answer.",
-      "text": "+3 faith for every discovery claimed. Scouts see one hex further.",
+      "text": "+3 faith for each ruin you claim. Scouts see one hex further.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -316,7 +316,7 @@
       "name": "Winter Mother",
       "axis": "frost",
       "flavor": "She does not sleep through it. She is it.",
-      "text": "+1 food on every tundra hex. +1 faith where the tundra is wooded.",
+      "text": "+1 food on every tundra hex. +1 faith on every tundra hex that is wooded.",
       "effects": [
         {
           "kind": "tileYield",
@@ -349,7 +349,7 @@
       "name": "Lord of the Hoard",
       "axis": "stone",
       "flavor": "He counts it nightly. He has never spent any of it.",
-      "text": "+1 culture and +1 faith on every mine standing on a luxury.",
+      "text": "+1 culture and +1 faith on every hex with a Mine carrying a luxury resource.",
       "effects": [
         {
           "kind": "tileYield",
@@ -375,7 +375,7 @@
       "name": "Court Augurs",
       "axis": "none",
       "flavor": "Keep one at home. The omens travel badly.",
-      "text": "+5% science and +5% culture in each city housing an augur with a rite left in it.",
+      "text": "+5% science and +5% culture for each augur stationed in a city with a rite left.",
       "effects": [
         {
           "kind": "countScaled",

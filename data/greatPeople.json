@@ -125,7 +125,7 @@
         }
       ],
       "deferred": [
-        "Units cannot heal outside your borders — `unitStat.where` knows `ownTerritory` and `embarked` but not its negation, and \"cannot heal\" is a prohibition rather than a negative number."
+        "your units cannot heal outside your borders"
       ]
     },
     "sinLeqiUnninni": {
@@ -146,7 +146,7 @@
         }
       ],
       "deferred": [
-        "The Hall of Deeds' half — no such building exists yet."
+        "+2 culture in every city with a Hall of Deeds"
       ]
     },
     "ilimilku": {
@@ -196,7 +196,7 @@
         }
       ],
       "deferred": [
-        "−2 happiness while any wonder is in a queue — no `EmpireCondition` reads a queue."
+        "−2 happiness while any city is building a wonder"
       ]
     },
     "amenhotepSonOfHapu": {
@@ -272,7 +272,7 @@
         }
       ],
       "deferred": [
-        "Every luxury you hold counts one fewer for happiness — `effectAmplifier` scales a figure, it does not change a count."
+        "every luxury you hold counts one fewer toward happiness"
       ]
     },
     "kushim": {
@@ -400,7 +400,7 @@
       "kernel": "The judge who led at Kishon.",
       "legacy": [],
       "deferred": [
-        "+25% combat within two hexes of your own city — `CombatCondition` has no distance test."
+        "+25% combat strength within two hexes of one of your cities"
       ]
     },
     "archimedes": {
@@ -424,7 +424,7 @@
         }
       ],
       "deferred": [
-        "The legacy is *lost* the turn an enemy enters his city — nothing revokes a legacy."
+        "this legacy is lost the turn an enemy enters his city"
       ]
     },
     "hypatia": {
@@ -443,7 +443,7 @@
         }
       ],
       "deferred": [
-        "Lost the first turn happiness goes negative — nothing revokes a legacy."
+        "this legacy is lost the first turn your happiness goes negative"
       ]
     },
     "zhangHeng": {
@@ -615,7 +615,7 @@
         }
       ],
       "deferred": [
-        "Wonders that supply science gain +5⚙ — no shape reads another row's yields."
+        "+5 production in every city holding a wonder that supplies science"
       ]
     },
     "vitruvius": {
@@ -693,7 +693,7 @@
       "kernel": "The Sogdian Ancient Letters, found sealed at Dunhuang.",
       "legacy": [],
       "deferred": [
-        "+2🪙 per connected city and +10%🪙 from connections — there are no city connections yet."
+        "+2 gold for each city connected to your capital, and +10% gold from those connections"
       ]
     },
     "hippalus": {
@@ -736,7 +736,7 @@
         }
       ],
       "deferred": [
-        "Every purchase −1 happiness for 10 turns — nothing stamps a timed effect on an empire."
+        "−1 happiness for 10 turns after every purchase"
       ]
     },
     "pytheas": {
@@ -835,7 +835,7 @@
         }
       ],
       "deferred": [
-        "… for the age she was recruited in — a legacy carries no age."
+        "… but only during the age she was recruited in"
       ]
     },
     "spartacus": {
@@ -847,7 +847,7 @@
       "kernel": "Vesuvius.",
       "legacy": [],
       "deferred": [
-        "+3 combat attacking at a strength disadvantage — `CombatCondition` compares no strengths."
+        "+3 combat strength when attacking a stronger unit"
       ]
     },
     "alKhwarizmi": {
@@ -1146,7 +1146,7 @@
       "kernel": "The Travels.",
       "legacy": [],
       "deferred": [
-        "+3🪙 per trade route to another empire — there are no trade routes yet."
+        "+3 gold for each trade route to another empire"
       ]
     },
     "francescoDatini": {
@@ -1426,8 +1426,8 @@
         }
       ],
       "deferred": [
-        "Engineer boons doubled — no shape amplifies a great person's act.",
-        "Projects pay half — a project's payout is deliberately unmodifiable (Entry XXVI)."
+        "a great engineer's act pays twice over",
+        "projects pay half as much"
       ]
     },
     "taqiAlDin": {
@@ -1482,7 +1482,7 @@
         }
       ],
       "deferred": [
-        "Temples and cathedrals −30%⚙ — `productionBonus` names a category, never a building."
+        "temples and cathedrals cost −30% production"
       ]
     },
     "vaucanson": {
@@ -1656,7 +1656,7 @@
       "kernel": "Myeongnyang.",
       "legacy": [],
       "deferred": [
-        "Naval units +5 combat — there are no naval units yet."
+        "naval units +5 combat strength"
       ]
     },
     "lautaro": {

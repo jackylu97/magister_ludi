@@ -244,7 +244,7 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // and still be worth saying (see its docblock), and a player whose bonus
   // jumped five points is entitled to find the reason in this list.
   for (const line of resourceTierBoost(state, playerId).lines) {
-    list.push({ source: `${line.source} · +${line.amount}% when content`, part: 'gain', value: 0 });
+    list.push({ source: `${line.source} · +${line.amount} points to the positive-happiness bonus`, part: 'gain', value: 0 });
   }
   // The empire's law, in the same two shapes the luxuries use: a card that pays
   // happiness is a line, and a card that makes contentment *worth more* is a
@@ -254,7 +254,7 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
     list.push({ source: line.source, part: 'gain', value: line.amount });
   }
   for (const line of cardTierBoost(state, playerId).lines) {
-    list.push({ source: `${line.source} · +${line.amount}% when content`, part: 'gain', value: 0 });
+    list.push({ source: `${line.source} · +${line.amount} points to the positive-happiness bonus`, part: 'gain', value: 0 });
   }
   // And the contentment the empire has *built*. Its own line for the reason
   // every other supply here has one — a player about to lose a town is entitled
@@ -286,7 +286,7 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
       list.push({ source: `${city.name} crowding`, part: 'cost', value: -crowding });
     }
     if (perCity > 0) {
-      list.push({ source: `${city.name} · governed`, part: 'cost', value: -perCity });
+      list.push({ source: `${city.name} · cost of governing`, part: 'cost', value: -perCity });
     }
   }
 

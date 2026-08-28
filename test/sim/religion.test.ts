@@ -378,7 +378,7 @@ describe('consecrate', () => {
     const g = game();
     const augur = augurAt(g.state, 0, 5, 5);
     expect(consecrateError(g.state, 0, augur.id)).toBe(
-      'Your pantheon has no room for another god',
+      'Your pantheon has no room for another belief',
     );
     learn(g.state, 0, 'divination');
     expect(consecrateError(g.state, 0, augur.id)).toBeNull();
@@ -420,7 +420,7 @@ describe('consecrate', () => {
     const offer = player.pantheon.pending!;
     expect(offer.options).toHaveLength(RULES.offers.belief);
     expect(new Set(offer.options).size).toBe(offer.options.length);
-    expect(religionBlocker(player)).toMatch(/god/);
+    expect(religionBlocker(player)).toMatch(/belief/);
 
     expect(dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 1 } as Command).ok).toBe(
       true,
@@ -459,7 +459,7 @@ describe('consecrate', () => {
     const first = augurAt(g.state, 0, 5, 5);
     dispatch(g, { type: 'consecrate', playerId: 0, unitId: first.id } as Command);
     const second = augurAt(g.state, 0, 5, 5);
-    expect(consecrateError(g.state, 0, second.id)).toMatch(/awaiting judgment/);
+    expect(consecrateError(g.state, 0, second.id)).toMatch(/waiting to be chosen/);
     const before = snapshotState(g.state);
     expect(applyCommand(g.state, {
       type: 'consecrate',

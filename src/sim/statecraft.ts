@@ -1160,9 +1160,9 @@ function scopeNote(scope?: CityScope): string | null {
     case 'mountainAdjacent':
       return 'mountain hold';
     case 'frontier':
-      return 'frontier city';
+      return 'near a rival';
     case 'captured':
-      return 'conquered city';
+      return 'captured city';
     case 'capital':
       return 'capital';
     case 'notCapital':
@@ -3178,7 +3178,9 @@ export function describeCard(id: CardId, level = 1): CardClause[] {
   if (isOrderId(id)) {
     for (const grant of orderDef(id).onSlot ?? []) {
       if (grant.grant === 'greatPerson') {
-        clauses.push({ text: 'the first time this is slotted, a great person answers your call' });
+        clauses.push({
+          text: 'the first time this Order is placed in a slot, you are offered a great person',
+        });
       }
     }
   }
@@ -3251,7 +3253,9 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       return;
     case 'happinessTierBoost':
       out.push({
-        text: `${signed(scaleByLevel(effect.points, level))} percentage points when content`,
+        text:
+          `${signed(scaleByLevel(effect.points, level))} percentage points ` +
+          'to the bonus your positive happiness pays',
       });
       return;
     case 'combatLine': {
@@ -3307,26 +3311,21 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       return;
     }
     case 'windfallRider': {
-      // The occasion, narrowed where the row narrows it — "killing a barbarian"
-      // rather than "killing a unit". Printed here rather than as a table entry
-      // for `COMBAT_WORDS`' reason: one shape serves every occasion and a second
-      // entry per occasion would be fourteen more rows to keep in step.
-      const occasion =
-        effect.vsBarbarians === true
-          ? `${OCCASION_WORDS[effect.occasion]} of the wild`
-          : OCCASION_WORDS[effect.occasion];
+      // The occasion, narrowed where the row narrows it — "killing a barbarian
+      // unit" rather than "killing a unit". See `occasionWords`.
+      const occasion = occasionWords(effect.occasion, effect.vsBarbarians === true);
       // The **grant first**, then the riders on it. Rites of Blood pays fifteen
       // faith and the age multiplies it; leading with the multiplier said the
       // second half of a sentence whose first half had not been printed yet.
       const grant = effect.grant;
-      // The slotted-Order count rides as a **suffix on the figure it
-      // multiplies**, unlike the era, and the difference is what the two say:
-      // "in the money of your era" is a whole sentence about the payout, while
-      // "per slotted Order" is a *rate* and a rate read as a separate clause
-      // repeats itself once per grant on the card ("a kill grants +5 science",
-      // "a kill pays once per slotted Order", "a kill grants +5 culture", …).
-      // War Chief carries two grants, so it would have said it twice.
-      const per = effect.perSlottedOrder === true ? ' per slotted Order' : '';
+      // The Order count rides as a **suffix on the figure it multiplies**,
+      // unlike the age, and the difference is what the two say: "pays once more
+      // for each age you have reached" is a whole sentence about the payout,
+      // while "for each Order you have in a slot" is a *rate*, and a rate read
+      // as a separate clause repeats itself once per grant on the card ("a kill
+      // grants +5 science", "a kill pays once per Order", "a kill grants +5
+      // culture", …). War Chief carries two grants, so it would say it twice.
+      const per = effect.perSlottedOrder === true ? ' for each Order you have in a slot' : '';
       if (grant?.yield !== undefined && grant.amount !== undefined) {
         out.push({
           text: `${occasion} grants ${signed(scaleByLevel(grant.amount, level))} ${grant.yield}${per}`,
@@ -3341,19 +3340,22 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         out.push({ text: `${occasion} heals a further ${scaleByLevel(grant.heal, level)}${per}` });
       }
       if (grant?.unit === 'randomMilitary') {
-        out.push({ text: `${occasion} gifts a random military unit${per}` });
+        out.push({ text: `${occasion} grants a random military unit${per}` });
       }
       if (effect.percent !== undefined) {
         out.push({ text: `${occasion} pays ${signed(scaleByLevel(effect.percent, level))}%${per}` });
       }
       if (effect.perAge === true) {
-        out.push({ text: `${occasion} pays in the money of your era` });
+        // The multiplier is the age *number* (`highestAge`), so "once for each
+        // age you have reached" is the exact reading and not a rounding of one:
+        // ×1 in the first age, ×3 in the third.
+        out.push({ text: `${occasion} pays once for each age you have reached` });
       }
       // A rider that multiplies only the *occasion's own* figure has no clause
       // to hang the suffix on, so it gets the sentence instead. Nothing on the
       // table reads this way today; it is here so the shape cannot ship silent.
       if (per !== '' && grant === undefined && effect.percent === undefined) {
-        out.push({ text: `${occasion} pays once over per slotted Order` });
+        out.push({ text: `${occasion} pays again${per}` });
       }
       return;
     }
@@ -3372,7 +3374,7 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         });
       }
       if (effect.roads === true) {
-        out.push({ text: `new cities are joined to your realm by road${limit}` });
+        out.push({ text: `new cities are joined to your nearest city by road${limit}` });
       }
       return;
     }
@@ -3476,12 +3478,14 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       });
       return;
     case 'metaRule':
-      out.push({ text: `your Orders' seals last ${effect.value} turns` });
+      out.push({
+        text: `a newly placed Order is locked for ${effect.value} turns instead of ${METER.sealTurns}`,
+      });
       return;
     case 'periodicOffer':
       out.push({
-        text: `every ${effect.every} turns, ${
-          effect.site === 'ruins' ? 'the almanac yields a find' : 'a village comes to meet you'
+        text: `every ${effect.every} turns, you are offered a find ${
+          effect.site === 'ruins' ? 'from a ruin' : 'from a village'
         }`,
       });
       return;
@@ -3516,7 +3520,9 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       return;
     }
     case 'zocRule':
-      out.push({ text: 'every hex you own holds ground against your rivals' });
+      out.push({
+        text: 'every hex you own exerts zone of control on enemy units, as a unit of yours would',
+      });
       return;
     case 'projectRider': {
       const bag = bagWords(effect.pays, level);
@@ -3667,10 +3673,13 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push('beside a mountain');
       return;
     case 'frontier':
-      into.adjectives.push('frontier');
+      // A qualifier and not an adjective, for `notCapital`'s reason one step
+      // further: "frontier" is a word the game never defines anywhere else, and
+      // the rule it stands for is a distance to somebody else's ground.
+      into.qualifiers.push("near another empire's territory");
       return;
     case 'captured':
-      into.adjectives.push('conquered');
+      into.adjectives.push('captured');
       return;
     case 'capital':
       into.adjectives.push('capital');
@@ -3763,7 +3772,7 @@ function filterWords(filter: UnitFilter): string {
   if (filter.ranged === true) return 'ranged units';
   if (filter.ranged === false) return 'melee units';
   if (filter.category !== undefined) return `${filter.category} units`;
-  if (filter.consecrates === false) return 'units that do not pray';
+  if (filter.consecrates === false) return 'units other than augurs';
   return 'all units';
 }
 
@@ -3790,13 +3799,17 @@ function payoutWords(pays: CardPayout, level: number, times = 1): string {
 }
 
 /**
- * A tile condition as a noun phrase: "every mine tile carrying a luxury
- * resource", "every tundra forest tile".
+ * A tile condition as a noun phrase: "every mine hex carrying a luxury
+ * resource", "every tundra forest hex".
  *
  * `scopeWords`' twin one scale down, and it exists for the same reason: the
- * composite used to be joined with a `+` — "every tundra tile + forest tile",
- * which reads as two tiles rather than one wooded one. Adjectives stack in
+ * composite used to be joined with a `+` — "every tundra hex + forest hex",
+ * which reads as two hexes rather than one wooded one. Adjectives stack in
  * front of the noun, qualifiers behind it, and `all` merges both lists.
+ *
+ * The noun is **hex** and not "tile" (copy pass, 2026-08-28): the interface
+ * teaches the word "hex" in its first sentence and never defines "tile", so a
+ * card that said tile was using a second word for the thing under the pointer.
  */
 interface TilePhrase {
   adjectives: string[];
@@ -3819,7 +3832,13 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       into.adjectives.push('water');
       return;
     case 'improvement':
-      into.adjectives.push(improvementDef(on.improvement).name.toLowerCase());
+      // A **qualifier naming the works**, not a lower-case adjective, and the
+      // reason is a collision the copy pass surfaced: the improvement called a
+      // Camp and the barbarian camp are two different things, and "every camp
+      // hex" had become the wrong one of them the moment the occasions started
+      // saying "clearing a barbarian camp". Named the way a city scope names a
+      // building ("every city with a Granary"), so the two read alike.
+      into.qualifiers.push(`with ${article(improvementDef(on.improvement).name)}`);
       return;
     case 'terrain':
       into.adjectives.push(on.terrain);
@@ -3856,17 +3875,17 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
 function tileConditionWords(on: TileCondition): string {
   const phrase: TilePhrase = { adjectives: [], qualifiers: [] };
   tilePhrase(on, phrase);
-  return [...phrase.adjectives, 'tile', ...phrase.qualifiers].join(' ');
+  return [...phrase.adjectives, 'hex', ...phrase.qualifiers].join(' ');
 }
 
 const RULE_WORDS: Record<CardRule, string> = {
   happinessDemand: 'happiness demanded per citizen',
-  borderCost: 'culture for the next border tile',
-  growthCarryover: 'of the basket kept when a city grows',
-  tilePurchase: 'the price of buying a tile',
+  borderCost: 'culture for the next border hex',
+  growthCarryover: 'of the stored food kept when a city grows',
+  tilePurchase: 'the price of buying a hex',
   borderCulture: 'border culture',
-  settlerCost: 'the hammers a settler costs',
-  growthSurplus: 'food surplus banked toward growth',
+  settlerCost: 'the production a settler costs',
+  growthSurplus: 'food surplus stored toward growth',
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -3878,8 +3897,8 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   vsCity: 'against cities',
   targetBelowHalf: 'against units below half strength',
   capitalTerritory: 'inside your capital’s borders',
-  inCity: 'garrisoned in one of your cities',
-  capturedCity: 'in a city you took by force',
+  inCity: 'while standing in one of your cities',
+  capturedCity: 'in a city you captured',
   // The feature is printed by `describeEffect`, so that forest and jungle are
   // one table entry and two data rows — `buildingsOfKind`'s bargain.
   onFeature: 'in',
@@ -3923,22 +3942,43 @@ const STAT_WORDS: Record<'movement' | 'sight' | 'heal' | 'range', string> = {
 };
 
 const OCCASION_WORDS: Record<WindfallOccasion, string> = {
-  chop: 'chopping',
-  camp: 'clearing a camp',
+  chop: 'clearing a forest or jungle',
+  camp: 'clearing a barbarian camp',
   growth: 'a city growing',
   completion: 'completing anything',
   buildingCompletion: 'completing a building',
   unitCompletion: 'completing a unit',
   capture: 'capturing a city',
-  discovery: 'claiming a discovery',
+  discovery: 'claiming a ruin',
   death: 'losing a unit',
   kill: 'killing a unit',
   pillage: 'pillaging',
   pillageTrader: 'plundering a caravan',
   tech: 'completing a technology',
-  tilePurchase: 'buying a tile',
+  tilePurchase: 'buying a hex',
   rite: 'performing a rite',
 };
+
+/**
+ * The same occasions, narrowed to the wild — "killing a barbarian unit".
+ *
+ * A **table** rather than a phrase glued onto the general reading, because
+ * English does not narrow every one of these sentences in the same place: the
+ * barbarian belongs inside "killing a unit" and after "pillaging". Only the
+ * occasions a ratified row actually narrows are written down; anything else
+ * falls back to a trailing clause, which is exact if inelegant and is what stops
+ * a new `vsBarbarians` row from shipping a sentence with no barbarian in it.
+ */
+const BARBARIAN_OCCASION_WORDS: Partial<Record<WindfallOccasion, string>> = {
+  kill: 'killing a barbarian unit',
+  death: 'losing a unit to barbarians',
+  capture: 'capturing a barbarian city',
+};
+
+function occasionWords(occasion: WindfallOccasion, vsBarbarians: boolean): string {
+  if (!vsBarbarians) return OCCASION_WORDS[occasion];
+  return BARBARIAN_OCCASION_WORDS[occasion] ?? `${OCCASION_WORDS[occasion]}, against barbarians`;
+}
 
 const COUNT_WORDS: Record<CountKind, PluralWords> = {
   uniqueLuxuries: { one: 'unique luxury', many: 'unique luxuries' },
@@ -3958,15 +3998,15 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     many: 'population in your capital',
   },
   // `garrisonOf` keeps only combatants, and the words say so.
-  garrison: { one: 'garrisoned combat unit', many: 'garrisoned combat units' },
+  garrison: { one: 'combat unit standing in the city', many: 'combat units standing in the city' },
   garrisonWatch: {
-    one: 'fortification level in the garrison',
-    many: 'fortification levels in the garrison',
+    one: 'fortification level among the units in the city',
+    many: 'fortification levels among the units in the city',
   },
-  workedHills: { one: 'worked hill tile', many: 'worked hill tiles' },
+  workedHills: { one: 'worked hill hex', many: 'worked hill hexes' },
   bankedFaith: { one: 'banked faith', many: 'banked faith' },
   bankedGold: { one: 'gold in the treasury', many: 'gold in the treasury' },
-  visibleCamps: { one: 'camp you can see', many: 'camps you can see' },
+  visibleCamps: { one: 'barbarian camp you can see', many: 'barbarian camps you can see' },
   chargedAugurs: {
     one: 'augur stationed here with a rite left',
     many: 'augurs stationed here with a rite left',
@@ -3979,7 +4019,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // that "+1 happiness per Barracks" and "per Temple" are one table entry.
   buildingsOfKind: { one: 'of them', many: 'of them' },
   buildingsInCity: { one: 'building in this city', many: 'buildings in this city' },
-  workedTilesInCity: { one: 'tile worked here', many: 'tiles worked here' },
+  workedTilesInCity: { one: 'hex worked here', many: 'hexes worked here' },
   wonders: { one: 'wonder you hold', many: 'wonders you hold' },
   revealedTiles: { one: 'hex you have revealed', many: 'hexes you have revealed' },
   sightedCities: { one: 'foreign city you have sighted', many: 'foreign cities you have sighted' },
@@ -3994,7 +4034,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'fortification in this city',
     many: 'fortifications in this city',
   },
-  discoveredCamps: { one: 'camp you have found', many: 'camps you have found' },
+  discoveredCamps: { one: 'barbarian camp you have found', many: 'barbarian camps you have found' },
   tradeRoutes: { one: 'trade route you run', many: 'trade routes you run' },
 };
 
@@ -4011,17 +4051,17 @@ const RATE_WORDS: Record<RateSource, PluralWords> = {
 };
 
 const OFFER_WORDS: Record<OfferRuleId, string> = {
-  discoveryClaimAll: 'every discovery pays all of its options',
+  discoveryClaimAll: 'a ruin you claim pays every option instead of one',
 };
 
 /** What a widened draft is *called*, on the card that widens it. */
 const OFFER_DRAFT_WORDS: Record<OfferRiderScope, string> = {
   order: 'every Statecraft draft',
-  doctrine: 'every doctrine draft',
-  belief: 'every consecration',
-  discovery: 'every discovery',
+  doctrine: 'every Doctrine draft',
+  belief: 'every belief offer',
+  discovery: 'every offer from a ruin',
   greatPerson: 'every great-person offer',
-  all: 'every draft of every kind',
+  all: 'every offer of every kind',
 };
 
 /**
@@ -4033,7 +4073,7 @@ const OFFER_DRAFT_WORDS: Record<OfferRiderScope, string> = {
 const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   luxuryHappiness: (percent) => `happiness from unique luxuries ${signed(percent)}%`,
   luxuryDuplicates: (percent) => `duplicate luxury copies count at ${percent}%`,
-  riteDuration: (percent) => `blessings last ${signed(percent)}% longer`,
+  riteDuration: (percent) => `rites last ${signed(percent)}% longer`,
   routeYields: (percent) => `trade routes pay ${signed(percent)}% more`,
 };
 
@@ -4042,7 +4082,7 @@ const METER_RULE_WORDS: Record<MeterRuleId, string> = {
   coastalCityCost: 'the authority a coastal city costs',
   cityHappinessDemand: 'the happiness every city demands',
   borderFreezeExempt: 'your borders keep growing',
-  authorityUnitProductionExempt: 'a torn writ no longer slows production toward units',
+  authorityUnitProductionExempt: 'negative authority no longer slows production toward units',
 };
 
 /**
@@ -4060,10 +4100,10 @@ const METER_RULE_SWITCHES: readonly MeterRuleId[] = [
 ];
 
 const ACTION_WORDS: Record<ActionRuleId, string> = {
-  freeChop: 'chopping costs no worker charge',
-  doubleOverflow: 'production overflow is doubled',
-  unitJumpsQueue: 'a unit completes ahead of a building it can outpace',
-  noSettlerEscalation: 'settlers never get dearer',
+  freeChop: 'clearing a forest or jungle costs no worker charge',
+  doubleOverflow: 'leftover production from a completed item is doubled',
+  unitJumpsQueue: 'a unit that would finish sooner jumps ahead of a building in the queue',
+  noSettlerEscalation: 'settlers never cost more than the first',
 };
 
 const BEHAVIOR_WORDS: Record<BehaviorRuleId, string> = {
@@ -4075,8 +4115,8 @@ const BEHAVIOR_WORDS: Record<BehaviorRuleId, string> = {
 const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   cityCountAtMost: 'while you hold at most',
   cityCountAtLeast: 'while you hold at least',
-  authorityNegative: 'while your writ is torn',
-  happinessNegative: 'while your people are unhappy',
+  authorityNegative: 'while your authority is negative',
+  happinessNegative: 'while your happiness is negative',
 };
 
 // --- the ladder -------------------------------------------------------------

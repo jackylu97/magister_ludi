@@ -391,7 +391,7 @@ export function explainRouteYieldBetween(
       gold: Math.floor((total.gold * percent) / 100),
     };
     if (extra.food !== 0 || extra.production !== 0 || extra.gold !== 0) {
-      lines.push({ source: label(`your charter ${percent > 0 ? '+' : ''}${percent}%`), ...extra });
+      lines.push({ source: label(`cards ${percent > 0 ? '+' : ''}${percent}%`), ...extra });
     }
   }
 

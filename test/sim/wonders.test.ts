@@ -1220,7 +1220,7 @@ describe('a wonder in words', () => {
       '+2 combat strength for mounted units',
     );
     expect(describeCard('petra').map((c) => c.text)).toContain(
-      '+1 food, +1 production on every desert tile, in every city with Petra',
+      '+1 food, +1 production on every desert hex, in every city with Petra',
     );
   });
 });

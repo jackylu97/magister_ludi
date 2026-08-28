@@ -425,7 +425,13 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const def = governmentDef(sc.government);
     block.append(element('p', 'eyebrow sc-eyebrow', 'your government'));
     block.append(element('h3', 'sc-gov-name', def.name));
-    block.append(element('p', 'sc-flavor', def.flavor));
+    // Labelled, for the Compendium's stated reason (copy pass, 2026-08-28): the
+    // charter's clauses follow immediately in the same column, and an
+    // unlabelled italic above them reads as the first of them.
+    const flavor = element('p', 'sc-flavor');
+    flavor.append(element('span', 'flavor-label', 'Flavour'));
+    flavor.append(document.createTextNode(def.flavor));
+    block.append(flavor);
     const clauses = describeCard(sc.government);
     if (clauses.length === 0) {
       // The chiefdom, and the honest thing to say about it: it is where a game

@@ -303,7 +303,7 @@ export function greatPersonChoiceError(
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
   const offer = player.greatPersonOffer;
-  if (!offer) return `${player.name} has no great person awaiting a call`;
+  if (!offer) return `${player.name} has no great person waiting to be chosen`;
   if (!Number.isInteger(optionIndex)) {
     return `chooseGreatPerson needs an integer optionIndex, got ${String(optionIndex)}`;
   }
@@ -460,7 +460,7 @@ function actorProblem(state: GameState, playerId: number, unitId: number): strin
   if (!isGreatPerson(unit)) return `A ${unitDef(unit.type).name} has no legacy to leave`;
   // A `greatWork` piece with no name on it is a hand-edited save; it has no
   // family, so it has neither verb.
-  if (personOf(unit) === null) return `Unit ${unit.id} is nobody in particular`;
+  if (personOf(unit) === null) return `Unit ${unit.id} is not a named great person`;
   return null;
 }
 
@@ -837,7 +837,7 @@ function claimAround(
 export function greatPersonBlocker(player: Player): string | null {
   const offer = player.greatPersonOffer;
   if (offer === undefined || offer.options.length === 0) return null;
-  return 'a great person is waiting to be called';
+  return 'a great person is waiting to be chosen';
 }
 
 /** Is a great person waiting to be called? The dock button's badge. */

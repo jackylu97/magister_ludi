@@ -840,7 +840,19 @@ export function createOfferCard(
       if (option.warning !== undefined) {
         button.append(element('span', 'offer-warning', option.warning));
       }
-      button.append(element('span', 'offer-flavor', option.flavor));
+      // **Labelled, not merely italic** (copy pass, 2026-08-28 — the
+      // Compendium's ruling applied wherever a flavour field is printed). The
+      // clause list directly above is the card's rules, in the same column and
+      // the same reading order, so an unlabelled sentence at the foot is read
+      // as one more rule. Only the label is added; the line itself is still
+      // exactly what the data row wrote. Absent for a card with no flavour, so
+      // a discovery's plain face gains nothing.
+      if (option.flavor.length > 0) {
+        const flavor = element('span', 'offer-flavor');
+        flavor.append(element('span', 'flavor-label', 'Flavour'));
+        flavor.append(document.createTextNode(option.flavor));
+        button.append(flavor);
+      }
       if (option.footnote !== undefined) {
         button.append(element('span', 'offer-footnote', option.footnote));
       }
