@@ -10,23 +10,23 @@
  * has to be a function somebody can call. Everything below is a reader of the
  * simulation or a sentence built out of one; nothing here decides a rule.
  *
- * The one thing worth arguing about
- * ---------------------------------
+ * The thing that used to be worth arguing about
+ * --------------------------------------------
  * A **preview** of a route that has not been sent. `explainRouteYield` takes a
  * *caravan*, because a route lives on the piece carrying it (`trade.ts`'s
  * structural decision) — and the plate over a candidate partner has to quote
- * what the route *would* pay before any of that exists. There are two ways to
- * get that number and only one of them is allowed: re-count the destination's
- * buildings here (a second implementation of the ruling, which is the failure
- * every fold in this codebase exists to prevent), or hand the sim's own
- * evaluator a caravan carrying the route it is being asked about.
+ * what the route *would* pay before any of that exists. This file used to get
+ * that by handing the evaluator a **copy** of the trader wearing a route it was
+ * not carrying: legal, invisible to the state, and one refactor away from being
+ * a lie.
  *
- * So `previewRoute` builds the route the reducer would write — the same
- * `expiresTurn`, the same two ends — hangs it on a **copy** of the trader and
- * asks `explainRouteYield`. The copy never touches `state.units`, so nothing
- * downstream can see it: `cityRouteYields` walks the state and finds only real
- * caravans. The figure on the plate is therefore the figure the city panel will
- * print the turn after the send, by construction rather than by agreement.
+ * It is gone. `explainRouteYieldBetween` (`trade.ts`) is the sim's own answer to
+ * "what would a route between these two towns pay", because that is what the
+ * figures were always a function of — the two cities, and no piece at all —
+ * and `explainRouteYield` is now that function once it has resolved the pair.
+ * So the plate and the paying caravan quote **one implementation** with no copy
+ * in between, and the figure on the plate is the figure the city panel prints
+ * the turn after the send by construction rather than by agreement.
  */
 
 import { RULES } from '../sim/rulesData';
@@ -34,9 +34,11 @@ import type { City, GameState, Unit } from '../sim/state';
 import { getTileAt } from '../sim/map';
 import { type Cell, findPath } from '../sim/pathfind';
 import {
+  type RouteEndReport,
   type RouteYieldLine,
   type TraderPlunder,
   explainRouteYield,
+  explainRouteYieldBetween,
   foldRouteYield,
   originCityOf,
   routeCities,
@@ -83,29 +85,18 @@ export interface RoutePreview {
 }
 
 /**
- * What sending `unit` from `from` to `to` would pay its origin — the sim's own
- * evaluator, asked about a caravan that does not exist yet. See the module
- * docblock for why this is a copy and not a re-count.
+ * What a route from `from` to `to` would pay its origin — the sim's own
+ * evaluator for a pair of towns, asked before any caravan carries one.
+ *
+ * No unit, because a route's figures never needed one (see the module
+ * docblock). `state` is passed through unread today and stays on the signature
+ * for `explainRouteYieldBetween`'s own reason: the day a route's yield gains a
+ * card or a wonder rider, it is read off the state *there*, and this keeps
+ * being one call.
  */
-export function previewRoute(
-  state: GameState,
-  unit: Unit,
-  from: City,
-  to: City,
-): RoutePreview {
-  const turns = routeTurns();
-  const candidate: Unit = {
-    ...unit,
-    trade: {
-      from: from.id,
-      to: to.id,
-      expiresTurn: state.turn + turns,
-      outbound: true,
-      autoResend: false,
-    },
-  };
-  const lines = explainRouteYield(state, candidate);
-  return { lines, ...foldRouteYield(lines), turns };
+export function previewRoute(state: GameState, from: City, to: City): RoutePreview {
+  const lines = explainRouteYieldBetween(state, from, to);
+  return { lines, ...foldRouteYield(lines), turns: routeTurns() };
 }
 
 /** One partner city, as the plate over it reads. See `caravanOffers`. */
@@ -153,7 +144,7 @@ export function caravanOffers(state: GameState, unit: Unit): CaravanOffer[] {
   for (const city of state.cities) {
     if (city.ownerId !== unit.ownerId) continue;
     if (city.id === home.id) continue;
-    const preview = previewRoute(state, unit, home, city);
+    const preview = previewRoute(state, home, city);
     offers.push({
       cityId: city.id,
       col: city.col,
@@ -289,6 +280,22 @@ export function cityRouteRows(state: GameState, city: City): CityRouteRow[] {
  * report carries a seat id and naming a seat is the interface's business.
  */
 export function plunderSpoilsSentence(plunder: TraderPlunder, victim: string): string {
+  return `✶ A caravan of ${victim}’s plundered: ${plunderSpoils(plunder)}`;
+}
+
+/**
+ * "+30💰, +10🌾 +10⚙ → Nippur · grows to 5" — what a plunder was *worth*, with
+ * no sentence around it.
+ *
+ * Split out of `plunderSpoilsSentence` because there are now two occasions that
+ * quote the figures and only one of them is the pillager watching from
+ * elsewhere: an attack this seat **ordered** says it in the attacker's own words
+ * ("Warrior plunders the caravan of Uruk: …", `reportCombatNotice` in
+ * `controls.ts`), and it must not read as a third-party report of something the
+ * player just did. Two sentences, one composer — the figures cannot drift, which
+ * is the only part of this that is arithmetic.
+ */
+export function plunderSpoils(plunder: TraderPlunder): string {
   const parts = [`+${plunder.gold}${YIELD_GLYPH.gold}`];
   if (plunder.cityName !== null) {
     const goods = [
@@ -300,7 +307,30 @@ export function plunderSpoilsSentence(plunder: TraderPlunder, victim: string): s
   } else if (plunder.warning !== null) {
     parts.push(plunder.warning);
   }
-  return `✶ A caravan of ${victim}’s plundered: ${parts.join(', ')}`;
+  return parts.join(', ');
+}
+
+/**
+ * "The caravan from Uruk has come home" — a route that ran out, in one line.
+ *
+ * A route ends on the resolution that walks the caravan past its `expiresTurn`
+ * (`marchTraders`), and until this the only sign was a slot quietly coming free:
+ * a player who had set three routes running twenty turns ago had no way to learn
+ * that one of them had stopped paying except by opening a sheet and counting.
+ *
+ * Two sentences, and the difference between them is the *only* thing a player
+ * has to act on: a caravan that came home is a piece standing idle and a slot to
+ * spend, and one that set out again is neither. The origin names the route
+ * because that is the town the yields were landing in — `RouteEndReport.from`
+ * is `TradeRoute.from`, and both ends are ids rather than names for the reason
+ * every sim report is (naming a city is the interface's business).
+ */
+export function routeEndSentence(state: GameState, report: RouteEndReport): string {
+  const home = state.cities.find((city) => city.id === report.from);
+  const named = home ? cityDisplayName(state, home) : 'a lost city';
+  return report.renewed
+    ? `✶ The caravan from ${named} sets out again`
+    : `✶ The caravan from ${named} has come home`;
 }
 
 /**

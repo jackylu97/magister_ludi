@@ -43,12 +43,15 @@ import {
   sendTraderError,
   settleTraderPlunder,
 } from '../../src/sim/trade';
+import { cityDisplayName } from '../../src/ui/cityDisplay';
 import { civYields } from '../../src/ui/topBar';
 import {
   caravanOffers,
   cityRouteRows,
   plunderLossSentence,
+  plunderSpoils,
   plunderSpoilsSentence,
+  routeEndSentence,
   previewRoute,
   routeFigures,
   routeReading,
@@ -62,6 +65,7 @@ const SOURCES = import.meta.glob(
     '../../src/ui/unitPanel.ts',
     '../../src/ui/topBar.ts',
     '../../src/ui/cityPanel.ts',
+    '../../src/ui/tradeLines.ts',
     '../../src/main.ts',
   ],
   { eager: true, query: '?raw', import: 'default' },
@@ -156,7 +160,7 @@ describe('the send plates', () => {
   it('quotes exactly what the route pays once it is sent', () => {
     const { state, trader, home, partner } = tradeWorld();
     partner.buildings.push('granary', 'barracks');
-    const before = previewRoute(state, trader, home, partner);
+    const before = previewRoute(state, home, partner);
 
     const result = applyCommand(state, {
       type: 'sendTrader',
@@ -174,11 +178,20 @@ describe('the send plates', () => {
 
   it('previews without putting a caravan anywhere the state can see it', () => {
     const { state, trader, home, partner } = tradeWorld();
-    previewRoute(state, trader, home, partner);
-    // The copy must never reach `state.units`, or `cityRouteYields` would pay a
-    // town for a route nobody opened.
+    previewRoute(state, home, partner);
+    // There is no caravan in the preview at all any more — it is a pure pair of
+    // towns (`explainRouteYieldBetween`) — so nothing can reach `state.units`
+    // and pay a town for a route nobody opened. Kept as the pin on that.
     expect(trader.trade).toBeUndefined();
     expect(state.units.every((unit) => unit.trade === undefined)).toBe(true);
+  });
+
+  it('prices a preview through the sim\'s pure pair evaluator, with no copied unit', () => {
+    const body = source('tradeLines.ts');
+    expect(body).toContain('explainRouteYieldBetween(state, from, to)');
+    // The copy is gone and must not come back: a caravan spread into a literal
+    // wearing a route it is not carrying is the shape this pass deleted.
+    expect(body).not.toContain('...unit,');
   });
 
   it('names the partner through the one city-name formatter', () => {
@@ -539,5 +552,90 @@ describe('the combat forecast', () => {
     expect(body).toMatch(/if \(view\.plundersUnit\) \{/);
     expect(body).toContain('plunders');
     expect(body.indexOf('view.plundersUnit')).toBeLessThan(body.indexOf('view.capturesUnit'));
+  });
+});
+
+/**
+ * The three pieces of trade news the sim's own pass unlocked (2026-08-27), all
+ * of them things the interface previously could not say because nothing carried
+ * them across the wall.
+ *
+ *   · an ordered raid on a caravan now knows what it took
+ *     (`CommandResult.combats[].plundered`);
+ *   · a route that ran out is reported (`CommandResult.routesEnded`);
+ *   · a preview is a pure pair of towns, with no copied unit in it (above).
+ */
+describe('an ordered raid quotes the figures', () => {
+  const controls = source('controls.ts');
+
+  it('composes them through the one composer both sentences use', () => {
+    const plunder = {
+      fromOwnerId: 1,
+      gold: 30,
+      food: 10,
+      production: 10,
+      cityName: 'Nippur',
+      grownTo: null,
+      warning: null,
+    };
+    // The figures, with no sentence around them — so the pillager watching from
+    // elsewhere and the player who ordered the blow cannot drift on what a raid
+    // was worth.
+    expect(plunderSpoils(plunder)).toBe('+30💰, +10🌾 +10⚙ → Nippur');
+    expect(plunderSpoilsSentence(plunder, 'Uruk')).toContain(plunderSpoils(plunder));
+  });
+
+  it('says them in the attacker’s own line, off the reducer’s report', () => {
+    const notice = controls.slice(controls.indexOf('function reportCombatNotice'));
+    const body = notice.slice(0, notice.indexOf('if (view.capturesUnit)'));
+    expect(body).toContain('plunderSpoils(plundered)');
+    expect(body).toContain('${view.attackerName} plunders ${view.defenderName}${spoils}');
+    // The stale note that said the figures could not reach this side is gone.
+    expect(body).not.toContain('The figures are deliberately absent');
+  });
+
+  it('takes the figures off the command rather than measuring the treasury', () => {
+    // The gold is banked and the grain is in a basket in another town by the
+    // time the notice runs; measuring it would mean a second `nearestOwnedCity`
+    // at the surface. It is the one figure on this notice that is *reported*.
+    expect(controls).toContain('result.combats?.[0]?.plundered ?? null');
+  });
+});
+
+describe('a route that ran out is news', () => {
+  const controls = source('controls.ts');
+
+  it('tells the two apart, because only one of them leaves a slot to spend', () => {
+    const { state } = tradeWorld();
+    const home = state.cities[0]!;
+    const report = { unitId: 1, ownerId: 0, from: home.id, to: state.cities[1]!.id };
+    expect(routeEndSentence(state, { ...report, renewed: false })).toBe(
+      `✶ The caravan from ${cityDisplayName(state, home)} has come home`,
+    );
+    expect(routeEndSentence(state, { ...report, renewed: true })).toBe(
+      `✶ The caravan from ${cityDisplayName(state, home)} sets out again`,
+    );
+  });
+
+  it('copes with an end it cannot name rather than throwing', () => {
+    const { state } = tradeWorld();
+    const line = routeEndSentence(state, {
+      unitId: 1,
+      ownerId: 0,
+      from: 9999,
+      to: 9998,
+      renewed: false,
+    });
+    expect(line).toContain('a lost city');
+  });
+
+  it('is reported for this seat alone, through the one funnel', () => {
+    const routes = controls.slice(controls.indexOf('function reportRoutes'));
+    const body = routes.slice(0, routes.indexOf('\n  }\n'));
+    expect(body).toContain('if (report.ownerId !== localPlayerId) continue;');
+    expect(body).toContain('routeEndSentence(getGame().state, report)');
+    // In `commit`, beside the wonders and the Triumphs, so there is one call
+    // site rather than one per verb.
+    expect(controls).toContain('reportRoutes(result);');
   });
 });

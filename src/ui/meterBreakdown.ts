@@ -23,13 +23,14 @@
  * vocabulary invented at the surface: a player who reads "demand" here and finds
  * "demand" in the ledger is reading one game.
  *
- * Per-city lines need no work at either meter, which is why there is no city
- * grouping here. Authority already prices a city as **one net line** carrying
- * its reason ("Uruk · coastal −1"), and happiness deliberately splits a town
- * into its size and the price of that size ("Ur · 11 citizens", "Ur crowding")
- * because those are two different facts about the same place — see
- * `explainHappiness`. Folding them together in the interface would be the
- * surface disagreeing with the rules about what a line is.
+ * Authority already prices a city as **one net line** carrying its reason
+ * ("Uruk · coastal −1"), so it needs nothing here. Happiness needed one thing,
+ * and it is the second fold below — see `foldCityHappiness`.
+ *
+ * The crowding line stays its own line at either meter. A town's size and the
+ * *surcharge* for being over the crowding threshold are two different facts
+ * about the same place (`explainHappiness` says so), and a player deciding
+ * whether to grow one more citizen is reading exactly that split.
  */
 
 import type { MeterContribution, MeterId, MeterPart } from '../sim/meters';
@@ -79,4 +80,119 @@ export function meterGroups(
     group.total += entry.value;
   }
   return groups;
+}
+
+// --- a town, netted ---------------------------------------------------------
+
+/**
+ * One town, as this fold needs to recognise its lines. The two fields
+ * `explainHappiness` writes into a source string, and nothing else.
+ */
+export interface HappinessTown {
+  name: string;
+  population: number;
+}
+
+/**
+ * Happiness with each town's **own** buildings netted into that town's demand
+ * line: "Uruk (10) · Funeral Games +3" worth −7, instead of "Uruk · 10
+ * citizens" worth −10 with a "Uruk · Funeral Games" +3 floating in supply.
+ *
+ * The user's ruling (playtest, 2026-08-27): *"funeral games shouldn't appear as
+ * a source of happiness, but just be reflected in the overall city values"*. And
+ * it is right for a reason worth writing down — every other line in supply is
+ * something the **empire** holds (the palace, a luxury, a card), and losing one
+ * costs the empire that much wherever it happens. A colosseum is not that: it is
+ * a *discount on one town's appetite*, it is lost with that town, and reading it
+ * as empire supply makes a player think a second colosseum in the capital would
+ * settle a riot in the provinces.
+ *
+ * Presentation only, and that is the whole discipline here
+ * -------------------------------------------------------
+ * `explainHappiness` is still the truth, still the one evaluator, and this
+ * **never asks it a second question**: the netted line is built out of the two
+ * lines the list already contains, in the list's own order, so the sum over the
+ * result is the sum over the input, line for line. It is `meterGroups`' bargain
+ * one step further in — that one partitions, this one *merges two lines it was
+ * handed* — and neither may ever re-derive a figure. Calling
+ * `buildingHappiness` here to find out which lines are a building's would be
+ * the second implementation this note exists to forbid, so the lines are
+ * recognised by the shapes `explainHappiness` writes and by nothing else:
+ *
+ *   · the demand line is `"<name> · <population> citizens"`, matched **whole**,
+ *     because it is the one line whose text this fold can predict exactly;
+ *   · a building's line is a `gain` line beginning `"<name> · "` for a town that
+ *     has such a demand line. A `gain` line for a town that has none is left
+ *     alone, which is the honest answer for a list this did not come from.
+ *
+ * The merged line keeps the **demand line's place and its `part`**, so a town
+ * whose buildings outweigh its appetite reads as a small positive number under
+ * *Demand* rather than hopping sides. "How much this town costs me" is the
+ * question the section answers, and −7 and +2 are both answers to it.
+ *
+ * Longest name first, so an empire holding both "Ur" and "Uruk" nets each into
+ * its own line. The separator makes that unambiguous already; the sort is the
+ * cheap insurance.
+ */
+export function foldCityHappiness(
+  entries: readonly MeterContribution[],
+  towns: readonly HappinessTown[],
+): MeterContribution[] {
+  const ordered = [...towns].sort((a, b) => b.name.length - a.name.length);
+  /** The line a town's demand is written as, for the towns that have one. */
+  const demandLine = (town: HappinessTown): string =>
+    `${town.name} · ${town.population} citizens`;
+  /**
+   * Which towns have a demand line at all, found **before** anything is folded.
+   *
+   * Two passes rather than one because `explainHappiness` prints its supply
+   * before its demand: a town's colosseum is in the list several lines above
+   * the appetite it is being netted into, and a single forward pass would meet
+   * the building with nowhere to put it.
+   */
+  const netted = new Set(
+    ordered.filter((town) => entries.some((entry) => entry.source === demandLine(town))),
+  );
+
+  /** name → the merged line's index in the output. */
+  const demandAt = new Map<string, number>();
+  /** name → what its buildings came to, and how each of them read. */
+  const gathered = new Map<string, { value: number; notes: string[] }>();
+  const out: MeterContribution[] = [];
+
+  for (const entry of entries) {
+    const owner =
+      entry.part === 'gain'
+        ? [...netted].find((town) => entry.source.startsWith(`${town.name} · `))
+        : undefined;
+    if (owner) {
+      // "Funeral Games +3" — the half of the source that is not the town's
+      // name, and what it is worth. A player who wants to know why a town is
+      // cheaper than its size reads it in the parenthetical.
+      const named = entry.source.slice(owner.name.length + 3);
+      const bag = gathered.get(owner.name) ?? { value: 0, notes: [] };
+      bag.value += entry.value;
+      bag.notes.push(`${named} ${entry.value >= 0 ? '+' : '−'}${Math.abs(entry.value)}`);
+      gathered.set(owner.name, bag);
+      continue;
+    }
+    const town = [...netted].find((candidate) => entry.source === demandLine(candidate));
+    if (town) {
+      demandAt.set(town.name, out.length);
+      out.push({ ...entry, source: `${town.name} (${town.population})` });
+      continue;
+    }
+    out.push(entry);
+  }
+
+  for (const [name, bag] of gathered) {
+    const at = demandAt.get(name)!;
+    const line = out[at]!;
+    out[at] = {
+      ...line,
+      source: `${line.source} · ${bag.notes.join(' · ')}`,
+      value: line.value + bag.value,
+    };
+  }
+  return out;
 }

@@ -191,6 +191,21 @@
       hidden
     ></div>
 
+    <!-- The Triumph sheet, built by src/ui/triumphModal.ts: what was achieved,
+         what it paid in renown, and one Proceed button. Milder than the offer
+         above it — this is news rather than a decision, so Enter and Esc both
+         mean "proceed" and there is nothing to throw away. It is raised after
+         the turn card and before the camera pans (see `scheduleHandOver` in
+         controls.ts), or immediately for a Triumph earned mid-turn. -->
+    <div
+      id="triumph-overlay"
+      class="triumph-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="A Triumph"
+      hidden
+    ></div>
+
     <!-- ================= the HUD =================================
          One surface per job, each pinned where it never moves, so nothing the
          player reads or presses ever shifts under them:

@@ -120,6 +120,8 @@ import { type TechTree, createTechTree } from './ui/techTree';
 import { type TilePriceTags, createMapPlates, createTilePriceTags } from './ui/tilePriceTags';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
+import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
+import { triumphDef } from './sim/triumphData';
 import { AXIS_MARK } from './ui/religionScreen';
 import { beliefDef } from './sim/religionData';
 import { personOf } from './sim/greatPeople';
@@ -234,6 +236,9 @@ const turnSplashEl = requireElement<HTMLElement>('turn-splash');
 /* The offer card's shell. Its contents are built by `ui/offerCard.ts` on each
    show — see that file for why this is the one blocking surface here. */
 const offerOverlayEl = requireElement<HTMLElement>('offer-overlay');
+/* The Triumph sheet's shell — `ui/triumphModal.ts` builds its contents on each
+   show. Milder than the offer above it: news with one affirmative button. */
+const triumphOverlayEl = requireElement<HTMLElement>('triumph-overlay');
 /* The way back to an offer put away behind View map. Pinned in the End Turn
    corner because that button stops on the very same offer — see `index.html`. */
 const offerReturnEl = requireElement<HTMLButtonElement>('offer-return');
@@ -543,6 +548,12 @@ let hudDock: HudDock | null = null;
 const notificationLog: NotificationLog = createNotificationLog();
 let notifications: NotificationsPanel | null = null;
 let toasts: ToastStack | null = null;
+/**
+ * The Triumph sheet, built in `boot`. A holder for `meterCards`' reason, plus
+ * one of its own: `isInputBlocked` and `showLanding` are both declared above
+ * `boot` and both have to be able to ask whether a sheet is up.
+ */
+let triumphSheet: TriumphModal | null = null;
 
 function closePopovers(): boolean {
   const wasOpen =
@@ -609,6 +620,10 @@ function showLanding(): void {
   // A toast is not a popover and would otherwise float over the landing card,
   // still counting down news about a game the player has walked away from.
   toasts?.clear();
+  // Nor is the Triumph sheet, and it does not even count down: a sheet left up
+  // would sit over the landing waiting to be proceeded past into a game that is
+  // no longer running.
+  triumphSheet?.clear();
   setRestartConfirm(false);
   // The Abacus holds a WebGL context of its own, and the game it was counting
   // is over. `closePopovers` above has already shut it; this gives the context
@@ -1520,6 +1535,14 @@ async function boot(initial: Game | null): Promise<void> {
   offerReturnEl.addEventListener('click', () => offerCard.reopen());
 
   /**
+   * The Triumph sheet. Declared here for the offer card's reason exactly — the
+   * controls report into it — and held in the module-level `triumphSheet` so
+   * that `isInputBlocked` and `showLanding`, both written before any game
+   * exists, can find it.
+   */
+  triumphSheet = createTriumphModal(triumphOverlayEl);
+
+  /**
    * The header line for an offer dealt wider than the table deals: the fold's
    * own lines, signed.
    *
@@ -2039,7 +2062,13 @@ async function boot(initial: Game | null): Promise<void> {
       // The offer card is the one genuinely blocking surface here: it owns
       // the keyboard while it is up, and there is nothing to escape to (see
       // `offerCard.ts`).
-      offerCard.isOpen
+      offerCard.isOpen ||
+      // The Triumph sheet is the mild kind of modal (`triumphModal.ts`): it
+      // answers its own Enter and Escape in a capturing listener, so the board
+      // would never have seen either key anyway. It is here for the *other*
+      // hotkeys — `H`, `T`, End Turn — which have no business firing under a
+      // sheet the player has not proceeded past.
+      (triumphSheet?.isOpen ?? false)
     );
   }
 
@@ -2076,6 +2105,30 @@ async function boot(initial: Game | null): Promise<void> {
     onOfferStatecraft: showStatecraftOffer,
     onOfferReligion: showReligionOffer,
     onOfferGreatPerson: showGreatPersonOffer,
+    /**
+     * The Triumph sheet, over the awards this seat has just earned.
+     *
+     * The row is looked up here rather than carried on `TriumphAward`, because
+     * `data/triumphs.json` is the one place a Triumph's *words* live and the
+     * award carries only what happened. `art` is read the same way and is
+     * absent from every row today: the sheet's plate is a slot that waits for
+     * the first row that names one, and hides itself until then.
+     */
+    onTriumphs: (awards) => {
+      triumphSheet?.show(
+        awards.map((award) => {
+          // `art` is declared optional and no row carries one yet; the day a
+          // row does, this reads it with no second pass here.
+          const row: { epigram: string; art?: string } = triumphDef(award.id);
+          return {
+            name: award.name,
+            epigram: row.epigram,
+            pays: award.pays,
+            art: row.art ?? null,
+          };
+        }),
+      );
+    },
     onTurnResolved: () => {
       // The turn is over and the next one has not been touched, which is the one
       // moment in a game where the log is a clean place to come back to. It is

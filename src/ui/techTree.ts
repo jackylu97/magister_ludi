@@ -1576,6 +1576,30 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     }
   });
 
+  /**
+   * Escape, from **any** focus state — not only from inside the chart.
+   *
+   * The listener above is the one that runs while the keyboard is in the
+   * overlay, which is where `setOpen` puts it and where it usually stays. It
+   * does not always: a re-render replaces the node that held focus, the card
+   * raised over the sky lives on `document.body` rather than inside the overlay
+   * (see `setOpen`'s note), and a click on the ink around the chart lands on the
+   * body too. In every one of those states the key reached *nothing at all* —
+   * `main.ts` reports this screen as blocking, so `controls.ts` returns before
+   * its own Escape branch, and the overlay is not on the path of a press that
+   * started outside it. The user found it (playtest, 2026-08-27): "'escape' key
+   * should work to exit the tech screen".
+   *
+   * **Not capturing**, which is what keeps one key doing one thing: a press
+   * inside the overlay is handled there and stopped there, so this never sees
+   * it. Two closers, and whichever is nearer the press is the one that runs.
+   */
+  window.addEventListener('keydown', (event) => {
+    if (!open || event.key !== 'Escape') return;
+    event.stopPropagation();
+    setOpen(false);
+  });
+
   // Clicking the ink around the chart closes it, like the popovers do.
   overlay.addEventListener('pointerdown', (event) => {
     if (event.target === overlay) setOpen(false);

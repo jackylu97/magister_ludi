@@ -27,6 +27,7 @@ import { foundCityAt } from '../../src/sim/cities';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { type GameState, newGame } from '../../src/sim/state';
 import { recomputeVisibility, resetVisibility } from '../../src/sim/visibility';
+import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
 import { moveModeNotice } from '../../src/ui/controls';
 import { marchDestination } from '../../src/ui/unitPanel';
 
@@ -171,5 +172,49 @@ describe('an order given at zero movement', () => {
     // only thing on the board that moved. It is the selected unit's own path and
     // goes through the optional `MapView` hook, never a renderer reached into.
     expect(source('controls.ts')).toContain('renderer.setCommittedPath?.(unit?.path ?? [])');
+  });
+});
+
+/**
+ * The worker's verbs are the improvement **table**, and adding a row to the
+ * table is the whole of adding a verb.
+ *
+ * The occasion is the lumbermill (user, 2026-08-27: "add ability to build
+ * lumbermills at construction"), and the point of the test is that the
+ * interface needed no pass at all for it: `improvementOptions` walks
+ * `IMPROVEMENT_IDS` and gates every row on the reducer's own `improvementError`
+ * / `improvementTechError`, so a new row appears the moment it is in the JSON,
+ * greyed until its technology, and pressable exactly when the command would be
+ * accepted. What this pins is the *genericity* — a hand-written list of ids at
+ * the surface, or one id skipped, is a verb the player can never reach.
+ */
+describe('the worker offers every improvement the table names', () => {
+  const controls = source('controls.ts');
+  const options = controls.slice(controls.indexOf('function improvementOptions('));
+  const body = options.slice(0, options.indexOf('\n  }\n'));
+
+  it('walks the table rather than a list of its own', () => {
+    expect(body).toContain('for (const id of IMPROVEMENT_IDS)');
+    // No id is named at the surface: the two `continue`s below are the
+    // reducer's refusals, never "not this one".
+    for (const id of IMPROVEMENT_IDS) {
+      expect(body).not.toContain(`'${id}'`);
+    }
+  });
+
+  it('hides only what the ground refuses, and greys only what the tree does', () => {
+    expect(body).toContain('const blocked = improvementTechError(state, unit.ownerId, id);');
+    expect(body).toContain('const problem = improvementError(state, unit.id, id);');
+    expect(body).toContain('if (problem !== null && problem !== blocked) continue;');
+  });
+
+  it('has the lumbermill in it, on the terrain and the technology the ruling named', () => {
+    // The row itself is the sim batch's; this is the interface's half of the
+    // claim — that the row is all there was to it.
+    expect(IMPROVEMENT_IDS).toContain('lumbermill');
+    const def = improvementDef('lumbermill');
+    expect(def.requiresTech).toBe('construction');
+    expect(def.yields.production).toBe(1);
+    expect(def.validFeatures).toEqual(['forest', 'jungle']);
   });
 });

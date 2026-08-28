@@ -88,7 +88,7 @@ import { explainRenown, foldRenown, renownPerTurn, renownThreshold } from '../si
 import { TRIUMPH_IDS, type TriumphScope, triumphDef } from '../sim/triumphData';
 import { highestAge } from '../sim/techData';
 import { createInfoCard } from './infoCard';
-import { meterGroups } from './meterBreakdown';
+import { foldCityHappiness, meterGroups } from './meterBreakdown';
 import { meterMarkNode, renownMarkNode } from './meterMark';
 import { type Popover, createPopover } from './popover';
 import { yieldMarkNode } from './yieldMark';
@@ -667,6 +667,24 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   paintCardHead(authority, 'authority');
   container.append(meters);
 
+  /**
+   * The happiness ledger as this bar prints it: `explainHappiness`'s lines with
+   * each town's own buildings netted into that town's demand line.
+   *
+   * **The one place the fold is applied**, so the chip, the hover card and the
+   * click-through ledger cannot disagree about what a line is — every reader
+   * below asks this instead of the evaluator, and `meterStanding` is folded over
+   * the result rather than over the raw list. That is safe by construction and
+   * not by agreement: `foldCityHappiness` only ever merges two lines it was
+   * handed, so the total is untouched and only the supply/demand split moves,
+   * which is the entire point (see its docblock, and the user's ruling behind
+   * it). Authority has no such fold — it already prices a city as one net line.
+   */
+  function happinessEntries(state: GameState, playerId: number): MeterContribution[] {
+    const towns = state.cities.filter((city) => city.ownerId === playerId);
+    return foldCityHappiness(explainHappiness(state, playerId), towns);
+  }
+
   /** The effects one meter is currently applying, in `meterEffects` order. */
   function effectsOf(meter: 'happiness' | 'authority'): MeterEffect[] {
     const { state } = getGame();
@@ -794,7 +812,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       authorityCard.close();
       onOpenPopover?.();
       const { state } = getGame();
-      const entries = explainHappiness(state, localPlayerId());
+      const entries = happinessEntries(state, localPlayerId());
       renderLedger(happiness.body, entries, meterStanding(entries));
     },
   });
@@ -814,7 +832,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
 
   info.bind(happinessChip, () => {
     const { state } = getGame();
-    const entries = explainHappiness(state, localPlayerId());
+    const entries = happinessEntries(state, localPlayerId());
     const standing = meterStanding(entries);
     return meterCard(
       'happiness',
@@ -912,7 +930,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       // its click affordance (`civ-yield-clickable`, above) and its own hint
       // line in the card below ("press C") — only the pulsing dot moved.
 
-      const happinessStanding = meterStanding(explainHappiness(state, playerId));
+      const happinessStanding = meterStanding(happinessEntries(state, playerId));
       writeChip(
         happinessChip,
         signedFigure(happinessStanding.total),
@@ -938,7 +956,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
 
       // An open card is showing a ledger from before whatever just happened.
       if (happinessCard.isOpen) {
-        const entries = explainHappiness(state, playerId);
+        const entries = happinessEntries(state, playerId);
         renderLedger(happiness.body, entries, meterStanding(entries));
       }
       if (authorityCard.isOpen) {

@@ -595,3 +595,51 @@ describe('the strip at the foot', () => {
     expect(body).toContain('dequeueTitle(plan, step.techId)');
   });
 });
+
+/**
+ * Escape closes the chart from **any** focus state (user, 2026-08-27: "'escape'
+ * key should work to exit the tech screen").
+ *
+ * The bug had a mechanism, and the mechanism is why one listener was not enough:
+ * `main.ts` reports the open chart as blocking, so `controls.ts` returns before
+ * its own Escape branch and never calls `closePopovers`; the chart's own handler
+ * is bound to the *overlay*, so it only sees a press whose target is inside it.
+ * Focus leaves the overlay in three ordinary ways — a re-render replaces the
+ * node holding it, the card raised over the sky lives on `document.body`, and a
+ * click on the ink around the chart lands on the body — and in all three the key
+ * reached nothing at all.
+ */
+describe('the chart’s Escape', () => {
+  const chart = chartSource();
+
+  it('is answered from the window as well as from inside the overlay', () => {
+    const window = chart.slice(chart.indexOf("window.addEventListener('keydown'"));
+    const body = window.slice(0, window.indexOf('// Clicking the ink'));
+    expect(body).toContain("if (!open || event.key !== 'Escape') return;");
+    expect(body).toContain('setOpen(false);');
+  });
+
+  it('does not capture, so one press still closes exactly one thing', () => {
+    // Capturing would make the window listener win over the overlay's, and the
+    // overlay's is the one that also stops the press reaching the board.
+    const window = chart.slice(chart.indexOf("window.addEventListener('keydown'"));
+    const registration = window.slice(0, window.indexOf('});'));
+    expect(registration).not.toContain(', true)');
+  });
+
+  it('still lets the overlay answer a press that started inside the chart', () => {
+    // It stops propagation, so the window listener never sees that press: two
+    // closers, and whichever is nearer the press is the one that runs.
+    const overlay = chart.slice(chart.indexOf("overlay.addEventListener('keydown'"));
+    const escape = overlay.slice(0, overlay.indexOf('const target ='));
+    expect(escape).toContain('event.stopPropagation();');
+    expect(escape).toContain('setOpen(false);');
+  });
+
+  it('takes the card raised over the sky down with the chart', () => {
+    // The card lives on `document.body`, so hiding the overlay would not hide
+    // it — `setOpen(false)` is what does, and both Escapes go through it.
+    const close = chart.slice(chart.indexOf('info.hide();\n    readNode(null);'));
+    expect(close.slice(0, 80)).toContain('info.hide();');
+  });
+});

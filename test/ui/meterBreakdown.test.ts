@@ -25,7 +25,7 @@ import {
 import { type GameState, newGame } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
-import { meterGroups } from '../../src/ui/meterBreakdown';
+import { foldCityHappiness, meterGroups } from '../../src/ui/meterBreakdown';
 
 /** A flat two-player world with nothing on it but the cities a test founds. */
 function flatState(): GameState {
@@ -127,5 +127,155 @@ describe('a meter card groups its ledger without changing it', () => {
     const state = flatState();
     expect(meterGroups('happiness', explainHappiness(state, 0))).toEqual([]);
     expect(meterGroups('authority', explainAuthority(state, 0))).toEqual([]);
+  });
+});
+
+/**
+ * The second fold, and the user's ruling behind it (playtest, 2026-08-27):
+ * *"funeral games shouldn't appear as a source of happiness, but just be
+ * reflected in the overall city values — if X has 10 pop and a funeral games, it
+ * should net to −7 in the demand section"*.
+ *
+ * The same rule-5 discipline as the grouping above, one step further in.
+ * `meterGroups` partitions and this one *merges two lines it was handed*; both
+ * are forbidden from re-deriving a figure, and the property that proves it is
+ * the same one: **the total is untouched**. What moves is which side of the
+ * ledger a town's colosseum is counted on.
+ */
+describe('a town’s own buildings net into that town’s demand line', () => {
+  /** The user's example, exactly: ten citizens and a funeral games. */
+  function withGames(): GameState {
+    const state = flatState();
+    foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    const city = state.cities[0]!;
+    city.name = 'Uruk';
+    city.population = 10;
+    city.buildings.push('funeralGames');
+    return state;
+  }
+
+  /** Every town of a seat, as the fold needs to recognise its lines. */
+  function towns(state: GameState, playerId: number) {
+    return state.cities.filter((city) => city.ownerId === playerId);
+  }
+
+  it('nets the user’s ten citizens and a funeral games to −7', () => {
+    const state = withGames();
+    const folded = foldCityHappiness(explainHappiness(state, 0), towns(state, 0));
+    const line = folded.find((entry) => entry.source.startsWith('Uruk'))!;
+    expect(line.value).toBe(-7);
+    // And it stays on the side of the ledger the question is asked from: "how
+    // much does this town cost me" is a demand question at −7 and at +2 alike.
+    expect(line.part).toBe('cost');
+  });
+
+  it('names the building in the line, so the discount is not a mystery', () => {
+    const state = withGames();
+    const folded = foldCityHappiness(explainHappiness(state, 0), towns(state, 0));
+    const line = folded.find((entry) => entry.source.startsWith('Uruk'))!;
+    expect(line.source).toBe('Uruk (10) · Funeral Games +3');
+  });
+
+  it('leaves the empire’s own supply exactly where it was', () => {
+    // The palace is not a discount on one town's appetite — it is something the
+    // empire holds, and it is lost the way an empire loses things.
+    const state = withGames();
+    const folded = foldCityHappiness(explainHappiness(state, 0), towns(state, 0));
+    expect(folded.some((entry) => entry.source === 'Palace' && entry.part === 'gain')).toBe(true);
+  });
+
+  it('takes the building off the supply side altogether', () => {
+    const state = withGames();
+    const raw = explainHappiness(state, 0);
+    expect(raw.some((entry) => entry.source === 'Uruk · Funeral Games')).toBe(true);
+    const folded = foldCityHappiness(raw, towns(state, 0));
+    expect(folded.some((entry) => entry.source === 'Uruk · Funeral Games')).toBe(false);
+  });
+
+  it('changes the total not at all — which is the whole licence for doing it', () => {
+    const state = empire();
+    state.cities[0]!.buildings.push('funeralGames');
+    state.cities[1]!.buildings.push('funeralGames', 'circusMaximus');
+    const raw = explainHappiness(state, 0);
+    const folded = foldCityHappiness(raw, towns(state, 0));
+    expect(foldMeter(folded)).toBe(foldMeter(raw));
+    // The sides *do* move, and that is the point: supply loses what demand gains.
+    expect(meterStanding(folded).gain).toBeLessThan(meterStanding(raw).gain);
+    expect(meterStanding(folded).total).toBe(meterStanding(raw).total);
+  });
+
+  it('leaves the crowding line alone, because it is a different fact', () => {
+    // A town's size and the surcharge for being over the threshold are two
+    // things a player deciding whether to grow is reading apart.
+    const state = empire();
+    state.cities[1]!.buildings.push('funeralGames');
+    const folded = foldCityHappiness(explainHappiness(state, 0), towns(state, 0));
+    expect(folded.some((entry) => entry.source.endsWith('crowding'))).toBe(true);
+  });
+
+  it('nets each town into its own line when one name is a prefix of another', () => {
+    const state = flatState();
+    foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    foundCityAt(state, 0, getTileAt(state.map, 8, 4)!);
+    state.cities[0]!.name = 'Ur';
+    state.cities[1]!.name = 'Uruk';
+    state.cities[0]!.population = 4;
+    state.cities[1]!.population = 6;
+    state.cities[1]!.buildings.push('funeralGames');
+    const folded = foldCityHappiness(explainHappiness(state, 0), towns(state, 0));
+    expect(folded.find((entry) => entry.source.startsWith('Ur ('))!.value).toBe(-4);
+    expect(folded.find((entry) => entry.source.startsWith('Uruk ('))!.source).toBe(
+      'Uruk (6) · Funeral Games +3',
+    );
+  });
+
+  it('passes a ledger it recognises nothing in straight through', () => {
+    const state = withGames();
+    const raw = explainHappiness(state, 0);
+    // No towns declared: nothing to net into, so nothing is netted.
+    expect(foldCityHappiness(raw, [])).toEqual(raw);
+  });
+});
+
+/**
+ * And the discipline itself, read off the sources: the fold is applied to the
+ * lines `explainHappiness` returned, in one place, and never by asking the
+ * simulation a second question. A `buildingHappiness` call at the surface would
+ * be a second evaluator that agrees with the meter until the day the rules move.
+ */
+describe('the fold is a presentation of one evaluator’s list', () => {
+  const SOURCES = import.meta.glob(
+    ['../../src/ui/topBar.ts', '../../src/ui/meterBreakdown.ts'],
+    { eager: true, query: '?raw', import: 'default' },
+  ) as Record<string, string>;
+
+  function source(name: string): string {
+    const key = Object.keys(SOURCES).find((path) => path.endsWith(name));
+    const text = key === undefined ? undefined : SOURCES[key];
+    if (typeof text !== 'string' || text.length === 0) throw new Error(`${name} came back empty`);
+    return text;
+  }
+
+  it('folds the lines the evaluator returned, and asks nothing else', () => {
+    const bar = source('topBar.ts');
+    expect(bar).toContain('foldCityHappiness(explainHappiness(state, playerId), towns)');
+    // The other evaluator for the same fact. Reaching for it here is the second
+    // implementation this whole arrangement exists to prevent.
+    expect(bar).not.toContain('buildingHappiness');
+    expect(source('meterBreakdown.ts')).not.toContain('buildingHappiness(');
+  });
+
+  it('applies it in exactly one place, so no reader can disagree', () => {
+    const bar = source('topBar.ts');
+    // One helper; the chip, the hover card and the click-through ledger all ask
+    // it. A raw `explainHappiness(state, ...)` outside it would be a surface
+    // printing a different ledger from the one beside it.
+    const raw = bar.match(/explainHappiness\(state, /g) ?? [];
+    expect(raw).toHaveLength(1);
+    expect(bar).toContain('function happinessEntries(');
+  });
+
+  it('leaves authority alone — it already prices a city as one net line', () => {
+    expect(source('topBar.ts')).not.toContain('foldCityAuthority');
   });
 });

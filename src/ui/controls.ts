@@ -222,6 +222,7 @@ import { findPath, reachableTiles } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import {
   type City,
+  type GameState,
   type Unit,
   cityById,
   hasEndedTurn,
@@ -234,14 +235,17 @@ import {
   consecrateError,
   isAugur,
   ritePreview,
+  riteCityTarget,
   riteError,
+  riteUnitTarget,
 } from '../sim/religion';
 import { type RiteId, RITE_IDS, riteAbility, riteDef } from '../sim/religionData';
 import { type ResearchReport, hasAbility, researchSince, researchSnapshot } from '../sim/tech';
 import { type CardClause, describeCard, statecraftBlocker } from '../sim/statecraft';
 import { highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
-import { originCityOf, routeCities } from '../sim/trade';
+import type { TriumphAward } from '../sim/triumphs';
+import { type TraderPlunder, originCityOf, routeCities } from '../sim/trade';
 import { isExplorer, trades, unitDef } from '../sim/unitData';
 import { sleepError, sleepingSnapshot, unitsOnTile, wakesSince } from '../sim/units';
 import { isExploredBy } from '../sim/visibility';
@@ -264,7 +268,9 @@ import {
   caravanOffers as caravanOffersOf,
   caravanRoutePath,
   plunderLossSentence,
+  plunderSpoils,
   plunderSpoilsSentence,
+  routeEndSentence,
   routeReading as routeReadingOf,
   routeSlotsLine as routeSlotsLineOf,
 } from './tradeLines';
@@ -310,6 +316,56 @@ const MOVE_MODE_SPENT_NOTICE =
  */
 export function moveModeNotice(movesLeft: number): string {
   return movesLeft > 0 ? MOVE_MODE_NOTICE : MOVE_MODE_SPENT_NOTICE;
+}
+
+/**
+ * What a rite that has just been performed is announced as: "✶ Omen Reading at
+ * Uruk · +15 science · 20 turns of blessing".
+ *
+ * The user found the hole (playtest, 2026-08-27: "there should be some
+ * indication after performing a rite"). A rite is the quietest expensive thing
+ * in the game — one of three charges on a unit bought outright from the faith
+ * bank — and the only sign it had worked was a number changing somewhere else
+ * on the screen.
+ *
+ * **Asked of the state before the command, and that is the whole of it.** A rite
+ * spends a charge, may empty the augur and take it off the board, and lands its
+ * grant on a town chosen by where the piece is standing — so "the augur, the
+ * town, and what it did" is a sentence only the moment *before* can answer.
+ * `commit`'s caravan snapshot and `unitSnapshot` are the same rule; this is the
+ * third occasion of it.
+ *
+ * Every word is the simulation's own. `ritePreview` is exactly what the rite's
+ * row on the augur's sheet promised in this same position (the same call
+ * `riteOptions` makes), so what the player was offered and what the Chamberlain
+ * reports back are one string by construction rather than by agreement.
+ * `describeCard` is the fallback for a rite whose grant the preview has nothing
+ * to say about — a card's printed text, which is the other place a rite's effect
+ * is already written down. Composing a third sentence out of the performance
+ * report would be a second description of what a rite does.
+ *
+ * Module-level and pure so it can be asserted without a browser: this suite has
+ * no jsdom, and a sentence is exactly the kind of thing that is quietly wrong.
+ */
+export function riteSentence(state: GameState, unit: Unit, id: RiteId): string {
+  const def = riteDef(id);
+  // Where it lands, in the words every other surface names a town in. A rite
+  // aimed at a piece names the piece; one that can find neither names neither,
+  // rather than inventing a place.
+  const city = def.target === 'city' ? riteCityTarget(state, unit) : null;
+  const blessed = def.target === 'unit' ? riteUnitTarget(state, unit) : null;
+  const where = city
+    ? ` at ${cityDisplayName(state, city)}`
+    : blessed
+      ? ` over the ${unitDef(blessed.type).name.toLowerCase()}`
+      : '';
+  const payoff =
+    ritePreview(state, unit.id, id) ??
+    describeCard(id)
+      .filter((clause) => clause.deferred !== true)
+      .map((clause) => clause.text)
+      .join(' · ');
+  return payoff.length > 0 ? `✶ ${def.name}${where} · ${payoff}` : `✶ ${def.name}${where}`;
 }
 
 /** And while the city screen's Buy Tiles mode is up. */
@@ -835,6 +891,19 @@ export interface GameControlsOptions {
    * hex.
    */
   onOfferGreatPerson?: () => void;
+  /**
+   * Raises the Triumph sheet over these awards — `main.ts`'s triumph modal
+   * (`triumphModal.ts`). Local seat only; the caller queues them.
+   *
+   * Unlike the four offers above it this carries its payload, and for the
+   * opposite of their reason: an offer is *on the player* and can be read back
+   * off the state at any time, where a Triumph is **news about a moment**. The
+   * renown was banked by `awardTriumph` before this module ever saw the result,
+   * `Player.triumphs` is append-only, and re-deriving "which of these are new"
+   * at the surface would be a second implementation of the diff the reducer
+   * already handed over (`triumphs.ts`: the news is a diff, never a sink).
+   */
+  onTriumphs?: (awards: readonly TriumphAward[]) => void;
 
   /**
    * Puts the local seat's pending discovery card in front of the player.
@@ -1309,6 +1378,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onOfferStatecraft,
     onOfferReligion,
     onOfferGreatPerson,
+    onTriumphs,
     onDamage,
     onVictory,
     lensOrder,
@@ -1582,6 +1652,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportRaids(result, caravans);
       reportWonders(result);
       reportGrants(result);
+      reportRoutes(result);
       reportTriumphs(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
@@ -1684,6 +1755,29 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * **A route ran out.** One line per caravan of this seat's that reached the
+   * end of its twenty turns during the resolution.
+   *
+   * `reportTriumphs`' shape and `reportGrants`' scale: seat-filtered, read off
+   * the reducer's own report (`CommandResult.routesEnded`, which arrives on the
+   * resolving `endTurn` alone), and folded into `commit` so there is one call
+   * site rather than one per verb. Nothing here diffs the board, and it could
+   * not: a route that ended left no trace on the piece except an absence, and a
+   * renewed one looks exactly like a route that was always running.
+   *
+   * The sentence is `tradeLines.ts`', with the two halves the player has to tell
+   * apart — a caravan come home is a slot to spend and a piece to give an order
+   * to, and one that set out again is neither.
+   */
+  function reportRoutes(result: CommandResult): void {
+    if (!result.ok || !result.routesEnded) return;
+    for (const report of result.routesEnded) {
+      if (report.ownerId !== localPlayerId) continue;
+      announce(routeEndSentence(getGame().state, report));
+    }
+  }
+
+  /**
    * **You earned a Triumph.** One chronicle line each, with what it paid.
    *
    * `reportWonders`' sibling and `reportRaids`' opposite: filtered by seat,
@@ -1704,14 +1798,41 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * through `settleRenownWindfall` the instant it awards), so the line says what
    * it paid rather than what it will pay — and the offer it may have opened is
    * announced by `checkGreatPersonOffer`, not here.
+   *
+   * **Two volumes, one funnel** (user, 2026-08-27). The chronicle line stays and
+   * is written here for every award, because the log is the record. The *sheet*
+   * (`triumphModal.ts`) is the moment, and the moment it belongs to is not
+   * always now: a Triumph earned by a command the player just issued is shown on
+   * the spot, and a Triumph earned in a *resolution* waits for the hand-over —
+   * marches, then the turn card, then this, then the camera (CLAUDE.md's three
+   * beats). Dropping a sheet over pieces that are still walking is the failure
+   * `onTurnResolved`/`onTurnHandedOver` were split apart to prevent, so this
+   * only ever *collects*, and `endTurn` decides which of the two it is.
    */
   function reportTriumphs(result: CommandResult): void {
     if (!result.ok || !result.triumphs) return;
+    const mine: TriumphAward[] = [];
     for (const triumph of result.triumphs) {
       if (triumph.playerId !== localPlayerId) continue;
       announce(`✦ Triumph — ${triumph.name} · ${signedFigure(triumph.pays)} renown`);
+      mine.push(triumph);
     }
+    if (mine.length === 0) return;
+    if (heldTriumphs === null) onTriumphs?.(mine);
+    else heldTriumphs.push(...mine);
   }
+
+  /**
+   * Triumphs collected while a resolution is being applied, or `null` whenever
+   * nothing is collecting.
+   *
+   * The `null`/array distinction is the whole of "is this a resolution": every
+   * ordinary command leaves it `null` and its awards go straight to the sheet.
+   * `endTurn` sets it to an empty array around its own `commit` and empties it
+   * itself, so a triumph can never be stranded — either the turn resolved and
+   * the hand-over shows them, or it did not and they are shown at once.
+   */
+  let heldTriumphs: TriumphAward[] | null = null;
 
   /**
    * The Statecraft screen's batch, through the same seam every other order takes.
@@ -2764,7 +2885,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     }
 
     setMoveMode(false);
-    reportCombat(view, before, cityHpBefore, attackerFrom, { col, row });
+    // The one blow this seat ordered, so the first (and only) combat on the
+    // result is this one — `applyAttack` reports exactly one.
+    reportCombat(
+      view,
+      result.combats?.[0]?.plundered ?? null,
+      before,
+      cityHpBefore,
+      attackerFrom,
+      { col, row },
+    );
     // A melee winner that advanced may have stormed a camp or ridden into a
     // ruin. Said after the blow, because that is the order it happened in. The
     // cell is the unit's own — `unit` is a live reference, so it is already
@@ -2792,6 +2922,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function reportCombat(
     view: CombatPreview & { ok: true },
+    /**
+     * What the blow plundered, off the reducer's own report — the attacker's
+     * half of `reportRaids`' `combat.plundered`. `null` for every blow that was
+     * not a raid on a laden caravan, which is almost all of them.
+     */
+    plundered: TraderPlunder | null,
     before: Map<number, FallenUnit & { hp: number }>,
     cityHpBefore: number,
     attackerFrom: CellRef,
@@ -2840,7 +2976,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       renderer.animateDeath?.(was);
     }
 
-    reportCombatNotice(view, dealt?.amount ?? 0, taken?.amount ?? 0);
+    reportCombatNotice(view, dealt?.amount ?? 0, taken?.amount ?? 0, plundered);
   }
 
   /** "Warrior attacks Archer: 34 − 12", in the reducer's own vocabulary. */
@@ -2848,6 +2984,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     view: CombatPreview & { ok: true },
     dealt: number,
     taken: number,
+    plundered: TraderPlunder | null,
   ): void {
     const { state } = getGame();
     // Plunder before capture, because the two look alike and are not: a laden
@@ -2855,13 +2992,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // a civilian merely changes hands. Both are one-sided — no roll, no
     // counter — which is why neither prints a damage trade.
     //
-    // The figures are deliberately absent. `applyCombat` composes them
-    // (`CombatOutcome.plundered`) and `applyAttack` does not carry them out on
-    // `CommandResult`, so this side of the wall cannot see them; quoting a
-    // number measured off the treasury would be the interface inventing a
-    // ledger. See the note at the end of this pass.
+    // The figures **are** carried now (`CommandResult.combats[].plundered`), so
+    // the line says what the raid was worth. It is the one number on this notice
+    // that is *reported* rather than measured across the dispatch, and it has to
+    // be: the gold is banked and the grain is in a basket somewhere else on the
+    // map by the time this runs, so measuring it would mean re-deriving
+    // `nearestOwnedCity` at the surface. The figures come through
+    // `plunderSpoils`, the one composer both plunder sentences use.
     if (view.plundersUnit) {
-      announce(`${view.attackerName} plunders ${view.defenderName}`);
+      const spoils = plundered === null ? '' : `: ${plunderSpoils(plundered)}`;
+      announce(`${view.attackerName} plunders ${view.defenderName}${spoils}`);
       return;
     }
     if (view.capturesUnit) {
@@ -3150,10 +3290,21 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    *
    * `buildImprovement` line for line — the same reason the selection is dropped
    * by hand, and the same "believe the simulation" rule about how it is asked.
+   *
+   * The one thing it does that `buildImprovement` does not is *say what
+   * happened* (user, 2026-08-27: "there should be some indication after
+   * performing a rite"). A rite is the quietest expensive thing in the game —
+   * one of three charges on a unit bought out of the faith bank — and until this
+   * line the only sign it had worked was a number changing somewhere else on the
+   * screen. Composed before the dispatch (see `riteSentence`), announced after,
+   * and panned to the hex the augur stood on so the chronicle line leads back to
+   * the town that received it.
    */
   function performRite(id: RiteId): void {
     const unit = selectedUnit();
     if (!unit) return;
+    const sentence = riteSentence(getGame().state, unit, id);
+    const cell = { col: unit.col, row: unit.row };
     const result = commit({
       type: 'performRite',
       playerId: localPlayerId,
@@ -3164,6 +3315,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reject(result.error);
       return;
     }
+    announce(sentence, { cell });
     if (!unitById(getGame().state, unit.id)) {
       selectedId = null;
       setMoveMode(false);
@@ -4148,10 +4300,24 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * Beats two and three, once the marches beat one started have run their
    * course. See `HANDOVER_PAN_MS` for the whole argument.
    */
-  function scheduleHandOver(research: ResearchReport, deficits: readonly string[]): void {
+  function scheduleHandOver(
+    research: ResearchReport,
+    deficits: readonly string[],
+    triumphs: readonly TriumphAward[],
+  ): void {
     const marching = renderer.pendingAnimationMs?.() ?? 0;
     afterBeat(marching, () => {
       onTurnHandedOver?.(getGame().state.turn, research);
+      // **After the card, before the camera.** A Triumph earned in the
+      // resolution is the loudest thing that happened in it, and it is raised
+      // in the same beat the card is rather than on a fourth timer of its own:
+      // the card is a two-second announcement over the board, the sheet is a
+      // surface with a button, and one landing on top of the other is exactly
+      // what "your turn" is for. The camera glide below still runs — it is
+      // pointing at a piece the player will find when they proceed, and a pan
+      // held hostage to a button press would be a beat that never arrives if
+      // the sheet is answered from the keyboard mid-glide.
+      if (triumphs.length > 0) onTriumphs?.(triumphs);
       // A reader who has asked for less motion has asked for fewer beats too:
       // the card and the camera arrive together, as they always did.
       afterBeat(prefersReducedMotion() ? 0 : HANDOVER_PAN_MS, () => {
@@ -4369,7 +4535,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // and the meters: `wakeSleepers` clears a flag, and afterwards there is
     // nothing on the board to say it ever stood.
     const asleep = sleepingSnapshot(getGame().state, localPlayerId);
+    // Collecting, for the whole of this dispatch and no longer: any Triumph the
+    // resolution awards this seat belongs to the hand-over rather than to now.
+    // See `reportTriumphs`, which is what fills it, and note that it is emptied
+    // on **both** branches below — a turn that did not resolve has nothing to
+    // wait for, and a sheet nobody raised is renown a player never saw awarded.
+    heldTriumphs = [];
     const result = commit({ type: 'endTurn', playerId: localPlayerId });
+    const earned = heldTriumphs;
+    heldTriumphs = null;
     if (!result.ok) return;
 
     // Whatever was still sliding belongs to the turn that just ended.
@@ -4394,9 +4568,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // read three seconds later. Its pan is a link the player follows, never a
       // camera move of its own — so it cannot fight the marches.
       announceWakes(asleep);
-      scheduleHandOver(report, deficitLines(meters));
+      scheduleHandOver(report, deficitLines(meters), earned);
       return;
     }
+    // The turn did not resolve — other seats are still playing — so there is no
+    // hand-over to hold anything for and whatever was earned is shown now.
+    if (earned.length > 0) onTriumphs?.(earned);
     const next = nextOpenSeat(localPlayerId);
     if (next !== null) {
       setLocalPlayer(next);
