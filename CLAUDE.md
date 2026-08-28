@@ -475,6 +475,17 @@ would change every seeded outcome. No further rename passes.
   drift on a spawn tile within a month. The **authority freeze does not bar a purchase** —
   it is about ground, and `test/sim/purchase.test.ts` reads the source to keep the clause
   from being added.
+- **Belief spreads as citizens, and `spreadReligion` is the only writer** (Entry XL).
+  `City.followers` and `City.pressureBank` are written by that phase alone (before
+  `collectYields`); a city's religion is *derived* — more than half its people — never stored;
+  a religion's name is drawn at founding from the pantheon's axes. **Follower beliefs pay the
+  founder**, folded over every following city in the world as `liveEffects`' seventh source
+  (`followerBeliefLines`) — never the city's owner; the `follows` scope is the one scope that
+  asks who is reading (`cityScopeAdmits(…, viewerId)`). One religion per empire, at most
+  ⌈⅔ × seats⌉ in a game, refused in `foundReligion`. `prophesies` is `consecrates`' sibling
+  marker; the planting clause reads all four markers. A follower row that scopes a shape the
+  founder's fold cannot read **fails the build** (`religionDataProblems`) — deferral is written
+  on the row, never silently mispaid.
 - **A belief is a card, not a system.** Beliefs and rites are rows of the *same* effect
   vocabulary read by the *same* evaluator; `statecraft.ts` is still the only module that
   switches on `effect.kind`. `CardId` spans five classes now, and the lookup across all five

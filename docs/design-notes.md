@@ -3598,3 +3598,43 @@ health and +5 strength, and the Walls of Uruk (50) and the Great Wall (25) stand
 against the new base for rescaling. A standing great general projects +3 to every friendly
 combat unit within two hexes — a labelled line on both sides, the first general in sweep order
 only, the general itself and cities excluded — while the act's timed blessing stays.
+
+---
+
+## Entry XL — Religion v2: prophets, named religions, and belief as a tide of citizens (**built** 2026-08-28; the design is `docs/religion-v2.md`)
+
+**Rulings (user, 2026-08-28):** prophets at **The High Temple**; a city follows a religion only
+when a **majority of its citizens** do, and spread is *"more aggressive than in Civ, as that's
+the only way to spread religion"*; **follower beliefs pay the owner of the holy site** — the
+founder — not the city's owner; a holy site claims one hex; the faith bomb only converts
+(*"it makes the decision between the two more important"*); one religion per empire and at most
+⌈⅔ × the seats⌉ in a game.
+
+**Belief is a tide, not a verb.** No unit converts a city. Every pressure source — a holy site
+(6, range 6), a following city (2, range 3), a road-joined following city (4, any distance), a
+caravan (3), a live pulse decaying to its absolute expiry, the founder's capital (4), a temple
+doubling its own and halving the rest — banks into `City.pressureBank` each turn, and every ten
+banked converts one citizen: the unconverted first, then the religion with the fewest. A city's
+religion is derived — the one more than half its people follow — and `spreadReligion` is the
+**only writer** of `followers` and `pressureBank`, measuring every town against one board and
+then moving every town, so the tide does not run faster along founding order. It sits before
+`collectYields`, so a town that turns pays its new majority that turn. Measured: a holy site
+alone converts a size-four town in five turns, a road-joined one in eight.
+
+**The religion is the pantheon, named.** `Religion { founderId, name, pantheon, follower,
+enhancer?, pulses }` in founding order; the name is drawn from the pantheon's axes off the seeded
+rng at founding and renamable by pure prose. Founding drafts one follower belief through the
+same offer `chooseBelief` already answers (`BeliefOffer.pool`); the enhancer comes at Theology.
+**Follower beliefs pay the founder**: `liveEffects`' seventh source is the religion you founded —
+its enhancers plainly, the founder trickle by count, and every follower belief folded over every
+following city in the world into empire-scale lines labelled with the count. The `follows` scope
+is the one scope that asks who is reading. Five follower rows ship deferred and a data check
+*fails the build* if a follower row scopes a shape the founder's fold cannot read.
+
+**The prophet** — `prophesies` beside `consecrates`, two charges, its own faith ladder — plants
+the holy site (founding if none), enhances, proclaims (a pulse: 12 over ten hexes for ten turns)
+and redrafts one pool; the augur's Preaching is a small pulse. A prophet plants nothing but a
+holy site and an augur plants nothing at all — the symmetric planting clause now reads all four
+markers, closing an old hole. Hagia Sophia grants a real prophet and carries the first `pressure`
+row. Schema 26. The High Temple on the chart cost four crossings; the sky's re-tune is the
+interface's.
