@@ -1702,7 +1702,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (result.ok) {
       // A card or a belief can change what a hex pays with no board fingerprint to
       // move; the yields lens is told once per accepted command (`MapView`, optional).
-      mapView.noteStateChanged?.();
+      renderer.noteStateChanged?.();
       pollSightings();
       reportRaids(result, caravans);
       reportWonders(result);
