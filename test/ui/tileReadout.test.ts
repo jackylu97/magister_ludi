@@ -161,17 +161,22 @@ describe('tileYieldLines', () => {
     hex.improvement = 'mine';
 
     const lines = tileYieldLines(state, 0, hex);
+    // The hill is written *before* the canopy on a forested hill (user ruling,
+    // 2026-08-27): both are overrides, and the last one standing is the hex's
+    // yield, so ordering them this way is how "the feature wins" is expressed —
+    // as an order in the derivation rather than a precedence clause somewhere
+    // else. The card prints the list faithfully, so the order is visible here.
     expect(lines.map((line) => line.source)).toEqual([
       'Grassland',
-      'Forest',
       'Hills',
+      'Forest',
       'Gems',
       'Mine',
     ]);
     // The two algebras, made visible: what replaces is written plain, what adds
     // is signed. A card that signed an override would promise an addition the
     // fold never performs.
-    expect(lines[2]!.figures).toBe(`2${YIELD_GLYPH.production}`);
+    expect(lines[2]!.figures).toBe(`1${YIELD_GLYPH.food} 1${YIELD_GLYPH.production}`);
     expect(lines[3]!.figures).toBe(`+2${YIELD_GLYPH.gold}`);
     expect(lines[4]!.figures).toBe(`+1${YIELD_GLYPH.production}`);
     // Ground a later override took over is still *written* — this list is the
@@ -179,7 +184,7 @@ describe('tileYieldLines', () => {
     // card does with it is `displayYieldLines`'s business, below.
     expect(lines.filter((line) => line.replaced).map((line) => line.source)).toEqual([
       'Grassland',
-      'Forest',
+      'Hills',
     ]);
   });
 
@@ -280,9 +285,12 @@ describe('displayYieldLines', () => {
     hex.improvement = 'mine';
 
     const shown = displayYieldLines(tileYieldLines(state, 0, hex));
-    // Grassland and Forest both go; Hills stands, and everything sitting *on*
-    // the hex follows it in the order the rules resolved.
-    expect(shown.map((line) => line.source)).toEqual(['Hills', 'Gems', 'Mine']);
+    // Grassland and Hills both go; the Forest stands — it is the *last*
+    // override, which is the whole of the rule the card obeys, and on a
+    // forested hill the canopy is what a player sees and what the hex pays.
+    // Everything sitting *on* the hex follows it in the order the rules
+    // resolved.
+    expect(shown.map((line) => line.source)).toEqual(['Forest', 'Gems', 'Mine']);
     expect(shown.every((line) => !line.replaced)).toBe(true);
     expect(foldPrinted(shown)).toEqual(tileYieldOf(hex, yieldContextFor(state, 0)));
   });
