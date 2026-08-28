@@ -192,6 +192,33 @@ export function endRoute(state: GameState, unit: Unit): void {
   if (from && from.ownerId === unit.ownerId) refreshCityDerived(state, from);
 }
 
+/**
+ * One caravan's route coming home — dropped, or renewed for another leg.
+ *
+ * `marchTraders`' own news (`turn.ts`): a route that lapses is otherwise
+ * silent — the piece is still on the board, nothing died, nothing was taken —
+ * so without this the interface has no way to say "your caravan to Nippur is
+ * home" or "…and it set out again." `renewed` is the whole of auto-resend read
+ * as an event: the same route continuing is news exactly as the same route
+ * ending is, which is why one shape covers both rather than a flag bolted on
+ * after.
+ *
+ * Deliberately **not** raised for `cancelRoute` (`commands.ts`): that ending is
+ * a command the player just issued, and a command already knows what it did.
+ * This is only for the three ways `marchTraders` ends or renews a route with no
+ * verb behind it.
+ */
+export interface RouteEndReport {
+  /** The caravan carrying (or that carried) the route. */
+  unitId: number;
+  ownerId: number;
+  /** The two ends, exactly as `TradeRoute.from`/`to` name them. */
+  from: number;
+  to: number;
+  /** True when the caravan set out on a fresh leg instead of idling. */
+  renewed: boolean;
+}
+
 // --- what a route pays ------------------------------------------------------
 
 /**
@@ -250,8 +277,33 @@ export function explainRouteYield(state: GameState, unit: Unit): RouteYieldLine[
   if (!routeIsLive(state, unit)) return [];
   const pair = routeCities(state, unit);
   if (!pair) return [];
-  const { from, to } = pair;
+  return explainRouteYieldBetween(state, pair.from, pair.to);
+}
 
+/**
+ * What a route *would* pay between these two cities, as they stand — the same
+ * fold `explainRouteYield` answers for a caravan already carrying one, with the
+ * caravan subtracted out.
+ *
+ * Split out so the interface's send preview stops handing `explainRouteYield` a
+ * *copy* of the trader wearing a fake `Unit.trade` — a route's figures are a
+ * pure function of the two cities and never needed a piece at all, which this
+ * makes literal: `explainRouteYield` is now this function once it has resolved
+ * the pair, so there is exactly one implementation of the three lines and the
+ * preview and the paying caravan cannot drift apart on what they promise.
+ *
+ * `_state` is unused today — every figure here reads off `from`/`to` alone —
+ * and stays on the signature anyway (underscored, so the unused-parameter
+ * check does not fight it), for the reason every `explain…` function in this
+ * module takes it: the day a route's yield gains a card or a wonder rider
+ * (`docs/trade.md`'s deferred half), that rider is read off the state and this
+ * is where it joins, not a second function with the state parameter added back.
+ */
+export function explainRouteYieldBetween(
+  _state: GameState,
+  from: City,
+  to: City,
+): RouteYieldLine[] {
   const lines: RouteYieldLine[] = [];
   const label = (note: string): string => `Caravan to ${to.name} · ${note}`;
 

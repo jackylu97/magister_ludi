@@ -112,7 +112,7 @@ import { advanceAlongPath } from './movement';
 import { cardUnitStat, runStatecraft } from './statecraft';
 import { runRenown } from './renown';
 import { advanceResearch } from './tech';
-import { endRoute, routeTarget, standsIn } from './trade';
+import { type RouteEndReport, endRoute, routeTarget, standsIn } from './trade';
 import { type TriumphAward, triumphMarks, triumphsSince } from './triumphs';
 import { type GameState, type Unit, wakeUnit } from './state';
 import { isCombatant, unitDef } from './unitData';
@@ -181,11 +181,24 @@ export interface TurnReport {
    * two boards can say which building handed any of it over.
    */
   grants: CompletionGrantReport[];
+  /**
+   * Every route `marchTraders` dropped or renewed this resolution, in
+   * `state.units` sweep order (`RouteEndReport`).
+   *
+   * `grants`' sibling for the same argument one system over: by the time this
+   * returns a dropped route's key is gone from `unit.trade` and a renewed one's
+   * `expiresTurn` has already moved, so nothing downstream can say which
+   * caravans came home this turn without this list. Unlike a grant it is not
+   * always news to the seat's *action* — a lapsed route with no verb behind it
+   * — which is exactly why `marchTraders` is the one writer and `cancelRoute`
+   * (a command, which already knows what it did) is not.
+   */
+  routesEnded: RouteEndReport[];
 }
 
 /** A fresh, empty report. The one place its shape is written. */
 export function emptyTurnReport(): TurnReport {
-  return { combats: [], wonders: [], triumphs: [], grants: [] };
+  return { combats: [], wonders: [], triumphs: [], grants: [], routesEnded: [] };
 }
 
 export interface TurnPhase {
@@ -454,10 +467,10 @@ function wakeSleepers(state: GameState): void {
  *
  * Walked in `state.units` order, like every other sweep, and it rolls no dice.
  */
-function marchTraders(state: GameState): void {
+function marchTraders(state: GameState, report: TurnReport): void {
   for (const unit of state.units) {
     if (unit.trade === undefined) continue;
-    marchOneTrader(state, unit);
+    marchOneTrader(state, unit, report);
   }
 }
 
@@ -482,15 +495,28 @@ function marchTraders(state: GameState): void {
  *      route the board agreed to and re-derive it against a board that may have
  *      an enemy standing on it.
  */
-function marchOneTrader(state: GameState, unit: Unit): void {
+function marchOneTrader(state: GameState, unit: Unit, report: TurnReport): void {
   const route = unit.trade;
   if (!route) return;
+
+  // The route's own facts, read once: `endRoute` deletes `unit.trade`, so a
+  // report written after the call would have nothing left to read.
+  const noteEnd = (renewed: boolean): void => {
+    report.routesEnded.push({
+      unitId: unit.id,
+      ownerId: unit.ownerId,
+      from: route.from,
+      to: route.to,
+      renewed,
+    });
+  };
 
   let target = routeTarget(state, unit);
   if (target && standsIn(unit, target)) {
     // Home, at the end of the road: the one moment expiry is asked.
     if (!route.outbound && state.turn >= route.expiresTurn) {
       if (!route.autoResend) {
+        noteEnd(false);
         endRoute(state, unit);
         return;
       }
@@ -498,6 +524,7 @@ function marchOneTrader(state: GameState, unit: Unit): void {
       // is *rewritten* rather than extended, so a caravan that sat at home for
       // ten turns does not carry ten turns of credit.
       route.expiresTurn = state.turn + Math.max(1, Math.floor(RULES.trade.routeTurns));
+      noteEnd(true);
     }
     route.outbound = !route.outbound;
     target = routeTarget(state, unit);
@@ -505,6 +532,7 @@ function marchOneTrader(state: GameState, unit: Unit): void {
   }
 
   if (!target) {
+    noteEnd(false);
     endRoute(state, unit);
     return;
   }
@@ -522,7 +550,10 @@ function marchOneTrader(state: GameState, unit: Unit): void {
       // partner it can never reach again, holding a route slot: so a route that
       // has already lapsed ends here rather than at home, which is the only case
       // where the caravan will never get home to end it properly.
-      if (state.turn >= route.expiresTurn) endRoute(state, unit);
+      if (state.turn >= route.expiresTurn) {
+        noteEnd(false);
+        endRoute(state, unit);
+      }
       return;
     }
     unit.path = path.map((cell) => ({ col: cell.col, row: cell.row }));

@@ -38,6 +38,7 @@ import {
   connectedCities,
   explainRouteSlots,
   explainRouteYield,
+  explainRouteYieldBetween,
   explainTradeGold,
   foldRouteYield,
   roadsBuiltBy,
@@ -429,6 +430,72 @@ describe('the shuttle', () => {
   });
 });
 
+// --- route news ---------------------------------------------------------------
+
+describe('route news', () => {
+  /** Lands a caravan at home, its own leg already spent, ready to lapse. */
+  function readyToLapseAtHome(state: GameState, home: City, trader: Unit): void {
+    trader.col = home.col;
+    trader.row = home.row;
+    trader.trade!.outbound = false;
+    trader.trade!.expiresTurn = state.turn;
+    delete trader.path;
+  }
+
+  it('reports a lapsed route once, the turn it comes home', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    readyToLapseAtHome(state, home, trader);
+
+    const report = runEndOfTurn(state);
+    expect(report.routesEnded).toEqual([
+      { unitId: trader.id, ownerId: 0, from: home.id, to: partner.id, renewed: false },
+    ]);
+    expect(trader.trade).toBeUndefined();
+  });
+
+  it('reports a renewal too, when auto-resend is on', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(
+      applyCommand(state, { type: 'setAutoResend', playerId: 0, unitId: trader.id, on: true }),
+    ).toEqual({ ok: true });
+    readyToLapseAtHome(state, home, trader);
+
+    const report = runEndOfTurn(state);
+    expect(report.routesEnded).toEqual([
+      { unitId: trader.id, ownerId: 0, from: home.id, to: partner.id, renewed: true },
+    ]);
+    // The same route, still running — a renewal is news, not an ending.
+    expect(trader.trade).toBeDefined();
+  });
+
+  it('travels out through the resolving endTurn command, the way a grant does', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    readyToLapseAtHome(state, home, trader);
+
+    expect(applyCommand(state, { type: 'endTurn', playerId: 1 })).toEqual({ ok: true });
+    const result = applyCommand(state, { type: 'endTurn', playerId: 0 });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.routesEnded).toEqual([
+      { unitId: trader.id, ownerId: 0, from: home.id, to: partner.id, renewed: false },
+    ]);
+  });
+
+  it('never reports a route the player cancelled themselves', () => {
+    const { state, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, { type: 'cancelRoute', playerId: 0, unitId: trader.id })).toEqual({
+      ok: true,
+    });
+
+    const report = runEndOfTurn(state);
+    expect(report.routesEnded).toEqual([]);
+  });
+});
+
 // --- roads ------------------------------------------------------------------
 
 describe('a road', () => {
@@ -563,6 +630,21 @@ describe('a route’s yields', () => {
     ]);
     // granary + library are food/science; workshop is production.
     expect(foldRouteYield(lines)).toEqual({ food: 2, production: 1, gold: 1 });
+  });
+
+  it('agrees with the pure preview helper a caravan-free candidate reads', () => {
+    // `explainRouteYield` is now `explainRouteYieldBetween` once it has resolved
+    // the pair — one implementation, so a live route and a preview of a route
+    // that does not exist yet cannot promise different figures.
+    const { state, home, partner, trader } = tradeWorld();
+    home.population = 6;
+    partner.population = 8;
+    partner.buildings.push('granary', 'library', 'workshop');
+    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+
+    expect(explainRouteYieldBetween(state, home, partner)).toEqual(
+      explainRouteYield(state, trader),
+    );
   });
 
   it('is derived, not snapshotted: a library built tomorrow raises it tomorrow', () => {
@@ -780,6 +862,51 @@ describe('plundering a caravan', () => {
     const capture = text('state');
     const body = capture.slice(capture.indexOf('export function captureUnit('));
     expect(body.slice(0, body.indexOf('\n}'))).not.toMatch(/trade|trades\(/);
+  });
+});
+
+// --- the attack command's own plunder news ----------------------------------
+
+describe("the attack command's plunder news", () => {
+  it('carries the plunder figures on an ordered attack that kills a laden trader', () => {
+    const { state, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
+    trader.col = 6;
+
+    const theirs = foundCityAt(state, 1, at(state, 6, 7));
+    const raider = createUnit(state, 1, 'warrior', 6, 5);
+
+    const result = applyCommand(state, {
+      type: 'attack',
+      playerId: 1,
+      unitId: raider.id,
+      target: { col: 6, row: 4 },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.combats).toHaveLength(1);
+    const plunder = result.combats![0]!.plundered!;
+    expect(plunder.fromOwnerId).toBe(0);
+    expect(plunder.gold).toBe(TRADE.pillageBounty.gold);
+    expect(plunder.cityName).toBe(theirs.name);
+  });
+
+  it('reports no plunder on an ordered attack that kills an ordinary unit', () => {
+    const state = bareState(16, 9);
+    const attacker = createUnit(state, 0, 'swordsman', 4, 4);
+    const doomed = createUnit(state, 1, 'warrior', 5, 4);
+    doomed.hp = 3;
+
+    const result = applyCommand(state, {
+      type: 'attack',
+      playerId: 0,
+      unitId: attacker.id,
+      target: { col: 5, row: 4 },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(unitById(state, doomed.id)).toBeUndefined();
+    expect(result.combats).toBeUndefined();
   });
 });
 

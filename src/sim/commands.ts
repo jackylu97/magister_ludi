@@ -150,7 +150,13 @@ import {
   researchError,
 } from './tech';
 import type { TechId } from './techData';
-import { endRoute, originCityOf, sendTraderAt, sendTraderError } from './trade';
+import {
+  type RouteEndReport,
+  endRoute,
+  originCityOf,
+  sendTraderAt,
+  sendTraderError,
+} from './trade';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
@@ -976,6 +982,7 @@ export type CommandResult =
       wonders?: WonderCompletion[];
       triumphs?: TriumphAward[];
       grants?: CompletionGrantReport[];
+      routesEnded?: RouteEndReport[];
     }
   | { ok: false; error: string };
 
@@ -989,10 +996,12 @@ export type CommandResult =
  * argument (see the docblock above): a blow struck **inside a resolution** is a
  * difference that stops existing the instant the command returns — by then the
  * raider has been paid, the worker has changed hands, and the board cannot be
- * asked who hit whom. Exactly one command produces it, `endTurn`, and only when
- * the wild actually struck; `attack` deliberately does not (see `applyAttack`).
- * The interface filters the list by the seat at the keyboard; the reducer has no
- * opinion about who is watching.
+ * asked who hit whom. Two commands produce it: `endTurn`, whenever the wild
+ * struck during the resolution, and `attack`, whose own blow rides along for
+ * the one figure the attacker cannot otherwise see — a plundered caravan's
+ * `CombatOutcome.plundered` (see `applyAttack`). The interface filters the list
+ * by the seat at the keyboard; the reducer has no opinion about who is
+ * watching.
  *
  * `wonders` is the third, from the same command and for the same reason, with
  * one difference the interface leans on: it is **not** filtered by seat. A
@@ -1005,6 +1014,12 @@ export type CommandResult =
  * owner alone, and a difference like every other field here: by the time this
  * returns the piece is on the board, the node is in the list and the offer is on
  * the seat, so nothing downstream could re-derive which building did it.
+ *
+ * `routesEnded` is the sixth, from `endTurn` alone: every route `marchTraders`
+ * dropped or renewed during the resolution (`TurnReport.routesEnded`), news for
+ * the same reason a wonder is — by the time this returns the caravan's
+ * `Unit.trade` has already been rewritten or deleted, and no diff of two boards
+ * can say which caravans came home this turn.
  */
 function ok(
   arrivals?: readonly ArrivalReport[],
@@ -1012,6 +1027,7 @@ function ok(
   wonders?: readonly WonderCompletion[],
   triumphs?: readonly TriumphAward[],
   grants?: readonly CompletionGrantReport[],
+  routesEnded?: readonly RouteEndReport[],
 ): CommandResult {
   const result: CommandResult = { ok: true };
   if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
@@ -1019,6 +1035,7 @@ function ok(
   if (wonders !== undefined && wonders.length > 0) result.wonders = [...wonders];
   if (triumphs !== undefined && triumphs.length > 0) result.triumphs = [...triumphs];
   if (grants !== undefined && grants.length > 0) result.grants = [...grants];
+  if (routesEnded !== undefined && routesEnded.length > 0) result.routesEnded = [...routesEnded];
   return result;
 }
 
@@ -1101,7 +1118,14 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   const report = runEndOfTurn(state);
   clearTurnEnded(state);
   state.turn += 1;
-  return ok(undefined, report.combats, report.wonders, report.triumphs, report.grants);
+  return ok(
+    undefined,
+    report.combats,
+    report.wonders,
+    report.triumphs,
+    report.grants,
+    report.routesEnded,
+  );
 }
 
 /** Reads an offset cell defensively; commands may arrive from a save or a socket. */
@@ -1589,16 +1613,24 @@ function applyAttack(state: GameState, command: AttackCommand): CommandResult {
   if (!result.ok) return fail(result.error);
   // A melee winner that advanced may have stormed a camp or ridden into a ruin.
   const arrival = result.outcome.arrival;
-  // The blow itself is deliberately **not** reported on `combats`. That channel
-  // is for news the actor could not otherwise have — a camp's bounty already
-  // banked, a raid that happened inside a resolution — and an attacker knows it
-  // attacked: the interface narrates its own blow from the forecast it just
-  // showed (`reportCombatNotice`). Reporting it here would also put a field on
-  // the overwhelmingly common result for nobody's benefit, which is the promise
-  // `CommandResult` makes above. The day a *relayed* command has to tell a
-  // watching seat, that is the referee's per-seat projection (ledger Entry
-  // XXIII), not this return value.
-  return ok(arrival === null ? undefined : [arrival]);
+  // The blow itself is still not reported on `combats` for the ordinary case:
+  // an attacker knows it attacked, and the interface narrates its own blow from
+  // the forecast it already showed (`reportCombatNotice`). That channel is for
+  // news the actor could not otherwise have — a camp's bounty already banked, a
+  // raid that happened inside a resolution — and reporting an ordinary blow
+  // here would put a field on the overwhelmingly common result for nobody's
+  // benefit, which is the promise `CommandResult` makes above.
+  //
+  // A plundered caravan is the one figure that channel cannot supply: the
+  // bounty (`CombatOutcome.plundered`) is composed *inside* `applyCombat`, off
+  // the board by the time this returns, and no forecast the interface showed
+  // beforehand could have printed a number nobody had rolled yet. So the
+  // outcome rides `combats` exactly when there was something plundered — an
+  // ordinary kill's result is unchanged, and `reportRaids` (`controls.ts`)
+  // still ignores it, because that reader only narrates blows against the
+  // *local* seat and an attacker is never its own defender.
+  const combats = result.outcome.plundered === null ? undefined : [result.outcome];
+  return ok(arrival === null ? undefined : [arrival], combats);
 }
 
 /**
