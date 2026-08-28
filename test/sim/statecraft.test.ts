@@ -1952,7 +1952,9 @@ describe('the master-list cut of 2026-08-28', () => {
       'civilian units: +2 movement while embarked',
     ]);
     expect(said('theLongWatch')).toEqual([
-      '+1 happiness per fortification level among the units in the city',
+      // 2026-08-28: the user's correction — a unit standing in the city, whatever
+      // its fortification, is the watch.
+      '+1 happiness per combat unit standing in the city',
       '+1 happiness per fortification in this city',
     ]);
     expect(said('theWidowsLevy')).toEqual([
