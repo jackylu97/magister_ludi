@@ -45,6 +45,16 @@ describe('module load order', () => {
     expect(paths).toContain('../../src/sim/empireGold.ts');
   });
 
+  /**
+   * Each case re-evaluates the whole simulation graph from cold and then
+   * generates a map and resolves a turn on it — two to four seconds on an idle
+   * machine and past the 5 s default when `test:all` runs every file in
+   * parallel beside it. The budget is generous because this test is a cycle
+   * detector, not a benchmark: it fails by throwing "X is not a function", never
+   * by being slow, and a timeout here has only ever meant a loaded machine.
+   */
+  const SWEEP_TIMEOUT_MS = 30_000;
+
   for (const path of paths) {
     const name = path.replace('../../src/sim/', '').replace(/\.ts$/, '');
     it(`survives ${name} being evaluated first`, async () => {
@@ -67,6 +77,6 @@ describe('module load order', () => {
       expect(game.state.units.length).toBeGreaterThan(0);
       expect(dispatch(game, { type: 'endTurn', playerId: 0 } as never).ok).toBe(true);
       expect(game.state.turn).toBe(2);
-    });
+    }, SWEEP_TIMEOUT_MS);
   }
 });
