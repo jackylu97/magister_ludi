@@ -131,7 +131,7 @@ would change every seeded outcome. No further rename passes.
   and calls the one seam like the other two. `marchTraders` aims a
   leg immediately before `spendLeftoverMovement` spends it. A melee blow on a unit that
   `trades` **plunders** (bounty to the nearest city, forfeited by the wild) and never
-  `captureUnit`s — the register's one exception, by marker. `explainEmpireGold` (was `explainTradeGold`) is **four** lines — City connections (one
+  `captureUnit`s — the register's one exception, by marker. `explainEmpireGold` (`empireGold.ts`, a leaf; was `explainTradeGold` in `trade.ts`) is **four** lines — City connections (one
   total), Road maintenance, Unit maintenance, Building maintenance (Entry XLI) — one fold;
   a new recurring cost joins it, never a second one. `Unit.freeUpkeep` is written at the five
   seams that issue a free unit (`captureUnit`, the windfall grant, a completion grant, a great
@@ -164,11 +164,12 @@ would change every seeded outcome. No further rename passes.
   memory of what it baked (`BuiltBoard.treedCells`), not of the state, because after a chop the
   state says `none` and the buffers still hold pines. Anything else that removes baked dressing
   needs its own such record.
-- **A runtime import cycle is caught by `test/mapgen/moduleCycles.test.ts`, and only if the
-  module is an entry there.** Typecheck does not see one; the symptom is "X is not a function"
-  in a hundred unrelated files. A new sim module that is imported by `cities.ts`/`turn.ts`
-  joins that entry list; a helper two modules both need lives in a leaf (`roads.ts`,
-  `unitData.ts`), never in one of the two.
+- **A runtime import cycle is caught by `test/mapgen/moduleCycles.test.ts`, which globs every
+  `src/sim/*.ts` module as an entry** (2026-08-28 — coverage is a property of the directory). Typecheck does not see one; the symptom is "X is not a function"
+  in a hundred unrelated files. A helper two modules both need lives in a leaf (`roads.ts`, `unitData.ts`,
+  `routeYields.ts`, `empireGold.ts`), never in one of the two; `capitalCityOf` and
+  `tileOwnerField` live in `state.ts` for that reason and `cities.ts` re-exports them. `cities.ts`
+  never imports `./trade` (pinned by source in `test/sim/cities.test.ts`).
 - `turnEnded` assumes player id === array index; revisit if players become removable.
   `visibility` and `citySightings` (M8) make the same assumption and revisit with it.
   **The barbarian seat is appended *last*, after the opening rosters are seated** (Entry
