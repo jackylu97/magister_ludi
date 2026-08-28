@@ -27,43 +27,24 @@
  *
  * The idle definition
  * -------------------
- * A unit is idle when it **can still be told to do something and has not been
- * told**:
+ * `unitAwaitsOrders` (`sim/units.ts`) is the one predicate — the sim owns it so
+ * an AI or a future second client asks the same question this interface does.
+ * Its docblock is the complete accounting of every clause, including the fifth
+ * (a routed trade caravan is never idle, however much movement it has left).
+ * What is worth repeating here is only why it lives in the sim and not in this
+ * file: this module decides *what the button does about* a unit that is
+ * awaiting orders, not *what counts as* awaiting orders.
  *
- *     movesLeft > 0  &&  no stored path  &&  not fortified  &&  not asleep
- *
- * Each clause earns its place, and one omission is deliberate:
- *
- *   · `movesLeft > 0` — a unit that spent its allowance is finished for the
- *     turn whatever else is true of it. This is also the whole of the answer to
- *     "did it attack": a piece that attacked and has no movement left is spent
- *     and does not block, while a piece that attacked and *can still walk* is
- *     genuinely awaiting orders and does. `hasAttacked` is therefore never read
- *     — reading it would silence a unit that still has a move to make, which is
- *     exactly the unit the player most often forgets.
- *   · no stored `path` — a column marching to a waypoint three turns away has
- *     its orders. Asking about it every turn of the march would train the player
- *     to press through the prompt.
- *   · not fortified — digging in *is* the order. `fortifiedTurns` present is
- *     the fortified state (see its docblock in `state.ts`), and a fortified
- *     sentry keeps its full movement, so without this clause every garrison in
- *     the empire would block every turn forever.
- *   · not asleep — the same argument for the civilians that cannot fortify.
- *     Sleep is a worker's or a settler's standing order (`Unit.sleeping`), it
- *     keeps its full movement exactly as a trench does, and it is given for no
- *     other purpose than to stop being asked about. A fourth clause here is what
- *     the command actually buys.
- *
- * **Workers need no fourth clause, and that is a result rather than an
+ * **Workers need no clause of their own, and that is a result rather than an
  * oversight.** M7's builders are exactly the unit this prompt exists for — a
- * worker parked on a hex it could be farming is a wasted turn — and the three
- * clauses already surface one: it keeps its full movement while it stands
- * around, so `movesLeft > 0` catches it; building spends *all* of that allowance
- * (see `improvements.ts`), so it stops blocking the instant it has done the
- * turn's work; and a worker whose last charge went into a farm is removed from
- * the board entirely, so "has movement but nothing left to spend" is a state
- * that cannot exist. A clause reading `chargesLeft` would therefore have been a
- * clause that never changed an answer.
+ * worker parked on a hex it could be farming is a wasted turn — and
+ * `unitAwaitsOrders`'s existing clauses already surface one: it keeps its full
+ * movement while it stands around, so `movesLeft > 0` catches it; building
+ * spends *all* of that allowance (see `improvements.ts`), so it stops blocking
+ * the instant it has done the turn's work; and a worker whose last charge went
+ * into a farm is removed from the board entirely, so "has movement but nothing
+ * left to spend" is a state that cannot exist. A clause reading `chargesLeft`
+ * would therefore have been a clause that never changed an answer.
  *
  * The other three blockers are simple facts: an unanswered discovery offer, a
  * city of yours with an empty production queue, and a research pool aimed at
@@ -82,7 +63,7 @@
  * -----------------------------------------------
  * A player can wave a specific idle unit off with Skip Turn (`controls.ts`),
  * and that unit must then stop blocking End Turn for the rest of *this* turn.
- * Skip is not a clause on `isIdleUnit`, deliberately: it is not a fact
+ * Skip is not a clause on `unitAwaitsOrders`, deliberately: it is not a fact
  * about the unit (a replay or an AI reading the same state has no idea one
  * seat's interface waved it off, and must not need to), it is a fact about
  * what one client's player has already been asked and answered. So it lives
@@ -115,7 +96,8 @@ import { religionBlocker } from '../sim/religion';
 import type { Player } from '../sim/state';
 import { statecraftBlocker } from '../sim/statecraft';
 import { availableTechs } from '../sim/tech';
-import { type GameState, type Unit, hasEndedTurn, playerById } from '../sim/state';
+import { type GameState, hasEndedTurn, playerById } from '../sim/state';
+import { unitAwaitsOrders } from '../sim/units';
 
 /**
  * One piece of unfinished business, carrying whatever the interface needs to
@@ -133,25 +115,6 @@ export type TurnBlocker =
   | { kind: 'statecraft'; what: 'order' | 'doctrine' }
   | { kind: 'religion' }
   | { kind: 'greatPerson' };
-
-/**
- * Is this unit awaiting orders? See the module docblock for why these four
- * clauses and no fifth.
- *
- * `path` is absent rather than empty on an idle unit (`state.ts` keeps that
- * invariant so snapshots compare byte for byte), but this tolerates an empty
- * array too: a route with nothing left in it is not an order.
- */
-export function isIdleUnit(unit: Unit): boolean {
-  if (unit.movesLeft <= 0) return false;
-  if (unit.path !== undefined && unit.path.length > 0) return false;
-  if (unit.fortifiedTurns !== undefined) return false;
-  // Presence is the state, exactly as `fortifiedTurns` above — but written as a
-  // value test rather than a presence test, because a hand-edited save could
-  // carry `sleeping: false` and a unit that is not asleep is not asleep.
-  if (unit.sleeping === true) return false;
-  return true;
-}
 
 /**
  * Which Statecraft draft this empire owes an answer to, or `null`.
@@ -257,7 +220,7 @@ export function firstBlocker(
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
     if (exclusions?.skippedUnitIds?.has(unit.id)) continue;
-    if (isIdleUnit(unit)) return { kind: 'idleUnit', unitId: unit.id };
+    if (unitAwaitsOrders(unit)) return { kind: 'idleUnit', unitId: unit.id };
   }
 
   for (const city of state.cities) {

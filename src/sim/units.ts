@@ -138,6 +138,50 @@ export function isRested(unit: Unit, state?: GameState): boolean {
   return unit.movesLeft === fullMovement(unit, state) && !unit.hasAttacked;
 }
 
+/**
+ * Is this unit awaiting orders — the one predicate for "does this piece need
+ * the player's attention before the turn can end", asked by End Turn's
+ * blocker, the idle-unit camera cycle, and Skip Turn's own gate alike.
+ *
+ * A unit is idle when it **can still be told to do something and has not been
+ * told**:
+ *
+ *     movesLeft > 0  &&  no stored path  &&  not fortified  &&  not asleep
+ *       &&  not carrying a trade route
+ *
+ * The first four clauses and their reasoning are `ui/turnBlockers.ts`'s
+ * original docblock, reproduced in full there — `movesLeft > 0` (a unit that
+ * spent its allowance is finished for the turn, `hasAttacked` deliberately
+ * never read), no stored `path` (a column mid-march has its orders), not
+ * fortified (digging in *is* the order), not asleep (a civilian's fortify).
+ *
+ * **Trade is the fifth, and the fix this predicate exists for** (the routed
+ * caravan bug, 2026-08-28). A laden caravan rests on its destination hex with
+ * full movement and no `path` between legs — `marchTraders` aims the next leg
+ * during resolution, not the moment it arrives — so the first four clauses
+ * alone would flag it idle every single turn of a twenty-turn route. But a
+ * caravan carrying a route is not a piece the player positions; `Unit.trade`
+ * present *is* its standing order, the same way `fortifiedTurns` and
+ * `sleeping` are standing orders for a soldier and a civilian. Presence is
+ * again the state, so this reads `unit.trade !== undefined` rather than
+ * anything about where the route currently points.
+ *
+ * Lives in the sim so an AI (or a future second client) asks the same
+ * question the interface does, rather than a UI-only rule the simulation
+ * cannot see. `path` is absent rather than empty on an idle unit (`state.ts`
+ * keeps that invariant so snapshots compare byte for byte), but this
+ * tolerates an empty array too: a route with nothing left in it is not an
+ * order.
+ */
+export function unitAwaitsOrders(unit: Unit): boolean {
+  if (unit.movesLeft <= 0) return false;
+  if (unit.path !== undefined && unit.path.length > 0) return false;
+  if (unit.fortifiedTurns !== undefined) return false;
+  if (unit.sleeping === true) return false;
+  if (unit.trade !== undefined) return false;
+  return true;
+}
+
 // --- sleep ------------------------------------------------------------------
 
 /**

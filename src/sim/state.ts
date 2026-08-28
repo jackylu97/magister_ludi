@@ -784,7 +784,7 @@ export interface Unit {
    * "stop asking me about this piece". It costs nothing, spends nothing, and
    * changes no rule — a sleeping unit defends, is captured, is seen and heals
    * exactly as it did awake. The only thing that reads it is
-   * `isIdleUnit` (`ui/turnBlockers.ts`), which is the whole point: End Turn
+   * `unitAwaitsOrders` (`sim/units.ts`), which is the whole point: End Turn
    * stops nagging, and the post-resolution camera stops flying to it.
    *
    * Two things end it, and they are opposite in kind. **An order** — any

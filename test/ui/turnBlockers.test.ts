@@ -21,8 +21,9 @@ import {
 } from '../../src/sim/state';
 import { availableTechs } from '../../src/sim/tech';
 import { TECH_IDS } from '../../src/sim/techData';
+import { unitAwaitsOrders } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
-import { firstBlocker, isIdleUnit } from '../../src/ui/turnBlockers';
+import { firstBlocker } from '../../src/ui/turnBlockers';
 
 /** A two-player state on a blank grassland rectangle, as `tech.test.ts` uses. */
 function flatState(width = 16, height = 12): GameState {
@@ -80,33 +81,33 @@ function spentUnit(state: GameState, ownerId: number, col: number, row: number):
 
 // ---------------------------------------------------------------------------
 
-describe('isIdleUnit', () => {
+describe('unitAwaitsOrders', () => {
   it('calls a fresh unit with moves and no orders idle', () => {
     const state = flatState();
-    expect(isIdleUnit(createUnit(state, 0, 'warrior', 3, 3))).toBe(true);
+    expect(unitAwaitsOrders(createUnit(state, 0, 'warrior', 3, 3))).toBe(true);
   });
 
   it('does not call a spent unit idle', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 3, 3);
     unit.movesLeft = 0;
-    expect(isIdleUnit(unit)).toBe(false);
+    expect(unitAwaitsOrders(unit)).toBe(false);
   });
 
   it('does not call a unit under a standing order idle', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 3, 3);
     unit.path = [{ col: 4, row: 3 }, { col: 5, row: 3 }];
-    expect(isIdleUnit(unit)).toBe(false);
+    expect(unitAwaitsOrders(unit)).toBe(false);
   });
 
   it('does not call a fortified unit idle, however long it has been dug in', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 3, 3);
     unit.fortifiedTurns = 0;
-    expect(isIdleUnit(unit)).toBe(false);
+    expect(unitAwaitsOrders(unit)).toBe(false);
     unit.fortifiedTurns = 5;
-    expect(isIdleUnit(unit)).toBe(false);
+    expect(unitAwaitsOrders(unit)).toBe(false);
   });
 
   it('still calls a unit that attacked but can walk idle', () => {
@@ -114,7 +115,7 @@ describe('isIdleUnit', () => {
     const unit = createUnit(state, 0, 'warrior', 3, 3);
     unit.hasAttacked = true;
     expect(unit.movesLeft).toBeGreaterThan(0);
-    expect(isIdleUnit(unit)).toBe(true);
+    expect(unitAwaitsOrders(unit)).toBe(true);
   });
 
   it('does not call a unit that attacked and is out of movement idle', () => {
@@ -122,24 +123,24 @@ describe('isIdleUnit', () => {
     const unit = createUnit(state, 0, 'warrior', 3, 3);
     unit.hasAttacked = true;
     unit.movesLeft = 0;
-    expect(isIdleUnit(unit)).toBe(false);
+    expect(unitAwaitsOrders(unit)).toBe(false);
   });
 
   it('treats an emptied path as no order at all', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 3, 3);
     unit.path = [];
-    expect(isIdleUnit(unit)).toBe(true);
+    expect(unitAwaitsOrders(unit)).toBe(true);
   });
 
   it('calls a worker with charges, movement and no orders idle', () => {
     // The unit this prompt exists for: a worker parked on farmable ground is a
     // wasted turn, and it falls out of the three clauses without a fourth. See
-    // the module docblock in `turnBlockers.ts`.
+    // the module docblock in `sim/units.ts`.
     const state = flatState();
     const worker = createUnit(state, 0, 'worker', 3, 3);
     expect(worker.chargesLeft).toBe(3);
-    expect(isIdleUnit(worker)).toBe(true);
+    expect(unitAwaitsOrders(worker)).toBe(true);
   });
 
   it('stops calling a worker idle once it has spent its turn building', () => {
@@ -149,7 +150,29 @@ describe('isIdleUnit', () => {
     const worker = createUnit(state, 0, 'worker', 3, 3);
     worker.chargesLeft = 2;
     worker.movesLeft = 0;
-    expect(isIdleUnit(worker)).toBe(false);
+    expect(unitAwaitsOrders(worker)).toBe(false);
+  });
+
+  it('does not call a routed trader resting at its destination idle, however much movement it has left', () => {
+    // The bug this predicate exists to fix (2026-08-28): `marchTraders` aims the
+    // caravan's next leg during resolution rather than the instant it arrives,
+    // so a laden trader rests on the destination hex with a full allowance and
+    // no stored `path` between legs. `Unit.trade` present is its standing
+    // order, exactly as `fortifiedTurns` and `sleeping` are.
+    const state = flatState();
+    const unit = createUnit(state, 0, 'trader', 3, 3);
+    unit.trade = { from: 1, to: 2, expiresTurn: 20, outbound: false, autoResend: true };
+    expect(unit.movesLeft).toBeGreaterThan(0);
+    expect(unit.path).toBeUndefined();
+    expect(unitAwaitsOrders(unit)).toBe(false);
+  });
+
+  it('calls the same unit idle the instant it stops carrying a route', () => {
+    const state = flatState();
+    const unit = createUnit(state, 0, 'trader', 3, 3);
+    unit.trade = { from: 1, to: 2, expiresTurn: 20, outbound: false, autoResend: true };
+    delete unit.trade;
+    expect(unitAwaitsOrders(unit)).toBe(true);
   });
 });
 
@@ -185,6 +208,27 @@ describe('firstBlocker · idle units', () => {
     createUnit(state, 0, 'warrior', 4, 3).path = [{ col: 5, row: 3 }];
     createUnit(state, 0, 'warrior', 5, 4).fortifiedTurns = 2;
     expect(firstBlocker(state, 0)).toBeNull();
+  });
+
+  it('never blocks on a routed trader resting at its destination with full movement', () => {
+    // The bug this suite exists to pin (2026-08-28, user report): a routed
+    // caravan sits at its destination between legs with a full allowance and
+    // no stored `path` — `marchTraders` aims the next leg during resolution —
+    // and used to trip the idle-unit blocker every turn of its twenty-turn
+    // route.
+    const state = settled();
+    const trader = createUnit(state, 0, 'trader', 3, 3);
+    trader.trade = { from: 1, to: 2, expiresTurn: 20, outbound: false, autoResend: true };
+    expect(trader.movesLeft).toBeGreaterThan(0);
+    expect(firstBlocker(state, 0)).toBeNull();
+  });
+
+  it('blocks on that same trader the instant it stops carrying a route', () => {
+    const state = settled();
+    const trader = createUnit(state, 0, 'trader', 3, 3);
+    trader.trade = { from: 1, to: 2, expiresTurn: 20, outbound: false, autoResend: true };
+    delete trader.trade;
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'idleUnit', unitId: trader.id });
   });
 });
 
@@ -431,5 +475,55 @@ describe('firstBlocker · Religion', () => {
     state.players[1]!.barbarian = true;
     state.players[1]!.pantheon.pending = { options: ['sacredFire'] };
     expect(firstBlocker(state, 1)).toBeNull();
+  });
+});
+
+/**
+ * There is exactly one predicate for "this unit needs orders" —
+ * `unitAwaitsOrders` (`sim/units.ts`) — and every surface in `src/ui` asks it
+ * rather than re-deriving `movesLeft > 0` and its siblings by hand. This is
+ * the source-reading half of that claim, in the shape `seatRoster.test.ts`
+ * uses for the same reason: the failure mode of a second hand-rolled idle test
+ * is a surface that quietly disagrees with `unitAwaitsOrders` the day someone
+ * adds a sixth exclusion, and no behavioural test catches *that* — only
+ * reading the source does.
+ */
+describe('the idle-unit predicate', () => {
+  const UI_SOURCE = import.meta.glob('../../src/ui/*.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>;
+
+  function code(text: string): string {
+    return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  }
+
+  it('is asked of unitAwaitsOrders everywhere in the interface, never re-derived', () => {
+    // The shape a re-derivation would take, chaining `movesLeft` into a
+    // boolean idle test the way the old `isIdleUnit` did — narrow on purpose,
+    // so it does not trip over `moveModeNotice`'s ternary (`controls.ts`) or
+    // the unit sheet's "spent" styling (`unit.movesLeft <= 0` with no `&&`,
+    // `unitPanel.ts`), which read `movesLeft` for reasons that have nothing to
+    // do with whether a unit blocks End Turn.
+    const idleShaped = /\bmovesLeft\s*(?:<=|>)\s*0\s*&&/;
+    const offenders: string[] = [];
+    for (const [path, source] of Object.entries(UI_SOURCE)) {
+      const lines = code(source).split('\n');
+      for (const [index, line] of lines.entries()) {
+        if (idleShaped.test(line)) offenders.push(`${path}:${index + 1}: ${line.trim()}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('is asked at all — controls.ts imports it from the sim', () => {
+    // The other half of the claim, as `seatRoster.test.ts` argues: a grep with
+    // nothing to find passes vacuously. `skipBlocker` is the one caller left
+    // in `controls.ts` since `firstBlocker` moved the idle-unit cycle's own
+    // read behind `unitAwaitsOrders` already.
+    const key = Object.keys(UI_SOURCE).find((path) => path.endsWith('/controls.ts'));
+    expect(key).toBeDefined();
+    expect(UI_SOURCE[key!]).toContain('unitAwaitsOrders(');
   });
 });

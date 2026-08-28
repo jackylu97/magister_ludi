@@ -74,7 +74,7 @@ import {
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 import { at, bareState, woodedWorker } from './improvementHelpers';
-import { isIdleUnit } from '../../src/ui/turnBlockers';
+import { unitAwaitsOrders } from '../../src/sim/units';
 
 /**
  * Milestone 7: workers, the things they build, and the raiders who burn them.
@@ -263,10 +263,10 @@ describe('the worker', () => {
 
   it('blocks the end of a turn while it stands idle with work to do', () => {
     const { worker } = workerState();
-    expect(isIdleUnit(worker)).toBe(true);
+    expect(unitAwaitsOrders(worker)).toBe(true);
     // Building spends the whole allowance, which is what stops it blocking again.
     worker.movesLeft = 0;
-    expect(isIdleUnit(worker)).toBe(false);
+    expect(unitAwaitsOrders(worker)).toBe(false);
   });
 });
 

@@ -250,7 +250,13 @@ import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
 import { type TraderPlunder, routeCities } from '../sim/trade';
 import { isExplorer, trades, unitDef } from '../sim/unitData';
-import { sleepError, sleepingSnapshot, unitsOnTile, wakesSince } from '../sim/units';
+import {
+  sleepError,
+  sleepingSnapshot,
+  unitAwaitsOrders,
+  unitsOnTile,
+  wakesSince,
+} from '../sim/units';
 import { isExploredBy } from '../sim/visibility';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
@@ -597,6 +603,25 @@ export function lensForDigit(
  */
 export function lensShowsYields(mode: LensMode, yieldsOn: boolean, cityOpen: boolean): boolean {
   return yieldsOn || cityOpen || mode === 'settler';
+}
+
+/**
+ * Does the top bar's seat strip earn its keep this game.
+ *
+ * The strip is a hot-seat harness (`renderSeats` in `main.ts`), not a fact an
+ * ordinary player needs: in the one-human game the product ships, "whose turn
+ * is this" has one answer and a chip announcing it is extraneous ink, printing
+ * a colour nobody chose to be told twice. It earns its place the moment a
+ * second human is actually seated at the table — `isHuman`, not the raw seat
+ * count, because an AI seat (once one exists) is not somebody to switch to.
+ *
+ * `realPlayers`, never `state.players`: the wild is a `Player` and is never
+ * human, so it would fail this filter anyway, but the roster test in
+ * `test/ui/seatRoster.test.ts` reads for the register by name and this keeps
+ * this file in it correctly rather than by accident.
+ */
+export function showsSeatStrip(state: GameState): boolean {
+  return realPlayers(state).filter((player) => player.isHuman).length > 1;
 }
 
 // --- what a wonder handed over ----------------------------------------------
@@ -1675,6 +1700,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const caravans = caravanDestinations();
     const result = dispatch(getGame(), command);
     if (result.ok) {
+      // A card or a belief can change what a hex pays with no board fingerprint to
+      // move; the yields lens is told once per accepted command (`MapView`, optional).
+      mapView.noteStateChanged?.();
       pollSightings();
       reportRaids(result, caravans);
       reportWonders(result);
@@ -3120,17 +3148,21 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    *
    * Deliberately **not** `fortifyError`'s twin: skip is not a sim order at all
    * (see `skipUnit`), so there is no reducer sentence to delegate to and this
-   * function is the only place either answer is decided. A unit with nothing
-   * left to spend has nothing to wave off — it was never going to block End
-   * Turn — and a unit already skipped is offered the same refusal so the
-   * button reads as spent rather than as broken.
+   * function is the only place either answer is decided. A unit `firstBlocker`
+   * would never call idle in the first place — spent, fortified, asleep, or
+   * (2026-08-28) carrying a trade route — has nothing to wave off, because it
+   * was never going to block End Turn; the check is `unitAwaitsOrders` itself
+   * rather than a re-read of `movesLeft` alone, or a routed caravan sitting at
+   * its destination with full movement would offer a Skip button that skips
+   * nothing. A unit already skipped is offered the same refusal so the button
+   * reads as spent rather than as broken.
    */
   function skipBlocker(): string | null | undefined {
     const unit = selectedUnit();
     if (!unit) return undefined;
     if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
     if (skippedUnitIds.has(unit.id)) return 'Already waiting this turn';
-    if (unit.movesLeft <= 0) return 'This unit has nothing left to spend this turn';
+    if (!unitAwaitsOrders(unit)) return 'This unit has nothing left to spend this turn';
     return null;
   }
 

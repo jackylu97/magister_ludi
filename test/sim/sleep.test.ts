@@ -8,7 +8,8 @@
  *      refusal leaves the state byte-identical (hard rule 1).
  *   2. **A sleeper stops blocking End Turn.** That is the only thing the flag
  *      buys and the whole reason a player would ever press the button, so it is
- *      pinned against `firstBlocker` rather than against `isIdleUnit` alone.
+ *      pinned against `firstBlocker` rather than against `unitAwaitsOrders`
+ *      alone.
  *   3. **`wakeSleepers` wakes it when an enemy comes inside its *own* sight** —
  *      any owner but its own, the wild included, combatants only, and line of
  *      sight respected, because it is the same rule the fog and the archers ask.
@@ -33,9 +34,9 @@ import {
   newGame,
 } from '../../src/sim/state';
 import { runEndOfTurn } from '../../src/sim/turn';
-import { sleepError, sleepingSnapshot, wakesSince } from '../../src/sim/units';
+import { sleepError, sleepingSnapshot, unitAwaitsOrders, wakesSince } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
-import { firstBlocker, isIdleUnit } from '../../src/ui/turnBlockers';
+import { firstBlocker } from '../../src/ui/turnBlockers';
 
 /**
  * A blank three-seat state on flat grassland: two empires and the wild, so a
@@ -151,11 +152,11 @@ describe('a sleeping unit and the End Turn blocker', () => {
   it('stops being idle, and stops blocking', () => {
     const state = flatState();
     const worker = createUnit(state, 0, 'worker', 5, 5);
-    expect(isIdleUnit(worker)).toBe(true);
+    expect(unitAwaitsOrders(worker)).toBe(true);
     expect(firstBlocker(state, 0)).toEqual({ kind: 'idleUnit', unitId: worker.id });
 
     applyCommand(state, sleep(worker.id));
-    expect(isIdleUnit(worker)).toBe(false);
+    expect(unitAwaitsOrders(worker)).toBe(false);
     // Nothing else of this seat's is outstanding: no cities, and the opening
     // research choice is the only thing left, which is a different blocker.
     expect(firstBlocker(state, 0)?.kind).not.toBe('idleUnit');
@@ -178,7 +179,7 @@ describe('a sleeping unit and the End Turn blocker', () => {
     applyCommand(state, sleep(worker.id));
     const reloaded = clone(state);
     expect(reloaded.units[0]!.sleeping).toBe(true);
-    expect(isIdleUnit(reloaded.units[0]!)).toBe(false);
+    expect(unitAwaitsOrders(reloaded.units[0]!)).toBe(false);
   });
 });
 
