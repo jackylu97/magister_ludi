@@ -188,13 +188,12 @@ import { buildingTileLines } from './buildingEffects';
 // one asks it what the caravans standing in its towns are worth. Everything at
 // the top level of both files is a constant from a data table, which is the
 // condition every cycle in this simulation is safe under.
-import {
-  caravanTypeId,
-  cityRouteYields,
-  empireGold,
-  explainEmpireGold,
-  layRoad,
-} from './trade';
+import { cityRouteYields, empireGold, explainEmpireGold } from './trade';
+// **A leaf, deliberately** (2026-08-28): the road writer and the roster's
+// caravan both moved out of `trade.ts` so that this file's *founding* verb — The
+// Founders' Road — reaches them without crossing the cycle it documents above.
+import { layRoad } from './roads';
+import { caravanTypeId } from './unitData';
 import { awardFoundingTriumphs, awardOccasion } from './triumphs';
 import { disbandCandidate, treasuryInDebt } from './upkeep';
 
@@ -475,6 +474,10 @@ export function explainTileYield(
   }
 
   const improvement = tile.improvement;
+  // Where the works' own entries begin, so a card that raises *them* by a
+  // percentage can be paid off exactly what they pay and nothing else. See the
+  // percentage pass at the foot of this function.
+  const worksFrom = list.length;
   if (improvement !== undefined) {
     const def = improvementDef(improvement);
     list.push({ source: def.name, kind: 'add', ...improvementYield(improvement) });
@@ -491,6 +494,7 @@ export function explainTileYield(
       });
     }
   }
+  const worksTo = list.length;
 
   // The empire's law, holdings and works, last, and as ordinary `add` entries:
   // Common Granary's food on a resource hex, a granary's food on water, tyrian's
@@ -515,6 +519,12 @@ export function explainTileYield(
   const sourceIndex = new Map<string, number>();
   for (const line of ctx?.lines ?? []) {
     if (!tileConditionHolds(tile, line.on)) continue;
+    // A line that is **only** a percentage carries no bag at all (The
+    // Commonwealth's works). It is paid by the pass at the foot of this
+    // function, and a zero-in-every-voice entry pushed here would be a row in
+    // the hover that explains nothing — the same reading `paysSomething` takes
+    // of a card's city yields one ledger over.
+    if (!TILE_YIELD_KEYS.some((voice) => line[voice] !== 0)) continue;
     const existingAt = sourceIndex.get(line.source);
     if (existingAt !== undefined) {
       const merged = list[existingAt];
@@ -537,6 +547,49 @@ export function explainTileYield(
       culture: line.culture,
       faith: line.faith,
     });
+  }
+
+  // **A percentage on the works, and on nothing else** — The Commonwealth's half
+  // again on a great person's academy. Last, so the figure it is a share of is
+  // whole, and taken off the *improvement's own* entries (`worksFrom` …
+  // `worksTo`: the improvement and its renewals) rather than off the hex's
+  // total: a card that said "this hex pays half again" would be silently
+  // multiplying the terrain, the river, the resource and whatever a second card
+  // had already added. It joins as one more labelled `add`, so the breakdown
+  // still sums to the total and a player can see which half was raised.
+  //
+  // Riders **sum before one multiplication** and the result is floored per
+  // voice, which is Entry XVII's discipline read at the scale of a hex: two
+  // cards that each say +50% are worth +100% rather than ×2.25.
+  let worksPercent = 0;
+  const worksSources: string[] = [];
+  for (const line of ctx?.lines ?? []) {
+    if (line.percent === undefined || line.percent === 0) continue;
+    if (!tileConditionHolds(tile, line.on)) continue;
+    worksPercent += line.percent;
+    if (!worksSources.includes(line.source)) worksSources.push(line.source);
+  }
+  if (worksPercent !== 0 && worksTo > worksFrom) {
+    const share: TileYieldContribution = {
+      source: worksSources.join(' + '),
+      kind: 'add',
+      food: 0,
+      production: 0,
+      gold: 0,
+      science: 0,
+      culture: 0,
+      faith: 0,
+    };
+    for (let i = worksFrom; i < worksTo; i++) {
+      const entry = list[i]!;
+      for (const voice of TILE_YIELD_KEYS) share[voice] += entry[voice];
+    }
+    let pays = false;
+    for (const voice of TILE_YIELD_KEYS) {
+      share[voice] = Math.floor((share[voice] * worksPercent) / 100);
+      if (share[voice] !== 0) pays = true;
+    }
+    if (pays) list.push(share);
   }
 
   return list;
@@ -2146,7 +2199,12 @@ export function productionModifiers(
   // is passed through so the narrowing is asked of what the city is actually
   // building; there is no Conscription case anywhere in this file.
   const unitType = toward.kind === 'unit' && isUnitTypeId(toward.id) ? toward.id : undefined;
-  for (const line of cardProduction(state, city, category, unitType)) {
+  // And behind *this building*, when the row names one (Mimar Sinan's mosques).
+  // `unitType`'s sibling and passed for its reason exactly: the narrowing is
+  // asked of what the city is actually building.
+  const buildingId =
+    toward.kind === 'building' && isBuildingId(toward.id) ? toward.id : undefined;
+  for (const line of cardProduction(state, city, category, unitType, buildingId)) {
     if (line.percent === 0) continue;
     list.push({ source: line.source, percent: line.percent, stage: 'city' });
   }

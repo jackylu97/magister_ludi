@@ -409,6 +409,12 @@ describe('end-of-turn pipeline', () => {
       // this turn pays into the sweep that banks the library beside it. See
       // `runRenown`.
       'renown',
+      // The two revocations that are conditions of a turn rather than events —
+      // Hypatia's mob, Boudica's century. A broom's twin: marking a record
+      // already marked changes nothing, so the phase is safe anywhere, and it
+      // sits after `renown` because that is the phase that can hand out a
+      // legacy in the first place. See `reviewLegacies`.
+      'reviewLegacies',
       'expandBorders',
       'healCities',
       // The wild acts after the towns and before the healing, so a raider that

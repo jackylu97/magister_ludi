@@ -56,6 +56,7 @@ import {
   liveCityEffects,
   liveEffects,
   scopedCardTileLines,
+  stripRefs,
   tileConditionHolds,
 } from '../../src/sim/statecraft';
 import { FAMILIES } from '../../src/sim/greatPeopleData';
@@ -1191,15 +1192,15 @@ describe('a completion grant', () => {
 describe('a wonder in words', () => {
   it('gives an ordinary building its article and a wonder its name', () => {
     // "an Amphitheater", not "a Amphitheater" — a sound rule, in one place.
-    expect(describeCard('theatreOfDionysus').map((c) => c.text)).toContain(
+    expect(describeCard('theatreOfDionysus').map((c) => stripRefs(c.text))).toContain(
       '+1 culture in every city with an Amphitheater',
     );
-    expect(describeCard('greatLibrary').map((c) => c.text)).toContain(
+    expect(describeCard('greatLibrary').map((c) => stripRefs(c.text))).toContain(
       '+1 science in every city with a Library',
     );
     // A wonder is a proper noun: there is exactly one of it, so it takes no
     // article at all.
-    expect(describeCard('theOracle').map((c) => c.text)).toContain(
+    expect(describeCard('theOracle').map((c) => stripRefs(c.text))).toContain(
       '+1 faith in every city with The Oracle',
     );
   });
@@ -1234,7 +1235,7 @@ describe('a wonder in words', () => {
     expect(describeCard('alhambra').map((c) => c.text)).toContain(
       '+2 combat strength for mounted units',
     );
-    expect(describeCard('petra').map((c) => c.text)).toContain(
+    expect(describeCard('petra').map((c) => stripRefs(c.text))).toContain(
       '+1 food, +1 production on every desert hex, in every city with Petra',
     );
   });

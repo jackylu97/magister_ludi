@@ -57,6 +57,7 @@ import {
   controlledResources,
   isCoastalCity,
   nearestOwnedCity,
+  queueCategory,
   realiseItem,
   resourceCopies,
   spawnTileFor,
@@ -72,8 +73,14 @@ import {
   isBuildingId,
   isWonder,
 } from './buildingData';
-import { type Family, type GreatPersonId, greatPersonDef, isGreatPersonId } from './greatPeopleData';
-import { improvementDef } from './improvementData';
+import {
+  type Family,
+  type GreatPersonId,
+  type LegacyRevocation,
+  greatPersonDef,
+  isGreatPersonId,
+} from './greatPeopleData';
+import { improvementDef, isGreatPersonWork } from './improvementData';
 import { type ProjectId, type ProjectPayout, projectDef } from './projectData';
 import { type Tile, getTileAt, neighborTiles, tileHex, wrappedDistance } from './map';
 import { authorityOf, happinessOf } from './meters';
@@ -779,13 +786,25 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
   // reshuffles itself.
   //
   // Read off `Player.legacies` and nowhere else. A person is on the board and
-  // spent, or it is a line here; there is no third state, and nothing revokes a
-  // legacy — which is why Archimedes' "lost the turn an enemy enters his city"
-  // is a *deferred* half on his row rather than a rule hiding in this walk.
-  for (const id of playerById(state, playerId)?.legacies ?? []) {
-    if (!isGreatPersonId(id)) continue;
-    push(id, CLASS_WORD.legacy, 1, greatPersonDef(id).legacy);
+  // spent, or it is a line here — and, since the 2026-08-28 ruling, a **revoked**
+  // record is a third state that contributes nothing. That is *one filter*, on
+  // this line, and it is the whole of the revocation mechanism on the reading
+  // side: the record stays in spend order, history is never spliced, and
+  // Archimedes' "lost the turn an enemy enters his city" is a rule with a place
+  // rather than a sentence struck through on a card.
+  for (const held of playerById(state, playerId)?.legacies ?? []) {
+    if (held.revoked === true) continue;
+    if (!isGreatPersonId(held.id)) continue;
+    push(held.id, CLASS_WORD.legacy, 1, greatPersonDef(held.id).legacy);
   }
+  // **The eighth source**: what the empire itself is carrying that runs out —
+  // Crassus' bill. `City.timed` and `Unit.timed`'s third holder, read through
+  // the same `timedLive` walk, so an effect hung on a realm is an ordinary card
+  // effect in every ledger it reaches. It is *here* rather than in
+  // `liveCityEffects` because its subject is the realm: a town's rites are a
+  // fact about a town and this is a fact about everybody.
+  const seat = playerById(state, playerId);
+  if (seat?.timed !== undefined) list.push(...timedLive(state, playerId, seat));
   // **The seventh source** (`docs/religion-v2.md`): the religion this empire
   // *founded*. Three things arrive together and they are three readings of one
   // fact — that a faith is yours:
@@ -818,7 +837,7 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
     for (const entry of list) {
       if (entry.effect.kind !== 'effectAmplifier') continue;
       if (entry.effect.target !== 'founderTrickle') continue;
-      amplifier += scaleByLevel(entry.effect.percent, entry.level);
+      amplifier += scaleByLevel(entry.effect.percent ?? 0, entry.level);
     }
     for (const effect of RELIGION.founderTrickle) {
       list.push({ source: word, card: mine.follower[0] ?? sc.government, level: 1, effect: amplifyTrickle(effect, amplifier) });
@@ -1188,6 +1207,22 @@ function empireConditionHolds(
       return authorityReading(state, playerId) < 0;
     case 'happinessNegative':
       return happinessReading(state, playerId) < 0;
+    case 'queueHolds': {
+      // Read through `queueCategory` — the one place a queue row is sorted into
+      // a category — so a wonder, a building and a project are told apart here
+      // by exactly the rule production tells them apart by. `where: 'capital'`
+      // narrows the sweep to one town; the default asks the realm.
+      const only = when.where === 'capital' ? capitalCityOf(state, playerId)?.id : undefined;
+      if (when.where === 'capital' && only === undefined) return false;
+      for (const city of state.cities) {
+        if (city.ownerId !== playerId) continue;
+        if (only !== undefined && city.id !== only) continue;
+        for (const row of city.queue) {
+          if (queueCategory(row) === when.category) return true;
+        }
+      }
+      return false;
+    }
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -1304,6 +1339,14 @@ export function cityScopeAdmits(
     }
     case 'hasBuilding':
       return city.buildings.includes(scope.building);
+    case 'hasBuildingYielding':
+      // Asked of what a row *does*, off its own six voices, so a retuned library
+      // moves the scope with it. `wonder: true` is Hero of Alexandria's half.
+      return city.buildings.some(
+        (id) =>
+          (scope.wonder !== true || isWonder(id)) &&
+          (buildingDef(id)[scope.yields] ?? 0) > 0,
+      );
     case 'onTerrain':
       // The centre's own hex and nothing wider. See the scope's docblock.
       return cityTile(state.map, city).terrain === scope.terrain;
@@ -1376,6 +1419,8 @@ function scopeNote(scope?: CityScope): string | null {
       return `${scope.category} seam`;
     case 'hasBuilding':
       return buildingDef(scope.building).name.toLowerCase();
+    case 'hasBuildingYielding':
+      return scope.wonder === true ? `${scope.yields} wonder` : `${scope.yields} building`;
     case 'onTerrain':
       return `${scope.terrain} city`;
     case 'follows':
@@ -1645,6 +1690,28 @@ function countOf(
       }
       return total;
     }
+    case 'worldWonders':
+      // The claim register, which is the one place a wonder is written down and
+      // never moves — so this is exactly "how many marvels exist".
+      return state.wonders.length;
+    case 'foreignTradeRoutes': {
+      // `tradeRoutes` and one more question of the same caravan, asked of the
+      // board for that count's reason exactly. The far end is resolved fresh
+      // every turn, so a partner that changes hands changes the count with it —
+      // which is the same "what a wonder pays follows the stones" reading one
+      // system over.
+      let total = 0;
+      for (const unit of state.units) {
+        if (unit.ownerId !== playerId) continue;
+        const route = unit.trade;
+        if (route === undefined) continue;
+        if (state.turn >= route.expiresTurn) continue;
+        const partner = state.cities.find((city) => city.id === route.to);
+        if (partner === undefined || partner.ownerId === playerId) continue;
+        total += 1;
+      }
+      return total;
+    }
     case 'followingCities':
     case 'followingForeign':
     case 'followingPop':
@@ -1891,6 +1958,26 @@ export function cardCityYields(state: GameState, city: City): CardYieldLine[] {
     if (paysSomething(line)) list.push(line);
   }
 
+  // One voice paid again as another, off the buildings of one category — The
+  // Curia's science out of its shrines. A **flat** line like the two above it, so
+  // it lands before Entry XVII's percentages: a mirrored beaker is worth what a
+  // library's beaker is worth, and staging it twice would be paying a science
+  // bonus on faith. The sum is the buildings' own figures and never the town's
+  // total — see `CardMirrorYieldEffect`.
+  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'mirrorYield')) {
+    if (!cityScopeAdmits(state, city, effect.scope)) continue;
+    let mirrored = 0;
+    for (const id of city.buildings) {
+      const def = buildingDef(id);
+      if (def.category !== effect.category) continue;
+      mirrored += def[effect.from] ?? 0;
+    }
+    if (mirrored === 0) continue;
+    const line = emptyLine(card, label(source, `${effect.from} → ${effect.to}`));
+    line[effect.to] = mirrored;
+    if (paysSomething(line)) list.push(line);
+  }
+
   return list;
 }
 
@@ -1977,6 +2064,17 @@ export function foldCardYields(list: readonly CardYieldLine[]): Record<CityYield
 export interface TileLine {
   source: string;
   on: TileCondition;
+  /**
+   * A percentage on **what the hex's improvement already pays**, where the six
+   * voices below are a flat addition. See `CardTileYieldEffect.percent`, which
+   * carries the whole argument; absent on every producer but a card, because a
+   * granary's water line and a luxury's signature both pay flats.
+   *
+   * Read in `explainTileYield` (`cities.ts`) as one more labelled line of the
+   * breakdown, computed off the improvement's own entries, so the list still
+   * folds to the total.
+   */
+  percent?: number;
   food: number;
   production: number;
   gold: number;
@@ -2004,6 +2102,11 @@ export function tileConditionHolds(tile: Tile, on: TileCondition): boolean {
       return isWaterTerrain(tile.terrain);
     case 'improvement':
       return tile.improvement === on.improvement;
+    case 'greatWork':
+      // Asked of the improvement table's own marker (`greatPerson`, presence is
+      // the marker), never of a list of five names — so the sixth work joins
+      // The Commonwealth with nothing here touched.
+      return tile.improvement !== undefined && isGreatPersonWork(tile.improvement);
     case 'terrain':
       return tile.terrain === on.terrain;
     case 'resourceKind': {
@@ -2106,7 +2209,10 @@ function tileLinesFrom(
       culture: scaleByLevel(effect.culture ?? 0, level),
       faith: scaleByLevel(effect.faith ?? 0, level),
     };
-    if (VOICES.some((key) => line[key] !== 0)) list.push(line);
+    if (effect.percent !== undefined && effect.percent !== 0) {
+      line.percent = scaleByLevel(effect.percent, level);
+    }
+    if (VOICES.some((key) => line[key] !== 0) || line.percent !== undefined) list.push(line);
   }
   return list;
 }
@@ -2185,10 +2291,21 @@ export function cardProduction(
   city: City,
   category: ProductionCategory,
   unitType?: UnitTypeId,
+  building?: BuildingId,
 ): CardProductionLine[] {
   const list: CardProductionLine[] = [];
   for (const { source, card, level, effect } of cityEffectsOfKind(state, city, 'productionBonus')) {
     if (effect.category !== category) continue;
+    // The named row, where `modelClass` names a silhouette: Mimar Sinan's
+    // mosques. Asked of what the city is actually building, exactly as the
+    // silhouette is, so a bonus naming a building is silent on everything else.
+    if (effect.building !== undefined && effect.building !== building) continue;
+    // And the wider narrowing: what the row is *for* rather than which row it
+    // is — The Encyclopaedia's science buildings.
+    if (effect.buildingCategory !== undefined) {
+      if (building === undefined) continue;
+      if (buildingDef(building).category !== effect.buildingCategory) continue;
+    }
     // *Where* the hammers land, where `modelClass` is *what* they land on. The
     // town is already in hand — a production modifier is asked of one city's
     // queue — so the scope is the ordinary one and needs no second reading.
@@ -2437,6 +2554,18 @@ export interface CombatSituation {
    * empire.
    */
   vsType?: UnitTypeId;
+  /**
+   * The **base strength** of the piece on the other side, or absent when that
+   * side is a city.
+   *
+   * `vsType`'s sibling and filled from the same place by the same rule — the
+   * defender's for the attacker's situation and the attacker's for the
+   * defender's — so `strongerTarget` answers "am I outmatched" for a card held
+   * by either empire. It is `UnitDef.combatStrength` and never the fold: a strength
+   * line that read the ledger it is about to join would be a line inside its own
+   * sum.
+   */
+  vsStrength?: number;
 }
 
 /** Does a combat condition hold for this situation? One evaluator. */
@@ -2494,6 +2623,29 @@ function combatConditionHolds(
       // it is in: a dug-in unit that sallies is still dug in until the reducer
       // breaks the fortification, and `breakFortify` is what decides that.
       return situation.unit.fortifiedTurns !== undefined;
+    case 'withinOfCity': {
+      // A distance rather than a border: Deborah judges within sight of her own
+      // people, which reaches ground nobody has claimed and stops short of a
+      // colony's third ring. Measured off the contested hex, as every other
+      // radius in the game is.
+      const eye = tileHex(situation.tile);
+      const reach = Math.max(0, Math.floor(when.hexes));
+      for (const city of state.cities) {
+        if (city.ownerId !== situation.unit.ownerId) continue;
+        const seat = getTileAt(state.map, city.col, city.row);
+        if (!seat) continue;
+        if (wrappedDistance(state.map, eye, tileHex(seat)) <= reach) return true;
+      }
+      return false;
+    }
+    case 'strongerTarget':
+      // Base against base — never the folded ledger, which would be a line
+      // inside its own sum. A city has no such strength and never satisfies it,
+      // which is `vsClass`' reading: nothing charges out of a town.
+      return (
+        situation.vsStrength !== undefined &&
+        situation.vsStrength > unitDef(situation.unit.type).combatStrength
+      );
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -2622,8 +2774,12 @@ function greatPeopleEarned(state: GameState, playerId: number, family?: Family):
   const admits = (id: GreatPersonId): boolean =>
     family === undefined || greatPersonDef(id).family === family;
   let total = 0;
-  for (const id of player.legacies) {
-    if (admits(id)) total += 1;
+  // **Revoked records still count.** "Earned this game" is what the line says,
+  // and a general who is no longer heeded was still earned — the one place the
+  // count and the effects read the same list differently, and it is stated on
+  // `Player.legacies`.
+  for (const held of player.legacies) {
+    if (admits(held.id)) total += 1;
   }
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
@@ -2803,6 +2959,18 @@ export interface WindfallPayout {
    * `realiseItem` — the one completion routine.
    */
   units: { card: CardId; source: string; type: UnitTypeId }[];
+  /**
+   * True when a rider heals **the whole army** — The Empire's. A flag and not a
+   * figure, because the ratified text is *heals all*: a number here would have
+   * been a second, quieter rule about how much.
+   */
+  healAll: boolean;
+  /**
+   * Effects a rider hangs on the **empire** until an absolute turn — Crassus'
+   * bill. Composed here with every other figure (Entry XVIII.5) and stamped by
+   * `payWindfallGrants`, which is the only writer of `Player.timed`.
+   */
+  timed: { card: CardId; source: string; turns: number; effects: CardEffect[] }[];
   /** Every rider that touched this payout, for the announcement. */
   lines: { card: CardId; source: string; note: string }[];
 }
@@ -2818,6 +2986,14 @@ export interface WindfallPayout {
  */
 export interface WindfallOccasionFacts {
   vsBarbarians?: boolean;
+  /**
+   * True when the town just taken held a wonder — The Empire's clause.
+   *
+   * `vsBarbarians`' sibling, passed for its reason exactly: the caller is the
+   * only thing that still knows. A moment after the capture the stones are the
+   * captor's own buildings and nothing can tell them from the ones he raised.
+   */
+  capturedWonder?: boolean;
 }
 
 /**
@@ -2847,6 +3023,8 @@ export function windfallPayout(
     grants: [],
     heal: baseHeal,
     units: [],
+    healAll: false,
+    timed: [],
     lines: [],
   };
   let percent = 0;
@@ -2871,6 +3049,9 @@ export function windfallPayout(
     // asks for the wild and did not get it is simply not on this payout — the
     // same reading `combatLine`'s conditions take, one system over.
     if (effect.vsBarbarians === true && facts.vsBarbarians !== true) continue;
+    // The same narrowing, one fact over: The Empire pays for a town with a
+    // wonder in it and not for a town.
+    if (effect.capturedWonder === true && facts.capturedWonder !== true) continue;
     if (effect.perAge === true) {
       ageMultiplied = true;
       if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${'I'.repeat(era)})` });
@@ -2898,6 +3079,18 @@ export function windfallPayout(
         payout.heal += heal;
         payout.lines.push({ card, source, note: `heals ${heal}` });
       }
+    }
+    if (grant.healAll === true) {
+      payout.healAll = true;
+      payout.lines.push({ card, source, note: 'your units are healed' });
+    }
+    if (grant.timed !== undefined && grant.timed.effects.length > 0) {
+      // The *turns* scale with an Order's level like every other figure on a
+      // card, and the effects travel untouched: `timedLive` scales them the way
+      // it scales a rite's, at level 1, because a bill is a bill.
+      const turns = Math.max(1, scaleByLevel(grant.timed.turns, level));
+      payout.timed.push({ card, source, turns, effects: grant.timed.effects });
+      payout.lines.push({ card, source, note: `for ${turns} turns` });
     }
     if (grant.unit !== undefined) {
       // Drawn here, delivered later. `randomMilitary` is "one of the soldiers
@@ -3064,6 +3257,27 @@ export function payWindfallGrants(
       else city.hammerBasket += grant.amount;
       if (!touched.includes(city)) touched.push(city);
     }
+  }
+  // **The whole army, made whole** — The Empire's. Written straight onto the
+  // pieces rather than through `healUnits`, because that phase is the *rested*
+  // rule and this is a windfall: a legion that marched into the breach this turn
+  // is exactly the legion the clause is about. `state.units` order, so a replay
+  // reproduces it.
+  if (payout.healAll) {
+    for (const unit of state.units) {
+      if (unit.ownerId !== player.id) continue;
+      unit.hp = unitDef(unit.type).maxHp;
+    }
+  }
+  // **The only writer of `Player.timed`** — Crassus' bill, stamped at an
+  // absolute turn like every other timed effect and swept by the same broom.
+  // One entry per effect, `stampRite`'s shape, because every reader walks a flat
+  // list and a nested one would be a second shape to unwrap.
+  for (const hung of payout.timed) {
+    const expiresTurn = state.turn + hung.turns;
+    const list = player.timed ?? [];
+    for (const effect of hung.effects) list.push({ card: hung.card, effect, expiresTurn });
+    player.timed = list;
   }
   return touched;
 }
@@ -3367,9 +3581,37 @@ export function cardAmplifier(
   let percent = 0;
   for (const { level, effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
     if (effect.target !== target) continue;
+    if (effect.percent === undefined) continue;
     percent += scaleByLevel(effect.percent, level);
   }
   return percent;
+}
+
+/**
+ * The **flat step** an amplifier puts on somebody else's number, summed.
+ *
+ * `cardAmplifier`'s other dial (see `CardEffectAmplifierEffect`), and it is
+ * asked wherever the amplified figure is quoted *per item*: the happiness one
+ * luxury pays (Ea-nāṣir's malice — every luxury counts one fewer) and the gold
+ * one connected city pays (Nanaivandak's two). A target whose figure is a
+ * whole-ledger total never asks it, which is a fact about that target rather
+ * than a rule here.
+ *
+ * **Applied before the share**, so a card carrying both is one arithmetic and
+ * not an argument about order.
+ */
+export function cardAmplifierFlat(
+  state: GameState,
+  playerId: number,
+  target: AmplifierTarget,
+): number {
+  let amount = 0;
+  for (const { level, effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
+    if (effect.target !== target) continue;
+    if (effect.amount === undefined) continue;
+    amount += scaleByLevel(effect.amount, level);
+  }
+  return amount;
 }
 
 /** What a newly founded city of this empire is founded with. */
@@ -3589,11 +3831,34 @@ export function describeCard(id: CardId, level = 1): CardClause[] {
       }
     }
   }
+  // **A revocation is not an effect, and it still has to be printed** — the
+  // completion grant's and the slot grant's argument a third time. It is a
+  // moment rather than a standing reading of the board, so it lives on the row
+  // (`GreatPersonDef.revokedWhen`); and it is emphatically *not* struck through,
+  // because it is a promise the game **does** make. A card that left it out
+  // would be Archimedes reading as six free points of siege.
+  if (isGreatPersonId(id)) {
+    const when = greatPersonDef(id).revokedWhen;
+    if (when !== undefined) clauses.push({ text: REVOCATION_WORDS[when] });
+  }
   for (const missing of def.deferred ?? []) {
     clauses.push({ text: `${missing} — not built yet`, deferred: true });
   }
   return clauses;
 }
+
+/**
+ * When a legacy stops being heeded, in words. See `LegacyRevocation`.
+ *
+ * "lost the turn …" leads every one of them, for `grantWords`' reason exactly:
+ * that phrase is the whole difference between this clause and every other on the
+ * card, all of which are true for as long as the empire holds it.
+ */
+const REVOCATION_WORDS: Record<LegacyRevocation, string> = {
+  enemyEntersCapital: 'lost the turn an enemy soldier enters your capital’s territory',
+  happinessNegative: 'lost the first turn your happiness goes negative',
+  ageAdvanced: 'lost when the age it was earned in closes',
+};
 
 /** The one place an effect becomes a sentence. Every arm, no default silence. */
 function describeEffect(effect: CardEffect, level: number, out: CardClause[]): void {
@@ -3617,6 +3882,16 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       // possessive nobody can parse.
       const whose = effect.scope === undefined ? '' : `, in ${scopeWords(effect.scope)}`;
       if (words) out.push({ text: `${words} on every ${tileConditionWords(effect.on)}${whose}` });
+      // The percentage is its own clause, because it is a share of a *different*
+      // number: the flat is what the card pays and this is what the works pay
+      // half again of. Said as "the works on" so a player knows which half moved.
+      if (effect.percent !== undefined && effect.percent !== 0) {
+        out.push({
+          text:
+            `the works on every ${tileConditionWords(effect.on)} pay ` +
+            `${signed(scaleByLevel(effect.percent, level))}% more${whose}`,
+        });
+      }
       return;
     }
     case 'percentYields': {
@@ -3627,7 +3902,23 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       return;
     }
     case 'productionBonus': {
-      const what = effect.modelClass ? `${effect.modelClass} units` : `${effect.category}s`;
+      // The named row beats the silhouette beats the category, because that is
+      // the order of how specific they are: "toward Temples", "toward mounted
+      // units", "toward buildings".
+      // The plural is composed off the **plain** name and then marked, exactly
+      // as `countNoun` does it: pluralising a marked string would put the `s`
+      // after the closing brackets.
+      const what = effect.building
+        ? ref(
+            isWonder(effect.building) ? 'wonder' : 'building',
+            effect.building,
+            buildingPlural(buildingDef(effect.building).name, 2),
+          )
+        : effect.buildingCategory
+          ? `${effect.buildingCategory} buildings`
+          : effect.modelClass
+            ? `${effect.modelClass} units`
+            : `${effect.category}s`;
       // The scope trails as its own clause, exactly as a scoped `tileYield`'s
       // does: "+20% production toward wonders, in your capital" says *where* the
       // hammers are quicker without turning the category into a possessive.
@@ -3684,7 +3975,11 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       const when =
         effect.when.test === 'onFeature'
           ? `${COMBAT_WORDS.onFeature} ${effect.when.feature}`
-          : COMBAT_WORDS[effect.when.test];
+          : effect.when.test === 'withinOfCity'
+            ? `${COMBAT_WORDS.withinOfCity} ${effect.when.hexes} ${
+                effect.when.hexes === 1 ? 'hex' : 'hexes'
+              } of one of your cities`
+            : COMBAT_WORDS[effect.when.test];
       out.push({
         text: `${each} combat strength${who}${against}${scale} ${when}`.trim(),
       });
@@ -3718,7 +4013,11 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
     case 'windfallRider': {
       // The occasion, narrowed where the row narrows it — "killing a barbarian
       // unit" rather than "killing a unit". See `occasionWords`.
-      const occasion = occasionWords(effect.occasion, effect.vsBarbarians === true);
+      const occasion = occasionWords(
+        effect.occasion,
+        effect.vsBarbarians === true,
+        effect.capturedWonder === true,
+      );
       // The **grant first**, then the riders on it. Rites of Blood pays fifteen
       // faith and the age multiplies it; leading with the multiplier said the
       // second half of a sentence whose first half had not been printed yet.
@@ -3743,6 +4042,26 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         // said "pillaging heals 25" was quoting the base and promising nothing.
         // The rider is an increment and the sentence says so.
         out.push({ text: `${occasion} heals a further ${scaleByLevel(grant.heal, level)}${per}` });
+      }
+      if (grant?.timed !== undefined && grant.timed.effects.length > 0) {
+        // Said in the **nested clauses' own words**, so a bill and a blessing
+        // read alike and a shape added to the vocabulary is printed here without
+        // this arm being touched. The duration trails, because a player reads
+        // *what happens* first and *how long* second — a rite's label does the
+        // same thing from the other end.
+        const inner: CardClause[] = [];
+        for (const nested of grant.timed.effects) describeEffect(nested, level, inner);
+        const turns = Math.max(1, scaleByLevel(grant.timed.turns, level));
+        out.push({
+          text:
+            `${occasion} costs your empire ${inner.map((clause) => clause.text).join('; ')} ` +
+            `for ${turns} turns${per}`,
+        });
+      }
+      if (grant?.healAll === true) {
+        // A flag, so a sentence and not a figure — the ratified text is *heals
+        // all*, and a number here would be a second, quieter rule.
+        out.push({ text: `${occasion} heals every one of your units${per}` });
       }
       if (grant?.unit === 'randomMilitary') {
         out.push({ text: `${occasion} grants a random military unit${per}` });
@@ -3837,8 +4156,23 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       out.push({ text: `+${extra} trade ${extra === 1 ? 'route' : 'routes'}` });
       return;
     }
-    case 'effectAmplifier':
-      out.push({ text: AMPLIFIER_WORDS[effect.target](scaleByLevel(effect.percent, level)) });
+    case 'effectAmplifier': {
+      // Two dials, one clause each, and a row that turns both says both — the
+      // flat step first, because that is the order the arithmetic takes it in.
+      if (effect.amount !== undefined) {
+        out.push({ text: AMPLIFIER_FLAT_WORDS[effect.target](scaleByLevel(effect.amount, level)) });
+      }
+      if (effect.percent !== undefined) {
+        out.push({ text: AMPLIFIER_WORDS[effect.target](scaleByLevel(effect.percent, level)) });
+      }
+      return;
+    }
+    case 'mirrorYield':
+      out.push({
+        text:
+          `${effect.category} buildings supply ${effect.to} equal to their ` +
+          `${effect.from}, in ${scopeWords(effect.scope)}`,
+      });
       return;
     case 'meterRule': {
       // Two shapes wear this hook and they read differently. A **switch** — a
@@ -4012,9 +4346,17 @@ function grantWords(grant: CompletionGrant): string {
 }
 
 function conditionValue(when: EmpireCondition): string {
-  return when.test === 'cityCountAtMost' || when.test === 'cityCountAtLeast'
-    ? ` ${when.value} cities`
-    : '';
+  if (when.test === 'cityCountAtMost' || when.test === 'cityCountAtLeast') {
+    return ` ${when.value} cities`;
+  }
+  // "while any city is building a wonder" · "while your capital is building a
+  // wonder". The whole clause, because `CONDITION_WORDS` holds only the "while"
+  // — one entry for both readings, `onFeature`'s bargain a third time.
+  if (when.test === 'queueHolds') {
+    const where = when.where === 'capital' ? 'your capital is' : 'any city is';
+    return ` ${where} building ${when.category === 'unit' ? 'a unit' : `a ${when.category}`}`;
+  }
+  return '';
 }
 
 /**
@@ -4157,6 +4499,13 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     case 'hasBuilding':
       into.qualifiers.push(`with ${buildingWords(scope.building)}`);
+      return;
+    case 'hasBuildingYielding':
+      into.qualifiers.push(
+        scope.wonder === true
+          ? `holding a wonder that supplies ${scope.yields}`
+          : `with a building that supplies ${scope.yields}`,
+      );
       return;
     case 'onTerrain':
       into.adjectives.push(scope.terrain);
@@ -4313,6 +4662,9 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
         `with ${indefinite(improvementDef(on.improvement).name)} ${ref('improvement', on.improvement, improvementDef(on.improvement).name)}`,
       );
       return;
+    case 'greatWork':
+      into.qualifiers.push("carrying a great person's work");
+      return;
     case 'terrain':
       into.adjectives.push(on.terrain);
       return;
@@ -4359,6 +4711,7 @@ const RULE_WORDS: Record<CardRule, string> = {
   borderCulture: 'border culture',
   settlerCost: 'the production a settler costs',
   growthSurplus: 'food surplus stored toward growth',
+  unitUpkeep: 'the gold your units cost in maintenance',
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -4378,6 +4731,10 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   freshwater: 'beside fresh water',
   coastal: 'on the coast',
   fortified: 'while fortified',
+  // The distance is printed by `describeEffect`, so that two hexes and three
+  // are one table entry and two data rows — `onFeature`'s bargain.
+  withinOfCity: 'within',
+  strongerTarget: 'against a stronger unit',
 };
 
 const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
@@ -4430,6 +4787,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   tech: 'completing a technology',
   tilePurchase: 'buying a hex',
   rite: 'performing a rite',
+  purchase: 'buying anything',
 };
 
 /**
@@ -4448,7 +4806,23 @@ const BARBARIAN_OCCASION_WORDS: Partial<Record<WindfallOccasion, string>> = {
   capture: 'capturing a barbarian city',
 };
 
-function occasionWords(occasion: WindfallOccasion, vsBarbarians: boolean): string {
+/**
+ * The one occasion a row narrows by what stood in the town — `BARBARIAN_
+ * OCCASION_WORDS`' sibling, and a table for its reason: the qualifier belongs
+ * inside the sentence rather than glued to the end of it.
+ */
+const WONDER_OCCASION_WORDS: Partial<Record<WindfallOccasion, string>> = {
+  capture: 'capturing a city with a wonder in it',
+};
+
+function occasionWords(
+  occasion: WindfallOccasion,
+  vsBarbarians: boolean,
+  capturedWonder = false,
+): string {
+  if (capturedWonder) {
+    return WONDER_OCCASION_WORDS[occasion] ?? `${OCCASION_WORDS[occasion]}, where a wonder stood`;
+  }
   if (!vsBarbarians) return OCCASION_WORDS[occasion];
   return BARBARIAN_OCCASION_WORDS[occasion] ?? `${OCCASION_WORDS[occasion]}, against barbarians`;
 }
@@ -4509,6 +4883,11 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   },
   discoveredCamps: { one: 'barbarian camp you have found', many: 'barbarian camps you have found' },
   tradeRoutes: { one: 'trade route you run', many: 'trade routes you run' },
+  worldWonders: { one: 'wonder in the world', many: 'wonders in the world' },
+  foreignTradeRoutes: {
+    one: 'trade route to another empire',
+    many: 'trade routes to another empire',
+  },
   followingCities: { one: 'city that follows you', many: 'cities that follow you' },
   followingForeign: {
     one: 'foreign city that follows you',
@@ -4564,6 +4943,35 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   routeYields: (percent) => `trade routes pay ${signed(percent)}% more`,
   founderTrickle: (percent) =>
     `what your followers pay you is ${signed(percent)}% higher`,
+  greatPersonAct: (percent) => `a great person's act pays ${signed(percent)}% more`,
+  connectionYields: (percent) => `city connections pay ${signed(percent)}% more`,
+  triumphRenown: (percent) => `every Triumph pays ${signed(percent)}% more renown`,
+};
+
+/**
+ * The same targets, said as a **flat step** rather than as a share
+ * (`CardEffectAmplifierEffect.amount`).
+ *
+ * A second table rather than a sign on the first, for `AMPLIFIER_WORDS`' own
+ * reason one grade further: "counts one fewer" and "counts thirty percent" are
+ * not the same sentence with a different number in it. Every target has an entry
+ * so the table cannot go silent on a row somebody writes, and the ones whose
+ * figure is a whole-ledger total say so plainly — a flat step on one of those is
+ * a row nobody should write, and a sentence a player can read is how they find
+ * out.
+ */
+const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> = {
+  luxuryHappiness: (amount) =>
+    amount < 0
+      ? `every luxury you hold counts ${-amount} fewer toward happiness`
+      : `every luxury you hold counts ${amount} more toward happiness`,
+  luxuryDuplicates: (amount) => `duplicate luxury copies count ${signed(amount)}`,
+  riteDuration: (amount) => `rites last ${signed(amount)} turns longer`,
+  routeYields: (amount) => `each trade route pays ${signed(amount)} more`,
+  founderTrickle: (amount) => `each follower pays you ${signed(amount)} more`,
+  greatPersonAct: (amount) => `a great person's act pays ${signed(amount)} more`,
+  connectionYields: (amount) => `each connected city pays ${signed(amount)} gold`,
+  triumphRenown: (amount) => `every Triumph pays ${signed(amount)} more renown`,
 };
 
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {
@@ -4593,12 +5001,15 @@ const ACTION_WORDS: Record<ActionRuleId, string> = {
   doubleOverflow: 'leftover production from a completed item is doubled',
   unitJumpsQueue: 'a unit that would finish sooner jumps ahead of a building in the queue',
   noSettlerEscalation: 'settlers never cost more than the first',
+  buyGreatPersonWithGold: 'a great person waiting to be called may be bought with gold',
+  buyGreatPersonWithFaith: 'a great person waiting to be called may be bought with faith',
 };
 
 const BEHAVIOR_WORDS: Record<BehaviorRuleId, string> = {
   barbariansPassive: 'barbarians never attack you',
   barbarianKillsConvert: 'a barbarian you kill joins you instead of dying',
   noCampClearing: 'you can no longer clear a barbarian camp',
+  noHealAbroad: 'your units do not heal outside your own borders',
 };
 
 const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
@@ -4606,6 +5017,9 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   cityCountAtLeast: 'while you hold at least',
   authorityNegative: 'while your authority is negative',
   happinessNegative: 'while your happiness is negative',
+  // The category and the town are printed by `conditionValue`, so that a wonder
+  // in any city and a building in the capital are one entry and two rows.
+  queueHolds: 'while',
 };
 
 // --- the ladder -------------------------------------------------------------

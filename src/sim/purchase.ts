@@ -64,12 +64,18 @@ import {
   foldUnitCost,
   realiseItem,
   refreshCityDerived,
+  settleProductionWindfall,
   spawnTileFor,
 } from './cities';
 import { type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';
 import { RULES } from './rulesData';
-import { cardPurchaseRiders } from './statecraft';
-import { buildError, gatingTech, hasTech, isUnlocked } from './tech';
+import {
+  cardPurchaseRiders,
+  payWindfallGrants,
+  settleCultureWindfall,
+  windfallPayout,
+} from './statecraft';
+import { buildError, gatingTech, hasTech, isUnlocked, settleResearchWindfall } from './tech';
 import { techDef } from './techData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 
@@ -524,6 +530,25 @@ export function purchaseItemAt(
     (row) => row.kind === item.kind && row.id === item.id,
   );
   if (queued >= 0) city.queue.splice(queued, 1);
+
+  // **The purchase occasion** (Crassus, 2026-08-28), fired here and nowhere
+  // else. `WindfallOccasion` had deliberately refused one until a card wanted to
+  // pay on a purchase and *not* on a completion — which is exactly what a
+  // penalty for buying your way out of a queue is. `unitCompletion` still fires
+  // for a bought unit through `realiseItem` above, so Rites of Passage is still
+  // one row paying once; this is a second, different occasion on the same act.
+  //
+  // Last, after the thing is realised and the queue is spliced, because a rider
+  // may hang a timed effect on the empire and the purchase it is a bill for
+  // should be complete before the bill arrives.
+  const bill = windfallPayout(state, player.id, 'purchase');
+  if (bill.grants.length > 0 || bill.units.length > 0 || bill.timed.length > 0 || bill.healAll) {
+    for (const touched of payWindfallGrants(state, player, bill, { col: city.col, row: city.row })) {
+      settleProductionWindfall(state, touched);
+    }
+    settleCultureWindfall(state, player);
+    settleResearchWindfall(state, player);
+  }
 
   refreshCityDerived(state, city);
   // The unit's id, or `undefined` for a building. A purchase can never claim a

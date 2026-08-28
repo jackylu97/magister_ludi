@@ -146,13 +146,14 @@
           "kind": "windfallRider",
           "occasion": "pillage",
           "percent": 50
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "unitUpkeep",
+          "percent": -30
         }
       ],
-      "text": "+3 authority capacity. Pillaging pays +50%.",
-      "deferred": [
-        "30% less maintenance cost for units"
-      ],
-      "note": "Units cost no maintenance in this game, so there is nothing for the last clause to discount."
+      "text": "+3 authority capacity. Pillaging pays +50%."
     },
     "theocracy": {
       "name": "Theocracy",
@@ -346,12 +347,18 @@
         "wildcard": 5
       },
       "text": "+3 faith for each Cathedral. Faith buildings supply science equal to their faith.",
-      "note": "Neither half is built: there is no cathedral in the game — the temple is the last of the faith buildings — and no rule yet pays one yield again as another.",
+      "note": "There is no cathedral in the game yet — the temple is the last of the faith buildings — so the first clause waits on one.",
       "deferred": [
-        "+3 faith per Cathedral",
-        "faith buildings supply science equal to their faith"
+        "+3 faith per Cathedral"
       ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "mirrorYield",
+          "from": "faith",
+          "to": "science",
+          "category": "faith"
+        }
+      ]
     },
     "theCommonwealth": {
       "name": "The Commonwealth",
@@ -363,12 +370,19 @@
         "wildcard": 5
       },
       "text": "Great people may be bought with gold. Great-person improvements pay +50% more.",
-      "note": "Neither half is built: a great person is offered rather than bought, and nothing yet raises the yields of one family of improvements.",
-      "deferred": [
-        "great people can be purchased with gold",
-        "great-person improvements pay +50% more"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "actionRule",
+          "rule": "buyGreatPersonWithGold"
+        },
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "greatWork"
+          },
+          "percent": 50
+        }
+      ]
     },
     "theEmpire": {
       "name": "The Empire",
@@ -380,9 +394,6 @@
         "wildcard": 4
       },
       "text": "+6 authority capacity. +1 combat strength for each great general you have earned this game.",
-      "deferred": [
-        "capturing a city with a wonder heals all your units"
-      ],
       "effects": [
         {
           "kind": "authority",
@@ -400,6 +411,14 @@
             "per": 1,
             "family": "general"
           }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "capturedWonder": true,
+          "grant": {
+            "healAll": true
+          }
         }
       ]
     },
@@ -413,9 +432,6 @@
         "wildcard": 6
       },
       "text": "Every offer of every kind shows one more card. +3 renown per turn for each wonder you hold.",
-      "deferred": [
-        "great people can be purchased with faith"
-      ],
       "effects": [
         {
           "kind": "offerRider",
@@ -426,6 +442,10 @@
           "kind": "renown",
           "amount": 3,
           "per": "wonder"
+        },
+        {
+          "kind": "actionRule",
+          "rule": "buyGreatPersonWithFaith"
         }
       ]
     }
@@ -945,12 +965,17 @@
       "tier": 29,
       "flavor": "A deed unrecorded is a deed undone.",
       "text": "Every Triumph pays its renown twice over. A Triumph missed in one age can still be earned in the next.",
-      "note": "Neither half is built: a Triumph pays its renown outright and cannot be doubled, and a Triumph missed in one age is closed for good.",
+      "note": "A Triumph missed in one age is still closed for good; only the doubling is in effect.",
       "deferred": [
-        "every Triumph pays its renown twice over",
         "Triumphs you missed by one age can still be earned in the next"
       ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "triumphRenown",
+          "percent": 100
+        }
+      ]
     },
     "theStandingArmy": {
       "name": "The Standing Army",
@@ -958,10 +983,6 @@
       "line": "forge",
       "flavor": "The army does not go home. That is the whole of the doctrine.",
       "text": "+1 authority capacity for each 5 units you have in the field. −10% culture. Units cost no upkeep.",
-      "note": "Units cost no maintenance in this game, so the last clause changes nothing.",
-      "deferred": [
-        "units cost no upkeep"
-      ],
       "effects": [
         {
           "kind": "countScaled",
@@ -977,6 +998,11 @@
           "yield": "culture",
           "percent": -10,
           "stage": "empire"
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "unitUpkeep",
+          "percent": -100
         }
       ]
     },
@@ -1114,15 +1140,21 @@
       "tier": 45,
       "flavor": "One goes to see them, and comes back having been seen.",
       "text": "+3 renown per turn for each wonder you hold. +1 culture for each wonder in the world, seen or not.",
-      "note": "Counting every wonder in the world is not built: a card can count what your own empire holds, not what the world holds.",
-      "deferred": [
-        "+1 culture per wonder in the world, seen or not"
-      ],
       "effects": [
         {
           "kind": "renown",
           "amount": 3,
           "per": "wonder"
+        },
+        {
+          "kind": "countScaled",
+          "count": "worldWonders",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
         }
       ]
     },
@@ -1193,10 +1225,6 @@
       "line": "star",
       "flavor": "Everything, in order, by somebody who never left the room.",
       "text": "+1 science for each building in a city. Science buildings cost −50% production.",
-      "note": "The discount is not built: a production bonus can name units, buildings, wonders or projects, but not one category of building.",
-      "deferred": [
-        "science buildings cost −50% production"
-      ],
       "effects": [
         {
           "kind": "countScaled",
@@ -1207,6 +1235,12 @@
             "amount": 1,
             "where": "city"
           }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 50,
+          "buildingCategory": "science"
         }
       ]
     }
@@ -2547,7 +2581,8 @@
             "improvement": "citadel"
           }
         }
-      ]
+      ],
+      "line": "court"
     }
   },
   "tierLadder": [

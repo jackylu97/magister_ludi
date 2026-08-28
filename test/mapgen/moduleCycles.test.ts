@@ -39,6 +39,15 @@ describe('module load order', () => {
     '../../src/sim/arrival',
     '../../src/sim/barbarians',
     '../../src/sim/mapgen',
+    // The trade pass's two, added 2026-08-28 after a cycle between `cities` and
+    // `trade` was reported at HEAD: `trade` imports `cities` and `cities`
+    // imports `trade` back for the route and treasury readers, so either can be
+    // the first one pulled in and neither was on this list. `roads` is the leaf
+    // the road writer moved to, and is here so a future edit that gives it an
+    // import cannot make it one quietly.
+    '../../src/sim/trade',
+    '../../src/sim/roads',
+    '../../src/sim/upkeep',
     '../../src/sim/state',
     '../../src/sim/game',
     '../../src/sim/commands',

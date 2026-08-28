@@ -37,6 +37,8 @@
  */
 
 import { type CampBounty, hasCampAt, removeCampAt, settleCampBounty } from './camps';
+import { capitalCityOf, tileOwnerCityId } from './cities';
+import { revokeLegacies } from './greatPeople';
 import { claimDiscoveryAt } from './discoveries';
 import type { Tile } from './map';
 import {
@@ -44,13 +46,15 @@ import {
   type GameState,
   type Unit,
   captureUnit,
+  cityById,
   playerById,
   removeUnit,
 } from './state';
 import { cardBehaviorRule } from './statecraft';
-import { type TraderPlunder, layRoadUnder, settleTraderPlunder } from './trade';
+import { layRoadUnder } from './roads';
+import { type TraderPlunder, settleTraderPlunder } from './trade';
 import { awardOccasion } from './triumphs';
-import { isCivilian, trades, unitDef } from './unitData';
+import { isCivilian, isCombatant, trades, unitDef } from './unitData';
 import { unitsOnTile } from './units';
 
 /** A civilian that changed hands because somebody took the ground it stood on. */
@@ -138,6 +142,36 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
   // the wild's own, because this is the one place a camp stops existing and the
   // reason is the same one sentence: whoever arrived has no quarrel with it.
   const clears = !isWild && !cardBehaviorRule(state, unit.ownerId, 'noCampClearing');
+
+  /**
+   * **Archimedes hears the soldier at the door.**
+   *
+   * The third thing that happens because a piece *arrived* rather than because
+   * anybody issued a verb (`GreatPersonDef.revokedWhen`), and it is here for the
+   * two that came before it: this is the one place a position comes to rest, so
+   * a rule about somebody walking somewhere has exactly one seam to be written
+   * at. A sweep at end of turn would let a column march through a capital and
+   * out again between two resolutions, which is precisely the fall the clause is
+   * about.
+   *
+   * A **soldier**, not a scout's shadow or a settler passing by: `isCombatant`
+   * is the same question the sleepers' wake asks of a neighbour, and for its
+   * reason — a rival builder wandering across the palace ward is not a sack.
+   * The wild counts, because there is no diplomacy in this game and a barbarian
+   * in the capital is exactly the sentence.
+   */
+  if (isCombatant(unitDef(unit.type))) {
+    const holder = tileOwnerCityId(state, tile.col, tile.row);
+    if (holder !== null) {
+      const town = cityById(state, holder);
+      if (town && town.ownerId !== unit.ownerId) {
+        const capital = capitalCityOf(state, town.ownerId);
+        if (capital && capital.id === town.id) {
+          revokeLegacies(state, town.ownerId, 'enemyEntersCapital');
+        }
+      }
+    }
+  }
 
   if (clears && hasCampAt(state, tile.col, tile.row)) {
     removeCampAt(state, tile.col, tile.row);

@@ -80,6 +80,7 @@ import {
 import { type MeterStep, RULES } from './rulesData';
 import {
   cardAmplifier,
+  cardAmplifierFlat,
   cardAuthority,
   cardHappiness,
   cardMeterRule,
@@ -223,11 +224,18 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // floored **per line**, so five luxuries at +50% pay five rounded points
   // rather than one rounded total.
   const luxuryBoost = cardAmplifier(state, playerId, 'luxuryHappiness');
+  // **Ea-nāṣir's malice**, the amplifier's other dial: a *whole point* off what
+  // each luxury counts for, which no percentage can say exactly. Applied before
+  // the share and floored at nothing per line — a luxury never costs happiness —
+  // for the reason the share is applied per line: five luxuries at one fewer are
+  // five points, not one rounding of a total.
+  const luxuryStep = cardAmplifierFlat(state, playerId, 'luxuryHappiness');
   for (const holding of controlledHoldings(state, playerId, 'luxury')) {
+    const each = Math.max(0, rules.perUniqueLuxury + luxuryStep);
     list.push({
       source: `${resourceDef(holding.id).name} · ${viaWord(holding)}`,
       part: 'gain',
-      value: Math.floor((rules.perUniqueLuxury * (100 + luxuryBoost)) / 100),
+      value: Math.floor((each * (100 + luxuryBoost)) / 100),
     });
   }
   // A luxury whose signature is *more happiness* says so on a line of its own

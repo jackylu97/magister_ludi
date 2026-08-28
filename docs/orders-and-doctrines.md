@@ -2,7 +2,46 @@
 
 Every Order, Doctrine and government in one place, tables only. Edit here; the two working docs (`statecraft-cards.md`, `statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
 
-**As built, 2026-08-28** — a deferred half stands on: Tyranny · The Curia (both) · The Commonwealth (both) · The Empire · The Magisterium · The Academy of Deeds (both) · The Standing Army · The Sea Charter · The Renaissance Court · Cuius Regio (two) · Absolutism · Blitz (both) · The Philosopher's Stone (both) · The Grand Tour (II) · The Levée en Masse · Pax Magistri · The Encyclopaedia.
+**As built, 2026-08-28 (second pass)** — six of those halves are built and the shapes are
+generic:
+
+- **Tyranny** *(−30% unit maintenance)* and **The Standing Army** *(no upkeep at all)* — the
+  eighth `CardRule`, `unitUpkeep`, folded as its **own labelled line** in
+  `explainEmpireGold` beside the gross payroll (`explainUnitUpkeepRebate`). The gross list
+  stays gross, so the creditors' disband choice is the same under every government.
+- **The Curia** *(faith buildings supply science equal to their faith)* — `mirrorYield`,
+  read in `cityYields` off the buildings' own category and their own faith, never the town's
+  total. A **flat** line, so it lands before Entry XVII's percentages.
+- **The Commonwealth** and **The Magisterium** *(great people bought with gold / faith)* —
+  a great person is still **called**: what is for sale is the *recruitment*. The new
+  `purchaseGreatPersonOffer { playerId, currency }` charges the bank and pours the remaining
+  renown through `settleRenownWindfall`, so there is one draft path and `chooseGreatPerson`
+  still answers. Gated by `actionRule` `buyGreatPersonWithGold` / `…WithFaith`; priced at
+  `rules.greatPeople.offerPriceGold` (300💰) / `offerPriceFaith` (150🕯).
+- **The Commonwealth** *(great-person improvements pay +50% more)* — `tileYield.percent`
+  plus `TileCondition.greatWork`, read in `explainTileYield` as one more labelled line
+  computed off the **improvement's own** entries. It never multiplies the terrain, the river
+  or another card.
+- **The Empire** *(capturing a city with a wonder heals all your units)* —
+  `WindfallOccasionFacts.capturedWonder` (read before the town changes hands, which is the
+  only moment anything still knows) and `WindfallGrantSpec.healAll`.
+- **The Encyclopaedia** *(science buildings cost −50%)* — `productionBonus.buildingCategory`,
+  read off `BuildingDef.category`, so a second science building is a JSON row.
+- **The Grand Tour II** *(+1🎵 per wonder in the world, seen or not)* —
+  `CountKind.worldWonders`, off `GameState.wonders`: the claim register is the one place a
+  wonder is written down and never moves, so there is no fog clause to get wrong.
+- **The Academy of Deeds** *(every Triumph pays its renown twice over)* —
+  `AmplifierTarget.triumphRenown`, folded into the printed figure in `awardTriumph` before
+  `settleRenownWindfall` banks it, so the annal and the pool are one number.
+
+**A deferred half still stands on**, and each waits on a system the game does not have: The
+Curia (the Cathedral) · The Academy of Deeds' second half (a missed Triumph is closed for
+good — reopening one is a change to `awardTriumph`'s `perAge` register) · The Sea Charter
+(the Harbour) · The Renaissance Court (nothing makes a legacy stronger) · Cuius Regio (two) ·
+Absolutism (an extra Order office is a change to a *layout*, not a number) · Blitz (both) ·
+The Philosopher's Stone (both) · The Levée en Masse (nothing happens when a border is
+crossed) · Pax Magistri (no war to declare) · Religious Mandate (diplomacy) · The Great
+Warring Tribes (the courthouse).
 
 ## Themes (the archetype lines)
 

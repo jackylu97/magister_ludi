@@ -44,6 +44,7 @@ import {
   cardBehaviorRule,
   cardCityStat,
   cardCityYields,
+  cardProduction,
   cardFoundingRider,
   foldCardYields,
   cardOfferRule,
@@ -95,9 +96,23 @@ import {
 import { getTileAt } from '../../src/sim/map';
 import { arriveOnTile } from '../../src/sim/arrival';
 import { foundCityAt } from '../../src/sim/cities';
+import { improvementDef } from '../../src/sim/improvementData';
+import { awardOccasion } from '../../src/sim/triumphs';
+import { applyCommand } from '../../src/sim/commands';
+import {
+  greatPersonBlocker,
+  greatPersonOfferPrice,
+  greatPersonPurchaseError,
+} from '../../src/sim/greatPeople';
+import { explainUnitUpkeepRebate, unitUpkeepTotal } from '../../src/sim/upkeep';
 import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
 import { buildError, isUnlocked } from '../../src/sim/tech';
-import { explainRouteYieldBetween, foldRouteYield, roadsBuiltBy } from '../../src/sim/trade';
+import {
+  explainEmpireGold,
+  explainRouteYieldBetween,
+  foldRouteYield,
+  roadsBuiltBy,
+} from '../../src/sim/trade';
 import { SCHEMA_VERSION, type GameState, createUnit, playerById } from '../../src/sim/state';
 import { unitDef } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
@@ -1585,14 +1600,14 @@ describe('the master-list cut of 2026-08-28', () => {
     // has ever answered, which is the legacies plus whoever is still walking.
     // Asserted as the card's own labelled line rather than as a change in the
     // total — a legacy is itself a live card and moves the same total.
-    player.legacies.push('hannibal');
+    player.legacies.push({ id: 'hannibal', age: 1 });
     const after = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
     expect(after.ok).toBe(true);
     if (!after.ok) return;
     const line = after.bonuses.find((b) => b.source.includes('The Empire'))!;
     expect(line.amount).toBe(1);
     // A scholar is not a general — the family is the whole of the rule.
-    player.legacies.push('imhotep');
+    player.legacies.push({ id: 'imhotep', age: 1 });
     const third = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
     if (third.ok) {
       expect(third.bonuses.find((b) => b.source.includes('The Empire'))!.amount).toBe(1);
@@ -1889,7 +1904,10 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(said('tyranny')).toEqual([
       '+3 authority capacity',
       'pillaging pays +50%',
-      '30% less maintenance cost for units — not built yet',
+      // Built by the 2026-08-28 pass: unit maintenance exists now (`upkeep.ts`),
+      // so the clause is a `rulePercent` on the eighth `CardRule` rather than a
+      // sentence struck through.
+      '-30% the gold your units cost in maintenance',
     ]);
     expect(said('theocracy')).toEqual([
       '+2 faith in every city',
@@ -1913,22 +1931,31 @@ describe('the master-list cut of 2026-08-28', () => {
       '+10% culture in every captured city',
     ]);
     expect(said('theCuria')).toEqual([
+      // Built by the 2026-08-28 pass: `mirrorYield` reads one voice off the
+      // buildings of one category and pays it as another. The Cathedral half
+      // still waits on the tree.
+      'faith buildings supply science equal to their faith, in every city',
       '+3 faith per Cathedral — not built yet',
-      'faith buildings supply science equal to their faith — not built yet',
     ]);
+    // Both halves built by the 2026-08-28 pass. A great person is still
+    // *called* rather than bought — what the gold buys is the **recruitment**
+    // (`purchaseGreatPersonOffer`) — and the works' half is the first
+    // `tileYield` percentage, which reaches the improvement's own lines only.
     expect(said('theCommonwealth')).toEqual([
-      'great people can be purchased with gold — not built yet',
-      'great-person improvements pay +50% more — not built yet',
+      'a great person waiting to be called may be bought with gold',
+      "the works on every hex carrying a great person's work pay +50% more",
     ]);
     expect(said('theEmpire')).toEqual([
       '+6 authority capacity',
       '+1 combat strength per great general earned this game',
-      'capturing a city with a wonder heals all your units — not built yet',
+      // Built by the 2026-08-28 pass: a `windfallRider` narrowed by what stood
+      // in the town (`WindfallOccasionFacts.capturedWonder`).
+      'capturing a city with a wonder in it heals every one of your units',
     ]);
     expect(said('theMagisterium')).toEqual([
       '+1 card in every offer of every kind',
       '+3 renown per turn per wonder you hold',
-      'great people can be purchased with faith — not built yet',
+      'a great person waiting to be called may be bought with faith',
     ]);
 
     expect(said('wolfMothersPact')).toEqual([
@@ -2001,5 +2028,205 @@ describe('the master-list cut of 2026-08-28', () => {
       'clearing a barbarian camp grants +10 faith',
     ]);
     expect(said('lordOfTheSea')).toEqual(['+1 production, +1 gold on every hex with a Fishing Boat']);
+  });
+});
+
+// --- the deferred halves the 2026-08-28 pass built --------------------------
+
+/**
+ * Six clauses that had shipped as `deferred:` sentences because the game had no
+ * mechanism to say them, and now have one. Each is asserted where its fold
+ * already lives — the treasury's ledger, a town's yields, a hex's breakdown, the
+ * capture path — rather than through a second reading of the card.
+ */
+describe('the governments’ deferred halves, built', () => {
+  /** Puts an empire under one government outright. Test scaffolding only. */
+  function govern(state: GameState, playerId: number, id: string): void {
+    playerById(state, playerId)!.statecraft.government = id as never;
+  }
+
+  it('Tyranny gives back a share of the payroll, as its own labelled line', () => {
+    const g = game(301);
+    found(g.state, 0);
+    // An army worth paying for. `explainUnitUpkeep` is the gross list and stays
+    // gross — the rebate is a line beside it, not a discount inside it.
+    for (let i = 0; i < 4; i++) createUnit(g.state, 0, 'warrior', 3, 3);
+    const gross = unitUpkeepTotal(g.state, 0);
+    expect(gross).toBeGreaterThan(0);
+    expect(explainUnitUpkeepRebate(g.state, 0)).toHaveLength(0);
+
+    govern(g.state, 0, 'tyranny');
+    const rebate = explainUnitUpkeepRebate(g.state, 0);
+    expect(rebate).toHaveLength(1);
+    expect(rebate[0]!.gold).toBe(Math.floor((gross * 30) / 100));
+    // And it reaches the one list the treasury's figure is the fold of.
+    const ledger = explainEmpireGold(g.state, 0);
+    expect(ledger.some((line) => line.source.includes('Tyranny'))).toBe(true);
+    expect(unitUpkeepTotal(g.state, 0)).toBe(gross);
+  });
+
+  it('The Standing Army pays nothing at all, and never mints', () => {
+    const g = game(303);
+    found(g.state, 0);
+    for (let i = 0; i < 4; i++) createUnit(g.state, 0, 'warrior', 3, 3);
+    const gross = unitUpkeepTotal(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('theStandingArmy' as never);
+    const rebate = explainUnitUpkeepRebate(g.state, 0);
+    expect(rebate.reduce((sum, line) => sum + line.gold, 0)).toBe(gross);
+  });
+
+  it('The Curia pays science equal to what its faith buildings supply', () => {
+    const g = game(307);
+    const city = found(g.state, 0);
+    govern(g.state, 0, 'theCuria');
+    // Measured against the *same town under any other law*, so the shrine's own
+    // science is on both sides of the comparison and what is left is the mirror.
+    const under = (law: string): number => {
+      govern(g.state, 0, law);
+      return cityYields(g.state, city).science;
+    };
+    // A granary is not a faith building: the clause reads the rows' own
+    // category and their own faith, never the town's total.
+    city.buildings.push('granary');
+    expect(under('theCuria')).toBe(under('chiefdom'));
+    city.buildings.push('shrine');
+    const shrineFaith = buildingDef('shrine').faith ?? 0;
+    expect(shrineFaith).toBeGreaterThan(0);
+    expect(under('theCuria')).toBe(under('chiefdom') + shrineFaith);
+  });
+
+  it('The Commonwealth raises a great person’s works and nothing else on the hex', () => {
+    const g = game(311);
+    const city = found(g.state, 0);
+    govern(g.state, 0, 'theCommonwealth');
+    const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
+    const shareLine = (): (typeof lines)[number] | undefined => {
+      const found = explainTileYield(tile, yieldContextFor(g.state, 0)).filter((line) =>
+        line.source.includes('Commonwealth'),
+      );
+      return found[0];
+    };
+    let lines = explainTileYield(tile, yieldContextFor(g.state, 0));
+    expect(shareLine()).toBeUndefined();
+    // An ordinary improvement is not a work: the condition reads the
+    // improvement table's own marker, never a list of five names.
+    tile.improvement = 'farm';
+    expect(shareLine()).toBeUndefined();
+
+    tile.improvement = 'academy';
+    lines = explainTileYield(tile, yieldContextFor(g.state, 0));
+    const works = lines.find((line) => line.source === improvementDef('academy').name)!;
+    const share = shareLine()!;
+    // A share of the **works**, never of the ground: the terrain's own yields
+    // are on the same list and are not what the card raised.
+    expect(share.science).toBe(Math.floor((works.science * 50) / 100));
+    // And it is a line of the breakdown, so the fold is still the total.
+    expect(lines[lines.length - 1]).toStrictEqual(share);
+  });
+
+  it('The Empire heals the army when the town it took held a wonder', () => {
+    const g = game(313);
+    found(g.state, 0);
+    govern(g.state, 0, 'theEmpire');
+    const hurt = createUnit(g.state, 0, 'warrior', 3, 3);
+    hurt.hp = 1;
+    const player = playerById(g.state, 0)!;
+
+    // A capture with no wonder in the town pays nothing at all.
+    const plain = windfallPayout(g.state, 0, 'capture', 0, 0, {});
+    expect(plain.healAll).toBe(false);
+    const withWonder = windfallPayout(g.state, 0, 'capture', 0, 0, { capturedWonder: true });
+    expect(withWonder.healAll).toBe(true);
+    payWindfallGrants(g.state, player, withWonder, { col: 3, row: 3 });
+    expect(hurt.hp).toBe(unitDef('warrior').maxHp);
+  });
+
+  it('The Commonwealth sells the recruitment, and no other law does', () => {
+    const g = game(317);
+    found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.gold = 10_000;
+    // Under the opening chiefdom there is no such verb at all.
+    expect(greatPersonPurchaseError(g.state, 0, 'gold')).toContain('law does not let');
+    govern(g.state, 0, 'theCommonwealth');
+    expect(greatPersonPurchaseError(g.state, 0, 'gold')).toBeNull();
+    // …and only out of the bank the law names.
+    expect(greatPersonPurchaseError(g.state, 0, 'faith')).toContain('law does not let');
+
+    const price = greatPersonOfferPrice('gold');
+    const before = player.gold;
+    expect(applyCommand(g.state, {
+      type: 'purchaseGreatPersonOffer',
+      playerId: 0,
+      currency: 'gold',
+    }).ok).toBe(true);
+    expect(player.gold).toBe(before - price);
+    // **One draft path**: the offer opened by exactly the code the ladder opens
+    // one by, and it blocks End Turn like any other.
+    expect(player.greatPersonOffer!.options.length).toBeGreaterThan(0);
+    expect(greatPersonBlocker(player)).not.toBeNull();
+    // Nothing was minted — a great person is still *called*.
+    expect(g.state.units.some((u) => u.person !== undefined)).toBe(false);
+    // And a second purchase is refused while the first is unanswered.
+    expect(greatPersonPurchaseError(g.state, 0, 'gold')).toContain('already has');
+  });
+
+  it('refuses the purchase to an empty treasury, byte-identically', () => {
+    const g = game(319);
+    found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.government = 'theCommonwealth' as never;
+    playerById(g.state, 0)!.gold = 0;
+    const before = snapshotState(g.state);
+    expect(applyCommand(g.state, {
+      type: 'purchaseGreatPersonOffer',
+      playerId: 0,
+      currency: 'gold',
+    }).ok).toBe(false);
+    expect(snapshotState(g.state)).toBe(before);
+  });
+});
+
+describe('the doctrines’ deferred halves, built', () => {
+  it('The Encyclopaedia hurries a science building and no other', () => {
+    const g = game(331);
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('theEncyclopaedia' as never);
+    // Read off `BuildingDef.category`, so a second science building is a JSON
+    // row rather than an edit to the card.
+    expect(buildingDef('library').category).toBe('science');
+    const library = cardProduction(g.state, city, 'building', undefined, 'library');
+    expect(library.reduce((sum, line) => sum + line.percent, 0)).toBe(50);
+    expect(cardProduction(g.state, city, 'building', undefined, 'granary')).toHaveLength(0);
+    // And a row with no building in hand is not a building at all.
+    expect(cardProduction(g.state, city, 'building')).toHaveLength(0);
+  });
+
+  it('The Grand Tour counts the world’s wonders, seen or not', () => {
+    const g = game(333);
+    found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('theGrandTourII' as never);
+    expect(foldCardYields(cardEmpireYields(g.state, 0)).culture).toBe(0);
+    // The claim register, which is where a wonder is written down once and
+    // never moves — a rival's marvel counts exactly as your own does.
+    g.state.wonders.push({ building: 'theOracle', playerId: 1, cityId: 0, turn: 1 });
+    expect(foldCardYields(cardEmpireYields(g.state, 0)).culture).toBe(1);
+  });
+
+  it('The Academy of Deeds doubles a Triumph before anything is banked', () => {
+    const plain = game(337);
+    found(plain.state, 0);
+    const doubled = game(337);
+    found(doubled.state, 0);
+    playerById(doubled.state, 0)!.statecraft.doctrines.push('theAcademyOfDeeds' as never);
+    const claim = (g: ReturnType<typeof game>): number => {
+      const before = playerById(g.state, 0)!.renownPool;
+      awardOccasion(g.state, 0, 'campCleared');
+      return playerById(g.state, 0)!.renownPool - before;
+    };
+    const flat = claim(plain);
+    expect(flat).toBeGreaterThan(0);
+    // The announcement and the pool are one figure — the amplifier folds into
+    // the printed number, never onto the settlement afterwards.
+    expect(claim(doubled)).toBe(flat * 2);
   });
 });

@@ -59,8 +59,13 @@ import {
   newGame,
   unitById,
 } from '../../src/sim/state';
+import { arriveOnTile } from '../../src/sim/arrival';
+import { happinessOf } from '../../src/sim/meters';
+import { revokeLegacies } from '../../src/sim/greatPeople';
+import { unitDef } from '../../src/sim/unitData';
 import {
-  type CombatSituation,
+  cardAmplifier,
+  cardAmplifierFlat,
   cardAuthority,
   cardCityYields,
   cardCombatLines,
@@ -69,6 +74,8 @@ import {
   describeCard,
   foldCardYields,
   liveEffects,
+  stripRefs,
+  type CombatSituation,
 } from '../../src/sim/statecraft';
 import type { CardEffectKind } from '../../src/sim/statecraftData';
 import { highestAge } from '../../src/sim/techData';
@@ -276,7 +283,7 @@ describe('the act', () => {
       .toBe(true);
     expect(player.sciencePool).toBeGreaterThan(0);
     expect(unitById(g.state, unit.id)).toBeUndefined();
-    expect(player.legacies).toEqual([SAMPLE.scholar]);
+    expect(player.legacies.map((held) => held.id)).toEqual([SAMPLE.scholar]);
   });
 
   it('a scholar’s beakers finish the technology outright when they cover it', () => {
@@ -365,7 +372,7 @@ describe('the work', () => {
       .toBe(true);
     expect(tile.improvement).toBe('academy');
     expect(unitById(g.state, unit.id)).toBeUndefined();
-    expect(g.state.players[0]!.legacies).toEqual([SAMPLE.scholar]);
+    expect(g.state.players[0]!.legacies.map((held) => held.id)).toEqual([SAMPLE.scholar]);
   });
 
   it('is refused to a worker, and an ordinary improvement is refused to a person', () => {
@@ -536,7 +543,7 @@ describe('a legacy is a card', () => {
     city.buildings.push('granary');
     const before = cityYields(g.state, city).gold;
     // Kushim: +1🪙 per granary, an ordinary `cityYields` line with a scope.
-    g.state.players[0]!.legacies.push('kushim');
+    g.state.players[0]!.legacies.push({ id: 'kushim', age: 1 });
     expect(cityYields(g.state, city).gold).toBe(before + 1);
   });
 
@@ -545,7 +552,7 @@ describe('a legacy is a card', () => {
     const city = found(g.state, 0);
     // Enheduanna: the capital +3🎵, and shrines +1🎵. Without a shrine the
     // second line pays nothing at all.
-    g.state.players[0]!.legacies.push('enheduanna');
+    g.state.players[0]!.legacies.push({ id: 'enheduanna', age: 1 });
     const bare = cityYields(g.state, city).culture;
     city.buildings.push('shrine');
     expect(cityYields(g.state, city).culture).toBe(bare + 1);
@@ -569,7 +576,7 @@ describe('a legacy is a card', () => {
 describe('the legacies this pass built', () => {
   /** A legacy attached to a seat, without spending a piece to do it. */
   function bear(state: GameState, playerId: number, id: GreatPersonId): void {
-    state.players[playerId]!.legacies.push(id);
+    state.players[playerId]!.legacies.push({ id, age: 1 });
   }
 
   /** The empire's once-a-turn card yields, folded. */
@@ -836,7 +843,11 @@ describe('the legacies this pass built', () => {
   it('prints every legacy this pass wrote, in words', () => {
     // The card's own sentence, which is what a player reads — a shape that
     // evaluates correctly and prints nothing is a card that lies by omission.
-    const printed = (id: GreatPersonId) => describeCard(id).map((clause) => clause.text);
+    // **Stripped**, because these compare *clause text*: a describer marks the
+    // things a reader can look up (`ref`), and the plain reading is the sentence
+    // that was printed before any of that existed (`stripRefs`' own guarantee).
+    const printed = (id: GreatPersonId) =>
+      describeCard(id).map((clause) => stripRefs(clause.text));
     expect(printed('ptahhotep')).toEqual(['+1 authority capacity per Library']);
     expect(printed('phidias')).toEqual(['+3 culture per wonder you hold']);
     expect(printed('eratosthenes')).toEqual(['+1 science per 20 hexes you have revealed']);
@@ -858,11 +869,22 @@ describe('the legacies this pass built', () => {
     expect(printed('amenhotepSonOfHapu')).toEqual([
       '+20% production toward wonders, in your capital',
     ]);
-    // The deferred half prints too, struck through — a promise not made is said
-    // out loud rather than quietly dropped.
+    // **The revocation prints, and it is not struck through** (2026-08-28): it
+    // is a promise the game *does* make now, so it reads as an ordinary clause
+    // of the card. `GreatPersonDef.revokedWhen` is not an effect — it happens at
+    // a moment and never un-happens — so `describeCard` prints it beside the
+    // completion grant and the slot grant, for their reason.
     expect(printed('archimedes')).toEqual([
       '+6 combat strength for siege units against cities',
-      'this legacy is lost the turn an enemy enters his city — not built yet',
+      'lost the turn an enemy soldier enters your capital’s territory',
+    ]);
+    expect(printed('hypatia')).toEqual([
+      '+10% science in every city',
+      'lost the first turn your happiness goes negative',
+    ]);
+    expect(printed('boudica')).toEqual([
+      '+4 combat strength inside your territory',
+      'lost when the age it was earned in closes',
     ]);
     expect(printed('tychoBrahe')).toEqual([
       '+3 science in every city beside a mountain',
@@ -871,7 +893,12 @@ describe('the legacies this pass built', () => {
     // The building half is built now, so the row says both and one of its two
     // deferred sentences is gone (the timed unhappiness is the one that stays).
     expect(printed('crassus')[0]).toBe('all units and buildings cost −30% to buy');
-    expect(printed('crassus')).toHaveLength(2);
+    // The timed half is built now too, so both of Crassus' clauses are real and
+    // nothing on his row is deferred.
+    expect(printed('crassus')).toEqual([
+      'all units and buildings cost −30% to buy',
+      'buying anything costs your empire -1 happiness for 10 turns',
+    ]);
     expect(printed('jakobFugger')).toContain('all units and buildings cost −20% to buy');
     // And the other side of a fight, which `combatLine` could not say until
     // `vsClass` existed.
@@ -984,4 +1011,244 @@ describe('great people in the log', () => {
     expect(snapshotState(replayed)).toBe(snapshotState(live.state));
     expect(replayed.players[0]!.legacies).toHaveLength(1);
   });
+});
+
+// --- the legacies the 2026-08-28 pass built ---------------------------------
+
+/**
+ * The one-row shapes the earlier pass refused, built generically, and the
+ * revocation mechanism the three conditional legacies had been waiting on.
+ *
+ * Behavioural for the reason the block above is: the register test proves a
+ * *kind* is read, and only a fight, a purchase or a march can prove that a
+ * **member** of a condition union is asked the right question.
+ */
+describe('the one-row shapes, built generically', () => {
+  /** A legacy attached to a seat, without spending a piece to do it. */
+  function bear(state: GameState, playerId: number, id: GreatPersonId, age = 1): void {
+    state.players[playerId]!.legacies.push({ id, age });
+  }
+
+  /** One side of one fight, as `cardCombatLines` is asked about it. */
+  function fight(
+    state: GameState,
+    unit: Unit,
+    tile: ReturnType<typeof getTileAt>,
+    side: 'attack' | 'defend',
+    vsStrength?: number,
+  ): number {
+    const situation: CombatSituation = {
+      unit,
+      side,
+      tile: tile!,
+      vsBarbarians: false,
+      vsCity: false,
+      targetHp: 10,
+      targetMaxHp: 10,
+      vsStrength,
+    };
+    return cardCombatLines(state, situation).reduce((sum, line) => sum + line.amount, 0);
+  }
+
+  it('Deborah judges within two hexes of a city of her own, and not three', () => {
+    const g = game(211);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'deborah');
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    // The hex the town stands on is trivially within two of it.
+    expect(fight(g.state, unit, getTileAt(g.state.map, city.col, city.row), 'attack')).toBe(4);
+    // A distance rather than a border: unclaimed ground two hexes out still
+    // pays, and ground far away does not.
+    expect(fight(g.state, unit, getTileAt(g.state.map, city.col + 2, city.row), 'attack')).toBe(4);
+    expect(fight(g.state, unit, getTileAt(g.state.map, city.col + 9, city.row), 'attack')).toBe(0);
+  });
+
+  it('Spartacus is worth something only against a stronger piece', () => {
+    const g = game(213);
+    found(g.state, 0);
+    bear(g.state, 0, 'spartacus');
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    const here = getTileAt(g.state.map, unit.col, unit.row);
+    const mine = unitDef(unit.type).combatStrength;
+    expect(fight(g.state, unit, here, 'attack', mine + 5)).toBe(3);
+    expect(fight(g.state, unit, here, 'attack', mine)).toBe(0);
+    // A city has no such strength, so the line never pays against walls — and
+    // the clause only pays the attacker, which is what "when attacking" says.
+    expect(fight(g.state, unit, here, 'attack', undefined)).toBe(0);
+    expect(fight(g.state, unit, here, 'defend', mine + 5)).toBe(0);
+  });
+
+  it('Hemiunu costs happiness only while a wonder is in somebody’s queue', () => {
+    const g = game(217);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'hemiunu');
+    const before = happinessOf(g.state, 0);
+    city.queue = [{ kind: 'building', id: 'theOracle' }];
+    expect(happinessOf(g.state, 0)).toBe(before - 2);
+    // A building in the queue is not a wonder: `queueCategory` is the one place
+    // a row is sorted, and the gate asks it rather than guessing.
+    city.queue = [{ kind: 'building', id: 'granary' }];
+    expect(happinessOf(g.state, 0)).toBe(before);
+  });
+
+  it('Ea-nāṣir takes a whole point off what every luxury counts for', () => {
+    const g = game(219);
+    found(g.state, 0);
+    // The amplifier's **other dial**, read through the ordinary evaluator: a
+    // whole point, which no percentage of the table's own figure could say
+    // exactly. `meters.ts` is the one consumer and applies it per luxury line,
+    // floored at nothing — a luxury never costs happiness.
+    expect(cardAmplifierFlat(g.state, 0, 'luxuryHappiness')).toBe(0);
+    bear(g.state, 0, 'eaNasir');
+    expect(cardAmplifierFlat(g.state, 0, 'luxuryHappiness')).toBe(-1);
+    // And it is the *flat* dial, not the share: the percentage reading is
+    // untouched, which is what keeps a row that turns both one arithmetic.
+    expect(cardAmplifier(g.state, 0, 'luxuryHappiness')).toBe(0);
+  });
+
+  it('Hero of Alexandria is paid for a wonder that supplies science, not for one that does not', () => {
+    const g = game(223);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'heroOfAlexandria');
+    const bare = cityYields(g.state, city).production;
+    // The Oracle pays faith, not science: the scope reads what a row *does*.
+    city.buildings.push('theOracle');
+    expect(cityYields(g.state, city).production).toBe(bare);
+    city.buildings.push('greatLibrary');
+    expect(cityYields(g.state, city).production).toBe(bare + 5);
+  });
+
+  it('Mimar Sinan hurries a Temple and nothing else', () => {
+    const g = game(227);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'mimarSinan');
+    const temple = cardProduction(g.state, city, 'building', undefined, 'temple');
+    expect(temple.reduce((sum, line) => sum + line.percent, 0)).toBe(30);
+    expect(cardProduction(g.state, city, 'building', undefined, 'granary')).toHaveLength(0);
+  });
+
+  it('Homer’s army mends at home and never abroad', () => {
+    const g = game(229);
+    found(g.state, 0);
+    bear(g.state, 0, 'homer');
+    const unit = g.state.units.find((u) => u.ownerId === 0 && u.type !== 'settler')!;
+    unit.hp = 1;
+    // Standing on ground nobody owns — the honest reading of "outside your
+    // borders", and the one that makes the clause bite on a campaign.
+    unit.col += 6;
+    dispatch(g, { type: 'endTurn', playerId: 0 });
+    dispatch(g, { type: 'endTurn', playerId: 1 });
+    expect(unitById(g.state, unit.id)!.hp).toBe(1);
+  });
+
+  it('Leonardo doubles what an act pays, through the same seam', () => {
+    const plain = game(231);
+    found(plain.state, 0);
+    const doubled = game(231);
+    found(doubled.state, 0);
+    bear(doubled.state, 0, 'leonardo');
+    const spend = (g: ReturnType<typeof game>): number => {
+      const piece = call(g.state, 0, 'kushim');
+      const before = g.state.players[0]!.gold;
+      applyCommand(g.state, { type: 'greatPersonAct', playerId: 0, unitId: piece.id });
+      return g.state.players[0]!.gold - before;
+    };
+    expect(spend(doubled)).toBe(spend(plain) * 2);
+  });
+
+  it('Marco Polo counts only the routes that leave the realm', () => {
+    const g = game(233);
+    const mine = found(g.state, 0);
+    const theirs = found(g.state, 1);
+    bear(g.state, 0, 'marcoPolo');
+    const trader = createUnit(g.state, 0, 'trader', mine.col, mine.row);
+    trader.trade = { from: mine.id, to: mine.id, expiresTurn: 99, outbound: true, autoResend: false };
+    expect(foldCardYields(cardEmpireYields(g.state, 0)).gold).toBe(0);
+    trader.trade = { from: mine.id, to: theirs.id, expiresTurn: 99, outbound: true, autoResend: false };
+    expect(foldCardYields(cardEmpireYields(g.state, 0)).gold).toBe(3);
+  });
+
+  it('Crassus hangs his bill on the empire, and the broom takes it away', () => {
+    const g = game(237);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'crassus');
+    const player = g.state.players[0]!;
+    player.gold = 5000;
+    const before = happinessOf(g.state, 0);
+    expect(applyCommand(g.state, {
+      type: 'purchaseItem',
+      playerId: 0,
+      cityId: city.id,
+      item: { kind: 'unit', id: 'warrior' },
+      currency: 'gold',
+    }).ok).toBe(true);
+    // `Player.timed` is the third holder, read by the ordinary evaluator.
+    expect(player.timed).toHaveLength(1);
+    expect(happinessOf(g.state, 0)).toBe(before - 1);
+    // A comparison, never a countdown: past the stamp the effect is inert
+    // whether or not anything has swept it.
+    g.state.turn = player.timed![0]!.expiresTurn;
+    expect(happinessOf(g.state, 0)).toBe(before);
+  });
+});
+
+describe('a legacy that is lost', () => {
+  function bear(state: GameState, playerId: number, id: GreatPersonId, age = 1): void {
+    state.players[playerId]!.legacies.push({ id, age });
+  }
+
+  it('marks rather than deletes, and only the effects stop being read', () => {
+    const g = game(241);
+    found(g.state, 0);
+    bear(g.state, 0, 'hypatia');
+    expect(liveEffects(g.state, 0).some((e) => e.card === 'hypatia')).toBe(true);
+    revokeLegacies(g.state, 0, 'happinessNegative');
+    // History is intact; the walk simply stops reading it.
+    expect(g.state.players[0]!.legacies).toEqual([
+      { id: 'hypatia', age: 1, revoked: true },
+    ]);
+    expect(liveEffects(g.state, 0).some((e) => e.card === 'hypatia')).toBe(false);
+  });
+
+  it('revokes only the legacy whose row names that occasion', () => {
+    const g = game(243);
+    found(g.state, 0);
+    bear(g.state, 0, 'hypatia');
+    bear(g.state, 0, 'archimedes');
+    revokeLegacies(g.state, 0, 'happinessNegative');
+    expect(g.state.players[0]!.legacies.map((h) => h.revoked)).toEqual([true, undefined]);
+  });
+
+  it('Boudica keeps her legacy inside her own age and loses it in the next', () => {
+    const g = game(247);
+    found(g.state, 0);
+    bear(g.state, 0, 'boudica', 1);
+    expect(revokeLegacies(g.state, 0, 'ageAdvanced')).toEqual([]);
+    // The empire reaches the second age: the stamp is compared, never counted.
+    g.state.players[0]!.techsResearched.push('ironWorking');
+    if (highestAge(g.state.players[0]!.techsResearched) > 1) {
+      expect(revokeLegacies(g.state, 0, 'ageAdvanced')).toEqual(['boudica']);
+    }
+  });
+
+  it('Archimedes falls when a soldier comes to rest in the capital’s ground', () => {
+    const g = game(251);
+    const capital = found(g.state, 0);
+    bear(g.state, 0, 'archimedes');
+    const tile = getTileAt(g.state.map, capital.col, capital.row)!;
+    const raider = createUnit(g.state, 1, 'warrior', tile.col, tile.row);
+    arriveOnTile(g.state, raider, tile);
+    expect(g.state.players[0]!.legacies[0]!.revoked).toBe(true);
+  });
+
+  it('a builder wandering past is not a sack', () => {
+    const g = game(253);
+    const capital = found(g.state, 0);
+    bear(g.state, 0, 'archimedes');
+    const tile = getTileAt(g.state.map, capital.col, capital.row)!;
+    const worker = createUnit(g.state, 1, 'worker', tile.col, tile.row);
+    arriveOnTile(g.state, worker, tile);
+    expect(g.state.players[0]!.legacies[0]!.revoked).toBeUndefined();
+  });
+
 });

@@ -896,6 +896,19 @@ export interface GreatPeopleRules {
   generalAuraStrength: number;
   /** How far a citadel claims ground around itself, in hexes. */
   citadelClaimRadius: number;
+  /**
+   * What buying an early recruitment costs in gold — The Commonwealth's price.
+   *
+   * A **flat** figure rather than a share of the ladder, and that is the design:
+   * the ladder already escalates (`renownThreshold`), so a price that escalated
+   * with it would be a card that gets weaker exactly as an empire gets richer.
+   * What is bought is the *recruitment*, not the piece — see
+   * `purchaseGreatPersonOfferAt` (`greatPeople.ts`), which pours the remaining
+   * renown through `settleRenownWindfall` so there is still one draft path.
+   */
+  offerPriceGold: number;
+  /** The same out of the faith bank — The Magisterium's. */
+  offerPriceFaith: number;
 }
 
 /**

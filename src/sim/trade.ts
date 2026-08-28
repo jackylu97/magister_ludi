@@ -103,14 +103,15 @@ import {
 } from './state';
 import {
   cardAmplifier,
+  cardAmplifierFlat,
   cardRouteSlots,
   payWindfallGrants,
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
-import { UNIT_TYPE_IDS, type UnitTypeId, trades, unitDef } from './unitData';
+import { type UnitTypeId, caravanTypeId, trades, unitDef } from './unitData';
 import { fullMovement } from './units';
-import { explainBuildingUpkeep, explainUnitUpkeep } from './upkeep';
+import { explainBuildingUpkeep, explainUnitUpkeep, explainUnitUpkeepRebate } from './upkeep';
 
 const TRADE = RULES.trade;
 
@@ -509,27 +510,6 @@ export function routeRange(from: City, to: City): number {
 }
 
 /**
- * The roster's caravan — the first row that `trades`.
- *
- * Exported for `layFoundingRoad` (`cities.ts`), which surveys The Founders'
- * Road with a caravan-shaped probe: the road a doctrine decrees is the road a
- * caravan would have worn, so it had better be surveyed by one.
- *
- * Derived off the flag rather than named, which is the discipline every marker
- * in this game keeps (`settler`, `augur`, `greatPerson`): nothing in `src/sim/`
- * compares a unit type against a string, and `test/sim/trade.test.ts` reads the
- * sources to make sure of it. `null` on a roster with no caravan at all — a
- * world where no route can be started, and the gate says so rather than
- * pretending.
- */
-export function caravanTypeId(): UnitTypeId | null {
-  for (const id of UNIT_TYPE_IDS) {
-    if (trades(unitDef(id))) return id;
-  }
-  return null;
-}
-
-/**
  * A caravan that does not exist, standing in the origin's gates.
  *
  * Every distance question a route asks — is there a land road, and how many
@@ -718,7 +698,8 @@ export function originCityOf(state: GameState, unit: Unit): City | null {
  *
  * The **teleport is not here**, and that is deliberate: putting a piece on a hex
  * means answering what was standing there, which is `arriveOnTile`'s job and
- * `arrival.ts` imports *this* module (`layRoadUnder`, `settleTraderPlunder`).
+ * `arrival.ts` imports *this* module (`settleTraderPlunder`) and `roads.ts`
+ * (`layRoadUnder`).
  * So the reducer moves the piece through the one seam and then calls this, which
  * is the same split `applyMoveUnit` makes with `advanceAlongPath`. The caravan
  * is therefore already standing in `from`'s gates when the path is found here.
@@ -900,8 +881,9 @@ export interface TradeGoldLine {
  *   · **Building maintenance**, the same one grade over, folding
  *     `explainBuildingUpkeep`.
  *
- * It was called `explainTradeGold` until the last two arrived, and the rename is
- * the note that function carried: *"buildings and units are the obvious next
+ * It was called `explainTradeGold` until the last two arrived — the alias is
+ * gone now that the interface has caught up — and the rename is the note that
+ * function carried: *"buildings and units are the obvious next
  * two, and they join this fold rather than opening a second one."* They did, and
  * once they had, "trade" was no longer the name of what this answers. The
  * function stays **here**, in `trade.ts`, because two of its four lines are
@@ -922,8 +904,16 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
   const lines: TradeGoldLine[] = [];
 
   const connected = connectedCities(state, playerId);
+  // **Nanaivandak's road home**, folded into the line's own figure rather than
+  // multiplied afterwards — rule 5 for a treasury, exactly as `routeYields` is
+  // rule 5 for a caravan. The flat step is *per connected city* (that is what a
+  // connection's gold is quoted in) and the share is taken of the total the flat
+  // has already reached, which is `CardEffectAmplifierEffect`'s stated order.
+  const perCity = cardAmplifierFlat(state, playerId, 'connectionYields');
+  const share = cardAmplifier(state, playerId, 'connectionYields');
   let connectionGold = 0;
-  for (const entry of connected) connectionGold += entry.gold;
+  for (const entry of connected) connectionGold += entry.gold + perCity;
+  if (share !== 0) connectionGold = Math.floor((connectionGold * (100 + share)) / 100);
   if (connectionGold !== 0) {
     const count = connected.length;
     lines.push({
@@ -952,6 +942,14 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
     });
   }
 
+  // What the law gives back on that payroll — Tyranny's, The Standing Army's.
+  // Its **own lines**, right after the charge they reduce, so a player reads the
+  // army's price and then the reason it is lower. Positive, because the fold is
+  // signed and this one pays.
+  for (const rebate of explainUnitUpkeepRebate(state, playerId)) {
+    lines.push({ source: rebate.source, gold: rebate.gold });
+  }
+
   const buildings = explainBuildingUpkeep(state, playerId);
   if (buildings.length > 0) {
     let gold = 0;
@@ -967,33 +965,12 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
   return lines;
 }
 
-/**
- * The old name, kept as an alias while the interface catches up.
- *
- * **Deprecated.** `src/ui/topBar.ts` and `src/ui/tradeScreen.ts` still import
- * it, and those files belong to another pass; the rename is the ruling and this
- * is the one line that lets the two land separately. Delete it — and this
- * docblock with it — the moment the last caller says `explainEmpireGold`.
- *
- * @deprecated Use `explainEmpireGold`.
- */
-export const explainTradeGold = explainEmpireGold;
-
 /** The fold of `explainEmpireGold`, and the only sum of one. */
 export function empireGold(state: GameState, playerId: number): number {
   let total = 0;
   for (const line of explainEmpireGold(state, playerId)) total += line.gold;
   return total;
 }
-
-/**
- * The fold's old name, `explainTradeGold`'s sibling in deprecation and kept for
- * the same reason: the interface still calls it and the interface is somebody
- * else's file this pass.
- *
- * @deprecated Use `empireGold`.
- */
-export const tradeGold = empireGold;
 
 // --- plunder ----------------------------------------------------------------
 
@@ -1083,51 +1060,3 @@ export function settleTraderPlunder(
 
 // --- the road a caravan lays ------------------------------------------------
 
-/**
- * Lays road under a caravan that has come to rest on a hex, if there is none.
- *
- * Called from `arriveOnTile` and nowhere else — the one "a piece came to rest
- * here" seam — so a road is laid by *walking*, on every step of every leg,
- * whether the caravan was marching under a fresh order or under one the
- * resolution resumed. The builder's seat is written rather than a flag: see
- * `Tile.road`.
- *
- * It refuses to repave, which is what makes maintenance stable — a rival's
- * caravan walking your highway does not take over the bill.
- */
-export function layRoadUnder(unit: Unit, tile: Tile): boolean {
-  if (!trades(unitDef(unit.type))) return false;
-  if (unit.trade === undefined) return false;
-  return layRoad(tile, unit.ownerId);
-}
-
-/**
- * Writes `Tile.road`, and is the **only** thing that does.
- *
- * Two occasions reach it now — a caravan wearing a highway into the ground
- * (`layRoadUnder`, above) and The Founders' Road decreeing one between two towns
- * (`foundCityAt`, `cities.ts`) — which is exactly why the write is a function of
- * its own rather than a line in each: a road is one mark on one field, and the
- * refusal to repave is the rule that keeps maintenance stable whichever
- * occasion asks. A third way to lay a road calls this.
- *
- * `free` writes the second mark, `Tile.roadFree` — *this hex costs its builder
- * nothing to keep* — and it is a **property of the occasion, not of the seat**:
- * a decreed road is free, a worn one is not, and the same empire owns both. Only
- * The Founders' Road passes it today (the user's ruling of 2026-08-28, *"the
- * roads are maintenance-free"*). It is a companion field rather than, say, a
- * sentinel owner id, because free or not a road still has to answer "whose is
- * this to keep" the day something else asks.
- *
- * The refusal to repave is what settles the interaction the ruling implies: a
- * caravan that later walks a decreed hex finds a road already there, returns
- * `false` and writes neither field — so a free road **stays** free, and a road
- * that was already worn does not become free because a doctrine drew a line
- * through it. Whichever mark got there first is the one that stands.
- */
-export function layRoad(tile: Tile, ownerId: number, free = false): boolean {
-  if (tile.road !== undefined) return false;
-  tile.road = ownerId;
-  if (free) tile.roadFree = true;
-  return true;
-}

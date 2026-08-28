@@ -90,8 +90,10 @@ import {
   greatPersonActAt,
   greatPersonActError,
   greatPersonChoiceError,
+  greatPersonPurchaseError,
   greatPersonWorkAt,
   greatPersonWorkError,
+  purchaseGreatPersonOfferAt,
   redrawGreatPersonOffer,
   settleGreatPersonChoice,
 } from './greatPeople';
@@ -909,6 +911,30 @@ export interface ChooseGreatPersonCommand extends PlayerCommand {
 }
 
 /**
+ * Buys the **recruitment** a filled renown bucket would have opened — The
+ * Commonwealth's gold, The Magisterium's faith.
+ *
+ * It is emphatically not `purchaseItem`. A great person is *called* rather than
+ * built or bought (CLAUDE.md; `buildError` and `purchaseError` both still refuse
+ * `UnitDef.greatWork`), so what changes hands here is a moment on the ladder and
+ * not a piece: the bank is charged, `settleRenownWindfall` is poured exactly the
+ * renown the threshold still wants, and the offer opens by the same code an
+ * end-of-turn trickle opens one by — one draft path, one place a name is taken,
+ * and `chooseGreatPerson` still answers it.
+ *
+ * The bank is a **currency**, not an item, which is why it carries no `cityId`:
+ * a recruitment belongs to the empire and lands in its capital the way every
+ * other one does. Gated by an `actionRule` only two governments grant, so an
+ * empire under any other law is refused with a sentence.
+ *
+ * Turn-gated like every other act.
+ */
+export interface PurchaseGreatPersonOfferCommand extends PlayerCommand {
+  type: 'purchaseGreatPersonOffer';
+  currency: 'gold' | 'faith';
+}
+
+/**
  * Spends a great person on its family's boon — the burst.
  *
  * `consecrate`'s shape: it names the piece and nothing else, because the piece
@@ -1033,6 +1059,7 @@ export type Command =
   | RedraftBeliefsCommand
   | RenameReligionCommand
   | ChooseGreatPersonCommand
+  | PurchaseGreatPersonOfferCommand
   | GreatPersonActCommand
   | GreatPersonWorkCommand
   | StartRouteCommand
@@ -2379,6 +2406,31 @@ function applyChooseGreatPerson(
 }
 
 /**
+ * Buys the recruitment. See `PurchaseGreatPersonOfferCommand`.
+ *
+ * `applyChooseGreatPerson`'s shape minus its one oddity: the whole rule is
+ * `greatPersonPurchaseError`'s — which is also what the interface greys the
+ * button with — and a refusal leaves the state byte-identical, because nothing
+ * here draws a hand until the money has changed hands.
+ */
+function applyPurchaseGreatPersonOffer(
+  state: GameState,
+  command: PurchaseGreatPersonOfferCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot call anybody`);
+  }
+
+  const problem = greatPersonPurchaseError(state, actor.id, command.currency);
+  if (problem) return fail(problem);
+
+  purchaseGreatPersonOfferAt(state, actor, command.currency);
+  return ok();
+}
+
+/**
  * Spends a great person on its family's boon. See `GreatPersonActCommand`.
  *
  * `applyPerformRite`'s shape: the seat's questions here, the whole of the act's
@@ -2639,6 +2691,9 @@ function orderedUnitId(command: Command): number | undefined {
     case 'renameReligion':
     // Calling a name answers an offer; the piece it mints does not exist yet.
     case 'chooseGreatPerson':
+    // Buying the recruitment names a bank. There is no piece to wake — the
+    // offer it opens does not name anybody yet.
+    case 'purchaseGreatPersonOffer':
       return undefined;
     default: {
       const unhandled: never = kind;
@@ -2744,6 +2799,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyRenameReligion(state, command);
     case 'chooseGreatPerson':
       return applyChooseGreatPerson(state, command);
+    case 'purchaseGreatPersonOffer':
+      return applyPurchaseGreatPersonOffer(state, command);
     case 'greatPersonAct':
       return applyGreatPersonAct(state, command);
     case 'greatPersonWork':

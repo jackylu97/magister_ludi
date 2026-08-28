@@ -51,6 +51,7 @@ import { tileIndex } from './map';
 import { landRegions } from './resources';
 import type { RenownGrant } from './renown';
 import { settleRenownWindfall } from './renown';
+import { cardAmplifier } from './statecraft';
 import {
   type City,
   type EarnedTriumph,
@@ -170,13 +171,20 @@ export function awardTriumph(
     state.contested.push({ id, playerId: player.id, age, turn: state.turn });
   }
 
-  const grant: RenownGrant = { family: def.family ?? null, amount: def.pays };
+  // **The Academy of Deeds**, folded into the printed figure *before* anything
+  // is banked — Entry XVIII.5's discipline at the fifth bucket, so the annal's
+  // announcement and the pool's gain are one number. It reaches a Triumph's lump
+  // and never the buildings' trickle, which is a different line of
+  // `explainRenown` and a different sentence.
+  const boost = cardAmplifier(state, player.id, 'triumphRenown');
+  const pays = Math.floor((def.pays * (100 + boost)) / 100);
+  const grant: RenownGrant = { family: def.family ?? null, amount: pays };
   settleRenownWindfall(state, player, [grant]);
 
   const award: TriumphAward = {
     id,
     name: def.name,
-    pays: def.pays,
+    pays,
     family: def.family ?? null,
     playerId: player.id,
     turn: state.turn,

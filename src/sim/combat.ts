@@ -159,6 +159,7 @@
  */
 
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
+import { isWonder } from './buildingData';
 import { buildingCityHp, buildingCityStat } from './buildingEffects';
 import { assignCitizens, cityAt, settleProductionWindfall } from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
@@ -909,6 +910,16 @@ function planCombat(
     // vs mounted". Absent when the thing opposite is a city, which has no
     // silhouette, so a `vsClass` line simply does not pay against walls.
     vsType: side === 'attacker' ? target.unit?.type : attacker.type,
+    // And what it is *worth* — Spartacus' "attacking a stronger unit". The
+    // roster's base figure, never this fold: a strength line that read the
+    // ledger it is about to join would be a line inside its own sum. Absent
+    // against a city for `vsType`'s reason exactly.
+    vsStrength:
+      side === 'attacker'
+        ? target.unit === null
+          ? undefined
+          : unitDef(target.unit.type).combatStrength
+        : unitDef(attacker.type).combatStrength,
   });
   for (const line of cardCombatLines(state, situationFor(attacker, 'attacker'))) {
     bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
@@ -1369,10 +1380,18 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     if (target.city) {
       target.city.hp -= dealt;
       if (target.city.hp <= 0) {
+        // **Read before the town changes hands.** A moment later the stones are
+        // the captor's own buildings and nothing can tell them from the ones he
+        // raised — which is why The Empire's clause is a *fact about the
+        // occasion* (`WindfallOccasionFacts.capturedWonder`) and not something
+        // the rider could ask for itself.
+        const heldWonder = target.city.buildings.some((id) => isWonder(id));
         captureCity(state, target.city, attacker.ownerId);
         outcome.capturedCityId = target.city.id;
         defenderDied = true;
-        payBattleRiders(state, attacker.ownerId, 'capture', tile);
+        payBattleRiders(state, attacker.ownerId, 'capture', tile, {
+          capturedWonder: heldWonder,
+        });
       }
     } else {
       const defender = target.unit!;
@@ -1560,7 +1579,14 @@ function payBattleRiders(
   const player = playerById(state, playerId);
   if (!player) return;
   const payout = windfallPayout(state, playerId, occasion, 0, 0, facts);
-  if (payout.grants.length === 0 && payout.units.length === 0) return;
+  if (
+    payout.grants.length === 0 &&
+    payout.units.length === 0 &&
+    !payout.healAll &&
+    payout.timed.length === 0
+  ) {
+    return;
+  }
   const touched = payWindfallGrants(state, player, payout, { col: at.col, row: at.row });
   for (const city of touched) settleProductionWindfall(state, city);
   settleCultureWindfall(state, player);

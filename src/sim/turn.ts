@@ -102,6 +102,7 @@ import {
   collectYields,
   expandBorders,
   growCities,
+  tileOwnerPlayerId,
 } from './cities';
 import { type CombatOutcome, type SiegeReport, advanceFortify, healCities } from './combat';
 import type { PillageReport } from './improvements';
@@ -111,7 +112,8 @@ import { openPeriodicOffers, pruneTimedEffects, spreadReligion } from './religio
 import { getTileAt, tileHex, wrappedDistance } from './map';
 import { findPath } from './pathfind';
 import { advanceAlongPath } from './movement';
-import { cardUnitStat, runStatecraft } from './statecraft';
+import { cardBehaviorRule, cardUnitStat, runStatecraft } from './statecraft';
+import { reviewLegacies } from './greatPeople';
 import { runRenown } from './renown';
 import { advanceResearch } from './tech';
 import { type RouteEndReport, endRoute, routeTarget, standsIn } from './trade';
@@ -344,6 +346,19 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: runRenown,
   },
   {
+    name: 'reviewLegacies',
+    // The two revocations that are **conditions of a turn** rather than events:
+    // Hypatia's mob and Boudica's century. Directly after `renown`, because that
+    // is the phase that can hand an empire a legacy in the first place, and
+    // *after* `collectYields`, so the happiness it reads is the meter this turn
+    // produced rather than last turn's. It is a **broom's twin** —
+    // `pruneTimedEffects`' safety with the sign reversed: marking a record that
+    // is already marked changes nothing, so the phase may run twice with no
+    // effect, and the marking is monotone so it can never un-happen. The third
+    // revocation is a genuine moment and is hooked at `arriveOnTile`.
+    run: reviewLegacies,
+  },
+  {
     name: 'expandBorders',
     // Culture buys the next tile for each city, best-scoring first.
     run: expandBorders,
@@ -445,6 +460,17 @@ function healUnits(state: GameState): void {
     // *rested* rule rather than replacing it: "heal +5 per turn anywhere" means
     // anywhere on the map, not while marching — a card that healed a unit
     // mid-charge would be a different card and a much stronger one.
+    // **Homer's price**: an empire that sings of ten years from home does not
+    // mend abroad. Read here because this is the one place a heal is decided,
+    // and asked of the *ground* rather than of the piece — a hex nobody owns is
+    // outside your borders, which is what makes the clause bite on a campaign
+    // rather than only in a rival's homeland.
+    if (
+      cardBehaviorRule(state, unit.ownerId, 'noHealAbroad') &&
+      tileOwnerPlayerId(state, unit.col, unit.row) !== unit.ownerId
+    ) {
+      continue;
+    }
     unit.hp = Math.min(maxHp, unit.hp + amount + cardUnitStat(state, unit, 'heal'));
   }
 }

@@ -951,6 +951,10 @@ export function liveTimedEffects(
 export function pruneTimedEffects(state: GameState): void {
   for (const city of state.cities) sweep(state, city);
   for (const unit of state.units) sweep(state, unit);
+  // **The third holder** (2026-08-28): what the empire itself is carrying that
+  // runs out — Crassus' bill. The same broom, because it is the same shape: an
+  // expired effect is already inert, so deleting it changes no outcome.
+  for (const player of state.players) sweep(state, player);
 }
 
 function sweep(state: GameState, holder: { timed?: TimedEffect[] }): void {

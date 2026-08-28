@@ -62,6 +62,7 @@ import {
   FAMILIES,
   type Family,
   type GreatPersonId,
+  type LegacyRevocation,
   ROSTER_AGES,
   greatPersonDef,
   isGreatPersonId,
@@ -89,8 +90,10 @@ import {
   removeUnit,
   unitById,
 } from './state';
-import { offerSize, settleCultureWindfall } from './statecraft';
-import type { CardEffect } from './statecraftData';
+import { happinessOf } from './meters';
+import { renownThreshold, settleRenownWindfall } from './renown';
+import { cardActionRule, cardAmplifier, offerSize, settleCultureWindfall } from './statecraft';
+import type { ActionRuleId, CardEffect } from './statecraftData';
 import { settleResearchWindfall } from './tech';
 import { highestAge, techDef } from './techData';
 import { unitDef } from './unitData';
@@ -281,6 +284,100 @@ export function drawGreatPersonOffer(state: GameState, player: Player): GreatPer
     weights.splice(chosen, 1);
   }
   return { options };
+}
+
+// --- buying the recruitment -------------------------------------------------
+
+/**
+ * Which bank an early recruitment is bought out of. `PurchaseCurrency`'s twin,
+ * kept here rather than imported for `purchase.ts`'s reason: what is for sale is
+ * not an *item*, so it is not that module's question.
+ */
+export type OfferCurrency = 'gold' | 'faith';
+
+/** Which action rule each bank is gated by, and what it costs. One table. */
+const OFFER_BANKS: Record<OfferCurrency, { rule: ActionRuleId; price: () => number }> = {
+  gold: { rule: 'buyGreatPersonWithGold', price: () => PEOPLE.offerPriceGold },
+  faith: { rule: 'buyGreatPersonWithFaith', price: () => PEOPLE.offerPriceFaith },
+};
+
+/** What buying an early recruitment costs this empire out of this bank. */
+export function greatPersonOfferPrice(currency: OfferCurrency): number {
+  return Math.max(0, Math.floor(OFFER_BANKS[currency].price()));
+}
+
+/**
+ * Why this empire cannot buy its next great person out of this bank, or `null`.
+ *
+ * **A great person is neither built nor bought — it is *called*** (CLAUDE.md),
+ * and this does not change that by a word: `UnitDef.greatWork` is still refused
+ * by `buildError` and by `purchaseError`, and no coin anywhere puts a piece on
+ * the board. What is for sale is the **recruitment** — the moment the ladder
+ * would have opened an offer — which is why the settlement below pours renown
+ * rather than minting anybody, and why a seat that already holds an offer is
+ * refused: it has nothing to buy.
+ *
+ * The gate is an `actionRule` and therefore a *card's* to grant, which is the
+ * whole of The Commonwealth and The Magisterium. Refusals in precedence, each a
+ * different sentence: who you are, what your law allows, what you already owe
+ * the game, whether the roster has anybody left, and only then the money.
+ */
+export function greatPersonPurchaseError(
+  state: GameState,
+  playerId: number,
+  currency: unknown,
+): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  if (currency !== 'gold' && currency !== 'faith') {
+    return `purchaseGreatPersonOffer needs a currency of gold or faith, got ${String(currency)}`;
+  }
+  const bank = OFFER_BANKS[currency];
+  if (!cardActionRule(state, playerId, bank.rule)) {
+    return `${player.name}'s law does not let a great person be bought with ${currency}`;
+  }
+  if (player.greatPersonOffer !== undefined) {
+    return `${player.name} already has a great person waiting to be chosen`;
+  }
+  // The honest refusal rather than a silent purchase of nothing: a spent roster
+  // is `settleRenownWindfall`'s "bank rather than block", asked *before* the
+  // money changes hands instead of after.
+  if (greatPersonPool(state, player, 1).length === 0) {
+    return 'every great person in the world has already been called';
+  }
+  const price = greatPersonOfferPrice(currency);
+  const held = currency === 'gold' ? player.gold : player.faithPool;
+  if (held < price) {
+    return `${player.name} needs ${price} ${currency} and has ${held}`;
+  }
+  return null;
+}
+
+/**
+ * Buys the recruitment. Validates nothing — `greatPersonPurchaseError` is the
+ * rule and the command asks it first.
+ *
+ * **One draft path.** The bank is charged and the ladder is then covered through
+ * `settleRenownWindfall` — the fifth Entry XVIII seam and the only way renown is
+ * ever added — with exactly what the threshold still wants, so the offer opens
+ * by the same code an end-of-turn trickle opens one by, blocks End Turn the same
+ * way, and is answered by the same `chooseGreatPerson`. Nothing here draws a
+ * hand, spends the roster or touches `state.recruited`.
+ *
+ * The grant names **no family**, which is deliberate: gold buys a hearing, not a
+ * reputation, so the feed record — and therefore the weighting of the draw — is
+ * left exactly as the empire's own buildings made it.
+ */
+export function purchaseGreatPersonOfferAt(
+  state: GameState,
+  player: Player,
+  currency: OfferCurrency,
+): GreatPersonOffer | null {
+  const price = greatPersonOfferPrice(currency);
+  if (currency === 'gold') player.gold -= price;
+  else player.faithPool -= price;
+  const owed = Math.max(0, renownThreshold(player) - player.renownPool);
+  return settleRenownWindfall(state, player, [{ family: null, amount: owed }]);
 }
 
 // --- taking a name ----------------------------------------------------------
@@ -531,6 +628,17 @@ export function greatPersonActAt(
   const id = personOf(unit)!;
   const def = greatPersonDef(id);
   const era = highestAge(player.techsResearched);
+  // **Leonardo's notebooks**, read once for the whole act (`greatPersonAct`) and
+  // applied to each family's own figure *before* it reaches the seam that banks
+  // it — so a doubled engineer pours twice the hammers through the same
+  // `settleProductionWindfall` and a doubled scholar twice the beakers through
+  // the same `settleResearchWindfall`. Entry XVIII.5's discipline for a windfall
+  // that is not a `windfallRider`: the figure is composed once, before anything
+  // is banked, so the preview and the payout are one number. It reaches what an
+  // act *pays* and never a duration or a radius — a general's aura is not a
+  // figure, which is the honest split rather than a silence.
+  const boost = cardAmplifier(state, player.id, 'greatPersonAct');
+  const paid = (base: number): number => Math.floor((base * (100 + boost)) / 100);
   const done: GreatPersonAct = {
     id,
     name: def.name,
@@ -546,7 +654,7 @@ export function greatPersonActAt(
     case 'scholar': {
       const aim = player.researching;
       const cost = aim === null ? 0 : techDef(aim).cost;
-      player.sciencePool += Math.floor(cost * PEOPLE.scholarShare);
+      player.sciencePool += paid(Math.floor(cost * PEOPLE.scholarShare));
       done.research = settleResearchWindfall(state, player)?.name ?? null;
       break;
     }
@@ -554,14 +662,14 @@ export function greatPersonActAt(
       const city = actCityFor(state, unit);
       done.city = city;
       if (city) {
-        city.hammerBasket += PEOPLE.engineerHammers * era;
+        city.hammerBasket += paid(PEOPLE.engineerHammers * era);
         settleProductionWindfall(state, city);
         refreshCityDerived(state, city);
       }
       break;
     }
     case 'merchant': {
-      player.gold += PEOPLE.merchantGold * era;
+      player.gold += paid(PEOPLE.merchantGold * era);
       break;
     }
     case 'artist': {
@@ -572,7 +680,7 @@ export function greatPersonActAt(
           { kind: 'happiness', amount: PEOPLE.artistHappiness, per: 'city' },
         ]);
       }
-      player.culturePool += PEOPLE.artistCulture;
+      player.culturePool += paid(PEOPLE.artistCulture);
       settleCultureWindfall(state, player);
       if (city) refreshCityDerived(state, city);
       break;
@@ -662,8 +770,79 @@ function spendGreatPerson(
   unit: Unit,
   id: GreatPersonId,
 ): void {
-  if (!player.legacies.includes(id)) player.legacies.push(id);
+  // Stamped with the empire's era, which is the one revocation that is a
+  // comparison rather than an occasion: Boudica's revolt belonged to her
+  // century, and "which century" is a number written down once. See
+  // `LegacyRecord`.
+  if (!player.legacies.some((held) => held.id === id)) {
+    player.legacies.push({ id, age: highestAge(player.techsResearched) });
+  }
   removeUnit(state, unit.id);
+}
+
+// --- revocation -------------------------------------------------------------
+
+/**
+ * Marks every legacy of this empire that the named occasion silences. **The**
+ * one place a legacy is revoked.
+ *
+ * A *mark*, never a splice: `Player.legacies` stays exactly the roll of who
+ * served this empire, in spend order, and `liveEffects` is where a marked record
+ * stops being read (one filter, one line). That is the whole of the mechanism —
+ * the 2026-08-28 ruling's "hook the occasion, mark the legacy, never delete
+ * history" — and it is why the count The Empire pays on (`greatPeopleEarned`)
+ * needs no clause: a general who is no longer heeded was still earned.
+ *
+ * Idempotent, which is what lets the two swept occasions be swept: `ageAdvanced`
+ * and `happinessNegative` are read once a turn off the board and re-marking an
+ * already-marked record changes nothing, exactly as `pruneTimedEffects` deleting
+ * an already-inert effect changes nothing.
+ *
+ * Answers **what it silenced this call**, so a caller with a toast to write has
+ * the names without diffing two lists.
+ */
+export function revokeLegacies(
+  state: GameState,
+  playerId: number,
+  occasion: LegacyRevocation,
+): GreatPersonId[] {
+  const player = playerById(state, playerId);
+  if (!player) return [];
+  const lost: GreatPersonId[] = [];
+  for (const held of player.legacies) {
+    if (held.revoked === true) continue;
+    if (!isGreatPersonId(held.id)) continue;
+    if (greatPersonDef(held.id).revokedWhen !== occasion) continue;
+    // The age's own clause: a legacy is Boudica's while the era she was spent in
+    // is still the era the empire stands in. Compared, never counted down.
+    if (occasion === 'ageAdvanced' && highestAge(player.techsResearched) <= held.age) continue;
+    held.revoked = true;
+    lost.push(held.id);
+  }
+  return lost;
+}
+
+/**
+ * The two revocations that are **conditions of a turn** rather than events,
+ * read once a turn off the board.
+ *
+ * `runRenown`'s standing Triumphs, one mechanism over, and for their reason
+ * exactly: "the first turn your happiness goes negative" and "the age she was
+ * recruited in has closed" are *facts*, not moments somebody has to hook, and a
+ * sweep cannot miss one. The third revocation (`enemyEntersCapital`) genuinely
+ * is a moment and is hooked at the one "a piece arrived" seam — a sweep would
+ * let a column march through the capital between two end-of-turns.
+ *
+ * It skips nobody: the wild holds no legacies, so the loop over its empty list
+ * is the honest way to say that rather than a `realPlayers` filter that would
+ * imply there was something to skip.
+ */
+export function reviewLegacies(state: GameState): void {
+  for (const player of state.players) {
+    if (player.legacies.length === 0) continue;
+    if (happinessOf(state, player.id) < 0) revokeLegacies(state, player.id, 'happinessNegative');
+    revokeLegacies(state, player.id, 'ageAdvanced');
+  }
 }
 
 // --- the work ---------------------------------------------------------------

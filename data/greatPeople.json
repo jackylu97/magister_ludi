@@ -122,10 +122,11 @@
             "yield": "culture",
             "amount": 9
           }
+        },
+        {
+          "kind": "behaviorRule",
+          "rule": "noHealAbroad"
         }
-      ],
-      "deferred": [
-        "your units cannot heal outside your borders"
       ]
     },
     "sinLeqiUnninni": {
@@ -193,10 +194,20 @@
           "kind": "productionBonus",
           "category": "wonder",
           "percent": 30
+        },
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "queueHolds",
+            "category": "wonder"
+          },
+          "then": [
+            {
+              "kind": "happiness",
+              "amount": -2
+            }
+          ]
         }
-      ],
-      "deferred": [
-        "−2 happiness while any city is building a wonder"
       ]
     },
     "amenhotepSonOfHapu": {
@@ -269,10 +280,12 @@
             ]
           },
           "gold": 3
+        },
+        {
+          "kind": "effectAmplifier",
+          "target": "luxuryHappiness",
+          "amount": -1
         }
-      ],
-      "deferred": [
-        "every luxury you hold counts one fewer toward happiness"
       ]
     },
     "kushim": {
@@ -398,9 +411,16 @@
       "tier": "situational",
       "epigram": "The stars in their courses fought.",
       "kernel": "The judge who led at Kishon.",
-      "legacy": [],
-      "deferred": [
-        "+25% combat strength within two hexes of one of your cities"
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "withinOfCity",
+            "hexes": 2
+          }
+        }
       ]
     },
     "archimedes": {
@@ -423,9 +443,7 @@
           }
         }
       ],
-      "deferred": [
-        "this legacy is lost the turn an enemy enters his city"
-      ]
+      "revokedWhen": "enemyEntersCapital"
     },
     "hypatia": {
       "name": "Hypatia",
@@ -442,9 +460,7 @@
           "stage": "empire"
         }
       ],
-      "deferred": [
-        "this legacy is lost the first turn your happiness goes negative"
-      ]
+      "revokedWhen": "happinessNegative"
     },
     "zhangHeng": {
       "name": "Zhang Heng",
@@ -607,15 +623,13 @@
       "legacy": [
         {
           "kind": "cityYields",
-          "production": 2,
+          "production": 5,
           "scope": {
-            "test": "hasBuilding",
-            "building": "workshop"
+            "test": "hasBuildingYielding",
+            "yields": "science",
+            "wonder": true
           }
         }
-      ],
-      "deferred": [
-        "+5 production in every city holding a wonder that supplies science"
       ]
     },
     "vitruvius": {
@@ -691,9 +705,13 @@
       "tier": "strong",
       "epigram": "The letters never reached home.",
       "kernel": "The Sogdian Ancient Letters, found sealed at Dunhuang.",
-      "legacy": [],
-      "deferred": [
-        "+2 gold for each city connected to your capital, and +10% gold from those connections"
+      "legacy": [
+        {
+          "kind": "effectAmplifier",
+          "target": "connectionYields",
+          "amount": 2,
+          "percent": 10
+        }
       ]
     },
     "hippalus": {
@@ -733,10 +751,22 @@
           "class": {},
           "on": "all",
           "percent": -30
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "purchase",
+          "grant": {
+            "timed": {
+              "turns": 10,
+              "effects": [
+                {
+                  "kind": "happiness",
+                  "amount": -1
+                }
+              ]
+            }
+          }
         }
-      ],
-      "deferred": [
-        "−1 happiness for 10 turns after every purchase"
       ]
     },
     "pytheas": {
@@ -834,9 +864,7 @@
           "side": "defend"
         }
       ],
-      "deferred": [
-        "… but only during the age she was recruited in"
-      ]
+      "revokedWhen": "ageAdvanced"
     },
     "spartacus": {
       "name": "Spartacus",
@@ -845,9 +873,15 @@
       "tier": "situational",
       "epigram": "He left the school with kitchen knives.",
       "kernel": "Vesuvius.",
-      "legacy": [],
-      "deferred": [
-        "+3 combat strength when attacking a stronger unit"
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "attack",
+          "when": {
+            "test": "strongerTarget"
+          }
+        }
       ]
     },
     "alKhwarizmi": {
@@ -1144,9 +1178,17 @@
       "tier": "situational",
       "epigram": "I have not told the half.",
       "kernel": "The Travels.",
-      "legacy": [],
-      "deferred": [
-        "+3 gold for each trade route to another empire"
+      "legacy": [
+        {
+          "kind": "countScaled",
+          "count": "foreignTradeRoutes",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 3,
+            "where": "empire"
+          }
+        }
       ]
     },
     "francescoDatini": {
@@ -1423,10 +1465,14 @@
           "kind": "productionBonus",
           "category": "wonder",
           "percent": 30
+        },
+        {
+          "kind": "effectAmplifier",
+          "target": "greatPersonAct",
+          "percent": 100
         }
       ],
       "deferred": [
-        "a great engineer's act pays twice over",
         "projects pay half as much"
       ]
     },
@@ -1479,10 +1525,16 @@
             "test": "hasBuilding",
             "building": "temple"
           }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 30,
+          "building": "temple"
         }
       ],
       "deferred": [
-        "temples and cathedrals cost −30% production"
+        "cathedrals also cost less to build"
       ]
     },
     "vaucanson": {
@@ -1670,9 +1722,13 @@
         {
           "kind": "combatLine",
           "amount": 3,
-          "when": { "test": "always" },
+          "when": {
+            "test": "always"
+          },
           "side": "both",
-          "vsClass": { "modelClass": "mounted" }
+          "vsClass": {
+            "modelClass": "mounted"
+          }
         }
       ]
     }

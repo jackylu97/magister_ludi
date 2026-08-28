@@ -246,7 +246,9 @@
     "generalTurns": 5,
     "generalAuraRange": 2,
     "generalAuraStrength": 3,
-    "citadelClaimRadius": 1
+    "citadelClaimRadius": 1,
+    "offerPriceGold": 300,
+    "offerPriceFaith": 150
   },
   "production": {
     "unitCostAgeMultiplier": [

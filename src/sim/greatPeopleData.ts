@@ -90,6 +90,44 @@ export const FAMILIES: readonly Family[] = [
  */
 export type GreatPersonTier = 'defining' | 'strong' | 'situational';
 
+/**
+ * The occasion on which a legacy **stops being heeded**.
+ *
+ * Three ratified rows end with a condition rather than with a number, and until
+ * the 2026-08-28 ruling all three carried it as a `deferred` sentence because
+ * nothing revoked a legacy. They are three occasions and not one generic
+ * predicate on purpose: each is a *moment* somebody can point at, which is what
+ * makes the loss legible to the player who is losing it.
+ *
+ *   · `enemyEntersCapital` — a foreign soldier comes to rest on ground the
+ *     capital holds. Archimedes: Syracuse fell while he was drawing circles.
+ *     Hooked at the one "a piece arrived" seam (`arriveOnTile`), because it is
+ *     an event and a sweep would miss a column that marched through.
+ *   · `happinessNegative` — the first turn the realm's happiness goes under.
+ *     Hypatia, torn apart by a mob. A **condition of a turn** rather than an
+ *     event, so it is read once a turn off the meter, exactly as the standing
+ *     Triumphs are read off the board.
+ *   · `ageAdvanced` — the era the person was spent in has closed. Boudica, whose
+ *     revolt belonged to her century. Compared against `LegacyRecord.age`, an
+ *     absolute stamp in the `TimedEffect` tradition.
+ *
+ * All three are marked in **one place** — `reviewLegacies` (`greatPeople.ts`) —
+ * and marking never deletes: see `LegacyRecord`.
+ */
+export type LegacyRevocation = 'enemyEntersCapital' | 'happinessNegative' | 'ageAdvanced';
+
+/** The revocations, in table order. The sweep's iteration order. */
+export const LEGACY_REVOCATIONS: readonly LegacyRevocation[] = [
+  'enemyEntersCapital',
+  'happinessNegative',
+  'ageAdvanced',
+];
+
+/** Is this a revocation the table knows? The guard a JSON row is checked against. */
+export function isLegacyRevocation(value: unknown): value is LegacyRevocation {
+  return typeof value === 'string' && (LEGACY_REVOCATIONS as readonly string[]).includes(value);
+}
+
 export type GreatPersonId = keyof typeof greatPeopleJson.people & string;
 
 export interface GreatPersonDef {
@@ -120,6 +158,15 @@ export interface GreatPersonDef {
    * — a promise not made is said out loud rather than quietly dropped.
    */
   deferred?: string[];
+  /**
+   * When this legacy stops being heeded, or absent for one that never does —
+   * which is every row but three. See `LegacyRevocation`.
+   *
+   * On the row rather than as an effect, for `OrderSlotGrant`'s reason exactly:
+   * every shape in `CardEffect` is a *standing* reading of the board, and this
+   * is a thing that happens at a moment and never un-happens.
+   */
+  revokedWhen?: LegacyRevocation;
 }
 
 export interface GreatPeopleData {
@@ -194,6 +241,11 @@ function validateTable(): void {
     // from a name somebody forgot to finish.
     if (def.legacy.length === 0 && (def.deferred ?? []).length === 0) {
       throw new Error(`${where} leaves no legacy and says nothing about why`);
+    }
+    // A revocation the sweep does not know is a legacy that would quietly never
+    // be revoked — the same silent-failure the family check above exists for.
+    if (def.revokedWhen !== undefined && !isLegacyRevocation(def.revokedWhen)) {
+      throw new Error(`${where} names unknown revocation "${String(def.revokedWhen)}"`);
     }
   }
 }

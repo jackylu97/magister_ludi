@@ -347,6 +347,34 @@ export interface PlayerSpec {
   isHuman?: boolean;
 }
 
+/**
+ * One great person this empire has spent, and whether their legacy still speaks.
+ *
+ * **A legacy is history, and history is never deleted** (the 2026-08-28 ruling
+ * that revoked the "nothing revokes a legacy" trap). Three ratified rows lose
+ * their ability on an occasion — Archimedes when an enemy walks into his city,
+ * Hypatia the first turn the realm turns ugly, Boudica when her age closes — and
+ * the mechanism is a *mark*, not a splice: the record stays in spend order, the
+ * roll of who served this empire stays exactly what it was, and only
+ * `liveEffects` stops reading a revoked row.
+ *
+ * `age` is the empire's era at the moment the person was spent, and it is here
+ * for exactly one revocation: "only during the age she was recruited in" is a
+ * comparison against a stamp, in the `TimedEffect` tradition — an absolute
+ * number, compared, never a counter anything has to tick.
+ */
+export interface LegacyRecord {
+  id: GreatPersonId;
+  /** The empire's era (`highestAge`) when this person was spent. */
+  age: number;
+  /**
+   * Present once the occasion on the row has happened. **Never removed** — the
+   * key is the whole of the mechanism, and a legacy that came back would be a
+   * fourth state nothing in the design asks for.
+   */
+  revoked?: true;
+}
+
 export interface Player {
   /** Stable id, equal to the player's index in `GameState.players`. */
   id: number;
@@ -629,15 +657,33 @@ export interface Player {
    * and therefore the legacies reaching it (*they served you; their legacy
    * remains*).
    *
-   * `liveEffects`' **sixth source** (`statecraft.ts`): each id is looked up
+   * `liveEffects`' **sixth source** (`statecraft.ts`): each record is looked up
    * through `anyCardDef` and its `legacy` walked exactly as a belief's effects
-   * are. Nothing else in the game reads this list.
+   * are — **unless it has been revoked**, which is one filter in that walk and
+   * the only reading of `LegacyRecord.revoked` anywhere. Nothing else in the
+   * game reads this list for its effects; `greatPeopleEarned` reads it for a
+   * *count*, and a revoked legacy still counts, because The Empire's line says
+   * "earned this game" and a general who is no longer heeded was still earned.
    *
    * An array in spend order, for `techsResearched`' reason: iteration order that
    * is part of the state is iteration order a replay reproduces, and a ledger
    * that reshuffled itself would look wrong for no reason.
    */
-  legacies: GreatPersonId[];
+  legacies: LegacyRecord[];
+  /**
+   * Blessings and **bills** hanging on the empire itself, each until an absolute
+   * turn. `City.timed` and `Unit.timed`'s third holder.
+   *
+   * Crassus' is the first and says why the holder had to exist: "−1 happiness
+   * for 10 turns after every purchase" is a fact about the *realm's* mood, and
+   * hanging it on the town that happened to buy the granary would have been a
+   * quieter, wrong rule. Everything else about it is the other two holders'
+   * exactly — absolute expiry, ordinary `CardEffect`s, the same evaluator, the
+   * same broom (`pruneTimedEffects`), the key deleted when the list empties so
+   * an empire that has paid its debts serialises like one that never bought
+   * anything.
+   */
+  timed?: TimedEffect[];
   /**
    * The Triumphs this empire has earned, in the order it earned them.
    *

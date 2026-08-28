@@ -65,6 +65,7 @@ import { BUILDING_UNLOCK_TECH, UNIT_UNLOCK_TECH, techDef } from './techData';
 import { type BuildingId, buildingDef } from './buildingData';
 import { type UnitTypeId, isCivilian, isExplorer, trades, unitDef } from './unitData';
 import { RULES } from './rulesData';
+import { cardRulePercent, foldCardRulePercent } from './statecraft';
 import type { GameState, Unit } from './state';
 
 /**
@@ -211,6 +212,50 @@ export function unitUpkeepTotal(state: GameState, playerId: number): number {
   let total = 0;
   for (const line of explainUnitUpkeep(state, playerId)) total += line.gold;
   return total;
+}
+
+/**
+ * What this empire's **law** takes off its payroll, as the labelled lines
+ * `explainEmpireGold` folds beside the gross figure — Tyranny's thirty percent,
+ * and The Standing Army's whole hundred.
+ *
+ * A **rebate line** rather than a discounted total, and both halves of that are
+ * the design. Rule 5 says a figure is the fold of a list a player can read, so
+ * the ledger shows what the army costs and then what the law gives back; and
+ * `disbandCandidate` keeps picking off the *gross* figures, which is what makes
+ * the creditors' choice — dearest first — the same choice under every
+ * government.
+ *
+ * The percentages **sum before one multiplication** (`foldCardRulePercent`) and
+ * the rebate is clamped to the payroll: a card that says −150% pays the army off
+ * and stops, because a treasury that earned coin by keeping soldiers would be a
+ * mint. One line per card, so two discounts read as two reasons.
+ */
+export function explainUnitUpkeepRebate(state: GameState, playerId: number): UpkeepLine[] {
+  if (!seatPays(state, playerId)) return [];
+  const gross = unitUpkeepTotal(state, playerId);
+  if (gross <= 0) return [];
+  const lines = cardRulePercent(state, playerId, 'unitUpkeep');
+  const percent = foldCardRulePercent(lines);
+  if (percent >= 0) return [];
+  // The whole rebate first, then shared out in the lines' own order so the parts
+  // sum to it exactly however the flooring falls — `explainUnitCost`'s
+  // running-difference discipline, one ledger over.
+  const rebate = Math.min(gross, Math.floor((gross * -percent) / 100));
+  if (rebate <= 0) return [];
+  const out: UpkeepLine[] = [];
+  let paid = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    const share =
+      i === lines.length - 1
+        ? rebate - paid
+        : Math.floor((rebate * line.percent) / percent);
+    paid += share;
+    if (share === 0) continue;
+    out.push({ source: line.source, gold: share });
+  }
+  return out;
 }
 
 /** The fold of `explainBuildingUpkeep`, positive. The only sum of one. */

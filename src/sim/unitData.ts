@@ -456,3 +456,27 @@ export function trades(def: UnitDef): boolean {
 export function isUnitTypeId(value: unknown): value is UnitTypeId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(UNIT_DATA.units, value);
 }
+
+/**
+ * The roster's caravan — the first row that `trades`.
+ *
+ * A reading over this file's own two exports (`UNIT_TYPE_IDS` and `trades`), so
+ * it belongs here rather than in `trade.ts`: it was the last thing `cities.ts`
+ * had to reach across a cycle for (The Founders' Road surveys with a
+ * caravan-shaped probe, because the road a doctrine decrees is the road a
+ * caravan would have worn), and a fact about the roster has no business living
+ * on the far side of the module that spends it.
+ *
+ * Derived off the flag rather than named, which is the discipline every marker
+ * in this game keeps (`settler`, `augur`, `greatPerson`): nothing in `src/sim/`
+ * compares a unit type against a string, and `test/sim/trade.test.ts` reads the
+ * sources to make sure of it. `null` on a roster with no caravan at all — a
+ * world where no route can be started, and the gate says so rather than
+ * pretending.
+ */
+export function caravanTypeId(): UnitTypeId | null {
+  for (const id of UNIT_TYPE_IDS) {
+    if (trades(unitDef(id))) return id;
+  }
+  return null;
+}

@@ -430,7 +430,7 @@ describe('every refusal, and each leaves the state byte-identical', () => {
     const city = found(g.state, 0);
     const bare = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!;
 
-    g.state.players[0]!.legacies.push('crassus');
+    g.state.players[0]!.legacies.push({ id: 'crassus', age: 1 });
     const cut = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!;
 
     expect(cut.lines).toHaveLength(bare.lines.length + 1);

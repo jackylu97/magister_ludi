@@ -144,6 +144,20 @@ export type CardLine =
   | 'star'
   | 'procession'
   | 'wayfarers'
+  /**
+   * The five threads the art pass drew marks for (2026-08-28) and the table had
+   * no words for yet. They are here so `line` stays a *closed* union — a row
+   * naming a thread nothing draws is a card the gallery cannot group — and
+   * `src/art/lineMarks.ts`' temporary `PendingCardLine` collapses onto them.
+   *
+   * Nothing in the simulation switches on a `line`, exactly as nothing switches
+   * on a `tier`: it is the screen's grouping and the designer's shorthand.
+   */
+  | 'court'
+  | 'cloister'
+  | 'charter'
+  | 'ploughshare'
+  | 'highlands'
   | 'none';
 
 // --- conditions -------------------------------------------------------------
@@ -186,6 +200,21 @@ export type CityScope =
    * building's yield *is* a city yield in the towns that have the building.
    */
   | { test: 'hasBuilding'; building: BuildingId }
+  /**
+   * The town holds a building that **supplies this yield at all** — Hero of
+   * Alexandria's "a wonder that supplies science".
+   *
+   * `hasBuilding` asked of what a row *does* rather than of which row it is, and
+   * it is `CountKind`'s `scienceBuildings` widened to any voice and lifted to a
+   * scope. Read off `BuildingDef.yields`, so a designer who retunes a library
+   * cannot leave a legacy paying for something that no longer teaches anybody —
+   * the same bargain `resourceKind`'s `yields` strikes one table down.
+   *
+   * `wonder: true` narrows it to the rows the data calls wonders (`isWonder`),
+   * which is the half Hero's ratified text asks for. Absent counts every
+   * building, wonders included, because a wonder *is* a building.
+   */
+  | { test: 'hasBuildingYielding'; yields: CityYieldKey; wonder?: boolean }
   /**
    * The town's **own hex** is hills — Tycho Brahe's observatory ground.
    *
@@ -252,7 +281,23 @@ export type EmpireCondition =
   | { test: 'cityCountAtMost'; value: number }
   | { test: 'cityCountAtLeast'; value: number }
   | { test: 'authorityNegative' }
-  | { test: 'happinessNegative' };
+  | { test: 'happinessNegative' }
+  /**
+   * A city of this empire has a row of this **category** in its queue —
+   * Hemiunu's "while any city is building a wonder".
+   *
+   * A gate and not a scope, which is the distinction this union keeps: the
+   * question is about *the empire* ("is anybody building one"), and the clause
+   * it opens lands wherever the clause says it lands. `where: 'capital'`
+   * narrows the sweep to the one town, because "the capital is building a
+   * wonder" is a different sentence about the same board and a card that meant
+   * it would otherwise have to say it with a scope on the wrong half.
+   *
+   * Read off `City.queue` through `queueCategory` — the one place a row is
+   * sorted into a category — so a project, a wonder and a building are told
+   * apart here by exactly the rule production tells them apart by.
+   */
+  | { test: 'queueHolds'; category: ProductionCategory; where?: 'any' | 'capital' };
 
 /**
  * When a strength line applies. The whole of `combatCardLine`'s generality.
@@ -330,7 +375,29 @@ export type CombatCondition =
    * docblock, which names "is this unit wounded" as the same mistake. The
    * condition asks about the side the line pays, exactly as `class` does.
    */
-  | { test: 'fortified' };
+  | { test: 'fortified' }
+  /**
+   * The contested hex is within `hexes` of one of this player's **cities** —
+   * Deborah under the palm, judging Israel within sight of her own people.
+   *
+   * `ownTerritory` said as a *distance* rather than as a border, and the two are
+   * genuinely different questions: a border moves with culture and a march moves
+   * with the army, so "near my towns" reaches ground nobody has claimed and
+   * stops short of a colony's third ring. Measured by `wrappedDistance` off the
+   * contested tile, exactly as every other radius in the game is.
+   */
+  | { test: 'withinOfCity'; hexes: number }
+  /**
+   * The piece on the **other** side is stronger than this one — Spartacus, and
+   * the vocabulary's first comparison rather than a lookup.
+   *
+   * Base strength against base strength (`UnitDef.combatStrength`), not the folded
+   * ledger: a line that read the fold would be a line inside its own sum, and
+   * "attacking a stronger unit" is a fact about what the two pieces *are*. A
+   * city has no strength of that kind and never satisfies it, for `vsClass`'
+   * reason — nothing charges out of a town.
+   */
+  | { test: 'strongerTarget' };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
@@ -446,6 +513,18 @@ export type TileCondition =
    * water is this one, and `all` is what makes them one line.
    */
   | { test: 'freshwater' }
+  /**
+   * The hex carries a **great person's work** — an academy, a landmark, a
+   * manufactory, a customs house, a citadel.
+   *
+   * `improvement` asked of the *family* rather than of the row, and it reads the
+   * marker the improvement table already carries (`ImprovementDef.greatPerson`,
+   * presence is the marker) rather than a list of five names. So a sixth work
+   * added the day a great admiral lands joins The Commonwealth's clause for
+   * free, which is exactly why it is not the five-row `improvement` list a card
+   * would otherwise have to spell out.
+   */
+  | { test: 'greatWork' }
   /**
    * Every one of these holds. `CityScope`'s composite, one scale down, and here
    * for its reason: a wooded tundra and a mine standing on a luxury are single
@@ -642,6 +721,30 @@ export type CountKind =
    */
   | 'tradeRoutes'
   /**
+   * Trade routes this empire runs whose **partner belongs to somebody else** —
+   * Marco Polo's road to Khanbaliq.
+   *
+   * `tradeRoutes` narrowed by who owns the far end, and a member of its own for
+   * `followingForeign`'s reason exactly: the two read differently on a card
+   * ("per trade route you run", "per trade route to another empire") and a
+   * member each is what lets the words be written without a second table. The
+   * far end is read off the board each turn (`TradeRoute.to` resolved through
+   * `cityById`), so a partner that changes hands changes the count with it.
+   */
+  | 'foreignTradeRoutes'
+  /**
+   * Wonders standing **anywhere in the world**, yours and everybody's — The
+   * Grand Tour's "seen or not".
+   *
+   * `wonders` counts what this empire holds; this counts what the age has
+   * raised. Read off `GameState.wonders`, the claim register, which is the one
+   * place a wonder is written down and never moves — so the count is exactly
+   * "how many marvels exist", with no fog clause and nothing to sight. The two
+   * are separate members for `followingForeign`'s reason: they read differently
+   * on a card, and a member each is what lets the words be written.
+   */
+  | 'worldWonders'
+  /**
    * Cities **in the world** that follow the religion this empire founded —
    * yours and everybody's.
    *
@@ -729,7 +832,22 @@ export type CardRule =
    * with a different consumer, and the meters' stifle already sums into exactly
    * this figure.
    */
-  | 'growthSurplus';
+  | 'growthSurplus'
+  /**
+   * What this empire's army costs it every turn (`unitUpkeepTotal`).
+   *
+   * The eighth rule, and it exists because there is finally something to
+   * discount: Tyranny's "30% less maintenance cost for units" and The Standing
+   * Army's "units cost no upkeep" were both `deferred` on their rows with the
+   * note *"units cost no maintenance in this game"* until the 2026-08-28 ruling
+   * gave the game `upkeep.ts`.
+   *
+   * The sign is the rule's own: a **negative** percentage is a discount, exactly
+   * as `settlerCost`'s is, so a card that halves the payroll prints −50 and a
+   * card that doubles it prints +100. Folded once, in `explainEmpireGold`'s
+   * maintenance line, and clamped so a −100% army is free rather than a mint.
+   */
+  | 'unitUpkeep';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -753,7 +871,22 @@ export type ActionRuleId =
   /** A unit further down the queue completes ahead of an unaffordable building. */
   | 'unitJumpsQueue'
   /** Settlers stop getting dearer. */
-  | 'noSettlerEscalation';
+  | 'noSettlerEscalation'
+  /**
+   * A great person waiting in the offer may be **bought outright with gold** —
+   * The Commonwealth's, and the honest reading of "great people can be purchased
+   * with gold" in a game where a great person is *called* rather than built or
+   * bought (`UnitDef.greatWork`, refused by both `buildError` and
+   * `purchaseError`).
+   *
+   * What is for sale is the **recruitment**, not the piece: the command pours
+   * the remaining renown into `settleRenownWindfall` and the offer opens exactly
+   * as the ladder would have opened it, so there is still one draft path and one
+   * place a name is taken. See `purchaseGreatPersonOffer` (`greatPeople.ts`).
+   */
+  | 'buyGreatPersonWithGold'
+  /** The same, out of the faith bank — The Magisterium's. */
+  | 'buyGreatPersonWithFaith';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -779,7 +912,19 @@ export type BehaviorRuleId =
    * conversion above — the wild is an ally, and you do not sack an ally's
    * villages.
    */
-  | 'noCampClearing';
+  | 'noCampClearing'
+  /**
+   * This empire's pieces **do not heal outside its own borders** — Homer's
+   * price, sung for an army ten years from home.
+   *
+   * Read in `healUnits` (`turn.ts`), which is the one place a heal is decided,
+   * beside the rested rule and the `unitStat` bonus rather than instead of
+   * either: the piece is still rested, it still carries whatever a card adds,
+   * and the *ground* refuses it. A hex nobody owns is outside your borders, which
+   * is the reading that makes the clause bite on a campaign rather than only in a
+   * rival's homeland.
+   */
+  | 'noHealAbroad';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId = 'sealTurns';
@@ -823,7 +968,58 @@ export type AmplifierTarget =
    * "the trickle is doubled" a sentence about one row rather than about the
    * whole religion.
    */
-  | 'founderTrickle';
+  | 'founderTrickle'
+  /**
+   * What a **great person's act** pays — Leonardo, whose notebooks make another
+   * man's one afternoon worth two.
+   *
+   * Read in `greatPersonActAt` (`greatPeople.ts`), on each family's own figure
+   * before it reaches the seam that banks it, so a doubled engineer pours twice
+   * the hammers through the *same* `settleProductionWindfall` and a doubled
+   * scholar twice the beakers through the same `settleResearchWindfall`. It
+   * reaches the act and never the **work**: a citadel is a thing on the ground
+   * and has no figure to amplify, which is the honest split rather than a
+   * silence.
+   *
+   * An act is not a project (Entry XXVI) and this is not a `projectRider`: a
+   * project is a queue row that pays every turn, and an act happens once.
+   */
+  | 'greatPersonAct'
+  /**
+   * What **city connections** pay — Nanaivandak's road home, both halves of it.
+   *
+   * Read in `explainEmpireGold` (`trade.ts`), on the connection line's own
+   * figures, and it joins that fold as the line's own total rather than as a
+   * multiplication afterwards — rule 5 for a treasury, exactly as `routeYields`
+   * is rule 5 for a caravan. It reaches the connections and nothing else: road
+   * maintenance and the two payrolls are separate lines of the same list and are
+   * not what a merchant's ledger made cheaper.
+   *
+   * The **second target that reads `amount`**, and the one that shows why that
+   * field is generic rather than a favour to Ea-nāṣir: a connection's gold is
+   * quoted *per city*, so "+2 gold for each city connected to your capital" and
+   * "+10% gold from those connections" are one card's two dials on one figure,
+   * and Nanaivandak carries both on one row.
+   *
+   * It is an amplifier rather than a `CountKind` for a discipline reason worth
+   * stating: `trade.ts` reads *this* module and may not be read back, so a count
+   * that asked `connectedCities` would have had to grow a second flood fill in
+   * `statecraft.ts` — and two answers to "which of my towns are joined" is
+   * exactly the drift rule 5 exists to prevent.
+   */
+  | 'connectionYields'
+  /**
+   * What a **Triumph** pays in renown — The Academy of Deeds' "every Triumph
+   * pays its renown twice over".
+   *
+   * Read in `awardTriumph` (`triumphs.ts`), on the row's printed figure, before
+   * `settleRenownWindfall` banks it — Entry XVIII.5's discipline at the fifth
+   * bucket: the figure is composed once, so what the annal announces and what
+   * the pool receives are one number. It reaches a Triumph's lump and never the
+   * buildings' trickle, which is a different line of `explainRenown` and a
+   * different sentence.
+   */
+  | 'triumphRenown';
 
 /**
  * A rule about how an offer *pays*, as against how big it is.
@@ -906,7 +1102,20 @@ export type WindfallOccasion =
   /** A tile bought (`purchaseTileAt`). */
   | 'tilePurchase'
   /** An augur's rite performed (`performRiteAt`, Entry XXVIII). */
-  | 'rite';
+  | 'rite'
+  /**
+   * A thing **bought** with gold or faith (`purchaseItemAt`, Entry XXIX).
+   *
+   * The member the comment above says would one day be earned, and Crassus is
+   * what earned it: *"−1 happiness for 10 turns after every purchase"* is a card
+   * that wants to pay on a purchase and emphatically **not** on a completion — a
+   * penalty on buying your way out of a queue is no penalty at all if building
+   * the same warrior triggers it. That is the real distinction the note asked
+   * for, so this occasion fires *only* from the purchase verb, and
+   * `unitCompletion` goes on firing for a bought unit exactly as it did (Rites
+   * of Passage is still one row and still pays once).
+   */
+  | 'purchase';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
@@ -930,6 +1139,32 @@ export interface WindfallGrantSpec {
    * completion routine and the reason this is not a second way to mint a unit.
    */
   unit?: 'randomMilitary';
+  /**
+   * **Every one of this empire's pieces is healed whole** — The Empire's "taking
+   * a city with a wonder in it heals all your units".
+   *
+   * `heal`'s sibling and deliberately not a number: the ratified text is *heals
+   * all*, which is a fact about the army rather than a quantity, and a figure
+   * here would have been a second, quieter rule about how much. Paid in
+   * `payWindfallGrants`, which is where a payout stops being a preview.
+   */
+  healAll?: boolean;
+  /**
+   * A **timed effect hung on the empire**, for `turns` turns — Crassus' bill,
+   * which comes due one purchase at a time.
+   *
+   * `Player.timed`'s only writer's only source, and the shape is the one
+   * `City.timed` and `Unit.timed` already use: absolute expiry, ordinary
+   * `CardEffect`s, read by the ordinary evaluators, swept by the same broom.
+   * What is new is only the *holder* — an empire, because "−1 happiness" under
+   * Crassus is a fact about the realm's mood and not about the town that bought
+   * the granary.
+   *
+   * It is a **grant on a windfall** rather than a shape of its own because that
+   * is exactly what it is: something an occasion hands over that the occasion did
+   * not pay by itself. A rite stamps its own because a rite *is* the occasion.
+   */
+  timed?: { turns: number; effects: CardEffect[] };
 }
 
 // --- the vocabulary ---------------------------------------------------------
@@ -994,6 +1229,36 @@ export interface CardProductionBonusEffect {
    * two are independent and a row may carry both.
    */
   scope?: CityScope;
+  /**
+   * Narrows the bonus to **one named row** — Mimar Sinan's mosques.
+   *
+   * `modelClass` narrows a unit bonus to a silhouette and this narrows a
+   * building bonus to a building, which is the same idea on the other half of
+   * the roster. It is asked only of the row being built, so a bonus carrying it
+   * is meaningless on a category nothing names (a project, a unit) — a fact
+   * about the row rather than a rule here.
+   *
+   * A card that wants "every science building" says `category` and the day the
+   * design wants a *class* of building narrower than a category, that is a
+   * `BuildingCategory` decision in the table rather than a list here.
+   */
+  building?: BuildingId;
+  /**
+   * Narrows the bonus to buildings of one **category** — The Encyclopaedia's
+   * "science buildings cost −50%".
+   *
+   * `building`'s sibling one grade wider, and it takes its argument the way
+   * `CardCountScaledEffect.category` does: that field names one row, this names
+   * what a row is *for* (`BuildingDef.category`, the one word every building
+   * declares). So a second science building is a JSON row rather than an edit
+   * here — the reason it is the category and not a list.
+   *
+   * Named `buildingCategory` rather than `category` because that word is already
+   * this shape's `ProductionCategory`, which is a different question: one says
+   * *which queue rows* (unit, building, wonder, project) and this says *which
+   * buildings among them*.
+   */
+  buildingCategory?: BuildingCategory;
 }
 
 /** A percentage on a named rule. See `CardRule`. */
@@ -1148,6 +1413,18 @@ export interface CardWindfallRiderEffect {
    * a rule here.
    */
   vsBarbarians?: boolean;
+  /**
+   * The rider fires only when the town taken **held a wonder** — The Empire's
+   * "capturing a city with a wonder heals all your units".
+   *
+   * `vsBarbarians`' sibling and a filter on the *occasion* for its reason
+   * exactly: a capture and a capture-of-a-wonder-city are one moment asked two
+   * ways. Read where the occasion is fired (`applyCombat`'s capture path), which
+   * is the only place that still knows what stood in the town — by the time the
+   * riders are composed the city is the captor's and its buildings are simply
+   * his. Meaningless on any other occasion, which is a fact about the row.
+   */
+  capturedWonder?: boolean;
 }
 
 /** What a newly founded city is founded *with*. */
@@ -1269,11 +1546,31 @@ export interface CardRouteRiderEffect {
   extra?: number;
 }
 
-/** A percentage on somebody else's effect. The Grand Bazaar's whole identity. */
+/**
+ * A percentage on somebody else's effect. The Grand Bazaar's whole identity.
+ *
+ * **Two dials, and a row turns one of them.** `percent` is a share of the figure
+ * the other table printed; `amount` is a flat step on it, and the pair is
+ * `CardMeterRuleEffect`'s `value`/`delta` at this scale — for the reason that
+ * shape has both: some numbers a card wants to move are shares ("trade routes
+ * pay 50% more") and some are *counts* that a share cannot say exactly
+ * ("every luxury you hold counts one fewer toward happiness" — Ea-nāṣir, whose
+ * point is a whole point and not a third of one). A row may carry both; the flat
+ * step is applied first and the share on what is left, so a card that does both
+ * is one arithmetic rather than an argument about order.
+ *
+ * The flat step is only meaningful where the amplified figure is quoted **per
+ * item** — the happiness one luxury pays, and nothing else today. An amplifier
+ * on a whole-ledger total (`routeYields`, `founderTrickle`) reads `percent` and
+ * ignores `amount`, which is a fact about that target rather than a rule here.
+ */
 export interface CardEffectAmplifierEffect {
   kind: 'effectAmplifier';
   target: AmplifierTarget;
-  percent: number;
+  /** A share of the other table's figure. Absent is no share at all. */
+  percent?: number;
+  /** A flat step on it, applied before the share. See the docblock. */
+  amount?: number;
 }
 
 /** A constant of the meters, replaced (`value`) or shifted (`delta`). */
@@ -1327,6 +1624,26 @@ export interface CardMetaRuleEffect {
 export interface CardTileYieldEffect extends CardYieldBag {
   kind: 'tileYield';
   on: TileCondition;
+  /**
+   * A **percentage on what the hex's improvement already pays**, rather than a
+   * flat addition — The Commonwealth's "great-person improvements pay +50%
+   * more".
+   *
+   * It reaches the *improvement's own* contribution and nothing else, which is
+   * the whole of why it is a field here and not a `percentYields` with a tile
+   * scope: a hex's yield is a list (`explainTileYield`), and a card that said
+   * "this hex pays half again" would be silently multiplying the terrain, the
+   * resource, the river and whatever a second card had already added. Read as
+   * one more labelled line of that list, computed off the improvement lines that
+   * came before it, so the breakdown still sums to the total and a player can
+   * see which half was raised.
+   *
+   * A row may carry both a bag and a percentage; the bag lands first, as an
+   * ordinary flat line, and the percentage is taken of the improvement's own
+   * figure — never of the card's own flat, which would be a card paying interest
+   * on itself.
+   */
+  percent?: number;
   /**
    * Whose ground it lands on: the hex pays only if its **owning city** is
    * admitted. Absent means every hex this empire works.
@@ -1570,6 +1887,38 @@ export interface CardPressureEffect {
   range: number;
 }
 
+/**
+ * One voice paid **again as another**, off the buildings of one category — The
+ * Curia's "faith buildings supply science equal to their faith".
+ *
+ * The vocabulary's first clause whose subject is another line of the same
+ * ledger, and it is deliberately the narrowest reading of that idea: it sums
+ * what the *buildings of one category* pay in `from` and pays that much `to`, as
+ * one labelled line in `cityYields`. Not the whole town's faith — a card that
+ * mirrored a total would be mirroring the tiles, the resources, the rites and
+ * itself, and "faith buildings supply science" says buildings.
+ *
+ * Read off `BuildingDef.yields` and `BuildingDef.category`, which is what makes
+ * a second shrine a JSON row: the day the tree adds a Cathedral, The Curia pays
+ * for it with nothing here touched.
+ *
+ * It is a **flat** line and therefore lands before Entry XVII's percentages,
+ * exactly as every other flat does — a mirrored beaker is worth what a library's
+ * beaker is worth, and a card that staged it twice would be paying a science
+ * bonus on faith.
+ */
+export interface CardMirrorYieldEffect {
+  kind: 'mirrorYield';
+  /** The voice read off the buildings. */
+  from: CityYieldKey;
+  /** The voice paid. */
+  to: CityYieldKey;
+  /** Which buildings are read. `BuildingDef.category`. */
+  category: BuildingCategory;
+  /** Which towns it lands in. Absent means every one. */
+  scope?: CityScope;
+}
+
 /** Everything a card may say. One union, one evaluator (`statecraft.ts`). */
 export type CardEffect =
   | CardCityYieldsEffect
@@ -1604,7 +1953,8 @@ export type CardEffect =
   | CardProjectRiderEffect
   | CardRenownEffect
   | CardPressureRuleEffect
-  | CardPressureEffect;
+  | CardPressureEffect
+  | CardMirrorYieldEffect;
 
 /** Every `kind` in the union, for the register test that pins the evaluator. */
 export type CardEffectKind = CardEffect['kind'];

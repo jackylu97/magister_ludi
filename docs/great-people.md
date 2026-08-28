@@ -294,12 +294,12 @@ when the wonders pass (2026-08-27) added `combatLine.class`, `unitStat.where: 'e
 | person | now prints | note |
 |---|---|---|
 | **Ptahhotep** | +1 authority capacity per Library | `buildingsOfKind` |
-| **Homer** | losing a unit grants +9 culture | Snorri's death rider, tripled — Epic Poetry's own line still does not exist |
-| **Archimedes** | +6 combat strength for siege units against cities | `combatLine.class` |
+| **Homer** | losing a unit grants +9 culture | Snorri's death rider, tripled; his second half is built below |
+| **Archimedes** | +6 combat strength for siege units against cities | `combatLine.class`; his malus is built below |
 | **Li Bing** | +1 food, +1 production on every farm tile beside fresh water | `freshwater` is a river edge *or* a lake beside it, so slightly wider than "river" |
 | **Hippalus** | fishing boats +1 gold · all units +1 movement while embarked | |
 | **Zheng He** | coastal cities +3 gold · all units +2 movement while embarked | |
-| **Crassus** | all units cost −30% to buy | units only; buildings have no rider hook |
+| **Crassus** | all units and buildings cost −30% to buy | `purchaseRider.on: 'all'` |
 | **Jakob Fugger** | +30% gold · −1 authority per 3 cities · all units cost −20% to buy | as above |
 | **Phidias / Dürer** | +3 / +2 culture per wonder you hold | a captured wonder moves the count with the stones |
 | **Eratosthenes** | +1 science per 20 hexes you have revealed | the seat's own monotone grid ✎ *a fully-charted map pays large; worth measuring* |
@@ -316,16 +316,47 @@ when the wonders pass (2026-08-27) added `combatLine.class`, `unitStat.where: 'e
 | **Aššur-idī** | +2 gold in every city but your capital | |
 | **Amenhotep son of Hapu** | +20% production toward wonders, in your capital | |
 
-**Still deferred, and what each waits on** (the ruling list — six of these rows still leave
-nothing at all): Deborah and Spartacus (a combat condition that measures *distance* or
-compares *strengths*) · Lautaro (`CombatSituation` carries no target type) · Nanaivandak and
-Marco Polo (city connections / trade routes) · Yi Sun-sin (naval units) · Sin-lēqi-unninni
-(the Hall of Deeds) · Hemiunu (an `EmpireCondition` that reads a queue) · Ea-nāṣir (an
-amplifier that changes a *count* rather than a figure) · Hero of Alexandria (a shape that
-reads another row's yields) · Mimar Sinan (a `productionBonus` that names a *building*) ·
-Boudica (a legacy carries no age) · Archimedes' and Hypatia's maluses and Leonardo's halves
-(**nothing revokes a legacy**, and a project's payout is deliberately unmodifiable) ·
-Crassus (a timed effect on an *empire*) · Crassus and Fugger's building purchases.
+## As built, 2026-08-28 (second pass) — the one-row shapes, and revocation
+
+The user's ruling: *"do a pass on orders/doctrines/great people that haven't been
+implemented; implement any remaining items that aren't blocked on the upcoming technology
+tree."* Every row on the deferred list above is now built except the three that name
+something the tree owes. Each shape is generic and read in the one place its family already
+lives.
+
+| person | now prints | shape, and where it is read |
+|---|---|---|
+| **Deborah** | +4 combat strength within 2 hexes of one of your cities | `CombatCondition.withinOfCity` → `combatConditionHolds`. Her printed +25% is a flat by the table's own percent↔flat rule |
+| **Spartacus** | +3 combat strength against a stronger unit | `CombatCondition.strongerTarget`, off `CombatSituation.vsStrength` — base against base, never the fold |
+| **Hemiunu** | +30%⚙ toward wonders · while any city is building a wonder: −2 happiness | `EmpireCondition.queueHolds`, read through `queueCategory` — the one place a queue row is sorted |
+| **Ea-nāṣir** | +3🪙 on every mine hex carrying a bonus resource · every luxury you hold counts 1 fewer toward happiness | `effectAmplifier.amount`, the amplifier's **flat dial** — a whole point, which no share of the table's figure could say exactly |
+| **Hero of Alexandria** | +5⚙ in every city holding a wonder that supplies science | `CityScope.hasBuildingYielding`, asked of what a row *does* rather than which row it is |
+| **Mimar Sinan** | +1🎵 with a Temple · +30%⚙ toward Temples | `productionBonus.building` |
+| **Homer** | losing a unit grants +9🎵 · your units do not heal outside your own borders | `BehaviorRuleId.noHealAbroad`, read in `healUnits` — the one place a heal is decided |
+| **Leonardo** | +30%⚙ toward wonders · a great person's act pays +100% more | `AmplifierTarget.greatPersonAct`, applied to each family's own figure *before* the seam that banks it |
+| **Crassus** | all units and buildings cost −30% to buy · buying anything costs your empire −1 happiness for 10 turns | `WindfallOccasion.purchase` (the member the table had refused until a card wanted to pay on a purchase and **not** on a completion) + `WindfallGrantSpec.timed` on the new `Player.timed` |
+| **Nanaivandak** | each connected city pays +2🪙 · city connections pay +10% more | `AmplifierTarget.connectionYields`, both dials on one row, folded into `explainEmpireGold`'s connection line |
+| **Marco Polo** | +3🪙 per trade route to another empire | `CountKind.foreignTradeRoutes`, read off the board like `tradeRoutes` |
+
+**Revocation, built once for all three rows.** `Player.legacies` is now a list of
+`LegacyRecord`s (`{ id, age, revoked? }`) and `GreatPersonDef.revokedWhen` names the
+occasion. Marking is the whole mechanism — **history is never deleted**: the roll stays in
+spend order, `greatPeopleEarned` goes on counting a revoked name (The Empire's line says
+*earned this game*), and `liveEffects` is the one place a marked record stops being read.
+`revokeLegacies` is the only writer. Two occasions are conditions of a turn and are swept in
+the `reviewLegacies` phase, a broom's twin — marking twice changes nothing; the third is a
+genuine moment and is hooked at `arriveOnTile`.
+
+| person | now prints | occasion |
+|---|---|---|
+| **Archimedes** | +6 combat strength for siege units against cities · lost the turn an enemy soldier enters your capital's territory | `enemyEntersCapital` — a *soldier* (`isCombatant`), hooked at `arriveOnTile` |
+| **Hypatia** | +10% science in every city · lost the first turn your happiness goes negative | `happinessNegative` — swept |
+| **Boudica** | +4 combat strength inside your territory · lost when the age it was earned in closes | `ageAdvanced` — compared against `LegacyRecord.age`, never counted down |
+
+**Still deferred, and each waits on the tree or on a system**: Sin-lēqi-unninni (the Hall of
+Deeds) · Yi Sun-sin (naval units) · Mimar Sinan's cathedral half · Leonardo's *"projects pay
+half as much"* (a project's payout is deliberately unmodifiable — Entry XXVI, and a card
+that wanted a percentage of a conversion would be reopening that argument).
 
 ## Revisions
 

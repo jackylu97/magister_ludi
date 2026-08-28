@@ -42,13 +42,13 @@ import {
   explainRouteYieldBetween,
   explainEmpireGold,
   foldRouteYield,
-  layRoad,
   roadsBuiltBy,
   routeSlots,
   routeStartable,
   startRouteError,
   usedRouteSlots,
 } from '../../src/sim/trade';
+import { layRoad } from '../../src/sim/roads';
 import { pillageAt } from '../../src/sim/improvements';
 import { buildError } from '../../src/sim/tech';
 import { runEndOfTurn } from '../../src/sim/turn';
@@ -753,9 +753,11 @@ describe('a road', () => {
         writers.push(path.slice(path.lastIndexOf('/') + 1));
       }
     }
-    // `layRoadUnder` (called from `arriveOnTile`) and nothing else. Pillage
-    // *deletes* the key rather than assigning, so it is not a writer here.
-    expect(writers).toEqual(['trade.ts']);
+    // `layRoad` and nothing else — it lives in `roads.ts` now (a leaf, so that
+    // the founding verb in `cities.ts` reaches it without crossing a cycle) and
+    // it is still the one writer. Pillage *deletes* the key rather than
+    // assigning, so it is not a writer here.
+    expect(writers).toEqual(['roads.ts']);
   });
 });
 
