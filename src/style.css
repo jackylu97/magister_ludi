@@ -4917,6 +4917,44 @@ kbd {
   display: none;
 }
 
+/* The one card a pointer may enter — the star chart's, which lists a
+   technology's gifts and draws their names as keywords. See `StickyState` in
+   `src/ui/infoCard.ts` for why exactly one surface asks for this: a card that
+   takes the pointer is a card that can swallow the click meant for what is
+   underneath it. */
+.info-card.is-sticky {
+  pointer-events: auto;
+}
+
+/* --- keyword links --------------------------------------------------------
+   A named thing inside a descriptor (`src/ui/keywords.ts`). **Bold is the
+   emphasis and the underline is the affordance**: every keyword is bold,
+   including the ones inside a button that must not be clickable, and only a
+   live one (`[data-ref]`) grows a rule under the pointer. That is the user's
+   ruling drawn rather than argued — where a click does nothing, nothing invites
+   one. The ink is the surrounding text's, so a keyword reads as a word in the
+   sentence rather than as a link pasted into it. */
+.kw {
+  font-weight: 600;
+  color: inherit;
+}
+
+.kw[data-ref] {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.kw[data-ref]:hover,
+.kw[data-ref]:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.kw[data-ref]:focus-visible {
+  outline: var(--border-thin) solid currentColor;
+  outline-offset: 2px;
+}
+
 /* The head: what it is called, and what kind of thing it is. Baseline-aligned
    so the naming face and the small mono label sit on one line however tall the
    name is set. */
@@ -8413,6 +8451,17 @@ kbd {
   font-size: 2rem;
   font-weight: 400;
   line-height: 1.05;
+}
+
+/* What earned it (`TriumphDef.text`). Upright and in the reading face, directly
+   under the name: it is the sentence the sheet is for, and everything below it
+   is either a figure or flavour. */
+.triumph-text {
+  margin: 8px 0 0;
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .triumph-epigram {

@@ -119,6 +119,7 @@ import {
   turnsLabel,
 } from './figures';
 import { createInfoCard } from './infoCard';
+import { setDescriptorText } from './keywords';
 
 
 /**
@@ -698,7 +699,15 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // hover call, so a wonder's clause reads exactly as a Doctrine's does. A
     // building with no `effects` (which is every other row) adds nothing here.
     for (const clause of describeCard(id)) {
-      const line = note(clause.text);
+      // A clause names things (`ref`/`stripRefs`), so it is drawn as a
+      // descriptor rather than written as text. **Bold, never a link**: this is
+      // a hover card, and a hover card takes no pointer at all
+      // (`infoCard.ts` — `pointer-events: none`), so a keyword that offered
+      // itself as clickable here would be an affordance for a click that can
+      // never land. The star chart's card is the one that is sticky, and it is
+      // the one that links.
+      const line = note('');
+      setDescriptorText(line, clause.text, { linked: false });
       if (clause.deferred) line.classList.add('is-deferred');
       notes.append(line);
     }

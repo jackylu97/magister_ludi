@@ -40,7 +40,7 @@ import type { ImprovementId } from '../sim/improvementData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
 import { isAugur, isProphet } from '../sim/religion';
 import { type ReligionBeliefPool, type RiteId, riteDef } from '../sim/religionData';
-import { describeCard } from '../sim/statecraft';
+import { describeCard, stripRefs } from '../sim/statecraft';
 import type { GreatPersonView, ProphetRow, ProphetVerb, RiteOption } from './controls';
 import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
@@ -55,6 +55,7 @@ import { cityDisplayName } from './cityDisplay';
 import { describeTile, knowsCity } from './tileReadout';
 import { HAMMER, YIELD_GLYPH, signedFigure } from './figures';
 import { createInfoCard } from './infoCard';
+import { setDescriptorText } from './keywords';
 import type { RouteReading } from './tradeLines';
 import { setYieldText, yieldFigureNodes } from './yieldMark';
 
@@ -533,7 +534,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       verb.blocked ?? `${view.name} · ${when} — ${verb.preview}`,
     ];
     for (const clause of view.legacy) {
-      lines.push(`Legacy: ${clause.text}${clause.deferred ? ' (not built yet)' : ''}`);
+      // **Stripped**: a `title` is text the platform draws, so a keyword's mark
+      // would print as brackets. The same clause is drawn as a descriptor on
+      // the great person's own card.
+      lines.push(`Legacy: ${stripRefs(clause.text)}${clause.deferred ? ' (not built yet)' : ''}`);
     }
     return lines.join('\n');
   }
@@ -916,13 +920,15 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     if (rite.preview) card.append(element('p', 'unit-card-payoff', rite.preview));
     const clauses = describeCard(rite.id);
     for (const clause of clauses) {
-      card.append(
-        element(
-          'p',
-          clause.deferred ? 'unit-card-clause is-deferred' : 'unit-card-clause',
-          clause.text,
-        ),
+      const line = element(
+        'p',
+        clause.deferred ? 'unit-card-clause is-deferred' : 'unit-card-clause',
       );
+      // Bold, and not a link: this is a hover card and a hover card takes no
+      // pointer (`infoCard.ts`), so an affordance here would be one for a click
+      // that cannot land.
+      setDescriptorText(line, clause.text, { linked: false });
+      card.append(line);
     }
     // The one thing on the card that is not about the rite: what it *costs*,
     // which is the piece rather than a purse. Said here because this is the
@@ -957,11 +963,16 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     card.append(payoff);
     for (const line of route.lines) {
       const clause = element('p', 'unit-card-clause');
-      setYieldText(
+      // A descriptor, like the rite card's lines above it: a route's source
+      // labels come out of the simulation and may one day name a building, and
+      // a `setYieldText` here would print the mark's brackets on the day one
+      // does. Bold only — a hover card takes no pointer.
+      setDescriptorText(
         clause,
         `${line.source} · ${DELTA_KEYS.filter((key) => line[key] !== 0)
           .map((key) => `${signedFigure(line[key])}${YIELD_GLYPH[key]}`)
           .join(' ')}`,
+        { linked: false },
       );
       card.append(clause);
     }

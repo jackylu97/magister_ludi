@@ -101,7 +101,7 @@ import {
   riteDef,
 } from '../sim/religionData';
 import { drawPantheonWheel, pantheonWheelLayout } from './pantheonWheel';
-import { type CardYieldLine, cardEmpireYields, describeCard } from '../sim/statecraft';
+import { type CardYieldLine, cardEmpireYields, describeCard, stripRefs } from '../sim/statecraft';
 import {
   type GameState,
   type Religion,
@@ -111,6 +111,7 @@ import {
   playerById,
 } from '../sim/state';
 import { cityDisplayName } from './cityDisplay';
+import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import { gatingTech } from '../sim/tech';
 import { type TechId, techDef } from '../sim/techData';
 import type { UnitTypeId } from '../sim/unitData';
@@ -440,7 +441,9 @@ function axisMarkNode(axis: BeliefAxis): HTMLElement {
  */
 function houseTooltip(id: BeliefId): string {
   const def = beliefDef(id);
-  const clauses = describeCard(id).map((clause) => clause.text);
+  // **Stripped**: this is a `title`, which is text the platform draws. A mark
+  // left in it would print its own brackets.
+  const clauses = describeCard(id).map((clause) => stripRefs(clause.text));
   return clauses.length === 0 ? def.name : `${def.name} — ${clauses.join(' · ')}`;
 }
 
@@ -473,9 +476,14 @@ function drawBeliefFace(into: HTMLElement, id: BeliefId): void {
   into.append(head);
   into.append(element('h4', 'sc-card-name', def.name));
   const list = element('ul', 'sc-clauses');
+  // The Statecraft screen's rule, one card class over: a belief's face is an
+  // `<article>` everywhere it is drawn (there is nothing to do to a god you
+  // already hold), so its keywords are live. `keywordsAllowedIn` is asked
+  // anyway, so the day a face becomes a control the links go quiet with it.
+  const linked = keywordsAllowedIn(into);
   for (const clause of describeCard(id)) {
     const item = element('li', clause.deferred ? 'sc-clause sc-clause-deferred' : 'sc-clause');
-    item.textContent = clause.text;
+    setDescriptorText(item, clause.text, { linked });
     list.append(item);
   }
   into.append(list);
@@ -895,7 +903,6 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       );
       row.append(head);
       const clauses = describeCard(id);
-      const said = clauses.map((clause) => clause.text).join(' · ');
       const grantWords = riteGrantWords(id);
       // **How long the lasting half lasts.** `describeCard` cannot say it: a
       // clause is an ordinary `CardEffect` and knows nothing about the rite it
@@ -905,13 +912,19 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       const lasting = clauses.length > 0 && def.duration !== undefined
         ? `for ${def.duration} turns`
         : '';
-      row.append(
-        element(
-          'p',
-          'rel-rite-say',
-          [grantWords, said, lasting].filter((part) => part.length > 0).join(' · '),
-        ),
+      // Composed as one sentence and **drawn as a descriptor**: a rite's row is
+      // prose in a `<p>` and nothing on it answers a click, so the things its
+      // clauses name are live keywords. The join is inside the call because the
+      // marks have to survive it — a plain `textContent` here would print
+      // brackets.
+      const say = element('p', 'rel-rite-say');
+      setDescriptorText(
+        say,
+        [grantWords, clauses.map((clause) => clause.text).join(' · '), lasting]
+          .filter((part) => part.length > 0)
+          .join(' · '),
       );
+      row.append(say);
       // Labelled, for the Compendium's reason (copy pass, 2026-08-28): the
       // rite's own payoff line sits directly above it in the same column.
       const flavor = element('p', 'sc-flavor');

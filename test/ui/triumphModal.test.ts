@@ -50,6 +50,7 @@ function source(name: string): string {
 
 const NEWS = {
   name: 'The Third Hearth',
+  text: 'You found your third city.',
   epigram: 'Three fires, and the road between them.',
   pays: 10,
 };
@@ -59,6 +60,16 @@ describe('triumphFace', () => {
     const face = triumphFace(NEWS, 1);
     expect(face.name).toBe('The Third Hearth');
     expect(face.epigram).toBe('Three fires, and the road between them.');
+  });
+
+  it('says what *caused* it, which is the half a title cannot carry', () => {
+    // The user's complaint (2026-08-28): a Triumph arrived named and
+    // unexplained. `TriumphDef.text` is the cause, and it is a different string
+    // from the epigram — a sheet that printed the poem in this slot would be
+    // the version that shipped.
+    const face = triumphFace(NEWS, 1);
+    expect(face.text).toBe('You found your third city.');
+    expect(face.text).not.toBe(face.epigram);
   });
 
   it('prints the renown as a signed figure', () => {
@@ -115,6 +126,18 @@ describe('the sheet itself', () => {
     // all takes it down. This sheet has a button; a card that vanished under the
     // click that was reaching for it would be the opposite of an announcement.
     expect(modal).not.toContain("'pointerdown'");
+  });
+
+  it('prints the cause under the name, and labels the epigram as flavour', () => {
+    // The order is the ruling's: what you did, then the poem — and the poem
+    // wears the Flavour label the Compendium and the offer cards wear, because
+    // a sentence in that voice under a rule reads as a second rule.
+    const name = modal.indexOf("'triumph-name'");
+    const text = modal.indexOf("'triumph-text'");
+    const flavor = modal.indexOf("'flavor-label', 'Flavour'");
+    expect(name).toBeGreaterThan(-1);
+    expect(text).toBeGreaterThan(name);
+    expect(flavor).toBeGreaterThan(text);
   });
 
   it('draws the reserved plate as a <figure>, hidden rather than absent', () => {
@@ -199,6 +222,8 @@ describe('the page it lives on', () => {
     // `TriumphAward` carries what happened; `data/triumphs.json` carries what it
     // is called. A hard-coded epigram here would be a second table.
     expect(main).toContain('triumphDef(award.id)');
+    // And the cause line comes off the same row, for the same reason.
+    expect(main).toContain('text: row.text,');
   });
 
   it('wears the proclamation dress and hides the empty plate', () => {

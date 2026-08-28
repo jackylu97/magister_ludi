@@ -118,6 +118,7 @@ import {
   slotLayout,
 } from '../sim/statecraftData';
 import { CARD_LINE_NAME, cardLineMarkNode, lineOf, slotMarkNode } from './cardLine';
+import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import {
   type SlotCommand,
   type StagedSlots,
@@ -191,12 +192,20 @@ function element(tag: string, className: string, text?: string): HTMLElement {
   return node;
 }
 
-/** A card's clauses as a list, deferred ones struck through and said so. */
-function clauseList(clauses: readonly CardClause[]): HTMLElement {
+/**
+ * A card's clauses as a list, deferred ones struck through and said so.
+ *
+ * `linked` is the keyword ruling's middle clause (2026-08-28): a clause names
+ * things, and the names are drawn bold either way — but a card face that is a
+ * `<button>` picks the card when it is clicked, so a keyword inside one may not
+ * be clickable as well. The caller knows which it built; `keywordsAllowedIn` is
+ * the question it asks.
+ */
+function clauseList(clauses: readonly CardClause[], linked = true): HTMLElement {
   const list = element('ul', 'sc-clauses');
   for (const clause of clauses) {
     const item = element('li', clause.deferred ? 'sc-clause sc-clause-deferred' : 'sc-clause');
-    item.textContent = clause.text;
+    setDescriptorText(item, clause.text, { linked });
     if (clause.deferred) item.title = 'Declared, and not built yet — see docs/statecraft-cards.md';
     list.append(item);
   }
@@ -265,7 +274,10 @@ function drawCardFace(
   if (level > 1) head.append(element('span', 'sc-level', `·${level}`));
   into.append(head);
   into.append(element('h4', 'sc-card-name', def.name));
-  into.append(clauseList(clauses));
+  // A Doctrine's face is an `<article>` and an Order's is a `<button>`, which is
+  // exactly the difference between "read this" and "pick this up" — and
+  // therefore exactly the question the keyword rule asks.
+  into.append(clauseList(clauses, keywordsAllowedIn(into)));
 }
 
 export function createStatecraftScreen(options: StatecraftScreenOptions): StatecraftScreen {

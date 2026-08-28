@@ -96,7 +96,7 @@ import {
 } from '../sim/resourceData';
 import { describeResourceSignature } from '../sim/resourceEffects';
 import { RULES } from '../sim/rulesData';
-import { describeCard } from '../sim/statecraft';
+import { describeCard, stripRefs } from '../sim/statecraft';
 import {
   type CityScope,
   DOCTRINE_IDS,
@@ -114,6 +114,7 @@ import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield } from '../sim/terra
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from '../sim/triumphData';
 import { UNIT_TYPE_IDS, type UnitDef, type UnitTypeId, unitDef } from '../sim/unitData';
 import { CARD_LINE_NAME, lineOf } from './cardLine';
+import { setDescriptorText } from './keywords';
 import { SHELF_INTROS } from './compendiumShelves';
 import { CONCEPT_ENTRIES, INTRO_ENTRIES } from './compendiumText';
 import { YIELD_GLYPH, figure, percentFigure, signedFigure } from './figures';
@@ -1048,6 +1049,11 @@ const SCOPE_WORD: Record<string, string> = {
 function triumphEntry(id: TriumphId): CompendiumEntry {
   const def = triumphDef(id);
   const clauses: CompendiumClause[] = [];
+  // **What earned it, first**, and it is the row's own sentence rather than one
+  // written here — `TriumphDef.text`, the same line the Triumph sheet prints, so
+  // the card that announces one and the shelf that lists them cannot say two
+  // different things about the same trigger (user ruling, 2026-08-28).
+  clauses.push({ text: def.text });
   if (def.deferred !== undefined) clauses.push({ text: def.deferred, deferred: true });
   return {
     id: compendiumId('triumph', id),
@@ -1358,7 +1364,11 @@ export function compendiumSections(state: GameState | null = null): CompendiumSe
 function entryMatches(entry: CompendiumEntry, needle: string): boolean {
   if (entry.name.toLowerCase().includes(needle)) return true;
   if (entry.written !== true) return false;
-  return entry.clauses.some((clause) => clause.text.toLowerCase().includes(needle));
+  // **Stripped**, because a search is over words. A clause's marks carry the
+  // *ids* of the things it names (`[[building:granary|a Granary]]`), and a
+  // reader typing "building" is not asking for every card that happens to name
+  // one — they would get the whole shelf, matched on plumbing.
+  return entry.clauses.some((clause) => stripRefs(clause.text).toLowerCase().includes(needle));
 }
 
 /**
@@ -1522,7 +1532,11 @@ function entryNode(entry: CompendiumEntry): HTMLElement {
     const prose = element('div', 'cmp-written');
     for (const line of entry.clauses) {
       const paragraph = element('p', 'cmp-written-p');
-      setYieldText(paragraph, line.text);
+      // `setDescriptorText` rather than `setYieldText`: a clause may name a
+      // thing the book has a page about, and the book is where a keyword most
+      // obviously wants to be a link. Nothing on a card answers a click, so
+      // every keyword here is a live one.
+      setDescriptorText(paragraph, line.text);
       prose.append(paragraph);
     }
     card.append(prose);
@@ -1537,7 +1551,7 @@ function entryNode(entry: CompendiumEntry): HTMLElement {
             ? 'cmp-clause cmp-clause-note'
             : 'cmp-clause',
       );
-      setYieldText(item, line.text);
+      setDescriptorText(item, line.text);
       list.append(item);
     }
     card.append(list);

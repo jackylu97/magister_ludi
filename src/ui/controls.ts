@@ -257,7 +257,7 @@ import {
   riteDef,
 } from '../sim/religionData';
 import { type ResearchReport, hasAbility, researchSince, researchSnapshot } from '../sim/tech';
-import { type CardClause, describeCard, statecraftBlocker } from '../sim/statecraft';
+import { type CardClause, describeCard, statecraftBlocker, stripRefs } from '../sim/statecraft';
 import { highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
@@ -389,7 +389,10 @@ export function riteSentence(state: GameState, unit: Unit, id: RiteId): string {
     ritePreview(state, unit.id, id) ??
     describeCard(id)
       .filter((clause) => clause.deferred !== true)
-      .map((clause) => clause.text)
+      // **Stripped**: this sentence is announced — the chronicle line and a
+      // toast — and a toast pans the camera on click, so nothing in it may be a
+      // keyword. `stripRefs` is the plain reading of exactly the same words.
+      .map((clause) => stripRefs(clause.text))
       .join(' · ');
   return payoff.length > 0 ? `✶ ${def.name}${where} · ${payoff}` : `✶ ${def.name}${where}`;
 }

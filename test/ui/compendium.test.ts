@@ -40,7 +40,7 @@ import { RESOURCE_IDS } from '../../src/sim/resourceData';
 import { DOCTRINE_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
 import { newGame } from '../../src/sim/state';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
-import { TRIUMPH_IDS } from '../../src/sim/triumphData';
+import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import {
   DEFAULT_ENTRY,
@@ -111,6 +111,20 @@ describe('the shelves', () => {
     expect(shelf('building').entries).toHaveLength(BUILDING_IDS.length - wonders.length + LEAD);
     expect(shelf('building').entries.length).toBeGreaterThan(LEAD);
     expect(shelf('wonder').entries.length).toBeGreaterThan(LEAD);
+  });
+
+  it('says on every Triumph what earned it, before anything else', () => {
+    // The user's ruling (2026-08-28). The shelf prints the row's own cause line
+    // (`TriumphDef.text`) as the entry's first clause — the same sentence the
+    // Triumph sheet prints, out of the same field, so the card that announces
+    // one and the shelf that lists them cannot disagree. The epigram is the
+    // entry's `flavor` and is labelled as such, which is why it is not here.
+    for (const id of TRIUMPH_IDS) {
+      const found = shelf('triumph').entries.find((one) => one.id === compendiumId('triumph', id));
+      expect(found, id).toBeDefined();
+      expect(found!.clauses[0]!.text, id).toBe(triumphDef(id).text);
+      expect(found!.flavor, id).toBe(triumphDef(id).epigram);
+    }
   });
 
   it('opens every generated shelf on a page that says what the shelf is', () => {

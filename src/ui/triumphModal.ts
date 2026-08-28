@@ -49,7 +49,16 @@ import { renownMarkNode } from './meterMark';
 export interface TriumphNews {
   /** "The Third Hearth". */
   name: string;
-  /** The row's own sentence. */
+  /**
+   * **What you did to earn it** — `TriumphDef.text`, the row's cause line.
+   *
+   * The sheet's answer to the playtest complaint that a Triumph arrives titled
+   * and unexplained (user, 2026-08-28). It sits directly under the name because
+   * it is the sentence the sheet exists to say; the epigram, which used to sit
+   * there and read as the explanation, is now labelled Flavour beneath it.
+   */
+  text: string;
+  /** The row's own sentence. Flavour, and labelled as such. */
   epigram: string;
   /** Renown paid — already banked by the time anybody sees this sheet. */
   pays: number;
@@ -71,6 +80,8 @@ export interface TriumphNews {
  */
 export interface TriumphFace {
   name: string;
+  /** The cause, in the row's own words. Never empty — the table validates it. */
+  text: string;
   epigram: string;
   /** "+10". Always signed, always positive — no Triumph takes renown away. */
   pays: string;
@@ -90,6 +101,7 @@ export interface TriumphFace {
 export function triumphFace(news: TriumphNews, queued: number): TriumphFace {
   return {
     name: news.name,
+    text: news.text,
     epigram: news.epigram,
     pays: `+${news.pays}`,
     // An empty string is no art. A row that named `""` would otherwise draw an
@@ -157,7 +169,15 @@ export function createTriumphModal(container: HTMLElement): TriumphModal {
     sheet.append(crest);
 
     sheet.append(element('h2', 'triumph-name', face.name));
-    sheet.append(element('p', 'triumph-epigram', face.epigram));
+    // The cause first, because it is what a player who has just been handed a
+    // sheet is asking. Then the epigram, **labelled** — the Compendium's ruling
+    // (2026-08-27) applied here for exactly its stated reason: a sentence in
+    // this voice sitting under a rule is read as a second rule.
+    sheet.append(element('p', 'triumph-text', face.text));
+    const flavor = element('p', 'triumph-epigram');
+    flavor.append(element('span', 'flavor-label', 'Flavour'));
+    flavor.append(document.createTextNode(face.epigram));
+    sheet.append(flavor);
 
     // The slot, and nothing more. Hidden rather than absent so the reserved
     // space is a thing in the tree a later pass fills.

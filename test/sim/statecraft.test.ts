@@ -66,6 +66,7 @@ import {
   settleCultureWindfall,
   slotOrderError,
   statecraftBlocker,
+  stripRefs,
   unslotOrderError,
   windfallPayout,
 } from '../../src/sim/statecraft';
@@ -94,10 +95,9 @@ import {
 import { getTileAt } from '../../src/sim/map';
 import { arriveOnTile } from '../../src/sim/arrival';
 import { foundCityAt } from '../../src/sim/cities';
-import { isPassable } from '../../src/sim/pathfind';
 import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
 import { buildError, isUnlocked } from '../../src/sim/tech';
-import { explainRouteYieldBetween, foldRouteYield } from '../../src/sim/trade';
+import { explainRouteYieldBetween, foldRouteYield, roadsBuiltBy } from '../../src/sim/trade';
 import { SCHEMA_VERSION, type GameState, createUnit, playerById } from '../../src/sim/state';
 import { unitDef } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
@@ -970,8 +970,8 @@ describe('every hook family, end to end', () => {
 // --- determinism ------------------------------------------------------------
 
 describe('determinism', () => {
-  it('round-trips a schema 27 save with Statecraft in it', () => {
-    expect(SCHEMA_VERSION).toBe(27);
+  it('round-trips a schema 28 save with Statecraft in it', () => {
+    expect(SCHEMA_VERSION).toBe(28);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -986,7 +986,7 @@ describe('determinism', () => {
     // drafts — what this pins is the *shape*: the field serialises, survives
     // JSON, and comes back identical.
     const text = snapshotState(g.state);
-    expect(JSON.parse(text).schemaVersion).toBe(27);
+    expect(JSON.parse(text).schemaVersion).toBe(28);
     expect(JSON.parse(text).players[0].statecraft).toEqual(player.statecraft);
     // A player who has never drafted serialises as the opening state exactly.
     expect(JSON.parse(text).players[1].statecraft).toEqual(newPlayerStatecraft());
@@ -1725,9 +1725,16 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(cardFoundingRider(g.state, 0).roads).toBe(true);
     const far = getTileAt(g.state.map, (first.col + 5) % g.state.map.width, first.row)!;
     foundCityAt(g.state, 0, far);
-    // The line between the two centres, written through the one road writer.
-    const between = getTileAt(g.state.map, (first.col + 2) % g.state.map.width, first.row)!;
-    if (isPassable(between)) expect(between.road).toBe(0);
+    // Re-pinned by the user's ruling of 2026-08-28: it is a **survey** now, not
+    // a straight line, so what this test can assert on generated ground is the
+    // *shape* of the answer rather than which hexes it picked — every hex the
+    // decree laid is maintenance-free, and the empire is billed for none of it.
+    // The two cases that need a built board (the whole path across land, and
+    // nothing at all across a strait) are pinned in `test/sim/trade.test.ts`,
+    // where the road rules live.
+    const decreed = g.state.map.tiles.filter((tile) => tile.road === 0);
+    for (const tile of decreed) expect(tile.roadFree).toBe(true);
+    expect(roadsBuiltBy(g.state, 0)).toBe(0);
     // The first city of a realm has nowhere to be joined to and is left alone.
     const g2 = game();
     g2.state.players[0]!.statecraft.doctrines.push('foundersRoad');
@@ -1868,7 +1875,12 @@ describe('the master-list cut of 2026-08-28', () => {
   });
 
   it('prints every changed row in the words the master list ratified', () => {
-    const said = (id: string): string[] => describeCard(id as never).map((c) => c.text);
+    // **Stripped**: a clause's `text` now marks the things it names
+    // (`ref`/`stripRefs`, the keyword pass of 2026-08-28), and what the master
+    // list ratified was the *words*. `stripRefs` is the guarantee that the marks
+    // never change them, so this is the assertion that holds it.
+    const said = (id: string): string[] =>
+      describeCard(id as never).map((c) => stripRefs(c.text));
 
     expect(said('republic')).toEqual([
       '+1 culture per 5 population in this city',
@@ -1950,6 +1962,10 @@ describe('the master-list cut of 2026-08-28', () => {
       'scout units: +1 movement',
       'scout units: +1 sight',
       'civilian units: +2 movement while embarked',
+      // The trader is its own model class as of 2026-08-28, and a filter that
+      // says "civilian" no longer reaches it — so the row grants both, and the
+      // card says both.
+      'trader units: +2 movement while embarked',
     ]);
     expect(said('theLongWatch')).toEqual([
       // 2026-08-28: the user's correction — a unit standing in the city, whatever

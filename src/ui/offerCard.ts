@@ -61,6 +61,7 @@
  */
 
 import { cardLineMarkUrl } from './cardLine';
+import { setDescriptorText } from './keywords';
 import { setYieldText } from './yieldMark';
 
 // --- the back ---------------------------------------------------------------
@@ -329,6 +330,19 @@ function element(tag: string, className: string, text?: string): HTMLElement {
   const node = document.createElement(tag);
   node.className = className;
   if (text !== undefined) setYieldText(node, text);
+  return node;
+}
+
+/**
+ * One half of an upgrade's before/after pair — a card's clauses, joined.
+ *
+ * A descriptor rather than plain text (a clause marks the things it names), and
+ * never a link, for the reason nothing else on this face is one: the face is a
+ * `<button>` and the click takes the card.
+ */
+function faceText(text: string): HTMLElement {
+  const node = element('span', 'offer-face-text');
+  setDescriptorText(node, text, { linked: false });
   return node;
 }
 
@@ -808,17 +822,22 @@ export function createOfferCard(
         const before = element('span', 'offer-face');
         before.append(
           element('span', 'offer-face-label', 'now'),
-          element('span', 'offer-face-text', option.faces.before),
+          faceText(option.faces.before),
         );
         const after = element('span', 'offer-face is-after');
         after.append(
           element('span', 'offer-face-label', 'deepened'),
-          element('span', 'offer-face-text', option.faces.after),
+          faceText(option.faces.after),
         );
         faces.append(before, element('span', 'offer-face-arrow', '⟶'), after);
         button.append(faces);
       } else if (option.note !== undefined) {
-        button.append(element('span', 'offer-note', option.note));
+        // A card's clauses joined into one line — a descriptor, so the things it
+        // names come out bold. Never links: this whole face is a `<button>` and
+        // the click picks the card. See the clause list below, and `keywords.ts`.
+        const note = element('span', 'offer-note');
+        setDescriptorText(note, option.note, { linked: false });
+        button.append(note);
       }
       // The clause list, when the caller had one to give: a line each, and the
       // ones the game has not built greyed and struck through rather than
@@ -830,8 +849,13 @@ export function createOfferCard(
           const line = element(
             'span',
             clause.deferred ? 'offer-clause is-deferred' : 'offer-clause',
-            clause.text,
           );
+          // **Bold, never a link.** An option's face is a `<button>` and the
+          // click picks the card — irreversibly — so a keyword inside it may
+          // not also be clickable (the ruling's middle clause, and here it is a
+          // safety rule rather than a style one). The words are still marked,
+          // because the same thing is being named.
+          setDescriptorText(line, clause.text, { linked: false });
           if (clause.deferred) line.title = 'Declared, and not built yet';
           list.append(line);
         }

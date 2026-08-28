@@ -83,7 +83,7 @@
  * every scroll event and would still lag by a frame.
  */
 
-import { buildingDef } from '../sim/buildingData';
+import { buildingDef, isWonder } from '../sim/buildingData';
 import { unitProductionCost } from '../sim/cities';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
@@ -118,6 +118,7 @@ import { unitDef } from '../sim/unitData';
 import { HAMMER, PROJECT_GLYPHS, YIELD_GLYPH, turnsLabel } from './figures';
 import { setYieldText } from './yieldMark';
 import { createInfoCard } from './infoCard';
+import { keywordNode } from './keywords';
 import { LANE_GAP_MIN, fitColumns, fitLanes } from './techFit';
 import { BEAKER, researchProgress } from './researchProgress';
 import { resourceMarkNode } from './resourceMark';
@@ -159,6 +160,52 @@ const GIFT_MARK: Record<TechGift['kind'], string> = {
   buildingRenewal: 'is-renewal',
   buildingTileYield: 'is-renewal',
 };
+
+/**
+ * Which Compendium entry a gift's name points at, or `null` for a gift the
+ * reference book has no page about.
+ *
+ * The address is the book's own (`compendiumId` — `section:id`), composed here
+ * rather than imported, because the gift union is `techUnlocks.ts`'s and the
+ * mapping from one to the other is a fact about *this card*. A building is on
+ * one of two shelves and `isWonder` is the split, exactly as it is in the
+ * describers' `buildingWords`; a renewal names the thing being renewed, which is
+ * what a reader clicking it wants to read about.
+ *
+ * Two kinds answer `null` on purpose. A **project** has no shelf yet, and an
+ * **ability** is a verb rather than a thing — "Clear Forest" is not an entry,
+ * and a link that opened the wrong page would be worse than a plain word.
+ */
+function giftEntryId(gift: TechGift): string | null {
+  switch (gift.kind) {
+    case 'unit':
+      return `unit:${gift.id}`;
+    case 'building':
+    case 'buildingRenewal':
+    case 'buildingTileYield':
+      return `${isWonder(gift.id) ? 'wonder' : 'building'}:${gift.id}`;
+    case 'improvement':
+    case 'renewal':
+      return `improvement:${gift.id}`;
+    case 'reveal':
+      return `resource:${gift.id}`;
+    case 'project':
+    case 'ability':
+      return null;
+    default: {
+      const unhandled: never = gift;
+      void unhandled;
+      return null;
+    }
+  }
+}
+
+/** A gift's name as a keyword, wearing the row's own class as well. */
+function nameKeyword(entryId: string, name: string): HTMLElement {
+  const node = keywordNode(entryId, name);
+  node.classList.add('info-card-gift-name');
+  return node;
+}
 
 /** The sentence each kind of gift is introduced by, in the card's list. */
 const GIFT_HEADING: Record<TechGift['kind'], string> = {
@@ -535,7 +582,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * surface in a light interface, and a parchment card glaring over the sky
    * would undo the reason it is dark.
    */
-  const info = createInfoCard({ className: 'info-card is-night' });
+  const info = createInfoCard({ className: 'info-card is-night', sticky: true });
 
   /**
    * What a renewal is worth, written as the delta it is: `+1🌾`, and the
@@ -700,7 +747,16 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       if (gift.kind === 'reveal') mark.append(resourceMarkNode(gift.id));
       else setYieldText(mark, gift.glyph);
       row.append(mark);
-      row.append(element('span', 'info-card-gift-name', gift.name));
+      // **The one card whose keywords are live** (user ruling, 2026-08-28): the
+      // card is sticky, so a pointer can reach the name and the Compendium can
+      // be opened on it. A gift the book has no shelf for — a project, an
+      // ability — is a plain span, because a dead link is worse than none.
+      const entry = giftEntryId(gift);
+      row.append(
+        entry === null
+          ? element('span', 'info-card-gift-name', gift.name)
+          : nameKeyword(entry, gift.name),
+      );
       // Units are priced through the simulation's own evaluator; buildings
       // quote their flat cost; a project quotes its *rate*, because a
       // repeatable item has no total; an improvement quotes the charges it

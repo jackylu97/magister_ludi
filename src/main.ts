@@ -144,6 +144,7 @@ import {
 } from './sim/statecraftData';
 import { createTurnSplash } from './ui/turnSplash';
 import { type Compendium, createCompendium } from './ui/compendium';
+import { setKeywordOpener } from './ui/keywords';
 import { type TradeScreen, createTradeScreen } from './ui/tradeScreen';
 import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
 import { YIELD_GLYPH } from './ui/figures';
@@ -614,6 +615,13 @@ const compendium: Compendium = createCompendium({
     trade?.close();
   },
 });
+/* **Where every keyword in the interface goes** (`src/ui/keywords.ts`). Handed
+   over once rather than threaded through the dozen builders that draw a
+   descriptor: a bold name in a clause is not a screen's business, and the
+   registry is what lets the star chart's card, the Compendium's own clauses and
+   a rite's line all open the same book. The overlay's `open` already shuts
+   whatever else was up, so a keyword clicked over the star chart closes it. */
+setKeywordOpener((entryId) => compendium.open(entryId));
 compendiumButton.addEventListener('click', () => compendium.toggle());
 /* The controls card's one link out. The card closes under it, because two
    surfaces at one z-index is one of them being invisible. */
@@ -2247,9 +2255,10 @@ async function boot(initial: Game | null): Promise<void> {
         awards.map((award) => {
           // `art` is declared optional and no row carries one yet; the day a
           // row does, this reads it with no second pass here.
-          const row: { epigram: string; art?: string } = triumphDef(award.id);
+          const row: { text: string; epigram: string; art?: string } = triumphDef(award.id);
           return {
             name: award.name,
+            text: row.text,
             epigram: row.epigram,
             pays: award.pays,
             art: row.art ?? null,

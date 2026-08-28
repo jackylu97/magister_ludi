@@ -3438,6 +3438,86 @@ export interface CardClause {
   deferred?: boolean;
 }
 
+// --- named things, marked in the words ---------------------------------------
+
+/**
+ * The classes of thing a clause may *name*, and they are exactly the
+ * Compendium's shelves (`compendiumId` in `src/ui/compendium.ts`).
+ *
+ * Deliberately a string union in `src/sim/` rather than an import from the
+ * interface: the address scheme is `section:id`, the sections are a fact about
+ * the reference book, and the simulation may not depend on a screen. What keeps
+ * the two honest is a test (`test/ui/compendium.test.ts`) that resolves every
+ * mark a describer emits against a real entry — a kind that names no shelf, or
+ * an id no row carries, fails there rather than shipping a dead link.
+ */
+export type RefKind =
+  | 'unit'
+  | 'building'
+  | 'wonder'
+  | 'improvement'
+  | 'resource'
+  | 'tech'
+  | 'order'
+  | 'doctrine'
+  | 'belief'
+  | 'rite'
+  | 'greatPerson'
+  | 'triumph';
+
+/**
+ * `[[building:granary|a Granary]]` — one named thing, marked inside a clause.
+ *
+ * **The whole of the keyword mechanism on this side of the wall** (user ruling,
+ * 2026-08-28: *"keywords that are linked are shown in bold; only in places where
+ * clicking doesn't result in an action; keep these to descriptors"*). A describer
+ * that interpolates the name of a thing the Compendium has an entry for wraps it
+ * here, and nothing else about the clause changes: `text` is still one string,
+ * `CardClause` is still two fields, and every consumer that wants plain words
+ * gets them from `stripRefs`.
+ *
+ * A mark and not a structured field, for the reason `YIELD_GLYPH` is a glyph and
+ * not a node (`yieldMark.ts`'s docblock, one problem over): a clause is composed
+ * out of a dozen small string helpers that hand pieces to each other, and giving
+ * every one of them a node API would have meant rewriting the vocabulary to
+ * describe a keyword rather than to describe a card. The string stays a string
+ * all the way to the surface, and exactly one module (`src/ui/keywords.ts`)
+ * knows how to draw it.
+ *
+ * The name carries the grammar. `ref('building', 'granary', 'a Granary')` and
+ * `ref('building', 'granary', 'Granaries')` are the same link with different
+ * words in it, which is what lets an article and a plural stay where they are
+ * composed instead of leaking into this function.
+ */
+export function ref(kind: RefKind, id: string, name: string): string {
+  return `[[${kind}:${id}|${name}]]`;
+}
+
+/**
+ * The mark, as a pattern. `kind:id|name`, with the name forbidden the three
+ * characters that would let one mark swallow the next.
+ */
+export const REF_PATTERN = /\[\[([a-zA-Z]+):([A-Za-z0-9_]+)\|([^[\]|]*)\]\]/g;
+
+/**
+ * A clause with its marks taken back off — **the plain reading, and the one
+ * every non-descriptor surface takes.**
+ *
+ * A `title` attribute, an announce line, a toast, the mono log and the
+ * Compendium's search all want words rather than markup, and this is what they
+ * ask. It is also the guarantee the ruling makes about the vocabulary itself:
+ * `stripRefs(describeCard(id)[0].text)` is exactly the sentence that was printed
+ * before any of this existed, so a mark can never change what a card *says*.
+ */
+export function stripRefs(text: string): string {
+  // A fresh regex per call rather than `REF_PATTERN` itself: a global pattern
+  // carries `lastIndex`, and a shared one is how two callers come to disagree
+  // about the same string.
+  return text.replace(new RegExp(REF_PATTERN.source, 'g'), (_match, _kind, _id, name: string) =>
+    name,
+  );
+}
+
 function signed(value: number): string {
   return value >= 0 ? `+${value}` : `${value}`;
 }
@@ -3818,7 +3898,7 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       // No longer struck through: buildings can be bought (Entry XXIX) and
       // `cardUnlocksBuilding` is read by `isUnlocked`, so The Gilded Court
       // really does hand the Gilded Hall over.
-      out.push({ text: `unlocks the ${buildingDef(effect.building).name}` });
+      out.push({ text: `unlocks the ${buildingName(effect.building)}` });
       return;
     case 'pantheonSlots': {
       const slots = scaleByLevel(effect.amount, level);
@@ -3927,7 +4007,7 @@ function grantWords(grant: CompletionGrant): string {
   const what =
     grant.unit === 'bestMelee'
       ? 'the best melee unit you can build'
-      : article(unitDef(grant.unit).name);
+      : `${indefinite(unitDef(grant.unit).name)} ${ref('unit', grant.unit, unitDef(grant.unit).name)}`;
   return `on completion, ${what} joins you`;
 }
 
@@ -3966,8 +4046,16 @@ interface PluralWords {
  */
 function countNoun(effect: CardCountScaledEffect): PluralWords {
   if (effect.count === 'buildingsOfKind' && effect.building !== undefined) {
+    // Marked in **both** numbers: the plural is composed off the plain name and
+    // then wrapped, so "per Library" and "per Libraries" are one link with two
+    // sets of words in it. Pluralising a marked string would have put the `s`
+    // after the closing brackets.
     const name = buildingDef(effect.building).name;
-    return { one: name, many: buildingPlural(name, 2) };
+    const kind = isWonder(effect.building) ? 'wonder' : 'building';
+    return {
+      one: ref(kind, effect.building, name),
+      many: ref(kind, effect.building, buildingPlural(name, 2)),
+    };
   }
   // The filtered count, said the way the filter says it everywhere else —
   // "per melee unit in the field". `filterWords` is already plural ("melee
@@ -4061,7 +4149,7 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     case 'holding':
       into.qualifiers.push(
-        `holding ${scope.resources.map((id) => resourceDef(id).name).join(' or ')}`,
+        `holding ${scope.resources.map((id) => ref('resource', id, resourceDef(id).name)).join(' or ')}`,
       );
       return;
     case 'holdingCategory':
@@ -4088,8 +4176,7 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
 }
 
 /**
- * "a Granary", "an Amphitheater" — a name with the article English actually
- * takes in front of it.
+ * "a", "an" — the article English actually takes in front of a name.
  *
  * A **sound** rule and not a spelling one, which is why it is a function and not
  * a field: the table's names are ordinary English words, and the exceptions
@@ -4097,9 +4184,16 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
  * pronunciation. Nothing on this roster hits one, so the vowel test is exact
  * today; the day a row does, it earns a `plural`-style field beside its name
  * rather than a special case here — `buildingPlural`'s bargain.
+ *
+ * It hands back the **article alone**, and that is what changed when names
+ * started being *marked* (`ref`): a mark wraps the name and nothing else, so a
+ * phrase that needs an article composes it from the plain name and puts it
+ * outside the mark. The link is on the noun, and "a" is not a thing the
+ * Compendium has a page about. Asking the vowel question of a wrapped name would
+ * have asked it of `[`, which is a consonant.
  */
-function article(name: string): string {
-  return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
+function indefinite(name: string): string {
+  return /^[aeiou]/i.test(name) ? 'an' : 'a';
 }
 
 /**
@@ -4114,7 +4208,17 @@ function article(name: string): string {
  */
 function buildingWords(id: BuildingId): string {
   const name = buildingDef(id).name;
-  return isWonder(id) ? name : article(name);
+  // Marked, so the name is a keyword wherever this clause is *described* — and
+  // the article stays outside the mark, because "a" has no page in the book.
+  // A wonder is its own shelf, which is the same `isWonder` split the article
+  // rule is: one of a kind, so a proper noun and a shelf of proper nouns.
+  const marked = buildingName(id);
+  return isWonder(id) ? marked : `${indefinite(name)} ${marked}`;
+}
+
+/** A building's bare name, marked. `buildingWords` without the article. */
+function buildingName(id: BuildingId): string {
+  return ref(isWonder(id) ? 'wonder' : 'building', id, buildingDef(id).name);
 }
 
 function scopeWords(scope?: CityScope): string {
@@ -4205,7 +4309,9 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       // hex" had become the wrong one of them the moment the occasions started
       // saying "clearing a barbarian camp". Named the way a city scope names a
       // building ("every city with a Granary"), so the two read alike.
-      into.qualifiers.push(`with ${article(improvementDef(on.improvement).name)}`);
+      into.qualifiers.push(
+        `with ${indefinite(improvementDef(on.improvement).name)} ${ref('improvement', on.improvement, improvementDef(on.improvement).name)}`,
+      );
       return;
     case 'terrain':
       into.adjectives.push(on.terrain);
@@ -4222,7 +4328,7 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       return;
     case 'resource':
       into.qualifiers.push(
-        `carrying ${on.resources.map((id) => resourceDef(id).name).join(' or ')}`,
+        `carrying ${on.resources.map((id) => ref('resource', id, resourceDef(id).name)).join(' or ')}`,
       );
       return;
     case 'freshwater':
