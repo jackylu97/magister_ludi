@@ -866,6 +866,11 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   };
   delete tile.improvement;
   delete tile.road;
+  // The free-road mark goes with the road it is a fact *about*. Left behind it
+  // would be a maintenance exemption sitting on bare ground, waiting for the
+  // next caravan to inherit a highway nobody pays for — and `layRoad` never
+  // clears it, because `layRoad` never touches a hex that already has a road.
+  delete tile.roadFree;
   refreshTileDerived(state, tile);
   unit.movesLeft = Math.max(0, unit.movesLeft - 1);
   const player = playerById(state, unit.ownerId);

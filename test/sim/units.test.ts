@@ -3,8 +3,8 @@ import { type Command, applyCommand } from '../../src/sim/commands';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
-import { unitDef } from '../../src/sim/unitData';
-import { unitsOnTile } from '../../src/sim/units';
+import { UNIT_TYPE_IDS, isCivilian, unitDef } from '../../src/sim/unitData';
+import { hasStackingRoom, stacksFreely, unitsOnTile } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
 
 /** A blank two-player state on a flat grassland rectangle. */
@@ -62,6 +62,57 @@ function spawn(
 ): Command {
   return { type: 'spawnUnit', playerId, ownerId, unitType, at: { col, row } } as Command;
 }
+
+describe('the stacking rule', () => {
+  /**
+   * The user's ruling of 2026-08-28: *"make traders their own separate unit
+   * type; it can stand on the same tile as civilian and military units."*
+   *
+   * A hex holds one military piece, one civilian piece, and **any number of
+   * traders**. Three claims live here: the roster is split three ways, the cap
+   * is per slot, and the trader's slot has no cap at all.
+   */
+  it('gives every unit exactly one of three slots, and only the trader an uncapped one', () => {
+    const categories = new Set(UNIT_TYPE_IDS.map((id) => unitDef(id).category));
+    expect([...categories].sort()).toEqual(['civilian', 'military', 'trader']);
+    expect(unitDef('trader').category).toBe('trader');
+    expect(stacksFreely('trader')).toBe(true);
+    expect(stacksFreely('civilian')).toBe(false);
+    expect(stacksFreely('military')).toBe(false);
+    // The category is a *stacking* answer and not a combat one: `isCivilian` is
+    // `!isCombatant`, so capture, plunder, fortify and upkeep still read a
+    // caravan exactly as they read a worker.
+    expect(isCivilian(unitDef('trader'))).toBe(true);
+  });
+
+  it('holds one soldier, one civilian, and as many caravans as ask', () => {
+    const state = flatState();
+    createUnit(state, 0, 'warrior', 4, 4);
+    createUnit(state, 0, 'worker', 4, 4);
+    expect(hasStackingRoom(state, 4, 4, 'military')).toBe(false);
+    expect(hasStackingRoom(state, 4, 4, 'civilian')).toBe(false);
+    // The caravan's slot is nobody else's, and it never fills.
+    expect(hasStackingRoom(state, 4, 4, 'trader')).toBe(true);
+    for (let n = 0; n < 5; n++) createUnit(state, 0, 'trader', 4, 4);
+    expect(hasStackingRoom(state, 4, 4, 'trader')).toBe(true);
+    // And a hex full of caravans still has room for the other two.
+    expect(unitsOnTile(state, 4, 4)).toHaveLength(7);
+    expect(hasStackingRoom(state, 5, 4, 'military')).toBe(true);
+  });
+
+  it('lets a caravan march onto and stop on a hex two other pieces hold', () => {
+    const state = flatState();
+    createUnit(state, 1, 'worker', 6, 4);
+    const trader = createUnit(state, 1, 'trader', 4, 4);
+    // The soldier is the *same* seat's: a foreign piece is a wall for reasons
+    // that have nothing to do with stacking, and that rule is untouched.
+    createUnit(state, 1, 'warrior', 6, 4);
+
+    expect(applyCommand(state, move(trader.id, 6, 4, 1)).ok).toBe(true);
+    expect([trader.col, trader.row]).toEqual([6, 4]);
+    expect(unitsOnTile(state, 6, 4)).toHaveLength(3);
+  });
+});
 
 describe('spawnUnit', () => {
   it('puts a unit on the board at full health and movement', () => {

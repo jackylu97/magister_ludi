@@ -261,8 +261,29 @@ import {
  *     schema bump refuses both, so nothing silently starts charging rent on a
  *     stolen worker; it is called out here so that a future migration writer
  *     knows the one field it could not have inferred.
+ * 28: The trader's own slot, and The Founders' Road as a survey (two user
+ *     rulings, 2026-08-28). `UnitCategory` gains `'trader'` and the caravan's
+ *     row moves onto it, so a hex holds one soldier, one civilian and any
+ *     number of caravans; The Founders' Road pathfinds instead of drawing a
+ *     line, lays nothing at all when no land route exists, and marks what it
+ *     lays maintenance-free.
+ *
+ *     One optional field on a tile (`Tile.roadFree`, presence-is-the-state).
+ *     **A v27 log replayed here is a different game**, and the stacking half is
+ *     the reason rather than the field: a move a v27 reducer refused because a
+ *     settler was standing on the hex is a move this one accepts, so the first
+ *     caravan to pass a parked civilian puts every piece on the board somewhere
+ *     else. The gold curve moves too — a decreed road stops being billed, and a
+ *     doctrine that used to lay a broken line across a strait now lays nothing.
+ *
+ *     The migration note, said plainly because it cannot be fixed: *absent
+ *     means "billed"*, which is right for every road in an old save **except
+ *     the ones The Founders' Road decreed** — v27 recorded no reason to mark
+ *     them, and a replay of the log would re-derive them correctly while a
+ *     loaded snapshot would keep charging rent on a free highway. The schema
+ *     bump refuses both.
  */
-export const SCHEMA_VERSION = 27;
+export const SCHEMA_VERSION = 28;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

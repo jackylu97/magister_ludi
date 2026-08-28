@@ -49,7 +49,7 @@
  * apart, so they are two functions over one implementation: `routeStartable`
  * answers everything a pair of towns can be asked on its own (the screen greys a
  * row with it before any trader is chosen) and `startRouteError` is that plus
- * the four clauses only a piece can answer. Nothing is duplicated between them.
+ * the three clauses only a piece can answer. Nothing is duplicated between them.
  *
  * Internal routes only, for now
  * -----------------------------
@@ -108,14 +108,8 @@ import {
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
-import {
-  UNIT_TYPE_IDS,
-  type UnitTypeId,
-  isCivilian,
-  trades,
-  unitDef,
-} from './unitData';
-import { fullMovement, hasStackingRoom, unitsOnTile } from './units';
+import { UNIT_TYPE_IDS, type UnitTypeId, trades, unitDef } from './unitData';
+import { fullMovement } from './units';
 import { explainBuildingUpkeep, explainUnitUpkeep } from './upkeep';
 
 const TRADE = RULES.trade;
@@ -517,6 +511,10 @@ export function routeRange(from: City, to: City): number {
 /**
  * The roster's caravan — the first row that `trades`.
  *
+ * Exported for `layFoundingRoad` (`cities.ts`), which surveys The Founders'
+ * Road with a caravan-shaped probe: the road a doctrine decrees is the road a
+ * caravan would have worn, so it had better be surveyed by one.
+ *
  * Derived off the flag rather than named, which is the discipline every marker
  * in this game keeps (`settler`, `augur`, `greatPerson`): nothing in `src/sim/`
  * compares a unit type against a string, and `test/sim/trade.test.ts` reads the
@@ -524,47 +522,9 @@ export function routeRange(from: City, to: City): number {
  * world where no route can be started, and the gate says so rather than
  * pretending.
  */
-function caravanTypeId(): UnitTypeId | null {
+export function caravanTypeId(): UnitTypeId | null {
   for (const id of UNIT_TYPE_IDS) {
     if (trades(unitDef(id))) return id;
-  }
-  return null;
-}
-
-/** An **unladen** caravan of this empire standing on this hex, or `null`. */
-function idleCaravanAt(
-  state: GameState,
-  playerId: number,
-  col: number,
-  row: number,
-): Unit | null {
-  for (const unit of unitsOnTile(state, col, row)) {
-    if (unit.ownerId !== playerId) continue;
-    if (unit.trade !== undefined) continue;
-    if (trades(unitDef(unit.type))) return unit;
-  }
-  return null;
-}
-
-/**
- * The piece standing in this town's gates that a caravan could not share the hex
- * with, or `null`.
- *
- * Stacking is per *category* (`hasStackingRoom`), so only a civilian can be in
- * the way. The exception is the load-bearing part: **an unladen caravan of the
- * asking empire is not a wall**, because it is precisely the piece a
- * `startRoute` would move — the commonest send in the game is a caravan standing
- * in the town that built it, and counting it as a blocker would grey that row
- * out. `startRouteError` re-asks the question about the *particular* piece it
- * has been handed, which is the clause that stops two caravans landing on one
- * hex.
- */
-function centreBlocker(state: GameState, playerId: number, city: City): Unit | null {
-  for (const unit of unitsOnTile(state, city.col, city.row)) {
-    const def = unitDef(unit.type);
-    if (!isCivilian(def)) continue;
-    if (unit.ownerId === playerId && trades(def) && unit.trade === undefined) continue;
-    return unit;
   }
   return null;
 }
@@ -579,21 +539,18 @@ function centreBlocker(state: GameState, playerId: number, city: City): Unit | n
  * measuring the wrong march. So the search is run against a probe, and both
  * gates run the same one.
  *
- * `exceptId` is whichever unladen caravan of this empire is parked in the
- * *destination's* gates, because `findPath` refuses a goal nobody could stop on
- * and `centreBlocker` has already ruled that such a caravan is not a wall — the
- * probe stands in for it. Everything else on the goal hex has been refused
- * before the search runs.
+ * The probe carries **no real id** (`-1`), and that is a simplification the
+ * stacking ruling paid for: it used to have to impersonate whichever unladen
+ * caravan was parked in the destination's gates, because `findPath` refuses a
+ * goal nobody could stop on and the gate had already ruled such a caravan was
+ * not a wall. Traders stack freely now (`stacksFreely`, `units.ts`), so nothing
+ * of this empire's can be in a caravan's way at either end and the exclusion has
+ * nothing left to exclude.
  */
-function caravanProbe(
-  playerId: number,
-  type: UnitTypeId,
-  from: City,
-  exceptId: number,
-): Unit {
+function caravanProbe(playerId: number, type: UnitTypeId, from: City): Unit {
   const def = unitDef(type);
   return {
-    id: exceptId,
+    id: -1,
     ownerId: playerId,
     type,
     col: from.col,
@@ -615,19 +572,23 @@ function caravanProbe(
  *   2. a **free slot** (`routeSlots` against `usedRouteSlots`);
  *   3. **no live route already joins the pair**, in either direction — one route
  *      per pair, so a player cannot stack four caravans on one rich partner;
- *   4. **both gates have room** for a caravan (`centreBlocker`): the origin's,
- *      because the trader appears there, and the destination's, because
- *      `findPath` refuses a goal nobody could stop on and "there is no road"
- *      would be a lie about a hex with a settler parked on it;
- *   5. a **land path exists** for the roster's caravan, priced through the very
+ *   4. a **land path exists** for the roster's caravan, priced through the very
  *      `findPath` the march will walk;
- *   6. the destination is **in range**, measured by `pathTurns` on a *full*
+ *   5. the destination is **in range**, measured by `pathTurns` on a *full*
  *      purse — a fact about the distance between two towns, not about how much
  *      any particular caravan has left today.
  *
- * `startRouteError` is this plus the four clauses only a piece can answer, so
- * there is one implementation of all six and a greyed row and a rejected command
- * cannot disagree about why.
+ * There were **six**, and the one that went is the gates: "both towns have room
+ * for a caravan" was a real question while a trader took the hex's one civilian
+ * slot, and the user's ruling of 2026-08-28 answered it once and for all — a
+ * trader is its own stacking category and any number of them share a hex, so
+ * neither a settler in the gates nor a caravan already parked there can refuse a
+ * route. The clause is deleted rather than left standing and always true,
+ * because a gate that can never close is a gate a reader has to disprove.
+ *
+ * `startRouteError` is this plus the three clauses only a piece can answer, so
+ * there is one implementation of all five and a greyed row and a rejected
+ * command cannot disagree about why.
  */
 export function routeStartable(
   state: GameState,
@@ -668,25 +629,11 @@ export function routeStartable(
     }
   }
 
-  const parked = centreBlocker(state, playerId, from);
-  if (parked) {
-    return `A ${unitDef(parked.type).name} is standing in ${from.name}`;
-  }
-  const waiting = centreBlocker(state, playerId, to);
-  if (waiting) {
-    return `A ${unitDef(waiting.type).name} is standing in ${to.name}`;
-  }
-
   const goal = getTileAt(state.map, to.col, to.row);
   if (!goal) return `${to.name} is off the map`;
   if (!getTileAt(state.map, from.col, from.row)) return `${from.name} is off the map`;
 
-  const probe = caravanProbe(
-    playerId,
-    type,
-    from,
-    idleCaravanAt(state, playerId, to.col, to.row)?.id ?? -1,
-  );
+  const probe = caravanProbe(playerId, type, from);
   const path = findPath(state, probe, goal);
   if (!path) return `No road a caravan could walk from ${from.name} to ${to.name}`;
 
@@ -704,16 +651,17 @@ export function routeStartable(
 /**
  * Why *this* caravan cannot start *this* route, or `null` when it can.
  *
- * `routeStartable` and four clauses more, in the order a player meets them: the
+ * `routeStartable` and three clauses more, in the order a player meets them: the
  * piece exists, it is **yours**, it is a **trader** (`UnitDef.trades`), and it is
  * **idle** — a caravan runs one route at a time, and a second `startRoute` would
  * silently abandon the first.
  *
- * The fifth is at the far end and is the one `routeStartable` structurally
- * cannot ask: the origin's gates must have room for **this** piece. A caravan
- * already standing there is not a blocker to itself (which is the whole reason
- * the commonest send works) and *is* a blocker to any other, and
- * `hasStackingRoom`'s `exceptId` is exactly that distinction.
+ * There was a fourth — "the origin's gates have room for *this* piece" — and it
+ * went with the gate clause in `routeStartable`, for the same reason: since the
+ * stacking ruling a trader is its own category and always fits, so
+ * `hasStackingRoom` could only ever have answered yes. Nothing is left that only
+ * a piece can answer about *where it lands*; the three above are all about the
+ * piece itself.
  *
  * Where the trader is standing is asked nowhere at all — see the module
  * docblock. It teleports.
@@ -733,15 +681,7 @@ export function startRouteError(
   if (!trades(def)) return `A ${def.name} carries no trade route`;
   if (unit.trade !== undefined) return `${def.name} ${unit.id} is already carrying a route`;
 
-  const problem = routeStartable(state, playerId, fromCityId, toCityId);
-  if (problem) return problem;
-
-  // `routeStartable` has resolved both towns, so this cannot be null.
-  const from = cityById(state, fromCityId)!;
-  if (!hasStackingRoom(state, from.col, from.row, def.category, unit.id)) {
-    return `Another ${def.name} is standing in ${from.name}`;
-  }
-  return null;
+  return routeStartable(state, playerId, fromCityId, toCityId);
 }
 
 /**
@@ -815,7 +755,17 @@ export function startRouteAt(state: GameState, unit: Unit, from: City, to: City)
 // --- roads, and what they connect -------------------------------------------
 
 /**
- * How many road hexes this empire laid — the count maintenance is charged on.
+ * How many road hexes this empire laid **and pays for** — the count maintenance
+ * is charged on.
+ *
+ * `Tile.roadFree` is skipped, which is The Founders' Road's third clause (the
+ * user's ruling of 2026-08-28: *"the roads are maintenance-free"*). It is
+ * subtracted **here**, in the count, rather than as a credit line in
+ * `explainEmpireGold`, because the ledger's road line prints the number it is
+ * charging on ("Road maintenance · 12 hexes") and a count that included hexes
+ * nobody is billed for would be a line whose own figure did not explain it.
+ * Free hexes are roads in every other respect — `stepCost` prices them, and
+ * `connectedCities` fills across them — which is the point of the doctrine.
  *
  * An **index sweep** over `map.tiles` rather than a walk of anything with
  * coordinates, for `tileOwnerField`'s stated reason: this runs once per empire
@@ -825,7 +775,7 @@ export function startRouteAt(state: GameState, unit: Unit, from: City, to: City)
 export function roadsBuiltBy(state: GameState, playerId: number): number {
   let count = 0;
   for (const tile of state.map.tiles) {
-    if (tile.road === playerId) count += 1;
+    if (tile.road === playerId && tile.roadFree !== true) count += 1;
   }
   return count;
 }
@@ -1160,9 +1110,24 @@ export function layRoadUnder(unit: Unit, tile: Tile): boolean {
  * its own rather than a line in each: a road is one mark on one field, and the
  * refusal to repave is the rule that keeps maintenance stable whichever
  * occasion asks. A third way to lay a road calls this.
+ *
+ * `free` writes the second mark, `Tile.roadFree` — *this hex costs its builder
+ * nothing to keep* — and it is a **property of the occasion, not of the seat**:
+ * a decreed road is free, a worn one is not, and the same empire owns both. Only
+ * The Founders' Road passes it today (the user's ruling of 2026-08-28, *"the
+ * roads are maintenance-free"*). It is a companion field rather than, say, a
+ * sentinel owner id, because free or not a road still has to answer "whose is
+ * this to keep" the day something else asks.
+ *
+ * The refusal to repave is what settles the interaction the ruling implies: a
+ * caravan that later walks a decreed hex finds a road already there, returns
+ * `false` and writes neither field — so a free road **stays** free, and a road
+ * that was already worn does not become free because a doctrine drew a line
+ * through it. Whichever mark got there first is the one that stands.
  */
-export function layRoad(tile: Tile, ownerId: number): boolean {
+export function layRoad(tile: Tile, ownerId: number, free = false): boolean {
   if (tile.road !== undefined) return false;
   tile.road = ownerId;
+  if (free) tile.roadFree = true;
   return true;
 }

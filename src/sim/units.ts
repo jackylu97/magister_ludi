@@ -13,6 +13,15 @@
  * category and *across owners*, because until combat exists two hostile
  * warriors cannot resolve who keeps the tile.
  *
+ * **One category is uncapped** (`stacksFreely`): traders. The user's ruling of
+ * 2026-08-28 made the caravan its own `UnitCategory` precisely so that it needs
+ * no slot of anybody's — "any number of traders" is the rule, because a road
+ * that could carry one caravan at a time would be a road that punishes the
+ * empire for using it. Uncapped is written as a *predicate over the category*
+ * rather than as a number in `data/rules.json` for the reason CLAUDE.md gives:
+ * "unlimited" is the shape of the rule, not a tuning knob somebody might set to
+ * 3. A designer who wants three caravans a hex is asking for a different rule.
+ *
  * Transit vs stopping
  * -------------------
  * They are different questions and the pathfinder needs both. Walking *through*
@@ -81,9 +90,27 @@ export function hasForeignUnit(
 }
 
 /**
+ * Does this category stack without a cap? See the module docblock.
+ *
+ * THE reading of the uncapped half of the stacking rule, so that nothing
+ * anywhere compares a category against the string `'trader'` to answer a
+ * stacking question — `isExplorer`'s discipline, one rule over. A second
+ * uncapped category would be one more arm here and no change anywhere else.
+ */
+export function stacksFreely(category: UnitCategory): boolean {
+  return category === 'trader';
+}
+
+/**
  * Whether one more unit of `category` fits on the cell. `exceptId` excludes a
  * unit from the count — a unit never blocks itself when it is asked whether it
  * may stay where it already is.
+ *
+ * An uncapped category is answered before the sweep: a caravan always fits,
+ * anywhere it could stand at all, whoever else is standing there. That single
+ * clause is the whole of ruling 1 as far as the board is concerned — every
+ * `canStopOn`, every spawn, every barbarian's fallback hex and every route's
+ * origin gate reads it through this function and needed no clause of its own.
  */
 export function hasStackingRoom(
   state: GameState,
@@ -92,6 +119,7 @@ export function hasStackingRoom(
   category: UnitCategory,
   exceptId = -1,
 ): boolean {
+  if (stacksFreely(category)) return true;
   const limit = RULES.stacking.perCategoryPerTile;
   let count = 0;
   for (const unit of state.units) {

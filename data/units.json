@@ -62,7 +62,7 @@
     },
     "trader": {
       "name": "Trader",
-      "category": "civilian",
+      "category": "trader",
       "movement": 2,
       "sight": 1,
       "maxHp": 100,

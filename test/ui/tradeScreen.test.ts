@@ -357,11 +357,20 @@ describe('a full route ledger', () => {
   });
 
   it('leaves every other refusal in the reducer’s words', () => {
-    // A blocked gate with slots to spare: the sentence is the sim's, verbatim.
+    // A blocked pair with slots to spare: the sentence is the sim's, verbatim.
+    //
+    // It used to be a worker parked in the destination's gates, and the user's
+    // stacking ruling of 2026-08-28 deleted that refusal outright — a trader has
+    // its own slot on a hex now, so nothing standing in a town can turn a
+    // caravan away. The clause this reaches for instead is the deferred one, and
+    // it is the better example anyway: the surface rewords the two capacity
+    // sentences and passes every other one through untouched.
     const { state, home, far } = tradeWorld();
-    createUnit(state, 0, 'worker', far.col, far.row);
+    far.ownerId = 1;
     const problem = routeStartable(state, 0, home.id, far.id);
-    expect(problem).toBe(`A Worker is standing in ${far.name}`);
+    expect(problem).toBe(
+      `${far.name} belongs to another empire — foreign routes wait on diplomacy`,
+    );
     expect(startableError(state, 0, home.id, far.id)).toBe(problem);
   });
 });
@@ -456,10 +465,13 @@ describe('the sort and the filter', () => {
     b.population = 7;
     c.population = 3;
     createUnit(state, 0, 'trader', 3, 4);
-    // A worker parked in the third town's gates, so some rows are refused and
-    // some are not — which is what the "greyed rows keep their place" claim
-    // needs to be about anything.
-    createUnit(state, 0, 'worker', c.col, c.row);
+    // A *foreign* piece holding the third town's gates, so some rows are refused
+    // and some are not — which is what the "greyed rows keep their place" claim
+    // needs to be about anything. It was one of this seat's own workers until
+    // the user's stacking ruling of 2026-08-28: a caravan shares a hex with
+    // anything of yours now, so only an enemy can still make a town a place no
+    // trader could arrive at.
+    createUnit(state, 1, 'warrior', c.col, c.row);
     return { state, towns: [a, b, c] };
   }
 

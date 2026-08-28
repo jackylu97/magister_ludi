@@ -99,6 +99,7 @@ import { type StartsConfig, mapgenFor } from './mapgenData';
 import { RULES } from './rulesData';
 import { isWaterTerrain, isWorkableTerrain, moveCost, type TileYield } from './terrainData';
 import { type UnitCategory, type UnitTypeId, unitDef } from './unitData';
+import { stacksFreely } from './units';
 import { isCoastal } from './water';
 
 /**
@@ -411,6 +412,13 @@ export function planStartingUnits(
   const occupancy = new Map<number, Map<UnitCategory, number>>();
 
   const roomAt = (tile: Tile, category: UnitCategory): boolean => {
+    // The uncapped half of the stacking rule, asked of the one predicate that
+    // knows it (`stacksFreely`, `units.ts`) rather than restated here. This is a
+    // second implementation of the *count* — mapgen has no `GameState` to sweep
+    // — so it is precisely the place a cap and a no-cap would drift apart, and
+    // the opening kit growing a caravan one day should not be the way anybody
+    // finds out.
+    if (stacksFreely(category)) return true;
     const counts = occupancy.get(tileIndex(map, tile.col, tile.row));
     return (counts?.get(category) ?? 0) < limit;
   };

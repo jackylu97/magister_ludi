@@ -74,6 +74,26 @@ describe('the table', () => {
     const fed = TRIUMPH_IDS.filter((id) => triumphDef(id).family !== undefined);
     expect(fed.length).toBeGreaterThan(TRIUMPH_IDS.length / 2);
   });
+
+  it('says on every row what earned it, in a first-time player’s words', () => {
+    // The user's ruling (2026-08-28): *"we need a one-liner that describes what
+    // the triumph was caused by"*. A name is a title and an epigram is a poem,
+    // and neither of them answers "why did this just happen" — which was the
+    // complaint. Every row, not most: a Triumph with no cause line is the
+    // failure the ruling names.
+    for (const id of TRIUMPH_IDS) {
+      const def = triumphDef(id);
+      expect(def.text, id).toBeTruthy();
+      expect(def.text, id).not.toBe(def.epigram);
+      // Hard rule 7's prose rule. The renown figure is `pays`, a field, printed
+      // as a figure — a number in the sentence would be the same fact twice,
+      // and the copy is the one a balance pass never finds.
+      expect(/\d/.test(def.text), id).toBe(false);
+      // Second person, present tense, one sentence: the voice the ruling asked
+      // for, held where it can be held mechanically.
+      expect(def.text.endsWith('.'), id).toBe(true);
+    }
+  });
 });
 
 // --- scope ------------------------------------------------------------------

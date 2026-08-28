@@ -706,10 +706,27 @@ function neighborsOf(map: GameMap, tile: Tile): Tile[] {
  * Returns `null` when no route exists, when the goal is where the unit already
  * stands, or when the goal is not somewhere the unit could legally stop.
  *
+ * `mover` defaults to the unit's own profile, exactly as `canTransit` and
+ * `canStopOn` next door default theirs, and for the third time it is the same
+ * bargain: the profile is a fact about the *whole search* and asking the tables
+ * per neighbour would be the same lookup a few thousand times. Passing one
+ * explicitly asks a different question — "what route would a mover **like this**
+ * take from here" — and there is exactly one caller that wants it:
+ * `layFoundingRoad` (`cities.ts`) surveys with `embarks: false`, because The
+ * Founders' Road builds a road and a road does not cross water even where the
+ * empire's caravans could swim it. An override that widened what the mover may
+ * do would be a way to path a piece somewhere it cannot go; narrowing is safe by
+ * construction, and nothing in the simulation widens.
+ *
  * The heuristic is `wrappedDistance × minStepCost`: at most one step's minimum
  * cost per remaining hex, therefore never an overestimate, therefore optimal.
  */
-export function findPath(state: GameState, unit: Unit, goal: Tile): Cell[] | null {
+export function findPath(
+  state: GameState,
+  unit: Unit,
+  goal: Tile,
+  mover: MoveProfile = moveProfile(state, unit),
+): Cell[] | null {
   const { map } = state;
   const start = getTileAt(map, unit.col, unit.row);
   if (!start) return null;
@@ -719,10 +736,6 @@ export function findPath(state: GameState, unit: Unit, goal: Tile): Cell[] | nul
   if (startIndex === goalIndex) return null;
 
   const goalHex = tileHex(goal);
-  // Resolved once: the mover's row and whether its empire may take to the water
-  // are facts about the whole search, and asking the tables per neighbour would
-  // be the same lookup a few thousand times.
-  const mover = moveProfile(state, unit);
   if (!canStopOn(state, unit, goal, mover)) return null;
   // The other fact about the whole search, hoisted for `mover`'s reason: who
   // holds ground against it. See `stepCost`.

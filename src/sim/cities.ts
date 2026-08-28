@@ -59,18 +59,15 @@ import {
   isBuildingId,
   isWonder,
 } from './buildingData';
-import { type Hex, hexLine } from './hex';
+import type { Hex } from './hex';
 import {
   type GameMap,
   type Tile,
-  axialToOffset,
   getTileAt,
   mapRange,
   neighborTiles,
-  offsetToAxial,
   tileHex,
   tileIndex,
-  wrapHex,
   wrappedDistance,
 } from './map';
 import {
@@ -87,7 +84,7 @@ import {
   foldStages,
   withStage,
 } from './modifiers';
-import { type Cell, isPassable } from './pathfind';
+import { type Cell, type MoveProfile, findPath, isPassable } from './pathfind';
 import {
   CITY_YIELD_KEYS,
   RESOURCE_IDS,
@@ -191,7 +188,13 @@ import { buildingTileLines } from './buildingEffects';
 // one asks it what the caravans standing in its towns are worth. Everything at
 // the top level of both files is a constant from a data table, which is the
 // condition every cycle in this simulation is safe under.
-import { cityRouteYields, empireGold, explainEmpireGold, layRoad } from './trade';
+import {
+  caravanTypeId,
+  cityRouteYields,
+  empireGold,
+  explainEmpireGold,
+  layRoad,
+} from './trade';
 import { awardFoundingTriumphs, awardOccasion } from './triumphs';
 import { disbandCandidate, treasuryInDebt } from './upkeep';
 
@@ -1149,43 +1152,102 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
  * Joins a newly founded town to the nearest town of the same realm by road —
  * The Founders' Road's second half, and nothing else calls it.
  *
- * **A decree, not a march**, which is why it runs down `hexLine` rather than
- * `findPath`: there is no mover at a founding — the settler is spent by the time
- * the city exists — and a road that had to be pathfound would need a piece to
- * path *for*, with a movement profile and a purse and a zone of control that
- * have nothing to do with surveying. The line between two centres is a pure
- * function of two hexes, which is what a replay needs and what a designer can
- * predict from the map.
+ * **A survey, not a straight line** (the user's ruling, 2026-08-28): *"add roads
+ * if there is a viable path (no limit to road length); the roads are
+ * maintenance-free; if no road can be added, the road doesn't appear and the
+ * city is not considered connected."* Three clauses, and each replaced something
+ * this function used to do.
  *
- * Impassable ground is **skipped rather than fatal**: a strait or a ridge on the
- * line leaves a gap and the rest of the road stands, because the alternative is
- * a doctrine that silently does nothing whenever geography is inconvenient. The
- * gap costs the empire nothing it had — `roadJoins` (`pathfind.ts`) reads two
- * *adjacent* road hexes, so a broken road is simply two shorter ones.
+ * **1. A path, not a line.** It ran down `hexLine` and skipped whatever was
+ * impassable, which meant a strait or a ridge left a *gap* — a road that stopped
+ * at the water, resumed on the far shore, and connected nothing, while looking
+ * on the board exactly like a road that worked. So it is `findPath` now, walked
+ * by a caravan-shaped probe: `caravanTypeId`'s row, standing in the new town's
+ * gates. The probe is a **caravan** rather than the settler that was spent
+ * getting here for two reasons that arrived together — the road a doctrine
+ * decrees is the road a caravan would have worn, which is what the effect's own
+ * docblock has always claimed, and a trader is its own stacking category since
+ * the same day's other ruling, so no piece parked in either town's gates can
+ * refuse the survey. A road is about ground; a garrison is not ground.
+ *
+ * The profile is passed explicitly with **`embarks: false`**, which is the one
+ * thing the probe must not inherit from its empire: a caravan whose owner holds
+ * Sailing may cross coast, and a road may not. That is what makes the strait
+ * fatal rather than incidental.
+ *
+ * **2. No limit.** There is no length cap and no turn budget — `findPath` is
+ * asked for a route, never for a march — so a realm that founds across a
+ * continent gets the whole road. "Nearest" is therefore measured in **path
+ * hexes** rather than in hex distance, because the nearest town as the crow
+ * flies is the wrong town when a bay lies between: candidates are sorted by hex
+ * distance (a lower bound on any path through them) and the sweep stops the
+ * moment the best path found is no longer than the next candidate's floor. Ties
+ * go to the earlier city in `state.cities`, which is founding order.
+ *
+ * **3. Free.** Every hex is laid with `layRoad`'s `free` arm, so `roadsBuiltBy`
+ * does not count them and the empire is charged nothing for a road it was given.
+ * A hex that already carried a road is left exactly as it was — `layRoad`
+ * refuses to repave — so a decree never launders somebody's maintenance bill
+ * away, and a caravan that later walks a decreed hex never adds one.
+ *
+ * **No path ⇒ no road.** Nothing is laid at all, which is the ruling's fourth
+ * sentence, and "the city is not considered connected" needs no code: with no
+ * road on the ground `connectedCities`' fill simply never reaches it.
  *
  * The first city of a realm has nowhere to be joined to and is left alone.
- * Writing through `layRoad` (`trade.ts`) is the point: one writer for
- * `Tile.road`, so a decreed highway and a worn one are the same mark and neither
- * repaves the other.
+ * Writing through `layRoad` (`trade.ts`) is still the point: one writer for
+ * `Tile.road`, so a decreed highway and a worn one are the same mark.
  */
 function layFoundingRoad(state: GameState, city: City): void {
-  const here = offsetToAxial(city.col, city.row);
-  let nearest: City | null = null;
-  let best = Infinity;
+  const type = caravanTypeId();
+  if (!type) return;
+  const start = getTileAt(state.map, city.col, city.row);
+  if (!start) return;
+
+  // Every other town of this realm, nearest-by-hex first. The order is only a
+  // *search* order — the answer is decided on path length below — but it is what
+  // lets the prune be exact, and `state.cities` order breaks ties so two towns
+  // equidistant from a new one always resolve the same way in a replay.
+  const here = tileHex(start);
+  const candidates: { city: City; floor: number }[] = [];
   for (const other of state.cities) {
     if (other.ownerId !== city.ownerId || other.id === city.id) continue;
-    const away = wrappedDistance(state.map, offsetToAxial(other.col, other.row), here);
-    if (away < best) {
-      best = away;
-      nearest = other;
-    }
+    candidates.push({ city: other, floor: wrappedDistance(state.map, tileHex(cityTile(state.map, other)), here) });
   }
-  if (!nearest) return;
-  for (const step of hexLine(offsetToAxial(nearest.col, nearest.row), here)) {
-    const cell = axialToOffset(wrapHex(state.map, step));
+  candidates.sort((a, b) => a.floor - b.floor);
+
+  const def = unitDef(type);
+  const probe: Unit = {
+    id: -1,
+    ownerId: city.ownerId,
+    type,
+    col: city.col,
+    row: city.row,
+    hp: def.maxHp,
+    movesLeft: def.movement,
+    hasAttacked: false,
+  };
+  // A road does not swim, whatever the empire's caravans may do. See above.
+  const mover: MoveProfile = { def, embarks: false };
+
+  let route: Cell[] | null = null;
+  for (const candidate of candidates) {
+    // A path can never be shorter than the hex distance it spans, so once the
+    // best route is at or under the next candidate's floor nothing further can
+    // beat it.
+    if (route !== null && route.length <= candidate.floor) break;
+    const goal = getTileAt(state.map, candidate.city.col, candidate.city.row);
+    if (!goal) continue;
+    const found = findPath(state, probe, goal, mover);
+    if (found === null) continue;
+    if (route === null || found.length < route.length) route = found;
+  }
+  if (route === null) return;
+
+  for (const cell of route) {
     const tile = getTileAt(state.map, cell.col, cell.row);
-    if (!tile || !isPassable(tile)) continue;
-    layRoad(tile, city.ownerId);
+    if (!tile) continue;
+    layRoad(tile, city.ownerId, true);
   }
 }
 

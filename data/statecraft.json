@@ -1295,6 +1295,15 @@
             "category": "civilian"
           },
           "where": "embarked"
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 2,
+          "class": {
+            "category": "trader"
+          },
+          "where": "embarked"
         }
       ]
     },

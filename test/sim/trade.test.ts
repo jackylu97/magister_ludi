@@ -32,6 +32,7 @@ import {
   SCHEMA_VERSION,
   claimWonder,
   createUnit,
+  playerById,
   unitById,
 } from '../../src/sim/state';
 import {
@@ -41,15 +42,17 @@ import {
   explainRouteYieldBetween,
   explainEmpireGold,
   foldRouteYield,
+  layRoad,
   roadsBuiltBy,
   routeSlots,
   routeStartable,
   startRouteError,
   usedRouteSlots,
 } from '../../src/sim/trade';
+import { pillageAt } from '../../src/sim/improvements';
 import { buildError } from '../../src/sim/tech';
 import { runEndOfTurn } from '../../src/sim/turn';
-import { trades, unitDef } from '../../src/sim/unitData';
+import { isCivilian, trades, unitDef } from '../../src/sim/unitData';
 import { at, bareState } from './improvementHelpers';
 
 /**
@@ -137,9 +140,13 @@ function pave(state: GameState, row: number, from: number, to: number, ownerId =
 // --- the roster -------------------------------------------------------------
 
 describe('the trader', () => {
-  it('is a civilian that carries routes, unlocked by Currency', () => {
+  it('is its own stacking category, a non-combatant, unlocked by Currency', () => {
     const def = unitDef('trader');
-    expect(def.category).toBe('civilian');
+    // The user's ruling of 2026-08-28: the caravan has its own slot on a hex.
+    // `isCivilian` is untouched by that — it is `!isCombatant`, so combat still
+    // reads a trader exactly as it reads a worker. Two questions, two answers.
+    expect(def.category).toBe('trader');
+    expect(isCivilian(def)).toBe(true);
     expect(def.combatStrength).toBe(0);
     expect(def.movement).toBe(2);
     expect(def.sight).toBe(1);
@@ -162,7 +169,7 @@ describe('the trader', () => {
     expect(purchaseError(state, 0, home.id, { kind: 'unit', id: 'trader' }, 'faith')).not.toBeNull();
   });
 
-  it('is named by no rule in the simulation', () => {
+  it('is named by no rule in the simulation — except as a stacking category', () => {
     const modules = import.meta.glob('../../src/sim/*.ts', {
       query: '?raw',
       import: 'default',
@@ -172,9 +179,23 @@ describe('the trader', () => {
     for (const [path, text] of Object.entries(modules)) {
       // The unit *table* is allowed to know its own ids; nothing else is.
       if (path.endsWith('/unitData.ts')) continue;
-      if (/['"]trader['"]/.test(text)) offenders.push(path);
+      // Prose is not a rule. A docblock that has to explain why the caravan got
+      // its own slot has to be able to say the word, and stripping comments is
+      // what keeps this test about *code* — otherwise the discipline it guards
+      // would be enforced by making the reasons unwritable.
+      const code = text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+      if (/['"]trader['"]/.test(code)) offenders.push(path);
     }
-    expect(offenders).toEqual([]);
+    // Exactly one module names it, and what it names is **not a unit type**: the
+    // user's ruling of 2026-08-28 gave the caravan its own `UnitCategory`, and a
+    // category is data the rules are entitled to read — `improvements.ts`,
+    // `barbarians.ts` and `statecraft.ts` all compare against `'military'` the
+    // same way. `stacksFreely` is the one reading of the uncapped half, so a
+    // second module appearing in this list is a second stacking rule.
+    expect(offenders).toEqual(['../../src/sim/units.ts']);
+    expect(modules['../../src/sim/units.ts']!).toMatch(
+      /export function stacksFreely\(category: UnitCategory\): boolean \{\s*return category === 'trader';/,
+    );
   });
 });
 
@@ -297,34 +318,36 @@ describe('startRoute', () => {
     expect([trader.col, trader.row]).toEqual([home.col, home.row]);
   });
 
-  it('refuses when a civilian is already standing in the origin’s gates', () => {
+  it('is not stopped by a civilian standing in the origin’s gates', () => {
     const { state, home, partner, trader } = tradeWorld();
     trader.col = 6;
-    // Stacking is one civilian per hex, so a settler on the gate is a wall the
-    // caravan cannot appear behind.
-    createUnit(state, 0, 'settler', home.col, home.row);
+    // Re-pinned by the user's stacking ruling of 2026-08-28, and it is the
+    // clearest reading of it: a settler on the gate used to be a wall the
+    // caravan could not appear behind, because both wanted the hex's one
+    // civilian slot. A trader has its own slot now, so the send goes through and
+    // the two pieces share the tile.
+    const settler = createUnit(state, 0, 'settler', home.col, home.row);
 
-    expect(routeStartable(state, 0, home.id, partner.id)).toMatch(/standing in/);
-    const before = snapshotState(state);
-    const result = applyCommand(state, send(0, trader.id, home.id, partner.id));
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/standing in/);
-    expect(snapshotState(state)).toBe(before);
+    expect(routeStartable(state, 0, home.id, partner.id)).toBeNull();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    expect([trader.col, trader.row]).toEqual([home.col, home.row]);
+    expect([settler.col, settler.row]).toEqual([home.col, home.row]);
   });
 
-  it('refuses a second caravan into gates one of yours already holds', () => {
+  it('lets two caravans share the gates', () => {
     const { state, home, partner, trader } = tradeWorld();
-    // `trader` is standing on the origin, which is *not* a wall to itself — that
-    // is the commonest send in the game — but it is one to anybody else.
+    // `trader` is standing on the origin. It was never a wall to *itself* — the
+    // commonest send in the game — and since the ruling it is not a wall to
+    // anybody else either: any number of caravans cross on one hex.
     const other = createUnit(state, 0, 'trader', 6, 4);
-    expect(routeStartable(state, 0, home.id, partner.id)).toBeNull();
-    expect(startRouteError(state, 0, trader.id, home.id, partner.id)).toBeNull();
+    partner.buildings.push('market');
+    const third = foundCityAt(state, 0, at(state, 14, 4));
 
-    const before = snapshotState(state);
-    const result = applyCommand(state, send(0, other.id, home.id, partner.id));
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/standing in/);
-    expect(snapshotState(state)).toBe(before);
+    expect(startRouteError(state, 0, trader.id, home.id, partner.id)).toBeNull();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    expect(applyCommand(state, send(0, other.id, home.id, third.id)).ok).toBe(true);
+    expect([other.col, other.row]).toEqual([home.col, home.row]);
+    expect([trader.col, trader.row]).toEqual([home.col, home.row]);
   });
 
   it('refuses a second route between the same pair, in either direction', () => {
@@ -1058,6 +1081,141 @@ describe("the attack command's plunder news", () => {
   });
 });
 
+
+// --- The Founders' Road -----------------------------------------------------
+
+/**
+ * The doctrine's road, re-ruled by the user on 2026-08-28: *"add roads if there
+ * is a viable path (no limit to road length); the roads are maintenance-free; if
+ * no road can be added, the road doesn't appear and the city is not considered
+ * connected."*
+ *
+ * Three claims, and they fail for different reasons, so they are three tests:
+ * the survey is a **path** (a strait is fatal, not a gap), what it lays is
+ * **free** (`Tile.roadFree`, and `roadsBuiltBy` is its one reader), and the mark
+ * is **whoever got there first** (`layRoad` never repaves, in either direction).
+ *
+ * It lives in this file rather than beside the other Statecraft riders because
+ * every one of those claims is about a *road*, and the road — what it costs, who
+ * pays for it, and what it connects — is `trade.ts`'s.
+ */
+describe("The Founders' Road", () => {
+  /**
+   * A cylinder cut into two by two full columns of **coast**.
+   *
+   * Two walls and not one, because the map wraps east to west: a single line of
+   * water leaves the far side of the world as a way round. Coast rather than
+   * ocean is the load-bearing choice — `bareState` hands every seat Sailing, so
+   * a caravan of this empire *could* embark across it, and the road may not.
+   */
+  function splitWorld(): GameState {
+    const state = bareState(16, 9);
+    for (let row = 0; row < 9; row++) {
+      at(state, 7, row).terrain = 'coast';
+      at(state, 15, row).terrain = 'coast';
+    }
+    return state;
+  }
+
+  /** Player 0 with the doctrine, and a capital at (3, 4). */
+  function realm(state: GameState): City {
+    const capital = foundCityAt(state, 0, at(state, 3, 4));
+    playerById(state, 0)!.statecraft.doctrines.push('foundersRoad');
+    return capital;
+  }
+
+  it('lays the whole path when there is one, and marks every hex free', () => {
+    const state = bareState(16, 9);
+    const capital = realm(state);
+    const town = foundCityAt(state, 0, at(state, 10, 4));
+
+    // Seven steps west along row 4, the last of them the capital's own gates.
+    // Every hex of the path, not the hexes a straight line happened to cross.
+    for (let col = 4; col <= 9; col++) {
+      const tile = at(state, col, 4);
+      expect(tile.road, `(${col}, 4)`).toBe(0);
+      expect(tile.roadFree, `(${col}, 4)`).toBe(true);
+    }
+    expect(at(state, capital.col, capital.row).roadFree).toBe(true);
+
+    // The road is a road: the fill crosses it and the town is connected.
+    expect(connectedCities(state, 0).map((entry) => entry.city.id)).toEqual([town.id]);
+  });
+
+  it('lays nothing across a strait, and the town is simply not connected', () => {
+    const state = splitWorld();
+    realm(state);
+    const marooned = foundCityAt(state, 0, at(state, 11, 4));
+
+    expect(state.map.tiles.some((tile) => tile.road !== undefined)).toBe(false);
+    expect(connectedCities(state, 0)).toEqual([]);
+
+    // And the refusal is the *road's*, not the map's: a caravan of this empire
+    // holds Sailing and would have crossed. `layFoundingRoad` surveys with
+    // `embarks: false`, which is the whole of why the strait is fatal.
+    const swimmer = createUnit(state, 0, 'trader', marooned.col, marooned.row);
+    const goal = at(state, 3, 4);
+    expect(findPath(state, swimmer, goal)).not.toBeNull();
+    expect(findPath(state, swimmer, goal, { def: unitDef('trader'), embarks: false })).toBeNull();
+  });
+
+  it('is free of maintenance, and the ledger charges only the roads that are not', () => {
+    const state = bareState(16, 9);
+    realm(state);
+    foundCityAt(state, 0, at(state, 10, 4));
+    // Seven decreed hexes on the board, and not one of them is billed.
+    expect(state.map.tiles.filter((tile) => tile.roadFree === true).length).toBe(7);
+    expect(roadsBuiltBy(state, 0)).toBe(0);
+    expect(explainEmpireGold(state, 0).some((line) => /Road maintenance/.test(line.source))).toBe(
+      false,
+    );
+
+    // Eight worn hexes somewhere else, and the line counts those and only those.
+    pave(state, 7, 0, 7);
+    expect(roadsBuiltBy(state, 0)).toBe(8);
+    const line = explainEmpireGold(state, 0).find((entry) => /Road maintenance/.test(entry.source));
+    expect(line?.source).toBe('Road maintenance · 8 hexes');
+    expect(line?.gold).toBe(-Math.floor(8 / TRADE.roadsPerMaintenance));
+  });
+
+  it('keeps the free mark when a caravan later walks the same hex', () => {
+    const state = bareState(16, 9);
+    realm(state);
+    foundCityAt(state, 0, at(state, 10, 4));
+    const decreed = at(state, 6, 4);
+
+    // `layRoad` refuses to repave, so the second comer writes neither field —
+    // which is what makes the mark "whoever got there first" rather than
+    // "whoever asked last". Nobody's bill changes.
+    expect(layRoad(decreed, 1)).toBe(false);
+    expect(decreed.road).toBe(0);
+    expect(decreed.roadFree).toBe(true);
+    expect(roadsBuiltBy(state, 0)).toBe(0);
+    expect(roadsBuiltBy(state, 1)).toBe(0);
+
+    // And the other direction: a worn road a decree draws through stays worn.
+    const worn = at(state, 6, 6);
+    expect(layRoad(worn, 0)).toBe(true);
+    expect(layRoad(worn, 0, true)).toBe(false);
+    expect(worn.roadFree).toBeUndefined();
+    expect(roadsBuiltBy(state, 0)).toBe(1);
+  });
+
+  it('loses the free mark with the road a raider tears up', () => {
+    const state = bareState(16, 9);
+    realm(state);
+    foundCityAt(state, 0, at(state, 10, 4));
+    const decreed = at(state, 6, 4);
+    const raider = createUnit(state, 1, 'swordsman', 6, 4);
+
+    pillageAt(state, raider, decreed);
+    expect(decreed.road).toBeUndefined();
+    // Left behind, it would be a maintenance exemption sitting on bare ground
+    // for the next caravan to inherit.
+    expect(decreed.roadFree).toBeUndefined();
+  });
+});
+
 // --- determinism ------------------------------------------------------------
 
 describe('trade in the log', () => {
@@ -1076,7 +1234,7 @@ describe('trade in the log', () => {
     // v23 wrote `sendTrader`, which this build's reducer does not have: a v23
     // log would stop dead partway through a replay, so the save is refused
     // rather than misread.
-    expect(SCHEMA_VERSION).toBe(27);
+    expect(SCHEMA_VERSION).toBe(28);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {
@@ -1137,5 +1295,29 @@ describe('trade in the log', () => {
     expect((JSON.parse(saveGame(game)) as { schemaVersion: number }).schemaVersion).toBe(
       SCHEMA_VERSION,
     );
+  });
+
+  it("replays a founding under The Founders' Road byte-for-byte", () => {
+    // The doctrine is pushed onto the seat before the snapshot, exactly as the
+    // two-route replay above builds its world before its log: what has to
+    // reproduce is the *log* applied to the state it was written against.
+    const game: Game = { config: createGame(config()).config, state: bareState(16, 9), log: [] };
+    const state = game.state;
+    foundCityAt(state, 0, at(state, 3, 4));
+    playerById(state, 0)!.statecraft.doctrines.push('foundersRoad');
+    const settler = createUnit(state, 0, 'settler', 10, 4);
+    const before = snapshotState(state);
+
+    expect(
+      dispatch(game, { type: 'foundCity', playerId: 0, settlerUnitId: settler.id }).ok,
+    ).toBe(true);
+    const after = snapshotState(game.state);
+    expect(game.state.map.tiles.filter((tile) => tile.roadFree === true).length).toBe(7);
+
+    const replayed = JSON.parse(before) as GameState;
+    for (const command of game.log) {
+      expect(applyCommand(replayed, command).ok, JSON.stringify(command)).toBe(true);
+    }
+    expect(snapshotState(replayed)).toBe(after);
   });
 });

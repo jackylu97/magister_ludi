@@ -62,8 +62,23 @@ export type UnitTypeId =
  * Stacking is per category (see `rules.stacking.perCategoryPerTile`), which is
  * the whole reason the category exists as data rather than as "combatStrength
  * is zero": a future non-combat military unit must still stack like a soldier.
+ *
+ * **Three slots since the user's ruling of 2026-08-28** — *"make traders their
+ * own separate unit type; it can stand on the same tile as civilian and
+ * military units"*. A hex holds one military piece, one civilian piece, and
+ * **any number of traders**: caravans cross on the road rather than queueing on
+ * it, and a settler standing in the gates is no longer a wall the empire's
+ * commerce has to walk around. The uncapped half is `stacksFreely`
+ * (`units.ts`), which is the one place that reading lives.
+ *
+ * `'trader'` is a **stacking** category and nothing else. It is emphatically not
+ * a second answer to "can this thing fight" — that is `isCivilian`, which is
+ * `!isCombatant` and is therefore still true of a caravan, so combat capture,
+ * plunder, fortify, sleep, upkeep and embarkation all read a trader exactly as
+ * they read a worker. Two questions, two predicates; a category comparison that
+ * meant "civilian in combat terms" would be the drift this note exists to stop.
  */
-export type UnitCategory = 'military' | 'civilian';
+export type UnitCategory = 'military' | 'civilian' | 'trader';
 
 /**
  * Which *class* of model the 3D board stands this unit on.

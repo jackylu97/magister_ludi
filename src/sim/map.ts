@@ -167,6 +167,29 @@ export interface Tile {
    * is in the log, and a replay walks the same caravan over the same hexes.
    */
   road?: number;
+  /**
+   * This road costs its builder nothing to keep, or the key is **absent** —
+   * which it is on every road any caravan ever wore.
+   *
+   * **Presence is the state**, `improvement`'s discipline rather than a boolean
+   * that is usually `false`: a hex has this mark or it has never heard of it, so
+   * a game with no Founders' Road in it serialises exactly as it did before the
+   * field existed.
+   *
+   * Written by `layRoad`'s `free` arm and by nothing else — one occasion reaches
+   * it, The Founders' Road decreeing a highway between two towns (the user's
+   * ruling of 2026-08-28: *"the roads are maintenance-free"*) — and removed by
+   * `pillage`, beside the road it belongs to, because a torn-up free road must
+   * not leave a free mark for the next caravan to inherit.
+   *
+   * It is read by exactly one thing: `roadsBuiltBy` (`trade.ts`), the count road
+   * maintenance is charged on. **Nothing else may ask it.** A free road is a
+   * road — `stepCost` prices it, `fillAdmits` crosses it, `roadJoins` joins it,
+   * and an invader walks it — and the day a second reader appears it will be
+   * because somebody decided free roads are a different *kind* of road, which is
+   * a design decision and not a convenience.
+   */
+  roadFree?: true;
 }
 
 export interface GameMap {

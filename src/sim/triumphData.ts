@@ -99,6 +99,24 @@ export interface TriumphDef {
   name: string;
   /** One line, in the voice of the tech tree's aphorisms. Never a rule. */
   epigram: string;
+  /**
+   * **What earned it**, in a first-time player's words (user ruling, 2026-08-28:
+   * *"a one-liner that describes what the triumph was caused by"*).
+   *
+   * A row's `name` is a title and its `epigram` is a poem, and neither of them
+   * says *why the sheet just came up* — "A Marvel Raised" over a card that pays
+   * ten renown left a new player with no idea which of the six things they did
+   * this turn had done it. This is the cause, second person, present tense, one
+   * sentence, and it is a **rule** rather than flavour: hard rule 7's voice, so
+   * no identifiers and no digits (the renown figure is `pays`, a field, and is
+   * printed as a figure — a number written into this sentence would be the same
+   * fact in two places, one of which a balance pass would not find).
+   *
+   * Every surface that names a Triumph prints it: the sheet under the name, the
+   * Compendium's shelf as the entry's first clause. Required, so a new row
+   * cannot ship as a title and a poem with nothing between them.
+   */
+  text: string;
   when: TriumphTrigger;
   /** Renown paid, once, the turn it is earned. */
   pays: number;
@@ -181,6 +199,14 @@ function validateTable(): void {
       throw new Error(`${where} names unknown scope "${String(def.scope)}"`);
     }
     if (!(def.pays > 0)) throw new Error(`${where} pays nothing`);
+    // The cause line, and the two things the ruling asks of it. A row with no
+    // `text` is a sheet that says what it is called and never what you did; a
+    // digit in it is hard rule 7's prose rule broken, and the figure it would
+    // be duplicating is `pays` two lines up.
+    if (typeof def.text !== 'string' || def.text.length === 0) {
+      throw new Error(`${where} says nothing about what earned it`);
+    }
+    if (/\d/.test(def.text)) throw new Error(`${where} writes a number into its prose`);
     if (def.family !== undefined && !isFamily(def.family)) {
       throw new Error(`${where} names unknown family "${String(def.family)}"`);
     }
