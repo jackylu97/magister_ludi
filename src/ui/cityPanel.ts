@@ -25,12 +25,16 @@
  */
 
 import {
+  type BuildingPreviewLine,
   type BuildingYieldContribution,
+  type CityYields,
   borderGrowth,
   cityStageSums,
   cityYields,
   citizenFocus,
+  explainBuildingPreview,
   explainCityBuildings,
+  foldBuildingPreview,
   growthSurplus,
   growthThreshold,
   hasResource,
@@ -271,6 +275,36 @@ export function stageRows(
     bad,
     stage: false,
   }));
+}
+
+/**
+ * The same six voices, for a preview fold or one of its lines —
+ * `foldBuildingPreview`'s `CityYields` and `BuildingPreviewLine` share every
+ * numeric field, so one formatter reads both. Empty when nothing in it pays,
+ * which is the house dash's cue at both call sites below.
+ *
+ * Pure and exported for the reason `stageRows` is: a suite with no jsdom can
+ * still call a formatter directly (`test/ui/cityPanel.test.ts`).
+ */
+export function previewFigures(entry: CityYields): string {
+  const parts: string[] = [];
+  for (const key of CITY_YIELD_KEYS) {
+    const value = entry[key];
+    if (value === 0) continue;
+    parts.push(`${value > 0 ? '+' : ''}${value}${YIELD_GLYPH[key]}`);
+  }
+  return parts.join(' ');
+}
+
+/**
+ * One line of `explainBuildingPreview`'s breakdown, read exactly as the sim
+ * labelled it: the building's own row, a card that woke, the ground that
+ * changed, or the reconciliation line last. Never re-derived — the source and
+ * the figures are both the sim's own.
+ */
+export function previewLineText(line: BuildingPreviewLine): string {
+  const figures = previewFigures(line);
+  return figures ? `${line.source} ${figures}` : line.source;
 }
 
 export function createCityPanel(options: CityPanelOptions): CityPanel {
@@ -538,6 +572,20 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     if (notes.childElementCount === 0) notes.append(note('No yields of its own'));
     box.append(notes);
+    // What this **town**, right now, would gain by finishing it — Orders,
+    // beliefs, wonders, whatever in this empire's law wakes on a barracks
+    // (user, 2026-08-28: "+1 prod for barracks belief" should show in the build
+    // screen). Under the description above rather than inside it: the notes
+    // just printed are the row out of `data/buildings.json` and nothing else,
+    // this is the ground truth for the city actually open. Sim-derived and
+    // printed exactly as given — `explainBuildingPreview`'s reconciliation line,
+    // when it emits one, lands last because that is where the sim put it.
+    const preview = explainBuildingPreview(getGame().state, city, id);
+    if (preview.length > 0) {
+      const previewList = element('ul', 'info-card-notes info-card-preview');
+      for (const line of preview) previewList.append(note(previewLineText(line)));
+      box.append(previewList);
+    }
     // Why this town cannot start it, in the reducer's own sentence — "The
     // Colossus wants a harbour; Uruk has none", "The Oracle already stands in Ur
     // (Crimson)". The star chart's node card has said this at the foot since it
@@ -1325,14 +1373,26 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // A row nobody can build keeps its reason where the price goes, exactly as
       // an unbuildable unit row does: quoting a schedule for something that is
       // never going to start is the one thing worse than saying nothing.
-      button.append(
-        element(
-          'span',
-          'city-buildable-cost',
-          blocked ??
-            `${def.cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length))}`,
-        ),
-      );
+      const costSpan = element('span', 'city-buildable-cost');
+      if (blocked !== null) {
+        setYieldText(costSpan, blocked);
+      } else {
+        setYieldText(
+          costSpan,
+          `${def.cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length))}`,
+        );
+        // What this town would gain today — Orders, beliefs, wonders, whatever
+        // in this empire's law wakes on this row (user, 2026-08-28: a barracks
+        // should read "+1⚙" with God of the Forge held). The fold of exactly
+        // the lines the hover card lists below, never re-derived — a building
+        // that pays nothing of its own and wakes no card prints the house dash,
+        // exactly as `turnsLabel` prints one for an unanswerable estimate.
+        const foldedPreview = foldBuildingPreview(explainBuildingPreview(state, city, id));
+        costSpan.append(
+          element('span', 'city-buildable-preview', previewFigures(foldedPreview) || '—'),
+        );
+      }
+      button.append(costSpan);
       info.bind(button, () => itemCard(city, { kind: 'building', id }, city.queue.length));
       button.addEventListener('click', () => add({ kind: 'building', id }));
       // **No Buy tag on a wonder.** `purchaseError` refuses one outright (a

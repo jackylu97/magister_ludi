@@ -1813,9 +1813,9 @@ export function explainBuildingPreview(
   //    may pay a town twice under two labels (`countScaled`'s "×3" suffix), and
   //    walked in the ghost's order so the list reads in the evaluator's order.
   const before = new Map<string, CardYieldLine>();
-  for (const line of cardCityYields(state, city)) before.set(`${line.card} ${line.source}`, line);
+  for (const line of cardCityYields(state, city)) before.set(`${line.card}\x00${line.source}`, line);
   for (const after of cardCityYields(state, ghost)) {
-    const was = before.get(`${after.card} ${after.source}`);
+    const was = before.get(`${after.card}\x00${after.source}`);
     const line = emptyPreviewLine(after.source);
     line.card = after.card;
     for (const key of CITY_YIELD_KEYS) line[key] = after[key] - (was?.[key] ?? 0);

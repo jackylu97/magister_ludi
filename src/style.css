@@ -3406,6 +3406,15 @@ kbd {
   color: inherit;
 }
 
+/* The building row's second line: what this town would gain today, out of
+   `explainBuildingPreview` (Orders, beliefs, wonders — a barracks reading
+   "+1⚙" with God of the Forge held). `block` drops it under the cost/turns
+   line rather than fighting it for the same baseline; it inherits the column's
+   right alignment and tabular numerals rather than restating them. */
+.city-buildable-preview {
+  display: block;
+}
+
 /* The list of what the city has already built: prose, so it reads as prose. */
 .city-built .hint {
   font-family: var(--face-display);
