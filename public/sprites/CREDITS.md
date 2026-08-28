@@ -83,9 +83,9 @@ with a feathered edge — see `src/render3d/sprites3d.ts`, tuned by `units.sprit
 A unit type with no file here falls back to its procedural game piece, which is why the
 settler still stands as a piece while these two are billboards.
 
-## `icons/<class>.svg` — 11 badge icons
+## `icons/<class>.svg` — 12 badge icons
 
-**Not our work any more, and that is the point.** Eleven SVG files, one per `BadgeClass`
+**Not our work any more, and that is the point.** Twelve SVG files, one per `BadgeClass`
 (`src/render3d/badges3d.ts`), rasterised into the parchment roundel that floats over a
 piece and says which unit is standing there. They were drawn for this project until the
 icon pass; they are now **Tabler Icons** — with three exceptions this section names — for the
@@ -106,6 +106,10 @@ four of them. Tabler has all four. A set half in one hand and half in another is
 wearing one name, so the whole badge roster moved to Tabler rather than the six shapes Lucide
 was missing.
 
+The twelfth arrived with trade and needed no argument at all: Tabler draws a `package`, it is
+a crate seen the way this board sees everything (three-quarters, from above), and it is the one
+addition to this set that went in verbatim on the first try.
+
 | File | Badge class | Upstream icon | Mark |
 | --- | --- | --- | --- |
 | `settler.svg` | `settler` | Tabler `tent` | an A-frame tent, its door thrown open |
@@ -119,6 +123,7 @@ was missing.
 | `greatPerson.svg` | — | Tabler `laurel-wreath` | a laurel wreath, eight leaves and a tie |
 | `religious.svg` | — | Tabler `candle` | a lit candle |
 | `spear.svg` | `spear` | *drawn here* | a spear upright: leaf blade, socket collar, two lugs |
+| `trader.svg` | `trader` | Tabler `package` | a crate in three-quarter view, its three top seams drawn |
 
 ### The two edits made to the vendored drawings, and no others
 
@@ -167,12 +172,12 @@ either.
   `badges.byUnitType` in `data/view3d.json` (spearman and pikeman today), not a name compared
   in TypeScript.
 
-### Why the set is eleven when the sculpt roster is eight
+### Why the set is twelve when the sculpt roster is eight
 
-`BadgeClass` is `ModelClass` plus three. Two of the extras exist for one reason: a piece
+`BadgeClass` is `ModelClass` plus four. Two of the extras exist for one reason: a piece
 that borrows another piece's body must not wear that piece's *name*. The badge is the board's
 only sentence about what a unit is, and a wrong sentence is worse than a missing one. The
-third goes the other way — see `spear` below.
+other two go the other way — see `spear` and `trader` below.
 
 - **`greatPerson`** — a great person stands on the **settler's** sculpt, because it is a
   civilian with a handcart. "Settler" floating over Archimedes sends a player looking for a
@@ -189,9 +194,19 @@ third goes the other way — see `spear` below.
   loses a stack to a chariot. One spear for the whole line — spearman, pikeman, and whatever
   comes after them.
 
+- **`trader`** — a caravan is sculpted as a **worker** for the augur's reason exactly: it is a
+  civilian on foot with something on its back, and a fifteenth miniature nobody can pick out at
+  forty pixels is not worth carving. "Worker" floating over the one piece in the game that lays
+  road and carries a twenty-turn route is the same wrong sentence the candle was added to stop,
+  and it invites the same mistake — marching it at a hill to build a mine. It is the one badge
+  whose *sculpt* is also split (`pieces.byUnitType`, `SculptId` in `board3d.ts`): a caravan gets
+  the worker's token with a pack instead of a mallet, and a caravan actually running a route
+  gets a gilt bale roped on top of it. The badge still does the naming; the bodies only say
+  "these are two things" and "this one is loaded".
+
 The first two are read off the unit row rather than off a type name (`badgeClassFor` asks
 `UnitDef.greatWork` and `UnitDef.consecrates`), so a new great person or a new priest is a
-data row and the renderer does not move. The third is read off `badges.byUnitType` in
+data row and the renderer does not move. The last two are read off `badges.byUnitType` in
 `data/view3d.json`, and that is the fence rather than an inconsistency: what a piece *does* is
 the simulation's fact and belongs on the unit row, while which drawing names it is the
 renderer's, and a `badge:` column in `data/units.json` would be the art reaching across into
@@ -403,7 +418,7 @@ across, and a thin green stroke on green grass does not. The ink is `icons.yield
 `data/view3d.json`, so it stays a data decision.
 
 There are **two grids in this project and the split is by what a mark is read at**, not by who
-drew it. Everything read small — the six yields here, the eleven badges, and since the one-hand
+drew it. Everything read small — the six yields here, the twelve badges, and since the one-hand
 pass all forty-one resource marks — is on upstream's **24-unit** box at 2.75, vendored or drawn
 in that geometry. Everything read large — the twelve heraldic charges, the discovery sites, the
 card lines, the marginalia, the printer's devices — is on this project's own **64-unit** grid at

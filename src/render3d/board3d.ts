@@ -46,6 +46,7 @@ import type { HeraldryId } from '../art/heraldryMarks';
 import type { DiscoveryKind } from '../sim/discoveryData';
 import { IMPROVEMENT_IDS, type ImprovementId } from '../sim/improvementData';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
+import type { Unit } from '../sim/state';
 import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
 import { type ModelClass, UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
 import { hasRiverEdge, neighborInDirection } from '../sim/water';
@@ -147,6 +148,8 @@ import {
   toyCow,
   toyDeer,
   toyHorse,
+  traderLadenMini,
+  traderMini,
   trellisRows,
   vineTrellis,
   wheatStand,
@@ -274,19 +277,24 @@ const BADGE_OVERRIDES: ReadonlyMap<UnitTypeId, BadgeClass> = (() => {
 /**
  * Every sculpt on the board, and the size class it is cut to.
  *
- * Typed `Record<ModelClass, …>` on purpose: this is the one place the art and
- * the data are joined, and making it exhaustive means a `modelClass` name added
- * to `units.json` that nobody sculpted is a *compile* error rather than a hole
- * in the board. `test/pieces3d.test.ts` closes the other direction — a sculpt no
- * unit stands on — and as of M7 there is no exemption left: `worker` was
- * sculpted and iconed a milestone ahead of its unit, and the unit has landed.
+ * Typed `Record<SculptId, …>` on purpose: this is the one place the art and
+ * the data are joined, and because `SculptId` *contains* `ModelClass`, keeping
+ * it exhaustive still means a `modelClass` name added to `units.json` that
+ * nobody sculpted is a *compile* error rather than a hole in the board.
+ * `test/pieces3d.test.ts` closes the other direction — a sculpt no unit stands
+ * on — and as of M7 there is no exemption left: `worker` was sculpted and iconed
+ * a milestone ahead of its unit, and the unit has landed.
  *
- * The eight builds are the best silhouette from the old per-type roster rather
- * than eight new sculpts: the swordsman was always the clearest foot soldier,
- * the archer the clearest bow, the horseman the clearest rider. The factories
- * that lost their seat stay in `geometry.ts` — see the docblock there.
+ * The eight class builds are the best silhouette from the old per-type roster
+ * rather than eight new sculpts: the swordsman was always the clearest foot
+ * soldier, the archer the clearest bow, the horseman the clearest rider. The
+ * factories that lost their seat stay in `geometry.ts` — see the docblock there.
+ *
+ * The two beyond them are the caravan and the caravan with something on its
+ * back; see `EXTRA_SCULPT_IDS` for why a sculpt may now be finer than a model
+ * class, and `MiniSculpt.laden` for why one of them is never named by data.
  */
-export const MINI_SCULPTS: Record<ModelClass, { cls: MiniClass; build: MiniFactory }> = {
+export const MINI_SCULPTS: Record<SculptId, MiniSculpt> = {
   settler: { cls: 'foot', build: settlerMini },
   worker: { cls: 'foot', build: workerMini },
   melee: { cls: 'foot', build: swordsmanMini },
@@ -295,10 +303,116 @@ export const MINI_SCULPTS: Record<ModelClass, { cls: MiniClass; build: MiniFacto
   mounted: { cls: 'mounted', build: horsemanMini },
   mountedRanged: { cls: 'mounted', build: chariotMini },
   siege: { cls: 'siege', build: catapultMini },
+  trader: { cls: 'foot', build: traderMini, laden: 'traderLaden' },
+  traderLaden: { cls: 'foot', build: traderLadenMini },
 };
 
-/** Every model class, in the order the registry lists them. */
-export const MODEL_CLASS_IDS = Object.keys(MINI_SCULPTS) as ModelClass[];
+/**
+ * One registered sculpt: the size class it is cut to, how to cut it, and — for
+ * the handful that have one — the twin a piece takes when it is *carrying*
+ * something.
+ *
+ * `laden` is a fact about the drawings and lives with them. It is read by
+ * `unitSculpt` off the presence of `Unit.trade`, which is deliberately the only
+ * runtime property in the game that changes which body a piece stands in: a
+ * caravan with a route is doing the thing the unit exists to do, and the board
+ * has no other way to say so. A sculpt with no `laden` twin never varies, which
+ * is every other row here and the reason this is optional rather than a second
+ * table.
+ */
+export interface MiniSculpt {
+  cls: MiniClass;
+  build: MiniFactory;
+  laden?: SculptId;
+}
+
+/**
+ * The sculpts that are **not** model classes, in the order they were appended.
+ *
+ * `BadgeClass`'s trick one file over and for the same reason: the sculpt roster
+ * has always been keyed by `ModelClass`, which is a fact about a unit row in
+ * `data/units.json`, and a caravan is `modelClass: 'worker'` there and rightly
+ * so — it is a civilian on foot. What the *board* needs is one grade finer, and
+ * a `sculpt:` column in the rules' own file would be the art reaching across
+ * into it (see `badgeClassFor`, which makes exactly this argument about the
+ * spear). So the split lives here and which rows take it is `pieces.byUnitType`
+ * in `data/view3d.json`.
+ *
+ * `traderLaden` is in the list without ever being named by that table: it is
+ * reached only through `MiniSculpt.laden`, because "which drawing does this row
+ * wear" and "is this particular piece carrying something" are two questions and
+ * only the first one is a fact about a type.
+ */
+const EXTRA_SCULPT_IDS = ['trader', 'traderLaden'] as const;
+
+/** A body a piece can stand in: a model class, or one of the extras above. */
+export type SculptId = ModelClass | (typeof EXTRA_SCULPT_IDS)[number];
+
+/** Every sculpt, in the order the registry lists them. */
+export const SCULPT_IDS = Object.keys(MINI_SCULPTS) as SculptId[];
+
+/**
+ * Every model class, in the order the registry lists them.
+ *
+ * Filtered rather than cast, so the eight stay eight: the Armory draws this list
+ * as "the sculpt roster" and the badge tests read it as "every model class", and
+ * both would quietly start counting a caravan if this were still every key.
+ */
+export const MODEL_CLASS_IDS = SCULPT_IDS.filter(
+  (id): id is ModelClass => !(EXTRA_SCULPT_IDS as readonly string[]).includes(id),
+);
+
+/**
+ * The sculpt a unit *type* is drawn as: its model class, unless the art table
+ * says finer.
+ *
+ * `badgeClassFor`'s third clause, one grade down and with only that clause —
+ * there is nothing here to read off the unit row, because a sculpt is entirely a
+ * question about drawings. Checked at load like the badge table is, and for the
+ * same two invisible typos.
+ */
+export function sculptFor(type: UnitTypeId): SculptId {
+  return SCULPT_OVERRIDES.get(type) ?? modelClassFor(type);
+}
+
+/**
+ * The sculpt a *piece* stands in, which is its type's sculpt unless the piece is
+ * carrying a route and its sculpt has a laden twin.
+ *
+ * The one place in the renderer where a unit's own state chooses its body. It is
+ * asked of `Unit.trade` — presence, exactly as the sim stores it — and not of
+ * the type, because an idle caravan waiting in a city and one three hexes into a
+ * run are the same roster row and must not be the same picture. Everything that
+ * puts a piece on the board goes through this: the resting instance
+ * (`UnitLayer.build`), the walking copy and the falling one, or a caravan would
+ * shed its bale for exactly the length of its march.
+ */
+export function unitSculpt(unit: Unit): SculptId {
+  const id = sculptFor(unit.type);
+  return unit.trade === undefined ? id : (MINI_SCULPTS[id].laden ?? id);
+}
+
+/**
+ * `pieces.byUnitType`, resolved once and checked against the registry.
+ *
+ * `BADGE_OVERRIDES`'s twin, word for word including the reason it throws: two
+ * open string spaces, and both halves of a typo fail invisibly — a misspelt unit
+ * id simply never matches, and a misspelt sculpt id would index nothing and put
+ * an undefined geometry into an instanced draw.
+ */
+const SCULPT_OVERRIDES: ReadonlyMap<UnitTypeId, SculptId> = (() => {
+  const out = new Map<UnitTypeId, SculptId>();
+  for (const [type, id] of Object.entries(VIEW3D.pieces.byUnitType)) {
+    if (!UNIT_TYPE_IDS.includes(type as UnitTypeId)) {
+      throw new Error(`view3d.json: pieces.byUnitType names an unknown unit type: ${type}`);
+    }
+    if (!(id in MINI_SCULPTS)) {
+      throw new Error(`view3d.json: pieces.byUnitType.${type} is not a sculpt: ${id}`);
+    }
+    out.set(type as UnitTypeId, id as SculptId);
+  }
+  return out;
+})();
 
 /**
  * How tall a unit's miniature stands, in world units.
@@ -306,15 +420,19 @@ export const MODEL_CLASS_IDS = Object.keys(MINI_SCULPTS) as ModelClass[];
  * What the HP bar and the badge both ask about the art style, and the reason the
  * class heights are data: a tag that rode at a fixed height would float over a
  * catapult and sit inside a knight.
+ *
+ * Asked of the *type* and never of the piece, which is what keeps a laden
+ * caravan's tag from jumping the moment a route is assigned: a laden twin is the
+ * same size class as the sculpt it varies, and this is where that is relied on.
  */
 export function pieceHeightFor(type: UnitTypeId): number {
-  return PIECES.heights[MINI_SCULPTS[modelClassFor(type)].cls];
+  return PIECES.heights[MINI_SCULPTS[sculptFor(type)].cls];
 }
 
 /** Builds one of every sculpt, at the height its class asks for. */
-function buildUnitPieces(): Record<ModelClass, UnitPiece> {
-  const out: Partial<Record<ModelClass, UnitPiece>> = {};
-  for (const id of MODEL_CLASS_IDS) {
+function buildUnitPieces(): Record<SculptId, UnitPiece> {
+  const out: Partial<Record<SculptId, UnitPiece>> = {};
+  for (const id of SCULPT_IDS) {
     const sculpt = MINI_SCULPTS[id];
     out[id] = sculpt.build({
       height: PIECES.heights[sculpt.cls],
@@ -323,7 +441,7 @@ function buildUnitPieces(): Record<ModelClass, UnitPiece> {
       tokenRadius: PIECES.tokenRadius,
     });
   }
-  return out as Record<ModelClass, UnitPiece>;
+  return out as Record<SculptId, UnitPiece>;
 }
 
 /**
@@ -641,12 +759,14 @@ export class BoardGeometry {
   /** The green wash on a floodplain's face. A filled hexagon, not a band. */
   readonly floodWash: BufferGeometry;
   /**
-   * The sculpted miniatures, keyed by *model class* rather than by unit type:
-   * which type is drawn as which class is a fact about the art direction that
-   * lives in `data/units.json` (`modelClass`). Ask for one through
-   * `modelClassFor`, never by unit id.
+   * The sculpted miniatures, keyed by *sculpt* rather than by unit type: which
+   * type is drawn as which class is a fact about the art direction that lives in
+   * `data/units.json` (`modelClass`), and the handful of rows the board draws
+   * one grade finer than that is `pieces.byUnitType` in `data/view3d.json`. Ask
+   * for one through `unitSculpt` (or `sculptFor` when all you have is a type),
+   * never by unit id.
    */
-  readonly pieces: Record<ModelClass, UnitPiece>;
+  readonly pieces: Record<SculptId, UnitPiece>;
   /**
    * The floating unit badges: one atlas-carrying quad per class, and the flat
    * ring of player colour that goes round every one of them. See `badges3d.ts`.
@@ -693,6 +813,24 @@ export class BoardGeometry {
   readonly reachRing: BufferGeometry;
   readonly dot: BufferGeometry;
   readonly bar: BufferGeometry;
+  /**
+   * The road: half a link, and the hub a paved hex with nowhere to go draws.
+   *
+   * `roadStrip` is `riverSegment`'s unit quad again — a flat one-by-one in the
+   * xz plane, stretched and turned by the instance matrix — because a road is
+   * exactly the same *kind* of mark a river is: one shape, one draw for every
+   * road on the board, and a different rotation per instance. Its own buffer
+   * rather than the river's, for `borderBand`'s reason: two things that happen
+   * to be the same shape today must not become one thing somebody re-cuts for
+   * one of them.
+   *
+   * Half a link, and only ever half, because the two hexes a road runs between
+   * each draw their own: that is what lets a road be a fact about a *tile*
+   * (`Tile.road`), which is what lets one instance carry one `tile:` and fade
+   * with it. See `roads3d.ts`.
+   */
+  readonly roadStrip: BufferGeometry;
+  readonly roadHub: BufferGeometry;
   /** A fuller hexagon than `decal`, for the territory tint and the lens wash. */
   readonly territory: BufferGeometry;
   /**
@@ -896,6 +1034,8 @@ export class BoardGeometry {
     this.numeralMarkers = buildNumeralMarkers();
     this.river = riverSegment();
     this.borderBand = riverSegment();
+    this.roadStrip = riverSegment();
+    this.roadHub = hexDecal(BOARD.hexRadius * VIEW3D.roads.hubScale);
     this.borderCorner = borderCorner();
     this.bar = barQuad();
     // Sprite units. Built unconditionally rather than behind the style switch:

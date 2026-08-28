@@ -239,7 +239,11 @@
     "colors": {
       "wood": "timber",
       "metal": "steel",
-      "accent": "bone"
+      "accent": "bone",
+      "gilt": "gilt"
+    },
+    "byUnitType": {
+      "trader": "trader"
     }
   },
   "city": {
@@ -412,7 +416,11 @@
     "attackOpacity": 0.3,
     "siteRadiusColor": "#dbcfb0",
     "siteRadiusOpacity": 0.24,
-    "siteRadiusScale": 0.76
+    "siteRadiusScale": 0.76,
+    "routeColor": "#c08a2b",
+    "routeOpacity": 0.9,
+    "routeScale": 0.8,
+    "routeStride": 2
   },
   "vignette": {
     "innerRadius": 1.05,
@@ -442,7 +450,8 @@
     "wildRimColor": "oxblood",
     "byUnitType": {
       "spearman": "spear",
-      "pikeman": "spear"
+      "pikeman": "spear",
+      "trader": "trader"
     },
     "selectedRimShade": 0.3,
     "atlasCell": 128,
@@ -574,6 +583,14 @@
       "rimColor": "grape",
       "rimWidth": 0.04
     }
+  },
+  "roads": {
+    "lift": 0.014,
+    "color": "vellum",
+    "shade": -0.14,
+    "width": 0.17,
+    "overhang": 1.1,
+    "hubScale": 0.22
   },
   "improvements": {
     "lift": 0.0,

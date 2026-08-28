@@ -58,7 +58,7 @@ import { TileIcons } from '../render3d/badges3d';
 import { BoardGeometry } from '../render3d/board3d';
 import { CityLayer } from '../render3d/cities3d';
 import { VIEW3D, shade } from '../render3d/lookData';
-import { cellCenter } from '../render3d/layout';
+import { cellCenter, directionYaw } from '../render3d/layout';
 import { MaterialLibrary, computeHullNormals } from '../render3d/toon';
 import { type BuildingId } from '../sim/buildingData';
 import { type ImprovementId } from '../sim/improvementData';
@@ -76,6 +76,7 @@ const LOOK = VIEW3D.look;
 const LIGHTS = VIEW3D.lights;
 const CITY = VIEW3D.city;
 const IMPROVEMENTS = VIEW3D.improvements;
+const ROADS = VIEW3D.roads;
 
 /** How the six panels are laid out, and how close the camera stands. */
 const PANELS = 6;
@@ -537,6 +538,8 @@ export class PartsShelf {
       }
       case 'bannerPole':
         return this.solid(parts.pole, CITY.poleColor);
+      case 'roadJunction':
+        return this.buildRoad();
       case 'flag':
         return this.buildFlag();
       default:
@@ -559,6 +562,40 @@ export class PartsShelf {
     group.add(this.inked(this.geometry.improvementProps[id], shade(spec.color, spec.shade)));
     const gilt = this.geometry.improvementGilt[id];
     if (gilt && spec.gilt !== undefined) group.add(this.inked(gilt, spec.gilt));
+    return group;
+  }
+
+  /**
+   * A hex of road: the hub, and two half-links running off it.
+   *
+   * The board draws *halves* — every paved hex reaches out toward each paved
+   * neighbour and the neighbour draws the other half (see `roads3d.ts`) — so a
+   * single strip on its own would be a picture of half of nothing. What answers
+   * "what does a road look like on a hex" is a corner: one tile's own two
+   * reaches, at the angles `directionYaw` gives them, on the hub they cross at.
+   *
+   * Read off `BoardGeometry` and `VIEW3D.roads` at the size and ink the board
+   * uses, like every other cell on this shelf: retune `roads.width` and this
+   * moves with it. `fitToCell` scales the whole thing up, which is exactly the
+   * trade this shelf makes everywhere — it answers "what shape is this", never
+   * "how big is it against a town".
+   */
+  private buildRoad(): Group {
+    const group = new Group();
+    const ink = shade(ROADS.color, ROADS.shade);
+    const half = (Math.sqrt(3) / 2) * VIEW3D.board.hexRadius * ROADS.overhang;
+    const width = VIEW3D.board.hexRadius * ROADS.width;
+    group.add(this.inked(this.geometry.roadHub, ink));
+    // East and south-west: a corner rather than a straight run, because a
+    // straight run is the one arrangement a single quad could have faked.
+    for (const direction of [0, 2]) {
+      const yaw = directionYaw(direction);
+      const strip = new Mesh(this.geometry.roadStrip, this.materials.get(ink));
+      strip.quaternion.setFromAxisAngle(new Vector3(0, 1, 0), yaw);
+      strip.scale.set(half, 1, width);
+      strip.position.set(Math.cos(yaw) * (half / 2), 0, -Math.sin(yaw) * (half / 2));
+      group.add(strip);
+    }
     return group;
   }
 
@@ -706,6 +743,7 @@ export const PART_IDS = [
   'cityWonder',
   'bannerPole',
   'flag',
+  'roadJunction',
 ] as const;
 
 export const PART_CAPTIONS: Record<(typeof PART_IDS)[number], string> = {
@@ -718,4 +756,6 @@ export const PART_CAPTIONS: Record<(typeof PART_IDS)[number], string> = {
   cityWonder: 'the marvel: four terraces past the palace’s ridge, under a gilt tip',
   bannerPole: 'the pole, dead centre where the ring of buildings leaves a gap',
   flag: 'the cloth in the seat’s tincture, the charge on a parchment canton',
+  roadJunction:
+    'a paved hex turning a corner: the hub, and this tile’s own half of two links',
 };

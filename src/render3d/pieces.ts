@@ -113,7 +113,12 @@ import {
   badgeCenterY,
   hpBarY,
 } from './badges3d';
-import { type BoardGeometry, badgeClassFor, modelClassFor, pieceHeightFor } from './board3d';
+import {
+  type BoardGeometry,
+  badgeClassFor,
+  pieceHeightFor,
+  unitSculpt,
+} from './board3d';
 import { type FogLevels, seesCell } from './fog3d';
 import type { UnitPiece } from './geometry';
 import { hashSigned } from './hash';
@@ -568,7 +573,10 @@ export class UnitLayer {
         this.group.add(group);
         this.spriteUnits.set(unit.id, group);
       } else {
-        const piece = geometry.pieces[modelClassFor(unit.type)];
+        // `unitSculpt`, not `modelClassFor`: a caravan carrying a route stands
+        // in a different body from an idle one, which is the only thing on this
+        // board that varies with a unit's own state. See `MiniSculpt.laden`.
+        const piece = geometry.pieces[unitSculpt(unit)];
         const ink = unitColor(state, unit);
         slots.push(
           collector.add(
@@ -899,7 +907,8 @@ export class UnitLayer {
 /**
  * A cheap order-sensitive fingerprint of everything about the units that this
  * layer draws: who they are, *what* they are, where they stand, how hurt they
- * are, and — since the worker charge badge — how many charges they have left.
+ * are, since the worker charge badge how many charges they have left, and
+ * whether a caravan is carrying a route.
  * FNV-1a over integers, so it allocates nothing per frame.
  *
  * The renderer rebuilds `UnitLayer` exactly when this changes (see
@@ -912,7 +921,19 @@ export class UnitLayer {
  * reason: a worker that spends a charge does not move, but its badge's corner
  * boss has to count down.
  *
- * `person` is the newest member and the one that needs a sentence, because it
+ * `trade` is the newest member, and it is the one that was added for something
+ * that *is* drawn. Presence, not contents: a caravan carrying a route stands in
+ * a laden body with a gilt bale on its pack (`MiniSculpt.laden`, `unitSculpt`),
+ * and an idle one does not — so a route assigned or run out changes the picture
+ * on a piece that has not moved, which is `chargesLeft`'s case exactly. The
+ * *route itself* is deliberately not hashed: `from`, `to`, `expiresTurn`,
+ * `outbound` and `autoResend` all change without changing a pixel, and hashing
+ * the leg would rebuild every piece on the board on the turn a caravan turned
+ * round. Adding it was a decision rather than a drift — CLAUDE.md's piece
+ * fingerprint trap — and `test/render/pieces3d.test.ts` reads this function's
+ * source to keep the next one a decision too.
+ *
+ * `person` is the member before it and the one that needs a sentence, because it
  * changes nothing that is drawn *today*: every great person wears one badge (see
  * `BadgeClass`) and stands on the settler's sculpt, so Archimedes and Imhotep
  * are the same picture. It is hashed anyway, and not out of tidiness — the state
@@ -935,6 +956,7 @@ export function signUnits(state: GameState): number {
     h = Math.imul(h ^ (UNIT_TYPE_INDEX.get(unit.type) ?? -1), 16777619);
     h = Math.imul(h ^ chargesLeft(unit), 16777619);
     h = Math.imul(h ^ personIndex(unit), 16777619);
+    h = Math.imul(h ^ routeBit(unit), 16777619);
   }
   return h >>> 0;
 }
@@ -957,4 +979,16 @@ const GREAT_PERSON_INDEX = new Map<GreatPersonId, number>(
 
 function personIndex(unit: Unit): number {
   return unit.person === undefined ? -1 : (GREAT_PERSON_INDEX.get(unit.person) ?? -1);
+}
+
+/**
+ * Is this piece carrying a route? One bit, for `personIndex`'s reason and one
+ * more: a *predicate* keeps the fingerprint's source readable as a list of
+ * properties, which is the form the pin test in `pieces3d.test.ts` reads it in.
+ *
+ * Presence and nothing else — see the docblock on `signUnits` for why the leg
+ * inside `Unit.trade` is deliberately not in the hash.
+ */
+function routeBit(unit: Unit): number {
+  return unit.trade === undefined ? 0 : 1;
 }

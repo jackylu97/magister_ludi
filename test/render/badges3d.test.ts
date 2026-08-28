@@ -124,6 +124,29 @@ describe('the badge atlas layout', () => {
     }
   });
 
+  /**
+   * The twelfth cell, appended with trade.
+   *
+   * Named on its own rather than left to the sweep above, because the *append*
+   * is the load-bearing part: `BADGE_CELLS` decides texture coordinates, every
+   * consumer re-derives its rectangle through `badgeCellRect` at build time, and
+   * nothing anywhere writes an index down — so a cell added on the end costs a
+   * row of atlas and re-points nothing. A cell inserted in the middle would
+   * silently draw eleven units' badges off by one, which is the failure this
+   * assertion holds still. Twelve in a four-wide atlas is exactly three rows.
+   */
+  it('gives the caravan the twelfth cell, on the end, with its own file', () => {
+    expect(BADGE_CELLS.indexOf('trader')).toBe(BADGE_CELLS.length - 1);
+    expect(BADGE_CELLS).toHaveLength(12);
+    expect(BADGE_ICON_FILES.trader).toBe('sprites/icons/trader.svg');
+    const layout = badgeAtlasSize();
+    expect(layout.columns).toBe(4);
+    expect(layout.rows).toBe(3);
+    // And the eleven before it did not move: the rectangle of cell 0 is still
+    // the top-left one, which is what `badgeCellRect` is asked for everywhere.
+    expect(badgeCellRect(BADGE_CELLS[0]!).u0).toBe(0);
+  });
+
   it('puts the first cell at the top-left of the canvas and at v = 1', () => {
     // The canvas is painted top-down and the texture is sampled bottom-up
     // (`flipY`), so these two have to disagree in exactly this way. If they ever

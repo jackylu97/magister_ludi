@@ -24,9 +24,12 @@ import {
   BoardGeometry,
   MINI_SCULPTS,
   MODEL_CLASS_IDS,
+  SCULPT_IDS,
   badgeClassFor,
   modelClassFor,
   pieceHeightFor,
+  sculptFor,
+  unitSculpt,
 } from '../../src/render3d/board3d';
 import {
   type MiniFactory,
@@ -125,20 +128,22 @@ describe('the model-class roster', () => {
     // this is the seam that has to be nailed down.
     //
     // They used to be the same *set*. They are not any more, and the difference
-    // is exactly three members. Two are pieces that borrow a body they must not
+    // is exactly four members. Two are pieces that borrow a body they must not
     // be named after (`BadgeClass`): a great person stands on the settler's
-    // sculpt and an augur on the worker's. The third goes the other way — the
+    // sculpt and an augur on the worker's. The other two go the other way — the
     // spear line *is* what it is shaped like and still earns its own mark,
-    // because the sword and the spear are two answers to two different threats.
-    // So the badge list is the sculpt list plus `greatPerson`, `religious` and
-    // `spear`, and nothing else. Written as a containment plus named exceptions
-    // rather than a sorted equality, so a twelfth cell somebody adds without
-    // deciding what it is fails here.
+    // because the sword and the spear are two answers to two different threats,
+    // and a caravan borrows the worker's body but lays road instead of building
+    // on it. So the badge list is the sculpt list plus `greatPerson`,
+    // `religious`, `spear` and `trader`, and nothing else. Written as a
+    // containment plus named exceptions rather than a sorted equality, so a
+    // thirteenth cell somebody adds without deciding what it is fails here.
     for (const id of MODEL_CLASS_IDS) expect(BADGE_CELLS).toContain(id);
     expect(BADGE_CELLS).toContain('greatPerson');
     expect(BADGE_CELLS).toContain('religious');
     expect(BADGE_CELLS).toContain('spear');
-    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + 3);
+    expect(BADGE_CELLS).toContain('trader');
+    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + 4);
     for (const id of BADGE_CELLS) {
       expect(BADGE_ICON_FILES[id], `no icon file for ${id}`).toMatch(/^sprites\/icons\/.+\.svg$/);
     }
@@ -261,9 +266,93 @@ describe('the model-class roster', () => {
     expect(modelClassFor('chariotArcher')).not.toBe(modelClassFor('horseman'));
   });
 
+  /**
+   * The sculpt roster is one grade finer than the model class, and exactly two
+   * rows deep.
+   *
+   * `badgeClassFor`'s art-table clause, one level down: what a piece *is* lives
+   * on the unit row in `data/units.json` (a caravan is `modelClass: 'worker'`,
+   * because it is a civilian on foot and rightly so), and which drawing stands
+   * in for it is a look decision that lives in `data/view3d.json`. A `sculpt:`
+   * column in the rules' own file would be the art reaching across into it.
+   *
+   * Read out of the table rather than written here, for the badge table's
+   * reason: the assertion is "whatever the table says, the renderer obeys", not
+   * a second copy of the table that would go stale on the next row.
+   */
+  it('lets the art table split a sculpt off its model class', () => {
+    const table = VIEW3D.pieces.byUnitType;
+    expect(Object.keys(table).length).toBeGreaterThan(0);
+    for (const [type, id] of Object.entries(table)) {
+      expect(UNIT_TYPE_IDS, `${type} is not a unit type`).toContain(type);
+      expect(SCULPT_IDS, `${id} is not a sculpt`).toContain(id);
+      expect(sculptFor(type as UnitTypeId)).toBe(id);
+    }
+    // The caravan is why the table exists. It shares the worker's *class* and
+    // must not share its body: two civilians on foot standing on the same road
+    // have to be two things at forty pixels.
+    expect(modelClassFor('trader')).toBe('worker');
+    expect(sculptFor('trader')).toBe('trader');
+    // …and the worker is untouched, which is the half that would rot quietly.
+    expect(sculptFor('worker')).toBe('worker');
+    for (const type of UNIT_TYPE_IDS) {
+      if (type in table) continue;
+      expect(sculptFor(type), type).toBe(modelClassFor(type));
+    }
+  });
+
+  /**
+   * A caravan carrying a route stands in a different body from an idle one.
+   *
+   * The only thing on this board where a unit's own *state* chooses its sculpt,
+   * and the reason `trade` had to join `signUnits`. `unitSculpt` is the one
+   * place that decision is taken; everything that puts a piece on the board goes
+   * through it, or a caravan would shed its bale for the length of its march.
+   */
+  it('stands a routed caravan in the laden body and an idle one in the plain', () => {
+    const idle = { type: 'trader' as UnitTypeId } as never;
+    expect(unitSculpt(idle)).toBe('trader');
+    const routed = {
+      type: 'trader' as UnitTypeId,
+      trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false },
+    } as never;
+    expect(unitSculpt(routed)).toBe('traderLaden');
+    // Presence is the state, so a laden twin is reached only through the
+    // registry — never by a name compared in the renderer.
+    expect(MINI_SCULPTS.trader.laden).toBe('traderLaden');
+    expect(MINI_SCULPTS.traderLaden.laden).toBeUndefined();
+    // Nothing else has one: a laden twin is a promise the fingerprint has to
+    // keep, and a sculpt that grew one without joining `signUnits` would draw
+    // the old body until something unrelated moved.
+    for (const id of MODEL_CLASS_IDS) expect(MINI_SCULPTS[id].laden, id).toBeUndefined();
+  });
+
+  it('gilds the caravan\'s bale, and nothing else on the roster', () => {
+    // Gold is the one reserved note in this world — a great work, a palace
+    // finial, a wonder's tip — and the laden caravan spends it on exactly one
+    // element so that "this piece is carrying something" reads across the table.
+    // A second sculpt reaching for it to look expensive would be spending a word
+    // the world has already given a meaning.
+    const board = geometry();
+    expect(board.pieces.traderLaden.parts).toContain('gilt');
+    for (const id of SCULPT_IDS) {
+      if (id === 'traderLaden') continue;
+      expect(board.pieces[id].parts, id).not.toContain('gilt');
+    }
+    // The laden body is the plain one plus that: same class, same height, more
+    // geometry. A tag that rode on the sculpt rather than the type would jump
+    // the moment a route was assigned, which is why `pieceHeightFor` asks the
+    // type — and why the two must stay the same size class.
+    expect(MINI_SCULPTS.traderLaden.cls).toBe(MINI_SCULPTS.trader.cls);
+    const plain = board.pieces.trader.geometry.getAttribute('position').count;
+    const laden = board.pieces.traderLaden.geometry.getAttribute('position').count;
+    expect(laden).toBeGreaterThan(plain);
+    board.dispose();
+  });
+
   it('builds non-empty, de-indexed, flat-shaded geometry for each', () => {
     const board = geometry();
-    for (const id of MODEL_CLASS_IDS) {
+    for (const id of SCULPT_IDS) {
       const piece = board.pieces[id];
       const position = piece.geometry.getAttribute('position');
       expect(position.count, id).toBeGreaterThan(0);
@@ -802,12 +891,51 @@ describe('the worker charge badge', () => {
   });
 
   /**
+   * `Unit.trade` joins the hash, and unlike `person` it is in there for
+   * something that is *drawn today*: a caravan carrying a route stands in a
+   * laden body with a gilt bale on its pack (`MiniSculpt.laden`, `unitSculpt`),
+   * and an idle one does not. So a route assigned — which moves nothing and
+   * changes nothing else about the piece — has to reach this layer, exactly as a
+   * spent worker charge does.
+   *
+   * The three cases are the whole contract, and the third is the one worth
+   * having: the *contents* of the route are deliberately not hashed, because
+   * `outbound` flips every time a caravan reaches an end of its run and hashing
+   * it would rebuild every piece on the board for a picture that did not change.
+   */
+  it('moves the units fingerprint when a caravan takes a route', () => {
+    const idle = state([{ type: 'trader' }]);
+    const routed = state([{ type: 'trader' }]);
+    routed.units[0]!.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false };
+    expect(signUnits(routed)).not.toBe(signUnits(idle));
+  });
+
+  it('leaves the fingerprint alone for two caravans both under way', () => {
+    const a = state([{ type: 'trader' }]);
+    const b = state([{ type: 'trader' }]);
+    a.units[0]!.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false };
+    b.units[0]!.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false };
+    expect(signUnits(a)).toBe(signUnits(b));
+  });
+
+  it('does NOT move when only the leg of the route changes', () => {
+    // Presence is the state. A caravan turning for home at the far end of its
+    // run is the same picture it was on the way out, and a hash that noticed
+    // would rebuild the whole board every time one of them touched a city.
+    const out = state([{ type: 'trader' }]);
+    const home = state([{ type: 'trader' }]);
+    out.units[0]!.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false };
+    home.units[0]!.trade = { from: 1, to: 2, expiresTurn: 14, outbound: false, autoResend: false };
+    expect(signUnits(out)).toBe(signUnits(home));
+  });
+
+  /**
    * And nothing *else* new joined it. Written as a source read rather than as a
    * behaviour, because the failure this guards against is somebody adding a
    * field to the hash that moves on every step of every march — the one thing
    * the movement-allowance test above is about, generalised.
    */
-  it('hashes exactly the seven properties the trap names', () => {
+  it('hashes exactly the nine properties the trap names', () => {
     // Read through Vite's raw glob rather than `node:fs` — the pattern
     // `test/sim/cities.test.ts` set for the same kind of assertion, and for the
     // same reason: this project has no node typings and a source read is not
@@ -832,6 +960,12 @@ describe('the worker charge badge', () => {
       '(UNIT_TYPE_INDEX.get(unit.type)',
       'chargesLeft(unit)',
       'personIndex(unit)',
+      // Added deliberately with trade (CLAUDE.md: "adding one is a decision,
+      // not a drift"). A caravan carrying a route stands in a laden body, so
+      // presence of `Unit.trade` changes what is drawn on a piece that has not
+      // moved — `chargesLeft`'s case exactly. The route's *contents* are not
+      // hashed: see the docblock on `signUnits`.
+      'routeBit(unit)',
     ]);
   });
 });

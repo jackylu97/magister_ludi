@@ -77,6 +77,23 @@ export interface OverlayState {
    */
   committed: readonly CellRef[];
   /**
+   * The road a caravan would walk to a candidate town — the send-mode hover
+   * preview.
+   *
+   * A *third* route on this layer, and the reason it is not `path` with a
+   * different colour is that it answers a different question. `path` is "if I
+   * click here, this piece walks that way"; this is "if I send this caravan
+   * there, here is the run it will shuttle for twenty turns" — a route that will
+   * outlive the click by a whole era and pay a town every turn of it. It is
+   * drawn in the gilt this world reserves for things worth something
+   * (`OverlaySpec.routeColor`), dashed like a road rather than solid like a
+   * march, and it is on screen at the same time as both of the others.
+   *
+   * Optional, like `attackable` and `siteRadius`: a caller with nothing to say
+   * about trade says nothing.
+   */
+  route?: readonly CellRef[];
+  /**
    * Tiles the selected unit could attack this turn — an enemy piece or town
    * within reach of its sword or its bow.
    *
@@ -247,6 +264,26 @@ export class OverlayLayer {
         [OVERLAY.committedColor],
         new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
         { onTop: true, opacity: OVERLAY.committedOpacity },
+      );
+    }
+
+    // The trade route being aimed, over the committed run and under the walk
+    // preview: it is the loudest of the three in colour and the quietest in
+    // claim — nobody has clicked yet — so a march the cursor is actually
+    // proposing still wins the tile it shares.
+    const routeStride = OVERLAY.routeStride;
+    for (let i = 0; i < (state.route ?? []).length; i++) {
+      const route = state.route!;
+      const last = i === route.length - 1;
+      if (!last && i % routeStride !== 0) continue;
+      const at = anchor(route[i]!);
+      if (!at) continue;
+      const s = OVERLAY.routeScale;
+      collector.add(
+        geometry.dot,
+        [OVERLAY.routeColor],
+        new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
+        { onTop: true, opacity: OVERLAY.routeOpacity },
       );
     }
 

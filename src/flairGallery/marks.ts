@@ -218,13 +218,14 @@ function deviceFamily(into: HTMLElement): void {
  * The badge-class icons — the one family on this page that is **not** path data
  * in a module.
  *
- * Eleven vendored SVG files under `public/`, rasterised into the unit-badge
- * atlas by the only `loadIcon` call left in the renderer. Eleven and not eight
- * because three of them are not model classes at all (`BadgeClass` in
+ * Twelve vendored SVG files under `public/`, rasterised into the unit-badge
+ * atlas by the only `loadIcon` call left in the renderer. Twelve and not eight
+ * because four of them are not model classes at all (`BadgeClass` in
  * `badges3d.ts`): a great person stands on the settler's sculpt and an augur on
  * the worker's, and neither may wear the name of the body it borrows; the spear
  * line shares the swordsman's sculpt and earns its own mark from the other
- * direction, because sword and spear answer two different threats. Shown exactly
+ * direction, because sword and spear answer two different threats; and a caravan
+ * borrows the worker's body but lays road instead of building on it. Shown exactly
  * as everything else is, masked through `currentColor`, which is what the atlas
  * does to them too (it recolours them to the badge's ink) — and at the same
  * three sizes, which is the whole point of putting them on this page: **12** is
@@ -234,14 +235,14 @@ function deviceFamily(into: HTMLElement): void {
  * Their being files is the reason there is no note under them: a file has no
  * `note` field, and inventing one on this page would be inventing provenance —
  * `public/sprites/CREDITS.md` is where that lives, and since the icon pass there
- * is real provenance to keep straight, because eight of the ten are somebody
+ * is real provenance to keep straight, because nine of the twelve are somebody
  * else's drawings.
  */
 function badgeFamily(into: HTMLElement): void {
   const root = block(
     into,
     'Badge classes — public/sprites/icons/*.svg',
-    'The eight model classes, the laurel every great person wears, the candle every religious piece does, and the spear the anti-cavalry line does, on the parchment badge that floats over a piece. Tabler Icons (MIT) at the yield marks’ weight, save the horse-archer, the catapult and the spear, which Tabler has not got. Vendored files rather than path data — the last set in the game that is fetched at all.',
+    'The eight model classes, the laurel every great person wears, the candle every religious piece does, the spear the anti-cavalry line does, and the crate a caravan does, on the parchment badge that floats over a piece. Tabler Icons (MIT) at the yield marks’ weight, save the horse-archer, the catapult and the spear, which Tabler has not got. Vendored files rather than path data — the last set in the game that is fetched at all.',
   );
   const grid = markGrid(root);
   for (const cls of BADGE_CELLS) markCell(grid, cls, `/${BADGE_ICON_FILES[cls]}`);
@@ -255,7 +256,7 @@ function badgeFamily(into: HTMLElement): void {
  * different object — parchment, a mark, and a rim of somebody's colour — and it
  * is the only place on this page where the barbarian treatment can be judged,
  * because that treatment is entirely a matter of which three colours the same
- * eleven drawings are printed in (`BadgeSpec.wildPaperColor` and its two
+ * twelve drawings are printed in (`BadgeSpec.wildPaperColor` and its two
  * siblings; `UnitBadges` prints the atlas twice).
  *
  * Every number and colour is read out of `data/view3d.json` through `VIEW3D` —

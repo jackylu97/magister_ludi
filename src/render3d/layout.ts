@@ -133,6 +133,24 @@ export function directionDelta(direction: number): { x: number; z: number } {
 }
 
 /**
+ * Yaw, in radians, that turns a shape's local +x axis *along* `directionDelta` —
+ * i.e. pointing at the neighbour rather than across the wall between them. What
+ * a road's half-link is rotated by.
+ *
+ * `edgeYaw`'s perpendicular twin, and the pair is worth keeping side by side: a
+ * river runs along the edge two hexes share and a road runs from one hex to the
+ * next, so the two marks on the same board are ninety degrees apart by
+ * definition rather than by a sign somebody has to get right.
+ *
+ * Rotating +x by θ about +y gives (cos θ, 0, −sin θ); matching that to the
+ * direction's own (dx, 0, dz) gives θ = atan2(−dz, dx).
+ */
+export function directionYaw(direction: number): number {
+  const d = directionDelta(direction);
+  return Math.atan2(-d.z, d.x);
+}
+
+/**
  * Yaw, in radians, that turns a shape's local +x axis along the shared edge
  * between a tile and its neighbour in `direction` — i.e. perpendicular to
  * `directionDelta`. What a river ribbon is rotated by.

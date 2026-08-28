@@ -96,7 +96,8 @@ would change every seeded outcome. No further rename passes.
 - `MeshToonMaterial` silently ignores `flatShading` — bake facets into geometry.
 - Fog is unusable with the ortho camera.
 - Piece visuals rebuild off a fingerprint — `signUnits` in `pieces.ts` hashes `id`, `col`,
-  `row`, `hp`, `ownerId`, `type`, `chargesLeft` and `person` — and any new
+  `row`, `hp`, `ownerId`, `type`, `chargesLeft`, `person` and the *presence* of `trade`
+  (never its contents — `outbound` flips every leg) — and any new
   visual-affecting unit property must be added to it. A source-reading test pins exactly which
   properties are hashed, so adding one is a decision, not a drift.
 - **A road is the fourth mutable tile field, and the caravan is the route** (Entry XXXV).

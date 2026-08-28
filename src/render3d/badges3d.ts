@@ -159,8 +159,19 @@ const LENS = VIEW3D.lens;
  * than the sculpt here rather than one grade coarser, and which rows take it is
  * `badges.byUnitType` in `data/view3d.json` — art keyed by row, never a name
  * compared in this file.
+ *
+ * `trader` is the fourth, and it is the `religious` case exactly: a caravan is
+ * sculpted as a **worker** (`modelClass: 'worker'` on its roster row) because it
+ * is a civilian on foot with something on its back, and "worker" floating over
+ * the one piece in the game that lays road and carries a route is the same wrong
+ * sentence an augur was getting. It comes in through `badges.byUnitType` rather
+ * than off a marker on the unit row, unlike the candle: `trades` is a fact the
+ * rules carry, but the *sculpt* already splits here (see `SculptId` in
+ * `board3d.ts`), and one art table saying which drawing a row wears is cheaper
+ * than a second clause in `badgeClassFor` — which stays two clauses and a table
+ * however many rows the roster grows.
  */
-export type BadgeClass = ModelClass | 'greatPerson' | 'religious' | 'spear';
+export type BadgeClass = ModelClass | 'greatPerson' | 'religious' | 'spear' | 'trader';
 
 /**
  * The atlas layout, in cell order, and the authority on which cell a class
@@ -174,10 +185,11 @@ export type BadgeClass = ModelClass | 'greatPerson' | 'religious' | 'spear';
  * Grown by **appending**, which is the same rule `TILE_ICON_CELLS` carries and
  * for the same reason: every consumer re-derives its rectangle through
  * `badgeCellRect` at build time and nothing writes an index down, so a new cell
- * on the end costs a row of atlas and re-points nothing. Eleven cells in a
- * four-wide atlas is three rows with one spare, and the layout arithmetic has
- * always been a function of the count — `spear` was appended and nothing else
- * moved, which is the rule doing its job rather than being quoted.
+ * on the end costs a row of atlas and re-points nothing. Twelve cells in a
+ * four-wide atlas is three full rows, and the layout arithmetic has always been
+ * a function of the count — `spear` was appended and nothing else moved, then
+ * `trader` was appended and nothing else moved again, which is the rule doing
+ * its job rather than being quoted.
  */
 export const BADGE_CELLS: readonly BadgeClass[] = [
   'settler',
@@ -191,6 +203,7 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
   'greatPerson',
   'religious',
   'spear',
+  'trader',
 ];
 
 /**
@@ -215,7 +228,7 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
  * As of the icon pass the drawings behind these are **Tabler Icons** (MIT)
  * rather than this project's own hand — the same decision `yieldMarks.ts` made
  * for the six yield voices, for the same reason and at the same weight (2.75 of
- * a 24-unit box, where upstream ships 2). Eight are Tabler drawings copied
+ * a 24-unit box, where upstream ships 2). Nine are Tabler drawings copied
  * verbatim; the horse-archer is two of them composed and the catapult and the
  * spear are drawn here in Tabler's geometry, because neither Tabler nor Lucide
  * has any of those shapes and a filled silhouette from a third family would make
@@ -234,6 +247,7 @@ export const BADGE_ICON_FILES: Record<BadgeClass, string> = {
   greatPerson: 'sprites/icons/greatPerson.svg',
   religious: 'sprites/icons/religious.svg',
   spear: 'sprites/icons/spear.svg',
+  trader: 'sprites/icons/trader.svg',
 };
 
 // --- layout arithmetic -----------------------------------------------------

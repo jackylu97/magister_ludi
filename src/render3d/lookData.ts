@@ -276,6 +276,19 @@ export interface PiecesSpec {
   heights: Record<MiniClass, number>;
   /** The fixed inks the equipment is painted in. The body is the player's. */
   colors: Record<MiniAccent, number>;
+  /**
+   * Unit rows the board draws one grade finer than their model class — the
+   * caravan today, and nothing else.
+   *
+   * `badges.byUnitType`'s twin and it earns its keep the same way: what a piece
+   * *is* belongs on the unit row in `data/units.json`, and which drawing stands
+   * in for it is a look decision that belongs in this file. A `sculpt:` column
+   * over there would be the art reaching into the rules' own data. Keyed and
+   * valued as open strings, checked against the roster and the sculpt registry
+   * at load (`SCULPT_OVERRIDES` in `board3d.ts`) so a typo either side throws
+   * rather than drawing somebody else's body.
+   */
+  byUnitType: Readonly<Record<string, string>>;
 }
 
 export interface HouseSpec {
@@ -462,6 +475,46 @@ export interface RiverSpec {
   overhang: number;
   /** How far below the lower of the two tiles' top faces the ribbon sits. */
   drop: number;
+}
+
+/**
+ * Roads: the track a caravan wears into the ground between two towns.
+ *
+ * The river's opposite number in every sense, which is why the two specs are
+ * neighbours and why they share a shape. A river is an *edge* and lies below the
+ * tile faces, in the grout; a road is a fact about a **tile** (`Tile.road`) and
+ * lies a whisker *above* its face, because it is a thing built on the ground
+ * rather than a channel cut through it. So each paved hex draws its own half of
+ * every link it is part of, out from its centre, and the neighbour draws the
+ * other half — which is what lets one instance name one tile and fade with it
+ * (see `roads3d.ts`).
+ *
+ * `width` is generous for a "line" and has to be: at this camera a strip much
+ * under a sixth of a hex disappears into the grout on the first hill it climbs,
+ * and a road that vanishes where the ground rises is a road nobody trusts. It is
+ * still the specimen's hairline in spirit — a flat unlit-looking band of grout
+ * colour with no texture, no gravel and no kerb, which is the whole of the
+ * drawing.
+ *
+ * `overhang` is the one number with a job rather than a taste. A hexagon's
+ * centre-to-centre span is `√3 · hexRadius`, so half a link is exactly
+ * `√3/2 · hexRadius` and stops dead on the shared edge — where the tile gap
+ * would leave a bright seam of table between the two halves. A little over 1
+ * carries each half across the grout and under its neighbour's, and the depth
+ * buffer does the rest.
+ */
+export interface RoadSpec {
+  /** How far above a tile's top face the strip floats, in world units. */
+  lift: number;
+  /** Palette name of the track, and the shade taken off it. */
+  color: number;
+  shade: number;
+  /** Strip width, in hex radii. */
+  width: number;
+  /** Half-link length as a multiple of `√3/2 · hexRadius`. Over 1 by design. */
+  overhang: number;
+  /** The lone paved hex's hub, as a fraction of the hex radius. */
+  hubScale: number;
 }
 
 /** Borders, and the hex rings marking which tiles a city's citizens work. */
@@ -1071,6 +1124,27 @@ export interface OverlaySpec {
   siteRadiusColor: number;
   siteRadiusOpacity: number;
   siteRadiusScale: number;
+  /**
+   * A trade route being aimed: the road a caravan would walk to a candidate
+   * town.
+   *
+   * Gilt, and it is the only route on this board that is. The three marks a
+   * player can have on screen at once are a *proposal* (`path`, bone), a
+   * *decision already taken* (`committed`, bone and dashed) and this one — and
+   * this one is neither: it is a preview of a thing that will run for twenty
+   * turns and pay a town every one of them, and it wants to be told apart from
+   * an ordinary march at a glance rather than by counting chips. Gold is the
+   * word this world already uses for "worth something", which is why it is spent
+   * carefully and why nothing else in this layer takes it.
+   *
+   * Dashed like the committed route (`routeStride`) rather than solid like the
+   * preview, because it is a *road* and roads on this board are drawn as runs
+   * rather than as walks. See `OverlayState.route`.
+   */
+  routeColor: number;
+  routeOpacity: number;
+  routeScale: number;
+  routeStride: number;
 }
 
 export interface HpBarSpec {
@@ -1608,6 +1682,7 @@ export interface View3DData {
   table: TableSpec;
   fog: FogSpec;
   rivers: RiverSpec;
+  roads: RoadSpec;
   territory: TerritorySpec;
   look: LookSpec;
   camera: CameraSpec;
@@ -1878,6 +1953,7 @@ export const VIEW3D: View3DData = {
     tokenRadius: viewJson.pieces.tokenRadius,
     heights: viewJson.pieces.heights,
     colors: namedTable<MiniAccent>(viewJson.pieces.colors, 'pieces.colors'),
+    byUnitType: viewJson.pieces.byUnitType,
   },
   city: viewJson.city,
   table: {
@@ -1921,6 +1997,14 @@ export const VIEW3D: View3DData = {
     width: viewJson.rivers.width,
     overhang: viewJson.rivers.overhang,
     drop: viewJson.rivers.drop,
+  },
+  roads: {
+    lift: viewJson.roads.lift,
+    color: named(viewJson.roads.color, 'roads.color'),
+    shade: viewJson.roads.shade,
+    width: viewJson.roads.width,
+    overhang: viewJson.roads.overhang,
+    hubScale: viewJson.roads.hubScale,
   },
   territory: {
     tintScale: viewJson.territory.tintScale,
@@ -1974,6 +2058,11 @@ export const VIEW3D: View3DData = {
     siteRadiusColor: parseColor(viewJson.overlay.siteRadiusColor, 'overlay.siteRadiusColor'),
     siteRadiusOpacity: viewJson.overlay.siteRadiusOpacity,
     siteRadiusScale: viewJson.overlay.siteRadiusScale,
+    routeColor: parseColor(viewJson.overlay.routeColor, 'overlay.routeColor'),
+    routeOpacity: viewJson.overlay.routeOpacity,
+    routeScale: viewJson.overlay.routeScale,
+    // At least 1, for `committedStride`'s reason exactly.
+    routeStride: Math.max(1, Math.round(viewJson.overlay.routeStride)),
   },
   vignette: {
     innerRadius: viewJson.vignette.innerRadius,

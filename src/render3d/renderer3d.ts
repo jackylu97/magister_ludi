@@ -70,8 +70,9 @@ import {
   BoardGeometry,
   buildBoard,
   badgeClassFor,
-  modelClassFor,
+  sculptFor,
   signFeatureCells,
+  unitSculpt,
 } from './board3d';
 import { DioramaCamera } from './camera3d';
 import {
@@ -88,6 +89,7 @@ import {
   signImprovedCells,
   signImprovements,
 } from './improvements3d';
+import { RoadLayer, signRoadCells } from './roads3d';
 import { type SuppressScope, RENDER_ORDER, SUPPRESS } from './instances';
 import { LensLayer, NO_LENS, sameLens } from './lens3d';
 import { VIEW3D, playerPieceColor } from './lookData';
@@ -152,6 +154,13 @@ export class Renderer3D implements MapView {
   private readonly tints = new TintLayer();
   private tintList: readonly TileTint[] = [];
   private readonly improvements = new ImprovementLayer();
+  /**
+   * The tracks caravans have worn into the ground. Beside the improvements
+   * because it is the same kind of thing — ground somebody changed during play,
+   * fingerprinted and rebuilt alone — and drawn *under* them, so a farm's
+   * furrows still read where a road runs past the field.
+   */
+  private readonly roads = new RoadLayer();
   private readonly sites = new SiteLayer();
   private readonly overlays = new OverlayLayer();
   /**
@@ -208,6 +217,8 @@ export class Renderer3D implements MapView {
   private pathPreview: readonly CellRef[] = [];
   /** The selected unit's stored order. See `MapView.setCommittedPath`. */
   private committedPath: readonly CellRef[] = [];
+  /** The trade route under the cursor. See `MapView.previewRoute`. */
+  private routePreview: readonly CellRef[] = [];
   private workedTiles: readonly CellRef[] = [];
   private lockedTiles: readonly CellRef[] = [];
   /** The settler lens's hover preview. See `setSiteRadius`. */
@@ -244,6 +255,8 @@ export class Renderer3D implements MapView {
   private territorySignature = 0;
   /** The same for the works on the ground. See `signImprovements`. */
   private improvementsSignature = 0;
+  /** The same for the roads. See `signRoadCells`. */
+  private roadsSignature = 0;
   /** The same for the ruins, the villages and the camps. See `signSites`. */
   private sitesSignature = 0;
   /** The works whose cleared ground has already been applied. See `clearGround`. */
@@ -311,6 +324,7 @@ export class Renderer3D implements MapView {
     this.scene.add(this.cities.group);
     this.scene.add(this.tints.group);
     this.scene.add(this.territory.group);
+    this.scene.add(this.roads.group);
     this.scene.add(this.improvements.group);
     this.scene.add(this.sites.group);
     // Under the overlays: a lens is information about the ground, and the
@@ -450,6 +464,7 @@ export class Renderer3D implements MapView {
     this.rebuildUnits();
     this.rebuildCities();
     this.rebuildTerritory();
+    this.rebuildRoads();
     this.rebuildImprovements();
     this.rebuildSites();
     this.rebuildOverlays();
@@ -473,6 +488,7 @@ export class Renderer3D implements MapView {
     this.attackable = [];
     this.pathPreview = [];
     this.committedPath = [];
+    this.routePreview = [];
     this.workedTiles = [];
     this.lockedTiles = [];
     this.selectedUnitId = null;
@@ -655,6 +671,7 @@ export class Renderer3D implements MapView {
     this.rebuildUnits();
     this.rebuildCities();
     this.rebuildTerritory();
+    this.rebuildRoads();
     this.rebuildImprovements();
     this.rebuildSites();
     this.rebuildLens();
@@ -789,6 +806,26 @@ export class Renderer3D implements MapView {
     this.improvementsSignature = signImprovements(this.state);
   }
 
+  /**
+   * Rebuilds the road strips. A handful of instances per paved hex, so this is
+   * cheap enough to run on every step a caravan takes — which is exactly the
+   * reason roads are a layer and not part of the board (see `roads3d.ts`).
+   *
+   * The layer paints its own fog on the way out, so a rebuild on remembered
+   * ground comes up washed rather than lit.
+   */
+  private rebuildRoads(): void {
+    if (!this.state) return;
+    this.roads.build(
+      this.state,
+      this.geometry,
+      this.materials,
+      this.shadows,
+      this.fogLevels(),
+    );
+    this.roadsSignature = signRoadCells(this.state);
+  }
+
   private rebuildSites(): void {
     if (!this.state) return;
     this.sites.build(
@@ -820,6 +857,7 @@ export class Renderer3D implements MapView {
         attackable: this.attackable,
         path: this.pathPreview,
         committed: this.committedPath,
+        route: this.routePreview,
         hover: this.hover ? { col: this.hover.tile.col, row: this.hover.tile.row } : null,
         selection: selected ? { col: selected.col, row: selected.row } : null,
         worked: this.workedTiles,
@@ -923,6 +961,23 @@ export class Renderer3D implements MapView {
   setCommittedPath(cells: readonly CellRef[]): void {
     if (sameCells(this.committedPath, cells)) return;
     this.committedPath = cells;
+    this.rebuildOverlays();
+  }
+
+  /**
+   * The trade route under the cursor, or `null` to clear it — see
+   * `MapView.previewRoute` and `OverlayState.route`.
+   *
+   * `null` and `[]` mean the same thing here on purpose: the interface's answer
+   * to "is a route being aimed" is a list of cells or nothing at all, and making
+   * the renderer distinguish an empty aim from no aim would be a second state
+   * for one picture. Guarded by `sameCells` like every setter on this class, so
+   * a pointer resting on one candidate town costs nothing at all.
+   */
+  previewRoute(cells: readonly CellRef[] | null): void {
+    const next = cells ?? [];
+    if (sameCells(this.routePreview, next)) return;
+    this.routePreview = next;
     this.rebuildOverlays();
   }
 
@@ -1454,7 +1509,9 @@ export class Renderer3D implements MapView {
       return;
     }
 
-    const piece = this.geometry.pieces[modelClassFor(unit.type)];
+    // The walking copy takes the piece's *own* body, laden twin included, or a
+    // caravan would shed its bale for exactly the length of its march.
+    const piece = this.geometry.pieces[unitSculpt(unit)];
     const shape = piece.geometry;
     computeHullNormals(shape);
     const material = pieceMaterials(this.materials, piece, color);
@@ -1517,7 +1574,10 @@ export class Renderer3D implements MapView {
     if (!this.map || !this.state) return;
     this.removeFaller(fallen.id);
 
-    const piece = this.geometry.pieces[modelClassFor(fallen.type)];
+    // A corpse is a description rather than a unit — the state removed it before
+    // this was called — so it topples in its type's own body. A plundered caravan
+    // falls unladen, which is what happened to it.
+    const piece = this.geometry.pieces[sculptFor(fallen.type)];
     computeHullNormals(piece.geometry);
     const player = this.state.players[fallen.ownerId];
     const color = playerPieceColor(player?.color ?? '', fallen.ownerId);
@@ -1787,6 +1847,12 @@ export class Renderer3D implements MapView {
     if (this.state && (fogMoved || signImprovements(this.state) !== this.improvementsSignature)) {
       this.rebuildImprovements();
     }
+    // Roads are ground too, and follow the fog for the same reason: they survive
+    // on remembered hexes, so a fog move has to reach this layer as well as the
+    // works. Their own fingerprint is presence-only — see `signRoadCells`.
+    if (this.state && (fogMoved || signRoadCells(this.state) !== this.roadsSignature)) {
+      this.rebuildRoads();
+    }
     // Sites are seat-filtered twice over — a ruin fades on remembered ground and
     // a camp is not drawn at all off it — so a fog move reaches this layer for
     // both of its tenants. See `sites3d.ts`.
@@ -1841,6 +1907,7 @@ export class Renderer3D implements MapView {
     this.cities.dispose();
     this.territory.dispose();
     this.tints.dispose();
+    this.roads.dispose();
     this.improvements.dispose();
     this.sites.dispose();
     this.lens.dispose();

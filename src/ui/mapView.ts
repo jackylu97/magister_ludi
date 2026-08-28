@@ -241,6 +241,31 @@ export interface MapView {
    */
   setCommittedPath?(cells: readonly CellRef[]): void;
 
+  /**
+   * Optional: the trade route under the cursor — the run a caravan would shuttle
+   * if it were sent to the town being hovered.
+   *
+   * A third thing from `setPathPreview` and `setCommittedPath`, and it must not
+   * look like either: a walk preview is "click and this piece goes there", a
+   * committed path is "this piece is already going there", and this is "send
+   * this caravan and it will run *this* for twenty turns, paying a town every
+   * one of them". Renderers draw it in the gilt the world reserves for things
+   * worth something, dashed like a road rather than solid like a march (see
+   * `overlays.ts` and `OverlaySpec.routeColor`), so all three can be on screen
+   * together — which they are, the moment somebody in send mode hovers a
+   * candidate while a marching unit is selected.
+   *
+   * The cells are the whole route including its destination and excluding the
+   * caravan's own tile, exactly as `setPathPreview` takes them, and `null`
+   * clears it. Which cells those are is the interface's answer, asked of the
+   * simulation's own pathfinder: the board is told *what to draw*, never *why*.
+   *
+   * Optional for the usual reason: it is a 3D feature and the 2D pipelines are
+   * frozen. Under `?art=flat` a candidate town simply shows no preview, and the
+   * send panel still says how far away it is.
+   */
+  previewRoute?(cells: readonly CellRef[] | null): void;
+
   /** Slides a piece along the tiles it just walked. Cosmetic; see `animation.ts`. */
   animateMove(unitId: number, from: CellRef, walked: readonly CellRef[]): void;
 

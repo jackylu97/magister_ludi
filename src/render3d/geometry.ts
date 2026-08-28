@@ -1625,8 +1625,17 @@ function lathe(profile: readonly (readonly [number, number])[], segments = 7): B
  * resolves to the owning player's colour and the other three to fixed palette
  * entries (`pieces.colors` in `view3d.json`), so one geometry serves every
  * player and the equipment never drifts into looking like ownership signalling.
+ *
+ * `gilt` is the fourth and the odd one, added with the caravan. It is not a
+ * material a piece is *made* of — it is the board's one reserved note, the ink
+ * that already says "a great person did this once" on a work and "this is the
+ * capital" on a palace finial. A sculpt spends it on the one element that has to
+ * be read across the table from a shape that is otherwise identical to a
+ * neighbour's, and today that is exactly one thing: the bale on a caravan that
+ * is actually carrying a route. A second sculpt that reached for it to look
+ * expensive would be spending a word the world has already given a meaning.
  */
-export type MiniAccent = 'wood' | 'metal' | 'accent';
+export type MiniAccent = 'wood' | 'metal' | 'accent' | 'gilt';
 export type MiniPart = 'body' | MiniAccent;
 
 /**
@@ -1674,7 +1683,7 @@ export type MiniFactory = (spec: MiniSpec) => UnitPiece;
  * sculpts with the same set of roles produce the same colour array and the
  * instancer can share a bucket per player colour.
  */
-const MINI_PART_ORDER: readonly MiniPart[] = ['body', 'wood', 'metal', 'accent'];
+const MINI_PART_ORDER: readonly MiniPart[] = ['body', 'wood', 'metal', 'accent', 'gilt'];
 
 /**
  * Collects primitives by ink role and welds them into one grouped geometry.
@@ -2027,6 +2036,130 @@ export const workerMini: MiniFactory = (spec) => {
   );
   return mini.build();
 };
+
+/**
+ * Where a caravan's pack sits, and how big it is.
+ *
+ * One table read by both trader sculpts, because the *only* thing that separates
+ * them is a gilt box on top of this one, and a bale that floated because
+ * somebody nudged the pack and not its twin would be the whole point of the
+ * variant thrown away. Everything is in world units, measured from the top of
+ * the base disc.
+ */
+const TRADER_PACK = {
+  width: 0.155,
+  height: 0.215,
+  depth: 0.11,
+  /** Off centre toward the near-left shoulder, and behind the token. */
+  x: -0.055,
+  z: -0.095,
+  /** Height of the pack's *centre*, as a fraction of the figure's own height. */
+  atHeight: 0.55,
+  strap: { width: 0.175, height: 0.03, depth: 0.035, lift: 0.045 },
+  bale: { width: 0.115, height: 0.08, depth: 0.09 },
+} as const;
+
+/**
+ * Trader: the worker's token carrying a squared pack instead of a tool.
+ *
+ * A civilian on foot, which is why the roster row is `modelClass: 'worker'` and
+ * why it must not simply *be* the worker: at forty pixels the difference between
+ * two figures has to be a difference in the silhouette, and "the worker, plus a
+ * lump" is not one. So the mallet comes off — a caravan carries no tool — and
+ * what replaces it is a burden on the back, squared and shoulder-high, breaking
+ * the outline on the opposite side from the one the worker breaks it on. The
+ * two stand next to each other on a road and read as two things.
+ *
+ * It stays inside the kit: base, token, three boxes. Nothing new was cut for it,
+ * which is the same bargain `workerMini` made a milestone before its own unit
+ * existed.
+ */
+export const traderMini: MiniFactory = (spec) => addTraderPack(traderBody(spec), spec).build();
+
+/**
+ * The same caravan, laden: one gilt bale roped on top of the pack.
+ *
+ * A *second sculpt* rather than a second instance over the first one's matrix,
+ * which is the arrangement a great work's gold takes (`improvements3d.ts`). The
+ * two are not interchangeable and this is the case that wants the other one: a
+ * piece is placed, turned, hidden, walked and toppled as one object, so a bale
+ * carried as a separate instance would have to be threaded through every one of
+ * those paths — the walking copy, the falling copy, the hide — and would come
+ * apart from its trader the first time somebody forgot one. A merged geometry
+ * with a fourth ink role is one bucket, one draw and one thing that cannot
+ * separate. The gilt is the whole message: a caravan with a route on it is
+ * *carrying something*, and that has to be legible from across the table without
+ * clicking the piece.
+ *
+ * Which trader wears which is `MINI_SCULPTS[…].laden` and `unitSculpt` in
+ * `board3d.ts`, off the presence of `Unit.trade` — and it is why `trade` had to
+ * join the piece fingerprint (`signUnits`).
+ */
+export const traderLadenMini: MiniFactory = (spec) => {
+  const mini = traderBody(spec);
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const packY = t + h * TRADER_PACK.atHeight;
+  const bale = TRADER_PACK.bale;
+  mini.add(
+    'gilt',
+    slabAt(
+      bale.width,
+      bale.height,
+      bale.depth,
+      TRADER_PACK.x,
+      packY + TRADER_PACK.height / 2 + bale.height / 2,
+      TRADER_PACK.z,
+    ),
+  );
+  return addTraderPack(mini, spec).build();
+};
+
+/** The figure both caravans stand on: the worker's token, and nothing else. */
+function traderBody(spec: MiniSpec): Mini {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  return new Mini().add('body', miniBase(spec), ...miniToken(h * 0.98, spec.tokenRadius, t));
+}
+
+/**
+ * Adds the pack and its strap to a caravan.
+ *
+ * Both variants go through it and neither may inline it: the bale is placed off
+ * `TRADER_PACK` too, so a pack nudged in one factory and not the other would
+ * leave a gilt box hanging in the air beside the burden it is supposed to be
+ * roped to. Returns the `Mini` rather than the built piece so a caller can go on
+ * adding — which the laden one does not need today and the next variant will.
+ */
+function addTraderPack(mini: Mini, spec: MiniSpec): Mini {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const packY = t + h * TRADER_PACK.atHeight;
+  mini.add(
+    'wood',
+    slabAt(
+      TRADER_PACK.width,
+      TRADER_PACK.height,
+      TRADER_PACK.depth,
+      TRADER_PACK.x,
+      packY,
+      TRADER_PACK.z,
+    ),
+  );
+  const strap = TRADER_PACK.strap;
+  mini.add(
+    'accent',
+    slabAt(
+      strap.width,
+      strap.height,
+      strap.depth,
+      TRADER_PACK.x,
+      packY + strap.lift,
+      TRADER_PACK.z + TRADER_PACK.depth / 2,
+    ),
+  );
+  return mini;
+}
 
 /** Archer: token with a self bow held at the side and a quiver on the back. */
 export const archerMini: MiniFactory = (spec) => {
