@@ -393,6 +393,15 @@ would change every seeded outcome. No further rename passes.
   also why the lock is never a zero-cost edge, which both searches' settle-once guarantee needs.
   `zocField(state, ownerId)` is hoisted once per search beside `unitDef`; building one per edge
   is the shape to avoid, not the rule.
+- **Combat is flat points on one ledger** (2026-08-28, Entry XXXVII). Terrain and
+  fortification are labelled strength lines in `planCombat`'s defender fold (`explainTerrainDefense`,
+  `fortifyBonus` in points), never a multiplier; the only percentages left are the attacker's
+  own (river, `cardCombatPercent`). A city's base strength is `cityBaseStrength` — the best unit
+  `buildError` would let its owner build — and its maximum health is `cityMaxHp` (`cityBaseHp` +
+  every building's `cityHp`, read in `buildingEffects.ts`); nothing compares `hp` against
+  `cityBaseHp` directly. **`siegeField` is not `zocField`** and must stay separate: the Great
+  Wall's `zocRule` makes every owned hex a source, which would besiege a town inside that
+  empire's borders by nobody. `underSiege` is derived per turn, never stored.
 - **Tile ownership has two readings and a sweep asks the field.** `tileOwnerPlayerId(state, col,
   row)` is the *coordinate-shaped* reading — one hex, resolved through `getTileAt` and a walk of
   `state.cities` — and it is fine from a verb. `tileOwnerField(state)` (`cities.ts`, beside it) is

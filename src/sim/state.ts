@@ -970,7 +970,7 @@ export interface City {
    * A city is never destroyed by damage — ranged fire floors it at 1 (the Civ
    * rule: bombardment softens, infantry takes) and a melee blow that would empty
    * it captures it instead, restoring `combat.cityCaptureHpFraction` of the
-   * maximum under its new owner. So `hp` is always in `[1, cityBaseHp]`.
+   * maximum under its new owner. So `hp` is always in `[1, cityMaxHp(city)]`.
    */
   hp: number;
   /** Food banked toward the next population point. May go negative: starvation. */

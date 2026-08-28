@@ -3486,3 +3486,26 @@ naval units, the Hall of Deeds, act amplification, **legacy revocation** — not
 legacy, by rule) and the one-row shapes the "no shape for one row" rule refused (Deborah,
 Spartacus, Hemiunu, Ea-nāṣir, Hero, Mimar Sinan, Homer's prohibition). Eratosthenes and
 Zhang Qian pay per twenty revealed hexes exactly as ratified — flagged, not capped.
+
+**Combat, the same day (the second half of this entry).** *"Terrain bonuses should be additive,
+not percentage"* — ruled after the Civ V / Civ VI comparison (V multiplies, VI adds): terrain
+and fortification are **strength points on the defender's ledger** now — hills +3, forest and
+jungle +2 (`data/terrain.json`, `explainTerrainDefense` and its fold), fortified +2 a turn to
++4 — one kind of number beside every card and wonder, never a multiplier; the two attacker-side
+percentages (river, `cardCombatPercent`) are the only ones left. *"City's base defensive
+strength is equal to strongest trainable unit (strategic resource rules apply)"* — `cityBaseStrength`
+is the highest strength among the unit types `buildError` admits for the owner, so tech and an
+improved strategic seam are one implementation and a pillaged mine lowers the walls that turn;
+the per-population term is zeroed, kept, and re-enabled by one number. *"Defensive buildings
+raise defensive strength and city health"* — `BuildingDef.cityHp`, read in `buildingEffects.ts`
+like every non-yield building fact, folds into `cityMaxHp`; the palisade 25, Uruk 50, the Great
+Wall 25; one clamp wherever hp moves. *"Cities under siege (all surrounding tiles under zone of
+control) take slow chip damage and cannot heal"* — `underSiege` is derived every turn from
+`siegeField`, **deliberately not `zocField`**: the Great Wall's `zocRule` makes every owned hex a
+source, under which a town inside that empire's borders would be besieged by nobody; the siege
+field is armies and towns only, an open sea lane counts as a supply line unless a piece stands on
+it, and a mountain-ringed town is not besieged by nature. Five a turn, floored at one — a siege
+never captures by itself. The news is `CommandResult.sieges`, reported even at zero damage,
+because a city that *stops* appearing has been relieved. Lautaro's "+3 against mounted" needed
+the target's class in the combat situation (`combatLine.vsClass`); Crassus and Fugger's building
+purchases needed `purchaseRider.on`, defaulting to units so the Ziggurat is byte-identical.
