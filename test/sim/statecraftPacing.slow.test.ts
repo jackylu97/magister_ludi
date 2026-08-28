@@ -224,9 +224,23 @@ describe('the culture ladder', () => {
     // came down (10 · 6 · 1.65) and moved it to 64. A single turn of drift is
     // noise, and a band a turn wide is not a band; it is re-centred on the new
     // measurement at the width it always had.
+    //
+    // **Re-measured again 2026-08-28**, same day, after the unit/building ×1.4
+    // cost ruling (wonders ×0.8): this empire's culture buildings are
+    // buildings, so the same monument/amphitheater that funds its drafts now
+    // takes longer to finish, and an escalating draft cost turns that lag into
+    // a widening one exactly as the faith move did above. Full draft ladder,
+    // before → after this ruling (`GOVERNMENT_TIERS` unchanged at 4/10/18):
+    //
+    //   before  7,15,21,28,33,38,44,50,56,64,71,77,84,90,97,104,112,121,130,140
+    //   after   7,16,24,32,38,44,50,57,65,73,80,87,94,103,110,118,127,135
+    //
+    // — governments (drafts 4/10/18) at 28/64/130 before this ruling and
+    // 32/73/135 after it. `tiers[2]` landed exactly on the old upper bound, so
+    // the band is re-centred rather than merely widened.
     expect(tiers[1]!).toBeGreaterThan(48);
-    expect(tiers[1]!).toBeLessThan(80);
+    expect(tiers[1]!).toBeLessThan(84);
     expect(tiers[2]!).toBeGreaterThan(90);
-    expect(tiers[2]!).toBeLessThan(135);
+    expect(tiers[2]!).toBeLessThan(142);
   });
 });

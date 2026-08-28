@@ -1420,10 +1420,12 @@ describe('windfall settlement (Entry XVIII)', () => {
 
   it('completes an exactly-paid item and banks no overflow', () => {
     const { state, city, worker } = chopper();
-    // A library is priced at exactly what a wood pays, so this is the edge:
-    // `hammerBasket >= cost` with nothing over.
-    expect(buildingDef('library').cost).toBe(TIMBER);
+    // Re-pinned 2026-08-28: the ×1.4 cost ruling left no building priced at
+    // exactly what a wood pays (TIMBER=20 against 15/21/25/28…), so the edge —
+    // `hammerBasket >= cost` with nothing over — is built by hand instead: top
+    // the basket up to one wood short of the library's price first.
     city.queue = [{ kind: 'building', id: 'library' }];
+    city.hammerBasket = buildingDef('library').cost - TIMBER;
 
     expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
     expect(city.buildings).toEqual(['library']);
@@ -1433,17 +1435,20 @@ describe('windfall settlement (Entry XVIII)', () => {
 
   it('completes an overpaid item and carries the exact overflow', () => {
     const { state, city, worker } = chopper();
+    // Re-pinned 2026-08-28: the granary used to be the cheap building here
+    // (15 < TIMBER=20), but the ×1.4 ruling put it above a single wood's
+    // yield (21 > 20). The shrine is the one row still under TIMBER.
     city.queue = [
-      { kind: 'building', id: 'granary' },
+      { kind: 'building', id: 'shrine' },
       { kind: 'building', id: 'monument' },
     ];
 
     expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
-    expect(city.buildings).toEqual(['granary']);
+    expect(city.buildings).toEqual(['shrine']);
     // At most one item, exactly as the phase does it — the monument is still
     // queued and the change is in the basket.
     expect(city.queue).toEqual([{ kind: 'building', id: 'monument' }]);
-    expect(city.hammerBasket).toBe(TIMBER - buildingDef('granary').cost);
+    expect(city.hammerBasket).toBe(TIMBER - buildingDef('shrine').cost);
   });
 
   it('leaves the queue untouched when the timber does not cover the front', () => {
@@ -1525,7 +1530,9 @@ describe('windfall settlement (Entry XVIII)', () => {
 
   it('hands an empty queue to the End Turn blocker rather than forcing a choice', () => {
     const { state, city, worker } = chopper();
-    city.queue = [{ kind: 'building', id: 'granary' }];
+    // A shrine (see the ×1.4 re-pin above): the one non-wonder row a single
+    // wood still completes outright.
+    city.queue = [{ kind: 'building', id: 'shrine' }];
 
     expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
     expect(city.queue).toEqual([]);
@@ -1609,11 +1616,13 @@ describe('windfall settlement (Entry XVIII)', () => {
     });
 
     it('is the preview the worker sheet promises with', () => {
-      // One evaluator, so "completes Granary!" on the button and the completion
+      // One evaluator, so "completes Shrine!" on the button and the completion
       // a moment later cannot disagree — no parallel arithmetic in the UI.
+      // Shrine, not granary, since the ×1.4 re-pin above (2026-08-28) put the
+      // granary above a single wood's yield.
       const { state, city } = chopper();
-      city.queue = [{ kind: 'building', id: 'granary' }];
-      expect(productionSettledBy(state, city, TIMBER)).toBe(buildingDef('granary').name);
+      city.queue = [{ kind: 'building', id: 'shrine' }];
+      expect(productionSettledBy(state, city, TIMBER)).toBe(buildingDef('shrine').name);
       expect(productionSettledBy(state, city, 0)).toBeNull();
 
       city.queue = [{ kind: 'building', id: 'university' }];

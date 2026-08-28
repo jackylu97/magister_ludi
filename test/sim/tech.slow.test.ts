@@ -337,14 +337,15 @@ describe('pacing', () => {
     );
     // And the prices, read straight off it.
     expect(median).toBe(3);
-    // The scout is the anchor and it did not move in the build-sink pass
-    // (Entry XXVI): three turns at the median rate is what an opening scout is
-    // for. The warrior did — the whole Age I roster went up ~40% against a tech
-    // pace that had outrun it — and two turns is what a first warrior now costs
-    // a median capital, up from one and a bit.
-    expect(unitDef('scout').cost).toBe(median * 3);
-    expect(unitDef('warrior').cost).toBe(7);
-    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(3);
+    // **Re-pinned 2026-08-28** (user ruling: units and buildings ×1.4, wonders
+    // ×0.8). The scout's old anchor — nine hammers set exactly against three
+    // turns at the median rate — does not survive a flat multiplier on every
+    // roster row: the scout rose with the rest of Age I and is now read off the
+    // roster rather than derived from the rate. The warrior rose the same
+    // ×1.4 and now costs four turns of the median rate, not three.
+    expect(unitDef('scout').cost).toBe(13);
+    expect(unitDef('warrior').cost).toBe(10);
+    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(4);
   }, 30_000);
 
   it('turns a fresh capital into a scout at exactly its own rate', () => {
@@ -379,8 +380,10 @@ describe('pacing', () => {
     const cost = unitDef('scout').cost;
     expect(turns, `${cost}⚙ at ${rate}⚙ a turn`).toBe(Math.ceil(cost / rate));
     // A scout inside the first handful of turns, whatever the roll: the opening
-    // is not allowed to become a scoutless one.
-    expect(`scout on turn ${turns}`).toBe(`scout on turn ${Math.min(turns, 5)}`);
+    // is not allowed to become a scoutless one. Bound re-pinned 2026-08-28 with
+    // the scout's ×1.4 cost rise (9 → 13⚙): this fixed seed's own opening rate
+    // now takes it to turn 7.
+    expect(`scout on turn ${turns}`).toBe(`scout on turn ${Math.min(turns, 7)}`);
   }, 30_000);
 
   /**
@@ -472,7 +475,8 @@ describe('pacing', () => {
     };
 
     const first = unitProductionCost(game.state, 0, 'settler');
-    expect(first).toBe(20);
+    // Re-pinned 2026-08-28 with the settler's ×1.4 cost rise (20 → 28⚙).
+    expect(first).toBe(28);
     const firstBuild = buildSettler(first);
     expect(firstBuild.income.every((rate) => rate > 0)).toBe(true);
     expect(firstBuild.turns, `${first}⚙ off ${firstBuild.income.join('+')}`).toBe(

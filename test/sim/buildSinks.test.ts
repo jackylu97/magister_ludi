@@ -346,24 +346,26 @@ describe('the roster is priced in the money of its own age', () => {
 
   it('leaves Age I where the opening is balanced and lifts the later rosters', () => {
     const state = flatState();
-    // The anchor: the scout is three turns at the median opening rate and did
-    // not move in this pass. Everything else in Age I went up ~40%.
-    expect(unitProductionCost(state, 0, 'scout')).toBe(9);
-    expect(unitProductionCost(state, 0, 'warrior')).toBe(7);
-    expect(unitProductionCost(state, 0, 'worker')).toBe(10);
-    expect(unitProductionCost(state, 0, 'spearman')).toBe(8);
-    expect(unitProductionCost(state, 0, 'archer')).toBe(8);
-    // The mounted premium, which is the pass's second half: a horse is a
-    // decision arrived at sooner and now priced like one.
-    expect(unitProductionCost(state, 0, 'horseman')).toBe(12);
-    expect(unitProductionCost(state, 0, 'chariot')).toBe(17);
-    expect(unitProductionCost(state, 0, 'chariotArcher')).toBe(14);
-    // Age II at ×1.5, Age III at ×2, off the printed row.
-    expect(unitProductionCost(state, 0, 'swordsman')).toBe(13);
-    expect(unitProductionCost(state, 0, 'catapult')).toBe(16);
-    expect(unitProductionCost(state, 0, 'pikeman')).toBe(24);
-    expect(unitProductionCost(state, 0, 'knight')).toBe(32);
-    expect(unitProductionCost(state, 0, 'trebuchet')).toBe(34);
+    // **Re-pinned 2026-08-28** (user ruling: units and buildings ×1.4 on
+    // `cost`, wonders ×0.8). The pass's own anchor moved with the rest of the
+    // roster — every printed `cost` below is the pre-ruling figure ×1.4,
+    // nearest hammer — and the age-band multiplier still applies on top of it.
+    expect(unitProductionCost(state, 0, 'scout')).toBe(13);
+    expect(unitProductionCost(state, 0, 'warrior')).toBe(10);
+    expect(unitProductionCost(state, 0, 'worker')).toBe(14);
+    expect(unitProductionCost(state, 0, 'spearman')).toBe(11);
+    expect(unitProductionCost(state, 0, 'archer')).toBe(11);
+    // The mounted premium, which is the earlier pass's second half: a horse is
+    // a decision arrived at sooner and now priced like one, ×1.4 again.
+    expect(unitProductionCost(state, 0, 'horseman')).toBe(17);
+    expect(unitProductionCost(state, 0, 'chariot')).toBe(24);
+    expect(unitProductionCost(state, 0, 'chariotArcher')).toBe(20);
+    // Age II at ×1.5, Age III at ×2, off the printed (already ×1.4) row.
+    expect(unitProductionCost(state, 0, 'swordsman')).toBe(19);
+    expect(unitProductionCost(state, 0, 'catapult')).toBe(22);
+    expect(unitProductionCost(state, 0, 'pikeman')).toBe(34);
+    expect(unitProductionCost(state, 0, 'knight')).toBe(44);
+    expect(unitProductionCost(state, 0, 'trebuchet')).toBe(48);
   });
 
   it('is the fold of its own labelled lines, escalation included', () => {
@@ -479,8 +481,9 @@ describe('the palisade is a wall the town built', () => {
   });
 
   it('costs what an Age I sink should: a real decision against a settler', () => {
-    expect(buildingDef('palisade').cost).toBe(30);
-    expect(buildingDef('funeralGames').cost).toBe(35);
+    // Re-pinned 2026-08-28: every non-wonder building's `cost` rose ×1.4.
+    expect(buildingDef('palisade').cost).toBe(42);
+    expect(buildingDef('funeralGames').cost).toBe(49);
     // Both dearer than the opening settler, which is the point of a sink: it is
     // the thing a town does when expansion is no longer the obvious answer.
     expect(buildingDef('palisade').cost).toBeGreaterThan(unitDef('settler').cost);

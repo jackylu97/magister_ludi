@@ -122,7 +122,7 @@ function playWarband(maxTurns: number): Game {
 }
 
 describe('what the pass did to the opening', () => {
-  it('leaves the median capital opening on three hammers, scout unmoved', () => {
+  it('leaves the median capital opening on three hammers, unit prices read off the roster', () => {
     const openings: number[] = [];
     for (const seed of [
       4242, 1, 2, 3, 7, 11, 42, 99, 777, 1234, 2024, 2468, 31337, 555, 8888, 90210, 5, 6, 8, 9, 12,
@@ -154,13 +154,23 @@ describe('what the pass did to the opening', () => {
      * balanced around, and the warrior joining the scout there is the whole
      * intent: a first unit is now a *turn* of commitment rather than a rounding
      * error against a 15🔬 technology.
+     *
+     * **Re-measured 2026-08-28** (user ruling: units and buildings ×1.4,
+     * wonders ×0.8). The median opening rate did not move — this was a price
+     * pass again, not a ground one — but the flat multiplier landed on the
+     * anchor along with everything else, so "scout unmoved" no longer holds
+     * literally:
+     *
+     *   scout    9⚙ → 13⚙, 3 turns → **5**
+     *   warrior  7⚙ → 10⚙, 3 turns → **4**
+     *   worker  10⚙ → 14⚙, 4 turns → **5**
      */
     expect(median).toBe(3);
     expect(openings[0]).toBeGreaterThanOrEqual(2);
     expect(openings[openings.length - 1]).toBeLessThanOrEqual(6);
-    expect(Math.ceil(unitDef('scout').cost / median)).toBe(3);
-    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(3);
-    expect(Math.ceil(unitDef('worker').cost / median)).toBe(4);
+    expect(Math.ceil(unitDef('scout').cost / median)).toBe(5);
+    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(4);
+    expect(Math.ceil(unitDef('worker').cost / median)).toBe(5);
   }, 60_000);
 
   it('costs the warband empire a quarter of its army by turn 40', () => {
@@ -213,6 +223,11 @@ describe('what the pass did to the opening', () => {
      * silently make units free again, and that claim is unaffected by the ground
      * being richer. The technology count is a floor now for the same reason —
      * the tree gets wider from time to time and this test is not about the tree.
+     *
+     * **Re-measured 2026-08-28: 11 units, same 3 cities**, after the ×1.4 unit
+     * cost ruling. The band already covered it (10–14) — a price rise on
+     * exactly the thing this empire spends its hammers on is what the band's
+     * lower bound exists to still permit, not to flag.
      */
     expect(game.state.turn).toBe(41);
     expect(game.state.cities.length).toBe(3);
