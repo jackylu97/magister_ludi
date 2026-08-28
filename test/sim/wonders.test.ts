@@ -67,6 +67,7 @@ import { projectDef } from '../../src/sim/projectData';
 import { unitDef } from '../../src/sim/unitData';
 import { GOVERNMENT_IDS, governmentDef, poolDoctrines } from '../../src/sim/statecraftData';
 import { findPath, moveProfile, reachableTiles, stepCost, zocField } from '../../src/sim/pathfind';
+import { advanceAlongPath } from '../../src/sim/movement';
 import { fullMovement } from '../../src/sim/units';
 import { cityResources, claimTile, ownedTiles } from '../../src/sim/cities';
 import { RESOURCE_IDS, resourceDef } from '../../src/sim/resourceData';
@@ -647,15 +648,20 @@ describe('the Great Wall', () => {
     const field = zocField(state, 0);
     expect(field.sources.some((s2) => s2.col === heart.col && s2.row === heart.row)).toBe(true);
     // A step from one hex of that border to the next stays alongside the same
-    // owned hex, so it is a slide and it costs the mover its turn.
+    // owned hex, so it is a slide and it pays the toll — every hex of the
+    // crossing, which is what makes a walled country slow rather than shut.
     const [from, along] = ring(state.map, heart);
     const walker = unit(state, from!, 'warrior', 0);
     const mover = moveProfile(state, walker);
-    expect(stepCost(state.map, from!, along!, mover, field)!.locked).toBe(true);
-    // And the same board without the Wall locks nothing at all.
+    const inside = stepCost(state.map, from!, along!, mover, field)!;
+    expect(inside.zoc).toBe(true);
+    expect(inside.cost).toBe(1 + RULES.movement.zocExtraCost);
+    // And the same board without the Wall tolls nothing at all.
     theirs.buildings = [];
     state.wonders = [];
-    expect(stepCost(state.map, from!, along!, mover, zocField(state, 0))!.locked).toBe(false);
+    const open = stepCost(state.map, from!, along!, mover, zocField(state, 0))!;
+    expect(open.zoc).toBe(false);
+    expect(open.cost).toBe(1);
   });
 
   it('stops the highlight exactly where the walk stops', () => {
@@ -669,13 +675,19 @@ describe('the Great Wall', () => {
 
     const [from, along] = ring(state.map, heart);
     const walker = unit(state, from!, 'warrior', 0);
-    // The overlay and the reducer are two readers of one evaluator: the locked
-    // hex is reachable, at the turn boundary, and the path to it is one step.
+    // The overlay and the reducer are two readers of one evaluator: the tolled
+    // hex is reachable, at the ground's price plus the toll, and the path to it
+    // is one step.
     const reach = reachableTiles(state, walker);
     const found2 = reach.find((entry) => entry.tile === along);
     expect(found2).toBeDefined();
-    expect(found2!.cost).toBe(fullMovement(walker, state));
+    expect(found2!.cost).toBe(1 + RULES.movement.zocExtraCost);
     expect(findPath(state, walker, along!)).toHaveLength(1);
+    // A two-point warrior spends its whole turn on one hex of a walled border,
+    // and the walk agrees with the sweep about that.
+    advanceAlongPath(state, walker, findPath(state, walker, along!)!);
+    expect([walker.col, walker.row]).toEqual([along!.col, along!.row]);
+    expect(walker.movesLeft).toBe(fullMovement(walker, state) - found2!.cost);
   });
 
   it('costs nothing at all in a world where nobody holds it', () => {

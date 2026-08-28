@@ -605,4 +605,20 @@ describe('never hand-written prose about a number', () => {
     expect(prose).toContain('under siege');
     expect(prose).toContain('only an attack can capture it');
   });
+
+  it('states the zone of control as a toll and the general’s aura as a bonus', () => {
+    // The user's 2026-08-28 rulings, in the two sentences a player reads. The
+    // zone of control stopped ending a unit's movement and became a price, and
+    // the Compendium must not keep describing the rule it replaced.
+    const combat = CONCEPT_ENTRIES.find((entry) => entry.id === 'concept:combat')!;
+    const prose = combat.clauses.map((clause) => clause.text).join(' ');
+    expect(prose).toContain(
+      'moving from one hex next to an enemy to another hex next to the same enemy costs one extra movement point',
+    );
+    expect(prose).not.toContain('ends your movement');
+    // And the general: what it does, that it is passive, and its two limits.
+    expect(prose).toContain('great general');
+    expect(prose).toContain('left standing on the map');
+    expect(prose).toContain('does not stack with a second general');
+  });
 });

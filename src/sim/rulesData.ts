@@ -65,6 +65,24 @@ export interface MovementRules {
    * `stepCost` states and the reason the price needs both tiles.
    */
   roadCostThirds: number;
+  /**
+   * What a step **along an enemy's zone of control** costs *on top of* the
+   * ground's own price (`stepCost` in `pathfind.ts`).
+   *
+   * A whole movement point, and the whole of the 2026-08-28 ruling: a slide
+   * from one hex a picket touches to another hex the same picket touches used
+   * to complete and then take everything the mover had left. It is a toll now
+   * rather than a wall, so a three-point column may still slide and march on
+   * with what is left, and a one-point column pays what it has — the ordinary
+   * overspend forgiveness, which is the same clause a warrior walking into a
+   * forest already relies on.
+   *
+   * Whole, because movement points are exact thirds and a toll of a third would
+   * be a rule a player cannot feel. It is added to the price rather than
+   * replacing it, so a road step alongside a picket is still a cheap step with
+   * a toll on it.
+   */
+  zocExtraCost: number;
 }
 
 export interface StackingRules {
@@ -129,7 +147,16 @@ export interface CombatRules {
   riverAttackPenalty: number;
   /** Reserved for the flanking rule; 0 in v1, and nothing reads it yet. */
   flankingBonus: number;
-  /** Hit points a city has **before its buildings**; see `cityMaxHp`. */
+  /**
+   * Hit points a city has **before its buildings**; see `cityMaxHp`.
+   *
+   * **100 since 2026-08-28** (user ruling), halved from 200. Every other figure
+   * that acts on a town's health is expressed against it — the capture fraction
+   * is a fraction, the heal and the siege chip are flat — so halving the base
+   * doubles what each of those is worth as a share, which is the intent: a
+   * siege bites, a wall matters, and an army that has surrounded a town is not
+   * spending twenty turns proving it.
+   */
   cityBaseHp: number;
   /**
    * The floor under a city's garrison strength — what a town defends with when
@@ -156,6 +183,12 @@ export interface CombatRules {
   /**
    * Hit points a **besieged** city loses every turn, floored at 1 — see
    * `underSiege`. A siege never takes a town on its own; somebody has to attack.
+   *
+   * Unchanged at 5 across the 2026-08-28 halving of `cityBaseHp`, and that is
+   * the decision rather than an oversight: it was 2.5% of a bare town's health
+   * and it is **5%** of one now, so the same encirclement is worth twice what it
+   * was. The figure a designer is really setting is that share, and it moves by
+   * leaving this line still.
    */
   siegeDamagePerTurn: number;
   /**
@@ -782,6 +815,19 @@ export interface GreatPeopleRules {
   generalCombat: number;
   /** How many turns that strength lasts. */
   generalTurns: number;
+  /**
+   * How far a great general's **standing aura** reaches, in hexes (user,
+   * 2026-08-28).
+   *
+   * Its own pair of numbers rather than `generalRadius`/`generalCombat` reused,
+   * because the act and the aura are two different offers a player weighs
+   * against each other: the act is a burst that heals a column and expires, the
+   * aura is what the piece is worth for as long as it is left standing. A
+   * designer sharpening one must be able to leave the other alone.
+   */
+  generalAuraRange: number;
+  /** Strength every friendly soldier in that reach fights with. */
+  generalAuraStrength: number;
   /** How far a citadel claims ground around itself, in hexes. */
   citadelClaimRadius: number;
 }

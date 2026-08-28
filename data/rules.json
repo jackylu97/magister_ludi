@@ -8,7 +8,8 @@
   "movement": {
     "minStepCost": 1,
     "embarkCost": 1,
-    "roadCostThirds": 1
+    "roadCostThirds": 1,
+    "zocExtraCost": 1
   },
   "stacking": {
     "perCategoryPerTile": 1
@@ -28,7 +29,7 @@
     "fortifyMax": 4,
     "riverAttackPenalty": 0.2,
     "flankingBonus": 0,
-    "cityBaseHp": 200,
+    "cityBaseHp": 100,
     "cityMinStrength": 8,
     "cityStrengthPerPop": 0,
     "cityHealPerTurn": 20,
@@ -226,6 +227,8 @@
     "generalRadius": 2,
     "generalCombat": 3,
     "generalTurns": 5,
+    "generalAuraRange": 2,
+    "generalAuraStrength": 3,
     "citadelClaimRadius": 1
   },
   "production": {

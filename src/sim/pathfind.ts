@@ -20,10 +20,16 @@
  *
  * And since Entry XXV it is a property of the destination, the mover *and the
  * tile the step is taken from*: a step that slides along an enemy's zone of
- * control completes and then takes everything the mover had left. That is the
- * one thing a price cannot be asked of a lone tile, which is why `stepCost` —
- * `from`, `to`, mover, board — is now THE evaluator and `tileMoveCost` is the
- * ground's own half of it.
+ * control pays the ground's price **plus `rules.movement.zocExtraCost`**. That
+ * is the one thing a price cannot be asked of a lone tile, which is why
+ * `stepCost` — `from`, `to`, mover, board — is now THE evaluator and
+ * `tileMoveCost` is the ground's own half of it.
+ *
+ * The toll is the whole of the zone of control (user, 2026-08-28: "make ZOC as
+ * +1"). It used to be a *lock* — the step completed and then emptied the purse
+ * — which needed a turn boundary, a purse inside both searches and a clause in
+ * the walk, and none of that is left: a price that is only ever a number is a
+ * price four readers cannot disagree about.
  *
  * Since Entry XXVII the mover is a `MoveProfile` rather than a bare `UnitDef`,
  * because the second thing a step's price now depends on is the mover's
@@ -47,11 +53,13 @@
  *
  * Because every step costs a positive number — `rules.movement.minStepCost` off
  * a road, `roadStepCost` on one — there are no zero-cost edges, which is what
- * lets both searches settle a node the first time they pop it. A zone-of-control
- * lock keeps that guarantee: it moves the running total to the *end of the
- * current turn*, which is always strictly beyond where the step started from.
- * The A* heuristic is scaled by `cheapestStepCost` rather than by the floor, so
- * it stays admissible over paved ground.
+ * lets both searches settle a node the first time they pop it. The zone of
+ * control keeps that guarantee for free now that it is a toll: `zocExtraCost` is
+ * added to an already-positive price and is itself positive, so a bound step is
+ * strictly dearer than the same step in open country and never cheaper than
+ * nothing. The A* heuristic is scaled by `cheapestStepCost` rather than by the
+ * floor, so it stays admissible over paved ground — and a toll only ever makes
+ * an edge dearer, which is the direction admissibility can absorb.
  *
  * Blocking
  * --------
@@ -336,14 +344,14 @@ export interface ZocField {
  *   - **Enemy *borders*, for a seat whose law says so** — the Great Wall, and
  *     the only card in the game that speaks to this field (`zocRule`). Every hex
  *     that empire owns projects control exactly as one of its spearmen would,
- *     which means that inside such a border **every step is a locked step**: a
+ *     which means that inside such a border **every step pays the toll**: a
  *     mover crossing it is always leaving one owned hex alongside another, so it
- *     completes the step and then empties its purse. That is the intent and it
- *     is Civ V's Great Wall — a wall is not a fence, it is a country you cross
- *     one day at a time.
+ *     pays `zocExtraCost` on top of the ground for every hex of the crossing.
+ *     That is the intent and it is Civ V's Great Wall — a wall is not a fence,
+ *     it is a country that is slow to cross.
  *
  * The clause is a *source*, and that is the whole of why it costs nothing else:
- * the lock's arithmetic (`zocLocks`, `stepArrival`) and its four readers are
+ * the toll's arithmetic (`zocBinds`, `stepCost`) and its four readers are
  * untouched, because they only ever ask this field what it projects from. It is
  * hoisted once per search like everything else here.
  *
@@ -406,7 +414,8 @@ export function zocField(state: GameState, ownerId: number): ZocField {
 }
 
 /**
- * THE zone-of-control rule: does stepping `from` → `to` end the mover's turn?
+ * THE zone-of-control rule: is stepping `from` → `to` a slide along a picket,
+ * and therefore dearer by `rules.movement.zocExtraCost`?
  *
  * Civ V's rule exactly, and the "same piece" clause is the whole of it: leaving
  * one enemy's shadow for another's is a march, not a slide, and only a step that
@@ -415,10 +424,12 @@ export function zocField(state: GameState, ownerId: number): ZocField {
  * costs — which is what makes a line of spearmen a line rather than a set of
  * six-hex tolls.
  *
- * The step still happens. A lock is a price, never a wall; `to` was already
- * cleared by `canTransit`, so an enemy-held hex was never on the table.
+ * The step still happens. This is a price, never a wall; `to` was already
+ * cleared by `canTransit`, so an enemy-held hex was never on the table. What it
+ * *was* until 2026-08-28 is a lock that emptied the purse, and the toll is the
+ * user's ruling in its place — same predicate, ordinary arithmetic.
  */
-export function zocLocks(map: GameMap, field: ZocField, from: Tile, to: Tile): boolean {
+export function zocBinds(map: GameMap, field: ZocField, from: Tile, to: Tile): boolean {
   if (field.sources.length === 0) return false;
   if (field.adjacent[tileIndex(map, from.col, from.row)] !== 1) return false;
   if (field.adjacent[tileIndex(map, to.col, to.row)] !== 1) return false;
@@ -454,11 +465,11 @@ export function inZoneOfControl(state: GameState, unit: Unit): boolean {
  * What a mover may still spend before its turn ends, and what it gets back
  * after.
  *
- * A zone-of-control lock costs "everything you have left", which is a fact about
- * the *turn* rather than about the step — so the moment the rule went into the
- * evaluator, the evaluator's callers had to be able to say where a turn ends.
- * Two numbers are enough: this turn is short by whatever has already been spent,
- * every later one is a full allowance.
+ * Two numbers, because "how many turns is that march" is two questions: this
+ * turn is short by whatever has already been spent, every later one is a full
+ * allowance. `pathTurns` is the reader — the searches stopped needing a purse
+ * the day the zone of control became a toll, since a toll is paid out of the
+ * same purse as the ground and needs nobody to say where a turn ends.
  *
  * `refill` is `fullMovement`, so a card that pays movement pays it here too —
  * there is still exactly one place a movement allowance is decided.
@@ -475,36 +486,27 @@ export function movePurse(state: GameState, unit: Unit): MovePurse {
   return { left: Math.max(0, unit.movesLeft), refill: fullMovement(unit, state) };
 }
 
-/**
- * The running total at which the turn containing `spent` ends.
- *
- * Strictly greater than `spent` for every input, which is the property both
- * searches lean on: a locked step lands here, so it is never a zero-cost edge
- * and never walks a total backwards. A unit with nothing left (`left === 0`)
- * is already at a boundary, so its next turn's boundary is one full allowance
- * on — a lock next turn costs that whole turn, which is the rule.
- */
-export function turnBoundary(spent: number, purse: MovePurse): number {
-  if (spent < purse.left) return purse.left;
-  // Snapped for `snapMovement`'s reason: `spent` may be a sum of road thirds,
-  // and a boundary that landed a hair off would make an equal total compare
-  // unequal in the searches' `best` arrays.
-  return snapMovement(
-    purse.left + purse.refill * (Math.floor(snapMovement(spent - purse.left) / purse.refill) + 1),
-  );
-}
-
 // --- the step evaluator -----------------------------------------------------
 
-/** What one step off a tile costs, and whether it ends the turn on arrival. */
+/** What one step off a tile costs, and why it costs that. */
 export interface StepPrice {
   /**
-   * Movement points this step asks: the destination's ground (`tileMoveCost`),
-   * or `roadStepCost` when both hexes are paved — always a whole third.
+   * Movement points this step asks, **everything included**: the destination's
+   * ground (`tileMoveCost`), or `roadStepCost` when both hexes are paved, plus
+   * `zocExtraCost` when the step slides along a picket. Always a whole third.
+   *
+   * The "everything included" is load-bearing. Nothing downstream of this
+   * function may add a term of its own — the four readers subtract this number
+   * from a purse and that is the whole of their arithmetic — which is what
+   * stops a highlight and a march disagreeing about a toll.
    */
   cost: number;
-  /** True when the step slides along an enemy's zone of control. */
-  locked: boolean;
+  /**
+   * True when the toll is in `cost`. Presentation only: a panel may say *why* a
+   * step is dear, and nothing in the sim reads it to price anything a second
+   * time.
+   */
+  zoc: boolean;
 }
 
 /**
@@ -528,8 +530,10 @@ export interface StepPrice {
  * — which is Civ's rule and the reason `Tile.road` is worth building at all. It
  * is asked strictly *after* impassability, exactly as `ignoresTerrainCost` is
  * (see `tileMoveCost`): no road makes a mountain walkable, because no road was
- * ever laid on one. The zone of control is untouched — a locked step is a locked
- * step, on a road or off it — and so are rivers and embarkation.
+ * ever laid on one. The zone of control rides **on top** of whichever price
+ * won, on a road or off it, and so it is the one term that is added rather than
+ * substituted: a highway through a picket is a cheap step with a toll on it.
+ * Rivers and embarkation are untouched.
  */
 export function stepCost(
   map: GameMap,
@@ -540,21 +544,24 @@ export function stepCost(
 ): StepPrice | null {
   const ground = tileMoveCost(to, mover);
   if (ground === null) return null;
-  const cost = isRoadStep(from, to) ? roadStepCost : ground;
-  return { cost, locked: zocLocks(map, field, from, to) };
+  const base = isRoadStep(from, to) ? roadStepCost : ground;
+  const zoc = zocBinds(map, field, from, to);
+  // Snapped for `snapMovement`'s reason: the base may be a road's third and the
+  // toll is a whole point, and a sum of the two has to compare equal to itself
+  // in the searches' `best` arrays.
+  return { cost: zoc ? snapMovement(base + RULES.movement.zocExtraCost) : base, zoc };
 }
 
 /**
  * The running total after paying `price` from a total of `spent`.
  *
- * The lock's arithmetic in one line, and it is deliberately *not* "the greater
- * of the ground's price and the boundary": a step that ends the turn ends it,
- * and the overspend a short purse would have forgiven is forgiven here too. So
- * after a lock the total sits exactly on a turn boundary, which is what lets
- * `reachableTiles` stop expanding there without a second rule about it.
+ * One line, and it is kept as a function anyway: it is the seam the two
+ * searches share with the walk, and it was where the zone of control's own
+ * arithmetic used to live. A fifth reader that grows a running total of its own
+ * adds it here or the four stop agreeing.
  */
-export function stepArrival(spent: number, price: StepPrice, purse: MovePurse): number {
-  return price.locked ? turnBoundary(spent, purse) : snapMovement(spent + price.cost);
+export function stepArrival(spent: number, price: StepPrice): number {
+  return snapMovement(spent + price.cost);
 }
 
 /**
@@ -575,8 +582,8 @@ export function stepArrival(spent: number, price: StepPrice, purse: MovePurse): 
  * order is resolved at the turn change and not before, and a column that gets
  * there on this turn's remaining points is still one turn away. Each refill it
  * needs on top of that is one more — which is where a zone of control shows up
- * in a number a player can read, since a slide along a picket empties the purse
- * and the next hex has to wait for the refill.
+ * in a number a player can read, since a march that pays a toll at every hex
+ * runs the purse down sooner and asks for a refill it would not have needed.
  *
  * `purse` defaults to what the unit is actually holding, which is the reading
  * every interface wants ("~N turns from now"). One caller passes a **full** one:
@@ -606,7 +613,7 @@ export function pathTurns(
     if (!from || !to) break;
     const price = stepCost(map, from, to, mover, field);
     if (price === null) break;
-    budget = price.locked ? 0 : Math.max(0, snapMovement(budget - price.cost));
+    budget = Math.max(0, snapMovement(budget - price.cost));
     from = to;
   }
   return turns + 1;
@@ -717,10 +724,9 @@ export function findPath(state: GameState, unit: Unit, goal: Tile): Cell[] | nul
   // be the same lookup a few thousand times.
   const mover = moveProfile(state, unit);
   if (!canStopOn(state, unit, goal, mover)) return null;
-  // The two other facts about the whole search, hoisted for `mover`'s reason:
-  // who holds ground against it, and where its turns end. See `stepCost`.
+  // The other fact about the whole search, hoisted for `mover`'s reason: who
+  // holds ground against it. See `stepCost`.
   const field = zocField(state, unit.ownerId);
-  const purse = movePurse(state, unit);
   // `cheapestStepCost`, not `minStepCost`: a road is cheaper than the floor, so
   // an estimate built on the floor would overestimate a highway and A* would
   // stop returning the cheapest route over exactly the ground a player paved.
@@ -753,11 +759,10 @@ export function findPath(state: GameState, unit: Unit, goal: Tile): Cell[] | nul
       const price = stepCost(map, tile, neighbor, mover, field);
       if (price === null) continue;
 
-      // A locked step lands on the end of the turn it was taken in, which is
-      // always strictly further along than where it started — so the heuristic
-      // stays admissible (no edge is cheaper than `minStep`) and a node still
-      // settles the first time it is popped.
-      const candidate = stepArrival(best[current]!, price, purse);
+      // Every edge is strictly positive — the ground's price, and a toll on top
+      // of it where a picket binds the step — so the heuristic stays admissible
+      // and a node still settles the first time it is popped.
+      const candidate = stepArrival(best[current]!, price);
       if (candidate >= best[index]!) continue;
       best[index] = candidate;
       cameFrom[index] = current;
@@ -788,10 +793,11 @@ export function findPath(state: GameState, unit: Unit, goal: Tile): Cell[] | nul
  * (see `movement.ts`). That is exactly what the executor does, so the highlight
  * and the move can never disagree.
  *
- * A zone-of-control lock rides that same clause. It lands the total exactly on
- * the allowance, so the tile is highlighted — the step does happen — and nothing
- * past it is, which is the rule drawn on the board rather than explained in a
- * tooltip.
+ * A zone-of-control toll rides that same clause and needs no clause of its own.
+ * It is a strictly positive addition to an ordinary price, so a bound step is
+ * reported when the mover can start it and the frontier stops behind it exactly
+ * where the purse runs out — the rule drawn on the board rather than explained
+ * in a tooltip, and by the same arithmetic a forest is.
  */
 export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
   const { map } = state;
@@ -804,11 +810,6 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
   // profile the executor will spend the points with.
   const mover = moveProfile(state, unit);
   const field = zocField(state, unit.ownerId);
-  // A single turn's purse, so `turnBoundary` inside the sweep is always
-  // `budget`: a locked step lands exactly on the allowance and the frontier's
-  // own "arriving with nothing left ends the move" clause stops it there. That
-  // is why nothing here needs a second rule about the zone of control.
-  const purse = movePurse(state, unit);
   const count = map.tiles.length;
   const best = new Float64Array(count).fill(Infinity);
   const settled = new Uint8Array(count);
@@ -839,7 +840,7 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
       const price = stepCost(map, tile, neighbor, mover, field);
       if (price === null) continue;
 
-      const candidate = stepArrival(cost, price, purse);
+      const candidate = stepArrival(cost, price);
       if (candidate >= best[index]!) continue;
       best[index] = candidate;
       open.push(index, candidate);

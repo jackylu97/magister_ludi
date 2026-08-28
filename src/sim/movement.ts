@@ -27,12 +27,12 @@
  *     order is *kept*. That is a traffic jam, not a wall — the unit waits and
  *     tries again next turn, once its own side has moved on.
  *
- * A third reason is neither a wall nor a jam: a step that slid along an enemy's
- * zone of control (Entry XXV) is *taken*, and takes the rest of the allowance
- * with it. The order is kept and the column resumes next turn, so a route that
- * was clear when it was approved and has an enemy standing beside it now stops
- * exactly where the rule says rather than where the plan hoped — the same
- * honesty the two clauses above are made of.
+ * There is no third reason. A step that slides along an enemy's zone of control
+ * (Entry XXV) is an ordinary step at a dearer price — the ground plus
+ * `rules.movement.zocExtraCost` — since the user's 2026-08-28 ruling, so a
+ * column marching past a picket simply runs out of points sooner and stops the
+ * way anything else that runs out of points stops. Nothing in this walk knows
+ * the rule exists; `stepCost` does.
  *
  * A stored path is always the *remaining* waypoints, never the walked ones, and
  * the key is deleted rather than set to `[]` when the order finishes, so an idle
@@ -113,14 +113,14 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
 
     const price = stepCost(state.map, from, tile, mover, field)!;
     // Overspending is forgiven, never borrowed: the allowance floors at zero.
-    // A zone-of-control lock is the same forgiveness read the other way — the
-    // step is taken and everything left over is gone with it.
+    // That one clause is what lets a picket's toll need no clause of its own —
+    // a piece with a point left may pay a two-point slide and arrive empty,
+    // exactly as it may walk into a forest with a point left.
     // Snapped, because a road step costs a third and three of them have to come
     // to exactly one point — see `snapMovement`. The allowance a unit carries is
     // always a whole third for the same reason.
-    const after = price.locked ? 0 : Math.max(0, snapMovement(unit.movesLeft - price.cost));
-    // `after === 0` already covers the lock, which is the point of spending it
-    // that way: a unit held by a picket comes to rest on the hex it stepped
+    const after = Math.max(0, snapMovement(unit.movesLeft - price.cost));
+    // A unit that has spent its last point comes to rest on the hex it stepped
     // onto, so the tile has to be one it may legally share.
     const wouldRestHere = after === 0 || index === path.length - 1;
     if (wouldRestHere && !canStopOn(state, unit, tile, mover)) {

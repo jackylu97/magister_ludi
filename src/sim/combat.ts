@@ -61,6 +61,12 @@
  * `terrainData.ts`, which itemises it); the fortify bonus is `turns × perTurn`
  * points, capped at `fortifyMax`.
  *
+ * "Every flat line" is a list and not a fixed set: the wild's tax, the empire's
+ * law, a citadel under the defender's feet, and — since 2026-08-28 — a **great
+ * general standing within a couple of hexes**, which is worth the same points to
+ * a charge as to a shield wall and names the general on the card
+ * (`generalAuraLines`).
+ *
  * The two percentages that survive are on the *attacker's* side and are both
  * facts about that army rather than about the ground: the river penalty, and
  * `cardCombatPercent`'s "−10% combat strength". Both multiply a unit's own base
@@ -129,9 +135,11 @@
  * A city every one of whose neighbouring hexes is denied to it — held or
  * overlooked by somebody hostile, and for a water hex actually *stood on* —
  * neither heals nor holds still: it loses `combat.siegeDamagePerTurn` in the
- * heal phase, floored at 1 hit point. A siege never takes a town on its own;
- * somebody still has to attack. Derived every turn and never stored, exactly as
- * a barbarian's role is — see `underSiege`.
+ * heal phase, floored at 1 hit point — **a twentieth of a bare town's health**
+ * since the 2026-08-28 halving of `cityBaseHp`, which is what that ruling was
+ * for: the chip is the same figure and it is worth twice what it was. A siege
+ * never takes a town on its own; somebody still has to attack. Derived every
+ * turn and never stored, exactly as a barbarian's role is — see `underSiege`.
  *
  * Deliberately deferred (v1 has none of these, on purpose)
  * -------------------------------------------------------
@@ -203,6 +211,7 @@ import {
   trades,
   unitDef,
 } from './unitData';
+import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { improvementDef } from './improvementData';
 import { awardOccasion } from './triumphs';
 import { hasStackingRoom, unitsOnTile } from './units';
@@ -591,6 +600,63 @@ export function foldCombatStrength(lines: readonly CombatStrengthLine[]): number
   return total;
 }
 
+// --- a general in the field -------------------------------------------------
+
+/**
+ * What a **standing great general** is worth to this piece, as the one labelled
+ * line it adds — or nothing (user, 2026-08-28: "units within two hexes gain +3
+ * combat strength").
+ *
+ * A *passive* aura, and that is the whole shape of it: the general's own act
+ * (`greatPersonActAt`, the timed strength it hangs on a column for a few turns)
+ * spends the piece, while this is what the piece is worth for as long as it is
+ * left standing on the board. The two are separate numbers in `rules.greatPeople`
+ * for exactly that reason — they are the two halves of the decision a player
+ * makes about a general, and a designer sharpening one must be able to leave the
+ * other alone.
+ *
+ * Four rules, and each is a sentence:
+ *
+ *   · **Soldiers only.** `isCombatant`, which is also why a general never
+ *     stiffens *itself*: it is a civilian, it cannot hold a hex, and an aura
+ *     that made the aura-bearer harder to kill would be a rule about hiding
+ *     rather than about leading.
+ *   · **One's own side.** Friendly by owner, the same reading everything else in
+ *     this file gives the word.
+ *   · **Auras do not stack.** The sweep returns at the *first* general in reach,
+ *     so a second one beside the same column is worth nothing — which is what
+ *     stops a stack of generals being the strongest army in the game.
+ *   · **`state.units` in array order**, never a `Map`, because "the first
+ *     general in reach" is an outcome and outcomes are settled by sweep order
+ *     (hard rule 2). Two generals equidistant give the same line on every
+ *     machine and on every replay.
+ *
+ * Read on **both sides** by `planCombat`, like every other flat line: a general
+ * is worth the same to a charge and to a shield wall.
+ */
+export function generalAuraLines(state: GameState, unit: Unit): CombatStrengthLine[] {
+  const amount = RULES.greatPeople.generalAuraStrength;
+  if (amount === 0) return [];
+  if (!isCombatant(unitDef(unit.type))) return [];
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return [];
+  const range = RULES.greatPeople.generalAuraRange;
+  const eye = tileHex(here);
+  for (const other of state.units) {
+    if (other.ownerId !== unit.ownerId) continue;
+    if (unitDef(other.type).greatWork !== true) continue;
+    const person = other.person;
+    if (person === undefined || !isGreatPersonId(person)) continue;
+    const def = greatPersonDef(person);
+    if (def.family !== 'general') continue;
+    const stands = getTileAt(state.map, other.col, other.row);
+    if (!stands) continue;
+    if (wrappedDistance(state.map, eye, tileHex(stands)) > range) continue;
+    return [{ source: `Great general · ${def.name}`, amount }];
+  }
+  return [];
+}
+
 /** Everything a forecast says, and everything the notice line needs. */
 export interface CombatForecast {
   kind: CombatKind;
@@ -872,6 +938,27 @@ function planCombat(
         side: 'defender',
         amount: fortification,
       });
+    }
+  }
+  /**
+   * **A general in the field**, on whichever side has one standing near enough.
+   *
+   * Beside the citadel's line for the citadel's reason: it is a fact about
+   * *where the piece is standing* rather than about the ground it is standing
+   * on, so it is a flat labelled point total and never a term in a multiplier —
+   * and it is named, so a forecast says which general is doing it. See
+   * `generalAuraLines`, which is the whole rule.
+   *
+   * A city gets none: a town is not a unit, it defends with a garrison it
+   * derives, and a general standing in the streets is already stiffening
+   * whatever soldier is on the parapet with it.
+   */
+  for (const line of generalAuraLines(state, attacker)) {
+    bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
+  }
+  if (target.unit) {
+    for (const line of generalAuraLines(state, target.unit)) {
+      bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
     }
   }
 

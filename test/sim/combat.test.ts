@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { buildingDef } from '../../src/sim/buildingData';
 import { foundCityAt } from '../../src/sim/cities';
 import {
   advanceFortify,
@@ -12,6 +13,7 @@ import {
   foldCityLines,
   foldCombatStrength,
   fortifyBonus,
+  generalAuraLines,
   hasLineOfSight,
   healCities,
   isFortified,
@@ -22,6 +24,7 @@ import {
 } from '../../src/sim/combat';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { type Game, createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { greatPersonDef } from '../../src/sim/greatPeopleData';
 import {
   type GameMap,
   type Tile,
@@ -1419,11 +1422,92 @@ describe('the strength breakdown', () => {
     // `cityHp` is what a besieger has to spend.
     expect(walled.defenderStrength).toBe(bare.defenderStrength + 5);
     expect(walled.defenderLines).toContainEqual({ source: 'Palisade', amount: 5 });
-    expect(cityMaxHp(city)).toBe(COMBAT.cityBaseHp + 25);
-    expect(explainCityMaxHp(city)).toContainEqual({ source: 'Palisade', amount: 25 });
+    // The palisade's own row, read off the table rather than written down here:
+    // the user's 2026-08-28 ruling moved it (health 15, strength 5) and this
+    // test is about the *two channels*, not about either figure.
+    const walls = buildingDef('palisade').cityHp!;
+    expect(cityMaxHp(city)).toBe(COMBAT.cityBaseHp + walls);
+    expect(explainCityMaxHp(city)).toContainEqual({ source: 'Palisade', amount: walls });
     expect(foldCityLines(explainCityMaxHp(city))).toBe(cityMaxHp(city));
     // The forecast reports the maximum the walls actually give it.
-    expect(walled.defenderMaxHp).toBe(COMBAT.cityBaseHp + 25);
+    expect(walled.defenderMaxHp).toBe(COMBAT.cityBaseHp + walls);
+  });
+
+  /**
+   * A standing great general's aura (user, 2026-08-28).
+   *
+   * The passive half of a general, and it is tested here rather than in
+   * `greatPeople.test.ts` because it is a line of `planCombat`'s fold and
+   * nothing else — the same place the citadel and the wild's tax are pinned.
+   */
+  it('gives a standing great general\'s aura to both sides, and names him', () => {
+    const state = flatState();
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const d = createUnit(state, 1, 'warrior', 4, 3);
+    const bare = forecast(state, a.id, 4, 3);
+
+    // One general behind each line, both within reach of their own soldier.
+    createUnit(state, 0, 'greatPerson', 2, 3, 'hannibal');
+    createUnit(state, 1, 'greatPerson', 5, 3, 'boudica');
+    const view = forecast(state, a.id, 4, 3);
+
+    const aura = RULES.greatPeople.generalAuraStrength;
+    expect(view.attackerStrength).toBe(bare.attackerStrength + aura);
+    expect(view.defenderStrength).toBe(bare.defenderStrength + aura);
+    // Named, so a player can see which piece is doing it.
+    expect(view.attackerLines).toContainEqual({
+      source: `Great general · ${greatPersonDef('hannibal').name}`,
+      amount: aura,
+    });
+    expect(view.defenderLines).toContainEqual({
+      source: `Great general · ${greatPersonDef('boudica').name}`,
+      amount: aura,
+    });
+    // And it folds like every other line.
+    expect(foldCombatStrength(view.attackerLines)).toBe(view.attackerStrength);
+    expect(foldCombatStrength(view.defenderLines)).toBe(view.defenderStrength);
+    void d;
+  });
+
+  it('reaches exactly generalAuraRange and no hex further', () => {
+    const state = flatState();
+    const soldier = createUnit(state, 0, 'warrior', 3, 3);
+    const range = RULES.greatPeople.generalAuraRange;
+    const general = createUnit(state, 0, 'greatPerson', 3 + range, 3, 'hannibal');
+    expect(generalAuraLines(state, soldier)).toHaveLength(1);
+
+    // One hex beyond, and the line is simply not there.
+    general.col = 3 + range + 1;
+    expect(generalAuraLines(state, soldier)).toEqual([]);
+  });
+
+  it('does not stack: a second general beside the same column is worth nothing', () => {
+    const state = flatState();
+    const soldier = createUnit(state, 0, 'warrior', 3, 3);
+    createUnit(state, 0, 'greatPerson', 2, 3, 'hannibal');
+    createUnit(state, 0, 'greatPerson', 4, 3, 'hanXin');
+    expect(generalAuraLines(state, soldier)).toHaveLength(1);
+  });
+
+  it('is a friendly aura, and reaches soldiers rather than the general himself', () => {
+    const state = flatState();
+    const mine = createUnit(state, 0, 'warrior', 3, 3);
+    const theirs = createUnit(state, 1, 'warrior', 4, 3);
+    const general = createUnit(state, 0, 'greatPerson', 2, 3, 'hannibal');
+
+    expect(generalAuraLines(state, mine)).toHaveLength(1);
+    // The enemy standing just as close gets nothing from somebody else's man.
+    expect(generalAuraLines(state, theirs)).toEqual([]);
+    // And the general is a civilian: he leads, he does not hold the hex.
+    expect(generalAuraLines(state, general)).toEqual([]);
+  });
+
+  it('is the general\'s family and not merely a great person', () => {
+    const state = flatState();
+    const soldier = createUnit(state, 0, 'warrior', 3, 3);
+    createUnit(state, 0, 'greatPerson', 2, 3, 'imhotep');
+    expect(greatPersonDef('imhotep').family).not.toBe('general');
+    expect(generalAuraLines(state, soldier)).toEqual([]);
   });
 
   it('gives the wild\'s tax to the side that is actually owed it', () => {
@@ -1537,12 +1621,16 @@ describe('siege', () => {
 
   it('heals normally the turn the siege lifts', () => {
     const { state, city } = encircled();
-    city.hp = 100;
+    // Wounded by more than one turn's heal, so the recovery is the *rate* and
+    // not the cap: a bare town's health is `cityBaseHp`, and since the
+    // 2026-08-28 halving that is only a few turns of healing away from full.
+    city.hp = cityMaxHp(city) - COMBAT.cityHealPerTurn - 10;
+    const wounded = city.hp;
     state.units = [];
     const report = { sieges: [] as { cityId: number; ownerId: number; damage: number }[] };
     healCities(state, report);
 
-    expect(city.hp).toBe(100 + COMBAT.cityHealPerTurn);
+    expect(city.hp).toBe(wounded + COMBAT.cityHealPerTurn);
     expect(report.sieges).toEqual([]);
   });
 

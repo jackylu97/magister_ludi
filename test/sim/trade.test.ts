@@ -624,7 +624,7 @@ describe('a road', () => {
 
     expect(stepCost(state.map, at(state, 4, 4), at(state, 5, 4), mover, field)).toEqual({
       cost: roadStepCost,
-      locked: false,
+      zoc: false,
     });
     expect(roadStepCost).toBe(1 / 3);
     // Half a road is no road: stepping off the paving pays the ground.
@@ -670,11 +670,14 @@ describe('a road', () => {
     expect(snapMovement(1 / 3 + 1 / 3 + 1 / 3)).toBe(1);
   });
 
-  it('does not lift a zone of control', () => {
+  it('does not lift a zone of control: the toll rides on top of the paving', () => {
     const state = bareState(16, 9);
     pave(state, 4, 2, 12);
     const mover = createUnit(state, 0, 'warrior', 4, 4);
-    // An enemy beside two paved hexes: sliding along it still empties the purse.
+    const full = mover.movesLeft;
+    // An enemy beside two paved hexes: sliding along it is still a slide, and
+    // the toll is *added* to the road's third rather than replacing it — a
+    // highway through a picket is a cheap step with a price on it.
     // (4, 3) touches both (4, 4) and (5, 4) on an even row.
     createUnit(state, 1, 'warrior', 4, 3);
     const field = zocField(state, 0);
@@ -685,9 +688,15 @@ describe('a road', () => {
       moveProfile(state, mover),
       field,
     )!;
-    expect(price).toEqual({ cost: roadStepCost, locked: true });
+    expect(price).toEqual({
+      cost: snapMovement(roadStepCost + RULES.movement.zocExtraCost),
+      zoc: true,
+    });
     advanceAlongPath(state, mover, [{ col: 5, row: 4 }]);
-    expect(mover.movesLeft).toBe(0);
+    // And the walk spends exactly that: a two-point column still has most of a
+    // point left, where the old lock would have taken all of it.
+    expect(mover.movesLeft).toBe(snapMovement(full - price.cost));
+    expect(mover.movesLeft).toBeGreaterThan(0);
   });
 
   it('is torn out by pillage, alone or with the farm', () => {

@@ -15,8 +15,10 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { buildingDef } from '../../src/sim/buildingData';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt } from '../../src/sim/map';
+import { RULES } from '../../src/sim/rulesData';
 import { type City, type GameState, newGame } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { defenseRows, maxHpLedger } from '../../src/ui/cityPanel';
@@ -59,17 +61,24 @@ function plant(state: GameState, ownerId: number, col: number, row: number): Cit
 }
 
 describe('maxHpLedger', () => {
+  // Both figures read off the tables rather than written down here: the user's
+  // 2026-08-28 ruling halved `cityBaseHp` and moved the palisade's `cityHp`,
+  // and what this file is pinning is the *shape* of the ledger — a base and one
+  // signed line per wall — not either number.
+  const base = RULES.combat.cityBaseHp;
+  const walls = buildingDef('palisade').cityHp!;
+
   it('reads the base alone for a town with no walls', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
-    expect(maxHpLedger(city)).toBe('Walls 200');
+    expect(maxHpLedger(city)).toBe(`Walls ${base}`);
   });
 
-  it('adds a signed line per wall — "Walls 200 · Palisade +25"', () => {
+  it('adds a signed line per wall — "Walls … · Palisade +…"', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     city.buildings.push('palisade');
-    expect(maxHpLedger(city)).toBe('Walls 200 · Palisade +25');
+    expect(maxHpLedger(city)).toBe(`Walls ${base} · Palisade +${walls}`);
   });
 });
 

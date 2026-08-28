@@ -1,13 +1,19 @@
 /**
- * Zone of control (design-notes Entry XXV).
+ * Zone of control (design-notes Entry XXV; the toll is the user's ruling of
+ * 2026-08-28).
  *
  * The rule is one sentence — a step from a hex an enemy touches to another hex
- * *that same enemy* touches completes and then takes everything the mover had
- * left — and it is enforced in exactly one place, `stepCost` in `pathfind.ts`.
- * So the tests come in two halves: the rule matrix, asked of the board, and the
- * *agreement* between the four readers of that evaluator. The second half is the
- * one that matters: a highlight computed by one rule and walked by another is
- * the failure this file exists to catch.
+ * *that same enemy* touches costs the ground's price **plus
+ * `rules.movement.zocExtraCost`** — and it is enforced in exactly one place,
+ * `stepCost` in `pathfind.ts`. So the tests come in two halves: the rule matrix,
+ * asked of the board, and the *agreement* between the four readers of that
+ * evaluator. The second half is the one that matters: a highlight computed by
+ * one rule and walked by another is the failure this file exists to catch.
+ *
+ * What the toll replaced is worth stating, because these tests are where it was
+ * pinned: a slide used to complete and then empty the purse. It does not any
+ * more. A mover pays a point extra and marches on with the rest, and nothing in
+ * this file may go back to asserting a zeroed allowance.
  *
  * Geometry is derived, never hardcoded. `ring` asks the map for a hex's
  * neighbours and `touches` asks it for adjacency, so a test says "another tile
@@ -24,9 +30,10 @@ import {
   pathTurns,
   reachableTiles,
   stepCost,
+  zocBinds,
   zocField,
-  zocLocks,
 } from '../../src/sim/pathfind';
+import { RULES } from '../../src/sim/rulesData';
 import { type GameState, type Unit, createCity, newGame, realPlayers } from '../../src/sim/state';
 import { type Game, createGame, dispatch, replay } from '../../src/sim/game';
 import { unitDef } from '../../src/sim/unitData';
@@ -99,16 +106,37 @@ function step(state: GameState, mover: Unit, to: Tile): void {
 
 // --- the rule ---------------------------------------------------------------
 
+/** The toll, read off the rules rather than written down here. */
+const TOLL = RULES.movement.zocExtraCost;
+
 describe('the zone-of-control rule', () => {
-  it('spends everything left on a step from one hex a picket touches to another', () => {
+  it('charges the ground plus the toll, and leaves the mover the rest', () => {
+    const state = flatState();
+    const { guard, here, along } = picket(state.map);
+    unit(state, guard, 'warrior', 1);
+    // Three points, so "the rest" is a number and not zero by accident: a
+    // slide costs a point of grass and a point of picket, and the third point
+    // is still in the purse afterwards.
+    const mover = unit(state, here, 'chariotArcher', 0);
+    const full = fullMovement(mover, state);
+
+    step(state, mover, along);
+    // The step *completes* — a toll is a price, never a wall.
+    expect([mover.col, mover.row]).toEqual([along.col, along.row]);
+    expect(mover.movesLeft).toBe(full - 1 - TOLL);
+    expect(mover.movesLeft).toBeGreaterThan(0);
+  });
+
+  it('is forgiven like any other overspend when the purse is short', () => {
     const state = flatState();
     const { guard, here, along } = picket(state.map);
     unit(state, guard, 'warrior', 1);
     const mover = unit(state, here, 'warrior', 0);
-    expect(mover.movesLeft).toBeGreaterThan(1);
+    // One point left: less than the slide costs, and the step still happens —
+    // the same clause that lets a warrior walk into a forest on its last point.
+    mover.movesLeft = 1;
 
     step(state, mover, along);
-    // The step *completes* — a lock is a price, never a wall.
     expect([mover.col, mover.row]).toEqual([along.col, along.row]);
     expect(mover.movesLeft).toBe(0);
   });
@@ -165,11 +193,12 @@ describe('the zone-of-control rule', () => {
     const state = flatState();
     const { guard, here, along } = picket(state.map);
     createCity(state, 1, 'Ur', guard.col, guard.row);
-    const mover = unit(state, here, 'warrior', 0);
+    const mover = unit(state, here, 'chariotArcher', 0);
+    const full = fullMovement(mover, state);
 
     step(state, mover, along);
     expect([mover.col, mover.row]).toEqual([along.col, along.row]);
-    expect(mover.movesLeft).toBe(0);
+    expect(mover.movesLeft).toBe(full - 1 - TOLL);
   });
 
   it('is exerted by the wild, which is a seat like any other', () => {
@@ -188,10 +217,11 @@ describe('the zone-of-control rule', () => {
     const wild = state.players.find((player) => player.barbarian)!;
     const { guard, here, along } = picket(state.map);
     unit(state, guard, 'warrior', wild.id);
-    const mover = unit(state, here, 'warrior', 0);
+    const mover = unit(state, here, 'chariotArcher', 0);
+    const full = fullMovement(mover, state);
 
     step(state, mover, along);
-    expect(mover.movesLeft).toBe(0);
+    expect(mover.movesLeft).toBe(full - 1 - TOLL);
   });
 
   it('binds the wild too: the rule is a fact about the board, not about empires', () => {
@@ -213,11 +243,12 @@ describe('the zone-of-control rule', () => {
     // The raider marches by the ordinary machinery — `barbarians.ts` walks
     // `findPath` into `advanceAlongPath` like anybody else — so it inherits the
     // rule without a line of its own.
-    const raider = unit(state, here, 'warrior', wild.id);
+    const raider = unit(state, here, 'chariotArcher', wild.id);
+    const full = fullMovement(raider, state);
 
     step(state, raider, along);
     expect([raider.col, raider.row]).toEqual([along.col, along.row]);
-    expect(raider.movesLeft).toBe(0);
+    expect(raider.movesLeft).toBe(full - 1 - TOLL);
   });
 
   it('binds a scout: `ignoresTerrainCost` is about the ground, not the enemy', () => {
@@ -225,11 +256,14 @@ describe('the zone-of-control rule', () => {
     const { guard, here, along } = picket(state.map);
     unit(state, guard, 'warrior', 1);
     const scout = unit(state, here, 'scout', 0);
+    const full = fullMovement(scout, state);
     expect(unitDef('scout').ignoresTerrainCost).toBe(true);
 
     step(state, scout, along);
     expect([scout.col, scout.row]).toEqual([along.col, along.row]);
-    expect(scout.movesLeft).toBe(0);
+    // The floor it pays for the ground, and the toll on top of it: an ability
+    // about the ground buys nothing against a picket.
+    expect(scout.movesLeft).toBe(full - RULES.movement.minStepCost - TOLL);
   });
 
   it('does not chain between two different enemies', () => {
@@ -259,10 +293,10 @@ describe('the zone-of-control rule', () => {
     const { guard, here, along, away } = picket(state.map);
     unit(state, guard, 'warrior', 1);
     const field = zocField(state, 0);
-    expect(zocLocks(state.map, field, here, along)).toBe(true);
-    expect(zocLocks(state.map, field, along, here)).toBe(true);
-    expect(zocLocks(state.map, field, here, away)).toBe(false);
-    expect(zocLocks(state.map, field, away, here)).toBe(false);
+    expect(zocBinds(state.map, field, here, along)).toBe(true);
+    expect(zocBinds(state.map, field, along, here)).toBe(true);
+    expect(zocBinds(state.map, field, here, away)).toBe(false);
+    expect(zocBinds(state.map, field, away, here)).toBe(false);
   });
 
   it('prices the step through `stepCost` and nowhere else', () => {
@@ -271,8 +305,8 @@ describe('the zone-of-control rule', () => {
     unit(state, guard, 'warrior', 1);
     const field = zocField(state, 0);
     const mover = { def: unitDef('warrior'), embarks: false };
-    expect(stepCost(state.map, here, along, mover, field)).toEqual({ cost: 1, locked: true });
-    expect(stepCost(state.map, here, away, mover, field)).toEqual({ cost: 1, locked: false });
+    expect(stepCost(state.map, here, along, mover, field)).toEqual({ cost: 1 + TOLL, zoc: true });
+    expect(stepCost(state.map, here, away, mover, field)).toEqual({ cost: 1, zoc: false });
     // Impassable is still impassable, and it is decided before anything else.
     along.terrain = 'mountain';
     expect(stepCost(state.map, here, along, mover, field)).toBeNull();
@@ -296,7 +330,7 @@ describe('the zone-of-control rule', () => {
 // --- the overlay ------------------------------------------------------------
 
 describe('the reachable set under a zone of control', () => {
-  it('prices the hex alongside at the whole allowance, and hides the one past it', () => {
+  it('prices the hex alongside at the ground plus the toll, and hides the one past it', () => {
     const state = flatState();
     const { guard, here, along } = picket(state.map);
     const mover = unit(state, here, 'warrior', 0);
@@ -326,24 +360,35 @@ describe('the reachable set under a zone of control', () => {
     state.units = state.units.filter((u) => u.id !== quiet.id);
     unit(state, guard, 'warrior', 1);
     const held = sweep();
-    // The step alongside still happens — and costs everything.
+    // The step alongside still happens, at the ground's price plus the toll —
+    // which for a two-point warrior is its whole turn, and that is arithmetic
+    // rather than a rule about turns.
+    expect(held.get(along)).toBe(1 + TOLL);
     expect(held.get(along)).toBe(full);
+    // Nothing past it: the frontier stops where the purse does, by the same
+    // clause that stops it at the edge of any other expensive ground.
     expect(held.has(beyond)).toBe(false);
   });
 
-  it('routes around a picket when going around is cheaper', () => {
+  it('prices the slide at exactly what the way round costs, and takes the short one', () => {
     const state = flatState();
     const { guard, here, along } = picket(state.map);
     unit(state, guard, 'warrior', 1);
-    // Three points, so the two-step way round (2) beats the slide (which takes
-    // the whole allowance, 3). The rule makes a picket something to walk
-    // *around*, which is the whole point of it.
+    // A toll of one point on flat ground is exactly what the detour costs: the
+    // slide is one step at two points, going round is two steps at one each.
+    // So a picket is a **toll** rather than a wall — the old lock made the
+    // detour strictly better, and it no longer is.
     const scout = unit(state, here, 'scout', 0);
+    const full = fullMovement(scout, state);
     const route = findPath(state, scout, along)!;
-    expect(route).toHaveLength(2);
+    // Equal costs settle by the search's own total order, which never displaces
+    // a route already recorded at that cost — here, the direct step. The claim
+    // worth pinning is that it is *one* answer, whatever it is, and that the
+    // walk spends what the search said.
+    expect(route).toHaveLength(1);
     advanceAlongPath(state, scout, route);
     expect([scout.col, scout.row]).toEqual([along.col, along.row]);
-    expect(scout.movesLeft).toBe(1);
+    expect(scout.movesLeft).toBe(full - 1 - TOLL);
   });
 
   it('leaves the sweep untouched where no enemy stands', () => {
@@ -393,7 +438,7 @@ describe('the “~N turns” estimate reads the same evaluator', () => {
   it('counts the extra turn a picket costs a standing order', () => {
     const state = flatState();
     const { guard, here, along } = picket(state.map);
-    const mover = unit(state, here, 'chariotArcher', 0); // three points
+    const mover = unit(state, here, 'warrior', 0); // two points
     const onward = ring(state.map, along).find(
       (tile) =>
         tile !== guard &&
@@ -406,11 +451,12 @@ describe('the “~N turns” estimate reads the same evaluator', () => {
       { col: onward.col, row: onward.row },
     ];
 
-    // Two hexes of open ground is one turn's march for a three-point piece...
+    // Two hexes of open ground is exactly one turn's march for a two-point
+    // piece...
     expect(pathTurns(state, mover, order)).toBe(1);
-    // ...and with a picket beside the first of them it is two, because the
-    // slide takes the whole allowance. The panel prints this; `stepCost`
-    // decides it.
+    // ...and with a picket beside the first of them it is two, because the toll
+    // on the first hex leaves nothing for the second. The panel prints this;
+    // `stepCost` decides it.
     unit(state, guard, 'warrior', 1);
     expect(pathTurns(state, mover, order)).toBe(2);
   });
