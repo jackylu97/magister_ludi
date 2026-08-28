@@ -48,6 +48,7 @@ import { IMPROVEMENT_IDS, type ImprovementId } from '../sim/improvementData';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import type { Unit } from '../sim/state';
 import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
+import { type TerrainId, isEmbarkableTerrain } from '../sim/terrainData';
 import { type ModelClass, UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
 import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
@@ -75,6 +76,7 @@ import {
   atlasQuad,
   bannerPole,
   barQuad,
+  boatMini,
   borderCorner,
   cactus,
   cairnStack,
@@ -137,6 +139,7 @@ import {
   rock,
   roundTree,
   saltCrust,
+  sawPit,
   scoutMini,
   settlerMini,
   silkFrame,
@@ -305,7 +308,18 @@ export const MINI_SCULPTS: Record<SculptId, MiniSculpt> = {
   siege: { cls: 'siege', build: catapultMini },
   trader: { cls: 'foot', build: traderMini, laden: 'traderLaden' },
   traderLaden: { cls: 'foot', build: traderLadenMini },
+  boat: { cls: 'foot', build: boatMini },
 };
+
+/**
+ * The body every piece takes at sea.
+ *
+ * One hull for the whole roster rather than a nautical twin per class, and the
+ * badge is why that works — see `boatMini`. Named here rather than inlined in
+ * `unitSculpt` so "which sculpt means afloat" is a fact with a home, the way
+ * `MiniSculpt.laden` is.
+ */
+const AFLOAT: SculptId = 'boat';
 
 /**
  * One registered sculpt: the size class it is cut to, how to cut it, and — for
@@ -338,12 +352,14 @@ export interface MiniSculpt {
  * spear). So the split lives here and which rows take it is `pieces.byUnitType`
  * in `data/view3d.json`.
  *
- * `traderLaden` is in the list without ever being named by that table: it is
- * reached only through `MiniSculpt.laden`, because "which drawing does this row
- * wear" and "is this particular piece carrying something" are two questions and
- * only the first one is a fact about a type.
+ * `traderLaden` and `boat` are in the list without ever being named by that
+ * table: they are reached only through `MiniSculpt.laden` and through `AFLOAT`,
+ * because "which drawing does this row wear" and "what is this particular piece
+ * doing right now" are two questions and only the first one is a fact about a
+ * type. A `boat` named by `pieces.byUnitType` would be a unit that was a boat
+ * standing in a wheat field.
  */
-const EXTRA_SCULPT_IDS = ['trader', 'traderLaden'] as const;
+const EXTRA_SCULPT_IDS = ['trader', 'traderLaden', 'boat'] as const;
 
 /** A body a piece can stand in: a model class, or one of the extras above. */
 export type SculptId = ModelClass | (typeof EXTRA_SCULPT_IDS)[number];
@@ -364,31 +380,52 @@ export const MODEL_CLASS_IDS = SCULPT_IDS.filter(
 
 /**
  * The sculpt a unit *type* is drawn as: its model class, unless the art table
- * says finer.
+ * says finer — or unless it is standing on water, in which case it is a boat and
+ * the roster has nothing to say about it.
  *
  * `badgeClassFor`'s third clause, one grade down and with only that clause —
  * there is nothing here to read off the unit row, because a sculpt is entirely a
  * question about drawings. Checked at load like the badge table is, and for the
  * same two invisible typos.
+ *
+ * `terrain` is the hex the piece is *on*, and it is optional because two of the
+ * three callers do not have one and do not need one: `pieceHeightFor` asks about
+ * a type in the abstract (see its docblock — a tag that moved when a piece
+ * embarked would be the laden caravan's bug in a bigger hat), and the gallery
+ * draws the roster on a table rather than on a map. Omitting it means "on land",
+ * which is the honest default for a question with no hex in it.
  */
-export function sculptFor(type: UnitTypeId): SculptId {
+export function sculptFor(type: UnitTypeId, terrain?: TerrainId): SculptId {
+  if (terrain !== undefined && isEmbarkableTerrain(terrain)) return AFLOAT;
   return SCULPT_OVERRIDES.get(type) ?? modelClassFor(type);
 }
 
 /**
- * The sculpt a *piece* stands in, which is its type's sculpt unless the piece is
- * carrying a route and its sculpt has a laden twin.
+ * The sculpt a *piece* stands in: a boat if it is at sea, else its type's
+ * sculpt, laden if it is carrying a route and its sculpt has a laden twin.
  *
- * The one place in the renderer where a unit's own state chooses its body. It is
- * asked of `Unit.trade` — presence, exactly as the sim stores it — and not of
- * the type, because an idle caravan waiting in a city and one three hexes into a
- * run are the same roster row and must not be the same picture. Everything that
- * puts a piece on the board goes through this: the resting instance
- * (`UnitLayer.build`), the walking copy and the falling one, or a caravan would
- * shed its bale for exactly the length of its march.
+ * The one place in the renderer where a unit's own situation chooses its body,
+ * and there are now two things that do it. Neither is asked of the *type*,
+ * because an idle caravan waiting in a city and one three hexes into a run are
+ * the same roster row and must not be the same picture — and a settler on a
+ * beach and the same settler a hex out to sea are the same row twice over.
+ *
+ * **At sea wins**, and it is the one ordering decision here. A laden caravan
+ * crossing a strait loses its bale for the crossing, which is a real loss of
+ * information and is still the right answer: "this piece is somewhere it cannot
+ * walk" is the more urgent of the two sentences, and there is no gilt bale to
+ * hang on a hull that has no pack to rope it to. Everything else the piece is
+ * still says itself — the badge over it never changed.
+ *
+ * Everything that puts a piece on the board goes through this: the resting
+ * instance (`UnitLayer.build`) and the walking copy, or a caravan would shed its
+ * bale for exactly the length of its march and a boat would walk ashore for it.
+ * The *falling* copy asks `sculptFor` with the tile instead, because a corpse is
+ * a description rather than a unit and has no `trade` to read.
  */
-export function unitSculpt(unit: Unit): SculptId {
-  const id = sculptFor(unit.type);
+export function unitSculpt(unit: Unit, terrain?: TerrainId): SculptId {
+  const id = sculptFor(unit.type, terrain);
+  if (id === AFLOAT) return id;
   return unit.trade === undefined ? id : (MINI_SCULPTS[id].laden ?? id);
 }
 
@@ -538,6 +575,7 @@ export const IMPROVEMENT_PROPS: Record<ImprovementId, (size: number) => BufferGe
   camp: campTent,
   quarry: quarrySteps,
   fishingBoats: fishingBoat,
+  lumbermill: sawPit,
   plantation: trellisRows,
   academy: academyHall,
   landmark: landmarkStele,

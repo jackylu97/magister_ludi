@@ -711,7 +711,7 @@ export interface LensSpec {
   siteEstuaryRingOpacity: number;
   /**
    * The explorer lens: an unclaimed discovery site, and — in a hostile ink — a
-   * barbarian camp the seat can see right now.
+   * barbarian camp the seat has charted.
    *
    * Two colours and no grades, unlike the settler lens's four, because the lens
    * answers one question with two answers: *go here* and *do not walk into

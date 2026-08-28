@@ -40,7 +40,7 @@
  *                   overlay layer (see `OverlayState.siteRadius`).
  *   · the **explorer lens** — where is there still something to find? Every
  *                   unclaimed ruin and village the seat has charted is ringed in
- *                   gold, every camp it can see right now in crimson. The
+ *                   gold, every camp it has charted in crimson. The
  *                   settler lens's opposite number in shape as well as in
  *                   subject: that one grades a whole map because every hex is a
  *                   candidate, this one marks a handful because the failure it
@@ -116,7 +116,7 @@ import type { CellRef, LensView } from '../ui/mapView';
 
 import { type TileIcons, YIELD_KEYS } from './badges3d';
 import type { BoardGeometry } from './board3d';
-import { type FogLevels, knowsCell, seesCell } from './fog3d';
+import { type FogLevels, knowsCell } from './fog3d';
 import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, mixColor } from './lookData';
@@ -546,7 +546,7 @@ export class LensLayer {
 
   /**
    * The explorer wash: every unclaimed discovery site the seat has charted, and
-   * — in a hostile ink — every barbarian camp it can see right now.
+   * — in a hostile ink — every barbarian camp it has charted.
    *
    * The settler lens's opposite number, and it is deliberately the *thin* one.
    * That lens grades a whole map, because every legal hex is a candidate and the
@@ -567,13 +567,15 @@ export class LensLayer {
    *              thing an explorer meets alone in the dark, and marking it is
    *              nearly free — the plumbing for the ring is already here.
    *
-   * The fog rules are the *site layer's* two rules, not one of them applied
-   * twice, and they have to be: this lens must never ring a hex the board is not
-   * drawing the thing on. So the discoveries come through `resolveTiles`, which
-   * cuts at `hidden` and keeps remembered ground (a ruin is ground), while the
-   * camps are asked `seesCell` directly and are marked only where the seat is
-   * looking *now* (a camp is an occupation). A remembered camp ringed in red
-   * would be a warning about an army that may have moved on ten turns ago.
+   * The fog rule is the *site layer's* rule, and it has to be: this lens must
+   * never ring a hex the board is not drawing the thing on. Both tenants
+   * therefore cut at `hidden` and keep remembered ground — the discoveries
+   * through `resolveTiles`, the camps through `knowsCell` on the list they are
+   * actually stored in. The camps used to be asked `seesCell` instead, because
+   * the board used to draw one only in live sight; that reading is gone
+   * (playtest, 2026-08-27: camps are persistent), and the two halves have to
+   * move together or the lens starts refusing to mark palisades standing in
+   * plain view on the diorama.
    */
   private addDiscoveryWash(
     state: GameState,
@@ -612,7 +614,7 @@ export class LensLayer {
     // `GameState.camps`) — and because that is the list the site layer draws
     // from, so the two cannot disagree about which camps exist.
     for (const camp of state.camps) {
-      if (!seesCell(levels, state.map, camp.col, camp.row)) continue;
+      if (!knowsCell(levels, state.map, camp.col, camp.row)) continue;
       const tile = getTileAt(state.map, camp.col, camp.row);
       if (!tile) continue;
       mark(tile, LENS.campColor, LENS.campOpacity, LENS.campRingOpacity);

@@ -56,6 +56,7 @@ import { MaterialLibrary } from '../../src/render3d/toon';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
 import { createMap, tileIndex } from '../../src/sim/map';
 import { type GameState, newGame } from '../../src/sim/state';
+import { isEmbarkableTerrain } from '../../src/sim/terrainData';
 import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -325,6 +326,58 @@ describe('the model-class roster', () => {
     // keep, and a sculpt that grew one without joining `signUnits` would draw
     // the old body until something unrelated moved.
     for (const id of MODEL_CLASS_IDS) expect(MINI_SCULPTS[id].laden, id).toBeUndefined();
+  });
+
+  /**
+   * A piece standing on water is a boat, whatever it is on land.
+   *
+   * The second thing a piece's own situation does to its body, and the one that
+   * had to be told about the *hex* — a `Unit` does not know what it is standing
+   * on and must not learn (CLAUDE.md's fingerprint trap). What makes that safe
+   * is that `col` and `row` are already hashed, so a piece that walks onto the
+   * sea re-sculpts with no new member in `signUnits`; the pin on that hash below
+   * is the other half of this test.
+   */
+  it('puts every class in one hull on water it can embark onto', () => {
+    const dry = { type: 'settler' as UnitTypeId } as never;
+    expect(unitSculpt(dry)).toBe('settler');
+    expect(unitSculpt(dry, 'grassland')).toBe('settler');
+    expect(unitSculpt(dry, 'coast')).toBe('boat');
+    // One hull for the whole roster: the badge over the piece is what still
+    // says which unit it is, which is why there is no second nautical roster.
+    for (const type of UNIT_TYPE_IDS) expect(unitSculpt({ type } as never, 'coast')).toBe('boat');
+    // …and only on water something can *embark* onto. Deep ocean is not a
+    // legal hex for anything, so a piece drawn as a boat there would be a
+    // picture of a bug rather than a state.
+    expect(isEmbarkableTerrain('ocean')).toBe(false);
+    expect(unitSculpt(dry, 'ocean')).toBe('settler');
+  });
+
+  it('lets the sea outrank the bale, and keeps the boat off the art table', () => {
+    // At sea wins: "this piece is somewhere it cannot walk" is the more urgent
+    // sentence, and there is no pack on a hull to rope a bale to.
+    const routed = {
+      type: 'trader' as UnitTypeId,
+      trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false },
+    } as never;
+    expect(unitSculpt(routed)).toBe('traderLaden');
+    expect(unitSculpt(routed, 'coast')).toBe('boat');
+    // The boat is reached only through that clause, never by name from data —
+    // a `boat` in `pieces.byUnitType` would be a unit that was a boat standing
+    // in a wheat field.
+    expect(Object.values(VIEW3D.pieces.byUnitType)).not.toContain('boat');
+    // And it is not a laden twin of anything, which is the other way a piece
+    // could reach it without the hex being asked.
+    for (const id of SCULPT_IDS) expect(MINI_SCULPTS[id].laden, id).not.toBe('boat');
+  });
+
+  it('asks the type, never the hex, for how tall a tag hangs', () => {
+    // `pieceHeightFor` deliberately takes no terrain: a badge that jumped the
+    // moment a settler stepped into the shallows would be the laden caravan's
+    // bug in a bigger hat. The boat is cut to the same class as the civilians
+    // that can be in it, so the tag lands where it always did.
+    expect(MINI_SCULPTS.boat.cls).toBe('foot');
+    expect(pieceHeightFor('settler')).toBe(VIEW3D.pieces.heights.foot);
   });
 
   it('gilds the caravan\'s bale, and nothing else on the roster', () => {
@@ -617,6 +670,34 @@ describe('the units layer in pieces style', () => {
     board.dispose();
   });
 
+  it('draws a piece standing on coast out of the boat bucket', () => {
+    // The layer's half of the ruling: `unitSculpt` is asked with the tile under
+    // the piece, so a settler that has embarked is drawn as a hull rather than
+    // as a handcart floating on the waves.
+    const board = geometry();
+    const layer = new UnitLayer();
+    const game = state(['settler']);
+    const afloat = game.map.tiles[tileIndex(game.map, 1, 2)]!;
+    afloat.terrain = 'coast';
+    layer.build(
+      game,
+      board,
+      new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
+      new Quaternion(),
+      false,
+      null,
+    );
+    const drawn = new Set(
+      layer.group.children
+        .filter((c): c is InstancedMesh => c instanceof InstancedMesh)
+        .map((m) => m.geometry),
+    );
+    expect(drawn.has(board.pieces.boat.geometry)).toBe(true);
+    expect(drawn.has(board.pieces.settler.geometry)).toBe(false);
+    layer.dispose();
+    board.dispose();
+  });
+
   it('shares one bucket between two unit types of the same class', () => {
     const board = geometry();
     const layer = new UnitLayer();
@@ -819,6 +900,29 @@ describe('the worker charge badge', () => {
    * unit-tested (it needs a real WebGL context); `signUnits` is exactly the kind
    * of pure arithmetic this file already checks the rest of the layer with.
    */
+  /**
+   * And the boat needed **no** new member, which is the point.
+   *
+   * Embarking is a change of `col`/`row` and those have been hashed since the
+   * layer existed, so the rebuild that puts a piece in a hull is the rebuild
+   * that was already going to happen because it moved. That is why the sculpt
+   * asks the *map* for the terrain instead of the sim growing a field for it —
+   * a field would have been a tenth member and a decision to justify.
+   */
+  it('moves the fingerprint when a piece steps onto the water, and adds nothing to it', () => {
+    const ashore = state([{ type: 'settler' }]);
+    const afloat = state([{ type: 'settler' }]);
+    afloat.units[0]!.col += 1;
+    expect(signUnits(afloat)).not.toBe(signUnits(ashore));
+    // The terrain itself is *not* in the hash and must not be: a tile whose
+    // terrain changed under a stationary piece is not something this game does,
+    // and hashing the map per unit would be a sweep per frame.
+    const flooded = state([{ type: 'settler' }]);
+    flooded.map.tiles[tileIndex(flooded.map, flooded.units[0]!.col, flooded.units[0]!.row)]!.terrain =
+      'coast';
+    expect(signUnits(flooded)).toBe(signUnits(ashore));
+  });
+
   it('moves the units fingerprint when a worker spends a charge', () => {
     const before = state([{ type: 'worker', chargesLeft: 3 }]);
     const after = state([{ type: 'worker', chargesLeft: 2 }]);

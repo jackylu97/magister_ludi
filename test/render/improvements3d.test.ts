@@ -672,6 +672,52 @@ describe('improvements and the board scatter', () => {
     for (const id of ['farm', 'mine'] as const) expect(clearsClutter(id), id).toBe(true);
   });
 
+  /**
+   * The lumbermill, and the one thing it must never do.
+   *
+   * It is the first improvement that is built **in** a forest and leaves the
+   * forest standing — that is the improvement, not a side effect of it — so the
+   * failure to guard against is somebody giving it `clearsClutter` on the
+   * reasonable-sounding grounds that a mill needs a clearing. The canopy is
+   * `SUPPRESS.decor`'s business and a `clearsClutter` lumbermill would take the
+   * meadow; but the sweep in `renderer3d.ts` reads exactly this flag, and a
+   * lumbermill that answered `true` would be a sawmill on bare ground, which is
+   * a chop the player never ordered.
+   */
+  it('leaves the canopy standing for a lumbermill', () => {
+    expect(clearsClutter('lumbermill')).toBe(false);
+    // Only forest and jungle, which is what makes the clause above load-bearing
+    // rather than theoretical — every hex it can stand on has trees on it.
+    expect(improvementDef('lumbermill').validFeatures).toEqual(['forest', 'jungle']);
+
+    // The board's half: a wood, a mill built in it, and the pines still there.
+    // The renderer sweeps `clearsClutter` tiles into `SUPPRESS.clutter` and
+    // nothing else touches them, so the honest check is that a hex carrying a
+    // lumbermill is not in that sweep's set and is drawing what it was baked
+    // with.
+    const state = flatState();
+    for (const tile of state.map.tiles) tile.feature = 'forest';
+    at(state, 4, 4).improvement = 'lumbermill';
+    const board = boardFor(state);
+    const cell = tileIndex(state.map, 4, 4);
+    const pines = shown(board, cell);
+    expect(pines).toBeGreaterThan(0);
+    const swept = IMPROVEMENT_IDS.filter((id) => clearsClutter(id));
+    expect(swept).not.toContain('lumbermill');
+    expect(shown(board, cell)).toBe(pines);
+
+    // …and the prop itself is drawn, in its own layer, over the standing wood.
+    const layer = new ImprovementLayer();
+    layer.build(state, geometry, materials(), false, allVisible(state));
+    const drawn = layer.group.children.filter(
+      (child): child is InstancedMesh => child instanceof InstancedMesh,
+    );
+    expect(drawn.some((mesh) => mesh.geometry === geometry.improvementProps.lumbermill)).toBe(true);
+    expect(layer.instances).toBe(1);
+    layer.dispose();
+    board.dispose();
+  });
+
   it('suppresses the hill boulders under a mine', () => {
     const state = flatState();
     for (const tile of state.map.tiles) tile.hills = true;

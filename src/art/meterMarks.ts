@@ -38,11 +38,18 @@
  * same reason — a mark in this project is always a `d` string, never a shape
  * element, because both printers below take exactly one kind of thing.
  *
+ * The third mark, and the file's own exception closing
+ * -----------------------------------------------------
+ * `RENOWN_MARK` at the foot of the file is the family's third member and is
+ * vendored on the same terms — Tabler `laurel-wreath`, 24 grid, stroke 2.75.
+ * It was the one drawing here in the house hand, and the paragraphs above did
+ * not apply to it; they do now. See its own docblock for what changed and why.
+ *
  * `test/render/meterMarks.test.ts` pins the path data against the vendored
  * strings, the same discipline `yieldMarks.test.ts` holds the six to.
  */
 
-import { type MarkPath, dot, leaf, markSvg } from './resourceMarks';
+import { type MarkPath, dot, markSvg } from './resourceMarks';
 import { YIELD_MARK_BOX, YIELD_MARK_STROKE } from './yieldMarks';
 // Type-only: `sim/meters.ts` is pure sim and imports nothing from `src/art`,
 // so there is no cycle to guard against here the way `yieldMarks.ts` guards
@@ -144,123 +151,39 @@ export function meterMarkDataUri(key: MeterId, color = '#000'): string {
  * member and its own export: same grid, same weight, same printer, one more
  * drawing.
  *
- * **Drawn rather than vendored**, which is the one place this file departs from
- * its own docblock, and the departure is the subject's fault: neither Lucide nor
- * Tabler carries a laurel, and the nearest thing in either (`award`, a medal on
- * a ribbon) says *a prize somebody was given* where renown means *what the world
- * says about you*. The house hand already draws when a set has no answer — see
- * the sea serpent in `marginaliaMarks.ts` — and the `leaf` helper the resource
- * marks are built out of is exactly the primitive a wreath is made of, so the
- * drawing is in the same hand by construction rather than by care.
+ * Vendored, and no longer the exception (2026-08-27)
+ * --------------------------------------------------
+ * This used to be **drawn in the house hand**, computed from an arc and a lean
+ * angle, because the docblock above it said neither Lucide nor Tabler carried a
+ * laurel. That was wrong about Tabler, which ships `laurel-wreath`, and the
+ * playtest found the consequence before the catalogue did: the hand-drawn wreath
+ * "isn't very readable, needs to be same style as the other icons". Three leaves
+ * a side on a bare arc is a horseshoe at chip size, and a set with one member
+ * drawn by us is a set with one member that looks drawn by us.
  *
- * The geometry is **computed, not typed**, for `dot`'s reason one step further:
- * a wreath is two mirrored branches and eight leaves growing off them at angles
- * that follow the arc, and sixteen hand-tuned coordinate pairs would be sixteen
- * chances for one leaf to sit crooked. Two numbers describe it — where a leaf
- * sits on the arc, and how far the arc has come round — and everything else
- * falls out of them.
+ * So the geometry is gone rather than tuned, and what replaces it is **the mark
+ * the badge already wears**: `public/sprites/icons/greatPerson.svg` is this same
+ * Tabler drawing at this same weight, so the HUD chip, the renown hover and the
+ * badge over a great person's piece are now one picture in three places rather
+ * than two pictures that have to be kept looking alike by hand.
+ *
+ * Pinned literally, exactly as the two meters above are: eight paths, upstream's
+ * own 24-unit grid, stroke lifted 2 → 2.75 to join the family, and nothing else
+ * touched. `test/render/meterMarks.test.ts` holds it to the vendored strings.
  */
-
-/** Where the wreath is centred, and how wide it opens. The whole tuning. */
-const LAUREL = {
-  cx: 12,
-  cy: 12.2,
-  radius: 5.6,
-  /** Degrees along the arc, from the bottom of the wreath, per branch. */
-  from: 8,
-  to: 132,
-  /** How far a leaf leans out of the arc, in degrees. 0 would lie flat on it. */
-  lean: 14,
-  /**
-   * The spine's weight, lighter than the set's.
-   *
-   * The one place this drawing overrides the family, and it is the wreath's own
-   * proportion that asks for it: at the set's 2.75 the branch is nearly half the
-   * radius it is bending round, and the leaves grow out of a rope rather than a
-   * stem. `markSvg` takes a per-path width for exactly this.
-   */
-  spine: 2.2,
-} as const;
-
-function radians(degrees: number): number {
-  return (degrees * Math.PI) / 180;
-}
-
-function round(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
-/** A point on the wreath's arc, at `theta` degrees in SVG's own (y-down) frame. */
-function onArc(theta: number): { x: number; y: number } {
-  return {
-    x: LAUREL.cx + LAUREL.radius * Math.cos(radians(theta)),
-    y: LAUREL.cy + LAUREL.radius * Math.sin(radians(theta)),
-  };
-}
-
-/**
- * One branch: the spine, then its leaves from the foot of the wreath upward.
- *
- * `side` is `1` for the left branch (which sweeps clockwise in SVG's frame, so
- * its angles *increase* from the bottom) and `-1` for the right, which is the
- * same walk mirrored. Everything below is written once and run twice.
- *
- * A leaf's *base* sits on the arc and its body grows outward, so the centre the
- * `leaf` helper wants is offset half a leaf along its own direction — which is
- * the tangent leaned `LAUREL.lean` degrees toward the outside, so the leaves
- * fan the way a real branch's do rather than standing perpendicular.
- */
-function laurelBranch(side: 1 | -1): MarkPath[] {
-  // 90° is the bottom of the circle in SVG's y-down frame; the branch walks
-  // away from it in whichever direction this side turns.
-  const start = 90 + side * LAUREL.from;
-  const end = 90 + side * LAUREL.to;
-  const head = onArc(start);
-  const tail = onArc(end);
-  const paths: MarkPath[] = [
-    // `sweep` is 1 for increasing angles, which is the left branch — the same
-    // `side` that decides everything else.
-    {
-      d:
-        `M${round(head.x)} ${round(head.y)}A${LAUREL.radius} ${LAUREL.radius} 0 0 ` +
-        `${side === 1 ? 1 : 0} ${round(tail.x)} ${round(tail.y)}`,
-      width: LAUREL.spine,
-    },
-  ];
-  // **Three** leaves per branch rather than four, and it is a legibility
-  // decision rather than a botanical one: this mark is read at 12.5px on the
-  // top bar, where four leaves a side merge into a rope and the wreath reads as
-  // a horseshoe. Three, each half again as long, keep their gaps at chip size.
-  // The last is shorter so the wreath tapers into its opening rather than
-  // ending on a full leaf.
-  const stops = [20, 62, 104];
-  const lengths = [5.2, 5.4, 4.6];
-  stops.forEach((along, index) => {
-    const theta = 90 + side * along;
-    const base = onArc(theta);
-    // The tangent, leaned outward: a leaf points along the branch's travel and
-    // a little away from its centre.
-    const angle = theta + side * (90 - LAUREL.lean);
-    const length = lengths[index]!;
-    // Half a leaf, plus a hair, so the base *meets* the spine rather than
-    // swallowing it — a leaf drawn through the branch reads as a blot.
-    const reach = length / 2 + 0.7;
-    const cx = base.x + reach * Math.cos(radians(angle));
-    const cy = base.y + reach * Math.sin(radians(angle));
-    // Filled with **no outline at all** — `markSvg`'s "weight zero" convention —
-    // rather than through `solid`, whose lighter stroke is calibrated for the
-    // resource marks' 64-unit grid and would swell a 4-unit leaf into a blob on
-    // this one. A leaf is a silhouette; it has no rim.
-    paths.push({ d: leaf(round(cx), round(cy), length, 1.45, angle), fill: true, width: 0 });
-  });
-  return paths;
-}
-
-/** The laurel, in the same shape a meter mark takes. */
 export const RENOWN_MARK: MeterMark = {
-  note: 'a laurel wreath: two branches of four leaves, open at the crown',
-  credit: 'drawn in the house hand — see the docblock',
-  paths: [...laurelBranch(1), ...laurelBranch(-1)],
+  note: 'a laurel wreath: two sprays of leaves closing under a tied crown',
+  credit: 'Tabler `laurel-wreath` (MIT)',
+  paths: [
+    stroke('M6.436 8a8.6 8.6 0 0 0 -.436 2.727c0 4.017 2.686 7.273 6 7.273s6 -3.256 6 -7.273a8.6 8.6 0 0 0 -.436 -2.727'),
+    stroke('M14.5 21s-.682 -3 -2.5 -3s-2.5 3 -2.5 3'),
+    stroke('M18.52 5.23c.292 1.666 -1.02 2.77 -1.02 2.77s-1.603 -.563 -1.895 -2.23c-.292 -1.666 1.02 -2.77 1.02 -2.77s1.603 .563 1.895 2.23'),
+    stroke('M21.094 12.14c-1.281 1.266 -3.016 .76 -3.016 .76s-.454 -1.772 .828 -3.04c1.28 -1.266 3.016 -.76 3.016 -.76s.454 1.772 -.828 3.04'),
+    stroke('M17.734 18.826c-1.5 -.575 -1.734 -2.19 -1.734 -2.19s1.267 -1.038 2.767 -.462c1.5 .575 1.733 2.19 1.733 2.19s-1.267 1.038 -2.767 .462'),
+    stroke('M6.267 18.826c1.5 -.575 1.733 -2.19 1.733 -2.19s-1.267 -1.038 -2.767 -.462c-1.5 .575 -1.733 2.19 -1.733 2.19s1.267 1.038 2.767 .462'),
+    stroke('M2.906 12.14c1.281 1.266 3.016 .76 3.016 .76s.454 -1.772 -.828 -3.04c-1.281 -1.265 -3.016 -.76 -3.016 -.76s-.454 1.772 .828 3.04'),
+    stroke('M5.48 5.23c-.292 1.666 1.02 2.77 1.02 2.77s1.603 -.563 1.895 -2.23c.292 -1.666 -1.02 -2.77 -1.02 -2.77s-1.603 .563 -1.895 2.23'),
+  ],
 };
 
 /** The laurel as a `data:` URI, memoised beside the two meters'. */

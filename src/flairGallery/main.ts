@@ -148,7 +148,7 @@ cityBlock.append(cityCaptions);
 const partsBlock = block(
   citySection,
   'The parts shelf',
-  'Each shape the ageing pass added, then the five works a great person plants, alone, read off the same BoardGeometry the board builds — so a number tuned in view3d.json moves this shelf with it. Eight of the fourteen spend gold, and this is where that is checked side by side.',
+  'Each shape the ageing pass added, then the road corner, then the improvement props — the five works a great person plants and the lumbermill — alone, read off the same BoardGeometry the board builds, so a number tuned in view3d.json moves this shelf with it. Eight of them spend gold, and this is where that is checked side by side.',
 );
 const partsCanvas = element('canvas', 'parts-canvas');
 partsBlock.append(partsCanvas);

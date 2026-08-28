@@ -744,6 +744,18 @@ export const PART_IDS = [
   'bannerPole',
   'flag',
   'roadJunction',
+  // The improvement props, which are `ImprovementId`s and reach `buildPart`'s
+  // default arm. The five works a great person plants were named in this
+  // shelf's own caption from the day they landed and never actually added to
+  // this list, which left `buildGreatWork` unreachable; the lumbermill arriving
+  // is what found it. A prop that is not on this page is a prop that gets
+  // iterated in the game.
+  'academy',
+  'landmark',
+  'manufactory',
+  'customsHouse',
+  'citadel',
+  'lumbermill',
 ] as const;
 
 export const PART_CAPTIONS: Record<(typeof PART_IDS)[number], string> = {
@@ -758,4 +770,11 @@ export const PART_CAPTIONS: Record<(typeof PART_IDS)[number], string> = {
   flag: 'the cloth in the seat’s tincture, the charge on a parchment canton',
   roadJunction:
     'a paved hex turning a corner: the hub, and this tile’s own half of two links',
+  academy: 'the hall a Scholar plants, its ridge in gold',
+  landmark: 'the stele an Artist raises, gilt-capped',
+  manufactory: 'the Engineer’s works, and the gold on its door',
+  customsHouse: 'the Merchant’s warehouse under a gilt vane',
+  citadel: 'the General’s ring of stone, its banner in gold',
+  lumbermill:
+    'the sawing trestle and its stack of cut timber — low and squared, because it stands among pines that are neither',
 };

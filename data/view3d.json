@@ -637,6 +637,12 @@
         "size": 0.44,
         "jitter": 0.1
       },
+      "lumbermill": {
+        "color": "timber",
+        "shade": 0.2,
+        "size": 0.46,
+        "jitter": 0.2
+      },
       "academy": {
         "color": "bone",
         "shade": -0.04,

@@ -11,10 +11,34 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { METER_MARKS, meterMark, meterMarkDataUri, meterMarkSvg } from '../../src/art/meterMarks';
+import {
+  METER_MARKS,
+  RENOWN_MARK,
+  meterMark,
+  meterMarkDataUri,
+  meterMarkSvg,
+  renownMarkDataUri,
+} from '../../src/art/meterMarks';
 import { YIELD_MARK_BOX, YIELD_MARK_STROKE } from '../../src/art/yieldMarks';
 
 const METER_KEYS = ['happiness', 'authority'] as const;
+
+/**
+ * The great-person badge file, read as text.
+ *
+ * Vite's own `?raw` glob, the way the interface suites read their sources — this
+ * project has no node typings and a test that reached for `node:fs` would not
+ * typecheck. See the renown block at the foot of the file for why the badge is
+ * the authority the wreath is checked against.
+ */
+const BADGE_SVG =
+  Object.values(
+    import.meta.glob('../../public/sprites/icons/greatPerson.svg', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>,
+  )[0] ?? '';
 
 describe('the vendored meter marks', () => {
   it('has one for each of the two meters, and nothing else', () => {
@@ -116,5 +140,59 @@ describe('the SVG export', () => {
   it('memoises per colour rather than per call', () => {
     expect(meterMarkDataUri('happiness')).toBe(meterMarkDataUri('happiness'));
     expect(meterMarkDataUri('happiness', '#fff')).not.toBe(meterMarkDataUri('happiness', '#000'));
+  });
+});
+
+
+/**
+ * The renown wreath, which is the family's third member and the one that used to
+ * be ours.
+ *
+ * It was computed from an arc and a lean angle until the 2026-08-27 playtest
+ * ("needs a better icon for renown, it's not very readable") and is now Tabler
+ * `laurel-wreath` — the same drawing `public/sprites/icons/greatPerson.svg`
+ * already carried. That last fact is the load-bearing one and is asserted
+ * against the file rather than restated as a second literal: the whole point of
+ * the change is that the chip and the badge are *one* picture, and two copies of
+ * the same eight strings are exactly how they would quietly stop being one.
+ */
+describe('the renown wreath', () => {
+  it('is the same drawing the great-person badge wears, path for path', () => {
+    const badge = [...BADGE_SVG.matchAll(/ d="([^"]+)"/g)].map((match) => match[1]);
+    expect(badge).toHaveLength(8);
+    expect(RENOWN_MARK.paths.map((path) => path.d)).toEqual(badge);
+  });
+
+  it('joins the family rather than keeping its own weight or its own hand', () => {
+    // The house-drawn wreath overrode the set's stroke on its spine and filled
+    // its leaves. Neither is allowed now: every member is a plain outline at the
+    // yield set's weight, which is what makes the CSS mask in `meterMark.ts`
+    // work the same way for all three.
+    for (const path of RENOWN_MARK.paths) {
+      expect(path.width).toBe(YIELD_MARK_STROKE);
+      expect(path.fill ?? false).toBe(false);
+      expect(path.d).toMatch(/^M/);
+    }
+    expect(RENOWN_MARK.credit).toBe('Tabler `laurel-wreath` (MIT)');
+    expect(RENOWN_MARK.note.length).toBeGreaterThan(0);
+  });
+
+  it('prints through the same emitter and memoises like the two meters', () => {
+    const uri = renownMarkDataUri('#123456');
+    expect(uri.startsWith('data:image/svg+xml,')).toBe(true);
+    const decoded = decodeURIComponent(uri.slice('data:image/svg+xml,'.length));
+    expect(decoded).toBe(meterMarkSvg(RENOWN_MARK, '#123456'));
+    expect(decoded).toContain(`viewBox="0 0 ${YIELD_MARK_BOX} ${YIELD_MARK_BOX}"`);
+    expect(decoded).toContain(`stroke-width="${YIELD_MARK_STROKE}"`);
+    expect(decoded).not.toContain('fill="#123456"');
+    expect(renownMarkDataUri()).toBe(renownMarkDataUri());
+  });
+
+  it('is not a member of METER_MARKS, which stays keyed by MeterId', () => {
+    // The record is exhaustive on purpose — a third meter must stop the module
+    // compiling — so renown, which is a bucket rather than a meter, is its own
+    // export. A wreath that had crept into the record would be a meter nothing
+    // in `sim/meters.ts` knows about.
+    expect(Object.keys(METER_MARKS)).not.toContain('renown');
   });
 });

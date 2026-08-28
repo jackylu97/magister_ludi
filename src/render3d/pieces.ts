@@ -104,6 +104,7 @@ import { GREAT_PERSON_IDS, type GreatPersonId } from '../sim/greatPeopleData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
 import type { GameMap } from '../sim/map';
 import { type GameState, type Unit, isBarbarian } from '../sim/state';
+import type { TerrainId } from '../sim/terrainData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
 
 import {
@@ -365,6 +366,20 @@ export interface PiecePlacement {
 }
 
 /**
+ * The terrain a piece is standing on, or `undefined` off the edge of the map.
+ *
+ * The one thing `unitSculpt` needs that a `Unit` does not carry, hoisted here so
+ * both layers that place a piece ask it the same way. Deliberately *not* a field
+ * on the unit: what a piece is standing on is a fact about the board, the sim
+ * has no reason to denormalise it, and the piece fingerprint already hashes
+ * `col` and `row` — so a unit that steps onto the sea re-sculpts with no new
+ * member in `signUnits`, which is the property this arrangement was chosen for.
+ */
+export function terrainUnder(map: GameMap, unit: Unit): TerrainId | undefined {
+  return map.tiles[unit.row * map.width + unit.col]?.terrain;
+}
+
+/**
  * The resting placement of a unit on its tile.
  *
  * `stackIndex` fans several units on one tile out around its centre, so a
@@ -573,10 +588,14 @@ export class UnitLayer {
         this.group.add(group);
         this.spriteUnits.set(unit.id, group);
       } else {
-        // `unitSculpt`, not `modelClassFor`: a caravan carrying a route stands
-        // in a different body from an idle one, which is the only thing on this
-        // board that varies with a unit's own state. See `MiniSculpt.laden`.
-        const piece = geometry.pieces[unitSculpt(unit)];
+        // `unitSculpt`, not `modelClassFor`: a piece's own situation chooses its
+        // body twice over — a caravan carrying a route stands in a laden one,
+        // and anything standing on water is a boat. The tile is passed rather
+        // than the unit asked for it, because a `Unit` has no idea what it is
+        // standing on and must not grow one (CLAUDE.md's fingerprint trap: `col`
+        // and `row` are already hashed, so a piece that walks onto the sea
+        // re-sculpts with no new hash member).
+        const piece = geometry.pieces[unitSculpt(unit, terrainUnder(map, unit))];
         const ink = unitColor(state, unit);
         slots.push(
           collector.add(

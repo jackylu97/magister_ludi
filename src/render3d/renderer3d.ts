@@ -111,6 +111,7 @@ import {
   pieceMaterials,
   placePiece,
   signUnits,
+  terrainUnder,
   unitColor,
 } from './pieces';
 import { type WorldPoint, pickBadge, pickTile } from './picking';
@@ -1509,9 +1510,14 @@ export class Renderer3D implements MapView {
       return;
     }
 
-    // The walking copy takes the piece's *own* body, laden twin included, or a
-    // caravan would shed its bale for exactly the length of its march.
-    const piece = this.geometry.pieces[unitSculpt(unit)];
+    // The walking copy takes the piece's *own* body — laden twin and boat hull
+    // included — or a caravan would shed its bale for exactly the length of its
+    // march, and a piece rowing out to sea would walk there on foot. The terrain
+    // is the unit's *current* hex, which during a march is where it is going: a
+    // step onto the water becomes a boat for the whole slide, which is the same
+    // reading the bale gets and the honest one for an animation that has no
+    // notion of a halfway house.
+    const piece = this.geometry.pieces[unitSculpt(unit, terrainUnder(this.map, unit))];
     const shape = piece.geometry;
     computeHullNormals(shape);
     const material = pieceMaterials(this.materials, piece, color);
@@ -1576,13 +1582,15 @@ export class Renderer3D implements MapView {
 
     // A corpse is a description rather than a unit — the state removed it before
     // this was called — so it topples in its type's own body. A plundered caravan
-    // falls unladen, which is what happened to it.
-    const piece = this.geometry.pieces[sculptFor(fallen.type)];
+    // falls unladen, which is what happened to it. The *hex* is still asked,
+    // though, because a piece lost at sea went down as a boat and there is no
+    // version of that where a footman topples over on the water.
+    const tile = getTileAt(this.map, fallen.col, fallen.row);
+    const piece = this.geometry.pieces[sculptFor(fallen.type, tile?.terrain)];
     computeHullNormals(piece.geometry);
     const player = this.state.players[fallen.ownerId];
     const color = playerPieceColor(player?.color ?? '', fallen.ownerId);
 
-    const tile = getTileAt(this.map, fallen.col, fallen.row);
     const centre = cellCenter(fallen.col, fallen.row);
     const height = tile ? tileTopY(tile) : 0;
     const period = wrapWidth(this.map);

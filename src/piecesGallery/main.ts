@@ -77,7 +77,7 @@ function layoutLabels(): void {
 function refreshStatus(extra = ''): void {
   const stats = stage.stats;
   statusEl.textContent =
-    `${stage.entries.length} classes · ${stats.triangles} tri · ${stats.draws} draws` +
+    `${stage.entries.length} sculpts · ${stats.triangles} tri · ${stats.draws} draws` +
     (extra ? `\n${extra}` : '');
 }
 

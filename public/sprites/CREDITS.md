@@ -428,6 +428,33 @@ vendored drawing quietly stops being the drawing that was vendored. Both printer
 as a parameter, and one scale constant per small set (`YIELD_MARK_SCALE`, `RESOURCE_MARK_SCALE`)
 insets it to the same optical size in the same roundel.
 
+## The three meter marks — `src/art/meterMarks.ts`
+
+The same bargain as the six yields, one family over: path data rather than files, on upstream's
+24-unit grid at the yield set's own 2.75, printed by the same emitter and pinned by
+`test/render/meterMarks.test.ts`. They are read at chip size on the top bar and in hover cards,
+which is the size the vendored sets are drawn for and the size a hand-drawn mark loses at.
+
+| Mark | Upstream icon | Set | Drawing |
+| --- | --- | --- | --- |
+| happiness | `smile` | Lucide (ISC) | a smiling face: two eyes, a curved mouth, a ringed outline |
+| authority | `stamp` | Lucide (ISC) | a hand stamp: the head and its handle, set on the page it marks |
+| renown | `laurel-wreath` | Tabler (MIT) | a laurel wreath: two sprays closing under a tied crown |
+
+The renown wreath is **the badge's drawing, not a second one**: `icons/greatPerson.svg` above is
+the same Tabler icon at the same weight, so the HUD chip, the renown hover and the badge over a
+great person's piece are one picture in three places. It was drawn here until 2026-08-27 —
+computed from an arc and a lean angle, because this file's badge section had recorded that Lucide
+carried no laurel and nobody re-checked Tabler. A playtest found the consequence first ("needs a
+better icon for renown, it's not very readable, needs to be the same style as the other icons"):
+three leaves a side on a bare arc reads as a horseshoe at twelve pixels, and a set with one
+member drawn by us is a set with one member that looks drawn by us. The house drawing was
+deleted rather than tuned.
+
+Edits to upstream: the stroke weighted 2 → 2.75, and `smile`'s `<circle>` face converted to path
+data (every member of a mark in this project is a `d` string). Nothing re-fitted, nothing
+re-centred.
+
 ## Marginalia (`icons/marginalia/`)
 
 **Original work for this project**, CC0 1.0, same 64 × 64 grid and same round caps, drawn a

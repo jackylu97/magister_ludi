@@ -1231,6 +1231,72 @@ export function trellisRows(size: number): BufferGeometry {
 }
 
 /**
+ * A lumbermill: a sawing trestle with a log on it, and a stack of cut timber.
+ *
+ * The one improvement prop that has to share its hex with a *full canopy*. Every
+ * other prop on this table is either the only thing standing on its tile (the
+ * farm, the mine) or is built round a resource that is a scatter of small
+ * objects (the herd, the vines). A lumbermill stands in a forest — the trees are
+ * emphatically not cleared, which is the whole point of the improvement — so it
+ * is drawn against pines that are taller than anything else on the board.
+ *
+ * Two consequences, and both are the shape rather than the size:
+ *
+ *   · **It is low and it is horizontal.** A vertical would be one more trunk. A
+ *     stack of logs lying down is the one silhouette in a wood that could not
+ *     possibly be a tree, and it is the first thing a real clearing shows.
+ *   · **Nothing is round-topped.** The canopy cones own that read, so the
+ *     trestle is squared timber and the stack is cut ends — the difference
+ *     between a log and a trunk is that somebody sawed it.
+ *
+ * `size` and `jitter` in `data/view3d.json` do the rest: the prop is small and
+ * nudged well off centre, so it stands in a gap between the pines rather than
+ * inside one.
+ */
+export function sawPit(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const logRadius = size * 0.115;
+  const logLength = size * 0.82;
+
+  /** One felled log, lying along x. Six sides: cut timber, not a turned pole. */
+  const log = (x: number, y: number, z: number): BufferGeometry => {
+    const timber = new CylinderGeometry(logRadius, logRadius, logLength, 6, 1);
+    timber.rotateZ(Math.PI / 2);
+    timber.translate(x, y, z);
+    return timber;
+  };
+
+  // The stack: two down, one nested on top. Three is the fewest that reads as a
+  // *pile* — two side by side is a pair of logs and four is a wall.
+  const stackZ = size * 0.34;
+  parts.push(log(0, logRadius, stackZ - logRadius * 1.02));
+  parts.push(log(0, logRadius, stackZ + logRadius * 1.02));
+  parts.push(log(0, logRadius * 2.72, stackZ));
+
+  // The trestle: two squared legs, a beam across them, and the log being cut.
+  const trestleZ = -size * 0.3;
+  const legHeight = size * 0.3;
+  for (const side of [-1, 1]) {
+    parts.push(
+      slabAt(size * 0.08, legHeight, size * 0.08, side * size * 0.26, legHeight / 2, trestleZ),
+    );
+  }
+  parts.push(slabAt(size * 0.72, size * 0.07, size * 0.1, 0, legHeight, trestleZ));
+  parts.push(log(0, legHeight + logRadius * 1.1, trestleZ));
+
+  // The saw, stood on end in the cut: a thin blade with a handle above it. It is
+  // the only vertical on the prop and it is deliberately small — one stroke that
+  // says the timber is being *worked* rather than merely stacked.
+  parts.push(
+    slabAt(size * 0.035, size * 0.34, size * 0.16, size * 0.12, legHeight + size * 0.3, trestleZ),
+  );
+
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
  * Fishing boats: one small hull with a mast and a boom, and a float beside it.
  *
  * The only improvement prop that stands on *water*, which decides everything
@@ -2160,6 +2226,128 @@ function addTraderPack(mini: Mini, spec: MiniSpec): Mini {
   );
   return mini;
 }
+
+/**
+ * The boat's proportions, as fractions of the kit it is cut from.
+ *
+ * `TRADER_PACK`'s shape and its reason: one table, so that nudging the hull
+ * moves the mast standing in it and the sail hanging off that. Lengths across
+ * the hull are fractions of `baseRadius` (the boat is a thing the base disc
+ * carries, and it must not overhang its own stack slot); heights are fractions
+ * of the figure's height above the disc.
+ */
+const BOAT = {
+  hull: { height: 0.2, long: 1.28, beam: 0.68 },
+  /**
+   * How far the whole boat is shifted astern, so the *silhouette* is centred on
+   * the base disc rather than the hull being centred and the bow hanging out
+   * over one side. The prow only grows forward, so a boat built about the origin
+   * is a boat that stands crooked on its own plinth.
+   */
+  aft: -0.27,
+  /** The bow cone, which is what makes a tub read as a boat from above. */
+  prow: { radius: 0.44, length: 0.58, drop: 0.62 },
+  /** Where the mast stands, aft of centre, and how thick it is. */
+  mast: { x: -0.14, radius: 0.028, foot: 0.72 },
+  /** The square sail and the yard it hangs from, both across the hull's length. */
+  sail: { width: 1.5, height: 0.52, thickness: 0.035, at: 0.5 },
+  yard: { width: 1.7, thickness: 0.055, at: 0.8 },
+} as const;
+
+/**
+ * A boat: one hull for every class, with the seat's colour in the sail.
+ *
+ * The sculpt a piece takes when it is standing on water it embarked onto (Entry
+ * XXVII; `unitSculpt` in `board3d.ts` is where the choice is made). It is the
+ * caravan's bargain one step further and the difference is worth stating: a
+ * laden trader is *that unit* carrying something, so it keeps the trader's body.
+ * A piece at sea is not the unit doing something — it is the unit somewhere the
+ * unit cannot stand, and a settler's handcart floating on the waves is a picture
+ * of a bug. So the body goes entirely and one generic hull replaces it, for
+ * every class that can ever be out there.
+ *
+ * Which leaves the obvious question, and the badge is the answer: the floating
+ * tag over a piece is already the board's one sentence about what it is
+ * (`badges3d.ts`), it is drawn from `badgeClassFor(unit.type)` and it does not
+ * know or care what the piece below it is sculpted as. So a settler at sea is a
+ * boat under a tent badge and a worker at sea is a boat under a hammer, with no
+ * work here and no second roster of nautical silhouettes to draw. That is the
+ * whole reason there is one boat rather than five.
+ *
+ * Cut at the `foot` height like everything that can embark today — embarkation
+ * is civilians-only in v1 (`MoveProfile.embarks`) and every civilian row is
+ * `foot`. If a navy ever arrives, the boat's height stops being a detail and
+ * `pieceHeightFor`'s "ask the type" rule is what will need re-reading, because a
+ * catapult's tag would hang well above this mast.
+ */
+export const boatMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.baseRadius;
+  const mini = new Mini().add('body', miniBase(spec));
+  const aft = r * BOAT.aft;
+
+  // A flared tub, closed top and bottom, then stretched fore-and-aft. A lathe
+  // rather than boxes because the seven facets are the same turned look the
+  // whole roster is cut with — a boxed hull would be the one piece on the board
+  // that had obviously been assembled rather than turned.
+  const hullH = h * BOAT.hull.height;
+  const hull = lathe([
+    [0, 0],
+    [r * 0.58, 0],
+    [r * 0.86, hullH * 0.5],
+    [r * 0.94, hullH],
+    [0, hullH],
+  ]);
+  hull.scale(BOAT.hull.long, 1, BOAT.hull.beam);
+  hull.translate(aft, t, 0);
+  mini.add('wood', hull);
+
+  // The bow: a cone laid on its side, squashed so it is a stem rather than a
+  // spike. Without it the silhouette from the ortho camera is a lozenge, which
+  // reads as a barrel; with it there is a pointed end and the piece has a
+  // heading even though nothing on this board asks which way a boat faces.
+  const prow = spike(r * BOAT.prow.radius, r * BOAT.prow.length, 5);
+  prow.rotateZ(-Math.PI / 2);
+  prow.scale(1, BOAT.prow.drop, BOAT.hull.beam);
+  prow.translate(aft + r * BOAT.hull.long * 0.9, t + hullH * 0.52, 0);
+  mini.add('wood', prow);
+
+  const mastFoot = t + hullH * BOAT.mast.foot;
+  const mastLength = spec.height - mastFoot;
+  const mast = shaft(mastLength, r * BOAT.mast.radius);
+  mast.translate(aft + r * BOAT.mast.x, mastFoot, 0);
+  mini.add('wood', mast);
+
+  const yard = slabAt(
+    r * BOAT.yard.width,
+    r * BOAT.yard.thickness,
+    r * BOAT.yard.thickness,
+    aft + r * BOAT.mast.x,
+    mastFoot + mastLength * BOAT.yard.at,
+    0,
+  );
+  mini.add('wood', yard);
+
+  // The sail is the only element in the seat's own ink, and that is the whole
+  // colour budget of the piece: a hull painted in team colour would be a large
+  // blob of it with a smaller blob of rigging on top — `miniHorse`'s argument,
+  // and the same answer. The sail is also the largest flat face on the sculpt
+  // and the one square-on to the ortho camera, so it is where a colour is
+  // actually read from across the table.
+  mini.add(
+    'body',
+    slabAt(
+      r * BOAT.sail.width,
+      mastLength * BOAT.sail.height,
+      r * BOAT.sail.thickness,
+      aft + r * BOAT.mast.x,
+      mastFoot + mastLength * BOAT.sail.at,
+      0,
+    ),
+  );
+  return mini.build();
+};
 
 /** Archer: token with a self bow held at the side and a quiver on the back. */
 export const archerMini: MiniFactory = (spec) => {

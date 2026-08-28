@@ -15,8 +15,8 @@
  * state, no turn; a piece here is a model class and an owner colour and nothing
  * else.
  *
- * Classes, not types
- * ------------------
+ * Classes, not types — and then the situations
+ * -------------------------------------------
  * The page used to line up fifteen sculpts, one per unit type, and answering
  * "do these read as fifteen different units?" honestly is what killed them: at
  * board scale they did not. The roster is eight model classes now
@@ -25,6 +25,15 @@
  * read as eight different *kinds* of thing, and does the badge do the rest of
  * the work?". Every cell therefore shows the class model with its own badge
  * above it, and its label names the unit types it stands in for.
+ *
+ * It walks `SCULPT_IDS` rather than `MODEL_CLASS_IDS`, which is what puts the
+ * caravan, the laden caravan and the boat on the shelf beside the eight. Those
+ * three are not model classes — two of them are not facts about a unit *row* at
+ * all, but bodies a piece takes because of what it is doing (`unitSculpt`) — and
+ * a shelf that showed only the eight would be a reference sheet missing three of
+ * the bodies actually on the board. The boat is the cell to look at hardest,
+ * because it is the one that has to work with *any* badge over it and is shown
+ * here with none.
  *
  * The turntable
  * -------------
@@ -56,19 +65,21 @@ import {
   WebGLRenderer,
 } from 'three';
 
-import { type UnitBadges, badgeTopY } from '../render3d/badges3d';
+import { type BadgeClass, type UnitBadges, badgeTopY } from '../render3d/badges3d';
 import {
   BoardGeometry,
   MINI_SCULPTS,
-  MODEL_CLASS_IDS,
-  modelClassFor,
+  SCULPT_IDS,
+  type SculptId,
+  badgeClassFor,
+  sculptFor,
 } from '../render3d/board3d';
 import { hexPrism } from '../render3d/geometry';
 import { VIEW3D, shade } from '../render3d/lookData';
 import { SPRITE_HEIGHT, buildBadge, buildSpriteUnit, pieceMaterials } from '../render3d/pieces';
 import type { UnitSprites } from '../render3d/sprites3d';
 import { MaterialLibrary, computeHullNormals } from '../render3d/toon';
-import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../sim/unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
 
 const LOOK = VIEW3D.look;
 const LIGHTS = VIEW3D.lights;
@@ -88,20 +99,49 @@ const SPIN_RATE = 0.3;
 export type GalleryStyle = 'pieces' | 'sprites';
 
 /**
- * Every unit type drawn as a given model class, in roster order.
+ * Every unit type drawn in a given sculpt, in roster order.
  *
  * The label's whole job on this page: a cell showing the melee model has to say
  * which five units are standing behind it, or the consolidation looks like art
  * that lost a fight rather than a decision.
+ *
+ * Asked of `sculptFor` rather than `modelClassFor`, which is what keeps the
+ * caravan off the worker's list: the two share a model class and stand in
+ * different bodies, and a page that answers "which units is this" off the
+ * coarser question would print the trader under the worker's mallet.
  */
-function typesInClass(modelClass: ModelClass): UnitTypeId[] {
-  return UNIT_TYPE_IDS.filter((type) => modelClassFor(type) === modelClass);
+function typesInSculpt(id: SculptId): UnitTypeId[] {
+  return UNIT_TYPE_IDS.filter((type) => sculptFor(type) === id);
 }
+
+/**
+ * The sculpts no unit *type* ever names, and what stands in them instead.
+ *
+ * Two of them now, and they are the two things a piece's own situation can do
+ * to its body: carry a route, and be at sea (`unitSculpt`). Neither is a fact
+ * about a roster row, so `typesInSculpt` correctly answers "nothing" for both —
+ * and "no unit yet" would be a lie about a body that is on the board every time
+ * a caravan is loaded. So they say what they are for instead.
+ */
+const SITUATION_SCULPTS: Partial<Record<SculptId, string>> = {
+  traderLaden: 'a caravan actually carrying a route',
+  boat: 'anything standing on water it embarked onto',
+};
 
 /** One cell of the grid: where it is, what stands there, and what to call it. */
 export interface GalleryEntry {
-  modelClass: ModelClass;
-  /** The class name, title-cased for the label's first line. */
+  sculpt: SculptId;
+  /**
+   * The badge that floats over this cell, or null when there is nothing honest
+   * to hang there.
+   *
+   * The boat is the null, and it is the sculpt's whole design rather than a gap:
+   * one hull serves every class *because* the badge over a piece is drawn from
+   * its own type and keeps saying what it is (see `boatMini`). A settler badge
+   * picked arbitrarily for this cell would be a claim the board never makes.
+   */
+  badge: BadgeClass | null;
+  /** The sculpt's name, title-cased for the label's first line. */
   name: string;
   /** The unit types this model stands in for; empty for a reserved class. */
   covers: string[];
@@ -254,7 +294,7 @@ export class PiecesStage {
    * their own group and the furniture does not.
    */
   private buildStage(): void {
-    const rows = Math.ceil(MODEL_CLASS_IDS.length / COLUMNS);
+    const rows = Math.ceil(SCULPT_IDS.length / COLUMNS);
     const originX = -((COLUMNS - 1) * COLUMN_GAP) / 2;
     const originZ = -((rows - 1) * ROW_GAP) / 2;
 
@@ -276,7 +316,7 @@ export class PiecesStage {
     table.receiveShadow = false;
     this.scene.add(table);
 
-    MODEL_CLASS_IDS.forEach((modelClass, index) => {
+    SCULPT_IDS.forEach((id, index) => {
       const col = index % COLUMNS;
       const row = Math.floor(index / COLUMNS);
       const x = originX + col * COLUMN_GAP;
@@ -289,13 +329,18 @@ export class PiecesStage {
       this.figures.add(turntable);
       this.turntables.push(turntable);
 
-      const sculpt = this.geometry.pieces[modelClass];
-      const sculptClass = MINI_SCULPTS[modelClass].cls;
-      const types = typesInClass(modelClass);
+      const sculpt = this.geometry.pieces[id];
+      const sculptClass = MINI_SCULPTS[id].cls;
+      const types = typesInSculpt(id);
+      const situation = SITUATION_SCULPTS[id];
       this.entries.push({
-        modelClass,
-        name: modelClass.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()),
-        covers: types.map((type) => unitDef(type).name),
+        sculpt: id,
+        // Off the *sample*, so the caravan wears the crate and the worker the
+        // mallet — `badgeClassFor` is the board's own answer and this page must
+        // not keep a second one.
+        badge: types[0] === undefined ? null : badgeClassFor(types[0]),
+        name: id.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()),
+        covers: situation ? [situation] : types.map((type) => unitDef(type).name),
         sample: types[0] ?? null,
         cls: sculptClass,
         triangles: sculpt.geometry.getAttribute('position').count / 3,
@@ -353,12 +398,12 @@ export class PiecesStage {
       // is the same relationship it has on the board, where the piece carries a
       // hashed yaw and the tag does not.
       const height = spriteMaterial ? SPRITE_HEIGHT : entry.height;
-      if (this.badges) {
+      if (this.badges && entry.badge) {
         const badge = buildBadge(
           this.geometry,
           this.materials,
           this.badges,
-          entry.modelClass,
+          entry.badge,
           this.color,
           faceCamera,
           height,
@@ -379,7 +424,7 @@ export class PiecesStage {
         return;
       }
 
-      const piece = this.geometry.pieces[entry.modelClass];
+      const piece = this.geometry.pieces[entry.sculpt];
       const material = pieceMaterials(this.materials, piece, this.color);
       computeHullNormals(piece.geometry);
       const mesh = new Mesh(piece.geometry, material);
@@ -418,7 +463,7 @@ export class PiecesStage {
    * asked to keep true by hand.
    */
   private fit(): void {
-    const rows = Math.ceil(MODEL_CLASS_IDS.length / COLUMNS);
+    const rows = Math.ceil(SCULPT_IDS.length / COLUMNS);
     const halfX = ((COLUMNS - 1) * COLUMN_GAP) / 2 + PLINTH_RADIUS;
     const halfZ = ((rows - 1) * ROW_GAP) / 2 + PLINTH_RADIUS;
     // Tall enough for the badge stacked over the tallest model, or the top row

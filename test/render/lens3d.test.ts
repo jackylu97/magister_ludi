@@ -234,11 +234,12 @@ describe('the explorer lens', () => {
     unknown.dispose();
   });
 
-  it('marks a camp only where the seat is looking right now', () => {
-    // The occupation rule, and the reason the lens cannot use one fog rule for
-    // both: a remembered camp ringed in red is a warning about an army that may
-    // have moved on ten turns ago — and the board is not drawing the stockade
-    // there either.
+  it('marks a camp on remembered ground too, following the site layer', () => {
+    // The lens's binding constraint is that it must never ring a hex the board
+    // is not drawing the thing on. Camps became ground on 2026-08-27 (see the
+    // ruling in `sites3d.ts`), so this half moved with them: a palisade standing
+    // in plain view on the diorama and unringed under the explorer lens is the
+    // failure this pin exists to catch.
     const state = flatState();
     state.camps.push({ col: 7, row: 5, foundedTurn: 1 });
 
@@ -247,8 +248,12 @@ describe('the explorer lens', () => {
     watched.dispose();
 
     const remembered = build(state, grid(state, EXPLORED));
-    expect(countInstances(remembered.group)).toBe(0);
+    expect(countInstances(remembered.group)).toBe(PER_MARK);
     remembered.dispose();
+
+    const unknown = build(state, grid(state, HIDDEN));
+    expect(countInstances(unknown.group)).toBe(0);
+    unknown.dispose();
   });
 
   it('marks a site and a camp in two different inks', () => {

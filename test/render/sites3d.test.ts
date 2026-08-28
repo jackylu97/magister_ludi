@@ -27,10 +27,12 @@ import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibi
  *   2. **Fog applies on rebuild.** `FogView` patches the board's buffers and
  *      knows nothing about this group, so a layer rebuilt on remembered ground
  *      would come up lit and stay lit.
- *   3. **The two fog rules are different, and both hold.** A ruin is ground and
- *      survives on remembered hexes; a camp is an occupation and is drawn only
- *      where the seat can see *now*. A camp that persisted on remembered ground
- *      would be a banner a player sends a warrior at.
+ *   3. **One fog rule, and all three tenants take it.** A ruin, a village and —
+ *      since the 2026-08-27 ruling — a barbarian camp are all *ground*: drawn on
+ *      any hex the seat has charted, washed on the ones it merely remembers, and
+ *      absent only where nobody has been. The camp used to follow the unit rule
+ *      instead and the pin below moved with the ruling rather than around it, so
+ *      the suite states the new reading rather than describing the old one.
  */
 
 function materials(): MaterialLibrary {
@@ -77,6 +79,31 @@ function at(state: GameState, col: number, row: number): Tile {
 
 function meshesOf(group: { children: unknown[] }): InstancedMesh[] {
   return group.children.filter((child): child is InstancedMesh => child instanceof InstancedMesh);
+}
+
+/**
+ * Every instance colour the layer wrote, as printable strings.
+ *
+ * The observable half of `setWash`: a washed instance and a lit one differ in
+ * this attribute and in nothing else a test can reach, so "more than one colour
+ * on the board" is what "the fog pass ran on some of them" looks like from
+ * outside. Shared by the ruin and camp wash tests rather than written twice —
+ * they are the same claim about two tenants of one rule.
+ */
+function instanceColours(layer: SiteLayer): string[] {
+  return meshesOf(layer.group).flatMap((mesh) => {
+    const attribute = mesh.instanceColor;
+    if (!attribute) return [] as string[];
+    const out: string[] = [];
+    for (let i = 0; i < attribute.count; i++) {
+      out.push(
+        `${attribute.getX(i).toFixed(4)},${attribute.getY(i).toFixed(4)},${attribute
+          .getZ(i)
+          .toFixed(4)}`,
+      );
+    }
+    return out;
+  });
 }
 
 /** A grid at one level everywhere, with named exceptions. */
@@ -151,10 +178,11 @@ describe('drawing sites', () => {
     layer.dispose();
   });
 
-  it('draws a camp only where the seat can see right now', () => {
-    // The rule that parts company with the improvements layer, and the whole
-    // reason the two tenants are documented apart: a remembered camp is a
-    // banner over ground that may be empty.
+  it('keeps a camp on remembered ground, like a ruin', () => {
+    // The ruling (playtest 2026-08-27): a camp is a thing a player plans a march
+    // against, and a mark that erased itself when the scout who found it walked
+    // home could not be planned against. Same three levels as the ruin above,
+    // and deliberately the same three answers.
     const state = flatState();
     state.camps.push({ col: 7, row: 5, foundedTurn: 1 });
     const layer = new SiteLayer();
@@ -164,10 +192,51 @@ describe('drawing sites', () => {
     expect(layer.instances).toBe(1);
 
     layer.build(state, geometry, materials(), false, levels(state, EXPLORED));
-    expect(layer.instances).toBe(0);
+    expect(layer.instances).toBe(1);
 
     layer.build(state, geometry, materials(), false, levels(state, HIDDEN));
     expect(layer.instances).toBe(0);
+    layer.dispose();
+  });
+
+  it('takes a cleared camp off the board on remembered ground too', () => {
+    // The other end of the ruling, and the thing that keeps "persistent" from
+    // meaning "permanent": the layer draws `state.camps`, so a palisade that has
+    // been burnt out is gone from the chart at the next rebuild whether or not
+    // the seat is looking at the hex. That is exactly a ruin's reading — a site
+    // claimed by a rival goes dark on every board — and it is the honest one for
+    // a renderer whose only per-seat memory is a fog level per hex.
+    const state = flatState();
+    state.camps.push({ col: 7, row: 5, foundedTurn: 1 });
+    const layer = new SiteLayer();
+    const geometry = new BoardGeometry();
+
+    layer.build(state, geometry, materials(), false, levels(state, EXPLORED));
+    expect(layer.instances).toBe(1);
+
+    state.camps.length = 0;
+    layer.build(state, geometry, materials(), false, levels(state, EXPLORED));
+    expect(layer.instances).toBe(0);
+    layer.dispose();
+  });
+
+  it('washes a remembered camp rather than leaving it lit', () => {
+    // The consequence the old rule made unreachable: a camp could never be drawn
+    // on `EXPLORED` ground, so the fog pass had nothing to do to one. It does
+    // now, and it needed no edit to do it — the pass was always written over the
+    // whole map rather than over the ruins alone.
+    const state = flatState();
+    state.camps.push({ col: 2, row: 2, foundedTurn: 1 });
+    state.camps.push({ col: 6, row: 2, foundedTurn: 1 });
+    const layer = new SiteLayer();
+    layer.build(
+      state,
+      new BoardGeometry(),
+      materials(),
+      false,
+      levels(state, VISIBLE, { '2,2': EXPLORED }),
+    );
+    expect(new Set(instanceColours(layer)).size).toBeGreaterThan(1);
     layer.dispose();
   });
 
@@ -201,21 +270,7 @@ describe('drawing sites', () => {
 
     // The washed instance's colour differs from the lit one's, which is the
     // observable consequence of `setWash` having run on exactly one of them.
-    const meshes = meshesOf(layer.group);
-    const colours = meshes.flatMap((mesh) => {
-      const attribute = mesh.instanceColor;
-      if (!attribute) return [] as string[];
-      const out: string[] = [];
-      for (let i = 0; i < attribute.count; i++) {
-        out.push(
-          `${attribute.getX(i).toFixed(4)},${attribute.getY(i).toFixed(4)},${attribute
-            .getZ(i)
-            .toFixed(4)}`,
-        );
-      }
-      return out;
-    });
-    expect(new Set(colours).size).toBeGreaterThan(1);
+    expect(new Set(instanceColours(layer)).size).toBeGreaterThan(1);
     layer.dispose();
   });
 });
@@ -243,7 +298,9 @@ describe('the standing site markers', () => {
       fakeIcons,
       new Quaternion(),
     );
-    // Three props, two markers: a camp is an occupation and gets no label.
+    // Three props, two markers: a camp wears no paper. The prop is a palisade
+    // and reads as one; the pin exists because a broken column at game zoom is
+    // three grey shapes among the boulders it was carved to look like.
     expect(layer.instances).toBe(3);
     expect(layer.markers).toBe(2);
     layer.dispose();
@@ -261,7 +318,7 @@ describe('the standing site markers', () => {
     layer.dispose();
   });
 
-  it('follows the ruin fog rule, not the camp one', () => {
+  it('carries its prop\'s fog rule onto remembered ground', () => {
     // Remembered ground keeps its marker — a chart records a ruin the way it
     // records a coastline — and unexplored ground has none.
     const state = flatState();

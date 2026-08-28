@@ -30,7 +30,7 @@ import {
   marginaliaMark,
   marginaliaMarkDataUri,
 } from '../art/marginaliaMarks';
-import { METER_MARKS, meterMarkDataUri } from '../art/meterMarks';
+import { METER_MARKS, RENOWN_MARK, meterMarkDataUri, renownMarkDataUri } from '../art/meterMarks';
 import {
   MARK_BOX,
   MARK_STROKE,
@@ -117,12 +117,15 @@ function meterFamily(into: HTMLElement): void {
     block(
       into,
       'Meters — src/art/meterMarks.ts',
-      'Happiness and Authority, on the yields’ grid because they are read in the same strip.',
+      'Happiness, Authority and Renown, on the yields’ grid because they are read in the same strip. All three are vendored: the wreath is the great-person badge’s own Tabler drawing, so the chip and the piece wear one picture.',
     ),
   );
   for (const [key, mark] of Object.entries(METER_MARKS)) {
     markCell(grid, key, meterMarkDataUri(key as keyof typeof METER_MARKS), mark.note);
   }
+  // Renown is the family's third member and not a `MeterId` — see the export's
+  // docblock — so it is drawn beside the two rather than inside the loop.
+  markCell(grid, 'renown', renownMarkDataUri(), RENOWN_MARK.note);
 }
 
 function dockFamily(into: HTMLElement): void {
