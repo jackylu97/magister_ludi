@@ -58,7 +58,7 @@ one each. Military is modest by design: one unit line and the first city wall.
 | **Irrigation** | 65 | Calendar, Earthenware | farm renewal: **+1🌾 on farms beside fresh water** (moves here from Feudalism, which gets the castle instead) · **floodplain farms** allowed if not already · wonder **The Hanging Gardens** (+3🌾 in the city, +1 happiness) | Water | wonders |
 | **Standing Stones** | 70 | Stonecraft, Divination | **Standing Stones** improvement (worker-built, open flat ground, +1🎵 +1🕯; the first thing a people builds that is not food) · wonder **Stonehenge** (+4🕯, +1 pantheon slot) | Sky ✦ | improvement is a data row + a sculpt · wonders |
 | **Caravans** | 80 | Calendar, The Wheel | **Bazaar** building (+2🪙, the first gold building) · Statecraft: the *Founders' Road* doctrine's road half stays dormant until Æra III; caravans are the promise | — | trade routes (Æra III) — the bazaar ships now |
-| **Bronze Panoply** | 90 | Bronzeworking, The Wheel | **Hoplite** (spearman upgrade; str 10, +25% vs mounted) · barracks renewal: units built here +1 combat (the existing `unitProductionBonus` shape) · AoE2-style auto-upgrade of spearmen on research (Entry V) | Fire | auto-upgrade is a small unit-line hook: `upgradesTo` on the unit row |
+| **Bronze Panoply** | 90 | Bronzeworking, The Wheel | **Phalanx** (spearman upgrade; str 10, +25% vs mounted) · barracks renewal: units built here +1 combat (the existing `unitProductionBonus` shape) · AoE2-style auto-upgrade of spearmen on research (Entry V) | Fire | auto-upgrade is a small unit-line hook: `upgradesTo` on the unit row |
 | **Wayfinding** | 110 | Sailing, Husbandry | scouts +1 sight · settlers +1 movement · **Harbour** building (coastal; +1🌾 on worked sea resource tiles) · wonder **The Great Lighthouse** (coastal; +1 sight and +1 movement for embarked units, +2🪙) | Water | unit stat gifts exist as card hooks; a *tech* stat gift is one line in `techGifts` |
 
 **Heroes wonders (6):** The Oracle (mints a Magister's Die each age — the dice economy's
@@ -181,7 +181,7 @@ Cloister* (religion.md).
 ## Open questions for the ruling
 
 - **Curtain**: ~t185 with five ages, or compress Heroes/Empire to hold ~t160?
-- **Heroes' military**: one unit (the hoplite) and one wall is deliberately thin — is the age
+- **Heroes' military**: one unit (the phalanx) and one wall is deliberately thin — is the age
   allowed to be a builder's age, or does it want a second line (chariot upgrade)?
 - **Temple to The High Temple** changes Æra I's faith income *timing* (the shrine stays) —
   this interacts with the open faith-income ruling (first augur t49).
