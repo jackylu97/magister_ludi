@@ -263,7 +263,7 @@ import { highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
 import { type TraderPlunder, routeCities } from '../sim/trade';
-import { isExplorer, trades, unitDef } from '../sim/unitData';
+import { type UnitDef, isExplorer, trades, unitDef } from '../sim/unitData';
 import { type DisbandReport, treasuryInDebt } from '../sim/upkeep';
 import {
   sleepError,
@@ -656,6 +656,48 @@ export function lensForDigit(
   const target = digit === 0 ? 'none' : (lenses[digit - 1] ?? null);
   if (target === null) return null;
   return target === current ? 'none' : target;
+}
+
+/**
+ * Which lens a selection raises — the whole of `effectiveLens`'s mode rule,
+ * pulled out pure for `lensForDigit`'s reason exactly: this is a table of
+ * precedences that can be wrong in a way no behavioural test would catch, and
+ * this suite has no renderer, no `GameControls` and no pointer behind it.
+ *
+ * Every clause is asked of the **unit table**, never of a type string — the
+ * `foundsCity` discipline the sim keeps (`unitData.ts`), so a second settler, a
+ * second ranging piece or a second religious piece inherits its lens with its
+ * data row and nothing here changes:
+ *
+ *   · `foundsCity` ⇒ `settler` — "where should this go";
+ *   · `prophesies` or `consecrates` ⇒ `faith` — "whose argument is winning,
+ *     and where". A prophet is carried *to* a town to found or spread a faith
+ *     and an augur's Preaching is a pulse laid on the board, so for both of them
+ *     picking the piece up **is** the asking (user, 2026-08-28). `consecrates`
+ *     is the augur's marker exactly as `prophesies` is the prophet's; neither
+ *     is a name;
+ *   · `isCombatant` or `isExplorer` ⇒ `explorer` — "where is there still
+ *     something to find".
+ *
+ * The order is precedence and only the first two could ever collide (no unit
+ * both founds cities and prophesies; neither a prophet nor an augur is a
+ * combatant, so the third clause is disjoint from the second today). Settler
+ * wins if one ever does, because spending a piece is the more consequential
+ * decision.
+ *
+ * **A manually raised lens of the same kind still beats the lot**, and `faith`
+ * is the only mode where that has ever mattered: a player who went to the menu
+ * for it has not stopped asking whose faith is winning because they clicked a
+ * warrior to see where it stands. It reads `manual` alone, so dropping the piece
+ * puts the player's own choice straight back.
+ */
+export function lensForSelection(def: UnitDef | null, manual: LensMode): LensMode {
+  if (manual === 'faith') return 'faith';
+  if (def === null) return manual;
+  if (def.foundsCity) return 'settler';
+  if (def.prophesies === true || def.consecrates === true) return 'faith';
+  if (isCombatant(def) || isExplorer(def)) return 'explorer';
+  return manual;
 }
 
 /**
@@ -1151,6 +1193,19 @@ export interface GameControls {
    * so its ticks say what will come back when the override goes away.
    */
   lens(): LensMode;
+
+  /**
+   * The lens actually **on the board** — the player's choice with the automatic
+   * piece rules applied (`lensForSelection`).
+   *
+   * `lens()`'s twin, and the two are not interchangeable: the menu's ticks and
+   * the digit hotkeys read `lens()`, because they are about what the player
+   * chose, while anything that decorates what the board is *currently showing*
+   * — the faith lens's city hover — reads this one, or it would go dark the
+   * moment a prophet raised the lens without the menu.
+   */
+  boardLens(): LensMode;
+
   /** Puts a lens up, or takes it down with `'none'`. The menu's rows. */
   setLens(lens: LensMode): void;
 
@@ -2671,13 +2726,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * What the board is showing: which lens, and whether the yield glyphs and the
    * resource roundels are up.
    *
-   * Three automatic rules sit on top of the player's own choices, all because
+   * Four automatic rules sit on top of the player's own choices, all because
    * the question they answer is the question the player has just asked by doing
    * something else. They are independent of each other, which is the point of
    * splitting the glyphs off the lens list:
    *
    *   · a selected settler ⇒ the settler lens. Picking one up *is* the question
    *     "where should this go".
+   *   · a selected **prophet or augur** ⇒ the faith lens. See `lensForSelection`,
+   *     which is where the whole precedence table now lives.
    *   · a selected **fighting piece** ⇒ the explorer lens. Picking one up is the
    *     same gesture one question over: "where is there still something to
    *     find". Asked of the unit table (`isCombatant`, `isExplorer`) exactly as
@@ -2708,19 +2765,25 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    *     it must also fire when the settler lens is up by the player's own
    *     manual choice with no unit selected at all.
    *
-   * The two piece rules are written in precedence order and the order has never
-   * had to matter: no unit both founds cities and ignores terrain. Settler wins
-   * if one ever does, because spending a piece is the more consequential
-   * decision of the two.
+   * The three piece rules are written in precedence order in `lensForSelection`
+   * and none of the orderings has ever had to matter; that function's docblock
+   * is where they are argued.
    *
-   * **A manually raised `faith` lens beats both**, and it is the one exception
-   * to "a selected piece asks its own question". The other two modes are
-   * questions a *piece* asks and the automatic rules exist because picking one
-   * up **is** the asking; faith is a question the world asks and no piece does
-   * (`LensMode`), so nothing raises it and nothing may take it away — a player
-   * who went to the menu for it and then clicked a warrior to see where it
-   * stands has not stopped asking whose faith is winning. It is a rule about
-   * `manualLens` alone, so dropping it puts the automatic pair straight back.
+   * **Faith is auto-raised, and that supersedes the note that used to stand
+   * here** (user, 2026-08-28). The old rule said faith was a question the *world*
+   * asked and no piece did, so nothing raised it: the mode was reachable from the
+   * menu alone. The playtest's correction is the honest one — a prophet is
+   * carried *to* a town to found or spread a faith, and an augur's Preaching is
+   * a pulse laid on the board, so for either of them picking the piece up is
+   * exactly the gesture the settler rule already recognised one question over.
+   * Both raise it, asked of `prophesies` and `consecrates` (`lensForSelection`),
+   * and dropping the piece lowers it again unless the player had set it by hand.
+   *
+   * **A manually raised `faith` lens still beats every piece rule**, which is the
+   * half of the old note that survives: a player who went to the menu for it and
+   * then clicked a warrior to see where it stands has not stopped asking whose
+   * faith is winning. It is a rule about `manualLens` alone, so dropping it puts
+   * the automatic set straight back.
    *
    * The city rule scopes the glyphs *only while the player has them off*. With the
    * switch already on, the whole map is marked and the radius is part of it, so
@@ -2748,17 +2811,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const playerId = localPlayerId;
     const unit = selectedUnit();
     const def = unit === null ? null : unitDef(unit.type);
-    const settler = def !== null && def.foundsCity;
-    const explorer = def !== null && (isCombatant(def) || isExplorer(def));
     const city = openCity();
-    const mode =
-      manualLens === 'faith'
-        ? 'faith'
-        : settler
-          ? 'settler'
-          : explorer
-            ? 'explorer'
-            : manualLens;
+    const mode = lensForSelection(def, manualLens);
     return {
       mode,
       cells: null,
@@ -5248,6 +5302,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     endTurnBlocker,
     setLocalPlayer,
     lens: () => manualLens,
+    boardLens: () => effectiveLens().mode,
     setLens,
     yieldsShown: () => yieldsOn,
     setYields,

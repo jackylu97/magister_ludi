@@ -150,6 +150,9 @@ import { type TradeScreen, createTradeScreen } from './ui/tradeScreen';
 import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
 import { YIELD_GLYPH } from './ui/figures';
 import type { HoverInfo, LensMode, MapView } from './ui/mapView';
+import { createInfoCard } from './ui/infoCard';
+import { faithHoverCard, faithHoverReading } from './ui/faithHover';
+import { cityAt } from './sim/cities';
 import type { TurnBlocker } from './ui/turnBlockers';
 
 function requireElement<T extends HTMLElement>(id: string): T {
@@ -1490,6 +1493,15 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
+   * The faith lens's hover card. The shared component, in its plain dress plus
+   * one modifier — a board card is laid on a diorama rather than on a panel, so
+   * it carries its own lift in the stylesheet — and deliberately **not** sticky:
+   * there is nothing in it to click, and a card that could take the pointer
+   * would be a card standing between the player and the hex underneath it.
+   */
+  const faithInfo = createInfoCard({ className: 'info-card is-board' });
+
+  /**
    * The bottom-left context card: what the pointer is over, and what the game
    * has to say about the last order.
    *
@@ -1518,6 +1530,10 @@ async function boot(initial: Game | null): Promise<void> {
       clearInfoRows();
       showCombatForecast(controls.combatForecast());
       contextEl.classList.add('is-shown');
+      // The one early return, so the faith card is taken down here too — a card
+      // left standing over unexplored ground is the fog leaking through the
+      // surface written to respect it.
+      updateFaithCard(null, true);
       return;
     }
     if (hover) {
@@ -1544,6 +1560,67 @@ async function boot(initial: Game | null): Promise<void> {
     showCombatForecast(controls.combatForecast());
 
     contextEl.classList.toggle('is-shown', hover !== null || !contextNoticeEl.hidden);
+
+    // And the faith lens's own card, which is about the *town* under the pointer
+    // rather than the ground. Last, and additive: the readout above keeps every
+    // row it had. See `updateFaithCard`.
+    updateFaithCard(hover, true);
+  }
+
+  /**
+   * The faith lens's city card: the pressure ledger, laid beside the hex.
+   *
+   * The shared hover card (`infoCard`, non-sticky) raised against a bare
+   * rectangle, because a hex has no DOM to hover — see `InfoCard.showAt`. It is
+   * **anchored to the hex** and the tile readout is pinned to the corner, which
+   * is the whole of why the two do not fight: they stack rather than replace,
+   * and terrain, yields and what is standing there stay worth reading with the
+   * lens up (a proclamation is planted on ground).
+   *
+   * Three conditions, all of them cheap, and the order is the cheap one first:
+   * the lens on the *board* (`boardLens`, never `lens()` — a prophet raises it
+   * without the menu), a town under the pointer, and a reading the seat is
+   * allowed to have (`faithHoverReading` returns `null` for ground nobody has
+   * walked).
+   *
+   * `rebuild` is the difference between the two callers. Hover and every state
+   * change re-derive the card, because a pressure ledger changes with a road, a
+   * site, a caravan and a conversion; the renderer's frame beat only *replaces*
+   * it, so a camera pan repositions a card it has already composed rather than
+   * folding forty towns' pressure sixty times a second.
+   */
+  let faithCard: { cityId: number; node: Node } | null = null;
+
+  function updateFaithCard(hover: HoverInfo | null, rebuild: boolean): void {
+    const city =
+      hover === null || controls.boardLens() !== 'faith'
+        ? undefined
+        : cityAt(game.state, hover.tile.col, hover.tile.row);
+    if (city === undefined) {
+      faithCard = null;
+      faithInfo.hide();
+      return;
+    }
+    if (rebuild || faithCard === null || faithCard.cityId !== city.id) {
+      const reading = faithHoverReading(game.state, city, controls.localPlayerId());
+      if (reading === null) {
+        faithCard = null;
+        faithInfo.hide();
+        return;
+      }
+      faithCard = { cityId: city.id, node: faithHoverCard(reading) };
+    }
+    // Where the hex landed on screen. `projectCell` is the 3D renderer's alone
+    // (the frozen 2D pipelines simply have no card here, exactly as they have no
+    // city banners), and a hex off the edge takes the card down rather than
+    // pinning it to a viewport corner pointing at nothing.
+    const at = renderer.projectCell?.(city.col, city.row) ?? null;
+    if (at === null || !at.onScreen) {
+      faithInfo.hide();
+      return;
+    }
+    const node = faithCard.node;
+    faithInfo.showAt({ left: at.x, top: at.y, right: at.x, bottom: at.y }, () => node);
   }
 
   /**
@@ -1932,7 +2009,10 @@ async function boot(initial: Game | null): Promise<void> {
             ? playerById(game.state, seat)?.pantheon.beliefs.slice(-1)[0]
             : pool === 'follower'
               ? mine?.follower.slice(-1)[0]
-              : mine?.enhancer;
+              : // Both pools are lists now (`Religion.enhancer`, schema 29), so
+                // "what was just taken" is the last of whichever shelf it landed
+                // on — one reading rather than two.
+                mine?.enhancer.slice(-1)[0];
         if (taken !== undefined) {
           // The chronicle keeps this one and the toast stack does not: a belief
           // is a permanent fact about the empire, worth a line somebody can
@@ -2166,24 +2246,28 @@ async function boot(initial: Game | null): Promise<void> {
   /**
    * One row of the lens menu.
    *
-   * Four fields rather than the three the rack started with, and the split
-   * between them is what each is *for*:
+   * Three fields, and the split between them is what each is *for*:
    *
    *   · `label` is the lens's **name** — the row's heading and, alone, the word
    *     the bar button wears. It stays short for that second reader;
-   *   · `tail` is the clause the row prints after an em dash. It is where a
-   *     lens says what question it answers, which is a longer sentence than a
-   *     button can carry;
    *   · `hint` is the platform tooltip, with the digit appended;
    *   · `legend` is the **key to the drawing** — what a wash means, what a ring
    *     means — printed under the row only while that lens is up. A key nobody
    *     is looking at the board through is a paragraph in a menu.
+   *
+   * There was a fourth, `tail`: a clause printed after an em dash where a lens
+   * could say what question it answers. Only the faith row ever carried one, so
+   * what it actually did was make that row *look different from the other two*
+   * for no reason a player could name (user, 2026-08-28). A row is a name; the
+   * sentence a lens is worth belongs in the tooltip, which every row already
+   * has, and the key belongs under the row it is the key to. Removed rather
+   * than left unused, because an optional field with no reader is an invitation
+   * to make one row odd again.
    */
   interface LensOption {
     mode: LensMode;
     label: string;
     hint: string;
-    tail?: string;
     legend?: string;
   }
 
@@ -2207,24 +2291,24 @@ async function boot(initial: Game | null): Promise<void> {
       label: 'Explorer',
       hint: 'What is left to find: gold is a ruin or a village, red is a camp',
     },
-    // The third, and the only one no piece raises. A settler and a scout each
-    // bring their own lens up by being picked up (`effectiveLens`); there is no
-    // piece a player carries that wants a board-wide answer about faith, so this
-    // is one they go and ask for — appended, which is all a new lens costs,
+    // The third, appended rather than inserted — which is all a new lens costs,
     // because the digit hotkey is `lensOrder`'s position rather than a mapping
-    // of its own (`lensForDigit`).
+    // of its own (`lensForDigit`). It used to be the one lens no piece raised;
+    // since 2026-08-28 a prophet or an augur raises it exactly as a settler
+    // raises its own (`lensForSelection` in `controls.ts`).
     {
       mode: 'faith',
       label: 'Faith',
-      tail: 'whose argument is winning',
       hint: 'Whose faith is winning, and where: each hex in its founder’s ink',
       // The one lens whose drawing has three marks in it, so it is the one that
-      // needs a key. The last clause is the important half: a player who sees
-      // blank steppe under a faith lens will assume it is broken unless they are
-      // told that the tide acts on towns and not on ground.
+      // needs a key. Two clauses do the real work: the tide acts on *towns*, so
+      // a player who sees blank steppe does not assume the lens is broken — and
+      // the town is where the reading is, so the last clause points at the
+      // gesture that gives it (`faithHover.ts`).
       legend:
         'wash = the founder’s ink, darker is stronger; tight ring = holy site; ' +
-        'wide ring = proclamation; unclaimed ground is blank because the tide acts on towns',
+        'wide ring = proclamation; unclaimed ground is blank because the tide acts on towns; ' +
+        'hover a city for its pressure',
     },
   ];
 
@@ -2425,7 +2509,7 @@ async function boot(initial: Game | null): Promise<void> {
    * The lens menu's rows: the exclusive lens choices, built off `LENS_OPTIONS`
    * (declared above `controls`, and see that declaration for why).
    */
-  const lensButtons = LENS_OPTIONS.map(({ mode, label, hint, tail, legend }, index) => {
+  const lensButtons = LENS_OPTIONS.map(({ mode, label, hint, legend }, index) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'lens-option';
@@ -2437,15 +2521,9 @@ async function boot(initial: Game | null): Promise<void> {
     const name = document.createElement('span');
     name.className = 'lens-option-name';
     name.textContent = label;
-    // The tail is a second span rather than part of the name, so it can be set
-    // faint and so the bar button — which reads `label` — is not dragged along
-    // with it.
-    if (tail !== undefined) {
-      const clause = document.createElement('span');
-      clause.className = 'lens-option-tail';
-      clause.textContent = `— ${tail}`;
-      name.append(' ', clause);
-    }
+    // Nothing after the name. Every row is a label and a tick, and that is the
+    // whole of the row — see `LensOption` for the clause that used to hang off
+    // this one and why it is gone.
     const tick = document.createElement('span');
     tick.className = 'lens-option-tick';
     tick.textContent = '✓';
@@ -2913,6 +2991,11 @@ async function boot(initial: Game | null): Promise<void> {
     banners.reposition();
     damageNumbers.reposition();
     priceTags.reposition();
+    // The faith card rides the same beat, for the same reason: its anchor is a
+    // hex, and a camera that moved has moved it. `false` is the whole of the
+    // difference from the hover path — the card is replaced where it stands, not
+    // re-derived, so a pan costs one projection and no pressure fold.
+    updateFaithCard(renderer.getHover(), false);
   });
 
   const cityPanel: CityPanel = createCityPanel({

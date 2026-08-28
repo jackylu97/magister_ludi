@@ -1,13 +1,19 @@
 /**
  * The hover card: a note laid beside whatever the pointer is resting on.
  *
- * One shape, three surfaces. The city screen's build list uses it to say what a
+ * One shape, four surfaces. The city screen's build list uses it to say what a
  * unit *is* before you spend forty hammers finding out; the star chart uses it
  * to say what a technology actually hands over, which is more than the four
- * lines a node card has room for; and the top bar uses it to break a total into
+ * lines a node card has room for; the top bar uses it to break a total into
  * the lines it is the fold of — which yields came from which city, what the two
- * empire meters are currently doing to the economy. All three wanted the same
- * object, so it is written once here and dressed by a class name.
+ * empire meters are currently doing to the economy; and the **board** uses it
+ * under the faith lens to lay a town's pressure ledger beside the hex
+ * (`faithHover.ts`). All four wanted the same object, so it is written once here
+ * and dressed by a class name.
+ *
+ * The fourth arrived with the only structural difference since `placement`: it
+ * has no DOM anchor to hover, because a hex is picked out of a WebGL scene. See
+ * `showAt`, which is the same measure-then-place against a bare rectangle.
  *
  * The third one arrived with one difference and it is the only reason
  * `placement` exists: a card *beside* a chip in a horizontal strip covers the
@@ -246,6 +252,24 @@ export interface InfoCard {
    * to remember which cards it handed out.
    */
   bind(anchor: HTMLElement, build: () => Node): void;
+
+  /**
+   * Raises the card against a bare rectangle instead of an element.
+   *
+   * The board is the one surface with a hover and no DOM to hover: a hex is
+   * picked out of a WebGL scene and its position comes back from
+   * `projectCell`, so there is nothing for `bind` to listen on and nothing for
+   * `getBoundingClientRect` to be asked of. The caller therefore owns both
+   * halves of the gesture — it already knows when the pointer moved and what it
+   * moved onto — and this is only the placement.
+   *
+   * Deliberately *not* a second mode: everything past the anchor is the same
+   * card, measured and placed by the same two functions, and `hide()` closes one
+   * of these exactly as it closes one raised by `bind`. Never sticky — the
+   * machine below is driven by pointer events on an anchor there is none of.
+   */
+  showAt(anchor: AnchorBox, build: () => Node): void;
+
   /** Puts the card away. Called by a panel that is about to rebuild. */
   hide(): void;
 }
@@ -290,10 +314,18 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
 
   /** What the card is currently open against, so a stale leave is ignored. */
   let anchoredTo: HTMLElement | null = null;
+  /**
+   * True while the card stands against a bare rectangle (`showAt`). A second
+   * flag rather than a fake element, because `anchoredTo` answers "which anchor
+   * asked for this" and a board hex is not one — every `pointerleave` guard
+   * below compares against it and would match `null` by accident.
+   */
+  let boxAnchored = false;
 
   function hide(): void {
-    if (anchoredTo === null) return;
+    if (anchoredTo === null && !boxAnchored) return;
     anchoredTo = null;
+    boxAnchored = false;
     card.hidden = true;
     card.replaceChildren();
   }
@@ -310,8 +342,12 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
     hide();
   }
 
-  function show(anchor: HTMLElement, build: () => Node): void {
-    anchoredTo = anchor;
+  /**
+   * Fill, measure, place. The one implementation both `show` and `showAt` use,
+   * so a card raised by the board is measured exactly as a card raised by a
+   * panel row — see the module docblock's "Measurement, then placement".
+   */
+  function showBox(anchor: AnchorBox, build: () => Node): void {
     card.replaceChildren(build());
     // Laid out but not yet seen: the card must be measurable before it can be
     // placed, and placing it after it is visible is what makes it jump.
@@ -322,7 +358,7 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
     const box = card.getBoundingClientRect();
     const place = placement === 'below' ? placeCardBelow : placeCard;
     const at = place(
-      anchor.getBoundingClientRect(),
+      anchor,
       { width: box.width, height: box.height },
       { width: window.innerWidth, height: window.innerHeight },
       gap,
@@ -330,6 +366,18 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
     card.style.left = `${Math.round(at.left)}px`;
     card.style.top = `${Math.round(at.top)}px`;
     card.style.visibility = '';
+  }
+
+  function show(anchor: HTMLElement, build: () => Node): void {
+    anchoredTo = anchor;
+    boxAnchored = false;
+    showBox(anchor.getBoundingClientRect(), build);
+  }
+
+  function showAt(anchor: AnchorBox, build: () => Node): void {
+    anchoredTo = null;
+    boxAnchored = true;
+    showBox(anchor, build);
   }
 
   // Any scroll anywhere: the anchor has moved and the card has not. Captured,
@@ -461,5 +509,5 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
     });
   }
 
-  return { bind, hide: dismiss };
+  return { bind, showAt, hide: dismiss };
 }

@@ -1435,14 +1435,6 @@ button.log-entry:active {
   visibility: visible;
 }
 
-/* The clause after the em dash: what question the lens answers. Faint and at
-   the row's weight rather than its heading's, so "Faith" is still the word the
-   eye lands on. */
-.lens-option-tail {
-  font-weight: 400;
-  color: var(--ink-faint);
-}
-
 /* The key to the drawing, under its own row and only while that lens is up.
    Indented to the row's text, ruled off at the left so it reads as belonging to
    the row above rather than as a fourth option. */
@@ -7732,6 +7724,105 @@ kbd {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
+}
+
+/* --- the faith lens's board card ------------------------------------------
+   The block above, laid on the diorama instead of in a panel (`faithHover.ts`).
+   Everything structural is `.info-card`'s; this is the dressing, and it is the
+   city panel's own so a player who has read one is not learning a second
+   language. The `is-board` modifier carries the one difference a card over a
+   diorama needs: a little more width, because a ledger is a run of short
+   labelled figures and a 274px column breaks one every second line. */
+.info-card.is-board {
+  max-width: 300px;
+}
+
+.faith-card-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 4px;
+}
+
+.faith-card-city {
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 90;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+/* The owner in their own ink — the seat chip's rule, and the only colour on the
+   head line. Your own town has no `--seat-ink` set and falls back to the page's
+   ink, which is what "this is mine" looks like everywhere else in this HUD. */
+.faith-card-owner {
+  color: var(--seat-ink, var(--ink-soft));
+}
+
+.faith-card-size {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* "last seen": the banner overlay's stale mark, in words. A card drawn from
+   memory says so before it says anything else. */
+.faith-card-stale {
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+.faith-card-banner {
+  margin: 0 0 6px;
+  color: var(--ink-soft);
+}
+
+.faith-card-faith {
+  margin: 0 0 5px;
+}
+
+.faith-card-name-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.faith-card-name {
+  font-family: var(--face-display);
+  font-size: 12px;
+}
+
+.faith-card-faith.is-foreign .faith-card-name {
+  color: var(--seat-ink, var(--ink));
+}
+
+.faith-card-majority {
+  color: var(--gilt, var(--ink));
+}
+
+.faith-card-count {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* The ledger, spelled out rather than hidden behind a second hover — there is
+   no hovering a hover card, and the ledger is what this card was asked for. */
+.faith-card-ledger {
+  margin: 1px 0 0;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--ink-faint);
+}
+
+.faith-card-none {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--ink-faint);
 }
 
 /* ===========================================================================

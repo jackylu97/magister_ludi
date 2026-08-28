@@ -265,19 +265,34 @@ describe('the faith lens’s rack row', () => {
     expect(order).toEqual(['none', 'settler', 'explorer', 'faith']);
   });
 
-  it('says what question it answers, in the row’s own tail', () => {
-    expect(main).toContain("tail: 'whose argument is winning'");
+  /**
+   * It looks like the other two rows: a name and a tick, nothing after the
+   * name. It used to print a clause after an em dash ("— whose argument is
+   * winning"), and `tail` was a `LensOption` field only the faith row ever
+   * carried — so what it actually did was make one row look different for no
+   * reason a player could name (user, 2026-08-28). The field is gone from the
+   * record as well as from the row: an optional field with no reader is an
+   * invitation to make one row strange again. The sentence a lens is worth is
+   * in the tooltip every row already has.
+   */
+  it('is label-only, like every other lens row', () => {
+    expect(main).not.toContain('tail:');
+    expect(main).not.toContain('lens-option-tail');
+    expect(main).not.toContain('whose argument is winning');
   });
 
   it('carries the key to all three of its marks, and why blank ground is blank', () => {
     expect(main).toContain('wash = the founder’s ink, darker is stronger; tight ring = holy site;');
     expect(main).toContain('wide ring = proclamation; unclaimed ground is blank because the tide acts on towns');
+    // And the gesture that gives the reading, since the towns are where the
+    // tide acts and the card is what says by how much (`faithHover.ts`).
+    expect(main).toContain('hover a city for its pressure');
   });
 
   /**
    * The key is shown only while the lens is up. A paragraph in a closed menu is
-   * noise, and the "never auto-raised" half of the ruling is pinned one file
-   * over (`religionV2.test.ts`, on `effectiveLens`) rather than twice here.
+   * noise, and *which pieces raise the lens* is pinned one file over
+   * (`faithLens.test.ts`, on `lensForSelection`) rather than twice here.
    */
   it('shows the key only while that lens is the one on the board', () => {
     expect(main).toContain('key.hidden = true;');
