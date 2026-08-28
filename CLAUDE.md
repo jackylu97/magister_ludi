@@ -599,6 +599,10 @@ would change every seeded outcome. No further rename passes.
   caller that has a town passes it, or re-sending a queue that legitimately holds the wonder
   refuses itself. **A wonder is never for sale** — refused in `purchaseError` before the
   currency, because gold's gates are production's gates and production's would have sold one.
+  **A city buys one unit a turn** (2026-08-28): `City.purchasedUnitTurn` is an absolute stamp,
+  written by `purchaseItemAt` for units and read by `purchaseError`, never decremented —
+  stale by itself. Buildings are not counted. And **an augur's rite is its whole turn**:
+  `augurHasActed` (movement spent) gates both the rite and the consecration.
   Known gap: a rite's hammers can complete a wonder correctly but carry no toast out through
   `RiteResult`.
   **The rows are in** (Entry XXXIII, 27 of them, Æra I–III): a wonder may carry
