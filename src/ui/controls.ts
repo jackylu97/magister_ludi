@@ -249,6 +249,7 @@ import {
   riteError,
   riteUnitTarget,
 } from '../sim/religion';
+import { type ProclamationReport, proclaimPreview } from '../sim/religion';
 import {
   type ReligionBeliefPool,
   type RiteId,
@@ -557,6 +558,62 @@ export interface ProphetRow {
   says: string;
   /** Redraft's two sub-rows, or absent. */
   pools?: ProphetPoolRow[];
+}
+
+/**
+ * What Proclaim does, in a first-time player's words (hard rule 7).
+ *
+ * The playtest's complaint (user, 2026-08-28) was that the row said "a wide
+ * pulse that converts and then fades" — three of whose words were about a
+ * mechanism that has since been deleted, and none of which said how wide, how
+ * hard, or what a player would have afterwards. A charge is a third of a prophet
+ * and the piece is the most expensive thing a faith buys; the row has to be
+ * readable *before* it is spent.
+ *
+ * The ruling of 2026-08-28 made a proclamation an **instant lump**:
+ * `rules.religion.bombLump` pressure banked into every town within `bombRange`
+ * at once and converted by the ordinary rule that turn, with nothing standing
+ * behind it.
+ *
+ * **Two sentences, and the preview is preferred**, which is `ritePreview`'s
+ * bargain read one verb over: the reducer's own targeted answer ("Converts 6 of
+ * 7 in Uruk") beats a rule stated in general every time, because the player is
+ * deciding *here*, and `proclaimPreview` already knows about the pressure a town
+ * has banked and the temple standing in it. The general sentence survives for
+ * the case the preview cannot speak to — no prophet, no faith yet — and it names
+ * the exchange rate (`pressurePerConvert`) rather than a mechanism, because
+ * "about 6 citizens each" is what 60 pressure *means*.
+ *
+ * Pure and module-level for `lensForSelection`'s reason: the words are the whole
+ * of what can be quietly wrong, and pinning them needs no controls, no reducer
+ * and no DOM.
+ */
+export function proclaimSays(state: GameState, unitId: number): string {
+  const rules = RULES.religion;
+  const preview = proclaimPreview(state, unitId);
+  if (preview === null) {
+    const each = Math.max(1, Math.floor(rules.bombLump / Math.max(1, rules.pressurePerConvert)));
+    return (
+      `Applies ${rules.bombLump} pressure at once to every city within ${rules.bombRange} ` +
+      `hexes — about ${each} citizens each, fewer where a temple stands — converting them ` +
+      'immediately.'
+    );
+  }
+  const named = preview.cities.filter((town) => town.wouldConvert > 0);
+  if (named.length === 0) {
+    return (
+      `Applies ${preview.lump} pressure at once to every city within ${preview.range} hexes. ` +
+      'No city in range would turn a citizen from here.'
+    );
+  }
+  const towns = named.map((town) => {
+    const city = state.cities.find((candidate) => candidate.id === town.cityId);
+    return `${town.wouldConvert} of ${town.population} in ${city?.name ?? 'a town'}`;
+  });
+  return (
+    `Converts ${towns.join(', ')} — every city within ${preview.range} hexes — ` +
+    `by applying ${preview.lump} pressure at once.`
+  );
 }
 
 /** One pool a redraft could give back, with its own refusal. */
@@ -1891,6 +1948,39 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     for (const news of religionNews.poll(getGame().state, localPlayerId)) {
       announce(news.text, news.cell ? { cell: news.cell } : {});
     }
+  }
+
+  /**
+   * What a proclamation just did, announced where the charge was spent.
+   *
+   * The one piece of religious news the watcher above **cannot** carry, and the
+   * reason is `ReligionNewsKind`'s docblock: since the 2026-08-28 ruling a
+   * proclamation is an instant lump with nothing standing behind it, so it is a
+   * difference that stops existing when the command returns and the simulation
+   * has to report it (`CommandResult.proclaimed`) exactly as it reports a
+   * cleared camp's bounty. A diff of two states could not tell a bomb's six
+   * converts from a turn of ordinary tide.
+   *
+   * Every town in range is in the report, the ones a temple held to nothing
+   * included, and the sentence keeps that: "nothing turned" is what a player who
+   * spent a third of a prophet needs to be told, and a line that listed only the
+   * wins would be an announcement that goes quiet on the bad outcome.
+   */
+  function reportProclamation(report: ProclamationReport, cell: CellRef): void {
+    const { state } = getGame();
+    const religion = state.religions[report.religionId];
+    const name = religion?.name ?? 'your faith';
+    const turned = report.cities.filter((town) => town.converted > 0);
+    const said = turned.map((town) => {
+      const city = cityById(state, town.cityId);
+      return `${town.converted} in ${city?.name ?? 'a town'}`;
+    });
+    announce(
+      turned.length === 0
+        ? `Your prophet proclaims ${name} — nothing turned`
+        : `Your prophet proclaims ${name} — ${said.join(', ')}`,
+      { cell },
+    );
   }
 
   // --- the reducer seam ----------------------------------------------------
@@ -3630,6 +3720,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       return;
     }
     announce(sentence, { cell });
+    // The Preaching is a proclamation out of a smaller purse and reports through
+    // the same field, so it gets the same second line rather than a rite preview
+    // that says how much pressure and never which towns turned.
+    if (result.proclaimed) reportProclamation(result.proclaimed, cell);
     if (!unitById(getGame().state, unit.id)) {
       selectedId = null;
       setMoveMode(false);
@@ -3695,7 +3789,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         verb: 'proclaim',
         name: 'Proclaim',
         blocked: ended ?? proclaimError(state, localPlayerId, unit.id),
-        says: `Spend a charge: preach ${faith} here — a wide pulse that converts and then fades`,
+        // The one prophet row whose sentence is not "Spend a charge: …", and
+        // deliberately (user, 2026-08-28): the other three do one small legible
+        // thing and this one converts a region, so the row is the *description*
+        // and the charge it costs is said on the hover card beside it, exactly
+        // as a rite's is. See `proclaimSays`.
+        says: proclaimSays(state, unit.id),
       },
       {
         verb: 'redraftBeliefs',
@@ -3744,6 +3843,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!unitById(getGame().state, unit.id)) {
       selectedId = null;
       setMoveMode(false);
+    }
+    // The hex the charge was spent on, read off the snapshot rather than the
+    // board: the last charge takes the piece with it, so by now there may be no
+    // prophet to ask where it stood.
+    if (result.proclaimed) {
+      reportProclamation(result.proclaimed, { col: unit.col, row: unit.row });
     }
     renderer.invalidate();
     refreshOverlays();

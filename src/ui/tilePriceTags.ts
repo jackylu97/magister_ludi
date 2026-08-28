@@ -73,8 +73,14 @@
  * reposition on the renderer's frame beat, hide what has left the screen — and
  * that is worth exactly as much with one supplier as with two; what the split
  * bought was the guarantee that a second armed-mode overlay is a supplier
- * rather than a second layer that merely looks like this one. The price supplier
- * below is the only one today.
+ * rather than a second layer that merely looks like this one.
+ *
+ * That guarantee was cashed the same day: the faith lens's city plates
+ * (`faithPlates.ts`) are the second supplier, and they are a *caption* rather
+ * than an offer — pointer-transparent, drawn in a founder's ink, with the hover
+ * card still the detail view. Everything they needed was dress
+ * (`MapPlate.className` / `ink` / `inert`), which is the shape the split was
+ * betting on.
  *
  * `createTilePriceTags` is that core with the Buy Tiles supplier bolted on, and
  * it keeps its name and its shape because the *price* plate is a thing this
@@ -109,6 +115,34 @@ export interface MapPlate {
   spoken: string;
   /** True for a plate that is a figure and a reason rather than a button. */
   disabled: boolean;
+  /**
+   * An extra class on the plate's root, for a supplier with a dress of its own.
+   *
+   * The three fields below arrived with the faith supplier (2026-08-28) and are
+   * deliberately *dress* rather than content: a plate is still one element on
+   * one hex written from one signature, and what the split bought — one
+   * lifecycle, whatever is on it — is only worth having if a second supplier can
+   * look like itself without a second layer. Absent is the price plate's own
+   * look, unchanged.
+   */
+  className?: string;
+  /**
+   * The ink this plate speaks in, written as `--seat-ink` — a founder's colour,
+   * exactly as the city panel's faith row and the hover card write it. Absent
+   * leaves the class's own ink, which is what a plate about nobody wants.
+   */
+  ink?: string;
+  /**
+   * True for a plate that is a **label**: pointer-transparent, never a button,
+   * and never greyed.
+   *
+   * Distinct from `disabled`, which is a *refusal* and looks like one (faint ink
+   * on faint paper, and it still takes the pointer so its reason can be read on
+   * hover). An inert plate has nothing to refuse — it is a caption laid on the
+   * board, and the detail view is the hover card the hex itself raises, which is
+   * exactly what a plate swallowing the pointer would take away.
+   */
+  inert?: boolean;
 }
 
 export interface MapPlatesOptions {
@@ -227,9 +261,22 @@ export function createMapPlates(options: MapPlatesOptions): MapPlates {
       // when its face happens to read identically.
       tag.plate = plate;
 
-      const signature = `${plate.text}|${plate.spoken}|${plate.disabled ? '1' : '0'}`;
+      const signature = [
+        plate.text,
+        plate.spoken,
+        plate.disabled ? '1' : '0',
+        plate.className ?? '',
+        plate.ink ?? '',
+        plate.inert === true ? '1' : '0',
+      ].join('|');
       if (signature !== tag.signature) {
         tag.signature = signature;
+        // The dress first, so the greyed class below lands on top of it rather
+        // than being wiped by a `className` write in the other order.
+        tag.root.className =
+          plate.className === undefined ? 'tile-price' : `tile-price ${plate.className}`;
+        if (plate.ink === undefined) tag.root.style.removeProperty('--seat-ink');
+        else tag.root.style.setProperty('--seat-ink', plate.ink);
         // Printed rather than typed: `setYieldText` swaps each glyph for the
         // drawn mark and the space after one is what gives it air (the lead
         // rule, `yieldMark.ts`).
@@ -242,7 +289,10 @@ export function createMapPlates(options: MapPlatesOptions): MapPlates {
         tag.root.setAttribute('aria-label', plate.spoken);
         tag.root.title = plate.spoken;
         tag.root.classList.toggle('is-barred', plate.disabled);
-        tag.root.disabled = plate.disabled;
+        // A label is a button the platform will never dispatch to: `disabled`
+        // as well as `pointer-events: none`, because the second is a stylesheet
+        // the flair cabinet could photograph without and the first is the rule.
+        tag.root.disabled = plate.disabled || plate.inert === true;
       }
     }
 

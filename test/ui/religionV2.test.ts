@@ -53,6 +53,7 @@ import {
   pressureLedgerText,
   religionReading,
 } from '../../src/ui/religionScreen';
+import { proclaimSays } from '../../src/ui/controls';
 
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', {
@@ -387,6 +388,72 @@ describe('the prophet’s four ministries', () => {
   });
 });
 
+/**
+ * **What the Proclaim row says** (user, 2026-08-28). The row read "a wide pulse
+ * that converts and then fades", three of whose words were about a mechanism
+ * that has since been deleted and none of which said how wide, how hard, or what
+ * a player would have afterwards. A charge is a third of a prophet.
+ *
+ * Driven for real, because the sentence *is* the feature: the numbers are the
+ * ones `proclaimAt` will apply, and the towns are `proclaimPreview`'s own.
+ */
+describe('what the Proclaim row says', () => {
+  it('is the general rule when there is no prophet to ask about', () => {
+    const state = world();
+    // 60 pressure, 10 hexes, and 10 pressure to a citizen — every figure off
+    // `RULES.religion` rather than written into the sentence.
+    expect(proclaimSays(state, 999)).toBe(
+      `Applies ${RULES.religion.bombLump} pressure at once to every city within ` +
+        `${RULES.religion.bombRange} hexes — about ` +
+        `${Math.floor(RULES.religion.bombLump / RULES.religion.pressurePerConvert)} citizens ` +
+        'each, fewer where a temple stands — converting them immediately.',
+    );
+  });
+
+  it('names the towns and the citizens once a prophet is standing somewhere', () => {
+    const state = world();
+    found(state, 0);
+    state.cities[0]!.population = 7;
+    state.cities[1]!.population = 7;
+    const prophet = createUnit(state, 0, 'prophet', 4, 4);
+    // Both towns are inside `bombRange`, and a lump of 60 buys six citizens in
+    // each — the preview's arithmetic, not this test's.
+    expect(proclaimSays(state, prophet.id)).toBe(
+      'Converts 6 of 7 in Uruk, 6 of 7 in Lagash — every city within ' +
+        `${RULES.religion.bombRange} hexes — by applying ${RULES.religion.bombLump} ` +
+        'pressure at once.',
+    );
+  });
+
+  it('says so plainly when nothing in range would turn', () => {
+    const state = world();
+    found(state, 0);
+    // Two towns already wholly converted: there is nobody left to turn, and a
+    // row promising six citizens would be the preview lying about its own
+    // arithmetic.
+    for (const city of state.cities) {
+      city.population = 3;
+      city.followers = { 0: 3 };
+    }
+    const prophet = createUnit(state, 0, 'prophet', 4, 4);
+    expect(proclaimSays(state, prophet.id)).toBe(
+      `Applies ${RULES.religion.bombLump} pressure at once to every city within ` +
+        `${RULES.religion.bombRange} hexes. No city in range would turn a citizen from here.`,
+    );
+  });
+
+  it('is the row’s whole sentence, and the hover card prints it too', () => {
+    // The one prophet row that is not "Spend a charge: …": it converts a region,
+    // so the row is the description and the charge is said on the card beside it,
+    // exactly as a rite's is.
+    expect(fn('controls.ts', 'prophetRows')).toContain('says: proclaimSays(state, unit.id)');
+    const sheet = sourceOf('unitPanel.ts');
+    expect(sheet).toContain("row.verb === 'proclaim' ? () => prophetCard(row) : undefined");
+    expect(fn('unitPanel.ts', 'prophetCard')).toContain('row.says');
+    expect(fn('unitPanel.ts', 'prophetCard')).toContain('Spends one of the prophet');
+  });
+});
+
 describe('the belief offer’s eyebrow', () => {
   it('says which of the three bags the cards came out of', () => {
     expect(beliefOfferEyebrow(undefined)).toContain('a god');
@@ -592,41 +659,52 @@ describe('what a seat is told about a faith', () => {
     ]);
   });
 
-  it('announces a proclamation of your own, with the hex to fly to', () => {
-    const state = world();
-    const religion = found(state, 0);
-    const watcher = createReligionWatcher();
-    watcher.baseline(state, 0);
-    religion.pulses.push({
-      col: 6,
-      row: 6,
-      strength: 12,
-      range: 10,
-      startTurn: state.turn,
-      expiresTurn: state.turn + 10,
-    });
-    const news = watcher.poll(state, 0);
-    expect(news[0]!.kind).toBe('proclaimed');
-    expect(news[0]!.text).toBe(`Your prophet proclaims ${religion.name} here`);
-    expect(news[0]!.cell).toEqual({ col: 6, row: 6 });
+  /**
+   * **A proclamation is not this watcher's news any more** (2026-08-28). It used
+   * to park a decaying pulse on a hex — a standing fact, and so a diff's
+   * business — and the ruling that made it an instant lump left nothing on the
+   * board to read: the citizens have turned by the time the command returns.
+   *
+   * So the pair of tests that stood here is replaced by the pair of claims that
+   * replaced the mechanism. The watcher **reads no pulse** (there is none to
+   * read, and a leftover reach for one would be a runtime error the day the
+   * field went), and what it still says about a proclamation is the half that is
+   * a standing fact: the town that came out flying a new banner, as ordinary
+   * `converted` news.
+   */
+  it('has no pulse to watch — a proclamation leaves nothing standing', () => {
+    expect(sourceOf('notifications.ts')).not.toContain('pulses');
+    expect(sourceOf('notifications.ts')).not.toContain("'proclaimed'");
   });
 
-  it('keeps a rival’s proclamation to hexes the seat can actually see', () => {
-    // The camp's rule: a proclamation is an occupation of a hex, and remembered
-    // ground says nothing about whether anybody is still preaching on it.
+  it('still announces the town a proclamation turned, as a conversion', () => {
     const state = world();
-    const theirs = found(state, 1);
+    const mine = found(state, 0);
+    state.cities[0]!.population = 3;
     const watcher = createReligionWatcher();
     watcher.baseline(state, 0);
-    theirs.pulses.push({
-      col: 14,
-      row: 10,
-      strength: 12,
-      range: 10,
-      startTurn: state.turn,
-      expiresTurn: state.turn + 10,
-    });
-    expect(watcher.poll(state, 0).filter((one) => one.kind === 'proclaimed')).toEqual([]);
+    // What a lump leaves behind: a town whose banner changed. Whether the tide
+    // or a prophet's charge did it is exactly the difference a state diff cannot
+    // see, which is why the *charge* is reported by the reducer instead.
+    state.cities[0]!.followers = { [mine.id]: 2 };
+    const news = watcher.poll(state, 0);
+    expect(news.map((one) => one.kind)).toEqual(['converted']);
+    expect(news[0]!.text).toBe(`Uruk now follows ${mine.name}`);
+  });
+
+  /**
+   * And the charge's own report, which is the reducer's: `CommandResult`'s
+   * field, announced by `controls.ts` where the charge was spent, because a
+   * difference that stops existing cannot be read off the board afterwards
+   * (`arrivals`' argument in a third currency).
+   */
+  it('is the reducer that reports the charge, and controls that announces it', () => {
+    const controls = sourceOf('controls.ts');
+    expect(controls).toContain('function reportProclamation(');
+    expect(controls).toContain('if (result.proclaimed)');
+    // Both spenders: the prophet's charge and the augur's Preaching, which is
+    // the same lump out of a smaller purse and reports through the same field.
+    expect(controls.split('result.proclaimed').length - 1).toBeGreaterThanOrEqual(2);
   });
 
   it('announces an enhancement, and names the belief when it is yours', () => {

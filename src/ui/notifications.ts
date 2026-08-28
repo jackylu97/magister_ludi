@@ -361,8 +361,21 @@ export function createSightingWatcher(): SightingWatcher {
  * holds the banner). A difference that can still be read off the state afterwards
  * is a difference the interface may read for itself, which is exactly the split
  * `TurnReport.triumphs`' docblock draws.
+ *
+ * **`proclaimed` is gone, and its going is that split doing its job**
+ * (2026-08-28). A proclamation used to park a decaying `ReligionPulse` on a hex
+ * — a standing fact, and so a watcher's business — and the ruling that made it an
+ * instant lump left nothing on the board to read: by the time the command
+ * returns the citizens have turned, the banks hold their remainders, and a diff
+ * of two states cannot tell a bomb's six converts from a turn of ordinary tide.
+ * So the simulation reports it, in the one shape a difference that stops
+ * existing has to take (`CommandResult.proclaimed`, `arrivals`' argument in a
+ * third currency), and `controls.ts` announces it where the charge was spent.
+ * What this watcher still says about a proclamation is the half that *is* a
+ * standing fact: the towns that came out flying a new banner, as ordinary
+ * `converted` news.
  */
-export type ReligionNewsKind = 'founded' | 'converted' | 'proclaimed' | 'enhanced';
+export type ReligionNewsKind = 'founded' | 'converted' | 'enhanced';
 
 /** One thing about a faith the local seat has just learned. */
 export interface ReligionNews {
@@ -471,22 +484,6 @@ export function createReligionWatcher(): ReligionWatcher {
             text: mine
               ? `${religion.name} is enhanced — ${beliefDef(enhancer).name}`
               : `${founder} enhanced ${possessed(religion.name)}`,
-          },
-        });
-      }
-      for (const pulse of religion.pulses) {
-        // The camp's rule: a proclamation is an *occupation* of a hex for as
-        // long as it lasts, so only a seat that can see the ground is told —
-        // except the seat whose prophet spoke, which knows what it just did.
-        if (!mine && !isVisibleTo(state, seatId, pulse.col, pulse.row)) continue;
-        found.push({
-          key: `pulse:${religion.id}:${pulse.col},${pulse.row}:${pulse.startTurn}`,
-          news: {
-            kind: 'proclaimed',
-            text: mine
-              ? `Your prophet proclaims ${religion.name} here`
-              : `${founder} proclaims ${possessed(religion.name)} nearby`,
-            cell: { col: pulse.col, row: pulse.row },
           },
         });
       }

@@ -198,6 +198,118 @@ export function cityFaithRows(state: GameState, city: City, seat: number): CityF
 }
 
 /**
+ * The one line about belief that belongs beside a town's **name**.
+ *
+ * The user's ruling of 2026-08-28: the Faith block halfway down the sheet
+ * answered "what is pressing here" perfectly and never answered "what does this
+ * town *believe*", because a player reading a city screen reads the header and
+ * then the baskets. So the banner is promoted to the header, in the header's own
+ * voice — a short badge beside Size and hp — and the full `cityFaithRows` list
+ * stays exactly where it is, as the argument under the answer.
+ *
+ * Three states, and they are the three a town can actually be in:
+ *
+ *   · **it follows one** — "Following the Hearth Cult ✶ · 3 of 5 citizens ·
+ *     +10 a turn". The tide on the end is that faith's own, because "who has
+ *     this town" and "who is winning it" are the same question when the answer
+ *     is the same faith.
+ *   · **it follows none and something is pulling** — "Follows no religion · the
+ *     Hearth Cult presses +4 a turn". The seat's own faith is named first when
+ *     it has a claim, because the reader is the one deciding whether to press
+ *     harder; otherwise the strongest presser is, because that is who is about
+ *     to take the town.
+ *   · **it follows none and nothing is pulling** — "Follows no religion", and
+ *     nothing else. No figure, because there is none.
+ *
+ * Every number is `cityFaithRows`' — the one fold — so the badge and the block
+ * under it cannot come to disagree, and a world with no religions in it yet gets
+ * `null` rather than a line saying a town follows nothing it could have
+ * followed.
+ *
+ * Pure and exported for `insertionIndex`'s reason: the *words* are the whole of
+ * what can be quietly wrong here, and this suite has no jsdom.
+ */
+export interface CityFaithHeadline {
+  /** The whole line, which is what a test quotes and a `title` can carry. */
+  text: string;
+  /** The faith the line names, or `null` when it names none. */
+  religion: ReligionId | null;
+  name: string | null;
+  /** The founder's ink, so the header names a foreign faith in its own colour. */
+  founderColor: string | null;
+  /** True when the town flies it — the ✶. */
+  majority: boolean;
+  /** That faith's congregation, or `null` on a line that names no faith. */
+  following: number | null;
+  population: number;
+  /** That faith's pressure this turn, folded from its ledger. Zero is honest. */
+  pressure: number;
+}
+
+export function cityFaithHeadline(
+  state: GameState,
+  city: City,
+  seat: number,
+): CityFaithHeadline | null {
+  const rows = cityFaithRows(state, city, seat);
+  if (state.religions.length === 0) return null;
+  const tideOf = (row: CityFaithRow): number => {
+    let total = 0;
+    for (const line of row.ledger) total += line.amount;
+    return Math.max(0, total);
+  };
+  const bare: CityFaithHeadline = {
+    text: 'Follows no religion',
+    religion: null,
+    name: null,
+    founderColor: null,
+    majority: false,
+    following: null,
+    population: city.population,
+    pressure: 0,
+  };
+
+  const banner = rows.find((row) => row.majority);
+  if (banner !== undefined) {
+    const tide = tideOf(banner);
+    return {
+      text:
+        `Following ${banner.name} ✶ · ${figure(banner.following)} of ` +
+        `${figure(banner.population)} citizens` +
+        (tide > 0 ? ` · +${figure(tide)} a turn` : ''),
+      religion: banner.religion,
+      name: banner.name,
+      founderColor: banner.founderColor,
+      majority: true,
+      following: banner.following,
+      population: banner.population,
+      pressure: tide,
+    };
+  }
+
+  // Nobody flies a banner. Who is pulling — ours first, then the hardest pull,
+  // then founding order, which is the only tiebreak the state carries.
+  const pressing = rows.filter((row) => tideOf(row) > 0);
+  const pull =
+    pressing.find((row) => row.ours) ??
+    pressing.reduce<CityFaithRow | null>(
+      (best, row) => (best === null || tideOf(row) > tideOf(best) ? row : best),
+      null,
+    );
+  if (pull === null) return bare;
+  const tide = tideOf(pull);
+  return {
+    ...bare,
+    text: `Follows no religion · ${pull.name} presses +${figure(tide)} a turn`,
+    religion: pull.religion,
+    name: pull.name,
+    founderColor: pull.founderColor,
+    following: pull.following,
+    pressure: tide,
+  };
+}
+
+/**
  * Where a newly-pressed build row lands: at the back, but **in front of any
  * standing project**.
  *
@@ -1734,6 +1846,36 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
+   * The header's belief badge: `cityFaithHeadline`, dressed.
+   *
+   * A badge in the `city-size` voice, beside Size and hp, because that row is
+   * where a town's standing facts live and what it believes is one. The faith's
+   * name takes its founder's ink — the same `--seat-ink` the block below and the
+   * hover card use, so a rival's banner in your capital is the same colour
+   * wherever a player meets it — and the whole line repeats on hover, which is
+   * the one place a narrow panel can put a clause that has been elided.
+   */
+  function renderFaithHeadline(city: City): HTMLElement | null {
+    const { state } = getGame();
+    const head = cityFaithHeadline(state, city, localPlayerId());
+    if (head === null) return null;
+    const badge = element('span', 'city-size city-faith-head');
+    badge.title = head.text;
+    if (head.name === null || head.founderColor === null) {
+      badge.textContent = head.text;
+      return badge;
+    }
+    // Split on the name so the name — and only the name — carries the ink.
+    const at = head.text.indexOf(head.name);
+    badge.append(document.createTextNode(head.text.slice(0, at)));
+    const name = element('span', 'city-faith-head-name', head.name);
+    name.style.setProperty('--seat-ink', head.founderColor);
+    badge.append(name);
+    badge.append(document.createTextNode(head.text.slice(at + head.name.length)));
+    return badge;
+  }
+
+  /**
    * What this town believes — one line per faith with a claim on it, and the
    * citizens who follow nothing.
    *
@@ -1915,6 +2057,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         'loses a little health each turn, but only an attack can take it.';
       title.append(badge);
     }
+    // What this town believes, beside its name — the 2026-08-28 ruling. The
+    // block halfway down the sheet keeps every word it had; this is its answer
+    // promoted to where a player actually looks. See `cityFaithHeadline`.
+    const belief = renderFaithHeadline(city);
+    if (belief) title.append(belief);
     header.append(title);
 
     const close = element('button', 'city-close', '×');

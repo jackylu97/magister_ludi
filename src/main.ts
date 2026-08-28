@@ -119,7 +119,8 @@ import { type ToastStack, createToastStack } from './ui/toasts';
 import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
 import { type ReligionScreen, createReligionScreen } from './ui/religionScreen';
 import { type TechTree, createTechTree } from './ui/techTree';
-import { type TilePriceTags, createTilePriceTags } from './ui/tilePriceTags';
+import { type MapPlates, type TilePriceTags, createMapPlates, createTilePriceTags } from './ui/tilePriceTags';
+import { faithPlates } from './ui/faithPlates';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
@@ -1678,6 +1679,12 @@ async function boot(initial: Game | null): Promise<void> {
     // The tags are about the open city and the treasury, both of which this
     // pass has just re-read; they draw nothing at all unless buy mode is up.
     priceTags.refresh();
+    // The faith lens's plates, on the same beat and for the same reason: they
+    // are about the towns and the tide this pass has just re-read, and they draw
+    // nothing at all unless the faith lens is the one on the board. Selection,
+    // the lens menu and every accepted command all land here, which is the whole
+    // set of things that can raise, lower or change them.
+    faithMarks.refresh();
     // And the Trade screen, for the price tags' reason: it is about the
     // routes and the towns this pass has just re-read. It draws nothing at all
     // unless it is open, so this costs a boolean when it is not.
@@ -2987,10 +2994,38 @@ async function boot(initial: Game | null): Promise<void> {
     },
   });
 
+  /**
+   * The faith lens's standing captions: which towns follow you, how many
+   * citizens, and what your faith presses there — one plate per town the seat
+   * knows, plus one per holy site it has explored.
+   *
+   * The **same layer** as the price tags, a second supplier
+   * (`createMapPlates`), because the lifecycle is identical and a second
+   * `<div>`-over-the-canvas overlay is exactly what that split exists to
+   * prevent. `faithPlates` is pure and every figure on it is
+   * `faithHoverReading`'s, so the plate and the hover card cannot disagree about
+   * a town — and the fog rule that stops the leak is written once, there.
+   *
+   * `boardLens`, never `controls.lens()`: a prophet raises the lens without the
+   * menu, and plates that read the menu would go dark in the case the pass
+   * exists for. `onPick` is never called — every faith plate is `inert` — but
+   * the supplier shape asks for one.
+   */
+  const faithMarks: MapPlates = createMapPlates({
+    container: bannersEl,
+    renderer,
+    getPlates: () =>
+      controls.boardLens() === 'faith'
+        ? faithPlates(game.state, controls.localPlayerId())
+        : [],
+    onPick: () => {},
+  });
+
   renderer.setFrameListener?.(() => {
     banners.reposition();
     damageNumbers.reposition();
     priceTags.reposition();
+    faithMarks.reposition();
     // The faith card rides the same beat, for the same reason: its anchor is a
     // hex, and a camera that moved has moved it. `false` is the whole of the
     // difference from the hover path — the card is replaced where it stands, not

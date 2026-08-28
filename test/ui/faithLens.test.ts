@@ -15,67 +15,20 @@
  * That is one filter in one function, it is silent when it is wrong, and no
  * behavioural test in this repo would notice — so it is pinned three ways here,
  * on a fixture built by driving visibility rather than by writing grids.
+ *
+ * That fixture now lives in `faithHelpers.ts`, because the lens grew a second
+ * surface (`faithPlates.test.ts`, the standing plates) and the claim worth the
+ * most about the pair is that they cannot disagree about a town — which they can
+ * only be held to against **one** world.
  */
 
 import { describe, expect, it } from 'vitest';
 
-import { foundCityAt } from '../../src/sim/cities';
-import { createMap, getTileAt } from '../../src/sim/map';
-import {
-  type GameState,
-  type Religion,
-  createUnit,
-  newGame,
-  removeUnit,
-} from '../../src/sim/state';
-import { explainPressure, foundReligion } from '../../src/sim/religion';
-import { BELIEF_IDS } from '../../src/sim/religionData';
-import { recomputeVisibility, resetVisibility } from '../../src/sim/visibility';
-import { computeFreshwater } from '../../src/sim/water';
+import { explainPressure } from '../../src/sim/religion';
 import { unitDef } from '../../src/sim/unitData';
 import { lensForSelection } from '../../src/ui/controls';
 import { faithHoverReading, faithHoverText } from '../../src/ui/faithHover';
-
-const SOURCE = {
-  ...(import.meta.glob('../../src/ui/*.ts', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  }) as Record<string, string>),
-  ...(import.meta.glob('../../src/main.ts', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  }) as Record<string, string>),
-};
-
-/** One file's source with its comments taken out. `seatRoster.test.ts`'s. */
-function code(text: string): string {
-  return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
-}
-
-function sourceOf(file: string): string {
-  const key = Object.keys(SOURCE).find((path) => path.endsWith(`/${file}`));
-  expect(`${file} readable`).toBe(key === undefined ? `${file} missing` : `${file} readable`);
-  return code(SOURCE[key!]!);
-}
-
-/** The body of one `function name(` in a module, braces balanced. */
-function fn(file: string, name: string): string {
-  const text = sourceOf(file);
-  const at = text.indexOf(`function ${name}(`);
-  expect(`${file}:${name}`).toBe(at < 0 ? `${file}: no ${name}` : `${file}:${name}`);
-  const open = text.indexOf('{', at);
-  let depth = 0;
-  for (let index = open; index < text.length; index++) {
-    if (text[index] === '{') depth += 1;
-    if (text[index] === '}') {
-      depth -= 1;
-      if (depth === 0) return text.slice(open + 1, index);
-    }
-  }
-  throw new Error(`${file}'s ${name} never closes`);
-}
+import { faithWorld, fn, sourceOf } from './faithHelpers';
 
 // --- which lens a piece raises ----------------------------------------------
 
@@ -134,93 +87,6 @@ describe('lensForSelection', () => {
   });
 });
 
-// --- a world with two faiths in it ------------------------------------------
-
-/**
- * Three seats, three towns, two religions, and a seat-0 holy site pressing on
- * all of them.
- *
- *   Uruk    (4,4)   seat 0's capital, watched — it is its own.
- *   Lagash  (10,6)  seat 1's capital, **watched** by a seat-0 scout standing
- *                   beside it.
- *   Nippur  (13,9)  seat 1's, **remembered**: a scout stood on it, was seen to,
- *                   and left. The sighting survives; the sight does not.
- *
- * Visibility is *driven* rather than written — a scout placed, a recompute, the
- * scout removed, a second recompute — because the rule under test is "what may
- * this seat read", and a hand-written grid would be the test agreeing with
- * itself about the very thing that is meant to be checked.
- */
-function faithWorld(): { state: GameState; ours: Religion; theirs: Religion } {
-  const state = newGame({
-    seed: 7,
-    sizeName: 'duel',
-    players: [
-      { name: 'Azure', color: '#2a4d8f', isHuman: true },
-      { name: 'Crimson', color: '#8f2a2a', isHuman: false },
-      { name: 'Verdant', color: '#2a8f4d', isHuman: false },
-    ],
-  });
-  state.map = createMap({ width: 16, height: 12, terrain: 'grassland' });
-  resetVisibility(state);
-  state.units = [];
-  state.cities = [];
-  state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
-  computeFreshwater(state.map);
-  foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
-  state.cities[0]!.name = 'Uruk';
-  foundCityAt(state, 1, getTileAt(state.map, 10, 6)!);
-  state.cities[1]!.name = 'Lagash';
-  foundCityAt(state, 1, getTileAt(state.map, 13, 9)!);
-  state.cities[2]!.name = 'Nippur';
-
-  const ours = found(state, 0);
-  const theirs = found(state, 1);
-
-  // Seat 0's holy site, on ground Uruk claimed — what its faith presses on the
-  // near half of the world (`siteRange` 6).
-  getTileAt(state.map, 5, 4)!.improvement = 'holySite';
-  // And a proclamation standing over Nippur, so the far town has one of the
-  // seat's *own* sources on it. That is the whole point of the remembered
-  // reading: a line the seat can account for without seeing the place.
-  // Crimson has preached there too, which is what makes the leak test a filter
-  // doing work rather than a world with nothing in it to leak.
-  for (const religion of [ours, theirs]) {
-    religion.pulses.push({
-      col: 13,
-      row: 9,
-      strength: 12,
-      range: 2,
-      startTurn: state.turn,
-      expiresTurn: state.turn + 10,
-    });
-  }
-
-  // Who follows what. Uruk is split — the case a count has to survive — and
-  // Lagash flies Crimson's banner outright.
-  state.cities[0]!.population = 5;
-  state.cities[0]!.followers = { [ours.id]: 3, [theirs.id]: 1 };
-  state.cities[1]!.population = 4;
-  state.cities[1]!.followers = { [theirs.id]: 3 };
-  state.cities[2]!.population = 3;
-  state.cities[2]!.followers = { [theirs.id]: 2 };
-
-  // A scout beside Lagash, and one on Nippur that then leaves.
-  createUnit(state, 0, 'scout', 10, 5);
-  const wanderer = createUnit(state, 0, 'scout', 13, 9);
-  recomputeVisibility(state, 0);
-  removeUnit(state, wanderer.id);
-  recomputeVisibility(state, 0);
-  return { state, ours, theirs };
-}
-
-/** Founds a faith for one seat, out of one god, the way the verb does. */
-function found(state: GameState, seat: number): Religion {
-  const player = state.players[seat]!;
-  player.pantheon.beliefs.push(BELIEF_IDS[0]!);
-  return foundReligion(state, player);
-}
-
 describe('the fixture itself', () => {
   it('is watched, watched and remembered — the three readings the card has', () => {
     const { state } = faithWorld();
@@ -277,7 +143,7 @@ describe('faithHoverText, on a foreign town the seat only remembers', () => {
       'Nippur · Crimson · last seen',
       // No count, because a sighting holds none. No banner, for the same
       // reason. And no rival faith at all — see below.
-      'the Grain Cult — Proclamation +12 — 12 a turn',
+      'the Grain Cult — Trade route +3 — 3 a turn',
     ]);
   });
 
@@ -311,7 +177,7 @@ describe('faithHoverText, on a foreign town the seat only remembers', () => {
       expect(faith.ledger.map((line) => line.source)).not.toContain('Temple');
     }
     // Still the fold of what it shows.
-    expect(faithHoverText(state, state.cities[2]!, 0)).toContain('Proclamation +12 — 12 a turn');
+    expect(faithHoverText(state, state.cities[2]!, 0)).toContain('Trade route +3 — 3 a turn');
   });
 
   it('has nothing to say when the seat has founded no faith at all', () => {

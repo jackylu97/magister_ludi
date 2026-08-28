@@ -251,6 +251,17 @@ export interface FollowingCityLine {
   majority: boolean;
   /** `explainPressure`'s lines for this religion, for the hover. */
   ledger: PressureLine[];
+  /**
+   * What this faith presses on this town per turn — the fold of `ledger`,
+   * floored at zero exactly as `pressureTotals` floors it.
+   *
+   * On the row rather than only in the hover (user, 2026-08-28): "how many
+   * follow me here" and "am I still gaining here" are two different questions,
+   * and a list that answered only the first left a player with no way to tell a
+   * town they are taking from one that has stopped moving without hovering forty
+   * rows one at a time. The ledger stays on the hover as the argument.
+   */
+  pressure: number;
 }
 
 /** Everything the right pane prints. Pure, and the whole of what a test can pin. */
@@ -320,6 +331,9 @@ export function religionReading(state: GameState, seat: number): ReligionReading
       const held = followerCount(city, mine.id);
       if (held <= 0) continue;
       const owner = playerById(state, city.ownerId);
+      const ledger = explainPressure(state, city, sites).filter(
+        (line) => line.religion === mine.id,
+      );
       following.push({
         cityId: city.id,
         name: cityDisplayName(state, city),
@@ -329,7 +343,13 @@ export function religionReading(state: GameState, seat: number): ReligionReading
         following: held,
         population: city.population,
         majority: cityReligion(city) === mine.id,
-        ledger: explainPressure(state, city, sites).filter((line) => line.religion === mine.id),
+        ledger,
+        // The fold of the list beside it, never a second pass over the board:
+        // the figure on the row is the figure the hover's ledger sums to.
+        pressure: Math.max(
+          0,
+          ledger.reduce((total, line) => total + line.amount, 0),
+        ),
       });
     }
     // Ours first, then `state.cities` order inside each half — founding order,
@@ -869,6 +889,14 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
           `${town.following} of ${town.population} citizens`,
         ),
       );
+      // And whether the town is still moving. A congregation is a standing
+      // count; the tide is the derivative, and the two together are the whole
+      // of "is this one mine yet". Absent at zero rather than "+0 a turn",
+      // which reads as a broken figure — a faith with followers and no pressure
+      // is a real state (the tide carried it here and has receded).
+      if (town.pressure > 0) {
+        row.append(element('span', 'rel-town-press', `+${town.pressure} a turn`));
+      }
       // The ledger on hover, and it is `explainPressure`'s own list — the same
       // one the tide folds into the bank.
       row.title = pressureLedgerText(town.ledger);

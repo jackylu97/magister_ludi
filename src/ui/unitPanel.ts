@@ -847,6 +847,12 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
           label: row.name,
           blocked: row.blocked,
           hint: row.says,
+          // Proclaim alone raises a card, and it is the rite card's argument
+          // exactly: the other three prophet verbs are one legible act each
+          // ("raise a holy site here"), and this one converts a whole region at
+          // once out of a charge that is a third of the piece. A sentence that
+          // long has to be readable somewhere the row's width does not clip it.
+          card: row.verb === 'proclaim' ? () => prophetCard(row) : undefined,
           run: () => onProphetAct(row.verb),
         });
       }
@@ -944,6 +950,30 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    * the sheet's own Charges line says how many are left; a coin figure here
    * would be inventing a bank.
    */
+  /**
+   * What a prophet's charge would do, on the card that rises beside the row.
+   *
+   * `riteCard`'s shape one piece over, and the same rule: every word comes from
+   * the simulation. `ProphetRow.says` is `proclaimSays`' sentence — the reducer's
+   * own numbers, and the towns themselves once `proclaimPreview` lands — so this
+   * only prints it; a UI copy of "sixty pressure is about six citizens" would be
+   * the second description of a rule this codebase spends whole modules
+   * avoiding.
+   *
+   * The charge line is the one thing on the card that is not about the act, and
+   * it is here for the rite card's reason: this is the screen where a player
+   * decides between three charges, and the row itself now spends its whole width
+   * on what the act *does*.
+   */
+  function prophetCard(row: ProphetRow): Node {
+    const card = element('div', 'unit-card');
+    card.append(element('h4', 'unit-card-title', row.name));
+    card.append(element('p', 'unit-card-payoff', row.says));
+    card.append(element('p', 'unit-card-clause', 'Spends one of the prophet’s charges'));
+    if (row.blocked !== null) card.append(element('p', 'unit-card-blocked', row.blocked));
+    return card;
+  }
+
   function riteCard(rite: RiteOption): Node {
     const def = riteDef(rite.id);
     const card = element('div', 'unit-card');

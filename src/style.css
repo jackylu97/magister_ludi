@@ -2608,6 +2608,32 @@ kbd {
   box-shadow: var(--price-throw) var(--price-throw) 0 rgba(29, 26, 32, 0.18);
 }
 
+/* The faith lens's plate: the same plate, in a founder's ink, saying a fact
+   rather than making an offer (`faithPlates.ts`).
+
+   Three differences from the price plate and each is the difference between a
+   caption and a button. It is **pointer-transparent**, because the hover card
+   that rises off the hex underneath is the detail view and a plate that
+   swallowed the pointer would trade the argument for the summary. It is drawn in
+   `--seat-ink` — the founder's colour, exactly as the city panel's faith row and
+   the hover card draw a foreign faith — so the board answers "whose" before it
+   answers "how many". And it keeps its ink when it has nothing to offer: the
+   greyed set belongs to a refusal, and a town nobody presses is not a refusal.
+
+   The banner mark rides at the plate's own size; the counts are already tabular
+   through `--face-num`, which the price plate sets. */
+.tile-price.faith-plate {
+  --price-ink: var(--seat-ink, var(--ink));
+  --price-rim: var(--seat-ink, var(--ink));
+  pointer-events: none;
+  gap: 4px;
+  cursor: default;
+  /* A faith plate stands on a hex a city sculpt already occupies, so it is a
+     shade lighter on the paper than a price is — it must be read *over* a town
+     rather than on bare ground. */
+  background: color-mix(in srgb, var(--parchment) 88%, transparent);
+}
+
 /* --- the turn splash ------------------------------------------------------
    The loudest element in the game and the only rotated one: big skinny serif on
    hot vermilion, sitting over the middle of the board for a beat and a half. */
@@ -7704,6 +7730,16 @@ kbd {
   color: var(--ink-soft);
 }
 
+/* The tide, after the count and quieter than it: the count is what this town
+   *is* and the tide is where it is going, so the standing figure keeps the
+   weight and the rate sits behind it. */
+.rel-town-press {
+  margin-left: 8px;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
 /* ---------------------------------------------------------------------------
    THE CITY SHEET'S FAITH BLOCK
    ---------------------------------------------------------------------------
@@ -7722,6 +7758,14 @@ kbd {
 
 .city-faith-name {
   font-family: var(--face-display);
+}
+
+/* The header's belief badge (2026-08-28). It borrows `.city-size`'s whole voice
+   — a standing fact beside Size and hp — and adds only the ink on the faith's
+   own name, which is the one thing on the line that is about *whose* it is. */
+.city-faith-head-name {
+  font-family: var(--face-display);
+  color: var(--seat-ink, var(--ink));
 }
 
 .city-faith-row.is-foreign .city-faith-name {
