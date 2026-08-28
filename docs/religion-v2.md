@@ -152,6 +152,77 @@ founded city follows the nearest pressure from its first turn.
 - **Prophet piece**: the augur's sculpt with a gilt rim and a taller staff; badge `religious`.
   Holy site: a standing-stone ring with a gilt tip, the great-work treatment.
 
+## Belief pools (the pass of 2026-08-27 — v1's rows carried over and rewritten, plus the scaling ones)
+
+**Slots, superseding the drafting lines above.** Founding drafts **one founder + one follower**
+belief (two offers, back to back, each `offerSize 'belief'`). Every later *unlock* charge
+adds one more from the **follower** or **enhancer** pool — the prophet's owner chooses which
+pool before the deal — to a cap of **2 followers and 2 enhancers**. A re-draft charge returns
+one pool's beliefs and redraws them. The pantheon is never redrafted. A finished religion is
+therefore pantheon (2–4) + 1 founder + 2 followers + 2 enhancers.
+
+Who each pool pays: **founder** → the founding empire, wherever the followers are (the reward
+for founding, immune to who owns the towns); **follower** → the *owner* of each following
+city, yours or anyone's (the reason a rival's faith in your town is a gift); **enhancer** → the
+tide itself (pressure, range, carriage, the trickle). Counts the scaling beliefs read, all
+derived once per turn beside `spreadReligion`: `followingCities` (every city in the world
+following, yours included), `followingForeign`, `followingPop` (their population summed),
+`followingEmpires` (empires with at least one following city). `CityScope` gains
+`{ test: 'follows' }` (this city follows *my* religion) for the follower pool.
+
+### Founder pool (draft one at founding; ~10, cut to 6)
+
+| Founder belief | Effect | Scales on | Shape |
+|---|---|---|---|
+| The Great Rite | your pantheon beliefs' numeric effects ×2 | — | `effectAmplifier pantheon` |
+| Syncretism | +1 to every effect of a belief sharing an axis with another you hold | — | `effectAmplifier axisPairs` (flat +1) |
+| Divine Right | +2 authority capacity · +1 per belief held | beliefs | `authority` + `countScaled beliefsHeld` |
+| Tithe of the Faithful | +1💰 per following city, yours or not | followers | `countScaled followingCities → gold` |
+| The Tithe of Nations | +2💰 and +1🔬 per **foreign** following city | foreign followers | `countScaled followingForeign` |
+| Pilgrims' Coin | +1🕯 per following city · +1 more per following city with a Temple | followers | `countScaled followingCities`, `followingWithBuilding temple` |
+| World Church | +1🔬 per 2 following cities · +1 happiness per empire that follows | followers, empires | `countScaled followingCities per 2`, `followingEmpires → happiness` |
+| The Long Prayer | +1🎵 per following city of 5+ population | big followers | `countScaled followingCities` with a `populationAtLeast` filter (**new filter on a count**) |
+| Sacred Census | +1 renown per turn per 4 following cities, to the Prophet family | followers | `renown` × `countScaled` (the Council's shape scaled) |
+| Ecumene | +5% 🔬 and 🎵 empire-wide per empire that follows (max +15%) | empires | `countScaled followingEmpires → percent (empire stage)` |
+
+### Follower pool (one at founding, up to two; ~13, cut to 8)
+
+| Follower belief | Effect (in every city that follows) | Scales on | Shape |
+|---|---|---|---|
+| Cathedrals of the Sky | +2🔬 +2🎵 in following cities with a Temple | — | `cityYields` scoped `follows` ∧ `hasBuilding temple` |
+| Pilgrimage | +1🕯 per luxury the city holds | luxuries | `countScaled` within city |
+| Feast Days | +1 happiness · +1 more with a Temple | — | `happiness per city` scoped |
+| Warrior Monks | units fortified in a following city +5 defence | — | `combatLine inCity` scoped (**scope on combatLine — new**) |
+| Harvest Blessing | +1🌾 on farms | — | `tileYield improvement farm` scoped `follows` |
+| Holy Water | +1🌾 +1🕯 in following cities on fresh water | — | `cityYields` scoped `follows` ∧ `freshwater` |
+| Guild of the Faithful | +10% ⚙ toward buildings | — | `productionBonus building` scoped (**scope on productionBonus — the legacies' ask**) |
+| Choirs | +1🎵 per 3 population | population | `countScaled population within city` |
+| Tithe Houses | +1💰 per 4 population | population | same, gold |
+| Sanctuary | +5 city defence · units in the city heal +5 | — | `cityStat defense` scoped + `unitStat heal where: inCity` (**new where**) |
+| Lamps of the Shrine | Shrines +2🔬 | — | `cityYields` scoped `hasBuilding shrine` |
+| Common Table | the city keeps 25% of its basket on growth | — | `rulePercent growthCarryover` scoped (**scope on rulePercent**) |
+| Congregation | +1 happiness per 5 following cities in the world (max +3) | followers | `countScaled followingCities per 5 max 3 → happiness per city` scoped |
+
+### Enhancer pool (up to two, Theology; ~10, cut to 6)
+
+| Enhancer belief | Effect | Scales on | Shape |
+|---|---|---|---|
+| Reliquaries | +1🎵 per 3🕯 gained per turn | faith | `rateConversion faithPerTurn` |
+| Inquisition | a Temple's resistance to foreign pressure ×2 (×4 total) | — | `pressureRule templeResist` |
+| The Long Road | roads and caravans carry +2 pressure | — | `pressureRule roadStrength +2` |
+| Itinerant Preachers | following cities project 2 hexes further | — | `pressureRule cityRange +2` |
+| The Pulse of Bells | the faith bomb reaches 4 hexes further and pulses last 5 turns longer | — | `pressureRule bombRange`, `pulseTurns` |
+| Ecclesia | holy sites +3 strength · +1🕯 each | — | `pressureRule siteStrength` + `tileYield improvement holySite` |
+| Apostles | the founder trickle is doubled | followers | `effectAmplifier founderTrickle` |
+| Sacred Cartography | a caravan carries pressure **both** ways | — | `pressureRule routeBothWays` |
+| Holy Order | a faith-purchasable warrior-monk line | — | *deferred — a unit line* |
+| Theocratic Mandate | the Religious Mandate Doctrine's partner | — | *deferred — war state, beads* |
+
+One shape carries the enhancer pool: `{ kind: 'pressureRule', rule, delta }` over the
+`rules.religion` numbers, read only in `explainPressure` — the `meterRule` pattern for the
+tide. `followingWithBuilding` and the population filter are the two count extensions; the
+three scopes marked **new** are the ones the wonders and legacies passes already asked for.
+
 ## Numbers (first guesses; `rules.religion`)
 
 `followThreshold 4` · `switchMargin 2` · `siteRange 6` · `siteStrength 6` · `cityRange 3` ·
