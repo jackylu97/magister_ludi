@@ -2819,6 +2819,15 @@ kbd {
   color: var(--ink-soft);
 }
 
+/* A besieged town's badge — `underSiege`, read fresh every render. */
+.city-size.is-siege {
+  color: var(--vermilion);
+}
+
+.city-defense {
+  margin: 11px 0;
+}
+
 .city-close {
   flex: 0 0 auto;
   width: 24px;

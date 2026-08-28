@@ -58,11 +58,6 @@ import { createInfoCard } from './infoCard';
 import type { RouteReading } from './tradeLines';
 import { setYieldText, yieldFigureNodes } from './yieldMark';
 
-/** "+40%" — a defence fraction as the percentage a player reads it as. */
-function formatPercent(fraction: number): string {
-  return `+${Math.round(fraction * 100)}%`;
-}
-
 /** The three voices an improvement can move, in the order the panel reads them. */
 const DELTA_KEYS = ['food', 'production', 'gold'] as const;
 
@@ -630,7 +625,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       const blocker = fortifyBlocker();
       const dug = isFortified(unit);
       actions.push({
-        label: dug ? `Fortified ${formatPercent(fortifyBonus(unit))}` : 'Fortify',
+        label: dug ? `${signedFigure(fortifyBonus(unit))} fortified` : 'Fortify',
         key: 'F',
         blocked: blocker === undefined ? 'No unit selected' : blocker,
         hint: 'Dig in: defence grows each turn the unit stays put',
@@ -1043,7 +1038,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // The standing states a player has to know before ordering anything.
     // Fortification first: it is the one they chose.
     const notes: string[] = [];
-    if (isFortified(unit)) notes.push(`Fortified ${formatPercent(fortifyBonus(unit))}`);
+    if (isFortified(unit)) notes.push(`${signedFigure(fortifyBonus(unit))} fortified`);
     // Beside fortification and for its reason: a standing state the player chose
     // and would otherwise have to infer from the button's label. The mark is the
     // same one the button wears, so the sheet says one thing twice rather than

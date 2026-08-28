@@ -47,7 +47,7 @@ import {
   unitProductionCost,
 } from '../sim/cities';
 import { type BuildingId, BUILDING_IDS, buildingDef, isWonder } from '../sim/buildingData';
-import { describeCard } from '../sim/statecraft';
+import { cardCityStat, describeCard } from '../sim/statecraft';
 import { RULES } from '../sim/rulesData';
 import {
   type ProjectId,
@@ -55,7 +55,16 @@ import {
   projectDef,
   projectRate,
 } from '../sim/projectData';
-import { isCombatant, isRanged } from '../sim/combat';
+import {
+  cityMaxHp,
+  explainCityMaxHp,
+  explainCityStrength,
+  isCombatant,
+  isRanged,
+  siegeField,
+  underSiege,
+} from '../sim/combat';
+import { buildingCityStat } from '../sim/buildingEffects';
 import {
   type PurchasableItem,
   type PurchaseCurrency,
@@ -80,7 +89,13 @@ import { type RouteYieldLine, cityRouteYields } from '../sim/trade';
 import { cityRouteRows, routeSlotsLine as routeSlotsLineOf } from './tradeLines';
 import { resourceLabelNodes } from './resourceMark';
 import { setYieldText, yieldMarkNode } from './yieldMark';
-import { type City, type QueueItem, hasEndedTurn, playerById } from '../sim/state';
+import {
+  type City,
+  type GameState,
+  type QueueItem,
+  hasEndedTurn,
+  playerById,
+} from '../sim/state';
 import { techDef } from '../sim/techData';
 import { buildError, isUnlocked, requiredResource } from '../sim/tech';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
@@ -305,6 +320,57 @@ export function previewFigures(entry: CityYields): string {
 export function previewLineText(line: BuildingPreviewLine): string {
   const figures = previewFigures(line);
   return figures ? `${line.source} ${figures}` : line.source;
+}
+
+/**
+ * "Walls 200 · Palisade +25" — the hover ledger behind the hit-point chip,
+ * rule 5 for a town's toughness. `explainCityMaxHp`'s own fold (`cityMaxHp`)
+ * is the number the chip shows; this is the breakdown that says why, first
+ * line bare (the base, unsigned) and every wall after it in the signed voice.
+ *
+ * Pure and module-level, `previewLineText`'s reason exactly: a hover string
+ * built off the sim's own list needs no jsdom to pin.
+ */
+export function maxHpLedger(city: City): string {
+  return explainCityMaxHp(city)
+    .map((line, index) =>
+      index === 0 ? `${line.source} ${line.amount}` : `${line.source} ${signedFigure(line.amount)}`,
+    )
+    .join(' · ');
+}
+
+/** One row of the defence ledger: what it is, what it is worth. */
+export interface DefenseRow {
+  label: string;
+  figures: string;
+}
+
+/**
+ * What this town defends with, line by line: the garrison first — "Defends
+ * with · Swordsman" over the strongest unit its owner could train right now,
+ * `explainCityStrength`'s own words with "Garrison strength" reread as
+ * "Defends with" — then every wall and every card that adds to the same
+ * fight, each in its own row so a palisade is never folded into a number with
+ * no reason beside it (rule 5). The garrison figure is the fold of
+ * `explainCityStrength` alone; the walls and cards below it are what
+ * `planCombat` adds on top when somebody actually attacks, so the two halves
+ * read the same total the forecast card would.
+ */
+export function defenseRows(state: GameState, city: City): DefenseRow[] {
+  const rows: DefenseRow[] = [];
+  const strengthLines = explainCityStrength(state, city);
+  strengthLines.forEach((entry, index) => {
+    const label =
+      index === 0 ? entry.source.replace('Garrison strength', 'Defends with') : entry.source;
+    rows.push({ label, figures: String(entry.amount) });
+  });
+  for (const entry of buildingCityStat(city, 'defense')) {
+    rows.push({ label: entry.source, figures: signedFigure(entry.amount) });
+  }
+  for (const entry of cardCityStat(state, city, 'defense')) {
+    rows.push({ label: entry.source, figures: signedFigure(entry.amount) });
+  }
+  return rows;
 }
 
 export function createCityPanel(options: CityPanelOptions): CityPanel {
@@ -1513,6 +1579,22 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return button;
   }
 
+  /** DOM wrapper over `defenseRows` — see it for the rule this ledger keeps. */
+  function renderDefense(city: City): HTMLElement {
+    const { state } = getGame();
+    const box = element('div', 'city-defense');
+    box.append(element('h3', undefined, 'Defence'));
+    const list = element('ul', 'city-modifiers ledger');
+    for (const row of defenseRows(state, city)) {
+      const item = element('li', 'city-modifier');
+      item.append(element('span', undefined, row.label));
+      item.append(element('span', 'city-modifier-effect', row.figures));
+      list.append(item);
+    }
+    box.append(list);
+    return box;
+  }
+
   function renderBuilt(city: City): HTMLElement | null {
     if (city.buildings.length === 0) return null;
     const box = element('div', 'city-built');
@@ -1607,6 +1689,23 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const title = element('div', 'city-title');
     title.append(element('h2', undefined, cityDisplayName(state, city)));
     title.append(element('span', 'city-size', `Size ${city.population}`));
+    // Hit points beside population, in the same small voice — `cityMaxHp` is
+    // the fold `explainCityMaxHp` breaks down, so the tooltip and the figure
+    // can never disagree.
+    const hp = element('span', 'city-size', `${city.hp}/${cityMaxHp(city)} hp`);
+    hp.title = maxHpLedger(city);
+    title.append(hp);
+    // Derived every render and never stored — see `underSiege`. A besieged
+    // town neither heals nor holds, and this is the only place a player who
+    // has not opened the compendium learns that Uruk is starving rather than
+    // merely wounded.
+    if (underSiege(state, city, siegeField(state, city.ownerId))) {
+      const badge = element('span', 'city-size is-siege', 'Under siege');
+      badge.title =
+        'Every neighbouring hex is denied to this town — it cannot heal and ' +
+        'loses a little health each turn, but only an attack can take it.';
+      title.append(badge);
+    }
     header.append(title);
 
     const close = element('button', 'city-close', '×');
@@ -1627,6 +1726,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // After production, because the two food/hammer baskets are what a player
     // reads first and territory is the slower clock underneath them.
     container.append(renderBorders(city, locked));
+    // Beside borders and ahead of the queue: what the town is worth in a fight
+    // is a standing fact about it, not a plan a player is editing.
+    container.append(renderDefense(city));
     container.append(renderQueue(city, locked));
     const built = renderBuilt(city);
     if (built) container.append(built);

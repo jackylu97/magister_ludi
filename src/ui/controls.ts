@@ -174,6 +174,7 @@ import {
 import { buildingDef } from '../sim/buildingData';
 import {
   type CombatPreview,
+  type SiegeReport,
   attackTargetAt,
   fortifyError,
   isCombatant,
@@ -1627,6 +1628,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportWonders(result);
       reportGrants(result);
       reportRoutes(result);
+      reportSieges(result);
       reportTriumphs(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
@@ -1748,6 +1750,35 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     for (const report of result.routesEnded) {
       if (report.ownerId !== localPlayerId) continue;
       announce(routeEndSentence(getGame().state, report));
+    }
+  }
+
+  /** "−5 this turn", or "holds at 1" when the chip was already at its floor. */
+  function siegeTail(report: SiegeReport): string {
+    return report.damage > 0 ? `−${report.damage} this turn` : 'holds at 1';
+  }
+
+  /**
+   * **A besieged city.** One toast per turn per town of this seat's the heal
+   * phase found cut off (`CommandResult.sieges`, `endTurn` alone).
+   *
+   * `reportRoutes`' shape and reason: seat-filtered, read off the reducer's own
+   * report rather than diffed off the board, because by the time this runs the
+   * hit points have already moved and the board cannot say why. A siege that
+   * dealt no damage is still news — the town was cut off, it was simply already
+   * at its floor — so the sentence fires either way and says which.
+   */
+  function reportSieges(result: CommandResult): void {
+    if (!result.ok || !result.sieges) return;
+    const { state } = getGame();
+    for (const report of result.sieges) {
+      if (report.ownerId !== localPlayerId) continue;
+      const city = cityById(state, report.cityId);
+      if (!city) continue;
+      const name = cityDisplayName(state, city);
+      announce(`✶ ${name} is under siege · ${siegeTail(report)}`, {
+        cell: { col: city.col, row: city.row },
+      });
     }
   }
 

@@ -591,4 +591,18 @@ describe('never hand-written prose about a number', () => {
     expect(sourceOf('religionScreen.ts')).toContain('export function riteGrantWords');
     expect(sourceOf('compendium.ts')).toContain("from './religionScreen'");
   });
+
+  it('describes a defender’s edge as points, never a percentage, and names siege', () => {
+    // Combat moved to flat points (2026-08-28); the Compendium's own words for
+    // it must never regress to "%", and the written-shelf rule (below) already
+    // forbids a digit outright.
+    const combat = CONCEPT_ENTRIES.find((entry) => entry.id === 'concept:combat')!;
+    const prose = combat.clauses.map((clause) => clause.text).join(' ');
+    expect(prose).not.toContain('%');
+    expect(prose).toContain('Hills and forests add to a defender');
+    expect(prose).toContain('fortifying adds more each turn it stays');
+    expect(prose).toContain('the best unit its owner could build');
+    expect(prose).toContain('under siege');
+    expect(prose).toContain('only an attack can capture it');
+  });
 });
