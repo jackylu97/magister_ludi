@@ -3,8 +3,9 @@
 Most artwork in this directory is by **Kenney** (<https://kenney.nl>) and is released under
 **CC0 1.0 Universal** (public domain dedication). No attribution is required; it is given
 anyway because the work deserves it. The two exceptions are called out in their own sections
-below: `units/` (the project owner's illustrations) and `icons/` (twelve **Tabler Icons**
-under the MIT licence, and eight drawn for this project in Tabler's geometry, CC0).
+below: `units/` (the project owner's illustrations) and `icons/` (ten **Tabler Icons**
+under the MIT licence, one composed from two more, and ten drawn for this project in
+Tabler's geometry, CC0).
 
 Source packs:
 
@@ -83,13 +84,14 @@ with a feathered edge — see `src/render3d/sprites3d.ts`, tuned by `units.sprit
 A unit type with no file here falls back to its procedural game piece, which is why the
 settler still stands as a piece while these two are billboards.
 
-## `icons/*.svg` — 20 badge icons, one per unit type
+## `icons/*.svg` — 21 badge icons, one per unit type
 
 **Not our work any more, and that is the point.** Twenty SVG files, one per `BadgeClass`
 (`src/render3d/badges3d.ts`), rasterised into the parchment roundel that floats over a
 piece and says which unit is standing there. They were drawn for this project until the
-icon pass; twelve of them are now **Tabler Icons**, and the other eight are drawn here in
-Tabler's geometry because no icon set in the world draws the medieval half of a 4X roster.
+icon pass; ten of them are now **Tabler Icons** verbatim and an eleventh is composed from
+two more, and the other ten are drawn here in Tabler's geometry because no icon set in the
+world draws the medieval half of a 4X roster.
 The reason the vendored ones are vendored is the same sentence the six yield voices get
 (see below): a set drawn by people who draw icon sets for a living reads better at twenty
 pixels than anything this project would author for itself, and the badge is the smallest
@@ -146,7 +148,7 @@ Two rules decided all twenty, and they are the whole design:
 | `settler.svg` | `settler` | civilian | Tabler `tent` | an A-frame tent, its door thrown open |
 | `worker.svg` | `worker` | civilian | Tabler `hammer` | a claw hammer, head up |
 | `scout.svg` | `scout` | civilian | Tabler `binoculars` | field glasses |
-| `trader.svg` | `trader` | civilian | Tabler `package` | a crate in three-quarter view, its three top seams drawn |
+| `trader.svg` | `trader` | civilian | *drawn here* | a covered wagon: canopy hooped over an overhung bed, on two wheels |
 | `religious.svg` | `religious` | called | Tabler `candle` | a lit candle |
 | `greatPerson.svg` | `greatPerson` | called | Tabler `laurel-wreath` | a laurel wreath, eight leaves and a tie |
 | `prophet.svg` | `prophet` | called | *drawn here* — Tabler `candle`, ringed | the augur's candle, smaller, under a halo arc |
@@ -175,7 +177,7 @@ No path was re-fitted, no shape re-centred, and the 24-unit grid is upstream's o
 re-vendoring a diff rather than a redraw. Every file carries its upstream name and URL in an
 XML comment at the top.
 
-### The eight that are not Tabler drawings, and why they are not somebody else's either
+### The ten that are not Tabler drawings, and why they are not somebody else's either
 
 Neither Tabler nor Lucide draws a **catapult**, a **trebuchet**, a **spear** (nor a lance,
 pike or javelin under any other name), a **crossbow**, a **chariot**, a **club** or a
@@ -186,10 +188,15 @@ used, for the reason this file already gave about Kenney's board-game icons: tho
 silhouettes, these are strokes, and a badge set has exactly one job, which is to be one
 family. Half a set in somebody's fills and half in somebody's strokes is worse than either.
 
-So seven are **drawn for this project**, CC0 1.0 like everything else original here, but
+So nine are **drawn for this project**, CC0 1.0 like everything else original here, but
 drawn in *Tabler's* geometry rather than in ours: the 24-unit box, the family's 2.75 stroke,
 round caps and joins, no fill anywhere, and a stroked outline wherever a shape wants mass
-because Tabler never fills. The eighth is a composition of two Tabler paths.
+because Tabler never fills. The tenth is a composition of two Tabler paths.
+
+`trader.svg` is the one on this list whose upstream name is **not** a 404, and the entry
+below says why it is drawn here anyway. The counts in this section moved when it did, and
+they had already drifted once — `prophet.svg` was appended a pass earlier without them
+being touched — so they are now recounted from the table rather than adjusted by one.
 
 - `mountedRanged.svg` is a **composition** of two Tabler drawings: `horse` verbatim, scaled
   0.75 into the lower-left with its stroke-width divided back out so it still prints at 2.75,
@@ -227,6 +234,21 @@ because Tabler never fills. The eighth is a composition of two Tabler paths.
   a car for one draft and lost it: at twenty-four pixels a box sitting on the wheel's crown
   merged into the wheel and the mark went to mush. One big spoked wheel and the draught pole
   it is pulled by.
+- `trader.svg` — a **covered wagon**, and the only entry in this list drawn here in spite of
+  upstream having the name. Tabler's `caravan` is a modern travel trailer: a tow hitch, a
+  window and one road wheel, which reads correctly and reads *the wrong millennium*, and the
+  board it would sit on has an augur on it. `camel`, `wagon` and `horse-cart` are 404s. It
+  replaces Tabler `package`, a crate, on the ruling *"could we have a different icon for the
+  trader (something more resembling a caravan)"* — a crate says freight but it does not say
+  **travelling**, which is the whole of what the unit does. A camel was drawn first, in two
+  drafts, and lost on the one thing that decides a badge: it is a quadruped in profile
+  standing on the same board as `mounted.svg`, which is also a quadruped in profile, and at
+  twelve pixels two humps are two pixels. The wagon collides with nothing in the set — one
+  dome, and the only mark on two wheels, where the chariot is deliberately one big wheel. The
+  canopy is drawn wider than the bed so it overhangs fore and aft, which is what separates a
+  schooner from a cart at any size, and the canopy has no ribs: a rib was drawn and cut for
+  the exact reason `chariot.svg` lost its car, that at twelve pixels it closes the arch into a
+  lump.
 - `warrior.svg` — a club, and it is drawn here rather than vendored for a specific reason.
   Tabler *has* an `axe`, which was the obvious first rank for the sword line, and `axe` is
   Tabler's `hammer` turned around — which would have put the warrior one glance away from the

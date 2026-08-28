@@ -1,8 +1,26 @@
-<!-- Tabler Icons `package` (MIT) — https://tabler.io/icons/icon/package · @tabler/icons 3.46.0 · stroke 2 → 2.75, nothing else touched -->
+<!-- Not a Tabler icon, and this one is a *deliberate* refusal rather than a gap:
+     `caravan` does exist in @tabler/icons 3.46.0 and it is a modern travel
+     trailer — a tow hitch, a window and a road wheel — which is the one thing a
+     bronze-age board cannot have. `camel`, `wagon` and `horse-cart` are all
+     404s. So this is drawn here in Tabler's geometry: the 24-unit box, the
+     family's 2.75 stroke, round caps and joins, no fill anywhere.
+
+     A covered wagon, and a camel was drawn first and lost. The camel is the
+     better mark at sixty-four and the worse one at twelve: it is a quadruped in
+     profile standing next to `mounted.svg`, which is also a quadruped in
+     profile, and at the size a badge is actually read the two humps are two
+     pixels of difference. The wagon collides with nothing — it is the only dome
+     in the set, and the only thing on two wheels (`chariot.svg` is one big
+     spoked wheel, which is why that mark was drawn as a wheel and not as a car).
+
+     Three marks: the canopy hooped over the bed, the bed itself drawn *shorter*
+     than the canopy so the cover overhangs fore and aft the way a schooner's
+     does, and the two wheels. No ribs on the canopy — a rib was drawn and cut
+     for `chariot.svg`'s exact reason: at twelve pixels it closed the arch into
+     a solid lump. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
-<path d="M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5"/>
-<path d="M12 12l8 -4.5"/>
-<path d="M12 12l0 9"/>
-<path d="M12 12l-8 -4.5"/>
-<path d="M16 5.25l-8 4.5"/>
+<path d="M3.5 14.5c1 -12 16 -12 17 0"/>
+<path d="M4.8 14.5h14.4"/>
+<path d="M4.8 17.6a2.4 2.4 0 1 0 4.8 0a2.4 2.4 0 1 0 -4.8 0"/>
+<path d="M14.4 17.6a2.4 2.4 0 1 0 4.8 0a2.4 2.4 0 1 0 -4.8 0"/>
 </g></svg>

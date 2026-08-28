@@ -2197,46 +2197,80 @@ export const workerMini: MiniFactory = (spec) => {
 };
 
 /**
- * Where a caravan's pack sits, and how big it is.
+ * A caravan's proportions: the beast, its packs, the drover beside it.
  *
- * One table read by both trader sculpts, because the *only* thing that separates
- * them is a gilt box on top of this one, and a bale that floated because
- * somebody nudged the pack and not its twin would be the whole point of the
- * variant thrown away. Everything is in world units, measured from the top of
- * the base disc.
+ * One table read by both caravan sculpts, because the *only* thing that
+ * separates them is a gilt bale roped on top of this load, and a bale that
+ * floated because somebody nudged the packs and not its twin would be the whole
+ * point of the variant thrown away. Everything is a fraction of the sculpt's own
+ * height or of the barrel it hangs on, so the drawing survives a retuned size
+ * class the way `miniHorse` does.
  */
-const TRADER_PACK = {
-  width: 0.155,
-  height: 0.215,
-  depth: 0.11,
-  /** Off centre toward the near-left shoulder, and behind the token. */
-  x: -0.055,
-  z: -0.095,
-  /** Height of the pack's *centre*, as a fraction of the figure's own height. */
-  atHeight: 0.55,
-  strap: { width: 0.175, height: 0.03, depth: 0.035, lift: 0.045 },
-  bale: { width: 0.115, height: 0.08, depth: 0.09 },
+const CARAVAN = {
+  /** The pack beast, measured against the piece's full height. */
+  beast: {
+    legHeight: 0.34,
+    barrelLength: 0.24,
+    barrelHeight: 0.135,
+    barrelWidth: 0.125,
+    /** Barrel centre along x. The animal walks toward −x, away from the drover. */
+    x: -0.055,
+    neckHeight: 0.32,
+    neckLean: 0.24,
+    headLength: 0.105,
+    headRoll: 0.55,
+  },
+  /** A pannier slung on each flank, as fractions of the barrel it hangs on. */
+  pack: { length: 0.66, height: 0.6, thickness: 0.36, drop: 0.42, out: 0.82 },
+  /** The bale the laden twin carries, roped on the barrel's crown. */
+  bale: { length: 0.6, height: 0.085, width: 0.72 },
+  /** The drover: a small token, off to +x and shorter than the beast's head. */
+  drover: { x: 0.175, height: 0.62, radius: 0.72 },
 } as const;
 
 /**
- * Trader: the worker's token carrying a squared pack instead of a tool.
+ * Trader: a pack beast under two panniers, and the drover walking it.
  *
- * A civilian on foot, which is why the roster row is `modelClass: 'worker'` and
- * why it must not simply *be* the worker: at forty pixels the difference between
- * two figures has to be a difference in the silhouette, and "the worker, plus a
- * lump" is not one. So the mallet comes off — a caravan carries no tool — and
- * what replaces it is a burden on the back, squared and shoulder-high, breaking
- * the outline on the opposite side from the one the worker breaks it on. The
- * two stand next to each other on a road and read as two things.
+ * It replaces a worker's token with a squared pack on its back (user,
+ * 2026-08-28: *"mock up a new 3D asset for the trader"*), and the reason that
+ * one had to go is the reason it was only ever a compromise: it was the worker's
+ * silhouette with a lump added, and a lump is exactly the kind of difference
+ * forty pixels of bronze cannot carry. What a caravan is, is *two things
+ * travelling together* — and two objects on one base is a silhouette no other
+ * piece in the roster has. Nothing else here is a figure standing beside
+ * something; the horse sculpts put a rider on top, which reads as one mass.
  *
- * It stays inside the kit: base, token, three boxes. Nothing new was cut for it,
- * which is the same bargain `workerMini` made a milestone before its own unit
- * existed.
+ * The beast is `miniHorse`'s idiom, simplified: a box barrel on four stub legs,
+ * a cone neck and a box head, carried high and thrown a little forward. It is
+ * deliberately **not** a call to `miniHorse` — that function is tuned to hold a
+ * rider at a stated saddle height and returns one, and a caravan wants none of
+ * that. Copying its shapes and not its contract is the honest version; the
+ * alternative is a second parameter on a function whose whole job is to seat
+ * somebody.
+ *
+ * It takes `miniHorse`'s **inks** as well, and that half was got wrong first and
+ * is worth the sentence. The beast was painted in `body` — the seat's own colour
+ * — on the argument that a piece's ownership should sit on its largest mass, and
+ * it disappeared: the base disc under it is the same ink, and an animal standing
+ * on a disc of itself is a red lump. So the animal is `accent` and the *drover*
+ * carries the seat, which is exactly the arrangement a horseman already has and
+ * exactly the reason `miniHorse`'s own docblock gives for it. The panniers are
+ * `wood`, so the load reads as cargo on all twelve tinctures rather than as more
+ * animal.
+ *
+ * There is deliberately **no rope over the load**. One was drawn, in `accent`,
+ * and at board scale it printed as a white slab across the beast's back that
+ * read as a second crate — the strap was not a thin thing, it was a *small* one,
+ * which is not the same at forty pixels. Dropping it also leaves the barrel's
+ * crown clear for the one thing that has to be read there, which is the gold.
+ *
+ * Four roles and a little over two hundred triangles, which is inside the kit —
+ * base, token, barrel, four legs, cone, three boxes.
  */
-export const traderMini: MiniFactory = (spec) => addTraderPack(traderBody(spec), spec).build();
+export const caravanMini: MiniFactory = (spec) => caravanBody(spec).build();
 
 /**
- * The same caravan, laden: one gilt bale roped on top of the pack.
+ * The same caravan, laden: one gilt bale roped on the beast's back.
  *
  * A *second sculpt* rather than a second instance over the first one's matrix,
  * which is the arrangement a great work's gold takes (`improvements3d.ts`). The
@@ -2254,69 +2288,119 @@ export const traderMini: MiniFactory = (spec) => addTraderPack(traderBody(spec),
  * `board3d.ts`, off the presence of `Unit.trade` — and it is why `trade` had to
  * join the piece fingerprint (`signUnits`).
  */
-export const traderLadenMini: MiniFactory = (spec) => {
-  const mini = traderBody(spec);
-  const t = spec.baseThickness;
-  const h = spec.height - t;
-  const packY = t + h * TRADER_PACK.atHeight;
-  const bale = TRADER_PACK.bale;
+export const caravanLadenMini: MiniFactory = (spec) => {
+  const mini = caravanBody(spec);
+  const beast = CARAVAN.beast;
+  const barrelL = spec.height * beast.barrelLength;
+  const bale = CARAVAN.bale;
   mini.add(
     'gilt',
     slabAt(
-      bale.width,
-      bale.height,
-      bale.depth,
-      TRADER_PACK.x,
-      packY + TRADER_PACK.height / 2 + bale.height / 2,
-      TRADER_PACK.z,
+      barrelL * bale.length,
+      spec.height * bale.height,
+      spec.height * beast.barrelWidth * bale.width,
+      spec.height * beast.x,
+      barrelTopOf(spec) + (spec.height * bale.height) / 2,
+      0,
     ),
   );
-  return addTraderPack(mini, spec).build();
+  return mini.build();
 };
 
-/** The figure both caravans stand on: the worker's token, and nothing else. */
-function traderBody(spec: MiniSpec): Mini {
-  const t = spec.baseThickness;
-  const h = spec.height - t;
-  return new Mini().add('body', miniBase(spec), ...miniToken(h * 0.98, spec.tokenRadius, t));
+/** The crown of the pack beast's barrel: where the gilt bale is roped on. */
+function barrelTopOf(spec: MiniSpec): number {
+  const beast = CARAVAN.beast;
+  return spec.baseThickness + spec.height * (beast.legHeight + beast.barrelHeight);
 }
 
 /**
- * Adds the pack and its strap to a caravan.
+ * Everything both caravans are made of: base, drover, beast, panniers.
  *
- * Both variants go through it and neither may inline it: the bale is placed off
- * `TRADER_PACK` too, so a pack nudged in one factory and not the other would
- * leave a gilt box hanging in the air beside the burden it is supposed to be
- * roped to. Returns the `Mini` rather than the built piece so a caller can go on
- * adding — which the laden one does not need today and the next variant will.
+ * Both variants go through it and neither may inline it, for the reason
+ * `CARAVAN` exists: the bale is placed off the same table, so a pack nudged in
+ * one factory and not the other would leave a gilt box hanging in the air beside
+ * the load it is supposed to be roped to. Returns the `Mini` rather than the
+ * built piece so a caller can go on adding, which is exactly what the laden twin
+ * does.
  */
-function addTraderPack(mini: Mini, spec: MiniSpec): Mini {
+function caravanBody(spec: MiniSpec): Mini {
   const t = spec.baseThickness;
-  const h = spec.height - t;
-  const packY = t + h * TRADER_PACK.atHeight;
-  mini.add(
-    'wood',
-    slabAt(
-      TRADER_PACK.width,
-      TRADER_PACK.height,
-      TRADER_PACK.depth,
-      TRADER_PACK.x,
-      packY,
-      TRADER_PACK.z,
-    ),
-  );
-  const strap = TRADER_PACK.strap;
+  const H = spec.height;
+  const beast = CARAVAN.beast;
+  const mini = new Mini().add('body', miniBase(spec));
+
+  // The drover, ahead of the animal and a shade narrower than a foot soldier:
+  // two figures at full width on one base is a crowd, and the one that has to
+  // stay legible is the beast.
+  const drover = CARAVAN.drover;
+  for (const part of miniToken((H - t) * drover.height, spec.tokenRadius * drover.radius, t)) {
+    part.translate(H * drover.x, 0, 0);
+    mini.add('body', part);
+  }
+
+  const legH = H * beast.legHeight;
+  const barrelH = H * beast.barrelHeight;
+  const barrelL = H * beast.barrelLength;
+  const barrelW = H * beast.barrelWidth;
+  const barrelX = H * beast.x;
+  const barrelY = t + legH + barrelH / 2;
+  mini.add('accent', slabAt(barrelL, barrelH, barrelW, barrelX, barrelY, 0));
+
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      // Four sides is the floor, `miniHorse`'s argument: a leg is two pixels
+      // wide and all it has to do is be dark down one side.
+      const leg = new CylinderGeometry(H * 0.019, H * 0.023, legH, 4, 1);
+      leg.translate(barrelX + sx * barrelL * 0.34, t + legH / 2, sz * barrelW * 0.32);
+      mini.add('accent', leg);
+    }
+  }
+
+  // Neck and head, thrown *forward and down* — the one place this differs from
+  // the rider's mount on purpose. A horse under a rider carries its head up;
+  // an animal under a load carries it low, and at this size the angle of that
+  // one cone is the whole difference between the two drawings.
+  const neckH = H * beast.neckHeight;
+  const neck = spike(H * 0.05, neckH, 5);
+  neck.rotateZ(beast.neckLean);
+  const neckX = barrelX - barrelL * 0.42;
+  const neckY = barrelY + barrelH * 0.2;
+  neck.translate(neckX, neckY, 0);
+  mini.add('accent', neck);
+
+  const headL = H * beast.headLength;
   mini.add(
     'accent',
     slabAt(
-      strap.width,
-      strap.height,
-      strap.depth,
-      TRADER_PACK.x,
-      packY + strap.lift,
-      TRADER_PACK.z + TRADER_PACK.depth / 2,
+      headL,
+      H * 0.062,
+      H * 0.058,
+      neckX - Math.sin(beast.neckLean) * neckH - headL * 0.3,
+      neckY + Math.cos(beast.neckLean) * neckH,
+      0,
+      beast.headRoll,
     ),
   );
+
+  // The load: a pannier hanging on each flank, in `wood`. Two rather than one
+  // squared bundle, because the load has to break the barrel's outline on
+  // *both* sides — a single box on top would be the old trader's lump moved
+  // onto an animal, and it would sit where the gold has to go.
+  const pack = CARAVAN.pack;
+  for (const sz of [-1, 1]) {
+    mini.add(
+      'wood',
+      slabAt(
+        barrelL * pack.length,
+        barrelH * pack.height,
+        barrelW * pack.thickness,
+        barrelX,
+        barrelY - barrelH * pack.drop,
+        sz * barrelW * pack.out,
+      ),
+    );
+  }
+
   return mini;
 }
 

@@ -132,6 +132,70 @@ describe('the badge atlas layout', () => {
   });
 
   /**
+   * One hand, one grid, no fills — asserted of the *files*, because that is
+   * where this family lives.
+   *
+   * The resource marks get this assertion off their own module
+   * (`test/render/resources3d.test.ts`, "one grid, one weight, no fills") and
+   * the badges never had it, being the one set in the game that is twenty-one
+   * vendored SVGs rather than path data. What it holds still is the whole of the
+   * bargain `public/sprites/CREDITS.md` describes: a mark drawn here has to be
+   * indistinguishable from a mark vendored from Tabler, so a `d` string is
+   * copy-pasteable in either direction and re-vendoring is a diff. A file that
+   * arrived on a different box, at a different weight, or with a fill anywhere
+   * would print as a heavier or lighter drawing beside twenty that agree, and
+   * nothing else in the suite would notice.
+   *
+   * The one licensed exception is `mountedRanged.svg`, which scales Tabler's
+   * horse to 0.75 and divides its stroke back out so it still *prints* at 2.75 —
+   * so the assertion is that the family weight appears, not that it is alone.
+   */
+  it('draws every badge on the same 24-unit box at the same weight, with no fill', () => {
+    const files = import.meta.glob('../../public/sprites/icons/*.svg', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    expect(Object.keys(files)).toHaveLength(BADGE_CELLS.length);
+    for (const [path, text] of Object.entries(files)) {
+      expect(text, `${path} is not on the 24-unit box`).toContain('viewBox="0 0 24 24"');
+      expect(text, `${path} is not at the badge weight`).toContain('stroke-width="2.75"');
+      expect(text, `${path} fills something`).not.toMatch(/fill="(?!none")/);
+      expect(text, `${path} has no provenance line`).toMatch(/^<!--/);
+    }
+  });
+
+  /**
+   * The caravan mark, and the reason it is drawn here rather than vendored.
+   *
+   * A source read, and the *negative* half is the load-bearing one. Tabler has
+   * an icon called `caravan` at the pinned version — it is a modern travel
+   * trailer, with a tow hitch and a road wheel — and the obvious tidy-up, some
+   * pass from now, is to notice the name exists and "fix" the file by vendoring
+   * it. That would put a camper van on a bronze-age board. So the file's own
+   * comment says why, and this holds the mark to being drawn here (user,
+   * 2026-08-28: "could we have a different icon for the trader — something more
+   * resembling a caravan"); it replaced Tabler's `package`, a crate, which said
+   * freight without saying travelling.
+   */
+  it('draws the trader\'s caravan here rather than vendoring Tabler\'s trailer', () => {
+    const files = import.meta.glob('../../public/sprites/icons/trader.svg', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const mark = Object.values(files)[0]!;
+    expect(mark).toContain('Not a Tabler icon');
+    expect(mark).not.toContain('icons/icon/package');
+    expect(mark).not.toContain('icons/icon/caravan');
+    // Four marks: the canopy, the bed under it, and a wheel at each end.
+    expect([...mark.matchAll(/<path /g)]).toHaveLength(4);
+    // The cell it prints in has not moved, which is the append rule and is
+    // pinned by name in the test below; this is the file half of it.
+    expect(BADGE_ICON_FILES.trader).toBe('sprites/icons/trader.svg');
+  });
+
+  /**
    * The eight cells the one-mark-per-row ruling appended, and the twelve that
    * did not move for them.
    *

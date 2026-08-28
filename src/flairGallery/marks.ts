@@ -403,7 +403,8 @@ function deviceFamily(into: HTMLElement): void {
  * Their being files is the reason there is no note under each *cell*: a file has
  * no `note` field, and inventing one here would be inventing provenance —
  * `public/sprites/CREDITS.md` is where that lives, and there is real provenance
- * to keep straight, because twelve of the twenty are somebody else's drawings.
+ * to keep straight, because eleven of the twenty-one are somebody else's
+ * drawings.
  * What each line gets instead is the sentence saying how its ranks differ, which
  * is a fact about the *set* and lives with the set.
  */
@@ -411,7 +412,7 @@ function badgeFamily(into: HTMLElement): void {
   const root = block(
     into,
     'Badge icons — public/sprites/icons/*.svg',
-    'One mark per unit type, on the parchment badge that floats over a piece: the family says the line and the axis or the count says the rank, because those are the two things that survive twenty-four pixels. Tabler Icons (MIT) at the yield marks’ weight where Tabler has the shape, drawn here in Tabler’s geometry where it has not — no icon set in the world draws a catapult, a trebuchet, a pike, a chariot, a crossbow or a club. Vendored files rather than path data: the last set in the game that is fetched at all.',
+    'One mark per unit type, on the parchment badge that floats over a piece: the family says the line and the axis or the count says the rank, because those are the two things that survive twenty-four pixels. Tabler Icons (MIT) at the yield marks’ weight where Tabler has the shape, drawn here in Tabler’s geometry where it has not — no icon set in the world draws a catapult, a trebuchet, a pike, a chariot, a crossbow, a club, or a caravan that is not a modern trailer. Vendored files rather than path data: the last set in the game that is fetched at all.',
   );
   for (const line of BADGE_LINES) {
     root.append(element('p', 'sheet-note', `${line.line} — ${line.note}`));

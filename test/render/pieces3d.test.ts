@@ -466,6 +466,88 @@ describe('the model-class roster', () => {
     board.dispose();
   });
 
+  /**
+   * The caravan's four roles, and which half of the drawing wears each.
+   *
+   * Written out because the *assignment* is the whole reason the sculpt reads at
+   * all, and it was got wrong once on the way here. The first draft painted the
+   * pack beast in `body` — the seat's own ink — on the argument that the piece's
+   * ownership colour should be on its largest mass, and the animal promptly
+   * vanished into the base disc it was standing on, which is the same ink. So it
+   * takes `miniHorse`'s bargain instead and for `miniHorse`'s stated reason: the
+   * *animal* is bone and the *person* beside it carries the seat, exactly as a
+   * horseman's mount is bone under a coloured rider. The load is `wood`, so
+   * cargo reads as cargo on all twelve tinctures rather than as more animal.
+   */
+  it('paints the caravan\'s beast in bone and its drover in the seat\'s ink', () => {
+    const board = geometry();
+    for (const id of ['trader', 'traderLaden'] as const) {
+      const parts = board.pieces[id].parts;
+      // `body` first, always — the base disc and the drover. `accent` is the
+      // beast, `wood` the panniers.
+      expect(parts[0], id).toBe('body');
+      expect(parts, id).toContain('wood');
+      expect(parts, id).toContain('accent');
+    }
+    board.dispose();
+  });
+
+  /**
+   * The laden twin is the plain one *plus* the bale, vertex for vertex.
+   *
+   * Stronger than "more triangles", and the strength is the point: the two
+   * bodies are swapped under a piece the instant a route is assigned
+   * (`unitSculpt`), so any difference other than the gold is a caravan that
+   * changes shape when it takes a job. `gilt` is last in `MINI_PART_ORDER`, so
+   * the plain geometry is a prefix of the laden one and the assertion can be
+   * exactly that — which also pins that nothing was quietly re-tuned in one
+   * factory and not the other, the failure `CARAVAN` exists to prevent.
+   */
+  it('makes the laden caravan the plain one with the bale appended', () => {
+    const board = geometry();
+    const plain = board.pieces.trader.geometry.getAttribute('position');
+    const laden = board.pieces.traderLaden.geometry.getAttribute('position');
+    expect(laden.count).toBeGreaterThan(plain.count);
+    for (let i = 0; i < plain.count * 3; i++) {
+      expect(laden.array[i], `vertex float ${i}`).toBe(plain.array[i]);
+    }
+    // And the extra is one box in gold and nothing else: twelve triangles.
+    const parts = board.pieces.traderLaden.parts;
+    expect(parts[parts.length - 1]).toBe('gilt');
+    expect((laden.count - plain.count) / 3).toBe(12);
+    board.dispose();
+  });
+
+  /**
+   * Every sculpt on its base and inside the hex it stands on, at any yaw.
+   *
+   * The two bounds tests above walk `MODEL_CLASS_IDS`, which is right for what
+   * they assert — a *class* has a size class to be held to — and it leaves the
+   * four extras (`EXTRA_SCULPT_IDS`) untested for the one property none of them
+   * may break: a piece is placed with a hashed yaw, so its footprint sweeps a
+   * *circle*, and a drawing that reached past the hex's inradius would clip into
+   * the neighbouring tile on some seeds and not others. The caravan is the first
+   * sculpt wide enough for that to be a live question — it is two objects side
+   * by side rather than one figure — which is why the check arrived with it.
+   */
+  it('keeps every sculpt on its base and inside the hex at any yaw', () => {
+    const board = geometry();
+    const inradius = (VIEW3D.board.hexRadius * Math.sqrt(3)) / 2;
+    for (const id of SCULPT_IDS) {
+      const piece = board.pieces[id];
+      piece.geometry.computeBoundingBox();
+      const box = piece.geometry.boundingBox!;
+      expect(box.min.y, `${id} does not sit on y = 0`).toBeCloseTo(0, 6);
+      const reach = Math.hypot(
+        Math.max(Math.abs(box.min.x), box.max.x),
+        Math.max(Math.abs(box.min.z), box.max.z),
+      );
+      expect(reach, `${id} reaches ${reach.toFixed(3)} of an inradius of ${inradius.toFixed(3)}`)
+        .toBeLessThan(inradius);
+    }
+    board.dispose();
+  });
+
   it('builds non-empty, de-indexed, flat-shaded geometry for each', () => {
     const board = geometry();
     for (const id of SCULPT_IDS) {

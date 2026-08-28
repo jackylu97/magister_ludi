@@ -335,7 +335,7 @@ export class PiecesStage {
       const situation = SITUATION_SCULPTS[id];
       this.entries.push({
         sculpt: id,
-        // Off the *sample*, so the caravan wears the crate and the worker the
+        // Off the *sample*, so the caravan wears the wagon and the worker the
         // mallet — `badgeClassFor` is the board's own answer and this page must
         // not keep a second one.
         badge: types[0] === undefined ? null : badgeClassFor(types[0]),
