@@ -839,6 +839,34 @@ export class InstanceCollector {
     // written straight in rather than multiplied by anything.
     writeWash(bucket.shell, null, handle, wash.shell);
   }
+
+  /**
+   * `setWash`'s shell-only half: writes the outline's wash factor and leaves
+   * the mesh untouched.
+   *
+   * The mesh has a second, *earlier* way to change colour that the shell does
+   * not: a caller may build a bucket whose own ink is already the washed
+   * colour (`pieces.ts`'s routed-caravan tint, mixed into the piece's body ink
+   * before it ever reaches `add`, so the mesh material itself is the faded
+   * one and no per-instance write is needed for it at all). `setWash` derives
+   * its mesh factor from `bucketInk`, so calling it on such a bucket would mix
+   * an already-mixed colour a second time. The shell has no pre-mixed
+   * alternative — every outlined bucket shares the one `MaterialLibrary`
+   * outline material regardless of its own ink — so it is always this
+   * function's to write, and it is always the *only* one of the two that
+   * needs writing when the mesh took the other path.
+   *
+   * Deliberately uncached, unlike `setWash`: it is asked for at most a
+   * handful of instances a rebuild (today, only a routed caravan's own
+   * handle), so the map `setWash` keeps to spare a hex board recomputing its
+   * wash every frame buys nothing here and would need its own cache key
+   * (`outlineInk` never changes, but reusing `setWash`'s `mix|shade` key would
+   * store a `mesh` factor nothing asked for).
+   */
+  static setShellWash(handle: InstanceHandle, target: number, mix: number, shade = 0): void {
+    const bucket = (handle as HandleImpl).bucket;
+    writeWash(bucket.shell, null, handle, washFactor(outlineInk(bucket), target, mix, shade));
+  }
 }
 
 /** `0xRRGGBB` split into three 0..1 channels. */

@@ -293,7 +293,7 @@ function faithLensSwatch(into: HTMLElement): void {
   const root = block(
     into,
     'The faith lens — src/render3d/lens3d.ts',
-    'Every hex a town owns, washed in the ink of whoever founded the faith pressing hardest on it, at an alpha that is how hard. Unclaimed ground gets nothing: the tide is a fact about towns and this lens does not invent a second reading of it. Over the wash, a holy site is ringed tight and bright and a live proclamation wide and softer — the anchor and the bomb.',
+    'Every hex a town owns, washed in the ink of whoever founded the faith pressing hardest on it, at an alpha that is how hard. Unclaimed ground gets nothing: the tide is a fact about towns and this lens does not invent a second reading of it. Over the wash, a holy site is ringed tight and bright; a town that follows a faith rings strong in its founder’s ink, and one merely pressed rings faint.',
   );
   const strip = element('div', 'chart-row');
   const ground = hex(VIEW3D.palette.sage ?? 0x8fa06a);
@@ -310,7 +310,8 @@ function faithLensSwatch(into: HTMLElement): void {
       'saturation — `faithFullPressure`, and no further',
     ],
     ['holy site ring', LENS.faithSiteRingOpacity, 'the anchor, at `faithSiteRingScale` of a hex'],
-    ['proclamation ring', LENS.faithPulseRingOpacity, 'the bomb, wide and decaying'],
+    ['follows ring', LENS.faithFollowRingOpacity, 'strong — the town’s own majority'],
+    ['pressed ring', LENS.faithPressedRingOpacity, 'faint — pressed, not yet turned'],
   ];
   for (const [label, opacity, note] of grades) {
     const cell = element('div', 'mark-cell');

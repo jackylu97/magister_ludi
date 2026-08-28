@@ -98,7 +98,6 @@ function foundFor(state: GameState, founderId: number): number {
     follower: [],
     enhancer: [],
     foundedTurn: 0,
-    pulses: [],
   });
   return id;
 }

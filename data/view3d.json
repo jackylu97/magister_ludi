@@ -224,6 +224,7 @@
   },
   "pieces": {
     "stackSpread": 0.34,
+    "routedWash": 0.45,
     "base": {
       "radius": 0.27,
       "thickness": 0.055
@@ -566,8 +567,10 @@
     "faithFullPressure": 24,
     "faithSiteRingOpacity": 0.85,
     "faithSiteRingScale": 0.82,
-    "faithPulseRingOpacity": 0.6,
-    "faithPulseRingScale": 1.0,
+    "faithFollowRingOpacity": 0.85,
+    "faithFollowRingScale": 0.92,
+    "faithPressedRingOpacity": 0.35,
+    "faithPressedRingScale": 0.92,
     "campColor": "#b35843",
     "campOpacity": 0.42,
     "campRingOpacity": 0.9

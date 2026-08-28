@@ -269,6 +269,15 @@ export interface DecorSpec {
 export interface PiecesSpec {
   /** How far stacked pieces on one tile fan out from the centre. */
   stackSpread: number;
+  /**
+   * How far a routed caravan's ink is mixed toward `fog.exploredWash` — the
+   * same parchment/chart tone remembered ground fades toward, reused here
+   * rather than given a second colour, because both are the same claim:
+   * "read this, don't act on it." 0 leaves a caravan carrying a route looking
+   * exactly like an idle one; 1 would bleach it to the chart tone outright.
+   * See `unitColor` in `pieces.ts` for where it is spent.
+   */
+  routedWash: number;
   base: { radius: number; thickness: number };
   /** Shoulder radius of the abstract humanoid token. */
   tokenRadius: number;
@@ -745,8 +754,8 @@ export interface LensSpec {
   campOpacity: number;
   campRingOpacity: number;
   /**
-   * The faith lens: how heavily a town under the tide is washed, and how the two
-   * things that *make* a tide are ringed.
+   * The faith lens: how heavily a town under the tide is washed, and how the
+   * things worth pointing at on it are ringed.
    *
    * There is deliberately **no colour here**. Every other lens picks its own
    * inks; this one paints in whoever founded the faith that is pressing, because
@@ -760,14 +769,23 @@ export interface LensSpec {
    * picture honest. Below it the wash falls off toward `faithMinOpacity`, which
    * is a floor rather than zero: a town one point of pressure from turning must
    * be visible, and an invisible answer is indistinguishable from no answer.
+   *
+   * `faithFollowRing*` and `faithPressedRing*` are the city rings the
+   * 2026-08-28 ruling added: strong and bright for a town that **follows** a
+   * faith (`cityReligion` names a majority), faint for one merely **pressed** by
+   * one it does not yet follow. Two grades rather than the site ring's one,
+   * because "flying the banner" and "under a tide that has not yet turned it"
+   * are different enough answers that one ring cannot honestly stand for both.
    */
   faithOpacity: number;
   faithMinOpacity: number;
   faithFullPressure: number;
   faithSiteRingOpacity: number;
   faithSiteRingScale: number;
-  faithPulseRingOpacity: number;
-  faithPulseRingScale: number;
+  faithFollowRingOpacity: number;
+  faithFollowRingScale: number;
+  faithPressedRingOpacity: number;
+  faithPressedRingScale: number;
 }
 
 /**
@@ -2023,6 +2041,10 @@ export const VIEW3D: View3DData = {
   },
   pieces: {
     stackSpread: viewJson.pieces.stackSpread,
+    // Clamped for `fog.exploredDim`'s reason: outside [0, 1] is a typo, and
+    // both failure modes — no fade at all, or a caravan bleached past legible
+    // — read as the renderer being broken rather than as a bad number.
+    routedWash: Math.max(0, Math.min(1, viewJson.pieces.routedWash)),
     base: viewJson.pieces.base,
     tokenRadius: viewJson.pieces.tokenRadius,
     heights: viewJson.pieces.heights,
@@ -2231,8 +2253,10 @@ export const VIEW3D: View3DData = {
     faithFullPressure: viewJson.lens.faithFullPressure,
     faithSiteRingOpacity: viewJson.lens.faithSiteRingOpacity,
     faithSiteRingScale: viewJson.lens.faithSiteRingScale,
-    faithPulseRingOpacity: viewJson.lens.faithPulseRingOpacity,
-    faithPulseRingScale: viewJson.lens.faithPulseRingScale,
+    faithFollowRingOpacity: viewJson.lens.faithFollowRingOpacity,
+    faithFollowRingScale: viewJson.lens.faithFollowRingScale,
+    faithPressedRingOpacity: viewJson.lens.faithPressedRingOpacity,
+    faithPressedRingScale: viewJson.lens.faithPressedRingScale,
   },
   icons: {
     atlasCell: viewJson.icons.atlasCell,

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { InstancedMesh, MeshBasicMaterial, Quaternion } from 'three';
+import { InstancedMesh, Matrix4, MeshBasicMaterial, Quaternion, Vector3 } from 'three';
 
 import { type TileIcons, tileIconFlags } from '../../src/render3d/badges3d';
 import { BoardGeometry, buildBoard } from '../../src/render3d/board3d';
 import { RENDER_ORDER } from '../../src/render3d/instances';
+import { cellCenter } from '../../src/render3d/layout';
 import { LensLayer, NO_LENS, sameLens, signReligion } from '../../src/render3d/lens3d';
 import { playerColor } from '../../src/render3d/cities3d';
 import { VIEW3D } from '../../src/render3d/lookData';
@@ -152,6 +153,9 @@ const fakeIcons = {
  */
 const PER_MARK = 2 * 3;
 
+/** Scratch matrix for reading an instance's baked position back out. */
+const matrixScratch = new Matrix4();
+
 function countInstances(group: { children: unknown[] }): number {
   let total = 0;
   for (const child of group.children) {
@@ -168,7 +172,8 @@ function countInstances(group: { children: unknown[] }): number {
  * fold and there is no per-hex pressure reading anywhere in this game — so the
  * three things worth defending are that the wash follows *ownership*, that its
  * ink is the **founder's** and not the tile owner's, and that Terra Incognita
- * gets nothing.
+ * gets nothing. The city rings (`describe('the city rings', …)` below) add a
+ * fourth: that memory never hands a seat a rival's congregation for free.
  */
 describe('the faith lens', () => {
   const geometry = new BoardGeometry();
@@ -209,7 +214,6 @@ describe('the faith lens', () => {
       follower: [],
       enhancer: [],
       foundedTurn: 0,
-      pulses: [],
     });
     return id;
   }
@@ -229,6 +233,28 @@ describe('the faith lens', () => {
       out.push((child.material as MeshBasicMaterial).color.getHex());
     }
     return out;
+  }
+
+  /**
+   * Every ring ink standing on exactly this hex — a position test rather than a
+   * whole-layer count, because a holy site and a city ring can now legitimately
+   * share ground and a raw instance count could no longer tell them apart.
+   */
+  function ringOn(layer: LensLayer, col: number, row: number): number[] {
+    const found: number[] = [];
+    const at = new Vector3();
+    const centre = cellCenter(col, row);
+    for (const child of layer.group.children) {
+      if (!(child instanceof InstancedMesh) || child.geometry !== geometry.ring) continue;
+      for (let i = 0; i < child.count; i++) {
+        child.getMatrixAt(i, matrixScratch);
+        at.setFromMatrixPosition(matrixScratch);
+        if (Math.abs(at.x - centre.x) < 1e-6 && Math.abs(at.z - centre.z) < 1e-6) {
+          found.push((child.material as MeshBasicMaterial).color.getHex());
+        }
+      }
+    }
+    return found;
   }
 
   it('draws nothing in a world with no religion in it', () => {
@@ -296,68 +322,101 @@ describe('the faith lens', () => {
     layer.dispose();
   });
 
-  it('rings a holy site on remembered ground and a proclamation only in sight', () => {
-    // The two fog rules `sites3d.ts` keeps, and they are not interchangeable: a
-    // holy site is *ground* and a proclamation is an *occupation*. A remembered
-    // proclamation would be a fire that went out twenty turns ago.
+  it('rings a holy site on remembered ground', () => {
+    // Ground, so the improvement rule: a holy site survives on remembered hexes
+    // exactly as a ruin does. Planted a hex off the city centre so this test
+    // reads the site's own ring and nothing the new city rings also draw there.
     const state = faithState();
     const id = found(state, 0);
     state.cities[0]!.followers = { [id]: state.cities[0]!.population };
-    at(state, 4, 4).improvement = 'holySite';
-    state.religions[id]!.pulses.push({
-      col: 3,
-      row: 3,
-      strength: 8,
-      range: 2,
-      startTurn: 0,
-      expiresTurn: state.turn + 5,
-    });
+    at(state, 3, 4).improvement = 'holySite';
 
-    const rings = (levels: number[]): number => {
+    const ringAtSite = (levels: number[]): number[] => {
       const layer = build(state, levels);
-      let count = 0;
-      for (const child of layer.group.children) {
-        if (child instanceof InstancedMesh && child.geometry === geometry.ring) {
-          count += child.count;
-        }
-      }
+      const found = ringOn(layer, 3, 4);
       layer.dispose();
-      return count;
+      return found;
     };
-    // Both, in live sight.
-    expect(rings(grid(state, VISIBLE))).toBe(2 * 3);
-    // Only the site, on ground the seat merely remembers.
-    expect(rings(grid(state, EXPLORED))).toBe(1 * 3);
+    expect(ringAtSite(grid(state, VISIBLE))).toEqual([playerColor(state, 0)]);
+    expect(ringAtSite(grid(state, EXPLORED))).toEqual([playerColor(state, 0)]);
   });
 
-  it('drops a proclamation’s ring the turn it expires', () => {
-    // The simulation's own reading of a live pulse (`explainPressure` compares
-    // rather than ticking), so a ring cannot outlast the thing it rings.
-    const state = faithState();
-    const id = found(state, 0);
-    state.cities[0]!.followers = { [id]: state.cities[0]!.population };
-    state.religions[id]!.pulses.push({
-      col: 3,
-      row: 3,
-      strength: 8,
-      range: 2,
-      startTurn: 0,
-      expiresTurn: state.turn + 1,
-    });
-    const count = (): number => {
+  /**
+   * The city rings (user, 2026-08-28): a town's own vote, ringed on its own
+   * hex, in whichever grade the wash alone cannot say — "flying the banner" and
+   * "under a tide that has not turned it yet" read as one colour on the ground
+   * and must not on the town.
+   */
+  describe('the city rings', () => {
+    it('rings a following town strong, in its founder’s ink', () => {
+      const state = faithState();
+      const id = found(state, 1);
+      // Seat 0's own town follows seat 1's faith outright — the wash test's own
+      // setup, one hex over.
+      state.cities[0]!.followers = { [id]: state.cities[0]!.population };
       const layer = build(state, grid(state, VISIBLE));
-      let rings = 0;
+      expect(ringOn(layer, 4, 4)).toEqual([playerColor(state, 1)]);
+      layer.dispose();
+    });
+
+    it('rings a pressed-but-not-following town faint', () => {
+      const state = faithState();
+      found(state, 1);
+      // Seat 1's own capital presses itself (the founder's capital rule) and
+      // carries no followers of its own — pressed, and not a majority.
+      foundCityAt(state, 1, at(state, 5, 4));
+      expect(state.cities[1]!.followers).toBeUndefined();
+      const layer = build(state, grid(state, VISIBLE));
+      expect(ringOn(layer, 5, 4)).toEqual([playerColor(state, 1)]);
+      // And it is the faint grade, not the strong one.
+      let faint = -1;
       for (const child of layer.group.children) {
         if (child instanceof InstancedMesh && child.geometry === geometry.ring) {
-          rings += child.count;
+          faint = (child.material as MeshBasicMaterial).opacity;
         }
       }
+      expect(faint).toBeCloseTo(VIEW3D.lens.faithPressedRingOpacity);
       layer.dispose();
-      return rings;
-    };
-    expect(count()).toBe(3);
-    state.turn += 1;
-    expect(count()).toBe(0);
+    });
+
+    it('rings nothing for a town no faith has reached', () => {
+      const state = faithState();
+      found(state, 1);
+      // No followers, no capital, no site in range: nothing presses hex (4, 4).
+      const layer = build(state, grid(state, VISIBLE));
+      expect(ringOn(layer, 4, 4)).toEqual([]);
+      layer.dispose();
+    });
+
+    it('keeps a remembered foreign town’s congregation out of the ring', () => {
+      // The fog rule `faithHoverReading` keeps: memory names only the viewing
+      // seat's own faith, never a rival's. Seat 0's own town follows a faith
+      // seat 1 founded — real, and unreadable from memory to anybody but seat 1.
+      const state = faithState();
+      const id = found(state, 1);
+      state.cities[0]!.followers = { [id]: state.cities[0]!.population };
+      // Watched: the omniscient answer, whoever it names.
+      const watched = build(state, grid(state, VISIBLE));
+      expect(ringOn(watched, 4, 4)).toEqual([playerColor(state, 1)]);
+      watched.dispose();
+      // Remembered by seat 0, who founded no faith of its own to confirm it
+      // with — nothing is revealed.
+      const remembered = build(state, grid(state, EXPLORED));
+      expect(ringOn(remembered, 4, 4)).toEqual([]);
+      remembered.dispose();
+    });
+
+    it('still rings a remembered town when it is the viewer’s own faith', () => {
+      // The one case memory may confirm: seat 0's own faith is what is
+      // following (or pressing) the town, which is a fact about seat 0's own
+      // board and not a leak of anybody else's.
+      const state = faithState();
+      const id = found(state, 0);
+      state.cities[0]!.followers = { [id]: state.cities[0]!.population };
+      const layer = build(state, grid(state, EXPLORED));
+      expect(ringOn(layer, 4, 4)).toEqual([playerColor(state, 0)]);
+      layer.dispose();
+    });
   });
 });
 
@@ -380,7 +439,6 @@ describe('signReligion', () => {
         follower: [],
         enhancer: [],
         foundedTurn: 0,
-        pulses: [],
       },
     ];
     built.cities = [];
@@ -404,43 +462,13 @@ describe('signReligion', () => {
     expect(signReligion(world)).not.toBe(before);
   });
 
-  it('moves when a proclamation is lit, and again when it expires', () => {
-    const world = state();
-    const quiet = signReligion(world);
-    world.religions[0]!.pulses.push({
-      col: 2,
-      row: 2,
-      strength: 8,
-      range: 2,
-      startTurn: 0,
-      expiresTurn: 6,
-    });
-    const lit = signReligion(world);
-    expect(lit).not.toBe(quiet);
-    world.religions[0]!.pulses = [];
-    expect(signReligion(world)).toBe(quiet);
-  });
-
-  it('moves on a turn passing while something is pulsing, and not otherwise', () => {
-    // A pulse *decays* — the same proclamation presses less every turn — and
-    // nothing else in the fold moves when a turn passes. It costs a rebuild a
-    // turn only while a pulse is standing, which is the point of the guard.
+  it('does not move on a turn passing alone', () => {
+    // Nothing left in the fold is time-dependent now that a proclamation is an
+    // instant lump rather than a decaying pulse — see the module docblock.
     const world = state();
     const quiet = signReligion(world);
     world.turn += 1;
     expect(signReligion(world)).toBe(quiet);
-
-    world.religions[0]!.pulses.push({
-      col: 2,
-      row: 2,
-      strength: 8,
-      range: 2,
-      startTurn: 0,
-      expiresTurn: 20,
-    });
-    const lit = signReligion(world);
-    world.turn += 1;
-    expect(signReligion(world)).not.toBe(lit);
   });
 
   it('stays put when nothing about the tide moved', () => {

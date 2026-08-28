@@ -47,7 +47,7 @@ import {
 } from '../../src/render3d/geometry';
 import { RENDER_ORDER } from '../../src/render3d/instances';
 import { wrapWidth } from '../../src/render3d/layout';
-import { VIEW3D } from '../../src/render3d/lookData';
+import { VIEW3D, playerPieceColor } from '../../src/render3d/lookData';
 import {
   UnitLayer,
   buildSpriteUnit,
@@ -56,6 +56,7 @@ import {
   pieceMaterials,
   placePiece,
   signUnits,
+  unitColor,
   unitStackIndices,
 } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
@@ -923,6 +924,266 @@ describe('the units layer in pieces style', () => {
     expect(meshes.map((m) => m.geometry)).toEqual(
       new Array<BufferGeometry>(MESHES_PER_PIECE_BUCKET).fill(board.pieces.melee.geometry),
     );
+    layer.dispose();
+    board.dispose();
+  });
+});
+
+// --- the routed wash ---------------------------------------------------------
+
+/**
+ * A caravan running a trade route reads as *busy*, not orderable (ruling,
+ * 2026-08-28) — see the `pieces.ts` module docblock's "The routed wash"
+ * section for the mechanism. These are its register.
+ */
+describe('the routed wash', () => {
+  function state(units: { type: UnitTypeId; trade?: boolean; hp?: number }[]): GameState {
+    const game = newGame({
+      seed: 11,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#d4502e', isHuman: true }],
+    });
+    game.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    resetVisibility(game);
+    game.tileOwner = new Array<number | null>(12 * 8).fill(null);
+    game.cities = [];
+    game.units = units.map(({ type, trade, hp }, i) => ({
+      id: i + 1,
+      type,
+      ownerId: 0,
+      col: 1 + i * 2,
+      row: 2,
+      hp: hp ?? unitDef(type).maxHp,
+      movesLeft: 2,
+      hasAttacked: false,
+      ...(trade
+        ? { trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false } }
+        : {}),
+    }));
+    return game;
+  }
+
+  const routedBadgeMaterial = new MeshBasicMaterial();
+  const routedBadges = {
+    material: routedBadgeMaterial,
+    wildMaterial: routedBadgeMaterial,
+    materialFor: () => routedBadgeMaterial,
+  } as unknown as UnitBadges;
+
+  /** A second implementation of `unitColor`'s own mix, so the test can fail if
+   * the production one drifts rather than agreeing with it by construction. */
+  function mixTowardExpected(color: number, target: number, mix: number): number {
+    const cr = (color >> 16) & 255;
+    const cg = (color >> 8) & 255;
+    const cb = color & 255;
+    const tr = (target >> 16) & 255;
+    const tg = (target >> 8) & 255;
+    const tb = target & 255;
+    const r = Math.round(cr + (tr - cr) * mix);
+    const g = Math.round(cg + (tg - cg) * mix);
+    const b = Math.round(cb + (tb - cb) * mix);
+    return (r << 16) | (g << 8) | b;
+  }
+
+  it("mixes a routed caravan's own ink toward the chart tone, and leaves an idle one alone", () => {
+    const game = state([{ type: 'trader' }, { type: 'trader', trade: true }]);
+    const [idle, routed] = game.units;
+    const trueInk = unitColor(game, idle!);
+    expect(unitColor(game, routed!)).toBe(
+      mixTowardExpected(trueInk, VIEW3D.fog.exploredWash, PIECES.routedWash),
+    );
+    expect(unitColor(game, routed!)).not.toBe(trueInk);
+  });
+
+  it("fades the resting instance's sculpt and x-ray ghost, and leaves an idle caravan's alone", () => {
+    const board = geometry();
+    const layer = new UnitLayer();
+    const game = state([{ type: 'trader' }, { type: 'trader', trade: true }]);
+    const [idle, routed] = game.units;
+    const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    layer.build(game, board, materialsLib, new Quaternion(), false, null);
+
+    const idleInk = unitColor(game, idle!);
+    const routedInk = unitColor(game, routed!);
+    expect(routedInk).not.toBe(idleInk);
+
+    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    // The idle unit keeps the plain body; the routed one stands in the laden
+    // twin — `unitSculpt`'s own rule, unrelated to and unaffected by the wash.
+    const idleMeshes = meshes.filter((m) => m.geometry === board.pieces.trader.geometry);
+    const routedMeshes = meshes.filter((m) => m.geometry === board.pieces.traderLaden.geometry);
+    expect(idleMeshes).toHaveLength(MESHES_PER_PIECE_BUCKET);
+    expect(routedMeshes).toHaveLength(MESHES_PER_PIECE_BUCKET);
+
+    // The sculpt's material is an *array* the moment a piece has more than one
+    // painted part (the caravan's body and its accent trim do), which is
+    // exactly what tells it apart from the shell and the ghost here — both of
+    // those are always one material.
+    const bodyIndex = board.pieces.trader.parts.indexOf('body');
+    const sculptBody = (list: InstancedMesh[]): MeshToonMaterial => {
+      const mesh = list.find((m) => Array.isArray(m.material))!;
+      return (mesh.material as MeshToonMaterial[])[bodyIndex]!;
+    };
+    const ghostOf = (list: InstancedMesh[]): MeshBasicMaterial =>
+      list.find((m) => m.renderOrder === RENDER_ORDER.silhouette)!.material as MeshBasicMaterial;
+
+    expect(sculptBody(idleMeshes).color.getHex()).toBe(idleInk);
+    expect(sculptBody(routedMeshes).color.getHex()).toBe(routedInk);
+    expect(ghostOf(idleMeshes).color.getHex()).toBe(idleInk);
+    expect(ghostOf(routedMeshes).color.getHex()).toBe(routedInk);
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  it("fades the resting instance's badge rim, and leaves the printed disc alone", () => {
+    const board = geometry();
+    const layer = new UnitLayer();
+    const game = state([{ type: 'trader' }, { type: 'trader', trade: true }]);
+    const [idle, routed] = game.units;
+    const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    layer.build(game, board, materialsLib, new Quaternion(), false, null, routedBadges);
+
+    const idleInk = unitColor(game, idle!);
+    const routedInk = unitColor(game, routed!);
+    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+
+    // The rim: plain ink, and one bucket per ink, so idle and routed each get
+    // their own.
+    const rims = meshes.filter((m) => m.geometry === board.badgeRim);
+    expect(rims).toHaveLength(2);
+    const rimColors = rims
+      .map((m) => (m.material as MeshBasicMaterial).color.getHex())
+      .sort((a, b) => a - b);
+    expect(rimColors).toEqual([idleInk, routedInk].sort((a, b) => a - b));
+
+    // The disc: a texture atlas cell, not ink, so it cannot be washed without
+    // greying out its print — both units share the exact one material
+    // regardless of which is running a route.
+    const discs = meshes.filter((m) => m.geometry === board.badgeIcons[badgeClassFor('trader')]);
+    expect(discs).toHaveLength(1);
+    expect(discs[0]!.material).toBe(routedBadgeMaterial);
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  it("washes the resting instance's outline shell, and leaves an idle one at full strength", () => {
+    const board = geometry();
+    const layer = new UnitLayer();
+    const game = state([{ type: 'trader' }, { type: 'trader', trade: true }]);
+    const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    layer.build(game, board, materialsLib, new Quaternion(), false, null);
+
+    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    const idleShell = meshes.find(
+      (m) => m.geometry === board.pieces.trader.geometry && m.material === materialsLib.outline,
+    )!;
+    const routedShell = meshes.find(
+      (m) => m.geometry === board.pieces.traderLaden.geometry && m.material === materialsLib.outline,
+    )!;
+    expect(idleShell.instanceColor).not.toBeNull();
+    expect(routedShell.instanceColor).not.toBeNull();
+    // Every outlined piece on the board shares this one material regardless of
+    // its own ink (see the `unitColor` docblock), so the shell's fade can only
+    // ever be per-instance — `InstanceCollector.setShellWash`, applied once
+    // `build`'s buffers exist.
+    expect([...(idleShell.instanceColor!.array as Float32Array).slice(0, 3)]).toEqual([1, 1, 1]);
+    expect(
+      [...(routedShell.instanceColor!.array as Float32Array).slice(0, 3)].every((c) => c !== 1),
+    ).toBe(true);
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  it("washes a damaged routed caravan's HP bar, and leaves an idle one's at full strength", () => {
+    const board = geometry();
+    const layer = new UnitLayer();
+    // Both hurt the same amount, and both below half, so both land in the
+    // *same* bucket (the bar's colour is a fixed constant, not the player's
+    // ink) — the wash here can only be the per-instance kind.
+    const game = state([
+      { type: 'trader', hp: 1 },
+      { type: 'trader', trade: true, hp: 1 },
+    ]);
+    const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    layer.build(game, board, materialsLib, new Quaternion(), false, null);
+
+    const bars = layer.group.children.filter(
+      (c): c is InstancedMesh => c instanceof InstancedMesh && c.geometry === board.bar,
+    );
+    expect(bars.length).toBeGreaterThan(0);
+    const wrap = 3;
+    for (const mesh of bars) {
+      expect(mesh.count).toBe(wrap * 2);
+      const tint = mesh.instanceColor!.array as Float32Array;
+      // Unit order is idle, then routed (`state`'s own build order), and every
+      // instanced `add` this layer makes preserves that order into the buffer.
+      const idleSlice = [...tint.slice(0, wrap * 3)];
+      const routedSlice = [...tint.slice(wrap * 3, wrap * 3 * 2)];
+      expect(idleSlice.every((c) => c === 1)).toBe(true);
+      expect(routedSlice.every((c) => c === 1)).toBe(false);
+    }
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  it("gives the walking copy's builders the same washed ink the resting instance used", () => {
+    // `Renderer3D.spawnWalker` (`renderer3d.ts`, a different layer's fence) is
+    // not exercised here, but it builds from exactly these two calls —
+    // `pieceMaterials` for the sculpt, `materials.silhouette` for the ghost —
+    // over the same `unitColor(state, unit)` this layer used for the resting
+    // instance. Proving the three agree is proving a caravan cannot show one
+    // face standing still and another mid-march.
+    const board = geometry();
+    const game = state([{ type: 'trader', trade: true }]);
+    const routed = game.units[0]!;
+    const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    const ink = unitColor(game, routed);
+
+    const piece = board.pieces.traderLaden;
+    const walkerMaterial = pieceMaterials(materialsLib, piece, ink);
+    const bodyIndex = piece.parts.indexOf('body');
+    const walkerBody = Array.isArray(walkerMaterial)
+      ? (walkerMaterial[bodyIndex] as MeshToonMaterial)
+      : (walkerMaterial as MeshToonMaterial);
+    expect(walkerBody.color.getHex()).toBe(ink);
+    expect(materialsLib.silhouette(ink).color.getHex()).toBe(ink);
+
+    board.dispose();
+  });
+
+  it('clears the wash when a route ends, on rebuild', () => {
+    // This layer never patches in place (module docblock) — a route ending is
+    // `signUnits`'s own concern (`routeBit`, tested above this describe block)
+    // and shows up here only as a plain rebuild with `trade` gone.
+    const board = geometry();
+    const layer = new UnitLayer();
+    const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    const game = state([{ type: 'trader', trade: true }]);
+    const trueInk = playerPieceColor(game.players[0]!.color, 0);
+
+    layer.build(game, board, materialsLib, new Quaternion(), false, null);
+    const routedSculpt = layer.group.children
+      .filter((c): c is InstancedMesh => c instanceof InstancedMesh)
+      .find((m) => m.geometry === board.pieces.traderLaden.geometry && Array.isArray(m.material))!;
+    const bodyIndex = board.pieces.traderLaden.parts.indexOf('body');
+    expect((routedSculpt.material as MeshToonMaterial[])[bodyIndex]!.color.getHex()).not.toBe(
+      trueInk,
+    );
+
+    game.units[0]!.trade = undefined;
+    layer.build(game, board, materialsLib, new Quaternion(), false, null);
+    const idleSculpt = layer.group.children
+      .filter((c): c is InstancedMesh => c instanceof InstancedMesh)
+      .find((m) => m.geometry === board.pieces.trader.geometry && Array.isArray(m.material))!;
+    const idleBodyIndex = board.pieces.trader.parts.indexOf('body');
+    expect((idleSculpt.material as MeshToonMaterial[])[idleBodyIndex]!.color.getHex()).toBe(
+      trueInk,
+    );
+
     layer.dispose();
     board.dispose();
   });

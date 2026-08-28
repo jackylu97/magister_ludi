@@ -72,6 +72,27 @@
  * ghost with it. Fog needs no special case either: a unit the local seat cannot
  * see is never added, so its ghost never exists.
  *
+ * The routed wash
+ * ----------------
+ * A caravan running a trade route reads as *busy*, not orderable (ruling,
+ * 2026-08-28), and it says so by fading toward the same parchment tone
+ * remembered ground fades toward — see `unitColor`. Per-instance *opacity*
+ * is not something an instanced toon bucket has; the fog wash's per-instance
+ * *tint* is, and `unitColor` spends it the cheap way: it mixes the caravan's
+ * own ink toward the target once, before anything is built, so the sculpt
+ * body, the x-ray ghost and the badge's rim all come out washed for free —
+ * on both the resting instance and the walking copy, because both paths
+ * build from that one function. The one part that mixing the ink cannot
+ * reach is the outline shell, which is a single `MaterialLibrary` material
+ * shared by every outlined piece on the board regardless of its own colour;
+ * the resting instance's shell is washed on its own, per instance, by
+ * `InstanceCollector.setShellWash` once `build`'s buffers exist, and the
+ * walking copy's shell has no equivalent channel to write to and stays at
+ * full strength for the length of the march. The badge's own printed disc —
+ * a texture atlas cell, not ink — cannot be washed at all without greying
+ * out the print, so it is left alone; the ring of ink around it washes with
+ * everything else.
+ *
  * Bases, not blobs
  * ----------------
  * Every miniature stands on a small disc in the player's colour, and that disc
@@ -583,10 +604,76 @@ export function badgeAnchors(
   return anchors;
 }
 
-/** The body colour a unit's piece is painted in. */
+/**
+ * The parchment tone a routed caravan's ink is mixed toward — `fog.exploredWash`
+ * itself, not a colour of this layer's own. Both fades say the same thing
+ * ("read this, don't act on it"), so they earn the same tone rather than two
+ * that would have to be kept in step by hand.
+ */
+const ROUTED_WASH_TARGET = VIEW3D.fog.exploredWash;
+
+/**
+ * Is this piece running a trade route — the one thing on the board that reads
+ * as *busy* rather than *orderable* (ruling, 2026-08-28)? Presence, exactly as
+ * `routeBit` (`signUnits`'s reader) treats it, and for the same reason: the
+ * leg itself changes turn to turn with no visual consequence, so only whether
+ * `Unit.trade` exists is a question about what gets *drawn*.
+ */
+function unitIsRouted(unit: Unit): boolean {
+  return unit.trade !== undefined;
+}
+
+/** `0xRRGGBB` mixed `mix` of the way toward `target`, channel by channel. */
+function mixToward(color: number, target: number, mix: number): number {
+  const cr = (color >> 16) & 255;
+  const cg = (color >> 8) & 255;
+  const cb = color & 255;
+  const tr = (target >> 16) & 255;
+  const tg = (target >> 8) & 255;
+  const tb = target & 255;
+  const r = Math.round(cr + (tr - cr) * mix);
+  const g = Math.round(cg + (tg - cg) * mix);
+  const b = Math.round(cb + (tb - cb) * mix);
+  return (r << 16) | (g << 8) | b;
+}
+
+/**
+ * `ink`, mixed toward the routed wash if this is a caravan running a route —
+ * and `ink` unchanged otherwise. `pieces.routedWash` is the mix.
+ */
+function routedInk(unit: Unit, ink: number): number {
+  return unitIsRouted(unit) ? mixToward(ink, ROUTED_WASH_TARGET, PIECES.routedWash) : ink;
+}
+
+/**
+ * The body colour a unit's piece is painted in.
+ *
+ * **A routed caravan's ink is the washed colour, not the true one** — the
+ * mechanism the ruling asks for, and the reason one function change reaches
+ * three different pictures with no further plumbing. This is the single
+ * reader `pieceColors` (the sculpt body), `materials.silhouette` (the x-ray
+ * ghost, keyed on this same ink) and `addBadge` (the tag's rim) all go
+ * through, on *both* paths that build a piece: `UnitLayer.build` for the
+ * resting instance and `Renderer3D.spawnWalker` for the piece sliding along a
+ * walk. So a caravan reads as busy whether it is standing still or mid-march,
+ * with no second copy of the wash math sitting in the renderer.
+ *
+ * What this cannot wash is anything that is not keyed on ink: the outline
+ * shell (every outlined piece on the board shares one `MaterialLibrary`
+ * material regardless of its own colour — the resting instance's shell is
+ * washed separately, per instance, by `InstanceCollector.setShellWash`; the
+ * walker's shell has no per-instance channel to write to at all and stays at
+ * full strength for the length of the march) and the badge's own printed
+ * disc (a texture atlas cell — `InstanceCollector` refuses to tint any bucket
+ * that carries a material of its own, on both `add`'s `tint` and `setWash`,
+ * precisely so a wash can never grey out a roundel's print; see the module's
+ * `Faint` trap in `CLAUDE.md`). The badge's *rim* is plain ink and washes
+ * with everything else here.
+ */
 export function unitColor(state: GameState, unit: Unit): number {
   const player = state.players[unit.ownerId];
-  return playerPieceColor(player?.color ?? '', unit.ownerId);
+  const ink = playerPieceColor(player?.color ?? '', unit.ownerId);
+  return routedInk(unit, ink);
 }
 
 export class UnitLayer {
@@ -663,12 +750,26 @@ export class UnitLayer {
     const collector = new InstanceCollector({
       copyOffsets: [-period, 0, period],
       keepMatrices: true,
+      // A routed caravan's outline shell needs its own per-instance wash
+      // (`InstanceCollector.setShellWash`, applied below once the buffers
+      // exist) — the shell is one shared material for every piece on the
+      // board, so giving one unit's rim of ink a fade nobody else's shares
+      // needs the per-instance colour channel this turns on. Cheap: units
+      // number in the tens to low hundreds, nothing like the board.
+      forceTint: true,
     });
 
     // The same tally the badge hit test counts with, so a click target can
     // never drift off the piece it belongs to. See `unitStackIndices`.
     const stackIndex = unitStackIndices(state);
     const scale = new Vector3(1, 1, 1);
+    // Handles this build wants washed once the instances exist — the sculpt's
+    // outline shell and a damaged routed caravan's HP bar, both of which the
+    // ink baked into `unitColor` cannot reach on its own. See the wash pass
+    // after `flush` below and the `unitColor` docblock for what *is* reached
+    // by the ink alone.
+    const routedShellHandles: InstanceHandle[] = [];
+    const routedBarHandles: InstanceHandle[] = [];
 
     for (const unit of state.units) {
       // Out of sight. The stack tally above still counted it, and that is right:
@@ -705,17 +806,17 @@ export class UnitLayer {
         // re-sculpts with no new hash member).
         const piece = geometry.pieces[unitSculpt(unit, terrainUnder(map, unit))];
         const ink = unitColor(state, unit);
-        slots.push(
-          collector.add(
-            piece.geometry,
-            pieceColors(piece, ink),
-            new Matrix4().compose(placement.position, placement.quaternion, scale),
-            // The x-ray ghost, over these very matrices. Keyed on the player's
-            // own ink, which is already part of the bucket key, so it batches
-            // exactly as the piece does. See the module docblock.
-            { ghost: materials.silhouette(ink) },
-          ),
+        const pieceHandle = collector.add(
+          piece.geometry,
+          pieceColors(piece, ink),
+          new Matrix4().compose(placement.position, placement.quaternion, scale),
+          // The x-ray ghost, over these very matrices. Keyed on the player's
+          // own ink, which is already part of the bucket key, so it batches
+          // exactly as the piece does. See the module docblock.
+          { ghost: materials.silhouette(ink) },
         );
+        slots.push(pieceHandle);
+        if (unitIsRouted(unit)) routedShellHandles.push(pieceHandle);
       }
 
       const visualHeight = unitVisualHeight(unit.type, sprites);
@@ -745,10 +846,29 @@ export class UnitLayer {
           );
         }
       }
-      this.addHpBar(unit, placement, visualHeight, geometry, collector, faceCamera, slots);
+      this.addHpBar(
+        unit,
+        placement,
+        visualHeight,
+        geometry,
+        collector,
+        faceCamera,
+        slots,
+        routedBarHandles,
+      );
     }
 
     this.drawCallCount = collector.flush(this.group, materials, shadows);
+    // The routed wash's shell-and-bar half — see `unitColor` for the half
+    // that was already baked into the ink before any of this ran, and the
+    // handle comments above for why these two specifically had to wait for
+    // the buffers to exist.
+    for (const handle of routedShellHandles) {
+      InstanceCollector.setShellWash(handle, ROUTED_WASH_TARGET, PIECES.routedWash);
+    }
+    for (const handle of routedBarHandles) {
+      InstanceCollector.setWash(handle, ROUTED_WASH_TARGET, PIECES.routedWash);
+    }
     for (const unitId of this.hidden) this.applyHide(unitId);
   }
 
@@ -922,6 +1042,11 @@ export class UnitLayer {
    * The rule this is a case of: **every instance a piece is made of belongs to
    * that piece's slot list.** A visual added here without pushing its handle is
    * a visual `hide` cannot take off the board.
+   *
+   * `routedBarHandles` collects both quads when the bar belongs to a routed
+   * caravan, for `build` to wash once the buffers exist (`unitColor`'s ink
+   * cannot reach these: the bar's colours are fixed constants, not the
+   * player's own ink, so there is no ink for the routed mix to ride on).
    */
   private addHpBar(
     unit: Unit,
@@ -931,6 +1056,7 @@ export class UnitLayer {
     collector: InstanceCollector,
     faceCamera: Quaternion,
     slots: InstanceHandle[],
+    routedBarHandles: InstanceHandle[],
   ): void {
     // `hpBarFill`, not arithmetic of its own: the walking copy asks the same
     // function (`buildHpBar`), and two readings of "how hurt is it" would be two
@@ -949,17 +1075,18 @@ export class UnitLayer {
       .setY(placement.position.y + hpBarY(visualHeight))
       .addScaledVector(right, -HP.width / 2);
 
-    slots.push(
-      collector.add(
-        geometry.bar,
-        [HP.backColor],
-        new Matrix4().compose(anchor, faceCamera, new Vector3(HP.width, HP.height, 1)),
-        // On top: a health bar behind a pine tree is a health bar nobody can read.
-        // And above the badge it is stacked on, which is where it sits in the
-        // world too — the bar may not be clipped by the disc under it.
-        { onTop: true, opacity: 1, order: RENDER_ORDER.hpBar },
-      ),
+    const routed = unitIsRouted(unit);
+    const backHandle = collector.add(
+      geometry.bar,
+      [HP.backColor],
+      new Matrix4().compose(anchor, faceCamera, new Vector3(HP.width, HP.height, 1)),
+      // On top: a health bar behind a pine tree is a health bar nobody can read.
+      // And above the badge it is stacked on, which is where it sits in the
+      // world too — the bar may not be clipped by the disc under it.
+      { onTop: true, opacity: 1, order: RENDER_ORDER.hpBar },
     );
+    slots.push(backHandle);
+    if (routed) routedBarHandles.push(backHandle);
     // A hair nearer the eye than the backing, so the two never z-fight.
     //
     // **The offset is not what puts the fill in front, and neither is the order
@@ -983,18 +1110,18 @@ export class UnitLayer {
       new Vector3(0, 0, 1).applyQuaternion(faceCamera),
       0.01,
     );
-    slots.push(
-      collector.add(
-        geometry.bar,
-        [fraction > 0.5 ? HP.goodColor : HP.fillColor],
-        new Matrix4().compose(
-          front,
-          faceCamera,
-          new Vector3(hpBarFillWidth(fraction), HP.height, 1),
-        ),
-        { onTop: true, opacity: 1, order: RENDER_ORDER.hpBarFill },
+    const fillHandle = collector.add(
+      geometry.bar,
+      [fraction > 0.5 ? HP.goodColor : HP.fillColor],
+      new Matrix4().compose(
+        front,
+        faceCamera,
+        new Vector3(hpBarFillWidth(fraction), HP.height, 1),
       ),
+      { onTop: true, opacity: 1, order: RENDER_ORDER.hpBarFill },
     );
+    slots.push(fillHandle);
+    if (routed) routedBarHandles.push(fillHandle);
   }
 
   get drawCalls(): number {
