@@ -3509,3 +3509,46 @@ never captures by itself. The news is `CommandResult.sieges`, reported even at z
 because a city that *stops* appearing has been relieved. Lautaro's "+3 against mounted" needed
 the target's class in the combat situation (`combatLine.vsClass`); Crassus and Fugger's building
 purchases needed `purchaseRider.on`, defaulting to units so the Ziggurat is byte-identical.
+
+---
+
+## Entry XXXVIII — The wild burns, and the master list is the source (**built** 2026-08-28)
+
+**Camps, not musters (user, corrected mid-brief):** *"increase the spawn rate of barbarian
+camps — their current muster rate is fine."* The faucet is a fraction, `campsPerSpawn /
+campEveryTurns`, so no single dial could say "half again": 1 every 2 turns became **3 every 4**
+(0.5 → 0.75 camps a turn), `maxCamps` 16 → 24, `unitEveryTurns` untouched. Turn 20 lands at
+exactly ×1.5 camps; by turn 40 the **board** binds, not the cap — a camp is refused on any hex a
+real empire sees or owns, so 24 is headroom a duel map never reaches. Wild units rise ×1.6 at
+turn 20 purely from the extra camps.
+
+**Pillage pays everyone (user):** *"pillaging an improvement will give gold and 25 health; for
+barbarians only the 25 health part is relevant."* The gold already existed as
+`rules.improvements.pillageGold` (25) flowing through `windfallPayout('pillage')`; the heal
+joined it as `pillageHeal` (25) and `windfallPayout` composes base and riders in the one place
+before anything is banked — so Scorched Earth and The Burning Way are now *increments* on a base
+(heal 50, gold 35 with Scorched Earth), and their texts were rewritten to say "a further". The
+wild keeps the heal and forfeits the salvage, with the camp bounty's own warning. `pillageAt`
+returns a `PillageReport` and every pillage — a player's or the wild's — rides out as
+`CommandResult.pillages`, because a rider is part of the printed number and the toast must not
+print a constant.
+
+**Raiders burn.** One implementation: `barbarians.ts` calls the player's own `pillageAt` behind
+the player's own `pillageError`, so the road goes with the farm and the victim's panel
+refreshes. Precedence, documented at the branch: **strike, then burn, then march** — a target
+in reach is struck; else the works underfoot are burnt instead of moving on; else the raider
+closes on the nearest visible target. Only a *raider* burns (the derived role); a hex nobody
+real owns is never burnt — the wild does not vandalise scenery.
+
+**The master list.** `docs/orders-and-doctrines.md` — the user's cut — is now the source of
+truth for every Order, Doctrine and government, and `data/statecraft.json` follows it: the
+governments at all five tiers (Gov IV/V rows created at 29 and 45, with Doctrine pools IV and
+V), the changed Doctrines (Wolf-Mother's Pact converting the barbarians it kills; The Founders'
+Road actually laying roads now that roads exist; the Gilded Hall as a purchase-only building at
+500💰), the ten reworded Orders, The Loose Rein retired, and a new Order — **The Laureate** (W,
+🏛): *gain a great person · great-people improvements gain +2 of their associated yield* — the
+grant a renown windfall on first slotting, so the draft opens the way a Triumph opens it. Four
+new themes named: ☽ The Cloister (faith + science), 📜 The Charter (wide → authority → settling),
+🌾 The Ploughshare (stacking farm yields), ⛰ The Highlands (hills and mountains). Halves that
+need a system — unit maintenance, buying great people with gold or faith, the Curia's faith-to-
+science mirror — ship deferred on their rows in the user's words.
