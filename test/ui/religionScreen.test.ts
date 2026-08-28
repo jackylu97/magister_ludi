@@ -109,15 +109,24 @@ describe('the Religion sheet is a split', () => {
     expect(rites).toBeGreaterThan(purchase);
   });
 
-  it('caps both sheets at the viewport, from one rule', () => {
+  it('caps every parchment sheet at the viewport, from one rule', () => {
     // The cap is what makes a pane scroll instead of the page: without it the
     // sheet grows and the "fixed" column leaves with it.
-    expect(declaration('#statecraft-overlay,\n#religion-overlay', 'overflow')).toBe('hidden');
+    //
+    // **Four ids now, and still one rule** — the block's own comment asks a
+    // later overlay borrowing this paper to name itself here, and the Trade
+    // screen and the Compendium have (2026-08-27). What is pinned is that the
+    // list is one rule with all four in it: a second block that agreed today
+    // would be two blocks the first time either was touched.
+    const SHEETS = [
+      '#statecraft-overlay',
+      '#religion-overlay',
+      '#trade-overlay',
+      '#compendium-overlay',
+    ];
+    expect(declaration(SHEETS.join(',\n'), 'overflow')).toBe('hidden');
     expect(
-      declaration(
-        '#statecraft-overlay .statecraft-sheet,\n#religion-overlay .statecraft-sheet',
-        'max-height',
-      ),
+      declaration(SHEETS.map((id) => `${id} .statecraft-sheet`).join(',\n'), 'max-height'),
     ).toBe('100%');
   });
 

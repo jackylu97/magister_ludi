@@ -175,6 +175,12 @@ export interface CityPanelOptions {
    */
   isBuyMode?: () => boolean;
   setBuyMode?: (on: boolean) => void;
+  /**
+   * Opens the Trade screen, from the Routes row. Optional for `setBuyMode`'s
+   * reason exactly: a panel built without one is still a panel, and the row
+   * simply carries no button.
+   */
+  onOpenTrade?: () => void;
 }
 
 export interface CityPanel {
@@ -268,7 +274,8 @@ export function stageRows(
 }
 
 export function createCityPanel(options: CityPanelOptions): CityPanel {
-  const { container, getGame, localPlayerId, getCity, onClose, onChanged } = options;
+  const { container, getGame, localPlayerId, getCity, onClose, onChanged, onOpenTrade } =
+    options;
   const isBuyMode = options.isBuyMode ?? ((): boolean => false);
   const setBuyMode = options.setBuyMode ?? ((): void => {});
 
@@ -1494,6 +1501,18 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     box.append(head);
     box.append(element('p', 'hint', routeSlotsLineOf(state, localPlayerId())));
+    // The second door to the Trade screen, and the one a player reaches from a
+    // *town* rather than from a piece: this row already answers "why can I not
+    // send another caravan", and the screen is where that is acted on. Offered
+    // whether or not this town is an end of anything — an empire's trade is
+    // exactly what a town with no routes wants to look at.
+    if (onOpenTrade) {
+      const all = element('button', 'btn btn-quiet btn-tiny', 'All routes');
+      (all as HTMLButtonElement).type = 'button';
+      all.title = 'Every caravan and every partner';
+      all.addEventListener('click', () => onOpenTrade());
+      box.append(all);
+    }
     if (rows.length === 0) {
       box.append(element('p', 'hint', 'No caravan runs to or from this town.'));
       return box;

@@ -127,6 +127,38 @@ export const AXIS_MARK: Record<BeliefAxis, { glyph: string }> = {
 /** The empty slot's ghost — the outline of a god nobody has named. */
 const SLOT_GLYPH = '◇';
 
+/**
+ * A rite's **instant** half in words — the bag it pays the moment it is
+ * performed, as against the lasting clauses `describeCard` prints.
+ *
+ * Read off the row that will pay it — the same `RiteGrantSpec` `payRiteGrant`
+ * walks — so the sentence and the payout cannot drift. It is not `describeCard`'s
+ * job and could not be: a clause is an ordinary `CardEffect` and knows nothing
+ * about the rite it hangs on, while a grant is a bag of *destinations* (a rite's
+ * culture fills the empire's draft basket, its border culture fills one town's).
+ *
+ * Exported because the Compendium prints the same sentence on its Rites shelf,
+ * and two surfaces describing one rite two ways is precisely what every
+ * describer in this codebase exists to prevent. This screen is where it lives
+ * because this screen is where a rite is *performed*.
+ */
+export function riteGrantWords(id: RiteId): string {
+  const grant = riteDef(id).grant;
+  const parts: string[] = [];
+  if (grant.population !== undefined) parts.push(`+${grant.population} population`);
+  if (grant.science !== undefined) parts.push(`+${grant.science} science`);
+  if (grant.gold !== undefined) parts.push(`+${grant.gold} gold`);
+  if (grant.faith !== undefined) parts.push(`+${grant.faith} faith`);
+  if (grant.culture !== undefined) parts.push(`+${grant.culture} culture`);
+  if (grant.borderCulture !== undefined) {
+    parts.push(`+${grant.borderCulture} culture toward the city's bounds`);
+  }
+  if (grant.production !== undefined) parts.push(`+${grant.production} production`);
+  if (grant.food !== undefined) parts.push(`+${grant.food} food`);
+  if (grant.healFully === true) parts.push('heals the unit whole');
+  return parts.join(', ');
+}
+
 export interface ReligionScreen {
   readonly isOpen: boolean;
   open(): void;
@@ -470,7 +502,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       row.append(head);
       const clauses = describeCard(id);
       const said = clauses.map((clause) => clause.text).join(' · ');
-      const grantWords = describeGrant(id);
+      const grantWords = riteGrantWords(id);
       // **How long the lasting half lasts.** `describeCard` cannot say it: a
       // clause is an ordinary `CardEffect` and knows nothing about the rite it
       // hangs on, so the duration is the row's own (`RiteDef.duration`) and is
@@ -500,29 +532,6 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       ),
     );
     return block;
-  }
-
-  /**
-   * A rite's instant half in words.
-   *
-   * Read off the row that will pay it — the same bag `payRiteGrant` walks — so
-   * the reference and the payout cannot drift.
-   */
-  function describeGrant(id: RiteId): string {
-    const grant = riteDef(id).grant;
-    const parts: string[] = [];
-    if (grant.population !== undefined) parts.push(`+${grant.population} population`);
-    if (grant.science !== undefined) parts.push(`+${grant.science} science`);
-    if (grant.gold !== undefined) parts.push(`+${grant.gold} gold`);
-    if (grant.faith !== undefined) parts.push(`+${grant.faith} faith`);
-    if (grant.culture !== undefined) parts.push(`+${grant.culture} culture`);
-    if (grant.borderCulture !== undefined) {
-      parts.push(`+${grant.borderCulture} culture toward the city's bounds`);
-    }
-    if (grant.production !== undefined) parts.push(`+${grant.production} production`);
-    if (grant.food !== undefined) parts.push(`+${grant.food} food`);
-    if (grant.healFully === true) parts.push('heals the unit whole');
-    return parts.join(', ');
   }
 
   /** Which city the purchase row is aimed at. A conversation, not the game. */

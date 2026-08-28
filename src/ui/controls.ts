@@ -1353,6 +1353,20 @@ export interface GameControls {
   setAutoResend(on: boolean): void;
   /** Ends the selected caravan's route now, or flashes the refusal. */
   cancelRoute(): void;
+
+  /**
+   * The three route verbs again, naming the caravan by **id**.
+   *
+   * The Trade screen acts on a row, and the caravan on that row is very often
+   * not the piece in hand. Each of these is the same inner function its
+   * selection-shaped twin above calls, so a route sent from the screen and one
+   * sent from the sheet are one command with one announcement and one refusal.
+   * A caravan that is not this seat's is ignored, which is the same answer the
+   * reducer would give.
+   */
+  sendCaravanFrom(unitId: number, cityId: number): void;
+  setAutoResendOf(unitId: number, on: boolean): void;
+  cancelRouteOf(unitId: number): void;
   /** "2 of 3 routes" for the local seat, for the sheet and the city panel. */
   routeSlotsLine(): string;
 }
@@ -2161,6 +2175,26 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function sendCaravan(cityId: number): void {
     const unit = selectedUnit();
     if (!unit) return;
+    sendCaravanWith(unit, cityId);
+  }
+
+  /**
+   * The same send, named by **id** rather than by what is selected.
+   *
+   * The Trade screen sends from a row, and the caravan on that row is very often
+   * not the piece in hand — it is standing in a town three screens away. So the
+   * three route verbs are each split in two: an inner one that takes the piece,
+   * and the selection-shaped wrapper the unit sheet has always called. One
+   * implementation, two ways of naming the caravan; a second dispatcher would be
+   * a second place for the announcement and the refusal to drift.
+   */
+  function sendCaravanFrom(unitId: number, cityId: number): void {
+    const unit = unitById(getGame().state, unitId);
+    if (!unit || unit.ownerId !== localPlayerId) return;
+    sendCaravanWith(unit, cityId);
+  }
+
+  function sendCaravanWith(unit: Unit, cityId: number): void {
     const { state } = getGame();
     if (!canOrder()) {
       reject(`You have ended turn ${state.turn}`);
@@ -2226,6 +2260,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function setAutoResend(on: boolean): void {
     const unit = selectedUnit();
     if (!unit) return;
+    setAutoResendWith(unit, on);
+  }
+
+  /** `setAutoResend` by id. See `sendCaravanFrom`. */
+  function setAutoResendOf(unitId: number, on: boolean): void {
+    const unit = unitById(getGame().state, unitId);
+    if (!unit || unit.ownerId !== localPlayerId) return;
+    setAutoResendWith(unit, on);
+  }
+
+  function setAutoResendWith(unit: Unit, on: boolean): void {
     const result = commit({
       type: 'setAutoResend',
       playerId: localPlayerId,
@@ -2251,6 +2296,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function cancelRoute(): void {
     const unit = selectedUnit();
     if (!unit) return;
+    cancelRouteWith(unit);
+  }
+
+  /** `cancelRoute` by id. See `sendCaravanFrom`. */
+  function cancelRouteOf(unitId: number): void {
+    const unit = unitById(getGame().state, unitId);
+    if (!unit || unit.ownerId !== localPlayerId) return;
+    cancelRouteWith(unit);
+  }
+
+  function cancelRouteWith(unit: Unit): void {
     const result = commit({ type: 'cancelRoute', playerId: localPlayerId, unitId: unit.id });
     if (!result.ok) {
       reject(result.error);
@@ -4915,6 +4971,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     routeReading,
     setAutoResend,
     cancelRoute,
+    sendCaravanFrom,
+    setAutoResendOf,
+    cancelRouteOf,
     routeSlotsLine: () => routeSlotsLineOf(getGame().state, localPlayerId),
     selectedUnit,
     isMoveMode: () => moveMode,

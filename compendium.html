@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Magister Ludi — the Compendium</title>
+    <!-- The interface's three voices, exactly as index.html asks for them: this
+         page is the game's own reference and must be set in the game's own type.
+         See docs/design-specimen.html. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
+  </head>
+  <body class="compendium-page">
+    <!-- ================= the Compendium, in a tab ==================
+         The *same module* the in-game overlay mounts (src/ui/compendium.ts),
+         rendered with no game behind it. That is not a concession — nothing on
+         these cards is a fact about a seat or a turn, which is the property that
+         makes two mounts possible at all, and the page proves it by existing.
+
+         The chrome is this file's; the two panes are the module's. The overlay
+         in index.html makes exactly the same division, which is why neither has
+         a copy of the other's markup.
+         ============================================================ -->
+    <header class="compendium-head">
+      <div>
+        <p class="eyebrow">the magister&rsquo;s compendium</p>
+        <h1 class="compendium-title">Every <em>Table</em></h1>
+      </div>
+      <p class="hint">
+        every unit, building, card and rule, read off the data the game plays by
+      </p>
+    </header>
+
+    <!-- Filled by src/compendiumPage/main.ts. Nothing here is stored: the whole
+         page is derived from data/*.json and the simulation's own describers. -->
+    <main id="compendium-body" class="compendium-sheet"></main>
+
+    <script type="module" src="/src/compendiumPage/main.ts"></script>
+  </body>
+</html>

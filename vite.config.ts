@@ -53,6 +53,12 @@ export default defineConfig({
       // replaces the default. Paths are relative to `root`, which avoids
       // pulling `node:path` into a config the tsconfig typechecks with only the
       // DOM and Vite client libs.
+      //
+      // `compendium.html` is the sixth, and the only one of the five extra pages
+      // that is **not** a dev surface: it is the game's own reference, mounted
+      // from the very module the in-game overlay mounts (`src/ui/compendium.ts`
+      // — one book, two mounts), which is why it lives beside `index.html`
+      // rather than under a gallery.
       input: {
         main: 'index.html',
         proto3d: 'proto3d.html',
@@ -60,6 +66,7 @@ export default defineConfig({
         abacus: 'abacus.html',
         mapgen: 'mapgen.html',
         flair: 'flair.html',
+        compendium: 'compendium.html',
       },
     },
   },

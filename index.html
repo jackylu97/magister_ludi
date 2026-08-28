@@ -339,6 +339,21 @@
         >
           ?
         </button>
+        <!-- The Compendium: every table in the game, read back off the data.
+             A book beside the ?, because the two answer different questions —
+             "how do I do this" and "what does this do". See src/ui/compendium.ts. -->
+        <button
+          id="compendium-button"
+          class="icon-btn"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="compendium-overlay"
+          title="The Compendium"
+          aria-label="The Compendium"
+        >
+          ▤
+        </button>
         <button
           id="menu-button"
           class="icon-btn"
@@ -562,7 +577,15 @@
         </div>
       </div>
 
-      <!-- The whole control scheme, one keystroke away and never in the way.
+      <!-- The controls card: the essential scheme, one keystroke away and never
+           in the way.
+
+           It used to be the *whole* scheme — twenty-odd lines, every hotkey and
+           every verb — which is a reference, and a reference belongs in the
+           Compendium (below). What stays here is what a player who has just sat
+           down cannot find by looking: how to select, how to move, how to end a
+           turn and what stops it. Everything else is one link away at the foot.
+
            Kept in sync with src/ui/controls.ts by hand; main.ts strips the lines
            that do not apply to the renderer that is actually running. -->
       <div
@@ -579,77 +602,51 @@
           </button>
         </div>
         <ul class="help-list">
-          <li><b>Left click</b> a unit to select it — again to cycle a stack</li>
+          <li><b>Left click</b> a unit to select it — again to cycle a stack · a city to open it</li>
           <li>
-            <b>Left click</b> a unit's <b>badge</b> to select it wherever it stands — even
-            inside an open city's ring
+            <b>Right click</b> a tile to move there, an enemy to attack it — hover
+            first for the odds. <kbd>M</kbd> then <b>left click</b> does both, for
+            trackpads
           </li>
-          <li><b>Left click</b> a city to open its panel</li>
-          <li><b>Left click</b> anywhere else to deselect</li>
-          <li><b>Right click</b> a tile to move the selected unit there</li>
-          <li><b>Right click</b> an enemy to attack it — hover first for the odds</li>
-          <li><kbd>M</kbd> then <b>left click</b> moves and attacks too — for trackpads</li>
+          <li>
+            A move ordered with <b>no movement left</b> is still taken: the whole
+            route is stored, and the piece walks it at the start of next turn
+          </li>
           <li><b>Drag</b> with either button to pan · <b>wheel</b> or pinch to zoom</li>
-          <li><kbd>B</kbd> founds a city with the selected settler</li>
-          <li><kbd>F</kbd> fortifies the selected unit — defence grows while it holds</li>
-          <!-- No hotkey for either of these in v1, deliberately: which
-               improvement a worker builds is a choice among several, and
-               pillaging is rare enough that a key would be a key to press by
-               accident. Both live on the unit sheet's actions list. -->
           <li>
-            A <b>worker</b> spends one of its three charges to build a farm, mine
-            or pasture — pick one from its <b>Actions</b> list, on the sheet at
-            the right. Strategic resources need the right improvement before an
-            empire may use them.
+            <kbd>T</kbd> opens the star chart — click a star to research it,
+            <b>shift-click</b> to queue it behind what you are already learning
           </li>
           <li>
-            A soldier standing on somebody else's improvement can <b>Pillage</b>
-            it from the same list: the works burn, you take the salvage in gold,
-            and it costs a single point of movement
+            <kbd>Y</kbd> yield glyphs · <kbd>R</kbd> resource marks ·
+            <kbd>1</kbd><kbd>2</kbd> pick a lens in the order the <b>Lens</b> menu
+            lists them · <kbd>0</kbd> clears it
           </li>
           <li>
-            <kbd>Y</kbd> toggles the yield glyphs · <kbd>R</kbd> the resource icons ·
-            <b>Lens</b> in the bar for more
+            <kbd>C</kbd> Statecraft · <kbd>H</kbd> Religion · <kbd>A</kbd> the
+            Abacus · <b>❧</b> in the bar keeps the chronicle
           </li>
           <li>
-            <kbd>1</kbd><kbd>2</kbd> pick a lens from that menu, in the order it lists
-            them — the numbers count the lenses, so <kbd>1</kbd> is the first one ·
-            <kbd>0</kbd> clears it · the number of the lens already up turns it back off
+            <b>Buy Tiles</b> on a city panel arms the price tags; click a tag to
+            buy that hex. <b>Send Caravan</b> on an idle trader arms the partner
+            plates — or open <b>Trade</b> in the bar for every route at once
           </li>
           <li>
-            <kbd>C</kbd> — or the <b>culture chip</b> in the bar, the <b>Statecraft</b> button
-            in the dock under the research card, or <b>Statecraft…</b> in this menu — opens
-            Statecraft: your government, your Orders and your Doctrines
+            <kbd>Enter</kbd> ends your turn, stopping first on anything left
+            undone — an idle unit, a city building nothing, no research chosen, a
+            draft unanswered. <kbd>Shift</kbd><kbd>Enter</kbd> ends it anyway
           </li>
-          <li>
-            <kbd>H</kbd> — or the <b>Religion</b> button in that same dock — opens Religion:
-            your faith, your pantheon, the augur's price and the rites it carries
-          </li>
-          <li>
-            <kbd>T</kbd> — or the <b>research card</b>, top left — opens the star chart;
-            click a star to research it
-          </li>
-          <li>
-            <kbd>A</kbd> — or <b>Abacus</b> in the bar — opens the score: one rod per
-            player, one bead per point. No bead is earned until the Æras close
-          </li>
-          <li>
-            News arrives as a card under the bar; <b>❧</b> in the bar keeps the
-            <b>chronicle</b> of it. Click a card, or an entry, to be shown where it
-            happened
-          </li>
-          <li>
-            <b>Left click</b> any tile in an open city's ring to pin a citizen — a garrison
-            does not block it; click its badge to select it instead
-          </li>
-          <li>
-            <kbd>Enter</kbd> ends your turn — it stops first on anything left
-            undone: an idle unit, a city building nothing, no research chosen
-          </li>
-          <li><kbd>Shift</kbd><kbd>Enter</kbd> force-ends the turn, whatever is outstanding</li>
           <li data-only="2d"><kbd>G</kbd> toggles the hex grid</li>
           <li><kbd>Esc</kbd> backs out: move mode, then this panel, then the selection</li>
         </ul>
+        <!-- The one link at the foot: everything this card used to list, and
+             every table behind it. See src/ui/compendium.ts. -->
+        <p class="help-foot">
+          <button id="help-compendium" class="btn btn-second" type="button">
+            Open the Compendium
+          </button>
+          <span class="hint">every unit, building, card and rule, read off the tables</span>
+        </p>
       </div>
     </div>
 
@@ -824,6 +821,76 @@
           </button>
         </header>
         <div id="religion-body" class="statecraft-body"></div>
+      </div>
+    </div>
+
+    <!-- ================= the Compendium ========================
+         Every table in the game, read back to the player in the words the
+         simulation already uses: units, buildings, wonders, improvements,
+         resources, technologies, Orders, Doctrines, beliefs, rites, great
+         people, triumphs, the two meters and trade. Built by
+         src/ui/compendium.ts, which is the *same module* the standalone
+         compendium.html page mounts — one reference, two mounts.
+
+         Nothing on it is a fact about a seat or a turn, which is what makes
+         the second mount possible and why it needs no game behind it.
+         ============================================================ -->
+    <div
+      id="compendium-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="The Compendium"
+      hidden
+    >
+      <div class="statecraft-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">the magister&rsquo;s compendium</p>
+            <h2 class="statecraft-title">Every <em>Table</em></h2>
+          </div>
+          <p class="statecraft-hint">
+            pick a shelf, or search &mdash; <kbd>Esc</kbd> to close
+          </p>
+          <button id="compendium-close" class="statecraft-close" type="button" aria-label="Close">
+            &times;
+          </button>
+        </header>
+        <div id="compendium-body" class="statecraft-body"></div>
+      </div>
+    </div>
+
+    <!-- ================= the Trade screen =======================
+         Every caravan on the road, and every road not yet taken. The Religion
+         sheet's sibling and deliberately the same bones: the split is "what I
+         have" against "what I can do with it", which is the division both of
+         its siblings make. Built by src/ui/tradeScreen.ts.
+
+         Three doors reach it: the routes chip in the bar, "All routes" on a
+         routed caravan's sheet, and the same on a city panel's Routes row.
+         ============================================================ -->
+    <div
+      id="trade-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Trade"
+      hidden
+    >
+      <div class="statecraft-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">the magister&rsquo;s trade</p>
+            <h2 class="statecraft-title">Caravans &amp; <em>Roads</em></h2>
+          </div>
+          <p class="statecraft-hint">
+            a caravan runs one route at a time &mdash; <kbd>Esc</kbd> to close
+          </p>
+          <button id="trade-close" class="statecraft-close" type="button" aria-label="Close">
+            &times;
+          </button>
+        </header>
+        <div id="trade-body" class="statecraft-body"></div>
       </div>
     </div>
 

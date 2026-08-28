@@ -91,7 +91,8 @@ import { createInfoCard } from './infoCard';
 import { foldCityHappiness, meterGroups } from './meterBreakdown';
 import { meterMarkNode, renownMarkNode } from './meterMark';
 import { type Popover, createPopover } from './popover';
-import { yieldMarkNode } from './yieldMark';
+import { tradeLedger } from './tradeScreen';
+import { YIELD_GLYPH, setYieldText, yieldMarkNode } from './yieldMark';
 
 /**
  * Everything the player's cities make this turn, added up.
@@ -316,11 +317,25 @@ export interface CivYieldStripOptions {
    * go than their own hover card.
    */
   onOpenStatecraft?: () => void;
+  /**
+   * Opens the Trade screen. The routes chip's own door, and the culture chip's
+   * argument one system over: trade is the second thing in this strip with a
+   * screen behind it, so it is the second chip that is also a button.
+   */
+  onOpenTrade?: () => void;
 }
 
 export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStrip {
-  const { container, getGame, localPlayerId, happiness, authority, onOpenPopover, onOpenStatecraft } =
-    options;
+  const {
+    container,
+    getGame,
+    localPlayerId,
+    happiness,
+    authority,
+    onOpenPopover,
+    onOpenStatecraft,
+    onOpenTrade,
+  } = options;
   const values = new Map<YieldKey, HTMLElement>();
 
   /**
@@ -519,6 +534,98 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   renownItem.append(renownValue);
   container.append(renownItem);
   info.bind(renownItem, () => renownCard());
+
+  // --- routes ---------------------------------------------------------------
+
+  /**
+   * The routes chip: how many caravans are on the road against how many the
+   * empire's markets allow.
+   *
+   * A **ratio**, not a pool — `2 / 3` rather than `2 (+1)` — because that is
+   * what a slot is: capacity spoken for, and the interesting number is how much
+   * of it is spare. It sits at the end of the strip beside renown for renown's
+   * own reason (a fact about the empire that is not one of the six voices), and
+   * it is the **second chip that is also a button**, on the culture chip's
+   * precedent exactly: trade is the other system with a screen behind it.
+   *
+   * Its card is `tradeLedger` — every running route's fold on one line, then
+   * `explainTradeGold`'s two, then the total under a double rule — so the chip,
+   * the card and the Trade screen's own foot are one arithmetic.
+   */
+  const routesItem = element('span', 'civ-yield is-routes civ-yield-routes');
+  {
+    const icon = element('span', 'civ-yield-icon', '⇄');
+    icon.setAttribute('aria-hidden', 'true');
+    routesItem.append(icon);
+    routesItem.tabIndex = 0;
+  }
+  const routesValue = element('span', 'civ-yield-value', '—');
+  routesItem.append(routesValue);
+  if (onOpenTrade) {
+    routesItem.classList.add('civ-yield-clickable');
+    routesItem.setAttribute('role', 'button');
+    routesItem.title = 'Open Trade';
+    routesItem.setAttribute('aria-label', 'trade routes — open Trade');
+    routesItem.addEventListener('click', () => onOpenTrade());
+    routesItem.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      onOpenTrade();
+    });
+  } else {
+    routesItem.title = '⇄ Trade routes running, against the routes your markets allow';
+    routesItem.setAttribute('aria-label', 'trade routes');
+  }
+  container.append(routesItem);
+  info.bind(routesItem, () => routesCard());
+
+  /**
+   * The summary ledger: what trade is paying, line by line, folding to gold.
+   *
+   * Gold is the one voice that totals because it is the one all three sources
+   * share — a route's food and hammers land in one town's own basket and are
+   * quoted on that route's line. See `tradeLedger`.
+   */
+  function routesCard(): Node {
+    const { state } = getGame();
+    const playerId = localPlayerId();
+    const ledger = tradeLedger(state, playerId);
+    const box = element('div');
+    const head = element('div', 'info-card-head');
+    head.append(element('span', 'info-card-name', 'Trade'));
+    head.append(
+      element(
+        'span',
+        'info-card-kind',
+        `${figure(ledger.used)} of ${figure(ledger.slots)} route${ledger.slots === 1 ? '' : 's'}`,
+      ),
+    );
+    box.append(head);
+
+    if (ledger.lines.length === 0) {
+      box.append(
+        element('p', 'hint', 'No caravan is on the road. A market opens a route; a trader carries it.'),
+      );
+    } else {
+      const list = element('ul', 'meter-lines ledger');
+      for (const line of ledger.lines) {
+        const item = element('li', 'meter-line');
+        item.append(element('span', 'meter-line-source', line.source));
+        const value = element('span', 'meter-line-value');
+        setYieldText(value, line.figures);
+        item.append(value);
+        list.append(item);
+      }
+      box.append(list);
+    }
+    const total = element('div', 'meter-total ledger-total');
+    total.append(element('span', 'meter-line-source', 'Trade, per turn'));
+    const value = element('span', 'meter-line-value');
+    setYieldText(value, `${signedFigure(ledger.total)}${YIELD_GLYPH.gold}`);
+    total.append(value);
+    box.append(total);
+    return box;
+  }
 
   /**
    * Has this empire already earned this row?
@@ -922,6 +1029,14 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         'is-good',
         player !== undefined && greatPersonBlocker(player) !== null,
       );
+
+      // Routes: running against allowed. `is-good` when a slot is spare and
+      // there is a caravan idle to fill it — the renown chip's own quiet ink,
+      // and the same rule for using it: something *actionable* is true here,
+      // never the alarm vermilion.
+      const ledger = tradeLedger(state, playerId);
+      if (routesValue.textContent !== ledger.chip) routesValue.textContent = ledger.chip;
+      routesItem.classList.toggle('is-good', ledger.used < ledger.slots);
 
       // The badge used to ride here — a small mark on the culture chip while
       // Statecraft owed the player a decision. It has moved to the HUD dock's

@@ -141,6 +141,8 @@ import {
   orderDef,
 } from './sim/statecraftData';
 import { createTurnSplash } from './ui/turnSplash';
+import { type Compendium, createCompendium } from './ui/compendium';
+import { type TradeScreen, createTradeScreen } from './ui/tradeScreen';
 import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
 import { YIELD_GLYPH } from './ui/figures';
 import type { HoverInfo, LensMode, MapView } from './ui/mapView';
@@ -283,6 +285,18 @@ const statecraftBodyEl = requireElement<HTMLElement>('statecraft-body');
    dock's second button, by the End Turn blocker, and by `H`. */
 const religionOverlayEl = requireElement<HTMLElement>('religion-overlay');
 const religionBodyEl = requireElement<HTMLElement>('religion-body');
+/* Trade's overlay and body — Religion's sibling sheet, opened from the routes
+   chip in the bar, from a routed caravan's sheet, and from a city panel's
+   Routes row. */
+const tradeOverlayEl = requireElement<HTMLElement>('trade-overlay');
+const tradeBodyEl = requireElement<HTMLElement>('trade-body');
+/* The Compendium: the bar's book button, the overlay, and the body the same
+   module the standalone `compendium.html` page mounts is rendered into. It is
+   the one screen with no game behind it — see `src/ui/compendium.ts` — so it is
+   built at boot beside the rest and reads nothing about a seat. */
+const compendiumButton = requireElement<HTMLButtonElement>('compendium-button');
+const compendiumOverlayEl = requireElement<HTMLElement>('compendium-overlay');
+const compendiumBodyEl = requireElement<HTMLElement>('compendium-body');
 const abacusOverlayEl = requireElement<HTMLElement>('abacus-overlay');
 const abacusStageEl = requireElement<HTMLElement>('abacus-stage');
 /**
@@ -520,6 +534,9 @@ let abacus: AbacusScreen | null = null;
    it (the End Turn blocker steers here), and it reaches the controls. */
 let statecraft: StatecraftScreen | null = null;
 let religion: ReligionScreen | null = null;
+/* Trade's screen, built in `boot` for `religion`'s reason: it asks whose seat
+   this is, and `closePopovers` is declared before there is one. */
+let trade: TradeScreen | null = null;
 
 /**
  * The top bar's meter chips, once `boot` has built them. A holder for the same
@@ -555,6 +572,54 @@ let toasts: ToastStack | null = null;
  */
 let triumphSheet: TriumphModal | null = null;
 
+/**
+ * The live game's state, once `boot` has one.
+ *
+ * The Compendium's one optional reader, and the only reason it exists: nothing
+ * on that screen is a fact about a seat or a turn (which is what lets the same
+ * module mount on a page with no game at all), except a unit's **roster price**,
+ * which the Compendium asks of `explainUnitCost`'s first line when there is a
+ * game to ask. `game` is local to `boot`; this is the holder that reaches it,
+ * for `meterCards`' reason exactly.
+ */
+let liveState: (() => GameState) | null = null;
+
+/**
+ * The Compendium: every table in the game, read back off the data.
+ *
+ * Built here at module scope beside the help sheet rather than in `boot`, and
+ * for the same reason that one is: it is a property of the *page*. It reads the
+ * same with no game behind it — which is the whole claim `compendium.html`
+ * rests on — and it must be reachable from the controls card, which is up before
+ * anything has been started.
+ */
+const compendium: Compendium = createCompendium({
+  overlay: compendiumOverlayEl,
+  body: compendiumBodyEl,
+  closeButton: requireElement('compendium-close'),
+  trigger: compendiumButton,
+  getState: () => liveState?.() ?? null,
+  onOpen: () => {
+    menu.close();
+    help.close();
+    lens.close();
+    notifications?.close();
+    meterCards?.close();
+    techTree?.close();
+    abacus?.close();
+    statecraft?.close();
+    religion?.close();
+    trade?.close();
+  },
+});
+compendiumButton.addEventListener('click', () => compendium.toggle());
+/* The controls card's one link out. The card closes under it, because two
+   surfaces at one z-index is one of them being invisible. */
+requireElement('help-compendium').addEventListener('click', () => {
+  help.close();
+  compendium.open();
+});
+
 function closePopovers(): boolean {
   const wasOpen =
     menu.isOpen ||
@@ -566,6 +631,8 @@ function closePopovers(): boolean {
     (abacus?.isOpen ?? false) ||
     (statecraft?.isOpen ?? false) ||
     (religion?.isOpen ?? false) ||
+    (trade?.isOpen ?? false) ||
+    compendium.isOpen ||
     savesPanel.isOpen;
   menu.close();
   help.close();
@@ -576,6 +643,8 @@ function closePopovers(): boolean {
   abacus?.close();
   statecraft?.close();
   religion?.close();
+  trade?.close();
+  compendium.close();
   savesPanel.close();
   return wasOpen;
 }
@@ -632,6 +701,13 @@ function showLanding(): void {
   abacus?.dispose();
   statecraft?.dispose();
   religion?.dispose();
+  trade?.dispose();
+  // The Compendium is deliberately **not** disposed here. It is a property of
+  // the page rather than of a game — built at module scope beside the help
+  // sheet, reachable from the controls card before anything has been started,
+  // and holding nothing a restart could make stale. `closePopovers` above has
+  // already shut it, which is the whole of what the landing needs. Disposing it
+  // would unbind its Escape for the rest of the session.
   // `hidden` is the whole of the screen state — one flag, read by `inputBlocked`
   // as well as by the stylesheet, so "is the landing up?" has one answer.
   landingEl.hidden = false;
@@ -1272,6 +1348,10 @@ async function createRenderer(
  */
 async function boot(initial: Game | null): Promise<void> {
   let game: Game = initial ?? createGame(currentConfig());
+  // The Compendium's one optional reader (see `liveState`): from here on there
+  // is a game to price a unit's roster line against. `game` is reassigned by
+  // `takeOverGame`, so this is a closure and never a snapshot.
+  liveState = () => game.state;
   const { view: renderer, report } = await createRenderer(artMode(), game);
 
   /**
@@ -1495,6 +1575,10 @@ async function boot(initial: Game | null): Promise<void> {
     // selection and the empire's route slots, both of which this pass has just
     // re-read, and they draw nothing at all unless Send mode is up.
     caravanPlates.refresh();
+    // And the Trade screen, for the same reason one line up: it is about the
+    // routes and the towns this pass has just re-read. It draws nothing at all
+    // unless it is open, so this costs a boolean when it is not.
+    trade?.refresh();
     cityPanel.render();
     unitPanel.render();
     // Whether the turn may end is derived from the same state as everything
@@ -2055,6 +2139,11 @@ async function boot(initial: Game | null): Promise<void> {
       (techTree?.isOpen ?? false) ||
       (abacus?.isOpen ?? false) ||
       (statecraft?.isOpen ?? false) ||
+      // The two screens this pass added. Both own the keyboard while they are
+      // up — each handles its own Escape — and neither has any business letting
+      // `H`, `T` or End Turn through from underneath.
+      (trade?.isOpen ?? false) ||
+      compendium.isOpen ||
       // The load list is the third such screen, and the only one that can be
       // up while the landing is: it handles its own Escape (see
       // `savesPanel.ts`).
@@ -2433,6 +2522,53 @@ async function boot(initial: Game | null): Promise<void> {
   });
 
   /**
+   * The Trade screen: every caravan on the road, and every road not yet taken.
+   *
+   * Religion's sibling in every respect that matters — declared here beside it,
+   * reached back through the `trade` holder, and every write it makes is a
+   * **command**, sent through the very functions the unit sheet's own buttons
+   * call (`controls.sendCaravanFrom` and its two siblings, which are the by-id
+   * halves of the verbs the sheet calls by selection). So a route sent from
+   * this screen is sent the same way a network peer or a future AI would send
+   * one, and the refusal a greyed row shows is the reducer's own.
+   *
+   * `panTo` is `controls.panTo`, which is how everything in this interface
+   * reaches the camera: `MapView` is `controls.ts`'s to drive.
+   */
+  trade = createTradeScreen({
+    overlay: tradeOverlayEl,
+    body: tradeBodyEl,
+    closeButton: requireElement('trade-close'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    send: (unitId, cityId) => {
+      controls.sendCaravanFrom(unitId, cityId);
+      updatePanel(null, renderer.getHover());
+    },
+    setAutoResend: (unitId, on) => {
+      controls.setAutoResendOf(unitId, on);
+      updatePanel(null, renderer.getHover());
+    },
+    cancelRoute: (unitId) => {
+      controls.cancelRouteOf(unitId);
+      updatePanel(null, renderer.getHover());
+    },
+    panTo: (cell) => controls.panTo(cell),
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      meterCards?.close();
+      techTree?.close();
+      abacus?.close();
+      statecraft?.close();
+      religion?.close();
+      compendium.close();
+    },
+  });
+
+  /**
    * The Abacus: the score, as an object on the table.
    *
    * One rod per seat, read off the live roster rather than off a snapshot, so a
@@ -2505,6 +2641,17 @@ async function boot(initial: Game | null): Promise<void> {
       notifications?.close();
       techTree?.close();
       statecraft?.open();
+    },
+    // The routes chip's own door, on the culture chip's precedent: trade is the
+    // second system in this strip with a screen behind it.
+    onOpenTrade: () => {
+      meterCards?.close();
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      techTree?.close();
+      trade?.open();
     },
   });
   // Escape and the landing screen reach these through `closePopovers`, which is
@@ -2697,6 +2844,7 @@ async function boot(initial: Game | null): Promise<void> {
     onClose: () => controls.setOpenCity(null),
     isBuyMode: () => controls.isBuyMode(),
     setBuyMode: (on) => controls.setBuyMode(on),
+    onOpenTrade: () => trade?.open(),
     onChanged: () => {
       renderer.invalidate();
       updatePanel(null, renderer.getHover());
@@ -2805,6 +2953,7 @@ async function boot(initial: Game | null): Promise<void> {
       controls.cancelRoute();
       updatePanel(null, renderer.getHover());
     },
+    onOpenTrade: () => trade?.open(),
     onClose: () => controls.clearSelection(),
   });
 

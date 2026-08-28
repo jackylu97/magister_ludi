@@ -266,6 +266,17 @@ export interface UnitPanelOptions {
   routeSlotsLine: () => string;
   onSetAutoResend: (on: boolean) => void;
   onCancelRoute: () => void;
+  /**
+   * Opens the Trade screen — the third door to it, and the one a player reaches
+   * from the piece rather than from the bar.
+   *
+   * It is on a *routed* caravan's sheet for a reason this panel already knows:
+   * a routed caravan's sheet is its route and nothing else, so the one question
+   * it cannot answer is "and what about my other three". Optional, because this
+   * panel is built by a page that may not have a Trade screen (the row is simply
+   * not offered).
+   */
+  onOpenTrade?: () => void;
   /** Drops the selection — the × button and, through `controls`, Escape. */
   onClose: () => void;
 }
@@ -411,6 +422,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     routeSlotsLine,
     onSetAutoResend,
     onCancelRoute,
+    onOpenTrade,
     onClose,
   } = options;
 
@@ -544,6 +556,16 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         hint: `End the route now and free the slot · ${routeSlotsLine()}`,
         run: onCancelRoute,
       });
+      // The one thing this sheet cannot say: what the *rest* of the empire's
+      // caravans are doing. One row out to the screen that can.
+      if (onOpenTrade) {
+        actions.push({
+          label: 'All routes',
+          blocked: null,
+          hint: `Every caravan and every partner · ${routeSlotsLine()}`,
+          run: onOpenTrade,
+        });
+      }
       return actions;
     }
 
