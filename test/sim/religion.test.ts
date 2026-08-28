@@ -1802,7 +1802,7 @@ describe('the prophet’s four verbs', () => {
     expect(snapshotState(g.state)).toBe(before);
   });
 
-  it('needs Theology to enhance, and holds one enhancer', () => {
+  it('needs Theology to enhance, and gates on enhancerSlots', () => {
     const { g, prophet } = readyProphet();
     faith(g.state, 0, 'starReaders');
     expect(enhanceReligionError(g.state, 0, prophet.id)).toContain('Theology');
@@ -1814,7 +1814,23 @@ describe('the prophet’s four verbs', () => {
     const religion = foundedReligion(g.state, 0)!;
     expect(religion.enhancer).toBeDefined();
     g.state.units.find((u) => u.id === prophet.id)!.movesLeft = 2;
-    expect(enhanceReligionError(g.state, 0, prophet.id)).toContain('all the enhancements');
+    // 2026-08-28 data ruling: `pools.enhancerSlots` is 2, not 1 — read off the
+    // module that loads it rather than pinned, so a second enhance is now
+    // accepted rather than refused for want of room.
+    //
+    // A third slot's refusal ("no room") is NOT pinned here: `Religion.enhancer`
+    // (`state.ts`) is still a single `BeliefId`, not a list, and
+    // `settleBeliefChoice`'s enhancer branch (`religion.enhancer = id`)
+    // overwrites rather than accumulates — confirmed by instrumenting this test,
+    // a second successful choice silently *replaces* the first belief rather
+    // than holding both. `poolHeld` (`religion.ts`) is capped at 0/1 for the
+    // same reason, so `enhanceReligionError` can never see two held and can
+    // never produce the "no room" sentence at any slot count above one. Wiring
+    // a two-deep enhancer pool needs `Religion.enhancer` to become a list (and
+    // `poolHeld`/`religionBeliefPool`/`settleBeliefChoice` updated with it) —
+    // a `src/sim` change outside this pass's fence, flagged rather than faked.
+    expect(RELIGION.pools.enhancerSlots).toBe(2);
+    expect(enhanceReligionError(g.state, 0, prophet.id)).toBeNull();
   });
 
   it('redrafts a pool, returns what it held, and never touches the pantheon', () => {

@@ -198,11 +198,14 @@ describe('spawnUnit', () => {
 describe('moveUnit', () => {
   it('walks the unit and charges its movement', () => {
     const state = flatState();
-    const scout = createUnit(state, 0, 'scout', 1, 3); // 3 MP
-    expect(applyCommand(state, move(scout.id, 3, 3))).toEqual({ ok: true });
-    expect(scout.col).toBe(3);
+    // 2026-08-28: scout's movement dropped 3→2 (data ruling) — one hex still
+    // leaves a point unspent, which is the number this test pins, read off
+    // the row rather than written as a literal.
+    const scout = createUnit(state, 0, 'scout', 1, 3);
+    expect(applyCommand(state, move(scout.id, 2, 3))).toEqual({ ok: true });
+    expect(scout.col).toBe(2);
     expect(scout.row).toBe(3);
-    expect(scout.movesLeft).toBe(1);
+    expect(scout.movesLeft).toBe(unitDef('scout').movement - 1);
     expect(scout.path).toBeUndefined();
   });
 
@@ -238,10 +241,12 @@ describe('moveUnit', () => {
     const scout = createUnit(state, 0, 'scout', 1, 3);
     expect(unitDef('scout').ignoresTerrainCost).toBe(true);
     expect(applyCommand(state, move(scout.id, 3, 3))).toEqual({ ok: true });
-    // Two hexes that would have cost five, walked for two of its three points —
+    // Two hexes that would have cost five, walked for both of its two points —
     // and it is standing on the far one rather than stranded on the wood.
+    // 2026-08-28: scout's movement dropped 3→2 (data ruling), so the two
+    // hexes now spend the whole allowance rather than leaving one behind.
     expect(scout.col).toBe(3);
-    expect(scout.movesLeft).toBe(1);
+    expect(scout.movesLeft).toBe(unitDef('scout').movement - 2);
     expect(scout.path).toBeUndefined();
   });
 
@@ -568,20 +573,24 @@ describe('standing orders and leftover movement', () => {
     const scout = createUnit(state, 0, 'scout', 2, 2);
     scout.movesLeft = 0;
 
+    // 2026-08-28: scout's movement dropped 3→2 (data ruling) — the march is
+    // sized off the unit's own row, not pinned as a literal, so it still
+    // fills exactly one turn's allowance.
+    const movement = unitDef('scout').movement;
+    const destCol = 2 + movement;
+
     // Accepted, and nothing moves: `advanceAlongPath` takes no step it cannot
     // pay for, so an allowance of zero stores the whole route.
-    expect(applyCommand(state, move(scout.id, 5, 2))).toEqual({ ok: true });
+    expect(applyCommand(state, move(scout.id, destCol, 2))).toEqual({ ok: true });
     expect([scout.col, scout.row]).toEqual([2, 2]);
     expect(scout.movesLeft).toBe(0);
-    expect(scout.path).toEqual([
-      { col: 3, row: 2 },
-      { col: 4, row: 2 },
-      { col: 5, row: 2 },
-    ]);
+    expect(scout.path).toEqual(
+      Array.from({ length: movement }, (_, i) => ({ col: 3 + i, row: 2 })),
+    );
 
     // And the stored order is what sets off next turn.
     endRound(state);
-    expect(scout.col).toBe(5);
+    expect(scout.col).toBe(destCol);
     expect(scout.path).toBeUndefined();
   });
 

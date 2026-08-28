@@ -6,8 +6,8 @@
     }
   },
   "pools": {
-    "followerSlots": 1,
-    "enhancerSlots": 1
+    "followerSlots": 2,
+    "enhancerSlots": 2
   },
   "names": {
     "epithets": {

@@ -36,6 +36,7 @@ import {
   playerById,
 } from '../../src/sim/state';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
+import { unitDef } from '../../src/sim/unitData';
 import { wrappedDistance, tileHex } from '../../src/sim/map';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -138,7 +139,10 @@ describe('the discovery pool', () => {
     expect(printed).toEqual({
       grainCache: 20,
       masonsHoard: 20,
-      starTablets: 15,
+      // 2026-08-28 data ruling: dropped 15→7. A boon paid on the first ruin a
+      // scout walked into was completing an opening tech outright; halved to
+      // match forgottenHymns' own halving below.
+      starTablets: 7,
       // Halved (playtest batch two, 8/27): "early culture from discoveries
       // should be lower". Culture is the one pool a discovery pays that buys a
       // *decision* rather than a number, so fifteen of it out of the first ruin
@@ -470,7 +474,11 @@ describe('settlement: every boon pays its printed number', () => {
     state.cities[0]!.queue = [{ kind: 'building', id: 'monument' }];
     player.researching = 'mining';
     const cost = techDef('mining').cost;
-    player.sciencePool = cost - 15;
+    // 2026-08-28 data ruling: tablets pay 7, not 15 — read off the discovery
+    // row rather than pinned, so the pool still lands exactly on the cost.
+    const tabletEffect = discoveryDef('starTablets').effect;
+    const tabletAmount = tabletEffect.kind === 'pool' ? tabletEffect.amount : 0;
+    player.sciencePool = cost - tabletAmount;
 
     offerOf(state, 0, 'starTablets');
     const done = settleDiscovery(state, player, 0);
@@ -492,7 +500,9 @@ describe('settlement: every boon pays its printed number', () => {
 
     offerOf(state, 0, 'starTablets');
     const done = settleDiscovery(state, player, 0);
-    expect(player.sciencePool).toBe(15);
+    // 2026-08-28 data ruling: tablets pay 7, not 15.
+    const tabletEffect = discoveryDef('starTablets').effect;
+    expect(player.sciencePool).toBe(tabletEffect.kind === 'pool' ? tabletEffect.amount : 0);
     expect(player.researching).toBe('ironWorking');
     expect(done?.completed).toBeNull();
   });
@@ -510,7 +520,9 @@ describe('settlement: every boon pays its printed number', () => {
     expect(done?.unitName).toBe('Scout');
     // Full movement: born through `createUnit` like every other unit, so the
     // moment of the gift is the moment of the payoff (Entry XVIII.2).
-    expect(scout!.movesLeft).toBe(3);
+    // 2026-08-28: scout's movement dropped 3→2 (data ruling) — read off the
+    // row rather than pinned.
+    expect(scout!.movesLeft).toBe(unitDef('scout').movement);
     expect(scout!.hasAttacked).toBe(false);
   });
 

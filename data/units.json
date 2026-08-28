@@ -18,7 +18,7 @@
     "scout": {
       "name": "Scout",
       "category": "military",
-      "movement": 3,
+      "movement": 2,
       "sight": 3,
       "maxHp": 100,
       "combatStrength": 5,

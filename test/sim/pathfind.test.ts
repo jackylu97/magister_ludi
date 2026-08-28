@@ -305,24 +305,29 @@ describe('reachableTiles', () => {
    * The same agreement for a unit that ignores terrain, and the *difference* the
    * flag makes to what a turn reaches.
    *
-   * Two units of three movement points each, dropped on the same hex of the same
-   * ridge, so the only variable is the row in `data/units.json`. The wooded hill
-   * costs the rider its whole turn and lets the scout keep walking — which is the
-   * ability stated as a board fact rather than as a number out of a function.
+   * Two units dropped on the same hex of the same ridge, so the only variable
+   * is the row in `data/units.json`. The wooded hill costs the rider its whole
+   * turn and lets the scout keep walking — which is the ability stated as a
+   * board fact rather than as a number out of a function.
+   *
+   * 2026-08-28: the scout's movement dropped 3→2 (data ruling), so the ridge
+   * is now two columns deep, not three — enough to still show the exemption,
+   * sized off `unitDef('scout').movement` rather than a literal.
    */
   it('reaches further with a unit that ignores terrain, and agrees with the path', () => {
     const state = flatState();
-    // Three full columns of wooded ridge rather than three tiles of it, so
-    // there is no cheap way round: the difference measured is the ability and
-    // not a detour the sweep happened to find.
-    for (const col of [5, 6, 7]) {
+    const scoutMovement = unitDef('scout').movement;
+    // Two full columns of wooded ridge rather than two tiles of it, so there
+    // is no cheap way round: the difference measured is the ability and not
+    // a detour the sweep happened to find.
+    for (const col of [5, 6]) {
       for (let row = 0; row < state.map.height; row++) {
         at(state.map, col, row).feature = 'forest';
         at(state.map, col, row).hills = true; // 3 apiece to anybody else
       }
     }
     const rider = unit(state, 4, 4, 'chariotArcher'); // 3 MP, pays the ground
-    const scout = unit(state, 4, 5, 'scout'); // 3 MP, does not
+    const scout = unit(state, 4, 5, 'scout'); // 2 MP, does not
 
     const ridden = new Map(
       reachableTiles(state, rider).map((r) => [`${r.tile.col},${r.tile.row}`, r.cost]),
@@ -331,19 +336,18 @@ describe('reachableTiles', () => {
       reachableTiles(state, scout).map((r) => [`${r.tile.col},${r.tile.row}`, r.cost]),
     );
 
-    // One wooded hill is the rider's whole turn; the scout crosses all three.
+    // One wooded hill is the rider's whole turn; the scout crosses both.
     expect(ridden.get('5,4')).toBe(3);
     expect(ridden.has('6,4')).toBe(false);
     expect(scouted.get('5,4')).toBe(1);
-    expect(scouted.get('6,4')).toBe(2);
-    expect(scouted.get('7,4')).toBe(3);
+    expect(scouted.get('6,4')).toBe(scoutMovement);
 
     // And the route the pathfinder returns is priced the same way the sweep
     // priced it — the one-evaluator guarantee, asked of the exempt unit.
-    const goal = at(state.map, 7, 4);
+    const goal = at(state.map, 6, 4);
     const path = findPath(state, scout, goal)!;
-    expect(path).toHaveLength(3);
-    expect(cost(state, path, 'scout')).toBe(scouted.get('7,4'));
+    expect(path).toHaveLength(2);
+    expect(cost(state, path, 'scout')).toBe(scouted.get('6,4'));
   });
 
   it('lets a unit with any movement left enter a tile it cannot afford', () => {

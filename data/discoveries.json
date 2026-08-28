@@ -53,7 +53,7 @@
       "effect": {
         "kind": "pool",
         "pool": "science",
-        "amount": 15
+        "amount": 7
       }
     },
     "forgottenHymns": {
