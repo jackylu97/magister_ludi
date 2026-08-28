@@ -478,7 +478,7 @@ export function purchaseError(
  *   · the bank is charged the **fold of the printed lines**, so the price the
  *     screen showed is the price paid;
  *   · a faith ladder climbs, so the next augur is dearer from this instant — a
- *     fact about the empire, exactly as `settlersBuilt` is;
+ *     fact about the empire, exactly as `unitsBuilt` is;
  *   · the thing is realised through `realiseItem`, the **one** completion
  *     routine, so a bought piece is born exactly as a built one is and **can act
  *     this turn**;

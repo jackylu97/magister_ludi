@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { newPlayerStatecraft } from '../../src/sim/statecraft';
 import { newPlayerPantheon } from '../../src/sim/religionData';
 import { type Command, applyCommand } from '../../src/sim/commands';
+import { unitProductionCost } from '../../src/sim/cities';
+import { unitDef } from '../../src/sim/unitData';
 import { RULES } from '../../src/sim/rulesData';
 import {
   type GameConfig,
@@ -70,9 +72,11 @@ describe('newGame', () => {
     // Milestone 4 adds the research fields — nothing chosen, and the opening
     // kit of technologies from `rules.research.startingTechs`. Milestone 5 adds
     // `eliminated`, which nobody is on turn one, and escalating settlers add
-    // `settlersBuilt` — zero even though every player is holding a settler,
-    // because the one they start with was never paid for. Territory & gold adds
-    // `tilesPurchased`, the same shape of lifetime counter for bought ground.
+    // `unitsBuilt` (schema 31: one ladder per escalating type, generalised from
+    // the old settler-only `settlersBuilt`) — empty though every player is
+    // holding a settler, because the one they start with was never paid for.
+    // Territory & gold adds `tilesPurchased`, the same shape of lifetime
+    // counter for bought ground.
     const pools = {
       gold: 0,
       sciencePool: 0,
@@ -83,7 +87,10 @@ describe('newGame', () => {
       // `Unit.path`, so an empire that never queued anything serialises as one
       // from before the field existed. See the suite at the bottom of this file.
       techsResearched: RULES.research.startingTechs,
-      settlersBuilt: 0,
+      // Presence is the state, `unitsBuilt`'s own docblock reason: nobody has
+      // built or bought a settler or a worker yet, so the empty object is the
+      // opening kit.
+      unitsBuilt: {},
       tilesPurchased: 0,
       eliminated: false,
       // Every seat carries the flag and every *real* seat carries it false; the
@@ -95,7 +102,7 @@ describe('newGame', () => {
       statecraft: newPlayerStatecraft(),
       // The same claim one system over (ledger Entry XXVIII): every seat has a
       // pantheon from turn one, empty though it is, and a lifetime counter for
-      // the augurs it has bought — `settlersBuilt`'s twin in a different bank.
+      // the augurs it has bought — `unitsBuilt`'s twin in a different bank.
       pantheon: newPlayerPantheon(),
       augursPurchased: 0,
       prophetsPurchased: 0,
@@ -511,6 +518,42 @@ describe('the research queue field', () => {
     // A v21 log is not merely older: a `moveUnit` given with no movement left
     // used to be refused and is now a standing order, and the resolution has
     // grown a phase no v21 state has been through.
-    expect(SCHEMA_VERSION).toBe(30);
+    expect(SCHEMA_VERSION).toBe(31);
+  });
+});
+
+describe('the unitsBuilt field (schema 31)', () => {
+  it('starts empty: presence is the state, exactly as researchQueue', () => {
+    const state = newGame(config());
+    const player = state.players[0]!;
+    expect(player.unitsBuilt).toEqual({});
+    expect(JSON.parse(JSON.stringify(player)).unitsBuilt).toEqual({});
+  });
+
+  it('reads a v30 player with no unitsBuilt key as nobody having built anything', () => {
+    // The migration note on `SCHEMA_VERSION` (31): a v30 save's
+    // `settlersBuilt: n` has no home here, and a replay of the log re-derives
+    // the count from scratch — the bump refuses the snapshot rather than
+    // attempting the rewrite. What this pins is that a hand-edited or
+    // otherwise key-less player still prices correctly rather than throwing,
+    // through the one place the `?.[type] ?? 0` reading lives
+    // (`explainUnitCost`).
+    const state = newGame(config());
+    const player = state.players[0]!;
+    delete (player as { unitsBuilt?: unknown }).unitsBuilt;
+    expect(unitProductionCost(state, 0, 'settler')).toBe(unitDef('settler').cost);
+    expect(unitProductionCost(state, 0, 'worker')).toBe(unitDef('worker').cost);
+  });
+
+  it('keys the settler and the worker independently, and replays byte for byte', () => {
+    const state = newGame(config());
+    const player = state.players[0]!;
+    player.unitsBuilt.settler = 2;
+    expect(player.unitsBuilt).toEqual({ settler: 2 });
+    player.unitsBuilt.worker = 1;
+    expect(player.unitsBuilt).toEqual({ settler: 2, worker: 1 });
+    // Round-trips through JSON exactly, key order and all — the same claim
+    // `newGame`'s determinism test makes for the whole state.
+    expect(JSON.parse(JSON.stringify(player)).unitsBuilt).toEqual({ settler: 2, worker: 1 });
   });
 });

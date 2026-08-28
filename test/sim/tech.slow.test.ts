@@ -460,12 +460,12 @@ describe('pacing', () => {
         cityId: capital.id,
         queue: [{ kind: 'unit', id: 'settler' }],
       } as Command).ok).toBe(true);
-      const built = game.state.players[0]!.settlersBuilt;
+      const built = game.state.players[0]!.unitsBuilt.settler ?? 0;
       const income: number[] = [];
-      while (game.state.players[0]!.settlersBuilt === built && income.length < 30) {
+      while ((game.state.players[0]!.unitsBuilt.settler ?? 0) === built && income.length < 30) {
         const banked = capital.hammerBasket;
         expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
-        const paid = game.state.players[0]!.settlersBuilt === built ? 0 : cost;
+        const paid = (game.state.players[0]!.unitsBuilt.settler ?? 0) === built ? 0 : cost;
         income.push(capital.hammerBasket - banked + paid);
       }
       return { turns: income.length, income };
@@ -489,12 +489,12 @@ describe('pacing', () => {
     expect(firstBuild.turns, `${first}⚙ off ${firstBuild.income.join('+')}`).toBe(
       turnsFor(first, firstBuild.income),
     );
-    expect(game.state.players[0]!.settlersBuilt).toBe(1);
+    expect(game.state.players[0]!.unitsBuilt.settler).toBe(1);
 
     // And the second is a whole increment dearer — the brake the escalation is
     // there to be, and it pays for that increment in hammers too.
     const second = unitProductionCost(game.state, 0, 'settler');
-    expect(second).toBe(first + unitDef('settler').costIncrement!);
+    expect(second).toBe(first + unitDef('settler').escalation!);
     const secondBuild = buildSettler(second);
     expect(secondBuild.turns, `${second}⚙ off ${secondBuild.income.join('+')}`).toBe(
       turnsFor(second, secondBuild.income),
@@ -507,7 +507,7 @@ describe('pacing', () => {
       firstBuild.turns,
     );
     expect(unitProductionCost(game.state, 0, 'settler')).toBe(
-      first + 2 * unitDef('settler').costIncrement!,
+      first + 2 * unitDef('settler').escalation!,
     );
     // The settler is the expensive end of the opening scale: a real multiple of
     // what the scout costs, whatever the capital's roll.

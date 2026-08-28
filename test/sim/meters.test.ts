@@ -700,7 +700,9 @@ describe('a captured city, end to end', () => {
   it('leaves the conqueror’s settler ladder exactly where it was', () => {
     const { game } = conquest();
     // Taking a city is not building a settler (design ledger, Entry XIV.D.2).
-    expect(game.state.players[0]!.settlersBuilt).toBe(0);
+    // Presence is the state, so an empire that has founded nothing carries no
+    // `settler` key at all.
+    expect(game.state.players[0]!.unitsBuilt.settler).toBeUndefined();
   });
 
   it('replays a conquest to a byte-identical state, captured flag and all', () => {
@@ -709,8 +711,8 @@ describe('a captured city, end to end', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 30 save with a captured city in it', () => {
-    expect(SCHEMA_VERSION).toBe(30);
+  it('round-trips a schema 31 save with a captured city in it', () => {
+    expect(SCHEMA_VERSION).toBe(31);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

@@ -21,7 +21,7 @@
  *
  * City-related fields
  * -------------------
- * `cost`, `costIncrement`, `foundsCity`, `haltsGrowth` and `minCityPop` are all
+ * `cost`, `escalation`, `foundsCity`, `haltsGrowth` and `minCityPop` are all
  * here rather than in `rules.json` because they describe *this unit type*, not
  * the city system:
  * a designer who adds a second settler-like unit adds one entry here and every
@@ -134,7 +134,7 @@ export interface UnitPurchaseSpec {
   cost: number;
   /**
    * What the price climbs by for every one of these this empire has already
-   * bought, or absent for a flat price. `costIncrement`'s twin, and read against
+   * bought, or absent for a flat price. `escalation`'s twin, and read against
    * a counter on the player for that field's reason exactly — a purchased unit
    * may be spent, so the board cannot be counted.
    */
@@ -200,24 +200,29 @@ export interface UnitDef {
   range?: number;
   /**
    * Hammers a city pays to build one — the *base* price, before escalation.
-   * See `costIncrement`, and `unitProductionCost` in `cities.ts`, which is the
+   * See `escalation`, and `unitProductionCost` in `cities.ts`, which is the
    * only function allowed to answer "what does this cost right now".
    */
   cost: number;
   /**
-   * Hammers this type gets dearer by for every escalating unit its owner has
-   * already built (`Player.settlersBuilt`), or absent when the price is flat.
+   * Hammers this type gets dearer by for every one of *this same type* its
+   * owner has already built or bought (`Player.unitsBuilt`), or absent when the
+   * price is flat.
    *
-   * The Civ VI expansion brake, as data: a settler is `cost + costIncrement ×
-   * settlersBuilt`, so the fourth city costs three increments more than the
-   * first and an empire that sprawls pays for the sprawl. Presence of the field
-   * *is* the marker — nothing in `src/sim/` asks whether a type is `"settler"`,
-   * exactly as with `foundsCity` — and the counter it multiplies is shared, so
-   * a second escalating type would climb the same ladder rather than opening a
-   * second one. That is the intended reading: the ladder counts *expansions
-   * bought*, not settlers specifically.
+   * The Civ VI expansion brake, as data, generalised (user ruling, 2026-08-28)
+   * beyond the settler it started on: this type is `cost + escalation × built`,
+   * so the fourth of it costs three increments more than the first and an
+   * empire that leans on one type pays for the habit. Presence of the field
+   * *is* the marker — nothing in `src/sim/` asks whether a type is `"settler"`
+   * or `"worker"`, exactly as with `foundsCity` — but unlike the shared ladder
+   * this field once described, **the counter is per type**: a settler and a
+   * worker each climb their own ladder, keyed by `unitDef` id in
+   * `Player.unitsBuilt`, so pricing one out of a city never dents the other's
+   * count. The two cards that predate the generalisation (`settlerCost`,
+   * `noSettlerEscalation`) still name the settler by id and are not asked of a
+   * second escalating type — see `explainUnitCost` in `cities.ts`.
    */
-  costIncrement?: number;
+  escalation?: number;
   /**
    * How many improvements one of these can build before it is used up, or the
    * field is **absent** for a type that builds none.
@@ -226,7 +231,7 @@ export interface UnitDef {
    * three instant builds in a box rather than a permanent servant with a
    * multi-turn task queue. Presence of the field *is* the marker — nothing in
    * `src/sim/` asks whether a type is `"worker"`, exactly as with `foundsCity`
-   * and `costIncrement` — so a future engineer with five charges is one data row
+   * and `escalation` — so a future engineer with five charges is one data row
    * and every rule that mentions charges follows it.
    *
    * Absent rather than zero-valued for the reason `rangedStrength` is: "does
@@ -242,7 +247,7 @@ export interface UnitDef {
    * **absent** for everything that digs.
    *
    * Presence is the marker, exactly as with `foundsCity`, `charges` and
-   * `costIncrement`: nothing in `src/sim/` asks whether a type is `"augur"`, so
+   * `escalation`: nothing in `src/sim/` asks whether a type is `"augur"`, so
    * the prophet that arrives with the High Temple is one data row and every rule
    * about rites follows it. It shares `chargesLeft` with the worker rather than
    * opening a second counter, which is the whole reason the charge model was

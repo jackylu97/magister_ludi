@@ -379,11 +379,11 @@ describe('the roster is priced in the money of its own age', () => {
     // because a settler is Age I and multiplies by one.
     const settler = explainUnitCost(state, 0, 'settler');
     expect(settler).toEqual([{ source: 'Settler', amount: unitDef('settler').cost }]);
-    state.players[0]!.settlersBuilt = 3;
+    state.players[0]!.unitsBuilt.settler = 3;
     const escalated = explainUnitCost(state, 0, 'settler');
     expect(escalated.map((line) => line.source)).toEqual(['Settler', '3 already built']);
     expect(foldUnitCost(escalated)).toBe(
-      unitDef('settler').cost + 3 * unitDef('settler').costIncrement!,
+      unitDef('settler').cost + 3 * unitDef('settler').escalation!,
     );
     // And a later-age unit says which band it is in.
     expect(explainUnitCost(state, 0, 'knight').map((line) => line.source)).toEqual([
@@ -392,14 +392,14 @@ describe('the roster is priced in the money of its own age', () => {
     ]);
   });
 
-  it('leaves the settler escalation the only thing an empire can move', () => {
+  it('leaves a non-escalating type immovable by the settler ladder', () => {
     const state = flatState();
     for (const id of UNIT_TYPE_IDS) {
-      if (unitDef(id).costIncrement !== undefined) continue;
+      if (unitDef(id).escalation !== undefined) continue;
       const priced = unitProductionCost(state, 0, id);
-      state.players[0]!.settlersBuilt = 9;
+      state.players[0]!.unitsBuilt.settler = 9;
       expect(unitProductionCost(state, 0, id), id).toBe(priced);
-      state.players[0]!.settlersBuilt = 0;
+      state.players[0]!.unitsBuilt.settler = 0;
     }
   });
 });

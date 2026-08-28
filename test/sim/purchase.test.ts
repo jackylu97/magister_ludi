@@ -10,7 +10,7 @@
  *     settler ladder and the age band reach a price tag without either knowing
  *     the other exists. Tested by moving the ladder and watching the coin move.
  *   · **One completion routine.** A bought thing arrives exactly as a built one
- *     does: the spawn convention, `settlersBuilt`, the completion riders and the
+ *     does: the spawn convention, `unitsBuilt`, the completion riders and the
  *     panel's refresh. Tested by buying a settler and asking the *next* one's
  *     price.
  *   · **One gate.** Gold's refusals are production's refusals, asked through
@@ -49,6 +49,7 @@ import { buyCommand, game } from './purchaseHelpers';
 
 const WARRIOR: PurchasableItem = { kind: 'unit', id: 'warrior' };
 const SETTLER: PurchasableItem = { kind: 'unit', id: 'settler' };
+const WORKER: PurchasableItem = { kind: 'unit', id: 'worker' };
 const GRANARY: PurchasableItem = { kind: 'building', id: 'granary' };
 const AUGUR: PurchasableItem = { kind: 'unit', id: 'augur' };
 const RATE = RULES.production.goldPerHammer;
@@ -154,7 +155,8 @@ describe('what gold costs', () => {
     const city = found(g.state, 0);
     const first = explainPurchaseCost(g.state, 0, city.id, SETTLER, 'gold')!;
 
-    playerById(g.state, 0)!.settlersBuilt += 1;
+    const player = playerById(g.state, 0)!;
+    player.unitsBuilt.settler = (player.unitsBuilt.settler ?? 0) + 1;
     const second = explainPurchaseCost(g.state, 0, city.id, SETTLER, 'gold')!;
     expect(second.total).toBeGreaterThan(first.total);
     expect(second.total).toBe(unitProductionCost(g.state, 0, 'settler') * RATE);
@@ -212,9 +214,28 @@ describe('buying a unit', () => {
 
     const before = unitProductionCost(g.state, 0, 'settler');
     expect(dispatch(g, buyCommand(city.id, SETTLER)).ok).toBe(true);
-    expect(player.settlersBuilt).toBe(1);
+    expect(player.unitsBuilt.settler).toBe(1);
     // The empire's *next* settler is dearer from this instant, bought or built.
     expect(unitProductionCost(g.state, 0, 'settler')).toBeGreaterThan(before);
+  });
+
+  it('climbs the worker ladder too, on its own count', () => {
+    // The generalisation (user ruling, 2026-08-28): a purchase inherits
+    // whichever escalating type it names, priced off that type's own count in
+    // `Player.unitsBuilt`, not the settler's.
+    const g = game();
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.gold = 2000;
+
+    const before = unitProductionCost(g.state, 0, 'worker');
+    expect(before).toBe(unitDef('worker').cost);
+    expect(dispatch(g, buyCommand(city.id, WORKER)).ok).toBe(true);
+    expect(player.unitsBuilt.worker).toBe(1);
+    expect(player.unitsBuilt.settler).toBeUndefined();
+    // The empire's *next* worker is dearer; its settler ladder never moved.
+    expect(unitProductionCost(g.state, 0, 'worker')).toBeGreaterThan(before);
+    expect(unitProductionCost(g.state, 0, 'settler')).toBe(unitDef('settler').cost);
   });
 
   it('strikes the bought thing off the queue and keeps the hammers', () => {

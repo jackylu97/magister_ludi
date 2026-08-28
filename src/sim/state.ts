@@ -318,8 +318,24 @@ import {
  *     refuses the snapshot and keeps the log honest. It is a different game
  *     either way: a v29 bomb pressed 12 a turn for ten turns and this one
  *     presses 60 once.
+ * 31: **The settler ladder generalises** (user ruling, 2026-08-28). `UnitDef.
+ *     costIncrement` becomes `escalation` and the worker now carries one too
+ *     (3 hammers, vs. the settler's 8, moved onto its row from the old
+ *     `rules.production.settlerIncrement` in an earlier pass and unchanged in
+ *     value). `Player.settlersBuilt` — one counter, implicitly the settler's —
+ *     is replaced by `Player.unitsBuilt: Partial<Record<UnitTypeId, number>>`,
+ *     one counter *per escalating type*, so a worker habit and a settler habit
+ *     price separately. `realiseItem` is still the only place either climbs,
+ *     and still skips a free grant (`options.free`) — a captured or gifted
+ *     unit was never *built*.
+ *
+ *     The migration note: a v30 `settlersBuilt: n` becomes
+ *     `unitsBuilt: { settler: n }` (or `{}` for `n === 0`, presence being the
+ *     state exactly as it is for `researchQueue`). A replay of the log
+ *     re-derives the count from scratch regardless, so the bump refuses the
+ *     snapshot and keeps the log honest rather than attempting the rewrite.
  */
-export const SCHEMA_VERSION = 30;
+export const SCHEMA_VERSION = 31;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -510,28 +526,39 @@ export interface Player {
    */
   techsResearched: TechId[];
   /**
-   * How many escalating units — settlers, today — this player has *completed
-   * from production*. The multiplier in `unitProductionCost` (`cities.ts`).
+   * How many of each escalating unit type — settler and worker, today — this
+   * player has *completed from production or bought*, keyed by `UnitTypeId`.
+   * The multiplier in `explainUnitCost` (`cities.ts`), one ladder per type
+   * rather than one shared ladder (schema 31; the settler-only reading was
+   * `Player.settlersBuilt`, a single counter).
+   *
+   * Presence is the state, exactly as `Unit.path` and `researchQueue` are: a
+   * type never built has no key rather than a zero, so an empire that has
+   * founded no city and trained no worker serialises as it did before either
+   * type could escalate.
    *
    * "Built" is meant strictly, and the two exclusions are the rule rather than
    * an oversight. The settler a player opens the game holding was never paid
-   * for, so it does not make the next one dearer; a settler taken off a rival
-   * on the battlefield was paid for by *them*, and capturing one is already its
-   * own kind of expensive. Only `advanceProduction` ever raises this, which is
-   * also the only place a player spends hammers on a unit.
+   * for, so it does not make the next one dearer; a unit taken off a rival on
+   * the battlefield was paid for by *them*, and capturing one is already its
+   * own kind of expensive — captured units never reach this counter because
+   * `captureUnit` never calls `realiseItem`. `realiseItem` is the *only* place
+   * any key here climbs, for both a completion and a purchase, and it skips a
+   * free grant (`options.free`) for the same reason a capture is skipped: a
+   * gift was not *built*.
    *
    * On the player rather than derived from the board because it can never be
-   * derived: settlers are *consumed* when they found, so counting the ones
+   * derived: a settler is *consumed* when it founds, so counting the ones
    * standing around would price the fourth city like the first.
    */
-  settlersBuilt: number;
+  unitsBuilt: Partial<Record<UnitTypeId, number>>;
   /**
    * How many tiles this player has ever bought with gold (`purchaseTile`).
    *
    * The escalation ladder in `explainTilePurchase` (`cities.ts`), and per
    * *player* rather than per city because that is what it is meant to price: Civ
    * 6 escalates a habit of buying land, and a habit belongs to an empire. Kept
-   * on the player for `settlersBuilt`'s reason — it can never be derived from
+   * on the player for `unitsBuilt`'s reason — it can never be derived from
    * the board, because a bought tile is indistinguishable from a tile culture
    * claimed the moment the gold has left the treasury.
    *
@@ -634,12 +661,12 @@ export interface Player {
   /**
    * How many augurs this player has ever **bought with faith**.
    *
-   * `settlersBuilt`'s twin one currency over, and the escalation in
+   * `unitsBuilt`'s twin one currency over, and the escalation in
    * `explainPurchaseCost` (`religion.ts`): the second augur costs 15🕯 more than
    * the first, so *when* to spend faith on a god rather than on three rites is a
    * tempo decision against a climbing price.
    *
-   * On the player because it can never be derived, for `settlersBuilt`'s reason
+   * On the player because it can never be derived, for `unitsBuilt`'s reason
    * exactly: an augur is *consumed* by consecrating or by its last rite, so
    * counting the ones standing around would price the fourth like the first.
    * Nothing lowers it, and a captured augur does not raise it — it was paid for
@@ -738,7 +765,7 @@ export interface Player {
    * How many great people this empire has ever **recruited** — the ladder in
    * `renownThreshold` (`renown.ts`).
    *
-   * `settlersBuilt`'s and `augursPurchased`' third sibling, and on the player
+   * `unitsBuilt`'s and `augursPurchased`' third sibling, and on the player
    * for their reason exactly: a recruited person is *consumed* by its act or its
    * work, so counting the ones standing around would price the fourth like the
    * first. `legacies.length` is deliberately not the counter either — a person
@@ -1848,7 +1875,10 @@ export function newGame(config: GameConfig): GameState {
       // game in the process, and a player who researched something must not
       // write it into the rule book.
       techsResearched: [...RULES.research.startingTechs],
-      settlersBuilt: 0,
+      // Presence is the state (see the field's docblock): nobody has built a
+      // settler or a worker yet, so the empty object is the opening kit, same
+      // as a fresh `researchQueue`-less player.
+      unitsBuilt: {},
       tilesPurchased: 0,
       eliminated: false,
       barbarian: false,
@@ -1958,7 +1988,7 @@ function seatBarbarians(state: GameState): void {
     // every time it musters (`barbarianTier`), so a starting-tech list here would
     // be a second, stale answer to the same question.
     techsResearched: [],
-    settlersBuilt: 0,
+    unitsBuilt: {},
     tilesPurchased: 0,
     eliminated: false,
     barbarian: true,

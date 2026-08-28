@@ -28,7 +28,7 @@ import { unitDef } from '../../src/sim/unitData';
 import { twoCityGame } from './citiesHelpers';
 
 const BASE = unitDef('settler').cost;
-const STEP = unitDef('settler').costIncrement!;
+const STEP = unitDef('settler').escalation!;
 
 describe('escalating settler cost', () => {
   it('replays a run of escalating settlers byte for byte', () => {
@@ -61,10 +61,9 @@ describe('escalating settler cost', () => {
     }
 
     // The run was long enough for the ladder to matter.
-    expect(game.state.players[0]!.settlersBuilt).toBeGreaterThanOrEqual(3);
-    expect(unitProductionCost(game.state, 0, 'settler')).toBe(
-      BASE + STEP * game.state.players[0]!.settlersBuilt,
-    );
+    const built = game.state.players[0]!.unitsBuilt.settler ?? 0;
+    expect(built).toBeGreaterThanOrEqual(3);
+    expect(unitProductionCost(game.state, 0, 'settler')).toBe(BASE + STEP * built);
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 

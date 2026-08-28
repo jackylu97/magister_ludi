@@ -2713,20 +2713,23 @@ function unitCostFactor(type: UnitTypeId): { age: number; factor: number } {
  * Four lines, in the order they apply, because the order is the arithmetic:
  *
  *   1. **the roster's price** — `cost` off `data/units.json`.
- *   2. **the ladder** — `costIncrement` for every escalating unit this empire
- *      has already built. Presence of the field is the marker, here and in
- *      `advanceProduction`: a designer who writes an increment of zero has
- *      declared an escalating type whose ladder is currently flat, not a flat
- *      type.
+ *   2. **the ladder** — `escalation` for every one of *this type* this empire
+ *      has already built or bought, read off its own count in
+ *      `Player.unitsBuilt` (schema 31: one ladder per escalating type, not one
+ *      shared counter — a settler habit and a worker habit price separately).
+ *      Presence of the field is the marker, here and in `realiseItem`: a
+ *      designer who writes an escalation of zero has declared an escalating
+ *      type whose ladder is currently flat, not a flat type.
  *   3. **the age band** — `unitCostAgeMultiplier`, on the sum of the two above.
  *      It multiplies the *escalated* figure rather than the printed one so that
- *      a late-age settler-like unit escalates in the money of its own era; the
+ *      a late-age escalating unit climbs in the money of its own era; the
  *      settler itself is Age I and multiplies by one, so nothing about the
  *      opening moved. See `ProductionRules`.
- *   4. **the empire's law** — `settlerCost`, asked only of an **escalating**
- *      type: that rule names "what a settler costs", and `costIncrement` is
- *      what marks a type as one, so a card that cheapens settlers cheapens
- *      exactly the types the game escalates and nothing else.
+ *   4. **the empire's law** — `settlerCost`, asked only of the **settler**: that
+ *      rule and its sibling `noSettlerEscalation` name the settler by id and
+ *      predate the ladder's generalisation, so they are not widened to any
+ *      other escalating type — a card that cheapens settlers touches settlers
+ *      and nothing else.
  *
  * Every step floors, and the fold is exact by construction: each line carries
  * the *difference* it makes to the running figure, so the list sums to the
@@ -2745,15 +2748,17 @@ export function explainUnitCost(
   const lines: UnitCostLine[] = [{ source: def.name, amount: def.cost }];
   let running = def.cost;
 
-  const increment = def.costIncrement;
+  const increment = def.escalation;
   if (increment !== undefined) {
     const player = playerById(state, playerId);
-    // Manifest of the Steppe's second clause: the ladder stops climbing. Read as
-    // a multiplier of zero on the built count rather than as a branch, so the
-    // two clauses compose without either knowing about the other.
-    const built = cardActionRule(state, playerId, 'noSettlerEscalation')
-      ? 0
-      : (player?.settlersBuilt ?? 0);
+    // Manifest of the Steppe's second clause: the ladder stops climbing. Named
+    // for the settler and asked only of it — see the docblock's fourth line.
+    // Read as a multiplier of zero on the built count rather than as a branch,
+    // so the two clauses compose without either knowing about the other.
+    const built =
+      type === 'settler' && cardActionRule(state, playerId, 'noSettlerEscalation')
+        ? 0
+        : (player?.unitsBuilt?.[type] ?? 0);
     if (built > 0) {
       lines.push({ source: `${built} already built`, amount: increment * built });
       running += increment * built;
@@ -2767,7 +2772,7 @@ export function explainUnitCost(
     running = scaled;
   }
 
-  if (increment !== undefined) {
+  if (increment !== undefined && type === 'settler') {
     const percent = foldCardRulePercent(cardRulePercent(state, playerId, 'settlerCost'));
     if (percent !== 0) {
       // Floored at 1: a free settler would be an empire that settles every turn.
@@ -3788,11 +3793,14 @@ export function realiseItem(
   // either way — which is exactly why it is a parameter and not a rule. See
   // `Unit.freeUpkeep` for the register of who passes it.
   if (options.free) unit.freeUpkeep = true;
-  // The ladder climbs at completion, so the next settler — anywhere in the
-  // empire — is dearer from the very next resolution. See `advanceProduction`.
-  if (unitDef(item.id).costIncrement !== undefined) {
+  // The ladder climbs at completion, so the next one of this *same type* —
+  // anywhere in the empire — is dearer from the very next resolution. Its own
+  // key in `Player.unitsBuilt`, not a shared counter (schema 31). A free grant
+  // does not climb it: `options.free` already marks this unit as never having
+  // been paid for, and a habit nobody paid into is not a habit.
+  if (unitDef(item.id).escalation !== undefined && !options.free) {
     const player = playerById(state, city.ownerId);
-    if (player) player.settlersBuilt += 1;
+    if (player) player.unitsBuilt[item.id] = (player.unitsBuilt[item.id] ?? 0) + 1;
   }
   payCompletionRiders(state, city, 'unit');
   return { unitId: unit.id };

@@ -8,6 +8,7 @@ import {
   bestExpansionTile,
   CENTRE_SOURCE,
   centreYield,
+  cityTile,
   cityYields,
   collectYields,
   expandBorders,
@@ -30,6 +31,7 @@ import {
   productionModifiers,
   productionSettledBy,
   queueItemCost,
+  realiseItem,
   refreshCityDerived,
   refreshTileDerived,
   settleProduction,
@@ -67,7 +69,7 @@ import {
   createUnit,
   newGame,
 } from '../../src/sim/state';
-import { chopYield } from '../../src/sim/improvementData';
+import { chopBaseFor } from '../../src/sim/improvements';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { CITY_YIELD_KEYS, RESOURCE_IDS, resourceYield } from '../../src/sim/resourceData';
@@ -1406,7 +1408,20 @@ describe('production', () => {
  * claims are about the routine and inherit to every grant that calls it.
  */
 describe('windfall settlement (Entry XVIII)', () => {
-  const TIMBER = chopYield('forest').production;
+  /**
+   * The scaled figure `chopper()`'s fixture actually banks, re-pinned
+   * 2026-08-28 for the tech-scaling ruling: a fresh empire starts holding
+   * `agriculture`, `chopper()` adds `mining` to clear the wood at all, and
+   * that is two technologies by the time the axe falls — so the printed base
+   * is `chopBaseFor`'s figure for two technologies, not the raw table row.
+   * Read off the same composition `chopFeatureAt` pays through, so this can
+   * never drift from what the reducer actually credits.
+   */
+  const TIMBER = (() => {
+    const state = flatState();
+    state.players[0]!.techsResearched = ['agriculture', 'mining'];
+    return chopBaseFor(state, 0, 'forest').production;
+  })();
 
   /** A player-0 city at (8, 5), a wood at (8, 4), and a worker standing in it. */
   function chopper(): { state: GameState; city: City; worker: Unit } {
@@ -1423,10 +1438,11 @@ describe('windfall settlement (Entry XVIII)', () => {
 
   it('completes an exactly-paid item and banks no overflow', () => {
     const { state, city, worker } = chopper();
-    // Re-pinned 2026-08-28: the ×1.4 cost ruling left no building priced at
-    // exactly what a wood pays (TIMBER=20 against 15/21/25/28…), so the edge —
-    // `hammerBasket >= cost` with nothing over — is built by hand instead: top
-    // the basket up to one wood short of the library's price first.
+    // Re-pinned 2026-08-28: no building is priced at exactly what a wood pays
+    // (against the ×1.4 cost ladder or the chop's own tech scaling), so the
+    // edge — `hammerBasket >= cost` with nothing over — is built by hand
+    // instead: top the basket up to one wood short of the library's price
+    // first.
     city.queue = [{ kind: 'building', id: 'library' }];
     city.hammerBasket = buildingDef('library').cost - TIMBER;
 
@@ -1438,9 +1454,10 @@ describe('windfall settlement (Entry XVIII)', () => {
 
   it('completes an overpaid item and carries the exact overflow', () => {
     const { state, city, worker } = chopper();
-    // Re-pinned 2026-08-28: the granary used to be the cheap building here
-    // (15 < TIMBER=20), but the ×1.4 ruling put it above a single wood's
-    // yield (21 > 20). The shrine is the one row still under TIMBER.
+    // Re-pinned 2026-08-28: the granary used to be the cheap building here,
+    // but the ×1.4 cost ladder put it above a single wood's yield even before
+    // the tech-scaling ruling widened the gap further. The shrine is the one
+    // row still under TIMBER.
     city.queue = [
       { kind: 'building', id: 'shrine' },
       { kind: 'building', id: 'monument' },
@@ -1494,8 +1511,8 @@ describe('windfall settlement (Entry XVIII)', () => {
     phase.city.hammerBasket = price;
     advanceProduction(phase.state);
 
-    expect(windfall.state.players[0]!.settlersBuilt).toBe(1);
-    expect(windfall.state.players[0]!.settlersBuilt).toBe(phase.state.players[0]!.settlersBuilt);
+    expect(windfall.state.players[0]!.unitsBuilt.settler).toBe(1);
+    expect(windfall.state.players[0]!.unitsBuilt.settler).toBe(phase.state.players[0]!.unitsBuilt.settler);
     // And the ladder is live from that instant: the empire's next settler is
     // dearer through both doors, by the same rung.
     expect(unitProductionCost(windfall.state, 0, 'settler')).toBeGreaterThan(price);
@@ -1621,8 +1638,9 @@ describe('windfall settlement (Entry XVIII)', () => {
     it('is the preview the worker sheet promises with', () => {
       // One evaluator, so "completes Shrine!" on the button and the completion
       // a moment later cannot disagree — no parallel arithmetic in the UI.
-      // Shrine, not granary, since the ×1.4 re-pin above (2026-08-28) put the
-      // granary above a single wood's yield.
+      // Shrine, the one row reliably under TIMBER regardless of how the ×1.4
+      // cost ladder or the chop's own tech scaling land (see the re-pin above,
+      // 2026-08-28).
       const { state, city } = chopper();
       city.queue = [{ kind: 'building', id: 'shrine' }];
       expect(productionSettledBy(state, city, TIMBER)).toBe(buildingDef('shrine').name);
@@ -1723,7 +1741,7 @@ describe('turnsToBuild', () => {
     const item: QueueItem = { kind: 'unit', id: 'settler' };
     const first = turnsToBuild(state, city, item, 0);
 
-    state.players[0]!.settlersBuilt = 4;
+    state.players[0]!.unitsBuilt.settler = 4;
     expect(unitProductionCost(state, 0, 'settler')).toBeGreaterThan(unitDef('settler').cost);
     expect(turnsToBuild(state, city, item, 0)).toBeGreaterThan(first!);
   });
@@ -1761,7 +1779,7 @@ describe('turnsToBuild', () => {
 
 describe('escalating settler cost', () => {
   const BASE = unitDef('settler').cost;
-  const STEP = unitDef('settler').costIncrement!;
+  const STEP = unitDef('settler').escalation!;
 
   /** A city big enough to finish a settler, with hammers to spare. */
   function settlerCity(state: GameState, ownerId: number, col: number, row: number): City {
@@ -1777,7 +1795,7 @@ describe('escalating settler cost', () => {
     expect(STEP).toBeGreaterThan(0);
     expect(unitProductionCost(state, 0, 'settler')).toBe(BASE);
 
-    state.players[0]!.settlersBuilt = 3;
+    state.players[0]!.unitsBuilt.settler = 3;
     expect(unitProductionCost(state, 0, 'settler')).toBe(BASE + 3 * STEP);
     // Every player climbs their own ladder: one empire's sprawl is not another's.
     expect(unitProductionCost(state, 1, 'settler')).toBe(BASE);
@@ -1785,10 +1803,10 @@ describe('escalating settler cost', () => {
 
   it('leaves every type without an increment off the ladder', () => {
     const state = flatState();
-    state.players[0]!.settlersBuilt = 5;
+    state.players[0]!.unitsBuilt.settler = 5;
     for (const id of UNIT_TYPE_IDS) {
       const def = unitDef(id);
-      if (def.costIncrement !== undefined) continue;
+      if (def.escalation !== undefined) continue;
       // A great person is neither built nor bought and has no unlock tech, so
       // it has no band either — see `tech.test.ts`'s reading of the exception.
       if (def.greatWork === true) continue;
@@ -1798,17 +1816,18 @@ describe('escalating settler cost', () => {
       // move — so the price is asked with and without five settlements and the
       // two answers have to agree.
       const priced = unitProductionCost(state, 0, id);
-      state.players[0]!.settlersBuilt = 0;
+      state.players[0]!.unitsBuilt.settler = 0;
       expect(unitProductionCost(state, 0, id), id).toBe(priced);
-      state.players[0]!.settlersBuilt = 5;
+      state.players[0]!.unitsBuilt.settler = 5;
       // And the band is the only thing between the printed cost and the price.
       const band = RULES.production.unitCostAgeMultiplier;
       const age = techDef(UNIT_UNLOCK_TECH.get(id)!).age;
       expect(priced, id).toBe(Math.floor(def.cost * (band[age - 1] ?? 1)));
     }
-    // Exactly one type escalates today, and it is the one that founds cities.
-    const escalating = UNIT_TYPE_IDS.filter((id) => unitDef(id).costIncrement !== undefined);
-    expect(escalating).toEqual(['settler']);
+    // Two types escalate today: the settler (founds cities) and the worker (a
+    // per-type ladder of its own, schema 31's generalisation).
+    const escalating = UNIT_TYPE_IDS.filter((id) => unitDef(id).escalation !== undefined);
+    expect(escalating).toEqual(['settler', 'worker']);
     expect(unitDef('settler').foundsCity).toBe(true);
   });
 
@@ -1820,7 +1839,7 @@ describe('escalating settler cost', () => {
     expect(first).toBe(BASE);
     advanceProduction(state);
     expect(city.hammerBasket).toBe(500 - first);
-    expect(state.players[0]!.settlersBuilt).toBe(1);
+    expect(state.players[0]!.unitsBuilt.settler).toBe(1);
 
     city.queue = [{ kind: 'unit', id: 'settler' }];
     const second = queueItemCost(state, 0, city.queue[0]!)!;
@@ -1828,7 +1847,7 @@ describe('escalating settler cost', () => {
     const banked = city.hammerBasket;
     advanceProduction(state);
     expect(city.hammerBasket).toBe(banked - second);
-    expect(state.players[0]!.settlersBuilt).toBe(2);
+    expect(state.players[0]!.unitsBuilt.settler).toBe(2);
     expect(unitProductionCost(state, 0, 'settler')).toBe(BASE + 2 * STEP);
   });
 
@@ -1856,7 +1875,7 @@ describe('escalating settler cost', () => {
     advanceProduction(state);
     expect(second.queue).toHaveLength(0);
     expect(second.hammerBasket).toBe(0);
-    expect(state.players[0]!.settlersBuilt).toBe(2);
+    expect(state.players[0]!.unitsBuilt.settler).toBe(2);
   });
 
   it('counts production only: not the settler a player starts with', () => {
@@ -1869,7 +1888,7 @@ describe('escalating settler cost', () => {
       ],
     });
     expect(game.state.units.some((unit) => unitDef(unit.type).foundsCity)).toBe(true);
-    for (const player of game.state.players) expect(player.settlersBuilt).toBe(0);
+    for (const player of game.state.players) expect(player.unitsBuilt.settler).toBeUndefined();
   });
 
   it('counts production only: not a settler taken off somebody else', () => {
@@ -1878,7 +1897,7 @@ describe('escalating settler cost', () => {
     advanceProduction(state);
     const settler = state.units.find((unit) => unitDef(unit.type).foundsCity)!;
     expect(theirs.queue).toHaveLength(0);
-    expect(state.players[1]!.settlersBuilt).toBe(1);
+    expect(state.players[1]!.unitsBuilt.settler).toBe(1);
 
     // Walked out of its city, where it can be caught in the open.
     expect(
@@ -1904,8 +1923,8 @@ describe('escalating settler cost', () => {
       } as Command).ok,
     ).toBe(true);
     expect(settler.ownerId).toBe(0);
-    expect(state.players[0]!.settlersBuilt).toBe(0);
-    expect(state.players[1]!.settlersBuilt).toBe(1);
+    expect(state.players[0]!.unitsBuilt.settler).toBeUndefined();
+    expect(state.players[1]!.unitsBuilt.settler).toBe(1);
     expect(unitProductionCost(state, 0, 'settler')).toBe(BASE);
   });
 
@@ -1913,11 +1932,110 @@ describe('escalating settler cost', () => {
     const state = flatState();
     settlerCity(state, 0, 8, 5);
     advanceProduction(state);
-    expect(state.players[0]!.settlersBuilt).toBe(1);
+    expect(state.players[0]!.unitsBuilt.settler).toBe(1);
 
     const restored = clone(state);
-    expect(restored.players[0]!.settlersBuilt).toBe(1);
+    expect(restored.players[0]!.unitsBuilt.settler).toBe(1);
     expect(unitProductionCost(restored, 0, 'settler')).toBe(BASE + STEP);
+  });
+
+  it('leaves a captured worker off its captor\'s ladder', () => {
+    // The mirror of the settler capture test above, for the second escalating
+    // type schema 31 added: a worker changing hands through combat is not a
+    // worker `realiseItem` ever saw, so the taker's ladder does not move.
+    const state = flatState(16, 12, 'grassland');
+    const worker = createUnit(state, 1, 'worker', 8, 5);
+    expect(state.players[1]!.unitsBuilt.worker).toBeUndefined();
+
+    const raider = createUnit(state, 0, 'warrior', 9, 5);
+    expect(
+      applyCommand(state, {
+        type: 'attack',
+        playerId: 0,
+        unitId: raider.id,
+        target: { col: worker.col, row: worker.row },
+      } as Command).ok,
+    ).toBe(true);
+    expect(worker.ownerId).toBe(0);
+    expect(state.players[0]!.unitsBuilt.worker).toBeUndefined();
+    expect(unitProductionCost(state, 0, 'worker')).toBe(unitDef('worker').cost);
+  });
+});
+
+describe('escalating worker cost', () => {
+  // Ruling (user, 2026-08-28): "workers should slowly increase in cost the
+  // more they're built" — the settler ladder generalised rather than a second
+  // one invented. `escalation` on the worker's row is 3, so the first three
+  // workers price 14 / 17 / 20.
+  const BASE = unitDef('worker').cost;
+  const STEP = unitDef('worker').escalation!;
+
+  it('reads the base off the row and climbs by the row\'s own step', () => {
+    expect(BASE).toBe(14);
+    expect(STEP).toBe(3);
+  });
+
+  it('prices a first, second and third worker at 14 / 17 / 20', () => {
+    const state = flatState();
+    expect(unitProductionCost(state, 0, 'worker')).toBe(14);
+    state.players[0]!.unitsBuilt.worker = 1;
+    expect(unitProductionCost(state, 0, 'worker')).toBe(17);
+    state.players[0]!.unitsBuilt.worker = 2;
+    expect(unitProductionCost(state, 0, 'worker')).toBe(20);
+  });
+
+  it('climbs its own ladder independently of the settler\'s', () => {
+    const state = flatState();
+    state.players[0]!.unitsBuilt.settler = 5;
+    // A worker's price answers to the worker count alone.
+    expect(unitProductionCost(state, 0, 'worker')).toBe(BASE);
+    state.players[0]!.unitsBuilt.worker = 2;
+    // And the settler's answers to the settler count alone.
+    expect(unitProductionCost(state, 0, 'settler')).toBe(
+      unitDef('settler').cost + 5 * unitDef('settler').escalation!,
+    );
+  });
+
+  it('is not touched by the settler-named cards', () => {
+    // `settlerCost` and `noSettlerEscalation` name the settler by id and are
+    // not widened to the second escalating type (CLAUDE.md, "the ladder
+    // generalises").
+    const state = flatState();
+    state.players[0]!.unitsBuilt.worker = 3;
+    const before = unitProductionCost(state, 0, 'worker');
+    state.players[0]!.statecraft.doctrines.push('manifestOfTheSteppe');
+    const after = unitProductionCost(state, 0, 'worker');
+    expect(after).toBe(before);
+  });
+
+  it('charges the price it quotes, in production', () => {
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    city.queue = [{ kind: 'unit', id: 'worker' }];
+    city.hammerBasket = 500;
+
+    const first = queueItemCost(state, 0, city.queue[0]!)!;
+    expect(first).toBe(BASE);
+    advanceProduction(state);
+    expect(state.players[0]!.unitsBuilt.worker).toBe(1);
+
+    city.queue = [{ kind: 'unit', id: 'worker' }];
+    const second = queueItemCost(state, 0, city.queue[0]!)!;
+    expect(second).toBe(BASE + STEP);
+    advanceProduction(state);
+    expect(state.players[0]!.unitsBuilt.worker).toBe(2);
+    expect(unitProductionCost(state, 0, 'worker')).toBe(BASE + 2 * STEP);
+  });
+
+  it('does not count a free worker a rider grants', () => {
+    // `realiseItem`'s `options.free` gate: a granted unit was never built, so
+    // it must not raise the ladder the way a purchase or a completion does.
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    const unitId = realiseItem(state, city, { kind: 'unit', id: 'worker', tile: cityTile(state.map, city) }, { free: true });
+    expect(unitId.unitId).toBeDefined();
+    expect(state.players[0]!.unitsBuilt.worker).toBeUndefined();
+    expect(unitProductionCost(state, 0, 'worker')).toBe(BASE);
   });
 });
 
@@ -2209,7 +2327,7 @@ describe('the turn pipeline over a live empire', () => {
 // ---------------------------------------------------------------------------
 
 describe('determinism with cities', () => {
-  it('round-trips a schema 30 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 31 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -2224,7 +2342,7 @@ describe('determinism with cities', () => {
     // improvements; 12 was the meters' `captured`; 13 the luxuries; 14 tile
     // purchase; 15 barbarians and discoveries.) What this pins is not the
     // number but that a city save is carried by whatever the number is.
-    expect(SCHEMA_VERSION).toBe(30);
+    expect(SCHEMA_VERSION).toBe(31);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);
