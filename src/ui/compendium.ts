@@ -94,6 +94,7 @@ import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield } from '../sim/terra
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from '../sim/triumphData';
 import { UNIT_TYPE_IDS, type UnitDef, type UnitTypeId, unitDef } from '../sim/unitData';
 import { CARD_LINE_NAME, lineOf } from './cardLine';
+import { CONCEPT_ENTRIES, INTRO_ENTRIES } from './compendiumText';
 import { YIELD_GLYPH, figure, percentFigure, signedFigure } from './figures';
 import { AXIS_MARK, riteGrantWords } from './religionScreen';
 import { resourceMarkNode } from './resourceMark';
@@ -101,8 +102,10 @@ import { setYieldText } from './yieldMark';
 
 // --- the model --------------------------------------------------------------
 
-/** The fourteen shelves, in the order the index lists them. */
+/** The shelves, in the order the index lists them. */
 export type CompendiumSectionId =
+  | 'intro'
+  | 'concept'
   | 'unit'
   | 'building'
   | 'wonder'
@@ -163,6 +166,12 @@ export interface CompendiumEntry {
   clauses: CompendiumClause[];
   /** One line in the voice of the tech tree's aphorisms, or null. Flavour. */
   flavor: string | null;
+  /**
+   * True for the two written shelves (`compendiumText.ts`): `clauses` there is
+   * prose, not the card vocabulary's bullet list, and prints as one `<p>` per
+   * clause rather than a marked list. Every generated entry leaves this unset.
+   */
+  written?: boolean;
 }
 
 export interface CompendiumSection {
@@ -178,6 +187,8 @@ export interface CompendiumSection {
  * the data's own, exactly as every id list in `src/sim/` is file order.
  */
 const SECTION_NAMES: readonly (readonly [CompendiumSectionId, string])[] = [
+  ['intro', 'Introduction'],
+  ['concept', 'Concepts'],
   ['unit', 'Units'],
   ['building', 'Buildings'],
   ['wonder', 'Wonders'],
@@ -198,6 +209,13 @@ const SECTION_NAMES: readonly (readonly [CompendiumSectionId, string])[] = [
 export function compendiumId(section: CompendiumSectionId, id: string): string {
   return `${section}:${id}`;
 }
+
+/**
+ * Where the book opens with no id and no hash to honour — both mounts' default.
+ * The Introduction's first page, ahead of whatever the index happens to start
+ * with.
+ */
+export const DEFAULT_ENTRY = compendiumId('intro', 'howToPlay');
 
 /** A row, dropped entirely when it has no figure to carry. */
 function row(label: string, figures: string): CompendiumRow[] {
@@ -1006,6 +1024,8 @@ export function compendiumSections(state: GameState | null = null): CompendiumSe
     byId.get(entry.section)!.push(entry);
   };
 
+  for (const entry of INTRO_ENTRIES) push(entry);
+  for (const entry of CONCEPT_ENTRIES) push(entry);
   for (const id of UNIT_TYPE_IDS) push(unitEntry(state, id));
   for (const id of BUILDING_IDS) push(buildingEntry(id));
   for (const id of IMPROVEMENT_IDS) push(improvementEntry(id));
@@ -1029,13 +1049,27 @@ export function compendiumSections(state: GameState | null = null): CompendiumSe
 }
 
 /**
+ * Whether one entry answers to `needle`, already trimmed and case-folded.
+ *
+ * A plain substring over the entry's **name** for the generated shelves — the
+ * brief's own rule, and the honest one for an index: a player typing "iron" is
+ * looking for a heading, not for every card that mentions iron in a clause. The
+ * two written shelves are the stated exception: their headings are essay
+ * titles ("Trade and roads"), not the table's own keyword, so a reader typing
+ * "caravan" is looking for the *paragraph* — `entry.written` widens the search
+ * to the prose itself.
+ */
+function entryMatches(entry: CompendiumEntry, needle: string): boolean {
+  if (entry.name.toLowerCase().includes(needle)) return true;
+  if (entry.written !== true) return false;
+  return entry.clauses.some((clause) => clause.text.toLowerCase().includes(needle));
+}
+
+/**
  * The sections with every entry that does not match `query` removed.
  *
- * A plain substring over the entry's **name**, case-folded — the brief's own
- * rule, and the honest one for an index: a player typing "iron" is looking for a
- * heading, not for every card that mentions iron in a clause. A section that
- * matches nothing keeps its row and comes back empty, so the index never
- * reflows under the cursor.
+ * `entryMatches` decides the one entry; a section that matches nothing keeps
+ * its row and comes back empty, so the index never reflows under the cursor.
  */
 export function filterSections(
   sections: readonly CompendiumSection[],
@@ -1045,7 +1079,7 @@ export function filterSections(
   if (needle.length === 0) return sections.map((section) => ({ ...section }));
   return sections.map((section) => ({
     ...section,
-    entries: section.entries.filter((entry) => entry.name.toLowerCase().includes(needle)),
+    entries: section.entries.filter((entry) => entryMatches(entry, needle)),
   }));
 }
 
@@ -1186,7 +1220,17 @@ function entryNode(entry: CompendiumEntry): HTMLElement {
     card.append(list);
   }
 
-  if (entry.clauses.length > 0) {
+  if (entry.clauses.length > 0 && entry.written === true) {
+    // The two written shelves' shape: prose, not the card vocabulary's marked
+    // list, so a paragraph per clause rather than a bullet.
+    const prose = element('div', 'cmp-written');
+    for (const line of entry.clauses) {
+      const paragraph = element('p', 'cmp-written-p');
+      setYieldText(paragraph, line.text);
+      prose.append(paragraph);
+    }
+    card.append(prose);
+  } else if (entry.clauses.length > 0) {
     const list = element('ul', 'cmp-clauses');
     for (const line of entry.clauses) {
       const item = element(
@@ -1395,8 +1439,9 @@ export function createCompendium(options: CompendiumOptions): Compendium {
     overlay.hidden = false;
     setExpanded();
     view.refresh();
-    const wanted = entryId ?? hashEntry();
-    if (wanted !== null && wanted !== undefined) view.show(wanted);
+    // With no id and no hash to honour, the book opens on the Introduction's
+    // first page rather than wherever the index happens to start.
+    view.show(entryId ?? hashEntry() ?? DEFAULT_ENTRY);
   }
 
   function close(): void {

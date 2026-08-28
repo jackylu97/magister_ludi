@@ -8570,6 +8570,24 @@ kbd {
   content: '☞';
 }
 
+/* The two written shelves: prose, so a paragraph per clause and no bullet —
+   `.cmp-clause`'s sibling for `entry.written`. */
+.cmp-written {
+  margin: 8px 0 0;
+}
+
+.cmp-written-p {
+  margin: 0 0 10px;
+  font-family: var(--face-ui);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.cmp-written-p:last-child {
+  margin-bottom: 0;
+}
+
 .cmp-flavor {
   margin: 8px 0 0;
   font-family: var(--face-name);

@@ -9,7 +9,7 @@
  * ----------------------
  * There is no second Compendium. `renderCompendium` (`src/ui/compendium.ts`) is
  * the same function the in-game overlay calls, handed a different element, and
- * everything below it is the same book: the fourteen shelves, the same cards,
+ * everything below it is the same book: the same shelves, the same cards,
  * the same ids. What this file adds is the three things a *page* has and a
  * screen does not — the stylesheet, the address bar, and no game.
  *
@@ -29,7 +29,7 @@
  */
 
 import '../style.css';
-import { renderCompendium, sectionOfId } from '../ui/compendium';
+import { DEFAULT_ENTRY, renderCompendium, sectionOfId } from '../ui/compendium';
 
 const body = document.getElementById('compendium-body');
 if (!(body instanceof HTMLElement)) {
@@ -52,8 +52,9 @@ function hashEntry(): string | null {
   return hash.length > 0 && sectionOfId(hash) !== null ? hash : null;
 }
 
-const opening = hashEntry();
-if (opening !== null) view.show(opening);
+// With no hash to honour, the page opens on the Introduction's first page —
+// the same default the in-game overlay opens on.
+view.show(hashEntry() ?? DEFAULT_ENTRY);
 
 // Back and forward through the addresses this page wrote, and a link followed
 // from outside. `hashchange` rather than a click handler because the hash is the

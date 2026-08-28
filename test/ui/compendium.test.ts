@@ -37,6 +37,7 @@ import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { TRIUMPH_IDS } from '../../src/sim/triumphData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import {
+  DEFAULT_ENTRY,
   type CompendiumSection,
   type CompendiumSectionId,
   compendiumId,
@@ -46,6 +47,7 @@ import {
   filterSections,
   sectionOfId,
 } from '../../src/ui/compendium';
+import { CONCEPT_ENTRIES, INTRO_ENTRIES } from '../../src/ui/compendiumText';
 
 const BOOK = compendiumSections();
 
@@ -63,7 +65,10 @@ describe('the shelves', () => {
   it('holds every row of every table, counted against the table', () => {
     // Counted against the id lists rather than against a number written here:
     // a figure in a test is a second table, and the whole point of this page is
-    // that there is only one.
+    // that there is only one. The two written shelves are counted against the
+    // arrays they are built from, for the same reason one scale up.
+    expect(shelf('intro').entries).toHaveLength(INTRO_ENTRIES.length);
+    expect(shelf('concept').entries).toHaveLength(CONCEPT_ENTRIES.length);
     expect(shelf('unit').entries).toHaveLength(UNIT_TYPE_IDS.length);
     expect(shelf('improvement').entries).toHaveLength(IMPROVEMENT_IDS.length);
     expect(shelf('resource').entries).toHaveLength(RESOURCE_IDS.length);
@@ -85,14 +90,29 @@ describe('the shelves', () => {
     expect(shelf('wonder').entries.length).toBeGreaterThan(0);
   });
 
-  it('has fourteen of them, every one with something on it', () => {
+  it('has sixteen of them, every one with something on it', () => {
     // The index the brief names. A shelf that came back empty would be a
     // section heading a reader clicks and learns nothing from.
-    expect(BOOK).toHaveLength(14);
+    expect(BOOK).toHaveLength(16);
     for (const section of BOOK) {
       expect(section.name.length, section.id).toBeGreaterThan(0);
       expect(section.entries.length, section.id).toBeGreaterThan(0);
     }
+  });
+
+  it('puts the two written shelves first, ahead of Units', () => {
+    expect(BOOK[0]!.id).toBe('intro');
+    expect(BOOK[0]!.name).toBe('Introduction');
+    expect(BOOK[1]!.id).toBe('concept');
+    expect(BOOK[1]!.name).toBe('Concepts');
+    expect(BOOK[2]!.id).toBe('unit');
+  });
+
+  it('builds the two written shelves from compendiumText’s own arrays', () => {
+    // Every entry the module exports, and nothing it doesn't — the shelf is
+    // exactly the array, not a paraphrase or a subset of it.
+    expect(shelf('intro').entries).toEqual(INTRO_ENTRIES);
+    expect(shelf('concept').entries).toEqual(CONCEPT_ENTRIES);
   });
 
   it('reads the technologies in age order', () => {
@@ -118,6 +138,16 @@ describe('an entry', () => {
       if (entry.flavor !== null) {
         expect(entry.flavor.trim().length, `${entry.id} flavor`).toBeGreaterThan(0);
       }
+    }
+  });
+
+  it('has at least one clause for every written entry', () => {
+    // A written card is nothing but prose (`rows` is always empty, see below),
+    // so a card with no clauses at all would be a blank page.
+    for (const entry of [...INTRO_ENTRIES, ...CONCEPT_ENTRIES]) {
+      expect(entry.written, entry.id).toBe(true);
+      expect(entry.rows, entry.id).toEqual([]);
+      expect(entry.clauses.length, entry.id).toBeGreaterThan(0);
     }
   });
 
@@ -206,6 +236,25 @@ describe('a live game changes one figure and no others', () => {
 });
 
 describe('the index', () => {
+  it('opens on the Introduction’s first page by default', () => {
+    expect(DEFAULT_ENTRY).toBe('intro:howToPlay');
+    expect(everyEntry().some((entry) => entry.id === DEFAULT_ENTRY)).toBe(true);
+    const landing = compendiumShow(BOOK, '', DEFAULT_ENTRY);
+    expect(landing).toEqual({ openSection: 'intro', marked: 'intro:howToPlay', clearSearch: false });
+  });
+
+  it('finds “caravan” on the Concepts shelf, in the prose rather than a name', () => {
+    const filtered = filterSections(BOOK, 'caravan');
+    const hits = filtered.find((section) => section.id === 'concept')!.entries;
+    expect(hits.length).toBeGreaterThan(0);
+    for (const entry of hits) {
+      expect(entry.written).toBe(true);
+      expect(entry.clauses.some((clause) => clause.text.toLowerCase().includes('caravan'))).toBe(
+        true,
+      );
+    }
+  });
+
   it('filters by a plain substring over the names, keeping every shelf’s row', () => {
     const filtered = filterSections(BOOK, 'sword');
     // Every shelf survives, so the index never reflows under the cursor.
@@ -382,6 +431,16 @@ describe('never hand-written prose about a number', () => {
   it('has no digit in any string the Compendium prints', () => {
     const offenders = stringLiterals(sourceOf('compendium.ts')).filter(
       (text) => /\d/.test(text) && !isHeadingTag(text),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('has no digit in the written shelves’ prose either', () => {
+    // `compendiumText.ts` carries the same promise — "never about a number" —
+    // in its own docblock, and the same scanner holds it, reused rather than
+    // duplicated.
+    const offenders = stringLiterals(sourceOf('compendiumText.ts')).filter((text) =>
+      /\d/.test(text),
     );
     expect(offenders).toEqual([]);
   });
