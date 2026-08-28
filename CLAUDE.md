@@ -218,10 +218,11 @@ would change every seeded outcome. No further rename passes.
 - Layers that filter by the local seat (units, cities, territory, improvements, **sites**,
   lens, walk/death animations) are rebuilt off `FogStats.tiles` in the render loop, not off
   their own fingerprints — a new seat-filtered layer must be added there too. `sites3d.ts`
-  is the one layer with **two** fog rules and they are not interchangeable: a ruin or a
-  village is *ground* and survives on remembered hexes (the improvement rule), while a camp
-  is an *occupation* and is drawn only where the seat can see right now (the unit rule) —
-  a remembered camp would be a banner a player sends a warrior at. `sites3d` also draws
+  has **one** fog rule for its three tenants — the improvement rule: a ruin, a village and a
+  **camp** are all *ground* and survive on remembered hexes (camps by the 2026-08-27 ruling:
+  a camp is the one thing a player plans a march *against*, so it stays on the chart until
+  the seat next sees the hex empty). `lens3d.ts`'s explorer clause is bound to follow it —
+  the lens must never ring a hex the board is not drawing the thing on. `sites3d` also draws
   standing markers off the printed icon atlas, so it (and any new seat-filtered layer that
   reads the atlas) must be rebuilt in `loadIcons` too, or sites placed before the atlas
   finishes rasterising stand unmarked. A layer rebuilt *outside*
