@@ -3582,3 +3582,19 @@ trade surface for consistency.
 a new data row's `note` is player prose; a new surface that prints a flavour field labels it.
 The Compendium's digit-free tests and the shape-register test are the two mechanical guards;
 the voice itself is `src/ui/compendiumText.ts`'s docblock.
+
+
+**Addendum (user, 2026-08-28) — the first of the war-pace levers, and three more.** *"Make ZOC as
++1. City health 100 base. Palisades +15 health, +5 strength. Great generals get an aura: units
+within 2 hexes gain +3 combat strength."* The zone of control is a **toll**, never a lock: a step
+from a hex an enemy touches to another the same piece touches costs the ground plus
+`rules.movement.zocExtraCost` (1) and the mover keeps the remainder. Entry XXV's lock arithmetic —
+`turnBoundary`, the locked step landing exactly on it, `reachableTiles` stopping its frontier
+there — is deleted, not reworded: a strictly positive addition to a positive price gives the two
+searches their settle-once guarantee for free and keeps the heuristic admissible. One consequence
+to watch: on flat ground the toll ties the two-step detour, so a picket is a toll and not a
+detour-maker. City base health is 100 (the siege's 5 a turn is now 5% of it), the palisade 15
+health and +5 strength, and the Walls of Uruk (50) and the Great Wall (25) stand as they were
+against the new base for rescaling. A standing great general projects +3 to every friendly
+combat unit within two hexes — a labelled line on both sides, the first general in sweep order
+only, the general itself and cities excluded — while the act's timed blessing stays.

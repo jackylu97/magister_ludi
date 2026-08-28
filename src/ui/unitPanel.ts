@@ -1052,11 +1052,12 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     if (unit.sleeping === true) notes.push('Sleeping 💤');
     // A board fact the player cannot see by looking, and the one rule that
     // turns a neighbouring enemy into a *cost*: stepping to another hex that
-    // same piece also touches ends the turn on arrival (Entry XXV). Said here
+    // same piece also touches costs one extra movement point (Entry XXV, the toll of
+    // 2026-08-28). Said here
     // rather than left to be discovered by losing a march to it — walking away
     // is still free, and that is the half the sentence is warning about.
     if (inZoneOfControl(getGame().state, unit)) {
-      notes.push("Held by an enemy's zone of control");
+      notes.push("In an enemy's zone of control — steps alongside it cost one more");
     }
     // A view-only note for a view-only state: the sim has no idea this unit
     // was skipped (see `controls.ts`), so this is the one place it is said.

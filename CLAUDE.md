@@ -397,20 +397,22 @@ would change every seeded outcome. No further rename passes.
   coast alone, at `rules.movement.embarkCost`). `tileMoveCost` is now only the *ground's* half — the hex and the mover's
   `ignoresTerrainCost` — and the zone of control is the half a lone tile cannot answer: a step
   from a hex an enemy combat unit (or enemy city) touches to another hex **that same piece**
-  touches completes and then empties the purse. There are **four** readers and they must never
+  touches costs the ground's price **plus `rules.movement.zocExtraCost`** (1) — a toll, never a
+  lock (2026-08-28). There are **four** readers and they must never
   drift: `findPath`, `reachableTiles`, `advanceAlongPath` and `pathTurns` (the interface's
   "~N turns", which used to keep its own copy of the loop in `unitPanel.ts` and was the one
   already wrong). A fifth caller prices a step through `stepCost` or it is a highlight
   promising a march the walk will not deliver.
-  The lock's arithmetic is the load-bearing part: `stepArrival` lands a locked step **exactly**
-  on `turnBoundary`, never on `max(ground, boundary)`. That is what lets `reachableTiles` stop
-  its frontier there with no zone-of-control clause of its own, and what makes a mid-march
-  slide never cheaper than going around — so the overlay and the reducer cannot disagree. It is
-  also why the lock is never a zero-cost edge, which both searches' settle-once guarantee needs.
+  The toll is a strictly positive *addition* to an already-positive price, so there is no
+  zero-cost edge, the A* heuristic (`cheapestStepCost`) stays admissible, and `reachableTiles`
+  needs no zone-of-control clause of its own — the frontier's `cost >= budget` stop and
+  `advanceAlongPath`'s overspend forgiveness are the same condition. `stepCost` returns
+  `{ cost, zoc }`; `zoc` is presentation only and nothing prices off it twice.
   `zocField(state, ownerId)` is hoisted once per search beside `unitDef`; building one per edge
   is the shape to avoid, not the rule.
-- **Combat is flat points on one ledger** (2026-08-28, Entry XXXVII). Terrain and
-  fortification are labelled strength lines in `planCombat`'s defender fold (`explainTerrainDefense`,
+- **Combat is flat points on one ledger** (2026-08-28, Entry XXXVII). Terrain, fortification and
+  a standing great general's aura (`generalAuraLines`, +3 within two hexes, both sides, the
+  first general only) are labelled strength lines in `planCombat`'s fold (`explainTerrainDefense`,
   `fortifyBonus` in points), never a multiplier; the only percentages left are the attacker's
   own (river, `cardCombatPercent`). A city's base strength is `cityBaseStrength` — the best unit
   `buildError` would let its owner build — and its maximum health is `cityMaxHp` (`cityBaseHp` +
@@ -647,7 +649,7 @@ would change every seeded outcome. No further rename passes.
   are read like every other: `pantheonSlots` in `pantheonSlots()` (a fold beside
   `slotsFromTechs`), `purchaseRider` as one line in `explainPurchaseCost`'s bank,
   `zocRule 'borders'` as one clause in `zocField` (every owned hex of the holder projects;
-  inside that border every step locks), `projectRider` at the one place a project's payout
+  inside that border every step pays the toll), `projectRider` at the one place a project's payout
   is banked (a flat addition to the *payout*, never to the hammers going in). A wonder's
   half that needs a shape which does not exist ships as `deferred:` on the row.
 - **A building's non-yield facts are read in one place**, `buildingEffects.ts` —
