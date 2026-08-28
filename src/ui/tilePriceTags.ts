@@ -58,16 +58,23 @@
  * rules — this is a DOM surface, so its tunables belong in the stylesheet the
  * way a renderer's belong in `data/view3d.json`.
  *
- * One mechanism, two modes (the trade pass, 2026-08-27)
- * ----------------------------------------------------
- * Sending a caravan is the same gesture as buying a hex — arm a mode, read a
- * figure on every candidate, click one — so it draws the same plate rather than
- * a second thing that looks like it. What the two modes disagree about is only
- * *where the plates are and what they say*, so that is the whole of what
- * `createMapPlates` takes: a supplier of `MapPlate`s and a pick handler. The
- * lifecycle below — build on demand, rewrite only on a changed signature,
- * reposition on the renderer's frame beat, hide what has left the screen — is
- * written once and neither mode knows about the other.
+ * One mechanism, one mode again (2026-08-28)
+ * ------------------------------------------
+ * The trade pass of 2026-08-27 gave this layer a second supplier: sending a
+ * caravan was the same gesture as buying a hex — arm a mode, read a figure on
+ * every candidate, click one — so it drew the same plate rather than a second
+ * thing that looked like it. The user's ruling of 2026-08-28 deleted that mode
+ * outright ("I want to remove all micromanagement of units"): a route is chosen
+ * on the Trade screen and the caravan is teleported to the origin, so there is
+ * nothing on the board to click.
+ *
+ * `createMapPlates` survives the mode it was generalised for, and deliberately.
+ * It is the *lifecycle* — build on demand, rewrite only on a changed signature,
+ * reposition on the renderer's frame beat, hide what has left the screen — and
+ * that is worth exactly as much with one supplier as with two; what the split
+ * bought was the guarantee that a second armed-mode overlay is a supplier
+ * rather than a second layer that merely looks like this one. The price supplier
+ * below is the only one today.
  *
  * `createTilePriceTags` is that core with the Buy Tiles supplier bolted on, and
  * it keeps its name and its shape because the *price* plate is a thing this
@@ -85,8 +92,7 @@ import { YIELD_GLYPH, setYieldText } from './yieldMark';
  * One plate on one hex, in the voice both modes speak.
  *
  * `text` is composed in `YIELD_GLYPH` and printed through `setYieldText`, so a
- * coin on a price and a sheaf on a caravan's preview are the same drawn marks
- * the rest of the HUD uses. `spoken` is the same fact as a *string*, because an
+ * coin on a price is the same drawn mark the rest of the HUD uses. `spoken` is the same fact as a *string*, because an
  * `aria-label` and a `title` are built by the platform and cannot hold a node —
  * the register in `figures.ts`.
  *
@@ -117,9 +123,12 @@ export interface MapPlatesOptions {
   /** Called when the player clicks a plate that is not disabled. */
   onPick: (plate: MapPlate) => void;
   /**
-   * The pointer entered a plate, or left every plate (`null`). Optional because
-   * only the caravan mode has anything to draw on a hover — the dashed route
-   * preview under the cursor.
+   * The pointer entered a plate, or left every plate (`null`). Optional, and
+   * unused today: it existed for the caravan mode's dashed route preview under
+   * the cursor, which went with the mode (2026-08-28). Kept on the shape because
+   * "what is under the pointer" is the one thing a plate knows and its supplier
+   * does not, and re-deriving it later from a `pointerenter` bound outside this
+   * file would be the second lifecycle the split exists to prevent.
    */
   onHover?: (plate: MapPlate | null) => void;
 }

@@ -39,14 +39,22 @@ design-notes Entry XXV (`stepCost(from, to)` — built for roads before roads ex
 - **`trader`** unit row, unlocked by **Currency** (the tree doc's home), civilian, no
   combat, `movement 2`, `sight 1`. Built or bought like a worker (the treasury bank, ordinary
   gates). **Not** a great-work-style marker: it is a piece with one verb.
-- **`sendTrader { unitId, cityId }`** — a command naming a *destination city*. Validation: the
-  trader stands in one of your cities (the origin); the destination is another city (yours or
-  foreign — there is no war state, so every city is a partner); the empire has a free route
-  slot; a **path exists** for the trader (land path through terrain the mover may enter, and
-  — once harbours exist — a coast path between two harbour cities); the destination is within
-  **range** (`rules.trade.rangeTurns`, in *turns of the trader's own march* — "how far a
-  caravan can walk", priced by `pathTurns`, so roads extend range for free). No route already
-  runs between the pair in either direction (one route per pair).
+- **`startRoute { unitId, fromCityId, toCityId }`** (✎ 2026-08-28, replacing
+  `sendTrader { unitId, cityId }`) — a command naming *both* cities. **Where the trader is
+  standing is not asked**: on acceptance it teleports into the origin's centre, through
+  `arriveOnTile` because a third way to move a unit calls the one seam, and sets out from
+  there. Validation: both cities are yours and are two different cities; the empire has a
+  free route slot; no route already runs between the pair in either direction (one route per
+  pair); **both gates have room** for a caravan (an unladen caravan of your own is not a
+  wall — it is the piece being sent); a **path exists** for the roster's caravan (land path
+  through terrain the mover may enter, and — once harbours exist — a coast path between two
+  harbour cities); the destination is within **range** (`rules.trade.rangeTurns`, in *turns
+  of a caravan's own march* — "how far a caravan can walk", priced by `pathTurns` from the
+  origin on a full purse, so roads extend range for free). The gate is two functions over
+  one implementation: `routeStartable(state, playerId, fromCityId, toCityId)` is everything
+  above (the Trade screen greys a row with it before any trader is chosen) and
+  `startRouteError(state, playerId, unitId, fromCityId, toCityId)` is that plus the clauses
+  only a piece can answer.
 - The verb **starts a march**: the trader takes the path through `advanceAlongPath`, per step
   `arriveOnTile` — the one seam — and **every hex it rests on becomes road** (below). On the
   turn it arrives, the piece is **consumed** and the route is written:
@@ -158,10 +166,12 @@ building).
 - **Trader piece**: a civilian sculpt (a laden mule or a cart — the `worker` class with a
   pack) and a Tabler badge (`package` or `truck`… a `horse`-with-bales drawn in Tabler's
   geometry if nothing reads). Badge class `'trader'`.
-- **Send verb**: select the trader in a city → "Send caravan" → the map shows every
-  reachable partner city as a plate with the route's preview yields ("+3🌾 +2⚙ +1💰 · 30
-  turns"), like Buy Tiles' price plates; click to send. Foreign cities show the partner's
-  half.
+- **Start verb** (✎ 2026-08-28): select the trader → "Start route" → the Trade screen opens
+  with that trader as the *chooser*, and every available pair is a row with its preview yields
+  ("+3🌾 +2⚙ +1💰"), greyed with `routeStartable`'s own sentence where it refuses. Click
+  **Start**: the trader teleports to the origin and the route begins. The right pane's rows
+  are sortable by food, production, gold or the three summed, and filterable by origin town.
+  The board's send plates are **gone**.
 - **Routes list** on the city panel (routes from this city, turns left) and on the top bar's
   gold hover (connection gold per city, route slots used/held).
 - **Roads** drawn on the board; **connected** cities get a small road glyph beside the banner.
@@ -196,3 +206,19 @@ internal routes to the capital? We should jsut keep the logic as above and have 
 road maintenance, yes, we should start adding maintenance costs to the game, note that as a to-do. 1gold per 4 hexes seems reasonable. For enforcement, only charge maintenance for roads built by the player.
 Road is permanent, the route expires in 20 turns. Add a button for 'auto-resend'.
 the trader unit should be traveling along the road and can be pillaged for gold, food, and production to the pillager's nearest city.
+✎ 2026-08-28 — "Change caravan behavior to be much simpler. The caravan has action 'start
+route' and you choose from an available trade route in the trade screen (from any city). Once
+chosen, the caravan teleports to the origin city and begins the route as before. I want to
+remove all micromanagement of units." Built: `startRoute` replaces `sendTrader`,
+`SCHEMA_VERSION` 23 → 24 (a v23 log names a command this reducer does not have, so the save is
+refused rather than misread).
+
+✎ 2026-08-28 (the interface's half of the ruling above) — the trader's sheet offers one trade
+verb, **Start route**, which opens the Trade screen with that piece as the chooser; the send
+mode, the partner plates and the "a caravan sets out from a city" clause are deleted.
+✎ 2026-08-28 — the Trade screen's right pane sorts by clickable Food / Production / Gold /
+Total column headers (a click descending, a second ascending; the default stays gold → food →
+production) and filters by origin town with a chip row. Both are per-opening state.
+✎ 2026-08-28 — with no free route slot, Start route is greyed rather than hidden and every
+greyed Start on the screen reads "Not enough trade route capacity. Build markets and harbours
+to gain more."; the capacity figure ("2 of 2 routes") prints beside the action.

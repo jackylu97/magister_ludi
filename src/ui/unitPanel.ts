@@ -244,19 +244,24 @@ export interface UnitPanelOptions {
   onGreatPersonAct: () => void;
   onGreatPersonWork: () => void;
   /**
-   * Why the selected caravan cannot open a route from where it stands — the
-   * same three-valued shape as `foundCityBlocker`, answered by
-   * `controls.sendCaravanBlocker()`.
+   * Why this seat cannot start any route at all — the same three-valued shape as
+   * `foundCityBlocker`, answered by `controls.startRouteBlocker()`.
    *
-   * A blocker rather than a list, unlike the improvements, because *which*
-   * partner is not a question this sheet asks: arming the verb puts a plate on
-   * every town, and each plate carries its own refusal. This is the question
-   * about the piece.
+   * A blocker rather than a list, unlike the improvements, and after the
+   * 2026-08-28 ruling it is a blocker about the **empire** rather than about the
+   * piece: *which* pair is not a question this sheet asks any more — it hands
+   * that to the Trade screen, which greys each row with `routeStartable`'s own
+   * sentence. The only thing worth saying here is that there is no capacity to
+   * start one at all, in the user's own words.
    */
-  sendCaravanBlocker: () => string | null | undefined;
-  onSendCaravan: () => void;
-  /** Whether the send plates are already up — the button reads as a toggle. */
-  isSendMode: () => boolean;
+  startRouteBlocker: () => string | null | undefined;
+  /**
+   * Opens the Trade screen with this trader as the **chooser** — every Start on
+   * the screen will send this piece rather than whichever one happens to be
+   * first idle. Optional for `onOpenTrade`'s reason: a page without a Trade
+   * screen simply does not offer the row.
+   */
+  onStartRoute?: () => void;
   /**
    * The selected caravan's live route, or `null` — `controls.routeReading()`.
    * Everything about a routed piece on this sheet comes from it.
@@ -296,6 +301,14 @@ interface UnitAction {
   label: string | DocumentFragment;
   /** The keyboard shortcut that does the same job, worn on the button. */
   key?: string;
+  /**
+   * A small figure printed at the right of the row, beside the shortcut's slot.
+   *
+   * For a verb whose refusal is a *quantity* — the route ledger's "2 of 2
+   * routes" — where the number is the argument and hiding it in the hover makes
+   * the greying something a player has to interrogate.
+   */
+  note?: string;
   /** Why it cannot be taken, or `null` when it can. */
   blocked: string | null;
   /** What it is for, shown when nothing is blocking it. */
@@ -415,9 +428,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     greatPerson,
     onGreatPersonAct,
     onGreatPersonWork,
-    sendCaravanBlocker,
-    onSendCaravan,
-    isSendMode,
+    startRouteBlocker,
+    onStartRoute,
     routeReading,
     routeSlotsLine,
     onSetAutoResend,
@@ -569,17 +581,29 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       return actions;
     }
 
-    // An unladen caravan: one verb, and it arms a board full of plates rather
-    // than opening a menu of towns. Which partners are legal — and why each
-    // refused one is not — is the plates' business (`caravanOffers`), so the
-    // row itself only answers "can this piece be sent from here at all".
-    if (trades(unitDef(unit.type))) {
-      const blocker = sendCaravanBlocker();
+    // An **idle** caravan: one verb, and it opens the screen where the route is
+    // chosen rather than arming a board full of plates (the user's ruling,
+    // 2026-08-28 — "I want to remove all micromanagement of units"). Which pair
+    // is legal, and why each refused one is not, is the screen's business
+    // (`routeStartable`, one greyed row each), so the row itself only answers
+    // "is there any route to start at all". It carries no clause about where
+    // the piece is standing, because there is no longer such a rule: the
+    // caravan is teleported to whichever origin the player picks.
+    //
+    // The move verbs below are **not** hidden for it. A routed caravan's sheet
+    // is its route and nothing else (the early return above); an idle one is an
+    // ordinary civilian that happens to have a screen to open.
+    if (trades(unitDef(unit.type)) && onStartRoute) {
+      const blocker = startRouteBlocker();
       actions.push({
-        label: isSendMode() ? 'Choosing a Partner…' : 'Send Caravan',
+        label: 'Start route',
+        // The capacity beside the verb, not only in the hover: the greying and
+        // the figure are the same fact, and a disabled button whose reason is a
+        // hover away is a button players guess about.
+        note: routeSlotsLine(),
         blocked: blocker === undefined ? 'No unit selected' : blocker,
-        hint: `Open a trade route to one of your cities · ${routeSlotsLine()}`,
-        run: onSendCaravan,
+        hint: `Choose a route in the Trade screen · ${routeSlotsLine()}`,
+        run: onStartRoute,
       });
     }
     if (unitDef(unit.type).foundsCity) {
@@ -915,6 +939,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       if (typeof action.label === 'string') label.textContent = action.label;
       else label.append(action.label);
       button.append(label);
+      if (action.note) button.append(element('span', 'unit-action-note', action.note));
       if (action.key) button.append(element('kbd', 'unit-action-key', action.key));
       // The rows that carry a paragraph raise the card; the rest keep their
       // one-line `title`. Bound after the label so the anchor is the whole

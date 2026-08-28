@@ -409,7 +409,7 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   }
   if (def.trades === true) {
     out.push({
-      text: 'Sets up a trade route between two of your cities, and builds road on every hex it walks over.',
+      text: 'Select it and choose Start route. Pick any available route in the Trade screen; the trader moves to the origin city and begins. It builds road on every hex it walks over.',
     });
   }
   if (def.ignoresTerrainCost === true) {
@@ -1170,7 +1170,7 @@ function tradeEntries(): CompendiumEntry[] {
           text: `Each food, culture or science building in the origin city is worth a point of ${YIELD_GLYPH.food}. Each production, military or gold building there is worth a point of ${YIELD_GLYPH.production}. The gold is counted differently: a point of ${YIELD_GLYPH.gold} for every ${figure(trade.goldPerCombinedPop)} citizens across the two cities together.`,
         },
         {
-          text: 'Distance is measured in turns of the trader’s own travel, so a road puts more cities in reach and a mountain range puts fewer. Both ends of a finished route become trading posts, permanently.',
+          text: 'Distance is measured in turns of a trader’s own travel between the two cities, so a road puts more cities in reach and a mountain range puts fewer — it is a fact about the pair, not about where your trader happens to be standing. Both ends of a finished route become trading posts, permanently.',
         },
         {
           text: 'Only one route may run between any pair of your cities, in either direction. The route belongs to the trader carrying it, so an enemy that kills a loaded trader takes its cargo and ends the route.',

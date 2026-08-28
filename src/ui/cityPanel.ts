@@ -1477,14 +1477,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    *
    * The **trading post** is a mark rather than a row. It is not a building — it
    * is the *history* of having been an end of a route, written permanently by
-   * `sendTraderAt` and never cleared — and all it does is let later caravans
+   * `startRouteAt` and never cleared — and all it does is let later caravans
    * reach further, which is a fact about this town rather than a thing it makes.
    * So it sits beside the heading like the capital's star and says so on hover.
    *
    * Drawn even when the town is an end of nothing, because the slot figure is
-   * the answer to "why can I not send another caravan" and a section that
-   * vanished would take that answer with it — the greyed-plate reading, one
-   * panel over.
+   * the answer to "why can I not start another route" and a section that
+   * vanished would take that answer with it — the greyed-row reading, one
+   * screen over.
    */
   function renderRoutes(city: City): HTMLElement | null {
     const { state } = getGame();
@@ -1501,9 +1501,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     box.append(head);
     box.append(element('p', 'hint', routeSlotsLineOf(state, localPlayerId())));
-    // The second door to the Trade screen, and the one a player reaches from a
-    // *town* rather than from a piece: this row already answers "why can I not
-    // send another caravan", and the screen is where that is acted on. Offered
+    // A door to the Trade screen, and the one a player reaches from a *town*
+    // rather than from a piece: this row already answers "why can I not start
+    // another route", and the screen is where that is acted on. Offered
     // whether or not this town is an end of anything — an empire's trade is
     // exactly what a town with no routes wants to look at.
     if (onOpenTrade) {

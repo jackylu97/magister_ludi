@@ -544,6 +544,47 @@ describe('never hand-written prose about a number', () => {
     expect(prose).toContain('across the two cities together');
   });
 
+  /**
+   * The verb, in one wording everywhere (the user's ruling, 2026-08-28).
+   *
+   * Four surfaces say how a route is opened — the trader's own entry, the Trade
+   * concept, the trade shelf's lead paragraph and the help card in
+   * `index.html` — and before this pass three of them described a mode on the
+   * board that no longer exists. Pinned on the two nouns the gesture *is*
+   * ("Start route", the Trade screen) rather than on whole sentences, so the
+   * prose may be improved and the mechanism may not silently drift back.
+   */
+  it('describes the one way a route is opened, in the same words on every shelf', () => {
+    const written = everyEntry()
+      .filter((entry) => entry.written === true)
+      .map((entry) => entry.clauses.map((clause) => clause.text).join(' '));
+    const concept = written.find((prose) => prose.includes('Once you have researched Currency'))!;
+    expect(concept).toContain('Select a trader and choose Start route');
+    expect(concept).toContain('the trader moves to the origin city and begins');
+
+    // The trader's own roster entry, generated off `UnitDef.trades`.
+    const trader = everyEntry().find((entry) => entry.id === 'unit:trader')!;
+    const roster = trader.clauses.map((clause) => clause.text).join(' ');
+    expect(roster).toContain('Start route');
+    expect(roster).toContain('Trade screen');
+
+    // And nothing anywhere still describes the deleted mode.
+    for (const prose of written) {
+      expect(prose).not.toContain('Send Caravan');
+      expect(prose).not.toContain('send it from one of your cities');
+    }
+  });
+
+  it('says the capacity refusal in the user’s own sentence', () => {
+    // The one line the interface does not take from the reducer, and the
+    // Compendium is a fourth surface that would otherwise word it a fifth way.
+    const concept = everyEntry()
+      .filter((entry) => entry.written === true)
+      .map((entry) => entry.clauses.map((clause) => clause.text).join(' '))
+      .find((prose) => prose.includes('each market provides one route slot'))!;
+    expect(concept).toContain('Not enough trade route capacity');
+  });
+
   it('keeps one describer for a rite, shared with the screen that performs one', () => {
     // `riteGrantWords` lives in `religionScreen.ts` because that is where a rite
     // is performed; the Compendium reads it rather than growing a second copy.

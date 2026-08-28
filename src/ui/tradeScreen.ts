@@ -12,26 +12,31 @@
  * are worth; the right pane is every pair a caravan could still join, grouped by
  * the town it would set out from.
  *
- * What it graduates from
- * ----------------------
- * Trade had three surfaces and no *screen*: a routed caravan's sheet
- * (`unitPanel.ts`), a town's Routes row (`cityPanel.ts`), and a board full of
- * send plates armed from an unladen trader (`tilePriceTags.ts`). Each answers
- * one question about one thing. None of them answers "how is my trade doing",
- * and none of them can be reached without first finding and clicking the right
- * piece — which for the fourth caravan in a twelve-city empire is a search.
+ * The screen *is* the verb now (2026-08-28)
+ * -----------------------------------------
+ * Trade used to have three surfaces and no screen, and then a screen beside a
+ * board full of send plates armed from an unladen trader. The user's ruling
+ * deleted the second half of that: *"the caravan has action 'start route' and
+ * you choose from an available trade route in the trade screen (from any city).
+ * Once chosen, the caravan teleports to the origin city and begins the route as
+ * before. I want to remove all micromanagement of units."*
+ *
+ * So a row is no longer "a send from the town a caravan happens to be standing
+ * in". It is a **pair**, offered on its own merits, and the caravan is a
+ * resource the empire spends on it — which is why the gate the rows grey with is
+ * `routeStartable` (slots, pair, path, range, a free centre: everything that is
+ * about the two towns) rather than an error asked of a particular piece. The
+ * piece is named on the row's hover and nowhere else, because *which* caravan is
+ * an answer, not a question.
  *
  * Nothing here is a new rule
  * --------------------------
  * Every figure comes out of `trade.ts`: `explainRouteYield` for what a route
  * pays, `explainRouteYieldBetween` for what one *would* pay, `explainRouteSlots`
  * and `usedRouteSlots` for the capacity, `explainTradeGold` for the two
- * empire-scale lines. Every refusal is `sendTraderError`'s own sentence, asked
- * of the very caravan the Send button would send — **never of a copy wearing a
- * route it is not carrying**, which is the mistake `tradeLines.ts`' docblock
- * records having made once already. A row with no caravan standing on its origin
- * is not "refused"; it is a row with nowhere to send from, and it says that
- * instead.
+ * empire-scale lines, `routeStartable` for every greyed row. A row's sentence is
+ * the reducer's own — **never a copy wearing a route it is not carrying**, which
+ * is the mistake `tradeLines.ts`' docblock records having made once already.
  *
  * The pure half of this file is everything above `createTradeScreen`, for
  * `figures.ts`' reason: this suite has no jsdom, and the half of a panel that
@@ -39,8 +44,6 @@
  * a function somebody can call.
  */
 
-import { hexDistance } from '../sim/hex';
-import { offsetToAxial } from '../sim/map';
 import {
   type RouteYieldLine,
   type TradeGoldLine,
@@ -52,17 +55,17 @@ import {
   originCityOf,
   routeCities,
   routeIsLive,
-  sendTraderError,
+  routeStartable,
   tradeGold,
   usedRouteSlots,
 } from '../sim/trade';
 import { UNIT_TYPE_IDS, type UnitTypeId, trades, unitDef } from '../sim/unitData';
 import { gatingTech } from '../sim/tech';
 import { techDef } from '../sim/techData';
-import type { City, GameState, Unit } from '../sim/state';
+import type { GameState, Unit } from '../sim/state';
 import { cityDisplayName } from './cityDisplay';
 import { YIELD_GLYPH, figure, signedFigure } from './figures';
-import { routeFigures } from './tradeLines';
+import { NO_ROUTE_CAPACITY, hasFreeRouteSlot, routeFigures } from './tradeLines';
 import { setYieldText } from './yieldMark';
 
 // --- the running half -------------------------------------------------------
@@ -194,29 +197,21 @@ export interface TradeCandidate {
   /** True when a live route already joins this pair, in either direction. */
   running: boolean;
   /**
-   * The reducer's own refusal, or `null`. **`sendTraderError`'s sentence
-   * verbatim**, asked of the idle caravan standing on the origin — so a greyed
-   * row and a rejected `sendTrader` can never disagree about why. `null` when
-   * there is no caravan on the origin to ask about: that row is not refused, it
-   * simply has nowhere to set out from, and the origin says so.
+   * The reducer's own refusal, or `null`. **`routeStartable`'s sentence
+   * verbatim** — the gate about the *pair* (a free slot, no route already
+   * joining these two, a path, the range, a free centre to arrive on), asked
+   * with no caravan in mind at all, because under the 2026-08-28 ruling the
+   * caravan may be anywhere and is teleported to the origin.
    */
   error: string | null;
 }
 
-/** One of this seat's towns, and every partner a caravan could reach from it. */
+/** One of this seat's towns, and every partner a route could join it to. */
 export interface TradeOrigin {
   cityId: number;
   name: string;
   col: number;
   row: number;
-  /** The idle caravan standing on this centre, or `null`. Send needs one. */
-  senderUnitId: number | null;
-  /**
-   * Why nothing can be sent from here, or `null` when something can — "no
-   * caravan here · the nearest idle one is in Ur", or "build a trader
-   * (Currency)" when the empire has no idle caravan anywhere.
-   */
-  note: string | null;
   candidates: TradeCandidate[];
 }
 
@@ -225,12 +220,96 @@ function traderType(): UnitTypeId | null {
   return UNIT_TYPE_IDS.find((type) => trades(unitDef(type))) ?? null;
 }
 
-/** Every caravan of this seat that is standing free of a route. */
-function idleTraders(state: GameState, playerId: number): Unit[] {
+/**
+ * Every caravan of this seat that is standing free of a route, in `state.units`
+ * order — which is what makes "the first idle trader" a fact about the state
+ * rather than about who asked, exactly as every other sweep in this game is.
+ */
+export function idleTraders(state: GameState, playerId: number): Unit[] {
   return state.units.filter(
     (unit) =>
       unit.ownerId === playerId && unit.trade === undefined && trades(unitDef(unit.type)),
   );
+}
+
+/**
+ * The caravan a Start would name: the **chooser** when the screen was opened
+ * from a trader's own sheet, otherwise the **first idle trader** in `state.units`
+ * order.
+ *
+ * One function rather than a conditional in the click handler, for this file's
+ * stated reason: "which caravan" is the part of that button that can be quietly
+ * wrong. The chooser is honoured only while it is still idle and still this
+ * seat's — a screen left open across a resolution that ended somebody's route,
+ * or across a plunder, must not dispatch a piece that has moved on.
+ */
+export function startingTrader(
+  state: GameState,
+  playerId: number,
+  chooserUnitId: number | null,
+): Unit | null {
+  const idle = idleTraders(state, playerId);
+  const chooser =
+    chooserUnitId === null ? undefined : idle.find((unit) => unit.id === chooserUnitId);
+  return chooser ?? idle[0] ?? null;
+}
+
+/**
+ * "Caravan from Ur will be sent" — which piece a Start would move, on the row's
+ * hover.
+ *
+ * The teleport is the whole reason this is a *note* and not a gate: the caravan
+ * no longer has to be standing anywhere in particular, so the honest thing to
+ * say is which one is about to be spent and where it is coming from. A caravan
+ * out in the field says so rather than naming a town it is only near.
+ */
+export function starterNote(state: GameState, trader: Unit | null): string | null {
+  if (trader === null) return null;
+  const home = originCityOf(state, trader);
+  return home === null
+    ? 'A caravan in the field will be sent'
+    : `Caravan from ${cityDisplayName(state, home)} will be sent`;
+}
+
+/**
+ * "Build a trader (Currency) to start a route.", or `null` when one is standing
+ * idle somewhere.
+ *
+ * **One line at the top of the pane**, not one per origin group. The old screen
+ * said "no caravan here — the nearest idle one is in Ur" on every town without a
+ * piece on it, which was true of a rule that no longer exists: a route is
+ * started from the screen and the caravan comes to it. The only fact left worth
+ * saying is that the empire has no caravan at all, and the useful half of that
+ * is the technology.
+ */
+export function noTraderNote(state: GameState, playerId: number): string | null {
+  if (idleTraders(state, playerId).length > 0) return null;
+  const type = traderType();
+  const gate = type === null ? null : gatingTech('unit', type);
+  const named = type === null ? 'caravan' : unitDef(type).name.toLowerCase();
+  return gate === null
+    ? `Build a ${named} to start a route.`
+    : `Build a ${named} (${techDef(gate).name}) to start a route.`;
+}
+
+/**
+ * A row's refusal: `routeStartable`'s sentence, **except** for the slot clause.
+ *
+ * The substitution is exact rather than a guess, and that is the whole reason it
+ * is safe. `startRouteError` asks about the slots *before* the pair, the path
+ * and the range (`trade.ts`), so a full ledger is the answer for every row and
+ * only for a full ledger — which means "is a slot free" decides the swap with no
+ * prose read at all. See `NO_ROUTE_CAPACITY`.
+ */
+export function startableError(
+  state: GameState,
+  playerId: number,
+  fromCityId: number,
+  toCityId: number,
+): string | null {
+  const problem = routeStartable(state, playerId, fromCityId, toCityId);
+  if (problem === null) return null;
+  return hasFreeRouteSlot(state, playerId) ? problem : NO_ROUTE_CAPACITY;
 }
 
 /** Is a live route already joining these two towns, either way round? */
@@ -247,50 +326,8 @@ function pairIsRunning(state: GameState, playerId: number, from: number, to: num
 }
 
 /**
- * Hex distance between two towns. Used only to name the *nearest* idle caravan
- * when a row has none of its own — a suggestion, never a rule, which is why it
- * is a straight-line reading rather than `pathTurns`: a player being told where
- * their spare caravan is does not need it priced.
- */
-function townDistance(a: City, b: City): number {
-  return hexDistance(offsetToAxial(a.col, a.row), offsetToAxial(b.col, b.row));
-}
-
-/**
- * Why this town can send nothing, or `null`.
- *
- * Three answers in the order a player meets them: a caravan is standing here and
- * there is nothing to say; no caravan is here but one is idle elsewhere, so name
- * the town it is in; or the empire has no idle caravan at all, in which case the
- * useful sentence is the one that names the technology.
- */
-function originNote(state: GameState, playerId: number, city: City, sender: Unit | null): string | null {
-  if (sender !== null) return null;
-  const idle = idleTraders(state, playerId);
-  let nearest: City | null = null;
-  let best = Number.POSITIVE_INFINITY;
-  for (const unit of idle) {
-    const home = originCityOf(state, unit);
-    if (home === null) continue;
-    const distance = townDistance(city, home);
-    if (distance < best) {
-      best = distance;
-      nearest = home;
-    }
-  }
-  if (nearest !== null) {
-    return `No caravan here — the nearest idle one is in ${cityDisplayName(state, nearest)}`;
-  }
-  if (idle.length > 0) return 'No caravan here — your idle one is in the field';
-  const type = traderType();
-  const gate = type === null ? null : gatingTech('unit', type);
-  const named = type === null ? 'caravan' : unitDef(type).name.toLowerCase();
-  return gate === null ? `Build a ${named}` : `Build a ${named} (${techDef(gate).name})`;
-}
-
-/**
- * Every town of this seat, in founding order, with every partner a caravan could
- * be sent to from it.
+ * Every town of this seat, in founding order, with every partner a route could
+ * be started to from it.
  *
  * Candidates are sorted **gold, then food, then production**, descending — the
  * brief's order and the honest one: the gold is the empire's, and the food and
@@ -305,11 +342,8 @@ function originNote(state: GameState, playerId: number, city: City, sender: Unit
  */
 export function tradeOrigins(state: GameState, playerId: number): TradeOrigin[] {
   const towns = state.cities.filter((city) => city.ownerId === playerId);
-  const idle = idleTraders(state, playerId);
   const origins: TradeOrigin[] = [];
   for (const city of towns) {
-    const sender =
-      idle.find((unit) => unit.col === city.col && unit.row === city.row) ?? null;
     const candidates: TradeCandidate[] = [];
     for (const other of towns) {
       if (other.id === city.id) continue;
@@ -322,9 +356,10 @@ export function tradeOrigins(state: GameState, playerId: number): TradeOrigin[] 
         figures: routeFigures(fold),
         lines,
         running: pairIsRunning(state, playerId, city.id, other.id),
-        // The reducer's own gate, asked of the very piece the button would
-        // send. No caravan here, no question to ask — see `TradeCandidate`.
-        error: sender === null ? null : sendTraderError(state, playerId, sender.id, other.id),
+        // The reducer's own gate about the *pair*. No unit is named because
+        // none needs to be: the caravan is teleported to the origin, so which
+        // one it is cannot change the answer. See `TradeCandidate`.
+        error: startableError(state, playerId, city.id, other.id),
       });
     }
     candidates.sort(
@@ -335,8 +370,6 @@ export function tradeOrigins(state: GameState, playerId: number): TradeOrigin[] 
       name: cityDisplayName(state, city),
       col: city.col,
       row: city.row,
-      senderUnitId: sender?.id ?? null,
-      note: originNote(state, playerId, city, sender),
       candidates,
     });
   }
@@ -344,29 +377,153 @@ export function tradeOrigins(state: GameState, playerId: number): TradeOrigin[] 
 }
 
 /**
- * The send a row would make, or `null` when the row cannot make one.
+ * The `startRoute` a row would dispatch, or `null` when the row cannot dispatch
+ * one.
  *
- * The pure half of the Send button, split out for this file's stated reason:
- * "which caravan, to which town" is the part of that button that can be quietly
- * wrong, and it is now a function somebody can call rather than a closure inside
- * a click handler. The two conditions are exactly the ones the row is drawn
- * under — a caravan standing on this origin, and the reducer not refusing this
- * partner — so a row with a button is a row this answers for.
+ * The pure half of the Start button, split out for this file's stated reason:
+ * "which caravan, from which town, to which town" is the part of that button
+ * that can be quietly wrong, and it is a function somebody can call rather than
+ * a closure inside a click handler. The two conditions are exactly the ones the
+ * row is drawn under — the empire has an idle caravan, and the reducer is not
+ * refusing this pair — so a row with a button is a row this answers for.
  */
-export function sendCommandFor(
+export function startCommandFor(
   origin: TradeOrigin,
   candidate: TradeCandidate,
-): { unitId: number; cityId: number } | null {
-  if (origin.senderUnitId === null) return null;
+  trader: Unit | null,
+): { unitId: number; fromCityId: number; toCityId: number } | null {
+  if (trader === null) return null;
   if (candidate.error !== null) return null;
-  return { unitId: origin.senderUnitId, cityId: candidate.cityId };
+  return { unitId: trader.id, fromCityId: origin.cityId, toCityId: candidate.cityId };
+}
+
+// --- the pane's two controls: sort, and filter by origin ---------------------
+
+/**
+ * One offered pair, flattened out of its group.
+ *
+ * The **row model** the sort and the filter are functions of (user, 2026-08-28),
+ * and flat on purpose: a comparator whose tie-break is "the origin's name, then
+ * the destination's" needs both names in one object, and a sort written against
+ * a nested shape would either be a loop per group or a comparator that cannot
+ * see half of what it is breaking ties on. The grouping is put back afterwards
+ * (`groupRouteRows`) from the origins' own founding order, which is why sorting
+ * *within* a group and sorting the flat list are the same operation here.
+ */
+export interface TradeRouteRow {
+  origin: TradeOrigin;
+  candidate: TradeCandidate;
+}
+
+/** Every pair on offer, flattened in origin (founding) then candidate order. */
+export function tradeRouteRows(origins: readonly TradeOrigin[]): TradeRouteRow[] {
+  const rows: TradeRouteRow[] = [];
+  for (const origin of origins) {
+    for (const candidate of origin.candidates) rows.push({ origin, candidate });
+  }
+  return rows;
+}
+
+/** The four clickable columns. `total` is the three summed, not a fourth voice. */
+export type RouteSortKey = 'food' | 'production' | 'gold' | 'total';
+
+export type SortDirection = 'desc' | 'asc';
+
+/** What one column reads on one row. `total` is the sum and nothing else. */
+export function routeRowValue(row: TradeRouteRow, key: RouteSortKey): number {
+  const { food, production, gold } = row.candidate;
+  if (key === 'total') return food + production + gold;
+  return key === 'food' ? food : key === 'production' ? production : gold;
+}
+
+/**
+ * The rows in the order a column header asks for, or the sheet's own default.
+ *
+ * Pure, returns a new array, and **total** — every comparison falls through to
+ * the origin's name, then the destination's, then their ids — so the order is a
+ * function of the rows and never of the sort algorithm's stability. Names are
+ * compared with `<`/`>` rather than `localeCompare`, which is locale-dependent
+ * and would put two players' screens in different orders.
+ *
+ * `key: null` is the default and is the one the screen opens in: **gold, then
+ * food, then production**, descending, because the gold is the empire's and a
+ * player scanning a column is scanning for the biggest number that reaches the
+ * treasury. `direction` is not consulted for it — the default is an order, not
+ * a column.
+ *
+ * A **greyed row keeps its place**. There is deliberately no clause sinking a
+ * refused pair to the bottom: "Nippur would be worth +4💰 and it is one turn too
+ * far" is the argument for a road, and a row that fell out of the ranking would
+ * make the case it is making impossible to see.
+ */
+export function sortRouteRows(
+  rows: readonly TradeRouteRow[],
+  key: RouteSortKey | null,
+  direction: SortDirection,
+): TradeRouteRow[] {
+  const sign = direction === 'asc' ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    if (key === null) {
+      const byGold = b.candidate.gold - a.candidate.gold;
+      if (byGold !== 0) return byGold;
+      const byFood = b.candidate.food - a.candidate.food;
+      if (byFood !== 0) return byFood;
+      const byProduction = b.candidate.production - a.candidate.production;
+      if (byProduction !== 0) return byProduction;
+    } else {
+      const byKey = routeRowValue(b, key) - routeRowValue(a, key);
+      if (byKey !== 0) return sign * byKey;
+    }
+    if (a.origin.name !== b.origin.name) return a.origin.name < b.origin.name ? -1 : 1;
+    if (a.candidate.name !== b.candidate.name) return a.candidate.name < b.candidate.name ? -1 : 1;
+    return a.origin.cityId - b.origin.cityId || a.candidate.cityId - b.candidate.cityId;
+  });
+}
+
+/** Only the rows setting out from this town, or all of them for `null`. */
+export function filterRouteRows(
+  rows: readonly TradeRouteRow[],
+  originId: number | null,
+): TradeRouteRow[] {
+  if (originId === null) return [...rows];
+  return rows.filter((row) => row.origin.cityId === originId);
+}
+
+/**
+ * The rows back in their groups, in the origins' own founding order.
+ *
+ * The inverse of `tradeRouteRows`, and the reason the sort can be one pass over
+ * a flat list: a group's rows come out in the order the sort left them, so
+ * "sorting applies within the shown groups" is a consequence rather than a
+ * second implementation. A town every row was filtered out of is dropped rather
+ * than drawn empty.
+ */
+export function groupRouteRows(
+  origins: readonly TradeOrigin[],
+  rows: readonly TradeRouteRow[],
+): { origin: TradeOrigin; rows: TradeRouteRow[] }[] {
+  const groups: { origin: TradeOrigin; rows: TradeRouteRow[] }[] = [];
+  for (const origin of origins) {
+    const own = rows.filter((row) => row.origin.cityId === origin.cityId);
+    if (own.length > 0) groups.push({ origin, rows: own });
+  }
+  return groups;
 }
 
 // --- the screen -------------------------------------------------------------
 
 export interface TradeScreen {
   readonly isOpen: boolean;
-  open(): void;
+  /**
+   * Opens the screen, optionally naming the caravan that asked for it.
+   *
+   * The **chooser** is the trader whose sheet said "Start route" — every Start
+   * on the screen will send that piece rather than whichever one happens to be
+   * first. Opened from the bar, the chip or a city panel there is no chooser and
+   * the first idle caravan is spent; either way the row says which
+   * (`starterNote`).
+   */
+  open(chooserUnitId?: number | null): void;
   close(): void;
   toggle(): void;
   /** The state changed. Redraws if the screen is up; cheap enough to call always. */
@@ -381,8 +538,14 @@ export interface TradeScreenOptions {
   trigger?: HTMLElement;
   getState: () => GameState;
   getPlayerId: () => number;
-  /** Sends the caravan. The screen never mutates state itself. */
-  send: (unitId: number, cityId: number) => void;
+  /**
+   * Starts the route. The screen never mutates state itself.
+   *
+   * Three ids because the command is `startRoute { unitId, fromCityId,
+   * toCityId }`: the caravan may be standing anywhere, so the origin is *named*
+   * rather than read off the piece's hex.
+   */
+  startRoute: (unitId: number, fromCityId: number, toCityId: number) => void;
   /** Flips a route's auto-resend flag. */
   setAutoResend: (unitId: number, on: boolean) => void;
   /** Ends a route now and frees the slot. */
@@ -404,6 +567,22 @@ function button(className: string, label: string): HTMLButtonElement {
   node.type = 'button';
   return node;
 }
+
+/**
+ * The four sortable columns, in the order they are drawn.
+ *
+ * `label` wears the glyph because the column is two characters wide and the
+ * word will not fit; `name` is the word, for the header's `title` and for a
+ * screen reader. The glyphs here are **typed**, not drawn — a header is a
+ * `title` attribute's anchor and the marks are printed in the cells below it,
+ * which is `figures.ts`' register exactly.
+ */
+const SORT_COLUMNS: readonly { key: RouteSortKey; label: string; name: string }[] = [
+  { key: 'food', label: YIELD_GLYPH.food, name: 'food' },
+  { key: 'production', label: YIELD_GLYPH.production, name: 'production' },
+  { key: 'gold', label: YIELD_GLYPH.gold, name: 'gold' },
+  { key: 'total', label: 'Σ', name: 'the three together' },
+];
 
 /**
  * A route's ledger as the title attribute of whatever carries it.
@@ -429,6 +608,22 @@ export function routeLedgerTitle(lines: readonly RouteYieldLine[]): string {
 
 export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
   const { overlay, body, closeButton, trigger } = options;
+
+  /**
+   * The caravan whose sheet opened this, or `null`.
+   *
+   * Screen state, exactly like `hidden` is: it is a fact about *this opening*
+   * and is dropped when the screen closes, so a player who reaches the screen
+   * from the bar next time is not still spending a piece they picked minutes
+   * ago. It is a *preference*, never a gate — `startingTrader` falls back to the
+   * first idle caravan the moment this one is no longer idle.
+   */
+  let chooserUnitId: number | null = null;
+  /** `null` is the sheet's own gold → food → production order. See `sortRouteRows`. */
+  let sortKey: RouteSortKey | null = null;
+  let sortDirection: SortDirection = 'desc';
+  /** The town whose group is shown alone, or `null` for all of them. */
+  let originFilter: number | null = null;
 
   function isOpen(): boolean {
     return !overlay.hidden;
@@ -538,6 +733,88 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     return block;
   }
 
+  /**
+   * The chips that pick which town's routes are shown — "All" and one per town,
+   * in founding order.
+   *
+   * Chips rather than a `<select>`, and the on/off dress is the one this very
+   * screen already uses for Auto-resend (`btn-second` when it is the answer,
+   * `btn-quiet` when it is not), so a player meets one toggle idiom on this
+   * sheet rather than two. `aria-pressed` because they are a set of toggles and
+   * exactly one is on.
+   */
+  function drawOriginFilter(origins: readonly TradeOrigin[]): HTMLElement {
+    const bar = element('div', 'trade-filter');
+    bar.setAttribute('role', 'group');
+    bar.setAttribute('aria-label', 'Show routes from');
+    const chip = (label: string, id: number | null, title: string): void => {
+      const on = originFilter === id;
+      const node = button(on ? 'btn btn-second btn-tiny' : 'btn btn-quiet btn-tiny', label);
+      node.title = title;
+      node.setAttribute('aria-pressed', String(on));
+      node.addEventListener('click', () => {
+        originFilter = id;
+        draw();
+      });
+      bar.append(node);
+    };
+    chip('All', null, 'Every route on offer, grouped by the town it sets out from');
+    for (const origin of origins) chip(origin.name, origin.cityId, `Only routes from ${origin.name}`);
+    return bar;
+  }
+
+  /**
+   * The four clickable column headers.
+   *
+   * One click sorts by that column descending, a second flips it, and a third
+   * column takes over descending — the ordinary table contract, and the arrow is
+   * drawn on the active header alone so "which column am I reading" never has to
+   * be deduced from the numbers. Pressing the *active* column's own header a
+   * third time does **not** return to the default: the default is the order the
+   * screen opens in, and a control that silently cycled through three states
+   * would be one a player cannot aim.
+   */
+  function drawColumnHead(): HTMLElement {
+    const head = element('div', 'trade-head');
+    head.append(element('span', 'trade-head-name', 'Destination'));
+    const arrow = sortDirection === 'desc' ? ' ▾' : ' ▴';
+    for (const column of SORT_COLUMNS) {
+      const active = sortKey === column.key;
+      const node = button(
+        active ? 'trade-head-col is-active' : 'trade-head-col',
+        `${column.label}${active ? arrow : ''}`,
+      );
+      node.title = active
+        ? `Sorted by ${column.name}, ${sortDirection === 'desc' ? 'largest' : 'smallest'} first`
+        : `Sort by ${column.name}`;
+      node.setAttribute('aria-pressed', String(active));
+      node.addEventListener('click', () => {
+        if (sortKey === column.key) sortDirection = sortDirection === 'desc' ? 'asc' : 'desc';
+        else {
+          sortKey = column.key;
+          sortDirection = 'desc';
+        }
+        draw();
+      });
+      head.append(node);
+    }
+    head.append(element('span', 'trade-head-verb', ''));
+    return head;
+  }
+
+  /** One numeric cell, the mark drawn, a zero kept quiet rather than printed. */
+  function figureCell(value: number, key: 'food' | 'production' | 'gold' | null): HTMLElement {
+    const cell = element('span', 'trade-cell');
+    if (value === 0) {
+      cell.textContent = '·';
+      cell.classList.add('is-nil');
+      return cell;
+    }
+    if (key === null) cell.textContent = signedFigure(value);
+    else setYieldText(cell, `${signedFigure(value)}${YIELD_GLYPH[key]}`);
+    return cell;
+  }
+
   /** The right pane: every road not yet taken, grouped by the town it starts in. */
   function drawAvailable(state: GameState, seat: number): HTMLElement {
     const pane = element('div', 'sc-pane trade-available');
@@ -546,50 +823,80 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
       pane.append(element('p', 'sc-none', 'You have no cities to trade between.'));
       return pane;
     }
-    for (const origin of origins) {
+    // The pane's one caravan sentence, said once at the top rather than on every
+    // town: under the 2026-08-28 ruling the only fact left about *where* a
+    // caravan is standing is whether the empire has one at all.
+    const trader = startingTrader(state, seat, chooserUnitId);
+    const missing = noTraderNote(state, seat);
+    if (missing !== null) pane.append(element('p', 'hint', missing));
+    const starter = starterNote(state, trader);
+
+    // Filter, then sort, then group back: three pure passes over one flat row
+    // model, so "sorting applies within the shown groups" is a consequence of
+    // the grouping being last rather than a rule written twice.
+    pane.append(drawOriginFilter(origins));
+    const rows = sortRouteRows(
+      filterRouteRows(tradeRouteRows(origins), originFilter),
+      sortKey,
+      sortDirection,
+    );
+    pane.append(drawColumnHead());
+    const groups = groupRouteRows(origins, rows);
+    if (groups.length === 0) {
+      pane.append(element('p', 'sc-none', 'There is nowhere to send from here yet.'));
+      return pane;
+    }
+    // A single filtered origin needs no group heading — the chip above already
+    // says which town, and a header repeating it is a line the eye has to skip.
+    const flat = originFilter !== null;
+    for (const group of groups) {
+      const origin = group.origin;
       const block = element('section', 'trade-origin');
-      const head = element('p', 'eyebrow sc-eyebrow', `from ${origin.name}`);
-      block.append(head);
-      // The column heading: a row's figures are what *that town* — the
-      // candidate, the route's destination — would receive, read off
-      // `origin.name`'s own buildings (2026-08-27's reversal). Said once per
-      // origin group rather than per row, which is where every row's figures
-      // in the group come from.
+      if (!flat) block.append(element('p', 'eyebrow sc-eyebrow', `from ${origin.name}`));
+      // A row's figures are what *that town* — the candidate, the route's
+      // destination — would receive, read off `origin.name`'s own buildings
+      // (2026-08-27's reversal). Said once per origin group rather than per row,
+      // which is where every row's figures in the group come from.
       block.append(
         element('p', 'hint', `What each town would receive, off ${origin.name}'s buildings`),
       );
-      if (origin.note !== null) block.append(element('p', 'hint', origin.note));
-      if (origin.candidates.length === 0) {
-        block.append(element('p', 'sc-none', 'There is nowhere to send from here yet.'));
-        pane.append(block);
-        continue;
-      }
       const list = element('ul', 'trade-candidates');
-      for (const candidate of origin.candidates) {
+      for (const row of group.rows) {
+        const candidate = row.candidate;
         const item = element('li', 'trade-candidate');
         if (candidate.running) item.classList.add('is-running');
         if (candidate.error !== null) item.classList.add('is-blocked');
         item.title = routeLedgerTitle(candidate.lines);
         item.append(element('span', 'trade-candidate-name', candidate.name));
-        const figures = element('span', 'trade-candidate-figures');
-        setYieldText(figures, candidate.figures);
-        item.append(figures);
-        const command = sendCommandFor(origin, candidate);
+        item.append(figureCell(candidate.food, 'food'));
+        item.append(figureCell(candidate.production, 'production'));
+        item.append(figureCell(candidate.gold, 'gold'));
+        item.append(figureCell(routeRowValue(row, 'total'), null));
+        const command = startCommandFor(origin, candidate, trader);
         if (command !== null) {
-          const send = button('btn btn-primary btn-tiny', 'Send');
-          // Sending closes the screen and takes the camera to the town the
+          const start = button('btn btn-primary btn-tiny', 'Start');
+          // Which caravan is spent, on the button rather than in a rule the
+          // player has to know: the piece is teleported to the origin, so the
+          // only surprising half is *which* one leaves the map where it was.
+          if (starter !== null) start.title = starter;
+          // Starting closes the screen and takes the camera to the town the
           // caravan is setting out from (user-approved): the decision has been
-          // made, and what a player wants next is to watch it leave.
-          send.addEventListener('click', () => {
-            options.send(command.unitId, command.cityId);
+          // made, and what a player wants next is to watch it leave — and after
+          // the teleport that town is where the piece now is.
+          start.addEventListener('click', () => {
+            options.startRoute(command.unitId, command.fromCityId, command.toCityId);
             close();
             options.panTo({ col: origin.col, row: origin.row });
           });
-          item.append(send);
+          item.append(start);
         } else if (candidate.error !== null) {
           item.append(element('span', 'trade-candidate-why', candidate.error));
         } else if (candidate.running) {
           item.append(element('span', 'trade-candidate-why', 'already running'));
+        } else {
+          // No caravan idle anywhere: the pane's own line above says what to do
+          // about that, so the row keeps its figures and says nothing.
+          item.append(element('span', 'trade-candidate-why', ''));
         }
         list.append(item);
       }
@@ -614,8 +921,9 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     body.append(split);
   }
 
-  function open(): void {
+  function open(chooser: number | null = null): void {
     options.onOpen?.();
+    chooserUnitId = chooser;
     overlay.hidden = false;
     setExpanded();
     draw();
@@ -623,6 +931,13 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
 
   function close(): void {
     overlay.hidden = true;
+    // The chooser, the sort and the filter are all facts about *this* opening
+    // (see `chooserUnitId`): a screen reached from the bar tomorrow starts from
+    // the sheet's own defaults rather than from a picture somebody left behind.
+    chooserUnitId = null;
+    sortKey = null;
+    sortDirection = 'desc';
+    originFilter = null;
     setExpanded();
   }
 

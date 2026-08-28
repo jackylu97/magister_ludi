@@ -135,7 +135,7 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'The pages below spell out every number the game actually uses for the three, read live from its data.',
   ]),
   trade: lead('trade', 'About trade', '⇄', [
-    'Trade turns the distance between your cities into income. You build a trader and send it from one of your cities to another. That sets up a trade route, which pays the city the trader arrived at every turn until the route runs out — and how much it pays depends on the buildings in the city the trader left, so routes are worth running out of your best-built city.',
+    'Trade turns the distance between your cities into income. You build a trader, select it and choose Start route; you then pick any available route in the Trade screen, and the trader moves to the origin city and begins. That sets up a trade route, which pays the city the trader arrived at every turn until the route runs out — and how much it pays depends on the buildings in the city the trader left, so routes are worth running out of your best-built city.',
     'The trader lays road on every hex it walks over on the way. Roads are permanent, belong to everyone, and make units move faster; and once a city is joined to your capital by road it pays gold every turn on its own, whether or not a trade route is running.',
     'The pages below spell out what a route pays, what a road connection is worth, and what roads cost to keep.',
   ]),

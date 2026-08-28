@@ -628,8 +628,9 @@
           </li>
           <li>
             <b>Buy Tiles</b> on a city panel arms the price tags; click a tag to
-            buy that hex. <b>Send Caravan</b> on an idle trader arms the partner
-            plates — or open <b>Trade</b> in the bar for every route at once
+            buy that hex. Select a trader and choose <b>Start route</b>: pick any
+            available route in the <b>Trade</b> screen and the trader moves to the
+            origin city and begins
           </li>
           <li>
             <kbd>Enter</kbd> ends your turn, stopping first on anything left
@@ -866,8 +867,11 @@
          have" against "what I can do with it", which is the division both of
          its siblings make. Built by src/ui/tradeScreen.ts.
 
-         Three doors reach it: the routes chip in the bar, "All routes" on a
-         routed caravan's sheet, and the same on a city panel's Routes row.
+         Four doors reach it: the routes chip in the bar, "All routes" on a
+         routed caravan's sheet, the same on a city panel's Routes row, and
+         "Start route" on an idle trader's sheet — the last of which opens it
+         with that trader as the chooser, since it is now the only way a route
+         is opened at all (the user's ruling, 2026-08-28).
          ============================================================ -->
     <div
       id="trade-overlay"

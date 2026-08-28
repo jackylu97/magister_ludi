@@ -2,12 +2,18 @@
  * One caravan, start to finish, read the way the interface reads it.
  *
  * The browser check as a test (the extension was not connected when this pass
- * shipped): buy a trader out of the treasury, arm the send, read the plate,
- * send it, walk the shuttle for a few turns and read the panels. Every figure
- * here comes from the surfaces themselves — `caravanOffers`, `routeReading`,
- * `cityRouteRows`, `explainTradeGold`, `civYields` — so what is defended is the
- * *sequence*: that each of those keeps saying something true as the caravan
- * moves, the road goes down and the towns join up.
+ * shipped): buy a trader out of the treasury, open the Trade screen, read the
+ * row, start the route from the screen, walk the shuttle for a few turns and
+ * read the panels. Every figure here comes from the surfaces themselves —
+ * `tradeOrigins`, `startCommandFor`, `routeReading`, `cityRouteRows`,
+ * `explainTradeGold`, `civYields` — so what is defended is the *sequence*: that
+ * each of those keeps saying something true as the caravan moves, the road goes
+ * down and the towns join up.
+ *
+ * Rewritten for the user's ruling of 2026-08-28: the trader is bought in one
+ * town and the route is started **from the other**, which is the whole of what
+ * changed — a caravan may begin anywhere and is teleported to the origin the
+ * player picked.
  *
  * Slow by kind (`CLAUDE.md`): it drives whole turn resolutions rather than
  * asking one evaluator a question.
@@ -22,12 +28,8 @@ import { type GameState, unitById } from '../../src/sim/state';
 import { explainTradeGold } from '../../src/sim/trade';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { civYields } from '../../src/ui/topBar';
-import {
-  caravanOffers,
-  cityRouteRows,
-  routeReading,
-  routeSlotsLine,
-} from '../../src/ui/tradeLines';
+import { cityRouteRows, routeReading, routeSlotsLine } from '../../src/ui/tradeLines';
+import { startCommandFor, startingTrader, tradeOrigins } from '../../src/ui/tradeScreen';
 import { at, bareState } from '../sim/improvementHelpers';
 
 function resolve(state: GameState): void {
@@ -60,20 +62,33 @@ describe('a caravan, from the treasury to the ledger', () => {
     const trader = state.units.find((unit) => unit.type === 'trader')!;
     expect(routeSlotsLine(state, 0)).toBe('0 of 1 route');
 
-    // 2. The plate over the only partner, priced and eligible.
-    const [offer] = caravanOffers(state, trader);
-    expect(offer!.error).toBeNull();
-    expect(offer!.label).toMatch(/^\+.+ · \d+ turns$/);
+    // 2. The caravan walks out of town, which under the ruling changes nothing:
+    //    where it is standing is no longer part of any gate.
+    trader.col = 6;
+    trader.row = 4;
 
-    // 3. Sent. The sheet now reads as the route rather than as a march.
-    expect(
-      applyCommand(state, {
-        type: 'sendTrader',
-        playerId: 0,
-        unitId: trader.id,
-        cityId: offer!.cityId,
-      }).ok,
-    ).toBe(true);
+    // 3. The Trade screen's row for the pair, priced and startable, and the
+    //    caravan it would spend.
+    const origin = tradeOrigins(state, 0).find((entry) => entry.cityId === home.id)!;
+    const row = origin.candidates.find((entry) => entry.cityId === partner.id)!;
+    expect(row.error).toBeNull();
+    expect(row.figures).not.toBe('nothing yet');
+    const chosen = startingTrader(state, 0, trader.id);
+    expect(chosen?.id).toBe(trader.id);
+    const command = startCommandFor(origin, row, chosen)!;
+    expect(command).toEqual({ unitId: trader.id, fromCityId: home.id, toCityId: partner.id });
+
+    // 4. Started from the screen. The piece is teleported to the origin and the
+    //    sheet now reads as the route rather than as a march.
+    const started = applyCommand(state, {
+      type: 'startRoute',
+      playerId: 0,
+      unitId: command.unitId,
+      fromCityId: command.fromCityId,
+      toCityId: command.toCityId,
+    });
+    expect(started.ok, started.ok ? '' : started.error).toBe(true);
+    expect({ col: trader.col, row: trader.row }).toEqual({ col: home.col, row: home.row });
     const sent = routeReading(state, trader)!;
     expect(sent.toName).toBe(partner.name);
     expect(sent.figures).not.toBe('nothing yet');
@@ -83,14 +98,14 @@ describe('a caravan, from the treasury to the ledger', () => {
     const second = state.units.find((u) => u.type === 'trader' && u.id !== trader.id);
     expect(second).toBeUndefined();
 
-    // 4. Both towns show the route, and the destination is the one that is
+    // 5. Both towns show the route, and the destination is the one that is
     //    paid (2026-08-27: the origin's buildings set the figure, the
     //    destination banks it).
     expect(cityRouteRows(state, home)[0]!.outbound).toBe(true);
     expect(cityRouteRows(state, partner)[0]!.outbound).toBe(false);
     expect(cityRouteRows(state, partner)[0]!.text).toMatch(/🌾/);
 
-    // 5. A few turns of walking. The clock counts down by subtraction, the road
+    // 6. A few turns of walking. The clock counts down by subtraction, the road
     //    goes under the caravan, and the towns eventually join up.
     const before = routeReading(state, trader)!.turnsLeft;
     for (let turn = 0; turn < 14; turn++) resolve(state);
@@ -101,7 +116,7 @@ describe('a caravan, from the treasury to the ledger', () => {
     expect(unitById(state, trader.id)).toBeDefined();
     expect(state.map.tiles.some((tile) => tile.road === 0)).toBe(true);
 
-    // 6. The treasury's ledger: at most two lines, and whatever it says is
+    // 7. The treasury's ledger: at most two lines, and whatever it says is
     //    inside the headline the top bar promises.
     const lines = explainTradeGold(state, 0);
     expect(lines.length).toBeLessThanOrEqual(2);

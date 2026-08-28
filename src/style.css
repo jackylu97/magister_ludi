@@ -2402,17 +2402,6 @@ kbd {
   cursor: cell;
 }
 
-/* --- send mode -------------------------------------------------------------
-   Armed from a caravan's sheet: the board wears a plate over every town the
-   trader could open a route to. Buy mode's sibling and deliberately the *same*
-   cursor — both modes mean "the next click on a plated hex spends something",
-   and a second cursor would be teaching two gestures where there is one
-   (`controls.ts`, `sendMode`). */
-#viewport.is-send-mode,
-#viewport.is-send-mode:active {
-  cursor: cell;
-}
-
 /* --- tile price tags -------------------------------------------------------
    The **price plate**: one per hex the open city could buy, floating over the
    board with the city banners (`tilePriceTags.ts`).
@@ -3531,6 +3520,23 @@ kbd {
   justify-content: space-between;
   gap: 9px;
   width: 100%;
+}
+
+/* A figure at the right of a verb whose refusal is a quantity — "2 of 2 routes"
+   beside Start route. Quiet, mono and tabular like every other number, and it
+   sits where the shortcut sits because the row is `space-between` and only one
+   of the two is ever on a given verb. */
+.unit-action-note {
+  flex: 0 0 auto;
+  font-family: var(--face-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+}
+
+.unit-action:disabled .unit-action-note {
+  opacity: 1;
 }
 
 /* Worn on the button that does the same job, exactly as End Turn wears ⏎. */
@@ -8707,6 +8713,55 @@ kbd {
   border-top: var(--border-thin) solid var(--ink-faint);
 }
 
+/* --- the right pane's two controls ---------------------------------------
+   A chip row that picks which town's routes are shown, and four clickable
+   column headers over the figures. Both are per-opening state (`tradeScreen.ts`)
+   and both wear the sheet's own toggle dress rather than a new one. */
+.trade-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+/* The header row shares `.trade-candidate`'s grid, which is what makes the
+   headers sit over their columns: one template, declared once below. */
+.trade-head {
+  align-items: baseline;
+  padding: 0 0 4px;
+  border-bottom: var(--border-thin) solid var(--ink-faint);
+}
+
+.trade-head-name {
+  font-family: var(--face-ui);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.trade-head-col {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--face-mono);
+  font-size: 11px;
+  text-align: right;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+
+.trade-head-col:hover {
+  color: var(--ink);
+}
+
+/* The active column is the one the eye should land on, so it takes the ink and
+   the weight; the arrow beside it says which way. */
+.trade-head-col.is-active {
+  font-weight: 700;
+  color: var(--ink);
+}
+
 .trade-origin + .trade-origin {
   margin-top: 14px;
 }
@@ -8717,30 +8772,40 @@ kbd {
   list-style: none;
 }
 
+.trade-head,
 .trade-candidate {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(4, 3.1em) minmax(4.5em, auto);
   align-items: baseline;
-  gap: 10px;
+  gap: 8px;
   padding: 4px 0;
 }
+
+/* One voice per cell, right-aligned so the columns read down as a table does.
+   A zero is a mid-dot rather than "+0": a column of noughts is noise, and the
+   dot keeps the row's height and the eye's line. */
+.trade-cell {
+  font-family: var(--face-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.trade-cell.is-nil {
+  color: var(--ink-faint);
+}
+
 
 .trade-candidate + .trade-candidate {
   border-top: 1px solid var(--rule);
 }
 
 .trade-candidate-name {
-  flex: 1 1 auto;
   min-width: 0;
   font-family: var(--face-name);
   font-size: 13px;
   color: var(--ink);
-}
-
-.trade-candidate-figures {
-  font-family: var(--face-mono);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 /* A refused partner keeps its figures and is greyed rather than dropped:
@@ -8748,7 +8813,7 @@ kbd {
    building a road, and a row that vanished would make the range something a
    player discovers by not seeing anything (`tradeLines.ts`, one surface over). */
 .trade-candidate.is-blocked .trade-candidate-name,
-.trade-candidate.is-blocked .trade-candidate-figures {
+.trade-candidate.is-blocked .trade-cell {
   color: var(--ink-faint);
 }
 
@@ -8756,12 +8821,15 @@ kbd {
   font-weight: 700;
 }
 
+/* The refusal runs the full width *under* the row rather than in the verb's
+   column: a sentence squeezed into 4.5em is a sentence nobody reads, and the
+   reason a row is greyed is the argument for building the road that would
+   ungrey it. */
 .trade-candidate-why {
-  flex: 0 1 auto;
+  grid-column: 1 / -1;
   font-family: var(--face-ui);
   font-size: 11px;
   font-style: italic;
-  text-align: right;
   color: var(--ink-faint);
 }
 

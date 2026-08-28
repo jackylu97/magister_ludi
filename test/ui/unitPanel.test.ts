@@ -176,6 +176,51 @@ describe('an order given at zero movement', () => {
 });
 
 /**
+ * A trader's sheet, after the user's ruling of 2026-08-28 ("I want to remove all
+ * micromanagement of units").
+ *
+ * The claim is a *subtraction*: an idle trader has **one** trade verb and it
+ * opens a screen, there is no send mode to toggle it into, no clause about
+ * standing in a city, and the ordinary civilian verbs below are neither hidden
+ * nor treated specially. Read off the source for this file's stated reason —
+ * there is no jsdom here, and what distinguishes a correct sheet from a
+ * nearly-correct one is which rows it pushed.
+ */
+describe('an idle trader’s sheet', () => {
+  const panel = source('unitPanel.ts');
+  const block = panel.slice(panel.indexOf('// An **idle** caravan'));
+  const arm = block.slice(0, block.indexOf('if (unitDef(unit.type).foundsCity)'));
+
+  it('is one trade verb, and it is Start route', () => {
+    expect(arm).toContain("label: 'Start route'");
+    // The old mode's two faces are gone: there is nothing to toggle into.
+    expect(arm).not.toContain('Send Caravan');
+    expect(arm).not.toContain('Choosing a Partner');
+    expect(panel).not.toContain('isSendMode');
+    // And exactly one row is pushed for a trader carrying no route.
+    expect(arm.match(/actions\.push\(\{/g) ?? []).toHaveLength(1);
+  });
+
+  it('opens the Trade screen rather than arming the board', () => {
+    expect(arm).toContain('run: onStartRoute');
+    expect(arm).toContain('Choose a route in the Trade screen');
+  });
+
+  it('greys on the empire’s ledger and prints the figure beside the verb', () => {
+    expect(arm).toContain('const blocker = startRouteBlocker();');
+    expect(arm).toContain('note: routeSlotsLine()');
+    expect(arm).toContain("blocked: blocker === undefined ? 'No unit selected' : blocker,");
+  });
+
+  it('falls through to the ordinary civilian verbs rather than returning', () => {
+    // A *routed* caravan's sheet is its route and returns early; an idle one is
+    // a civilian that happens to have a screen to open, so Cancel Orders and
+    // Sleep are offered to it exactly as they are to a worker.
+    expect(arm).not.toContain('return actions;');
+  });
+});
+
+/**
  * The worker's verbs are the improvement **table**, and adding a row to the
  * table is the whole of adding a verb.
  *

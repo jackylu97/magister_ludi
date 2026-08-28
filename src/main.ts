@@ -117,7 +117,7 @@ import { type ToastStack, createToastStack } from './ui/toasts';
 import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
 import { type ReligionScreen, createReligionScreen } from './ui/religionScreen';
 import { type TechTree, createTechTree } from './ui/techTree';
-import { type TilePriceTags, createMapPlates, createTilePriceTags } from './ui/tilePriceTags';
+import { type TilePriceTags, createTilePriceTags } from './ui/tilePriceTags';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
@@ -1571,11 +1571,7 @@ async function boot(initial: Game | null): Promise<void> {
     // The tags are about the open city and the treasury, both of which this
     // pass has just re-read; they draw nothing at all unless buy mode is up.
     priceTags.refresh();
-    // Beside the price tags, and for their reason: the plates are about the
-    // selection and the empire's route slots, both of which this pass has just
-    // re-read, and they draw nothing at all unless Send mode is up.
-    caravanPlates.refresh();
-    // And the Trade screen, for the same reason one line up: it is about the
+    // And the Trade screen, for the price tags' reason: it is about the
     // routes and the towns this pass has just re-read. It draws nothing at all
     // unless it is open, so this costs a boolean when it is not.
     trade?.refresh();
@@ -2526,11 +2522,15 @@ async function boot(initial: Game | null): Promise<void> {
    *
    * Religion's sibling in every respect that matters — declared here beside it,
    * reached back through the `trade` holder, and every write it makes is a
-   * **command**, sent through the very functions the unit sheet's own buttons
-   * call (`controls.sendCaravanFrom` and its two siblings, which are the by-id
-   * halves of the verbs the sheet calls by selection). So a route sent from
-   * this screen is sent the same way a network peer or a future AI would send
-   * one, and the refusal a greyed row shows is the reducer's own.
+   * **command**, sent through `controls`' by-id route verbs (`startRouteFrom`
+   * and its two siblings; the latter two are the same inner functions the unit
+   * sheet calls by selection). So a route started from this screen is started
+   * the same way a network peer or a future AI would start one, and the refusal
+   * a greyed row shows is the reducer's own.
+   *
+   * It is also the **only** way a route is opened now (the user's ruling,
+   * 2026-08-28): the board's send plates are gone and the trader's sheet opens
+   * this screen rather than arming a mode.
    *
    * `panTo` is `controls.panTo`, which is how everything in this interface
    * reaches the camera: `MapView` is `controls.ts`'s to drive.
@@ -2541,8 +2541,8 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('trade-close'),
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
-    send: (unitId, cityId) => {
-      controls.sendCaravanFrom(unitId, cityId);
+    startRoute: (unitId, fromCityId, toCityId) => {
+      controls.startRouteFrom(unitId, fromCityId, toCityId);
       updatePanel(null, renderer.getHover());
     },
     setAutoResend: (unitId, on) => {
@@ -2773,67 +2773,10 @@ async function boot(initial: Game | null): Promise<void> {
     },
   });
 
-  /**
-   * The route's preview over every town a selected caravan could be sent to,
-   * while Send mode is up.
-   *
-   * The **same plate layer** as the prices above (`createMapPlates`), on the
-   * same sheet, in the same dress: sending a caravan is the same gesture as
-   * buying a hex — arm a mode, read a figure on every candidate, click one — and
-   * a second thing that merely looked like a price plate would teach a player
-   * that the two are different. What differs is the supplier and the hover,
-   * which is exactly what the layer takes.
-   */
-  const caravanPlates: TilePriceTags = createMapPlates({
-    container: bannersEl,
-    renderer,
-    getPlates: () =>
-      controls.caravanOffers().map((offer) => ({
-        col: offer.col,
-        row: offer.row,
-        text: offer.label,
-        // The refusal is the reducer's own sentence, verbatim; an eligible
-        // partner says what clicking it will do.
-        spoken: offer.error ?? `Send a caravan to ${offer.name} — ${offer.label}`,
-        disabled: offer.error !== null,
-      })),
-    onPick: (plate) => {
-      const cityId = partnerAt(plate);
-      if (cityId === null) return;
-      controls.sendCaravan(cityId);
-      caravanPlates.refresh();
-      updatePanel(null, renderer.getHover());
-    },
-    // The dashed march under the pointer, drawn by the renderer if it has one.
-    // A greyed plate previews too: the road to a partner one turn out of range
-    // is the picture that explains the refusal.
-    onHover: (plate) => {
-      controls.previewCaravanRoute(plate === null ? null : partnerAt(plate));
-    },
-  });
-
-  /**
-   * Which town a plate stands on, re-asked of the live offers rather than
-   * carried on the plate.
-   *
-   * A `MapPlate` is a hex and a face — that is what lets one layer serve two
-   * modes — so the town is looked up by position, which is the only thing the
-   * two ever agree about. Re-asking is also the honest read: the offers are a
-   * function of the state, and the state may have moved since the plate was
-   * drawn.
-   */
-  function partnerAt(plate: { col: number; row: number }): number | null {
-    const offer = controls
-      .caravanOffers()
-      .find((entry) => entry.col === plate.col && entry.row === plate.row);
-    return offer ? offer.cityId : null;
-  }
-
   renderer.setFrameListener?.(() => {
     banners.reposition();
     damageNumbers.reposition();
     priceTags.reposition();
-    caravanPlates.reposition();
   });
 
   const cityPanel: CityPanel = createCityPanel({
@@ -2933,16 +2876,12 @@ async function boot(initial: Game | null): Promise<void> {
       updatePanel(null, renderer.getHover());
       statecraft?.refresh();
     },
-    sendCaravanBlocker: () => controls.sendCaravanBlocker(),
-    // A toggle, not a fire-and-forget: pressing it again while the plates are up
-    // puts them down, which is what a button whose label reads "Choosing a
-    // Partner…" has to do or it is a mode with no way out but Escape.
-    onSendCaravan: () => {
-      controls.setSendMode(!controls.isSendMode());
-      caravanPlates.refresh();
-      updatePanel(null, renderer.getHover());
-    },
-    isSendMode: () => controls.isSendMode(),
+    startRouteBlocker: () => controls.startRouteBlocker(),
+    // The **fourth** door to the Trade screen, and the only one that carries a
+    // chooser: the piece in hand is the caravan every Start on that screen will
+    // spend, which is what makes "select a trader, choose a route" one gesture
+    // rather than two unrelated ones.
+    onStartRoute: () => trade?.open(controls.selectedUnit()?.id ?? null),
     routeReading: () => controls.routeReading(),
     routeSlotsLine: () => controls.routeSlotsLine(),
     onSetAutoResend: (on) => {
