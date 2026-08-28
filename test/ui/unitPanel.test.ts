@@ -153,18 +153,15 @@ describe('an order given at zero movement', () => {
   });
 
   it('is refused nowhere on the move path', () => {
-    // The register. `controls.ts` compares a unit's movement against zero in
-    // exactly one place — Skip Turn, where "nothing left to wave off" is a fact
-    // about the *blocker* and not about an order — and a second such comparison
-    // is how a spent piece becomes unorderable again without anybody deciding
-    // it should be. `issueMove` and the path preview must hold none.
+    // The register. `controls.ts` compares a unit's movement against zero
+    // **nowhere** now: the one place that used to (Skip Turn) asks the sim's
+    // `unitAwaitsOrders` instead, so "nothing left to wave off" and "this piece
+    // needs a decision" are the same reading — and a second comparison is how a
+    // spent piece becomes unorderable again without anybody deciding it should be.
     const text = source('controls.ts');
     const guards = [...text.matchAll(/unit\.movesLeft\s*<=\s*0/g)];
-    expect(guards.length).toBe(1);
-    // And it is Skip Turn's. Read as "the nearest function declaration above it".
-    const before = text.slice(0, guards[0]!.index);
-    const declarations = [...before.matchAll(/\n {2}function (\w+)/g)];
-    expect(declarations[declarations.length - 1]?.[1]).toBe('skipBlocker');
+    expect(guards.length).toBe(0);
+    expect(text).toContain('unitAwaitsOrders(');
   });
 
   it('leaves the committed route on the board for the piece in hand', () => {

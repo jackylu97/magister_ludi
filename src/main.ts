@@ -100,6 +100,7 @@ import {
   type GameControls,
   type NoticeKind,
   createGameControls,
+  showsSeatStrip,
   wantsNativeContextMenu,
 } from './ui/controls';
 import { type DamageNumbers, createDamageNumbers } from './ui/damageNumbers';
@@ -1416,8 +1417,15 @@ async function boot(initial: Game | null): Promise<void> {
    */
   function renderSeats(): void {
     const { state } = game;
+    // The strip is the hot-seat harness's own — see `showsSeatStrip` — and is
+    // extraneous information in the one-human game the product ships: the
+    // current player is not something an ordinary game needs to announce.
+    // Hidden rather than left empty, so it also gives the yield strip beside
+    // it the room back.
+    seatsEl.hidden = !showsSeatStrip(state);
     const localId = controls.localPlayerId();
     seatsEl.replaceChildren();
+    if (seatsEl.hidden) return;
 
     for (const player of realPlayers(state)) {
       const done = hasEndedTurn(state, player.id);

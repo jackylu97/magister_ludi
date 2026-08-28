@@ -699,17 +699,29 @@ body {
 
 /* --- the empire's per-turn yields ----------------------------------------
    Five figures in the five yield voices, lifted to their on-ink variants. Mono
-   and tabular, so the row does not twitch as the numbers change width. */
+   and tabular, so the row does not twitch as the numbers change width.
+
+   The strip is a flex row of chips that must never wrap a chip's own text —
+   a three-digit figure or a `(+123)` per-turn parenthetical breaking onto a
+   second line is a bug (2026-08-28), not a narrowing the layout is allowed to
+   absorb. So the chips themselves are `flex: 0 0 auto` (never shrunk below
+   their content) and `white-space: nowrap` (never line-broken); the give is
+   pushed onto the strip's own `gap`, which is allowed to shrink under a
+   narrow bar, and only as a last resort does the strip itself scroll — it
+   must never force the bar's right-hand controls off the edge. */
 .civ-yields {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: clamp(6px, 1vw, 12px);
   padding-right: 14px;
   border-right: var(--border-thin) solid var(--on-ink-line);
+  min-width: 0;
+  overflow-x: auto;
 }
 
 .civ-yield {
   display: flex;
+  flex: 0 0 auto;
   align-items: baseline;
   gap: 4px;
   font-family: var(--face-num);
@@ -717,6 +729,7 @@ body {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  white-space: nowrap;
 }
 
 /* The mark is a mask now, so it takes `color` — which is the whole reason the
@@ -728,6 +741,17 @@ body {
   display: inline-flex;
   align-items: center;
   font-size: 12.5px;
+  white-space: nowrap;
+}
+
+/* The figure itself — `poolFigure`'s "27/90 (+2)", the routes chip's "2 / 3",
+   a four-digit treasury beside its `(+123)` — is the span most likely to run
+   long, so it states the same rule `.civ-yield` already inherits down to it,
+   rather than leaving it to inheritance alone. No fixed `width` has ever sat
+   here; the tabular-nums face is what keeps a chip from twitching as its
+   digits change, not a box the digits could overflow. */
+.civ-yield-value {
+  white-space: nowrap;
 }
 
 .civ-yield.is-food .civ-yield-value,
@@ -1641,6 +1665,14 @@ button.log-entry:active {
   align-items: center;
   gap: 5px;
   margin: 0;
+}
+
+/* `renderSeats` (`main.ts`) hides the strip outright in the one-human game —
+   see `showsSeatStrip` (`controls.ts`) — and `.seats`' own `display: flex`
+   above would otherwise outrank the UA's `[hidden]` rule, the same override
+   every other `[hidden]` surface in this file already states explicitly. */
+.seats[hidden] {
+  display: none;
 }
 
 button.seat {
@@ -8623,8 +8655,14 @@ kbd {
 /* The one eyebrow inside a card, and it earns its place: every other line on a
    generated card is a rule read off the data, so an unlabelled epigram in the
    same column reads as one more rule. Upright and small against the italic it
-   introduces — the label is not part of the quotation. */
-.cmp-flavor-label {
+   introduces — the label is not part of the quotation.
+
+   `.flavor-label` is the same mark everywhere else a flavour field is printed
+   beside rules — the offer cards, the Statecraft charter, a rite's row on the
+   Religion screen, a great person's line on the unit sheet (copy pass,
+   2026-08-28). One rule, so the word cannot drift between surfaces. */
+.cmp-flavor-label,
+.flavor-label {
   margin-right: 6px;
   font-family: var(--face-ui);
   font-size: 9px;
