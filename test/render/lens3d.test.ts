@@ -207,6 +207,7 @@ describe('the faith lens', () => {
       name: `Faith ${String(id)}`,
       pantheon: ['keeperOfTheHearth'],
       follower: [],
+      enhancer: [],
       foundedTurn: 0,
       pulses: [],
     });
@@ -377,6 +378,7 @@ describe('signReligion', () => {
         name: 'Faith',
         pantheon: ['keeperOfTheHearth'],
         follower: [],
+        enhancer: [],
         foundedTurn: 0,
         pulses: [],
       },

@@ -111,6 +111,7 @@ import {
   cardProduction,
   cardRulePercent,
   cardTileLines,
+  followerCardTileLines,
   cardProjectPays,
   drawDoctrineOffer,
   scopedCardTileLines,
@@ -324,7 +325,7 @@ export interface TileYieldContext {
    * empire whose law, holdings and works say nothing about ground, which is most
    * of them.
    *
-   * **One list, three producers**, and the chain cannot tell them apart:
+   * **One list, five producers**, and the chain cannot tell them apart:
    *
    *   · a Statecraft card's **unscoped** `tileYield` (`cardTileLines`) — the
    *     empire's law, worth the same on every hex it owns;
@@ -335,9 +336,12 @@ export interface TileYieldContext {
    *     why `cityContext` adds it and `yieldContextFor` cannot;
    *   · a card's **scoped** `tileYield` (`scopedCardTileLines`) — Petra's desert
    *     and the Hanging Gardens' irrigated farms, which are the same fact about
-   *     one city said by a card instead of by a building.
+   *     one city said by a card instead of by a building;
+   *   · a **follower belief's** `tileYield` (`followerCardTileLines`) — Harvest
+   *     Blessing's food on the farms of a city that follows, and the only
+   *     producer whose card may belong to another empire entirely.
    *
-   * A fourth producer joins by appending to this list. It was `cards` alone
+   * A sixth producer joins by appending to this list. It was `cards` alone
    * until Entry XXVII; folding the other two into the same channel rather than
    * giving each its own field is what keeps `explainTileYield`'s last clause one
    * loop instead of three.
@@ -411,17 +415,21 @@ export function yieldContextFor(
 function cityContext(state: GameState, city: City): TileYieldContext | undefined {
   const ctx = yieldContextFor(state, city.ownerId);
   if (!ctx) return undefined;
-  // Three producers are facts about *this town* rather than about the empire,
+  // Four producers are facts about *this town* rather than about the empire,
   // and none can be added by anybody without a city in hand: its buildings' tile
   // lines (the granary's food on water, Entry XXVII), its **live rites** (Rite
-  // of Plenty's gold on its own worked seams, Entry XXVIII), and the **scoped**
+  // of Plenty's gold on its own worked seams, Entry XXVIII), the **scoped**
   // card lines (Petra's desert, the Hanging Gardens' irrigated farms — a
-  // `tileYield` whose `scope` names which towns it lands in). Appended in that
-  // order, and the tile chain still cannot tell any producer from another.
+  // `tileYield` whose `scope` names which towns it lands in), and the **faith
+  // this town follows** (Harvest Blessing's food on the farms of a following
+  // city — the 2026-08-28 ruling, and the one producer whose card belongs to
+  // somebody else's empire). Appended in that order, and the tile chain still
+  // cannot tell any producer from another.
   const own = [
     ...buildingTileLines(city, ctx.techs),
     ...timedCityTileLines(state, city),
     ...scopedCardTileLines(state, city),
+    ...followerCardTileLines(state, city),
   ];
   if (own.length === 0) return ctx;
   return { ...ctx, lines: [...(ctx.lines ?? []), ...own] };
@@ -3159,7 +3167,12 @@ function empireRates(state: GameState, playerId: number): {
 export function growthCarryover(state: GameState, city: City, threshold: number): number {
   const percent =
     foldRulePercent(resourceRulePercent(state, city.ownerId, 'growthCarryover')) +
-    foldCardRulePercent(cardRulePercent(state, city.ownerId, 'growthCarryover'));
+    // **The town is handed in**, because a rate may now name which towns it
+    // applies in (Common Table: a city that follows keeps a quarter of its
+    // basket). `cardRulePercent` with a city in hand also folds that town's own
+    // live rites, which the borders channel has done since Entry XXVIII — the
+    // same argument, one bucket over.
+    foldCardRulePercent(cardRulePercent(state, city.ownerId, 'growthCarryover', city));
   if (percent <= 0) return 0;
   return Math.floor((threshold * percent) / 100);
 }

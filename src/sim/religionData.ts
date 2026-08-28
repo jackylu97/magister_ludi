@@ -325,9 +325,9 @@ export const RELIGION = religionJson as unknown as ReligionConfig;
  * that depends on an order must depend on an order the data itself carries.
  */
 export const BELIEF_IDS = Object.keys(RELIGION.beliefs) as BeliefId[];
-/** The follower pool, in file order. Drafted at founding; pays the founder. */
+/** The follower pool, in file order. Drafted at founding; applies in every following city. */
 export const FOLLOWER_BELIEF_IDS = Object.keys(RELIGION.followerBeliefs) as BeliefId[];
-/** The enhancer pool, in file order. Drafted at Theology; bends the tide. */
+/** The enhancer pool, in file order. Drafted at Theology; bends the tide and pays the holy city's owner. */
 export const ENHANCER_BELIEF_IDS = Object.keys(RELIGION.enhancerBeliefs) as BeliefId[];
 /** Every belief in the game, pantheon first, then follower, then enhancer. */
 export const ALL_BELIEF_IDS: readonly BeliefId[] = [
@@ -422,6 +422,24 @@ export function slotsFromTechs(techs: readonly TechId[]): number {
  * rite that can never be unlocked and a slot that never opens both look exactly
  * like a design decision. So the test suite asks this instead.
  */
+/**
+ * The counts that are questions about **a religion's founder** rather than about
+ * a town — the tide, counted across the world.
+ *
+ * Spelled here rather than imported, because the import between this file and
+ * `statecraftData.ts` is type-only in both directions and must stay that way
+ * (see the module docblock). Five strings, checked by
+ * `test/sim/religion.test.ts` against `CountKind`'s own `following…` family so
+ * that a sixth cannot be added there and forgotten here.
+ */
+export const WORLD_SCALE_COUNTS: readonly string[] = [
+  'followingCities',
+  'followingForeign',
+  'followingPop',
+  'followingEmpires',
+  'followingWithBuilding',
+];
+
 export function religionDataProblems(knownTechs: readonly string[]): string[] {
   const problems: string[] = [];
   for (const tech of Object.keys(RELIGION.pantheon.slotsFromTech)) {
@@ -452,20 +470,43 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
       problems.push(`belief "${id}" does nothing`);
     }
   }
-  // **A follower belief's scoped line has to be one the fold knows.** The
-  // follower pool is evaluated over the cities of the *world* that follow and
-  // paid to the founder (`followerBeliefLines`, `statecraft.ts`), which can fold
-  // exactly three per-town shapes. A scoped shape it does not know would be
-  // passed through as a fact about the founder's own empire and quietly pay the
-  // wrong towns — so it fails here instead, and the row is deferred.
+  // **A follower belief must be a fact about a town.** The guard the 2026-08-28
+  // ruling inverted: the old one refused a *scoped* row, because the fold that
+  // summed follower beliefs to the founder could read only three shapes. That
+  // fold is gone — a follower belief is now pushed into the live list of every
+  // city that follows, whoever owns it — so scoping is the *ordinary* case and
+  // the thing that cannot work is the opposite: a clause that pays an **empire**.
+  //
+  // Two ways a row says that, and each is silent rather than wrong, which is
+  // exactly why it fails here:
+  //
+  //   · `empireYields`, and any `countScaled` paying `where: 'empire'` — read
+  //     only by `cardEmpireYields`, which walks the *empire's* list and would
+  //     never see a card that reached one town;
+  //   · a **world-scale count** (the `following…` family) — answered off
+  //     "the religions whose holy city this empire holds", which is a question
+  //     about a founder. Asked in a foreign town it answers zero, so the card
+  //     would pay nothing and say nothing.
+  //
+  // Such a row belongs in the enhancer pool, which is the one that pays the holy
+  // city's owner. Congregation, Pilgrims' Coin, World Church and The Long Prayer
+  // moved there for this reason rather than being bent into a shape that nearly
+  // fits (Entry XV.b's rule).
   for (const id of FOLLOWER_BELIEF_IDS) {
     for (const effect of beliefDef(id).effects) {
-      const scoped = (effect as { scope?: unknown }).scope !== undefined;
-      if (!scoped) continue;
-      if (effect.kind === 'cityYields' || effect.kind === 'happiness') continue;
-      problems.push(
-        `follower belief "${id}" scopes a ${effect.kind}, which the founder's fold cannot read`,
-      );
+      if (effect.kind === 'empireYields') {
+        problems.push(`follower belief "${id}" pays the empire, which no one city can`);
+        continue;
+      }
+      if (effect.kind !== 'countScaled') continue;
+      if (effect.pays.to === 'yield' && effect.pays.where === 'empire') {
+        problems.push(`follower belief "${id}" pays the empire, which no one city can`);
+      }
+      if (WORLD_SCALE_COUNTS.includes(effect.count)) {
+        problems.push(
+          `follower belief "${id}" counts "${effect.count}", which is a question about a founder`,
+        );
+      }
     }
   }
   // A pattern naming an epithet no axis supplies would name a religion after an

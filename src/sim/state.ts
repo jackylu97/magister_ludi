@@ -282,8 +282,24 @@ import {
  *     them, and a replay of the log would re-derive them correctly while a
  *     loaded snapshot would keep charging rent on a free highway. The schema
  *     bump refuses both.
+ * 29: The correction of who a belief pays (user, 2026-08-28), which is Civ V's
+ *     split said plainly: **founder beliefs pay the owner of the holy city**
+ *     and **follower beliefs apply city-locally**, in every town that follows,
+ *     whoever owns it. Two fields move on `Religion`: `holySite` records the
+ *     hex the first stones went up on (the holy city is whoever's territory
+ *     holds it, so a conquest moves the payoff), and `enhancer` becomes a
+ *     **list** because `pools.enhancerSlots` is two and a scalar silently
+ *     overwrote the first pick.
+ *
+ *     The migration note: a v28 `enhancer: BeliefId` becomes a one-element
+ *     list, and a v28 religion has no `holySite` at all — `religionFounder`
+ *     falls back to `founderId` for exactly that case, which is the same
+ *     fallback a pillaged site takes. Neither could be inferred from a
+ *     snapshot's board (the stones a religion was founded on are not marked on
+ *     the map), and a replay of the log re-derives both, so the bump refuses
+ *     the snapshot and keeps the log honest.
  */
-export const SCHEMA_VERSION = 28;
+export const SCHEMA_VERSION = 29;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1299,23 +1315,52 @@ export interface ReligionPulse {
  *
  * `follower` and `enhancer` are drafted beliefs from two pools of their own
  * (`data/religion.json`), written in the ordinary card vocabulary and read by
- * the ordinary evaluator. Who they pay is the whole design (user, 2026-08-27):
- * a **follower** belief pays the *founder* for every city in the world that
- * follows, and an **enhancer** bends the tide itself.
+ * the ordinary evaluator. Who they pay is the whole design (user, 2026-08-28,
+ * correcting the 08-27 reading): a **follower** belief applies *city-locally*,
+ * in every town that follows this faith and to whoever owns that town, and an
+ * **enhancer** bends the tide for the empire that holds the **holy city**.
+ *
+ * `founderId` is **history and a fallback, not the payee.** Who a religion pays
+ * is `religionFounder` (`statecraft.ts`) — the owner of the city whose
+ * territory holds `holySite`, so a captured holy city moves the trickle and the
+ * enhancers with it. The founding empire's *pantheon* is untouched by any of
+ * that: a pantheon is native to the empire that consecrated it (the 2026-08-26
+ * ruling) and is read off `Player.pantheon`, never off this row.
  */
 export interface Religion {
   id: ReligionId;
-  /** The empire whose prophet founded it. Never changes; nothing may found twice. */
+  /**
+   * The empire whose prophet founded it. Never changes; nothing may found
+   * twice — and it is what `religionFounder` falls back to when the stones are
+   * gone (pillaged, or standing on ground nobody owns).
+   */
   founderId: number;
   /** Generated at founding from the pantheon's axes; renamable, pure prose. */
   name: string;
   /** The founder's gods at the moment of founding. Identity, never redrafted. */
   pantheon: BeliefId[];
-  /** Drafted from the follower pool. Pays the founder, wherever the followers are. */
+  /** Drafted from the follower pool. Applies in every city that follows. */
   follower: BeliefId[];
-  /** Drafted from the enhancer pool at Theology. Bends the tide. */
-  enhancer?: BeliefId;
+  /**
+   * Drafted from the enhancer pool at Theology. Bends the tide, and pays the
+   * holy city's owner.
+   *
+   * A **list**, because `pools.enhancerSlots` is two: the scalar this field
+   * used to be silently overwrote the first pick the moment a prophet spent a
+   * second charge on the pool. `follower`'s shape, for `follower`'s reason.
+   */
+  enhancer: BeliefId[];
   foundedTurn: number;
+  /**
+   * The hex the **first** holy site went up on, or absent for a religion
+   * founded before schema 29.
+   *
+   * The anchor of "who does this faith pay": the holy city is the town whose
+   * territory holds this hex, and `religionFounder` reads it off the board
+   * every time rather than storing an owner that a conquest would make stale.
+   * A later site is an ordinary improvement and never moves this.
+   */
+  holySite?: { col: number; row: number };
   /** Proclamations still standing. See `ReligionPulse`. */
   pulses: ReligionPulse[];
 }

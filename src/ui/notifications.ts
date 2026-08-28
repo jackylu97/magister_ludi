@@ -459,8 +459,11 @@ export function createReligionWatcher(): ReligionWatcher {
             : `${founder} founded ${religion.name}`,
         },
       });
-      const enhancer = religion.enhancer;
-      if (enhancer !== undefined && isBeliefId(enhancer)) {
+      // A **list** since schema 29, and one fact per belief rather than one per
+      // religion: the key already carries the belief's id, so a second
+      // enhancement announces itself and the first stays announced.
+      for (const enhancer of religion.enhancer) {
+        if (!isBeliefId(enhancer)) continue;
         found.push({
           key: `enhanced:${religion.id}:${enhancer}`,
           news: {

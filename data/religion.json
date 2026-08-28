@@ -537,7 +537,7 @@
             "to": "yield",
             "yield": "faith",
             "amount": 1,
-            "where": "empire"
+            "where": "city"
           }
         }
       ]
@@ -627,7 +627,7 @@
       "name": "Choirs",
       "axis": "none",
       "flavor": "Forty people, one breath, and the roof holds it a moment longer.",
-      "text": "+1 culture for every 3 citizens in the cities that follow.",
+      "text": "+1 culture for every 3 citizens of a city that follows.",
       "effects": [
         {
           "kind": "countScaled",
@@ -638,7 +638,7 @@
             "to": "yield",
             "yield": "culture",
             "amount": 1,
-            "where": "empire"
+            "where": "city"
           }
         }
       ]
@@ -647,7 +647,7 @@
       "name": "Tithe Houses",
       "axis": "none",
       "flavor": "A tenth of everything, counted by people who can count.",
-      "text": "+1 gold for every 4 citizens in the cities that follow.",
+      "text": "+1 gold for every 4 citizens of a city that follows.",
       "effects": [
         {
           "kind": "countScaled",
@@ -658,79 +658,7 @@
             "to": "yield",
             "yield": "gold",
             "amount": 1,
-            "where": "empire"
-          }
-        }
-      ]
-    },
-    "congregation": {
-      "name": "Congregation",
-      "axis": "hearth",
-      "flavor": "A crowd that knows the words is a crowd that stays.",
-      "text": "+1 happiness for every 5 cities in the world that follow, up to 3.",
-      "effects": [
-        {
-          "kind": "countScaled",
-          "count": "followingCities",
-          "per": 5,
-          "max": 3,
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
-        }
-      ]
-    },
-    "pilgrimsCoin": {
-      "name": "Pilgrims' Coin",
-      "axis": "road",
-      "flavor": "They arrive with nothing and leave having spent it.",
-      "text": "+1 faith for every city in the world that follows and has a Temple.",
-      "effects": [
-        {
-          "kind": "countScaled",
-          "count": "followingWithBuilding",
-          "building": "temple",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "empire"
-          }
-        }
-      ]
-    },
-    "worldChurch": {
-      "name": "World Church",
-      "axis": "none",
-      "flavor": "Two kings, one calendar, and a long argument about the date.",
-      "text": "+1 happiness for every empire in the world that follows you.",
-      "effects": [
-        {
-          "kind": "countScaled",
-          "count": "followingEmpires",
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
-        }
-      ]
-    },
-    "theLongPrayer": {
-      "name": "The Long Prayer",
-      "axis": "sun",
-      "flavor": "It began at dawn. Nobody has been brave enough to end it.",
-      "text": "+1 culture for every 4 citizens in the world who follow you.",
-      "effects": [
-        {
-          "kind": "countScaled",
-          "count": "followingPop",
-          "per": 4,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
+            "where": "city"
           }
         }
       ]
@@ -755,45 +683,68 @@
       "name": "Warrior Monks",
       "axis": "war",
       "flavor": "They keep the fast, and they keep the gate.",
-      "text": "Units fortified in a city that follows fight 5 points harder.",
-      "effects": [],
-      "deferred": [
-        "units fortified in a following city fight harder"
-      ],
-      "note": "A strength line cannot yet be narrowed to the towns that follow."
+      "text": "+5 combat strength for units defending a city that follows.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "when": {
+            "test": "inCity"
+          },
+          "side": "defend"
+        }
+      ]
     },
     "harvestBlessing": {
       "name": "Harvest Blessing",
       "axis": "hearth",
       "flavor": "The field was going to do that anyway. Say the words.",
       "text": "+1 food on every farm worked by a city that follows.",
-      "effects": [],
-      "deferred": [
-        "+1 food on farms in following cities"
-      ],
-      "note": "A hex bonus cannot yet be narrowed to the towns that follow."
+      "effects": [
+        {
+          "kind": "tileYield",
+          "food": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "farm"
+          },
+          "scope": {
+            "test": "follows"
+          }
+        }
+      ]
     },
     "guildOfTheFaithful": {
       "name": "Guild of the Faithful",
       "axis": "stone",
       "flavor": "Piety and scaffolding, in that order, on the same books.",
       "text": "+10% production toward buildings in every city that follows.",
-      "effects": [],
-      "deferred": [
-        "+10% production toward buildings in following cities"
-      ],
-      "note": "A production bonus cannot yet be narrowed to the towns that follow."
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 10,
+          "scope": {
+            "test": "follows"
+          }
+        }
+      ]
     },
     "commonTable": {
       "name": "Common Table",
       "axis": "hearth",
       "flavor": "Everyone eats, and what is left is put by for everyone.",
       "text": "A city that follows keeps a quarter of its stored food when it grows.",
-      "effects": [],
-      "deferred": [
-        "following cities keep a quarter of their stored food on growing"
-      ],
-      "note": "A rule percentage cannot yet be narrowed to the towns that follow."
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthCarryover",
+          "percent": 25,
+          "scope": {
+            "test": "follows"
+          }
+        }
+      ]
     }
   },
   "enhancerBeliefs": {
@@ -946,6 +897,78 @@
         "a claim on empires that follow you"
       ],
       "note": "There is no diplomacy for a mandate to be made of."
+    },
+    "congregation": {
+      "name": "Congregation",
+      "axis": "hearth",
+      "flavor": "A crowd that knows the words is a crowd that stays.",
+      "text": "+1 happiness for every 5 cities in the world that follow, up to 3.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "followingCities",
+          "per": 5,
+          "max": 3,
+          "pays": {
+            "to": "happiness",
+            "amount": 1
+          }
+        }
+      ]
+    },
+    "pilgrimsCoin": {
+      "name": "Pilgrims' Coin",
+      "axis": "road",
+      "flavor": "They arrive with nothing and leave having spent it.",
+      "text": "+1 faith for every city in the world that follows and has a Temple.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "followingWithBuilding",
+          "building": "temple",
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "worldChurch": {
+      "name": "World Church",
+      "axis": "none",
+      "flavor": "Two kings, one calendar, and a long argument about the date.",
+      "text": "+1 happiness for every empire in the world that follows you.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "followingEmpires",
+          "pays": {
+            "to": "happiness",
+            "amount": 1
+          }
+        }
+      ]
+    },
+    "theLongPrayer": {
+      "name": "The Long Prayer",
+      "axis": "sun",
+      "flavor": "It began at dawn. Nobody has been brave enough to end it.",
+      "text": "+1 culture for every 4 citizens in the world who follow you.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "followingPop",
+          "per": 4,
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
     }
   },
   "rites": {

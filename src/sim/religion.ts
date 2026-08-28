@@ -113,6 +113,7 @@ import {
   drawWithoutReplacement,
   offerSize,
   payWindfallGrants,
+  religionFounder,
   settleCultureWindfall,
   timedEffectIsLive,
   windfallPayout,
@@ -366,7 +367,7 @@ export function settleBeliefChoice(
     const religion = foundedReligion(state, player.id);
     if (!religion) return null;
     if (pool === 'follower') religion.follower.push(id);
-    else religion.enhancer = id;
+    else religion.enhancer.push(id);
     refreshBeliefDerived(state, player);
     return { id, name: beliefDef(id).name };
   }
@@ -1147,6 +1148,7 @@ export function foundReligion(state: GameState, player: Player): Religion {
     name: generateReligionName(state, pantheon),
     pantheon,
     follower: [],
+    enhancer: [],
     foundedTurn: state.turn,
     pulses: [],
   };
@@ -1194,10 +1196,7 @@ export function renameReligionAt(state: GameState, playerId: number, name: strin
 
 /** The beliefs of one pool this religion does not already hold, in file order. */
 export function religionBeliefPool(religion: Religion, pool: ReligionBeliefPool): BeliefId[] {
-  const held = new Set<BeliefId>([
-    ...religion.follower,
-    ...(religion.enhancer === undefined ? [] : [religion.enhancer]),
-  ]);
+  const held = new Set<BeliefId>([...religion.follower, ...religion.enhancer]);
   return poolBeliefs(pool).filter((id) => !held.has(id));
 }
 
@@ -1209,7 +1208,7 @@ export function poolSlots(pool: ReligionBeliefPool): number {
 
 /** How many this religion currently holds. */
 export function poolHeld(religion: Religion, pool: ReligionBeliefPool): number {
-  return pool === 'follower' ? religion.follower.length : religion.enhancer === undefined ? 0 : 1;
+  return (pool === 'follower' ? religion.follower : religion.enhancer).length;
 }
 
 /**
@@ -1341,6 +1340,13 @@ export function plantHolySiteAt(
 
   tile.improvement = HOLY_SITE;
   refreshTileDerived(state, tile);
+  // **The first stones are the seat of the faith, and only the first.** The hex
+  // is recorded once and never moved: who a religion pays is the owner of the
+  // town whose territory holds *this* hex (`religionFounder`), so a prophet
+  // planting a second site out on a frontier extends the tide without handing
+  // the trickle to whoever takes that frontier. Written after the improvement,
+  // because the derivation asks the board whether the stones are still standing.
+  religion.holySite ??= { col: tile.col, row: tile.row };
 
   let offer: BeliefOffer | null = null;
   if (poolHeld(religion, 'follower') < poolSlots('follower')) {
@@ -1503,7 +1509,7 @@ export function redraftAt(
 ): BeliefOffer {
   const religion = foundedReligion(state, player.id)!;
   if (pool === 'follower') religion.follower = [];
-  else delete religion.enhancer;
+  else religion.enhancer = [];
   const offer = drawPoolBeliefOffer(state, player, religion, pool);
   player.pantheon.pending = offer;
   const left = (unit.chargesLeft ?? 0) - 1;
@@ -1653,7 +1659,13 @@ export function explainPressure(
   const byRoad = roadReach(state, city);
 
   for (const religion of state.religions) {
-    const founder = religion.founderId;
+    // **The tide is bent by whoever holds the seat**, not by whoever first
+    // raised it (the 2026-08-28 ruling): the enhancer pool pays the holy city's
+    // owner, so the pressure rules it carries — and the wonders that press —
+    // are asked of `religionFounder`. A conqueror who takes a holy city takes
+    // the reach of its faith with the stones. The capital line below follows
+    // for the same reason: the seat of a faith is where its seat *is*.
+    const founder = religionFounder(state, religion);
     const rule = (id: PressureRuleId, base: number): number =>
       base + cardPressureRule(state, founder, id);
     const before = lines.length;

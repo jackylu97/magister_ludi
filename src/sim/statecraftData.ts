@@ -1266,6 +1266,20 @@ export interface CardRulePercentEffect {
   kind: 'rulePercent';
   rule: CardRule;
   percent: number;
+  /**
+   * Which towns the rate applies in. Absent means the realm, which is what a
+   * Doctrine's rate has always meant.
+   *
+   * The scope the 2026-08-28 ruling asked for and Common Table's whole home: *a
+   * city that follows keeps a quarter of its stored food when it grows*. Read
+   * in `cardRulePercent`, which already took an optional city for the borders
+   * channel — a rate narrowed to towns is answerable only by a caller holding
+   * one, so a scoped line is silent to every caller that passes none.
+   *
+   * It is the ordinary `CityScope` and nothing narrower, so an Order may say
+   * "faster borders in captured cities" on the same terms tomorrow.
+   */
+  scope?: CityScope;
 }
 
 /** Flat happiness, once for the empire or once per city a scope admits. */

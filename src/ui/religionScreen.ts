@@ -215,9 +215,12 @@ const PROPHET: UnitTypeId = 'prophet';
 export const POOL_WORD: Readonly<Record<ReligionBeliefPool, { name: string; says: string }>> = {
   follower: {
     name: 'follower belief',
-    says: 'Pays you for every city in the world that follows your faith, whoever owns it.',
+    says: 'Applies in every city that follows your faith, and pays whoever owns that city.',
   },
-  enhancer: { name: 'enhancer belief', says: 'Bends how far and how hard your faith spreads.' },
+  enhancer: {
+    name: 'enhancer belief',
+    says: 'Bends how far and how hard your faith spreads, for whoever holds its holy city.',
+  },
 };
 
 /** One house of a religion: what it holds, how many it may, and what fills it. */
@@ -252,7 +255,14 @@ export interface FollowingCityLine {
 
 /** Everything the right pane prints. Pure, and the whole of what a test can pin. */
 export interface ReligionReading {
-  /** The faith this seat founded, or `null` — `foundedReligion`'s answer. */
+  /**
+   * The faith this seat founded, or `null` — `foundedReligion`'s answer.
+   *
+   * Deliberately **founding** and not `religionFounder`: this pane is "your
+   * religion", which is a fact about history and stays yours after a conquest
+   * takes the holy city. What that conquest moves is the trickle below, which
+   * comes off `cardEmpireYields` and so goes to zero on its own.
+   */
   religion: Religion | null;
   /** How many religions the world holds, against the cap it will ever hold. */
   count: string;
@@ -289,7 +299,7 @@ export function religionReading(state: GameState, seat: number): ReligionReading
   if (mine !== null) {
     for (const pool of RELIGION_BELIEF_POOLS) {
       const slots = poolSlots(pool);
-      const held = pool === 'follower' ? [...mine.follower] : mine.enhancer ? [mine.enhancer] : [];
+      const held = [...(pool === 'follower' ? mine.follower : mine.enhancer)];
       houses.push({
         pool,
         slots,
@@ -374,12 +384,12 @@ function signed(amount: number): string {
  *
  * `BeliefOffer.pool` is absent for the pantheon and named for the two religion
  * pools, so the three drafts read as three different decisions on the same card
- * — which they are: a god is your identity, a follower belief is what your
- * followers pay you, an enhancer is how far they spread.
+ * — which they are: a god is your identity, a follower belief is what every town
+ * that keeps your faith gets, an enhancer is how far the faith spreads.
  */
 export function beliefOfferEyebrow(pool: ReligionBeliefPool | undefined): string {
   if (pool === undefined) return 'a god · permanent, and never converted away';
-  if (pool === 'follower') return 'a follower belief · pays you wherever your faith is followed';
+  if (pool === 'follower') return 'a follower belief · applies in every city that follows';
   return 'an enhancer belief · bends how your faith spreads';
 }
 
@@ -811,10 +821,11 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       block.append(box);
     }
 
-    // What the faith pays its founder. `cardEmpireYields`' own labelled lines,
-    // so the figure here is the figure `collectYields` banks.
+    // What the faith pays whoever holds its holy city. `cardEmpireYields`' own
+    // labelled lines, so the figure here is the figure `collectYields` banks —
+    // and it stops arriving the turn somebody takes the holy city off you.
     const trickle = element('div', 'rel-trickle');
-    trickle.append(element('p', 'eyebrow sc-eyebrow', 'what your followers pay you'));
+    trickle.append(element('p', 'eyebrow sc-eyebrow', 'what the holy city is paid'));
     if (reading.trickle.length === 0) {
       trickle.append(element('p', 'sc-none', 'Nothing yet — no town abroad follows you.'));
     } else {
@@ -830,8 +841,9 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     block.append(trickle);
 
     // The congregation. Yours and theirs in one list, because a follower belief
-    // pays for both and a player reading two lists would be reading one figure
-    // twice.
+    // lands in both and a player reading two lists would be reading one rule
+    // twice — the foreign towns are the ones that pay the trickle, and the ones
+    // whose owners are quietly getting your beliefs.
     const towns = element('div', 'rel-following');
     towns.append(
       element('p', 'eyebrow sc-eyebrow', `following cities · ${reading.following.length}`),

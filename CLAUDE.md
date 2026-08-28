@@ -492,14 +492,16 @@ would change every seeded outcome. No further rename passes.
 - **Belief spreads as citizens, and `spreadReligion` is the only writer** (Entry XL).
   `City.followers` and `City.pressureBank` are written by that phase alone (before
   `collectYields`); a city's religion is *derived* — more than half its people — never stored;
-  a religion's name is drawn at founding from the pantheon's axes. **Follower beliefs pay the
-  founder**, folded over every following city in the world as `liveEffects`' seventh source
-  (`followerBeliefLines`) — never the city's owner; the `follows` scope is the one scope that
-  asks who is reading (`cityScopeAdmits(…, viewerId)`). One religion per empire, at most
-  ⌈⅔ × seats⌉ in a game, refused in `foundReligion`. `prophesies` is `consecrates`' sibling
-  marker; the planting clause reads all four markers. A follower row that scopes a shape the
-  founder's fold cannot read **fails the build** (`religionDataProblems`) — deferral is written
-  on the row, never silently mispaid.
+  a religion's name is drawn at founding from the pantheon's axes. **Follower beliefs apply city-locally** — every city that follows gets all of
+  them, paid to *whoever owns that city* (`followerBeliefEffects`, a source of `liveCityEffects`);
+  the fold to the founder is gone (2026-08-28, the user's correction). **Founder-side pay follows
+  the stones**: `religionFounder(state, religion)` is the owner of the city whose territory holds
+  `Religion.holySite` (falling back to `founderId` when no site stands on owned ground), and
+  `liveEffects`' seventh source is "the religions whose holy city you hold" — enhancers and the
+  trickle, which move on capture; the pantheon never does. The `follows` scope no longer asks who
+  is reading. A follower row that pays an **empire** (`empireYields`, `countScaled where:
+  'empire'`, a world-scale `following…` count) **fails the build** — such a row belongs in the
+  enhancer pool.
 - **A belief is a card, not a system.** Beliefs and rites are rows of the *same* effect
   vocabulary read by the *same* evaluator; `statecraft.ts` is still the only module that
   switches on `effect.kind`. `CardId` spans five classes now, and the lookup across all five

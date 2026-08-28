@@ -878,8 +878,8 @@ describe('glanceable numbers', () => {
 // ---------------------------------------------------------------------------
 
 describe('research in the log', () => {
-  it('round-trips a schema 28 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(28);
+  it('round-trips a schema 29 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(29);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

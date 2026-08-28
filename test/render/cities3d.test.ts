@@ -96,6 +96,7 @@ function foundFor(state: GameState, founderId: number): number {
     name: `Faith ${String(id)}`,
     pantheon: ['keeperOfTheHearth', 'theStandingStones'],
     follower: [],
+    enhancer: [],
     foundedTurn: 0,
     pulses: [],
   });

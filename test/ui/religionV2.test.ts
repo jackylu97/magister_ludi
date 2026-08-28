@@ -205,7 +205,7 @@ describe('the Religion sheet’s right pane, once a religion is founded', () => 
     const state = world();
     const religion = found(state, 0);
     religion.follower.push(FOLLOWER_BELIEF_IDS[0]!);
-    religion.enhancer = ENHANCER_BELIEF_IDS[0]!;
+    religion.enhancer.push(ENHANCER_BELIEF_IDS[0]!);
     const houses = religionReading(state, 0).houses;
     expect(houses[0]!.held).toEqual([FOLLOWER_BELIEF_IDS[0]]);
     expect(houses[0]!.empty).toBe(houses[0]!.slots - 1);
@@ -625,7 +625,7 @@ describe('what a seat is told about a faith', () => {
     const religion = found(state, 0);
     const watcher = createReligionWatcher();
     watcher.baseline(state, 0);
-    religion.enhancer = ENHANCER_BELIEF_IDS[0]!;
+    religion.enhancer.push(ENHANCER_BELIEF_IDS[0]!);
     const news = watcher.poll(state, 0);
     expect(news[0]!.kind).toBe('enhanced');
     expect(news[0]!.text.startsWith(`${religion.name} is enhanced — `)).toBe(true);
@@ -636,7 +636,7 @@ describe('what a seat is told about a faith', () => {
     const theirs = found(state, 1);
     const watcher = createReligionWatcher();
     watcher.baseline(state, 0);
-    theirs.enhancer = ENHANCER_BELIEF_IDS[0]!;
+    theirs.enhancer.push(ENHANCER_BELIEF_IDS[0]!);
     expect(watcher.poll(state, 0)[0]!.text).toBe(
       `Crimson enhanced ${theirs.name.replace(/^the /, '')}`,
     );
@@ -694,7 +694,9 @@ describe('the Compendium’s religion rows', () => {
       const id = row.id.split(':')[1]! as (typeof ALL_BELIEF_IDS)[number];
       const pool = beliefPoolOf(id);
       const card = entry(row.id)!;
-      if (pool === 'follower') expect(card.eyebrow).toContain('pays the founder');
+      // The 2026-08-28 ruling, printed: a follower belief is city-local and an
+      // enhancer is what pays the holy city.
+      if (pool === 'follower') expect(card.eyebrow).toContain('every city that follows');
       else if (pool === 'enhancer') expect(card.eyebrow).toContain('enhancer belief');
       else expect(card.eyebrow).toContain('a god');
     }
@@ -755,20 +757,39 @@ describe('the faith lens', () => {
   it('is a row of the one list the lens menu and the digit keys both read', () => {
     const main = sourceOf('main.ts');
     // A `LensOption` record rather than the tuple the rack started with — the
-    // row grew a tail and a legend (see `LENS_OPTIONS`), and `lensOrder` still
-    // reads its `mode` so the digit hotkeys have one source of order.
+    // row carries a legend (see `LENS_OPTIONS`), and `lensOrder` still reads its
+    // `mode` so the digit hotkeys have one source of order.
     expect(main).toContain("mode: 'faith',");
     expect(main).toContain("label: 'Faith',");
     expect(main).toContain('lensOrder: LENS_OPTIONS.map((option) => option.mode)');
   });
 
-  it('is not taken away by picking a piece up', () => {
-    // The other two modes are questions a *piece* asks and are raised by
-    // selecting one; faith is a question the world asks, so nothing raises it
-    // and nothing may revoke it (`LensMode`).
-    const lens = fn('controls.ts', 'effectiveLens');
-    expect(lens).toContain("manualLens === 'faith'");
-    expect(lens.indexOf("manualLens === 'faith'")).toBeLessThan(lens.indexOf("? 'settler'"));
+  /**
+   * **Superseded, and deliberately rewritten rather than deleted.** This used to
+   * assert that nothing raised the faith lens: the other two modes were
+   * questions a *piece* asked and faith was a question the world asked, so it
+   * was reachable from the menu alone. The 2026-08-28 ruling reversed that half
+   * — a prophet and an augur each raise it, because carrying one *is* the asking
+   * — and `lensForSelection` is where the whole precedence table now lives
+   * (pinned in `faithLens.test.ts`).
+   *
+   * What survives is the other half, and it is the one this file still holds:
+   * a **manual** faith lens beats every piece rule, and it beats them *first*.
+   */
+  it('is never taken away by picking a piece up, once the player has chosen it', () => {
+    const lens = fn('controls.ts', 'lensForSelection');
+    expect(lens).toContain("manual === 'faith'");
+    expect(lens.indexOf("manual === 'faith'")).toBeLessThan(lens.indexOf('def.foundsCity'));
+    // And `effectiveLens` asks that one function rather than keeping a second
+    // copy of the ladder.
+    expect(fn('controls.ts', 'effectiveLens')).toContain('lensForSelection(def, manualLens)');
+  });
+
+  it('is raised by the two religious pieces, off their markers and not their names', () => {
+    const lens = fn('controls.ts', 'lensForSelection');
+    expect(lens).toContain("def.prophesies === true || def.consecrates === true");
+    expect(lens).not.toContain("'prophet'");
+    expect(lens).not.toContain("'augur'");
   });
 });
 

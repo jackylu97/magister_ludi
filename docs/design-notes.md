@@ -3767,3 +3767,17 @@ narrowed and known.
 Philosopher's Stone, the courthouse); systems that do not exist (naval, diplomacy and a war
 state, a border-crossing trigger, an office grant on a layout, a legacy amplifier); and one by
 design — a card wanting a share of a project's payout reopens Entry XXVI, and does not.
+
+**Correction (user, 2026-08-28) to Entry XL — who follower beliefs pay.** *"Founder beliefs pay the
+owner of the holy city (founding city) of the religion. Follower beliefs apply at a city-local
+level, so a city following a religion gets all follower beliefs."* Entry XL's "follower beliefs
+pay the founder" was a misreading and is superseded: the fold to the founder is deleted, and a
+following city — whoever owns it — carries the religion's follower beliefs in its own
+`liveCityEffects`, which is what lets Warrior Monks, Harvest Blessing, Guild of the Faithful and
+Common Table exist as written (a per-town happiness pass, a combat line asked of the hex's town,
+a scope on `rulePercent`, and a sixth `TileLine` producer came with them). Founder-side pay
+follows the stones: `religionFounder` is the owner of the city holding the first holy site, so a
+captured holy city moves the enhancers and the trickle and never the pantheon. Four rows written
+on world-scale counts were refiled from the follower pool to the enhancer pool, where they can
+pay; a follower row that pays an empire now fails the build. `Religion.enhancer` is a list —
+the scalar had silently overwritten the first pick the moment the cap became two. Schema 29.

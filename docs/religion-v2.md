@@ -112,8 +112,9 @@ founded city follows the nearest pressure from its first turn.
 
 - **The city's owner** gets the religion's **follower beliefs** in that city — whoever's
   religion it is. A rival's faith in your town is a bonus you did not choose, not a wound;
-  that is Civ V's rule and it is what removes every reason for religious war.
-- **The founder** gets the **founder trickle**: `+1🕯 per foreign following city` and
+  that is Civ V's rule and it is what removes every reason for religious war. ✓ **This is
+  what shipped**, after the 2026-08-28 correction; see "Who is paid" below.
+- **The founder** (read: the holy city's owner) gets the **founder trickle**: `+1🕯 per foreign following city` and
   `+1💰 per 2 foreign following cities` (data; enhancer beliefs raise it) — a rule-5 list,
   `countScaled followingForeign` (new count). Spread is worth wanting with no victory bead
   attached to it yet.
@@ -249,7 +250,12 @@ three scopes marked **new** are the ones the wonders and legacies passes already
 
 Prophets at The High Temple yes
 City follows nothing until majority citizens follow the religion, lets make religion spread more aggressive than in civ as that's the only way to spread religion.
-follower beliefs pay the owner of the holy site of the city
+~~follower beliefs pay the owner of the holy site of the city~~ ✎ **corrected
+2026-08-28** — the line above was read as "follower beliefs pay the founder" and
+built that way, which was wrong. The ruling, in the user's own words: *"Founder
+beliefs pay the owner of the holy city (founding city) of the religion. Follower
+beliefs apply at a city-local level, so a city following a religion gets all
+follower beliefs."*
 holy sites claim one hex
 faith bomb only converts, it makes the decision more important between the two.
 One religion per empire, there should be a max # of religions that can be founded, lets make 2/3rds of the players in the lobby, rounding up to the nearest integer.
@@ -274,16 +280,25 @@ belongs to the interface pass.
 
 | Shape | Where | Note |
 |---|---|---|
-| `Religion { id, founderId, name, pantheon, follower[], enhancer?, foundedTurn, pulses[] }` | `GameState.religions` | founding order **is** id order; one writer (`foundReligion`) |
+| `Religion { id, founderId, name, pantheon, follower[], enhancer[], holySite?, foundedTurn, pulses[] }` | `GameState.religions` | founding order **is** id order; one writer (`foundReligion`). ✎ 2026-08-28: `enhancer` is a **list** (two slots), and `holySite` is the hex the first stones went up on — `founderId` is history and a fallback, `religionFounder` is the payee |
 | `ReligionPulse { col, row, strength, range, startTurn, expiresTurn }` | `Religion.pulses` | absolute expiry, decay computed from the two turns |
 | `City.followers?: Partial<Record<ReligionId, number>>` | `state.ts` | citizens by religion; the rest follow nothing, derived |
 | `City.pressureBank?: Partial<Record<ReligionId, number>>` | `state.ts` | faith banked toward the next convert; the only stored half of the tide |
 | `Player.prophetsPurchased` | `state.ts` | the prophet's own faith ladder, separate from the augur's |
 | `BeliefOffer.pool?: 'follower' \| 'enhancer'` | `religionData.ts` | absent means the pantheon — one offer field, one `chooseBelief` |
 
-Schema **26**. A v25 log is a different game rather than an older one: the temple
-moved onto a technology that did not exist, so every research plan past the
-second age reaches a different tree, and founding spends `state.rng` on a name.
+Schema **29** (26 when this pass landed; 27 and 28 are elsewhere in the ledger).
+A v25 log is a different game rather than an older one: the temple moved onto a
+technology that did not exist, so every research plan past the second age reaches
+a different tree, and founding spends `state.rng` on a name.
+
+✎ **29 (2026-08-28)**: `Religion.enhancer` becomes a list and `Religion.holySite`
+appears. The migration note, said plainly because it cannot be inferred: a v28
+scalar `enhancer` becomes a one-element list, and a v28 religion has **no**
+`holySite` at all — the stones a faith was founded on are not marked on the map,
+so a loaded snapshot could not re-derive it, while a replay of the log can.
+`religionFounder` falls back to `founderId` for exactly that case, which is the
+same fallback a pillaged site takes.
 
 ### Commands
 
@@ -333,20 +348,44 @@ Measured on the fixture (`test/sim/religion.test.ts`, "the tuning"):
   four proclamations and 38 converts inside 170 turns, and the log replays byte
   for byte.
 
-### Who is paid
+### Who is paid ✎ **rewritten 2026-08-28**
 
-**Follower beliefs pay the founder** (Revision 3), evaluated over every city in
-the world that follows whoever owns it. `liveEffects` gains a **seventh source** —
-the religion this empire founded — carrying three things: its enhancer beliefs
-plainly, the **founder's trickle** (`religion.json` `founderTrickle`: +1🕯 per
-foreign following city, +1💰 per two), and its follower beliefs folded by
-`followerBeliefLines`. The fold turns "in every city that follows" into one
-empire-scale line labelled with the count — *"Religion · the Grain Cult · Feast
-Days (4 following cities)"*. Three per-town shapes fold (`cityYields`,
-`happiness per city`, a town-scoped `countScaled`); everything else on a follower
-row is already a fact about the tide and passes through. `CityScope` gained
-`{ test: 'follows' }` and `cityScopeAdmits` an optional `viewerId` — the one scope
-that is about the reader as well as about the town.
+**Follower beliefs apply city-locally.** `liveCityEffects(state, city)` gains a
+source — the follower beliefs of `cityReligion(city)`, whoever founded that faith
+— pushed as **ordinary city-scoped effects** through the same `pushEffects` walk
+every other card takes (`followerBeliefEffects`, `statecraft.ts`). So every
+reader that goes through `liveCityEffects` inherits them with no arm of its own:
+`cardCityYields`, `cardPercentYields`, `cardProduction`, `cardRulePercent` (with
+a town in hand), and the two that had to be widened — `cardHappiness`, which now
+sweeps the realm's towns for their *local* cards beside the empire's law
+(`cityLocalEffects`), and `cardCombatLines`, which asks the town standing on the
+contested hex. A **sixth `TileLine` producer** (`followerCardTileLines`) joins
+`cityContext`. The fold that summed follower beliefs to the founder
+(`followerBeliefLines`) is **deleted rather than reworded**: a fold and a city
+source would have been two answers to one question.
+
+**Founder beliefs pay the owner of the holy city**, derived. `religionFounder(state,
+religion)` is the owner of the city whose territory holds `Religion.holySite` —
+the hex the *first* holy site went up on, recorded once at founding — and it
+falls back to `Religion.founderId` under one rule: *no stones standing on owned
+ground* (a religion older than schema 29, a pillaged site, a razed holy city).
+`heldReligions(state, playerId)` is the sweep, and `liveEffects`' seventh source
+is now "the religions whose holy city you hold": their **enhancer** beliefs and
+the **founder's trickle** (`religion.json` `founderTrickle`: +1🕯 per foreign
+following city, +1💰 per two). A captured holy city moves both, with nothing
+transferred — the derivation asks the board. `explainPressure` asks it too, so
+the enhancer pool's `pressureRule`s and a wonder's pressure follow the seat.
+**The pantheon does not move**: it is native to the empire that consecrated it
+(the 2026-08-26 ruling) and is read off `Player.pantheon`.
+
+`CityScope`'s `{ test: 'follows' }` survives with its meaning corrected and its
+`viewerId` gone: it is now "this town follows the religion this belief belongs
+to", true by construction on a city the belief reached at all, and read of any
+other card it asks whether the place keeps a faith at all.
+
+`CardRulePercentEffect` gained `scope?: CityScope` (Common Table's ask), and
+`growthCarryover` (`cities.ts`) hands its town in so the growth channel can read
+it.
 
 Five new `CountKind`s (`followingCities`, `followingForeign`, `followingPop`,
 `followingEmpires`, `followingWithBuilding`) answer off one sweep, and
@@ -354,20 +393,41 @@ Five new `CountKind`s (`followingCities`, `followingForeign`, `followingPop`,
 banked, and read off the list `liveEffects` has already built rather than through
 `cardAmplifier`, which would be that function calling itself.
 
-### The pools
+### The pools ✎ **re-sorted 2026-08-28**
 
-`data/religion.json` grew `followerBeliefs` (16 rows) and `enhancerBeliefs` (10),
-one id space with the pantheon. **Five follower rows ship deferred and
-annotated** rather than bent into a shape that nearly fits — Warrior Monks
-(a scope on `combatLine`), Harvest Blessing (on `tileYield`), Guild of the
-Faithful (on `productionBonus`), Sanctuary (on `cityStat`/`unitStat`), Common
-Table (on `rulePercent`). Each is exactly one of the "**new**" scopes the body
-above flagged; `religionDataProblems` now fails the build if a follower row
-scopes a shape the founder's fold cannot read, so the deferral cannot rot into a
-silent mispayment. Two enhancer rows are deferred for want of a system (Holy
-Order needs a card that adds a unit; Theocratic Mandate needs diplomacy).
+`data/religion.json` holds `followerBeliefs` (12 rows) and `enhancerBeliefs`
+(14), one id space with the pantheon.
 
-`pools: { followerSlots: 1, enhancerSlots: 1 }` is the dial: raising
+**The four deferred follower rows are built**, because city-local evaluation is
+the shape each of them was waiting for: Warrior Monks (`combatLine when inCity`,
+side defend — the belief is live in the town, and `cardCombatLines` asks the town
+on the contested hex), Harvest Blessing (`tileYield` on farms, scope `follows`),
+Guild of the Faithful (`productionBonus building`, scope `follows`), Common Table
+(`rulePercent growthCarryover`, scope `follows`, on the new field). Sanctuary was
+never written into the table and is still unbuilt.
+
+**Four rows moved to the enhancer pool** — Congregation, Pilgrims' Coin, World
+Church and The Long Prayer. Each is written on a **world-scale count** (the
+`following…` family), which is a question about *"the religions whose holy city
+this empire holds"*; asked in a foreign town it answers nothing, so as a follower
+belief each would have paid nothing and said nothing. The doc's own founder-pool
+table lists three of them, so this is a filing correction rather than a design
+change, and it keeps every ratified row alive with its printed text intact.
+
+The three per-town payouts (Pilgrimage, Choirs, Tithe Houses) now pay
+`where: 'city'` rather than `where: 'empire'`, which is what "in a city that
+follows" always meant; `uniqueLuxuries` gained the `within: 'city'` reading the
+population count already had, so Pilgrimage pays a town for the luxuries *it*
+holds.
+
+`religionDataProblems`' follower guard is **inverted**: it used to fail a follower
+row that *scoped* a shape the founder's fold could not read, and now fails one
+that pays an **empire** — an `empireYields`, a `countScaled` paying
+`where: 'empire'`, or a world-scale count. Two enhancer rows are still deferred
+for want of a system (Holy Order needs a card that adds a unit; Theocratic
+Mandate needs diplomacy).
+
+`pools: { followerSlots: 2, enhancerSlots: 2 }` is the dial: raising
 `followerSlots` makes a prophet's later charge open a second follower draft with
 no code change, because `plantHolySiteAt` asks whether a slot is open and never
 how many.
@@ -412,9 +472,10 @@ which had the same gap.
 
 ### What is not built
 
-* **Two follower slots and two enhancer slots.** The body's 2/2; shipped at 1/1
-  behind a data dial (see `pools`).
-* **The five deferred follower rows and two enhancer rows** listed above.
+* ~~**Two follower slots and two enhancer slots.**~~ Built — `pools` is 2/2, and
+  `Religion.enhancer` is a list so the second pick is actually held.
+* ~~**The five deferred follower rows**~~ — four are built (2026-08-28); Sanctuary
+  was never written into the table. **Two enhancer rows** are still deferred.
 * **A wonder's pressure beyond Hagia Sophia's.** Djenné and Angkor Wat carry no
   `pressure` row yet; adding one is a JSON line.
 * **Anything visual.** See below.

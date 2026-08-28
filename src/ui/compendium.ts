@@ -947,14 +947,15 @@ function doctrineEntry(id: DoctrineId): CompendiumEntry {
  * the only thing about a belief a reader cannot work out from its clauses: the
  * three are drawn by different agents, at different moments, and — the part that
  * matters — **paid to different people**. A god pays the empire that keeps it; a
- * follower belief pays the empire that founded the faith, wherever the followers
- * live, including in a rival's towns. A shelf that printed all three under one
- * word would be hiding the one distinction the pools exist for.
+ * follower belief applies in every city that follows the faith and pays whoever
+ * owns that city, a rival included; an enhancer pays whoever holds the faith's
+ * holy city. A shelf that printed all three under one word would be hiding the
+ * one distinction the pools exist for.
  */
 const BELIEF_POOL_WORD: Readonly<Record<'pantheon' | ReligionBeliefPool, string>> = {
   pantheon: 'a god — pays the empire that keeps it',
-  follower: 'follower belief — pays the founder',
-  enhancer: 'enhancer belief — bends how a faith spreads',
+  follower: 'follower belief — applies in every city that follows',
+  enhancer: 'enhancer belief — bends how a faith spreads, and pays its holy city',
 };
 
 function beliefEntry(id: BeliefId): CompendiumEntry {
