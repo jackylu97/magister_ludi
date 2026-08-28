@@ -127,15 +127,44 @@ describe('the price plate', () => {
    * that reaches the DOM unprinted, so this only has to pin that the plate is
    * one of the surfaces that composes one — and that the emoji it still writes
    * goes to the two strings the platform builds and a node cannot enter.
+   *
+   * The composition moved when the caravan mode landed: the *supplier* writes
+   * `${YIELD_GLYPH.gold} ${offer.price}` onto a `MapPlate` and the layer prints
+   * whatever face it is handed. That is the pass's whole point, so the assertion
+   * follows it rather than pinning the old line — what must stay true is that
+   * the plate's face goes through the printer and its spoken form does not.
    */
   it('prints its coin through the yield printer, never as an emoji', () => {
     const module = source('tilePriceTags.ts');
     expect(module).toMatch(/from '\.\/yieldMark'/);
-    expect(module).toMatch(/setYieldText\(tag\.root, `\$\{YIELD_GLYPH\.gold\} \$\{offer\.price\}`\)/);
+    // One printer for both modes' faces — a second `setYieldText` would be the
+    // fork this layer exists to avoid.
+    expect(module).toMatch(/setYieldText\(tag\.root, plate\.text\)/);
+    expect(module).toMatch(/text: `\$\{YIELD_GLYPH\.gold\} \$\{offer\.price\}`/);
     // The spoken and hovered forms stay words: a screen reader given the glyph
     // reads its Unicode name before the number it decorates.
     expect(module).toMatch(/aria-label/);
     expect(module).toMatch(/\$\{offer\.price\} gold/);
+  });
+
+  /**
+   * **One mechanism, two modes.** Buying a hex and sending a caravan are the
+   * same gesture — arm a mode, read a figure on every candidate, click one — and
+   * the failure this pass could have shipped is a second plate layer that merely
+   * looks like this one and drifts out of step with it a milestone later. So the
+   * lifecycle is asserted to exist once: one builder, one signature check, one
+   * reposition loop, with the price supplier bolted on top.
+   */
+  it('is one layer with two suppliers, not two layers', () => {
+    const module = source('tilePriceTags.ts');
+    expect(module).toMatch(/export function createMapPlates/);
+    // The price tags are that core, not a copy of it.
+    expect(module).toMatch(/export function createTilePriceTags[\s\S]*?createMapPlates\(\{/);
+    // And the handle is one shape rather than two declarations of three methods.
+    expect(module).toMatch(/export type TilePriceTags = MapPlates/);
+    // Exactly one place a tag element is made, and one place it is placed.
+    expect(module.match(/document\.createElement\('button'\)/g)?.length).toBe(1);
+    expect(module.match(/projectCell/g)?.length).toBeGreaterThanOrEqual(2);
   });
 });
 

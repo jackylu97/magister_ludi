@@ -72,6 +72,8 @@ import {
 } from '../sim/modifiers';
 import { CITY_YIELD_KEYS, type CityYieldKey, resourceDef } from '../sim/resourceData';
 import { type ResourceYieldLine, cityResourceYields } from '../sim/resourceEffects';
+import { type RouteYieldLine, cityRouteYields } from '../sim/trade';
+import { cityRouteRows, routeSlotsLine as routeSlotsLineOf } from './tradeLines';
 import { resourceLabelNodes } from './resourceMark';
 import { setYieldText, yieldMarkNode } from './yieldMark';
 import { type City, type QueueItem, hasEndedTurn, playerById } from '../sim/state';
@@ -621,6 +623,25 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return parts.join(' ');
   }
 
+  /**
+   * A route's three, for a caravan's line.
+   *
+   * Three rather than six because a route pays three: the ruling names food,
+   * production and gold, and a fourth voice would be a design decision rather
+   * than a formatter (`RouteYieldLine`).
+   */
+  function routeFigures(entry: RouteYieldLine): string {
+    const voices: [number, string][] = [
+      [entry.food, YIELD_GLYPH.food],
+      [entry.production, YIELD_GLYPH.production],
+      [entry.gold, YIELD_GLYPH.gold],
+    ];
+    return voices
+      .filter(([value]) => value !== 0)
+      .map(([value, glyph]) => `${value > 0 ? '+' : ''}${value}${glyph}`)
+      .join(' ');
+  }
+
   /** The same six voices, for a luxury's signature line. */
   function resourceFigures(entry: ResourceYieldLine): string {
     const parts: string[] = [];
@@ -719,6 +740,17 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     for (const entry of explainCityBuildings(state, city)) {
       const figures = buildingFigures(entry);
+      if (figures) line(entry.source, figures);
+    }
+    // What the caravans this town sent out bring home, after the buildings
+    // because that is what they are read off — `explainRouteYield` counts the
+    // *partner's* buildings and the two towns' people. `cityRouteYields` is
+    // already one of `cityYields`' flats, so leaving these out was a chip
+    // multiplied without its reason beside it (rule 5), and it is why a route's
+    // food seemed to come from nowhere. `RouteYieldLine.source` is the
+    // simulation's own label ("Caravan to Nippur · 3 buildings").
+    for (const entry of cityRouteYields(state, city)) {
+      const figures = routeFigures(entry);
       if (figures) line(entry.source, figures);
     }
     // Then the two multiplications, in the order they happen (Entry XVII): what
@@ -1428,6 +1460,58 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return box;
   }
 
+  /**
+   * The routes this town is an end of, and what the empire has left to spend.
+   *
+   * Under the buildings because that is what a route is made of: `routeSlots`
+   * is a fold over the markets and harbours in the list above it, and what a
+   * caravan brings home is counted off its partner's buildings. A player
+   * reading downward meets "Market · Uruk" and then the caravan it paid for.
+   *
+   * The **trading post** is a mark rather than a row. It is not a building — it
+   * is the *history* of having been an end of a route, written permanently by
+   * `sendTraderAt` and never cleared — and all it does is let later caravans
+   * reach further, which is a fact about this town rather than a thing it makes.
+   * So it sits beside the heading like the capital's star and says so on hover.
+   *
+   * Drawn even when the town is an end of nothing, because the slot figure is
+   * the answer to "why can I not send another caravan" and a section that
+   * vanished would take that answer with it — the greyed-plate reading, one
+   * panel over.
+   */
+  function renderRoutes(city: City): HTMLElement | null {
+    const { state } = getGame();
+    if (city.ownerId !== localPlayerId()) return null;
+    const rows = cityRouteRows(state, city);
+    const box = element('div', 'city-built');
+    const head = element('h3', undefined, 'Routes');
+    if (city.tradingPost === true) {
+      const post = element('span', 'city-size', '⌂ trading post');
+      post.title =
+        'This town has been an end of a trade route. A post extends how far ' +
+        'later caravans may be sent from or to it.';
+      head.append(document.createTextNode(' '), post);
+    }
+    box.append(head);
+    box.append(element('p', 'hint', routeSlotsLineOf(state, localPlayerId())));
+    if (rows.length === 0) {
+      box.append(element('p', 'hint', 'No caravan runs to or from this town.'));
+      return box;
+    }
+    // Outbound first — those are the routes that pay *here*, and the clock on
+    // one is the number a player is deciding on.
+    for (const row of [...rows].sort((a, b) => Number(b.outbound) - Number(a.outbound))) {
+      box.append(
+        element(
+          'p',
+          'hint',
+          row.outbound ? `${row.text} · pays this city` : `${row.text} · pays there`,
+        ),
+      );
+    }
+    return box;
+  }
+
   // --- the whole panel -----------------------------------------------------
 
   function render(): void {
@@ -1471,6 +1555,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     container.append(renderQueue(city, locked));
     const built = renderBuilt(city);
     if (built) container.append(built);
+    // Under the buildings, because a route's slots are a fold over them — see
+    // `renderRoutes`.
+    const routes = renderRoutes(city);
+    if (routes) container.append(routes);
     container.append(renderBuildables(city, locked));
 
     if (locked) {

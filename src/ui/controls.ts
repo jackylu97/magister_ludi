@@ -241,7 +241,8 @@ import { type ResearchReport, hasAbility, researchSince, researchSnapshot } from
 import { type CardClause, describeCard, statecraftBlocker } from '../sim/statecraft';
 import { highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
-import { isExplorer, unitDef } from '../sim/unitData';
+import { originCityOf, routeCities } from '../sim/trade';
+import { isExplorer, trades, unitDef } from '../sim/unitData';
 import { sleepError, sleepingSnapshot, unitsOnTile, wakesSince } from '../sim/units';
 import { isExploredBy } from '../sim/visibility';
 import { walkedPrefix } from '../render/animation';
@@ -257,6 +258,16 @@ import {
   type MapView,
 } from './mapView';
 import { type NotificationEntry, createSightingWatcher } from './notifications';
+import {
+  type CaravanOffer,
+  type RouteReading,
+  caravanOffers as caravanOffersOf,
+  caravanRoutePath,
+  plunderLossSentence,
+  plunderSpoilsSentence,
+  routeReading as routeReadingOf,
+  routeSlotsLine as routeSlotsLineOf,
+} from './tradeLines';
 import { type TurnBlocker, firstBlocker } from './turnBlockers';
 
 /** How far the pointer may travel between down and up and still be a click. */
@@ -303,6 +314,10 @@ export function moveModeNotice(movesLeft: number): string {
 
 /** And while the city screen's Buy Tiles mode is up. */
 const BUY_MODE_NOTICE = 'Buy tiles — click a priced hex to purchase it (Esc cancels)';
+
+/** And while a caravan is looking for somewhere to be sent. */
+const SEND_MODE_NOTICE =
+  'Send caravan — click a town’s plate to open the route (Esc cancels)';
 
 /**
  * A line for the context card: the standing description of a mode the player
@@ -1229,6 +1244,48 @@ export interface GameControls {
    * claimed, not whether the gold moved.
    */
   purchaseTileAt(col: number, row: number): boolean;
+
+  /**
+   * Why the selected caravan cannot be sent from where it stands — the same
+   * three-valued shape as `foundCityBlocker`, and the same guarantee.
+   *
+   * It answers the question *about the piece*, not about any one partner: a
+   * caravan already carrying a route, or standing in a field rather than in a
+   * town, has nowhere to be sent from and the button greys with that sentence.
+   * Which *partners* are legal is `caravanOffers`, one plate each.
+   */
+  sendCaravanBlocker(): string | null | undefined;
+  /**
+   * Whether send mode is up — the board is showing a plate over every town this
+   * caravan could be sent to. Buy Tiles' sibling, and armed the same way: from
+   * the sheet's own button, and only for a piece the reducer would take an
+   * order from.
+   */
+  isSendMode(): boolean;
+  setSendMode(on: boolean): void;
+  /**
+   * Every partner plate, or an empty list when send mode is down. The plate
+   * layer's supplier; see `tradeLines.ts` for what one reads.
+   */
+  caravanOffers(): CaravanOffer[];
+  /** Sends the selected caravan to this city, or flashes the reducer's refusal. */
+  sendCaravan(cityId: number): void;
+  /**
+   * Draws (or clears) the dashed march a caravan would take to this partner.
+   *
+   * Hover only — nothing about the game changes — and it goes through
+   * `MapView.previewRoute`, which is optional: a renderer without it simply
+   * shows no line and every other part of the mode still works.
+   */
+  previewCaravanRoute(cityId: number | null): void;
+  /** The selected caravan's live route, or `null` for a piece carrying none. */
+  routeReading(): RouteReading | null;
+  /** Flips the selected caravan's auto-resend, or flashes the refusal. */
+  setAutoResend(on: boolean): void;
+  /** Ends the selected caravan's route now, or flashes the refusal. */
+  cancelRoute(): void;
+  /** "2 of 3 routes" for the local seat, for the sheet and the city panel. */
+  routeSlotsLine(): string;
 }
 
 export function createGameControls(options: GameControlsOptions): GameControls {
@@ -1305,6 +1362,19 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * `setOpenCity` puts it down — see there.
    */
   let buyMode = false;
+  /**
+   * Whether the caravan's Send mode is up — the board is showing a plate over
+   * every town the selected trader could be sent to, and the next click on one
+   * opens the route.
+   *
+   * `buyMode`'s sibling and shaped exactly like it, with one difference that is
+   * the whole reason it is a second boolean rather than a shared one: buy mode
+   * belongs to the **open city** and this belongs to the **selection**, so
+   * `select` puts it down where `setOpenCity` puts the other down. The two can
+   * never be up together, because opening a city drops the selection and
+   * selecting a unit closes the city.
+   */
+  let sendMode = false;
   /**
    * The lens the player chose. The lens actually on the board is
    * `effectiveLens`, which lets a selected settler override this without
@@ -1387,6 +1457,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // disarms a move order (see `setOpenCity`) and buy mode lives inside an open
     // city — but the order is stated rather than assumed, so the line stays
     // right if that ever stops being true.
+    // Send mode is the selection's mode where buy mode is the open city's, and
+    // the two cannot be armed together (see `sendMode`). Stated rather than
+    // assumed, like the line above it.
+    else if (sendMode) onNotice?.(SEND_MODE_NOTICE, 'mode');
     else onNotice?.(buyMode ? BUY_MODE_NOTICE : null, 'mode');
   }
 
@@ -1495,10 +1569,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * would notice until a scout walked past a ruin in silence.
    */
   function commit(command: Command): CommandResult {
+    // Read before the dispatch, for `unitSnapshot`'s reason exactly: a caravan
+    // that is plundered during this command is off the board by the time
+    // anybody reports it, and the route died with it (a plundered caravan is a
+    // plundered route). "Your caravan **to Nippur**" is therefore a fact only
+    // the moment before can answer, and re-deriving it afterwards is not a
+    // worse implementation — it is an impossible one.
+    const caravans = caravanDestinations();
     const result = dispatch(getGame(), command);
     if (result.ok) {
       pollSightings();
-      reportRaids(result);
+      reportRaids(result, caravans);
       reportWonders(result);
       reportGrants(result);
       reportTriumphs(result);
@@ -1705,7 +1786,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * banner already shows the bar. The day a *player* besieges a town, this is
    * the function that grows the clause.
    */
-  function reportRaids(result: CommandResult): void {
+  function reportRaids(result: CommandResult, caravans: ReadonlyMap<number, string>): void {
     if (!result.ok || !result.combats) return;
     const { state } = getGame();
     for (const combat of result.combats) {
@@ -1713,6 +1794,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       if (combat.attackerOwnerId === localPlayerId) continue;
       if (combat.defenderUnitId === null) continue;
       const cell = { col: combat.at.col, row: combat.at.row };
+      // A laden caravan first, before the ordinary slain/taken/scratched split:
+      // it is none of those three. The piece is dead like anything else in
+      // `killed`, but what a player has lost is the *route* — twenty turns of
+      // food from a town they chose — and "your trader was slain" would bury
+      // that under a casualty report. The destination comes from the snapshot
+      // `commit` took before the dispatch; see there.
+      if (combat.plundered) {
+        announce(plunderLossSentence(caravans.get(combat.defenderUnitId) ?? null), { cell });
+        continue;
+      }
       const attacker = isBarbarian(state, combat.attackerOwnerId)
         ? `a ${combat.attackerName.toLowerCase()}`
         : `${playerById(state, combat.attackerOwnerId)?.name ?? 'an enemy'}'s ${combat.attackerName}`;
@@ -1737,6 +1828,26 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         { cell },
       );
     }
+  }
+
+  /**
+   * Where each of the local seat's laden caravans is bound, by unit id.
+   *
+   * Taken before a dispatch and read after it (`commit`). Two or three entries
+   * in a normal game, so it costs nothing; and it is the only way the interface
+   * can name the far end of a route that has just been plundered — the piece is
+   * gone, and the route was the piece.
+   */
+  function caravanDestinations(): Map<number, string> {
+    const names = new Map<number, string>();
+    const { state } = getGame();
+    for (const unit of state.units) {
+      if (unit.ownerId !== localPlayerId) continue;
+      const pair = routeCities(state, unit);
+      if (!pair) continue;
+      names.set(unit.id, cityDisplayName(state, pair.to));
+    }
+    return names;
   }
 
   // --- move mode -----------------------------------------------------------
@@ -1832,6 +1943,203 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     return true;
   }
 
+  // --- caravans ------------------------------------------------------------
+
+  /**
+   * The gilt dashed march under the pointer — `MapView.previewRoute`, when the
+   * renderer has one.
+   *
+   * One line, and a named function anyway, because the *clearing* call has three
+   * sites (disarming the mode, leaving a plate, and a hover that resolves to no
+   * partner) and "put the preview down" is a thing this module does rather than
+   * a property it pokes. Optional for the interface's usual reason: it is a 3D
+   * feature and the 2D pipelines are frozen, so under `?art=flat` a candidate
+   * town simply shows no line and every other part of send mode still works.
+   */
+  function drawRoutePreview(cells: readonly CellRef[] | null): void {
+    renderer.previewRoute?.(cells);
+  }
+
+  /**
+   * Why the selected piece cannot open a route from where it stands.
+   *
+   * The **piece's** half of `sendTraderError`, asked with no partner in mind:
+   * the reducer's sentence for a caravan that is already carrying a route, and
+   * this module's own for one standing in a field, because the reducer has no
+   * such sentence to give until it is handed a city id. That one line —
+   * "A caravan sets out from a city" — is the single place the interface says
+   * something the rules do not, and it is deliberate: every *partner's* refusal
+   * on every plate is `sendTraderError` verbatim.
+   *
+   * Offered to a caravan whether or not it can be sent *now*, which is Fortify's
+   * reading rather than Found City's: a trader that walked out of town this turn
+   * will be standing in one again, and hiding the verb would make it something a
+   * player has to discover.
+   */
+  function sendCaravanBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    const { state } = getGame();
+    if (!trades(unitDef(unit.type))) return `A ${unitDef(unit.type).name} carries no trade route`;
+    if (!canOrder()) return `You have ended turn ${state.turn}`;
+    if (unit.trade !== undefined) {
+      return `${unitDef(unit.type).name} ${unit.id} is already carrying a route`;
+    }
+    if (!originCityOf(state, unit)) return 'A caravan sets out from a city';
+    return null;
+  }
+
+  /**
+   * Arms or disarms Send mode.
+   *
+   * `setBuyMode`'s twin down to the refusal: it will not arm what could only be
+   * refused, so a caravan that has nothing to be sent from raises no plates at
+   * all. It does *not* refuse when every partner is out of range — a player with
+   * one distant town is exactly the player who needs to see how far it is, and
+   * the plate greys itself with the reducer's own sentence.
+   *
+   * Disarming clears the route preview, because the line under the pointer
+   * belongs to the mode and a dashed march left on the board after the mode has
+   * gone is a promise nobody is making.
+   */
+  function setSendMode(on: boolean): void {
+    const next = on && sendCaravanBlocker() === null;
+    if (next === sendMode) return;
+    sendMode = next;
+    viewport.classList.toggle('is-send-mode', sendMode);
+    if (!sendMode) drawRoutePreview(null);
+    publishNotice();
+    renderer.invalidate();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
+   * Every partner plate the board should be showing, or nothing.
+   *
+   * The list is `caravanOffers`' — the sim's own evaluator for the figures and
+   * the sim's own sentence for each refusal — and this only gates it on the
+   * mode being up. Emptied the moment it is not, which is how the plate layer
+   * learns to take its plates down.
+   */
+  function caravanOffers(): CaravanOffer[] {
+    if (!sendMode) return [];
+    const unit = selectedUnit();
+    if (!unit) return [];
+    return caravanOffersOf(getGame().state, unit);
+  }
+
+  /**
+   * Opens a route to this town, or says why not.
+   *
+   * The plate is DOM floating over the board and the board's own click handling
+   * never sees it (the price tags' reason exactly), so the pick reaches this
+   * directly. Success takes the mode down — one arming, one order — and the
+   * announcement quotes what the route is worth rather than that it exists,
+   * because the figure is the thing the player was choosing between.
+   */
+  function sendCaravan(cityId: number): void {
+    const unit = selectedUnit();
+    if (!unit) return;
+    const { state } = getGame();
+    if (!canOrder()) {
+      reject(`You have ended turn ${state.turn}`);
+      return;
+    }
+
+    const command: Command = {
+      type: 'sendTrader',
+      playerId: localPlayerId,
+      unitId: unit.id,
+      cityId,
+    };
+    const result = commit(command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+
+    setSendMode(false);
+    // Read *after* the send, off the route the reducer just wrote: the sheet's
+    // own line, so the toast and the panel say the same sentence.
+    const reading = routeReadingOf(getGame().state, unit);
+    if (reading) {
+      announce(`✦ ${reading.line}`, { cell: { col: unit.col, row: unit.row } });
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
+   * Draws the march a caravan would make to this partner under the pointer, or
+   * clears it.
+   *
+   * An **optional** renderer call (`MapView.previewRoute`): a pipeline without
+   * one shows no line and every other part of the mode is unaffected. The path
+   * is `findPath`'s — the very route the send will walk — so the dashes are the
+   * road and not a guess (`caravanRoutePath`).
+   */
+  function previewCaravanRoute(cityId: number | null): void {
+    const unit = selectedUnit();
+    if (cityId === null || !unit || !sendMode) {
+      drawRoutePreview(null);
+      return;
+    }
+    drawRoutePreview(caravanRoutePath(getGame().state, unit, cityId));
+  }
+
+  /** The selected caravan's live route, as the sheet reads it. */
+  function routeReading(): RouteReading | null {
+    const unit = selectedUnit();
+    if (!unit) return null;
+    return routeReadingOf(getGame().state, unit);
+  }
+
+  /**
+   * Flips the selected caravan's auto-resend.
+   *
+   * The reducer refuses a value that would change nothing, and that refusal is
+   * *shown*: a toggle that silently did nothing would be a switch a player
+   * cannot trust. Everything else is the ordinary funnel.
+   */
+  function setAutoResend(on: boolean): void {
+    const unit = selectedUnit();
+    if (!unit) return;
+    const result = commit({
+      type: 'setAutoResend',
+      playerId: localPlayerId,
+      unitId: unit.id,
+      on,
+    });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    announce(on ? 'The caravan will renew its route' : 'The caravan will come home');
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
+   * Ends the selected caravan's route now.
+   *
+   * `cancelOrder` for the *route* rather than for the march — two verbs for two
+   * things a player might mean, which is the reducer's own split. The slot comes
+   * back the instant this returns, which is the reason anybody presses it, so
+   * the announcement says so.
+   */
+  function cancelRoute(): void {
+    const unit = selectedUnit();
+    if (!unit) return;
+    const result = commit({ type: 'cancelRoute', playerId: localPlayerId, unitId: unit.id });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    announce(`The route is ended — ${routeSlotsLineOf(getGame().state, localPlayerId)}`);
+    renderer.invalidate();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
   // --- the local seat ------------------------------------------------------
 
   /** False once this seat has ended its turn: it may look, but not order. */
@@ -1884,6 +2192,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // game, and none of that is news. See `baselineSightings`.
     baselineSightings();
     setMoveMode(false);
+    // The caravan whose partners were on the board belongs to the seat that got
+    // up. Beside `setMoveMode` because it is the same fact about the selection.
+    setSendMode(false);
     renderer.skipAnimations();
     refreshOverlays();
     showLocalPlayer(true);
@@ -2173,6 +2484,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // picking a different one, disarms it rather than silently carrying an
     // armed order over to a piece the player has only just clicked.
     if (moveMode) setMoveMode(false);
+    // Send mode is the same property of the same selection, and it is a *board
+    // full of plates*: carrying one caravan's partners over to the warrior the
+    // player just clicked would be an offer nobody made.
+    if (sendMode) setSendMode(false);
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
   }
@@ -2535,6 +2850,20 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     taken: number,
   ): void {
     const { state } = getGame();
+    // Plunder before capture, because the two look alike and are not: a laden
+    // caravan is **destroyed** and its cargo carried to the nearest town, where
+    // a civilian merely changes hands. Both are one-sided — no roll, no
+    // counter — which is why neither prints a damage trade.
+    //
+    // The figures are deliberately absent. `applyCombat` composes them
+    // (`CombatOutcome.plundered`) and `applyAttack` does not carry them out on
+    // `CommandResult`, so this side of the wall cannot see them; quoting a
+    // number measured off the treasury would be the interface inventing a
+    // ledger. See the note at the end of this pass.
+    if (view.plundersUnit) {
+      announce(`${view.attackerName} plunders ${view.defenderName}`);
+      return;
+    }
     if (view.capturesUnit) {
       announce(`${view.attackerName} captures ${view.defenderName}`);
       return;
@@ -3547,6 +3876,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       } else if (spoils.length > 0) {
         announce(`⚔ ${spoils.join(', ')}`, { cell: at });
       }
+      // A caravan ridden down by a piece that simply *walked onto* it — the
+      // arrival's own half of plunder, beside the camp above and reported the
+      // same way and for the same reason: the gold is banked, the grain is in a
+      // basket and the caravan is gone, so only the command that paid it can
+      // say what it was worth (`ArrivalReport.plundered`).
+      for (const plunder of arrival.plundered) {
+        const victim = playerById(getGame().state, plunder.fromOwnerId)?.name ?? 'an empire';
+        announce(plunderSpoilsSentence(plunder, victim), { cell: at });
+      }
       // The card is the announcement for a discovery — see the docblock.
       if (arrival.discovery) onOfferDiscovery?.();
     }
@@ -4202,6 +4540,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // player put on the screen, and Escape takes back the most recent thing
       // they did — not everything at once.
       if (moveMode) setMoveMode(false);
+      // Beside move mode and above the popovers for the same reason: it is a
+      // board-wide armed gesture the player put up, and Escape takes back the
+      // most recent thing they did. It leaves the caravan selected — a player
+      // who changed their mind about *where* has not changed their mind about
+      // *which piece*.
+      else if (sendMode) setSendMode(false);
       else if (closePopovers?.()) return;
       // Buy mode is a layer *inside* the city screen, so it comes off before
       // the screen it lives on: one Escape stops buying, a second closes the
@@ -4385,6 +4729,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setMoveMode,
     setBuyMode,
     purchaseTileAt: purchaseTile,
+    sendCaravanBlocker,
+    isSendMode: () => sendMode,
+    setSendMode,
+    caravanOffers,
+    sendCaravan,
+    previewCaravanRoute,
+    routeReading,
+    setAutoResend,
+    cancelRoute,
+    routeSlotsLine: () => routeSlotsLineOf(getGame().state, localPlayerId),
     selectedUnit,
     isMoveMode: () => moveMode,
     isBuyMode: () => buyMode,
@@ -4428,6 +4782,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // never seen.
       renderer.setFogSeat?.(localPlayerId);
       setMoveMode(false);
+      // The plates were about a caravan that belongs to the previous table.
+      setSendMode(false);
       refreshOverlays();
       showLocalPlayer(false);
       onUpdate(null, renderer.getHover());

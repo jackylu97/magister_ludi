@@ -70,6 +70,7 @@ import {
   meterStanding,
 } from '../sim/meters';
 import { empireResourceYields, foldResourceYields } from '../sim/resourceEffects';
+import { explainTradeGold, tradeGold } from '../sim/trade';
 import { type GameState, type Player, playerById } from '../sim/state';
 import { cityDisplayName, starCapitalSource } from './cityDisplay';
 import {
@@ -124,7 +125,42 @@ export function civYields(state: GameState, playerId: number): CityYields {
   total.science += empire.science;
   total.culture += empire.culture;
   total.faith += empire.faith;
+  // Trade's empire-scale gold, banked by `collectYields` in the same pass and
+  // for the same reason as the signatures above it: a city connection belongs to
+  // no town (it is a fact about the *road* between one and the capital) and road
+  // maintenance is charged on hexes, not on cities. Left out, this headline
+  // would be a rate the turn resolution disagrees with — the very argument the
+  // luxuries were added here for, and the reason the two lines join in one
+  // place rather than only in the card below.
+  total.gold += tradeGold(state, playerId);
   return total;
+}
+
+/**
+ * Trade's empire-scale lines in the shape the yield card already folds: a
+ * source and a figure in each of the six voices.
+ *
+ * **Exactly two lines** — one total for the city connections and one for the
+ * road maintenance — because that is what `explainTradeGold` is. The per-city
+ * figures behind the first are `connectedCities`' answer and are deliberately
+ * not spread out here: they would be a second ledger of the same money, which
+ * is the thing the fold exists to prevent.
+ *
+ * The adapter is here rather than in `trade.ts` because it is a *presentation*
+ * fact: the simulation pays this in gold and knows nothing about six voices,
+ * and the card wants every empire-scale source to answer the same question
+ * ("what do you pay in the voice I am showing"). Written this way so the card
+ * needs no `key === 'gold'` — see the loop that reads it.
+ */
+function empireTradeLines(
+  state: GameState,
+  playerId: number,
+): (CityYields & { source: string })[] {
+  return explainTradeGold(state, playerId).map((line) => ({
+    ...emptyCityYields(),
+    source: line.source,
+    gold: line.gold,
+  }));
 }
 
 /**
@@ -397,6 +433,19 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       const value = line[key];
       if (value === 0) continue;
       lines.append(meterLine(`${line.source} · empire`, value, false));
+    }
+    // Trade's two empire lines, after the signatures and for their reason: a
+    // city connection and a road bill belong to no town. Read by voice like the
+    // signatures above rather than behind a `key === 'gold'` — the zero-skip is
+    // already the gate, and a hand-rolled comparison is exactly the shape the
+    // banked register was taken away from (`figures.test.ts`).
+    for (const line of empireTradeLines(state, playerId)) {
+      const value = line[key];
+      if (value === 0) continue;
+      // Signed, both of them: this is an income and a bill in one list, and
+      // the first upkeep the game has ever charged. A cost shown unsigned under
+      // a heading that says "per turn" would be the ledger lying about itself.
+      lines.append(meterLine(line.source, value, true));
     }
     // Culture's card gains the ladder it now buys (Entry XV): the tier, the
     // basket against the next threshold, and whatever offer is outstanding.

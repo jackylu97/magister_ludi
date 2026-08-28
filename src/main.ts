@@ -117,7 +117,7 @@ import { type ToastStack, createToastStack } from './ui/toasts';
 import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
 import { type ReligionScreen, createReligionScreen } from './ui/religionScreen';
 import { type TechTree, createTechTree } from './ui/techTree';
-import { type TilePriceTags, createTilePriceTags } from './ui/tilePriceTags';
+import { type TilePriceTags, createMapPlates, createTilePriceTags } from './ui/tilePriceTags';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { AXIS_MARK } from './ui/religionScreen';
@@ -1026,6 +1026,22 @@ function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>)
     return row;
   }
 
+  // The two one-sided blows, and they are **not** the same news. A civilian
+  // changes hands; a laden caravan is destroyed where it stands and its cargo
+  // carried to the attacker's nearest town. Both return before the strength
+  // columns for the same reason — nobody fights, so there are no strengths worth
+  // reading — and the wording is the only thing that tells a player which of the
+  // two the piece in front of them is. `plundersUnit` is asked first because the
+  // simulation decides it first: a caravan carrying a route is excluded from
+  // `capturesUnit`, and an *unladen* trader is an ordinary civilian and is taken
+  // like one (`planCombat`).
+  if (preview.plundersUnit) {
+    const note = document.createElement('p');
+    note.className = 'combat-note';
+    note.textContent = 'Plundered — the caravan is lost and its cargo taken';
+    combatForecastEl.append(note);
+    return;
+  }
   if (preview.capturesUnit) {
     const note = document.createElement('p');
     note.className = 'combat-note';
@@ -1460,6 +1476,10 @@ async function boot(initial: Game | null): Promise<void> {
     // The tags are about the open city and the treasury, both of which this
     // pass has just re-read; they draw nothing at all unless buy mode is up.
     priceTags.refresh();
+    // Beside the price tags, and for their reason: the plates are about the
+    // selection and the empire's route slots, both of which this pass has just
+    // re-read, and they draw nothing at all unless Send mode is up.
+    caravanPlates.refresh();
     cityPanel.render();
     unitPanel.render();
     // Whether the turn may end is derived from the same state as everything
@@ -2553,10 +2573,67 @@ async function boot(initial: Game | null): Promise<void> {
     },
   });
 
+  /**
+   * The route's preview over every town a selected caravan could be sent to,
+   * while Send mode is up.
+   *
+   * The **same plate layer** as the prices above (`createMapPlates`), on the
+   * same sheet, in the same dress: sending a caravan is the same gesture as
+   * buying a hex — arm a mode, read a figure on every candidate, click one — and
+   * a second thing that merely looked like a price plate would teach a player
+   * that the two are different. What differs is the supplier and the hover,
+   * which is exactly what the layer takes.
+   */
+  const caravanPlates: TilePriceTags = createMapPlates({
+    container: bannersEl,
+    renderer,
+    getPlates: () =>
+      controls.caravanOffers().map((offer) => ({
+        col: offer.col,
+        row: offer.row,
+        text: offer.label,
+        // The refusal is the reducer's own sentence, verbatim; an eligible
+        // partner says what clicking it will do.
+        spoken: offer.error ?? `Send a caravan to ${offer.name} — ${offer.label}`,
+        disabled: offer.error !== null,
+      })),
+    onPick: (plate) => {
+      const cityId = partnerAt(plate);
+      if (cityId === null) return;
+      controls.sendCaravan(cityId);
+      caravanPlates.refresh();
+      updatePanel(null, renderer.getHover());
+    },
+    // The dashed march under the pointer, drawn by the renderer if it has one.
+    // A greyed plate previews too: the road to a partner one turn out of range
+    // is the picture that explains the refusal.
+    onHover: (plate) => {
+      controls.previewCaravanRoute(plate === null ? null : partnerAt(plate));
+    },
+  });
+
+  /**
+   * Which town a plate stands on, re-asked of the live offers rather than
+   * carried on the plate.
+   *
+   * A `MapPlate` is a hex and a face — that is what lets one layer serve two
+   * modes — so the town is looked up by position, which is the only thing the
+   * two ever agree about. Re-asking is also the honest read: the offers are a
+   * function of the state, and the state may have moved since the plate was
+   * drawn.
+   */
+  function partnerAt(plate: { col: number; row: number }): number | null {
+    const offer = controls
+      .caravanOffers()
+      .find((entry) => entry.col === plate.col && entry.row === plate.row);
+    return offer ? offer.cityId : null;
+  }
+
   renderer.setFrameListener?.(() => {
     banners.reposition();
     damageNumbers.reposition();
     priceTags.reposition();
+    caravanPlates.reposition();
   });
 
   const cityPanel: CityPanel = createCityPanel({
@@ -2654,6 +2731,26 @@ async function boot(initial: Game | null): Promise<void> {
       controls.greatPersonWork();
       updatePanel(null, renderer.getHover());
       statecraft?.refresh();
+    },
+    sendCaravanBlocker: () => controls.sendCaravanBlocker(),
+    // A toggle, not a fire-and-forget: pressing it again while the plates are up
+    // puts them down, which is what a button whose label reads "Choosing a
+    // Partner…" has to do or it is a mode with no way out but Escape.
+    onSendCaravan: () => {
+      controls.setSendMode(!controls.isSendMode());
+      caravanPlates.refresh();
+      updatePanel(null, renderer.getHover());
+    },
+    isSendMode: () => controls.isSendMode(),
+    routeReading: () => controls.routeReading(),
+    routeSlotsLine: () => controls.routeSlotsLine(),
+    onSetAutoResend: (on) => {
+      controls.setAutoResend(on);
+      updatePanel(null, renderer.getHover());
+    },
+    onCancelRoute: () => {
+      controls.cancelRoute();
+      updatePanel(null, renderer.getHover());
     },
     onClose: () => controls.clearSelection(),
   });

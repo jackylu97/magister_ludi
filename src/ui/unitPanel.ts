@@ -49,13 +49,14 @@ import { inZoneOfControl, pathTurns } from '../sim/pathfind';
 import { cityAt } from '../sim/cities';
 import type { GameState, Unit } from '../sim/state';
 import type { TileYield } from '../sim/terrainData';
-import { unitDef } from '../sim/unitData';
+import { trades, unitDef } from '../sim/unitData';
 import type { ImprovementOption } from './controls';
 import { cityDisplayName } from './cityDisplay';
 import { describeTile, knowsCity } from './tileReadout';
 import { HAMMER, YIELD_GLYPH, signedFigure } from './figures';
 import { createInfoCard } from './infoCard';
-import { yieldFigureNodes } from './yieldMark';
+import type { RouteReading } from './tradeLines';
+import { setYieldText, yieldFigureNodes } from './yieldMark';
 
 /** "+40%" — a defence fraction as the percentage a player reads it as. */
 function formatPercent(fraction: number): string {
@@ -242,6 +243,29 @@ export interface UnitPanelOptions {
   greatPerson: () => GreatPersonView | null;
   onGreatPersonAct: () => void;
   onGreatPersonWork: () => void;
+  /**
+   * Why the selected caravan cannot open a route from where it stands — the
+   * same three-valued shape as `foundCityBlocker`, answered by
+   * `controls.sendCaravanBlocker()`.
+   *
+   * A blocker rather than a list, unlike the improvements, because *which*
+   * partner is not a question this sheet asks: arming the verb puts a plate on
+   * every town, and each plate carries its own refusal. This is the question
+   * about the piece.
+   */
+  sendCaravanBlocker: () => string | null | undefined;
+  onSendCaravan: () => void;
+  /** Whether the send plates are already up — the button reads as a toggle. */
+  isSendMode: () => boolean;
+  /**
+   * The selected caravan's live route, or `null` — `controls.routeReading()`.
+   * Everything about a routed piece on this sheet comes from it.
+   */
+  routeReading: () => RouteReading | null;
+  /** "2 of 3 routes" for this seat — `controls.routeSlotsLine()`. */
+  routeSlotsLine: () => string;
+  onSetAutoResend: (on: boolean) => void;
+  onCancelRoute: () => void;
   /** Drops the selection — the × button and, through `controls`, Escape. */
   onClose: () => void;
 }
@@ -380,6 +404,13 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     greatPerson,
     onGreatPersonAct,
     onGreatPersonWork,
+    sendCaravanBlocker,
+    onSendCaravan,
+    isSendMode,
+    routeReading,
+    routeSlotsLine,
+    onSetAutoResend,
+    onCancelRoute,
     onClose,
   } = options;
 
@@ -484,6 +515,51 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // Read once, at the top, because it decides two things: whether the two
     // verbs are offered at all, and whether the *builder's* rows are.
     const person = greatPerson();
+
+    // **A routed caravan's sheet is its route**, and nothing else.
+    //
+    // The move verbs are gone on purpose rather than by omission: a caravan
+    // carrying a route walks itself (`marchTraders` re-aims it at each end
+    // every turn), so Cancel Orders would drop a path the resolution writes
+    // straight back, and Sleep would be an order to stand still that the
+    // shuttle overrules. Offering either would be the sheet promising control
+    // the rules do not give — the opposite of the greyed-Fortify reading, and
+    // for the opposite reason: those verbs are not *momentarily* unavailable,
+    // they have stopped applying to this piece for as long as it is carrying a
+    // route. The two verbs that *are* about the route stand alone.
+    const route = trades(unitDef(unit.type)) ? routeReading() : null;
+    if (route) {
+      actions.push({
+        label: route.autoResend ? 'Auto-resend ✓' : 'Auto-resend',
+        blocked: null,
+        hint: route.autoResend
+          ? 'The caravan starts a fresh route when this one lapses'
+          : 'Start a fresh route automatically when this one lapses',
+        run: () => onSetAutoResend(!route.autoResend),
+      });
+      actions.push({
+        label: 'Cancel Route',
+        blocked: null,
+        // The reason anybody presses it, said in the figure it frees.
+        hint: `End the route now and free the slot · ${routeSlotsLine()}`,
+        run: onCancelRoute,
+      });
+      return actions;
+    }
+
+    // An unladen caravan: one verb, and it arms a board full of plates rather
+    // than opening a menu of towns. Which partners are legal — and why each
+    // refused one is not — is the plates' business (`caravanOffers`), so the
+    // row itself only answers "can this piece be sent from here at all".
+    if (trades(unitDef(unit.type))) {
+      const blocker = sendCaravanBlocker();
+      actions.push({
+        label: isSendMode() ? 'Choosing a Partner…' : 'Send Caravan',
+        blocked: blocker === undefined ? 'No unit selected' : blocker,
+        hint: `Open a trade route to one of your cities · ${routeSlotsLine()}`,
+        run: onSendCaravan,
+      });
+    }
     if (unitDef(unit.type).foundsCity) {
       // `undefined` means "no unit selected", which cannot happen while a unit
       // is being rendered — but it is a different value from `null` ("no
@@ -761,6 +837,42 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     return card;
   }
 
+  /**
+   * What a route pays, line by line, on the card that rises beside it.
+   *
+   * The rite card's shape one subject over, and the same rule: every word comes
+   * from the simulation. `RouteYieldLine.source` is already the sentence
+   * `explainRouteYield` labels each line with ("Caravan to Nippur · 3
+   * buildings"), so this only prints them — a UI copy of "one food per library"
+   * would be the second description of the ruling this codebase spends whole
+   * modules avoiding.
+   *
+   * The **slots** line is the one thing on the card that is not about this
+   * route: it is what the route is spending, and this is the screen where a
+   * player decides whether to keep spending it.
+   */
+  function routeCard(route: RouteReading): Node {
+    const card = element('div', 'unit-card');
+    card.append(element('h4', 'unit-card-title', `${route.fromName} ⇄ ${route.toName}`));
+    const payoff = element('p', 'unit-card-payoff');
+    setYieldText(payoff, `${route.figures} to ${route.fromName}`);
+    card.append(payoff);
+    for (const line of route.lines) {
+      const clause = element('p', 'unit-card-clause');
+      setYieldText(
+        clause,
+        `${line.source} · ${DELTA_KEYS.filter((key) => line[key] !== 0)
+          .map((key) => `${signedFigure(line[key])}${YIELD_GLYPH[key]}`)
+          .join(' ')}`,
+      );
+      card.append(clause);
+    }
+    card.append(
+      element('p', 'unit-card-clause', `${route.turnsLeft} turns left · ${routeSlotsLine()}`),
+    );
+    return card;
+  }
+
   function renderActions(unit: Unit): HTMLElement {
     const box = element('div', 'unit-actions');
     box.append(element('h3', undefined, 'Actions'));
@@ -923,8 +1035,26 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // ordered at zero movement gets — such a piece walks nothing this turn, so
     // nothing on the board moves and this sentence is the whole confirmation
     // that the order was taken.
+    // **What this caravan is carrying**, which is the Orders line's question
+    // asked of a piece whose orders are not a march. It stands in the same slot
+    // and takes precedence over it, because "marching to Nippur · ~3 turns" is
+    // one leg of a shuttle that will turn round and come back: true, and the
+    // small half of the truth.
+    //
+    // The figures are the fold of `explainRouteYield` and the hover card is its
+    // lines, so the number on this sheet and the "Caravan to Nippur" rows in the
+    // origin's yield breakdown are the same list read twice — never two
+    // derivations that agree today.
+    const route = trades(def) ? routeReading() : null;
+    if (route) {
+      const line = element('p', 'unit-orders');
+      setYieldText(line, route.line);
+      if (route.lines.length > 0) info.bind(line, () => routeCard(route));
+      container.append(line);
+    }
+
     const orders = unit.path;
-    if (orders && orders.length > 0) {
+    if (!route && orders && orders.length > 0) {
       const target = marchDestination(getGame().state, unit.ownerId, orders[orders.length - 1]!);
       container.append(
         element(

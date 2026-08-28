@@ -2402,6 +2402,17 @@ kbd {
   cursor: cell;
 }
 
+/* --- send mode -------------------------------------------------------------
+   Armed from a caravan's sheet: the board wears a plate over every town the
+   trader could open a route to. Buy mode's sibling and deliberately the *same*
+   cursor — both modes mean "the next click on a plated hex spends something",
+   and a second cursor would be teaching two gestures where there is one
+   (`controls.ts`, `sendMode`). */
+#viewport.is-send-mode,
+#viewport.is-send-mode:active {
+  cursor: cell;
+}
+
 /* --- tile price tags -------------------------------------------------------
    The **price plate**: one per hex the open city could buy, floating over the
    board with the city banners (`tilePriceTags.ts`).
