@@ -1,0 +1,14 @@
+<!-- Not a Tabler icon: Tabler has `bow` and nothing else in the family — no
+     recurve, no crossbow — so this one is drawn here in Tabler's geometry: the
+     24-unit box, the family's 2.75 stroke, round caps and joins, no fill
+     anywhere. `ranged.svg` is Tabler's `bow` at rest, drawn on the diagonal with
+     its arrow already loosed; this is the *composite* bow at full draw, stood
+     upright with the string pulled into a V and the arrow still on it. Orientation
+     is what separates them at twenty-four pixels — a diagonal against an upright —
+     and the reflexed limb tips are the tell at sixty-four. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M13.2 2.6c-1.6 .1 -2.6 .6 -3.4 1.4c-2.2 2.2 -3.2 5.1 -3.2 8s1 5.8 3.2 8c.8 .8 1.8 1.3 3.4 1.4"/>
+<path d="M13.2 2.6l3.8 9.4l-3.8 9.4"/>
+<path d="M7.5 12h13"/>
+<path d="M18 9.6l2.4 2.4l-2.4 2.4"/>
+</g></svg>

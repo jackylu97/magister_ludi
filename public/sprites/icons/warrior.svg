@@ -1,0 +1,14 @@
+<!-- Not a Tabler icon: Tabler draws no club, cudgel or mace, and its `axe` — the
+     other candidate for the sword line's first rank — is `hammer` turned around,
+     which would put the warrior one glance away from the worker. So this one is
+     drawn here, in Tabler's geometry rather than in ours — the 24-unit box, the
+     family's 2.75 stroke, round caps and joins, no fill anywhere — exactly as
+     `siege.svg` and `spear.svg` were. It runs on the *other* diagonal from
+     `melee.svg`'s sword on purpose (head upper-left, grip lower-right, against the
+     sword's blade upper-right), because at twenty pixels the axis of a diagonal is
+     read before anything on it is: club and sword cross rather than echo. A
+     tapered haft swelling to a round head, and one binding at the grip. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M19.6 18.4c-2.6 -3 -6.4 -8 -9.1 -11.7a2.75 2.75 0 0 0 -3.8 3.8c3.7 2.7 8.7 6.5 11.7 9.1a.9 .9 0 0 0 1.2 -1.2z"/>
+<path d="M15.1 16.9l1.8 -1.8"/>
+</g></svg>

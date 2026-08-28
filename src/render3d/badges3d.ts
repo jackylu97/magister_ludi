@@ -35,8 +35,8 @@
  * disc's antialiased edge is covered by an opaque band rather than fringing
  * against whatever is behind it.
  *
- * Draw cost is flat in the number of units: one instanced draw per model class
- * standing on the board (at most eight, sharing one material and one texture)
+ * Draw cost is flat in the number of units: one instanced draw per badge class
+ * standing on the board (at most twenty, sharing one material and one texture)
  * plus one per player colour for the rims. A hundred units and three units cost
  * the same.
  *
@@ -144,8 +144,8 @@ const LENS = VIEW3D.lens;
  * "worker" over a piece that cannot build a road and is the only thing in the
  * game that spends faith. One badge for the whole family again, and for the
  * reason above: the prophet the High Temple brings is the same kind of piece
- * doing the same kind of thing, and it will wear this one rather than an
- * eleventh. Named for what the family *is* rather than for the augur, because
+ * doing the same kind of thing, and it will wear this one rather than a
+ * drawing of its own. Named for what the family *is* rather than for the augur, because
  * `consecrates` is the marker (see `badgeClassFor`) and nothing here has ever
  * compared a unit type against a name.
  *
@@ -170,8 +170,59 @@ const LENS = VIEW3D.lens;
  * `board3d.ts`), and one art table saying which drawing a row wears is cheaper
  * than a second clause in `badgeClassFor` — which stays two clauses and a table
  * however many rows the roster grows.
+ *
+ * One mark per row (user, 2026-08-28)
+ * -----------------------------------
+ * The eight above were the badge doing the sculpt's job one grade finer, a row
+ * at a time, and the argument that stopped it there was the sculpt's argument:
+ * *nobody can use a difference they cannot see*. The user's ruling is that at
+ * badge size they can — "for the sake of making unit icons clearer, could we get
+ * unique badges for each unit type (warriors and swordsmen should have different
+ * icons)" — and the ruling is right, because a badge is a drawing on paper and
+ * not forty pixels of bronze: what fails on a miniature at game zoom is *carved
+ * detail*, and what survives is a **silhouette**, which is the thing an icon is
+ * made of.
+ *
+ * So the eight remaining members are the eight extra drawings that ruling needs,
+ * and the taxonomy stops being a class list and becomes a *line* list. Two rules
+ * decided every one of them, and they are the whole design:
+ *
+ *   the family says the line   a sword line stays swords, a bow line stays bows,
+ *                              a mounted line stays mounted. A player who has
+ *                              learnt one mark has learnt the other two.
+ *   the axis or the count      says the rank, because those are the two things
+ *                              that survive twenty-four pixels. A club on the
+ *                              other diagonal from a sword; a second sword
+ *                              crossed over the first; one spear against two;
+ *                              an upright bow against a diagonal one; a wheel
+ *                              among horses; a hanging counterweight among
+ *                              thrown arms. Never a longer blade or a finer
+ *                              fletching — a *detail* is exactly what the sculpts
+ *                              lost their seat over.
+ *
+ * The four class members that a line's first rank already wears keep their class
+ * names — `melee` is the swordsman's sword, `ranged` the archer's bow, `mounted`
+ * the horseman's horse, `siege` the catapult — and that is deliberate rather than
+ * lazy: they are still what `badgeClassFor` falls back to for a roster row nobody
+ * has named in the art table, and the archetype of a line is exactly the right
+ * thing for an unnamed row to wear. Which row wears which is `badges.byUnitType`
+ * in `data/view3d.json`, and it now names *every* row it decides — art keyed by
+ * row, never a name compared in this file.
  */
-export type BadgeClass = ModelClass | 'greatPerson' | 'religious' | 'spear' | 'trader';
+export type BadgeClass =
+  | ModelClass
+  | 'greatPerson'
+  | 'religious'
+  | 'spear'
+  | 'trader'
+  | 'warrior'
+  | 'longswordsman'
+  | 'pikeman'
+  | 'compositeBowman'
+  | 'crossbowman'
+  | 'chariot'
+  | 'knight'
+  | 'trebuchet';
 
 /**
  * The atlas layout, in cell order, and the authority on which cell a class
@@ -190,6 +241,12 @@ export type BadgeClass = ModelClass | 'greatPerson' | 'religious' | 'spear' | 't
  * a function of the count — `spear` was appended and nothing else moved, then
  * `trader` was appended and nothing else moved again, which is the rule doing
  * its job rather than being quoted.
+ *
+ * The one-mark-per-row pass appended **eight at once** and the rule held at that
+ * scale too: the twelve above are byte-identical and in the same order, so every
+ * badge already on a board kept its cell, and twenty in a four-wide atlas is five
+ * full rows of a canvas that was three. That is the whole cost of the change on
+ * the GPU side — one texture, five rows instead of three, and no second material.
  */
 export const BADGE_CELLS: readonly BadgeClass[] = [
   'settler',
@@ -204,6 +261,73 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
   'religious',
   'spear',
   'trader',
+  'warrior',
+  'longswordsman',
+  'pikeman',
+  'compositeBowman',
+  'crossbowman',
+  'chariot',
+  'knight',
+  'trebuchet',
+];
+
+/**
+ * The badges grouped into the **lines** they were drawn as, which is the only
+ * arrangement in which the set can be judged.
+ *
+ * Twenty marks laid out in atlas order are twenty marks: the question a reader
+ * actually has — *can I tell a warrior from a swordsman from a longswordsman* —
+ * is a question about three cells beside each other, and the pass that drew them
+ * (see `BadgeClass`) answered it a line at a time. So the line is recorded here
+ * rather than left as a fact about the order somebody happened to append in.
+ *
+ * Data and not markup, for the reason everything on the flair page is data: the
+ * gallery (`src/flairGallery/marks.ts`) *reads* this to lay out its rows, so the
+ * page cannot drift from the set, and `test/render/badges3d.test.ts` asserts the
+ * partition is exactly `BADGE_CELLS` — every cell in one line, no cell in two.
+ * A twenty-first badge that joined no line would fail there, which is the point:
+ * "which line is this" is the first question its drawing has to answer.
+ */
+export interface BadgeLine {
+  /** What the line is called, in the words the interface would use. */
+  line: string;
+  /** What the family says and what the rank says, in one sentence. */
+  note: string;
+  /** Its members, in rank order — first rank first. */
+  members: readonly BadgeClass[];
+}
+
+export const BADGE_LINES: readonly BadgeLine[] = [
+  {
+    line: 'The sword line',
+    note: 'Club, sword, crossed swords. The club runs on the opposite diagonal so the first two ranks cross rather than echo, and the third is more sword rather than a longer one — a blade’s length is not a silhouette.',
+    members: ['warrior', 'melee', 'longswordsman'],
+  },
+  {
+    line: 'The spear line',
+    note: 'One haft against two. A pike is a spear you cannot carry alone, so the rank is a count and not a length, and the pike’s narrow spike drops the spear’s leaf blade.',
+    members: ['spear', 'pikeman'],
+  },
+  {
+    line: 'The bow line',
+    note: 'A bow loosed on the diagonal, a composite bow stood upright at full draw, a crossbow spanned and aimed at the reader. Three axes, one family — and the crossbow is drawn with its string already drawn back, because a bow and a chord at this weight close into a solid lens.',
+    members: ['ranged', 'compositeBowman', 'crossbowman'],
+  },
+  {
+    line: 'The mounted line',
+    note: 'Horse, spoked wheel, chess knight — and the horse-archer, which is the mounted-ranged mark and the only row that wears it. The chariot is the one circle in the line and the knight the one upright.',
+    members: ['mounted', 'chariot', 'knight', 'mountedRanged'],
+  },
+  {
+    line: 'The siege line',
+    note: 'A low frame with the arm thrown and the shot in the air, against a tall frame with the beam pivoted high and the counterweight hung. The box is the only square in the line.',
+    members: ['siege', 'trebuchet'],
+  },
+  {
+    line: 'Civilians, and the called',
+    note: 'The five that are not a weapon at all, plus the laurel a great person wears over the settler’s body and the candle an augur wears over the worker’s — the two the rules decide, ahead of the art table.',
+    members: ['settler', 'worker', 'scout', 'trader', 'religious', 'greatPerson'],
+  },
 ];
 
 /**
@@ -220,7 +344,7 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
  * the tile atlas has no `loadIcon` left). The reason those moved is that the
  * *interface* prints the same marks in four inks, and a file can only be one
  * colour. A class badge is printed here and nowhere else, so it has never paid
- * that cost, and a set of ten in which one member arrived by a different route
+ * that cost, and a set of twenty in which one member arrived by a different route
  * would be a set of nine plus an exception. If a DOM surface ever needs these,
  * the whole set moves together — `paintMarkPaths` in this file is already the
  * printer that would take them.
@@ -228,12 +352,20 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
  * As of the icon pass the drawings behind these are **Tabler Icons** (MIT)
  * rather than this project's own hand — the same decision `yieldMarks.ts` made
  * for the six yield voices, for the same reason and at the same weight (2.75 of
- * a 24-unit box, where upstream ships 2). Nine are Tabler drawings copied
- * verbatim; the horse-archer is two of them composed and the catapult and the
- * spear are drawn here in Tabler's geometry, because neither Tabler nor Lucide
- * has any of those shapes and a filled silhouette from a third family would make
- * this set two sets. `public/sprites/CREDITS.md` names each one; the files carry
- * it too.
+ * a 24-unit box, where upstream ships 2). Twelve are Tabler drawings copied
+ * verbatim; the horse-archer is two of them composed and the other seven are
+ * drawn here in Tabler's geometry, because neither Tabler nor Lucide has a
+ * catapult, a trebuchet, a spear, a pike, a chariot, a crossbow or a club — the
+ * whole medieval half of a 4X roster is a hole in every icon set there is — and
+ * a filled silhouette from a third family would make this set two sets.
+ * `public/sprites/CREDITS.md` names each one; the files carry it too.
+ *
+ * Named by **unit id** from `warrior` down, where the twelve above are named by
+ * class, and the two namings are not a muddle: a member is called after its
+ * class exactly when it is still the fallback a class-less row would get (see
+ * `BadgeClass`), and after a row when it exists for that row alone. `melee.svg`
+ * is the swordsman's sword *and* the drawing any unnamed foot soldier wears;
+ * `longswordsman.svg` is one unit's and nothing else's.
  */
 export const BADGE_ICON_FILES: Record<BadgeClass, string> = {
   settler: 'sprites/icons/settler.svg',
@@ -248,6 +380,14 @@ export const BADGE_ICON_FILES: Record<BadgeClass, string> = {
   religious: 'sprites/icons/religious.svg',
   spear: 'sprites/icons/spear.svg',
   trader: 'sprites/icons/trader.svg',
+  warrior: 'sprites/icons/warrior.svg',
+  longswordsman: 'sprites/icons/longswordsman.svg',
+  pikeman: 'sprites/icons/pikeman.svg',
+  compositeBowman: 'sprites/icons/compositeBowman.svg',
+  crossbowman: 'sprites/icons/crossbowman.svg',
+  chariot: 'sprites/icons/chariot.svg',
+  knight: 'sprites/icons/knight.svg',
+  trebuchet: 'sprites/icons/trebuchet.svg',
 };
 
 // --- layout arithmetic -----------------------------------------------------
@@ -437,9 +577,9 @@ export function wildBadgeStyle(): BadgeInkStyle {
  *
  * The icon arrives as whatever colour its SVG was authored in and leaves in the
  * style's ink, recoloured through a scratch canvas with `source-in` — which
- * keeps the ink a *data* decision rather than something baked into eleven files
+ * keeps the ink a *data* decision rather than something baked into twenty files
  * that would all have to be re-exported to change it. That indirection is also
- * what makes the wild's atlas free: the same eleven drawings, printed a second
+ * what makes the wild's atlas free: the same twenty drawings, printed a second
  * time in a second pair of colours, with no second set of files.
  *
  * A null icon is not an error. The roundel is still drawn, so a class whose
@@ -634,7 +774,7 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
  * the whole `loadIcon` path is gone from `TileIcons.load`, and the only cells
  * left that are not traced from path data are the numerals and the inscription,
  * both of which are set in text. `loadIcon` survives for the **badge** atlas,
- * whose eight class icons are still files, and it is the only place a null icon
+ * whose twenty class icons are still files, and it is the only place a null icon
  * is still reachable.
  *
  * The **charges** were born as path data and never had a file, for the reason
@@ -1644,7 +1784,7 @@ export function badgeDiscFlags(): {
  * The built atlas: the drawings, printed twice.
  *
  * One texture and one material for every badge a *nation* flies, whatever class
- * or seat, and a second pair for the wild — same eleven cells, same layout, same
+ * or seat, and a second pair for the wild — same twenty cells, same layout, same
  * quads, printed on darkened parchment in oxblood (`wildBadgeStyle`). Two
  * textures rather than one because a printed bucket cannot be tinted: an atlas
  * material carries the ink in its own pixels, and `InstanceCollector` refuses a

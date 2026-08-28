@@ -1,0 +1,17 @@
+<!-- Not a Tabler icon: Tabler draws no crossbow (`crossbow` is a 404 in 3.46.0),
+     so this one is drawn here in Tabler's geometry — the 24-unit box, the family's
+     2.75 stroke, round caps and joins, no fill anywhere. Drawn **spanned**, which
+     is the whole of what makes it read: a prod, a string already drawn back to the
+     nut, a bolt lying on the stock with its head out past the prod, and a butt.
+     A crossbow at rest is a bow and a chord, and a bow and a chord at this weight
+     close into a solid lens that reads as an umbrella; the drawn string is a shape
+     no other weapon in the set makes. It is the third axis in the bow line —
+     `ranged.svg` is a diagonal, `compositeBowman.svg` an upright bow seen edge-on,
+     and this is the shouldered T of a weapon aimed at the reader. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M2.5 8.4c3 -2.1 6.2 -3.1 9.5 -3.1s6.5 1 9.5 3.1"/>
+<path d="M2.5 8.4l9.5 3.4l9.5 -3.4"/>
+<path d="M12 3.4v17.6"/>
+<path d="M9.9 6.6l2.1 -3.2l2.1 3.2"/>
+<path d="M9.6 21h4.8"/>
+</g></svg>

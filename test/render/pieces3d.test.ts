@@ -132,23 +132,39 @@ describe('the model-class roster', () => {
     // decides texture coordinates and must not follow a registry reorder — so
     // this is the seam that has to be nailed down.
     //
-    // They used to be the same *set*. They are not any more, and the difference
-    // is exactly four members. Two are pieces that borrow a body they must not
-    // be named after (`BadgeClass`): a great person stands on the settler's
-    // sculpt and an augur on the worker's. The other two go the other way — the
-    // spear line *is* what it is shaped like and still earns its own mark,
-    // because the sword and the spear are two answers to two different threats,
-    // and a caravan borrows the worker's body but lays road instead of building
-    // on it. So the badge list is the sculpt list plus `greatPerson`,
-    // `religious`, `spear` and `trader`, and nothing else. Written as a
-    // containment plus named exceptions rather than a sorted equality, so a
-    // thirteenth cell somebody adds without deciding what it is fails here.
+    // They used to be the same *set*. They are not any more, and since the
+    // one-mark-per-row ruling (user, 2026-08-28) the difference is twelve
+    // members — every sculpt now carries between one and three named rows, and
+    // the badge is where they are told apart.
+    //
+    // Two of the twelve are pieces that borrow a body they must not be named
+    // after (`BadgeClass`): a great person stands on the settler's sculpt and an
+    // augur on the worker's, and both are answered by the *rules* rather than by
+    // the art table. The other ten go the other way — a spearman, a warrior, a
+    // chariot and a trebuchet are all exactly what they are shaped like, and each
+    // still earns its own mark, because the sculpt says "a foot soldier" where
+    // the badge has to say "which one".
+    //
+    // Written as a containment plus a named list rather than a sorted equality,
+    // so a twenty-first cell somebody adds without deciding what it is fails
+    // here; `test/render/badges3d.test.ts` pins the atlas order itself.
+    const NOT_A_SCULPT = [
+      'greatPerson',
+      'religious',
+      'spear',
+      'trader',
+      'warrior',
+      'longswordsman',
+      'pikeman',
+      'compositeBowman',
+      'crossbowman',
+      'chariot',
+      'knight',
+      'trebuchet',
+    ] as const;
     for (const id of MODEL_CLASS_IDS) expect(BADGE_CELLS).toContain(id);
-    expect(BADGE_CELLS).toContain('greatPerson');
-    expect(BADGE_CELLS).toContain('religious');
-    expect(BADGE_CELLS).toContain('spear');
-    expect(BADGE_CELLS).toContain('trader');
-    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + 4);
+    for (const id of NOT_A_SCULPT) expect(BADGE_CELLS).toContain(id);
+    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + NOT_A_SCULPT.length);
     for (const id of BADGE_CELLS) {
       expect(BADGE_ICON_FILES[id], `no icon file for ${id}`).toMatch(/^sprites\/icons\/.+\.svg$/);
     }
@@ -194,13 +210,18 @@ describe('the model-class roster', () => {
       expect(badgeClassFor(type as UnitTypeId)).toBe(cls);
     }
     // The spear line is why the table exists: it must not wear the sword the
-    // warrior line wears, and the warrior line must still wear it.
+    // warrior line wears. Since the one-mark-per-row ruling the table splits the
+    // *ranks* of each line as well, so the four foot rows below are four badges
+    // where they were two — but the claim being pinned is the original one, that
+    // no row of one line ever wears another line's mark.
     expect(badgeClassFor('spearman')).toBe('spear');
-    expect(badgeClassFor('pikeman')).toBe('spear');
-    expect(badgeClassFor('warrior')).toBe('melee');
+    expect(badgeClassFor('pikeman')).toBe('pikeman');
+    expect(badgeClassFor('warrior')).toBe('warrior');
     expect(badgeClassFor('swordsman')).toBe('melee');
-    // …and the split is a *badge* split only. Both lines are still one sculpt.
+    expect(badgeClassFor('longswordsman')).toBe('longswordsman');
+    // …and the split is a *badge* split only. All five are still one sculpt.
     expect(modelClassFor('spearman')).toBe(modelClassFor('warrior'));
+    expect(modelClassFor('pikeman')).toBe(modelClassFor('longswordsman'));
   });
 
   it('badges a rite-worker as religious and never as the worker it is sculpted as', () => {

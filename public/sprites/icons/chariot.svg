@@ -1,0 +1,16 @@
+<!-- Not a Tabler icon: Tabler draws no chariot, cart or wagon of this kind, so
+     this one is drawn here in Tabler's geometry — the 24-unit box, the family's
+     2.75 stroke, round caps and joins, no fill anywhere. The mounted line is
+     horse → chariot → chess knight, and the middle rank is the only one of the
+     three that is not an animal: a spoked wheel is what a chariot is, it is the
+     one circle in the line, and it survives being small when a second horse
+     drawing would not. The car it used to carry was drawn and then cut — at
+     twenty-four pixels a box sitting on the wheel's crown merged into the wheel
+     and the whole mark went to mush, and the wheel alone is the readable half.
+     So: one big spoked wheel and the draught pole it is pulled by. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M2.5 14a7.5 7.5 0 1 0 15 0a7.5 7.5 0 1 0 -15 0"/>
+<path d="M10 6.5v15"/>
+<path d="M2.5 14h15"/>
+<path d="M16.4 9.6l5 -2.6"/>
+</g></svg>

@@ -1246,6 +1246,17 @@ export interface BadgeSpec {
    * unit you fielded specifically to stop a horse is the same wrong sentence
    * `greatPerson` and `religious` exist to prevent, one row further down.
    *
+   * It began as three rows and is now the **whole roster** (user, 2026-08-28:
+   * "for the sake of making unit icons clearer, could we get unique badges for
+   * each unit type"), which changes what the table is for without changing what
+   * it is. Three rows made it a list of exceptions to `modelClass`; naming every
+   * row makes it the *register* — the one place the answer to "which mark names
+   * this piece" is written down, with `modelClass` demoted to the answer for a
+   * row that has not been drawn yet. Naming a row whose class would have given
+   * the same cell (`"swordsman": "melee"`) is therefore deliberate and not
+   * redundant: the table is meant to be read as the complete list, and a row
+   * missing from it is a row nobody has decided about.
+   *
    * Values are validated against `BADGE_CELLS` at load, so a typo is a loud
    * failure rather than a badge that silently falls back to the sword.
    */

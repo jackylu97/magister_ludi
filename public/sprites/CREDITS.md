@@ -3,8 +3,8 @@
 Most artwork in this directory is by **Kenney** (<https://kenney.nl>) and is released under
 **CC0 1.0 Universal** (public domain dedication). No attribution is required; it is given
 anyway because the work deserves it. The two exceptions are called out in their own sections
-below: `units/` (the project owner's illustrations) and `icons/` (original work for this
-project, also CC0).
+below: `units/` (the project owner's illustrations) and `icons/` (twelve **Tabler Icons**
+under the MIT licence, and eight drawn for this project in Tabler's geometry, CC0).
 
 Source packs:
 
@@ -83,16 +83,17 @@ with a feathered edge — see `src/render3d/sprites3d.ts`, tuned by `units.sprit
 A unit type with no file here falls back to its procedural game piece, which is why the
 settler still stands as a piece while these two are billboards.
 
-## `icons/<class>.svg` — 12 badge icons
+## `icons/*.svg` — 20 badge icons, one per unit type
 
-**Not our work any more, and that is the point.** Twelve SVG files, one per `BadgeClass`
+**Not our work any more, and that is the point.** Twenty SVG files, one per `BadgeClass`
 (`src/render3d/badges3d.ts`), rasterised into the parchment roundel that floats over a
 piece and says which unit is standing there. They were drawn for this project until the
-icon pass; they are now **Tabler Icons** — with three exceptions this section names — for the
-same reason the six yield voices stopped being drawn here (see below, and it is the same
-sentence twice): a set drawn by people who draw icon sets for a living reads better at
-twenty pixels than anything this project would author for itself, and the badge is the
-smallest thing on the board that has to be *read* rather than merely seen.
+icon pass; twelve of them are now **Tabler Icons**, and the other eight are drawn here in
+Tabler's geometry because no icon set in the world draws the medieval half of a 4X roster.
+The reason the vendored ones are vendored is the same sentence the six yield voices get
+(see below): a set drawn by people who draw icon sets for a living reads better at twenty
+pixels than anything this project would author for itself, and the badge is the smallest
+thing on the board that has to be *read* rather than merely seen.
 
 - **Tabler Icons** — <https://tabler.io/icons> · <https://github.com/tabler/tabler-icons> —
   **MIT licence**, pinned at `@tabler/icons` **3.46.0**
@@ -106,24 +107,54 @@ four of them. Tabler has all four. A set half in one hand and half in another is
 wearing one name, so the whole badge roster moved to Tabler rather than the six shapes Lucide
 was missing.
 
-The twelfth arrived with trade and needed no argument at all: Tabler draws a `package`, it is
-a crate seen the way this board sees everything (three-quarters, from above), and it is the one
-addition to this set that went in verbatim on the first try.
+### One mark per unit type (user, 2026-08-28)
 
-| File | Badge class | Upstream icon | Mark |
-| --- | --- | --- | --- |
-| `settler.svg` | `settler` | Tabler `tent` | an A-frame tent, its door thrown open |
-| `worker.svg` | `worker` | Tabler `hammer` | a claw hammer, head up |
-| `melee.svg` | `melee` | Tabler `sword` | a sword on the diagonal, hilt low |
-| `ranged.svg` | `ranged` | Tabler `bow` | a bow drawn, the arrow away to the corner |
-| `mounted.svg` | `mounted` | Tabler `horse` | a horse in full, head down |
-| `mountedRanged.svg` | `mountedRanged` | *composed* — Tabler `horse` + Tabler `bow` | the horse, smaller, under a loosed arrow |
-| `siege.svg` | `siege` | *drawn here* | a catapult, arm thrown, shot in the air |
-| `scout.svg` | `scout` | Tabler `binoculars` | field glasses |
-| `greatPerson.svg` | — | Tabler `laurel-wreath` | a laurel wreath, eight leaves and a tie |
-| `religious.svg` | — | Tabler `candle` | a lit candle |
-| `spear.svg` | `spear` | *drawn here* | a spear upright: leaf blade, socket collar, two lugs |
-| `trader.svg` | `trader` | Tabler `package` | a crate in three-quarter view, its three top seams drawn |
+The set was twelve until the ruling: *"for the sake of making unit icons clearer, could we get
+unique badges for each unit type (warriors and swordsmen should have different icons)."* It
+was twelve because the sculpts had collapsed onto eight model classes on the argument that
+nobody can use a difference they cannot see at forty pixels of bronze — and the ruling is
+right that a badge is not bronze. What fails on a miniature is *carved detail*; what survives
+on paper is a **silhouette**, which is what an icon is made of. So the badge went one grade
+finer than the sculpt for every row rather than for four of them.
+
+Two rules decided all twenty, and they are the whole design:
+
+- **the family says the line.** A sword line stays swords, a bow line stays bows, a mounted
+  line stays mounted. A player who has learnt one rank has learnt the other two.
+- **the axis or the count says the rank**, because those are the two things that survive
+  twenty-four pixels. A club on the other diagonal from a sword; a second sword crossed over
+  the first; one spear against two; an upright bow against a diagonal one; a wheel among
+  horses; a hanging counterweight among thrown arms. Never a longer blade or a finer
+  fletching — a *detail* is exactly what the sculpts lost their seat over.
+
+| File | Badge class | Line · rank | Upstream icon | Mark |
+| --- | --- | --- | --- | --- |
+| `warrior.svg` | `warrior` | sword · 1 | *drawn here* | a club: tapered haft, round head, one binding — on the diagonal opposite the sword |
+| `melee.svg` | `melee` | sword · 2 | Tabler `sword` | a sword on the diagonal, hilt low |
+| `longswordsman.svg` | `longswordsman` | sword · 3 | Tabler `swords` | two swords crossed — more sword, not a longer one |
+| `spear.svg` | `spear` | spear · 1 | *drawn here* | a spear upright: leaf blade, socket collar, two lugs |
+| `pikeman.svg` | `pikeman` | spear · 2 | *drawn here* | two hafts braced in a hedge under narrow spikes |
+| `ranged.svg` | `ranged` | bow · 1 | Tabler `bow` | a bow loosed on the diagonal, the arrow away to the corner |
+| `compositeBowman.svg` | `compositeBowman` | bow · 2 | *drawn here* | a recurve bow stood upright at full draw, arrow still on the string |
+| `crossbowman.svg` | `crossbowman` | bow · 3 | *drawn here* | a crossbow spanned: prod, string drawn back to the nut, bolt, butt |
+| `mounted.svg` | `mounted` | mounted · 1 | Tabler `horse` | a horse in full, head down |
+| `chariot.svg` | `chariot` | mounted · 2 | *drawn here* | a big spoked wheel and its draught pole |
+| `knight.svg` | `knight` | mounted · 3 | Tabler `chess-knight` | the chess knight, on its base |
+| `mountedRanged.svg` | `mountedRanged` | mounted · ranged | *composed* — Tabler `horse` + Tabler `bow` | the horse, smaller, under a loosed arrow |
+| `siege.svg` | `siege` | siege · 1 | *drawn here* | a catapult: base, A-frame, arm thrown, shot in the air |
+| `trebuchet.svg` | `trebuchet` | siege · 2 | *drawn here* | a tall frame, the beam pivoted high, the counterweight hung |
+| `settler.svg` | `settler` | civilian | Tabler `tent` | an A-frame tent, its door thrown open |
+| `worker.svg` | `worker` | civilian | Tabler `hammer` | a claw hammer, head up |
+| `scout.svg` | `scout` | civilian | Tabler `binoculars` | field glasses |
+| `trader.svg` | `trader` | civilian | Tabler `package` | a crate in three-quarter view, its three top seams drawn |
+| `religious.svg` | `religious` | called | Tabler `candle` | a lit candle |
+| `greatPerson.svg` | `greatPerson` | called | Tabler `laurel-wreath` | a laurel wreath, eight leaves and a tie |
+
+Twelve names in the class column are model classes and eight are unit ids, and the two
+namings are not a muddle: a badge is named after its **class** exactly when it is still the
+drawing a roster row nobody has named would fall back to, and after a **row** when it exists
+for that row alone. `melee.svg` is the swordsman's sword *and* what any unnamed foot soldier
+wears; `longswordsman.svg` is one unit's and nothing else's.
 
 ### The two edits made to the vendored drawings, and no others
 
@@ -143,75 +174,109 @@ No path was re-fitted, no shape re-centred, and the 24-unit grid is upstream's o
 re-vendoring a diff rather than a redraw. Every file carries its upstream name and URL in an
 XML comment at the top.
 
-### The three that are not Tabler drawings, and why they are not somebody else's either
+### The eight that are not Tabler drawings, and why they are not somebody else's either
 
-Neither Tabler nor Lucide draws a **catapult**, a **horse-archer** or a **spear** (nor a
-lance, pike or javelin under any other name), and there was a third family available that
-draws all of them. It was not used, for the reason this file already gave about Kenney's
-board-game icons two paragraphs into the old version of this section: those are filled
+Neither Tabler nor Lucide draws a **catapult**, a **trebuchet**, a **spear** (nor a lance,
+pike or javelin under any other name), a **crossbow**, a **chariot**, a **club** or a
+**horse-archer**. In `@tabler/icons` 3.46.0 the names `catapult`, `trebuchet`, `crossbow`,
+`chariot`, `pike`, `spear` and `archery` are all 404s; this is not a gap somebody could close
+by looking harder. There was a third family available that draws most of them. It was not
+used, for the reason this file already gave about Kenney's board-game icons: those are filled
 silhouettes, these are strokes, and a badge set has exactly one job, which is to be one
-family. Half a set in somebody's fills and half in somebody's strokes is worse than
-either.
+family. Half a set in somebody's fills and half in somebody's strokes is worse than either.
+
+So seven are **drawn for this project**, CC0 1.0 like everything else original here, but
+drawn in *Tabler's* geometry rather than in ours: the 24-unit box, the family's 2.75 stroke,
+round caps and joins, no fill anywhere, and a stroked outline wherever a shape wants mass
+because Tabler never fills. The eighth is a composition of two Tabler paths.
 
 - `mountedRanged.svg` is a **composition** of two Tabler drawings: `horse` verbatim, scaled
   0.75 into the lower-left with its stroke-width divided back out so it still prints at 2.75,
   under `bow`'s own arrowhead corner with the shaft cut short to clear the horse's back. Both
   upstream paths are intact and legible in the file.
-- `siege.svg` is **drawn for this project**, CC0 1.0 like everything else original here, but
-  drawn in *Tabler's* geometry rather than in ours: the 24-unit box, the family's 2.75 stroke,
-  round caps and joins, no fill anywhere, and a stroked ring for the shot because Tabler never
-  fills. The composition is the old hand-drawn catapult's — base, A-frame, arm thrown, shot in
-  the air — re-laid on that grid.
-- `spear.svg` is the same, and it arrived because the spear line was wearing the sword
-  (user, 2026-08-27: "spearman line needs its own icon distinct from warrior line"). It is
-  deliberately **not** the sword redrawn on another angle: at twenty pixels a diagonal blade is
-  a diagonal blade whatever its tip is shaped like, so the spear stands upright, which is the
-  one silhouette in this set that separates cleanly from `melee.svg`'s diagonal at a glance. A
-  leaf blade, a socket collar and the two lugs of a boar-spear — the part of the weapon that is
-  about stopping a charge, which is what the unit is for. Which rows wear it is
-  `badges.byUnitType` in `data/view3d.json` (spearman and pikeman today), not a name compared
-  in TypeScript.
+- `siege.svg` — the catapult. The composition is the old hand-drawn one's: base, A-frame, arm
+  thrown, shot in the air, with a stroked ring for the shot.
+- `trebuchet.svg` — deliberately the catapult's *pair*. A tall frame instead of a low one, a
+  long beam pivoted high across it instead of an arm thrown, and a hanging counterweight box
+  where the catapult has a shot in the air. The box is the tell: it is the only square in the
+  siege line, and a square survives being small.
+- `spear.svg` — it arrived because the spear line was wearing the sword (user, 2026-08-27:
+  "spearman line needs its own icon distinct from warrior line"). It is deliberately **not**
+  the sword redrawn on another angle: at twenty pixels a diagonal blade is a diagonal blade
+  whatever its tip is shaped like, so the spear stands upright, which separates cleanly from
+  `melee.svg`'s diagonal at a glance. A leaf blade, a socket collar and the two lugs of a
+  boar-spear.
+- `pikeman.svg` — the spear *counted* rather than lengthened. A pike is a spear you cannot
+  carry alone; at twenty-four pixels a longer shaft is not a difference and a second shaft is.
+  Two hafts braced in a shallow hedge, each under a narrow spike, with the spear's leaf blade
+  dropped so head shape says the rank too.
+- `compositeBowman.svg` — the bow stood **upright** at full draw, the string pulled into a V
+  with the arrow still on it, and reflexed limb tips for the tell at sixty-four. Orientation
+  is what separates it from `ranged.svg` at twenty-four: a diagonal against an upright.
+- `crossbowman.svg` — drawn **spanned**, which is the whole of what makes it read: a prod, a
+  string already pulled back to the nut, a bolt lying on the stock with its head out past the
+  prod, and a butt. A crossbow at rest is a bow and a chord, and at 2.75 of 24 a bow and a
+  chord close into a solid lens that reads as an umbrella — three drafts of this mark came
+  back as an umbrella, a mallet and an aeroplane before the string was drawn back. It is the
+  third axis in the bow line: `ranged.svg` is a diagonal, `compositeBowman.svg` is a bow seen
+  edge-on, and this is the shouldered T of a weapon aimed at the reader.
+- `chariot.svg` — the only rank in the mounted line that is not an animal, and that is the
+  design rather than a shortcut: a spoked wheel is what a chariot *is*, it is the one circle
+  in the line, and it survives being small where a second horse drawing would not. It carried
+  a car for one draft and lost it: at twenty-four pixels a box sitting on the wheel's crown
+  merged into the wheel and the mark went to mush. One big spoked wheel and the draught pole
+  it is pulled by.
+- `warrior.svg` — a club, and it is drawn here rather than vendored for a specific reason.
+  Tabler *has* an `axe`, which was the obvious first rank for the sword line, and `axe` is
+  Tabler's `hammer` turned around — which would have put the warrior one glance away from the
+  worker, on a board where they stand side by side. So: a tapered haft swelling to a round
+  head with one binding at the grip, running on the diagonal **opposite** `melee.svg`'s sword,
+  because at twenty pixels the axis of a diagonal is read before anything drawn on it. Club
+  and sword cross rather than echo.
 
-### Why the set is twelve when the sculpt roster is eight
+`knight.svg` is the one vendored drawing that needs a word, being a chess piece in a set of
+weapons and animals: the mounted line needed a third rank that was neither a horse in profile
+(which is rank 1) nor a horse under something (which is the horse-archer), and Tabler's
+`chess-knight` is an upright mass against two horizontal ones — the cleanest available
+separation, and on theme for a game called Magister Ludi.
 
-`BadgeClass` is `ModelClass` plus four. Two of the extras exist for one reason: a piece
-that borrows another piece's body must not wear that piece's *name*. The badge is the board's
-only sentence about what a unit is, and a wrong sentence is worse than a missing one. The
-other two go the other way — see `spear` and `trader` below.
+### Which row wears which, and who decides
 
-- **`greatPerson`** — a great person stands on the **settler's** sculpt, because it is a
-  civilian with a handcart. "Settler" floating over Archimedes sends a player looking for a
-  city site. One laurel for all five families, not five: a scholar and a general differ in
-  what they *do*, and the unit panel and the offer card already say which in words.
-- **`religious`** — an augur stands on the **worker's** sculpt, because it is a figure on
-  foot with a bundle. "Worker" over the only piece in the game that spends faith is the worse
-  of the two mistakes: it is an invitation to march it at a hill and build a mine. One candle
-  for the whole family here too — the prophet the High Temple brings will wear this one.
-- **`spear`** — a spearman *is* what it is shaped like: a foot soldier, `modelClass: 'melee'`,
-  sharing the swordsman's sculpt and rightly so. The badge is finer than the sculpt here rather
-  than coarser, because the sword says "the line you send at a city" and the spear line is the
-  one you send at a horse, and a player who cannot tell them apart on the board is a player who
-  loses a stack to a chariot. One spear for the whole line — spearman, pikeman, and whatever
-  comes after them.
+`BadgeClass` is `ModelClass` plus twelve. Two of the twelve are decided by the **rules** and
+ten by the **art table**, and the fence is the point rather than an inconsistency: what a
+piece *does* is the simulation's fact and belongs on the unit row, while which drawing names
+it is the renderer's, and a `badge:` column in `data/units.json` would be the art reaching
+across into the rules' own file.
 
-- **`trader`** — a caravan is sculpted as a **worker** for the augur's reason exactly: it is a
-  civilian on foot with something on its back, and a fifteenth miniature nobody can pick out at
-  forty pixels is not worth carving. "Worker" floating over the one piece in the game that lays
-  road and carries a twenty-turn route is the same wrong sentence the candle was added to stop,
-  and it invites the same mistake — marching it at a hill to build a mine. It is the one badge
-  whose *sculpt* is also split (`pieces.byUnitType`, `SculptId` in `board3d.ts`): a caravan gets
-  the worker's token with a pack instead of a mallet, and a caravan actually running a route
-  gets a gilt bale roped on top of it. The badge still does the naming; the bodies only say
-  "these are two things" and "this one is loaded".
+- **`greatPerson`** — read off `UnitDef.greatWork` in `badgeClassFor`, ahead of everything
+  else. A great person stands on the **settler's** sculpt, because it is a civilian with a
+  handcart. "Settler" floating over Archimedes sends a player looking for a city site. One
+  laurel for all five families, not five: a scholar and a general differ in what they *do*,
+  and the unit panel and the offer card already say which in words.
+- **`religious`** — read off `UnitDef.consecrates`, second. An augur stands on the **worker's**
+  sculpt, because it is a figure on foot with a bundle. "Worker" over the only piece in the
+  game that spends faith is the worse of the two mistakes: it is an invitation to march it at
+  a hill and build a mine. One candle for the whole family here too — the prophet the High
+  Temple brings will wear this one.
+- **everything else** — `badges.byUnitType` in `data/view3d.json`, third. That table used to
+  be a short list of exceptions to `modelClass`; since the one-mark-per-row ruling it names
+  *every* row whose badge it decides, which makes it the register rather than a list of
+  special cases. Naming a row whose class would have given the same cell (`"swordsman":
+  "melee"`) is deliberate: the table is meant to read as the complete answer, and a row
+  missing from it is a row nobody has decided about.
+- **`modelClass`** — fourth and last, and it has become what it always read like and never
+  quite was: the answer for a row nobody has drawn yet. It is a good answer rather than a
+  placeholder, because each class member of `BadgeClass` is a line's first rank. A unit added
+  to `data/units.json` and nowhere else still gets a legible badge; it just does not get a
+  *distinct* one, which is the cue to draw it one.
 
-The first two are read off the unit row rather than off a type name (`badgeClassFor` asks
-`UnitDef.greatWork` and `UnitDef.consecrates`), so a new great person or a new priest is a
-data row and the renderer does not move. The last two are read off `badges.byUnitType` in
-`data/view3d.json`, and that is the fence rather than an inconsistency: what a piece *does* is
-the simulation's fact and belongs on the unit row, while which drawing names it is the
-renderer's, and a `badge:` column in `data/units.json` would be the art reaching across into
-the rules' own file. The table is checked against the atlas at load, so a typo either side is a
-thrown error rather than a badge quietly drawing somebody else's icon.
+The table is checked against the atlas at load, so a typo either side is a thrown error
+rather than a badge quietly drawing somebody else's icon.
+
+Two of the rows are also split in the **sculpt** (`pieces.byUnitType`, `SculptId` in
+`board3d.ts`): a caravan gets the worker's token with a pack instead of a mallet, and a
+caravan actually running a route gets a gilt bale roped on top of it. The badge still does the
+naming; the bodies only say "these are two things" and "this one is loaded".
 
 The candle is deliberately **not** the faith yield's flame. They are two different questions
 asked in two different places — the flame is a *number's* voice on the top bar, the candle is

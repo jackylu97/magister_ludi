@@ -1,0 +1,14 @@
+<!-- Not a Tabler icon: Tabler draws no pike, spear or polearm of any kind (the
+     same hole `spear.svg` was cut to fill), so this one is drawn here in Tabler's
+     geometry — the 24-unit box, the family's 2.75 stroke, round caps and joins,
+     no fill anywhere. It is the spear's own drawing *counted* rather than
+     lengthened: a pike is a spear you cannot carry alone, and at twenty-four
+     pixels a longer shaft is not a difference while a second shaft is. Two hafts
+     braced in a shallow hedge, each under a narrow spike head — the spear's leaf
+     blade deliberately dropped, so head shape says the rank too. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M9.5 21l-3.5 -14"/>
+<path d="M4.45 7.4l.55 -4.3l2.55 3.5z"/>
+<path d="M14.5 21l3.5 -14"/>
+<path d="M19.55 7.4l-.55 -4.3l-2.55 3.5z"/>
+</g></svg>

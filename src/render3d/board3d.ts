@@ -244,6 +244,19 @@ export function modelClassFor(type: UnitTypeId): ModelClass {
  * Archimedes. What it may do is split a model class the sculpt cannot — the
  * spear line off the sword line — which is a decision about drawings and
  * therefore a decision the renderer's own data file gets to make.
+ *
+ * Since the one-mark-per-row ruling (user, 2026-08-28: "for the sake of making
+ * unit icons clearer, could we get unique badges for each unit type") that third
+ * clause is what answers for nearly the whole roster — the table names every row
+ * whose badge art decides, which is every row but the two the rules take first —
+ * and the **fourth** line, `def.modelClass`, has become what it always read like
+ * and never quite was: the answer for a row nobody has drawn yet. It is kept for
+ * exactly that, and it is a good answer rather than a placeholder, because the
+ * class members of `BadgeClass` are each a line's first rank (`melee` is the
+ * sword, `ranged` the bow) and the archetype of a line is the right thing for an
+ * unnamed row to wear. A roster row added in `data/units.json` and nowhere else
+ * still gets a legible badge; it just does not get a *distinct* one, which is the
+ * cue to draw it one.
  */
 export function badgeClassFor(type: UnitTypeId): BadgeClass {
   const def = unitDef(type);
@@ -486,13 +499,14 @@ function buildUnitPieces(): Record<SculptId, UnitPiece> {
  *
  * Baking the atlas rectangle into the geometry is what makes badges instanceable
  * without a per-instance attribute: every badge of one class is the same quad
- * with the same UVs, so the whole class is one `InstancedMesh`, and all nine
+ * with the same UVs, so the whole class is one `InstancedMesh`, and all twenty
  * classes share a single material and a single texture.
  *
  * Walked over `BADGE_CELLS` rather than `MODEL_CLASS_IDS`, and that is the whole
- * of what `BadgeClass` changed here: the badges are one cell longer than the
+ * of what `BadgeClass` changed here: the badges are twelve cells longer than the
  * sculpts are, because the great person borrows a silhouette and does not borrow
- * a name (see `badgeClassFor`).
+ * a name, and because every line's second and third rank now has a drawing the
+ * sculpt could never have carried (see `badgeClassFor`).
  */
 function buildBadgeQuads(): Record<BadgeClass, BufferGeometry> {
   const out: Partial<Record<BadgeClass, BufferGeometry>> = {};
@@ -582,6 +596,14 @@ export const IMPROVEMENT_PROPS: Record<ImprovementId, (size: number) => BufferGe
   manufactory: manufactoryHall,
   customsHouse: customsWarehouse,
   citadel: citadelRing,
+  // **Placeholder, and the religion pass says so out loud.** The holy site's
+  // ratified sculpt is a standing-stone ring with a gilt tip; until the art pass
+  // draws one it borrows the landmark's stele, which is the nearest thing on the
+  // shelf. This entry exists because the record is exhaustive on purpose — an
+  // improvement nobody drew a prop for is a compile error rather than an
+  // invisible hex — so the honest fix for the sim pass is a stand-in, not a
+  // silent hole.
+  holySite: landmarkStele,
 };
 
 /**

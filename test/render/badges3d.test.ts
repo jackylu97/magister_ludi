@@ -4,6 +4,7 @@ import { InstancedMesh, Matrix4, MeshBasicMaterial, Quaternion, Vector3 } from '
 import {
   BADGE_CELLS,
   BADGE_ICON_FILES,
+  BADGE_LINES,
   type UnitBadges,
   badgeAtlasLayout,
   badgeAtlasSize,
@@ -19,7 +20,13 @@ import {
   paperRadiusFraction,
   rimInnerFraction,
 } from '../../src/render3d/badges3d';
-import { BoardGeometry, MODEL_CLASS_IDS, modelClassFor, pieceHeightFor } from '../../src/render3d/board3d';
+import {
+  BoardGeometry,
+  MODEL_CLASS_IDS,
+  badgeClassFor,
+  modelClassFor,
+  pieceHeightFor,
+} from '../../src/render3d/board3d';
 import { atlasQuad, discRing } from '../../src/render3d/geometry';
 import { RENDER_ORDER } from '../../src/render3d/instances';
 import { wrapWidth } from '../../src/render3d/layout';
@@ -125,26 +132,174 @@ describe('the badge atlas layout', () => {
   });
 
   /**
-   * The twelfth cell, appended with trade.
+   * The eight cells the one-mark-per-row ruling appended, and the twelve that
+   * did not move for them.
    *
    * Named on its own rather than left to the sweep above, because the *append*
    * is the load-bearing part: `BADGE_CELLS` decides texture coordinates, every
    * consumer re-derives its rectangle through `badgeCellRect` at build time, and
-   * nothing anywhere writes an index down — so a cell added on the end costs a
-   * row of atlas and re-points nothing. A cell inserted in the middle would
-   * silently draw eleven units' badges off by one, which is the failure this
-   * assertion holds still. Twelve in a four-wide atlas is exactly three rows.
+   * nothing anywhere writes an index down — so cells added on the end cost rows
+   * of atlas and re-point nothing. A cell inserted in the middle would silently
+   * draw a dozen units' badges off by one, which is the failure this assertion
+   * holds still. It is the same claim the caravan's twelfth cell made, at eight
+   * times the size: the first twelve are pinned in their old order, by name.
+   *
+   * Twenty in a four-wide atlas is exactly five rows, and that arithmetic is the
+   * other half of the assertion — the layout has always been a function of the
+   * count (`badgeAtlasLayout`), so the canvas grew two rows and nothing else
+   * about the atlas changed.
    */
-  it('gives the caravan the twelfth cell, on the end, with its own file', () => {
-    expect(BADGE_CELLS.indexOf('trader')).toBe(BADGE_CELLS.length - 1);
-    expect(BADGE_CELLS).toHaveLength(12);
-    expect(BADGE_ICON_FILES.trader).toBe('sprites/icons/trader.svg');
+  it('appends the eight new marks and leaves the first twelve where they were', () => {
+    expect(BADGE_CELLS.slice(0, 12)).toEqual([
+      'settler',
+      'worker',
+      'melee',
+      'ranged',
+      'mounted',
+      'mountedRanged',
+      'siege',
+      'scout',
+      'greatPerson',
+      'religious',
+      'spear',
+      'trader',
+    ]);
+    expect(BADGE_CELLS.slice(12)).toEqual([
+      'warrior',
+      'longswordsman',
+      'pikeman',
+      'compositeBowman',
+      'crossbowman',
+      'chariot',
+      'knight',
+      'trebuchet',
+    ]);
+    expect(BADGE_CELLS).toHaveLength(20);
     const layout = badgeAtlasSize();
     expect(layout.columns).toBe(4);
-    expect(layout.rows).toBe(3);
-    // And the eleven before it did not move: the rectangle of cell 0 is still
+    expect(layout.rows).toBe(5);
+    expect(layout.height).toBe(5 * BADGE.atlasCell);
+    // And the twelve before them did not move: the rectangle of cell 0 is still
     // the top-left one, which is what `badgeCellRect` is asked for everywhere.
     expect(badgeCellRect(BADGE_CELLS[0]!).u0).toBe(0);
+    expect(BADGE_ICON_FILES.trader).toBe('sprites/icons/trader.svg');
+  });
+
+  /**
+   * The ruling itself: twenty unit types, twenty different drawings.
+   *
+   * The list is written out here rather than derived from `UNIT_TYPE_IDS`, and
+   * that is deliberate in both directions. It is the *user's* list (2026-08-28,
+   * "could we get unique badges for each unit type"), so it is the thing being
+   * promised and belongs in the test as words; and deriving it would make this
+   * assertion fail the day the simulation adds a roster row, which is precisely
+   * the case `badgeClassFor`'s fallback exists to keep cheap — a new unit is a
+   * data edit that gets a legible badge and, until somebody draws it one, not a
+   * distinct one.
+   *
+   * `badgeClassFor` is asked rather than `badges.byUnitType`, because the table
+   * is only the third of four clauses: the augur and the great person are
+   * answered by the *rules* ahead of it, and a test that read the table would
+   * miss the two rows most likely to break.
+   */
+  it('gives each of the twenty unit types a badge no other type wears', () => {
+    const roster: UnitTypeId[] = [
+      'warrior',
+      'scout',
+      'settler',
+      'worker',
+      'archer',
+      'spearman',
+      'horseman',
+      'chariot',
+      'chariotArcher',
+      'swordsman',
+      'catapult',
+      'compositeBowman',
+      'pikeman',
+      'crossbowman',
+      'knight',
+      'longswordsman',
+      'trebuchet',
+      'trader',
+      'augur',
+      'greatPerson',
+    ];
+    const badges = new Map<string, UnitTypeId>();
+    for (const type of roster) {
+      const badge = badgeClassFor(type);
+      expect(BADGE_CELLS, `${type} wears a class with no atlas cell`).toContain(badge);
+      const taken = badges.get(badge);
+      expect(taken, `${type} and ${String(taken)} share the ${badge} badge`).toBeUndefined();
+      badges.set(badge, type);
+    }
+    expect(badges.size).toBe(20);
+    // Twenty types, twenty cells: the set is exactly used up, so there is no
+    // drawing in the atlas that no piece on the board can ever wear.
+    expect(badges.size).toBe(BADGE_CELLS.length);
+  });
+
+  /**
+   * The pairs the ruling was actually about, held one by one.
+   *
+   * The sweep above proves the twenty are *distinct*, which a set of twenty
+   * randomly assigned marks would also do. What the user asked for is that the
+   * ranks of one line differ — "warriors and swordsmen should have different
+   * icons" — so each line's neighbours are named here, and the sentence that
+   * would have to become false for the complaint to come back is written down
+   * beside them.
+   */
+  it('separates every rank of every line, which is the complaint', () => {
+    const pairs: [UnitTypeId, UnitTypeId][] = [
+      ['warrior', 'swordsman'],
+      ['swordsman', 'longswordsman'],
+      ['warrior', 'longswordsman'],
+      ['spearman', 'pikeman'],
+      ['archer', 'compositeBowman'],
+      ['compositeBowman', 'crossbowman'],
+      ['archer', 'crossbowman'],
+      ['horseman', 'chariot'],
+      ['chariot', 'knight'],
+      ['horseman', 'knight'],
+      ['catapult', 'trebuchet'],
+    ];
+    for (const [a, b] of pairs) {
+      expect(badgeClassFor(a), `${a} and ${b} still share a badge`).not.toBe(badgeClassFor(b));
+    }
+    // And the sculpts they share, which is why the badge had to carry it: three
+    // of these pairs stand on one miniature apiece.
+    expect(modelClassFor('warrior')).toBe(modelClassFor('swordsman'));
+    expect(modelClassFor('horseman')).toBe(modelClassFor('chariot'));
+    expect(modelClassFor('catapult')).toBe(modelClassFor('trebuchet'));
+  });
+
+  /**
+   * The gallery's own row, which is the only place twenty marks can be judged.
+   *
+   * `BADGE_LINES` is a *partition* — every cell in exactly one line — and that
+   * is the property worth holding still rather than the count: a twenty-first
+   * badge added to the atlas and to no line would quietly stop appearing on
+   * `flair.html`, which is where art is iterated (CLAUDE.md), and a cell listed
+   * in two lines would be printed twice and nobody would notice either.
+   *
+   * The gallery reads this table to lay out its grids, so the assertion is
+   * about the page as much as about the data — see `badgeFamily` in
+   * `src/flairGallery/marks.ts`, which has no list of its own to go stale.
+   */
+  it('sorts every badge into exactly one line for the flair gallery', () => {
+    const listed = BADGE_LINES.flatMap((line) => line.members);
+    expect(listed).toHaveLength(BADGE_CELLS.length);
+    expect([...listed].sort()).toEqual([...BADGE_CELLS].sort());
+    expect(new Set(listed).size).toBe(listed.length);
+    // Six lines, each with a name and a sentence: a line with no note is a row
+    // of drawings on the page with nothing said about how they differ, which is
+    // the one thing this page exists to say.
+    expect(BADGE_LINES).toHaveLength(6);
+    for (const line of BADGE_LINES) {
+      expect(line.members.length, line.line).toBeGreaterThan(0);
+      expect(line.line.length).toBeGreaterThan(0);
+      expect(line.note.length).toBeGreaterThan(0);
+    }
   });
 
   it('puts the first cell at the top-left of the canvas and at v = 1', () => {
@@ -269,16 +424,20 @@ describe('the badge shapes', () => {
     quad.dispose();
   });
 
-  it('gives the board one quad per class, each with its own coordinates', () => {
+  it('gives the board one quad per badge cell, each with its own coordinates', () => {
+    // Walked over `BADGE_CELLS` and not `MODEL_CLASS_IDS`, which is the whole of
+    // what the one-mark-per-row ruling changed here: there are twenty cells and
+    // eight sculpts, and a quad missing for one of the twelve that is not a
+    // sculpt draws that unit's badge with somebody else's texture coordinates.
     const board = new BoardGeometry();
     const seen = new Set<number>();
-    for (const id of MODEL_CLASS_IDS) {
+    for (const id of BADGE_CELLS) {
       const quad = board.badgeIcons[id];
       expect(quad, id).toBeDefined();
       const uv = quad.getAttribute('uv');
       seen.add(Math.round(uv.getX(0) * 1e6) * 1e3 + Math.round(uv.getY(0) * 1e3));
     }
-    expect(seen.size).toBe(MODEL_CLASS_IDS.length);
+    expect(seen.size).toBe(BADGE_CELLS.length);
     board.dispose();
   });
 });
@@ -332,19 +491,25 @@ describe('badges in the units layer', () => {
     return { board, layer, meshes };
   }
 
-  it('draws a disc and a rim for every unit, batched by class and by player', () => {
-    // Five units across three classes, all one player: three disc buckets, one
+  it('draws a disc and a rim for every unit, batched by badge and by player', () => {
+    // Five units wearing three badges, all one player: three disc buckets, one
     // rim bucket. The whole point of the split — badge cost is flat in the unit
     // count and grows only with the variety on the board.
+    //
+    // Written with *repeats* rather than with five different rows, which it used
+    // to be, because since the one-mark-per-row ruling five rows is five badges
+    // and the batching would be invisible in the very case the batching is for:
+    // an army is mostly copies of a few things. Two warriors, two archers and a
+    // catapult is that army in miniature.
     const { board, layer, meshes } = build([
       'warrior',
-      'swordsman',
+      'warrior',
+      'archer',
       'archer',
       'catapult',
-      'trebuchet',
     ]);
     const discs = meshes.filter((m) =>
-      MODEL_CLASS_IDS.some((id) => board.badgeIcons[id] === m.geometry),
+      BADGE_CELLS.some((id) => board.badgeIcons[id] === m.geometry),
     );
     const rims = meshes.filter((m) => m.geometry === board.badgeRim);
     expect(discs).toHaveLength(3);
@@ -358,13 +523,13 @@ describe('badges in the units layer', () => {
 
   it('gives the roundel the atlas material and never an outline or a shadow', () => {
     const { board, layer, meshes } = build(['warrior']);
-    const disc = meshes.find((m) => m.geometry === board.badgeIcons.melee)!;
+    const disc = meshes.find((m) => m.geometry === board.badgeIcons.warrior)!;
     expect(disc.material).toBeInstanceOf(MeshBasicMaterial);
     expect(disc.castShadow).toBe(false);
     expect(disc.receiveShadow).toBe(false);
     // A textured bucket is never given an inverted hull: exactly one mesh
     // carries the disc geometry, where an outlined shape would have two.
-    expect(meshes.filter((m) => m.geometry === board.badgeIcons.melee)).toHaveLength(1);
+    expect(meshes.filter((m) => m.geometry === board.badgeIcons.warrior)).toHaveLength(1);
     layer.dispose();
     board.dispose();
   });
@@ -383,7 +548,7 @@ describe('badges in the units layer', () => {
    */
   it('draws the badge over the interface rings and under the HP bar', () => {
     const { board, layer, meshes } = build(['warrior'], null, true);
-    const disc = meshes.find((m) => m.geometry === board.badgeIcons.melee)!;
+    const disc = meshes.find((m) => m.geometry === board.badgeIcons.warrior)!;
     const rim = meshes.find((m) => m.geometry === board.badgeRim)!;
     const bars = meshes.filter((m) => m.geometry === board.bar);
 
@@ -494,7 +659,7 @@ describe('badges in the units layer', () => {
     // Two warriors, one class, and *two* disc buckets — because the two seats
     // print off two different atlases. One bucket would mean the wild was
     // wearing a nation's paper.
-    const discs = meshes.filter((m) => m.geometry === board.badgeIcons.melee);
+    const discs = meshes.filter((m) => m.geometry === board.badgeIcons.warrior);
     expect(discs).toHaveLength(2);
     const discMaterials = discs.map((m) => m.material);
     expect(discMaterials).toContain(badges.material);
@@ -518,7 +683,7 @@ describe('badges in the units layer', () => {
 
   it('takes a unit’s badge off the board when the unit is hidden for a walk', () => {
     const { board, layer, meshes } = build(['warrior']);
-    const disc = meshes.find((m) => m.geometry === board.badgeIcons.melee)!;
+    const disc = meshes.find((m) => m.geometry === board.badgeIcons.warrior)!;
     const rim = meshes.find((m) => m.geometry === board.badgeRim)!;
     const matrix = new Matrix4();
     // Read straight off element 0 — the matrix's own x scale — rather than
@@ -561,7 +726,7 @@ describe('badges in the units layer', () => {
     const meshes = layer.group.children.filter(
       (c): c is InstancedMesh => c instanceof InstancedMesh,
     );
-    const disc = meshes.find((m) => m.geometry === board.badgeIcons.melee);
+    const disc = meshes.find((m) => m.geometry === board.badgeIcons.warrior);
     expect(disc, 'a billboard unit lost its badge').toBeDefined();
     // No sculpt in the buffer at all — only the badge and its rim.
     expect(meshes.some((m) => m.geometry === board.pieces.melee.geometry)).toBe(false);
@@ -613,7 +778,7 @@ describe('badges in the units layer', () => {
       const matrix = new Matrix4();
       const positions: Vector3[] = [];
       for (const mesh of meshes) {
-        if (!MODEL_CLASS_IDS.some((id) => board.badgeIcons[id] === mesh.geometry)) continue;
+        if (!BADGE_CELLS.some((id) => board.badgeIcons[id] === mesh.geometry)) continue;
         for (let i = 0; i < mesh.count; i++) {
           mesh.getMatrixAt(i, matrix);
           positions.push(new Vector3().setFromMatrixPosition(matrix));

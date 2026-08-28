@@ -41,7 +41,7 @@ import {
 } from '../art/resourceMarks';
 import { siteMark } from '../art/siteMarks';
 import { YIELD_MARKS, yieldMarkDataUri } from '../art/yieldMarks';
-import { BADGE_CELLS, BADGE_ICON_FILES } from '../render3d/badges3d';
+import { BADGE_ICON_FILES, BADGE_LINES } from '../render3d/badges3d';
 import { VIEW3D } from '../render3d/lookData';
 import { DISCOVERY_KINDS } from '../sim/discoveryData';
 import { CORNER_STAR, PRINTER_DEVICE, cornerStarDataUri, printerDeviceDataUri } from '../ui/deviceMarks';
@@ -218,37 +218,44 @@ function deviceFamily(into: HTMLElement): void {
 }
 
 /**
- * The badge-class icons — the one family on this page that is **not** path data
- * in a module.
+ * The badge icons — the one family on this page that is **not** path data in a
+ * module.
  *
- * Twelve vendored SVG files under `public/`, rasterised into the unit-badge
- * atlas by the only `loadIcon` call left in the renderer. Twelve and not eight
- * because four of them are not model classes at all (`BadgeClass` in
- * `badges3d.ts`): a great person stands on the settler's sculpt and an augur on
- * the worker's, and neither may wear the name of the body it borrows; the spear
- * line shares the swordsman's sculpt and earns its own mark from the other
- * direction, because sword and spear answer two different threats; and a caravan
- * borrows the worker's body but lays road instead of building on it. Shown exactly
- * as everything else is, masked through `currentColor`, which is what the atlas
- * does to them too (it recolours them to the badge's ink) — and at the same
- * three sizes, which is the whole point of putting them on this page: **12** is
- * about what a badge is on a zoomed-out board, and a set that dissolves there is
- * a set nobody has checked.
+ * Twenty vendored SVG files under `public/`, rasterised into the unit-badge
+ * atlas by the only `loadIcon` call left in the renderer: one mark per roster row
+ * since the 2026-08-28 ruling ("could we get unique badges for each unit type").
+ * Shown exactly as everything else is, masked through `currentColor`, which is
+ * what the atlas does to them too (it recolours them to the badge's ink) — and at
+ * the same three sizes, which is the whole point of putting them on this page:
+ * **12** is about what a badge is on a zoomed-out board, and a set that dissolves
+ * there is a set nobody has checked.
  *
- * Their being files is the reason there is no note under them: a file has no
- * `note` field, and inventing one on this page would be inventing provenance —
- * `public/sprites/CREDITS.md` is where that lives, and since the icon pass there
- * is real provenance to keep straight, because nine of the twelve are somebody
- * else's drawings.
+ * Laid out **by line** rather than in atlas order, off `BADGE_LINES`, and that is
+ * the change this page owed the ruling. Twenty marks in a grid is twenty marks;
+ * the question the ruling actually asks — can a warrior be told from a swordsman
+ * from a longswordsman — is a question about three cells beside each other, and
+ * it can only be answered by a page that puts them beside each other. The line
+ * table is read out of `badges3d.ts` rather than written here, for this page's
+ * standing rule: a gallery that transcribed the set would go stale silently.
+ *
+ * Their being files is the reason there is no note under each *cell*: a file has
+ * no `note` field, and inventing one here would be inventing provenance —
+ * `public/sprites/CREDITS.md` is where that lives, and there is real provenance
+ * to keep straight, because twelve of the twenty are somebody else's drawings.
+ * What each line gets instead is the sentence saying how its ranks differ, which
+ * is a fact about the *set* and lives with the set.
  */
 function badgeFamily(into: HTMLElement): void {
   const root = block(
     into,
-    'Badge classes — public/sprites/icons/*.svg',
-    'The eight model classes, the laurel every great person wears, the candle every religious piece does, the spear the anti-cavalry line does, and the crate a caravan does, on the parchment badge that floats over a piece. Tabler Icons (MIT) at the yield marks’ weight, save the horse-archer, the catapult and the spear, which Tabler has not got. Vendored files rather than path data — the last set in the game that is fetched at all.',
+    'Badge icons — public/sprites/icons/*.svg',
+    'One mark per unit type, on the parchment badge that floats over a piece: the family says the line and the axis or the count says the rank, because those are the two things that survive twenty-four pixels. Tabler Icons (MIT) at the yield marks’ weight where Tabler has the shape, drawn here in Tabler’s geometry where it has not — no icon set in the world draws a catapult, a trebuchet, a pike, a chariot, a crossbow or a club. Vendored files rather than path data: the last set in the game that is fetched at all.',
   );
-  const grid = markGrid(root);
-  for (const cls of BADGE_CELLS) markCell(grid, cls, `/${BADGE_ICON_FILES[cls]}`);
+  for (const line of BADGE_LINES) {
+    root.append(element('p', 'sheet-note', `${line.line} — ${line.note}`));
+    const grid = markGrid(root);
+    for (const cls of line.members) markCell(grid, cls, `/${BADGE_ICON_FILES[cls]}`);
+  }
   drawBadgeRoundels(root);
 }
 
@@ -259,7 +266,7 @@ function badgeFamily(into: HTMLElement): void {
  * different object — parchment, a mark, and a rim of somebody's colour — and it
  * is the only place on this page where the barbarian treatment can be judged,
  * because that treatment is entirely a matter of which three colours the same
- * twelve drawings are printed in (`BadgeSpec.wildPaperColor` and its two
+ * twenty drawings are printed in (`BadgeSpec.wildPaperColor` and its two
  * siblings; `UnitBadges` prints the atlas twice).
  *
  * Every number and colour is read out of `data/view3d.json` through `VIEW3D` —

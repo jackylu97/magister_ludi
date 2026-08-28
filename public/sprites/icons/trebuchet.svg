@@ -1,0 +1,15 @@
+<!-- Not a Tabler icon: neither Tabler nor Lucide draws a trebuchet any more than
+     it draws a catapult, so this one is drawn here in Tabler's geometry — the
+     24-unit box, the family's 2.75 stroke, round caps and joins, no fill anywhere
+     — exactly as `siege.svg` was, and deliberately as its *pair*. The catapult is
+     a low frame with its arm thrown and a shot in the air; this is the tall frame,
+     the long beam pivoted high across it, and the hanging counterweight box that
+     is the whole difference between the two machines. The box is the tell: it is
+     the only square in the siege line and it survives being small. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M3 21h12"/>
+<path d="M6 21l3 -11"/>
+<path d="M12 21l-3 -11"/>
+<path d="M5 12l15 -7.4"/>
+<path d="M3.3 12.6h3.4v3.6h-3.4z"/>
+</g></svg>
