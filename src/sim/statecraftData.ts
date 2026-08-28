@@ -860,6 +860,22 @@ export interface CardCombatLineEffect {
    * whichever side the line pays, exactly as `side` says.
    */
   class?: UnitFilter;
+  /**
+   * Which units the line pays **against**. Absent means anything at all.
+   *
+   * `class`' mirror and the field Lautaro was waiting on ("+3 combat vs
+   * mounted"): `class` names *this* side's piece and `vsClass` names the one
+   * opposite, read by the same `unitMatches` predicate off the same
+   * `UnitFilter`. Two fields rather than one with a side, because a row that
+   * says both — "your spearmen, against their horse" — is an ordinary thing for
+   * a card to say and a single field could not.
+   *
+   * A **city has no silhouette**, so a line carrying `vsClass` never pays
+   * against walls. That is the honest reading rather than an omission: "vs
+   * mounted" is about what is charging at you, and nothing charges out of a
+   * town. A row that wants the walls says `when: { test: 'vsCity' }`.
+   */
+  vsClass?: UnitFilter;
 }
 
 /** A stat on a class of unit. Each stat has exactly one evaluator downstream. */
@@ -1184,13 +1200,23 @@ export interface CardPantheonSlotsEffect {
  * exactly as Entry XVII sums within a stage.
  *
  * `class` is the ordinary `UnitFilter`, so the row says "religious units" by
- * asking the roster (`consecrates`) rather than by naming the augur. Buildings
- * are out of reach on purpose: a filter is about units, and a wonder is never
- * for sale anyway.
+ * asking the roster (`consecrates`) rather than by naming the augur.
+ *
+ * **`on` is what a filter cannot say.** Crassus and Jakob Fugger both discount
+ * "units and buildings", and a `UnitFilter` has no vocabulary for a granary — so
+ * *which kind of thing* is a field of its own beside the filter that says *which
+ * units*. It defaults to `'unit'`, which is what every row written before it
+ * meant, so the Ziggurat's augurs are byte-identical without being touched. A
+ * building admits no filter at all: `class` is simply not asked when the thing
+ * being priced is a building, because "religious granaries" is not a sentence.
+ * (A wonder is still never for sale, in any bank, at any discount —
+ * `purchaseError` refuses one before the price is ever asked for.)
  */
 export interface CardPurchaseRiderEffect {
   kind: 'purchaseRider';
   class: UnitFilter;
+  /** Which kind of purchase this rides on. Absent means `'unit'`. */
+  on?: 'unit' | 'building' | 'all';
   /** Signed whole percent off the price. `-25` is the Ziggurat's quarter. */
   percent: number;
 }

@@ -103,7 +103,7 @@ import {
   expandBorders,
   growCities,
 } from './cities';
-import { type CombatOutcome, advanceFortify, healCities } from './combat';
+import { type CombatOutcome, type SiegeReport, advanceFortify, healCities } from './combat';
 import { hasLineOfSight } from './los';
 import { openPeriodicOffers, pruneTimedEffects } from './religion';
 import { getTileAt, tileHex, wrappedDistance } from './map';
@@ -194,11 +194,23 @@ export interface TurnReport {
    * (a command, which already knows what it did) is not.
    */
   routesEnded: RouteEndReport[];
+  /**
+   * Every city the `healCities` phase found cut off, with what the siege cost
+   * it (`SiegeReport`).
+   *
+   * `routesEnded`' sibling and a *difference* for the same reason: a siege is
+   * derived from where the armies stand and is never stored, so by the time this
+   * returns the town's bar has simply moved and no diff of two boards can say
+   * whether it moved because of a siege, a bombardment or a heal that did not
+   * happen. It is also the one line of news whose *absence* is the news — a city
+   * that stops appearing here has been relieved.
+   */
+  sieges: SiegeReport[];
 }
 
 /** A fresh, empty report. The one place its shape is written. */
 export function emptyTurnReport(): TurnReport {
-  return { combats: [], wonders: [], triumphs: [], grants: [], routesEnded: [] };
+  return { combats: [], wonders: [], triumphs: [], grants: [], routesEnded: [], sieges: [] };
 }
 
 export interface TurnPhase {
@@ -285,8 +297,16 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
   {
     name: 'healCities',
     // Towns recover unconditionally, unlike units: there is no "did it act?"
-    // question to ask of a city. Its body is in `combat.ts`, beside the rules
-    // that spend the hit points it restores.
+    // question to ask of a city — with the one exception of a **siege**, which
+    // is asked here because a siege is exactly the absence of this heal plus a
+    // chip, and splitting it into a phase of its own would be two passes over
+    // the same forty towns answering one question. Its body is in `combat.ts`,
+    // beside the rules that spend the hit points it restores.
+    //
+    // Its position is the usual rules decision: after `expandBorders`, so the
+    // ring it reads is this turn's, and **before `barbarians`**, so the wild's
+    // own raid this resolution is not what decides whether a town was starving
+    // all turn.
     run: healCities,
   },
   {

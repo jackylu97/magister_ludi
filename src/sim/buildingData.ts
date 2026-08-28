@@ -51,8 +51,11 @@
  *   · `cityStat` — what the town is worth to storm, and how far it sees, folded
  *     into `planCombat`'s defender breakdown and `sightSources`' radius beside
  *     the card lines that already land there.
+ *   · `cityHp` — hit points the walls add to the town's maximum, folded by
+ *     `cityMaxHp` (`combat.ts`). `cityStat`'s sibling: strength is what a
+ *     defender fights with, hit points are what a besieger has to spend.
  *
- * The last two are read through `buildingEffects.ts` rather than from this
+ * The last three are read through `buildingEffects.ts` rather than from this
  * table directly, which is `resourceEffects.ts`'s bargain one scale down: the
  * *table* says what a building is, and one evaluator says what an empire's
  * buildings are worth. Nothing else in the game asks a building for either.
@@ -445,6 +448,23 @@ export interface BuildingDef {
    * one town — the scope *is* the building.
    */
   cityStat?: BuildingCityStat;
+  /**
+   * Hit points this building adds to **its own city's** maximum, on top of
+   * `combat.cityBaseHp`. Absent means none.
+   *
+   * `cityStat`'s sibling and deliberately a field of its own rather than a third
+   * `stat` on it (user, 2026-08-28: "defensive buildings raise defensive
+   * strength and city health"). The two are different questions with different
+   * consumers: `cityStat.defense` is *strength*, a term in the damage curve, and
+   * this is *capacity*, the bar a besieger has to empty. A palisade raises both
+   * and says so in two fields; a watchtower raises one.
+   *
+   * Read only through `buildingCityHp` (`buildingEffects.ts`), folded by
+   * `cityMaxHp` (`combat.ts`), and — like everything else a wonder pays — it
+   * follows the stones: a captured town keeps its buildings, so it keeps the
+   * walls' hit points under its new flag.
+   */
+  cityHp?: number;
   /** What this pays into the renown bucket, or absent. See `BuildingRenown`. */
   renown?: BuildingRenown;
   /** Tech-driven renewals. See `BuildingUpgrade` and the module docblock. */

@@ -59,11 +59,24 @@
  *               + features[feature].defenseBonus
  *               + (hills ? hills.defenseBonus : 0)
  *
- * A forested hill is +0.25 (forest) + 0.25 (hills) = +50%, exactly as Civ V has
- * it, and that is the whole reason this one adds where the yield algebra
- * overrides: cover and height are different advantages and a defender gets both.
- * Bare terrain contributes nothing today — the field is there so a designer can
- * make marsh a liability without touching a line of code.
+ * A forested hill is +2 (forest) + 3 (hills) = +5 strength, and that is the
+ * whole reason this one adds where the yield algebra overrides: cover and height
+ * are different advantages and a defender gets both. Bare terrain contributes
+ * nothing today — the field is there so a designer can make a mire a liability
+ * without touching a line of code.
+ *
+ * **Flat strength points, never a percentage** (user, 2026-08-28: "terrain
+ * bonuses should be additive, not percentage"), which is Civ VI's form and is
+ * ruled for one reason: terrain, the trench, a card, a citadel and a wall then
+ * become *one kind of number on one ledger*, so a forecast can print them in a
+ * single column and a player can add them up. A fraction of the defender's own
+ * strength made the same hill worth twice as much to a longswordsman as to a
+ * warrior, which is a hill that gets better because somebody researched Iron
+ * Working.
+ *
+ * `explainTerrainDefense` is the ordered list (hard rule 5) and `defenseBonus`
+ * is its fold — one implementation, and the forecast itemises "Hills +3" and
+ * "Forest +2" rather than a summed "terrain" line nobody can check.
  *
  * `workable` is separate from all of it. A mountain has a yield of 0/0/0 and a
  * citizen still may not stand on it, so the flag says so rather than leaving
@@ -195,7 +208,7 @@ export interface TerrainDef {
   moveCost: number | null;
   /** Yield of the bare terrain, before any feature or hills. See the docblock. */
   yield: TileYieldSpec;
-  /** Added to a defender's strength as a fraction. Summed; see the docblock. */
+  /** Strength points added to a defender. Summed; see the docblock. */
   defenseBonus: number;
   fillColor: string;
   glyph: string | null;
@@ -224,7 +237,7 @@ export interface FeatureDef {
    * asserts the derivation instead.
    */
   freshwater: boolean;
-  /** Added to the terrain's defence bonus, never replacing it. See the docblock. */
+  /** Strength points added to the terrain's, never replacing them. See the docblock. */
   defenseBonus: number;
   glyph: string | null;
   glyphColor: string;
@@ -236,7 +249,7 @@ export interface OverlayDef {
   moveCostExtra: number;
   /** Replaces the terrain *and* the feature yield outright. See the docblock. */
   yieldOverride: TileYieldSpec;
-  /** Added to the terrain *and* feature defence bonus. See the docblock. */
+  /** Strength points added to the terrain's *and* the feature's. See the docblock. */
   defenseBonus: number;
   glyph: string;
   glyphColor: string;
@@ -352,20 +365,60 @@ export function moveCost(terrain: TerrainId, feature: FeatureId, hills: boolean)
 // --- defence ----------------------------------------------------------------
 
 /**
- * The fraction a defender standing on this terrain/feature/hills combination
- * adds to its strength.
+ * One reason the ground under a defender is worth something — "Hills +3".
+ *
+ * `CombatStrengthLine`'s shape (`combat.ts`) minus the coupling: this module is
+ * a pure data accessor and must not import the fight, so the two are structurally
+ * identical and `planCombat` pushes these straight into its breakdown.
+ */
+export interface TerrainDefenseLine {
+  /** Display label — the table's own name for the thing. "Hills", "Forest". */
+  source: string;
+  /** Strength points. Signed, so a mire may one day take them away. */
+  amount: number;
+}
+
+/**
+ * What the ground is worth to a defender, line by line, in the order a card
+ * should print it: the terrain, then what grows on it, then the height.
+ *
+ * Hard rule 5 for the ground's share of a fight. Lines worth nothing are left
+ * out, so bare grassland answers with an empty list and a forecast on flat land
+ * is byte-identical to the one this printed before the ground had a breakdown.
  *
  * Takes the three fields rather than a `Tile` for the same reason `moveCost` and
  * `tileYield` do. Unlike either of them every term is *added* — see the module
  * docblock for why cover and height stack when a hill's yield replaces a
  * forest's.
  */
+export function explainTerrainDefense(
+  terrain: TerrainId,
+  feature: FeatureId,
+  hills: boolean,
+): TerrainDefenseLine[] {
+  const lines: TerrainDefenseLine[] = [];
+  const ground = TERRAIN_DATA.terrains[terrain];
+  if (ground.defenseBonus !== 0) lines.push({ source: ground.name, amount: ground.defenseBonus });
+  const cover = TERRAIN_DATA.features[feature];
+  if (cover.defenseBonus !== 0) lines.push({ source: cover.name, amount: cover.defenseBonus });
+  if (hills && TERRAIN_DATA.hills.defenseBonus !== 0) {
+    lines.push({ source: TERRAIN_DATA.hills.name, amount: TERRAIN_DATA.hills.defenseBonus });
+  }
+  return lines;
+}
+
+/**
+ * The **strength points** a defender standing on this terrain/feature/hills
+ * combination adds to its strength — the fold of `explainTerrainDefense`, and
+ * the only sum of one.
+ *
+ * Points rather than the fraction this returned until 2026-08-28; see the module
+ * docblock for the ruling.
+ */
 export function defenseBonus(terrain: TerrainId, feature: FeatureId, hills: boolean): number {
-  return (
-    TERRAIN_DATA.terrains[terrain].defenseBonus +
-    TERRAIN_DATA.features[feature].defenseBonus +
-    (hills ? TERRAIN_DATA.hills.defenseBonus : 0)
-  );
+  let total = 0;
+  for (const line of explainTerrainDefense(terrain, feature, hills)) total += line.amount;
+  return total;
 }
 
 // --- yield ------------------------------------------------------------------

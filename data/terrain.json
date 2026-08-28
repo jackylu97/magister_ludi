@@ -133,7 +133,7 @@
       "moveCostOverride": 2,
       "yieldOverride": { "food": 1, "production": 1, "gold": 0 },
       "freshwater": false,
-      "defenseBonus": 0.25,
+      "defenseBonus": 2,
       "glyph": "▲▲",
       "glyphColor": "#2f4a24"
     },
@@ -142,7 +142,7 @@
       "moveCostOverride": 2,
       "yieldOverride": { "food": 2, "production": 0, "gold": 0 },
       "freshwater": false,
-      "defenseBonus": 0.25,
+      "defenseBonus": 2,
       "glyph": "♣♣",
       "glyphColor": "#1f4a1f"
     },
@@ -169,7 +169,7 @@
     "name": "Hills",
     "moveCostExtra": 1,
     "yieldOverride": { "food": 0, "production": 2, "gold": 0 },
-    "defenseBonus": 0.25,
+    "defenseBonus": 3,
     "glyph": "︿︿",
     "glyphColor": "#5c513c"
   },

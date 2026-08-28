@@ -86,7 +86,8 @@
       "cityStat": {
         "stat": "defense",
         "amount": 5
-      }
+      },
+      "cityHp": 25
     },
     "funeralGames": {
       "name": "Funeral Games",
@@ -394,6 +395,7 @@
       "science": 0,
       "culture": 2,
       "sciencePerPop": 0,
+      "cityHp": 50,
       "authorityCapacity": 2,
       "effects": [
         {
@@ -739,6 +741,7 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
+      "cityHp": 25,
       "effects": [
         {
           "kind": "zocRule",

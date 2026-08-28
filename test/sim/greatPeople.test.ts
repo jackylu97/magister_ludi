@@ -583,6 +583,7 @@ describe('the legacies this pass built', () => {
     unit: Unit,
     tile: ReturnType<typeof getTileAt>,
     side: 'attack' | 'defend',
+    vsType?: Unit['type'],
   ): number {
     const situation: CombatSituation = {
       unit,
@@ -592,6 +593,7 @@ describe('the legacies this pass built', () => {
       vsCity: false,
       targetHp: 10,
       targetMaxHp: 10,
+      vsType,
     };
     return cardCombatLines(state, situation).reduce((sum, line) => sum + line.amount, 0);
   }
@@ -798,6 +800,39 @@ describe('the legacies this pass built', () => {
     expect(at(colony, 'wonder')).toBe(0);
   });
 
+  it('Lautaro answers about the **other** side, and never about a city', () => {
+    const g = game(173);
+    found(g.state, 0);
+    bear(g.state, 0, 'lautaro');
+    const mine = g.state.units.find((unit) => unit.ownerId === 0)!;
+    const tile = getTileAt(g.state.map, mine.col + 1, mine.row)!;
+
+    // Against a warrior the line is silent; against a horseman it pays 3, and
+    // it pays it whichever posture this piece is in — `side: 'both'`.
+    expect(fight(g.state, mine, tile, 'attack', 'warrior')).toBe(0);
+    expect(fight(g.state, mine, tile, 'attack', 'horseman')).toBe(3);
+    expect(fight(g.state, mine, tile, 'defend', 'horseman')).toBe(3);
+    // A town has no silhouette, so a `vsClass` line does not fire at walls.
+    expect(fight(g.state, mine, tile, 'attack', undefined)).toBe(0);
+  });
+
+  it('carries the other side\'s type into a real forecast', () => {
+    const g = game(179);
+    found(g.state, 0);
+    bear(g.state, 0, 'lautaro');
+    const seed = g.state.units.find((unit) => unit.ownerId === 0)!;
+    const mine = createUnit(g.state, 0, 'warrior', seed.col, seed.row);
+    const horse = createUnit(g.state, 1, 'horseman', mine.col + 1, mine.row);
+
+    const plan = previewCombat(g.state, mine.id, { col: horse.col, row: horse.row });
+    expect(plan.ok === false ? plan.error : 'ok').toBe('ok');
+    if (!plan.ok) return;
+    // `planCombat` fills `vsType` with the piece opposite, so the line reaches
+    // the forecast card and the reducer as one — never only the reducer.
+    expect(plan.attackerLines.some((line) => line.source.includes('Lautaro'))).toBe(true);
+    expect(plan.defenderLines.some((line) => line.source.includes('Lautaro'))).toBe(false);
+  });
+
   it('prints every legacy this pass wrote, in words', () => {
     // The card's own sentence, which is what a player reads — a shape that
     // evaluates correctly and prints nothing is a card that lies by omission.
@@ -834,8 +869,14 @@ describe('the legacies this pass built', () => {
       '+3 science in every city beside a mountain',
       '+3 science in every city on hills',
     ]);
-    expect(printed('crassus')[0]).toBe('all units cost −30% to buy');
-    expect(printed('crassus')).toHaveLength(3);
+    // The building half is built now, so the row says both and one of its two
+    // deferred sentences is gone (the timed unhappiness is the one that stays).
+    expect(printed('crassus')[0]).toBe('all units and buildings cost −30% to buy');
+    expect(printed('crassus')).toHaveLength(2);
+    expect(printed('jakobFugger')).toContain('all units and buildings cost −20% to buy');
+    // And the other side of a fight, which `combatLine` could not say until
+    // `vsClass` existed.
+    expect(printed('lautaro')).toEqual(['+3 combat strength against mounted units']);
   });
 });
 

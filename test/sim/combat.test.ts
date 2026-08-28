@@ -5,22 +5,38 @@ import {
   advanceFortify,
   applyCombat,
   attackTargetAt,
+  cityBaseStrength,
+  cityMaxHp,
+  explainCityMaxHp,
+  explainCityStrength,
+  foldCityLines,
   foldCombatStrength,
   fortifyBonus,
   hasLineOfSight,
+  healCities,
   isFortified,
   isRanged,
   previewCombat,
+  siegeField,
+  underSiege,
 } from '../../src/sim/combat';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { type Game, createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
-import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
+import {
+  type GameMap,
+  type Tile,
+  createMap,
+  getTileAt,
+  neighborTiles,
+  tileHex,
+} from '../../src/sim/map';
 import { type Rng, cloneRng, makeRng, nextRange } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, createUnit, newGame } from '../../src/sim/state';
 import { techDef } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
+import { defenseBonus, explainTerrainDefense } from '../../src/sim/terrainData';
 import { setRiverEdge } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -593,12 +609,34 @@ describe('terrain and fortification', () => {
     const a = createUnit(state, 0, 'warrior', 3, 3);
     createUnit(state, 1, 'archer', 4, 3);
 
-    // Forest (+0.25) and hills (+0.25) stack: an archer of 7 defends at 10.5,
-    // so 30 · e^(0.04 · (8 − 10.5)) = 27.1 → 27.
+    // Forest (+2) and hills (+3) stack as **points**: an archer of 7 defends at
+    // 12, so 30 · e^(0.04 · (8 − 12)) = 25.6 → 26.
     const view = forecast(state, a.id, 4, 3);
-    expect(view.terrainBonus).toBeCloseTo(0.5, 10);
-    expect(view.defenderStrength).toBeCloseTo(10.5, 10);
-    expect(view.damageToDefender).toBe(27);
+    expect(view.terrainBonus).toBe(5);
+    expect(view.defenderStrength).toBe(12);
+    expect(view.damageToDefender).toBe(26);
+  });
+
+  it('itemises the ground one line per reason, never one summed "terrain"', () => {
+    const state = flatState();
+    const ground = at(state.map, 4, 3);
+    ground.feature = 'forest';
+    ground.hills = true;
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    createUnit(state, 1, 'archer', 4, 3);
+
+    const view = forecast(state, a.id, 4, 3);
+    // The table's own names, in the table's own order, and both of them flat.
+    expect(view.defenderLines).toContainEqual({ source: 'Forest', amount: 2 });
+    expect(view.defenderLines).toContainEqual({ source: 'Hills', amount: 3 });
+    expect(foldCombatStrength(view.defenderLines)).toBe(view.defenderStrength);
+    // And the table agrees with the fight about what the hex is worth.
+    expect(defenseBonus('grassland', 'forest', true)).toBe(5);
+    expect(
+      explainTerrainDefense('grassland', 'forest', true).reduce((sum, l) => sum + l.amount, 0),
+    ).toBe(5);
+    // Bare ground says nothing at all rather than saying zero.
+    expect(explainTerrainDefense('grassland', 'none', false)).toEqual([]);
   });
 
   it('pays the river penalty only for a melee attack across the edge', () => {
@@ -637,12 +675,13 @@ describe('terrain and fortification', () => {
     expect(fortifyBonus(d)).toBe(0);
 
     advanceFortify(state);
-    expect(fortifyBonus(d)).toBeCloseTo(COMBAT.fortifyBonusPerTurn, 10);
+    // Strength **points**, since 2026-08-28: +2 a turn, capped at +4.
+    expect(fortifyBonus(d)).toBe(COMBAT.fortifyBonusPerTurn);
     advanceFortify(state);
-    expect(fortifyBonus(d)).toBeCloseTo(COMBAT.fortifyMax, 10);
+    expect(fortifyBonus(d)).toBe(COMBAT.fortifyMax);
     // Capped: another five turns buy nothing, and the stored counter stops too.
     for (let i = 0; i < 5; i++) advanceFortify(state);
-    expect(fortifyBonus(d)).toBeCloseTo(COMBAT.fortifyMax, 10);
+    expect(fortifyBonus(d)).toBe(COMBAT.fortifyMax);
     expect(d.fortifiedTurns).toBe(2);
   });
 
@@ -654,11 +693,13 @@ describe('terrain and fortification', () => {
     advanceFortify(state);
     advanceFortify(state);
 
-    // 8 × 1.4 = 11.2 defending against 8: 30 · e^(0.04 · −3.2) = 26.4 → 26.
+    // 8 + 4 = 12 defending against 8: 30 · e^(0.04 · −4) = 25.6 → 26.
     const view = forecast(state, a.id, 4, 3);
-    expect(view.fortifyBonus).toBeCloseTo(0.4, 10);
-    expect(view.defenderStrength).toBeCloseTo(11.2, 10);
+    expect(view.fortifyBonus).toBe(4);
+    expect(view.defenderStrength).toBe(12);
     expect(view.damageToDefender).toBe(26);
+    // One line, named for the trench and not for a percentage of anything.
+    expect(view.defenderLines).toContainEqual({ source: 'Fortified', amount: 4 });
   });
 
   it('breaks fortification when the unit moves', () => {
@@ -763,20 +804,43 @@ describe('cities in combat', () => {
     return state;
   }
 
-  it('starts a city at full health and defends with base plus population', () => {
+  it('starts a city at full health and defends with its best trainable unit', () => {
     const state = citiedState();
     const city = state.cities[0]!;
-    expect(city.hp).toBe(COMBAT.cityBaseHp);
+    expect(city.hp).toBe(cityMaxHp(city));
+    expect(cityMaxHp(city)).toBe(COMBAT.cityBaseHp);
 
     const a = createUnit(state, 0, 'warrior', 3, 3);
     const view = forecast(state, a.id, 4, 3);
     expect(view.defenderCityId).toBe(city.id);
     expect(view.defenderUnitId).toBeNull();
-    // Base 8 plus 1 per population point, and no terrain bonus on top.
-    expect(view.defenderStrength).toBe(COMBAT.cityBaseStrength + COMBAT.cityStrengthPerPop);
+    // The best unit this empire could train is the warrior it starts with, so
+    // the town defends at 8 — and takes no terrain bonus on top.
+    expect(cityBaseStrength(state, city)).toBe(unitDef('warrior').combatStrength);
+    expect(view.defenderStrength).toBe(unitDef('warrior').combatStrength);
     expect(view.terrainBonus).toBe(0);
     // A city never hits back in v1.
     expect(view.damageToAttacker).toBe(0);
+  });
+
+  it('re-arms the walls the moment the roster does — the tech, then the iron', () => {
+    const state = citiedState();
+    const city = state.cities[0]!;
+    const owner = state.players[1]!;
+    const warrior = unitDef('warrior').combatStrength;
+    expect(cityBaseStrength(state, city)).toBe(warrior);
+
+    // Bronze Working alone is not enough: a spearman is a unit, a swordsman is
+    // a unit **plus improved iron**, and "could train" is `buildError`'s word.
+    owner.techsResearched.push('bronzeWorking');
+    expect(cityBaseStrength(state, city)).toBe(unitDef('spearman').combatStrength);
+    expect(cityBaseStrength(state, city)).toBeGreaterThan(warrior);
+
+    // The floor is what a seat with no army at all defends with.
+    const bare = state.players[0]!;
+    bare.techsResearched = [];
+    const theirs = foundCityAt(state, 0, at(state.map, 8, 6));
+    expect(explainCityStrength(state, theirs)[0]!.amount).toBe(COMBAT.cityMinStrength);
   });
 
   it('takes melee damage and never counter-attacks', () => {
@@ -1317,8 +1381,9 @@ describe('the strength breakdown', () => {
     // The defender's two reasons are apart, because they are two decisions: the
     // hex it stands on, and the turns it spent standing there.
     const sources = view.defenderLines.map((line) => line.source);
-    expect(sources.some((source) => source.startsWith('terrain '))).toBe(true);
-    expect(sources.some((source) => source.startsWith('fortified '))).toBe(true);
+    expect(sources).toContain('Forest');
+    expect(sources).toContain('Hills');
+    expect(sources).toContain('Fortified');
   });
 
   it('itemises a city as walls, citizens and whatever the cards added', () => {
@@ -1328,12 +1393,37 @@ describe('the strength breakdown', () => {
     const view = forecast(state, a.id, 8, 4);
 
     expect(foldCombatStrength(view.defenderLines)).toBe(view.defenderStrength);
-    expect(view.defenderLines[0]).toEqual({ source: 'walls', amount: COMBAT.cityBaseStrength });
-    // A town of one citizen says so, in the singular.
-    expect(view.defenderLines[1]).toEqual({
-      source: `${city.population} citizen`,
-      amount: COMBAT.cityStrengthPerPop * city.population,
+    // The garrison line names the unit it is worth, so a player can see *why*
+    // the town got harder the turn Iron Working landed.
+    expect(view.defenderLines[0]).toEqual({
+      source: `Garrison strength · ${unitDef('warrior').name}`,
+      amount: unitDef('warrior').combatStrength,
     });
+    // The citizens line is at zero today and is therefore not printed at all: a
+    // breakdown does not carry rows worth nothing.
+    expect(COMBAT.cityStrengthPerPop).toBe(0);
+    expect(view.defenderLines.some((line) => line.source.includes('citizen'))).toBe(false);
+    void city;
+  });
+
+  it('adds a palisade to both the strength and the hit points', () => {
+    const state = flatState();
+    const city = foundCityAt(state, 1, at(state.map, 8, 4));
+    const a = createUnit(state, 0, 'warrior', 7, 4);
+    const bare = forecast(state, a.id, 8, 4);
+    expect(cityMaxHp(city)).toBe(COMBAT.cityBaseHp);
+
+    city.buildings.push('palisade');
+    const walled = forecast(state, a.id, 8, 4);
+    // Two fields, two questions: `cityStat.defense` is what it fights with and
+    // `cityHp` is what a besieger has to spend.
+    expect(walled.defenderStrength).toBe(bare.defenderStrength + 5);
+    expect(walled.defenderLines).toContainEqual({ source: 'Palisade', amount: 5 });
+    expect(cityMaxHp(city)).toBe(COMBAT.cityBaseHp + 25);
+    expect(explainCityMaxHp(city)).toContainEqual({ source: 'Palisade', amount: 25 });
+    expect(foldCityLines(explainCityMaxHp(city))).toBe(cityMaxHp(city));
+    // The forecast reports the maximum the walls actually give it.
+    expect(walled.defenderMaxHp).toBe(COMBAT.cityBaseHp + 25);
   });
 
   it('gives the wild\'s tax to the side that is actually owed it', () => {
@@ -1359,5 +1449,138 @@ describe('the strength breakdown', () => {
     expect(foldCombatStrength(view.attackerLines)).toBe(view.attackerStrength);
     expect(view.attackerLines.map((line) => line.source)).toContain('vs barbarians');
     expect(view.defenderLines.map((line) => line.source)).not.toContain('vs barbarians');
+  });
+});
+
+// --- siege ------------------------------------------------------------------
+
+describe('siege', () => {
+  /** The six hexes around a town, in `neighborTiles` order. */
+  function ring(state: GameState, city: { col: number; row: number }): Tile[] {
+    return neighborTiles(state.map, tileHex(at(state.map, city.col, city.row)));
+  }
+
+  /** Fresh field for the town's owner. Hoisted per sweep in the phase itself. */
+  function besieged(state: GameState, city: Parameters<typeof underSiege>[1]): boolean {
+    return underSiege(state, city, siegeField(state, city.ownerId));
+  }
+
+  function encircled(): { state: GameState; city: ReturnType<typeof foundCityAt> } {
+    const state = flatState();
+    const city = foundCityAt(state, 1, at(state.map, 8, 4));
+    for (const hex of ring(state, city)) createUnit(state, 0, 'warrior', hex.col, hex.row);
+    return { state, city };
+  }
+
+  it('closes only when every hex around the town is denied', () => {
+    const { state, city } = encircled();
+    expect(besieged(state, city)).toBe(true);
+
+    // Open one hex **and its two ring neighbours**, because a ring hex is next
+    // door to the two beside it: pulling one soldier off r0 leaves r0 still
+    // overlooked by r1 and r5, which is the zone-of-control reading and the
+    // right one. Clear all three and the road out is genuinely a road.
+    const hexes = ring(state, city);
+    const open = [hexes[0]!, hexes[1]!, hexes[5]!];
+    state.units = state.units.filter(
+      (unit) => !open.some((hex) => hex.col === unit.col && hex.row === unit.row),
+    );
+    expect(besieged(state, city)).toBe(false);
+  });
+
+  it('counts a hex an enemy merely overlooks, so five hexes is not a siege', () => {
+    const state = flatState();
+    const city = foundCityAt(state, 1, at(state.map, 8, 4));
+    const hexes = ring(state, city);
+    // Three besiegers standing on r2, r3 and r4 deny five of the six: r1 and r5
+    // are next door to r2 and r4. r0 touches none of them and is the road out.
+    for (const index of [2, 3, 4]) {
+      const hex = hexes[index]!;
+      createUnit(state, 0, 'warrior', hex.col, hex.row);
+    }
+    expect(besieged(state, city)).toBe(false);
+
+    // Close the road and the town is cut off, with nobody standing on r0 at all.
+    const shut = hexes[1]!;
+    createUnit(state, 0, 'warrior', shut.col, shut.row);
+    expect(besieged(state, city)).toBe(true);
+  });
+
+  it('leaves a port open: the sea is denied only by somebody standing on it', () => {
+    const state = flatState();
+    const city = foundCityAt(state, 1, at(state.map, 8, 4));
+    const hexes = ring(state, city);
+    const water = hexes[0]!;
+    water.terrain = 'ocean';
+    for (const hex of hexes.slice(1)) createUnit(state, 0, 'warrior', hex.col, hex.row);
+    // Every landward hex is held and the town is still not besieged: an open sea
+    // lane is a supply line, and nothing blockades it by standing beside it.
+    expect(besieged(state, city)).toBe(false);
+
+    // A piece **on** the water closes it. (Poked straight onto the hex: what is
+    // under test is the siege rule, not who may embark.)
+    createUnit(state, 0, 'warrior', water.col, water.row);
+    expect(besieged(state, city)).toBe(true);
+  });
+
+  it('starves rather than heals, and reports what it cost', () => {
+    const { state, city } = encircled();
+    city.hp = 100;
+    const report = { sieges: [] as { cityId: number; ownerId: number; damage: number }[] };
+    healCities(state, report);
+
+    expect(city.hp).toBe(100 - COMBAT.siegeDamagePerTurn);
+    expect(report.sieges).toEqual([
+      { cityId: city.id, ownerId: city.ownerId, damage: COMBAT.siegeDamagePerTurn },
+    ]);
+  });
+
+  it('heals normally the turn the siege lifts', () => {
+    const { state, city } = encircled();
+    city.hp = 100;
+    state.units = [];
+    const report = { sieges: [] as { cityId: number; ownerId: number; damage: number }[] };
+    healCities(state, report);
+
+    expect(city.hp).toBe(100 + COMBAT.cityHealPerTurn);
+    expect(report.sieges).toEqual([]);
+  });
+
+  it('never takes a town on its own: the chip floors at one hit point', () => {
+    const { state, city } = encircled();
+    city.hp = 3;
+    healCities(state);
+    expect(city.hp).toBe(1);
+    // And again, forever: a siege is a race a soldier still has to finish.
+    healCities(state);
+    expect(city.hp).toBe(1);
+    expect(state.cities).toHaveLength(1);
+  });
+
+  it('is a derived fact, so a resolution over it replays byte-identically', () => {
+    const { state } = encircled();
+    const twin = clone(state);
+    const resolve = (board: GameState): void => {
+      for (const player of board.players) {
+        expect(applyCommand(board, { type: 'endTurn', playerId: player.id }).ok).toBe(true);
+      }
+    };
+    resolve(state);
+    resolve(twin);
+    expect(snapshotState(twin)).toEqual(snapshotState(state));
+  });
+
+  it('rides the turn out through the command result', () => {
+    const { state, city } = encircled();
+    city.hp = 100;
+    let sieges: unknown;
+    for (const player of state.players) {
+      const result = applyCommand(state, { type: 'endTurn', playerId: player.id });
+      expect(result.ok).toBe(true);
+      if (result.ok && result.sieges) sieges = result.sieges;
+    }
+    expect(sieges).toEqual([
+      { cityId: city.id, ownerId: city.ownerId, damage: COMBAT.siegeDamagePerTurn },
+    ]);
   });
 });

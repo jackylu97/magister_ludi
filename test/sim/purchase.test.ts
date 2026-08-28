@@ -420,6 +420,40 @@ describe('every refusal, and each leaves the state byte-identical', () => {
     const source = Object.values(modules)[0]!;
     expect(source).not.toMatch(/bordersFrozen\(|meterEffects\(/);
   });
+
+  it('takes a card\'s discount off a **building** too, as one labelled line', () => {
+    // Crassus: "units and buildings cost −30% to buy". The unit half has had a
+    // rider hook since the wonders pass; the building half was the deferred
+    // sentence on his row until 2026-08-28. Asserted through the price, because
+    // the price is the fold of the printed lines and nothing else.
+    const g = game();
+    const city = found(g.state, 0);
+    const bare = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!;
+
+    g.state.players[0]!.legacies.push('crassus');
+    const cut = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!;
+
+    expect(cut.lines).toHaveLength(bare.lines.length + 1);
+    expect(cut.total).toBe(Math.floor((bare.total * 70) / 100));
+    expect(cut.lines[cut.lines.length - 1]!.source).toContain('Crassus');
+    // Rule 5 holds: the fold is still the price.
+    expect(cut.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(cut.total);
+    // And the unit half is untouched by the same one card.
+    const warrior = explainPurchaseCost(g.state, 0, city.id, WARRIOR, 'gold')!;
+    expect(warrior.lines[warrior.lines.length - 1]!.source).toContain('Crassus');
+  });
+
+  it('leaves a units-only rider at the door of a building', () => {
+    // The Great Ziggurat says "religious units", and `on` defaults to units —
+    // so every row written before the field existed prices a granary exactly as
+    // it did. A rider that leaked onto buildings would be a discount nobody
+    // ratified.
+    const g = game();
+    const city = found(g.state, 0);
+    const bare = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!;
+    city.buildings.push('greatZiggurat');
+    expect(explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!.total).toBe(bare.total);
+  });
 });
 
 // --- determinism -------------------------------------------------------------

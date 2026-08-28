@@ -72,7 +72,7 @@ import {
   settleProductionWindfall,
   tilePurchaseError,
 } from './cities';
-import { type CombatOutcome, applyCombat, fortifyError } from './combat';
+import { type CombatOutcome, type SiegeReport, applyCombat, fortifyError } from './combat';
 import { discoveryChoiceError, settleDiscovery } from './discoveries';
 import type { ImprovementId } from './improvementData';
 import {
@@ -973,6 +973,7 @@ export type CommandResult =
       triumphs?: TriumphAward[];
       grants?: CompletionGrantReport[];
       routesEnded?: RouteEndReport[];
+      sieges?: SiegeReport[];
     }
   | { ok: false; error: string };
 
@@ -1010,6 +1011,11 @@ export type CommandResult =
  * the same reason a wonder is — by the time this returns the caravan's
  * `Unit.trade` has already been rewritten or deleted, and no diff of two boards
  * can say which caravans came home this turn.
+ *
+ * `sieges` is the seventh, also from `endTurn` alone: every town the heal phase
+ * found cut off, and what the siege cost it (`SiegeReport`). A siege is derived
+ * from where the armies stand and never stored, so this is the only place the
+ * interface can learn that Uruk is starving rather than merely wounded.
  */
 function ok(
   arrivals?: readonly ArrivalReport[],
@@ -1018,6 +1024,7 @@ function ok(
   triumphs?: readonly TriumphAward[],
   grants?: readonly CompletionGrantReport[],
   routesEnded?: readonly RouteEndReport[],
+  sieges?: readonly SiegeReport[],
 ): CommandResult {
   const result: CommandResult = { ok: true };
   if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
@@ -1026,6 +1033,7 @@ function ok(
   if (triumphs !== undefined && triumphs.length > 0) result.triumphs = [...triumphs];
   if (grants !== undefined && grants.length > 0) result.grants = [...grants];
   if (routesEnded !== undefined && routesEnded.length > 0) result.routesEnded = [...routesEnded];
+  if (sieges !== undefined && sieges.length > 0) result.sieges = [...sieges];
   return result;
 }
 
@@ -1115,6 +1123,7 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
     report.triumphs,
     report.grants,
     report.routesEnded,
+    report.sieges,
   );
 }
 

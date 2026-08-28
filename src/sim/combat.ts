@@ -48,14 +48,38 @@
  *
  * Strength is *effective* strength on both sides:
  *
- *     defender = base · (1 + terrain defence + fortify bonus)
+ *     defender = base + terrain defence + fortify bonus + every flat line
  *     attacker = base · (1 − riverAttackPenalty, when melee across a river)
  *
- * Terrain defence is summed from terrain, feature and hills (see
- * `terrainData.ts`); the fortify bonus is `turns × perTurn`, capped. A city
- * defends with `cityBaseStrength + cityStrengthPerPop × population` and takes
- * **no** terrain bonus — the walls are the terrain, and stacking a hill on top
- * of them made the early game unattackable in play.
+ * **Everything on the defender's side is flat strength points** (user,
+ * 2026-08-28: "terrain bonuses should be additive, not percentage"), which is
+ * Civ VI's form and is ruled so that terrain, the trench, a citadel, a card and
+ * a wall are one kind of number on one ledger — a single column a player can add
+ * up. A percentage of the defender's own strength made a hill worth twice as
+ * much to a longswordsman as to a warrior, which is a hill improved by Iron
+ * Working. Terrain defence is summed from terrain, feature and hills (see
+ * `terrainData.ts`, which itemises it); the fortify bonus is `turns × perTurn`
+ * points, capped at `fortifyMax`.
+ *
+ * The two percentages that survive are on the *attacker's* side and are both
+ * facts about that army rather than about the ground: the river penalty, and
+ * `cardCombatPercent`'s "−10% combat strength". Both multiply a unit's own base
+ * before a single flat line joins.
+ *
+ * A city's strength
+ * -----------------
+ * A town defends with **the strongest unit its owner could train right now**
+ * (user, 2026-08-28: "city's base defensive strength is equal to strongest
+ * trainable unit; strategic resource rules apply"), floored at
+ * `combat.cityMinStrength` for a seat that can build no soldier at all, plus its
+ * walls, its cards and its buildings. `cityBaseStrength` is the helper and
+ * `explainCityStrength` is the list it folds; "could train" is asked of
+ * `buildError`, so a swordsman needs Iron Working *and* improved iron to be
+ * standing on the parapet, and the answer moves the turn a mine finishes.
+ *
+ * It takes **no** terrain bonus — the walls are the terrain, and stacking a hill
+ * on top of them made the early game unattackable in play. Its hit points are
+ * `cityMaxHp`: `combat.cityBaseHp` plus what its walls add (`BuildingDef.cityHp`).
  *
  * Melee and ranged
  * ----------------
@@ -100,10 +124,17 @@
  * a defended city a siege rather than a race, and a lone civilian is reachable
  * exactly when nothing is standing over it.
  *
+ * Siege
+ * -----
+ * A city every one of whose neighbouring hexes is denied to it — held or
+ * overlooked by somebody hostile, and for a water hex actually *stood on* —
+ * neither heals nor holds still: it loses `combat.siegeDamagePerTurn` in the
+ * heal phase, floored at 1 hit point. A siege never takes a town on its own;
+ * somebody still has to attack. Derived every turn and never stored, exactly as
+ * a barbarian's role is — see `underSiege`.
+ *
  * Deliberately deferred (v1 has none of these, on purpose)
  * -------------------------------------------------------
- *   · **Zone of control.** Units do not slow or lock their neighbours; movement
- *     is exactly what Milestone 2 made it.
  *   · **Experience and promotions.** No XP, no promotion tree, no veterancy —
  *     every warrior fights like every other warrior.
  *   · **City ranged strikes.** A city defends and is defended; it never shoots.
@@ -120,14 +151,16 @@
  */
 
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
-import { buildingCityStat } from './buildingEffects';
+import { buildingCityHp, buildingCityStat } from './buildingEffects';
 import { assignCitizens, cityAt, settleProductionWindfall } from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
 import {
   type GameMap,
   type Tile,
   getTileAt,
+  neighborTiles,
   tileHex,
+  tileIndex,
   wrappedDistance,
 } from './map';
 import { type Cell, isPassable } from './pathfind';
@@ -155,11 +188,19 @@ import {
   removeUnit,
   unitById,
 } from './state';
-import { settleResearchWindfall } from './tech';
+import { buildError, settleResearchWindfall } from './tech';
 import { type TraderPlunder, settleTraderPlunder } from './trade';
-import { defenseBonus } from './terrainData';
+import { explainTerrainDefense, isWaterTerrain } from './terrainData';
 import { isVisibleTo, recomputeVisibilityFor } from './visibility';
-import { isCivilian, isCombatant, isRanged, trades, unitDef } from './unitData';
+import {
+  type UnitTypeId,
+  UNIT_TYPE_IDS,
+  isCivilian,
+  isCombatant,
+  isRanged,
+  trades,
+  unitDef,
+} from './unitData';
 import { improvementDef } from './improvementData';
 import { awardOccasion } from './triumphs';
 import { hasStackingRoom, unitsOnTile } from './units';
@@ -200,7 +241,14 @@ export function maxFortifyTurns(): number {
   return Math.ceil(COMBAT.fortifyMax / perTurn);
 }
 
-/** The defence fraction this unit's entrenchment is worth right now. */
+/**
+ * The **strength points** this unit's entrenchment is worth right now.
+ *
+ * Points rather than the fraction this returned until 2026-08-28: a trench and a
+ * hill are the same kind of advantage and belong on the same ledger (module
+ * docblock). `maxFortifyTurns` is unchanged by the switch — `fortifyMax /
+ * perTurn` is still 2 — so a save written before it deserialises identically.
+ */
 export function fortifyBonus(unit: Unit): number {
   const turns = unit.fortifiedTurns;
   if (turns === undefined) return 0;
@@ -338,9 +386,137 @@ function canAdvanceOnto(state: GameState, attacker: Unit, tile: Tile): boolean {
   return true;
 }
 
-// --- the evaluator ----------------------------------------------------------
+// --- what a town is worth ---------------------------------------------------
 
 export type CombatKind = 'melee' | 'ranged';
+
+/**
+ * One line of what a city defends with, or of how many hit points it has.
+ *
+ * `CombatStrengthLine`'s shape, declared once and used for both breakdowns:
+ * "Garrison strength · Swordsman 14", "Palisade +5", "Palisade +25". Hard rule 5
+ * for a town, and the two folds below are the only sums of one.
+ */
+export interface CityStrengthLine {
+  source: string;
+  amount: number;
+}
+
+/**
+ * The strongest unit this empire could put in a city **right now**, or `null`
+ * when it could put none there at all.
+ *
+ * "Could" is `buildError`'s word and nothing else's — the technology, the
+ * improved strategic resource, the roster's own "this is bought, not built" and
+ * "this is called, not built" — asked without a city, because the question is
+ * about the *empire* and not about which town happens to be under attack. So the
+ * strategic-resource rule the user asked for comes for free and stays exactly
+ * one implementation: an empire that loses its iron to a pillage defends its
+ * towns with spearmen again the same turn.
+ *
+ * `combatStrength` rather than `rangedStrength`, because a city is being stormed
+ * and what is on the parapet is whatever would meet a swordsman at the gate.
+ * Ties go to roster order, which is the order every other sweep in this game
+ * uses.
+ */
+function strongestTrainable(state: GameState, playerId: number): UnitTypeId | null {
+  let best: UnitTypeId | null = null;
+  let bestStrength = 0;
+  for (const type of UNIT_TYPE_IDS) {
+    const def = unitDef(type);
+    if (!isCombatant(def) || def.combatStrength <= bestStrength) continue;
+    if (buildError(state, playerId, 'unit', type) !== null) continue;
+    best = type;
+    bestStrength = def.combatStrength;
+  }
+  return best;
+}
+
+/**
+ * How a city reached the strength it defends with, in the order a forecast
+ * should print it. `cityBaseStrength` is the fold and never a second sum.
+ *
+ * The garrison line first — the strongest unit the owner could train, floored at
+ * `combat.cityMinStrength` — then the citizens (zero today; see the rules
+ * field), then everything a card or a building raises. The walls and the card
+ * lines are *not* in here: they are already `CombatBonusLine`s on the defender's
+ * side and `planCombat` folds them there, so putting them in this list too would
+ * count a palisade twice. This is the town's own half.
+ */
+export function explainCityStrength(state: GameState, city: City): CityStrengthLine[] {
+  const lines: CityStrengthLine[] = [];
+  const best = strongestTrainable(state, city.ownerId);
+  const bestStrength = best === null ? 0 : unitDef(best).combatStrength;
+  if (best !== null && bestStrength >= COMBAT.cityMinStrength) {
+    lines.push({ source: `Garrison strength · ${unitDef(best).name}`, amount: bestStrength });
+  } else {
+    // A seat with no military technology at all — the wild, and turn one of a
+    // game whose starting techs unlock nothing that fights. It still defends
+    // with something, and the floor says with what.
+    lines.push({ source: 'Garrison strength', amount: COMBAT.cityMinStrength });
+  }
+  const citizens = COMBAT.cityStrengthPerPop * city.population;
+  if (citizens !== 0) {
+    lines.push({
+      source: `${city.population} citizen${city.population === 1 ? '' : 's'}`,
+      amount: citizens,
+    });
+  }
+  return lines;
+}
+
+/** The fold of a city breakdown. The only sum of one. */
+export function foldCityLines(lines: readonly CityStrengthLine[]): number {
+  let total = 0;
+  for (const line of lines) total += line.amount;
+  return total;
+}
+
+/** What this city defends with before its walls and its law. The fold. */
+export function cityBaseStrength(state: GameState, city: City): number {
+  return foldCityLines(explainCityStrength(state, city));
+}
+
+/**
+ * How many hit points this city has at full health, line by line.
+ *
+ * `combat.cityBaseHp` and then every wall the town has built
+ * (`BuildingDef.cityHp`, read through the one place a building's non-yield facts
+ * are read). A wonder's stones pay whichever town holds them, so a captured
+ * capital keeps the Walls of Uruk's hit points under its new flag with no
+ * bookkeeping at all — Entry XXX's rule, unchanged.
+ */
+export function explainCityMaxHp(city: City): CityStrengthLine[] {
+  const lines: CityStrengthLine[] = [{ source: 'Walls', amount: COMBAT.cityBaseHp }];
+  for (const line of buildingCityHp(city)) lines.push(line);
+  return lines;
+}
+
+/**
+ * A city's maximum hit points. The fold, and **the** answer — every place hit
+ * points move asks it rather than `COMBAT.cityBaseHp`, so a town that builds a
+ * palisade is deeper the same turn and one that is captured is capped by what it
+ * actually holds.
+ */
+export function cityMaxHp(city: City): number {
+  return foldCityLines(explainCityMaxHp(city));
+}
+
+/**
+ * Puts a city's hit points back inside `[1, cityMaxHp]`.
+ *
+ * Called wherever hit points move (`healCities`, `captureCity`) rather than
+ * trusted to arithmetic, because the *maximum* can move too: nothing removes a
+ * building today, but a future pillage that did would otherwise leave a town
+ * standing above a bar that had shrunk under it.
+ */
+function clampCityHp(city: City): void {
+  const max = cityMaxHp(city);
+  if (city.hp > max) city.hp = max;
+  if (city.hp < 1) city.hp = 1;
+}
+
+// --- the evaluator ----------------------------------------------------------
 
 /**
  * One flat strength bonus standing on one side of a fight, with the reason.
@@ -433,9 +609,12 @@ export interface CombatForecast {
   /** How each strength above was reached, in the order a card should print it. */
   attackerLines: CombatStrengthLine[];
   defenderLines: CombatStrengthLine[];
-  /** The defender's terrain share of its multiplier, for the card to itemise. */
+  /**
+   * The defender's terrain share, in **strength points** — the fold of
+   * `explainTerrainDefense`. Always 0 for a city: the walls are the terrain.
+   */
   terrainBonus: number;
-  /** Its fortification share. Always 0 for a city. */
+  /** Its fortification share, in strength points. Always 0 for a city. */
   fortifyBonus: number;
   /**
    * Every flat bonus already counted into the two strengths above, in the order
@@ -609,7 +788,11 @@ function planCombat(
 
   // --- strengths ---------------------------------------------------------
 
-  const terrainBonus = defenseBonus(tile.terrain, tile.feature, tile.hills);
+  // Flat strength points now, itemised by the table itself so the forecast can
+  // print "Hills +3" beside "Forest +2" — see `explainTerrainDefense`.
+  const terrainLines = explainTerrainDefense(tile.terrain, tile.feature, tile.hills);
+  let terrainBonus = 0;
+  for (const line of terrainLines) terrainBonus += line.amount;
   const acrossRiver = kind === 'melee' && crossesRiver(state.map, from, tile);
 
   /**
@@ -653,7 +836,11 @@ function planCombat(
         : !isBarbarian(state, defenderOwnerId) && isBarbarian(state, attacker.ownerId),
     vsCity: target.city !== null,
     targetHp: target.city ? target.city.hp : target.unit!.hp,
-    targetMaxHp: target.city ? COMBAT.cityBaseHp : unitDef(target.unit!.type).maxHp,
+    targetMaxHp: target.city ? cityMaxHp(target.city) : unitDef(target.unit!.type).maxHp,
+    // **The piece on the other side**, whichever side is asking — Lautaro's "+3
+    // vs mounted". Absent when the thing opposite is a city, which has no
+    // silhouette, so a `vsClass` line simply does not pay against walls.
+    vsType: side === 'attacker' ? target.unit?.type : attacker.type,
   });
   for (const line of cardCombatLines(state, situationFor(attacker, 'attacker'))) {
     bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
@@ -754,24 +941,17 @@ function planCombat(
     for (const line of buildingCityStat(target.city, 'defense')) {
       bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
     }
-    // Folded through `bonusFor` like every other line rather than added
-    // separately: they are in the list now, and a second addition would count
-    // the walls twice.
-    defenderStrength =
-      COMBAT.cityBaseStrength +
-      COMBAT.cityStrengthPerPop * target.city.population +
-      bonusFor('defender');
-    defenderLines.push({ source: 'walls', amount: COMBAT.cityBaseStrength });
-    const garrison = COMBAT.cityStrengthPerPop * target.city.population;
-    if (garrison !== 0) {
-      defenderLines.push({
-        source: `${target.city.population} citizen${target.city.population === 1 ? '' : 's'}`,
-        amount: garrison,
-      });
-    }
+    // **The town's own half**, and it is a fold like everything else: the
+    // strongest unit this empire could train, floored, plus the citizens — see
+    // `explainCityStrength`, which is the one derivation of it. The walls and
+    // the law are already `bonuses` and are folded through `bonusFor` like every
+    // other line, so nothing here adds a palisade a second time.
+    const own = explainCityStrength(state, target.city);
+    defenderStrength = foldCityLines(own) + bonusFor('defender');
+    for (const line of own) defenderLines.push({ source: line.source, amount: line.amount });
     defenderName = target.city.name;
     defenderHp = target.city.hp;
-    defenderMaxHp = COMBAT.cityBaseHp;
+    defenderMaxHp = cityMaxHp(target.city);
   } else {
     const defenderUnit = target.unit!;
     const defenderDef = unitDef(defenderUnit.type);
@@ -780,7 +960,7 @@ function planCombat(
     const defenderBase = Math.floor(
       (defenderDef.combatStrength * (100 + defenderPercent)) / 100,
     );
-    defenderStrength = defenderBase * (1 + terrainBonus + defenderFortify) + bonusFor('defender');
+    defenderStrength = defenderBase + terrainBonus + defenderFortify + bonusFor('defender');
     defenderLines.push({ source: defenderDef.name, amount: defenderDef.combatStrength });
     if (defenderBase !== defenderDef.combatStrength) {
       defenderLines.push({
@@ -788,19 +968,16 @@ function planCombat(
         amount: defenderBase - defenderDef.combatStrength,
       });
     }
-    // Terrain and the trench are two separate reasons the same hex is hard, and
-    // a player choosing where to attack from needs them apart.
-    if (terrainBonus !== 0) {
-      defenderLines.push({
-        source: `terrain ${signedPercent(terrainBonus * 100)}`,
-        amount: defenderBase * terrainBonus,
-      });
+    // The ground, one line per reason it is hard — "Hills +3", "Forest +2" —
+    // rather than a summed "terrain" a player cannot check. Cover and height are
+    // two different advantages and the table already knows which is which.
+    for (const line of terrainLines) {
+      defenderLines.push({ source: line.source, amount: line.amount });
     }
+    // The trench, separate from the ground, because a player choosing where to
+    // attack from needs to know which of the two will still be there next turn.
     if (defenderFortify !== 0) {
-      defenderLines.push({
-        source: `fortified ${signedPercent(defenderFortify * 100)}`,
-        amount: defenderBase * defenderFortify,
-      });
+      defenderLines.push({ source: 'Fortified', amount: defenderFortify });
     }
     defenderName = defenderDef.name;
     defenderHp = defenderUnit.hp;
@@ -1274,7 +1451,12 @@ function payBattleRiders(
 function captureCity(state: GameState, city: City, ownerId: number): void {
   city.ownerId = ownerId;
   city.captured = true;
-  city.hp = Math.max(1, Math.round(COMBAT.cityBaseHp * COMBAT.cityCaptureHpFraction));
+  // A fraction of the **new** maximum, which is the same maximum as the old one
+  // — buildings survive a capture, so the walls a conqueror inherits are the
+  // walls the town was defended with. Clamped afterwards anyway, because the
+  // fraction is data and a designer may set it above 1.
+  city.hp = Math.max(1, Math.round(cityMaxHp(city) * COMBAT.cityCaptureHpFraction));
+  clampCityHp(city);
   city.queue = [];
   city.hammerBasket = 0;
   city.lockedTiles = [];
@@ -1341,24 +1523,172 @@ export function updateElimination(state: GameState): void {
   state.winnerId = roster.length > 1 && alive.length === 1 ? alive[0]!.id : null;
 }
 
+// --- siege ------------------------------------------------------------------
+
+/**
+ * What a besieged city lost this turn. `CombatOutcome`'s sibling one scale down.
+ *
+ * A *difference* rather than a fact about the world, exactly as every other
+ * field of `TurnReport` is: by the time the resolution returns the town's hit
+ * points have already moved and the board cannot say whether they moved because
+ * of a siege or because somebody shot at it. `ownerId` is on the line because a
+ * notice is per seat and the seat that needs to hear "Uruk is under siege" is the
+ * one that owns Uruk.
+ */
+export interface SiegeReport {
+  cityId: number;
+  ownerId: number;
+  /** Hit points taken. Never enough to empty the bar — see `underSiege`. */
+  damage: number;
+}
+
+/**
+ * Which hexes are denied to one empire, for the siege question and nothing else.
+ *
+ * `zocField`'s sibling and deliberately **not** `zocField` itself, for one
+ * reason: the movement field has a `zocRule: 'borders'` clause (the Great Wall),
+ * under which every hex a rival *owns* projects control. That is right for a
+ * march — the wall slows an army crossing it — and catastrophic for a siege,
+ * because a town standing inside a Great Wall empire's borders would be starving
+ * with not one soldier in sight. A siege is an army parked outside the gates, so
+ * the sources here are armies and towns and nothing else.
+ *
+ * The other difference is `held`. `zocField.adjacent` marks the *neighbours* of
+ * each source and not the source's own hex, which is exactly right for "does
+ * this step end my turn" and wrong for "is that hex mine to walk out through":
+ * a warrior standing on a hex most certainly denies it. So two grids, one sweep.
+ *
+ * Hoisted once per **owner** per sweep (`healCities` caches one per seat), which
+ * is `zocField`'s own bargain: a field built per city would walk every unit in
+ * the world forty times a turn.
+ */
+export interface SiegeField {
+  /** 1 where a hostile combat unit or a hostile city actually stands. */
+  held: Uint8Array;
+  /** 1 on `held` and on every hex one of those touches. */
+  denied: Uint8Array;
+}
+
+export function siegeField(state: GameState, ownerId: number): SiegeField {
+  const { map } = state;
+  const held = new Uint8Array(map.tiles.length);
+  const denied = new Uint8Array(map.tiles.length);
+  // Arrays, never a `Set` — the sweep order is what makes two runs agree.
+  const sources: Tile[] = [];
+  const mark = (col: number, row: number): void => {
+    const tile = getTileAt(map, col, row);
+    if (!tile) return;
+    const index = tileIndex(map, tile.col, tile.row);
+    if (held[index] === 1) return;
+    held[index] = 1;
+    sources.push(tile);
+  };
+  for (const unit of state.units) {
+    if (unit.ownerId === ownerId) continue;
+    if (!isCombatant(unitDef(unit.type))) continue;
+    mark(unit.col, unit.row);
+  }
+  for (const city of state.cities) {
+    if (city.ownerId === ownerId) continue;
+    mark(city.col, city.row);
+  }
+  for (const source of sources) {
+    denied[tileIndex(map, source.col, source.row)] = 1;
+    for (const neighbour of neighborTiles(map, tileHex(source))) {
+      denied[tileIndex(map, neighbour.col, neighbour.row)] = 1;
+    }
+  }
+  return { held, denied };
+}
+
+/**
+ * Is this city cut off — every hex around it denied to whoever holds it?
+ *
+ * Derived every turn and **never stored**, which is the barbarian role's rule
+ * applied to a town: a siege is a fact about where the armies are standing this
+ * instant, and a flag on `City` would be a second answer that a save could
+ * disagree with.
+ *
+ * Three kinds of neighbour and each is a different question:
+ *
+ *   · **Water** is denied only when an enemy is *standing on it*. This is the
+ *     rule that makes a coastal city hard to starve and it is the intended one:
+ *     an open sea lane is a supply line, so a port with one clear hex of water
+ *     is not besieged however many soldiers are drawn up on the landward side.
+ *     Nothing can blockade the sea by standing beside it.
+ *   · **Impassable land** — a mountain — is denied by nature. Nothing marches
+ *     through it in either direction, so it neither relieves the town nor needs
+ *     an army parked on it.
+ *   · **Everything else** is denied when it is inside the hostile field: an
+ *     enemy stands there, or an enemy stands next to it.
+ *
+ * And one guard: at least one neighbour must be denied *by the field* rather
+ * than by geography, so a town ringed by mountains is not permanently besieged
+ * by nobody.
+ */
+export function underSiege(state: GameState, city: City, field: SiegeField): boolean {
+  const centre = getTileAt(state.map, city.col, city.row);
+  if (!centre) return false;
+  let besiegers = 0;
+  for (const neighbour of neighborTiles(state.map, tileHex(centre))) {
+    const index = tileIndex(state.map, neighbour.col, neighbour.row);
+    if (isWaterTerrain(neighbour.terrain)) {
+      if (field.held[index] !== 1) return false;
+      besiegers += 1;
+      continue;
+    }
+    if (!isPassable(neighbour)) continue;
+    if (field.denied[index] !== 1) return false;
+    besiegers += 1;
+  }
+  return besiegers > 0;
+}
+
 // --- turn phases ------------------------------------------------------------
 
 /**
- * `healCities`: every city recovers `combat.cityHealPerTurn`, up to full.
+ * `healCities`: every city recovers `combat.cityHealPerTurn`, up to full —
+ * unless it is besieged, in which case it loses ground instead.
  *
  * A city heals unconditionally, unlike a unit — there is no "did it act this
  * turn" question to ask of a town, and a city that could be kept at 1 hit point
  * by one archer indefinitely would make a siege a formality rather than a race.
+ * The one condition is the siege, and it is the whole of what a siege *is*: the
+ * town neither heals nor holds, and the chip is `combat.siegeDamagePerTurn`
+ * floored at 1 hit point, so an army camped outside the walls forever still
+ * never takes the place. Somebody has to attack.
  *
  * It lives here rather than in `cities.ts` because hit points are a combat
  * concept: the rules that spend them are in this file, and the rule that
  * restores them belongs beside them.
+ *
+ * The report is the second parameter every phase takes (`TurnReport`), typed
+ * structurally so this module need not import the pipeline it is run by. Cities
+ * are walked in `state.cities` order — founding order — and the fields are
+ * hoisted one per *seat*, `zocField`'s bargain: a `Map` keyed by owner, read
+ * only by lookup, so nothing about an outcome depends on its iteration order.
  */
-export function healCities(state: GameState): void {
+export function healCities(state: GameState, report?: { sieges: SiegeReport[] }): void {
   const amount = COMBAT.cityHealPerTurn;
+  const fields = new Map<number, SiegeField>();
   for (const city of state.cities) {
-    if (city.hp >= COMBAT.cityBaseHp) continue;
-    city.hp = Math.min(COMBAT.cityBaseHp, city.hp + amount);
+    let field = fields.get(city.ownerId);
+    if (!field) {
+      field = siegeField(state, city.ownerId);
+      fields.set(city.ownerId, field);
+    }
+    if (underSiege(state, city, field)) {
+      const damage = Math.min(COMBAT.siegeDamagePerTurn, Math.max(0, city.hp - 1));
+      if (damage > 0) city.hp -= damage;
+      report?.sieges.push({ cityId: city.id, ownerId: city.ownerId, damage });
+      continue;
+    }
+    const max = cityMaxHp(city);
+    if (city.hp >= max) {
+      clampCityHp(city);
+      continue;
+    }
+    city.hp = Math.min(max, city.hp + amount);
   }
 }
 

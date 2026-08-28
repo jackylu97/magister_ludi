@@ -625,8 +625,10 @@ describe('a purchase rider', () => {
     expect(cut.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(cut.total);
     // The filter is the roster's own marker, not a name: a warrior is not a
     // religious unit and its price is untouched.
-    expect(cardPurchaseRiders(g.state, 0, 'augur')).toHaveLength(1);
-    expect(cardPurchaseRiders(g.state, 0, 'warrior')).toHaveLength(0);
+    expect(cardPurchaseRiders(g.state, 0, 'unit', 'augur')).toHaveLength(1);
+    expect(cardPurchaseRiders(g.state, 0, 'unit', 'warrior')).toHaveLength(0);
+    // And `on` defaults to units: the Ziggurat says nothing about granaries.
+    expect(cardPurchaseRiders(g.state, 0, 'building')).toHaveLength(0);
   });
 });
 

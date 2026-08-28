@@ -185,8 +185,11 @@ function rosterBank(item: PurchasableItem): PurchaseCurrency | undefined {
  * purchase are additive exactly as everything else in this game that stacks is.
  * It is asked in both banks, because "religious units cost less" is about the
  * augur's faith and would be a strange rule that stopped at the treasury's door.
- * Nothing speaks about a *building* being cheaper: a filter is about units, and
- * the one building nobody may buy is the one a card would most want to discount.
+ * **And it is asked of a building too** (2026-08-28): Crassus and Jakob Fugger
+ * both discount "units and buildings", so a rider names the *kind* it rides on
+ * (`CardPurchaseRiderEffect.on`) beside the unit filter it always had. The one
+ * building nobody may buy is still the one a card would most want to discount —
+ * `purchaseError` refuses a wonder before a price is ever asked for.
  *
  * `cityId` is taken because a purchase is always *somewhere* — the price is
  * asked of a real town of this empire's or it is not asked at all — and because
@@ -214,7 +217,7 @@ export function explainPurchaseCost(
         lines.push({ source: `${bought} already called`, amount: increment * bought });
       }
     }
-    applyRiders(state, playerId, item.id, lines);
+    applyRiders(state, playerId, item, lines);
     return { currency: bank, lines, total: foldUnitCost(lines) };
   }
 
@@ -233,13 +236,15 @@ export function explainPurchaseCost(
   lines.push({ source: `×${rate} in gold`, amount: Math.floor(cost * rate) - cost });
   // **After** the conversion, so the discount is off the price and not off the
   // hammers: a quarter off a warrior is a quarter off the coin, whatever the
-  // rate happens to be.
-  if (item.kind === 'unit') applyRiders(state, playerId, item.id, lines);
+  // rate happens to be. Asked for a **building** too since 2026-08-28 — Crassus
+  // and Jakob Fugger both discount "units and buildings", and the building half
+  // of that was the deferred sentence on both rows.
+  applyRiders(state, playerId, item, lines);
   return { currency: 'gold', lines, total: foldUnitCost(lines) };
 }
 
 /**
- * Folds every purchase rider that admits this unit into **one** line on the
+ * Folds every purchase rider that admits this **item** into **one** line on the
  * price, carrying the difference it makes to the running figure.
  *
  * Summed then applied once (Entry XVII's discipline at the scale of a price
@@ -247,14 +252,23 @@ export function explainPurchaseCost(
  * print the reason. Nothing is appended when no card speaks, which is every
  * purchase in most games — the list is then byte-identical to the one this
  * returned before `purchaseRider` existed.
+ *
+ * It takes the whole item rather than a unit type because a rider may now ride
+ * on a building (`CardPurchaseRiderEffect.on`), and *which kind of thing is
+ * being bought* is the one question a `UnitFilter` cannot answer.
  */
 function applyRiders(
   state: GameState,
   playerId: number,
-  type: UnitTypeId,
+  item: PurchasableItem,
   lines: UnitCostLine[],
 ): void {
-  const riders = cardPurchaseRiders(state, playerId, type);
+  const riders = cardPurchaseRiders(
+    state,
+    playerId,
+    item.kind,
+    item.kind === 'unit' ? item.id : undefined,
+  );
   if (riders.length === 0) return;
   let percent = 0;
   for (const rider of riders) percent += rider.percent;

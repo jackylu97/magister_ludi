@@ -116,24 +116,48 @@ export interface CombatRules {
   strengthExponent: number;
   /** Half-width of the random band: the roll is uniform in `[1 − b, 1 + b]`. */
   rollBand: number;
-  /** Defence added per turn spent fortified. */
+  /**
+   * **Strength points** added per turn spent fortified, and points is the whole
+   * of the 2026-08-28 ruling: terrain, the trench, a card and a wall are one
+   * kind of number on one ledger (Civ VI's form), so nothing here is a fraction
+   * of a unit's own strength any more.
+   */
   fortifyBonusPerTurn: number;
-  /** Cap on the fortify bonus, however long a unit sits still. */
+  /** Cap on the fortify bonus in points, however long a unit sits still. */
   fortifyMax: number;
   /** Fraction of strength a melee attacker loses attacking across a river. */
   riverAttackPenalty: number;
   /** Reserved for the flanking rule; 0 in v1, and nothing reads it yet. */
   flankingBonus: number;
-  /** Hit points a city has at full health, whatever its size. */
+  /** Hit points a city has **before its buildings**; see `cityMaxHp`. */
   cityBaseHp: number;
-  /** A city's defence before its population is counted. */
-  cityBaseStrength: number;
-  /** Defence each population point adds to a city. */
+  /**
+   * The floor under a city's garrison strength — what a town defends with when
+   * its empire can build no soldier at all (the warrior's, today).
+   *
+   * `cityBaseStrength`'s replacement, and the field name records the change:
+   * a city's strength is no longer a constant plus its size, it is **the best
+   * unit its owner could train right now** (`explainCityStrength`), and this is
+   * only the bottom of that.
+   */
+  cityMinStrength: number;
+  /**
+   * Defence each population point adds to a city. **0 since 2026-08-28**: the
+   * ruling is that a city defends *equal to* its strongest trainable unit, and a
+   * per-citizen term on top of that made a big town unattackable by anything its
+   * own era could field. The line survives at zero rather than being deleted, so
+   * dialling it back is a data decision.
+   */
   cityStrengthPerPop: number;
-  /** Hit points a city recovers every turn, up to `cityBaseHp`. */
+  /** Hit points a city recovers every turn, up to `cityMaxHp`. */
   cityHealPerTurn: number;
-  /** Fraction of `cityBaseHp` a city is left holding the turn it is captured. */
+  /** Fraction of a city's **maximum** hit points it holds the turn it is captured. */
   cityCaptureHpFraction: number;
+  /**
+   * Hit points a **besieged** city loses every turn, floored at 1 — see
+   * `underSiege`. A siege never takes a town on its own; somebody has to attack.
+   */
+  siegeDamagePerTurn: number;
   /**
    * Civilians attacked in melee change hands instead of dying. False would kill
    * them, which is a different game and a one-line change.

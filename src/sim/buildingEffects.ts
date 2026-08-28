@@ -1,8 +1,8 @@
 /**
- * What an empire's *buildings* are worth, for the three things a building says
+ * What an empire's *buildings* are worth, for the four things a building says
  * that are not a flat city yield: the happiness it supplies, the stat it adds to
- * its own town, and (Entry XXVII) what it pays on the **ground** that town
- * works.
+ * its own town, the hit points it adds to that town's walls, and (Entry XXVII)
+ * what it pays on the **ground** that town works.
  *
  * `resourceEffects.ts`'s bargain one scale down, and for the same reason. A
  * building's flat yields are folded where yields are folded (`cityYields`), and
@@ -89,6 +89,31 @@ export function buildingCityStat(
     const declared = buildingDef(id).cityStat;
     if (declared === undefined || declared.stat !== stat || declared.amount === 0) continue;
     list.push({ source: buildingDef(id).name, amount: declared.amount });
+  }
+  return list;
+}
+
+/**
+ * What **this city's own** buildings add to its maximum hit points.
+ *
+ * `buildingCityStat`'s sibling and deliberately not a fourth `stat` on it, for
+ * the reason the two consumers are different questions: `cityStat` is read into
+ * *strength* breakdowns (`planCombat`, `sightSources`) which are lists of points
+ * a defender fights with, and this is read into a **capacity** — how much
+ * punishment the walls absorb before the gates open (`cityMaxHp`, `combat.ts`).
+ * A wall raises both and says so in two fields, because a watchtower raises one
+ * and a granary neither.
+ *
+ * A list rather than a number, like everything else in this file, so a city
+ * sheet can print "200 base · Palisade +25" instead of a bare 225.
+ */
+export function buildingCityHp(city: City): BuildingCityStatLine[] {
+  const list: BuildingCityStatLine[] = [];
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    const amount = buildingDef(id).cityHp ?? 0;
+    if (amount === 0) continue;
+    list.push({ source: buildingDef(id).name, amount });
   }
   return list;
 }

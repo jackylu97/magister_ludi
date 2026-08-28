@@ -2083,6 +2083,17 @@ export interface CombatSituation {
   /** The defender's hit points and maximum, for `targetBelowHalf`. */
   targetHp: number;
   targetMaxHp: number;
+  /**
+   * The type of the piece on the **other** side, or absent when that side is a
+   * city (a town has no silhouette to be "vs mounted" about).
+   *
+   * `unit`'s mirror, and the field `combatLine.vsClass` reads. It is genuinely
+   * the *other* side whichever side is asking — `planCombat` fills it with the
+   * defender's type for the attacker's situation and the attacker's type for the
+   * defender's — so one filter answers "against horse" for a card held by either
+   * empire.
+   */
+  vsType?: UnitTypeId;
 }
 
 /** Does a combat condition hold for this situation? One evaluator. */
@@ -2194,6 +2205,12 @@ export function cardCombatLines(state: GameState, situation: CombatSituation): C
     // — the Alhambra's mounted +2. Of *this* piece, whichever side it is on, so
     // a line that pays both postures pays a knight in either.
     if (!unitMatches(situation.unit.type, effect.class)) continue;
+    // And who it pays *against* — Lautaro's mounted. A line with `vsClass` never
+    // fires at a city, which has no type at all: see `CardCombatLineEffect`.
+    if (effect.vsClass !== undefined) {
+      if (situation.vsType === undefined) continue;
+      if (!unitMatches(situation.vsType, effect.vsClass)) continue;
+    }
     if (!combatConditionHolds(state, situation, effect.when)) continue;
     const each = scaleByLevel(effect.amount, level);
     if (each === 0) continue;
@@ -2579,7 +2596,7 @@ export interface CardPurchaseLine {
 }
 
 /**
- * Every purchase rider this empire's cards put on **one unit type** — the
+ * Every purchase rider this empire's cards put on **one thing for sale** — the
  * ordered lines `explainPurchaseCost` folds into its bank.
  *
  * A list rather than a number for rule 5's reason at the scale of a price tag:
@@ -2587,15 +2604,25 @@ export interface CardPurchaseLine {
  * with no name beside it is exactly the silence a breakdown exists to prevent.
  * The caller sums them and multiplies **once** — two riders on one purchase are
  * additive, as everything else in this game that stacks is.
+ *
+ * Two arguments where there was one, because Crassus and Jakob Fugger discount
+ * "units and buildings" and a `UnitFilter` cannot name a granary: `kind` is what
+ * the row's own `on` is matched against, and `type` is the unit's — required for
+ * a unit, meaningless for a building. The filter is asked only of a unit, so a
+ * building rider needs no vocabulary it does not have (see
+ * `CardPurchaseRiderEffect`).
  */
 export function cardPurchaseRiders(
   state: GameState,
   playerId: number,
-  type: UnitTypeId,
+  kind: 'unit' | 'building',
+  type?: UnitTypeId,
 ): CardPurchaseLine[] {
   const list: CardPurchaseLine[] = [];
   for (const { source, card, level, effect } of effectsOfKind(state, playerId, 'purchaseRider')) {
-    if (!unitMatches(type, effect.class)) continue;
+    const on = effect.on ?? 'unit';
+    if (on !== 'all' && on !== kind) continue;
+    if (kind === 'unit' && (type === undefined || !unitMatches(type, effect.class))) continue;
     const percent = scaleByLevel(effect.percent, level);
     if (percent === 0) continue;
     list.push({ card, source, percent });
@@ -2924,6 +2951,9 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       // mounted +2 read as a bare "+2 combat strength" until `class` was
       // printed, which is a card that lies by omission.
       const who = effect.class === undefined ? '' : ` for ${filterWords(effect.class)}`;
+      // And who it is *against*, for the same reason: Lautaro's line read as a
+      // flat "+3 combat strength" until the horses were printed.
+      const against = effect.vsClass === undefined ? '' : ` against ${filterWords(effect.vsClass)}`;
       // A condition that takes an argument prints it here, so that forest and
       // jungle are one entry in `COMBAT_WORDS` and two rows on a card.
       const when =
@@ -2931,7 +2961,7 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
           ? `${COMBAT_WORDS.onFeature} ${effect.when.feature}`
           : COMBAT_WORDS[effect.when.test];
       out.push({
-        text: `${each} combat strength${who}${scale} ${when}`.trim(),
+        text: `${each} combat strength${who}${against}${scale} ${when}`.trim(),
       });
       return;
     }
@@ -3131,10 +3161,20 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
     }
     case 'purchaseRider': {
       const percent = scaleByLevel(effect.percent, level);
+      // What the rider rides on, in the row's own terms: a filter can name a
+      // kind of unit and cannot name a building at all, so `on` supplies the
+      // noun and `class` narrows it only where narrowing means anything.
+      const on = effect.on ?? 'unit';
+      const what =
+        on === 'building'
+          ? 'buildings'
+          : on === 'all'
+            ? `${filterWords(effect.class)} and buildings`
+            : filterWords(effect.class);
       // "cost −25%", not "−25% cost": the sign belongs to the price, and a
       // discount read as a bonus is the one thing this line must not do.
       out.push({
-        text: `${filterWords(effect.class)} cost ${percent < 0 ? '−' : '+'}${Math.abs(percent)}% to buy`,
+        text: `${what} cost ${percent < 0 ? '−' : '+'}${Math.abs(percent)}% to buy`,
       });
       return;
     }

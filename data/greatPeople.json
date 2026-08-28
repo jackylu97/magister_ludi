@@ -731,11 +731,11 @@
         {
           "kind": "purchaseRider",
           "class": {},
+          "on": "all",
           "percent": -30
         }
       ],
       "deferred": [
-        "… and on **buildings** — `purchaseRider` is asked of a unit type, and `explainPurchaseCost`'s building half has no rider hook.",
         "Every purchase −1 happiness for 10 turns — nothing stamps a timed effect on an empire."
       ]
     },
@@ -1529,11 +1529,9 @@
         {
           "kind": "purchaseRider",
           "class": {},
+          "on": "all",
           "percent": -20
         }
-      ],
-      "deferred": [
-        "… and on **buildings** — `purchaseRider` is asked of a unit type, and `explainPurchaseCost`'s building half has no rider hook."
       ]
     },
     "zhengHe": {
@@ -1668,9 +1666,14 @@
       "tier": "situational",
       "epigram": "He learned their horses and turned them.",
       "kernel": "The Mapuche toqui.",
-      "legacy": [],
-      "deferred": [
-        "+3 combat vs mounted — `combatLine.class` names *this* side's units, and `CombatSituation` carries no target type at all, so asking about the other side's class is a change to what a fight reports rather than a card shape."
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "when": { "test": "always" },
+          "side": "both",
+          "vsClass": { "modelClass": "mounted" }
+        }
       ]
     }
   }
