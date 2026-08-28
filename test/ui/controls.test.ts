@@ -26,8 +26,22 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { foundCityAt } from '../../src/sim/cities';
+import type { PillageReport } from '../../src/sim/improvements';
+import { createMap } from '../../src/sim/map';
+import { type GameState, newGame } from '../../src/sim/state';
+import { resetVisibility } from '../../src/sim/visibility';
+import { at } from '../sim/improvementHelpers';
+import { cityDisplayName } from '../../src/ui/cityDisplay';
 import { type LensMode } from '../../src/ui/mapView';
-import { lensForDigit, lensShowsYields, wantsNativeContextMenu } from '../../src/ui/controls';
+import {
+  lensForDigit,
+  lensShowsYields,
+  pillageSentence,
+  pillageVictimSentence,
+  pillagedThing,
+  wantsNativeContextMenu,
+} from '../../src/ui/controls';
 
 const ORDER: readonly LensMode[] = ['none', 'settler', 'explorer'];
 
@@ -183,5 +197,158 @@ describe('wantsNativeContextMenu', () => {
     expect(wantsNativeContextMenu({ tagName: 'SPAN' })).toBe(false);
     expect(wantsNativeContextMenu({ tagName: 'P' })).toBe(false);
     expect(wantsNativeContextMenu(null)).toBe(false);
+  });
+});
+
+/**
+ * Every pillage the sim now reports (`CommandResult.pillages`), the pair of
+ * sentences it is announced in: the raider's own line — the actual salvage
+ * and heal a raid paid, never the rules constant — and the victim's toast,
+ * read off `endTurn`'s resolution where the wild raids. Both are pure
+ * functions of a `PillageReport` (plus, for the victim's line, the board they
+ * are read against for a name), which is what lets them be pinned with no
+ * jsdom in this suite (module docblock).
+ */
+
+/** A minimal report, overridable per test — a farm alone, nothing paid. */
+function baseReport(overrides: Partial<PillageReport> = {}): PillageReport {
+  return {
+    ownerId: 0,
+    fromOwnerId: 1,
+    col: 6,
+    row: 5,
+    improvement: 'farm',
+    road: false,
+    gold: 0,
+    heal: 0,
+    warning: null,
+    ...overrides,
+  };
+}
+
+/** Two named seats plus a seated barbarian, on a blank grassland rectangle. */
+function raidState(width = 16, height = 12): GameState {
+  const state = newGame({
+    seed: 1,
+    sizeName: 'duel',
+    players: [
+      { name: 'Ada', color: '#a00', isHuman: true },
+      { name: 'Beru', color: '#00a', isHuman: true },
+    ],
+    barbarians: true,
+  });
+  state.map = createMap({ width, height, terrain: 'grassland' });
+  resetVisibility(state);
+  state.tileOwner = new Array<number | null>(width * height).fill(null);
+  state.units = [];
+  state.cities = [];
+  return state;
+}
+
+describe('pillagedThing', () => {
+  it('names the improvement alone', () => {
+    expect(pillagedThing(baseReport())).toBe('Farm');
+  });
+
+  it('names a bare road when there was no improvement', () => {
+    expect(pillagedThing(baseReport({ improvement: undefined, road: true }))).toBe('Road');
+  });
+
+  it('names both when a road went with the improvement', () => {
+    expect(pillagedThing(baseReport({ road: true }))).toBe('Farm and road');
+  });
+});
+
+describe('pillageSentence', () => {
+  it('prints the subject, the salvage and the heal together', () => {
+    expect(pillageSentence(baseReport({ gold: 35, heal: 25 }))).toBe(
+      '✶ Farm pillaged · +35💰 · healed 25',
+    );
+  });
+
+  it('omits the gold clause when nothing was banked', () => {
+    expect(pillageSentence(baseReport({ gold: 0, heal: 25 }))).toBe('✶ Farm pillaged · healed 25');
+  });
+
+  it('omits the heal clause when the unit took no heal', () => {
+    expect(pillageSentence(baseReport({ gold: 35, heal: 0 }))).toBe('✶ Farm pillaged · +35💰');
+  });
+
+  it('is the bare subject when the raid paid nothing at all — the wild forfeits the gold', () => {
+    expect(pillageSentence(baseReport({ gold: 0, heal: 0 }))).toBe('✶ Farm pillaged');
+  });
+
+  it('names a bare road when there was no improvement', () => {
+    expect(pillageSentence(baseReport({ improvement: undefined, road: true, gold: 12 }))).toBe(
+      '✶ Road pillaged · +12💰',
+    );
+  });
+});
+
+describe('pillageVictimSentence', () => {
+  it('names the wild raider and the nearest owned city', () => {
+    const state = raidState();
+    const city = foundCityAt(state, 0, at(state, 5, 5));
+    const barbarianId = state.players.length - 1;
+    const report = baseReport({ ownerId: barbarianId, fromOwnerId: 0 });
+    expect(pillageVictimSentence(state, report)).toBe(
+      `Barbarians pillaged the Farm at (6, 5) near ${cityDisplayName(state, city)}`,
+    );
+  });
+
+  it("names another empire's seat instead of the wild", () => {
+    const state = raidState();
+    const city = foundCityAt(state, 0, at(state, 5, 5));
+    const report = baseReport({ ownerId: 1, fromOwnerId: 0 });
+    expect(pillageVictimSentence(state, report)).toBe(
+      `Beru pillaged the Farm at (6, 5) near ${cityDisplayName(state, city)}`,
+    );
+  });
+
+  it('falls back to the bare hex when the victim holds no city at all', () => {
+    const state = raidState();
+    const barbarianId = state.players.length - 1;
+    const report = baseReport({ ownerId: barbarianId, fromOwnerId: 0 });
+    expect(pillageVictimSentence(state, report)).toBe('Barbarians pillaged the Farm at (6, 5)');
+  });
+
+  it('includes the road when one was torn out alongside the improvement', () => {
+    const state = raidState();
+    const city = foundCityAt(state, 0, at(state, 5, 5));
+    const barbarianId = state.players.length - 1;
+    const report = baseReport({ ownerId: barbarianId, fromOwnerId: 0, road: true });
+    expect(pillageVictimSentence(state, report)).toBe(
+      `Barbarians pillaged the Farm and road at (6, 5) near ${cityDisplayName(state, city)}`,
+    );
+  });
+});
+
+/**
+ * The wiring these two sentences are read from — `pillage()`'s own line and
+ * `reportPillages`' place in the commit funnel beside `reportSieges` — read
+ * straight off the source, `seatRoster.test.ts`'s and `cityCombat.test.ts`'s
+ * technique for a closure this suite has no jsdom to drive (module docblock).
+ */
+describe('pillage news in the commit funnel', () => {
+  const SOURCE = (
+    import.meta.glob('../../src/ui/controls.ts', {
+      eager: true,
+      query: '?raw',
+      import: 'default',
+    }) as Record<string, string>
+  )['../../src/ui/controls.ts'];
+
+  it('the raider announces its own pillage off the reducer\'s report, never the rules constant', () => {
+    expect(SOURCE).toMatch(
+      /announce\(pillageSentence\(report\), \{ cell: \{ col: unit\.col, row: unit\.row \} \}\);/,
+    );
+    expect(SOURCE).not.toMatch(/RULES\.improvements\.pillageGold/);
+  });
+
+  it("toasts the victim off endTurn's resolution, filtered to this seat as the ground", () => {
+    expect(SOURCE).toMatch(/function reportPillages\(/);
+    expect(SOURCE).toMatch(/reportPillages\(result\);/);
+    expect(SOURCE).toMatch(/report\.fromOwnerId !== localPlayerId/);
+    expect(SOURCE).toMatch(/pillageVictimSentence\(state, report\)/);
   });
 });

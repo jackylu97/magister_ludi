@@ -167,6 +167,7 @@ import {
   cityAt,
   cityTile,
   foundingError,
+  nearestOwnedCity,
   productionSettledBy,
   queueItemName,
   withinWorkRadius,
@@ -208,6 +209,7 @@ import {
   improvementDef,
 } from '../sim/improvementData';
 import {
+  type PillageReport,
   chopCity,
   chopError,
   chopTechError,
@@ -746,6 +748,56 @@ export function wantsNativeContextMenu(target: ContextMenuTarget | null): boolea
   if (tag === 'TEXTAREA') return true;
   if (tag === 'INPUT') return TEXT_INPUT_TYPES.includes((target.type ?? 'text').toLowerCase());
   return false;
+}
+
+/**
+ * What a raid took, named the way both the raider's own line and the
+ * victim's toast quote it — a farm-and-road raid reads as one subject in
+ * both rather than two clauses about the same hex.
+ */
+export function pillagedThing(report: PillageReport): string {
+  const name = report.improvement ? improvementDef(report.improvement).name : null;
+  if (name === null) return 'Road';
+  return report.road ? `${name} and road` : name;
+}
+
+/**
+ * "✶ Farm pillaged · +35💰 · healed 25" — the raider's own line, announced at
+ * the hex it just happened on (`pillage`).
+ *
+ * Both figures are the raid's *actual* payout (`PillageReport`'s own
+ * docblock — a rider composed into the gold, a heal capped at the unit's own
+ * bar), never the row's base constant, and either is omitted entirely at
+ * zero — the wild forfeits the gold outright (`pillageAt`'s warning), and a
+ * unit already at full health takes no heal — rather than printed as "+0".
+ */
+export function pillageSentence(report: PillageReport): string {
+  const parts = [`${pillagedThing(report)} pillaged`];
+  if (report.gold > 0) parts.push(`+${report.gold}${YIELD_GLYPH.gold}`);
+  if (report.heal > 0) parts.push(`healed ${report.heal}`);
+  return `✶ ${parts.join(' · ')}`;
+}
+
+/**
+ * "Barbarians pillaged the Farm at (12, 9) near Uruk" — the *victim*'s toast,
+ * for a raid that took this seat's own ground (`reportPillages`, the
+ * `endTurn` resolution the wild raids inside of).
+ *
+ * The raider is named off `Player.name` with no branch for the wild: the
+ * barbarian seat is literally named "Barbarians" (`seatBarbarians`), so this
+ * reads the same field `reportRaids` reads for an attacker and gets both
+ * readings for free. The place is named the way a camp's grain cache is
+ * (`nearestOwnedCity` — the victim's nearest city to the hex), falling back to
+ * the bare hex for a victim with no city near enough to ask.
+ */
+export function pillageVictimSentence(state: GameState, report: PillageReport): string {
+  const raider = playerById(state, report.ownerId)?.name ?? 'An enemy';
+  const city =
+    report.fromOwnerId === null
+      ? null
+      : nearestOwnedCity(state, report.fromOwnerId, { col: report.col, row: report.row });
+  const near = city ? ` near ${cityDisplayName(state, city)}` : '';
+  return `${raider} pillaged the ${pillagedThing(report)} at (${report.col}, ${report.row})${near}`;
 }
 
 export interface GameControlsOptions {
@@ -1629,6 +1681,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportGrants(result);
       reportRoutes(result);
       reportSieges(result);
+      reportPillages(result);
       reportTriumphs(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
@@ -1778,6 +1831,28 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const name = cityDisplayName(state, city);
       announce(`✶ ${name} is under siege · ${siegeTail(report)}`, {
         cell: { col: city.col, row: city.row },
+      });
+    }
+  }
+
+  /**
+   * **Your ground was raided.** One toast per pillage this seat's the *victim*
+   * of, off the reducer's own report — its own tile-command has already
+   * announced itself (`pillage`, `pillageSentence`), and the only way this
+   * seat's `fromOwnerId` can appear here is somebody else's raid, so the two
+   * can never double up (`pillageError` refuses a raid on ground this seat
+   * owns). Today that somebody is always the wild, met during an `endTurn`
+   * resolution — barbarians pillage there — but the filter is on
+   * `fromOwnerId`, not on who the striker is, so a raid a player's own troops
+   * carried out under netcode would read the same way with no new code.
+   */
+  function reportPillages(result: CommandResult): void {
+    if (!result.ok || !result.pillages) return;
+    const { state } = getGame();
+    for (const report of result.pillages) {
+      if (report.fromOwnerId !== localPlayerId) continue;
+      announce(pillageVictimSentence(state, report), {
+        cell: { col: report.col, row: report.row },
       });
     }
   }
@@ -3602,9 +3677,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reject(result.error);
       return;
     }
-    announce(`${unitDef(unit.type).name} pillaged (+${RULES.improvements.pillageGold} gold)`, {
-      cell: { col: unit.col, row: unit.row },
-    });
+    const report = result.pillages?.[0];
+    if (report) {
+      announce(pillageSentence(report), { cell: { col: unit.col, row: unit.row } });
+    }
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
