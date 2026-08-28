@@ -99,7 +99,20 @@ would change every seeded outcome. No further rename passes.
   `row`, `hp`, `ownerId`, `type`, `chargesLeft` and `person` — and any new
   visual-affecting unit property must be added to it. A source-reading test pins exactly which
   properties are hashed, so adding one is a decision, not a drift.
-- `Tile.improvement`, `Tile.feature` and `Tile.discovery` are the **three** fields on a tile
+- **A road is the fourth mutable tile field, and the caravan is the route** (Entry XXXV).
+  `Tile.road = builderId` is written by `layRoadUnder` from `arriveOnTile` (a trader carrying
+  a route came to rest here) and removed only by pillage; movement never asks whose it is. A
+  road step — **both** hexes paved — costs exact thirds and ignores the ground, inside
+  `stepCost(from, to)`, so the four readers agree by construction; `snapMovement` keeps the
+  numerator an integer and the A* heuristic scales by `cheapestStepCost` (an unpaved minimum
+  is inadmissible over paving). `Unit.trade` is the route — presence is the state, there is
+  **no route register**, and a count of routes is a count of traders. `marchTraders` aims a
+  leg immediately before `spendLeftoverMovement` spends it. A melee blow on a unit that
+  `trades` **plunders** (bounty to the nearest city, forfeited by the wild) and never
+  `captureUnit`s — the register's one exception, by marker. `explainTradeGold` is two lines
+  by ruling: City connections (one total) and Road maintenance — the first upkeep in the
+  game; future upkeep joins that fold, never a second one.
+- `Tile.improvement`, `Tile.feature` and `Tile.discovery` are the **three** fields (four with `road`, above) on a tile
   that change during play. `discovery` is the mildest — it can only ever be *removed*, by a
   unit walking onto a ruin (`claimDiscoveryAt`) — and it forbids exactly what the other two
   do. Barbarian camps are deliberately **not** a fourth: they are founded mid-game and carry

@@ -3317,3 +3317,49 @@ prints the whole list — family-less, so the pool grows and the draw stays flat
 `windfallPayout` before anything is banked (zero slotted Orders prints no line). Found on the
 way: a kill's science was dropped into the pool without settling — `payBattleRiders` now calls
 `settleResearchWindfall`, so a kill that covers the last of a tech finishes it that instant.
+
+---
+
+## Entry XXXV — Trade: the caravan is the route (**built** 2026-08-27, sim; `docs/trade.md`)
+
+**Ruling (user, 2026-08-27)**, with the Revisions that settled it: traders at Currency; the
+route limit is the empire's markets (and lighthouses); a route lays a road between the two
+cities; roads ignore terrain at ⅓ cost; the route pays +1🌾 per food/culture/science building
+and +1⚙ per production/military/gold building, +1💰 per ten combined population; cities joined
+to the capital by road pay connection gold. Then: *origin pays* (the destination's buildings
+are counted), range ten turns of march plus trading posts, foreign routes after diplomacy,
+roads permanent with maintenance at 1💰 per four hexes *you built*, the route twenty turns
+with an auto-resend, and the trader **alive on the road and pillageable**.
+
+**The caravan is the route.** That last ruling decided the shape: `Unit.trade { from, to,
+expiresTurn, outbound, autoResend }` on the trader, presence the state, and **no route
+register** — a plundered caravan is a plundered route, and "how many routes am I running" is
+a count of units. The trader shuttles between the two towns; `marchTraders` *aims* each leg
+(arrival flips `outbound`; expiry is judged only at home, where it drops or renews) immediately
+before `spendLeftoverMovement`, which spends the points — one implementation of a walk. A
+missing path is a jam, not a wall: the caravan waits.
+
+**Roads are its footprints.** `Tile.road = builderId` is the **fourth** mutable tile field
+(Entry XXIV's three, plus one, by ruling), written by `layRoadUnder` from `arriveOnTile` — a
+piece came to rest here, carrying a route — and removed only by pillage. Movement never asks
+whose road it is. A road step is a step between two paved hexes, priced in exact thirds
+(`snapMovement` keeps the numerator an integer) and ignoring the ground; it lives in
+`stepCost(from, to)`, which Entry XXV built for this before roads existed, so all four readers
+agree by construction — and the A* heuristic scales by the *cheapest* step, because a
+heuristic on the unpaved minimum is inadmissible the day a road exists.
+
+**What it pays, and where it is explained.** The route's food and hammers join the origin's
+`cityYields` as one source, staged like any flat (Entry XVII — not a windfall); the gold rides
+the same `collectYields`. Slots are a building field (`routeSlots`) plus a `routeRider` card
+effect, folded by `explainRouteSlots`. `explainTradeGold` is **two lines** by ruling — City
+connections (a flood fill over road from the capital through own or unowned ground,
+`floor(pop/2)` a town) and Road maintenance — the first upkeep this game charges, and the
+user's standing to-do: *start adding maintenance costs to the game*. A melee blow on a trader
+**plunders** it — bounty to the pillager's nearest city through the Entry XVIII wrappers,
+forfeited by the wild — and never captures; the `captureUnit` register gained its one
+exception by marker (`trades`), not by name. Schema 23.
+
+**Left for the halves that follow:** the roads layer and the laden caravan (render), send
+mode with a plate per partner city, the routed panel, the two gold-hover lines (interface).
+Foreign routes, the harbour connection and the King's Road card wait on diplomacy, the
+Wayfinding building and the war-pace pass respectively.
