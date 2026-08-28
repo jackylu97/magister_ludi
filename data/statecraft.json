@@ -1304,11 +1304,11 @@
       "slot": "military",
       "line": "none",
       "flavor": "A sleepless wall is a comfort to those inside it.",
-      "text": "+1 happiness for each fortification level among the units standing in a city, and +1 more for each fortification that city has built.",
+      "text": "+1 happiness for each unit standing in one of your cities, and +1 more for each fortification a city has built.",
       "effects": [
         {
           "kind": "countScaled",
-          "count": "garrisonWatch",
+          "count": "garrison",
           "pays": {
             "to": "happiness",
             "amount": 1
@@ -1322,8 +1322,7 @@
             "amount": 1
           }
         }
-      ],
-      "note": "The two halves are added together: a city's own fortifications pay their happiness whether or not a unit is standing in it."
+      ]
     },
     "theWidowsLevy": {
       "name": "The Widow's Levy",

@@ -122,7 +122,7 @@ Every Order, Doctrine and government in one place, tables only. Edit here; the t
 | Blooded Spears | M | 🏹 |  |  +1 combat strength, +2 combat vs barbarians (3 total against barbs),|
 | Camp Followers | M | 🏹 |  | camp clears pay +25🌾 and gift a random military unit |
 | Far Runners | M | 🧭 |  | scouts +1 movement and +1 sight, civilian units gain +2 movement when embarked |
-| The Long Watch | M | — |  | a unit fortified in a city gives that city +1 happiness, +1 more per fortification building (palisades, castles, etc.) |
+| The Long Watch | M | — |  | +1 happiness per unit stationed in a city (fortification does not matter) · +1 more per fortification building (palisades, castles, etc.) |
 | The Widow's Levy | M | — |  | when a unit of yours dies, its nearest city gains +10⚙ and +40 gold |
 | Common Granary | E | 🌱 |  | +1 food on luxury resource tiles |
 | Salt Tithes | E | 🐫 |  | +2💰 per unique luxury |
