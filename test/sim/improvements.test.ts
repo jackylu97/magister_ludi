@@ -1242,13 +1242,55 @@ describe('pillage', () => {
   it('burns the improvement, pays the raider and costs one point', () => {
     const { state, raider } = raidState();
     raider.movesLeft = 2;
-    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id })).toEqual({
-      ok: true,
-    });
+    const raid = applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id });
+    expect(raid.ok).toBe(true);
     expect(at(state, 2, 1).improvement).toBeUndefined();
     expect(state.players[0]!.gold).toBe(RULES.improvements.pillageGold);
     // One point, not the whole allowance: a column burns a farm riding past.
     expect(raider.movesLeft).toBe(1);
+    // The command carries its own figures out (`PillageReport`), because a rider
+    // is part of the printed number and the rules constant is only the base.
+    expect(raid.ok && raid.pillages).toEqual([
+      {
+        ownerId: 0,
+        fromOwnerId: 1,
+        col: 2,
+        row: 1,
+        improvement: 'farm',
+        road: false,
+        gold: RULES.improvements.pillageGold,
+        heal: 0,
+        warning: null,
+      },
+    ]);
+  });
+
+  it('heals the raider by the printed figure, capped at its maximum', () => {
+    // The user's 2026-08-28 ruling: a raid pays gold **and** health, to
+    // everybody, with no card involved. The heal is `improvements.pillageHeal`
+    // handed to `windfallPayout` as a base, so a rider adds to it rather than
+    // being the only way to get one.
+    const { state, raider } = raidState();
+    const max = unitDef(raider.type).maxHp;
+    raider.hp = max - RULES.improvements.pillageHeal - 5;
+    raider.movesLeft = 2;
+    const raid = applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id });
+    expect(raider.hp).toBe(max - 5);
+    expect(raid.ok && raid.pillages?.[0]?.heal).toBe(RULES.improvements.pillageHeal);
+  });
+
+  it('reports what the bar actually moved by, never what was offered', () => {
+    // A raider at full strength takes the farm and no bandage: the report says
+    // zero rather than promising twenty-five points nothing received.
+    const { state, raider } = raidState();
+    at(state, 2, 1).road = 1;
+    raider.movesLeft = 2;
+    const before = raider.hp;
+    const raid = applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id });
+    expect(raider.hp).toBe(before);
+    // The road went with the farm, and the report says both.
+    expect(at(state, 2, 1).road).toBeUndefined();
+    expect(raid.ok && raid.pillages?.[0]).toMatchObject({ heal: 0, road: true, fromOwnerId: 1 });
   });
 
   it('refuses your own ground', () => {
@@ -1905,9 +1947,7 @@ describe('the works pay instantly', () => {
     victim.population = 1;
     victim.workedTiles = [{ col: 2, row: 1 }];
 
-    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id })).toEqual({
-      ok: true,
-    });
+    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id }).ok).toBe(true);
     // The burnt tile is no better than its neighbours now, so the citizen is
     // re-seated by the tie-break rather than left standing on a promise.
     expect(victim.workedTiles).toHaveLength(1);
@@ -1922,9 +1962,7 @@ describe('the works pay instantly', () => {
     at(state, 8, 8).improvement = 'farm';
     const raider = createUnit(state, 0, 'warrior', 8, 8);
     raider.movesLeft = 2;
-    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id })).toEqual({
-      ok: true,
-    });
+    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id }).ok).toBe(true);
     expect(at(state, 8, 8).improvement).toBeUndefined();
   });
 });

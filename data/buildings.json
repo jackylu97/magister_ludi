@@ -1163,6 +1163,23 @@
         "onComplete": 10,
         "perTurn": 2
       }
+    },
+    "gildedHall": {
+      "name": "Gilded Hall",
+      "category": "gold",
+      "cost": 250,
+      "food": 0,
+      "production": 0,
+      "gold": 8,
+      "science": 0,
+      "culture": 2,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "purchaseOnly": true,
+      "renown": {
+        "family": "merchant",
+        "perTurn": 1
+      }
     }
   },
   "projects": {

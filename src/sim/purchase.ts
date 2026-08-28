@@ -69,7 +69,7 @@ import {
 import { type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';
 import { RULES } from './rulesData';
 import { cardPurchaseRiders } from './statecraft';
-import { buildError, gatingTech, hasTech } from './tech';
+import { buildError, gatingTech, hasTech, isUnlocked } from './tech';
 import { techDef } from './techData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 
@@ -112,7 +112,9 @@ export function purchasableName(item: PurchasableItem): string {
  * interface's half, so that the two agree by construction.
  */
 export function isPurchaseOnly(item: PurchasableItem): boolean {
-  return item.kind === 'unit' && unitDef(item.id).purchase?.exclusive === true;
+  return item.kind === 'unit'
+    ? unitDef(item.id).purchase?.exclusive === true
+    : buildingDef(item.id).purchaseOnly === true;
 }
 
 /**
@@ -390,9 +392,20 @@ export function purchaseError(
   }
 
   if (bank === undefined) {
-    // Gold buys what the city could build, by production's own rules.
-    const blocked = buildError(state, playerId, bought.kind, bought.id);
-    if (blocked !== null) return blocked;
+    // Gold buys what the city could build, by production's own rules — **except
+    // the one thing production refuses for being for sale**. `buildError` is
+    // still the gate for everything else it asks (the tree, the resource, the
+    // wonder clauses); a purchase-only building is refused by it *on purpose*,
+    // so it is asked the tree's own question directly, which is exactly what the
+    // augur's branch below does one bank over.
+    if (isPurchaseOnly(bought)) {
+      if (!isUnlocked(state, playerId, bought.kind, bought.id)) {
+        return `${name} is not open to ${player.name} yet`;
+      }
+    } else {
+      const blocked = buildError(state, playerId, bought.kind, bought.id);
+      if (blocked !== null) return blocked;
+    }
     if (bought.kind === 'building' && city.buildings.includes(bought.id)) {
       return `${city.name} has already built ${name}`;
     }

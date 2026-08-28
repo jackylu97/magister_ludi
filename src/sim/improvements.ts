@@ -746,6 +746,44 @@ export function pillageError(state: GameState, unitId: number): string | null {
 }
 
 /**
+ * What one raid took and what it paid, for the line somebody announces it in.
+ *
+ * `CampBounty`'s shape one verb over (`camps.ts`), and built the same way for
+ * the same reason: by the time the call returns the farm is *gone*, the coins
+ * are indistinguishable from every other coin in the treasury and the raider's
+ * bar has simply moved, so no diff of two boards can say what happened here.
+ * It **reports rather than announces** — `arriveOnTile`'s discipline — because
+ * the same raid happens inside a command, inside the wild's own sweep and inside
+ * a replay, and only one of those has a notice bar.
+ */
+export interface PillageReport {
+  /** The seat that struck the works. */
+  ownerId: number;
+  /** The empire whose ground it was, or `null` for nobody's. */
+  fromOwnerId: number | null;
+  col: number;
+  row: number;
+  /** The improvement torn out, or `undefined` when only a road was. */
+  improvement?: ImprovementId;
+  /** True when a road went with it. */
+  road: boolean;
+  /**
+   * The **salvage** banked — the raid's own figure with its percentage riders
+   * folded in. Zero when it was forfeited.
+   *
+   * `CampBounty.gold`'s reading exactly: a rider's own gold *grant* (The Iron
+   * Price's fifteen) is paid beside this by `payWindfallGrants` and is not in
+   * this number, because a grant is a voice the occasion never paid and lands in
+   * the same bank whatever occasion opened it.
+   */
+  gold: number;
+  /** Hit points actually restored — capped, so this is what the bar moved by. */
+  heal: number;
+  /** Why the salvage was forfeited, or `null`. */
+  warning: string | null;
+}
+
+/**
  * Tears the improvement out and pays the raider. Validates nothing.
  *
  * One movement point, not the whole allowance, and that is the Civ reading: a
@@ -767,27 +805,71 @@ export function pillageError(state: GameState, unitId: number): string | null {
  * other player: the raid takes the farm's food away *now*, and the panel it has
  * to stop lying to is the **victim's**. Asking the ground who to tell
  * (`refreshTileDerived`) is what gets that right without a rule of its own.
+ *
+ * **A raid heals, and it heals everybody** (2026-08-28, the user's ruling).
+ * `improvements.pillageHeal` is the base and it is handed to `windfallPayout`
+ * beside the gold, so Scorched Earth's own heal is *added to the printed figure*
+ * rather than being the only way to get one. One number, composed once, capped
+ * once — Entry XVIII.5's discipline applied to the thing that is not a yield.
+ *
+ * **The wild burns and takes nothing but the bandage.** A barbarian pillager
+ * keeps the heal — that is the whole of why the wild bothers — and the salvage
+ * is forfeited with the reason said out loud, which is `settleCampBounty`'s
+ * precedent read from the other side: the wild has no treasury anything spends
+ * from, so banking coins into it would be inventing a bookkeeping nobody reads.
+ * The grants and the culture settlement go with it, for the reason there is
+ * nothing to pay them from: the wild holds no cards, so both are empty anyway
+ * and skipping them keeps this verb from calling into Statecraft on behalf of a
+ * seat that has none.
  */
-export function pillageAt(state: GameState, unit: Unit, tile: Tile): void {
+export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageReport {
+  const report: PillageReport = {
+    ownerId: unit.ownerId,
+    fromOwnerId: tileOwnerPlayerId(state, tile.col, tile.row),
+    col: tile.col,
+    row: tile.row,
+    improvement: tile.improvement,
+    road: tile.road !== undefined,
+    gold: 0,
+    heal: 0,
+    warning: null,
+  };
   delete tile.improvement;
   delete tile.road;
   refreshTileDerived(state, tile);
   unit.movesLeft = Math.max(0, unit.movesLeft - 1);
   const player = playerById(state, unit.ownerId);
-  if (!player) return;
+  if (!player) return report;
   // Tyranny, Scorched Earth, The Burning Way, The Iron Price — four rows on one
   // occasion, and they compose without knowing about each other because they are
-  // all riders on `windfallPayout`. The salvage is the base; the gold grants add
-  // to it as ordinary lines, and the heal is the one grant that is not a yield.
-  const payout = windfallPayout(state, player.id, 'pillage', IMPROVEMENTS.pillageGold);
-  player.gold += payout.amount;
-  payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row });
+  // all riders on `windfallPayout`. The salvage and the bandage are both bases:
+  // the gold grants add to the first as ordinary lines, a rider's `heal` adds to
+  // the second, and neither is a multiplication after the fact.
+  const payout = windfallPayout(
+    state,
+    player.id,
+    'pillage',
+    IMPROVEMENTS.pillageGold,
+    IMPROVEMENTS.pillageHeal,
+  );
+  if (player.barbarian === true) {
+    report.warning = 'the wild has no treasury to carry the salvage to';
+  } else {
+    report.gold = payout.amount;
+    player.gold += payout.amount;
+    payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row });
+    settleCultureWindfall(state, player);
+  }
   if (payout.heal > 0) {
     // Capped at the type's maximum, like every other heal in the game: a raid
-    // patches a column up, it does not make it new.
+    // patches a column up, it does not make it new. Reported as what the bar
+    // actually moved by rather than as what was offered, so a full-strength
+    // raider's line does not promise twenty-five points it never took.
+    const before = unit.hp;
     unit.hp = Math.min(unitDef(unit.type).maxHp, unit.hp + payout.heal);
+    report.heal = unit.hp - before;
   }
-  settleCultureWindfall(state, player);
+  return report;
 }
 
 // --- queries ----------------------------------------------------------------

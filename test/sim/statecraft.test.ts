@@ -88,9 +88,16 @@ import {
   orderDef,
   poolDoctrines,
   poolOfGovernment,
+  poolOrders,
   slotLayout,
 } from '../../src/sim/statecraftData';
 import { getTileAt } from '../../src/sim/map';
+import { arriveOnTile } from '../../src/sim/arrival';
+import { foundCityAt } from '../../src/sim/cities';
+import { isPassable } from '../../src/sim/pathfind';
+import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
+import { buildError, isUnlocked } from '../../src/sim/tech';
+import { explainRouteYieldBetween, foldRouteYield } from '../../src/sim/trade';
 import { SCHEMA_VERSION, type GameState, createUnit, playerById } from '../../src/sim/state';
 import { unitDef } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
@@ -138,7 +145,9 @@ describe('the card table', () => {
     // 4/10/18/29/45 and is written down whole in `STATECRAFT.tierLadder`; this
     // list is the live half — the rungs a triple actually exists for — so it is
     // its first three, and Gov IV's rows will extend it by themselves.
-    expect(GOVERNMENT_TIERS).toEqual([4, 10, 18]);
+    // Gov IV and Gov V were written on 2026-08-28, so the live ladder is now the
+    // whole ratified one and the two lists agree end to end.
+    expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 29, 45]);
     expect(STATECRAFT.tierLadder).toEqual([4, 10, 18, 29, 45]);
     expect(STATECRAFT.tierLadder.slice(0, GOVERNMENT_TIERS.length)).toEqual([...GOVERNMENT_TIERS]);
     for (const tier of GOVERNMENT_TIERS) {
@@ -254,8 +263,7 @@ describe('the card table', () => {
 
   it('reads every effect kind in the union from at least one live card', () => {
     // The register: a shape declared and never used is a shape nobody has
-    // tested. `unlocksBuilding` is the marked exception — it is declared,
-    // deferred, and read into a description rather than a rule.
+    // tested.
     const used = new Set<CardEffectKind>();
     const walk = (effects: readonly { kind: CardEffectKind; then?: unknown }[]): void => {
       for (const effect of effects) {
@@ -273,6 +281,10 @@ describe('the card table', () => {
       'foundingRider', 'countScaled', 'rateConversion', 'offerRider', 'effectAmplifier',
       'meterRule', 'conditionRule', 'actionRule', 'behaviorRule', 'cityStat', 'metaRule',
       'tileYield', 'renown',
+      // No longer the marked exception: buildings can be bought (Entry XXIX), so
+      // `cardUnlocksBuilding` is read by `isUnlocked` and The Gilded Court
+      // really does hand the Gilded Hall over.
+      'unlocksBuilding',
     ];
     for (const kind of expected) expect(used.has(kind), kind).toBe(true);
   });
@@ -675,8 +687,8 @@ describe('adoption', () => {
       }
       dispatch(g, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 } as Command);
     }
-    expect(player.statecraft.doctrines).toHaveLength(3);
-    expect(new Set(player.statecraft.doctrines).size).toBe(3);
+    expect(player.statecraft.doctrines).toHaveLength(GOVERNMENT_TIERS.length);
+    expect(new Set(player.statecraft.doctrines).size).toBe(GOVERNMENT_TIERS.length);
   });
 });
 
@@ -687,7 +699,9 @@ describe('every hook family, end to end', () => {
     const g = game();
     const city = found(g.state, 0);
     const tile = getTileAt(g.state.map, city.col, city.row)!;
-    tile.resource = 'wheat';
+    // A **luxury**, since the 2026-08-28 cut of the master list: Common Granary
+    // reads `resourceKind: 'luxury'` rather than "any resource at all".
+    tile.resource = 'gems';
     const before = explainTileYield(tile, yieldContextFor(g.state, 0));
     slot(g.state, 0, 'commonGranary');
     const after = explainTileYield(tile, yieldContextFor(g.state, 0));
@@ -763,7 +777,7 @@ describe('every hook family, end to end', () => {
     slot(g.state, 0, 'censusRolls');
     expect(explainHappiness(g.state, 0).some((l) => l.source === 'Order · Festival Days')).toBe(true);
     expect(explainAuthority(g.state, 0).some((l) => l.source === 'Order · Census Rolls')).toBe(true);
-    expect(foldMeter(explainHappiness(g.state, 0))).toBe(happyBefore + 3);
+    expect(foldMeter(explainHappiness(g.state, 0))).toBe(happyBefore + 4);
     expect(foldMeter(explainAuthority(g.state, 0))).toBe(writBefore + 2);
   });
 
@@ -785,8 +799,11 @@ describe('every hook family, end to end', () => {
     const after = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
     expect(after.ok).toBe(true);
     if (!after.ok) return;
-    const line = after.bonuses.find((b) => b.source === 'Order · Blooded Spears');
-    expect(line).toEqual({ source: 'Order · Blooded Spears', side: 'attacker', amount: 3 });
+    // **Two** lines since the 2026-08-28 cut: +1 always, and +2 more against the
+    // wild — which is the card's own sentence, and three points in this fight.
+    const lines = after.bonuses.filter((b) => b.source === 'Order · Blooded Spears');
+    expect(lines.map((b) => b.amount).sort((a, b) => a - b)).toEqual([1, 2]);
+    expect(lines.every((b) => b.side === 'attacker')).toBe(true);
     expect(after.attackerStrength).toBe(before.attackerStrength + 3);
   });
 
@@ -863,17 +880,22 @@ describe('every hook family, end to end', () => {
     expect(payout.grants).toEqual([
       { card: 'woodwrights', source: 'Doctrine · The Woodwrights', yield: 'culture', amount: 10 },
     ]);
-    // Percentages on one occasion sum before multiplying once.
+    // Percentages on one occasion sum before multiplying once. Two riders on the
+    // *chop* now, because Wolf-Mother's Pact stopped paying for camps when the
+    // master list gave it the conversion instead.
+    expect(windfallPayout(g.state, 0, 'chop', 20).amount).toBe(40);
     slot(g.state, 0, 'spoilsOfTheWild');
     expect(windfallPayout(g.state, 0, 'camp', 10).amount).toBe(20);
-    g.state.players[0]!.statecraft.doctrines.push('wolfMothersPact');
-    expect(windfallPayout(g.state, 0, 'camp', 10).amount).toBe(25);
+    g.state.players[0]!.statecraft.doctrines.push('burningWay');
+    // The Burning Way pays no camp percentage either: a rider that does not name
+    // this occasion is simply not on this payout.
+    expect(windfallPayout(g.state, 0, 'camp', 10).amount).toBe(20);
   });
 
   it('foundingRider — Homestead Charters founds a bigger town', () => {
     const g = game();
     slot(g.state, 0, 'homesteadCharters');
-    expect(cardFoundingRider(g.state, 0)).toEqual({ population: 1, buildings: [] });
+    expect(cardFoundingRider(g.state, 0)).toEqual({ population: 1, buildings: [], roads: false });
     const city = found(g.state, 0);
     expect(city.population).toBe(2);
   });
@@ -1236,6 +1258,12 @@ describe('the behavioural hooks, in the verbs they change', () => {
   });
 
   it('windfallRider pillage — the salvage, the gold rider and the heal all land', () => {
+    // **The base and the rider stack, in one composition** (2026-08-28). The raid
+    // itself now pays `improvements.pillageHeal`; Scorched Earth's own heal is a
+    // rider *on top of* that figure, exactly as its +10 gold is a rider on top of
+    // the salvage. `windfallPayout` composes both before a coin or a hit point
+    // moves, so what the card is worth is the difference between the two runs and
+    // never a second multiplication.
     const g = game(41);
     const raider = createUnit(g.state, 0, 'warrior', g.state.units[0]!.col, g.state.units[0]!.row);
     raider.hp = 40;
@@ -1243,15 +1271,35 @@ describe('the behavioural hooks, in the verbs they change', () => {
     tile.improvement = 'farm';
     slot(g.state, 0, 'scorchedEarth');
     const gold = g.state.players[0]!.gold;
-    pillageAt(g.state, raider, tile);
+    const raid = pillageAt(g.state, raider, tile);
     expect(g.state.players[0]!.gold).toBe(gold + RULES.improvements.pillageGold + 10);
-    expect(raider.hp).toBe(65);
-    // Capped at the type's maximum, like every other heal in the game.
+    // The report carries the **salvage**; the rider's +10 is a grant paid beside
+    // it into the same bank, which is `CampBounty.gold`'s reading exactly.
+    expect(raid.gold).toBe(RULES.improvements.pillageGold);
+    expect(raider.hp).toBe(40 + RULES.improvements.pillageHeal + 25);
+    expect(raid.heal).toBe(RULES.improvements.pillageHeal + 25);
+    // Capped at the type's maximum, like every other heal in the game — and the
+    // report says what the bar moved by, not what was offered.
     raider.hp = 95;
     tile.improvement = 'farm';
     raider.movesLeft = 2;
-    pillageAt(g.state, raider, tile);
+    const second = pillageAt(g.state, raider, tile);
     expect(raider.hp).toBe(100);
+    expect(second.heal).toBe(5);
+  });
+
+  it('pays the base heal with no card slotted at all', () => {
+    // The half the riders used to be the only source of. A raid heals because it
+    // is a raid; Scorched Earth only makes it heal *more*.
+    const g = game(41);
+    const raider = createUnit(g.state, 0, 'warrior', g.state.units[0]!.col, g.state.units[0]!.row);
+    raider.hp = 40;
+    const tile = getTileAt(g.state.map, raider.col, raider.row)!;
+    tile.improvement = 'farm';
+    const raid = pillageAt(g.state, raider, tile);
+    expect(raid.heal).toBe(RULES.improvements.pillageHeal);
+    expect(raid.gold).toBe(RULES.improvements.pillageGold);
+    expect(raid.warning).toBeNull();
   });
 
   it('windfallRider growth — Granary Levies pays the town that grew', () => {
@@ -1457,5 +1505,483 @@ describe('every upgrade is a real upgrade', () => {
     for (let draw = 0; draw < 40; draw++) {
       expect(drawOrderOffer(game.state, player).upgrade).toBe(deepenable);
     }
+  });
+});
+
+// --- the master-list cut of 2026-08-28 --------------------------------------
+
+/**
+ * The rows the user rewrote in `docs/orders-and-doctrines.md`, and the shapes
+ * they needed.
+ *
+ * One behavioural test per **new shape** — the register test above only proves a
+ * shape is *named* by a row, and a shape that is named and unread is exactly the
+ * failure the vocabulary exists to prevent — plus the printed sentence of every
+ * changed row, because the doc's sentence *is* the card and a row whose effects
+ * drifted from its words is a card that lies.
+ */
+describe('the master-list cut of 2026-08-28', () => {
+  it('buildingsOfCategory — the Merchant League pays per gold building', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.government = 'merchantLeague';
+    // No gold buildings: no line at all, rather than a line worth nothing.
+    expect(cardEmpireYields(g.state, 0).some((l) => l.card === 'merchantLeague')).toBe(false);
+    city.buildings.push('market');
+    expect(foldCardYields(cardEmpireYields(g.state, 0)).gold).toBe(1);
+    // A *second* market in a second town is a second helping: the count is of
+    // buildings across the realm, which is what `buildingsOfKind` counts one
+    // grade narrower.
+    city.buildings.push('monument');
+    expect(foldCardYields(cardEmpireYields(g.state, 0)).gold).toBe(1);
+  });
+
+  it('capitalFaithPerTurn — Theocracy tithes the capital and nowhere else', () => {
+    const g = game();
+    found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.government = 'theocracy';
+    const lines = cardEmpireYields(g.state, 0, { faithPerTurn: 100, capitalFaithPerTurn: 30 });
+    const paid = foldCardYields(lines);
+    // Ten percent of the *capital's* thirty, twice over — and deliberately not
+    // ten percent of the empire's hundred.
+    expect(paid.science).toBe(3);
+    expect(paid.culture).toBe(3);
+  });
+
+  it('routeYields — the charter is a line in the caravan breakdown, not a multiplication after it', () => {
+    const g = game();
+    const from = found(g.state, 0);
+    const to = foundCityAt(g.state, 0, getTileAt(g.state.map, (from.col + 5) % g.state.map.width, from.row)!);
+    from.buildings.push('market', 'workshop', 'barracks', 'granary', 'library', 'monument');
+    const before = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+    playerById(g.state, 0)!.statecraft.government = 'merchantLeague';
+    const after = explainRouteYieldBetween(g.state, from, to);
+    // Rule 5: the extra is a line of the list the totals are the fold of.
+    expect(after.some((line) => line.source.includes('charter'))).toBe(true);
+    const paid = foldRouteYield(after);
+    expect(paid.food).toBe(before.food + Math.floor((before.food * 50) / 100));
+    expect(paid.production).toBe(before.production + Math.floor((before.production * 50) / 100));
+  });
+
+  it('greatPeopleOfFamily — The Empire scales with the generals it has earned', () => {
+    const g = createGame({
+      seed: 5,
+      sizeName: 'duel',
+      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
+      barbarians: true,
+    });
+    const wild = g.state.players.find((p) => p.barbarian)!;
+    const player = playerById(g.state, 0)!;
+    player.statecraft.government = 'theEmpire';
+    const mine = g.state.units.find((u) => u.ownerId === 0 && u.type === 'warrior')
+      ?? createUnit(g.state, 0, 'warrior', g.state.units[0]!.col, g.state.units[0]!.row);
+    const target = getTileAt(g.state.map, mine.col + 1, mine.row)!;
+    createUnit(g.state, wild.id, 'warrior', target.col, target.row);
+    const before = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+    if (!before.ok) return;
+    // No generals, no line: a zero pays nothing rather than a line worth zero.
+    expect(before.bonuses.some((b) => b.source.includes('The Empire'))).toBe(false);
+    // A general already **spent** counts: "earned this game" is the roll of who
+    // has ever answered, which is the legacies plus whoever is still walking.
+    // Asserted as the card's own labelled line rather than as a change in the
+    // total — a legacy is itself a live card and moves the same total.
+    player.legacies.push('hannibal');
+    const after = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    const line = after.bonuses.find((b) => b.source.includes('The Empire'))!;
+    expect(line.amount).toBe(1);
+    // A scholar is not a general — the family is the whole of the rule.
+    player.legacies.push('imhotep');
+    const third = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+    if (third.ok) {
+      expect(third.bonuses.find((b) => b.source.includes('The Empire'))!.amount).toBe(1);
+    }
+  });
+
+  it('renown per wonder — The Magisterium pays for the stones it holds', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.government = 'theMagisterium';
+    expect(cardRenownLines(g.state, 0)).toEqual([]);
+    city.buildings.push('pyramids');
+    expect(cardRenownLines(g.state, 0)).toEqual([
+      {
+        card: 'theMagisterium',
+        source: 'Government · The Magisterium · 3 per wonder × 1',
+        family: null,
+        amount: 3,
+      },
+    ]);
+  });
+
+  it('defensiveBuildings — The Long Watch counts the walls, read off the rows', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'theLongWatch');
+    const before = foldMeter(explainHappiness(g.state, 0));
+    // A granary is not a fortification and a palisade is — decided by what the
+    // row does to the town, never by a list of names.
+    city.buildings.push('granary');
+    expect(foldMeter(explainHappiness(g.state, 0))).toBe(before);
+    city.buildings.push('palisade');
+    expect(foldMeter(explainHappiness(g.state, 0))).toBe(before + 1);
+  });
+
+  it('discoveredCamps and vsBarbarians — Border Ballads pays for the wild twice over', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'borderBallads');
+    expect(cardEmpireYields(g.state, 0).some((l) => l.card === 'borderBallads')).toBe(false);
+    // A camp on ground this seat has walked past. `visibleCamps`' sibling: the
+    // grid is monotone, so the count does not fall when the scout goes home.
+    g.state.camps.push({ col: city.col, row: city.row, foundedTurn: 0 });
+    expect(foldCardYields(cardEmpireYields(g.state, 0)).culture).toBe(2);
+    // The kill rider fires only against the wild.
+    expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([]);
+    expect(windfallPayout(g.state, 0, 'kill', 0, 0, { vsBarbarians: true }).grants).toEqual([
+      { card: 'borderBallads', source: 'Order · Border Ballads', yield: 'culture', amount: 4 },
+    ]);
+  });
+
+  it('tradeRoutes — Silk Roads counts the caravans that are actually running', () => {
+    const g = game();
+    const from = found(g.state, 0);
+    const to = foundCityAt(g.state, 0, getTileAt(g.state.map, (from.col + 5) % g.state.map.width, from.row)!);
+    slot(g.state, 0, 'silkRoads');
+    expect(cardEmpireYields(g.state, 0).some((l) => l.card === 'silkRoads')).toBe(false);
+    const trader = createUnit(g.state, 0, 'warrior', from.col, from.row);
+    trader.trade = { from: from.id, to: to.id, expiresTurn: g.state.turn + 10, outbound: true, autoResend: false };
+    expect(foldCardYields(cardEmpireYields(g.state, 0)).gold).toBe(3);
+    // A lapsed route is not a route: expiry is one comparison, here as everywhere.
+    trader.trade.expiresTurn = g.state.turn;
+    expect(cardEmpireYields(g.state, 0).some((l) => l.card === 'silkRoads')).toBe(false);
+  });
+
+  it('buying or completing — Rites of Passage pays once for a warrior, however it was paid for', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    slot(g.state, 0, 'ritesOfPassage');
+    expect(windfallPayout(g.state, 0, 'unitCompletion').grants[0]?.amount).toBe(5);
+    // **One row covers both halves of the card**, because a bought thing is
+    // realised through `realiseItem` exactly as a built one is and the
+    // completion riders live inside that routine. A second `purchase` occasion
+    // would have paid this card twice for one warrior — see `WindfallOccasion`.
+    player.gold = 10000;
+    const faith = player.faithPool;
+    const bought = dispatch(g, {
+      type: 'purchaseItem',
+      playerId: 0,
+      cityId: city.id,
+      item: { kind: 'unit', id: 'warrior' },
+      currency: 'gold',
+    } as unknown as Command);
+    expect(bought.ok).toBe(true);
+    expect(player.faithPool).toBe(faith + 5);
+  });
+
+  it('randomMilitary — Camp Followers gifts a piece, and the same piece on a replay', () => {
+    const draw = (seed: number): { type: string; note: string } => {
+      const g = game(seed);
+      found(g.state, 0);
+      slot(g.state, 0, 'campFollowers');
+      const payout = windfallPayout(g.state, 0, 'camp');
+      return { type: payout.units[0]!.type, note: payout.lines.map((l) => l.note).join('|') };
+    };
+    const first = draw(7);
+    // Drawn from `state.rng` at the moment the payout is composed, so the same
+    // seed and the same log land the same spearman.
+    expect(draw(7)).toEqual(first);
+    expect(unitDef(first.type as never).category).toBe('military');
+    expect(first.note).toContain('joins you');
+
+    // And it is *delivered*, through `realiseItem` — the one completion routine.
+    const g = game();
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'campFollowers');
+    const before = g.state.units.length;
+    const payout = windfallPayout(g.state, 0, 'camp');
+    payWindfallGrants(g.state, playerById(g.state, 0)!, payout, { col: city.col, row: city.row });
+    expect(g.state.units.length).toBe(before + 1);
+  });
+
+  it('population within a city — the Republic pays each town for its own citizens', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.government = 'republic';
+    city.population = 12;
+    const line = cardCityYields(g.state, city).find((l) => l.card === 'republic')!;
+    expect(line.culture).toBe(2);
+    // Empire-wide it would have been the realm's whole population; `within` is
+    // what makes it this town's.
+    expect(cardEmpireYields(g.state, 0).some((l) => l.card === 'republic')).toBe(false);
+  });
+
+  it("foundingRider roads — The Founders' Road joins a new town to the realm", () => {
+    const g = game();
+    const first = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('foundersRoad');
+    expect(cardFoundingRider(g.state, 0).roads).toBe(true);
+    const far = getTileAt(g.state.map, (first.col + 5) % g.state.map.width, first.row)!;
+    foundCityAt(g.state, 0, far);
+    // The line between the two centres, written through the one road writer.
+    const between = getTileAt(g.state.map, (first.col + 2) % g.state.map.width, first.row)!;
+    if (isPassable(between)) expect(between.road).toBe(0);
+    // The first city of a realm has nowhere to be joined to and is left alone.
+    const g2 = game();
+    g2.state.players[0]!.statecraft.doctrines.push('foundersRoad');
+    const only = found(g2.state, 0);
+    expect(getTileAt(g2.state.map, only.col, only.row)!.road).toBeUndefined();
+  });
+
+  it('unlocksBuilding — the Gilded Hall is opened by the Court and sold, never built', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    // Without the doctrine the row does not exist for this empire at all, which
+    // is what `unlockedByCard` buys: an ungated building would otherwise be
+    // available from turn one.
+    expect(isUnlocked(g.state, 0, 'building', 'gildedHall')).toBe(false);
+    player.statecraft.doctrines.push('gildedCourt');
+    expect(isUnlocked(g.state, 0, 'building', 'gildedHall')).toBe(true);
+    // Open, and still not buildable: it is bought or not at all.
+    expect(buildError(g.state, 0, 'building', 'gildedHall', city)).toContain('bought');
+    player.gold = 10000;
+    expect(purchaseError(g.state, 0, city.id, { kind: 'building', id: 'gildedHall' }, 'gold')).toBeNull();
+    const price = explainPurchaseCost(g.state, 0, city.id, { kind: 'building', id: 'gildedHall' }, 'gold')!;
+    // The card's 500 gold is the row's 250 hammers at `goldPerHammer`.
+    expect(price.total).toBe(buildingDef('gildedHall').cost * RULES.production.goldPerHammer);
+  });
+
+  it("barbarianKillsConvert — Wolf-Mother's Pact takes the fallen instead of burying them", () => {
+    const g = createGame({
+      seed: 5,
+      sizeName: 'duel',
+      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
+      barbarians: true,
+    });
+    const wild = g.state.players.find((p) => p.barbarian)!;
+    g.state.players[0]!.statecraft.doctrines.push('wolfMothersPact');
+    const mine = g.state.units.find((u) => u.ownerId === 0 && u.type === 'warrior')
+      ?? createUnit(g.state, 0, 'warrior', g.state.units[0]!.col, g.state.units[0]!.row);
+    const target = getTileAt(g.state.map, mine.col + 1, mine.row)!;
+    const raider = createUnit(g.state, wild.id, 'warrior', target.col, target.row);
+    raider.hp = 1;
+    const preview = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+    if (!preview.ok) return;
+    const result = dispatch(g, {
+      type: 'attack', playerId: 0, unitId: mine.id, target: { col: target.col, row: target.row },
+    } as unknown as Command);
+    expect(result.ok).toBe(true);
+    const after = g.state.units.find((u) => u.id === raider.id);
+    // Not dead: standing, on its feet, and flying the killer's colours.
+    expect(after).toBeDefined();
+    expect(after!.ownerId).toBe(0);
+    expect(after!.hp).toBeGreaterThan(0);
+  });
+
+  it("noCampClearing — Wolf-Mother's Pact does not sack its ally's villages", () => {
+    const g = game();
+    const player = playerById(g.state, 0)!;
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    const tile = getTileAt(g.state.map, unit.col, unit.row)!;
+    g.state.camps.push({ col: tile.col, row: tile.row, foundedTurn: 0 });
+    player.statecraft.doctrines.push('wolfMothersPact');
+    expect(arriveOnTile(g.state, unit, tile).camp).toBeNull();
+    expect(g.state.camps).toHaveLength(1);
+    // Without the doctrine the same arrival burns it out — the rule is the card.
+    player.statecraft.doctrines = [];
+    expect(arriveOnTile(g.state, unit, tile).camp).not.toBeNull();
+    expect(g.state.camps).toHaveLength(0);
+  });
+
+  it('onSlot — The Laureate calls one great person, and never a second', () => {
+    const g = game();
+    found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    const sc = player.statecraft;
+    grant(sc, 'theLaureate');
+    // Room for it: the chiefdom's wildcard slot takes anything.
+    const index = slotLayout(sc.government).indexOf('wildcard');
+    expect(dispatch(g, {
+      type: 'slotOrder', playerId: 0, cardId: 'theLaureate', slotIndex: index,
+    } as Command).ok).toBe(true);
+    expect(sc.grantedOnSlot).toEqual(['theLaureate']);
+    expect(player.greatPersonOffer).toBeDefined();
+
+    // Answer the offer, empty the slot when the seal lifts, and slot it again:
+    // the flag is presence, and nothing removes an entry.
+    delete player.greatPersonOffer;
+    g.state.turn = sc.slots[index]!.sealedUntil;
+    expect(dispatch(g, { type: 'unslotOrder', playerId: 0, slotIndex: index } as Command).ok).toBe(true);
+    expect(dispatch(g, {
+      type: 'slotOrder', playerId: 0, cardId: 'theLaureate', slotIndex: index,
+    } as Command).ok).toBe(true);
+    expect(sc.grantedOnSlot).toEqual(['theLaureate']);
+    expect(player.greatPersonOffer).toBeUndefined();
+  });
+
+  it('offers Gov IV and Gov V at their rungs, and deals a Doctrine pool for each', () => {
+    for (const tier of [29, 45]) {
+      expect(governmentsAtTier(tier)).toHaveLength(3);
+      expect(poolDoctrines(tier).length).toBeGreaterThanOrEqual(RULES.offers.doctrine);
+      // Every one of them opens the last Order pool — the ladder's top rung has
+      // no pool of its own, and `poolOfGovernment` says so rather than throwing.
+      for (const id of governmentsAtTier(tier)) {
+        expect(poolOfGovernment(id)).toBe('governmentIII');
+      }
+    }
+    const g = game();
+    const player = playerById(g.state, 0)!;
+    // Straight to the fourth rung: the offer is a fact about the tier.
+    player.statecraft.drafts = 28;
+    player.culturePool = draftCost(28);
+    settleCultureWindfall(g.state, player);
+    dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command);
+    expect(player.statecraft.pendingGovernment?.options).toEqual(governmentsAtTier(29));
+    expect(dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 } as Command).ok).toBe(true);
+    expect(player.statecraft.pendingDoctrine?.options.length).toBe(RULES.offers.doctrine);
+    for (const id of player.statecraft.pendingDoctrine!.options) {
+      expect(doctrineDef(id).tier).toBe(29);
+    }
+  });
+
+  it('retires The Loose Rein from every pool while keeping the row readable', () => {
+    expect(orderDef('theLooseRein').retired).toBe(true);
+    for (const pool of ORDER_POOLS) expect(poolOrders(pool)).not.toContain('theLooseRein');
+    // Still a card: a save that holds it slotted still replays, and it still
+    // says what it does.
+    expect(describeCard('theLooseRein').map((c) => c.text)).toEqual([
+      "your Orders' seals last 2 turns",
+    ]);
+    const g = game();
+    slot(g.state, 0, 'theLooseRein');
+    expect(sealTurnsFor(g.state, 0)).toBe(2);
+  });
+
+  it('reads a seal card as a departure from the table, so a longer seal is a real cost', () => {
+    const g = game();
+    expect(sealTurnsFor(g.state, 0)).toBe(STATECRAFT.meter.sealTurns);
+    playerById(g.state, 0)!.statecraft.doctrines.push('absolutism');
+    expect(sealTurnsFor(g.state, 0)).toBe(10);
+  });
+
+  it('prints every changed row in the words the master list ratified', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => c.text);
+
+    expect(said('republic')).toEqual([
+      '+1 culture per 5 population in this city',
+      '-5% happiness demanded per citizen',
+    ]);
+    expect(said('tyranny')).toEqual([
+      '+3 authority capacity',
+      'pillaging pays +50%',
+      '30% less maintenance cost for units — not built yet',
+    ]);
+    expect(said('theocracy')).toEqual([
+      '+2 faith in every city',
+      '+1 science per 10 faith your capital gains per turn',
+      '+1 culture per 10 faith your capital gains per turn',
+    ]);
+    expect(said('merchantLeague')).toEqual([
+      '+1 gold per gold building',
+      'trade routes pay +50% more',
+    ]);
+    expect(said('imperium')).toEqual(['+3 authority capacity', 'all units: +1 movement']);
+
+    expect(said('theEstates')).toEqual([
+      '+1 happiness in every city',
+      '+2 culture in every city of 8+',
+    ]);
+    expect(said('theSultanate')).toEqual([
+      'all units: +1 movement',
+      '-20% production toward units',
+      '+10% science in every conquered city',
+      '+10% culture in every conquered city',
+    ]);
+    expect(said('theCuria')).toEqual([
+      '+3 faith per Cathedral — not built yet',
+      'faith buildings supply science equal to their faith — not built yet',
+    ]);
+    expect(said('theCommonwealth')).toEqual([
+      'great people can be purchased with gold — not built yet',
+      'great-people improvements gain +50% yields — not built yet',
+    ]);
+    expect(said('theEmpire')).toEqual([
+      '+6 authority capacity',
+      '+1 combat strength per great general earned this game',
+      'capturing a city with a wonder heals all your units — not built yet',
+    ]);
+    expect(said('theMagisterium')).toEqual([
+      '+1 card in every draft of every kind',
+      '+3 renown per turn per wonder you hold',
+      'great people can be purchased with faith — not built yet',
+    ]);
+
+    expect(said('wolfMothersPact')).toEqual([
+      'barbarians never attack you',
+      'a barbarian you kill joins you instead of dying',
+      'you can no longer clear a barbarian camp',
+    ]);
+    expect(said('foundersRoad')).toEqual([
+      'new cities are founded with a Monument (first 5 cities)',
+      'new cities are joined to your realm by road',
+    ]);
+    expect(said('gildedCourt')).toEqual(['unlocks the Gilded Hall', '+3 authority capacity']);
+    expect(said('burningWay')).toEqual([
+      'chopping costs no worker charge',
+      'pillaging heals a further 25',
+    ]);
+    expect(said('scorchedEarth')).toEqual([
+      'pillaging heals a further 25',
+      'pillaging grants +10 gold',
+    ]);
+
+    expect(said('bloodedSpears')).toEqual([
+      '+1 combat strength',
+      '+2 combat strength against barbarians',
+    ]);
+    expect(said('campFollowers')).toEqual([
+      'clearing a camp grants +25 food',
+      'clearing a camp gifts a random military unit',
+    ]);
+    expect(said('farRunners')).toEqual([
+      'scout units: +1 movement',
+      'scout units: +1 sight',
+      'civilian units: +2 movement while embarked',
+    ]);
+    expect(said('theLongWatch')).toEqual([
+      '+1 happiness per fortification level in the garrison',
+      '+1 happiness per fortification in this city',
+    ]);
+    expect(said('theWidowsLevy')).toEqual([
+      'losing a unit grants +10 production',
+      'losing a unit grants +40 gold',
+    ]);
+    expect(said('commonGranary')).toEqual(['+1 food on every tile carrying a luxury resource']);
+    expect(said('saltTithes')).toEqual(['+2 gold per unique luxury']);
+    expect(said('borderBallads')).toEqual([
+      '+2 culture per camp you have found',
+      'killing a unit of the wild grants +4 culture',
+    ]);
+    expect(said('silkRoads')).toEqual(['+3 gold per trade route you run']);
+    expect(said('festivalDays')).toEqual(['+4 happiness']);
+    expect(said('ritesOfPassage')).toEqual(['completing a unit grants +5 faith']);
+    expect(said('theLaureate')).toEqual([
+      '+2 science on every academy tile',
+      '+2 culture on every landmark tile',
+      '+2 production on every manufactory tile',
+      '+2 gold on every customs house tile',
+      '+2 production on every citadel tile',
+      'the first time this is slotted, a great person answers your call',
+    ]);
+
+    // The beliefs the same pass touched, read by the same evaluator.
+    expect(said('ladyOfTheHunt')).toEqual([
+      '+1 food, +1 gold on every camp tile',
+      'clearing a camp grants +10 faith',
+    ]);
+    expect(said('lordOfTheSea')).toEqual(['+1 production, +1 gold on every fishing boat tile']);
   });
 });

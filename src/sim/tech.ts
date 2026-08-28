@@ -118,6 +118,7 @@ import {
 import { RULES } from './rulesData';
 import type { CityScope } from './statecraftData';
 import {
+  cardUnlocksBuilding,
   cityScopeAdmits,
   payWindfallGrants,
   settleCultureWindfall,
@@ -202,6 +203,15 @@ export function isUnlocked(
   kind: QueueKind,
   id: string,
 ): boolean {
+  // **A row a card opens is asked of the cards**, before the tree, because it
+  // has no gate in the tree to be asked about: a building no technology names is
+  // otherwise available from turn one, which is the right default for content
+  // and exactly wrong for content a doctrine is meant to hand over (the Gilded
+  // Hall). One clause of the one availability question rather than a second gate
+  // beside it — see `BuildingDef.unlockedByCard`.
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByCard === true) {
+    return cardUnlocksBuilding(state, playerId, id);
+  }
   const gate = gatingTech(kind, id);
   if (gate === null) return true;
   return hasTech(state, playerId, gate);
@@ -339,6 +349,15 @@ export function buildError(
   if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).purchase?.exclusive === true) {
     const spec = unitDef(id).purchase!;
     return `${itemName(kind, id)}s are not built — they are bought with ${spec.currency}`;
+  }
+  // A **building** may be bought-or-not-at-all too, and the sentence is the
+  // augur's with the bank left unnamed: the Gilded Hall is sold by the treasury
+  // like every other building, so what the refusal is about is the *queue*, not
+  // the coin. Beside the unit clause rather than folded into it because the two
+  // fields are on two tables (`UnitDef.purchase.exclusive`, `BuildingDef
+  // .purchaseOnly`) and a row that named both would be a row of nothing.
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).purchaseOnly === true) {
+    return `${itemName(kind, id)} is not built — it is bought`;
   }
   // And some things are **neither built nor bought**: a great person is
   // *recruited*, by a renown bucket that filled and an offer that was answered

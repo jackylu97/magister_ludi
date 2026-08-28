@@ -44,7 +44,7 @@
 
 import statecraftJson from '../../data/statecraft.json';
 
-import type { BuildingId, ProductionCategory } from './buildingData';
+import type { BuildingCategory, BuildingId, ProductionCategory } from './buildingData';
 // Type-only in both directions, exactly as `religionData.ts` is. See `CardId`.
 import type { Family, GreatPersonId } from './greatPeopleData';
 import type { ImprovementId } from './improvementData';
@@ -321,7 +321,22 @@ export type CombatCondition =
   | { test: 'fortified' };
 
 /** What a strength line counts, when it counts something. */
-export type CombatScaleCount = 'cities' | 'adjacentFriendlies';
+export type CombatScaleCount =
+  | 'cities'
+  | 'adjacentFriendlies'
+  /**
+   * Great people of one **family** this empire has earned — The Empire's line
+   * ("+1 combat strength for every great general earned this game").
+   *
+   * `CardCountScaledEffect.class`' sibling one table over, and the same bargain:
+   * a count that needs an argument names it on the scale (`family`) rather than
+   * in the union, so "per great general" and "per great engineer" are one arm.
+   * *Earned*, not *held*: the sweep is `Player.legacies` — the people already
+   * spent — plus this empire's pieces still standing, which between them are
+   * every name it has ever been handed. A general who plants his citadel keeps
+   * paying, which is what "earned this game" says.
+   */
+  | 'greatPeopleOfFamily';
 
 /** A strength line that scales with a count, capped where the design caps it. */
 export interface CombatScale {
@@ -330,6 +345,8 @@ export interface CombatScale {
   per: number;
   /** The most it may ever be worth, in strength points. */
   max?: number;
+  /** Which family `greatPeopleOfFamily` counts. Ignored by the other counts. */
+  family?: Family;
 }
 
 /**
@@ -568,12 +585,67 @@ export type CountKind =
    * one. An absent filter counts every piece, the filter's own reading
    * everywhere else.
    */
-  | 'unitsInField';
+  | 'unitsInField'
+  /**
+   * Buildings of one **category** the empire holds — one per city per building,
+   * counted across the realm, narrowed to the town by `within: 'city'`.
+   *
+   * `buildingsOfKind`'s variant, and it takes its argument the same way
+   * (`CardCountScaledEffect.category`): where that count names *one row*, this
+   * names what a row is *for* (`BuildingDef.category`, the one word every
+   * building declares). The Merchant League's "+1 gold for every gold-producing
+   * building" is one line of it, and a second gold building is a JSON row rather
+   * than an edit here — which is exactly why the category and not a list.
+   */
+  | 'buildingsOfCategory'
+  /**
+   * **Fortification** buildings standing in this city (city-scoped) — a
+   * palisade, a wall, whatever a later age calls a castle.
+   *
+   * The Long Watch's second line. "Which buildings are fortifications" is read
+   * off the rows rather than off a list of names: a building that raises what a
+   * town is worth to storm (`cityStat.defense`) or how long it takes to empty
+   * (`cityHp`) is a fortification, and nothing else is. So a watchtower added to
+   * the table joins the count for free and a granary never can.
+   */
+  | 'defensiveBuildings'
+  /**
+   * Barbarian camps standing on hexes this seat has **explored** — Border
+   * Ballads', and deliberately not `visibleCamps`.
+   *
+   * The difference is the card: "per camp you can currently see" is a reason to
+   * park a scout, and "per camp you have discovered" is a reason to go and look.
+   * Read off `GameState.visibility`, which is monotone — a hex explored is
+   * explored forever — so the count falls only when a camp is actually burnt
+   * out, which is the trade the card is about.
+   */
+  | 'discoveredCamps'
+  /**
+   * Trade routes this empire is **running right now** — Silk Roads'.
+   *
+   * The caravans of this seat carrying a live route, counted off the board
+   * (`Unit.trade`, live while `state.turn < expiresTurn`) rather than off
+   * `trade.ts`, which reads *this* module for its slot fold and may not be read
+   * back. One comparison, exactly as expiry is one comparison everywhere else.
+   */
+  | 'tradeRoutes';
 
 /** What a `rateConversion` reads. A *rate* or a meter standing, never a bank. */
 export type RateSource =
   /** Faith the empire banked this turn. */
   | 'faithPerTurn'
+  /**
+   * Faith **the capital** banked this turn — Theocracy's tithe of the temple
+   * city ("10% of your capital's faith is gained as science and culture").
+   *
+   * `faithPerTurn` narrowed to one town, and a source of its own rather than a
+   * scope on the shape for `CityScope`'s stated reason: a rate is a fact about
+   * the empire's *books*, and the two questions ("what did I bank", "what did
+   * the capital bank") are two readings of the calendar, each in the shape its
+   * cards want. Handed in by `collectYields`, which has just computed the
+   * capital's total, exactly as the empire-wide rates are.
+   */
+  | 'capitalFaithPerTurn'
   /** Culture the empire banked this turn. */
   | 'culturePerTurn'
   /** Gold the empire banked this turn. */
@@ -641,8 +713,31 @@ export type ActionRuleId =
   /** Settlers stop getting dearer. */
   | 'noSettlerEscalation';
 
-/** Something about the world that stops being true. Today: one. */
-export type BehaviorRuleId = 'barbariansPassive';
+/**
+ * Something about the world that stops being true — or starts.
+ *
+ * Three now, and all three are Wolf-Mother's Pact, which is the shape working:
+ * a doctrine that rewrites the wild's relationship with an empire says so in
+ * three named rules that three verbs read, rather than in one clause the wild's
+ * own module has to know about.
+ */
+export type BehaviorRuleId =
+  /** The wild never attacks this empire. Theft continues. */
+  | 'barbariansPassive'
+  /**
+   * A barbarian **killed** by this empire changes sides instead of dying —
+   * handed over by `captureUnit` in `applyCombat`'s kill path, which is the one
+   * implementation of a change of hands and the reason this is a rule rather
+   * than a second way to acquire a piece.
+   */
+  | 'barbarianKillsConvert'
+  /**
+   * This empire can no longer **clear a camp**: arriving on one burns nothing
+   * out and pays no bounty (`arriveOnTile`). Wolf-Mother's price for the
+   * conversion above — the wild is an ally, and you do not sack an ally's
+   * villages.
+   */
+  | 'noCampClearing';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId = 'sealTurns';
@@ -664,7 +759,17 @@ export type AmplifierTarget =
    * got longer when the wonder finished would be re-deriving a fact the state
    * already wrote down.
    */
-  | 'riteDuration';
+  | 'riteDuration'
+  /**
+   * What a **trade route** pays — the Merchant League's fifty percent, and The
+   * Sea Charter's.
+   *
+   * Read in `explainRouteYieldBetween` (`trade.ts`), which is where the three
+   * lines of a route's figure are folded, and it joins as **one more line of
+   * that list** rather than as a multiplication afterwards: rule 5 for a
+   * caravan. The route's owner is the origin's, which is the seat that sent it.
+   */
+  | 'routeYields';
 
 /**
  * A rule about how an offer *pays*, as against how big it is.
@@ -718,6 +823,14 @@ export type WindfallOccasion =
   | 'growth'
   /** Any item completed. */
   | 'completion'
+  // **There is deliberately no `purchase` occasion**, and finding out why is
+  // what the one-completion-routine rule is worth: a bought thing is realised
+  // through `realiseItem` exactly as a built one is, and `payCompletionRiders`
+  // lives *inside* that routine — so `unitCompletion` already fires for a unit
+  // however it was paid for. Rites of Passage's "buying or completing a unit"
+  // is therefore **one row**, and an occasion added beside it would have paid
+  // that card twice for one warrior. The day a card wants to pay on a purchase
+  // and *not* on a completion, that is a real distinction and earns a member.
   /** A building completed. */
   | 'buildingCompletion'
   /** A unit completed. */
@@ -748,6 +861,21 @@ export interface WindfallGrantSpec {
   amount?: number;
   /** Hit points restored to the acting unit. Pillage's, today. */
   heal?: number;
+  /**
+   * A **piece**, gifted outright — Camp Followers' "and gift a random military
+   * unit".
+   *
+   * A named *kind of draw* rather than a `UnitTypeId`, because the card's
+   * sentence is about the draw: "a random military unit" means one of the
+   * soldiers this empire could actually raise on the turn it happens, so a
+   * bronze-age camp pays a warrior and a later one pays whatever the tree has
+   * opened since. Rolled from `state.rng` in `windfallPayout` — where every
+   * other figure on a payout is composed, so the whole thing is decided before
+   * anything is banked (Entry XVIII.5) and a replay reproduces it — and realised
+   * through `realiseItem`'s unit path by `payWindfallGrants`, which is the one
+   * completion routine and the reason this is not a second way to mint a unit.
+   */
+  unit?: 'randomMilitary';
 }
 
 // --- the vocabulary ---------------------------------------------------------
@@ -952,6 +1080,20 @@ export interface CardWindfallRiderEffect {
    * council rides harder on every kill.
    */
   perSlottedOrder?: boolean;
+  /**
+   * The rider fires **only against the wild** — Border Ballads' "+4 culture for
+   * every barbarian killed".
+   *
+   * A filter on the *occasion* rather than a fourth occasion, because "a kill"
+   * and "a kill of a barbarian" are one moment asked two ways, exactly as
+   * `CombatCondition`'s `vsBarbarians` narrows a strength line rather than
+   * earning a second `combatLine` shape. Read where the occasion is fired: the
+   * caller says whether the piece that fell was the wild's, and a rider that
+   * asks for it is dropped when it was not. Meaningless on an occasion that has
+   * no other side (a chop, a growth), which is a fact about the row rather than
+   * a rule here.
+   */
+  vsBarbarians?: boolean;
 }
 
 /** What a newly founded city is founded *with*. */
@@ -959,6 +1101,19 @@ export interface CardFoundingRiderEffect {
   kind: 'foundingRider';
   population?: number;
   building?: BuildingId;
+  /**
+   * The new town is **joined to the realm by road** — The Founders' Road's
+   * second half, live since the trade pass gave the game roads.
+   *
+   * On this shape rather than on an `actionRule` because it is the same
+   * question the other two fields answer — what does this empire's law found a
+   * city *with* — and a founding is where all three are read (`foundCityAt`,
+   * through `cardFoundingRider`). The road is laid along the path the caravan
+   * would have worn, through `Tile.road` and nothing else: one writer, so a
+   * highway a doctrine grants and a highway a trader wears are the same mark on
+   * the same field.
+   */
+  roads?: boolean;
   /** Only the first N cities. Absent means all of them. */
   maxCities?: number;
 }
@@ -974,6 +1129,15 @@ export interface CardCountScaledEffect {
   pays: CardPayout;
   /** Which building `buildingsOfKind` counts. Ignored by every other count. */
   building?: BuildingId;
+  /**
+   * Which category `buildingsOfCategory` counts. Ignored by every other count.
+   *
+   * `building`'s sibling, one grade wider: that field names a row and this names
+   * what a row is *for*. Both sit on the effect rather than in the union for the
+   * stated reason — the union stays a list of questions and the row says which
+   * one it is asking.
+   */
+  category?: BuildingCategory;
   /**
    * Which units `unitsInField` counts. Ignored by every other count.
    *
@@ -1281,8 +1445,19 @@ export interface CardProjectRiderEffect {
 export interface CardRenownEffect {
   kind: 'renown';
   amount: number;
-  /** `'city'` multiplies by the cities this empire holds. Absent: flat. */
-  per?: 'city';
+  /**
+   * What the trickle is multiplied by. Absent means flat.
+   *
+   *   · `'city'` — the cities this empire holds. The Council of Elders'.
+   *   · `'wonder'` — the wonders standing in them. The Magisterium's, and it
+   *     follows the stones like every other wonder reading: a captured wonder
+   *     pays its captor from the turn the town changes hands.
+   *
+   * Both are multipliers on a fact about the *empire* rather than a line per
+   * thing, so one line prints with the arithmetic shown ("… · 3 per wonder × 2")
+   * rather than a column a player has to add up.
+   */
+  per?: 'city' | 'wonder';
   /** Which family this feeds. Absent feeds the pool and no family. */
   family?: Family;
 }
@@ -1376,11 +1551,46 @@ export interface DoctrineDef extends CardDefBase {
   tier: number;
 }
 
+/**
+ * Something an Order hands over **the first time it is slotted**, once per game.
+ *
+ * The Laureate's "gain a great person". It is not a `CardEffect` and must not
+ * become one: every shape in that union is a *standing* reading of the board —
+ * ask it twice and it answers the same thing — while this happens at a moment
+ * and never again, which is the same split `CompletionGrant` draws for a
+ * building and `WindfallOccasion` draws for an act. So it is a field on the row,
+ * fired by `slotOrderAt` against a once-flag on the player
+ * (`PlayerStatecraft.grantedOnSlot`), and a second Order that wants one is a
+ * JSON row rather than a clause in the slot verb.
+ *
+ * It is deliberately a *named kind of grant* rather than a figure: "gain a great
+ * person" is not renown, it is the recruitment the ladder would have opened, so
+ * the settlement pours exactly what the ladder still needs through
+ * `settleRenownWindfall` and the offer opens the way a Triumph opens one.
+ */
+export interface OrderSlotGrant {
+  grant: 'greatPerson';
+}
+
 export interface OrderDef extends CardDefBase {
   pool: OrderPool;
   slot: SlotType;
   /** True for a card with no archetype thread. Presentation only. */
   neutral?: boolean;
+  /** What slotting this hands over, once per game. See `OrderSlotGrant`. */
+  onSlot?: OrderSlotGrant[];
+  /**
+   * **Withdrawn from the pool**: never dealt, never offered as an upgrade, and
+   * still fully readable.
+   *
+   * A card the design has taken out (The Loose Rein, 2026-08-28) rather than a
+   * card that never existed, and the distinction is the whole point: a save from
+   * before the cut may hold it slotted, and a row deleted outright would be a
+   * save that cannot be replayed — `anyCardDef` would throw on an id in the log.
+   * So the row stays, its effects stay live for whoever holds it, and
+   * `poolOrders` simply stops dealing it. Nothing else in the game asks.
+   */
+  retired?: boolean;
 }
 
 /** The escalating meter, and the seal. Every number the ladder is made of. */
@@ -1510,9 +1720,16 @@ export function cardName(id: CardId): string {
 
 // --- pools ------------------------------------------------------------------
 
-/** Every Order in one pool, in file order. */
+/**
+ * Every Order in one pool, in file order — **retired rows excluded**.
+ *
+ * The one reader of `OrderDef.retired`, which is what makes withdrawing a card a
+ * one-field decision: every draw, every upgrade roll and every screen that lists
+ * a pool comes through here, so a row taken out is out of all of them at once
+ * and still readable by a save that holds it.
+ */
 export function poolOrders(pool: OrderPool): OrderId[] {
-  return ORDER_IDS.filter((id) => orderDef(id).pool === pool);
+  return ORDER_IDS.filter((id) => orderDef(id).pool === pool && orderDef(id).retired !== true);
 }
 
 /**

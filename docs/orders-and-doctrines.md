@@ -2,6 +2,8 @@
 
 Every Order, Doctrine and government in one place, tables only. Edit here; the two working docs (`statecraft-cards.md`, `statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
 
+**As built, 2026-08-28** — a deferred half stands on: Tyranny · The Curia (both) · The Commonwealth (both) · The Empire · The Magisterium · The Academy of Deeds (both) · The Standing Army · The Sea Charter · The Renaissance Court · Cuius Regio (two) · Absolutism · Blitz (both) · The Philosopher's Stone (both) · The Grand Tour (II) · The Levée en Masse · Pax Magistri · The Encyclopaedia.
+
 ## Themes (the archetype lines)
 
 | Line | Playstyle | Ideas |
@@ -64,7 +66,7 @@ Every Order, Doctrine and government in one place, tables only. Edit here; the t
 |---|---|---|
 | Thalassocracy | 🐫 | +20% 💰 and 🎵 in coastal cities · coastal cities cost 1 fewer authority |
 | Mountain Hold | ⚒ | +25% ⚙ in mountain-adjacent cities · +5 defense there |
-| The Burning Way | ⚒ | chopping costs no worker charge · pillaging heals 25 |
+| The Burning Way | ⚒ | chopping costs no worker charge · pillaging heals a further 25 |
 | Bread and Circuses | 🌱 | +1🎵 per point of positive happiness (no cap) |
 | The Tithe | 🕯 | +1💰 per 🕯 gained per turn |
 | Divine Inspiration | 🕯 | +1% 🔬 and 🎵 per 200 banked 🕯 (no max) |
@@ -162,7 +164,7 @@ Every Order, Doctrine and government in one place, tables only. Edit here; the t
 | March Discipline | M | ⚒ |  | all combat units +1 movement |
 | The Shield Wall | M | ⚒ |  | +5 combat on hills |
 | Siege Doctrine | M | ⚒ |  | +5 combat when attacking cities |
-| Scorched Earth | M | — |  | pillaging heals 25 and pays +10💰 |
+| Scorched Earth | M | — |  | pillaging heals a further 25 and pays a further +10💰 |
 | Sumptuary Laws | E | 🐫 |  | +1 happiness per unique luxury |
 | Publicani | E | 🐫 |  | +1💰 per point of positive authority |
 | Chartered Companies | E | 🐫 |  | each tile purchased pays +5🔬 · purchases −15% |

@@ -76,6 +76,7 @@ import { type CombatOutcome, type SiegeReport, applyCombat, fortifyError } from 
 import { discoveryChoiceError, settleDiscovery } from './discoveries';
 import type { ImprovementId } from './improvementData';
 import {
+  type PillageReport,
   buildImprovementAt,
   chopCity,
   chopError,
@@ -112,6 +113,7 @@ import {
   readPurchasableItem,
 } from './purchase';
 import type { RiteId } from './religionData';
+import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { RULES } from './rulesData';
 import {
   type City,
@@ -974,6 +976,7 @@ export type CommandResult =
       grants?: CompletionGrantReport[];
       routesEnded?: RouteEndReport[];
       sieges?: SiegeReport[];
+      pillages?: PillageReport[];
     }
   | { ok: false; error: string };
 
@@ -1016,6 +1019,15 @@ export type CommandResult =
  * found cut off, and what the siege cost it (`SiegeReport`). A siege is derived
  * from where the armies stand and never stored, so this is the only place the
  * interface can learn that Uruk is starving rather than merely wounded.
+ *
+ * `pillages` is the eighth and the first that is news to **two** seats at once
+ * (2026-08-28, the wild's raiding pass). Two commands produce it: `pillage`,
+ * carrying the raider's own figures — which the announcement could not otherwise
+ * get right, because a rider is part of the printed number and
+ * `RULES.improvements.pillageGold` is only the base — and `endTurn`, carrying
+ * every farm the wild burnt during the resolution. A `PillageReport` names both
+ * the raider and the empire whose ground it was, so the interface can tell
+ * "your column burnt a farm" from "somebody burnt yours" without a second field.
  */
 function ok(
   arrivals?: readonly ArrivalReport[],
@@ -1025,6 +1037,7 @@ function ok(
   grants?: readonly CompletionGrantReport[],
   routesEnded?: readonly RouteEndReport[],
   sieges?: readonly SiegeReport[],
+  pillages?: readonly PillageReport[],
 ): CommandResult {
   const result: CommandResult = { ok: true };
   if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
@@ -1034,6 +1047,7 @@ function ok(
   if (grants !== undefined && grants.length > 0) result.grants = [...grants];
   if (routesEnded !== undefined && routesEnded.length > 0) result.routesEnded = [...routesEnded];
   if (sieges !== undefined && sieges.length > 0) result.sieges = [...sieges];
+  if (pillages !== undefined && pillages.length > 0) result.pillages = [...pillages];
   return result;
 }
 
@@ -1124,6 +1138,7 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
     report.grants,
     report.routesEnded,
     report.sieges,
+    report.pillages,
   );
 }
 
@@ -1821,8 +1836,13 @@ function applyPillage(state: GameState, command: PillageCommand): CommandResult 
   if (problem) return fail(problem);
 
   const tile = getTileAt(state.map, unit.col, unit.row)!;
-  pillageAt(state, unit, tile);
-  return ok();
+  // The raid's own figures ride back out (`PillageReport`). The interface cannot
+  // derive them: a rider is part of the printed number, so
+  // `RULES.improvements.pillageGold` is the base and never the answer, and the
+  // heal is what the bar *actually* moved by rather than what was offered.
+  return ok(undefined, undefined, undefined, undefined, undefined, undefined, undefined, [
+    pillageAt(state, unit, tile),
+  ]);
 }
 
 /**
@@ -1921,7 +1941,26 @@ function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandRes
   const problem = slotOrderError(state, actor.id, command.cardId, command.slotIndex);
   if (problem) return fail(problem);
 
-  slotOrderAt(state, actor, command.cardId, command.slotIndex);
+  const outcome = slotOrderAt(state, actor, command.cardId, command.slotIndex);
+  // **The Laureate's once-per-game gift, settled here and nowhere else.** The
+  // claim is `slotOrderAt`'s — it is the one place a card enters a slot — and
+  // the *settlement* is the reducer's, because "gain a great person" is a renown
+  // windfall and `renown.ts` reads `statecraft.ts`: the arrow points one way, so
+  // the module above both is what turns a claim into an offer. Poured through
+  // `settleRenownWindfall`, the bucket's own Entry XVIII seam, so the draft
+  // opens exactly as a Triumph opens one — including the rule that an empire
+  // already holding an offer banks rather than blocks.
+  for (const grant of outcome.granted) {
+    if (grant.grant !== 'greatPerson') continue;
+    // Exactly what the ladder still wants, and never more: the gift is *a great
+    // person*, not a lump of renown, so an empire two renown short of the next
+    // rung is handed two and an empire that has just recruited is handed the
+    // whole rung. The overflow it was already carrying is untouched, which is
+    // what keeps the ladder's arithmetic the ladder's.
+    const plan = planRecruitment(actor);
+    const owed = plan === null ? renownThreshold(actor) - actor.renownPool : 0;
+    settleRenownWindfall(state, actor, [{ family: null, amount: Math.max(0, owed) }]);
+  }
   return ok();
 }
 

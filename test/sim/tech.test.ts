@@ -161,7 +161,15 @@ describe('tech data integrity', () => {
       if (unitDef(id).greatWork === true) continue;
       expect(UNIT_UNLOCK_TECH.has(id), id).toBe(true);
     }
-    for (const id of BUILDING_IDS) expect(BUILDING_UNLOCK_TECH.has(id), id).toBe(true);
+    for (const id of BUILDING_IDS) {
+      // **The building exception, and it is the unit one's twin**: a row a
+      // *card* opens (`BuildingDef.unlockedByCard` — the Gilded Hall) has no
+      // node to hang on, and `isUnlocked` asks the cards for it instead of
+      // asking the tree. Without this clause an ungated row would be buildable
+      // from turn one, which is exactly what that field exists to prevent.
+      if (buildingDef(id).unlockedByCard === true) continue;
+      expect(BUILDING_UNLOCK_TECH.has(id), id).toBe(true);
+    }
   });
 
   it('gives every node at least one gift — no connective tissue (Entry V)', () => {

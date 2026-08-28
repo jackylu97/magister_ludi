@@ -11,9 +11,10 @@ import {
   canFoundCampAt,
   foundCamps,
   musterCamps,
+  raid,
 } from '../../src/sim/barbarians';
 import { campAt, hasCampAt, settleCampBounty } from '../../src/sim/camps';
-import { foundCityAt, growthThreshold } from '../../src/sim/cities';
+import { assignCitizens, foundCityAt, growthThreshold } from '../../src/sim/cities';
 import { previewCombat, updateElimination } from '../../src/sim/combat';
 import { applyCommand } from '../../src/sim/commands';
 import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
@@ -38,10 +39,11 @@ import {
   newGame,
   playerById,
   realPlayers,
+  type Unit,
 } from '../../src/sim/state';
 import { advanceResearch } from '../../src/sim/tech';
 import { TECH_IDS, type TechId } from '../../src/sim/techData';
-import { END_OF_TURN_PHASES, runEndOfTurn } from '../../src/sim/turn';
+import { END_OF_TURN_PHASES, emptyTurnReport, runEndOfTurn } from '../../src/sim/turn';
 import { unitDef } from '../../src/sim/unitData';
 import { fullMovement, hasStackingRoom } from '../../src/sim/units';
 import {
@@ -1249,5 +1251,204 @@ describe('the turn report', () => {
         target: { col: 10, row: 8 },
       }),
     ).toEqual({ ok: true });
+  });
+});
+
+/**
+ * **The wild burns what it walks over** (2026-08-28, the user's ruling).
+ *
+ * Three claims, and they fail for different reasons:
+ *
+ *   1. **It is the player's verb.** A raider tears out a farm through `pillageAt`
+ *      — the same function a swordsman's `pillage` command reaches — so the road
+ *      goes with it and the *victim's* panel is refreshed on the spot. There is
+ *      no second razing rule with the wild's name on it, exactly as there is no
+ *      second combat evaluator.
+ *   2. **Strike, then burn, then march**, in that order and only for a raider.
+ *      A blow already in reach outranks a torch; a torch outranks walking on.
+ *   3. **The wild keeps the bandage and forfeits the salvage**, and says why —
+ *      `settleCampBounty`'s warning read from the other side.
+ */
+describe('the raider’s torch', () => {
+  /**
+   * A raider standing on somebody's farm, two hexes from the town that owns it.
+   *
+   * Two rather than one on purpose: adjacent, the raider would be *in reach of
+   * the city* and the first beat would take it, which is the precedence this
+   * fixture is trying to leave room for rather than assert.
+   */
+  function torchState(): { state: GameState; raider: Unit; cityId: number } {
+    const state = wildState();
+    const city = foundCityAt(state, 0, at(state, 5, 8));
+    const farm = at(state, 7, 8);
+    farm.improvement = 'farm';
+    farm.road = 0;
+    state.tileOwner[tileIndex(state.map, 7, 8)] = city.id;
+    const raider = createUnit(state, wildId(state), 'warrior', 7, 8);
+    raider.hp = 40;
+    recomputeAllVisibility(state);
+    refill(state);
+    return { state, raider, cityId: city.id };
+  }
+
+  it('burns the works underfoot, keeps the heal and forfeits the salvage', () => {
+    const { state, raider } = torchState();
+    const report = emptyTurnReport();
+    raid(state, [raider.id], report);
+
+    expect(at(state, 7, 8).improvement).toBeUndefined();
+    // The road went with the farm: one verb takes what has been *built* on a hex.
+    expect(at(state, 7, 8).road).toBeUndefined();
+    expect(raider.hp).toBe(40 + RULES.improvements.pillageHeal);
+    // Nothing spends the wild's treasury, so nothing is banked into it and the
+    // reason is said out loud rather than left as a silent zero.
+    expect(barbarianPlayer(state)!.gold).toBe(0);
+    expect(report.pillages).toHaveLength(1);
+    expect(report.pillages[0]).toMatchObject({
+      ownerId: wildId(state),
+      fromOwnerId: 0,
+      col: 7,
+      row: 8,
+      improvement: 'farm',
+      road: true,
+      gold: 0,
+      heal: RULES.improvements.pillageHeal,
+      warning: 'the wild has no treasury to carry the salvage to',
+    });
+  });
+
+  it('refreshes the victim, so the panel never quotes a farm that is ash', () => {
+    // Register entry 5, reached from the wild's side: `pillageAt` asks the ground
+    // who to tell, so the raid needs no rule of its own to owe the refresh.
+    const { state, raider, cityId } = torchState();
+    const victim = state.cities.find((city) => city.id === cityId)!;
+    victim.population = 1;
+    victim.workedTiles = [{ col: 7, row: 8 }];
+
+    raid(state, [raider.id], emptyTurnReport());
+
+    const seated = JSON.stringify(victim.workedTiles);
+    assignCitizens(state, victim);
+    expect(JSON.stringify(victim.workedTiles)).toBe(seated);
+  });
+
+  it('strikes what is already in reach instead, and the farm survives it', () => {
+    // Beat one. A blow is worth more than a torch, and a raider that stopped to
+    // burn a field while a warrior stood beside it would be reading the board
+    // wrong. The farm is still there afterwards; that is the whole assertion.
+    const { state, raider } = torchState();
+    createUnit(state, 0, 'warrior', 8, 8);
+    recomputeAllVisibility(state);
+    refill(state);
+
+    const report = emptyTurnReport();
+    raid(state, [raider.id], report);
+
+    expect(report.pillages).toEqual([]);
+    expect(at(state, 7, 8).improvement).toBe('farm');
+    expect(report.combats.length).toBe(1);
+  });
+
+  it('marches on with nothing underfoot to burn', () => {
+    // Beat three, and the proof that beat two is a *branch* rather than a stop:
+    // bare ground under the same raider, and it walks at the town as v1 did.
+    const { state, raider } = torchState();
+    delete at(state, 7, 8).improvement;
+    delete at(state, 7, 8).road;
+
+    const report = emptyTurnReport();
+    raid(state, [raider.id], report);
+
+    expect(report.pillages).toEqual([]);
+    expect(raider.col === 7 && raider.row === 8).toBe(false);
+  });
+
+  it('leaves nobody’s ground alone, however improved it is', () => {
+    // `pillageError` reads "somebody else's" as *not yours*, which is right for an
+    // empire; the wild is held to the stricter reading — a real empire's ground —
+    // because a raider is a thing that comes *for* somebody.
+    const state = wildState();
+    at(state, 7, 8).improvement = 'farm';
+    const raider = createUnit(state, wildId(state), 'warrior', 7, 8);
+    recomputeAllVisibility(state);
+    refill(state);
+
+    const report = emptyTurnReport();
+    raid(state, [raider.id], report);
+    expect(report.pillages).toEqual([]);
+    expect(at(state, 7, 8).improvement).toBe('farm');
+  });
+
+  it('is a raider’s job alone: an escort walks its cargo past the farm', () => {
+    // The priority `barbarianRoles` publishes, read one beat further out. An
+    // escort does nothing but escort — including nothing about a field it is
+    // standing on.
+    const state = wildState();
+    const wild = wildId(state);
+    const city = foundCityAt(state, 0, at(state, 5, 8));
+    state.camps.push({ col: 12, row: 8, foundedTurn: 1 });
+    const farm = at(state, 7, 8);
+    farm.improvement = 'farm';
+    state.tileOwner[tileIndex(state.map, 7, 8)] = city.id;
+    const cargo = createUnit(state, wild, 'worker', 8, 8);
+    const escort = createUnit(state, wild, 'warrior', 7, 8);
+    recomputeAllVisibility(state);
+    refill(state);
+
+    expect(rolesOf(state).get(escort.id)).toEqual({ kind: 'escort', cargoId: cargo.id });
+    const report = emptyTurnReport();
+    raid(state, [escort.id, cargo.id], report);
+    expect(report.pillages).toEqual([]);
+    expect(at(state, 7, 8).improvement).toBe('farm');
+  });
+
+  it('carries the news out of `endTurn`, for the seat that lost the farm', () => {
+    // The wild's half of the verb is news to a player who issued no command, so
+    // it rides the resolution's report and out through `CommandResult.pillages`
+    // — `routesEnded`' shape, one system over.
+    const { state, raider } = torchState();
+    state.turn = QUIET_TURN;
+    void raider;
+    // Both real seats: the resolution runs when everybody has ended, and the
+    // wild is not a seat that ends anything (`realPlayers`).
+    expect(applyCommand(state, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+    const result = applyCommand(state, { type: 'endTurn', playerId: 1 });
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.pillages?.[0]).toMatchObject({
+      fromOwnerId: 0,
+      improvement: 'farm',
+      gold: 0,
+    });
+  });
+});
+
+/**
+ * The camp faucet, as a *fraction* rather than as a cadence (2026-08-28).
+ *
+ * What a designer sets is `campsPerSpawn / campEveryTurns` camps per turn, and
+ * the ruling that asked for half again as many camps moved both integers — the
+ * cadence alone cannot express it, since ⌈2 × ⅔⌉ is still 2. Asserted as the
+ * fraction and the ceiling rather than as either number, so a future retune that
+ * keeps the pressure is free to write it either way.
+ */
+describe('the camp faucet', () => {
+  it('founds three quarters of a camp a turn, up to a ceiling above it', () => {
+    expect(BARB.campsPerSpawn / BARB.campEveryTurns).toBeCloseTo(0.75);
+    expect(BARB.maxCamps).toBeGreaterThanOrEqual(24);
+  });
+
+  it('founds a sweep’s worth at once, every one of them legal', () => {
+    const state = wildState();
+    state.turn = BARB.firstCampTurn;
+    foundCamps(state);
+    expect(state.camps.length).toBe(BARB.campsPerSpawn);
+    // Rebuilt between camps within one sweep, so a pair cannot land inside its
+    // own spacing rule.
+    for (const a of state.camps) {
+      for (const b of state.camps) {
+        if (a === b) continue;
+        expect(distance(state, a, b)).toBeGreaterThanOrEqual(BARB.minCampDistanceApart);
+      }
+    }
   });
 });

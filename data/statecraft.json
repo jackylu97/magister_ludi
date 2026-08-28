@@ -109,16 +109,24 @@
       },
       "effects": [
         {
-          "kind": "rulePercent",
-          "rule": "borderCulture",
-          "percent": 25
+          "kind": "countScaled",
+          "count": "population",
+          "per": 5,
+          "within": "city",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "city"
+          }
         },
         {
           "kind": "rulePercent",
-          "rule": "tilePurchase",
-          "percent": -10
+          "rule": "happinessDemand",
+          "percent": -5
         }
-      ]
+      ],
+      "text": "+1 culture per 5 population in a city. Happiness demand −5%."
     },
     "tyranny": {
       "name": "Tyranny",
@@ -137,12 +145,14 @@
         {
           "kind": "windfallRider",
           "occasion": "pillage",
-          "grant": {
-            "yield": "gold",
-            "amount": 10
-          }
+          "percent": 50
         }
-      ]
+      ],
+      "text": "+3 authority capacity. Pillaging yields +50%.",
+      "deferred": [
+        "30% less maintenance cost for units"
+      ],
+      "note": "Units have no upkeep to discount: nothing in the game charges maintenance for a piece, so the second half has no rule to bend."
     },
     "theocracy": {
       "name": "Theocracy",
@@ -159,11 +169,29 @@
           "faith": 2
         },
         {
-          "kind": "rulePercent",
-          "rule": "happinessDemand",
-          "percent": -5
+          "kind": "rateConversion",
+          "from": "capitalFaithPerTurn",
+          "per": 10,
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "empire"
+          }
+        },
+        {
+          "kind": "rateConversion",
+          "from": "capitalFaithPerTurn",
+          "per": 10,
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
         }
-      ]
+      ],
+      "text": "+2 faith per city. 10% of your capital's faith is gained again as science and as culture."
     },
     "merchantLeague": {
       "name": "Merchant League",
@@ -176,20 +204,23 @@
       },
       "effects": [
         {
-          "kind": "cityYields",
-          "gold": 1
-        },
-        {
           "kind": "countScaled",
-          "count": "uniqueLuxuries",
+          "count": "buildingsOfCategory",
+          "category": "gold",
           "pays": {
             "to": "yield",
             "yield": "gold",
             "amount": 1,
             "where": "empire"
           }
+        },
+        {
+          "kind": "effectAmplifier",
+          "target": "routeYields",
+          "percent": 50
         }
-      ]
+      ],
+      "text": "+1 gold for every gold-producing building. Trade routes pay 50% more."
     },
     "imperium": {
       "name": "Imperium",
@@ -208,10 +239,10 @@
         {
           "kind": "unitStat",
           "stat": "movement",
-          "amount": 1,
-          "where": "ownTerritory"
+          "amount": 1
         }
-      ]
+      ],
+      "text": "+3 authority capacity. All units +1 movement."
     },
     "divineMandate": {
       "name": "Divine Mandate",
@@ -237,6 +268,164 @@
             "amount": 1,
             "where": "empire"
           }
+        }
+      ]
+    },
+    "theEstates": {
+      "name": "The Estates",
+      "tier": 29,
+      "flavor": "Three orders, one hall, and the hall keeps the minutes.",
+      "slots": {
+        "military": 2,
+        "economic": 5,
+        "wildcard": 4
+      },
+      "text": "+1 happiness in every city. Every city of 8+ population +2 culture.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city"
+        },
+        {
+          "kind": "cityYields",
+          "culture": 2,
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 8
+          }
+        }
+      ]
+    },
+    "theSultanate": {
+      "name": "The Sultanate",
+      "tier": 29,
+      "flavor": "The road is short for those the Sultan sends.",
+      "slots": {
+        "military": 5,
+        "economic": 3,
+        "wildcard": 3
+      },
+      "text": "Units +1 movement and cost −20% production. Captured cities +10% science and culture.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": -20
+        },
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10,
+          "scope": {
+            "test": "captured"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 10,
+          "scope": {
+            "test": "captured"
+          }
+        }
+      ]
+    },
+    "theCuria": {
+      "name": "The Curia",
+      "tier": 29,
+      "flavor": "What is written in the register is what heaven remembers.",
+      "slots": {
+        "military": 2,
+        "economic": 4,
+        "wildcard": 5
+      },
+      "text": "+3 faith per Cathedral. Faith buildings supply science equal to their faith.",
+      "note": "No cathedral row exists yet — the temple is where the faith line stops — so the first half has no building to count. The second wants a `mirrorYield` shape ({ from: 'faith', to: 'science', category: 'faith' }, read in `cityYields`), which one row does not earn.",
+      "deferred": [
+        "+3 faith per Cathedral",
+        "faith buildings supply science equal to their faith"
+      ],
+      "effects": []
+    },
+    "theCommonwealth": {
+      "name": "The Commonwealth",
+      "tier": 45,
+      "flavor": "The estate is common; the ledger is not.",
+      "slots": {
+        "military": 3,
+        "economic": 6,
+        "wildcard": 5
+      },
+      "text": "Great people may be purchased with gold. Great-people improvements pay +50%.",
+      "note": "Both halves want systems that do not exist: a great person is *called* and `purchaseError` refuses one outright, and no shape puts a percentage on one family of improvements.",
+      "deferred": [
+        "great people can be purchased with gold",
+        "great-people improvements gain +50% yields"
+      ],
+      "effects": []
+    },
+    "theEmpire": {
+      "name": "The Empire",
+      "tier": 45,
+      "flavor": "One frontier, and it is wherever the last courier stopped.",
+      "slots": {
+        "military": 6,
+        "economic": 4,
+        "wildcard": 4
+      },
+      "text": "+6 authority capacity. +1 combat strength per great general earned this game.",
+      "deferred": [
+        "capturing a city with a wonder heals all your units"
+      ],
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 6
+        },
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "greatPeopleOfFamily",
+            "per": 1,
+            "family": "general"
+          }
+        }
+      ]
+    },
+    "theMagisterium": {
+      "name": "The Magisterium",
+      "tier": 45,
+      "flavor": "The Magister does not rule. He sets the rules.",
+      "slots": {
+        "military": 3,
+        "economic": 5,
+        "wildcard": 6
+      },
+      "text": "Every draft of every kind shows one more card. +3 renown per turn per wonder you hold.",
+      "deferred": [
+        "great people can be purchased with faith"
+      ],
+      "effects": [
+        {
+          "kind": "offerRider",
+          "offer": "all",
+          "extra": 1
+        },
+        {
+          "kind": "renown",
+          "amount": 3,
+          "per": "wonder"
         }
       ]
     }
@@ -377,16 +566,19 @@
       "tier": 4,
       "line": "hunt",
       "flavor": "We are not their prey. We are their kin, and they take their share.",
-      "text": "Barbarians never attack you (theft continues) · camps you clear pay +50%.",
+      "text": "Barbarians never attack you (theft continues). A barbarian you kill joins you instead of dying. You can no longer clear a barbarian camp.",
       "effects": [
         {
           "kind": "behaviorRule",
           "rule": "barbariansPassive"
         },
         {
-          "kind": "windfallRider",
-          "occasion": "camp",
-          "percent": 50
+          "kind": "behaviorRule",
+          "rule": "barbarianKillsConvert"
+        },
+        {
+          "kind": "behaviorRule",
+          "rule": "noCampClearing"
         }
       ]
     },
@@ -408,13 +600,16 @@
       "tier": 4,
       "line": "none",
       "flavor": "The first stone of every town is a monument to the road that brought it.",
-      "text": "Your first 5 cities are founded with a free monument.",
-      "note": "The road half is FUTURE — it activates with the road system (docs/statecraft-cards.md).",
+      "text": "Your first 5 cities are founded with a free Monument, and new cities are joined to your realm by road.",
       "effects": [
         {
           "kind": "foundingRider",
           "building": "monument",
           "maxCities": 5
+        },
+        {
+          "kind": "foundingRider",
+          "roads": true
         }
       ]
     },
@@ -478,7 +673,7 @@
       "tier": 10,
       "line": "forge",
       "flavor": "Ash is faster than a plough.",
-      "text": "Chopping costs no worker charge · pillaging heals 25.",
+      "text": "Chopping costs no worker charge. Pillaging heals a further 25.",
       "effects": [
         {
           "kind": "actionRule",
@@ -618,12 +813,12 @@
       "tier": 18,
       "line": "caravan",
       "flavor": "Gold on the walls, gold in the words, gold under the throne.",
-      "text": "+3 authority capacity.",
-      "note": "The Gilded Hall half is DEFERRED: buildings cannot be purchased with gold yet, so `unlocksBuilding` has no mechanism to unlock into. See docs/statecraft-cards.md.",
-      "deferred": [
-        "The Gilded Hall, a building bought with gold"
-      ],
+      "text": "Unlocks the Gilded Hall, a building bought with gold and never built. +3 authority capacity.",
       "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "gildedHall"
+        },
         {
           "kind": "authority",
           "amount": 3
@@ -635,7 +830,7 @@
       "tier": 18,
       "line": "caravan",
       "flavor": "The second silk is not nothing. The tenth is a fortune.",
-      "text": "Happiness from unique luxuries +50% · additional copies of a luxury count at 30% · +2 gold per unique luxury.",
+      "text": "Happiness from unique luxuries +50%. Additional copies of a luxury give 30% of their bonus instead of nothing. +2 gold per unique luxury.",
       "effects": [
         {
           "kind": "effectAmplifier",
@@ -744,6 +939,276 @@
         "a powerful bonus toward the domination and religious beads"
       ],
       "effects": []
+    },
+    "theAcademyOfDeeds": {
+      "name": "The Academy of Deeds",
+      "tier": 29,
+      "flavor": "A deed unrecorded is a deed undone.",
+      "text": "Every Triumph grants a second helping of renown. A Triumph missed by one age may still be earned in the next.",
+      "note": "A Triumph pays renown through `settleRenownWindfall` with no occasion to ride on, and the contested register is keyed `(id, age)` by design.",
+      "deferred": [
+        "every Triumph grants a second helping of renown",
+        "Triumphs you missed by one age can still be earned in the next"
+      ],
+      "effects": []
+    },
+    "theStandingArmy": {
+      "name": "The Standing Army",
+      "tier": 29,
+      "line": "forge",
+      "flavor": "The army does not go home. That is the whole of the doctrine.",
+      "text": "Every 5 units you hold grant +1 authority capacity. −10% culture. Units cost no upkeep.",
+      "note": "Units have no upkeep to waive — nothing in the game charges maintenance for a piece.",
+      "deferred": [
+        "units cost no upkeep"
+      ],
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "unitsInField",
+          "per": 5,
+          "pays": {
+            "to": "authority",
+            "amount": 1
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": -10,
+          "stage": "empire"
+        }
+      ]
+    },
+    "theSeaCharter": {
+      "name": "The Sea Charter",
+      "tier": 29,
+      "line": "caravan",
+      "flavor": "Sign here, and the tide is yours.",
+      "text": "Trade routes pay 50% more. Every coastal city is founded with a Harbour.",
+      "note": "No harbour row exists yet, so the founding half has no building to grant.",
+      "deferred": [
+        "every coastal city is founded with a Harbour"
+      ],
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "routeYields",
+          "percent": 50
+        }
+      ]
+    },
+    "theRenaissanceCourt": {
+      "name": "The Renaissance Court",
+      "tier": 29,
+      "flavor": "Patronage is the cheapest thing a prince ever bought.",
+      "text": "Great-person drafts show one more card. Every great person's legacy is 50% stronger.",
+      "note": "Nothing amplifies a legacy: `effectAmplifier` reaches into a named reading, and 'every effect on a card, 50% harder' is a different idea.",
+      "deferred": [
+        "every great person's legacy is 50% stronger"
+      ],
+      "effects": [
+        {
+          "kind": "offerRider",
+          "offer": "greatPerson",
+          "extra": 1
+        }
+      ]
+    },
+    "cuiusRegio": {
+      "name": "Cuius Regio",
+      "tier": 29,
+      "line": "procession",
+      "flavor": "Whose realm, his religion; whose religion, his realm.",
+      "text": "Augurs arrive with +1 charge. Cities that share your majority belief are yours in more than name; your rites cost no charge every third use.",
+      "note": "There is no majority belief and no per-use rite counter to except every third of.",
+      "deferred": [
+        "cities that share your majority belief",
+        "your rites cost no charge every 3rd use"
+      ],
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": {
+            "consecrates": true
+          }
+        }
+      ]
+    },
+    "theYeomanry": {
+      "name": "The Yeomanry",
+      "tier": 29,
+      "line": "green",
+      "flavor": "A man with forty acres argues with the tax collector.",
+      "text": "Every farm +1 production. Cities of 10+ population −1 happiness.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "production": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "farm"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": -1,
+          "per": "city",
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 10
+          }
+        }
+      ]
+    },
+    "absolutism": {
+      "name": "Absolutism",
+      "tier": 29,
+      "flavor": "The council still meets. It meets to agree.",
+      "text": "+6 authority capacity. Your Orders seal for 10 turns instead of 5.",
+      "note": "The third clause — one more Order office — would resize a spread that is rebuilt on every adoption, which is a layout decision rather than a number.",
+      "deferred": [
+        "you may hold one more Order of any kind"
+      ],
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 6
+        },
+        {
+          "kind": "metaRule",
+          "rule": "sealTurns",
+          "value": 10
+        }
+      ]
+    },
+    "blitz": {
+      "name": "Blitz",
+      "tier": 45,
+      "line": "forge",
+      "flavor": "Stop only when there is nothing left in front of you.",
+      "text": "Units that kill may move again that turn. Units cannot fortify.",
+      "note": "Neither half has a shape: nothing refunds movement on a kill and nothing forbids a posture.",
+      "deferred": [
+        "units that kill may move again that turn",
+        "units cannot fortify"
+      ],
+      "effects": []
+    },
+    "thePhilosophersStone": {
+      "name": "The Philosopher's Stone",
+      "tier": 45,
+      "flavor": "Lead is only gold that has not been asked properly.",
+      "text": "The Great Work costs −25%. Every Distillery mints +5 gold.",
+      "note": "Neither the Great Work project nor the Distillery exists yet.",
+      "deferred": [
+        "the Great Work costs −25% production",
+        "every Distillery mints +5 gold"
+      ],
+      "effects": []
+    },
+    "theGrandTourII": {
+      "name": "The Grand Tour",
+      "tier": 45,
+      "flavor": "One goes to see them, and comes back having been seen.",
+      "text": "Wonders you hold pay +3 renown per turn. +1 culture per wonder in the world, seen or not.",
+      "note": "'Every wonder in the world' would be a count over `GameState.wonders` — a fact about the world rather than about an empire, which no count in the vocabulary is.",
+      "deferred": [
+        "+1 culture per wonder in the world, seen or not"
+      ],
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 3,
+          "per": "wonder"
+        }
+      ]
+    },
+    "mareNostrum": {
+      "name": "Mare Nostrum",
+      "tier": 45,
+      "line": "caravan",
+      "flavor": "They call it a sea. We call it the middle of the country.",
+      "text": "Every water tile you own +1 gold and +1 food. Coastal cities cost no authority.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "gold": 1,
+          "food": 1,
+          "on": {
+            "test": "water"
+          }
+        },
+        {
+          "kind": "meterRule",
+          "rule": "coastalCityCost",
+          "value": 0
+        }
+      ]
+    },
+    "theLeveeEnMasse": {
+      "name": "The Levée en Masse",
+      "tier": 45,
+      "line": "forge",
+      "flavor": "Every hearth owes a son, and the ledger remembers which.",
+      "text": "When an enemy unit enters your borders, every city with a Barracks musters a militia unit (once per 10 turns).",
+      "note": "There is no muster occasion: nothing fires when a foreign piece crosses a border.",
+      "deferred": [
+        "cities with a Barracks muster a militia when an enemy enters your borders"
+      ],
+      "effects": []
+    },
+    "paxMagistri": {
+      "name": "Pax Magistri",
+      "tier": 45,
+      "line": "green",
+      "flavor": "The long quiet, and the accounts that grew in it.",
+      "text": "+3 happiness in every city. Every city of 12+ population +5 science and +5 culture.",
+      "note": "The war clause waits on a war state.",
+      "deferred": [
+        "you can no longer declare war"
+      ],
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 3,
+          "per": "city"
+        },
+        {
+          "kind": "cityYields",
+          "science": 5,
+          "culture": 5,
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 12
+          }
+        }
+      ]
+    },
+    "theEncyclopaedia": {
+      "name": "The Encyclopaedia",
+      "tier": 45,
+      "line": "star",
+      "flavor": "Everything, in order, by somebody who never left the room.",
+      "text": "+1 science per building in every city. Science buildings cost −50% production.",
+      "note": "`productionBonus` names a *production* category ('building'), not a building's own category, so 'science buildings' has no category to name.",
+      "deferred": [
+        "science buildings cost −50% production"
+      ],
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "buildingsInCity",
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "city"
+          }
+        }
+      ]
     }
   },
   "orders": {
@@ -753,11 +1218,19 @@
       "slot": "military",
       "line": "hunt",
       "flavor": "The wild taught us. We took notes.",
-      "text": "+3 combat strength against barbarians.",
+      "text": "+1 combat strength always, and +2 more against barbarians.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "vsBarbarians"
@@ -771,7 +1244,7 @@
       "slot": "military",
       "line": "hunt",
       "flavor": "Behind the war, a market.",
-      "text": "Clearing a camp also pays +25 food.",
+      "text": "Clearing a camp pays +25 food and gifts a random military unit.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -779,6 +1252,13 @@
           "grant": {
             "yield": "food",
             "amount": 25
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "camp",
+          "grant": {
+            "unit": "randomMilitary"
           }
         }
       ]
@@ -789,7 +1269,7 @@
       "slot": "military",
       "line": "wayfarers",
       "flavor": "Run until the land is new, then run once more.",
-      "text": "Scouts gain +1 movement and +1 sight.",
+      "text": "Scouts +1 movement and +1 sight. Civilians +2 movement while embarked.",
       "effects": [
         {
           "kind": "unitStat",
@@ -806,6 +1286,15 @@
           "class": {
             "modelClass": "scout"
           }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 2,
+          "class": {
+            "category": "civilian"
+          },
+          "where": "embarked"
         }
       ]
     },
@@ -815,7 +1304,7 @@
       "slot": "military",
       "line": "none",
       "flavor": "A sleepless wall is a comfort to those inside it.",
-      "text": "A unit fortified in a city gives it +1 happiness, +1 more per fortification level.",
+      "text": "A unit fortified in a city gives that city +1 happiness, and +1 more per fortification standing in it.",
       "effects": [
         {
           "kind": "countScaled",
@@ -824,8 +1313,17 @@
             "to": "happiness",
             "amount": 1
           }
+        },
+        {
+          "kind": "countScaled",
+          "count": "defensiveBuildings",
+          "pays": {
+            "to": "happiness",
+            "amount": 1
+          }
         }
-      ]
+      ],
+      "note": "The two halves are **added**, not multiplied: the vocabulary has no product, so the walls pay their point whether or not somebody is dug in behind them."
     },
     "theWidowsLevy": {
       "name": "The Widow's Levy",
@@ -833,7 +1331,7 @@
       "slot": "military",
       "line": "none",
       "flavor": "Grief works. It always has.",
-      "text": "When a unit of yours dies, its nearest city gains +10 production.",
+      "text": "When a unit of yours dies, its nearest city gains +10 production and you gain +40 gold.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -841,6 +1339,14 @@
           "grant": {
             "yield": "production",
             "amount": 10
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "yield": "gold",
+            "amount": 40
           }
         }
       ]
@@ -872,13 +1378,14 @@
       "slot": "economic",
       "line": "green",
       "flavor": "One store, one hunger, one answer.",
-      "text": "+1 food on every tile carrying a resource.",
+      "text": "+1 food on every luxury resource tile.",
       "effects": [
         {
           "kind": "tileYield",
           "food": 1,
           "on": {
-            "test": "hasResource"
+            "test": "resourceKind",
+            "kind": "luxury"
           }
         }
       ]
@@ -889,7 +1396,7 @@
       "slot": "economic",
       "line": "caravan",
       "flavor": "Salt is small. Its tax is not.",
-      "text": "+1 gold per unique luxury.",
+      "text": "+2 gold per unique luxury.",
       "effects": [
         {
           "kind": "countScaled",
@@ -897,7 +1404,7 @@
           "pays": {
             "to": "yield",
             "yield": "gold",
-            "amount": 1,
+            "amount": 2,
             "where": "empire"
           }
         }
@@ -909,14 +1416,15 @@
       "slot": "economic",
       "line": "none",
       "flavor": "A stone that says *ours* says it forever.",
-      "text": "+30% border culture in every city.",
+      "text": "+30% border culture in all cities.",
       "effects": [
         {
           "kind": "rulePercent",
           "rule": "borderCulture",
           "percent": 30
         }
-      ]
+      ],
+      "note": "Border culture is its own channel (`City.culture`, the borders fold) and never the empire's draft pool, so this hurries your borders and not your Statecraft."
     },
     "firstRites": {
       "name": "First Rites",
@@ -938,16 +1446,25 @@
       "slot": "wildcard",
       "line": "hunt",
       "flavor": "Fear, set to a tune, becomes a people.",
-      "text": "+2 culture per barbarian camp you can currently see.",
+      "text": "+2 culture per barbarian camp you have found, and +4 culture for every barbarian killed.",
       "effects": [
         {
           "kind": "countScaled",
-          "count": "visibleCamps",
+          "count": "discoveredCamps",
           "pays": {
             "to": "yield",
             "yield": "culture",
             "amount": 2,
             "where": "empire"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "vsBarbarians": true,
+          "grant": {
+            "yield": "culture",
+            "amount": 4
           }
         }
       ]
@@ -1013,7 +1530,7 @@
       "slot": "military",
       "line": "hunt",
       "flavor": "Their plunder was ours all along.",
-      "text": "Camp bounties +100%.",
+      "text": "Camp bounties +100%. Stacks with Camp Followers.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1060,15 +1577,15 @@
       "slot": "economic",
       "line": "caravan",
       "flavor": "Rare things travel; travel makes them rarer.",
-      "text": "+2 gold per unique luxury.",
+      "text": "+3 gold per active trade route.",
       "effects": [
         {
           "kind": "countScaled",
-          "count": "uniqueLuxuries",
+          "count": "tradeRoutes",
           "pays": {
             "to": "yield",
             "yield": "gold",
-            "amount": 2,
+            "amount": 3,
             "where": "empire"
           }
         }
@@ -1080,7 +1597,7 @@
       "slot": "economic",
       "line": "caravan",
       "flavor": "Every field pays a toll on its way to market.",
-      "text": "+1 gold per improved bonus resource.",
+      "text": "+1 gold on every bonus resource that carries an improvement.",
       "effects": [
         {
           "kind": "countScaled",
@@ -1240,11 +1757,11 @@
       "slot": "wildcard",
       "line": "green",
       "flavor": "Idleness, made sacred, keeps the peace.",
-      "text": "+3 happiness.",
+      "text": "+4 happiness.",
       "effects": [
         {
           "kind": "happiness",
-          "amount": 3
+          "amount": 4
         }
       ]
     },
@@ -1272,17 +1789,18 @@
       "slot": "wildcard",
       "line": "procession",
       "flavor": "A sword blessed is a soul enlisted.",
-      "text": "Completing a unit grants +2 faith.",
+      "text": "Buying or completing a unit grants +5 faith.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "unitCompletion",
           "grant": {
             "yield": "faith",
-            "amount": 2
+            "amount": 5
           }
         }
-      ]
+      ],
+      "note": "One row, not two: a bought unit is realised through `realiseItem` exactly as a built one is, so `unitCompletion` already fires for both — a second occasion would have paid this card twice for one warrior."
     },
     "theLooseRein": {
       "name": "The Loose Rein",
@@ -1299,7 +1817,9 @@
           "rule": "sealTurns",
           "value": 2
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Retired 2026-08-28 (the user's cut of the master list). The row stays so a save that holds it still replays; `poolOrders` no longer deals it."
     },
     "fieldSurgeons": {
       "name": "Field Surgeons",
@@ -1376,7 +1896,7 @@
       "slot": "military",
       "line": "none",
       "flavor": "What we cannot keep, we salt.",
-      "text": "Pillaging heals 25 and pays +10 gold.",
+      "text": "Pillaging heals a further 25 and pays a further +10 gold.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1963,6 +2483,61 @@
           "kind": "rulePercent",
           "rule": "happinessDemand",
           "percent": -15
+        }
+      ]
+    },
+    "theLaureate": {
+      "name": "The Laureate",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "flavor": "The court keeps one chair empty, and it is never empty for long.",
+      "text": "Gain a great person the first time this is slotted. Great-people improvements pay +2 of their own yield.",
+      "note": "The 🏛 Marble Court thread has no `CardLine` member yet — the archetype list is presentation only and this is the first card of that line.",
+      "onSlot": [
+        {
+          "grant": "greatPerson"
+        }
+      ],
+      "effects": [
+        {
+          "kind": "tileYield",
+          "science": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "academy"
+          }
+        },
+        {
+          "kind": "tileYield",
+          "culture": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "landmark"
+          }
+        },
+        {
+          "kind": "tileYield",
+          "production": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "manufactory"
+          }
+        },
+        {
+          "kind": "tileYield",
+          "gold": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "customsHouse"
+          }
+        },
+        {
+          "kind": "tileYield",
+          "production": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "citadel"
+          }
         }
       ]
     }

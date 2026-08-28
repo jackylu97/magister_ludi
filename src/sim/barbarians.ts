@@ -58,8 +58,10 @@
  *
  * Still deliberately small
  * ------------------------
- * Barbarians pillage improvements only by standing on them — there is no razing,
- * and **they do not capture cities**. A city they beat down to 1 hit point simply
+ * Barbarians pillage improvements by standing on them — through the *player's*
+ * verb, `pillageAt`, so there is no second razing rule with the wild's name on it
+ * any more than there is a second combat evaluator — and **they do not capture
+ * cities**. A city they beat down to 1 hit point simply
  * stays where it is and heals (`healCities`), which is the ranged-fire rule read
  * one step further out. Capture is a real design decision (what does a barbarian
  * *do* with a town?) and it is deferred rather than guessed at; the day it is
@@ -70,7 +72,9 @@
  */
 
 import { campAt, hasCampAt } from './camps';
+import { tileOwnerPlayerId } from './cities';
 import { applyCombat, isCombatant } from './combat';
+import { pillageAt, pillageError } from './improvements';
 import type { TurnReport } from './turn';
 import { cardBehaviorRule } from './statecraft';
 import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from './map';
@@ -807,6 +811,28 @@ function wander(state: GameState, unit: Unit): void {
 }
 
 /**
+ * The works this raider is standing on, or `null`.
+ *
+ * **The gate is `pillageError`** — the player's own — and that is the whole
+ * point: "military, with movement left, on somebody else's improvement or road"
+ * is one sentence and the wild does not get its own copy of it, exactly as the
+ * wild does not get its own copy of combat. What is asked *here* is the one
+ * clause the verb deliberately leaves open. `pillageError` reads "somebody
+ * else's" as **not yours**, so unowned ground with works on it is fair game for
+ * an empire (a case that cannot arise in play, since towns are never destroyed);
+ * the wild is held to the stricter reading — **a real empire's ground** — because
+ * a raider is a thing that comes *for* somebody, and burning nobody's farm would
+ * be the wild vandalising scenery.
+ */
+function worksUnderfoot(state: GameState, unit: Unit): Tile | null {
+  const tile = getTileAt(state.map, unit.col, unit.row);
+  if (!tile) return null;
+  if (pillageError(state, unit.id) !== null) return null;
+  if (tileOwnerPlayerId(state, tile.col, tile.row) === null) return null;
+  return tile;
+}
+
+/**
  * Is the unit standing next to this tile?
  *
  * Its own tile is not adjacent to itself, which matters: a raider that has just
@@ -924,8 +950,9 @@ function shadow(state: GameState, unit: Unit, cargoId: number): void {
  *   · **cargo** walks toward the nearest camp, or sits on it;
  *   · **escort** closes to within a hex of its cargo, and does nothing else;
  *   · **thief** closes on its chosen civilian and strikes, which captures it;
- *   · **raider** does what v1 did — nearest visible thing inside
- *     `aggressionRadius`, attack when adjacent, wander near camp otherwise.
+ *   · **raider** strikes what is already in reach, else **burns the works it is
+ *     standing on**, else does what v1 did — nearest visible thing inside
+ *     `aggressionRadius`, close on it, wander near camp otherwise.
  *
  * Every blow goes through `applyCombat`, so a raid rolls the same dice, obeys
  * the same targeting priority, takes the same counter-attack and triggers the
@@ -976,6 +1003,36 @@ export function raid(
         }
         case 'raider': {
           const target = nearestTarget(state, wild, unit);
+          // **Strike, then burn, then march** — the raider's three beats, in
+          // that order, and the order is the rules decision (2026-08-28).
+          //
+          //   · A target already *in reach* is hit, because a blow is worth more
+          //     than a farm and a raider that stopped to burn one while a
+          //     wounded scout stood beside it would be reading the board wrong.
+          //     This is the branch v1 already took: `closeAndStrike` on an
+          //     adjacent target never marched.
+          //   · Otherwise, the works underfoot. "Instead of moving on" is the
+          //     whole of it — the wild is *local weather*, and weather that
+          //     walks over a farm on its way somewhere else is not weather.
+          //   · Otherwise, v1: close on what it can see, or drift near camp.
+          //
+          // Only a **raider** ever burns anything, and the other three roles'
+          // silence here is the same priority `barbarianRoles` publishes: an
+          // escort does nothing but escort, a thief is already spoken for by one
+          // worker, and cargo is cargo. See that function's docblock.
+          if (target && isAdjacentTo(state, unit, target.tile)) {
+            closeAndStrike(state, unit, target.tile, report);
+            break;
+          }
+          const works = worksUnderfoot(state, unit);
+          if (works) {
+            // The player's verb, unchanged, so the farm and the road under it go
+            // together and the *victim's* panel is refreshed on the spot
+            // (`refreshTileDerived`). The wild keeps the bandage and forfeits the
+            // salvage — `pillageAt` says so and says why.
+            report?.pillages.push(pillageAt(state, unit, works));
+            break;
+          }
           if (target) closeAndStrike(state, unit, target.tile, report);
           else wander(state, unit);
           break;

@@ -113,7 +113,8 @@ would change every seeded outcome. No further rename passes.
   road step — **both** hexes paved — costs exact thirds and ignores the ground, inside
   `stepCost(from, to)`, so the four readers agree by construction; `snapMovement` keeps the
   numerator an integer and the A* heuristic scales by `cheapestStepCost` (an unpaved minimum
-  is inadmissible over paving). `Unit.trade` is the route — presence is the state, there is
+  is inadmissible over paving). `layRoad` (`trade.ts`) is the **only** writer of `Tile.road` — the caravan's step and the
+  Founders' Road at a founding both go through it. `Unit.trade` is the route — presence is the state, there is
   **no route register**, and a count of routes is a count of traders. **A caravan is not a
   piece you position** (2026-08-28): `startRoute` may name any idle trader anywhere and places
   it on the origin's centre through `arriveOnTile` — a teleport is a third way to move a unit
@@ -304,9 +305,10 @@ would change every seeded outcome. No further rename passes.
   that improvement's tech. All derived, no flags. Ledgers label which ("Gems · mine" vs
   "Gems · city"); holding both ways is still one holding.
 - A unit changes hands in exactly one place: `captureUnit` (`state.ts`, beside `createUnit`
-  and `removeUnit`). Two occasions reach it — a melee blow on a lone civilian, and
-  `arriveOnTile`, which now hands over **every foreign civilian on a hex somebody comes to
-  rest on** (a melee winner may advance onto a tile whose survivors are all civilians). Any
+  and `removeUnit`). Three occasions reach it — a melee blow on a lone civilian, `arriveOnTile`, which hands
+  over **every foreign civilian on a hex somebody comes to rest on**, and (2026-08-28) a
+  barbarian killed under Wolf-Mother's Pact, captured at 1 hp instead of removed — a capture,
+  not a kill, so no kill rider fires (a melee winner may advance onto a tile whose survivors are all civilians). Any
   new way to put a unit on a hex inherits that, and must not write `ownerId` itself.
   Barbarian *intent* is the mirror rule: roles are derived from the board every turn
   (`barbarianRoles`) and never stored — do not add a `role` field to `Unit`.
@@ -514,6 +516,14 @@ would change every seeded outcome. No further rename passes.
   stated place (`conditionDepth` in `statecraft.ts`). Terminating, one rule, and exact for
   the content that exists. A new condition that reads something a card can change inherits
   that reading — do not add a second cut.
+- **Governments have five tiers, and the ladder is data** (2026-08-28): `GOVERNMENT_TIERS` is
+  derived from the rows and equals `tierLadder` `[4, 10, 18, 29, 45]` by test; a tier with no
+  triple is never offered. An Order may carry `onSlot` grants (The Laureate's great person),
+  claimed once per game through `grantedOnSlot`; a retired Order (`retired: true`) leaves every
+  pool and keeps its row so a save replays. `BuildingDef.purchaseOnly` is refused by `buildError`
+  and sold by `purchaseError` (the Gilded Hall). Pillage has a **base** heal and gold
+  (`rules.improvements.pillageHeal/pillageGold`) and riders are increments composed in
+  `windfallPayout` — a card's text says "a further".
 - **A Statecraft offer is drawn once, at the moment it opens, and spent by a command.**
   `discoveries.ts`'s doctrine at the scale Entry XV designed it for: an offer generated on
   sight would make the deal a function of when somebody looked at a screen, and under

@@ -125,7 +125,7 @@
       "name": "Lady of the Hunt",
       "axis": "wild",
       "flavor": "She takes the first kill and leaves the rest, which is why there is a rest.",
-      "text": "+1 food on every camp. Clearing a barbarian camp pays +10 faith.",
+      "text": "+1 food and +1 gold on every camp. Clearing a barbarian camp pays +10 faith.",
       "effects": [
         {
           "kind": "tileYield",
@@ -133,7 +133,8 @@
             "test": "improvement",
             "improvement": "camp"
           },
-          "food": 1
+          "food": 1,
+          "gold": 1
         },
         {
           "kind": "windfallRider",

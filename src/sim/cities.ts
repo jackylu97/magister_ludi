@@ -59,15 +59,18 @@ import {
   isBuildingId,
   isWonder,
 } from './buildingData';
-import type { Hex } from './hex';
+import { type Hex, hexLine } from './hex';
 import {
   type GameMap,
   type Tile,
+  axialToOffset,
   getTileAt,
   mapRange,
   neighborTiles,
+  offsetToAxial,
   tileHex,
   tileIndex,
+  wrapHex,
   wrappedDistance,
 } from './map';
 import {
@@ -186,7 +189,7 @@ import { buildingTileLines } from './buildingEffects';
 // one asks it what the caravans standing in its towns are worth. Everything at
 // the top level of both files is a constant from a data table, which is the
 // condition every cycle in this simulation is safe under.
-import { cityRouteYields, explainTradeGold, tradeGold } from './trade';
+import { cityRouteYields, explainTradeGold, layRoad, tradeGold } from './trade';
 import { awardFoundingTriumphs, awardOccasion } from './triumphs';
 
 const CITIES = RULES.cities;
@@ -1082,6 +1085,7 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   for (const building of rider.buildings) {
     if (!city.buildings.includes(building)) city.buildings.push(building);
   }
+  if (rider.roads) layFoundingRoad(state, city);
   // A new city is working from the moment it exists, not from the end of the
   // turn: the panel opens on a city that is already doing something, and the
   // yields it reports are the ones it will actually collect. `collectYields`
@@ -1102,6 +1106,50 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // parameter and no new return value.
   awardFoundingTriumphs(state, city);
   return city;
+}
+
+/**
+ * Joins a newly founded town to the nearest town of the same realm by road —
+ * The Founders' Road's second half, and nothing else calls it.
+ *
+ * **A decree, not a march**, which is why it runs down `hexLine` rather than
+ * `findPath`: there is no mover at a founding — the settler is spent by the time
+ * the city exists — and a road that had to be pathfound would need a piece to
+ * path *for*, with a movement profile and a purse and a zone of control that
+ * have nothing to do with surveying. The line between two centres is a pure
+ * function of two hexes, which is what a replay needs and what a designer can
+ * predict from the map.
+ *
+ * Impassable ground is **skipped rather than fatal**: a strait or a ridge on the
+ * line leaves a gap and the rest of the road stands, because the alternative is
+ * a doctrine that silently does nothing whenever geography is inconvenient. The
+ * gap costs the empire nothing it had — `roadJoins` (`pathfind.ts`) reads two
+ * *adjacent* road hexes, so a broken road is simply two shorter ones.
+ *
+ * The first city of a realm has nowhere to be joined to and is left alone.
+ * Writing through `layRoad` (`trade.ts`) is the point: one writer for
+ * `Tile.road`, so a decreed highway and a worn one are the same mark and neither
+ * repaves the other.
+ */
+function layFoundingRoad(state: GameState, city: City): void {
+  const here = offsetToAxial(city.col, city.row);
+  let nearest: City | null = null;
+  let best = Infinity;
+  for (const other of state.cities) {
+    if (other.ownerId !== city.ownerId || other.id === city.id) continue;
+    const away = wrappedDistance(state.map, offsetToAxial(other.col, other.row), here);
+    if (away < best) {
+      best = away;
+      nearest = other;
+    }
+  }
+  if (!nearest) return;
+  for (const step of hexLine(offsetToAxial(nearest.col, nearest.row), here)) {
+    const cell = axialToOffset(wrapHex(state.map, step));
+    const tile = getTileAt(state.map, cell.col, cell.row);
+    if (!tile || !isPassable(tile)) continue;
+    layRoad(tile, city.ownerId);
+  }
 }
 
 /**
@@ -2812,14 +2860,27 @@ function empireRates(state: GameState, playerId: number): {
   faithPerTurn: number;
   culturePerTurn: number;
   goldPerTurn: number;
+  capitalFaithPerTurn: number;
 } {
-  const rates = { faithPerTurn: 0, culturePerTurn: 0, goldPerTurn: 0 };
+  const rates = {
+    faithPerTurn: 0,
+    culturePerTurn: 0,
+    goldPerTurn: 0,
+    capitalFaithPerTurn: 0,
+  };
+  // Theocracy's tithe reads **one town's** faith, and it is read off the same
+  // sweep rather than by a second pass: the capital's yields are already in
+  // hand on the turn the loop reaches it, so "what did the capital bank" costs
+  // one comparison. It is deliberately the *city's* faith and not the empire's
+  // share of it — a signature about the temple city is about the temple city.
+  const capital = capitalCityOf(state, playerId);
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     const yields = cityYields(state, city, [], city.queue[0]);
     rates.faithPerTurn += yields.faith;
     rates.culturePerTurn += yields.culture;
     rates.goldPerTurn += yields.gold;
+    if (capital && city.id === capital.id) rates.capitalFaithPerTurn += yields.faith;
   }
   const empire = foldResourceYields(empireResourceYields(state, playerId));
   rates.faithPerTurn += empire.faith;

@@ -696,9 +696,11 @@ describe('a road', () => {
     const tile = at(state, 5, 6);
     tile.road = 0;
     const raider = createUnit(state, 0, 'warrior', 5, 6);
-    expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id })).toEqual({
-      ok: true,
-    });
+    const raid = applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id });
+    expect(raid.ok).toBe(true);
+    // A bare road is a raid with no improvement in it, and the report says so
+    // (`PillageReport`) rather than naming a farm that was never there.
+    expect(raid.ok && raid.pillages?.[0]).toMatchObject({ road: true, improvement: undefined });
     expect(tile.road).toBeUndefined();
     expect(roadsBuiltBy(state, 0)).toBe(0);
   });

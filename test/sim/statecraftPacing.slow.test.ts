@@ -187,7 +187,7 @@ describe('the culture ladder', () => {
      * deliberately conservative scripted empire *should* sit above the target
      * and a player chasing it should land on it.
      */
-    expect(draftTurn.length).toBeGreaterThanOrEqual(GOVERNMENT_TIERS.length);
+    expect(draftTurn.length).toBeGreaterThanOrEqual(3);
 
     const first = draftTurn[0]!;
     const eighth = draftTurn[7]!;
@@ -201,9 +201,17 @@ describe('the culture ladder', () => {
     const earlyCadence = (eighth - first) / 7;
     expect(earlyCadence).toBeGreaterThan(4);
     expect(earlyCadence).toBeLessThan(9);
-    // The three government tiers all arrive, and they arrive spread out.
-    // Measured 24 / 52 / 124.
-    const tiers = GOVERNMENT_TIERS.map((tier) => draftTurn[tier - 1]);
+    // The government tiers **this horizon reaches** all arrive, and they arrive
+    // spread out. Measured 24 / 52 / 124.
+    //
+    // Three of five since 2026-08-28: Gov IV and Gov V sit at drafts 29 and 45,
+    // which this scripted empire reaches somewhere past turn 250, and a pacing
+    // test that played that far would be measuring a build order nobody wrote
+    // rather than the opening it exists to pin. The slice is the *measurement's*
+    // horizon and not a claim about the ladder — the rungs themselves are pinned
+    // in `statecraft.test.ts`, off the rows.
+    const REACHED_IN_HORIZON = 3;
+    const tiers = GOVERNMENT_TIERS.slice(0, REACHED_IN_HORIZON).map((tier) => draftTurn[tier - 1]);
     for (const [index, turn] of tiers.entries()) {
       expect(turn, `government ${index + 1}`).toBeDefined();
     }

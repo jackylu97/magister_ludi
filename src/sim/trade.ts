@@ -102,6 +102,7 @@ import {
   unitById,
 } from './state';
 import {
+  cardAmplifier,
   cardRouteSlots,
   payWindfallGrants,
   settleCultureWindfall,
@@ -334,7 +335,7 @@ export function explainRouteYield(state: GameState, unit: Unit): RouteYieldLine[
  * is where it joins, not a second function with the state parameter added back.
  */
 export function explainRouteYieldBetween(
-  _state: GameState,
+  state: GameState,
   from: City,
   to: City,
 ): RouteYieldLine[] {
@@ -369,6 +370,29 @@ export function explainRouteYieldBetween(
   const gold = Math.floor(people / per);
   if (gold > 0) {
     lines.push({ source: label(`${people} people`), food: 0, production: 0, gold });
+  }
+
+  // **The card's share, as a line of its own** — the Merchant League's fifty
+  // percent, and rule 5 for a caravan: the amplifier does not multiply the
+  // totals afterwards, it adds what it is worth to the list the totals are the
+  // fold of, so the destination's sheet says where the extra food came from.
+  //
+  // The **origin's** owner is asked, because a route belongs to the seat that
+  // sent it (`originCityOf`) and the law that pays it is that seat's law — a
+  // caravan into a rival's town is not enriched by the rival's charter.
+  // Percentages sum before one multiplication and each voice is floored once,
+  // exactly as Entry XVII sums within a stage.
+  const percent = cardAmplifier(state, from.ownerId, 'routeYields');
+  if (percent !== 0) {
+    const total = foldRouteYield(lines);
+    const extra = {
+      food: Math.floor((total.food * percent) / 100),
+      production: Math.floor((total.production * percent) / 100),
+      gold: Math.floor((total.gold * percent) / 100),
+    };
+    if (extra.food !== 0 || extra.production !== 0 || extra.gold !== 0) {
+      lines.push({ source: label(`your charter ${percent > 0 ? '+' : ''}${percent}%`), ...extra });
+    }
   }
 
   return lines;
@@ -1059,9 +1083,23 @@ export function settleTraderPlunder(
  * caravan walking your highway does not take over the bill.
  */
 export function layRoadUnder(unit: Unit, tile: Tile): boolean {
-  if (tile.road !== undefined) return false;
   if (!trades(unitDef(unit.type))) return false;
   if (unit.trade === undefined) return false;
-  tile.road = unit.ownerId;
+  return layRoad(tile, unit.ownerId);
+}
+
+/**
+ * Writes `Tile.road`, and is the **only** thing that does.
+ *
+ * Two occasions reach it now — a caravan wearing a highway into the ground
+ * (`layRoadUnder`, above) and The Founders' Road decreeing one between two towns
+ * (`foundCityAt`, `cities.ts`) — which is exactly why the write is a function of
+ * its own rather than a line in each: a road is one mark on one field, and the
+ * refusal to repave is the rule that keeps maintenance stable whichever
+ * occasion asks. A third way to lay a road calls this.
+ */
+export function layRoad(tile: Tile, ownerId: number): boolean {
+  if (tile.road !== undefined) return false;
+  tile.road = ownerId;
   return true;
 }

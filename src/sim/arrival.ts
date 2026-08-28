@@ -47,6 +47,7 @@ import {
   playerById,
   removeUnit,
 } from './state';
+import { cardBehaviorRule } from './statecraft';
 import { type TraderPlunder, layRoadUnder, settleTraderPlunder } from './trade';
 import { awardOccasion } from './triumphs';
 import { isCivilian, trades, unitDef } from './unitData';
@@ -123,13 +124,22 @@ export function isEmptyArrival(report: ArrivalReport): boolean {
  * collect a bounty for it, and a barbarian marching over *another* camp is the
  * wild walking through the wild. The claim half refuses barbarians on its own
  * (see `discoveryClaimError`); the camp half is refused here, where the reason is
- * the same one sentence for both.
+ * the same one sentence for both — and it is now the same sentence for a *third*
+ * arrival, the empire whose doctrine has made peace with the wild
+ * (`noCampClearing`).
  */
 export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalReport {
   const report = emptyArrival();
   const isWild = playerById(state, unit.ownerId)?.barbarian === true;
 
-  if (!isWild && hasCampAt(state, tile.col, tile.row)) {
+  // **Wolf-Mother's Pact does not sack its ally's villages.** A doctrine may
+  // take an empire out of the camp-clearing business altogether — the price it
+  // pays for converting the wild's fallen — and the refusal belongs here beside
+  // the wild's own, because this is the one place a camp stops existing and the
+  // reason is the same one sentence: whoever arrived has no quarrel with it.
+  const clears = !isWild && !cardBehaviorRule(state, unit.ownerId, 'noCampClearing');
+
+  if (clears && hasCampAt(state, tile.col, tile.row)) {
     removeCampAt(state, tile.col, tile.row);
     report.camp = settleCampBounty(state, unit.ownerId, { col: tile.col, row: tile.row });
     // The Camp Burned. Beside the bounty rather than in the reducer, for the

@@ -181,6 +181,20 @@ export interface ImprovementRules {
    * than for a farm would quietly make luxuries the thing armies go for.
    */
   pillageGold: number;
+  /**
+   * Hit points the raid restores to the unit that struck the works, capped at
+   * its type's maximum (2026-08-28, the user's ruling).
+   *
+   * The *second* half of what a raid pays, and it is here beside the gold rather
+   * than on a card because it is what pillaging **is** now: a column burns a
+   * farm and patches itself up on what it takes. Every raider gets it — an
+   * empire's swordsman, and the wild, which gets nothing else (see `pillageAt`).
+   *
+   * It composes with the heal *riders* the way the gold composes with the gold
+   * riders: this is the base `windfallPayout` is handed, and Scorched Earth's
+   * own heal is added to it inside that one function rather than beside it.
+   */
+  pillageHeal: number;
 }
 
 /**
@@ -279,11 +293,34 @@ export interface TradeRules {
 export interface BarbarianRules {
   /** First turn a camp may appear at all. The opening is meant to be quiet. */
   firstCampTurn: number;
-  /** A camp-founding sweep runs every this many turns, from `firstCampTurn`. */
+  /**
+   * A camp-founding sweep runs every this many turns, from `firstCampTurn`.
+   *
+   * **The faucet is the pair, not this number** (2026-08-28). What a designer is
+   * actually setting is `campsPerSpawn / campEveryTurns` camps per turn, and
+   * these two integers are how that fraction is written down — which is why the
+   * ruling that asked for "half again as many camps" moved *both*: one every two
+   * turns is 0.5, and three every four turns is 0.75. Reaching for the cadence
+   * alone cannot express it, because ⌈2 × ⅔⌉ is still 2.
+   */
   campEveryTurns: number;
-  /** How many camps one sweep may found. */
+  /**
+   * How many camps one sweep may found.
+   *
+   * The numerator of the faucet above. `foundCamps` rebuilds its candidate list
+   * between camps within one sweep, so a sweep that founds several still obeys
+   * `minCampDistanceApart` — raising this scatters camps, it does not stack them.
+   */
   campsPerSpawn: number;
-  /** Hard ceiling on live camps, however long the game runs. */
+  /**
+   * Hard ceiling on live camps, however long the game runs.
+   *
+   * The other half of "how much wild is there", and it moves *with* the faucet:
+   * a ceiling left where it was turns a faster faucet into nothing but reaching
+   * the same board sooner. The board is self-limiting under it either way —
+   * `canFoundCampAt` refuses ground anybody can see or owns, so a well-patrolled
+   * world never reaches this number.
+   */
   maxCamps: number;
   /** How far a new camp must stand from every city, anyone's. */
   minCampDistanceFromCity: number;

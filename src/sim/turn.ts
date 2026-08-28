@@ -104,6 +104,7 @@ import {
   growCities,
 } from './cities';
 import { type CombatOutcome, type SiegeReport, advanceFortify, healCities } from './combat';
+import type { PillageReport } from './improvements';
 import { hasLineOfSight } from './los';
 import { openPeriodicOffers, pruneTimedEffects } from './religion';
 import { getTileAt, tileHex, wrappedDistance } from './map';
@@ -206,11 +207,36 @@ export interface TurnReport {
    * that stops appearing here has been relieved.
    */
   sieges: SiegeReport[];
+  /**
+   * Every improvement the wild tore out this resolution, in the raid sweep's own
+   * order (`PillageReport`).
+   *
+   * `combats`' sibling, and it joins for exactly that argument: a raider's blow
+   * is news because the board cannot be asked who struck whom afterwards, and a
+   * raider's *torch* is news for the same reason one field over — by the time
+   * this returns the farm is simply not there, and nothing distinguishes a hex
+   * the wild burnt last night from a hex nobody ever ploughed.
+   *
+   * The wild's half of the pillage verb is the only writer. A player's own
+   * pillage is a command and rides `CommandResult.pillages`, which is the same
+   * split `routesEnded` makes with `cancelRoute`: a verb already knows what it
+   * did, and only the things that happen *to* a seat need the resolution to say
+   * so.
+   */
+  pillages: PillageReport[];
 }
 
 /** A fresh, empty report. The one place its shape is written. */
 export function emptyTurnReport(): TurnReport {
-  return { combats: [], wonders: [], triumphs: [], grants: [], routesEnded: [], sieges: [] };
+  return {
+    combats: [],
+    wonders: [],
+    triumphs: [],
+    grants: [],
+    routesEnded: [],
+    sieges: [],
+    pillages: [],
+  };
 }
 
 export interface TurnPhase {

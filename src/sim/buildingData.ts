@@ -230,6 +230,10 @@ export type BuildingId =
   | 'amphitheater'
   | 'monastery'
   | 'university'
+  // **Opened by a card, not by a node** — the one row in the table with no
+  // technology behind it (`unlockedByCard`, `purchaseOnly`). The Gilded Court
+  // hands it over and the treasury is the only way to raise it.
+  | 'gildedHall'
   // --- the wonders ---------------------------------------------------------
   //
   // Twenty-seven, ratified from `docs/wonders.md` and homed on the tree as it
@@ -527,6 +531,34 @@ export interface BuildingDef {
    * name of a flag, not the reason.
    */
   requiresSite?: CityScope;
+  /**
+   * This row is **bought or not at all** — never queued, never hammered.
+   *
+   * `UnitDef.purchase.exclusive` one table over, and it carries the same
+   * sentence: `buildError` refuses it in the row's own words, `purchaseError`
+   * admits it, and `isPurchaseOnly` is the interface's half so a build list and
+   * the reducer agree by construction. The Gilded Hall's whole identity — a
+   * doctrine's marble counting-house that a town cannot labour its way to.
+   *
+   * The **price** is still the ordinary one: `goldPerHammer` coin per hammer of
+   * `cost`, so the 500💰 on The Gilded Court's card is 250 hammers on this row
+   * and a designer retuning the conversion moves both together. A row that
+   * wanted its own figure would be a second price this game deliberately does
+   * not have.
+   */
+  purchaseOnly?: boolean;
+  /**
+   * Nothing in the tech tree opens this row — **a card does**
+   * (`CardUnlocksBuildingEffect`, and The Gilded Court is the only one today).
+   *
+   * Read in `isUnlocked` (`tech.ts`) as one more clause of the single
+   * availability question, rather than as a second gate beside it: a building no
+   * technology names is otherwise available from turn one, which is the right
+   * default for content and exactly wrong for content a doctrine is supposed to
+   * hand over. So the row declares that it is waiting for something, and the
+   * card is what arrives.
+   */
+  unlockedByCard?: boolean;
   /**
    * What finishing this hands its owner, once. See `CompletionGrant`.
    *

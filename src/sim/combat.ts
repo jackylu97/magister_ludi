@@ -168,6 +168,8 @@ import { nextRange } from './rng';
 import { RULES } from './rulesData';
 import {
   type CombatSituation,
+  type WindfallOccasionFacts,
+  cardBehaviorRule,
   cardCityStat,
   cardCombatLines,
   cardCombatPercent,
@@ -1252,7 +1254,9 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       col: tile.col,
       row: tile.row,
     });
-    payBattleRiders(state, attacker.ownerId, 'kill', tile);
+    payBattleRiders(state, attacker.ownerId, 'kill', tile, {
+      vsBarbarians: playerById(state, fromOwnerId)?.barbarian === true,
+    });
     payBattleRiders(state, fromOwnerId, 'death', tile);
   } else if (forecast.capturesUnit) {
     // The one implementation of a change of hands (`state.ts`), which the wild's
@@ -1287,15 +1291,38 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       const defender = target.unit!;
       defender.hp -= dealt;
       if (defender.hp <= 0) {
-        outcome.killed.push(snapshotFallen(defender));
         const fallenOwner = defender.ownerId;
-        removeUnit(state, defender.id);
-        defenderDied = true;
-        // Two riders on one death, and they belong to two empires: the killer's
-        // `kill` and the fallen's `death`. Both are paid, in that order, because
-        // a battle is one event that two laws have something to say about.
-        payBattleRiders(state, attacker.ownerId, 'kill', tile);
-        payBattleRiders(state, fallenOwner, 'death', tile);
+        const fromWild = playerById(state, fallenOwner)?.barbarian === true;
+        // **Wolf-Mother's Pact: a barbarian you kill joins you instead of
+        // dying.** The blow lands exactly as it always did — the roll, the
+        // damage, the counter — and only the *disposal* changes, which is why
+        // this is one clause here rather than a second combat path: the piece
+        // goes through `captureUnit`, the one implementation of a change of
+        // hands, on its feet at a single hit point because a convert is a
+        // survivor and not a fresh recruit.
+        //
+        // It is a **capture and not a kill**, so no `killed` entry and no kill
+        // or death riders: nothing died, and a card paying culture per corpse
+        // must not pay for a man who is now standing in your line. `defenderDied`
+        // is still true because it means "the hex stopped being defended", which
+        // is what the counter's floor and the advance both ask — and the advance
+        // then refuses itself on stacking, since the hex now holds a combatant of
+        // the attacker's own.
+        if (fromWild && cardBehaviorRule(state, attacker.ownerId, 'barbarianKillsConvert')) {
+          defender.hp = 1;
+          captureUnit(state, defender, attacker.ownerId);
+          outcome.capturedUnitId = defender.id;
+          defenderDied = true;
+        } else {
+          outcome.killed.push(snapshotFallen(defender));
+          removeUnit(state, defender.id);
+          defenderDied = true;
+          // Two riders on one death, and they belong to two empires: the killer's
+          // `kill` and the fallen's `death`. Both are paid, in that order, because
+          // a battle is one event that two laws have something to say about.
+          payBattleRiders(state, attacker.ownerId, 'kill', tile, { vsBarbarians: fromWild });
+          payBattleRiders(state, fallenOwner, 'death', tile);
+        }
       }
     }
 
@@ -1320,7 +1347,11 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     // The counter-attack killed somebody, so the defending empire got a kill —
     // which is the only reading under which The Iron Price is a card about
     // *combat* rather than a card about attacking.
-    if (defenderOwner !== undefined) payBattleRiders(state, defenderOwner, 'kill', tile);
+    if (defenderOwner !== undefined) {
+      payBattleRiders(state, defenderOwner, 'kill', tile, {
+        vsBarbarians: playerById(state, fallenOwner)?.barbarian === true,
+      });
+    }
   } else {
     attacker.movesLeft = 0;
     attacker.hasAttacked = true;
@@ -1437,11 +1468,12 @@ function payBattleRiders(
   playerId: number,
   occasion: 'kill' | 'death' | 'capture',
   at: Tile,
+  facts: WindfallOccasionFacts = {},
 ): void {
   const player = playerById(state, playerId);
   if (!player) return;
-  const payout = windfallPayout(state, playerId, occasion);
-  if (payout.grants.length === 0) return;
+  const payout = windfallPayout(state, playerId, occasion, 0, 0, facts);
+  if (payout.grants.length === 0 && payout.units.length === 0) return;
   const touched = payWindfallGrants(state, player, payout, { col: at.col, row: at.row });
   for (const city of touched) settleProductionWindfall(state, city);
   settleCultureWindfall(state, player);

@@ -37,7 +37,8 @@
     "captureCivilians": true
   },
   "improvements": {
-    "pillageGold": 25
+    "pillageGold": 25,
+    "pillageHeal": 25
   },
   "trade": {
     "routeTurns": 20,
@@ -54,9 +55,9 @@
   },
   "barbarians": {
     "firstCampTurn": 6,
-    "campEveryTurns": 2,
-    "campsPerSpawn": 1,
-    "maxCamps": 16,
+    "campEveryTurns": 4,
+    "campsPerSpawn": 3,
+    "maxCamps": 24,
     "minCampDistanceFromCity": 4,
     "minCampDistanceFromStart": 6,
     "minCampDistanceApart": 6,

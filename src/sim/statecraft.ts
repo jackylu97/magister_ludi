@@ -57,7 +57,9 @@ import {
   controlledResources,
   isCoastalCity,
   nearestOwnedCity,
+  realiseItem,
   resourceCopies,
+  spawnTileFor,
   tileOwnerCityId,
   tileOwnerPlayerId,
 } from './cities';
@@ -70,7 +72,7 @@ import {
   isBuildingId,
   isWonder,
 } from './buildingData';
-import { type Family, greatPersonDef, isGreatPersonId } from './greatPeopleData';
+import { type Family, type GreatPersonId, greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { improvementDef } from './improvementData';
 import { type ProjectId, type ProjectPayout, projectDef } from './projectData';
 import { type Tile, getTileAt, neighborTiles, tileHex, wrappedDistance } from './map';
@@ -101,6 +103,8 @@ import {
   type CardTileYieldEffect,
   type CityScope,
   type CombatCondition,
+  type CombatScale,
+  type CombatScaleCount,
   type CountKind,
   type DoctrineId,
   type EmpireCondition,
@@ -110,6 +114,7 @@ import {
   type OfferRuleId,
   type OrderId,
   type OrderPool,
+  type OrderSlotGrant,
   type RateSource,
   type SlotType,
   type TileCondition,
@@ -137,9 +142,9 @@ import {
 } from './statecraftData';
 import { isWaterTerrain } from './terrainData';
 import { awardOccasion } from './triumphs';
-import { highestAge } from './techData';
-import { type ModelClass, type UnitTypeId, isCombatant, unitDef } from './unitData';
-import { isVisibleTo } from './visibility';
+import { UNIT_UNLOCK_TECH, highestAge } from './techData';
+import { type ModelClass, type UnitTypeId, UNIT_TYPE_IDS, isCombatant, unitDef } from './unitData';
+import { isExploredBy, isVisibleTo } from './visibility';
 import { isCoastal } from './water';
 
 const METER = STATECRAFT.meter;
@@ -298,6 +303,18 @@ export interface PlayerStatecraft {
   slots: (SlottedOrder | null)[];
   /** Doctrines held, in the order they were taken. Permanent, slotless. */
   doctrines: DoctrineId[];
+  /**
+   * The Orders whose `onSlot` grant has already been paid, in the order it was
+   * paid — the once-per-game flag for The Laureate's great person.
+   *
+   * A **list of ids** rather than a boolean per card, for `Player.legacies`'
+   * reason exactly: it is the register of what has happened, so a second Order
+   * with a slot grant needs no second field, and iteration order that is part of
+   * the state is iteration order a replay reproduces. Presence is the state, and
+   * nothing ever removes an entry — unslotting The Laureate and slotting it
+   * again is not a second great person, which is what "once" means.
+   */
+  grantedOnSlot: OrderId[];
   /** A draft awaiting a pick, or the key is absent. Blocks End Turn. */
   pendingOrder?: OrderOffer;
   /** A Doctrine draft awaiting a pick, or absent. Blocks End Turn. */
@@ -314,6 +331,7 @@ export function newPlayerStatecraft(): PlayerStatecraft {
     orders: [],
     slots: slotLayout(STARTING_GOVERNMENT).map(() => null),
     doctrines: [],
+    grantedOnSlot: [],
   };
 }
 
@@ -1219,6 +1237,13 @@ function countOf(
     case 'cities':
       return cityCount(state, playerId);
     case 'population': {
+      // **"In a city" is the same question of narrower ground** (the Republic's
+      // culture per five citizens). `within: 'city'` is the modifier on the
+      // count that `improvedBonusResources` already carries, and it means here
+      // exactly what it means there: the sweep is over one town rather than the
+      // realm, so a card written on it pays each town for its own citizens
+      // instead of paying every town for the empire's.
+      if (effect.within === 'city') return city?.population ?? 0;
       let total = 0;
       for (const town of state.cities) {
         if (town.ownerId === playerId) total += town.population;
@@ -1359,6 +1384,66 @@ function countOf(
       }
       return total;
     }
+    case 'buildingsOfCategory': {
+      // `buildingsOfKind`'s sweep with the wider question — what a row is *for*
+      // rather than which row it is. A line with no `category` is a data error
+      // for that count's stated reason: it would silently pay per city.
+      const wanted = effect.category;
+      if (wanted === undefined) return 0;
+      if (effect.within === 'city') {
+        if (!city) return 0;
+        let here = 0;
+        for (const id of city.buildings) {
+          if (buildingDef(id).category === wanted) here += 1;
+        }
+        return here;
+      }
+      let total = 0;
+      for (const town of state.cities) {
+        if (town.ownerId !== playerId) continue;
+        for (const id of town.buildings) {
+          if (buildingDef(id).category === wanted) total += 1;
+        }
+      }
+      return total;
+    }
+    case 'defensiveBuildings': {
+      if (!city) return 0;
+      // A fortification is read off what a building *does* to its town — the
+      // strength a besieger has to beat (`cityStat.defense`) or the bar it has
+      // to empty (`cityHp`) — so a watchtower added to the table joins The Long
+      // Watch for free and no list of names is kept anywhere.
+      let total = 0;
+      for (const id of city.buildings) {
+        const def = buildingDef(id);
+        const wall = def.cityStat?.stat === 'defense' && (def.cityStat.amount ?? 0) > 0;
+        if (wall || (def.cityHp ?? 0) > 0) total += 1;
+      }
+      return total;
+    }
+    case 'discoveredCamps': {
+      // `visibleCamps`' sibling on the monotone grid: a camp on ground this seat
+      // has walked past counts until somebody burns it out. See the union.
+      let total = 0;
+      for (const camp of state.camps) {
+        if (isExploredBy(state, playerId, camp.col, camp.row)) total += 1;
+      }
+      return total;
+    }
+    case 'tradeRoutes': {
+      // Live routes this seat is running, counted off the board rather than
+      // asked of `trade.ts` — which reads *this* module for its slot fold, so
+      // the arrow only points one way. Expiry is the one comparison it is
+      // everywhere else (`state.turn < expiresTurn`).
+      let total = 0;
+      for (const unit of state.units) {
+        if (unit.ownerId !== playerId) continue;
+        if (unit.trade === undefined) continue;
+        if (state.turn >= unit.trade.expiresTurn) continue;
+        total += 1;
+      }
+      return total;
+    }
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -1420,6 +1505,8 @@ export interface RateReading {
   faithPerTurn?: number;
   culturePerTurn?: number;
   goldPerTurn?: number;
+  /** What the **capital** banked in faith this turn. Theocracy's tithe. */
+  capitalFaithPerTurn?: number;
 }
 
 function rateOf(
@@ -1431,6 +1518,8 @@ function rateOf(
   switch (from) {
     case 'faithPerTurn':
       return Math.max(0, Math.floor(rates.faithPerTurn ?? 0));
+    case 'capitalFaithPerTurn':
+      return Math.max(0, Math.floor(rates.capitalFaithPerTurn ?? 0));
     case 'culturePerTurn':
       return Math.max(0, Math.floor(rates.culturePerTurn ?? 0));
     case 'goldPerTurn':
@@ -1464,6 +1553,7 @@ const CITY_SCOPED_COUNTS: readonly CountKind[] = [
   'scienceBuildings',
   'buildingsInCity',
   'workedTilesInCity',
+  'defensiveBuildings',
 ];
 
 /**
@@ -2218,10 +2308,7 @@ export function cardCombatLines(state: GameState, situation: CombatSituation): C
       list.push({ card, source, amount: each });
       continue;
     }
-    const total =
-      effect.scaled.count === 'cities'
-        ? cityCount(state, owner)
-        : adjacentFriendlies(state, situation.unit);
+    const total = combatScaleCount(state, owner, situation.unit, effect.scaled);
     let amount = each * helpings(total, effect.scaled.per, undefined);
     if (effect.scaled.max !== undefined) {
       amount = Math.sign(amount) * Math.min(Math.abs(amount), scaleByLevel(effect.scaled.max, level));
@@ -2230,6 +2317,68 @@ export function cardCombatLines(state: GameState, situation: CombatSituation): C
     list.push({ card, source, amount });
   }
   return list;
+}
+
+/**
+ * What a strength line's `scaled` clause counts. One arm each, no default.
+ *
+ * `countOf`'s much smaller cousin, and separate from it on purpose: a
+ * `CombatScale` is asked of a *fight* — it has a piece in hand and no city — so
+ * the two counts share nothing but the word "count", and folding them would mean
+ * handing `countOf` a unit it has no use for.
+ */
+function combatScaleCount(
+  state: GameState,
+  playerId: number,
+  unit: Unit,
+  scale: CombatScale,
+): number {
+  const count = scale.count;
+  switch (count) {
+    case 'cities':
+      return cityCount(state, playerId);
+    case 'adjacentFriendlies':
+      return adjacentFriendlies(state, unit);
+    case 'greatPeopleOfFamily':
+      return greatPeopleEarned(state, playerId, scale.family);
+    default: {
+      const unhandled: never = count;
+      void unhandled;
+      return 0;
+    }
+  }
+}
+
+/**
+ * Great people of one family this empire has **earned** — spent and standing
+ * both.
+ *
+ * The two halves are where a name can be: `Player.legacies` is the roll of the
+ * ones already given up to their act, and the board holds the ones still walking
+ * (`Unit.person`). They never overlap — a person is consumed by its act and its
+ * id is pushed onto the legacies in the same breath — so the sum is exactly "how
+ * many has this realm ever been handed", which is what "earned this game" says.
+ *
+ * `GameState.recruited` is deliberately *not* the source: it is the world's
+ * consumed roster and records no owner (see its docblock), so a count read off
+ * it would pay The Empire for a rival's generals.
+ */
+function greatPeopleEarned(state: GameState, playerId: number, family?: Family): number {
+  const player = playerById(state, playerId);
+  if (!player) return 0;
+  const admits = (id: GreatPersonId): boolean =>
+    family === undefined || greatPersonDef(id).family === family;
+  let total = 0;
+  for (const id of player.legacies) {
+    if (admits(id)) total += 1;
+  }
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    const person = unit.person;
+    if (person === undefined) continue;
+    if (admits(person)) total += 1;
+  }
+  return total;
 }
 
 /**
@@ -2391,22 +2540,62 @@ export interface WindfallPayout {
   grants: { card: CardId; source: string; yield: CityYieldKey; amount: number }[];
   /** Hit points a rider restores to the acting unit. */
   heal: number;
+  /**
+   * Pieces a rider gifts outright, already **drawn** — Camp Followers'.
+   *
+   * The roll happens here, with every other figure on the payout, because Entry
+   * XVIII.5's rule is that the whole thing is composed before anything is banked
+   * and a draw made later would be a draw the preview could not have promised.
+   * What is left for `payWindfallGrants` is only the delivery, through
+   * `realiseItem` — the one completion routine.
+   */
+  units: { card: CardId; source: string; type: UnitTypeId }[];
   /** Every rider that touched this payout, for the announcement. */
   lines: { card: CardId; source: string; note: string }[];
+}
+
+/**
+ * Which side the occasion was against, where an occasion has a side.
+ *
+ * Today one question and one asker: a `kill` and a `death` know whether the
+ * piece that fell belonged to the wild, and a rider carrying `vsBarbarians`
+ * fires only when it did (Border Ballads). Passed rather than derived, because
+ * by the time the riders are composed the fallen piece is off the board — the
+ * caller is the only thing that still knows.
+ */
+export interface WindfallOccasionFacts {
+  vsBarbarians?: boolean;
 }
 
 /**
  * Composes the printed number for one occasion. `base` is what the occasion
  * pays with no cards at all; pass 0 for an occasion that has no figure of its
  * own (a death, a kill, a capture) and read the grants.
+ *
+ * `baseHeal` is the same idea for the *other* thing an occasion can pay
+ * (2026-08-28): hit points the act itself restores, before a single card has
+ * spoken. A pillage pays `improvements.pillageHeal` to whoever struck the works
+ * and Scorched Earth adds to that; both arrive in `payout.heal` as one figure,
+ * for exactly the reason the gold does — **the printed number is composed here
+ * or it is composed twice**. It is deliberately *not* a `lines` entry: `lines`
+ * is the register of what the **cards** did, and an occasion's own figure has
+ * never appeared there (`base` does not either).
  */
 export function windfallPayout(
   state: GameState,
   playerId: number,
   occasion: WindfallOccasion,
   base = 0,
+  baseHeal = 0,
+  facts: WindfallOccasionFacts = {},
 ): WindfallPayout {
-  const payout: WindfallPayout = { amount: base, grants: [], heal: 0, lines: [] };
+  const payout: WindfallPayout = {
+    amount: base,
+    grants: [],
+    heal: baseHeal,
+    units: [],
+    lines: [],
+  };
   let percent = 0;
   // The era multiplier (Entry XXVIII). **One** factor however many riders ask
   // for it, which is Entry XVII's "additive within a stage, applied once" read
@@ -2425,6 +2614,10 @@ export function windfallPayout(
   let slotMultiplied = false;
   for (const { source, card, level, effect } of effectsOfKind(state, playerId, 'windfallRider')) {
     if (effect.occasion !== occasion) continue;
+    // The occasion narrowed by who was on the other side of it. A rider that
+    // asks for the wild and did not get it is simply not on this payout — the
+    // same reading `combatLine`'s conditions take, one system over.
+    if (effect.vsBarbarians === true && facts.vsBarbarians !== true) continue;
     if (effect.perAge === true) {
       ageMultiplied = true;
       if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${'I'.repeat(era)})` });
@@ -2453,6 +2646,19 @@ export function windfallPayout(
         payout.lines.push({ card, source, note: `heals ${heal}` });
       }
     }
+    if (grant.unit !== undefined) {
+      // Drawn here, delivered later. `randomMilitary` is "one of the soldiers
+      // this empire could raise today", which is what makes the gift keep pace
+      // with the tree; the draw is `state.rng`, so a replay lands the same
+      // spearman. A realm that can raise nothing at all is gifted nothing, and
+      // says so by leaving the list empty.
+      const roster = buildableMilitary(state, playerId);
+      if (roster.length > 0) {
+        const type = roster[Math.min(roster.length - 1, Math.floor(nextFloat(state.rng) * roster.length))]!;
+        payout.units.push({ card, source, type });
+        payout.lines.push({ card, source, note: `a ${unitDef(type).name} joins you` });
+      }
+    }
     if (grant.yield !== undefined && grant.amount !== undefined) {
       // A rider's own grant is multiplied by the era when *that rider* says so —
       // Rites of Blood pays fifteen faith a kill in Æra I and forty-five in Æra
@@ -2479,6 +2685,42 @@ export function windfallPayout(
   if (ageMultiplied) payout.amount *= era;
   if (slotMultiplied) payout.amount *= slotted;
   return payout;
+}
+
+/**
+ * The **military** types this empire could raise right now, in roster order.
+ *
+ * The pool Camp Followers' gift is drawn from, and it is deliberately "could
+ * raise" rather than "has ever unlocked": a card that keeps pace with the tree
+ * is the whole of what "a random military unit" means on a card that will be
+ * held for two hundred turns.
+ *
+ * The tech gate is asked of `UNIT_UNLOCK_TECH` directly rather than through
+ * `buildError` (`tech.ts`), which reads *this* module and may not be read back.
+ * That costs the resource clause — a card may gift a swordsman to an empire
+ * with no iron — and that is the honest trade rather than an oversight: a
+ * *gift* is not a levy, nothing was spent on it, and the alternative is a
+ * runtime cycle. Rows sold out of their own bank (the augur) and rows that are
+ * *called* rather than built (a great person) are excluded, in their own
+ * markers, so nothing here compares a type against a name.
+ *
+ * **Roster order**, which is file order, because a draw over it is a seeded
+ * outcome and an outcome that depends on an order must depend on an order the
+ * data itself carries (CLAUDE.md's iteration rule).
+ */
+function buildableMilitary(state: GameState, playerId: number): UnitTypeId[] {
+  const techs = playerById(state, playerId)?.techsResearched ?? [];
+  const list: UnitTypeId[] = [];
+  for (const id of UNIT_TYPE_IDS) {
+    const def = unitDef(id);
+    if (def.category !== 'military') continue;
+    if (def.purchase !== undefined) continue;
+    if (def.greatWork === true) continue;
+    const gate = UNIT_UNLOCK_TECH.get(id);
+    if (gate !== undefined && !techs.includes(gate)) continue;
+    list.push(id);
+  }
+  return list;
 }
 
 /**
@@ -2540,6 +2782,20 @@ export function payWindfallGrants(
   at?: { col: number; row: number },
 ): City[] {
   const touched: City[] = [];
+  // **The pieces first**, because a gifted soldier is a thing that arrives
+  // somewhere and the yields are book-keeping. Delivered through `realiseItem`
+  // — the one routine that means "the city now has the thing" — so the spawn
+  // convention is production's own and this is not a second way to mint a unit.
+  // A town with nowhere to put it keeps the gift undelivered rather than
+  // stacking a piece on a full hex; `spawnTileFor` is the same refusal a
+  // purchase gets.
+  for (const gift of payout.units) {
+    const city = at ? nearestOwnedCity(state, player.id, at) : capitalCityOf(state, player.id) ?? null;
+    if (!city) continue;
+    const tile = spawnTileFor(state, city, gift.type);
+    if (!tile) continue;
+    realiseItem(state, city, { kind: 'unit', id: gift.type, tile });
+  }
   for (const grant of payout.grants) {
     if (grant.yield === 'gold') player.gold += grant.amount;
     else if (grant.yield === 'science') player.sciencePool += grant.amount;
@@ -2639,6 +2895,26 @@ export function cardPurchaseRiders(
  * every reading of it — the consecration screen, `hasOpenBeliefSlot`, the offer
  * — folds the technologies' slots and these in one place.
  */
+/**
+ * Does one of this empire's cards open this building row?
+ *
+ * `unlocksBuilding`'s one *rule* reader, and the shape stopped being a
+ * description the day buildings could be bought (Entry XXIX): The Gilded Court
+ * really does hand over the Gilded Hall now. Asked by `isUnlocked` (`tech.ts`)
+ * for a row that declares `unlockedByCard`, so availability stays one question
+ * with one answer rather than a card gate beside a tech gate.
+ */
+export function cardUnlocksBuilding(
+  state: GameState,
+  playerId: number,
+  building: BuildingId,
+): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'unlocksBuilding')) {
+    if (effect.building === building) return true;
+  }
+  return false;
+}
+
 export function cardPantheonSlots(state: GameState, playerId: number): number {
   let total = 0;
   for (const { level, effect } of effectsOfKind(state, playerId, 'pantheonSlots')) {
@@ -2715,17 +2991,34 @@ export interface CardRenownLine {
  * A zero pays no line at all — an empire with no cities holds no counsel worth
  * recording — which is the same rule every other list in this file follows.
  */
+/**
+ * The payout a `renown` line's *count* is asked with, and it is never read.
+ *
+ * `countOf` takes a whole `CardCountScaledEffect` because that is the shape its
+ * arguments live on (`building`, `category`, `class`, `within`), and a renown
+ * line has none of them — it needs only the sweep. So the probe carries a
+ * payout that satisfies the type and is discarded, rather than `countOf` growing
+ * a second signature for callers that only want the number.
+ */
+const RENOWN_PROBE: CardPayout = { to: 'authority', amount: 0 };
+
 export function cardRenownLines(state: GameState, playerId: number): CardRenownLine[] {
   const list: CardRenownLine[] = [];
   for (const { source, card, level, effect } of effectsOfKind(state, playerId, 'renown')) {
     const each = scaleByLevel(effect.amount, level);
     if (each === 0) continue;
-    const helpings = effect.per === 'city' ? cityCount(state, playerId) : 1;
+    const per = effect.per;
+    const helpings =
+      per === 'city'
+        ? cityCount(state, playerId)
+        : per === 'wonder'
+          ? countOf(state, playerId, { kind: 'countScaled', count: 'wonders', pays: RENOWN_PROBE })
+          : 1;
     const amount = each * helpings;
     if (amount === 0) continue;
     list.push({
       card,
-      source: effect.per === 'city' ? `${source} · ${each} per city × ${helpings}` : source,
+      source: per === undefined ? source : `${source} · ${each} per ${per} × ${helpings}`,
       family: effect.family ?? null,
       amount,
     });
@@ -2760,6 +3053,8 @@ export interface FoundingRider {
   population: number;
   /** Buildings it opens with, in walk order. */
   buildings: BuildingId[];
+  /** True when the new town is joined to the realm by road. See the shape. */
+  roads: boolean;
 }
 
 /**
@@ -2771,7 +3066,7 @@ export interface FoundingRider {
  * while four stand, and a sixth is not.
  */
 export function cardFoundingRider(state: GameState, playerId: number): FoundingRider {
-  const rider: FoundingRider = { population: 0, buildings: [] };
+  const rider: FoundingRider = { population: 0, buildings: [], roads: false };
   const held = cityCount(state, playerId);
   for (const { level, effect } of effectsOfKind(state, playerId, 'foundingRider')) {
     if (effect.maxCities !== undefined && held >= effect.maxCities) continue;
@@ -2779,6 +3074,7 @@ export function cardFoundingRider(state: GameState, playerId: number): FoundingR
     if (effect.building !== undefined && !rider.buildings.includes(effect.building)) {
       rider.buildings.push(effect.building);
     }
+    if (effect.roads === true) rider.roads = true;
   }
   return rider;
 }
@@ -2787,17 +3083,25 @@ export function cardFoundingRider(state: GameState, playerId: number): FoundingR
  * How long slotting an Order seals it, for this empire.
  *
  * The `metaRule` hook's one consumer — a card that rewrites a rule of Statecraft
- * itself (Entry XV.b). The *lowest* value wins when more than one card speaks,
- * because The Loose Rein's promise is "seals last 2 turns" and a second card
- * saying 3 must not make it worse.
+ * itself (Entry XV.b).
+ *
+ * **A card's figure is read as a departure from the table's own**, and the
+ * departures sum — Entry XVII's "additive within a stage, applied once" at the
+ * scale of a rule. `min` used to be the fold, and it was right while the only
+ * card that spoke *loosened* the seal (The Loose Rein's two turns); it silently
+ * deleted the first card that tightened one, and Absolutism's ten-turn seal is a
+ * **cost** it pays for six points of writ, so a fold that threw it away would
+ * have made that card strictly better than its printed text. One card still
+ * lands exactly on its own number — 5 + (2 − 5) is 2, and 5 + (10 − 5) is 10 —
+ * which is what a player reads off the card either way.
  */
 export function sealTurnsFor(state: GameState, playerId: number): number {
   let turns = METER.sealTurns;
   for (const { level, effect } of effectsOfKind(state, playerId, 'metaRule')) {
     if (effect.rule !== 'sealTurns') continue;
-    turns = Math.min(turns, Math.max(0, scaleByLevel(effect.value, level)));
+    turns += scaleByLevel(effect.value, level) - METER.sealTurns;
   }
-  return turns;
+  return Math.max(0, turns);
 }
 
 // --- words ------------------------------------------------------------------
@@ -2864,6 +3168,18 @@ export function describeCard(id: CardId, level = 1): CardClause[] {
     }
     for (const grant of building.onComplete ?? []) {
       clauses.push({ text: grantWords(grant) });
+    }
+  }
+  // **A slot grant is not an effect, and it still has to be printed** — the
+  // completion grant's argument one class over. It happens at a moment rather
+  // than standing for as long as the card is held, so it is a field on the row
+  // (`OrderDef.onSlot`); a card that left it out would be The Laureate reading
+  // as five tile bonuses and no laureate.
+  if (isOrderId(id)) {
+    for (const grant of orderDef(id).onSlot ?? []) {
+      if (grant.grant === 'greatPerson') {
+        clauses.push({ text: 'the first time this is slotted, a great person answers your call' });
+      }
     }
   }
   for (const missing of def.deferred ?? []) {
@@ -2944,7 +3260,7 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       // combat units": a helping of one is the thing itself, and printing the
       // 1 is what made The Marshals read like a rounding error.
       const scale = effect.scaled
-        ? ` per ${countWords(effect.scaled.per, SCALE_WORDS[effect.scaled.count])}` +
+        ? ` per ${countWords(effect.scaled.per, scaleNoun(effect.scaled))}` +
           (effect.scaled.max === undefined ? '' : ` (at most ${signed(effect.scaled.max)})`)
         : '';
       // Who the line is for, when it is not for everybody — the Alhambra's
@@ -2991,7 +3307,14 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       return;
     }
     case 'windfallRider': {
-      const occasion = OCCASION_WORDS[effect.occasion];
+      // The occasion, narrowed where the row narrows it — "killing a barbarian"
+      // rather than "killing a unit". Printed here rather than as a table entry
+      // for `COMBAT_WORDS`' reason: one shape serves every occasion and a second
+      // entry per occasion would be fourteen more rows to keep in step.
+      const occasion =
+        effect.vsBarbarians === true
+          ? `${OCCASION_WORDS[effect.occasion]} of the wild`
+          : OCCASION_WORDS[effect.occasion];
       // The **grant first**, then the riders on it. Rites of Blood pays fifteen
       // faith and the age multiplies it; leading with the multiplier said the
       // second half of a sentence whose first half had not been printed yet.
@@ -3010,7 +3333,15 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         });
       }
       if (grant?.heal !== undefined) {
-        out.push({ text: `${occasion} heals ${scaleByLevel(grant.heal, level)}${per}` });
+        // "**a further**", because every occasion that carries a heal today
+        // already pays one of its own: pillaging heals `improvements.pillageHeal`
+        // to whoever struck the works before a card has spoken, so a card that
+        // said "pillaging heals 25" was quoting the base and promising nothing.
+        // The rider is an increment and the sentence says so.
+        out.push({ text: `${occasion} heals a further ${scaleByLevel(grant.heal, level)}${per}` });
+      }
+      if (grant?.unit === 'randomMilitary') {
+        out.push({ text: `${occasion} gifts a random military unit${per}` });
       }
       if (effect.percent !== undefined) {
         out.push({ text: `${occasion} pays ${signed(scaleByLevel(effect.percent, level))}%${per}` });
@@ -3039,6 +3370,9 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         out.push({
           text: `new cities are founded with ${buildingWords(effect.building)}${limit}`,
         });
+      }
+      if (effect.roads === true) {
+        out.push({ text: `new cities are joined to your realm by road${limit}` });
       }
       return;
     }
@@ -3152,7 +3486,10 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       });
       return;
     case 'unlocksBuilding':
-      out.push({ text: `unlocks the ${buildingDef(effect.building).name}`, deferred: true });
+      // No longer struck through: buildings can be bought (Entry XXIX) and
+      // `cardUnlocksBuilding` is read by `isUnlocked`, so The Gilded Court
+      // really does hand the Gilded Hall over.
+      out.push({ text: `unlocks the ${buildingDef(effect.building).name}` });
       return;
     case 'pantheonSlots': {
       const slots = scaleByLevel(effect.amount, level);
@@ -3191,7 +3528,8 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       // card is a standing fact, and this one is a trickle. The family, where a
       // card names one, trails as its own phrase rather than modifying "renown"
       // — a player reads *what they gain* first and *whom it favours* second.
-      const where = effect.per === 'city' ? ' in every city' : '';
+      const where =
+        effect.per === 'city' ? ' in every city' : effect.per === 'wonder' ? ' per wonder you hold' : '';
       const family = effect.family === undefined ? '' : `, favouring ${effect.family}s`;
       out.push({
         text: `${signed(scaleByLevel(effect.amount, level))} renown per turn${where}${family}`,
@@ -3268,7 +3606,31 @@ function countNoun(effect: CardCountScaledEffect): PluralWords {
     const many = `${filterWords(effect.class)} in the field`;
     return { one: many.replace(/\bunits\b/, 'unit'), many };
   }
+  // The categorised count, said as what the buildings are *for* — "per gold
+  // building". `buildingsOfKind`'s bargain one grade wider.
+  if (effect.count === 'buildingsOfCategory' && effect.category !== undefined) {
+    return {
+      one: `${effect.category} building`,
+      many: `${effect.category} buildings`,
+    };
+  }
   return COUNT_WORDS[effect.count];
+}
+
+/**
+ * What a `combatLine`'s `scaled` clause is counting, as a noun in both numbers.
+ *
+ * `countNoun`'s twin one table over, and it exists for the same reason: the one
+ * count that takes an argument names it on the scale, so "per great general" and
+ * "per great engineer" are one entry in `SCALE_WORDS` and two data rows.
+ */
+function scaleNoun(scale: CombatScale): PluralWords {
+  if (scale.count === 'greatPeopleOfFamily') {
+    const who = scale.family === undefined ? 'great person' : `great ${scale.family}`;
+    const many = scale.family === undefined ? 'great people' : `great ${scale.family}s`;
+    return { one: `${who} earned this game`, many: `${many} earned this game` };
+  }
+  return SCALE_WORDS[scale.count];
 }
 
 /**
@@ -3526,7 +3888,7 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   fortified: 'while fortified',
 };
 
-const SCALE_WORDS: Record<'cities' | 'adjacentFriendlies', PluralWords> = {
+const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   cities: { one: 'city you hold', many: 'cities you hold' },
   // `adjacentFriendlies` counts **combatants** and nothing else, so the words
   // say so: a settler standing beside a spearman is not a shield wall.
@@ -3534,6 +3896,10 @@ const SCALE_WORDS: Record<'cities' | 'adjacentFriendlies', PluralWords> = {
     one: 'adjacent friendly combat unit',
     many: 'adjacent friendly combat units',
   },
+  // The family is not in these words — `describeEffect` prints it, so that "per
+  // great general" and "per great engineer" are one entry. `buildingsOfKind`'s
+  // bargain, at the third scale.
+  greatPeopleOfFamily: { one: 'earned this game', many: 'earned this game' },
 };
 
 /** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
@@ -3621,10 +3987,23 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // The filter is not in these words: `countNoun` prints it, so that "per melee
   // unit" and "per ranged unit" are one entry — `buildingsOfKind`'s bargain.
   unitsInField: { one: 'unit in the field', many: 'units in the field' },
+  // The category is not in these words either: `countNoun` prints it, so that
+  // "per gold building" and "per faith building" are one entry.
+  buildingsOfCategory: { one: 'building', many: 'buildings' },
+  defensiveBuildings: {
+    one: 'fortification in this city',
+    many: 'fortifications in this city',
+  },
+  discoveredCamps: { one: 'camp you have found', many: 'camps you have found' },
+  tradeRoutes: { one: 'trade route you run', many: 'trade routes you run' },
 };
 
 const RATE_WORDS: Record<RateSource, PluralWords> = {
   faithPerTurn: { one: 'faith gained per turn', many: 'faith gained per turn' },
+  capitalFaithPerTurn: {
+    one: "faith your capital gains per turn",
+    many: "faith your capital gains per turn",
+  },
   culturePerTurn: { one: 'culture gained per turn', many: 'culture gained per turn' },
   goldPerTurn: { one: 'gold gained per turn', many: 'gold gained per turn' },
   happiness: { one: 'point of positive happiness', many: 'points of positive happiness' },
@@ -3655,6 +4034,7 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   luxuryHappiness: (percent) => `happiness from unique luxuries ${signed(percent)}%`,
   luxuryDuplicates: (percent) => `duplicate luxury copies count at ${percent}%`,
   riteDuration: (percent) => `blessings last ${signed(percent)}% longer`,
+  routeYields: (percent) => `trade routes pay ${signed(percent)}% more`,
 };
 
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {
@@ -3688,6 +4068,8 @@ const ACTION_WORDS: Record<ActionRuleId, string> = {
 
 const BEHAVIOR_WORDS: Record<BehaviorRuleId, string> = {
   barbariansPassive: 'barbarians never attack you',
+  barbarianKillsConvert: 'a barbarian you kill joins you instead of dying',
+  noCampClearing: 'you can no longer clear a barbarian camp',
 };
 
 const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
@@ -4003,13 +4385,37 @@ export function slotOrderAt(
   player: Player,
   cardId: OrderId,
   slotIndex: number,
-): SlottedOrder {
+): SlotOutcome {
   const slot: SlottedOrder = {
     card: cardId,
     sealedUntil: state.turn + sealTurnsFor(state, player.id),
   };
   player.statecraft.slots[slotIndex] = slot;
-  return slot;
+  // **The once-per-game grant, claimed here and settled by the caller.** Here,
+  // because this is the one place a card goes into a slot and a flag written
+  // anywhere else is a flag some future slotting path forgets; settled by the
+  // caller, because "gain a great person" is a renown windfall and `renown.ts`
+  // reads *this* module — the arrow only points one way, so the reducer above
+  // both is what turns the claim into an offer.
+  const granted: OrderSlotGrant[] = [];
+  const onSlot = orderDef(cardId).onSlot ?? [];
+  if (onSlot.length > 0 && !player.statecraft.grantedOnSlot.includes(cardId)) {
+    player.statecraft.grantedOnSlot.push(cardId);
+    granted.push(...onSlot);
+  }
+  return { slot, granted };
+}
+
+/**
+ * What slotting a card did: the sealed slot, and whatever it handed over once.
+ *
+ * A shape rather than a second out-parameter, `RealisedItem`'s argument at a
+ * smaller scale — two kinds of news exist and a third joins the shape.
+ */
+export interface SlotOutcome {
+  slot: SlottedOrder;
+  /** The `onSlot` grants that fired *this time*. Empty on every later slotting. */
+  granted: OrderSlotGrant[];
 }
 
 /** Turns left on a slot's seal, or 0 when it is free to move. */
