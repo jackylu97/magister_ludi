@@ -247,4 +247,9 @@ three scopes marked **new** are the ones the wonders and legacies passes already
 
 ## Revisions
 
-*(yours — edit away; ✎ marks what changed)*
+Prophets at The High Temple yes
+City follows nothing until majority citizens follow the religion, lets make religion spread more aggressive than in civ as that's the only way to spread religion.
+follower beliefs pay the owner of the holy site of the city
+holy sites claim one hex
+faith bomb only converts, it makes the decision more important between the two.
+One religion per empire, there should be a max # of religions that can be founded, lets make 2/3rds of the players in the lobby, rounding up to the nearest integer.
