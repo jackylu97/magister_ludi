@@ -325,6 +325,15 @@ describe('the prophet’s four ministries', () => {
     expect((rows.match(/verb: 'plantHolySite'/g) ?? []).length).toBe(1);
   });
 
+  it('names itself “Found religion” before there is one to plant a site for', () => {
+    // The user only realised planting founds after asking (2026-08-28): a
+    // prophet's first row read "Plant Holy Site" whether or not the empire
+    // had a religion yet, and nothing on the sheet said the charge would
+    // found one. The row's own name now carries that, not only its `says`
+    // line — pinned as the exact strings a player reads.
+    expect(rows).toContain("name: mine === undefined ? 'Found religion' : 'Plant holy site',");
+  });
+
   it('gives Redraft one sub-row per pool, each with its own refusal', () => {
     expect(rows).toContain('RELIGION_BELIEF_POOLS.map');
     expect(rows).toContain('POOL_WORD[pool].name');

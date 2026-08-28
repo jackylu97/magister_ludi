@@ -260,3 +260,38 @@ describe('the worker offers every improvement the table names', () => {
     expect(def.validFeatures).toEqual(['forest', 'jungle']);
   });
 });
+
+/**
+ * A greyed row's refusal, printed under it (playtest, 2026-08-28: "I have my
+ * first prophet and I can't create a religion with it" — a bought prophet
+ * stands on the city centre, `improvementErrorAt` refuses it, and the reason
+ * lived only in a `title` hover nobody held a pointer still for). Every row's
+ * `blocked` sentence already rides the button's `title`; this is the same
+ * text, printed a second time where a glance meets it, so it applies to every
+ * verb on the sheet at once — the prophet's four rows and the augur's rites
+ * included, without either needing a markup of its own.
+ */
+describe('a greyed row’s refusal', () => {
+  const panel = source('unitPanel.ts');
+  const body = panel.slice(
+    panel.indexOf('function renderActions('),
+    panel.indexOf('function render(): void {'),
+  );
+
+  it('is printed under the row when the row is blocked', () => {
+    expect(body).toContain("box.append(element('p', 'unit-action-blocked', action.blocked));");
+    expect(body).toContain('if (action.blocked !== null) {');
+  });
+
+  it('is absent from a live row — gated on the same field that disables the button', () => {
+    // The line and the disabled state are one `if`, not two conditions that
+    // could drift: a pressable button prints no caption under it, and a
+    // greyed one always does.
+    expect(body).toContain('button.disabled = action.blocked !== null;');
+    expect(body.match(/action\.blocked !== null/g)?.length).toBe(2);
+  });
+
+  it('keeps the hover too — the printed line is additional, not a replacement', () => {
+    expect(body).toContain('button.title = action.title ?? action.blocked ?? action.hint;');
+  });
+});

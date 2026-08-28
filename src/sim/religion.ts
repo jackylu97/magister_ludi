@@ -1289,6 +1289,15 @@ export function plantHolySiteError(
   const unit = unitById(state, unitId)!;
   const tile = getTileAt(state.map, unit.col, unit.row);
   if (!tile) return `Unit ${unit.id} is not on the map`;
+  // The one case worth a sentence of its own: a bought prophet spawns on the
+  // city centre, and `improvementErrorAt`'s refusal there — "Uruk stands on
+  // (x, y)" — is a fact about the tile, not the answer a player standing on
+  // the fix wants (user, 2026-08-28: "I have my first prophet and I can't
+  // create a religion with it"). Named before the ground gate is asked, plain
+  // voice, no digits — everything else still gets the reducer's own sentence.
+  if (cityAt(state, tile.col, tile.row)) {
+    return 'Move the prophet off the city centre to plant a holy site';
+  }
   return improvementErrorAt(state, unit.ownerId, tile, HOLY_SITE);
 }
 

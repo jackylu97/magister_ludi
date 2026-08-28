@@ -1039,6 +1039,16 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       if (action.card) info.bind(button, action.card);
       button.addEventListener('click', action.run);
       box.append(button);
+      // The refusal, printed rather than only worn as a hover: a bought
+      // prophet standing on a city centre found Plant Holy Site greyed with
+      // nothing to read but a `title` a pointer has to sit still for (user,
+      // 2026-08-28). Every greyed row gets its sentence here, in the
+      // reducer's own words — the same text `button.title` already carries,
+      // now also standing on the sheet where a glance meets it. Absent from a
+      // live row on purpose: a pressable button has nothing to explain.
+      if (action.blocked !== null) {
+        box.append(element('p', 'unit-action-blocked', action.blocked));
+      }
     }
     return box;
   }

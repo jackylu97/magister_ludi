@@ -546,7 +546,10 @@ export type ProphetVerb = 'plantHolySite' | 'enhanceReligion' | 'proclaim' | 're
  */
 export interface ProphetRow {
   verb: ProphetVerb;
-  /** The row's name — "Plant Holy Site". */
+  /**
+   * The row's name — "Plant holy site", or "Found religion" for the one row
+   * whose name changes with the state (see `prophetRows`).
+   */
   name: string;
   /** Why it cannot be taken, or `null`. The reducer's own sentence. */
   blocked: string | null;
@@ -3649,8 +3652,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * **Plant Holy Site says it founds**, and it says so because the verb does: an
    * empire with no religion founds one where the stones go up
    * (`plantHolySiteAt`), which is also why all three founding refusals reach the
-   * player on this row rather than in a gate nothing asks. The sentence changes
-   * with the state and the row does not — two rows for one command would be the
+   * player on this row rather than in a gate nothing asks. Both the row's
+   * *name* and its `says` line change with the state — "Found religion" while
+   * none exists, "Plant holy site" once one does (user, 2026-08-28: a player
+   * who only reads titles has no way to learn that planting founds) — and the
+   * row itself does not multiply: two rows for one command would be the
    * interface inventing a verb.
    *
    * **Redraft carries its pools.** It is the one prophet verb that names
@@ -3667,7 +3673,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     return [
       {
         verb: 'plantHolySite',
-        name: 'Plant Holy Site',
+        // The row's own name changes with the state, not only its sentence
+        // (user, 2026-08-28: the first prophet founds and nobody reading
+        // "Plant Holy Site" would guess that): while the seat has founded no
+        // religion this charge founds one on the way, so the row says what it
+        // is about to do rather than what it always does once one exists.
+        name: mine === undefined ? 'Found religion' : 'Plant holy site',
         blocked: ended ?? plantHolySiteError(state, localPlayerId, unit.id),
         says:
           mine === undefined

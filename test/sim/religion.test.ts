@@ -53,6 +53,7 @@ import {
   openPeriodicOffers,
   pantheonSlots,
   performRiteAt,
+  plantHolySiteError,
   pruneTimedEffects,
   religionBlocker,
   riteError,
@@ -1447,6 +1448,43 @@ describe('founding a religion', () => {
     expect(religion.follower).toEqual([chosen]);
     expect(player.pantheon.beliefs).toEqual(['keeperOfTheHearth']);
     expect(religionBlocker(player)).toBeNull();
+  });
+
+  it('tells a bought prophet standing on the city centre to move, not the ground’s own sentence', () => {
+    // The bug report (user, 2026-08-28): "I have my first prophet and I can't
+    // create a religion with it." A bought prophet spawns on the town's own
+    // hex, where `improvementErrorAt` would refuse with "Uruk stands on
+    // (x, y)" — true, but not the useful thing, and it never surfaces
+    // anywhere but a greyed row's hover. `plantHolySiteError` now names the
+    // fix before it ever asks the ground.
+    const g = game();
+    learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
+    found(g.state, 0);
+    const seat = g.state.cities.find((city) => city.ownerId === 0)!;
+    // No gods yet, and this prophet's charge would found the religion — the
+    // exact shape of the report. The city-centre sentence still wins: this
+    // prophet has nothing to found *with*, and the fix is the same move
+    // either way.
+    keep(g.state, 0, 'keeperOfTheHearth');
+    const prophet = prophetAt(g.state, 0, seat.col, seat.row);
+    expect(plantHolySiteError(g.state, 0, prophet.id)).toBe(
+      'Move the prophet off the city centre to plant a holy site',
+    );
+  });
+
+  it('still leads with a founding refusal on the city centre, when there is one', () => {
+    // Precedence: the empire-wide question (no gods to found on) is asked
+    // before the ground is, so a player with no pantheon yet reads that
+    // refusal rather than being told to walk to ground that would not help
+    // them either.
+    const g = game();
+    learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
+    found(g.state, 0);
+    const seat = g.state.cities.find((city) => city.ownerId === 0)!;
+    const prophet = prophetAt(g.state, 0, seat.col, seat.row);
+    expect(plantHolySiteError(g.state, 0, prophet.id)).toBe(
+      'You have no gods to found a religion on',
+    );
   });
 
   it('renames a religion, and refuses a name that is not one', () => {

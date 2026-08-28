@@ -3681,6 +3681,19 @@ kbd {
   color: var(--ink-faint);
 }
 
+/* A greyed row's refusal, printed rather than only worn as a `title` — the
+   rite card's `.unit-card-blocked` in the same ink, sized for a line that
+   stands in the list itself rather than in a hover. Grid gap already spaces
+   it from the row above; the negative top margin pulls it in tight under
+   that row's own button so it reads as the row's caption, not a fifth verb. */
+.unit-action-blocked {
+  margin: -2px 0 0;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  color: var(--vermilion);
+}
+
 /* --- the star chart -------------------------------------------------------
    The tech tree, and the one surface in this interface that is deliberately
    dark (Entry VII: "star-chart tech tree — ink ground, gilt stars"). Everything
