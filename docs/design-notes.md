@@ -3694,3 +3694,33 @@ length, each hex marked `roadFree` so the maintenance count skips it while movem
 connection fill see a road; first mark wins in both directions, and a strait lays nothing, which
 leaves the town unconnected with no code of its own. Far Runners' embarked bonus names traders
 beside civilians. Schema 28.
+
+---
+
+## Entry XLII — Words that open the book: keyword links, Triumph causes, the sticky card (**built** 2026-08-28)
+
+**Rulings (user, 2026-08-28):** *"a one-liner that describes what the triumph was caused by";
+"keywords that are linked are shown in bold, but only in places where clicking doesn't result in
+an action — buttons shouldn't be keyword links; keep these to descriptors"; "hovering a technology
+shows the unlockables; the modal persists only while the mouse is over the tech or the modal;
+once a keyword link is clicked or the mouse leaves the area, it disappears."*
+
+**One emission, one renderer.** A word table that names a thing with a Compendium entry — a
+building, an improvement, a resource, a unit, a grant — wraps it as `[[kind:id|Name]]`, the
+book's own anchor scheme (`ref()` in `statecraft.ts`; `stripRefs()` is its inverse and every
+pinned sentence compares through it). One component (`keywords.ts`) turns a mark into a bold
+keyword, and the ruling's two halves settle as: **bold everywhere, a link only where a click can
+land** — the chart's card, the screens' article faces, the Compendium — inert inside a button's
+face and inside a pointer-transparent hover (an affordance for an impossible click is worse than
+none), stripped in toasts and titles. Every emitted mark resolves to a real entry by test, and a
+sweep forbids any surface printing a raw clause.
+
+**A Triumph says what earned it.** `TriumphDef.text` is required — second person, present tense,
+no digit (the renown is a field) — printed under the name on the sheet and first on the shelf;
+the epigram beneath it under Flavour, as everywhere now.
+
+**The sticky card.** The star chart's card is the one sticky info card: a pure machine — open on
+the node, alive while the pointer is on the node *or* the card, closed after a short grace off
+both, at once on Escape, a click elsewhere, or a keyword click — with the keyword listener in the
+capture phase, because the keyword stops its own click and a bubble listener would have left the
+card standing behind the book. Every other card keeps the old behaviour; the option defaults off.

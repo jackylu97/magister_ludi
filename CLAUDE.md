@@ -509,6 +509,12 @@ would change every seeded outcome. No further rename passes.
   tech completion both re-evaluate, on the frame, like fog). Marker, prop and yield appear
   together on the reveal — `test/render/reveal3d.test.ts` pins all three.
 
+- **A named thing in a describer is a keyword ref** (Entry XLII): a word table that names a
+  building, improvement, resource, unit or grant emits `[[kind:id|Name]]` through `ref()` in
+  `statecraft.ts`, and **every** printed clause goes through `setDescriptorText` (bold; a link
+  only where a click can land) or `stripRefs` (toasts, titles, tests) — a source-reading sweep
+  forbids a raw `[[` on any surface. A new describer that names a thing uses `ref`; a new surface
+  that prints a clause uses one of the two. Only the star chart's info card is `sticky`.
 - **A card's effect is read in exactly one place.** `statecraft.ts` is the only module in
   the game that switches on a `CardEffect.kind` — the same claim `resourceEffects.ts` makes
   for a luxury's signature, one scale out, and it buys the same thing: **a new card is a
