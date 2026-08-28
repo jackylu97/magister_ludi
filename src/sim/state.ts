@@ -243,8 +243,26 @@ import {
  *     Philosophy onto **The High Temple**, a technology that did not exist, so
  *     every research plan after the second age reaches a different tree — and
  *     the belief draft now spends `state.rng` on a generated name.
+ * 27: Maintenance (the user's ruling, 2026-08-28) — units and buildings cost
+ *     gold per turn by the age of the technology that unlocks them, the palace
+ *     pays 2💰, the treasury may go negative, and the opening kit is a settler
+ *     and a **scout** rather than a settler and a warrior.
+ *
+ *     One optional field on a unit (`freeUpkeep`) and four new rules
+ *     (`rules.upkeep`, `rules.cities.palaceGold`). **A v26 log replayed here is
+ *     a different game** for two reasons beyond the fields: every seeded start
+ *     places a different second piece, and every empire's treasury curve moves
+ *     from turn one.
+ *
+ *     The migration note, said plainly because it cannot be fixed: *absent
+ *     means "pays"*, which is right for every unit in an old save **except a
+ *     captured one** — v26 recorded no reason to mark it, and a replay of the
+ *     log would re-derive it correctly while a loaded snapshot would not. The
+ *     schema bump refuses both, so nothing silently starts charging rent on a
+ *     stolen worker; it is called out here so that a future migration writer
+ *     knows the one field it could not have inferred.
  */
-export const SCHEMA_VERSION = 26;
+export const SCHEMA_VERSION = 27;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -877,6 +895,44 @@ export interface Unit {
    * split `greatWork` and `person` make.
    */
   trade?: TradeRoute;
+  /**
+   * This empire never paid for this piece, so it pays no maintenance on it —
+   * or the key is **absent**, which it is for every unit that was built, bought
+   * or seated at the start.
+   *
+   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * `sleeping`'s, `timed`'s, `person`'s and `trade`'s convention and is here for
+   * the eighth time for the same reason: a warrior a city built and a warrior a
+   * wonder handed over must serialise differently in kind rather than by a
+   * `false`, or a game with no gifts in it would not compare equal to itself
+   * before this field existed.
+   *
+   * **The register of who writes it**, and it is deliberately short — every
+   * entry is "the game issued this, nobody bought it":
+   *
+   *   1. `captureUnit` — a piece taken in war, and a barbarian talked round by
+   *      the Wolf-Mother's Pact (which goes through the same function). You did
+   *      not raise it, so you do not keep it on your payroll;
+   *   2. `realiseItem(…, { free: true })` — the windfall path, which is every
+   *      Statecraft grant that hands over a piece (Levies, Camp Followers'
+   *      stray) and reaches the roster through `payWindfallGrants`;
+   *   3. `payCompletionGrants` — a **building's** gift: the Statue of Zeus'
+   *      swordsman, Hagia Sophia's, and every `onComplete` unit after them;
+   *   4. `settleGreatPersonChoice` — a great person, which is exempt by type
+   *      anyway (no unlock tech) and is marked so the rule does not depend on
+   *      that staying true;
+   *   5. `claimDiscoveryAt` — a ruin's escort.
+   *
+   * A **completion** of a queued unit and a **purchase** deliberately do not
+   * write it: those are pieces an empire paid for, and they go on the payroll
+   * like everything else. That split is the whole reason `realiseItem` takes the
+   * flag rather than deriving it — the one routine serves both.
+   *
+   * A captured piece keeps it, exactly as it keeps its charges and its
+   * blessings: `captureUnit` sets it *because* changing hands is one of the
+   * occasions, not as an exception to "capture touches nothing else".
+   */
+  freeUpkeep?: true;
 }
 
 /**
@@ -2006,6 +2062,14 @@ export function captureUnit(state: GameState, unit: Unit, ownerId: number): void
   delete unit.path;
   breakFortify(unit);
   wakeUnit(unit);
+  // **Off the payroll, for ever** (the maintenance ruling, 2026-08-28). A piece
+  // that changed hands was never paid for by the empire holding it, so it costs
+  // that empire nothing to keep — and the mark stays if it changes hands again,
+  // because it was never bought by anybody who has it now. Written here for the
+  // reason everything else in this function is written here: there is exactly
+  // one place that knows a unit has changed owner, and a maintenance rule that
+  // asked each *occasion* to remember would be a rule the fourth occasion forgets.
+  unit.freeUpkeep = true;
   if (before !== ownerId) recomputeVisibilityFor(state, [before, ownerId]);
 }
 

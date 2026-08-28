@@ -366,7 +366,14 @@ describe('pacing', () => {
       queue: [{ kind: 'unit', id: 'scout' }],
     } as Command).ok).toBe(true);
 
-    const built = (): boolean => game.state.units.some((unit) => unit.type === 'scout');
+    // A **second** scout, because the opening kit is a settler and a scout since
+    // the maintenance ruling (2026-08-28) — "does a scout exist" was true before
+    // the first turn resolved and the loop measured nothing at all. Counting is
+    // the fix rather than naming the piece: the claim is about the capital's
+    // rate, and the capital's output is the scout that was not there before.
+    const scouts = (): number => game.state.units.filter((unit) => unit.type === 'scout').length;
+    const started = scouts();
+    const built = (): boolean => scouts() > started;
     let turns = 0;
     let rate = 0;
     while (!built() && turns < 10) {

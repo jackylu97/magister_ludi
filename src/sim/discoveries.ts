@@ -400,7 +400,9 @@ function payDiscovery(
     // movement and can act on the turn it joined — the same reading Entry
     // XVIII.2 settled for a chopped-for unit, and the same one place a pair of
     // eyes opens.
-    createUnit(state, player.id, effect.unitType, seat.col, seat.row);
+    // A ruin's escort is a thing the world handed over, so it costs its finder
+    // nothing to keep. See `Unit.freeUpkeep`, entry 5.
+    createUnit(state, player.id, effect.unitType, seat.col, seat.row).freeUpkeep = true;
     return { cityName: null, unitName: unitDef(effect.unitType).name, completed: null, warning: null };
   }
 

@@ -540,6 +540,22 @@ export interface CityRules {
   /** Culture every city produces just by existing, before buildings. */
   baseCulturePerCity: number;
   /**
+   * Gold the **palace** pays, in the capital and nowhere else (the user's
+   * ruling, 2026-08-28).
+   *
+   * The palace is not a building — there is no row for it and nothing is ever
+   * built — so this joins the other two things it supplies, `meters.palace`
+   * (happiness) and `meters.palaceCapacity` (authority), rather than
+   * `data/buildings.json`. It is paid as one labelled "Palace" line in the
+   * capital's yields (`explainPalaceYield` in `cities.ts`), which is what keeps
+   * it inside Entry XVII's staging: a seat of government is a fact about a town
+   * and its coin is multiplied like a market's.
+   *
+   * It follows the capital rather than the city, which `capitalCityOf` already
+   * settles: a capital lost and won back does not resume the palace.
+   */
+  palaceGold: number;
+  /**
    * Border cost curve. The `t`-th tile a city claims beyond its initial ring
    * costs `borderCostBase + borderCostLinear · (t − 1) ^ borderCostExponent`
    * culture, floored. The initial claim at founding is free and is not counted.
@@ -770,6 +786,56 @@ export interface ProductionRules {
 }
 
 /**
+ * Maintenance, and what happens to an empire that cannot pay it (the user's
+ * ruling, 2026-08-28). The algebra is `src/sim/upkeep.ts`.
+ *
+ * Four numbers and they are four different decisions: what an army costs, what
+ * an institution costs, how badly a bankrupt empire thinks, and how deep the
+ * hole has to be before the creditors take a piece.
+ */
+export interface UpkeepRules {
+  /**
+   * Gold per turn a combat unit costs, **per age of the technology that unlocks
+   * it** — so a warrior is 1, a swordsman 2, a knight 3. A rate rather than a
+   * table, because "an old unit is cheap to keep" is the rule and the ages are
+   * already written down in `data/techs.json`.
+   */
+  goldPerUnitAge: number;
+  /**
+   * The same, for a building that carries `renown` — a barracks 1, a market 2,
+   * a university 3. Wonders are exempt (see `buildingUpkeep`), which is a
+   * design decision and not a consequence of this number.
+   */
+  goldPerBuildingAge: number;
+  /**
+   * What being in debt does to science and culture, in whole percent, as an
+   * **empire-stage** line in `cityYieldPercents` (Entry XVII) — so it sums with
+   * the meter tiers before one multiplication rather than compounding after
+   * them.
+   *
+   * Signed, and negative: it is written as the percentage it *is* rather than
+   * as a magnitude to be subtracted somewhere, which is the same shape every
+   * other percentage in this game carries. Gold and food and hammers are
+   * deliberately untouched — an empire in arrears must still be able to dig
+   * itself out, and taxing the treasury of a negative treasury is a spiral with
+   * no floor.
+   */
+  debtPercent: number;
+  /**
+   * The treasury below which the creditors take a unit — **one per turn**, the
+   * dearest first (`disbandCandidate`).
+   *
+   * Strictly below, and negative: a treasury may go under water and stay there,
+   * which is the whole of the ruling; what it may not do is go under water
+   * *arbitrarily far*. One piece per turn rather than "as many as it takes",
+   * because disbanding banks no gold — it only lowers next turn's bill — so a
+   * loop that ran until the treasury recovered would run until the army was
+   * gone.
+   */
+  disbandBelow: number;
+}
+
+/**
  * The renown ladder — the fifth Entry XVIII bucket (`docs/great-people.md`).
  *
  * Two numbers, and they are the settler ladder's shape one currency over: the
@@ -945,6 +1011,7 @@ export interface RulesConfig {
   renown: RenownRules;
   greatPeople: GreatPeopleRules;
   production: ProductionRules;
+  upkeep: UpkeepRules;
   /** Unit types every player receives at their start position, in order. */
   startingUnits: UnitTypeId[];
 }

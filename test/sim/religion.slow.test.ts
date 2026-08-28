@@ -203,8 +203,8 @@ function nearestSite(
 }
 
 describe('determinism', () => {
-  it('round-trips a schema 26 save with augurs, rites and beliefs in the log', () => {
-    expect(SCHEMA_VERSION).toBe(26);
+  it('round-trips a schema 27 save with augurs, rites and beliefs in the log', () => {
+    expect(SCHEMA_VERSION).toBe(27);
     const played = playFaithful(90);
     // The empire actually got there: an augur was bought out of faith it earned,
     // rites were performed, and a god was named. A determinism test over a log

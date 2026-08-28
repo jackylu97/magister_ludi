@@ -116,6 +116,7 @@ import {
   unitDef,
 } from './unitData';
 import { fullMovement, hasStackingRoom, unitsOnTile } from './units';
+import { explainBuildingUpkeep, explainUnitUpkeep } from './upkeep';
 
 const TRADE = RULES.trade;
 
@@ -922,36 +923,52 @@ export function connectedCities(state: GameState, playerId: number): ConnectedCi
   return list;
 }
 
-/** One labelled line of empire-scale trade gold. See `explainTradeGold`. */
+/** One labelled line of empire-scale gold. See `explainEmpireGold`. */
 export interface TradeGoldLine {
-  /** "City connections · 4 cities", "Road maintenance · 23 hexes". */
+  /** "City connections · 4 cities", "Unit maintenance · 7 units". */
   source: string;
   /** Signed: connections pay, maintenance costs. */
   gold: number;
 }
 
 /**
- * What trade pays this empire's treasury every turn beyond what its cities bank,
- * as the ordered list the figure is the fold of (rule 5).
+ * What this empire's treasury gains and loses every turn **beyond what its
+ * cities bank**, as the ordered list the figure is the fold of (rule 5).
  *
- * Two lines, and the shape of each is the user's ruling:
+ * **Four** lines since the maintenance ruling (the user, 2026-08-28), and the
+ * shape of each is a ruling of its own:
  *
  *   · **City connections**, as *one* line for the total rather than one per city
  *     ("City connections · 4 cities +11💰"). The per-city figures are still
  *     `connectedCities`' answer, for a hover that wants them — the fold is a
  *     presentation decision and the list is the truth;
  *   · **Road maintenance**, one negative line, charged only on the roads this
- *     empire's own caravans laid (`Tile.road` carries the builder's seat).
+ *     empire's own caravans laid (`Tile.road` carries the builder's seat);
+ *   · **Unit maintenance**, one negative line for the whole army, the fold of
+ *     `explainUnitUpkeep` (`upkeep.ts`) which is the per-piece list a hover
+ *     prints;
+ *   · **Building maintenance**, the same one grade over, folding
+ *     `explainBuildingUpkeep`.
+ *
+ * It was called `explainTradeGold` until the last two arrived, and the rename is
+ * the note that function carried: *"buildings and units are the obvious next
+ * two, and they join this fold rather than opening a second one."* They did, and
+ * once they had, "trade" was no longer the name of what this answers. The
+ * function stays **here**, in `trade.ts`, because two of its four lines are
+ * trade's and the module that owns a fold is the module that owns most of it;
+ * `upkeep.ts` is a leaf this imports rather than a second ledger.
  *
  * Banked once per player by `collectYields`, after every city has collected —
- * the same seam `empireResourceYields` lands on, and for the same reason: it
- * belongs to no town.
+ * the same seam `empireResourceYields` lands on, and for the same reason: none
+ * of it belongs to a town. The two maintenance lines in particular are
+ * deliberately **not** city yields: a garrison is not the town it is standing
+ * in, and charging it there would put an army inside Entry XVII's staging, where
+ * a happy empire would pay less for the same soldiers.
  *
- * TODO (the user, 2026-08-27): "start adding maintenance costs to the game".
- * Roads are the first upkeep this game has ever charged; buildings and units are
- * the obvious next two, and they join this fold rather than opening a second one.
+ * The wild is charged nothing, which `explainUnitUpkeep` refuses at the seat
+ * (see `seatPays`) rather than this function checking twice.
  */
-export function explainTradeGold(state: GameState, playerId: number): TradeGoldLine[] {
+export function explainEmpireGold(state: GameState, playerId: number): TradeGoldLine[] {
   const lines: TradeGoldLine[] = [];
 
   const connected = connectedCities(state, playerId);
@@ -972,15 +989,61 @@ export function explainTradeGold(state: GameState, playerId: number): TradeGoldL
     lines.push({ source: `Road maintenance · ${roads} hexes`, gold: -upkeep });
   }
 
+  // The two new lines, each a *count* and a total rather than a page of pieces —
+  // the connections line's shape exactly, and for its reason: the per-item lists
+  // are still `upkeep.ts`' answer for a hover that wants them.
+  const units = explainUnitUpkeep(state, playerId);
+  if (units.length > 0) {
+    let gold = 0;
+    for (const line of units) gold += line.gold;
+    lines.push({
+      source: `Unit maintenance · ${units.length} ${units.length === 1 ? 'unit' : 'units'}`,
+      gold: -gold,
+    });
+  }
+
+  const buildings = explainBuildingUpkeep(state, playerId);
+  if (buildings.length > 0) {
+    let gold = 0;
+    for (const line of buildings) gold += line.gold;
+    lines.push({
+      source:
+        `Building maintenance · ${buildings.length} ` +
+        `${buildings.length === 1 ? 'building' : 'buildings'}`,
+      gold: -gold,
+    });
+  }
+
   return lines;
 }
 
-/** The fold of `explainTradeGold`, and the only sum of one. */
-export function tradeGold(state: GameState, playerId: number): number {
+/**
+ * The old name, kept as an alias while the interface catches up.
+ *
+ * **Deprecated.** `src/ui/topBar.ts` and `src/ui/tradeScreen.ts` still import
+ * it, and those files belong to another pass; the rename is the ruling and this
+ * is the one line that lets the two land separately. Delete it — and this
+ * docblock with it — the moment the last caller says `explainEmpireGold`.
+ *
+ * @deprecated Use `explainEmpireGold`.
+ */
+export const explainTradeGold = explainEmpireGold;
+
+/** The fold of `explainEmpireGold`, and the only sum of one. */
+export function empireGold(state: GameState, playerId: number): number {
   let total = 0;
-  for (const line of explainTradeGold(state, playerId)) total += line.gold;
+  for (const line of explainEmpireGold(state, playerId)) total += line.gold;
   return total;
 }
+
+/**
+ * The fold's old name, `explainTradeGold`'s sibling in deprecation and kept for
+ * the same reason: the interface still calls it and the interface is somebody
+ * else's file this pass.
+ *
+ * @deprecated Use `empireGold`.
+ */
+export const tradeGold = empireGold;
 
 // --- plunder ----------------------------------------------------------------
 

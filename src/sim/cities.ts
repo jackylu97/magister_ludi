@@ -136,6 +136,7 @@ import {
   createCity,
   createUnit,
   playerById,
+  removeUnit,
   shrinkFollowers,
   wonderClaim,
 } from './state';
@@ -190,8 +191,9 @@ import { buildingTileLines } from './buildingEffects';
 // one asks it what the caravans standing in its towns are worth. Everything at
 // the top level of both files is a constant from a data table, which is the
 // condition every cycle in this simulation is safe under.
-import { cityRouteYields, explainTradeGold, layRoad, tradeGold } from './trade';
+import { cityRouteYields, empireGold, explainEmpireGold, layRoad } from './trade';
 import { awardFoundingTriumphs, awardOccasion } from './triumphs';
+import { disbandCandidate, treasuryInDebt } from './upkeep';
 
 const CITIES = RULES.cities;
 
@@ -997,6 +999,40 @@ export function capitalCityOf(state: GameState, playerId: number): City | undefi
     fallback ??= city;
   }
   return fallback;
+}
+
+/** One labelled line the seat of government pays its town. See below. */
+export interface PalaceYieldLine {
+  /** Display label. `"Palace"`, and only ever that today. */
+  source: string;
+  gold: number;
+}
+
+/**
+ * What the **palace** pays the town it stands in, as the ordered list the
+ * figure is the fold of (rule 5) — one line in the capital, none anywhere else.
+ *
+ * The user's ruling of 2026-08-28: `rules.cities.palaceGold` is 2💰, and it is
+ * a *line* rather than a term because that is what rule 5 asks of any new source
+ * of a yield. A player looking at a capital that makes more gold than its tiles
+ * explain must be able to read why.
+ *
+ * It is the palace's third gift and it is shaped like the other two — the
+ * happiness in `explainHappiness` and the capacity in `explainAuthority` both
+ * print a "Palace" line off `capitalCityOf`, and this is the same fact said to
+ * a third meter. There is deliberately no palace *building*: nothing is built,
+ * nothing is captured with the stones, and an empire whose first city falls has
+ * its palace wherever `capitalCityOf` now points.
+ *
+ * A list of at most one, rather than a `number | null`, so that a second thing
+ * the seat of government supplies joins by appending — and so the caller folds
+ * it exactly as it folds the luxuries, the cards and the routes beside it.
+ */
+export function explainPalaceYield(state: GameState, city: City): PalaceYieldLine[] {
+  if (CITIES.palaceGold === 0) return [];
+  const capital = capitalCityOf(state, city.ownerId);
+  if (!capital || capital.id !== city.id) return [];
+  return [{ source: 'Palace', gold: CITIES.palaceGold }];
 }
 
 /**
@@ -2144,6 +2180,29 @@ export function cityYieldPercents(state: GameState, city: City): CityYieldPercen
     if (line.percent === 0) continue;
     list.push({ source: line.source, yield: line.yield, percent: line.percent, stage: line.stage });
   }
+  // **Arrears** (the maintenance ruling, 2026-08-28). A treasury under water
+  // costs the empire a quarter of its science and its culture, and it joins
+  // *this* list at the **empire** stage rather than being a multiplication
+  // somewhere downstream — which is the whole of Entry XVII and the whole reason
+  // the ruling asked for it here: −25% arrears on top of a −15% authority tier
+  // is −40% of base, once, and never ×0.75 × 0.85.
+  //
+  // Science and culture and nothing else. Gold is untouched on purpose — an
+  // empire in debt must be able to earn its way out — and so are food and
+  // hammers, because starving a bankrupt empire's cities is a spiral rather than
+  // a penalty. What it taxes is the two things an empire in trouble was
+  // *saving* for.
+  const owner = playerById(state, city.ownerId);
+  if (owner && treasuryInDebt(owner) && RULES.upkeep.debtPercent !== 0) {
+    for (const key of ['science', 'culture'] as const) {
+      list.push({
+        source: 'Treasury in debt',
+        yield: key,
+        percent: RULES.upkeep.debtPercent,
+        stage: 'empire',
+      });
+    }
+  }
   return list;
 }
 
@@ -2329,6 +2388,12 @@ export function cityYields(
     total.production += line.production;
     total.gold += line.gold;
   }
+
+  // The seat of government, folded like every other list rather than added as a
+  // term — and *inside* this function, so the palace's coin is staged like a
+  // market's (Entry XVII) and reaches the treasury through the same
+  // `collectYields`. Empty in every city but one. See `explainPalaceYield`.
+  for (const line of explainPalaceYield(state, city)) total.gold += line.gold;
 
   // The fold of `explainCityBuildings`, and the only place a building's worth is
   // summed — a candidate the city already has is skipped in there, because a
@@ -2780,11 +2845,28 @@ export function turnsToBuild(
  * quoted — one call to one evaluator, so the estimate and the bank agree by
  * construction rather than by inspection.
  */
-export function collectYields(state: GameState): void {
+export function collectYields(state: GameState, report?: TurnReport): void {
+  // **Every city is priced before any city banks**, and that is a rule rather
+  // than a tidy-up (the maintenance ruling, 2026-08-28). `cityYieldPercents` now
+  // reads the treasury — a seat in arrears loses a quarter of its science and
+  // culture — so a single interleaved loop would price the first town against a
+  // treasury of −20 and the fourth against the +9 the first three had just paid
+  // in. The debt penalty would then depend on founding order, and the panel,
+  // which cannot know how far through the sweep it is, would be wrong about
+  // every town but one. Two loops make the whole turn agree on one answer to
+  // "was this empire in debt", which is the only honest reading of an empire
+  // -wide fact.
+  //
+  // The order of both loops is `state.cities`, which is founding order, which is
+  // what every other phase sweeps in; nothing in the first loop reads anything
+  // the first loop writes.
+  const priced: { city: City; yields: CityYields }[] = [];
   for (const city of state.cities) {
     assignCitizens(state, city);
-    const yields = cityYields(state, city, [], city.queue[0]);
+    priced.push({ city, yields: cityYields(state, city, [], city.queue[0]) });
+  }
 
+  for (const { city, yields } of priced) {
     // Upkeep, the settler halt and the happiness stifle, all in one function so
     // that what the panel promised is what the basket receives.
     city.foodBasket += growthSurplus(state, city, yields);
@@ -2817,13 +2899,15 @@ export function collectYields(state: GameState): void {
     player.faithPool += empire.faith;
   }
 
-  // Trade's empire-scale half: the connection gold every town joined to the
-  // capital by road pays, less what those roads cost to keep. Banked once per
-  // player after every city has collected, which is the same seam and the same
-  // argument the luxuries' loop above makes — a connection belongs to no town,
-  // it belongs to the road between two.
+  // The empire-scale half of the treasury: the connection gold every town
+  // joined to the capital by road pays, less what those roads cost to keep and
+  // less what the army and the institutions cost to run (`explainEmpireGold`).
+  // Banked once per player after every city has collected, which is the same
+  // seam and the same argument the luxuries' loop above makes — a connection
+  // belongs to no town, it belongs to the road between two, and a garrison
+  // belongs to the empire that raised it.
   for (const player of state.players) {
-    player.gold += tradeGold(state, player.id);
+    player.gold += empireGold(state, player.id);
   }
 
   // And the empire-scale half of Statecraft, last of the three, for a reason
@@ -2844,6 +2928,46 @@ export function collectYields(state: GameState): void {
     player.sciencePool += cards.science;
     player.culturePool += cards.culture;
     player.faithPool += cards.faith;
+  }
+
+  // And **last of all**, the creditors. Placed at the very end of the phase for
+  // one reason: "is this empire deep enough in arrears to lose a piece" has to
+  // be asked of the treasury this turn actually left it with, after every coin
+  // it earned and every coin it owed. A sweep placed earlier would take a
+  // warrior off an empire whose caravans were about to come home.
+  collectArrears(state, report);
+}
+
+/**
+ * One unit per empire per turn, taken by the creditors — the other half of "the
+ * treasury may go negative" (the user's ruling, 2026-08-28).
+ *
+ * Below `rules.upkeep.disbandBelow` a seat loses the piece it is paying most for
+ * (`disbandCandidate`, which owns the ordering and the exemptions). **One per
+ * turn and never a loop**: disbanding banks no gold, it only lowers next turn's
+ * bill, so "until the treasury recovers" would mean "until the army is gone".
+ * An empire that keeps overspending keeps losing one a turn, which is a spiral a
+ * player can see coming and can stop.
+ *
+ * It reports rather than announces, which is `arriveOnTile`'s discipline: by the
+ * time anybody reads the list the pieces are off the board, and `removeUnit` has
+ * already closed their owners' eyes. The sink is optional so that a caller with
+ * nothing to tell — a test, a preview — passes nothing.
+ *
+ * The wild is skipped, in `disbandCandidate`, which is where every other
+ * "the wild does not do that" refusal for this system lives.
+ */
+function collectArrears(state: GameState, report?: TurnReport): void {
+  for (const player of state.players) {
+    const taken = disbandCandidate(state, player.id);
+    if (!taken) continue;
+    removeUnit(state, taken.unitId);
+    report?.disbanded.push({
+      unitId: taken.unitId,
+      ownerId: player.id,
+      type: taken.type,
+      upkeep: taken.gold,
+    });
   }
 }
 
@@ -2887,10 +3011,13 @@ function empireRates(state: GameState, playerId: number): {
   rates.faithPerTurn += empire.faith;
   rates.culturePerTurn += empire.culture;
   rates.goldPerTurn += empire.gold;
-  // Trade's empire line joins the *base* rate for the reason every other line
-  // here does: a card that pays "per gold gained per turn" has to read the gold
-  // this turn actually produced, and a connected empire's roads are part of it.
-  for (const line of explainTradeGold(state, playerId)) rates.goldPerTurn += line.gold;
+  // The empire lines join the *base* rate for the reason every other line here
+  // does: a card that pays "per gold gained per turn" has to read the gold this
+  // turn actually produced, and a connected empire's roads — and since the
+  // maintenance ruling its army and its institutions — are part of it. All four
+  // lines, maintenance included: a conversion reads what the treasury *made*,
+  // and an empire whose upkeep eats its connections made less.
+  for (const line of explainEmpireGold(state, playerId)) rates.goldPerTurn += line.gold;
   return rates;
 }
 
@@ -3488,6 +3615,27 @@ export type CompletedItem =
  * day the second kind of news existed — a second out-parameter would have been a
  * second place to forget one.
  */
+/**
+ * How a thing came to be realised, for the one fact about it that the thing
+ * itself cannot say.
+ *
+ * One flag today. It exists because `realiseItem` is deliberately *the* seam for
+ * "the city now has the thing" and serves three occasions that differ in nothing
+ * a caller could inspect afterwards — a completion, a purchase, and a gift — yet
+ * the third one puts a piece on the board that its empire never paid for. A
+ * struct rather than a bare boolean so a second such fact joins the shape
+ * instead of becoming a fifth positional argument (`RealisedItem`'s own
+ * discipline, read from the other end).
+ */
+export interface RealiseOptions {
+  /**
+   * The empire is not paying for this. Sets `Unit.freeUpkeep`; ignored for a
+   * building, which has no such mark — a granted building's maintenance follows
+   * the stones exactly as a wonder's renown does.
+   */
+  free?: boolean;
+}
+
 export interface RealisedItem {
   /** The unit that came into the world, when the item was a unit. */
   unitId?: number;
@@ -3550,6 +3698,7 @@ export function realiseItem(
   state: GameState,
   city: City,
   item: CompletedItem,
+  options: RealiseOptions = {},
 ): RealisedItem {
   if (item.kind === 'building') {
     city.buildings.push(item.id);
@@ -3571,6 +3720,14 @@ export function realiseItem(
     return realised;
   }
   const unit = createUnit(state, city.ownerId, item.id, item.tile.col, item.tile.row);
+  // The maintenance mark, and the *only* thing `options` is for. A gift is a
+  // gift: a Levy's spearman and Camp Followers' stray cost their empire nothing
+  // to keep, while a piece the queue paid for or the treasury bought goes on the
+  // payroll like every other. That distinction cannot be derived from anything
+  // this routine can see — the piece, the town and the roster are identical
+  // either way — which is exactly why it is a parameter and not a rule. See
+  // `Unit.freeUpkeep` for the register of who passes it.
+  if (options.free) unit.freeUpkeep = true;
   // The ladder climbs at completion, so the next settler — anywhere in the
   // empire — is dearer from the very next resolution. See `advanceProduction`.
   if (unitDef(item.id).costIncrement !== undefined) {
@@ -3673,6 +3830,9 @@ function payCompletionGrants(
         continue;
       }
       const born = createUnit(state, player.id, type, tile.col, tile.row);
+      // A wonder's gift, so nobody paid for it — the Statue of Zeus' swordsman
+      // and Hagia Sophia's are the two today. See `Unit.freeUpkeep`, entry 3.
+      born.freeUpkeep = true;
       reports.push({ grant: 'unit', name: unitDef(type).name, done: true, unitId: born.id });
       continue;
     }

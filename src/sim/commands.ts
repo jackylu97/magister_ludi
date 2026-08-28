@@ -85,6 +85,7 @@ import {
   pillageAt,
   pillageError,
 } from './improvements';
+import type { DisbandReport } from './upkeep';
 import {
   greatPersonActAt,
   greatPersonActError,
@@ -1073,6 +1074,7 @@ export type CommandResult =
       routesEnded?: RouteEndReport[];
       sieges?: SiegeReport[];
       pillages?: PillageReport[];
+      disbanded?: DisbandReport[];
     }
   | { ok: false; error: string };
 
@@ -1124,6 +1126,14 @@ export type CommandResult =
  * every farm the wild burnt during the resolution. A `PillageReport` names both
  * the raider and the empire whose ground it was, so the interface can tell
  * "your column burnt a farm" from "somebody burnt yours" without a second field.
+ *
+ * `disbanded` is the ninth, from `endTurn` alone: every piece the creditors took
+ * off an empire deep enough in arrears (`DisbandReport`, the maintenance ruling
+ * of 2026-08-28). A difference like every other field here — by the time this
+ * returns the unit is simply not in `state.units`, and nothing distinguishes a
+ * warrior sold for debt from a warrior killed — and the one entry in the list
+ * that names something the player neither chose nor had done to them by another
+ * seat, which is exactly why it has to be said out loud.
  */
 function ok(
   arrivals?: readonly ArrivalReport[],
@@ -1134,6 +1144,7 @@ function ok(
   routesEnded?: readonly RouteEndReport[],
   sieges?: readonly SiegeReport[],
   pillages?: readonly PillageReport[],
+  disbanded?: readonly DisbandReport[],
 ): CommandResult {
   const result: CommandResult = { ok: true };
   if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
@@ -1144,6 +1155,7 @@ function ok(
   if (routesEnded !== undefined && routesEnded.length > 0) result.routesEnded = [...routesEnded];
   if (sieges !== undefined && sieges.length > 0) result.sieges = [...sieges];
   if (pillages !== undefined && pillages.length > 0) result.pillages = [...pillages];
+  if (disbanded !== undefined && disbanded.length > 0) result.disbanded = [...disbanded];
   return result;
 }
 
@@ -1235,6 +1247,7 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
     report.routesEnded,
     report.sieges,
     report.pillages,
+    report.disbanded,
   );
 }
 

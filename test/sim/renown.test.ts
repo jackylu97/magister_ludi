@@ -354,8 +354,14 @@ describe('the register', () => {
       .map((path) => path.slice(path.lastIndexOf('/') + 1))
       .sort();
     // `renown.ts` folds the trickle; `cities.ts` reads the wonder's lump at the
-    // one moment a wonder is realised. Nobody else has an opinion about it.
-    expect(offenders).toEqual(['cities.ts', 'renown.ts']);
+    // one moment a wonder is realised; and since the maintenance ruling
+    // (2026-08-28) `upkeep.ts` reads it as a **marker** rather than as a
+    // number — a building that pays renown is an institution, and an
+    // institution is what has a payroll. That third reader is a deliberate
+    // coupling and is written down here rather than being given a flag of its
+    // own on the row, which would have been a second answer to "is this a
+    // building or a monument". Nobody else has an opinion about the column.
+    expect(offenders).toEqual(['cities.ts', 'renown.ts', 'upkeep.ts']);
   });
 });
 

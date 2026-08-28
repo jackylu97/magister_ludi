@@ -91,6 +91,7 @@
     },
     "sciencePerPop": 1,
     "baseCulturePerCity": 1,
+    "palaceGold": 2,
     "borderCostBase": 6,
     "borderCostLinear": 4,
     "borderCostExponent": 1.45,
@@ -256,8 +257,14 @@
     "goldPerHammer": 2,
     "wonderRefundGoldPerHammer": 1
   },
+  "upkeep": {
+    "goldPerUnitAge": 1,
+    "goldPerBuildingAge": 1,
+    "debtPercent": -25,
+    "disbandBelow": -10
+  },
   "startingUnits": [
     "settler",
-    "warrior"
+    "scout"
   ]
 }

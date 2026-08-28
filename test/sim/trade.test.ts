@@ -39,7 +39,7 @@ import {
   explainRouteSlots,
   explainRouteYield,
   explainRouteYieldBetween,
-  explainTradeGold,
+  explainEmpireGold,
   foldRouteYield,
   roadsBuiltBy,
   routeSlots,
@@ -854,16 +854,25 @@ describe('the city connection', () => {
 
     expect(connectedCities(state, 0)).toEqual([{ city: partner, gold: 3 }]);
     expect(roadsBuiltBy(state, 0)).toBe(8);
-    expect(explainTradeGold(state, 0)).toEqual([
+    // Four lines since the maintenance ruling (2026-08-28), and the fixture's
+    // capital holds a market — an age-two institution, so 2💰 a turn. The
+    // caravan pays no maintenance at all (`trades`), which is why there is no
+    // unit line here even though the world holds one.
+    expect(explainEmpireGold(state, 0)).toEqual([
       { source: 'City connections · 1 city', gold: 3 },
       { source: 'Road maintenance · 8 hexes', gold: -2 },
+      { source: 'Building maintenance · 1 building', gold: -2 },
     ]);
   });
 
   it('needs a road: an unpaved town is not connected', () => {
-    const { state } = tradeWorld();
+    const { state, home } = tradeWorld();
+    // Strip the market so the ledger is about the connection alone; with it the
+    // list would still carry the maintenance line, which is `upkeep.test.ts`'s
+    // concern rather than this one's.
+    home.buildings = [];
     expect(connectedCities(state, 0)).toEqual([]);
-    expect(explainTradeGold(state, 0)).toEqual([]);
+    expect(explainEmpireGold(state, 0)).toEqual([]);
   });
 
   it('never fills through another empire’s ground', () => {
@@ -901,7 +910,7 @@ describe('the city connection', () => {
     pave(state, 4, 3, 10);
     const player = state.players[0]!;
     const before = player.gold;
-    const expected = explainTradeGold(state, 0).reduce((sum, line) => sum + line.gold, 0);
+    const expected = explainEmpireGold(state, 0).reduce((sum, line) => sum + line.gold, 0);
     resolve(state);
     // The cities' own gold is in there too, so the assertion is that trade's
     // line moved the treasury by exactly its fold on top of them.
@@ -1067,7 +1076,7 @@ describe('trade in the log', () => {
     // v23 wrote `sendTrader`, which this build's reducer does not have: a v23
     // log would stop dead partway through a replay, so the save is refused
     // rather than misread.
-    expect(SCHEMA_VERSION).toBe(26);
+    expect(SCHEMA_VERSION).toBe(27);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

@@ -105,6 +105,7 @@ import {
 } from './cities';
 import { type CombatOutcome, type SiegeReport, advanceFortify, healCities } from './combat';
 import type { PillageReport } from './improvements';
+import type { DisbandReport } from './upkeep';
 import { hasLineOfSight } from './los';
 import { openPeriodicOffers, pruneTimedEffects, spreadReligion } from './religion';
 import { getTileAt, tileHex, wrappedDistance } from './map';
@@ -224,6 +225,18 @@ export interface TurnReport {
    * so.
    */
   pillages: PillageReport[];
+  /**
+   * Every unit the creditors took this resolution, in seat order
+   * (`DisbandReport`) — one per empire at most, and empty in almost every game.
+   *
+   * `pillages`' sibling and a *difference* for that reason exactly: by the time
+   * this returns the piece is simply not in `state.units`, and nothing
+   * distinguishes an army that shrank because a warrior was disbanded for
+   * arrears from one that shrank because a warrior was killed. It is also the
+   * one thing in this list a player did not choose and was not done *to* them by
+   * another seat — which is precisely why it has to be said out loud.
+   */
+  disbanded: DisbandReport[];
 }
 
 /** A fresh, empty report. The one place its shape is written. */
@@ -236,6 +249,7 @@ export function emptyTurnReport(): TurnReport {
     routesEnded: [],
     sieges: [],
     pillages: [],
+    disbanded: [],
   };
 }
 
@@ -272,7 +286,11 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
   },
   {
     name: 'collectYields',
-    // Re-assigns citizens, then banks food, hammers, gold, science and culture.
+    // Re-assigns citizens, then banks food, hammers, gold, science and culture —
+    // and, last of all, lets the creditors take a piece off an empire deep
+    // enough in arrears (the maintenance ruling, 2026-08-28), which is the one
+    // thing this phase has to *say* — the third phase to write into the report,
+    // after the wild and `advanceProduction`.
     run: collectYields,
   },
   {

@@ -3047,7 +3047,10 @@ export function payWindfallGrants(
     if (!city) continue;
     const tile = spawnTileFor(state, city, gift.type);
     if (!tile) continue;
-    realiseItem(state, city, { kind: 'unit', id: gift.type, tile });
+    // `free`, because a windfall is by definition a thing nobody paid for: the
+    // Levies' spearman and Camp Followers' stray go on no payroll. See
+    // `Unit.freeUpkeep`, entry 2.
+    realiseItem(state, city, { kind: 'unit', id: gift.type, tile }, { free: true });
   }
   for (const grant of payout.grants) {
     if (grant.yield === 'gold') player.gold += grant.amount;

@@ -1043,10 +1043,13 @@ describe('city yields', () => {
     const city = plant(state, 0, 8, 5);
     assignCitizens(state, city);
 
+    // The one town this empire has is its capital, so the palace's coin is in
+    // the gold (the maintenance ruling, 2026-08-28) — `explainPalaceYield`,
+    // folded inside `cityYields` like every other list beside it.
     expect(cityYields(state, city)).toEqual({
       food: CITIES.baseCityYields.food + 2,
       production: CITIES.baseCityYields.production,
-      gold: CITIES.baseCityYields.gold,
+      gold: CITIES.baseCityYields.gold + CITIES.palaceGold,
       science: CITIES.sciencePerPop,
       culture: CITIES.baseCulturePerCity,
       faith: 0,
@@ -2204,7 +2207,7 @@ describe('the turn pipeline over a live empire', () => {
 // ---------------------------------------------------------------------------
 
 describe('determinism with cities', () => {
-  it('round-trips a schema 26 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 27 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -2219,7 +2222,7 @@ describe('determinism with cities', () => {
     // improvements; 12 was the meters' `captured`; 13 the luxuries; 14 tile
     // purchase; 15 barbarians and discoveries.) What this pins is not the
     // number but that a city save is carried by whatever the number is.
-    expect(SCHEMA_VERSION).toBe(26);
+    expect(SCHEMA_VERSION).toBe(27);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

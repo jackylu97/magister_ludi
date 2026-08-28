@@ -413,7 +413,13 @@ export function settleGreatPersonChoice(
   recruit.cityId = seat.id;
   const tile = spawnTileFor(state, seat, GREAT_PERSON_UNIT);
   if (!tile) return recruit;
-  recruit.unitId = createUnit(state, player.id, GREAT_PERSON_UNIT, tile.col, tile.row, id).id;
+  const born = createUnit(state, player.id, GREAT_PERSON_UNIT, tile.col, tile.row, id);
+  // Exempt by type already — a great person is unlocked by no technology, so
+  // `unitUpkeep` has no age to charge — and marked anyway, so the rule does not
+  // quietly depend on that staying true the day somebody gives the roster row a
+  // node. See `Unit.freeUpkeep`, entry 4.
+  born.freeUpkeep = true;
+  recruit.unitId = born.id;
   return recruit;
 }
 
