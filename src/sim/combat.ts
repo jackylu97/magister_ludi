@@ -91,13 +91,19 @@
  * ----------------
  * One command, two resolutions, and the unit's data decides which: a type with
  * `rangedStrength` shoots, a type without it closes. Melee trades damage — the
- * defender hits back with its own strength, unless it is a civilian or a city —
- * and the survivor advances into a tile it emptied, **taking any civilians still
+ * defender hits back with its own strength, unless it is a civilian — and the
+ * survivor advances into a tile it emptied, **taking any civilians still
  * standing on it** (`canAdvanceOnto`, and `arriveOnTile` for the transfer): the
  * ground and the people on it change hands together, which is Civ V's rule and
  * is what makes "kill the escort, take the worker" one act. Ranged is one-way: no
- * counter-damage, no advance, and a city floors at 1 hit point, which is the Civ
- * rule that stops archers taking capitals on their own.
+ * counter-damage and no advance.
+ *
+ * **A city hits back too** (user, 2026-08-28), with the strength it defends at —
+ * the garrison on the parapet is a garrison whether it is a real piece or the
+ * derived one, and since a town can no longer be taken by a single blow (see
+ * *Targeting*) a siege that cost the besieger nothing would be a formality with
+ * extra steps. It is still true that a city never *shoots*: there is no city
+ * ranged strike, only a return blow against somebody who came to the gate.
  *
  * **A blow on a lone civilian is that same advance with nothing to kill first**
  * (user, 2026-08-28: "when a unit attacks a civilian unit, it should move onto
@@ -139,11 +145,37 @@
  *
  * Targeting
  * ---------
- * A tile is attacked, not a piece, and the tile decides what is hit, in this
- * order: an enemy **military unit**, then an enemy **city**, then an enemy
- * **civilian**. The garrison is the target until it is dead, which is what makes
- * a defended city a siege rather than a race, and a lone civilian is reachable
- * exactly when nothing is standing over it.
+ * A tile is attacked, not a piece, and the tile decides what is hit. On open
+ * ground the order is what it always was — an enemy **military unit**, then an
+ * enemy **civilian** — so a lone civilian is reachable exactly when nothing is
+ * standing over it.
+ *
+ * A hex holding a **foreign city** is three attacks in a fixed order (user,
+ * 2026-08-28: "when a unit attacks a city, the damage should apply to the city
+ * first; only then does the enemy damage the unit inside. Upon killing the unit
+ * inside, the unit is able to capture the city"). Which step a given blow *is*
+ * falls out of the board and out of nothing else — `cityAttackPhase` is the pure
+ * read, and `CombatForecast.cityPhase` is what the card prints:
+ *
+ *   · **`walls`** — the town still has hit points above the floor, so the **city**
+ *     is the target whether or not a garrison stands in the gate. The walls take
+ *     the damage, the town defends with `cityBaseStrength` plus its cards and its
+ *     buildings, and the attacker takes the return blow.
+ *   · **`garrison`** — the walls are down (`cityBeatenDown`) and a foreign
+ *     combatant is still standing there. Ordinary unit-against-unit combat: the
+ *     soldier's own strength and its own `inCity` lines, and the town has nothing
+ *     further to add — it is already beaten.
+ *   · **`capture`** — the walls are down and nothing that can swing back is left.
+ *     A **melee** blow walks in (`capturesCity`), taking every civilian on the hex
+ *     with the ground exactly as a blow on a lone civilian does. A ranged shot
+ *     still cannot: archers do not take capitals.
+ *
+ * The **floor** is what holds the three apart. No attack of any kind may take a
+ * city below `CITY_FLOOR_HP` — the clause that used to be ranged-only — so
+ * "beat the walls down" and "walk in" are two acts rather than one lucky roll,
+ * and a garrison still on its feet makes the second act *impossible* rather than
+ * merely expensive. That is the whole of the ruling: a defended city is a siege
+ * in the order a siege actually happens.
  *
  * Siege
  * -----
@@ -160,7 +192,10 @@
  * -------------------------------------------------------
  *   · **Experience and promotions.** No XP, no promotion tree, no veterancy —
  *     every warrior fights like every other warrior.
- *   · **City ranged strikes.** A city defends and is defended; it never shoots.
+ *   · **City ranged strikes.** A city defends, is defended, and since the
+ *     2026-08-28 ruling swings back at whoever comes to the gate — but it never
+ *     *reaches*. There is no bombardment from the walls at a hex the attacker is
+ *     standing on two tiles away.
  *   · **Diplomacy and war declaration.** Every player is hostile to every other
  *     from turn one. There is nothing to declare and no peace to break.
  *   · **Embarkation.** Land units cannot cross water, so no naval combat.
@@ -354,12 +389,83 @@ export interface AttackTarget {
 }
 
 /**
+ * The hit points a city can never be taken below, by any attack of any kind.
+ *
+ * A **rule** and not a tunable, which is why it is here and not in `rules.json`:
+ * there is nothing to dial. It is the same shape as the no-mutual-death clamp —
+ * a floor on what a blow may take away — and since the 2026-08-28 ruling it
+ * applies to melee as well as to bombardment, because it is what makes beating
+ * the walls down and walking in two separate acts (module docblock, *Targeting*).
+ */
+const CITY_FLOOR_HP = 1;
+
+/**
+ * Are this town's walls down — is it sitting on the floor a besieger cannot push
+ * it past?
+ *
+ * The single predicate all three phases turn on, so "beaten down" is one reading
+ * of one field and never `hp <= 1` written out in four places. A city at the
+ * floor still holds the hex, still heals when the siege lifts (`healCities` is
+ * untouched by any of this), and still cannot be pushed lower by another blow —
+ * what it has lost is the ability to keep anybody *out*.
+ */
+export function cityBeatenDown(city: City): boolean {
+  return city.hp <= CITY_FLOOR_HP;
+}
+
+/** Which of the three beats an attack on a city hex would be. */
+export type CityAttackPhase = 'walls' | 'garrison' | 'capture';
+
+/**
+ * What step of the siege an attack on this hex is, or `null` when the hex holds
+ * no city of anybody else's.
+ *
+ * A pure function of the board, asked *before* the blow, which is what makes it
+ * safe for the interface to paint and for the forecast to promise: the phase
+ * cannot change between the card and the reducer, because nothing but an attack
+ * changes it and the attack has not happened yet.
+ *
+ * The order is the ruling, and each clause is one sentence of it: the walls come
+ * first, the garrison is only reachable once they are down, and the town is only
+ * takeable once the garrison is gone. Note that the last clause deliberately
+ * does **not** ask about civilians — a beaten town with nothing but workers in it
+ * is captured and the workers change hands with the ground (`arriveOnTile`),
+ * which is the same rule a lone civilian on open ground is taken by.
+ */
+export function cityAttackPhase(
+  state: GameState,
+  col: number,
+  row: number,
+  ownerId: number,
+): CityAttackPhase | null {
+  const city = cityAt(state, col, row);
+  if (!city || city.ownerId === ownerId) return null;
+  if (!cityBeatenDown(city)) return 'walls';
+  for (const unit of unitsOnTile(state, col, row)) {
+    if (unit.ownerId === ownerId) continue;
+    if (isCombatant(unitDef(unit.type))) return 'garrison';
+  }
+  return 'capture';
+}
+
+/**
  * What `ownerId` would be fighting if they attacked this cell, or `null` when
  * there is nothing of anybody else's on it.
  *
- * The priority is the targeting rule from the module docblock — military unit,
- * then city, then civilian — and it is a *pure read*, so the interface can paint
- * the attackable tiles with the same answer the reducer will act on.
+ * The priority is the targeting rule from the module docblock and it is a *pure
+ * read*, so the interface can paint the attackable tiles with the same answer the
+ * reducer will act on.
+ *
+ * A foreign city splits the old "military, then city, then civilian" list in two
+ * rather than moving inside it, and that is exactly the 2026-08-28 ruling: an
+ * **unbeaten** city outranks everything standing in it, and a **beaten** one
+ * ranks below the garrison and above the civilians. So the same list reads
+ *
+ *     unbeaten city → military unit → beaten city → civilian
+ *
+ * which is `cityAttackPhase`'s three beats with open ground's two clauses folded
+ * back in around them. The garrison clause is kept where it always was, so a hex
+ * with no city on it answers precisely as it did before.
  */
 export function attackTargetAt(
   state: GameState,
@@ -368,11 +474,17 @@ export function attackTargetAt(
   ownerId: number,
 ): AttackTarget | null {
   const foreign = unitsOnTile(state, col, row).filter((unit) => unit.ownerId !== ownerId);
+  const here = cityAt(state, col, row);
+  const city = here && here.ownerId !== ownerId ? here : null;
+
+  // The walls, first and regardless of who is sheltering behind them.
+  if (city && !cityBeatenDown(city)) return { unit: null, city };
+
   const military = foreign.find((unit) => isCombatant(unitDef(unit.type)));
   if (military) return { unit: military, city: null };
 
-  const city = cityAt(state, col, row);
-  if (city && city.ownerId !== ownerId) return { unit: null, city };
+  // The walls are down and nobody is holding the gate: this blow takes the town.
+  if (city) return { unit: null, city };
 
   const civilian = foreign[0];
   if (civilian) return { unit: civilian, city: null };
@@ -410,6 +522,37 @@ export function attackTargetAt(
  * unit that walks through armies.
  */
 function canAdvanceOnto(state: GameState, attacker: Unit, tile: Tile): boolean {
+  if (!canHoldTakenGround(state, attacker, tile)) return false;
+  /**
+   * **And a town somebody else still holds is not ground you may stand on.**
+   *
+   * The clause the three-beat siege needed (2026-08-28). Killing the garrison of
+   * a beaten town is the *second* beat, not the third: the walls are down and the
+   * defender is dead, but the town has not changed hands, and a winner that
+   * walked in anyway would be occupying a city it does not own — which then
+   * blocks its own side's capture, because the hex has no military slot left and
+   * nobody may attack the tile they are standing on.
+   *
+   * Asked here rather than in `applyCombat` so the *forecast* obeys it too, and
+   * asked of the board as it stands: by the time the advance runs, a town this
+   * blow captured is already the attacker's own and this clause waves it through.
+   * That is why the capture rule asks `canHoldTakenGround` instead — it is the
+   * one caller for which the foreign town is the thing being taken.
+   */
+  const town = cityAt(state, tile.col, tile.row);
+  return town === undefined || town.ownerId === attacker.ownerId;
+}
+
+/**
+ * `canAdvanceOnto` without the town clause: may this piece *physically* stand on
+ * the hex it just won — passable ground, a free slot under the stacking cap, and
+ * nothing foreign left on it that could swing back?
+ *
+ * Split out for exactly one caller, `capturesCity`, which is asking about a hex
+ * whose foreign town is the thing it is about to take. Every other reading wants
+ * the town clause and gets it above.
+ */
+function canHoldTakenGround(state: GameState, attacker: Unit, tile: Tile): boolean {
   if (!isPassable(tile)) return false;
   const { category } = unitDef(attacker.type);
   if (!hasStackingRoom(state, tile.col, tile.row, category, attacker.id)) return false;
@@ -738,8 +881,19 @@ export interface CombatForecast {
    * because they read the same plan.
    */
   plundersUnit: boolean;
-  /** Melee on a city the midpoint roll would empty: it changes hands. */
+  /** Melee on a beaten city with nobody left holding it: it changes hands. */
   capturesCity: boolean;
+  /**
+   * Which beat of the siege this attack is — present **only** when the attacked
+   * hex holds a foreign city, absent for every fight on open ground.
+   *
+   * It is a fact about the *board* rather than about this attacker, so it is
+   * `'capture'` for an archer too, and `capturesCity` is what says whether this
+   * particular blow may walk in. That split is deliberate: the card wants to say
+   * "the walls are down" to the archer as well, and then say that shooting will
+   * not finish it.
+   */
+  cityPhase?: CityAttackPhase;
 }
 
 export type CombatPreview = ({ ok: true } & CombatForecast) | { ok: false; error: string };
@@ -827,6 +981,11 @@ function planCombat(
   if (!target) {
     return { ok: false, error: `Nothing to attack on (${tile.col}, ${tile.row})` };
   }
+  // Which beat of the siege this is, read off the same board `attackTargetAt`
+  // just read — the two cannot disagree, because the second is written in terms
+  // of the first (`cityAttackPhase`). `undefined` on open ground, and that
+  // absence is the forecast's own answer to "is there a town here at all".
+  const cityPhase = cityAttackPhase(state, tile.col, tile.row, attacker.ownerId) ?? undefined;
 
   const kind: CombatKind = isRanged(def) ? 'ranged' : 'melee';
   const distance = wrappedDistance(state.map, tileHex(from), tileHex(tile));
@@ -1148,21 +1307,57 @@ function planCombat(
     !plundersUnit &&
     canAdvanceOnto(state, attacker, tile);
 
-  // A city under bombardment is softened, never taken: the Civ rule that keeps
-  // archers out of the capital-capturing business.
-  const defenderFloor = target.city !== null && kind === 'ranged' ? 1 : 0;
+  /**
+   * **Every** attack on a city is softened rather than finishing it — the clause
+   * that used to read `kind === 'ranged'`, widened by the 2026-08-28 ruling.
+   * Bombardment stopping at the floor was always the rule that kept archers out
+   * of the capital-capturing business; the same floor applied to melee is what
+   * makes a garrisoned town a siege in three beats instead of one roll.
+   */
+  const defenderFloor = target.city !== null ? CITY_FLOOR_HP : 0;
 
-  // No dice on either kind of one-sided blow: a civilian taken and a caravan
-  // ridden down are both decided by arriving, not by a roll.
-  const baseToDefender = capturesUnit || plundersUnit ? 0 : curve(attackerStrength - defenderStrength);
-  // The defender hits back only in a melee, and only when it is something that
-  // can hit back: a city has no counter-attack in v1, and neither has a settler.
+  /**
+   * A melee blow into a town whose walls are down and whose gate nobody is
+   * holding. The `capture` beat, and it is the *board's* answer plus this
+   * attacker's two: melee, and able to stand where it is about to stand.
+   *
+   * `canAdvanceOnto` is the last clause for `capturesUnit`'s exact reason — a
+   * capture is an advance and must be refused wherever an advance would be, and
+   * the forecast has to say so before the player commits. It answers yes in
+   * every case that can actually arise (nothing that fights is left on the hex,
+   * by the phase's own definition), which is why it reads as a clause rather
+   * than as a branch.
+   */
+  const capturesCity =
+    target.city !== null &&
+    kind === 'melee' &&
+    cityPhase === 'capture' &&
+    canHoldTakenGround(state, attacker, tile);
+
+  // No dice on any of the one-sided blows: a civilian taken, a caravan ridden
+  // down and a beaten town walked into are all decided by arriving, not by a
+  // roll. The city's would clamp to nothing anyway — it is already on the floor
+  // — and saying so here is what keeps the whole band at zero on the card.
+  const baseToDefender =
+    capturesUnit || plundersUnit || capturesCity ? 0 : curve(attackerStrength - defenderStrength);
+  /**
+   * The defender hits back only in a melee, and only when there is something
+   * there to hit back: a settler does not, and a town whose walls are already
+   * down and whose gate is empty does not either — that blow is a march, not a
+   * fight.
+   *
+   * **A city does** (user, 2026-08-28), which is the change: it swings with the
+   * strength it defends at, `defenderStrength`, exactly as a unit swings with
+   * its own. A besieger now pays for every battering, and the town's counter
+   * scales with the garrison the roster would have put on the parapet — see
+   * `explainCityStrength`.
+   */
   const counters =
     kind === 'melee' &&
-    target.unit !== null &&
-    isCombatant(unitDef(target.unit.type)) &&
     !capturesUnit &&
-    !plundersUnit;
+    !plundersUnit &&
+    !capturesCity &&
+    (target.city !== null || isCombatant(unitDef(target.unit!.type)));
   const baseToAttacker = counters ? curve(defenderStrength - attackerStrength) : 0;
 
   const band = COMBAT.rollBand;
@@ -1178,8 +1373,13 @@ function planCombat(
    * `dealt` is already clamped to the hit points there are to take, so "the
    * defender's projected remaining can reach zero" is exactly "the top of the
    * band takes all of them".
+   *
+   * Asked of a *unit* only, mirroring the resolution's own clamp below. A city
+   * never dies of damage — it is beaten down and then walked into — so a town
+   * whose walls this blow flattens must not quietly promise its besieger a
+   * survival the reducer would then refuse.
    */
-  const defenderCanDie = dealt(1 + band) >= defenderHp - defenderFloor;
+  const defenderCanDie = target.unit !== null && dealt(1 + band) >= defenderHp - defenderFloor;
   const attackerFloor = defenderCanDie ? 1 : 0;
   const taken = (roll: number): number =>
     clampDamage(damageAtRoll(baseToAttacker, roll), attacker.hp, attackerFloor);
@@ -1213,7 +1413,8 @@ function planCombat(
     defenderMaxHp,
     capturesUnit,
     plundersUnit,
-    capturesCity: target.city !== null && kind === 'melee' && damageToDefender >= defenderHp,
+    capturesCity,
+    cityPhase,
   };
 
   return {
@@ -1301,6 +1502,13 @@ export interface CombatOutcome {
   plundered: TraderPlunder | null;
   /** A city that changed hands, or `null`. */
   capturedCityId: number | null;
+  /**
+   * Which beat of the siege this blow was, or `null` on open ground — the
+   * forecast's `cityPhase`, read **as the board stood before the blow**, for
+   * `defenderOwnerId`'s reason: afterwards the walls may be down and the town may
+   * be somebody else's, and no one can be asked what step this was.
+   */
+  cityPhase: CityAttackPhase | null;
   /** True when the melee attacker moved into the tile it emptied. */
   advanced: boolean;
   /**
@@ -1365,6 +1573,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     capturedUnitId: null,
     plundered: null,
     capturedCityId: null,
+    cityPhase: forecast.cityPhase ?? null,
     advanced: false,
     arrival: null,
     attackerSurvived: true,
@@ -1418,8 +1627,15 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       baseToAttacker > 0 ? damageAtRoll(baseToAttacker, nextRange(state.rng, 1 - band, 1 + band)) : 0;
 
     if (target.city) {
+      // Never past the floor — `dealt` is clamped through `defenderFloor`, so a
+      // battering that would have flattened the town leaves it sitting on one
+      // hit point with its gate open instead.
       target.city.hp -= dealt;
-      if (target.city.hp <= 0) {
+      // **The plan decides, not the die.** Capture is the `capture` beat and
+      // nothing else (`capturesCity`), so a town changes hands exactly when the
+      // card said it would — there is no roll that could take a garrisoned city
+      // and none that could fail to take an empty one.
+      if (forecast.capturesCity) {
         // **Read before the town changes hands.** A moment later the stones are
         // the captor's own buildings and nothing can tell them from the ones he
         // raised — which is why The Empire's clause is a *fact about the
@@ -1675,18 +1891,43 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   awardOccasion(state, ownerId, 'cityCaptured');
 }
 
-/** "Warrior attacks Archer: 34 − 12" — one line, for the notice and the log. */
+/**
+ * "Warrior attacks Archer: 34 − 12" — one line, for the notice and the log.
+ *
+ * A taking says so and gives no numbers, because there were none: a captured
+ * civilian and a walked-into town are both arrivals rather than fights, and
+ * "Warrior attacks Uruk: 0 · captured!" was a sentence about a blow that never
+ * landed. Everything else prints the trade and then names the beat of the siege
+ * it was, which is the one thing a bare damage figure cannot say — a player who
+ * reads "the walls hold" knows the garrison was never touched.
+ */
 export function describeCombat(outcome: CombatOutcome): string {
   const verb = outcome.kind === 'ranged' ? 'shoots' : 'attacks';
   if (outcome.capturedUnitId !== null) {
+    return `${outcome.attackerName} captures ${outcome.defenderName}`;
+  }
+  if (outcome.capturedCityId !== null) {
     return `${outcome.attackerName} captures ${outcome.defenderName}`;
   }
   const trade =
     outcome.damageToAttacker > 0
       ? `${outcome.damageToDefender} − ${outcome.damageToAttacker}`
       : `${outcome.damageToDefender}`;
-  const tail = outcome.capturedCityId !== null ? ' · captured!' : '';
-  return `${outcome.attackerName} ${verb} ${outcome.defenderName}: ${trade}${tail}`;
+  return `${outcome.attackerName} ${verb} ${outcome.defenderName}: ${trade}${siegeTail(outcome)}`;
+}
+
+/**
+ * What a blow on a city hex is worth saying beyond its numbers.
+ *
+ * The `capture` arm is reached by a ranged shot alone — a melee blow in that beat
+ * took the town and `describeCombat` returned before it got here — and it says
+ * the same thing the `garrison` arm does, because it is the same fact: the walls
+ * are down and this weapon is not the one that finishes it.
+ */
+function siegeTail(outcome: CombatOutcome): string {
+  if (outcome.cityPhase === 'walls') return ' · battering the walls';
+  if (outcome.cityPhase === null) return '';
+  return ' · the walls are down';
 }
 
 // --- elimination and victory ------------------------------------------------

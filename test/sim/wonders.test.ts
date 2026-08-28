@@ -830,7 +830,17 @@ describe('the new combat clauses', () => {
     void garrison;
     const raider = unit(state, ring(state.map, home)[0]!, 'warrior', 1);
 
+    // **Re-pinned, 2026-08-28.** A garrison is only *reachable* once the walls
+    // are down (combat's three beats): while the town has hit points above the
+    // floor an attack on that hex hits the city, which defends with
+    // `cityBaseStrength` and carries none of a soldier's own lines. So the town
+    // is beaten down first, and the Terracotta Army is then read where the ruling
+    // says a garrison fights — in beat two.
+    mine.hp = 1;
+
     const siege = forecastOf(state, raider.id, home);
+    expect(siege.cityPhase).toBe('garrison');
+    expect(siege.defenderUnitId).toBe(garrison.id);
     expect(siege.bonuses.some((line) => line.source.includes('Terracotta'))).toBe(true);
     // It is a *defender's* line: the same army attacking out of the town gets
     // nothing from it.

@@ -15,7 +15,13 @@ import {
 } from '../../src/sim/barbarians';
 import { campAt, hasCampAt, settleCampBounty } from '../../src/sim/camps';
 import { assignCitizens, foundCityAt, growthThreshold } from '../../src/sim/cities';
-import { previewCombat, updateElimination } from '../../src/sim/combat';
+import {
+  applyCombat,
+  cityAttackPhase,
+  cityMaxHp,
+  previewCombat,
+  updateElimination,
+} from '../../src/sim/combat';
 import { applyCommand } from '../../src/sim/commands';
 import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
 import {
@@ -1478,5 +1484,119 @@ describe('the camp faucet', () => {
         expect(distance(state, a, b)).toBeGreaterThanOrEqual(BARB.minCampDistanceApart);
       }
     }
+  });
+});
+
+/**
+ * The wild at the gate (2026-08-28 ruling, inherited rather than implemented).
+ *
+ * A raider strikes through `applyCombat` exactly as a player's warrior does, so
+ * the three-beat siege — the walls, then the garrison, then the taking — arrives
+ * in the wild's hands with no rule of its own. That is the claim under test, and
+ * it is the same claim theft makes one scale down: "barbarians steal workers" is
+ * `attackTargetAt`'s priority, and "barbarians besiege towns" is now its other
+ * half.
+ *
+ * The last test in this block pins something the module docblock in
+ * `barbarians.ts` **disagrees with** — it says the wild does not capture cities —
+ * and pins it deliberately, because the ruling's instruction was to read what the
+ * board actually does and keep it. Nothing in `combat.ts` has ever excused the
+ * wild from `captureCity`, before this ruling or after it. If the prose is the
+ * intent, the guard is a one-line clause in `applyCombat` and a design decision
+ * that has not been made yet.
+ */
+describe('the wild at the gate', () => {
+  /** A town of player 0 with a raider standing at its gate. */
+  function gateState(): { state: GameState; raider: Unit; city: ReturnType<typeof foundCityAt> } {
+    const state = wildState();
+    const city = foundCityAt(state, 0, at(state, 5, 8));
+    const raider = createUnit(state, wildId(state), 'warrior', 6, 8);
+    recomputeAllVisibility(state);
+    refill(state);
+    return { state, raider, city };
+  }
+
+  it('beats the walls first, whoever is sheltering behind them', () => {
+    const { state, raider, city } = gateState();
+    const garrison = createUnit(state, 0, 'spearman', 5, 8);
+    recomputeAllVisibility(state);
+    const whole = garrison.hp;
+
+    expect(cityAttackPhase(state, 5, 8, wildId(state))).toBe('walls');
+    const view = previewCombat(state, raider.id, { col: 5, row: 8 });
+    expect(view.ok && view.cityPhase).toBe('walls');
+
+    const struck = applyCombat(state, raider.id, { col: 5, row: 8 });
+    expect(struck.ok).toBe(true);
+    expect(city.hp).toBeLessThan(cityMaxHp(city));
+    // Untouched: the wall was in the way, exactly as it is for an empire.
+    expect(garrison.hp).toBe(whole);
+  });
+
+  it('turns on the garrison once the walls are down', () => {
+    const { state, raider, city } = gateState();
+    const garrison = createUnit(state, 0, 'spearman', 5, 8);
+    recomputeAllVisibility(state);
+    city.hp = 1;
+
+    expect(cityAttackPhase(state, 5, 8, wildId(state))).toBe('garrison');
+    const struck = applyCombat(state, raider.id, { col: 5, row: 8 });
+    expect(struck.ok).toBe(true);
+    expect(garrison.hp).toBeLessThan(unitDef('spearman').maxHp);
+    // And the town is where it was: on the floor, and its owner's.
+    expect(city.hp).toBe(1);
+    expect(city.ownerId).toBe(0);
+  });
+
+  it('inherits the order through its own sweep, with no rule of its own', () => {
+    // Not `applyCombat` this time but `raid`, the wild's whole turn: the raider
+    // is adjacent, the beat is a blow, and the blow lands where the published
+    // priority puts it.
+    const { state, raider, city } = gateState();
+    const garrison = createUnit(state, 0, 'spearman', 5, 8);
+    recomputeAllVisibility(state);
+    refill(state);
+    const whole = garrison.hp;
+
+    const report = emptyTurnReport();
+    raid(state, [raider.id], report);
+
+    expect(report.combats).toHaveLength(1);
+    expect(report.combats[0]!.defenderCityId).toBe(city.id);
+    expect(report.combats[0]!.cityPhase).toBe('walls');
+    expect(garrison.hp).toBe(whole);
+  });
+
+  it('takes an empty town it has beaten down — the rule as it stands', () => {
+    // **Pinned, not designed.** `barbarians.ts` says the wild does not capture
+    // cities; `combat.ts` has never said so, and this is what the board does.
+    // The ruling asked for whichever it is, written down.
+    const { state, raider, city } = gateState();
+    city.hp = 1;
+
+    expect(cityAttackPhase(state, 5, 8, wildId(state))).toBe('capture');
+    const struck = applyCombat(state, raider.id, { col: 5, row: 8 });
+    expect(struck.ok).toBe(true);
+    if (!struck.ok) return;
+    expect(struck.outcome.capturedCityId).toBe(city.id);
+    expect(city.ownerId).toBe(wildId(state));
+
+    // And it took nothing to do it: the walls were already down, so this was an
+    // arrival and not a fight.
+    expect(struck.outcome.damageToAttacker).toBe(0);
+    expect(struck.outcome.damageToDefender).toBe(0);
+  });
+
+  it('cannot take one that is still held, however beaten', () => {
+    const { state, raider, city } = gateState();
+    const garrison = createUnit(state, 0, 'spearman', 5, 8);
+    recomputeAllVisibility(state);
+    city.hp = 1;
+
+    const view = previewCombat(state, raider.id, { col: 5, row: 8 });
+    expect(view.ok && view.capturesCity).toBe(false);
+    expect(applyCombat(state, raider.id, { col: 5, row: 8 }).ok).toBe(true);
+    expect(city.ownerId).toBe(0);
+    void garrison;
   });
 });
