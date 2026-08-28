@@ -3552,3 +3552,33 @@ new themes named: ☽ The Cloister (faith + science), 📜 The Charter (wide →
 🌾 The Ploughshare (stacking farm yields), ⛰ The Highlands (hills and mountains). Halves that
 need a system — unit maintenance, buying great people with gold or faith, the Curia's faith-to-
 science mirror — ship deferred on their rows in the user's words.
+
+---
+
+## Entry XXXIX — The copy pass: one plain voice for every rule (**built** 2026-08-28)
+
+**Ruling (user):** *"I'd like all effects/modifiers (orders, doctrines, religion, great people,
+etc.) to read in a clear, explainable voice. Save flavor text for things that lie outside of
+player gameplay considerations."* Together with the Compendium rulings of the day before
+(matter-of-fact, then beginner-friendly), this settles the game's registers: **a rule is
+stated plainly, in a first-time player's words; flavour lives only in `flavor`/`epigram`
+fields and is printed under a Flavour label, never in the column a rule occupies.**
+
+**What moved.** The describers' word tables in `statecraft.ts` — authority for the writ, hex
+for tile, production for hammers, stored food for the basket, barbarians for the wild,
+clearing a forest for chopping, a ruin for a discovery, "a unit that would finish sooner jumps
+ahead of a building in the queue" — and the connectives around them, with improvements on a
+hex becoming a named qualifier ("every hex with a Camp") the moment the occasions started
+saying "barbarian camp". Ledger labels in combat, cities, meters and trade are plain nouns.
+Some ninety-five data `text`/`note`/`deferred` strings lost their internal commentary and
+backticked identifiers, because a `note` is printed to players and a struck-through line
+should say only what the card would do. Rite, augur and great-person sentences followed. Four
+surfaces — offer cards, the charter, a rite's row, a great person's sheet — printed an epigram
+as if it were a rule and now label it. **Names stay names** (Garrison State, The Writ
+Extends, Camp Followers), Æra stays the game's word for an age, and "caravan" stays across the
+trade surface for consistency.
+
+**The rule for what follows:** a new shape's words go in the word tables in the plain voice;
+a new data row's `note` is player prose; a new surface that prints a flavour field labels it.
+The Compendium's digit-free tests and the shape-register test are the two mechanical guards;
+the voice itself is `src/ui/compendiumText.ts`'s docblock.

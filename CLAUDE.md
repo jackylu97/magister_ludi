@@ -98,6 +98,12 @@ would change every seeded outcome. No further rename passes.
    who passes one is the register in the `yieldContextFor` docblock, and an owned tile is
    always evaluated with its owner's ctx.
 6. Docblock-style comments explaining *why*, matching existing files' voice.
+7. **Player-facing words are plain** (Entry XXXIX): a rule is stated in a first-time
+   player's terms — authority, hex, production, stored food, barbarians, clearing a forest, a
+   ruin — through the word tables in `statecraft.ts` and plain ledger labels; a data row's
+   `note`/`deferred` is player prose with no identifiers; flavour lives only in
+   `flavor`/`epigram` fields and any surface that prints one labels it Flavour. The voice is
+   `src/ui/compendiumText.ts`'s docblock; numbers never appear in written prose.
 
 ## Known traps
 - `MeshToonMaterial` silently ignores `flatShading` — bake facets into geometry.
