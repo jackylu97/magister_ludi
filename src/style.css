@@ -8596,6 +8596,21 @@ kbd {
   color: var(--ink-soft);
 }
 
+/* The one eyebrow inside a card, and it earns its place: every other line on a
+   generated card is a rule read off the data, so an unlabelled epigram in the
+   same column reads as one more rule. Upright and small against the italic it
+   introduces — the label is not part of the quotation. */
+.cmp-flavor-label {
+  margin-right: 6px;
+  font-family: var(--face-ui);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
 /* The controls card's foot: the one link out of it. */
 .help-foot {
   display: flex;

@@ -47,9 +47,20 @@ import {
   filterSections,
   sectionOfId,
 } from '../../src/ui/compendium';
+import { SHELF_INTRO_KEY, SHELF_INTROS } from '../../src/ui/compendiumShelves';
 import { CONCEPT_ENTRIES, INTRO_ENTRIES } from '../../src/ui/compendiumText';
 
 const BOOK = compendiumSections();
+
+/**
+ * The lead page every *generated* shelf opens on, counted against the table.
+ *
+ * One page of prose per shelf that is built out of data rows, and none on the
+ * two shelves that are already prose — so a shelf's length is its table's length
+ * plus this, and a shelf that lost its lead page fails here rather than quietly
+ * dropping a reader onto a strength figure with no idea what a unit is.
+ */
+const LEAD = 1;
 
 function shelf(id: CompendiumSectionId): CompendiumSection {
   const found = BOOK.find((section) => section.id === id);
@@ -69,25 +80,52 @@ describe('the shelves', () => {
     // arrays they are built from, for the same reason one scale up.
     expect(shelf('intro').entries).toHaveLength(INTRO_ENTRIES.length);
     expect(shelf('concept').entries).toHaveLength(CONCEPT_ENTRIES.length);
-    expect(shelf('unit').entries).toHaveLength(UNIT_TYPE_IDS.length);
-    expect(shelf('improvement').entries).toHaveLength(IMPROVEMENT_IDS.length);
-    expect(shelf('resource').entries).toHaveLength(RESOURCE_IDS.length);
-    expect(shelf('tech').entries).toHaveLength(TECH_IDS.length);
-    expect(shelf('order').entries).toHaveLength(ORDER_IDS.length);
-    expect(shelf('doctrine').entries).toHaveLength(DOCTRINE_IDS.length);
-    expect(shelf('belief').entries).toHaveLength(BELIEF_IDS.length);
-    expect(shelf('rite').entries).toHaveLength(RITE_IDS.length);
-    expect(shelf('greatPerson').entries).toHaveLength(GREAT_PERSON_IDS.length);
-    expect(shelf('triumph').entries).toHaveLength(TRIUMPH_IDS.length);
+    expect(shelf('unit').entries).toHaveLength(UNIT_TYPE_IDS.length + LEAD);
+    expect(shelf('improvement').entries).toHaveLength(IMPROVEMENT_IDS.length + LEAD);
+    expect(shelf('resource').entries).toHaveLength(RESOURCE_IDS.length + LEAD);
+    expect(shelf('tech').entries).toHaveLength(TECH_IDS.length + LEAD);
+    expect(shelf('order').entries).toHaveLength(ORDER_IDS.length + LEAD);
+    expect(shelf('doctrine').entries).toHaveLength(DOCTRINE_IDS.length + LEAD);
+    expect(shelf('belief').entries).toHaveLength(BELIEF_IDS.length + LEAD);
+    expect(shelf('rite').entries).toHaveLength(RITE_IDS.length + LEAD);
+    expect(shelf('greatPerson').entries).toHaveLength(GREAT_PERSON_IDS.length + LEAD);
+    expect(shelf('triumph').entries).toHaveLength(TRIUMPH_IDS.length + LEAD);
 
     // Buildings and wonders come off **one** table and are two shelves: a
     // wonder is a flag on a building row, not a second roster, so the two
     // together must be the whole of it and neither may be empty.
     const wonders = BUILDING_IDS.filter(isWonder);
-    expect(shelf('wonder').entries).toHaveLength(wonders.length);
-    expect(shelf('building').entries).toHaveLength(BUILDING_IDS.length - wonders.length);
-    expect(shelf('building').entries.length).toBeGreaterThan(0);
-    expect(shelf('wonder').entries.length).toBeGreaterThan(0);
+    expect(shelf('wonder').entries).toHaveLength(wonders.length + LEAD);
+    expect(shelf('building').entries).toHaveLength(BUILDING_IDS.length - wonders.length + LEAD);
+    expect(shelf('building').entries.length).toBeGreaterThan(LEAD);
+    expect(shelf('wonder').entries.length).toBeGreaterThan(LEAD);
+  });
+
+  it('opens every generated shelf on a page that says what the shelf is', () => {
+    // The ruling this pass is built on: a card read off a data row can say what
+    // a thing *costs* and never what a thing *is*. So every shelf that is
+    // generated opens on prose, at a stable address (`unit:about`) something
+    // else in the interface can link to — and the two shelves that are already
+    // prose deliberately have none.
+    for (const section of BOOK) {
+      const written = section.id === 'intro' || section.id === 'concept';
+      const lead = section.entries[0]!;
+      if (written) {
+        expect(SHELF_INTROS[section.id], section.id).toBeUndefined();
+        continue;
+      }
+      expect(lead.id, section.id).toBe(`${section.id}:${SHELF_INTRO_KEY}`);
+      expect(lead, section.id).toBe(SHELF_INTROS[section.id]);
+      expect(lead.written, section.id).toBe(true);
+      expect(lead.rows, section.id).toEqual([]);
+      // Two to four paragraphs, each of them saying something. A lead page that
+      // came back with one empty paragraph is the failure mode this whole suite
+      // is about: it looks like a design decision.
+      expect(lead.clauses.length, section.id).toBeGreaterThan(1);
+      for (const clause of lead.clauses) {
+        expect(clause.text.trim().length, section.id).toBeGreaterThan(0);
+      }
+    }
   });
 
   it('has sixteen of them, every one with something on it', () => {
@@ -118,7 +156,9 @@ describe('the shelves', () => {
   it('reads the technologies in age order', () => {
     // A reference is read forwards through the tree, which is not the order
     // `techs.json` happens to list its rows in.
-    const ages = shelf('tech').entries.map((entry) => techDef(entry.id.split(':')[1]! as never).age);
+    const ages = shelf('tech')
+      .entries.filter((entry) => entry.written !== true)
+      .map((entry) => techDef(entry.id.split(':')[1]! as never).age);
     expect([...ages].sort((a, b) => a - b)).toEqual(ages);
   });
 });
@@ -144,7 +184,11 @@ describe('an entry', () => {
   it('has at least one clause for every written entry', () => {
     // A written card is nothing but prose (`rows` is always empty, see below),
     // so a card with no clauses at all would be a blank page.
-    for (const entry of [...INTRO_ENTRIES, ...CONCEPT_ENTRIES]) {
+    for (const entry of [
+      ...INTRO_ENTRIES,
+      ...CONCEPT_ENTRIES,
+      ...Object.values(SHELF_INTROS),
+    ]) {
       expect(entry.written, entry.id).toBe(true);
       expect(entry.rows, entry.id).toEqual([]);
       expect(entry.clauses.length, entry.id).toBeGreaterThan(0);
@@ -438,11 +482,13 @@ describe('never hand-written prose about a number', () => {
   it('has no digit in the written shelves’ prose either', () => {
     // `compendiumText.ts` carries the same promise — "never about a number" —
     // in its own docblock, and the same scanner holds it, reused rather than
-    // duplicated.
-    const offenders = stringLiterals(sourceOf('compendiumText.ts')).filter((text) =>
-      /\d/.test(text),
-    );
-    expect(offenders).toEqual([]);
+    // duplicated. `compendiumShelves.ts` is the third file under the rule: a
+    // shelf's lead page is prose about a *kind* of thing, and the moment one of
+    // them names a cost it is a second table beside the cards below it.
+    for (const file of ['compendiumText.ts', 'compendiumShelves.ts']) {
+      const offenders = stringLiterals(sourceOf(file)).filter((text) => /\d/.test(text));
+      expect(offenders, file).toEqual([]);
+    }
   });
 
   it('would catch a figure written by hand', () => {
@@ -481,6 +527,21 @@ describe('never hand-written prose about a number', () => {
     expect(source).toContain("from '../sim/resourceEffects'");
     expect(source).toContain("from '../sim/techUnlocks'");
     expect(source).toContain("from '../sim/rulesData'");
+  });
+
+  it('says which end of a trade route is read and which end is paid', () => {
+    // The one sentence on this page that reads just as plausibly backwards, and
+    // it *was* backwards until the user's reversal of 2026-08-27 (`trade.ts`,
+    // `explainRouteYield`): the **origin's** buildings set the food and the
+    // production, and the **destination** banks them. Pinned on the shape of the
+    // claim rather than on the whole sentence, so the wording may be improved
+    // and the direction may not be silently flipped back.
+    const routes = everyEntry().find((entry) => entry.id === 'trade:routes');
+    const prose = routes!.clauses.map((clause) => clause.text).join(' ');
+    expect(prose).toContain('pays the city it goes to');
+    expect(prose).toContain('depends on the buildings in the city it came from');
+    // And the gold line is the one that is not read off either end alone.
+    expect(prose).toContain('across the two cities together');
   });
 
   it('keeps one describer for a rite, shared with the screen that performs one', () => {

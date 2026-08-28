@@ -15,6 +15,23 @@
  * built to avoid. `test/ui/compendium.test.ts` holds it by reading this source:
  * no string literal in this file may contain a digit.
  *
+ * One voice, and it is the beginner's
+ * -----------------------------------
+ * The strings this file *composes* around those figures — an eyebrow, a row
+ * label, the sentence a presence-is-the-marker field turns into — are held to
+ * `compendiumText.ts`'s voice (user ruling, 2026-08-27): plain and matter-of-fact,
+ * written for somebody who has never played a game like this, terms explained
+ * before they are used, no metaphor and no address. A row label says what the
+ * number *is* ("Combat strength", not "Strength"); an eyebrow says what kind of
+ * thing the card is ("civilian unit", not "civilian"). What this file may **not**
+ * do is restate a describer: `describeCard` is the game's own words and feeds the
+ * in-game hover cards too, so where a card says "writ" the Compendium *glosses*
+ * the word on its shelf's lead page and leaves the card alone.
+ *
+ * Every generated shelf opens on a page of prose (`compendiumShelves.ts`) that
+ * says what that kind of thing is, how you come by one, and where you use it —
+ * the one question a card built out of a data row cannot answer about itself.
+ *
  * One module, two mounts
  * ----------------------
  * `renderCompendium` builds the two panes into whatever element it is handed.
@@ -79,6 +96,7 @@ import { describeResourceSignature } from '../sim/resourceEffects';
 import { RULES } from '../sim/rulesData';
 import { describeCard } from '../sim/statecraft';
 import {
+  type CityScope,
   DOCTRINE_IDS,
   type DoctrineId,
   ORDER_IDS,
@@ -94,6 +112,7 @@ import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield } from '../sim/terra
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from '../sim/triumphData';
 import { UNIT_TYPE_IDS, type UnitDef, type UnitTypeId, unitDef } from '../sim/unitData';
 import { CARD_LINE_NAME, lineOf } from './cardLine';
+import { SHELF_INTROS } from './compendiumShelves';
 import { CONCEPT_ENTRIES, INTRO_ENTRIES } from './compendiumText';
 import { YIELD_GLYPH, figure, percentFigure, signedFigure } from './figures';
 import { AXIS_MARK, riteGrantWords } from './religionScreen';
@@ -167,9 +186,13 @@ export interface CompendiumEntry {
   /** One line in the voice of the tech tree's aphorisms, or null. Flavour. */
   flavor: string | null;
   /**
-   * True for the two written shelves (`compendiumText.ts`): `clauses` there is
-   * prose, not the card vocabulary's bullet list, and prints as one `<p>` per
-   * clause rather than a marked list. Every generated entry leaves this unset.
+   * True for a page of **prose**: `clauses` is paragraphs rather than the card
+   * vocabulary's bullet list, and prints as one `<p>` per clause. Two kinds of
+   * page set it — the two written shelves (`compendiumText.ts`) and the lead
+   * page every generated shelf opens on (`compendiumShelves.ts`) — and it is
+   * also what widens the index's search to an entry's own text, which is what a
+   * reader typing "pantheon" needs. Every entry built from a data row leaves it
+   * unset.
    */
   written?: boolean;
 }
@@ -230,9 +253,32 @@ function tileYieldFigures(spec: TileYieldSpec): string {
     .join(' ');
 }
 
-/** The Æra a technology sits in, in the numerals the star chart uses. */
+/**
+ * The Æra a thing belongs to, in the numerals the star chart uses.
+ *
+ * Actual Roman numerals rather than a tally of `I`s. The tally read correctly
+ * for the three ages the tech tree has and broke on the great-people table,
+ * which reaches the fifth: "Æra IIIII" is not a numeral, it is a count of
+ * strokes. Written as a subtractive table so a sixth age costs nothing.
+ */
+const ROMAN: readonly (readonly [number, string])[] = [
+  [10, 'X'],
+  [9, 'IX'],
+  [5, 'V'],
+  [4, 'IV'],
+  [1, 'I'],
+];
+
 function ageWord(age: number): string {
-  return `Æra ${'I'.repeat(Math.max(1, Math.round(age)))}`;
+  let left = Math.max(1, Math.round(age));
+  let out = '';
+  for (const [value, mark] of ROMAN) {
+    while (left >= value) {
+      out += mark;
+      left -= value;
+    }
+  }
+  return `Æra ${out}`;
 }
 
 /** `Bronze Working`, or empty for a thing the tree gates on nothing. */
@@ -240,11 +286,53 @@ function techName(id: TechId | null | undefined): string {
   return id === null || id === undefined ? '' : techDef(id).name;
 }
 
-/** A list in words, with the last pair joined by "and". */
-function words(parts: readonly string[]): string {
+/**
+ * "charge" or "charges", off the figure that precedes it.
+ *
+ * A plural is grammar rather than a claim about the game, so it is composed the
+ * same way every other reading of a number here is: from the number. Written as
+ * a helper because the alternative — a literal `'1'` to compare against — is the
+ * one thing the digit rule forbids, and because "1 charges" shipped for a while.
+ */
+function plural(count: number, singular: string, many = `${singular}s`): string {
+  return Math.abs(count) === 1 ? singular : many;
+}
+
+/**
+ * "a Landmark", "an Academy" — the indefinite article, off the name.
+ *
+ * `plural`'s sibling and the same argument: a sentence composed around a data
+ * row still has to be grammatical, and "a Academy" is the version that shipped.
+ * The vowel test is the crude one on purpose; every name it is asked about is an
+ * improvement's, and the table has no "a university" trap in it.
+ */
+function withArticle(name: string): string {
+  return `${'aeiouAEIOU'.includes(name[0] ?? '') ? 'an' : 'a'} ${name}`;
+}
+
+/** A list in words, with the last pair joined by `join`. */
+function joined(parts: readonly string[], join: string): string {
   if (parts.length === 0) return '';
   if (parts.length === 1) return parts[0]!;
-  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]!}`;
+  return `${parts.slice(0, -1).join(', ')} ${join} ${parts[parts.length - 1]!}`;
+}
+
+/** A list in words, with the last pair joined by "and". */
+function words(parts: readonly string[]): string {
+  return joined(parts, 'and');
+}
+
+/**
+ * A list of *alternatives*, with the last pair joined by "or".
+ *
+ * `words`' sibling, and the distinction is a rule rather than a preference:
+ * `hillsIf` is a disjunction — `hillsWaived` (`improvements.ts`) returns on the
+ * first reason that holds — and printing it with "and" said a farm needed fresh
+ * water *and* its own resource to take a hillside, which is twice as strict as
+ * the game.
+ */
+function eitherWords(parts: readonly string[]): string {
+  return joined(parts, 'or');
 }
 
 /**
@@ -294,40 +382,64 @@ function rosterCost(state: GameState | null, type: UnitTypeId): number {
  */
 function unitMarkers(def: UnitDef): CompendiumClause[] {
   const out: CompendiumClause[] = [];
-  if (def.foundsCity) out.push({ text: 'Founds a city, and is spent doing it' });
+  if (def.foundsCity) out.push({ text: 'Founds a city. The unit is used up doing it.' });
   if (def.haltsGrowth) {
-    out.push({ text: 'A city banks no food toward growth while one is at the front of its queue' });
+    out.push({
+      text: 'A city stores no food toward its next citizen while one of these is at the front of its build queue.',
+    });
   }
   if (def.charges !== undefined && def.consecrates !== true && def.greatWork !== true) {
-    out.push({ text: `${def.charges} charges of spadework, one improvement each` });
+    out.push({
+      text: `Carries ${def.charges} work ${plural(def.charges, 'charge')}. Building an improvement spends one or more of them, and the unit is used up when they run out.`,
+    });
   }
   if (def.consecrates === true) {
+    const charges = def.charges ?? 0;
     out.push({
-      text: `${def.charges ?? 0} charges of rites — or the whole of it, spent consecrating one god`,
+      text: `Carries ${charges} ${plural(charges, 'charge')}. Performing a rite on a city spends one of them; adding a belief to your pantheon uses up the whole unit.`,
     });
   }
   if (def.greatWork === true) {
-    out.push({ text: 'Called, never built: no city queues one and no bank buys one' });
-    out.push({ text: 'Spends itself on its family’s act, or plants its family’s work' });
+    out.push({
+      text: 'Great people are not built and not bought. They are recruited with renown.',
+    });
+    out.push({
+      text: 'Use it once for its family’s immediate effect, or have it build its family’s special improvement. Either way the unit is used up.',
+    });
   }
   if (def.trades === true) {
-    out.push({ text: 'Carries a trade route between two of your cities, and lays road as it walks' });
+    out.push({
+      text: 'Sets up a trade route between two of your cities, and builds road on every hex it walks over.',
+    });
   }
   if (def.ignoresTerrainCost === true) {
-    out.push({ text: 'Every passable hex costs it the same, whatever grows on it' });
+    out.push({ text: 'Rough ground does not slow it: every hex it can enter costs it the same.' });
   }
   if (def.requiresResource !== undefined) {
-    out.push({ text: `Needs ${resourceDef(def.requiresResource).name} under your control` });
+    out.push({
+      text: `Your empire must control improved ${resourceDef(def.requiresResource).name} to build one.`,
+    });
   }
   if (def.minCityPop > 0) {
-    out.push({ text: `Only a city of ${def.minCityPop} people or more may build one` });
+    out.push({
+      text: `Only a city of ${def.minCityPop} or more citizens can build one.`,
+    });
   }
   if (def.upgradesTo !== undefined) {
-    out.push({ text: `Becomes a ${unitDef(def.upgradesTo).name} when its technology lands` });
+    out.push({
+      text: `Upgrades to a ${unitDef(def.upgradesTo).name} once you research the technology that unlocks one.`,
+    });
   }
   if (def.purchase !== undefined) {
+    // `exclusive` is the clause `buildError` actually enforces ("not built —
+    // bought"), so the sentence that says a queue will refuse one is written
+    // only where the sim refuses one. A row that merely names a second bank
+    // still gets the first half, which is all that is true of it.
     out.push({
-      text: `Bought with ${def.purchase.currency} alone — never with the treasury`,
+      text:
+        def.purchase.exclusive === true
+          ? `Bought in a city with ${def.purchase.currency}. It cannot be put in a build queue and cannot be bought with gold.`
+          : `Can be bought in a city with ${def.purchase.currency}.`,
     });
   }
   return out;
@@ -336,36 +448,38 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
 function unitEntry(state: GameState | null, type: UnitTypeId): CompendiumEntry {
   const def = unitDef(type);
   const gate = gatingTech('unit', type);
-  // A great person is neither built nor bought — it is *called* — so there is no
-  // roster line to print for one, and printing a hammer price would be the card
-  // promising a queue row that `buildError` refuses.
-  const priced =
-    def.greatWork === true ? '' : `${figure(rosterCost(state, type))}${YIELD_GLYPH.production}`;
+  // Two rows have no production price to print, and for the same reason in both
+  // cases: `buildError` refuses the queue. A great person is recruited with
+  // renown, and a unit whose roster row names its own bank exclusively (the
+  // augur's faith) is bought or not at all — a hammer figure beside either would
+  // be the card promising a queue row the reducer will not take.
+  const unbuildable = def.greatWork === true || def.purchase?.exclusive === true;
+  const priced = unbuildable ? '' : `${figure(rosterCost(state, type))}${YIELD_GLYPH.production}`;
   const rows: CompendiumRow[] = [
-    ...row('Strength', def.combatStrength > 0 ? figure(def.combatStrength) : ''),
+    ...row('Combat strength', def.combatStrength > 0 ? figure(def.combatStrength) : ''),
     ...row(
-      'Ranged',
+      'Ranged strength',
       def.rangedStrength === undefined
         ? ''
-        : `${figure(def.rangedStrength)} at ${figure(def.range ?? 0)}`,
+        : `${figure(def.rangedStrength)} at a range of ${figure(def.range ?? 0)}`,
     ),
-    ...row('Movement', figure(def.movement)),
-    ...row('Sight', figure(def.sight)),
+    ...row('Movement points', figure(def.movement)),
+    ...row('Sight in hexes', figure(def.sight)),
     ...row('Health', figure(def.maxHp)),
-    ...row('Roster cost', priced),
+    ...row('Production cost', priced),
     ...row(
-      'Bought for',
+      'Purchase cost',
       def.purchase === undefined ? '' : `${figure(def.purchase.cost)} ${def.purchase.currency}`,
     ),
     ...row('Unlocked by', techName(gate)),
   ];
   const clauses = unitMarkers(def);
-  if (def.greatWork !== true) {
+  if (!unbuildable) {
     clauses.push({
       text:
-        'The roster price is what a city starts from: an escalating type climbs with every ' +
-        'expansion already bought, the age band multiplies it, and an empire’s law moves it ' +
-        'again — the city panel prints that whole fold.',
+        'This is the price on the roster, and a city may pay more than it. Each settler costs ' +
+        'more than the last one you built, units of a later age cost more, and some cards ' +
+        'change the price. The city screen shows the figure your city will actually pay.',
       note: true,
     });
   }
@@ -373,7 +487,7 @@ function unitEntry(state: GameState | null, type: UnitTypeId): CompendiumEntry {
     id: compendiumId('unit', type),
     section: 'unit',
     name: def.name,
-    eyebrow: def.category,
+    eyebrow: `${def.category} unit`,
     mark: { kind: 'badge', badge: badgeClassOf(def) },
     rows,
     clauses,
@@ -396,26 +510,60 @@ function buildingYieldFigures(def: BuildingDef): string {
 }
 
 /**
- * A site requirement in words.
+ * A site requirement in words a reader has met before.
  *
- * The scope's own test names itself; a composite names each of its parts, which
- * is the only reading that stays honest when a row asks for two things at once.
+ * One branch per `CityScope`, because the scope's own test *name* is not a
+ * sentence: `onTerrain` said "on terrain" and dropped the terrain, which is the
+ * word that mattered. A composite names each of its parts, which is the only
+ * reading that stays honest when a row asks for two things at once.
  * `siteWords` in `tech.ts` is the sim's version of this and is not exported —
  * see the report; what it says is the *refusal* ("The Colossus wants a
  * harbour"), and a reference card wants the requirement rather than the excuse.
  */
-function siteRequirement(def: BuildingDef): string {
-  const site = def.requiresSite;
-  if (site === undefined) return '';
+function scopeWords(site: CityScope): string {
   // A callback rather than a `$1` replacement, for the reason the whole module
   // exists: `test/ui/compendium.test.ts` refuses a digit in any string this file
-  // prints from, and a back-reference is a digit in a string.
+  // prints from, and a back-reference is a digit in a string. It is the fallback
+  // for a scope this switch has not been taught, so a shape added to `CityScope`
+  // degrades to its own name rather than to silence.
   const named = (test: string): string =>
     test.replace(/[A-Z]/g, (letter) => ` ${letter}`).toLowerCase();
-  // `all` is the only composite the scope vocabulary has, deliberately — see
-  // `CityScope`. So one branch covers every shape a row can carry.
-  if (site.test === 'all') return words(site.of.map((part) => named(part.test)));
-  return named(site.test);
+  switch (site.test) {
+    case 'coastal':
+      return 'a coastal city';
+    case 'freshwater':
+      return 'a city beside fresh water';
+    case 'notFreshwater':
+      return 'a city not beside fresh water';
+    case 'mountainAdjacent':
+      return 'a city next to a mountain';
+    case 'frontier':
+      return 'a city with another empire’s land nearby';
+    case 'captured':
+      return 'a city you captured';
+    case 'capital':
+      return 'your capital';
+    case 'populationAtLeast':
+      return `a city of ${figure(site.value)} or more citizens`;
+    case 'holding':
+      return `a city that controls ${words(site.resources.map((id) => resourceDef(id).name))}`;
+    case 'holdingCategory':
+      return `a city that controls a ${site.category} resource`;
+    case 'hasBuilding':
+      return `a city with a ${buildingDef(site.building).name}`;
+    case 'onTerrain':
+      return `a city built on ${site.terrain}`;
+    // `all` is the only composite the scope vocabulary has, deliberately — see
+    // `CityScope`. So one branch covers every conjunction a row can carry.
+    case 'all':
+      return words(site.of.map(scopeWords));
+    default:
+      return named((site as { test: string }).test);
+  }
+}
+
+function siteRequirement(def: BuildingDef): string {
+  return def.requiresSite === undefined ? '' : scopeWords(def.requiresSite);
 }
 
 function buildingEntry(id: BuildingId): CompendiumEntry {
@@ -423,32 +571,32 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   const wonder = isWonder(id);
   const gate = gatingTech('building', id);
   const rows: CompendiumRow[] = [
-    ...row('Cost', `${figure(def.cost)}${YIELD_GLYPH.production}`),
-    ...row('Pays', buildingYieldFigures(def)),
+    ...row('Production cost', `${figure(def.cost)}${YIELD_GLYPH.production}`),
+    ...row('Yields each turn', buildingYieldFigures(def)),
     ...row(
       'Science per citizen',
       def.sciencePerPop === 0 ? '' : `${figure(def.sciencePerPop)}${YIELD_GLYPH.science}`,
     ),
-    ...row('Trade routes', def.routeSlots === undefined ? '' : signedFigure(def.routeSlots)),
+    ...row('Trade route slots', def.routeSlots === undefined ? '' : signedFigure(def.routeSlots)),
     ...row(
-      'Toward',
+      'Production bonus',
       def.productionBonus === undefined
         ? ''
-        : `${percentFigure(def.productionBonus.percent)} ${def.productionBonus.category}`,
+        : `${percentFigure(def.productionBonus.percent)} toward ${def.productionBonus.category}s`,
     ),
     ...row(
       'Renown',
       def.renown === undefined
         ? ''
         : words([
-            `${signedFigure(def.renown.perTurn)} a turn`,
+            `${signedFigure(def.renown.perTurn)} per turn`,
             ...(def.renown.onComplete === undefined
               ? []
-              : [`${signedFigure(def.renown.onComplete)} on completion`]),
+              : [`${signedFigure(def.renown.onComplete)} when it is finished`]),
           ]),
     ),
-    ...row('Feeds', def.renown?.family ?? ''),
-    ...row('Needs', siteRequirement(def)),
+    ...row('Renown counts toward', def.renown?.family ?? ''),
+    ...row('Can only be built in', siteRequirement(def)),
     ...row('Unlocked by', techName(gate)),
   ];
   const clauses: CompendiumClause[] = describeCard(id).map((entry) => ({
@@ -463,14 +611,14 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
     clauses.push({
       text:
         stat.stat === 'defense'
-          ? `${signedFigure(stat.amount)} to whoever defends the walls`
-          : `${signedFigure(stat.amount)} to how far the town sees`,
+          ? `${signedFigure(stat.amount)} to the city’s defence strength`
+          : `${signedFigure(stat.amount)} to how far the city sees`,
     });
   }
   if (def.note !== undefined) clauses.push({ text: def.note, note: true });
   if (wonder) {
     clauses.push({
-      text: 'One of these stands in the whole world, ever. It is never for sale.',
+      text: 'Only one player in the game can build this, and it cannot be bought with gold.',
       note: true,
     });
   }
@@ -478,7 +626,7 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
     id: compendiumId(wonder ? 'wonder' : 'building', id),
     section: wonder ? 'wonder' : 'building',
     name: def.name,
-    eyebrow: def.category,
+    eyebrow: `${def.category} ${wonder ? 'wonder' : 'building'}`,
     mark: { kind: 'glyph', glyph: wonder ? '✶' : '▣' },
     rows,
     clauses,
@@ -491,48 +639,57 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
 function improvementEntry(id: ImprovementId): CompendiumEntry {
   const def: ImprovementDef = improvementDef(id);
   const rows: CompendiumRow[] = [
-    ...row('Pays', tileYieldFigures(def.yields)),
-    ...row('Charges', figure(def.chargeCost)),
+    ...row('Adds to the hex', tileYieldFigures(def.yields)),
+    ...row('Work charges used', figure(def.chargeCost)),
     ...row('Unlocked by', techName(def.requiresTech)),
-    ...row('Terrain', words((def.validTerrain ?? []).map((terrain) => terrain))),
+    ...row('Terrain', eitherWords((def.validTerrain ?? []).map((terrain) => terrain))),
     ...row(
-      'Terrain, watered',
-      words((def.freshwaterTerrain ?? []).map((terrain) => terrain)),
+      'Terrain, beside fresh water',
+      eitherWords((def.freshwaterTerrain ?? []).map((terrain) => terrain)),
     ),
-    ...row('Features', words((def.validFeatures ?? []).map((feature) => feature))),
+    ...row('Features', eitherWords((def.validFeatures ?? []).map((feature) => feature))),
     ...row(
-      'Ground',
+      'Flat or hills',
       def.requiresHills === undefined ? '' : def.requiresHills ? 'hills' : 'flat',
     ),
     ...row(
-      'Opens',
+      'Gives access to',
       words((def.improvesResource ?? []).map((resource) => resourceDef(resource).name)),
     ),
-    ...row('Defense', def.defense === undefined ? '' : signedFigure(def.defense)),
-    ...row('Planted by', def.greatPerson ?? ''),
+    ...row(
+      'Defence for units on it',
+      def.defense === undefined ? '' : signedFigure(def.defense),
+    ),
+    ...row('Built by', def.greatPerson ?? ''),
   ];
   const clauses: CompendiumClause[] = [];
   if (def.hillsIf !== undefined && def.hillsIf.length > 0) {
     clauses.push({
-      text: `High ground is forgiven where the hex ${words(
+      text: `Hills are allowed where the hex ${eitherWords(
         def.hillsIf.map((why) =>
-          why === 'freshwater' ? 'can drink' : 'carries a resource this improvement opens',
+          why === 'freshwater'
+            ? 'is beside fresh water'
+            : 'carries a resource this improvement gives access to',
         ),
-      )}`,
+      )}.`,
     });
   }
   if (def.requiresResource !== undefined && def.requiresResource.length > 0) {
     clauses.push({
-      text: `Only on ${words(def.requiresResource.map((resource) => resourceDef(resource).name))}`,
+      text: `Can only be built on ${eitherWords(
+        def.requiresResource.map((resource) => resourceDef(resource).name),
+      )}.`,
     });
   }
-  if (def.clearsClutter) clauses.push({ text: 'Ploughs the hex’s own scatter under' });
+  if (def.clearsClutter) {
+    clauses.push({ text: 'Clears the loose plants and stones drawn on the hex.' });
+  }
   if (def.claimsNeighbours === true) {
-    clauses.push({ text: 'Claims the hex it stands on and the ring around it' });
+    clauses.push({ text: 'Claims the hex it stands on and every hex next to it for your empire.' });
   }
   if (def.greatPerson !== undefined) {
     clauses.push({
-      text: 'A worker may not lay a great person’s work, and a great person lays nothing else.',
+      text: 'Only a great person can build this, and a great person can build nothing else.',
       note: true,
     });
   }
@@ -540,7 +697,8 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
     id: compendiumId('improvement', id),
     section: 'improvement',
     name: def.name,
-    eyebrow: def.greatPerson === undefined ? 'improvement' : 'a great work',
+    eyebrow:
+      def.greatPerson === undefined ? 'improvement' : 'improvement built by a great person',
     mark: { kind: 'glyph', glyph: def.emoji },
     rows,
     clauses,
@@ -554,21 +712,24 @@ function resourceEntry(id: ResourceId): CompendiumEntry {
   const def: ResourceDef = resourceDef(id);
   const opener = improvementForResource(id);
   const rows: CompendiumRow[] = [
-    ...row('Pays', tileYieldFigures(def.yields)),
-    ...row('Terrain', words(def.validTerrain.map((terrain) => terrain))),
-    ...row('Features', words((def.validFeatures ?? []).map((feature) => feature))),
-    ...row('Ground', def.hills === undefined ? '' : def.hills ? 'hills' : 'flat'),
+    ...row('Adds to the hex', tileYieldFigures(def.yields)),
+    ...row('Terrain', eitherWords(def.validTerrain.map((terrain) => terrain))),
+    ...row('Features', eitherWords((def.validFeatures ?? []).map((feature) => feature))),
+    ...row('Flat or hills', def.hills === undefined ? '' : def.hills ? 'hills' : 'flat'),
     ...row('Revealed by', techName(def.requiresTech)),
-    ...row('Opened by', opener === null ? '' : improvementDef(opener).name),
+    ...row('Needs improvement', opener === null ? '' : improvementDef(opener).name),
   ];
   const clauses: CompendiumClause[] = describeResourceSignature(id).map((line) => ({
-    text: line.fromAge === undefined ? line.text : `${line.text} — ${ageWord(line.fromAge)}`,
+    text:
+      line.fromAge === undefined
+        ? line.text
+        : `${line.text} — from ${ageWord(line.fromAge)} onward`,
   }));
   if (def.requiresTech !== undefined) {
     clauses.push({
       text:
-        'An empire that cannot name it is not paid for it: the mark, the access and the ' +
-        'hex’s own yield all arrive together, on the reveal.',
+        'Until you have researched the technology above, this resource is invisible to you: ' +
+        'it is not drawn on the map, the hex is not paid for it, and it cannot be used.',
       note: true,
     });
   }
@@ -576,7 +737,7 @@ function resourceEntry(id: ResourceId): CompendiumEntry {
     id: compendiumId('resource', id),
     section: 'resource',
     name: def.name,
-    eyebrow: def.kind,
+    eyebrow: `${def.kind} resource`,
     mark: { kind: 'resource', resource: id },
     rows,
     clauses,
@@ -588,16 +749,42 @@ function resourceEntry(id: ResourceId): CompendiumEntry {
 
 /** One gift of a technology, in the words the star chart's own card uses. */
 function giftWords(gift: TechGift): string {
-  if (gift.kind === 'unit') return `${gift.name} — ${figure(unitDef(gift.id).cost)}${YIELD_GLYPH.production}`;
+  if (gift.kind === 'unit') {
+    // Priced out of the bank that actually buys one. A row that names its own
+    // bank exclusively is never built (`buildError`), and its `cost` field is a
+    // zero nobody pays — printing it as a hammer figure told a reader the augur
+    // was free.
+    const def = unitDef(gift.id);
+    const price =
+      def.purchase !== undefined && def.purchase.exclusive === true
+        ? `${figure(def.purchase.cost)} ${def.purchase.currency}`
+        : `${figure(def.cost)}${YIELD_GLYPH.production}`;
+    return `New unit: ${gift.name} — ${price}`;
+  }
   if (gift.kind === 'building') {
-    return `${gift.name} — ${figure(buildingDef(gift.id).cost)}${YIELD_GLYPH.production}`;
+    // The tree hands wonders over on the same list as ordinary buildings, and a
+    // reader deciding what to research wants to know which is which: one is a
+    // thing every city may raise and the other is a race against the world.
+    const kind = isWonder(gift.id) ? 'New wonder' : 'New building';
+    return `${kind}: ${gift.name} — ${figure(buildingDef(gift.id).cost)}${YIELD_GLYPH.production}`;
   }
   if (gift.kind === 'improvement') {
-    return `${gift.name} — ${figure(improvementDef(gift.id).chargeCost)} charges`;
+    const charges = improvementDef(gift.id).chargeCost;
+    return `New improvement: ${gift.name} — ${figure(charges)} work ${plural(charges, 'charge')}`;
   }
-  if (gift.kind === 'reveal') return `${gift.name} — named at last`;
-  if (gift.kind === 'renewal' || gift.kind === 'buildingRenewal') {
-    return `${gift.name} — ${tileYieldFigures({
+  if (gift.kind === 'reveal') return `Reveals the resource ${gift.name} on the map`;
+  if (gift.kind === 'renewal') {
+    return `${gift.name} improvements you already have now add ${tileYieldFigures({
+      food: gift.add.food ?? 0,
+      production: gift.add.production ?? 0,
+      gold: gift.add.gold ?? 0,
+      science: gift.add.science,
+      culture: gift.add.culture,
+      faith: gift.add.faith,
+    })}`;
+  }
+  if (gift.kind === 'buildingRenewal') {
+    return `${gift.name} buildings you already have now pay ${tileYieldFigures({
       food: gift.add.food ?? 0,
       production: gift.add.production ?? 0,
       gold: gift.add.gold ?? 0,
@@ -607,31 +794,34 @@ function giftWords(gift: TechGift): string {
     })}`;
   }
   if (gift.kind === 'buildingTileYield') {
-    return `${gift.name} — ${tileYieldFigures({
+    return `${gift.name} buildings now add ${tileYieldFigures({
       food: gift.add.food ?? 0,
       production: gift.add.production ?? 0,
       gold: gift.add.gold ?? 0,
       science: gift.add.science,
       culture: gift.add.culture,
       faith: gift.add.faith,
-    })} on the ground`;
+    })} to certain hexes the city works`;
   }
-  return gift.name;
+  if (gift.kind === 'project') return `New city project: ${gift.name}`;
+  return `New ability: ${gift.name}`;
 }
 
 function techEntry(id: TechId): CompendiumEntry {
   const def = techDef(id);
   const rows: CompendiumRow[] = [
-    ...row('Cost', `${figure(def.cost)}${YIELD_GLYPH.science}`),
-    ...row('Wants', words(def.prereqs.map((prereq) => techDef(prereq).name))),
+    ...row('Research cost', `${figure(def.cost)}${YIELD_GLYPH.science}`),
+    ...row('Requires first', words(def.prereqs.map((prereq) => techDef(prereq).name))),
   ];
   const clauses: CompendiumClause[] = techGifts(id).map((gift) => ({ text: giftWords(gift) }));
-  if (clauses.length === 0) clauses.push({ text: 'Hands over nothing on its own' });
+  if (clauses.length === 0) {
+    clauses.push({ text: 'Unlocks nothing by itself. It is a step toward later technologies.' });
+  }
   return {
     id: compendiumId('tech', id),
     section: 'tech',
     name: def.name,
-    eyebrow: ageWord(def.age),
+    eyebrow: `${ageWord(def.age)} technology`,
     mark: { kind: 'glyph', glyph: def.glyph },
     rows,
     clauses,
@@ -659,19 +849,27 @@ function cardClauses(id: Parameters<typeof describeCard>[0], note?: string): Com
   return out;
 }
 
+/**
+ * The named line a card belongs to, or nothing.
+ *
+ * `'none'` is a card that joins no line (see `CARD_LINE_NAME`), and a row
+ * reading "no line" is a row that has told the reader nothing — so the line is
+ * simply absent from a neutral card, the way every other empty figure here is.
+ */
+function lineRow(def: Parameters<typeof lineOf>[0]): CompendiumRow[] {
+  const line = lineOf(def);
+  return row('Card line', line === 'none' ? '' : CARD_LINE_NAME[line]);
+}
+
 function orderEntry(id: OrderId): CompendiumEntry {
   const def = orderDef(id);
   return {
     id: compendiumId('order', id),
     section: 'order',
     name: def.name,
-    eyebrow: 'an order',
+    eyebrow: `${def.slot} order`,
     mark: { kind: 'glyph', glyph: '❧' },
-    rows: [
-      ...row('Slot', def.slot),
-      ...row('Pool', def.pool),
-      ...row('Thread', CARD_LINE_NAME[lineOf(def)]),
-    ],
+    rows: [...row('Slot it fits', def.slot), ...row('Draft pool', def.pool), ...lineRow(def)],
     clauses: cardClauses(id, def.note),
     flavor: def.flavor.length === 0 ? null : def.flavor,
   };
@@ -683,9 +881,9 @@ function doctrineEntry(id: DoctrineId): CompendiumEntry {
     id: compendiumId('doctrine', id),
     section: 'doctrine',
     name: def.name,
-    eyebrow: 'a doctrine',
+    eyebrow: 'doctrine',
     mark: { kind: 'glyph', glyph: '✦' },
-    rows: [...row('Tier', figure(def.tier)), ...row('Thread', CARD_LINE_NAME[lineOf(def)])],
+    rows: [...row('Government tier', figure(def.tier)), ...lineRow(def)],
     clauses: cardClauses(id, def.note),
     flavor: def.flavor.length === 0 ? null : def.flavor,
   };
@@ -697,7 +895,7 @@ function beliefEntry(id: BeliefId): CompendiumEntry {
     id: compendiumId('belief', id),
     section: 'belief',
     name: def.name,
-    eyebrow: 'a god',
+    eyebrow: 'belief',
     mark: { kind: 'glyph', glyph: AXIS_MARK[def.axis].glyph },
     rows: [],
     clauses: cardClauses(id, def.note),
@@ -715,12 +913,12 @@ function riteEntry(id: RiteId): CompendiumEntry {
     id: compendiumId('rite', id),
     section: 'rite',
     name: def.name,
-    eyebrow: 'a rite',
+    eyebrow: 'rite',
     mark: { kind: 'glyph', glyph: '☩' },
     rows: [
-      ...row('Aimed at', def.target),
-      ...row('Lasts', def.duration === undefined ? '' : `${figure(def.duration)} turns`),
-      ...row('Taught by', techName(def.tech)),
+      ...row('Performed on', def.target),
+      ...row('Duration', def.duration === undefined ? '' : `${figure(def.duration)} turns`),
+      ...row('Unlocked by', techName(def.tech)),
     ],
     clauses,
     flavor: def.flavor.length === 0 ? null : def.flavor,
@@ -740,18 +938,18 @@ function riteEntry(id: RiteId): CompendiumEntry {
 function familyAct(family: Family): string {
   const great = RULES.greatPeople;
   if (family === 'scholar') {
-    return `Its act pays ${percentFigure(great.scholarShare * 100)} of the technology being researched.`;
+    return `Use it once: it finishes ${figure(great.scholarShare * 100)}% of the technology you are researching.`;
   }
   if (family === 'engineer') {
-    return `Its act pays ${figure(great.engineerHammers)}${YIELD_GLYPH.production} into a city, multiplied by the empire’s era.`;
+    return `Use it once: it adds ${figure(great.engineerHammers)}${YIELD_GLYPH.production} to a city’s production, multiplied by the age your empire has reached.`;
   }
   if (family === 'merchant') {
-    return `Its act pays ${figure(great.merchantGold)}${YIELD_GLYPH.gold} into the treasury, multiplied by the empire’s era.`;
+    return `Use it once: it adds ${figure(great.merchantGold)}${YIELD_GLYPH.gold} to your treasury, multiplied by the age your empire has reached.`;
   }
   if (family === 'artist') {
-    return `Its act pays ${figure(great.artistCulture)}${YIELD_GLYPH.culture} toward the next draft, and hangs ${signedFigure(great.artistHappiness)} happiness on the town for ${figure(great.artistTurns)} turns.`;
+    return `Use it once: it adds ${figure(great.artistCulture)}${YIELD_GLYPH.culture} toward your next draft, and gives the city ${signedFigure(great.artistHappiness)} happiness for ${figure(great.artistTurns)} turns.`;
   }
-  return `Its act hangs ${signedFigure(great.generalCombat)} strength on every piece within ${figure(great.generalRadius)} hexes for ${figure(great.generalTurns)} turns.`;
+  return `Use it once: every unit within ${figure(great.generalRadius)} hexes gains ${signedFigure(great.generalCombat)} combat strength for ${figure(great.generalTurns)} turns.`;
 }
 
 /** The work a family plants, named off the improvement table's own inverse. */
@@ -766,16 +964,20 @@ function greatPersonEntry(id: GreatPersonId): CompendiumEntry {
   const def = greatPersonDef(id);
   const clauses: CompendiumClause[] = [{ text: familyAct(def.family) }];
   const work = familyWork(def.family);
-  if (work.length > 0) clauses.push({ text: `Or it plants a ${work} and is spent doing it.` });
+  if (work.length > 0) {
+    clauses.push({
+      text: `Or send it to a hex to build ${withArticle(work)}, which also uses it up.`,
+    });
+  }
   clauses.push(...cardClauses(id));
   clauses.push({ text: def.kernel, note: true });
   return {
     id: compendiumId('greatPerson', id),
     section: 'greatPerson',
     name: def.name,
-    eyebrow: `${def.family} · ${ageWord(def.age)}`,
+    eyebrow: `${def.family}, ${ageWord(def.age)}`,
     mark: { kind: 'badge', badge: 'greatPerson' },
-    rows: [...row('Tier', def.tier)],
+    rows: [...row('Strength rating', def.tier)],
     clauses,
     flavor: def.epigram.length === 0 ? null : def.epigram,
   };
@@ -783,12 +985,12 @@ function greatPersonEntry(id: GreatPersonId): CompendiumEntry {
 
 // --- triumphs ---------------------------------------------------------------
 
-/** How often a triumph may be had, in the words the renown card uses. */
+/** How often a triumph may be earned. */
 const SCOPE_WORD: Record<string, string> = {
-  once: 'once, ever',
-  perAge: 'once an era',
-  contested: 'once an era, first empire only',
-  perEvent: 'every time',
+  once: 'earned once per game',
+  perAge: 'earned once per age',
+  contested: 'earned once per age, by the first player only',
+  perEvent: 'earned every time',
 };
 
 function triumphEntry(id: TriumphId): CompendiumEntry {
@@ -801,7 +1003,10 @@ function triumphEntry(id: TriumphId): CompendiumEntry {
     name: def.name,
     eyebrow: SCOPE_WORD[def.scope] ?? def.scope,
     mark: { kind: 'glyph', glyph: '✵' },
-    rows: [...row('Pays', signedFigure(def.pays)), ...row('Feeds', def.family ?? '')],
+    rows: [
+      ...row('Renown awarded', signedFigure(def.pays)),
+      ...row('Renown counts toward', def.family ?? ''),
+    ],
     clauses,
     flavor: def.epigram.length === 0 ? null : def.epigram,
   };
@@ -814,10 +1019,10 @@ function ladderRows(steps: readonly { whenAtOrAbove?: number; whenAtOrBelow?: nu
   return steps.map((step) => ({
     label:
       step.whenAtOrAbove !== undefined
-        ? `at or above ${signedFigure(step.whenAtOrAbove)}`
+        ? `At ${signedFigure(step.whenAtOrAbove)} or more`
         : step.whenAtOrBelow !== undefined
-          ? `at or below ${signedFigure(step.whenAtOrBelow)}`
-          : `below ${signedFigure(step.whenBelow ?? 0)}`,
+          ? `At ${signedFigure(step.whenAtOrBelow)} or less`
+          : `Below ${signedFigure(step.whenBelow ?? 0)}`,
     figures: percentFigure(step.percent),
   }));
 }
@@ -831,12 +1036,12 @@ function meterEntries(): CompendiumEntry[] {
       id: compendiumId('meter', 'happiness'),
       section: 'meter',
       name: 'Happiness',
-      eyebrow: 'supply against demand',
+      eyebrow: 'empire-wide meter',
       mark: { kind: 'glyph', glyph: '☺' },
       rows: [
-        { label: 'The palace supplies', figures: signedFigure(happiness.palace) },
+        { label: 'Your palace supplies', figures: signedFigure(happiness.palace) },
         {
-          label: 'Each unique improved luxury',
+          label: 'Each different improved luxury supplies',
           figures: signedFigure(happiness.perUniqueLuxury),
         },
         { label: 'Each citizen demands', figures: signedFigure(-happiness.demandPerPop) },
@@ -844,70 +1049,85 @@ function meterEntries(): CompendiumEntry[] {
       ],
       clauses: [
         {
-          text: `A city of n people demands ${figure(happiness.demandPerPop)} apiece, and crowds beyond ${figure(happiness.crowdingFrom)}: ${figure(happiness.crowdingWeight)} × (n − ${figure(happiness.crowdingFrom)}) raised to ${figure(happiness.crowdingExponent)}, on top.`,
+          text: 'Happiness is one figure for your whole empire: everything that supplies it, minus everything that demands it. While it is positive your empire gets a percentage bonus to its yields, in the steps listed above; while it is negative it gets a penalty.',
         },
         {
-          text: `The tiers above are capped at ${percentFigure(RULES.meters.tierClamp)} however deep the ladder grows.`,
+          text: `Every citizen in every city demands ${figure(happiness.demandPerPop)}. A city larger than ${figure(happiness.crowdingFrom)} citizens demands more on top of that, for crowding: ${figure(happiness.crowdingWeight)} × (size − ${figure(happiness.crowdingFrom)}), raised to the power of ${figure(happiness.crowdingExponent)}.`,
         },
         {
-          text: 'A deficit also stifles growth, on a steeper ladder of its own — it multiplies food *surplus* only, so the worst rung stalls a town and still cannot starve a citizen.',
+          text: `However far the steps above go, the bonus or penalty never passes ${percentFigure(RULES.meters.tierClamp)}.`,
+        },
+        {
+          text: 'Negative happiness also slows growth, on a steeper set of steps of its own. It reduces a city’s spare food only, so even the worst step stops a city growing rather than starving it.',
         },
         ...ladderRows(RULES.meters.growthStifle).map((entry) => ({
-          text: `Growth surplus ${entry.label}: ${entry.figures}`,
+          text: `Happiness ${entry.label.toLowerCase()}: spare food toward growth ${entry.figures}.`,
         })),
       ],
-      flavor: 'How the empire feels about what it has taken.',
+      flavor: null,
     },
     {
       id: compendiumId('meter', 'authority'),
       section: 'meter',
       name: 'Authority',
-      eyebrow: 'capacity against what is held',
+      eyebrow: 'empire-wide meter',
       mark: { kind: 'glyph', glyph: '⚖' },
       rows: [
-        { label: 'The palace supplies', figures: signedFigure(authority.palaceCapacity) },
-        { label: 'Each era advanced supplies', figures: signedFigure(authority.perAge) },
-        { label: 'The capital costs', figures: signedFigure(-authority.capital) },
+        { label: 'Your palace supplies', figures: signedFigure(authority.palaceCapacity) },
+        { label: 'Each age you have reached supplies', figures: signedFigure(authority.perAge) },
+        { label: 'Your capital costs', figures: signedFigure(-authority.capital) },
         { label: 'A city you founded costs', figures: signedFigure(-authority.foundedCity) },
-        { label: 'A coastal one costs', figures: signedFigure(-authority.coastalCity) },
-        { label: 'One taken by force costs', figures: signedFigure(-authority.capturedCity) },
+        { label: 'A coastal city you founded costs', figures: signedFigure(-authority.coastalCity) },
+        { label: 'A city you captured costs', figures: signedFigure(-authority.capturedCity) },
         ...ladderRows(RULES.meters.tiers),
       ],
       clauses: [
         {
-          text: 'The coastal discount is a discount and never an exemption, and a seized harbour is a thing you seized — capture outranks it.',
+          text: 'Authority is one figure for your whole empire: your capacity to govern, minus what your cities cost to govern. While it is positive your empire gets a percentage bonus, in the steps listed above; while it is negative it gets a penalty. Some cards call it your writ.',
+        },
+        {
+          text: 'A coastal city costs less than an inland one, but it still costs something. A city you captured always counts as captured, coastal or not.',
         },
         ...ladderRows(RULES.meters.borderFreeze).map((entry) => ({
-          text: `Border culture ${entry.label}: ${entry.figures}. An empire that has over-reached stops taking ground, and buying it is barred with it.`,
+          text: `Authority ${entry.label.toLowerCase()}: culture toward new border hexes ${entry.figures}. An empire past its authority stops claiming ground, and cannot buy hexes with gold either.`,
         })),
       ],
-      flavor: 'What the writ will bear.',
+      flavor: null,
     },
     {
       id: compendiumId('meter', 'growth'),
       section: 'meter',
       name: 'Growth',
-      eyebrow: 'the basket a citizen fills',
+      eyebrow: 'how cities gain citizens',
       mark: { kind: 'glyph', glyph: YIELD_GLYPH.food },
       rows: [
-        { label: 'Each citizen eats', figures: `${figure(cities.foodPerCitizen)}${YIELD_GLYPH.food}` },
-        { label: 'The first citizen’s basket', figures: figure(cities.growthBase) },
-        { label: 'Linear term', figures: figure(cities.growthLinear) },
-        { label: 'Exponent', figures: figure(cities.growthExponent) },
-        { label: 'Starves at', figures: figure(cities.starvationShrinksAt) },
+        {
+          label: 'Each citizen eats',
+          figures: `${figure(cities.foodPerCitizen)}${YIELD_GLYPH.food}`,
+        },
+        { label: 'Food stored for the first growth', figures: figure(cities.growthBase) },
+        { label: 'Added per citizen already there', figures: figure(cities.growthLinear) },
+        { label: 'Exponent of the growth curve', figures: figure(cities.growthExponent) },
+        {
+          label: 'A city shrinks when its store reaches',
+          figures: signedFigure(cities.starvationShrinksAt),
+        },
       ],
       clauses: [
         {
-          text: `The basket a town's first citizen fills holds ${figure(cities.growthBase)}. Each citizen already standing adds ${figure(cities.growthLinear)} to the next one's, and a rising term at the exponent above is added on top — so a small town grows quickly and a large one slowly, which is what keeps happiness a vertical limit rather than a tax.`,
+          text: `A city eats ${figure(cities.foodPerCitizen)}${YIELD_GLYPH.food} per citizen every turn. Whatever food is left over is stored, and when the store is full the city gains a citizen and the store is emptied.`,
         },
         {
-          text: `A basket that falls to ${figure(cities.starvationShrinksAt)} costs the town a citizen. It is emptied either way, and population never falls below the last one.`,
+          text: `A city needs ${figure(cities.growthBase)} stored to gain its second citizen. Each citizen it already has adds ${figure(cities.growthLinear)} to the figure for the next one, and a rising amount at the exponent above is added on top — so a small city grows quickly and a large one slowly.`,
         },
         {
-          text: `A town works ${figure(cities.workRadius)} rings of ground, claims ${figure(cities.claimRadius)}, and must stand ${figure(cities.minCitySpacing)} hexes from the next.`,
+          text: `If a city eats more than it produces the store falls, and a store that reaches ${signedFigure(cities.starvationShrinksAt)} costs the city a citizen. The store is emptied either way, and a city never falls below its last citizen.`,
+        },
+        {
+          text: `A city can work hexes up to ${figure(cities.workRadius)} rings away, claims up to ${figure(cities.claimRadius)} rings, and must be founded at least ${figure(cities.minCitySpacing)} hexes from another city.`,
         },
       ],
-      flavor: 'Nothing grows without a surplus, and nothing keeps a surplus without room.',
+      flavor: null,
     },
   ];
 }
@@ -919,43 +1139,54 @@ function tradeEntries(): CompendiumEntry[] {
     {
       id: compendiumId('trade', 'routes'),
       section: 'trade',
-      name: 'Caravans',
-      eyebrow: 'one route to a partner',
+      name: 'Trade routes',
+      eyebrow: 'what a trader sets up',
       mark: { kind: 'badge', badge: 'trader' },
       rows: [
-        { label: 'A route runs for', figures: `${figure(trade.routeTurns)} turns` },
-        { label: 'A partner may be', figures: `${figure(trade.rangeTurns)} turns away` },
-        { label: 'Each trading post adds', figures: `${signedFigure(trade.postRangeTurns)} turns` },
+        { label: 'A route lasts', figures: `${figure(trade.routeTurns)} turns` },
         {
-          label: `People per ${YIELD_GLYPH.gold}`,
+          label: 'Furthest a destination may be',
+          figures: `${figure(trade.rangeTurns)} turns of travel`,
+        },
+        {
+          label: 'Each trading post adds to that',
+          figures: `${signedFigure(trade.postRangeTurns)} turns`,
+        },
+        {
+          label: `Citizens needed per ${YIELD_GLYPH.gold}`,
           figures: figure(trade.goldPerCombinedPop),
         },
       ],
       clauses: [
         {
-          text: 'The origin is paid and the destination is counted, so a small town sends to the capital and brings the capital’s goods home.',
+          // The direction is the user's reversal of 2026-08-27 (`trade.ts`,
+          // `explainRouteYield`): the **origin's** buildings set the figure and
+          // the **destination** banks it, which is why a well-built capital is
+          // worth sending routes *out* of. Pinned in `test/ui/compendium.test.ts`
+          // because it is a sentence that reads plausibly backwards.
+          text: 'A route pays the city it goes to, every turn. How much food and production it pays depends on the buildings in the city it came from, so a route out of a well-built capital is what feeds a young city.',
         },
         {
-          text: `A route pays a point of ${YIELD_GLYPH.food} for every food, culture or science building standing at its destination, a point of ${YIELD_GLYPH.production} for every production, military or gold one, and a point of ${YIELD_GLYPH.gold} for every ${figure(trade.goldPerCombinedPop)} people across the two towns.`,
+          text: `Each food, culture or science building in the origin city is worth a point of ${YIELD_GLYPH.food}. Each production, military or gold building there is worth a point of ${YIELD_GLYPH.production}. The gold is counted differently: a point of ${YIELD_GLYPH.gold} for every ${figure(trade.goldPerCombinedPop)} citizens across the two cities together.`,
         },
         {
-          text: 'Range is measured in turns of the caravan’s own march, so a road extends it and a mountain range shortens it. Both ends become trading posts, permanently.',
+          text: 'Distance is measured in turns of the trader’s own travel, so a road puts more cities in reach and a mountain range puts fewer. Both ends of a finished route become trading posts, permanently.',
         },
         {
-          text: 'One route per pair, in either direction, and a route lives on the piece carrying it — killing a laden caravan plunders it.',
+          text: 'Only one route may run between any pair of your cities, in either direction. The route belongs to the trader carrying it, so an enemy that kills a loaded trader takes its cargo and ends the route.',
         },
       ],
-      flavor: 'A road is a promise between two towns.',
+      flavor: null,
     },
     {
       id: compendiumId('trade', 'connections'),
       section: 'trade',
       name: 'City connections',
-      eyebrow: 'what a road home is worth',
+      eyebrow: 'gold from a road to the capital',
       mark: { kind: 'glyph', glyph: YIELD_GLYPH.gold },
       rows: [
         {
-          label: `People per ${YIELD_GLYPH.gold}`,
+          label: `Citizens per ${YIELD_GLYPH.gold} each turn`,
           figures: figure(trade.connectionPerPop),
         },
         {
@@ -965,13 +1196,13 @@ function tradeEntries(): CompendiumEntry[] {
       ],
       clauses: [
         {
-          text: `Every non-capital city joined to the capital by road pays its empire a point of ${YIELD_GLYPH.gold} for every ${figure(trade.connectionPerPop)} of its people, every turn.`,
+          text: `Any city other than your capital that is joined to the capital by road pays you a point of ${YIELD_GLYPH.gold} for every ${figure(trade.connectionPerPop)} of its citizens, every turn. This is separate from trade routes and needs no trader standing anywhere.`,
         },
         {
-          text: 'The fill crosses your own ground and nobody’s, never a rival’s, and a city centre is a junction — the road has only to reach the gates.',
+          text: 'The road may cross your own territory or land nobody owns, but never a rival’s. A city centre counts as a piece of road, so the road only has to reach the city.',
         },
         {
-          text: `Upkeep is charged on the roads your own caravans laid: a point of ${YIELD_GLYPH.gold} for every ${figure(trade.roadsPerMaintenance)} hexes of them.`,
+          text: `Roads are not free: you pay a point of ${YIELD_GLYPH.gold} of upkeep for every ${figure(trade.roadsPerMaintenance)} hexes of road your own traders laid.`,
         },
       ],
       flavor: null,
@@ -980,15 +1211,15 @@ function tradeEntries(): CompendiumEntry[] {
       id: compendiumId('trade', 'roads'),
       section: 'trade',
       name: 'Roads',
-      eyebrow: 'what a highway costs to walk',
+      eyebrow: 'moving on roads',
       mark: { kind: 'glyph', glyph: '⌇' },
       rows: [
         {
-          label: 'A road step costs',
-          figures: `${figure(thirds)} thirds of a point`,
+          label: 'Moving from road to road costs',
+          figures: `${figure(thirds)} ${plural(thirds, 'third')} of a movement point`,
         },
         {
-          label: 'Plundering a laden caravan pays',
+          label: 'Plundering a loaded trader pays',
           figures: tileYieldFigures({
             food: trade.pillageBounty.food,
             production: trade.pillageBounty.production,
@@ -998,10 +1229,10 @@ function tradeEntries(): CompendiumEntry[] {
       ],
       clauses: [
         {
-          text: 'A road step replaces the ground’s own price rather than discounting it — a wooded hill on a highway is a road, not a cheaper hill.',
+          text: 'A road replaces the cost of the ground rather than discounting it, so a forested hill with a road on it costs the same as any other road hex. Both hexes must have road for the cheap step.',
         },
         {
-          text: 'Caravans lay road under their feet as they walk, and the seat that laid a hex is the seat charged upkeep for it.',
+          text: 'Traders build road under their feet as they travel. Roads are permanent, and any unit of any player can use one; the player whose trader laid a hex of road is the one who pays upkeep for it.',
         },
       ],
       flavor: null,
@@ -1019,7 +1250,16 @@ function tradeEntries(): CompendiumEntry[] {
  */
 export function compendiumSections(state: GameState | null = null): CompendiumSection[] {
   const byId = new Map<CompendiumSectionId, CompendiumEntry[]>();
-  for (const [id] of SECTION_NAMES) byId.set(id, []);
+  // Every *generated* shelf opens on its lead page (`compendiumShelves.ts`), so
+  // the first card a reader meets on a shelf says what the shelf is about
+  // before the first card built out of a data row says what one costs. Seeded
+  // here rather than pushed by each builder because it is a fact about the
+  // shelf and not about any row on it; the two written shelves have no key and
+  // start empty, as they are already prose.
+  for (const [id] of SECTION_NAMES) {
+    const intro = SHELF_INTROS[id];
+    byId.set(id, intro === undefined ? [] : [intro]);
+  }
   const push = (entry: CompendiumEntry): void => {
     byId.get(entry.section)!.push(entry);
   };
@@ -1247,7 +1487,17 @@ function entryNode(entry: CompendiumEntry): HTMLElement {
     card.append(list);
   }
 
-  if (entry.flavor !== null) card.append(element('p', 'cmp-flavor', entry.flavor));
+  if (entry.flavor !== null) {
+    // Labelled, not merely italic (user ruling, 2026-08-27). A card's epigram is
+    // the *card's own* writing and stays exactly as its data row wrote it — but
+    // a reader who has just been handed four sentences of rules in this voice
+    // will otherwise read the fifth as a fifth rule. The word is the whole of
+    // the fix, and it is the one place a flavour line is marked as such.
+    const line = element('p', 'cmp-flavor');
+    line.append(element('span', 'cmp-flavor-label', 'Flavour'));
+    line.append(document.createTextNode(entry.flavor));
+    card.append(line);
+  }
   return card;
 }
 
@@ -1329,7 +1579,7 @@ export function renderCompendium(
     if (section === undefined) return;
     body.append(element('h3', 'cmp-body-head', section.name));
     if (section.entries.length === 0) {
-      body.append(element('p', 'hint', 'Nothing here answers to that.'));
+      body.append(element('p', 'hint', 'Nothing on this shelf matches that search.'));
       return;
     }
     for (const entry of section.entries) {
