@@ -17,10 +17,10 @@ Every Order, Doctrine and government in one place, tables only. Edit here; the t
 | ⚓ **The Tide** | trade routes, the sea, coastal empire |  |
 | 🎖 **The Banner** | the *pace* of war — levies, muster, decisive battle |  |
 | 🜍 **The Athanor** | the Magister's sciences — alchemy, automata, the Great Work |  |
-| spiritualism - faith + science |  |  |
-| expansionist - wide cities -> authority -> more settling
-| agrarian - stacking yields on farms
-| mountains - hills + mountain bonuses
+| ☽ **The Cloister** | spiritualism — faith + science |  |
+| 📜 **The Charter** | expansionist — wide cities → authority → more settling |  |
+| 🌾 **The Ploughshare** | agrarian — stacking yields on farms |  |
+| ⛰ **The Highlands** | mountains — hills and mountain bonuses |  |
 
 ## Governments
 
@@ -152,7 +152,7 @@ Every Order, Doctrine and government in one place, tables only. Edit here; the t
 | Rites of Passage | W | 🕯 |  | buying/completing a unit grants +5🕯 |
 | Tinkers' Guild | E | — |  | workers are built with +1 charge |
 | Public Granaries | E | — |  | cities keep 25% of their food basket on growth |
-gain a great person, great people improvements gain +2 of their associated type
+| The Laureate | W | 🏛 |  | gain a great person · great-people improvements gain +2 of their associated yield |
 
 ### Government II pool
 
