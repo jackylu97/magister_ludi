@@ -400,6 +400,9 @@ would change every seeded outcome. No further rename passes.
       claims is a hex a citizen may now be sent to.
   15. **The trade verbs** (`trade.ts`, Entry XXXV) — a route's yields join the origin's
       breakdown the turn it is sent or ends, so `startRoute`/`cancelRoute` refresh the origin.
+  16. **`pressLump`** (`religion.ts`) — a proclamation's or a Preaching's converts, on your
+      towns and foreign ones alike: a banner is a fact about what citizens are worth now that
+      follower beliefs are city-local.
   **A new mid-turn yield mutation calls `refreshCityDerived` and adds itself to this
   list.** `assignCitizens` therefore has exactly two callers in the sim — `collectYields`
   (the phase) and the helper — and `test/sim/cities.test.ts` asserts that by reading the
@@ -491,9 +494,15 @@ would change every seeded outcome. No further rename passes.
   drift on a spawn tile within a month. The **authority freeze does not bar a purchase** —
   it is about ground, and `test/sim/purchase.test.ts` reads the source to keep the clause
   from being added.
-- **Belief spreads as citizens, and `spreadReligion` is the only writer** (Entry XL).
-  `City.followers` and `City.pressureBank` are written by that phase alone (before
-  `collectYields`); a city's religion is *derived* — more than half its people — never stored;
+- **Belief spreads as citizens, and `followers`/`pressureBank` are written through one
+  converter with exactly two callers** (Entry XL, refined 2026-08-28). `bankPressure`
+  (`religion.ts`) is the division, the carry and the cap; `spreadReligion` calls it once per
+  religion per town per turn (before `collectYields`), and `pressLump` calls it once when a
+  prophet or an augur speaks — a proclamation is an **instant lump** (`rules.religion.bombLump`
+  banked into every town within `bombRange`, `templeShare` taken off on the way in, converted on
+  the spot), never a source, and nothing lingers on the board (there is no pulse and no broom,
+  by ruling). A third way to press faith calls `bankPressure`, or the bomb and the tide disagree
+  about what ten banked faith buys; the source test pins both call counts. a city's religion is *derived* — more than half its people — never stored;
   a religion's name is drawn at founding from the pantheon's axes. **Follower beliefs apply city-locally** — every city that follows gets all of
   them, paid to *whoever owns that city* (`followerBeliefEffects`, a source of `liveCityEffects`);
   the fold to the founder is gone (2026-08-28, the user's correction). **Founder-side pay follows

@@ -3793,3 +3793,17 @@ above the backing so the layering is stated rather than an id tie-break. Draw or
 restore, culling and the wild's buckets were each ruled out by a test that drives the real
 sequence. The lesson for the ledger: when a value is proven right and the picture is still
 wrong, the next question is whether the picture can *show* that value.
+
+**Refinement (user, 2026-08-28) to Entry XL — the faith bomb.** *"Let's have the proclamation be
+an immediate burst of pressure applied instantly; it should still follow the regular rules of
+religious conversion, just applied as a lump sum."* The decaying pulse is gone — `Religion.pulses`,
+its broom and the Proclamation line deleted, schema 30 — and a proclamation banks
+`rules.religion.bombLump` (60) into every town within ten hexes with the temple's share taken off
+on the way in (one `templeShare`, read by the bomb and the tide) and runs the phase's own
+converter on the spot: six citizens at ten each, so a size-seven town with no temple follows the
+instant it is bombed and one with a temple takes three and holds. The Preaching is the same act
+at a smaller price on the rite's own row. `bankPressure` has exactly two callers, pinned by
+source; the result names every town in reach, resisters included, because "Nippur resisted" is
+the news a spent charge earns. Also that day: the caravan's plates, the lens's rings, the
+prophet's row reading "Found religion" while there is none — the interface catching up with a
+player who could not tell which towns were his.
