@@ -3781,3 +3781,15 @@ captured holy city moves the enhancers and the trickle and never the pantheon. F
 on world-scale counts were refiled from the follower pool to the enhancer pool, where they can
 pay; a follower row that pays an empire now fails the build. `Religion.enhancer` is a list —
 the scalar had silently overwritten the first pick the moment the cap became two. Schema 29.
+
+**The health bar, fourth report (2026-08-28) — the cause.** Three passes had proved the fill's
+value exact and stopped there; exact was the problem. At the default frustum a whole bar is
+about twenty pixels, so a survivor at four hit points asked for a fill under a pixel wide, which
+no pixel centre falls inside and the rasteriser drops, while the constant-width backing always
+draws — a flat dark bar over a living unit, most often after an off-screen blow left it mauled.
+`hpBarFillWidth` applies a minimum fill (`hpBar.minFill`, a sliver under seven percent) in the
+one place both the resting bar and the walking copy read, and the fill claims a render order
+above the backing so the layering is stated rather than an id tie-break. Draw order, fog
+restore, culling and the wild's buckets were each ruled out by a test that drives the real
+sequence. The lesson for the ledger: when a value is proven right and the picture is still
+wrong, the next question is whether the picture can *show* that value.
