@@ -1093,6 +1093,20 @@ export class Renderer3D implements MapView {
   }
 
   /**
+   * Told once per accepted command. See `MapView.noteStateChanged`.
+   *
+   * Every board fingerprint the frame loop already reads is a fact about a
+   * tile's improvement, feature or owner; a card or belief's `tileYield`
+   * effect moves none of those, so this is the seam that catches it. Cheap to
+   * over-call — a command that touched nothing the yields lens draws still
+   * only costs one lens rebuild, and it happens on a command rather than a
+   * frame.
+   */
+  noteStateChanged(): void {
+    if (this.lensView.yields) this.rebuildLens();
+  }
+
+  /**
    * Washes named tiles in named inks, or clears the wash with `null`.
    *
    * Not a lens and deliberately not part of `LensView`: a lens is a question the
@@ -1864,7 +1878,12 @@ export class Renderer3D implements MapView {
     // technology finished this turn reveals ore that was drawn on the board all
     // along, and a walk over the gated props is a few dozen compares. See
     // `reveal3d.ts` for why this is asked on the frame rather than notified.
-    this.applyReveal();
+    const revealed = this.applyReveal();
+    // A resource that just became nameable (or a renewal a reveal tech gates —
+    // see CLAUDE.md's `explainTileYield` trap) changes the yield printed on its
+    // tile, and `RevealStats.cells` is exactly "how many props flipped this
+    // pass" — zero on the steady state, so this costs nothing most frames.
+    if (revealed && revealed.cells > 0 && this.lensView.yields) this.rebuildLens();
     // Any tile that changed level can add or remove a piece, a town, a border
     // or a mark, so the layers that filter by the seat's eyes are rebuilt with
     // the same one call the ordinary fingerprints would have made.
@@ -1898,6 +1917,11 @@ export class Renderer3D implements MapView {
       // A new city changes where the next one may go: the settler lens is
       // showing exactly that rule and would otherwise keep the old answer.
       if (founded && this.lensView.mode === 'settler') this.rebuildLens();
+      // A farm or a mine finished, or a wood felled, changed what this ground
+      // *makes* — the same two fingerprints that just cleared its dressing —
+      // so the yield glyphs follow them exactly as the settler lens follows a
+      // founding.
+      if (this.lensView.yields) this.rebuildLens();
     }
     if (this.state && (fogMoved || signCities(this.state) !== this.citiesSignature)) {
       this.rebuildCities();
@@ -1907,6 +1931,10 @@ export class Renderer3D implements MapView {
     // this layer too, exactly as it reaches the towns and the borders.
     if (this.state && (fogMoved || signImprovements(this.state) !== this.improvementsSignature)) {
       this.rebuildImprovements();
+      // A pillage, a great work planted, or an improvement that does not clear
+      // clutter (the block above only catches the ones that do) all change a
+      // tile's yield the same way a farm does.
+      if (this.lensView.yields) this.rebuildLens();
     }
     // Roads are ground too, and follow the fog for the same reason: they survive
     // on remembered hexes, so a fog move has to reach this layer as well as the
@@ -1930,6 +1958,11 @@ export class Renderer3D implements MapView {
       this.rebuildTerritory();
       // Borders decide whose ground a settler may stand on, so the same applies.
       if (this.lensView.mode === 'settler') this.rebuildLens();
+      // Ownership changes the context a hex is evaluated in — CLAUDE.md's "an
+      // owned tile is always evaluated with its owner's context" — so a border
+      // moving (or a tile bought) can change the number printed on it even
+      // though nothing on the ground itself moved.
+      if (this.lensView.yields) this.rebuildLens();
     }
     // The lens draws nothing on Terra Incognita, so the ground it covers moved.
     if (fogMoved && this.lensView.mode === 'none' && !this.lensView.yields) {

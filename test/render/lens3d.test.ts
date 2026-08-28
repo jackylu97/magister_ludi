@@ -418,3 +418,111 @@ describe('a tile\'s yields are the last thing printed on it', () => {
     layer.dispose();
   });
 });
+
+/**
+ * `Renderer3D` cannot be instantiated in this suite — it opens a real
+ * `WebGLRenderer` against a canvas, and the suite runs in Vitest's `node`
+ * environment with no DOM and (deliberately, see `vite.config.ts`'s pool
+ * comment) no mocking anywhere. So the bug this covers — the yields lens going
+ * stale after a worker builds, a great person plants, a wood is felled, a
+ * border moves or a tech reveals a resource — is asserted the way
+ * `test/sim/cities.test.ts` asserts `assignCitizens`' two callers and
+ * `test/ui/seatRoster.test.ts` asserts the roster rule: by reading the source,
+ * because the property lives in *which branch calls `rebuildLens`*, and that is
+ * exactly what a behavioural test cannot reach here.
+ *
+ * Every assertion below is therefore structural, not behavioural: it finds the
+ * one `if` block the frame loop already runs off a given fingerprint (or the
+ * reveal pass, or the command seam) and checks that block also rebuilds the
+ * lens when `this.lensView.yields` is up — which is at once the "does it
+ * rebuild" half and the "only when the lens is up" half, since a guard that
+ * exists at all is the guard that skips the call while the lens is down.
+ */
+describe('the yields lens follows every trigger that can move a tile\'s number', () => {
+  const RENDERER_SOURCE = Object.values(
+    import.meta.glob('../../src/render3d/renderer3d.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>,
+  )[0]!;
+  const MAP_VIEW_SOURCE = Object.values(
+    import.meta.glob('../../src/ui/mapView.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>,
+  )[0]!;
+
+  /** Comments stripped, exactly as `seatRoster.test.ts` strips them — the
+   * rule lives in the code, and matching the prose that explains it would
+   * make the docblocks unwritable. */
+  function code(text: string): string {
+    return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  }
+
+  const source = code(RENDERER_SOURCE);
+
+  /**
+   * The text of the `if` block that opens on `marker`, up to its own closing
+   * brace at the base indent level — a small hand-rolled brace matcher rather
+   * than a fixed-width slice, so a block growing another line does not start
+   * silently truncating the window this reads.
+   */
+  function ifBlockAt(marker: string): string {
+    const start = source.indexOf(marker);
+    expect(`${marker} found`).toBe(start === -1 ? `${marker} missing` : `${marker} found`);
+    const open = source.indexOf('{', start);
+    let depth = 0;
+    for (let i = open; i < source.length; i++) {
+      if (source[i] === '{') depth++;
+      else if (source[i] === '}') {
+        depth--;
+        if (depth === 0) return source.slice(start, i + 1);
+      }
+    }
+    throw new Error(`unterminated block at ${marker}`);
+  }
+
+  const yieldsRebuild = /this\.lensView\.yields\)\s*this\.rebuildLens\(\)/;
+
+  it('rebuilds on the clearGround fingerprints — a farm, a mine or a chop', () => {
+    // The one block keyed off `signImprovedCells`/`signFeatureCells`/the
+    // founding signature together; a farm, a mine and a chop all move one of
+    // the three.
+    const block = ifBlockAt('signImprovedCells(this.state) !== this.clearedImprovementsSignature');
+    expect(block).toContain('signFeatureCells(this.state.map) !== this.clearedFeaturesSignature');
+    expect(yieldsRebuild.test(block)).toBe(true);
+  });
+
+  it('rebuilds on signImprovements — a great work, a pillage, a non-clutter improvement', () => {
+    const block = ifBlockAt('signImprovements(this.state) !== this.improvementsSignature');
+    expect(yieldsRebuild.test(block)).toBe(true);
+  });
+
+  it('rebuilds on signTerritory — a border move or a bought tile changes whose context a hex reads with', () => {
+    const block = ifBlockAt('signTerritory(this.state) !== this.territorySignature');
+    expect(yieldsRebuild.test(block)).toBe(true);
+  });
+
+  it('rebuilds off the reveal pass\'s own stats, not the per-frame fog flag', () => {
+    // `applyReveal` runs on the frame regardless of the lens, so the trigger
+    // has to be "did the reveal pass actually flip a prop this pass"
+    // (`RevealStats.cells`), never `fogMoved` — a fog move with no gated
+    // resource on it must not pay for a lens rebuild.
+    const idx = source.indexOf('const revealed = this.applyReveal();');
+    expect(idx).toBeGreaterThan(-1);
+    const after = source.slice(idx, idx + 400);
+    expect(after).toMatch(/revealed\s*&&\s*revealed\.cells\s*>\s*0\s*&&\s*this\.lensView\.yields\)\s*this\.rebuildLens\(\)/);
+  });
+
+  it('exposes noteStateChanged for the command seam a board fingerprint cannot see', () => {
+    // A card or belief's `tileYield` effect moves no tile, improvement or
+    // border, so nothing above catches it; this is the seam `commit`
+    // (`src/ui/controls.ts`) calls once per accepted command.
+    const block = ifBlockAt('noteStateChanged(): void {');
+    expect(yieldsRebuild.test(block)).toBe(true);
+    // And the interface declares the optional hook it implements.
+    expect(code(MAP_VIEW_SOURCE)).toContain('noteStateChanged?(): void;');
+  });
+});

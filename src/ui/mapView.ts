@@ -473,4 +473,26 @@ export interface MapView {
    * pipelines simply have no wash.
    */
   setCityFocus?(cell: CellRef | null, animate: boolean): void;
+
+  /**
+   * Optional: told once per accepted command, for state a board fingerprint
+   * cannot see moving.
+   *
+   * Everything else that keeps the yields lens honest — a farm's
+   * `signImprovedCells`, a chop's `signFeatureCells`, a border's
+   * `signTerritory` — is a fact about the *board*: some tile's improvement,
+   * feature or owner actually changed, and the per-frame loop already
+   * fingerprints those. A Statecraft card or a belief with a `tileYield`
+   * effect changes what a hex *makes* without moving a single tile, improvement
+   * or border, so no fingerprint stirs and the lens would keep showing last
+   * turn's coins forever. `commit`, in `src/ui/controls.ts` — the one place a
+   * command reaches the reducer — is the seam: it calls this once after every
+   * *accepted* command (a rejection changes nothing, hard rule 1), and the
+   * renderer rebuilds the lens layer if it is up. Not a per-frame poll: the
+   * whole map's yields are only ever recomputed on a command, exactly once.
+   *
+   * Optional for the usual reason — the 2D pipelines are frozen and have no
+   * yields lens to keep honest.
+   */
+  noteStateChanged?(): void;
 }
