@@ -127,9 +127,13 @@ would change every seeded outcome. No further rename passes.
   and calls the one seam like the other two. `marchTraders` aims a
   leg immediately before `spendLeftoverMovement` spends it. A melee blow on a unit that
   `trades` **plunders** (bounty to the nearest city, forfeited by the wild) and never
-  `captureUnit`s — the register's one exception, by marker. `explainTradeGold` is two lines
-  by ruling: City connections (one total) and Road maintenance — the first upkeep in the
-  game; future upkeep joins that fold, never a second one.
+  `captureUnit`s — the register's one exception, by marker. `explainEmpireGold` (was `explainTradeGold`) is **four** lines — City connections (one
+  total), Road maintenance, Unit maintenance, Building maintenance (Entry XLI) — one fold;
+  a new recurring cost joins it, never a second one. `Unit.freeUpkeep` is written at the five
+  seams that issue a free unit (`captureUnit`, the windfall grant, a completion grant, a great
+  person's arrival, a ruin's gift) and never by a completion or a purchase; the explorer
+  (`isExplorer`) and civilians and traders are exempt by reading, not by name. `collectYields`
+  prices every city before any banks, because the debt percentage reads the treasury.
 - `Tile.improvement`, `Tile.feature` and `Tile.discovery` are the **three** fields (four with `road`, above) on a tile
   that change during play. `discovery` is the mildest — it can only ever be *removed*, by a
   unit walking onto a ruin (`claimDiscoveryAt`) — and it forbids exactly what the other two

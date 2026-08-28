@@ -3638,3 +3638,43 @@ holy site and an augur plants nothing at all — the symmetric planting clause n
 markers, closing an old hole. Hagia Sophia grants a real prophet and carries the first `pressure`
 row. Schema 26. The High Temple on the chart cost four crossings; the sky's re-tune is the
 interface's.
+
+---
+
+## Entry XLI — Upkeep: the first cost that recurs (**built** 2026-08-28)
+
+**Rulings (user, 2026-08-28):** *"units cost gold equal to the age they're unlocked; civilian
+units and traders are exempt; start the game with a scout instead of a warrior, that should
+unblock the unit maintenance mechanics; buildings that supply renown cost 1 gold per age they're
+unlocked; shortfall affects science and culture; unit disbands happen after the empire is below
+−10 gold; captured and converted units are free, along with units issued for free; the palace
+supplies 2 gold per turn so players don't start with zero."*
+
+**What a unit costs.** `unitUpkeep(type)` is the age of the unlocking technology (warrior 1,
+swordsman 2, knight 3), read through the same inverse `techGifts` uses. Exempt: civilians,
+the explorer, and traders — the scout carries a strength in the roster but the game sends it out
+to *look*, and `isExplorer` is the reading that already says so; taking "non-combatant"
+literally would have opened every seeded game a gold in the red. **A unit the game issued for
+free pays nothing**: `Unit.freeUpkeep` (presence is the state) is written at the five seams that
+issue one — `captureUnit` (which is also Wolf-Mother's conversion), the windfall grant, a
+completion grant, a great person's arrival, a ruin's gift — and never by a completion or a
+purchase, which is why `realiseItem` takes an option rather than deriving it; a source-reading
+test pins the writers. A renown building costs one gold per age of its tech (barracks and
+library 1, market/workshop/watermill/amphitheater 2, university 3); wonders are exempt by the
+orchestrator's call, flagged. The palace pays two gold in the capital as a labelled line.
+
+**The treasury may go negative.** While it is, science and culture take `debtPercent` (−25) on
+the **empire stage** — two lines in `cityYieldPercents`, so the penalty stacks with the meter
+tiers by Entry XVII's arithmetic rather than as a flat subtraction. Below `disbandBelow` (−10)
+the dearest unit, then the oldest, is disbanded — **one per empire per turn**, because a loop
+"until above −10" cannot terminate when disbanding banks no gold — and reported. The wild pays
+nothing and never disbands. One structural consequence: `collectYields` now prices every city
+before any city banks, because the percentage reads the treasury and an interleaved loop would
+make the penalty depend on founding order; byte-identical for any game not in debt.
+
+**The ledger.** `explainTradeGold` is `explainEmpireGold` and carries **four** lines — City
+connections, Road maintenance, Unit maintenance, Building maintenance — Entry XXXV's "future
+upkeep joins that fold" made good. Measured on the warband empire: the treasury at turns
+20/40/60 goes +40/+92/+182 → **+63/+37/−122** — richer early (the palace pays before there is an
+army), then an army that costs what it is; that is the intent, and the first thing the friends'
+playtest should read.
