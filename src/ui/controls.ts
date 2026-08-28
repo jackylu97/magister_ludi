@@ -226,6 +226,7 @@ import { RULES } from '../sim/rulesData';
 import {
   type City,
   type GameState,
+  type Player,
   type Unit,
   cityById,
   foundedReligion,
@@ -263,6 +264,7 @@ import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
 import { type TraderPlunder, routeCities } from '../sim/trade';
 import { isExplorer, trades, unitDef } from '../sim/unitData';
+import { type DisbandReport, treasuryInDebt } from '../sim/upkeep';
 import {
   sleepError,
   sleepingSnapshot,
@@ -273,7 +275,7 @@ import {
 import { isExploredBy } from '../sim/visibility';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
-import { HAMMER, YIELD_GLYPH, signedFigure } from './figures';
+import { HAMMER, YIELD_GLYPH, percentFigure, signedFigure } from './figures';
 import {
   type CellRef,
   type FallenUnit,
@@ -889,6 +891,52 @@ export function pillageVictimSentence(state: GameState, report: PillageReport): 
       : nearestOwnedCity(state, report.fromOwnerId, { col: report.col, row: report.row });
   const near = city ? ` near ${cityDisplayName(state, city)}` : '';
   return `${raider} pillaged the ${pillagedThing(report)} at (${report.col}, ${report.row})${near}`;
+}
+
+/**
+ * "Your Swordsman was disbanded — the treasury is below −10💰."
+ *
+ * The one piece of news in the game where the *simulation took something away
+ * from the player for a reason they can fix*, so it says the reason in the same
+ * breath as the loss. Reading the threshold off `RULES.upkeep.disbandBelow`
+ * rather than writing "−10" into the sentence is the usual discipline — a
+ * designer who moves the line moves this sentence with it — and it is the same
+ * figure the End Turn warning quotes, so the warning and the loss can never
+ * name two different numbers.
+ *
+ * Pure and exported: this suite has no DOM, and a sentence that is merely wrong
+ * throws nothing.
+ */
+export function disbandSentence(report: DisbandReport): string {
+  const floor = `${signedFigure(RULES.upkeep.disbandBelow)}${YIELD_GLYPH.gold}`;
+  return `Your ${unitDef(report.type).name} was disbanded — the treasury is below ${floor}.`;
+}
+
+/**
+ * What End Turn says about a treasury under water, or `null` when there is
+ * nothing to say.
+ *
+ * **A warning and never a blocker** (Entry XLI, and the deficit lines' rule
+ * exactly): a debt is a legal gambit, End Turn does not stop on one, and the
+ * reducer has never heard of this function. What it is *not* is silent — the
+ * penalty is a quarter off science and culture, which is the kind of loss a
+ * player reads as the game being slow rather than as a bill they are paying.
+ *
+ * **Two sentences, because there are two states and only the second is
+ * urgent.** In debt costs yields, which is recoverable by doing nothing much;
+ * below `disbandBelow` costs a *unit every turn*, which is not. A player who
+ * saw one sentence for both would learn the mild one and stop reading it.
+ *
+ * Both figures are read off `RULES.upkeep`, for `disbandSentence`'s reason.
+ */
+export function debtWarning(player: Player | undefined): string | null {
+  if (!player || !treasuryInDebt(player)) return null;
+  const penalty = `science and culture ${percentFigure(RULES.upkeep.debtPercent)}`;
+  if (player.gold < RULES.upkeep.disbandBelow) {
+    const floor = `${signedFigure(RULES.upkeep.disbandBelow)}${YIELD_GLYPH.gold}`;
+    return `⚠ Treasury below ${floor}: ${penalty}, and a unit is disbanded every turn.`;
+  }
+  return `⚠ Treasury in debt: ${penalty}.`;
 }
 
 export interface GameControlsOptions {
@@ -1826,6 +1874,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportRoutes(result);
       reportSieges(result);
       reportPillages(result);
+      reportDisbands(result);
       reportTriumphs(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
@@ -1998,6 +2047,26 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       announce(pillageVictimSentence(state, report), {
         cell: { col: report.col, row: report.row },
       });
+    }
+  }
+
+  /**
+   * **The creditors took a piece.** One toast per unit this seat lost to
+   * arrears during the resolution (`CommandResult.disbanded`, `endTurn` alone).
+   *
+   * `reportSieges`' shape and reason exactly: seat-filtered, read off the
+   * reducer's own report rather than diffed off the board, because by the time
+   * this runs the unit is gone and an absence cannot say why it is one. It is
+   * the loudest thing in this file that the player did not ask for — the game
+   * took a soldier — so it goes to the toast stack and the chronicle rather
+   * than to the notice line, and it names the threshold so the next one is
+   * predictable.
+   */
+  function reportDisbands(result: CommandResult): void {
+    if (!result.ok || !result.disbanded) return;
+    for (const report of result.disbanded) {
+      if (report.ownerId !== localPlayerId) continue;
+      announce(disbandSentence(report));
     }
   }
 
@@ -4851,10 +4920,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // on **both** branches below — a turn that did not resolve has nothing to
     // wait for, and a sheet nobody raised is renown a player never saw awarded.
     heldTriumphs = [];
+    // Read **before** the dispatch, so the sentence describes the treasury the
+    // player was looking at when they pressed the button. Said whether or not
+    // the turn resolves and never held for the hand-over: it is not news about
+    // a turn that went by, it is a standing condition the player has to act on,
+    // and it repeats every turn until they do — which is the point of it.
+    const debt = debtWarning(playerById(getGame().state, localPlayerId));
     const result = commit({ type: 'endTurn', playerId: localPlayerId });
     const earned = heldTriumphs;
     heldTriumphs = null;
     if (!result.ok) return;
+    if (debt !== null) announce(debt);
 
     // Whatever was still sliding belongs to the turn that just ended.
     renderer.skipAnimations();

@@ -754,7 +754,12 @@ describe('the Faith concept’s prose', () => {
 describe('the faith lens', () => {
   it('is a row of the one list the lens menu and the digit keys both read', () => {
     const main = sourceOf('main.ts');
-    expect(main).toContain("['faith', 'Faith'");
+    // A `LensOption` record rather than the tuple the rack started with — the
+    // row grew a tail and a legend (see `LENS_OPTIONS`), and `lensOrder` still
+    // reads its `mode` so the digit hotkeys have one source of order.
+    expect(main).toContain("mode: 'faith',");
+    expect(main).toContain("label: 'Faith',");
+    expect(main).toContain('lensOrder: LENS_OPTIONS.map((option) => option.mode)');
   });
 
   it('is not taken away by picking a piece up', () => {

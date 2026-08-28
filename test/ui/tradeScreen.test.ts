@@ -31,11 +31,11 @@ import { foundCityAt } from '../../src/sim/cities';
 import { type City, type GameState, type Unit, createUnit } from '../../src/sim/state';
 import {
   explainRouteYieldBetween,
-  explainTradeGold,
+  explainEmpireGold,
   foldRouteYield,
   routeSlots,
   routeStartable,
-  tradeGold,
+  empireGold,
   usedRouteSlots,
 } from '../../src/sim/trade';
 import { applyCommand } from '../../src/sim/commands';
@@ -143,20 +143,21 @@ describe('the summary ledger', () => {
     const ledger = tradeLedger(state, 0);
     const routes = runningRoutes(state, 0);
     expect(routes).toHaveLength(1);
-    // The route's line, then whatever `explainTradeGold` has to say. Never a
+    // The route's line, then whatever `explainEmpireGold` has to say. Never a
     // sentence composed here.
     expect(ledger.lines.slice(0, routes.length).map((line) => line.source)).toEqual([
       `${routes[0]!.fromName} ⇄ ${routes[0]!.toName}`,
     ]);
     expect(ledger.lines.slice(routes.length).map((line) => line.source)).toEqual(
-      explainTradeGold(state, 0).map((line) => line.source),
+      explainEmpireGold(state, 0).map((line) => line.source),
     );
 
-    // The fold, and the only sum of one: what the routes pay in gold plus what
-    // the empire's roads and connections do.
+    // The fold, and the only sum of one: what the routes pay in gold plus the
+    // four empire lines — the connections, the roads, the army and the
+    // institutions.
     let routeGold = 0;
     for (const route of routes) routeGold += route.gold;
-    expect(ledger.total).toBe(routeGold + tradeGold(state, 0));
+    expect(ledger.total).toBe(routeGold + empireGold(state, 0));
   });
 
   it('says the route is worth nothing rather than printing a row of zeroes', () => {

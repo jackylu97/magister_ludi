@@ -6,7 +6,7 @@
  * row, start the route from the screen, walk the shuttle for a few turns and
  * read the panels. Every figure here comes from the surfaces themselves —
  * `tradeOrigins`, `startCommandFor`, `routeReading`, `cityRouteRows`,
- * `explainTradeGold`, `civYields` — so what is defended is the *sequence*: that
+ * `explainEmpireGold`, `civYields` — so what is defended is the *sequence*: that
  * each of those keeps saying something true as the caravan moves, the road goes
  * down and the towns join up.
  *
@@ -25,7 +25,7 @@ import { foundCityAt } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { purchaseError } from '../../src/sim/purchase';
 import { type GameState, unitById } from '../../src/sim/state';
-import { explainTradeGold } from '../../src/sim/trade';
+import { explainEmpireGold } from '../../src/sim/trade';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { civYields } from '../../src/ui/topBar';
 import { cityRouteRows, routeReading, routeSlotsLine } from '../../src/ui/tradeLines';
@@ -116,16 +116,24 @@ describe('a caravan, from the treasury to the ledger', () => {
     expect(unitById(state, trader.id)).toBeDefined();
     expect(state.map.tiles.some((tile) => tile.road === 0)).toBe(true);
 
-    // 7. The treasury's ledger: at most two lines, and whatever it says is
-    //    inside the headline the top bar promises.
-    const lines = explainTradeGold(state, 0);
-    expect(lines.length).toBeLessThanOrEqual(2);
+    // 7. The treasury's ledger: at most the four empire lines, each of them a
+    //    count and a total, and whatever it says is inside the headline the top
+    //    bar promises. Stated as a *difference* rather than as a subtraction of
+    //    the whole fold: since maintenance landed (Entry XLI) tearing up the
+    //    roads no longer removes every line, and what is actually claimed is
+    //    that a change to these lines moves the headline by exactly that much.
+    const fold = (): number =>
+      explainEmpireGold(state, 0).reduce((sum, line) => sum + line.gold, 0);
+    const lines = explainEmpireGold(state, 0);
+    expect(lines.length).toBeLessThanOrEqual(4);
     for (const line of lines) {
-      expect(line.source).toMatch(/^(City connections|Road maintenance) · /);
+      expect(line.source).toMatch(
+        /^(City connections|Road maintenance|Unit maintenance|Building maintenance) · /,
+      );
     }
-    const trade = lines.reduce((sum, line) => sum + line.gold, 0);
+    const empireBefore = fold();
     const shown = civYields(state, 0).gold;
     for (const tile of state.map.tiles) delete tile.road;
-    expect(shown - civYields(state, 0).gold).toBe(trade);
+    expect(shown - civYields(state, 0).gold).toBe(empireBefore - fold());
   });
 });

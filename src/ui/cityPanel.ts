@@ -105,6 +105,7 @@ import { pressureLedgerText } from './religionScreen';
 import { techDef } from '../sim/techData';
 import { buildError, isUnlocked, requiredResource } from '../sim/tech';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
+import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
 import { cityDisplayName } from './cityDisplay';
 import {
   type YieldKey,
@@ -524,6 +525,30 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
+   * The bill beside the price: what this row will cost the treasury every turn
+   * once it is standing (Entry XLI).
+   *
+   * A **third figure** in the same row as the hammers and the estimate, because
+   * it is the same kind of fact — a price — and the whole point of showing it
+   * before the build rather than after is that "what does this cost" has had two
+   * answers since maintenance landed and a queue that only quoted the first was
+   * the interface hiding half the decision.
+   *
+   * Signed negative, because it is a bill. `null` for everything that pays
+   * nothing — a settler, a worker, a caravan, a scout, a granary, a wonder — for
+   * the reason the fighting numbers are omitted from a settler's card: a row of
+   * zeroes reads as a statistic rather than as "this one is free to keep".
+   */
+  function upkeepFigure(gold: number): HTMLElement | null {
+    if (gold <= 0) return null;
+    return element(
+      'span',
+      'info-card-upkeep',
+      `${signedFigure(-gold)}${YIELD_GLYPH.gold} a turn`,
+    );
+  }
+
+  /**
    * What a unit *is*, entirely out of `data/units.json`.
    *
    * Every line here is the presence of a field rather than a comparison against
@@ -533,11 +558,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * describes it correctly without being touched. Nothing here computes: the
    * price is `unitProductionCost`'s answer and the estimate is `turnsToBuild`'s.
    *
-   * `modelClass` is doing double duty as the unit's *role*, and that is honest
-   * rather than a shortcut. It is the roster's silhouette class (see the field's
-   * docblock) — melee, ranged, siege, mounted, scout — which is exactly the
-   * shorthand a player uses for what a unit is for, and it is the only such
-   * grouping the data declares.
+   * `modelClass` does double duty as the unit's *role* **for a soldier and
+   * nowhere else**. It is the roster's silhouette class (see the field's
+   * docblock) — melee, ranged, siege, mounted, scout — which for a fighting row
+   * is exactly the shorthand a player uses for what a unit is for. Off the
+   * military rows it is only a sculpt: the augur, the prophet and the caravan
+   * all stand on the worker's body, and printing it there said a caravan was a
+   * worker. So the head prints it for `military` and prints the category alone
+   * otherwise — see the line itself.
    */
   function unitCard(city: City, id: UnitTypeId, index: number): Node {
     const { state } = getGame();
@@ -546,7 +574,20 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
     const head = element('div', 'info-card-head');
     head.append(element('span', 'info-card-name', def.name));
-    head.append(element('span', 'info-card-kind', `${def.category} · ${def.modelClass}`));
+    // "military · melee", "civilian", "trader". The silhouette class is printed
+    // **only for a soldier**, and that is a correction rather than a trim:
+    // `modelClass` is the roster's *sculpt* grouping, and it says the unit's role
+    // truthfully for the fighting rows (melee, ranged, siege, mounted, scout) and
+    // untruthfully for every other one — an augur, a prophet and a caravan all
+    // stand on the worker's body, and "trader · worker" told a player their
+    // caravan was a worker. For those the category is the whole honest answer.
+    head.append(
+      element(
+        'span',
+        'info-card-kind',
+        def.category === 'military' ? `${def.category} · ${def.modelClass}` : def.category,
+      ),
+    );
     box.append(head);
 
     const figures = element('div', 'info-card-figures');
@@ -564,6 +605,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         turnsLabel(turnsToBuild(state, city, { kind: 'unit', id }, index)),
       ),
     );
+    // What keeping it will cost, off the roster's own reader — the *type's*
+    // figure, because there is no piece yet to ask about.
+    const unitBill = upkeepFigure(unitUpkeep(id));
+    if (unitBill) figures.append(unitBill);
     box.append(figures);
 
     const stats = element('div', 'info-card-stats');
@@ -635,6 +680,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         turnsLabel(turnsToBuild(getGame().state, city, { kind: 'building', id }, index)),
       ),
     );
+    // The same bill one grade over: an institution costs its age to run and a
+    // granary, a palisade, a monument or any wonder costs nothing.
+    const buildingBill = upkeepFigure(buildingUpkeep(id));
+    if (buildingBill) figures.append(buildingBill);
     box.append(figures);
 
     const notes = element('ul', 'info-card-notes');

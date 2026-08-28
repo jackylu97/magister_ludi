@@ -19,7 +19,8 @@
  *      is the empire's ledger rather than anything about where it stands.
  *   3. **The city panel's Routes row** reads inbound and outbound differently,
  *      because only one of them pays this town.
- *   4. **Exactly two trade lines** in the treasury's ledger, and the headline
+ *   4. **Exactly four empire lines** in the treasury's ledger — the connections,
+ *      the road bill, the army's wages and the institutions' — and the headline
  *      they sit under includes them.
  *   5. **Plunder is two pieces of news**, and the forfeit is said out loud.
  *
@@ -36,8 +37,8 @@ import { applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
 import { type City, type GameState, type Unit, createUnit } from '../../src/sim/state';
 import {
+  explainEmpireGold,
   explainRouteYield,
-  explainTradeGold,
   foldRouteYield,
   routeSlots,
   settleTraderPlunder,
@@ -57,6 +58,7 @@ import {
   routeReading,
   routeSlotsLine,
 } from '../../src/ui/tradeLines';
+import { explainBuildingUpkeep, explainUnitUpkeep } from '../../src/sim/upkeep';
 import { at, bareState } from '../sim/improvementHelpers';
 
 const SOURCES = import.meta.glob(
@@ -314,7 +316,7 @@ describe('the city panel’s routes row', () => {
   });
 });
 
-describe('the treasury’s trade lines', () => {
+describe('the treasury’s empire lines', () => {
   /** A road under every hex between two towns, laid by seat 0. */
   function connectedWorld(): GameState {
     const { state, home, partner } = tradeWorld();
@@ -324,30 +326,56 @@ describe('the treasury’s trade lines', () => {
     return state;
   }
 
-  it('is exactly two lines: the connections, and the bill', () => {
+  /**
+   * **Four lines, in a fixed order** (Entry XLI). It used to be two — the
+   * connections and the road bill — and the two maintenance lines joined that
+   * fold rather than opening a second one, which is the whole of why the
+   * function was renamed. Asserted by *content* and in order rather than by a
+   * length, because the interesting property is that each line is still one
+   * count and one total: a per-piece page here would be the second ledger the
+   * fold exists to prevent.
+   */
+  it('is four lines: the connections, the road, the army and the institutions', () => {
     const state = connectedWorld();
-    const lines = explainTradeGold(state, 0);
-    expect(lines).toHaveLength(2);
-    expect(lines[0]!.source).toMatch(/^City connections · \d+ (city|cities)$/);
-    expect(lines[1]!.source).toMatch(/^Road maintenance · \d+ hexes$/);
-    // One pays and one costs, which is why the ledger prints both signed.
+    // The fixture's caravan is exempt (a trader pays nothing), so the army line
+    // needs a soldier before it exists at all.
+    createUnit(state, 0, 'warrior', 3, 4);
+    const lines = explainEmpireGold(state, 0);
+    expect(lines.map((line) => line.source)).toEqual([
+      expect.stringMatching(/^City connections · \d+ (city|cities)$/),
+      expect.stringMatching(/^Road maintenance · \d+ hexes$/),
+      expect.stringMatching(/^Unit maintenance · \d+ units?$/),
+      expect.stringMatching(/^Building maintenance · \d+ buildings?$/),
+    ]);
+    // One pays and three cost, which is why the ledger prints all four signed.
     expect(lines[0]!.gold).toBeGreaterThan(0);
-    expect(lines[1]!.gold).toBeLessThan(0);
+    for (const line of lines.slice(1)) expect(line.gold).toBeLessThan(0);
   });
 
   /**
    * The headline and the card are one number and its summands. `collectYields`
-   * banks trade gold once per player, so a strip that left it out would be a
-   * rate the turn resolution disagrees with — the argument the luxuries were
-   * added to `civYields` for, and the reason these two join in one place.
+   * banks the empire gold once per player, so a strip that left it out would be
+   * a rate the turn resolution disagrees with — the argument the luxuries were
+   * added to `civYields` for, and the reason these lines join in one place.
+   *
+   * Stated as a **difference** rather than as "the headline minus the fold",
+   * which is what it used to be: the market in the fixture now pays maintenance,
+   * so tearing up the roads no longer removes the whole fold and the old
+   * subtraction was asserting something that had stopped being true. What is
+   * actually claimed — that a change to the empire lines moves the headline by
+   * exactly that much — survives any number of lines.
    */
   it('is inside the gold the top bar promises, not beside it', () => {
     const state = connectedWorld();
-    const withTrade = civYields(state, 0).gold;
-    const trade = explainTradeGold(state, 0).reduce((sum, line) => sum + line.gold, 0);
-    expect(trade).not.toBe(0);
+    const fold = (): number =>
+      explainEmpireGold(state, 0).reduce((sum, line) => sum + line.gold, 0);
+    const headlineBefore = civYields(state, 0).gold;
+    const empireBefore = fold();
     for (const tile of state.map.tiles) delete tile.road;
-    expect(civYields(state, 0).gold).toBe(withTrade - trade);
+    const empireAfter = fold();
+    // The roads mattered: without this the identity below would hold trivially.
+    expect(empireBefore).not.toBe(empireAfter);
+    expect(headlineBefore - civYields(state, 0).gold).toBe(empireBefore - empireAfter);
   });
 
   it('reads by voice rather than by a hand-rolled gold comparison', () => {
@@ -358,6 +386,30 @@ describe('the treasury’s trade lines', () => {
     // it is looking at.
     const code = bar.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
     expect(code).not.toContain("key === 'gold'");
+  });
+
+  /**
+   * **The per-item lists sit one hover deeper**, and the coupling that carries
+   * them is the only fragile thing in this pass: `TradeGoldLine` offers no
+   * discriminant, so the adapter keys on the head of the label. It degrades to
+   * *no* detail rather than to a wrong one — which is a silent failure, and
+   * therefore this test, which is the thing that makes the coupling a decision.
+   */
+  it('hangs the per-piece lists behind the two maintenance lines', () => {
+    const state = connectedWorld();
+    createUnit(state, 0, 'warrior', 3, 4);
+    const heads = explainEmpireGold(state, 0).map((line) => line.source.split(' · ')[0]);
+    expect(heads).toContain('Unit maintenance');
+    expect(heads).toContain('Building maintenance');
+    // And the adapter looks them up under exactly those names.
+    const bar = source('topBar.ts');
+    expect(bar).toContain("['Unit maintenance', upkeepDetail(explainUnitUpkeep(state, playerId))]");
+    expect(bar).toContain(
+      "['Building maintenance', upkeepDetail(explainBuildingUpkeep(state, playerId))]",
+    );
+    // The per-item lists themselves are the simulation's, not a second walk.
+    expect(explainUnitUpkeep(state, 0).map((line) => line.source)).toContain('Warrior');
+    expect(explainBuildingUpkeep(state, 0)[0]!.source).toMatch(/^Market · /);
   });
 });
 

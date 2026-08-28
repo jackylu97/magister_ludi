@@ -145,6 +145,7 @@ import {
 import { createTurnSplash } from './ui/turnSplash';
 import { type Compendium, createCompendium } from './ui/compendium';
 import { setKeywordOpener } from './ui/keywords';
+import { createStaleDeployNotice } from './ui/staleDeploy';
 import { type TradeScreen, createTradeScreen } from './ui/tradeScreen';
 import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
 import { YIELD_GLYPH } from './ui/figures';
@@ -156,6 +157,18 @@ function requireElement<T extends HTMLElement>(id: string): T {
   if (!el) throw new Error(`Missing element #${id}`);
   return el as T;
 }
+
+/**
+ * The stale-deploy watch, armed **before anything else in this module runs**.
+ *
+ * A deploy that lands while a tab is open leaves every hashed chunk under
+ * `/assets/` replaced, and the first dynamic `import()` the old page reaches for
+ * rejects into silence (see `staleDeploy.ts`). Armed here, at the top of the
+ * entry module, so it covers the boot as well as the game: a chunk that fails
+ * while the landing screen is still up is exactly the case a listener installed
+ * inside `beginGame` would miss.
+ */
+createStaleDeployNotice();
 
 const seedInput = requireElement<HTMLInputElement>('seed');
 const sizeSelect = requireElement<HTMLSelectElement>('size');
@@ -2151,6 +2164,30 @@ async function boot(initial: Game | null): Promise<void> {
   });
 
   /**
+   * One row of the lens menu.
+   *
+   * Four fields rather than the three the rack started with, and the split
+   * between them is what each is *for*:
+   *
+   *   · `label` is the lens's **name** — the row's heading and, alone, the word
+   *     the bar button wears. It stays short for that second reader;
+   *   · `tail` is the clause the row prints after an em dash. It is where a
+   *     lens says what question it answers, which is a longer sentence than a
+   *     button can carry;
+   *   · `hint` is the platform tooltip, with the digit appended;
+   *   · `legend` is the **key to the drawing** — what a wash means, what a ring
+   *     means — printed under the row only while that lens is up. A key nobody
+   *     is looking at the board through is a paragraph in a menu.
+   */
+  interface LensOption {
+    mode: LensMode;
+    label: string;
+    hint: string;
+    tail?: string;
+    legend?: string;
+  }
+
+  /**
    * The lens menu's rows, in the order they are shown: the exclusive lens
    * choices the menu below builds buttons for, and — via `controls`'s
    * `lensOrder` — the one source of order the number-key hotkeys read
@@ -2158,17 +2195,37 @@ async function boot(initial: Game | null): Promise<void> {
    * that: the wiring needs the order, and a second copy of this list for the
    * hotkeys to read would be the very mapping this shape is meant to avoid.
    */
-  const LENS_OPTIONS: [LensMode, string, string][] = [
-    ['none', 'None', 'The board as it is'],
-    ['settler', 'Settler', 'Where a city may go: blue is coastal, green is fresh water'],
-    ['explorer', 'Explorer', 'What is left to find: gold is a ruin or a village, red is a camp'],
+  const LENS_OPTIONS: LensOption[] = [
+    { mode: 'none', label: 'None', hint: 'The board as it is' },
+    {
+      mode: 'settler',
+      label: 'Settler',
+      hint: 'Where a city may go: blue is coastal, green is fresh water',
+    },
+    {
+      mode: 'explorer',
+      label: 'Explorer',
+      hint: 'What is left to find: gold is a ruin or a village, red is a camp',
+    },
     // The third, and the only one no piece raises. A settler and a scout each
     // bring their own lens up by being picked up (`effectiveLens`); there is no
     // piece a player carries that wants a board-wide answer about faith, so this
     // is one they go and ask for — appended, which is all a new lens costs,
     // because the digit hotkey is `lensOrder`'s position rather than a mapping
     // of its own (`lensForDigit`).
-    ['faith', 'Faith', 'Whose faith is winning, and where: each hex in its founder’s ink'],
+    {
+      mode: 'faith',
+      label: 'Faith',
+      tail: 'whose argument is winning',
+      hint: 'Whose faith is winning, and where: each hex in its founder’s ink',
+      // The one lens whose drawing has three marks in it, so it is the one that
+      // needs a key. The last clause is the important half: a player who sees
+      // blank steppe under a faith lens will assume it is broken unless they are
+      // told that the tide acts on towns and not on ground.
+      legend:
+        'wash = the founder’s ink, darker is stronger; tight ring = holy site; ' +
+        'wide ring = proclamation; unclaimed ground is blank because the tide acts on towns',
+    },
   ];
 
   /**
@@ -2303,7 +2360,7 @@ async function boot(initial: Game | null): Promise<void> {
     // The number-key hotkeys' one source of order — see `LENS_OPTIONS`'s own
     // docblock for why this is declared above rather than the menu passing it
     // down.
-    lensOrder: LENS_OPTIONS.map(([mode]) => mode),
+    lensOrder: LENS_OPTIONS.map((option) => option.mode),
   });
 
   /**
@@ -2368,18 +2425,27 @@ async function boot(initial: Game | null): Promise<void> {
    * The lens menu's rows: the exclusive lens choices, built off `LENS_OPTIONS`
    * (declared above `controls`, and see that declaration for why).
    */
-  const lensButtons = LENS_OPTIONS.map(([mode, label, hint], index) => {
+  const lensButtons = LENS_OPTIONS.map(({ mode, label, hint, tail, legend }, index) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'lens-option';
     // The row's own hotkey, spelled out where the row is. Counted the way
     // `lensForDigit` counts — over the *lenses*, with the None row struck out
     // and taking `0` — so the tooltip cannot drift from the key that fires.
-    const digit = LENS_OPTIONS.slice(0, index).filter(([m]) => m !== 'none').length + 1;
+    const digit = LENS_OPTIONS.slice(0, index).filter((o) => o.mode !== 'none').length + 1;
     button.title = mode === 'none' ? `${hint} (0)` : `${hint} (${digit})`;
     const name = document.createElement('span');
     name.className = 'lens-option-name';
     name.textContent = label;
+    // The tail is a second span rather than part of the name, so it can be set
+    // faint and so the bar button — which reads `label` — is not dragged along
+    // with it.
+    if (tail !== undefined) {
+      const clause = document.createElement('span');
+      clause.className = 'lens-option-tail';
+      clause.textContent = `— ${tail}`;
+      name.append(' ', clause);
+    }
     const tick = document.createElement('span');
     tick.className = 'lens-option-tick';
     tick.textContent = '✓';
@@ -2390,7 +2456,19 @@ async function boot(initial: Game | null): Promise<void> {
       lens.close();
     });
     lensOptionsEl.append(button);
-    return { mode, label, button };
+    // The key, under its own row and hidden until the lens is up
+    // (`updateLensMenu`). A sibling of the button rather than a child of it:
+    // it is not part of the control, and a screen reader reading a two-line
+    // button would announce the key every time the row is passed.
+    let key: HTMLElement | null = null;
+    if (legend !== undefined) {
+      key = document.createElement('p');
+      key.className = 'lens-legend';
+      key.textContent = legend;
+      key.hidden = true;
+      lensOptionsEl.append(key);
+    }
+    return { mode, label, button, key };
   });
 
   /**
@@ -2449,6 +2527,7 @@ async function boot(initial: Game | null): Promise<void> {
       const on = option.mode === current;
       option.button.classList.toggle('is-on', on);
       option.button.setAttribute('aria-pressed', String(on));
+      if (option.key) option.key.hidden = !on;
     }
     const yields = controls.yieldsShown();
     yieldsToggle.checked = yields;

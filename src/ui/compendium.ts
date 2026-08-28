@@ -113,6 +113,7 @@ import { type TechGift, techGifts } from '../sim/techUnlocks';
 import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield } from '../sim/terrainData';
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from '../sim/triumphData';
 import { UNIT_TYPE_IDS, type UnitDef, type UnitTypeId, unitDef } from '../sim/unitData';
+import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
 import { CARD_LINE_NAME, lineOf } from './cardLine';
 import { setDescriptorText } from './keywords';
 import { SHELF_INTROS } from './compendiumShelves';
@@ -246,6 +247,16 @@ export const DEFAULT_ENTRY = compendiumId('intro', 'howToPlay');
 /** A row, dropped entirely when it has no figure to carry. */
 function row(label: string, figures: string): CompendiumRow[] {
   return figures.length === 0 ? [] : [{ label, figures }];
+}
+
+/**
+ * What a unit or a building costs to keep, as the shelves print it.
+ *
+ * `None` rather than an empty string, because `row` drops an empty one and this
+ * is the rare figure whose zero is the interesting answer — see the callers.
+ */
+function upkeepRow(gold: number): string {
+  return gold <= 0 ? 'None' : `${figure(gold)}${YIELD_GLYPH.gold}`;
 }
 
 /** A tile yield in glyphs — `+2🌾 +1⚙`, or empty when it pays nothing. */
@@ -492,6 +503,12 @@ function unitEntry(state: GameState | null, type: UnitTypeId): CompendiumEntry {
       'Purchase cost',
       def.purchase === undefined ? '' : `${figure(def.purchase.cost)} ${def.purchase.currency}`,
     ),
+    // Always a row, and `None` rather than an omission (Entry XLI). The other
+    // rows in this table are dropped when they are empty because an absent
+    // figure means "this is not that kind of unit"; an absent upkeep would mean
+    // the book forgot, and "a scout costs nothing to keep" is one of the more
+    // useful sentences on the shelf.
+    ...row('Upkeep each turn', upkeepRow(unitUpkeep(type))),
     ...row('Unlocked by', techName(gate)),
   ];
   const clauses = unitMarkers(def);
@@ -617,6 +634,10 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
           ]),
     ),
     ...row('Renown counts toward', def.renown?.family ?? ''),
+    // The unit shelf's row, one grade over. A wonder reads `None` here on
+    // purpose: a marvel is not a payroll, and that is a design decision worth
+    // printing rather than a gap.
+    ...row('Upkeep each turn', upkeepRow(buildingUpkeep(id))),
     ...row('Can only be built in', siteRequirement(def)),
     ...row('Unlocked by', techName(gate)),
   ];

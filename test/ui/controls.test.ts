@@ -43,7 +43,10 @@ import {
   wantsNativeContextMenu,
 } from '../../src/ui/controls';
 
-const ORDER: readonly LensMode[] = ['none', 'settler', 'explorer'];
+// The rack's own order (`LENS_OPTIONS` in `main.ts`), which is the one source
+// the digit hotkeys read. Faith is appended rather than inserted, which is all a
+// new lens costs: the mapping is a *position*, never a table.
+const ORDER: readonly LensMode[] = ['none', 'settler', 'explorer', 'faith'];
 
 describe('lensForDigit', () => {
   it('always clears on 0, whatever lens is active', () => {
@@ -55,6 +58,10 @@ describe('lensForDigit', () => {
   it('numbers the lenses, one-indexed, with the None row struck out', () => {
     expect(lensForDigit(1, ORDER, 'none')).toBe('settler');
     expect(lensForDigit(2, ORDER, 'none')).toBe('explorer');
+    // Three is the faith lens, and it is the only one no piece raises — a
+    // settler and a scout bring their own up by being picked up, and this is one
+    // the player goes and asks for.
+    expect(lensForDigit(3, ORDER, 'none')).toBe('faith');
   });
 
   it('never lets a digit mean "off" — that is 0 and only 0', () => {
@@ -76,7 +83,7 @@ describe('lensForDigit', () => {
   });
 
   it('names nothing past the end of the list', () => {
-    expect(lensForDigit(3, ORDER, 'none')).toBeNull();
+    expect(lensForDigit(4, ORDER, 'none')).toBeNull();
     expect(lensForDigit(9, ORDER, 'none')).toBeNull();
   });
 
@@ -100,10 +107,11 @@ describe('lensForDigit', () => {
   });
 
   it('follows a grown order with no change to the mapping itself', () => {
-    // A hypothetical third lens appended to the menu's list — the whole point
-    // of reading `order` rather than a hardcoded table.
+    // A hypothetical further lens appended to the menu's list — the whole point
+    // of reading `order` rather than a hardcoded table, and the mechanism the
+    // faith lens actually arrived by.
     const grown: readonly LensMode[] = [...ORDER, 'settler'];
-    expect(lensForDigit(3, grown, 'none')).toBe('settler');
+    expect(lensForDigit(4, grown, 'none')).toBe('settler');
   });
 });
 

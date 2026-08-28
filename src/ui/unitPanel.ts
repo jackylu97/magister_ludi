@@ -50,6 +50,7 @@ import { cityAt } from '../sim/cities';
 import type { GameState, Unit } from '../sim/state';
 import type { TileYield } from '../sim/terrainData';
 import { trades, unitDef } from '../sim/unitData';
+import { unitUpkeep, unitUpkeepOf } from '../sim/upkeep';
 import type { ImprovementOption } from './controls';
 import { cityDisplayName } from './cityDisplay';
 import { describeTile, knowsCity } from './tileReadout';
@@ -383,6 +384,36 @@ function element<K extends keyof HTMLElementTagNameMap>(
  * this guards against is a sentence that is merely wrong, which no thrown error
  * would ever catch.
  */
+/**
+ * What this piece costs the treasury every turn, as the sheet says it.
+ *
+ * **Three sentences, and they are three different facts** (Entry XLI), which is
+ * why this asks `upkeep.ts`' two readers rather than the one that folds them:
+ *
+ *   · `No upkeep` — the *type* is exempt. A settler, a worker, an augur, a
+ *     prophet, a great person, the scout and a caravan. Said out loud rather
+ *     than left blank, because "this army costs nothing to keep" is exactly the
+ *     thing a player is deciding between a scout and a warrior about;
+ *   · `Free — granted` — the type pays, but this *piece* never did
+ *     (`Unit.freeUpkeep`): captured, converted, or handed over by a windfall, a
+ *     wonder, a ruin or a call. A fact about the board that the roster cannot
+ *     say and nothing else on the sheet reveals;
+ *   · `Upkeep 2💰 a turn` — everything else, at the age of the technology that
+ *     unlocked it.
+ *
+ * The type's question is asked **first**. A settler with `freeUpkeep` set is
+ * still a settler, and "Free — granted" on one would teach a rule that is not
+ * there — that an ordinary settler costs something.
+ *
+ * Pure and exported, for `marchDestination`'s reason: a sentence that is merely
+ * wrong throws nothing.
+ */
+export function upkeepNote(unit: Unit): string {
+  if (unitUpkeep(unit.type) === 0) return 'No upkeep';
+  if (unit.freeUpkeep === true) return 'Free — granted';
+  return `Upkeep ${unitUpkeepOf(unit)}${YIELD_GLYPH.gold} a turn`;
+}
+
 export function marchDestination(
   state: GameState,
   playerId: number,
@@ -1112,6 +1143,11 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // The standing states a player has to know before ordering anything.
     // Fortification first: it is the one they chose.
     const notes: string[] = [];
+    // What the piece costs to keep, on every sheet including the ones that cost
+    // nothing (`upkeepNote`'s three sentences). It leads the notes because it is
+    // the only one that is true every turn whatever the player does — the rest
+    // of this list is states the piece is passing through.
+    notes.push(upkeepNote(unit));
     if (isFortified(unit)) notes.push(`${signedFigure(fortifyBonus(unit))} fortified`);
     // Beside fortification and for its reason: a standing state the player chose
     // and would otherwise have to infer from the button's label. The mark is the
@@ -1137,7 +1173,12 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     const price = authorityDelta(unit);
     if (price) notes.push(price);
     if (notes.length > 0) {
-      container.append(element('p', 'unit-note', notes.join(' · ')));
+      // Through `setYieldText` rather than as plain text: the upkeep note leads
+      // this list and carries a 💰, and a coin printed as an emoji beside a row
+      // of drawn marks is the retiral `yieldMark.ts` exists to finish.
+      const note = element('p', 'unit-note');
+      setYieldText(note, notes.join(' · '));
+      container.append(note);
     }
 
     // **What this piece has been told to do**, which is the question a player

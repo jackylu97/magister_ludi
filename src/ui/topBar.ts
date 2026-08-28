@@ -70,7 +70,12 @@ import {
   meterStanding,
 } from '../sim/meters';
 import { empireResourceYields, foldResourceYields } from '../sim/resourceEffects';
-import { explainTradeGold, tradeGold } from '../sim/trade';
+import { empireGold, explainEmpireGold } from '../sim/trade';
+import {
+  type UpkeepLine,
+  explainBuildingUpkeep,
+  explainUnitUpkeep,
+} from '../sim/upkeep';
 import { type GameState, type Player, playerById } from '../sim/state';
 import { cityDisplayName, starCapitalSource } from './cityDisplay';
 import {
@@ -126,42 +131,82 @@ export function civYields(state: GameState, playerId: number): CityYields {
   total.science += empire.science;
   total.culture += empire.culture;
   total.faith += empire.faith;
-  // Trade's empire-scale gold, banked by `collectYields` in the same pass and
-  // for the same reason as the signatures above it: a city connection belongs to
-  // no town (it is a fact about the *road* between one and the capital) and road
-  // maintenance is charged on hexes, not on cities. Left out, this headline
-  // would be a rate the turn resolution disagrees with — the very argument the
-  // luxuries were added here for, and the reason the two lines join in one
-  // place rather than only in the card below.
-  total.gold += tradeGold(state, playerId);
+  // The empire-scale gold, banked by `collectYields` in the same pass and for
+  // the same reason as the signatures above it: none of its four lines belongs
+  // to a town. A city connection is a fact about the *road* between one and the
+  // capital, road maintenance is charged on hexes, and a garrison's wages are
+  // charged on the army rather than on whichever town it happens to be standing
+  // in (Entry XLI — that is what keeps an army out of Entry XVII's staging).
+  // Left out, this headline would be a rate the turn resolution disagrees with.
+  total.gold += empireGold(state, playerId);
   return total;
 }
 
 /**
- * Trade's empire-scale lines in the shape the yield card already folds: a
+ * The per-item list behind a maintenance line, as one plain string.
+ *
+ * "Warrior 1💰 · Swordsman 2💰 · Library · Aldermarch 2💰". A `title` rather
+ * than a nested ledger, because the card it hangs off is *already* a hover: a
+ * forty-unit army spelled out inline would push the six-voice breakdown off the
+ * bottom of the screen, and the question this answers ("which pieces am I
+ * paying for") is the second one a player asks, never the first.
+ *
+ * Capped, and the cap says so. A line that ended mid-army would read as an army
+ * that ends there.
+ */
+function upkeepDetail(lines: readonly UpkeepLine[]): string {
+  const CAP = 12;
+  const shown = lines
+    .slice(0, CAP)
+    .map((line) => `${line.source} ${figure(line.gold)}${YIELD_GLYPH.gold}`);
+  if (lines.length > CAP) shown.push(`and ${figure(lines.length - CAP)} more`);
+  return shown.join(' · ');
+}
+
+/**
+ * The empire-scale gold lines in the shape the yield card already folds: a
  * source and a figure in each of the six voices.
  *
- * **Exactly two lines** — one total for the city connections and one for the
- * road maintenance — because that is what `explainTradeGold` is. The per-city
- * figures behind the first are `connectedCities`' answer and are deliberately
- * not spread out here: they would be a second ledger of the same money, which
- * is the thing the fold exists to prevent.
+ * **Four lines** since the maintenance ruling (Entry XLI) — the city
+ * connections, the road bill, the army's wages and the institutions' — because
+ * that is what `explainEmpireGold` is. Each is a count and a total, and the
+ * per-item lists behind them stay where they are: `connectedCities` for the
+ * first, `explainUnitUpkeep` and `explainBuildingUpkeep` for the last two.
+ * The two maintenance lines carry theirs as a `detail` the card hangs on a
+ * `title`; the connections line deliberately does not, because a per-city
+ * ledger of the same money is the thing the fold exists to prevent.
+ *
+ * **`detail` is attached without asking which voice is being shown**, and that
+ * is not laziness: a maintenance line is zero in all five other voices, so the
+ * card's own zero-skip has already decided. A `key === 'gold'` here would be
+ * the hand-rolled comparison `tradePanels.test.ts` refuses.
  *
  * The adapter is here rather than in `trade.ts` because it is a *presentation*
  * fact: the simulation pays this in gold and knows nothing about six voices,
  * and the card wants every empire-scale source to answer the same question
- * ("what do you pay in the voice I am showing"). Written this way so the card
- * needs no `key === 'gold'` — see the loop that reads it.
+ * ("what do you pay in the voice I am showing").
  */
 function empireTradeLines(
   state: GameState,
   playerId: number,
-): (CityYields & { source: string })[] {
-  return explainTradeGold(state, playerId).map((line) => ({
-    ...emptyCityYields(),
-    source: line.source,
-    gold: line.gold,
-  }));
+): (CityYields & { source: string; detail?: string })[] {
+  // Keyed on the head of the label — everything before the ` · count` tail —
+  // because that is the only handle `TradeGoldLine` offers. It degrades to no
+  // detail rather than to a wrong one if the simulation ever renames a line,
+  // and `test/ui/tradePanels.test.ts` pins that the two names still meet.
+  const details = new Map<string, string>([
+    ['Unit maintenance', upkeepDetail(explainUnitUpkeep(state, playerId))],
+    ['Building maintenance', upkeepDetail(explainBuildingUpkeep(state, playerId))],
+  ]);
+  return explainEmpireGold(state, playerId).map((line) => {
+    const detail = details.get(line.source.split(' · ')[0] ?? '');
+    return {
+      ...emptyCityYields(),
+      source: line.source,
+      gold: line.gold,
+      ...(detail !== undefined && detail.length > 0 ? { detail } : {}),
+    };
+  });
 }
 
 /**
@@ -449,18 +494,23 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       if (value === 0) continue;
       lines.append(meterLine(`${line.source} · empire`, value, false));
     }
-    // Trade's two empire lines, after the signatures and for their reason: a
-    // city connection and a road bill belong to no town. Read by voice like the
-    // signatures above rather than behind a `key === 'gold'` — the zero-skip is
-    // already the gate, and a hand-rolled comparison is exactly the shape the
-    // banked register was taken away from (`figures.test.ts`).
+    // The four empire lines, after the signatures and for their reason: a city
+    // connection, a road bill, an army's wages and an institution's belong to no
+    // town. Read by voice like the signatures above rather than behind a
+    // `key === 'gold'` — the zero-skip is already the gate, and a hand-rolled
+    // comparison is exactly the shape the banked register was taken away from
+    // (`figures.test.ts`).
     for (const line of empireTradeLines(state, playerId)) {
       const value = line[key];
       if (value === 0) continue;
-      // Signed, both of them: this is an income and a bill in one list, and
-      // the first upkeep the game has ever charged. A cost shown unsigned under
-      // a heading that says "per turn" would be the ledger lying about itself.
-      lines.append(meterLine(line.source, value, true));
+      // Signed, all four: this is an income and three bills in one list. A cost
+      // shown unsigned under a heading that says "per turn" would be the ledger
+      // lying about itself.
+      const row = meterLine(line.source, value, true);
+      // The per-item list, one hover deeper. Plain text, because a `title` is a
+      // plain-text sink (`keywords.ts`) and the platform draws it.
+      if (line.detail !== undefined) row.title = line.detail;
+      lines.append(row);
     }
     // Culture's card gains the ladder it now buys (Entry XV): the tier, the
     // basket against the next threshold, and whatever offer is outstanding.
@@ -549,8 +599,8 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
    * precedent exactly: trade is the other system with a screen behind it.
    *
    * Its card is `tradeLedger` — every running route's fold on one line, then
-   * `explainTradeGold`'s two, then the total under a double rule — so the chip,
-   * the card and the Trade screen's own foot are one arithmetic.
+   * `explainEmpireGold`'s four, then the total under a double rule — so the
+   * chip, the card and the Trade screen's own foot are one arithmetic.
    */
   const routesItem = element('span', 'civ-yield is-routes civ-yield-routes');
   {
@@ -619,7 +669,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       box.append(list);
     }
     const total = element('div', 'meter-total ledger-total');
-    total.append(element('span', 'meter-line-source', 'Trade, per turn'));
+    total.append(element('span', 'meter-line-source', 'Treasury, per turn'));
     const value = element('span', 'meter-line-value');
     setYieldText(value, `${signedFigure(ledger.total)}${YIELD_GLYPH.gold}`);
     total.append(value);

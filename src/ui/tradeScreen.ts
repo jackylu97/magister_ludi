@@ -33,7 +33,7 @@
  * --------------------------
  * Every figure comes out of `trade.ts`: `explainRouteYield` for what a route
  * pays, `explainRouteYieldBetween` for what one *would* pay, `explainRouteSlots`
- * and `usedRouteSlots` for the capacity, `explainTradeGold` for the two
+ * and `usedRouteSlots` for the capacity, `explainEmpireGold` for the four
  * empire-scale lines, `routeStartable` for every greyed row. A row's sentence is
  * the reducer's own — **never a copy wearing a route it is not carrying**, which
  * is the mistake `tradeLines.ts`' docblock records having made once already.
@@ -47,16 +47,16 @@
 import {
   type RouteYieldLine,
   type TradeGoldLine,
+  empireGold,
+  explainEmpireGold,
   explainRouteSlots,
   explainRouteYield,
   explainRouteYieldBetween,
-  explainTradeGold,
   foldRouteYield,
   originCityOf,
   routeCities,
   routeIsLive,
   routeStartable,
-  tradeGold,
   usedRouteSlots,
 } from '../sim/trade';
 import { UNIT_TYPE_IDS, type UnitTypeId, trades, unitDef } from '../sim/unitData';
@@ -154,12 +154,12 @@ export interface TradeLedger {
  * What trade is paying this empire, as the ordered list the total is the fold of
  * (rule 5).
  *
- * One line per running route, then `explainTradeGold`'s two — the connections
- * and the road upkeep — and the total under a double rule. Gold is the one voice
- * that totals because it is the one voice all three sources share: a route's
- * food and hammers land in one town's own basket and are quoted on the route's
- * line, and adding them to an empire-wide figure would be summing two different
- * things.
+ * One line per running route, then `explainEmpireGold`'s four — the
+ * connections, the road bill, the army's wages and the institutions' — and the
+ * total under a double rule. Gold is the one voice that totals because it is
+ * the one voice every source here shares: a route's food and hammers land in
+ * one town's own basket and are quoted on the route's line, and adding them to
+ * an empire-wide figure would be summing two different things.
  */
 export function tradeLedger(state: GameState, playerId: number): TradeLedger {
   const lines: TradeLedgerLine[] = [];
@@ -171,12 +171,12 @@ export function tradeLedger(state: GameState, playerId: number): TradeLedger {
       figures: route.figures,
     });
   }
-  for (const line of explainTradeGold(state, playerId) as readonly TradeGoldLine[]) {
+  for (const line of explainEmpireGold(state, playerId) as readonly TradeGoldLine[]) {
     lines.push({ source: line.source, gold: line.gold, figures: `${signedFigure(line.gold)}${YIELD_GLYPH.gold}` });
   }
   let total = 0;
   for (const route of routes) total += route.gold;
-  total += tradeGold(state, playerId);
+  total += empireGold(state, playerId);
   const slots = explainRouteSlots(state, playerId).reduce((sum, line) => sum + line.slots, 0);
   const used = usedRouteSlots(state, playerId);
   return { lines, total, used, slots, chip: `${figure(used)} / ${figure(slots)}` };
@@ -704,7 +704,7 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
       scroller.append(card);
     }
 
-    // The foot: the capacity, then the two empire-scale lines and the fold. The
+    // The foot: the capacity, then the four empire-scale lines and the fold. The
     // whole of `tradeLedger` under a double rule, which is what makes the chip's
     // hover and this column the same arithmetic.
     const foot = element('div', 'trade-foot');
@@ -716,7 +716,7 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
       ),
     );
     const list = element('ul', 'meter-lines ledger');
-    for (const line of explainTradeGold(state, seat)) {
+    for (const line of explainEmpireGold(state, seat)) {
       const item = element('li', 'meter-line');
       item.append(element('span', 'meter-line-source', line.source));
       item.append(element('span', 'meter-line-value', signedFigure(line.gold)));
@@ -724,7 +724,7 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     }
     if (list.childElementCount > 0) foot.append(list);
     const total = element('div', 'meter-total ledger-total');
-    total.append(element('span', 'meter-line-source', 'Trade, per turn'));
+    total.append(element('span', 'meter-line-source', 'Treasury, per turn'));
     const value = element('span', 'meter-line-value');
     setYieldText(value, `${signedFigure(ledger.total)}${YIELD_GLYPH.gold}`);
     total.append(value);

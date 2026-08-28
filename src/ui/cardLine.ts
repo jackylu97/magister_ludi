@@ -28,20 +28,27 @@
  * emoji set failed, one of which was a straight collision with the faith glyph.
  */
 
-import { cardLineMarkDataUri, slotMarkDataUri } from '../art/lineMarks';
+import { type AnyCardLine, cardLineMarkDataUri, slotMarkDataUri } from '../art/lineMarks';
 import type { CardLine, SlotType } from '../sim/statecraftData';
+
+export type { AnyCardLine };
 
 /**
  * How a line reads when the interface has to *say* it — a card's title
  * attribute, a collection heading, a screen reader.
  *
  * `docs/statecraft-cards.md`'s names, to the word: these are the designer's
- * names for the seven threads and the screen has no business inventing a
- * synonym. `'none'` is deliberately not "None" — a neutral card is not a member
- * of a line called nothing, it is a card that joins no line, and the sentence
- * has to survive being read aloud.
+ * names for the threads and the screen has no business inventing a synonym.
+ * `'none'` is deliberately not "None" — a neutral card is not a member of a
+ * line called nothing, it is a card that joins no line, and the sentence has to
+ * survive being read aloud.
+ *
+ * Keyed on `AnyCardLine` rather than `CardLine`, which is the one thing here
+ * that is not simply a table: a thread's name and ink are art, and the
+ * interface may be ready for one before the simulation declares it. See
+ * `PendingCardLine` in `src/art/lineMarks.ts` for how the two unions rejoin.
  */
-export const CARD_LINE_NAME: Record<CardLine, string> = {
+export const CARD_LINE_NAME: Record<AnyCardLine, string> = {
   hunt: 'The Wild Hunt',
   caravan: 'The Long Caravan',
   green: 'The Green Belt',
@@ -50,22 +57,35 @@ export const CARD_LINE_NAME: Record<CardLine, string> = {
   procession: 'The Procession',
   wayfarers: 'The Wayfarers',
   none: 'no line',
+  // The five newer threads, keyed on `AnyCardLine` so this table is ready
+  // before `CardLine` declares them (see `PendingCardLine`). The Marble Court
+  // is the one with a card already written for it — The Laureate, whose whole
+  // sentence is about patronage — and the other four are its siblings in the
+  // same pass, named here so that a data row naming one is never printed as
+  // "no line".
+  court: 'The Marble Court',
+  cloister: 'The Cloister',
+  charter: 'The Charter',
+  ploughshare: 'The Ploughshare',
+  highlands: 'The Highlands',
 };
 
 /**
  * The palette cut each line is drawn in, as the key `style.css` resolves.
  *
- * Six of the eight are the specimen's own accents used for what they already
- * mean — vermilion is blood, gilt is money, grape is rite, lapis is knowledge,
- * teal is distance — and the two that are not (sage for the Green Belt, slate
- * for the Forge Levy) are added beside them rather than borrowed from a yield
- * voice, because a card's line is not a yield and a hand that reads as five
- * yields plus two would be saying something untrue about what the cards do.
+ * Six of the first eight are the specimen's own accents used for what they
+ * already mean — vermilion is blood, gilt is money, grape is rite, lapis is
+ * knowledge, teal is distance — and the two that are not (sage for the Green
+ * Belt, slate for the Forge Levy) are added beside them rather than borrowed
+ * from a yield voice, because a card's line is not a yield and a hand that reads
+ * as five yields plus two would be saying something untrue about what the cards
+ * do. The five newer threads follow the same rule: each is a cut of its own in
+ * `style.css`, spaced off the eight already there rather than reusing one.
  *
  * `'none'` resolves to plain ink. That is the point of it: two thirds of a good
  * hand is neutral, and a deck where every card shouts has no accent at all.
  */
-export const CARD_LINE_ACCENT: Record<CardLine, string> = {
+export const CARD_LINE_ACCENT: Record<AnyCardLine, string> = {
   hunt: 'hunt',
   caravan: 'caravan',
   green: 'green',
@@ -74,6 +94,11 @@ export const CARD_LINE_ACCENT: Record<CardLine, string> = {
   procession: 'procession',
   wayfarers: 'wayfarers',
   none: 'none',
+  court: 'court',
+  cloister: 'cloister',
+  charter: 'charter',
+  ploughshare: 'ploughshare',
+  highlands: 'highlands',
 };
 
 /** A card's line, defaulting the way the data does: an absent thread is neutral. */
@@ -88,7 +113,7 @@ export function lineOf(def: { line?: CardLine }): CardLine {
  * already carries the line's name in its title and its type in text, so a reader
  * that announced the mark would say the card twice.
  */
-export function cardLineMarkNode(id: CardLine): HTMLSpanElement {
+export function cardLineMarkNode(id: AnyCardLine): HTMLSpanElement {
   const span = document.createElement('span');
   span.setAttribute('aria-hidden', 'true');
   span.className = 'line-mark';
@@ -113,7 +138,7 @@ export function slotMarkNode(slot: SlotType): HTMLSpanElement {
  * and an accent key rather than a `CardLine` it would have to look up. See its
  * `OfferOption.emblem`.
  */
-export function cardLineMarkUrl(id: CardLine): string {
+export function cardLineMarkUrl(id: AnyCardLine): string {
   return `url("${cardLineMarkDataUri(id)}")`;
 }
 

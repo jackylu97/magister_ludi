@@ -67,14 +67,40 @@ export interface LineMark {
 }
 
 /**
- * The seven threads and the neutral card, drawn.
+ * The threads the deck's newer themes name, ahead of the union that will hold
+ * them.
+ *
+ * `CardLine` lives in `src/sim/statecraftData.ts` and a colour is not a rule, so
+ * the interface can be ready for a thread before the simulation declares it: a
+ * drawn emblem and a name are art, and a card that has neither comes up wearing
+ * the neutral seal. The union is written as `CardLine | PendingCardLine` at
+ * every reader below, which **collapses to `CardLine` the moment the simulation
+ * adopts these members** — nothing here has to be unwound, and a member the
+ * simulation never adopts costs one unreachable table row.
+ *
+ * `'court'` is the one with a card waiting for it: The Laureate (see
+ * `data/statecraft.json`), whose Marble Court is the patronage thread.
+ */
+export type PendingCardLine = 'court' | 'cloister' | 'charter' | 'ploughshare' | 'highlands';
+
+/** Every thread a card may name, drawn or declared. See `PendingCardLine`. */
+export type AnyCardLine = CardLine | PendingCardLine;
+
+/**
+ * The threads and the neutral card, drawn.
  *
  * `'none'` is most of the good cards (see `CardLine`), so its mark has to be a
  * real drawing rather than an absence: a lozenge seal, which is the ink shape
  * the Statecraft screen was already using as its wax glyph. A blank emblem would
  * have read as a card that failed to load.
+ *
+ * The five newest are drawn rather than set in the emoji their design notes name
+ * (🏛 ☽ 📜 🌾 ⛰), for the two reasons at the top of this file and no new one: a
+ * hand whose emblems are half colour pictures is not a hand of cards, and a
+ * colour emoji cannot take the line's accent, which is the loudest place that
+ * accent lands.
  */
-export const CARD_LINE_MARKS: Readonly<Record<CardLine, LineMark>> = {
+export const CARD_LINE_MARKS: Readonly<Record<AnyCardLine, LineMark>> = {
   hunt: {
     note: 'a bow, strung, with the arrow across it',
     paths: [
@@ -138,6 +164,62 @@ export const CARD_LINE_MARKS: Readonly<Record<CardLine, LineMark>> = {
   none: {
     note: 'a lozenge seal, twice — the wax the screen already stamps with',
     paths: [ink(poly(32, 8, 56, 32, 32, 56, 8, 32)), ink(poly(32, 20, 44, 32, 32, 44, 20, 32))],
+  },
+  court: {
+    note: 'a pediment on three columns, on its stylobate — the marble court',
+    paths: [
+      // The pediment is a plain triangle rather than a gabled one: at this size
+      // a cornice is two strokes that merge, and the silhouette that says
+      // "temple front" is the triangle sitting *clear* of the columns.
+      ink('M8 26L32 10L56 26'),
+      ink(line(10, 26, 54, 26)),
+      ink(line(18, 30, 18, 50)),
+      ink(line(32, 30, 32, 50)),
+      ink(line(46, 30, 46, 50)),
+      ink(line(10, 54, 54, 54)),
+    ],
+  },
+  cloister: {
+    note: 'a waxing crescent under a round arch — the cloister walk',
+    paths: [
+      // The crescent is one closed path, not a disc minus a disc: a mask takes
+      // whatever is drawn, and two overlapping fills would paint the bite in
+      // the same ink as the moon.
+      solid('M38 8A22 22 0 1 0 38 52A26 26 0 1 1 38 8Z'),
+      ink('M14 56A18 18 0 0 1 50 56'),
+    ],
+  },
+  charter: {
+    note: 'a scroll, rolled at both ends, with two lines of writing',
+    paths: [
+      ink(line(16, 18, 48, 18)),
+      ink(line(16, 46, 48, 46)),
+      ink('M16 18A6 8 0 0 0 16 34'),
+      ink('M48 46A6 8 0 0 0 48 30'),
+      ink(line(16, 34, 48, 34)),
+      ink(line(16, 30, 48, 30)),
+      ink(line(24, 26, 42, 26)),
+      ink(line(24, 38, 42, 38)),
+    ],
+  },
+  ploughshare: {
+    note: 'a ploughshare cutting a furrow — the blade, its beam and the turned soil',
+    paths: [
+      // A wheat ear was the first sketch and it collided with the Green Belt's
+      // sprig at emblem size: two upright plants, one of them stippled. The
+      // blade is the shape only this line owns.
+      ink(poly(12, 40, 40, 26, 44, 40, 16, 48)),
+      ink(line(40, 26, 52, 14)),
+      ink('M8 54Q32 46 56 54'),
+    ],
+  },
+  highlands: {
+    note: 'two peaks, the nearer one snow-capped',
+    paths: [
+      ink(poly(4, 52, 24, 20, 44, 52)),
+      ink('M17 32L24 28L31 32'),
+      ink('M38 52L50 32L60 52'),
+    ],
   },
 };
 
@@ -217,7 +299,7 @@ function markUri(cacheKey: string, mark: LineMark, color: string): string {
  * verbs this module imports — a shadow here would be a straight segment nobody
  * could draw.
  */
-export function cardLineMarkDataUri(id: CardLine, color = '#000'): string {
+export function cardLineMarkDataUri(id: AnyCardLine, color = '#000'): string {
   return markUri(`line|${id}|${color}`, CARD_LINE_MARKS[id], color);
 }
 

@@ -69,6 +69,16 @@
   --line-wayfarers: #1a7873;
   --line-none: #56505a;
 
+  /* The five newer threads, spaced off the eight above rather than reusing one:
+     porphyry for the Marble Court's patronage, indigo for the Cloister's night
+     office, sepia for the Charter's ink, wheat-olive for the Ploughshare's
+     furrow, and a cold stone-green for the Highlands. */
+  --line-court: #a04a63;
+  --line-cloister: #574a9c;
+  --line-charter: #7a6338;
+  --line-ploughshare: #8a9a2a;
+  --line-highlands: #5d7566;
+
   /* --- yield voices ----------------------------------------------------- */
   --y-food: #3f9636;
   --y-prod: #c26a1d;
@@ -262,7 +272,7 @@ body {
   mask-position: center;
 }
 
-/* The eight accents, resolved once. Every surface that draws a Statecraft card
+/* The accents, resolved once. Every surface that draws a Statecraft card
    sets `data-line` on it and reads `--line-ink`; nothing anywhere else knows
    which hex the Wild Hunt is. That is what lets the frame rule, the emblem and
    the eyebrow of one card be three elements and still be one colour. */
@@ -296,6 +306,26 @@ body {
 
 [data-line='none'] {
   --line-ink: var(--line-none);
+}
+
+[data-line='court'] {
+  --line-ink: var(--line-court);
+}
+
+[data-line='cloister'] {
+  --line-ink: var(--line-cloister);
+}
+
+[data-line='charter'] {
+  --line-ink: var(--line-charter);
+}
+
+[data-line='ploughshare'] {
+  --line-ink: var(--line-ploughshare);
+}
+
+[data-line='highlands'] {
+  --line-ink: var(--line-highlands);
 }
 
 /* A mark that *leads* a figure (`⚙ +10%`, the modifier voice) wants its air on
@@ -1120,6 +1150,43 @@ button.toast:active {
   transition: opacity 260ms ease-in, transform 260ms ease-in;
 }
 
+/* The stale-deploy card: the toast's dress, none of its behaviour (see
+   `staleDeploy.ts`). It is a *condition* rather than news, so it sits in its own
+   fixed slot, never fades, and takes pointer events because it carries a
+   control. A vermilion edge because it is the one card on screen that is about
+   the page rather than about the game. It is never `is-leaving`, which is why
+   the rule above cannot reach it. */
+.stale-notice {
+  position: fixed;
+  top: calc(var(--topbar-h) + 10px);
+  left: 50%;
+  z-index: 40;
+  align-items: center;
+  justify-content: space-between;
+  width: min(360px, calc(100vw - 48px));
+  transform: translateX(-50%);
+  border-color: var(--vermilion);
+  border-left-width: 4px;
+  pointer-events: auto;
+}
+
+.stale-notice-refresh {
+  flex: none;
+  padding: 3px 9px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--table);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stale-notice-refresh:hover {
+  background: var(--parchment);
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
@@ -1366,6 +1433,27 @@ button.log-entry:active {
 
 .lens-option.is-on .lens-option-tick {
   visibility: visible;
+}
+
+/* The clause after the em dash: what question the lens answers. Faint and at
+   the row's weight rather than its heading's, so "Faith" is still the word the
+   eye lands on. */
+.lens-option-tail {
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+/* The key to the drawing, under its own row and only while that lens is up.
+   Indented to the row's text, ruled off at the left so it reads as belonging to
+   the row above rather than as a fourth option. */
+.lens-legend {
+  margin: 2px 0 2px 8px;
+  padding-left: 7px;
+  border-left: var(--border-thin) solid var(--table);
+  font-family: var(--face-ui);
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--ink-faint);
 }
 
 /* --- the lens switches ----------------------------------------------------
@@ -5018,6 +5106,13 @@ kbd {
 
 .info-card-turns {
   color: var(--ink-soft);
+}
+
+/* The third figure in the row: what keeping the thing will cost every turn
+   (Entry XLI). Faint rather than gold-coloured, because it is a bill sitting
+   beside a price and the price is the figure the eye should land on first. */
+.info-card-upkeep {
+  color: var(--ink-faint);
 }
 
 .info-card-rate {

@@ -18,7 +18,12 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { CARD_LINE_MARKS, SLOT_MARKS, lineMarkSvg } from '../../src/art/lineMarks';
+import {
+  CARD_LINE_MARKS,
+  type PendingCardLine,
+  SLOT_MARKS,
+  lineMarkSvg,
+} from '../../src/art/lineMarks';
 import { CARD_LINE_ACCENT, CARD_LINE_NAME, lineOf } from '../../src/ui/cardLine';
 import { type OfferOption, orderOfferLayout } from '../../src/ui/offerCard';
 import {
@@ -142,6 +147,66 @@ describe('every card the data can deal has a face', () => {
     for (const mark of every) {
       for (const path of mark.paths) expect(path.d.length).toBeGreaterThan(4);
       expect(mark.note.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+/**
+ * The threads the deck's newer themes name, drawn and named ahead of the union
+ * that will hold them.
+ *
+ * A colour is not a rule (`CardLine`'s own docblock), so the interface may be
+ * ready for a thread before `src/sim/statecraftData.ts` declares it. The failure
+ * that shape invites is a face declared in one of the three tables and forgotten
+ * in the other two — a card that comes up named but blank, or drawn but grey —
+ * and that is invisible until somebody deals the card, which cannot happen until
+ * the simulation adopts the member. So the sweep is over the union itself.
+ */
+describe('the threads waiting for the data to name them', () => {
+  const PENDING: readonly PendingCardLine[] = [
+    'court',
+    'cloister',
+    'charter',
+    'ploughshare',
+    'highlands',
+  ];
+
+  it('is the Marble Court and its four siblings', () => {
+    // The Laureate is the card waiting for one of them. Named here so that
+    // renaming the thread without renaming the row fails loudly.
+    expect(PENDING).toContain('court');
+    expect(CARD_LINE_NAME.court).toBe('The Marble Court');
+  });
+
+  it('has a drawing, a name and an ink for every one of them', () => {
+    for (const line of PENDING) {
+      expect(CARD_LINE_MARKS[line], `no drawing for "${line}"`).toBeDefined();
+      expect(CARD_LINE_MARKS[line].paths.length, `empty drawing for "${line}"`).toBeGreaterThan(0);
+      expect(CARD_LINE_MARKS[line].note, `undescribed drawing for "${line}"`).toBeTruthy();
+      expect(CARD_LINE_NAME[line], `no name for "${line}"`).toBeTruthy();
+      expect(CARD_LINE_ACCENT[line], `no accent for "${line}"`).toBe(line);
+    }
+  });
+
+  /**
+   * The accent key reaches the DOM as `data-line` and is resolved to ink by one
+   * block of `style.css`. A key with no block there is a card drawn in whatever
+   * `--line-ink` happened to be inherited — which is *something*, and therefore
+   * a bug nobody notices.
+   */
+  it('has a cut of the palette resolved for every accent', async () => {
+    const css = (
+      await import('../../src/style.css?raw')
+    ).default as unknown as string;
+    for (const line of PENDING) {
+      expect(css, `no --line-${line} in the palette`).toContain(`--line-${line}:`);
+      expect(css, `no [data-line='${line}'] block`).toContain(`[data-line='${line}']`);
+    }
+  });
+
+  it('reads every name as a name, never as a bare word', () => {
+    for (const line of PENDING) {
+      expect(CARD_LINE_NAME[line]).toMatch(/^The [A-Z]/);
     }
   });
 });
