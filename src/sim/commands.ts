@@ -65,6 +65,7 @@ import {
   type CompletionGrantReport,
   type WonderCompletion,
   assignableTiles,
+  cityAt,
   foundCityAt,
   foundingError,
   purchaseTileAt,
@@ -411,11 +412,12 @@ export interface DequeueResearchCommand extends PlayerCommand {
  * and the log records which was intended rather than what happened to be there.
  *
  * The tile is named, not the victim. What is actually hit is the targeting rule
- * in `combat.ts` (military unit, then city, then civilian), asked at the moment
- * the command applies — so a defender that died to an earlier command in the
- * same turn window simply is not there, and the attack is refused or lands on
- * whatever remains. The interface asks the same question through `previewCombat`
- * and therefore always aims at the thing that will be hit.
+ * in `combat.ts` (walls, then the garrison, then capture — civilians last),
+ * asked at the moment the command applies — so a defender that died to an
+ * earlier command in the same turn window simply is not there, and the attack
+ * is refused or lands on whatever remains. The interface asks the same question
+ * through `previewCombat` and therefore always aims at the thing that will be
+ * hit.
  *
  * Melee or ranged is decided by the *unit*, never by the command: a type with
  * `rangedStrength` shoots and a type without it closes. One command, because
@@ -1343,6 +1345,15 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
     return fail(`Unit ${unit.id} is already on (${tile.col}, ${tile.row})`);
   }
   if (!canStopOn(state, unit, tile)) {
+    // A foreign city gets its own sentence rather than the coordinate-shaped
+    // default: `canTransit`'s refusal here is a design choice (2026-08-28 —
+    // capture, not a march, is how a town changes hands) and a player who
+    // clicked a city should be told that, not handed a coordinate that reads
+    // like a pathing failure.
+    const blockedBy = cityAt(state, tile.col, tile.row);
+    if (blockedBy !== undefined && blockedBy.ownerId !== unit.ownerId) {
+      return fail(`${blockedBy.name} is another empire's city — take it by force`);
+    }
     return fail(`Unit ${unit.id} cannot stop on (${tile.col}, ${tile.row})`);
   }
 

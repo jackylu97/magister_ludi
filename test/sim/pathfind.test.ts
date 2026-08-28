@@ -8,7 +8,7 @@ import {
   reachableTiles,
   tileMoveCost,
 } from '../../src/sim/pathfind';
-import { type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, type Unit, createCity, createUnit, newGame } from '../../src/sim/state';
 import { moveCost } from '../../src/sim/terrainData';
 import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -271,6 +271,43 @@ describe('findPath', () => {
     const around = findPath(state, mover, at(state.map, 3, 3))!;
     expect(around.some((step) => step.col === 2 && step.row === 3)).toBe(false);
   });
+
+  /**
+   * Gap 2 of the 2026-08-28 city-combat pass: a hex holding a **foreign** city
+   * is not enterable by movement, stop or transit, for anybody. Before this,
+   * `canStopOn`/`canTransit` never asked about cities at all, so a unit could
+   * `moveUnit` onto an empty foreign city hex and stand there — filling the
+   * town's only military slot and leaving nothing for an attack to resolve
+   * against. Taking a foreign city is capture's job (`capturesCity` in
+   * `combat.ts`), never an ordinary march's.
+   */
+  it('treats a foreign city as a wall — an empty one included', () => {
+    const state = flatState();
+    const mover = unit(state, 1, 3, 'warrior', 0);
+    createCity(state, 1, 'Uruk', 2, 3); // no garrison at all, still refused
+
+    const held = at(state.map, 2, 3);
+    expect(canTransit(state, mover, held)).toBe(false);
+    expect(canStopOn(state, mover, held)).toBe(false);
+    // Either routed around, or refused outright if nothing else leads through —
+    // never a path that crosses the city's own hex.
+    const around = findPath(state, mover, at(state.map, 3, 3));
+    if (around) {
+      expect(around.some((step) => step.col === 2 && step.row === 3)).toBe(false);
+    }
+    expect(findPath(state, mover, held)).toBeNull();
+  });
+
+  it('leaves a unit’s own city hex ordinary ground', () => {
+    const state = flatState();
+    const mover = unit(state, 1, 3, 'warrior', 0);
+    createCity(state, 0, 'Ur', 2, 3); // same owner as the mover
+
+    const home = at(state.map, 2, 3);
+    expect(canTransit(state, mover, home)).toBe(true);
+    expect(canStopOn(state, mover, home)).toBe(true);
+    expect(findPath(state, mover, home)).toEqual([{ col: 2, row: 3 }]);
+  });
 });
 
 describe('reachableTiles', () => {
@@ -382,6 +419,16 @@ describe('reachableTiles', () => {
     expect(keys.has('3,4')).toBe(false);
     // But the tile beyond the friendly unit is still reachable through it.
     expect(keys.has('6,4')).toBe(true);
+  });
+
+  it('excludes a foreign city hex, garrisoned or not', () => {
+    const state = flatState();
+    const mover = unit(state, 4, 4, 'warrior', 0);
+    createCity(state, 1, 'Uruk', 5, 4);
+
+    const reach = reachableTiles(state, mover);
+    const keys = new Set(reach.map((r) => `${r.tile.col},${r.tile.row}`));
+    expect(keys.has('5,4')).toBe(false);
   });
 
   it('is deterministic and ordered by tile index', () => {

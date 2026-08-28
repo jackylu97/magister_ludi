@@ -80,7 +80,7 @@
  * may cross the east–west seam whenever that is shorter.
  */
 
-import { tileOwnerField } from './cities';
+import { cityAt, tileOwnerField } from './cities';
 import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, tileHex, tileIndex, wrappedDistance } from './map';
 import { RULES } from './rulesData';
 import { cardBorderZoc } from './statecraft';
@@ -273,7 +273,19 @@ export function isPassable(tile: Tile): boolean {
 
 /**
  * May `unit` move *through* this tile? Ground this mover can be on, with no
- * foreign unit on it. Friendly units are walked past, not around.
+ * foreign unit on it and no **foreign city** on it either. Friendly units are
+ * walked past, not around; a friendly city is ground like any other.
+ *
+ * The city clause is what makes a town capturable at all (2026-08-28): before
+ * it, nothing asked a hex "is this somebody's else's city", so a unit could
+ * `moveUnit` onto an empty foreign city hex, and once it stood there the town
+ * had no military slot left for anybody's attack to resolve against — a march
+ * had made the place uncapturable. Taking a foreign city is capture's job
+ * (`capturesCity` in `combat.ts`, an *arrival*, not a step), never an ordinary
+ * march's — so this asks `cityAt` and refuses transit outright when the tile
+ * holds a city that is not the mover's own. There are no alliances, so "own"
+ * is the only exemption; a captured city reads as its new owner's the instant
+ * `captureCity` writes it, so the winner may walk in that same turn.
  *
  * `mover` defaults to the unit's own profile so every existing caller reads the
  * same as it always did, and the two sweeps pass theirs in — the default is a
@@ -287,6 +299,8 @@ export function canTransit(
   mover: MoveProfile = moveProfile(state, unit),
 ): boolean {
   if (tileMoveCost(tile, mover) === null) return false;
+  const city = cityAt(state, tile.col, tile.row);
+  if (city !== undefined && city.ownerId !== unit.ownerId) return false;
   return !hasForeignUnit(state, tile.col, tile.row, unit.ownerId);
 }
 

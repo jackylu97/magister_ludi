@@ -49,26 +49,30 @@
  * Theft is not a mechanism of its own
  * -----------------------------------
  * A thief walks to the doorstep and attacks through `applyCombat`, exactly as a
- * raider does. The tile-targeting priority already published there (military,
- * then city, then civilian) does the rest: a lone civilian is *captured* by a
- * melee blow, and one with a soldier on its hex is not — the blow hits the
- * soldier. So "barbarians steal workers" and "a warrior captures a settler" are
- * one rule with one implementation (`captureUnit`), and a guarded civilian is
- * safe from the wild for precisely the reason it is safe from an empire.
+ * raider does. The tile-targeting priority already published there (walls, then
+ * the garrison, then capture — civilians last) does the rest: a lone civilian is
+ * *captured* by a melee blow, and one with a soldier on its hex is not — the
+ * blow hits the soldier. So "barbarians steal workers" and "a warrior captures a
+ * settler" are one rule with one implementation (`captureUnit`), and a guarded
+ * civilian is safe from the wild for precisely the reason it is safe from an
+ * empire.
  *
  * Still deliberately small
  * ------------------------
  * Barbarians pillage improvements by standing on them — through the *player's*
  * verb, `pillageAt`, so there is no second razing rule with the wild's name on it
  * any more than there is a second combat evaluator — and **they do not capture
- * cities**. A city they beat down to 1 hit point simply
- * stays where it is and heals (`healCities`), which is the ranged-fire rule read
- * one step further out. Capture is a real design decision (what does a barbarian
- * *do* with a town?) and it is deferred rather than guessed at; the day it is
- * made, `applyCombat`'s capture path is where it lands and this paragraph is what
- * it replaces. A stolen **settler** is the same decision seen from the other
- * side and needs no rule at all: it is a unit in barbarian hands like any other,
- * it will never found, and it is cargo.
+ * cities**. `capturesCity` (`combat.ts`) is false whenever the attacker is
+ * `isBarbarian`, so a camp's blow at a beaten, undefended town still lands but
+ * does nothing: the city is already on the floor and stays exactly where it is,
+ * to heal (`healCities`) once the siege lifts. That is not the ranged-fire rule
+ * read one step further out any more — melee counts too, since the 2026-08-28
+ * three-beat siege — it is a clause of its own, asked of the attacker's seat and
+ * nothing else on the board. Capture *by a nation* is the ordinary rule; capture
+ * *by the wild* is a real design decision (what does a barbarian *do* with a
+ * town?) and stays deferred. A stolen **settler** is the same decision seen from
+ * the other side and needs no rule at all: it is a unit in barbarian hands like
+ * any other, it will never found, and it is cargo.
  */
 
 import { campAt, hasCampAt } from './camps';
@@ -855,10 +859,14 @@ function marchTo(state: GameState, unit: Unit, goal: Tile): void {
  *
  * The one thing both a raider and a thief do, and the reason theft needed no
  * capture mechanism of its own: the blow goes through `applyCombat`, which
- * targets the tile by the *published* priority (military, then city, then
- * civilian) and turns a melee blow on a lone civilian into a change of hands.
- * A thief is therefore a raider that has chosen a worker; the *rule* that hands
- * the worker over is the rule a player's warrior has always captured by.
+ * targets the tile by the *published* priority (walls, then the garrison, then
+ * capture — civilians last) and turns a melee blow on a lone civilian into a
+ * change of hands. A thief is therefore a raider that has chosen a worker; the
+ * *rule* that hands the worker over is the rule a player's warrior has always
+ * captured by — and the one beat this closes that a player's warrior does not
+ * share is the city itself: `capturesCity` refuses the wild, so a raider that
+ * reaches the `capture` beat against a town still strikes, and the town stays
+ * where it stands.
  */
 function closeAndStrike(
   state: GameState,

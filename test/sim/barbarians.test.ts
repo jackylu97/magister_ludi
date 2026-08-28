@@ -1495,15 +1495,11 @@ describe('the camp faucet', () => {
  * in the wild's hands with no rule of its own. That is the claim under test, and
  * it is the same claim theft makes one scale down: "barbarians steal workers" is
  * `attackTargetAt`'s priority, and "barbarians besiege towns" is now its other
- * half.
- *
- * The last test in this block pins something the module docblock in
- * `barbarians.ts` **disagrees with** — it says the wild does not capture cities —
- * and pins it deliberately, because the ruling's instruction was to read what the
- * board actually does and keep it. Nothing in `combat.ts` has ever excused the
- * wild from `captureCity`, before this ruling or after it. If the prose is the
- * intent, the guard is a one-line clause in `applyCombat` and a design decision
- * that has not been made yet.
+ * half — except the last beat, which the wild reaches like anybody else and
+ * cannot finish: `capturesCity` refuses whenever the attacker `isBarbarian`
+ * (2026-08-28, the docblock made true), so a raider's blow at the `capture` beat
+ * still lands — the town is already on the floor, so it costs nothing and heals
+ * nothing — and the town stays exactly whose it was.
  */
 describe('the wild at the gate', () => {
   /** A town of player 0 with a raider standing at its gate. */
@@ -1567,24 +1563,52 @@ describe('the wild at the gate', () => {
     expect(garrison.hp).toBe(whole);
   });
 
-  it('takes an empty town it has beaten down — the rule as it stands', () => {
-    // **Pinned, not designed.** `barbarians.ts` says the wild does not capture
-    // cities; `combat.ts` has never said so, and this is what the board does.
-    // The ruling asked for whichever it is, written down.
+  it('cannot take an empty town it has beaten down — the wild never captures', () => {
+    // The pin from the module docblock, made true: a barbarian at a beaten,
+    // undefended town leaves it exactly as it stands. `cityPhase` still says
+    // `'capture'` — that is a fact about the board, not the attacker — but
+    // `capturesCity` is what actually gates the taking, and it reads the
+    // attacker's seat.
     const { state, raider, city } = gateState();
     city.hp = 1;
 
     expect(cityAttackPhase(state, 5, 8, wildId(state))).toBe('capture');
+    const view = previewCombat(state, raider.id, { col: 5, row: 8 });
+    expect(view.ok && view.cityPhase).toBe('capture');
+    expect(view.ok && view.capturesCity).toBe(false);
+
     const struck = applyCombat(state, raider.id, { col: 5, row: 8 });
     expect(struck.ok).toBe(true);
     if (!struck.ok) return;
-    expect(struck.outcome.capturedCityId).toBe(city.id);
-    expect(city.ownerId).toBe(wildId(state));
+    expect(struck.outcome.capturedCityId).toBeNull();
+    expect(city.ownerId).toBe(0);
 
-    // And it took nothing to do it: the walls were already down, so this was an
-    // arrival and not a fight.
+    // And it did nothing to the town either way: the walls were already down
+    // and the floor refuses every blow of every kind.
     expect(struck.outcome.damageToAttacker).toBe(0);
     expect(struck.outcome.damageToDefender).toBe(0);
+    expect(city.hp).toBe(1);
+  });
+
+  it("a nation's warrior takes the same beaten town the wild could not", () => {
+    // The other half of the pin: the same board, the same beat, a real empire's
+    // soldier instead of a raider — and this one walks in.
+    const { state, city } = gateState();
+    city.hp = 1;
+    // Player 1, a real seat — the wild is seated last (id 2 in this two-nation
+    // world), so this is a nation's warrior and not the camp's own raider.
+    const soldier = createUnit(state, 1, 'warrior', 6, 8);
+    recomputeAllVisibility(state);
+
+    expect(cityAttackPhase(state, 5, 8, soldier.ownerId)).toBe('capture');
+    const view = previewCombat(state, soldier.id, { col: 5, row: 8 });
+    expect(view.ok && view.capturesCity).toBe(true);
+
+    const struck = applyCombat(state, soldier.id, { col: 5, row: 8 });
+    expect(struck.ok).toBe(true);
+    if (!struck.ok) return;
+    expect(struck.outcome.capturedCityId).toBe(city.id);
+    expect(city.ownerId).toBe(1);
   });
 
   it('cannot take one that is still held, however beaten', () => {

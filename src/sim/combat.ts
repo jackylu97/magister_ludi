@@ -168,7 +168,11 @@
  *   · **`capture`** — the walls are down and nothing that can swing back is left.
  *     A **melee** blow walks in (`capturesCity`), taking every civilian on the hex
  *     with the ground exactly as a blow on a lone civilian does. A ranged shot
- *     still cannot: archers do not take capitals.
+ *     still cannot: archers do not take capitals. **Nor can the wild** —
+ *     `capturesCity` is false whenever the attacker's owner `isBarbarian`, so a
+ *     camp's blow at this beat still lands (the town stays on the floor) but the
+ *     town stays the owner's. `cityPhase` reports `'capture'` regardless of who
+ *     is swinging; only `capturesCity` knows the attacker.
  *
  * The **floor** is what holds the three apart. No attack of any kind may take a
  * city below `CITY_FLOOR_HP` — the clause that used to be ranged-only — so
@@ -881,7 +885,11 @@ export interface CombatForecast {
    * because they read the same plan.
    */
   plundersUnit: boolean;
-  /** Melee on a beaten city with nobody left holding it: it changes hands. */
+  /**
+   * Melee on a beaten city with nobody left holding it: it changes hands —
+   * unless the attacker is the wild, which never takes a city (see the
+   * `capturesCity` clause in `planCombat`).
+   */
   capturesCity: boolean;
   /**
    * Which beat of the siege this attack is — present **only** when the attacked
@@ -1319,19 +1327,28 @@ function planCombat(
   /**
    * A melee blow into a town whose walls are down and whose gate nobody is
    * holding. The `capture` beat, and it is the *board's* answer plus this
-   * attacker's two: melee, and able to stand where it is about to stand.
+   * attacker's three: melee, able to stand where it is about to stand, and not
+   * the wild.
    *
-   * `canAdvanceOnto` is the last clause for `capturesUnit`'s exact reason — a
-   * capture is an advance and must be refused wherever an advance would be, and
-   * the forecast has to say so before the player commits. It answers yes in
-   * every case that can actually arise (nothing that fights is left on the hex,
-   * by the phase's own definition), which is why it reads as a clause rather
-   * than as a branch.
+   * `canAdvanceOnto` is the last of those clauses for `capturesUnit`'s exact
+   * reason — a capture is an advance and must be refused wherever an advance
+   * would be, and the forecast has to say so before the player commits. It
+   * answers yes in every case that can actually arise (nothing that fights is
+   * left on the hex, by the phase's own definition), which is why it reads as a
+   * clause rather than as a branch.
+   *
+   * **The wild never captures a city** (barbarians.ts's own ruling, made true
+   * here): `isBarbarian(state, attacker.ownerId)` refuses the beat outright, so
+   * a camp's blow at a beaten, undefended town still lands at zero damage — the
+   * town is already on the floor — and the town stays the owner's. A nation's
+   * warrior at the same beat takes it; only the attacker's seat tells them
+   * apart, never the board.
    */
   const capturesCity =
     target.city !== null &&
     kind === 'melee' &&
     cityPhase === 'capture' &&
+    !isBarbarian(state, attacker.ownerId) &&
     canHoldTakenGround(state, attacker, tile);
 
   // No dice on any of the one-sided blows: a civilian taken, a caravan ridden
@@ -1351,13 +1368,22 @@ function planCombat(
    * its own. A besieger now pays for every battering, and the town's counter
    * scales with the garrison the roster would have put on the parapet — see
    * `explainCityStrength`.
+   *
+   * The city clause reads `cityPhase === 'walls'` rather than `target.city !==
+   * null`, and the two used to agree: `target.city` is also set at the
+   * `capture` beat, and until the wild was excused from `capturesCity` that beat
+   * always meant "this is an arrival, not a fight" for every attacker, so
+   * `!capturesCity` alone kept the clause correct. It no longer does — a
+   * barbarian reaches `capture` with `capturesCity` false and would swing the
+   * town's strength at a raider walking into an *empty* gate, which is not a
+   * fight either. `cityPhase === 'walls'` says the one thing that was always
+   * meant: the walls counter while they still stand, full stop.
    */
   const counters =
     kind === 'melee' &&
     !capturesUnit &&
     !plundersUnit &&
-    !capturesCity &&
-    (target.city !== null || isCombatant(unitDef(target.unit!.type)));
+    (cityPhase === 'walls' || (target.city === null && isCombatant(unitDef(target.unit!.type))));
   const baseToAttacker = counters ? curve(defenderStrength - attackerStrength) : 0;
 
   const band = COMBAT.rollBand;
@@ -1823,7 +1849,7 @@ function snapshotFallen(unit: Unit): CombatOutcome['killed'][number] {
  * `captured` is raised here and nowhere else, because this is the only path by
  * which a city changes hands. It is what makes the authority meter charge 3 for
  * a town somebody else grew (design ledger, Entry XIV.D.2), and it is
- * deliberately *not* paired with a bump to `Player.settlersBuilt`: taking a city
+ * deliberately *not* paired with a bump to `Player.unitsBuilt.settler`: taking a city
  * is not building a settler, so a conqueror's next settler is priced exactly as
  * it was before the walls fell.
  */
