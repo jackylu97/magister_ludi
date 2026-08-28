@@ -162,6 +162,19 @@ export class MoveAnimations3D {
     return [...this.byUnit.keys()];
   }
 
+  /**
+   * Is any walk still on the books? A count, not a sample — an animation whose
+   * time is up is still "on the books" until something reads it, which is
+   * exactly the state this has to report: the render loop uses it to decide
+   * whether to run `stepAnimations`, and the piece a finished walk is still
+   * hiding only comes back because that sweep runs one more time. Asking
+   * `activeUnits().length` instead would allocate an array on every frame of
+   * every idle second.
+   */
+  get pending(): boolean {
+    return this.byUnit.size > 0;
+  }
+
   /** True while at least one piece is still in flight at `now`. */
   isActive(now: number): boolean {
     for (const [unitId, animation] of this.byUnit) {

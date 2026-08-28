@@ -359,6 +359,74 @@ export function buildBadge(
   return group;
 }
 
+/**
+ * How full this unit's bar is, or `null` when it does not get one.
+ *
+ * The one reading of "how hurt is it" on the whole board, so that the resting
+ * instance and the walking copy can never disagree about a number the player is
+ * comparing against the unit sheet. `unitDef(...).maxHp` and nothing else: a bar
+ * measured against a hard-coded hundred is right for a warrior and wrong for a
+ * knight, which is exactly the shape of "the hover is correct and the bar is
+ * not".
+ */
+export function hpBarFill(unit: Unit): number | null {
+  const fraction = Math.max(0, Math.min(1, unit.hp / unitDef(unit.type).maxHp));
+  return fraction >= 1 ? null : fraction;
+}
+
+/**
+ * The bar over a hurt piece as standalone meshes: the dark backing and the
+ * coloured fill in front of it, already lifted to float over a unit of
+ * `visualHeight`.
+ *
+ * `buildBadge`'s sibling, added for `buildBadge`'s reason and one the badge does
+ * not have. A walking copy is built by the renderer rather than by this layer
+ * (`Renderer3D.spawnWalker`), and until this existed it carried the piece and
+ * the tag but *not the bar* — so every wounded unit went blank-headed for the
+ * length of its march, and a turn resolution that marches half an army blanked
+ * half the board's readouts at once. That is a bar that disagrees with the unit
+ * sheet, which is the complaint (user, 2026-08-28: "the bar is incorrect when
+ * multiple units are on screen").
+ *
+ * Returned as a group whose origin is the unit's *feet*, exactly like the badge
+ * and the sprite, so the caller places it by saying where the unit stands. Null
+ * at full health, because a bar is only drawn on somebody who is hurt — the same
+ * rule `addHpBar` returns on, read from the same `hpBarFill`.
+ *
+ * The backing is added **first** and the fill second, which is what draws the
+ * fill in front: neither quad tests depth (`onTop`), so what settles the order
+ * is the order they were built in. Same guarantee as the instanced pair, stated
+ * in `addHpBar` and pinned in `test/render/pieces3d.test.ts`.
+ */
+export function buildHpBar(
+  geometry: BoardGeometry,
+  materials: MaterialLibrary,
+  faceCamera: Quaternion,
+  visualHeight: number,
+  fraction: number,
+): Group {
+  const group = new Group();
+  const right = new Vector3(1, 0, 0).applyQuaternion(faceCamera);
+  const forward = new Vector3(0, 0, 1).applyQuaternion(faceCamera);
+  const anchor = new Vector3(0, hpBarY(visualHeight), 0).addScaledVector(right, -HP.width / 2);
+
+  const quad = (color: number, width: number, nudge: number): Mesh => {
+    const mesh = new Mesh(geometry.bar, materials.overlay(color, 1, true));
+    mesh.position.copy(anchor).addScaledVector(forward, nudge);
+    mesh.quaternion.copy(faceCamera);
+    mesh.scale.set(width, HP.height, 1);
+    mesh.frustumCulled = false;
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    mesh.renderOrder = RENDER_ORDER.hpBar;
+    return mesh;
+  };
+
+  group.add(quad(HP.backColor, HP.width, 0));
+  group.add(quad(fraction > 0.5 ? HP.goodColor : HP.fillColor, HP.width * fraction, 0.01));
+  return group;
+}
+
 /** Where a piece stands, and how it is turned. Shared with the animation code. */
 export interface PiecePlacement {
   position: Vector3;
@@ -824,9 +892,11 @@ export class UnitLayer {
     faceCamera: Quaternion,
     slots: InstanceHandle[],
   ): void {
-    const maxHp = unitDef(unit.type).maxHp;
-    const fraction = Math.max(0, Math.min(1, unit.hp / maxHp));
-    if (fraction >= 1) return;
+    // `hpBarFill`, not arithmetic of its own: the walking copy asks the same
+    // function (`buildHpBar`), and two readings of "how hurt is it" would be two
+    // answers the moment one of them was edited.
+    const fraction = hpBarFill(unit);
+    if (fraction === null) return;
 
     // The quad's origin is its left edge, so the anchor is shifted half a bar
     // width along the camera's right vector to centre it over the piece. The

@@ -106,7 +106,9 @@ import {
   UnitLayer,
   badgeAnchors,
   buildBadge,
+  buildHpBar,
   buildSpriteUnit,
+  hpBarFill,
   unitVisualHeight,
   pieceMaterials,
   placePiece,
@@ -502,6 +504,13 @@ export class Renderer3D implements MapView {
     this.deaths.clear();
     this.clearWalkers();
     this.clearFallers();
+    // And the hides those walks were holding. `clearWalkers` takes the meshes
+    // away but a hide is keyed by *unit id*, and a new map is a new game whose
+    // ids start again at one — so a leftover hide would take some innocent piece
+    // on the new board off it, health bar and all, for the rest of the session.
+    // Safe without a restore because `setGameState` rebuilds the layer directly
+    // after this.
+    this.units.clearHidden();
 
     this.rebuildBoard(map);
     // Open on the whole map, exactly as the 2D game does. It is the only view
@@ -1490,6 +1499,29 @@ export class Renderer3D implements MapView {
           )
         : null;
 
+    /**
+     * The walker's own health bar, or null for a piece at full strength.
+     *
+     * The badge's argument, for the readout the badge's fix left behind: the
+     * resting instance is hidden for the length of the walk and takes its bar
+     * with it (`UnitLayer.addHpBar` puts both quads in the unit's slot list), so
+     * without this a wounded piece is the one thing on the board whose health
+     * stops being drawn the moment it moves — and a turn resolution marches half
+     * an army at once. Built fresh per wrap copy for `badgeFor`'s reason.
+     */
+    const barFor = (): Group | null => {
+      const fraction = hpBarFill(unit);
+      return fraction === null
+        ? null
+        : buildHpBar(
+            this.geometry,
+            this.materials,
+            faceCamera,
+            unitVisualHeight(unit.type, this.sprites),
+            fraction,
+          );
+    };
+
     const spriteMaterial = this.sprites?.materialFor(unit.type) ?? null;
     if (spriteMaterial) {
       for (const dx of [-period, 0, period]) {
@@ -1503,6 +1535,8 @@ export class Renderer3D implements MapView {
         copy.position.x = dx;
         const badge = badgeFor();
         if (badge) copy.add(badge);
+        const bar = barFor();
+        if (bar) copy.add(bar);
         group.add(copy);
       }
       this.scene.add(group);
@@ -1556,6 +1590,10 @@ export class Renderer3D implements MapView {
       copy.add(mesh);
       const badge = badgeFor();
       if (badge) copy.add(badge);
+      // A sibling of the piece for the badge's reason: as a child it would
+      // inherit the sculpt's hashed yaw and stop facing the camera.
+      const bar = barFor();
+      if (bar) copy.add(bar);
       group.add(copy);
     }
     // The whole group is moved each frame; the per-copy offset lives on the
@@ -1688,7 +1726,20 @@ export class Renderer3D implements MapView {
   private stepAnimations(now: number): boolean {
     if (!this.map) return false;
     let active = false;
-    for (const unitId of [...this.walkers.keys()]) {
+    // Swept over **the walks**, not over the walker meshes, and the union of the
+    // two so a mesh with no walk left is cleared as well.
+    //
+    // What a walk owns is the *hide* — `animateMove` takes the resting piece off
+    // the board and this is the only thing that puts it back — and until this
+    // swept the animations, that hide was ended by the walker mesh instead. A
+    // walk whose mesh was never built (`spawnWalker` cannot find the unit) was
+    // therefore a piece hidden for the rest of the session: nothing ever sampled
+    // the animation, so it never expired, and every `rebuildUnits` re-applied
+    // the hide from `activeUnits`. A piece off the board takes its health bar
+    // with it, so the symptom is a wounded unit with no readout at all.
+    const walks = new Set<number>(this.animations.activeUnits());
+    for (const unitId of this.walkers.keys()) walks.add(unitId);
+    for (const unitId of walks) {
       const sample = this.animations.sample(unitId, now, this.map);
       if (!sample) {
         // Finished (or forgotten): the piece goes back to being an instance.
@@ -1696,8 +1747,7 @@ export class Renderer3D implements MapView {
         this.units.restore(unitId);
         continue;
       }
-      const group = this.walkers.get(unitId)!;
-      group.position.set(sample.x, sample.y, sample.z);
+      this.walkers.get(unitId)?.position.set(sample.x, sample.y, sample.z);
       active = true;
     }
     return active;
@@ -1772,7 +1822,10 @@ export class Renderer3D implements MapView {
     const now = performance.now();
     // A frame that had a walker in it always draws, even if that walker just
     // finished — the piece it removed has to be replaced by the instanced one.
-    const hadWalkers = this.walkers.size > 0;
+    // Asked of the *walks* as well as of the meshes, because the walk is what
+    // owns the hide: a walk with no mesh still has a piece to give back, and a
+    // gate that only watched the meshes would never run the sweep that does it.
+    const hadWalkers = this.animations.pending || this.walkers.size > 0;
     if (hadWalkers) this.stepAnimations(now);
     // Falls force frames exactly as walks do, and for the same reason: the
     // frame that finished one has to draw the board without it.
