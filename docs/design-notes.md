@@ -3439,3 +3439,50 @@ a line, the preview asks the pure pair.
 fielded 6** — the richer scatter, the cheaper borders and the forest-hill scoring each hand it
 hammers, and prices did not move. Re-measured and re-pinned, not widened; it is the first
 number the friends' playtest should be read against.
+
+---
+
+## Entry XXXVII — Playtest 8/28: the curves, the augur's turn, one purchase, the preview, the legacies (**built** 2026-08-28; combat items follow in the same entry)
+
+**Source:** the user's own `8/28` block in `docs/playtest_notes.md`, after a session on the
+deployed build with the whole of batch three in it.
+
+**Numbers moved, and what the pacing empire says about them.** Borders 9 / 5.4 / 1.3 →
+**6 / 4 / 1.45** — the first rung a third cheaper, the eighth level, the exponent moved for
+the first time (*"make early tiles easier to get with culture, we can ramp more over time"*);
+the monument fixture claims on turns 2 · 6 · 11 · 19 (was 3 · 8 · 15 · 26). Growth 15 / 8 →
+**10 / 6** at the same exponent — the second citizen a third cheaper (*"the first few
+population feel a bit slow"*); population at turns 20/40/60 is 5/15/23 (was 4/13/22).
+Research: Æra II **×1.3**, Æra III **×1.8**, rounded to five (*"science costs need to scale
+harder"*) — age entry 30 / 67 / 122 on the pacing empire, from 32 / 62 / 97; Æra I comes
+earlier because growth got cheaper in the same pass and early science is population. The
+citadel pays **2⚙**. The early Statecraft nerf is the user's own, by hand in
+`data/statecraft.json`.
+
+**Two rules.** *"Cities can only purchase a single unit per turn"* —
+`City.purchasedUnitTurn` is an absolute stamp written by `purchaseItemAt` for units only and
+read by `purchaseError`; nothing decrements it, so it goes stale by itself (schema 25). And
+*"performing a rite should end the augur's turn"* — the rite had spent the augur's movement
+since batch three; what was missing was the other half, a second rite the same turn.
+`augurHasActed` (movement gone, the same word a worker's verbs use) now gates both the rite
+and the consecration, so one rite is the augur's whole turn and "a rite, then a god" is a
+two-turn plan.
+
+**The build preview.** *"Orders + religion benefits should show in the city build screen."*
+`explainBuildingPreview(state, city, id)` in `cities.ts` builds a **ghost** — the city with
+the building appended, nothing in state touched — and returns the lines that wake: the row's
+own, every card or belief line scoped to the building, every tile line (a granary's water,
+a scoped wonder), and one reconciliation line for what Entry XVII's stages and floors do to
+the sum. Its fold **is** `cityYields(ghost) − cityYields(city)`, by test. The city panel
+prints it on the row and in the hover.
+
+**Nineteen legacies built.** The wonders pass's shapes had made eight deferrals stale; three
+more generic extensions — six `CountKind`s (wonders, revealed hexes, sighted cities, improved
+strategic resources, ages closed, units in the field), five `CombatCondition`s (captured
+city, feature, fresh water, coast, fortified), two `CityScope`s (hills, not the capital) and a
+scope on `productionBonus` — each read where its family already lives, each wanted by three
+rows or more. Still deferred, for ruling: the clauses that need a system (trade-route counts,
+naval units, the Hall of Deeds, act amplification, **legacy revocation** — nothing revokes a
+legacy, by rule) and the one-row shapes the "no shape for one row" rule refused (Deborah,
+Spartacus, Hemiunu, Ea-nāṣir, Hero, Mimar Sinan, Homer's prohibition). Eratosthenes and
+Zhang Qian pay per twenty revealed hexes exactly as ratified — flagged, not capped.
