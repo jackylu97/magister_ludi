@@ -3363,3 +3363,50 @@ exception by marker (`trades`), not by name. Schema 23.
 mode with a plate per partner city, the routed panel, the two gold-hover lines (interface).
 Foreign routes, the harbour connection and the King's Road card wait on diplomacy, the
 Wayfinding building and the war-pace pass respectively.
+
+---
+
+## Entry XXXVI — Playtest batch three (**built** 2026-08-27; the later 8/27 notes)
+
+**Rulings (user):** camps are persistent on the map — *"excluded from the rule or a separate
+thing"* — so a camp is ground, remembered like a ruin (Entry XXIV's occupation argument is
+deleted, not reworded); government tiers **4 / 10 / 18 / 29 / 45**, the last two for the Gov
+IV/V rows the master list will ratify, *"the final tier only accessible for high-culture
+civilizations by the endgame"*; the Triumph screen is a modal — name, sentence, renown,
+Proceed — with an empty plate for art later.
+
+**The tide of small rules.** A rite spends the augur's turn (in the mechanism, so an AI
+inherits it) and reports its lines, its *true* duration and the hexes it claimed. A
+lumbermill is the improvement table's third kind of constraint — feature-bound, forest or
+jungle, canopy kept, `clearsClutter: false`, and the board draws its saw-pit low and squared
+because it shares the hex with pines. An **ordinary building row may carry `effects`**: the
+reader had been gated on `wonder`, and the fix is a new `liveCityEffects` source scoped to the
+town that built it, never `liveEffects` — a wonder is the empire's walk, a granary stands in
+every town — so the aqueduct pays +15% of the surplus banked toward growth. Borders cost
+9 / 5.4 (10·16·24·35·46 → 9·14·22·31·41; the monument schedule 4/9/17/29 → 3/8/15/26).
+**`settleBorderWindfall` is register entry 14**: Consecration of the Bounds claims a hex the
+instant the basket covers it, through `expandBorders`' own pair, looping while it still
+covers, carrying the remainder. A **great work stands anywhere** but water and mountain and
+**opens whatever seam it covers** — access, never the mine's yield — and `ResourceHolding`
+now says which improvement opened it, so the ledger reads "Iron · academy" rather than
+re-deriving "mine". Farms take a hill when the tile has fresh water or carries a seam the farm
+itself opens (`hillsIf`, data, read in one place). **A wooded hill is the wood's**: the
+feature's override is written last in `explainTileYield`, and `terrainData.tileYield` — a
+second implementation with no callers — is now held equal by test. Jungle clears at
+Bronzeworking (the forest's home stays Mining) and `techGifts` surfaced it with no edit.
+Mapgen scatters 110 bonus per thousand land tiles and weights every all-water bonus row ×1.35
+out of the same purse (seed 1: fish 26 → 37, crabs 3 → 10).
+
+**The board and the sheet.** Any piece on embarkable water takes the boat hull — sail in the
+seat's ink, badge saying what it is — chosen by `unitSculpt` off the terrain under the unit
+with nothing added to the fingerprint (col/row already move it). The renown mark is the
+badge's laurel verbatim. The Triumph sheet rides the End Turn beats after the turn card; the
+happiness ledger folds a town's building supply into its own demand line ("Uruk (10) · Funeral
+Games +3" worth −7) off `explainHappiness`'s own lines; Escape closes the chart from body
+focus. Trade's news is complete: an ordered attack prints the plunder, a caravan coming home is
+a line, the preview asks the pure pair.
+
+**A balance shift to watch.** The warband pacing fixture fields **12 units at turn 40 where it
+fielded 6** — the richer scatter, the cheaper borders and the forest-hill scoring each hand it
+hammers, and prices did not move. Re-measured and re-pinned, not widened; it is the first
+number the friends' playtest should be read against.

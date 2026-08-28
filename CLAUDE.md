@@ -352,6 +352,13 @@ would change every seeded outcome. No further rename passes.
       would gift the carryover, sized by how hungry the town happened to be). It still owes
       everything that follows a citizen — the growth riders, the production settlement, and
       the re-seating.
+  14. **`settleBorderWindfall`** (`cities.ts`, Entry XXXVI) — culture poured into a *town's
+      bounds* rather than the empire's draft pool (Consecration of the Bounds). It claims through
+      `expandBorders`' own pair (`bestExpansionTile` + `claimTile`), honours the freeze, loops
+      while the basket covers the next rung, carries the remainder, then refreshes — the hex it
+      claims is a hex a citizen may now be sent to.
+  15. **The trade verbs** (`trade.ts`, Entry XXXV) — a route's yields join the origin's
+      breakdown the turn it is sent or ends, so `sendTrader`/`cancelRoute` refresh the origin.
   **A new mid-turn yield mutation calls `refreshCityDerived` and adds itself to this
   list.** `assignCitizens` therefore has exactly two callers in the sim — `collectYields`
   (the phase) and the helper — and `test/sim/cities.test.ts` asserts that by reading the
@@ -519,7 +526,10 @@ would change every seeded outcome. No further rename passes.
   so it is the one unit type with no unlock tech. **`Unit.person` says *who*; `UnitDef.greatWork`
   says *what kind*** — two fields, two questions — and `Unit.person` is in the piece fingerprint.
   A worker may not plant a work and a great person may plant nothing else: one symmetric clause
-  in `improvementError`; `ImprovementDef.greatPerson` names the **family** (presence is the
+  in `improvementError`; **a work stands anywhere but water and mountain** (2026-08-27 — the
+  `anywhere` flag waives the four ground filters and the seam clause) **and opens whatever seam
+  it covers** — a clause in `openedResource` after the reveal and before the table, access
+  only, labelled "Iron · academy"; `ImprovementDef.greatPerson` names the **family** (presence is the
   marker). A citadel is worth its `defense` to whoever stands on the hex — one flat labelled
   line in `planCombat`'s defender fold, never a term in the multiplier.
 - **Legacies are `liveEffects`' sixth source** and `CardId`'s seventh class; nothing else reads

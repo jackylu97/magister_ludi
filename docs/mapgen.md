@@ -918,7 +918,8 @@ about a city. Parked, not planned.
 | `luxuryPer1000LandTiles` | 75 | luxury density the settle pass reconciles to |
 | `luxuryDensityTolerance` | 0.1 | how far the settled total may sit from that budget |
 | `luxuryScarcityBias` | 1.5 | exponent on `continents/hosts` in the draw weight; 0 = frequency alone |
-| `bonusPer1000LandTiles` | 85 | bonus resource tiles per 1000 land |
+| `bonusPer1000LandTiles` | 110 | bonus resource tiles per 1000 land (85 until 2026-08-27 — the playtest wanted a wider, more coastal game) |
+| `seaFrequencyMultiplier` | 1.35 | weight on every bonus row whose legal terrain is all water (fish, crabs), drawn out of the same purse by `drawWeighted` — a seventh sea row inherits it |
 | `strategicPer1000LandTiles` | 22 | strategic resource tiles per 1000 land |
 | `minSpacing` | 2 | minimum hex distance between two different finds |
 | `attemptsPerResource` | 12 | draws allowed per budgeted tile before a scatter gives up |
