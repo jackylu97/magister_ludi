@@ -119,7 +119,7 @@ would change every seeded outcome. No further rename passes.
   road step — **both** hexes paved — costs exact thirds and ignores the ground, inside
   `stepCost(from, to)`, so the four readers agree by construction; `snapMovement` keeps the
   numerator an integer and the A* heuristic scales by `cheapestStepCost` (an unpaved minimum
-  is inadmissible over paving). `layRoad` (`trade.ts`) is the **only** writer of `Tile.road` — the caravan's step and the
+  is inadmissible over paving). `layRoad` (`roads.ts`, a leaf — `cities.ts` must never import `trade.ts` for it) is the **only** writer of `Tile.road` — the caravan's step and the
   Founders' Road at a founding both go through it. A decreed hex carries `roadFree` (presence is the
   state): a road for movement and the connection fill, skipped by the maintenance count; first
   mark wins both ways. **A trader is its own `UnitCategory`** and `stacksFreely` — one soldier,
@@ -164,6 +164,11 @@ would change every seeded outcome. No further rename passes.
   memory of what it baked (`BuiltBoard.treedCells`), not of the state, because after a chop the
   state says `none` and the buffers still hold pines. Anything else that removes baked dressing
   needs its own such record.
+- **A runtime import cycle is caught by `test/mapgen/moduleCycles.test.ts`, and only if the
+  module is an entry there.** Typecheck does not see one; the symptom is "X is not a function"
+  in a hundred unrelated files. A new sim module that is imported by `cities.ts`/`turn.ts`
+  joins that entry list; a helper two modules both need lives in a leaf (`roads.ts`,
+  `unitData.ts`), never in one of the two.
 - `turnEnded` assumes player id === array index; revisit if players become removable.
   `visibility` and `citySightings` (M8) make the same assumption and revisit with it.
   **The barbarian seat is appended *last*, after the opening rosters are seated** (Entry
@@ -450,7 +455,8 @@ would change every seeded outcome. No further rename passes.
   **an owned tile is always evaluated with its owner's context** — the register of who
   passes one is the `yieldContextFor` docblock.
 - **A timed effect is a comparison, never a countdown.** `TimedEffect` (`state.ts`, on
-  `City.timed` and `Unit.timed`) carries an **absolute** `expiresTurn`, and the whole
+  `City.timed`, `Unit.timed` and, since 2026-08-28, `Player.timed` — the third holder, read by
+  `liveEffects` as ordinary effects and swept by the same broom) carries an **absolute** `expiresTurn`, and the whole
   reading is `state.turn < expiresTurn` (`timedEffectIsLive`). Nothing decrements anything —
   that is `SlottedOrder.sealedUntil`'s lesson applied to a thing that hangs on a town.
   `pruneTimedEffects` (the pipeline's **first** phase) is a **broom, not a clock**: an
@@ -603,8 +609,12 @@ would change every seeded outcome. No further rename passes.
   marker). A citadel is worth its `defense` to whoever stands on the hex — one flat labelled
   line in `planCombat`'s defender fold, never a term in the multiplier.
 - **Legacies are `liveEffects`' sixth source** and `CardId`'s seventh class; nothing else reads
-  `Player.legacies`, and **nothing revokes a legacy** — which is why "lost the turn an enemy
-  enters his city" is a deferred half on a data row and not a rule hiding in the walk. A legacy
+  `Player.legacies`, and **a legacy is revoked by marking, never by
+  deleting** (2026-08-28): `Player.legacies` is `LegacyRecord[]` (`{ id, age, revoked? }`),
+  `GreatPersonDef.revokedWhen` names the occasion, `revokeLegacies` is the only writer (an enemy
+  combatant coming to rest on the capital's ground at `arriveOnTile`; the rest swept by
+  `reviewLegacies` after `renown`, idempotent and monotone), `liveEffects`' sixth source is the
+  only reader that skips a marked record, and `greatPeopleEarned` deliberately does not. A legacy
   whose sentence needs a shape that does not exist ships as `legacy: []` with `deferred:` on the
   row; **a shape is never bent to nearly fit** (the Statecraft rule, third time).
 - **The draw is weighted, never restricted, and spills before it fails.** Weight is

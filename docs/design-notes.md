@@ -3724,3 +3724,46 @@ the node, alive while the pointer is on the node *or* the card, closed after a s
 both, at once on Escape, a click elsewhere, or a keyword click — with the keyword listener in the
 capture phase, because the keyword stops its own click and a bubble listener would have left the
 card standing behind the book. Every other card keeps the old behaviour; the option defaults off.
+
+---
+
+## Entry XLIII — The deferred pass: every half the tree does not block (**built** 2026-08-28)
+
+**Ruling (user):** *"Implement any remaining items that aren't blocked on things that will be
+in the upcoming technology tree pass."* — which also retired two of this ledger's own rules.
+
+**Legacies revoke, by marking.** "Nothing revokes a legacy" (Entry XXXII) is superseded: the
+ratified texts of Archimedes, Hypatia and Boudica say *lost the turn …*, and three rows earn a
+mechanism. `Player.legacies` is a record with an age stamp and a `revoked` flag;
+`GreatPersonDef.revokedWhen` names the occasion; `revokeLegacies` is the only writer — an enemy
+combatant coming to rest on the capital's ground, hooked at `arriveOnTile`, and the other
+occasions swept by `reviewLegacies` after `renown`, a broom's twin — `liveEffects` skips a marked
+record and the earned count deliberately does not. History is never deleted.
+
+**The one-row shapes.** The "no shape for one row" rule (Entry XXXVII) yielded to the ruling,
+generically: combat conditions on distance from a city and on a stronger target, an empire
+condition on a queue, a city scope on what a building yields, the great-work tile condition and
+a **percent** on an improvement's own lines, a production bonus naming a building or a category,
+flat amplifiers (a great person's act, connection yields, Triumph renown), a mirror yield, no
+healing abroad, `Player.timed` as the third holder of timed effects. `WindfallOccasion.purchase`
+finally earned its member — a card wanting to pay on a purchase and *not* a completion — and a
+heal-all grant on capturing a wonder needed the occasion to carry that fact.
+
+**Upkeep's cards.** Tyranny's −30% and the Standing Army's −100% are `CardRule.unitUpkeep`, a
+rebate line beside the gross payroll in the empire-gold fold. **Buying a great person** (the
+Commonwealth with gold, the Magisterium with faith) buys the *recruitment*, not the piece: the
+bank is charged and the remaining renown is poured through the one draft path, so a great person
+is still called. Thirteen great people and nine cards gained their halves; The Laureate stands in
+the Marble Court and `CardLine` names the five new themes.
+
+**The cycle, and the gap.** `cities.ts` had come to import `trade.ts` for the road writer;
+`trade.ts` already read cities; the runtime cycle failed a hundred files while the typecheck
+stayed clean. `layRoad` lives in a leaf (`roads.ts`) now and `caravanTypeId` in `unitData.ts`;
+`trade`, `roads` and `upkeep` join the module-cycle test's entries — it had never listed `trade`,
+which is why nothing said so earlier. The `cities` ↔ `trade` edge for the route yields remains,
+narrowed and known.
+
+**Still deferred, and why:** the tree (the Hall of Deeds, cathedrals, the Harbour, the
+Philosopher's Stone, the courthouse); systems that do not exist (naval, diplomacy and a war
+state, a border-crossing trigger, an office grant on a layout, a legacy amplifier); and one by
+design — a card wanting a share of a project's payout reopens Entry XXVI, and does not.
