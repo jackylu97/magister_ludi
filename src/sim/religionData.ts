@@ -36,13 +36,38 @@
 
 import religionJson from '../../data/religion.json';
 
-import type { CardDefBase } from './statecraftData';
+import type { CardDefBase, CardEffect } from './statecraftData';
 import type { AbilityId, TechId } from './techData';
 
 // --- ids --------------------------------------------------------------------
 
-export type BeliefId = keyof typeof religionJson.beliefs & string;
+/**
+ * Every belief in the game, across **three pools** in one id space.
+ *
+ * The pantheon's gods, the follower beliefs a religion drafts at founding, and
+ * the enhancer beliefs it draws at Theology are three *pools*, never three id
+ * spaces — `CardId`'s rule one table down, and it buys the same thing: a
+ * breakdown line carries one string, `beliefDef` is one lookup, and
+ * `describeCard` answers for all three without asking which bag a card came out
+ * of. Which pool a belief belongs to is a question about where it may be
+ * *drawn*, and only the drafts ask it (`BELIEF_IDS` / `FOLLOWER_BELIEF_IDS` /
+ * `ENHANCER_BELIEF_IDS`).
+ */
+export type BeliefId =
+  | (keyof typeof religionJson.beliefs & string)
+  | (keyof typeof religionJson.followerBeliefs & string)
+  | (keyof typeof religionJson.enhancerBeliefs & string);
 export type RiteId = keyof typeof religionJson.rites & string;
+
+/**
+ * Which bag a belief is drawn from. The pantheon is not one of them: it is
+ * `consecrate`'s bag and it is never redrafted, because it is the religion's
+ * identity (`docs/religion-v2.md`).
+ */
+export type ReligionBeliefPool = 'follower' | 'enhancer';
+
+/** The two drawable pools in the order a screen lays them out. */
+export const RELIGION_BELIEF_POOLS: readonly ReligionBeliefPool[] = ['follower', 'enhancer'];
 
 /**
  * The synergy thread a belief belongs to, for the screen's grouping and for
@@ -124,10 +149,32 @@ export interface RiteGrantSpec {
   production?: number;
   /** Restores the target unit to full. Blessing of Arms', today. */
   healFully?: boolean;
+  /**
+   * A **proclamation** left on the hex the rite was performed on — The
+   * Preaching's whole payout.
+   *
+   * The numbers are on the row rather than in `rules.religion` because the
+   * *bomb's* numbers are the rules' and a rite's are the rite's: they are two
+   * different acts that happen to leave the same kind of mark, and a rite that
+   * read the bomb's figures would get four times the strength the day somebody
+   * retuned a prophet. It pays nothing at all to an empire that has founded no
+   * religion — there is no faith to preach — which is a fact about the board
+   * rather than a refusal (`riteError` says so before it comes to this).
+   */
+  pulse?: { range: number; strength: number; turns: number };
 }
 
 /** What a rite is aimed at. Decides which target the command will accept. */
-export type RiteTarget = 'city' | 'unit';
+/**
+ * What a rite is aimed at. Decides which target the command will accept.
+ *
+ * `'here'` is the third and the odd one: a rite aimed at **the ground the augur
+ * stands on** and at nothing standing there. The Preaching is one — a
+ * proclamation is made in a place, not to a town or to a soldier — and a rite
+ * that had to name an owned city to preach in would be a rite that can only
+ * convert people who already agree.
+ */
+export type RiteTarget = 'city' | 'unit' | 'here';
 
 /**
  * One rite: a charge of an augur spent on a moment.
@@ -157,6 +204,17 @@ export interface RiteDef extends CardDefBase {
  */
 export interface BeliefOffer {
   options: BeliefId[];
+  /**
+   * Which bag these were drawn from, or the key is **absent** for a Consecrate's
+   * three gods.
+   *
+   * One offer field on the player answers for all three drafts, and a pick is
+   * still an index into `options` — which is the whole reason there is one
+   * `chooseBelief` command rather than three. Absent means the pantheon, so a
+   * v1 save's outstanding offer reads exactly as it did and `settleBeliefChoice`
+   * routes it where it always went.
+   */
+  pool?: ReligionBeliefPool;
 }
 
 /**
@@ -201,9 +259,59 @@ export interface PantheonConfig {
   // a dial a designer will one day turn expecting something to happen.
 }
 
+/**
+ * How many beliefs of each drawable pool a religion may hold at once.
+ *
+ * A data dial rather than a constant, and the honest home for the one number the
+ * design has not settled: `docs/religion-v2.md`'s body says two of each and its
+ * Revisions say one follower at founding and the enhancer at Theology. It ships
+ * at one and one, and raising `followerSlots` is all it takes — a prophet's
+ * later charge opens a second draft with nothing here or in `religion.ts`
+ * changed (`plantHolySiteAt` asks whether a slot is open, never how many).
+ */
+export interface ReligionPoolsConfig {
+  followerSlots: number;
+  enhancerSlots: number;
+}
+
+/**
+ * How a religion is **named**: an epithet per belief axis, and the patterns the
+ * epithets are dropped into.
+ *
+ * Generated rather than drawn from a list of faiths, which is the user's ruling
+ * of 2026-08-27 — "keep religions fluid / not tied to historical world
+ * religions" — and generated *from the pantheon's axes* so that a religion looks
+ * like what it is made of: an empire that consecrated the Hearth Mother and the
+ * Standing Stones gets a name with hearth and stone in it.
+ *
+ * `patterns` are printf-shaped with `{0}` and `{1}`. A pattern naming `{1}` is
+ * only reachable by a pantheon spanning two axes; the draw falls back to the
+ * one-axis patterns otherwise, so a single-god religion never reads "the
+ * Children of Hearth and Hearth".
+ */
+export interface ReligionNamesConfig {
+  epithets: Partial<Record<BeliefAxis, string[]>>;
+  patterns: string[];
+}
+
 export interface ReligionConfig {
   pantheon: PantheonConfig;
+  pools: ReligionPoolsConfig;
+  names: ReligionNamesConfig;
+  /**
+   * What founding a religion pays its founder, every turn, for the followers it
+   * has in the world — written in the ordinary card vocabulary and read by the
+   * ordinary evaluator (`liveEffects`' seventh source).
+   *
+   * It is **data rather than a rule** for the reason a belief is data: the
+   * trickle is a number somebody tunes, and a doubling of it is a card
+   * (`effectAmplifier founderTrickle`, Apostles') rather than a second arm in a
+   * function.
+   */
+  founderTrickle: CardEffect[];
   beliefs: Record<BeliefId, BeliefDef>;
+  followerBeliefs: Record<BeliefId, BeliefDef>;
+  enhancerBeliefs: Record<BeliefId, BeliefDef>;
   rites: Record<RiteId, RiteDef>;
 }
 
@@ -217,20 +325,55 @@ export const RELIGION = religionJson as unknown as ReligionConfig;
  * that depends on an order must depend on an order the data itself carries.
  */
 export const BELIEF_IDS = Object.keys(RELIGION.beliefs) as BeliefId[];
+/** The follower pool, in file order. Drafted at founding; pays the founder. */
+export const FOLLOWER_BELIEF_IDS = Object.keys(RELIGION.followerBeliefs) as BeliefId[];
+/** The enhancer pool, in file order. Drafted at Theology; bends the tide. */
+export const ENHANCER_BELIEF_IDS = Object.keys(RELIGION.enhancerBeliefs) as BeliefId[];
+/** Every belief in the game, pantheon first, then follower, then enhancer. */
+export const ALL_BELIEF_IDS: readonly BeliefId[] = [
+  ...BELIEF_IDS,
+  ...FOLLOWER_BELIEF_IDS,
+  ...ENHANCER_BELIEF_IDS,
+];
 export const RITE_IDS = Object.keys(RELIGION.rites) as RiteId[];
+
+/** The rows of one drawable pool, in file order. `poolOrders`' twin. */
+export function poolBeliefs(pool: ReligionBeliefPool): BeliefId[] {
+  return pool === 'follower' ? [...FOLLOWER_BELIEF_IDS] : [...ENHANCER_BELIEF_IDS];
+}
 
 // --- lookups ----------------------------------------------------------------
 
+/** Is this any belief at all, in any of the three pools? */
 export function isBeliefId(value: unknown): value is BeliefId {
+  if (typeof value !== 'string') return false;
+  return (
+    Object.prototype.hasOwnProperty.call(RELIGION.beliefs, value) ||
+    Object.prototype.hasOwnProperty.call(RELIGION.followerBeliefs, value) ||
+    Object.prototype.hasOwnProperty.call(RELIGION.enhancerBeliefs, value)
+  );
+}
+
+/** Is this a **pantheon** god — the only pool a Consecrate draws from? */
+export function isPantheonBeliefId(value: unknown): value is BeliefId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(RELIGION.beliefs, value);
+}
+
+/** Which pool a belief was written for, or `null` for a pantheon god. */
+export function beliefPoolOf(id: BeliefId): ReligionBeliefPool | null {
+  if (Object.prototype.hasOwnProperty.call(RELIGION.followerBeliefs, id)) return 'follower';
+  if (Object.prototype.hasOwnProperty.call(RELIGION.enhancerBeliefs, id)) return 'enhancer';
+  return null;
 }
 
 export function isRiteId(value: unknown): value is RiteId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(RELIGION.rites, value);
 }
 
+/** One belief by id, whichever of the three pools it was written for. */
 export function beliefDef(id: BeliefId): BeliefDef {
-  const def = RELIGION.beliefs[id];
+  const def =
+    RELIGION.beliefs[id] ?? RELIGION.followerBeliefs[id] ?? RELIGION.enhancerBeliefs[id];
   if (!def) throw new Error(`Unknown belief "${String(id)}"`);
   return def;
 }
@@ -298,8 +441,44 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
       problems.push(`rite "${id}" has lasting effects and no duration to hang them on`);
     }
   }
-  for (const id of BELIEF_IDS) {
-    if (beliefDef(id).effects.length === 0) problems.push(`belief "${id}" does nothing`);
+  for (const id of ALL_BELIEF_IDS) {
+    const def = beliefDef(id);
+    // **A row with nothing to say is a bug; a row that says why is a decision.**
+    // `deferred` is the vocabulary's own convention (Entry XV.b): a belief whose
+    // ratified text needs a shape that does not exist ships with no effects and
+    // the missing half printed on the card, and bending it into a shape that
+    // nearly fits is the thing that rule exists to prevent.
+    if (def.effects.length === 0 && (def.deferred ?? []).length === 0) {
+      problems.push(`belief "${id}" does nothing`);
+    }
+  }
+  // **A follower belief's scoped line has to be one the fold knows.** The
+  // follower pool is evaluated over the cities of the *world* that follow and
+  // paid to the founder (`followerBeliefLines`, `statecraft.ts`), which can fold
+  // exactly three per-town shapes. A scoped shape it does not know would be
+  // passed through as a fact about the founder's own empire and quietly pay the
+  // wrong towns — so it fails here instead, and the row is deferred.
+  for (const id of FOLLOWER_BELIEF_IDS) {
+    for (const effect of beliefDef(id).effects) {
+      const scoped = (effect as { scope?: unknown }).scope !== undefined;
+      if (!scoped) continue;
+      if (effect.kind === 'cityYields' || effect.kind === 'happiness') continue;
+      problems.push(
+        `follower belief "${id}" scopes a ${effect.kind}, which the founder's fold cannot read`,
+      );
+    }
+  }
+  // A pattern naming an epithet no axis supplies would name a religion after an
+  // empty string, which reads as a game that forgot to finish a sentence.
+  for (const axis of BELIEF_AXES) {
+    const epithets = RELIGION.names.epithets[axis];
+    if (epithets === undefined || epithets.length === 0) {
+      problems.push(`no epithet is written for the "${axis}" axis`);
+    }
+  }
+  if (RELIGION.names.patterns.length === 0) problems.push('no religion name patterns are written');
+  if (RELIGION.founderTrickle.length === 0) {
+    problems.push('founding a religion pays its founder nothing');
   }
   return problems;
 }

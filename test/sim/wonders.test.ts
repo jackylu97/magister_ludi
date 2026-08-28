@@ -537,9 +537,12 @@ describe('the ratified roster', () => {
       const struck = describeCard(id).filter((clause) => clause.deferred);
       expect(struck.length, id).toBeGreaterThan(0);
     }
-    // A note is not a deferral: Hagia Sophia really does call somebody.
-    expect(buildingDef('hagiaSophia').note).toContain('prophet');
+    // Hagia Sophia's note is gone because the promise it apologised for is
+    // kept: prophets exist (`docs/religion-v2.md`), so the row grants one
+    // outright and presses for its owner's faith into the bargain.
+    expect(buildingDef('hagiaSophia').note).toBeUndefined();
     expect(buildingDef('hagiaSophia').deferred).toBeUndefined();
+    expect(buildingDef('hagiaSophia').onComplete?.[0]).toEqual({ grant: 'unit', unit: 'prophet' });
   });
 
   it('reads every shape the roster declares — the register', () => {

@@ -253,3 +253,200 @@ follower beliefs pay the owner of the holy site of the city
 holy sites claim one hex
 faith bomb only converts, it makes the decision more important between the two.
 One religion per empire, there should be a max # of religions that can be founded, lets make 2/3rds of the players in the lobby, rounding up to the nearest integer.
+## As built (2026-08-28)
+
+Everything below is what the simulation actually does. Where it differs from the
+body above, the Revisions ruled and this is the ruling.
+
+### The technology
+
+**The High Temple** — Æra II, cost 170 (the age's low rung, beside Iron Working),
+prerequisites Divination + Stonecraft. It hands over the **prophet**, the
+**Temple** (moved off Philosophy, which now unlocks the Great Library alone), a
+**third pantheon slot** (`religion.json` `slotsFromTech`), and the augur's new
+rite **The Preaching**. Its chart cell is column 3 (derived from the
+prerequisites), lane 3; Mathematics and Currency moved up one lane each so that
+no connector runs flat through it. The chart's crossing count went 11 → 15 as a
+result — a saturated column gained a fifth node — and a proper re-tune of the sky
+belongs to the interface pass.
+
+### State
+
+| Shape | Where | Note |
+|---|---|---|
+| `Religion { id, founderId, name, pantheon, follower[], enhancer?, foundedTurn, pulses[] }` | `GameState.religions` | founding order **is** id order; one writer (`foundReligion`) |
+| `ReligionPulse { col, row, strength, range, startTurn, expiresTurn }` | `Religion.pulses` | absolute expiry, decay computed from the two turns |
+| `City.followers?: Partial<Record<ReligionId, number>>` | `state.ts` | citizens by religion; the rest follow nothing, derived |
+| `City.pressureBank?: Partial<Record<ReligionId, number>>` | `state.ts` | faith banked toward the next convert; the only stored half of the tide |
+| `Player.prophetsPurchased` | `state.ts` | the prophet's own faith ladder, separate from the augur's |
+| `BeliefOffer.pool?: 'follower' \| 'enhancer'` | `religionData.ts` | absent means the pantheon — one offer field, one `chooseBelief` |
+
+Schema **26**. A v25 log is a different game rather than an older one: the temple
+moved onto a technology that did not exist, so every research plan past the
+second age reaches a different tree, and founding spends `state.rng` on a name.
+
+### Commands
+
+`plantHolySite { unitId }` · `enhanceReligion { unitId }` · `proclaim { unitId }`
+· `redraftBeliefs { unitId, pool }` · `renameReligion { name }` (pure prose, the
+only such command). All five are turn-gated and all four prophet verbs wake the
+piece through `orderedUnitId`. **A charge is the prophet's whole turn**, the
+augur's rule one agent over.
+
+`plantHolySite` is **one verb, two acts**: an empire with no religion founds one
+here, because a holy site presses for a faith and the first one a realm plants is
+necessarily the moment its faith exists. So all three founding refusals reach the
+player at the ground — *"You have no gods to found a religion on"*, *"The world
+has all the religions it will hold"*, and (from the gate, unreachable from the
+verb by construction) *"… has already founded a religion"*.
+
+### The citizen model
+
+`cityReligion(city)` is **derived, never stored**: the religion more than half the
+citizens follow, else `null`. `spreadReligion` is the only writer of `followers`
+and `pressureBank`, and it sits **before `collectYields`** so a town that turns
+this turn pays its new majority's founder the same turn its banner changes. It
+measures **every** town against one board and then moves every town — two passes,
+so the tide does not run faster along founding order than against it.
+
+Conversion order: the unconverted first, then the smallest congregation, ties by
+founding order (`convertCitizen`). Growth adds an **unconverted** citizen — which
+is why a big town is harder to convert — and starvation takes one from the
+**largest** congregation (`shrinkFollowers`, called from `growCities`).
+
+### The numbers, and the timeline they buy
+
+`rules.religion`: `pressurePerConvert 10` · `siteRange 6` · `siteStrength 6` ·
+`cityRange 3` · `cityStrength 2` · `roadStrength 4` · `routeStrength 3` ·
+`capitalStrength 4` · `templeOwnPercent 200` / `templeForeignPercent 50` ·
+`bombRange 10` · `bombStrength 12` · `bombTurns 10` · `maxReligions 2/3`.
+Prophet: 120🕯 +60. Holy site: +2🕯 +1🎵, one hex.
+
+Measured on the fixture (`test/sim/religion.test.ts`, "the tuning"):
+
+* **A holy site alone converts a size-4 town in exactly five turns.** 6 a turn
+  against 10 a convert: banks 6, 12→1 convert, 8, 14→1, 10→1 — three of four
+  citizens on turn 5, which is the majority.
+* **A road-joined following city converts the same town in exactly eight.** 4 a
+  turn: the third convert lands on turn 8.
+* A slow game measurement is in the slow tier: two seats reach two religions,
+  four proclamations and 38 converts inside 170 turns, and the log replays byte
+  for byte.
+
+### Who is paid
+
+**Follower beliefs pay the founder** (Revision 3), evaluated over every city in
+the world that follows whoever owns it. `liveEffects` gains a **seventh source** —
+the religion this empire founded — carrying three things: its enhancer beliefs
+plainly, the **founder's trickle** (`religion.json` `founderTrickle`: +1🕯 per
+foreign following city, +1💰 per two), and its follower beliefs folded by
+`followerBeliefLines`. The fold turns "in every city that follows" into one
+empire-scale line labelled with the count — *"Religion · the Grain Cult · Feast
+Days (4 following cities)"*. Three per-town shapes fold (`cityYields`,
+`happiness per city`, a town-scoped `countScaled`); everything else on a follower
+row is already a fact about the tide and passes through. `CityScope` gained
+`{ test: 'follows' }` and `cityScopeAdmits` an optional `viewerId` — the one scope
+that is about the reader as well as about the town.
+
+Five new `CountKind`s (`followingCities`, `followingForeign`, `followingPop`,
+`followingEmpires`, `followingWithBuilding`) answer off one sweep, and
+`AmplifierTarget` gained `founderTrickle` (Apostles) — folded before anything is
+banked, and read off the list `liveEffects` has already built rather than through
+`cardAmplifier`, which would be that function calling itself.
+
+### The pools
+
+`data/religion.json` grew `followerBeliefs` (16 rows) and `enhancerBeliefs` (10),
+one id space with the pantheon. **Five follower rows ship deferred and
+annotated** rather than bent into a shape that nearly fits — Warrior Monks
+(a scope on `combatLine`), Harvest Blessing (on `tileYield`), Guild of the
+Faithful (on `productionBonus`), Sanctuary (on `cityStat`/`unitStat`), Common
+Table (on `rulePercent`). Each is exactly one of the "**new**" scopes the body
+above flagged; `religionDataProblems` now fails the build if a follower row
+scopes a shape the founder's fold cannot read, so the deferral cannot rot into a
+silent mispayment. Two enhancer rows are deferred for want of a system (Holy
+Order needs a card that adds a unit; Theocratic Mandate needs diplomacy).
+
+`pools: { followerSlots: 1, enhancerSlots: 1 }` is the dial: raising
+`followerSlots` makes a prophet's later charge open a second follower draft with
+no code change, because `plantHolySiteAt` asks whether a slot is open and never
+how many.
+
+### Two new shapes, read in one place each
+
+`{ kind: 'pressureRule', rule, delta }` (the whole enhancer pool) and
+`{ kind: 'pressure', amount, range }` (Hagia Sophia, which also now grants a real
+prophet instead of the augur its note apologised for) are read only in
+`explainPressure`, through `cardPressureRule` and `cardPressureSources`.
+`statecraft.ts` is still the only module in the game that switches on
+`effect.kind`.
+
+### Names
+
+Generated from the pantheon's axes at founding, from `state.rng`:
+`religion.json` `names.epithets` (four per axis) and three `patterns` — *the
+Hearth Cult*, *the Way of the Reed*, *the Children of Frost and Stone*. The
+two-axis pattern is filtered **out before** the pattern is drawn rather than
+drawn and rejected, so a one-god religion and a two-god one spend the generator
+the same number of times.
+
+### The work, and who may plant one
+
+`ImprovementDef.greatPerson` widened from `Family` to **`WorkFamily = Family |
+'prophet'`** — `Family` is the great-people roster's own word and keys
+`renownByFamily`, so a sixth family there would have opened a renown bucket
+nothing feeds. `improvementError`'s symmetric clause is now read off all four
+markers (`plantingHandOf`): a worker plants ordinary improvements, a great person
+its own family's work, a prophet the holy site, and an **augur nothing at all** —
+which closes an old hole, since an augur has `charges` and could until now spend a
+rite's charge on a farm.
+
+### The register
+
+`refreshCityDerived`'s register gains one entry: **taking a belief** refreshes
+every town of that empire (`refreshBeliefDerived`, `religion.ts`), for
+`settleResearchWindfall`'s reason exactly — a belief is an empire-wide fact about
+what ground is worth (Ecclesia pays a holy site's hex), and the citizen who should
+move is in whichever town stands on the seam. It covers the pantheon path too,
+which had the same gap.
+
+### What is not built
+
+* **Two follower slots and two enhancer slots.** The body's 2/2; shipped at 1/1
+  behind a data dial (see `pools`).
+* **The five deferred follower rows and two enhancer rows** listed above.
+* **A wonder's pressure beyond Hagia Sophia's.** Djenné and Angkor Wat carry no
+  `pressure` row yet; adding one is a JSON line.
+* **Anything visual.** See below.
+
+### What the renderer needs
+
+* A **holy-site prop** — the ratified sculpt is a standing-stone ring with a gilt
+  tip. It currently borrows the landmark's stele and cap (`IMPROVEMENT_PROPS` /
+  `IMPROVEMENT_GILT` in `board3d.ts`, both marked as placeholders) with a
+  `view3d.json` row of its own.
+* A **prophet piece** — the augur's sculpt with a gilt rim and a taller staff,
+  badge `religious`. It currently maps to the worker `modelClass` and to the
+  `house` silhouette in `view.json`.
+* A **per-city religion for the banner**: `cityReligion(city)` is the reading, and
+  the device should be built from the pantheon's axis marks so a religion looks
+  like what it is made of.
+* A **faith lens**: `explainPressure` / `pressureTotals` give a per-hex-town
+  reading; holy sites and live pulses want rings.
+* Both fingerprints are untouched by this pass, and both will need a member: a
+  town's followed religion belongs in `CityLook`, and nothing on `Unit` changed.
+
+### What the interface needs
+
+* A **religion pane** on the Religion screen: the generated name (editable
+  through `renameReligion`), the follower and enhancer beliefs in their houses,
+  the founder's trickle, and the following cities with `explainPressure` on hover.
+* The **prophet's sheet**: four verb rows greyed with `plantHolySiteError`,
+  `enhanceReligionError`, `proclaimError` and `redraftError`, so an offered row is
+  a command the reducer takes.
+* **Followers on the city sheet**: the counts, the unconverted remainder, and the
+  bank's distance to the next convert.
+* **Toasts** for a religion founded, a town converted, and a proclamation made.
+* **Compendium rows** for the prophet, the holy site, The High Temple, The
+  Preaching, and the two new belief pools — all of which `describeCard` already
+  prints, deferrals struck through included.

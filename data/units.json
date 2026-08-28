@@ -304,6 +304,29 @@
       "modelClass": "worker",
       "glyph": "A"
     },
+    "prophet": {
+      "name": "Prophet",
+      "category": "civilian",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 0,
+      "cost": 0,
+      "charges": 2,
+      "prophesies": true,
+      "purchase": {
+        "currency": "faith",
+        "cost": 120,
+        "increment": 60,
+        "exclusive": true,
+        "verb": "Call a prophet"
+      },
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "worker",
+      "glyph": "P"
+    },
     "greatPerson": {
       "name": "Great Person",
       "category": "civilian",

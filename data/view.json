@@ -63,6 +63,7 @@
       "longswordsman": "pawn",
       "trebuchet": "tower",
       "augur": "house",
+      "prophet": "house",
       "greatPerson": "house"
     },
     "byPlayerColor": {

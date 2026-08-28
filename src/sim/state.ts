@@ -62,7 +62,7 @@ import type { TriumphId } from './triumphData';
 import type { GameMap } from './map';
 import { generateMap, getMapSize } from './mapgen';
 import { type MapgenOverrides, resolveMapgenConfig } from './mapgenData';
-import { type PlayerPantheon, newPlayerPantheon } from './religionData';
+import { type BeliefId, type PlayerPantheon, newPlayerPantheon } from './religionData';
 import { type Rng, hashSeed, makeRng } from './rng';
 import { RULES } from './rulesData';
 import { type PlayerStatecraft, cardExtraCharges, newPlayerStatecraft } from './statecraft';
@@ -233,8 +233,18 @@ import {
  *     inside one turn, which this reducer refuses — so the replay would leave
  *     the piece unbought, the treasury unspent, and every seeded thing after it
  *     shifted.
+ * 26: Religion v2 (`docs/religion-v2.md`) — the prophet, the religion, and the
+ *     tide of belief. One register (`GameState.religions`), two optional fields
+ *     on a city (`followers`, `pressureBank`), one on a player
+ *     (`prophetsPurchased`), four commands (`plantHolySite`, `enhanceReligion`,
+ *     `proclaim`, `redraftBeliefs`, plus `renameReligion`) and one phase
+ *     (`spreadReligion`). A v25 log replayed here is a *different game* rather
+ *     than an older one for a reason beyond the fields: the temple moved off
+ *     Philosophy onto **The High Temple**, a technology that did not exist, so
+ *     every research plan after the second age reaches a different tree — and
+ *     the belief draft now spends `state.rng` on a generated name.
  */
-export const SCHEMA_VERSION = 25;
+export const SCHEMA_VERSION = 26;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -533,6 +543,16 @@ export interface Player {
    * by somebody else.
    */
   augursPurchased: number;
+  /**
+   * How many prophets this player has ever **bought with faith**.
+   *
+   * `augursPurchased`' twin, and a field of its own rather than one counter for
+   * both agents: the two climb separate ladders (40 +15 against 120 +60), so a
+   * shared counter would make the first prophet cost whatever the augurs had
+   * already run the price up to. Read in exactly one place (`purchasesMade`,
+   * `purchase.ts`), which is where the augur's is read.
+   */
+  prophetsPurchased: number;
   /**
    * Renown banked toward the next great person — **the fifth Entry XVIII
    * bucket**, and the basket itself (`docs/great-people.md`).
@@ -1063,6 +1083,249 @@ export interface City {
    * else.
    */
   purchasedUnitTurn?: number;
+  /**
+   * How many of this town's citizens follow each religion, or the key is
+   * **absent** on a town nobody has preached to — which is every town for most
+   * of a game.
+   *
+   * **Civ V's citizen model, and the whole of "a city follows a religion"**
+   * (user, 2026-08-27): a religion does not take a town, it takes people in it
+   * one at a time, and the town follows the one more than half its citizens
+   * do (`cityReligion`). Everything else — the banner, the founder's trickle,
+   * what a follower belief pays — is derived from that one count.
+   *
+   * The rest of the population follows nothing, and that is a *derivation*
+   * rather than a stored figure: `population` minus the sum here. A second
+   * count of the unconverted would be a second answer, and the first thing it
+   * would do is disagree the turn a citizen was born.
+   *
+   * Keyed by `ReligionId`, which is a number, so a serialised town reads
+   * `{"0": 3}`; nothing iterates this object for an outcome — every sweep walks
+   * `GameState.religions` (founding order) and looks a count up by id, which is
+   * the determinism rule read for an object.
+   *
+   * A **captured** town keeps its followers, exactly as it keeps its granary and
+   * its blessings: a conquest changes whose town it is, not what the people in
+   * it believe.
+   */
+  followers?: Partial<Record<ReligionId, number>>;
+  /**
+   * Faith banked toward the *next* convert, per religion, or the key is
+   * **absent** — which it is for every town nothing is pressing on.
+   *
+   * The one thing about the tide that has to be stored: pressure is recomputed
+   * from the board every turn (`explainPressure`), but *how close the next
+   * citizen is to turning* is history, and a game that recomputed it would
+   * convert a town the instant a holy site went up or never at all. Every
+   * `rules.religion.pressurePerConvert` in here buys one citizen and is spent;
+   * the remainder carries, exactly as a food basket's does.
+   */
+  pressureBank?: Partial<Record<ReligionId, number>>;
+}
+
+/**
+ * A religion's id: its **index in `GameState.religions`**, which is founding
+ * order.
+ *
+ * A number rather than a string for the reason `City.id` is one — it is handed
+ * out by the register that holds the thing — and founding order rather than a
+ * counter because the register is an array and the array *is* the order. Every
+ * tie in the whole subsystem ("the religion with the fewest followers, ties by
+ * religion id order") is broken by it, so it has to be an order the state
+ * carries and not one an object's keys happen to produce.
+ */
+export type ReligionId = number;
+
+/**
+ * One proclamation standing on the board — a prophet's faith bomb, or an augur's
+ * Preaching.
+ *
+ * A **pulse**, not a building: it presses on everything within `range` of one
+ * hex and fades to nothing at `expiresTurn`, which is an **absolute** turn read
+ * by comparison exactly as `TimedEffect.expiresTurn` is. `startTurn` is here for
+ * one reason and it is not a countdown: the decay is
+ * `strength × (expiresTurn − turn) / (expiresTurn − startTurn)`, and a pulse
+ * that had to be told each turn how far it had come would be a clock.
+ *
+ * `spreadReligion` sweeps the expired ones for the reason `pruneTimedEffects`
+ * sweeps dead rites — a broom, not a clock. An expired pulse presses nothing
+ * whether it is swept or not.
+ */
+export interface ReligionPulse {
+  col: number;
+  row: number;
+  /** What it presses at the moment it is proclaimed, before the decay. */
+  strength: number;
+  /** How far it reaches, in hexes. */
+  range: number;
+  /** The turn it was proclaimed on. The denominator of the decay. */
+  startTurn: number;
+  /** The turn it stops pressing at all. Absolute; nothing ticks it. */
+  expiresTurn: number;
+}
+
+/**
+ * One religion, founded by one empire's prophet, followed by whoever the tide
+ * reaches.
+ *
+ * **Identity is the pantheon**: the beliefs the founder had consecrated at the
+ * moment of founding are copied here, and their axes are what the generated
+ * name is made of. They are a *snapshot* rather than a live reading of
+ * `Player.pantheon`, because a religion outlives the moment — an empire that
+ * consecrates a fourth god afterwards has not renamed its faith.
+ *
+ * `follower` and `enhancer` are drafted beliefs from two pools of their own
+ * (`data/religion.json`), written in the ordinary card vocabulary and read by
+ * the ordinary evaluator. Who they pay is the whole design (user, 2026-08-27):
+ * a **follower** belief pays the *founder* for every city in the world that
+ * follows, and an **enhancer** bends the tide itself.
+ */
+export interface Religion {
+  id: ReligionId;
+  /** The empire whose prophet founded it. Never changes; nothing may found twice. */
+  founderId: number;
+  /** Generated at founding from the pantheon's axes; renamable, pure prose. */
+  name: string;
+  /** The founder's gods at the moment of founding. Identity, never redrafted. */
+  pantheon: BeliefId[];
+  /** Drafted from the follower pool. Pays the founder, wherever the followers are. */
+  follower: BeliefId[];
+  /** Drafted from the enhancer pool at Theology. Bends the tide. */
+  enhancer?: BeliefId;
+  foundedTurn: number;
+  /** Proclamations still standing. See `ReligionPulse`. */
+  pulses: ReligionPulse[];
+}
+
+/**
+ * One religion by id — which is its index, so this is a bounds check with a
+ * name. `playerById`'s twin one register over.
+ */
+export function religionById(state: GameState, id: ReligionId): Religion | undefined {
+  return state.religions[id];
+}
+
+/**
+ * The religion this empire **founded**, or `undefined`.
+ *
+ * **The** reading of "my religion", and the whole of "one religion per empire,
+ * ever" (user, 2026-08-27): the register is swept for a row naming this seat,
+ * so there is no flag on the player that could disagree with it and no way to
+ * hold two. A walk of a list that never exceeds a handful of rows.
+ */
+export function foundedReligion(state: GameState, playerId: number): Religion | undefined {
+  for (const religion of state.religions) {
+    if (religion.founderId === playerId) return religion;
+  }
+  return undefined;
+}
+
+/**
+ * Which religion more than half of this town's citizens follow, or `null`.
+ *
+ * **The** reading, and it is derived rather than stored (`cityReligion` is asked
+ * of a town, never written to it) — the `barbarianRoles` discipline applied to a
+ * banner. A town split three ways follows nothing, which is what "the old gods"
+ * means: below a majority the place has a mosque, a shrine and an argument.
+ *
+ * `state.religions` order is not needed here because a strict majority can only
+ * ever be one religion, so there is no tie to break.
+ */
+export function cityReligion(city: City): ReligionId | null {
+  const followers = city.followers;
+  if (!followers) return null;
+  const half = city.population / 2;
+  for (const [key, count] of Object.entries(followers)) {
+    if ((count ?? 0) > half) return Number(key);
+  }
+  return null;
+}
+
+/** How many of this town's citizens follow one religion. Zero when none do. */
+export function followerCount(city: City, religion: ReligionId): number {
+  return city.followers?.[religion] ?? 0;
+}
+
+/** Citizens of this town who follow nothing at all. Never negative. */
+export function unconvertedCitizens(city: City): number {
+  let followed = 0;
+  for (const count of Object.values(city.followers ?? {})) followed += count ?? 0;
+  return Math.max(0, city.population - followed);
+}
+
+/**
+ * Moves **one** citizen onto a religion, taking them from the unconverted first
+ * and otherwise from the religion with the fewest followers.
+ *
+ * The order is the ruling (user, 2026-08-27) and it is what makes a young faith
+ * spread through a town before it starts prising people off an older one. The
+ * tie among equally small religions is broken by **id order**, which is founding
+ * order — an order the state carries (see `ReligionId`).
+ *
+ * `order` is the world's religions in founding order; the caller hands it in
+ * because it is the state's array and this function may not reach for the state.
+ * Answers whether anybody actually moved: a town every one of whose citizens
+ * already follows this religion has nobody left to give.
+ */
+export function convertCitizen(
+  city: City,
+  to: ReligionId,
+  order: readonly ReligionId[],
+): boolean {
+  const followers = city.followers ?? {};
+  if (unconvertedCitizens(city) <= 0) {
+    let from: ReligionId | null = null;
+    let fewest = 0;
+    for (const id of order) {
+      if (id === to) continue;
+      const held = followers[id] ?? 0;
+      if (held <= 0) continue;
+      if (from === null || held < fewest) {
+        from = id;
+        fewest = held;
+      }
+    }
+    if (from === null) return false;
+    const left = (followers[from] ?? 0) - 1;
+    if (left <= 0) delete followers[from];
+    else followers[from] = left;
+  }
+  followers[to] = (followers[to] ?? 0) + 1;
+  city.followers = followers;
+  return true;
+}
+
+/**
+ * Takes one citizen away from the religion with the **most** followers — what a
+ * town losing a mouth does to its congregations.
+ *
+ * The mirror of `convertCitizen`'s rule and deliberately not its inverse: a
+ * famine takes from the largest congregation because that is where most of the
+ * town is, and taking from the smallest would let a starving city quietly purge
+ * a rival faith. Ties by id order, which is founding order.
+ *
+ * The key is **deleted** when a congregation empties, so a town nobody follows
+ * any more serialises exactly like one nobody ever preached to.
+ */
+export function shrinkFollowers(city: City, order: readonly ReligionId[]): void {
+  if (unconvertedCitizens(city) > 0) return;
+  const followers = city.followers;
+  if (!followers) return;
+  let largest: ReligionId | null = null;
+  let most = 0;
+  for (const id of order) {
+    const held = followers[id] ?? 0;
+    if (held <= 0) continue;
+    if (largest === null || held > most) {
+      largest = id;
+      most = held;
+    }
+  }
+  if (largest === null) return;
+  const left = most - 1;
+  if (left <= 0) delete followers[largest];
+  else followers[largest] = left;
+  if (Object.keys(followers).length === 0) delete city.followers;
 }
 
 /**
@@ -1302,6 +1565,23 @@ export interface GameState {
    * is set, because refusing them would mean a replay of a finished game
    * diverges from the game it replays. The interface is what stops.
    */
+  /**
+   * Every religion that has been founded, **in founding order** — which is also
+   * what a `ReligionId` is.
+   *
+   * `GameState.wonders`' twin one system over, and the register in the same
+   * sense: a religion exists iff there is a row here, an empire has founded one
+   * iff a row names it, and how many the world may hold at all
+   * (`rules.religion.maxReligions`, two thirds of the real seats rounded up) is
+   * a count of this array. Written in exactly one place, `foundReligion`
+   * (`religion.ts`), from exactly one verb.
+   *
+   * An **array in founding order** rather than a record, for `camps`' stated
+   * reason: every tie in the spread ("the religion with the fewest followers,
+   * ties by id") is broken by an order, and it has to be an order the state
+   * itself carries.
+   */
+  religions: Religion[];
   winnerId: number | null;
 }
 
@@ -1418,6 +1698,7 @@ export function newGame(config: GameConfig): GameState {
       // not write it into everybody else's pantheon.
       pantheon: newPlayerPantheon(),
       augursPurchased: 0,
+      prophetsPurchased: 0,
       renownPool: 0,
       // Fresh every time rather than a shared literal, for `techsResearched`'s
       // reason exactly: a player whose libraries feed the scholars must not
@@ -1445,6 +1726,8 @@ export function newGame(config: GameConfig): GameState {
     // empty registers mean.
     recruited: [],
     contested: [],
+    // Nobody has founded anything, which is what an empty register means.
+    religions: [],
     winnerId: null,
   };
   placeStartingUnits(state);
@@ -1523,6 +1806,7 @@ function seatBarbarians(state: GameState): void {
     statecraft: newPlayerStatecraft(),
     pantheon: newPlayerPantheon(),
     augursPurchased: 0,
+    prophetsPurchased: 0,
     // Present so every reader may index a seat without asking which kind it is,
     // and filled by nothing: the renown phase skips the wild the way
     // `advanceResearch` does. The wild has no screen to be offered a name on.

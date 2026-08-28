@@ -78,7 +78,7 @@ import { type ProjectId, type ProjectPayout, projectDef } from './projectData';
 import { type Tile, getTileAt, neighborTiles, tileHex, wrappedDistance } from './map';
 import { authorityOf, happinessOf } from './meters';
 import type { ModifierStage } from './modifiers';
-import { beliefDef, isBeliefId, isRiteId, riteDef } from './religionData';
+import { RELIGION, beliefDef, isBeliefId, isRiteId, riteDef } from './religionData';
 import { type CityYieldKey, type ResourceKind, resourceDef, resourceYield } from './resourceData';
 import { nextFloat } from './rng';
 import { RULES } from './rulesData';
@@ -86,13 +86,19 @@ import {
   type City,
   type GameState,
   type Player,
+  type Religion,
   type TimedEffect,
   type Unit,
+  cityReligion,
+  foundedReligion,
   playerById,
 } from './state';
 import {
   type ActionRuleId,
   type AmplifierTarget,
+  type CardEmpireYieldsEffect,
+  type CardPressureEffect,
+  type PressureRuleId,
   type BehaviorRuleId,
   type CardCountScaledEffect,
   type CardDefBase,
@@ -631,6 +637,7 @@ const CLASS_WORD = {
   wonder: 'Wonder',
   building: 'Building',
   legacy: 'Legacy',
+  religion: 'Religion',
 } as const;
 
 /**
@@ -779,7 +786,172 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
     if (!isGreatPersonId(id)) continue;
     push(id, CLASS_WORD.legacy, 1, greatPersonDef(id).legacy);
   }
+  // **The seventh source** (`docs/religion-v2.md`): the religion this empire
+  // *founded*. Three things arrive together and they are three readings of one
+  // fact — that a faith is yours:
+  //
+  //   · its **enhancer** beliefs, pushed plainly, because they are ordinary
+  //     cards of this vocabulary held by the empire that drafted them;
+  //   · the **founder's trickle**, the standing payment for the followers it has
+  //     in the world, written as data (`religion.json`) rather than as a rule so
+  //     that doubling it is a card and not a branch;
+  //   · its **follower** beliefs, folded over every city in the *world* that
+  //     follows (`followerBeliefLines`) — the user's ruling of 2026-08-27, that
+  //     a follower belief pays "the owner of the holy site", which is the
+  //     founder wherever the followers happen to live.
+  //
+  // Last, after the law, the gods, the stones and the dead, for the reason each
+  // of those is last in turn: it is the order they were acquired in, so no
+  // ledger reshuffles itself.
+  const mine = foundedReligion(state, playerId);
+  if (mine) {
+    const word = `${CLASS_WORD.religion} · ${mine.name}`;
+    if (mine.enhancer !== undefined && isBeliefId(mine.enhancer)) {
+      push(mine.enhancer, CLASS_WORD.belief, 1, beliefDef(mine.enhancer).effects);
+    }
+    // The amplifier is read off the list **already built** rather than through
+    // `cardAmplifier`, and that is not an optimisation: `cardAmplifier` asks
+    // `liveEffects`, and asking it from inside itself is a stack overflow. By
+    // this line every other source has been pushed, including the enhancer that
+    // carries Apostles, so the reading is complete without re-entering.
+    let amplifier = 0;
+    for (const entry of list) {
+      if (entry.effect.kind !== 'effectAmplifier') continue;
+      if (entry.effect.target !== 'founderTrickle') continue;
+      amplifier += scaleByLevel(entry.effect.percent, entry.level);
+    }
+    for (const effect of RELIGION.founderTrickle) {
+      list.push({ source: word, card: mine.follower[0] ?? sc.government, level: 1, effect: amplifyTrickle(effect, amplifier) });
+    }
+    list.push(...followerBeliefLines(state, playerId, mine));
+  }
   return list;
+}
+
+/**
+ * The founder's trickle with Apostles folded in — **before anything is banked**,
+ * which is `windfallPayout`'s discipline applied to a standing payment.
+ *
+ * It reaches the one figure a trickle row has (`countScaled`'s payout) and
+ * nothing else, so a card that doubles what your followers pay you cannot
+ * silently double a rule or a range. Zero amplification returns the row
+ * untouched, so a game where nobody holds Apostles folds byte-identically to one
+ * from before the card existed.
+ */
+function amplifyTrickle(effect: CardEffect, percent: number): CardEffect {
+  if (percent === 0 || effect.kind !== 'countScaled') return effect;
+  const pays = effect.pays;
+  if (pays.to !== 'yield' && pays.to !== 'happiness' && pays.to !== 'authority') return effect;
+  const amount = Math.floor((pays.amount * (100 + percent)) / 100);
+  return { ...effect, pays: { ...pays, amount } };
+}
+
+/**
+ * What a religion's **follower** beliefs pay its founder, as ordinary effects.
+ *
+ * The user's ruling of 2026-08-27 in one function: a follower belief is
+ * evaluated over *every city in the world that follows*, whoever owns it, and
+ * paid to the empire that founded the faith. So a clause written "in every city
+ * that follows" — which is a fact about a town — comes out of here as a fact
+ * about an **empire**, with the count folded in and printed on the label:
+ * "Religion · the Hearth Cult · Feast Days (4 following cities)".
+ *
+ * **Three shapes fold and everything else passes through**, and the split is the
+ * design rather than a limit somebody ran into:
+ *
+ *   · `cityYields`, `happiness per city` and a **town-scoped** `countScaled` are
+ *     the three ways this vocabulary says "in each such city", so each is summed
+ *     across the admitted towns into one empire-scale line;
+ *   · anything else a follower row says is already a fact about the tide as a
+ *     whole (Congregation's "per 5 cities in the world that follow") and is
+ *     passed through untouched.
+ *
+ * A row that wants a *scoped* shape the fold cannot read — a strength line in
+ * following cities, a hex bonus on their farms — is **deferred and annotated**
+ * on its data row rather than bent into a shape that nearly fits (Entry XV.b's
+ * rule), and `religionDataProblems` fails the build if one slips through.
+ */
+function followerBeliefLines(
+  state: GameState,
+  playerId: number,
+  religion: Religion,
+): LiveCardEffect[] {
+  const out: LiveCardEffect[] = [];
+  for (const id of religion.follower) {
+    if (!isBeliefId(id)) continue;
+    const def = beliefDef(id);
+    for (const effect of def.effects) {
+      const folded = foldFollowerEffect(state, playerId, religion, id, def.name, effect);
+      if (folded) out.push(folded);
+      else {
+        out.push({
+          source: `${CLASS_WORD.religion} · ${religion.name} · ${def.name}`,
+          card: id,
+          level: 1,
+          effect,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+/** One follower clause folded over the towns that follow, or `null` to pass through. */
+function foldFollowerEffect(
+  state: GameState,
+  playerId: number,
+  religion: Religion,
+  card: CardId,
+  name: string,
+  effect: CardEffect,
+): LiveCardEffect | null {
+  const scope =
+    effect.kind === 'cityYields' || effect.kind === 'happiness' ? effect.scope : undefined;
+  const townScoped = effect.kind === 'countScaled' && isCityScopedCount(effect);
+  if (effect.kind !== 'cityYields' && effect.kind !== 'happiness' && !townScoped) return null;
+  if (effect.kind === 'happiness' && effect.per !== 'city') return null;
+
+  let towns = 0;
+  let helpingsTotal = 0;
+  for (const city of state.cities) {
+    if (cityReligion(city) !== religion.id) continue;
+    if (!cityScopeAdmits(state, city, scope, playerId)) continue;
+    towns += 1;
+    if (effect.kind === 'countScaled') {
+      helpingsTotal += helpings(countOf(state, playerId, effect, city), effect.per, effect.max);
+    }
+  }
+  if (towns === 0) return null;
+  const source = `${CLASS_WORD.religion} · ${religion.name} · ${name} (${towns} following ${
+    towns === 1 ? 'city' : 'cities'
+  })`;
+  const line = (folded: CardEffect): LiveCardEffect => ({ source, card, level: 1, effect: folded });
+
+  if (effect.kind === 'cityYields') {
+    const bag: CardEmpireYieldsEffect = { kind: 'empireYields' };
+    for (const voice of VOICES) {
+      const amount = effect[voice] ?? 0;
+      if (amount !== 0) bag[voice] = amount * towns;
+    }
+    return line(bag);
+  }
+  if (effect.kind === 'happiness') {
+    return line({ kind: 'happiness', amount: effect.amount * towns });
+  }
+  // A town-scoped count, summed over the towns and paid once. `helpings` was
+  // taken **per town** above rather than on the sum, which is the honest
+  // reading: "one culture per three citizens" is a rounding each choir does for
+  // itself, not one the empire does across all of them.
+  if (helpingsTotal === 0) return null;
+  const pays = (effect as CardCountScaledEffect).pays;
+  if (pays.to === 'yield') {
+    const bag: CardEmpireYieldsEffect = { kind: 'empireYields' };
+    bag[pays.yield] = pays.amount * helpingsTotal;
+    return line(bag);
+  }
+  if (pays.to === 'happiness') return line({ kind: 'happiness', amount: pays.amount * helpingsTotal });
+  if (pays.to === 'authority') return line({ kind: 'authority', amount: pays.amount * helpingsTotal });
+  return null;
 }
 
 /**
@@ -1083,7 +1255,12 @@ function isFrontierCity(state: GameState, city: City, radius: number): boolean {
  * evaluator for every scope a card can name, so a new scope is one arm here and
  * nothing in the card that wanted it.
  */
-export function cityScopeAdmits(state: GameState, city: City, scope?: CityScope): boolean {
+export function cityScopeAdmits(
+  state: GameState,
+  city: City,
+  scope?: CityScope,
+  viewerId?: number,
+): boolean {
   if (!scope) return true;
   const test = scope.test;
   switch (test) {
@@ -1130,11 +1307,19 @@ export function cityScopeAdmits(state: GameState, city: City, scope?: CityScope)
     case 'onTerrain':
       // The centre's own hex and nothing wider. See the scope's docblock.
       return cityTile(state.map, city).terrain === scope.terrain;
+    case 'follows':
+      // **The one scope that is about the reader.** "My religion" is the
+      // religion `viewerId` founded, and a caller with nobody in hand is asking
+      // a question with no subject — so it admits nothing rather than
+      // everything. See the scope's docblock.
+      return viewerId !== undefined && cityFollowsFounder(state, city, viewerId);
     case 'all': {
       // Recursion into the same evaluator, which is the whole reason the
-      // composite is a scope rather than a second field on every effect.
+      // composite is a scope rather than a second field on every effect. The
+      // viewer travels down with it, or a composite holding `follows` would
+      // lose its subject one level in.
       for (const inner of scope.of) {
-        if (!cityScopeAdmits(state, city, inner)) return false;
+        if (!cityScopeAdmits(state, city, inner, viewerId)) return false;
       }
       return true;
     }
@@ -1144,6 +1329,20 @@ export function cityScopeAdmits(state: GameState, city: City, scope?: CityScope)
       return true;
     }
   }
+}
+
+/**
+ * Does this town follow the religion `viewerId` founded?
+ *
+ * The `follows` scope's whole body, and it is two derived readings joined:
+ * `cityReligion` (a strict majority of the citizens) and `foundedReligion` (the
+ * one row in the register naming this seat). Nothing is stored on either side,
+ * so a town that converts this turn is admitted this turn.
+ */
+function cityFollowsFounder(state: GameState, city: City, viewerId: number): boolean {
+  const mine = foundedReligion(state, viewerId);
+  if (!mine) return false;
+  return cityReligion(city) === mine.id;
 }
 
 /** What a scope says about where a line landed, for the label. */
@@ -1179,6 +1378,8 @@ function scopeNote(scope?: CityScope): string | null {
       return buildingDef(scope.building).name.toLowerCase();
     case 'onTerrain':
       return `${scope.terrain} city`;
+    case 'follows':
+      return 'follows your faith';
     case 'all':
       return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' + ');
     default: {
@@ -1444,12 +1645,64 @@ function countOf(
       }
       return total;
     }
+    case 'followingCities':
+    case 'followingForeign':
+    case 'followingPop':
+    case 'followingEmpires':
+    case 'followingWithBuilding':
+      // **The tide, counted, in one sweep** (`docs/religion-v2.md`). Five
+      // readings of one question — which cities in the *world* follow the
+      // religion this empire founded — so they share a body rather than
+      // repeating the walk five times with one line different. An empire that
+      // has founded nothing counts nothing, which is the honest answer and not
+      // a guard.
+      return followingCount(state, playerId, count, effect);
     default: {
       const unhandled: never = count;
       void unhandled;
       return 0;
     }
   }
+}
+
+/**
+ * The five `following…` counts, over one sweep of `state.cities`.
+ *
+ * `cityReligion` is derived from the citizens, so this cannot disagree with the
+ * banner a town flies; `state.cities` is founding order, which is what makes the
+ * count an outcome the state's own order decides. **Empires** are counted
+ * through a list rather than a `Set`, for the determinism rule — nothing in this
+ * game iterates a `Set` — even though a count is order-blind, because the shape
+ * of the loop is what the next person copies.
+ */
+function followingCount(
+  state: GameState,
+  playerId: number,
+  count: CountKind,
+  effect: CardCountScaledEffect,
+): number {
+  const mine = foundedReligion(state, playerId);
+  if (!mine) return 0;
+  let cities = 0;
+  let foreign = 0;
+  let population = 0;
+  let withBuilding = 0;
+  const empires: number[] = [];
+  for (const city of state.cities) {
+    if (cityReligion(city) !== mine.id) continue;
+    cities += 1;
+    population += city.population;
+    if (city.ownerId !== playerId) foreign += 1;
+    if (effect.building !== undefined && city.buildings.includes(effect.building)) {
+      withBuilding += 1;
+    }
+    if (!empires.includes(city.ownerId)) empires.push(city.ownerId);
+  }
+  if (count === 'followingForeign') return foreign;
+  if (count === 'followingPop') return population;
+  if (count === 'followingEmpires') return empires.length;
+  if (count === 'followingWithBuilding') return effect.building === undefined ? 0 : withBuilding;
+  return cities;
 }
 
 /**
@@ -2930,6 +3183,75 @@ export function cardPantheonSlots(state: GameState, playerId: number): number {
  * `zocField` resolves it once per sweep beside the units and the cities it
  * already walks. See `zocRule`.
  */
+/**
+ * How far this empire's cards move one number of **the tide**, in all.
+ *
+ * The `meterRule` pattern one system over (`cardMeterRule`): every live
+ * `pressureRule` naming this rule, summed and scaled by its holding's level, so
+ * two enhancer beliefs that both widen a range are additive exactly as
+ * everything else in this game that stacks is. Read in exactly one place —
+ * `explainPressure` (`religion.ts`) — which is what keeps the whole enhancer
+ * pool a table of JSON rows.
+ *
+ * The rules that are really switches (`routeBothWays`) are read as "is this
+ * above zero"; the shape has no boolean, and inventing one for a single row
+ * would be a second way to say the same thing.
+ */
+export function cardPressureRule(
+  state: GameState,
+  playerId: number,
+  rule: PressureRuleId,
+): number {
+  let total = 0;
+  for (const entry of effectsOfKind(state, playerId, 'pressureRule')) {
+    if (entry.effect.rule !== rule) continue;
+    total += scaleByLevel(entry.effect.delta, entry.level);
+  }
+  return total;
+}
+
+/** One standing source of pressure a building projects. See `cardPressureSources`. */
+export interface CardPressureSource {
+  source: string;
+  city: City;
+  amount: number;
+  range: number;
+}
+
+/**
+ * Every **located** source of religious pressure this empire's buildings supply
+ * — Hagia Sophia's, today.
+ *
+ * It walks the empire's towns rather than `liveEffects`, and that is the whole
+ * reason it is a reader of its own: a pressure source presses *from somewhere*,
+ * and `liveEffects` deliberately forgets which town a wonder stands in (its
+ * clauses say so themselves through `hasBuilding`). A fold that had lost the
+ * city could not answer "within eight hexes of what".
+ *
+ * It follows the stones like every other wonder reading: a captured Hagia Sophia
+ * presses for its captor's faith the turn the town changes hands, because this
+ * asks the town's `buildings` list and nothing else.
+ */
+export function cardPressureSources(state: GameState, playerId: number): CardPressureSource[] {
+  const out: CardPressureSource[] = [];
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    for (const id of city.buildings) {
+      for (const effect of buildingDef(id).effects ?? []) {
+        if (effect.kind !== 'pressure') continue;
+        const pressure: CardPressureEffect = effect;
+        out.push({
+          source: `${isWonder(id) ? CLASS_WORD.wonder : CLASS_WORD.building} · ${buildingDef(id).name}`,
+          city,
+          amount: pressure.amount,
+          range: pressure.range,
+        });
+      }
+    }
+  }
+  return out;
+}
+
 export function cardBorderZoc(state: GameState, playerId: number): boolean {
   for (const { effect } of effectsOfKind(state, playerId, 'zocRule')) {
     if (effect.rule === 'borders') return true;
@@ -3542,6 +3864,18 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       });
       return;
     }
+    case 'pressureRule': {
+      const delta = scaleByLevel(effect.delta, level);
+      out.push({ text: PRESSURE_RULE_WORDS[effect.rule](delta) });
+      return;
+    }
+    case 'pressure':
+      out.push({
+        text:
+          `spreads your religion ${signed(scaleByLevel(effect.amount, level))} faith ` +
+          `to every city within ${effect.range} hexes`,
+      });
+      return;
     default: {
       const unhandled: never = kind;
       void unhandled;
@@ -3549,6 +3883,33 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
     }
   }
 }
+
+/**
+ * The rules of the tide, as **formatters** rather than as stems — `AMPLIFIER_WORDS`'
+ * bargain, and for its reason: a range and a resistance do not take the same
+ * sentence, and `templeForeignPercent` reads *backwards* (a smaller number is a
+ * stronger temple), so a shared "+N to X" would have printed the one clause in
+ * the pool that a player could misread as a weakening.
+ */
+const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
+  siteRange: (delta) => `holy sites reach ${signed(delta)} hexes further`,
+  siteStrength: (delta) => `holy sites spread ${signed(delta)} faith`,
+  cityRange: (delta) => `cities that follow reach ${signed(delta)} hexes further`,
+  cityStrength: (delta) => `cities that follow spread ${signed(delta)} faith`,
+  roadStrength: (delta) => `roads carry ${signed(delta)} faith`,
+  routeStrength: (delta) => `caravans carry ${signed(delta)} faith`,
+  capitalStrength: (delta) => `your capital holds ${signed(delta)} faith of its own`,
+  templeOwnPercent: (delta) => `a Temple holds its own faith ${signed(delta)}% harder`,
+  templeForeignPercent: (delta) =>
+    delta < 0
+      ? `a Temple turns away ${-delta}% more of a foreign faith`
+      : `a Temple turns away ${delta}% less of a foreign faith`,
+  bombRange: (delta) => `a proclamation reaches ${signed(delta)} hexes further`,
+  bombStrength: (delta) => `a proclamation spreads ${signed(delta)} faith`,
+  pulseTurns: (delta) => `a proclamation lasts ${signed(delta)} turns longer`,
+  routeBothWays: (delta) =>
+    delta > 0 ? 'a caravan carries your faith both ways along its route' : 'a caravan carries your faith one way',
+};
 
 /**
  * What a completion grant hands over, in words. See `CompletionGrant`.
@@ -3708,6 +4069,9 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     case 'onTerrain':
       into.adjectives.push(scope.terrain);
+      return;
+    case 'follows':
+      into.qualifiers.push('that follows your religion');
       return;
     case 'all':
       for (const inner of scope.of) scopePhrase(inner, into);
@@ -4036,6 +4400,20 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   },
   discoveredCamps: { one: 'barbarian camp you have found', many: 'barbarian camps you have found' },
   tradeRoutes: { one: 'trade route you run', many: 'trade routes you run' },
+  followingCities: { one: 'city that follows you', many: 'cities that follow you' },
+  followingForeign: {
+    one: 'foreign city that follows you',
+    many: 'foreign cities that follow you',
+  },
+  followingPop: {
+    one: 'citizen in the cities that follow you',
+    many: 'citizens in the cities that follow you',
+  },
+  followingEmpires: { one: 'empire that follows you', many: 'empires that follow you' },
+  followingWithBuilding: {
+    one: 'following city with the building',
+    many: 'following cities with the building',
+  },
 };
 
 const RATE_WORDS: Record<RateSource, PluralWords> = {
@@ -4075,6 +4453,8 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   luxuryDuplicates: (percent) => `duplicate luxury copies count at ${percent}%`,
   riteDuration: (percent) => `rites last ${signed(percent)}% longer`,
   routeYields: (percent) => `trade routes pay ${signed(percent)}% more`,
+  founderTrickle: (percent) =>
+    `what your followers pay you is ${signed(percent)}% higher`,
 };
 
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {

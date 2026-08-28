@@ -402,13 +402,17 @@ describe('star chart layout', () => {
       expect(band.from).toBe(before.to + 1);
       expect(band.age).toBeGreaterThan(before.age);
     }
-    // Which is: ÆRA I over the first four columns, II over the next two, III
+    // Which is: ÆRA I over the first three columns, II over the next three, III
     // over the last two — the ages annotate the chart, they no longer place it.
-    // Column 3 is an even split (Letters and The Wheel against Iron Working and
-    // Construction) and the tie goes to the earlier age, which is the rule.
+    // Column 3 used to be an even split (Letters and The Wheel against Iron
+    // Working and Construction) that the tie-break gave to the earlier age; The
+    // High Temple (religion v2) sits there too and carries the column for ÆRA
+    // II, so two ancient nodes now stand under the second numeral. That is the
+    // rule working — a band is a majority vote of the column, and the test below
+    // is the one that says how far adrift a node may ever be.
     expect(bands).toEqual([
-      { age: 1, from: 0, to: 3 },
-      { age: 2, from: 4, to: 5 },
+      { age: 1, from: 0, to: 2 },
+      { age: 2, from: 3, to: 5 },
       { age: 3, from: 6, to: 7 },
     ]);
   });
@@ -874,8 +878,8 @@ describe('glanceable numbers', () => {
 // ---------------------------------------------------------------------------
 
 describe('research in the log', () => {
-  it('round-trips a schema 25 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(25);
+  it('round-trips a schema 26 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(26);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

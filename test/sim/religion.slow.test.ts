@@ -30,6 +30,8 @@ import { unitDef } from '../../src/sim/unitData';
 
 /** The one thing faith sells. Named once, so the shape reads out of the way. */
 const AUGUR: PurchasableItem = { kind: 'unit', id: 'augur' };
+/** The other thing faith sells, since religion v2. */
+const PROPHET: PurchasableItem = { kind: 'unit', id: 'prophet' };
 
 
 /**
@@ -201,8 +203,8 @@ function nearestSite(
 }
 
 describe('determinism', () => {
-  it('round-trips a schema 25 save with augurs, rites and beliefs in the log', () => {
-    expect(SCHEMA_VERSION).toBe(25);
+  it('round-trips a schema 26 save with augurs, rites and beliefs in the log', () => {
+    expect(SCHEMA_VERSION).toBe(26);
     const played = playFaithful(90);
     // The empire actually got there: an augur was bought out of faith it earned,
     // rites were performed, and a god was named. A determinism test over a log
@@ -215,6 +217,193 @@ describe('determinism', () => {
     expect(snapshotState(replayed)).toEqual(snapshotState(played.game.state));
   });
 
+});
+
+/**
+ * **Two empires, two faiths, and a bomb** — the religion-v2 half of the
+ * determinism claim.
+ *
+ * `playFaithful`'s shape with two seats and a longer horizon, because the thing
+ * being replayed is the *whole* subsystem: a generated name (which spends the
+ * generator), a follower draft, a holy site on the board, a proclamation with an
+ * absolute expiry, and a hundred turns of the tide converting citizens one at a
+ * time. Every act is a command, so `{config, log}` is the whole of it.
+ */
+function playTwoFaiths(maxTurns: number): {
+  game: ReturnType<typeof createGame>;
+  religionsFounded: number;
+  pulses: number;
+  converts: number;
+} {
+  const g = createGame({
+    seed: 8181,
+    sizeName: 'standard',
+    players: [
+      { name: 'Ada', color: '#d4502e', isHuman: true },
+      { name: 'Bors', color: '#3a7fe8' },
+    ],
+  });
+  const CITY_TARGET = 3;
+  const ROAD = [
+    'husbandry',
+    'divination',
+    'earthenware',
+    'stonecraft',
+    'theHighTemple',
+    'letters',
+    'calendar',
+  ];
+  let pulses = 0;
+
+  for (let turn = 0; turn < maxTurns; turn++) {
+    for (const seat of [0, 1]) {
+      const player = playerById(g.state, seat)!;
+      if (player.pantheon.pending !== undefined) {
+        dispatch(g, { type: 'chooseBelief', playerId: seat, optionIndex: 0 } as Command);
+      }
+      if (player.statecraft.pendingOrder !== undefined) {
+        dispatch(g, { type: 'chooseOrder', playerId: seat, optionIndex: 0 } as Command);
+      }
+      if (player.statecraft.pendingGovernment !== undefined) {
+        dispatch(g, { type: 'adoptGovernment', playerId: seat, choiceIndex: 0 } as Command);
+      }
+      if (player.statecraft.pendingDoctrine !== undefined) {
+        dispatch(g, { type: 'chooseDoctrine', playerId: seat, optionIndex: 0 } as Command);
+      }
+      if (player.pendingDiscovery !== undefined) {
+        dispatch(g, { type: 'chooseDiscovery', playerId: seat, optionIndex: 0 } as Command);
+      }
+      if (player.greatPersonOffer !== undefined) {
+        dispatch(g, { type: 'chooseGreatPerson', playerId: seat, optionIndex: 0 } as Command);
+      }
+      if (player.researching === null) {
+        const next =
+          ROAD.find((id) => !player.techsResearched.includes(id as never)) ??
+          [...availableTechs(g.state, seat)].sort(
+            (a, b) => techDef(a).cost - techDef(b).cost || TECH_IDS.indexOf(a) - TECH_IDS.indexOf(b),
+          )[0];
+        if (
+          !next ||
+          !dispatch(g, { type: 'chooseResearch', playerId: seat, techId: next } as Command).ok
+        ) {
+          const fallback = [...availableTechs(g.state, seat)][0];
+          if (fallback) {
+            dispatch(g, { type: 'chooseResearch', playerId: seat, techId: fallback } as Command);
+          }
+        }
+      }
+
+      const mine = g.state.cities.filter((city) => city.ownerId === seat);
+      for (const unit of [...g.state.units]) {
+        if (unit.ownerId !== seat || !unitDef(unit.type).foundsCity) continue;
+        if (mine.length >= CITY_TARGET) continue;
+        if (dispatch(g, { type: 'foundCity', playerId: seat, settlerUnitId: unit.id }).ok) continue;
+        if (unit.path && unit.path.length > 0) continue;
+        const target = nearestSite(g.state, unit.col, unit.row);
+        if (target) dispatch(g, { type: 'moveUnit', playerId: seat, unitId: unit.id, target });
+      }
+
+      // The prophet first, then the augur: a religion is worth more than a rite,
+      // and a seat that saved for one should not spend the faith on three.
+      const home = g.state.cities.find((city) => city.ownerId === seat);
+      if (home) {
+        for (const item of [PROPHET, AUGUR]) {
+          const price = explainPurchaseCost(g.state, seat, home.id, item, 'faith');
+          if (!price || player.faithPool < price.total) continue;
+          dispatch(g, {
+            type: 'purchaseItem',
+            playerId: seat,
+            cityId: home.id,
+            item,
+            currency: 'faith',
+          } as Command);
+          break;
+        }
+      }
+
+      // Spend the prophets: the site first (which founds), and the bomb after.
+      for (const unit of [...g.state.units]) {
+        if (unit.ownerId !== seat || unitDef(unit.type).prophesies !== true) continue;
+        if (dispatch(g, { type: 'plantHolySite', playerId: seat, unitId: unit.id } as Command).ok) {
+          continue;
+        }
+        if (dispatch(g, { type: 'proclaim', playerId: seat, unitId: unit.id } as Command).ok) {
+          pulses += 1;
+          continue;
+        }
+        // Nowhere to plant: walk one hex and try again next turn.
+        const target = nearestSite(g.state, unit.col, unit.row);
+        if (target) dispatch(g, { type: 'moveUnit', playerId: seat, unitId: unit.id, target });
+      }
+
+      const charges = unitDef('augur').charges ?? 0;
+      for (const unit of [...g.state.units]) {
+        if (unit.ownerId !== seat || !isAugur(unit)) continue;
+        if (
+          (unit.chargesLeft ?? charges) < charges &&
+          consecrateError(g.state, seat, unit.id) === null
+        ) {
+          if (dispatch(g, { type: 'consecrate', playerId: seat, unitId: unit.id } as Command).ok) {
+            continue;
+          }
+        }
+        for (const rite of availableRites(g.state, seat)) {
+          if (riteError(g.state, seat, unit.id, rite) !== null) continue;
+          dispatch(g, { type: 'performRite', playerId: seat, unitId: unit.id, rite } as Command);
+          break;
+        }
+      }
+
+      for (const city of g.state.cities) {
+        if (city.ownerId !== seat || city.queue.length > 0) continue;
+        const queue: { kind: string; id: string }[] = [];
+        if (
+          !city.buildings.includes('shrine') &&
+          buildError(g.state, seat, 'building', 'shrine') === null
+        ) {
+          queue.push({ kind: 'building', id: 'shrine' });
+        } else if (
+          !city.buildings.includes('temple') &&
+          buildError(g.state, seat, 'building', 'temple') === null
+        ) {
+          queue.push({ kind: 'building', id: 'temple' });
+        } else if (
+          g.state.cities.filter((town) => town.ownerId === seat).length < CITY_TARGET &&
+          city.population >= unitDef('settler').minCityPop
+        ) {
+          queue.push({ kind: 'unit', id: 'settler' });
+        } else {
+          queue.push({ kind: 'unit', id: 'warrior' });
+        }
+        dispatch(g, { type: 'setCityProduction', playerId: seat, cityId: city.id, queue } as Command);
+      }
+
+      dispatch(g, { type: 'endTurn', playerId: seat });
+    }
+  }
+  let converts = 0;
+  for (const city of g.state.cities) {
+    for (const count of Object.values(city.followers ?? {})) converts += count ?? 0;
+  }
+  return { game: g, religionsFounded: g.state.religions.length, pulses, converts };
+}
+
+describe('two faiths and a bomb', () => {
+  it('replays byte for byte over a game with religions, sites and a proclamation', () => {
+    const played = playTwoFaiths(170);
+    // eslint-disable-next-line no-console
+    console.log(
+      `[religion v2] ${played.religionsFounded} religions founded, ${played.pulses} ` +
+        `proclamations made, ${played.converts} citizens converted in 170 turns`,
+    );
+    // The log actually contains the subsystem. A determinism test over a game
+    // where nobody founded anything would be a determinism test of nothing.
+    expect(played.religionsFounded).toBe(2);
+    expect(played.pulses).toBeGreaterThan(0);
+    expect(played.converts).toBeGreaterThan(0);
+    const replayed = replay(played.game.config, played.game.log);
+    expect(snapshotState(replayed)).toEqual(snapshotState(played.game.state));
+  });
 });
 
 describe('what an augur costs a real empire', () => {

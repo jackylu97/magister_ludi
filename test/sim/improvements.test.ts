@@ -119,11 +119,12 @@ function build(playerId: number, unitId: number, improvement: ImprovementId): Co
 // --- the table --------------------------------------------------------------
 
 describe('the improvement table', () => {
-  it('names eight worker improvements, five works, and recognises its own ids', () => {
+  it('names eight worker improvements, six works, and recognises its own ids', () => {
     // Two halves of one table, and the split is `ImprovementDef.greatPerson`:
-    // the first eight are what a worker's charge buys, the last five are what a
-    // great person plants (`docs/great-people.md`), and no rule anywhere
-    // compares an id against a string to tell them apart.
+    // the first eight are what a worker's charge buys, the last six are what a
+    // *work's* hand plants (`docs/great-people.md`, and the holy site the
+    // prophet leaves — `docs/religion-v2.md`), and no rule anywhere compares an
+    // id against a string to tell them apart.
     expect(IMPROVEMENT_IDS).toEqual([
       'farm',
       'mine',
@@ -138,6 +139,7 @@ describe('the improvement table', () => {
       'manufactory',
       'customsHouse',
       'citadel',
+      'holySite',
     ]);
     expect(isImprovementId('farm')).toBe(true);
     expect(isImprovementId('orchard')).toBe(false);
@@ -1859,8 +1861,8 @@ describe('improvements in the log', () => {
     expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 25 save with improvements on the board', () => {
-    expect(SCHEMA_VERSION).toBe(25);
+  it('round-trips a schema 26 save with improvements on the board', () => {
+    expect(SCHEMA_VERSION).toBe(26);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

@@ -142,7 +142,14 @@ export function purchaseVerb(item: PurchasableItem): string {
  * whatever the empire's ladders and bands say it is.
  */
 function purchasesMade(player: Player, type: UnitTypeId): number {
-  return unitDef(type).consecrates === true ? player.augursPurchased : 0;
+  const def = unitDef(type);
+  if (def.consecrates === true) return player.augursPurchased;
+  // The prophet's own ladder, and a **second** counter rather than a share of
+  // the augur's: the two climb at different rates from different bases (40 +15
+  // against 120 +60), so one counter would have made the first prophet cost
+  // whatever six augurs had already run the price up to.
+  if (def.prophesies === true) return player.prophetsPurchased;
+  return 0;
 }
 
 /**
@@ -491,6 +498,9 @@ export function purchaseItemAt(
   else player.gold -= price.total;
   if (item.kind === 'unit' && unitDef(item.id).consecrates === true) {
     player.augursPurchased += 1;
+  }
+  if (item.kind === 'unit' && unitDef(item.id).prophesies === true) {
+    player.prophetsPurchased += 1;
   }
   // The town's day is spent on units, and stamped as an absolute turn so nothing
   // has to unstamp it. Written for every unit including the augur — a faith

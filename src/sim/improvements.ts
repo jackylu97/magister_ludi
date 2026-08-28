@@ -66,11 +66,11 @@ import {
 } from './cities';
 import {
   type ImprovementId,
+  type WorkFamily,
   chopDef,
   chopYield,
   improvementDef,
   improvementForResource,
-  isGreatPersonWork,
   isImprovementId,
 } from './improvementData';
 import { type Tile, getTileAt, tileIndex } from './map';
@@ -102,6 +102,7 @@ import {
   terrainDef,
 } from './terrainData';
 import { unitDef } from './unitData';
+import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { hasFreshWater } from './water';
 
 const IMPROVEMENTS = RULES.improvements;
@@ -369,6 +370,34 @@ export function improvementTechError(
  * ended. Those are questions about the actor, not about the work, and they
  * belong to the command.
  */
+/**
+ * Whose hand this piece plants with — the family whose work it may lay down, or
+ * `null` for a spade.
+ *
+ * **The symmetric clause, read off the four markers rather than off any name.**
+ * A worker plants ordinary improvements and no work; a great person plants its
+ * own family's work and nothing else; a **prophet** plants the holy site and
+ * nothing else; and an **augur**, whose charges are rites, plants nothing at all
+ * — which is what `undefined` here means, as against `null`.
+ *
+ * The augur arm is the one this pass added and it fixes a quiet old hole: an
+ * augur has `charges`, so `isBuilder` admitted it and it could spend a rite's
+ * charge on a farm. Nothing in this function compares a type against a string,
+ * so the second religious agent inherits the rule from its data row.
+ */
+function plantingHandOf(unit: Unit): WorkFamily | null | undefined {
+  const def = unitDef(unit.type);
+  if (def.prophesies === true) return 'prophet';
+  if (def.greatWork === true) {
+    const person = unit.person;
+    return person !== undefined && isGreatPersonId(person)
+      ? greatPersonDef(person).family
+      : undefined;
+  }
+  if (def.consecrates === true) return undefined;
+  return null;
+}
+
 export function improvementError(
   state: GameState,
   unitId: number,
@@ -391,12 +420,13 @@ export function improvementError(
   // `improvementErrorAt` because it is a fact about the **actor**, not about the
   // ground — which is exactly what lets `greatPersonWorkError` delegate the
   // ground's half to that function whole and have this clause not fire on it.
-  const work = isGreatPersonWork(improvementId);
-  const great = unitDef(unit.type).greatWork === true;
-  if (work !== great) {
-    return work
-      ? `A ${def.name.toLowerCase()} cannot build a ${improvementDef(improvementId).name.toLowerCase()}`
-      : `${def.name}s leave a work behind, not a ${improvementDef(improvementId).name.toLowerCase()}`;
+  const planter = plantingHandOf(unit);
+  const wanted = improvementDef(improvementId).greatPerson ?? null;
+  if (planter !== wanted) {
+    const what = improvementDef(improvementId).name.toLowerCase();
+    if (planter === undefined) return `A ${def.name.toLowerCase()} builds nothing`;
+    if (wanted !== null) return `A ${def.name.toLowerCase()} cannot build a ${what}`;
+    return `${def.name}s leave a work behind, not a ${what}`;
   }
   const cost = improvementDef(improvementId).chargeCost;
   if (chargesLeft(unit) < cost) {

@@ -101,7 +101,17 @@ import {
   beliefChoiceError,
   consecrateAt,
   consecrateError,
+  enhanceReligionAt,
+  enhanceReligionError,
   performRiteAt,
+  plantHolySiteAt,
+  plantHolySiteError,
+  proclaimAt,
+  proclaimError,
+  redraftAt,
+  redraftError,
+  renameReligionAt,
+  renameReligionError,
   riteError,
   settleBeliefChoice,
 } from './religion';
@@ -112,7 +122,7 @@ import {
   purchaseItemAt,
   readPurchasableItem,
 } from './purchase';
-import type { RiteId } from './religionData';
+import type { ReligionBeliefPool, RiteId } from './religionData';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { RULES } from './rulesData';
 import {
@@ -797,6 +807,87 @@ export interface PerformRiteCommand extends PlayerCommand {
 }
 
 /**
+ * Spends **one** of a prophet's charges on a holy site — and founds the religion
+ * if this empire has none.
+ *
+ * `foundCity`'s shape: it names the piece and nothing else, because the piece is
+ * what authorises it and the hex it stands on is where the stones go. **One
+ * verb, two acts**, and that is the design rather than a saving: a holy site
+ * presses for a faith, so the first one a realm plants is necessarily the moment
+ * its faith exists. An empire that cannot found (no gods, or the world already
+ * holds every religion it will) is refused here, at the ground, rather than
+ * discovering it in a screen somewhere else.
+ *
+ * Founding opens a **follower** belief draft, answered by `chooseBelief` — Entry
+ * XV's shape for the fourth time, both halves in the log, and a pick that names
+ * an index rather than an id.
+ *
+ * Turn-gated like every other act.
+ */
+export interface PlantHolySiteCommand extends PlayerCommand {
+  type: 'plantHolySite';
+  unitId: number;
+}
+
+/**
+ * Spends a charge on an **enhancer** belief — the half of a religion that is
+ * about how belief travels rather than about what it pays.
+ *
+ * `consecrate`'s shape one pool over: it names the piece, it opens an offer, and
+ * the offer blocks End Turn until it is answered. Theology is the gate.
+ *
+ * Turn-gated like every other act.
+ */
+export interface EnhanceReligionCommand extends PlayerCommand {
+  type: 'enhanceReligion';
+  unitId: number;
+}
+
+/**
+ * Spends a charge on a **proclamation** — the faith bomb.
+ *
+ * It leaves a pulse on the hex the prophet stands on: a wide, strong, *decaying*
+ * source of pressure that converts what it reaches and then fades. The user's
+ * ruling of 2026-08-27 is that it plants **no site** — "it makes the decision
+ * more important between the two" — so a bomb converts and a site keeps, and a
+ * prophet with two charges has a real question to answer twice.
+ *
+ * Turn-gated like every other act.
+ */
+export interface ProclaimCommand extends PlayerCommand {
+  type: 'proclaim';
+  unitId: number;
+}
+
+/**
+ * Spends a charge on **giving one pool's beliefs back** and drawing again.
+ *
+ * The pantheon is not one of the pools it accepts, and that is the design: a
+ * pantheon is the religion's identity and identity is not a decision you take
+ * back (`docs/religion-v2.md`).
+ *
+ * Turn-gated like every other act.
+ */
+export interface RedraftBeliefsCommand extends PlayerCommand {
+  type: 'redraftBeliefs';
+  unitId: number;
+  pool: ReligionBeliefPool;
+}
+
+/**
+ * Renames this empire's religion. **Pure prose, and the only such command.**
+ *
+ * The name is generated at founding so a religion has one at all; this is the
+ * courtesy that lets a player disagree with the dice. It names no piece, spends
+ * nothing, and changes no rule — which is why it is not turn-gated the way an
+ * act is, and why `orderedUnitId` returns nothing for it.
+ */
+export interface RenameReligionCommand extends PlayerCommand {
+  type: 'renameReligion';
+  name: string;
+}
+
+/**
  * Takes one of the names a filled renown bucket is offering.
  *
  * `chooseOrder`'s shape for the fifth time, refusal for refusal: an **index
@@ -935,6 +1026,11 @@ export type Command =
   | ConsecrateCommand
   | ChooseBeliefCommand
   | PerformRiteCommand
+  | PlantHolySiteCommand
+  | EnhanceReligionCommand
+  | ProclaimCommand
+  | RedraftBeliefsCommand
+  | RenameReligionCommand
   | ChooseGreatPersonCommand
   | GreatPersonActCommand
   | GreatPersonWorkCommand
@@ -2136,6 +2232,100 @@ function applyPerformRite(state: GameState, command: PerformRiteCommand): Comman
 }
 
 /**
+ * Plants a holy site, founding the religion where there is none. See
+ * `PlantHolySiteCommand`, and `religion.ts` for the rules.
+ *
+ * `applyBuildImprovement`'s shape question for question — is this a real seat,
+ * may it still act, and then everything about the *act* delegated whole to
+ * `plantHolySiteError`, which is what the prophet's sheet greys the row with.
+ * The name the founding generates is drawn from `state.rng` inside the
+ * mechanism, so an AI that plants one gets a named faith without the reducer
+ * knowing how names are made.
+ */
+function applyPlantHolySite(state: GameState, command: PlantHolySiteCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot plant a holy site`);
+  }
+
+  const problem = plantHolySiteError(state, actor.id, command.unitId);
+  if (problem) return fail(problem);
+
+  const unit = unitById(state, command.unitId)!;
+  const tile = getTileAt(state.map, unit.col, unit.row)!;
+  plantHolySiteAt(state, actor, unit, tile);
+  return ok();
+}
+
+/** Draws an enhancer belief. See `EnhanceReligionCommand`. */
+function applyEnhanceReligion(state: GameState, command: EnhanceReligionCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot enhance a religion`);
+  }
+
+  const problem = enhanceReligionError(state, actor.id, command.unitId);
+  if (problem) return fail(problem);
+
+  enhanceReligionAt(state, actor, unitById(state, command.unitId)!);
+  return ok();
+}
+
+/** Leaves a proclamation. See `ProclaimCommand`. */
+function applyProclaim(state: GameState, command: ProclaimCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot proclaim`);
+  }
+
+  const problem = proclaimError(state, actor.id, command.unitId);
+  if (problem) return fail(problem);
+
+  proclaimAt(state, actor, unitById(state, command.unitId)!);
+  return ok();
+}
+
+/** Gives a pool's beliefs back and draws again. See `RedraftBeliefsCommand`. */
+function applyRedraftBeliefs(state: GameState, command: RedraftBeliefsCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot redraft beliefs`);
+  }
+
+  const problem = redraftError(state, actor.id, command.unitId, command.pool);
+  if (problem) return fail(problem);
+
+  redraftAt(state, actor, unitById(state, command.unitId)!, command.pool);
+  return ok();
+}
+
+/**
+ * Renames this empire's religion. See `RenameReligionCommand`.
+ *
+ * The one command in the game whose whole effect is a string. It is still
+ * turn-gated, for the reason every other command is: a seat that has ended its
+ * turn is not acting, and a name that changed between a resolution's start and
+ * its end would be a name two clients disagreed about.
+ */
+function applyRenameReligion(state: GameState, command: RenameReligionCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot rename a religion`);
+  }
+
+  const problem = renameReligionError(state, actor.id, command.name);
+  if (problem) return fail(problem);
+
+  renameReligionAt(state, actor.id, command.name);
+  return ok();
+}
+
+/**
  * Calls a great person. See `ChooseGreatPersonCommand`, and `greatPeople.ts` for
  * the rules.
  *
@@ -2390,6 +2580,13 @@ function orderedUnitId(command: Command): number | undefined {
     // wakes like anybody else — even though the first of the two spends it.
     case 'consecrate':
     case 'performRite':
+    // A prophet told to plant, to enhance, to proclaim or to redraft is a piece
+    // given an order, so it wakes like anybody else — even though every one of
+    // the four may spend it.
+    case 'plantHolySite':
+    case 'enhanceReligion':
+    case 'proclaim':
+    case 'redraftBeliefs':
     // A great person told to act or to plant is a piece given an order, so it
     // wakes like anybody else — even though both verbs spend it.
     case 'greatPersonAct':
@@ -2425,6 +2622,8 @@ function orderedUnitId(command: Command): number | undefined {
     // an order to anything standing on the board.
     case 'purchaseItem':
     case 'chooseBelief':
+    // Naming a faith is prose about the empire, not an order to a piece.
+    case 'renameReligion':
     // Calling a name answers an offer; the piece it mints does not exist yet.
     case 'chooseGreatPerson':
       return undefined;
@@ -2520,6 +2719,16 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyChooseBelief(state, command);
     case 'performRite':
       return applyPerformRite(state, command);
+    case 'plantHolySite':
+      return applyPlantHolySite(state, command);
+    case 'enhanceReligion':
+      return applyEnhanceReligion(state, command);
+    case 'proclaim':
+      return applyProclaim(state, command);
+    case 'redraftBeliefs':
+      return applyRedraftBeliefs(state, command);
+    case 'renameReligion':
+      return applyRenameReligion(state, command);
     case 'chooseGreatPerson':
       return applyChooseGreatPerson(state, command);
     case 'greatPersonAct':

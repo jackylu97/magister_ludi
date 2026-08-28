@@ -55,6 +55,7 @@ export type UnitTypeId =
   | 'longswordsman'
   | 'trebuchet'
   | 'augur'
+  | 'prophet'
   | 'greatPerson';
 
 /**
@@ -251,6 +252,20 @@ export interface UnitDef {
    * questions, and the family verb needs the second one.
    */
   greatWork?: boolean;
+  /**
+   * True when this unit's charges are a **prophet's** — founding a religion,
+   * planting a holy site, proclaiming, redrafting what the faith believes — or
+   * the field is **absent** for everything that digs, prays or leaves a work.
+   *
+   * Presence is the marker, exactly as with `foundsCity`, `charges`,
+   * `consecrates` and `greatWork`: nothing in `src/sim/` asks whether a type is
+   * `"prophet"`, so the second religious agent is one data row. It is the fourth
+   * reading of one charge counter — two acts in a box, and *which* acts is this
+   * flag — and the rule it carries is the symmetric one every marker carries: a
+   * prophet plants the holy site and nothing else, and nothing else plants the
+   * holy site (`improvementError`).
+   */
+  prophesies?: boolean;
   /**
    * True when this unit may be **sent** — it carries a trade route between two
    * cities and lays road under its feet — or the field is **absent** for

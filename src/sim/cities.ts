@@ -136,6 +136,7 @@ import {
   createCity,
   createUnit,
   playerById,
+  shrinkFollowers,
   wonderClaim,
 } from './state';
 // Type-only, exactly as `barbarians.ts` takes it: `turn.ts` imports this module
@@ -3099,12 +3100,36 @@ export function growthSettledBy(
  * did not grow may instead be starving, and that is the absence of a settlement
  * rather than a settlement of its own.
  */
+/**
+ * The world's religions by id, in founding order — the tie-break every follower
+ * mutation takes (`convertCitizen`, `shrinkFollowers`).
+ *
+ * Built here rather than reached for inside `state.ts`, because those two
+ * helpers are deliberately pure over one `City` and may not see the register.
+ */
+function religionOrder(state: GameState): number[] {
+  return state.religions.map((religion) => religion.id);
+}
+
 export function growCities(state: GameState): void {
   for (const city of state.cities) {
     if (settleGrowth(state, city) !== null) continue;
     if (city.foodBasket <= CITIES.starvationShrinksAt) {
+      const before = city.population;
       city.population = Math.max(1, city.population - 1);
       city.foodBasket = 0;
+      // **A famine takes a believer too.** The congregations are counts of
+      // citizens (`City.followers`), so a town that loses a mouth and kept every
+      // count would end up with more followers than people — and `cityReligion`
+      // reads a *majority of the population*, so it would fly a banner the town
+      // no longer earns. Taken from the largest congregation, which is
+      // `shrinkFollowers`' rule and the mirror of a conversion's.
+      //
+      // Growth needs no such line, and that is the design rather than an
+      // omission: a citizen is **born unconverted**, so a town that grows simply
+      // has one more person the tide has not reached — which is why a big city
+      // is harder to convert than a small one.
+      if (city.population < before) shrinkFollowers(city, religionOrder(state));
     }
   }
 }

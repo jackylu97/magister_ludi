@@ -280,7 +280,7 @@
       "name": "Mathematics",
       "glyph": "📐",
       "age": 2,
-      "row": 2,
+      "row": 1,
       "cost": 200,
       "prereqs": [
         "letters",
@@ -300,7 +300,7 @@
       "name": "Currency",
       "glyph": "💰",
       "age": 2,
-      "row": 3,
+      "row": 2,
       "cost": 210,
       "prereqs": [
         "letters",
@@ -330,11 +330,33 @@
       ],
       "unlocks": {
         "buildings": [
-          "temple",
           "greatLibrary"
         ]
       },
       "flavor": "First we ask what a thing is; the asking never stops."
+    },
+    "theHighTemple": {
+      "name": "The High Temple",
+      "glyph": "\ud83d\udd4c",
+      "age": 2,
+      "row": 3,
+      "cost": 170,
+      "prereqs": [
+        "divination",
+        "stonecraft"
+      ],
+      "unlocks": {
+        "units": [
+          "prophet"
+        ],
+        "buildings": [
+          "temple"
+        ],
+        "abilities": [
+          "thePreaching"
+        ]
+      },
+      "flavor": "A roof high enough that the god has to look down through it."
     },
     "engineering": {
       "name": "Engineering",
@@ -534,6 +556,11 @@
       "name": "Blessing of Arms",
       "glyph": "⚔",
       "summary": "An augur may spend a rite to heal a unit whole and send it out stronger."
+    },
+    "thePreaching": {
+      "name": "The Preaching",
+      "glyph": "\ud83d\udcef",
+      "summary": "An augur may spend a rite to preach, spreading your religion for a while."
     },
     "riteOfPlenty": {
       "name": "Rite of Plenty",

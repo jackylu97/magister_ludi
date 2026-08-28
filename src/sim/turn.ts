@@ -106,7 +106,7 @@ import {
 import { type CombatOutcome, type SiegeReport, advanceFortify, healCities } from './combat';
 import type { PillageReport } from './improvements';
 import { hasLineOfSight } from './los';
-import { openPeriodicOffers, pruneTimedEffects } from './religion';
+import { openPeriodicOffers, pruneTimedEffects, spreadReligion } from './religion';
 import { getTileAt, tileHex, wrappedDistance } from './map';
 import { findPath } from './pathfind';
 import { advanceAlongPath } from './movement';
@@ -259,6 +259,16 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // to place anywhere. It goes first so the turn's arithmetic is done over a
     // list with nothing dead in it, and so a panel never has to filter one.
     run: pruneTimedEffects,
+  },
+  {
+    name: 'spreadReligion',
+    // The tide, run once for the world — **before `collectYields`**, and the
+    // position is the rule (`docs/religion-v2.md`): a town whose citizens turn
+    // this turn flies its new banner *before* anything is banked, so the founder
+    // of the faith it just adopted is paid for it the same turn rather than a
+    // turn late. It is also a broom for expired proclamations, which is safe
+    // anywhere for `pruneTimedEffects`' reason exactly. See `spreadReligion`.
+    run: spreadReligion,
   },
   {
     name: 'collectYields',

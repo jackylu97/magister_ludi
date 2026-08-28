@@ -44,6 +44,11 @@ import { techColumnCount } from '../../src/sim/techData';
  * be recomputed from the file would only ever equal the after.
  */
 const LANES_BEFORE: Record<string, number> = {
+  // The High Temple did not exist when these lanes were recorded (religion v2,
+  // 2026-08-28). It is written into the *old* layout in the lane the new one
+  // gives it, so the comparison below measures the change this pass actually
+  // made rather than the arrival of a node the old chart never had.
+  theHighTemple: 3,
   agriculture: 2,
   husbandry: 0,
   fletching: 1,
@@ -168,8 +173,14 @@ describe('the shipped lanes', () => {
     // The figures the 2026-08-26 re-lay was judged on. The inequality is the
     // rule; the numbers are here so that a future re-lay has to say out loud
     // which direction it moved them.
-    expect(before).toBe(24);
-    expect(after).toBe(11);
+    // 11 until religion v2 put The High Temple into column 3 (2026-08-28) —
+    // the one column the chart had already filled to four lanes. The lanes were
+    // re-tuned around it (Mathematics and Currency moved up one) to keep the
+    // rule that outranks a crossing: no connector runs flat through a node it is
+    // not joined to. A proper re-tune of the sky is the interface pass's, and
+    // this pin is what will measure it.
+    expect(before).toBe(25);
+    expect(after).toBe(15);
     expect(after).toBeLessThanOrEqual(before);
   });
 

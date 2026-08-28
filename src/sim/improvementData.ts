@@ -177,7 +177,34 @@ export type ImprovementId =
   | 'landmark'
   | 'manufactory'
   | 'customsHouse'
-  | 'citadel';
+  | 'citadel'
+  // The **holy site** (`docs/religion-v2.md`), a work like the five above and
+  // planted by a prophet rather than by a great person — which is what
+  // `WorkFamily` is for. The strongest source of religious pressure there is,
+  // and the one thing a rival can pillage to hurt a religion.
+  | 'holySite';
+
+/**
+ * Who plants a work: one of the five **great-person families**, or the
+ * **prophet**.
+ *
+ * `Family` widened by exactly one member rather than `Family` itself widened,
+ * and the distinction is load-bearing: `Family` is the great-people roster's own
+ * word — it keys `Player.renownByFamily`, it weights the draw and it names an
+ * age's rows — while this is the answer to the narrower question *whose piece
+ * lays this improvement down*. A prophet is bought with faith and is not a great
+ * person at all, so a sixth `Family` would have opened a renown bucket nothing
+ * ever feeds.
+ *
+ * Presence of `ImprovementDef.greatPerson` is still the marker for "this is a
+ * work"; the value says which piece, and `workForFamily` inverts it.
+ */
+export type WorkFamily = Family | 'prophet';
+
+/** Is this a family whose piece plants a work — one of the five, or the prophet? */
+export function isWorkFamily(value: unknown): value is WorkFamily {
+  return value === 'prophet' || isFamily(value);
+}
 
 /**
  * One tech-driven renewal of an improvement's yield.
@@ -314,7 +341,7 @@ export interface ImprovementDef {
    * The rule it carries is symmetric and lives in `improvementErrorAt`: a
    * builder may not lay a work, and a great person may lay nothing else.
    */
-  greatPerson?: Family;
+  greatPerson?: WorkFamily;
   /**
    * Flat strength this improvement adds to whoever defends the hex it stands
    * on, or absent for the ordinary improvement that adds none.
@@ -456,14 +483,14 @@ export function improvementForResource(resource: ResourceId): ImprovementId | nu
  * total on whatever families the table actually serves and the lookup below is
  * the only reading of it.
  */
-const FAMILY_WORK = new Map<Family, ImprovementId>();
+const FAMILY_WORK = new Map<WorkFamily, ImprovementId>();
 for (const id of IMPROVEMENT_IDS) {
   const family = IMPROVEMENT_DATA.improvements[id].greatPerson;
   if (family !== undefined && !FAMILY_WORK.has(family)) FAMILY_WORK.set(family, id);
 }
 
 /** The improvement this family's great person plants, or `null` when none does. */
-export function workForFamily(family: Family): ImprovementId | null {
+export function workForFamily(family: WorkFamily): ImprovementId | null {
   return FAMILY_WORK.get(family) ?? null;
 }
 
@@ -548,7 +575,7 @@ function validateTable(): void {
     if (def.requiresTech !== undefined && !TECH_IDS.includes(def.requiresTech)) {
       throw new Error(`${where} needs unknown technology "${def.requiresTech}"`);
     }
-    if (def.greatPerson !== undefined && !isFamily(def.greatPerson)) {
+    if (def.greatPerson !== undefined && !isWorkFamily(def.greatPerson)) {
       throw new Error(`${where} names unknown family "${String(def.greatPerson)}"`);
     }
     for (const upgrade of def.upgrades ?? []) {
@@ -601,7 +628,7 @@ function validateTable(): void {
   // Two works claiming one family would make "what does a scholar plant?" a
   // question with two answers, and `workForFamily` would silently keep the
   // first — the same failure `improvesResource` is held to below.
-  const claimedBy = new Map<Family, ImprovementId>();
+  const claimedBy = new Map<WorkFamily, ImprovementId>();
   for (const id of IMPROVEMENT_IDS) {
     const family = improvementDef(id).greatPerson;
     if (family === undefined) continue;

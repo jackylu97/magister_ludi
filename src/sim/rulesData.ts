@@ -879,6 +879,54 @@ export interface OfferRules {
   max: number;
 }
 
+/**
+ * Every number the **tide of belief** is made of (`docs/religion-v2.md`).
+ *
+ * The pressure sources are quoted in *faith a turn*, and one convert costs
+ * `pressurePerConvert` of it — so the whole model is two figures a designer can
+ * reason about together: a holy site pressing 6 turns a size-4 town inside five
+ * turns at 10 a convert, and a road pressing 4 does it in eight. The user's
+ * ruling of 2026-08-27 was "make religion spread more aggressive than in Civ",
+ * and those two sentences are what that means in numbers.
+ *
+ * Every one of these may be shifted by an enhancer belief through one shape
+ * (`pressureRule`) read in one place (`explainPressure`).
+ */
+export interface ReligionRules {
+  /** Faith banked in one town that buys one citizen's conversion. */
+  pressurePerConvert: number;
+  /** How far a holy site reaches, in hexes, and what it presses. */
+  siteRange: number;
+  siteStrength: number;
+  /** How far a following city reaches, and what it presses. */
+  cityRange: number;
+  cityStrength: number;
+  /** What a following city joined to this one by road presses, at any distance. */
+  roadStrength: number;
+  /** What a caravan from a following city presses on its destination. */
+  routeStrength: number;
+  /** What a founder's own capital presses for its own faith. A seat does not drift. */
+  capitalStrength: number;
+  /**
+   * What a Temple does to the pressure on the town it stands in, in whole
+   * percent: `templeOwnPercent` to the faith the town already keeps and
+   * `templeForeignPercent` to everybody else's. 200 and 50 are "twice, and
+   * half" — the defensive building, with no combat anywhere near it.
+   */
+  templeOwnPercent: number;
+  templeForeignPercent: number;
+  /** A prophet's proclamation: how far it reaches, what it presses, how long it lasts. */
+  bombRange: number;
+  bombStrength: number;
+  bombTurns: number;
+  /**
+   * The most religions this world will hold, as a **share of the real seats**,
+   * rounded up — two integers rather than a fraction so the ceiling is exact
+   * arithmetic on whole numbers. Two thirds (user, 2026-08-27).
+   */
+  maxReligions: { numerator: number; denominator: number };
+}
+
 export interface RulesConfig {
   game: GameRules;
   movement: MovementRules;
@@ -892,6 +940,7 @@ export interface RulesConfig {
   cities: CityRules;
   meters: MeterRules;
   research: ResearchRules;
+  religion: ReligionRules;
   offers: OfferRules;
   renown: RenownRules;
   greatPeople: GreatPeopleRules;

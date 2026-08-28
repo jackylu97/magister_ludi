@@ -31,10 +31,20 @@ import {
 } from '../../src/sim/cities';
 import { previewCombat } from '../../src/sim/combat';
 import { createGame, dispatch, snapshotState } from '../../src/sim/game';
-import { getTileAt, tileHex, wrappedDistance } from '../../src/sim/map';
+import { getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
+import { improvementError, improvementErrorAt } from '../../src/sim/improvements';
 import {
   availableRites,
   beliefPool,
+  enhanceReligionError,
+  explainPressure,
+  proclaimError,
+  foundReligion,
+  foundReligionError,
+  maxReligions,
+  pressureTotals,
+  religionBeliefPool,
+  spreadReligion,
   consecrateError,
   hasOpenBeliefSlot,
   isAugur,
@@ -59,18 +69,33 @@ const AUGUR: PurchasableItem = { kind: 'unit', id: 'augur' };
 import {
   type BeliefId,
   BELIEF_IDS,
+  ENHANCER_BELIEF_IDS,
+  FOLLOWER_BELIEF_IDS,
   RELIGION,
   RITE_IDS,
   beliefDef,
   newPlayerPantheon,
+  isPantheonBeliefId,
   religionDataProblems,
   riteAbility,
   riteDef,
   slotsFromTechs,
 } from '../../src/sim/religionData';
-import { type GameState, createUnit, playerById } from '../../src/sim/state';
+import {
+  type GameState,
+  cityReligion,
+  convertCitizen,
+  createUnit,
+  foundedReligion,
+  playerById,
+  shrinkFollowers,
+  unconvertedCitizens,
+} from '../../src/sim/state';
 import {
   anyCardDef,
+  cardEmpireYields,
+  cardHappiness,
+  cardPressureRule,
   describeCard,
   liveCityEffects,
   liveEffects,
@@ -81,6 +106,7 @@ import { RULES } from '../../src/sim/rulesData';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { hasAbility } from '../../src/sim/tech';
 import { unitDef } from '../../src/sim/unitData';
+import { buildingDef } from '../../src/sim/buildingData';
 
 // --- harness ----------------------------------------------------------------
 
@@ -1154,3 +1180,704 @@ describe('the panel’s reading', () => {
 
 // --- pacing -----------------------------------------------------------------
 
+
+// --- religion v2: the prophet, the religion and the tide --------------------
+
+/**
+ * Religion v2 (`docs/religion-v2.md`, ratified 2026-08-27).
+ *
+ * Six concerns, and they are one system: the technology that opens it, the
+ * founding and its three refusals, the **citizen model** (which is the whole of
+ * "a city follows a religion"), every pressure source with its number, the
+ * prophet's four verbs, and what a follower belief pays whom.
+ *
+ * The tide is tested by **running the phase**, not by asserting what was
+ * banked: a pressure line that is computed and never converts anybody is exactly
+ * the silence the pass exists to avoid, and only a timeline can see the
+ * difference between "the number is right" and "the town turns when the design
+ * says it does".
+ */
+
+/** A town for a player at a chosen hex. Scaffolding — founding has its own tests. */
+function town(state: GameState, playerId: number, col: number, row: number) {
+  return foundCityAt(state, playerId, getTileAt(state.map, col, row)!);
+}
+
+/** A prophet standing on a tile, with full charges. Scaffolding, not a purchase. */
+function prophetAt(state: GameState, playerId: number, col: number, row: number) {
+  return createUnit(state, playerId, 'prophet', col, row);
+}
+
+/** Plants a holy site on a hex and books it to a city, the way a prophet would. */
+function siteAt(state: GameState, city: { id: number }, col: number, row: number): void {
+  const tile = getTileAt(state.map, col, row)!;
+  tile.improvement = 'holySite';
+  state.tileOwner[tileIndex(state.map, col, row)] = city.id;
+}
+
+/**
+ * A hex beside this town a prophet could actually plant on — land, unimproved,
+ * and inside the town's own bounds. A holy site is an improvement like any
+ * other, so the fixture has to find ground the way a player would.
+ */
+function landBeside(state: GameState, city: { col: number; row: number }) {
+  for (const tile of mapRange(state.map, tileHex(getTileAt(state.map, city.col, city.row)!), 1)) {
+    if (tile.col === city.col && tile.row === city.row) continue;
+    if (improvementErrorAt(state, 0, tile, 'holySite') === null) return tile;
+  }
+  throw new Error('no ground beside the town');
+}
+
+/** A founded religion for a seat, with one god behind it. */
+function faith(state: GameState, playerId: number, god: BeliefId = 'keeperOfTheHearth') {
+  keep(state, playerId, god);
+  return foundReligion(state, playerById(state, playerId)!);
+}
+
+describe('the religion v2 table', () => {
+  it('gives every follower and enhancer belief words, or says what is missing', () => {
+    for (const id of [...FOLLOWER_BELIEF_IDS, ...ENHANCER_BELIEF_IDS]) {
+      const clauses = describeCard(id);
+      expect(clauses.length, id).toBeGreaterThan(0);
+      for (const clause of clauses) expect(clause.text.length, id).toBeTruthy();
+      // A row with nothing to say says **why**, and the card prints it struck
+      // through — Entry XV.b's rule, which is why five follower rows ship with
+      // no effects rather than with a shape that nearly fits.
+      if (beliefDef(id).effects.length === 0) {
+        expect(clauses.some((clause) => clause.deferred), id).toBe(true);
+      }
+    }
+  });
+
+  it('keeps one id space across all three pools', () => {
+    const all = [...BELIEF_IDS, ...FOLLOWER_BELIEF_IDS, ...ENHANCER_BELIEF_IDS, ...RITE_IDS];
+    expect(new Set(all).size).toBe(all.length);
+    for (const id of all) expect(anyCardDef(id).name.length, id).toBeGreaterThan(0);
+    // And the pantheon's bag is still only the pantheon's: a Consecrate must
+    // never deal a follower belief.
+    for (const id of FOLLOWER_BELIEF_IDS) expect(isPantheonBeliefId(id), id).toBe(false);
+  });
+
+  it('reads both new shapes from a live row — the register', () => {
+    // `statecraft.test.ts`'s register, one table over: a shape declared and
+    // never used is a shape nobody has tested. Both of these are read in exactly
+    // one place (`explainPressure`) and both are asserted end to end above — the
+    // enhancer's shift and Hagia Sophia's projection.
+    const used = new Set<string>();
+    for (const id of [...ENHANCER_BELIEF_IDS, ...FOLLOWER_BELIEF_IDS, ...BELIEF_IDS]) {
+      for (const effect of beliefDef(id).effects) used.add(effect.kind);
+    }
+    for (const effect of buildingDef('hagiaSophia').effects ?? []) used.add(effect.kind);
+    expect(used.has('pressureRule')).toBe(true);
+    expect(used.has('pressure')).toBe(true);
+  });
+
+  it('holds enough of each pool to fill an offer several times over', () => {
+    expect(FOLLOWER_BELIEF_IDS.length).toBeGreaterThanOrEqual(RULES.offers.belief * 3);
+    expect(ENHANCER_BELIEF_IDS.length).toBeGreaterThanOrEqual(RULES.offers.belief * 3);
+  });
+});
+
+describe('The High Temple', () => {
+  it('is the node that hands over the prophet, the temple and a third god', () => {
+    const def = techDef('theHighTemple' as never);
+    expect(def.age).toBe(2);
+    expect(def.prereqs).toEqual(['divination', 'stonecraft']);
+    expect(def.unlocks.units ?? []).toContain('prophet');
+    expect(def.unlocks.buildings ?? []).toContain('temple');
+    expect(def.unlocks.abilities ?? []).toContain('thePreaching');
+    // The temple **moved**: Philosophy was where it stood on the shipped tree,
+    // and a building unlocked twice would be a building whose gate depends on
+    // which node the player happened to take first.
+    expect(techDef('philosophy').unlocks.buildings ?? []).not.toContain('temple');
+    // And the slot is a JSON row, not a code change — `slotsFromTechs`' rule.
+    expect(slotsFromTechs(['divination'] as never)).toBe(2);
+    expect(slotsFromTechs(['divination', 'theHighTemple'] as never)).toBe(3);
+  });
+
+  it('opens the prophet on its own faith ladder, and never to gold', () => {
+    const g = game();
+    learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
+    const city = found(g.state, 0);
+    const PROPHET: PurchasableItem = { kind: 'unit', id: 'prophet' };
+    const spec = unitDef('prophet').purchase!;
+    const price = explainPurchaseCost(g.state, 0, city.id, PROPHET, 'faith')!;
+    expect(price.total).toBe(spec.cost);
+    expect(explainPurchaseCost(g.state, 0, city.id, PROPHET, 'gold')).toBeNull();
+
+    // The ladder is the prophet's own, not the augur's: six augurs must not
+    // make the first prophet dearer.
+    const player = playerById(g.state, 0)!;
+    player.augursPurchased = 6;
+    expect(explainPurchaseCost(g.state, 0, city.id, PROPHET, 'faith')!.total).toBe(spec.cost);
+    player.prophetsPurchased = 1;
+    expect(explainPurchaseCost(g.state, 0, city.id, PROPHET, 'faith')!.total).toBe(
+      spec.cost + spec.increment!,
+    );
+  });
+
+  it('climbs the prophet ladder when one is bought, and not the augur’s', () => {
+    const g = game();
+    learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 500;
+    purchaseItemAt(g.state, player, city, { kind: 'unit', id: 'prophet' }, 'faith');
+    expect(player.prophetsPurchased).toBe(1);
+    expect(player.augursPurchased).toBe(0);
+    expect(g.state.units.some((u) => u.type === 'prophet')).toBe(true);
+  });
+});
+
+describe('founding a religion', () => {
+  it('refuses an empire with no gods, and the refusal leaves the state byte-identical', () => {
+    const g = game();
+    learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
+    found(g.state, 0);
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    const prophet = prophetAt(g.state, 0, unit.col, unit.row);
+    const before = snapshotState(g.state);
+    const result = applyCommand(g.state, {
+      type: 'plantHolySite',
+      playerId: 0,
+      unitId: prophet.id,
+    } as Command);
+    expect(result.ok).toBe(false);
+    expect(snapshotState(g.state)).toBe(before);
+  });
+
+  it('refuses once the world holds every religion it will', () => {
+    const g = game();
+    // Two real seats: two thirds of two, rounded up, is two.
+    expect(maxReligions(g.state)).toBe(2);
+    faith(g.state, 0);
+    faith(g.state, 1, 'starReaders');
+    keep(g.state, 0, 'godOfTheForge');
+    // A third seat's would be the third religion, and there is no room.
+    const third = game();
+    expect(foundReligionError(g.state, 0)).toBe('Ada has already founded a religion');
+    void third;
+    const g2 = createGame({
+      seed: 3,
+      sizeName: 'duel',
+      players: [
+        { name: 'Ada', color: '#d4502e', isHuman: true },
+        { name: 'Bors', color: '#3a7fe8' },
+        { name: 'Cleo', color: '#4caf50' },
+      ],
+    });
+    // Three seats: two thirds rounded up is two, so the third empire is refused.
+    expect(maxReligions(g2.state)).toBe(2);
+    faith(g2.state, 0);
+    faith(g2.state, 1, 'starReaders');
+    keep(g2.state, 2, 'godOfTheForge');
+    expect(foundReligionError(g2.state, 2)).toBe('The world has all the religions it will hold');
+  });
+
+  it('generates the same name from the same generator state, out of its own axes', () => {
+    const a = game(11);
+    const b = game(11);
+    keep(a.state, 0, 'keeperOfTheHearth');
+    keep(b.state, 0, 'keeperOfTheHearth');
+    const one = foundReligion(a.state, playerById(a.state, 0)!);
+    const two = foundReligion(b.state, playerById(b.state, 0)!);
+    expect(one.name).toBe(two.name);
+    expect(one.name.length).toBeGreaterThan(0);
+    // Made out of the pantheon it was founded on: a hearth god names a hearth
+    // faith, whichever pattern the generator picked.
+    const hearth = RELIGION.names.epithets.hearth ?? [];
+    expect(hearth.some((word) => one.name.includes(word))).toBe(true);
+    // The pantheon is a **copy**: a fourth god later does not rename the faith.
+    keep(a.state, 0, 'starReaders');
+    expect(one.pantheon).toEqual(['keeperOfTheHearth']);
+  });
+
+  it('founds, plants and opens a follower draft in one charge — and blocks End Turn', () => {
+    const g = game();
+    learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
+    found(g.state, 0);
+    keep(g.state, 0, 'keeperOfTheHearth');
+    // Off the town's own hex: a holy site is an improvement like any other and
+    // a city tile takes none (`improvementErrorAt`), which is the refusal a
+    // prophet standing in the gates gets.
+    const seat = g.state.cities.find((city) => city.ownerId === 0)!;
+    const ground = landBeside(g.state, seat);
+    const prophet = prophetAt(g.state, 0, ground.col, ground.row);
+    const result = applyCommand(g.state, {
+      type: 'plantHolySite',
+      playerId: 0,
+      unitId: prophet.id,
+    } as Command);
+    expect(result.ok).toBe(true);
+    const religion = foundedReligion(g.state, 0)!;
+    expect(religion.founderId).toBe(0);
+    expect(ground.improvement).toBe('holySite');
+    const player = playerById(g.state, 0)!;
+    expect(player.pantheon.pending?.pool).toBe('follower');
+    expect(religionBlocker(player)).toBe('a belief is waiting to be chosen');
+    // Taking it puts the belief on the **religion**, never on the pantheon.
+    const chosen = player.pantheon.pending!.options[0]!;
+    applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
+    expect(religion.follower).toEqual([chosen]);
+    expect(player.pantheon.beliefs).toEqual(['keeperOfTheHearth']);
+    expect(religionBlocker(player)).toBeNull();
+  });
+
+  it('renames a religion, and refuses a name that is not one', () => {
+    const g = game();
+    faith(g.state, 0);
+    expect(applyCommand(g.state, {
+      type: 'renameReligion',
+      playerId: 0,
+      name: '  The Long Quiet  ',
+    } as Command).ok).toBe(true);
+    expect(foundedReligion(g.state, 0)!.name).toBe('The Long Quiet');
+    const before = snapshotState(g.state);
+    expect(applyCommand(g.state, {
+      type: 'renameReligion',
+      playerId: 0,
+      name: '   ',
+    } as Command).ok).toBe(false);
+    expect(snapshotState(g.state)).toBe(before);
+  });
+});
+
+describe('the citizen model', () => {
+  it('banks pressure and turns one citizen per printed cost, unconverted first', () => {
+    const g = game();
+    const seat = town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    // Far enough that only the site presses: the founder's own capital converts
+    // itself on turn one and would otherwise be a second source three hexes on.
+    siteAt(g.state, seat, 10, 6);
+    const target = town(g.state, 1, 12, 6);
+    target.population = 4;
+
+    const per = RULES.religion.pressurePerConvert;
+    const site = RULES.religion.siteStrength;
+    spreadReligion(g.state);
+    expect(target.pressureBank?.[religion.id]).toBe(site);
+    expect(target.followers).toBeUndefined();
+    spreadReligion(g.state);
+    // Two turns of six is twelve: one citizen turns and two carry.
+    expect(target.followers?.[religion.id]).toBe(1);
+    expect(target.pressureBank?.[religion.id]).toBe(2 * site - per);
+  });
+
+  it('converts a size-4 town under one holy site in five turns — the tuning', () => {
+    const g = game();
+    const seat = town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    siteAt(g.state, seat, 10, 6);
+    const target = town(g.state, 1, 12, 6);
+    target.population = 4;
+
+    for (let turn = 0; turn < 4; turn++) spreadReligion(g.state);
+    // Two of four is not a majority: the town still follows nothing.
+    expect(cityReligion(target)).toBeNull();
+    spreadReligion(g.state);
+    expect(target.followers?.[religion.id]).toBe(3);
+    expect(cityReligion(target)).toBe(religion.id);
+  });
+
+  it('converts a road-joined town in eight turns — the tuning, the other lever', () => {
+    const g = game();
+    const seat = town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    seat.followers = { [religion.id]: seat.population };
+    const target = town(g.state, 1, 12, 6);
+    target.population = 4;
+    // A paved line between the two, and nothing else: six hexes is well beyond
+    // a following city's own reach, so the road is the whole of the pressure.
+    for (let col = 7; col <= 11; col++) getTileAt(g.state.map, col, 6)!.road = 0;
+    expect(
+      explainPressure(g.state, target).find((line) => line.source === 'Road')?.amount,
+    ).toBe(RULES.religion.roadStrength);
+
+    for (let turn = 0; turn < 7; turn++) spreadReligion(g.state);
+    expect(cityReligion(target)).toBeNull();
+    spreadReligion(g.state);
+    expect(cityReligion(target)).toBe(religion.id);
+  });
+
+  it('takes from the smallest congregation once nobody is unconverted', () => {
+    const g = game();
+    const first = faith(g.state, 0);
+    const second = faith(g.state, 1, 'starReaders');
+    const target = town(g.state, 0, 8, 6);
+    target.population = 3;
+    target.followers = { [first.id]: 1, [second.id]: 2 };
+    // A third religion would be a third row; two is what this world holds.
+    convertCitizen(target, second.id, [first.id, second.id]);
+    expect(target.followers).toEqual({ [second.id]: 3 });
+  });
+
+  it('gives a grown citizen to nobody, and takes a starved one from the largest', () => {
+    const g = game();
+    const first = faith(g.state, 0);
+    const second = faith(g.state, 1, 'starReaders');
+    const city = town(g.state, 0, 8, 6);
+    city.population = 3;
+    city.followers = { [first.id]: 1, [second.id]: 2 };
+    expect(cityReligion(city)).toBe(second.id);
+
+    // Growth: the new mouth believes nothing, so the majority is lost.
+    city.population = 4;
+    expect(unconvertedCitizens(city)).toBe(1);
+    expect(cityReligion(city)).toBeNull();
+
+    // Starvation: the largest congregation gives one up.
+    city.population = 3;
+    shrinkFollowers(city, [first.id, second.id]);
+    expect(city.followers).toEqual({ [first.id]: 1, [second.id]: 1 });
+  });
+});
+
+describe('the pressure ledger', () => {
+  it('names every source with its own number, and folds to the total', () => {
+    const g = game();
+    const seat = town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    siteAt(g.state, seat, 6, 6);
+    const target = town(g.state, 1, 8, 6);
+
+    const lines = explainPressure(g.state, target);
+    const site = lines.find((line) => line.source === 'Holy site')!;
+    expect(site.amount).toBe(RULES.religion.siteStrength);
+    expect(site.religion).toBe(religion.id);
+    // The fold is the total, which is what `pressureTotals` answers with.
+    const totals = pressureTotals(g.state, target);
+    expect(totals[religion.id]).toBe(
+      lines.filter((line) => line.religion === religion.id).reduce((sum, line) => sum + line.amount, 0),
+    );
+  });
+
+  it('pays a founder’s own capital for its own faith, and a following neighbour for the tide', () => {
+    const g = game();
+    const capital = town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    capital.followers = { [religion.id]: capital.population };
+    const near = town(g.state, 0, 7, 6);
+
+    const own = explainPressure(g.state, capital);
+    expect(own.find((line) => line.source === 'Your capital')?.amount).toBe(
+      RULES.religion.capitalStrength,
+    );
+    const beside = explainPressure(g.state, near);
+    expect(beside.find((line) => line.source === 'Nearby city')?.amount).toBe(
+      RULES.religion.cityStrength,
+    );
+  });
+
+  it('doubles a town’s own faith at its temple and halves everybody else’s', () => {
+    const g = game();
+    const seat = town(g.state, 0, 6, 6);
+    const mine = faith(g.state, 0);
+    const theirs = faith(g.state, 1, 'starReaders');
+    siteAt(g.state, seat, 6, 6);
+    const other = town(g.state, 1, 9, 6);
+    other.followers = { [theirs.id]: other.population };
+    siteAt(g.state, other, 9, 6);
+
+    const target = town(g.state, 1, 8, 6);
+    target.population = 4;
+    target.followers = { [theirs.id]: 3 };
+    expect(cityReligion(target)).toBe(theirs.id);
+
+    const bare = pressureTotals(g.state, target);
+    target.buildings.push('temple');
+    const walled = pressureTotals(g.state, target);
+    // Its own faith is doubled and the rival's halved — one multiplication,
+    // taken once, carried as the difference so the list still sums.
+    expect(walled[theirs.id]).toBe(Math.floor((bare[theirs.id]! * RULES.religion.templeOwnPercent) / 100));
+    expect(walled[mine.id]).toBe(Math.floor((bare[mine.id]! * RULES.religion.templeForeignPercent) / 100));
+    const lines = explainPressure(g.state, target).filter((line) => line.source === 'Temple');
+    expect(lines.length).toBe(2);
+  });
+
+  it('decays a proclamation to nothing and sweeps it, and the sweep changes no outcome', () => {
+    const g = game();
+    town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    const target = town(g.state, 1, 8, 6);
+    religion.pulses.push({
+      col: 8,
+      row: 6,
+      strength: 12,
+      range: 10,
+      startTurn: g.state.turn,
+      expiresTurn: g.state.turn + 10,
+    });
+    const at = (turn: number): number => {
+      g.state.turn = turn;
+      return explainPressure(g.state, target).find((line) => line.source === 'Proclamation')?.amount ?? 0;
+    };
+    const start = g.state.turn;
+    expect(at(start)).toBe(12);
+    expect(at(start + 5)).toBe(6);
+    expect(at(start + 9)).toBe(1);
+    expect(at(start + 10)).toBe(0);
+    // The broom runs inside the phase, and it is a broom: the pulse was already
+    // inert, so sweeping it changes nothing anybody can read.
+    g.state.turn = start + 10;
+    const before = pressureTotals(g.state, target);
+    spreadReligion(g.state);
+    expect(religion.pulses).toEqual([]);
+    expect(pressureTotals(g.state, target)).toEqual(before);
+  });
+
+  it('lets a wonder press for the empire that holds the stones', () => {
+    const g = game();
+    const seat = town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    const target = town(g.state, 1, 8, 6);
+    expect(pressureTotals(g.state, target)[religion.id]).toBe(0);
+    seat.buildings.push('hagiaSophia');
+    const lines = explainPressure(g.state, target);
+    expect(lines.find((line) => line.source === 'Wonder')?.amount).toBe(4);
+  });
+
+  it('reads an enhancer belief’s shift through the one rule reader', () => {
+    const g = game();
+    const seat = town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    siteAt(g.state, seat, 6, 6);
+    const target = town(g.state, 1, 8, 6);
+    const before = pressureTotals(g.state, target)[religion.id]!;
+    religion.enhancer = 'ecclesia';
+    // Ecclesia says holy sites press three harder, and it says it as data.
+    expect(cardPressureRule(g.state, 0, 'siteStrength')).toBe(3);
+    expect(pressureTotals(g.state, target)[religion.id]).toBe(before + 3);
+  });
+});
+
+describe('what a religion pays whom', () => {
+  it('pays the founder for a follower belief, over foreign cities and its own', () => {
+    const g = game();
+    town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    religion.follower = ['theQuietHours'];
+    const mine = town(g.state, 0, 7, 6);
+    const theirs = town(g.state, 1, 9, 6);
+    mine.followers = { [religion.id]: mine.population };
+    theirs.followers = { [religion.id]: theirs.population };
+
+    const lines = liveEffects(g.state, 0).filter((entry) =>
+      entry.source.includes('The Quiet Hours'),
+    );
+    expect(lines.length).toBe(1);
+    // Two following cities, folded into **one empire-scale line** whose label
+    // says how many towns it was folded over.
+    expect(lines[0]!.source).toContain('2 following cities');
+    expect(lines[0]!.effect).toEqual({ kind: 'empireYields', culture: 2, faith: 2 });
+    // And it is the founder who is paid, not the owner of the foreign town.
+    expect(
+      liveEffects(g.state, 1).some((entry) => entry.source.includes('The Quiet Hours')),
+    ).toBe(false);
+  });
+
+  it('pays the founder’s trickle per foreign following city, and doubles it for Apostles', () => {
+    const g = game();
+    town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    const mine = town(g.state, 0, 7, 6);
+    const theirs = town(g.state, 1, 9, 6);
+    mine.followers = { [religion.id]: mine.population };
+    theirs.followers = { [religion.id]: theirs.population };
+
+    const trickle = liveEffects(g.state, 0).filter(
+      (entry) => entry.source === `Religion · ${religion.name}`,
+    );
+    expect(trickle.length).toBe(RELIGION.founderTrickle.length);
+    // One faith per **foreign** following city: the founder's own town is not
+    // a foreigner, so one of the two counts.
+    const faithOf = (): number =>
+      cardEmpireYields(g.state, 0)
+        .filter((line) => line.source.startsWith(`Religion · ${religion.name}`))
+        .reduce((sum, line) => sum + line.faith, 0);
+    expect(faithOf()).toBe(1);
+
+    // Apostles doubles the trickle **before anything is banked**, and reaches
+    // the trickle alone.
+    religion.enhancer = 'apostles';
+    expect(faithOf()).toBe(2);
+  });
+
+  it('counts the tide five ways, through the beliefs that ask for each count', () => {
+    const g = game();
+    town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    // Five following towns across two empires, so every count has something to
+    // say: three of mine, two of theirs, eight citizens between them, one temple.
+    const following = [
+      town(g.state, 0, 7, 6),
+      town(g.state, 0, 7, 7),
+      town(g.state, 0, 5, 6),
+      town(g.state, 1, 9, 6),
+      town(g.state, 1, 9, 7),
+    ];
+    for (const city of following) city.followers = { [religion.id]: city.population };
+    following[0]!.population = 4;
+    following[0]!.followers = { [religion.id]: 4 };
+    following[3]!.buildings.push('temple');
+
+    // Every one of the five counts is asked by a row, which is what stops a
+    // count from being declared and never read.
+    religion.follower = ['congregation'];
+    expect(
+      cardHappiness(g.state, 0).find((line) => line.source.includes('Congregation'))?.amount,
+    ).toBe(1);
+
+    religion.follower = ['worldChurch'];
+    expect(
+      cardHappiness(g.state, 0).find((line) => line.source.includes('World Church'))?.amount,
+    ).toBe(2);
+
+    religion.follower = ['pilgrimsCoin'];
+    expect(
+      cardEmpireYields(g.state, 0).find((line) => line.source.includes("Pilgrims' Coin"))?.faith,
+    ).toBe(1);
+
+    religion.follower = ['theLongPrayer'];
+    // Eight citizens, one culture per four.
+    expect(
+      cardEmpireYields(g.state, 0).find((line) => line.source.includes('The Long Prayer'))?.culture,
+    ).toBe(2);
+
+    // And the whole family answers **nothing** for a seat that founded nothing.
+    religion.follower = [];
+    expect(liveEffects(g.state, 1).some((entry) => entry.source.startsWith('Religion'))).toBe(
+      false,
+    );
+  });
+});
+
+describe('the prophet’s four verbs', () => {
+  function readyProphet(seed = 5) {
+    const g = game(seed);
+    learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
+    found(g.state, 0);
+    keep(g.state, 0, 'keeperOfTheHearth');
+    const seat = g.state.cities.find((city) => city.ownerId === 0)!;
+    const ground = landBeside(g.state, seat);
+    return { g, prophet: prophetAt(g.state, 0, ground.col, ground.row) };
+  }
+
+  it('refuses every verb to a piece that is not a prophet, byte-identically', () => {
+    const { g } = readyProphet();
+    const augur = augurAt(g.state, 0, 6, 6);
+    for (const type of ['plantHolySite', 'enhanceReligion', 'proclaim'] as const) {
+      const before = snapshotState(g.state);
+      const result = applyCommand(g.state, { type, playerId: 0, unitId: augur.id } as Command);
+      expect(result.ok, type).toBe(false);
+      expect(snapshotState(g.state), type).toBe(before);
+    }
+  });
+
+  it('spends one charge a verb and leaves the board when the last one goes', () => {
+    const { g, prophet } = readyProphet();
+    expect(prophet.chargesLeft).toBe(2);
+    applyCommand(g.state, { type: 'plantHolySite', playerId: 0, unitId: prophet.id } as Command);
+    applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
+    const standing = g.state.units.find((u) => u.id === prophet.id)!;
+    expect(standing.chargesLeft).toBe(1);
+    // **A charge is the prophet's whole turn** — the augur's rule, one agent
+    // over — so the second verb waits for the movement a resolution refills.
+    expect(proclaimError(g.state, 0, prophet.id)).toBe(`Unit ${prophet.id} has no movement left`);
+    standing.movesLeft = 2;
+    applyCommand(g.state, { type: 'proclaim', playerId: 0, unitId: prophet.id } as Command);
+    expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
+    expect(foundedReligion(g.state, 0)!.pulses.length).toBe(1);
+  });
+
+  it('refuses a proclamation from an empire with no religion', () => {
+    const { g, prophet } = readyProphet();
+    const before = snapshotState(g.state);
+    const result = applyCommand(g.state, {
+      type: 'proclaim',
+      playerId: 0,
+      unitId: prophet.id,
+    } as Command);
+    expect(result.ok).toBe(false);
+    expect(snapshotState(g.state)).toBe(before);
+  });
+
+  it('needs Theology to enhance, and holds one enhancer', () => {
+    const { g, prophet } = readyProphet();
+    faith(g.state, 0, 'starReaders');
+    expect(enhanceReligionError(g.state, 0, prophet.id)).toContain('Theology');
+    learn(g.state, 0, 'philosophy', 'drama', 'theology');
+    expect(enhanceReligionError(g.state, 0, prophet.id)).toBeNull();
+    applyCommand(g.state, { type: 'enhanceReligion', playerId: 0, unitId: prophet.id } as Command);
+    expect(playerById(g.state, 0)!.pantheon.pending?.pool).toBe('enhancer');
+    applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
+    const religion = foundedReligion(g.state, 0)!;
+    expect(religion.enhancer).toBeDefined();
+    g.state.units.find((u) => u.id === prophet.id)!.movesLeft = 2;
+    expect(enhanceReligionError(g.state, 0, prophet.id)).toContain('all the enhancements');
+  });
+
+  it('redrafts a pool, returns what it held, and never touches the pantheon', () => {
+    const { g, prophet } = readyProphet();
+    const religion = faith(g.state, 0, 'starReaders');
+    religion.follower = ['feastDays'];
+    const before = snapshotState(g.state);
+    expect(applyCommand(g.state, {
+      type: 'redraftBeliefs',
+      playerId: 0,
+      unitId: prophet.id,
+      pool: 'pantheon',
+    } as unknown as Command).ok).toBe(false);
+    expect(snapshotState(g.state)).toBe(before);
+
+    applyCommand(g.state, {
+      type: 'redraftBeliefs',
+      playerId: 0,
+      unitId: prophet.id,
+      pool: 'follower',
+    } as Command);
+    expect(religion.follower).toEqual([]);
+    const offer = playerById(g.state, 0)!.pantheon.pending!;
+    expect(offer.pool).toBe('follower');
+    // The belief given back is in the bag again — a declined god's rule.
+    expect(religionBeliefPool(religion, 'follower')).toContain('feastDays');
+    expect(playerById(g.state, 0)!.pantheon.beliefs).toEqual(['keeperOfTheHearth', 'starReaders']);
+    void offer;
+  });
+
+  it('plants nothing but a holy site, and lets nobody else plant one', () => {
+    const { g, prophet } = readyProphet();
+    // A prophet asked for a farm is refused by the symmetric clause, and so is
+    // a worker asked for a holy site.
+    expect(improvementError(g.state, prophet.id, 'farm')).toBe(
+      'Prophets leave a work behind, not a farm',
+    );
+    const worker = createUnit(g.state, 0, 'worker', prophet.col, prophet.row);
+    expect(improvementError(g.state, worker.id, 'holySite')).toBe(
+      'A worker cannot build a holy site',
+    );
+    // And an **augur**, whose charges are rites rather than spadework, plants
+    // nothing at all — the fourth reading of the one symmetric clause.
+    const augur = augurAt(g.state, 0, prophet.col, prophet.row);
+    expect(improvementError(g.state, augur.id, 'farm')).toBe('A augur builds nothing');
+  });
+
+  it('preaches: the augur’s rite leaves the same kind of mark out of a smaller purse', () => {
+    const g = game();
+    learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
+    found(g.state, 0);
+    const religion = faith(g.state, 0);
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    const augur = augurAt(g.state, 0, unit.col, unit.row);
+    expect(availableRites(g.state, 0)).toContain('thePreaching');
+    expect(riteError(g.state, 0, augur.id, 'thePreaching')).toBeNull();
+    applyCommand(g.state, {
+      type: 'performRite',
+      playerId: 0,
+      unitId: augur.id,
+      rite: 'thePreaching',
+    } as Command);
+    expect(religion.pulses.length).toBe(1);
+    expect(religion.pulses[0]!.range).toBe(4);
+  });
+});

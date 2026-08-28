@@ -897,7 +897,7 @@
       "onComplete": [
         {
           "grant": "unit",
-          "unit": "augur"
+          "unit": "prophet"
         }
       ],
       "effects": [
@@ -909,9 +909,13 @@
             "test": "hasBuilding",
             "building": "temple"
           }
+        },
+        {
+          "kind": "pressure",
+          "amount": 4,
+          "range": 8
         }
       ],
-      "note": "The design calls for a prophet. Until prophets exist, an augur is granted instead.",
       "renown": {
         "family": "artist",
         "onComplete": 10,

@@ -442,8 +442,8 @@ describe('sleep in the log', () => {
     expect(JSON.stringify(replay(game.config, game.log))).toBe(JSON.stringify(game.state));
   });
 
-  it('round-trips a schema 25 save with a sleeper in it', () => {
-    expect(SCHEMA_VERSION).toBe(25);
+  it('round-trips a schema 26 save with a sleeper in it', () => {
+    expect(SCHEMA_VERSION).toBe(26);
     const game = sleepingGame();
     const json = saveGame(game);
     expect((JSON.parse(json) as { schemaVersion: number }).schemaVersion).toBe(SCHEMA_VERSION);

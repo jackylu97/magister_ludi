@@ -58,8 +58,14 @@ import {
   type City,
   type GameState,
   type Player,
+  type Religion,
+  type ReligionId,
+  type ReligionPulse,
   type TimedEffect,
   type Unit,
+  cityReligion,
+  convertCitizen,
+  foundedReligion,
   playerById,
   realPlayers,
   removeUnit,
@@ -71,23 +77,29 @@ import {
   cityAt,
   nearestOwnedCity,
   refreshCityDerived,
+  refreshTileDerived,
   settleBorderWindfall,
   settleGrowthWindfall,
   settlePopulationWindfall,
   settleProductionWindfall,
+  tileOwnerField,
 } from './cities';
 import { drawDiscoveryOffer } from './discoveries';
-import { getTileAt, tileHex, wrappedDistance } from './map';
+import { type Tile, getTileAt, neighborTiles, tileHex, tileIndex, wrappedDistance } from './map';
 import {
+  type BeliefAxis,
   type BeliefId,
   type BeliefOffer,
+  type ReligionBeliefPool,
   type RiteDef,
   type RiteId,
   BELIEF_IDS,
   RELIGION,
   beliefDef,
   isBeliefId,
+  isPantheonBeliefId,
   isRiteId,
+  poolBeliefs,
   riteAbility,
   riteDef,
   slotsFromTechs,
@@ -96,6 +108,8 @@ import {
   cardAmplifier,
   cardPantheonSlots,
   cardPeriodicOffers,
+  cardPressureRule,
+  cardPressureSources,
   drawWithoutReplacement,
   offerSize,
   payWindfallGrants,
@@ -103,7 +117,14 @@ import {
   timedEffectIsLive,
   windfallPayout,
 } from './statecraft';
-import { hasAbility, settleResearchWindfall } from './tech';
+import { hasAbility, hasTech, settleResearchWindfall } from './tech';
+import { type TechId, techDef } from './techData';
+import type { BuildingId } from './buildingData';
+import type { PressureRuleId } from './statecraftData';
+import { type ImprovementId, workForFamily } from './improvementData';
+import { improvementErrorAt } from './improvements';
+import { nextFloat } from './rng';
+import { RULES } from './rulesData';
 import { awardOccasion } from './triumphs';
 import { isCombatant, unitDef } from './unitData';
 
@@ -153,7 +174,10 @@ export function hasOpenBeliefSlot(state: GameState, playerId: number): boolean {
  */
 export function beliefPool(player: Player): BeliefId[] {
   const held = new Set<BeliefId>(player.pantheon.beliefs);
-  return BELIEF_IDS.filter((id) => !held.has(id));
+  // **The pantheon's bag alone.** `isBeliefId` spans all three pools now, so a
+  // filter that asked it would have offered a Consecrate the enhancer pool;
+  // `BELIEF_IDS` is the pantheon's own list, which is what a god is drawn from.
+  return BELIEF_IDS.filter((id) => !held.has(id) && isPantheonBeliefId(id));
 }
 
 // --- buying an agent --------------------------------------------------------
@@ -332,13 +356,48 @@ export function settleBeliefChoice(
   const id = offer.options[optionIndex];
   if (id === undefined || !isBeliefId(id)) return null;
   delete player.pantheon.pending;
+  // **Which shelf it goes on is the offer's own answer.** One field, one
+  // command, three drafts: an offer that names a pool is a prophet's and lands
+  // on the religion; one that names none is an augur's and lands on the
+  // pantheon. A pooled pick that arrives with no religion to hold it is dropped
+  // rather than thrown on, which is only reachable from a hand-edited save.
+  const pool = offer.pool;
+  if (pool !== undefined) {
+    const religion = foundedReligion(state, player.id);
+    if (!religion) return null;
+    if (pool === 'follower') religion.follower.push(id);
+    else religion.enhancer = id;
+    refreshBeliefDerived(state, player);
+    return { id, name: beliefDef(id).name };
+  }
   player.pantheon.beliefs.push(id);
+  refreshBeliefDerived(state, player);
   // A God Named. It takes the `state` **only** for this — the belief itself is a
   // fact about the player alone — and that is a fair price for putting the
   // triumph in the mechanism rather than in the reducer, where an AI naming a
   // god would earn nothing.
   awardOccasion(state, player.id, 'beliefConsecrated');
   return { id, name: beliefDef(id).name };
+}
+
+/**
+ * Re-seats every town of one empire after a belief is taken.
+ *
+ * `settleResearchWindfall`'s shape and its argument exactly: a belief is an
+ * **empire-wide fact about what ground is worth** — Ecclesia pays a holy site's
+ * hex, Desert Fathers pays every dune — so the citizen who should move is in
+ * whichever town stands on the seam, and the register's rule is that a mid-turn
+ * yield mutation refreshes rather than waiting for the phase. It is the
+ * sixteenth entry in `refreshCityDerived`'s register.
+ *
+ * Idempotent and derived, like every entry in that register, so the end-of-turn
+ * `collectYields` recomputes it and agrees.
+ */
+function refreshBeliefDerived(state: GameState, player: Player): void {
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id) continue;
+    refreshCityDerived(state, city);
+  }
 }
 
 // --- rites ------------------------------------------------------------------
@@ -443,6 +502,18 @@ export function riteError(
     return `${def.name} must be performed where the augur stands, or beside it`;
   }
 
+  // **A rite that leaves a proclamation needs a faith to proclaim.** Asked of
+  // the grant's own shape rather than of the rite's id, so the second such rite
+  // inherits the refusal without this function learning its name.
+  if (def.grant.pulse !== undefined && foundedReligion(state, playerId) === undefined) {
+    return `${def.name} needs a religion to preach`;
+  }
+
+  if (def.target === 'here') {
+    // The third target, and it asks nothing further: a proclamation is made on
+    // the ground, and the reach test above is the whole of where.
+    return null;
+  }
   if (def.target === 'city') {
     if (riteCityTarget(state, unit, target) === null) {
       return `${def.name} needs one of your cities to bless`;
@@ -568,7 +639,7 @@ export function performRiteAt(
   const blessed = def.target === 'unit' ? riteUnitTarget(state, unit, target) : null;
 
   const expiresTurn = stampRite(state, player.id, rite, def, city, blessed);
-  const paid = payRiteGrant(state, player, def, city, blessed);
+  const paid = payRiteGrant(state, player, def, city, blessed, { col: unit.col, row: unit.row });
   const wonders = payRiteRiders(state, player, unit);
   wonders.unshift(...paid.wonders);
 
@@ -668,6 +739,7 @@ function payRiteGrant(
   def: RiteDef,
   city: City | null,
   unit: Unit | null,
+  at: { col: number; row: number },
 ): RiteGrantResult {
   const grant = def.grant;
   const result: RiteGrantResult = {
@@ -703,6 +775,29 @@ function payRiteGrant(
     settleCultureWindfall(state, player);
   }
   if (grant.healFully === true && unit) unit.hp = unitDef(unit.type).maxHp;
+  if (grant.pulse !== undefined) {
+    // **A rite leaves the same kind of mark a prophet does**, out of a smaller
+    // purse: the row's own figures, shifted by the enhancer pool through the one
+    // reader, and an absolute expiry nobody ticks. It is written straight onto
+    // the religion because a pulse belongs to a faith rather than to a place —
+    // `spreadReligion` is its broom, exactly as it is the bomb's.
+    const religion = foundedReligion(state, player.id);
+    if (religion) {
+      const turns = Math.max(
+        1,
+        grant.pulse.turns + cardPressureRule(state, player.id, 'pulseTurns'),
+      );
+      religion.pulses.push({
+        col: at.col,
+        row: at.row,
+        strength: Math.max(0, grant.pulse.strength),
+        range: Math.max(0, grant.pulse.range + cardPressureRule(state, player.id, 'bombRange')),
+        startTurn: state.turn,
+        expiresTurn: state.turn + turns,
+      });
+      said('Preaching', grant.pulse.strength);
+    }
+  }
 
   if (city) {
     if (grant.borderCulture !== undefined) {
@@ -819,6 +914,11 @@ export function ritePreview(
   if (grant.production !== undefined && city) parts.push(`+${grant.production} production`);
   if (grant.food !== undefined && city) parts.push(`+${grant.food} food`);
   if (grant.healFully === true && blessed) parts.push(`heals the ${unitDef(blessed.type).name} fully`);
+  if (grant.pulse !== undefined) {
+    parts.push(
+      `spreads your religion ${grant.pulse.range} hexes for ${grant.pulse.turns} turns`,
+    );
+  }
   if (def.duration !== undefined) parts.push(`lasts ${def.duration} turns`);
   return parts.length > 0 ? parts.join(' · ') : null;
 }
@@ -931,4 +1031,855 @@ export function religionBlocker(player: Player): string | null {
 /** Is anything religious waiting to be answered? The dock button's badge. */
 export function hasReligionOffer(player: Player): boolean {
   return player.pantheon.pending !== undefined;
+}
+
+// --- the religion -----------------------------------------------------------
+
+/** Is this piece a prophet — a unit whose charges found and spread a faith? */
+export function isProphet(unit: Unit): boolean {
+  return unitDef(unit.type).prophesies === true;
+}
+
+/**
+ * How many religions this world will hold at all.
+ *
+ * The user's ruling of 2026-08-27: two thirds of the seats in the lobby, rounded
+ * **up**. It is written as two integers (`rules.religion.maxReligions`) rather
+ * than as `0.667`, so the ceiling is exact arithmetic on whole numbers and a
+ * five-seat game is four everywhere, forever, on every machine — the same reason
+ * every percentage in this game is whole points.
+ *
+ * Counted over `realPlayers`, which is the register for "who counts": the wild
+ * is a seat and never a nation, and a solo game whose share was computed over
+ * three players including the barbarians would hand out one religion too many.
+ */
+export function maxReligions(state: GameState): number {
+  const share = RULES.religion.maxReligions;
+  const seats = realPlayers(state).length;
+  const denominator = Math.max(1, Math.floor(share.denominator));
+  return Math.ceil((seats * Math.floor(share.numerator)) / denominator);
+}
+
+/**
+ * Why this empire cannot found a religion, or `null` when it can.
+ *
+ * Three refusals and each is a ruling:
+ *
+ *   · **no gods** — identity is the pantheon (`docs/religion-v2.md`), so a realm
+ *     that has consecrated nothing has nothing to found a faith *out of*;
+ *   · **already founded** — one religion per empire, ever. Unreachable from the
+ *     verb, which only asks this when the register holds no row for the seat,
+ *     and written down anyway so that "ever" is a sentence somewhere rather than
+ *     an accident of one caller's ordering;
+ *   · **the world is full** — `maxReligions`, and the sentence a player reads is
+ *     about the world rather than about them.
+ */
+export function foundReligionError(state: GameState, playerId: number): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  if (player.pantheon.beliefs.length === 0) {
+    return 'You have no gods to found a religion on';
+  }
+  if (foundedReligion(state, playerId) !== undefined) {
+    return `${player.name} has already founded a religion`;
+  }
+  if (state.religions.length >= maxReligions(state)) {
+    return 'The world has all the religions it will hold';
+  }
+  return null;
+}
+
+/**
+ * A generated name, drawn from `state.rng` at the moment of founding.
+ *
+ * **Never a historical faith and never a fixed roster** (user, 2026-08-27: "keep
+ * religions fluid"). The name is made out of the pantheon's *axes*, so an empire
+ * that consecrated the Hearth Mother and the Standing Stones is named after
+ * hearth and stone and looks like what it is made of.
+ *
+ * Three draws, in this order and never reordered: the pattern, then one epithet,
+ * then the second. The order is the seed's — a replay of the same log deals the
+ * same name — which is why the two-axis pattern is filtered *out* before the
+ * pattern is drawn rather than being drawn and rejected: a rejection would spend
+ * the generator a different number of times for a one-god religion than for a
+ * two-god one, and the whole game after it would shift.
+ */
+export function generateReligionName(state: GameState, pantheon: readonly BeliefId[]): string {
+  const axes: BeliefAxis[] = [];
+  for (const id of pantheon) {
+    const axis = beliefDef(id).axis;
+    if (!axes.includes(axis)) axes.push(axis);
+  }
+  if (axes.length === 0) axes.push('none');
+  const { epithets, patterns } = RELIGION.names;
+  const usable = patterns.filter((pattern) => axes.length >= 2 || !pattern.includes('{1}'));
+  const shape = usable[Math.floor(nextFloat(state.rng) * usable.length)] ?? patterns[0] ?? '{0}';
+  const pick = (axis: BeliefAxis): string => {
+    const bag = epithets[axis] ?? epithets.none ?? ['Quiet'];
+    return bag[Math.floor(nextFloat(state.rng) * bag.length)] ?? 'Quiet';
+  };
+  const first = pick(axes[0]!);
+  const second = axes.length >= 2 ? pick(axes[1]!) : first;
+  return shape.replace('{0}', first).replace('{1}', second);
+}
+
+/**
+ * Founds a religion. Validates nothing — `foundReligionError` is the rule.
+ *
+ * **The one writer of `GameState.religions`**, from the one verb, which is the
+ * discipline `claimWonder` keeps for a wonder and `captureUnit` for a change of
+ * hands. The id is the row's index, so founding order *is* id order and every
+ * tie in the spread is broken by an order the state carries.
+ *
+ * The pantheon is **copied** rather than aliased: a religion is what its founder
+ * believed at the moment it was founded, and an empire that consecrates a fourth
+ * god afterwards has not renamed its faith.
+ */
+export function foundReligion(state: GameState, player: Player): Religion {
+  const pantheon = [...player.pantheon.beliefs];
+  const religion: Religion = {
+    id: state.religions.length,
+    founderId: player.id,
+    name: generateReligionName(state, pantheon),
+    pantheon,
+    follower: [],
+    foundedTurn: state.turn,
+    pulses: [],
+  };
+  state.religions.push(religion);
+  return religion;
+}
+
+/**
+ * Why this prophet cannot rename its empire's religion, or `null`.
+ *
+ * **Pure prose, and the only command in the game that is.** The name is
+ * generated so that a religion has one at all; renaming is a courtesy, it
+ * changes no rule, and it is refused for exactly two reasons — you have no
+ * religion, or what you typed is not a name.
+ */
+export function renameReligionError(
+  state: GameState,
+  playerId: number,
+  name: unknown,
+): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  if (foundedReligion(state, playerId) === undefined) {
+    return `${player.name} has founded no religion`;
+  }
+  if (typeof name !== 'string' || name.trim().length === 0) {
+    return 'A religion needs a name';
+  }
+  if (name.trim().length > RELIGION_NAME_LIMIT) {
+    return `A religion's name is at most ${RELIGION_NAME_LIMIT} letters`;
+  }
+  return null;
+}
+
+/** How long a religion's name may be. Long enough for a phrase, short enough for a banner. */
+export const RELIGION_NAME_LIMIT = 40;
+
+/** Renames a religion. Validates nothing — `renameReligionError` is the rule. */
+export function renameReligionAt(state: GameState, playerId: number, name: string): void {
+  const religion = foundedReligion(state, playerId);
+  if (religion) religion.name = name.trim();
+}
+
+// --- the prophet's pools ----------------------------------------------------
+
+/** The beliefs of one pool this religion does not already hold, in file order. */
+export function religionBeliefPool(religion: Religion, pool: ReligionBeliefPool): BeliefId[] {
+  const held = new Set<BeliefId>([
+    ...religion.follower,
+    ...(religion.enhancer === undefined ? [] : [religion.enhancer]),
+  ]);
+  return poolBeliefs(pool).filter((id) => !held.has(id));
+}
+
+/** How many beliefs of this pool a religion may hold at once. Data (`pools`). */
+export function poolSlots(pool: ReligionBeliefPool): number {
+  const pools = RELIGION.pools;
+  return Math.max(0, Math.floor(pool === 'follower' ? pools.followerSlots : pools.enhancerSlots));
+}
+
+/** How many this religion currently holds. */
+export function poolHeld(religion: Religion, pool: ReligionBeliefPool): number {
+  return pool === 'follower' ? religion.follower.length : religion.enhancer === undefined ? 0 : 1;
+}
+
+/**
+ * Deals one offer from a religion's pool.
+ *
+ * `drawBeliefOffer`'s twin, one bag over and with the bag written on the offer
+ * so that one `chooseBelief` can answer for all three drafts. **How many** is
+ * `offerSize`'s, at the moment the offer opens (Entry XXXI), so the wonder that
+ * widens every draft widens this one with nothing written here.
+ */
+export function drawPoolBeliefOffer(
+  state: GameState,
+  player: Player,
+  religion: Religion,
+  pool: ReligionBeliefPool,
+): BeliefOffer {
+  return {
+    options: drawWithoutReplacement(
+      state,
+      religionBeliefPool(religion, pool),
+      offerSize(state, player.id, 'belief'),
+    ),
+    pool,
+  };
+}
+
+// --- the prophet's four verbs ----------------------------------------------
+
+/**
+ * The questions every one of a prophet's verbs asks first — is this my piece, is
+ * it a prophet, has it a charge, has it a day left, and is it already holding a
+ * decision it owes the game.
+ *
+ * One function, so four refusals cannot drift, and in the order a player would
+ * think of them. The **pending offer** clause is `consecrateError`'s and for its
+ * reason: a second hand dealt on top of the first would silently destroy it.
+ */
+function prophetProblem(state: GameState, playerId: number, unitId: number): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  const unit = unitById(state, unitId);
+  if (!unit) return `No unit with id ${String(unitId)}`;
+  if (unit.ownerId !== playerId) return `Unit ${unit.id} does not belong to player ${playerId}`;
+  if (!isProphet(unit)) return `A ${unitDef(unit.type).name} is no prophet`;
+  if ((unit.chargesLeft ?? 0) < 1) return `That prophet has nothing left to give`;
+  if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
+  if (player.pantheon.pending !== undefined) {
+    return `${player.name} still has a belief waiting to be chosen`;
+  }
+  return null;
+}
+
+/**
+ * Why this prophet cannot plant a holy site here, or `null` when it can.
+ *
+ * **A holy site needs a religion**, so an empire that has founded none is asked
+ * `foundReligionError` instead — the verb founds one on the way. That is what
+ * puts all three founding refusals ("no gods", "the world is full") in front of
+ * a player who reaches for the ground, rather than leaving them in a gate the
+ * command never asks.
+ *
+ * The ground's half is delegated whole to `improvementErrorAt`, exactly as
+ * `greatPersonWorkError` delegates it: a work stands anywhere its planter can
+ * stand, which for a holy site is any hex of your own that is not water and not
+ * a mountain.
+ */
+export function plantHolySiteError(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+): string | null {
+  const problem = prophetProblem(state, playerId, unitId);
+  if (problem !== null) return problem;
+  if (foundedReligion(state, playerId) === undefined) {
+    const cannot = foundReligionError(state, playerId);
+    if (cannot !== null) return cannot;
+  }
+  const unit = unitById(state, unitId)!;
+  const tile = getTileAt(state.map, unit.col, unit.row);
+  if (!tile) return `Unit ${unit.id} is not on the map`;
+  return improvementErrorAt(state, unit.ownerId, tile, HOLY_SITE);
+}
+
+/** The improvement a prophet plants, read off the table's own inverse. */
+const HOLY_SITE: ImprovementId = workForFamily('prophet') ?? 'holySite';
+
+/** What planting a holy site did, for the announcement. */
+export interface HolySitePlanting {
+  religion: Religion;
+  /** True when this charge founded the religion as well as planting the stones. */
+  founded: boolean;
+  /** The draft this opened, or `null`. */
+  offer: BeliefOffer | null;
+  col: number;
+  row: number;
+  /** True when the prophet was spent by this charge. */
+  prophetSpent: boolean;
+}
+
+/**
+ * Founds a religion where there is none, plants the stones, and opens whatever
+ * draft the religion is still owed. Validates nothing — `plantHolySiteError` is
+ * the rule.
+ *
+ * The order is the arithmetic and each step is a rule:
+ *
+ *   1. **the religion first**, because the site is the religion's anchor and a
+ *      site standing for nobody's faith would press for nothing;
+ *   2. **the stones**, through `tile.improvement` and `refreshTileDerived` — the
+ *      same two lines `buildImprovementAt` and `greatPersonWorkAt` write, so a
+ *      holy site pays its faith into the panel this instant;
+ *   3. **the draft**, if a follower slot is open. It is dealt *after* the stones
+ *      for `consecrateAt`'s reason exactly — the draw advances `state.rng`, and
+ *      anything that could throw between the two would leave a prophet able to
+ *      deal a second hand from a moved generator;
+ *   4. **the charge**, and a prophet that empties leaves the board exactly as a
+ *      worker does;
+ *   5. **the day**, spent whole. Planting is the turn's work.
+ */
+export function plantHolySiteAt(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  tile: Tile,
+): HolySitePlanting {
+  const existing = foundedReligion(state, player.id);
+  const founded = existing === undefined;
+  const religion = existing ?? foundReligion(state, player);
+
+  tile.improvement = HOLY_SITE;
+  refreshTileDerived(state, tile);
+
+  let offer: BeliefOffer | null = null;
+  if (poolHeld(religion, 'follower') < poolSlots('follower')) {
+    offer = drawPoolBeliefOffer(state, player, religion, 'follower');
+    player.pantheon.pending = offer;
+  }
+
+  const left = (unit.chargesLeft ?? 0) - 1;
+  const prophetSpent = left <= 0;
+  if (prophetSpent) removeUnit(state, unit.id);
+  else {
+    unit.chargesLeft = left;
+    unit.movesLeft = 0;
+  }
+  return { religion, founded, offer, col: tile.col, row: tile.row, prophetSpent };
+}
+
+/**
+ * Why this prophet cannot draw an enhancer belief, or `null` when it can.
+ *
+ * Theology is the gate the design names, asked of the tree rather than of a
+ * constant here — `hasTech`, so a retuned tree moves the verb with it.
+ */
+export function enhanceReligionError(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+): string | null {
+  const problem = prophetProblem(state, playerId, unitId);
+  if (problem !== null) return problem;
+  const religion = foundedReligion(state, playerId);
+  if (!religion) return 'You have founded no religion to enhance';
+  if (!hasTech(state, playerId, ENHANCER_TECH)) {
+    return `Enhancing a religion needs ${techDef(ENHANCER_TECH).name}`;
+  }
+  if (poolHeld(religion, 'enhancer') >= poolSlots('enhancer')) {
+    return `${religion.name} has all the enhancements it will hold`;
+  }
+  if (religionBeliefPool(religion, 'enhancer').length === 0) {
+    return 'There are no enhancements left to choose';
+  }
+  return null;
+}
+
+/** The technology that opens the enhancer pool. Named once, read twice. */
+const ENHANCER_TECH: TechId = 'theology';
+
+/**
+ * Spends a charge on an enhancer draft. Validates nothing —
+ * `enhanceReligionError` is the rule.
+ *
+ * `plantHolySiteAt`'s three closing steps in the same order and for the same
+ * reasons: the draw, then the charge, then the day.
+ */
+export function enhanceReligionAt(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+): BeliefOffer {
+  const religion = foundedReligion(state, player.id)!;
+  const offer = drawPoolBeliefOffer(state, player, religion, 'enhancer');
+  player.pantheon.pending = offer;
+  const left = (unit.chargesLeft ?? 0) - 1;
+  if (left <= 0) removeUnit(state, unit.id);
+  else {
+    unit.chargesLeft = left;
+    unit.movesLeft = 0;
+  }
+  return offer;
+}
+
+/**
+ * Why this prophet cannot proclaim here, or `null` when it can.
+ *
+ * The faith bomb, and the ruling that shaped it (user, 2026-08-27): it **only
+ * converts**. There is no site, no lasting anchor and nothing to defend — which
+ * is precisely what makes the choice between this charge and a holy site a real
+ * one. A bomb converts; a site keeps.
+ */
+export function proclaimError(state: GameState, playerId: number, unitId: number): string | null {
+  const problem = prophetProblem(state, playerId, unitId);
+  if (problem !== null) return problem;
+  if (foundedReligion(state, playerId) === undefined) {
+    return 'You have founded no religion to proclaim';
+  }
+  return null;
+}
+
+/**
+ * Leaves a proclamation on the hex the prophet stands on. Validates nothing —
+ * `proclaimError` is the rule.
+ *
+ * The pulse's reach, strength and life are `rules.religion`'s, **shifted by the
+ * enhancer pool** through the one reader (`cardPressureRule`), and its expiry is
+ * an absolute turn nobody ever ticks. `startTurn` is the decay's denominator and
+ * not a counter: a pulse that had to be told each turn how far it had come would
+ * be the clock `TimedEffect` exists to refuse.
+ */
+export function proclaimAt(state: GameState, player: Player, unit: Unit): ReligionPulse {
+  const religion = foundedReligion(state, player.id)!;
+  const rules = RULES.religion;
+  const pulse: ReligionPulse = {
+    col: unit.col,
+    row: unit.row,
+    strength: Math.max(0, rules.bombStrength + cardPressureRule(state, player.id, 'bombStrength')),
+    range: Math.max(0, rules.bombRange + cardPressureRule(state, player.id, 'bombRange')),
+    startTurn: state.turn,
+    expiresTurn:
+      state.turn + Math.max(1, rules.bombTurns + cardPressureRule(state, player.id, 'pulseTurns')),
+  };
+  religion.pulses.push(pulse);
+  const left = (unit.chargesLeft ?? 0) - 1;
+  if (left <= 0) removeUnit(state, unit.id);
+  else {
+    unit.chargesLeft = left;
+    unit.movesLeft = 0;
+  }
+  return pulse;
+}
+
+/**
+ * Why this prophet cannot redraft this pool, or `null` when it can.
+ *
+ * **The pantheon is never redrafted**, and it is not in the union of pools this
+ * command accepts at all — identity is not a decision you take back
+ * (`docs/religion-v2.md`).
+ */
+export function redraftError(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+  pool: unknown,
+): string | null {
+  const problem = prophetProblem(state, playerId, unitId);
+  if (problem !== null) return problem;
+  const religion = foundedReligion(state, playerId);
+  if (!religion) return 'You have founded no religion to redraft';
+  if (pool !== 'follower' && pool !== 'enhancer') {
+    return `There is no belief pool called "${String(pool)}"`;
+  }
+  if (poolHeld(religion, pool) === 0) {
+    return `${religion.name} holds no ${pool} belief to give back`;
+  }
+  return null;
+}
+
+/**
+ * Gives one pool's beliefs back and deals a fresh offer. Validates nothing —
+ * `redraftError` is the rule.
+ *
+ * The beliefs are returned **before** the draw, so the bag they came out of is
+ * whole again and a redraft may honestly re-offer what was just given up —
+ * `beliefPool`'s "a declined god goes back in the bag", one system over.
+ */
+export function redraftAt(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  pool: ReligionBeliefPool,
+): BeliefOffer {
+  const religion = foundedReligion(state, player.id)!;
+  if (pool === 'follower') religion.follower = [];
+  else delete religion.enhancer;
+  const offer = drawPoolBeliefOffer(state, player, religion, pool);
+  player.pantheon.pending = offer;
+  const left = (unit.chargesLeft ?? 0) - 1;
+  if (left <= 0) removeUnit(state, unit.id);
+  else {
+    unit.chargesLeft = left;
+    unit.movesLeft = 0;
+  }
+  return offer;
+}
+
+// --- the tide ---------------------------------------------------------------
+
+/**
+ * One holy site standing on the board, and whose faith it presses for.
+ *
+ * Derived from the ground every sweep and never stored: the site is an
+ * *improvement*, so who it presses for is whoever owns the hex — which is what
+ * makes a captured holy site change sides with the town around it, and what
+ * makes pillaging one the single way to hurt a religion (`docs/religion-v2.md`).
+ */
+export interface HolySite {
+  col: number;
+  row: number;
+  religion: ReligionId;
+}
+
+/**
+ * Every holy site on the board, in map order.
+ *
+ * **Hoisted for one sweep**, `zocField`'s and `tileOwnerField`'s bargain: the
+ * spread phase asks once and hands the list to forty towns, where asking per
+ * town would be forty passes over four thousand hexes. A caller with no list —
+ * a panel asking about one city — gets a fresh one, which is correct and costs a
+ * single pass.
+ */
+export function holySites(state: GameState): HolySite[] {
+  const out: HolySite[] = [];
+  if (state.religions.length === 0) return out;
+  const owners = tileOwnerField(state);
+  for (let index = 0; index < state.map.tiles.length; index++) {
+    const tile = state.map.tiles[index]!;
+    if (tile.improvement !== HOLY_SITE) continue;
+    const owner = owners.at(index);
+    if (owner === null) continue;
+    const religion = foundedReligion(state, owner);
+    if (!religion) continue;
+    out.push({ col: tile.col, row: tile.row, religion: religion.id });
+  }
+  return out;
+}
+
+/**
+ * The cities joined to this one by **road**, in `state.cities` order.
+ *
+ * A flood fill over paved hexes and the towns standing on them, hoisted for one
+ * question and never stored — `connectedCities`' bargain, one rule wider: that
+ * function answers "which of *my* towns reach my capital", and belief does not
+ * care whose road it is walking on. A town is a junction whether or not anybody
+ * paved its centre, which is what lets two empires' networks meet at a gate.
+ */
+function roadReach(state: GameState, from: City): City[] {
+  const { map } = state;
+  const start = getTileAt(map, from.col, from.row);
+  const out: City[] = [];
+  if (!start) return out;
+  const cityAtIndex = new Map<number, City>();
+  for (const city of state.cities) cityAtIndex.set(tileIndex(map, city.col, city.row), city);
+  const seen = new Uint8Array(map.tiles.length);
+  const frontier: Tile[] = [start];
+  seen[tileIndex(map, start.col, start.row)] = 1;
+  while (frontier.length > 0) {
+    const tile = frontier.pop()!;
+    for (const neighbour of neighborTiles(map, tileHex(tile))) {
+      const index = tileIndex(map, neighbour.col, neighbour.row);
+      if (seen[index] === 1) continue;
+      const paved = neighbour.road !== undefined;
+      const town = cityAtIndex.get(index);
+      if (!paved && town === undefined) continue;
+      seen[index] = 1;
+      // A town is where a road ends, not a hex a road runs through: the fill
+      // stops at a foreign gate rather than treating every city as a junction
+      // onto whatever is paved on the other side of it. It is still *reached*,
+      // which is the whole of what pressure asks.
+      if (town !== undefined) {
+        if (town.id !== from.id) out.push(town);
+        if (!paved) continue;
+      }
+      frontier.push(neighbour);
+    }
+  }
+  // Sorted into `state.cities` order rather than fill order, because a fill's
+  // order is an artefact of the frontier and an outcome may only depend on an
+  // order the state carries.
+  const ordered: City[] = [];
+  for (const city of state.cities) {
+    if (out.includes(city)) ordered.push(city);
+  }
+  return ordered;
+}
+
+/** One labelled contribution to one religion's pull on one town. Rule 5, for a tide. */
+export interface PressureLine {
+  religion: ReligionId;
+  /** Player-facing, and plain: "Holy site", "Road", "Proclamation". */
+  source: string;
+  /** The faith this line presses. Whole, and already what the bank receives. */
+  amount: number;
+}
+
+/**
+ * What every religion presses on this town this turn, as an ordered list whose
+ * fold is the figure the bank receives.
+ *
+ * **The** reading of the tide (hard rule 5 at the scale of a faith), and it is
+ * derived from the board with nothing stored: sites, following neighbours,
+ * roads, caravans, proclamations, a temple's resistance, the founder's capital
+ * and whatever the stones supply. Recomputed every turn by the `spreadReligion`
+ * phase and by any surface that wants to explain a banner.
+ *
+ * Two orderings are load-bearing and neither is negotiable. The **religions** are
+ * walked in `state.religions` order, which is founding order, so a fold is the
+ * same on every machine. The **temple's line is last** within each religion,
+ * because it is a percentage of everything above it — the one multiplication in
+ * the whole tide, taken once, floored once, and carried as the *difference* it
+ * makes so that the list still sums to the total (`explainUnitCost`'s discipline
+ * for the fourth time).
+ *
+ * `sites` is the hoisted sweep. Absent means "ask the board", which is what a
+ * panel does and what a test does.
+ */
+export function explainPressure(
+  state: GameState,
+  city: City,
+  sites: readonly HolySite[] = holySites(state),
+): PressureLine[] {
+  const lines: PressureLine[] = [];
+  if (state.religions.length === 0) return lines;
+  const rules = RULES.religion;
+  const here = getTileAt(state.map, city.col, city.row);
+  if (!here) return lines;
+  const eye = tileHex(here);
+  const current = cityReligion(city);
+  const hasTemple = city.buildings.includes(TEMPLE);
+  // One fill for the whole town rather than one per religion: which towns this
+  // one is joined to by road is a fact about the board, not about a faith.
+  const byRoad = roadReach(state, city);
+
+  for (const religion of state.religions) {
+    const founder = religion.founderId;
+    const rule = (id: PressureRuleId, base: number): number =>
+      base + cardPressureRule(state, founder, id);
+    const before = lines.length;
+    const say = (source: string, amount: number): void => {
+      if (amount > 0) lines.push({ religion: religion.id, source, amount });
+    };
+
+    // **The anchor.** A site is the strongest thing on the board and the only
+    // one a rival can take away.
+    const siteRange = rule('siteRange', rules.siteRange);
+    const siteStrength = rule('siteStrength', rules.siteStrength);
+    let fromSites = 0;
+    for (const site of sites) {
+      if (site.religion !== religion.id) continue;
+      const tile = getTileAt(state.map, site.col, site.row);
+      if (!tile) continue;
+      if (wrappedDistance(state.map, eye, tileHex(tile)) > siteRange) continue;
+      fromSites += siteStrength;
+    }
+    say('Holy site', fromSites);
+
+    // **The slow tide**, and the caravan's other cargo. A following city is a
+    // source; whose it is does not matter, which is what makes a faith spread
+    // through a rival's realm without anybody marching.
+    const cityRange = rule('cityRange', rules.cityRange);
+    const cityStrength = rule('cityStrength', rules.cityStrength);
+    const roadStrength = rule('roadStrength', rules.roadStrength);
+    let fromCities = 0;
+    for (const other of state.cities) {
+      if (other.id === city.id) continue;
+      if (cityReligion(other) !== religion.id) continue;
+      const tile = getTileAt(state.map, other.col, other.row);
+      if (!tile) continue;
+      if (wrappedDistance(state.map, eye, tileHex(tile)) > cityRange) continue;
+      fromCities += cityStrength;
+    }
+    say('Nearby city', fromCities);
+
+    let fromRoads = 0;
+    for (const other of byRoad) {
+      if (cityReligion(other) !== religion.id) continue;
+      fromRoads += roadStrength;
+    }
+    say('Road', fromRoads);
+
+    const routeStrength = rule('routeStrength', rules.routeStrength);
+    const bothWays = rule('routeBothWays', 0) > 0;
+    let fromRoutes = 0;
+    for (const unit of state.units) {
+      const route = unit.trade;
+      if (route === undefined) continue;
+      if (state.turn >= route.expiresTurn) continue;
+      const partner =
+        route.to === city.id ? route.from : bothWays && route.from === city.id ? route.to : null;
+      if (partner === null) continue;
+      const origin = state.cities.find((town) => town.id === partner);
+      if (!origin || cityReligion(origin) !== religion.id) continue;
+      fromRoutes += routeStrength;
+    }
+    say('Trade route', fromRoutes);
+
+    // **The proclamation**, decaying to nothing at its absolute expiry. Nothing
+    // ticks it: the share is computed from the two turns it carries.
+    let fromPulses = 0;
+    for (const pulse of religion.pulses) {
+      const span = pulse.expiresTurn - pulse.startTurn;
+      if (span <= 0 || state.turn >= pulse.expiresTurn) continue;
+      const tile = getTileAt(state.map, pulse.col, pulse.row);
+      if (!tile) continue;
+      if (wrappedDistance(state.map, eye, tileHex(tile)) > pulse.range) continue;
+      fromPulses += Math.floor((pulse.strength * (pulse.expiresTurn - state.turn)) / span);
+    }
+    say('Proclamation', fromPulses);
+
+    // **A founder's capital does not drift.** The seat of the faith holds itself.
+    if (capitalCityOf(state, founder)?.id === city.id) {
+      say('Your capital', rule('capitalStrength', rules.capitalStrength));
+    }
+
+    // The stones. `cardPressureSources` keeps the town each one presses from,
+    // which is what `liveEffects` deliberately forgets.
+    let fromWonders = 0;
+    for (const source of cardPressureSources(state, founder)) {
+      const tile = getTileAt(state.map, source.city.col, source.city.row);
+      if (!tile) continue;
+      if (wrappedDistance(state.map, eye, tileHex(tile)) > source.range) continue;
+      fromWonders += source.amount;
+    }
+    say('Wonder', fromWonders);
+
+    // **The temple is the defence, and there is no other.** Twice for the faith
+    // the town already keeps, half for everybody else's — the design's answer to
+    // "how do I resist a conversion" that needs no combat and no unit. Last, and
+    // carried as a difference, so the list still sums to the total.
+    if (!hasTemple) continue;
+    let subtotal = 0;
+    for (let i = before; i < lines.length; i++) subtotal += lines[i]!.amount;
+    if (subtotal === 0) continue;
+    const percent =
+      current === religion.id
+        ? rule('templeOwnPercent', rules.templeOwnPercent)
+        : rule('templeForeignPercent', rules.templeForeignPercent);
+    const after = Math.max(0, Math.floor((subtotal * Math.max(0, percent)) / 100));
+    if (after !== subtotal) {
+      lines.push({ religion: religion.id, source: 'Temple', amount: after - subtotal });
+    }
+  }
+  return lines;
+}
+
+/** The building a town defends its faith with. Named once, read twice. */
+const TEMPLE: BuildingId = 'temple';
+
+/**
+ * The fold of `explainPressure`, by religion id — one entry per religion in
+ * founding order, and zero for the ones pressing nothing.
+ *
+ * A plain array indexed by id, because an id *is* an index into
+ * `state.religions` and a sweep already holds the address. Totals are floored at
+ * zero: a temple may cut a faith's pull, never turn it into a push.
+ */
+export function pressureTotals(
+  state: GameState,
+  city: City,
+  sites?: readonly HolySite[],
+): number[] {
+  const totals = new Array<number>(state.religions.length).fill(0);
+  for (const line of explainPressure(state, city, sites)) {
+    totals[line.religion] = (totals[line.religion] ?? 0) + line.amount;
+  }
+  for (let i = 0; i < totals.length; i++) totals[i] = Math.max(0, totals[i]!);
+  return totals;
+}
+
+/**
+ * The tide, run for one turn — **the only writer of `City.followers`** and of
+ * `City.pressureBank`.
+ *
+ * The phase sits **before `collectYields`** and that is a rules decision like
+ * every other position in the pipeline: a town that changes its banner this turn
+ * pays its new majority's founder *this* turn, rather than a turn late. It is
+ * also why the phase is early enough that nothing has yet been banked out of the
+ * world it is about to change.
+ *
+ * Three things happen, in this order, per town in `state.cities` order:
+ *
+ *   1. **the bank fills** — every religion's pressure, folded off the board;
+ *   2. **citizens turn** — one per `pressurePerConvert` banked, taken from the
+ *      unconverted first and otherwise from the smallest congregation
+ *      (`convertCitizen`, whose docblock is the rule);
+ *   3. **the bank is capped** when nobody is left to turn, so a town that has
+ *      wholly converted does not sit banking a reserve that would flip it back
+ *      the instant a rival's first citizen arrived. The remainder below one
+ *      convert always carries, exactly as a food basket's does.
+ *
+ * And a **broom** at the end: proclamations whose absolute expiry has passed are
+ * swept. An expired pulse presses nothing whether it is swept or not
+ * (`explainPressure` compares), which is precisely the property that makes the
+ * sweep safe to place anywhere, skip, or run twice — `pruneTimedEffects`' rule,
+ * for the second time.
+ */
+export function spreadReligion(state: GameState): void {
+  if (state.religions.length === 0) return;
+  const order = state.religions.map((religion) => religion.id);
+  const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
+  const sites = holySites(state);
+  // **Every town is measured against the same board, and then every town is
+  // moved.** Two passes rather than one, and it is the pipeline's own rule read
+  // at the scale of a phase (`turn.ts`: "a rule is applied to the empire, not to
+  // a city, so no city can ever be a turn ahead of its neighbour because it was
+  // founded first"). A single pass would have let a town that converted early in
+  // `state.cities` order press on its neighbour *in the same turn* — deterministic,
+  // but a tide that runs faster along founding order than against it.
+  const measured = state.cities.map((city) => pressureTotals(state, city, sites));
+  for (const [index, city] of state.cities.entries()) {
+    const totals = measured[index]!;
+    const bank = city.pressureBank ?? {};
+    for (const religion of state.religions) {
+      const gained = totals[religion.id] ?? 0;
+      const banked = (bank[religion.id] ?? 0) + gained;
+      let left = banked;
+      while (left >= perConvert) {
+        if (!convertCitizen(city, religion.id, order)) {
+          // Nobody left to turn. The bank is capped just below the next convert
+          // rather than allowed to grow — a stored surplus would be a town that
+          // re-converts instantly the moment a rival takes one citizen back.
+          left = perConvert - 1;
+          break;
+        }
+        left -= perConvert;
+      }
+      if (left > 0) bank[religion.id] = left;
+      else delete bank[religion.id];
+    }
+    // Deleted when empty, so a town nothing presses on serialises exactly like
+    // one from before any of this existed.
+    if (Object.keys(bank).length > 0) city.pressureBank = bank;
+    else delete city.pressureBank;
+  }
+  for (const religion of state.religions) {
+    const live = religion.pulses.filter((pulse) => state.turn < pulse.expiresTurn);
+    if (live.length !== religion.pulses.length) religion.pulses = live;
+  }
+}
+
+/**
+ * The religion most of this empire's **towns** follow, or `null`.
+ *
+ * Derived, never stored, and counted in towns rather than in citizens: "what
+ * does this realm believe" is a question about places, and a future Doctrine or
+ * bead race asks it of the map. Ties are broken by founding order, which is the
+ * order `state.religions` carries.
+ */
+export function majorityReligion(state: GameState, playerId: number): ReligionId | null {
+  if (state.religions.length === 0) return null;
+  const counts = new Array<number>(state.religions.length).fill(0);
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    const followed = cityReligion(city);
+    if (followed === null) continue;
+    counts[followed] = (counts[followed] ?? 0) + 1;
+  }
+  let best: ReligionId | null = null;
+  let most = 0;
+  for (const religion of state.religions) {
+    const count = counts[religion.id] ?? 0;
+    if (count > most) {
+      best = religion.id;
+      most = count;
+    }
+  }
+  return best;
 }

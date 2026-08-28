@@ -150,9 +150,12 @@ describe('the improvement prop registry', () => {
    * print in the body's colour and a gilt farm would be a farm claiming to be a
    * monument. Both directions, because neither is a compile error.
    */
-  it('gilts exactly the five great works, shape and ink together', () => {
+  it('gilts exactly the six works, shape and ink together', () => {
+    // Six since religion v2: the five great people's, and the **holy site** a
+    // prophet plants. `ImprovementDef.greatPerson` is still the whole test —
+    // it names the hand, and a prophet is one (`WorkFamily`).
     const works = IMPROVEMENT_IDS.filter((id) => improvementDef(id).greatPerson !== undefined);
-    expect(works.length).toBe(5);
+    expect(works.length).toBe(6);
     for (const id of IMPROVEMENT_IDS) {
       const wanted = works.includes(id);
       expect(IMPROVEMENT_GILT[id] !== undefined, `${id} gilt shape`).toBe(wanted);

@@ -228,6 +228,18 @@ export type CityScope =
    * river towns* — and a card that wanted "freshwater and a shrine" would
    * otherwise have to be two cards that each pay half.
    */
+  /**
+   * The town **follows my religion** — more than half its citizens do
+   * (`cityReligion`), and the religion is the one this card's holder founded.
+   *
+   * The follower pool's scope, and the only one in the union that is about the
+   * *reader* as well as about the town: "my" is the empire the effect is being
+   * evaluated for, which is why `cityScopeAdmits` takes an optional `viewerId`.
+   * Absent viewer answers **false** rather than true — a scope nobody can be the
+   * subject of admits nothing, which is the safe reading for a shape whose whole
+   * point is that it reaches other people's cities.
+   */
+  | { test: 'follows' }
   | { test: 'all'; of: CityScope[] };
 
 /**
@@ -628,7 +640,37 @@ export type CountKind =
    * `trade.ts`, which reads *this* module for its slot fold and may not be read
    * back. One comparison, exactly as expiry is one comparison everywhere else.
    */
-  | 'tradeRoutes';
+  | 'tradeRoutes'
+  /**
+   * Cities **in the world** that follow the religion this empire founded —
+   * yours and everybody's.
+   *
+   * The tide, counted. The five counts below are one family and they are all
+   * asked of `foundedReligion(state, playerId)`: an empire that has founded
+   * nothing counts nothing, which is the honest answer rather than a guard. They
+   * sweep `state.cities` (founding order) and read `cityReligion`, which is
+   * derived from the citizens — so nothing here can disagree with the banner.
+   */
+  | 'followingCities'
+  /**
+   * Following cities **somebody else owns** — the founder's trickle's own count.
+   *
+   * `followingCities` minus your own towns, and a member of its own rather than
+   * a flag for `sightedCities`' reason exactly: the two read differently on a
+   * card ("per following city", "per foreign following city") and a member each
+   * is what lets the words be written without a second table.
+   */
+  | 'followingForeign'
+  /** Citizens summed across every following city, yours and foreign. */
+  | 'followingPop'
+  /** Empires with at least one following city. The reach of the faith. */
+  | 'followingEmpires'
+  /**
+   * Following cities that have raised one **named** building — the effect says
+   * which in `CardCountScaledEffect.building`, exactly as `buildingsOfKind`
+   * does. Pilgrims' Coin's temples.
+   */
+  | 'followingWithBuilding';
 
 /** What a `rateConversion` reads. A *rate* or a meter standing, never a bank. */
 export type RateSource =
@@ -769,7 +811,19 @@ export type AmplifierTarget =
    * that list** rather than as a multiplication afterwards: rule 5 for a
    * caravan. The route's owner is the origin's, which is the seat that sent it.
    */
-  | 'routeYields';
+  | 'routeYields'
+  /**
+   * What **founding a religion** pays its founder for the followers it has —
+   * Apostles' doubling.
+   *
+   * Read where the trickle is folded (`liveEffects`' seventh source), on the
+   * figures `religion.json`'s `founderTrickle` prints, before anything is
+   * banked. It reaches the trickle and nothing else: a follower belief's own
+   * lines are a different list and are not amplified by it, which is what keeps
+   * "the trickle is doubled" a sentence about one row rather than about the
+   * whole religion.
+   */
+  | 'founderTrickle';
 
 /**
  * A rule about how an offer *pays*, as against how big it is.
@@ -1462,6 +1516,60 @@ export interface CardRenownEffect {
   family?: Family;
 }
 
+/**
+ * A number of the **tide** that a card rewrites. See `rules.religion`.
+ *
+ * `MeterRuleId`'s pattern one system over, and it is here for that type's
+ * reason: the enhancer pool is entirely about how belief travels, and a
+ * vocabulary that could not name a range would have needed six one-off clauses
+ * in `explainPressure`. Every member is a key of `rules.religion` and every one
+ * of them is read in exactly one place — the pressure fold — so a designer who
+ * adds a source adds a member here and an arm there and nothing else.
+ *
+ * `routeBothWays` is the one that is a switch wearing a number's clothes: any
+ * delta above zero turns it on, which is how a boolean joins a shape whose whole
+ * point is that it is arithmetic.
+ */
+export type PressureRuleId =
+  | 'siteRange'
+  | 'siteStrength'
+  | 'cityRange'
+  | 'cityStrength'
+  | 'roadStrength'
+  | 'routeStrength'
+  | 'capitalStrength'
+  | 'templeOwnPercent'
+  | 'templeForeignPercent'
+  | 'bombRange'
+  | 'bombStrength'
+  | 'pulseTurns'
+  | 'routeBothWays';
+
+/** A signed shift on one number of the tide. See `PressureRuleId`. */
+export interface CardPressureRuleEffect {
+  kind: 'pressureRule';
+  rule: PressureRuleId;
+  delta: number;
+}
+
+/**
+ * A standing source of religious pressure — Hagia Sophia's.
+ *
+ * The wonders' half of the tide, and deliberately the *simplest* shape in the
+ * union: a number of faith projected `range` hexes from the city the stones
+ * stand in, for the religion that city's owner founded. Read only in
+ * `explainPressure`, which is the whole of the claim that a wonder that presses
+ * is a JSON row.
+ *
+ * It follows the stones like every other wonder clause: a captured Hagia Sophia
+ * presses for its captor's faith the turn the town changes hands.
+ */
+export interface CardPressureEffect {
+  kind: 'pressure';
+  amount: number;
+  range: number;
+}
+
 /** Everything a card may say. One union, one evaluator (`statecraft.ts`). */
 export type CardEffect =
   | CardCityYieldsEffect
@@ -1494,7 +1602,9 @@ export type CardEffect =
   | CardPurchaseRiderEffect
   | CardZocRuleEffect
   | CardProjectRiderEffect
-  | CardRenownEffect;
+  | CardRenownEffect
+  | CardPressureRuleEffect
+  | CardPressureEffect;
 
 /** Every `kind` in the union, for the register test that pins the evaluator. */
 export type CardEffectKind = CardEffect['kind'];

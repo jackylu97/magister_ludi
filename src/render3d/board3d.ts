@@ -631,6 +631,10 @@ export const IMPROVEMENT_GILT: Partial<
   manufactory: manufactoryDoor,
   customsHouse: customsVane,
   citadel: citadelBanner,
+  // The holy site borrows the landmark's cap with its stele — see
+  // `IMPROVEMENT_PROPS`. A work is gilt or it is not a work, and the two
+  // registries have to agree, so the stand-in is gilt too.
+  holySite: landmarkCap,
 };
 
 /** One prop per improvement, each built at the size its data row asks for. */

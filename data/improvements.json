@@ -331,6 +331,15 @@
       "clearsClutter": true,
       "defense": 8,
       "claimsNeighbours": true
+    },
+    "holySite": {
+      "name": "Holy Site",
+      "emoji": "\ud83d\udd6f\ufe0f",
+      "chargeCost": 1,
+      "greatPerson": "prophet",
+      "yields": { "food": 0, "production": 0, "gold": 0, "faith": 2, "culture": 1 },
+      "clearsClutter": true,
+      "claimsNeighbours": false
     }
   }
 }

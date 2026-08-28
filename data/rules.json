@@ -205,6 +205,22 @@
     ],
     "retoolCost": 0
   },
+  "religion": {
+    "pressurePerConvert": 10,
+    "siteRange": 6,
+    "siteStrength": 6,
+    "cityRange": 3,
+    "cityStrength": 2,
+    "roadStrength": 4,
+    "routeStrength": 3,
+    "capitalStrength": 4,
+    "templeOwnPercent": 200,
+    "templeForeignPercent": 50,
+    "bombRange": 10,
+    "bombStrength": 12,
+    "bombTurns": 10,
+    "maxReligions": { "numerator": 2, "denominator": 3 }
+  },
   "offers": {
     "order": 3,
     "doctrine": 3,

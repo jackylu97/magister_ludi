@@ -98,6 +98,7 @@ describe('newGame', () => {
       // the augurs it has bought — `settlersBuilt`'s twin in a different bank.
       pantheon: newPlayerPantheon(),
       augursPurchased: 0,
+      prophetsPurchased: 0,
       // The fifth Entry XVIII bucket and its history (`docs/great-people.md`):
       // an empty pool, a feed record with all five families at nothing, no
       // legacies, no Triumphs and nobody recruited. All present from turn one
@@ -387,6 +388,10 @@ describe('end-of-turn pipeline', () => {
       // inert (every reader compares turns), so this only stops dead paper
       // accumulating. See `pruneTimedEffects` (ledger Entry XXVIII).
       'pruneTimedEffects',
+      // The tide, before anything is banked: a town whose citizens turn this
+      // turn flies its new banner before `collectYields` pays anybody for it.
+      // See `spreadReligion` (`docs/religion-v2.md`).
+      'spreadReligion',
       'collectYields',
       'growCities',
       'advanceProduction',
@@ -500,6 +505,6 @@ describe('the research queue field', () => {
     // A v21 log is not merely older: a `moveUnit` given with no movement left
     // used to be refused and is now a standing order, and the resolution has
     // grown a phase no v21 state has been through.
-    expect(SCHEMA_VERSION).toBe(25);
+    expect(SCHEMA_VERSION).toBe(26);
   });
 });

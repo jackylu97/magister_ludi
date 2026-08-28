@@ -692,6 +692,13 @@
         "size": 0.86,
         "jitter": 0.0,
         "gilt": "gilt"
+      },
+      "holySite": {
+        "color": "bone",
+        "shade": -0.08,
+        "size": 0.72,
+        "jitter": 0.0,
+        "gilt": "gilt"
       }
     }
   },
