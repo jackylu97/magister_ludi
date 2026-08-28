@@ -1669,6 +1669,99 @@ export function citadelBanner(size: number): BufferGeometry {
   return weld(parts);
 }
 
+/**
+ * The holy site: a ring of standing stones about a low altar, with a gilt tip on
+ * the altar's own spike.
+ *
+ * The **sixth** work, and the first one no *great person* plants — a prophet
+ * does (`ImprovementDef.greatPerson` names the hand, and a prophet is one). It
+ * takes the great-work treatment whole, because it is the same claim in a
+ * different currency: a holy site is not a building a town decided to put up,
+ * it is a prophet, spent. So it is built to a work's size, it is symmetrical, it
+ * stands on a plinth, and it carries **one** gilt element and no more (see the
+ * great-works docblock above for why that ink is the scarcest on the board).
+ *
+ * It shipped as the landmark's stele wearing the landmark's cap, which was an
+ * honest placeholder and a bad drawing: the two works then had one silhouette
+ * between them, and a stele *is* the artist's — "it says nothing about what it
+ * is for" — which is precisely the wrong sentence for the one improvement on the
+ * board that says what an empire believes.
+ *
+ * What replaces it is the only shape in the diorama that is a **ring of
+ * verticals**. The academy is a rhythm along a line; this is a rhythm around a
+ * point, which at the ortho camera is unmistakable from any bearing and is not a
+ * shape the board spends anywhere else. Six monoliths, rough-hewn: each is a
+ * four-sided prism *tilted a little* off plumb on a hashed-looking but fixed
+ * lean, because a circle of perfectly plumb posts reads as a fence and a circle
+ * of leaning ones reads as something old. The lean is baked into the geometry
+ * rather than hashed at placement, so every holy site in the world is the same
+ * stones — a work is a monument, and a monument is not scatter.
+ *
+ * `citadelRing` is the shape to hold this against: that one is a closed *wall*
+ * with bastions, low and continuous. This is six separate uprights with daylight
+ * between them, which is the whole difference between a fort and a sanctuary.
+ */
+export function standingStones(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+
+  // The precinct: a low disc the whole thing stands on, so the stones meet
+  // something rather than the grass — the plinth every work has.
+  const pad = new CylinderGeometry(size * 0.5, size * 0.53, size * 0.05, 12, 1);
+  pad.translate(0, size * 0.025, 0);
+  parts.push(pad);
+
+  const ring = size * 0.38;
+  const stoneH = size * 0.54;
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    // Taller at the base than at the top and squarer at the bottom: a monolith
+    // is a slab that was dragged upright, not a column that was turned.
+    const stone = new CylinderGeometry(size * 0.06, size * 0.085, stoneH, 4, 1);
+    stone.rotateY(angle);
+    // The lean, alternating in and out around the ring. Alternating rather than
+    // random because it is *geometry* and not jitter: the ring keeps its
+    // symmetry, and the silhouette still never shows six parallel posts.
+    stone.rotateZ((i % 2 === 0 ? 1 : -1) * 0.06);
+    stone.translate(Math.cos(angle) * ring, size * 0.05 + stoneH / 2, Math.sin(angle) * ring);
+    parts.push(stone);
+  }
+
+  // The altar at the centre: a squat drum, wide enough to read as a *thing*
+  // inside the ring rather than as a seventh stone that fell over.
+  const altar = new CylinderGeometry(size * 0.15, size * 0.17, size * 0.11, 8, 1);
+  altar.translate(0, size * 0.05 + size * 0.055, 0);
+  parts.push(altar);
+  return weld(parts);
+}
+
+/**
+ * The holy site's gilt: a slender spike standing on the altar at the ring's
+ * centre.
+ *
+ * At the apex, like four of the other five works' gold, and for their reason —
+ * a bright mark at the top of the silhouette is the one that survives being
+ * forty pixels tall. It is deliberately *taller than the stones around it*: the
+ * ring's job is to be recognisable and the tip's job is to say that this ring is
+ * a work, and a gilt element buried inside a circle of bone posts would say
+ * nothing at all from the two bearings where a stone stands in front of it.
+ */
+export function standingStoneTip(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const base = size * 0.05 + size * 0.11;
+  const shaftH = size * 0.5;
+  const spike = new CylinderGeometry(size * 0.018, size * 0.032, shaftH, 4, 1);
+  spike.rotateY(Math.PI / 4);
+  spike.translate(0, base + shaftH / 2, 0);
+  parts.push(spike);
+  // The flame it carries: a four-sided point, the same cut the landmark's
+  // pyramidion takes, so the two golds are one hand.
+  const flame = new ConeGeometry(size * 0.055, size * 0.16, 4, 1);
+  flame.rotateY(Math.PI / 4);
+  flame.translate(0, base + shaftH + size * 0.08, 0);
+  parts.push(flame);
+  return weld(parts);
+}
+
 // --- unit miniatures -------------------------------------------------------
 
 /**
@@ -2226,6 +2319,60 @@ function addTraderPack(mini: Mini, spec: MiniSpec): Mini {
   );
   return mini;
 }
+
+/**
+ * Prophet: the augur's figure, with a gilt rim and a taller staff.
+ *
+ * The augur stands on the plain `worker` sculpt and should — a figure on foot
+ * with a bundle — and the prophet must not, for `traderMini`'s stated reason: at
+ * forty pixels the difference between two pieces has to be a difference in the
+ * *silhouette*, and "the augur, but more important" is not one. It is also the
+ * pair that most needs telling apart, because the two are bought out of the same
+ * bank at very different prices and do completely different things with their
+ * charges.
+ *
+ * Two marks, and they are the two the ratified sculpt names:
+ *
+ *   the staff  taller than any other civilian carries and standing *clear of the
+ *              head*, which is the whole of the silhouette change. The worker's
+ *              mallet stops at shoulder height and the scout's stick at the
+ *              crown; this one breaks the outline above the figure, so a prophet
+ *              is the tallest thing on a hex full of civilians.
+ *   the rim    a gilt ring at the staff's head. Gold is the board's scarcest
+ *              ink — "built once, by somebody irreplaceable" — and the roster
+ *              already spends it on the laden caravan's bale for exactly this
+ *              purpose: one bright note on a shape that is otherwise its
+ *              neighbour's. A prophet is called once per empire's religion and
+ *              founds it; if anything on the unit roster has earned the note,
+ *              it is this.
+ *
+ * The mallet comes off, like the caravan's: a prophet carries no tool. Nothing
+ * new was cut for it — base, token, a shaft, a disc and a small bar — which is
+ * the bargain every sculpt in this file makes.
+ */
+export const prophetMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h * 0.98, r, t));
+
+  // Held at the side, upright and plumb: a raked staff reads as a spear, and
+  // this figure stands beside the melee class on a road.
+  const staffH = h * 1.24;
+  const x = r * 1.05;
+  const staff = shaft(staffH, 0.019);
+  staff.translate(x, t, 0.03);
+  mini.add('wood', staff);
+
+  // The rim: a ring standing in the staff's own plane, so it is a circle from
+  // the camera rather than an edge-on line. `disc` lies flat by default, so it
+  // is turned upright the way a shield is.
+  const rim = disc(0.052, 0.016, 9);
+  rim.rotateX(Math.PI / 2);
+  rim.translate(x, t + staffH, 0.03);
+  mini.add('gilt', rim);
+  return mini.build();
+};
 
 /**
  * The boat's proportions, as fractions of the kit it is cut from.

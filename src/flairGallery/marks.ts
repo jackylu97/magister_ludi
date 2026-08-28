@@ -39,11 +39,19 @@ import {
   markSvg,
   resourceMarkDataUri,
 } from '../art/resourceMarks';
+import {
+  pantheonMark,
+  pantheonMarkDataUri,
+  pantheonMarkSvg,
+  religionDevice,
+} from '../art/pantheonMarks';
 import { siteMark } from '../art/siteMarks';
 import { YIELD_MARKS, yieldMarkDataUri } from '../art/yieldMarks';
 import { BADGE_ICON_FILES, BADGE_LINES } from '../render3d/badges3d';
+import { deviceLayout } from '../render3d/cities3d';
 import { VIEW3D } from '../render3d/lookData';
 import { DISCOVERY_KINDS } from '../sim/discoveryData';
+import { BELIEF_AXES, type BeliefAxis, type BeliefId } from '../sim/religionData';
 import { CORNER_STAR, PRINTER_DEVICE, cornerStarDataUri, printerDeviceDataUri } from '../ui/deviceMarks';
 import { CARD_LINE_NAME } from '../ui/cardLine';
 import { block, element, markCell, markGrid, uriOf } from './sheet';
@@ -93,6 +101,7 @@ export function drawMarkFamilies(into: HTMLElement): void {
   lineFamily(into);
   resourceFamily(into);
   siteFamily(into);
+  pantheonFamily(into);
   deviceFamily(into);
   badgeFamily(into);
   heraldryFamily(into);
@@ -203,6 +212,159 @@ function siteFamily(into: HTMLElement): void {
     const mark = siteMark(kind);
     markCell(grid, kind, uriOf(markSvg(mark.paths, MARK_BOX, MARK_STROKE)), mark.note);
   }
+}
+
+/**
+ * The pantheon's ten threads, and the devices they compose into.
+ *
+ * Two blocks, because the set answers two questions and only the second one is
+ * the point. The signs themselves have to be ten things a player can tell apart
+ * at eighteen pixels on a banner; the **devices** have to be things a player can
+ * tell apart from each other, which is a question about two or three signs
+ * overlapping and cannot be answered by a grid of singles.
+ *
+ * The sample religions are made up here and are the honest kind of made up: they
+ * are `religionDevice` fed real `BeliefId`s, so the arrangement, the cap at three
+ * and the first-appearance-wins ordering are all the shipping function's — the
+ * only invention is which gods a fictional empire happened to consecrate.
+ */
+function pantheonFamily(into: HTMLElement): void {
+  const grid = markGrid(
+    block(
+      into,
+      'Pantheon axes — src/art/pantheonMarks.ts',
+      'One sign per belief thread, printed on the fly of a city banner when the town follows a faith made of it. The wheel groups gods of one thread into adjacent houses; this is the same thread said as a mark, for the surface that cannot print an emoji.',
+    ),
+  );
+  for (const axis of BELIEF_AXES) {
+    const mark = pantheonMark(axis);
+    markCell(grid, axis, pantheonMarkDataUri(axis), mark.note);
+  }
+
+  const devices = block(
+    into,
+    'Religion devices — the same signs, composed',
+    'A religion is named after its founder’s axes and drawn from them by the same reading: first appearance wins, at most three (`religionDevice`). One sign sits dead centre, two side by side, three in a triangle point-up — `deviceLayout`, which is the arithmetic the banner uses. On the board these print in ink on parchment over a canton in the founder’s tincture.',
+  );
+  const samples: [string, BeliefId[]][] = [
+    ['one thread', ['keeperOfTheHearth']],
+    ['two', ['keeperOfTheHearth', 'theStandingStones']],
+    ['three', ['keeperOfTheHearth', 'theStandingStones', 'starReaders']],
+    // Four gods on three threads: the second hearth god adds nothing to the
+    // device, which is the first-appearance rule doing its job.
+    ['four gods, three threads', [
+      'keeperOfTheHearth',
+      'goddessOfTheHarvest',
+      'theStandingStones',
+      'starReaders',
+    ]],
+  ];
+  const row = markGrid(devices);
+  for (const [label, pantheon] of samples) {
+    const axes = religionDevice(pantheon);
+    markCell(
+      row,
+      label,
+      uriOf(deviceSvg(axes)),
+      axes.join(' · '),
+    );
+  }
+
+  faithLensSwatch(into);
+}
+
+/**
+ * The faith lens's swatch, which is deliberately a swatch of **nothing of its
+ * own**.
+ *
+ * Every other lens on this board picks its inks and could be shown as a row of
+ * chips. This one paints in whoever *founded* the faith that is pressing, so
+ * what there is to judge is the **ramp**: how a hex reads at one point of
+ * pressure against a hex at saturation, in a tincture that is already carrying
+ * a border and a flag. So the row is one seat's ink at both ends of the ramp
+ * plus the two ring strengths, over the board's own ground colour — which is
+ * the only ground the wash is ever seen on.
+ *
+ * Read out of `data/view3d.json` rather than written here, this page's standing
+ * rule: retune `lens.faithOpacity` and this moves.
+ */
+function faithLensSwatch(into: HTMLElement): void {
+  const LENS = VIEW3D.lens;
+  const root = block(
+    into,
+    'The faith lens — src/render3d/lens3d.ts',
+    'Every hex a town owns, washed in the ink of whoever founded the faith pressing hardest on it, at an alpha that is how hard. Unclaimed ground gets nothing: the tide is a fact about towns and this lens does not invent a second reading of it. Over the wash, a holy site is ringed tight and bright and a live proclamation wide and softer — the anchor and the bomb.',
+  );
+  const strip = element('div', 'chart-row');
+  const ground = hex(VIEW3D.palette.sage ?? 0x8fa06a);
+  const grades: [string, number, string][] = [
+    ['1 pressure', LENS.faithMinOpacity, 'the floor — a town one point from turning must still be visible'],
+    [
+      `${String(Math.round(LENS.faithFullPressure / 2))} pressure`,
+      (LENS.faithMinOpacity + LENS.faithOpacity) / 2,
+      'halfway up the ramp',
+    ],
+    [
+      `${String(Math.round(LENS.faithFullPressure))}+ pressure`,
+      LENS.faithOpacity,
+      'saturation — `faithFullPressure`, and no further',
+    ],
+    ['holy site ring', LENS.faithSiteRingOpacity, 'the anchor, at `faithSiteRingScale` of a hex'],
+    ['proclamation ring', LENS.faithPulseRingOpacity, 'the bomb, wide and decaying'],
+  ];
+  for (const [label, opacity, note] of grades) {
+    const cell = element('div', 'mark-cell');
+    const chip = element('div', 'palette-chip');
+    const ink = element('div', 'palette-ink');
+    // The wash as it actually composites: the seat's ink at that alpha, over the
+    // board's ground. A chip of the ink alone would be a picture of a colour the
+    // player never sees.
+    ink.style.background = seatTinctures()[0]!.color;
+    ink.style.opacity = String(opacity);
+    chip.style.background = ground;
+    chip.append(ink);
+    cell.append(chip, element('div', 'mark-id', label), element('div', 'mark-note', note));
+    strip.append(cell);
+  }
+  root.append(strip);
+}
+
+/**
+ * A device as one SVG, laid out by the banner's own arithmetic.
+ *
+ * `deviceLayout` returns seats in units of `deviceMarkSpread`, which is a world
+ * measurement, so the page converts once — the ratio of a sign's size to the
+ * spread is the only thing that carries across, and it is read out of
+ * `view3d.json` rather than chosen here. Draw the same three arrangements the
+ * flag draws, at the same proportions, or the page is a picture of a different
+ * device.
+ */
+function deviceSvg(axes: readonly BeliefAxis[]): string {
+  const CITY = VIEW3D.city;
+  const spread = (MARK_BOX * CITY.deviceMarkSpread) / CITY.deviceMarkSize;
+  const seats = deviceLayout(axes.length);
+  const marks = axes
+    .map((axis, index) => {
+      const seat = seats[index]!;
+      // y is up the banner and down the document, which is the one flip. The
+      // inner document's own `<svg>` wrapper is stripped and its `<g>` kept —
+      // that group is where the weight and the cap style live, so a device is
+      // drawn at exactly the hand the singles above it are.
+      const body = pantheonMarkSvg(axis).replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+      return `<g transform="translate(${round(seat.x * spread)} ${round(-seat.y * spread)})">${body}</g>`;
+    })
+    .join('');
+  const box = MARK_BOX + spread * 2;
+  const pad = spread;
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${round(-pad)} ${round(-pad)} ${round(box)} ${round(box)}">` +
+    `${marks}</svg>`
+  );
+}
+
+/** Two decimals, for readable path data. `resourceMarks`' own `n`, one page over. */
+function round(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 function deviceFamily(into: HTMLElement): void {

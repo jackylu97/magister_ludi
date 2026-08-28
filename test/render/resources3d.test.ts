@@ -11,6 +11,7 @@ import {
 } from 'three';
 
 import {
+  AXIS_CELLS,
   CHARGE_CELLS,
   MARGINALIA_CELLS,
   NUMERAL_CELLS,
@@ -37,6 +38,7 @@ import {
   resourcePropFactory,
 } from '../../src/render3d/board3d';
 import { HERALDRY_IDS } from '../../src/art/heraldryMarks';
+import { BELIEF_AXES } from '../../src/sim/religionData';
 import { cairnStack } from '../../src/render3d/geometry';
 import { cellCenter, tileTopY } from '../../src/render3d/layout';
 import { RENDER_ORDER } from '../../src/render3d/instances';
@@ -332,6 +334,7 @@ describe('the tile-icon atlas', () => {
     const margins = TILE_ICON_CELLS.filter((cell) => cell.set === 'marginalia').map((c) => c.id);
     const sites = TILE_ICON_CELLS.filter((cell) => cell.set === 'site').map((c) => c.id);
     const charges = TILE_ICON_CELLS.filter((cell) => cell.set === 'charge').map((c) => c.id);
+    const axes = TILE_ICON_CELLS.filter((cell) => cell.set === 'axis').map((c) => c.id);
     expect(resources).toEqual([...RESOURCE_IDS]);
     expect(yields).toEqual([...YIELD_KEYS]);
     expect(numerals).toEqual([...NUMERAL_CELLS]);
@@ -347,13 +350,21 @@ describe('the tile-icon atlas', () => {
     // is the discovery kinds' failure exactly.
     expect(charges).toEqual([...CHARGE_CELLS]);
     expect(CHARGE_CELLS).toEqual([...HERALDRY_IDS]);
+    // And the seventh, appended by religion v2: one cell per belief axis, which
+    // is what a **religion's** device on a city banner is assembled from at draw
+    // time. There is nothing fixed to bake a cell per *faith* of — a religion is
+    // founded mid-game out of whatever gods its founder took — and the ten
+    // threads it can be made of are exactly what is fixed.
+    expect(axes).toEqual([...AXIS_CELLS]);
+    expect(AXIS_CELLS).toEqual([...BELIEF_AXES]);
     expect(TILE_ICON_CELLS).toHaveLength(
       RESOURCE_IDS.length +
         6 +
         10 +
         MARGINALIA_CELLS.length +
         SITE_MARK_CELLS.length +
-        CHARGE_CELLS.length,
+        CHARGE_CELLS.length +
+        AXIS_CELLS.length,
     );
   });
 
@@ -373,6 +384,7 @@ describe('the tile-icon atlas', () => {
       TILE_ICON_CELLS.length -
         SITE_MARK_CELLS.length -
         CHARGE_CELLS.length -
+        AXIS_CELLS.length -
         MARGINALIA_CELLS.length,
     );
     // The inscription joined the marginalia *behind* the serpent, so the serpent
@@ -381,6 +393,10 @@ describe('the tile-icon atlas', () => {
       tileIconIndex({ set: 'marginalia', id: 'serpent' }) + 1,
     );
     expect(tileIconIndex({ set: 'charge', id: CHARGE_CELLS[CHARGE_CELLS.length - 1]! })).toBe(
+      TILE_ICON_CELLS.length - AXIS_CELLS.length - 1,
+    );
+    // The axes are the newest set and are on the end, which is the whole rule.
+    expect(tileIconIndex({ set: 'axis', id: AXIS_CELLS[AXIS_CELLS.length - 1]! })).toBe(
       TILE_ICON_CELLS.length - 1,
     );
   });

@@ -9,6 +9,7 @@ import {
   capitalIds,
   cityLook,
   cityTier,
+  playerColor,
   signCities,
 } from '../../src/render3d/cities3d';
 import { FogView } from '../../src/render3d/fog3d';
@@ -16,7 +17,8 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type City, type GameState, newGame } from '../../src/sim/state';
+import { BELIEF_AXES } from '../../src/sim/religionData';
 import { HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 
 /**
@@ -76,6 +78,34 @@ function townState(): GameState {
   const levels = state.visibility[0]!;
   levels.fill(VISIBLE);
   return state;
+}
+
+/**
+ * Founds a religion for one seat, the way the register would.
+ *
+ * Written straight onto `state.religions` rather than through `foundReligion`,
+ * which draws a *name* from `state.rng` — this suite is about a fingerprint and
+ * a banner, and spending the generator here would make the test's own state a
+ * function of how many religions it happened to found first.
+ */
+function foundFor(state: GameState, founderId: number): number {
+  const id = state.religions.length;
+  state.religions.push({
+    id,
+    founderId,
+    name: `Faith ${String(id)}`,
+    pantheon: ['keeperOfTheHearth', 'theStandingStones'],
+    follower: [],
+    foundedTurn: 0,
+    pulses: [],
+  });
+  return id;
+}
+
+/** Turns a whole town onto one faith — a strict majority, which is the rule. */
+function convert(state: GameState, city: City, founderId: number): void {
+  const id = foundFor(state, founderId);
+  city.followers = { [id]: city.population };
 }
 
 /** Advances a seat into the era a tech belongs to. `highestAge` is the rule. */
@@ -275,6 +305,86 @@ describe('a town shows what stands in it', () => {
   });
 });
 
+/**
+ * The device on the fly, which is the *other* half — the fingerprint says when
+ * to redraw it and this says what is drawn.
+ *
+ * The claim worth defending is the ink. A device printed in the **owner's**
+ * colour would say nothing at all (the flag it is on is already that colour);
+ * printed in the **founder's** it says the one thing a player cannot get any
+ * other way at a distance — that this town of Indigo's follows Crimson's faith.
+ */
+describe('the religion device on a city banner', () => {
+  /** Every instanced mesh the layer drew, with its geometry and its ink. */
+  function meshes(built: Built): InstancedMesh[] {
+    return built.layer.group.children.filter(
+      (child): child is InstancedMesh => child instanceof InstancedMesh,
+    );
+  }
+
+  function inkOf(mesh: InstancedMesh): number {
+    const material = mesh.material as MeshBasicMaterial;
+    return material.color.getHex();
+  }
+
+  it('draws nothing at all on a town that follows no faith', () => {
+    const state = townState();
+    foundFor(state, 1);
+    const built = build(state);
+    for (const axis of BELIEF_AXES) {
+      expect(drew(built, built.geometry.axisMarkers[axis]), axis).toBe(0);
+    }
+    built.layer.dispose();
+  });
+
+  it('stamps the pantheon’s own signs, and only those', () => {
+    // The device is `religionDevice`'s list — the founder's axes, first
+    // appearance winning — so a faith of hearth and stone flies hearth and stone
+    // and nothing else. `foundFor` gives it exactly those two gods.
+    const state = townState();
+    convert(state, state.cities[0]!, 1);
+    const built = build(state);
+    const flown = new Set(
+      BELIEF_AXES.filter((axis) => drew(built, built.geometry.axisMarkers[axis]) > 0),
+    );
+    expect([...flown].sort()).toEqual(['hearth', 'stone']);
+    // Three copies, one per wrap, like every other instance on this board.
+    expect(drew(built, built.geometry.axisMarkers.hearth)).toBe(3);
+    built.layer.dispose();
+  });
+
+  it('prints a foreign faith’s canton in its founder’s ink, never the owner’s', () => {
+    const state = townState();
+    // Seat 0's town, seat 1's religion — the case the whole rule is for.
+    convert(state, state.cities[0]!, 1);
+    const built = build(state);
+    const owner = playerColor(state, 0);
+    const founder = playerColor(state, 1);
+    expect(owner).not.toBe(founder);
+    const cantons = meshes(built).filter(
+      (mesh) => mesh.geometry === built.geometry.bar,
+    );
+    const inks = cantons.map(inkOf);
+    // Two `bar` buckets: the cloth in the owner's tincture and the canton in the
+    // founder's. One bucket would mean the device had taken the flag's colour.
+    expect(inks).toContain(owner);
+    expect(inks).toContain(founder);
+    built.layer.dispose();
+  });
+
+  it('draws no device for a religion the register has lost', () => {
+    // Only reachable from a hand-edited save, and it must not throw from inside
+    // a rebuild: a banner is not worth a crash.
+    const state = townState();
+    state.cities[0]!.followers = { 3: state.cities[0]!.population };
+    const built = build(state);
+    for (const axis of BELIEF_AXES) {
+      expect(drew(built, built.geometry.axisMarkers[axis]), axis).toBe(0);
+    }
+    built.layer.dispose();
+  });
+});
+
 // --- the fingerprint --------------------------------------------------------
 
 describe('the city fingerprint carries every sculpt fact', () => {
@@ -295,6 +405,12 @@ describe('the city fingerprint carries every sculpt fact', () => {
     // really moves: the seat's first town changes hands.
     ['losing the capital', (s) => void (s.cities[0]!.ownerId = 1)],
     ['growing', (s) => void (s.cities[0]!.population += 1)],
+    // Religion v2's, and the seventh fact `CityLook` names. It is the one that
+    // changes no roof at all — it changes the *fly* of the banner — which is
+    // exactly why it had to join the look rather than be drawn beside it: a
+    // converted town would otherwise keep its old device until something
+    // unrelated happened to grow it.
+    ['converting', (s) => convert(s, s.cities[0]!, 0)],
   ];
 
   for (const [what, mutate] of facts) {
@@ -305,6 +421,41 @@ describe('the city fingerprint carries every sculpt fact', () => {
       expect(signCities(state)).not.toBe(before);
     });
   }
+
+  /**
+   * The banner's fly, fact by fact.
+   *
+   * `cityReligion` is a **strict majority** of the citizens, so the interesting
+   * cases are the ones either side of it: a town with a large minority flies
+   * nothing, and a town that tips flies the founder's device. Both are read
+   * through the same derivation the religion screen reads, which is the whole
+   * reason the look asks the sim rather than counting followers itself.
+   */
+  it('flies a device only for a faith a majority of the town follows', () => {
+    const state = townState();
+    const city = state.cities[0]!;
+    city.population = 4;
+    foundFor(state, 1);
+    // Two of four is not a majority, so the town believes nothing yet.
+    city.followers = { 0: 2 };
+    expect(cityLook(state, city, capitalIds(state)).religion).toBeNull();
+    const quiet = signCities(state);
+    // Three of four is.
+    city.followers = { 0: 3 };
+    expect(cityLook(state, city, capitalIds(state)).religion).toBe(0);
+    expect(signCities(state)).not.toBe(quiet);
+  });
+
+  it('separates “no religion” from “the first religion founded”', () => {
+    // The `+1` in the fold, and the reason for it: religion id 0 is a real
+    // answer, and a hash that folded `?? -1 + 1` the other way would give a
+    // converted town the same number as an unconverted one.
+    const state = townState();
+    foundFor(state, 1);
+    const none = signCities(state);
+    state.cities[0]!.followers = { 0: state.cities[0]!.population };
+    expect(signCities(state)).not.toBe(none);
+  });
 
   it('moves on nothing else', () => {
     const state = townState();
@@ -336,6 +487,7 @@ describe('the city fingerprint carries every sculpt fact', () => {
       temple: true,
       capital: true,
       wonders: 0,
+      religion: null,
     });
   });
 });

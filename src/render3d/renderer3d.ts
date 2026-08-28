@@ -91,7 +91,7 @@ import {
 } from './improvements3d';
 import { RoadLayer, signRoadCells } from './roads3d';
 import { type SuppressScope, RENDER_ORDER, SUPPRESS } from './instances';
-import { LensLayer, NO_LENS, sameLens } from './lens3d';
+import { LensLayer, NO_LENS, sameLens, signReligion } from './lens3d';
 import { VIEW3D, playerPieceColor } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { OverlayLayer } from './overlays';
@@ -262,6 +262,13 @@ export class Renderer3D implements MapView {
   private roadsSignature = 0;
   /** The same for the ruins, the villages and the camps. See `signSites`. */
   private sitesSignature = 0;
+  /**
+   * The same for the tide, and it drives **only** the faith lens. See
+   * `signReligion`: nothing in the diorama moves when a town converts except the
+   * device on its banner, which rides `signCities` because it is a fact about a
+   * town's look.
+   */
+  private religionSignature = 0;
   /** The works whose cleared ground has already been applied. See `clearGround`. */
   private clearedImprovementsSignature = 0;
   /** The towns whose cleared ground has already been applied. See `clearGround`. */
@@ -1917,6 +1924,9 @@ export class Renderer3D implements MapView {
       // A new city changes where the next one may go: the settler lens is
       // showing exactly that rule and would otherwise keep the old answer.
       if (founded && this.lensView.mode === 'settler') this.rebuildLens();
+      // And a new town is a new source in the tide *and* new ground for the
+      // wash to cover, which is the faith lens's own reason to follow this.
+      if (founded && this.lensView.mode === 'faith') this.rebuildLens();
       // A farm or a mine finished, or a wood felled, changed what this ground
       // *makes* — the same two fingerprints that just cleared its dressing —
       // so the yield glyphs follow them exactly as the settler lens follows a
@@ -1931,6 +1941,9 @@ export class Renderer3D implements MapView {
     // this layer too, exactly as it reaches the towns and the borders.
     if (this.state && (fogMoved || signImprovements(this.state) !== this.improvementsSignature)) {
       this.rebuildImprovements();
+      // A holy site raised or pillaged is the strongest term in the tide and the
+      // one thing this lens rings — see `addFaithWash`.
+      if (this.lensView.mode === 'faith') this.rebuildLens();
       // A pillage, a great work planted, or an improvement that does not clear
       // clutter (the block above only catches the ones that do) all change a
       // tile's yield the same way a farm does.
@@ -1954,10 +1967,25 @@ export class Renderer3D implements MapView {
       // blocks down, are the same idea against a different fingerprint.
       if (this.lensView.mode === 'explorer') this.rebuildLens();
     }
+    // The tide, which moves in a phase and shows up on no other fingerprint: a
+    // town converted, a citizen turned, a proclamation lit or run out. Only the
+    // faith lens is a picture of it, so nothing is rebuilt when it is down —
+    // but the signature is kept current either way, or raising the lens ten
+    // turns later would come up stale for exactly one frame.
+    if (this.state) {
+      const religions = signReligion(this.state);
+      if (religions !== this.religionSignature) {
+        this.religionSignature = religions;
+        if (this.lensView.mode === 'faith') this.rebuildLens();
+      }
+    }
     if (this.state && (fogMoved || signTerritory(this.state) !== this.territorySignature)) {
       this.rebuildTerritory();
       // Borders decide whose ground a settler may stand on, so the same applies.
       if (this.lensView.mode === 'settler') this.rebuildLens();
+      // The faith wash is painted on the ground a town *owns*, so a border that
+      // moved changed which hexes it covers.
+      if (this.lensView.mode === 'faith') this.rebuildLens();
       // Ownership changes the context a hex is evaluated in — CLAUDE.md's "an
       // owned tile is always evaluated with its owner's context" — so a border
       // moving (or a tile bought) can change the number printed on it even

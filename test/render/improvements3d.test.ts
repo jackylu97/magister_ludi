@@ -284,6 +284,66 @@ describe('the improvement prop registry', () => {
     layer.dispose();
   });
 
+  /**
+   * The holy site's own sculpt, which is the sixth work and the first that is
+   * not a great person's.
+   *
+   * It shipped as the landmark's stele wearing the landmark's cap — an honest
+   * placeholder the religion pass said so out loud — and the reason that had to
+   * go is the reason this test exists: two works with one silhouette are one
+   * work drawn twice, and a stele is *the artist's*, whose whole claim is that
+   * it says nothing about what it is for. What replaces it is the only ring of
+   * verticals on the board, and these are the three claims that make it one.
+   */
+  it('draws the holy site as its own shape, not the landmark\'s', () => {
+    expect(IMPROVEMENT_PROPS.holySite).not.toBe(IMPROVEMENT_PROPS.landmark);
+    expect(IMPROVEMENT_GILT.holySite).not.toBe(IMPROVEMENT_GILT.landmark);
+    expect(geometry.improvementProps.holySite).not.toBe(geometry.improvementProps.landmark);
+  });
+
+  it('rings the holy site’s stones about an empty middle', () => {
+    // Six uprights with daylight between them, against `citadelRing`'s closed
+    // wall: that is the whole difference between a sanctuary and a fort at this
+    // camera. Measured as a *hole* — the ink at the ring's radius, and none of
+    // it on the axis between the stones — because a silhouette is what survives
+    // forty pixels and a vertex count is not.
+    const stones = geometry.improvementProps.holySite;
+    const position = stones.getAttribute('position');
+    const size = VIEW3D.board.hexRadius * VIEW3D.improvements.props.holySite.size;
+    let onTheRing = 0;
+    let tall = 0;
+    for (let i = 0; i < position.count; i++) {
+      const radius = Math.hypot(position.getX(i), position.getZ(i));
+      // The plinth is a disc and the altar is a drum, so "on the ring" is the
+      // band the monoliths stand in and nothing else reaches.
+      if (radius > size * 0.28 && radius < size * 0.48) onTheRing++;
+      if (position.getY(i) > size * 0.4) tall++;
+    }
+    expect(onTheRing).toBeGreaterThan(0);
+    // And the uprights are upright: ink well above the plinth, which a ring of
+    // kerbstones would not have.
+    expect(tall).toBeGreaterThan(0);
+  });
+
+  it('stands the holy site’s gilt clear of its own stones', () => {
+    // Four of the other five works put their gold at the apex for the reason a
+    // bright mark at the top of a silhouette is the one that survives being
+    // forty pixels tall — and this one has to clear a *ring* rather than a roof,
+    // or two of the six bearings would have a monolith standing in front of it.
+    const body = geometry.improvementProps.holySite;
+    const gilt = geometry.improvementGilt.holySite!;
+    body.computeBoundingBox();
+    gilt.computeBoundingBox();
+    expect(gilt.boundingBox!.max.y).toBeGreaterThan(body.boundingBox!.max.y);
+    // On the altar at the centre, not out on the ring: a gilt element off to one
+    // side would read as a seventh stone somebody painted.
+    const position = gilt.getAttribute('position');
+    const size = VIEW3D.board.hexRadius * VIEW3D.improvements.props.holySite.size;
+    for (let i = 0; i < position.count; i++) {
+      expect(Math.hypot(position.getX(i), position.getZ(i))).toBeLessThan(size * 0.2);
+    }
+  });
+
   it('gives the pasture a dead-centre placement and the others a nudge', () => {
     // The composition rule, as one number: a fence rings the herd, so it may not
     // wander; a camp must not stand on the deer it was built for.

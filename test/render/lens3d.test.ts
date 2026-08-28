@@ -4,10 +4,12 @@ import { InstancedMesh, MeshBasicMaterial, Quaternion } from 'three';
 import { type TileIcons, tileIconFlags } from '../../src/render3d/badges3d';
 import { BoardGeometry, buildBoard } from '../../src/render3d/board3d';
 import { RENDER_ORDER } from '../../src/render3d/instances';
-import { LensLayer, NO_LENS, sameLens } from '../../src/render3d/lens3d';
+import { LensLayer, NO_LENS, sameLens, signReligion } from '../../src/render3d/lens3d';
+import { playerColor } from '../../src/render3d/cities3d';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
+import { foundCityAt } from '../../src/sim/cities';
 import { type GameState, newGame } from '../../src/sim/state';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
@@ -157,6 +159,296 @@ function countInstances(group: { children: unknown[] }): number {
   }
   return total;
 }
+
+/**
+ * The faith lens: the tide, painted on the ground the towns it pulls at own.
+ *
+ * Its whole risk surface is the one every lens has and this one has most
+ * sharply: it must not invent a rule. `pressureTotals` is the simulation's own
+ * fold and there is no per-hex pressure reading anywhere in this game — so the
+ * three things worth defending are that the wash follows *ownership*, that its
+ * ink is the **founder's** and not the tile owner's, and that Terra Incognita
+ * gets nothing.
+ */
+describe('the faith lens', () => {
+  const geometry = new BoardGeometry();
+  const mats = (): MaterialLibrary =>
+    new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
+
+  /** Two seats, flat ground, one town of seat 0 with a claim on some hexes. */
+  function faithState(): GameState {
+    const state = newGame({
+      seed: 4,
+      sizeName: 'duel',
+      players: [
+        { name: 'A', color: '#a00', isHuman: true },
+        { name: 'B', color: '#00a', isHuman: true },
+      ],
+    });
+    state.map = createMap({ width: 10, height: 8, terrain: 'grassland' });
+    resetVisibility(state);
+    state.units = [];
+    state.cities = [];
+    state.camps = [];
+    state.religions = [];
+    state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
+    for (const tile of state.map.tiles) delete tile.discovery;
+    computeFreshwater(state.map);
+    foundCityAt(state, 0, at(state, 4, 4));
+    return state;
+  }
+
+  /** A religion founded by one seat, written straight onto the register. */
+  function found(state: GameState, founderId: number): number {
+    const id = state.religions.length;
+    state.religions.push({
+      id,
+      founderId,
+      name: `Faith ${String(id)}`,
+      pantheon: ['keeperOfTheHearth'],
+      follower: [],
+      foundedTurn: 0,
+      pulses: [],
+    });
+    return id;
+  }
+
+  function build(state: GameState, levels: number[] | null): LensLayer {
+    const layer = new LensLayer();
+    layer.build(state, lens({ mode: 'faith' }), geometry, mats(), fakeIcons, new Quaternion(), levels);
+    return layer;
+  }
+
+  /** Every ink the wash was painted in, one entry per bucket. */
+  function inks(layer: LensLayer): number[] {
+    const out: number[] = [];
+    for (const child of layer.group.children) {
+      if (!(child instanceof InstancedMesh)) continue;
+      if (child.geometry !== geometry.territory) continue;
+      out.push((child.material as MeshBasicMaterial).color.getHex());
+    }
+    return out;
+  }
+
+  it('draws nothing in a world with no religion in it', () => {
+    // Which is most of a game, and the honest answer for all of it: there is no
+    // tide until somebody founds a faith.
+    const state = faithState();
+    const layer = build(state, grid(state, VISIBLE));
+    expect(countInstances(layer.group)).toBe(0);
+    layer.dispose();
+  });
+
+  it('washes a town’s ground in the ink of the faith pressing hardest on it', () => {
+    const state = faithState();
+    const id = found(state, 1);
+    // A town that already follows the faith is a source pressing on itself
+    // through its founder's capital rule — the simplest live tide there is, and
+    // it is the sim's own arithmetic either way: the lens asks `pressureTotals`.
+    state.cities[0]!.followers = { [id]: state.cities[0]!.population };
+    // A neighbouring town of the founder's, so there is something to press.
+    foundCityAt(state, 1, at(state, 5, 4));
+    state.cities[1]!.followers = { [id]: state.cities[1]!.population };
+
+    const layer = build(state, grid(state, VISIBLE));
+    // Seat 1 founded it, so seat 1's ink is what the ground is washed in —
+    // including the ground seat 0 owns, which is the whole point.
+    expect(inks(layer)).toContain(playerColor(state, 1));
+    expect(inks(layer)).not.toContain(playerColor(state, 0));
+    layer.dispose();
+  });
+
+  it('leaves unclaimed ground alone', () => {
+    // The tide is a fact about towns and this lens does not invent a second
+    // reading of it. Counted as "fewer washes than there are explored hexes".
+    const state = faithState();
+    const id = found(state, 0);
+    state.cities[0]!.followers = { [id]: state.cities[0]!.population };
+    const layer = build(state, grid(state, VISIBLE));
+    let washes = 0;
+    for (const child of layer.group.children) {
+      if (child instanceof InstancedMesh && child.geometry === geometry.territory) {
+        washes += child.count;
+      }
+    }
+    const owned = state.tileOwner.filter((owner) => owner !== null).length;
+    expect(owned).toBeGreaterThan(0);
+    expect(owned).toBeLessThan(state.map.tiles.length);
+    // Three wrap copies per owned hex, and not one instance more.
+    expect(washes).toBe(owned * 3);
+    layer.dispose();
+  });
+
+  it('draws nothing on Terra Incognita', () => {
+    // The rule every half of this layer keeps: there is no ground there yet.
+    const state = faithState();
+    const id = found(state, 0);
+    state.cities[0]!.followers = { [id]: state.cities[0]!.population };
+    const layer = build(state, grid(state, HIDDEN));
+    let washes = 0;
+    for (const child of layer.group.children) {
+      if (child instanceof InstancedMesh && child.geometry === geometry.territory) {
+        washes += child.count;
+      }
+    }
+    expect(washes).toBe(0);
+    layer.dispose();
+  });
+
+  it('rings a holy site on remembered ground and a proclamation only in sight', () => {
+    // The two fog rules `sites3d.ts` keeps, and they are not interchangeable: a
+    // holy site is *ground* and a proclamation is an *occupation*. A remembered
+    // proclamation would be a fire that went out twenty turns ago.
+    const state = faithState();
+    const id = found(state, 0);
+    state.cities[0]!.followers = { [id]: state.cities[0]!.population };
+    at(state, 4, 4).improvement = 'holySite';
+    state.religions[id]!.pulses.push({
+      col: 3,
+      row: 3,
+      strength: 8,
+      range: 2,
+      startTurn: 0,
+      expiresTurn: state.turn + 5,
+    });
+
+    const rings = (levels: number[]): number => {
+      const layer = build(state, levels);
+      let count = 0;
+      for (const child of layer.group.children) {
+        if (child instanceof InstancedMesh && child.geometry === geometry.ring) {
+          count += child.count;
+        }
+      }
+      layer.dispose();
+      return count;
+    };
+    // Both, in live sight.
+    expect(rings(grid(state, VISIBLE))).toBe(2 * 3);
+    // Only the site, on ground the seat merely remembers.
+    expect(rings(grid(state, EXPLORED))).toBe(1 * 3);
+  });
+
+  it('drops a proclamation’s ring the turn it expires', () => {
+    // The simulation's own reading of a live pulse (`explainPressure` compares
+    // rather than ticking), so a ring cannot outlast the thing it rings.
+    const state = faithState();
+    const id = found(state, 0);
+    state.cities[0]!.followers = { [id]: state.cities[0]!.population };
+    state.religions[id]!.pulses.push({
+      col: 3,
+      row: 3,
+      strength: 8,
+      range: 2,
+      startTurn: 0,
+      expiresTurn: state.turn + 1,
+    });
+    const count = (): number => {
+      const layer = build(state, grid(state, VISIBLE));
+      let rings = 0;
+      for (const child of layer.group.children) {
+        if (child instanceof InstancedMesh && child.geometry === geometry.ring) {
+          rings += child.count;
+        }
+      }
+      layer.dispose();
+      return rings;
+    };
+    expect(count()).toBe(3);
+    state.turn += 1;
+    expect(count()).toBe(0);
+  });
+});
+
+/**
+ * `signReligion` is what tells the faith lens to redraw.
+ *
+ * The tide moves in a phase nobody calls the renderer from, so the layer has to
+ * be *told*, and a hash cannot be forgotten the way a notification can. The
+ * failure it exists to prevent is silent: a lens showing last turn's converts.
+ */
+describe('signReligion', () => {
+  function state(): GameState {
+    const built = flatState();
+    built.religions = [
+      {
+        id: 0,
+        founderId: 0,
+        name: 'Faith',
+        pantheon: ['keeperOfTheHearth'],
+        follower: [],
+        foundedTurn: 0,
+        pulses: [],
+      },
+    ];
+    built.cities = [];
+    foundCityAt(built, 0, at(built, 4, 4));
+    return built;
+  }
+
+  it('moves when a citizen turns', () => {
+    const world = state();
+    const before = signReligion(world);
+    world.cities[0]!.followers = { 0: 1 };
+    expect(signReligion(world)).not.toBe(before);
+  });
+
+  it('moves when a town banks pressure without converting anybody', () => {
+    // The wash is a function of *pressure*, not of followers, so a town that
+    // banked and turned nobody has still changed what this lens should say.
+    const world = state();
+    const before = signReligion(world);
+    world.cities[0]!.pressureBank = { 0: 3 };
+    expect(signReligion(world)).not.toBe(before);
+  });
+
+  it('moves when a proclamation is lit, and again when it expires', () => {
+    const world = state();
+    const quiet = signReligion(world);
+    world.religions[0]!.pulses.push({
+      col: 2,
+      row: 2,
+      strength: 8,
+      range: 2,
+      startTurn: 0,
+      expiresTurn: 6,
+    });
+    const lit = signReligion(world);
+    expect(lit).not.toBe(quiet);
+    world.religions[0]!.pulses = [];
+    expect(signReligion(world)).toBe(quiet);
+  });
+
+  it('moves on a turn passing while something is pulsing, and not otherwise', () => {
+    // A pulse *decays* — the same proclamation presses less every turn — and
+    // nothing else in the fold moves when a turn passes. It costs a rebuild a
+    // turn only while a pulse is standing, which is the point of the guard.
+    const world = state();
+    const quiet = signReligion(world);
+    world.turn += 1;
+    expect(signReligion(world)).toBe(quiet);
+
+    world.religions[0]!.pulses.push({
+      col: 2,
+      row: 2,
+      strength: 8,
+      range: 2,
+      startTurn: 0,
+      expiresTurn: 20,
+    });
+    const lit = signReligion(world);
+    world.turn += 1;
+    expect(signReligion(world)).not.toBe(lit);
+  });
+
+  it('stays put when nothing about the tide moved', () => {
+    const world = state();
+    const before = signReligion(world);
+    world.cities[0]!.population += 2;
+    world.cities[0]!.foodBasket = 9;
+    expect(signReligion(world)).toBe(before);
+  });
+});
 
 /**
  * The explorer lens draws the board's *sites*, so its whole risk surface is
@@ -486,6 +778,9 @@ describe('the yields lens follows every trigger that can move a tile\'s number',
 
   const yieldsRebuild = /this\.lensView\.yields\)\s*this\.rebuildLens\(\)/;
 
+  /** `this.lensView.mode === 'faith'` guarding a rebuild, however it is spelt. */
+  const faithRebuild = /mode === 'faith'\)\s*this\.rebuildLens\(\)/;
+
   it('rebuilds on the clearGround fingerprints — a farm, a mine or a chop', () => {
     // The one block keyed off `signImprovedCells`/`signFeatureCells`/the
     // founding signature together; a farm, a mine and a chop all move one of
@@ -514,6 +809,37 @@ describe('the yields lens follows every trigger that can move a tile\'s number',
     expect(idx).toBeGreaterThan(-1);
     const after = source.slice(idx, idx + 400);
     expect(after).toMatch(/revealed\s*&&\s*revealed\.cells\s*>\s*0\s*&&\s*this\.lensView\.yields\)\s*this\.rebuildLens\(\)/);
+  });
+
+  /**
+   * The faith lens's own triggers, which are a different set from the yields'
+   * and had to be, because it is a picture of a different thing.
+   *
+   * `signReligion` covers the tide's own phase and nothing else does; the other
+   * three are the facts that change the tide or the ground it is painted on
+   * without touching a single follower — a border moved, a town founded, a holy
+   * site raised or pillaged. Each is checked in the block that already exists
+   * for it, which is what keeps this from becoming a second frame loop.
+   */
+  it('rebuilds the faith lens on signReligion — the tide’s own phase', () => {
+    const block = ifBlockAt('const religions = signReligion(this.state);');
+    expect(faithRebuild.test(block)).toBe(true);
+    // And the signature is kept current whether or not the lens is up, or
+    // raising it ten turns later would come up stale for exactly one frame.
+    expect(block).toContain('this.religionSignature = religions;');
+  });
+
+  it('rebuilds the faith lens on signTerritory — the wash follows the ground a town owns', () => {
+    expect(faithRebuild.test(ifBlockAt('signTerritory(this.state) !== this.territorySignature'))).toBe(true);
+  });
+
+  it('rebuilds the faith lens on signImprovements — a holy site raised or pillaged', () => {
+    expect(faithRebuild.test(ifBlockAt('signImprovements(this.state) !== this.improvementsSignature'))).toBe(true);
+  });
+
+  it('rebuilds the faith lens on a founding — a new source and new ground at once', () => {
+    const block = ifBlockAt('signImprovedCells(this.state) !== this.clearedImprovementsSignature');
+    expect(/founded && this\.lensView\.mode === 'faith'/.test(block)).toBe(true);
   });
 
   it('exposes noteStateChanged for the command seam a board fingerprint cannot see', () => {

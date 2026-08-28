@@ -173,12 +173,15 @@ describe('the badge atlas layout', () => {
       'chariot',
       'knight',
       'trebuchet',
+      // Religion v2's, appended in its turn and moving nothing before it — the
+      // rule doing its job for the third time. See `BADGE_CELLS`.
+      'prophet',
     ]);
-    expect(BADGE_CELLS).toHaveLength(20);
+    expect(BADGE_CELLS).toHaveLength(21);
     const layout = badgeAtlasSize();
     expect(layout.columns).toBe(4);
-    expect(layout.rows).toBe(5);
-    expect(layout.height).toBe(5 * BADGE.atlasCell);
+    expect(layout.rows).toBe(6);
+    expect(layout.height).toBe(6 * BADGE.atlasCell);
     // And the twelve before them did not move: the rectangle of cell 0 is still
     // the top-left one, which is what `badgeCellRect` is asked for everywhere.
     expect(badgeCellRect(BADGE_CELLS[0]!).u0).toBe(0);
@@ -202,7 +205,7 @@ describe('the badge atlas layout', () => {
    * answered by the *rules* ahead of it, and a test that read the table would
    * miss the two rows most likely to break.
    */
-  it('gives each of the twenty unit types a badge no other type wears', () => {
+  it('gives each of the twenty-one unit types a badge no other type wears', () => {
     const roster: UnitTypeId[] = [
       'warrior',
       'scout',
@@ -223,6 +226,11 @@ describe('the badge atlas layout', () => {
       'trebuchet',
       'trader',
       'augur',
+      // Religion v2's second called piece. It wore the augur's own candle until
+      // the prophet's verbs arrived; the ruling that it must not is on
+      // `badgeClassFor`, and it is the *rules* clause rather than the art
+      // table's — which is why this sweep asks `badgeClassFor` at all.
+      'prophet',
       'greatPerson',
     ];
     const badges = new Map<string, UnitTypeId>();
@@ -233,10 +241,29 @@ describe('the badge atlas layout', () => {
       expect(taken, `${type} and ${String(taken)} share the ${badge} badge`).toBeUndefined();
       badges.set(badge, type);
     }
-    expect(badges.size).toBe(20);
-    // Twenty types, twenty cells: the set is exactly used up, so there is no
-    // drawing in the atlas that no piece on the board can ever wear.
+    expect(badges.size).toBe(21);
+    // Twenty-one types, twenty-one cells: the set is exactly used up, so there
+    // is no drawing in the atlas that no piece on the board can ever wear.
     expect(badges.size).toBe(BADGE_CELLS.length);
+  });
+
+  /**
+   * The prophet's own clause, which is a *rules* clause and not the art table's.
+   *
+   * It reads `UnitDef.prophesies` — the row that says what the piece is — so it
+   * survives the day the simulation gives a prophet `consecrates` as well, which
+   * is exactly the fragility an entry in `badges.byUnitType` would have had. And
+   * it sits ahead of the candle for the reason the laurel sits ahead of both: a
+   * prophet that also consecrated would still be a prophet.
+   */
+  it('badges the prophet off its own row, ahead of the augur\'s candle', () => {
+    expect(unitDef('prophet').prophesies).toBe(true);
+    expect(badgeClassFor('prophet')).toBe('prophet');
+    expect(badgeClassFor('augur')).toBe('religious');
+    // The art table has nothing to say about either, which is the fence: what a
+    // piece *does* is the simulation's fact.
+    expect('prophet' in VIEW3D.badges.byUnitType).toBe(false);
+    expect('augur' in VIEW3D.badges.byUnitType).toBe(false);
   });
 
   /**

@@ -93,6 +93,7 @@ import {
 
 import { HERALDRY_IDS, type HeraldryId, heraldryMark } from '../art/heraldryMarks';
 import { DRACONES_LINES, marginaliaMark } from '../art/marginaliaMarks';
+import { pantheonMark } from '../art/pantheonMarks';
 import {
   MARK_BOX,
   MARK_STROKE,
@@ -110,6 +111,7 @@ import {
   yieldMark,
 } from '../art/yieldMarks';
 import { DISCOVERY_KINDS, type DiscoveryKind } from '../sim/discoveryData';
+import { BELIEF_AXES, type BeliefAxis } from '../sim/religionData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 import type { ModelClass } from '../sim/unitData';
 
@@ -213,6 +215,7 @@ export type BadgeClass =
   | ModelClass
   | 'greatPerson'
   | 'religious'
+  | 'prophet'
   | 'spear'
   | 'trader'
   | 'warrior'
@@ -269,6 +272,7 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
   'chariot',
   'knight',
   'trebuchet',
+  'prophet',
 ];
 
 /**
@@ -325,8 +329,8 @@ export const BADGE_LINES: readonly BadgeLine[] = [
   },
   {
     line: 'Civilians, and the called',
-    note: 'The five that are not a weapon at all, plus the laurel a great person wears over the settler’s body and the candle an augur wears over the worker’s — the two the rules decide, ahead of the art table.',
-    members: ['settler', 'worker', 'scout', 'trader', 'religious', 'greatPerson'],
+    note: 'The five that are not a weapon at all, plus the laurel a great person wears over the settler’s body, the candle an augur wears over the worker’s, and the same candle ringed for the prophet — the three the rules decide, ahead of the art table.',
+    members: ['settler', 'worker', 'scout', 'trader', 'religious', 'prophet', 'greatPerson'],
   },
 ];
 
@@ -388,6 +392,7 @@ export const BADGE_ICON_FILES: Record<BadgeClass, string> = {
   chariot: 'sprites/icons/chariot.svg',
   knight: 'sprites/icons/knight.svg',
   trebuchet: 'sprites/icons/trebuchet.svg',
+  prophet: 'sprites/icons/prophet.svg',
 };
 
 // --- layout arithmetic -----------------------------------------------------
@@ -705,6 +710,28 @@ export type MarginaliaKey = (typeof MARGINALIA_CELLS)[number];
 export const CHARGE_CELLS: readonly HeraldryId[] = HERALDRY_IDS;
 
 /**
+ * The pantheon's ten signs: one cell per `BeliefAxis`
+ * (`src/art/pantheonMarks.ts`).
+ *
+ * Aliased from the simulation's own axis list rather than written out again, for
+ * `SITE_MARK_CELLS`' reason: an axis a belief can carry and this atlas has no
+ * cell for is a banner device that throws from inside a canvas rasterisation.
+ *
+ * They are the **religions'** cells, and the indirection is the whole design. A
+ * religion is founded mid-game, out of whatever gods its founder happened to
+ * consecrate, so there is no fixed roster of faiths to bake a cell per member
+ * of — and the atlas is rasterised once, before any game state exists. What *is*
+ * fixed is the ten threads a pantheon is made of, so a religion's device is
+ * assembled at draw time from two or three of these (see `religionDevice`),
+ * which is also why it looks like what it is made of.
+ *
+ * Printed on **parchment**, like the charges and for their argument: a device is
+ * stamped beside a seat's own tincture on a city banner, and ink straight on a
+ * dark tincture is a smudge.
+ */
+export const AXIS_CELLS: readonly BeliefAxis[] = BELIEF_AXES;
+
+/**
  * The discovery sites, in the order `DISCOVERY_KINDS` declares them.
  *
  * Aliased from the simulation's own list rather than written out again, because
@@ -721,7 +748,8 @@ export type TileIconCell =
   | { set: 'numeral'; id: number }
   | { set: 'marginalia'; id: MarginaliaKey }
   | { set: 'site'; id: DiscoveryKind }
-  | { set: 'charge'; id: HeraldryId };
+  | { set: 'charge'; id: HeraldryId }
+  | { set: 'axis'; id: BeliefAxis };
 
 /**
  * Every cell of the tile atlas, in layout order: the resources, then the six
@@ -741,6 +769,7 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
   ...MARGINALIA_CELLS.map((id) => ({ set: 'marginalia', id }) as TileIconCell),
   ...SITE_MARK_CELLS.map((id) => ({ set: 'site', id }) as TileIconCell),
   ...CHARGE_CELLS.map((id) => ({ set: 'charge', id }) as TileIconCell),
+  ...AXIS_CELLS.map((id) => ({ set: 'axis', id }) as TileIconCell),
 ];
 
 /**
@@ -1505,6 +1534,39 @@ function drawChargeCell(
 }
 
 /**
+ * Paints one belief axis's sign: a parchment disc with the thread's mark on it.
+ *
+ * `drawChargeCell` exactly, one set over and on the same grid at the same
+ * weight, which is what makes a religion's device and a seat's charge read as
+ * one hand when they are printed on the same banner an inch apart.
+ */
+function drawAxisCell(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+  axis: BeliefAxis,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+
+  context.save();
+  context.fillStyle = cssHex(ICONS.paperColor);
+  context.beginPath();
+  context.arc(center.x, center.y, paperRadiusFraction() * cell, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
+  paintMarkPaths(
+    context,
+    pantheonMark(axis),
+    center,
+    Math.max(1, ICONS.chargeScale * cell),
+    ICONS.inkColor,
+  );
+}
+
+/**
  * Paints one numeral: a parchment disc with a digit on it.
  *
  * Text rather than artwork, and drawn in the platform's own mono-ish stack. See
@@ -1703,8 +1765,14 @@ export class TileIcons {
         drawChargeCell(context, index, layout, cell.id);
         return;
       }
-      // Every `TileIconCell` variant is one of the six branches above; this is
-      // the exhaustiveness check, not a reachable draw path — a seventh set
+      // A pantheon thread's sign, on the same field for the same reason; see
+      // `AXIS_CELLS`.
+      if (cell.set === 'axis') {
+        drawAxisCell(context, index, layout, cell.id);
+        return;
+      }
+      // Every `TileIconCell` variant is one of the seven branches above; this is
+      // the exhaustiveness check, not a reachable draw path — an eighth set
       // added to the union without a painter here fails typecheck instead of
       // drawing a blank cell.
       const exhaustive: never = cell;

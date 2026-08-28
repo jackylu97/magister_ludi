@@ -38,6 +38,17 @@
  *                   crimson is refusing. The prospective city's own work radius
  *                   is *not* here — it follows the pointer, so it belongs to the
  *                   overlay layer (see `OverlayState.siteRadius`).
+ *   · the **faith lens** — whose argument is winning, and where? Every hex a
+ *                   town owns is washed in the ink of whoever **founded** the
+ *                   religion pressing hardest on that town, at an alpha that is
+ *                   how hard. It is the one lens with no palette of its own, and
+ *                   that is the point: the question is *whose*, and the board
+ *                   already answers "whose" in twelve tinctures. Over the wash,
+ *                   the two things that actually make a tide are ringed — a
+ *                   **holy site**, which is the strongest thing on the board and
+ *                   the only one a rival can take away, and a live
+ *                   **proclamation**, which is loud and short. See
+ *                   `addFaithWash`.
  *   · the **explorer lens** — where is there still something to find? Every
  *                   unclaimed ruin and village the seat has charted is ringed in
  *                   gold, every camp it has charted in crimson. The
@@ -107,7 +118,8 @@ import {
   tileYieldOf,
   yieldContextFor,
 } from '../sim/cities';
-import { type GameMap, type Tile, getTileAt } from '../sim/map';
+import { type GameMap, type Tile, getTileAt, tileIndex } from '../sim/map';
+import { holySites, pressureTotals } from '../sim/religion';
 import { resourceDef } from '../sim/resourceData';
 import type { GameState } from '../sim/state';
 import { visibleResourceAt } from '../sim/tech';
@@ -115,8 +127,9 @@ import { hasFreshWater, isCoastal } from '../sim/water';
 import type { CellRef, LensView } from '../ui/mapView';
 
 import { type TileIcons, YIELD_KEYS } from './badges3d';
+import { playerColor } from './cities3d';
 import type { BoardGeometry } from './board3d';
-import { type FogLevels, knowsCell } from './fog3d';
+import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, mixColor } from './lookData';
@@ -222,6 +235,15 @@ export class LensLayer {
         resolveTiles(map, lens.cells, levels),
         collector,
         geometry,
+      );
+    }
+    if (lens.mode === 'faith') {
+      this.addFaithWash(
+        state,
+        resolveTiles(map, lens.cells, levels),
+        collector,
+        geometry,
+        levels,
       );
     }
     if (lens.mode === 'explorer') {
@@ -545,6 +567,149 @@ export class LensLayer {
   }
 
   /**
+   * The faith wash: the tide, painted on the ground the towns it is pulling at
+   * own.
+   *
+   * **The tide is a fact about towns, and this lens does not invent a second
+   * one.** `pressureTotals` — the simulation's own fold of `explainPressure`, the
+   * list the religion panel prints — is asked once per city, and every hex that
+   * city owns takes its answer. There is no per-hex pressure rule anywhere in
+   * this game and there must not be one here: a lens that painted its own idea
+   * of the rules would be a promise the game breaks (see the module docblock),
+   * and "how strongly is this faith pulling at that town" is exactly the
+   * question a player is asking when they raise this.
+   *
+   * So **unclaimed ground gets nothing**, and that is honest rather than a gap:
+   * the tide does not act on empty hexes, and a wash there would be inventing a
+   * reading the sim has never taken. It is the settler lens's silence, one
+   * subject over.
+   *
+   * The wash's ink is the pressing religion's **founder's** — never the tile
+   * owner's — which is the whole information: a crimson wash over indigo
+   * territory is Crimson's faith winning in Indigo's country, and that is a
+   * sentence with no other way to be said on a board.
+   *
+   * Over it, two rings, and they are the two *sources* a player can act on:
+   *
+   *   holy site    the anchor. The strongest thing on the board and the only one
+   *                a rival can take away (`docs/religion-v2.md`), so it is ringed
+   *                tight and bright, in its own religion's ink. It is *ground*,
+   *                and it survives on remembered hexes exactly as the site
+   *                layer's ruins do — the improvement rule.
+   *   proclamation the bomb. Loud, short and decaying, so it is ringed wide and
+   *                softer. It is drawn only where the seat can see, the *unit*
+   *                rule, because a remembered proclamation is a fire that went
+   *                out twenty turns ago (`sites3d.ts`'s two fog rules, and the
+   *                same reasoning that separates a camp from a ruin).
+   *
+   * The sweep is hoisted the way the simulation hoists its own: `holySites` once
+   * for the whole layer, and `pressureTotals` once per city rather than once per
+   * hex. A build that asked per tile would be four thousand passes over forty
+   * towns.
+   */
+  private addFaithWash(
+    state: GameState,
+    tiles: readonly Tile[],
+    collector: InstanceCollector,
+    geometry: BoardGeometry,
+    levels: FogLevels,
+  ): void {
+    if (state.religions.length === 0) return;
+    const identity = new Quaternion();
+    const unit = new Vector3(1, 1, 1);
+    const sites = holySites(state);
+
+    const anchor = (tile: Tile): Vector3 => {
+      const centre = cellCenter(tile.col, tile.row);
+      return new Vector3(centre.x, tileTopY(tile) + OVERLAY.lift, centre.z);
+    };
+
+    // One fold per town, keyed by city id, and every hex that town owns reads
+    // it. `state.tileOwner` is a parallel array over `map.tiles`, so the lookup
+    // is by index and a tile already holds its own address.
+    const dominant = new Map<number, { color: number; opacity: number }>();
+    for (const city of state.cities) {
+      const totals = pressureTotals(state, city, sites);
+      let best = -1;
+      let most = 0;
+      for (const religion of state.religions) {
+        // Strictly greater, so a tie is broken by **founding order** — the one
+        // order the state carries, and the same tie-break `convertCitizen` takes.
+        const total = totals[religion.id] ?? 0;
+        if (total > most) {
+          best = religion.id;
+          most = total;
+        }
+      }
+      if (best < 0 || most <= 0) continue;
+      const founder = state.religions[best]!.founderId;
+      // The ramp: `faithMinOpacity` at a single point of pressure, `faithOpacity`
+      // at `faithFullPressure` and no further. A floor rather than zero, because
+      // a town one point from turning must be visible.
+      const share = Math.min(1, most / Math.max(1, LENS.faithFullPressure));
+      dominant.set(city.id, {
+        color: playerColor(state, founder),
+        opacity: LENS.faithMinOpacity + (LENS.faithOpacity - LENS.faithMinOpacity) * share,
+      });
+    }
+
+    for (const tile of tiles) {
+      // `state.tileOwner` holds a **city** id, or null for unclaimed ground.
+      const owner = state.tileOwner[tileIndex(state.map, tile.col, tile.row)];
+      if (owner === undefined || owner === null) continue;
+      const wash = dominant.get(owner);
+      if (!wash) continue;
+      collector.add(
+        geometry.territory,
+        [wash.color],
+        new Matrix4().compose(anchor(tile), identity, unit),
+        { onTop: true, opacity: wash.opacity },
+      );
+    }
+
+    // The anchors. Ground, so the improvement rule: remembered hexes keep them.
+    for (const site of sites) {
+      if (!knowsCell(levels, state.map, site.col, site.row)) continue;
+      const tile = getTileAt(state.map, site.col, site.row);
+      if (!tile) continue;
+      const religion = state.religions[site.religion];
+      if (!religion) continue;
+      collector.add(
+        geometry.ring,
+        [playerColor(state, religion.founderId)],
+        new Matrix4().compose(
+          anchor(tile),
+          identity,
+          new Vector3(LENS.faithSiteRingScale, 1, LENS.faithSiteRingScale),
+        ),
+        { onTop: true, opacity: LENS.faithSiteRingOpacity },
+      );
+    }
+
+    // The proclamations. An occupation, so the unit rule: live sight only.
+    for (const religion of state.religions) {
+      for (const pulse of religion.pulses) {
+        // The simulation's own reading of a live pulse (`explainPressure`), so a
+        // ring cannot outlast the thing it is ringing by a turn.
+        if (state.turn >= pulse.expiresTurn) continue;
+        if (!seesCell(levels, state.map, pulse.col, pulse.row)) continue;
+        const tile = getTileAt(state.map, pulse.col, pulse.row);
+        if (!tile) continue;
+        collector.add(
+          geometry.ring,
+          [playerColor(state, religion.founderId)],
+          new Matrix4().compose(
+            anchor(tile),
+            identity,
+            new Vector3(LENS.faithPulseRingScale, 1, LENS.faithPulseRingScale),
+          ),
+          { onTop: true, opacity: LENS.faithPulseRingOpacity },
+        );
+      }
+    }
+  }
+
+  /**
    * The explorer wash: every unclaimed discovery site the seat has charted, and
    * — in a hostile ink — every barbarian camp it has charted.
    *
@@ -685,6 +850,65 @@ export function yieldRowLayout(amount: number): YieldRowLayout {
     return mark;
   });
   return { glyphs: [glyphX], numerals };
+}
+
+/**
+ * A cheap fingerprint of everything the faith lens draws.
+ *
+ * `signCities`' trick one subject over, and here for its stated reason: the
+ * layer is instanced, so it has to be *told* when to rebuild, and a hash cannot
+ * be forgotten the way a notification can. The tide moves in a phase nobody
+ * calls this file from, and a lens showing last turn's converts would be the
+ * quietest kind of wrong.
+ *
+ * Three things move the picture and all three are here:
+ *
+ *   followers      what each town believes, which is the wash's colour. Folded
+ *                  per religion **by id order** rather than by walking the
+ *                  object, because `Object.keys` order is not an order the state
+ *                  carries (hard rule 2, at the scale of a hash).
+ *   pressureBank   how close each town is to turning, which is not drawn but is
+ *                  the cheapest available proxy for "the tide moved at all" —
+ *                  a town that banked pressure this turn without converting
+ *                  anybody has still changed what the wash should say, because
+ *                  the wash is a function of *pressure* and not of followers.
+ *   pulses         the proclamations, which are rung and which expire.
+ *
+ * What is deliberately **not** here is a fold of `pressureTotals` itself. That
+ * is the expensive derivation this fingerprint exists to avoid running per
+ * frame — a road built, a temple finished or a holy site pillaged moves it
+ * without moving any of the three above, and each of those already moves a
+ * fingerprint the renderer checks (`signRoadCells`, `signCities`,
+ * `signImprovements`) and rebuilds the lens from. This one covers the tide's own
+ * phase, which nothing else would.
+ */
+export function signReligion(state: GameState): number {
+  let h = 2166136261 ^ state.religions.length;
+  for (const city of state.cities) {
+    const followers = city.followers;
+    const bank = city.pressureBank;
+    if (followers === undefined && bank === undefined) continue;
+    h = Math.imul(h ^ city.id, 16777619);
+    for (const religion of state.religions) {
+      h = Math.imul(h ^ ((followers?.[religion.id] ?? 0) + 1), 16777619);
+      h = Math.imul(h ^ ((bank?.[religion.id] ?? 0) + 1), 16777619);
+    }
+  }
+  for (const religion of state.religions) {
+    h = Math.imul(h ^ (religion.founderId * 31 + religion.pulses.length), 16777619);
+    for (const pulse of religion.pulses) {
+      h = Math.imul(h ^ (pulse.col * 31 + pulse.row), 16777619);
+      h = Math.imul(h ^ pulse.expiresTurn, 16777619);
+    }
+  }
+  // The turn itself, because a proclamation *decays* — the same pulse presses
+  // less every turn and stops entirely at its expiry, and nothing above moves
+  // when a turn passes. Cheap, and it costs a rebuild a turn only while the
+  // lens is up and something is actually pulsing.
+  if (state.religions.some((religion) => religion.pulses.length > 0)) {
+    h = Math.imul(h ^ state.turn, 16777619);
+  }
+  return h >>> 0;
 }
 
 /** A positive integer's decimal digits, most significant first. */

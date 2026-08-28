@@ -47,6 +47,7 @@ import type { DiscoveryKind } from '../sim/discoveryData';
 import { IMPROVEMENT_IDS, type ImprovementId } from '../sim/improvementData';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import type { Unit } from '../sim/state';
+import type { BeliefAxis } from '../sim/religionData';
 import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
 import { type TerrainId, isEmbarkableTerrain } from '../sim/terrainData';
 import { type ModelClass, UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
@@ -54,6 +55,7 @@ import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
 import {
   type BadgeClass,
+  AXIS_CELLS,
   BADGE_CELLS,
   CHARGE_CELLS,
   NUMERAL_CELLS,
@@ -141,11 +143,14 @@ import {
   saltCrust,
   sawPit,
   scoutMini,
+  prophetMini,
   settlerMini,
   silkFrame,
   spiceBush,
   spriteQuad,
   standeeBase,
+  standingStoneTip,
+  standingStones,
   stoneBlock,
   swordsmanMini,
   toyCow,
@@ -227,7 +232,20 @@ export function modelClassFor(type: UnitTypeId): ModelClass {
  * invites is worse than the great person's, because a worker badge is an
  * invitation to send it at a hill and build a mine.
  *
- * Asked of `UnitDef.greatWork` and `UnitDef.consecrates`, never of the type id,
+ * The **prophet** is the third of these and it is the reason there are three.
+ * `religious` was written to cover the whole called family — "the prophet the
+ * High Temple brings will wear this one" — and religion v2 made that the wrong
+ * bet: a prophet founds a faith, plants a holy site, drafts its beliefs and
+ * proclaims, out of a purse an order of magnitude past an augur's, and the two
+ * pieces stand next to each other. So it reads `UnitDef.prophesies`, which is
+ * the row that says what it is, and it sits **ahead of `consecrates`** for the
+ * ordering reason `greatWork` sits ahead of both: a prophet that also
+ * consecrated would still be a prophet. Its mark is the candle *ringed* — the
+ * same drawing plus the one thing that separates it — because the augur's
+ * silhouette is the right one and only the rank is different.
+ *
+ * Asked of `UnitDef.greatWork`, `UnitDef.prophesies` and `UnitDef.consecrates`,
+ * never of the type id,
  * for `modelClassFor`'s reason exactly and the sim's: nothing compares a unit
  * against the string `"settler"`, nothing compares one against `"augur"`, and
  * nothing here compares one against `"greatPerson"`. The row that says a piece
@@ -261,6 +279,7 @@ export function modelClassFor(type: UnitTypeId): ModelClass {
 export function badgeClassFor(type: UnitTypeId): BadgeClass {
   const def = unitDef(type);
   if (def.greatWork) return 'greatPerson';
+  if (def.prophesies) return 'prophet';
   if (def.consecrates) return 'religious';
   return BADGE_OVERRIDES.get(type) ?? def.modelClass;
 }
@@ -321,6 +340,7 @@ export const MINI_SCULPTS: Record<SculptId, MiniSculpt> = {
   siege: { cls: 'siege', build: catapultMini },
   trader: { cls: 'foot', build: traderMini, laden: 'traderLaden' },
   traderLaden: { cls: 'foot', build: traderLadenMini },
+  prophet: { cls: 'foot', build: prophetMini },
   boat: { cls: 'foot', build: boatMini },
 };
 
@@ -371,8 +391,15 @@ export interface MiniSculpt {
  * doing right now" are two questions and only the first one is a fact about a
  * type. A `boat` named by `pieces.byUnitType` would be a unit that was a boat
  * standing in a wheat field.
+ *
+ * `prophet` is the third *named* one, beside `trader`. The roster row is
+ * `modelClass: 'worker'` and rightly so — a prophet is a civilian on foot, the
+ * augur's own class — and the split is exactly the caravan's argument: which
+ * drawing a row wears is a decision about drawings, so it is made here and in
+ * `data/view3d.json`, never by a `sculpt:` column reaching across into the
+ * rules' own file.
  */
-const EXTRA_SCULPT_IDS = ['trader', 'traderLaden', 'boat'] as const;
+const EXTRA_SCULPT_IDS = ['trader', 'traderLaden', 'prophet', 'boat'] as const;
 
 /** A body a piece can stand in: a model class, or one of the extras above. */
 export type SculptId = ModelClass | (typeof EXTRA_SCULPT_IDS)[number];
@@ -596,14 +623,11 @@ export const IMPROVEMENT_PROPS: Record<ImprovementId, (size: number) => BufferGe
   manufactory: manufactoryHall,
   customsHouse: customsWarehouse,
   citadel: citadelRing,
-  // **Placeholder, and the religion pass says so out loud.** The holy site's
-  // ratified sculpt is a standing-stone ring with a gilt tip; until the art pass
-  // draws one it borrows the landmark's stele, which is the nearest thing on the
-  // shelf. This entry exists because the record is exhaustive on purpose — an
-  // improvement nobody drew a prop for is a compile error rather than an
-  // invisible hex — so the honest fix for the sim pass is a stand-in, not a
-  // silent hole.
-  holySite: landmarkStele,
+  // The sixth work, and the first a *prophet* plants rather than a great person.
+  // It shipped as the landmark's stele — an honest placeholder the religion
+  // pass said so out loud — and has its own sculpt now: a ring of six leaning
+  // monoliths about an altar. See `standingStones`.
+  holySite: standingStones,
 };
 
 /**
@@ -631,10 +655,9 @@ export const IMPROVEMENT_GILT: Partial<
   manufactory: manufactoryDoor,
   customsHouse: customsVane,
   citadel: citadelBanner,
-  // The holy site borrows the landmark's cap with its stele — see
-  // `IMPROVEMENT_PROPS`. A work is gilt or it is not a work, and the two
-  // registries have to agree, so the stand-in is gilt too.
-  holySite: landmarkCap,
+  // The tip standing on the altar inside the stone ring. A work is gilt or it
+  // is not a work, and the two registries have to agree.
+  holySite: standingStoneTip,
 };
 
 /** One prop per improvement, each built at the size its data row asks for. */
@@ -745,6 +768,22 @@ function buildChargeMarkers(): Record<HeraldryId, BufferGeometry> {
     out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
   }
   return out as Record<HeraldryId, BufferGeometry>;
+}
+
+/**
+ * The ten axis signs, standing up: `buildChargeMarkers` against a third set of
+ * atlas rectangles and nothing else different.
+ *
+ * `AXIS_CELLS` is asked rather than `BELIEF_AXES` for `buildSiteMarkers`' reason:
+ * the atlas's own cell list is the authority on what has a rectangle.
+ */
+function buildAxisMarkers(): Record<BeliefAxis, BufferGeometry> {
+  const out: Partial<Record<BeliefAxis, BufferGeometry>> = {};
+  for (const id of AXIS_CELLS) {
+    const rect = tileIconRect({ set: 'axis', id });
+    out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
+  }
+  return out as Record<BeliefAxis, BufferGeometry>;
 }
 
 function buildResourceMarkers(): Record<ResourceId, BufferGeometry> {
@@ -1019,6 +1058,16 @@ export class BoardGeometry {
    * sets and these do not.
    */
   readonly chargeMarkers: Record<HeraldryId, BufferGeometry>;
+  /**
+   * The ten pantheon signs, standing up — the same builder against the axis
+   * cells of the same atlas (`AXIS_CELLS`).
+   *
+   * They are what a **religion's device** is assembled from at draw time: a
+   * faith is founded mid-game out of whatever gods its founder took, so there is
+   * nothing fixed to bake a per-religion quad of, and there does not need to be
+   * (`religionDevice`).
+   */
+  readonly axisMarkers: Record<BeliefAxis, BufferGeometry>;
   /** The pale band on a land tile that touches the sea. */
   readonly shoreRing: BufferGeometry;
   /** One river's worth of water, lying across one grout gap. */
@@ -1133,6 +1182,7 @@ export class BoardGeometry {
     const dracones = tileIconRect({ set: 'marginalia', id: 'dracones' });
     this.draconesDecal = atlasDecal(dracones.u0, dracones.v0, dracones.u1, dracones.v1);
     this.chargeMarkers = buildChargeMarkers();
+    this.axisMarkers = buildAxisMarkers();
   }
 
   dispose(): void {
@@ -1196,6 +1246,7 @@ export class BoardGeometry {
     this.serpentDecal.dispose();
     this.draconesDecal.dispose();
     for (const quad of Object.values(this.chargeMarkers)) quad.dispose();
+    for (const quad of Object.values(this.axisMarkers)) quad.dispose();
   }
 }
 

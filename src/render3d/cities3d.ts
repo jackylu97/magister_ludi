@@ -81,10 +81,11 @@
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
 import { heraldryFor } from '../art/heraldryMarks';
+import { religionDevice } from '../art/pantheonMarks';
 import { type BuildingId, isWonder } from '../sim/buildingData';
 import { capitalCityOf } from '../sim/cities';
 import { type Tile, getTileAt, tileIndex } from '../sim/map';
-import type { City, GameState } from '../sim/state';
+import { type City, type GameState, type ReligionId, cityReligion } from '../sim/state';
 import { highestAge } from '../sim/techData';
 import { EXPLORED, HIDDEN } from '../sim/visibility';
 import { DIRECTION_COUNT, neighborInDirection } from '../sim/water';
@@ -201,6 +202,21 @@ export interface CityLook {
    * `CityLook`.
    */
   wonders: number;
+  /**
+   * The faith most of this town's citizens follow, or `null` for a town nobody
+   * has converted.
+   *
+   * `cityReligion` is the simulation's own reading — a strict majority of the
+   * citizens, derived from `City.followers` and never stored — and it is asked
+   * rather than reimplemented for `cityTier`'s reason: the banner and the
+   * religion screen must not be able to disagree about what a town believes.
+   *
+   * It is the **id** and not the founder's colour, because who founded a faith
+   * is a fact about the world and not about this town: the device is printed in
+   * the founder's ink, resolved where it is drawn (`addDevice`), so a religion
+   * whose founder is conquered does not need forty city looks recomputed.
+   */
+  religion: ReligionId | null;
 }
 
 /** Does this town hold a finished building? */
@@ -248,6 +264,12 @@ export function cityLook(
     // stands where the stones are. The sim takes the same reading of what a
     // wonder pays (`liveEffects`).
     wonders: city.buildings.filter(isWonder).length,
+    // What this town believes, which changes the *fly* of its banner. The tide
+    // moves it (`spreadReligion`), a conquest can move it, and a temple can
+    // hold it — none of which touch any other member here, which is exactly why
+    // it has to be one: without it a converted town would keep its old device
+    // until something unrelated happened to grow it.
+    religion: cityReligion(city),
   };
 }
 
@@ -344,7 +366,7 @@ export class CityLayer {
           new Vector3(1, 1, 1),
         ),
       );
-      this.addFlag(state, city, centre, top, geometry, collector, faceCamera, icons);
+      this.addFlag(state, city, look, centre, top, geometry, collector, faceCamera, icons);
     }
 
     this.drawCallCount = collector.flush(this.group, materials, shadows);
@@ -617,6 +639,7 @@ export class CityLayer {
   private addFlag(
     state: GameState,
     city: City,
+    look: CityLook,
     centre: { x: number; z: number },
     top: number,
     geometry: BoardGeometry,
@@ -665,6 +688,94 @@ export class CityLayer {
       // depth trick.
       { material: icons.standingMaterial },
     );
+
+    this.addDevice(state, look, anchor, right, forward, geometry, collector, faceCamera, icons);
+  }
+
+  /**
+   * The religion's device: a canton in its **founder's** ink on the fly of the
+   * banner, with the pantheon's own signs stamped on it.
+   *
+   * Two devices on one flag is exactly what a flag is for. The hoist carries the
+   * seat's charge and says whose town this is; the fly carries this and says
+   * what it believes, and neither is ever in the other's half (`chargeInset`
+   * against `deviceInset`). A town nobody has converted flies nothing here at
+   * all, which is most towns for most of a game — silence is the honest answer
+   * and it keeps the addition from being a second logo on every banner.
+   *
+   * **The founder's ink, never the owner's**, and that is the whole information
+   * the device carries at a distance: a crimson canton on an indigo flag is a
+   * town of Indigo's that follows Crimson's faith, which is a sentence a player
+   * needs to be able to read across the table without clicking anything. The
+   * signs on it are what it says close up.
+   *
+   * The signs are `religionDevice`'s — the religion's axes in the order its
+   * founder consecrated them, capped at three — which is the same derivation the
+   * faith's generated *name* is made of (`generateReligionName`). So a religion
+   * looks like what it is made of, and two religions of the same threads look
+   * alike on purpose: they are.
+   *
+   * Ink on parchment, like the charge and for its argument — a mark printed
+   * straight on a tincture reads on the pale seats and smudges on the dark ones
+   * — which is what makes the canton's colour the *field* under a parchment
+   * rosette rather than the ink of the marks themselves.
+   */
+  private addDevice(
+    state: GameState,
+    look: CityLook,
+    anchor: Vector3,
+    right: Vector3,
+    forward: Vector3,
+    geometry: BoardGeometry,
+    collector: InstanceCollector,
+    faceCamera: Quaternion,
+    icons: TileIcons | null,
+  ): void {
+    if (!icons || look.religion === null) return;
+    const religion = state.religions[look.religion];
+    if (!religion) return;
+    const axes = religionDevice(religion.pantheon);
+    if (axes.length === 0) return;
+
+    // The canton. `barQuad` runs x = 0..1 from the pole, so the same inset
+    // arithmetic the charge uses places this — and a square of the flag's own
+    // frame is what a canton is.
+    const at = anchor
+      .clone()
+      .addScaledVector(right, CITY.deviceInset * CITY.flagWidth - CITY.deviceSize / 2)
+      .addScaledVector(forward, CITY.deviceNudge);
+    collector.add(
+      geometry.bar,
+      [playerColor(state, religion.founderId)],
+      new Matrix4().compose(
+        at,
+        faceCamera,
+        new Vector3(CITY.deviceSize, CITY.deviceSize, 1),
+      ),
+      { overlay: true, opacity: 1 },
+    );
+
+    const middle = at.clone().addScaledVector(right, CITY.deviceSize / 2);
+    const marks = new Vector3(CITY.deviceMarkSize, CITY.deviceMarkSize, 1);
+    const up = new Vector3(0, 1, 0).applyQuaternion(faceCamera);
+    const seats = deviceLayout(axes.length);
+    for (const [index, axis] of axes.entries()) {
+      const seat = seats[index]!;
+      collector.add(
+        geometry.axisMarkers[axis],
+        [],
+        new Matrix4().compose(
+          middle
+            .clone()
+            .addScaledVector(right, seat.x * CITY.deviceMarkSpread)
+            .addScaledVector(up, seat.y * CITY.deviceMarkSpread)
+            .addScaledVector(forward, CITY.deviceMarkNudge),
+          faceCamera,
+          marks,
+        ),
+        { material: icons.standingMaterial },
+      );
+    }
   }
 
   get drawCalls(): number {
@@ -674,6 +785,45 @@ export class CityLayer {
   dispose(): void {
     disposeInstancedGroup(this.group);
   }
+}
+
+/**
+ * Where a device's signs sit on its canton, in units of `deviceMarkSpread`.
+ *
+ * Pure arithmetic and separated from the collecting for `yieldRowLayout`'s
+ * reason: it is the half that decides whether a device is *legible*, and it is
+ * the half a test can hold still where an instance matrix cannot.
+ *
+ * Three arrangements and no ramp, because a device is at most three signs
+ * (`DEVICE_MARKS`) and each count wants its own composition rather than a
+ * general one:
+ *
+ *   1  dead centre. A lone sign is the device, not a corner of one.
+ *   2  side by side across the canton, which is how a pair of charges is
+ *      marshalled on a real shield.
+ *   3  a triangle, point **up** — the arrangement that fits three discs in a
+ *      square with the most air between them, and the one that reads as a
+ *      composition rather than as a row that ran out of room.
+ *
+ * The y axis is up the banner. A count past three is clamped to the triangle
+ * rather than throwing: `religionDevice` already caps it, and a device drawn
+ * for a hand-edited save is not worth a crash.
+ */
+export function deviceLayout(count: number): { x: number; y: number }[] {
+  if (count <= 1) return [{ x: 0, y: 0 }];
+  if (count === 2) {
+    return [
+      { x: -1, y: 0 },
+      { x: 1, y: 0 },
+    ];
+  }
+  // sin/cos of 120° apart, point up: (0, 1), (−√3/2, −½), (√3/2, −½).
+  const leg = Math.sqrt(3) / 2;
+  return [
+    { x: 0, y: 1 },
+    { x: -leg, y: -0.5 },
+    { x: leg, y: -0.5 },
+  ];
 }
 
 /** The board's one up axis, hoisted: every town matrix turns about it. */
@@ -990,7 +1140,8 @@ function playerLookup(state: GameState): Map<number, number> {
  * **What the age pass added, and the rule it comes with.** A town used to be
  * where it stood, how big it was and whose it was; since it learned to show its
  * era it is also its *sculpt tier*, its walls, its shrine, its temple and
- * whether it is the capital. Those five arrive as `CityLook` — the same
+ * whether it is the capital — and, since religion v2, **what it believes**.
+ * Those arrive as `CityLook` — the same
  * derivation the layer draws from, folded here rather than re-derived — which is
  * exactly the discipline the unit fingerprint's trap in `CLAUDE.md` demands one
  * scale up: **any new visual-affecting city property joins `CityLook`**, and it
@@ -1025,6 +1176,12 @@ export function signCities(state: GameState): number {
       // is a second sculpt on the ring, so the hash has to move for it.
       (look.wonders << 8);
     h = Math.imul(h ^ bits, 16777619);
+    // The faith on the fly. Folded as its own word rather than packed with the
+    // sculpt bits above, because it is not a fact about the *sculpt* at all —
+    // no roof moves for it — and because a religion id is an index into a list
+    // that grows, so it has no bit budget. `+1` so "no religion" and "the first
+    // religion founded" are different numbers.
+    h = Math.imul(h ^ ((look.religion ?? -1) + 1), 16777619);
   }
   return h >>> 0;
 }

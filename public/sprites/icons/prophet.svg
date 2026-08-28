@@ -1,0 +1,6 @@
+<!-- Drawn here in Tabler's geometry (24-unit box, stroke 2.75): the `religious` candle inside a ring. Neither Tabler nor Lucide has a haloed candle, and the ring is what separates the prophet from the augur at forty pixels. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M9.6 21h4.8v-6.4a1 1 0 0 0 -1 -1h-2.8a1 1 0 0 0 -1 1l0 6.4"/>
+<path d="M12 7.2l1.1 1.25a1.5 1.5 0 1 1 -2.26 .07l1.16 -1.32"/>
+<path d="M4.6 12.6a7.4 7.4 0 0 1 14.8 0"/>
+</g></svg>

@@ -243,7 +243,8 @@
       "gilt": "gilt"
     },
     "byUnitType": {
-      "trader": "trader"
+      "trader": "trader",
+      "prophet": "prophet"
     }
   },
   "city": {
@@ -330,6 +331,12 @@
     "chargeSize": 0.19,
     "chargeNudge": 0.014,
     "chargeInset": 0.33,
+    "deviceSize": 0.19,
+    "deviceInset": 0.75,
+    "deviceNudge": 0.014,
+    "deviceMarkSize": 0.095,
+    "deviceMarkSpread": 0.045,
+    "deviceMarkNudge": 0.026,
     "poleRadius": 0.035,
     "poleHeight": 1.15,
     "poleColor": "ink",
@@ -553,6 +560,13 @@
     "discoveryColor": "#d8a63c",
     "discoveryOpacity": 0.5,
     "discoveryRingOpacity": 1.0,
+    "faithOpacity": 0.42,
+    "faithMinOpacity": 0.1,
+    "faithFullPressure": 24,
+    "faithSiteRingOpacity": 0.85,
+    "faithSiteRingScale": 0.82,
+    "faithPulseRingOpacity": 0.6,
+    "faithPulseRingScale": 1.0,
     "campColor": "#b35843",
     "campOpacity": 0.42,
     "campRingOpacity": 0.9

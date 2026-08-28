@@ -149,6 +149,7 @@ Two rules decided all twenty, and they are the whole design:
 | `trader.svg` | `trader` | civilian | Tabler `package` | a crate in three-quarter view, its three top seams drawn |
 | `religious.svg` | `religious` | called | Tabler `candle` | a lit candle |
 | `greatPerson.svg` | `greatPerson` | called | Tabler `laurel-wreath` | a laurel wreath, eight leaves and a tie |
+| `prophet.svg` | `prophet` | called | *drawn here* — Tabler `candle`, ringed | the augur's candle, smaller, under a halo arc |
 
 Twelve names in the class column are model classes and eight are unit ids, and the two
 namings are not a muddle: a badge is named after its **class** exactly when it is still the
@@ -253,11 +254,19 @@ across into the rules' own file.
   handcart. "Settler" floating over Archimedes sends a player looking for a city site. One
   laurel for all five families, not five: a scholar and a general differ in what they *do*,
   and the unit panel and the offer card already say which in words.
-- **`religious`** — read off `UnitDef.consecrates`, second. An augur stands on the **worker's**
+- **`prophet`** — read off `UnitDef.prophesies`, second, ahead of the candle. This entry used
+  to say the prophet would wear `religious`, and religion v2 made that the wrong bet: a
+  prophet founds a faith, plants a holy site, drafts its beliefs and proclaims, out of a purse
+  an order of magnitude past an augur's, and the two pieces stand beside each other on the
+  same ground. It wears the **same candle, ringed** — the augur's silhouette is the right one
+  and only the rank is different. Ahead of `consecrates` for the reason `greatWork` is ahead
+  of both: a prophet that also consecrated would still be a prophet. The ring is drawn in the
+  mark and is **not gilt**: this atlas is one ink per *style* (nation, wild) and not per
+  class, so gold here would mean recolouring every badge on the board.
+- **`religious`** — read off `UnitDef.consecrates`, third. An augur stands on the **worker's**
   sculpt, because it is a figure on foot with a bundle. "Worker" over the only piece in the
   game that spends faith is the worse of the two mistakes: it is an invitation to march it at
-  a hill and build a mine. One candle for the whole family here too — the prophet the High
-  Temple brings will wear this one.
+  a hill and build a mine.
 - **everything else** — `badges.byUnitType` in `data/view3d.json`, third. That table used to
   be a short list of exceptions to `modelClass`; since the one-mark-per-row ruling it names
   *every* row whose badge it decides, which makes it the register rather than a list of

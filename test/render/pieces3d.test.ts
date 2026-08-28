@@ -22,6 +22,7 @@ import {
   hpBarY,
 } from '../../src/render3d/badges3d';
 import {
+  type SculptId,
   BoardGeometry,
   MINI_SCULPTS,
   MODEL_CLASS_IDS,
@@ -161,6 +162,7 @@ describe('the model-class roster', () => {
       'chariot',
       'knight',
       'trebuchet',
+      'prophet',
     ] as const;
     for (const id of MODEL_CLASS_IDS) expect(BADGE_CELLS).toContain(id);
     for (const id of NOT_A_SCULPT) expect(BADGE_CELLS).toContain(id);
@@ -184,7 +186,7 @@ describe('the model-class roster', () => {
     // save the rows the art table names (`badges.byUnitType`).
     for (const type of UNIT_TYPE_IDS) {
       const def = unitDef(type);
-      if (def.greatWork || def.consecrates) continue;
+      if (def.greatWork || def.prophesies || def.consecrates) continue;
       if (type in VIEW3D.badges.byUnitType) continue;
       expect(badgeClassFor(type)).toBe(modelClassFor(type));
     }
@@ -321,6 +323,16 @@ describe('the model-class roster', () => {
     expect(sculptFor('trader')).toBe('trader');
     // …and the worker is untouched, which is the half that would rot quietly.
     expect(sculptFor('worker')).toBe('worker');
+    // The prophet is the table's second reason to exist, and the same argument:
+    // `modelClass: 'worker'` is right — a prophet is a civilian on foot, the
+    // augur's own class — and it must not stand in the augur's body, because
+    // those are the two pieces most likely to be beside each other and are
+    // bought out of one bank at an order of magnitude's difference in price.
+    expect(modelClassFor('prophet')).toBe('worker');
+    expect(sculptFor('prophet')).toBe('prophet');
+    // The augur keeps the plain worker body, which is the half of that pair the
+    // table does not name — and must not, or the split would say nothing.
+    expect(sculptFor('augur')).toBe('worker');
     for (const type of UNIT_TYPE_IDS) {
       if (type in table) continue;
       expect(sculptFor(type), type).toBe(modelClassFor(type));
@@ -405,16 +417,42 @@ describe('the model-class roster', () => {
     expect(pieceHeightFor('settler')).toBe(VIEW3D.pieces.heights.foot);
   });
 
-  it('gilds the caravan\'s bale, and nothing else on the roster', () => {
-    // Gold is the one reserved note in this world — a great work, a palace
-    // finial, a wonder's tip — and the laden caravan spends it on exactly one
-    // element so that "this piece is carrying something" reads across the table.
-    // A second sculpt reaching for it to look expensive would be spending a word
-    // the world has already given a meaning.
+  it('stands the prophet taller than the augur it is drawn beside', () => {
+    // The one thing that has to survive being forty pixels tall: the staff
+    // breaks the outline *above the head*, where the worker's mallet stops at
+    // the shoulder and the scout's stick at the crown. A prophet is the tallest
+    // civilian on a hex, and that is the difference — not the gilt, which is
+    // what the ring says once a player has looked.
     const board = geometry();
-    expect(board.pieces.traderLaden.parts).toContain('gilt');
+    const reach = (id: SculptId): number => {
+      const shape = board.pieces[id].geometry;
+      shape.computeBoundingBox();
+      return shape.boundingBox!.max.y;
+    };
+    expect(reach('prophet')).toBeGreaterThan(reach('worker'));
+    expect(reach('prophet')).toBeGreaterThan(reach('scout'));
+    // The *class* is unchanged, so the badge and the HP bar hang exactly where
+    // they hang over every other civilian — `pieceHeightFor` asks the type, and
+    // a taller staff must not move a tag.
+    expect(MINI_SCULPTS.prophet.cls).toBe(MINI_SCULPTS.worker.cls);
+    expect(pieceHeightFor('prophet')).toBe(pieceHeightFor('augur'));
+    board.dispose();
+  });
+
+  it('gilds the caravan\'s bale and the prophet\'s rim, and nothing else', () => {
+    // Gold is the one reserved note in this world — a great work, a palace
+    // finial, a wonder's tip — and a sculpt may spend it on exactly one element,
+    // to say the one thing about itself that its silhouette cannot. The laden
+    // caravan says "this piece is carrying something"; the prophet says "this is
+    // not the augur beside it", which is the pair the note was needed for.
+    // Anything else reaching for it would be spending a word the world has
+    // already given a meaning, so the list is written out here rather than
+    // derived.
+    const GILT: readonly SculptId[] = ['traderLaden', 'prophet'];
+    const board = geometry();
+    for (const id of GILT) expect(board.pieces[id].parts, id).toContain('gilt');
     for (const id of SCULPT_IDS) {
-      if (id === 'traderLaden') continue;
+      if (GILT.includes(id)) continue;
       expect(board.pieces[id].parts, id).not.toContain('gilt');
     }
     // The laden body is the plain one plus that: same class, same height, more

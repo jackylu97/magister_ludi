@@ -755,6 +755,11 @@ export const PART_IDS = [
   'manufactory',
   'customsHouse',
   'citadel',
+  // The sixth work and the only one no great person plants — a prophet does.
+  // Added in the pass that gave it a sculpt of its own, which is this page's
+  // whole rule: a prop that is not here is a prop that gets iterated in the
+  // game.
+  'holySite',
   'lumbermill',
 ] as const;
 
@@ -775,6 +780,8 @@ export const PART_CAPTIONS: Record<(typeof PART_IDS)[number], string> = {
   manufactory: 'the Engineer’s works, and the gold on its door',
   customsHouse: 'the Merchant’s warehouse under a gilt vane',
   citadel: 'the General’s ring of stone, its banner in gold',
+  holySite:
+    'six leaning monoliths about an altar, under a gilt tip — the board’s one ring of verticals, against the citadel’s closed wall',
   lumbermill:
     'the sawing trestle and its stack of cut timber — low and squared, because it stands among pines that are neither',
 };

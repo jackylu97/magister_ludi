@@ -442,6 +442,25 @@ export interface CitySpec {
   chargeSize: number;
   chargeNudge: number;
   chargeInset: number;
+  /**
+   * The **religion's device** printed on the fly, opposite the charge: the
+   * canton's size and inset, and the pantheon signs stamped on it.
+   *
+   * The same three numbers the charge takes, plus two for the signs, and the
+   * inset is a fraction of the flag's width for the same reason. Two devices on
+   * one banner is exactly what a banner is for: the hoist says whose town this
+   * is, the fly says what it believes, and neither is ever in the other's half.
+   *
+   * `deviceMarkSpread` is the radius of the rosette the signs are laid out on,
+   * in world units — see `deviceLayout` in `cities3d.ts`, which is the pure
+   * arithmetic and the thing a test can hold still.
+   */
+  deviceSize: number;
+  deviceInset: number;
+  deviceNudge: number;
+  deviceMarkSize: number;
+  deviceMarkSpread: number;
+  deviceMarkNudge: number;
   poleRadius: number;
   poleHeight: number;
   poleColor: string;
@@ -725,6 +744,30 @@ export interface LensSpec {
   campColor: number;
   campOpacity: number;
   campRingOpacity: number;
+  /**
+   * The faith lens: how heavily a town under the tide is washed, and how the two
+   * things that *make* a tide are ringed.
+   *
+   * There is deliberately **no colour here**. Every other lens picks its own
+   * inks; this one paints in whoever founded the faith that is pressing, because
+   * the whole question it answers is "whose argument is this", and a palette of
+   * its own would be a second vocabulary for something the board already says in
+   * twelve tinctures.
+   *
+   * `faithFullPressure` is the pressure at which a hex is washed at
+   * `faithOpacity` — the saturation point of the alpha ramp, in the tide's own
+   * units, so retuning `rules.religion.siteStrength` and this together keeps the
+   * picture honest. Below it the wash falls off toward `faithMinOpacity`, which
+   * is a floor rather than zero: a town one point of pressure from turning must
+   * be visible, and an invisible answer is indistinguishable from no answer.
+   */
+  faithOpacity: number;
+  faithMinOpacity: number;
+  faithFullPressure: number;
+  faithSiteRingOpacity: number;
+  faithSiteRingScale: number;
+  faithPulseRingOpacity: number;
+  faithPulseRingScale: number;
 }
 
 /**
@@ -2162,6 +2205,13 @@ export const VIEW3D: View3DData = {
     campColor: parseColor(viewJson.lens.campColor, 'lens.campColor'),
     campOpacity: viewJson.lens.campOpacity,
     campRingOpacity: viewJson.lens.campRingOpacity,
+    faithOpacity: viewJson.lens.faithOpacity,
+    faithMinOpacity: viewJson.lens.faithMinOpacity,
+    faithFullPressure: viewJson.lens.faithFullPressure,
+    faithSiteRingOpacity: viewJson.lens.faithSiteRingOpacity,
+    faithSiteRingScale: viewJson.lens.faithSiteRingScale,
+    faithPulseRingOpacity: viewJson.lens.faithPulseRingOpacity,
+    faithPulseRingScale: viewJson.lens.faithPulseRingScale,
   },
   icons: {
     atlasCell: viewJson.icons.atlasCell,
