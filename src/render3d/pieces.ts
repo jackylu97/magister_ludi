@@ -375,6 +375,31 @@ export function hpBarFill(unit: Unit): number | null {
 }
 
 /**
+ * How wide that fill is actually *drawn*, in world units — `hpBarFill`'s
+ * sibling, and the only place the pip floor is applied.
+ *
+ * **A bar is only ever drawn over a living piece, so it must never read as
+ * empty.** The fraction is exact and always has been; drawing it exactly is
+ * what produced the fourth report (user, 2026-08-28: "it happened off screen
+ * during a barbarian attack, and then when I went to the unit, the health bar
+ * was empty"). A warrior that survives a barbarian at a few points of a hundred
+ * asks for a quad a fifth of a pixel wide at the default zoom, and a quad no
+ * pixel centre falls inside is not rasterised at all — while its backing, whose
+ * width is a constant, is. Backing drawn, fill dropped: a bar with nothing in
+ * it, over a unit that is alive. The floor (`hpBar.minFill`) is what makes
+ * "alive" always draw *something*.
+ *
+ * One function rather than a `Math.max` at each of the two call sites, for
+ * `hpBarFill`'s own reason: the resting instance and the walking copy must be
+ * incapable of disagreeing about a number the player is reading off the board.
+ * Clamped at the top as well, so the pip can never be wider than the bar it
+ * sits in on a badly tuned `minFill`.
+ */
+export function hpBarFillWidth(fraction: number): number {
+  return Math.min(HP.width, Math.max(HP.minFill, HP.width * fraction));
+}
+
+/**
  * The bar over a hurt piece as standalone meshes: the dark backing and the
  * coloured fill in front of it, already lifted to float over a unit of
  * `visualHeight`.
@@ -391,12 +416,16 @@ export function hpBarFill(unit: Unit): number | null {
  * Returned as a group whose origin is the unit's *feet*, exactly like the badge
  * and the sprite, so the caller places it by saying where the unit stands. Null
  * at full health, because a bar is only drawn on somebody who is hurt — the same
- * rule `addHpBar` returns on, read from the same `hpBarFill`.
+ * rule `addHpBar` returns on, read from the same `hpBarFill`. Drawn at the same
+ * `hpBarFillWidth`, so a piece cannot change how hurt it looks by starting to
+ * walk.
  *
- * The backing is added **first** and the fill second, which is what draws the
- * fill in front: neither quad tests depth (`onTop`), so what settles the order
- * is the order they were built in. Same guarantee as the instanced pair, stated
- * in `addHpBar` and pinned in `test/render/pieces3d.test.ts`.
+ * The fill claims `RENDER_ORDER.hpBarFill`, one step above the backing's
+ * `RENDER_ORDER.hpBar` — the instanced pair's rule, applied here for the same
+ * reason rather than by the same mechanism. These are standalone meshes a hair
+ * apart in depth, so three's transparent sort would have got them right on its
+ * own; naming the order anyway is what keeps the walking copy and the resting
+ * one layered by one statement instead of by two different accidents.
  */
 export function buildHpBar(
   geometry: BoardGeometry,
@@ -410,20 +439,31 @@ export function buildHpBar(
   const forward = new Vector3(0, 0, 1).applyQuaternion(faceCamera);
   const anchor = new Vector3(0, hpBarY(visualHeight), 0).addScaledVector(right, -HP.width / 2);
 
-  const quad = (color: number, width: number, nudge: number): Mesh => {
+  const quad = (color: number, width: number, nudge: number, order: number): Mesh => {
     const mesh = new Mesh(geometry.bar, materials.overlay(color, 1, true));
     mesh.position.copy(anchor).addScaledVector(forward, nudge);
     mesh.quaternion.copy(faceCamera);
     mesh.scale.set(width, HP.height, 1);
+    // Never culled: a walker's bar is a sliver a couple of pixels tall whose
+    // own bounding sphere is smaller than the piece under it, and a bar that
+    // vanished a frame before its unit did would be the same "empty bar" read
+    // from the other end.
     mesh.frustumCulled = false;
     mesh.castShadow = false;
     mesh.receiveShadow = false;
-    mesh.renderOrder = RENDER_ORDER.hpBar;
+    mesh.renderOrder = order;
     return mesh;
   };
 
-  group.add(quad(HP.backColor, HP.width, 0));
-  group.add(quad(fraction > 0.5 ? HP.goodColor : HP.fillColor, HP.width * fraction, 0.01));
+  group.add(quad(HP.backColor, HP.width, 0, RENDER_ORDER.hpBar));
+  group.add(
+    quad(
+      fraction > 0.5 ? HP.goodColor : HP.fillColor,
+      hpBarFillWidth(fraction),
+      0.01,
+      RENDER_ORDER.hpBarFill,
+    ),
+  );
   return group;
 }
 
@@ -922,18 +962,23 @@ export class UnitLayer {
     );
     // A hair nearer the eye than the backing, so the two never z-fight.
     //
-    // **The offset is not what puts the fill in front, and believing it does is
-    // how the fill ends up under its own backing.** Both quads live in
-    // *instanced* buckets, and three sorts the transparent pass by each
-    // `InstancedMesh`'s own world position — which for every bucket in this
-    // layer is the group origin. Every bar mesh therefore ties on depth, and the
-    // sort falls through to its last term, the object id. What actually holds
-    // the fill in front is that the backing is collected **first**: the backing
-    // claims its bucket before any fill claims one, `flush` builds meshes in
-    // bucket-insertion order, so the backing's mesh always carries the lower id
-    // and is always drawn first. `test/render/pieces3d.test.ts` pins that
-    // ordering, because it is a guarantee about the *order of these two `add`
-    // calls* and nothing in the type system says so.
+    // **The offset is not what puts the fill in front, and neither is the order
+    // of these two `add` calls.** Both quads live in *instanced* buckets, and
+    // three sorts the transparent pass by each `InstancedMesh`'s own world
+    // position — which for every bucket in this layer is the group origin. Every
+    // bar mesh therefore ties on depth, and the sort falls through to its last
+    // term, the object id: the order `flush` happened to build the buckets in,
+    // which is the order they were first claimed in. That comes out right today
+    // and it is nobody's invariant — a rebuild that claimed the buckets the
+    // other way round, or a fill collected before some future bar part, would
+    // paint every fill on the board under its own backing and leave the whole
+    // army reading as dead. So the layering is *stated*: the fill claims
+    // `RENDER_ORDER.hpBarFill`, one above the backing, and the sort never
+    // reaches the id at all. `test/render/pieces3d.test.ts` pins it against the
+    // ids deliberately reversed.
+    //
+    // The width is `hpBarFillWidth`, not the raw fraction: see that function for
+    // why an exactly-drawn fill is what a player reads as an empty bar.
     const front = anchor.clone().addScaledVector(
       new Vector3(0, 0, 1).applyQuaternion(faceCamera),
       0.01,
@@ -942,8 +987,12 @@ export class UnitLayer {
       collector.add(
         geometry.bar,
         [fraction > 0.5 ? HP.goodColor : HP.fillColor],
-        new Matrix4().compose(front, faceCamera, new Vector3(HP.width * fraction, HP.height, 1)),
-        { onTop: true, opacity: 1, order: RENDER_ORDER.hpBar },
+        new Matrix4().compose(
+          front,
+          faceCamera,
+          new Vector3(hpBarFillWidth(fraction), HP.height, 1),
+        ),
+        { onTop: true, opacity: 1, order: RENDER_ORDER.hpBarFill },
       ),
     );
   }

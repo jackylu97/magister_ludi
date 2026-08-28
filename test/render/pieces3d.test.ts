@@ -51,6 +51,7 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import {
   UnitLayer,
   buildSpriteUnit,
+  hpBarFillWidth,
   pieceColors,
   pieceMaterials,
   placePiece,
@@ -1736,7 +1737,9 @@ describe('what a health bar says', () => {
       if (Math.abs(backing - VIEW3D.hpBar.width) > 1e-6) {
         problems.push(`unit ${unit.id} backing is ${backing}, not ${VIEW3D.hpBar.width}`);
       }
-      const want = VIEW3D.hpBar.width * (unit.hp / maxHp);
+      // The *drawing* rule, not the raw fraction — see `hpBarFillWidth`, and
+      // the same note in `unitBarHelpers.ts`'s copy of this audit.
+      const want = hpBarFillWidth(unit.hp / maxHp);
       if (Math.abs(fill - want) > 1e-6) {
         problems.push(`unit ${unit.id} (${unit.hp}/${maxHp}) fill is ${fill}, want ${want}`);
       }
@@ -1875,18 +1878,22 @@ describe('what a health bar says', () => {
 
   /**
    * The layering guarantee `addHpBar` depends on and the type system cannot
-   * state: the fill is drawn **after** its backing.
+   * state: the fill is drawn **after** its backing — and *because it says so*,
+   * not because of the order the meshes happened to be built in.
    *
    * Neither quad tests or writes depth, and both live in instanced buckets whose
    * `InstancedMesh` sits at the group origin — so three's transparent sort ties
-   * on render order *and* on depth for every bar on the board, and settles it on
-   * the object id. The id is the order `flush` built the meshes in, which is the
-   * order the buckets were first claimed in, which is the order of the two `add`
-   * calls in `addHpBar`. Swap those two calls and every bar on the board goes
-   * flat dark with no visible fill at all — which is a health bar that shows no
-   * health, and nothing else in the suite would notice.
+   * on depth for every bar on the board. Until this pass it also tied on render
+   * order and fell through to its last term, the object id, which is the order
+   * `flush` built the buckets in, which is the order of the two `add` calls.
+   * That came out right, and it was nobody's invariant: a fill collected before
+   * some future bar part would have painted every fill on the board under its
+   * own backing and left the whole army reading as dead, with nothing in the
+   * suite noticing. So the fill now claims its own draw order and the sort never
+   * reaches the id — which is what this asserts, with the ids **deliberately
+   * reversed**.
    */
-  it('builds the bar backing before any fill, which is what draws the fill on top', () => {
+  it('draws the fill over its backing by render order, not by mesh id', () => {
     const board = geometry();
     const game = war([
       { type: 'warrior', col: 3, row: 3 },
@@ -1904,7 +1911,6 @@ describe('what a health bar says', () => {
         child instanceof InstancedMesh && child.geometry === board.bar,
     );
     expect(meshes).toHaveLength(3); // one backing, two fills
-    for (const mesh of meshes) expect(mesh.renderOrder).toBe(RENDER_ORDER.hpBar);
     const scale = new Vector3();
     const matrix = new Matrix4();
     const isBacking = (mesh: InstancedMesh): boolean => {
@@ -1913,10 +1919,94 @@ describe('what a health bar says', () => {
       return Math.abs(scale.x - VIEW3D.hpBar.width) < 1e-6;
     };
     const backing = meshes.filter(isBacking);
+    const fills = meshes.filter((mesh) => !isBacking(mesh));
     expect(backing).toHaveLength(1);
-    for (const fill of meshes.filter((mesh) => !isBacking(mesh))) {
-      expect(backing[0]!.id).toBeLessThan(fill.id);
+    expect(fills).toHaveLength(2);
+    expect(backing[0]!.renderOrder).toBe(RENDER_ORDER.hpBar);
+    for (const fill of fills) expect(fill.renderOrder).toBe(RENDER_ORDER.hpBarFill);
+
+    /**
+     * Three's own transparent comparator (`reversePainterSortStable`), inlined
+     * because the module does not export it: group order, then render order,
+     * then depth back-to-front, then the object id. A copy of somebody else's
+     * sort is only worth the copy staying true — this one is four lines and its
+     * shape has not moved in years, and the alternative is a claim about
+     * layering that nothing anywhere checks.
+     */
+    const sortKeyed = (a: { order: number; z: number; id: number }, b: typeof a): number =>
+      a.order !== b.order ? a.order - b.order : a.z !== b.z ? b.z - a.z : a.id - b.id;
+
+    // Every bar mesh in this layer sits at the group origin, so they all project
+    // to one z — which is exactly why the old arrangement fell through to the
+    // id. Hand the fills the *lower* ids and they must still come last.
+    const items = [
+      { name: 'backing', order: backing[0]!.renderOrder, z: 0, id: 99 },
+      ...fills.map((fill, index) => ({
+        name: `fill${index}`,
+        order: fill.renderOrder,
+        z: 0,
+        id: index,
+      })),
+    ];
+    const drawn = [...items].sort(sortKeyed).map((item) => item.name);
+    expect(drawn[0]).toBe('backing');
+
+    layer.dispose();
+    board.dispose();
+  });
+
+  /**
+   * **A bar over a living piece never reads as empty.**
+   *
+   * The fourth report (user, 2026-08-28: "it happened off screen during a
+   * barbarian attack, and then when I went to the unit, the health bar was
+   * empty"). Every earlier pass proved the fill *exact*, and exact is what made
+   * it invisible: the camera's default half-frustum is fourteen world units, so
+   * a world unit is about thirty-two pixels and the whole bar is twenty-one of
+   * them — a warrior that survives a barbarian at four points of a hundred asks
+   * for a fill under a pixel wide, and a quad no pixel centre falls inside is
+   * not rasterised at all. Its backing, a constant width, is. Backing without
+   * fill is a bar with nothing in it, over a unit that is alive.
+   *
+   * So the drawn width has a floor, and the floor is under seven per cent of the
+   * bar: a piece at one point and a piece at seven read alike, and both read as
+   * nearly dead, which is the thing that has to carry across the board.
+   */
+  it('draws a visible pip for a piece clinging on at a point or two', () => {
+    const board = geometry();
+    const game = war([
+      { type: 'warrior', col: 3, row: 3 },
+      { type: 'warrior', col: 5, row: 3 },
+    ]);
+    const layer = new UnitLayer();
+    game.units[0]!.hp = 1;
+    game.units[1]!.hp = 4;
+    layer.build(game, board, materials(), new Quaternion(), false, null);
+
+    // The audit agrees with the drawing rule, and the drawing rule is the floor.
+    expect(complaints(game, layer, board)).toEqual([]);
+    for (const unit of game.units) {
+      const anchor = anchorOf(game, unit.id);
+      const widths = barInstances(layer, board)
+        .filter((b) => Math.abs(b.x - anchor.x) < 1e-6 && Math.abs(b.y - anchor.y) < 1e-6)
+        .map((b) => b.width)
+        .sort((a, b) => a - b);
+      // The middle wrap copy's pair — `anchorOf` is that copy's x.
+      expect(widths).toHaveLength(2);
+      // Six places, not nine: an instance matrix is a `Float32Array`.
+      expect(widths[0]).toBeCloseTo(VIEW3D.hpBar.minFill, 6);
+      expect(widths[1]).toBeCloseTo(VIEW3D.hpBar.width, 6);
     }
+
+    // The floor is a floor, not a rounding: anything the eye can already read is
+    // left exactly where the arithmetic puts it.
+    expect(hpBarFillWidth(0.5)).toBeCloseTo(VIEW3D.hpBar.width * 0.5, 9);
+    // And it never overstates a piece by more than the pip is worth — a bar that
+    // said "a fifth left" over a unit one blow from dying would be worse than no
+    // bar at all.
+    expect(VIEW3D.hpBar.minFill).toBeLessThan(VIEW3D.hpBar.width * 0.07);
+    // Nor can it ever fill the bar it sits in, whatever the number is tuned to.
+    expect(hpBarFillWidth(0)).toBeLessThan(VIEW3D.hpBar.width);
 
     layer.dispose();
     board.dispose();

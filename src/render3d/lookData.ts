@@ -1195,6 +1195,26 @@ export interface HpBarSpec {
   width: number;
   height: number;
   /**
+   * The narrowest the fill is ever *drawn*, in world units. See `hpBarFillWidth`
+   * in `pieces.ts`, which is the one place it is applied.
+   *
+   * The board is orthographic and the camera's default half-frustum is fourteen
+   * world units, so on a nine-hundred-pixel viewport a world unit is about
+   * thirty-two pixels and the whole bar is twenty-one of them. An *exact* fill
+   * for a piece at one hit point of a hundred is therefore two tenths of a
+   * pixel wide — a quad no pixel centre lands inside, which the rasteriser
+   * drops entirely. The backing is a constant width and survives, so what the
+   * player sees is a bar with nothing in it: a living unit drawn as a dead one
+   * (user, 2026-08-28, "the health bar was empty"). The arithmetic was right the
+   * whole time; being right to four decimal places is what made it invisible.
+   *
+   * Under seven per cent of the bar, so the pip never materially overstates how
+   * hurt a piece is — a unit at one point and a unit at seven read alike, and
+   * both read as *nearly dead*, which is the thing the player has to see from
+   * across the board.
+   */
+  minFill: number;
+  /**
    * How far the bar's centre floats above whatever is under it.
    *
    * That used to be the top of the piece and is now the top of the *badge* (see
@@ -2131,6 +2151,7 @@ export const VIEW3D: View3DData = {
   hpBar: {
     width: viewJson.hpBar.width,
     height: viewJson.hpBar.height,
+    minFill: viewJson.hpBar.minFill,
     lift: viewJson.hpBar.lift,
     backColor: parseColor(viewJson.hpBar.backColor, 'hpBar.backColor'),
     fillColor: parseColor(viewJson.hpBar.fillColor, 'hpBar.fillColor'),

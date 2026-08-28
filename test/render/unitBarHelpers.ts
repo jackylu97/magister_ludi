@@ -6,8 +6,11 @@
  * of them — importing a `.test.ts` file re-registers its tests.
  *
  * Two things live here. `barComplaints` is the audit: **every drawn bar belongs
- * to exactly one unit and says that unit's own `hp / maxHp`**, and every unit
- * that should be on the board has one iff it is hurt. `RendererBeat` is the
+ * to exactly one unit and is drawn at that unit's own `hp / maxHp`**, and every
+ * unit that should be on the board has one iff it is hurt. "Drawn at" is
+ * `hpBarFillWidth` rather than the bare product, because the fill has a pip
+ * floor under it — see that function, and the note at the comparison itself.
+ * `RendererBeat` is the
  * orchestration the audit is run through — `Renderer3D`'s `rebuildUnits`,
  * `skipAnimations`, `animateMove`, `stepAnimations` and the `loop`'s fingerprint
  * compare, with the parts that need a canvas removed. A node test cannot build a
@@ -23,7 +26,13 @@ import { hpBarY } from '../../src/render3d/badges3d';
 import { type BoardGeometry, pieceHeightFor } from '../../src/render3d/board3d';
 import { wrapWidth } from '../../src/render3d/layout';
 import { VIEW3D } from '../../src/render3d/lookData';
-import { UnitLayer, placePiece, signUnits, unitStackIndices } from '../../src/render3d/pieces';
+import {
+  UnitLayer,
+  hpBarFillWidth,
+  placePiece,
+  signUnits,
+  unitStackIndices,
+} from '../../src/render3d/pieces';
 import type { MaterialLibrary } from '../../src/render3d/toon';
 import { createMap } from '../../src/sim/map';
 import { makeRng } from '../../src/sim/rng';
@@ -55,11 +64,19 @@ const NEAR = 1e-3;
  */
 const NEAR_Z = 0.05;
 
-/** A blank two-player state on flat grassland, quiet and seeded. */
+/**
+ * A blank two-player state on flat grassland, quiet and seeded.
+ *
+ * The wild is seated (`barbarians: true`) even though nothing here musters one
+ * by itself: a real game always has that third seat, and the fourth bar report
+ * (user, 2026-08-28) was about a blow struck by it. A seat with no units on the
+ * board costs the audit nothing and lets a test raid with `barbarianPlayer`.
+ */
 export function flatState(seed = 1, width = 16, height = 8): GameState {
   const state = newGame({
     seed,
     sizeName: 'duel',
+    barbarians: true,
     players: [
       { name: 'A', color: '#d4502e', isHuman: true },
       { name: 'B', color: '#2e6fd4', isHuman: true },
@@ -205,6 +222,23 @@ export interface BarInstance {
   width: number;
 }
 
+/**
+ * The `InstancedMesh`es the bars are batched into — the *buckets*, not the
+ * instances.
+ *
+ * There should be very few of them and their identity is the point: a backing
+ * bucket and one fill bucket per fill colour, shared by every seat on the board.
+ * A bar that ended up in a bucket of its own per seat, or a fill bucket that
+ * could be culled while its backing was not, would read on screen as exactly the
+ * same complaint — a bar with nothing in it.
+ */
+export function barMeshes(layer: UnitLayer, board: BoardGeometry): InstancedMesh[] {
+  return layer.group.children.filter(
+    (child): child is InstancedMesh =>
+      child instanceof InstancedMesh && child.geometry === board.bar,
+  );
+}
+
 /** Every bar instance still drawn — zero-scaled (hidden) ones excluded. */
 export function barInstances(layer: UnitLayer, board: BoardGeometry): BarInstance[] {
   const out: BarInstance[] = [];
@@ -296,7 +330,13 @@ export function barComplaints(
     if (Math.abs(backing - HP.width) > NEAR) {
       problems.push(`unit ${unit.id} backing is ${backing}, not ${HP.width}`);
     }
-    const want = HP.width * (unit.hp / maxHp);
+    // `hpBarFillWidth`, not `HP.width × fraction`: a fill under the pip floor is
+    // drawn *at* the floor on purpose (see that function — an exactly drawn fill
+    // for a piece at a few points of a hundred is a sub-pixel quad the
+    // rasteriser drops, which is a living unit with an empty bar). The audit
+    // asks the drawing rule the same way it asks `hpBarFill` for the fraction:
+    // two readings of "how wide is this" would be two answers.
+    const want = hpBarFillWidth(unit.hp / maxHp);
     if (Math.abs(fill - want) > NEAR) {
       problems.push(`unit ${unit.id} (${unit.hp}/${maxHp}) fill is ${fill}, want ${want}`);
     }

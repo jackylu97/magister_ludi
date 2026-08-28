@@ -647,14 +647,19 @@ describe('badges in the units layer', () => {
     // Both halves of one badge travel together, or a ring could land between
     // the parchment and the ring of player colour around it.
     expect(rim.renderOrder).toBe(RENDER_ORDER.badge);
-    // A backing and a fill, both over the disc they are stacked on.
+    // A backing and a fill, both over the disc they are stacked on — and the
+    // fill above its own backing, which is its own number (see `RENDER_ORDER`).
     expect(bars).toHaveLength(2);
-    for (const bar of bars) expect(bar.renderOrder).toBe(RENDER_ORDER.hpBar);
+    for (const bar of bars) {
+      expect([RENDER_ORDER.hpBar, RENDER_ORDER.hpBarFill]).toContain(bar.renderOrder);
+      expect(bar.renderOrder).toBeGreaterThan(RENDER_ORDER.badge);
+    }
 
     // The stack itself, in the order the interface reads bottom to top.
     expect(RENDER_ORDER.overlay).toBeLessThan(RENDER_ORDER.onTop);
     expect(RENDER_ORDER.onTop).toBeLessThan(RENDER_ORDER.badge);
     expect(RENDER_ORDER.badge).toBeLessThan(RENDER_ORDER.hpBar);
+    expect(RENDER_ORDER.hpBar).toBeLessThan(RENDER_ORDER.hpBarFill);
     layer.dispose();
     board.dispose();
   });

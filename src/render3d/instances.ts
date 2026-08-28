@@ -123,7 +123,17 @@ export const HIDDEN_MATRIX = new Matrix4().makeScale(0, 0, 0);
  *              its badge along with it (see `badges3d.ts`).
  *   `hpBar`    above the badge it is stacked on, matching where the two actually
  *              sit in the world (`hpBarY`), so the bar cannot be cut in half by
- *              the disc below it.
+ *              the disc below it. This is the bar's dark *backing*.
+ *   `hpBarFill` the coloured half of the same bar, one step above its own
+ *              backing. Two numbers rather than one because the two quads are
+ *              the one place on the board where two `onTop` decals share a
+ *              position exactly: neither tests depth, and both live in
+ *              *instanced* buckets whose `InstancedMesh` sits at the layer's
+ *              group origin. On one number they tied on render order *and* on
+ *              depth, and three settled it on the object id — the order `flush`
+ *              happened to build the buckets in, which came out right and was
+ *              nobody's invariant. On two, the sort never reaches the id, and a
+ *              fill can no longer be painted over by its own backing.
  *
  * They are code, not `view3d.json`: a render order is not a number anybody
  * tunes to taste, it is the statement of which readout wins.
@@ -135,6 +145,7 @@ export const RENDER_ORDER = {
   tileIcon: 21,
   badge: 22,
   hpBar: 23,
+  hpBarFill: 24,
   /**
    * The city screen's vignette (`vignette3d.ts`), and deliberately the last
    * number in this table: it is not a readout competing with the others, it is

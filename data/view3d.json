@@ -439,6 +439,7 @@
   "hpBar": {
     "width": 0.66,
     "height": 0.1,
+    "minFill": 0.045,
     "lift": 0.1,
     "backColor": "#2f2b32",
     "fillColor": "#b35843",
