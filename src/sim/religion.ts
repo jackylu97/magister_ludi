@@ -71,6 +71,7 @@ import {
   cityAt,
   nearestOwnedCity,
   refreshCityDerived,
+  settleBorderWindfall,
   settleGrowthWindfall,
   settlePopulationWindfall,
   settleProductionWindfall,
@@ -420,6 +421,14 @@ export function riteError(
   return null;
 }
 
+/** One thing a rite paid, as a player reads it. See `RitePerformance.grants`. */
+export interface RiteGrantLine {
+  /** "Science", "Culture to the bounds", "Population" — the destination. */
+  label: string;
+  /** The figure paid. Whole, printed, and already what the basket received. */
+  amount: number;
+}
+
 /** What performing a rite did, for the announcement and the chronicle. */
 export interface RitePerformance {
   rite: RiteId;
@@ -436,6 +445,39 @@ export interface RitePerformance {
   augurSpent: boolean;
   /** The turn the lasting half runs out, or `null` for a pure windfall. */
   expiresTurn: number | null;
+  /**
+   * How many turns the blessing runs, amplifiers folded in, or `null` for a
+   * pure windfall.
+   *
+   * `expiresTurn` minus the turn it was stamped on, carried rather than left to
+   * be subtracted by whoever announces it: the row's printed `duration` is *not*
+   * the answer once Chichen Itza is standing, and a caller that quoted the row
+   * would promise twenty turns and deliver thirty.
+   */
+  turns: number | null;
+  /**
+   * What the rite actually paid, one labelled line per destination.
+   *
+   * The `explainUnitCost` shape for the third time: a caller that has to say
+   * what happened folds the list rather than switching on which fields of this
+   * report happen to be non-null. Every figure is the **paid** one — Entry
+   * XVIII.5's printed number, riders folded in by `windfallPayout` before
+   * anything was banked — so an announcement and the basket agree by
+   * construction.
+   *
+   * Empty is impossible for a rite with a grant and ordinary for one that is
+   * pure blessing.
+   */
+  grants: RiteGrantLine[];
+  /**
+   * The tiles a rite's border culture claimed **this instant**, or empty.
+   *
+   * The user's rule (2026-08-27): "should instantaneously add the tile and reset
+   * the counter (with overflow) if it exceeds the culture needed". It is a list
+   * rather than a count because fifteen culture can cover two rungs, and because
+   * the interface wants to know *which* hexes lit up.
+   */
+  bordersClaimed: { col: number; row: number }[];
   /**
    * Wonders this rite's hammers finished, in the order they completed.
    *
@@ -469,6 +511,13 @@ export interface RitePerformance {
  *   4. **the charge is spent**, and an augur that empties is removed from the
  *      board exactly as a worker is. That is the one place the two agents share
  *      a rule rather than a field, and it is deliberate: three acts in a box.
+ *   5. **the rite is the augur's turn** (user, 2026-08-27: "the rite should end
+ *      the augur's turn"). Every remaining movement point is spent, the way an
+ *      attack spends an attacker and a build spends a worker — a rite is the
+ *      day's work, not something a piece does on its way past. In the
+ *      *mechanism* rather than in the reducer, for `buildImprovementAt`'s stated
+ *      reason: an AI that performs one gets it without having to remember. Only
+ *      a surviving augur is written to, because a spent one has left the board.
  */
 export function performRiteAt(
   state: GameState,
@@ -488,8 +537,12 @@ export function performRiteAt(
 
   const left = (unit.chargesLeft ?? 0) - 1;
   const augurSpent = left <= 0;
-  if (augurSpent) removeUnit(state, unit.id);
-  else unit.chargesLeft = left;
+  if (augurSpent) {
+    removeUnit(state, unit.id);
+  } else {
+    unit.chargesLeft = left;
+    unit.movesLeft = 0;
+  }
 
   return {
     rite,
@@ -500,6 +553,9 @@ export function performRiteAt(
     research: paid.research,
     augurSpent,
     expiresTurn,
+    turns: expiresTurn === null ? null : expiresTurn - state.turn,
+    grants: paid.grants,
+    bordersClaimed: paid.bordersClaimed,
     wonders,
   };
 }
@@ -547,6 +603,10 @@ function stampRite(
 interface RiteGrantResult {
   population: number | null;
   research: string | null;
+  /** One labelled line per destination paid. See `RitePerformance.grants`. */
+  grants: RiteGrantLine[];
+  /** Hexes the border culture took on the spot. See `RitePerformance`. */
+  bordersClaimed: { col: number; row: number }[];
   /** Wonders the rite's hammers finished. See `RitePerformance.wonders`. */
   wonders: WonderCompletion[];
 }
@@ -554,7 +614,8 @@ interface RiteGrantResult {
 /**
  * Pays a rite's instant half into the buckets it names.
  *
- * **One arm per destination**, and the destinations are why `RiteGrantSpec` is a
+ * **One arm per destination**, each writing its own labelled line into
+ * `RiteGrantLine[]` as it pays, and the destinations are why `RiteGrantSpec` is a
  * bag of names rather than a bag of yields: a rite's culture fills a *city's
  * border basket* while its science fills the *empire's* research pool, and those
  * are two different channels (Entry XVII) that a `CityYieldKey` could not tell
@@ -572,16 +633,36 @@ function payRiteGrant(
   unit: Unit | null,
 ): RiteGrantResult {
   const grant = def.grant;
-  const result: RiteGrantResult = { population: null, research: null, wonders: [] };
+  const result: RiteGrantResult = {
+    population: null,
+    research: null,
+    grants: [],
+    bordersClaimed: [],
+    wonders: [],
+  };
+  // One line per destination, written beside the payment rather than derived
+  // afterwards from which report fields came back non-null: the arm that knows
+  // what it paid is the arm that says so.
+  const said = (label: string, amount: number): void => {
+    result.grants.push({ label, amount });
+  };
 
-  if (grant.gold !== undefined) player.gold += grant.gold;
-  if (grant.faith !== undefined) player.faithPool += grant.faith;
+  if (grant.gold !== undefined) {
+    player.gold += grant.gold;
+    said('Gold', grant.gold);
+  }
+  if (grant.faith !== undefined) {
+    player.faithPool += grant.faith;
+    said('Faith', grant.faith);
+  }
   if (grant.science !== undefined) {
     player.sciencePool += grant.science;
+    said('Science', grant.science);
     result.research = settleResearchWindfall(state, player)?.name ?? null;
   }
   if (grant.culture !== undefined) {
     player.culturePool += grant.culture;
+    said('Culture', grant.culture);
     settleCultureWindfall(state, player);
   }
   if (grant.healFully === true && unit) unit.hp = unitDef(unit.type).maxHp;
@@ -591,7 +672,21 @@ function payRiteGrant(
       // The border basket, **not** the draft pool: a consecrated boundary walks
       // outward, it does not buy a card. The two are separate channels and this
       // is the one rite that names the quieter one.
+      //
+      // And it is spent **now**. `settleBorderWindfall` is the border bucket's
+      // own completion routine (Entry XVIII's fifth seam) — `expandBorders`'
+      // choice and `expandBorders`' claim, run at the moment of the gift — so a
+      // rite that covers the next rung moves the bounds before the command
+      // returns, with the remainder left banked toward the rung after. A rite
+      // that covers nothing simply adds, which is what it always did.
       city.culture += grant.borderCulture;
+      said("Culture to the bounds", grant.borderCulture);
+      const grew = settleBorderWindfall(state, city);
+      if (grew) {
+        for (const tile of grew.tiles) {
+          result.bordersClaimed.push({ col: tile.col, row: tile.row });
+        }
+      }
       refreshCityDerived(state, city);
     }
     if (grant.production !== undefined) {
@@ -601,13 +696,16 @@ function payRiteGrant(
       // everybody, and `ProductionCompletion.wonder` is the report that says so.
       const done = settleProductionWindfall(state, city);
       if (done?.wonder) result.wonders.push(done.wonder);
+      said('Production', grant.production);
     }
     if (grant.food !== undefined) {
       city.foodBasket += grant.food;
       settleGrowthWindfall(state, city);
+      said('Food', grant.food);
     }
     if (grant.population !== undefined) {
       result.population = settlePopulationWindfall(state, city, grant.population);
+      said('Population', grant.population);
     }
     // Even a rite that granted nothing to this town has changed what it is worth
     // — a lasting tile line was stamped a moment ago — so the panel is re-seated

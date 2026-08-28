@@ -60,8 +60,9 @@
 
 import { BUILDING_IDS, buildingDef, buildingPlural } from './buildingData';
 import { buildingHappiness } from './buildingEffects';
-import { improvementDef, improvementForResource } from './improvementData';
+import { improvementDef } from './improvementData';
 import {
+  type ResourceHolding,
   capitalCityOf,
   controlledHoldings,
   isCoastalCity,
@@ -224,7 +225,7 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   const luxuryBoost = cardAmplifier(state, playerId, 'luxuryHappiness');
   for (const holding of controlledHoldings(state, playerId, 'luxury')) {
     list.push({
-      source: `${resourceDef(holding.id).name} · ${viaWord(holding.id, holding.via)}`,
+      source: `${resourceDef(holding.id).name} · ${viaWord(holding)}`,
       part: 'gain',
       value: Math.floor((rules.perUniqueLuxury * (100 + luxuryBoost)) / 100),
     });
@@ -292,11 +293,18 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   return list;
 }
 
-/** "mine", "city" — how a holding reads on a ledger line. */
-function viaWord(id: Parameters<typeof resourceDef>[0], via: 'improvement' | 'city'): string {
-  if (via === 'city') return 'city';
-  const improvement = improvementForResource(id);
-  return improvement === null ? 'worked' : improvementDef(improvement).name.toLowerCase();
+/**
+ * "mine", "city", "academy" — how a holding reads on a ledger line.
+ *
+ * Asked of the **holding** rather than of the resource table, since the works
+ * opened seams (2026-08-27): iron wants a mine and may be held by an academy, so
+ * a word derived from `improvementForResource` would name the improvement the
+ * player did not build. The holding already carries which one opened it
+ * (`ResourceHolding.improvement`); this only lowercases it.
+ */
+function viaWord(holding: ResourceHolding): string {
+  if (holding.via === 'city' || holding.improvement === null) return 'city';
+  return improvementDef(holding.improvement).name.toLowerCase();
 }
 
 /** The empire's happiness. The fold of `explainHappiness`, and nothing else. */

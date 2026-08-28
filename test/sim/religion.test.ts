@@ -20,11 +20,13 @@ import { describe, expect, it } from 'vitest';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
+  borderCostFor,
   borderGrowth,
   cityYields,
   explainTileYield,
   foldTileYield,
   foundCityAt,
+  nextBorderCost,
   yieldContextFor,
 } from '../../src/sim/cities';
 import { previewCombat } from '../../src/sim/combat';
@@ -814,6 +816,7 @@ describe('rites', () => {
     const city = found(g.state, 0);
     const augur = augurAt(g.state, 0, city.col, city.row);
     const banked = city.culture;
+    const cost = borderCostFor(g.state, city);
     const before = borderGrowth(g.state, city);
 
     dispatch(g, {
@@ -824,9 +827,106 @@ describe('rites', () => {
     } as Command);
 
     // The border basket, not the empire's draft pool: two separate channels.
-    expect(city.culture).toBe(banked + 15);
+    // And it is **spent on the spot** since 2026-08-27 — fifteen culture covers
+    // the first rung, so the tile is taken and the remainder stays banked toward
+    // the next one (`settleBorderWindfall`, the register's entry 14).
+    expect(city.tilesClaimed).toBe(1);
+    expect(city.culture).toBe(banked + 15 - cost);
     const after = borderGrowth(g.state, city);
     expect(after.percent).toBe(before.percent + 30);
+  });
+
+  it('claims two tiles at once when the gift covers two rungs, and carries the rest', () => {
+    // The user's rule read to its end: "reset the counter (with overflow) if it
+    // exceeds the culture needed". Fifteen alone buys one rung; a town that had
+    // already banked toward the next one buys both in the same instant, because
+    // a gift is not accrual and the phase's one-tile-per-turn is a rate limit on
+    // accrual.
+    const g = game();
+    learn(g.state, 0, 'husbandry', 'earthenware', 'stonecraft');
+    const city = found(g.state, 0);
+    const augur = augurAt(g.state, 0, city.col, city.row);
+    const first = borderCostFor(g.state, city);
+    city.culture = first;
+    city.tilesClaimed = 0;
+    const second = nextBorderCost(1);
+
+    dispatch(g, {
+      type: 'performRite',
+      playerId: 0,
+      unitId: augur.id,
+      rite: 'consecrationOfTheBounds',
+    } as Command);
+
+    expect(city.tilesClaimed).toBe(2);
+    expect(city.culture).toBe(first + 15 - first - second);
+  });
+
+  it('merely banks a gift that covers nothing', () => {
+    // The other side of the same rule: a town whose next rung is out of reach
+    // keeps every point, exactly as it did before the seam existed.
+    const g = game();
+    learn(g.state, 0, 'husbandry', 'earthenware', 'stonecraft');
+    const city = found(g.state, 0);
+    const augur = augurAt(g.state, 0, city.col, city.row);
+    // Far up the curve, where fifteen culture is not close to a tile.
+    city.tilesClaimed = 12;
+    city.culture = 0;
+
+    dispatch(g, {
+      type: 'performRite',
+      playerId: 0,
+      unitId: augur.id,
+      rite: 'consecrationOfTheBounds',
+    } as Command);
+
+    expect(city.tilesClaimed).toBe(12);
+    expect(city.culture).toBe(15);
+  });
+
+  it('ends the augur’s turn, the way an attack spends an attacker', () => {
+    // User, 2026-08-27: "the rite should end the augur's turn". A rite is the
+    // day's work, not a thing a piece does on its way past — so a march after
+    // one is refused this turn and allowed the next.
+    const g = game();
+    learn(g.state, 0, 'husbandry', 'earthenware', 'stonecraft');
+    const city = found(g.state, 0);
+    const augur = augurAt(g.state, 0, city.col, city.row);
+    expect(augur.movesLeft).toBeGreaterThan(0);
+
+    dispatch(g, {
+      type: 'performRite',
+      playerId: 0,
+      unitId: augur.id,
+      rite: 'consecrationOfTheBounds',
+    } as Command);
+
+    expect(augur.chargesLeft).toBe(2);
+    expect(augur.movesLeft).toBe(0);
+    expect(
+      applyCommand(g.state, {
+        type: 'moveUnit',
+        playerId: 0,
+        unitId: augur.id,
+        target: { col: city.col + 1, row: city.row },
+      } as Command).ok,
+    ).toBe(false);
+  });
+
+  it('reports what it paid as labelled lines, and how long the blessing runs', () => {
+    // The toast's raw material. Written beside each payment rather than derived
+    // from which report fields came back non-null.
+    const g = game();
+    learn(g.state, 0, 'husbandry', 'earthenware', 'stonecraft');
+    const city = found(g.state, 0);
+    const augur = augurAt(g.state, 0, city.col, city.row);
+    const player = g.state.players[0]!;
+    const done = performRiteAt(g.state, player, augur, 'consecrationOfTheBounds');
+    expect(done.grants).toEqual([{ label: 'Culture to the bounds', amount: 15 }]);
+    expect(done.turns).toBe(riteDef('consecrationOfTheBounds').duration);
+    expect(done.bordersClaimed).toHaveLength(1);
+    expect(done.name).toBe(riteDef('consecrationOfTheBounds').name);
+    expect(done.city).toBe(city);
   });
 
   it('Blessing of Arms heals a unit whole and pays five turns of strength', () => {

@@ -610,6 +610,7 @@ const CLASS_WORD = {
   belief: 'Belief',
   rite: 'Rite',
   wonder: 'Wonder',
+  building: 'Building',
   legacy: 'Legacy',
 } as const;
 
@@ -876,7 +877,47 @@ function timedLive(
  * percentage" true rather than aspirational.
  */
 export function liveCityEffects(state: GameState, city: City): LiveCardEffect[] {
-  return [...liveEffects(state, city.ownerId), ...timedLive(state, city.ownerId, city)];
+  return [
+    ...liveEffects(state, city.ownerId),
+    ...cityBuildingEffects(state, city),
+    ...timedLive(state, city.ownerId, city),
+  ];
+}
+
+/**
+ * The effects the **ordinary buildings standing in this town** contribute.
+ *
+ * `BuildingDef.effects` promised this in so many words — "the day an ordinary
+ * building wants a card effect it fills this in, and the evaluator will not
+ * notice the difference" — and until the aqueduct wanted one (user, 2026-08-27:
+ * "+15% surplus growth in city") the only reader was `liveEffects`' wonder
+ * source, which is gated on `isWonder`. So the promise was half true: a row
+ * could carry effects and nothing would read them.
+ *
+ * It is a source of `liveCityEffects` and **never of `liveEffects`**, and that
+ * is the whole of the rule. A wonder is one per world and its clauses are
+ * written to say which towns they reach (`{ test: 'hasBuilding' }` for "the one
+ * it stands in"), so it belongs to the empire's walk; an ordinary building
+ * stands in every town that built one, and a granary's effect landing on the
+ * empire would be the same effect counted once per granary. The scope *is* the
+ * building — `BuildingDef.cityStat`'s exact bargain one field over — so no row
+ * here needs one and none of them carries one.
+ *
+ * Wonders are skipped rather than repeated: they arrive through `liveEffects`
+ * already, and a wonder read from both ends would pay twice in its own city.
+ */
+function cityBuildingEffects(state: GameState, city: City): LiveCardEffect[] {
+  const list: LiveCardEffect[] = [];
+  const push = (card: CardId, word: string, level: number, effects: readonly CardEffect[]): void => {
+    pushEffects(state, city.ownerId, list, card, word, level, effects, push);
+  };
+  for (const id of city.buildings) {
+    if (isWonder(id)) continue;
+    const effects = buildingDef(id).effects;
+    if (effects === undefined || effects.length === 0) continue;
+    push(id, CLASS_WORD.building, 1, effects);
+  }
+  return list;
 }
 
 /** Every effect reaching **this unit**: its empire's cards, then its own rites. */
@@ -3286,7 +3327,7 @@ const RULE_WORDS: Record<CardRule, string> = {
   tilePurchase: 'the price of buying a tile',
   borderCulture: 'border culture',
   settlerCost: 'the hammers a settler costs',
-  growthSurplus: 'the food surplus a city banks toward growing',
+  growthSurplus: 'food surplus banked toward growth',
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -3524,7 +3565,7 @@ export interface DraftCompletion {
  * draft happens the moment the outstanding one is answered — which the phase
  * does, on the next resolution, with no state of its own to remember it by.
  *
- * A **government** offer is banked at tiers 3/7/15 and does not block anything:
+ * A **government** offer is banked at tiers 4/10/18 and does not block anything:
  * Entry XV makes adoption bankable on purpose, so an empire may climb two tiers
  * holding an unclaimed triple and take it when its slots are worth swapping.
  */

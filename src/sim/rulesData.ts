@@ -448,6 +448,13 @@ export interface CityRules {
    * (`test/cities.test.ts`, "a monument buys three or four tiles by the early
    * game"). Only the *pacing* is Civ 6's; which tile is taken is still this
    * game's best-yield chooser.
+   *
+   * **Less a tenth since 2026-08-27** (user, playtest: "culture cost of adding
+   * new tiles feels a bit slow"), which is 9 · 5.4 · 1.3. The discount is taken
+   * on the two *height* terms and not on the exponent, so the curve keeps its
+   * shape — the tenth tile is a tenth cheaper exactly as the first one is —
+   * rather than flattening out under the empires that expand most. The schedule
+   * is now 9 · 14 · 22 · 31 and the monument band still holds.
    */
   borderCostBase: number;
   borderCostLinear: number;

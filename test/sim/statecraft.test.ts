@@ -130,9 +130,17 @@ describe('the card table', () => {
   it('opens on the one tier-0 government, and offers a fixed triple at each other tier', () => {
     expect(governmentDef(STARTING_GOVERNMENT).tier).toBe(0);
     expect(GOVERNMENT_IDS.filter((id) => governmentDef(id).tier === 0)).toHaveLength(1);
-    // Entry XV: tiers 3 / 7 / 15, each a fixed triple. Read off the rows, so a
-    // fourth government at a tier is a data decision and this notices.
-    expect(GOVERNMENT_TIERS).toEqual([3, 7, 15]);
+    // Entry XV: a fixed triple at each rung. Read off the rows, so a fourth
+    // government at a tier is a data decision and this notices.
+    //
+    // The rungs were 3/7/15 until the pacing retune of 2026-08-27 (user: "I got
+    // to tier 7 on turn 29, not even age 2 yet"). The *ratified* ladder is
+    // 4/10/18/29/45 and is written down whole in `STATECRAFT.tierLadder`; this
+    // list is the live half — the rungs a triple actually exists for — so it is
+    // its first three, and Gov IV's rows will extend it by themselves.
+    expect(GOVERNMENT_TIERS).toEqual([4, 10, 18]);
+    expect(STATECRAFT.tierLadder).toEqual([4, 10, 18, 29, 45]);
+    expect(STATECRAFT.tierLadder.slice(0, GOVERNMENT_TIERS.length)).toEqual([...GOVERNMENT_TIERS]);
     for (const tier of GOVERNMENT_TIERS) {
       expect(governmentsAtTier(tier), `tier ${tier}`).toHaveLength(3);
     }
@@ -302,18 +310,22 @@ describe('the meter', () => {
     expect(player.culturePool).toBeGreaterThanOrEqual(draftCost(1));
   });
 
-  it('banks a government offer at 3, 7 and 15 without blocking the turn', () => {
+  it('banks a government offer at the ladder’s rungs without blocking the turn', () => {
     const g = game();
     const player = g.state.players[0]!;
-    for (let tier = 1; tier <= 3; tier++) {
+    // Climbed to the *first rung*, whatever it is, rather than to a number
+    // written here: the ladder is a pacing dial (4/10/18 since 2026-08-27) and a
+    // test that restated it would fail the retune instead of checking it.
+    const rung = GOVERNMENT_TIERS[0]!;
+    for (let tier = 1; tier <= rung; tier++) {
       player.culturePool = draftCost(player.statecraft.drafts);
       settleCultureWindfall(g.state, player);
       dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command);
     }
-    expect(player.statecraft.drafts).toBe(3);
+    expect(player.statecraft.drafts).toBe(rung);
     expect(player.statecraft.pendingGovernment).toEqual({
-      tier: 3,
-      options: governmentsAtTier(3),
+      tier: rung,
+      options: governmentsAtTier(rung),
     });
     // Bankable by design (Entry XV): it does not block End Turn.
     expect(statecraftBlocker(player)).toBeNull();
@@ -572,9 +584,12 @@ describe('seals', () => {
 // --- adoption ---------------------------------------------------------------
 
 describe('adoption', () => {
-  function toTier3(g: ReturnType<typeof game>) {
+  /** Climbs to the ladder's **first rung**, whatever the pacing dial says it is. */
+  const FIRST_RUNG = GOVERNMENT_TIERS[0]!;
+
+  function toFirstRung(g: ReturnType<typeof game>) {
     const player = g.state.players[0]!;
-    for (let tier = 1; tier <= 3; tier++) {
+    for (let tier = 1; tier <= FIRST_RUNG; tier++) {
       player.culturePool = draftCost(player.statecraft.drafts);
       settleCultureWindfall(g.state, player);
       dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command);
@@ -584,7 +599,7 @@ describe('adoption', () => {
 
   it('swaps the spread, amnesties every seal, and opens a Doctrine draft', () => {
     const g = game();
-    const player = toTier3(g);
+    const player = toFirstRung(g);
     const sc = player.statecraft;
     // Slot something and seal it hard.
     grant(sc, 'bloodedSpears');
@@ -605,7 +620,7 @@ describe('adoption', () => {
     expect(sc.pendingDoctrine!.options).toHaveLength(3);
     expect(new Set(sc.pendingDoctrine!.options).size).toBe(3);
     for (const id of sc.pendingDoctrine!.options) {
-      expect(poolDoctrines(3), id).toContain(id);
+      expect(poolDoctrines(FIRST_RUNG), id).toContain(id);
     }
     expect(statecraftBlocker(player)).toBe('a Doctrine draft is waiting');
 
@@ -616,7 +631,7 @@ describe('adoption', () => {
 
   it('opens the next Order pool on adoption', () => {
     const g = game();
-    const player = toTier3(g);
+    const player = toFirstRung(g);
     expect(poolOfGovernment(player.statecraft.government)).toBe('chiefdom');
     dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 } as Command);
     expect(poolOfGovernment(player.statecraft.government)).toBe('governmentI');
@@ -630,15 +645,15 @@ describe('adoption', () => {
 
   it('banks the offer until it is claimed', () => {
     const g = game();
-    const player = toTier3(g);
+    const player = toFirstRung(g);
     // Climb three more tiers without adopting.
     for (let i = 0; i < 3; i++) {
       player.culturePool = draftCost(player.statecraft.drafts);
       settleCultureWindfall(g.state, player);
       dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command);
     }
-    expect(player.statecraft.drafts).toBe(6);
-    expect(player.statecraft.pendingGovernment!.tier).toBe(3);
+    expect(player.statecraft.drafts).toBe(FIRST_RUNG + 3);
+    expect(player.statecraft.pendingGovernment!.tier).toBe(FIRST_RUNG);
     expect(dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 } as Command).ok).toBe(true);
   });
 

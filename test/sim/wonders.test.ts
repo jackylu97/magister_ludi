@@ -50,6 +50,7 @@ import {
   anyCardDef,
   cardCityYields,
   cardPurchaseRiders,
+  cardRulePercent,
   cardTileLines,
   describeCard,
   liveCityEffects,
@@ -67,7 +68,9 @@ import { unitDef } from '../../src/sim/unitData';
 import { GOVERNMENT_IDS, governmentDef, poolDoctrines } from '../../src/sim/statecraftData';
 import { findPath, moveProfile, reachableTiles, stepCost, zocField } from '../../src/sim/pathfind';
 import { fullMovement } from '../../src/sim/units';
-import { claimTile, ownedTiles } from '../../src/sim/cities';
+import { cityResources, claimTile, ownedTiles } from '../../src/sim/cities';
+import { RESOURCE_IDS, resourceDef } from '../../src/sim/resourceData';
+import { improvementForResource } from '../../src/sim/improvementData';
 
 /** A combat forecast, or a loud failure. `previewCombat` answers one or a refusal. */
 function forecastOf(state: GameState, attackerId: number, tile: { col: number; row: number }) {
@@ -858,21 +861,35 @@ describe('the new counts', () => {
     raise(g.state, city, 'templeOfArtemis');
     const bare = happinessOf(g.state, 0);
 
-    // A wheat field inside the temple's own borders…
+    // A seam the town does not already hold, chosen off the table rather than
+    // written here: the count is of *kinds*, and a capital planted on wheat
+    // already holds wheat, so a hard-coded one would be a test that measures
+    // where the start scorer put the settler.
+    const already = new Set(cityResources(g.state, city, 'bonus'));
+    const fresh = RESOURCE_IDS.filter(
+      (id) => resourceDef(id).kind === 'bonus' && !already.has(id) && improvementForResource(id),
+    )[0]!;
     const mine = ownedTiles(g.state, city).find(
       (tile) => tile.col !== city.col || tile.row !== city.row,
     )!;
-    mine.resource = 'wheat';
-    mine.improvement = 'farm';
+    mine.resource = fresh;
+    mine.improvement = improvementForResource(fresh)!;
     expect(happinessOf(g.state, 0)).toBe(bare + 1);
 
     // …and one in somebody else's, which is not this city's ground and pays
     // this city nothing.
+    const theirsKind = RESOURCE_IDS.filter(
+      (id) =>
+        resourceDef(id).kind === 'bonus' &&
+        id !== fresh &&
+        !already.has(id) &&
+        improvementForResource(id),
+    )[0]!;
     const theirs = ownedTiles(g.state, other).find(
       (tile) => tile.col !== other.col || tile.row !== other.row,
     )!;
-    theirs.resource = 'cattle';
-    theirs.improvement = 'pasture';
+    theirs.resource = theirsKind;
+    theirs.improvement = improvementForResource(theirsKind)!;
     expect(happinessOf(g.state, 0)).toBe(bare + 1);
   });
 
@@ -950,6 +967,69 @@ describe('the growth channel', () => {
 
     raise(g.state, city, 'hangingGardens');
     expect(growthSurplus(g.state, city, yields)).toBe(Math.floor(bare * 1.25));
+  });
+});
+
+// --- an ordinary building's effects -----------------------------------------
+
+/**
+ * `BuildingDef.effects` said the day would come — "the day an ordinary building
+ * wants a card effect it fills this in, and the evaluator will not notice the
+ * difference" — and until the aqueduct wanted one (user, 2026-08-27: "change
+ * aqueduct: +15% surplus growth in city") the promise was half true: a row could
+ * carry effects and the only reader, `liveEffects`' wonder source, was gated on
+ * `isWonder`.
+ *
+ * The half that had to be decided rather than lifted is **scope**. A wonder is
+ * one per world and belongs to the empire's walk; a granary stands in every town
+ * that built one, so an ordinary row's effects are a source of `liveCityEffects`
+ * and of nothing else. These two tests are that sentence in both directions.
+ */
+describe('an ordinary building carries card effects, in its own town only', () => {
+  it('pays the town it stands in', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const yields = { ...emptyCityYields(), food: 10 };
+    const bare = growthSurplus(g.state, city, yields);
+
+    city.buildings.push('aqueduct');
+    expect(growthSurplus(g.state, city, yields)).toBe(Math.floor(bare * 1.15));
+    // And it is an ordinary line of the ordinary ledger, labelled by its class.
+    const line = cardRulePercent(g.state, 0, 'growthSurplus', city).find(
+      (entry) => entry.card === 'aqueduct',
+    );
+    expect(line?.percent).toBe(15);
+    expect(line?.source).toBe('Building · Aqueduct');
+  });
+
+  it('pays no other town, and nothing empire-wide', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const other = foundCityAt(g.state, 0, at(g.state.map, city.col + 4, city.row));
+    const yields = { ...emptyCityYields(), food: 10 };
+    const bare = growthSurplus(g.state, other, yields);
+
+    city.buildings.push('aqueduct');
+    expect(growthSurplus(g.state, other, yields)).toBe(bare);
+    expect(cardRulePercent(g.state, 0, 'growthSurplus', other)).toHaveLength(0);
+    // The empire's own walk never sees it: `liveEffects` is the law, and a
+    // building is not law.
+    expect(cardRulePercent(g.state, 0, 'growthSurplus')).toHaveLength(0);
+    expect(liveEffects(g.state, 0).some((e) => e.card === 'aqueduct')).toBe(false);
+    expect(liveCityEffects(g.state, city).some((e) => e.card === 'aqueduct')).toBe(true);
+  });
+
+  it('does not read a wonder twice, from the empire and from its own town', () => {
+    // The one thing the new source could get wrong: a wonder arrives through
+    // `liveEffects` already, so counting it again here would pay it double in
+    // the city it stands in.
+    const g = game();
+    const city = found(g.state, 0);
+    raise(g.state, city, 'hangingGardens');
+    const lines = cardRulePercent(g.state, 0, 'growthSurplus', city).filter(
+      (entry) => entry.card === 'hangingGardens',
+    );
+    expect(lines).toHaveLength(1);
   });
 });
 

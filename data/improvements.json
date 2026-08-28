@@ -8,6 +8,15 @@
         "production": 20,
         "gold": 0
       }
+    },
+    "jungle": {
+      "tech": "bronzeWorking",
+      "chargeCost": 1,
+      "yields": {
+        "food": 0,
+        "production": 20,
+        "gold": 0
+      }
     }
   },
   "improvements": {
@@ -35,6 +44,10 @@
         "floodplain"
       ],
       "requiresHills": false,
+      "hillsIf": [
+        "freshwater",
+        "ownResource"
+      ],
       "improvesResource": [
         "wheat",
         "rice",
@@ -239,6 +252,22 @@
         }
       ]
     },
+    "lumbermill": {
+      "name": "Lumbermill",
+      "emoji": "🪵",
+      "chargeCost": 1,
+      "requiresTech": "construction",
+      "yields": {
+        "food": 0,
+        "production": 1,
+        "gold": 0
+      },
+      "validFeatures": [
+        "forest",
+        "jungle"
+      ],
+      "clearsClutter": false
+    },
     "academy": {
       "name": "Academy",
       "emoji": "📜",
@@ -250,20 +279,6 @@
         "gold": 0,
         "science": 3
       },
-      "validTerrain": [
-        "grassland",
-        "plains",
-        "desert",
-        "tundra",
-        "snow"
-      ],
-      "validFeatures": [
-        "none",
-        "forest",
-        "jungle",
-        "oasis",
-        "floodplain"
-      ],
       "clearsClutter": true
     },
     "landmark": {
@@ -277,20 +292,6 @@
         "gold": 0,
         "culture": 3
       },
-      "validTerrain": [
-        "grassland",
-        "plains",
-        "desert",
-        "tundra",
-        "snow"
-      ],
-      "validFeatures": [
-        "none",
-        "forest",
-        "jungle",
-        "oasis",
-        "floodplain"
-      ],
       "clearsClutter": true
     },
     "manufactory": {
@@ -303,20 +304,6 @@
         "production": 3,
         "gold": 0
       },
-      "validTerrain": [
-        "grassland",
-        "plains",
-        "desert",
-        "tundra",
-        "snow"
-      ],
-      "validFeatures": [
-        "none",
-        "forest",
-        "jungle",
-        "oasis",
-        "floodplain"
-      ],
       "clearsClutter": true
     },
     "customsHouse": {
@@ -329,20 +316,6 @@
         "production": 0,
         "gold": 3
       },
-      "validTerrain": [
-        "grassland",
-        "plains",
-        "desert",
-        "tundra",
-        "snow"
-      ],
-      "validFeatures": [
-        "none",
-        "forest",
-        "jungle",
-        "oasis",
-        "floodplain"
-      ],
       "clearsClutter": true
     },
     "citadel": {
@@ -355,20 +328,6 @@
         "production": 0,
         "gold": 0
       },
-      "validTerrain": [
-        "grassland",
-        "plains",
-        "desert",
-        "tundra",
-        "snow"
-      ],
-      "validFeatures": [
-        "none",
-        "forest",
-        "jungle",
-        "oasis",
-        "floodplain"
-      ],
       "clearsClutter": true,
       "defense": 8,
       "claimsNeighbours": true

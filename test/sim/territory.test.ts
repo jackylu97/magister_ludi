@@ -141,7 +141,11 @@ describe('the border cost curve', () => {
     // The one place a border number is written down rather than derived: these
     // four are the schedule the tuning claim below is measured on, and a
     // designer who retunes the curve should have to come here and say so.
-    expect([0, 1, 2, 3].map(nextBorderCost)).toEqual([10, 16, 24, 35]);
+    //
+    // Said, 2026-08-27: the whole curve came down 10% (user — "culture cost of
+    // adding new tiles feels a bit slow"), which is `borderCostBase` 10 → 9 and
+    // `borderCostLinear` 6 → 5.4. It was [10, 16, 24, 35].
+    expect([0, 1, 2, 3].map(nextBorderCost)).toEqual([9, 14, 22, 31]);
   });
 
   it('counts expansions, not owned tiles: the founding ring is free', () => {
@@ -166,9 +170,12 @@ describe('a monument buys three or four tiles by the early game', () => {
    * palace 4 + monument 1 − a free capital = +5, which is the first bonus rung.
    *
    * The arithmetic that follows, and which the run below has to reproduce:
-   * banking 3 a turn against 10 · 16 · 24 · 35 claims the first tile on turn 4
-   * with 2 over, the second on turn 9, the third on turn 17 and the fourth on
-   * turn 29. A real capital spends its opening five or six turns building the
+   * banking 3 a turn against 9 · 14 · 22 · 31 (the curve came down 10% on
+   * 2026-08-27) claims the first tile on turn 3 exactly, the second on turn 8,
+   * the third on turn 15 and the fourth on turn 26. It was 4 · 9 · 17 · 29
+   * against 10 · 16 · 24 · 35, so the whole schedule slid about two turns
+   * earlier and the band below still holds — which is the point of measuring a
+   * band rather than a number. A real capital spends its opening five or six turns building the
    * monument, which slides the whole schedule later by about that much and lands
    * the *third* tile inside the window instead — which is why the assertion is a
    * band of 3–4 across turns 25–30 rather than a number.
@@ -201,7 +208,7 @@ describe('a monument buys three or four tiles by the early game', () => {
     }
 
     // The schedule the docblock works out by hand, reproduced by the pipeline.
-    expect(claimedOn.slice(0, 4)).toEqual([4, 9, 17, 29]);
+    expect(claimedOn.slice(0, 4)).toEqual([3, 8, 15, 26]);
 
     // And the claim the user asked for, as a band over the window: three or
     // four tiles on every turn from 25 to 30. Read off the same schedule so

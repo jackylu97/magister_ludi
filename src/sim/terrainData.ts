@@ -30,14 +30,21 @@
  *
  *     base      = terrains[terrain].yield
  *     withHills = hills ? hills.yieldOverride : base
- *     effective = hills ? withHills : (features[feature].yieldOverride ?? base)
+ *     effective = features[feature].yieldOverride ?? withHills
  *
- * which is to say: hills win outright, a feature replaces the terrain, and bare
- * terrain is the fallback. A forested hill is 0/2/0 (the hill), a forested
- * grassland is 1/1/0 (the forest), a bare grassland is 2/0/0 (the terrain).
- * That is the Civ V rule — a hill is a hill whatever grows on it — and it is
- * the one place the yield algebra differs from the movement algebra, which
- * *adds* the hills term instead.
+ * which is to say: the hill replaces the terrain, the **canopy replaces the
+ * hill**, and bare terrain is the fallback. A forested hill is 1/1/0 (the
+ * forest), a forested grassland is 1/1/0 (the forest), a bare hill is 0/2/0 and
+ * a bare grassland is 2/0/0.
+ *
+ * The canopy used to lose (user, 2026-08-27: "if jungle or forest is on a hills
+ * tile, the jungle/forest yield should take precedence"), which was the Civ V
+ * reading — a hill is a hill whatever grows on it. The reason to prefer the
+ * feature is that it is the more specific fact about what a citizen *does*
+ * there: a forested hill is worked by foresters, and hills-win turned every
+ * jungle hill into a mine with trees on it. It remains the one place the yield
+ * algebra differs from the movement algebra, which *adds* the hills term
+ * instead — only the winner changed, not the shape.
  *
  * The ground still only ever pays those three; the other three voices a
  * `TileYield` now carries (science, culture, faith) come from what sits *on* it,
@@ -374,14 +381,20 @@ export function isWorkableTerrain(id: TerrainId): boolean {
  * Takes the three fields rather than a `Tile` for the same reason `moveCost`
  * does: this module stays a pure data accessor that the board does not depend
  * on. See the module docblock for how the three tables combine — every step is
- * an override, and hills win outright.
+ * an override, and the last one written wins: the hill over the terrain, and the
+ * canopy over the hill.
+ *
+ * The **second** implementation of that order, and it is allowed to exist only
+ * because it is the pure one: `explainTileYield` (`cities.ts`) is the game's
+ * answer and this is the table's, kept in step by
+ * `test/sim/cities.test.ts` asserting the two agree on every combination.
  *
  * Returns a fresh object every call (`readTileYield` builds one). The tables are
  * shared module state and a caller that summed into one would retune the game.
  */
 export function tileYield(terrain: TerrainId, feature: FeatureId, hills: boolean): TileYield {
-  const source = hills
+  const ground = hills
     ? TERRAIN_DATA.hills.yieldOverride
-    : (TERRAIN_DATA.features[feature].yieldOverride ?? TERRAIN_DATA.terrains[terrain].yield);
-  return readTileYield(source);
+    : TERRAIN_DATA.terrains[terrain].yield;
+  return readTileYield(TERRAIN_DATA.features[feature].yieldOverride ?? ground);
 }

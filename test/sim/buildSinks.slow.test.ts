@@ -195,12 +195,30 @@ describe('what the pass did to the opening', () => {
      *
      * A band on both sides, for `statecraftPacing.test.ts`'s reason. The lower
      * bound is what stops a later retune quietly making units free again.
+     *
+     * **Re-measured 2026-08-27: 12 units, same 3 cities.** The roster prices did
+     * not move; the *ground* did, in three deliberate ways in one pass, and each
+     * one hands this empire more hammers per turn:
+     *
+     *   · `bonusPer1000LandTiles` 85 → 110 and `seaFrequencyMultiplier` 1.35 —
+     *     the user asked for "more bonus and fishing resource to enable wide
+     *     coastal play", so a worked tile is simply worth more than it was;
+     *   · the border curve came down a tenth (9 · 5.4 · 1.3), so a town reaches
+     *     the ground it wants a couple of turns earlier at every rung;
+     *   · a forested or jungled hill now pays the canopy rather than the hill,
+     *     which moves the *start scorer* and so moves where this script settles.
+     *
+     * The band is re-drawn around the new figure rather than the claim being
+     * dropped: what this test is for is that a later change to *prices* cannot
+     * silently make units free again, and that claim is unaffected by the ground
+     * being richer. The technology count is a floor now for the same reason —
+     * the tree gets wider from time to time and this test is not about the tree.
      */
     expect(game.state.turn).toBe(41);
     expect(game.state.cities.length).toBe(3);
-    expect(mine.length).toBeGreaterThanOrEqual(5);
-    expect(mine.length).toBeLessThanOrEqual(7);
-    expect(game.state.players[0]!.techsResearched.length).toBe(10);
+    expect(mine.length).toBeGreaterThanOrEqual(10);
+    expect(mine.length).toBeLessThanOrEqual(14);
+    expect(game.state.players[0]!.techsResearched.length).toBeGreaterThanOrEqual(10);
   }, 120_000);
 
 });

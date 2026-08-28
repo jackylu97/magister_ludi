@@ -13,6 +13,7 @@ import {
   expandBorders,
   explainCentreYield,
   explainCityBuildings,
+  explainTileYield,
   foldTileYield,
   foundCityAt,
   foundingError,
@@ -68,7 +69,13 @@ import { chopYield } from '../../src/sim/improvementData';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { RESOURCE_IDS, resourceYield } from '../../src/sim/resourceData';
-import { TILE_YIELD_KEYS, readTileYield, tileYield } from '../../src/sim/terrainData';
+import {
+  FEATURE_IDS,
+  TERRAIN_IDS,
+  TILE_YIELD_KEYS,
+  readTileYield,
+  tileYield,
+} from '../../src/sim/terrainData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -143,11 +150,41 @@ describe('tile yield algebra', () => {
     expect(tileYield('desert', 'jungle', false)).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
-  it('lets hills win over both the terrain and the feature', () => {
+  it('lets a hill win over the terrain, and the canopy win over the hill', () => {
+    // The order changed on 2026-08-27 (user: "if jungle or forest is on a hills
+    // tile, the jungle/forest yield should take precedence"). A bare hill is
+    // still a hill; a wooded one is worked by foresters, and hills-win had been
+    // quietly turning every jungle hill into a mine.
     const hill = readTileYield({ food: 0, production: 2, gold: 0 });
     expect(tileYield('grassland', 'none', true)).toEqual(hill);
-    expect(tileYield('grassland', 'forest', true)).toEqual(hill);
-    expect(tileYield('desert', 'jungle', true)).toEqual(hill);
+    expect(tileYield('grassland', 'forest', true)).toEqual(
+      tileYield('grassland', 'forest', false),
+    );
+    expect(tileYield('desert', 'jungle', true)).toEqual(tileYield('desert', 'jungle', false));
+    // Only a feature with an override of its own takes the hill's place —
+    // `none` is the absence of a feature and leaves the hill standing.
+    expect(tileYield('desert', 'none', true)).toEqual(hill);
+  });
+
+  it('agrees with explainTileYield on every combination — one algebra, two readings', () => {
+    // `tileYield` is the table's pure answer and `explainTileYield` is the
+    // game's; the second is the one that pays a citizen, and the first exists so
+    // a caller with three fields and no `Tile` can ask. This is what keeps them
+    // from drifting the next time the override order moves.
+    for (const terrain of TERRAIN_IDS) {
+      for (const feature of FEATURE_IDS) {
+        for (const hills of [false, true]) {
+          const map = createMap({ width: 3, height: 3, terrain });
+          const tile = map.tiles[4]!;
+          tile.feature = feature;
+          tile.hills = hills;
+          expect(
+            foldTileYield(explainTileYield(tile)),
+            `${terrain}/${feature}/${hills ? 'hills' : 'flat'}`,
+          ).toEqual(tileYield(terrain, feature, hills));
+        }
+      }
+    }
   });
 
   it('hands out a fresh object, so a caller cannot retune the tables', () => {
@@ -1940,14 +1977,17 @@ describe('borders', () => {
         Math.floor(c.borderCostBase + c.borderCostLinear * claimed ** c.borderCostExponent),
       );
     }
-    // Civ 6's own numbers (10 · 6 · 1.3): the first tile beyond the founding
-    // ring is 10 culture, the second 16, the third 24, the fourth 35 — the
-    // schedule the monument band below is measured against.
-    expect(nextBorderCost(0)).toBe(10);
-    expect(nextBorderCost(1)).toBe(16);
-    expect(nextBorderCost(2)).toBe(24);
-    expect(nextBorderCost(3)).toBe(35);
-    expect(nextBorderCost(4)).toBe(46);
+    // Civ 6's own numbers (10 · 6 · 1.3) less a tenth (9 · 5.4 · 1.3, retuned
+    // 2026-08-27 — "culture cost of adding new tiles feels a bit slow"): the
+    // first tile beyond the founding ring is 9 culture, the second 14, the third
+    // 22, the fourth 31 — the schedule the monument band in `territory.test.ts`
+    // is measured against. The exponent did **not** move, so the shape of the
+    // curve is unchanged and only its height came down.
+    expect(nextBorderCost(0)).toBe(9);
+    expect(nextBorderCost(1)).toBe(14);
+    expect(nextBorderCost(2)).toBe(22);
+    expect(nextBorderCost(3)).toBe(31);
+    expect(nextBorderCost(4)).toBe(41);
     // Each tile costs more than the last.
     for (let claimed = 0; claimed < 12; claimed++) {
       expect(nextBorderCost(claimed + 1)).toBeGreaterThan(nextBorderCost(claimed));
@@ -2290,6 +2330,10 @@ describe('the mid-turn refresh register', () => {
     { file: 'improvements.ts', fn: 'pillageAt' },
     { file: 'improvements.ts', fn: 'chopFeatureAt' },
     { file: 'cities.ts', fn: 'foundCityAt' },
+    // The border bucket's own settlement (2026-08-27): culture poured into a
+    // *town's bounds* claims its ground on the spot, and the hex it takes is a
+    // hex a citizen may now be sent to.
+    { file: 'cities.ts', fn: 'settleBorderWindfall' },
     // The trade verbs: a route's food and hammers are lines of the *origin's*
     // yields, so the town is richer the turn a caravan sets out and poorer the
     // turn its route ends.

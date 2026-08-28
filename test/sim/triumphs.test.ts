@@ -26,7 +26,7 @@ import { getTileAt } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, createUnit } from '../../src/sim/state';
 import { adoptGovernmentAt } from '../../src/sim/statecraft';
-import { governmentsAtTier } from '../../src/sim/statecraftData';
+import { GOVERNMENT_TIERS, governmentsAtTier } from '../../src/sim/statecraftData';
 import { previewCombat } from '../../src/sim/combat';
 import { settleBeliefChoice } from '../../src/sim/religion';
 import { BELIEF_IDS } from '../../src/sim/religionData';
@@ -230,7 +230,10 @@ describe('the seams', () => {
   it('a government adopted, from inside adoptGovernmentAt', () => {
     const g = game();
     const player = g.state.players[0]!;
-    player.statecraft.pendingGovernment = { tier: 3, options: governmentsAtTier(3) };
+    // The ladder's first rung, read off the rows: it moved 3 → 4 in the pacing
+    // retune of 2026-08-27 and `governmentsAtTier(3)` is now empty.
+    const rung = GOVERNMENT_TIERS[0]!;
+    player.statecraft.pendingGovernment = { tier: rung, options: governmentsAtTier(rung) };
     adoptGovernmentAt(g.state, player, 0);
     expect(count(g.state, 0, 'writExtends')).toBe(1);
   });

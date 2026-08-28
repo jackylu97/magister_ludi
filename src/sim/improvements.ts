@@ -98,6 +98,8 @@ import {
   type TileYield,
   emptyTileYield,
   featureDef,
+  isWaterTerrain,
+  terrainDef,
 } from './terrainData';
 import { unitDef } from './unitData';
 import { hasFreshWater } from './water';
@@ -142,12 +144,27 @@ export function chargesLeft(unit: Unit): number {
  * facts about the *ground*, not about the improvement:
  *
  *   · **`freshwaterTerrain` widens `validTerrain` on ground that can drink** —
- *     the one seam in the AND, and the only reason a farm reaches a riverside
+ *     the first seam in the AND, and the only reason a farm reaches a riverside
  *     desert. See the field's docblock for why it is a union rather than a
  *     fifth filter.
+ *   · **`hillsIf` waives `requiresHills` on ground that has a reason** — the
+ *     second seam, and the only reason a farm reaches a hill. See
+ *     `hillsWaived`; the refusal a dry, bare hill gets is the one it always
+ *     got.
  *   · **A seam claims its own hex.** A resource some improvement opens will take
  *     that improvement and no other, so the wrong one is refused by name. See
  *     the clause; it is `chopErrorAt`'s protection rule read forwards.
+ *
+ * And one row is excused nearly all of it. **A great person's work stands
+ * anywhere its planter can stand** (user, 2026-08-27), so a row carrying
+ * `greatPerson` skips the four ground filters *and* the seam clause and is asked
+ * one question instead: is this ground somewhere a piece could come to rest —
+ * not water, not impassable. That is not a loosening of the constraint shape, it
+ * is the observation that a work's constraint was never the ground: it is the
+ * person, who exists once, arrives by an offer nobody can farm, and is spent
+ * planting it. The seam exemption is the visible half of the same decision — a
+ * citadel on an iron hill is not a mistake a player discovers three turns later,
+ * it is a citadel on an iron hill, and `openedResource` hands over the iron.
  */
 export function improvementErrorAt(
   state: GameState,
@@ -175,7 +192,25 @@ export function improvementErrorAt(
     return `${where} already has a ${def.name.toLowerCase()}`;
   }
 
-  if (def.validTerrain !== undefined && !def.validTerrain.includes(tile.terrain)) {
+  // **The work's exemption**, asked once and read by every clause below. See the
+  // docblock: presence of `greatPerson` is the marker, exactly as it is in
+  // `improvementError`'s symmetric clause, so nothing here names an id.
+  const anywhere = def.greatPerson !== undefined;
+  if (anywhere) {
+    // The one question a work is still asked, and it is about *standing* rather
+    // than about the row: a civilian who holds Sailing may be embarked on the
+    // coast (Entry XXVII), and an academy floating on the water would be a
+    // building nobody could have walked to. Impassable ground is the same
+    // question read off the terrain table rather than off a list here — the
+    // mountain is the only one today and a second one inherits this for free.
+    if (isWaterTerrain(tile.terrain)) {
+      return `A ${def.name.toLowerCase()} cannot be built on water`;
+    }
+    if (terrainDef(tile.terrain).moveCost === null) {
+      return `A ${def.name.toLowerCase()} cannot be built on ${tile.terrain}`;
+    }
+  }
+  if (!anywhere && def.validTerrain !== undefined && !def.validTerrain.includes(tile.terrain)) {
     // The one seam in the AND: `freshwaterTerrain` *widens* the list on ground
     // that can drink (user, 2026-08-26 — a riverside desert or tundra takes a
     // farm; grassland and plains never needed the water). Two refusals, and the
@@ -188,15 +223,20 @@ export function improvementErrorAt(
       return `A ${def.name.toLowerCase()} on ${tile.terrain} needs fresh water`;
     }
   }
-  if (def.validFeatures !== undefined && !def.validFeatures.includes(tile.feature)) {
+  if (!anywhere && def.validFeatures !== undefined && !def.validFeatures.includes(tile.feature)) {
     return `A ${def.name.toLowerCase()} cannot be built in ${tile.feature}`;
   }
-  if (def.requiresHills !== undefined && def.requiresHills !== tile.hills) {
+  if (
+    !anywhere &&
+    def.requiresHills !== undefined &&
+    def.requiresHills !== tile.hills &&
+    !hillsWaived(state, ownerId, tile, improvementId)
+  ) {
     return def.requiresHills
       ? `A ${def.name.toLowerCase()} needs hills`
       : `A ${def.name.toLowerCase()} needs flat ground`;
   }
-  if (def.requiresResource !== undefined) {
+  if (!anywhere && def.requiresResource !== undefined) {
     if (tile.resource === undefined || !def.requiresResource.includes(tile.resource)) {
       return `A ${def.name.toLowerCase()} needs a resource it can work`;
     }
@@ -217,11 +257,16 @@ export function improvementErrorAt(
   //     the map through an error message.
   //   · **A bonus resource nothing improves stays free** — `improvementForResource`
   //     answers `null` for it, and bare ground is bare ground.
+  //   · **A great person's work is exempt** (`anywhere`, above). The seam rule
+  //     protects a player from spending a *charge* on the wrong thing, and a
+  //     work is not a charge — it is a person. And since 2026-08-27 the work
+  //     opens the seam it stands on anyway (`openedResource`), so refusing it
+  //     here would be refusing the player the very thing the rule protects.
   //
   // It is not a trap door: an improvement *replaces* whatever stands on the tile
   // (see `buildImprovementAt`), so a farm laid over an unrevealed seam is
   // recoverable the day the seam is named.
-  if (tile.resource !== undefined) {
+  if (!anywhere && tile.resource !== undefined) {
     const owningPlayer = playerById(state, ownerId);
     const wanted = improvementForResource(tile.resource);
     if (
@@ -246,6 +291,45 @@ export function improvementErrorAt(
   // "the only thing refusing this is the technology" is exactly
   // `improvementErrorAt(…) === improvementTechError(…)`.
   return improvementTechError(state, ownerId, improvementId);
+}
+
+/**
+ * Is this row's `requiresHills` waived on this tile? The second seam in the AND.
+ *
+ * The *reasons* live on the row (`ImprovementDef.hillsIf`) and are evaluated
+ * here, in one place, so a second improvement that wants a terraced hillside is
+ * a JSON edit. Neither reason is about the improvement: one asks whether the
+ * ground can drink, the other whether the ground is already this improvement's
+ * own seam — "wheat on a hill wants a farm and can take nothing else, so
+ * refusing the farm makes it unimprovable" (user, 2026-08-27).
+ *
+ * `ownResource` asks **revealed** seams only, which is the seam clause's rule a
+ * few lines down and is here for that rule's reason: a hill that quietly became
+ * farmable would be the map leaking through a button. No farm-opened resource is
+ * tech-gated today, so the clause changes nothing now and cannot leak later.
+ */
+function hillsWaived(
+  state: GameState,
+  ownerId: number,
+  tile: Tile,
+  improvementId: ImprovementId,
+): boolean {
+  const waivers = improvementDef(improvementId).hillsIf;
+  if (waivers === undefined) return false;
+  for (const waiver of waivers) {
+    if (waiver === 'freshwater' && hasFreshWater(tile)) return true;
+    if (waiver === 'ownResource' && tile.resource !== undefined) {
+      const owner = playerById(state, ownerId);
+      if (
+        improvementForResource(tile.resource) === improvementId &&
+        owner !== undefined &&
+        resourceIsVisibleTo(tile.resource, owner.techsResearched)
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /**

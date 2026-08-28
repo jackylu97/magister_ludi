@@ -805,6 +805,28 @@ export interface ResourceConfig {
   bonusPer1000LandTiles: number;
   /** Strategic resource tiles per 1000 land tiles. Deliberately much rarer. */
   strategicPer1000LandTiles: number;
+  /**
+   * What a **water** resource's `frequency` is multiplied by inside the scatter.
+   *
+   * The sea's own dial, and the reason it is a multiplier here rather than a
+   * fourth purse: fish and crabs are dealt out of the *bonus* purse by weight
+   * (see the module docblock — "the purse measures how much stuff is on this
+   * map, and a coastline is part of the map"), so the honest way to ask for more
+   * fishing is to ask for more of the purse to go to the water. A separate sea
+   * budget would have to be told how much coastline a map has, and would then
+   * disagree with the land purse about what "density" means.
+   *
+   * 1 is the old behaviour exactly. 1.35 since 2026-08-27 — user: "mapgen needs
+   * more bonus and fishing resource to enable wide coastal play" — alongside the
+   * purse itself going from 85 to 110 per 1000 land tiles, so a coastal start is
+   * about eighty percent better fed than it was.
+   *
+   * A water resource is one whose every legal terrain is water, asked of
+   * `resources.json` rather than of a list of names here, so a seventh sea row
+   * inherits it. Only the *scatter* reads it: the luxury deal is per continent
+   * and has its own arithmetic, so pearls and whales are unaffected.
+   */
+  seaFrequencyMultiplier: number;
   /** Minimum hex distance between two resource tiles of different finds. */
   minSpacing: number;
   /** How far from a start a bonus food must be for the fairness pass to rest. */
@@ -946,15 +968,15 @@ function growCluster(
   return placed;
 }
 
-/** Picks a resource id by `frequency` weight. One draw from `rng`. */
-function drawResource(rng: Rng, table: readonly ResourceId[], total: number): ResourceId {
-  let roll = nextFloat(rng) * total;
-  for (const id of table) {
-    roll -= resourceDef(id).frequency;
-    if (roll < 0) return id;
-  }
-  // Only reachable through floating-point drift at the very top of the range.
-  return table[table.length - 1]!;
+/**
+ * Is every hex this resource may sit on water?
+ *
+ * "A sea resource", asked of `resources.json` rather than of a list of names, so
+ * a seventh sea row is a data addition. `every` rather than `some` on purpose:
+ * a resource that can grow on both would not be the sea's, and there is none.
+ */
+function isWaterResource(id: ResourceId): boolean {
+  return resourceDef(id).validTerrain.every(isWaterTerrain);
 }
 
 /**
@@ -1073,12 +1095,19 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
   ] as const) {
     const budget = Math.max(0, Math.round((land / 1000) * per1000));
     const table = resourcesOfKind(kind).filter((id) => candidates.has(id));
-    const totalWeight = table.reduce((sum, id) => sum + resourceDef(id).frequency, 0);
+    // The sea's thumb on the scale (`seaFrequencyMultiplier`). Weights are built
+    // once per kind and handed to `drawWeighted`, which the luxury deal already
+    // uses for its own reason — a second copy of the draw loop reading
+    // `frequency` off the table would be a second place the draw could drift.
+    const weights = table.map(
+      (id) => resourceDef(id).frequency * (isWaterResource(id) ? config.seaFrequencyMultiplier : 1),
+    );
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
     if (budget <= 0 || totalWeight <= 0) continue;
     const attempts = budget * Math.max(1, Math.round(config.attemptsPerResource));
     let placed = 0;
     for (let attempt = 0; attempt < attempts && placed < budget; attempt++) {
-      const id = drawResource(rng, table, totalWeight);
+      const id = drawWeighted(rng, table, weights, totalWeight);
       const list = candidates.get(id)!;
       const tile = list[nextInt(rng, 0, list.length)]!;
       if (tile.resource !== undefined) continue;

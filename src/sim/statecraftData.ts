@@ -1239,6 +1239,24 @@ export interface StatecraftConfig {
   // it and one evaluator has to answer for all five kinds; the two numbers that
   // sat here were dead the day that landed, and a dead number in a data file is
   // a dial a designer will one day turn expecting something to happen.
+  /**
+   * The **whole** ratified ladder of draft tiers at which a government is
+   * offered — 4, 10, 18, 29, 45 (user, 2026-08-27) — including the two rungs no
+   * government row reaches yet.
+   *
+   * It is written down here and nowhere else because the ladder is a *pacing*
+   * decision and the rows are a *content* one, and the two are ratified at
+   * different times: tiers 29 and 45 belong to Gov IV and Gov V, whose triples
+   * are not designed. Recording them on the rows would mean inventing six
+   * governments to hold two numbers.
+   *
+   * **Nothing in the simulation reads this.** `GOVERNMENT_TIERS` is still the
+   * live answer and is still read off the rows, so an empire is offered a
+   * charter at exactly the tiers a triple exists for and never at a rung with
+   * nothing on it. This is the designer's note to the next pass: when Gov IV is
+   * written, its rows carry `tier: 29` and `GOVERNMENT_TIERS` grows by itself.
+   */
+  tierLadder: number[];
   governments: Record<GovernmentId, GovernmentDef>;
   doctrines: Record<DoctrineId, DoctrineDef>;
   orders: Record<OrderId, OrderDef>;
@@ -1334,15 +1352,20 @@ export function poolOrders(pool: OrderPool): OrderId[] {
 /**
  * Which Order pool a government opens.
  *
- * A government's *tier* decides it rather than its id, so the three tier-3
+ * A government's *tier* decides it rather than its id, so the three tier-4
  * governments all open pool I and a fourth added to that tier needs no edit
  * here. The chiefdom is tier 0 and opens the chiefdom pool.
+ *
+ * The thresholds are the **rungs of the ladder**, read as "up to and including
+ * the n-th rung", so they move with `tierLadder` and with nothing else. They
+ * were 3 and 7 until the pacing retune of 2026-08-27 widened the ladder to
+ * 4/10/18 — a player was reaching the third rung on turn twenty-nine, in Age I.
  */
 export function poolOfGovernment(id: GovernmentId): OrderPool {
   const tier = governmentDef(id).tier;
   if (tier <= 0) return 'chiefdom';
-  if (tier <= 3) return 'governmentI';
-  if (tier <= 7) return 'governmentII';
+  if (tier <= 4) return 'governmentI';
+  if (tier <= 10) return 'governmentII';
   return 'governmentIII';
 }
 
@@ -1359,8 +1382,12 @@ export function poolDoctrines(tier: number): DoctrineId[] {
 }
 
 /**
- * The culture tiers at which a government is offered, ascending — 3, 7, 15
+ * The culture tiers at which a government is offered, ascending — 4, 10, 18
  * today, read off the rows rather than restated.
+ *
+ * The **live** ladder, and it is deliberately narrower than `tierLadder`: this
+ * is "where a triple actually exists", derived from the rows, while that is the
+ * ratified pacing including the two rungs nothing has been written for yet.
  */
 export const GOVERNMENT_TIERS: readonly number[] = [
   ...new Set(GOVERNMENT_IDS.map((id) => governmentDef(id).tier).filter((tier) => tier > 0)),

@@ -18,9 +18,11 @@
  *     requiresHills    the tile's `hills` flag must equal this      (optional)
  *     requiresResource the tile must carry one of these resources   (optional)
  *
- * with exactly one seam in the AND, `freshwaterTerrain`, which *widens*
- * `validTerrain` on ground that can drink rather than adding a filter of its
- * own. See the field; the farm is its only user and the reason it exists.
+ * with **two** seams in the AND, and both of them *widen* a filter rather than
+ * add one: `freshwaterTerrain`, which widens `validTerrain` on ground that can
+ * drink, and `hillsIf`, which waives `requiresHills` on ground that has a reason.
+ * See the fields; the farm is the only user of either and the reason both
+ * exist.
  *
  * `requiresTech` sits beside them and is the one filter that is *not* about the
  * ground: it asks the worker's owner rather than the hex, which is why it is
@@ -28,7 +30,7 @@
  * since the Age I rework, so the worker's menu now opens over the course of a
  * game instead of arriving whole on turn one.
  *
- * An absent filter means "don't care", and the two kinds fall out of which
+ * An absent filter means "don't care", and the kinds fall out of which
  * filters a row uses rather than out of a `kind` field nobody could get wrong:
  *
  *   · **generic** — farm and mine. They name terrain (and, for the mine, high
@@ -38,6 +40,16 @@
  *     terrain: a camp is legal exactly where deer are, and restating "forest on
  *     grassland, plains or tundra" here would be a second copy of a rule that
  *     already exists in `resources.json` and could drift from it.
+ *   · **feature** — the lumbermill, and it is the third kind for the second
+ *     kind's reason read one field over. "Forest and jungle" (user, 2026-08-27)
+ *     is the *whole* rule, so the row names `validFeatures` and nothing else:
+ *     which terrains grow a canopy is mapgen's business, and a terrain list
+ *     here would be a second copy of it. A feature list that names no bare
+ *     ground is a constraint in its own right — every feature in the table is a
+ *     land feature — which is what the load validator was widened to say. The
+ *     lumbermill is also the one improvement that **works the thing standing on
+ *     the tile**: it does not clear the trees, so `clearsClutter` is false and
+ *     nothing anywhere writes `feature = 'none'` for it.
  *
  * Fishing boats are the one row that uses **both**, and deliberately: it names
  * its six sea resources *and* `validTerrain: ["coast"]`. That is not the
@@ -108,12 +120,20 @@
  * `improvementDef` whose callers all had to learn about the exception.
  *
  * One entry per feature, keyed by `FeatureId`, and an absent feature simply
- * cannot be cleared — which is the whole of why jungle has no row yet: the
- * forest was specced, and a jungle chop is one data addition on the day it is
- * designed rather than a code branch waiting for it. Everything downstream reads
- * the table generically: the reducer's gate, the worker sheet's Chop row, and
- * `techGifts` (which surfaces *any* entry on whatever tech it names, so the day
- * jungle arrives it appears on its own node without anybody remembering to).
+ * cannot be cleared. Everything downstream reads the table generically: the
+ * reducer's gate, the worker sheet's Chop row, and `techGifts` (which surfaces
+ * *any* entry on whatever tech it names).
+ *
+ * **The jungle arrived on 2026-08-27 and cost exactly what this docblock
+ * promised: one JSON object.** It said so as a prediction — "a jungle chop is
+ * one data addition on the day it is designed rather than a code branch waiting
+ * for it" — and the day came (user: "do we have a place in the tech tree where
+ * we can chop jungle? That should probably be in bronzeworking") with no edit in
+ * the gate, the sheet or the tech card: the row named `bronzeWorking` and the
+ * node grew a "Clear Jungle" gift by itself. It pays the forest's twenty hammers
+ * because nothing in the ratified table says otherwise, and it is homed a rung
+ * later than the forest's Mining because a jungle is harder ground, not because
+ * it is worth more.
  *
  * `yields` is a full `TileYieldSpec` for the family resemblance, and the load
  * validator holds it to **production only** — because production is the only
@@ -148,6 +168,7 @@ export type ImprovementId =
   | 'quarry'
   | 'fishingBoats'
   | 'plantation'
+  | 'lumbermill'
   // The five **great-person works** (`docs/great-people.md`). Ordinary rows in
   // every respect but one: `greatPerson` names the family whose piece plants
   // them, which is what a worker is refused by and what a great person is
@@ -177,6 +198,17 @@ export interface ImprovementUpgrade {
    */
   requiresFreshwater?: boolean;
 }
+
+/**
+ * One reason a row's `requiresHills` may be waived. See the field.
+ *
+ * A closed union rather than a free string, so a typo in the JSON is a load
+ * error and not an exception that silently never fires.
+ */
+export type HillsWaiver = 'freshwater' | 'ownResource';
+
+/** Every waiver word, for the load validator. Iteration order is the union's. */
+export const HILLS_WAIVERS: readonly HillsWaiver[] = ['freshwater', 'ownResource'];
 
 export interface ImprovementDef {
   name: string;
@@ -224,6 +256,34 @@ export interface ImprovementDef {
   validFeatures?: FeatureId[];
   /** Required value of the tile's `hills` flag, or absent for "either". */
   requiresHills?: boolean;
+  /**
+   * Reasons `requiresHills` may be **waived** on a tile, or absent for "the
+   * flag is the rule".
+   *
+   * The second seam in the AND, and a *widening* like the first one: it never
+   * refuses ground the row would otherwise take, it only forgives high ground a
+   * row asked to be flat on (or, symmetrically, flat ground a row asked to be
+   * high on — the shape does not care, and neither should a future row).
+   *
+   * The farm is why it exists (user, 2026-08-27): "farms can be built on hills
+   * if adjacent to freshwater or there is a farmable resource on the tile. I see
+   * a bug where I can't build a farm on a wheat-on-hills tile." Both halves of
+   * that sentence are *reasons a hill is farmland* rather than facts about
+   * farms, which is what makes them a list on the row instead of a clause in
+   * `improvementErrorAt` that says the word "farm".
+   *
+   * The two reasons, and each is asked of the ground:
+   *
+   *   · `freshwater` — the tile can drink (`Tile.freshwater`, the same accessor
+   *     `freshwaterTerrain` and the granary's water line ask). A terraced hill
+   *     above a river is the oldest farm there is.
+   *   · `ownResource` — the tile carries a resource **this** improvement opens
+   *     (`improvementForResource`, the table's own inverse — never a list of
+   *     names). Wheat on a hill wants a farm and can take no other improvement,
+   *     so a rule that refused the farm made the seam unimprovable, which is the
+   *     bug the user hit.
+   */
+  hillsIf?: HillsWaiver[];
   /** Resources it may be built on, or absent for "bare ground is fine". */
   requiresResource?: ResourceId[];
   /** Resources this improvement grants *access* to. See the docblock. */
@@ -447,10 +507,43 @@ function validateTable(): void {
         throw new Error(`${where} names unknown resource "${resource}"`);
       }
     }
-    // A row with neither a terrain list nor a resource list is buildable on the
-    // ocean floor, which is not a rule anybody meant to write.
-    if (def.validTerrain === undefined && def.requiresResource === undefined) {
+    // A row that constrains nothing at all is buildable on the ocean floor,
+    // which is not a rule anybody meant to write. Three lists can do the
+    // constraining and a fourth kind of row is excused:
+    //
+    //   · `validTerrain`, the ordinary way;
+    //   · `requiresResource`, which pins the ground through the resource's own
+    //     placement rules;
+    //   · `validFeatures` **naming no bare ground** — the lumbermill's. Every
+    //     feature in the table grows on land, so a row that demands one has
+    //     said "on land" as surely as a terrain list does. `'none'` is the
+    //     exception that makes the clause need saying: it is not a feature, it
+    //     is the absence of one, and a row admitting it has admitted open sea.
+    //   · a **great person's work**, which constrains nothing on the ground by
+    //     design: its planter is the constraint (`improvementErrorAt` refuses
+    //     it water and impassable ground, and nothing else).
+    const byFeature =
+      def.validFeatures !== undefined &&
+      def.validFeatures.length > 0 &&
+      !def.validFeatures.includes('none');
+    if (
+      def.validTerrain === undefined &&
+      def.requiresResource === undefined &&
+      !byFeature &&
+      def.greatPerson === undefined
+    ) {
       throw new Error(`${where} constrains nothing: it needs validTerrain or requiresResource`);
+    }
+    // A waiver with nothing to waive is a row whose author meant something and
+    // got nothing — the same reading `freshwaterTerrain` without `validTerrain`
+    // gets, one field over.
+    for (const waiver of def.hillsIf ?? []) {
+      if (!HILLS_WAIVERS.includes(waiver)) {
+        throw new Error(`${where} names unknown hills waiver "${String(waiver)}"`);
+      }
+    }
+    if (def.hillsIf !== undefined && def.requiresHills === undefined) {
+      throw new Error(`${where} has hillsIf but no requiresHills to waive`);
     }
     if (def.requiresTech !== undefined && !TECH_IDS.includes(def.requiresTech)) {
       throw new Error(`${where} needs unknown technology "${def.requiresTech}"`);

@@ -147,12 +147,19 @@
       "name": "Aqueduct",
       "category": "food",
       "cost": 28,
-      "food": 3,
+      "food": 0,
       "production": 0,
       "gold": 0,
       "science": 0,
       "culture": 0,
-      "sciencePerPop": 0
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthSurplus",
+          "percent": 15
+        }
+      ]
     },
     "workshop": {
       "name": "Workshop",

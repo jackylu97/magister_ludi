@@ -32,10 +32,12 @@ import {
 import { MAP_SIZE_NAMES } from '../../src/sim/mapgen';
 import {
   type ResourceId,
+  RESOURCE_IDS,
   isBonusFood,
   resourceDef,
   resourcesOfKind,
 } from '../../src/sim/resourceData';
+import { isWaterTerrain } from '../../src/sim/terrainData';
 import { makeRng } from '../../src/sim/rng';
 import {
   carveContinents,
@@ -146,18 +148,23 @@ describe('placement', () => {
     }
   });
 
-  it('sits a good margin below the density this table used to scatter', () => {
-    // A tripwire, not a design spec: `OLD_*_PER_1000` are what `bonus` and
+  it('keeps strategic scarcity below the density this table used to scatter', () => {
+    // A tripwire, not a design spec: `OLD_STRATEGIC_PER_1000` is what
     // `strategic` read before a balance pass cut overall scatter density by
-    // roughly a sixth (`bonusPer1000LandTiles` 100→85, `strategicPer1000LandTiles`
-    // 26→22, `luxuryCopiesPerKind` {min:4,max:6}→{min:3,max:6}), read off the same seed/size
-    // sweep the band test above runs. Duel is left out on purpose — its
-    // density is set almost entirely by the near-start fairness guarantees
-    // (see that test's comment), which the pass was explicitly told to leave
-    // alone, so a small map barely moves and is not the signal this test is
-    // for. The point is only that a future edit cannot silently walk the
-    // budgets back toward the old numbers without this failing.
-    const OLD_BONUS_PER_1000 = 100;
+    // roughly a sixth (`strategicPer1000LandTiles` 26→22, `luxuryCopiesPerKind`
+    // {min:4,max:6}→{min:3,max:6}), read off the same seed/size sweep the band
+    // test above runs. Duel is left out on purpose — its density is set almost
+    // entirely by the near-start fairness guarantees (see that test's comment),
+    // which the pass was explicitly told to leave alone. The point is only that
+    // a future edit cannot silently walk the budget back toward the old number.
+    //
+    // **The bonus half of this tripwire was retired on 2026-08-27**, because the
+    // decision it guarded was reversed on purpose: `bonusPer1000LandTiles` went
+    // 85 → 110, past the old 100, when the user asked for "more bonus and
+    // fishing resource to enable wide coastal play". A tripwire that outlives
+    // its decision is a test that fails the next honest change, so it is
+    // deleted here rather than loosened — the band test above is the *live*
+    // claim about bonus density and it moved with the dial.
     const OLD_STRATEGIC_PER_1000 = 26;
     let checked = 0;
     for (const size of MAP_SIZE_NAMES) {
@@ -170,9 +177,6 @@ describe('placement', () => {
             land) *
           1000;
         const where = `${size}/${seed}`;
-        expect(`${where} bonus ${per1000('bonus') < OLD_BONUS_PER_1000 * 0.9}`).toBe(
-          `${where} bonus true`,
-        );
         expect(
           `${where} strategic ${per1000('strategic') < OLD_STRATEGIC_PER_1000 * 0.9}`,
         ).toBe(`${where} strategic true`);
@@ -180,6 +184,37 @@ describe('placement', () => {
       }
     }
     expect(checked).toBe((MAP_SIZE_NAMES.length - 1) * 2);
+  });
+
+  it('sends a bigger share of the purse to the water', () => {
+    // The sea's own dial (`seaFrequencyMultiplier`, 1.35 since 2026-08-27).
+    // Asserted as a *share* rather than as a count, because the purse moved in
+    // the same pass and a count would be measuring both changes at once — and
+    // asked of the table rather than of a list of names, so a seventh sea row
+    // joins the claim.
+    const wet = new Set(
+      RESOURCE_IDS.filter(
+        (id) => resourceDef(id).kind === 'bonus' && resourceDef(id).validTerrain.every(isWaterTerrain),
+      ),
+    );
+    // Fish and crabs are what the table holds today; the set is derived so the
+    // assertion below survives a seventh row, and this pins that it is not empty.
+    expect(wet.size).toBeGreaterThan(0);
+    expect(CONFIG.seaFrequencyMultiplier).toBeGreaterThan(1);
+
+    for (const seed of [1, 4242]) {
+      const map = mapFor(seed, 'standard');
+      const bonus = resourceTiles(map).filter(
+        (tile) => resourceDef(tile.resource!).kind === 'bonus',
+      );
+      const sea = bonus.filter((tile) => wet.has(tile.resource!));
+      // The land table is far bigger than the sea's two rows, so the sea's share
+      // is never a majority — this is a floor that the pre-1.35 maps did not
+      // clear on either seed, not a target.
+      expect(`seed ${seed} sea share ${sea.length / bonus.length > 0.2}`).toBe(
+        `seed ${seed} sea share true`,
+      );
+    }
   });
 
 });

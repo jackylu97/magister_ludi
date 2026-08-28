@@ -18,7 +18,16 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { cityYields, foundCityAt, tileOwnerPlayerId } from '../../src/sim/cities';
+import {
+  cityYields,
+  claimTile,
+  controlledHoldings,
+  explainTileYield,
+  foundCityAt,
+  hasResource,
+  tileOwnerPlayerId,
+  yieldContextFor,
+} from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { previewCombat } from '../../src/sim/combat';
 import { createGame, dispatch, snapshotState } from '../../src/sim/game';
@@ -371,6 +380,89 @@ describe('the work', () => {
     expect(greatPersonWorkError(g.state, 0, unit.id)).toContain('not in your territory');
   });
 
+  it('stands anywhere its planter can — any terrain, any feature, any seam', () => {
+    // User, 2026-08-27: "great people improvements should be buildable
+    // anywhere". The four ground filters and the seam clause are all waived for
+    // a row carrying `greatPerson`; the row itself no longer *names* a terrain
+    // or a feature, so there is nothing left in the data to disagree with.
+    const g = game(73);
+    found(g.state, 0);
+    const unit = call(g.state, 0, SAMPLE.scholar);
+    unit.col += 1;
+    const tile = getTileAt(g.state.map, unit.col, unit.row)!;
+
+    for (const terrain of ['grassland', 'desert', 'tundra', 'snow'] as const) {
+      for (const feature of ['none', 'forest', 'jungle'] as const) {
+        for (const hills of [false, true]) {
+          tile.terrain = terrain;
+          tile.feature = feature;
+          tile.hills = hills;
+          expect(
+            greatPersonWorkError(g.state, 0, unit.id),
+            `${terrain}/${feature}/${hills ? 'hills' : 'flat'}`,
+          ).toBeNull();
+        }
+      }
+    }
+    // A seam that wants a mine takes the academy anyway — the seam rule protects
+    // a *charge* from being spent wrong, and a work is a person.
+    tile.terrain = 'grassland';
+    tile.feature = 'none';
+    tile.hills = true;
+    tile.resource = 'iron';
+    expect(greatPersonWorkError(g.state, 0, unit.id)).toBeNull();
+  });
+
+  it('is still refused water and impassable ground, which is the one question left', () => {
+    const g = game(79);
+    found(g.state, 0);
+    const unit = call(g.state, 0, SAMPLE.scholar);
+    unit.col += 1;
+    const tile = getTileAt(g.state.map, unit.col, unit.row)!;
+
+    tile.terrain = 'coast';
+    expect(greatPersonWorkError(g.state, 0, unit.id)).toContain('cannot be built on water');
+    tile.terrain = 'mountain';
+    expect(greatPersonWorkError(g.state, 0, unit.id)).toContain('cannot be built on mountain');
+  });
+
+  it('opens whatever seam it was planted on, once the empire has a word for it', () => {
+    // The other half of the same note: "automatically gives strategic or luxury
+    // resource if built on top of them". The reveal clause still binds and still
+    // comes first, so iron under an academy is worth nothing until Bronzeworking
+    // — and the ledger names the academy, not the mine nobody dug.
+    const g = game(83);
+    const city = found(g.state, 0);
+    const unit = call(g.state, 0, SAMPLE.scholar);
+    unit.col += 1;
+    const tile = getTileAt(g.state.map, unit.col, unit.row)!;
+    claimTile(g.state, city, tile);
+    tile.terrain = 'grassland';
+    tile.feature = 'none';
+    tile.hills = true;
+    tile.resource = 'iron';
+
+    const player = g.state.players[0]!;
+    player.techsResearched = player.techsResearched.filter((id) => id !== 'bronzeWorking');
+    applyCommand(g.state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
+    expect(tile.improvement).toBe('academy');
+    expect(hasResource(g.state, 0, 'iron')).toBe(false);
+
+    player.techsResearched.push('bronzeWorking');
+    expect(hasResource(g.state, 0, 'iron')).toBe(true);
+    const holding = controlledHoldings(g.state, 0, 'strategic').find((h) => h.id === 'iron')!;
+    expect(holding.via).toBe('improvement');
+    expect(holding.improvement).toBe('academy');
+    // Access, never the mine's yield: the tile pays the terrain, the seam and
+    // the *academy*, and there is no hammer from an improvement nobody built.
+    expect(explainTileYield(tile, yieldContextFor(g.state, 0)).map((line) => line.source)).toEqual([
+      'Grassland',
+      'Hills',
+      'Iron',
+      'Academy',
+    ]);
+  });
+
   it('a citadel claims its hex and the ring around it', () => {
     const g = game(67);
     found(g.state, 0);
@@ -378,6 +470,11 @@ describe('the work', () => {
     expect(workOf(unit)).toBe('citadel');
     unit.col += 1;
     const tile = getTileAt(g.state.map, unit.col, unit.row)!;
+    // A work stands anywhere a piece can, which is everywhere but water and the
+    // mountain — and the hex beside a capital is sometimes a lake. Made land
+    // here rather than searched for, because what this test is about is the
+    // *claim*, not where the start scorer put the settler.
+    tile.terrain = 'grassland';
     applyCommand(g.state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
     expect(tile.improvement).toBe('citadel');
     for (const near of [

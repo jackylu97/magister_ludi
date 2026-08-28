@@ -118,9 +118,9 @@ function build(playerId: number, unitId: number, improvement: ImprovementId): Co
 // --- the table --------------------------------------------------------------
 
 describe('the improvement table', () => {
-  it('names seven worker improvements, five works, and recognises its own ids', () => {
+  it('names eight worker improvements, five works, and recognises its own ids', () => {
     // Two halves of one table, and the split is `ImprovementDef.greatPerson`:
-    // the first seven are what a worker's charge buys, the last five are what a
+    // the first eight are what a worker's charge buys, the last five are what a
     // great person plants (`docs/great-people.md`), and no rule anywhere
     // compares an id against a string to tell them apart.
     expect(IMPROVEMENT_IDS).toEqual([
@@ -131,6 +131,7 @@ describe('the improvement table', () => {
       'quarry',
       'fishingBoats',
       'plantation',
+      'lumbermill',
       'academy',
       'landmark',
       'manufactory',
@@ -155,9 +156,22 @@ describe('the improvement table', () => {
   });
 
   it('constrains every row: no improvement is buildable on the ocean floor', () => {
+    // Three lists can do the constraining and one kind of row is excused. The
+    // lumbermill is the third kind (`validFeatures` naming no bare ground —
+    // every feature in the table grows on land), and a **great person's work**
+    // is the excused one: it constrains nothing on the ground by design, and
+    // `improvementErrorAt` refuses it water and impassable ground instead.
     for (const id of IMPROVEMENT_IDS) {
       const def = improvementDef(id);
-      const constrained = def.validTerrain !== undefined || def.requiresResource !== undefined;
+      if (def.greatPerson !== undefined) {
+        expect(def.validTerrain, `${id} stands anywhere`).toBeUndefined();
+        expect(def.validFeatures, `${id} stands anywhere`).toBeUndefined();
+        continue;
+      }
+      const byFeature =
+        def.validFeatures !== undefined && !def.validFeatures.includes('none');
+      const constrained =
+        def.validTerrain !== undefined || def.requiresResource !== undefined || byFeature;
       expect(constrained, `${id} constrains nothing`).toBe(true);
     }
   });
@@ -405,10 +419,118 @@ describe('buildImprovement', () => {
         'A farm cannot be built on mountain',
       );
 
-      // And it does not relax the hills filter: watered high ground is still
-      // high ground.
+      // The hills filter is relaxed by a *different* seam, and by the same
+      // water: `hillsIf: ['freshwater', …]` (user, 2026-08-27). A watered desert
+      // hill takes a farm; a dry one is refused by the hills clause, not by the
+      // terrain one, and says so.
       tile.terrain = 'desert';
       tile.hills = true;
+      tile.freshwater = true;
+      expect(improvementError(state, worker.id, 'farm')).toBeNull();
+      tile.freshwater = false;
+      expect(improvementError(state, worker.id, 'farm')).toBe(
+        'A farm on desert needs fresh water',
+      );
+      tile.terrain = 'grassland';
+      expect(improvementError(state, worker.id, 'farm')).toBe('A farm needs flat ground');
+    });
+
+    it('stands a lumbermill in forest and jungle, and nowhere else', () => {
+      // User, 2026-08-27: "add ability to build lumbermills at construction. +1
+      // prod, can only be built on forest and jungle tiles". The *whole* rule is
+      // the feature, so the row names `validFeatures` and no terrain — which is
+      // the third kind of constraint the table now has.
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      for (const feature of ['forest', 'jungle'] as const) {
+        tile.feature = feature;
+        expect(improvementError(state, worker.id, 'lumbermill')).toBeNull();
+      }
+      tile.feature = 'none';
+      expect(improvementError(state, worker.id, 'lumbermill')).toBe(
+        'A lumbermill cannot be built in none',
+      );
+      tile.feature = 'floodplain';
+      expect(improvementError(state, worker.id, 'lumbermill')).toBe(
+        'A lumbermill cannot be built in floodplain',
+      );
+      // And nothing about the ground under the canopy: a forested hill, a
+      // forested tundra and a forested grassland all take one.
+      tile.feature = 'forest';
+      tile.hills = true;
+      tile.terrain = 'tundra';
+      expect(improvementError(state, worker.id, 'lumbermill')).toBeNull();
+    });
+
+    it('leaves the trees standing, which is what makes it a lumbermill', () => {
+      // The one improvement that works the thing already on the tile. Nothing
+      // writes `feature = 'none'` for it and it clears no clutter, so the board
+      // keeps its pines and the yield is the canopy's plus one hammer.
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      tile.feature = 'forest';
+      const before = tileYieldOf(tile);
+      expect(improvementDef('lumbermill').clearsClutter).toBe(false);
+      expect(applyCommand(state, build(0, worker.id, 'lumbermill')).ok).toBe(true);
+      expect(tile.feature).toBe('forest');
+      expect(tile.improvement).toBe('lumbermill');
+      expect(tileYieldOf(tile).production).toBe(before.production + 1);
+    });
+
+    it('waits for Construction, and says so last', () => {
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      tile.feature = 'forest';
+      state.players[0]!.techsResearched = [];
+      const said = 'A lumbermill needs Construction';
+      expect(improvementError(state, worker.id, 'lumbermill')).toBe(said);
+      // The technology is asked *after* every question about the ground, which
+      // is what lets the sheet grey a row rather than hide it.
+      expect(improvementTechError(state, 0, 'lumbermill')).toBe(said);
+      tile.feature = 'none';
+      expect(improvementError(state, worker.id, 'lumbermill')).toBe(
+        'A lumbermill cannot be built in none',
+      );
+    });
+
+    it('takes a bare forest, and still yields the seam to the seam', () => {
+      // The seam rule is unchanged and still applies over a canopy: a lumbermill
+      // on bare woodland is fine, and one on a deer forest is refused because
+      // the deer want a camp.
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      tile.feature = 'forest';
+      expect(improvementError(state, worker.id, 'lumbermill')).toBeNull();
+      tile.resource = 'deer';
+      expect(improvementError(state, worker.id, 'lumbermill')).toBe('Deer wants a camp');
+    });
+
+    it('farms a hill that can drink, or one that carries its own seam', () => {
+      // User, 2026-08-27: "farms can be built on hills if adjacent to freshwater
+      // or there is a farmable resource on the tile. I see a bug where I can't
+      // build a farm on a wheat-on-hills tile." Two reasons on the row
+      // (`hillsIf`), one clause in the gate, and the old sentence for a dry bare
+      // hill.
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      tile.terrain = 'grassland';
+      tile.hills = true;
+      tile.freshwater = false;
+
+      expect(improvementError(state, worker.id, 'farm')).toBe('A farm needs flat ground');
+
+      tile.freshwater = true;
+      expect(improvementError(state, worker.id, 'farm')).toBeNull();
+
+      tile.freshwater = false;
+      tile.resource = 'wheat';
+      expect(improvementError(state, worker.id, 'farm')).toBeNull();
+      // And the seam still belongs to the seam: the wheat wants a farm, so the
+      // mine that would otherwise be legal on this hill is refused by name.
+      expect(improvementError(state, worker.id, 'mine')).toBe('Wheat wants a farm');
+
+      // A seam that is *not* the farm's own waives nothing.
+      tile.resource = 'iron';
       expect(improvementError(state, worker.id, 'farm')).toBe('A farm needs flat ground');
     });
 
@@ -757,14 +879,16 @@ describe('the chop table', () => {
     expect(chopYield('forest').production).toBe(20);
   });
 
-  it('leaves the jungle out, which is a data hole and not a missing branch', () => {
-    // The user specced forests. A jungle chop is one object in the JSON on the
-    // day it is designed, and this asserts the absence rather than tolerating
-    // it: `chopDef` answering `null` is the whole of "not choppable", and it is
-    // the same `null` a bare hex gets.
-    expect(chopDef('jungle')).toBeNull();
+  it('clears the jungle at Bronzeworking, and nothing at all off bare ground', () => {
+    // The hole the table's docblock predicted would cost one JSON object, filled
+    // on 2026-08-27 (user: "that should probably be in bronzeworking"). No gate,
+    // no sheet and no tech card was edited to let it through.
+    expect(chopDef('jungle')?.tech).toBe('bronzeWorking');
+    expect(chopDef('forest')?.tech).toBe('mining');
+    // `chopDef` answering `null` is the whole of "not choppable", and it is the
+    // same `null` a bare hex gets.
     expect(chopDef('none')).toBeNull();
-    expect(CHOPPABLE_FEATURES).toEqual(['forest']);
+    expect(CHOPPABLE_FEATURES).toEqual(['forest', 'jungle']);
   });
 
   it('leaves the oasis and the floodplain out, and that one is permanent', () => {
@@ -779,7 +903,7 @@ describe('the chop table', () => {
     expect(chopDef('floodplain')).toBeNull();
     // And the whole list, so the assertion cannot be satisfied by two absences
     // while a third feature quietly gains a row.
-    expect(CHOPPABLE_FEATURES).toEqual(['forest']);
+    expect(CHOPPABLE_FEATURES).toEqual(['forest', 'jungle']);
   });
 
   it('pays in production only, because nothing else has a one-time bank', () => {
@@ -847,12 +971,14 @@ describe('chopFeature', () => {
       refuses(state, chop(0, worker.id), `Unit ${worker.id} has no movement left`);
     });
 
-    it('refuses bare ground and the jungle, each in its own words', () => {
+    it('refuses bare ground in its own words, and clears the jungle', () => {
       const { state, worker, tile } = woodedWorker();
       tile.feature = 'none';
       refuses(state, chop(0, worker.id), 'There is nothing to clear on (5, 4)');
+      // The jungle became choppable at Bronzeworking on 2026-08-27; `bareState`
+      // holds the whole tree, so nothing is refusing this one.
       tile.feature = 'jungle';
-      refuses(state, chop(0, worker.id), 'Jungle cannot be cleared');
+      expect(chopError(state, worker.id)).toBeNull();
     });
 
     it('never offers a chop on an oasis or a floodplain', () => {
@@ -925,8 +1051,13 @@ describe('chopFeature', () => {
       state.players[0]!.techsResearched = ['agriculture'];
       expect(chopTechError(state, 0, 'forest')).toBe('Clearing forest needs Mining');
       expect(chopTechError(state, 1, 'forest')).toBeNull();
+      // The jungle is a rung later, and it is a *technology* refusal now rather
+      // than the table's "cannot be cleared" — which is what greys the sheet's
+      // Chop row with a promise instead of a wall.
+      expect(chopTechError(state, 0, 'jungle')).toBe('Clearing jungle needs Bronzeworking');
+      expect(chopTechError(state, 1, 'jungle')).toBeNull();
       // A feature nothing can clear is never "one technology away".
-      expect(chopTechError(state, 1, 'jungle')).toBe('Jungle cannot be cleared');
+      expect(chopTechError(state, 1, 'oasis')).toBe('Oasis cannot be cleared');
     });
 
     it("names the same technology the worker sheet's Chop hover leads with", () => {
@@ -1237,13 +1368,16 @@ describe('explainTileYield', () => {
     const list = explainTileYield(tile);
     expect(list.map((entry) => [entry.source, entry.kind])).toEqual([
       ['Grassland', 'base'],
-      ['Forest', 'override'],
       ['Hills', 'override'],
+      ['Forest', 'override'],
       ['Deer', 'add'],
     ]);
-    // The forest is written down even though the hill overrides it — that is the
-    // *explanation*, and the fold reaches the hill's number either way.
-    expect(foldTileYield(list)).toEqual({ food: 1, production: 2, gold: 0, science: 0, culture: 0, faith: 0 });
+    // **The canopy is written last and therefore wins** (user, 2026-08-27: "if
+    // jungle or forest is on a hills tile, the jungle/forest yield should take
+    // precedence"). The hill is still written down — that is the *explanation* of
+    // what the forest replaced — and the fold reaches the forest's 1🌾/1⚙ plus
+    // the deer, where it used to reach the hill's 0/2.
+    expect(foldTileYield(list)).toEqual({ food: 2, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('adds the improvement last, after the resource', () => {

@@ -57,26 +57,34 @@ describe('techGifts', () => {
   it('puts units before buildings when a tech hands over both', () => {
     // Construction and Bronzeworking are the nodes that do; the order is the
     // reading order the node card already uses.
-    // Construction hands over the composite bowman, the aqueduct and the
-    // Circus Maximus — a wonder is an ordinary building on the list.
+    // Construction hands over the composite bowman, the aqueduct, the Circus
+    // Maximus — a wonder is an ordinary building on the list — and, since
+    // 2026-08-27, the **lumbermill**, which is an improvement and sorts after
+    // the buildings exactly as the chop's ability sorts after everything.
     expect(techGifts('construction').map((gift) => gift.kind)).toEqual([
       'unit',
       'building',
       'building',
+      'improvement',
     ]);
     // Bronzeworking hands over three buildings — the barracks and the funeral
     // games from the Age I sinks, and the Walls of Uruk from the wonders — and
-    // all of them come after the spearman. The religion pass hangs a *rite* on
-    // it too (Blessing of Arms), which is an ability like embarkation and sorts
-    // with the verbs at the end.
+    // all of them come after the spearman. Two *abilities* follow: the jungle
+    // chop, which the chop table surfaces on whatever tech it names (2026-08-27,
+    // user: "that should probably be in bronzeworking"), and the religion pass's
+    // rite (Blessing of Arms). Both sort with the verbs at the end.
     expect(techGifts('bronzeWorking').map((gift) => gift.kind)).toEqual([
       'unit',
       'building',
       'building',
       'building',
       'ability',
+      'ability',
       'reveal',
     ]);
+    expect(techGifts('bronzeWorking').find((gift) => gift.id === 'jungle')?.name).toBe(
+      'Clear Jungle',
+    );
   });
 
   it('carries each gift\'s own name and mark, never a stand-in', () => {

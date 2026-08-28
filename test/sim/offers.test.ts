@@ -44,6 +44,7 @@ import {
 import {
   type CardEffect,
   type CardOfferRiderEffect,
+  GOVERNMENT_TIERS,
   ORDER_IDS,
   orderDef,
 } from '../../src/sim/statecraftData';
@@ -235,10 +236,14 @@ describe('every generator draws offerSize cards', () => {
   it('the Doctrine triple at adoption', () => {
     const g = game(29);
     const player = g.state.players[0]!;
-    expect(drawDoctrineOffer(g.state, player, 3).options).toHaveLength(3);
+    // The **first rung** of the government ladder, read off the rows rather than
+    // written here: a Doctrine pool is keyed to an adoption tier and the ladder
+    // is a pacing dial (4/10/18 since 2026-08-27).
+    const rung = GOVERNMENT_TIERS[0]!;
+    expect(drawDoctrineOffer(g.state, player, rung).options).toHaveLength(3);
     withEffects(buildingDef('theOracle'), [rider('doctrine')], () => {
       raiseOracle(g.state, 0);
-      expect(drawDoctrineOffer(g.state, player, 3).options).toHaveLength(4);
+      expect(drawDoctrineOffer(g.state, player, rung).options).toHaveLength(4);
     });
   });
 

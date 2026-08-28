@@ -20,7 +20,7 @@
     },
     "councilOfElders": {
       "name": "Council of Elders",
-      "tier": 3,
+      "tier": 4,
       "flavor": "Slow counsel, and no one hanged for it.",
       "slots": {
         "military": 1,
@@ -41,7 +41,7 @@
     },
     "warChief": {
       "name": "War Chief",
-      "tier": 3,
+      "tier": 4,
       "flavor": "The spear chooses; the rest agree.",
       "slots": {
         "military": 2,
@@ -84,7 +84,7 @@
     },
     "priestKing": {
       "name": "Priest-King",
-      "tier": 3,
+      "tier": 4,
       "flavor": "The gods speak. He translates.",
       "slots": {
         "military": 1,
@@ -100,7 +100,7 @@
     },
     "republic": {
       "name": "Republic",
-      "tier": 7,
+      "tier": 10,
       "flavor": "A crowd that learned to sign its name.",
       "slots": {
         "military": 1,
@@ -122,7 +122,7 @@
     },
     "tyranny": {
       "name": "Tyranny",
-      "tier": 7,
+      "tier": 10,
       "flavor": "One will, and the roads run straight.",
       "slots": {
         "military": 3,
@@ -146,7 +146,7 @@
     },
     "theocracy": {
       "name": "Theocracy",
-      "tier": 7,
+      "tier": 10,
       "flavor": "Law is what the altar remembers.",
       "slots": {
         "military": 1,
@@ -167,7 +167,7 @@
     },
     "merchantLeague": {
       "name": "Merchant League",
-      "tier": 15,
+      "tier": 18,
       "flavor": "Every treaty has a ledger underneath.",
       "slots": {
         "military": 2,
@@ -193,7 +193,7 @@
     },
     "imperium": {
       "name": "Imperium",
-      "tier": 15,
+      "tier": 18,
       "flavor": "The map is a claim; the legion is the proof.",
       "slots": {
         "military": 4,
@@ -215,7 +215,7 @@
     },
     "divineMandate": {
       "name": "Divine Mandate",
-      "tier": 15,
+      "tier": 18,
       "flavor": "Heaven approves. It was asked.",
       "slots": {
         "military": 2,
@@ -244,7 +244,7 @@
   "doctrines": {
     "hermitCrown": {
       "name": "The Hermit Crown",
-      "tier": 3,
+      "tier": 4,
       "line": "green",
       "flavor": "A small kingdom, held entirely in one hand.",
       "text": "While you hold 3 or fewer cities: your capital gains +30% of every yield.",
@@ -270,7 +270,7 @@
     },
     "riverKings": {
       "name": "River Kings",
-      "tier": 3,
+      "tier": 4,
       "line": "green",
       "flavor": "The river gives; the dry land is told to be grateful.",
       "text": "+30% food in freshwater cities; −10% food and production in cities without it.",
@@ -303,7 +303,7 @@
     },
     "woodwrights": {
       "name": "The Woodwrights",
-      "tier": 3,
+      "tier": 4,
       "line": "forge",
       "flavor": "A forest is a city that has not been felled yet.",
       "text": "Chops pay +100% and grant +10 culture each.",
@@ -325,7 +325,7 @@
     },
     "greatLitany": {
       "name": "The Great Litany",
-      "tier": 3,
+      "tier": 4,
       "line": "procession",
       "flavor": "Say it every day and it becomes true.",
       "text": "+1 culture per 3 faith gained per turn.",
@@ -345,7 +345,7 @@
     },
     "greatWarringTribes": {
       "name": "The Great Warring Tribes",
-      "tier": 3,
+      "tier": 4,
       "line": "forge",
       "flavor": "No writ runs faster than a horse.",
       "text": "A negative writ no longer slows production toward units · +10% production toward mounted units · conquered cities pay +5 science and +5 culture.",
@@ -374,7 +374,7 @@
     },
     "wolfMothersPact": {
       "name": "Wolf-Mother's Pact",
-      "tier": 3,
+      "tier": 4,
       "line": "hunt",
       "flavor": "We are not their prey. We are their kin, and they take their share.",
       "text": "Barbarians never attack you (theft continues) · camps you clear pay +50%.",
@@ -392,7 +392,7 @@
     },
     "athenaeumOfTheRoad": {
       "name": "Athenaeum of the Road",
-      "tier": 3,
+      "tier": 4,
       "line": "wayfarers",
       "flavor": "Everything found is kept. Everything kept is known.",
       "text": "Every discovery pays all three of its options.",
@@ -405,7 +405,7 @@
     },
     "foundersRoad": {
       "name": "The Founders' Road",
-      "tier": 3,
+      "tier": 4,
       "line": "none",
       "flavor": "The first stone of every town is a monument to the road that brought it.",
       "text": "Your first 5 cities are founded with a free monument.",
@@ -420,7 +420,7 @@
     },
     "thalassocracy": {
       "name": "Thalassocracy",
-      "tier": 7,
+      "tier": 10,
       "line": "caravan",
       "flavor": "Our borders are wherever the tide reaches.",
       "text": "+20% gold and culture in coastal cities · coastal cities cost 1 fewer authority.",
@@ -450,7 +450,7 @@
     },
     "mountainHold": {
       "name": "Mountain Hold",
-      "tier": 7,
+      "tier": 10,
       "line": "forge",
       "flavor": "The peaks are a wall nobody had to build.",
       "text": "+25% production in mountain-adjacent cities · +5 defense there.",
@@ -475,7 +475,7 @@
     },
     "burningWay": {
       "name": "The Burning Way",
-      "tier": 7,
+      "tier": 10,
       "line": "forge",
       "flavor": "Ash is faster than a plough.",
       "text": "Chopping costs no worker charge · pillaging heals 25.",
@@ -495,7 +495,7 @@
     },
     "breadAndCircuses": {
       "name": "Bread and Circuses",
-      "tier": 7,
+      "tier": 10,
       "line": "green",
       "flavor": "Feed them, amuse them, and they will sing for you.",
       "text": "+1 culture per point of positive happiness.",
@@ -515,7 +515,7 @@
     },
     "theTithe": {
       "name": "The Tithe",
-      "tier": 7,
+      "tier": 10,
       "line": "procession",
       "flavor": "A tenth of the harvest, and the gods keep the books.",
       "text": "+1 gold per faith gained per turn.",
@@ -535,7 +535,7 @@
     },
     "divineInspiration": {
       "name": "Divine Inspiration",
-      "tier": 7,
+      "tier": 10,
       "line": "procession",
       "flavor": "Prayer, given long enough, thinks.",
       "text": "+1% science and culture per 200 banked faith.",
@@ -567,7 +567,7 @@
     },
     "ironPrice": {
       "name": "The Iron Price",
-      "tier": 15,
+      "tier": 18,
       "line": "forge",
       "flavor": "Every death a verse; every verse a debt paid.",
       "text": "Every combat kill grants +15 culture · pillaging pays +15 gold.",
@@ -592,7 +592,7 @@
     },
     "manifestOfTheSteppe": {
       "name": "Manifest of the Steppe",
-      "tier": 15,
+      "tier": 18,
       "line": "none",
       "flavor": "There is always more land. There is never enough rest.",
       "text": "Settlers cost 40% less and never escalate · every city demands +1 happiness.",
@@ -615,7 +615,7 @@
     },
     "gildedCourt": {
       "name": "The Gilded Court",
-      "tier": 15,
+      "tier": 18,
       "line": "caravan",
       "flavor": "Gold on the walls, gold in the words, gold under the throne.",
       "text": "+3 authority capacity.",
@@ -632,7 +632,7 @@
     },
     "grandBazaar": {
       "name": "The Grand Bazaar",
-      "tier": 15,
+      "tier": 18,
       "line": "caravan",
       "flavor": "The second silk is not nothing. The tenth is a fortune.",
       "text": "Happiness from unique luxuries +50% · additional copies of a luxury count at 30% · +2 gold per unique luxury.",
@@ -661,7 +661,7 @@
     },
     "masterOfMaps": {
       "name": "Master of Maps",
-      "tier": 15,
+      "tier": 18,
       "line": "wayfarers",
       "flavor": "We see everything. We fear it a little.",
       "text": "All units +1 sight and +1 movement · −10% combat strength.",
@@ -685,7 +685,7 @@
     },
     "hegemony": {
       "name": "Hegemony",
-      "tier": 15,
+      "tier": 18,
       "line": "forge",
       "flavor": "Every city carries its own weight, and the crown carries none.",
       "text": "+1 authority capacity per city you hold · captured cities cost 2.",
@@ -707,7 +707,7 @@
     },
     "paxImperia": {
       "name": "Pax Imperia",
-      "tier": 15,
+      "tier": 18,
       "line": "green",
       "flavor": "In great cities the noise itself is a kind of peace.",
       "text": "Cities of 8 or more population: +3 happiness and +3 culture each.",
@@ -1966,5 +1966,12 @@
         }
       ]
     }
-  }
+  },
+  "tierLadder": [
+    4,
+    10,
+    18,
+    29,
+    45
+  ]
 }

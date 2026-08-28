@@ -71,9 +71,11 @@ import {
   wrappedDistance,
 } from './map';
 import {
+  type ImprovementId,
   improvementDef,
   improvementForResource,
   improvementYield,
+  isGreatPersonWork,
 } from './improvementData';
 import {
   type ModifierStage,
@@ -429,17 +431,25 @@ export function explainTileYield(
   const terrain = terrainDef(tile.terrain);
   list.push({ source: terrain.name, kind: 'base', ...readTileYield(terrain.yield) });
 
-  // Written down even on a hill, where it is about to be overridden: the fold
-  // reaches the same number, and the *list* is the explanation.
+  // **The hill first, the canopy over it** (user, 2026-08-27: "if jungle or
+  // forest is on a hills tile, the jungle/forest yield should take precedence").
+  //
+  // Two overrides can land on one hex and only the *last* one written survives
+  // the fold, so their order is the rule and not a detail of this loop. The
+  // canopy wins because it is the more specific fact about what a citizen
+  // actually does there: a forested hill is worked by foresters, and the hill's
+  // own 0🌾/2⚙ was quietly turning every jungle hill into a mine. The hills line
+  // is still written down — it is about to be overridden, the fold reaches the
+  // same number either way, and the *list* is the explanation of why.
+  if (tile.hills) {
+    const hills = TERRAIN_DATA.hills;
+    list.push({ source: hills.name, kind: 'override', ...readTileYield(hills.yieldOverride) });
+  }
+
   const feature = featureDef(tile.feature);
   const override = feature.yieldOverride;
   if (override !== null) {
     list.push({ source: feature.name, kind: 'override', ...readTileYield(override) });
-  }
-
-  if (tile.hills) {
-    const hills = TERRAIN_DATA.hills;
-    list.push({ source: hills.name, kind: 'override', ...readTileYield(hills.yieldOverride) });
   }
 
   // The resource, and only for an empire that has a word for it. A seam this
@@ -551,7 +561,9 @@ export function tileYieldOf(tile: Tile, ctx?: TileYieldContext): TileYield {
 /**
  * How a resource came into a player's hands.
  *
- *   · `improvement` — the improvement that opens it stands on the tile.
+ *   · `improvement` — an improvement standing on the tile opens it: the row
+ *     `improvesResource` names, or **any great person's work**, which opens
+ *     whatever it was planted on.
  *   · `city` — the player's **city stands on the seam**, and its owner knows
  *     how to work it. A town quarries the marble it was built on.
  */
@@ -561,6 +573,17 @@ export type ResourceVia = 'improvement' | 'city';
 export interface ResourceHolding {
   id: ResourceId;
   via: ResourceVia;
+  /**
+   * The improvement that opened it, or `null` when a city did.
+   *
+   * Carried rather than re-derived, because since the works opened seams
+   * (2026-08-27) `improvementForResource(id)` is no longer the answer: iron
+   * wants a mine and may be held by an academy. A ledger line that asked the
+   * table would name the improvement the player did *not* build — "Iron · mine"
+   * over a hill with an academy on it — which is the drift a second derivation
+   * always is. One reader, `viaWord` in `meters.ts`.
+   */
+  improvement: ImprovementId | null;
 }
 
 /**
@@ -595,8 +618,9 @@ export interface ResourceHolding {
  *      flag is set: it is derived every time it is asked, so researching a
  *      technology *is* the event, with no schema and no bookkeeping of its own.
  *
- * A resource nothing improves is therefore never in anybody's hands by either
- * path, which is the honest answer rather than a special case. That used to be
+ * A resource nothing improves is therefore never in anybody's hands by any of
+ * the three paths — bar the work, which is the one thing that opens a seam no
+ * table names, which is the honest answer rather than a special case. That used to be
  * the *whole sea* — fish, crabs and the four sea luxuries, whose work boat was
  * deferred with the rest of naval — and since Entry XXVII it is nobody: the
  * fishing boats reach all six. Note which clause opened them, because it is not
@@ -615,14 +639,30 @@ function openedResource(
   if (!player) return null;
   if (!resourceIsVisibleTo(id, player.techsResearched)) return null;
 
+  // **A work opens whatever it stands on** (user, 2026-08-27), and it is read
+  // *before* the table because the table cannot answer for it: a citadel is not
+  // any resource's improvement and never will be. Asked of the marker
+  // (`ImprovementDef.greatPerson`) rather than of an id, exactly as
+  // `improvementError`'s symmetric clause is, so a sixth work inherits this.
+  //
+  // Only *access*, never a yield. The work pays its own three points and the
+  // resource pays whatever its row pays; the mine's hammer is not added, because
+  // no mine was dug — the general fortified the seam and the caravans came
+  // anyway. That falls out for free: `explainTileYield` reads the improvement
+  // standing on the tile, and the one standing there is the work.
+  const on = tile.improvement;
+  if (on !== undefined && isGreatPersonWork(on)) {
+    return { id, via: 'improvement', improvement: on };
+  }
+
   const needed = improvementForResource(id);
   if (needed === null) return null;
-  if (tile.improvement === needed) return { id, via: 'improvement' };
+  if (on === needed) return { id, via: 'improvement', improvement: needed };
 
   if (cityAt(state, tile.col, tile.row) === undefined) return null;
   const tech = improvementDef(needed).requiresTech;
   if (tech !== undefined && !player.techsResearched.includes(tech)) return null;
-  return { id, via: 'city' };
+  return { id, via: 'city', improvement: null };
 }
 
 /**
@@ -715,7 +755,9 @@ export function controlledHoldings(
   playerId: number,
   kind: ResourceKind,
 ): ResourceHolding[] {
-  const held = new Map<ResourceId, ResourceVia>();
+  // The whole holding rather than its `via` alone, because the ledger's word for
+  // it now depends on *which* improvement opened the seam and not on the table.
+  const held = new Map<ResourceId, ResourceHolding>();
   const owner = tileOwnerField(state);
   const tiles = state.map.tiles;
   for (let index = 0; index < tiles.length; index++) {
@@ -723,10 +765,10 @@ export function controlledHoldings(
     const tile = tiles[index]!;
     const holding = openedResource(state, tile, playerId);
     if (holding === null || resourceDef(holding.id).kind !== kind) continue;
-    if (held.get(holding.id) === 'improvement') continue;
-    held.set(holding.id, holding.via);
+    if (held.get(holding.id)?.via === 'improvement') continue;
+    held.set(holding.id, holding);
   }
-  return RESOURCE_IDS.filter((id) => held.has(id)).map((id) => ({ id, via: held.get(id)! }));
+  return RESOURCE_IDS.filter((id) => held.has(id)).map((id) => held.get(id)!);
 }
 
 /** The same list as ids alone — what most callers want. */
@@ -1367,7 +1409,13 @@ function chooseCitizens(
  *      recruitment mutates no city's derived state, it puts a *decision* on the
  *      empire, and the End Turn blocker is what collects it. It is named here
  *      anyway so the register stays the complete answer to "what settles".
- *  14. **The trade verbs** (`trade.ts`) — `sendTraderAt` and `endRoute`, and they
+ *  14. **`settleBorderWindfall`** — culture poured into a *town's bounds* rather
+ *      than into the empire's draft pool (Consecration of the Bounds). The
+ *      register's newest entry and the one whose refresh is least obvious: the
+ *      hex it claims is a hex a citizen may now be sent to, so the panel that is
+ *      wrong without this is the one showing where the town's people are
+ *      standing.
+ *  15. **The trade verbs** (`trade.ts`) — `sendTraderAt` and `endRoute`, and they
  *      are one reason read from both ends: a route's food and hammers are lines
  *      of the **origin's** `cityYields`, so the turn a caravan sets out that town
  *      is already richer and the turn its route ends it is already poorer. The
@@ -3709,6 +3757,70 @@ export function expandBorders(state: GameState): void {
   for (const player of state.players) {
     if (grew.has(player.id)) recomputeVisibility(state, player.id);
   }
+}
+
+/** What a border windfall claimed, for the announcement. */
+export interface BorderCompletion {
+  /** The town whose bounds moved. */
+  city: City;
+  /** The tiles claimed, in the order they were taken. Never empty. */
+  tiles: Tile[];
+  /** Culture left in the town's border basket afterwards. */
+  banked: number;
+}
+
+/**
+ * The mid-turn entry point for the **border** bucket: culture landed in a town's
+ * bounds outside the phase, so spend it now.
+ *
+ * Entry XVIII's fifth seam, and the register's newest entry. Consecration of the
+ * Bounds pours fifteen culture into `City.culture` and, until 2026-08-27, the
+ * player watched it sit there until the end of the turn — "when performing rite
+ * to increase border culture, should instantaneously add the tile and reset the
+ * counter (with overflow) if it exceeds the culture needed" (user). That is
+ * exactly the bargain every other bucket already struck: **the moment of the
+ * gift is the moment of the payoff.**
+ *
+ * Three things it does *not* do, each because `expandBorders` is the rule and
+ * this is only the moment:
+ *
+ *   · it does not re-implement the claim. The tile is chosen by
+ *     `bestExpansionTile` and taken by `claimTile`, which is the phase's own
+ *     pair, so a rite and a good harvest reach for the same hex.
+ *   · it does not skip the **freeze**. A frozen empire claims nothing, even out
+ *     of a basket a blessing just filled — the phase checks it before its sweep
+ *     for that exact reason and a windfall that ignored it would be the way
+ *     round a rule.
+ *   · it does not stop at one tile. The phase's one-per-city-per-turn is a
+ *     *rate limit on accrual*, and a gift is not accrual: fifteen culture on a
+ *     town two tiles from the next rung buys two, with the remainder carried,
+ *     which is the "reset the counter (with overflow)" half of the sentence. The
+ *     loop terminates because every claim costs at least one culture and raises
+ *     the next price, and because the ground runs out.
+ *
+ * `null` when nothing was claimed — the culture simply stays banked, as it does
+ * for a town hemmed in by its neighbours.
+ */
+export function settleBorderWindfall(state: GameState, city: City): BorderCompletion | null {
+  if (bordersFrozen(meterEffects(state, city.ownerId))) return null;
+  const tiles: Tile[] = [];
+  for (;;) {
+    const cost = borderCostFor(state, city);
+    if (city.culture < cost) break;
+    const tile = bestExpansionTile(state, city);
+    if (!tile) break;
+    if (!claimTile(state, city, tile)) break;
+    city.culture -= cost;
+    city.tilesClaimed += 1;
+    tiles.push(tile);
+  }
+  if (tiles.length === 0) return null;
+  // Ground this empire now owns is ground it can see — `expandBorders`' rule,
+  // and `purchaseTileAt`'s. Once, after the loop, because however many hexes one
+  // town took it is one change to one empire's map.
+  recomputeVisibility(state, city.ownerId);
+  refreshCityDerived(state, city);
+  return { city, tiles, banked: city.culture };
 }
 
 // --- buying ground ----------------------------------------------------------
