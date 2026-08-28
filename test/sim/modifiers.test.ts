@@ -17,7 +17,8 @@ import {
   unitProductionCost,
 } from '../../src/sim/cities';
 import { computeFreshwater } from '../../src/sim/water';
-import { chopYield, improvementForResource } from '../../src/sim/improvementData';
+import { improvementForResource } from '../../src/sim/improvementData';
+import { chopBaseFor } from '../../src/sim/improvements';
 import {
   type GameMap,
   type Tile,
@@ -512,10 +513,13 @@ describe('Entry XVIII.5: a windfall is modifier-immune', () => {
    * What the basket should hold after a chop that settles the front item: the
    * printed lump, less what the completion charged. Read off the game's own
    * evaluators rather than written as a number, so this says "the lump was
-   * unmodified" and not "the lump was twenty".
+   * unmodified" and not "the lump was some particular figure" — `chopBaseFor`
+   * rather than the raw `chopYield` because `bareState` hands both fixtures the
+   * whole tree (2026-08-28's tech scaling), and the two fixtures still owe each
+   * other exactly the same lump.
    */
   function bankedAfterSettling(state: GameState): number {
-    return chopYield('forest').production - unitProductionCost(state, 0, 'warrior');
+    return chopBaseFor(state, 0, 'forest').production - unitProductionCost(state, 0, 'warrior');
   }
 
   it('pays the printed lump into a modified city, to the hammer', () => {
@@ -529,17 +533,16 @@ describe('Entry XVIII.5: a windfall is modifier-immune', () => {
 
     expect(city.hammerBasket).toBe(0);
     const charged = unitProductionCost(state, 0, 'warrior');
+    const base = chopBaseFor(state, 0, 'forest').production;
     expect(applyCommand(state, chop(workerId))).toEqual({ ok: true });
     // The printed number, exactly. Not the staged one, not the city stage alone.
     // The lump is read through what it *bought* plus what it left, because a
     // windfall now settles the queue on landing: the warrior it paid for is on
     // the board and the overflow is in the basket, and the two together are the
     // whole of what the chop delivered.
-    expect(city.hammerBasket).toBe(chopYield('forest').production - charged);
-    expect(city.hammerBasket + charged).toBe(chopYield('forest').production);
-    expect(city.hammerBasket + charged).not.toBe(
-      applyStages(chopYield('forest').production, sums.production),
-    );
+    expect(city.hammerBasket).toBe(base - charged);
+    expect(city.hammerBasket + charged).toBe(base);
+    expect(city.hammerBasket + charged).not.toBe(applyStages(base, sums.production));
   });
 
   it('pays a bare city exactly the same lump', () => {
@@ -552,9 +555,10 @@ describe('Entry XVIII.5: a windfall is modifier-immune', () => {
 
     expect(applyCommand(modified.state, chop(modified.workerId))).toEqual({ ok: true });
     expect(applyCommand(plain.state, chop(plain.workerId))).toEqual({ ok: true });
-    // Byte for byte the same basket: the 20⚙ chop is 20⚙ in every city of every
-    // empire, which is the commitment in the ledger's own words. Both queues
-    // settled the same warrior for the same price, so the overflow is the lump.
+    // Byte for byte the same basket: the tech-scaled chop pays the same lump in
+    // every city of every empire holding the same tree, which is the commitment
+    // in the ledger's own words. Both queues settled the same warrior for the
+    // same price, so the overflow is the lump.
     expect(modified.city.hammerBasket).toBe(plain.city.hammerBasket);
     expect(modified.city.hammerBasket).toBe(bankedAfterSettling(modified.state));
   });

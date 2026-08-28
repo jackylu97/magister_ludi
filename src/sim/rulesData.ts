@@ -228,6 +228,19 @@ export interface ImprovementRules {
    * own heal is added to it inside that one function rather than beside it.
    */
   pillageHeal: number;
+  /**
+   * Fraction a chop's printed base grows by, per technology the chopping
+   * empire holds (the user's ruling, 2026-08-28) — `0.05` reads "5% a tech".
+   *
+   * Composed as `floor(chopYield × (1 + techsResearched.length × chopPerTech))`
+   * in `chopBaseFor` (`improvements.ts`), which is *the* chop base every
+   * caller reads — the sim's own settlement and the sheet's preview alike —
+   * so the number on the button is the number the basket receives. Smaller
+   * than a unit's own age band (`unitCostAgeMultiplier`) on purpose: a chop
+   * should never become the *better* buy purely for having waited, so
+   * clearing early stays the efficient choice even as the ladder climbs.
+   */
+  chopPerTech: number;
 }
 
 /**

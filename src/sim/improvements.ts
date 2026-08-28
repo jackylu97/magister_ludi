@@ -76,6 +76,7 @@ import {
 import { type Tile, getTileAt, tileIndex } from './map';
 import { resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
+import { type FeatureId } from './terrainData';
 import {
   cardActionRule,
   payWindfallGrants,
@@ -674,6 +675,52 @@ export function chopError(state: GameState, unitId: number): string | null {
 }
 
 /**
+ * What clearing this feature banks *for this empire, right now*, before any
+ * card rider — `explainUnitCost`'s bargain (hard rule 5, one scale over)
+ * applied to a windfall's own base instead of to a standing yield.
+ *
+ * **A cleared forest pays more the more technologies the chopping empire
+ * holds** (the user's ruling, 2026-08-28): `rules.improvements.chopPerTech`
+ * per technology in `techsResearched`, the same count `highestAge` and
+ * `explainUnitCost`'s age band both read off that array — the opening kit
+ * included, so a fresh empire's very first chop already scales by its
+ * starting tech. It grows on the *base*, never as a rider: a rider is a card
+ * one empire chose to hold, and every empire standing on the same turn prices
+ * the same wood the same way, exactly as `unitCostFactor`'s age band is a fact
+ * about the tree and not about a hand of cards. That is also why it is
+ * composed here, once, and handed to `windfallPayout` as `base` rather than
+ * folded into that function: `windfallPayout`'s `lines` are the register of
+ * what the *cards* did to a payout, and the ground's own price has never been
+ * one of them (see its docblock).
+ *
+ * Deliberately slower than a unit's own age ladder
+ * (`RULES.production.unitCostAgeMultiplier`) so a chop is never the *better*
+ * buy purely for having waited — early clearing stays the efficient one, the
+ * whole point of the ruling.
+ *
+ * `label` is the one sentence the preview, the basket and the announcement all
+ * quote — "Forest 20 · +30% for 6 technologies" — so a scaled chop reads the
+ * same figure everywhere it is printed. No `+0%` clause when nothing scaled,
+ * which is `explainUnitCost`'s reading of "does this line change anything"
+ * applied to a label instead of to a `UnitCostLine`.
+ */
+export function chopBaseFor(
+  state: GameState,
+  playerId: number,
+  feature: FeatureId,
+): { production: number; label: string } {
+  const raw = chopYield(feature).production;
+  const techs = playerById(state, playerId)?.techsResearched.length ?? 0;
+  const factor = 1 + techs * RULES.improvements.chopPerTech;
+  const production = Math.floor(raw * factor);
+  const noun = feature === 'jungle' ? 'Jungle' : 'Forest';
+  if (production === raw) return { production, label: `${noun} ${raw}` };
+  const percent = Math.round(techs * RULES.improvements.chopPerTech * 100);
+  const techWord = techs === 1 ? 'technology' : 'technologies';
+  return { production, label: `${noun} ${raw} · +${percent}% for ${techs} ${techWord}` };
+}
+
+/**
  * Takes the feature off the tile and banks the timber. Validates nothing — the
  * rules are `chopError`'s job; this is the mechanism.
  *
@@ -701,11 +748,17 @@ export function chopError(state: GameState, unitId: number): string | null {
  */
 export function chopFeatureAt(state: GameState, unit: Unit, tile: Tile): boolean {
   // **The printed number, riders included** (Entry XVIII.5 and `windfallPayout`).
-  // The Woodwrights makes a 20⚙ chop a 40⚙ chop — it does not multiply a 20⚙
-  // settlement afterwards — so the figure banked here is already the whole of
-  // what this empire's law says a felled wood is worth, and nothing downstream
-  // ever sees the base again.
-  const payout = windfallPayout(state, unit.ownerId, 'chop', chopYield(tile.feature).production);
+  // The Woodwrights makes a scaled 26⚙ chop a 52⚙ chop — it does not multiply a
+  // bare 20⚙ settlement afterwards — so the figure banked here is already the
+  // whole of what this empire's law says a felled wood is worth: the tech-scaled
+  // base (`chopBaseFor`) composed with every rider, and nothing downstream ever
+  // sees either the raw yield or the unscaled base again.
+  const payout = windfallPayout(
+    state,
+    unit.ownerId,
+    'chop',
+    chopBaseFor(state, unit.ownerId, tile.feature).production,
+  );
   // The Burning Way. A `freeChop` empire spends no charge at all, so a worker
   // clearing a forest is not one job closer to being used up.
   const cost = cardActionRule(state, unit.ownerId, 'freeChop')

@@ -35,6 +35,7 @@ import {
 } from '../../src/sim/improvementData';
 import {
   chargesLeft,
+  chopBaseFor,
   chopCity,
   chopError,
   chopErrorAt,
@@ -49,6 +50,7 @@ import {
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { RESOURCE_IDS, resourceDef, resourceYield } from '../../src/sim/resourceData';
 import { RULES } from '../../src/sim/rulesData';
+import { windfallPayout } from '../../src/sim/statecraft';
 import {
   type City,
   type GameState,
@@ -930,6 +932,102 @@ describe('the chop table', () => {
   });
 });
 
+describe('chopBaseFor — the chop scales with what this empire has learned', () => {
+  /** A player with exactly this many technologies researched, nothing else set up. */
+  function playerWith(state: GameState, techCount: number): void {
+    state.players[0]!.techsResearched = TECH_IDS.slice(0, techCount);
+  }
+
+  it('with no technologies beyond the opening kit, pays the raw table figure', () => {
+    const state = bareState();
+    playerWith(state, 0);
+    const base = chopBaseFor(state, 0, 'forest');
+    expect(base.production).toBe(chopYield('forest').production);
+    expect(base.label).toBe('Forest 20');
+  });
+
+  it('at six technologies, +30% floored (the ruling’s own worked example)', () => {
+    const state = bareState();
+    playerWith(state, 6);
+    expect(RULES.improvements.chopPerTech).toBe(0.05);
+    const base = chopBaseFor(state, 0, 'forest');
+    expect(base.production).toBe(26); // floor(20 × 1.3)
+    expect(base.label).toBe('Forest 20 · +30% for 6 technologies');
+  });
+
+  it('at twelve technologies, +60% floored', () => {
+    const state = bareState();
+    playerWith(state, 12);
+    const base = chopBaseFor(state, 0, 'forest');
+    expect(base.production).toBe(32); // floor(20 × 1.6)
+    expect(base.label).toBe('Forest 20 · +60% for 12 technologies');
+  });
+
+  it('scales the jungle the same way, off its own table figure', () => {
+    const state = bareState();
+    playerWith(state, 6);
+    const base = chopBaseFor(state, 0, 'jungle');
+    expect(base.production).toBe(Math.floor(chopYield('jungle').production * 1.3));
+    expect(base.label).toBe(`Jungle ${chopYield('jungle').production} · +30% for 6 technologies`);
+  });
+
+  it('an unknown player is priced off the raw table, like an unknown player’s unit cost', () => {
+    const state = bareState();
+    expect(chopBaseFor(state, 999, 'forest')).toEqual({ production: 20, label: 'Forest 20' });
+  });
+
+  it('climbs by exactly chopPerTech a technology, monotonically, and never overtakes the deed', () => {
+    // Every extra technology is worth a little more, never less — and it takes
+    // twenty of them (1 / chopPerTech) to double the printed figure, against a
+    // unit's own age band reaching ×2 the moment its type's tech is Age III
+    // (`RULES.production.unitCostAgeMultiplier`). That is the ruling's "grows
+    // slightly slower … so that they're optimal to use earlier" made exact: the
+    // chop never becomes the *better* buy purely for having waited, because
+    // doubling it costs the empire a technology count no early-game unit price
+    // needs to reach its own ceiling.
+    const state = bareState();
+    playerWith(state, 0);
+    let previous = chopBaseFor(state, 0, 'forest').production;
+    for (let techs = 1; techs <= TECH_IDS.length; techs++) {
+      playerWith(state, techs);
+      const current = chopBaseFor(state, 0, 'forest').production;
+      expect(current, `${techs} technologies`).toBeGreaterThanOrEqual(previous);
+      previous = current;
+    }
+    // Doubling the printed figure takes twenty technologies — well past what
+    // any opening researches, which is the ruling's "optimal to use earlier"
+    // read as a number: a chop taken on the first few techs is never far
+    // behind one taken much later, and never ahead of it either.
+    expect(1 / RULES.improvements.chopPerTech).toBe(20);
+  });
+
+  it('composes with a windfall rider on top of the scaled base, not the raw one', () => {
+    const state = bareState();
+    playerWith(state, 12);
+    const scaled = chopBaseFor(state, 0, 'forest').production;
+    state.players[0]!.statecraft.doctrines.push('woodwrights');
+    const payout = windfallPayout(state, 0, 'chop', scaled);
+    // The Woodwrights doubles the *scaled* figure — 32 → 64 — never the printed
+    // twenty the table alone would have paid.
+    expect(payout.amount).toBe(scaled * 2);
+    expect(payout.amount).toBe(64);
+  });
+
+  it('the preview a player reads equals what the settlement actually banks', () => {
+    // `chopBaseFor` is the one composition both the sim's own settlement and
+    // the sheet's preview must read — this is that parity, asked without the
+    // UI in the loop: call it before the command exactly as a preview would,
+    // dispatch the chop, and check the basket agrees to the hammer.
+    const { state, worker, city } = woodedWorker();
+    playerWith(state, 9);
+    const previewed = chopBaseFor(state, 0, 'forest').production;
+    expect(applyCommand(state, { type: 'chopFeature', playerId: 0, unitId: worker.id })).toEqual({
+      ok: true,
+    });
+    expect(city.hammerBasket).toBe(previewed);
+  });
+});
+
 describe('chopFeature', () => {
   function chop(playerId: number, unitId: number): Command {
     return { type: 'chopFeature', playerId, unitId };
@@ -1160,9 +1258,14 @@ describe('chopFeature', () => {
     it('takes the feature off the tile and banks the timber in the city', () => {
       const { state, worker, tile, city } = woodedWorker();
       expect(city.hammerBasket).toBe(0);
+      // `bareState` hands every player the whole tree, so the bank the chop
+      // settles into is the tech-scaled base (`chopBaseFor`), not the raw
+      // `chopYield` — the same distinction the "the worker holds every
+      // technology" comment makes a few tests down.
+      const base = chopBaseFor(state, 0, 'forest').production;
       expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
       expect(tile.feature).toBe('none');
-      expect(city.hammerBasket).toBe(chopYield('forest').production);
+      expect(city.hammerBasket).toBe(base);
       expect(unitById(state, worker.id)?.chargesLeft).toBe(2);
       // Felling a wood is the turn's work, exactly as laying a farm is.
       expect(unitById(state, worker.id)?.movesLeft).toBe(0);
@@ -1176,7 +1279,7 @@ describe('chopFeature', () => {
       const worker = createUnit(state, 0, 'worker', 8, 5);
 
       expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
-      expect(second.hammerBasket).toBe(chopYield('forest').production);
+      expect(second.hammerBasket).toBe(chopBaseFor(state, 0, 'forest').production);
       expect(capital.hammerBasket).toBe(0);
     });
 
@@ -1861,8 +1964,8 @@ describe('improvements in the log', () => {
     expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 30 save with improvements on the board', () => {
-    expect(SCHEMA_VERSION).toBe(30);
+  it('round-trips a schema 31 save with improvements on the board', () => {
+    expect(SCHEMA_VERSION).toBe(31);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;
