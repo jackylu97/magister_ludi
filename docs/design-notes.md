@@ -3807,3 +3807,39 @@ source; the result names every town in reach, resisters included, because "Nippu
 the news a spent charge earns. Also that day: the caravan's plates, the lens's rings, the
 prophet's row reading "Found religion" while there is none — the interface catching up with a
 player who could not tell which towns were his.
+
+---
+
+## Entry XLIV — The afternoon's rulings: three beats at a city, a chop that ages, a worker's ladder, a lens you can read (**built** 2026-08-28)
+
+**A city is attacked in three beats (user):** *"damage should apply to the city first; only
+then does the enemy damage the unit inside; upon killing the unit inside, the unit is able to
+capture the city."* The reducer had it backwards — a garrison took every blow while the walls
+stood untouched. Now `cityAttackPhase` reads the board: the **walls** while the city's health
+is above the floor (it swings back with the strength it defends at, and no blow of any kind
+takes it below one — a city that could not hit back was free to besiege); then the **garrison**,
+ordinary unit combat; then, with nothing left that can swing back, a melee **capture** decided
+off the plan and not the die, civilians handed over through the arrival. `canAdvanceOnto`
+refuses a foreign city — a winner walking in would fill the town's only military slot and make
+it uncapturable — and `canStopOn` refuses one for the same reason: the only way in is through
+the walls. The wild inherits the beats through the same target reading and **takes no town**,
+which its own docblock had claimed and the board had contradicted. The forecast names the beat.
+
+**A chop ages, slower than a soldier (user):** *"chops should scale with the number of
+technologies researched, slightly slower than the ramp in building/unit cost, so they're optimal
+earlier."* `chopBaseFor` composes `floor(base × (1 + techs × chopPerTech))` (0.05) as the
+chop's *printed base* before any rider — the label reads "Forest 20 · +30% for 6 technologies" —
+so The Woodwrights doubles the aged figure and the preview equals the settlement; at twelve
+technologies a chop is ×1.6 against the unit band's ×2.
+
+**A worker's ladder (user):** *"workers should slowly increase in cost the more they're
+built."* The settler's ladder generalised — `UnitDef.escalation` on the row (settler 8, worker 3)
+and `Player.unitsBuilt` per type; `realiseItem` raises it for a completion or a purchase and
+never for a free unit, a gate the old count lacked.
+
+**Also that day:** attacking a lone civilian is an advance (Entry XLIII's sibling: the arrival
+captures, and burns a camp); the health bar's true cause; the faith lens made glanceable —
+plates over every known city and holy site, rings on the towns that follow, the prophet's row
+reading "Found religion", the bomb as a lump; a routed caravan faded and deselected, its sheet
+offering nothing but the auto-resend; a greyed action's reason on hover in the game's own card,
+never inline and never the browser's tooltip; the last import cycle gone.

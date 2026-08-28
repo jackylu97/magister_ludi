@@ -428,6 +428,16 @@ would change every seeded outcome. No further rename passes.
   `{ cost, zoc }`; `zoc` is presentation only and nothing prices off it twice.
   `zocField(state, ownerId)` is hoisted once per search beside `unitDef`; building one per edge
   is the shape to avoid, not the rule.
+- **A city is attacked in three beats, read off the board** (Entry XLIV): `cityAttackPhase` —
+  the walls while `city.hp` is above the floor (the town swings back; nothing takes it below
+  one), then the garrison, then a melee capture decided off the plan (`capturesCity`), never
+  the die. `canAdvanceOnto` and `canStopOn` both refuse a foreign city hex — a piece standing
+  in the town would fill its only military slot and nobody can attack the hex they stand on.
+  The wild never captures. **A chop's printed base is `chopBaseFor`** — aged by technologies
+  (`rules.improvements.chopPerTech`) *before* `windfallPayout` composes the riders; a preview
+  that reads `chopYield` directly is a promise the settlement will not keep. **A unit's ladder
+  is its row's** — `UnitDef.escalation` and `Player.unitsBuilt[type]`, raised in `realiseItem`
+  for a completion or a purchase and never for a free unit.
 - **Combat is flat points on one ledger** (2026-08-28, Entry XXXVII). Terrain, fortification and
   a standing great general's aura (`generalAuraLines`, +3 within two hexes, both sides, the
   first general only) are labelled strength lines in `planCombat`'s fold (`explainTerrainDefense`,
