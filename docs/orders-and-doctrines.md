@@ -17,7 +17,10 @@ Every Order, Doctrine and government in one place, tables only. Edit here; the t
 | ⚓ **The Tide** | trade routes, the sea, coastal empire |  |
 | 🎖 **The Banner** | the *pace* of war — levies, muster, decisive battle |  |
 | 🜍 **The Athanor** | the Magister's sciences — alchemy, automata, the Great Work |  |
-| *(your line)* |  |  |
+| spiritualism - faith + science |  |  |
+| expansionist - wide cities -> authority -> more settling
+| agrarian - stacking yields on farms
+| mountains - hills + mountain bonuses
 
 ## Governments
 
@@ -27,18 +30,18 @@ Every Order, Doctrine and government in one place, tables only. Edit here; the t
 | 3 | Council of Elders | 1/2/1 | +3 happiness · +1 renown per turn in every city |
 |  | War Chief | 2/1/1 | +1 combat strength per 2 cities you hold (max +3) · killing a unit grants +5 science and +5 culture per slotted Order |
 |  | Priest-King | 1/1/2 | +2🕯 per city |
-| 7 | Republic | 1/3/2 | +25% border culture · tile purchases −10% |
-|  | Tyranny | 3/1/2 | +3 authority capacity · pillaging pays +10💰 |
-|  | Theocracy | 1/2/3 | +2🕯 per city · happiness demand −5% |
-| 15 | Merchant League | 2/4/3 | +1💰 per city · +1💰 per unique luxury |
-|  | Imperium | 4/2/3 | +3 authority capacity · units +1 movement inside your territory |
+| 7 | Republic | 1/3/2 | +1 culture per 5 population in a city, happiness demand -5% |
+|  | Tyranny | 3/1/2 | +3 authority capacity · pillaging yields +50%, 30% less maintenance cost for units |
+|  | Theocracy | 1/2/3 | +2🕯 per city · 10% of your capital's faith is gained as science/culture |
+| 15 | Merchant League | 2/4/3 | +1💰 for every gold producing building, trade routes gain 50% yields |
+|  | Imperium | 4/2/3 | +3 authority capacity · units +1 movement |
 |  | Divine Mandate | 2/3/4 | happiness tiers +5pp · +1🎵 per 5🕯 gained/turn |
-| 22 | The Estates | 2/5/4 | +1 happiness per 2 cities · every city with 8+ population +2🎵 |
-|  | The Sultanate | 5/3/3 | units +1 movement inside your territory · units cost −20% ⚙ · −1 happiness per 3 units |
-|  | The Curia | 2/4/5 | +3🕯 per Cathedral · rites last 50% longer |
-| 32 | The Commonwealth | 3/6/5 | tile purchases −25% · +1🎵 per 5 population · no captured-city cost |
-|  | The Empire | 6/4/4 | +5 authority capacity · capturing a city grants +50🎵 and its garrison heals to full |
-|  | The Magisterium | 3/5/6 | every draft of every kind shows one more card · +2 renown per turn per wonder |
+| 22 | The Estates | 2/5/4 | +1 happiness city · every city with 8+ population +2🎵 |
+|  | The Sultanate | 5/3/3 | units +1 movement · units cost −20% ⚙ · conquered settlements provide +10% science and culture |
+|  | The Curia | 2/4/5 | +3🕯 per Cathedral · faith buildings provide science equal to their faith |
+| 32 | The Commonwealth | 3/6/5 | great people can be purchased with gold, great people improvements gain +50% yields |
+|  | The Empire | 6/4/4 | +6 authority capacity · capturing a city with a wonder heals all units, units gain +1 combat strength for every great general earned this game |
+|  | The Magisterium | 3/5/6 | every draft of every kind shows one more card · +3s renown per turn per wonder, great people can be purchased with faith |
 
 ## Doctrines
 
@@ -51,9 +54,9 @@ Every Order, Doctrine and government in one place, tables only. Edit here; the t
 | The Woodwrights | ⚒ | chops pay +100% and grant +10🎵 each |
 | The Great Litany | 🕯 | +1🎵 per 3🕯 gained per turn |
 | The Great Warring Tribes | ⚒ | negative authority no longer penalises ⚙ toward units · +10% ⚙ toward mounted units · conquered cities provide +5 science and culture · you may never build the courthouse family |
-| Wolf-Mother's Pact | 🏹 | barbarians never attack you (theft continues) · camps in your sight pay +50% |
+| Wolf-Mother's Pact | 🏹 | barbarians never attack you (theft continues) · killing a barbarian unit converts them to your side, you can no longer clear camps |
 | Athenaeum of the Road | 🧭 | for ALL discoveries: claim all three options |
-| The Founders' Road | — | your first 5 cities are founded with a free monument · cities are automatically joined by roads |
+| The Founders' Road | — | your first 5 cities are founded with a free monument · new cities are automatically joined by roads |
 
 ### Pool II (tier 7)
 
@@ -72,8 +75,8 @@ Every Order, Doctrine and government in one place, tables only. Edit here; the t
 |---|---|---|
 | The Iron Price | ⚒ | every combat kill grants +15🎵 · pillaging +15💰 |
 | Manifest of the Steppe | — | settlers −40% ⚙, no cost escalation · every city +1 happiness demand |
-| The Gilded Court | 🐫 | unlocks the Gilded Hall: a building purchasable only, for 1000💰 · +3 authority capacity |
-| The Grand Bazaar | 🐫 | happiness from unique luxuries +50% · additional copies of a luxury count at 30% (instead of 0) · +2💰 per unique luxury |
+| The Gilded Court | 🐫 | unlocks the Gilded Hall: a building purchasable only, for 500💰 · +3 authority capacity |
+| The Grand Bazaar | 🐫 | happiness from unique luxuries +50% · additional copies of a luxury give 30% of their bonus (instead of 0) · +2💰 per unique luxury |
 | Master of Maps | 🧭 | all units +1 sight and +1 movement · −10% combat strength |
 | Hegemony | ⚒ | +1 authority capacity per city you hold · captured cities cost 2 |
 | Pax Imperia | 🌱 | cities of 8+ population: +3 happiness and +3🎵 each |
@@ -114,16 +117,16 @@ Every Order, Doctrine and government in one place, tables only. Edit here; the t
 
 | Order | Slot | Line | Tier | Effect |
 |---|---|---|---|---|
-| Blooded Spears | M | 🏹 |  | +3 combat vs barbarians |
-| Camp Followers | M | 🏹 |  | camp clears also pay +25🌾 |
-| Far Runners | M | 🧭 |  | scouts +1 movement and +1 sight |
-| The Long Watch | M | — |  | a unit fortified in a city gives that city +1 happiness, +1 more per fortification level |
-| The Widow's Levy | M | — |  | when a unit of yours dies, its nearest city gains +10⚙ |
-| Common Granary | E | 🌱 |  | +1 food on resource tiles |
-| Salt Tithes | E | 🐫 |  | +1💰 per unique luxury |
-| Boundary Stones | E | — |  | +30% border culture, all cities |
+| Blooded Spears | M | 🏹 |  |  +1 combat strength, +2 combat vs barbarians (3 total against barbs),|
+| Camp Followers | M | 🏹 |  | camp clears pay +25🌾 and gift a random military unit |
+| Far Runners | M | 🧭 |  | scouts +1 movement and +1 sight, civilian units gain +2 movement when embarked |
+| The Long Watch | M | — |  | a unit fortified in a city gives that city +1 happiness, +1 more per fortification building (palisades, castles, etc.) |
+| The Widow's Levy | M | — |  | when a unit of yours dies, its nearest city gains +10⚙ and +40 gold |
+| Common Granary | E | 🌱 |  | +1 food on luxury resource tiles |
+| Salt Tithes | E | 🐫 |  | +2💰 per unique luxury |
+| Boundary Stones | E | — |  | +30% border culture, all cities (does not count towards global culture) |
 | First Rites | W | 🕯 |  | +1🕯 per city |
-| Border Ballads | W | 🏹 |  | +2🎵 per barbarian camp you can currently see |
+| Border Ballads | W | 🏹 |  | +2🎵 per discovered barbarian camp, +4 culture for every barb killed |
 | Militia Levies | M | — |  | all your cities +5 defense and +1 sight radius |
 
 ### Government I pool
@@ -133,23 +136,23 @@ Every Order, Doctrine and government in one place, tables only. Edit here; the t
 | Border Wardens | M | — |  | +3 combat inside your territory |
 | Vanguard | M | ⚒ |  | +3 combat outside your territory |
 | Conscription | M | ⚒ |  | +50% ⚙ toward units · −2 happiness |
-| Spoils of the Wild | M | 🏹 |  | camp bounties +100% |
+| Spoils of the Wild | M | 🏹 |  | camp bounties +100% (stacks with camp followers) |
 | Horse Lords | M | ⚒ |  | mounted units +1 movement |
 | Weights & Measures | E | 🐫 |  | +2💰 per city |
-| Silk Roads | E | 🐫 |  | +2💰 per unique luxury |
-| The Salt Road | E | 🐫 |  | +1💰 per improved bonus resource |
+| Silk Roads | E | 🐫 |  | +3💰 per active trade route |
+| The Salt Road | E | 🐫 |  | +1💰 on bonus resources with an improvement |
 | The Tax Farm | E | 🐫 |  | +1💰 per 3 population, empire-wide |
 | Harbour Dues | E | 🐫 |  | coastal cities +2💰 and +1🎵 |
 | Land Grants | E | — |  | tile purchases −25% · +40% border culture |
 | Homestead Charters | E | — |  | newly founded cities start with an extra population |
 | Granary Levies | E | 🌱 |  | when a city grows, it gains +10⚙ |
 | Census Rolls | E | — |  | +2 authority capacity |
-| Festival Days | W | 🌱 |  | +3 happiness |
+| Festival Days | W | 🌱 |  | +4 happiness |
 | Curious Elders | W | ✶ |  | +5🔬 whenever you claim a discovery |
-| Rites of Passage | W | 🕯 |  | completing a unit grants +2🕯 |
+| Rites of Passage | W | 🕯 |  | buying/completing a unit grants +5🕯 |
 | Tinkers' Guild | E | — |  | workers are built with +1 charge |
 | Public Granaries | E | — |  | cities keep 25% of their food basket on growth |
-| The Loose Rein | W | — |  | your Orders' seals last 2 turns instead of 5 |
+gain a great person, great people improvements gain +2 of their associated type
 
 ### Government II pool
 

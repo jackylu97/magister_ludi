@@ -60,10 +60,10 @@ pick — or you gamble on a new one.
 | Keeper of the Calendar | ✶ sky | every 20 turns, claim a discovery. bonuses from discoveries are multiplied by the current age. |
 | The Standing Stones | ⛰ stone | monuments +1🎵 +1🕯 |
 | Ancestor Worship | ⛰ stone | +1🎵 per city of 4+ population +5% culture per city of 10+ population|
-| Lady of the Hunt | 🌲 wild | camps +1🌾 · clearing a barbarian camp pays +10🕯 |
+| Lady of the Hunt | 🌲 wild | camps +1🌾+1gold · clearing a barbarian camp pays +10🕯 |
 | Spirits of the Wood | 🌲 wild | chops pay +15🕯 · forest tiles +1🎵 for cities working them |
 | River Mother | 🌊 water | cities adjacent to river gain +2 food, shrines in these cities supply +1 happiness |
-| Lord of the Sea ✎ | 🌊 water | fishing boats +1⚙ +1💰 *(deferred: water milestone)* |
+| Lord of the Sea ✎ | 🌊 water | fishing boats +1⚙ +1💰  |
 | God of the Forge | ⚒ war | barracks gain +1 prod · units +1 combat |
 | Rites of Blood | ⚒ war | combat kills pay +15🕯 multiplied by current age |
 | Oracle of the Crossroads | 🧭 road | +3🕯 per discovery claimed · scouts +1 sight |

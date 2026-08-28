@@ -90,12 +90,12 @@ border culture / growth; scopes are `CityScope` members.
 
 | Order | Type | Line | Tier | Effect | Mechanism |
 |---|---|---|---|---|---|
-| **The King's Road** | M | 🎖 | ◆ | every hex inside your borders costs 1 movement | a *cost* rule, not a movement bonus — **(new: `moveRule: 'ownGroundFlat'`, one clause in `tileMoveCost`)**; supersedes roads for the mover, Entry XXV's four readers untouched |
-| **Levies** | M | 🎖 | ● | every city with a Barracks musters a free unit of your best melee type every 10 turns · −1 happiness per Barracks | **(new: `periodicSpawn`** — `periodicOffer`'s calendar shape, spawning through `realiseItem` instead of dealing) + `happiness per city` scoped `hasBuilding` |
+| **The King's Road** | M | 🎖 | ◆ | units gain +1 movement when starting their turn in friendly territory. Roads are extra effective.
+| **Levies** | M | 🎖 | ● | every city with a Barracks musters a free melee unit every 10 turns · −1 happiness per Barracks | **(new: `periodicSpawn`** — `periodicOffer`'s calendar shape, spawning through `realiseItem` instead of dealing) + `happiness per city` scoped `hasBuilding` |
 | **Field Hospitals** | M | 🎖 | ◆ | units inside your borders heal to full each turn they do not move | `unitStat heal` (amount = full) `where: ownTerritory` |
-| **Decisive Blows** | M | 🎖 | ○ | +25% damage dealt when attacking a unit already below full strength | **(new: `combatPercent` under a `CombatCondition` — the Zeus gap, `targetDamaged`)** |
+| **Decisive Blows** | M | 🎖 | ○ | +15% damage dealt when attacking a unit already below full strength | **(new: `combatPercent` under a `CombatCondition` — the Zeus gap, `targetDamaged`)** |
 | **The Marshals' Purse** | M | 🎖 | ○ | units cost −25% gold to purchase | `purchaseRider` (any combatant) |
-| **Trade Wardens** | M | ⚓ | ○ | trade routes cannot be pillaged · +5 combat within 2 hexes of your trade routes | *FUTURE: trade routes* (`behaviorRule` + `combatLine` route condition) — ships when routes do |
+| **Trade Wardens** | M | ⚓ | ○ | trade routes cannot be pillaged · +5 combat within 2 hexes of a road | *FUTURE: trade routes* (`behaviorRule` + `combatLine` route condition) — ships when routes do |
 | **Patrons** | E | 🏛 | ◆ | +1 renown per turn per building of the 🎵 category · +2🎵 per wonder you hold | `renown per building` (`countScaled buildingsOfKind` → renown) + `countScaled wonders` |
 | **The Guild of Masons** | E | 🏛 | ● | +30% ⚙ toward wonders · −15% ⚙ toward units | `productionBonus wonder` + `productionBonus unit` |
 | **Harbourmasters** | E | ⚓ | ◆ | coastal cities +1 trade route · fishing boats +1💰 | *FUTURE: routes* + `tileYield improvement fishingBoats` |
