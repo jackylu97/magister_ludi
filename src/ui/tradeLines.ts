@@ -85,7 +85,7 @@ export interface RoutePreview {
 }
 
 /**
- * What a route from `from` to `to` would pay its origin — the sim's own
+ * What a route from `from` to `to` would pay its destination — the sim's own
  * evaluator for a pair of towns, asked before any caravan carries one.
  *
  * No unit, because a route's figures never needed one (see the module
@@ -229,20 +229,22 @@ export function routeReading(state: GameState, unit: Unit): RouteReading | null 
 
 /** One route a city is an end of. See `cityRouteRows`. */
 export interface CityRouteRow {
-  /** True when this town is the route's **origin** — the end that is paid. */
+  /** True when this town is the route's **origin** — where the caravan set out. */
   outbound: boolean;
-  /** "→ Nippur · 14t" or "← Ur". */
+  /** "← Ur · +3🌾 +2⚙" (pays here) or "→ Nippur" (pays there). */
   text: string;
 }
 
 /**
  * Every route this town is an end of, its own first.
  *
- * Two readings and they are deliberately not symmetric. An **outbound** route is
- * this city's asset — it pays *here*, and how long it has left is the number a
- * player is deciding on — so it carries the clock. An **inbound** route pays
- * somebody else and is a fact about the partner: naming it is enough, and a
- * second clock beside it would be the same countdown printed twice on one panel.
+ * Two readings and they are deliberately not symmetric, and which one carries
+ * the figures **flipped with the direction of payment** (2026-08-27: the
+ * origin's buildings set the figure, the destination banks it —
+ * `docs/trade.md`'s Revisions). An **inbound** route is this city's asset now
+ * — it pays *here*, off the partner's buildings — so it carries what it is
+ * worth. An **outbound** route pays somewhere else and is a fact about the
+ * partner: naming it is enough.
  *
  * Walked in `state.units` order like every other sweep, so the list is a fact
  * about the state rather than about who happened to ask.
@@ -256,10 +258,10 @@ export function cityRouteRows(state: GameState, city: City): CityRouteRow[] {
     const pair = routeCities(state, unit);
     if (!pair) continue;
     if (route.from === city.id) {
-      const left = Math.max(0, route.expiresTurn - state.turn);
-      rows.push({ outbound: true, text: `→ ${cityDisplayName(state, pair.to)} · ${left}t` });
+      rows.push({ outbound: true, text: `→ ${cityDisplayName(state, pair.to)}` });
     } else if (route.to === city.id) {
-      rows.push({ outbound: false, text: `← ${cityDisplayName(state, pair.from)}` });
+      const figures = routeFigures(foldRouteYield(explainRouteYield(state, unit)));
+      rows.push({ outbound: false, text: `← ${cityDisplayName(state, pair.from)} · ${figures}` });
     }
   }
   return rows;
@@ -321,7 +323,7 @@ export function plunderSpoils(plunder: TraderPlunder): string {
  * Two sentences, and the difference between them is the *only* thing a player
  * has to act on: a caravan that came home is a piece standing idle and a slot to
  * spend, and one that set out again is neither. The origin names the route
- * because that is the town the yields were landing in — `RouteEndReport.from`
+ * because that is the town the caravan is walking home *to* — `RouteEndReport.from`
  * is `TradeRoute.from`, and both ends are ids rather than names for the reason
  * every sim report is (naming a city is the interface's business).
  */

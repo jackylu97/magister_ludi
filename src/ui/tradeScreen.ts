@@ -293,9 +293,11 @@ function originNote(state: GameState, playerId: number, city: City, sender: Unit
  * be sent to from it.
  *
  * Candidates are sorted **gold, then food, then production**, descending — the
- * brief's order and the honest one: the gold is the empire's, the food and the
- * hammers land in the origin's own basket, and a player scanning a column is
- * scanning for the biggest number that reaches the treasury.
+ * brief's order and the honest one: the gold is the empire's, and the food and
+ * the hammers are what **that candidate**, as the route's destination, would
+ * bank in its own basket (2026-08-27: the origin's buildings set the figure,
+ * the destination banks it) — so a player scanning a column is scanning for the
+ * partner most worth feeding.
  *
  * A pair the empire is already running keeps its row and is marked rather than
  * dropped: "Nippur is the one already paying you" is the answer to why it is not
@@ -548,6 +550,14 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
       const block = element('section', 'trade-origin');
       const head = element('p', 'eyebrow sc-eyebrow', `from ${origin.name}`);
       block.append(head);
+      // The column heading: a row's figures are what *that town* — the
+      // candidate, the route's destination — would receive, read off
+      // `origin.name`'s own buildings (2026-08-27's reversal). Said once per
+      // origin group rather than per row, which is where every row's figures
+      // in the group come from.
+      block.append(
+        element('p', 'hint', `What each town would receive, off ${origin.name}'s buildings`),
+      );
       if (origin.note !== null) block.append(element('p', 'hint', origin.note));
       if (origin.candidates.length === 0) {
         block.append(element('p', 'sc-none', 'There is nowhere to send from here yet.'));

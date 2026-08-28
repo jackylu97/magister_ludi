@@ -21,9 +21,9 @@
  *
  * Nothing is snapshotted
  * ----------------------
- * What a route pays is derived every turn from the two cities as they stand: a
- * destination that finishes a library raises the route next turn, and a
- * destination that changes hands stops paying at all. `Unit.trade` carries four
+ * What a route pays is derived every turn from the two cities as they stand: an
+ * origin that finishes a library raises the route next turn, and either end
+ * changing hands stops paying at all. `Unit.trade` carries four
  * facts and not one number. That is rule 5 read from the far end — the totals
  * are the fold of `explainRouteYield`, and there is no second ledger to keep in
  * step.
@@ -180,16 +180,17 @@ export function standsIn(unit: Unit, city: City): boolean {
  *
  * The key is *deleted* rather than flagged, because presence is the state (see
  * `Unit.trade`): a trader that has never been sent and one whose route lapsed
- * must serialise identically. The origin is re-seated through the register's own
- * helper, because the town has just stopped receiving a caravan's food and the
- * panel it would otherwise lie to is that one (`refreshCityDerived`).
+ * must serialise identically. The destination is re-seated through the
+ * register's own helper, because that town has just stopped receiving a
+ * caravan's food and the panel it would otherwise lie to is that one
+ * (`refreshCityDerived`).
  */
 export function endRoute(state: GameState, unit: Unit): void {
   const route = unit.trade;
   if (!route) return;
   delete unit.trade;
-  const from = cityById(state, route.from);
-  if (from && from.ownerId === unit.ownerId) refreshCityDerived(state, from);
+  const to = cityById(state, route.to);
+  if (to && to.ownerId === unit.ownerId) refreshCityDerived(state, to);
 }
 
 /**
@@ -222,14 +223,14 @@ export interface RouteEndReport {
 // --- what a route pays ------------------------------------------------------
 
 /**
- * One labelled line of what a route pays its **origin**.
+ * One labelled line of what a route pays its **destination**.
  *
  * `CardYieldLine`'s shape minus the voices a route cannot pay: three yields,
  * because the ruling names three. A fourth would be a design decision and not a
  * field.
  */
 export interface RouteYieldLine {
-  /** What the interface prints: "Caravan to Nippur · 3 buildings". */
+  /** What the interface prints: "Caravan from Uruk · 3 buildings". */
   source: string;
   food: number;
   production: number;
@@ -252,18 +253,22 @@ function buildingsInCategories(
  * What one caravan's route pays, as the ordered list its totals are the fold of
  * (rule 5).
  *
- * **The origin pays and the destination counts** — the decision the ruling left
- * open, made this way so that the *partner matters*: a small town sends to the
- * capital and brings the capital's goods home. Counting both ends would send
- * every caravan to the biggest city on the map.
+ * **The origin's buildings set the figure and the destination banks it** — the
+ * user's reversal of 2026-08-27 (`docs/trade.md`'s Revisions), quoted there
+ * verbatim: "it is best for routes from the capital to later settles, to feed
+ * the later settles." Reading the *origin's* buildings is what makes that true —
+ * a well-built capital sends its own goods outward rather than harvesting
+ * whatever a raw young settle happens to have standing, and a route into that
+ * settle is worth sending precisely because the settle itself pays nothing yet.
  *
- * Three lines, and each is the user's table read literally:
+ * Three lines, and each is the user's table read literally, now off the
+ * **origin**:
  *
- *   · **+1🌾 per food, culture or science building** standing in the destination;
+ *   · **+1🌾 per food, culture or science building** standing in the origin;
  *   · **+1⚙ per production, military or gold building** there;
  *   · **+1💰 per `rules.trade.goldPerCombinedPop` people** across the two towns.
  *
- * Every figure is read off the cities *as they stand*, so a destination that
+ * Every figure is read off the cities *as they stand*, so an origin that
  * finishes a library raises the route the next turn — see the module docblock.
  * A lapsed route pays nothing and answers an empty list, which is what makes
  * `state.turn < expiresTurn` the whole of expiry.
@@ -305,9 +310,12 @@ export function explainRouteYieldBetween(
   to: City,
 ): RouteYieldLine[] {
   const lines: RouteYieldLine[] = [];
-  const label = (note: string): string => `Caravan to ${to.name} · ${note}`;
+  // Printed on the *destination's* sheet ("Caravan from Uruk · 3 buildings"),
+  // naming the origin — the town this figure was read off, not the town
+  // reading it.
+  const label = (note: string): string => `Caravan from ${from.name} · ${note}`;
 
-  const food = buildingsInCategories(to.buildings, FOOD_CATEGORIES);
+  const food = buildingsInCategories(from.buildings, FOOD_CATEGORIES);
   if (food > 0) {
     lines.push({
       source: label(`${food} ${food === 1 ? 'building' : 'buildings'}`),
@@ -317,7 +325,7 @@ export function explainRouteYieldBetween(
     });
   }
 
-  const hammers = buildingsInCategories(to.buildings, PRODUCTION_CATEGORIES);
+  const hammers = buildingsInCategories(from.buildings, PRODUCTION_CATEGORIES);
   if (hammers > 0) {
     lines.push({
       source: label(`${hammers} ${hammers === 1 ? 'building' : 'buildings'}`),
@@ -356,6 +364,10 @@ export function foldRouteYield(lines: readonly RouteYieldLine[]): {
  * Every route line this city receives — one caravan's list after another, in
  * `state.units` order.
  *
+ * A route pays its **destination** (`unit.trade.to`), so this is the filter on
+ * `to` and not on `from` — a town receives the caravans sent *to* it, off
+ * whatever their *origins* have built.
+ *
  * Folded into `cityYields` exactly as `cardCityYields` and `cityResourceYields`
  * are, and **staged like any other flat** (Entry XVII): a route's food is a
  * per-turn yield, not a windfall, so it rides the city's percentages and the
@@ -367,7 +379,7 @@ export function cityRouteYields(state: GameState, city: City): RouteYieldLine[] 
   const lines: RouteYieldLine[] = [];
   for (const unit of state.units) {
     if (unit.ownerId !== city.ownerId) continue;
-    if (unit.trade?.from !== city.id) continue;
+    if (unit.trade?.to !== city.id) continue;
     lines.push(...explainRouteYield(state, unit));
   }
   return lines;
@@ -574,10 +586,10 @@ export function originCityOf(state: GameState, unit: Unit): City | null {
  *     the same turn, `resetMovement` the next), which is what keeps the walk in
  *     one place instead of two.
  *
- * The origin is re-seated because a caravan that has just set out is a caravan
- * whose town is already receiving its food — the mid-turn register's rule
- * (`refreshCityDerived`), and the reason the city panel does not wait for the
- * turn to end to tell the truth.
+ * The destination is re-seated because a route that has just been opened is a
+ * route whose destination is already receiving its food — the mid-turn
+ * register's rule (`refreshCityDerived`), and the reason the city panel does
+ * not wait for the turn to end to tell the truth.
  */
 export function sendTraderAt(state: GameState, unit: Unit, from: City, to: City): void {
   unit.trade = {
@@ -593,7 +605,7 @@ export function sendTraderAt(state: GameState, unit: Unit, from: City, to: City)
   const goal = getTileAt(state.map, to.col, to.row);
   const path = goal ? findPath(state, unit, goal) : null;
   if (path && path.length > 0) unit.path = path.map((cell) => ({ col: cell.col, row: cell.row }));
-  refreshCityDerived(state, from);
+  refreshCityDerived(state, to);
 }
 
 // --- roads, and what they connect -------------------------------------------

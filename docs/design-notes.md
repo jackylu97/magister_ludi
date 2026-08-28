@@ -3361,6 +3361,19 @@ exception by marker (`trades`), not by name. Schema 23.
 
 **Left for the halves that follow:** the roads layer and the laden caravan (render), send
 mode with a plate per partner city, the routed panel, the two gold-hover lines (interface).
+
+**Reversed the same evening (user, 2026-08-27):** *"trade route yields depend on the origin
+city — it is best for routes from the capital to later settles, to feed the later settles."*
+The first build was Civ VI's direction (the destination's districts pay the origin); the
+ruling is Civ V's, read off buildings instead of surplus: **the origin's buildings set the
+amount and the destination receives it.** It fits what already surrounds it — roads and
+connection gold both run to the capital, so routes fanning out from a well-built capital lay
+exactly the network the connection rule pays for, and a tall capital gains a reason to spend
+hammers feeding a wide empire. The one thing to watch is centralisation: every route now
+wants to start in the capital, and the empire-wide slot cap is what stops the capital from
+being the only origin. `explainRouteYieldBetween(state, from, to)` counts `from`'s buildings;
+`cityRouteYields` folds the routes whose `to` is the city; the sheet says "Caravan from Uruk"
+on the town that receives it.
 Foreign routes, the harbour connection and the King's Road card wait on diplomacy, the
 Wayfinding building and the war-pace pass respectively.
 

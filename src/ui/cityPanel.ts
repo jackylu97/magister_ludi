@@ -749,13 +749,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const figures = buildingFigures(entry);
       if (figures) line(entry.source, figures);
     }
-    // What the caravans this town sent out bring home, after the buildings
+    // What the caravans sent *to* this town are bringing, after the buildings
     // because that is what they are read off — `explainRouteYield` counts the
-    // *partner's* buildings and the two towns' people. `cityRouteYields` is
-    // already one of `cityYields`' flats, so leaving these out was a chip
-    // multiplied without its reason beside it (rule 5), and it is why a route's
-    // food seemed to come from nowhere. `RouteYieldLine.source` is the
-    // simulation's own label ("Caravan to Nippur · 3 buildings").
+    // *partner's* (the origin's) buildings and the two towns' people.
+    // `cityRouteYields` is already one of `cityYields`' flats, so leaving these
+    // out was a chip multiplied without its reason beside it (rule 5), and it is
+    // why a route's food seemed to come from nowhere. `RouteYieldLine.source` is
+    // the simulation's own label ("Caravan from Uruk · 3 buildings").
     for (const entry of cityRouteYields(state, city)) {
       const figures = routeFigures(entry);
       if (figures) line(entry.source, figures);
@@ -1517,16 +1517,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       box.append(element('p', 'hint', 'No caravan runs to or from this town.'));
       return box;
     }
-    // Outbound first — those are the routes that pay *here*, and the clock on
-    // one is the number a player is deciding on.
-    for (const row of [...rows].sort((a, b) => Number(b.outbound) - Number(a.outbound))) {
-      box.append(
-        element(
-          'p',
-          'hint',
-          row.outbound ? `${row.text} · pays this city` : `${row.text} · pays there`,
-        ),
-      );
+    // Inbound first — those are the routes that pay *here* now (2026-08-27: the
+    // origin's buildings set the figure, the destination banks it), and
+    // `row.text` already carries the direction arrow and, for a paying route,
+    // its figures — see `cityRouteRows`.
+    for (const row of [...rows].sort((a, b) => Number(a.outbound) - Number(b.outbound))) {
+      box.append(element('p', 'hint', row.text));
     }
     return box;
   }

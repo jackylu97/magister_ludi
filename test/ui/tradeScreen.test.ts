@@ -115,10 +115,10 @@ describe('the routes chip', () => {
 
 describe('the summary ledger', () => {
   it('is one line per route, then trade’s two empire lines, folding to the gold', () => {
-    const { state, trader, near } = tradeWorld();
-    // Something for the partner to be worth: a route pays a hammer per
-    // production, military or gold building standing at its destination.
-    near.buildings.push('barracks');
+    const { state, home, trader, near } = tradeWorld();
+    // Something for the route to be worth: a route pays a hammer per
+    // production, military or gold building standing at its **origin**.
+    home.buildings.push('barracks');
     applyCommand(state, { type: 'sendTrader', playerId: 0, unitId: trader.id, cityId: near.id });
 
     const ledger = tradeLedger(state, 0);
@@ -201,9 +201,12 @@ describe('the right pane', () => {
   });
 
   it('sorts gold, then food, then production', () => {
-    const { state, home, near, far } = tradeWorld();
-    // The far town pays a hammer; the near one pays gold, by having the people.
-    far.buildings.push('barracks');
+    const { state, home, near } = tradeWorld();
+    // Food and production are read off the **origin** now (2026-08-27), so
+    // every candidate sent from `home` quotes the same figures for those two
+    // voices — a building on the partner no longer moves them. Gold still
+    // varies by combined population, which is what this sort actually
+    // exercises: the near town pays more by having the people.
     near.population = 40;
     home.population = 40;
     const origin = tradeOrigins(state, 0).find((entry) => entry.cityId === home.id)!;

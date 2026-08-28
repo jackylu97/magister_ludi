@@ -615,21 +615,26 @@ describe('a road', () => {
 // --- what a route pays ------------------------------------------------------
 
 describe('a route’s yields', () => {
-  it('pays the origin off the destination’s buildings and the two populations', () => {
+  it('pays the destination off the origin’s buildings and the two populations', () => {
     const { state, home, partner, trader } = tradeWorld();
     home.population = 6;
     partner.population = 8;
-    partner.buildings.push('granary', 'library', 'workshop');
+    // 2026-08-27: the origin's buildings set the figure, the destination
+    // banks it — "it is best for routes from the capital to later settles,
+    // to feed the later settles." `home` already carries `tradeWorld`'s
+    // market (a `gold`-category building, so it counts toward production too).
+    home.buildings.push('granary', 'library', 'workshop');
     expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
 
     const lines = explainRouteYield(state, trader);
     expect(lines.map((line) => line.source)).toEqual([
-      `Caravan to ${partner.name} · 2 buildings`,
-      `Caravan to ${partner.name} · 1 building`,
-      `Caravan to ${partner.name} · 14 people`,
+      `Caravan from ${home.name} · 2 buildings`,
+      `Caravan from ${home.name} · 2 buildings`,
+      `Caravan from ${home.name} · 14 people`,
     ]);
-    // granary + library are food/science; workshop is production.
-    expect(foldRouteYield(lines)).toEqual({ food: 2, production: 1, gold: 1 });
+    // granary + library are food/science; the market and the workshop are
+    // both production-side categories (gold, production).
+    expect(foldRouteYield(lines)).toEqual({ food: 2, production: 2, gold: 1 });
   });
 
   it('agrees with the pure preview helper a caravan-free candidate reads', () => {
@@ -639,7 +644,7 @@ describe('a route’s yields', () => {
     const { state, home, partner, trader } = tradeWorld();
     home.population = 6;
     partner.population = 8;
-    partner.buildings.push('granary', 'library', 'workshop');
+    home.buildings.push('granary', 'library', 'workshop');
     expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
 
     expect(explainRouteYieldBetween(state, home, partner)).toEqual(
@@ -648,26 +653,26 @@ describe('a route’s yields', () => {
   });
 
   it('is derived, not snapshotted: a library built tomorrow raises it tomorrow', () => {
-    const { state, partner, trader } = tradeWorld();
+    const { state, home, partner, trader } = tradeWorld();
     expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
     expect(foldRouteYield(explainRouteYield(state, trader)).food).toBe(0);
-    partner.buildings.push('library');
+    home.buildings.push('library');
     expect(foldRouteYield(explainRouteYield(state, trader)).food).toBe(1);
   });
 
-  it('joins the origin city’s own totals', () => {
+  it('joins the destination city’s own totals', () => {
     const { state, home, partner, trader } = tradeWorld();
-    partner.buildings.push('granary', 'amphitheater', 'library', 'workshop', 'barracks');
-    const before = cityYields(state, home);
+    home.buildings.push('granary', 'amphitheater', 'library', 'workshop', 'barracks');
+    const before = cityYields(state, partner);
     expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
-    const after = cityYields(state, home);
+    const after = cityYields(state, partner);
     expect(after.food).toBeGreaterThan(before.food);
     expect(after.production).toBeGreaterThan(before.production);
   });
 
   it('stops paying the turn it lapses, wherever the caravan is standing', () => {
-    const { state, partner, trader } = tradeWorld();
-    partner.buildings.push('library');
+    const { state, home, trader, partner } = tradeWorld();
+    home.buildings.push('library');
     expect(applyCommand(state, send(0, trader.id, partner.id)).ok).toBe(true);
     expect(explainRouteYield(state, trader)).not.toEqual([]);
     trader.trade!.expiresTurn = state.turn;

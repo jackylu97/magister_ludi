@@ -119,9 +119,12 @@ describe('the send plates', () => {
   });
 
   it('keeps the figures on a refused plate, because the number is the argument', () => {
-    const { state, trader, home, partner } = tradeWorld();
-    partner.buildings.push('granary');
+    const { state, trader, home } = tradeWorld();
+    // 2026-08-27: a route's food and production are read off the **origin**
+    // now — `home`'s own granary, not the partner's — so the market is
+    // cleared for the refusal and a granary is put back for the figure.
     home.buildings.length = 0;
+    home.buildings.push('granary');
     const [offer] = caravanOffers(state, trader);
     expect(offer!.error).not.toBeNull();
     // "Nippur would be worth this, and you have no market" is the case for
@@ -159,7 +162,8 @@ describe('the send plates', () => {
    */
   it('quotes exactly what the route pays once it is sent', () => {
     const { state, trader, home, partner } = tradeWorld();
-    partner.buildings.push('granary', 'barracks');
+    // Read off the **origin** now — see `test/sim/trade.test.ts`.
+    home.buildings.push('granary', 'barracks');
     const before = previewRoute(state, home, partner);
 
     const result = applyCommand(state, {
@@ -259,7 +263,8 @@ describe('the send mode', () => {
 describe('a routed caravan’s sheet', () => {
   function routed(): { state: GameState; trader: Unit; home: City; partner: City } {
     const world = tradeWorld();
-    world.partner.buildings.push('granary');
+    // Read off the **origin** now — see `test/sim/trade.test.ts`.
+    world.home.buildings.push('granary');
     const result = applyCommand(world.state, {
       type: 'sendTrader',
       playerId: 0,
@@ -357,8 +362,12 @@ describe('the route slot figure', () => {
 });
 
 describe('the city panel’s routes row', () => {
-  it('reads a route from this town with its clock, and one to it without', () => {
+  it('reads a route to this town with its figures, and one from it without', () => {
+    // 2026-08-27: the origin's buildings set the figure, the destination
+    // banks it, so it is the **inbound** row that now carries what the route
+    // is worth — see `cityRouteRows`.
     const { state, trader, home, partner } = tradeWorld();
+    home.buildings.push('granary');
     applyCommand(state, {
       type: 'sendTrader',
       playerId: 0,
@@ -368,15 +377,13 @@ describe('the city panel’s routes row', () => {
     const fromHome = cityRouteRows(state, home);
     expect(fromHome).toHaveLength(1);
     expect(fromHome[0]!.outbound).toBe(true);
-    expect(fromHome[0]!.text).toMatch(/^→ .+ · \d+t$/);
+    // The outbound row carries no figures: it pays somewhere else.
+    expect(fromHome[0]!.text).toBe(`→ ${partner.name}`);
 
     const toPartner = cityRouteRows(state, partner);
     expect(toPartner).toHaveLength(1);
     expect(toPartner[0]!.outbound).toBe(false);
-    // The inbound row carries no second clock: the same countdown printed twice
-    // on one panel is the doubled reading this codebase keeps removing.
-    expect(toPartner[0]!.text).toMatch(/^← /);
-    expect(toPartner[0]!.text).not.toMatch(/\dt$/);
+    expect(toPartner[0]!.text).toMatch(/^← .+ · \+\d+🌾/);
   });
 
   it('says nothing about a town no caravan touches', () => {

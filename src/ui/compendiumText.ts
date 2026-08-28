@@ -181,8 +181,8 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     'traders, routes, city connections',
     '⇄',
     [
-      'Trade is a way to make your cities richer and to build roads at the same time. Once you have researched Currency you can build a trader, a civilian unit. Send it from one of your cities to another and it sets up a trade route, which pays extra food, production and gold to the city it started from every turn.',
-      'Where you send it matters: the food and production a route pays depend on the buildings in the destination city, so send traders to your best-developed cities. As the trader travels it lays road on every hex it passes, and roads make every unit move faster. Use the Trade screen (the ⇄ button on the top bar) to see your routes and which destinations pay best.',
+      'Trade is a way to make your cities richer and to build roads at the same time. Once you have researched Currency you can build a trader, a civilian unit. Send it from one of your cities to another and it sets up a trade route, which pays extra food, production and gold to the destination city every turn.',
+      'Where you send it matters: a route pays the destination city based on the origin city\'s buildings, so send traders from your best-developed cities to the ones that need feeding. As the trader travels it lays road on every hex it passes, and roads make every unit move faster. Use the Trade screen (the ⇄ button on the top bar) to see your routes and which of your cities are worth sending a caravan from.',
       'Details: each market provides one route slot; the top bar shows routes in use and available. A route lasts a fixed number of turns and can be set to renew automatically. Roads are permanent and any unit can use them: moving between two road hexes costs a fraction of a movement point and ignores terrain. Each city connected to your capital by road pays gold every turn; the roads you built cost a small upkeep. An enemy melee unit can attack a trader and take its cargo.',
     ],
   ),

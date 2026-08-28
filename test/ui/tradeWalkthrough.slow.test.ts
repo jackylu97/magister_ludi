@@ -41,7 +41,8 @@ describe('a caravan, from the treasury to the ledger', () => {
     const home = foundCityAt(state, 0, at(state, 3, 4));
     const partner = foundCityAt(state, 0, at(state, 10, 4));
     home.buildings.push('market');
-    partner.buildings.push('granary', 'barracks');
+    // Read off the **origin** now (2026-08-27) — see `test/sim/trade.test.ts`.
+    home.buildings.push('granary', 'barracks');
     home.population = 6;
     partner.population = 6;
     state.players[0]!.gold = 900;
@@ -82,9 +83,12 @@ describe('a caravan, from the treasury to the ledger', () => {
     const second = state.units.find((u) => u.type === 'trader' && u.id !== trader.id);
     expect(second).toBeUndefined();
 
-    // 4. Both towns show the route, and the origin is the one that is paid.
+    // 4. Both towns show the route, and the destination is the one that is
+    //    paid (2026-08-27: the origin's buildings set the figure, the
+    //    destination banks it).
     expect(cityRouteRows(state, home)[0]!.outbound).toBe(true);
     expect(cityRouteRows(state, partner)[0]!.outbound).toBe(false);
+    expect(cityRouteRows(state, partner)[0]!.text).toMatch(/🌾/);
 
     // 5. A few turns of walking. The clock counts down by subtraction, the road
     //    goes under the caravan, and the towns eventually join up.

@@ -864,7 +864,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    *
    * The rite card's shape one subject over, and the same rule: every word comes
    * from the simulation. `RouteYieldLine.source` is already the sentence
-   * `explainRouteYield` labels each line with ("Caravan to Nippur · 3
+   * `explainRouteYield` labels each line with ("Caravan from Uruk · 3
    * buildings"), so this only prints them — a UI copy of "one food per library"
    * would be the second description of the ruling this codebase spends whole
    * modules avoiding.
@@ -877,7 +877,9 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     const card = element('div', 'unit-card');
     card.append(element('h4', 'unit-card-title', `${route.fromName} ⇄ ${route.toName}`));
     const payoff = element('p', 'unit-card-payoff');
-    setYieldText(payoff, `${route.figures} to ${route.fromName}`);
+    // Pays the **destination** (2026-08-27: the origin's buildings set the
+    // figure, the destination banks it) — "+3🌾 +2⚙ to Nippur".
+    setYieldText(payoff, `${route.figures} to ${route.toName}`);
     card.append(payoff);
     for (const line of route.lines) {
       const clause = element('p', 'unit-card-clause');
@@ -1064,8 +1066,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // small half of the truth.
     //
     // The figures are the fold of `explainRouteYield` and the hover card is its
-    // lines, so the number on this sheet and the "Caravan to Nippur" rows in the
-    // origin's yield breakdown are the same list read twice — never two
+    // lines, so the number on this sheet and the "Caravan from Uruk" rows in the
+    // destination's yield breakdown are the same list read twice — never two
     // derivations that agree today.
     const route = trades(def) ? routeReading() : null;
     if (route) {

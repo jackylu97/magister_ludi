@@ -1417,11 +1417,12 @@ function chooseCitizens(
  *      standing.
  *  15. **The trade verbs** (`trade.ts`) — `sendTraderAt` and `endRoute`, and they
  *      are one reason read from both ends: a route's food and hammers are lines
- *      of the **origin's** `cityYields`, so the turn a caravan sets out that town
- *      is already richer and the turn its route ends it is already poorer. The
- *      caravan's own *march* owes this register nothing — a route pays wherever
- *      the trader is standing — which is why the shuttle phase does not refresh
- *      and does not need to.
+ *      of the **destination's** `cityYields` (2026-08-27: the origin's buildings
+ *      set the figure, the destination banks it), so the turn a route opens that
+ *      town is already richer and the turn its route ends it is already poorer.
+ *      The caravan's own *march* owes this register nothing — a route pays
+ *      wherever its two cities stand, not wherever the trader is walking —
+ *      which is why the shuttle phase does not refresh and does not need to.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -2061,12 +2062,14 @@ export function cityYields(
     total.faith += line.faith;
   }
 
-  // What the caravans this town sent out are bringing home, the fold of the list
-  // the panel prints line by line (`explainRouteYield` in `trade.ts`). Beside the
-  // luxuries and the cards because it is the same kind of thing a third table
-  // over — and *inside* this function rather than beside it, so a route's food
-  // is staged like every other flat (Entry XVII) and its gold reaches the
-  // treasury through the same `collectYields` as the market's.
+  // What the caravans sent *to* this town are bringing, the fold of the list
+  // the panel prints line by line (`explainRouteYield` in `trade.ts`) — off
+  // each caravan's *origin* buildings, since 2026-08-27's reversal pays the
+  // destination and reads the origin. Beside the luxuries and the cards
+  // because it is the same kind of thing a third table over — and *inside*
+  // this function rather than beside it, so a route's food is staged like
+  // every other flat (Entry XVII) and its gold reaches the treasury through
+  // the same `collectYields` as the market's.
   for (const line of cityRouteYields(state, city)) {
     total.food += line.food;
     total.production += line.production;

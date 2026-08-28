@@ -68,24 +68,26 @@ great work `1`. The empire's cap is the fold over every city's buildings — one
 `offerRider`-style shape (`routeRider { extra }`) — Harbourmasters' "+1 route in coastal
 cities" is that shape scoped.
 
-### What a route pays (the user's table, with one decision made)
+### What a route pays (✎ reversed 2026-08-27, the user's ruling)
 
-The route pays its **origin** city, and the figures are read off the **destination's**
-buildings. That is the decision the ruling leaves open (both cities? the destination?), and
-it is made this way so that *the partner matters*: a small town sends its caravan to the
-capital and brings back the capital's goods; the capital sends to its best-built province.
-Counting both cities would send every route to the biggest town.
+The route pays its **destination** city, and the figures are read off the **origin's**
+buildings. This reverses the draft's first decision (the route paid its origin, counted off
+the destination); the user's own words: "a trade route's yields are read off the origin
+city's buildings and paid to the destination city — it is best for routes from the capital
+to later settles, to feed the later settles." A well-built capital sends its own goods
+outward to whichever new town needs them, rather than a route being worth sending only once
+the *partner* has something built.
 
 | Line | Figure | From |
 |---|---|---|
-| **Food** | +1🌾 per building of the **food, culture or science** category at the destination | `buildingCategory` — a new field on the building row (`food` / `culture` / `science` / `production` / `military` / `gold` / `faith`), one word, read by nothing else yet |
-| **Production** | +1⚙ per building of the **production, military or gold** category at the destination | same |
+| **Food** | +1🌾 per building of the **food, culture or science** category at the origin | `buildingCategory` — a new field on the building row (`food` / `culture` / `science` / `production` / `military` / `gold` / `faith`), one word, read by nothing else yet |
+| **Production** | +1⚙ per building of the **production, military or gold** category at the origin | same |
 | **Gold** | +1💰 per **10 combined population** of the two cities, floored | `floor((pop(from) + pop(to)) / 10)` |
 | **Foreign** | if the destination is another empire's: the gold line is **doubled**, and the destination's owner receives half of it (floored) | the only trade incentive before diplomacy; the partner's half is what makes "trade with me" a thing |
 | **Faith** | *(nothing today; a temple counts as culture)* | — |
 
-Every line is a `TileLine`-shaped entry in the origin's `cityYields` breakdown under one
-source ("Caravan to Nippur · +3🌾 +2⚙"), so the city panel explains it and Entry XVII
+Every line is a `TileLine`-shaped entry in the destination's `cityYields` breakdown under one
+source ("Caravan from Uruk · +3🌾 +2⚙"), so the city panel explains it and Entry XVII
 stages it like any other flat (a route's food is *not* a windfall — it is a per-turn yield
 and rides the percentages). Gold lands in the treasury through the same `collectYields`.
 
@@ -185,6 +187,9 @@ so it stays an integer). Trader cost `40⚙`, the settler band's floor.
 
 ## Revisions
 origin pays
+✎ 2026-08-27 — reversed: "a trade route's yields are read off the origin city's buildings
+and paid to the destination city — it is best for routes from the capital to later settles,
+to feed the later settles."
 rangeTurns, lets make that 10. Once a trader has been sent to a city, the origin and destination city both get a trading post. Trading posts extend the range of routes.
 foreign routes, yes. Lets add that later once we add diplomacy.
 internal routes to the capital? We should jsut keep the logic as above and have player decide optimal routes to send
