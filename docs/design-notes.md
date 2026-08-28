@@ -3678,3 +3678,19 @@ upkeep joins that fold" made good. Measured on the warband empire: the treasury 
 20/40/60 goes +40/+92/+182 → **+63/+37/−122** — richer early (the palace pays before there is an
 army), then an army that costs what it is; that is the intent, and the first thing the friends'
 playtest should read.
+
+**Addendum (user, 2026-08-28) — the trader's own slot, and the decree's road.** *"Make traders
+their own separate unit type; it can stand on the same tile as civilian and military units."*
+`UnitCategory` gains `trader` and the stacking rule is a predicate over the category:
+`stacksFreely` — a hex holds one soldier, one civilian and any number of caravans, so caravans
+cross on the road and no piece parked in a town's gates can refuse a route. `isCivilian` still
+answers the *combat* question (captured, cannot fortify, embarks with Sailing), which is the
+other question; mapgen's second count asks `stacksFreely` first so the two cannot drift. The
+route gate lost the two clauses that could only ever say yes. And *"the Founders' Road should
+add roads if there is a viable path (no limit to road length), maintenance-free; if no road can
+be added, the road doesn't appear and the city is not connected"*: `layFoundingRoad` is a survey
+— `findPath` for a caravan-shaped probe that may not embark, to the nearest own city by path
+length, each hex marked `roadFree` so the maintenance count skips it while movement and the
+connection fill see a road; first mark wins in both directions, and a strait lays nothing, which
+leaves the town unconnected with no code of its own. Far Runners' embarked bonus names traders
+beside civilians. Schema 28.

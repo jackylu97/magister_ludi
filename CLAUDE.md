@@ -120,7 +120,11 @@ would change every seeded outcome. No further rename passes.
   `stepCost(from, to)`, so the four readers agree by construction; `snapMovement` keeps the
   numerator an integer and the A* heuristic scales by `cheapestStepCost` (an unpaved minimum
   is inadmissible over paving). `layRoad` (`trade.ts`) is the **only** writer of `Tile.road` — the caravan's step and the
-  Founders' Road at a founding both go through it. `Unit.trade` is the route — presence is the state, there is
+  Founders' Road at a founding both go through it. A decreed hex carries `roadFree` (presence is the
+  state): a road for movement and the connection fill, skipped by the maintenance count; first
+  mark wins both ways. **A trader is its own `UnitCategory`** and `stacksFreely` — one soldier,
+  one civilian, any number of caravans per hex; `isCivilian` is the *combat* question and still
+  true of a trader. `Unit.trade` is the route — presence is the state, there is
   **no route register**, and a count of routes is a count of traders. **A caravan is not a
   piece you position** (2026-08-28): `startRoute` may name any idle trader anywhere and places
   it on the origin's centre through `arriveOnTile` — a teleport is a third way to move a unit
