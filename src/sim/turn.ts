@@ -282,8 +282,11 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // position is the rule (`docs/religion-v2.md`): a town whose citizens turn
     // this turn flies its new banner *before* anything is banked, so the founder
     // of the faith it just adopted is paid for it the same turn rather than a
-    // turn late. It is also a broom for expired proclamations, which is safe
-    // anywhere for `pruneTimedEffects`' reason exactly. See `spreadReligion`.
+    // turn late.
+    //
+    // It sweeps nothing (schema 30): a proclamation is a lump paid the instant
+    // it is made (`pressLump`), so there is nothing standing on the board with
+    // an expiry. The phase and the bomb share one converter, `bankPressure`.
     run: spreadReligion,
   },
   {

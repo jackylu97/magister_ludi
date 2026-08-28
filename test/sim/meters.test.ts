@@ -709,8 +709,8 @@ describe('a captured city, end to end', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 29 save with a captured city in it', () => {
-    expect(SCHEMA_VERSION).toBe(29);
+  it('round-trips a schema 30 save with a captured city in it', () => {
+    expect(SCHEMA_VERSION).toBe(30);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

@@ -298,8 +298,28 @@ import {
  *     snapshot's board (the stones a religion was founded on are not marked on
  *     the map), and a replay of the log re-derives both, so the bump refuses
  *     the snapshot and keeps the log honest.
+ * 30: **The proclamation stops lingering** (user, 2026-08-28). A faith bomb was
+ *     a `ReligionPulse` — a decaying source parked on a hex for ten turns, read
+ *     by `explainPressure` every turn until it expired. It is now an **instant
+ *     lump of pressure**: `rules.religion.bombLump` is banked into
+ *     `City.pressureBank` of every town in range at the moment the prophet
+ *     speaks, the temple's own resistance applied, and the phase's own converter
+ *     is run on the spot. The Preaching is the same act out of a smaller purse.
+ *
+ *     `Religion.pulses` and the `ReligionPulse` shape are **deleted** rather
+ *     than deprecated: proclamations were their only source, so a field that
+ *     could only ever be empty would be a shape a future reader had to be told
+ *     to ignore.
+ *
+ *     The migration note: a v29 save's standing pulses simply have no home
+ *     here, and the pressure they had not yet paid cannot be reconstructed —
+ *     the bank records what arrived, never what was still coming. A replay of
+ *     the log re-derives everything (the bomb is a command), so the bump
+ *     refuses the snapshot and keeps the log honest. It is a different game
+ *     either way: a v29 bomb pressed 12 a turn for ten turns and this one
+ *     presses 60 once.
  */
-export const SCHEMA_VERSION = 29;
+export const SCHEMA_VERSION = 30;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1023,7 +1043,7 @@ export interface Unit {
  *
  * Four facts and no more: the two ends, when it lapses, and which way the piece
  * is walking. What the route *pays* is nowhere here — it is derived every turn
- * from the two cities as they stand (`explainRouteYield` in `trade.ts`), so a
+ * from the two cities as they stand (`explainRouteYield` in `routeYields.ts`), so a
  * destination that finishes a library raises the route the next turn and a
  * destination that is captured stops paying its old owner. A snapshot of the
  * buildings at send time would be a second ledger.
@@ -1258,6 +1278,10 @@ export interface City {
    * convert a town the instant a holy site went up or never at all. Every
    * `rules.religion.pressurePerConvert` in here buys one citizen and is spent;
    * the remainder carries, exactly as a food basket's does.
+   *
+   * **Two things fill it and they share one converter** (`bankPressure`,
+   * `religion.ts`): the `spreadReligion` phase, and a proclamation's lump paid
+   * the instant a prophet or an augur speaks (`pressLump`).
    */
   pressureBank?: Partial<Record<ReligionId, number>>;
 }
@@ -1274,34 +1298,6 @@ export interface City {
  * carries and not one an object's keys happen to produce.
  */
 export type ReligionId = number;
-
-/**
- * One proclamation standing on the board — a prophet's faith bomb, or an augur's
- * Preaching.
- *
- * A **pulse**, not a building: it presses on everything within `range` of one
- * hex and fades to nothing at `expiresTurn`, which is an **absolute** turn read
- * by comparison exactly as `TimedEffect.expiresTurn` is. `startTurn` is here for
- * one reason and it is not a countdown: the decay is
- * `strength × (expiresTurn − turn) / (expiresTurn − startTurn)`, and a pulse
- * that had to be told each turn how far it had come would be a clock.
- *
- * `spreadReligion` sweeps the expired ones for the reason `pruneTimedEffects`
- * sweeps dead rites — a broom, not a clock. An expired pulse presses nothing
- * whether it is swept or not.
- */
-export interface ReligionPulse {
-  col: number;
-  row: number;
-  /** What it presses at the moment it is proclaimed, before the decay. */
-  strength: number;
-  /** How far it reaches, in hexes. */
-  range: number;
-  /** The turn it was proclaimed on. The denominator of the decay. */
-  startTurn: number;
-  /** The turn it stops pressing at all. Absolute; nothing ticks it. */
-  expiresTurn: number;
-}
 
 /**
  * One religion, founded by one empire's prophet, followed by whoever the tide
@@ -1361,8 +1357,6 @@ export interface Religion {
    * A later site is an ordinary improvement and never moves this.
    */
   holySite?: { col: number; row: number };
-  /** Proclamations still standing. See `ReligionPulse`. */
-  pulses: ReligionPulse[];
 }
 
 /**
@@ -2380,4 +2374,107 @@ export function cityById(state: GameState, id: number): City | undefined {
     if (city.id === id) return city;
   }
   return undefined;
+}
+
+// --- the roster, read the two ways a sweep asks for it -----------------------
+
+/**
+ * Two readings of `state.cities` that live **here** rather than in `cities.ts`,
+ * beside `cityById` and for its reason (2026-08-28).
+ *
+ * Both are pure functions of the roster and the parallel arrays this module
+ * declares — no yields, no citizens, no queue — so neither ever needed the city
+ * rules, and having them in `cities.ts` was what forced `empireGold.ts`' flood
+ * fill to import the largest module in the simulation to find a capital. Moving
+ * them made that file a leaf. `cities.ts` re-exports both, so every caller that
+ * already asks it keeps asking it: this is a change of *home*, not of address.
+ */
+
+/**
+ * Which of a player's cities is the capital: the oldest one they *founded*, or —
+ * for an empire that owns nothing but conquest — the oldest one they hold.
+ *
+ * There was no capital in this game before Milestone 10, so this is the rule
+ * being written rather than one being read, and it is written in one place so
+ * that everything that ever asks (the palace's happiness, the palace's
+ * authority capacity, the one city that costs no authority, the root of the
+ * road connection fill) asks the same function.
+ *
+ * Oldest is `state.cities` order, which is founding order, which is id order:
+ * ids are minted by a counter (see `state.ts`), so "the first city in the array"
+ * is a fact about the state and not about the wall clock. Nothing is stored,
+ * because nothing has to be — the answer is a pure function of the board, and a
+ * stored `isCapital` would be a second thing to keep in step the day a city
+ * changes hands.
+ *
+ * The founded-first rule is what makes a conquered palace mean something: take
+ * an empire's first city and its capital moves to the oldest town it built for
+ * itself, which is Civ's rule and the intuitive one. `captured` is sticky (see
+ * its docblock), so a capital lost and won back does not resume the palace — the
+ * empire has a new seat of government, and the old one is a prize.
+ *
+ * `undefined` for a player with no cities at all, which is every player on turn
+ * one: a palace nobody has built supplies nothing, and the meters say so.
+ */
+export function capitalCityOf(state: GameState, playerId: number): City | undefined {
+  let fallback: City | undefined;
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    if (!city.captured) return city;
+    fallback ??= city;
+  }
+  return fallback;
+}
+
+/**
+ * Who owns each hex, read by **tile index** — the sweep's shape of the question
+ * `tileOwnerPlayerId` answers by coordinate.
+ *
+ * `state.tileOwner` is a parallel array over `state.map.tiles` (`row * width +
+ * col`, see the state's own docblock), so a loop that already holds an index
+ * holds the answer's address too. `tileOwnerPlayerId` cannot know that: given a
+ * col and a row it must wrap the column, find the tile, index the array, and
+ * then scan `state.cities` for the city's owner — the right answer for a caller
+ * that has coordinates and nothing else, and the wrong one four thousand times
+ * in a row. That per-hex cost was 85% of end-of-turn resolution on a forty-city
+ * empire, because the resource sweeps in `cities.ts` run about a thousand times
+ * a turn.
+ *
+ * So the work is turned round: one pass over the *cities* — forty of them, not
+ * four thousand hexes — into an id→owner lookup, and the sweep reads ownership
+ * positionally. Unclaimed is the common answer and costs one array read.
+ *
+ * The `Map` is a **lookup, never an iteration**: nothing walks it, so no outcome
+ * can depend on its order, and every list these sweeps produce still comes out
+ * in `state.map.tiles` order exactly as before. A stale city id resolves to
+ * `null`, which is what `cityById(...)?.ownerId ?? null` already said. See
+ * `zocField` (`pathfind.ts`) for the same bargain one system over: a fact about
+ * the whole sweep, resolved once, instead of re-derived per step.
+ */
+export interface TileOwnerField {
+  /** The player owning the hex at this tile index, or `null` for unclaimed. */
+  at(index: number): number | null;
+}
+
+/**
+ * Hoists the owner reading for **one sweep**. See `TileOwnerField`.
+ *
+ * "One sweep" is the whole of its lifetime and it is not a soft rule: the
+ * id→owner half is resolved here and now, so a field that outlived the loop that
+ * built it would keep answering with a city list the state has moved past — a
+ * town founded or captured since would read as unowned or as its old seat.
+ * Nothing in the simulation holds one past its loop, and nothing should start
+ * to: hoisting is cheap (one pass over `state.cities`) precisely so that the
+ * answer to "is this still current" can always be "it was built this instant".
+ */
+export function tileOwnerField(state: GameState): TileOwnerField {
+  const owners = new Map<number, number>();
+  for (const city of state.cities) owners.set(city.id, city.ownerId);
+  return {
+    at(index: number): number | null {
+      const cityId = state.tileOwner[index];
+      if (cityId === null || cityId === undefined) return null;
+      return owners.get(cityId) ?? null;
+    },
+  };
 }

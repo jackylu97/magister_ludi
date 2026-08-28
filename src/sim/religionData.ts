@@ -150,18 +150,24 @@ export interface RiteGrantSpec {
   /** Restores the target unit to full. Blessing of Arms', today. */
   healFully?: boolean;
   /**
-   * A **proclamation** left on the hex the rite was performed on — The
-   * Preaching's whole payout.
+   * A **proclamation** made on the hex the rite was performed on — The
+   * Preaching's whole payout, and the prophet's faith bomb out of a smaller
+   * purse.
+   *
+   * It is a **lump**, not a pulse (user, 2026-08-28): `amount` is banked into
+   * `City.pressureBank` of every town within `range` at the moment the augur
+   * speaks, the temple's own resistance applied, and the phase's own converter
+   * is run on the spot. Nothing is left standing on the board afterwards.
    *
    * The numbers are on the row rather than in `rules.religion` because the
    * *bomb's* numbers are the rules' and a rite's are the rite's: they are two
-   * different acts that happen to leave the same kind of mark, and a rite that
-   * read the bomb's figures would get four times the strength the day somebody
+   * different acts that happen to make the same kind of noise, and a rite that
+   * read the bomb's figures would preach three times as hard the day somebody
    * retuned a prophet. It pays nothing at all to an empire that has founded no
    * religion — there is no faith to preach — which is a fact about the board
    * rather than a refusal (`riteError` says so before it comes to this).
    */
-  pulse?: { range: number; strength: number; turns: number };
+  lump?: { range: number; amount: number };
 }
 
 /** What a rite is aimed at. Decides which target the command will accept. */

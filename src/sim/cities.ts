@@ -129,6 +129,7 @@ import {
   type Player,
   type QueueItem,
   type Unit,
+  capitalCityOf,
   cityById,
   claimWonder,
   createCity,
@@ -136,8 +137,16 @@ import {
   playerById,
   removeUnit,
   shrinkFollowers,
+  tileOwnerField,
   wonderClaim,
 } from './state';
+// **Re-exported, not re-implemented.** `capitalCityOf` and `tileOwnerField` are
+// pure readings of `state.cities` and `state.tileOwner`, so they moved beside
+// `cityById` in `state.ts` (2026-08-28) to make `empireGold.ts`' flood fill a
+// leaf. They are still *this* module's address for every caller that already
+// asks it — a change of home, not of address.
+export { capitalCityOf, tileOwnerField } from './state';
+export type { TileOwnerField } from './state';
 // Type-only, exactly as `barbarians.ts` takes it: `turn.ts` imports this module
 // for its phases, so a *value* import back would close a load-time cycle. The
 // pipeline's report is a type this module writes into and never constructs.
@@ -184,15 +193,20 @@ import {
   resourceTileLines,
 } from './resourceEffects';
 import { buildingTileLines } from './buildingEffects';
-// A function-level cycle, exactly as `statecraft.ts` and `tech.ts` are: that
-// module asks this one what a city is and where the nearest one stands, and this
-// one asks it what the caravans standing in its towns are worth. Everything at
-// the top level of both files is a constant from a data table, which is the
-// condition every cycle in this simulation is safe under.
-import { cityRouteYields, empireGold, explainEmpireGold } from './trade';
+// **This file no longer imports `trade.ts`, and that is a rule** (2026-08-28).
+// It used to, for the three readers below, while `trade.ts` imported this file
+// back for the capital, the tile owner and the windfall settlements — a
+// load-time cycle between the two largest modules in the simulation, which
+// surfaced once as a `tileYieldOf is not a function` at test load and would have
+// surfaced in a browser next. The three readers now live on the far side of
+// nothing: `routeYields.ts` and `empireGold.ts` import neither this module nor
+// `trade.ts`, `trade.ts` re-exports them so no screen changed its import, and
+// `test/sim/cities.test.ts` reads this source and fails if `./trade` comes back.
+import { cityRouteYields } from './routeYields';
+import { empireGold, explainEmpireGold } from './empireGold';
 // **A leaf, deliberately** (2026-08-28): the road writer and the roster's
 // caravan both moved out of `trade.ts` so that this file's *founding* verb — The
-// Founders' Road — reaches them without crossing the cycle it documents above.
+// Founders' Road — reaches them without crossing the cycle it once documented.
 import { layRoad } from './roads';
 import { caravanTypeId } from './unitData';
 import { awardFoundingTriumphs, awardOccasion } from './triumphs';
@@ -917,58 +931,6 @@ export function tileOwnerPlayerId(state: GameState, col: number, row: number): n
   return cityById(state, cityId)?.ownerId ?? null;
 }
 
-/**
- * Who owns each hex, read by **tile index** — the sweep's shape of the question
- * `tileOwnerPlayerId` answers by coordinate.
- *
- * `state.tileOwner` is a parallel array over `state.map.tiles` (`row * width +
- * col`, see the state's own docblock), so a loop that already holds an index
- * holds the answer's address too. `tileOwnerPlayerId` cannot know that: given a
- * col and a row it must wrap the column, find the tile, index the array, and
- * then scan `state.cities` for the city's owner — the right answer for a caller
- * that has coordinates and nothing else, and the wrong one four thousand times
- * in a row. That per-hex cost was 85% of end-of-turn resolution on a forty-city
- * empire, because the resource sweeps below run about a thousand times a turn.
- *
- * So the work is turned round: one pass over the *cities* — forty of them, not
- * four thousand hexes — into an id→owner lookup, and the sweep reads ownership
- * positionally. Unclaimed is the common answer and costs one array read.
- *
- * The `Map` is a **lookup, never an iteration**: nothing walks it, so no outcome
- * can depend on its order, and every list these sweeps produce still comes out
- * in `state.map.tiles` order exactly as before. A stale city id resolves to
- * `null`, which is what `cityById(...)?.ownerId ?? null` already said. See
- * `zocField` (`pathfind.ts`) for the same bargain one system over: a fact about
- * the whole sweep, resolved once, instead of re-derived per step.
- */
-export interface TileOwnerField {
-  /** The player owning the hex at this tile index, or `null` for unclaimed. */
-  at(index: number): number | null;
-}
-
-/**
- * Hoists the owner reading for **one sweep**. See `TileOwnerField`.
- *
- * "One sweep" is the whole of its lifetime and it is not a soft rule: the
- * id→owner half is resolved here and now, so a field that outlived the loop that
- * built it would keep answering with a city list the state has moved past — a
- * town founded or captured since would read as unowned or as its old seat.
- * Nothing in the simulation holds one past its loop, and nothing should start
- * to: hoisting is cheap (one pass over `state.cities`) precisely so that the
- * answer to "is this still current" can always be "it was built this instant".
- */
-export function tileOwnerField(state: GameState): TileOwnerField {
-  const owners = new Map<number, number>();
-  for (const city of state.cities) owners.set(city.id, city.ownerId);
-  return {
-    at(index: number): number | null {
-      const cityId = state.tileOwner[index];
-      if (cityId === null || cityId === undefined) return null;
-      return owners.get(cityId) ?? null;
-    },
-  };
-}
-
 /** The city standing on a tile, if any. */
 export function cityAt(state: GameState, col: number, row: number): City | undefined {
   for (const city of state.cities) {
@@ -1028,41 +990,6 @@ export function distanceToNearestCity(state: GameState, hex: Hex): number {
     if (distance < best) best = distance;
   }
   return best;
-}
-
-/**
- * Which of a player's cities is the capital: the oldest one they *founded*, or —
- * for an empire that owns nothing but conquest — the oldest one they hold.
- *
- * There was no capital in this game before Milestone 10, so this is the rule
- * being written rather than one being read, and it is written here so that
- * everything that ever asks (the palace's happiness, the palace's authority
- * capacity, the one city that costs no authority) asks the same function.
- *
- * Oldest is `state.cities` order, which is founding order, which is id order:
- * ids are minted by a counter (see `state.ts`), so "the first city in the array"
- * is a fact about the state and not about the wall clock. Nothing is stored,
- * because nothing has to be — the answer is a pure function of the board, and a
- * stored `isCapital` would be a second thing to keep in step the day a city
- * changes hands.
- *
- * The founded-first rule is what makes a conquered palace mean something: take
- * an empire's first city and its capital moves to the oldest town it built for
- * itself, which is Civ's rule and the intuitive one. `captured` is sticky (see
- * its docblock), so a capital lost and won back does not resume the palace — the
- * empire has a new seat of government, and the old one is a prize.
- *
- * `undefined` for a player with no cities at all, which is every player on turn
- * one: a palace nobody has built supplies nothing, and the meters say so.
- */
-export function capitalCityOf(state: GameState, playerId: number): City | undefined {
-  let fallback: City | undefined;
-  for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    if (!city.captured) return city;
-    fallback ??= city;
-  }
-  return fallback;
 }
 
 /** One labelled line the seat of government pays its town. See below. */
@@ -1256,7 +1183,7 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
  * road on the ground `connectedCities`' fill simply never reaches it.
  *
  * The first city of a realm has nowhere to be joined to and is left alone.
- * Writing through `layRoad` (`trade.ts`) is still the point: one writer for
+ * Writing through `layRoad` (`roads.ts`) is still the point: one writer for
  * `Tile.road`, so a decreed highway and a worn one are the same mark.
  */
 function layFoundingRoad(state: GameState, city: City): void {
@@ -2504,7 +2431,7 @@ export function cityYields(
   }
 
   // What the caravans sent *to* this town are bringing, the fold of the list
-  // the panel prints line by line (`explainRouteYield` in `trade.ts`) — off
+  // the panel prints line by line (`explainRouteYield` in `routeYields.ts`) — off
   // each caravan's *origin* buildings, since 2026-08-27's reversal pays the
   // destination and reads the origin. Beside the luxuries and the cards
   // because it is the same kind of thing a third table over — and *inside*

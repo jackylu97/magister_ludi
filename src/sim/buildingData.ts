@@ -359,7 +359,7 @@ export interface BuildingDef {
   /**
    * What this building is *for*, in one word — the row's main yield or purpose.
    *
-   * Read by exactly one rule (`explainRouteYield` in `trade.ts`, which pays a
+   * Read by exactly one rule (`explainRouteYield` in `routeYields.ts`, which pays a
    * caravan a point of food for every food, culture or science building at its
    * destination and a hammer for every production, military or gold one), and
    * that is deliberately all: it is a *label*, not a second `ProductionCategory`

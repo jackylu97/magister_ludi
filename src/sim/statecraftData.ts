@@ -951,7 +951,7 @@ export type AmplifierTarget =
    * What a **trade route** pays — the Merchant League's fifty percent, and The
    * Sea Charter's.
    *
-   * Read in `explainRouteYieldBetween` (`trade.ts`), which is where the three
+   * Read in `explainRouteYieldBetween` (`routeYields.ts`), which is where the three
    * lines of a route's figure are folded, and it joins as **one more line of
    * that list** rather than as a multiplication afterwards: rule 5 for a
    * caravan. The route's owner is the origin's, which is the seat that sent it.
@@ -988,7 +988,7 @@ export type AmplifierTarget =
   /**
    * What **city connections** pay — Nanaivandak's road home, both halves of it.
    *
-   * Read in `explainEmpireGold` (`trade.ts`), on the connection line's own
+   * Read in `explainEmpireGold` (`empireGold.ts`), on the connection line's own
    * figures, and it joins that fold as the line's own total rather than as a
    * multiplication afterwards — rule 5 for a treasury, exactly as `routeYields`
    * is rule 5 for a caravan. It reaches the connections and nothing else: road
@@ -1872,8 +1872,7 @@ export type PressureRuleId =
   | 'templeOwnPercent'
   | 'templeForeignPercent'
   | 'bombRange'
-  | 'bombStrength'
-  | 'pulseTurns'
+  | 'bombLump'
   | 'routeBothWays';
 
 /** A signed shift on one number of the tide. See `PressureRuleId`. */

@@ -815,7 +815,7 @@
       "name": "The Pulse of Bells",
       "axis": "sky",
       "flavor": "They rang for an hour. People remember where they were standing.",
-      "text": "A proclamation reaches 4 hexes further and lasts 5 turns longer.",
+      "text": "A proclamation reaches 4 hexes further and presses 20 faith harder.",
       "effects": [
         {
           "kind": "pressureRule",
@@ -824,8 +824,8 @@
         },
         {
           "kind": "pressureRule",
-          "rule": "pulseTurns",
-          "delta": 5
+          "rule": "bombLump",
+          "delta": 20
         }
       ]
     },
@@ -1066,10 +1066,9 @@
       "target": "here",
       "flavor": "He spoke for two hours. Four people stayed, and they told everyone.",
       "grant": {
-        "pulse": {
+        "lump": {
           "range": 4,
-          "strength": 5,
-          "turns": 10
+          "amount": 20
         }
       },
       "effects": []

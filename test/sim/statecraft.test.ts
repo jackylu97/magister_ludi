@@ -985,8 +985,8 @@ describe('every hook family, end to end', () => {
 // --- determinism ------------------------------------------------------------
 
 describe('determinism', () => {
-  it('round-trips a schema 29 save with Statecraft in it', () => {
-    expect(SCHEMA_VERSION).toBe(29);
+  it('round-trips a schema 30 save with Statecraft in it', () => {
+    expect(SCHEMA_VERSION).toBe(30);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1001,7 +1001,7 @@ describe('determinism', () => {
     // drafts — what this pins is the *shape*: the field serialises, survives
     // JSON, and comes back identical.
     const text = snapshotState(g.state);
-    expect(JSON.parse(text).schemaVersion).toBe(29);
+    expect(JSON.parse(text).schemaVersion).toBe(30);
     expect(JSON.parse(text).players[0].statecraft).toEqual(player.statecraft);
     // A player who has never drafted serialises as the opening state exactly.
     expect(JSON.parse(text).players[1].statecraft).toEqual(newPlayerStatecraft());

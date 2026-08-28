@@ -60,11 +60,11 @@ import {
   type Player,
   type Religion,
   type ReligionId,
-  type ReligionPulse,
   type TimedEffect,
   type Unit,
   cityReligion,
   convertCitizen,
+  followerCount,
   foundedReligion,
   playerById,
   realPlayers,
@@ -506,7 +506,7 @@ export function riteError(
   // **A rite that leaves a proclamation needs a faith to proclaim.** Asked of
   // the grant's own shape rather than of the rite's id, so the second such rite
   // inherits the refusal without this function learning its name.
-  if (def.grant.pulse !== undefined && foundedReligion(state, playerId) === undefined) {
+  if (def.grant.lump !== undefined && foundedReligion(state, playerId) === undefined) {
     return `${def.name} needs a religion to preach`;
   }
 
@@ -598,6 +598,17 @@ export interface RitePerformance {
    * caller that has never heard of it is unaffected.
    */
   wonders: WonderCompletion[];
+  /**
+   * What this rite's proclamation converted, or `null` for every rite that made
+   * none — which is all of them but The Preaching.
+   *
+   * The third kind of news joining the shape rather than a second out-parameter
+   * (`RealisedItem`'s rule): a lump of pressure is a **difference** that stops
+   * existing the instant the command returns, so `applyPerformRite` hands it
+   * straight out as `CommandResult.proclaimed`, the same field a prophet's bomb
+   * fills. See `ProclamationReport`.
+   */
+  proclaimed: ProclamationReport | null;
 }
 
 /**
@@ -666,6 +677,7 @@ export function performRiteAt(
     grants: paid.grants,
     bordersClaimed: paid.bordersClaimed,
     wonders,
+    proclaimed: paid.proclaimed,
   };
 }
 
@@ -718,6 +730,8 @@ interface RiteGrantResult {
   bordersClaimed: { col: number; row: number }[];
   /** Wonders the rite's hammers finished. See `RitePerformance.wonders`. */
   wonders: WonderCompletion[];
+  /** What The Preaching's lump converted. See `RitePerformance.proclaimed`. */
+  proclaimed: ProclamationReport | null;
 }
 
 /**
@@ -749,6 +763,7 @@ function payRiteGrant(
     grants: [],
     bordersClaimed: [],
     wonders: [],
+    proclaimed: null,
   };
   // One line per destination, written beside the payment rather than derived
   // afterwards from which report fields came back non-null: the arm that knows
@@ -776,27 +791,21 @@ function payRiteGrant(
     settleCultureWindfall(state, player);
   }
   if (grant.healFully === true && unit) unit.hp = unitDef(unit.type).maxHp;
-  if (grant.pulse !== undefined) {
-    // **A rite leaves the same kind of mark a prophet does**, out of a smaller
+  if (grant.lump !== undefined) {
+    // **A rite makes the same kind of noise a prophet does**, out of a smaller
     // purse: the row's own figures, shifted by the enhancer pool through the one
-    // reader, and an absolute expiry nobody ticks. It is written straight onto
-    // the religion because a pulse belongs to a faith rather than to a place —
-    // `spreadReligion` is its broom, exactly as it is the bomb's.
+    // reader, banked and converted on the spot by `pressLump`. The augur's
+    // Preaching and the prophet's bomb are one act at two prices, which is what
+    // stops a retune moving one and not the other.
     const religion = foundedReligion(state, player.id);
     if (religion) {
-      const turns = Math.max(
-        1,
-        grant.pulse.turns + cardPressureRule(state, player.id, 'pulseTurns'),
+      const range = Math.max(
+        0,
+        grant.lump.range + cardPressureRule(state, player.id, 'bombRange'),
       );
-      religion.pulses.push({
-        col: at.col,
-        row: at.row,
-        strength: Math.max(0, grant.pulse.strength),
-        range: Math.max(0, grant.pulse.range + cardPressureRule(state, player.id, 'bombRange')),
-        startTurn: state.turn,
-        expiresTurn: state.turn + turns,
-      });
-      said('Preaching', grant.pulse.strength);
+      const lump = Math.max(0, grant.lump.amount + cardPressureRule(state, player.id, 'bombLump'));
+      result.proclaimed = pressLump(state, religion, at, range, lump);
+      said('Preaching', lump);
     }
   }
 
@@ -915,10 +924,8 @@ export function ritePreview(
   if (grant.production !== undefined && city) parts.push(`+${grant.production} production`);
   if (grant.food !== undefined && city) parts.push(`+${grant.food} food`);
   if (grant.healFully === true && blessed) parts.push(`heals the ${unitDef(blessed.type).name} fully`);
-  if (grant.pulse !== undefined) {
-    parts.push(
-      `spreads your religion ${grant.pulse.range} hexes for ${grant.pulse.turns} turns`,
-    );
+  if (grant.lump !== undefined) {
+    parts.push(`presses ${grant.lump.amount} faith on every town within ${grant.lump.range} hexes`);
   }
   if (def.duration !== undefined) parts.push(`lasts ${def.duration} turns`);
   return parts.length > 0 ? parts.join(' · ') : null;
@@ -1150,7 +1157,6 @@ export function foundReligion(state: GameState, player: Player): Religion {
     follower: [],
     enhancer: [],
     foundedTurn: state.turn,
-    pulses: [],
   };
   state.religions.push(religion);
   return religion;
@@ -1444,36 +1450,118 @@ export function proclaimError(state: GameState, playerId: number, unitId: number
   return null;
 }
 
+/** How far a proclamation reaches and what it presses. See `bombFigures`. */
+export interface BombFigures {
+  range: number;
+  lump: number;
+}
+
 /**
- * Leaves a proclamation on the hex the prophet stands on. Validates nothing —
- * `proclaimError` is the rule.
+ * The reach and the weight of one empire's faith bomb.
  *
- * The pulse's reach, strength and life are `rules.religion`'s, **shifted by the
- * enhancer pool** through the one reader (`cardPressureRule`), and its expiry is
- * an absolute turn nobody ever ticks. `startTurn` is the decay's denominator and
- * not a counter: a pulse that had to be told each turn how far it had come would
- * be the clock `TimedEffect` exists to refuse.
+ * `rules.religion`'s two numbers, **shifted by the enhancer pool** through the
+ * one reader (`cardPressureRule`), asked in one place so the figure the preview
+ * promises is the figure the command banks — `explainDiscoveryOption`'s rule,
+ * and `stampRite`'s: a promise on a button is made by the function that keeps
+ * it.
  */
-export function proclaimAt(state: GameState, player: Player, unit: Unit): ReligionPulse {
-  const religion = foundedReligion(state, player.id)!;
+function bombFigures(state: GameState, playerId: number): BombFigures {
   const rules = RULES.religion;
-  const pulse: ReligionPulse = {
-    col: unit.col,
-    row: unit.row,
-    strength: Math.max(0, rules.bombStrength + cardPressureRule(state, player.id, 'bombStrength')),
-    range: Math.max(0, rules.bombRange + cardPressureRule(state, player.id, 'bombRange')),
-    startTurn: state.turn,
-    expiresTurn:
-      state.turn + Math.max(1, rules.bombTurns + cardPressureRule(state, player.id, 'pulseTurns')),
+  return {
+    range: Math.max(0, rules.bombRange + cardPressureRule(state, playerId, 'bombRange')),
+    lump: Math.max(0, rules.bombLump + cardPressureRule(state, playerId, 'bombLump')),
   };
-  religion.pulses.push(pulse);
+}
+
+/**
+ * Proclaims. Validates nothing — `proclaimError` is the rule.
+ *
+ * **The bomb is a lump, and it lands now** (user, 2026-08-28): "an immediate
+ * burst of pressure applied instantly, following the regular conversion rules,
+ * just as a lump sum". So there is nothing left standing on the board when this
+ * returns — no pulse, no anchor, no decay to wait out. `pressLump` is the whole
+ * of it and the augur's Preaching calls the same function out of a smaller
+ * purse, which is what keeps the two acts one rule.
+ *
+ * That instantaneity is the *point* of the ruling and not an optimisation: a
+ * player who spends a prophet's whole charge beside a rival's town sees what it
+ * bought before the turn ends, and a temple standing in that town is the one
+ * number that decides whether it was enough.
+ */
+export function proclaimAt(state: GameState, player: Player, unit: Unit): ProclamationReport {
+  const religion = foundedReligion(state, player.id)!;
+  const { range, lump } = bombFigures(state, player.id);
+  const report = pressLump(state, religion, { col: unit.col, row: unit.row }, range, lump);
   const left = (unit.chargesLeft ?? 0) - 1;
   if (left <= 0) removeUnit(state, unit.id);
   else {
     unit.chargesLeft = left;
     unit.movesLeft = 0;
   }
-  return pulse;
+  return report;
+}
+
+/** One town a proclamation would reach, and what it would do there. */
+export interface ProclaimPreviewCity {
+  cityId: number;
+  population: number;
+  /** Citizens the lump would turn, after this town's temple has had its say. */
+  wouldConvert: number;
+  /** True when those converts would leave this town following the faith. */
+  wouldFollow: boolean;
+}
+
+/** What a proclamation would do, for the prophet's row. See `proclaimPreview`. */
+export interface ProclaimPreview {
+  range: number;
+  lump: number;
+  cities: ProclaimPreviewCity[];
+}
+
+/**
+ * What this prophet's proclamation would do, town by town — the facts the
+ * interface's sentence is made of ("Converts 3 cities within 10 hexes — Uruk,
+ * Nippur, Ur").
+ *
+ * The *sentence* is the interface's and the *facts* are the simulation's, which
+ * is `ritePreview`'s bargain read one verb over. Every figure comes from the
+ * function that will pay it: the reach and the weight from `bombFigures`, the
+ * town's share from `templeShare`, the converts from the same `perConvert`
+ * division `pressLump` does — including the pressure the town has **already
+ * banked**, because a bomb landing on a town nine faith from its next convert
+ * buys one more citizen than the arithmetic on the lump alone would say.
+ *
+ * `null` when there is no prophet or no faith to proclaim; the panel prints
+ * `proclaimError`'s blocker instead.
+ *
+ * It is a *forecast* and says so: the towns are the ones in range at the moment
+ * it is asked, and a prophet that walks a hex before speaking gets a different
+ * list.
+ */
+export function proclaimPreview(state: GameState, unitId: number): ProclaimPreview | null {
+  const unit = unitById(state, unitId);
+  if (!unit) return null;
+  const religion = foundedReligion(state, unit.ownerId);
+  if (!religion) return null;
+  const { range, lump } = bombFigures(state, unit.ownerId);
+  const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
+  const cities: ProclaimPreviewCity[] = [];
+  for (const { city, pressed } of lumpTargets(state, religion, unit, range, lump)) {
+    const banked = (city.pressureBank?.[religion.id] ?? 0) + pressed;
+    // What the converter would actually manage: the division, capped by the
+    // citizens there are left to turn onto this faith. A town wholly converted
+    // already has none, which is what stops the row promising six.
+    const turnable = city.population - followerCount(city, religion.id);
+    const wouldConvert = Math.max(0, Math.min(Math.floor(banked / perConvert), turnable));
+    const majority = Math.floor(city.population / 2) + 1;
+    cities.push({
+      cityId: city.id,
+      population: city.population,
+      wouldConvert,
+      wouldFollow: followerCount(city, religion.id) + wouldConvert >= majority,
+    });
+  }
+  return { range, lump, cities };
 }
 
 /**
@@ -1661,7 +1749,6 @@ export function explainPressure(
   const here = getTileAt(state.map, city.col, city.row);
   if (!here) return lines;
   const eye = tileHex(here);
-  const current = cityReligion(city);
   const hasTemple = city.buildings.includes(TEMPLE);
   // One fill for the whole town rather than one per religion: which towns this
   // one is joined to by road is a fact about the board, not about a faith.
@@ -1736,18 +1823,10 @@ export function explainPressure(
     }
     say('Trade route', fromRoutes);
 
-    // **The proclamation**, decaying to nothing at its absolute expiry. Nothing
-    // ticks it: the share is computed from the two turns it carries.
-    let fromPulses = 0;
-    for (const pulse of religion.pulses) {
-      const span = pulse.expiresTurn - pulse.startTurn;
-      if (span <= 0 || state.turn >= pulse.expiresTurn) continue;
-      const tile = getTileAt(state.map, pulse.col, pulse.row);
-      if (!tile) continue;
-      if (wrappedDistance(state.map, eye, tileHex(tile)) > pulse.range) continue;
-      fromPulses += Math.floor((pulse.strength * (pulse.expiresTurn - state.turn)) / span);
-    }
-    say('Proclamation', fromPulses);
+    // There is no proclamation line, and the absence is the 2026-08-28 ruling
+    // rather than an omission: a faith bomb is a **lump** banked at the moment
+    // it is made (`pressLump`), not a source that presses every turn until it
+    // fades. The tide is the standing world; a bomb is an event.
 
     // **A founder's capital does not drift.** The seat of the faith holds itself.
     if (capitalCityOf(state, founder)?.id === city.id) {
@@ -1769,15 +1848,15 @@ export function explainPressure(
     // the town already keeps, half for everybody else's — the design's answer to
     // "how do I resist a conversion" that needs no combat and no unit. Last, and
     // carried as a difference, so the list still sums to the total.
+    //
+    // Through `templeShare`, which is the same arithmetic a proclamation's lump
+    // is put through: a temple that turned away a slow tide but not a bomb would
+    // be the one defensive building in the game with a hole in it.
     if (!hasTemple) continue;
     let subtotal = 0;
     for (let i = before; i < lines.length; i++) subtotal += lines[i]!.amount;
     if (subtotal === 0) continue;
-    const percent =
-      current === religion.id
-        ? rule('templeOwnPercent', rules.templeOwnPercent)
-        : rule('templeForeignPercent', rules.templeForeignPercent);
-    const after = Math.max(0, Math.floor((subtotal * Math.max(0, percent)) / 100));
+    const after = templeShare(state, city, religion, subtotal, founder);
     if (after !== subtotal) {
       lines.push({ religion: religion.id, source: 'Temple', amount: after - subtotal });
     }
@@ -1809,8 +1888,216 @@ export function pressureTotals(
   return totals;
 }
 
+// --- the converter, shared by the phase and the bomb -------------------------
+
 /**
- * The tide, run for one turn — **the only writer of `City.followers`** and of
+ * Turns up to `count` citizens onto one religion, and answers how many actually
+ * turned.
+ *
+ * `convertCitizen`'s loop, written once. The order is that function's docblock
+ * and the whole of the rule — **the unconverted first, then the religion with
+ * the fewest followers, ties by id** — and it stops the moment there is nobody
+ * left to turn, which is only when the town already follows this faith to a
+ * citizen.
+ */
+export function convertCitizens(
+  city: City,
+  religion: ReligionId,
+  order: readonly ReligionId[],
+  count: number,
+): number {
+  let turned = 0;
+  while (turned < count) {
+    if (!convertCitizen(city, religion, order)) break;
+    turned += 1;
+  }
+  return turned;
+}
+
+/**
+ * Banks one figure of pressure on one town for one religion and turns whoever it
+ * pays for. Answers how many citizens turned.
+ *
+ * **The one converter, and there are exactly two callers**: `spreadReligion`,
+ * once per religion per town per turn, and `pressLump`, once when a prophet or
+ * an augur speaks. Writing it twice is how a bomb and a tide come to disagree
+ * about what ten banked faith buys, and a source-reading test in
+ * `test/sim/religion.test.ts` pins the pair — the same discipline
+ * `assignCitizens` keeps for its two callers.
+ *
+ * Two properties are load-bearing and both were the phase's before they were
+ * shared:
+ *
+ *   · **the remainder carries**, exactly as a food basket's does, so a town
+ *     nine faith short is nine faith along next turn;
+ *   · **the bank is capped just below the next convert** when there was nobody
+ *     left to turn. A stored surplus would be a town that re-converts the
+ *     instant a rival takes one citizen back.
+ *
+ * The key is **deleted** when a religion's bank empties, and the bank itself
+ * when the last key goes, so a town nothing presses on serialises exactly like
+ * one from before any of this existed.
+ */
+function bankPressure(
+  city: City,
+  religion: ReligionId,
+  order: readonly ReligionId[],
+  amount: number,
+  perConvert: number,
+): number {
+  const bank = city.pressureBank ?? {};
+  const banked = (bank[religion] ?? 0) + amount;
+  const wanted = Math.floor(banked / perConvert);
+  const turned = convertCitizens(city, religion, order, wanted);
+  const left = turned < wanted ? perConvert - 1 : banked - turned * perConvert;
+  if (left > 0) bank[religion] = left;
+  else delete bank[religion];
+  if (Object.keys(bank).length > 0) city.pressureBank = bank;
+  else delete city.pressureBank;
+  return turned;
+}
+
+/**
+ * What one town's Temple lets through of one figure of one religion's pressure.
+ *
+ * **The** temple rule, and it is shared for the reason the converter is: the
+ * per-turn tide applies it in `explainPressure` and a proclamation applies it in
+ * `pressLump`, and a temple that resisted a slow tide but not a bomb would be
+ * the one defensive building in the game with a hole in it (user, 2026-08-28:
+ * "the temple rule applied … so a temple resists the bomb").
+ *
+ * Twice for the faith the town already keeps, half for everybody else's, whole
+ * percentage points, floored once. Shifted by the pressure rules of **whoever
+ * holds the seat** of the pressing faith (`religionFounder`) — the 2026-08-28
+ * ruling that a conqueror takes the reach of a faith with the stones.
+ *
+ * A town with no Temple gets its figure back untouched, which is why callers do
+ * not ask whether there is one.
+ */
+export function templeShare(
+  state: GameState,
+  city: City,
+  religion: Religion,
+  amount: number,
+  founder: number = religionFounder(state, religion),
+): number {
+  if (!city.buildings.includes(TEMPLE)) return amount;
+  const rules = RULES.religion;
+  const percent =
+    cityReligion(city) === religion.id
+      ? rules.templeOwnPercent + cardPressureRule(state, founder, 'templeOwnPercent')
+      : rules.templeForeignPercent + cardPressureRule(state, founder, 'templeForeignPercent');
+  return Math.max(0, Math.floor((amount * Math.max(0, percent)) / 100));
+}
+
+/** One town a proclamation reaches, and the figure it will actually bank there. */
+interface LumpTarget {
+  city: City;
+  /** The lump after this town's Temple has had its say. See `templeShare`. */
+  pressed: number;
+}
+
+/**
+ * Every town within `range` of a proclamation, in `state.cities` order, each
+ * with the figure the temple lets through.
+ *
+ * **Every** town, not every town of the speaker's — a bomb aimed at a rival's
+ * capital is the whole reason the verb exists — and in the order the state
+ * carries rather than in distance order, because an outcome may only depend on
+ * an order a replay reproduces.
+ *
+ * Hoisted so `pressLump` and `proclaimPreview` walk the board by the same rule.
+ */
+function lumpTargets(
+  state: GameState,
+  religion: Religion,
+  at: { col: number; row: number },
+  range: number,
+  lump: number,
+): LumpTarget[] {
+  const out: LumpTarget[] = [];
+  const here = getTileAt(state.map, at.col, at.row);
+  if (!here) return out;
+  const eye = tileHex(here);
+  const founder = religionFounder(state, religion);
+  for (const city of state.cities) {
+    const tile = getTileAt(state.map, city.col, city.row);
+    if (!tile) continue;
+    if (wrappedDistance(state.map, eye, tileHex(tile)) > range) continue;
+    out.push({ city, pressed: templeShare(state, city, religion, lump, founder) });
+  }
+  return out;
+}
+
+/** One town a proclamation landed on. See `ProclamationReport`. */
+export interface ProclamationConversion {
+  cityId: number;
+  /** Citizens that turned this instant. Zero for a town a temple held. */
+  converted: number;
+  /** True when the town follows the proclaimed faith now the dust has settled. */
+  nowFollows: boolean;
+}
+
+/**
+ * What a proclamation did, for the announcement — `CommandResult.proclaimed`.
+ *
+ * `arrivals`' argument in a third currency: it is a **difference** that stops
+ * existing the instant the command returns. By then the citizens have turned,
+ * the banks hold their remainders and nothing on the board says which towns a
+ * prophet had just spoken to — a diff of two states could not tell a bomb's
+ * six converts from a turn of ordinary tide.
+ *
+ * Every town in range is listed, including the ones a temple held to nothing,
+ * because "Nippur resisted" is exactly the news a player who spent a whole
+ * prophet's charge needs.
+ */
+export interface ProclamationReport {
+  religionId: ReligionId;
+  cities: ProclamationConversion[];
+}
+
+/**
+ * Presses one lump of faith on every town in range, and turns whoever it pays
+ * for — **the faith bomb, and the augur's Preaching out of a smaller purse**.
+ *
+ * The user's ruling of 2026-08-28, said in the order it happens: the lump is
+ * *banked* (so a town already part-way to a convert gets the benefit of what it
+ * had), the **temple** takes its share on the way in (`templeShare`), and the
+ * phase's **own converter** runs on the spot (`bankPressure`) so a town may flip
+ * this instant. Nothing is left standing afterwards — that is the difference
+ * between this charge and a holy site, and the difference is the decision.
+ *
+ * `refreshCityDerived` for every town that turned a citizen, because a town's
+ * banner is a fact about what its citizens are worth: follower beliefs apply
+ * city-locally (`liveCityEffects`), so a conversion at noon changes the panel
+ * before the turn ends. The register's rule, and this is entry 14 on it. It is
+ * asked of **foreign** towns too — a bomb is aimed at somebody else's — which is
+ * fine because the helper is idempotent and derived and the phase recomputes it.
+ */
+export function pressLump(
+  state: GameState,
+  religion: Religion,
+  at: { col: number; row: number },
+  range: number,
+  lump: number,
+): ProclamationReport {
+  const order = state.religions.map((one) => one.id);
+  const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
+  const cities: ProclamationConversion[] = [];
+  for (const { city, pressed } of lumpTargets(state, religion, at, range, lump)) {
+    const converted = bankPressure(city, religion.id, order, pressed, perConvert);
+    if (converted > 0) refreshCityDerived(state, city);
+    cities.push({
+      cityId: city.id,
+      converted,
+      nowFollows: cityReligion(city) === religion.id,
+    });
+  }
+  return { religionId: religion.id, cities };
+}
+
+/**
+ * The tide, run for one turn — **one of two writers of `City.followers`** and of
  * `City.pressureBank`.
  *
  * The phase sits **before `collectYields`** and that is a rules decision like
@@ -1819,22 +2106,16 @@ export function pressureTotals(
  * also why the phase is early enough that nothing has yet been banked out of the
  * world it is about to change.
  *
- * Three things happen, in this order, per town in `state.cities` order:
+ * Two things happen, per town in `state.cities` order and per religion in
+ * founding order: **the bank fills** with every religion's pressure folded off
+ * the board, and **citizens turn** — both through `bankPressure`, which is the
+ * converter a proclamation also runs so the two can never disagree about what
+ * ten banked faith buys. Its docblock carries the carry-and-cap rules.
  *
- *   1. **the bank fills** — every religion's pressure, folded off the board;
- *   2. **citizens turn** — one per `pressurePerConvert` banked, taken from the
- *      unconverted first and otherwise from the smallest congregation
- *      (`convertCitizen`, whose docblock is the rule);
- *   3. **the bank is capped** when nobody is left to turn, so a town that has
- *      wholly converted does not sit banking a reserve that would flip it back
- *      the instant a rival's first citizen arrived. The remainder below one
- *      convert always carries, exactly as a food basket's does.
- *
- * And a **broom** at the end: proclamations whose absolute expiry has passed are
- * swept. An expired pulse presses nothing whether it is swept or not
- * (`explainPressure` compares), which is precisely the property that makes the
- * sweep safe to place anywhere, skip, or run twice — `pruneTimedEffects`' rule,
- * for the second time.
+ * There is no broom any more, and the *absence* is the 2026-08-28 ruling: a
+ * proclamation is a lump paid the instant it is made (`pressLump`), so there is
+ * nothing standing on the board with an expiry to sweep. The one phase in this
+ * module that still sweeps is `pruneTimedEffects`, over rites.
  */
 export function spreadReligion(state: GameState): void {
   if (state.religions.length === 0) return;
@@ -1851,32 +2132,9 @@ export function spreadReligion(state: GameState): void {
   const measured = state.cities.map((city) => pressureTotals(state, city, sites));
   for (const [index, city] of state.cities.entries()) {
     const totals = measured[index]!;
-    const bank = city.pressureBank ?? {};
     for (const religion of state.religions) {
-      const gained = totals[religion.id] ?? 0;
-      const banked = (bank[religion.id] ?? 0) + gained;
-      let left = banked;
-      while (left >= perConvert) {
-        if (!convertCitizen(city, religion.id, order)) {
-          // Nobody left to turn. The bank is capped just below the next convert
-          // rather than allowed to grow — a stored surplus would be a town that
-          // re-converts instantly the moment a rival takes one citizen back.
-          left = perConvert - 1;
-          break;
-        }
-        left -= perConvert;
-      }
-      if (left > 0) bank[religion.id] = left;
-      else delete bank[religion.id];
+      bankPressure(city, religion.id, order, totals[religion.id] ?? 0, perConvert);
     }
-    // Deleted when empty, so a town nothing presses on serialises exactly like
-    // one from before any of this existed.
-    if (Object.keys(bank).length > 0) city.pressureBank = bank;
-    else delete city.pressureBank;
-  }
-  for (const religion of state.religions) {
-    const live = religion.pulses.filter((pulse) => state.turn < pulse.expiresTurn);
-    if (live.length !== religion.pulses.length) religion.pulses = live;
   }
 }
 

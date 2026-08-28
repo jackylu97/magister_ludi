@@ -40,6 +40,7 @@ import {
   enhanceReligionError,
   explainPressure,
   proclaimError,
+  proclaimPreview,
   foundReligion,
   foundReligionError,
   maxReligions,
@@ -1659,35 +1660,185 @@ describe('the pressure ledger', () => {
     expect(lines.length).toBe(2);
   });
 
-  it('decays a proclamation to nothing and sweeps it, and the sweep changes no outcome', () => {
+  /**
+   * The faith bomb, ruled 2026-08-28: **"an immediate burst of pressure applied
+   * instantly, following the regular conversion rules, just as a lump sum"**.
+   *
+   * Every one of these follows the lump end to end rather than asserting what
+   * was banked — the tide's own discipline — because the whole of the ruling is
+   * that a town *turns* while the player is still looking at it.
+   */
+  function bombWorld(population: number) {
     const g = game();
     town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
     const target = town(g.state, 1, 8, 6);
-    religion.pulses.push({
-      col: 8,
-      row: 6,
-      strength: 12,
-      range: 10,
-      startTurn: g.state.turn,
-      expiresTurn: g.state.turn + 10,
+    target.population = population;
+    const prophet = prophetAt(g.state, 0, 7, 6);
+    return { g, religion, target, prophet };
+  }
+
+  function proclaim(g: ReturnType<typeof game>, prophetId: number) {
+    const result = applyCommand(g.state, {
+      type: 'proclaim',
+      playerId: 0,
+      unitId: prophetId,
+    } as Command);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+    return result;
+  }
+
+  it('lands the whole lump at once: a size-seven town follows the turn it is bombed', () => {
+    const { g, religion, target, prophet } = bombWorld(7);
+    expect(target.followers).toBeUndefined();
+
+    const result = proclaim(g, prophet.id);
+    // 60 banked against 10 a convert is six citizens, and six of seven is a
+    // majority — the town changes its banner inside the command.
+    expect(target.followers?.[religion.id]).toBe(6);
+    expect(cityReligion(target)).toBe(religion.id);
+    // The lump divided exactly, so nothing carries.
+    expect(target.pressureBank).toBeUndefined();
+
+    // And the news the interface says it with. See `ProclamationReport`.
+    expect(result.proclaimed?.religionId).toBe(religion.id);
+    expect(result.proclaimed?.cities).toContainEqual({
+      cityId: target.id,
+      converted: 6,
+      nowFollows: true,
     });
-    const at = (turn: number): number => {
-      g.state.turn = turn;
-      return explainPressure(g.state, target).find((line) => line.source === 'Proclamation')?.amount ?? 0;
+  });
+
+  it('leaves nothing standing behind it — the lump is the whole act', () => {
+    const { g, religion, target, prophet } = bombWorld(7);
+    proclaim(g, prophet.id);
+    // No pulse, no decay, no lingering source. What the next turn presses is
+    // what the *board* presses — here the speaker's own town, three hexes off
+    // and newly converted by the same lump — and there is no 'Proclamation'
+    // line anywhere in the ledger any more.
+    const lines = explainPressure(g.state, target);
+    expect(lines.every((line) => line.source !== 'Proclamation')).toBe(true);
+    expect(pressureTotals(g.state, target)[religion.id]).toBe(RULES.religion.cityStrength);
+  });
+
+  it('lets a Temple halve the bomb, exactly as it halves the tide', () => {
+    const { g, religion, target, prophet } = bombWorld(7);
+    target.buildings.push('temple');
+    proclaim(g, prophet.id);
+    // 50% of 60 is 30: three citizens of seven, which is not a majority. The
+    // one defensive building in the game, and it holds against an event as well
+    // as against a tide (`templeShare`, shared by both paths).
+    expect(target.followers?.[religion.id]).toBe(3);
+    expect(cityReligion(target)).not.toBe(religion.id);
+    expect(RULES.religion.templeForeignPercent).toBe(50);
+  });
+
+  it('does not reach a town one hex past its range', () => {
+    const { g, prophet } = bombWorld(7);
+    const far = town(g.state, 1, 18, 6);
+    far.population = 7;
+    const here = tileHex(getTileAt(g.state.map, prophet.col, prophet.row)!);
+    const there = tileHex(getTileAt(g.state.map, far.col, far.row)!);
+    expect(wrappedDistance(g.state.map, here, there)).toBe(RULES.religion.bombRange + 1);
+
+    const result = proclaim(g, prophet.id);
+    expect(far.followers).toBeUndefined();
+    expect(far.pressureBank).toBeUndefined();
+    // Out of range is *absent* from the report, not a zero in it: the list is
+    // the towns the proclamation reached.
+    expect(result.proclaimed?.cities.some((one) => one.cityId === far.id)).toBe(false);
+    expect(cityReligion(far)).toBeNull();
+  });
+
+  it('banks on a town that already follows, and caps rather than hoards', () => {
+    const { g, religion, target, prophet } = bombWorld(3);
+    target.followers = { [religion.id]: 3 };
+    expect(cityReligion(target)).toBe(religion.id);
+
+    const result = proclaim(g, prophet.id);
+    // The lump is banked regardless — the bomb does not ask who agrees — but
+    // there is nobody left to turn, so the converter takes none and the bank is
+    // capped just below the next convert. `bankPressure`'s rule, and it is the
+    // phase's: a stored surplus of fifty would be a town that snapped back the
+    // instant a rival took one citizen.
+    expect(target.followers?.[religion.id]).toBe(3);
+    expect(target.pressureBank?.[religion.id]).toBe(RULES.religion.pressurePerConvert - 1);
+    expect(result.proclaimed?.cities).toContainEqual({
+      cityId: target.id,
+      converted: 0,
+      nowFollows: true,
+    });
+  });
+
+  it('adds the lump to what a town had already banked, and carries the rest', () => {
+    const { g, religion, target, prophet } = bombWorld(9);
+    // The lump is **banked**, not counted: a town nine faith along keeps those
+    // nine on the other side of the bomb, ready for the next turn of ordinary
+    // tide. That is `bankPressure`'s carry, and it is the only reason the bomb
+    // goes through the phase's converter rather than doing its own arithmetic.
+    const carried = RULES.religion.pressurePerConvert - 1;
+    target.pressureBank = { [religion.id]: carried };
+    proclaim(g, prophet.id);
+    expect(target.followers?.[religion.id]).toBe(6);
+    expect(target.pressureBank?.[religion.id]).toBe(carried);
+  });
+
+  it('previews the bomb town by town, and the preview is what the command pays', () => {
+    const { g, religion, target, prophet } = bombWorld(7);
+    const guarded = town(g.state, 1, 9, 6);
+    guarded.population = 7;
+    guarded.buildings.push('temple');
+
+    const preview = proclaimPreview(g.state, prophet.id)!;
+    expect(preview.range).toBe(RULES.religion.bombRange);
+    expect(preview.lump).toBe(RULES.religion.bombLump);
+    expect(preview.cities).toContainEqual({
+      cityId: target.id,
+      population: 7,
+      wouldConvert: 6,
+      wouldFollow: true,
+    });
+    expect(preview.cities).toContainEqual({
+      cityId: guarded.id,
+      population: 7,
+      wouldConvert: 3,
+      wouldFollow: false,
+    });
+
+    // A promise on a button is kept by the function that made it.
+    proclaim(g, prophet.id);
+    expect(target.followers?.[religion.id]).toBe(6);
+    expect(guarded.followers?.[religion.id]).toBe(3);
+    expect(cityReligion(guarded)).not.toBe(religion.id);
+  });
+
+  it('refuses a preview to a prophet with no faith to proclaim', () => {
+    const g = game();
+    town(g.state, 0, 6, 6);
+    const prophet = prophetAt(g.state, 0, 7, 6);
+    expect(proclaimPreview(g.state, prophet.id)).toBeNull();
+  });
+
+  it('turns citizens through one converter, shared by the phase and the bomb', () => {
+    // The claim the ruling turns on: "write it as one shared helper so the two
+    // cannot drift". `bankPressure` is the converter — the division, the carry
+    // and the cap — and it is *declared* once and *called* twice, by the phase
+    // and by the lump. `convertCitizen` (the one-citizen rule, `state.ts`) is
+    // reached from exactly one place in this module.
+    const source = simSource('religion.ts');
+    expect(source.match(/\bconvertCitizen\(/g)?.length).toBe(1);
+    expect(source.match(/\bbankPressure\(/g)?.length).toBe(3);
+    const body = (name: string): string => {
+      const from = source.indexOf(`function ${name}(`);
+      expect(from).toBeGreaterThan(-1);
+      return source.slice(from, source.indexOf('\n}\n', from));
     };
-    const start = g.state.turn;
-    expect(at(start)).toBe(12);
-    expect(at(start + 5)).toBe(6);
-    expect(at(start + 9)).toBe(1);
-    expect(at(start + 10)).toBe(0);
-    // The broom runs inside the phase, and it is a broom: the pulse was already
-    // inert, so sweeping it changes nothing anybody can read.
-    g.state.turn = start + 10;
-    const before = pressureTotals(g.state, target);
-    spreadReligion(g.state);
-    expect(religion.pulses).toEqual([]);
-    expect(pressureTotals(g.state, target)).toEqual(before);
+    expect(body('spreadReligion')).toContain('bankPressure(');
+    expect(body('pressLump')).toContain('bankPressure(');
+    expect(body('convertCitizens')).toContain('convertCitizen(');
+    // And the temple is one rule too, for the same reason.
+    expect(source.match(/\btempleShare\(/g)?.length).toBe(3);
   });
 
   it('lets a wonder press for the empire that holds the stones', () => {
@@ -2009,9 +2160,15 @@ describe('the prophet’s four verbs', () => {
     // over — so the second verb waits for the movement a resolution refills.
     expect(proclaimError(g.state, 0, prophet.id)).toBe(`Unit ${prophet.id} has no movement left`);
     standing.movesLeft = 2;
-    applyCommand(g.state, { type: 'proclaim', playerId: 0, unitId: prophet.id } as Command);
+    const spoke = applyCommand(g.state, {
+      type: 'proclaim',
+      playerId: 0,
+      unitId: prophet.id,
+    } as Command);
     expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
-    expect(foundedReligion(g.state, 0)!.pulses.length).toBe(1);
+    // The proclamation is an *act*, not a thing left on the board: what it did
+    // comes back on the result and nothing on the religion records it.
+    expect(spoke.ok && spoke.proclaimed?.religionId).toBe(foundedReligion(g.state, 0)!.id);
   });
 
   it('refuses a proclamation from an empire with no religion', () => {
@@ -2146,22 +2303,33 @@ describe('the prophet’s four verbs', () => {
     expect(improvementError(g.state, augur.id, 'farm')).toBe('A augur builds nothing');
   });
 
-  it('preaches: the augur’s rite leaves the same kind of mark out of a smaller purse', () => {
+  it('preaches: the augur’s rite presses the same lump out of a smaller purse', () => {
     const g = game();
     learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
-    found(g.state, 0);
+    const seat = found(g.state, 0);
+    seat.population = 5;
     const religion = faith(g.state, 0);
-    const unit = g.state.units.find((u) => u.ownerId === 0)!;
-    const augur = augurAt(g.state, 0, unit.col, unit.row);
+    const augur = augurAt(g.state, 0, seat.col, seat.row);
     expect(availableRites(g.state, 0)).toContain('thePreaching');
     expect(riteError(g.state, 0, augur.id, 'thePreaching')).toBeNull();
-    applyCommand(g.state, {
+    const result = applyCommand(g.state, {
       type: 'performRite',
       playerId: 0,
       unitId: augur.id,
       rite: 'thePreaching',
     } as Command);
-    expect(religion.pulses.length).toBe(1);
-    expect(religion.pulses[0]!.range).toBe(4);
+    expect(result.ok).toBe(true);
+    // 20 against 10 a convert: two citizens of five, which is not a majority —
+    // the cheap lever, and it is the *same* lever the prophet's charge pulls
+    // (`pressLump`), reported through the same field of the same result.
+    expect(seat.followers?.[religion.id]).toBe(2);
+    expect(cityReligion(seat)).toBeNull();
+    expect(result.ok && result.proclaimed?.cities).toContainEqual({
+      cityId: seat.id,
+      converted: 2,
+      nowFollows: false,
+    });
+    // Nothing is left standing on the board.
+    expect(seat.pressureBank).toBeUndefined();
   });
 });

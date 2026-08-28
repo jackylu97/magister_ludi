@@ -5,9 +5,10 @@
  * left on `explainTradeGold` when roads became the first upkeep this game ever
  * charged: *"buildings and units are the obvious next two, and they join this
  * fold rather than opening a second one."* They do. This module answers the two
- * new questions and nothing else; `explainEmpireGold` (`trade.ts`) is still the
- * one list the treasury's per-turn figure is the fold of, and it now has four
- * lines instead of two.
+ * new questions and nothing else; `explainEmpireGold` (`empireGold.ts`, which
+ * left `trade.ts` with the flood fill on 2026-08-28) is still the one list the
+ * treasury's per-turn figure is the fold of, and it now has four lines instead
+ * of two.
  *
  * The price is the age
  * --------------------
@@ -216,8 +217,8 @@ export function unitUpkeepTotal(state: GameState, playerId: number): number {
 
 /**
  * What this empire's **law** takes off its payroll, as the labelled lines
- * `explainEmpireGold` folds beside the gross figure — Tyranny's thirty percent,
- * and The Standing Army's whole hundred.
+ * `explainEmpireGold` (`empireGold.ts`) folds beside the gross figure —
+ * Tyranny's thirty percent, and The Standing Army's whole hundred.
  *
  * A **rebate line** rather than a discounted total, and both halves of that are
  * the design. Rule 5 says a figure is the fold of a list a player can read, so

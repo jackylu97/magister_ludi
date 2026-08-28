@@ -2209,7 +2209,7 @@ describe('the turn pipeline over a live empire', () => {
 // ---------------------------------------------------------------------------
 
 describe('determinism with cities', () => {
-  it('round-trips a schema 29 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 30 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -2224,7 +2224,7 @@ describe('determinism with cities', () => {
     // improvements; 12 was the meters' `captured`; 13 the luxuries; 14 tile
     // purchase; 15 barbarians and discoveries.) What this pins is not the
     // number but that a city save is carried by whatever the number is.
-    expect(SCHEMA_VERSION).toBe(29);
+    expect(SCHEMA_VERSION).toBe(30);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);
@@ -2484,5 +2484,97 @@ describe('the mid-turn refresh register', () => {
     expect(city.workedTiles).toEqual([]);
     refreshTileDerived(state, at(state.map, 8, 5));
     expect(city.workedTiles).toHaveLength(2);
+  });
+});
+
+// --- the layering, read off the imports --------------------------------------
+
+/**
+ * `cities.ts` does not import `trade.ts`, and it is a rule rather than an
+ * accident (2026-08-28).
+ *
+ * The two largest modules in the simulation used to import each other: `trade.ts`
+ * asks this one for the nearest town, the capital and the windfall settlements,
+ * and this one asked `trade.ts` back for the caravan lines `cityYields` folds and
+ * the treasury figure `collectYields` banks. Both halves were true and neither
+ * was wrong, which is what made the cycle survive three passes — it only ever
+ * showed itself as evaluation-order luck, once, as a `tileYieldOf is not a
+ * function` at test load.
+ *
+ * The fix is a *layer*, not a comment: `routeYields.ts` and `empireGold.ts` hold
+ * the three readers this file needs and import neither hub, `trade.ts`
+ * re-exports them so no screen changed its import, and this test is what stops
+ * the edge coming back the next time somebody wants one more figure from a
+ * caravan. `test/mapgen/moduleCycles.test.ts` is the general guard — every
+ * `src/sim` module loaded first in turn — and this is the specific one, because
+ * the general guard passes for a cycle that happens to be lucky.
+ */
+describe('the trade layering', () => {
+  const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>;
+
+  function text(file: string): string {
+    const key = Object.keys(SIM_SOURCE).find((path) => path.endsWith(`/${file}`));
+    expect(`${file} readable`).toBe(key === undefined ? `${file} missing` : `${file} readable`);
+    return SIM_SOURCE[key!]!;
+  }
+
+  /** Every module this file pulls in for a *value* — a type-only import is erased. */
+  function valueImports(file: string): string[] {
+    const found: string[] = [];
+    const source = text(file);
+    const pattern = /^import\s+(?!type\s)([\s\S]*?)from\s+'\.\/([a-zA-Z0-9]+)';/gm;
+    for (const match of source.matchAll(pattern)) found.push(match[2]!);
+    return found;
+  }
+
+  it('keeps `cities.ts` off `trade.ts`', () => {
+    expect(valueImports('cities.ts')).not.toContain('trade');
+    // And the three readers it wanted are still imported, from the two leaves —
+    // a test that only checked the absence would pass a file that had quietly
+    // stopped folding a caravan's food into `cityYields` at all.
+    expect(valueImports('cities.ts')).toContain('routeYields');
+    expect(valueImports('cities.ts')).toContain('empireGold');
+    expect(text('cities.ts')).toMatch(/cityRouteYields\(state, city\)/);
+    expect(text('cities.ts')).toMatch(/empireGold\(state, player\.id\)/);
+    expect(text('cities.ts')).toMatch(/explainEmpireGold\(state, playerId\)/);
+  });
+
+  it('keeps the two leaves leaves', () => {
+    for (const leaf of ['routeYields.ts', 'empireGold.ts']) {
+      const imports = valueImports(leaf);
+      expect(imports).not.toContain('cities');
+      expect(imports).not.toContain('trade');
+      // Not empty, or a leaf that had been gutted would read as a clean one.
+      expect(imports.length).toBeGreaterThan(2);
+    }
+  });
+
+  it('keeps `trade.ts` the one import site a screen needs', () => {
+    // The names moved house; the address did not. Every one of them is still
+    // reachable from `trade.ts`, which is what let the interface and the trade
+    // tests come through the extraction untouched.
+    const source = text('trade.ts');
+    for (const name of [
+      'cityRouteYields',
+      'explainRouteYield',
+      'explainRouteYieldBetween',
+      'foldRouteYield',
+      'routeCities',
+      'routeIsLive',
+      'connectedCities',
+      'empireGold',
+      'explainEmpireGold',
+      'roadsBuiltBy',
+    ]) {
+      expect(`${name} re-exported`).toBe(
+        new RegExp(`^\\s+${name},$`, 'm').test(source)
+          ? `${name} re-exported`
+          : `${name} missing from trade.ts`,
+      );
+    }
   });
 });

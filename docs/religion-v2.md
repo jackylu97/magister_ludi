@@ -80,7 +80,9 @@ prophet's four charges. Missionaries and theological combat are refused on purpo
      hexes**, decaying linearly to expiry (an absolute turn, the timed-effect rule; the
      `religion` phase is a broom for expired pulses). Cities in range will follow next turn
      unless something holds them, and keep following as long as ordinary pressure sustains
-     it afterwards — a bomb converts, a holy site keeps.
+     it afterwards — a bomb converts, a holy site keeps. ✎ **Superseded
+     2026-08-28**: the bomb is an instant *lump*, not a pulse — see "The
+     proclamation is a lump" under As built.
   4. **Re-draft** — `redraftBeliefs { unitId, pool: 'follower' | 'enhancer' }`.
 - Augurs are untouched: rites remain theirs, and one new rite, **The Preaching** (a small
   pulse, 4 hexes, 10 turns), gives faith a cheap conversion lever before a prophet.
@@ -212,7 +214,7 @@ following, yours included), `followingForeign`, `followingPop` (their population
 | Inquisition | a Temple's resistance to foreign pressure ×2 (×4 total) | — | `pressureRule templeResist` |
 | The Long Road | roads and caravans carry +2 pressure | — | `pressureRule roadStrength +2` |
 | Itinerant Preachers | following cities project 2 hexes further | — | `pressureRule cityRange +2` |
-| The Pulse of Bells | the faith bomb reaches 4 hexes further and pulses last 5 turns longer | — | `pressureRule bombRange`, `pulseTurns` |
+| The Pulse of Bells | the faith bomb reaches 4 hexes further and presses 20 faith harder ✎ (was "pulses last 5 turns longer", schema 30) | — | `pressureRule bombRange`, `bombLump` |
 | Ecclesia | holy sites +3 strength · +1🕯 each | — | `pressureRule siteStrength` + `tileYield improvement holySite` |
 | Apostles | the founder trickle is doubled | followers | `effectAmplifier founderTrickle` |
 | Sacred Cartography | a caravan carries pressure **both** ways | — | `pressureRule routeBothWays` |
@@ -280,14 +282,13 @@ belongs to the interface pass.
 
 | Shape | Where | Note |
 |---|---|---|
-| `Religion { id, founderId, name, pantheon, follower[], enhancer[], holySite?, foundedTurn, pulses[] }` | `GameState.religions` | founding order **is** id order; one writer (`foundReligion`). ✎ 2026-08-28: `enhancer` is a **list** (two slots), and `holySite` is the hex the first stones went up on — `founderId` is history and a fallback, `religionFounder` is the payee |
-| `ReligionPulse { col, row, strength, range, startTurn, expiresTurn }` | `Religion.pulses` | absolute expiry, decay computed from the two turns |
+| `Religion { id, founderId, name, pantheon, follower[], enhancer[], holySite?, foundedTurn }` | `GameState.religions` | founding order **is** id order; one writer (`foundReligion`). ✎ 2026-08-28: `enhancer` is a **list** (two slots), and `holySite` is the hex the first stones went up on — `founderId` is history and a fallback, `religionFounder` is the payee. ✎ schema 30: **no `pulses`** — see "The proclamation is a lump" |
 | `City.followers?: Partial<Record<ReligionId, number>>` | `state.ts` | citizens by religion; the rest follow nothing, derived |
 | `City.pressureBank?: Partial<Record<ReligionId, number>>` | `state.ts` | faith banked toward the next convert; the only stored half of the tide |
 | `Player.prophetsPurchased` | `state.ts` | the prophet's own faith ladder, separate from the augur's |
 | `BeliefOffer.pool?: 'follower' \| 'enhancer'` | `religionData.ts` | absent means the pantheon — one offer field, one `chooseBelief` |
 
-Schema **29** (26 when this pass landed; 27 and 28 are elsewhere in the ledger).
+Schema **30** (26 when this pass landed; 27 and 28 are elsewhere in the ledger).
 A v25 log is a different game rather than an older one: the temple moved onto a
 technology that did not exist, so every research plan past the second age reaches
 a different tree, and founding spends `state.rng` on a name.
@@ -299,6 +300,16 @@ scalar `enhancer` becomes a one-element list, and a v28 religion has **no**
 so a loaded snapshot could not re-derive it, while a replay of the log can.
 `religionFounder` falls back to `founderId` for exactly that case, which is the
 same fallback a pillaged site takes.
+
+✎ **30 (2026-08-28)**: `Religion.pulses` and the `ReligionPulse` shape are
+**deleted**. A proclamation is a lump paid at the moment it is made, so nothing
+stands on the board with an expiry, and a field that could only ever be empty
+would be a shape a future reader had to be told to ignore. The migration note: a
+v29 save's standing pulses have no home here and the pressure they had not yet
+paid cannot be reconstructed — the bank records what arrived, never what was
+still coming. A replay of the log re-derives everything (the bomb is a command),
+so the bump refuses the snapshot. It is a different game either way: a v29 bomb
+pressed 12 a turn for ten turns and this one presses 60 once.
 
 ### Commands
 
@@ -318,11 +329,17 @@ verb by construction) *"… has already founded a religion"*.
 ### The citizen model
 
 `cityReligion(city)` is **derived, never stored**: the religion more than half the
-citizens follow, else `null`. `spreadReligion` is the only writer of `followers`
-and `pressureBank`, and it sits **before `collectYields`** so a town that turns
-this turn pays its new majority's founder the same turn its banner changes. It
-measures **every** town against one board and then moves every town — two passes,
-so the tide does not run faster along founding order than against it.
+citizens follow, else `null`. `followers` and `pressureBank` are written through
+**one converter, `bankPressure`**, and it has exactly **two** callers: the
+`spreadReligion` phase, once per religion per town per turn, and `pressLump`,
+once when a prophet or an augur speaks. Writing the division, the carry and the
+cap twice is how a bomb and a tide come to disagree about what ten banked faith
+buys; a source-reading test pins the pair.
+
+The phase sits **before `collectYields`** so a town that turns this turn pays its
+new majority's founder the same turn its banner changes. It measures **every**
+town against one board and then moves every town — two passes, so the tide does
+not run faster along founding order than against it.
 
 Conversion order: the unconverted first, then the smallest congregation, ties by
 founding order (`convertCitizen`). Growth adds an **unconverted** citizen — which
@@ -334,8 +351,11 @@ is why a big town is harder to convert — and starvation takes one from the
 `rules.religion`: `pressurePerConvert 10` · `siteRange 6` · `siteStrength 6` ·
 `cityRange 3` · `cityStrength 2` · `roadStrength 4` · `routeStrength 3` ·
 `capitalStrength 4` · `templeOwnPercent 200` / `templeForeignPercent 50` ·
-`bombRange 10` · `bombStrength 12` · `bombTurns 10` · `maxReligions 2/3`.
-Prophet: 120🕯 +60. Holy site: +2🕯 +1🎵, one hex.
+`bombRange 10` · `bombLump 60` · `maxReligions 2/3`.
+Prophet: 120🕯 +60. Holy site: +2🕯 +1🎵, one hex. The Preaching's lump is on the
+rite's own row (`range 4`, `amount 20`), because a rite's numbers are the rite's
+and a bomb's are the rules' — a rite that read the bomb's figures would preach
+three times as hard the day somebody retuned a prophet.
 
 Measured on the fixture (`test/sim/religion.test.ts`, "the tuning"):
 
@@ -345,8 +365,63 @@ Measured on the fixture (`test/sim/religion.test.ts`, "the tuning"):
 * **A road-joined following city converts the same town in exactly eight.** 4 a
   turn: the third convert lands on turn 8.
 * A slow game measurement is in the slow tier: two seats reach two religions,
-  four proclamations and 38 converts inside 170 turns, and the log replays byte
-  for byte.
+  four proclamations and **37** converts inside 170 turns, and the log replays
+  byte for byte.
+
+### The proclamation is a lump ✎ **new 2026-08-28**
+
+The user's ruling: *"proclaim is an immediate burst of pressure applied
+instantly, following the regular conversion rules, just as a lump sum."* So the
+faith bomb is no longer a pulse parked on a hex for ten turns. `proclaimAt` asks
+`bombFigures` for the reach and the weight (`rules.religion` shifted by the
+enhancer pool through `cardPressureRule`) and hands them to **`pressLump`**,
+which for every town within `bombRange`, in `state.cities` order:
+
+1. takes the **temple's** share off the lump on the way in — `templeShare`, the
+   *same* function `explainPressure` folds into the tide, so a Temple that turns
+   away half a rival's slow tide turns away half a rival's bomb. A temple is the
+   one number that decides whether a bomb lands;
+2. **banks** what is left into `City.pressureBank` — banked, not counted, so what
+   a town had already accumulated is still there on the other side of it;
+3. runs the phase's own **`bankPressure`** on the spot: one citizen per
+   `pressurePerConvert`, unconverted first and otherwise from the smallest
+   congregation, ties by founding order; the remainder carries and the bank is
+   capped just below the next convert when there is nobody left to turn;
+4. calls `refreshCityDerived` on every town that turned a citizen — a town's
+   banner is a fact about what its citizens are worth (follower beliefs apply
+   city-locally), so a conversion at noon changes the panel before the turn ends.
+   **Register entry 14.**
+
+60 against 10 a convert is six citizens: a size-seven town with no Temple follows
+the instant it is bombed, and the same town with a Temple takes three of seven
+and does not. That gap is the decision the ruling wanted — a bomb converts, a
+holy site keeps, and a temple is what a defender builds against the first.
+
+**The Preaching is the same act at a smaller price.** `RiteGrantSpec.lump`
+(`{ range, amount }`) replaces `pulse`, and `payRiteGrant` calls the same
+`pressLump`; 20 within 4 hexes is two citizens, the cheap lever before a prophet.
+
+Nothing lingers. `Religion.pulses` and the `ReligionPulse` shape are gone, the
+`Proclamation` line has left `explainPressure`, and `spreadReligion` has no broom
+any more — the absence is the ruling and is said so in the source. The
+`pulseTurns` pressure rule went with them; `bombStrength` became **`bombLump`**,
+and The Pulse of Bells now reads *"A proclamation reaches 4 hexes further and
+presses 20 faith harder."*
+
+**What it reports.** `CommandResult.proclaimed?: ProclamationReport` —
+`{ religionId, cities: { cityId, converted, nowFollows }[] }` — from both
+`proclaim` and `performRite`. It is `arrivals`' argument in a third currency: by
+the time the command returns the citizens have turned and no diff of two boards
+could tell a bomb's six converts from a turn of ordinary tide. Every town in
+range is listed, including the ones a temple held to nothing, because "Nippur
+resisted" is exactly the news a spent charge earns.
+
+**What it promises.** `proclaimPreview(state, unitId)` →
+`{ range, lump, cities: { cityId, population, wouldConvert, wouldFollow }[] }`,
+or `null` when there is no prophet or no faith. The facts are the simulation's
+and the sentence is the interface's ("Converts 3 cities within 10 hexes — Uruk,
+Nippur, Ur"); every figure comes from the function that will pay it, including
+the pressure the town has already banked.
 
 ### Who is paid ✎ **rewritten 2026-08-28**
 

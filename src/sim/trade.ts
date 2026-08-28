@@ -1,11 +1,30 @@
 /**
- * Trade: caravans, roads, and the city connection (`docs/trade.md`).
+ * Trade: caravans, and the lifecycle of the route one carries (`docs/trade.md`).
  *
- * Four things live here and they are one system read from four sides — what a
- * route *is*, what it *pays*, how many an empire may run, and what the roads its
- * caravans wear into the ground are worth to keep. The verbs are in
- * `commands.ts` and the shuttle is a phase in `turn.ts`, exactly as every other
- * subsystem splits.
+ * The **verbs and the plumbing** — sending a caravan, refusing a send, the
+ * slots an empire may fill, ending or renewing a route, and what plundering one
+ * pays. The verbs proper are in `commands.ts` and the shuttle is a phase in
+ * `turn.ts`, exactly as every other subsystem splits.
+ *
+ * What left, and why
+ * ------------------
+ * Two of this file's four sides moved out on 2026-08-28 and are **re-exported
+ * from here**, so every screen keeps one import site for trade:
+ *
+ *   · what a route *pays* → `routeYields.ts` (with the pair resolution, which is
+ *     what "this route still describes the board" means);
+ *   · what the empire's treasury makes and loses beyond its towns → the roads,
+ *     the connection fill and the four-line ledger → `empireGold.ts`.
+ *
+ * Both are **leaves that import neither `cities.ts` nor this file**, and that is
+ * the whole point. `cities.ts` folds a caravan's lines into `cityYields` and
+ * banks `empireGold` in `collectYields`, while this module asks `cities.ts` for
+ * the nearest town and the windfall settlements — so the two largest modules in
+ * the simulation imported each other at load time, which surfaced once as a
+ * `tileYieldOf is not a function` at test load. The rule that replaces it is
+ * asserted rather than reasoned about: `test/mapgen/moduleCycles.test.ts` loads
+ * every `src/sim` module first in turn, and `test/sim/cities.test.ts` reads
+ * `cities.ts` and fails if `./trade` reappears in it.
  *
  * The route is the piece
  * ---------------------
@@ -69,28 +88,14 @@
  * and the honest one.
  */
 
+import { buildingDef } from './buildingData';
 import {
-  type BuildingCategory,
-  type BuildingId,
-  buildingDef,
-} from './buildingData';
-import {
-  capitalCityOf,
   nearestOwnedCity,
   refreshCityDerived,
   settleGrowthWindfall,
   settleProductionWindfall,
-  tileOwnerField,
 } from './cities';
-import {
-  type GameMap,
-  type Tile,
-  getTile,
-  getTileAt,
-  mapNeighbors,
-  tileHex,
-  tileIndex,
-} from './map';
+import { getTileAt } from './map';
 import { type Cell, findPath, pathTurns } from './pathfind';
 import { RULES } from './rulesData';
 import {
@@ -102,8 +107,6 @@ import {
   unitById,
 } from './state';
 import {
-  cardAmplifier,
-  cardAmplifierFlat,
   cardRouteSlots,
   payWindfallGrants,
   settleCultureWindfall,
@@ -111,25 +114,34 @@ import {
 } from './statecraft';
 import { type UnitTypeId, caravanTypeId, trades, unitDef } from './unitData';
 import { fullMovement } from './units';
-import { explainBuildingUpkeep, explainUnitUpkeep, explainUnitUpkeepRebate } from './upkeep';
+// The two halves that had to leave (2026-08-28). `cities.ts` folds a caravan's
+// lines into `cityYields` and banks `empireGold` in `collectYields`, and while
+// both lived here that made the two largest modules in the simulation import
+// each other at load time. They now sit where neither hub can reach back —
+// `routeYields.ts` and `empireGold.ts` import no city and no trade — and this
+// file imports what it still uses and **re-exports the rest**, so a screen that
+// reads a route and the ledger together still has one import site for trade.
+import { routeCities, routeIsLive } from './routeYields';
+
+export {
+  type RouteYieldLine,
+  cityRouteYields,
+  explainRouteYield,
+  explainRouteYieldBetween,
+  foldRouteYield,
+  routeCities,
+  routeIsLive,
+} from './routeYields';
+export {
+  type ConnectedCity,
+  type TradeGoldLine,
+  connectedCities,
+  empireGold,
+  explainEmpireGold,
+  roadsBuiltBy,
+} from './empireGold';
 
 const TRADE = RULES.trade;
-
-/**
- * Which building categories pay a route in **food**, and which in **hammers**.
- *
- * The user's table, as two lists rather than as a switch: a caravan brings food
- * to a town from the places its partner *consumes* into (granaries, theatres,
- * libraries) and brings goods from the places its partner *makes* in (workshops,
- * barracks, markets). `faith` is deliberately in neither — a temple counts for
- * nothing on a trade route, which is the ruling exactly.
- *
- * Lists rather than tuning numbers because this is the shape of the rule and not
- * a figure anybody would retune; the figures (one point per building, one gold
- * per ten people) are in `data/rules.json` where figures belong.
- */
-const FOOD_CATEGORIES: readonly BuildingCategory[] = ['food', 'culture', 'science'];
-const PRODUCTION_CATEGORIES: readonly BuildingCategory[] = ['production', 'military', 'gold'];
 
 // --- what a route is --------------------------------------------------------
 
@@ -142,46 +154,6 @@ export function tradersOf(state: GameState, playerId: number): Unit[] {
     list.push(unit);
   }
   return list;
-}
-
-/**
- * The two cities a caravan's route joins, or `null` when the route no longer
- * describes anything the board agrees with.
- *
- * **One resolution, four readers** — the yields, the shuttle, the slot count and
- * the send gate all ask this, so "a route that has stopped being a route" is one
- * answer rather than four. Both ends must still belong to the caravan's owner: a
- * destination taken by somebody else ends the route, which is the internal-only
- * rule read from the other side and the honest reading of "the partner is one of
- * yours".
- */
-export function routeCities(
-  state: GameState,
-  unit: Unit,
-): { from: City; to: City } | null {
-  const route = unit.trade;
-  if (!route) return null;
-  const from = cityById(state, route.from);
-  const to = cityById(state, route.to);
-  if (!from || !to) return null;
-  if (from.ownerId !== unit.ownerId || to.ownerId !== unit.ownerId) return null;
-  return { from, to };
-}
-
-/**
- * Is this caravan's route still paying?
- *
- * The `TimedEffect` reading exactly (`state.turn < expiresTurn`): an absolute
- * turn, compared and never counted down. A lapsed route is **inert rather than
- * gone** — the piece keeps walking home carrying a dead route, and the shuttle
- * phase is what tidies it up when it gets there, which is the same broom-not-a-
- * clock bargain `pruneTimedEffects` makes.
- */
-export function routeIsLive(state: GameState, unit: Unit): boolean {
-  const route = unit.trade;
-  if (!route) return false;
-  if (state.turn >= route.expiresTurn) return false;
-  return routeCities(state, unit) !== null;
 }
 
 /**
@@ -244,194 +216,6 @@ export interface RouteEndReport {
   to: number;
   /** True when the caravan set out on a fresh leg instead of idling. */
   renewed: boolean;
-}
-
-// --- what a route pays ------------------------------------------------------
-
-/**
- * One labelled line of what a route pays its **destination**.
- *
- * `CardYieldLine`'s shape minus the voices a route cannot pay: three yields,
- * because the ruling names three. A fourth would be a design decision and not a
- * field.
- */
-export interface RouteYieldLine {
-  /** What the interface prints: "Caravan from Uruk · 3 buildings". */
-  source: string;
-  food: number;
-  production: number;
-  gold: number;
-}
-
-/** How many of a city's buildings fall in one of these categories. */
-function buildingsInCategories(
-  buildings: readonly BuildingId[],
-  categories: readonly BuildingCategory[],
-): number {
-  let count = 0;
-  for (const id of buildings) {
-    if (categories.includes(buildingDef(id).category)) count += 1;
-  }
-  return count;
-}
-
-/**
- * What one caravan's route pays, as the ordered list its totals are the fold of
- * (rule 5).
- *
- * **The origin's buildings set the figure and the destination banks it** — the
- * user's reversal of 2026-08-27 (`docs/trade.md`'s Revisions), quoted there
- * verbatim: "it is best for routes from the capital to later settles, to feed
- * the later settles." Reading the *origin's* buildings is what makes that true —
- * a well-built capital sends its own goods outward rather than harvesting
- * whatever a raw young settle happens to have standing, and a route into that
- * settle is worth sending precisely because the settle itself pays nothing yet.
- *
- * Three lines, and each is the user's table read literally, now off the
- * **origin**:
- *
- *   · **+1🌾 per food, culture or science building** standing in the origin;
- *   · **+1⚙ per production, military or gold building** there;
- *   · **+1💰 per `rules.trade.goldPerCombinedPop` people** across the two towns.
- *
- * Every figure is read off the cities *as they stand*, so an origin that
- * finishes a library raises the route the next turn — see the module docblock.
- * A lapsed route pays nothing and answers an empty list, which is what makes
- * `state.turn < expiresTurn` the whole of expiry.
- *
- * Wonders count as buildings of their own category, which is what
- * `BuildingDef.category` being on *every* row buys: the Colossus is a gold
- * building to a caravan and a `wonder` to a production bonus, and both readings
- * are true at once.
- */
-export function explainRouteYield(state: GameState, unit: Unit): RouteYieldLine[] {
-  if (!routeIsLive(state, unit)) return [];
-  const pair = routeCities(state, unit);
-  if (!pair) return [];
-  return explainRouteYieldBetween(state, pair.from, pair.to);
-}
-
-/**
- * What a route *would* pay between these two cities, as they stand — the same
- * fold `explainRouteYield` answers for a caravan already carrying one, with the
- * caravan subtracted out.
- *
- * Split out so the interface's send preview stops handing `explainRouteYield` a
- * *copy* of the trader wearing a fake `Unit.trade` — a route's figures are a
- * pure function of the two cities and never needed a piece at all, which this
- * makes literal: `explainRouteYield` is now this function once it has resolved
- * the pair, so there is exactly one implementation of the three lines and the
- * preview and the paying caravan cannot drift apart on what they promise.
- *
- * `_state` is unused today — every figure here reads off `from`/`to` alone —
- * and stays on the signature anyway (underscored, so the unused-parameter
- * check does not fight it), for the reason every `explain…` function in this
- * module takes it: the day a route's yield gains a card or a wonder rider
- * (`docs/trade.md`'s deferred half), that rider is read off the state and this
- * is where it joins, not a second function with the state parameter added back.
- */
-export function explainRouteYieldBetween(
-  state: GameState,
-  from: City,
-  to: City,
-): RouteYieldLine[] {
-  const lines: RouteYieldLine[] = [];
-  // Printed on the *destination's* sheet ("Caravan from Uruk · 3 buildings"),
-  // naming the origin — the town this figure was read off, not the town
-  // reading it.
-  const label = (note: string): string => `Caravan from ${from.name} · ${note}`;
-
-  const food = buildingsInCategories(from.buildings, FOOD_CATEGORIES);
-  if (food > 0) {
-    lines.push({
-      source: label(`${food} ${food === 1 ? 'building' : 'buildings'}`),
-      food,
-      production: 0,
-      gold: 0,
-    });
-  }
-
-  const hammers = buildingsInCategories(from.buildings, PRODUCTION_CATEGORIES);
-  if (hammers > 0) {
-    lines.push({
-      source: label(`${hammers} ${hammers === 1 ? 'building' : 'buildings'}`),
-      food: 0,
-      production: hammers,
-      gold: 0,
-    });
-  }
-
-  const people = from.population + to.population;
-  const per = Math.max(1, Math.floor(TRADE.goldPerCombinedPop));
-  const gold = Math.floor(people / per);
-  if (gold > 0) {
-    lines.push({ source: label(`${people} people`), food: 0, production: 0, gold });
-  }
-
-  // **The card's share, as a line of its own** — the Merchant League's fifty
-  // percent, and rule 5 for a caravan: the amplifier does not multiply the
-  // totals afterwards, it adds what it is worth to the list the totals are the
-  // fold of, so the destination's sheet says where the extra food came from.
-  //
-  // The **origin's** owner is asked, because a route belongs to the seat that
-  // sent it (`originCityOf`) and the law that pays it is that seat's law — a
-  // caravan into a rival's town is not enriched by the rival's charter.
-  // Percentages sum before one multiplication and each voice is floored once,
-  // exactly as Entry XVII sums within a stage.
-  const percent = cardAmplifier(state, from.ownerId, 'routeYields');
-  if (percent !== 0) {
-    const total = foldRouteYield(lines);
-    const extra = {
-      food: Math.floor((total.food * percent) / 100),
-      production: Math.floor((total.production * percent) / 100),
-      gold: Math.floor((total.gold * percent) / 100),
-    };
-    if (extra.food !== 0 || extra.production !== 0 || extra.gold !== 0) {
-      lines.push({ source: label(`cards ${percent > 0 ? '+' : ''}${percent}%`), ...extra });
-    }
-  }
-
-  return lines;
-}
-
-/** The fold of `explainRouteYield`, and the only sum of one. */
-export function foldRouteYield(lines: readonly RouteYieldLine[]): {
-  food: number;
-  production: number;
-  gold: number;
-} {
-  const total = { food: 0, production: 0, gold: 0 };
-  for (const line of lines) {
-    total.food += line.food;
-    total.production += line.production;
-    total.gold += line.gold;
-  }
-  return total;
-}
-
-/**
- * Every route line this city receives — one caravan's list after another, in
- * `state.units` order.
- *
- * A route pays its **destination** (`unit.trade.to`), so this is the filter on
- * `to` and not on `from` — a town receives the caravans sent *to* it, off
- * whatever their *origins* have built.
- *
- * Folded into `cityYields` exactly as `cardCityYields` and `cityResourceYields`
- * are, and **staged like any other flat** (Entry XVII): a route's food is a
- * per-turn yield, not a windfall, so it rides the city's percentages and the
- * empire's meters like the granary beside it. The gold rides with it and lands
- * in the treasury through the same `collectYields`, which is what "the gold joins
- * the empire's gold in the same pass" means with no second bank.
- */
-export function cityRouteYields(state: GameState, city: City): RouteYieldLine[] {
-  const lines: RouteYieldLine[] = [];
-  for (const unit of state.units) {
-    if (unit.ownerId !== city.ownerId) continue;
-    if (unit.trade?.to !== city.id) continue;
-    lines.push(...explainRouteYield(state, unit));
-  }
-  return lines;
 }
 
 // --- how many routes an empire may run --------------------------------------
@@ -733,245 +517,6 @@ export function startRouteAt(state: GameState, unit: Unit, from: City, to: City)
   refreshCityDerived(state, to);
 }
 
-// --- roads, and what they connect -------------------------------------------
-
-/**
- * How many road hexes this empire laid **and pays for** — the count maintenance
- * is charged on.
- *
- * `Tile.roadFree` is skipped, which is The Founders' Road's third clause (the
- * user's ruling of 2026-08-28: *"the roads are maintenance-free"*). It is
- * subtracted **here**, in the count, rather than as a credit line in
- * `explainEmpireGold`, because the ledger's road line prints the number it is
- * charging on ("Road maintenance · 12 hexes") and a count that included hexes
- * nobody is billed for would be a line whose own figure did not explain it.
- * Free hexes are roads in every other respect — `stepCost` prices them, and
- * `connectedCities` fills across them — which is the point of the doctrine.
- *
- * An **index sweep** over `map.tiles` rather than a walk of anything with
- * coordinates, for `tileOwnerField`'s stated reason: this runs once per empire
- * per turn over four thousand hexes, and a coordinate lookup per hex is the
- * shape that turned a forty-city resolution into a profile.
- */
-export function roadsBuiltBy(state: GameState, playerId: number): number {
-  let count = 0;
-  for (const tile of state.map.tiles) {
-    if (tile.road === playerId && tile.roadFree !== true) count += 1;
-  }
-  return count;
-}
-
-/** May the connection fill cross this hex? */
-function fillAdmits(
-  map: GameMap,
-  owner: { at(index: number): number | null },
-  cityCells: ReadonlySet<number>,
-  playerId: number,
-  tile: Tile,
-): boolean {
-  const index = tileIndex(map, tile.col, tile.row);
-  // Never through another seat's ground. Your own, or nobody's.
-  const holder = owner.at(index);
-  if (holder !== null && holder !== playerId) return false;
-  // A town is a junction: the fill crosses a city centre whether or not a
-  // caravan has happened to wear a road across it. That is the honest reading of
-  // "connected by road" — the road ends *at* the gates — and it is what stops a
-  // route's own two endpoints reading as unconnected until a caravan comes home.
-  if (cityCells.has(index)) return true;
-  return tile.road !== undefined;
-}
-
-/** What one connected city pays its empire. See `connectedCities`. */
-export interface ConnectedCity {
-  city: City;
-  /** `floor(pop / rules.trade.connectionPerPop)`. */
-  gold: number;
-}
-
-/**
- * Every non-capital city of this empire joined to its capital by road, with what
- * each pays.
- *
- * A **flood fill**, hoisted for one sweep and never stored — `tileOwnerField`'s
- * bargain, and for its reason: a stored connection graph would be a second thing
- * to keep in step with every road laid, every city founded and every border that
- * moved. It is a pure function of the board, so it is asked when it is wanted.
- *
- * The rules, and each is a decision:
- *
- *   · the root is `capitalCityOf` — the oldest city the empire *founded* — so a
- *     captured capital moves the graph's root with no code at all, which is the
- *     Civ rule;
- *   · the fill crosses hexes that are **this empire's or nobody's**, never
- *     another seat's: a highway through a rival's territory is a road you do not
- *     control;
- *   · a **city centre is a junction** (see `fillAdmits`), so the road has only to
- *     reach the gates;
- *   · the capital itself pays nothing — it is what the others are connected *to*.
- *
- * Neighbours come from `mapNeighbors`, so a connection may cross the east–west
- * seam exactly as a march may. Cities come back in `state.cities` order, which
- * is founding order, so the list is a fact about the state.
- */
-export function connectedCities(state: GameState, playerId: number): ConnectedCity[] {
-  const capital = capitalCityOf(state, playerId);
-  if (!capital) return [];
-  const { map } = state;
-
-  const cityCells = new Set<number>();
-  for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    cityCells.add(tileIndex(map, city.col, city.row));
-  }
-  const owner = tileOwnerField(state);
-
-  const start = getTileAt(map, capital.col, capital.row);
-  if (!start) return [];
-  const seen = new Uint8Array(map.tiles.length);
-  const frontier: Tile[] = [start];
-  seen[tileIndex(map, start.col, start.row)] = 1;
-  while (frontier.length > 0) {
-    const tile = frontier.pop()!;
-    for (const hex of mapNeighbors(map, tileHex(tile))) {
-      const next = getTile(map, hex);
-      if (!next) continue;
-      const index = tileIndex(map, next.col, next.row);
-      if (seen[index] === 1) continue;
-      if (!fillAdmits(map, owner, cityCells, playerId, next)) continue;
-      seen[index] = 1;
-      frontier.push(next);
-    }
-  }
-
-  const per = Math.max(1, Math.floor(TRADE.connectionPerPop));
-  const list: ConnectedCity[] = [];
-  for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    if (city.id === capital.id) continue;
-    if (seen[tileIndex(map, city.col, city.row)] !== 1) continue;
-    list.push({ city, gold: Math.floor(city.population / per) });
-  }
-  return list;
-}
-
-/** One labelled line of empire-scale gold. See `explainEmpireGold`. */
-export interface TradeGoldLine {
-  /** "City connections · 4 cities", "Unit maintenance · 7 units". */
-  source: string;
-  /** Signed: connections pay, maintenance costs. */
-  gold: number;
-}
-
-/**
- * What this empire's treasury gains and loses every turn **beyond what its
- * cities bank**, as the ordered list the figure is the fold of (rule 5).
- *
- * **Four** lines since the maintenance ruling (the user, 2026-08-28), and the
- * shape of each is a ruling of its own:
- *
- *   · **City connections**, as *one* line for the total rather than one per city
- *     ("City connections · 4 cities +11💰"). The per-city figures are still
- *     `connectedCities`' answer, for a hover that wants them — the fold is a
- *     presentation decision and the list is the truth;
- *   · **Road maintenance**, one negative line, charged only on the roads this
- *     empire's own caravans laid (`Tile.road` carries the builder's seat);
- *   · **Unit maintenance**, one negative line for the whole army, the fold of
- *     `explainUnitUpkeep` (`upkeep.ts`) which is the per-piece list a hover
- *     prints;
- *   · **Building maintenance**, the same one grade over, folding
- *     `explainBuildingUpkeep`.
- *
- * It was called `explainTradeGold` until the last two arrived — the alias is
- * gone now that the interface has caught up — and the rename is the note that
- * function carried: *"buildings and units are the obvious next
- * two, and they join this fold rather than opening a second one."* They did, and
- * once they had, "trade" was no longer the name of what this answers. The
- * function stays **here**, in `trade.ts`, because two of its four lines are
- * trade's and the module that owns a fold is the module that owns most of it;
- * `upkeep.ts` is a leaf this imports rather than a second ledger.
- *
- * Banked once per player by `collectYields`, after every city has collected —
- * the same seam `empireResourceYields` lands on, and for the same reason: none
- * of it belongs to a town. The two maintenance lines in particular are
- * deliberately **not** city yields: a garrison is not the town it is standing
- * in, and charging it there would put an army inside Entry XVII's staging, where
- * a happy empire would pay less for the same soldiers.
- *
- * The wild is charged nothing, which `explainUnitUpkeep` refuses at the seat
- * (see `seatPays`) rather than this function checking twice.
- */
-export function explainEmpireGold(state: GameState, playerId: number): TradeGoldLine[] {
-  const lines: TradeGoldLine[] = [];
-
-  const connected = connectedCities(state, playerId);
-  // **Nanaivandak's road home**, folded into the line's own figure rather than
-  // multiplied afterwards — rule 5 for a treasury, exactly as `routeYields` is
-  // rule 5 for a caravan. The flat step is *per connected city* (that is what a
-  // connection's gold is quoted in) and the share is taken of the total the flat
-  // has already reached, which is `CardEffectAmplifierEffect`'s stated order.
-  const perCity = cardAmplifierFlat(state, playerId, 'connectionYields');
-  const share = cardAmplifier(state, playerId, 'connectionYields');
-  let connectionGold = 0;
-  for (const entry of connected) connectionGold += entry.gold + perCity;
-  if (share !== 0) connectionGold = Math.floor((connectionGold * (100 + share)) / 100);
-  if (connectionGold !== 0) {
-    const count = connected.length;
-    lines.push({
-      source: `City connections · ${count} ${count === 1 ? 'city' : 'cities'}`,
-      gold: connectionGold,
-    });
-  }
-
-  const roads = roadsBuiltBy(state, playerId);
-  const per = Math.max(1, Math.floor(TRADE.roadsPerMaintenance));
-  const upkeep = Math.floor(roads / per);
-  if (upkeep > 0) {
-    lines.push({ source: `Road maintenance · ${roads} hexes`, gold: -upkeep });
-  }
-
-  // The two new lines, each a *count* and a total rather than a page of pieces —
-  // the connections line's shape exactly, and for its reason: the per-item lists
-  // are still `upkeep.ts`' answer for a hover that wants them.
-  const units = explainUnitUpkeep(state, playerId);
-  if (units.length > 0) {
-    let gold = 0;
-    for (const line of units) gold += line.gold;
-    lines.push({
-      source: `Unit maintenance · ${units.length} ${units.length === 1 ? 'unit' : 'units'}`,
-      gold: -gold,
-    });
-  }
-
-  // What the law gives back on that payroll — Tyranny's, The Standing Army's.
-  // Its **own lines**, right after the charge they reduce, so a player reads the
-  // army's price and then the reason it is lower. Positive, because the fold is
-  // signed and this one pays.
-  for (const rebate of explainUnitUpkeepRebate(state, playerId)) {
-    lines.push({ source: rebate.source, gold: rebate.gold });
-  }
-
-  const buildings = explainBuildingUpkeep(state, playerId);
-  if (buildings.length > 0) {
-    let gold = 0;
-    for (const line of buildings) gold += line.gold;
-    lines.push({
-      source:
-        `Building maintenance · ${buildings.length} ` +
-        `${buildings.length === 1 ? 'building' : 'buildings'}`,
-      gold: -gold,
-    });
-  }
-
-  return lines;
-}
-
-/** The fold of `explainEmpireGold`, and the only sum of one. */
-export function empireGold(state: GameState, playerId: number): number {
-  let total = 0;
-  for (const line of explainEmpireGold(state, playerId)) total += line.gold;
-  return total;
-}
-
 // --- plunder ----------------------------------------------------------------
 
 /** What killing a laden caravan paid, for the line the interface announces it in. */
@@ -1057,6 +602,4 @@ export function settleTraderPlunder(
   settleCultureWindfall(state, player);
   return plunder;
 }
-
-// --- the road a caravan lays ------------------------------------------------
 

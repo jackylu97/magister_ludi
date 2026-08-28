@@ -101,6 +101,7 @@ import { getTileAt, tileIndex } from './map';
 import { advanceAlongPath } from './movement';
 import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
 import {
+  type ProclamationReport,
   beliefChoiceError,
   consecrateAt,
   consecrateError,
@@ -1102,6 +1103,7 @@ export type CommandResult =
       sieges?: SiegeReport[];
       pillages?: PillageReport[];
       disbanded?: DisbandReport[];
+      proclaimed?: ProclamationReport;
     }
   | { ok: false; error: string };
 
@@ -1161,6 +1163,15 @@ export type CommandResult =
  * warrior sold for debt from a warrior killed — and the one entry in the list
  * that names something the player neither chose nor had done to them by another
  * seat, which is exactly why it has to be said out loud.
+ *
+ * `proclaimed` is the tenth and the only one that is **not** a list, which is
+ * why it is set beside this helper rather than passed through it: a proclamation
+ * is one act on one board, and a tenth positional `undefined` on every other
+ * caller would be a worse price than the two lines it saves. Two commands
+ * produce it — `proclaim`, a prophet's faith bomb, and `performRite`, the
+ * augur's Preaching — and it is `arrivals`' argument in a third currency: by the
+ * time this returns the citizens have turned and nothing on the board says which
+ * towns were spoken to (see `ProclamationReport`).
  */
 function ok(
   arrivals?: readonly ArrivalReport[],
@@ -2268,7 +2279,10 @@ function applyPerformRite(state: GameState, command: PerformRiteCommand): Comman
   // A rite's hammers may finish a wonder, and a wonder is news to every seat —
   // the gap the wonders framework left and named. Its triumphs ride out the
   // same way every other command's do, as a diff of this seat's own list.
-  return ok(undefined, undefined, done.wonders, triumphsAwarded(actor, mark));
+  const result = ok(undefined, undefined, done.wonders, triumphsAwarded(actor, mark));
+  // The Preaching's lump, on the one rite that makes one. See `CommandResult`.
+  if (result.ok && done.proclaimed) result.proclaimed = done.proclaimed;
+  return result;
 }
 
 /**
@@ -2313,7 +2327,7 @@ function applyEnhanceReligion(state: GameState, command: EnhanceReligionCommand)
   return ok();
 }
 
-/** Leaves a proclamation. See `ProclaimCommand`. */
+/** Presses a lump of faith on every town in range. See `ProclaimCommand`. */
 function applyProclaim(state: GameState, command: ProclaimCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);
   if (typeof actor === 'string') return fail(actor);
@@ -2324,8 +2338,14 @@ function applyProclaim(state: GameState, command: ProclaimCommand): CommandResul
   const problem = proclaimError(state, actor.id, command.unitId);
   if (problem) return fail(problem);
 
-  proclaimAt(state, actor, unitById(state, command.unitId)!);
-  return ok();
+  // **The bomb lands inside the command** (user, 2026-08-28), so what it
+  // converted is a difference that stops existing the moment this returns and
+  // has to be carried out. Always present on a success, even when every town in
+  // range held: "Nippur resisted" is the news a spent charge earns.
+  const done = proclaimAt(state, actor, unitById(state, command.unitId)!);
+  const result = ok();
+  if (result.ok) result.proclaimed = done;
+  return result;
 }
 
 /** Gives a pool's beliefs back and draws again. See `RedraftBeliefsCommand`. */

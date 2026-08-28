@@ -182,7 +182,7 @@ export interface Tile {
    * `pillage`, beside the road it belongs to, because a torn-up free road must
    * not leave a free mark for the next caravan to inherit.
    *
-   * It is read by exactly one thing: `roadsBuiltBy` (`trade.ts`), the count road
+   * It is read by exactly one thing: `roadsBuiltBy` (`empireGold.ts`), the count road
    * maintenance is charged on. **Nothing else may ask it.** A free road is a
    * road — `stepCost` prices it, `fillAdmits` crosses it, `roadJoins` joins it,
    * and an invader walks it — and the day a second reader appears it will be

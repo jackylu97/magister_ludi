@@ -218,8 +218,7 @@
     "templeOwnPercent": 200,
     "templeForeignPercent": 50,
     "bombRange": 10,
-    "bombStrength": 12,
-    "bombTurns": 10,
+    "bombLump": 60,
     "maxReligions": { "numerator": 2, "denominator": 3 }
   },
   "offers": {

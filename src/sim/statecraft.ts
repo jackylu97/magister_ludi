@@ -4459,8 +4459,7 @@ const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
       ? `a Temple turns away ${-delta}% more of a foreign faith`
       : `a Temple turns away ${delta}% less of a foreign faith`,
   bombRange: (delta) => `a proclamation reaches ${signed(delta)} hexes further`,
-  bombStrength: (delta) => `a proclamation spreads ${signed(delta)} faith`,
-  pulseTurns: (delta) => `a proclamation lasts ${signed(delta)} turns longer`,
+  bombLump: (delta) => `a proclamation presses ${signed(delta)} faith harder`,
   routeBothWays: (delta) =>
     delta > 0 ? 'a caravan carries your faith both ways along its route' : 'a caravan carries your faith one way',
 };

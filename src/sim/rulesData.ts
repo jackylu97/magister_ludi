@@ -279,7 +279,7 @@ export interface TradeRules {
    * turn: `floor(pop / connectionPerPop)`.
    *
    * Civ V's city connection with the capital term dropped — see
-   * `connectedCities` (`trade.ts`), which is where the flood fill lives.
+   * `connectedCities` (`empireGold.ts`), which is where the flood fill lives.
    */
   connectionPerPop: number;
   /**
@@ -994,10 +994,20 @@ export interface ReligionRules {
    */
   templeOwnPercent: number;
   templeForeignPercent: number;
-  /** A prophet's proclamation: how far it reaches, what it presses, how long it lasts. */
+  /**
+   * A prophet's proclamation: how far it reaches, and what it presses **once**.
+   *
+   * The bomb is a *lump*, not a source (user, 2026-08-28): the whole figure is
+   * banked into every town in range at the moment the prophet speaks, the
+   * temple's own resistance applied, and the phase's converter is run on the
+   * spot. So it is quoted in the same currency as `pressurePerConvert` rather
+   * than in faith-a-turn like every source above it — 60 against 10 a convert is
+   * six citizens, which is a majority in a town of eleven and half of one in a
+   * town of twelve. A temple halves it (`templeForeignPercent`), which is the
+   * one number that decides whether a bomb lands.
+   */
   bombRange: number;
-  bombStrength: number;
-  bombTurns: number;
+  bombLump: number;
   /**
    * The most religions this world will hold, as a **share of the real seats**,
    * rounded up — two integers rather than a fraction so the ceiling is exact

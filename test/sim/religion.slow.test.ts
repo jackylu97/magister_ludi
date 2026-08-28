@@ -203,8 +203,8 @@ function nearestSite(
 }
 
 describe('determinism', () => {
-  it('round-trips a schema 29 save with augurs, rites and beliefs in the log', () => {
-    expect(SCHEMA_VERSION).toBe(29);
+  it('round-trips a schema 30 save with augurs, rites and beliefs in the log', () => {
+    expect(SCHEMA_VERSION).toBe(30);
     const played = playFaithful(90);
     // The empire actually got there: an augur was bought out of faith it earned,
     // rites were performed, and a god was named. A determinism test over a log
@@ -232,7 +232,7 @@ describe('determinism', () => {
 function playTwoFaiths(maxTurns: number): {
   game: ReturnType<typeof createGame>;
   religionsFounded: number;
-  pulses: number;
+  bombs: number;
   converts: number;
 } {
   const g = createGame({
@@ -253,7 +253,7 @@ function playTwoFaiths(maxTurns: number): {
     'letters',
     'calendar',
   ];
-  let pulses = 0;
+  let bombs = 0;
 
   for (let turn = 0; turn < maxTurns; turn++) {
     for (const seat of [0, 1]) {
@@ -328,7 +328,7 @@ function playTwoFaiths(maxTurns: number): {
           continue;
         }
         if (dispatch(g, { type: 'proclaim', playerId: seat, unitId: unit.id } as Command).ok) {
-          pulses += 1;
+          bombs += 1;
           continue;
         }
         // Nowhere to plant: walk one hex and try again next turn.
@@ -385,7 +385,7 @@ function playTwoFaiths(maxTurns: number): {
   for (const city of g.state.cities) {
     for (const count of Object.values(city.followers ?? {})) converts += count ?? 0;
   }
-  return { game: g, religionsFounded: g.state.religions.length, pulses, converts };
+  return { game: g, religionsFounded: g.state.religions.length, bombs, converts };
 }
 
 describe('two faiths and a bomb', () => {
@@ -393,13 +393,13 @@ describe('two faiths and a bomb', () => {
     const played = playTwoFaiths(170);
     // eslint-disable-next-line no-console
     console.log(
-      `[religion v2] ${played.religionsFounded} religions founded, ${played.pulses} ` +
+      `[religion v2] ${played.religionsFounded} religions founded, ${played.bombs} ` +
         `proclamations made, ${played.converts} citizens converted in 170 turns`,
     );
     // The log actually contains the subsystem. A determinism test over a game
     // where nobody founded anything would be a determinism test of nothing.
     expect(played.religionsFounded).toBe(2);
-    expect(played.pulses).toBeGreaterThan(0);
+    expect(played.bombs).toBeGreaterThan(0);
     expect(played.converts).toBeGreaterThan(0);
     const replayed = replay(played.game.config, played.game.log);
     expect(snapshotState(replayed)).toEqual(snapshotState(played.game.state));
