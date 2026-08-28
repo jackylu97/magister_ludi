@@ -150,14 +150,17 @@ describe('a routed caravan’s sheet', () => {
 
   const panel = source('unitPanel.ts');
 
-  it('hides the move verbs, rather than greying them', () => {
+  it('hides the move verbs and Cancel Route, rather than greying them', () => {
     // A caravan carrying a route walks itself, so Cancel Orders would drop a
     // path the resolution writes straight back. The early return is the rule.
+    // Cancel Route joined the two after the 2026-08-28 ruling ("a routed
+    // caravan's sheet offers nothing to do"): the command is still the
+    // reducer's, but the sheet stops offering the button.
     const block = panel.slice(panel.indexOf('const route = trades(unitDef(unit.type))'));
     const actions = block.slice(0, block.indexOf('// An **idle** caravan'));
     expect(actions).toContain('Auto-resend');
-    expect(actions).toContain('Cancel Route');
     expect(actions).toMatch(/return actions;/);
+    expect(actions).not.toContain('Cancel Route');
     expect(actions).not.toContain('Cancel Orders');
     expect(actions).not.toContain('Sleep');
   });
@@ -167,8 +170,12 @@ describe('a routed caravan’s sheet', () => {
     expect(controlsSource()).toMatch(/type: 'setAutoResend',/);
   });
 
-  it('ends the route through the command, and says what it freed', () => {
-    expect(panel).toMatch(/run: onCancelRoute/);
+  it('says there is nothing to do, under the route line, once it is offered nowhere else', () => {
+    // The command is unchanged — `controls.ts` still carries `cancelRoute` and
+    // `cancelRouteOf`, reached today only from the Trade screen's own row
+    // (`tradeScreen.test.ts`) — but the sheet's reply to "what can I do with
+    // this piece" is now the one clause a player needs: nothing, and why.
+    expect(panel).toContain('Busy until the route ends.');
     const controls = controlsSource();
     expect(controls).toMatch(/type: 'cancelRoute', playerId: localPlayerId, unitId: unit\.id/);
     expect(controls).toMatch(/routeSlotsLineOf\(getGame\(\)\.state, localPlayerId\)/);

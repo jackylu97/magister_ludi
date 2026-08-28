@@ -54,7 +54,7 @@ import { unitUpkeep, unitUpkeepOf } from '../sim/upkeep';
 import type { ImprovementOption } from './controls';
 import { cityDisplayName } from './cityDisplay';
 import { describeTile, knowsCity } from './tileReadout';
-import { HAMMER, YIELD_GLYPH, signedFigure } from './figures';
+import { YIELD_GLYPH, signedFigure } from './figures';
 import { createInfoCard } from './infoCard';
 import { setDescriptorText } from './keywords';
 import type { RouteReading } from './tradeLines';
@@ -190,9 +190,18 @@ export interface UnitPanelOptions {
    * `controls.chopPreview()`. `completes` is the name of the item the timber
    * would settle on the spot (Entry XVIII), or `null` when the queue is empty,
    * unaffordable or held; it is the settlement check's own answer, never a
-   * comparison this panel makes.
+   * comparison this panel makes. `label` is `chopBaseFor`'s own words for the
+   * figure — plain when nothing is scaling it, "Forest 20 · +30% for 6
+   * technologies" once something is — and it is what the row's hover line
+   * prints instead of the bare number, so a chop that reads richer than it
+   * used to never says less than the reducer will actually pay.
    */
-  chopPreview: () => { production: number; cityName: string; completes: string | null } | null;
+  chopPreview: () => {
+    production: number;
+    cityName: string;
+    completes: string | null;
+    label: string;
+  } | null;
   /**
    * The technology a greyed Chop row is waiting on, or `null` —
    * `controls.chopTechName()`. See `ImprovementOption.requiredTechName` for
@@ -476,7 +485,6 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     routeReading,
     routeSlotsLine,
     onSetAutoResend,
-    onCancelRoute,
     onOpenTrade,
     onClose,
   } = options;
@@ -596,7 +604,16 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // the rules do not give — the opposite of the greyed-Fortify reading, and
     // for the opposite reason: those verbs are not *momentarily* unavailable,
     // they have stopped applying to this piece for as long as it is carrying a
-    // route. The two verbs that *are* about the route stand alone.
+    // route.
+    //
+    // **Cancel Route is gone too** (ruling, 2026-08-28: "a routed caravan's
+    // sheet offers nothing to do"). The command still exists in the reducer —
+    // nothing about `cancelRoute` changed — but the sheet stopped offering the
+    // button: a piece with a route has nothing left to be told, and the one
+    // fact left to say about it is said as a note under the route line
+    // (`render`, below), not as a verb here. `onCancelRoute` stays on
+    // `UnitPanelOptions` unread by this file, because `main.ts` still wires it
+    // and dropping the field would be a change to a file outside this fence.
     const route = trades(unitDef(unit.type)) ? routeReading() : null;
     if (route) {
       actions.push({
@@ -607,15 +624,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
           : 'Start a fresh route automatically when this one lapses',
         run: () => onSetAutoResend(!route.autoResend),
       });
-      actions.push({
-        label: 'Cancel Route',
-        blocked: null,
-        // The reason anybody presses it, said in the figure it frees.
-        hint: `End the route now and free the slot · ${routeSlotsLine()}`,
-        run: onCancelRoute,
-      });
       // The one thing this sheet cannot say: what the *rest* of the empire's
-      // caravans are doing. One row out to the screen that can.
+      // caravans are doing. One row out to the screen that can — a link to a
+      // screen, not a thing done to this piece, so it survives the "nothing to
+      // do" ruling.
       if (onOpenTrade) {
         actions.push({
           label: 'All routes',
@@ -782,9 +794,12 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         // The completion rides on the end of the hint when there is one, because
         // "this chop finishes the granary" is a different decision from "this
         // chop pays twenty hammers" — it is the argument, and it is why the
-        // clause is loud (`!`) rather than parenthetical.
+        // clause is loud (`!`) rather than parenthetical. `chop.label` carries
+        // the figure now, in `chopBaseFor`'s own words, so a tech-scaled chop
+        // says *why* it pays more than the roster's raw number rather than
+        // only quoting the folded total.
         hint: chop
-          ? `Spend a charge: clear this tile · +${chop.production}${HAMMER} → ${chop.cityName}` +
+          ? `Spend a charge: clear this tile · ${chop.label} → ${chop.cityName}` +
             (chop.completes ? ` · completes ${chop.completes}!` : '')
           : 'Spend a charge: clear the feature on this tile',
         title: techHoverTitle(chopTechName(), chopBlocked ?? null),
@@ -1043,6 +1058,21 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     return card;
   }
 
+  /**
+   * The generic hover card for a greyed row with no richer card of its own —
+   * `renderActions`' fallback. A rite's or a proclaim's card already folds its
+   * `blocked` line in at the end (`riteCard`, `prophetCard`), so this is never
+   * layered on top of one of those; it is what every plainer verb — an
+   * improvement, the axe, Consecrate, a great person's Act or Work, Pillage,
+   * Cancel Orders — raises once refused.
+   */
+  function refusalCard(text: string): Node {
+    const card = element('div', 'unit-card');
+    card.append(element('h4', 'unit-card-title', 'Why not'));
+    card.append(element('p', 'unit-card-blocked', text));
+    return card;
+  }
+
   function renderActions(unit: Unit): HTMLElement {
     const box = element('div', 'unit-actions');
     box.append(element('h3', undefined, 'Actions'));
@@ -1056,29 +1086,28 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       const button = element('button', 'btn btn-second unit-action');
       button.type = 'button';
       button.disabled = action.blocked !== null;
-      button.title = action.title ?? action.blocked ?? action.hint;
       const label = element('span', 'unit-action-label');
       if (typeof action.label === 'string') label.textContent = action.label;
       else label.append(action.label);
       button.append(label);
       if (action.note) button.append(element('span', 'unit-action-note', action.note));
       if (action.key) button.append(element('kbd', 'unit-action-key', action.key));
-      // The rows that carry a paragraph raise the card; the rest keep their
-      // one-line `title`. Bound after the label so the anchor is the whole
-      // button, which is what `placeCard` measures against.
-      if (action.card) info.bind(button, action.card);
+      // The hover, in one of two instruments and never both (ruling,
+      // 2026-08-28: "a refusal should appear only on hover, and in a custom
+      // hover card" — not the native `title`, which arrives a second late and
+      // cannot rule a clause list, and not the paragraph this sheet used to
+      // print under a greyed row). A blocked row always raises a card — its
+      // own, if it has one, `refusalCard` otherwise — and carries no `title`
+      // to double it. A live row is untouched: whatever `title` or `card` it
+      // already had, it keeps.
+      if (action.blocked !== null) {
+        info.bind(button, action.card ?? (() => refusalCard(action.blocked!)));
+      } else {
+        if (action.card) info.bind(button, action.card);
+        button.title = action.title ?? action.hint;
+      }
       button.addEventListener('click', action.run);
       box.append(button);
-      // The refusal, printed rather than only worn as a hover: a bought
-      // prophet standing on a city centre found Plant Holy Site greyed with
-      // nothing to read but a `title` a pointer has to sit still for (user,
-      // 2026-08-28). Every greyed row gets its sentence here, in the
-      // reducer's own words — the same text `button.title` already carries,
-      // now also standing on the sheet where a glance meets it. Absent from a
-      // live row on purpose: a pressable button has nothing to explain.
-      if (action.blocked !== null) {
-        box.append(element('p', 'unit-action-blocked', action.blocked));
-      }
     }
     return box;
   }
@@ -1251,6 +1280,11 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       setYieldText(line, route.line);
       if (route.lines.length > 0) info.bind(line, () => routeCard(route));
       container.append(line);
+      // The one sentence left to say about a routed caravan (ruling,
+      // 2026-08-28): there is nothing to do here, and this is why — the piece
+      // is spoken for until the route lapses or is cancelled from the Trade
+      // screen's own row.
+      container.append(element('p', 'unit-note', 'Busy until the route ends.'));
     }
 
     const orders = unit.path;

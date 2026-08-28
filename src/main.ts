@@ -100,6 +100,7 @@ import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import {
   type GameControls,
   type NoticeKind,
+  cityPhaseLine,
   createGameControls,
   showsSeatStrip,
   wantsNativeContextMenu,
@@ -1050,6 +1051,22 @@ function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>)
       ? `Shoot ${preview.defenderName}`
       : `Attack ${preview.defenderName}`;
   combatForecastEl.append(head);
+
+  /**
+   * The siege beat this blow is, one sentence, present only when the targeted
+   * hex holds a foreign city (`CombatForecast.cityPhase` — walls, then the
+   * garrison, then a melee capture; user ruling, 2026-08-28). `cityPhaseLine`
+   * (`controls.ts`) is the sentence itself — a pure formatter, tested on a
+   * fixture rather than through this DOM card — so this file only prints
+   * whatever it returns and never switches on the phase a second time.
+   */
+  const phaseLine = cityPhaseLine(preview.cityPhase);
+  if (phaseLine !== null) {
+    const phase = document.createElement('p');
+    phase.className = 'combat-phase';
+    phase.textContent = phaseLine;
+    combatForecastEl.append(phase);
+  }
 
   /**
    * The two effective strengths, as the card's **headline** (user, 2026-08-26:

@@ -27,7 +27,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { foundCityAt } from '../../src/sim/cities';
-import type { PillageReport } from '../../src/sim/improvements';
+import { type PillageReport, chopBaseFor } from '../../src/sim/improvements';
 import { createMap } from '../../src/sim/map';
 import { type GameState, newGame } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -35,6 +35,7 @@ import { at } from '../sim/improvementHelpers';
 import { cityDisplayName } from '../../src/ui/cityDisplay';
 import { type LensMode } from '../../src/ui/mapView';
 import {
+  cityPhaseLine,
   lensForDigit,
   lensShowsYields,
   pillageSentence,
@@ -358,5 +359,78 @@ describe('pillage news in the commit funnel', () => {
     expect(SOURCE).toMatch(/reportPillages\(result\);/);
     expect(SOURCE).toMatch(/report\.fromOwnerId !== localPlayerId/);
     expect(SOURCE).toMatch(/pillageVictimSentence\(state, report\)/);
+  });
+});
+
+/**
+ * The three siege-beat sentences the combat forecast card prints
+ * (`main.ts`'s `showCombatForecast`), off a fixture shaped like the field the
+ * card actually reads — `CombatForecast.cityPhase` — rather than a whole
+ * `previewCombat` result, since the phase alone is all the sentence is a
+ * function of (ruling, 2026-08-28).
+ */
+describe('cityPhaseLine', () => {
+  it('says the three siege beats in the user’s own wording', () => {
+    const fixtures: { cityPhase: 'walls' | 'garrison' | 'capture'; line: string }[] = [
+      { cityPhase: 'walls', line: 'Beats the walls down — the garrison holds' },
+      { cityPhase: 'garrison', line: 'The walls are down — attacking the garrison' },
+      { cityPhase: 'capture', line: 'Captures the city' },
+    ];
+    for (const fixture of fixtures) {
+      expect(cityPhaseLine(fixture.cityPhase)).toBe(fixture.line);
+    }
+  });
+
+  it('is null for a fight on open ground, where the field is undefined', () => {
+    expect(cityPhaseLine(undefined)).toBeNull();
+  });
+});
+
+/**
+ * The chop preview's figure is `chopBaseFor`'s, never the raw table lookup
+ * (ruling, 2026-08-28: the chop now scales with the chopping empire's
+ * technologies). `controls.ts`'s `chopPreview` and `improvements.ts`'s
+ * `chopFeatureAt` — the actual payout — must read the same function or a
+ * preview and a completed chop can quote different numbers; this pins the
+ * wiring (no jsdom to build a `GameControls` and press the button with) and,
+ * beside it, the arithmetic itself off the same fixture shape
+ * `improvements.test.ts` uses, so this file's claim that they *agree* is
+ * more than a name match.
+ */
+describe('chopPreview reads chopBaseFor, not the unscaled table figure', () => {
+  const SOURCE = (
+    import.meta.glob('../../src/ui/controls.ts', {
+      eager: true,
+      query: '?raw',
+      import: 'default',
+    }) as Record<string, string>
+  )['../../src/ui/controls.ts'];
+  const body = SOURCE.slice(
+    SOURCE.indexOf('function chopPreview('),
+    SOURCE.indexOf('function chopTechName('),
+  );
+
+  it('computes production and label off chopBaseFor(state, unit.ownerId, tile.feature)', () => {
+    expect(body).toContain(
+      'const base = chopBaseFor(state, unit.ownerId, tile.feature);',
+    );
+    expect(body).toContain('const production = base.production;');
+    expect(body).toContain('label: base.label,');
+    // The unscaled lookup is gone from this function entirely — a stray
+    // `chopYield(...)` call here would be the old bug creeping back.
+    expect(body).not.toContain('chopYield(');
+  });
+
+  it("the figure it would show is exactly chopBaseFor's, at a tech count that actually scales it", () => {
+    const state = raidState();
+    const forestTechs = ['mining', 'bronzeWorking', 'ironWorking', 'construction'] as const;
+    state.players[0]!.techsResearched = [...forestTechs];
+    const base = chopBaseFor(state, 0, 'forest');
+    // What `chopPreview` would return for this player and this feature is, by
+    // construction (the source pin above), exactly this call — so pinning the
+    // scaled figure here pins the preview's figure too.
+    expect(base.production).toBeGreaterThan(0);
+    expect(base.label).toContain('Forest');
+    expect(base.label).toContain(`${forestTechs.length} technologies`);
   });
 });

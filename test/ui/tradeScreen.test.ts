@@ -655,6 +655,25 @@ describe('the screen’s four doors and its one camera', () => {
   });
 
   /**
+   * The 2026-08-28 ruling on the Start button: once the route is under way the
+   * caravan has nothing left to be told (`unitPanel.ts`'s "Busy until the route
+   * ends."), so it is deselected entirely rather than left standing selected
+   * behind a pan to its new hex. `startRouteFrom` is the one function this
+   * reaches through — the Trade screen's Start button is its only caller
+   * (`options.startRoute`, wired from `main.ts` above) — so clearing the
+   * selection there covers the whole path.
+   */
+  it('deselects the caravan once its route is under way', () => {
+    const controls = source('controls.ts');
+    const fn = controls.slice(controls.indexOf('function startRouteFrom('));
+    const body = fn.slice(0, fn.indexOf('\n  }\n'));
+    expect(body).toContain('clearSelection()');
+    // Not the ordinary `onUpdate(selectedUnit(), …)` tail every other by-id
+    // verb ends on — that would leave the piece selected.
+    expect(body).not.toContain('onUpdate(selectedUnit()');
+  });
+
+  /**
    * The removals, pinned so they cannot creep back: send mode was a board-wide
    * armed gesture with a cursor, a notice, an Escape arm and a plate supplier,
    * and the ruling deleted all of it.

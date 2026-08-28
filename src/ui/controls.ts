@@ -174,6 +174,7 @@ import {
 } from '../sim/cities';
 import { buildingDef } from '../sim/buildingData';
 import {
+  type CityAttackPhase,
   type CombatPreview,
   type SiegeReport,
   attackTargetAt,
@@ -205,11 +206,11 @@ import {
   IMPROVEMENT_IDS,
   type ImprovementId,
   chopDef,
-  chopYield,
   improvementDef,
 } from '../sim/improvementData';
 import {
   type PillageReport,
+  chopBaseFor,
   chopCity,
   chopError,
   chopTechError,
@@ -946,6 +947,31 @@ export function wantsNativeContextMenu(target: ContextMenuTarget | null): boolea
 }
 
 /**
+ * The siege beat a forecast's `cityPhase` names, in the one sentence the
+ * combat card prints for it (user ruling, 2026-08-28: "when a unit attacks a
+ * city, the damage should apply to the city first; only then does the enemy
+ * damage the unit inside"). `null` for a fight on open ground, where the field
+ * itself is `undefined` — every other forecast sentence in this module reads
+ * that way too (`pillagedThing`'s `null`, not a fourth branch).
+ *
+ * A pure formatter over the phase alone, on the same shape as `pillageSentence`
+ * and its neighbours: `main.ts` reads `preview.cityPhase` and prints whatever
+ * comes back, never switching on the phase itself a second time.
+ */
+export function cityPhaseLine(cityPhase: CityAttackPhase | undefined): string | null {
+  switch (cityPhase) {
+    case 'walls':
+      return 'Beats the walls down — the garrison holds';
+    case 'garrison':
+      return 'The walls are down — attacking the garrison';
+    case 'capture':
+      return 'Captures the city';
+    default:
+      return null;
+  }
+}
+
+/**
  * What a raid took, named the way both the raider's own line and the
  * victim's toast quote it — a farm-and-road raid reads as one subject in
  * both rather than two clauses about the same hex.
@@ -1510,7 +1536,12 @@ export interface GameControls {
    * chop would leave — so the sheet's "completes Granary!" is a promise made by
    * the function that will keep it a moment later.
    */
-  chopPreview(): { production: number; cityName: string; completes: string | null } | null;
+  chopPreview(): {
+    production: number;
+    cityName: string;
+    completes: string | null;
+    label: string;
+  } | null;
   /**
    * The technology Chop is waiting on, or `null` — either because it is not
    * blocked at all, or because whatever is blocking it is not the tree (the
@@ -2548,6 +2579,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * The announcement is read *after* the command, off the route the reducer just
    * wrote — the sheet's own line, so the toast and the panel say one sentence —
    * and it is anchored at the piece's new hex, which is the origin.
+   *
+   * **Deselects the caravan** (ruling, 2026-08-28): once the route is under way
+   * there is nothing left for the piece's sheet to offer — a routed caravan's
+   * sheet is its route and nothing else (`unitPanel.ts`), and even that has no
+   * verb left on it — so leaving the piece selected would be a sheet sitting
+   * open for nothing. `clearSelection` does the refresh and the `onUpdate`
+   * both, so this is the function's own last act rather than a second one
+   * layered on top of it.
    */
   function startRouteFrom(unitId: number, fromCityId: number, toCityId: number): void {
     const { state } = getGame();
@@ -2575,8 +2614,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       announce(`✦ ${reading.line}`, { cell: { col: unit.col, row: unit.row } });
     }
     renderer.invalidate();
-    refreshOverlays();
-    onUpdate(selectedUnit(), renderer.getHover());
+    clearSelection();
   }
 
   /** The selected caravan's live route, as the sheet reads it. */
@@ -4041,9 +4079,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * — the name of the thing it would finish.
    *
    * Every part comes from the simulation's own tables and evaluators —
-   * `chopYield` for the payout, `chopCity` for the city the hammers land in,
+   * `chopBaseFor` for the payout, `chopCity` for the city the hammers land in,
    * `productionSettledBy` for the completion — so the preview cannot promise a
    * number, a destination or a granary the reducer will disagree with.
+   * `chopBaseFor` rather than the bare `chopYield` (2026-08-28): the chop now
+   * scales with the chopping empire's technologies, and it is the same
+   * function `chopFeatureAt` prices the real payout with, so a preview and a
+   * completed chop can never quote different numbers. Its `label` — "Forest
+   * 20" plain, or "Forest 20 · +30% for 6 technologies" once something is
+   * scaling it — is carried through as this preview's own `label` for
+   * whichever hover line wants the scaling spelled out rather than just the
+   * folded figure.
    * `productionSettledBy` is the settlement check itself asked of the basket the
    * chop *would* leave (Entry XVIII), never a comparison done here: a second
    * arithmetic would be the first thing to forget that a settler has a minimum
@@ -4057,6 +4103,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     production: number;
     cityName: string;
     completes: string | null;
+    label: string;
   } | null {
     const unit = selectedUnit();
     if (!unit || !isBuilder(unit)) return null;
@@ -4065,10 +4112,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!tile || chopDef(tile.feature) === null) return null;
     const city = chopCity(state, tile);
     if (!city || city.ownerId !== unit.ownerId) return null;
-    const production = chopYield(tile.feature).production;
+    const base = chopBaseFor(state, unit.ownerId, tile.feature);
+    const production = base.production;
     return {
       production,
       cityName: city.name,
+      label: base.label,
       completes: productionSettledBy(state, city, production),
     };
   }

@@ -262,14 +262,14 @@ describe('the worker offers every improvement the table names', () => {
 });
 
 /**
- * A greyed row's refusal, printed under it (playtest, 2026-08-28: "I have my
- * first prophet and I can't create a religion with it" — a bought prophet
- * stands on the city centre, `improvementErrorAt` refuses it, and the reason
- * lived only in a `title` hover nobody held a pointer still for). Every row's
- * `blocked` sentence already rides the button's `title`; this is the same
- * text, printed a second time where a glance meets it, so it applies to every
- * verb on the sheet at once — the prophet's four rows and the augur's rites
- * included, without either needing a markup of its own.
+ * A greyed row's refusal, on a hover card rather than a printed line or a
+ * native `title` (playtest, 2026-08-28: "I have my first prophet and I can't
+ * create a religion with it" first put the sentence on the sheet; a second
+ * ruling the same day moved it off the sheet and off the native tooltip
+ * entirely — "a refusal should appear only on hover, and in a custom hover
+ * card"). It applies to every verb on the sheet at once — the prophet's four
+ * rows and the augur's rites included — through the one fallback,
+ * `refusalCard`, that a row without a richer card of its own raises.
  */
 describe('a greyed row’s refusal', () => {
   const panel = source('unitPanel.ts');
@@ -278,20 +278,33 @@ describe('a greyed row’s refusal', () => {
     panel.indexOf('function render(): void {'),
   );
 
-  it('is printed under the row when the row is blocked', () => {
-    expect(body).toContain("box.append(element('p', 'unit-action-blocked', action.blocked));");
+  it('raises a card rather than a printed line, and carries no title', () => {
+    expect(body).toContain(
+      'info.bind(button, action.card ?? (() => refusalCard(action.blocked!)));',
+    );
+    expect(body).not.toContain('unit-action-blocked');
+    // The one `title` assignment left lives in the *live* branch only.
+    expect(body).toContain('button.title = action.title ?? action.hint;');
+  });
+
+  it('is gated on the same field that disables the button', () => {
+    expect(body).toContain('button.disabled = action.blocked !== null;');
     expect(body).toContain('if (action.blocked !== null) {');
   });
 
-  it('is absent from a live row — gated on the same field that disables the button', () => {
-    // The line and the disabled state are one `if`, not two conditions that
-    // could drift: a pressable button prints no caption under it, and a
-    // greyed one always does.
-    expect(body).toContain('button.disabled = action.blocked !== null;');
-    expect(body.match(/action\.blocked !== null/g)?.length).toBe(2);
+  it("falls back to the sim's own sentence, in the card's usual voice", () => {
+    const card = panel.slice(
+      panel.indexOf('function refusalCard('),
+      panel.indexOf('function renderActions('),
+    );
+    expect(card).toContain("element('h4', 'unit-card-title', 'Why not')");
+    expect(card).toContain("element('p', 'unit-card-blocked', text)");
   });
 
-  it('keeps the hover too — the printed line is additional, not a replacement', () => {
-    expect(body).toContain('button.title = action.title ?? action.blocked ?? action.hint;');
+  it("a row rich enough for its own card — a rite — folds the refusal into it, not a second card", () => {
+    expect(panel).toContain('if (rite.blocked !== null) card.append');
+    // `renderActions` prefers `action.card` over the fallback exactly when one
+    // exists, so a rite's card is never wrapped in `refusalCard` too.
+    expect(body).toContain('action.card ??');
   });
 });
