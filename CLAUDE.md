@@ -332,10 +332,11 @@ would change every seeded outcome. No further rename passes.
   that improvement's tech. All derived, no flags. Ledgers label which ("Gems · mine" vs
   "Gems · city"); holding both ways is still one holding.
 - A unit changes hands in exactly one place: `captureUnit` (`state.ts`, beside `createUnit`
-  and `removeUnit`). Three occasions reach it — a melee blow on a lone civilian, `arriveOnTile`, which hands
-  over **every foreign civilian on a hex somebody comes to rest on**, and (2026-08-28) a
-  barbarian killed under Wolf-Mother's Pact, captured at 1 hp instead of removed — a capture,
-  not a kill, so no kill rider fires (a melee winner may advance onto a tile whose survivors are all civilians). Any
+  and `removeUnit`). Two occasions reach it — `arriveOnTile`, which hands over **every foreign civilian on a hex
+  somebody comes to rest on** (a melee blow on a hex holding only civilians is an *advance*
+  now, 2026-08-28, so the capture is the arrival's and `applyCombat` changes no owner of its
+  own), and a barbarian killed under Wolf-Mother's Pact, captured at 1 hp instead of removed —
+  a capture, not a kill, so no kill rider fires (a melee winner may advance onto a tile whose survivors are all civilians). Any
   new way to put a unit on a hex inherits that, and must not write `ownerId` itself.
   Barbarian *intent* is the mirror rule: roles are derived from the board every turn
   (`barbarianRoles`) and never stored — do not add a `role` field to `Unit`.

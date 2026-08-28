@@ -664,13 +664,25 @@ describe('clearing a camp', () => {
     expect(barbarianPlayer(state)!.gold).toBe(0);
   });
 
-  it('is cleared by a melee winner advancing onto it', () => {
+  it('is cleared by a melee winner advancing onto it — a civilian on it included', () => {
+    /**
+     * The whole of the user's ruling of 2026-08-28 in one command: "ensure that
+     * when this happens on a barbarian camp, the camp is also properly cleared".
+     *
+     * A lone worker parked on a camp used to be the case that fell between two
+     * rules — the blow captured it in place, so nobody ever arrived on the hex
+     * and the camp stood with a laborer of yours sitting on it. Now the blow *is*
+     * the arrival, and one `arriveOnTile` does all four things: the camp goes,
+     * the bounty is paid, the prisoner changes hands, and the news comes back on
+     * the same `CommandResult`.
+     */
     const state = wildState();
     foundCityAt(state, 0, at(state, 5, 5));
     state.camps.push({ col: 9, row: 5, foundedTurn: 1 });
     const defender = createUnit(state, wildId(state), 'worker', 9, 5);
     const attacker = createUnit(state, 0, 'warrior', 8, 5);
     recomputeAllVisibility(state);
+    const goldBefore = playerById(state, 0)!.gold;
 
     const result = applyCommand(state, {
       type: 'attack',
@@ -679,14 +691,20 @@ describe('clearing a camp', () => {
       target: { col: 9, row: 5 },
     });
     expect(result.ok).toBe(true);
-    // A civilian is captured and the tile is *not* emptied, so the attacker does
-    // not advance and the camp stands — which is the targeting rule, not a bug.
-    // What is asserted is the pairing: camp cleared exactly when it advanced.
+
     const advanced = state.units.find((unit) => unit.id === attacker.id)!;
-    const stormed = advanced.col === 9 && advanced.row === 5;
-    expect(hasCampAt(state, 9, 5)).toBe(!stormed);
-    expect(campAt(state, 9, 5) === null).toBe(stormed);
-    void defender;
+    expect({ col: advanced.col, row: advanced.row }).toEqual({ col: 9, row: 5 });
+    expect(hasCampAt(state, 9, 5)).toBe(false);
+    expect(campAt(state, 9, 5)).toBeNull();
+    expect(playerById(state, 0)!.gold).toBe(goldBefore + BARB.campClearGold);
+    expect(state.units.find((unit) => unit.id === defender.id)!.ownerId).toBe(0);
+
+    // One result, four facts. The bounty and the prisoner ride the same arrival.
+    const arrival = result.ok ? result.arrivals?.[0] : undefined;
+    expect(arrival?.camp?.gold).toBe(BARB.campClearGold);
+    expect(arrival?.captured).toEqual([
+      { id: defender.id, type: 'worker', fromOwnerId: wildId(state), fromWild: true },
+    ]);
   });
 });
 
@@ -855,6 +873,14 @@ describe('stealing', () => {
     expect(taken.hp).toBe(unitDef('worker').maxHp);
     expect({ col: taken.col, row: taken.row }).toEqual({ col: 9, row: 8 });
     expect(taken.movesLeft).toBe(0);
+    // And the thief is *standing on it* (user, 2026-08-28): theft is still not a
+    // mechanism of its own, so it inherited the advance the moment a capture
+    // became one. The escort role reads geometry, and this is the strongest
+    // station geometry allows.
+    const thief = state.units.find(
+      (unit) => unit.ownerId === wild && unitDef(unit.type).category === 'military',
+    )!;
+    expect({ col: thief.col, row: thief.row }).toEqual({ col: 9, row: 8 });
     // And it keeps what it is: a captured worker is still a worker with its
     // charges (M7), not a fresh one.
     expect(taken.chargesLeft).toBe(unitDef('worker').charges);
@@ -989,9 +1015,11 @@ describe('rescue', () => {
     });
     expect(result.ok).toBe(true);
     expect(state.units.find((unit) => unit.id === cargo.id)!.ownerId).toBe(0);
-    // Nothing was emptied, so nobody advanced and the camp still stands: the
-    // rescue and the bounty are two separate acts.
-    expect(hasCampAt(state, 9, 5)).toBe(true);
+    // The rescue *is* an advance (user, 2026-08-28), so the rescuer is standing
+    // on the camp and the camp is gone with it. Two acts that used to be
+    // separable are one arrival, which is the point of the ruling.
+    expect({ col: rescuer.col, row: rescuer.row }).toEqual({ col: 9, row: 5 });
+    expect(hasCampAt(state, 9, 5)).toBe(false);
   });
 
   it('frees the laborers on a camp that is stormed, and says so', () => {

@@ -1892,6 +1892,8 @@ describe('escalating settler cost', () => {
     expect(`${settler.col},${settler.row}`).not.toBe('8,5');
 
     // Player 0 walks in and takes it. The unit changes hands; the bill does not.
+    // The taking is an *advance* (user, 2026-08-28), so the result carries the
+    // arrival that handed the settler over — `ok`, with news.
     const raider = createUnit(state, 0, 'warrior', settler.col + 1, settler.row);
     expect(
       applyCommand(state, {
@@ -1899,8 +1901,8 @@ describe('escalating settler cost', () => {
         playerId: 0,
         unitId: raider.id,
         target: { col: settler.col, row: settler.row },
-      } as Command),
-    ).toEqual({ ok: true });
+      } as Command).ok,
+    ).toBe(true);
     expect(settler.ownerId).toBe(0);
     expect(state.players[0]!.settlersBuilt).toBe(0);
     expect(state.players[1]!.settlersBuilt).toBe(1);

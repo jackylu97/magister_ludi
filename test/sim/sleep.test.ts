@@ -362,12 +362,16 @@ describe('an order is a waking', () => {
     const worker = createUnit(state, 0, 'worker', 5, 5);
     applyCommand(state, sleep(worker.id));
     const raider = createUnit(state, 1, 'warrior', 6, 5);
+    // The blow *is* the step onto the worker's hex (user, 2026-08-28), so the
+    // hand-over is reported by the arrival — `ok` with an `arrivals` list rather
+    // than a bare `ok`. What is under test here is unchanged: the sleep was the
+    // old owner's decision and `captureUnit` ends it.
     expect(applyCommand(state, {
       type: 'attack',
       playerId: 1,
       unitId: raider.id,
       target: { col: 5, row: 5 },
-    })).toEqual({ ok: true });
+    }).ok).toBe(true);
     expect(worker.ownerId).toBe(1);
     expect(worker.sleeping).toBeUndefined();
   });

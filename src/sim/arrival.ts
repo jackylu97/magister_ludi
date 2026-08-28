@@ -12,7 +12,10 @@
  * exactly two ways to happen — an ordinary march (`advanceAlongPath` in
  * `movement.ts`, which is itself the one implementation of a walk, whether the
  * order was fresh or resumed by `resetMovement`) and the advance a melee attacker
- * makes into the tile it emptied (`applyCombat` in `combat.ts`).
+ * makes into the tile it took (`applyCombat` in `combat.ts`) — whether it took
+ * that tile by emptying it or by there having been nothing on it that could
+ * swing back (user, 2026-08-28: a blow on a lone civilian *is* the step onto its
+ * hex, so the capture below is the whole of it).
  *
  * That is two call sites for two rules, which is four places to forget. This is
  * the one place instead, and it is the same argument `breakFortify` makes from
@@ -188,11 +191,21 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
    * Second of the three, and it is the *rule about the hex* rather than a rule
    * about fighting, which is why it is here and not in `applyCombat`: the only
    * way to arrive on a hex somebody else's civilian is standing on is to have
-   * killed whatever was guarding it (`canAdvanceOnto` in `combat.ts` — an
-   * ordinary march is refused by `canTransit` and always was), so this fires on
-   * the advance and nowhere else. Written as "any foreign civilian here" rather
-   * than as a combat outcome so it cannot be true of one arrival and false of
+   * attacked it — either killing whatever was guarding it, or finding nothing
+   * there that could swing back (`canAdvanceOnto` in `combat.ts` — an ordinary
+   * march is refused by `canTransit` and always was), so this fires on the
+   * advance and nowhere else. Written as "any foreign civilian here" rather than
+   * as a combat outcome so it cannot be true of one arrival and false of
    * another.
+   *
+   * **This is now the whole of "a warrior captures a settler"** (user,
+   * 2026-08-28). `applyCombat` used to hand a lone civilian over in place and
+   * stand still; it does not any more, so a melee blow on an unguarded worker
+   * reaches this loop exactly as the blow that killed its escort does. The
+   * mechanism gained nothing, which is the point: the reason storming a camp
+   * with a prisoner parked on it frees the prisoner *and* burns the camp *and*
+   * pays the bounty in one command is that all three were always this function,
+   * and the taking of the worker has simply come home to it.
    *
    * Placed **after** the camp is burnt out and before the site is searched,
    * which is the same order `arriveOnTile` has always resolved in and reads as

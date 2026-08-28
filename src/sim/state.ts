@@ -2135,7 +2135,7 @@ export function wakeUnit(unit: Unit): boolean {
  *
  * The three occasions, all of them this function:
  *
- *   1. a melee attack on a lone civilian (`applyCombat` — the rule players have
+ *   1. a melee blow that takes a hex holding only civilians — resolved as an advance, so the hand-over is `arriveOnTile`'s (`applyCombat` — the rule players have
  *      always had, and the rule a barbarian thief steals by, unchanged);
  *   2. the ground under a civilian being taken — a melee winner advancing onto
  *      the hex its kill emptied (`arriveOnTile`);

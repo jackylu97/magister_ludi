@@ -99,6 +99,21 @@
  * counter-damage, no advance, and a city floors at 1 hit point, which is the Civ
  * rule that stops archers taking capitals on their own.
  *
+ * **A blow on a lone civilian is that same advance with nothing to kill first**
+ * (user, 2026-08-28: "when a unit attacks a civilian unit, it should move onto
+ * the tile the civilian is on and take control of the unit"). There is no
+ * capture-in-place any more and this module performs no change of hands for it:
+ * the attack spends the attacker's turn, the attacker *steps onto the hex*, and
+ * `arriveOnTile` hands over everything standing there — which is what makes
+ * riding down the worker parked on a barbarian camp clear the camp, pay the
+ * bounty and take the worker in one command. The two halves of "taking a
+ * civilian" are therefore one half: the ground. See `capturesUnit` in
+ * `planCombat`, which for that reason asks `canAdvanceOnto` *before* it promises
+ * a capture — a civilian on ground the attacker could never stand on (an
+ * embarked worker on the coast) is ridden down like anything else, because a
+ * capture that could not be walked into would be a capture with nowhere to
+ * happen.
+ *
  * No mutual death
  * ---------------
  * A melee exchange that would empty *both* hit-point bars kills the **defender**
@@ -365,13 +380,20 @@ export function attackTargetAt(
 }
 
 /**
- * May a melee winner step onto the hex it just emptied?
+ * May a melee attacker step onto the hex it just took?
  *
  * `canStopOn` with exactly one clause changed, and the change is the rule: an
  * ordinary march may not end on a tile holding *any* foreign unit, while an
  * attack that has killed the last thing able to swing back may end on a tile
  * still holding the enemy's **civilians**. Taking the ground takes the people
  * standing on it (`arriveOnTile`, which is where the transfer itself happens).
+ *
+ * Asked **twice**, and the second reading is the 2026-08-28 ruling: it is also
+ * what `planCombat` asks before it calls a blow a capture, because a blow on a
+ * lone civilian *is* this step (module docblock). Two questions of one function
+ * rather than a capture rule with a movement rule bolted beside it — and the
+ * answer cannot drift between the forecast and the resolution, since nothing on
+ * the hex changes in between when there was nothing there to kill.
  *
  * This is Civ V's rule and it is here for two reasons beyond fidelity. It makes
  * "kill the escort, take the worker" one act rather than two turns of hitting an
@@ -1105,12 +1127,26 @@ function planCombat(
     trades(unitDef(target.unit.type)) &&
     target.unit.trade !== undefined;
 
+  /**
+   * **A capture is an advance** (user, 2026-08-28), so it is refused wherever an
+   * advance would be.
+   *
+   * `canAdvanceOnto` is the last clause rather than a separate gate in
+   * `applyCombat` because the forecast has to tell the truth: a warrior facing an
+   * embarked worker across a coastline is shown a *fight*, not a taking, and the
+   * reducer then deals the damage the card promised. Every other case answers
+   * yes trivially — a hex holding only foreign civilians has room for a soldier
+   * by construction (the cap is counted across owners, so the civilian slot the
+   * prisoner occupies is the same slot it occupies once it is yours) — which is
+   * why this reads as a clause and not as a new branch.
+   */
   const capturesUnit =
     kind === 'melee' &&
     target.unit !== null &&
     isCivilian(unitDef(target.unit.type)) &&
     COMBAT.captureCivilians &&
-    !plundersUnit;
+    !plundersUnit &&
+    canAdvanceOnto(state, attacker, tile);
 
   // A city under bombardment is softened, never taken: the Civ rule that keeps
   // archers out of the capital-capturing business.
@@ -1356,13 +1392,17 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       vsBarbarians: playerById(state, fromOwnerId)?.barbarian === true,
     });
     payBattleRiders(state, fromOwnerId, 'death', tile);
-  } else if (forecast.capturesUnit) {
-    // The one implementation of a change of hands (`state.ts`), which the wild's
-    // thieves steal by and a rescuing empire takes back by — the same three
-    // lines, whoever is holding the spear. See `captureUnit`.
-    captureUnit(state, target.unit!, attacker.ownerId);
-    outcome.capturedUnitId = target.unit!.id;
-  } else {
+  } else if (!forecast.capturesUnit) {
+    /**
+     * Everything below is the *fight*, and a capture is not one.
+     *
+     * There is deliberately no arm of this branch for `capturesUnit`: taking a
+     * civilian strikes no blow, throws no die, hurts nobody and changes no
+     * owner *here* — it happens entirely in step 5, as the advance onto the hex,
+     * because that is the one place the ground and the people standing on it
+     * change hands together (`arriveOnTile`). Written as "not a capture" rather
+     * than as an empty branch so there is nothing for a later hand to fill in.
+     */
     const dealt = clampDamage(
       damageAtRoll(baseToDefender, nextRange(state.rng, 1 - band, 1 + band)),
       forecast.defenderHp,
@@ -1466,10 +1506,17 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     // would be the unit deciding to walk into whatever is still standing there.
     delete attacker.path;
 
-    // 5 — the advance. Only melee, only into a tile this attack emptied, and
-    // only when the ground is actually takeable — see `canAdvanceOnto`, which is
+    // 5 — the advance. Only melee, only into a tile this attack *took*, and only
+    // when the ground is actually takeable — see `canAdvanceOnto`, which is
     // `canStopOn` with the one clause a victory changes.
-    if (forecast.kind === 'melee' && defenderDied && canAdvanceOnto(state, attacker, tile)) {
+    //
+    // "Took" is two readings of one idea and that is the 2026-08-28 ruling: the
+    // hex was emptied by a kill, **or** it never held anything that could swing
+    // back and the blow was the step onto it (`capturesUnit`, which already
+    // asked `canAdvanceOnto` in `planCombat` and so cannot promise a taking the
+    // guard below then refuses).
+    const tookGround = defenderDied || forecast.capturesUnit;
+    if (forecast.kind === 'melee' && tookGround && canAdvanceOnto(state, attacker, tile)) {
       attacker.col = tile.col;
       attacker.row = tile.row;
       outcome.advanced = true;
@@ -1484,6 +1531,22 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       // reducer would hand a `CommandResult` an arrivals array to say so.
       const found = arriveOnTile(state, attacker, tile);
       if (!isEmptyArrival(found)) outcome.arrival = found;
+      /**
+       * The defender itself changed hands on that arrival — name it here too.
+       *
+       * A *report*, not a second mechanism: the transfer happened one line above
+       * in the one place transfers happen, and this reads the receipt for the
+       * piece the attack was aimed at. It has to be said on the outcome because
+       * `reportRaids` (`controls.ts`) narrates a loss from the victim's side —
+       * "your worker was taken", not "was attacked" — and the victim never sees
+       * an `ArrivalReport`, which belongs to whoever did the arriving.
+       *
+       * Bystanders are deliberately not folded in: an escort's settler taken
+       * after its guard died is news about the *hex*, and it travels on
+       * `arrival.captured` exactly as it always has.
+       */
+      const takenDefender = found.captured.find((c) => c.id === forecast.defenderUnitId);
+      if (takenDefender) outcome.capturedUnitId = takenDefender.id;
     }
   }
 

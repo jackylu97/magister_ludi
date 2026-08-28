@@ -742,8 +742,20 @@ describe('terrain and fortification', () => {
 
 // --- civilians --------------------------------------------------------------
 
+/**
+ * **A capture is an advance** (user, 2026-08-28: "when a unit attacks a civilian
+ * unit, it should move onto the tile the civilian is on and take control of the
+ * unit").
+ *
+ * The claim under test is not "a worker changes hands" — that was always true —
+ * but *where* it happens: `applyCombat` performs no change of hands for a
+ * civilian at all any more, it steps onto the hex, and `arriveOnTile` hands over
+ * everything standing there. That is what makes the camp, the bounty and the
+ * prisoner one command result rather than three rules that have to be kept in
+ * step (see `barbarians.test.ts` for the camp half).
+ */
 describe('civilians', () => {
-  it('captures a civilian in melee rather than killing it', () => {
+  it('advances onto the hex and takes the civilian standing on it', () => {
     const state = flatState();
     const a = createUnit(state, 0, 'warrior', 3, 3);
     const settler = createUnit(state, 1, 'settler', 4, 3);
@@ -754,14 +766,145 @@ describe('civilians', () => {
     expect(view.damageToDefender).toBe(0);
     expect(view.damageToAttacker).toBe(0);
 
-    expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
+    const result = applyCommand(state, attack(a.id, 4, 3));
+    expect(result.ok).toBe(true);
     expect(settler.ownerId).toBe(0);
     expect(settler.hp).toBe(unitDef('settler').maxHp);
     expect(settler.movesLeft).toBe(0);
     expect(settler.path).toBeUndefined();
-    // Nobody was hurt, and the captor stayed where it was: the tile is not empty.
+    // Nobody was hurt, and the attacker is standing where the settler is: the
+    // blow *was* the step onto the hex.
     expect(a.hp).toBe(unitDef('warrior').maxHp);
+    expect({ col: a.col, row: a.row }).toEqual({ col: 4, row: 3 });
+    expect(a.movesLeft).toBe(0);
+    expect(a.hasAttacked).toBe(true);
+    // And the transfer is reported by the arrival, because that is where it
+    // happened — one seam for "somebody came to rest here", camp or no camp.
+    expect(result.ok && result.arrivals?.[0]?.captured).toEqual([
+      { id: settler.id, type: 'settler', fromOwnerId: 1, fromWild: false },
+    ]);
+  });
+
+  it('names the taken defender on the outcome, for the victim’s notice', () => {
+    // `reportRaids` (`controls.ts`) narrates a loss from the *victim's* side and
+    // never sees an `ArrivalReport`, so the outcome still has to say which piece
+    // was taken. A report of the transfer, not a second transfer.
+    const state = flatState();
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const worker = createUnit(state, 1, 'worker', 4, 3);
+
+    const result = applyCombat(state, a.id, { col: 4, row: 3 });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.outcome.capturedUnitId).toBe(worker.id);
+    expect(result.outcome.defenderUnitId).toBe(worker.id);
+    expect(result.outcome.advanced).toBe(true);
+    expect(result.outcome.killed).toEqual([]);
+    expect(result.outcome.damageToDefender).toBe(0);
+  });
+
+  it('takes every civilian on the hex, not only the one it aimed at', () => {
+    // The hand-over is a rule about the *hex* (`arriveOnTile`), so an unladen
+    // caravan sharing the ground comes along with the worker — traders stack
+    // freely, which is the only way two civilians are there to begin with.
+    const state = flatState();
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const worker = createUnit(state, 1, 'worker', 4, 3);
+    const cart = createUnit(state, 1, 'trader', 4, 3);
+
+    expect(applyCommand(state, attack(a.id, 4, 3)).ok).toBe(true);
+    expect(worker.ownerId).toBe(0);
+    expect(cart.ownerId).toBe(0);
+    expect({ col: a.col, row: a.row }).toEqual({ col: 4, row: 3 });
+  });
+
+  it('rides the ground down instead when the ground cannot be taken', () => {
+    // The one case the ruling cannot mean literally: an embarked civilian stands
+    // on water no land unit can advance onto, so `capturesUnit` is false and the
+    // forecast promises a *fight*. A capture with nowhere to happen would be a
+    // card that lied — see `canAdvanceOnto`, asked in `planCombat`.
+    const state = flatState();
+    at(state.map, 4, 3).terrain = 'coast';
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const worker = createUnit(state, 1, 'worker', 4, 3);
+    worker.hp = 1;
+
+    const view = forecast(state, a.id, 4, 3);
+    expect(view.capturesUnit).toBe(false);
+    expect(view.damageToDefender).toBeGreaterThan(0);
+
+    expect(applyCommand(state, attack(a.id, 4, 3)).ok).toBe(true);
+    expect(state.units.find((unit) => unit.id === worker.id)).toBeUndefined();
     expect({ col: a.col, row: a.row }).toEqual({ col: 3, row: 3 });
+  });
+
+  it('plunders a laden caravan and advances onto its hex', () => {
+    // The plunder rule is untouched by the ruling and rides the same advance it
+    // always did: the cargo is taken, the piece is dead, and the soldier ends up
+    // standing where the caravan was.
+    const state = flatState();
+    foundCityAt(state, 0, at(state.map, 2, 3));
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const cart = createUnit(state, 1, 'trader', 4, 3);
+    cart.trade = { from: 1, to: 2, expiresTurn: 40, outbound: true, autoResend: false };
+
+    const result = applyCombat(state, a.id, { col: 4, row: 3 });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.outcome.plundered).not.toBeNull();
+    expect(result.outcome.capturedUnitId).toBeNull();
+    expect(state.units.find((unit) => unit.id === cart.id)).toBeUndefined();
+    expect({ col: a.col, row: a.row }).toEqual({ col: 4, row: 3 });
+  });
+
+  it('fights the guard and stays put when a soldier is standing over the civilian', () => {
+    // The targeting priority is what protects a civilian, and it is unchanged:
+    // there is no advance until the thing that can swing back is dead.
+    const state = flatState();
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const guard = createUnit(state, 1, 'spearman', 4, 3);
+    const worker = createUnit(state, 1, 'worker', 4, 3);
+
+    const view = forecast(state, a.id, 4, 3);
+    expect(view.capturesUnit).toBe(false);
+    expect(view.defenderUnitId).toBe(guard.id);
+
+    expect(applyCommand(state, attack(a.id, 4, 3)).ok).toBe(true);
+    expect(worker.ownerId).toBe(1);
+    expect({ col: a.col, row: a.row }).toEqual({ col: 3, row: 3 });
+  });
+
+  it('performs no change of hands of its own, and says so in the source', () => {
+    /**
+     * The register test for the ruling. Behavioural tests would all still pass
+     * if somebody re-added a capture-in-place beside the advance — the worker
+     * would change hands twice and nobody would notice until a camp went
+     * uncleared — so this reads the sources.
+     *
+     * `combat.ts` is allowed **one** `captureUnit`, and it is not a civilian's:
+     * it is Wolf-Mother's Pact turning a barbarian a blow already killed, which
+     * is a disposal rule for a *death* rather than a taking of ground.
+     * `arrival.ts` owns the other one, and it is the only place a civilian
+     * changes hands.
+     */
+    const modules = import.meta.glob('../../src/sim/{arrival,combat}.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const text = (name: string): string =>
+      Object.entries(modules).find(([path]) => path.endsWith(`/${name}.ts`))![1];
+
+    const calls = (source: string): string[] => source.match(/captureUnit\(state/g) ?? [];
+    expect(calls(text('combat'))).toHaveLength(1);
+    expect(calls(text('arrival'))).toHaveLength(1);
+
+    // And the one in `combat.ts` is the convert, not a civilian: the clause it
+    // sits in is guarded by the pact's behaviour rule.
+    const combat = text('combat');
+    const call = combat.indexOf('captureUnit(state');
+    const clause = combat.slice(combat.lastIndexOf('if (', call), call);
+    expect(clause).toMatch(/barbarianKillsConvert/);
   });
 
   it('kills a civilian with ranged fire instead', () => {
@@ -1162,7 +1305,7 @@ describe('a war replays exactly', () => {
    */
   function warGame(
     mineType: 'swordsman' | 'warrior' = 'swordsman',
-    theirsType: 'spearman' | 'warrior' = 'spearman',
+    theirsType: 'spearman' | 'warrior' | 'worker' = 'spearman',
     seed = 4242,
   ): { game: Game; ids: { mine: number; theirs: number } } {
     const game = createGame({
@@ -1315,6 +1458,31 @@ describe('a war replays exactly', () => {
     // And the survivor is still there, on the hit point the rule left it.
     const survivor = replayed.units.find((u) => u.id === mutualKill!.attacker);
     expect(survivor?.hp).toBe(1);
+  });
+
+  it('reproduces a capture-by-advance byte for byte', () => {
+    // The taking of a civilian now *moves* a piece, so a replay has one more
+    // thing to agree about than it used to: where the attacker ended up, and
+    // everything `arriveOnTile` did on the way. Fought through the real command
+    // log so the whole chain is on trial, not just the reducer.
+    const { game, ids } = warGame('swordsman', 'worker');
+    const prey = game.state.units.find((u) => u.id === ids.theirs)!;
+    const at = { col: prey.col, row: prey.row };
+
+    expect(
+      dispatch(game, { type: 'attack', playerId: 0, unitId: ids.mine, target: at }).ok,
+    ).toBe(true);
+    const taken = game.state.units.find((u) => u.id === ids.theirs)!;
+    expect(taken.ownerId).toBe(0);
+    const captor = game.state.units.find((u) => u.id === ids.mine)!;
+    expect({ col: captor.col, row: captor.row }).toEqual(at);
+
+    for (const player of game.state.players) {
+      dispatch(game, { type: 'endTurn', playerId: player.id });
+    }
+    const replayed = replay(game.config, game.log);
+    expect(snapshotState(replayed)).toBe(snapshotState(game.state));
+    expect(replayed.rng).toEqual(game.state.rng);
   });
 
   it('rolls the same numbers from the same seed and no numbers when it captures', () => {
