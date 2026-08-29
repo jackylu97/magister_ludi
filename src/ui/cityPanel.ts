@@ -1231,14 +1231,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     label.append(element('span', undefined, 'Growth'));
     const sign = surplus > 0 ? '+' : '';
     // The rate is a figure, so it carries the mono class; a shrinking city is
-    // the one state in this panel that gets the alarm colour.
+    // the one state in this panel that gets the alarm colour — and the word
+    // (user, 2026-08-29): a deficit says "starving", not "stalled", because a
+    // settler at the front of the queue holds the surplus at zero but never
+    // shields the town from a deficit (`growthSurplus`, rule 2), and a city
+    // that starves to size 1 that way holds the settler forever. The one word
+    // is the whole warning; nothing else nags.
     label.append(
       element(
         'span',
         surplus < 0 ? 'city-progress-rate is-bad' : 'city-progress-rate',
-        turns === null
-          ? `${sign}${surplus} food · stalled`
-          : `${sign}${surplus} food · ${turns}t`,
+        surplus < 0
+          ? `${surplus} food · starving`
+          : turns === null
+            ? `${sign}${surplus} food · stalled`
+            : `${sign}${surplus} food · ${turns}t`,
       ),
     );
     box.append(label);
