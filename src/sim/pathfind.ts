@@ -87,7 +87,7 @@ import { cardBorderZoc } from './statecraft';
 import { type GameState, type Unit, playerById } from './state';
 import { techsGrant } from './techData';
 import { isEmbarkableTerrain, moveCost } from './terrainData';
-import { type UnitDef, isCivilian, isCombatant, unitDef } from './unitData';
+import { type UnitDef, isCivilian, isCombatant, isExplorer, unitDef } from './unitData';
 import { fullMovement, hasForeignUnit, hasStackingRoom } from './units';
 
 /** An offset cell. The wire/serialisation form of a position. */
@@ -211,8 +211,13 @@ export interface MoveProfile {
 export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   const def = unitDef(unit.type);
   const owner = playerById(state, unit.ownerId);
+  // A civilian, or the explorer (user, 2026-08-29: "sailing should also allow
+  // scouts to embark") — the one combat unit that may take to the water, read
+  // off its row's marker rather than its name, so a later explorer inherits it.
   const embarks =
-    isCivilian(def) && owner !== undefined && techsGrant(owner.techsResearched, 'embark');
+    (isCivilian(def) || isExplorer(def)) &&
+    owner !== undefined &&
+    techsGrant(owner.techsResearched, 'embark');
   return { def, embarks };
 }
 
@@ -243,7 +248,8 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
  *   · **`ignoresTerrainCost` narrows a price that already exists**, strictly
  *     *after* impassability, so no ability makes a mountain walkable — see
  *     `UnitDef.ignoresTerrainCost`. A scout does not get the sea for free
- *     either: it is a combat unit, so it never embarks in the first place.
+ *     either: it embarks (the explorer is the one combat unit that may, since
+ *     2026-08-29) and pays the same `embarkCost` a settler does.
  *
  * The floor is `rules.movement.minStepCost` rather than a literal 1, so the
  * ability costs whatever the game says a step costs at minimum, and the "no

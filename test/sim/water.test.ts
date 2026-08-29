@@ -34,7 +34,7 @@ import { hasAbility } from '../../src/sim/tech';
 import { ABILITY_IDS, ABILITY_TECH, TECH_IDS, techsGrant } from '../../src/sim/techData';
 import { techGifts } from '../../src/sim/techUnlocks';
 import { TERRAIN_IDS, isEmbarkableTerrain, isWaterTerrain, isWorkableTerrain } from '../../src/sim/terrainData';
-import { isCivilian, unitDef } from '../../src/sim/unitData';
+import { isCivilian, isExplorer, unitDef } from '../../src/sim/unitData';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -254,19 +254,35 @@ describe('embarkation, in the one movement evaluator', () => {
     expect(applyCommand(state, move(0, worker.id, ocean)).ok).toBe(false);
   });
 
-  it('is a civilian rule, asked of the roster rather than of a unit id', () => {
+  it('is a civilian rule plus the explorer, asked of the roster rather than of a unit id', () => {
     // `isCivilian` is the same predicate combat and capture ask, so a settler and
     // a future augur inherit the sea without a second list to keep up to date.
+    // The scout joins by its row's `isExplorer` marker (user, 2026-08-29:
+    // "sailing should also allow scouts to embark") — the one combat unit at
+    // sea, and the one thing at sea that can reach an embarked civilian.
     const state = seaState();
-    for (const type of ['worker', 'settler'] as const) {
+    for (const type of ['worker', 'settler', 'scout'] as const) {
       const unit = createUnit(state, 0, type, 4, 4);
-      expect(isCivilian(unitDef(type))).toBe(true);
+      expect(isCivilian(unitDef(type)) || isExplorer(unitDef(type))).toBe(true);
       expect(moveProfile(state, unit).embarks).toBe(true);
     }
-    for (const type of ['warrior', 'scout', 'archer'] as const) {
+    for (const type of ['warrior', 'archer'] as const) {
       const unit = createUnit(state, 0, type, 6, 4);
       expect(moveProfile(state, unit).embarks).toBe(false);
     }
+  });
+
+  it('carries a scout onto the coast through pathing, the highlight and the reducer', () => {
+    const state = seaState();
+    const coast = at(state, 2, 5);
+    const scout = createUnit(state, 0, 'scout', 3, 5);
+    expect(tileMoveCost(coast, moveProfile(state, scout))).toBe(RULES.movement.embarkCost);
+    expect(findPath(state, scout, coast)).not.toBeNull();
+    expect(reachableTiles(state, scout).some((entry) => entry.tile === coast)).toBe(true);
+    expect(applyCommand(state, move(0, scout.id, coast)).ok).toBe(true);
+    // And landlocked again the moment the technology is not held.
+    forget(state, 0, 'sailing');
+    expect(moveProfile(state, scout).embarks).toBe(false);
   });
 
   it('keeps a settler at sea safe from the wild, because the wild cannot follow', () => {
