@@ -133,7 +133,7 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     'the two limits on expansion',
     '☺',
     [
-      'Two empire-wide meters, shown on the top bar, stop you from growing without limit. Happiness is about the size of your cities: big populations demand it, and if you run out, growth slows down. Authority is about the number of your cities: each one costs some, and if you exceed what you have, your science and culture are reduced.',
+      'Two empire-wide meters, shown on the top bar, stop you from growing without limit. Happiness is about the size of your cities: every citizen demands some, and once a single city grows past a certain size its extra citizens demand more each — that is the line called crowding in the breakdown, and it is what makes one huge city dearer to keep content than the same people spread over two. If you run out, growth slows down. Authority is about the number of your cities: each one costs some, and if you exceed what you have, your science and culture are reduced.',
       'Neither is a hard wall — you can go over, you just pay for it. Keep happiness up with luxury resources, buildings such as Funeral Games, and cards. Keep authority up by building the right buildings and advancing through the ages, and by not founding cities faster than you can support them.',
       'Details: happiness surplus gives bonuses in steps, and a deficit slows growth in steps. Exceeding authority reduces science and culture by a percentage. Hover a meter on the top bar for its sources and click it for the full breakdown. Each city\'s own buildings are combined into that city\'s demand line, so every city shows a single net figure.',
     ],
