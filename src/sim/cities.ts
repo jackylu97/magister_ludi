@@ -3249,9 +3249,17 @@ function empireRates(state: GameState, playerId: number): {
   // one comparison. It is deliberately the *city's* faith and not the empire's
   // share of it — a signature about the temple city is about the temple city.
   const capital = capitalCityOf(state, playerId);
+  // The empire's half of every town's percentages, taken once (2026-08-29).
+  // `cityQuote`'s default is `empirePercents(state, ownerId)` and every city in
+  // this loop has the same owner, so the default was the same two meter sweeps
+  // repeated once per town — for the phase that banks the turn *and* for the
+  // top bar's headline, which reads this list on every accepted command. The
+  // figure is unchanged by construction: `empirePercents` is a pure function of
+  // `(state, playerId)` and this is the very call the default would have made.
+  const percents = empirePercents(state, playerId);
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    const yields = cityYields(state, city, [], city.queue[0]);
+    const yields = cityYields(state, city, [], city.queue[0], cityQuote(state, city, [], percents));
     rates.faithPerTurn += yields.faith;
     rates.culturePerTurn += yields.culture;
     rates.goldPerTurn += yields.gold;

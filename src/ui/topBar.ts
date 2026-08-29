@@ -59,8 +59,10 @@
 
 import {
   type CityYields,
+  cityQuote,
   cityYields,
   emptyCityYields,
+  empirePercents,
   explainEmpireCardYields,
 } from '../sim/cities';
 import type { Game } from '../sim/game';
@@ -114,12 +116,28 @@ import { YIELD_GLYPH, setYieldText, yieldMarkNode } from './yieldMark';
  * `collectYields` banks with: since the Age I rework a barracks puts a share of
  * its city's hammers behind a unit, and a strip that quoted the unmodified rate
  * would be a headline the turn resolution disagrees with.
+ *
+ * **The empire's half of every town's percentages is taken once** (2026-08-29).
+ * `cityQuote`'s default is `empirePercents(state, ownerId)`, which sweeps the two
+ * meters over every city and every unit the empire holds — a *pure function of
+ * the seat*, so asking it once per town was the same answer summed a dozen
+ * times, and this strip is redrawn on every accepted command. Hoisted through
+ * the parameter the sim already offers rather than worked out beside it (hard
+ * rule 5): the figure is still `cityYields`' own fold, and the cost test pins
+ * the hoisted reading equal to the unhoisted one, city by city.
  */
 export function civYields(state: GameState, playerId: number): CityYields {
   const total: CityYields = emptyCityYields();
+  const empirePercent = empirePercents(state, playerId);
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    const yields = cityYields(state, city, [], city.queue[0]);
+    const yields = cityYields(
+      state,
+      city,
+      [],
+      city.queue[0],
+      cityQuote(state, city, [], empirePercent),
+    );
     total.food += yields.food;
     total.production += yields.production;
     total.gold += yields.gold;
@@ -496,12 +514,22 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     }
 
     const lines = element('ul', 'meter-lines ledger');
+    // The empire's half of the percentages once for the whole breakdown, exactly
+    // as `civYields` takes it — the card is the summands of that headline, so
+    // the two must be the same arithmetic as well as the same figure.
+    const empirePercent = empirePercents(state, playerId);
     for (const city of state.cities) {
       if (city.ownerId !== playerId) continue;
       lines.append(
         meterLine(
           cityDisplayName(state, city),
-          cityYields(state, city, [], city.queue[0])[key],
+          cityYields(
+            state,
+            city,
+            [],
+            city.queue[0],
+            cityQuote(state, city, [], empirePercent),
+          )[key],
           false,
         ),
       );
@@ -872,10 +900,22 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     return foldCityHappiness(explainHappiness(state, playerId), towns);
   }
 
-  /** The effects one meter is currently applying, in `meterEffects` order. */
-  function effectsOf(meter: 'happiness' | 'authority'): MeterEffect[] {
-    const { state } = getGame();
-    return meterEffects(state, localPlayerId()).filter((effect) => effect.meter === meter);
+  /**
+   * The effects one meter is currently applying, in `meterEffects` order.
+   *
+   * `all` is the sweep, and it is a parameter so a render that needs both
+   * meters' effects pays for one (2026-08-29). `meterEffects` folds
+   * `explainHappiness` and `explainAuthority` over every city and every unit the
+   * empire holds, and the two chips are written in the same breath — the
+   * difference between them is a `filter`, never a second sweep. A caller with
+   * nothing in hand (each hover card, raised one at a time) still gets the same
+   * default it always had.
+   */
+  function effectsOf(
+    meter: 'happiness' | 'authority',
+    all: readonly MeterEffect[] = meterEffects(getGame().state, localPlayerId()),
+  ): MeterEffect[] {
+    return all.filter((effect) => effect.meter === meter);
   }
 
   /**
@@ -1125,12 +1165,22 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       // its click affordance (`civ-yield-clickable`, above) and its own hint
       // line in the card below ("press C") — only the pulsing dot moved.
 
-      const happinessStanding = meterStanding(happinessEntries(state, playerId));
+      // The three empire sweeps behind the two meter chips, taken once for the
+      // whole render (2026-08-29). Each of them folds the ledger over every city
+      // and every unit the seat holds; the chip, its tier list and an open
+      // click-through card are three readings of the *same* ledger, and taking
+      // them apart was five sweeps where one pass does. Nothing is cached across
+      // renders — this is one render's own arithmetic, handed down.
+      const effects = meterEffects(state, playerId);
+      const happinessLedger = happinessEntries(state, playerId);
+      const authorityLedger = explainAuthority(state, playerId);
+
+      const happinessStanding = meterStanding(happinessLedger);
       writeChip(
         happinessChip,
         signedFigure(happinessStanding.total),
         happinessStanding.total,
-        effectsOf('happiness'),
+        effectsOf('happiness', effects),
         'Happiness',
       );
 
@@ -1140,23 +1190,23 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       // the hover card's headline and in its two group subtotals. A chip saying
       // "6/8" also has to be *subtracted* before it means anything, which is
       // work the strip should be saving.
-      const authorityStanding = meterStanding(explainAuthority(state, playerId));
+      const authorityStanding = meterStanding(authorityLedger);
       writeChip(
         authorityChip,
         signedFigure(authorityStanding.total),
         authorityStanding.total,
-        effectsOf('authority'),
+        effectsOf('authority', effects),
         'Authority',
       );
 
-      // An open card is showing a ledger from before whatever just happened.
+      // An open card is showing a ledger from before whatever just happened —
+      // and it is the ledger the chip above was written from, so the two cannot
+      // come to disagree and neither pays for a second sweep.
       if (happinessCard.isOpen) {
-        const entries = happinessEntries(state, playerId);
-        renderLedger(happiness.body, entries, meterStanding(entries));
+        renderLedger(happiness.body, happinessLedger, happinessStanding);
       }
       if (authorityCard.isOpen) {
-        const entries = explainAuthority(state, playerId);
-        renderLedger(authority.body, entries, meterStanding(entries));
+        renderLedger(authority.body, authorityLedger, authorityStanding);
       }
     },
     get isOpen() {

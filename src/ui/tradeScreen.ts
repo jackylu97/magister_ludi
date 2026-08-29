@@ -47,7 +47,6 @@
 import {
   type RouteYieldLine,
   type TradeGoldLine,
-  empireGold,
   explainEmpireGold,
   explainRouteSlots,
   explainRouteYield,
@@ -161,7 +160,18 @@ export interface TradeLedger {
  * one town's own basket and are quoted on the route's line, and adding them to
  * an empire-wide figure would be summing two different things.
  */
-export function tradeLedger(state: GameState, playerId: number): TradeLedger {
+export function tradeLedger(
+  state: GameState,
+  playerId: number,
+  // The four empire-scale lines, asked once (2026-08-29). `explainEmpireGold`
+  // floods the empire's connected territory and sweeps every hex, unit and
+  // building it holds, and this function used to ask for it twice — once for the
+  // lines and again through `empireGold`, which is nothing but the fold of them.
+  // The parameter lets a screen that is already printing the four lines hand
+  // them in rather than pay a third time; the default is the same call, so the
+  // top bar's chip is unchanged. The total stays rule 5's own fold either way.
+  empire: readonly TradeGoldLine[] = explainEmpireGold(state, playerId) as readonly TradeGoldLine[],
+): TradeLedger {
   const lines: TradeLedgerLine[] = [];
   const routes = runningRoutes(state, playerId);
   for (const route of routes) {
@@ -171,12 +181,12 @@ export function tradeLedger(state: GameState, playerId: number): TradeLedger {
       figures: route.figures,
     });
   }
-  for (const line of explainEmpireGold(state, playerId) as readonly TradeGoldLine[]) {
+  for (const line of empire) {
     lines.push({ source: line.source, gold: line.gold, figures: `${signedFigure(line.gold)}${YIELD_GLYPH.gold}` });
   }
   let total = 0;
   for (const route of routes) total += route.gold;
-  total += empireGold(state, playerId);
+  for (const line of empire) total += line.gold;
   const slots = explainRouteSlots(state, playerId).reduce((sum, line) => sum + line.slots, 0);
   const used = usedRouteSlots(state, playerId);
   return { lines, total, used, slots, chip: `${figure(used)} / ${figure(slots)}` };
@@ -636,7 +646,11 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
   /** The left column: what is on the road, and what the empire is earning by it. */
   function drawRunning(state: GameState, seat: number): HTMLElement {
     const block = element('section', 'sc-column trade-running');
-    const ledger = tradeLedger(state, seat);
+    // The four empire lines once for the column: the ledger folds them into its
+    // total and the foot below prints them, which used to be two floods of the
+    // empire's territory to say one thing twice.
+    const empire = explainEmpireGold(state, seat) as readonly TradeGoldLine[];
+    const ledger = tradeLedger(state, seat, empire);
     block.append(
       element('p', 'eyebrow sc-eyebrow', `routes · ${ledger.chip}`),
     );
@@ -716,7 +730,7 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
       ),
     );
     const list = element('ul', 'meter-lines ledger');
-    for (const line of explainEmpireGold(state, seat)) {
+    for (const line of empire) {
       const item = element('li', 'meter-line');
       item.append(element('span', 'meter-line-source', line.source));
       item.append(element('span', 'meter-line-value', signedFigure(line.gold)));

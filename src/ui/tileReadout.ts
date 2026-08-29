@@ -109,8 +109,20 @@ export function tileYieldContributions(
  * eyes. That is rule 5 read at the surface it was written for: a breakdown whose
  * lines do not add up to the headline is worse than no breakdown at all.
  */
-export function tileYieldNodes(state: GameState, playerId: number, tile: Tile): HTMLElement[] {
-  const value = foldTileYield(tileYieldContributions(state, playerId, tile));
+export function tileYieldNodes(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+  // The list, when the caller already has it (2026-08-29). `tileYieldContributions`
+  // builds a `yieldContextFor` — the empire's law and its holdings, folded — and
+  // the readout draws the headline and the itemization from the *same* hex in
+  // the same breath, so asking twice was two folds of one answer on every mouse
+  // move. Handed down rather than recomputed beside it: the figure is still the
+  // fold of this very list (rule 5), and a caller with nothing in hand gets the
+  // call it always made.
+  contributions: readonly TileYieldContribution[] = tileYieldContributions(state, playerId, tile),
+): HTMLElement[] {
+  const value = foldTileYield(contributions);
   // The drawn mark, from the one registry a yield's picture is written down in
   // (`src/art/yieldMarks.ts`, printed here by `src/ui/yieldMark.ts`). The row
   // gets an `aria-label` of its own because this is one of the few surfaces
@@ -196,8 +208,10 @@ export function tileYieldLines(
   state: GameState,
   playerId: number,
   tile: Tile,
+  /** The list, when the caller already has it — see `tileYieldNodes`. */
+  contributions: readonly TileYieldContribution[] = tileYieldContributions(state, playerId, tile),
 ): TileYieldLine[] {
-  const list = tileYieldContributions(state, playerId, tile);
+  const list = contributions;
   let standing = -1;
   list.forEach((entry, index) => {
     if (entry.kind !== 'add') standing = index;
@@ -275,8 +289,10 @@ export function tileYieldLineNodes(
   state: GameState,
   playerId: number,
   tile: Tile,
+  /** The list, when the caller already has it — see `tileYieldNodes`. */
+  contributions: readonly TileYieldContribution[] = tileYieldContributions(state, playerId, tile),
 ): HTMLElement[] {
-  return itemisedYieldLines(tileYieldLines(state, playerId, tile)).map((line) => {
+  return itemisedYieldLines(tileYieldLines(state, playerId, tile, contributions)).map((line) => {
     const row = document.createElement('li');
     row.className = 'yield-line';
     const figures = document.createElement('span');

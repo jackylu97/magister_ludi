@@ -72,6 +72,7 @@ import {
   foundingCostRow,
   resourceRequirementNode,
   resourceRowNode,
+  tileYieldContributions,
   tileYieldLineNodes,
   tileYieldNodes,
 } from './ui/tileReadout';
@@ -968,8 +969,14 @@ function clearInfoRows(): void {
  * card no longer draws anywhere.
  */
 function showTileYields(state: GameState, playerId: number, tile: Tile): void {
-  const shown: Node[] = tileYieldNodes(state, playerId, tile);
-  const rows = tileYieldLineNodes(state, playerId, tile);
+  // The hex's contributions once for both halves of the row (2026-08-29). The
+  // headline is the fold of the itemization, so the two were always the same
+  // list — asked twice, each time building the empire's yield context afresh, on
+  // every mouse move over the board. One list, folded for the figures and walked
+  // for the lines, is the same arithmetic at half the price.
+  const contributions = tileYieldContributions(state, playerId, tile);
+  const shown: Node[] = tileYieldNodes(state, playerId, tile, contributions);
+  const rows = tileYieldLineNodes(state, playerId, tile, contributions);
   if (rows.length > 0) {
     const lines = document.createElement('ul');
     lines.className = 'yield-lines';
