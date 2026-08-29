@@ -96,7 +96,7 @@ import { cardActionRule, cardAmplifier, offerSize, settleCultureWindfall } from 
 import type { ActionRuleId, CardEffect } from './statecraftData';
 import { settleResearchWindfall } from './tech';
 import { highestAge, techDef } from './techData';
-import { unitDef } from './unitData';
+import { unitDef, unitMaxHp } from './unitData';
 import { recomputeVisibilityFor } from './visibility';
 
 const PEOPLE = RULES.greatPeople;
@@ -690,7 +690,7 @@ export function greatPersonActAt(
         { kind: 'combatLine', amount: PEOPLE.generalCombat, when: { test: 'always' }, side: 'both' },
       ];
       for (const other of unitsWithin(state, unit, PEOPLE.generalRadius)) {
-        other.hp = unitDef(other.type).maxHp;
+        other.hp = unitMaxHp(other);
         done.expiresTurn = stampTimed(state, other, id, PEOPLE.generalTurns, effects);
         done.blessed.push(other.id);
       }

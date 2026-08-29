@@ -40,7 +40,7 @@ import { type Rng, cloneRng, makeRng, nextRange } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, createUnit, newGame } from '../../src/sim/state';
 import { techDef } from '../../src/sim/techData';
-import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
+import { UNIT_TYPE_IDS, unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
 import { defenseBonus, explainTerrainDefense } from '../../src/sim/terrainData';
 import { setRiverEdge } from '../../src/sim/water';
@@ -2171,5 +2171,101 @@ describe('siege', () => {
     expect(sieges).toEqual([
       { cityId: city.id, ownerId: city.ownerId, damage: COMBAT.siegeDamagePerTurn },
     ]);
+  });
+});
+
+// --- what a card and a stamp are worth in a fight ----------------------------
+
+/**
+ * The three ways the Orders pass of 2026-08-29 reaches this module: Hill Forts'
+ * conditioned defence, Drums of War's stamp on the piece itself, and The
+ * Oath-Bound's heal for whoever struck the blow.
+ *
+ * Every one of them is a **labelled line** in `planCombat`'s fold or a cap read
+ * through `unitMaxHp` — never a multiplier and never a number quietly larger
+ * than the roster's — which is hard rule 5 at the scale of one soldier.
+ */
+describe('cards and stamps on the strength ledger', () => {
+  /** Slots one Order for a seat, growing the spread. Test scaffolding only. */
+  function slot(state: GameState, playerId: number, id: string): void {
+    const sc = state.players[playerId]!.statecraft;
+    sc.orders.push({ id: id as never, level: 1 });
+    sc.slots.push({ card: id as never, sealedUntil: 0 });
+  }
+
+  it('Hill Forts pays the defender on hills, and nobody on the flat', () => {
+    const state = flatState();
+    slot(state, 1, 'hillForts');
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const d = createUnit(state, 1, 'warrior', 4, 3);
+
+    const flat = forecast(state, a.id, 4, 3);
+    expect(flat.defenderLines.some((l) => l.source.includes('Hill Forts'))).toBe(false);
+
+    at(state.map, 4, 3).hills = true;
+    const hill = forecast(state, a.id, 4, 3);
+    const line = hill.defenderLines.find((l) => l.source.includes('Hill Forts'))!;
+    expect(line.amount).toBe(2);
+    // The fold is the sum of the list, hills bonus and all.
+    expect(hill.defenderStrength).toBe(
+      foldCombatStrength(hill.defenderLines),
+    );
+    // And it is the *defender's* line only: attacking uphill buys nothing.
+    void d;
+  });
+
+  it('a stamped veteran carries its own labelled point, on either side', () => {
+    const state = flatState();
+    slot(state, 0, 'drumsOfWar');
+    // Created *after* the card is slotted, so the stamp is written at the birth.
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const d = createUnit(state, 1, 'warrior', 4, 3);
+    expect(a.stamp).toEqual({ strength: 1 });
+
+    const attacking = forecast(state, a.id, 4, 3);
+    const mine = attacking.attackerLines.find((l) => l.source === 'Veteran')!;
+    expect(mine.amount).toBe(1);
+    expect(attacking.defenderLines.some((l) => l.source === 'Veteran')).toBe(false);
+    expect(attacking.attackerStrength).toBe(foldCombatStrength(attacking.attackerLines));
+
+    // The same point defends. `d` swings at the veteran and finds it steadier.
+    const defending = forecast(state, d.id, 3, 3);
+    expect(defending.defenderLines.find((l) => l.source === 'Veteran')!.amount).toBe(1);
+  });
+
+  it('The Muster Roll raises the bar a heal fills, not just the number on it', () => {
+    const state = flatState();
+    slot(state, 0, 'theMusterRoll');
+    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const plain = createUnit(state, 1, 'warrior', 4, 3);
+    expect(unitMaxHp(a)).toBe(unitDef('warrior').maxHp + 10);
+    expect(unitMaxHp(plain)).toBe(unitDef('warrior').maxHp);
+    // Both bars on the forecast read the piece's own maximum, so a veteran at
+    // full health does not show as wounded.
+    const view = forecast(state, a.id, 4, 3);
+    expect(view.attackerMaxHp).toBe(unitMaxHp(a));
+    expect(view.defenderMaxHp).toBe(unitMaxHp(plain));
+  });
+
+  it('The Oath-Bound heals the killer, capped at that piece’s own maximum', () => {
+    const state = flatState();
+    slot(state, 0, 'theOathBound');
+    const a = createUnit(state, 0, 'swordsman', 3, 3);
+    const d = createUnit(state, 1, 'warrior', 4, 3);
+    d.hp = 4;
+    a.hp = 30;
+
+    expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
+    expect(state.units.find((u) => u.id === d.id)).toBeUndefined();
+    // 30 − whatever the counter took, then +15, and never above the maximum.
+    expect(a.hp).toBeGreaterThan(30 - unitDef('warrior').maxHp);
+    expect(a.hp).toBeLessThanOrEqual(unitMaxHp(a));
+
+    // A killer already whole gains nothing it can keep — the cap is the rule.
+    const b = createUnit(state, 0, 'swordsman', 6, 3);
+    const e = createUnit(state, 1, 'warrior', 7, 3);
+    e.hp = 1;
+    expect(applyCommand(state, attack(b.id, 7, 3))).toEqual({ ok: true });
+    expect(b.hp).toBeLessThanOrEqual(unitMaxHp(b));
   });
 });

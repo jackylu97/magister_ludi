@@ -49,7 +49,7 @@ import { inZoneOfControl, pathTurns } from '../sim/pathfind';
 import { cityAt } from '../sim/cities';
 import type { GameState, Unit } from '../sim/state';
 import type { TileYield } from '../sim/terrainData';
-import { trades, unitDef } from '../sim/unitData';
+import { trades, unitDef, unitMaxHp } from '../sim/unitData';
 import { unitUpkeep, unitUpkeepOf } from '../sim/upkeep';
 import type { ImprovementOption } from './controls';
 import { cityDisplayName } from './cityDisplay';
@@ -1246,7 +1246,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     container.append(header);
 
     const stats = element('div', 'unit-stats');
-    stats.append(stat('Health', `${unit.hp}/${def.maxHp}`, unit.hp < def.maxHp));
+    // The **piece's** maximum, stamp and all — see `unitMaxHp`. A veteran shown
+    // against the roster's sheet reads as wounded at full health.
+    const maxHp = unitMaxHp(unit);
+    stats.append(stat('Health', `${unit.hp}/${maxHp}`, unit.hp < maxHp));
     stats.append(
       stat('Moves', `${unit.movesLeft}/${def.movement}`, unit.movesLeft <= 0),
     );

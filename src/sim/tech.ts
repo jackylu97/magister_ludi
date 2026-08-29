@@ -149,7 +149,7 @@ import {
 } from './techData';
 import { awardOccasion } from './triumphs';
 import { isProjectId, projectDef } from './projectData';
-import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
+import { type UnitTypeId, isUnitTypeId, unitDef, unitMaxHp } from './unitData';
 
 const RESEARCH = RULES.research;
 
@@ -992,13 +992,18 @@ export function upgradeTargetFor(state: GameState, unit: Unit): UnitTypeId | nul
 
 /** Retypes a unit, keeping its health fraction and capping its movement. */
 function applyUpgrade(unit: Unit, target: UnitTypeId): void {
-  const before = unitDef(unit.type);
+  // Both maxima are the **piece's** (`unitMaxHp`), which is what keeps a stamp
+  // whole across an upgrade: a warrior at 110 of 110 becomes a swordsman at
+  // full health rather than at ten points over a sheet that never knew about
+  // The Muster Roll. The stamp travels with the piece; only the type changes.
+  const beforeMax = unitMaxHp(unit);
   const after = unitDef(target);
-  const fraction = before.maxHp > 0 ? unit.hp / before.maxHp : 1;
+  const fraction = beforeMax > 0 ? unit.hp / beforeMax : 1;
   unit.type = target;
+  const afterMax = unitMaxHp(unit);
   // Rounded, floored at one hit point: a unit that survived its upgrade is
   // alive, however unkind the arithmetic.
-  unit.hp = Math.max(1, Math.min(after.maxHp, Math.round(after.maxHp * fraction)));
+  unit.hp = Math.max(1, Math.min(afterMax, Math.round(afterMax * fraction)));
   unit.movesLeft = Math.min(unit.movesLeft, after.movement);
 }
 

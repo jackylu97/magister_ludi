@@ -188,6 +188,31 @@ export type CityScope =
   | { test: 'capital' }
   /** The town is at least this large. */
   | { test: 'populationAtLeast'; value: number }
+  /**
+   * The town is **at most** this large — Hearth Songs, whose songs are sung in
+   * the villages and not in the capital.
+   *
+   * `populationAtLeast`'s mirror, and a member of its own rather than a sign on
+   * that one for `notFreshwater`'s stated reason: there is no `not` composite
+   * and there will not be one, so a negation the ratified table actually asks
+   * for earns its own arm. Both are inclusive, so a card that pays "size 4 or
+   * less" and one that pays "size 4 or more" both reach a town of exactly four —
+   * which is the reading the printed words take.
+   */
+  | { test: 'populationAtMost'; value: number }
+  /**
+   * A hex **touching the town's own** carries this improvement — The Pilgrim's
+   * Purse, whose money is made by standing next door to the shrine.
+   *
+   * Deliberately the ring of six and not the work radius: "adjacent to a holy
+   * site" is a fact about where the town was *put*, which a player can plan a
+   * settler around, and a third-ring reading would have made it a fact about
+   * where the borders happened to grow. `isMountainAdjacent`'s reach exactly,
+   * asked of `Tile.improvement` rather than of the ground — and of the hex
+   * itself as well, because a town founded on the shrine is not further from it
+   * than its neighbour is.
+   */
+  | { test: 'adjacentImprovement'; improvement: ImprovementId }
   /** The town controls one of these resources (`openedResource`). */
   | { test: 'holding'; resources: ResourceId[] }
   /** The town controls any resource of this kind. */
@@ -467,6 +492,17 @@ export interface UnitFilter {
    * spade-carrying half of it.
    */
   consecrates?: boolean;
+  /**
+   * True: only the pieces an empire sends out to **look** — the ones that walk
+   * anywhere at one point a hex (`isExplorer`). False: everything else.
+   *
+   * Wolf-Runners' scouts, and it is the roster's own marker for the reason
+   * `consecrates` is: nothing in `src/sim/` compares a unit type against
+   * `"scout"`, exactly as nothing compares against `"settler"` or `"augur"`, so
+   * the commando a later age adds is quick under this card without the row being
+   * touched.
+   */
+  explores?: boolean;
 }
 
 /**
@@ -567,6 +603,18 @@ export type CountKind =
   | 'uniqueLuxuries'
   /** Improved luxury *copies* — duplicates count. `resourceCopies` summed. */
   | 'luxuryCopies'
+  /**
+   * Luxuries the empire controls **two or more copies of** — Village Fairs, and
+   * the count that makes a surplus worth something.
+   *
+   * `uniqueLuxuries` and `luxuryCopies` are the two ends of the same sweep (how
+   * many kinds, how many seams) and this is the middle one neither can say: it
+   * counts *kinds*, but only the kinds there is more than one of. A member of
+   * its own rather than a threshold argument on `luxuryCopies`, for
+   * `improvedStrategicResources`' reason — the three read differently on a card
+   * and a member each is what lets `COUNT_WORDS` write the words.
+   */
+  | 'duplicateLuxuries'
   /** Improved bonus-resource tiles the empire controls. */
   | 'improvedBonusResources'
   /**
@@ -866,6 +914,15 @@ export type MeterRuleId =
   | 'capturedCityCost'
   /** What a coastal city costs. `delta` shifts the constant. */
   | 'coastalCityCost'
+  /**
+   * What a city standing **on hills** costs. `delta` shifts the constant.
+   *
+   * Hill Forts' second half, and `coastalCityCost`'s twin in every respect: a
+   * fact about the ground a town was founded on, priced once in
+   * `cityAuthorityCost` and previewed by `explainFoundingCost` through the same
+   * reading, so the settler sheet cannot disagree with the meter.
+   */
+  | 'hillCityCost'
   /** Every city demands `delta` more happiness. */
   | 'cityHappinessDemand'
   /** Borders keep growing while the writ is in deficit. */
@@ -1384,6 +1441,70 @@ export interface CardUnitStatEffect {
    */
   scope?: CityScope;
 }
+
+/**
+ * Something written onto a unit **at the moment it is created**, and true of
+ * that piece for the rest of its life — The Muster Roll's ten hit points, Drums
+ * of War's point of strength.
+ *
+ * `CardUnitStatEffect`'s opposite number, and the split is worth stating because
+ * the two shapes look alike and mean different things. A `unitStat` is a
+ * *standing reading of the board*: ask it every turn and it answers what the
+ * cards say today, so unslotting the Order slows the legion down again. A stamp
+ * is a **moment** — the card was live when the levy mustered, and the levy is a
+ * levy of veterans whatever the council does next year. That is exactly what the
+ * ratified text says ("newly created units gain …"), and it is the argument
+ * `unitStat`'s `charges` arm already makes for the one stat that could not be
+ * read live.
+ *
+ * So it is written where a card is already read at a birth — `createUnit`
+ * (`state.ts`), the one place a piece comes into existence — into
+ * `Unit.stamp` (presence is the state, `chargesLeft`'s convention). Every
+ * creation is stamped: a completion, a purchase, a wonder's grant, a ruin's
+ * escort. Both fields have exactly one reader apiece and neither is a
+ * multiplier: `unitMaxHp` folds the hit points into the roster's maximum, and
+ * `planCombat` folds the strength in as one labelled line ("Veteran +1") on
+ * whichever side the piece is standing (`unitData.ts`).
+ *
+ * It is deliberately **not** in the piece fingerprint (`signUnits`, `pieces.ts`):
+ * nothing a stamp changes is drawn. The hp bar reads a *fraction* and the
+ * strength is a number on a forecast card, so a stamped warrior and a plain one
+ * are the same sculpt — which is the fingerprint's own test ("any new
+ * visual-affecting unit property"), answered no.
+ */
+export interface CardUnitStampEffect {
+  kind: 'unitStamp';
+  /** Hit points every unit created while this is live is born with. */
+  hp?: number;
+  /** Strength points it carries into every fight, both sides. */
+  strength?: number;
+}
+
+/**
+ * A **fact about a city** that a card simply declares to be true — Cistern
+ * Works, whose aqueducts mean every town of the realm can drink.
+ *
+ * `MeterRuleId`'s pattern one system over, and it is a shape rather than a
+ * `CityScope` because it works in the other direction: a scope *asks* whether a
+ * town has fresh water, and this *answers*. So the rule is read inside the one
+ * predicate every such question already goes through (`cityHasFreshwater` in
+ * `statecraft.ts`, which is what `cityScopeAdmits`' `freshwater` and
+ * `notFreshwater` arms consult), and a card, a river and a lake are one answer.
+ *
+ * It reaches the questions asked of a **town** and deliberately not those asked
+ * of a **hex**: a farm beside a river is a fact about the ground under the farm
+ * (`TileCondition`'s `freshwater`, the renewal's `requiresFreshwater`, the
+ * improvement gate's waiver), and a cistern in the town square does not water
+ * the third ring. That is the honest split rather than a silence, and the row
+ * says so in its own words.
+ */
+export interface CardCityRuleEffect {
+  kind: 'cityRule';
+  rule: CityRuleId;
+}
+
+/** A fact about every one of an empire's cities that a card declares true. */
+export type CityRuleId = 'freshwater';
 
 /** A rider on a windfall. See `WindfallOccasion` for what "rider" means. */
 export interface CardWindfallRiderEffect {
@@ -1999,6 +2120,8 @@ export type CardEffect =
   | CardHappinessTierBoostEffect
   | CardCombatLineEffect
   | CardUnitStatEffect
+  | CardUnitStampEffect
+  | CardCityRuleEffect
   | CardWindfallRiderEffect
   | CardFoundingRiderEffect
   | CardCountScaledEffect

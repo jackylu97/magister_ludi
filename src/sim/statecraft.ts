@@ -119,6 +119,7 @@ import {
   type CardPayout,
   type CardRule,
   type CardTileYieldEffect,
+  type CityRuleId,
   type CityScope,
   type CombatCondition,
   type CombatScale,
@@ -161,7 +162,16 @@ import {
 import { isWaterTerrain } from './terrainData';
 import { awardOccasion } from './triumphs';
 import { UNIT_UNLOCK_TECH, highestAge } from './techData';
-import { type ModelClass, type UnitTypeId, UNIT_TYPE_IDS, isCombatant, unitDef } from './unitData';
+import {
+  type ModelClass,
+  type UnitStamp,
+  type UnitTypeId,
+  UNIT_TYPE_IDS,
+  isCombatant,
+  isExplorer,
+  unitDef,
+  unitMaxHp,
+} from './unitData';
 import { isExploredBy, isVisibleTo } from './visibility';
 import { isCoastal } from './water';
 
@@ -1292,6 +1302,51 @@ function isMountainAdjacent(state: GameState, city: City): boolean {
   return false;
 }
 
+/**
+ * Does a hex touching this town's own — or its own — carry this improvement?
+ *
+ * `isMountainAdjacent`'s reach exactly, asked of the works rather than of the
+ * ground: the ring of six plus the centre, because a town founded *on* a shrine
+ * is not further from it than its neighbour is. See the scope's docblock for why
+ * it is the ring and not the work radius.
+ */
+function hasAdjacentImprovement(state: GameState, city: City, improvement: ImprovementId): boolean {
+  const tile = getTileAt(state.map, city.col, city.row);
+  if (!tile) return false;
+  if (tile.improvement === improvement) return true;
+  for (const neighbour of neighborTiles(state.map, tileHex(tile))) {
+    if (neighbour.improvement === improvement) return true;
+  }
+  return false;
+}
+
+/**
+ * **THE** question "can this town drink" — the board's answer, or a card's.
+ *
+ * The one predicate `cityScopeAdmits`' `freshwater` and `notFreshwater` arms go
+ * through, and the only reader of the `cityRule` shape (Cistern Works). It is a
+ * predicate rather than two copies of `cityTile(...).freshwater` precisely so
+ * that a card declaring the fact cannot be true for one arm and false for its
+ * mirror — a River Kings penalty that still bit a town the aqueducts had already
+ * watered would be the two halves of one sentence disagreeing.
+ *
+ * It answers about a **town** and nothing wider: a hex's own fresh water is
+ * `TileCondition`'s `freshwater` and the renewal's `requiresFreshwater`, and a
+ * cistern in the town square does not water the third ring.
+ */
+function cityHasFreshwater(state: GameState, city: City): boolean {
+  if (cityTile(state.map, city).freshwater) return true;
+  return cardCityRule(state, city.ownerId, 'freshwater');
+}
+
+/** Does this empire hold a card declaring this fact about its cities? */
+function cardCityRule(state: GameState, playerId: number, rule: CityRuleId): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'cityRule')) {
+    if (effect.rule === rule) return true;
+  }
+  return false;
+}
+
 /** Default reach of the `frontier` scope, in hexes. */
 const FRONTIER_RADIUS = 3;
 
@@ -1334,11 +1389,15 @@ export function cityScopeAdmits(
     case 'coastal':
       return isCoastalCity(state, city);
     case 'freshwater':
-      return cityTile(state.map, city).freshwater;
+      // Through the one predicate, so a card that declares the fact (Cistern
+      // Works) and the river that supplies it are one answer. See it.
+      return cityHasFreshwater(state, city);
     case 'notFreshwater':
-      return !cityTile(state.map, city).freshwater;
+      return !cityHasFreshwater(state, city);
     case 'mountainAdjacent':
       return isMountainAdjacent(state, city);
+    case 'adjacentImprovement':
+      return hasAdjacentImprovement(state, city, scope.improvement);
     case 'frontier':
       return isFrontierCity(state, city, scope.radius ?? FRONTIER_RADIUS);
     case 'captured':
@@ -1356,6 +1415,10 @@ export function cityScopeAdmits(
       return cityTile(state.map, city).hills;
     case 'populationAtLeast':
       return city.population >= scope.value;
+    case 'populationAtMost':
+      // Inclusive, exactly as its mirror is: "size 4 or less" reaches a town of
+      // four, which is what the printed words say.
+      return city.population <= scope.value;
     case 'holding': {
       // Asked across all three kinds, because a card may name a bonus resource
       // and a luxury in one breath (Quarrymen's Guild: stone or marble).
@@ -1433,6 +1496,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'no fresh water';
     case 'mountainAdjacent':
       return 'mountain hold';
+    case 'adjacentImprovement':
+      return `beside a ${improvementDef(scope.improvement).name.toLowerCase()}`;
     case 'frontier':
       return 'near a rival';
     case 'captured':
@@ -1445,6 +1510,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'hill city';
     case 'populationAtLeast':
       return `size ${scope.value}+`;
+    case 'populationAtMost':
+      return `size ${scope.value} or less`;
     case 'holding':
       return scope.resources.map((id) => resourceDef(id).name).join('/');
     case 'holdingCategory':
@@ -1502,6 +1569,16 @@ function countOf(
       let total = 0;
       for (const id of controlledResources(state, playerId, 'luxury')) {
         total += resourceCopies(state, playerId, id);
+      }
+      return total;
+    }
+    case 'duplicateLuxuries': {
+      // The **kinds** there is more than one seam of — Village Fairs. The same
+      // sweep `luxuryCopies` takes, counting names instead of copies, which is
+      // why it is a member here rather than a second traversal somewhere else.
+      let total = 0;
+      for (const id of controlledResources(state, playerId, 'luxury')) {
+        if (resourceCopies(state, playerId, id) >= 2) total += 1;
       }
       return total;
     }
@@ -2983,6 +3060,10 @@ function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
   if (filter.consecrates !== undefined && (def.consecrates === true) !== filter.consecrates) {
     return false;
   }
+  // "Scouts", asked of the roster's own marker (`isExplorer`) rather than of a
+  // name — Wolf-Runners reaches the commando a later age adds without its row
+  // being touched, exactly as `consecrates` reaches the prophet.
+  if (filter.explores !== undefined && isExplorer(def) !== filter.explores) return false;
   return true;
 }
 
@@ -3061,6 +3142,39 @@ export function cardExtraCharges(
     total += scaleByLevel(effect.amount, level);
   }
   return total;
+}
+
+/**
+ * What this empire's law **stamps** on a piece born now — read by `createUnit`,
+ * once, at the moment of the birth, and by nothing else.
+ *
+ * `cardExtraCharges`' argument for a second field, and the same one: a stamp is
+ * a fact about a *moment*, so it is written into the unit rather than computed
+ * on read. The Muster Roll's ten hit points belong to the levy that mustered
+ * while the Order sat in its slot; unslotting it next year does not un-blood
+ * them, and a bonus read live would have.
+ *
+ * It is deliberately **not** filtered by a `UnitFilter`: the ratified rows say
+ * *newly created units*, and a stamp narrowed to a silhouette would be a
+ * different card ("your spearmen are veterans") that nobody has ratified. The
+ * day one is, the filter joins `CardUnitStampEffect` and is asked here beside
+ * `unitMatches` like every other.
+ *
+ * Every figure is scaled by the Order's level like the rest of the vocabulary,
+ * and a stamp that comes out to nothing at all is **not written** — see
+ * `createUnit`, where presence is the state.
+ */
+export function cardUnitStamp(state: GameState, playerId: number): UnitStamp {
+  let hp = 0;
+  let strength = 0;
+  for (const { level, effect } of effectsOfKind(state, playerId, 'unitStamp')) {
+    if (effect.hp !== undefined) hp += scaleByLevel(effect.hp, level);
+    if (effect.strength !== undefined) strength += scaleByLevel(effect.strength, level);
+  }
+  const stamp: UnitStamp = {};
+  if (hp !== 0) stamp.hp = hp;
+  if (strength !== 0) stamp.strength = strength;
+  return stamp;
 }
 
 /** One line of what a card adds to a city's own defence or sight. */
@@ -3479,7 +3593,7 @@ export function payWindfallGrants(
   if (payout.healAll) {
     for (const unit of state.units) {
       if (unit.ownerId !== player.id) continue;
-      unit.hp = unitDef(unit.type).maxHp;
+      unit.hp = unitMaxHp(unit);
     }
   }
   // **The only writer of `Player.timed`** — Crassus' bill, stamped at an
@@ -4228,6 +4342,24 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       out.push({ text: `${who}: ${signed(amount)} ${STAT_WORDS[effect.stat]}${where}` });
       return;
     }
+    case 'unitStamp': {
+      // "**Newly created**", exactly as the `charges` arm above says it, and for
+      // that arm's reason: a stamp is written at the birth, so a soldier already
+      // standing in the field gains nothing when the Order is slotted. A sentence
+      // that promised a fleet-wide refit would be a card that lies.
+      const hp = scaleByLevel(effect.hp ?? 0, level);
+      const strength = scaleByLevel(effect.strength ?? 0, level);
+      if (hp !== 0) {
+        out.push({ text: `newly created units gain ${signed(hp)} maximum health` });
+      }
+      if (strength !== 0) {
+        out.push({ text: `newly created units gain ${signed(strength)} combat strength` });
+      }
+      return;
+    }
+    case 'cityRule':
+      out.push({ text: CITY_RULE_WORDS[effect.rule] });
+      return;
     case 'windfallRider': {
       // The occasion, narrowed where the row narrows it — "killing a barbarian
       // unit" rather than "killing a unit". See `occasionWords`.
@@ -4254,12 +4386,16 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         });
       }
       if (grant?.heal !== undefined) {
-        // "**a further**", because every occasion that carries a heal today
-        // already pays one of its own: pillaging heals `improvements.pillageHeal`
-        // to whoever struck the works before a card has spoken, so a card that
-        // said "pillaging heals 25" was quoting the base and promising nothing.
-        // The rider is an increment and the sentence says so.
-        out.push({ text: `${occasion} heals a further ${scaleByLevel(grant.heal, level)}${per}` });
+        // "**a further**" only where the occasion already pays a heal of its
+        // own: pillaging heals `improvements.pillageHeal` to whoever struck the
+        // works before a card has spoken, so a card that said "pillaging heals
+        // 25" was quoting the base and promising nothing. A kill pays no heal at
+        // all until The Oath-Bound says so, and "a further 15" there would have
+        // been an increment on a number that does not exist.
+        const further = OCCASIONS_THAT_HEAL.includes(effect.occasion) ? 'a further ' : '';
+        out.push({
+          text: `${occasion} heals ${further}${scaleByLevel(grant.heal, level)}${per}`,
+        });
       }
       if (grant?.timed !== undefined && grant.timed.effects.length > 0) {
         // Said in the **nested clauses' own words**, so a bill and a blessing
@@ -4697,6 +4833,14 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'mountainAdjacent':
       into.qualifiers.push('beside a mountain');
       return;
+    case 'adjacentImprovement':
+      // The works named the way a tile condition names them — article outside
+      // the mark, because "a" has no page in the book (`buildingWords`).
+      into.qualifiers.push(
+        `beside ${indefinite(improvementDef(scope.improvement).name)} ` +
+          `${ref('improvement', scope.improvement, improvementDef(scope.improvement).name)}`,
+      );
+      return;
     case 'frontier':
       // A qualifier and not an adjective, for `notCapital`'s reason one step
       // further: "frontier" is a word the game never defines anywhere else, and
@@ -4719,6 +4863,11 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     case 'populationAtLeast':
       into.qualifiers.push(`of ${scope.value}+`);
+      return;
+    case 'populationAtMost':
+      // "of 4 or less", not "of −4": the threshold reads downward and a sign
+      // would have printed a size nobody can have.
+      into.qualifiers.push(`of ${scope.value} or less`);
       return;
     case 'holding':
       into.qualifiers.push(
@@ -4823,6 +4972,11 @@ function filterWords(filter: UnitFilter): string {
   // other way round — "workers", the ones that are not religious.
   if (filter.consecrates === true) return 'religious units';
   if (filter.consecrates === false && filter.modelClass === 'worker') return 'workers';
+  // "Scouts", and asked before the silhouette for `consecrates`' reason: an
+  // explorer is a *vocation*, and its `modelClass` is whatever the roster
+  // happens to give it.
+  if (filter.explores === true) return 'scouts';
+  if (filter.explores === false) return 'units other than scouts';
   if (filter.modelClass !== undefined) return `${filter.modelClass} units`;
   if (filter.ranged === true) return 'ranged units';
   if (filter.ranged === false) return 'melee units';
@@ -5006,6 +5160,18 @@ const STAT_WORDS: Record<'movement' | 'sight' | 'heal' | 'range', string> = {
   range: 'range',
 };
 
+/**
+ * The occasions that pay a heal of their **own**, before a card has spoken.
+ *
+ * A list rather than a `Set` for CLAUDE.md's iteration rule, and here rather
+ * than inferred because the fact lives in the *verb*: a pillage hands
+ * `improvements.pillageHeal` to whoever struck the works, and nothing else does.
+ * It is what decides whether a rider's sentence says "heals 25" or "heals a
+ * further 25", and an occasion that grows a base heal joins it in the same pass
+ * that gives it one.
+ */
+const OCCASIONS_THAT_HEAL: readonly WindfallOccasion[] = ['pillage'];
+
 const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   chop: 'clearing a forest or jungle',
   camp: 'clearing a barbarian camp',
@@ -5065,6 +5231,10 @@ function occasionWords(
 const COUNT_WORDS: Record<CountKind, PluralWords> = {
   uniqueLuxuries: { one: 'unique luxury', many: 'unique luxuries' },
   luxuryCopies: { one: 'improved luxury copy', many: 'improved luxury copies' },
+  duplicateLuxuries: {
+    one: 'luxury you hold two or more copies of',
+    many: 'luxuries you hold two or more copies of',
+  },
   improvedBonusResources: {
     one: 'improved bonus resource',
     many: 'improved bonus resources',
@@ -5212,6 +5382,7 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {
   capturedCityCost: 'the authority a captured city costs',
   coastalCityCost: 'the authority a coastal city costs',
+  hillCityCost: 'the authority a city on hills costs',
   cityHappinessDemand: 'the happiness every city demands',
   borderFreezeExempt: 'your borders keep growing',
   authorityUnitProductionExempt: 'negative authority no longer slows production toward units',
@@ -5238,6 +5409,18 @@ const ACTION_WORDS: Record<ActionRuleId, string> = {
   noSettlerEscalation: 'settlers never cost more than the first',
   buyGreatPersonWithGold: 'a great person waiting to be called may be bought with gold',
   buyGreatPersonWithFaith: 'a great person waiting to be called may be bought with faith',
+};
+
+/**
+ * The facts a card simply declares true of a realm's towns. See `CityRuleId`.
+ *
+ * A whole sentence rather than a stem, `ACTION_WORDS`' shape, because a rule of
+ * this kind has no figure to hang a noun phrase off — and the sentence says
+ * *city* out loud, because the honest half of Cistern Works is which questions
+ * it does not reach (a farm beside a river is a fact about the ground).
+ */
+const CITY_RULE_WORDS: Record<CityRuleId, string> = {
+  freshwater: 'every city of yours counts as being on fresh water',
 };
 
 const BEHAVIOR_WORDS: Record<BehaviorRuleId, string> = {

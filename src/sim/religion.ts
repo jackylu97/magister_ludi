@@ -127,7 +127,7 @@ import { improvementErrorAt } from './improvements';
 import { nextFloat } from './rng';
 import { RULES } from './rulesData';
 import { awardOccasion } from './triumphs';
-import { isCombatant, unitDef } from './unitData';
+import { isCombatant, unitDef, unitMaxHp } from './unitData';
 
 // --- the pantheon's slots ---------------------------------------------------
 
@@ -933,7 +933,7 @@ function payRiteGrant(
     said('Culture', grant.culture);
     settleCultureWindfall(state, player);
   }
-  if (grant.healFully === true && unit) unit.hp = unitDef(unit.type).maxHp;
+  if (grant.healFully === true && unit) unit.hp = unitMaxHp(unit);
   if (grant.lump !== undefined) {
     // **A rite makes the same kind of noise a prophet does**, out of a smaller
     // purse: the row's own figures, shifted by the enhancer pool through the one
@@ -1019,7 +1019,7 @@ function payRiteRiders(state: GameState, player: Player, unit: Unit): WonderComp
   const wonders: WonderCompletion[] = [];
   const payout = windfallPayout(state, player.id, 'rite');
   if (payout.heal > 0) {
-    unit.hp = Math.min(unitDef(unit.type).maxHp, unit.hp + payout.heal);
+    unit.hp = Math.min(unitMaxHp(unit), unit.hp + payout.heal);
   }
   if (payout.grants.length === 0) return wonders;
   const at = { col: unit.col, row: unit.row };

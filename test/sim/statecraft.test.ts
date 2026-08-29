@@ -36,13 +36,21 @@ import { nearestTarget } from '../../src/sim/barbarians';
 import { settleDiscovery } from '../../src/sim/discoveries';
 import { RULES } from '../../src/sim/rulesData';
 import { recomputeVisibility, sightSources } from '../../src/sim/visibility';
-import { authorityOf, explainAuthority, explainHappiness, foldMeter, happinessOf } from '../../src/sim/meters';
+import {
+  authorityOf,
+  explainAuthority,
+  explainFoundingCost,
+  explainHappiness,
+  foldMeter,
+  happinessOf,
+} from '../../src/sim/meters';
 import {
   type PlayerStatecraft,
   cardActionRule,
   cardEmpireYields,
   cardBehaviorRule,
   cardCityStat,
+  cityScopeAdmits,
   cardCityYields,
   cardProduction,
   cardFoundingRider,
@@ -110,12 +118,14 @@ import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
 import { buildError, isUnlocked } from '../../src/sim/tech';
 import {
   explainEmpireGold,
+  explainRouteSlots,
   explainRouteYieldBetween,
   foldRouteYield,
   roadsBuiltBy,
+  routeSlots,
 } from '../../src/sim/trade';
 import { SCHEMA_VERSION, type GameState, createUnit, playerById } from '../../src/sim/state';
-import { unitDef } from '../../src/sim/unitData';
+import { unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
 import { sightOf } from '../../src/sim/visibility';
 
@@ -991,10 +1001,10 @@ describe('every hook family, end to end', () => {
 // --- determinism ------------------------------------------------------------
 
 describe('determinism', () => {
-  it('round-trips a schema 34 save with Statecraft in it', () => {
+  it('round-trips a schema 35 save with Statecraft in it', () => {
     // Bumped to 32 by the master-list cut of 2026-08-28: no new field, but the
     // balance table moved under every replay (see the version's own entry).
-    expect(SCHEMA_VERSION).toBe(34);
+    expect(SCHEMA_VERSION).toBe(35);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2453,6 +2463,309 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     expect(said('breadAndCircuses')).toEqual([
       'while your authority is positive: +3 happiness in every city',
       '-1 gold in every city',
+    ]);
+  });
+});
+
+// --- the Chiefdom / Gov I / Gov II Orders pass, 2026-08-29 -------------------
+
+/**
+ * The twenty-one rows the user ratified in `docs/orders-candidates.md` for the
+ * three pools drafted most, and the six shapes they needed:
+ * `populationAtMost` and `adjacentImprovement` (two city scopes),
+ * `duplicateLuxuries` (a count), `hillCityCost` (a meter rule), `unitStamp` (a
+ * fact written onto a piece at its birth) and `cityRule` (a fact a card declares
+ * true of a realm's towns). Plus `UnitFilter.explores`, which is a field on an
+ * existing shape.
+ *
+ * One behavioural test per new shape, carried to the ledger it lands in — the
+ * file's own claim, and the only kind of test that catches a shape declared and
+ * never read. The rows themselves are pinned in words at the end.
+ */
+describe('the Orders pass of 2026-08-29', () => {
+  /** Every id this pass added, with the pool and slot it was ratified into. */
+  const ADDED: readonly [OrderId, string, string][] = [
+    ['fireKeepers', 'chiefdom', 'wildcard'],
+    ['wolfRunners', 'chiefdom', 'military'],
+    ['hearthSongs', 'chiefdom', 'wildcard'],
+    ['statuteLabour', 'governmentI', 'economic'],
+    ['riverWardens', 'governmentI', 'economic'],
+    ['theAlmanac', 'governmentI', 'wildcard'],
+    ['villageFairs', 'governmentI', 'wildcard'],
+    ['theMusterRoll', 'governmentI', 'military'],
+    ['hillForts', 'governmentI', 'military'],
+    ['thePilgrimsPurse', 'governmentI', 'wildcard'],
+    ['charterTowns', 'governmentI', 'economic'],
+    ['theBronzeMirror', 'governmentI', 'wildcard'],
+    ['theChoir', 'governmentII', 'wildcard'],
+    ['starGazers', 'governmentII', 'wildcard'],
+    ['cisternWorks', 'governmentII', 'economic'],
+    ['ledgerKeepers', 'governmentII', 'economic'],
+    ['drumsOfWar', 'governmentII', 'military'],
+    ['theCartographers', 'governmentII', 'wildcard'],
+    ['theMasonsLodge', 'governmentII', 'economic'],
+    ['theOathBound', 'governmentII', 'military'],
+    ['sanctuary', 'governmentII', 'wildcard'],
+  ] as never;
+
+  /** The two rows that ship inert — a design decision, written on the row. */
+  const RETIRED: readonly string[] = ['theBronzeMirror', 'sanctuary'];
+
+  it('seats every new row in its ratified pool and slot', () => {
+    for (const [id, pool, slotType] of ADDED) {
+      const def = orderDef(id);
+      expect(def.pool, id).toBe(pool);
+      expect(def.slot, id).toBe(slotType);
+      expect(def.flavor, id).toBeTruthy();
+      expect(def.text, id).toBeTruthy();
+      // No rarity yet: the user is holding that field until later, and a row
+      // carrying one would be a dial the draw does not read.
+      expect((def as unknown as Record<string, unknown>)["rarity"], id).toBeUndefined();
+    }
+  });
+
+  it('keeps the two deferred rows out of every pool sweep', () => {
+    for (const id of RETIRED) {
+      const def = orderDef(id as never);
+      expect(def.retired, id).toBe(true);
+      expect(def.effects, id).toEqual([]);
+      expect(def.deferred, id).toBeDefined();
+      expect(def.note, id).toBeTruthy();
+      // `poolOrders` is the one reader of `retired`, so a withdrawn row is out
+      // of the draw, the upgrade roll and every screen at once.
+      expect(poolOrders(def.pool).includes(id as never), id).toBe(false);
+    }
+  });
+
+  it('populationAtMost — Hearth Songs pays the villages and stops at the fifth citizen', () => {
+    const g = game(801);
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'hearthSongs');
+    const paid = (): number =>
+      cardCityYields(g.state, city).filter((l) => l.card === 'hearthSongs').length;
+    // Inclusive at the threshold, exactly as `populationAtLeast` is.
+    city.population = 4;
+    expect(paid()).toBe(1);
+    expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(1);
+    city.population = 5;
+    expect(paid()).toBe(0);
+  });
+
+  it('adjacentImprovement — The Pilgrim’s Purse pays the town next door to the shrine', () => {
+    const g = game(802);
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'thePilgrimsPurse');
+    const faith = (): number => foldCardYields(cardCityYields(g.state, city)).faith;
+    expect(faith()).toBe(0);
+    // The ring of six, not the work radius: a shrine three hexes out is a
+    // different sentence and this scope does not say it.
+    const far = ownedTiles(g.state, city).find(
+      (t) => Math.abs(t.col - city.col) + Math.abs(t.row - city.row) > 2,
+    );
+    if (far) {
+      far.improvement = 'holySite';
+      expect(faith()).toBe(0);
+      delete far.improvement;
+    }
+    const near = getTileAt(g.state.map, city.col + 1, city.row)!;
+    near.improvement = 'holySite';
+    expect(faith()).toBe(5);
+  });
+
+  it('duplicateLuxuries — Village Fairs counts kinds, not copies', () => {
+    const g = game(803);
+    const city = found(g.state, 0);
+    const seams = ownedTiles(g.state, city).filter((t) => t.col !== city.col || t.row !== city.row);
+    slot(g.state, 0, 'villageFairs');
+    const fairs = (): number =>
+      foldMeter(explainHappiness(g.state, 0).filter((l) => l.source.includes('Village Fairs')));
+    // One copy of a luxury is not a fair.
+    seams[0]!.resource = 'silk';
+    seams[0]!.improvement = 'plantation';
+    expect(fairs()).toBe(0);
+    // Two copies of one kind is one fair — the count is of *kinds* there is a
+    // surplus of, which is what neither `uniqueLuxuries` nor `luxuryCopies` says.
+    seams[1]!.resource = 'silk';
+    seams[1]!.improvement = 'plantation';
+    expect(fairs()).toBe(1);
+    // A third copy of the same kind changes nothing; a second *kind* with two
+    // copies is a second fair.
+    seams[2]!.resource = 'silk';
+    seams[2]!.improvement = 'plantation';
+    expect(fairs()).toBe(1);
+  });
+
+  it('hillCityCost — Hill Forts prices a hill town a point cheaper, and says so in the preview', () => {
+    const g = game(804);
+    const city = found(g.state, 0);
+    // Not the capital: the capital rides free and would hide the clause.
+    const hill = ownedTiles(g.state, city).find((t) => t.col !== city.col || t.row !== city.row)!;
+    hill.hills = true;
+    hill.terrain = 'grassland';
+    const second = foundCityAt(g.state, 0, hill)!;
+    const lineFor = (): number =>
+      explainAuthority(g.state, 0).find((l) => l.source.startsWith(second.name))!.value;
+    const plain = lineFor();
+    slot(g.state, 0, 'hillForts');
+    expect(lineFor()).toBe(plain + 1);
+    // And the *preview* of a town not yet founded reads the same rule, which is
+    // the whole reason `cityCosts` is hoisted: a preview that disagreed with the
+    // meter it previews is a preview that lies.
+    const site = ownedTiles(g.state, second).find(
+      (t) => t.hills && (t.col !== second.col || t.row !== second.row),
+    );
+    if (site) {
+      const preview = explainFoundingCost(g.state, 0, site).find((l) => l.meter === 'authority')!;
+      expect(preview.source.endsWith('on hills')).toBe(true);
+    }
+  });
+
+  it('unitStamp — The Muster Roll blooods the levy it raised, and only that levy', () => {
+    const g = game(805);
+    found(g.state, 0);
+    const before = createUnit(g.state, 0, 'warrior', 5, 5);
+    expect(before.stamp).toBeUndefined();
+    expect(unitMaxHp(before)).toBe(unitDef('warrior').maxHp);
+
+    slot(g.state, 0, 'theMusterRoll');
+    const after = createUnit(g.state, 0, 'warrior', 6, 5);
+    expect(after.stamp).toEqual({ hp: 10 });
+    expect(unitMaxHp(after)).toBe(unitDef('warrior').maxHp + 10);
+    // Born at its own maximum, not at the roster's: a veteran does not start
+    // wounded.
+    expect(after.hp).toBe(unitMaxHp(after));
+    // The piece already standing in the field gains nothing — a stamp is a fact
+    // about a moment, which is what the printed words say.
+    expect(before.stamp).toBeUndefined();
+
+    // And unslotting the card does not un-blood it.
+    playerById(g.state, 0)!.statecraft.slots = [];
+    expect(unitMaxHp(after)).toBe(unitDef('warrior').maxHp + 10);
+    expect(createUnit(g.state, 0, 'warrior', 7, 5).stamp).toBeUndefined();
+  });
+
+  it('cityRule — Cistern Works waters every town, and no hex at all', () => {
+    const g = game(806);
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    tile.freshwater = false;
+    expect(cityScopeAdmits(g.state, city, { test: 'freshwater' })).toBe(false);
+    expect(cityScopeAdmits(g.state, city, { test: 'notFreshwater' })).toBe(true);
+
+    slot(g.state, 0, 'cisternWorks');
+    // Both halves of the sentence move together — the one predicate is what
+    // stops a River Kings penalty from biting a town the aqueducts have watered.
+    expect(cityScopeAdmits(g.state, city, { test: 'freshwater' })).toBe(true);
+    expect(cityScopeAdmits(g.state, city, { test: 'notFreshwater' })).toBe(false);
+    // The ground is untouched: a hex's own water is a different question, and
+    // the row's note says so.
+    expect(tile.freshwater).toBe(false);
+  });
+
+  it('the explorer filter — Wolf-Runners is quick for scouts and nobody else', () => {
+    const g = game(807);
+    found(g.state, 0);
+    const scout = createUnit(g.state, 0, 'scout', 5, 5);
+    const warrior = createUnit(g.state, 0, 'warrior', 6, 5);
+    slot(g.state, 0, 'wolfRunners');
+    expect(cardUnitStat(g.state, scout, 'movement')).toBe(1);
+    expect(cardUnitStat(g.state, warrior, 'movement')).toBe(0);
+  });
+
+  it('Charter Towns founds with a Granary, and Homestead Charters still adds the citizen', () => {
+    const g = game(808);
+    slot(g.state, 0, 'charterTowns');
+    expect(cardFoundingRider(g.state, 0)).toEqual({
+      population: 0,
+      buildings: ['granary'],
+      roads: false,
+    });
+    const unit = g.state.units.find((u) => u.ownerId === 0 && u.type === 'settler')
+      ?? g.state.units.find((u) => u.ownerId === 0)!;
+    const city = foundCityAt(g.state, 0, getTileAt(g.state.map, unit.col, unit.row)!)!;
+    expect(city.buildings).toContain('granary');
+  });
+
+  it('routeRider — Ledger-Keepers widens the caravan fold by a labelled line', () => {
+    const g = game(809);
+    found(g.state, 0);
+    const before = explainRouteSlots(g.state, 0);
+    slot(g.state, 0, 'ledgerKeepers');
+    const after = explainRouteSlots(g.state, 0);
+    expect(after.length).toBe(before.length + 1);
+    const line = after[after.length - 1]!;
+    expect(line.source).toContain('Ledger-Keepers');
+    expect(line.slots).toBe(1);
+    expect(routeSlots(g.state, 0)).toBe(
+      before.reduce((sum, l) => sum + l.slots, 0) + 1,
+    );
+  });
+
+  it('reads every shape this pass declared from at least one live card', () => {
+    // The register, narrowed to what this pass added — a shape declared and
+    // never used is a shape nobody has tested.
+    const used = new Set<CardEffectKind>();
+    for (const id of ORDER_IDS) {
+      for (const effect of orderDef(id).effects) used.add(effect.kind);
+    }
+    for (const kind of ['unitStamp', 'cityRule', 'routeRider'] as CardEffectKind[]) {
+      expect(used.has(kind), kind).toBe(true);
+    }
+  });
+
+  it('prints every new row in the words the user ratified', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    expect(said('fireKeepers')).toEqual([
+      '+1 faith in your capital',
+      '+1 happiness in your capital',
+    ]);
+    expect(said('wolfRunners')).toEqual([
+      'scouts: +1 movement',
+      'claiming a ruin grants +10 gold',
+    ]);
+    expect(said('hearthSongs')).toEqual(['+1 culture in every city of 4 or less']);
+    expect(said('statuteLabour')).toEqual(['+1 production per 3 population in this city']);
+    expect(said('riverWardens')).toEqual([
+      '+1 food on every hex with a Farm beside fresh water',
+    ]);
+    expect(said('theAlmanac')).toEqual([
+      '+2 science in your capital',
+      '+1 science in every city with a Library',
+    ]);
+    expect(said('villageFairs')).toEqual([
+      '+1 happiness per luxury you hold two or more copies of',
+    ]);
+    expect(said('theMusterRoll')).toEqual(['newly created units gain +10 maximum health']);
+    expect(said('hillForts')).toEqual([
+      '+2 combat strength on hills',
+      'the authority a city on hills costs falls by 1',
+    ]);
+    expect(said('thePilgrimsPurse')).toEqual(['+5 faith in every city beside a Holy Site']);
+    expect(said('charterTowns')).toEqual(['new cities are founded with a Granary']);
+    expect(said('theChoir')).toEqual([
+      '+1 culture in every city with a Temple',
+      '+1 happiness in every city with a Temple',
+    ]);
+    expect(said('starGazers')).toEqual(['+2 science in every city beside a mountain']);
+    expect(said('cisternWorks')).toEqual(['every city of yours counts as being on fresh water']);
+    expect(said('ledgerKeepers')).toEqual([
+      '+1 gold in every city with a Market',
+      '+1 trade route',
+    ]);
+    expect(said('drumsOfWar')).toEqual(['newly created units gain +1 combat strength']);
+    expect(said('theCartographers')).toEqual(['+1 science per 40 hexes you have revealed']);
+    expect(said('theMasonsLodge')).toEqual([
+      '+10% production toward buildings, in every city of 6+',
+    ]);
+    // "heals 15", not "heals a further 15": a kill pays no heal of its own, and
+    // an increment on a number that does not exist is a card promising nothing.
+    expect(said('theOathBound')).toEqual(['killing a unit heals 15']);
+    // The two deferred rows say what is missing and nothing else.
+    expect(said('theBronzeMirror')).toEqual([
+      'a new luxury appears within three hexes of your capital when you complete a technology — not built yet',
+    ]);
+    expect(said('sanctuary')).toEqual([
+      'your holy city is sacked rather than captured while it keeps your religion — not built yet',
     ]);
   });
 });

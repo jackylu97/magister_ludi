@@ -442,6 +442,66 @@ export function isExplorer(def: UnitDef): boolean {
 }
 
 /**
+ * What an empire's **law** stamped on a piece at the moment it was created —
+ * The Muster Roll's ten hit points, Drums of War's point of strength.
+ *
+ * A stamp is written once, by `createUnit`, and never revisited: the card that
+ * ordered it may be unslotted the turn after and the veteran is still a veteran,
+ * which is exactly what "newly created units gain …" says and what a bonus
+ * computed on read could not say. `Unit.chargesLeft`'s bargain (a charge is
+ * spent, so it is written at the birth) one field over, for the same reason.
+ *
+ * It lives here rather than in `state.ts` so that the two readings of it — the
+ * maximum below and the strength line `planCombat` folds — are facts about the
+ * unit *table* answerable without the state, which is what lets the renderer's
+ * hp bar ask the same question the simulation does.
+ */
+export interface UnitStamp {
+  /** Hit points added to the roster's maximum, for this piece and forever. */
+  hp?: number;
+  /** Strength points added on both sides, as one labelled line in the fold. */
+  strength?: number;
+}
+
+/** The shape either reading needs: a type, and whatever was stamped on it. */
+export interface StampedUnit {
+  type: UnitTypeId;
+  stamp?: UnitStamp;
+}
+
+/**
+ * **THE** maximum health of one piece — the roster's figure plus its stamp.
+ *
+ * One helper, and every reader of a *unit's* maximum goes through it: the heal
+ * cap (`healUnits`, a rite, a pillage, a great person's act), the forecast's two
+ * bars, the upgrade's fraction (`tech.ts`) and the hp bar the renderer draws.
+ * `unitDef(...).maxHp` on its own is now only ever the **roster's** answer — what
+ * the Compendium prints about a type, and what a pathfinding probe carries — and
+ * the split matters: a stamped legion whose bar read against the roster would
+ * have shown a full unit at 90%.
+ *
+ * Floored at 1, because a stamp is signed and a card that took a piece's last
+ * point of health would be a card that deletes an army on the turn it is
+ * slotted.
+ */
+export function unitMaxHp(unit: StampedUnit): number {
+  return Math.max(1, unitDef(unit.type).maxHp + (unit.stamp?.hp ?? 0));
+}
+
+/**
+ * What a piece's stamp is worth in a fight — `unitMaxHp`'s sibling, and the one
+ * reading of `UnitStamp.strength`.
+ *
+ * It is deliberately **not** folded into `UnitDef.combatStrength` anywhere: hard
+ * rule 5 says a strength is the fold of a labelled list, so the veteran's point
+ * joins `planCombat`'s breakdown as a line a player can read ("Veteran +1")
+ * rather than as a bigger number beside the roster's name.
+ */
+export function unitStampStrength(unit: StampedUnit): number {
+  return unit.stamp?.strength ?? 0;
+}
+
+/**
  * Is this the piece an empire sends out to *trade*?
  *
  * The one reading of `UnitDef.trades`, so that nothing anywhere compares a unit

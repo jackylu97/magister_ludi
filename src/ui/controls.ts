@@ -274,7 +274,7 @@ import { highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
 import { type TraderPlunder, routeCities } from '../sim/trade';
-import { type UnitDef, isExplorer, trades, unitDef } from '../sim/unitData';
+import { type UnitDef, isExplorer, trades, unitDef, unitMaxHp } from '../sim/unitData';
 import { type DisbandReport, treasuryInDebt } from '../sim/upkeep';
 import {
   sleepError,
@@ -2623,7 +2623,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // Still standing: the hit points it has left, read off the board rather
       // than subtracted here, so the line agrees with the bar over its head.
       const survivor = unitById(state, combat.defenderUnitId);
-      const left = survivor === undefined ? '' : ` — ${survivor.hp}/${unitDef(survivor.type).maxHp}`;
+      const left = survivor === undefined ? '' : ` — ${survivor.hp}/${unitMaxHp(survivor)}`;
       announce(
         `⚔ Your ${combat.defenderName.toLowerCase()} was attacked by ${attacker}${left}`,
         { cell },

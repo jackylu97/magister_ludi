@@ -102,7 +102,7 @@ import {
   isWaterTerrain,
   terrainDef,
 } from './terrainData';
-import { unitDef } from './unitData';
+import { unitDef, unitMaxHp } from './unitData';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { hasFreshWater } from './water';
 
@@ -954,7 +954,7 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     // actually moved by rather than as what was offered, so a full-strength
     // raider's line does not promise twenty-five points it never took.
     const before = unit.hp;
-    unit.hp = Math.min(unitDef(unit.type).maxHp, unit.hp + payout.heal);
+    unit.hp = Math.min(unitMaxHp(unit), unit.hp + payout.heal);
     report.heal = unit.hp - before;
   }
   return report;

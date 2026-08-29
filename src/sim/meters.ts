@@ -64,6 +64,7 @@ import { improvementDef } from './improvementData';
 import {
   type ResourceHolding,
   capitalCityOf,
+  cityTile,
   controlledHoldings,
   isCoastalCity,
   nextCityName,
@@ -360,15 +361,18 @@ function cityAuthorityCost(
   coastal: boolean,
   capital: boolean,
   /**
-   * What a captured and a coastal city cost *this empire*, after whatever its
-   * Statecraft rewrote (`meterRule`). Passed in rather than looked up, because
-   * this function is deliberately free of the state — it prices a *prospective*
-   * city too, and both callers know the empire.
+   * What a captured, a coastal and a **hill** city cost *this empire*, after
+   * whatever its Statecraft rewrote (`meterRule`). Passed in rather than looked
+   * up, because this function is deliberately free of the state — it prices a
+   * *prospective* city too, and both callers know the empire.
    */
-  costs: { captured: number; coastal: number } = {
+  costs: CityCosts = {
     captured: METERS.authority.capturedCity,
     coastal: METERS.authority.coastalCity,
+    hills: METERS.authority.foundedCity,
   },
+  /** The town's own hex is hills. Hill Forts' half of the ground. */
+  hills = false,
 ): MeterContribution {
   const rules = METERS.authority;
   // Captured first, and that is the precedence rule: a seized coastal city is
@@ -378,8 +382,15 @@ function cityAuthorityCost(
     return { source: `${name} · captured`, part: 'cost', value: -costs.captured };
   }
   if (capital) return { source: `${name} · capital`, part: 'cost', value: -rules.capital };
+  // **The harbour outranks the fort**, and that is the same precedence rule one
+  // rung down: a coastal hill town is priced as a port. Stated rather than
+  // stumbled into — a card that discounted both would otherwise pay twice for
+  // one town, which is the one thing this ladder of returns exists to prevent.
   if (coastal) {
     return { source: `${name} · coastal`, part: 'cost', value: -costs.coastal };
+  }
+  if (hills) {
+    return { source: `${name} · on hills`, part: 'cost', value: -costs.hills };
   }
   return { source: name, part: 'cost', value: -rules.foundedCity };
 }
@@ -474,6 +485,7 @@ export function explainAuthority(
         isCoastalCity(state, city),
         city.id === capital?.id,
         costs,
+        cityTile(state.map, city).hills,
       ),
     );
   }
@@ -503,10 +515,7 @@ export function explainAuthority(
  * `cardMeterRule` because the fold is generic and its other tenants have honest
  * zeroes: Mare Nostrum's coastal towns are meant to cost nothing at all.
  */
-function cityCosts(
-  state: GameState,
-  playerId: number,
-): { captured: number; coastal: number } {
+function cityCosts(state: GameState, playerId: number): CityCosts {
   const rules = METERS.authority;
   return {
     captured: Math.max(
@@ -514,7 +523,21 @@ function cityCosts(
       cardMeterRule(state, playerId, 'capturedCityCost', rules.capturedCity),
     ),
     coastal: cardMeterRule(state, playerId, 'coastalCityCost', rules.coastalCity),
+    // **Off the ordinary founded price**, because that is what the card shifts:
+    // Hill Forts prints "cities on hills cost 1 fewer authority", and one fewer
+    // than what a town costs anywhere else is the only reading of it. Floored at
+    // zero rather than at one — a hill town that costs nothing is a card doing
+    // its job, and the floor is only here because a delta plus an upgrade level
+    // can otherwise turn a cost into a gain.
+    hills: Math.max(0, cardMeterRule(state, playerId, 'hillCityCost', rules.foundedCity)),
   };
+}
+
+/** What each kind of ground costs this empire in writ. See `cityCosts`. */
+interface CityCosts {
+  captured: number;
+  coastal: number;
+  hills: number;
 }
 
 /**
@@ -544,6 +567,7 @@ function prospectAuthorityCost(
     isCoastal(state.map, site),
     capitalCityOf(state, playerId) === undefined,
     cityCosts(state, playerId),
+    site.hills,
   );
 }
 

@@ -125,7 +125,7 @@ import { advanceResearch } from './tech';
 import { type RouteEndReport, endRoute, routeTarget, standsIn } from './trade';
 import { type TriumphAward, triumphMarks, triumphsSince } from './triumphs';
 import { type GameState, type Unit, wakeUnit } from './state';
-import { isCombatant, unitDef } from './unitData';
+import { isCombatant, unitDef, unitMaxHp } from './unitData';
 import { fullMovement, isRested } from './units';
 import { RULES } from './rulesData';
 import { recomputeAllVisibility, sightOf } from './visibility';
@@ -491,7 +491,10 @@ function healUnits(state: GameState): void {
   const amount = RULES.healing.perTurnIfRested;
   for (const unit of state.units) {
     if (!isRested(unit, state)) continue;
-    const { maxHp } = unitDef(unit.type);
+    // **The piece's** maximum, not the roster's: a stamped legion (The Muster
+    // Roll) mends to the ten points its law gave it. `unitMaxHp` is the one
+    // reading of that, and every heal cap in the game goes through it.
+    const maxHp = unitMaxHp(unit);
     if (unit.hp >= maxHp) continue;
     // Field Surgeons, through the one place a heal is decided. It rides on the
     // *rested* rule rather than replacing it: "heal +5 per turn anywhere" means

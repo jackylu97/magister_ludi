@@ -65,11 +65,16 @@ import { type MapgenOverrides, resolveMapgenConfig } from './mapgenData';
 import { type BeliefId, type PlayerPantheon, newPlayerPantheon } from './religionData';
 import { type Rng, hashSeed, makeRng } from './rng';
 import { RULES } from './rulesData';
-import { type PlayerStatecraft, cardExtraCharges, newPlayerStatecraft } from './statecraft';
+import {
+  type PlayerStatecraft,
+  cardExtraCharges,
+  cardUnitStamp,
+  newPlayerStatecraft,
+} from './statecraft';
 import type { CardEffect, CardId } from './statecraftData';
 import { chooseStartPositions, planStartingUnits } from './startPositions';
 import type { TechId } from './techData';
-import { type UnitTypeId, unitDef } from './unitData';
+import { type UnitStamp, type UnitTypeId, unitDef, unitMaxHp } from './unitData';
 import {
   type CitySighting,
   newVisibilityGrid,
@@ -374,8 +379,31 @@ import {
  *     whose resource the empire does not control, and `advanceResearch` runs
  *     the retooling sweep every turn), so a v33 log's warriors become
  *     swordsmen on a different turn than the log remembers.
+ * 35: **A unit can be stamped** (the Chiefdom/Gov I/Gov II Orders pass,
+ *     2026-08-29). `Unit.stamp` is the ninth "presence is the state" field —
+ *     `{ hp?, strength? }`, written once by `createUnit` from the owner's live
+ *     `unitStamp` effects and never revisited, because what a card was worth on
+ *     the day a levy mustered is a fact about that moment (The Muster Roll's ten
+ *     hit points, Drums of War's point of strength). It moves the game twice
+ *     over: a *unit's* maximum health is now `unitMaxHp` rather than the
+ *     roster's figure, so every heal cap, both forecast bars and the upgrade's
+ *     fraction read it; and a stamped piece carries a labelled "Veteran" line
+ *     into `planCombat`'s fold, which changes what a die is thrown against.
+ *
+ *     The same pass adds fourteen Orders to the three pools drafted most, which
+ *     is v32's reason on its own: a bag that grew moves every draw from it, so
+ *     an empire replaying a v34 log is dealt hands the log's indices no longer
+ *     name. Hill Forts also prices a city on hills a point cheaper in authority
+ *     (`hillCityCost`, a new meter rule), and Cistern Works declares every town
+ *     of its holder to be on fresh water — both of which change what the meters
+ *     read on a turn the cards are held.
+ *
+ *     The migration note: a v34 save's units simply have no stamp, which is
+ *     exactly what this version writes for a game whose council has stamped
+ *     nothing — but the log replays against a different pool and a different
+ *     maximum, so the bump refuses the snapshot and keeps the log honest.
  */
-export const SCHEMA_VERSION = 34;
+export const SCHEMA_VERSION = 35;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1103,6 +1131,31 @@ export interface Unit {
    * occasions, not as an exception to "capture touches nothing else".
    */
   freeUpkeep?: true;
+  /**
+   * What this empire's **law** was worth to this piece on the day it was made —
+   * or the key is **absent**, which it is for every unit born under a council
+   * that had stamped nothing.
+   *
+   * Presence is the state, which is `path`'s, `fortifiedTurns`', `chargesLeft`'s,
+   * `sleeping`'s, `timed`'s, `person`'s, `trade`'s and `freeUpkeep`'s convention
+   * and is here for the ninth time for the same reason: a warrior raised before
+   * The Muster Roll and one raised after it must serialise differently in kind,
+   * and a game with no such card in it must serialise exactly as it did before
+   * this field existed.
+   *
+   * **Written in one place**, `createUnit`, from `cardUnitStamp` — so a
+   * completion, a purchase, a wonder's grant, a ruin's escort and a great
+   * person's arrival are all stamped by one line, exactly as they are all
+   * charged by one line. Nothing ever rewrites it: the stamp is a fact about a
+   * *moment*, so a card unslotted next year does not un-blood the levy it
+   * raised, and a captured piece keeps its old empire's stamp the way it keeps
+   * its charges.
+   *
+   * The two readings are `unitMaxHp` and `unitStampStrength` (`unitData.ts`),
+   * which is where the field's docblock lives. It is deliberately **not** in the
+   * piece fingerprint: nothing it changes is drawn.
+   */
+  stamp?: UnitStamp;
 }
 
 /**
@@ -2082,13 +2135,20 @@ export function createUnit(
   person?: GreatPersonId,
 ): Unit {
   const def = unitDef(type);
+  // **The stamp is decided before the piece exists**, because the maximum it is
+  // born at is the roster's plus its own (`unitMaxHp`) — a warrior minted at the
+  // sheet's 100 and stamped to 110 a line later would be a veteran who starts
+  // wounded. The Muster Roll, Drums of War; see `cardUnitStamp`, the one reader
+  // of the shape, and `Unit.stamp`, where presence is the state.
+  const stamp = cardUnitStamp(state, ownerId);
+  const stamped = Object.keys(stamp).length > 0;
   const unit: Unit = {
     id: allocateEntityId(state),
     ownerId,
     type,
     col,
     row,
-    hp: def.maxHp,
+    hp: stamped ? unitMaxHp({ type, stamp }) : def.maxHp,
     movesLeft: def.movement,
     hasAttacked: false,
   };
@@ -2118,6 +2178,10 @@ export function createUnit(
   // warrior's shape is byte-for-byte what it was before great people existed.
   // Exactly one caller passes it — `settleGreatPersonChoice` (`greatPeople.ts`).
   if (person !== undefined) unit.person = person;
+  // Written after the literal and only when the council had stamped something,
+  // for `chargesLeft`' reason exactly: a game with no such card in it serialises
+  // byte-for-byte as it did before this field existed.
+  if (stamped) unit.stamp = stamp;
   state.units.push(unit);
   // A new pair of eyes opens here, whoever asked for them: the `spawnUnit`
   // command, a city finishing production, a scenario seating an opening roster.

@@ -126,7 +126,7 @@ import { chargesLeft, isBuilder } from '../sim/improvements';
 import type { GameMap } from '../sim/map';
 import { type GameState, type Unit, isBarbarian } from '../sim/state';
 import type { TerrainId } from '../sim/terrainData';
-import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, unitMaxHp } from '../sim/unitData';
 
 import {
   type BadgeClass,
@@ -385,13 +385,18 @@ export function buildBadge(
  *
  * The one reading of "how hurt is it" on the whole board, so that the resting
  * instance and the walking copy can never disagree about a number the player is
- * comparing against the unit sheet. `unitDef(...).maxHp` and nothing else: a bar
- * measured against a hard-coded hundred is right for a warrior and wrong for a
- * knight, which is exactly the shape of "the hover is correct and the bar is
- * not".
+ * comparing against **this piece's** maximum (`unitMaxHp`) and nothing else: a
+ * bar measured against a hard-coded hundred is right for a warrior and wrong for
+ * a knight, and one measured against the roster's sheet is wrong again for a
+ * legion The Muster Roll stamped — which is exactly the shape of "the hover is
+ * correct and the bar is not".
+ *
+ * The stamp is therefore **not** in the piece fingerprint (`signUnits`): what is
+ * drawn is a *fraction*, so a stamped warrior at full health and a plain one at
+ * full health are the same mark.
  */
 export function hpBarFill(unit: Unit): number | null {
-  const fraction = Math.max(0, Math.min(1, unit.hp / unitDef(unit.type).maxHp));
+  const fraction = Math.max(0, Math.min(1, unit.hp / unitMaxHp(unit)));
   return fraction >= 1 ? null : fraction;
 }
 

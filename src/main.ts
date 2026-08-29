@@ -57,7 +57,7 @@ import type { Tile } from './sim/map';
 import { describeUpgrade } from './sim/tech';
 import { isExploredBy, isVisibleTo } from './sim/visibility';
 import { techDef } from './sim/techData';
-import { unitDef } from './sim/unitData';
+import { unitDef, unitMaxHp } from './sim/unitData';
 import { Renderer } from './render/renderer';
 import { loadSprites } from './render/sprites';
 import { createFlatTileArtist, createTileArtist } from './render/tileVisuals';
@@ -1025,7 +1025,7 @@ function describeUnitsOn(state: GameState, playerId: number, tile: Tile): string
   const def = unitDef(first.type);
   const owner = state.players[first.ownerId];
   const more = units.length > 1 ? ` +${units.length - 1}` : '';
-  return `${def.name} · ${first.hp}/${def.maxHp} hp · ${owner?.name ?? '—'}${more}`;
+  return `${def.name} · ${first.hp}/${unitMaxHp(first)} hp · ${owner?.name ?? '—'}${more}`;
 }
 
 /**

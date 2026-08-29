@@ -265,6 +265,8 @@ import {
   isRanged,
   trades,
   unitDef,
+  unitMaxHp,
+  unitStampStrength,
 } from './unitData';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { improvementDef } from './improvementData';
@@ -1072,6 +1074,24 @@ function planCombat(
     }
   }
   /**
+   * **The veteran's own point**, both sides — Drums of War, and the second
+   * reading of a piece's stamp (`unitStampStrength`, `unitData.ts`).
+   *
+   * A labelled line and never a bigger number beside the roster's name, which is
+   * hard rule 5 at the scale of one soldier: a player looking at the forecast
+   * has to be able to see that the extra point came from the muster and not from
+   * the ground. It is a fact about *the piece* rather than about the empire that
+   * holds it today — the law that stamped it may have been unslotted years ago —
+   * so it is read off the unit here rather than through `cardCombatLines`, which
+   * asks what the cards say now.
+   */
+  const veteran = (unit: Unit, side: 'attacker' | 'defender'): void => {
+    const amount = unitStampStrength(unit);
+    if (amount !== 0) bonuses.push({ source: 'Veteran', side, amount });
+  };
+  veteran(attacker, 'attacker');
+  if (target.unit) veteran(target.unit, 'defender');
+  /**
    * The empire's law, both sides, generalised from the wild's tax above.
    *
    * Every Statecraft strength line is a `CombatBonusLine` with a label — which
@@ -1094,7 +1114,7 @@ function planCombat(
         : !isBarbarian(state, defenderOwnerId) && isBarbarian(state, attacker.ownerId),
     vsCity: target.city !== null,
     targetHp: target.city ? target.city.hp : target.unit!.hp,
-    targetMaxHp: target.city ? cityMaxHp(target.city) : unitDef(target.unit!.type).maxHp,
+    targetMaxHp: target.city ? cityMaxHp(target.city) : unitMaxHp(target.unit!),
     // **The piece on the other side**, whichever side is asking — Lautaro's "+3
     // vs mounted". Absent when the thing opposite is a city, which has no
     // silhouette, so a `vsClass` line simply does not pay against walls.
@@ -1270,7 +1290,9 @@ function planCombat(
     }
     defenderName = defenderDef.name;
     defenderHp = defenderUnit.hp;
-    defenderMaxHp = defenderDef.maxHp;
+    // The **piece's** maximum, stamp and all, so the bar a player reads is the
+    // bar the heal cap fills. See `unitMaxHp`.
+    defenderMaxHp = unitMaxHp(defenderUnit);
   }
 
   // The flat lines join **last** on the defender's side, and after the branch so
@@ -1434,7 +1456,7 @@ function planCombat(
     damageToAttackerMin: taken(1 - band),
     damageToAttackerMax: taken(1 + band),
     attackerHp: attacker.hp,
-    attackerMaxHp: def.maxHp,
+    attackerMaxHp: unitMaxHp(attacker),
     defenderHp,
     defenderMaxHp,
     capturesUnit,
@@ -1623,9 +1645,14 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       col: tile.col,
       row: tile.row,
     });
-    payBattleRiders(state, attacker.ownerId, 'kill', tile, {
-      vsBarbarians: playerById(state, fromOwnerId)?.barbarian === true,
-    });
+    payBattleRiders(
+      state,
+      attacker.ownerId,
+      'kill',
+      tile,
+      { vsBarbarians: playerById(state, fromOwnerId)?.barbarian === true },
+      attacker,
+    );
     payBattleRiders(state, fromOwnerId, 'death', tile);
   } else if (!forecast.capturesUnit) {
     /**
@@ -1708,7 +1735,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           // Two riders on one death, and they belong to two empires: the killer's
           // `kill` and the fallen's `death`. Both are paid, in that order, because
           // a battle is one event that two laws have something to say about.
-          payBattleRiders(state, attacker.ownerId, 'kill', tile, { vsBarbarians: fromWild });
+          payBattleRiders(state, attacker.ownerId, 'kill', tile, { vsBarbarians: fromWild }, attacker);
           payBattleRiders(state, fallenOwner, 'death', tile);
         }
       }
@@ -1736,9 +1763,17 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     // which is the only reading under which The Iron Price is a card about
     // *combat* rather than a card about attacking.
     if (defenderOwner !== undefined) {
-      payBattleRiders(state, defenderOwner, 'kill', tile, {
-        vsBarbarians: playerById(state, fallenOwner)?.barbarian === true,
-      });
+      // The **counter-attacker** is who to heal, where one is a piece at all:
+      // a city that broke a charge is not a soldier and has no bar this rider
+      // can fill.
+      payBattleRiders(
+        state,
+        defenderOwner,
+        'kill',
+        tile,
+        { vsBarbarians: playerById(state, fallenOwner)?.barbarian === true },
+        target.unit ?? undefined,
+      );
     }
   } else {
     attacker.movesLeft = 0;
@@ -1880,10 +1915,28 @@ function payBattleRiders(
   occasion: 'kill' | 'death' | 'capture',
   at: Tile,
   facts: WindfallOccasionFacts = {},
+  /**
+   * The piece that struck the blow, where one is still standing — The
+   * Oath-Bound's fifteen points, bound to the soldier who earned them.
+   *
+   * Passed rather than derived, for `WindfallOccasionFacts`' reason exactly: by
+   * the time the riders are composed the fight is over and the board no longer
+   * says who won it. Absent on a `death` (the piece it would have healed is the
+   * one that fell) and on a counter-kill whose victim was a city, and a payout
+   * with nobody to heal simply banks nothing — the same silence a grant with no
+   * city to receive it keeps.
+   */
+  healed?: Unit,
 ): void {
   const player = playerById(state, playerId);
   if (!player) return;
   const payout = windfallPayout(state, playerId, occasion, 0, 0, facts);
+  if (payout.heal > 0 && healed) {
+    // Capped at the **piece's** maximum, like every other heal in the game
+    // (`unitMaxHp`): a bloodied victory patches a column up, it does not make it
+    // new. The pillage's and the rite's line, at the third seam.
+    healed.hp = Math.min(unitMaxHp(healed), healed.hp + payout.heal);
+  }
   if (
     payout.grants.length === 0 &&
     payout.units.length === 0 &&

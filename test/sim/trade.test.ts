@@ -1236,7 +1236,7 @@ describe('trade in the log', () => {
     // v23 wrote `sendTrader`, which this build's reducer does not have: a v23
     // log would stop dead partway through a replay, so the save is refused
     // rather than misread.
-    expect(SCHEMA_VERSION).toBe(34);
+    expect(SCHEMA_VERSION).toBe(35);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

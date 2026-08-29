@@ -3,7 +3,13 @@ import { type Command, applyCommand } from '../../src/sim/commands';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
-import { UNIT_TYPE_IDS, isCivilian, unitDef } from '../../src/sim/unitData';
+import {
+  UNIT_TYPE_IDS,
+  isCivilian,
+  unitDef,
+  unitMaxHp,
+  unitStampStrength,
+} from '../../src/sim/unitData';
 import { hasStackingRoom, stacksFreely, unitsOnTile } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -794,5 +800,51 @@ describe('cancelOrder', () => {
       error: `Unit ${warrior.id} has no standing order`,
     });
     expect(state).toEqual(before);
+  });
+});
+
+// --- what a piece's maximum health is ---------------------------------------
+
+/**
+ * `unitMaxHp` is **the** maximum health of one piece, and the split between it
+ * and `unitDef(...).maxHp` is the whole point: the roster's figure is what the
+ * Compendium prints about a *type*, and this is what a *unit* actually has,
+ * stamp and all (`Unit.stamp`, the Orders pass of 2026-08-29).
+ *
+ * A pure reading over the unit table, so it is tested here rather than through a
+ * card: every heal cap, both forecast bars, the upgrade's fraction and the hp
+ * bar the renderer draws go through it, and a second opinion about a legion's
+ * health is exactly what having one helper prevents.
+ */
+describe('a piece’s maximum health', () => {
+  it('is the roster’s figure when nothing was stamped', () => {
+    for (const type of UNIT_TYPE_IDS) {
+      expect(unitMaxHp({ type }), type).toBe(unitDef(type).maxHp);
+    }
+  });
+
+  it('adds the stamp, and floors at a single point', () => {
+    expect(unitMaxHp({ type: 'warrior', stamp: { hp: 10 } })).toBe(
+      unitDef('warrior').maxHp + 10,
+    );
+    // A strength stamp is a different reading and leaves the bar alone.
+    expect(unitMaxHp({ type: 'warrior', stamp: { strength: 3 } })).toBe(
+      unitDef('warrior').maxHp,
+    );
+    expect(unitStampStrength({ type: 'warrior', stamp: { strength: 3 } })).toBe(3);
+    expect(unitStampStrength({ type: 'warrior' })).toBe(0);
+    // Signed, and floored: a card that took a piece's last point of health would
+    // be a card that deletes an army on the turn it is slotted.
+    expect(unitMaxHp({ type: 'warrior', stamp: { hp: -9999 } })).toBe(1);
+  });
+
+  it('is absent on every piece a stampless empire creates', () => {
+    const state = flatState();
+    const unit = createUnit(state, 0, 'warrior', 3, 3);
+    // Presence is the state: a game with no such card in it serialises exactly
+    // as it did before the field existed.
+    expect('stamp' in unit).toBe(false);
+    expect(JSON.stringify(unit).includes('stamp')).toBe(false);
+    expect(unit.hp).toBe(unitMaxHp(unit));
   });
 });

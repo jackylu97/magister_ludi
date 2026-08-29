@@ -2638,6 +2638,419 @@
           "modelClass": "melee"
         }
       ]
+    },
+    "fireKeepers": {
+      "name": "Fire-Keepers",
+      "pool": "chiefdom",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "Someone has sat up with it every night since the first night.",
+      "text": "+1 faith in your capital, and +1 happiness there.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "faith": 1,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "wolfRunners": {
+      "name": "Wolf-Runners",
+      "pool": "chiefdom",
+      "slot": "military",
+      "line": "hunt",
+      "flavor": "They come back with the country in their heads.",
+      "text": "Scouts gain +1 movement, and claiming a ruin grants +10 gold.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "explores": true
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "discovery",
+          "grant": {
+            "yield": "gold",
+            "amount": 10
+          }
+        }
+      ]
+    },
+    "hearthSongs": {
+      "name": "Hearth Songs",
+      "pool": "chiefdom",
+      "slot": "wildcard",
+      "line": "green",
+      "flavor": "Small places keep the tunes the big ones forget.",
+      "text": "+1 culture in every city of 4 population or less.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "culture": 1,
+          "scope": {
+            "test": "populationAtMost",
+            "value": 4
+          }
+        }
+      ]
+    },
+    "statuteLabour": {
+      "name": "Statute Labour",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "forge",
+      "flavor": "Every third back is owed to the road.",
+      "text": "+1 production in every city for each 3 citizens living there.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "population",
+          "per": 3,
+          "within": "city",
+          "pays": {
+            "to": "yield",
+            "yield": "production",
+            "amount": 1,
+            "where": "city"
+          }
+        }
+      ]
+    },
+    "riverWardens": {
+      "name": "River Wardens",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "ploughshare",
+      "flavor": "The water is watched, so the water is shared.",
+      "text": "+1 food on every farm beside fresh water.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "food": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "farm"
+              },
+              {
+                "test": "freshwater"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "theAlmanac": {
+      "name": "The Almanac",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "star",
+      "flavor": "A year written down is a year that can be argued with.",
+      "text": "+2 science in your capital, and +1 science in every city with a Library.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "science": 2,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "cityYields",
+          "science": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "library"
+          }
+        }
+      ]
+    },
+    "villageFairs": {
+      "name": "Village Fairs",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "green",
+      "flavor": "What the second cart carries is bought for pleasure.",
+      "text": "+1 happiness for each luxury you hold two or more copies of.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "duplicateLuxuries",
+          "pays": {
+            "to": "happiness",
+            "amount": 1
+          }
+        }
+      ]
+    },
+    "theMusterRoll": {
+      "name": "The Muster Roll",
+      "pool": "governmentI",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "The name is written before the man is asked.",
+      "text": "Units created from now on are born with +10 maximum health, and keep it for life.",
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "hp": 10
+        }
+      ]
+    },
+    "hillForts": {
+      "name": "Hill Forts",
+      "pool": "governmentI",
+      "slot": "military",
+      "line": "highlands",
+      "flavor": "Uphill, every stone is a soldier.",
+      "text": "+2 combat strength when defending on hills, and a city on hills costs 1 less authority.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "side": "defend",
+          "when": {
+            "test": "onHills"
+          }
+        },
+        {
+          "kind": "meterRule",
+          "rule": "hillCityCost",
+          "delta": -1
+        }
+      ]
+    },
+    "thePilgrimsPurse": {
+      "name": "The Pilgrim's Purse",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "Nobody walks that far without stopping to eat.",
+      "text": "+5 faith in every city standing beside a holy site.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "faith": 5,
+          "scope": {
+            "test": "adjacentImprovement",
+            "improvement": "holySite"
+          }
+        }
+      ]
+    },
+    "charterTowns": {
+      "name": "Charter Towns",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "charter",
+      "flavor": "The grain store is written into the charter, above the wall.",
+      "text": "Newly founded cities are founded with a Granary.",
+      "upgradable": false,
+      "effects": [
+        {
+          "kind": "foundingRider",
+          "building": "granary"
+        }
+      ]
+    },
+    "theBronzeMirror": {
+      "name": "The Bronze Mirror",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "star",
+      "flavor": "It shows the room, and one thing that is not in the room.",
+      "text": "Completing a technology reveals a new luxury near your capital.",
+      "upgradable": false,
+      "effects": [],
+      "deferred": [
+        "a new luxury appears within three hexes of your capital when you complete a technology"
+      ],
+      "note": "Not built: the map cannot gain a resource after it has been made. Every resource is placed once, when the world is generated, and nothing may put a new one on a hex mid-game. Retired until it can.",
+      "retired": true
+    },
+    "theChoir": {
+      "name": "The Choir",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "Forty voices, and not one of them heard on its own.",
+      "text": "+1 culture and +1 happiness in every city with a Temple.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "culture": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        }
+      ]
+    },
+    "starGazers": {
+      "name": "Star-Gazers",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "star",
+      "flavor": "Above the smoke, the sky keeps better records.",
+      "text": "+2 science in every city beside a mountain.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "science": 2,
+          "scope": {
+            "test": "mountainAdjacent"
+          }
+        }
+      ]
+    },
+    "cisternWorks": {
+      "name": "Cistern Works",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "ploughshare",
+      "flavor": "The rain of one winter, kept under the square.",
+      "text": "Every city of yours counts as standing on fresh water.",
+      "upgradable": false,
+      "effects": [
+        {
+          "kind": "cityRule",
+          "rule": "freshwater"
+        }
+      ],
+      "note": "It answers what is asked of a city — whether the town can drink. A hex out in the fields is still watered by the river or by nothing."
+    },
+    "ledgerKeepers": {
+      "name": "Ledger-Keepers",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "The column of figures is longer than the road.",
+      "text": "+1 gold in every city with a Market, and +1 trade route.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "gold": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "market"
+          }
+        },
+        {
+          "kind": "routeRider",
+          "extra": 1
+        }
+      ]
+    },
+    "drumsOfWar": {
+      "name": "Drums of War",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "They learn the step before they learn the spear.",
+      "text": "Units created from now on are born with +1 combat strength, and keep it for life.",
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "strength": 1
+        }
+      ]
+    },
+    "theCartographers": {
+      "name": "The Cartographers",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "wayfarers",
+      "flavor": "The blank part of the sheet is the part worth paying for.",
+      "text": "+1 science for each 40 hexes you have revealed.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "revealedTiles",
+          "per": 40,
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theMasonsLodge": {
+      "name": "The Masons' Lodge",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "forge",
+      "flavor": "A trade that will not teach a stranger keeps its walls straight.",
+      "text": "Cities of 6 population or more put 10% more production behind buildings.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 10,
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 6
+          }
+        }
+      ]
+    },
+    "theOathBound": {
+      "name": "The Oath-Bound",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "They swore it over a fire, and the fire is still lit.",
+      "text": "Killing a unit heals the unit that struck the blow by 15.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "heal": 15
+          }
+        }
+      ]
+    },
+    "sanctuary": {
+      "name": "Sanctuary",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "They may take the gate, the granary and the gold. Not the stones.",
+      "text": "Your holy city cannot be taken while it keeps your religion — it is sacked instead.",
+      "upgradable": false,
+      "effects": [],
+      "deferred": [
+        "your holy city is sacked rather than captured while it keeps your religion"
+      ],
+      "note": "Not built: a city can only be captured in this game, never sacked. Retired until sacking exists.",
+      "retired": true
     }
   },
   "tierLadder": [

@@ -720,8 +720,8 @@ describe('a captured city, end to end', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 34 save with a captured city in it', () => {
-    expect(SCHEMA_VERSION).toBe(34);
+  it('round-trips a schema 35 save with a captured city in it', () => {
+    expect(SCHEMA_VERSION).toBe(35);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));
@@ -836,6 +836,32 @@ describe('what founding a city here would cost', () => {
     const happiness = foundingCostLines(explainFoundingCost(state, 0, site), 'happiness');
     expect(happiness).toHaveLength(2);
     expect(lineFor(happiness, 'cost of governing')).toBeLessThan(0);
+  });
+
+  it('prices a hill town by Hill Forts, in the meter and in the preview alike', () => {
+    // `hillCityCost`, the Orders pass of 2026-08-29, and the reason `cityCosts`
+    // is hoisted out of the meter at all: a preview that priced the ground with
+    // a second copy of the reading is a preview that can disagree with the meter
+    // it previews.
+    const state = flatState();
+    foundCityAt(state, 0, at(state.map, 4, 4));
+    const site = at(state.map, 10, 4);
+    site.hills = true;
+    const before = foldMeter(foundingCostLines(explainFoundingCost(state, 0, site), 'authority'));
+
+    const sc = playerById(state, 0)!.statecraft;
+    sc.orders.push({ id: 'hillForts', level: 1 });
+    sc.slots.push({ card: 'hillForts', sealedUntil: 0 });
+    const after = foundingCostLines(explainFoundingCost(state, 0, site), 'authority');
+    // A cost is signed negative, so a point cheaper is a point *higher*.
+    expect(foldMeter(after)).toBe(before + 1);
+    expect(after[0]!.source).toContain('on hills');
+
+    // And the meter's own sweep reads the same rule for a town already standing.
+    const town = foundCityAt(state, 0, site)!;
+    const line = explainAuthority(state, 0).find((l) => l.source.startsWith(town.name))!;
+    expect(line.source).toContain('on hills');
+    expect(line.value).toBe(-(WRIT.foundedCity - 1));
   });
 
   it('is the same line the meter itself would append', () => {

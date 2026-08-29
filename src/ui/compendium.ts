@@ -583,6 +583,10 @@ function scopeWords(site: CityScope): string {
       return 'your capital';
     case 'populationAtLeast':
       return `a city of ${figure(site.value)} or more citizens`;
+    case 'populationAtMost':
+      return `a city of ${figure(site.value)} or fewer citizens`;
+    case 'adjacentImprovement':
+      return `a city next to ${withArticle(improvementDef(site.improvement).name)}`;
     case 'holding':
       return `a city that controls ${words(site.resources.map((id) => resourceDef(id).name))}`;
     case 'holdingCategory':
