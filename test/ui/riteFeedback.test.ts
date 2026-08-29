@@ -133,7 +133,9 @@ describe('riteSentence', () => {
 
 describe('when the sentence is composed', () => {
   const controls = controlsSource();
-  const perform = controls.slice(controls.indexOf('function performRite(id: RiteId)'));
+  // The signature grew a `belief` for the redraw rite (2026-08-29), so the
+  // slice names the function rather than its whole parameter list.
+  const perform = controls.slice(controls.indexOf('function performRite(id: RiteId'));
   const body = perform.slice(0, perform.indexOf('\n  }\n'));
 
   it('reads the board before the dispatch and speaks after it', () => {

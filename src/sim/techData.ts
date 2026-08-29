@@ -176,7 +176,8 @@ export type AbilityId =
   | 'omenReading'
   | 'consecrationOfTheBounds'
   | 'blessingOfArms'
-  | 'riteOfPlenty';
+  | 'riteOfPlenty'
+  | 'recastingTheOmens';
 
 /** What an ability is *called*, for the surfaces that print it. Flavour only. */
 export interface AbilityDef {

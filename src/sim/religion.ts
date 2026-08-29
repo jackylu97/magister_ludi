@@ -165,16 +165,33 @@ export function hasOpenBeliefSlot(state: GameState, playerId: number): boolean {
 }
 
 /**
- * The gods still drawable: every row in the table this empire does not already
- * hold, in **file order**.
+ * The gods still drawable: every row in the table **nobody in the world** holds,
+ * in file order.
  *
  * A **declined** god goes back in the bag and a held one leaves it, which is the
  * ratified rule and the honest one: declining is not a decision about the god,
  * it is a decision about the two beside it. `livePool`'s shape (`statecraft.ts`)
  * without the retirement, because a pantheon has no ages.
+ *
+ * **A god belongs to one world** (user ruling, 2026-08-29). A belief another
+ * empire keeps is gone from every other empire's bag — the rule
+ * `state.contested` states for a Triumph, one system over, and the reason this
+ * takes the state at all. Two pantheons that both keep Keeper of the Hearth are
+ * two empires with the same identity, which is the one thing a pantheon is for;
+ * and once the pool is world-unique, a *recast* is a real decision rather than a
+ * reshuffle, because what is on the table depends on what rivals have already
+ * taken.
+ *
+ * Swept over `realPlayers` in **array order** — never a Map, and never
+ * `state.players`, because the wild keeps no gods and a seat that is not a
+ * nation has no identity to defend.
  */
-export function beliefPool(player: Player): BeliefId[] {
+export function beliefPool(state: GameState, player: Player): BeliefId[] {
   const held = new Set<BeliefId>(player.pantheon.beliefs);
+  for (const other of realPlayers(state)) {
+    if (other.id === player.id) continue;
+    for (const id of other.pantheon.beliefs) held.add(id);
+  }
   // **The pantheon's bag alone.** `isBeliefId` spans all three pools now, so a
   // filter that asked it would have offered a Consecrate the enhancer pool;
   // `BELIEF_IDS` is the pantheon's own list, which is what a god is drawn from.
@@ -264,7 +281,7 @@ export function consecrateError(
   if (!hasOpenBeliefSlot(state, playerId)) {
     return 'Your pantheon has no room for another belief';
   }
-  if (beliefPool(player).length === 0) return 'There are no beliefs left to choose';
+  if (beliefPool(state, player).length === 0) return 'There are no beliefs left to choose';
   return null;
 }
 
@@ -283,7 +300,11 @@ export function consecrateError(
  */
 export function drawBeliefOffer(state: GameState, player: Player): BeliefOffer {
   return {
-    options: drawWithoutReplacement(state, beliefPool(player), offerSize(state, player.id, 'belief')),
+    options: drawWithoutReplacement(
+      state,
+      beliefPool(state, player),
+      offerSize(state, player.id, 'belief'),
+    ),
   };
 }
 
@@ -401,6 +422,71 @@ function refreshBeliefDerived(state: GameState, player: Player): void {
   }
 }
 
+// --- recasting the omens ----------------------------------------------------
+
+/**
+ * The bag a recast draws from: this empire's pool **without the god going back**.
+ *
+ * **A reroll that can re-offer the same god is not a reroll**, and this is the
+ * one line that says so. It is deliberately the *opposite* of `redraftAt`'s
+ * rule, which returns a religion's beliefs to the bag before drawing precisely
+ * so a prophet may honestly land on what it gave up — and the difference is not
+ * an inconsistency but the two acts' different subjects. A redraft empties a
+ * whole *house* and asks the question again from nothing; a recast is a player
+ * pointing at one god and saying "not that one", and a hand that answered with
+ * that god would be the interface disagreeing with the verb the player pressed.
+ *
+ * Asked by `riteError` (so an empty bag is refused before anything mutates) and
+ * by `recastPantheonAt` (so the refusal and the draw cannot disagree about what
+ * is on the table). Note the belief is still *held* when the gate asks and
+ * already gone when the settlement does; the filter makes both readings the same
+ * list, which is what lets one function serve both.
+ */
+function recastPool(state: GameState, player: Player, belief: BeliefId): BeliefId[] {
+  return beliefPool(state, player).filter((id) => id !== belief);
+}
+
+/**
+ * Gives one god back and deals a fresh hand. Validates nothing — `riteError` is
+ * the rule, and it has already checked that the bag below is not empty.
+ *
+ * The order is the arithmetic:
+ *
+ *   1. **the god leaves the list**, spliced by the index it was found at rather
+ *      than filtered out, so a pantheon that somehow held a duplicate loses
+ *      exactly one of them — deterministic, and array order all the way down.
+ *   2. **every town is re-seated**, because a belief is an empire-wide fact
+ *      about what ground is worth and one has just stopped being true. It is
+ *      `settleBeliefChoice`'s own refresh, run for the loss rather than the
+ *      gain, and it is why a recast is in `refreshCityDerived`'s register.
+ *   3. **the hand is dealt** from `recastPool` — this seat's gods, minus every
+ *      rival's, minus the one just handed over — at `offerSize`, the one
+ *      evaluator all four drafts ask, at the moment the offer opens.
+ *
+ * The **charge is not spent here**: this is a rite like any other and
+ * `performRiteAt`'s fourth beat spends it, through the routine both agents
+ * share. A second charge rule inside a settlement is how two rites end up
+ * disagreeing about whether an augur walks away.
+ *
+ * The pick is the ordinary `chooseBelief`, which *appends* — so the slot the
+ * recast emptied is the slot the answer fills, and nothing counts anything.
+ */
+export function recastPantheonAt(state: GameState, player: Player, belief: BeliefId): BeliefOffer {
+  const index = player.pantheon.beliefs.indexOf(belief);
+  if (index >= 0) player.pantheon.beliefs.splice(index, 1);
+  refreshBeliefDerived(state, player);
+  const offer: BeliefOffer = {
+    options: drawWithoutReplacement(
+      state,
+      recastPool(state, player, belief),
+      offerSize(state, player.id, 'belief'),
+    ),
+    givenBack: belief,
+  };
+  player.pantheon.pending = offer;
+  return offer;
+}
+
 // --- rites ------------------------------------------------------------------
 
 /** Every rite this empire has been taught, in table order. */
@@ -469,6 +555,12 @@ export function riteUnitTarget(
  *
  * Reach is **one hex**, measured on the map's own wrapped distance, and it is
  * the same rule for both target kinds: a rite is a thing you walk up to.
+ *
+ * `belief` is named only by a **redraw** rite (Recasting the Omens) and is the
+ * god being handed back. It is `unknown` for `rite`'s reason — it arrives off a
+ * command and a hand-edited log may put anything in it — and it is ignored
+ * outright by every rite that redraws nothing, so an old log carrying none
+ * replays byte-identically.
  */
 export function riteError(
   state: GameState,
@@ -476,6 +568,7 @@ export function riteError(
   unitId: number,
   rite: unknown,
   target?: { col: number; row: number },
+  belief?: unknown,
 ): string | null {
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
@@ -506,8 +599,34 @@ export function riteError(
   // **A rite that leaves a proclamation needs a faith to proclaim.** Asked of
   // the grant's own shape rather than of the rite's id, so the second such rite
   // inherits the refusal without this function learning its name.
-  if (def.grant.lump !== undefined && foundedReligion(state, playerId) === undefined) {
+  if (def.grant?.lump !== undefined && foundedReligion(state, playerId) === undefined) {
     return `${def.name} needs a religion to preach`;
+  }
+
+  // **A redraw's four refusals**, asked of `RiteDef.redraws` rather than of the
+  // rite's id for the clause above's reason. They stand before the target arms
+  // because a redraw names a *god* rather than a hex — its `target: 'here'` is
+  // the shape for "no hex at all" — and the reach test above is the whole of
+  // where it happens.
+  //
+  // The last of the four is the one that is easy to leave out and impossible to
+  // recover from: a recast that could deal an **empty** hand would leave a
+  // `pending` offer on the seat that `chooseBelief` can never answer and the End
+  // Turn blocker can never clear. It is asked of the bag the settlement will
+  // actually draw from — this seat's pool without the god going back — because
+  // that filter is the whole difference between a recast and a Consecrate.
+  if (def.redraws !== undefined) {
+    if (player.pantheon.beliefs.length === 0) return 'You have no belief to give back';
+    if (player.pantheon.pending !== undefined) {
+      return `${player.name} still has a belief waiting to be chosen`;
+    }
+    if (!isBeliefId(belief) || !player.pantheon.beliefs.includes(belief)) {
+      return `${def.name} needs one of your own beliefs to give back`;
+    }
+    if (recastPool(state, player, belief).length === 0) {
+      return 'There are no other beliefs left to choose';
+    }
+    return null;
   }
 
   if (def.target === 'here') {
@@ -609,6 +728,17 @@ export interface RitePerformance {
    * fills. See `ProclamationReport`.
    */
   proclaimed: ProclamationReport | null;
+  /**
+   * The god given back, on the one rite that gives one back, or `null`.
+   *
+   * The offer it opened is deliberately **not** here: it is on the player
+   * (`pantheon.pending`), which is where a Consecrate's has always been and
+   * where the End Turn blocker and the offer card both already look. What the
+   * board cannot say afterwards is which god was handed over — the belief is out
+   * of the list by the time this returns — so that is what is carried, and it is
+   * `arrivals`' argument in a third currency.
+   */
+  recast: BeliefId | null;
 }
 
 /**
@@ -645,6 +775,7 @@ export function performRiteAt(
   unit: Unit,
   rite: RiteId,
   target?: { col: number; row: number },
+  belief?: BeliefId,
 ): RitePerformance {
   const def = riteDef(rite);
   const city = def.target === 'city' ? riteCityTarget(state, unit, target) : null;
@@ -652,19 +783,27 @@ export function performRiteAt(
 
   const expiresTurn = stampRite(state, player.id, rite, def, city, blessed);
   const paid = payRiteGrant(state, player, def, city, blessed, { col: unit.col, row: unit.row });
+  // **The redraw stands where the grant does**, between the stamp and the
+  // riders, because it is this rite's whole instant half: a grant fills a
+  // bucket, a redraw puts a decision back on the empire, and one row does
+  // exactly one of the two (`RiteDef.redraws`). It reaches the same generator
+  // and the same `pending` field a Consecrate does, so a recast is answered by
+  // the one `chooseBelief` command like every other draft in the game.
+  let recast: BeliefId | null = null;
+  if (def.redraws !== undefined && belief !== undefined) {
+    recastPantheonAt(state, player, belief);
+    recast = belief;
+  }
   const wonders = payRiteRiders(state, player, unit);
   wonders.unshift(...paid.wonders);
 
-  const left = (unit.chargesLeft ?? 0) - 1;
-  const augurSpent = left <= 0;
-  if (augurSpent) {
-    removeUnit(state, unit.id);
-  } else {
-    unit.chargesLeft = left;
-    unit.movesLeft = 0;
-  }
+  // The fourth and fifth beats, in the routine both agents share
+  // (`spendCharge`): the charge goes, an emptied piece leaves the board, and a
+  // survivor's day goes with it.
+  const augurSpent = spendCharge(state, unit);
 
   return {
+    recast,
     rite,
     name: def.name,
     city,
@@ -747,6 +886,10 @@ interface RiteGrantResult {
  * granary is finished by.
  *
  * Every figure is Entry XVIII.5-immune: printed, unmodified, whole.
+ *
+ * A **redraw** rite has no grant at all (`RiteDef.redraws`), and it comes
+ * through here rather than being branched around: an empty result is what "paid
+ * nothing" means, and every field of the report below already has a word for it.
  */
 function payRiteGrant(
   state: GameState,
@@ -756,7 +899,7 @@ function payRiteGrant(
   unit: Unit | null,
   at: { col: number; row: number },
 ): RiteGrantResult {
-  const grant = def.grant;
+  const grant = def.grant ?? {};
   const result: RiteGrantResult = {
     population: null,
     research: null,
@@ -897,6 +1040,12 @@ function payRiteRiders(state: GameState, player: Player, unit: Unit): WonderComp
  * the plan that will settle it, which is `explainDiscoveryOption`'s rule: a
  * promise on a button is made by the function that keeps it. `null` when the
  * rite cannot be performed at all — the panel prints the blocker instead.
+ *
+ * A **redraw** rite has no figure to compose and no hex to aim at, so its answer
+ * is the row's own `note` — the plain sentence the Compendium and the Religion
+ * screen already print, in the data rather than here (hard rule 7: a rule is
+ * stated once, in a first-time player's words, on the row). Composing a second
+ * wording for the sheet is how one act ends up described two ways.
  */
 export function ritePreview(
   state: GameState,
@@ -909,8 +1058,9 @@ export function ritePreview(
   const def = riteDef(rite);
   const city = def.target === 'city' ? riteCityTarget(state, unit, target) : null;
   const blessed = def.target === 'unit' ? riteUnitTarget(state, unit, target) : null;
+  if (def.redraws !== undefined) return def.note ?? null;
   const parts: string[] = [];
-  const grant = def.grant;
+  const grant = def.grant ?? {};
   if (grant.population !== undefined && city) {
     parts.push(`+${grant.population} pop to ${city.name}`);
   }
@@ -1320,15 +1470,21 @@ function spendProphet(state: GameState, unit: Unit): void {
 }
 
 /**
- * Spends one of a prophet's charges, and lets go of a piece that emptied.
+ * Spends one of an agent's charges, and lets go of a piece that emptied.
  *
- * Returns true when the prophet left the board — which is the *exhaustion*
- * rule, not the consumption one: a one-charge prophet that proclaims is spent
- * because it has nothing left, and a two-charge prophet that proclaims walks
- * away. The day goes with the charge (`movesLeft = 0`): an act is a prophet's
- * whole turn.
+ * Returns true when the piece left the board — which is the *exhaustion* rule,
+ * not the consumption one: a one-charge prophet that proclaims is spent because
+ * it has nothing left, and a two-charge prophet that proclaims walks away. The
+ * day goes with the charge (`movesLeft = 0`): an act is the whole turn.
+ *
+ * **Both agents share it.** It was the prophet's alone and `performRiteAt` kept
+ * a line-for-line copy of it, which is the shape this file spends its docblocks
+ * refusing: two statements of "an act is the piece's whole turn" are two
+ * statements one of them will eventually stop making. An augur's charge and a
+ * prophet's are the same charge — three acts in a box — so they are spent by the
+ * same four lines.
  */
-function spendProphetCharge(state: GameState, unit: Unit): boolean {
+function spendCharge(state: GameState, unit: Unit): boolean {
   const left = (unit.chargesLeft ?? 0) - 1;
   if (left <= 0) {
     removeUnit(state, unit.id);
@@ -1454,7 +1610,7 @@ export function plantHolySiteAt(
   // again *here*, because by now the religion exists.
   let prophetSpent = true;
   if (founded) spendProphet(state, unit);
-  else prophetSpent = spendProphetCharge(state, unit);
+  else prophetSpent = spendCharge(state, unit);
   return { religion, founded, offer, col: tile.col, row: tile.row, prophetSpent };
 }
 
@@ -1569,7 +1725,7 @@ export function proclaimAt(state: GameState, player: Player, unit: Unit): Procla
   const religion = foundedReligion(state, player.id)!;
   const { range, lump } = bombFigures(state, player.id);
   const report = pressLump(state, religion, { col: unit.col, row: unit.row }, range, lump);
-  spendProphetCharge(state, unit);
+  spendCharge(state, unit);
   return report;
 }
 
@@ -1681,7 +1837,7 @@ export function redraftAt(
   else religion.enhancer = [];
   const offer = drawPoolBeliefOffer(state, player, religion, pool);
   player.pantheon.pending = offer;
-  spendProphetCharge(state, unit);
+  spendCharge(state, unit);
   return offer;
 }
 

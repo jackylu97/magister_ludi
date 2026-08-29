@@ -481,14 +481,38 @@ describe('consecrate', () => {
 
     const taken = dealt[0]!;
     const declined = dealt[1]!;
-    expect(beliefPool(player)).not.toContain(taken);
+    expect(beliefPool(g.state, player)).not.toContain(taken);
     // The two that were passed over are drawable again — declining is a
     // decision about the cards beside a god, not about the god.
-    expect(beliefPool(player)).toContain(declined);
+    expect(beliefPool(g.state, player)).toContain(declined);
 
     const second = augurAt(g.state, 0, 5, 5);
     dispatch(g, { type: 'consecrate', playerId: 0, unitId: second.id } as Command);
     expect(player.pantheon.pending!.options).not.toContain(taken);
+  });
+
+  it('never offers a god a rival empire already keeps', () => {
+    // **A god belongs to one world** (2026-08-29). The bag is not this seat's
+    // own holdings subtracted from the table — it is the table minus every
+    // pantheon in play, swept in `realPlayers` order.
+    const g = game();
+    learn(g.state, 0, 'divination');
+    learn(g.state, 1, 'divination');
+    const mine = playerById(g.state, 0)!;
+    const theirs = playerById(g.state, 1)!;
+
+    const rival = BELIEF_IDS.filter(isPantheonBeliefId)[0]!;
+    keep(g.state, 1, rival);
+    expect(beliefPool(g.state, mine)).not.toContain(rival);
+    // And it is gone from the *hand*, not merely from a list nobody deals off.
+    const augur = augurAt(g.state, 0, 5, 5);
+    dispatch(g, { type: 'consecrate', playerId: 0, unitId: augur.id } as Command);
+    expect(mine.pantheon.pending!.options).not.toContain(rival);
+
+    // The rival's own bag still holds it — a god you keep is yours, and the
+    // exclusion is about *other* seats.
+    expect(beliefPool(g.state, theirs)).not.toContain(rival);
+    expect(theirs.pantheon.beliefs).toEqual([rival]);
   });
 
   it('refuses a second offer while one is outstanding', () => {
@@ -744,8 +768,11 @@ describe('rites', () => {
     const g = game();
     expect(availableRites(g.state, 0)).toEqual([]);
     learn(g.state, 0, 'divination');
-    expect(availableRites(g.state, 0)).toEqual(['riteOfTheHarvest']);
+    // Divination teaches two: the augur's first rite and the one that recasts
+    // what the augur before it named, in the tree's own order.
+    expect(availableRites(g.state, 0)).toEqual(['riteOfTheHarvest', 'recastingTheOmens']);
     expect(hasAbility(g.state, 0, 'riteOfTheHarvest')).toBe(true);
+    expect(hasAbility(g.state, 0, 'recastingTheOmens')).toBe(true);
   });
 
   it('refuse everything they should, byte-identically', () => {
@@ -1079,6 +1106,197 @@ describe('rites', () => {
       rite: 'riteOfTheHarvest',
     } as Command);
     expect(g.state.units.some((u) => u.id === augur.id)).toBe(false);
+  });
+});
+
+// --- recasting the omens ----------------------------------------------------
+
+/**
+ * The rite that gives a god back (user ruling, 2026-08-29).
+ *
+ * Two halves and both are here: the *give-back* is a rite like any other — one
+ * charge, the augur's whole turn, refused before anything mutates — and the
+ * *offer* it opens is Entry XV's shape for the fifth time, answered by the same
+ * `chooseBelief` that answers a Consecrate. What is worth pinning is the seam
+ * between them: the slot count is restored by the pick rather than counted
+ * anywhere, and the bag the hand comes out of is the one thing that makes a
+ * recast different from a Consecrate.
+ */
+describe('recasting the omens', () => {
+  /** A seat with Divination, an augur, and one god already named. */
+  function ready(seed = 7) {
+    const g = game(seed);
+    learn(g.state, 0, 'divination');
+    learn(g.state, 1, 'divination');
+    const augur = augurAt(g.state, 0, 5, 5);
+    const player = playerById(g.state, 0)!;
+    return { g, augur, player };
+  }
+
+  const RECAST = 'recastingTheOmens' as const;
+  const GODS = BELIEF_IDS.filter(isPantheonBeliefId);
+
+  it('gives the god back, deals a hand without it, and spends one charge', () => {
+    const { g, augur, player } = ready();
+    const given = GODS[0]!;
+    const rival = GODS[1]!;
+    keep(g.state, 0, given);
+    keep(g.state, 1, rival);
+
+    expect(
+      dispatch(g, { type: 'performRite', playerId: 0, unitId: augur.id, rite: RECAST, belief: given } as Command)
+        .ok,
+    ).toBe(true);
+
+    // The god is out of the pantheon, and the slot it held is empty until the
+    // pick fills it.
+    expect(player.pantheon.beliefs).toEqual([]);
+    const offer = player.pantheon.pending!;
+    expect(offer.options).toHaveLength(RULES.offers.belief);
+    expect(new Set(offer.options).size).toBe(offer.options.length);
+    // **A reroll that re-offers the same god is not a reroll** — deliberately
+    // the opposite of a prophet's redraft, which puts a pool back in the bag.
+    expect(offer.options).not.toContain(given);
+    // And the world's rule still holds: a rival's god is nobody else's.
+    expect(offer.options).not.toContain(rival);
+    // The offer says what it was dealt in place of, so the card has a line.
+    expect(offer.givenBack).toBe(given);
+    // One charge, and the augur's day.
+    expect(g.state.units.find((u) => u.id === augur.id)?.chargesLeft).toBe(
+      (unitDef('augur').charges ?? 0) - 1,
+    );
+    expect(g.state.units.find((u) => u.id === augur.id)?.movesLeft).toBe(0);
+  });
+
+  it('takes the augur’s last charge like every other rite', () => {
+    const { g, augur } = ready();
+    keep(g.state, 0, GODS[0]!);
+    augur.chargesLeft = 1;
+    expect(
+      dispatch(g, { type: 'performRite', playerId: 0, unitId: augur.id, rite: RECAST, belief: GODS[0]! } as Command)
+        .ok,
+    ).toBe(true);
+    expect(g.state.units.some((u) => u.id === augur.id)).toBe(false);
+    // The hand is still on the seat: the piece paying for it is gone and the
+    // decision is not.
+    expect(playerById(g.state, 0)!.pantheon.pending).toBeDefined();
+  });
+
+  it('restores the count through the ordinary pick, which appends', () => {
+    const { g, augur, player } = ready();
+    keep(g.state, 0, GODS[0]!);
+    keep(g.state, 0, GODS[1]!);
+    dispatch(g, { type: 'performRite', playerId: 0, unitId: augur.id, rite: RECAST, belief: GODS[0]! } as Command);
+    expect(player.pantheon.beliefs).toEqual([GODS[1]!]);
+    const dealt = [...player.pantheon.pending!.options];
+    expect(dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 1 } as Command).ok).toBe(true);
+    expect(player.pantheon.beliefs).toEqual([GODS[1]!, dealt[1]!]);
+    expect('pending' in player.pantheon).toBe(false);
+    expect(religionBlocker(player)).toBeNull();
+  });
+
+  it('refuses every way it should, byte-identically', () => {
+    // **A seat with nothing to give back.** The first refusal, and the one a
+    // player meets before they have a pantheon at all.
+    const empty = ready();
+    expect(riteError(empty.g.state, 0, empty.augur.id, RECAST, undefined, GODS[0]!)).toMatch(
+      /no belief to give back/,
+    );
+
+    const { g, augur, player } = ready();
+    keep(g.state, 0, GODS[0]!);
+
+    // A belief the seat does not hold, and a missing one, are one sentence.
+    expect(riteError(g.state, 0, augur.id, RECAST, undefined, GODS[1]!)).toMatch(
+      /one of your own beliefs/,
+    );
+    expect(riteError(g.state, 0, augur.id, RECAST)).toMatch(/one of your own beliefs/);
+    expect(riteError(g.state, 0, augur.id, RECAST, undefined, 'notAGod')).toMatch(
+      /one of your own beliefs/,
+    );
+
+    // Every one of them leaves the state exactly as it was.
+    const before = snapshotState(g.state);
+    for (const belief of [undefined, GODS[1]!, 'notAGod']) {
+      expect(
+        applyCommand(g.state, {
+          type: 'performRite',
+          playerId: 0,
+          unitId: augur.id,
+          rite: RECAST,
+          belief,
+        } as Command).ok,
+      ).toBe(false);
+    }
+    expect(snapshotState(g.state)).toBe(before);
+
+    // **An offer already outstanding.** The augur's own gate, and it is the
+    // same sentence a second Consecrate gives.
+    dispatch(g, { type: 'performRite', playerId: 0, unitId: augur.id, rite: RECAST, belief: GODS[0]! } as Command);
+    const second = augurAt(g.state, 0, 5, 5);
+    keep(g.state, 0, GODS[1]!);
+    expect(riteError(g.state, 0, second.id, RECAST, undefined, GODS[1]!)).toMatch(
+      /waiting to be chosen/,
+    );
+    const held = snapshotState(g.state);
+    expect(
+      applyCommand(g.state, {
+        type: 'performRite',
+        playerId: 0,
+        unitId: second.id,
+        rite: RECAST,
+        belief: GODS[1]!,
+      } as Command).ok,
+    ).toBe(false);
+    expect(snapshotState(g.state)).toBe(held);
+    expect(player.pantheon.pending!.givenBack).toBe(GODS[0]!);
+  });
+
+  it('refuses a recast that could deal nothing, rather than opening a hand nobody can answer', () => {
+    // The deadlock this clause exists to prevent: an empty offer is a `pending`
+    // no `chooseBelief` can spend and no End Turn can clear.
+    const { g, augur } = ready();
+    for (const id of GODS) keep(g.state, 0, id);
+    expect(riteError(g.state, 0, augur.id, RECAST, undefined, GODS[0]!)).toMatch(
+      /no other beliefs left/,
+    );
+  });
+
+  it('replays byte for byte', () => {
+    // The whole verb through the log alone: the give-back is a splice, the hand
+    // is dealt from `state.rng` at the moment the offer opens, and the pick
+    // names an index into it.
+    const play = () => {
+      const { g, augur } = ready(21);
+      keep(g.state, 0, GODS[0]!);
+      keep(g.state, 1, GODS[1]!);
+      dispatch(g, {
+        type: 'performRite',
+        playerId: 0,
+        unitId: augur.id,
+        rite: RECAST,
+        belief: GODS[0]!,
+      } as Command);
+      dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
+      return g;
+    };
+    const first = play();
+    const second = play();
+    expect(snapshotState(second.state)).toBe(snapshotState(first.state));
+    expect(playerById(first.state, 0)!.pantheon.beliefs).toHaveLength(1);
+    expect(playerById(first.state, 0)!.pantheon.beliefs[0]).not.toBe(GODS[0]!);
+    expect(playerById(first.state, 0)!.pantheon.beliefs[0]).not.toBe(GODS[1]!);
+  });
+
+  it('is a rite the table itself calls a redraw, and pays no bucket', () => {
+    const def = riteDef(RECAST);
+    expect(def.redraws).toBe('pantheon');
+    expect(def.grant).toBeUndefined();
+    // The sentence a player reads is the row's own prose, not a second wording
+    // composed in the interface (hard rule 7).
+    expect(def.note).toBeTruthy();
+    const { g, augur } = ready();
+    expect(ritePreview(g.state, augur.id, RECAST)).toBe(def.note);
   });
 });
 

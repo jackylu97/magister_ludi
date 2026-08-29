@@ -194,7 +194,28 @@ export interface RiteDef extends CardDefBase {
   /** The technology that teaches it, whose `unlocks.abilities` names it. */
   tech: TechId;
   target: RiteTarget;
-  grant: RiteGrantSpec;
+  /**
+   * What it pays the instant it lands. Absent on a **redraw** rite, which pays
+   * nothing at all — see `redraws`.
+   */
+  grant?: RiteGrantSpec;
+  /**
+   * The bag this rite hands one card back to and deals a fresh offer out of —
+   * `'pantheon'`, and nothing else today (Recasting the Omens).
+   *
+   * A rite is **either** a grant/blessing **or** a redraw, never both, and
+   * `religionDataProblems` refuses a row that is neither or that is both. They
+   * are two different kinds of act: a grant is an Entry XVIII windfall settled
+   * into a bucket, a redraw is a *decision* put back on the empire and answered
+   * by `chooseBelief` — the same seam a Consecrate's offer is answered through.
+   * A row carrying both would be a windfall that also opens a blocker, which is
+   * two announcements for one charge and no place to say either.
+   *
+   * Presence is the state, exactly as `RiteGrantSpec.lump`'s is: `riteError`
+   * asks the shape rather than the id, so the second redraw rite inherits every
+   * refusal without that function learning its name.
+   */
+  redraws?: 'pantheon';
   /** Turns the `effects` last. Absent for a rite whose whole payout is instant. */
   duration?: number;
 }
@@ -221,6 +242,20 @@ export interface BeliefOffer {
    * routes it where it always went.
    */
   pool?: ReligionBeliefPool;
+  /**
+   * The god this offer was dealt **in place of** — Recasting the Omens' whole
+   * difference from a Consecrate — or the key is absent on every other draw.
+   *
+   * A record of what was handed back rather than a rule: the belief is already
+   * out of `beliefs` by the time this is written and the bag was filtered by
+   * `recastPantheonAt` before the draw, so nothing reads it to *decide*
+   * anything. It exists because the card that answers the offer has one line to
+   * say what happened, and "you gave back Keeper of the Hearth" is the only
+   * thing distinguishing a recast's hand from a fresh god's. Beside `pool` for
+   * that field's reason: the offer knows which decision it is, so no surface
+   * has to re-derive it.
+   */
+  givenBack?: BeliefId;
 }
 
 /**
@@ -463,6 +498,19 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
     }
     if (def.duration === undefined && def.effects.length > 0) {
       problems.push(`rite "${id}" has lasting effects and no duration to hang them on`);
+    }
+    // **Exactly one of the two.** A rite pays a bucket or it reopens a bag, and
+    // the union is enforced here rather than in the type because the table is
+    // JSON: `RELIGION` is cast, so a row carrying both would typecheck and then
+    // pay a windfall *and* raise a blocker on one charge, with nothing able to
+    // announce both. A row carrying neither is the sibling failure and reads as
+    // a rite that silently does nothing.
+    const redraws = def.redraws !== undefined;
+    if (redraws && def.grant !== undefined) {
+      problems.push(`rite "${id}" both pays a grant and redraws a bag`);
+    }
+    if (!redraws && def.grant === undefined) {
+      problems.push(`rite "${id}" pays nothing and redraws nothing`);
     }
   }
   for (const id of ALL_BELIEF_IDS) {

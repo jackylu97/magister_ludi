@@ -1072,6 +1072,15 @@
         }
       },
       "effects": []
+    },
+    "recastingTheOmens": {
+      "name": "Recasting the Omens",
+      "tech": "divination",
+      "target": "here",
+      "flavor": "The bones fell badly. They were gathered up, and they fell again.",
+      "note": "Give back one of your beliefs and choose another. A belief another empire keeps is never offered.",
+      "redraws": "pantheon",
+      "effects": []
     }
   }
 }

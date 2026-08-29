@@ -187,7 +187,8 @@
           "augur"
         ],
         "abilities": [
-          "riteOfTheHarvest"
+          "riteOfTheHarvest",
+          "recastingTheOmens"
         ]
       },
       "flavor": "We question the sky, and learn the habit of questions."
@@ -541,6 +542,11 @@
       "name": "Rite of the Harvest",
       "glyph": "🌾",
       "summary": "An augur may spend a rite to give a city a citizen."
+    },
+    "recastingTheOmens": {
+      "name": "Recasting the Omens",
+      "glyph": "🎲",
+      "summary": "An augur may spend a rite to give back one belief and choose another."
     },
     "omenReading": {
       "name": "Omen Reading",

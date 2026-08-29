@@ -166,9 +166,14 @@ const SLOT_GLYPH = '◇';
  * and two surfaces describing one rite two ways is precisely what every
  * describer in this codebase exists to prevent. This screen is where it lives
  * because this screen is where a rite is *performed*.
+ *
+ * Empty for a **redraw** rite, which pays no bucket at all (`RiteDef.redraws`):
+ * what that one does is its row's `note`, printed beside these words by both
+ * surfaces, and inventing a figure-shaped fragment for it here would be a
+ * second description of a rule the data already states.
  */
 export function riteGrantWords(id: RiteId): string {
-  const grant = riteDef(id).grant;
+  const grant = riteDef(id).grant ?? {};
   const parts: string[] = [];
   if (grant.population !== undefined) parts.push(`+${grant.population} population`);
   if (grant.science !== undefined) parts.push(`+${grant.science} science`);
@@ -643,7 +648,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
         element(
           'p',
           'sc-hand',
-          `${beliefPool(player).length} gods are still unnamed. Consecrating spends the whole augur, whatever rites are left in it.`,
+          `${beliefPool(state, player).length} gods are still unnamed. Consecrating spends the whole augur, whatever rites are left in it.`,
         ),
       );
     }
@@ -960,7 +965,11 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       const say = element('p', 'rel-rite-say');
       setDescriptorText(
         say,
-        [grantWords, clauses.map((clause) => clause.text).join(' · '), lasting]
+        // The row's **note** is the fourth part and the only one a rite with no
+        // grant and no clauses has (Recasting the Omens): player prose on the
+        // data row, printed rather than restated, which is where hard rule 7
+        // puts a rule the effect vocabulary has no shape for.
+        [grantWords, clauses.map((clause) => clause.text).join(' · '), def.note ?? '', lasting]
           .filter((part) => part.length > 0)
           .join(' · '),
       );

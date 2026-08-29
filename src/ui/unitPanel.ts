@@ -302,6 +302,25 @@ export interface UnitPanelOptions {
    * not offered).
    */
   onOpenTrade?: () => void;
+  /**
+   * Why the selected unit cannot be let go — the same three-valued shape as
+   * `foundCityBlocker`, answered by `controls.disbandBlocker()`.
+   *
+   * A blocker rather than a list, and never hidden: Fortify's reading rather
+   * than the improvements' one, because every refusal it can give is temporary
+   * (your turn is over, end the route first) and a verb that vanished would be
+   * one a player never learns exists.
+   */
+  disbandBlocker: () => string | null | undefined;
+  /**
+   * Lets the selected unit go — **after asking**.
+   *
+   * The confirm card is the caller's (`main.ts` raises it with
+   * `disbandPrompt`), not this panel's and not `controls`': this file draws
+   * rows, and a modal is a surface the page owns. See `disbandPrompt` above for
+   * the words.
+   */
+  onDisband: () => void;
   /** Drops the selection — the × button and, through `controls`, Escape. */
   onClose: () => void;
 }
@@ -423,6 +442,49 @@ export function upkeepNote(unit: Unit): string {
   return `Upkeep ${unitUpkeepOf(unit)}${YIELD_GLYPH.gold} a turn`;
 }
 
+/**
+ * The Disband row's hint: what letting this piece go is *for*.
+ *
+ * The user's ruling of 2026-08-29 asked for "an indicator of the current upkeep
+ * on the unit", and this is the second half of it — `upkeepNote` above says what
+ * the piece costs, and this says what stopping paying it is worth, on the row
+ * that would stop paying it. The two are the same figure asked twice on purpose:
+ * a player deciding whether to let a warrior go is comparing a standing cost
+ * with a one-time loss, and the number belongs beside both.
+ *
+ * `unitUpkeepOf`, never `unitUpkeep`: a captured or granted piece costs nothing
+ * (`Unit.freeUpkeep`), and a row promising it saves two gold a turn would be the
+ * sheet inventing a saving the treasury will never see.
+ */
+export function disbandHint(unit: Unit): string {
+  const gold = unitUpkeepOf(unit);
+  if (gold <= 0) return 'Let this unit go · it costs nothing to keep';
+  return `Let this unit go · saves ${gold} gold a turn`;
+}
+
+/**
+ * The question the confirm card asks before a piece is let go, and the sentence
+ * under it.
+ *
+ * Pure and exported for `marchDestination`'s reason — a sentence that is merely
+ * wrong throws nothing — and written here rather than in `confirmCard.ts`
+ * because the card is a shape and this is what the *unit sheet* asks with it.
+ *
+ * Two sentences and no more. The first is the fact a player cannot undo ("for
+ * good"); the second is the reason they are here at all, in `disbandHint`'s own
+ * figure, so the card and the row it rose from cannot disagree about what the
+ * piece costs.
+ */
+export function disbandPrompt(unit: Unit): { title: string; body: string } {
+  const gold = unitUpkeepOf(unit);
+  const keeping =
+    gold <= 0 ? 'It costs nothing to keep.' : `It costs ${gold} gold a turn to keep.`;
+  return {
+    title: `Disband the ${unitDef(unit.type).name}?`,
+    body: `It leaves the board for good. ${keeping}`,
+  };
+}
+
 export function marchDestination(
   state: GameState,
   playerId: number,
@@ -486,6 +548,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     routeSlotsLine,
     onSetAutoResend,
     onOpenTrade,
+    disbandBlocker,
+    onDisband,
     onClose,
   } = options;
 
@@ -927,6 +991,27 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         blocked: blocker === undefined ? 'No unit selected' : blocker,
         hint: 'Stop here and forget the rest of the route',
         run: onCancelOrder,
+      });
+    }
+    // **Last, always, and on every sheet.** The one verb here that cannot be
+    // undone goes at the bottom, below everything a player came to this sheet
+    // to do, so nothing they reach for by muscle memory sits under the pointer
+    // on the way to it. It is offered rather than hidden for Fortify's reason:
+    // every refusal `disbandError` can give is temporary (your turn is over;
+    // end the route first), and the row is where a player learns that a piece
+    // costs something to keep — the figure is in the hint.
+    //
+    // A **routed** caravan's sheet does not reach here at all (the early return
+    // above: "a routed caravan's sheet is its route and nothing else"), which
+    // matches the gate exactly — a piece carrying a route may not be let go
+    // until the Trade screen has ended it.
+    {
+      const blocker = disbandBlocker();
+      actions.push({
+        label: 'Disband',
+        blocked: blocker === undefined ? 'No unit selected' : blocker,
+        hint: disbandHint(unit),
+        run: onDisband,
       });
     }
     return actions;

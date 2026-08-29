@@ -87,7 +87,7 @@ import {
   pillageAt,
   pillageError,
 } from './improvements';
-import type { DisbandReport } from './upkeep';
+import { type DisbandReport, unitUpkeepOf } from './upkeep';
 import {
   greatPersonActAt,
   greatPersonActError,
@@ -128,7 +128,7 @@ import {
   purchaseItemAt,
   readPurchasableItem,
 } from './purchase';
-import type { ReligionBeliefPool, RiteId } from './religionData';
+import type { BeliefId, ReligionBeliefPool, RiteId } from './religionData';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { RULES } from './rulesData';
 import {
@@ -811,6 +811,22 @@ export interface PerformRiteCommand extends PlayerCommand {
   rite: RiteId;
   /** The hex blessed. Absent means the hex the augur is standing on. */
   target?: Cell;
+  /**
+   * The god handed back, on a **redraw** rite (Recasting the Omens) and on no
+   * other — absent everywhere else, so a v33 log replays byte-identically.
+   *
+   * It names an **id** rather than an index, which is the one place this system
+   * departs from Entry XV's doctrine and departs from it for that doctrine's own
+   * reason: an index is safe because it can only name something the player was
+   * *dealt*, and this names something the player already **holds**. The pantheon
+   * is not an offer — it is a list on the empire that no draw produced — so an
+   * index into it would be an index into a list the log never wrote down. The
+   * gate checks the seat holds it (`riteError`).
+   *
+   * The hand it opens is answered by the ordinary `chooseBelief`, which appends,
+   * so the slot the give-back emptied is the slot the pick fills.
+   */
+  belief?: BeliefId;
 }
 
 /**
@@ -1029,6 +1045,34 @@ export interface CancelRouteCommand extends PlayerCommand {
   unitId: number;
 }
 
+/**
+ * Lets a unit go: it leaves the board, for good.
+ *
+ * The user's ruling of 2026-08-29 — "we need a way to delete units too". An
+ * empire pays maintenance every turn for the army it keeps (`upkeep.ts`), and
+ * until now the only way to stop paying for a warrior nobody needs was to walk
+ * it into somebody. The creditors already take a piece off a seat deep enough
+ * in arrears; this is the same act done *on purpose*, before the arrears.
+ *
+ * **No movement requirement**, and that is the deliberate half: a piece may be
+ * let go at any point in a turn, spent or fresh, because giving up a unit is
+ * not work it does — it is a decision about the payroll. It is otherwise the
+ * plainest order in the game: it names a piece, the piece must be yours, and
+ * the seat must still be acting.
+ *
+ * `disbandError` is the whole rule and this handler delegates to it, so the
+ * greyed row on the unit sheet and the reducer's refusal are one sentence.
+ * The one thing a player must not be able to do here is dissolve a caravan out
+ * from under a live route — the route is `Unit.trade` and ending it is the
+ * Trade screen's own verb (`cancelRoute`), which is what the refusal says.
+ *
+ * Turn-gated like every other order.
+ */
+export interface DisbandUnitCommand extends PlayerCommand {
+  type: 'disbandUnit';
+  unitId: number;
+}
+
 /** Every legal mutation of the game, as serializable data. */
 export type Command =
   | EndTurnCommand
@@ -1068,7 +1112,8 @@ export type Command =
   | GreatPersonWorkCommand
   | StartRouteCommand
   | SetAutoResendCommand
-  | CancelRouteCommand;
+  | CancelRouteCommand
+  | DisbandUnitCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
@@ -2278,6 +2323,13 @@ function applyChooseBelief(state: GameState, command: ChooseBeliefCommand): Comm
  * the Harvest's citizen is placed before this returns, an Omen Reading's beakers
  * can complete a technology, and the town's derived state is refreshed by the
  * one helper every mid-turn mutation goes through.
+ *
+ * **A redraw's payout is an offer**, and it goes out the way a Consecrate's
+ * always has — on `player.pantheon.pending`, where the End Turn blocker and the
+ * offer card both already look — rather than through a field of this result. A
+ * twelfth `CommandResult` field for a thing already sitting on the state would
+ * be a second answer to "is a decision owed", and the first thing a second
+ * answer does is disagree.
  */
 function applyPerformRite(state: GameState, command: PerformRiteCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);
@@ -2294,12 +2346,12 @@ function applyPerformRite(state: GameState, command: PerformRiteCommand): Comman
     if (!target) return fail('performRite needs an integer target { col, row }');
   }
 
-  const problem = riteError(state, actor.id, command.unitId, command.rite, target);
+  const problem = riteError(state, actor.id, command.unitId, command.rite, target, command.belief);
   if (problem) return fail(problem);
 
   const unit = unitById(state, command.unitId)!;
   const mark = actor.triumphs.length;
-  const done = performRiteAt(state, actor, unit, command.rite, target);
+  const done = performRiteAt(state, actor, unit, command.rite, target, command.belief);
   // A rite's hammers may finish a wonder, and a wonder is news to every seat —
   // the gap the wonders framework left and named. Its triumphs ride out the
   // same way every other command's do, as a diff of this seat's own list.
@@ -2655,6 +2707,86 @@ function applyCancelRoute(state: GameState, command: CancelRouteCommand): Comman
 }
 
 /**
+ * Why this seat cannot let that piece go, or `null` when it can.
+ *
+ * **The** gate: `applyDisbandUnit` refuses with this sentence and the unit
+ * sheet greys its Disband row with it, so an offered button is a command the
+ * reducer takes — `chopError`'s bargain, and every other blocker's in this
+ * codebase.
+ *
+ * It answers the seat's questions as well as the piece's, unlike `sleepError`,
+ * because there is no *verb* rule left once those are asked: a unit may be let
+ * go spent, fortified, asleep, wounded or fresh. Four clauses in precedence:
+ *
+ *   · a real seat, still acting — the two every handler asks first;
+ *   · **the wild never disbands.** It has no treasury to save and no screen to
+ *     say so on, which is `seatPays`' own reading of the same seat one module
+ *     over. A barbarian army thins because somebody killed it;
+ *   · the piece exists and is yours;
+ *   · **it is not carrying a route.** `Unit.trade` is the route (there is no
+ *     route register), so dissolving a routed caravan would silently take a
+ *     partner's yields off two cities. Ending the route is its own verb and
+ *     lives on its own screen, which is what the sentence says.
+ */
+export function disbandError(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+): string | null {
+  const actor = resolveActor(state, playerId);
+  if (typeof actor === 'string') return actor;
+  if (actor.barbarian === true) return 'The wild does not disband its own';
+  if (hasEndedTurn(state, actor.id)) {
+    return `Player ${actor.id} has ended turn ${state.turn} and cannot give orders`;
+  }
+
+  const unit = unitById(state, unitId);
+  if (!unit) return `No unit with id ${String(unitId)}`;
+  if (unit.ownerId !== actor.id) {
+    return `Unit ${unit.id} does not belong to player ${actor.id}`;
+  }
+  if (unit.trade !== undefined) return 'End its route from the Trade screen first';
+  return null;
+}
+
+/**
+ * Lets a unit go. See `DisbandUnitCommand`.
+ *
+ * Fully validated by `disbandError` before the single mutation, and the
+ * mutation is `removeUnit` (`state.ts`) rather than a splice of `state.units`:
+ * a piece leaves the board in exactly one place, and that place is also what
+ * recomputes the owner's sight now that the piece is not standing there any
+ * more.
+ *
+ * It reports through `CommandResult.disbanded`, the field the creditors' sweep
+ * already fills, with the same `DisbandReport` — one shape for "this piece left
+ * the payroll" whichever end of the treasury it left from. Nothing about upkeep
+ * is written anywhere: next turn's bill is a fold of what is on the board
+ * (`explainEmpireGold`), so a piece that is gone simply stops appearing in it.
+ */
+function applyDisbandUnit(state: GameState, command: DisbandUnitCommand): CommandResult {
+  const problem = disbandError(state, command.playerId, command.unitId);
+  if (problem !== null) return fail(problem);
+
+  // Not null: `disbandError` has just found it. Read *before* the removal —
+  // by the time this returns there is nothing left to ask what it cost.
+  const unit = unitById(state, command.unitId)!;
+  const report: DisbandReport = {
+    unitId: unit.id,
+    ownerId: unit.ownerId,
+    type: unit.type,
+    upkeep: unitUpkeepOf(unit),
+  };
+  removeUnit(state, unit.id);
+
+  const result = ok();
+  // Set beside the helper rather than passed through it, `proclaimed`'s reason:
+  // eight positional `undefined`s at one call site is a worse price than a line.
+  if (result.ok) result.disbanded = [report];
+  return result;
+}
+
+/**
  * The unit a command is an order **to**, when it is an order to one.
  *
  * The whole of "an order is a waking" (see `Unit.sleeping` and
@@ -2705,6 +2837,12 @@ function orderedUnitId(command: Command): number | undefined {
     case 'startRoute':
     case 'setAutoResend':
     case 'cancelRoute':
+    // Letting a piece go is an order to it, and the last one it will ever be
+    // given. It names the unit like its neighbours here rather than joining the
+    // excused arm below: `applyCommand` already looks the piece up and finds
+    // nothing (`removeUnit` ran), which is the settler-that-founded case
+    // exactly — the order spent the piece.
+    case 'disbandUnit':
       return command.unitId;
     case 'foundCity':
       return command.settlerUnitId;
@@ -2855,6 +2993,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applySetAutoResend(state, command);
     case 'cancelRoute':
       return applyCancelRoute(state, command);
+    case 'disbandUnit':
+      return applyDisbandUnit(state, command);
     default:
       return unhandledCommand(kind, type);
   }

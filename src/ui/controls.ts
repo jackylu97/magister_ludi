@@ -189,6 +189,7 @@ import type {
   SlotOrderCommand,
   UnslotOrderCommand,
 } from '../sim/commands';
+import { disbandError } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import {
   actCityFor,
@@ -253,6 +254,7 @@ import {
 } from '../sim/religion';
 import { type ProclamationReport, type ProphetPrice, proclaimPreview } from '../sim/religion';
 import {
+  type BeliefId,
   type ReligionBeliefPool,
   type RiteId,
   RELIGION_BELIEF_POOLS,
@@ -1578,6 +1580,23 @@ export interface GameControls {
   sleepUnit(): void;
 
   /**
+   * Why the selected unit cannot be let go, or `null` when it can. `undefined`
+   * with nothing selected — the same three-valued shape as `foundCityBlocker`,
+   * and `disbandError`'s own sentence unaltered.
+   */
+  disbandBlocker(): string | null | undefined;
+  /**
+   * Lets the selected unit go: it leaves the board for good, the selection is
+   * dropped, and one line says so.
+   *
+   * **It does not ask.** The confirmation card is the caller's (see
+   * `disbandUnit`'s docblock), so this is the act and nothing else — there is
+   * no hot-key for it either, deliberately: a verb that cannot be undone is
+   * reached by a click through a card that says what it costs.
+   */
+  disbandUnit(): void;
+
+  /**
    * Why the selected unit cannot be told to skip its turn, or `null` when it
    * can — the same three-valued shape as `foundCityBlocker`.
    *
@@ -1729,8 +1748,18 @@ export interface GameControls {
    * is a fact about a hex the worker will not be standing on tomorrow.
    */
   riteOptions(): RiteOption[];
-  /** Spends one charge on a rite, aimed where the augur stands. */
-  performRite(id: RiteId): void;
+  /**
+   * Spends one charge on a rite, aimed where the augur stands.
+   *
+   * `belief` is the god handed back, and it is named by a **redraw** rite alone
+   * — see `recastChoices`, which is what the caller picks it out of.
+   */
+  performRite(id: RiteId, belief?: BeliefId): void;
+  /**
+   * The gods a redraw rite would offer to give back, in the order they were
+   * taken — empty for every other rite. See `recastChoices`.
+   */
+  recastChoices(rite: RiteId): BeliefId[];
 
   /**
    * The four rows a selected prophet's sheet offers — empty for every other
@@ -2177,7 +2206,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportRoutes(result);
       reportSieges(result);
       reportPillages(result);
-      reportDisbands(result);
+      reportDisbands(command, result);
       reportStarvation(result);
       reportTriumphs(result);
       checkFirstStatecraftDraft();
@@ -2365,8 +2394,18 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * took a soldier — so it goes to the toast stack and the chronicle rather
    * than to the notice line, and it names the threshold so the next one is
    * predictable.
+   *
+   * **A piece the player let go is not this news** (2026-08-29). `disbandUnit`
+   * fills the very same `CommandResult.disbanded`, deliberately — one shape for
+   * "this left the payroll", whichever end it left from — but the *sentence*
+   * here is the creditors': it names a threshold that has nothing to do with a
+   * player who pressed Disband, and a card they just confirmed does not need to
+   * be told back to them in alarming words. So the one command that is the
+   * player's own answers with its own line (`disbandUnit`) and this reads only
+   * what the world did.
    */
-  function reportDisbands(result: CommandResult): void {
+  function reportDisbands(command: Command, result: CommandResult): void {
+    if (command.type === 'disbandUnit') return;
     if (!result.ok || !result.disbanded) return;
     for (const report of result.disbanded) {
       if (report.ownerId !== localPlayerId) continue;
@@ -3674,6 +3713,53 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     else clearSelection();
   }
 
+  // --- disbanding ------------------------------------------------------------
+
+  /**
+   * Why the selected unit cannot be let go. `sleepBlocker`'s shape, delegating
+   * whole to `disbandError` — including the turn clause, which that gate asks
+   * itself rather than leaving to `canOrder()` here: the sheet's Disband row and
+   * the reducer's refusal are one sentence, and this file adds nothing to it.
+   */
+  function disbandBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    return disbandError(getGame().state, localPlayerId, unit.id);
+  }
+
+  /**
+   * Lets the selected unit go, and drops the selection.
+   *
+   * The confirmation is **not** here. This is the verb; the card that asks "are
+   * you sure" is raised by whoever offers the button (`main.ts`, the unit
+   * sheet's row), for the reason every other blocker/verb pair in this file is
+   * split: a caller with its own certainty — a later AI, a test, a hot-key that
+   * never got written — must be able to reach the act without a modal, and this
+   * function must not be the one deciding whether a human has been asked.
+   *
+   * The selection goes for `sleepUnit`'s reason twice over: the piece is not
+   * merely finished, it is not there. The name is read *before* the dispatch,
+   * because by the time this announces there is nothing left to ask what it was.
+   */
+  function disbandUnit(): void {
+    const unit = selectedUnit();
+    if (!unit || disbandBlocker() !== null) return;
+    const name = unitDef(unit.type).name;
+
+    const command: Command = { type: 'disbandUnit', playerId: localPlayerId, unitId: unit.id };
+    const result = commit(command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    clearSelection();
+    renderer.invalidate();
+    // One line, and the player's own words for it. The creditors' sentence
+    // (`disbandSentence`) is about a threshold nobody crossed here — see
+    // `reportDisbands`, which stands aside for exactly this command.
+    announce(`${name} disbanded`);
+  }
+
   // --- skipping --------------------------------------------------------------
 
   /**
@@ -3890,7 +3976,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * and panned to the hex the augur stood on so the chronicle line leads back to
    * the town that received it.
    */
-  function performRite(id: RiteId): void {
+  function performRite(id: RiteId, belief?: BeliefId): void {
     const unit = selectedUnit();
     if (!unit) return;
     const sentence = riteSentence(getGame().state, unit, id);
@@ -3900,6 +3986,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       playerId: localPlayerId,
       unitId: unit.id,
       rite: id,
+      // Named only by a redraw rite, and `undefined` is not written into the
+      // command at all — a rite that gives nothing back logs exactly the command
+      // it always did.
+      ...(belief === undefined ? {} : { belief }),
     });
     if (!result.ok) {
       reject(result.error);
@@ -3917,6 +4007,33 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
+    // Recasting the Omens deals a hand, and it reaches the card through the one
+    // `onOfferReligion` seam Consecrate and the prophet's drafts use — asked of
+    // the *state* rather than of which rite was pressed, so the second redraw
+    // rite raises its card without this function learning its name.
+    if (playerById(getGame().state, localPlayerId)?.pantheon.pending) onOfferReligion?.();
+  }
+
+  /**
+   * The gods this rite would ask the player to choose between giving back, or an
+   * empty list for every rite that gives nothing back.
+   *
+   * The **interface's** half of a redraw: the sim names an id (`performRite`'s
+   * `belief`), which means somebody has to pick one, and this is what that
+   * picker is built from. It answers off the seat's own pantheon in the order
+   * the gods were taken, because that is the order every other surface prints
+   * them in.
+   *
+   * A list rather than a boolean for `ProphetRow.pools`' reason: the caller has
+   * to know *both* that a choice is owed and what the choices are, and a
+   * single-god pantheon is the case worth having in the shape — one entry means
+   * "no question to ask", and the sheet dispatches it directly rather than
+   * raising a card with one card on it.
+   */
+  function recastChoices(rite: RiteId): BeliefId[] {
+    if (riteDef(rite).redraws === undefined) return [];
+    const player = playerById(getGame().state, localPlayerId);
+    return player ? [...player.pantheon.beliefs] : [];
   }
 
   // --- the prophet ---------------------------------------------------------
@@ -5685,6 +5802,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     fortifyBlocker,
     sleepBlocker,
     sleepUnit,
+    disbandBlocker,
+    disbandUnit,
     skipUnit,
     skipBlocker,
     isUnitSkipped,
@@ -5703,6 +5822,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     consecrate,
     riteOptions,
     performRite,
+    recastChoices,
     prophetRows,
     prophetAct,
     renameReligion,

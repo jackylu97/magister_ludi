@@ -25,14 +25,21 @@
 import { describe, expect, it } from 'vitest';
 import { foundCityAt } from '../../src/sim/cities';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState, type Unit, newGame } from '../../src/sim/state';
 import { recomputeVisibility, resetVisibility } from '../../src/sim/visibility';
 import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
+import type { UnitTypeId } from '../../src/sim/unitData';
+import { unitUpkeep } from '../../src/sim/upkeep';
 import { moveModeNotice } from '../../src/ui/controls';
-import { marchDestination } from '../../src/ui/unitPanel';
+import {
+  disbandHint,
+  disbandPrompt,
+  marchDestination,
+  upkeepNote,
+} from '../../src/ui/unitPanel';
 
 const SOURCES = import.meta.glob(
-  ['../../src/ui/controls.ts', '../../src/ui/unitPanel.ts'],
+  ['../../src/ui/controls.ts', '../../src/ui/unitPanel.ts', '../../src/main.ts'],
   { eager: true, query: '?raw', import: 'default' },
 ) as Record<string, string>;
 
@@ -306,5 +313,138 @@ describe('a greyed row’s refusal', () => {
     // `renderActions` prefers `action.card` over the fallback exactly when one
     // exists, so a rite's card is never wrapped in `refusalCard` too.
     expect(body).toContain('action.card ??');
+  });
+});
+
+/**
+ * The augur's Recasting the Omens row (user, 2026-08-29: "could we give augurs
+ * the ability to reroll a pantheon belief… it should give the option to choose
+ * which belief to reroll").
+ *
+ * The row itself needs no code of its own — `riteOptions` walks the whole rite
+ * table and the sheet prints what comes back — which is exactly the property
+ * worth pinning: what a player reads on that row is the *simulation's* sentence
+ * for it (`ritePreview`, and for a redraw that is the data row's own plain
+ * prose), never a wording composed in the panel. The other half is the belief
+ * the command names, which the sheet cannot supply and must be asked for.
+ */
+describe('the rite row that gives a belief back', () => {
+  const panel = source('unitPanel.ts');
+  const controls = source('controls.ts');
+
+  it('is printed off the table like every other rite, with the sim’s own hint', () => {
+    // The loop that draws them is the whole implementation of "a new rite is a
+    // JSON row": nothing here names one.
+    expect(panel).toContain('for (const rite of riteOptions())');
+    expect(panel).toContain('`Spend a rite: ${rite.name.toLowerCase()}`');
+    expect(panel).toContain('(rite.preview ? ` · ${rite.preview}` : \'\')');
+    expect(panel).not.toContain('recastingTheOmens');
+    // And the preview is asked of the simulation, per rite.
+    expect(controls).toContain('preview: ritePreview(state, unit.id, id)');
+  });
+
+  it('carries the god back to the command, and writes nothing when there is none', () => {
+    // A rite that gives nothing back logs exactly the command it always did —
+    // `undefined` is never written into a command, so an old log replays.
+    expect(controls).toContain('function performRite(id: RiteId, belief?: BeliefId): void');
+    expect(controls).toContain('...(belief === undefined ? {} : { belief })');
+  });
+
+  it('answers the sheet with the seat’s own pantheon, and only for a redraw rite', () => {
+    // `recastChoices` is what the picker is built from: empty for every rite
+    // that redraws nothing, so the branch costs the other six nothing.
+    expect(controls).toContain('function recastChoices(rite: RiteId): BeliefId[]');
+    expect(controls).toContain('if (riteDef(rite).redraws === undefined) return [];');
+    expect(controls).toContain('[...player.pantheon.beliefs]');
+  });
+});
+
+/**
+ * The Disband row (user, 2026-08-29: "we need a way to delete units too …and an
+ * indicator of the current upkeep on the unit").
+ *
+ * Three promises, and each fails silently rather than loudly:
+ *
+ *   1. **It is last.** The one verb here that cannot be undone sits below
+ *      everything a player came to this sheet to do, so nothing they reach for
+ *      by reflex is on the way to it.
+ *   2. **The hint quotes the upkeep**, in `unitUpkeepOf`'s figure — the piece's,
+ *      never the type's, so a granted or captured unit does not promise a saving
+ *      the treasury will never see.
+ *   3. **It is greyed with `disbandError`'s own sentence**, through the same
+ *      blocker/hover-card mechanism every other row uses — so an offered button
+ *      is a command the reducer takes.
+ */
+describe('the Disband row', () => {
+  const panel = source('unitPanel.ts');
+  const actions = panel.slice(
+    panel.indexOf('function actionsFor('),
+    panel.indexOf('function riteCard('),
+  );
+
+  it('is the last row pushed, after every other verb', () => {
+    const disband = actions.indexOf("label: 'Disband'");
+    expect(disband).toBeGreaterThan(0);
+    // Nothing else is pushed after it — the next thing in the function is the
+    // return.
+    expect(actions.slice(disband)).not.toContain('actions.push(');
+    expect(actions.slice(disband)).toContain('return actions;');
+  });
+
+  it('is greyed with the gate’s own sentence, like every other verb', () => {
+    expect(actions).toContain('const blocker = disbandBlocker();');
+    expect(actions).toContain("blocked: blocker === undefined ? 'No unit selected' : blocker,");
+    // And the gate is the reducer's, reached through `controls`, never a rule
+    // this file writes.
+    expect(source('controls.ts')).toContain('return disbandError(getGame().state, localPlayerId, unit.id);');
+  });
+
+  it('quotes the upkeep in its hint', () => {
+    expect(actions).toContain('hint: disbandHint(unit),');
+  });
+
+  it('has no hot-key — a destructive verb is reached through a card', () => {
+    const row = actions.slice(actions.indexOf("label: 'Disband'"));
+    expect(row.slice(0, row.indexOf('});'))).not.toContain('key:');
+  });
+});
+
+describe('the upkeep the sheet and the row agree on', () => {
+  /** A bare unit of a type, as `upkeepPanels.test.ts` builds one. */
+  function piece(type: UnitTypeId): Unit {
+    return { id: 1, ownerId: 0, type, col: 0, row: 0, hp: 100, movesLeft: 2 } as Unit;
+  }
+
+  it('names the saving on a piece that costs something', () => {
+    const warrior = piece('warrior');
+    expect(disbandHint(warrior)).toBe(`Let this unit go · saves ${unitUpkeep('warrior')} gold a turn`);
+    expect(disbandPrompt(warrior)).toEqual({
+      title: 'Disband the Warrior?',
+      body: `It leaves the board for good. It costs ${unitUpkeep('warrior')} gold a turn to keep.`,
+    });
+  });
+
+  it('says so plainly when there is nothing to save', () => {
+    const settler = piece('settler');
+    expect(disbandHint(settler)).toBe('Let this unit go · it costs nothing to keep');
+    expect(disbandPrompt(settler).body).toBe(
+      'It leaves the board for good. It costs nothing to keep.',
+    );
+  });
+
+  it('asks the *piece*, not the type — a granted warrior saves nothing', () => {
+    const granted = piece('warrior');
+    granted.freeUpkeep = true;
+    expect(disbandHint(granted)).toBe('Let this unit go · it costs nothing to keep');
+    expect(disbandPrompt(granted).body).toContain('nothing to keep');
+    // The sheet's own note already said so; the row must not disagree with it.
+    expect(upkeepNote(granted)).toBe('Free — granted');
+  });
+
+  it('is the card main.ts actually raises, with the sheet’s own words', () => {
+    const main = source('main.ts');
+    expect(main).toContain('disbandPrompt(unit)');
+    expect(main).toContain("confirmLabel: 'Disband', cancelLabel: 'Keep'");
+    expect(main).toContain('controls.disbandUnit();');
   });
 });

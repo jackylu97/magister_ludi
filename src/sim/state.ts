@@ -360,8 +360,22 @@ import {
  *     proclamation, an enhancement — never happens, and the board diverges from
  *     the founding turn. Nothing about a later holy site moved: it is one charge
  *     as before, and it still never moves `Religion.holySite`.
+ * 34: **A god belongs to one world** (user ruling, 2026-08-29, alongside
+ *     Recasting the Omens). `beliefPool` now excludes every pantheon belief a
+ *     *rival* seat keeps, so the bag a Consecrate draws from is smaller than it
+ *     was and the hand dealt on any turn after the first god in the world is a
+ *     different hand. That alone moves every seeded draw, which is v19's reason
+ *     for a bump; the new rite adds the other half — a seventh row in the rite
+ *     table, an ability on Divination, and `BeliefOffer.givenBack`, a field a
+ *     v33 save never wrote. A v33 log replayed here would deal gods the log's
+ *     indices no longer name, which is a different game rather than an older
+ *     one. The same day's other replay-moving ruling rides the same number:
+ *     **the sword line waits for iron** (`upgradeTargetFor` stops at a rung
+ *     whose resource the empire does not control, and `advanceResearch` runs
+ *     the retooling sweep every turn), so a v33 log's warriors become
+ *     swordsmen on a different turn than the log remembers.
  */
-export const SCHEMA_VERSION = 33;
+export const SCHEMA_VERSION = 34;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

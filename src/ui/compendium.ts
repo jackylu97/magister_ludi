@@ -987,7 +987,12 @@ function riteEntry(id: RiteId): CompendiumEntry {
     eyebrow: 'rite',
     mark: { kind: 'glyph', glyph: '☩' },
     rows: [
-      ...row('Performed on', def.target),
+      // **A redraw is performed on nothing standing anywhere.** Its row carries
+      // `target: 'here'` because that is the shape for "no hex", and printing
+      // that word would tell a reader to walk somewhere. What it acts on is the
+      // pantheon, so that is what the row says. Every other rite answers off the
+      // data as before.
+      ...row('Performed on', def.redraws === undefined ? def.target : 'your pantheon'),
       ...row('Duration', def.duration === undefined ? '' : `${figure(def.duration)} turns`),
       ...row('Unlocked by', techName(def.tech)),
     ],

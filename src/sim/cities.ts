@@ -1560,6 +1560,15 @@ function chooseCitizens(
  *      The caravan's own *march* owes this register nothing — a route pays
  *      wherever its two cities stand, not wherever the trader is walking —
  *      which is why the shuttle phase does not refresh and does not need to.
+ *  16. **A belief taken, and a belief given back** (`refreshBeliefDerived` in
+ *      `religion.ts`) — `settleResearchWindfall`'s shape rather than a single
+ *      town's, and for its argument: a belief is an empire-wide fact about what
+ *      *ground* is worth (Ecclesia pays a holy site's hex, Desert Fathers pays
+ *      every dune), so the citizen who should move is in whichever town stands
+ *      on the seam and all of them are re-seated. Both directions reach it, and
+ *      the second is the one added last (2026-08-29, Recasting the Omens): a god
+ *      handed back stops paying the instant it leaves the list, so the town that
+ *      had a citizen out on a dune for it must be told before the turn ends.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`

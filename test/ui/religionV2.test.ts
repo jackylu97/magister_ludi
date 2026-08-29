@@ -40,6 +40,7 @@ import {
   ENHANCER_BELIEF_IDS,
   FOLLOWER_BELIEF_IDS,
   beliefPoolOf,
+  riteDef,
 } from '../../src/sim/religionData';
 import { RULES } from '../../src/sim/rulesData';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -54,6 +55,7 @@ import {
   poolTechName,
   pressureLedgerText,
   religionReading,
+  riteGrantWords,
 } from '../../src/ui/religionScreen';
 import { PROPHET_PRICE_WORD, proclaimSays } from '../../src/ui/controls';
 
@@ -830,6 +832,87 @@ describe('the Compendium’s religion rows', () => {
       .entries.flatMap((row) => entry(row.id)!.clauses)
       .filter((clause) => clause.deferred === true);
     expect(deferred.length).toBeGreaterThan(0);
+  });
+});
+
+// --- recasting the omens ----------------------------------------------------
+
+/**
+ * The interface's half of the rite that gives a god back (user, 2026-08-29).
+ *
+ * Three surfaces have to agree about a rite that pays no bucket at all: the
+ * Compendium's shelf, the Religion screen's reference, and the augur's own
+ * sheet. What is pinned here is that none of them goes silent on it and none of
+ * them invents a second wording — the sentence is the data row's `note`, printed
+ * everywhere and composed nowhere.
+ */
+describe('the rite that recasts a pantheon', () => {
+  const RECAST = 'recastingTheOmens' as const;
+  const def = riteDef(RECAST);
+
+  it('pays no bucket, so the grant words are empty rather than wrong', () => {
+    expect(riteGrantWords(RECAST)).toBe('');
+    // Every other rite still has its figure — the arm is a redraw's, not a
+    // regression in the describer.
+    expect(riteGrantWords('riteOfTheHarvest')).toContain('population');
+  });
+
+  it('shelves in the Compendium with its sentence and no crash on a missing grant', () => {
+    const book = compendiumSections();
+    const row = book.flatMap((section) => section.entries).find((e) => e.id === `rite:${RECAST}`);
+    expect(row).toBeDefined();
+    expect(row!.name).toBe('Recasting the Omens');
+    const clauses = row!.clauses.map((clause) => clause.text);
+    // The row's own prose, printed — not a sentence composed here.
+    expect(clauses).toContain(def.note);
+    // Its `target: 'here'` is the shape for "no hex", and the shelf says what it
+    // actually acts on rather than telling a reader to walk somewhere.
+    const performedOn = row!.rows.find((line) => line.label === 'Performed on');
+    expect(performedOn?.figures).toBe('your pantheon');
+    // No digits in the sentence a player reads (hard rule 7).
+    expect(def.note ?? '').not.toMatch(/[0-9]/);
+  });
+
+  it('says both halves of the rule in plain words', () => {
+    expect(def.note).toContain('Give back one of your beliefs and choose another');
+    expect(def.note).toContain('A belief another empire keeps is never offered');
+  });
+
+  it('is asked for a god before it is dispatched, and only when there is a question', () => {
+    // The sheet cannot supply *which* god, so `main.ts` asks — through
+    // `recastChoices`, which is empty for every rite that gives nothing back, and
+    // only when the pantheon holds more than one. A single god is not a question.
+    const wiring = sourceOf('main.ts');
+    expect(wiring).toContain('controls.recastChoices(id)');
+    expect(wiring).toContain('if (held.length > 1)');
+    expect(wiring).toContain('controls.performRite(id, held[0])');
+    // The picker hands the pick straight to the command.
+    const picker = fn('main.ts', 'showGiveBackPicker');
+    expect(picker).toContain("eyebrow: 'give back'");
+    expect(picker).toContain("title: 'Which belief do you give back?'");
+    expect(picker).toContain('held.map');
+    expect(picker).toContain('describeCard(id)');
+    expect(picker).toContain('AXIS_MARK[def.axis].glyph');
+    // A question, not an irreversible choice: the heavy frame belongs to the
+    // card that follows it.
+    expect(picker).not.toContain("weight: 'heavy'");
+  });
+
+  it('gives the offer that follows a wording of its own', () => {
+    // `BeliefOffer.givenBack` is the offer's own answer, so the card does not
+    // have to know which rite opened it.
+    const offer = fn('main.ts', 'showReligionOffer');
+    expect(offer).toContain('offer.givenBack !== undefined');
+    expect(offer).toContain("'Name what your people keep instead'");
+  });
+
+  it('reaches the offer card through the one seam every other draft uses', () => {
+    // Never a second path from "a hand was dealt" to "the card is on screen".
+    const performRite = fn('controls.ts', 'performRite');
+    expect(performRite).toContain('onOfferReligion?.()');
+    expect(performRite).toContain('pantheon.pending');
+    // Asked of the state, not of which rite was pressed.
+    expect(performRite).not.toContain('recastingTheOmens');
   });
 });
 

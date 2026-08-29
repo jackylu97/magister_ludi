@@ -126,9 +126,10 @@ import { faithPlates } from './ui/faithPlates';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
+import { type ConfirmCard, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
 import { AXIS_MARK, beliefOfferEyebrow } from './ui/religionScreen';
-import { beliefDef } from './sim/religionData';
+import { type BeliefId, beliefDef } from './sim/religionData';
 import { personOf } from './sim/greatPeople';
 import {
   type Family,
@@ -150,7 +151,7 @@ import { type Compendium, createCompendium } from './ui/compendium';
 import { setKeywordOpener } from './ui/keywords';
 import { createStaleDeployNotice } from './ui/staleDeploy';
 import { type TradeScreen, createTradeScreen } from './ui/tradeScreen';
-import { type UnitPanel, createUnitPanel } from './ui/unitPanel';
+import { type UnitPanel, createUnitPanel, disbandPrompt } from './ui/unitPanel';
 import { YIELD_GLYPH } from './ui/figures';
 import type { HoverInfo, LensMode, MapView } from './ui/mapView';
 import { createInfoCard } from './ui/infoCard';
@@ -263,6 +264,9 @@ const offerOverlayEl = requireElement<HTMLElement>('offer-overlay');
 /* The Triumph sheet's shell — `ui/triumphModal.ts` builds its contents on each
    show. Milder than the offer above it: news with one affirmative button. */
 const triumphOverlayEl = requireElement<HTMLElement>('triumph-overlay');
+/* The confirm card's shell — `ui/confirmCard.ts` builds its contents on each
+   ask. The smallest of the three modal shapes: one question, two answers. */
+const confirmOverlayEl = requireElement<HTMLElement>('confirm-overlay');
 /* The way back to an offer put away behind View map. Pinned in the End Turn
    corner because that button stops on the very same offer — see `index.html`. */
 const offerReturnEl = requireElement<HTMLButtonElement>('offer-return');
@@ -596,6 +600,18 @@ let toasts: ToastStack | null = null;
 let triumphSheet: TriumphModal | null = null;
 
 /**
+ * The confirm card: "are you sure?", for the one verb that cannot be undone.
+ *
+ * Built here at module scope rather than in `boot`, beside the compendium and
+ * the help sheet and for their reason: it is a property of the *page*, not of a
+ * game — it reads nothing about a seat, a turn or a board, it only asks a
+ * question somebody else wrote. That also puts it above `closePopovers` and
+ * `isInputBlocked`, both of which have to be able to take it down and to ask
+ * whether it is up.
+ */
+const confirmCard: ConfirmCard = createConfirmCard(confirmOverlayEl);
+
+/**
  * The live game's state, once `boot` has one.
  *
  * The Compendium's one optional reader, and the only reason it exists: nothing
@@ -663,7 +679,12 @@ function closePopovers(): boolean {
     (religion?.isOpen ?? false) ||
     (trade?.isOpen ?? false) ||
     compendium.isOpen ||
-    savesPanel.isOpen;
+    savesPanel.isOpen ||
+    // Escape never actually arrives here while the card is up — it answers its
+    // own key in a capturing listener, "no" — but this is also what a new game
+    // and the landing screen call, and a question about a piece from the last
+    // game must not survive into the next one.
+    confirmCard.isOpen;
   menu.close();
   help.close();
   lens.close();
@@ -676,6 +697,7 @@ function closePopovers(): boolean {
   trade?.close();
   compendium.close();
   savesPanel.close();
+  confirmCard.close();
   return wasOpen;
 }
 
@@ -2006,14 +2028,23 @@ async function boot(initial: Game | null): Promise<void> {
         // for each is `beliefOfferEyebrow`'s, which is the screen that houses
         // them — one table, both surfaces, exactly as `AXIS_MARK` is.
         eyebrow: beliefOfferEyebrow(offer.pool),
+        // **A third wording, for the one offer dealt in place of something.**
+        // `givenBack` is the offer's own answer (`BeliefOffer`), so the card
+        // does not have to know which rite opened it — and the line names the
+        // god handed over, because that is the only thing distinguishing this
+        // hand from a fresh one.
         title:
-          offer.pool === undefined
-            ? 'Name what your people keep'
-            : `Name what ${foundedReligion(game.state, seat)?.name ?? 'your faith'} teaches`,
+          offer.givenBack !== undefined
+            ? 'Name what your people keep instead'
+            : offer.pool === undefined
+              ? 'Name what your people keep'
+              : `Name what ${foundedReligion(game.state, seat)?.name ?? 'your faith'} teaches`,
         note:
-          offer.pool === undefined
-            ? 'A belief pays in every city you own, for the rest of the game. The augur is spent either way.'
-            : 'This belongs to your religion, not to your empire. The prophet’s charge is spent either way.',
+          offer.givenBack !== undefined
+            ? `Your people have given up ${beliefDef(offer.givenBack).name}. What they keep instead pays in every city you own, for the rest of the game.`
+            : offer.pool === undefined
+              ? 'A belief pays in every city you own, for the rest of the game. The augur is spent either way.'
+              : 'This belongs to your religion, not to your empire. The prophet’s charge is spent either way.',
         weight: 'heavy',
         widening: wideningLines('belief'),
         options: offer.options.map((id) => {
@@ -2068,6 +2099,48 @@ async function boot(initial: Game | null): Promise<void> {
         }
         controls.refresh();
         religion?.refresh();
+      },
+    );
+  }
+
+  /**
+   * Asks which god the empire hands back, on the same card its replacement will
+   * be chosen on.
+   *
+   * The one place in this interface where the offer card is a **picker** rather
+   * than an offer: nothing was dealt here, the options are the seat's own
+   * pantheon, and the pick is not spent — it is an argument to the command that
+   * follows. It wears that card anyway, and deliberately, because the two halves
+   * of Recasting the Omens are one gesture: what you give up and what you take
+   * instead should be read on one surface, in one dress, a beat apart.
+   *
+   * Every word is the same word `showReligionOffer` prints — `describeCard`'s
+   * clauses, the axis glyph, the god's own aphorism, the axis accent — so a
+   * belief looks identical on the card that offered it, on the card that gives
+   * it back, and on the Religion screen in between. It is **not** heavy-framed:
+   * the frame means "this cannot be taken back", and this is a question, not the
+   * answer. The heavy card is the one that follows.
+   */
+  function showGiveBackPicker(held: BeliefId[], onPick: (belief: BeliefId) => void): void {
+    offerCard.show(
+      {
+        eyebrow: 'give back',
+        title: 'Which belief do you give back?',
+        note: 'The augur casts again. A belief another empire keeps is never offered.',
+        options: held.map((id) => {
+          const def = beliefDef(id);
+          return {
+            title: def.name,
+            payoff: AXIS_MARK[def.axis].glyph,
+            note: describeCard(id).map((clause) => clause.text).join(' · '),
+            flavor: def.flavor,
+            line: def.axis,
+          };
+        }),
+      },
+      (index) => {
+        const belief = held[index];
+        if (belief !== undefined) onPick(belief);
       },
     );
   }
@@ -2384,7 +2457,12 @@ async function boot(initial: Game | null): Promise<void> {
       // would never have seen either key anyway. It is here for the *other*
       // hotkeys — `H`, `T`, End Turn — which have no business firing under a
       // sheet the player has not proceeded past.
-      (triumphSheet?.isOpen ?? false)
+      (triumphSheet?.isOpen ?? false) ||
+      // The confirm card is the Triumph sheet's kind (`confirmCard.ts`): it
+      // answers its own Enter and Escape in a capturing listener, so it is here
+      // for the *other* hotkeys — `H`, `T`, End Turn — which have no business
+      // firing under an unanswered question.
+      confirmCard.isOpen
     );
   }
 
@@ -3144,7 +3222,24 @@ async function boot(initial: Game | null): Promise<void> {
     },
     riteOptions: () => controls.riteOptions(),
     onPerformRite: (id) => {
-      controls.performRite(id);
+      // **A redraw asks first.** Recasting the Omens names a god the seat
+      // already holds, so the one thing the sheet cannot supply is *which* — and
+      // the choice is put on the same offer card every other draft in this game
+      // is answered on, in a picker's dress. Asked of `recastChoices`, which is
+      // empty for every rite that gives nothing back, so this branch costs the
+      // other six nothing. A pantheon of one is not a question: it is dispatched
+      // at once, because a card with a single option on it is a confirmation
+      // dialog wearing a draft's clothes.
+      const held = controls.recastChoices(id);
+      if (held.length > 1) {
+        showGiveBackPicker(held, (belief) => {
+          controls.performRite(id, belief);
+          updatePanel(null, renderer.getHover());
+          religion?.refresh();
+        });
+        return;
+      }
+      controls.performRite(id, held[0]);
       updatePanel(null, renderer.getHover());
       religion?.refresh();
     },
@@ -3189,6 +3284,23 @@ async function boot(initial: Game | null): Promise<void> {
       updatePanel(null, renderer.getHover());
     },
     onOpenTrade: () => trade?.open(),
+    disbandBlocker: () => controls.disbandBlocker(),
+    // The **only** verb on this sheet that asks before it acts, and the asking
+    // is here rather than in `controls` or in the panel for the reason the
+    // confirm card exists at all: the card is a surface this page owns, and the
+    // act underneath it must stay reachable without one. The words are the
+    // simulation's own figures through `disbandPrompt` — the same upkeep the
+    // row's hint and the sheet's note quote, so the card cannot promise a
+    // saving the other two do not.
+    onDisband: () => {
+      const unit = controls.selectedUnit();
+      if (!unit) return;
+      const { title, body } = disbandPrompt(unit);
+      confirmCard.ask({ title, body, confirmLabel: 'Disband', cancelLabel: 'Keep' }, () => {
+        controls.disbandUnit();
+        updatePanel(null, renderer.getHover());
+      });
+    },
     onClose: () => controls.clearSelection(),
   });
 
