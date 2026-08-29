@@ -3921,4 +3921,39 @@ a rarity weight (● 4 · ◆ 2 · ○ 1, weighted never restricted) and a *decl
 a passed card's weight for twenty turns, which is the actual cause of the repeats the user
 noticed: a declined card goes straight back into a uniform draw.
 
+## Entry XLVII — The evening of the 29th: two performance passes, the pools grow, and a day's rulings (**built** 2026-08-29)
+
+**Where the lag was.** Two interface surfaces asked the sim the same expensive question once
+per row. The star chart asked `playerScience` — a fold over every city — once per *node*, and a
+click rebuilt and re-laid-out all sixty cards; now the rate is summed once per render and handed
+down (`turnsToTech(…, rate)`), the chart is built on open and *repainted* after, and the unlock
+lines are re-priced only when the command log has grown — the one memo this game allows, keyed
+on the one thing hard rule 1 says changes whenever anything does. Twelve cities: a click 123 →
+1.2 ms, an open 82 → 33. The city panel folded `cityYields` for every row of the build list, and
+inside each fold re-ran the empire-wide meter sweep; `cityQuote` hoists the flats and the percent
+list once per render and every row's `turnsToBuild`/preview reads it (quoted and unquoted folds
+pinned equal for every row in the game): 16.5 → 3.9 ms. And the finding under both: `refreshHover`
+called `onUpdate`, so an open panel tore down and rebuilt on **every mouse move over the map**.
+`onHover` refreshes the tile readout alone; panels rebuild on an accepted command, a click, a seat
+change or a load — never on the pointer, and never on a data fingerprint (a slotted Order changes
+what a panel prints without touching any field a fingerprint would watch).
+
+**The pools grow** (the user's cut of `docs/orders-candidates.md`, twenty-one rows across
+Chiefdom, Government I and II). Six generic shapes came with them, each read in one place; the one
+worth naming is **`unitStamp`** — a mark written on a unit at `createUnit` while the card is live,
+so a veteran (The Muster Roll's +10 hp, Drums of War's +1 strength) is a fact about the *piece*
+that survives the card's unslotting; `unitMaxHp(unit)` is now the one reading of a unit's maximum.
+Seed Corn was Homestead Charters again and was skipped; two names moved off Æra III's. The Bronze
+Mirror (a luxury spawned mid-game — the map invariant) and Sanctuary (sacking) ship retired. The
+master list carries a **Rarity** column with a proposed mark on every Order; nothing is built until
+the user finalises it.
+
+**The day's rulings, in brief.** Recasting the Omens (an augur gives back a pantheon belief and
+casts again; a god belongs to one world); Disband behind a custom confirm card with the upkeep
+quoted; Sailing lets the scout embark; the sword line waits for iron and the retooling sweep runs
+every turn; crowding softened to `0.5 × (size − 8)^1.2` and named in the Compendium; the settler's
+and worker's ladders one hammer gentler; Æra II–III buildings priced by hand, wonders 0.85×;
+The Great Litany was banked all along — the top bar's headline had never folded the card-empire
+lines (`explainEmpireCardYields` is the one list both read now).
+
 ---
