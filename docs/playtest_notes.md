@@ -73,3 +73,12 @@ wow honey is broken, probably needs a rework  [done 8/26 — it was the farm-ove
 - health bars still bugged, aren't showing correct health in bar, but the hover info seems correct.
 - terrain bonuses should be additive, not percentage, could you check how civ 5/6 handles this?
 - need to flesh out city combat -- city should take damage from attacks from units, captured if a unit attacks and brings city health to zero. Cities heal every turn. Defensive buildings raise defensive strength and city health. City's base defensive strength is equal to strongest trainable unit (strategic resource rules apply). Add a new mechanic: cities under siege (all surrounding tiles under zone of control) take slow chip damage and cannot heal.
+
+
+8/29
+- buying tiles need to be cheaper, like 0.4x what they are now.
+- 'end turn' should pause play when a new order or government has been drafted; something like 'new order available' or 'new government available'.
+- better indicators for the authority/happiness cost of a new city. Put it in the settler lens, mousing over a tile will show the happiness/authority cost of placing a city there
+- i think we need more orders in the pool, as you tend to see a lot of repeats currently. We may also want to introduce a rarity value for the better orders. Please draft some candidates for each age in a new document.
+- the prioritization for new tiles from border growth should weight more towards taking tiles with good yields, i notice coastal cities expanding to useless coastal tiles with no resources. Tiles 3 hexes away should be slightly more unfavored.
+- prophets should be entirely consumed by starting a religion or enhancing. proclomations and redrafting should still only consume 1 charge as usual. Building a holy site should be a persistent option (does not change the holy city on subsequent builds)
