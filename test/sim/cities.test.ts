@@ -22,6 +22,7 @@ import {
   foundingError,
   foundingErrorAt,
   citizenFocus,
+  expansionScore,
   growCities,
   growthIsHalted,
   growthThreshold,
@@ -2425,6 +2426,84 @@ describe('borders', () => {
   });
 });
 
+// Ruling 2 (user, 2026-08-29): "the prioritization for new tiles from border
+// growth should weight more towards weight yields... i notice coastal cities
+// expanding to useless coastal tiles with no resources. Tiles 3 hexes away
+// should be slightly more unfavored." `expansionScore` is `bestExpansionTile`'s
+// scoring function, exported so these tests can ask it of one candidate
+// directly rather than only through the whole-board sweep.
+describe('expansionScore', () => {
+  it('sends a coastal city onto an unclaimed grassland tile rather than a bare coast', () => {
+    const state = flatState(16, 12); // desert base — only the tiles under test carry yield.
+    const city = plant(state, 0, 8, 5);
+    // Both ring 2, both touching the founding ring, so the only difference the
+    // chooser can see is what the ground itself is worth.
+    at(state.map, 8, 3).terrain = 'grassland';
+    at(state.map, 8, 7).terrain = 'coast';
+
+    const best = bestExpansionTile(state, city)!;
+    expect(best.col).toBe(8);
+    expect(best.row).toBe(3);
+  });
+
+  it('lets a visible fish beat a bare grassland tile', () => {
+    const state = flatState(16, 12);
+    const city = plant(state, 0, 8, 5);
+    const coast = at(state.map, 8, 7);
+    coast.terrain = 'coast';
+    coast.resource = 'fish'; // a bonus resource — no requiresTech gate, so always visible.
+    at(state.map, 8, 3).terrain = 'grassland';
+
+    const best = bestExpansionTile(state, city)!;
+    expect(best.col).toBe(8);
+    expect(best.row).toBe(7);
+  });
+
+  it('gives no resourceBonus for a resource this empire cannot see yet', () => {
+    const state = flatState(16, 12);
+    const city = plant(state, 0, 8, 5);
+    // Iron requires bronzeWorking, which a fresh player has not researched.
+    const hidden = at(state.map, 8, 3);
+    hidden.resource = 'iron';
+    const bare = at(state.map, 8, 7);
+    const ctx = yieldContextFor(state, city.ownerId);
+
+    expect(expansionScore(state, city, hidden, ctx)).toBe(expansionScore(state, city, bare, ctx));
+  });
+
+  it('scores an equal-yield ring-2 tile above a ring-3 tile', () => {
+    const state = flatState(16, 12);
+    const city = plant(state, 0, 8, 5);
+    const ring2 = at(state.map, 8, 3);
+    const ring3 = at(state.map, 8, 2);
+    ring2.terrain = 'grassland';
+    ring3.terrain = 'grassland';
+    const ctx = yieldContextFor(state, city.ownerId);
+
+    const scoreRing2 = expansionScore(state, city, ring2, ctx);
+    const scoreRing3 = expansionScore(state, city, ring3, ctx);
+    expect(scoreRing2).toBeGreaterThan(scoreRing3);
+    // The whole of the difference is the ring penalty table — same yield, same
+    // resource (none), so nothing else could have moved the score.
+    const penalty = CITIES.expansion.ringPenalty;
+    expect(scoreRing2 - scoreRing3).toBe((penalty[3] ?? 0) - (penalty[2] ?? 0));
+  });
+
+  it('still breaks a tie by the lower tile index', () => {
+    const state = flatState(16, 12);
+    const city = plant(state, 0, 8, 5);
+    // Two ring-2 tiles, identical yield, both touching the founding ring — the
+    // only thing that can separate them is `tileIndex`.
+    at(state.map, 6, 5).terrain = 'grassland';
+    at(state.map, 10, 5).terrain = 'grassland';
+    expect(tileIndex(state.map, 6, 5)).toBeLessThan(tileIndex(state.map, 10, 5));
+
+    const best = bestExpansionTile(state, city)!;
+    expect(best.col).toBe(6);
+    expect(best.row).toBe(5);
+  });
+});
+
 describe('the turn pipeline over a live empire', () => {
   it('banks yields into the city and the player in one pass', () => {
     const state = flatState(16, 12, 'grassland');
@@ -2465,7 +2544,7 @@ describe('the turn pipeline over a live empire', () => {
 // ---------------------------------------------------------------------------
 
 describe('determinism with cities', () => {
-  it('round-trips a schema 32 save with cities and keeps playing in lockstep', () => {
+  it('round-trips a schema 33 save with cities and keeps playing in lockstep', () => {
     const game = twoCityGame();
     for (let turn = 0; turn < 12; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -2480,7 +2559,7 @@ describe('determinism with cities', () => {
     // improvements; 12 was the meters' `captured`; 13 the luxuries; 14 tile
     // purchase; 15 barbarians and discoveries.) What this pins is not the
     // number but that a city save is carried by whatever the number is.
-    expect(SCHEMA_VERSION).toBe(32);
+    expect(SCHEMA_VERSION).toBe(33);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

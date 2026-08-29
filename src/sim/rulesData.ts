@@ -616,10 +616,51 @@ export interface CityRules {
    */
   citizenWeightsWhileHalted: CitizenWeights;
   /**
+   * How a city's borders pick their next tile (`expansionScore`, `cities.ts`).
+   *
+   * Split from `citizenWeights` deliberately — Ruling 2 (user, 2026-08-29:
+   * "coastal cities expanding to useless coastal tiles with no resources")
+   * wanted the *border chooser* retuned without moving what a citizen sits on,
+   * and a shared sheet could not do both. `yieldWeights` defaults to the same
+   * 3/2/1 as `citizenWeights` but is its own table so the two can diverge
+   * later without one edit silently touching the other.
+   */
+  expansion: ExpansionRules;
+  /**
    * City names, handed out in order per player. A player who founds more cities
    * than there are names falls back to `"<player name> <n>"`.
    */
   cityNames: string[];
+}
+
+/**
+ * The border chooser's scoring terms, each a labelled addend so
+ * `expansionScore` reads as the sum a designer would draw on paper: what the
+ * ground yields, plus a resource this empire can actually see, minus a bare
+ * stretch of water, minus a penalty for reaching further out.
+ */
+export interface ExpansionRules {
+  /** Weights `yieldScore` folds a candidate tile's yield with. */
+  yieldWeights: CitizenWeights;
+  /**
+   * Added when the tile carries a resource this empire's technologies reveal
+   * (`resourceIsVisibleTo`) — never an unrevealed one, which would leak the
+   * map through the AI's own expansion choices.
+   */
+  resourceBonus: number;
+  /**
+   * Subtracted from a water tile that carries no *visible* resource — the
+   * "useless coastal tile" the ruling names. A revealed fish or whale still
+   * earns `resourceBonus` on top of its yield and is never penalised.
+   */
+  bareWaterPenalty: number;
+  /**
+   * Subtracted by ring (hex distance from the city centre), index matching
+   * `ringOf`'s reading — the same table shape as `tilePurchase.ringBase`.
+   * Anything beyond the last entry pays the last entry. Ring 3 alone carries a
+   * penalty today ("slightly more unfavoured"), rings 0–2 untouched.
+   */
+  ringPenalty: number[];
 }
 
 /**

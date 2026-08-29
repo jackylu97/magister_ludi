@@ -98,14 +98,14 @@
     "borderCostExponent": 1.45,
     "tilePurchase": {
       "ringBase": [
-        50,
-        50,
-        50,
-        75
+        20,
+        20,
+        20,
+        30
       ],
       "progressFactor": 2,
       "roundTo": 5,
-      "perPriorPurchase": 5
+      "perPriorPurchase": 2
     },
     "citizenWeights": {
       "food": 3,
@@ -116,6 +116,21 @@
       "food": 2,
       "production": 3,
       "gold": 1
+    },
+    "expansion": {
+      "yieldWeights": {
+        "food": 3,
+        "production": 2,
+        "gold": 1
+      },
+      "resourceBonus": 6,
+      "bareWaterPenalty": 4,
+      "ringPenalty": [
+        0,
+        0,
+        0,
+        2
+      ]
     },
     "cityNames": [
       "Aldermarch",

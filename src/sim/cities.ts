@@ -157,6 +157,7 @@ import {
   type TileYield,
   emptyTileYield,
   featureDef,
+  isWaterTerrain,
   isWorkableTerrain,
   readTileYield,
   terrainDef,
@@ -4323,13 +4324,65 @@ export function advanceProduction(state: GameState, report?: TurnReport): void {
 }
 
 /**
+ * How much a city's borders want this tile — `bestExpansionTile`'s scoring
+ * function, pulled out so a test can ask it of one candidate directly.
+ *
+ * Four labelled terms (Ruling 2, user, 2026-08-29: "coastal cities expanding to
+ * useless coastal tiles with no resources... tiles 3 hexes away should be
+ * slightly more unfavored"), summed rather than folded into `yieldScore` alone:
+ *
+ *   1. **Yield** — the same weighted-sum reading `yieldScore` gives a citizen,
+ *      against `expansion.yieldWeights` (defaults to `citizenWeights`' 3/2/1,
+ *      its own table so the two can diverge later without one edit touching
+ *      the other — see the docblock on `ExpansionRules`).
+ *   2. **Resource** — a flat bonus when the tile carries a resource this
+ *      empire's techs actually reveal (`resourceIsVisibleTo`, the same reveal
+ *      rule `explainTileYield` gates the yield line on) — never an unrevealed
+ *      one, which would leak the map through an AI's own choices.
+ *   3. **Bare water** — a flat penalty on a water tile with *no* visible
+ *      resource, which is the "useless coastal tile" the ruling names. A
+ *      revealed fish still earns the resource bonus on top of its yield and is
+ *      never penalised.
+ *   4. **Ring** — a penalty by hex distance from the city centre
+ *      (`ExpansionRules.ringPenalty`, indexed like `tilePurchase.ringBase`),
+ *      so a tile at the edge of `claimRadius` is worth slightly less than an
+ *      equally-good tile close in.
+ */
+export function expansionScore(
+  state: GameState,
+  city: City,
+  tile: Tile,
+  ctx: TileYieldContext | undefined,
+): number {
+  const rules = CITIES.expansion;
+  let score = yieldScore(tileYieldOf(tile, ctx), rules.yieldWeights);
+
+  const visible = tile.resource !== undefined && (!ctx || resourceIsVisibleTo(tile.resource, ctx.techs));
+  if (visible) {
+    score += rules.resourceBonus;
+  } else if (isWaterTerrain(tile.terrain)) {
+    score -= rules.bareWaterPenalty;
+  }
+
+  const ring = ringOf(state, city, tile);
+  const table = rules.ringPenalty;
+  if (table.length > 0) {
+    const index = Math.max(0, Math.min(table.length - 1, Math.round(ring)));
+    score -= table[index] ?? 0;
+  }
+
+  return score;
+}
+
+/**
  * The tile a city's borders take next: the best-scoring unclaimed tile that
  * touches the city's own territory and lies inside `claimRadius`.
  *
  * Touching its own territory is what makes a border a border rather than a
  * scatter of islands, and the radius is what stops a city three hexes from the
  * ocean claiming half of it. Ties go to the lower tile index, so the choice is a
- * pure function of the board.
+ * pure function of the board. Scoring is `expansionScore`, not `yieldScore`
+ * alone — see its docblock for the four terms.
  */
 export function bestExpansionTile(state: GameState, city: City): Tile | null {
   const { map } = state;
@@ -4354,7 +4407,7 @@ export function bestExpansionTile(state: GameState, city: City): Tile | null {
     }
     if (!touches) continue;
 
-    const score = yieldScore(tileYieldOf(tile, ctx));
+    const score = expansionScore(state, city, tile, ctx);
     if (score > bestScore || (score === bestScore && index < bestIndex)) {
       best = tile;
       bestScore = score;
