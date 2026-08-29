@@ -119,7 +119,7 @@
     "temple": {
       "name": "Temple",
       "category": "faith",
-      "cost": 35,
+      "cost": 53,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -131,7 +131,7 @@
     "market": {
       "name": "Market",
       "category": "gold",
-      "cost": 39,
+      "cost": 59,
       "food": 0,
       "production": 0,
       "gold": 3,
@@ -147,7 +147,7 @@
     "aqueduct": {
       "name": "Aqueduct",
       "category": "food",
-      "cost": 39,
+      "cost": 59,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -165,7 +165,7 @@
     "workshop": {
       "name": "Workshop",
       "category": "production",
-      "cost": 46,
+      "cost": 69,
       "food": 0,
       "production": 2,
       "gold": 0,
@@ -180,7 +180,7 @@
     "watermill": {
       "name": "Watermill",
       "category": "production",
-      "cost": 42,
+      "cost": 63,
       "food": 2,
       "production": 1,
       "gold": 0,
@@ -195,7 +195,7 @@
     "amphitheater": {
       "name": "Amphitheater",
       "category": "culture",
-      "cost": 49,
+      "cost": 74,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -210,7 +210,7 @@
     "monastery": {
       "name": "Monastery",
       "category": "faith",
-      "cost": 53,
+      "cost": 106,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -221,7 +221,7 @@
     "university": {
       "name": "University",
       "category": "science",
-      "cost": 67,
+      "cost": 134,
       "food": 0,
       "production": 0,
       "gold": 0,
