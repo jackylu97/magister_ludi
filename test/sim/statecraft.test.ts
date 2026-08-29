@@ -981,7 +981,8 @@ describe('every hook family, end to end', () => {
     g.state.players[0]!.statecraft.doctrines.push('hegemony');
     const after = explainAuthority(g.state, 0).find((l) => l.source.includes('captured'))!;
     expect(after.value).toBeGreaterThan(before.value);
-    expect(after.value).toBe(-2);
+    // A captured city costs 4 since the authority rework (user, 2026-08-29); Hegemony's delta makes it 3.
+    expect(after.value).toBe(-3);
   });
 
   it('rulePercent — Manifest of the Steppe cheapens settlers and stops the ladder', () => {

@@ -597,7 +597,8 @@ describe('what a city founded here would cost', () => {
     foundCityAt(state, 0, at(state, 2, 2));
     // A second town, well clear of the first: authority two, one citizen's worth
     // of happiness — the plain inland case.
-    expect(foundingCostRow(state, 0, at(state, 9, 7))).toBe('−2 authority · −1 happiness');
+    // 3 for an inland city since the authority rework (user, 2026-08-29).
+    expect(foundingCostRow(state, 0, at(state, 9, 7))).toBe('−3 authority · −1 happiness');
   });
 
   it('reads a harbour as the discount the rule makes it', () => {
@@ -606,7 +607,8 @@ describe('what a city founded here would cost', () => {
     at(state, 8, 7).terrain = 'coast';
     // Coastal *replaces* the founded price rather than adding to it, so the row
     // has to fall to −1 rather than climb to −3.
-    expect(foundingCostRow(state, 0, at(state, 9, 7))).toBe('−1 authority · −1 happiness');
+    // A harbour is still the discount, now 2 against 3.
+    expect(foundingCostRow(state, 0, at(state, 9, 7))).toBe('−2 authority · −1 happiness');
   });
 
   it('says the first city is free, rather than saying nothing', () => {

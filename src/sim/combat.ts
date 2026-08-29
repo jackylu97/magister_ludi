@@ -1882,7 +1882,7 @@ function snapshotFallen(unit: Unit): CombatOutcome['killed'][number] {
  * mechanic the rest of the system needs.
  *
  * `captured` is raised here and nowhere else, because this is the only path by
- * which a city changes hands. It is what makes the authority meter charge 3 for
+ * which a city changes hands. It is what makes the authority meter charge `rules.authority.capturedCity` for
  * a town somebody else grew (design ledger, Entry XIV.D.2), and it is
  * deliberately *not* paired with a bump to `Player.unitsBuilt.settler`: taking a city
  * is not building a settler, so a conqueror's next settler is priced exactly as
