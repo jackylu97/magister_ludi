@@ -154,95 +154,124 @@ Warring Tribes (the courthouse).
 
 ## Orders
 
+**Rarity** (proposed 2026-08-29, not yet built — the user finalises the marks first): ● common ·
+◆ uncommon · ○ rare. Read by the draw as a *weight, never a restriction* — proposed 4 · 2 · 1 —
+so a rare comes round about a third as often as a common and a hand of three still holds one
+roughly two drafts in five. The marks below are a first assignment for the user to cut: ● is a
+flat number, ◆ pays for doing something, ○ changes a rule. The decline rule (a passed card's
+weight halves for twenty turns) is the other half of the repeat fix and is in
+`docs/orders-candidates.md`.
+
 ### Chiefdom pool
 
-| Order | Slot | Line | Tier | Effect |
+| Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
-| Blooded Spears | M | 🏹 |  |  +1 combat strength, +2 combat vs barbarians (3 total against barbs),|
-| Camp Followers | M | 🏹 |  | camp clears pay +25🌾 and gift a random military unit |
-| Far Runners | M | 🧭 |  | scouts +1 movement and +1 sight, civilian units gain +2 movement when embarked |
-| The Long Watch | M | — |  | +1 happiness per unit stationed in a city (fortification does not matter) · +1 more per fortification building (palisades, castles, etc.) |
-| The Widow's Levy | M | — |  | when a unit of yours dies, its nearest city gains +10⚙ and +40 gold |
-| Common Granary | E | 🌱 |  | +1 food on luxury resource tiles |
-| Salt Tithes | E | 🐫 |  | +2💰 per unique luxury |
-| Boundary Stones | E | — |  | +30% border culture, all cities (does not count towards global culture) |
-| First Rites | W | 🕯 |  | +1🕯 per city |
-| Border Ballads | W | 🏹 |  | +2🎵 per discovered barbarian camp, +4 culture for every barb killed |
-| Militia Levies | M | — |  | all your cities +5 defense and +1 sight radius |
+| Blooded Spears | M | 🏹 | ● |  +1 combat strength, +2 combat vs barbarians (3 total against barbs),|
+| Camp Followers | M | 🏹 | ◆ | camp clears pay +25🌾 and gift a random military unit |
+| Far Runners | M | 🧭 | ● | scouts +1 movement and +1 sight, civilian units gain +2 movement when embarked |
+| The Long Watch | M | — | ● | +1 happiness per unit stationed in a city (fortification does not matter) · +1 more per fortification building (palisades, castles, etc.) |
+| The Widow's Levy | M | — | ◆ | when a unit of yours dies, its nearest city gains +10⚙ and +40 gold |
+| Common Granary | E | 🌱 | ● | +1 food on luxury resource tiles |
+| Salt Tithes | E | 🐫 | ● | +2💰 per unique luxury |
+| Boundary Stones | E | — | ● | +30% border culture, all cities (does not count towards global culture) |
+| First Rites | W | 🕯 | ● | +1🕯 per city |
+| Border Ballads | W | 🏹 | ◆ | +2🎵 per discovered barbarian camp, +4 culture for every barb killed |
+| Militia Levies | M | — | ● | all your cities +5 defense and +1 sight radius |
+| Fire-Keepers | W | 🕯 | ● | +1🕯 and +1 happiness in your capital |
+| Wolf-Runners | M | 🏹 | ◆ | scouts +1 movement · claiming a ruin grants +10💰 |
+| Hearth Songs | W | 🌱 | ◆ | +1🎵 per city of size 4 or less |
 
 ### Government I pool
 
-| Order | Slot | Line | Tier | Effect |
+| Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
-| Border Wardens | M | — |  | +3 combat inside your territory |
-| Vanguard | M | ⚒ |  | +3 combat outside your territory |
-| Conscription | M | ⚒ |  | +50% ⚙ toward units · −2 happiness |
-| Spoils of the Wild | M | 🏹 |  | camp bounties +100% (stacks with camp followers) |
-| Horse Lords | M | ⚒ |  | mounted units +1 movement |
-| Weights & Measures | E | 🐫 |  | +2💰 per city |
-| Silk Roads | E | 🐫 |  | +3💰 per active trade route |
-| The Salt Road | E | 🐫 |  | +1💰 on bonus resources with an improvement |
-| The Tax Farm | E | 🐫 |  | +1💰 per 3 population, empire-wide |
-| Harbour Dues | E | 🐫 |  | coastal cities +2💰 and +1🎵 |
-| Land Grants | E | — |  | tile purchases −25% · +40% border culture |
-| Homestead Charters | E | — |  | newly founded cities start with an extra population |
-| Granary Levies | E | 🌱 |  | when a city grows, it gains +10⚙ |
-| Census Rolls | E | — |  | +2 authority capacity |
-| Festival Days | W | 🌱 |  | +4 happiness |
-| Curious Elders | W | ✶ |  | +5🔬 whenever you claim a discovery |
-| Rites of Passage | W | 🕯 |  | buying/completing a unit grants +5🕯 |
-| Tinkers' Guild | E | — |  | workers are built with +1 charge |
-| Public Granaries | E | — |  | cities keep 25% of their food basket on growth |
-| The Laureate | W | 🏛 |  | gain a great person · great-people improvements gain +2 of their associated yield |
-| The Legion | M | ⚒ |  | melee units +1 movement and +1 combat strength · melee units cost −15% ⚙ |
+| Border Wardens | M | — | ● | +3 combat inside your territory |
+| Vanguard | M | ⚒ | ● | +3 combat outside your territory |
+| Conscription | M | ⚒ | ◆ | +50% ⚙ toward units · −2 happiness |
+| Spoils of the Wild | M | 🏹 | ◆ | camp bounties +100% (stacks with camp followers) |
+| Horse Lords | M | ⚒ | ● | mounted units +1 movement |
+| Weights & Measures | E | 🐫 | ● | +2💰 per city |
+| Silk Roads | E | 🐫 | ◆ | +3💰 per active trade route |
+| The Salt Road | E | 🐫 | ● | +1💰 on bonus resources with an improvement |
+| The Tax Farm | E | 🐫 | ● | +1💰 per 3 population, empire-wide |
+| Harbour Dues | E | 🐫 | ● | coastal cities +2💰 and +1🎵 |
+| Land Grants | E | — | ◆ | tile purchases −25% · +40% border culture |
+| Homestead Charters | E | — | ◆ | newly founded cities start with an extra population |
+| Granary Levies | E | 🌱 | ◆ | when a city grows, it gains +10⚙ |
+| Census Rolls | E | — | ● | +2 authority capacity |
+| Festival Days | W | 🌱 | ● | +4 happiness |
+| Curious Elders | W | ✶ | ◆ | +5🔬 whenever you claim a discovery |
+| Rites of Passage | W | 🕯 | ◆ | buying/completing a unit grants +5🕯 |
+| Tinkers' Guild | E | — | ◆ | workers are built with +1 charge |
+| Public Granaries | E | — | ◆ | cities keep 25% of their food basket on growth |
+| The Laureate | W | 🏛 | ○ | gain a great person · great-people improvements gain +2 of their associated yield |
+| The Legion | M | ⚒ | ◆ | melee units +1 movement and +1 combat strength · melee units cost −15% ⚙ |
+| Statute Labour | E | ⚒ | ● | +1⚙ in every city per 3 citizens |
+| River Wardens | E | 🌾 | ● | +1🌾 on every farm beside fresh water |
+| The Almanac | W | ✶ | ● | +2🔬 in your capital · +1🔬 per Library |
+| Village Fairs | W | 🌱 | ● | +1 happiness per luxury you hold two or more copies of |
+| The Muster Roll | M | 🎖 | ● | newly created units gain +10 max hp (veteran on the day) |
+| Hill Forts | M | ⛰ | ◆ | +2 combat strength defending on hills · cities on hills cost 1 fewer authority |
+| The Pilgrim's Purse | W | 🕯 | ◆ | cities adjacent to a holy site gain +5🕯 per turn |
+| Charter Towns | E | 📜 | ◆ | newly founded cities gain a free Granary |
+| The Bronze Mirror | W | ✶ | ○ | completing a technology spawns one unique luxury within 3 hexes of your capital (one-time) — *deferred: the map cannot gain a resource after it is made* |
 
 ### Government II pool
 
-| Order | Slot | Line | Tier | Effect |
+| Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
-| Field Surgeons | M | ⚒ |  | units heal +10 per turn anywhere |
-| March Discipline | M | ⚒ |  | all combat units +1 movement | cannot be upgraded
-| The Shield Wall | M | ⚒ |  | +3 combat on hills |
-| Siege Doctrine | M | ⚒ |  | +5 combat when attacking cities |
-| Scorched Earth | M | — |  | pillaging heals a further 25 and pays a further +10💰 |
-| Sumptuary Laws | E | 🐫 |  | +1 happiness per unique luxury |
-| Publicani | E | 🐫 |  | +2💰 per point of positive authority |
-| Chartered Companies | E | 🐫 |  | each tile purchased pays +5🔬 · purchases −15% |
-| Foreign Quarters | E | 🐫 |  | +1💰 and +1🔬 in cities with borders touching a different civ's borders |
-| Ore Tithes | E | ⚒ |  | +3⚙ in each city holding an improved strategic resource |
-| Terraced Hillsides | E | 🌱 |  | +1🌾 per worked hill tile in each city (cap +5) |
-| Master Masons | E | ⚒ |  | completing a building grants +5🎵 |
-| Royal Surveyors | E | — |  | +50% border culture · tile purchases −25% |
-| Provincial Governors | E | — |  | +3 authority capacity |
-| Pilgrim Roads | W | 🕯 |  | +1🕯 per city · +1 happiness per 50 banked 🕯 (max +5) |
-| Lamplighters | W | 🕯 |  | +1🎵 per 5🕯 gained per turn |
-| Scholars' Stipend | W | ✶ |  | +2🔬 in each city of 5+ population |
-| Emergency Powers | E | — |  | while authority is negative: capital +25% ⚙ and borders do not freeze |
-| The Common Purse | E | — |  | production overflow from a completed item is doubled |
+| Field Surgeons | M | ⚒ | ● | units heal +10 per turn anywhere |
+| March Discipline | M | ⚒ | ◆ | all combat units +1 movement | cannot be upgraded
+| The Shield Wall | M | ⚒ | ● | +3 combat on hills |
+| Siege Doctrine | M | ⚒ | ● | +5 combat when attacking cities |
+| Scorched Earth | M | — | ◆ | pillaging heals a further 25 and pays a further +10💰 |
+| Sumptuary Laws | E | 🐫 | ● | +1 happiness per unique luxury |
+| Publicani | E | 🐫 | ◆ | +2💰 per point of positive authority |
+| Chartered Companies | E | 🐫 | ◆ | each tile purchased pays +5🔬 · purchases −15% |
+| Foreign Quarters | E | 🐫 | ◆ | +1💰 and +1🔬 in cities with borders touching a different civ's borders |
+| Ore Tithes | E | ⚒ | ● | +3⚙ in each city holding an improved strategic resource |
+| Terraced Hillsides | E | 🌱 | ● | +1🌾 per worked hill tile in each city (cap +5) |
+| Master Masons | E | ⚒ | ◆ | completing a building grants +5🎵 |
+| Royal Surveyors | E | — | ● | +50% border culture · tile purchases −25% |
+| Provincial Governors | E | — | ● | +3 authority capacity |
+| Pilgrim Roads | W | 🕯 | ◆ | +1🕯 per city · +1 happiness per 50 banked 🕯 (max +5) |
+| Lamplighters | W | 🕯 | ◆ | +1🎵 per 5🕯 gained per turn |
+| Scholars' Stipend | W | ✶ | ● | +2🔬 in each city of 5+ population |
+| Emergency Powers | E | — | ○ | while authority is negative: capital +25% ⚙ and borders do not freeze |
+| The Common Purse | E | — | ○ | production overflow from a completed item is doubled |
+| The Choir | W | 🕯 | ● | +1🎵 per Temple · Temples +1 happiness |
+| Star-Gazers | W | ✶ | ● | +2🔬 in cities beside a mountain |
+| Cistern Works | E | 🌾 | ● | all cities gain fresh-water access |
+| Ledger-Keepers | E | 🐫 | ● | +1💰 per Market · while slotted, +1 trade-route capacity |
+| Drums of War | M | 🎖 | ◆ | newly trained units gain +1 combat strength |
+| The Cartographers | W | 🧭 | ◆ | +1🔬 per 40 hexes revealed (no cap) |
+| The Masons' Lodge | E | ⚒ | ◆ | buildings cost −10%⚙ in cities of size 6+ |
+| The Oath-Bound | M | 🎖 | ○ | after killing a unit, the killer gains +15 hp |
+| Sanctuary | W | 🕯 | ○ | your holy city cannot be captured while it follows your religion — it is sacked instead — *deferred until sacking exists* |
 
 ### Government III pool
 
-| Order | Slot | Line | Tier | Effect |
+| Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
-| The Marshals | M | ⚒ |  | +2 combat per adjacent friendly combat unit (max +4) |
-| Garrison State | M | ⚒ |  | each city +3⚙ per garrisoned combat unit (cap +4/city) |
-| Skirmishers' Creed | M | ⚒ |  | ranged units +1 range | cannot be upgraded
-| The Finisher's Art | M | — |  | +4 combat against units below half strength |
-| Frontier Forts | M | — |  | +6 defense in cities within 3 hexes of a foreign border |
-| Triumphs | M | ⚒ |  | capturing a city grants +30🎵 and 5 renown |
-| Client Kings | E | — |  | +2 authority capacity · captured cities cost one less authority |
-| Provincial Mints | E | 🐫 |  | +2💰 per improved luxury copy — duplicates count |
-| Quarrymen's Guild | E | ⚒ |  | +5⚙ in cities holding stone or marble |
-| The Grain Dole | E | 🌱 |  | cities of 6+ population: +2 happiness each |
-| Mandate of Heaven | W | 🕯 |  | happiness benefit effects increased by 5% (10%->15% science and culture from happy cities) · +1 happiness per 200 banked 🕯 (no cap) |
-| The Lyceum | W | ✶ |  | completing a technology grants +20🎵 |
-| Census of Souls | W | 🕯 |  | +1🕯 per population in your capital |
-| Toleration Edicts | W | — |  | happiness demand −10% |
-| The Standing Levy | M | — |  | every 10 turns, receive a free melee unit in your capital |
+| The Marshals | M | ⚒ | ◆ | +2 combat per adjacent friendly combat unit (max +4) |
+| Garrison State | M | ⚒ | ● | each city +3⚙ per garrisoned combat unit (cap +4/city) |
+| Skirmishers' Creed | M | ⚒ | ○ | ranged units +1 range | cannot be upgraded
+| The Finisher's Art | M | — | ● | +4 combat against units below half strength |
+| Frontier Forts | M | — | ● | +6 defense in cities within 3 hexes of a foreign border |
+| Triumphs | M | ⚒ | ◆ | capturing a city grants +30🎵 and 5 renown |
+| Client Kings | E | — | ● | +2 authority capacity · captured cities cost one less authority |
+| Provincial Mints | E | 🐫 | ● | +2💰 per improved luxury copy — duplicates count |
+| Quarrymen's Guild | E | ⚒ | ● | +5⚙ in cities holding stone or marble |
+| The Grain Dole | E | 🌱 | ● | cities of 6+ population: +2 happiness each |
+| Mandate of Heaven | W | 🕯 | ○ | happiness benefit effects increased by 5% (10%->15% science and culture from happy cities) · +1 happiness per 200 banked 🕯 (no cap) |
+| The Lyceum | W | ✶ | ◆ | completing a technology grants +20🎵 |
+| Census of Souls | W | 🕯 | ◆ | +1🕯 per population in your capital |
+| Toleration Edicts | W | — | ● | happiness demand −10% |
+| The Standing Levy | M | — | ○ | every 10 turns, receive a free melee unit in your capital |
 
 ### Æra III pool
 
-| Order | Slot | Line | Tier | Effect |
+| Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
 | The King's Road | M | 🎖 | ◆ | units gain +1 movement when starting their turn in friendly territory. Roads are extra effective. |
 | Levies | M | 🎖 | ● | every city with a Barracks musters a free melee unit every 20 turns · −1 happiness per Barracks |
@@ -263,7 +292,7 @@ Warring Tribes (the courthouse).
 
 ### Æra IV pool
 
-| Order | Slot | Line | Tier | Effect |
+| Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
 | Muster | M | 🎖 | ● | a unit completed in any city may appear at your designated *rally city* instead · −2 happiness in the rally city |
 | Forced March | M | 🎖 | ○ | combat units +1 movement outside your borders · −5 combat on the turn they moved 3+ hexes |
@@ -283,7 +312,7 @@ Warring Tribes (the courthouse).
 
 ### Æra V pool
 
-| Order | Slot | Line | Tier | Effect |
+| Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
 | The Corps | M | 🎖 | ● | two units of one type on one hex merge into a corps (+50% strength, one piece) · corps cost 2 authority | [PUT ON BACKBURNER, I WANT TO THINK ABOUT THE UX FOR THIS ONE]
 | Bombardiers | M | 🎖 | ◆ | siege units +1 range · Bombards cost −25% ⚙ |
