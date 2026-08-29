@@ -2104,23 +2104,25 @@ describe('escalating settler cost', () => {
 describe('escalating worker cost', () => {
   // Ruling (user, 2026-08-28): "workers should slowly increase in cost the
   // more they're built" — the settler ladder generalised rather than a second
-  // one invented. `escalation` on the worker's row is 3, so the first three
-  // workers price 14 / 17 / 20.
+  // one invented. `escalation` on the worker's row is 2 (3 until the user
+  // turned both ladders down a step on 2026-08-29 — the settler's 8 → 7 in
+  // the same ruling), so the first three workers price 14 / 16 / 18.
   const BASE = unitDef('worker').cost;
   const STEP = unitDef('worker').escalation!;
 
   it('reads the base off the row and climbs by the row\'s own step', () => {
     expect(BASE).toBe(14);
-    expect(STEP).toBe(3);
+    expect(STEP).toBe(2);
+    expect(unitDef('settler').escalation).toBe(7);
   });
 
-  it('prices a first, second and third worker at 14 / 17 / 20', () => {
+  it('prices a first, second and third worker at 14 / 16 / 18', () => {
     const state = flatState();
     expect(unitProductionCost(state, 0, 'worker')).toBe(14);
     state.players[0]!.unitsBuilt.worker = 1;
-    expect(unitProductionCost(state, 0, 'worker')).toBe(17);
+    expect(unitProductionCost(state, 0, 'worker')).toBe(16);
     state.players[0]!.unitsBuilt.worker = 2;
-    expect(unitProductionCost(state, 0, 'worker')).toBe(20);
+    expect(unitProductionCost(state, 0, 'worker')).toBe(18);
   });
 
   it('climbs its own ladder independently of the settler\'s', () => {
