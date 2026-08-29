@@ -309,7 +309,14 @@ function playTwoFaiths(maxTurns: number): {
       if (home) {
         for (const item of [PROPHET, AUGUR]) {
           const price = explainPurchaseCost(g.state, seat, home.id, item, 'faith');
-          if (!price || player.faithPool < price.total) continue;
+          // Save for the second prophet rather than spend the faith on augurs:
+          // since founding consumes the founder (2026-08-29), the bomb this
+          // test is about needs a prophet of its own, and a policy that bought
+          // an augur every time the prophet was out of reach never had one.
+          if (!price || player.faithPool < price.total) {
+            if (item === PROPHET && player.prophetsPurchased < 2) break;
+            continue;
+          }
           dispatch(g, {
             type: 'purchaseItem',
             playerId: seat,
