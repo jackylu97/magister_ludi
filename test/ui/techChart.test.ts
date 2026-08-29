@@ -472,7 +472,10 @@ describe('the numbered chips', () => {
   it('gates all three surfaces on that one condition', () => {
     // Read out of the source because there is no jsdom: the numeral, the hover
     // card's plan line and the strip each ask `planIsQueue` before they draw.
-    expect(chartFunction('function renderNode(')).toContain('planIsQueue(plan)');
+    // `paintNode` and not `renderNode` since the chart stopped rebuilding itself
+    // on every click (2026-08-29): a card is built once and repainted after
+    // that, and the numeral is one of the marks a repaint moves.
+    expect(chartFunction('function paintNode(')).toContain('planIsQueue(plan)');
     expect(chartFunction('function techCard(')).toContain('planIsQueue(researchPlan(player))');
     expect(chartFunction('function renderPlanStrip(')).toContain('!planIsQueue(plan)');
   });
@@ -567,7 +570,7 @@ describe('clicking a star', () => {
     // would be a mode the player cannot see.
     const handler = chartFunction("card.addEventListener('click'");
     expect(handler).toContain('event.shiftKey');
-    expect(handler).toContain('chooseResearchCommand(playerId, id, event.shiftKey)');
+    expect(handler).toContain('chooseResearchCommand(localPlayerId(), id, event.shiftKey)');
   });
 
   it('says the reducer’s own sentence when a click is refused after all', () => {
@@ -596,7 +599,9 @@ describe('the strip at the foot', () => {
     // use, and a strip built out of it would promise the whole plan arriving at
     // once.
     const body = chartFunction('function renderPlanStrip(');
-    expect(body).toContain('queueTurns(state, playerId)');
+    // The rate is the render's, handed in rather than summed again — see the
+    // pass in `techTree.ts`. It is still `queueTurns` that does the arithmetic.
+    expect(body).toContain('queueTurns(state, playerId, rate)');
     expect(body).not.toContain('turnsToTech');
   });
 

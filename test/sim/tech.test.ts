@@ -888,6 +888,33 @@ describe('glanceable numbers', () => {
     expect(turnsToTech(state, 0, 'letters')).toBe(null);
   });
 
+  it('gives the same answer whether the rate is handed in or fetched', () => {
+    // The star chart asks this twenty-seven times about one empire and
+    // `playerScience` sums `cityYields` over every city, so the rate is summed
+    // once per render and handed down (2026-08-29). The parameter is an
+    // optimisation and must never become a second opinion: hard rule 5 says the
+    // figure on a star is this function's answer, and here it is, both ways.
+    const state = flatState();
+    const first = plant(state, 0, 8, 5);
+    const second = plant(state, 0, 12, 5);
+    first.population = 5;
+    second.population = 3;
+    const rate = playerScience(state, 0);
+    for (const techId of TECH_IDS) {
+      expect(turnsToTech(state, 0, techId, rate), techId).toBe(turnsToTech(state, 0, techId));
+    }
+    // And the schedule the plan prints, which shares the parameter for the same
+    // reason: the strip and the stars above it are drawn in one breath.
+    state.players[0]!.researching = 'earthenware';
+    state.players[0]!.researchQueue = ['mining', 'bronzeWorking'];
+    expect(queueTurns(state, 0, rate)).toEqual(queueTurns(state, 0));
+
+    // Including the answer an empire with no science gets, which is `null`
+    // rather than a long wait — the branch a hoisted zero must not skip.
+    const quiet = flatState();
+    expect(turnsToTech(quiet, 0, 'letters', playerScience(quiet, 0))).toBe(null);
+  });
+
   it('previews a building with the same function the turn pipeline banks', () => {
     const state = flatState();
     const first = plant(state, 0, 8, 5);
@@ -933,8 +960,8 @@ describe('glanceable numbers', () => {
 // ---------------------------------------------------------------------------
 
 describe('research in the log', () => {
-  it('round-trips a schema 33 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(33);
+  it('round-trips a schema 34 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(34);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

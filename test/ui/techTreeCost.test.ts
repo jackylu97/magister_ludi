@@ -1,0 +1,200 @@
+/**
+ * What the star chart costs to draw (user, 2026-08-29: "the tech tree is quite
+ * laggy … it gets laggier as the game goes on").
+ *
+ * The complaint had a shape and the shape was arithmetic. Every star quoted
+ * "~N turns", every quote went through `turnsToTech`, and `turnsToTech` summed
+ * `cityYields` over every city the empire held — twenty-seven sweeps of the
+ * empire per render. Every star also listed what its technology unlocks, and a
+ * building's line is `buildingYieldDelta`, which prices *every city twice*: at a
+ * dozen cities that is a thousand `cityYields` calls to draw one screen. And the
+ * whole chart was rebuilt — cards, connectors and two layout passes — on every
+ * click, twice over, because the click's own render is followed by the host's.
+ * All three get worse with each city founded, which is exactly the report.
+ *
+ * The pass that fixed it is three rules, and this file is the register of them,
+ * read out of the source because there is no jsdom in this project (see
+ * `techChart.test.ts`, which reads the same file for the same reason):
+ *
+ *   1. **The rate is read once per render** and handed down — `beginPass`.
+ *   2. **A card is built once and repainted after that** — `renderChart` on the
+ *      way in, `refreshNodes` for everything after.
+ *   3. **The unlock lines are re-priced only when something has happened** —
+ *      `unlocksFrom`, keyed on the command log.
+ *
+ * A behavioural half sits in `test/sim/tech.test.ts`: a rate handed in gives the
+ * same answer as a rate fetched, which is the claim that keeps hard rule 5 true
+ * across the parameter.
+ */
+
+import { describe, expect, it } from 'vitest';
+
+const CHART_SOURCE = import.meta.glob(['../../src/ui/techTree.ts'], {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
+
+function chartSource(): string {
+  const text = Object.values(CHART_SOURCE)[0];
+  if (typeof text !== 'string' || text.length === 0) throw new Error('techTree.ts came back empty');
+  return text;
+}
+
+/** The body of one declaration, brace-matched. `techChart.test.ts`'s reader. */
+function chartFunction(declaration: string): string {
+  const text = chartSource();
+  const at = text.indexOf(declaration);
+  expect(at, `no "${declaration}" in techTree.ts`).toBeGreaterThanOrEqual(0);
+  let depth = 0;
+  for (let index = text.indexOf('{', at); index < text.length; index += 1) {
+    if (text[index] === '{') depth += 1;
+    else if (text[index] === '}') {
+      depth -= 1;
+      if (depth === 0) return text.slice(at, index + 1);
+    }
+  }
+  throw new Error(`"${declaration}" is never closed`);
+}
+
+/** How many times a call appears in the whole module. */
+function calls(name: string): number {
+  return chartSource().split(`${name}(`).length - 1;
+}
+
+describe('the science rate is summed once a render', () => {
+  it('is called in exactly one place, and that place is beginPass', () => {
+    // The hard evidence for "one render, one sum". `playerScience` walks every
+    // city of the empire, so a second caller is a second sweep — and there used
+    // to be four of them (every node, the current node's bar, the strip's
+    // schedule, and the HUD's card), which is what made a forty-city chart
+    // think before it drew.
+    expect(calls('playerScience')).toBe(1);
+    expect(chartFunction('function beginPass(')).toContain('rate: playerScience(state, playerId)');
+  });
+
+  it('hands the rate to the sim rather than working the estimate out beside it', () => {
+    // Hard rule 5 across a parameter: the figure on a star is still
+    // `turnsToTech`'s own answer, and the only thing that changed is that the
+    // caller had already summed the empire.
+    expect(chartFunction('function paintNode(')).toContain(
+      'turnsToTech(state, playerId, id, rate)',
+    );
+    expect(chartFunction('function renderPlanStrip(')).toContain(
+      'queueTurns(state, playerId, rate)',
+    );
+  });
+
+  it('gives every printer the same pass, so no two can quote different rates', () => {
+    // The node, the strip, the hover card and the HUD's research card all
+    // destructure the one pass. Two of them summing separately would be two
+    // answers to "+N a turn" on one screen.
+    for (const printer of [
+      'function paintNode(',
+      'function renderPlanStrip(',
+      'function techCard(',
+      'function renderStatus(',
+    ]) {
+      expect(chartFunction(printer), printer).toContain('passNow()');
+    }
+  });
+
+  it('opens every render with a pass, from the one entry point', () => {
+    // A pass opens the render and nothing else opens one: `render` is the only
+    // caller, and `passNow` is the fallback for the hover card, which is raised
+    // long after the render that drew the star under it.
+    expect(chartFunction('function render(')).toContain('beginPass();');
+    expect(calls('beginPass')).toBe(3); // the declaration, `render`, `passNow`
+  });
+});
+
+describe('a click repaints the chart rather than rebuilding it', () => {
+  it('lays the sky out on the way in and never again', () => {
+    // `renderChart` builds twenty-seven cards, an SVG of connectors and two
+    // layout passes with a frame between them. It is called from exactly one
+    // place, behind the one condition that means "there is nothing there yet".
+    const body = chartFunction('function render(');
+    expect(body).toContain('if (field === null) {');
+    expect(body).toContain('renderChart();');
+    expect(body).toContain('refreshNodes();');
+    // The declaration and the one call in `render`.
+    expect(calls('renderChart')).toBe(2);
+  });
+
+  it('builds no new card on a refresh', () => {
+    // The claim in one line: `refreshNodes` never calls `renderNode`. A card
+    // that came back new would take the keyboard, the hover and the focus mode
+    // with it — which is what the old rebuild did, and why the click handler
+    // used to have to hand focus back.
+    const body = chartFunction('function refreshNodes(');
+    expect(body).not.toContain('renderNode(');
+    expect(body).toContain('paintNode(id, face);');
+  });
+
+  it('keeps the card the click landed on, so the keyboard is never handed back', () => {
+    const handler = chartFunction("card.addEventListener('click'");
+    expect(handler).toContain('render();');
+    expect(handler).not.toContain('.focus()');
+  });
+
+  it('reads a live permission rather than the one the card was built with', () => {
+    // A card outlives its render now, so `choosable` had to stop being a
+    // closure: the answer captured when the star was drawn is not the answer
+    // after the plan has moved twice under it.
+    expect(chartFunction("card.addEventListener('click'")).toContain('if (!face.choosable) return');
+    expect(chartFunction('function paintNode(')).toContain('face.choosable = choosable;');
+  });
+
+  it('re-lights the connectors and re-spaces the lanes, because a bar moves', () => {
+    // The one thing a repaint really does change the *height* of: the progress
+    // bar leaves the star that was being researched and joins the one that now
+    // is. One pass, not the two-with-a-frame a fresh chart needs — nothing is
+    // being waited on.
+    const body = chartFunction('function refreshNodes(');
+    expect(body).toContain('spaceLanes(field, techRowCount())');
+    expect(body).toContain('drawLines(lines)');
+    expect(body).not.toContain('requestAnimationFrame');
+    expect(body).not.toContain('spaceColumns');
+  });
+});
+
+describe('the unlock lines are priced against the log', () => {
+  it('asks whether anything has happened, not what a delta depends on', () => {
+    // Hard rule 1 is what makes this exact: every mutation is a command and an
+    // accepted command is a logged command, so a log that has not grown is a
+    // state that has not moved. Deliberately the bluntest test there is — a key
+    // that named what `buildingYieldDelta` reads would be a second opinion
+    // about a number this screen is forbidden to have one about.
+    const body = chartFunction('function unlocksAreStale(');
+    expect(body).toContain('unlocksFrom.commands !== game.log.length');
+    // The seat, because a hot-seat change is not a command; the state's
+    // identity, because a loaded save is a different game whose log may be the
+    // same length.
+    expect(body).toContain('unlocksFrom.playerId !== localPlayerId()');
+    expect(body).toContain('unlocksFrom.state !== game.state');
+  });
+
+  it('counts this screen’s own commands in, and only on the ones that land', () => {
+    // This screen sends two commands and both change what is *planned* — no
+    // citizen moves, nothing is built, no technology completes — so re-pricing
+    // forty buildings against every city after one would be work for a number
+    // that cannot have changed.
+    const body = chartFunction('function send(');
+    expect(body).toContain('if (result.ok && unlocksFrom) unlocksFrom.commands += 1;');
+  });
+
+  it('dispatches from that one seam and nowhere else', () => {
+    // What keeps the note above honest: a command sent around `send` would
+    // leave the lines claiming to be priced for a state that had moved. One
+    // call in the whole module, and it is `send`'s.
+    expect(calls('dispatch')).toBe(1);
+    expect(chartFunction('function send(')).toContain('dispatch(getGame(), command)');
+  });
+
+  it('records the price after a build and after a re-price, never before', () => {
+    expect(chartFunction('function renderChart(')).toContain('markUnlocksPriced();');
+    const body = chartFunction('function refreshNodes(');
+    expect(body).toContain('const reprice = unlocksAreStale();');
+    expect(body).toContain('if (reprice) markUnlocksPriced();');
+  });
+});

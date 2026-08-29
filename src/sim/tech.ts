@@ -1027,15 +1027,26 @@ export function playerScience(state: GameState, playerId: number): number {
  * because that is what the model is: the beakers already banked would pay for
  * whichever node the player pointed them at. So the number a locked node shows
  * is the honest answer to "and if I went for that one instead?".
+ *
+ * `rate` is the empire's beakers a turn, and it is a parameter only because the
+ * star chart asks this question twenty-seven times in a row about one empire —
+ * `playerScience` sums `cityYields` over every city, so a chart that let each
+ * node fetch it again priced a forty-city empire forty times a node. Handed in
+ * or fetched, the arithmetic is this one line: there is no second reading of the
+ * schedule anywhere, only one caller that already knows the rate.
  */
 export function turnsToTech(
   state: GameState,
   playerId: number,
   techId: TechId,
+  rate?: number,
 ): number | null {
   const player = playerById(state, playerId);
   if (!player) return null;
-  return turnsToFill(techDef(techId).cost - player.sciencePool, playerScience(state, playerId));
+  return turnsToFill(
+    techDef(techId).cost - player.sciencePool,
+    rate ?? playerScience(state, playerId),
+  );
 }
 
 /** One row of a queue schedule: a technology and when it would land. */
@@ -1063,16 +1074,24 @@ export interface ResearchQueueStep {
  *     never land sooner than *n* turns from now however cheap it is. That floor
  *     is what keeps a banked four hundred beakers from printing "3 techs, 1
  *     turn" against a resolution that will hand over exactly one.
+ *
+ * `rate` is `turnsToTech`'s parameter and it is here for its reason: the star
+ * chart draws the strip along its foot in the same breath as the nodes above
+ * it, and the two must be quoting one rate anyway.
  */
-export function queueTurns(state: GameState, playerId: number): ResearchQueueStep[] {
+export function queueTurns(
+  state: GameState,
+  playerId: number,
+  rate?: number,
+): ResearchQueueStep[] {
   const player = playerById(state, playerId);
   if (!player) return [];
-  const rate = playerScience(state, playerId);
+  const at = rate ?? playerScience(state, playerId);
   const steps: ResearchQueueStep[] = [];
   let cost = 0;
   for (const techId of researchPlan(player)) {
     cost += techDef(techId).cost;
-    const turns = turnsToFill(cost - player.sciencePool, rate);
+    const turns = turnsToFill(cost - player.sciencePool, at);
     steps.push({ techId, turns: turns === null ? null : Math.max(steps.length + 1, turns) });
   }
   return steps;

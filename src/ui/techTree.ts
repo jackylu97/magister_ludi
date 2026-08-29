@@ -89,7 +89,7 @@ import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { improvementDef } from '../sim/improvementData';
 import { projectDef, projectRate } from '../sim/projectData';
-import { hasEndedTurn } from '../sim/state';
+import { type GameState, type Player, hasEndedTurn } from '../sim/state';
 import {
   availableTechs,
   buildingYieldDelta,
@@ -428,6 +428,73 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  */
 const REFUSAL_MS = 1800;
 
+/**
+ * The parts of a node card that the *state* decides, kept so that a render can
+ * write over them instead of building twenty-seven new cards.
+ *
+ * The chart used to be rebuilt from scratch whenever anything changed, which
+ * meant that aiming the beakers at a different star threw away every card, every
+ * connector and both layout passes and made them again — twice over, since the
+ * click's own render is followed by the host's (`onChanged`). It was slow the
+ * way a screen is slow when it has to be *redrawn to be read*, and it got slower
+ * with every city founded, because most of what a card costs is what it says
+ * about the empire (see `unlocksFrom`).
+ *
+ * So a card is built once and repainted after that. What is in here is exactly
+ * what can change without the chart itself changing: the researched star, the
+ * "~Nt", the progress bar, the plan numeral, the refusal a screen reader hears,
+ * and `choosable` — which the click handler reads *through this record* rather
+ * than off a closure, because a closure would still hold the answer the card was
+ * built with. Everything else on a card (its name, its glyph, its epigram, its
+ * grid cell) is a fact about the tree and never moves.
+ */
+interface NodeFace {
+  card: HTMLButtonElement;
+  /** The row the researched star hangs on the end of. */
+  head: HTMLElement;
+  star: HTMLElement;
+  /** The mono line the cost and the estimate share. */
+  figures: HTMLElement;
+  turns: HTMLElement;
+  bar: HTMLElement;
+  fill: HTMLElement;
+  progress: HTMLElement;
+  place: HTMLElement;
+  /** The line only a screen reader hears: why this star cannot be pressed. */
+  refusal: HTMLElement;
+  /**
+   * The unlock list. Replaced rather than repainted, because it is the one part
+   * of a card whose *shape* changes with the empire — see `unlocksFrom`.
+   */
+  unlocks: HTMLElement;
+  choosable: boolean;
+}
+
+/**
+ * What one render already knows, so that twenty-seven stars do not each go and
+ * ask the empire for it again.
+ *
+ * `rate` is the whole reason this exists. `playerScience` sums `cityYields` over
+ * every city an empire holds, and the chart wanted it once per node (through
+ * `turnsToTech`), once more for the current node's bar, once for the strip's
+ * schedule and once for the HUD's card — thirty readings of one number, each of
+ * them a sweep of the whole empire. It is now read **once**, in `beginPass`, and
+ * handed down; `turnsToTech` and `queueTurns` take it as a parameter precisely so
+ * that the figure on a node is still that function's own answer (hard rule 5)
+ * rather than something this screen worked out beside it.
+ *
+ * The rest is here because it is asked of every node too and is free to carry.
+ */
+interface Pass {
+  state: GameState;
+  playerId: number;
+  player: Player | undefined;
+  /** Beakers a turn, read once. */
+  rate: number;
+  plan: readonly TechId[];
+  ended: boolean;
+}
+
 export function createTechTree(options: TechTreeOptions): TechTree {
   const {
     overlay,
@@ -451,6 +518,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   let restoreTo: HTMLElement | null = null;
   /** Where each node card ended up, so the sight-lines can be measured. */
   const cards = new Map<TechId, HTMLButtonElement>();
+  /** The mutable face of each card, so a render can repaint rather than rebuild. */
+  const faces = new Map<TechId, NodeFace>();
   /**
    * Every connector and the two nodes it joins, kept because the focus mode
    * asks a question of a *line* ("is either end the node under the pointer?")
@@ -461,6 +530,108 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   let lines: SVGSVGElement | null = null;
   /** The node the chart is currently reading out, or none. */
   let reading: TechId | null = null;
+
+  // --- what one render knows -----------------------------------------------
+
+  /**
+   * The pass in hand. Written by `beginPass` and by nothing else, and read by
+   * every printer on this screen — the nodes, the strip, the hover card and the
+   * HUD's research card, which is what stops the four of them quoting four
+   * separately-summed science rates.
+   */
+  let pass: Pass | null = null;
+
+  /** Opens a render. The one place `playerScience` is called on this screen. */
+  function beginPass(): Pass {
+    const { state } = getGame();
+    const playerId = localPlayerId();
+    const player = state.players[playerId];
+    const plan = player ? researchPlan(player) : [];
+    pass = {
+      state,
+      playerId,
+      player,
+      rate: playerScience(state, playerId),
+      plan,
+      ended: hasEndedTurn(state, playerId),
+    };
+    return pass;
+  }
+
+  /**
+   * The pass, or a fresh one — for the hover card, which is raised long after
+   * the render that built the star under it and has no render of its own.
+   */
+  function passNow(): Pass {
+    return pass ?? beginPass();
+  }
+
+  /**
+   * When the unlock lines under the stars were last priced.
+   *
+   * They are the expensive half of this screen by an order of magnitude: a
+   * building's line is `buildingYieldDelta`, which prices *every city of the
+   * empire twice*, and there are forty-odd building lines in the sky. At a dozen
+   * cities that is a thousand `cityYields` calls, which is the whole of why the
+   * chart got heavier the longer a game ran.
+   *
+   * They are also the half that nothing on this screen can change. So they are
+   * carried across renders, and the question "could they have moved?" is asked
+   * of the **log** rather than of the numbers: hard rule 1 says every mutation in
+   * this game is a command and an accepted command is a logged command, so a log
+   * that has not grown is a state that has not moved. That is deliberately the
+   * bluntest possible test — it re-prices on a founding, a build, a turn, a
+   * chop, anything at all — because a key that tried to name what a delta
+   * *depends on* would be a second opinion about a number this screen is
+   * forbidden to have one about.
+   *
+   * The seat is in the key because a hot-seat change is not a command, and the
+   * prices are the seat's own. The state's identity is, because loading a save
+   * hands over a different game whose log may be the same length.
+   *
+   * `keptOwnCommand` is the one exception, and it is narrow on purpose: see
+   * `send`.
+   */
+  let unlocksFrom: { state: GameState; commands: number; playerId: number } | null = null;
+
+  /** Records that the unlock lines are priced for the state as it now stands. */
+  function markUnlocksPriced(): void {
+    const game = getGame();
+    unlocksFrom = { state: game.state, commands: game.log.length, playerId: localPlayerId() };
+  }
+
+  /** Whether anything at all has happened since the unlock lines were priced. */
+  function unlocksAreStale(): boolean {
+    const game = getGame();
+    return (
+      unlocksFrom === null ||
+      unlocksFrom.state !== game.state ||
+      unlocksFrom.commands !== game.log.length ||
+      unlocksFrom.playerId !== localPlayerId()
+    );
+  }
+
+  /**
+   * Sends one of this screen's commands, and notes that the log grew by it.
+   *
+   * The **only** place this module dispatches, and that is what makes the note
+   * safe. This screen sends exactly two commands — aim the beakers, drop a row
+   * from the plan — and both change what is *planned* and nothing else: no
+   * citizen moves, nothing is built, no technology completes, so no unlock line
+   * can have changed. Counting the command in rather than re-pricing forty
+   * buildings against every city is the difference between a click that lands in
+   * a frame and one that thinks about it first.
+   *
+   * A command from anywhere else still invalidates the lines, because the log
+   * will have grown by more than the ones this screen counted. **A third command
+   * added to this screen inherits that claim and must be worth it** — if it can
+   * change what a building would pay, it must not go through here.
+   */
+  function send(command: Command): ReturnType<typeof dispatch> {
+    const result = dispatch(getGame(), command);
+    if (result.ok && unlocksFrom) unlocksFrom.commands += 1;
+    return result;
+  }
 
   // --- saying no -----------------------------------------------------------
 
@@ -530,8 +701,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * worth to this empire right now.
    */
   function renderUnlocks(id: TechId): HTMLElement {
-    const { state } = getGame();
-    const playerId = localPlayerId();
+    const { state, playerId } = passNow();
     const list = element('ul', 'tech-unlocks');
     const { units = [], buildings = [] } = techDef(id).unlocks;
 
@@ -659,9 +829,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * number some other surface disagrees with.
    */
   function techCard(id: TechId): Node {
-    const { state } = getGame();
-    const playerId = localPlayerId();
-    const player = state.players[playerId];
+    const { state, playerId, player, rate } = passNow();
     const def = techDef(id);
     const researched = player?.techsResearched.includes(id) ?? false;
     const box = element('div');
@@ -676,7 +844,6 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     );
     box.append(head);
 
-    const rate = playerScience(state, playerId);
     const figures = element('div', 'info-card-figures');
     figures.append(element('span', 'info-card-cost', `${def.cost}${BEAKER}`));
     // A researched node has no schedule left to quote; everything else is
@@ -684,7 +851,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // three columns away an honest answer to "and if I went for that instead?".
     if (!researched) {
       figures.append(
-        element('span', 'info-card-turns', turnsLabel(turnsToTech(state, playerId, id))),
+        element('span', 'info-card-turns', turnsLabel(turnsToTech(state, playerId, id, rate))),
       );
       figures.append(element('span', 'info-card-rate', `+${rate}${BEAKER}/t`));
     }
@@ -713,7 +880,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // if the beakers were pointed at it alone — which is what the `~Nt` on the
     // node's own figures line already says.
     if (player && planIsQueue(researchPlan(player))) {
-      const steps = queueTurns(state, playerId);
+      const steps = queueTurns(state, playerId, rate);
       const at = steps.findIndex((step) => step.techId === id);
       if (at >= 0) {
         // An empire making no science has no schedule at all, and "~null turns"
@@ -788,31 +955,61 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     return box;
   }
 
-  function renderNode(id: TechId): HTMLElement {
-    const { state } = getGame();
-    const playerId = localPlayerId();
-    const player = state.players[playerId];
+  /**
+   * Puts a mark on a card or takes it off, and does nothing when it is already
+   * where it belongs.
+   *
+   * A node's face is a handful of marks that come and go — the researched star,
+   * the estimate, the bar, the numeral, the refusal — and repainting means
+   * asking about each of them rather than throwing the card away. `before` is
+   * where the mark goes back in, so the order the card reads in is fixed by the
+   * *call*, not by the order things happened to be added in.
+   */
+  function mark(el: HTMLElement, parent: HTMLElement, on: boolean, before?: Node | null): void {
+    if (!on) {
+      if (el.parentNode === parent) parent.removeChild(el);
+      return;
+    }
+    if (el.parentNode !== parent) parent.insertBefore(el, before ?? null);
+  }
+
+  /** `el` if it is where a `mark` could insert before it, and `null` if not. */
+  function inside(el: HTMLElement, parent: HTMLElement): Node | null {
+    return el.parentNode === parent ? el : null;
+  }
+
+  /**
+   * Everything about a star that the *state* decides, written onto a card that
+   * already exists.
+   *
+   * The other half of `renderNode`, split out when the chart stopped rebuilding
+   * itself on every click. Nothing here creates an element or reads the
+   * document; it is class toggles, text and five marks moving in and out.
+   */
+  function paintNode(id: TechId, face: NodeFace): void {
+    const { state, playerId, player, rate, plan, ended } = passNow();
     const def = techDef(id);
+    const card = face.card;
 
     const researched = player?.techsResearched.includes(id) ?? false;
     const current = player?.researching === id;
-    const plan = player ? researchPlan(player) : [];
     const place = planIsQueue(plan) ? planPlace(plan, id) : null;
     // Two readings of the same click, because there are two clicks: a plain one
     // aims the beakers (and queues whatever the target needs), a shifted one
     // adds to what is already lined up. Both are `researchError`, which is what
     // the reducer validates with, so a node this screen lets you press either
     // way is a node the reducer accepts that way.
-    const ended = hasEndedTurn(state, playerId);
     const problem = researchError(state, playerId, id);
     const appendProblem = researchError(state, playerId, id, 'append');
     const choosable = !ended && (problem === null || appendProblem === null);
+    // Read by the click handler through this record rather than off a closure:
+    // the card outlives the render that built it now, so a captured answer would
+    // be the answer this star had the first time it was drawn.
+    face.choosable = choosable;
 
-    const card = element('button', 'tech-node');
-    card.type = 'button';
     card.classList.toggle('is-researched', researched);
     card.classList.toggle('is-current', current);
-    // **Locked is now a fact about the tree, not about the command.** It used to
+    // **Locked is a fact about the tree, not about the command.** It used to
     // be `researchError !== null`, which was the same question until the queue
     // landed: pointing at a distant node stopped being a refusal (it queues the
     // prerequisites instead), so that reading quietly stopped dimming anything
@@ -824,6 +1021,46 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // in the same grey as ground nobody has looked at.
     card.classList.toggle('is-planned', place !== null);
     card.disabled = !choosable;
+
+    mark(face.star, face.head, researched);
+
+    // Cost, and what it would take from here. The pool pays for whichever node
+    // it is aimed at, so "~N turns" is honest for a node that is not current.
+    // The rate is the pass's — one sum of the empire, not one per star.
+    const turns = turnsToTech(state, playerId, id, rate);
+    setYieldText(face.turns, turns === null ? '—' : `~${turns}t`);
+    mark(face.turns, face.figures, !researched);
+
+    if (current && player) {
+      // The same arithmetic the HUD's research card draws, from the same
+      // helper: the bar on this node and the bar at the top-left of the screen
+      // are one fact shown twice, and they must never round differently.
+      const progress = researchProgress(player.sciencePool, def.cost, rate);
+      face.fill.style.width = `${(progress.fraction * 100).toFixed(1)}%`;
+      setYieldText(face.progress, `${progress.banked} / ${progress.cost}`);
+    }
+    // In front of the unlock list, which is where they were built: the bar reads
+    // as part of the node's figures and the list as what the figures buy.
+    mark(face.bar, card, current && player !== undefined, face.unlocks);
+    mark(face.progress, card, current && player !== undefined, face.unlocks);
+
+    // The numeral, worn on the card's *corner* rather than set inside it: it is
+    // a mark about the node — its place in a list that lives somewhere else —
+    // and a figure in the body would read as one more of the node's own numbers.
+    // Absolutely placed, so renumbering (a dequeue cascades, and several can
+    // vanish at once) never reflows a lane, and appended last for the same
+    // reason the refusal below is: the card is read out before it is annotated.
+    if (place !== null) {
+      setYieldText(face.place, String(place));
+      // Spoken as a sentence, because "3" alone beside a technology's name is
+      // the one thing on this card a screen reader cannot make sense of.
+      face.place.setAttribute('aria-label', `${place} in the research plan`);
+    }
+    // In front of the refusal when there is one, so the two annotations keep the
+    // order they are read in however they arrived: the numeral is a mark about
+    // the star, the refusal is the last word about it.
+    mark(face.place, card, place !== null, inside(face.refusal, card));
+
     // Every disabled node says why, in the reducer's own words where there are
     // any: a star you cannot press and cannot ask about is a dead end.
     //
@@ -832,8 +1069,27 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // tooltip would have arrived a second later, on top of it, saying less. So
     // the sentence is carried by a line only a screen reader reads — appended
     // to the card's own content rather than replacing it with an `aria-label`,
-    // because a node's cost and its unlocks are worth hearing too.
+    // because a node's cost and its unlocks are worth hearing too. Last, so it
+    // is heard after the node has been read out rather than before it has been
+    // named.
     const refusal = problem ?? (choosable ? null : `You have ended turn ${state.turn}`);
+    face.refusal.textContent = refusal ?? '';
+    mark(face.refusal, card, refusal !== null);
+  }
+
+  /**
+   * Builds one star: the half of a node that never changes, and one repaint.
+   *
+   * Everything the tree itself decides — the glyph, the name, the cost, the
+   * epigram — is written once here. Everything the *state* decides is
+   * `paintNode`'s, and the marks it moves are created here whether or not this
+   * particular star wears one today, so that a repaint has something to put back.
+   */
+  function renderNode(id: TechId): HTMLElement {
+    const def = techDef(id);
+
+    const card = element('button', 'tech-node');
+    card.type = 'button';
 
     const head = element('div', 'tech-node-head');
     // Glyph and name are one group, so `space-between` still puts only the
@@ -843,63 +1099,40 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     title.append(element('span', 'tech-node-glyph', def.glyph));
     title.append(element('span', 'tech-node-name', def.name));
     head.append(title);
-    if (researched) {
-      const star = element('span', 'tech-node-star', '✦');
-      star.setAttribute('aria-hidden', 'true');
-      head.append(star);
-    }
     card.append(head);
+    const star = element('span', 'tech-node-star', '✦');
+    star.setAttribute('aria-hidden', 'true');
 
-    // Cost, and what it would take from here. The pool pays for whichever node
-    // it is aimed at, so "~N turns" is honest for a node that is not current.
-    const turns = turnsToTech(state, playerId, id);
     const figures = element('div', 'tech-node-figures');
     figures.append(element('span', 'tech-node-cost', `${def.cost}${BEAKER}`));
-    if (!researched) {
-      figures.append(
-        element('span', 'tech-node-turns', turns === null ? '—' : `~${turns}t`),
-      );
-    }
     card.append(figures);
+    const turns = element('span', 'tech-node-turns');
 
-    if (current && player) {
-      // The same arithmetic the HUD's research card draws, from the same
-      // helper: the bar on this node and the bar at the top-left of the screen
-      // are one fact shown twice, and they must never round differently.
-      const progress = researchProgress(
-        player.sciencePool,
-        def.cost,
-        playerScience(state, playerId),
-      );
-      const track = element('div', 'tech-bar');
-      const fill = element('div', 'tech-bar-fill');
-      fill.style.width = `${(progress.fraction * 100).toFixed(1)}%`;
-      track.append(fill);
-      card.append(track);
-      card.append(
-        element('div', 'tech-node-progress', `${progress.banked} / ${progress.cost}`),
-      );
-    }
+    const bar = element('div', 'tech-bar');
+    const fill = element('div', 'tech-bar-fill');
+    bar.append(fill);
+    const progress = element('div', 'tech-node-progress');
 
-    card.append(renderUnlocks(id));
+    const unlocks = renderUnlocks(id);
+    card.append(unlocks);
     if (def.flavor) card.append(element('p', 'tech-node-flavor', def.flavor));
 
-    // The numeral, worn on the card's *corner* rather than set inside it: it is
-    // a mark about the node — its place in a list that lives somewhere else —
-    // and a figure in the body would read as one more of the node's own numbers.
-    // Absolutely placed, so renumbering (a dequeue cascades, and several can
-    // vanish at once) never reflows a lane, and appended last for the same
-    // reason the refusal below is: the card is read out before it is annotated.
-    if (place !== null) {
-      const chip = element('span', 'tech-node-place', String(place));
-      // Spoken as a sentence, because "3" alone beside a technology's name is
-      // the one thing on this card a screen reader cannot make sense of.
-      chip.setAttribute('aria-label', `${place} in the research plan`);
-      card.append(chip);
-    }
-    // Last, so it is heard after the node has been read out rather than before
-    // it has been named. See `refusal` above for why it is not a `title`.
-    if (refusal) card.append(element('span', 'sr-only', refusal));
+    const face: NodeFace = {
+      card,
+      head,
+      star,
+      figures,
+      turns,
+      bar,
+      fill,
+      progress,
+      place: element('span', 'tech-node-place'),
+      refusal: element('span', 'sr-only'),
+      unlocks,
+      choosable: false,
+    };
+    faces.set(id, face);
+    paintNode(id, face);
 
     // Two gestures, one command. A plain click *aims* — the target's
     // unresearched prerequisites come with it and the whole list becomes the
@@ -909,19 +1142,19 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // add more technologies to the queue"), and neither is a lesson in the tree:
     // the expansion is `researchExpansion`'s, made by the reducer.
     card.addEventListener('click', (event) => {
-      if (!choosable) return;
-      const command = chooseResearchCommand(playerId, id, event.shiftKey);
-      const result = dispatch(getGame(), command);
+      // `face.choosable` and not the answer this card was built with: the card
+      // outlives its render now, so the closure would be a stale permission.
+      if (!face.choosable) return;
+      const result = send(chooseResearchCommand(localPlayerId(), id, event.shiftKey));
       if (!result.ok) {
         // The board moved under the click — say so rather than swallowing it.
         refuse(result.error);
         return;
       }
+      // The card that was clicked is still the card that is there — the chart is
+      // repainted rather than rebuilt — so the keyboard stays where the player
+      // put it and nothing needs handing back.
       render();
-      // The card that was clicked no longer exists — the chart is rebuilt from
-      // the new state — so the keyboard is handed to the node that replaced it
-      // rather than being dropped on the document.
-      cards.get(id)?.focus();
       onChanged();
     });
 
@@ -976,12 +1209,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * back to the lanes — which is why this is called *before* `spaceLanes` runs.
    */
   function renderPlanStrip(): void {
-    const { state } = getGame();
-    const playerId = localPlayerId();
-    const player = state.players[playerId];
-    const plan = player ? researchPlan(player) : [];
-    const steps = queueTurns(state, playerId);
-    const ended = hasEndedTurn(state, playerId);
+    const { state, playerId, rate, plan, ended } = passNow();
+    const steps = queueTurns(state, playerId, rate);
 
     planStrip.replaceChildren();
     planStrip.hidden = !planIsQueue(plan);
@@ -1015,7 +1244,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
           playerId,
           techId: step.techId,
         };
-        const result = dispatch(getGame(), command);
+        const result = send(command);
         if (!result.ok) {
           refuse(result.error);
           return;
@@ -1035,10 +1264,21 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     planStrip.append(list);
   }
 
+  /**
+   * The whole sky, from nothing: twenty-seven cards, the age washes, the
+   * connector SVG, and two full layout passes over all of it.
+   *
+   * **Called when the chart is opened and on nothing else.** It used to run on
+   * every accepted command too, which is what made this screen slow: a click on
+   * a star threw away every card and every connector and made them again — and
+   * then the host's own refresh (`onChanged`) did it a second time. What a
+   * command changes is a handful of classes and figures, and `refreshNodes` is
+   * what writes those onto the cards that are already there.
+   */
   function renderChart(): void {
-    // A rebuild is not a journey: choosing a research redraws every card, and
-    // a chart that snapped back to column zero each time would make the player
-    // find their place again for nothing.
+    // A rebuild is not a journey: a fresh chart is measured from wherever the
+    // stage was left, and one that snapped back to column zero would make the
+    // player find their place again for nothing.
     const wasAt = { left: chart.scrollLeft, top: chart.scrollTop };
 
     // Before anything is measured. The strip is a flex sibling of the stage, so
@@ -1051,6 +1291,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // does it — see `infoCard.ts`.
     info.hide();
     cards.clear();
+    faces.clear();
     // Both indexes point at elements that are about to be thrown away, and
     // `reading` at a card that will not exist — cleared here rather than through
     // `readNode(null)`, which would spend three passes tidying the dead.
@@ -1130,6 +1371,45 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       spaceLanes(built, rows);
       drawLines(drawn);
     });
+    // The unlock lines under these cards are priced for the state that built
+    // them; see `unlocksFrom` for what that buys and when it is given up.
+    markUnlocksPriced();
+  }
+
+  /**
+   * The chart that is already on the screen, brought up to date in place.
+   *
+   * `renderChart`'s counterpart and the path every state change takes while the
+   * sky is up. Nothing is created and nothing is thrown away: each card is
+   * repainted (`paintNode`), and the connectors are re-lit off what is now held.
+   *
+   * The unlock lines are the exception, and they are why this is worth doing at
+   * all — they are what a card mostly *costs* (`unlocksFrom`), and they are
+   * rebuilt only when something has actually happened to the empire.
+   *
+   * The lanes are re-spaced and the lines redrawn afterwards because a card's
+   * *height* really can change here: the progress bar moves from the star that
+   * was being researched to the one that now is. One pass rather than the two
+   * with a frame between that a fresh chart needs — nothing is being waited on,
+   * the cards are already laid out and only their contents moved.
+   */
+  function refreshNodes(): void {
+    // An open card would be quoting the state before the command; it is taken
+    // down rather than re-derived, exactly as a rebuild used to take it down.
+    info.hide();
+    const reprice = unlocksAreStale();
+    for (const id of TECH_IDS) {
+      const face = faces.get(id);
+      if (!face) continue;
+      paintNode(id, face);
+      if (!reprice) continue;
+      const list = renderUnlocks(id);
+      face.card.replaceChild(list, face.unlocks);
+      face.unlocks = list;
+    }
+    if (reprice) markUnlocksPriced();
+    if (field) spaceLanes(field, techRowCount());
+    if (lines) drawLines(lines);
   }
 
   /**
@@ -1475,13 +1755,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * does — `localPlayerId()` is asked afresh on every render.
    */
   function renderStatus(): void {
-    const { state } = getGame();
-    const playerId = localPlayerId();
-    const player = state.players[playerId];
+    const { state, playerId, player, rate } = passNow();
     if (!player) return;
 
     const current = player.researching;
-    const rate = playerScience(state, playerId);
 
     if (current === null) {
       const remaining = availableTechs(state, playerId).length;
@@ -1548,9 +1825,29 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     );
   }
 
+  /**
+   * The one entry point, and the one place a render begins.
+   *
+   * `beginPass` first, because everything below it — the HUD's card, the strip,
+   * the twenty-seven stars — quotes the same science rate and must not each go
+   * and sum the empire for it. Then the chart, if it is up: **built** the first
+   * time, **repainted** every time after that. `field` is the whole of that
+   * test, and `setOpen(false)` is what clears it, so a chart is rebuilt exactly
+   * once per visit and no click ever lays one out again.
+   */
   function render(): void {
+    beginPass();
     renderStatus();
-    if (open) renderChart();
+    if (!open) return;
+    if (field === null) {
+      renderChart();
+      return;
+    }
+    // Before anything is measured — the strip is a flex sibling of the stage, so
+    // it appearing or going takes real height off `chart.clientHeight`, which is
+    // the height `refreshNodes` then spends on the lanes.
+    renderPlanStrip();
+    refreshNodes();
   }
 
   // --- opening and closing -------------------------------------------------
@@ -1570,7 +1867,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       // the decision that is actually in front of them.
       chart.scrollLeft = 0;
       chart.scrollTop = 0;
-      renderChart();
+      // `field` was cleared on the way out, so this is the visit's one build.
+      render();
       // The current research if there is one, otherwise the first node the
       // player could actually choose: a screen that opens with the cursor on
       // "close" is a screen that opens with nothing to read. The stage travels
@@ -1588,7 +1886,12 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     readNode(null);
     restoreTo?.focus();
     restoreTo = null;
-    renderStatus();
+    // The next visit builds a fresh sky rather than repainting this one: the
+    // window may have been resized, the seat may have changed hands, and a chart
+    // is laid out from the stage it is going into. `field` is the mark that says
+    // there is nothing to repaint — see `render`.
+    field = null;
+    render();
   }
 
   closeButton.addEventListener('click', () => setOpen(false));
@@ -1671,7 +1974,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     drawLines(lines);
   });
 
-  renderStatus();
+  render();
 
   return {
     get isOpen() {
