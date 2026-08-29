@@ -51,21 +51,15 @@ one each. Military is modest by design: one unit line and the first city wall.
 
 | node | 🔬 | prereqs | package | thread | needs |
 |---|---|---|---|---|---|
-| **Epic Poetry** | 45 | Letters | **Hall of Deeds** building (+2🎵, +1 happiness) · rule: *the fallen become verse* — a friendly unit's death pays 🎵 to the nearest city · wonder **The Oracle** | ✦ | the death-culture hook is one `windfallRider`-shaped line on a tech, small · **wonders** |
+| **Epic Poetry** | 45 | Letters | **Hall of Deeds** building (+2🎵, +1 happiness) · rule: *the fallen become verse* — a friendly unit's death pays 🎵 to the nearest city · wonder **The Oracle** | ✦ | the death-culture hook is one `windfallRider`-shaped line on a tech, small · **wonders** | [replaces drama and poetry]
 | **Kingship** | 50 | Stonecraft, Letters | **Stele of Laws** building (+2 authority capacity) · wonder **The Walls of Uruk** · *(later)* the King List: capital yields scale with the age of the line | ✦ | wonders · King List deferred (needs "turns since founding" on the capital — trivial state, not yet wanted) |
 | **The High Temple** | 60 | Divination, Stonecraft | **Temple** moves here from Philosophy (+2🕯) · +1 pantheon slot · **prophets** (faith-purchased; found the religion) · rite **Funeral Rites** (+2 happiness in a city, 20 turns) · wonder **The Great Ziggurat** | ✦ | prophets + religions + spread (religion.md, the Age 2–3 pass) · wonders |
-| **Ancestor Rites** | 60 | Divination, Earthenware | **Ancestor Mound** = monument renewal (+1🎵 +1 authority capacity) · wonder **The Pyramids** (workers +1 charge, empire-wide, forever) | ✦ | wonders (renewal is a data row) |
-| **Irrigation** | 65 | Calendar, Earthenware | farm renewal: **+1🌾 on farms beside fresh water** (moves here from Feudalism, which gets the castle instead) · **floodplain farms** allowed if not already · wonder **The Hanging Gardens** (+3🌾 in the city, +1 happiness) | Water | wonders |
-| **Standing Stones** | 70 | Stonecraft, Divination | **Standing Stones** improvement (worker-built, open flat ground, +1🎵 +1🕯; the first thing a people builds that is not food) · wonder **Stonehenge** (+4🕯, +1 pantheon slot) | Sky ✦ | improvement is a data row + a sculpt · wonders |
-| **Caravans** | 80 | Calendar, The Wheel | **Bazaar** building (+2🪙, the first gold building) · Statecraft: the *Founders' Road* doctrine's road half stays dormant until Æra III; caravans are the promise | — | trade routes (Æra III) — the bazaar ships now |
-| **Bronze Panoply** | 90 | Bronzeworking, The Wheel | **Phalanx** (spearman upgrade; str 10, +25% vs mounted) · barracks renewal: units built here +1 combat (the existing `unitProductionBonus` shape) · AoE2-style auto-upgrade of spearmen on research (Entry V) | Fire | auto-upgrade is a small unit-line hook: `upgradesTo` on the unit row |
-| **Wayfinding** | 110 | Sailing, Husbandry | scouts +1 sight · settlers +1 movement · **Harbour** building (coastal; +1🌾 on worked sea resource tiles) · wonder **The Great Lighthouse** (coastal; +1 sight and +1 movement for embarked units, +2🪙) | Water | unit stat gifts exist as card hooks; a *tech* stat gift is one line in `techGifts` |
+| **Irrigation** | 65 | Calendar, Earthenware | farm renewal: **+1🌾 on farms beside fresh water** (moves here from Feudalism, which gets the castle instead) · **floodplain farms** allowed if not already ·  | Water | wonders |
+| **Standing Stones** | 70 | Stonecraft, Divination | **Standing Stones** improvement (worker-built, open flat ground, +1🎵 +1🕯; the first thing a people builds that is not food) ·  | Sky ✦ | improvement is a data row + a sculpt · wonders |
+| **Caravans** | 80 | Calendar, The Wheel | **Bazaar** building (+2🪙, +1 gold on luxury resources) · Statecraft: the *Founders' Road* doctrine's road half stays dormant until Æra III; caravans are the promise | — | trade routes (Æra III) — the bazaar ships now |
+| **Bronze Panoply** | 90 | Bronzeworking, The Wheel | **Phalanx** (spearman upgrade; str 10, +25% vs mounted) · barracks renewal: barracks gain +1 production (the existing `unitProductionBonus` shape) · AoE2-style auto-upgrade of spearmen on research (Entry V) | Fire | auto-upgrade is a small unit-line hook: `upgradesTo` on the unit row |
+| **Wayfinding** | 110 | Sailing, Husbandry | allows military units to embark on coast. **Harbour** building (coastal; +1🌾 on worked sea resource tiles) · gives wonder **The Great Lighthouse** (coastal; +1 sight and +1 movement for embarked units, +2🪙) | Water | unit stat gifts exist as card hooks; a *tech* stat gift is one line in `techGifts` |
 
-**Heroes wonders (6):** The Oracle (mints a Magister's Die each age — the dice economy's
-canon source; until dice exist: +3🎵 +3🕯) · The Walls of Uruk (+10 city defense in the
-capital, +2🎵; "climb the walls and walk them") · The Great Ziggurat (+3🔬 +3🕯; science and
-faith wired together) · The Pyramids (workers +1 charge) · The Hanging Gardens (+3🌾 +1
-happiness) · Stonehenge (+4🕯, +1 pantheon slot) · The Great Lighthouse (coastal).
 
 ---
 

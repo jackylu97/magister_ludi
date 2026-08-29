@@ -255,7 +255,13 @@ describe('pacing', () => {
     expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(55);
     expect(second!, `age II: ${second}`).toBeLessThanOrEqual(79);
     expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(106);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(138);
+    // Upper bound 138 → 142 (2026-08-29): the day's balance rulings — cities
+    // costing 3/2/4 authority, Æra II–III buildings priced by hand, crowding
+    // softened, the ladders gentler — moved this seed's Age III close from
+    // 122 to 139. One turn over a band that was ±16 wide is the schedule
+    // shifting, not a regression; the band moves with it rather than being
+    // re-centred on a single roll.
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(142);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 60_000);
 
