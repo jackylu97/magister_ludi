@@ -1490,8 +1490,11 @@ describe('the raider’s torch', () => {
  * keeps the pressure is free to write it either way.
  */
 describe('the camp faucet', () => {
-  it('founds three quarters of a camp a turn, up to a ceiling above it', () => {
-    expect(BARB.campsPerSpawn / BARB.campEveryTurns).toBeCloseTo(0.75);
+  it('founds a camp and a half a turn, up to a ceiling above it', () => {
+    // Doubled from ¾ (user, 2026-08-29: "make the camp spawn rate literally
+    // 2x") — the cadence halved, the batch untouched. The muster inside a camp
+    // (`unitEveryTurns`) was judged right and is not part of this ruling.
+    expect(BARB.campsPerSpawn / BARB.campEveryTurns).toBeCloseTo(1.5);
     expect(BARB.maxCamps).toBeGreaterThanOrEqual(24);
   });
 

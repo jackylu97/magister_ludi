@@ -57,7 +57,7 @@
   },
   "barbarians": {
     "firstCampTurn": 6,
-    "campEveryTurns": 4,
+    "campEveryTurns": 2,
     "campsPerSpawn": 3,
     "maxCamps": 24,
     "minCampDistanceFromCity": 4,
