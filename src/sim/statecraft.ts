@@ -50,6 +50,7 @@
  */
 
 import {
+  bestMeleeFor,
   capitalCityOf,
   cityAt,
   cityResources,
@@ -103,6 +104,7 @@ import {
   type Unit,
   cityReligion,
   playerById,
+  realPlayers,
 } from './state';
 import {
   type ActionRuleId,
@@ -1231,6 +1233,10 @@ function empireConditionHolds(
     case 'authorityNegative':
       // Imported lazily through the function-level cycle documented at the top.
       return authorityReading(state, playerId) < 0;
+    case 'authorityPositive':
+      // The mirror, under the same recursion cut: an empire at exactly zero
+      // satisfies neither arm, which is what "positive" and "negative" mean.
+      return authorityReading(state, playerId) > 0;
     case 'happinessNegative':
       return happinessReading(state, playerId) < 0;
     case 'queueHolds': {
@@ -1316,7 +1322,12 @@ function isFrontierCity(state: GameState, city: City, radius: number): boolean {
  * evaluator for every scope a card can name, so a new scope is one arm here and
  * nothing in the card that wanted it.
  */
-export function cityScopeAdmits(state: GameState, city: City, scope?: CityScope): boolean {
+export function cityScopeAdmits(
+  state: GameState,
+  city: City,
+  scope?: CityScope,
+  viewerId?: number,
+): boolean {
   if (!scope) return true;
   const test = scope.test;
   switch (test) {
@@ -1371,7 +1382,7 @@ export function cityScopeAdmits(state: GameState, city: City, scope?: CityScope)
     case 'onTerrain':
       // The centre's own hex and nothing wider. See the scope's docblock.
       return cityTile(state.map, city).terrain === scope.terrain;
-    case 'follows':
+    case 'follows': {
       // **"This town follows the religion this belief belongs to."** Since the
       // 2026-08-28 ruling a follower belief only ever reaches a town through
       // `followerBeliefEffects`, which pushes it into the live list of a city
@@ -1379,12 +1390,25 @@ export function cityScopeAdmits(state: GameState, city: City, scope?: CityScope)
       // `viewerId` for is the town in hand, and the clause is true by
       // construction there. Read of any other card it asks the only question
       // left with no religion named: does this place keep a faith at all.
-      return cityReligion(city) !== null;
+      //
+      // **Unless a reader names itself.** Cuius Regio is the first card whose
+      // own text says *your* religion, and a viewer is how it says so: the town
+      // must keep one of the faiths this empire is paid by (`heldReligions` —
+      // the holy city's, so a conquered shrine moves the sentence with it).
+      // Optional rather than required, because the follower pool has a town in
+      // hand and no reader at all; absent is the wider reading above.
+      if (viewerId === undefined) return cityReligion(city) !== null;
+      const kept = cityReligion(city);
+      if (kept === null) return false;
+      return heldReligions(state, viewerId).some((religion) => religion.id === kept);
+    }
     case 'all': {
       // Recursion into the same evaluator, which is the whole reason the
-      // composite is a scope rather than a second field on every effect.
+      // composite is a scope rather than a second field on every effect. The
+      // viewer travels with it: a conjunction of "follows me" and "on the coast"
+      // must mean the same "me" in both halves.
       for (const inner of scope.of) {
-        if (!cityScopeAdmits(state, city, inner)) return false;
+        if (!cityScopeAdmits(state, city, inner, viewerId)) return false;
       }
       return true;
     }
@@ -3007,12 +3031,33 @@ export function cardUnitStat(
  * "workers are built with +1 charge". A charge is spent, so a bonus computed on
  * read would give a worker its extra charge back every time the card was
  * re-slotted, and take it away mid-job when the card came out.
+ *
+ * `at` is the hex the piece is born on, which is what resolves *which town
+ * raised it* — the one reading `CardUnitStatEffect.scope` has, and the reason
+ * this is the only `unitStat` consumer that takes one. Cuius Regio's augurs are
+ * charged by the faith of the city they were trained in, so a scoped line is
+ * silent when no hex is passed and silent again when no town stands on it.
  */
-export function cardExtraCharges(state: GameState, playerId: number, type: UnitTypeId): number {
+export function cardExtraCharges(
+  state: GameState,
+  playerId: number,
+  type: UnitTypeId,
+  at?: { col: number; row: number },
+): number {
   let total = 0;
+  // Resolved once rather than per line: the birth hex does not move between
+  // effects, and a town lookup per card would be a sweep of forty cities per
+  // clause on a row that fires at every completion.
+  const born = at ? cityAt(state, at.col, at.row) : undefined;
   for (const { level, effect } of effectsOfKind(state, playerId, 'unitStat')) {
     if (effect.stat !== 'charges') continue;
     if (!unitMatches(type, effect.class)) continue;
+    // The scope asks about the town, and "my religion" asks about the empire
+    // reading the card — the same `viewerId` a follower belief is admitted by.
+    if (effect.scope !== undefined) {
+      if (!born) continue;
+      if (!cityScopeAdmits(state, born, effect.scope, playerId)) continue;
+    }
     total += scaleByLevel(effect.amount, level);
   }
   return total;
@@ -3342,6 +3387,42 @@ export function cardPeriodicOffers(
     list.push({ source, every: Math.floor(effect.every), site: effect.site });
   }
   return list;
+}
+
+/**
+ * Musters the pieces this empire's cards raise **on a cadence** — The Standing
+ * Levy's spear, and nothing else today.
+ *
+ * `openPeriodicOffers`' twin one currency over, and it is written the same way
+ * on purpose: a phase reads a list this file produced, the cadence is the same
+ * absolute `turn % every === 0` comparison, and the delivery goes through
+ * `realiseItem` — the one routine that means "the city now has the thing" — so
+ * a levied spearman is spawned by production's own convention and goes on no
+ * payroll (`free`, exactly as a windfall's gift does).
+ *
+ * A seat with no capital, no buildable melee row, or nowhere to put the piece
+ * simply raises nothing this turn. That is the same refusal a purchase and a
+ * completion grant get, and it is silent for their reason: a town with a full
+ * doorstep is not an error, it is a full doorstep.
+ *
+ * The wild is skipped for `runStatecraft`'s reason — it holds no cards — and
+ * every sweep is in `realPlayers`, roster, then card order, so a replay
+ * reproduces the musters in one fixed order.
+ */
+export function musterPeriodicUnits(state: GameState): void {
+  for (const player of realPlayers(state)) {
+    for (const { effect } of effectsOfKind(state, player.id, 'periodicMuster')) {
+      const every = Math.floor(effect.every);
+      if (every <= 0 || state.turn % every !== 0) continue;
+      const seat = capitalCityOf(state, player.id);
+      if (!seat) continue;
+      const type = effect.unit === 'bestMelee' ? bestMeleeFor(state, player.id) : effect.unit;
+      if (type === null) continue;
+      const tile = spawnTileFor(state, seat, type);
+      if (!tile) continue;
+      realiseItem(state, seat, { kind: 'unit', id: type, tile }, { free: true });
+    }
+  }
 }
 
 /**
@@ -4322,11 +4403,15 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         out.push({ text: words });
         return;
       }
+      // A delta is a rise or a fall in a figure the player already knows, so it
+      // is said that way — "the authority a captured city costs falls by 1" —
+      // rather than as a bare signed number hanging off a noun phrase.
+      const delta = effect.delta ?? 0;
       out.push({
         text:
           effect.value !== undefined
             ? `${words} is ${effect.value}`
-            : `${words} ${signed(effect.delta ?? 0)}`,
+            : `${words} ${delta < 0 ? 'falls' : 'rises'} by ${Math.abs(delta)}`,
       });
       return;
     }
@@ -4365,6 +4450,16 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         }`,
       });
       return;
+    case 'periodicMuster': {
+      // The piece names itself where the row names one, and asks the roster
+      // where it does not — `grantWords`' sentence, said on a cadence.
+      const what =
+        effect.unit === 'bestMelee'
+          ? 'the best melee unit you can build'
+          : `${indefinite(unitDef(effect.unit).name)} ${ref('unit', effect.unit, unitDef(effect.unit).name)}`;
+      out.push({ text: `every ${effect.every} turns, ${what} musters in your capital` });
+      return;
+    }
     case 'unlocksBuilding':
       // No longer struck through: buildings can be bought (Entry XXIX) and
       // `cardUnlocksBuilding` is read by `isUnlocked`, so The Gilded Court
@@ -5156,6 +5251,7 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   cityCountAtMost: 'while you hold at most',
   cityCountAtLeast: 'while you hold at least',
   authorityNegative: 'while your authority is negative',
+  authorityPositive: 'while your authority is positive',
   happinessNegative: 'while your happiness is negative',
   // The category and the town are printed by `conditionValue`, so that a wonder
   // in any city and a building in the capital are one entry and two rows.

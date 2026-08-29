@@ -57,6 +57,7 @@ import {
   isUpgradable,
   liveEffects,
   livePool,
+  musterPeriodicUnits,
   payWindfallGrants,
   newPlayerStatecraft,
   orderChoiceError,
@@ -934,8 +935,13 @@ describe('every hook family, end to end', () => {
     // `yield: 'all'` expands into one labelled line per voice.
     expect(open).toHaveLength(6);
     expect(open.every((l) => l.percent === 30 && l.stage === 'city')).toBe(true);
-    // A fourth city closes the gate, and the clause simply stops existing.
+    // A **fifth** city closes the gate, and the clause simply stops existing.
+    // The master-list cut of 2026-08-28 widened the crown from three cities to
+    // four, so a fourth town is still a hermit's and the fifth is the one that
+    // is not.
     for (let i = 0; i < 3; i++) g.state.cities.push({ ...city, id: 800 + i });
+    expect(cityYieldPercents(g.state, city).some((l) => l.source.includes('Hermit'))).toBe(true);
+    g.state.cities.push({ ...city, id: 899 });
     expect(cityYieldPercents(g.state, city).some((l) => l.source.includes('Hermit'))).toBe(false);
   });
 
@@ -985,8 +991,10 @@ describe('every hook family, end to end', () => {
 // --- determinism ------------------------------------------------------------
 
 describe('determinism', () => {
-  it('round-trips a schema 31 save with Statecraft in it', () => {
-    expect(SCHEMA_VERSION).toBe(31);
+  it('round-trips a schema 32 save with Statecraft in it', () => {
+    // Bumped to 32 by the master-list cut of 2026-08-28: no new field, but the
+    // balance table moved under every replay (see the version's own entry).
+    expect(SCHEMA_VERSION).toBe(32);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1001,7 +1009,7 @@ describe('determinism', () => {
     // drafts — what this pins is the *shape*: the field serialises, survives
     // JSON, and comes back identical.
     const text = snapshotState(g.state);
-    expect(JSON.parse(text).schemaVersion).toBe(31);
+    expect(JSON.parse(text).schemaVersion).toBe(32);
     expect(JSON.parse(text).players[0].statecraft).toEqual(player.statecraft);
     // A player who has never drafted serialises as the opening state exactly.
     expect(JSON.parse(text).players[1].statecraft).toEqual(newPlayerStatecraft());
@@ -1344,23 +1352,48 @@ describe('the behavioural hooks, in the verbs they change', () => {
     expect(each('theCommonPurse')).toBe(14);
   });
 
-  it('actionRule unitJumpsQueue — a unit completes ahead of a building it can outpace', () => {
+  /**
+   * The Standing Levy's rework (master-list cut, 2026-08-28). The card used to
+   * be `actionRule unitJumpsQueue` — a unit finishing ahead of a building it
+   * could outpace — and is now a **cadence**: a free melee unit in the capital
+   * every ten turns. The queue-jumping rule is still in the vocabulary and no
+   * live row declares it, which is why the behaviour it drove is no longer
+   * pinned here.
+   */
+  it('periodicMuster — The Standing Levy raises a spear on the calendar, not on an occasion', () => {
     const g = game(41);
-    const city = found(g.state, 0);
-    // A building it cannot afford in front, a warrior it can behind.
-    city.queue = [
-      { kind: 'building', id: 'library' },
-      { kind: 'unit', id: 'warrior' },
-    ];
-    city.hammerBasket = unitProductionCost(g.state, 0, 'warrior');
-    expect(settleProduction(g.state, city)).toBeNull();
-    expect(city.queue).toHaveLength(2);
-
+    const capital = found(g.state, 0);
     slot(g.state, 0, 'theStandingLevy');
-    const done = settleProduction(g.state, city);
-    expect(done?.name).toBe('Warrior');
-    // The building it passed is still next — the card cuts in, it does not reorder.
-    expect(city.queue).toEqual([{ kind: 'building', id: 'library' }]);
+    const mine = (): number => g.state.units.filter((u) => u.ownerId === 0).length;
+
+    // An off-beat turn musters nothing: the cadence is `turn % every === 0` and
+    // nothing anywhere counts down toward it.
+    g.state.turn = 11;
+    const quiet = mine();
+    musterPeriodicUnits(g.state);
+    expect(mine()).toBe(quiet);
+
+    // The tenth turn raises exactly one, in the seat of government.
+    g.state.turn = 20;
+    musterPeriodicUnits(g.state);
+    expect(mine()).toBe(quiet + 1);
+    const levied = g.state.units[g.state.units.length - 1]!;
+    expect(unitDef(levied.type).modelClass).toBe('melee');
+    // Nobody paid for it, so it goes on no payroll — a levy is a windfall's gift
+    // by another name.
+    expect(levied.freeUpkeep).toBe(true);
+    // And it stands on its own capital's ground.
+    expect(
+      Math.abs(levied.col - capital.col) + Math.abs(levied.row - capital.row),
+    ).toBeLessThanOrEqual(2);
+
+    // A seat that does not hold the card is never mustered for.
+    const other = game(41);
+    found(other.state, 0);
+    other.state.turn = 20;
+    const before = other.state.units.filter((u) => u.ownerId === 0).length;
+    musterPeriodicUnits(other.state);
+    expect(other.state.units.filter((u) => u.ownerId === 0).length).toBe(before);
   });
 
   it('behaviorRule barbariansPassive — the wild stops choosing this seat', () => {
@@ -1489,12 +1522,30 @@ describe('every upgrade is a real upgrade', () => {
     expect(flat, `these read the same at level 2: ${flat.join(', ')}`).toEqual([]);
   });
 
+  /**
+   * The rows the **designer** declared flat, master-list cut of 2026-08-28.
+   *
+   * Each prints a perfectly scalable figure and is still marked, because a
+   * second helping of what it hands over is a different card rather than a
+   * deeper one: a march and a bowshot are whole points of a scarce thing. The
+   * register is written down here rather than inferred, which is what keeps the
+   * flag from becoming an escape hatch — a row that simply needed a bigger
+   * number cannot be silenced without a deliberate edit to this list.
+   */
+  const DESIGNED_FLAT: readonly string[] = ['marchDiscipline', 'skirmishersCreed'];
+
   it('marks as unupgradable only cards with no figure to advance', () => {
     const marked = ORDER_IDS.filter((id) => !isUpgradable(id));
-    // The flag is a declaration about three switches, not an escape hatch.
+    // The flag is a declaration about switches, not an escape hatch.
     expect(marked.length).toBeGreaterThan(0);
     for (const id of marked) {
+      if (DESIGNED_FLAT.includes(id)) continue;
       expect(deepens(id), `${id} has a number and does not need the flag`).toBe(false);
+    }
+    // The register is exact in the other direction too: a name left on this list
+    // after its row lost the flag is a declaration about nothing.
+    for (const id of DESIGNED_FLAT) {
+      expect(marked.includes(id as never), `${id} is listed but is upgradable`).toBe(true);
     }
   });
 
@@ -1926,7 +1977,10 @@ describe('the master-list cut of 2026-08-28', () => {
     ]);
     expect(said('theSultanate')).toEqual([
       'all units: +1 movement',
-      '-20% production toward units',
+      // +25%, not −20%: a negative production bonus toward units made The
+      // Sultanate's units *slower* — the sign was the bug (2026-08-29). A fifth
+      // off the price is a quarter more hammers behind it.
+      '+25% production toward units',
       '+10% science in every captured city',
       '+10% culture in every captured city',
     ]);
@@ -1966,6 +2020,10 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(said('foundersRoad')).toEqual([
       'new cities are founded with a Monument (first 5 cities)',
       'new cities are joined to your nearest city by road',
+      // The master-list cut of 2026-08-28: the ratified text now promises the
+      // *better* hall once one exists, and there is no amphitheatre row to
+      // name — so the half is deferred on the row and printed as such.
+      'an amphitheatre instead of the Monument, once one is unlocked — not built yet',
     ]);
     expect(said('gildedCourt')).toEqual(['unlocks the Gilded Hall', '+3 authority capacity']);
     expect(said('burningWay')).toEqual([
@@ -2228,5 +2286,173 @@ describe('the doctrines’ deferred halves, built', () => {
     // The announcement and the pool are one figure — the amplifier folds into
     // the printed number, never onto the settlement afterwards.
     expect(claim(doubled)).toBe(flat * 2);
+  });
+});
+
+// --- the master-list cut of 2026-08-28, second pass --------------------------
+
+/**
+ * The rows the user rewrote in the second pass over
+ * `docs/orders-and-doctrines.md`, and the three shapes they needed:
+ * `authorityPositive` (an empire gate), `CardUnitStatEffect.scope` (a stat asked
+ * of the town that trained the piece) and `periodicMuster` (a unit raised on the
+ * calendar). One behavioural test each, plus the numbers that moved and could
+ * only be checked by reading the ledger they land in.
+ */
+describe('the master-list cut of 2026-08-28, second pass', () => {
+  it('authorityPositive — Bread and Circuses opens and closes with the writ', () => {
+    const g = game(401);
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.statecraft.doctrines.push('breadAndCircuses' as never);
+
+    // A fresh empire has spare writ, so the gate is open and the clause is a
+    // labelled line of the happiness fold rather than a number added beside it.
+    expect(authorityOf(g.state, 0)).toBeGreaterThan(0);
+    const open = explainHappiness(g.state, 0).filter((l) => l.source.includes('Bread'));
+    expect(open.length).toBeGreaterThan(0);
+    expect(foldMeter(open)).toBe(3 * g.state.cities.filter((c) => c.ownerId === 0).length);
+
+    // Spend the writ past zero and the clause simply stops existing — a gate,
+    // not a malus.
+    for (let i = 0; i < 12; i++) {
+      g.state.cities.push({ ...city, id: 700 + i, captured: true });
+    }
+    expect(authorityOf(g.state, 0)).toBeLessThan(0);
+    expect(explainHappiness(g.state, 0).some((l) => l.source.includes('Bread'))).toBe(false);
+
+    // The gold half is unconditional and lands in every town's own breakdown.
+    const gold = cardCityYields(g.state, city).find((l) => l.card === 'breadAndCircuses')!;
+    expect(gold.gold).toBe(-1);
+  });
+
+  it('unitStat scope — Cuius Regio charges the augurs its own faith raised', () => {
+    const g = game(403);
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('cuiusRegio' as never);
+    const plain = unitDef('augur').charges ?? 1;
+
+    // A town that keeps no faith at all raises an ordinary augur: the scope is
+    // silent rather than generous when it cannot be satisfied.
+    const before = createUnit(g.state, 0, 'augur', city.col, city.row);
+    expect(before.chargesLeft).toBe(plain);
+
+    // Give the empire a religion and hand the town to it, and the same city
+    // raises a charged one.
+    const religion = {
+      id: 1 as never,
+      founderId: 0,
+      name: 'The Way',
+      pantheon: [],
+      follower: [],
+      enhancer: [],
+      foundedTurn: 1,
+    } as never;
+    g.state.religions.push(religion);
+    city.followers = { 1: city.population } as never;
+    const after = createUnit(g.state, 0, 'augur', city.col, city.row);
+    expect(after.chargesLeft).toBe(plain + 1);
+
+    // And a piece born on open ground — no town at all — is untouched, which is
+    // the scoped line's documented silence.
+    const wild = getTileAt(g.state.map, (city.col + 6) % g.state.map.width, city.row)!;
+    expect(createUnit(g.state, 0, 'augur', wild.col, wild.row).chargesLeft).toBe(plain);
+  });
+
+  it('capturedCityCost is a delta now, and two of them floor at one', () => {
+    const g = game(405);
+    const city = found(g.state, 0);
+    const seized = found(g.state, 1);
+    seized.ownerId = 0;
+    seized.captured = true;
+    void city;
+    const cost = (): number =>
+      -explainAuthority(g.state, 0).find((l) => l.source.includes('captured'))!.value;
+    const base = RULES.meters.authority.capturedCity;
+    expect(cost()).toBe(base);
+
+    // One card shifts it by a point rather than replacing it, which is the whole
+    // of the 2026-08-28 change: a *set* could not stack.
+    const sc = playerById(g.state, 0)!.statecraft;
+    sc.doctrines.push('hegemony' as never);
+    expect(cost()).toBe(base - 1);
+
+    // Two of them stack, and the fold is floored at one: a free conquest would
+    // make the meter free to whoever drafted twice.
+    slot(g.state, 0, 'clientKings');
+    expect(cost()).toBe(Math.max(1, base - 2));
+    expect(cost()).toBeGreaterThanOrEqual(1);
+  });
+
+  it('Master of Maps and The Legion move strength in flat points, not percent', () => {
+    const g = createGame({
+      seed: 407,
+      sizeName: 'duel',
+      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
+      barbarians: true,
+    });
+    const wild = g.state.players.find((p) => p.barbarian)!;
+    const player = playerById(g.state, 0)!;
+    const mine = g.state.units.find((u) => u.ownerId === 0 && u.type === 'warrior')
+      ?? createUnit(g.state, 0, 'warrior', g.state.units[0]!.col, g.state.units[0]!.row);
+    const target = getTileAt(g.state.map, mine.col + 1, mine.row)!;
+    createUnit(g.state, wild.id, 'warrior', target.col, target.row);
+    const lines = (): { source: string; value: number }[] => {
+      const preview = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+      return preview.ok ? preview.bonuses.map((b) => ({ source: b.source, value: b.amount })) : [];
+    };
+    if (lines().length === 0) return;
+
+    // The map-makers' drawback is a labelled *point* line on the one ledger
+    // (Entry XXXVII), never a multiplier on somebody else's terrain.
+    player.statecraft.doctrines.push('masterOfMaps' as never);
+    const maps = lines().find((l) => l.source.includes('Master of Maps'));
+    expect(maps?.value).toBe(-2);
+
+    // And The Legion's point reaches the melee row and nothing else, through the
+    // same shape with a class filter.
+    player.statecraft.doctrines = [];
+    slot(g.state, 0, 'theLegion');
+    expect(lines().find((l) => l.source.includes('Legion'))?.value).toBe(1);
+  });
+
+  it("The Legion's hammers are a labelled line of the melee row's own modifiers", () => {
+    const g = game(409);
+    const city = found(g.state, 0);
+    const melee = { kind: 'unit' as const, id: 'warrior' as never };
+    const ranged = { kind: 'unit' as const, id: 'archer' as never };
+    expect(cardProduction(g.state, city, 'unit', 'warrior' as never)).toEqual([]);
+    slot(g.state, 0, 'theLegion');
+    const behind = cardProduction(g.state, city, 'unit', 'warrior' as never);
+    expect(behind).toHaveLength(1);
+    expect(behind[0]!.percent).toBe(15);
+    // The filter is asked of what the town is actually building, so a bowman
+    // gets nothing at all rather than a line worth zero.
+    expect(cardProduction(g.state, city, 'unit', 'archer' as never)).toEqual([]);
+    void melee;
+    void ranged;
+  });
+
+  it('prints the reworked rows in the words the master list ratified', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    expect(said('masterOfMaps')).toEqual([
+      'all units: +1 sight',
+      'all units: +1 movement',
+      // Flat points on the one ledger (Entry XXXVII), where it used to be the
+      // only percentage a card put on a strength.
+      '-2 combat strength',
+    ]);
+    expect(said('theStandingLevy')).toEqual([
+      'every 10 turns, the best melee unit you can build musters in your capital',
+    ]);
+    expect(said('theLegion')).toEqual([
+      'melee units: +1 movement',
+      '+1 combat strength for melee units',
+      '+15% production toward melee units',
+    ]);
+    expect(said('breadAndCircuses')).toEqual([
+      'while your authority is positive: +3 happiness in every city',
+      '-1 gold in every city',
+    ]);
   });
 });

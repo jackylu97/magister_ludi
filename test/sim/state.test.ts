@@ -410,6 +410,11 @@ describe('end-of-turn pipeline', () => {
       // The cadenced drafts — Keeper of the Calendar's almanac — beside the
       // phase they are the same shape as, one currency over.
       'religion',
+      // The cadenced *pieces* — The Standing Levy's spear (master-list cut,
+      // 2026-08-28). Its own beat rather than a clause inside `statecraft`,
+      // because a levy is not a draft: nothing is spent, nothing is chosen, and
+      // nothing blocks End Turn. See `musterPeriodicUnits`.
+      'muster',
       // Buildings and wonders pay their renown trickle, standing Triumphs are
       // claimed, and a filled ladder deals a great person — the same shape a
       // fifth currency over, and after `advanceProduction` so a wonder finished
@@ -518,7 +523,7 @@ describe('the research queue field', () => {
     // A v21 log is not merely older: a `moveUnit` given with no movement left
     // used to be refused and is now a standing order, and the resolution has
     // grown a phase no v21 state has been through.
-    expect(SCHEMA_VERSION).toBe(31);
+    expect(SCHEMA_VERSION).toBe(32);
   });
 });
 

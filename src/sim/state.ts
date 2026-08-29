@@ -334,8 +334,23 @@ import {
  *     state exactly as it is for `researchQueue`). A replay of the log
  *     re-derives the count from scratch regardless, so the bump refuses the
  *     snapshot and keeps the log honest rather than attempting the rewrite.
+ * 32: **The Statecraft retune** (user's pass over `docs/orders-and-doctrines.md`,
+ *     2026-08-28). **No new field on any save** — this bump is entirely about
+ *     the balance table, and it is here for v19's and v20's reason: a log
+ *     replayed against different numbers is a different game, not an older one.
+ *     Every government's slot triple was rewritten, so an empire that adopted
+ *     the Republic on turn forty holds a spread it never held; three cards were
+ *     reworked outright (Bread and Circuses now pays happiness under a gate
+ *     instead of culture, The Standing Levy musters a spear every ten turns
+ *     instead of letting units jump a queue, Cuius Regio charges augurs only in
+ *     the towns that keep its faith); a captured city's authority price became
+ *     a *delta* rather than a set, so Hegemony and Client Kings now stack; and
+ *     a new Order (The Legion) joined the Government I pool, which moves every
+ *     draw from that bag. The `muster` phase is new in the pipeline and fires
+ *     for nobody who holds no such card, so a v31 log's turn order is otherwise
+ *     untouched — but the drafts alone move every roll after the first tier.
  */
-export const SCHEMA_VERSION = 31;
+export const SCHEMA_VERSION = 32;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2060,8 +2075,17 @@ export function createUnit(
   // charge is spent, so a bonus computed on read would hand the extra charge
   // back every time the card was re-slotted and take it away mid-job when it
   // came out. Floored at 1, because a builder with no charges is not a builder.
+  // The birth hex travels with the question, because a card may ask *which town
+  // raised this piece* — Cuius Regio's augurs are charged by the faith of the
+  // city they were trained in. It is the hex and not a city id: `createUnit` has
+  // never known about towns, and the one reader resolves the town from the hex
+  // (`cardExtraCharges`), so a piece born in the wild simply admits no scoped
+  // line.
   if (def.charges !== undefined) {
-    unit.chargesLeft = Math.max(1, def.charges + cardExtraCharges(state, ownerId, type));
+    unit.chargesLeft = Math.max(
+      1,
+      def.charges + cardExtraCharges(state, ownerId, type, { col, row }),
+    );
   }
   // Written **here**, after the literal and only when a caller named one, for
   // `chargesLeft`'s reason exactly: every field of a `Unit` is written in one

@@ -744,6 +744,14 @@ export function barbarianRoles(
   // stand on — the same doorstep test raiding uses.
   for (const prey of state.units) {
     if (prey.ownerId === wild.id) continue;
+    // Wolf-Mother's Pact, the other half (user, 2026-08-28: "barbarians never
+    // attack you — no civilian unit thefts"). `nearestTarget` already keeps a
+    // raider from marching on this seat, but a *thief* picks its prey here and
+    // not there, so without this clause the wolves left the spears alone and
+    // still walked off with every worker. Read at the same seam and by the same
+    // rule: the pact is a fact about what the wild *wants*, so the theft is
+    // never planned rather than refused after the fact.
+    if (cardBehaviorRule(state, prey.ownerId, 'barbariansPassive')) continue;
     if (isCombatant(unitDef(prey.type))) continue;
     if (!isVisibleTo(state, wild.id, prey.col, prey.row)) continue;
     if (!isUnguarded(state, prey)) continue;

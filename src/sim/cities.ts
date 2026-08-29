@@ -3837,7 +3837,15 @@ function pendingResearchCost(player: Player): { missing: number } | null {
   return { missing: Math.max(0, techDef(id).cost - player.sciencePool) };
 }
 
-function bestMeleeFor(state: GameState, playerId: number): UnitTypeId | null {
+/**
+ * The strongest melee row this empire could build right now, or `null`.
+ *
+ * `CompletionGrant`'s `'bestMelee'` and `CardPeriodicMusterEffect`'s are the
+ * same word answered here, once: a wonder's gift and an Order's levy must not
+ * disagree about which spear an era is owed. Asked through `buildError`, so the
+ * technologies, the resources and the empire's own law all count.
+ */
+export function bestMeleeFor(state: GameState, playerId: number): UnitTypeId | null {
   let best: UnitTypeId | null = null;
   let strength = -1;
   for (const id of UNIT_TYPE_IDS) {

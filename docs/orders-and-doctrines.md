@@ -126,7 +126,7 @@ Warring Tribes (the courthouse).
 
 | Doctrine | Line | Effect |
 |---|---|---|
-| The Academy of Deeds | 🏛 | every Triumph grants a twice the amount of renown · Triumphs you missed by one age can still be earned in the next (the register keeps `(id, age)`) |
+| The Academy of Deeds | 🏛 | every Triumph grants twice the renown · Triumphs you missed by one age can still be earned in the next (the register keeps `(id, age)`) |
 | The Standing Army | 🎖 | units cost no upkeep · every 5 units you hold grant +1 authority capacity · -1 happiness per city |
 | The Sea Charter | ⚓ | every coastal city is founded with a Harbour · trade routes +50% yields |
 | The Renaissance Court | 🏛 | great-person drafts show one more card · every great person's legacy is 50% stronger |
@@ -194,7 +194,7 @@ Warring Tribes (the courthouse).
 | Tinkers' Guild | E | — |  | workers are built with +1 charge |
 | Public Granaries | E | — |  | cities keep 25% of their food basket on growth |
 | The Laureate | W | 🏛 |  | gain a great person · great-people improvements gain +2 of their associated yield |
-The legion - melee units gain +1 movement, +1 strength and are 15% cheaper to train
+| The Legion | M | ⚒ |  | melee units +1 movement and +1 combat strength · melee units cost −15% ⚙ |
 
 ### Government II pool
 
@@ -266,7 +266,6 @@ The legion - melee units gain +1 movement, +1 strength and are 15% cheaper to tr
 | Order | Slot | Line | Tier | Effect |
 |---|---|---|---|---|
 | Muster | M | 🎖 | ● | a unit completed in any city may appear at your designated *rally city* instead · −2 happiness in the rally city |
-| The Standing Levy (II) | M | 🎖 | ◆ | units jump the queue when affordable | [REMOVE]
 | Forced March | M | 🎖 | ○ | combat units +1 movement outside your borders · −5 combat on the turn they moved 3+ hexes |
 | The Siege Train | M | ⚒ | ◆ | siege units +1 movement · +5 combat vs cities for units adjacent to a siege unit |
 | Knightly Orders | M | ⚒ | ○ | mounted units +5 combat inside your borders · mounted units cost +25% ⚙ |

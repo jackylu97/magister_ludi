@@ -45,11 +45,10 @@ function grant(state: GameState, playerId: number, id: OrderId, level = 1): void
 }
 
 /**
- * Seats the empire under a government with **four** offices — military,
- * economic, wildcard, wildcard.
+ * Seats the empire under a government carrying **two wildcard offices**.
  *
- * The chiefdom has two typed offices and no wildcard, so nothing a player holds
- * can move between two of them, and "a move produces unslot then slot" is not a
+ * The chiefdom has typed offices and one wildcard, so nothing a player holds can
+ * move between two of them, and "a move produces unslot then slot" is not a
  * sentence that can be said about it. Set directly rather than adopted, because
  * adoption also draws a Doctrine offer out of the rng and this is a fixture, not
  * a chapter break.
@@ -58,6 +57,25 @@ function seatPriestKing(state: GameState, playerId: number): void {
   const sc = state.players[playerId]!.statecraft;
   sc.government = 'priestKing';
   sc.slots = slotLayout('priestKing').map(() => null);
+}
+
+/**
+ * The **wildcard** offices of the fixture's government, by index — derived
+ * rather than written down.
+ *
+ * These were the literals 2 and 3 until the master-list cut of 2026-08-28 gave
+ * every government a new triple and the Priest-King's spread moved under them
+ * (1/1/2 → 1/2/2), which shifted both wildcards by one and broke four tests that
+ * were about staging rather than about the table. What these tests need is "two
+ * offices that take either card", so they ask the layout for them.
+ */
+const WILD: number[] = slotLayout('priestKing')
+  .map((type, index) => (type === 'wildcard' ? index : -1))
+  .filter((index) => index >= 0);
+
+/** An empty arrangement of the fixture's shape — what `occupants` compares to. */
+function emptySlots(): (OrderId | null)[] {
+  return slotLayout('priestKing').map(() => null);
 }
 
 /** The live slots of one seat. What every function here is a diff against. */
@@ -95,13 +113,15 @@ describe('staging an arrangement', () => {
     const before = occupants(live(g.state));
 
     let staged = stage(live(g.state));
-    staged = place(staged, 2, 'bloodedSpears', g.state.turn);
-    expect(occupants(staged)).toEqual([null, null, 'bloodedSpears', null]);
-    expect(staged[2]!.staged).toBe(true);
+    staged = place(staged, WILD[0]!, 'bloodedSpears', g.state.turn);
+    const filled = emptySlots();
+    filled[WILD[0]!] = 'bloodedSpears';
+    expect(occupants(staged)).toEqual(filled);
+    expect(staged[WILD[0]!]!.staged).toBe(true);
     // The law has not heard about any of it.
     expect(occupants(live(g.state))).toEqual(before);
 
-    staged = remove(staged, 2);
+    staged = remove(staged, WILD[0]!);
     expect(occupants(staged)).toEqual(before);
     expect(diff(live(g.state), staged, 0)).toEqual([]);
   });
@@ -119,11 +139,11 @@ describe('the diff', () => {
 
     let staged = stage(live(g.state));
     staged = remove(staged, 0);
-    staged = place(staged, 2, 'bloodedSpears', g.state.turn);
+    staged = place(staged, WILD[0]!, 'bloodedSpears', g.state.turn);
 
     expect(diff(live(g.state), staged, 0)).toEqual([
       { type: 'unslotOrder', playerId: 0, slotIndex: 0 },
-      { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: 2 },
+      { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: WILD[0]! },
     ]);
     // Two offices changed, which is what the screen prints beside Confirm.
     expect(changedOffices(live(g.state), staged)).toBe(2);
@@ -137,17 +157,17 @@ describe('the diff', () => {
     // Both in wildcard offices, which is what makes a swap sayable: a wildcard
     // office takes either card, so the only thing that can refuse the batch is
     // the order it is sent in.
-    dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: 2 } as Command);
-    dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'firstRites', slotIndex: 3 } as Command);
-    g.state.turn = live(g.state)[2]!.sealedUntil;
+    dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: WILD[0]! } as Command);
+    dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'firstRites', slotIndex: WILD[1]! } as Command);
+    g.state.turn = live(g.state)[WILD[0]!]!.sealedUntil;
 
     // The swap: each card into the other's office. Emitted office-first this
     // would be slot-into-an-occupied-office on the very first command.
     let staged = stage(live(g.state));
-    staged = remove(staged, 2);
-    staged = remove(staged, 3);
-    staged = place(staged, 3, 'bloodedSpears', g.state.turn);
-    staged = place(staged, 2, 'firstRites', g.state.turn);
+    staged = remove(staged, WILD[0]!);
+    staged = remove(staged, WILD[1]!);
+    staged = place(staged, WILD[1]!, 'bloodedSpears', g.state.turn);
+    staged = place(staged, WILD[0]!, 'firstRites', g.state.turn);
 
     const commands = diff(live(g.state), staged, 0);
     expect(commands.map((command) => command.type)).toEqual([
@@ -205,12 +225,12 @@ describe('the refusals are the reducer’s own', () => {
     seatPriestKing(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     grant(g.state, 0, 'firstRites');
-    const staged = place(stage(live(g.state)), 2, 'bloodedSpears', g.state.turn);
+    const staged = place(stage(live(g.state)), WILD[0]!, 'bloodedSpears', g.state.turn);
     // A card staged into one office cannot be staged into a second — the
     // reducer's rule, read off the arrangement rather than off the law.
-    expect(placeError(g.state, 0, staged, 'bloodedSpears', 3)).toContain('already slotted');
+    expect(placeError(g.state, 0, staged, 'bloodedSpears', WILD[1]!)).toContain('already slotted');
     // And a staged office is occupied, exactly as a slotted one is.
-    expect(placeError(g.state, 0, staged, 'firstRites', 2)).toContain('already holds');
+    expect(placeError(g.state, 0, staged, 'firstRites', WILD[0]!)).toContain('already holds');
   });
 
   it('asks about the arrangement, not the law: an office emptied in staging takes a card', () => {
@@ -218,14 +238,14 @@ describe('the refusals are the reducer’s own', () => {
     seatPriestKing(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     grant(g.state, 0, 'firstRites');
-    dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: 2 } as Command);
-    g.state.turn = live(g.state)[2]!.sealedUntil;
+    dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: WILD[0]! } as Command);
+    g.state.turn = live(g.state)[WILD[0]!]!.sealedUntil;
 
     const staged = stage(live(g.state));
     // The live office holds Blooded Spears, so the live rule refuses…
-    expect(placeError(g.state, 0, staged, 'firstRites', 2)).toContain('already holds');
+    expect(placeError(g.state, 0, staged, 'firstRites', WILD[0]!)).toContain('already holds');
     // …and the staged one, emptied a click ago, does not.
-    expect(placeError(g.state, 0, remove(staged, 2), 'firstRites', 2)).toBeNull();
+    expect(placeError(g.state, 0, remove(staged, WILD[0]!), 'firstRites', WILD[0]!)).toBeNull();
   });
 });
 
@@ -242,8 +262,8 @@ describe('confirming', () => {
     // One card moved, one taken out of the collection into a wildcard office.
     let staged = stage(live(g.state));
     staged = remove(staged, 0);
-    staged = place(staged, 3, 'bloodedSpears', g.state.turn);
-    staged = place(staged, 2, 'firstRites', g.state.turn);
+    staged = place(staged, WILD[1]!, 'bloodedSpears', g.state.turn);
+    staged = place(staged, WILD[0]!, 'firstRites', g.state.turn);
     const wanted = occupants(staged);
 
     expect(validate(g.state, 0, staged)).toBeNull();
@@ -253,7 +273,7 @@ describe('confirming', () => {
     expect(occupants(live(g.state))).toEqual(wanted);
     // And the seals are the reducer's, stamped on the way in — staging never
     // decided how long one lasts.
-    expect(sealRemaining(g.state, live(g.state)[3])).toBeGreaterThan(0);
+    expect(sealRemaining(g.state, live(g.state)[WILD[1]!])).toBeGreaterThan(0);
     // The arrangement is now the law, so re-staging it is a no-op.
     expect(diff(live(g.state), stage(live(g.state)), 0)).toEqual([]);
   });

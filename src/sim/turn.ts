@@ -112,7 +112,12 @@ import { openPeriodicOffers, pruneTimedEffects, spreadReligion } from './religio
 import { getTileAt, tileHex, wrappedDistance } from './map';
 import { findPath } from './pathfind';
 import { advanceAlongPath } from './movement';
-import { cardBehaviorRule, cardUnitStat, runStatecraft } from './statecraft';
+import {
+  cardBehaviorRule,
+  cardUnitStat,
+  musterPeriodicUnits,
+  runStatecraft,
+} from './statecraft';
 import { reviewLegacies } from './greatPeople';
 import { runRenown } from './renown';
 import { advanceResearch } from './tech';
@@ -336,6 +341,18 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // built and learnt this turn. It skips the wild for `runStatecraft`'s
     // reason. See `openPeriodicOffers`.
     run: openPeriodicOffers,
+  },
+  {
+    name: 'muster',
+    // The cadenced *pieces* — The Standing Levy's spear, and nothing else
+    // today. Its own beat rather than a clause inside `statecraft`, because a
+    // levy is not a draft: nothing is spent, nothing is chosen, and nothing
+    // blocks End Turn. Directly after `religion` and before `renown`, so a
+    // spear raised this turn is on the board for the standing Triumphs the next
+    // phase sweeps; and after `advanceProduction`, so a muster and a completion
+    // cannot both claim the same doorstep hex. It skips the wild for
+    // `runStatecraft`'s reason. See `musterPeriodicUnits`.
+    run: musterPeriodicUnits,
   },
   {
     name: 'renown',

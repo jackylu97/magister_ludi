@@ -23,9 +23,9 @@
       "tier": 4,
       "flavor": "Slow counsel, and no one hanged for it.",
       "slots": {
-        "military": 1,
+        "military": 0,
         "economic": 2,
-        "wildcard": 1
+        "wildcard": 3
       },
       "effects": [
         {
@@ -44,7 +44,7 @@
       "tier": 4,
       "flavor": "The spear chooses; the rest agree.",
       "slots": {
-        "military": 2,
+        "military": 3,
         "economic": 1,
         "wildcard": 1
       },
@@ -88,7 +88,7 @@
       "flavor": "The gods speak. He translates.",
       "slots": {
         "military": 1,
-        "economic": 1,
+        "economic": 2,
         "wildcard": 2
       },
       "effects": [
@@ -105,7 +105,7 @@
       "slots": {
         "military": 1,
         "economic": 3,
-        "wildcard": 2
+        "wildcard": 3
       },
       "effects": [
         {
@@ -135,7 +135,7 @@
       "slots": {
         "military": 3,
         "economic": 1,
-        "wildcard": 2
+        "wildcard": 3
       },
       "effects": [
         {
@@ -162,7 +162,7 @@
       "slots": {
         "military": 1,
         "economic": 2,
-        "wildcard": 3
+        "wildcard": 4
       },
       "effects": [
         {
@@ -200,8 +200,8 @@
       "flavor": "Every treaty has a ledger underneath.",
       "slots": {
         "military": 2,
-        "economic": 4,
-        "wildcard": 3
+        "economic": 5,
+        "wildcard": 4
       },
       "effects": [
         {
@@ -228,8 +228,8 @@
       "tier": 18,
       "flavor": "The map is a claim; the legion is the proof.",
       "slots": {
-        "military": 4,
-        "economic": 2,
+        "military": 5,
+        "economic": 3,
         "wildcard": 3
       },
       "effects": [
@@ -250,9 +250,9 @@
       "tier": 18,
       "flavor": "Heaven approves. It was asked.",
       "slots": {
-        "military": 2,
+        "military": 3,
         "economic": 3,
-        "wildcard": 4
+        "wildcard": 5
       },
       "effects": [
         {
@@ -277,9 +277,9 @@
       "tier": 29,
       "flavor": "Three orders, one hall, and the hall keeps the minutes.",
       "slots": {
-        "military": 2,
+        "military": 3,
         "economic": 5,
-        "wildcard": 4
+        "wildcard": 5
       },
       "text": "+1 happiness in every city. +2 culture in every city of 8 or more population.",
       "effects": [
@@ -303,11 +303,11 @@
       "tier": 29,
       "flavor": "The road is short for those the Sultan sends.",
       "slots": {
-        "military": 5,
+        "military": 6,
         "economic": 3,
-        "wildcard": 3
+        "wildcard": 4
       },
-      "text": "All units +1 movement and cost −20% production. Captured cities +10% science and +10% culture.",
+      "text": "All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture.",
       "effects": [
         {
           "kind": "unitStat",
@@ -317,7 +317,7 @@
         {
           "kind": "productionBonus",
           "category": "unit",
-          "percent": -20
+          "percent": 25
         },
         {
           "kind": "percentYields",
@@ -342,7 +342,7 @@
       "tier": 29,
       "flavor": "What is written in the register is what heaven remembers.",
       "slots": {
-        "military": 2,
+        "military": 4,
         "economic": 4,
         "wildcard": 5
       },
@@ -366,8 +366,8 @@
       "flavor": "The estate is common; the ledger is not.",
       "slots": {
         "military": 3,
-        "economic": 6,
-        "wildcard": 5
+        "economic": 7,
+        "wildcard": 6
       },
       "text": "Great people may be bought with gold. Great-person improvements pay +50% more.",
       "effects": [
@@ -389,9 +389,9 @@
       "tier": 45,
       "flavor": "One frontier, and it is wherever the last courier stopped.",
       "slots": {
-        "military": 6,
+        "military": 7,
         "economic": 4,
-        "wildcard": 4
+        "wildcard": 5
       },
       "text": "+6 authority capacity. +1 combat strength for each great general you have earned this game.",
       "effects": [
@@ -427,9 +427,9 @@
       "tier": 45,
       "flavor": "The Magister does not rule. He sets the rules.",
       "slots": {
-        "military": 3,
+        "military": 4,
         "economic": 5,
-        "wildcard": 6
+        "wildcard": 7
       },
       "text": "Every offer of every kind shows one more card. +3 renown per turn for each wonder you hold.",
       "effects": [
@@ -456,13 +456,13 @@
       "tier": 4,
       "line": "green",
       "flavor": "A small kingdom, held entirely in one hand.",
-      "text": "While you hold at most 3 cities: +30% to every yield in your capital.",
+      "text": "While you hold at most 4 cities: +30% to every yield in your capital.",
       "effects": [
         {
           "kind": "conditionRule",
           "when": {
             "test": "cityCountAtMost",
-            "value": 3
+            "value": 4
           },
           "then": [
             {
@@ -586,7 +586,7 @@
       "tier": 4,
       "line": "hunt",
       "flavor": "We are not their prey. We are their kin, and they take their share.",
-      "text": "Barbarians never attack you, though they still steal. A barbarian you kill joins you instead of dying. You can no longer clear a barbarian camp.",
+      "text": "Barbarians never attack you and never steal from you. A barbarian you kill joins you instead of dying. You can no longer clear a barbarian camp.",
       "effects": [
         {
           "kind": "behaviorRule",
@@ -631,6 +631,10 @@
           "kind": "foundingRider",
           "roads": true
         }
+      ],
+      "note": "The free hall is the Monument. A grander one is meant to take its place once the game has a hall to grow into.",
+      "deferred": [
+        "an amphitheatre instead of the Monument, once one is unlocked"
       ]
     },
     "thalassocracy": {
@@ -713,18 +717,24 @@
       "tier": 10,
       "line": "green",
       "flavor": "Feed them, amuse them, and they will sing for you.",
-      "text": "+1 culture for each point of positive happiness.",
+      "text": "While your authority is positive: +3 happiness in every city. −1 gold in every city, always.",
       "effects": [
         {
-          "kind": "rateConversion",
-          "from": "happiness",
-          "per": 1,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "conditionRule",
+          "when": {
+            "test": "authorityPositive"
+          },
+          "then": [
+            {
+              "kind": "happiness",
+              "amount": 3,
+              "per": "city"
+            }
+          ]
+        },
+        {
+          "kind": "cityYields",
+          "gold": -1
         }
       ]
     },
@@ -879,7 +889,7 @@
       "tier": 18,
       "line": "wayfarers",
       "flavor": "We see everything. We fear it a little.",
-      "text": "All units +1 sight and +1 movement · −10% combat strength for all units.",
+      "text": "All units +1 sight and +1 movement · all units −2 combat strength.",
       "effects": [
         {
           "kind": "unitStat",
@@ -892,9 +902,12 @@
           "amount": 1
         },
         {
-          "kind": "unitStat",
-          "stat": "combatPercent",
-          "amount": -10
+          "kind": "combatLine",
+          "amount": -2,
+          "side": "both",
+          "when": {
+            "test": "always"
+          }
         }
       ]
     },
@@ -903,7 +916,7 @@
       "tier": 18,
       "line": "forge",
       "flavor": "Every city carries its own weight, and the crown carries none.",
-      "text": "+1 authority capacity for each city you hold · a captured city costs 2 authority.",
+      "text": "+1 authority capacity for each city you hold · a captured city costs one less authority.",
       "effects": [
         {
           "kind": "countScaled",
@@ -916,7 +929,7 @@
         {
           "kind": "meterRule",
           "rule": "capturedCityCost",
-          "value": 2
+          "delta": -1
         }
       ]
     },
@@ -982,7 +995,7 @@
       "tier": 29,
       "line": "forge",
       "flavor": "The army does not go home. That is the whole of the doctrine.",
-      "text": "+1 authority capacity for each 5 units you have in the field. −10% culture. Units cost no upkeep.",
+      "text": "+1 authority capacity for each 5 units you have in the field. −1 happiness in every city. Units cost no upkeep.",
       "effects": [
         {
           "kind": "countScaled",
@@ -994,10 +1007,9 @@
           }
         },
         {
-          "kind": "percentYields",
-          "yield": "culture",
-          "percent": -10,
-          "stage": "empire"
+          "kind": "happiness",
+          "amount": -1,
+          "per": "city"
         },
         {
           "kind": "rulePercent",
@@ -1046,11 +1058,10 @@
       "tier": 29,
       "line": "procession",
       "flavor": "Whose realm, his religion; whose religion, his realm.",
-      "text": "Augurs arrive with +1 charge. Cities that share your majority belief count as yours; every third rite costs no charge.",
-      "note": "There is no majority belief yet, and rite uses are not counted, so only the extra charge is in effect.",
+      "text": "In cities that follow your religion, augurs are trained with +1 charge.",
+      "note": "Nothing yet makes a rite itself stronger, so only the extra charge is in effect. The charge is decided in the city the augur is trained in.",
       "deferred": [
-        "cities that share your majority belief count as yours",
-        "your rites cost no charge every 3rd use"
+        "their rites are 30% more effective"
       ],
       "effects": [
         {
@@ -1059,6 +1070,9 @@
           "amount": 1,
           "class": {
             "consecrates": true
+          },
+          "scope": {
+            "test": "follows"
           }
         }
       ]
@@ -1094,9 +1108,9 @@
       "tier": 29,
       "flavor": "The council still meets. It meets to agree.",
       "text": "+6 authority capacity. A newly placed Order is locked for 10 turns instead of 5.",
-      "note": "The extra Order slot is not built: a government's slots are laid out when it is adopted, and adding one is a change to that layout rather than a number.",
+      "note": "The extra slot is not built: a government's slots are laid out when it is adopted, and adding one is a change to that layout rather than a number.",
       "deferred": [
-        "you may hold one more Order of any kind"
+        "you gain a wildcard Order slot"
       ],
       "effects": [
         {
@@ -1869,12 +1883,12 @@
       "slot": "military",
       "line": "forge",
       "flavor": "Stitched on the road, marching by morning.",
-      "text": "All units heal +5 more per turn, anywhere.",
+      "text": "All units heal +10 more per turn, anywhere.",
       "effects": [
         {
           "kind": "unitStat",
           "stat": "heal",
-          "amount": 5
+          "amount": 10
         }
       ]
     },
@@ -1894,7 +1908,8 @@
             "category": "military"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theShieldWall": {
       "name": "The Shield Wall",
@@ -1902,11 +1917,11 @@
       "slot": "military",
       "line": "forge",
       "flavor": "High ground and a locked line — the old arithmetic.",
-      "text": "+5 combat strength on hills.",
+      "text": "+3 combat strength on hills.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 3,
           "side": "both",
           "when": {
             "test": "onHills"
@@ -1981,7 +1996,7 @@
       "slot": "economic",
       "line": "caravan",
       "flavor": "The writ has a price, and we collect it.",
-      "text": "+1 gold for each point of positive authority.",
+      "text": "+2 gold for each point of positive authority.",
       "effects": [
         {
           "kind": "rateConversion",
@@ -1990,7 +2005,7 @@
           "pays": {
             "to": "yield",
             "yield": "gold",
-            "amount": 1,
+            "amount": 2,
             "where": "empire"
           }
         }
@@ -2061,12 +2076,12 @@
       "slot": "economic",
       "line": "green",
       "flavor": "The hill was made to feed us; it only needed steps.",
-      "text": "+1 food for each worked hill hex in a city (at most +4).",
+      "text": "+1 food for each worked hill hex in a city (at most +5).",
       "effects": [
         {
           "kind": "countScaled",
           "count": "workedHills",
-          "max": 4,
+          "max": 5,
           "pays": {
             "to": "yield",
             "yield": "food",
@@ -2182,17 +2197,17 @@
       "slot": "wildcard",
       "line": "procession",
       "flavor": "Where the faithful walk, the faithful settle.",
-      "text": "+2 faith in every city · +1 happiness for each 20 banked faith (at most +3).",
+      "text": "+1 faith in every city · +1 happiness for each 50 banked faith (at most +5).",
       "effects": [
         {
           "kind": "cityYields",
-          "faith": 2
+          "faith": 1
         },
         {
           "kind": "countScaled",
           "count": "bankedFaith",
-          "per": 20,
-          "max": 3,
+          "per": 50,
+          "max": 5,
           "pays": {
             "to": "happiness",
             "amount": 1
@@ -2268,7 +2283,7 @@
       "slot": "military",
       "line": "forge",
       "flavor": "The soldiers do not idle. Nobody does.",
-      "text": "Each city gains +2 production for each combat unit standing in it (at most +4 per city).",
+      "text": "Each city gains +3 production for each combat unit standing in it (at most +6 per city).",
       "effects": [
         {
           "kind": "countScaled",
@@ -2277,7 +2292,7 @@
           "pays": {
             "to": "yield",
             "yield": "production",
-            "amount": 2,
+            "amount": 3,
             "where": "city"
           }
         }
@@ -2299,7 +2314,8 @@
             "ranged": true
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theFinishersArt": {
       "name": "The Finisher's Art",
@@ -2307,11 +2323,11 @@
       "slot": "military",
       "line": "none",
       "flavor": "Mercy is for the unwounded.",
-      "text": "+5 combat strength against units below half strength.",
+      "text": "+4 combat strength against units below half strength.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 4,
           "side": "attack",
           "when": {
             "test": "targetBelowHalf"
@@ -2353,6 +2369,10 @@
             "amount": 30
           }
         }
+      ],
+      "note": "The renown a capture pays is not built: a windfall's grants are banked by a routine that cannot reach the renown ladder, so only the culture arrives.",
+      "deferred": [
+        "capturing a city also grants 5 renown"
       ]
     },
     "theStandingLevy": {
@@ -2362,12 +2382,14 @@
       "line": "none",
       "neutral": true,
       "flavor": "The spear is always first in line.",
-      "text": "A unit that would finish sooner jumps ahead of a building in the queue.",
+      "text": "Every 10 turns, a free melee unit musters in your capital.",
       "upgradable": false,
       "effects": [
         {
-          "kind": "actionRule",
-          "rule": "unitJumpsQueue"
+          "kind": "periodicMuster",
+          "every": 10,
+          "unit": "bestMelee",
+          "where": "capital"
         }
       ]
     },
@@ -2377,16 +2399,16 @@
       "slot": "economic",
       "line": "none",
       "flavor": "Better a king who bows than a province that rebels.",
-      "text": "+4 authority capacity · a captured city costs 2 authority.",
+      "text": "+2 authority capacity · a captured city costs one less authority.",
       "effects": [
         {
           "kind": "authority",
-          "amount": 4
+          "amount": 2
         },
         {
           "kind": "meterRule",
           "rule": "capturedCityCost",
-          "value": 2
+          "delta": -1
         }
       ]
     },
@@ -2396,7 +2418,7 @@
       "slot": "economic",
       "line": "caravan",
       "flavor": "Every seam of silk, its own small coin.",
-      "text": "+1 gold for each improved copy of a luxury — duplicates count.",
+      "text": "+2 gold for each improved copy of a luxury — duplicates count.",
       "effects": [
         {
           "kind": "countScaled",
@@ -2404,7 +2426,7 @@
           "pays": {
             "to": "yield",
             "yield": "gold",
-            "amount": 1,
+            "amount": 2,
             "where": "empire"
           }
         }
@@ -2416,11 +2438,11 @@
       "slot": "economic",
       "line": "forge",
       "flavor": "Stone remembers; marble boasts.",
-      "text": "+3 production in every city holding Stone or Marble.",
+      "text": "+5 production in every city holding Stone or Marble.",
       "effects": [
         {
           "kind": "cityYields",
-          "production": 3,
+          "production": 5,
           "scope": {
             "test": "holding",
             "resources": [
@@ -2456,7 +2478,7 @@
       "slot": "wildcard",
       "line": "procession",
       "flavor": "The pious are easy to govern, and they know it.",
-      "text": "+5 percentage points to the bonus your positive happiness pays · +1 authority capacity for each 25 banked faith (at most +4).",
+      "text": "The science and culture your happy cities pay rises from 10% to 15% · +1 happiness for each 200 banked faith.",
       "effects": [
         {
           "kind": "happinessTierBoost",
@@ -2465,10 +2487,9 @@
         {
           "kind": "countScaled",
           "count": "bankedFaith",
-          "per": 25,
-          "max": 4,
+          "per": 200,
           "pays": {
-            "to": "authority",
+            "to": "happiness",
             "amount": 1
           }
         }
@@ -2480,14 +2501,14 @@
       "slot": "wildcard",
       "line": "star",
       "flavor": "Every new thing learned is a song about the old.",
-      "text": "Completing a technology grants +15 culture.",
+      "text": "Completing a technology grants +20 culture.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "tech",
           "grant": {
             "yield": "culture",
-            "amount": 15
+            "amount": 20
           }
         }
       ]
@@ -2498,12 +2519,11 @@
       "slot": "wildcard",
       "line": "procession",
       "flavor": "A great city prays in a great voice.",
-      "text": "+1 faith for each 2 population in your capital.",
+      "text": "+1 faith for each citizen in your capital.",
       "effects": [
         {
           "kind": "countScaled",
           "count": "capitalPopulation",
-          "per": 2,
           "pays": {
             "to": "yield",
             "yield": "faith",
@@ -2519,12 +2539,12 @@
       "slot": "wildcard",
       "line": "none",
       "flavor": "Let them keep their gods; they will pay their taxes.",
-      "text": "−15% happiness demanded per citizen.",
+      "text": "−10% happiness demanded per citizen.",
       "effects": [
         {
           "kind": "rulePercent",
           "rule": "happinessDemand",
-          "percent": -15
+          "percent": -10
         }
       ]
     },
@@ -2583,6 +2603,41 @@
         }
       ],
       "line": "court"
+    },
+    "theLegion": {
+      "name": "The Legion",
+      "pool": "governmentI",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "Ten thousand men who march as one, and dig the ditch as one.",
+      "text": "Melee units gain +1 movement and +1 combat strength, and cities put 15% more production behind them.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "melee"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "modelClass": "melee"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 15,
+          "modelClass": "melee"
+        }
+      ]
     }
   },
   "tierLadder": [

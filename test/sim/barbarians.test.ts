@@ -8,6 +8,7 @@ import {
   barbarianTurn,
   barbarianUnitType,
   campHasHorses,
+  nearestTarget,
   canFoundCampAt,
   foundCamps,
   musterCamps,
@@ -780,6 +781,29 @@ describe('role derivation', () => {
     recomputeAllVisibility(state);
 
     expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'thief', preyId: prey.id });
+  });
+
+  it("Wolf-Mother's Pact takes the pact-holder's civilians off the menu too", () => {
+    const state = wildState();
+    const wild = wildId(state);
+    foundCityAt(state, 0, at(state, 5, 8));
+    const prey = createUnit(state, 0, 'worker', 9, 8);
+    const raider = createUnit(state, wild, 'warrior', 10, 8);
+    recomputeAllVisibility(state);
+    // Without the pact this is a theft, which is the case above said again so
+    // that the clause below is measured against something.
+    expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'thief', preyId: prey.id });
+
+    // The master-list cut of 2026-08-28 reversed the card: "barbarians never
+    // attack you (no civilian unit thefts)". A raider already skipped this seat
+    // in `nearestTarget`; a *thief* picks its prey in `barbarianRoles`, so
+    // without a clause there the wolves left the spears alone and still walked
+    // off with every worker.
+    state.players[0]!.statecraft.doctrines.push('wolfMothersPact' as never);
+    expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'raider' });
+    // And the raider it becomes has nothing to march on either — the pact is one
+    // rule read at two seams, and neither of them names this seat.
+    expect(nearestTarget(state, barbarianPlayer(state)!, raider)).toBeNull();
   });
 
   it('leaves a guarded civilian alone: the stacking rule decides, not a clause', () => {

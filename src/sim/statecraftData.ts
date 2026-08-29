@@ -53,7 +53,7 @@ import type { ProjectId, ProjectPayout } from './projectData';
 import type { BeliefId, RiteId } from './religionData';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
 import type { TerrainId } from './terrainData';
-import type { ModelClass, UnitCategory } from './unitData';
+import type { ModelClass, UnitCategory, UnitTypeId } from './unitData';
 
 // --- ids --------------------------------------------------------------------
 
@@ -281,6 +281,17 @@ export type EmpireCondition =
   | { test: 'cityCountAtMost'; value: number }
   | { test: 'cityCountAtLeast'; value: number }
   | { test: 'authorityNegative' }
+  /**
+   * The empire has **spare** authority — its writ covers its cities with room
+   * left over. Bread and Circuses' gate.
+   *
+   * `authorityNegative`'s mirror and a named member for `notFreshwater`'s
+   * reason exactly: there is no `not` composite and there will not be one, so a
+   * negation the ratified table actually asks for earns its own arm. Both read
+   * the same total (`authorityOf`) under the same recursion cut, so an empire
+   * sitting at exactly zero satisfies neither — balance is balance.
+   */
+  | { test: 'authorityPositive' }
   | { test: 'happinessNegative' }
   /**
    * A city of this empire has a row of this **category** in its queue —
@@ -1358,6 +1369,20 @@ export interface CardUnitStatEffect {
    * out from the water, and the allowance is refilled where it stands.
    */
   where?: 'ownTerritory' | 'embarked';
+  /**
+   * Narrows the stat to *the town the piece was trained in*. Absent means every
+   * one. Cuius Regio's augurs, raised in the cities that keep his faith.
+   *
+   * `CardRulePercentEffect.scope`'s bargain, and it is taken here for that
+   * field's stated reason: **a scoped line is silent to every caller that
+   * passes no town**. Only `cardExtraCharges` has one — a charge is written at
+   * the *birth*, so the hex the piece is born on is the town that raised it —
+   * and the per-turn readings (`cardUnitStat`, `cardCombatPercent`) are asked of
+   * a piece on the march, which has no town at all. That is the honest reading
+   * rather than an omission: "trained in a city that follows you" is a fact
+   * about a moment, and a movement allowance is a fact about a hex.
+   */
+  scope?: CityScope;
 }
 
 /** A rider on a windfall. See `WindfallOccasion` for what "rider" means. */
@@ -1706,6 +1731,36 @@ export interface CardPeriodicOfferEffect {
 }
 
 /**
+ * A **unit mustered on a cadence** rather than on an occasion — The Standing
+ * Levy's spear, raised in the capital every so many turns.
+ *
+ * `CardPeriodicOfferEffect`'s sibling and deliberately the same shape one
+ * currency over: the subject is the calendar itself, so it is read by a turn
+ * phase (`musterPeriodicUnits`) rather than asked a question about the board.
+ * The cadence is the same **absolute** comparison, `state.turn % every === 0`,
+ * for that shape's reason exactly — a countdown is state a phase has to tick,
+ * and a phase that ticks it is a phase that can be skipped or run twice.
+ *
+ * It is not a `windfallRider` because there is no occasion to ride on, and it is
+ * not a `foundingRider` because nothing is being founded. The piece arrives
+ * through `realiseItem` like every other gifted unit, so the spawn convention
+ * has one implementation and the levy goes on no payroll.
+ *
+ * `'bestMelee'` is `CompletionGrant`'s own word for "the best melee unit you
+ * can build" (`buildingData.ts`), read by the same resolver, so a card and a
+ * wonder cannot disagree about which spear an empire is owed.
+ */
+export interface CardPeriodicMusterEffect {
+  kind: 'periodicMuster';
+  /** Turns between musters. A turn musters when `turn % every === 0`. */
+  every: number;
+  /** Which piece. `'bestMelee'` asks the roster what this empire can raise. */
+  unit: UnitTypeId | 'bestMelee';
+  /** Where it appears. The seat of government, and nowhere else today. */
+  where: 'capital';
+}
+
+/**
  * A building a card makes available. **Declared and deferred**: nothing in the
  * game can buy a building with gold yet, so The Gilded Court's Gilded Hall has
  * no mechanism to unlock into. The shape is here so the row can name it and the
@@ -1959,6 +2014,7 @@ export type CardEffect =
   | CardMetaRuleEffect
   | CardTileYieldEffect
   | CardPeriodicOfferEffect
+  | CardPeriodicMusterEffect
   | CardUnlocksBuildingEffect
   | CardPantheonSlotsEffect
   | CardPurchaseRiderEffect
@@ -2000,11 +2056,17 @@ export interface CardDefBase {
    * So such a card says so on its row and `drawOrderOffer` skips it. It is a
    * **declaration, not a shrug**: a card marked this way is a card somebody has
    * decided has no second face, and giving it one later is deleting this field
-   * and writing the clause. `test/sim/statecraft.test.ts` holds the two halves
-   * together — every upgradable card's level-2 face must differ from its
-   * level-1 face, and every non-upgradable card must genuinely have nothing to
-   * scale, so the flag cannot be used to paper over a row that simply needs a
-   * bigger number.
+   * and writing the clause.
+   *
+   * **Two readings since 2026-08-28**, and the second is the designer's rather
+   * than the vocabulary's: a card may print a perfectly scalable figure and
+   * still be declared flat because *the design says so* — March Discipline and
+   * Skirmishers' Creed each hand a whole point of a scarce thing (a march, a
+   * bowshot) and a second point of either is a different card. Those two are
+   * named in `test/sim/statecraft.test.ts`, which is what keeps the flag from
+   * becoming an escape hatch: the test still refuses a marked card that both
+   * deepens and is not on that list, so silencing a row that simply needs a
+   * bigger number costs a deliberate edit to a named register.
    */
   upgradable?: boolean;
   effects: CardEffect[];

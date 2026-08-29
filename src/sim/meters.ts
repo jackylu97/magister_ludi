@@ -464,10 +464,23 @@ export function explainAuthority(
   }
 
   // What a seized and a harbour town cost this empire, asked once for the sweep:
-  // Hegemony and Client Kings *replace* the captured price, Thalassocracy
-  // *shifts* the coastal one, and `cardMeterRule` composes the two shapes.
+  // Hegemony and Client Kings each *shift* the captured price by a point,
+  // Thalassocracy shifts the coastal one, and `cardMeterRule` composes the
+  // shapes.
+  //
+  // **Floored at one, and only here.** The 2026-08-28 ruling turned both
+  // captured-city cards from a set into a delta, and two deltas plus an upgrade
+  // level can reach past zero — a conquest that cost *nothing* would make the
+  // whole meter free to a warlord who drafted twice, which is the one thing
+  // Entry XIV.D.2 prices. The floor sits on this reading rather than inside
+  // `cardMeterRule` because the fold is generic and its other tenants have
+  // honest zeroes: Mare Nostrum's coastal towns are meant to cost nothing at
+  // all.
   const costs = {
-    captured: cardMeterRule(state, playerId, 'capturedCityCost', rules.capturedCity),
+    captured: Math.max(
+      1,
+      cardMeterRule(state, playerId, 'capturedCityCost', rules.capturedCity),
+    ),
     coastal: cardMeterRule(state, playerId, 'coastalCityCost', rules.coastalCity),
   };
   for (const city of state.cities) {
