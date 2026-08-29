@@ -2485,6 +2485,44 @@ export function foodUpkeep(city: City): number {
 }
 
 /**
+ * What one city's basket lost this resolution, and what became of it
+ * (`sieges`' sibling, and `disbanded`'s: the maintenance ruling's shape read
+ * two systems over).
+ *
+ * A *difference*, exactly like every other `TurnReport` field — by the time
+ * `runEndOfTurn` returns the basket has simply moved, `city.foodBasket` reads
+ * whatever the deficit and (maybe) the shrink left it at, and no diff of two
+ * boards can say whether a town lost food this turn or merely spent a healthy
+ * surplus on nothing. `lost` is reported **positive** (the bushels the basket
+ * gave up), never the signed surplus, because "Uruk is starving" is a loss and
+ * the toast that prints it should never have to negate a number first.
+ *
+ * Written in two passes, because the two phases answer two different
+ * questions. `collectYields` pushes the entry the instant `growthSurplus`
+ * comes back negative — that is *all* a deficit says on its own — with
+ * `shrank: false` and this turn's `population`, since nothing has happened to
+ * either yet. `growCities`, which runs after and is the only place a citizen is
+ * actually taken, finds the same entry by `cityId` and corrects `shrank` and
+ * `population` if the basket in fact ran dry. A city whose deficit this turn
+ * did not reach the floor keeps the entry `collectYields` wrote — it lost
+ * food, and nobody starved.
+ *
+ * `ejected` is the user's addendum of the same day: the display names of any
+ * queue rows `growCities` set aside because the shrink dropped the city below
+ * their `minCityPop` (a settler, most often) — empty when the shrink evicted
+ * nothing, which is every starving city that never crossed the floor and most
+ * that did.
+ */
+export interface StarvationReport {
+  cityId: number;
+  ownerId: number;
+  lost: number;
+  shrank: boolean;
+  population: number;
+  ejected: string[];
+}
+
+/**
  * What a city actually banks toward its next citizen this turn.
  *
  * The one evaluator for the growth rate: `collectYields` adds this to the
@@ -2929,7 +2967,25 @@ export function collectYields(state: GameState, report?: TurnReport): void {
   for (const { city, yields } of priced) {
     // Upkeep, the settler halt and the happiness stifle, all in one function so
     // that what the panel promised is what the basket receives.
-    city.foodBasket += growthSurplus(state, city, yields);
+    const surplus = growthSurplus(state, city, yields);
+    city.foodBasket += surplus;
+    // **Reported here, whether or not the basket runs dry** — a deficit is a
+    // deficit, and a settler-halted queue shields nothing (`growthIsHalted`
+    // only ever clamps a *positive* surplus, so a city already underwater
+    // reports exactly the same loss with or without one at the front of its
+    // queue). `growCities`, later in this resolution, corrects `shrank` and
+    // `population` on this same entry if the deficit actually starves the
+    // town — see `StarvationReport`.
+    if (surplus < 0) {
+      report?.starved.push({
+        cityId: city.id,
+        ownerId: city.ownerId,
+        lost: -surplus,
+        shrank: false,
+        population: city.population,
+        ejected: [],
+      });
+    }
     city.hammerBasket += yields.production;
     // Only the border basket answers to the writ — see `borderGrowth`. The
     // empire's culture pool below is banked at the full rate, because authority
@@ -3303,13 +3359,14 @@ function religionOrder(state: GameState): number[] {
   return state.religions.map((religion) => religion.id);
 }
 
-export function growCities(state: GameState): void {
+export function growCities(state: GameState, report?: TurnReport): void {
   for (const city of state.cities) {
     if (settleGrowth(state, city) !== null) continue;
     if (city.foodBasket <= CITIES.starvationShrinksAt) {
       const before = city.population;
       city.population = Math.max(1, city.population - 1);
       city.foodBasket = 0;
+      const shrank = city.population < before;
       // **A famine takes a believer too.** The congregations are counts of
       // citizens (`City.followers`), so a town that loses a mouth and kept every
       // count would end up with more followers than people — and `cityReligion`
@@ -3321,9 +3378,60 @@ export function growCities(state: GameState): void {
       // omission: a citizen is **born unconverted**, so a town that grows simply
       // has one more person the tide has not reached — which is why a big city
       // is harder to convert than a small one.
-      if (city.population < before) shrinkFollowers(city, religionOrder(state));
+      if (shrank) shrinkFollowers(city, religionOrder(state));
+      // **A shrunk city may no longer be able to build the front of its own
+      // queue** (the user's addendum of 2026-08-29): a settler queued at size
+      // 2 is not a settler a size-1 city may finish. `ejectUnbuildableQueue`
+      // sets those rows aside; see it for why the hammers need no rescue.
+      const ejected = shrank ? ejectUnbuildableQueue(city) : [];
+      // The other half of `StarvationReport`: `collectYields`, earlier in this
+      // same resolution, already logged the deficit that got the town here —
+      // this only corrects what the deficit turned into. A city whose basket
+      // was already empty on a healthy surplus (impossible today, but the
+      // entry is found-or-nothing on purpose) writes nothing, because
+      // `collectYields` wrote no entry for it to correct.
+      if (shrank) {
+        const entry = report?.starved.find((s) => s.cityId === city.id);
+        if (entry) {
+          entry.shrank = true;
+          entry.population = city.population;
+          entry.ejected = ejected;
+        }
+      }
     }
   }
+}
+
+/**
+ * Removes every queue row this shrunk city can no longer build — a unit whose
+ * `minCityPop` (`unitData.ts`) the new, smaller population no longer meets —
+ * and returns their display names in queue order.
+ *
+ * Asked of `minCityPop`, never of a type name: nothing in `src/sim/` compares
+ * a unit type against `"settler"`, and this is no exception (CLAUDE.md's
+ * `openedResource`/`purchase.ts` rule, one more reader). The hammers are
+ * untouched — `city.hammerBasket` is the city's **one** basket (Entry VIII's
+ * "explainable yields" discipline read one system over) and simply pays for
+ * whatever now heads the queue, so "the production stays paid" needs no ledger
+ * of its own; it is true because nothing here touches the basket at all. If
+ * nothing else was queued behind the evicted row the queue is now empty, which
+ * is exactly what makes the "choose production" End Turn blocker fire — the
+ * intended reading of "treat the queue as empty".
+ *
+ * Walked **backward** so a mid-loop splice never shifts an index still to be
+ * visited, then the collected names are reversed back into queue order —
+ * deterministic, and independent of how many rows are removed.
+ */
+function ejectUnbuildableQueue(city: City): string[] {
+  const ejected: string[] = [];
+  for (let i = city.queue.length - 1; i >= 0; i--) {
+    const item = city.queue[i];
+    if (item.kind !== 'unit' || !isUnitTypeId(item.id)) continue;
+    if (unitDef(item.id).minCityPop <= city.population) continue;
+    ejected.push(queueItemName(item));
+    city.queue.splice(i, 1);
+  }
+  return ejected.reverse();
 }
 
 /**

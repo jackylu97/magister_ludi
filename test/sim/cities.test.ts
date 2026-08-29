@@ -81,7 +81,7 @@ import {
   tileYield,
 } from '../../src/sim/terrainData';
 import { beliefDef } from '../../src/sim/religionData';
-import { runEndOfTurn } from '../../src/sim/turn';
+import { emptyTurnReport, runEndOfTurn } from '../../src/sim/turn';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -1305,6 +1305,144 @@ describe('growth', () => {
     city.queue = [{ kind: 'unit', id: 'settler' }];
     collectYields(state);
     expect(city.foodBasket).toBeLessThan(0);
+  });
+});
+
+// The user's ruling of 2026-08-29 ("Uruk is starving!") and its same-day
+// addendum (a shrink ejects what the city can no longer build). See
+// `StarvationReport` in `cities.ts` for why the write is split across
+// `collectYields` and `growCities`.
+describe('starvation reporting (StarvationReport)', () => {
+  it('reports a deficit that does not reach the starvation line', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.population = 5; // desert tiles: a guaranteed, sizeable deficit.
+
+    // Measure this city's actual deficit once, with nothing banked, so the
+    // second run can be seeded high enough to survive it without shrinking.
+    city.foodBasket = 0;
+    collectYields(state);
+    const deficit = city.foodBasket;
+    expect(deficit).toBeLessThan(0);
+
+    city.foodBasket = -deficit + 10;
+    const report = emptyTurnReport();
+    collectYields(state, report);
+
+    expect(city.foodBasket).toBeGreaterThan(CITIES.starvationShrinksAt);
+    const entry = report.starved.find((s) => s.cityId === city.id);
+    expect(entry).toEqual({
+      cityId: city.id,
+      ownerId: city.ownerId,
+      lost: -deficit,
+      shrank: false,
+      population: 5,
+      ejected: [],
+    });
+  });
+
+  it('reports a deficit even with a settler halting growth — the halt shields nothing', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.population = 5; // desert tiles: a guaranteed deficit.
+    city.queue = [{ kind: 'unit', id: 'settler' }];
+    const report = emptyTurnReport();
+    collectYields(state, report);
+
+    expect(city.foodBasket).toBeLessThan(0);
+    const entry = report.starved.find((s) => s.cityId === city.id);
+    expect(entry?.lost).toBeGreaterThan(0);
+    expect(entry?.shrank).toBe(false);
+  });
+
+  it('does not report a healthy city', () => {
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    city.population = 2; // grassland: a healthy surplus (see the growth suite above).
+    const report = emptyTurnReport();
+    collectYields(state, report);
+
+    expect(city.foodBasket).toBeGreaterThan(0);
+    expect(report.starved.find((s) => s.cityId === city.id)).toBeUndefined();
+  });
+
+  it('shrinks a reported city and corrects the same entry', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.population = 5; // desert: falls straight through the starvation line.
+    city.foodBasket = 0;
+    const report = emptyTurnReport();
+    collectYields(state, report);
+    growCities(state, report);
+
+    expect(city.population).toBe(4);
+    const entry = report.starved.find((s) => s.cityId === city.id);
+    expect(entry?.shrank).toBe(true);
+    expect(entry?.population).toBe(4);
+    expect(entry?.lost).toBeGreaterThan(0);
+  });
+
+  it('has an empty starved list on a fresh report', () => {
+    expect(emptyTurnReport().starved).toEqual([]);
+  });
+
+  it('ejects a settler the shrink drops below minCityPop, and leaves the basket alone', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.population = 2;
+    city.foodBasket = CITIES.starvationShrinksAt;
+    city.queue = [{ kind: 'unit', id: 'settler' }];
+    city.hammerBasket = 12;
+    // Seeded the way `collectYields` would have seeded it earlier in the same
+    // resolution — this test isolates `growCities`' half of the contract.
+    const report = emptyTurnReport();
+    report.starved.push({
+      cityId: city.id,
+      ownerId: city.ownerId,
+      lost: 3,
+      shrank: false,
+      population: city.population,
+      ejected: [],
+    });
+
+    growCities(state, report);
+
+    expect(city.population).toBe(1);
+    expect(city.queue).toEqual([]);
+    expect(city.hammerBasket).toBe(12); // untouched — the basket pays whatever comes next.
+    const entry = report.starved.find((s) => s.cityId === city.id);
+    expect(entry?.shrank).toBe(true);
+    expect(entry?.population).toBe(1);
+    expect(entry?.ejected).toEqual(['Settler']);
+  });
+
+  it('ejects a settler queued behind a monument, and the monument stays', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.population = 2;
+    city.foodBasket = CITIES.starvationShrinksAt;
+    city.queue = [
+      { kind: 'building', id: 'monument' },
+      { kind: 'unit', id: 'settler' },
+    ];
+
+    growCities(state);
+
+    expect(city.population).toBe(1);
+    expect(city.queue).toEqual([{ kind: 'building', id: 'monument' }]);
+  });
+
+  it('never ejects a worker — minCityPop 0 always clears the bar', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.population = 2;
+    city.foodBasket = CITIES.starvationShrinksAt;
+    city.queue = [{ kind: 'unit', id: 'worker' }];
+
+    growCities(state);
+
+    expect(city.population).toBe(1);
+    expect(city.queue).toEqual([{ kind: 'unit', id: 'worker' }]);
   });
 });
 

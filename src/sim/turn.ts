@@ -97,6 +97,7 @@
 import { barbarianTurn } from './barbarians';
 import {
   type CompletionGrantReport,
+  type StarvationReport,
   type WonderCompletion,
   advanceProduction,
   collectYields,
@@ -244,6 +245,21 @@ export interface TurnReport {
    * another seat — which is precisely why it has to be said out loud.
    */
   disbanded: DisbandReport[];
+  /**
+   * Every city whose basket lost food this resolution, and what became of it
+   * (`StarvationReport`) — `disbanded`'s sibling one bank over, and a
+   * *difference* for the identical reason: by the time this returns the basket
+   * has simply moved, `collectYields` has already banked whatever the deficit
+   * left, and `growCities` has already taken the citizen if the floor was
+   * crossed, so no diff of two boards can say whether a town lost food this
+   * turn or spent a healthy surplus on nothing.
+   *
+   * The one entry two phases write. `collectYields` opens it the moment the
+   * surplus it banks is negative; `growCities`, later in the same resolution,
+   * finds the same entry by `cityId` and marks whether the deficit actually
+   * starved the town. See `StarvationReport` for why the write is split.
+   */
+  starved: StarvationReport[];
 }
 
 /** A fresh, empty report. The one place its shape is written. */
@@ -257,6 +273,7 @@ export function emptyTurnReport(): TurnReport {
     sieges: [],
     pillages: [],
     disbanded: [],
+    starved: [],
   };
 }
 

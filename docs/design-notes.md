@@ -3879,4 +3879,17 @@ two-helping `max` prints "at most +6"; the doc says +4) and Foreign Quarters (th
 borders touching; `isFrontierCity` is foreign ground within three hexes). Chiefdom is 1/1/1
 in data and 1/1/0 in the doc, from before this cut.
 
+**The settler's floor, the morning after (user, 2026-08-29).** A settler at the front of the
+queue holds the surplus at zero and shields a town from nothing — a deficit still bites, and
+`growCities` runs before `advanceProduction`, so a size-2 town in deficit is size 1 before its
+settler is checked and the settler *holds* forever. The user, on learning this: *"I've just been
+starving my cities in Civ lmao."* Three things, and no fourth: the Growth line says
+**starving** in the alarm ink; a starving city is one line of news at the hand-over
+(`TurnReport.starved`, a difference like `disbanded` — report-only, no state); and when a
+town shrinks below a queued unit's `minCityPop` the row is **ejected** (`ejectUnbuildableQueue`,
+asked of the floor, never of the name) — the basket keeps every hammer because the basket is
+the city's, not the row's, and an emptied queue makes the town ask for orders instead of holding.
+The sentence grows the one clause: "Uruk is starving! It has shrunk to size 1 and its Settler
+is set aside."
+
 ---

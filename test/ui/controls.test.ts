@@ -34,6 +34,7 @@ import { resetVisibility } from '../../src/sim/visibility';
 import { at } from '../sim/improvementHelpers';
 import { cityDisplayName } from '../../src/ui/cityDisplay';
 import { type LensMode } from '../../src/ui/mapView';
+import { type StarvationReport } from '../../src/sim/cities';
 import {
   cityPhaseLine,
   lensForDigit,
@@ -41,6 +42,7 @@ import {
   pillageSentence,
   pillageVictimSentence,
   pillagedThing,
+  starvationSentence,
   wantsNativeContextMenu,
 } from '../../src/ui/controls';
 
@@ -329,6 +331,44 @@ describe('pillageVictimSentence', () => {
     expect(pillageVictimSentence(state, report)).toBe(
       `Barbarians pillaged the Farm and road at (6, 5) near ${cityDisplayName(state, city)}`,
     );
+  });
+});
+
+/**
+ * The user's ruling of 2026-08-29 and its same-day addendum: `starvationSentence`
+ * is `disbandSentence`'s pure shape, so this suite is `pillageVictimSentence`'s
+ * neighbour rather than `disbandSentence`'s (`upkeepPanels.test.ts`, off-fence).
+ */
+describe('starvationSentence', () => {
+  function report(over: Partial<StarvationReport> = {}): StarvationReport {
+    return {
+      cityId: 0,
+      ownerId: 0,
+      lost: 4,
+      shrank: false,
+      population: 3,
+      ejected: [],
+      ...over,
+    };
+  }
+
+  it('names the city and stops there when it merely lost food', () => {
+    expect(starvationSentence(report(), 'Uruk')).toBe('Uruk is starving!');
+  });
+
+  it('adds the new size when the deficit shrank the city', () => {
+    expect(starvationSentence(report({ shrank: true, population: 2 }), 'Uruk')).toBe(
+      'Uruk is starving! It has shrunk to size 2.',
+    );
+  });
+
+  it('names what was set aside when the shrink also ejected a queue row', () => {
+    expect(
+      starvationSentence(
+        report({ shrank: true, population: 1, ejected: ['Settler'] }),
+        'Uruk',
+      ),
+    ).toBe('Uruk is starving! It has shrunk to size 1 and its Settler is set aside.');
   });
 });
 

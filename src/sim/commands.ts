@@ -63,6 +63,7 @@ import { isBuildingId } from './buildingData';
 import { isProjectId } from './projectData';
 import {
   type CompletionGrantReport,
+  type StarvationReport,
   type WonderCompletion,
   assignableTiles,
   cityAt,
@@ -1105,6 +1106,7 @@ export type CommandResult =
       sieges?: SiegeReport[];
       pillages?: PillageReport[];
       disbanded?: DisbandReport[];
+      starved?: StarvationReport[];
       proclaimed?: ProclamationReport;
     }
   | { ok: false; error: string };
@@ -1166,9 +1168,17 @@ export type CommandResult =
  * that names something the player neither chose nor had done to them by another
  * seat, which is exactly why it has to be said out loud.
  *
- * `proclaimed` is the tenth and the only one that is **not** a list, which is
+ * `starved` is the tenth, from `endTurn` alone: every city whose basket lost
+ * food during the resolution, and what became of it (`StarvationReport`, the
+ * user's ruling of 2026-08-29). `disbanded`'s sibling and a difference for the
+ * identical reason — by the time this returns the basket has already moved and
+ * a citizen has already been taken if the deficit reached the floor, so no diff
+ * of two boards can say whether a town lost food this turn or spent a healthy
+ * surplus on nothing.
+ *
+ * `proclaimed` is the eleventh and the only one that is **not** a list, which is
  * why it is set beside this helper rather than passed through it: a proclamation
- * is one act on one board, and a tenth positional `undefined` on every other
+ * is one act on one board, and an eleventh positional `undefined` on every other
  * caller would be a worse price than the two lines it saves. Two commands
  * produce it — `proclaim`, a prophet's faith bomb, and `performRite`, the
  * augur's Preaching — and it is `arrivals`' argument in a third currency: by the
@@ -1185,6 +1195,7 @@ function ok(
   sieges?: readonly SiegeReport[],
   pillages?: readonly PillageReport[],
   disbanded?: readonly DisbandReport[],
+  starved?: readonly StarvationReport[],
 ): CommandResult {
   const result: CommandResult = { ok: true };
   if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
@@ -1196,6 +1207,7 @@ function ok(
   if (sieges !== undefined && sieges.length > 0) result.sieges = [...sieges];
   if (pillages !== undefined && pillages.length > 0) result.pillages = [...pillages];
   if (disbanded !== undefined && disbanded.length > 0) result.disbanded = [...disbanded];
+  if (starved !== undefined && starved.length > 0) result.starved = [...starved];
   return result;
 }
 
@@ -1288,6 +1300,7 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
     report.sieges,
     report.pillages,
     report.disbanded,
+    report.starved,
   );
 }
 

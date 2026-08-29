@@ -201,7 +201,7 @@ import {
   workOf,
 } from '../sim/greatPeople';
 import { type Family, greatPersonDef } from '../sim/greatPeopleData';
-import { yieldContextFor } from '../sim/cities';
+import { type StarvationReport, yieldContextFor } from '../sim/cities';
 import {
   IMPROVEMENT_IDS,
   type ImprovementId,
@@ -1038,6 +1038,37 @@ export function pillageVictimSentence(state: GameState, report: PillageReport): 
 export function disbandSentence(report: DisbandReport): string {
   const floor = `${signedFigure(RULES.upkeep.disbandBelow)}${YIELD_GLYPH.gold}`;
   return `Your ${unitDef(report.type).name} was disbanded — the treasury is below ${floor}.`;
+}
+
+/**
+ * "Uruk is starving!"; the turn the basket finally runs out,
+ * "Uruk is starving! It has shrunk to size 1."; and, the same turn, if the
+ * shrink evicted something the city could no longer build,
+ * "Uruk is starving! It has shrunk to size 1 and its Settler is set aside."
+ *
+ * The user's ruling of 2026-08-29, with the same day's addendum: one line per
+ * starving city of this seat's, at the start of the next turn. Plain words, no
+ * number in the first clause — a player does not need to see the bushel count
+ * to know a city is in trouble, only that it is — and each later clause fires
+ * only when its own condition does: "shrunk" only when `growCities` actually
+ * took the citizen (`StarvationReport.shrank`), "set aside" only when that
+ * shrink also evicted a queue row (`StarvationReport.ejected`) it no longer met
+ * the `minCityPop` for. A shrink with nothing ejected, or a deficit that never
+ * reached the floor, simply stops one clause early.
+ *
+ * Pure and exported, `disbandSentence`'s shape exactly: `cityName` is resolved
+ * by the caller the way `reportSieges` resolves one, through `cityDisplayName`,
+ * because this function has no state to look the city up in.
+ */
+export function starvationSentence(report: StarvationReport, cityName: string): string {
+  if (!report.shrank) return `${cityName} is starving!`;
+  // Realistically at most one name — `minCityPop` above zero belongs to the
+  // settler alone today — but joined rather than assumed singular, so a future
+  // second such unit reads correctly with no change here.
+  const names = report.ejected;
+  const verb = names.length > 1 ? 'are' : 'is';
+  const setAside = names.length > 0 ? ` and its ${names.join(' and ')} ${verb} set aside` : '';
+  return `${cityName} is starving! It has shrunk to size ${report.population}${setAside}.`;
 }
 
 /**
@@ -2054,6 +2085,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportSieges(result);
       reportPillages(result);
       reportDisbands(result);
+      reportStarvation(result);
       reportTriumphs(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
@@ -2246,6 +2278,29 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     for (const report of result.disbanded) {
       if (report.ownerId !== localPlayerId) continue;
       announce(disbandSentence(report));
+    }
+  }
+
+  /**
+   * **A city went hungry.** One toast per city of this seat's whose basket
+   * lost food during the resolution (`CommandResult.starved`, `endTurn`
+   * alone) — the user's ruling of 2026-08-29.
+   *
+   * `reportSieges`' shape exactly: seat-filtered, read off the reducer's own
+   * report rather than diffed off the board, because by the time this runs the
+   * basket has already moved and (maybe) a citizen is already gone — an
+   * absence a diff cannot explain (`StarvationReport`). No cell is passed: a
+   * city's hex never moves, so there is nothing here for the camera to pan to
+   * that the panel is not already showing.
+   */
+  function reportStarvation(result: CommandResult): void {
+    if (!result.ok || !result.starved) return;
+    const { state } = getGame();
+    for (const report of result.starved) {
+      if (report.ownerId !== localPlayerId) continue;
+      const city = cityById(state, report.cityId);
+      if (!city) continue;
+      announce(starvationSentence(report, cityDisplayName(state, city)));
     }
   }
 
