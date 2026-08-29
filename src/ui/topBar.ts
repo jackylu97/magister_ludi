@@ -57,7 +57,12 @@
  * a card always quotes the state as it is now.
  */
 
-import { type CityYields, cityYields, emptyCityYields } from '../sim/cities';
+import {
+  type CityYields,
+  cityYields,
+  emptyCityYields,
+  explainEmpireCardYields,
+} from '../sim/cities';
 import type { Game } from '../sim/game';
 import {
   type MeterContribution,
@@ -87,7 +92,7 @@ import {
   poolFigure,
   signedFigure,
 } from './figures';
-import { nextDraftCost, statecraftBlocker } from '../sim/statecraft';
+import { foldCardYields, nextDraftCost, statecraftBlocker } from '../sim/statecraft';
 import { greatPersonBlocker } from '../sim/greatPeople';
 import { explainRenown, foldRenown, renownPerTurn, renownThreshold } from '../sim/renown';
 import { TRIUMPH_IDS, type TriumphScope, triumphDef } from '../sim/triumphData';
@@ -139,6 +144,20 @@ export function civYields(state: GameState, playerId: number): CityYields {
   // in (Entry XLI — that is what keeps an army out of Entry XVII's staging).
   // Left out, this headline would be a rate the turn resolution disagrees with.
   total.gold += empireGold(state, playerId);
+  // The empire-scale Statecraft lines — every `empireYields`/`countScaled` card
+  // and every `rateConversion` (The Great Litany's culture off faith, The
+  // Tithe's gold off culture, and the rest) — banked by `collectYields` in the
+  // same pass as the two totals above. Read through the one helper the phase
+  // itself calls, `explainEmpireCardYields`, so a headline that left them out
+  // would be a headline the turn resolution disagrees with — the same claim
+  // this function has made twice already, now true of the card lines too.
+  const cards = foldCardYields(explainEmpireCardYields(state, playerId));
+  total.food += cards.food;
+  total.production += cards.production;
+  total.gold += cards.gold;
+  total.science += cards.science;
+  total.culture += cards.culture;
+  total.faith += cards.faith;
   return total;
 }
 
@@ -511,6 +530,17 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       // plain-text sink (`keywords.ts`) and the platform draws it.
       if (line.detail !== undefined) row.title = line.detail;
       lines.append(row);
+    }
+    // The empire-scale Statecraft lines, after the trade ledger and for the
+    // same reason: an Order's `empireYields`, a `countScaled` payout and a
+    // `rateConversion` (The Great Litany's culture off faith, The Tithe's gold
+    // off culture) belong to no city either. Read off the one list
+    // `collectYields` itself banks — `explainEmpireCardYields` — so this row
+    // and the figure it sums into can never disagree (rule 5).
+    for (const line of explainEmpireCardYields(state, playerId)) {
+      const value = line[key];
+      if (value === 0) continue;
+      lines.append(meterLine(line.source, value, true));
     }
     // Culture's card gains the ladder it now buys (Entry XV): the tier, the
     // basket against the next threshold, and whatever offer is outstanding.

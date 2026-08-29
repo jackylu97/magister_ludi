@@ -3038,8 +3038,7 @@ export function collectYields(state: GameState, report?: TurnReport): void {
   // reads the other's output. A conversion that fed another conversion would be
   // an ordering question with no honest answer under simultaneous turns.
   for (const player of state.players) {
-    const rates = empireRates(state, player.id);
-    const cards = foldCardYields(cardEmpireYields(state, player.id, rates));
+    const cards = foldCardYields(explainEmpireCardYields(state, player.id));
     player.gold += cards.gold;
     player.sciencePool += cards.science;
     player.culturePool += cards.culture;
@@ -3135,6 +3134,22 @@ function empireRates(state: GameState, playerId: number): {
   // and an empire whose upkeep eats its connections made less.
   for (const line of explainEmpireGold(state, playerId)) rates.goldPerTurn += line.gold;
   return rates;
+}
+
+/**
+ * The empire-scale card lines `collectYields` banks this turn — `empireYields`,
+ * the empire-scoped `countScaled` payouts, and every `rateConversion`, read off
+ * this turn's own rates.
+ *
+ * Exported so the top bar's headline and the phase that actually banks the
+ * gold/science/culture/faith read the **same list**: a hand-rolled empire sum
+ * on the UI side that left this out would print a rate the resolution
+ * disagrees with, which is exactly the Great Litany bug this function exists
+ * to close. `empireRates` stays private — it is an input this function alone
+ * needs, not a fact anything else asks for.
+ */
+export function explainEmpireCardYields(state: GameState, playerId: number): CardYieldLine[] {
+  return cardEmpireYields(state, playerId, empireRates(state, playerId));
 }
 
 /**
