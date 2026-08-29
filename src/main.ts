@@ -69,6 +69,7 @@ import {
   describeOccupant,
   describeTile,
   describeWater,
+  foundingCostRow,
   resourceRequirementNode,
   resourceRowNode,
   tileYieldLineNodes,
@@ -357,6 +358,7 @@ const infoSeed = requireElement<HTMLElement>('info-seed');
 const infoTerrain = requireElement<HTMLElement>('info-terrain');
 const infoFeature = requireElement<HTMLElement>('info-feature');
 const infoWater = requireElement<HTMLElement>('info-water');
+const infoFounding = requireElement<HTMLElement>('info-founding');
 const infoYields = requireElement<HTMLElement>('info-yields');
 const infoResource = requireElement<HTMLElement>('info-resource');
 const infoImprovement = requireElement<HTMLElement>('info-improvement');
@@ -915,6 +917,7 @@ function clearInfoRows(): void {
   for (const row of [
     infoFeature,
     infoWater,
+    infoFounding,
     infoYields,
     infoResource,
     infoImprovement,
@@ -1563,6 +1566,18 @@ async function boot(initial: Game | null): Promise<void> {
       // than a clause on the terrain: "Grassland (hills)" is what the ground
       // *is*, and coast and fresh water are facts about what is next to it.
       setInfoRow(infoWater, describeWater(game.state, hover.tile));
+      // The settler lens's row, and the lens is the *placement* half of the
+      // condition — asked of `boardLens` rather than of the menu, for the reason
+      // the faith card asks it that way: picking a settler up raises this lens
+      // without the menu, and that is the exact moment the row is for (the same
+      // condition `siteRadiusCells` uses). The other half — may a city even
+      // stand here — is `foundingCostRow`'s, because that one is a rule.
+      setInfoRow(
+        infoFounding,
+        controls.boardLens() === 'settler'
+          ? foundingCostRow(game.state, seat, hover.tile)
+          : null,
+      );
       setInfoRow(infoUnit, describeUnitsOn(game.state, seat, hover.tile));
       showTileYields(game.state, seat, hover.tile);
       showTileResource(game.state, seat, hover.tile);

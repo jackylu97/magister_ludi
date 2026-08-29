@@ -25,6 +25,7 @@ import {
   explainCentreYield,
   explainTileYield,
   foldTileYield,
+  foundingErrorAt,
   yieldContextFor,
 } from '../sim/cities';
 import { campAt } from '../sim/camps';
@@ -32,6 +33,12 @@ import { improvementDef, improvementForResource } from '../sim/improvementData';
 import type { Tile } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
 import { describeResourceEffect } from '../sim/resourceEffects';
+import {
+  type FoundingCost,
+  explainFoundingCost,
+  foldMeter,
+  foundingCostLines,
+} from '../sim/meters';
 import { type GameState, playerById } from '../sim/state';
 import { visibleResourceAt } from '../sim/tech';
 import { techDef } from '../sim/techData';
@@ -39,7 +46,7 @@ import { TILE_YIELD_KEYS, featureDef, terrainDef } from '../sim/terrainData';
 import { hasFreshWater, isCoastal } from '../sim/water';
 import { citySightingOf, isExploredBy, isVisibleTo } from '../sim/visibility';
 import { cityDisplayName } from './cityDisplay';
-import { YIELD_GLYPH, YIELD_NAME, type YieldKey } from './figures';
+import { YIELD_GLYPH, YIELD_NAME, type YieldKey, signedFigure } from './figures';
 import { yieldFigureNodes } from './yieldMark';
 import { resourceMarkNode } from './resourceMark';
 
@@ -432,6 +439,64 @@ export function describeWater(state: GameState, tile: Tile): string | null {
   if (isCoastal(state.map, tile)) parts.push('Coastal');
   if (hasFreshWater(tile)) parts.push('Fresh water');
   return parts.length === 0 ? null : parts.join(' · ');
+}
+
+/**
+ * What founding a city on this hex would cost the two empire meters, in one
+ * line: `−2 authority · −1 happiness`.
+ *
+ * The **fold** of `explainFoundingCost`, per meter, and nothing else (CLAUDE.md
+ * rule 5): the sim priced the lines with the same readers the meters themselves
+ * use, and this only sums each half and writes it in the house voice. So a
+ * harbour reads `−1 authority` because the rule discounts a coastal town, an
+ * empire holding Thalassocracy reads whatever that card made it, and the very
+ * first city reads `0 authority` — the capital's free ride, said out loud rather
+ * than left off, because "this one is free" is the most useful thing the line
+ * has to say the one time it is true.
+ *
+ * Both meters always, in the order the top bar carries them, and never a row of
+ * one: a founding costs on both sides and a player choosing a hex is weighing
+ * them against each other. `signedFigure` is the same printer the meter chips
+ * and their hover cards use, so the figures on this card and the figures on the
+ * bar are set in one voice.
+ *
+ * The caller decides *when* to ask — the settler lens, on ground a city may
+ * actually stand on. This function has no opinion about legality; a hex that
+ * refuses a city has no founding row at all, which is this card's word for
+ * "there is nothing to say here".
+ */
+export function foundingCostText(lines: readonly FoundingCost[]): string {
+  const authority = foldMeter(foundingCostLines(lines, 'authority'));
+  const happiness = foldMeter(foundingCostLines(lines, 'happiness'));
+  return `${signedFigure(authority)} authority · ${signedFigure(happiness)} happiness`;
+}
+
+/**
+ * The founding row itself: that line on a hex a city may stand on, `null` on one
+ * it may not.
+ *
+ * The refusal is `foundingErrorAt` — **the reducer's own**, and the very call
+ * the settler lens washes a hex crimson with — so the row and the wash cannot
+ * come to disagree about where a town may go, and the spacing rule has no second
+ * reading anywhere in the interface. That is the same bargain `describeOccupant`
+ * makes with the fog rules and `resourceRequirementOf` makes with
+ * `openedResource`: this module decides the *words*, never the rule behind them.
+ *
+ * `null` for "draw no row", this card's word throughout: a hex that refuses a
+ * city has nothing to say about what a city there would cost, and a line quoting
+ * a price for ground the game will not sell is worse than silence.
+ *
+ * *When* to ask is the caller's — the settler lens is up, the seat has explored
+ * the hex — because that is placement rather than rule (see `updateContext` in
+ * `src/main.ts`).
+ */
+export function foundingCostRow(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+): string | null {
+  if (foundingErrorAt(state, playerId, tile) !== null) return null;
+  return foundingCostText(explainFoundingCost(state, playerId, tile));
 }
 
 /**

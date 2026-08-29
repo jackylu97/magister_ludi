@@ -29,7 +29,9 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt } from '../../src/sim/cities';
 import { type PillageReport, chopBaseFor } from '../../src/sim/improvements';
 import { createMap } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState, newGame, playerById } from '../../src/sim/state';
+import { statecraftBlocker } from '../../src/sim/statecraft';
+import { ORDER_IDS, type OrderId } from '../../src/sim/statecraftData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { at } from '../sim/improvementHelpers';
 import { cityDisplayName } from '../../src/ui/cityDisplay';
@@ -43,6 +45,8 @@ import {
   pillageVictimSentence,
   pillagedThing,
   starvationSentence,
+  statecraftPause,
+  statecraftPauseNotice,
   wantsNativeContextMenu,
 } from '../../src/ui/controls';
 
@@ -472,5 +476,118 @@ describe('chopPreview reads chopBaseFor, not the unscaled table figure', () => {
     expect(base.production).toBeGreaterThan(0);
     expect(base.label).toContain('Forest');
     expect(base.label).toContain(`${forestTechs.length} technologies`);
+  });
+});
+
+/**
+ * End Turn's **soft** gate (user ruling, 2026-08-29: "'end turn' should pause
+ * play when a new order or government has been drafted").
+ *
+ * The sim rule is untouched and that is the load-bearing part: a banked charter
+ * still does not block (`statecraftBlocker`, Entry XV — adoption is bankable),
+ * and this is the interface saying the sentence once before letting the turn go.
+ * So what is asserted here is the predicate's three answers and the fact that
+ * `endTurn` consults it *before* it commits to ending the turn.
+ */
+describe('the Statecraft pause', () => {
+  function seatState(): GameState {
+    const state = newGame({
+      seed: 3,
+      sizeName: 'duel',
+      players: [
+        { name: 'Crimson', color: '#a00', isHuman: true },
+        { name: 'Cobalt', color: '#00a', isHuman: true },
+      ],
+    });
+    state.map = createMap({ width: 12, height: 10, terrain: 'grassland' });
+    resetVisibility(state);
+    return state;
+  }
+
+  /** The first Order in the pool, so nothing here names a card by hand. */
+  function anyOrder(): OrderId {
+    return ORDER_IDS[0]!;
+  }
+
+  it('says nothing when there is nothing waiting', () => {
+    expect(statecraftPause(seatState(), 0)).toBeNull();
+  });
+
+  it('pauses on a banked charter, which the simulation deliberately never blocks', () => {
+    const state = seatState();
+    const player = playerById(state, 0)!;
+    player.statecraft.pendingGovernment = { tier: 1, options: [] };
+    // The whole point: the sim lets this seat end its turn, and the interface
+    // still mentions it once.
+    expect(statecraftBlocker(player)).toBeNull();
+    expect(statecraftPause(state, 0)).toBe('government');
+  });
+
+  it('pauses on an Order held outside a slot it fits', () => {
+    const state = seatState();
+    const sc = playerById(state, 0)!.statecraft;
+    sc.orders.push({ id: anyOrder(), level: 1 });
+    expect(statecraftPause(state, 0)).toBe('order');
+  });
+
+  it('says nothing once every slot the card fits is taken', () => {
+    const state = seatState();
+    const sc = playerById(state, 0)!.statecraft;
+    sc.orders.push({ id: anyOrder(), level: 1 });
+    // Filled with *other* cards, so the held one is genuinely unslottable rather
+    // than already slotted — `slotOrderError` distinguishes the two and so must
+    // this. Every slot, because a wildcard takes anything.
+    for (let index = 0; index < sc.slots.length; index++) {
+      sc.slots[index] = { card: ORDER_IDS[index + 1]!, sealedUntil: 0 };
+      sc.orders.push({ id: ORDER_IDS[index + 1]!, level: 1 });
+    }
+    expect(statecraftPause(state, 0)).toBeNull();
+  });
+
+  it('lets the charter win when both are waiting', () => {
+    const state = seatState();
+    const sc = playerById(state, 0)!.statecraft;
+    sc.orders.push({ id: anyOrder(), level: 1 });
+    sc.pendingGovernment = { tier: 1, options: [] };
+    // Adoption rebuilds the slot spread wholesale, so an Order slotted first is
+    // slotted into a layout that is about to stop existing.
+    expect(statecraftPause(state, 0)).toBe('government');
+  });
+
+  it('names the thing and both ways out of it', () => {
+    for (const kind of ['government', 'order'] as const) {
+      const line = statecraftPauseNotice(kind);
+      expect(line.startsWith('☞ ')).toBe(true);
+      expect(line).toContain('press C');
+      expect(line).toContain('End Turn again');
+    }
+    expect(statecraftPauseNotice('government')).toContain('government');
+    expect(statecraftPauseNotice('order')).toContain('Order');
+  });
+
+  /**
+   * The interface's own text, read the way the sim's register tests read theirs
+   * (`test/sim/cities.test.ts`) — a claim about *where* a call sits cannot be
+   * made behaviourally without a DOM, and this suite has none.
+   */
+  const UI_SOURCE = import.meta.glob('../../src/ui/*.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>;
+
+  it('is consulted by endTurn before it commits to ending the turn', () => {
+    const text = Object.entries(UI_SOURCE).find(([path]) => path.endsWith('/controls.ts'))?.[1];
+    expect(typeof text).toBe('string');
+    const start = text!.indexOf('function endTurn(force = false)');
+    expect(start).toBeGreaterThan(-1);
+    // Everything from the declaration to the point of no return. A pause asked
+    // *after* `cancelHandOver` would be a pause that had already dropped the
+    // hand-over of a turn it then refused to end.
+    const head = text!.slice(start, text!.indexOf('cancelHandOver();', start));
+    expect(head).toContain('statecraftPause(');
+    expect(head).toContain('statecraftPauseNotice(');
+    // And it is skipped by the same Shift override the hard blockers are.
+    expect(head).toContain('if (!force)');
   });
 });

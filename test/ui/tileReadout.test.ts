@@ -44,9 +44,12 @@ import {
   displayYieldLines,
   resourceRequirementOf,
   itemisedYieldLines,
+  foundingCostRow,
+  foundingCostText,
   tileYieldContributions,
   tileYieldLines,
 } from '../../src/ui/tileReadout';
+import { explainFoundingCost } from '../../src/sim/meters';
 
 function tile(overrides: Partial<Tile> = {}): Tile {
   return {
@@ -575,5 +578,59 @@ describe('what a seam still wants', () => {
     const state = boardState();
     const hex = seam(state, 'wheat');
     expect(resourceRequirementOf(state, 0, hex)!.text).toBe('requires Farm (Agriculture)');
+  });
+});
+
+/**
+ * The settler lens's founding row (user ruling, 2026-08-29).
+ *
+ * Two claims and they are different in kind. The **words** are this module's:
+ * both meters, always, in the bar's order, in `signedFigure`'s voice. The
+ * **rule** is not — where a city may stand is `foundingErrorAt`'s answer and
+ * what one costs is `explainFoundingCost`'s, so what is asserted here is that
+ * the row moves when either of those does and says nothing at all where the game
+ * would refuse the town.
+ */
+describe('what a city founded here would cost', () => {
+  it('prints both meters, signed, in the bar\'s order', () => {
+    const state = boardState();
+    foundCityAt(state, 0, at(state, 2, 2));
+    // A second town, well clear of the first: authority two, one citizen's worth
+    // of happiness — the plain inland case.
+    expect(foundingCostRow(state, 0, at(state, 9, 7))).toBe('−2 authority · −1 happiness');
+  });
+
+  it('reads a harbour as the discount the rule makes it', () => {
+    const state = boardState();
+    foundCityAt(state, 0, at(state, 2, 2));
+    at(state, 8, 7).terrain = 'coast';
+    // Coastal *replaces* the founded price rather than adding to it, so the row
+    // has to fall to −1 rather than climb to −3.
+    expect(foundingCostRow(state, 0, at(state, 9, 7))).toBe('−1 authority · −1 happiness');
+  });
+
+  it('says the first city is free, rather than saying nothing', () => {
+    const state = boardState();
+    expect(foundingCostRow(state, 0, at(state, 4, 4))).toBe('0 authority · −1 happiness');
+  });
+
+  it('draws no row at all where a city may not stand', () => {
+    const state = boardState();
+    foundCityAt(state, 0, at(state, 4, 4));
+    // The spacing rule, asked of the reducer's own refusal — the same call the
+    // lens washes the hex crimson with.
+    expect(foundingCostRow(state, 0, at(state, 5, 4))).toBeNull();
+    // And ground nothing can be built on.
+    at(state, 8, 8).terrain = 'ocean';
+    expect(foundingCostRow(state, 0, at(state, 8, 8))).toBeNull();
+  });
+
+  it('is the fold of the sim\'s own lines and nothing else', () => {
+    const state = boardState();
+    foundCityAt(state, 0, at(state, 2, 2));
+    const hex = at(state, 9, 7);
+    expect(foundingCostRow(state, 0, hex)).toBe(
+      foundingCostText(explainFoundingCost(state, 0, hex)),
+    );
   });
 });

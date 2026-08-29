@@ -463,26 +463,8 @@ export function explainAuthority(
     list.push({ source: line.source, part: 'gain', value: line.amount });
   }
 
-  // What a seized and a harbour town cost this empire, asked once for the sweep:
-  // Hegemony and Client Kings each *shift* the captured price by a point,
-  // Thalassocracy shifts the coastal one, and `cardMeterRule` composes the
-  // shapes.
-  //
-  // **Floored at one, and only here.** The 2026-08-28 ruling turned both
-  // captured-city cards from a set into a delta, and two deltas plus an upgrade
-  // level can reach past zero — a conquest that cost *nothing* would make the
-  // whole meter free to a warlord who drafted twice, which is the one thing
-  // Entry XIV.D.2 prices. The floor sits on this reading rather than inside
-  // `cardMeterRule` because the fold is generic and its other tenants have
-  // honest zeroes: Mare Nostrum's coastal towns are meant to cost nothing at
-  // all.
-  const costs = {
-    captured: Math.max(
-      1,
-      cardMeterRule(state, playerId, 'capturedCityCost', rules.capturedCity),
-    ),
-    coastal: cardMeterRule(state, playerId, 'coastalCityCost', rules.coastalCity),
-  };
+  // What a seized and a harbour town cost this empire, asked once for the sweep.
+  const costs = cityCosts(state, playerId);
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     list.push(
@@ -496,19 +478,157 @@ export function explainAuthority(
     );
   }
 
-  if (prospect) {
-    list.push(
-      cityAuthorityCost(
-        nextCityName(state, playerId),
-        false,
-        isCoastal(state.map, prospect.site),
-        capital === undefined,
-        costs,
-      ),
-    );
+  if (prospect) list.push(prospectAuthorityCost(state, playerId, prospect.site));
+
+  return list;
+}
+
+/**
+ * What a *seized* and a *harbour* town cost this empire, after whatever its
+ * Statecraft rewrote (`meterRule`).
+ *
+ * Hegemony and Client Kings each *shift* the captured price by a point,
+ * Thalassocracy shifts the coastal one, and `cardMeterRule` composes the shapes.
+ * Hoisted into a function of its own because two readings ask it — the meter's
+ * sweep over the empire's towns, and the preview of a town that does not exist
+ * yet (`prospectAuthorityCost`) — and a preview that priced a coastal city with
+ * a second copy of these two calls is a preview that can disagree with the
+ * meter it is previewing.
+ *
+ * **Floored at one, and only here.** The 2026-08-28 ruling turned both
+ * captured-city cards from a set into a delta, and two deltas plus an upgrade
+ * level can reach past zero — a conquest that cost *nothing* would make the
+ * whole meter free to a warlord who drafted twice, which is the one thing
+ * Entry XIV.D.2 prices. The floor sits on this reading rather than inside
+ * `cardMeterRule` because the fold is generic and its other tenants have honest
+ * zeroes: Mare Nostrum's coastal towns are meant to cost nothing at all.
+ */
+function cityCosts(
+  state: GameState,
+  playerId: number,
+): { captured: number; coastal: number } {
+  const rules = METERS.authority;
+  return {
+    captured: Math.max(
+      1,
+      cardMeterRule(state, playerId, 'capturedCityCost', rules.capturedCity),
+    ),
+    coastal: cardMeterRule(state, playerId, 'coastalCityCost', rules.coastalCity),
+  };
+}
+
+/**
+ * The one authority line a city founded on this hex would add, priced exactly
+ * where a new city would land in `state.cities`.
+ *
+ * The **only** implementation of "what would that town cost the writ", read by
+ * both surfaces that ask: the settler sheet's projection, through
+ * `explainAuthority`'s `prospect`, and the hover readout's founding preview,
+ * through `explainFoundingCost`. It takes the capital's free ride when the
+ * player has no cities at all, because the first city a player founds *is* their
+ * capital.
+ *
+ * Note what the line is not: coastal ground does not *add* to the founded price,
+ * it **replaces** it (`cityAuthorityCost`'s precedence), so a harbour is a
+ * discount rather than a surcharge — which is what the settler lens has already
+ * painted the hex blue for.
+ */
+function prospectAuthorityCost(
+  state: GameState,
+  playerId: number,
+  site: Tile,
+): MeterContribution {
+  return cityAuthorityCost(
+    nextCityName(state, playerId),
+    false,
+    isCoastal(state.map, site),
+    capitalCityOf(state, playerId) === undefined,
+    cityCosts(state, playerId),
+  );
+}
+
+/** A founding preview's line, and which meter it lands on. */
+export interface FoundingCost extends MeterContribution {
+  meter: 'authority' | 'happiness';
+}
+
+/**
+ * What founding a city on this hex would cost, on both meters, as the labelled
+ * list the interface's one-line preview is the fold of (CLAUDE.md rule 5).
+ *
+ * Every line is priced by the same readings the meters themselves use, and that
+ * is the whole point of the function existing: the authority half is
+ * `prospectAuthorityCost` — literally the line `explainAuthority` would append
+ * for this site, `meterRule` cards and all — and the happiness half asks
+ * `ruleFactor` and `cardMeterRule` exactly as `explainHappiness`'s demand loop
+ * does. A preview that added two somewhere in the interface is a preview that
+ * can lie, and this one gets Thalassocracy's harbour and the Manifest of the
+ * Steppe's surcharge right without knowing either card's name.
+ *
+ * Three things are deliberately **not** in the list:
+ *
+ *   crowding      a town is founded at one citizen and `crowdingFrom` is far
+ *                 above that, so the crowding term is zero at size one. It is
+ *                 computed rather than assumed anyway — a retune that dropped
+ *                 the threshold to one would put the line in the list by itself
+ *                 rather than make this docblock wrong.
+ *   the palace    a first city hands its founder a palace, on both meters. That
+ *                 is a fact about founding *at all*, identical on every hex, and
+ *                 this list exists to be compared between hexes — a constant on
+ *                 both sides of the comparison is noise. The capital's free ride
+ *                 *is* here, because that one is a fact about the price.
+ *   the borders   what the town would work, and what its bounds would cost, are
+ *                 the settler lens's radius preview and a different question.
+ *
+ * Signed like every `MeterContribution`: costs negative, so a fold is a plain
+ * sum and the interface prints `foldMeter` of each half.
+ */
+export function explainFoundingCost(
+  state: GameState,
+  playerId: number,
+  site: Tile,
+): FoundingCost[] {
+  const rules = METERS.happiness;
+  const list: FoundingCost[] = [];
+
+  list.push({ meter: 'authority', ...prospectAuthorityCost(state, playerId, site) });
+
+  // The happiness half, in `explainHappiness`'s own order: what the citizen
+  // asks for, then the crowding that size would carry, then the flat price of
+  // governing one more town at all — the last two through the same two readers,
+  // so a card that discounts a citizen and a card that surcharges a town land
+  // here the way they land on the meter.
+  const name = nextCityName(state, playerId);
+  const demand = ruleFactor(state, playerId, 'happinessDemand');
+  list.push({
+    meter: 'happiness',
+    source: `${name} · 1 citizen`,
+    part: 'cost',
+    value: -rules.demandPerPop * demand,
+  });
+  const crowding = crowdingDemand(1) * demand;
+  if (crowding > 0) {
+    list.push({ meter: 'happiness', source: `${name} crowding`, part: 'cost', value: -crowding });
+  }
+  const perCity = cardMeterRule(state, playerId, 'cityHappinessDemand', 0);
+  if (perCity > 0) {
+    list.push({
+      meter: 'happiness',
+      source: `${name} · cost of governing`,
+      part: 'cost',
+      value: -perCity,
+    });
   }
 
   return list;
+}
+
+/** One meter's half of a founding preview, in the shape a fold takes. */
+export function foundingCostLines(
+  lines: readonly FoundingCost[],
+  meter: 'authority' | 'happiness',
+): FoundingCost[] {
+  return lines.filter((line) => line.meter === meter);
 }
 
 /** The empire's authority. The fold of `explainAuthority`, and nothing else. */

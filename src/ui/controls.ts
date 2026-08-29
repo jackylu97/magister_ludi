@@ -244,13 +244,14 @@ import {
   isProphet,
   plantHolySiteError,
   proclaimError,
+  prophetPrice,
   redraftError,
   ritePreview,
   riteCityTarget,
   riteError,
   riteUnitTarget,
 } from '../sim/religion';
-import { type ProclamationReport, proclaimPreview } from '../sim/religion';
+import { type ProclamationReport, type ProphetPrice, proclaimPreview } from '../sim/religion';
 import {
   type ReligionBeliefPool,
   type RiteId,
@@ -260,7 +261,13 @@ import {
   riteDef,
 } from '../sim/religionData';
 import { type ResearchReport, hasAbility, researchSince, researchSnapshot } from '../sim/tech';
-import { type CardClause, describeCard, statecraftBlocker, stripRefs } from '../sim/statecraft';
+import {
+  type CardClause,
+  describeCard,
+  slotOrderError,
+  statecraftBlocker,
+  stripRefs,
+} from '../sim/statecraft';
 import { highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
@@ -557,9 +564,29 @@ export interface ProphetRow {
   blocked: string | null;
   /** What it would do, in one line. Never `null` — a verb always has an answer. */
   says: string;
+  /**
+   * What it costs, in plain words — "Uses the prophet" or "Uses one charge".
+   *
+   * The *price* is the simulation's (`prophetPrice`) and only the wording is
+   * this file's, which is `proclaimSays`' bargain one field over: two of the
+   * four verbs end the piece outright (user, 2026-08-29) and a player deciding
+   * between them has to be told which, before spending the most expensive thing
+   * a faith buys.
+   */
+  cost: string;
   /** Redraft's two sub-rows, or absent. */
   pools?: ProphetPoolRow[];
 }
+
+/**
+ * The two prices a prophet's verb can carry, said in a first-time player's words
+ * (hard rule 7) — one table, so the sheet, the hover card and any surface after
+ * them read the same sentence.
+ */
+export const PROPHET_PRICE_WORD: Record<ProphetPrice, string> = {
+  whole: 'Uses the prophet',
+  charge: 'Uses one charge',
+};
 
 /**
  * What Proclaim does, in a first-time player's words (hard rule 7).
@@ -1096,6 +1123,72 @@ export function debtWarning(player: Player | undefined): string | null {
     return `⚠ Treasury below ${floor}: ${penalty}, and a unit is disbanded every turn.`;
   }
   return `⚠ Treasury in debt: ${penalty}.`;
+}
+
+/** Which decision End Turn pauses on, when there is one waiting to be made. */
+export type StatecraftPause = 'government' | 'order';
+
+/**
+ * A Statecraft decision the empire is *allowed* to defer, and which End Turn
+ * should nevertheless mention once before letting the turn go (user ruling,
+ * 2026-08-29).
+ *
+ * **This is interface gating and the simulation is untouched.**
+ * `statecraftBlocker` still hard-blocks exactly what it always did — a pending
+ * Order or Doctrine draft, decisions the empire *owes the game* — and a banked
+ * charter still deliberately does not block, because Entry XV makes adoption
+ * bankable and a blocker on it would delete the only reason banking exists. What
+ * was actually going wrong is quieter than a blocker: a charter or a freshly
+ * drafted Order can sit unclaimed for forty turns behind a badge nobody is
+ * looking at. So this is a **pause**, not a gate — one press of End Turn says
+ * the sentence, the next press ends the turn, and nothing the reducer can see
+ * has changed.
+ *
+ * Two answers, and **government wins when both are true**: swearing a charter
+ * rebuilds the slot spread wholesale (`adoptGovernmentAt`), so an Order slotted
+ * first is an Order slotted into a layout that is about to stop existing.
+ *
+ *   government   a charter is banked and unclaimed.
+ *   order        the seat holds an Order that is in no slot, and there is a slot
+ *                it would fit standing empty.
+ *
+ * The second is asked of `slotOrderError` rather than by walking the layout
+ * here, and that is the whole of why there is no new rule in this file: the
+ * question "could this card go in that slot" already has exactly one answer in
+ * the game — the one the `slotOrder` command is refused by — and it composes the
+ * five clauses (held, exists, not already slotted, free, type matches) this
+ * would otherwise have to restate. An empty slot carries no seal: a seal lives
+ * on the *card* in the slot (`SlottedOrder.sealedUntil`), so a slot with nothing
+ * in it is free by construction and there is nothing here to compare against the
+ * turn.
+ */
+export function statecraftPause(state: GameState, playerId: number): StatecraftPause | null {
+  const player = playerById(state, playerId);
+  if (!player) return null;
+  const sc = player.statecraft;
+  if (sc.pendingGovernment !== undefined) return 'government';
+  for (const owned of sc.orders) {
+    for (let index = 0; index < sc.slots.length; index++) {
+      if (slotOrderError(state, playerId, owned.id, index) === null) return 'order';
+    }
+  }
+  return null;
+}
+
+/**
+ * The line the pause says, in `focusBlocker`'s manicule voice.
+ *
+ * Both halves of the sentence are there on purpose. The *first* names the thing
+ * and the key that opens it, because a notice that only said "something is
+ * waiting" would send the player hunting; the *second* says what pressing the
+ * same button again will do, because a button that silently refused a press
+ * would read as broken. Plain words throughout (CLAUDE.md rule 7): a charter is
+ * sworn, an Order is put in a slot.
+ */
+export function statecraftPauseNotice(kind: StatecraftPause): string {
+  return kind === 'government'
+    ? '☞ A new government is available — press C to swear it, or End Turn again to go on.'
+    : '☞ A new Order is available — press C to put it in a slot, or End Turn again to go on.';
 }
 
 export interface GameControlsOptions {
@@ -1648,7 +1741,7 @@ export interface GameControls {
    * a row here and nothing in the sheet.
    */
   prophetRows(): ProphetRow[];
-  /** Spends one of the prophet's charges. `pool` is Redraft's, ignored by the rest. */
+  /** Takes one of the prophet's four acts. `pool` is Redraft's, ignored by the rest. */
   prophetAct(verb: ProphetVerb, pool?: ReligionBeliefPool): void;
   /** Renames this empire's religion. The Religion sheet's name field. */
   renameReligion(name: string): void;
@@ -3857,6 +3950,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const ended = !canOrder() ? `You have ended turn ${state.turn}` : null;
     const mine = foundedReligion(state, localPlayerId);
     const faith = mine?.name ?? 'your faith';
+    // The price is asked of the simulation, verb by verb, and never guessed
+    // here: founding and enhancing end the piece (user, 2026-08-29) and the
+    // other two are a charge, which is a rule `prophetPrice` states once.
+    const priced = (verb: ProphetVerb): string =>
+      PROPHET_PRICE_WORD[prophetPrice(state, localPlayerId, verb)];
     return [
       {
         verb: 'plantHolySite',
@@ -3867,27 +3965,34 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // is about to do rather than what it always does once one exists.
         name: mine === undefined ? 'Found religion' : 'Plant holy site',
         blocked: ended ?? plantHolySiteError(state, localPlayerId, unit.id),
+        // The sentence opens with the price rather than repeating "Spend a
+        // charge" at every row, because the price is now the thing that differs
+        // between them: founding here is the end of the piece and a second site
+        // is not.
         says:
           mine === undefined
-            ? 'Spend a charge: found your religion here, and raise its first holy site'
-            : `Spend a charge: raise a holy site of ${faith} on this hex`,
+            ? `${priced('plantHolySite')}: found your religion here, and raise its first holy site`
+            : `${priced('plantHolySite')}: raise a holy site of ${faith} on this hex`,
+        cost: priced('plantHolySite'),
       },
       {
         verb: 'enhanceReligion',
         name: 'Enhance',
         blocked: ended ?? enhanceReligionError(state, localPlayerId, unit.id),
-        says: `Spend a charge: draw an enhancer belief for ${faith}`,
+        says: `${priced('enhanceReligion')}: draw an enhancer belief for ${faith}`,
+        cost: priced('enhanceReligion'),
       },
       {
         verb: 'proclaim',
         name: 'Proclaim',
         blocked: ended ?? proclaimError(state, localPlayerId, unit.id),
-        // The one prophet row whose sentence is not "Spend a charge: …", and
+        // The one prophet row whose sentence does not open with its price, and
         // deliberately (user, 2026-08-28): the other three do one small legible
         // thing and this one converts a region, so the row is the *description*
         // and the charge it costs is said on the hover card beside it, exactly
         // as a rite's is. See `proclaimSays`.
         says: proclaimSays(state, unit.id),
+        cost: priced('proclaim'),
       },
       {
         verb: 'redraftBeliefs',
@@ -3897,7 +4002,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // to give back is refused on its own sub-row rather than greying the
         // whole verb.
         blocked: ended ?? redraftError(state, localPlayerId, unit.id, 'follower'),
-        says: `Spend a charge: give one of ${faith}'s pools back and draw again`,
+        says: `${priced('redraftBeliefs')}: give one of ${faith}'s pools back and draw again`,
+        cost: priced('redraftBeliefs'),
         pools: RELIGION_BELIEF_POOLS.map((pool) => ({
           pool,
           name: POOL_WORD[pool].name,
@@ -5025,6 +5131,37 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     return firstBlocker(getGame().state, localPlayerId, { skippedUnitIds });
   }
 
+  /**
+   * Which soft pauses this seat has already been shown, and on which turn.
+   *
+   * View state and nothing else — no command, no save, nothing the reducer can
+   * see (`skippedUnitIds`' shape exactly, one decision over). Keyed by the turn
+   * *and* the kind: a charter shown this turn does not excuse the Order drafted
+   * in the same resolution, and both are asked again next turn, because a
+   * decision still unmade a turn later is worth one more sentence.
+   *
+   * The turn is compared rather than cleared by a hook, for the reason every
+   * seal in this game is: a stamp that has to be reset by somebody is a stamp
+   * that goes stale the one time nobody does.
+   */
+  let pauseAckTurn = -1;
+  const pausesAcked = new Set<StatecraftPause>();
+
+  /**
+   * Has this pause been said already this turn? Records it if not, so the very
+   * next press of the same button goes through.
+   */
+  function acknowledgePause(kind: StatecraftPause): boolean {
+    const turn = getGame().state.turn;
+    if (pauseAckTurn !== turn) {
+      pauseAckTurn = turn;
+      pausesAcked.clear();
+    }
+    if (pausesAcked.has(kind)) return true;
+    pausesAcked.add(kind);
+    return false;
+  }
+
   /** Brings one cell into view, respecting the viewer's motion preference. */
   function panToCell(cell: CellRef): void {
     renderer.panToCells?.([cell], !prefersReducedMotion());
@@ -5169,6 +5306,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const blocker = endTurnBlocker();
       if (blocker) {
         focusBlocker(blocker);
+        return;
+      }
+      // And then the *soft* one, which is a pause rather than a gate: a banked
+      // charter or an Order sitting outside a slot it fits gets one sentence
+      // before the turn goes, and the very next press ends it. After the hard
+      // blockers, because a decision the empire owes the game outranks one it is
+      // allowed to defer; before `cancelHandOver`, because this press is not
+      // ending a turn and has no hand-over to overtake.
+      const pause = statecraftPause(getGame().state, localPlayerId);
+      if (pause !== null && !acknowledgePause(pause)) {
+        guide(statecraftPauseNotice(pause));
         return;
       }
     }

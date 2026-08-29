@@ -29,8 +29,10 @@ import {
   agesAdvanced,
   authorityOf,
   explainAuthority,
+  explainFoundingCost,
   explainHappiness,
   foldMeter,
+  foundingCostLines,
   growthFactor,
   growthStiflePercent,
   happinessDemand,
@@ -44,7 +46,14 @@ import {
 import { resourceEffects } from '../../src/sim/resourceData';
 import { makeRng } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, SCHEMA_VERSION, createUnit, newGame } from '../../src/sim/state';
+import {
+  type City,
+  type GameState,
+  SCHEMA_VERSION,
+  createUnit,
+  newGame,
+  playerById,
+} from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 
 /**
@@ -745,5 +754,99 @@ describe('the meters never gate anything', () => {
     });
     expect(result.ok).toBe(false);
     expect(JSON.stringify(state)).toBe(after);
+  });
+});
+
+/**
+ * The founding preview (user ruling, 2026-08-29: "better indicators for the
+ * authority/happiness cost of a new city ... mousing over a tile will show the
+ * happiness/authority cost of placing a city there").
+ *
+ * The claim under test is never the tuning — it is that the preview and the
+ * meters are **one reading**. So every case here asserts the preview's fold
+ * against what `explainAuthority`'s own prospect says, or against the rules
+ * table, and the card cases are there because a card is exactly what a second
+ * implementation would get wrong: a hand-rolled "+2, and 1 if coastal" in the
+ * interface would quote the printed price to an empire that had legislated a
+ * different one.
+ */
+describe('what founding a city here would cost', () => {
+  /** A tile beside open sea, so the site reads as a harbour. */
+  function coastalSite(state: GameState): Tile {
+    makeSea(state, 11, 4);
+    return at(state.map, 10, 4);
+  }
+
+  it('prices a plain inland site at the founded price and one citizen', () => {
+    const state = flatState();
+    foundCityAt(state, 0, at(state.map, 4, 4));
+
+    const lines = explainFoundingCost(state, 0, at(state.map, 10, 4));
+    expect(foldMeter(foundingCostLines(lines, 'authority'))).toBe(-WRIT.foundedCity);
+    // A town is founded at one citizen, and `crowdingFrom` is far above one — so
+    // the happiness half is a single line and there is no crowding in it.
+    expect(foldMeter(foundingCostLines(lines, 'happiness'))).toBe(-HAPPY.demandPerPop);
+    expect(foundingCostLines(lines, 'happiness')).toHaveLength(1);
+    expect(lines.every((line) => line.part === 'cost')).toBe(true);
+  });
+
+  it('reads a harbour as the discount it is, never as a surcharge', () => {
+    const state = flatState();
+    foundCityAt(state, 0, at(state.map, 4, 4));
+    const site = coastalSite(state);
+
+    const authority = foldMeter(foundingCostLines(explainFoundingCost(state, 0, site), 'authority'));
+    expect(authority).toBe(-WRIT.coastalCity);
+    // The rule *replaces* the founded price rather than adding to it, which is
+    // the one thing a preview written from the ledger's prose would invert.
+    expect(authority).toBeGreaterThan(-WRIT.foundedCity);
+  });
+
+  it('gives the very first city the capital\'s free ride', () => {
+    const state = flatState();
+    expect(capitalCityOf(state, 0)).toBeUndefined();
+
+    const lines = explainFoundingCost(state, 0, at(state.map, 4, 4));
+    expect(foldMeter(foundingCostLines(lines, 'authority'))).toBeCloseTo(-WRIT.capital, 10);
+    // Still a line, and still says why — a price of nothing is worth saying.
+    expect(foundingCostLines(lines, 'authority')[0]!.source).toContain('capital');
+    // The palace the first city hands over is deliberately *not* in the list: it
+    // is a fact about founding at all, identical on every hex, and this list is
+    // read by comparing hexes.
+    expect(lines.some((line) => line.source.includes('Palace'))).toBe(false);
+  });
+
+  it('follows the empire\'s own law rather than the printed price', () => {
+    const state = flatState();
+    foundCityAt(state, 0, at(state.map, 4, 4));
+    const site = coastalSite(state);
+    const printed = foldMeter(foundingCostLines(explainFoundingCost(state, 0, site), 'authority'));
+
+    // Thalassocracy shifts what a coastal town costs; the preview must move with
+    // it, through the same `cardMeterRule` call the meter makes.
+    playerById(state, 0)!.statecraft.doctrines.push('thalassocracy');
+    const legislated = foldMeter(
+      foundingCostLines(explainFoundingCost(state, 0, site), 'authority'),
+    );
+    expect(legislated).toBeGreaterThan(printed);
+
+    // And the happiness half's card, which is a surcharge on governing one more
+    // town at all — its own line, outside the demand factor.
+    playerById(state, 0)!.statecraft.doctrines.push('manifestOfTheSteppe');
+    const happiness = foundingCostLines(explainFoundingCost(state, 0, site), 'happiness');
+    expect(happiness).toHaveLength(2);
+    expect(lineFor(happiness, 'cost of governing')).toBeLessThan(0);
+  });
+
+  it('is the same line the meter itself would append', () => {
+    const state = flatState();
+    foundCityAt(state, 0, at(state.map, 4, 4));
+    for (const site of [at(state.map, 10, 4), coastalSite(state)]) {
+      const preview = foldMeter(foundingCostLines(explainFoundingCost(state, 0, site), 'authority'));
+      // `explainAuthority`'s prospect is the settler sheet's projection. One
+      // implementation, asked from two ends: the difference the projection makes
+      // *is* the preview's authority half.
+      expect(authorityOf(state, 0, { site }) - authorityOf(state, 0)).toBe(preview);
+    }
   });
 });
