@@ -1098,6 +1098,36 @@ export function queueTurns(
 }
 
 /**
+ * Each of this player's cities as things stand, by city id.
+ *
+ * The half of `buildingYieldDelta` that is not about the building. A delta is
+ * `cityYields` asked twice — once as things stand, once with the candidate
+ * counted — and the first of those two readings does not depend on the
+ * candidate at all. One caller asks about one building and never notices; the
+ * star chart asks about **every** building the tree unlocks and was taking that
+ * same reading forty-two times per city, which was most of what it cost to draw
+ * (user, 2026-08-29: "it gets laggier as the game goes on").
+ *
+ * The map is deliberately the *whole* baseline and not a summary: it holds the
+ * very `CityYields` `buildingYieldDelta` would have computed, from the same call
+ * with the same arguments, so handing it in changes the arithmetic in no way at
+ * all. It is a fact about one moment — build it inside the pass that uses it and
+ * throw it away, exactly as `tileOwnerField` and `zocField` are built and thrown
+ * away inside one sweep, for the same reason: a baseline that outlived its loop
+ * would be pricing against a city the state had moved past.
+ */
+export type CityBaselines = ReadonlyMap<number, CityYields>;
+
+export function cityBaselines(state: GameState, playerId: number): CityBaselines {
+  const baselines = new Map<number, CityYields>();
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    baselines.set(city.id, cityYields(state, city, [], city.queue[0]));
+  }
+  return baselines;
+}
+
+/**
  * What building this thing everywhere it is legal would add to the empire's
  * per-turn yields, right now.
  *
@@ -1110,11 +1140,18 @@ export function queueTurns(
  * is present-state (a library is worth more to a bigger city, and this is what
  * it would be worth today), and cities that already have the building
  * contribute nothing.
+ *
+ * `baselines` is the first of the two readings, hoisted. It is a parameter
+ * because a *screen* asks this question about forty buildings in a row and the
+ * "as things stand" half of the pair is the same answer every time — see
+ * `cityBaselines`. Handed in or taken here, it is the same call with the same
+ * arguments: the delta is still the subtraction of two folds of `cityYields`.
  */
 export function buildingYieldDelta(
   state: GameState,
   playerId: number,
   id: BuildingId,
+  baselines?: CityBaselines,
 ): CityYields {
   const total: CityYields = emptyCityYields();
   for (const city of state.cities) {
@@ -1125,7 +1162,7 @@ export function buildingYieldDelta(
     // reported as worth nothing. The pair is what makes it a delta: the same
     // question asked twice, with the candidate counted the second time.
     const toward = city.queue[0];
-    const now = cityYields(state, city, [], toward);
+    const now = baselines?.get(city.id) ?? cityYields(state, city, [], toward);
     const after = cityYields(state, city, [id], toward);
     // Every voice, off the key list rather than by hand: the fifth reading was
     // missing the day faith became a thing a building could pay (the shrine and

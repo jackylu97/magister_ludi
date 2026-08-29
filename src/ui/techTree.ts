@@ -91,8 +91,10 @@ import { improvementDef } from '../sim/improvementData';
 import { projectDef, projectRate } from '../sim/projectData';
 import { type GameState, type Player, hasEndedTurn } from '../sim/state';
 import {
+  type CityBaselines,
   availableTechs,
   buildingYieldDelta,
+  cityBaselines,
   dequeueResearchError,
   playerScience,
   prereqsMet,
@@ -493,6 +495,20 @@ interface Pass {
   rate: number;
   plan: readonly TechId[];
   ended: boolean;
+  /**
+   * Every city of this seat as things stand, filled in on the first ask.
+   *
+   * The unlock line under a star is `buildingYieldDelta`, which is `cityYields`
+   * asked twice per city — and the first of the two, "as things stand", is the
+   * same answer for every building in the sky. Hoisted, it is read once a render
+   * instead of forty-two times a city.
+   *
+   * Lazy rather than summed in `beginPass` because most renders never look at
+   * it: a repaint that carries the unlock lines over (see `unlocksFrom`) has
+   * nothing to price, and building a baseline for it would put a sweep of the
+   * empire back into the cheap path this pass exists to keep cheap.
+   */
+  baselines?: CityBaselines;
 }
 
 export function createTechTree(options: TechTreeOptions): TechTree {
@@ -564,6 +580,19 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    */
   function passNow(): Pass {
     return pass ?? beginPass();
+  }
+
+  /**
+   * The empire as things stand, priced once for the whole unlock sweep.
+   *
+   * `Pass.baselines`' one filler and one reader. The `??=` is what makes the
+   * claim exact: twenty-seven calls to `renderUnlocks` in a row see one map, and
+   * the render after this one — a different pass — builds its own.
+   */
+  function baselines(): CityBaselines {
+    const at = passNow();
+    at.baselines ??= cityBaselines(at.state, at.playerId);
+    return at.baselines;
   }
 
   /**
@@ -730,7 +759,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
       // Entry VIII: the actual computed delta, for the cities this player has
       // today. An empire with nowhere to build it says only what it costs.
-      const delta = buildingYieldDelta(state, playerId, building);
+      const delta = buildingYieldDelta(state, playerId, building, baselines());
       const parts = YIELD_GLYPHS.filter(([key]) => delta[key] !== 0).map(
         ([key, glyph]) => `${delta[key] > 0 ? '+' : ''}${delta[key]}${glyph}`,
       );
