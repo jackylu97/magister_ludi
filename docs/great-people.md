@@ -1,6 +1,6 @@
 # Great People and Triumphs — working doc
 
-(2026-08-27, first pass; nothing scheduled.) Companion to `docs/tech-tree-ages-2-5.md`
+(2026-08-27, first pass; nothing scheduled.) Companion to `docs/tech-tree.md`
 (where great people first appear, in the Age of Heroes), design-notes Entry III (history's
 half-remembered characters), Entry XVIII (windfall settlement — the seams a great person's
 act pays through) and `docs/religion.md` (the augur, which is the *template* for an agent;

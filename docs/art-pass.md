@@ -2,7 +2,7 @@
 
 Working doc (2026-08-26). Companion to `docs/design-notes.md` Entry VII (the study,
 hermetic not spooky; **light theme wins**; the flourish set), Entry X (the naming bible),
-`docs/mythic-sciences.md` (the tone arc, the canon-myth spine) and
+`docs/tech-tree.md` (the tone arc, the canon-myth spine) and
 `docs/design-specimen.html` (the type ramp and palette). Nothing here is scheduled until
 the Revisions section says so.
 

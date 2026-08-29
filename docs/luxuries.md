@@ -371,7 +371,7 @@ good.
 
 **The boats themselves pay +1🌾 +1🪙.** The water milestone shipped them at
 +1🌾 only — the milestone brief's figure rather than the Age-I design note's in
-`docs/tech-unlocks.md` — and the note said the gold was one number in
+`docs/tech-tree.md` — and the note said the gold was one number in
 `improvements.json` on the day it was wanted. That day was the religion pass
 (ledger Entry XXVIII): the row now reads `food: 1, gold: 1`, which is the
 ratified text, and **Lord of the Sea** (the 🌊 water pantheon belief) rides on

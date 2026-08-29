@@ -151,7 +151,7 @@ Game-enders. Few, and every one rare-or-uncommon; commons here would be lost in 
 
 ## What the tree pass has to bring before some of these are real
 
-Observatory, Manufactory, the Great Work project (`docs/tech-tree-ages-2-5.md`), a war state
+Observatory, Manufactory, the Great Work project (`docs/tech-tree.md`), a war state
 (Drums of War, Pax), sacking (Sanctuary). Everything else is an existing shape or a named
 NEW one that is generic enough to be worth adding — the same bar the beliefs pass set.
 

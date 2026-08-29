@@ -8,7 +8,7 @@ This is the list to fill it. **Built 2026-08-27** (design-notes Entry XXXIII): e
 Iron Working, five on Theology); the Æra V five wait on Age V nodes. Deferred halves are
 annotated on their rows: Zeus's conditional percentage, the two built-here promotions,
 Notre-Dame's cathedrals, the Forbidden City's office (which slot kind — yours to rule).
-Hagia Sophia calls an augur until a prophet exists. Companions: `docs/tech-tree-ages-2-5.md` (the homes), `docs/great-people.md` (renown
+Hagia Sophia calls an augur until a prophet exists. Companions: `docs/tech-tree.md` (the homes), `docs/great-people.md` (renown
 +10 on completion, the Triumph *A Marvel Raised*), `docs/art-pass.md` W3 (the world's one
 permitted spectacle), design-notes Entry VI (the Bead Race — a wonder is a feat).
 

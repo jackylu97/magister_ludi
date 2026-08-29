@@ -207,4 +207,4 @@ it that are not yours, and a scout is how you find out.
 - **AI** — after every major system above exists.
 - **Win conditions / beads (M11)** — conquest suffices for playtests.
 - Netcode, promotions/XP, indirect fire, chop, Sailing/water, trade routes, wonders &
-  great people (Age-of-Heroes content), the five-age re-banding (docs/ages.md holds it).
+  great people (Age-of-Heroes content), the five-age re-banding (docs/tech-tree.md holds it).

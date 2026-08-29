@@ -2,7 +2,7 @@
 
 Working doc (2026-08-27), first draft for the user to cut. Companion to
 `docs/statecraft-cards.md` (the ratified Æra I–II content: Chiefdom / Gov I / Gov II / Gov III
-pools, three Doctrine pools, nine governments), `docs/tech-tree-ages-2-5.md` (the systems each
+pools, three Doctrine pools, nine governments), `docs/tech-tree.md` (the systems each
 age brings — the homes below assume it), `docs/wonders.md` and `docs/great-people.md` (the
 renown economy the later cards plug into). **Nothing here is scheduled until the Revisions
 section says so.** Numbers are first guesses in the pacing test's hands.
@@ -197,7 +197,7 @@ pool. Slots (M/E/W). Signatures follow the "no flat +X%" rule.
 
 | System | First card that needs it | Age |
 |---|---|---|
-| **Trade routes** (`docs/tech-tree-ages-2-5.md`, Currency → The Silk Road) | Trade Wardens, Harbourmasters, The Factor Houses, The Silk Exchange, The Sea Charter, Mare Nostrum | III–IV |
+| **Trade routes** (`docs/tech-tree.md`, Currency → The Silk Road) | Trade Wardens, Harbourmasters, The Factor Houses, The Silk Exchange, The Sea Charter, Mare Nostrum | III–IV |
 | **The rally city / muster** (`setRallyCity`, `spawnTileFor` asks it) | Muster | IV |
 | **`periodicSpawn`** (a calendar spawn through `realiseItem`) | Levies, The Levée en Masse | III, V |
 | **Conditional combat percentage** (the Zeus gap: `combatPercent` under a `CombatCondition`) | Decisive Blows, Rocket Arrows | III, V |

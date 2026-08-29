@@ -2,7 +2,7 @@
 
 Working doc (2026-08-27), first draft for the user's Revisions. The user's rules (verbatim,
 2026-08-27) are the spine; everything else is a proposal in the game's own vocabulary.
-Companions: `docs/tech-tree-ages-2-5.md` (Currency → The Royal Road → The Silk Road),
+Companions: `docs/tech-tree.md` (Currency → The Royal Road → The Silk Road),
 `docs/wonders.md` (Colossus, Machu Picchu, the Great Lighthouse carry *(trade routes later)*
 clauses), `docs/statecraft-ages-3-5.md` (⚓ The Tide — six cards wait on this),
 design-notes Entry XXV (`stepCost(from, to)` — built for roads before roads existed).

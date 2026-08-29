@@ -4,7 +4,7 @@ Working doc (2026-08-27), first draft for the user's Revisions. Builds on `docs/
 (v1: the pantheon and the augur — **shipped**, ledger Entry XXVIII — and its **founder** and
 **enhancer** pools and the 2026-08-26 scope ruling, which this doc keeps: the follower beliefs
 below are v1's founder pool's *follower* half, and the enhancer pool is v1's) and on `docs/trade.md` (roads and routes
-carry belief). Companions: `docs/tech-tree-ages-2-5.md` (The High Temple, Theology),
+carry belief). Companions: `docs/tech-tree.md` (The High Temple, Theology),
 `docs/orders-and-doctrines.md` (the 🕯 Procession line and the two Doctrines that wait on this).
 **Nothing here is scheduled until the Revisions section says so.**
 
