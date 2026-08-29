@@ -3843,3 +3843,40 @@ plates over every known city and holy site, rings on the towns that follow, the 
 reading "Found religion", the bomb as a lump; a routed caravan faded and deselected, its sheet
 offering nothing but the auto-resend; a greyed action's reason on hover in the game's own card,
 never inline and never the browser's tooltip; the last import cycle gone.
+
+## Entry XLV — The master list's second cut, folded (**built** 2026-08-29)
+
+The user's edits to `docs/orders-and-doctrines.md` (2026-08-28) went in as data, with four
+reworks and one new card. The governments' fifteen slot triples are the master list's;
+Æra I–III numbers moved (Field Surgeons 10, Pilgrim Roads 1 faith and +1 happiness per 50
+banked, Levies every 20, Lyceum 20, Toleration −10%, and the rest); March Discipline and
+Skirmishers' Creed are unupgradable and The Standing Levy (II) is gone.
+
+**The reworks.** *Bread and Circuses* is +3 happiness per city while authority is positive
+and −1 gold per city — a new empire condition, `authorityPositive`, read inside the same
+`conditionDepth` cut as the rest. *The Standing Levy* is a free melee unit in the capital every
+ten turns: `periodicMuster`, paid by a `muster` phase between `religion` and `renown` — the
+cadence is an absolute-turn comparison like every other clock in the game. *Master of Maps*
+loses −10% for −2 combat strength, a `combatLine` in the flat ledger (Entry XXXVII); *The
+Legion* (Government I, ⚒) is +1 movement, +1 strength and +15% production toward melee.
+*Hegemony* and *Client Kings* now say "one less authority": a `meterRule` **delta** rather
+than a set, folded in `explainAuthority` over the base and floored at one, so the two stack to
+a captured city costing one. *Wolf-Mother's Pact* keeps the wild off the holder's civilians
+too — the thief pass skips a passive seat. *Cuius Regio*'s extra charge is scoped to augurs
+trained in a city that follows your religion (`unitStat.scope`, judged at the birth hex).
+
+**Found on the way.** The Sultanate's "units cost −20%" was a `productionBonus` of −20 — a
+negative bonus toward units, which made them *slower* since the card landed. It is +25 now (a
+fifth off the price is a quarter more hammers). The sign of a production bonus is not the sign
+of a cost, and a future cost-percent line belongs in `explainUnitCost`'s fold, not here.
+
+**Deferred on the rows, for the user:** Cuius Regio's "rites 30% more effective" (nine grant
+fields and three timed blessings, no single seam); Triumphs' +5 renown (`renown.ts` imports
+`statecraft.ts`; a report-and-settle at the caller is the way in); Absolutism's wildcard slot;
+the Founders' Road amphitheatre (no such building until the tree pass). Two places the doc and
+the data still disagree, unresolved on purpose: Garrison State's cap (+3 per unit under a
+two-helping `max` prints "at most +6"; the doc says +4) and Foreign Quarters (the doc says
+borders touching; `isFrontierCity` is foreign ground within three hexes). Chiefdom is 1/1/1
+in data and 1/1/0 in the doc, from before this cut.
+
+---
