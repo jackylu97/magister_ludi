@@ -30,6 +30,8 @@ import {
   type CityYields,
   borderGrowth,
   cityStageSums,
+  type CityQuote,
+  cityQuote,
   cityYields,
   citizenFocus,
   explainBuildingPreview,
@@ -38,7 +40,6 @@ import {
   growthSurplus,
   growthThreshold,
   hasResource,
-  cityYieldPercents,
   productionModifiers,
   queueItemCost,
   queueItemName,
@@ -1052,12 +1053,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * modifier that does nothing is not a modifier, and a granary in a city whose
    * queue is empty is not a hammer bonus.
    */
-  function renderYields(city: City): HTMLElement {
+  function renderYields(city: City, quote: CityQuote): HTMLElement {
     const { state } = getGame();
     // The rate for what is actually being built — the same call `collectYields`
     // banks with, so the ⚙ chip is the number the basket will receive.
     const front = city.queue[0];
-    const yields = cityYields(state, city, [], front);
+    const yields = cityYields(state, city, [], front, quote);
     const box = element('div', 'city-yields-box');
     const row = element('div', 'city-yields');
     const entries: [YieldKey, string, number][] = [
@@ -1131,8 +1132,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // twice. A player reading downward sees the flats, then every percentage
     // with its source beside it, and the chip at the top of the screen is where
     // the multiplied figure lives.
-    const sums = cityStageSums(state, city, front);
-    const percents = cityYieldPercents(state, city);
+    const sums = cityStageSums(state, city, front, [], quote.percents);
+    const percents = quote.percents;
     const hammers = productionModifiers(state, city, front);
     for (const stage of MODIFIER_STAGES) {
       const sources: [string, string, boolean][] = [];
@@ -1217,12 +1218,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * the gross food it harvests, because the gross number is the one that makes
    * a starving city look healthy.
    */
-  function renderGrowth(city: City): HTMLElement {
+  function renderGrowth(city: City, quote: CityQuote): HTMLElement {
     // `growthSurplus`, not the subtraction: since M10 what a city banks is the
     // harvest less upkeep, less a settler at the front of the queue, less
     // whatever a happiness deficit takes — and the panel must quote the number
     // the basket will actually receive.
-    const surplus = growthSurplus(getGame().state, city);
+    const surplus = growthSurplus(
+      getGame().state,
+      city,
+      cityYields(getGame().state, city, [], undefined, quote),
+    );
     const threshold = growthThreshold(city.population);
     const turns = turnsToFill(threshold - city.foodBasket, surplus);
 
@@ -1290,8 +1295,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * gold is the way to hurry it. It is disabled with the reason on it while the
    * writ bars purchases, which is the same freeze the line above just reported.
    */
-  function renderBorders(city: City, locked: boolean): HTMLElement {
-    const growth = borderGrowth(getGame().state, city);
+  function renderBorders(city: City, locked: boolean, quote: CityQuote): HTMLElement {
+    const growth = borderGrowth(
+      getGame().state,
+      city,
+      cityYields(getGame().state, city, [], undefined, quote),
+    );
 
     const box = element('div', 'city-progress');
     const label = element('div', 'city-progress-label');
@@ -1412,10 +1421,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return track;
   }
 
-  function renderProduction(city: City): HTMLElement {
+  function renderProduction(city: City, quote: CityQuote): HTMLElement {
     const box = element('div', 'city-progress');
     const item = city.queue[0];
-    const perTurn = cityYields(getGame().state, city).production;
+    const perTurn = cityYields(getGame().state, city, [], undefined, quote).production;
 
     const label = element('div', 'city-progress-label');
     label.append(element('span', undefined, 'Production'));
@@ -1429,7 +1438,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // The front of the queue is index 0, which is the one position the banked
     // hammers belong to — the same call every other estimate in this panel
     // makes, so the bar and the rows can never round differently.
-    const turns = turnsToBuild(getGame().state, city, item, 0);
+    const turns = turnsToBuild(getGame().state, city, item, 0, quote);
     label.append(
       element(
         'span',
@@ -1455,7 +1464,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * needs: remove, and move up. "Move up" repeated is "move to the front", and
    * a drag-and-drop list for three items would be more code than the panel.
    */
-  function renderQueue(city: City, locked: boolean): HTMLElement {
+  function renderQueue(city: City, locked: boolean, quote: CityQuote): HTMLElement {
     const box = element('div', 'city-queue');
     box.append(element('h3', undefined, 'Queue'));
     if (city.queue.length === 0) {
@@ -1482,7 +1491,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         element(
           'span',
           'city-queue-turns',
-          turnsLabel(turnsToBuild(getGame().state, city, item, index)),
+          turnsLabel(turnsToBuild(getGame().state, city, item, index, quote)),
         ),
       );
       // The name is the anchor rather than the whole row: the row's last two
@@ -1550,7 +1559,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * own. The tag is greyed with `purchaseError`'s sentence, exactly as the build
    * button is greyed with `buildError`'s.
    */
-  function renderBuildables(city: City, locked: boolean): HTMLElement {
+  function renderBuildables(city: City, locked: boolean, quote: CityQuote): HTMLElement {
     const { state } = getGame();
     const box = element('div', 'city-buildables');
     box.append(element('h3', undefined, 'Add to queue'));
@@ -1639,7 +1648,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       } else {
         setYieldText(
           price,
-          `${cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'unit', id }, city.queue.length))}`,
+          `${cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'unit', id }, city.queue.length, quote))}`,
         );
       }
       button.append(price);
@@ -1702,7 +1711,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       } else {
         setYieldText(
           costSpan,
-          `${def.cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length))}`,
+          `${def.cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length, quote))}`,
         );
         // What this town would gain today — Orders, beliefs, wonders, whatever
         // in this empire's law wakes on this row (user, 2026-08-28: a barracks
@@ -1710,7 +1719,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         // the lines the hover card lists below, never re-derived — a building
         // that pays nothing of its own and wakes no card prints the house dash,
         // exactly as `turnsLabel` prints one for an unanswerable estimate.
-        const foldedPreview = foldBuildingPreview(explainBuildingPreview(state, city, id));
+        const foldedPreview = foldBuildingPreview(
+          explainBuildingPreview(state, city, id, quote),
+        );
         costSpan.append(
           element('span', 'city-buildable-preview', previewFigures(foldedPreview) || '—'),
         );
@@ -2078,7 +2089,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     header.append(close);
     container.append(header);
 
-    container.append(renderYields(city));
+    // One photograph of the town, spent inside this render and never kept —
+    // see `CityQuote`. Everything below reads the sim fresh through it; nothing
+    // survives to the next render, which is what keeps a slotted Order, a rite
+    // or a religion arriving in the town from leaving a stale panel behind.
+    const quote = cityQuote(state, city);
+
+    container.append(renderYields(city, quote));
     container.append(renderCitizens(city));
     // Directly under the citizens' row, because it is a note about *that* row:
     // why those hexes and not the ones the town worked last turn.
@@ -2088,22 +2105,22 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // absent until something presses. See `renderFollowers`.
     const faith = renderFollowers(city);
     if (faith) container.append(faith);
-    container.append(renderGrowth(city));
-    container.append(renderProduction(city));
+    container.append(renderGrowth(city, quote));
+    container.append(renderProduction(city, quote));
     // After production, because the two food/hammer baskets are what a player
     // reads first and territory is the slower clock underneath them.
-    container.append(renderBorders(city, locked));
+    container.append(renderBorders(city, locked, quote));
     // Beside borders and ahead of the queue: what the town is worth in a fight
     // is a standing fact about it, not a plan a player is editing.
     container.append(renderDefense(city));
-    container.append(renderQueue(city, locked));
+    container.append(renderQueue(city, locked, quote));
     const built = renderBuilt(city);
     if (built) container.append(built);
     // Under the buildings, because a route's slots are a fold over them — see
     // `renderRoutes`.
     const routes = renderRoutes(city);
     if (routes) container.append(routes);
-    container.append(renderBuildables(city, locked));
+    container.append(renderBuildables(city, locked, quote));
 
     if (locked) {
       container.append(

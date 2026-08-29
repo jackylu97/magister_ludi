@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildingDef } from '../../src/sim/buildingData';
+import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   advanceProduction,
@@ -9,8 +9,11 @@ import {
   CENTRE_SOURCE,
   centreYield,
   cityTile,
+  cityQuote,
+  cityYieldPercents,
   cityYields,
   collectYields,
+  empirePercents,
   expandBorders,
   explainCentreYield,
   explainBuildingPreview,
@@ -72,7 +75,7 @@ import {
 } from '../../src/sim/state';
 import { chopBaseFor } from '../../src/sim/improvements';
 import { firstBlocker } from '../../src/ui/turnBlockers';
-import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
+import { TECH_IDS, UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { CITY_YIELD_KEYS, RESOURCE_IDS, resourceYield } from '../../src/sim/resourceData';
 import {
   FEATURE_IDS,
@@ -83,6 +86,7 @@ import {
 } from '../../src/sim/terrainData';
 import { beliefDef } from '../../src/sim/religionData';
 import { emptyTurnReport, runEndOfTurn } from '../../src/sim/turn';
+import { PROJECT_IDS } from '../../src/sim/projectData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -2721,6 +2725,140 @@ describe('the reveal gate, in a city', () => {
  * one of the six stops calling it, and the list below is the register — adding a
  * mutation means adding a line here.
  */
+describe('the hoisted city quote', () => {
+  /**
+   * A town with something in every one of `cityQuote`'s buckets — buildings that
+   * pay, a seat holding two cards that *narrow* their hammers, and a queue — so
+   * that an equivalence below is a claim about the whole fold rather than about
+   * a desert with nothing in it.
+   *
+   * `theLegion` and `theEncyclopaedia` are the two rows that make this test
+   * worth writing: they put hammers behind a `modelClass` and behind a
+   * `buildingCategory` respectively, so what `cityYields` answers is a fact
+   * about the *item* and not merely about its category. A hoist keyed on the
+   * category would pass every other row in the game and fail these two.
+   */
+  function quotedTown(): { state: GameState; city: City } {
+    const state = flatState(20, 16, 'grassland');
+    const city = plant(state, 0, 9, 8);
+    city.population = 12;
+    const player = state.players[0]!;
+    player.techsResearched = [...TECH_IDS];
+    player.statecraft.orders = [{ id: 'theLegion', level: 1 }];
+    player.statecraft.slots = [{ card: 'theLegion', sealedUntil: 0 }];
+    player.statecraft.doctrines = ['theEncyclopaedia'];
+    city.buildings = ['granary', 'barracks', 'library', 'monument', 'workshop', 'watermill'];
+    city.queue = [{ kind: 'unit', id: 'warrior' }];
+    city.hammerBasket = 3;
+    assignCitizens(state, city);
+    return { state, city };
+  }
+
+  // The fixture's own claim, made first so the three equivalences below cannot
+  // pass by being asked of a town where every row happens to price the same.
+  it('is a town where the row, not its category, decides the rate', () => {
+    const { state, city } = quotedTown();
+    // The Legion narrows by silhouette: a melee row carries a modifier a ranged
+    // row of the same category does not.
+    const melee = productionModifiers(state, city, { kind: 'unit', id: 'warrior' });
+    const ranged = productionModifiers(state, city, { kind: 'unit', id: 'archer' });
+    expect(melee.map((line) => line.source)).toContain('Order · The Legion');
+    expect(ranged.map((line) => line.source)).not.toContain('Order · The Legion');
+    // And The Encyclopaedia narrows by what a building is *for*, all the way
+    // through to the printed figure.
+    expect(cityYields(state, city, [], { kind: 'building', id: 'library' }).production)
+      .toBeGreaterThan(cityYields(state, city, [], { kind: 'building', id: 'granary' }).production);
+  });
+
+  /** Every row this game can price, in the order the build list walks them. */
+  function everyItem(): QueueItem[] {
+    const items: QueueItem[] = [];
+    for (const id of UNIT_TYPE_IDS) items.push({ kind: 'unit', id });
+    for (const id of BUILDING_IDS) items.push({ kind: 'building', id });
+    for (const id of PROJECT_IDS) items.push({ kind: 'project', id });
+    return items;
+  }
+
+  // The claim the whole hoist rests on, and it is deliberately made of *every*
+  // row rather than of one per category: a quote is the half of `cityYields`'
+  // ingredients the item cannot change, so handing one in must not move a single
+  // figure — including on the two cards above, which narrow to one silhouette
+  // and to one building category.
+  it('answers exactly as the unhoisted fold does, for every row in the game', () => {
+    const { state, city } = quotedTown();
+    const quote = cityQuote(state, city);
+    for (const item of everyItem()) {
+      expect(`${item.kind}:${item.id} yields`).toBe(
+        JSON.stringify(cityYields(state, city, [], item, quote)) ===
+          JSON.stringify(cityYields(state, city, [], item))
+          ? `${item.kind}:${item.id} yields`
+          : `${item.kind}:${item.id} drifted`,
+      );
+    }
+    // And the reading with nothing at the front, which is what the growth line,
+    // the borders line and the progress rate all ask for.
+    expect(cityYields(state, city, [], undefined, quote)).toEqual(cityYields(state, city));
+  });
+
+  it('leaves every build estimate where it was, at the front and behind it', () => {
+    const { state, city } = quotedTown();
+    const quote = cityQuote(state, city);
+    for (const item of everyItem()) {
+      for (const index of [0, 1, city.queue.length]) {
+        expect(`${item.kind}:${item.id}@${index}`).toBe(
+          turnsToBuild(state, city, item, index, quote) ===
+            turnsToBuild(state, city, item, index)
+            ? `${item.kind}:${item.id}@${index}`
+            : `${item.kind}:${item.id}@${index} drifted`,
+        );
+      }
+    }
+  });
+
+  // The preview's left-hand side is the town as it stands, which is the same
+  // answer for every candidate; its right-hand side is a ghost, which is not.
+  // Both halves are checked by comparing the whole labelled list, because a
+  // reconciliation line that moved would be exactly the failure a hoist causes.
+  it('leaves every building preview line where it was', () => {
+    const { state, city } = quotedTown();
+    const quote = cityQuote(state, city);
+    for (const id of BUILDING_IDS) {
+      expect(`${id} preview`).toBe(
+        JSON.stringify(explainBuildingPreview(state, city, id, quote)) ===
+          JSON.stringify(explainBuildingPreview(state, city, id))
+          ? `${id} preview`
+          : `${id} preview drifted`,
+      );
+    }
+  });
+
+  // `empirePercents` is lent to a *ghost* town by `explainBuildingPreview`, and
+  // that is exact rather than approximate for one reason only: the meters sweep
+  // `state.cities`, and a shallow copy with one more building in its `buildings`
+  // array is not in that list. Pinned, because the day a meter reads a city
+  // object handed to it instead is the day every preview quietly gains a tier.
+  it('is the same empire half for a town and for a ghost of it', () => {
+    const { state, city } = quotedTown();
+    const ghost: City = { ...city, buildings: [...city.buildings, 'market'] };
+    expect(empirePercents(state, ghost.ownerId)).toEqual(empirePercents(state, city.ownerId));
+    expect(cityYieldPercents(state, ghost)).toEqual(
+      cityYieldPercents(state, ghost, empirePercents(state, city.ownerId)),
+    );
+  });
+
+  it('splices the empire lines back where the panel prints them', () => {
+    const { state, city } = quotedTown();
+    // Bankrupt, so the arrears lines at the foot are non-empty and the order
+    // claim is about a list with both ends filled.
+    state.players[0]!.gold = -50;
+    const empire = empirePercents(state, city.ownerId);
+    expect(empire.arrears.length).toBeGreaterThan(0);
+    const list = cityYieldPercents(state, city);
+    expect(list.slice(0, empire.meters.length)).toEqual(empire.meters);
+    expect(list.slice(list.length - empire.arrears.length)).toEqual(empire.arrears);
+  });
+});
+
 describe('the mid-turn refresh register', () => {
   /**
    * The simulation's own text. Read through Vite's raw glob rather than through

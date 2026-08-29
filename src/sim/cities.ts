@@ -1926,17 +1926,30 @@ export function foldBuildingPreview(lines: readonly BuildingPreviewLine[]): City
  * out: a barracks previewed with `toward` pointed at itself would report the
  * share of hammers it puts behind *units* as zero, which is true and useless.
  * `turnsToBuild` is where that question already lives.
+ *
+ * `quote` is `turnsToBuild`'s, for the same caller and the same reason: the
+ * build list previews every unbuilt building in one town, and the *left* half of
+ * every one of those diffs — what the town makes today — is one answer asked
+ * thirty times. The ghost's half cannot be hoisted (a candidate is exactly what
+ * changes it) and is not. See `CityQuote`.
  */
 export function explainBuildingPreview(
   state: GameState,
   city: City,
   id: BuildingId,
+  quote?: CityQuote,
 ): BuildingPreviewLine[] {
   if (city.buildings.includes(id)) return [];
   // The ghost. Shallow on purpose: every other field is shared with the real
   // town, and `buildings` is the one array that is replaced rather than pushed
   // to, so nothing downstream can write through it into `state`.
   const ghost: City = { ...city, buildings: [...city.buildings, id] };
+  // The one thing the two readings below **cannot** disagree about, hoisted so
+  // they are not asked for it twice: the meters sweep `state.cities`, the ghost
+  // is not in that list, and a building the town has not built yet has changed
+  // nothing about the empire's mood. Exact, not an approximation — see
+  // `empirePercents`.
+  const empire = quote?.empire ?? empirePercents(state, city.ownerId);
 
   const lines: BuildingPreviewLine[] = [];
 
@@ -2004,8 +2017,8 @@ export function explainBuildingPreview(
   //    Appended only when it is not zero, so a town with no percentages at all
   //    reads a list of nothing but named reasons.
   const gain = emptyCityYields();
-  const after = cityYields(state, ghost);
-  const now = cityYields(state, city);
+  const after = cityYields(state, ghost, [], undefined, cityQuote(state, ghost, [], empire));
+  const now = cityYields(state, city, [], undefined, quote);
   for (const key of CITY_YIELD_KEYS) gain[key] = after[key] - now[key];
   const named = foldBuildingPreview(lines);
   const rest = emptyPreviewLine('Multipliers and rounding');
@@ -2197,6 +2210,74 @@ export interface CityYieldPercent {
 }
 
 /**
+ * The percentage lines a city inherits from its **empire** rather than earns for
+ * itself: the two meter tiers, and the arrears penalty on a treasury under
+ * water.
+ *
+ * A pure function of `(state, playerId)` — nothing about the town is consulted,
+ * which is exactly what makes it hoistable and, more usefully, what makes it
+ * *shareable between a town and a ghost of it* (`explainBuildingPreview`): the
+ * meters sweep `state.cities`, and a shallow copy with one more building in its
+ * `buildings` array is not in that list, so the empire's half of a ghost's
+ * percentages is the empire's half of the real town's by construction.
+ *
+ * Two lists rather than one because they are not adjacent: the meters lead
+ * `cityYieldPercents` and arrears closes it, with the town's own luxuries and
+ * cards between. Order there is presentation and the panel prints it, so the
+ * split keeps the seam invisible.
+ */
+export interface EmpirePercents {
+  /** The two meter tiers, in `meterEffects` order — the head of the list. */
+  meters: CityYieldPercent[];
+  /** Arrears, or empty on a solvent treasury — the foot of the list. */
+  arrears: CityYieldPercent[];
+}
+
+export function empirePercents(state: GameState, playerId: number): EmpirePercents {
+  const meters: CityYieldPercent[] = [];
+  for (const effect of meterEffects(state, playerId)) {
+    if (effect.growth) continue;
+    for (const id of effect.yields) {
+      meters.push({
+        source: effect.meter === 'happiness' ? 'Happiness' : 'Authority',
+        yield: id,
+        percent: effect.percent,
+        // A tier is the empire leaning on every city at once: the global stage,
+        // whichever meter it came from (Entry XVII.4, and XVII.5's whole point —
+        // the meters are what the global stage is *for*).
+        stage: 'empire',
+        meter: effect.meter,
+      });
+    }
+  }
+  // **Arrears** (the maintenance ruling, 2026-08-28). A treasury under water
+  // costs the empire a quarter of its science and its culture, and it joins
+  // `cityYieldPercents` at the **empire** stage rather than being a
+  // multiplication somewhere downstream — which is the whole of Entry XVII and
+  // the whole reason the ruling asked for it there: −25% arrears on top of a
+  // −15% authority tier is −40% of base, once, and never ×0.75 × 0.85.
+  //
+  // Science and culture and nothing else. Gold is untouched on purpose — an
+  // empire in debt must be able to earn its way out — and so are food and
+  // hammers, because starving a bankrupt empire's cities is a spiral rather than
+  // a penalty. What it taxes is the two things an empire in trouble was
+  // *saving* for.
+  const arrears: CityYieldPercent[] = [];
+  const owner = playerById(state, playerId);
+  if (owner && treasuryInDebt(owner) && RULES.upkeep.debtPercent !== 0) {
+    for (const key of ['science', 'culture'] as const) {
+      arrears.push({
+        source: 'Treasury in debt',
+        yield: key,
+        percent: RULES.upkeep.debtPercent,
+        stage: 'empire',
+      });
+    }
+  }
+  return { meters, arrears };
+}
+
+/**
  * Everything currently multiplying this city's yields: the two meters first, in
  * `meterEffects` order, then the empire's luxuries in resource-table order.
  *
@@ -2210,23 +2291,12 @@ export interface CityYieldPercent {
  * different rule with a different consumer — `growthSurplus`, which reads it
  * from `meterEffects` directly.
  */
-export function cityYieldPercents(state: GameState, city: City): CityYieldPercent[] {
-  const list: CityYieldPercent[] = [];
-  for (const effect of meterEffects(state, city.ownerId)) {
-    if (effect.growth) continue;
-    for (const id of effect.yields) {
-      list.push({
-        source: effect.meter === 'happiness' ? 'Happiness' : 'Authority',
-        yield: id,
-        percent: effect.percent,
-        // A tier is the empire leaning on every city at once: the global stage,
-        // whichever meter it came from (Entry XVII.4, and XVII.5's whole point —
-        // the meters are what the global stage is *for*).
-        stage: 'empire',
-        meter: effect.meter,
-      });
-    }
-  }
+export function cityYieldPercents(
+  state: GameState,
+  city: City,
+  empire: EmpirePercents = empirePercents(state, city.ownerId),
+): CityYieldPercent[] {
+  const list: CityYieldPercent[] = [...empire.meters];
   for (const line of resourcePercentYields(state, city)) {
     if (line.percent === 0) continue;
     list.push({
@@ -2245,29 +2315,9 @@ export function cityYieldPercents(state: GameState, city: City): CityYieldPercen
     if (line.percent === 0) continue;
     list.push({ source: line.source, yield: line.yield, percent: line.percent, stage: line.stage });
   }
-  // **Arrears** (the maintenance ruling, 2026-08-28). A treasury under water
-  // costs the empire a quarter of its science and its culture, and it joins
-  // *this* list at the **empire** stage rather than being a multiplication
-  // somewhere downstream — which is the whole of Entry XVII and the whole reason
-  // the ruling asked for it here: −25% arrears on top of a −15% authority tier
-  // is −40% of base, once, and never ×0.75 × 0.85.
-  //
-  // Science and culture and nothing else. Gold is untouched on purpose — an
-  // empire in debt must be able to earn its way out — and so are food and
-  // hammers, because starving a bankrupt empire's cities is a spiral rather than
-  // a penalty. What it taxes is the two things an empire in trouble was
-  // *saving* for.
-  const owner = playerById(state, city.ownerId);
-  if (owner && treasuryInDebt(owner) && RULES.upkeep.debtPercent !== 0) {
-    for (const key of ['science', 'culture'] as const) {
-      list.push({
-        source: 'Treasury in debt',
-        yield: key,
-        percent: RULES.upkeep.debtPercent,
-        stage: 'empire',
-      });
-    }
-  }
+  // And the arrears, at the foot — see `empirePercents`, which is where the two
+  // empire-scale lines live now that a screen may want them hoisted.
+  list.push(...empire.arrears);
   return list;
 }
 
@@ -2297,14 +2347,19 @@ export function stageSumsFor(
  * carries whatever the buildings and seams put behind *this particular build*
  * (`productionModifiers`), so the stage sums are a fact about the pair (city,
  * item) exactly as `cityYields` is.
+ *
+ * `percents` may be handed in by a caller that already has the list — a screen
+ * pricing forty rows against one town (`CityQuote`). It is the same call this
+ * would make and it is *not* a fact about the item, which is the whole reason it
+ * can be hoisted out of a loop over items; see `cityQuote` for its lifetime.
  */
 export function cityStageSums(
   state: GameState,
   city: City,
   toward?: QueueItem | null,
   hypothetical: readonly BuildingId[] = [],
+  percents: readonly CityYieldPercent[] = cityYieldPercents(state, city),
 ): Record<CityYieldKey, StageSums> {
-  const percents = cityYieldPercents(state, city);
   const hammers = modifierPercent(productionModifiers(state, city, toward, hypothetical));
   // The Great Warring Tribes' first clause, and the only place a card takes a
   // *meter line* off the table rather than adding one. It is asked here because
@@ -2363,6 +2418,12 @@ export function cityStageSums(
  * the top bar's totals — and costs nothing, because a city with no such building
  * has one rate either way.
  *
+ * Which is why the *body* of this function is one multiplication and the flats
+ * live next door in `cityQuote`: everything above the staging is a fact about
+ * the town and nothing above it is a fact about the item. A caller with one
+ * town and many rows takes the quote once and hands it back; the fold — this
+ * function — is unmoved, and the printed number is still its answer.
+ *
  * The empire's thumb on the scale
  * ------------------------------
  * Happiness and authority land *here*, at the very end, and that is the whole of
@@ -2394,7 +2455,67 @@ export function cityYields(
   city: City,
   hypothetical: readonly BuildingId[] = [],
   toward?: QueueItem | null,
+  quote: CityQuote = cityQuote(state, city, hypothetical),
 ): CityYields {
+  // Entry XVII, and the only place in the simulation a yield meets a percentage.
+  // The hammers behind *this build* join the city stage rather than standing
+  // beside it, because a barracks is a fact about the town in exactly the way
+  // marble and a market are; the meters wait for the second multiplication.
+  const sums = cityStageSums(state, city, toward, hypothetical, quote.percents);
+  const total: CityYields = { ...quote.flats };
+  for (const key of CITY_YIELD_KEYS) total[key] = applyStages(total[key], sums[key]);
+  return total;
+}
+
+/**
+ * Everything about a city's yields that is **not** about what it is building:
+ * the flats before any percentage has touched them, and the percentages
+ * themselves.
+ *
+ * `cityYields` is this plus one multiplication. The split exists because the
+ * two halves are asked at wildly different rates: a screen pricing a build list
+ * asks "how long would *this* take" of forty rows against one town, and the
+ * only thing that differs between the forty is `productionModifiers` — the
+ * centre, the worked tiles, the luxuries, the routes, the palace, the buildings
+ * and, above all, `cityYieldPercents` (which walks the whole empire twice for
+ * the two meters) are the same answer forty times over. Hoisting them is
+ * `tileOwnerField`'s bargain read one system across: the loop pays for the
+ * empire once instead of once per row.
+ *
+ * **It is an input, never an answer.** Nothing prints a quote; the printed
+ * number is still `cityYields`', computed by the one arithmetic, off a quote
+ * handed in rather than one taken. That is rule 5's "a hoisted figure must be
+ * the same function's answer handed in" kept honestly: what is hoisted here is
+ * the *ingredients*, and the fold stays where it was.
+ *
+ * **Its lifetime is one sweep** — `zocField`'s and `tileOwnerField`'s rule, and
+ * for their reason. A quote is a photograph of one city under one `hypothetical`
+ * at one instant; hand it back after anything has been banked, claimed, chopped
+ * or slotted and it will answer with the town the state has moved past. Take
+ * one at the top of a loop, spend it inside, and let it go.
+ */
+export interface CityQuote {
+  /**
+   * The six yields as they stand before Entry XVII's two multiplications — the
+   * fold of every flat source, in `cityQuote`'s order.
+   */
+  flats: CityYields;
+  /** `cityYieldPercents`' list for this town, which is a fact about the town. */
+  percents: readonly CityYieldPercent[];
+  /**
+   * The empire's half of that list, kept apart so it can be lent to a *ghost*
+   * of this town — see `empirePercents` for why that is exact rather than
+   * approximate.
+   */
+  empire: EmpirePercents;
+}
+
+export function cityQuote(
+  state: GameState,
+  city: City,
+  hypothetical: readonly BuildingId[] = [],
+  empire: EmpirePercents = empirePercents(state, city.ownerId),
+): CityQuote {
   const centre = centreYield(state, city);
   const total: CityYields = {
     food: centre.food,
@@ -2479,14 +2600,9 @@ export function cityYields(
     total.science += Math.floor(city.population * entry.sciencePerPop);
   }
 
-  // Entry XVII, and the only place in the simulation a yield meets a percentage.
-  // The hammers behind *this build* join the city stage rather than standing
-  // beside it, because a barracks is a fact about the town in exactly the way
-  // marble and a market are; the meters wait for the second multiplication.
-  const sums = cityStageSums(state, city, toward, hypothetical);
-  for (const key of CITY_YIELD_KEYS) total[key] = applyStages(total[key], sums[key]);
-
-  return total;
+  // The percentages are gathered, never applied: the multiplication is `cityYields`'
+  // one line, and it is the only place in the simulation a yield meets a percentage.
+  return { flats: total, percents: cityYieldPercents(state, city, empire), empire };
 }
 
 /** What the citizens eat: `foodPerCitizen` each. */
@@ -2917,12 +3033,21 @@ export function queueItemName(item: QueueItem): string {
  * build", not "how long until the queue reaches it". A cumulative figure would
  * have to assume nothing ahead of it changes price, and a settler ahead of it in
  * an empire mid-expansion does exactly that (see `advanceProduction`).
+ *
+ * `quote` is the city's `cityQuote`, for a caller asking this of many rows at
+ * once — the build list asks it of every unit, every building and every queue
+ * row on a single town, and the empire underneath the answer is the same every
+ * time. It changes no arithmetic: the rate is still `cityYields`' production
+ * for *this* item, still folded by that one function, and the quote is only the
+ * half of its ingredients the item cannot change. See `CityQuote` for the
+ * lifetime that makes handing one in safe.
  */
 export function turnsToBuild(
   state: GameState,
   city: City,
   item: QueueItem,
   index: number,
+  quote?: CityQuote,
 ): number | null {
   const cost = queueItemCost(state, city.ownerId, item);
   if (cost === null) return null;
@@ -2931,7 +3056,7 @@ export function turnsToBuild(
   // unit is at the front and at the plain rate otherwise, so an estimate that
   // divided by the city's unmodified production would promise a schedule the
   // basket beats. See `cityYields`'s `toward`.
-  return turnsToFill(cost - banked, cityYields(state, city, [], item).production);
+  return turnsToFill(cost - banked, cityYields(state, city, [], item, quote).production);
 }
 
 // --- turn phases ------------------------------------------------------------

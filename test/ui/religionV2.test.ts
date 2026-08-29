@@ -588,8 +588,10 @@ describe('the followers on a city sheet', () => {
     expect(render.indexOf('renderFollowers(city)')).toBeGreaterThan(
       render.indexOf('renderCitizenFocus(city)'),
     );
+    // The call's opening rather than the whole of it: the growth section takes
+    // the render's hoisted `CityQuote` now, and the claim here is about order.
     expect(render.indexOf('renderFollowers(city)')).toBeLessThan(
-      render.indexOf('renderGrowth(city)'),
+      render.indexOf('renderGrowth(city'),
     );
   });
 });

@@ -426,7 +426,10 @@ describe('the citizen focus line', () => {
     const text = source('cityPanel.ts');
     const citizens = text.indexOf('container.append(renderCitizens(city));');
     const focus = text.indexOf('const focus = renderCitizenFocus(city);');
-    const growth = text.indexOf('container.append(renderGrowth(city));');
+    // The call's opening rather than the whole line: the sections take the
+    // render's hoisted `CityQuote` now (`cityPanel.test.ts`), and what this
+    // test is about is the *order* of the three, not their arguments.
+    const growth = text.indexOf('container.append(renderGrowth(city');
     expect(citizens).toBeGreaterThanOrEqual(0);
     expect(focus).toBeGreaterThan(citizens);
     expect(growth).toBeGreaterThan(focus);

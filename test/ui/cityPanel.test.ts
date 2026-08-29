@@ -144,3 +144,87 @@ describe('the fold equals the printed total', () => {
     }
   });
 });
+
+/**
+ * The panel's arithmetic budget, read off its own source (user, 2026-08-29:
+ * "the city screen is also starting to lag").
+ *
+ * The build list prices every row of a town — thirty-odd buildings, a dozen
+ * units, the queue and the head — and every one of those prices used to be a
+ * whole `cityYields`, which walks the empire twice for the two meter tiers. One
+ * render was well over a hundred folds of the same town. `CityQuote` is the
+ * half of that fold no *row* can change, taken once in `render` and handed to
+ * every estimate below it, and the arithmetic is unchanged: `test/sim/cities.
+ * test.ts` pins that a quoted answer is the unquoted one for every row in the
+ * game, including the two cards that narrow their hammers to one silhouette and
+ * to one building category.
+ *
+ * Pinned by reading the source rather than by counting calls at runtime,
+ * because the property is structural and the suite has no document to render a
+ * panel into (module docblock): **a fold asked in a section is asked with the
+ * quote, and a fold asked without one belongs to a hover card**. A hover card
+ * builds one at a time, when a pointer rests on a row, and reads the sim fresh
+ * for exactly that reason — see `infoCard.bind`, which takes a builder and not
+ * a node. The next row loop that forgets the quote is a hundred empire sweeps
+ * back, and this is what says so.
+ */
+describe('the build list prices rows off one quote', () => {
+  const UI_SOURCE = import.meta.glob('../../src/ui/*.ts', {
+    eager: true,
+    query: '?raw',
+    import: 'default',
+  }) as Record<string, string>;
+
+  function panelSource(): string {
+    const key = Object.keys(UI_SOURCE).find((path) => path.endsWith('/cityPanel.ts'));
+    expect(`cityPanel.ts readable`).toBe(
+      key === undefined ? 'cityPanel.ts missing' : 'cityPanel.ts readable',
+    );
+    return UI_SOURCE[key!]!;
+  }
+
+  /** Every line that folds the city — the two the row loops used to pay for. */
+  function foldLines(source: string): { text: string; index: number }[] {
+    const lines = source.split('\n');
+    const found: { text: string; index: number }[] = [];
+    lines.forEach((text, index) => {
+      if (/\b(turnsToBuild|explainBuildingPreview)\(/.test(text)) found.push({ text, index });
+    });
+    return found;
+  }
+
+  it('takes exactly one quote, in `render`', () => {
+    const source = panelSource();
+    expect(source.match(/\bcityQuote\(/g) ?? []).toHaveLength(1);
+    // And it is taken where the panel starts drawing, not inside a section that
+    // would then be taking one per section.
+    const at = source.indexOf('cityQuote(');
+    expect(at).toBeGreaterThan(source.indexOf('// --- the whole panel'));
+  });
+
+  it('asks every section’s estimate with it, and only the hover cards without', () => {
+    const source = panelSource();
+    const sections = source.split('\n').findIndex((line) => line.includes('// --- sections'));
+    expect(sections).toBeGreaterThan(0);
+    const folds = foldLines(source);
+    // Not vacuous: the list loops, the queue, the progress head and the three
+    // cards are all in here.
+    expect(folds.length).toBeGreaterThanOrEqual(8);
+    for (const { text, index } of folds) {
+      const quoted = text.includes('quote');
+      const where = `${text.trim()} (line ${index + 1})`;
+      expect(where).toBe(
+        quoted === index > sections ? where : `${where} — a section fold must carry the quote`,
+      );
+    }
+  });
+
+  it('reads the percentages off the quote rather than folding them again', () => {
+    // `cityYieldPercents` is `cityQuote`'s own work; a panel that called it
+    // beside the quote would be walking the empire's two meters a second time
+    // to print the very list the quote already holds.
+    expect(panelSource()).not.toMatch(/\bcityYieldPercents\(/);
+    expect(panelSource()).toMatch(/quote\.percents/);
+  });
+});
+
