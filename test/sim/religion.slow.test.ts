@@ -322,9 +322,17 @@ function playTwoFaiths(maxTurns: number): {
       }
 
       // Spend the prophets: the site first (which founds), and the bomb after.
+      // Only the *founding* site is planted here — since 2026-08-29 founding
+      // spends the whole prophet and a later site costs a charge, so a policy
+      // that planted with every prophet would spend the second one on stones
+      // and never throw the bomb this test is about.
+      const hasFaith = g.state.religions.some((religion) => religion.founderId === seat);
       for (const unit of [...g.state.units]) {
         if (unit.ownerId !== seat || unitDef(unit.type).prophesies !== true) continue;
-        if (dispatch(g, { type: 'plantHolySite', playerId: seat, unitId: unit.id } as Command).ok) {
+        if (
+          !hasFaith &&
+          dispatch(g, { type: 'plantHolySite', playerId: seat, unitId: unit.id } as Command).ok
+        ) {
           continue;
         }
         if (dispatch(g, { type: 'proclaim', playerId: seat, unitId: unit.id } as Command).ok) {
