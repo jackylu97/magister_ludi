@@ -326,6 +326,22 @@ player at the ground — *"You have no gods to found a religion on"*, *"The worl
 has all the religions it will hold"*, and (from the gate, unreachable from the
 verb by construction) *"… has already founded a religion"*.
 
+✎ **What a verb costs the prophet** (user, 2026-08-29; schema 33). Two of the
+four acts are the end of the piece and two are a charge. **Founding a religion
+uses the prophet up**, whatever charges it was still carrying, and so does
+**enhancing** — both are things a faith can only be given once, and the prophet is
+what a realm pays for them. **Proclaiming and re-drafting still cost one charge**
+each, so a two-charge prophet may speak and then walk on, and a prophet whose last
+charge goes leaves the board the way an emptied worker does. **Planting a holy
+site is a standing option**: once the religion exists a site is one charge, it
+raises the stones and opens a follower draft if the pool has room, and it **never
+moves the seat of the faith** — `Religion.holySite` is written once with `??=`,
+so a site out on a frontier extends the tide without handing the founder's pay to
+whoever takes that frontier. The rule lives in one place per half —
+`prophetPrice` answers which price a verb carries (the sheet prints it as "Uses
+the prophet" or "Uses one charge"), and `spendProphet` / `spendProphetCharge` are
+the only two things that charge it.
+
 ### The citizen model
 
 `cityReligion(city)` is **derived, never stored**: the religion more than half the

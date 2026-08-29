@@ -991,10 +991,10 @@ describe('every hook family, end to end', () => {
 // --- determinism ------------------------------------------------------------
 
 describe('determinism', () => {
-  it('round-trips a schema 32 save with Statecraft in it', () => {
+  it('round-trips a schema 33 save with Statecraft in it', () => {
     // Bumped to 32 by the master-list cut of 2026-08-28: no new field, but the
     // balance table moved under every replay (see the version's own entry).
-    expect(SCHEMA_VERSION).toBe(32);
+    expect(SCHEMA_VERSION).toBe(33);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1009,7 +1009,7 @@ describe('determinism', () => {
     // drafts — what this pins is the *shape*: the field serialises, survives
     // JSON, and comes back identical.
     const text = snapshotState(g.state);
-    expect(JSON.parse(text).schemaVersion).toBe(32);
+    expect(JSON.parse(text).schemaVersion).toBe(SCHEMA_VERSION);
     expect(JSON.parse(text).players[0].statecraft).toEqual(player.statecraft);
     // A player who has never drafted serialises as the opening state exactly.
     expect(JSON.parse(text).players[1].statecraft).toEqual(newPlayerStatecraft());

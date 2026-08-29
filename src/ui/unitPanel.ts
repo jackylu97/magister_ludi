@@ -975,16 +975,19 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    * the second description of a rule this codebase spends whole modules
    * avoiding.
    *
-   * The charge line is the one thing on the card that is not about the act, and
+   * The price line is the one thing on the card that is not about the act, and
    * it is here for the rite card's reason: this is the screen where a player
-   * decides between three charges, and the row itself now spends its whole width
-   * on what the act *does*.
+   * decides what to do with the most expensive piece a faith buys, and the row
+   * itself now spends its whole width on what the act *does*. It is
+   * `ProphetRow.cost` rather than a sentence written here, because two of the
+   * four verbs use the piece up outright (user, 2026-08-29) and which two is the
+   * simulation's answer (`prophetPrice`), not this card's.
    */
   function prophetCard(row: ProphetRow): Node {
     const card = element('div', 'unit-card');
     card.append(element('h4', 'unit-card-title', row.name));
     card.append(element('p', 'unit-card-payoff', row.says));
-    card.append(element('p', 'unit-card-clause', 'Spends one of the prophet’s charges'));
+    card.append(element('p', 'unit-card-clause', row.cost));
     if (row.blocked !== null) card.append(element('p', 'unit-card-blocked', row.blocked));
     return card;
   }

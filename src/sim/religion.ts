@@ -1268,6 +1268,78 @@ function prophetProblem(state: GameState, playerId: number, unitId: number): str
 }
 
 /**
+ * What one of a prophet's verbs costs: the **whole piece**, or **one charge**.
+ *
+ * The user's ruling of 2026-08-29: "prophets should be entirely consumed by
+ * starting a religion or enhancing. proclamations and redrafting should still
+ * only consume 1 charge as usual." So two of the four acts are the end of the
+ * prophet whatever it is still carrying, and the other two are the charge they
+ * always were.
+ */
+export type ProphetPrice = 'whole' | 'charge';
+
+/**
+ * The four verbs, named as the interface names them, so the price below and the
+ * row that prints it cannot drift apart by a typo.
+ */
+export type ProphetVerbName = 'plantHolySite' | 'enhanceReligion' | 'proclaim' | 'redraftBeliefs';
+
+/**
+ * What this verb would cost this seat's prophet, right now — **the one rule**,
+ * asked by the reducer that charges it and by the sheet that prints it.
+ *
+ * Only planting has a price that moves, and it moves for the reason the row's
+ * own *name* moves (`prophetRows`): the first stones are also the founding, and
+ * founding is what ends the prophet. A later site is a charge, exactly like the
+ * two acts that never founded anything.
+ */
+export function prophetPrice(
+  state: GameState,
+  playerId: number,
+  verb: ProphetVerbName,
+): ProphetPrice {
+  if (verb === 'enhanceReligion') return 'whole';
+  if (verb === 'plantHolySite') {
+    return foundedReligion(state, playerId) === undefined ? 'whole' : 'charge';
+  }
+  return 'charge';
+}
+
+/**
+ * Spends the whole prophet on the act it just performed, and the piece leaves
+ * the board with whatever it was still carrying.
+ *
+ * One function rather than a `removeUnit` line in each of the four verbs, for
+ * the reason `prophetProblem` is one function: a rule about the piece stated
+ * four times is a rule three of them will eventually disagree with. The charge
+ * count is deliberately **not** zeroed on the way out — the unit is gone, and a
+ * write to a removed piece is a fact nobody can read.
+ */
+function spendProphet(state: GameState, unit: Unit): void {
+  removeUnit(state, unit.id);
+}
+
+/**
+ * Spends one of a prophet's charges, and lets go of a piece that emptied.
+ *
+ * Returns true when the prophet left the board — which is the *exhaustion*
+ * rule, not the consumption one: a one-charge prophet that proclaims is spent
+ * because it has nothing left, and a two-charge prophet that proclaims walks
+ * away. The day goes with the charge (`movesLeft = 0`): an act is a prophet's
+ * whole turn.
+ */
+function spendProphetCharge(state: GameState, unit: Unit): boolean {
+  const left = (unit.chargesLeft ?? 0) - 1;
+  if (left <= 0) {
+    removeUnit(state, unit.id);
+    return true;
+  }
+  unit.chargesLeft = left;
+  unit.movesLeft = 0;
+  return false;
+}
+
+/**
  * Why this prophet cannot plant a holy site here, or `null` when it can.
  *
  * **A holy site needs a religion**, so an empire that has founded none is asked
@@ -1339,9 +1411,16 @@ export interface HolySitePlanting {
  *      for `consecrateAt`'s reason exactly — the draw advances `state.rng`, and
  *      anything that could throw between the two would leave a prophet able to
  *      deal a second hand from a moved generator;
- *   4. **the charge**, and a prophet that empties leaves the board exactly as a
+ *   4. **the price**, which is the *whole prophet* when this planting founded
+ *      the religion and one charge when it did not (user, 2026-08-29) — and a
+ *      prophet that empties its last charge leaves the board exactly as a
  *      worker does;
  *   5. **the day**, spent whole. Planting is the turn's work.
+ *
+ * **A later holy site never moves the seat of the faith.** The `??=` above is
+ * the whole of that rule and it is a rule, not an accident: a prophet may raise
+ * as many sites as an empire can pay for, and every one of them presses for the
+ * faith, but the first stones stay the anchor `religionFounder` reads.
  */
 export function plantHolySiteAt(
   state: GameState,
@@ -1369,13 +1448,13 @@ export function plantHolySiteAt(
     player.pantheon.pending = offer;
   }
 
-  const left = (unit.chargesLeft ?? 0) - 1;
-  const prophetSpent = left <= 0;
-  if (prophetSpent) removeUnit(state, unit.id);
-  else {
-    unit.chargesLeft = left;
-    unit.movesLeft = 0;
-  }
+  // **The founding is the end of the prophet** (user, 2026-08-29); a later site
+  // is one charge like any other act. `founded` is the same question
+  // `prophetPrice` asks the moment before the verb runs — it cannot be asked
+  // again *here*, because by now the religion exists.
+  let prophetSpent = true;
+  if (founded) spendProphet(state, unit);
+  else prophetSpent = spendProphetCharge(state, unit);
   return { religion, founded, offer, col: tile.col, row: tile.row, prophetSpent };
 }
 
@@ -1410,11 +1489,14 @@ export function enhanceReligionError(
 const ENHANCER_TECH: TechId = 'theology';
 
 /**
- * Spends a charge on an enhancer draft. Validates nothing —
- * `enhanceReligionError` is the rule.
+ * Spends the whole prophet on an enhancer draft. Validates nothing —
+ * `enhanceReligionAt`'s gate is `enhanceReligionError`.
  *
- * `plantHolySiteAt`'s three closing steps in the same order and for the same
- * reasons: the draw, then the charge, then the day.
+ * `plantHolySiteAt`'s closing steps in the same order and for the same reasons —
+ * the draw, then the price — and the price is the **piece** (user, 2026-08-29).
+ * An enhancement is the second thing a faith can only be given once, so it costs
+ * what the founding costs; there is no day left to spend because there is no
+ * prophet left to spend it.
  */
 export function enhanceReligionAt(
   state: GameState,
@@ -1424,12 +1506,7 @@ export function enhanceReligionAt(
   const religion = foundedReligion(state, player.id)!;
   const offer = drawPoolBeliefOffer(state, player, religion, 'enhancer');
   player.pantheon.pending = offer;
-  const left = (unit.chargesLeft ?? 0) - 1;
-  if (left <= 0) removeUnit(state, unit.id);
-  else {
-    unit.chargesLeft = left;
-    unit.movesLeft = 0;
-  }
+  spendProphet(state, unit);
   return offer;
 }
 
@@ -1492,12 +1569,7 @@ export function proclaimAt(state: GameState, player: Player, unit: Unit): Procla
   const religion = foundedReligion(state, player.id)!;
   const { range, lump } = bombFigures(state, player.id);
   const report = pressLump(state, religion, { col: unit.col, row: unit.row }, range, lump);
-  const left = (unit.chargesLeft ?? 0) - 1;
-  if (left <= 0) removeUnit(state, unit.id);
-  else {
-    unit.chargesLeft = left;
-    unit.movesLeft = 0;
-  }
+  spendProphetCharge(state, unit);
   return report;
 }
 
@@ -1609,12 +1681,7 @@ export function redraftAt(
   else religion.enhancer = [];
   const offer = drawPoolBeliefOffer(state, player, religion, pool);
   player.pantheon.pending = offer;
-  const left = (unit.chargesLeft ?? 0) - 1;
-  if (left <= 0) removeUnit(state, unit.id);
-  else {
-    unit.chargesLeft = left;
-    unit.movesLeft = 0;
-  }
+  spendProphetCharge(state, unit);
   return offer;
 }
 

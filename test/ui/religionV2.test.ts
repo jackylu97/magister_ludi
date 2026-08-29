@@ -24,12 +24,14 @@ import {
   type Religion,
   createUnit,
   newGame,
+  playerById,
 } from '../../src/sim/state';
 import {
   enhanceReligionError,
   foundReligion,
   plantHolySiteError,
   proclaimError,
+  prophetPrice,
   redraftError,
 } from '../../src/sim/religion';
 import {
@@ -53,7 +55,7 @@ import {
   pressureLedgerText,
   religionReading,
 } from '../../src/ui/religionScreen';
-import { proclaimSays } from '../../src/ui/controls';
+import { PROPHET_PRICE_WORD, proclaimSays } from '../../src/ui/controls';
 
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', {
@@ -335,6 +337,35 @@ describe('the prophet’s four ministries', () => {
     expect(rows).toContain("name: mine === undefined ? 'Found religion' : 'Plant holy site',");
   });
 
+  it('says what each verb costs, in the two words the ruling left', () => {
+    // The user's ruling of 2026-08-29: founding and enhancing consume the
+    // prophet; a proclamation and a redraft cost one charge. The row prints the
+    // *simulation's* answer through one word table, so a price that moved in
+    // the reducer moves the sentence with it.
+    expect(PROPHET_PRICE_WORD.whole).toBe('Uses the prophet');
+    expect(PROPHET_PRICE_WORD.charge).toBe('Uses one charge');
+    expect(rows).toContain('PROPHET_PRICE_WORD[prophetPrice(state, localPlayerId, verb)]');
+    for (const verb of [
+      'plantHolySite',
+      'enhanceReligion',
+      'proclaim',
+      'redraftBeliefs',
+    ] as const) {
+      expect(`${verb}: ${rows.includes(`cost: priced('${verb}')`)}`).toBe(`${verb}: true`);
+    }
+    // Driven, so the two sentences a player actually reads are pinned as
+    // sentences: no religion yet ⇒ the planting row is the whole piece; once
+    // one stands ⇒ a charge.
+    const state = world();
+    expect(PROPHET_PRICE_WORD[prophetPrice(state, 0, 'plantHolySite')]).toBe('Uses the prophet');
+    expect(PROPHET_PRICE_WORD[prophetPrice(state, 0, 'enhanceReligion')]).toBe('Uses the prophet');
+    expect(PROPHET_PRICE_WORD[prophetPrice(state, 0, 'proclaim')]).toBe('Uses one charge');
+    expect(PROPHET_PRICE_WORD[prophetPrice(state, 0, 'redraftBeliefs')]).toBe('Uses one charge');
+    playerById(state, 0)!.pantheon.beliefs.push('keeperOfTheHearth');
+    foundReligion(state, playerById(state, 0)!);
+    expect(PROPHET_PRICE_WORD[prophetPrice(state, 0, 'plantHolySite')]).toBe('Uses one charge');
+  });
+
   it('gives Redraft one sub-row per pool, each with its own refusal', () => {
     expect(rows).toContain('RELIGION_BELIEF_POOLS.map');
     expect(rows).toContain('POOL_WORD[pool].name');
@@ -443,14 +474,17 @@ describe('what the Proclaim row says', () => {
   });
 
   it('is the row’s whole sentence, and the hover card prints it too', () => {
-    // The one prophet row that is not "Spend a charge: …": it converts a region,
-    // so the row is the description and the charge is said on the card beside it,
+    // The one prophet row that does not open with its price: it converts a
+    // region, so the row is the description and the price is on the card beside it,
     // exactly as a rite's is.
     expect(fn('controls.ts', 'prophetRows')).toContain('says: proclaimSays(state, unit.id)');
     const sheet = sourceOf('unitPanel.ts');
     expect(sheet).toContain("row.verb === 'proclaim' ? () => prophetCard(row) : undefined");
     expect(fn('unitPanel.ts', 'prophetCard')).toContain('row.says');
-    expect(fn('unitPanel.ts', 'prophetCard')).toContain('Spends one of the prophet');
+    // The price line is the row's own, never a sentence written on the card:
+    // two of the four verbs use the piece up (user, 2026-08-29) and which two
+    // is `prophetPrice`'s answer.
+    expect(fn('unitPanel.ts', 'prophetCard')).toContain('row.cost');
   });
 });
 

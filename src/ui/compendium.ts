@@ -425,10 +425,10 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   if (def.prophesies === true) {
     const charges = def.charges ?? 0;
     out.push({
-      text: `Carries ${charges} ${plural(charges, 'charge')}, and each one spends the whole turn. A charge plants a holy site, draws a belief for your religion, proclaims your faith over the land around it, or gives one of your religion's drafts back to be drawn again.`,
+      text: `Carries ${charges} ${plural(charges, 'charge')}, and each act spends the whole turn. A charge proclaims your faith over the land around it, gives one of your religion's drafts back to be drawn again, or raises a holy site once your religion stands.`,
     });
     out.push({
-      text: 'The first holy site a prophet plants founds your religion, out of the gods you already keep.',
+      text: 'The first holy site a prophet plants founds your religion, out of the gods you already keep. Founding a religion uses up the whole unit, and so does drawing an enhancer belief for it.',
     });
   }
   if (def.greatWork === true) {

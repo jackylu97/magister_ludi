@@ -349,8 +349,19 @@ import {
  *     draw from that bag. The `muster` phase is new in the pipeline and fires
  *     for nobody who holds no such card, so a v31 log's turn order is otherwise
  *     untouched — but the drafts alone move every roll after the first tier.
+ * 33: **What a prophet costs** (user ruling, 2026-08-29): "prophets should be
+ *     entirely consumed by starting a religion or enhancing. proclamations and
+ *     redrafting should still only consume 1 charge as usual." **No new field on
+ *     any save** — this bump is entirely about the price, and it is here for
+ *     v32's reason: a log replayed against a different price is a different
+ *     game, not an older one. A v32 prophet founded a religion and walked away
+ *     with a charge in hand; this one does not exist by the time the stones are
+ *     up, so every piece that prophet went on to spend — a second holy site, a
+ *     proclamation, an enhancement — never happens, and the board diverges from
+ *     the founding turn. Nothing about a later holy site moved: it is one charge
+ *     as before, and it still never moves `Religion.holySite`.
  */
-export const SCHEMA_VERSION = 32;
+export const SCHEMA_VERSION = 33;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
