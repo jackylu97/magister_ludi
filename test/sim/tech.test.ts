@@ -76,6 +76,23 @@ function flatState(width = 16, height = 12, terrain: 'desert' | 'grassland' = 'g
   return state;
 }
 
+/**
+ * Puts iron under a town of `playerId` at (col, row), so the empire *controls*
+ * it the way `openedResource`'s city clause reads — the resource an upgrade
+ * to the sword line has waited on since 2026-08-29 ("iron working should only
+ * upgrade warriors when iron is available"). The reveal tech is the caller's
+ * to grant, exactly as it is in play.
+ */
+function connectIron(state: GameState, playerId: number, col: number, row: number): void {
+  const tile = at(state.map, col, row);
+  tile.hills = true;
+  tile.resource = 'iron';
+  foundCityAt(state, playerId, tile);
+  // The city clause opens a seam only to an owner who holds the improvement's
+  // tech (`openedResource`), so the town needs Mining as well as the reveal.
+  grant(state, playerId, 'mining');
+}
+
 function at(map: GameMap, col: number, row: number): Tile {
   const tile = getTileAt(map, col, row);
   if (!tile) throw new Error(`No tile at (${col}, ${row})`);
@@ -673,6 +690,7 @@ describe('auto-upgrade', () => {
     const unit = createUnit(state, 0, 'warrior', 8, 5);
     unit.hp = 60;
     grant(state, 0, 'bronzeWorking', 'stonecraft');
+    connectIron(state, 0, 8, 5);
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
 
@@ -691,6 +709,7 @@ describe('auto-upgrade', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'swordsman', 8, 5);
     unit.hp = 50; // half of 100
+    connectIron(state, 0, 8, 5);
     grant(state, 0, 'bronzeWorking', 'stonecraft', 'ironWorking', 'letters', 'theWheel');
     grant(state, 0, 'husbandry', 'mathematics', 'fletching', 'construction', 'engineering');
     grant(state, 0, 'machinery');
@@ -710,6 +729,7 @@ describe('auto-upgrade', () => {
     createUnit(state, 0, 'scout', 4, 4);
     createUnit(state, 1, 'warrior', 2, 2); // another player's
     grant(state, 0, 'bronzeWorking', 'stonecraft');
+    connectIron(state, 0, 8, 5);
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
 
@@ -727,6 +747,7 @@ describe('auto-upgrade', () => {
   it('walks the whole chain when a unit has missed a generation', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 8, 5);
+    connectIron(state, 0, 8, 5);
     // Everything the longswordsman needs, except the tech that finishes it.
     grant(
       state,
@@ -752,10 +773,43 @@ describe('auto-upgrade', () => {
     expect(state.units[0]!.type).toBe('longswordsman');
   });
 
+  it('waits for iron: Iron Working alone leaves a warrior a warrior', () => {
+    // User, 2026-08-29: "iron working should only upgrade warriors when iron
+    // is available". The walk in `upgradeTargetFor` stops at a rung whose
+    // `requiresResource` the empire does not control — the same gate
+    // `buildError` keeps at the queue.
+    const state = flatState();
+    const unit = createUnit(state, 0, 'warrior', 8, 5);
+    grant(state, 0, 'bronzeWorking', 'stonecraft');
+    applyCommand(state, choose(0, 'ironWorking'));
+    state.players[0]!.sciencePool = techDef('ironWorking').cost;
+    advanceResearch(state);
+    expect(state.players[0]!.techsResearched).toContain('ironWorking');
+    expect(upgradeTargetFor(state, unit)).toBeNull();
+    expect(state.units[0]!.type).toBe('warrior');
+  });
+
+  it('retools the resolution after iron is connected, with nothing being researched', () => {
+    // "If iron isn't available when swordsmen are unlocked, connecting iron
+    // will then trigger the upgrades" — the sweep in `advanceResearch` runs
+    // every turn, so the verb that connected the iron (a mine, a purchase, a
+    // capture, a founding) need not know about upgrades at all.
+    const state = flatState();
+    createUnit(state, 0, 'warrior', 8, 5);
+    grant(state, 0, 'bronzeWorking', 'stonecraft', 'ironWorking');
+    advanceResearch(state);
+    expect(state.units[0]!.type).toBe('warrior');
+    connectIron(state, 0, 8, 5);
+    expect(state.players[0]!.researching).toBeNull();
+    advanceResearch(state);
+    expect(state.units[0]!.type).toBe('swordsman');
+  });
+
   it('charges retooling gold when the rules ask for it, and stops when it runs out', () => {
     const state = flatState();
     for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 8, 5 + i);
     grant(state, 0, 'bronzeWorking', 'stonecraft');
+    connectIron(state, 0, 8, 5);
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
     state.players[0]!.gold = 25;
@@ -792,6 +846,7 @@ describe('auto-upgrade', () => {
     const state = flatState();
     for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 8, 5 + i);
     grant(state, 0, 'bronzeWorking', 'stonecraft');
+    connectIron(state, 0, 8, 5);
     const before = researchSnapshot(state, 0);
 
     applyCommand(state, choose(0, 'ironWorking'));

@@ -771,6 +771,13 @@ export function advanceResearch(state: GameState): void {
     // would be a no-op that invited somebody to give it a starting kit.
     if (player.barbarian) continue;
     settleResearch(state, player);
+    // The retooling sweep runs **every** turn, not only on the turn a technology
+    // lands, because since 2026-08-29 an upgrade can also be waiting on a
+    // resource (`upgradeTargetFor`): the warriors an empire held at Iron
+    // Working become swordsmen the resolution after its first iron is mined,
+    // bought, or captured — whichever verb connected it. A sweep with nothing
+    // to retool writes nothing, so a game without a gated line is untouched.
+    upgradeUnits(state, player);
   }
 }
 
@@ -971,6 +978,13 @@ export function upgradeTargetFor(state: GameState, unit: Unit): UnitTypeId | nul
     const next = unitDef(current).upgradesTo;
     if (next === undefined) break;
     if (!isUnlocked(state, unit.ownerId, 'unit', next)) break;
+    // The same gate `buildError` keeps: a rung that needs iron is not climbed
+    // until the empire controls iron (user, 2026-08-29 — "iron working should
+    // only upgrade warriors when iron is available"). The walk stops rather
+    // than skips, because a chain is a chain — nobody becomes a longswordsman
+    // without having been a swordsman.
+    const resource = unitDef(next).requiresResource;
+    if (resource !== undefined && !hasResource(state, unit.ownerId, resource)) break;
     current = next;
   }
   return current === unit.type ? null : current;
