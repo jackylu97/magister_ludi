@@ -2471,6 +2471,13 @@ async function boot(initial: Game | null): Promise<void> {
     renderer,
     getGame: () => game,
     onUpdate: updatePanel,
+    // And the pointer's own, narrow half — `updatePanel` minus everything that
+    // prints the state. A mouse move can change what the readout says about the
+    // hex under the cursor and nothing else on this page: the previews that
+    // follow the pointer (the spotlight, the settler radius, the path) are
+    // pushed straight at the renderer by `controls` itself, and the faith card
+    // is `updateContext`'s last line. See `onHover` in `controls.ts`.
+    onHover: () => updateContext(renderer.getHover()),
     onNotice: showNotice,
     // The other half of the split (`controls.ts`'s docblock): news gets a toast
     // under the bar *and* a line in the seat's chronicle, and both come from the

@@ -1210,6 +1210,26 @@ export interface GameControlsOptions {
   onUpdate: (selected: Unit | null, hover: HoverInfo | null) => void;
 
   /**
+   * The pointer moved over the board, and nothing else happened.
+   *
+   * `onUpdate`'s narrow sibling, and the split is the whole point. A mouse move
+   * changes exactly one thing — what the pointer is *over* — so it may refresh
+   * the tile readout and the hover-driven previews, and it must not touch a
+   * panel that prints the state: nothing about the city screen, the research
+   * card, the seat strip or the top bar's totals can have changed because a
+   * cursor crossed a hex. Routed through `onUpdate` (as it was until 2026-08-29)
+   * it tore down and rebuilt the entire right-hand screen sixty times a second
+   * while the player was merely looking around.
+   *
+   * It carries no arguments on purpose: everything a hover can be about is
+   * already on the renderer by the time this fires (`setHover` is called first,
+   * with `null` on the way out), so a listener asks `renderer.getHover()` and
+   * there is one answer rather than two. Optional like every other reporting
+   * hook — a page that does not listen simply has no readout.
+   */
+  onHover?: () => void;
+
+  /**
    * The turn resolved: every seat had ended, the counter moved, and the local
    * seat is playing again. This is the moment the turn splash announces, and it
    * is reported from here because `endTurn` is the only place that can tell the
@@ -1859,6 +1879,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renderer,
     getGame,
     onUpdate,
+    onHover,
     onTurnResolved,
     onTurnHandedOver,
     onSeatAdvanced,
@@ -5508,6 +5529,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   // --- hover ---------------------------------------------------------------
 
+  /**
+   * The pointer came to rest somewhere new: re-pick the hex under it, push the
+   * three previews that follow the cursor at the board, and tell the interface.
+   *
+   * Everything here is deliberately *narrow* — `onHover`, never `onUpdate`. The
+   * three renderer setters all ignore an unchanged value, so a pointer resting
+   * on one tile costs nothing, and the one listener at the far end redraws a
+   * readout rather than a screen. See `onHover`'s docblock for what that split
+   * bought.
+   */
   function refreshHover(): void {
     if (!pointer) return;
     const hover = renderer.pick(pointer.x, pointer.y);
@@ -5521,7 +5552,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // the spotlight does, and is guarded the same way on the renderer's side.
     refreshSiteRadius();
     refreshPathPreview();
-    onUpdate(selectedUnit(), hover);
+    onHover?.();
   }
 
   // --- wiring --------------------------------------------------------------
@@ -5603,7 +5634,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // The pointer took the spotlight with it. A banner keeps its own — moving
     // onto one does not leave the viewport, since banners live inside it.
     refreshSpotlight();
-    onUpdate(selectedUnit(), null);
+    // `refreshHover`'s hook, for `refreshHover`'s reason: leaving the board is
+    // still only a fact about where the pointer is. The hover was set to `null`
+    // three lines up, so the listener that asks the renderer gets the empty
+    // answer and takes the readout down.
+    onHover?.();
   });
 
   viewport.addEventListener(

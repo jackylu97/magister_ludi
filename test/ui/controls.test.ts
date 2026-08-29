@@ -591,3 +591,96 @@ describe('the Statecraft pause', () => {
     expect(head).toContain('if (!force)');
   });
 });
+
+/**
+ * A pointer move is not a state change (2026-08-29).
+ *
+ * `refreshHover` used to end in `onUpdate`, which is `main.ts`'s `updatePanel`
+ * — the whole right-hand screen, the seat strip, the top bar's totals, the
+ * research card and every open panel, torn down and rebuilt. With a city screen
+ * up that ran on every `pointermove` over the board, so merely *looking around*
+ * rebuilt a few hundred nodes a frame. The fix is a second, narrow hook:
+ * `onHover`, which may refresh only what the pointer is over.
+ *
+ * The claim is about *where a call sits* and this suite has no DOM, so it is
+ * read off the source the way the sim's register tests read theirs.
+ */
+describe('a hover refreshes the readout, never the panels', () => {
+  const UI_SOURCES = import.meta.glob('../../src/{ui/*.ts,main.ts}', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>;
+
+  function source(name: string): string {
+    const key = Object.keys(UI_SOURCES).find((path) => path.endsWith(name));
+    const text = key === undefined ? undefined : UI_SOURCES[key];
+    if (typeof text !== 'string' || text.length === 0) {
+      throw new Error(`${name} came back empty`);
+    }
+    return text;
+  }
+
+  /** The text between two landmarks, with both of them checked for existence. */
+  function between(text: string, from: string, to: string): string {
+    const start = text.indexOf(from);
+    expect(start, from).toBeGreaterThan(-1);
+    const end = text.indexOf(to, start + from.length);
+    expect(end, to).toBeGreaterThan(-1);
+    return text.slice(start, end);
+  }
+
+  it('offers `onHover` beside `onUpdate` on the options', () => {
+    const text = source('controls.ts');
+    const options = between(text, 'export interface GameControlsOptions', 'export function createGameControls');
+    expect(options).toContain('onHover?: () => void;');
+    // Destructured with the rest, so a listener that is not passed is simply
+    // absent rather than a crash on the first mouse move.
+    expect(text).toMatch(/const \{[\s\S]*?\n {4}onHover,[\s\S]*?\n {2}\} = options;/);
+  });
+
+  it('ends `refreshHover` on `onHover` and never on `onUpdate`', () => {
+    const text = source('controls.ts');
+    const body = between(text, 'function refreshHover(): void {', '// --- wiring');
+    expect(body).toContain('onHover?.();');
+    expect(body).not.toContain('onUpdate');
+  });
+
+  it('never reaches `onUpdate` from the viewport pointer handlers', () => {
+    const text = source('controls.ts');
+    const move = between(text, "viewport.addEventListener('pointermove'", '/**\n   * Ends a press.');
+    expect(move).toContain('refreshHover();');
+    expect(move).not.toContain('onUpdate');
+
+    // Leaving the board is still only a fact about where the pointer is: the
+    // hover is set to `null` and the same narrow hook takes the readout down.
+    const leave = between(text, "viewport.addEventListener('pointerleave'", "viewport.addEventListener(");
+    expect(leave).toContain('renderer.setHover(null);');
+    expect(leave).toContain('onHover?.();');
+    expect(leave).not.toContain('onUpdate');
+  });
+
+  it('wires the hook to the tile readout alone, and leaves `onUpdate` the panels', () => {
+    const text = source('main.ts');
+    const wiring = between(text, 'const controls = createGameControls({', 'onNotice: showNotice,');
+    expect(wiring).toContain('onUpdate: updatePanel,');
+    // `updateContext` is the tile readout (and, on its last line, the faith
+    // hover card); the previews that follow the pointer are pushed straight at
+    // the renderer by `controls` itself, so this is the whole of the listener.
+    expect(wiring).toContain('onHover: () => updateContext(renderer.getHover()),');
+    expect(wiring).not.toContain('onHover: updatePanel');
+  });
+
+  /**
+   * The reason the split is worth a test rather than a comment: `updatePanel`
+   * rebuilds the two big screens, and neither can have changed because a cursor
+   * crossed a hex.
+   */
+  it('keeps the city and unit sheets inside `updatePanel`, where a hover can no longer reach them', () => {
+    const text = source('main.ts');
+    const body = between(text, 'function updatePanel(_selected: Unit | null, hover: HoverInfo | null): void {', '// --- lifecycle');
+    expect(body).toContain('cityPanel.render();');
+    expect(body).toContain('unitPanel.render();');
+    expect(body).toContain('updateContext(hover);');
+  });
+});
