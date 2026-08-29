@@ -3892,4 +3892,33 @@ the city's, not the row's, and an emptied queue makes the town ask for orders in
 The sentence grows the one clause: "Uruk is starving! It has shrunk to size 1 and its Settler
 is set aside."
 
+## Entry XLVI — The 8/29 notes (**built** 2026-08-29)
+
+Six playtest notes and two bug reports, in one push. **Tiles cost 0.4×** to buy
+(`ringBase [20,20,20,30]`, `perPriorPurchase 2`). **Borders grow toward ground worth having**:
+`expansionScore` is the citizen fold plus a bonus for a resource the owner can *see*, minus a
+penalty for bare water and a smaller one at ring three, all in `rules.cities.expansion` — the
+coastal town that kept claiming empty sea was scoring a coast hex's one gold against a
+grassland's two food on the same scale. **Camps are founded twice as often** (every 2 turns,
+three at a time; the muster inside a camp unchanged). **A prophet is spent whole** by the
+founding site and by enhancing, one charge by a proclamation, a redraft and every later holy
+site — `prophetPrice` is the one rule, and a later site never moves the seat of the faith.
+**End Turn pauses once** for a banked charter or a held Order that fits an open slot — an
+interface-side gate (`statecraftPause`), because Entry XV's bankability is a sim rule and this
+is a courtesy; the second press goes. **The settler lens prices a site**: `explainFoundingCost`
+is the rule-5 list — the prospect lines `explainAuthority` already appends (coastal is a
+*replacement*, one for two) and a size-one town's happiness demand — printed as "Founding here
+−2 authority · −1 happiness" on legal hexes only.
+
+**The two bugs.** The top bar's headline never folded the card-empire lines `collectYields`
+banks (The Great Litany, Zhang Qian's legacy, Publicani…) — the pools were right and the rate
+was wrong; `explainEmpireCardYields` is now the one list both read, pinned by source. And a
+settler queued in a town that starves to size one *held* forever with nothing said: the Growth
+line says starving, the hand-over says so once, and the shrink ejects the row (Entry XLV).
+
+**Proposed, not built:** `docs/orders-candidates.md` — some fifty Orders across the six pools,
+a rarity weight (● 4 · ◆ 2 · ○ 1, weighted never restricted) and a *decline stamp* that halves
+a passed card's weight for twenty turns, which is the actual cause of the repeats the user
+noticed: a declined card goes straight back into a uniform draw.
+
 ---
