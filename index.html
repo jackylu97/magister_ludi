@@ -206,6 +206,21 @@
       hidden
     ></div>
 
+    <!-- The confirm card, built by src/ui/confirmCard.ts: one question, two
+         answers. Raised over whatever is on screen when a verb cannot be taken
+         back — today the unit sheet's Disband row, and nothing else. Esc and
+         Cancel mean no, Enter means yes, and focus lands on Cancel. It is never
+         `window.confirm`, which is a different game's typeface and, on some
+         platforms, suppressible altogether. -->
+    <div
+      id="confirm-overlay"
+      class="confirm-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Please confirm"
+      hidden
+    ></div>
+
     <!-- ================= the HUD =================================
          One surface per job, each pinned where it never moves, so nothing the
          player reads or presses ever shifts under them:

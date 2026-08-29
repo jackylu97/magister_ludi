@@ -215,8 +215,14 @@ describe('the treasury under water', () => {
     // Read before the dispatch and said after it succeeded — never a `return`.
     expect(controls).toContain('const debt = debtWarning(playerById(getGame().state, localPlayerId));');
     expect(controls).toContain('if (debt !== null) announce(debt);');
-    // And the disband news goes through the same funnel every other report does.
-    expect(controls).toContain('reportDisbands(result);');
+    // And the disband news goes through the same funnel every other report
+    // does. It takes the command as well as the result since 2026-08-29: a
+    // piece the *player* let go fills the same `CommandResult.disbanded`, and
+    // the creditors' sentence — which names a threshold — is not that news, so
+    // `reportDisbands` stands aside for `disbandUnit` and the verb says its own
+    // line.
+    expect(controls).toContain('reportDisbands(command, result);');
+    expect(controls).toContain("if (command.type === 'disbandUnit') return;");
   });
 });
 
